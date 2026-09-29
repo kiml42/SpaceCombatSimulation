@@ -1,5 +1,5 @@
 import type { Targeting } from './doctrine.js';
-import { asin, atan2, cos, max, PI, sin, sqrt } from './math.js';
+import { asin, atan2, cos, max, PI, round, sin, sqrt } from './math.js';
 
 /**
  * Parametric ship modules: a few archetypes with continuous parameters, rather
@@ -845,6 +845,43 @@ export function moduleCentre(spec: ModuleSpec): { x: number; y: number } {
   const angle = spec.angle ?? 0;
   const back = spec.length / 2;
   return { x: spec.x - cos(angle) * back, y: spec.y - sin(angle) * back };
+}
+
+/**
+ * The module as another kind, in the same box.
+ *
+ * The centre is what is kept, not the coordinates: an engine's position is its
+ * mounting face, so changing the kind alone would slide it half its length.
+ *
+ * An engine points at the way it pushes, with its bell behind, while a weapon
+ * points at the way it fires. So swapping one for the other turns it half
+ * round, and whatever faced out of the ship still does. `turn` is any further
+ * rotation the caller wants.
+ *
+ * Fields the new kind does not read are kept, so swapping back restores them.
+ */
+export function refitModule(spec: ModuleSpec, to: ModuleKind, turn = 0): ModuleSpec {
+  const centre = moduleCentre(spec);
+  const flips =
+    (spec.kind === 'thruster' && isWeaponMount(to)) ||
+    (to === 'thruster' && isWeaponMount(spec.kind));
+  const next: ModuleSpec = { ...spec, kind: to };
+  if (flips || turn !== 0) {
+    // Folded into (-π, π], so a file says 180 rather than 540 after a few swaps.
+    let angle = (spec.angle ?? 0) + turn + (flips ? PI : 0);
+    while (angle > PI) angle -= 2 * PI;
+    while (angle <= -PI) angle += 2 * PI;
+    next.angle = angle;
+  }
+  const placed = moduleCentre({ ...next, x: 0, y: 0 });
+  next.x = tidy(centre.x - placed.x);
+  next.y = tidy(centre.y - placed.y);
+  return next;
+}
+
+/** Rounds away the last-bit noise a turn leaves, so a file does not gain 1e-16s. */
+function tidy(value: number): number {
+  return round(value * 1e9) / 1e9;
 }
 
 /**

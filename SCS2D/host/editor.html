@@ -103,8 +103,7 @@
       /* A stated number stands out from the ones still at their default. */
       details.doctrine input.stated { color: #e9c05f; border-color: #4a3f24; }
       #linked { color: #e9c05f; margin: 0 0 0.5rem; }
-      #kindRow { color: #7f93aa; margin: 0 0 0.5rem; }
-      #propKind { color: #e6edf5; }
+      .field select { flex: 1; min-width: 0; }
       footer { color: #5d6f85; border-top: 1px solid #1c2533; }
       @media (max-width: 800px) {
         main { flex-direction: column; }
@@ -138,7 +137,7 @@
           <h2>Add a module</h2>
           <button data-add="structure">Structure</button>
           <button data-add="core">Core</button>
-          <button data-add="thruster">Thruster</button>
+          <button data-add="thruster">Engine</button>
           <button data-add="turret">Turret</button>
           <button data-add="beamTurret">Beam turret</button>
           <button data-add="hullGun">Hull gun</button>
@@ -194,7 +193,10 @@
         <section id="properties" hidden>
           <h2>Selected module</h2>
           <p id="linked" hidden></p>
-          <p id="kindRow">kind <span id="propKind"></span></p>
+          <div class="field">
+            <label for="propKind">kind</label>
+            <select id="propKind" title="Swap this module for another kind in the same space. An engine swapped with a weapon turns round, so what faced outboard still does."></select>
+          </div>
           <div class="field">
             <label for="propX">position</label>
             <input id="propX" type="number" step="0.5" />

@@ -29,8 +29,10 @@ import {
   OPTIC_AREAL_DENSITY,
   OPTIC_INTENSITY_LIMIT,
   MECHANISM_MASS_PER_CALIBRE,
+  moduleCentre,
   moduleProblem,
   moduleStats,
+  refitModule,
   traverseAccel,
   traverseRate,
   TRAVERSE_SPINUP_TIME,
@@ -876,3 +878,43 @@ function barrelMass(stats: ReturnType<typeof moduleStats>): number {
 function radians(degrees: number): number {
   return (degrees / 180) * Math.PI;
 }
+
+describe('refitModule', () => {
+  const turret: ModuleSpec = { kind: 'turret', x: 6, y: 2, angle: 0, length: 4, width: 3, barrels: 2 };
+
+  it('keeps the box where it was', () => {
+    for (const to of ['thruster', 'hullGun', 'structure', 'core'] as const) {
+      const refitted = refitModule(turret, to);
+      expect(refitted.kind).toBe(to);
+      expect(moduleCentre(refitted).x).toBeCloseTo(6, 9);
+      expect(moduleCentre(refitted).y).toBeCloseTo(2, 9);
+      expect([refitted.length, refitted.width]).toEqual([4, 3]);
+    }
+  });
+
+  it('turns a weapon swapped for an engine half round, so its bell faces out', () => {
+    const engine = refitModule(turret, 'thruster');
+    expect(engine.angle).toBeCloseTo(Math.PI, 12);
+    // Mounted on the inboard face, with the bell where the barrels were.
+    expect(engine.x).toBeCloseTo(4, 9);
+    const back = refitModule(engine, 'hullBeam');
+    expect(back.angle).toBeCloseTo(0, 12);
+    expect(moduleCentre(back)).toEqual(moduleCentre(turret));
+  });
+
+  it('comes back to where it started, with the fields the other kind ignored', () => {
+    const engine: ModuleSpec = { kind: 'thruster', x: -5, y: 0, angle: 0, length: 4, width: 4, nozzle: 0.37 };
+    expect(refitModule(refitModule(engine, 'hullGun'), 'thruster')).toEqual(engine);
+  });
+
+  it('leaves the facing alone between kinds that do not face opposite ways', () => {
+    expect(refitModule(turret, 'hullGun').angle).toBe(0);
+    expect(refitModule(turret, 'structure').angle).toBe(0);
+    expect(refitModule({ ...turret, kind: 'structure' }, 'thruster').angle).toBe(0);
+  });
+
+  it('keeps the facing folded into a half turn either way', () => {
+    const turned = refitModule({ ...turret, angle: Math.PI * 0.75 }, 'thruster');
+    expect(turned.angle).toBeCloseTo(-Math.PI * 0.25, 12);
+  });
+});

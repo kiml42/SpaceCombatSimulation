@@ -297,6 +297,27 @@ describe('mutation', () => {
     expect(refitted).toBeGreaterThan(0);
   });
 
+  it('turns a weapon refitted as an engine half round, so its bell faces outboard', () => {
+    const casemate: Blueprint = {
+      name: 'Casemate',
+      modules: [
+        { kind: 'core', x: 0, y: 0, angle: 0, length: 10, width: 4 },
+        { kind: 'hullGun', x: 8, y: 0, angle: 0, length: 6, width: 4 },
+      ],
+    };
+    const rng = new Rng(31);
+    const only = { thruster: 1, structure: 0, turret: 0, beamTurret: 0, hullGun: 0, hullBeam: 0, core: 0 };
+    let seen = 0;
+    for (let i = 0; i < 400 && seen < 3; i++) {
+      const child = mutate(casemate, rng, { structural: 0, kinds: only });
+      if (child.edits.length !== 1 || !/hullGun refitted as thruster/.test(child.edits[0]!)) continue;
+      const engine = child.blueprint.modules[1] as ModuleSpec;
+      expect(engine.angle).toBeCloseTo(Math.PI, 9);
+      seen++;
+    }
+    expect(seen).toBeGreaterThan(0);
+  });
+
   it('keeps a hull weapon\'s fields when it stops being one, without refusing it', () => {
     // A refit keeps the geometry and changes what it is for, and what the new
     // kind does not read stays put: it is what this module was, and a refit

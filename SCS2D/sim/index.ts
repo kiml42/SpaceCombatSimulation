@@ -57,6 +57,7 @@ export {
   gunStats,
   beamGunStats,
   moduleCentre,
+  refitModule,
   moduleRadius,
   moduleProblem,
   MODULE_KINDS,

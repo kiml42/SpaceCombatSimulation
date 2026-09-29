@@ -6,14 +6,17 @@ import {
   isWeaponMount,
   mountTraverse,
   MAX_REPEAT,
+  MODULE_KINDS,
   math,
   parseBlueprint,
   placementAt,
   radiansToDegrees,
+  refitModule,
   samePlacement,
   Snapshot,
   type AssemblyInstance,
   type Blueprint,
+  type ModuleKind,
   type ModuleOrigin,
   type ModulePath,
   type ModuleSpec,
@@ -238,6 +241,10 @@ export function startEditor(): void {
   const exportButton = el<HTMLButtonElement>('exportShip');
 
   const weaponInput = el<HTMLInputElement>('propWeapon');
+  const kindSelect = el<HTMLSelectElement>('propKind');
+  kindSelect.innerHTML = MODULE_KINDS.map(
+    (kind) => `<option value="${kind}">${kindName(kind)}</option>`,
+  ).join('');
 
   const mountDoctrine = el<HTMLDetailsElement>('mountDoctrine');
   const mountDoctrineSummary = el<HTMLElement>('mountDoctrineSummary');
@@ -429,7 +436,7 @@ export function startEditor(): void {
     const rows = [
       ['Dry mass', `${numbers(s.mass / 1000, 2)} t`],
       ['Inertia', `${numbers(s.inertia / 1000, 0)} t·m²`],
-      ['Modules', `${s.moduleCount} (${s.thrusterCount} thrusters)`],
+      ['Modules', `${s.moduleCount} (${s.thrusterCount} engines)`],
       ['Radius', `${numbers(s.radius)} m`],
       ['Accel fore / aft', `${numbers(s.accelFore, 2)} / ${numbers(s.accelAft, 2)} m/s²`],
       ['Accel port / stbd', `${numbers(s.accelPort, 2)} / ${numbers(s.accelStarboard, 2)} m/s²`],
@@ -632,7 +639,7 @@ export function startEditor(): void {
     const sameModule =
       shownSelection !== null && path !== null && samePlacement(shownSelection, path);
     shownSelection = path;
-    el<HTMLElement>('propKind').textContent = spec.kind;
+    kindSelect.value = spec.kind;
     for (const [key, input] of Object.entries(propInputs)) {
       // Never overwrite the box being typed into: a refresh triggered by the
       // keystroke would otherwise reformat the number under the cursor. That
@@ -1015,6 +1022,18 @@ export function startEditor(): void {
       else editSelected({ [key]: value } as Partial<ModuleSpec>, true);
     });
   }
+
+  // Every copy of a shared part is swapped, as any other edit to it is.
+  kindSelect.addEventListener('change', () => {
+    const path = doc.selection;
+    if (path === null) return;
+    const to = kindSelect.value as ModuleKind;
+    change(
+      updatePlacement(doc.blueprint, path, (placement) =>
+        isModuleSpec(placement) ? refitModule(placement as ModuleSpec, to) : placement,
+      ),
+    );
+  });
 
   weaponInput.addEventListener('change', () => {
     const path = doc.selection;
@@ -1627,7 +1646,8 @@ export function startEditor(): void {
   window.addEventListener('keydown', (event) => {
     const typing =
       document.activeElement instanceof HTMLInputElement ||
-      document.activeElement instanceof HTMLTextAreaElement;
+      document.activeElement instanceof HTMLTextAreaElement ||
+      document.activeElement instanceof HTMLSelectElement;
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
       event.preventDefault();
       if (event.shiftKey) doc.redo();

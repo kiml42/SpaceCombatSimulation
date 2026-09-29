@@ -30,6 +30,7 @@ import {
   isHullMount,
   MODULE_KINDS,
   moduleCentre,
+  refitModule,
   type ModuleKind,
   type ModuleSpec,
 } from '../sim/modules.js';
@@ -672,16 +673,12 @@ function reinforce(site: ModuleSite, rng: Rng, bounds: MutationLimits): string |
  * position, the size, the facing, the armour — and changes only what it is
  * for.
  *
- * **An engine is the awkward one, and it is worth saying why.** A thruster's
- * position is where it is *attached* — the face opposite the nozzle — where
- * every other kind's is the middle of its box, so changing the kind and
- * leaving the numbers alone slides the module half its own length and lands
- * it inside its neighbour. What is kept is therefore the space, not the
- * coordinates: the centre is measured before and put back afterwards. Which
- * way a new engine points is a free choice besides, since nothing about the
- * module it was says which face should push, so that is drawn here and the
- * attempts try different ones. Every other kind keeps the facing it had,
- * because for those it means something.
+ * **An engine is the awkward one.** Its position is its mounting face rather
+ * than the middle of its box, so `refitModule` keeps the centre rather than
+ * the coordinates, and it turns an engine swapped with a weapon half round so
+ * whatever faced outboard still does. Refitted from anything else, which way
+ * a new engine pushes is a free choice, so it is drawn here and the attempts
+ * try different ones.
  *
  * Neither is a nicety: without them a refit into an engine is refused every
  * time, so the one route to a *large* engine is closed and a lineage can only
@@ -691,17 +688,8 @@ function refit(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | nul
   const was = site.spec.kind;
   const to = pickKind(rng, bounds.kinds, was);
   if (to === null) return null;
-  const centre = moduleCentre(site.spec);
-  site.spec.kind = to;
-  if (to === 'thruster') {
-    const angle = (site.spec.angle ?? 0) + rng.nextInt(4) * HALF_PI;
-    site.spec.angle = angle;
-    site.spec.x = centre.x + cos(angle) * (site.spec.length / 2);
-    site.spec.y = centre.y + sin(angle) * (site.spec.length / 2);
-  } else if (was === 'thruster') {
-    site.spec.x = centre.x;
-    site.spec.y = centre.y;
-  }
+  const turn = to === 'thruster' && !isWeaponMount(was) ? rng.nextInt(4) * HALF_PI : 0;
+  Object.assign(site.spec, refitModule(site.spec, to, turn));
   // **Fields the new kind does not read are kept, not cleared.** They are what
   // this module was, and a lineage that refits a tuned engine into a gun
   // mount and back should get its bell rather than the default: twenty
