@@ -1,6 +1,7 @@
 import {
   hullMountGeometry,
   isHullMount,
+  isThick,
   math,
   nozzleOffset,
   nozzleReach,
@@ -196,9 +197,9 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
       integrity <= 0
         ? WRECKAGE
         : spec.kind === 'structure'
-          ? // Raised structure is drawn in the colour of the other raised
-            // things — the mounts and engines — since it is what stands with them.
-            spec.raised === true
+          ? // Thick structure is drawn in the colour of the mounts and engines,
+            // since it is what stands with them in the weapons layer.
+            isThick(spec)
             ? colours.trim
             : colours.hull
           : spec.kind === 'core'

@@ -257,16 +257,29 @@ describe('the editor in a browser', () => {
     expect(await page.textContent('#moduleStats')).not.toMatch(/Gun/);
   });
 
-  it('lets a core be raised above the deck, which costs it wall', async () => {
+  it('lets a core be thick, which costs it wall', async () => {
     await openShip(page, 'Corvette');
     const centre = await canvasCentre(page);
     await page.mouse.click(centre.x, centre.y);
     expect(await page.inputValue('#propKind')).toBe('core');
-    expect(await page.isVisible('#raisedRow')).toBe(true);
+    expect(await page.isVisible('#thickRow')).toBe(true);
     const mass = (await page.textContent('#stats'))?.match(/[\d,.]+ t/)?.[0];
-    await page.check('#propRaised');
-    expect(await page.isChecked('#propRaised')).toBe(true);
+    await page.check('#propThick');
+    expect(await page.isChecked('#propThick')).toBe(true);
     expect((await page.textContent('#stats'))?.match(/[\d,.]+ t/)?.[0]).not.toBe(mass);
+  });
+
+  it('lets an engine be thick only once its nozzle is wider than a deck', async () => {
+    await page.click('#newShip');
+    await page.click('[data-add="engine"]');
+    // The default is a deck wide, so already as deep as it is wide.
+    expect(await page.isDisabled('#propThick')).toBe(true);
+    expect(await page.getAttribute('#propThick', 'title')).toMatch(/Too narrow/);
+    await page.fill('#propWidth', '6');
+    await page.dispatchEvent('#propWidth', 'change');
+    expect(await page.isDisabled('#propThick')).toBe(false);
+    await page.check('#propThick');
+    expect(await page.isChecked('#propThick')).toBe(true);
   });
 
   it('burns a selected engine, and lets it die down again', async () => {

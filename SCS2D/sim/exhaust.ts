@@ -102,9 +102,9 @@ export function collimation(divergence: number): number {
  * times what the bell keeps of it. So a bigger nozzle, deeper machinery and a
  * longer bell each throw further, and a half-throttle burn is half the flame.
  */
-export function plumeReach(force: number, exitWidth: number, divergence = 1): number {
+export function plumeReach(force: number, exitWidth: number, divergence = 1, exitHeight = DECK_HEIGHT): number {
   if (!(force > 0) || !(exitWidth > 0) || !(divergence > 0)) return 0;
-  const pressure = force / (exitWidth * DECK_HEIGHT * THRUST_PER_EXIT_AREA * divergence);
+  const pressure = force / (exitWidth * exitHeight * THRUST_PER_EXIT_AREA * divergence);
   return PLUME_CORE_WIDTHS * exitWidth * pressure * collimation(divergence);
 }
 
@@ -188,7 +188,7 @@ export function nozzleReach(geometry: EngineGeometry, force: number): number {
   // face, so each is fed at the same pressure the single nozzle was — and so
   // throws a flame as much shorter as it is narrower, less what its better
   // bell gives back.
-  return plumeReach(force / geometry.nozzles, geometry.exitWidth, geometry.divergence);
+  return plumeReach(force / geometry.nozzles, geometry.exitWidth, geometry.divergence, geometry.exitHeight);
 }
 
 /**

@@ -38,7 +38,7 @@ const CHAIN: Blueprint = {
   modules: [
     structure(0, 0, 10, 4),
     { kind: 'core', x: -10, y: 0, length: 10, width: 4 },
-    structure(8, 0, 6, 2),
+    structure(9.5, 0, 9, 2),
   ],
 };
 

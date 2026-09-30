@@ -610,8 +610,11 @@ Deliberately unresolved; decide when they block something.
 - **Whether exhaust should know about layers.** A plume burns every module it reaches, raised or not, and
   a raised engine's exhaust is still blocked by deck structure behind it. Left as it was, because nothing
   yet makes the difference matter.
-- **Whether raised turrets and engines should pay for their height the way raised structure does.** Only
-  raised structure and cores have taller walls, because their height is a choice and a turret's is not.
+- **Whether a thin engine should drop out of the weapons layer.** Everything else is in it only when thick,
+  but engines stay in it at any depth. Taking thin ones out broke eleven tests: turret-only fleets could
+  no longer disable a ship, so matches timed out. Answer it with the engine split below.
+- **Whether fighters get to pick their layer.** They will be held under a deck's depth, and choose whether
+  to overfly thin hulls or collide with them.
 - **Engines split by layer, into two archetypes.** A single `engine` kind cannot express the choice the
   weapons layer creates, so it becomes two — a new *archetype* rather than a new coefficient, which is the
   distinction the materials question above already draws.
@@ -626,8 +629,7 @@ Deliberately unresolved; decide when they block something.
   reason to fit them is not that they are cheap. It is that gunfire cannot reach them.
 
   Low thrust need not be stipulated — thrust is already exit area times a constant, and exit area is width
-  times deck height, so an engine that does not rise above the deck gets less exit and less thrust out of
-  the geometry. Efficiency has nowhere to live yet, since there is no propellant model, so for now the two
+  times depth, so a thin engine gets less exit and less thrust out of the geometry than a thick one. Efficiency has nowhere to live yet, since there is no propellant model, so for now the two
   differ in thrust and mass alone.
 
   What the split buys is a better mission kill than "disabled". A ship stripped of its main engines still

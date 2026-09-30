@@ -4,7 +4,9 @@ import {
   isInstance,
   isHullMount,
   isWeaponMount,
-  readsRaised,
+  readsThick,
+  canThicken,
+  isThick,
   mountTraverse,
   MAX_REPEAT,
   MODULE_KINDS,
@@ -252,7 +254,8 @@ export function startEditor(): void {
   const exportButton = el<HTMLButtonElement>('exportShip');
 
   const weaponInput = el<HTMLInputElement>('propWeapon');
-  const raisedInput = el<HTMLInputElement>('propRaised');
+  const thickInput = el<HTMLInputElement>('propThick');
+  const thickTitle = thickInput.title;
   const kindSelect = el<HTMLSelectElement>('propKind');
   const addHeading = el<HTMLElement>('addHeading');
   kindSelect.innerHTML = MODULE_KINDS.map(
@@ -743,8 +746,15 @@ export function startEditor(): void {
     // Only an engine has a plume to point.
     el<HTMLElement>('weaponRow').hidden = spec.kind !== 'engine';
     weaponInput.checked = spec.weapon === true;
-    el<HTMLElement>('raisedRow').hidden = !readsRaised(spec.kind);
-    raisedInput.checked = spec.raised === true;
+    el<HTMLElement>('thickRow').hidden = !readsThick(spec.kind);
+    // One no more than a deck across is as deep as it is wide either way.
+    thickInput.disabled = !canThicken(spec);
+    thickInput.checked = isThick(spec);
+    thickInput.title = thickInput.disabled
+      ? spec.kind === 'engine'
+        ? 'Too narrow to be thick: each nozzle is no more than a deck wide, so already as deep as it is wide.'
+        : 'Too narrow to be thick: no more than a deck across, so already as deep as it is wide.'
+      : thickTitle;
 
     const origin = doc.selectedOrigin();
     offerTakeOut(takeOutButton, origin === null ? null : origin.path, 'module');
@@ -1101,17 +1111,17 @@ export function startEditor(): void {
     );
   });
 
-  raisedInput.addEventListener('change', () => {
+  thickInput.addEventListener('change', () => {
     const path = doc.selection;
     if (path === null) return;
-    const on = raisedInput.checked;
+    const on = thickInput.checked;
     // Absent rather than false when it is off, as `weapon` is.
     change(
       updatePlacement(doc.blueprint, path, (placement) => {
         if (!('kind' in placement)) return placement;
         const next = { ...placement };
-        if (on) next.raised = true;
-        else delete next.raised;
+        if (on) next.thick = true;
+        else delete next.thick;
         return next;
       }),
     );

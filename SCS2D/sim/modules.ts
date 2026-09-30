@@ -43,18 +43,12 @@ import { asin, atan2, cos, max, PI, round, sin, sqrt } from './math.js';
  */
 
 /**
- * Unmodelled hull thickness, metres. The plane is a deck plan viewed from
- * above (DESIGN.md §3), so a module's third dimension is never drawn — but it
- * is what makes wall volumes and therefore masses honest.
+ * How deep one layer is, metres, and so the deepest a module in only one of
+ * them can be (`moduleThickness`). The plane is a deck plan viewed from above
+ * (DESIGN.md §3), so a module's third dimension is never drawn — but it is
+ * what makes wall volumes and therefore masses honest.
  */
 export const DECK_HEIGHT = 3;
-
-/**
- * How tall a raised module stands, metres: a deck's worth of hull with a
- * second built on top of it. What a raised structure pays in wall for putting
- * itself in the weapons layer (DESIGN.md §3).
- */
-export const RAISED_HEIGHT = 2 * DECK_HEIGHT;
 
 /** Structural material density, kg/m³. Steel. */
 export const HULL_DENSITY = 7800;
@@ -651,19 +645,19 @@ export interface ModuleSpec {
   weapon?: boolean;
 
   /**
-   * Whether this structure, core or hull weapon stands up into the weapons
-   * layer; every other kind is one layer or the other by what it is
-   * (`isRaised`).
+   * Whether this module is free of the deck's depth (`moduleThickness`):
+   * as deep as it is across, rather than held to `DECK_HEIGHT`. Nothing to a
+   * module no more than a deck across, which is as deep as it is wide either
+   * way (`canThicken`).
    *
-   * Raised structure is cover: it stops deck-level fire at whatever is behind
-   * it, which is what a turret wants. It pays for that in wall, in being
-   * something guns can strip, and in the arcs of every turret it stands in
-   * front of. A raised core is the bridge up on deck rather than below it:
-   * in turrets' reach as well as in their way. A raised hull weapon has twice
-   * the machinery, so its stats are a mount's twice as wide (`workingWidth`);
-   * it still fires at deck height.
+   * What is thick stands up through the weapons layer as well as the hull
+   * (`isRaised`). Thick structure is cover: it stops turret fire at whatever
+   * is behind it. A thick hull weapon or engine gets a wider barrel or
+   * nozzle, and machinery that keeps growing with the square of the width. It
+   * pays in wall, in turrets being able to reach it, and in the arcs of every
+   * turret it stands in front of.
    */
-  raised?: boolean;
+  thick?: boolean;
 
   /**
    * Why this module is here, in the author's own words. Carried through the
@@ -815,7 +809,8 @@ export function moduleProblem(spec: ModuleSpec): string | null {
       ? hullMountGeometry(spec).blockLength
       : spec.length;
   const smallest = boxLength < spec.width ? boxLength : spec.width;
-  const limiting = smallest < DECK_HEIGHT ? smallest : DECK_HEIGHT;
+  const thick = moduleThickness(spec);
+  const limiting = smallest < thick ? smallest : thick;
   if (2 * thickness >= limiting) {
     return (
       `${spec.kind}: walls ${thickness.toFixed(3)} m thick leave no interior in a ` +
@@ -971,6 +966,8 @@ export interface EngineGeometry {
   nozzleLength: number;
   /** Exit width of one nozzle, metres. The nozzles tile the face. */
   exitWidth: number;
+  /** Exit height of every nozzle, metres: the engine's thickness. */
+  exitHeight: number;
   /** Throat width of one nozzle, metres. */
   throatWidth: number;
   /** Bell half-angle, radians. A right angle when there is no bell. */
@@ -998,6 +995,7 @@ export function engineGeometry(spec: ModuleSpec): EngineGeometry {
     machineryLength: spec.length - nozzleLength,
     nozzleLength,
     exitWidth,
+    exitHeight: moduleThickness(spec),
     throatWidth,
     halfAngle,
     divergence: (1 + axial) * 0.5,
@@ -1037,12 +1035,12 @@ export function nozzleOffset(geometry: EngineGeometry, index: number): number {
  * length of machinery block does.
  */
 function nozzleSkinVolume(geometry: EngineGeometry, wallThickness: number): number {
-  const { nozzles, nozzleLength, exitWidth, throatWidth } = geometry;
+  const { nozzles, nozzleLength, exitWidth, exitHeight, throatWidth } = geometry;
   if (!(nozzleLength > 0)) return 0;
   const flare = (exitWidth - throatWidth) * 0.5;
   const slant = sqrt(nozzleLength * nozzleLength + flare * flare);
   const meanWidth = (exitWidth + throatWidth) * 0.5;
-  const area = 2 * slant * DECK_HEIGHT + 2 * meanWidth * nozzleLength;
+  const area = 2 * slant * exitHeight + 2 * meanWidth * nozzleLength;
   return area * wallThickness * NOZZLE_SKIN_FRACTION * nozzles;
 }
 
@@ -1133,21 +1131,19 @@ export function hullMountGeometry(spec: ModuleSpec): HullMountGeometry {
   // What a single outlet would be, and each of several split the way a
   // turret splits it: tubes divide the bore, so each is `1/n` as wide; lenses
   // divide the optic's area, so each is `1/√n` as wide.
-  const width = workingWidth(spec);
   const single =
     spec.kind === 'hullBeam'
-      ? HULL_APERTURE_FRACTION * width
-      : BARREL_OUTER_CALIBRES * HULL_CALIBRE_FRACTION * width;
+      ? HULL_APERTURE_FRACTION * spec.width
+      : BARREL_OUTER_CALIBRES * HULL_CALIBRE_FRACTION * spec.width;
   const each = spec.kind === 'hullBeam' ? single / sqrt(outlets) : single / outlets;
   // Spread across the face as a turret's barrels are, one gap outboard of
   // each end, so neighbours stand apart rather than touching.
-  // Laid out across the face the mount really has, which a raised one's extra
-  // machinery does not widen.
   const outletSpacing = outlets > 1 ? spec.width / (outlets + 1) : 0;
   // No wider than the opening leaves room for, nor than the mount is deep:
   // an outlet is always a cylinder the hull can hold.
   const opening = HULL_BARREL_WIDTH_CAP * (outlets > 1 ? outletSpacing : spec.width);
-  const cap = opening < outletDepth(spec) ? opening : outletDepth(spec);
+  const depth = moduleThickness(spec);
+  const cap = opening < depth ? opening : depth;
   const outletWidth = each < cap ? each : cap;
   const barrelWidth = (outlets - 1) * outletSpacing + outletWidth;
   const blockLength = spec.length - barrelLength;
@@ -1228,55 +1224,49 @@ export function readsWeapon(kind: ModuleKind): boolean {
   return kind === 'engine';
 }
 
-/** Whether `raised` means anything on this kind: structure, cores and hull weapons may be either layer. */
-export function readsRaised(kind: ModuleKind): boolean {
-  return kind === 'structure' || kind === 'core' || isHullMount(kind);
+/** Whether `thick` means anything on this kind: everything but a turret, which is held to a deck. */
+export function readsThick(kind: ModuleKind): boolean {
+  return kind !== 'turret' && kind !== 'beamTurret';
 }
 
 /**
  * Whether a module stands in the weapons layer (DESIGN.md §3), and so blocks
- * turrets and can be hit by them.
+ * turrets and can be hit by them. Every module is in the hull layer.
  *
- * Turrets and engines always do — guns strip "mounts, sensors and engines" —
- * and structure, cores and hull weapons are whichever they say.
+ * Turrets always are, and so are engines — guns strip "mounts, sensors and
+ * engines" — and anything else that is thick.
  */
 export function isRaised(spec: ModuleSpec): boolean {
-  switch (spec.kind) {
-    case 'turret':
-    case 'beamTurret':
-    case 'engine':
-      return true;
-    case 'structure':
-    case 'core':
-    case 'hullGun':
-    case 'hullBeam':
-      return spec.raised === true;
-    default:
-      return false;
-  }
+  return spec.kind === 'turret' || spec.kind === 'beamTurret' || spec.kind === 'engine' || isThick(spec);
+}
+
+/** Whether a module is marked thick and wide enough for that to make it deeper. */
+export function isThick(spec: ModuleSpec): boolean {
+  return spec.thick === true && canThicken(spec);
+}
+
+/** Whether marking a module thick would make it any deeper: false for one no more than a deck across. */
+export function canThicken(spec: ModuleSpec): boolean {
+  return readsThick(spec.kind) && acrossOf(spec) > DECK_HEIGHT;
 }
 
 /**
- * How tall a module's walls are, metres. Raised structure and cores are
- * taller; a raised hull weapon is wider instead (`workingWidth`).
+ * How deep a module is, metres: as deep as it is across, and no deeper than
+ * a deck unless it is thick.
+ *
+ * Across is the smaller of length and width for a box; the width alone for a
+ * hull weapon, whose length is mostly barrel; and one nozzle's width for an
+ * engine, so each bell is as deep as it is wide. A turret is held to a deck.
  */
-export function moduleHeight(spec: ModuleSpec): number {
-  return (spec.kind === 'structure' || spec.kind === 'core') && spec.raised === true ? RAISED_HEIGHT : DECK_HEIGHT;
+export function moduleThickness(spec: ModuleSpec): number {
+  const across = acrossOf(spec);
+  return isThick(spec) || across < DECK_HEIGHT ? across : DECK_HEIGHT;
 }
 
-/**
- * The width a module's stats are worked out at, metres: its own, except a
- * raised hull weapon's, which has the machinery of one twice as wide. Its
- * footprint on the ship, the opening its barrels train in, and how they are
- * spaced across it stay its own.
- */
-export function workingWidth(spec: ModuleSpec): number {
-  return isHullMount(spec.kind) && spec.raised === true ? 2 * spec.width : spec.width;
-}
-
-/** The widest a hull weapon's outlet may be, metres: the depth of the mount, twice that raised. */
-function outletDepth(spec: ModuleSpec): number {
-  return spec.raised === true ? RAISED_HEIGHT : DECK_HEIGHT;
+function acrossOf(spec: ModuleSpec): number {
+  if (spec.kind === 'engine') return spec.width / (spec.barrels ?? 1);
+  if (isHullMount(spec.kind)) return spec.width;
+  return spec.length < spec.width ? spec.length : spec.width;
 }
 
 /**
@@ -1386,7 +1376,7 @@ export function hullBeamStats(spec: ModuleSpec): GunStats {
   const aperture = outletWidth;
   const apertureArea = PI * 0.25 * aperture * aperture;
   const power = OPTIC_INTENSITY_LIMIT * apertureArea;
-  const stored = BEAM_STORED_ENERGY_PER_VOLUME * blockLength * workingWidth(spec) * DECK_HEIGHT;
+  const stored = BEAM_STORED_ENERGY_PER_VOLUME * blockLength * spec.width * moduleThickness(spec);
   const beamOnTime = power > 0 ? stored / power : 0;
   // **The block is the bank and the cooling, so depth buys duty rather than
   // only burst.** The burn grows with the bank behind it while the recovery
@@ -1429,8 +1419,8 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
   // it, on all six faces — so a long thin module carries proportionally more
   // wall for the space it encloses, which is the pressure that stops layouts
   // being made of splinters.
-  const height = moduleHeight(spec);
-  const width = workingWidth(spec);
+  const height = moduleThickness(spec);
+  const width = spec.width;
   const outer = boxLength * width * height;
   const inner =
     (boxLength - 2 * wallThickness) *
@@ -1466,7 +1456,7 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
     fittingMass = max(CORE_MINIMUM_FITTING_MASS, CORE_MASS_PER_AREA * capacity);
   } else if (engine !== null) {
     // Thrust comes out of the nozzle, so it scales with the area of the face
-    // the exhaust leaves through — the module's width by the deck height,
+    // the exhaust leaves through — the module's width by its thickness,
     // however many bells that face is divided into. An engine therefore gets
     // stronger by being made *wider*, which is what stops "just stretch it"
     // being the answer to every propulsion problem.
@@ -1479,7 +1469,7 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
     // at it.
     const feed = engine.machineryLength / (PUMP_DEPTH_WIDTHS * spec.width);
     const supply = feed < THROAT_CHOKE ? feed : THROAT_CHOKE;
-    const throughput = THRUST_PER_EXIT_AREA * spec.width * DECK_HEIGHT * supply;
+    const throughput = THRUST_PER_EXIT_AREA * spec.width * engine.exitHeight * supply;
     // What the bell then keeps pointed the right way. **The two pull opposite
     // ways**, which is the whole of the knob: length taken off the bell is
     // flow gained and aim lost, so the best engine is neither all bell nor all
@@ -1747,7 +1737,8 @@ export function beamGunStats(mountLength: number, mountWidth: number, barrelCoun
   const power = OPTIC_INTENSITY_LIMIT * apertureArea;
 
   // The bank fills the mount, and feeds one emitter at a time.
-  const stored = BEAM_STORED_ENERGY_PER_VOLUME * mountLength * mountWidth * DECK_HEIGHT;
+  const depth = face < DECK_HEIGHT ? face : DECK_HEIGHT;
+  const stored = BEAM_STORED_ENERGY_PER_VOLUME * mountLength * mountWidth * depth;
   const beamOnTime = stored / power;
 
   // No barrel: a housing round the optic, as deep as the optic is wide.

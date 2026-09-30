@@ -132,7 +132,7 @@ describe('a gun with somebody in the way', () => {
     // into the line — which is how wreckage gets in the way for real.
     const consort = ships.spawn(world, { design: dinky, x: 0, y: 2000, team: 0 });
     const welds = joints(dinky);
-    const weld = welds.findIndex((j) => j.a === 0 && j.b === 4);
+    const weld = welds.findIndex((j) => j.a === 0 && j.b === 10);
     ships.damage.cutWeld(world.bodies.indexOf(ships.body(consort)), weld, welds[weld]!.width);
     expect(ships.sever(world)).toBe(1);
     const chunk = ships.highWater - 1;

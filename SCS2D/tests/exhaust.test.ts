@@ -158,11 +158,12 @@ describe('how far a plume reaches', () => {
   it('splits into shorter, fiercer flames across more nozzles, and loses no thrust doing it', () => {
     // Each nozzle is fed at the same pressure through a narrower exit, so its
     // flame is shorter; its bell is narrower for the same length, so the gas
-    // is better aimed and the engine as a whole pushes a little harder.
+    // is better aimed and the engine as a whole pushes a little harder. Each
+    // is still a deck wide, so still a deck deep.
     const built = (barrels: number) => {
       const d = compileBlueprint({
         name: 'Engine',
-        modules: [{ ...engine(-5, 0), length: 4, width: 4, barrels }, hull(0, 10)],
+        modules: [{ ...engine(-5, 0), length: 12, width: 12, barrels }, hull(0, 10)],
       });
       const t = d.engines[0]!;
       const geometry = engineGeometry(d.modules[t.module!]!.spec);

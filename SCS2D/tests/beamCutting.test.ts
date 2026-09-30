@@ -135,9 +135,9 @@ describe('a beam in the weapons layer', () => {
       name: 'deck',
       modules: [
         { kind: 'core', x: 0, y: 0, length: 4, width: 4 },
-        { kind: 'structure', x: 4, y: 0, length: 4, width: 4, raised },
-        { kind: 'structure', x: 8, y: 0, length: 4, width: 4, raised },
-        { kind: 'structure', x: 12, y: 0, length: 4, width: 4, raised },
+        { kind: 'structure', x: 4, y: 0, length: 4, width: 4, thick: raised },
+        { kind: 'structure', x: 8, y: 0, length: 4, width: 4, thick: raised },
+        { kind: 'structure', x: 12, y: 0, length: 4, width: 4, thick: raised },
       ],
     });
     const world = new World({ dt: 1 / 60, seed: 5 });

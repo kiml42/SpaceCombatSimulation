@@ -47,7 +47,6 @@ export {
 } from './engines.js';
 export {
   DECK_HEIGHT,
-  RAISED_HEIGHT,
   DEFAULT_NOZZLE_SHARE,
   HULL_APERTURE_FRACTION,
   HULL_BARREL_WIDTH_CAP,
@@ -71,9 +70,11 @@ export {
   countsOutlets,
   readsNozzle,
   readsWeapon,
-  readsRaised,
+  readsThick,
   isRaised,
-  moduleHeight,
+  isThick,
+  moduleThickness,
+  canThicken,
   isWeaponMount,
   mountTraverse,
   FULL_TRAVERSE,

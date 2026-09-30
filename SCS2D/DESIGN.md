@@ -417,17 +417,17 @@ inside any one file is not contiguous.
   beam, the opening turns out barely to constrain one at all: a lens is a fraction of the width a row
   of tubes is, so what holds a hull beam is the mounting limit until its housing runs most of the
   length of the module.
-  **Two layers** (§3). Turrets, engines, and structure or cores marked *raised* stand above the deck; hull
-  weapons and the rest of the structure and cores are the deck. A turret's rounds and beams meet only what is
-  raised, so they strip mounts and engines and never reach a core below deck; a hull weapon's meet everything. Each
+  **Two layers** (§3). Every module is in the hull layer. Turrets, engines and anything marked *thick* stand
+  up into the weapons layer as well. A turret's rounds and beams meet only what is
+  in the weapons layer, so they strip mounts and engines and never reach a core below deck; a hull weapon's meet everything. Each
   mount has a traverse — where its barrels may go, stopped by what the row of them would foul within a
   barrel's length, as wide as the outer barrel — and, separately, a trigger mask: the bearings its own ship is downrange of, at any distance,
-  where it may point but not fire. For a turret both count only what is raised. The editor draws the mask
+  where it may point but not fire. For a turret both count only what is in the weapons layer. The editor draws the mask
   as a warm wedge inside the sweep. A mount prefers a target it can fire at, but with none it tracks one
   on a masked bearing with its trigger held, so it is on target as the ship turns. A lit beam's drive stops at the edge of a masked sector rather than
   sweep across its own ship. A shot may land on its own ship, but never on the mount that fired it, so
-  two enemies hooked together shoot each other. Raised structure has walls twice as tall, so it weighs
-  about twice as much. No shipped ship raises any structure. A match is over when at most one side can
+  two enemies hooked together shoot each other. A module is as deep as it is across, capped at a deck
+  (3 m) unless it is thick. No shipped ship marks anything thick. A match is over when at most one side can
   still shoot or push, since most fleets can no longer destroy each other.
   **An engine has a nozzle rather than being one.** An engine's length divides between a machinery block
   and a bell, and the bell's share is the knob: a long one is lighter, keeps more of the thrust pointed
@@ -563,19 +563,22 @@ Rules:
   width, because a turret's is small in order to fit inside a ring and then be swung, and they pay for
   it in having almost nowhere to point: a hull mount trains about the root of its barrel, and the
   barrel has to stay inside the opening it comes out of.
-- **Which layer a module is in** is fixed by its kind, except for structure, cores and hull weapons.
-  Turrets and engines are *raised* into the weapons layer. Structure may be marked raised: it
-  is then cover for the turrets behind it, and it pays in wall, in being within reach of guns, and in
-  the arcs of every turret it stands in front of. A core may be raised on the same terms, a bridge up on
-  deck rather than below it: turrets can then reach it. A **raised hull weapon** has twice the machinery, so
-  its stats are those of a mount twice as wide — bore, bank, walls and hit points — while its footprint, the
-  opening its barrels train in and their spacing stay its own. It pays in mass, and in being within turrets'
-  reach; it still fires at deck height.
-- **A barrel is never wider than the module is deep.** A turret's tubes (and a beam's housing) are held
-  to the deck's depth, and a hull weapon's outlets to its own — twice that when raised — so a barrel is
-  always a cylinder the hull can hold. It seldom binds, and only on very large mounts.
-- **A turret trains and fires over the deck.** What stops its barrel is raised modules within a barrel's
-  length. What stops its trigger is raised modules at any range down the line of fire: its *trigger
+- **A module is as deep as it is across, up to a deck.** Across is the smaller of length and width for a
+  box, the width for a hull weapon, and one nozzle's width for an engine. A module marked **thick** drops
+  the deck cap, so a 60 m wide structure is 60 m deep. Marking one no more than a deck across changes
+  nothing, and the editor disables it. Turrets are always held to a deck.
+- **Which layer a module is in** follows from that. Every module is in the hull layer. What is thick is in
+  the weapons layer as well, and so are turrets and engines, whatever their depth. Thick structure is cover
+  for the turrets behind it and pays in wall, in being within reach of turrets, and in the arcs of every
+  turret it stands in front of. A thick core is in turrets' reach. A thick hull weapon still fires at deck
+  height.
+- **A barrel or nozzle is never wider than the module is deep.** A turret's tubes (and a beam's housing)
+  are held to a deck, and a hull weapon's outlets to its depth, so a barrel is always a cylinder the hull
+  can hold. Thrust goes as exit width times depth. So thick buys a hull weapon a wider bore and an engine
+  a bigger exit, with machinery that keeps growing as the square of the width. A thin module's grows only
+  linearly once it is past a deck wide. A beam's bank fills the block's volume, so it grows the same way.
+- **A turret trains and fires over the deck.** What stops its barrel is weapons-layer modules within a barrel's
+  length. What stops its trigger is weapons-layer modules at any range down the line of fire: its *trigger
   mask*, a set of sectors it may point through but not fire into. The mask is always wider than the
   traverse limit, so the traverse limit only ever decides which way round a mount turns. A hull weapon
   asks the same two questions of every module, since it fires at deck height.
@@ -621,7 +624,7 @@ Rules:
 
   In implementation this is one bit per body — *hull collision enabled* — read by the collision filter,
   plus a guard on changing it. **A projectile carries one bit, fixed when it is fired**: the layer of the
-  mount it left. A turret's shot meets only raised modules, and a hull weapon's meets every module,
+  mount it left. A turret's shot meets only weapons-layer modules, and a hull weapon's meets every module,
   since what stands above the deck also stands on it.
 - Strike craft carry **edge-mounted weapons**, because a craft is small enough that its own hull is in
   the way of anything else.

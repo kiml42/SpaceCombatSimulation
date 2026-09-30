@@ -133,12 +133,20 @@ describe('engine scaling', () => {
     // has to work with. What comes out of it is that times the bell's own
     // efficiency, which is why this is stated against the machinery mass —
     // the one figure priced on the throughput alone.
-    const narrow = moduleStats(engine(6, 2));
-    const wide = moduleStats(engine(6, 4));
-    const long = moduleStats(engine(12, 2));
+    // Both past a deck wide, so both a deck deep.
+    const narrow = moduleStats(engine(12, 4));
+    const wide = moduleStats(engine(12, 8));
+    const long = moduleStats(engine(24, 4));
 
     expect(wide.fittingMass).toBeCloseTo(2 * narrow.fittingMass, 6);
     expect(long.fittingMass).toBeCloseTo(narrow.fittingMass, 6);
+  });
+
+  it('is only as deep as it is wide, below a deck', () => {
+    // Square in section, so halving the width quarters the exit.
+    const small = moduleStats(engine(3, 1));
+    const half = moduleStats(engine(3, 0.5));
+    expect(half.fittingMass).toBeCloseTo(small.fittingMass / 4, 6);
   });
 
   it('keeps a share of it set by the bell, from half at no bell to nearly all', () => {
@@ -161,8 +169,9 @@ describe('engine scaling', () => {
     // A narrow nozzle collimates in a fraction of the length, so dividing the
     // face is how a short engine gets a good bell. Same exit area either way,
     // so this is expansion and not extra power.
-    const one = moduleStats(engine(6, 8, 0.2));
-    const four = moduleStats(engine(6, 8, 0.2, 4));
+    // Each bell a deck wide, so a deck deep, as the single one is.
+    const one = moduleStats(engine(6, 12, 0.2));
+    const four = moduleStats(engine(6, 12, 0.2, 4));
     expect(four.fittingMass).toBeCloseTo(one.fittingMass, 6);
     expect(four.thrust).toBeGreaterThan(one.thrust * 1.2);
   });
