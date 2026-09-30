@@ -1,6 +1,6 @@
 import type { Bodies } from './bodies.js';
 import type { ShipDesign } from './blueprint.js';
-import type { HullDesigns } from './hull.js';
+import { HULL_LAYER, OWN_LAYERS, type HullDesigns } from './hull.js';
 import { abs, cos, max, min, sin, sqrt } from './math.js';
 
 /**
@@ -233,6 +233,11 @@ const boxesB: Box[] = [];
 /** The bodies that have hulls this step, and what they are built from. */
 const solid: number[] = [];
 const solidDesigns: ShipDesign[] = [];
+/**
+ * The layers each hull meets others in: an ordinary ship in the hull layer,
+ * a fighter in whatever it occupies, so one skimming a deck overflies it.
+ */
+const solidLayers: number[] = [];
 const point = { x: 0, y: 0 };
 const axes = new Float64Array(8);
 
@@ -298,12 +303,15 @@ export function findContacts(bodies: Bodies, hulls: HullDesigns, out: Contacts):
   // action, and the answer cannot change while the loop runs.
   solid.length = 0;
   solidDesigns.length = 0;
+  solidLayers.length = 0;
   for (let i = 0; i < bodies.highWater; i++) {
     if (bodies.alive[i] === 0 || bodies.ghost[i] === 1) continue;
     const design = hulls.designOf(i);
     if (design === null) continue;
     solid.push(i);
     solidDesigns.push(design);
+    const layers = hulls.layersOf?.(i) ?? OWN_LAYERS;
+    solidLayers.push(layers === OWN_LAYERS ? HULL_LAYER : layers);
   }
 
   for (let a = 0; a < solid.length; a++) {
@@ -316,6 +324,7 @@ export function findContacts(bodies: Bodies, hulls: HullDesigns, out: Contacts):
     for (let b = a + 1; b < solid.length; b++) {
       const j = solid[b]!;
       const designB = solidDesigns[b]!;
+      if ((solidLayers[a]! & solidLayers[b]!) === 0) continue;
 
       // Could they have met at all? Bounding circles, as the broad phase.
       const dx = bodies.x[j]! - bodies.x[i]!;
