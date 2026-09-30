@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { compileBlueprint } from '../sim/index.js';
 import { DEFAULT_MATCH, hullCapacity, Match, runMatch } from '../evolution/match.js';
 import { BEAM_CORVETTE, CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
+import { TURRET_DINKY } from './fixtures.js';
 import type { Blueprint } from '../sim/index.js';
 
 /**
@@ -125,7 +126,7 @@ describe('match', () => {
     // The capital out-shoots the fighter by a wide margin, so a scorer that
     // could not tell who fired — one crediting everyone for damage taken by
     // anyone — would not separate these two.
-    const result = runMatch([GUNSHIP, DINKY], { seed: 11 });
+    const result = runMatch([GUNSHIP, TURRET_DINKY], { seed: 11 });
     const [gunship, dinky] = result.scores;
     expect(gunship!.damage).toBeGreaterThan(dinky!.damage);
     expect(gunship!.taken).toBeLessThan(dinky!.taken);

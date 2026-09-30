@@ -607,19 +607,22 @@ Deliberately unresolved; decide when they block something.
   ship on the body, but the ship-level choice of what to fight still skips anything on its own body,
   since steering towards something at no range means nothing. Worth revisiting if hooked pairs start
   leaving each other alone in ways that look wrong.
-- **Whether exhaust should know about layers.** A plume burns every module it reaches, raised or not, and
-  a raised engine's exhaust is still blocked by deck structure behind it. Left as it was, because nothing
+- **Whether exhaust should know about layers.** A plume burns every module it reaches, in either layer, and
+  a thick engine's exhaust is still blocked by deck structure behind it. Left as it was, because nothing
   yet makes the difference matter.
-- **Whether a thin engine should drop out of the weapons layer.** Everything else is in it only when thick,
-  but engines stay in it at any depth. Taking thin ones out broke eleven tests: turret-only fleets could
-  no longer disable a ship, so matches timed out. Answer it with the engine split below.
+- **How turret fleets fight craft they cannot see.** A thin engine is in the hull layer only, so a ship
+  whose engines are all under a deck across can be disabled only by hull weapons, and a craft built
+  wholly of such modules, like the Dinky, cannot be touched by a turret at all. Designs answer it for
+  now: the Corvette and Gunship carry hull guns at the bow, and turret tests use fixture ships
+  (`tests/fixtures.ts`) with a turret in place of the hull gun. The fighter-layer question below is
+  the longer answer.
 - **Whether fighters get to pick their layer.** They will be held under a deck's depth, and choose whether
   to overfly thin hulls or collide with them.
 - **Engines split by layer, into two archetypes.** A single `engine` kind cannot express the choice the
   weapons layer creates, so it becomes two — a new *archetype* rather than a new coefficient, which is the
   distinction the materials question above already draws.
-  - A **raised main engine**: high thrust, efficient, heavy. In the weapons layer, so guns can strip it.
-  - A **hull-layer engine**: small, and therefore low absolute thrust. Guns cannot reach it.
+  - A **thick main engine**: high thrust, efficient, heavy. In the weapons layer, so turrets can strip it.
+  - A **thin engine**: small, and therefore low absolute thrust. Turrets cannot reach it.
 
   **Settled in direction: the hull-layer one is lighter in absolute terms and *worse* per unit of thrust.**
   Lighter because it is smaller; worse because a bank of them must outweigh one main engine of the same

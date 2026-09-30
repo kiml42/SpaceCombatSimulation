@@ -417,9 +417,9 @@ inside any one file is not contiguous.
   beam, the opening turns out barely to constrain one at all: a lens is a fraction of the width a row
   of tubes is, so what holds a hull beam is the mounting limit until its housing runs most of the
   length of the module.
-  **Two layers** (§3). Every module is in the hull layer. Turrets, engines and anything marked *thick* stand
-  up into the weapons layer as well. A turret's rounds and beams meet only what is
-  in the weapons layer, so they strip mounts and engines and never reach a core below deck; a hull weapon's meet everything. Each
+  **Two layers** (§3). Every module is in the hull layer. Turrets and anything marked *thick* stand up into
+  the weapons layer as well. A turret's rounds and beams meet only what is in the weapons layer, so they strip
+  mounts and thick engines and never reach a core below deck; a hull weapon's meet everything. Each
   mount has a traverse — where its barrels may go, stopped by what the row of them would foul within a
   barrel's length, as wide as the outer barrel — and, separately, a trigger mask: the bearings its own ship is downrange of, at any distance,
   where it may point but not fire. For a turret both count only what is in the weapons layer. The editor draws the mask
@@ -427,7 +427,8 @@ inside any one file is not contiguous.
   on a masked bearing with its trigger held, so it is on target as the ship turns. A lit beam's drive stops at the edge of a masked sector rather than
   sweep across its own ship. A shot may land on its own ship, but never on the mount that fired it, so
   two enemies hooked together shoot each other. A module is as deep as it is across, capped at a deck
-  (3 m) unless it is thick. No shipped ship marks anything thick. A match is over when at most one side can
+  (3 m) unless it is thick. Shipped ships mark every engine wider than a deck thick, and the Corvette and
+  Gunship carry their bow guns as hull guns. A match is over when at most one side can
   still shoot or push, since most fleets can no longer destroy each other.
   **An engine has a nozzle rather than being one.** An engine's length divides between a machinery block
   and a bell, and the bell's share is the knob: a long one is lighter, keeps more of the thrust pointed
@@ -568,14 +569,18 @@ Rules:
   the deck cap, so a 60 m wide structure is 60 m deep. Marking one no more than a deck across changes
   nothing, and the editor disables it. Turrets are always held to a deck.
 - **Which layer a module is in** follows from that. Every module is in the hull layer. What is thick is in
-  the weapons layer as well, and so are turrets and engines, whatever their depth. Thick structure is cover
+  the weapons layer as well, and so are turrets, whatever their depth. A thin engine is not, so only hull
+  weapons can strip it, and a craft built entirely of modules under a deck across is out of turrets' reach
+  altogether: the Dinky is. Thick structure is cover
   for the turrets behind it and pays in wall, in being within reach of turrets, and in the arcs of every
   turret it stands in front of. A thick core is in turrets' reach. A thick hull weapon still fires at deck
   height.
 - **A barrel or nozzle is never wider than the module is deep.** A turret's tubes (and a beam's housing)
   are held to a deck, and a hull weapon's outlets to its depth, so a barrel is always a cylinder the hull
-  can hold. Thrust goes as exit width times depth. So thick buys a hull weapon a wider bore and an engine
-  a bigger exit, with machinery that keeps growing as the square of the width. A thin module's grows only
+  can hold. A bell is square, as wide as it is deep, so a thin engine's is at most a deck across whatever
+  its width, and thrust goes as the bells' total exit area. A thin engine wider than a deck needs more bells
+  to use its face. So thick buys a hull weapon a wider bore and an engine a bigger exit, with machinery
+  that keeps growing as the square of the width. A thin module's grows only
   linearly once it is past a deck wide. A beam's bank fills the block's volume, so it grows the same way.
 - **A turret trains and fires over the deck.** What stops its barrel is weapons-layer modules within a barrel's
   length. What stops its trigger is weapons-layer modules at any range down the line of fire: its *trigger

@@ -82,7 +82,8 @@
           "y": 0,
           "angle": 180,
           "length": 4,
-          "width": 6
+          "width": 6,
+          "thick": true
         },
         {
           "use": "wingBox",

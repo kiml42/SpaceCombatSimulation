@@ -54,6 +54,7 @@
           "angle": 90,
           "length": 2.5,
           "width": 7,
+          "thick": true,
           "barrels": 2
         }
       ]
@@ -67,6 +68,7 @@
           "angle": 90,
           "length": 2.5,
           "width": 7,
+          "thick": true,
           "barrels": 2
         },
         {
@@ -155,6 +157,7 @@
       "angle": 180,
       "length": 18,
       "width": 11,
+      "thick": true,
       "nozzle": 0.5
     },
     {

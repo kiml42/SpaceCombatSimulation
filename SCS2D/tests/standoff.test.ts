@@ -23,8 +23,8 @@ describe('a standoff nobody gives an order in', () => {
       bodies.x[first]! - bodies.x[second]!,
       bodies.y[first]! - bodies.y[second]!,
     );
-    const gun = run.ships.design(0).turrets[0]!.gun;
-    expect(apart).toBeLessThan(gun.muzzleSpeed * 2);
+    const fastest = Math.max(...run.ships.design(0).turrets.map((t) => t.gun.muzzleSpeed));
+    expect(apart).toBeLessThan(fastest * 2);
     expect(apart).toBeGreaterThan(0);
   });
 

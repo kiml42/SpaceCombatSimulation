@@ -33,12 +33,11 @@ import {
 const PI = Math.PI;
 
 describe('which layer a module is in', () => {
-  it('is the weapons layer for a turret, an engine and anything thick', () => {
+  it('is the weapons layer for a turret and anything thick', () => {
     const at = { x: 0, y: 0, length: 4, width: 4 };
     expect(inWeaponsLayer({ kind: 'turret', ...at })).toBe(true);
     expect(inWeaponsLayer({ kind: 'beamTurret', ...at })).toBe(true);
-    expect(inWeaponsLayer({ kind: 'engine', ...at })).toBe(true);
-    for (const kind of ['core', 'hullGun', 'hullBeam', 'structure'] as const) {
+    for (const kind of ['engine', 'core', 'hullGun', 'hullBeam', 'structure'] as const) {
       expect(inWeaponsLayer({ kind, ...at })).toBe(false);
       expect(inWeaponsLayer({ kind, ...at, thick: true })).toBe(true);
     }
@@ -107,8 +106,9 @@ describe('how thick a module is', () => {
   it('gives a thick engine a bigger nozzle', () => {
     const thin: ModuleSpec = { kind: 'engine', x: 0, y: 0, length: 8, width: 6 };
     const thick = moduleStats({ ...thin, thick: true });
-    // Twice as deep an exit, so twice the thrust for the same face.
-    expect(thick.thrust).toBeCloseTo(2 * moduleStats(thin).thrust, 6);
+    // A square bell the whole width across rather than a deck: four times
+    // the exit.
+    expect(thick.fittingMass).toBeCloseTo(4 * moduleStats(thin).fittingMass, 6);
     // Split into nozzles no deeper than a deck, it has nothing to gain.
     const split: ModuleSpec = { ...thin, barrels: 2 };
     expect(moduleStats({ ...split, thick: true }).thrust).toBeCloseTo(moduleStats(split).thrust, 6);

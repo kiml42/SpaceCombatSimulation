@@ -13,7 +13,8 @@ import {
   type ModuleKind,
   type ShipDesign,
 } from '../sim/index.js';
-import { BEAM_GUNSHIP, CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
+import { BEAM_GUNSHIP, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
+import { TURRET_CORVETTE, TURRET_DINKY, TURRET_GUNSHIP } from './fixtures.js';
 
 /**
  * A mount picking its own fight.
@@ -26,10 +27,10 @@ import { BEAM_GUNSHIP, CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.
  */
 
 const DT = 1 / 60;
-const gunship = compileBlueprint(GUNSHIP);
+const gunship = compileBlueprint(TURRET_GUNSHIP);
 const beamGunship = compileBlueprint(BEAM_GUNSHIP);
-const corvette = compileBlueprint(CORVETTE);
-const dinky = compileBlueprint(DINKY);
+const corvette = compileBlueprint(TURRET_CORVETTE);
+const dinky = compileBlueprint(TURRET_DINKY);
 
 interface Scene {
   world: World;
@@ -229,7 +230,7 @@ describe('a mount with a doctrine of its own', () => {
   it('says only what it wants differently, and its archetype covers the rest', () => {
     // The whole reason a mount's block is a partial — and what it is a
     // partial *over*: the kind of weapon it is, not the hull it is bolted to.
-    const design = compileBlueprint(GUNSHIP);
+    const design = compileBlueprint(TURRET_GUNSHIP);
     const archetype = defaultTargeting('turret');
     const close = design.turrets[PORT]!.targeting;
     expect(close.preferredMass).toBeLessThan(archetype.preferredMass);
@@ -252,7 +253,7 @@ describe('a mount with a doctrine of its own', () => {
   it('reaches every copy of a shared mount', () => {
     // The gunship's beam guns are two placements of one assembly, so this is
     // the check that a block written once is not lost on the way through.
-    const design = compileBlueprint(GUNSHIP);
+    const design = compileBlueprint(TURRET_GUNSHIP);
     expect(design.turrets[PORT]!.targeting).toEqual(design.turrets[STARBOARD]!.targeting);
   });
 
@@ -260,7 +261,7 @@ describe('a mount with a doctrine of its own', () => {
     const file = serialiseBlueprint(GUNSHIP);
     expect(blueprintFileProblem(file)).toBeNull();
     expect(compileBlueprint(parseBlueprint(file)).turrets[PORT]!.targeting).toEqual(
-      compileBlueprint(GUNSHIP).turrets[PORT]!.targeting,
+      compileBlueprint(TURRET_GUNSHIP).turrets[PORT]!.targeting,
     );
   });
 
@@ -282,7 +283,7 @@ describe('a mount with a doctrine of its own', () => {
     // from the hull, and metres of it is enough to order two targets
     // differently. Without that, a broadside piles onto whichever one the
     // hull happened to prefer.
-    const s = scene(compileBlueprint(GUNSHIP), [
+    const s = scene(compileBlueprint(TURRET_GUNSHIP), [
       { design: dinky, x: 450, y: 270 },
       { design: dinky, x: 450, y: -270 },
     ]);
@@ -297,7 +298,7 @@ describe('a mount with a doctrine of its own', () => {
     // worth more to it than the whole of its proximity preference, so a
     // drifting wreck alongside loses to a live fighter further out — which is
     // the mission kill of §3 read from the other end.
-    const s = scene(compileBlueprint(GUNSHIP), [
+    const s = scene(compileBlueprint(TURRET_GUNSHIP), [
       { design: dinky, x: 250, y: 250 },
       { design: dinky, x: 520, y: 290 },
     ]);
@@ -311,7 +312,7 @@ describe('a mount with a doctrine of its own', () => {
     // once because its guns are for different things. A shell from an
     // eight-barrelled pom-pom is wasted on a capital, and the bow gun has
     // nothing better to do with a fighter than miss it.
-    const capital = compileBlueprint(GUNSHIP);
+    const capital = compileBlueprint(TURRET_GUNSHIP);
     // Both marks inside the reach of both kinds of mount, so what decides is
     // the doctrine rather than the range: the bow gun could take the fighter
     // and the pom-poms could take the capital, and neither does.

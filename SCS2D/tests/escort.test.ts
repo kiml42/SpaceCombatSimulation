@@ -27,12 +27,13 @@ const MARKER: Blueprint = {
 
 /**
  * A marker that stands up into the weapons layer, so turret fire can land on
- * it: the core alone is deck, and deck-level rounds pass over it.
+ * it: the core alone is deck, and deck-level rounds pass over it. Wide enough
+ * to stand in the line of a gunship's side turrets.
  */
 const RAISED_MARKER: Blueprint = {
   name: 'Thick marker',
   modules: [
-    { kind: 'structure', x: 0, y: 0, length: 12, width: 12, thick: true },
+    { kind: 'structure', x: 0, y: 0, length: 12, width: 30, thick: true },
     { kind: 'core', x: 7, y: 0, length: 2, width: 2 },
   ],
 };

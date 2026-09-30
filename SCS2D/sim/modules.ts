@@ -964,7 +964,9 @@ export interface EngineGeometry {
   machineryLength: number;
   /** Length of the bell, metres. Zero for a throat with nothing on it. */
   nozzleLength: number;
-  /** Exit width of one nozzle, metres. The nozzles tile the face. */
+  /** The share of the face each nozzle sits in, metres, centre to centre. */
+  pitch: number;
+  /** Exit width of one nozzle, metres: as wide as it is deep, so no wider than its pitch. */
   exitWidth: number;
   /** Exit height of every nozzle, metres: the engine's thickness. */
   exitHeight: number;
@@ -981,7 +983,9 @@ export function engineGeometry(spec: ModuleSpec): EngineGeometry {
   const nozzles = spec.barrels ?? 1;
   const share = spec.nozzle ?? DEFAULT_NOZZLE_SHARE;
   const nozzleLength = spec.length * share;
-  const exitWidth = spec.width / nozzles;
+  const pitch = spec.width / nozzles;
+  // Square: a thin engine's bell is held to a deck both ways.
+  const exitWidth = moduleThickness(spec);
   const throatWidth = exitWidth * NOZZLE_THROAT_FRACTION;
   // How far the wall has to travel sideways over the bell's length.
   const flare = (exitWidth - throatWidth) * 0.5;
@@ -994,8 +998,9 @@ export function engineGeometry(spec: ModuleSpec): EngineGeometry {
     share,
     machineryLength: spec.length - nozzleLength,
     nozzleLength,
+    pitch,
     exitWidth,
-    exitHeight: moduleThickness(spec),
+    exitHeight: exitWidth,
     throatWidth,
     halfAngle,
     divergence: (1 + axial) * 0.5,
@@ -1017,12 +1022,11 @@ export function engineMachinery(spec: ModuleSpec): ModuleSpec {
 /**
  * Where one nozzle's axis sits across the exit face, metres from the middle.
  *
- * The bells tile the face rather than being spaced out across it the way
- * barrels are: a gun's barrels are thin things with ship in between, while
- * nozzles divide up a face that is entirely exhaust.
+ * Each at the middle of its share of the face. They tile it when they are
+ * no deeper than a deck, and sit apart on a thin engine wider than that.
  */
 export function nozzleOffset(geometry: EngineGeometry, index: number): number {
-  return (index - (geometry.nozzles - 1) * 0.5) * geometry.exitWidth;
+  return (index - (geometry.nozzles - 1) * 0.5) * geometry.pitch;
 }
 
 /**
@@ -1233,11 +1237,10 @@ export function readsThick(kind: ModuleKind): boolean {
  * Whether a module stands in the weapons layer (DESIGN.md §3), and so blocks
  * turrets and can be hit by them. Every module is in the hull layer.
  *
- * Turrets always are, and so are engines — guns strip "mounts, sensors and
- * engines" — and anything else that is thick.
+ * Turrets always are, and anything else that is thick.
  */
 export function inWeaponsLayer(spec: ModuleSpec): boolean {
-  return spec.kind === 'turret' || spec.kind === 'beamTurret' || spec.kind === 'engine' || isThick(spec);
+  return spec.kind === 'turret' || spec.kind === 'beamTurret' || isThick(spec);
 }
 
 /** Whether a module is marked thick and wide enough for that to make it deeper. */
@@ -1455,11 +1458,11 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
     // carrying five of them.
     fittingMass = max(CORE_MINIMUM_FITTING_MASS, CORE_MASS_PER_AREA * capacity);
   } else if (engine !== null) {
-    // Thrust comes out of the nozzle, so it scales with the area of the face
-    // the exhaust leaves through — the module's width by its thickness,
-    // however many bells that face is divided into. An engine therefore gets
-    // stronger by being made *wider*, which is what stops "just stretch it"
-    // being the answer to every propulsion problem.
+    // Thrust comes out of the nozzle, so it scales with the exit area: each
+    // bell square, as wide as it is deep. A thin engine wider than a deck
+    // therefore needs more bells, or to be thick, to use its whole face. An
+    // engine gets stronger by being made *wider*, which is what stops "just
+    // stretch it" being the answer to every propulsion problem.
     //
     // **How hard that face is fed is the machinery's business**, and the
     // machinery is the block the bell was cut out of. A shallow bell leaves a
@@ -1469,7 +1472,8 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
     // at it.
     const feed = engine.machineryLength / (PUMP_DEPTH_WIDTHS * spec.width);
     const supply = feed < THROAT_CHOKE ? feed : THROAT_CHOKE;
-    const throughput = THRUST_PER_EXIT_AREA * spec.width * engine.exitHeight * supply;
+    const exitArea = engine.nozzles * engine.exitWidth * engine.exitHeight;
+    const throughput = THRUST_PER_EXIT_AREA * exitArea * supply;
     // What the bell then keeps pointed the right way. **The two pull opposite
     // ways**, which is the whole of the knob: length taken off the bell is
     // flow gained and aim lost, so the best engine is neither all bell nor all

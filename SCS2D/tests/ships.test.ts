@@ -12,14 +12,15 @@ import {
   type ShipDesign,
   BeamHits,
 } from '../sim/index.js';
-import { CORVETTE, GUNSHIP, BEAM_GUNSHIP, DINKY } from '../scenarios/blueprints.js';
+import { BEAM_GUNSHIP, DINKY } from '../scenarios/blueprints.js';
+import { TURRET_CORVETTE, TURRET_GUNSHIP } from './fixtures.js';
 import { OrderCancelCondition } from '../sim/ships.js';
 import { DAMAGE_ENERGY_PER_KG } from '../sim/damage.js';
 
 const DT = 1 / 60;
 
-const corvette = compileBlueprint(CORVETTE);
-const gunship = compileBlueprint(GUNSHIP);
+const corvette = compileBlueprint(TURRET_CORVETTE);
+const gunship = compileBlueprint(TURRET_GUNSHIP);
 const beamGunship = compileBlueprint(BEAM_GUNSHIP);
 const dinky = compileBlueprint(DINKY);
 

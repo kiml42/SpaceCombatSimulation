@@ -20,7 +20,8 @@ import {
   resolveRound,
   type ShipDesign,
 } from '../sim/index.js';
-import { BARE_CORE, CORVETTE, STAR_DESTROYER } from '../scenarios/blueprints.js';
+import { BARE_CORE, STAR_DESTROYER } from '../scenarios/blueprints.js';
+import { TURRET_CORVETTE } from './fixtures.js';
 import { joints } from '../sim/connectivity.js';
 
 /**
@@ -31,7 +32,7 @@ import { joints } from '../sim/connectivity.js';
  * on, what that costs them, and what a module with nothing left stops doing.
  */
 
-const corvette: ShipDesign = compileBlueprint(CORVETTE);
+const corvette: ShipDesign = compileBlueprint(TURRET_CORVETTE);
 
 /** One ship at the origin, facing +x, with a damage record. */
 function ship(angle = 0): { bodies: Bodies; damage: Damage; path: HullPath } {

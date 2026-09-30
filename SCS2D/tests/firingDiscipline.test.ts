@@ -14,7 +14,8 @@ import {
   World,
   type ShipDesign,
 } from '../sim/index.js';
-import { BEAM_CORVETTE, CORVETTE, DINKY } from '../scenarios/blueprints.js';
+import { BEAM_CORVETTE, DINKY } from '../scenarios/blueprints.js';
+import { TURRET_CORVETTE } from './fixtures.js';
 import { column } from '../scenarios/column.js';
 
 /**
@@ -33,7 +34,7 @@ import { column } from '../scenarios/column.js';
  */
 
 const DT = 1 / 60;
-const corvette = compileBlueprint(CORVETTE);
+const corvette = compileBlueprint(TURRET_CORVETTE);
 const beamCorvette = compileBlueprint(BEAM_CORVETTE);
 const dinky = compileBlueprint(DINKY);
 

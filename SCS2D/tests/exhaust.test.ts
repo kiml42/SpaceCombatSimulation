@@ -39,7 +39,10 @@ const hull = (x: number, length: number): ModuleSpec => ({
   width: 6,
 });
 
-/** An engine mounted at `x`, pushing along `pushing` and facing, with its bell, the other way. */
+/**
+ * An engine mounted at `x`, pushing along `pushing` and facing, with its bell,
+ * the other way. Thick, so its bell fills its face at any width.
+ */
 const engine = (x: number, pushing: number): ModuleSpec => ({
   kind: 'engine',
   x,
@@ -47,6 +50,7 @@ const engine = (x: number, pushing: number): ModuleSpec => ({
   angle: pushing > 0 ? pushing - Math.PI : pushing + Math.PI,
   length: 2,
   width: 4,
+  thick: true,
 });
 
 /**
@@ -155,15 +159,14 @@ describe('how far a plume reaches', () => {
     expect(reach(4)).toBeGreaterThan(reach(2));
   });
 
-  it('splits into shorter, fiercer flames across more nozzles, and loses no thrust doing it', () => {
+  it('splits into shorter flames across more nozzles', () => {
     // Each nozzle is fed at the same pressure through a narrower exit, so its
-    // flame is shorter; its bell is narrower for the same length, so the gas
-    // is better aimed and the engine as a whole pushes a little harder. Each
-    // is still a deck wide, so still a deck deep.
-    const built = (barrels: number) => {
+    // flame is shorter. Being square, each also has less exit, so splitting a
+    // face that one bell already fills costs thrust.
+    const built = (barrels: number, spec: Partial<ModuleSpec> = {}) => {
       const d = compileBlueprint({
         name: 'Engine',
-        modules: [{ ...engine(-5, 0), length: 12, width: 12, barrels }, hull(0, 10)],
+        modules: [{ ...engine(-5, 0), length: 12, width: 12, barrels, ...spec }, hull(0, 10)],
       });
       const t = d.engines[0]!;
       const geometry = engineGeometry(d.modules[t.module!]!.spec);
@@ -176,8 +179,14 @@ describe('how far a plume reaches', () => {
     const one = built(1);
     const four = built(4);
     expect(four.reach).toBeLessThan(one.reach * 0.5);
-    expect(four.intensity).toBeGreaterThan(one.intensity * 2);
-    expect(four.thrust).toBeGreaterThanOrEqual(one.thrust);
+    expect(four.thrust).toBeLessThan(one.thrust);
+
+    // Thin, one bell is a deck across and leaves most of the face unused;
+    // four fill it, each flame as long as the one was.
+    const thinOne = built(1, { thick: false });
+    const thinFour = built(4, { thick: false });
+    expect(thinFour.thrust).toBeCloseTo(thinOne.thrust * 4, 3);
+    expect(thinFour.reach).toBeCloseTo(thinOne.reach, 9);
   });
 
   it('reaches furthest from a long bell, but not from one with nothing behind it', () => {

@@ -47,6 +47,7 @@
           "angle": 180,
           "length": 18.5,
           "width": 5.9,
+          "thick": true,
           "nozzle": 0.2
         },
         {
