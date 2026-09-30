@@ -105,8 +105,9 @@ and evolution run does, and a ship tuned to half the rules is tuned twice.
      bursting, which is the switch for whether any of the round is charge at all.
    - `burstSpeed` (650 m/s by default): the most a fragment's velocity differs from the round's. It sizes
      the charge, since the casing's kinetic energy is what the charge's yield supplies (`chargeShare`), and
-     charge is a fifth as dense as steel: a gentle burst is nearly solid, a fierce one light and fast. At
-     the default a quarter of the shell is charge, four-fifths the mass of solid shot.
+     charge is far less dense than steel: a gentle burst is nearly solid, a fierce one light and fast. Solid
+     shot keeps the mass every round had before shells; at the default a fifth of a shell is charge, so it
+     is about 84% of that.
    - `fuse` (0.02 s by default): how long before the aim point it bursts. Zero bursts at the aim point,
      which still counts on a miss or on what lies behind the target. The pattern is about the burst speed
      times the fuse across, so the default is a tight one and a flak gun wants many fragments on a long fuse.

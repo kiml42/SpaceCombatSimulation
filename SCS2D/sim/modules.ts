@@ -283,10 +283,11 @@ export const BARREL_CALIBRES = 50;
 export const SHELL_CALIBRES = 4.5;
 
 /**
- * Mean density of solid shot, kg/m³: steel, a little under it because the
- * round is ogive-nosed and does not fill its own bounding cylinder.
+ * Mean density of solid shot, kg/m³. Below the density of steel because the
+ * round is ogive-nosed, so it does not fill its own bounding cylinder. A shell
+ * that bursts is lighter still, for the charge it carries (`chargeShare`).
  */
-export const SHELL_DENSITY = 7750;
+export const SHELL_DENSITY = 6200;
 
 /** Density of the bursting charge, kg/m³. A cast high explosive. */
 export const EXPLOSIVE_DENSITY = 1650;
@@ -306,8 +307,8 @@ export const MAX_FRAGMENTS = 64;
 
 /**
  * How fast fragments leave a burst when the mount does not say, m/s. About
- * a quarter of the shell is then charge, so a shell is four-fifths the mass of
- * solid shot.
+ * a fifth of the shell is then charge, so a shell is about 84% of the mass
+ * of solid shot.
  */
 export const DEFAULT_BURST_SPEED = 650;
 
