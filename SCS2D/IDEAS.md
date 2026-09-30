@@ -35,7 +35,6 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 
 ## Evolution
 - Mutate to change the whole scale of the ship
-- Crossing and closing velocity settings
 - Measure yardstick should remember what it previously measured if it's the same ship as the yardstick.
   - Should be able to see a yardstick battle.
 - Mass and ship count graphs below score graph

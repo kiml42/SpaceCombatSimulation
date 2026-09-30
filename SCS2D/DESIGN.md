@@ -461,7 +461,8 @@ inside any one file is not contiguous.
   founders are ships and fleets alike; a ship grows into a fleet unless the most ships allowed is one. Before a run the page shows the founders unmutated and the run's
   first match paused at its start. **A boss battle** sets every entrant on one side against a ship or fleet
   that does not evolve, at the middle of the ring where the goal would be, each scored for what it does to
-  the boss alone.
+  the boss alone. Entrants can start already moving, towards the middle and across it, at speeds the run
+  sets (`--closing`, `--crossing`), the same two a custom battle has.
 - **Next:** the rest of §8 step 5 — a materials budget, designed scenarios, shareable by URL; then step 8,
   fuel, which starts the resource system.
   See ROADMAP.md §8.
