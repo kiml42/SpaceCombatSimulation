@@ -96,7 +96,17 @@ export {
   type ModuleStats,
   type EngineGeometry,
 } from './modules.js';
-export { HullPath, Hulls, modulesAlong, type HullDesigns } from './hull.js';
+export {
+  BOTH_LAYERS,
+  HULL_LAYER,
+  HullPath,
+  Hulls,
+  modulesAlong,
+  moduleLayers,
+  OWN_LAYERS,
+  WEAPONS_LAYER,
+  type HullDesigns,
+} from './hull.js';
 export {
   PLUME_POWER_PER_NEWTON,
   PLUME_RAYS,
@@ -161,6 +171,7 @@ export {
   blueprintProblem,
   blueprintProblems,
   compileBlueprint,
+  fighterProblem,
   compileDraft,
   expandBlueprint,
   expandWithOrigins,

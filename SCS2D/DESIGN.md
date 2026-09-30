@@ -597,10 +597,12 @@ Rules:
   A craft that **commits** drops to deck height and occupies *both* layers, so it can strike hull.
   Whether to commit is a doctrine choice: to ram, or to dock on another ship's side.
 
-  **A strike craft is a ship flagged as a fighter** (ROADMAP.md §8 step 7, not yet built). The flag rules
+  **A strike craft is a ship flagged as a fighter.** The flag rules
   out turrets and thick modules, which is what keeps a craft small enough to skim a deck, and puts the
   ship in the weapons layer for the battle. A ship that evolves either one flies as an ordinary ship, its
-  flag ignored.
+  flag ignored. What commits it is `approach.commitRadii`: how close its target's edge has to be, in the
+  target's own radii. Uncommitted, it collides only with other fighters and hull-layer fire passes under
+  it; its own hull weapons fire in the weapons layer until it commits, and in both after.
 
   **Occupancy is added, never swapped.** A committed craft does not leave the weapons layer, so
   everything that could shoot at it still can — every turret is weapons-layer, and a craft

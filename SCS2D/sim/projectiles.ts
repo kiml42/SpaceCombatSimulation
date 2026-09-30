@@ -4,7 +4,7 @@ import { wellPull } from './gravity.js';
 import { cos, sin, sqrt, TAU } from './math.js';
 import type { Rng } from './rng.js';
 import { RayHit, type SpatialGrid } from './spatialGrid.js';
-import type { Hulls } from './hull.js';
+import { BOTH_LAYERS, HULL_LAYER, WEAPONS_LAYER, type Hulls } from './hull.js';
 
 /**
  * Projectiles: shells, slugs and other ballistic rounds in flight.
@@ -90,6 +90,8 @@ export interface ProjectileSpec {
    * modules. Off by default: a round meets everything.
    */
   weaponsLayer?: boolean;
+  /** The layers it is in, as a `HULL_LAYER` / `WEAPONS_LAYER` mask. Overrides `weaponsLayer`. */
+  layers?: number;
   /** Caller-defined classification (AP, HE, and so on). Uninterpreted here. */
   kind?: number;
   /** Seconds until it bursts into `BURST_FRAGMENTS`. Never when absent. */
@@ -206,8 +208,8 @@ export class Projectiles {
   penetration!: Float64Array;
   owner!: Int32Array;
   fromModule!: Int32Array;
-  /** 1 for a round in the weapons layer, which meets only weapons-layer modules. */
-  weaponsLayer!: Uint8Array;
+  /** The layers it is in, as a `HULL_LAYER` / `WEAPONS_LAYER` mask. */
+  layers!: Uint8Array;
   kind!: Int32Array;
   /** Seconds until it bursts; `Infinity` for a round that never does. */
   fuse!: Float64Array;
@@ -281,8 +283,8 @@ export class Projectiles {
     this.owner = i32(this.owner);
     this.fromModule = i32(this.fromModule);
     const layer = new Uint8Array(capacity);
-    if (this.weaponsLayer) layer.set(this.weaponsLayer);
-    this.weaponsLayer = layer;
+    if (this.layers) layer.set(this.layers);
+    this.layers = layer;
     this.kind = i32(this.kind);
     this.fuse = f64(this.fuse);
     this.spread = f64(this.spread);
@@ -326,7 +328,7 @@ export class Projectiles {
     owner: number,
     kind: number,
     fromModule = -1,
-    weaponsLayer = false,
+    layers = HULL_LAYER,
     fuse = Infinity,
     spread = 0,
     fragmentLife = 0,
@@ -351,7 +353,7 @@ export class Projectiles {
     this.penetration[i] = penetration;
     this.owner[i] = owner;
     this.fromModule[i] = fromModule;
-    this.weaponsLayer[i] = weaponsLayer ? 1 : 0;
+    this.layers[i] = layers;
     this.kind[i] = kind;
     this.fuse[i] = fuse;
     this.spread[i] = spread;
@@ -378,7 +380,7 @@ export class Projectiles {
       spec.owner ?? NO_OWNER,
       spec.kind ?? 0,
       spec.fromModule ?? -1,
-      spec.weaponsLayer ?? false,
+      spec.layers ?? (spec.weaponsLayer === true ? WEAPONS_LAYER : HULL_LAYER),
       spec.fuse ?? Infinity,
       spec.spread ?? 0,
       spec.fragmentLife ?? 0,
@@ -516,8 +518,8 @@ export class Projectiles {
    *
    * Each leaves with the round's velocity plus a kick in a random direction,
    * spread evenly over a disc, and its twin with the opposite kick, so the
-   * burst carries on with the round's momentum. Fragments fly in the hull
-   * layer, so they meet every module, and do not burst again.
+   * burst carries on with the round's momentum. Fragments fly in both layers,
+   * so they meet every module, and do not burst again.
    */
   private burst(i: number, rng: Rng): void {
     const n = BURST_FRAGMENTS;
@@ -541,8 +543,8 @@ export class Projectiles {
       const speed = spread * sqrt(rng.nextFloat());
       const kx = cos(angle) * speed;
       const ky = sin(angle) * speed;
-      this.spawnRaw(x, y, vx + kx, vy + ky, width, ttl, mass, damage, penetration, owner, kind, from);
-      this.spawnRaw(x, y, vx - kx, vy - ky, width, ttl, mass, damage, penetration, owner, kind, from);
+      this.spawnRaw(x, y, vx + kx, vy + ky, width, ttl, mass, damage, penetration, owner, kind, from, BOTH_LAYERS);
+      this.spawnRaw(x, y, vx - kx, vy - ky, width, ttl, mass, damage, penetration, owner, kind, from, BOTH_LAYERS);
     }
   }
 
@@ -593,7 +595,7 @@ export class Projectiles {
     // own ship; one that does not passes through all of it.
     const from = this.fromModule[i]!;
     const owner = this.owner[i]!;
-    hulls?.castFrom(this.weaponsLayer[i] === 1, owner, from);
+    hulls?.castFrom(this.layers[i]!, owner, from);
     const found = grid.raycast(bodies, x0, y0, x0 + dx, y0 + dy, hit, from >= 0 ? -1 : owner, hulls, skip);
     if (!found) {
       hulls?.reset();
@@ -659,7 +661,7 @@ export class Projectiles {
     penetration: number,
     kind: number,
     fromModule = -1,
-    weaponsLayer = false,
+    layers = HULL_LAYER,
     fuse = Infinity,
     spread = 0,
     fragmentLife = 0,
@@ -677,7 +679,7 @@ export class Projectiles {
       bodyIndex,
       kind,
       fromModule,
-      weaponsLayer,
+      layers,
       fuse,
       spread,
       fragmentLife,

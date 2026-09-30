@@ -115,8 +115,13 @@ and evolution run does, and a ship tuned to half the rules is tuned twice.
      to under the rule that a hull-layer shot meets everything.
    - No area cloud yet. **Beams stay in their own layer**: a laser has no fuse, which is the asymmetry §3
      asks for.
-2. **Fighters.** A ship-level *fighter* flag, a checkbox in the editor. It follows DESIGN.md §3's strike
-   craft rather than inventing a new rule:
+2. **Fighters — built.** A ship-level *fighter* flag, a checkbox in the editor's Role section. It follows
+   DESIGN.md §3's strike craft rather than inventing a new rule. As built: shots, beams and hull casts carry
+   a layer mask (`HULL_LAYER`, `WEAPONS_LAYER`, both for fragments), and a fighter's modules are all in
+   the weapons layer, or both once committed (`Ships.layersOf`). The doctrine's `approach.commitRadii`
+   commits it once its target's edge is that many of the target's radii off; 0, the default, never does.
+   "Clear of every hull" is read cautiously, as clear of every bounding circle. No stock ship is a fighter
+   yet: flagging the Dinky, TIE and X-Wing is the obvious first move of item 3.
    - **A fighter may carry no turret and nothing thick.** The editor disables both while the flag is set.
      It flies in the **weapons layer**, where turrets and CIWS reach it, so a fighter is never out of their
      reach the way the Dinky is today.

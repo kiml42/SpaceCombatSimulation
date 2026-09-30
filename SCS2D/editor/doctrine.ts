@@ -63,6 +63,7 @@ const APPROACH_ROWS: readonly DoctrineRow[] = [
   { field: 'approachSpeed', label: 'closing speed', hint: 'The fastest it will close the difference, metres per second', step: 10 },
   { field: 'accelerate', label: 'speeds up on', hint: 'How much of its thrust towards the band to speed up with: 1 is all of it', step: 0.05 },
   { field: 'brake', label: 'brakes on', hint: 'How much of its thrust the other way to plan on stopping with: under 1 keeps a margin', step: 0.05 },
+  { field: 'commitRadii', label: 'commits at', hint: "A fighter's: how close to its target, in the target's radii from its edge, before it drops into the hull layer to ram or dock. 0 never does", step: 0.5 },
 ];
 
 const ROW_OF = new Map<string, DoctrineRow>(

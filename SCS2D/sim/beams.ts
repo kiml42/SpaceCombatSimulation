@@ -2,7 +2,7 @@ import type { Bodies } from './bodies.js';
 import { sqrt } from './math.js';
 import { RayHit, type SpatialGrid, MAX_CELLS_PER_RAY } from './spatialGrid.js';
 import { NO_OWNER } from './projectiles.js';
-import type { Hulls } from './hull.js';
+import { HULL_LAYER, WEAPONS_LAYER, type Hulls } from './hull.js';
 
 /**
  * Beams: lasers, particle beams, and anything else taken to go from its
@@ -73,6 +73,8 @@ export interface BeamSpec {
   fromModule?: number;
   /** Fired in the weapons layer, so it meets only weapons-layer modules. */
   weaponsLayer?: boolean;
+  /** The layers it is in, as a `HULL_LAYER` / `WEAPONS_LAYER` mask. Overrides `weaponsLayer`. */
+  layers?: number;
   /** Caller-defined classification (laser, particle beam, and so on). Uninterpreted here. */
   kind?: number;
 }
@@ -173,8 +175,8 @@ export class Beams {
   power!: Float64Array;
   owner!: Int32Array;
   fromModule!: Int32Array;
-  /** 1 for a beam in the weapons layer, which meets only weapons-layer modules. */
-  weaponsLayer!: Uint8Array;
+  /** The layers it is in, as a `HULL_LAYER` / `WEAPONS_LAYER` mask. */
+  layers!: Uint8Array;
   kind!: Int32Array;
   alive!: Uint8Array;
   /**
@@ -219,8 +221,8 @@ export class Beams {
     this.owner = i32(this.owner);
     this.fromModule = i32(this.fromModule);
     const layer = new Uint8Array(capacity);
-    if (this.weaponsLayer) layer.set(this.weaponsLayer);
-    this.weaponsLayer = layer;
+    if (this.layers) layer.set(this.layers);
+    this.layers = layer;
     this.kind = i32(this.kind);
 
     const alive = new Uint8Array(capacity);
@@ -254,7 +256,7 @@ export class Beams {
     hits: BeamHits,
     hulls?: Hulls,
     fromModule = -1,
-    weaponsLayer = false,
+    layers = HULL_LAYER,
   ): number {
     let i: number;
     const reused = this.free.pop();
@@ -273,7 +275,7 @@ export class Beams {
     this.power[i] = power;
     this.owner[i] = owner;
     this.fromModule[i] = fromModule;
-    this.weaponsLayer[i] = weaponsLayer ? 1 : 0;
+    this.layers[i] = layers;
     this.kind[i] = kind;
     this.alive[i] = 1;
     this.pending[i] = 0;
@@ -306,7 +308,7 @@ export class Beams {
       hits,
       hulls,
       spec.fromModule ?? -1,
-      spec.weaponsLayer ?? false,
+      spec.layers ?? (spec.weaponsLayer === true ? WEAPONS_LAYER : HULL_LAYER),
     );
   }
 
@@ -356,7 +358,7 @@ export class Beams {
     // ship; one that does not passes through all of it.
     const from = this.fromModule[i]!;
     const owner = this.owner[i]!;
-    hulls?.castFrom(this.weaponsLayer[i] === 1, owner, from);
+    hulls?.castFrom(this.layers[i]!, owner, from);
     const found = grid.raycast(bodies, startX, startY, endX, endY, hit, from >= 0 ? -1 : owner, hulls);
     if (!found) hulls?.reset();
     if (found) {
@@ -427,7 +429,7 @@ export class Beams {
     hits: BeamHits,
     hulls?: Hulls,
     fromModule = -1,
-    weaponsLayer = false,
+    layers = HULL_LAYER,
   ): number {
     return this.shootRaw(
       muzzleX,
@@ -443,7 +445,7 @@ export class Beams {
       hits,
       hulls,
       fromModule,
-      weaponsLayer,
+      layers,
     );
   }
 }

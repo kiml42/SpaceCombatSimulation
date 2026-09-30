@@ -228,6 +228,13 @@ export interface Approach {
    * one means every retro it has and less keeps a margin in hand.
    */
   readonly brake: number;
+  /**
+   * How close a fighter comes to its target before it drops into the hull
+   * layer as well, in multiples of the target's radius from its edge: the
+   * decision to ram or to dock (DESIGN.md §3). Zero never commits. Read only
+   * by a fighter.
+   */
+  readonly commitRadii: number;
 }
 
 export interface Doctrine {
@@ -275,6 +282,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     approachSpeed: 60,
     accelerate: 1,
     brake: 0.8,
+    commitRadii: 0,
   },
 };
 
@@ -444,6 +452,7 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
   'approachSpeed',
   'accelerate',
   'brake',
+  'commitRadii',
 ];
 
 /**

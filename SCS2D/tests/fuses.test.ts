@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  BOTH_LAYERS,
   BURST_FRAGMENTS,
   BURST_SPREAD,
   Beams,
@@ -68,7 +69,7 @@ describe('a fused round', () => {
     const { rounds } = burstOne(0.5, 50);
     for (const i of live(rounds)) {
       expect(Math.hypot(rounds.vx[i]! - 600, rounds.vy[i]! - 40)).toBeLessThanOrEqual(50 + 1e-9);
-      expect(rounds.weaponsLayer[i]).toBe(0);
+      expect(rounds.layers[i]).toBe(BOTH_LAYERS);
       expect(rounds.fuse[i]).toBe(Infinity);
       // Its own short life, less the step it has flown since.
       expect(rounds.ttl[i]).toBeGreaterThan(1 - 2 * DT);

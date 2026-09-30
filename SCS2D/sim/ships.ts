@@ -9,7 +9,7 @@ import {
   type ShipDesign,
 } from './blueprint.js';
 import { components, cuts, jointBetween, joints, type Joint } from './connectivity.js';
-import { Hulls } from './hull.js';
+import { BOTH_LAYERS, HULL_LAYER, Hulls, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from './hull.js';
 import { Damage, DamageEffect } from './damage.js';
 import { plumeRays, plumeRayStarts, Plumes, WEAPON_PLUME_SHARE } from './exhaust.js';
 import { Choice, cohesionUrge, look, lookFrom, score } from './targeting.js';
@@ -535,6 +535,8 @@ export class Ships {
    * drawn, hit and severed by the code that already does those.
    */
   private readonly derelict: number[] = [];
+  /** 1 for a fighter its doctrine has taken down into the hull layer as well. */
+  private readonly committed: number[] = [];
 
   /**
    * Mass thrown away as scrap or lost track of, kilograms — everything the
@@ -686,6 +688,13 @@ export class Ships {
    * what the narrow phase asks, and what makes a round land on a ship's
    * modules rather than on the circle drawn round them.
    */
+  /** The layers every module of this body is in; `OWN_LAYERS` for anything but one fighter. */
+  layersOf(bodyIndex: number): number {
+    if (this.designOf(bodyIndex) === null || this.pilots[bodyIndex] != null) return OWN_LAYERS;
+    const ship = this.shipByBody[bodyIndex];
+    return ship === undefined ? OWN_LAYERS : this.shipLayers(ship);
+  }
+
   designOf(bodyIndex: number): ShipDesign | null {
     const design = this.hullDesign[bodyIndex];
     if (design === undefined || design === null) return null;
@@ -910,6 +919,7 @@ export class Ships {
     this.turretAimModule.push(new Int32Array(mounts.length).fill(WHOLE_SHIP));
     this.team.push(spec.team ?? 0);
     this.derelict.push(0);
+    this.committed.push(0);
     this.cutSeen.push(-1);
     this.partedAt.push(-Infinity);
     this.chosen.push(NO_TARGET);
@@ -1103,6 +1113,7 @@ export class Ships {
       }
       if (world.tick < schedule[t]!) continue;
       const mount = design.turrets[t]!;
+      const layers = this.mountLayers(i, mount);
       schedule[t] = world.tick + this.turretRethinkTicks(world, t, design);
 
       if (!(this.damage.remaining(b, mount.module, DamageEffect.FireRate) > 0)) {
@@ -1138,12 +1149,12 @@ export class Ships {
         let tx = bodies.x[tb]!;
         let ty = bodies.y[tb]!;
         if (hooked) {
-          const part = this.aimModule(bodies, mount, e, gunX, gunY, true);
+          const part = this.aimModule(bodies, mount, layers, e, gunX, gunY, true);
           if (part < 0) continue;
           this.partPoint(bodies, tb, this.designs[e]!, part);
           tx = this.partAt.x;
           ty = this.partAt.y;
-        } else if (!this.canAimAt(mount, e, tb)) {
+        } else if (!this.canAimAt(mount, layers, e, tb)) {
           // A ship with nothing left this mount will shoot at is not a target
           // for it, however good it looks by every other measure.
           continue;
@@ -1188,7 +1199,7 @@ export class Ships {
       targets[t] = this.choice.ship !== NO_TARGET ? this.choice.ship : this.maskedChoice.ship;
       aims[t] = targets[t] === NO_TARGET
         ? WHOLE_SHIP
-        : this.aimModule(bodies, mount, targets[t]!, gunX, gunY, bodies.indexOf(this.bodyIds[targets[t]!]!) === b);
+        : this.aimModule(bodies, mount, layers, targets[t]!, gunX, gunY, bodies.indexOf(this.bodyIds[targets[t]!]!) === b);
     }
   }
 
@@ -1221,6 +1232,7 @@ export class Ships {
   private aimModule(
     bodies: Bodies,
     mount: DesignTurret,
+    layers: number,
     target: number,
     fromX: number,
     fromY: number,
@@ -1232,7 +1244,7 @@ export class Ships {
     // its rounds pass over, so it always picks something in the weapons layer. Nor can one
     // hooked to its target, whose hull's middle may be its own.
     const anyPart = !picksParts(doctrine);
-    if (anyPart && mount.hullLayer && !hooked) return WHOLE_SHIP;
+    if (anyPart && this.meetsWhole(layers, target) && !hooked) return WHOLE_SHIP;
     const tb = bodies.indexOf(this.bodyIds[target]!);
     if (tb < 0) return WHOLE_SHIP;
     const design = this.designs[target]!;
@@ -1244,7 +1256,7 @@ export class Ships {
     let bestWeight = 0;
     let bestRange = 0;
     for (let k = 0; k < design.modules.length; k++) {
-      if (!this.reaches(mount, design, tb, target, k)) continue;
+      if (!this.reaches(layers, design, tb, target, k)) continue;
       const weight = anyPart ? 1 : partWeight(doctrine, design.modules[k]!.spec.kind);
       // Only what this doctrine wants destroyed. Zero is not a poor ranking
       // but a different statement — *not worth a shot* — and the best of a
@@ -1278,9 +1290,76 @@ export class Ships {
    * Whether a round from this mount could land on module `k` of a target:
    * still standing, still the target's, and in a layer the mount fires in.
    */
-  private reaches(mount: DesignTurret, design: ShipDesign, tb: number, target: number, k: number): boolean {
+  private reaches(layers: number, design: ShipDesign, tb: number, target: number, k: number): boolean {
     if (this.damage.spent(tb, k) || !this.ownsAt(target, tb, k)) return false;
-    return mount.hullLayer || design.modules[k]!.weaponsLayer;
+    return (moduleLayers(design.modules[k]!, this.shipLayers(target)) & layers) !== 0;
+  }
+
+  /**
+   * Whether a shot in these layers meets whatever it hits of this ship, so the
+   * ship's centre is as good an aim point as any part: in the hull layer, at
+   * a ship every module of which is in it.
+   */
+  private meetsWhole(layers: number, target: number): boolean {
+    const whole = this.shipLayers(target);
+    return (layers & HULL_LAYER) !== 0 && (whole === OWN_LAYERS || (whole & HULL_LAYER) !== 0);
+  }
+
+  /**
+   * Whether a fighter takes the hull layer as well, as its doctrine says:
+   * once its target's edge is within `commitRadii` of the target's radius.
+   *
+   * Only while clear of every hull, in either direction (DESIGN.md §3), so a
+   * fighter cannot drop inside a capital's perimeter or climb back out of one
+   * it has struck. Clear of its bounding circle, which is the cautious answer.
+   */
+  private commitOne(bodies: Bodies, i: number): void {
+    const design = this.designs[i]!;
+    if (!design.fighter) return;
+    const b = bodies.indexOf(this.bodyIds[i]!);
+    if (b < 0) return;
+    const radii = design.doctrine.approach.commitRadii;
+    const target = this.effectiveOrder(i)?.target ?? NO_TARGET;
+    let want = 0;
+    if (radii > 0 && target !== NO_TARGET && this.alive[target] === 1) {
+      const tb = bodies.indexOf(this.bodyIds[target]!);
+      if (tb >= 0) {
+        const gap = length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!) - bodies.radius[tb]!;
+        want = gap <= radii * bodies.radius[tb]! ? 1 : 0;
+      }
+    }
+    if (want === this.committed[i] || !this.clearOfHulls(bodies, b)) return;
+    this.committed[i] = want;
+  }
+
+  /** Whether no other hull's bounding circle overlaps this body's. */
+  private clearOfHulls(bodies: Bodies, b: number): boolean {
+    for (let j = 0; j < bodies.highWater; j++) {
+      if (j === b || bodies.alive[j] === 0 || this.designOf(j) === null) continue;
+      const reach = bodies.radius[j]! + bodies.radius[b]!;
+      const dx = bodies.x[j]! - bodies.x[b]!;
+      const dy = bodies.y[j]! - bodies.y[b]!;
+      if (dx * dx + dy * dy < reach * reach) return false;
+    }
+    return true;
+  }
+
+  /** Whether this fighter has dropped into the hull layer as well. */
+  isCommitted(i: number): boolean {
+    return this.committed[i] === 1;
+  }
+
+  /** The layers every module of this ship is in, or `OWN_LAYERS`: a fighter's, by whether it has committed. */
+  private shipLayers(i: number): number {
+    if (!this.designs[i]!.fighter) return OWN_LAYERS;
+    return this.committed[i] === 1 ? BOTH_LAYERS : WEAPONS_LAYER;
+  }
+
+  /** The layers this mount's shots fly in: a fighter's guns fire in whatever it occupies. */
+  private mountLayers(i: number, mount: DesignTurret): number {
+    const whole = this.shipLayers(i);
+    if (whole !== OWN_LAYERS) return whole;
+    return mount.hullLayer ? HULL_LAYER : WEAPONS_LAYER;
   }
 
   /**
@@ -1292,13 +1371,13 @@ export class Ships {
    * A mount that scored it anyway would pick it, train on it and hold its
    * fire, which is a gun taken out of the battle by its own doctrine.
    */
-  private canAimAt(mount: DesignTurret, target: number, tb: number): boolean {
+  private canAimAt(mount: DesignTurret, layers: number, target: number, tb: number): boolean {
     const doctrine = mount.targeting;
     const anyPart = !picksParts(doctrine);
-    if (anyPart && mount.hullLayer) return true;
+    if (anyPart && this.meetsWhole(layers, target)) return true;
     const design = this.designs[target]!;
     for (let k = 0; k < design.modules.length; k++) {
-      if (!this.reaches(mount, design, tb, target, k)) continue;
+      if (!this.reaches(layers, design, tb, target, k)) continue;
       if (anyPart || partWeight(doctrine, design.modules[k]!.spec.kind) > 0) return true;
     }
     return false;
@@ -1384,7 +1463,7 @@ export class Ships {
     gun: GunStats,
     reach: number,
     target: number,
-    weaponsLayer: boolean,
+    layers: number,
   ): boolean {
     // Never further than the shot itself goes: a consort beyond what this gun
     // is willing to shoot at is not in the way of anything, and a cast that
@@ -1396,7 +1475,7 @@ export class Ships {
     if (!(range > 0)) return false;
     const hit = this.lineOfFire;
     // A friend is only in the way of what it would stop.
-    this.hulls.castFrom(weaponsLayer, -1, -1);
+    this.hulls.castFrom(layers, -1, -1);
     const found = grid.raycast(
       bodies,
       this.solution.x,
@@ -1543,6 +1622,7 @@ export class Ships {
       this.decide(world, bodies, i);
       this.decideTurrets(world, bodies, i);
       this.flyOne(dt, bodies, i, grid);
+      this.commitOne(bodies, i);
       this.trainOne(bodies, i);
       const timers = this.cooldown[i]!;
       const b = bodies.indexOf(this.bodyIds[i]!);
@@ -1672,7 +1752,7 @@ export class Ships {
               ? design.turrets[t]!.reach
               : reachAgainst(gun, this.designs[target]!.radius),
             target,
-            !design.turrets[t]!.hullLayer,
+            this.mountLayers(i, design.turrets[t]!),
           )
         ) {
           continue;
@@ -1694,7 +1774,7 @@ export class Ships {
             0,
             0,
             design.turrets[t]!.module,
-            !design.turrets[t]!.hullLayer,
+            this.mountLayers(i, design.turrets[t]!),
             this.fuseFor(ti, target, fuse),
             gun.muzzleSpeed * BURST_SPREAD,
             fragmentLife(fuse),
@@ -1745,7 +1825,7 @@ export class Ships {
             beamHits,
             this.beamHulls,
             design.turrets[t]!.module,
-            !design.turrets[t]!.hullLayer,
+            this.mountLayers(i, design.turrets[t]!),
           );
           if (state == TurretState.Idle) {
             // was idle before, now committed on for beamOnTime
@@ -2441,14 +2521,15 @@ export class Ships {
     // opinion about parts aims anyway — if it fires in the hull layer. In the
     // weapons layer amidships is deck its rounds pass over.
     const hooked = targetBody === bodies.indexOf(this.bodyIds[i]!);
-    if (!refusesAnything(doctrine) && mount.hullLayer && !hooked) return WHOLE_SHIP;
+    const layers = this.mountLayers(i, mount);
+    if (!refusesAnything(doctrine) && this.meetsWhole(layers, target) && !hooked) return WHOLE_SHIP;
 
     // One that *has* refused something cannot: a ship's centre is whatever is
     // amidships, which on most hulls is the plating a beam has just turned
     // down. So it chooses again from what is actually left, now, and only
     // stands down when the answer is that there is nothing it will shoot at.
     // The mount is already located by the caller.
-    return this.aimModule(bodies, mount, target, this.gunPoint.x, this.gunPoint.y, hooked);
+    return this.aimModule(bodies, mount, layers, target, this.gunPoint.x, this.gunPoint.y, hooked);
   }
 
   /**

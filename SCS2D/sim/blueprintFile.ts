@@ -97,7 +97,7 @@ const STEP_KEYS: readonly string[] = ['x', 'y', 'angle'];
 
 const ASSEMBLY_KEYS: readonly string[] = ['modules', 'notes'];
 
-const FILE_KEYS: readonly string[] = ['formatVersion', 'name', 'notes', 'doctrine', 'assemblies', 'modules'];
+const FILE_KEYS: readonly string[] = ['formatVersion', 'name', 'notes', 'fighter', 'doctrine', 'assemblies', 'modules'];
 
 export function degreesToRadians(degrees: number): number {
   return (degrees / 180) * PI;
@@ -332,6 +332,9 @@ export function blueprintFileProblem(value: unknown): string | null {
   const notesProblem = optionalStringProblem(value['notes'], 'notes');
   if (notesProblem !== null) return notesProblem;
 
+  const fighter = optionalBooleanProblem(value['fighter'], 'fighter');
+  if (fighter !== null) return fighter;
+
   const doctrine = doctrineProblem(value['doctrine']);
   if (doctrine !== null) return doctrine;
 
@@ -348,6 +351,7 @@ function toBlueprint(file: Record<string, unknown>): Blueprint {
     modules: toPlacements(file['modules'] as unknown[]),
   };
   if (file['notes'] !== undefined) blueprint.notes = file['notes'] as string;
+  if (file['fighter'] !== undefined) blueprint.fighter = file['fighter'] as boolean;
   if (file['doctrine'] !== undefined) blueprint.doctrine = toDoctrine(file['doctrine']);
 
   const rawAssemblies = file['assemblies'] as Record<string, Record<string, unknown>> | undefined;
@@ -438,6 +442,7 @@ export function serialiseBlueprint(blueprint: Blueprint): Record<string, unknown
     name: blueprint.name,
   };
   if (blueprint.notes !== undefined) file['notes'] = blueprint.notes;
+  if (blueprint.fighter !== undefined) file['fighter'] = blueprint.fighter;
   if (blueprint.doctrine !== undefined) {
     // Only what it says differently from the default, so a file stays short
     // and a default that moves later moves for every ship that never had an
