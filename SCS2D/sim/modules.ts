@@ -43,9 +43,10 @@ import { asin, atan2, cos, max, PI, round, sin, sqrt } from './math.js';
  */
 
 /**
- * Unmodelled hull thickness, metres. The plane is a deck plan viewed from
- * above (DESIGN.md §3), so a module's third dimension is never drawn — but it
- * is what makes wall volumes and therefore masses honest.
+ * How deep one layer is, metres, and so the deepest a module in only one of
+ * them can be (`moduleThickness`). The plane is a deck plan viewed from above
+ * (DESIGN.md §3), so a module's third dimension is never drawn — but it is
+ * what makes wall volumes and therefore masses honest.
  */
 export const DECK_HEIGHT = 3;
 
@@ -153,6 +154,13 @@ export const CALIBRE_FRACTION = 0.04;
 
 /** A barrel's outside diameter in calibres. A tube is thick-walled steel. */
 export const BARREL_OUTER_CALIBRES = 2;
+
+/**
+ * The widest bore a turret carries, metres: a tube no wider outside than the
+ * deck is deep, so a barrel is always a cylinder the hull can hold. A beam's
+ * housing is held to the same, being drawn as wide.
+ */
+export const MAX_TURRET_CALIBRE = DECK_HEIGHT / BARREL_OUTER_CALIBRES;
 
 /**
  * The most of its room a hull mount's barrel or lens may fill: of the face,
@@ -637,6 +645,21 @@ export interface ModuleSpec {
   weapon?: boolean;
 
   /**
+   * Whether this module is free of the deck's depth (`moduleThickness`):
+   * as deep as it is across, rather than held to `DECK_HEIGHT`. Nothing to a
+   * module no more than a deck across, which is as deep as it is wide either
+   * way (`canThicken`).
+   *
+   * What is thick stands up through the weapons layer as well as the hull
+   * (`inWeaponsLayer`). Thick structure is cover: it stops turret fire at whatever
+   * is behind it. A thick hull weapon or engine gets a wider barrel or
+   * nozzle, and machinery that keeps growing with the square of the width. It
+   * pays in wall, in turrets being able to reach it, and in the arcs of every
+   * turret it stands in front of.
+   */
+  thick?: boolean;
+
+  /**
    * Why this module is here, in the author's own words. Carried through the
    * file format and the editor, and ignored by every scaling law.
    *
@@ -786,7 +809,8 @@ export function moduleProblem(spec: ModuleSpec): string | null {
       ? hullMountGeometry(spec).blockLength
       : spec.length;
   const smallest = boxLength < spec.width ? boxLength : spec.width;
-  const limiting = smallest < DECK_HEIGHT ? smallest : DECK_HEIGHT;
+  const thick = moduleThickness(spec);
+  const limiting = smallest < thick ? smallest : thick;
   if (2 * thickness >= limiting) {
     return (
       `${spec.kind}: walls ${thickness.toFixed(3)} m thick leave no interior in a ` +
@@ -940,8 +964,12 @@ export interface EngineGeometry {
   machineryLength: number;
   /** Length of the bell, metres. Zero for a throat with nothing on it. */
   nozzleLength: number;
-  /** Exit width of one nozzle, metres. The nozzles tile the face. */
+  /** The share of the face each nozzle sits in, metres, centre to centre. */
+  pitch: number;
+  /** Exit width of one nozzle, metres: as wide as it is deep, so no wider than its pitch. */
   exitWidth: number;
+  /** Exit height of every nozzle, metres: the engine's thickness. */
+  exitHeight: number;
   /** Throat width of one nozzle, metres. */
   throatWidth: number;
   /** Bell half-angle, radians. A right angle when there is no bell. */
@@ -955,7 +983,9 @@ export function engineGeometry(spec: ModuleSpec): EngineGeometry {
   const nozzles = spec.barrels ?? 1;
   const share = spec.nozzle ?? DEFAULT_NOZZLE_SHARE;
   const nozzleLength = spec.length * share;
-  const exitWidth = spec.width / nozzles;
+  const pitch = spec.width / nozzles;
+  // Square: a thin engine's bell is held to a deck both ways.
+  const exitWidth = moduleThickness(spec);
   const throatWidth = exitWidth * NOZZLE_THROAT_FRACTION;
   // How far the wall has to travel sideways over the bell's length.
   const flare = (exitWidth - throatWidth) * 0.5;
@@ -968,7 +998,9 @@ export function engineGeometry(spec: ModuleSpec): EngineGeometry {
     share,
     machineryLength: spec.length - nozzleLength,
     nozzleLength,
+    pitch,
     exitWidth,
+    exitHeight: exitWidth,
     throatWidth,
     halfAngle,
     divergence: (1 + axial) * 0.5,
@@ -990,12 +1022,11 @@ export function engineMachinery(spec: ModuleSpec): ModuleSpec {
 /**
  * Where one nozzle's axis sits across the exit face, metres from the middle.
  *
- * The bells tile the face rather than being spaced out across it the way
- * barrels are: a gun's barrels are thin things with ship in between, while
- * nozzles divide up a face that is entirely exhaust.
+ * Each at the middle of its share of the face. They tile it when they are
+ * no deeper than a deck, and sit apart on a thin engine wider than that.
  */
 export function nozzleOffset(geometry: EngineGeometry, index: number): number {
-  return (index - (geometry.nozzles - 1) * 0.5) * geometry.exitWidth;
+  return (index - (geometry.nozzles - 1) * 0.5) * geometry.pitch;
 }
 
 /**
@@ -1008,12 +1039,12 @@ export function nozzleOffset(geometry: EngineGeometry, index: number): number {
  * length of machinery block does.
  */
 function nozzleSkinVolume(geometry: EngineGeometry, wallThickness: number): number {
-  const { nozzles, nozzleLength, exitWidth, throatWidth } = geometry;
+  const { nozzles, nozzleLength, exitWidth, exitHeight, throatWidth } = geometry;
   if (!(nozzleLength > 0)) return 0;
   const flare = (exitWidth - throatWidth) * 0.5;
   const slant = sqrt(nozzleLength * nozzleLength + flare * flare);
   const meanWidth = (exitWidth + throatWidth) * 0.5;
-  const area = 2 * slant * DECK_HEIGHT + 2 * meanWidth * nozzleLength;
+  const area = 2 * slant * exitHeight + 2 * meanWidth * nozzleLength;
   return area * wallThickness * NOZZLE_SKIN_FRACTION * nozzles;
 }
 
@@ -1112,7 +1143,11 @@ export function hullMountGeometry(spec: ModuleSpec): HullMountGeometry {
   // Spread across the face as a turret's barrels are, one gap outboard of
   // each end, so neighbours stand apart rather than touching.
   const outletSpacing = outlets > 1 ? spec.width / (outlets + 1) : 0;
-  const cap = HULL_BARREL_WIDTH_CAP * (outlets > 1 ? outletSpacing : spec.width);
+  // No wider than the opening leaves room for, nor than the mount is deep:
+  // an outlet is always a cylinder the hull can hold.
+  const opening = HULL_BARREL_WIDTH_CAP * (outlets > 1 ? outletSpacing : spec.width);
+  const depth = moduleThickness(spec);
+  const cap = opening < depth ? opening : depth;
   const outletWidth = each < cap ? each : cap;
   const barrelWidth = (outlets - 1) * outletSpacing + outletWidth;
   const blockLength = spec.length - barrelLength;
@@ -1191,6 +1226,50 @@ export function countsOutlets(kind: ModuleKind): boolean {
 /** Whether `weapon` means anything on this kind. Only an engine has a plume to point. */
 export function readsWeapon(kind: ModuleKind): boolean {
   return kind === 'engine';
+}
+
+/** Whether `thick` means anything on this kind: everything but a turret, which is held to a deck. */
+export function readsThick(kind: ModuleKind): boolean {
+  return kind !== 'turret' && kind !== 'beamTurret';
+}
+
+/**
+ * Whether a module stands in the weapons layer (DESIGN.md §3), and so blocks
+ * turrets and can be hit by them. Every module is in the hull layer.
+ *
+ * Turrets always are, and anything else that is thick.
+ */
+export function inWeaponsLayer(spec: ModuleSpec): boolean {
+  return spec.kind === 'turret' || spec.kind === 'beamTurret' || isThick(spec);
+}
+
+/** Whether a module is marked thick and wide enough for that to make it deeper. */
+export function isThick(spec: ModuleSpec): boolean {
+  return spec.thick === true && canThicken(spec);
+}
+
+/** Whether marking a module thick would make it any deeper: false for one no more than a deck across. */
+export function canThicken(spec: ModuleSpec): boolean {
+  return readsThick(spec.kind) && acrossOf(spec) > DECK_HEIGHT;
+}
+
+/**
+ * How deep a module is, metres: as deep as it is across, and no deeper than
+ * a deck unless it is thick.
+ *
+ * Across is the smaller of length and width for a box; the width alone for a
+ * hull weapon, whose length is mostly barrel; and one nozzle's width for an
+ * engine, so each bell is as deep as it is wide. A turret is held to a deck.
+ */
+export function moduleThickness(spec: ModuleSpec): number {
+  const across = acrossOf(spec);
+  return isThick(spec) || across < DECK_HEIGHT ? across : DECK_HEIGHT;
+}
+
+function acrossOf(spec: ModuleSpec): number {
+  if (spec.kind === 'engine') return spec.width / (spec.barrels ?? 1);
+  if (isHullMount(spec.kind)) return spec.width;
+  return spec.length < spec.width ? spec.length : spec.width;
 }
 
 /**
@@ -1300,7 +1379,7 @@ export function hullBeamStats(spec: ModuleSpec): GunStats {
   const aperture = outletWidth;
   const apertureArea = PI * 0.25 * aperture * aperture;
   const power = OPTIC_INTENSITY_LIMIT * apertureArea;
-  const stored = BEAM_STORED_ENERGY_PER_VOLUME * blockLength * spec.width * DECK_HEIGHT;
+  const stored = BEAM_STORED_ENERGY_PER_VOLUME * blockLength * spec.width * moduleThickness(spec);
   const beamOnTime = power > 0 ? stored / power : 0;
   // **The block is the bank and the cooling, so depth buys duty rather than
   // only burst.** The burn grows with the bank behind it while the recovery
@@ -1343,18 +1422,20 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
   // it, on all six faces — so a long thin module carries proportionally more
   // wall for the space it encloses, which is the pressure that stops layouts
   // being made of splinters.
-  const outer = boxLength * spec.width * DECK_HEIGHT;
+  const height = moduleThickness(spec);
+  const width = spec.width;
+  const outer = boxLength * width * height;
   const inner =
     (boxLength - 2 * wallThickness) *
-    (spec.width - 2 * wallThickness) *
-    (DECK_HEIGHT - 2 * wallThickness);
+    (width - 2 * wallThickness) *
+    (height - 2 * wallThickness);
   // Bells, which are skins rather than boxes: two flanks along the slant and a
   // roof and floor over the taper, with nothing enclosed and both ends open.
   const skinVolume = engine === null ? 0 : nozzleSkinVolume(engine, wallThickness);
   const wallVolume = outer - inner + skinVolume;
   const structureMass = wallVolume * HULL_DENSITY;
 
-  const capacity = (boxLength - 2 * wallThickness) * (spec.width - 2 * wallThickness);
+  const capacity = (boxLength - 2 * wallThickness) * (width - 2 * wallThickness);
 
   let fittingMass = 0;
   let thrust = 0;
@@ -1377,11 +1458,11 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
     // carrying five of them.
     fittingMass = max(CORE_MINIMUM_FITTING_MASS, CORE_MASS_PER_AREA * capacity);
   } else if (engine !== null) {
-    // Thrust comes out of the nozzle, so it scales with the area of the face
-    // the exhaust leaves through — the module's width by the deck height,
-    // however many bells that face is divided into. An engine therefore gets
-    // stronger by being made *wider*, which is what stops "just stretch it"
-    // being the answer to every propulsion problem.
+    // Thrust comes out of the nozzle, so it scales with the exit area: each
+    // bell square, as wide as it is deep. A thin engine wider than a deck
+    // therefore needs more bells, or to be thick, to use its whole face. An
+    // engine gets stronger by being made *wider*, which is what stops "just
+    // stretch it" being the answer to every propulsion problem.
     //
     // **How hard that face is fed is the machinery's business**, and the
     // machinery is the block the bell was cut out of. A shallow bell leaves a
@@ -1391,7 +1472,8 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
     // at it.
     const feed = engine.machineryLength / (PUMP_DEPTH_WIDTHS * spec.width);
     const supply = feed < THROAT_CHOKE ? feed : THROAT_CHOKE;
-    const throughput = THRUST_PER_EXIT_AREA * spec.width * DECK_HEIGHT * supply;
+    const exitArea = engine.nozzles * engine.exitWidth * engine.exitHeight;
+    const throughput = THRUST_PER_EXIT_AREA * exitArea * supply;
     // What the bell then keeps pointed the right way. **The two pull opposite
     // ways**, which is the whole of the knob: length taken off the bell is
     // flow gained and aim lost, so the best engine is neither all bell nor all
@@ -1578,7 +1660,8 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
  * the barrels to converge at a chosen range is the natural answer when it does.
  */
 export function gunStats(mountLength: number, mountWidth: number, barrelCount: number = 1): GunStats {
-  const calibre = (mountWidth * CALIBRE_FRACTION) / barrelCount;
+  const wide = (mountWidth * CALIBRE_FRACTION) / barrelCount;
+  const calibre = wide < MAX_TURRET_CALIBRE ? wide : MAX_TURRET_CALIBRE;
   // The barrel wants to be as long as its calibre allows, but a mount cannot
   // carry a gun longer than itself without fouling the rest of the ship.
   const wanted = calibre * BARREL_CALIBRES * sqrt(barrelCount);
@@ -1649,7 +1732,8 @@ export function gunStats(mountLength: number, mountWidth: number, barrelCount: n
 export function beamGunStats(mountLength: number, mountWidth: number, barrelCount: number = 1): GunStats {
   // One disc, or `n` discs dividing the same area between them.
   const face = mountWidth < mountLength ? mountWidth : mountLength;
-  const aperture = (face * BEAM_APERTURE_FRACTION) / sqrt(barrelCount);
+  const wide = (face * BEAM_APERTURE_FRACTION) / sqrt(barrelCount);
+  const aperture = wide < MAX_TURRET_CALIBRE ? wide : MAX_TURRET_CALIBRE;
   const apertureArea = PI * 0.25 * aperture * aperture;
 
   // What the optic can pass without destroying itself, which is the whole of
@@ -1657,7 +1741,8 @@ export function beamGunStats(mountLength: number, mountWidth: number, barrelCoun
   const power = OPTIC_INTENSITY_LIMIT * apertureArea;
 
   // The bank fills the mount, and feeds one emitter at a time.
-  const stored = BEAM_STORED_ENERGY_PER_VOLUME * mountLength * mountWidth * DECK_HEIGHT;
+  const depth = face < DECK_HEIGHT ? face : DECK_HEIGHT;
+  const stored = BEAM_STORED_ENERGY_PER_VOLUME * mountLength * mountWidth * depth;
   const beamOnTime = stored / power;
 
   // No barrel: a housing round the optic, as deep as the optic is wide.

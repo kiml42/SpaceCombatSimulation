@@ -75,10 +75,17 @@ export interface ProjectileSpec {
   /** How deeply the round reaches into a hull's internals. */
   penetration?: number;
   /**
-   * A body *index* the round passes through — the firing ship, normally, so a
-   * turret does not shoot its own hull. Temporary until we set up the two layer world model.
+   * The body *index* that fired it. Passed through entirely unless
+   * `fromModule` says which part of it fired, in which case only that part is.
    */
   owner?: number;
+  /** The module of `owner` it was fired from, or -1. */
+  fromModule?: number;
+  /**
+   * Fired in the weapons layer (DESIGN.md §3), so it meets only weapons-layer
+   * modules. Off by default: a round meets everything.
+   */
+  weaponsLayer?: boolean;
   /** Caller-defined classification (AP, HE, and so on). Uninterpreted here. */
   kind?: number;
 }
@@ -188,6 +195,9 @@ export class Projectiles {
   damage!: Float64Array;
   penetration!: Float64Array;
   owner!: Int32Array;
+  fromModule!: Int32Array;
+  /** 1 for a round in the weapons layer, which meets only weapons-layer modules. */
+  weaponsLayer!: Uint8Array;
   kind!: Int32Array;
   alive!: Uint8Array;
   /**
@@ -253,6 +263,10 @@ export class Projectiles {
     this.damage = f64(this.damage);
     this.penetration = f64(this.penetration);
     this.owner = i32(this.owner);
+    this.fromModule = i32(this.fromModule);
+    const layer = new Uint8Array(capacity);
+    if (this.weaponsLayer) layer.set(this.weaponsLayer);
+    this.weaponsLayer = layer;
     this.kind = i32(this.kind);
 
     const alive = new Uint8Array(capacity);
@@ -292,6 +306,8 @@ export class Projectiles {
     penetration: number,
     owner: number,
     kind: number,
+    fromModule = -1,
+    weaponsLayer = false,
   ): number {
     let i: number;
     const reused = this.free.pop();
@@ -312,6 +328,8 @@ export class Projectiles {
     this.damage[i] = damage;
     this.penetration[i] = penetration;
     this.owner[i] = owner;
+    this.fromModule[i] = fromModule;
+    this.weaponsLayer[i] = weaponsLayer ? 1 : 0;
     this.kind[i] = kind;
     this.alive[i] = 1;
     this.pending[i] = 0;
@@ -334,6 +352,8 @@ export class Projectiles {
       spec.penetration ?? 0,
       spec.owner ?? NO_OWNER,
       spec.kind ?? 0,
+      spec.fromModule ?? -1,
+      spec.weaponsLayer ?? false,
     );
   }
 
@@ -498,7 +518,14 @@ export class Projectiles {
     const hit = this.hit;
     const x0 = this.x[i]!;
     const y0 = this.y[i]!;
-    if (!grid.raycast(bodies, x0, y0, x0 + dx, y0 + dy, hit, this.owner[i]!, hulls, skip)) {
+    // A round that knows which part fired it may come back to the rest of its
+    // own ship; one that does not passes through all of it.
+    const from = this.fromModule[i]!;
+    const owner = this.owner[i]!;
+    hulls?.castFrom(this.weaponsLayer[i] === 1, owner, from);
+    const found = grid.raycast(bodies, x0, y0, x0 + dx, y0 + dy, hit, from >= 0 ? -1 : owner, hulls, skip);
+    if (!found) {
+      hulls?.reset();
       this.x[i] = x0 + dx;
       this.y[i] = y0 + dy;
       return false;
@@ -516,6 +543,7 @@ export class Projectiles {
       nx = hulls.nx;
       ny = hulls.ny;
     }
+    hulls?.reset();
     if (nx === 0 && ny === 0) {
       const ox = hit.x - bodies.x[bi]!;
       const oy = hit.y - bodies.y[bi]!;
@@ -559,6 +587,8 @@ export class Projectiles {
     damage: number,
     penetration: number,
     kind: number,
+    fromModule = -1,
+    weaponsLayer = false,
   ): number {
     return this.spawnRaw(
       muzzleX,
@@ -572,6 +602,8 @@ export class Projectiles {
       penetration,
       bodyIndex,
       kind,
+      fromModule,
+      weaponsLayer,
     );
   }
 }

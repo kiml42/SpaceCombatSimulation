@@ -609,6 +609,8 @@ function walkRound(
   speed: number,
   time: number,
   out: RoundOutcome,
+  weaponsLayerOnly = false,
+  skip = -1,
 ): RoundOutcome {
   out.outcome = Terminal.Perforate;
   out.skidded = false;
@@ -631,7 +633,7 @@ function walkRound(
     out.ux = ux;
     out.uy = uy;
     out.speed = carried;
-    modulesAlong(design, ox - ux * reach, oy - uy * reach, ox + ux * reach, oy + uy * reach, path);
+    modulesAlong(design, ox - ux * reach, oy - uy * reach, ox + ux * reach, oy + uy * reach, path, weaponsLayerOnly, skip);
 
     let k = crossing;
     if (k < 0) {
@@ -1063,6 +1065,8 @@ export class Impacts {
       speed,
       time,
       this.outcome,
+      projectiles.weaponsLayer[round] === 1,
+      body === projectiles.owner[round] ? projectiles.fromModule[round]! : -1,
     );
 
     const angle = bodies.angle[body]!;
@@ -1251,6 +1255,8 @@ export class Impacts {
       ex * c + ey * s,
       -ex * s + ey * c,
       this.path,
+      beams.weaponsLayer[beam] === 1,
+      body === beams.owner[beam] ? beams.fromModule[beam]! : -1,
     );
 
     for (let k = 1; k < this.path.count; k++) {

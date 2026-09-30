@@ -9,7 +9,8 @@ import {
   type ShipDesign,
   type Targeting,
 } from '../sim/index.js';
-import { DINKY, GUNSHIP } from '../scenarios/blueprints.js';
+import { DINKY } from '../scenarios/blueprints.js';
+import { TURRET_GUNSHIP } from './fixtures.js';
 
 /**
  * Which part of a ship to shoot at.
@@ -23,7 +24,7 @@ import { DINKY, GUNSHIP } from '../scenarios/blueprints.js';
  */
 
 const DT = 1 / 60;
-const gunship = compileBlueprint(GUNSHIP);
+const gunship = compileBlueprint(TURRET_GUNSHIP);
 
 /**
  * The Dinky with one opinion on its gun, since where a shot lands is the

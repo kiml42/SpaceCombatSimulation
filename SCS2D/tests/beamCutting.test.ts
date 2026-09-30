@@ -127,3 +127,56 @@ describe('a beam held on a hull', () => {
     expect(bodies.angularVel[b.body]).toBe(0);
   });
 });
+
+describe('a beam in the weapons layer', () => {
+  /** A core with three blocks ahead of it, thick or not, and a beam down them. */
+  function deck(thick: boolean): { cut: number; hits: number } {
+    const design = compileBlueprint({
+      name: 'deck',
+      modules: [
+        { kind: 'core', x: 0, y: 0, length: 4, width: 4 },
+        { kind: 'structure', x: 4, y: 0, length: 4, width: 4, thick },
+        { kind: 'structure', x: 8, y: 0, length: 4, width: 4, thick },
+        { kind: 'structure', x: 12, y: 0, length: 4, width: 4, thick },
+      ],
+    });
+    const world = new World({ dt: 1 / 60, seed: 5 });
+    const ships = new Ships();
+    const target = ships.spawn(world, { design, x: 0, y: 0, team: 1 });
+    const body = world.bodies.indexOf(ships.body(target));
+    const grid = new SpatialGrid(64);
+    const beams = new Beams(8);
+    const hits = new BeamHits();
+    const impacts = new Impacts();
+    let landed = 0;
+    for (let i = 0; i < 60 * 20; i++) {
+      grid.rebuild(world.bodies);
+      beams.clear();
+      hits.clear();
+      beams.shoot(
+        { startX: 40, startY: 0, endX: -40, endY: 0, width: 0.2, power: POWER, weaponsLayer: true },
+        world.bodies,
+        grid,
+        hits,
+        ships.beamHulls,
+      );
+      landed += hits.count;
+      impacts.beams(ships.damage, beams, hits, 1 / 60, world.bodies, ships);
+    }
+    let cut = 0;
+    joints(ships.design(target)).forEach((_joint, k) => {
+      cut = Math.max(cut, ships.damage.cutAt(body, k));
+    });
+    return { cut, hits: landed };
+  }
+
+  it('burns the seams between thick modules', () => {
+    const thick = deck(true);
+    expect(thick.hits).toBeGreaterThan(0);
+    expect(thick.cut).toBeGreaterThan(0);
+  });
+
+  it('passes over a deck with nothing thick on it', () => {
+    expect(deck(false)).toEqual({ cut: 0, hits: 0 });
+  });
+});

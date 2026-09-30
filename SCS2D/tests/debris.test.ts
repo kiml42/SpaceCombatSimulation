@@ -18,8 +18,8 @@ const corvette: ShipDesign = compileBlueprint(CORVETTE);
 /** A fighter's smallest engine, and the weld holding it on. */
 const SHARD = 9;
 const SHARD_JOINT = joints(dinky).findIndex((j) => j.a === 7 && j.b === SHARD);
-/** One worth keeping, held on by a weld of its own. */
-const KEEPER = 4;
+/** One worth keeping, held on by a weld of its own: the gun. */
+const KEEPER = 10;
 const KEEPER_JOINT = joints(dinky).findIndex((j) => j.a === 0 && j.b === KEEPER);
 
 interface Scene {

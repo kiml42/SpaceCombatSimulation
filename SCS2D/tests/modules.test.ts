@@ -133,12 +133,25 @@ describe('engine scaling', () => {
     // has to work with. What comes out of it is that times the bell's own
     // efficiency, which is why this is stated against the machinery mass —
     // the one figure priced on the throughput alone.
-    const narrow = moduleStats(engine(6, 2));
-    const wide = moduleStats(engine(6, 4));
-    const long = moduleStats(engine(12, 2));
+    // Twice the width in twice the bells, each a deck square.
+    const narrow = moduleStats(engine(12, 3));
+    const wide = moduleStats(engine(12, 6, 0.5, 2));
+    const long = moduleStats(engine(24, 3));
 
     expect(wide.fittingMass).toBeCloseTo(2 * narrow.fittingMass, 6);
     expect(long.fittingMass).toBeCloseTo(narrow.fittingMass, 6);
+  });
+
+  it('has a square bell, no more than a deck across unless thick', () => {
+    // Halving the width quarters the exit, and past a deck a single bell
+    // grows no more.
+    const small = moduleStats(engine(3, 1));
+    const half = moduleStats(engine(3, 0.5));
+    expect(half.fittingMass).toBeCloseTo(small.fittingMass / 4, 6);
+    const wide = moduleStats(engine(24, 6));
+    const deck = moduleStats(engine(24, 3));
+    expect(wide.fittingMass).toBeCloseTo(deck.fittingMass, 6);
+    expect(moduleStats({ ...engine(24, 6), thick: true }).fittingMass).toBeCloseTo(4 * deck.fittingMass, 6);
   });
 
   it('keeps a share of it set by the bell, from half at no bell to nearly all', () => {
@@ -159,12 +172,13 @@ describe('engine scaling', () => {
 
   it('lets a cluster of small bells do in a stub what one wide bell cannot', () => {
     // A narrow nozzle collimates in a fraction of the length, so dividing the
-    // face is how a short engine gets a good bell. Same exit area either way,
-    // so this is expansion and not extra power.
-    const one = moduleStats(engine(6, 8, 0.2));
+    // face is how a short engine gets a good bell. The same exit area either
+    // way, so this is expansion and not extra power.
+    const one = moduleStats({ ...engine(6, 8, 0.2), thick: true });
     const four = moduleStats(engine(6, 8, 0.2, 4));
-    expect(four.fittingMass).toBeCloseTo(one.fittingMass, 6);
-    expect(four.thrust).toBeGreaterThan(one.thrust * 1.2);
+    const area = (8 / 4) ** 2 * 4;
+    expect(four.fittingMass).toBeCloseTo((one.fittingMass * area) / 64, 6);
+    expect(four.thrust / area).toBeGreaterThan((one.thrust / 64) * 1.2);
   });
 
   it('makes a long-belled engine the lighter and the more fragile one', () => {

@@ -1,6 +1,7 @@
 import {
   hullMountGeometry,
   isHullMount,
+  isThick,
   math,
   nozzleOffset,
   nozzleReach,
@@ -124,6 +125,8 @@ const WELL = '#3a4e7a';
 /** The firing arc: a pale wash with an optional edge to define it (currently disabled). */
 const SWEEP = 'rgba(196, 210, 232, 0.2)';
 const SWEEP_EDGE = 'rgba(196, 210, 232, 0)';
+/** The part of a sweep a mount may not fire into. */
+const MASKED = 'rgba(226, 110, 84, 0.28)';
 
 /**
  * How far the arc indicator reaches, as a multiple of the mount's own face.
@@ -194,7 +197,11 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
       integrity <= 0
         ? WRECKAGE
         : spec.kind === 'structure'
-          ? colours.hull
+          ? // Thick structure is drawn in the colour of the mounts and engines,
+            // since it is what stands with them in the weapons layer.
+            isThick(spec)
+            ? colours.trim
+            : colours.hull
           : spec.kind === 'core'
             ? colours.pivot
             : colours.trim;
@@ -299,6 +306,27 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
       }
       ctx.fill();
       ctx.stroke();
+
+      // Where it may point and may not fire, because its own ship is
+      // downrange: the trigger mask, within the sweep.
+      const mask = mount.mask;
+      if (mask !== undefined && mask.length > 0) {
+        const whole = left + right >= 2 * PI;
+        ctx.fillStyle = MASKED;
+        for (let k = 0; k < mask.length; k += 2) {
+          for (let wrap = -1; wrap <= 1; wrap++) {
+            const from = whole ? mask[k]! : max(mask[k]! + wrap * TAU, -right);
+            const to = whole ? mask[k + 1]! : min(mask[k + 1]! + wrap * TAU, left);
+            if (!(to > from)) continue;
+            ctx.beginPath();
+            ctx.moveTo(mx, my);
+            ctx.arc(mx, my, span, rest + from, rest + to);
+            ctx.closePath();
+            ctx.fill();
+            if (whole) break;
+          }
+        }
+      }
     }
 
     // The rotating part itself: a disc at the mount, sized to the module it

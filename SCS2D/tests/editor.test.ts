@@ -1386,10 +1386,14 @@ describe('a turret’s arc on the module panel', () => {
       { kind: 'turret', x: 12, y: 0, length: 4, width: 4 },
     ];
     const open = moduleReadout(modules[1]!, modules, 1).gun!;
-    // The same mount walled in on one beam must lose sweep that way.
-    const walled: ModuleSpec[] = [...modules, { kind: 'structure', x: 12, y: 6, length: 8, width: 6 }];
+    // The same mount walled in on one beam must lose sweep that way — by
+    // thick structure, since a turret trains over what is not.
+    const wall: ModuleSpec = { kind: 'structure', x: 12, y: 6, length: 8, width: 6 };
+    const walled: ModuleSpec[] = [...modules, { ...wall, thick: true }];
+    const low = moduleReadout(modules[1]!, [...modules, wall], 1).gun!;
     const blocked = moduleReadout(walled[1]!, walled, 1).gun!;
     expect(open.arcLeft).toBeGreaterThan(blocked.arcLeft);
+    expect(low.arcLeft).toBe(open.arcLeft);
   });
 
   it('is absent without the layout around it', () => {

@@ -174,15 +174,17 @@ describe('the editor in a browser', () => {
     // Edit a field and click straight onto another module. A canvas cannot take
     // focus, so without a deliberate blur the edited box stays focused, is held
     // back from every refresh, and goes on showing the old module's value.
+    await openShip(page, 'Corvette');
     const centre = await canvasCentre(page);
     await page.mouse.click(centre.x, centre.y);
     expect(await page.inputValue('#propKind')).toBe('core');
     const hull = await page.inputValue('#propLength');
 
     await page.fill('#propLength', '18');
-    // The bow turret, off to the right of the hull along the ship's +x.
-    await page.mouse.click(centre.x + 168, centre.y);
-    expect(await page.inputValue('#propKind')).toBe('turret');
+    // One of the bow gun's two barrels, off to the right of the hull along
+    // the ship's +x: the middle of the gun is the gap between them.
+    await page.mouse.click(centre.x + 168, centre.y + 21);
+    expect(await page.inputValue('#propKind')).toBe('hullGun');
     expect(await page.inputValue('#propLength')).not.toBe('18');
 
     await page.click('#undo');
@@ -200,9 +202,10 @@ describe('the editor in a browser', () => {
   });
 
   it('duplicates a module into a shared part, and moves one copy at a time', async () => {
+    await openShip(page, 'Corvette');
     const centre = await canvasCentre(page);
     await page.mouse.click(centre.x + 168, centre.y);
-    expect(await page.inputValue('#propKind')).toBe('turret');
+    expect(await page.inputValue('#propKind')).toBe('hullGun');
 
     await page.click('#propDuplicate');
     expect(await page.textContent('#linked')).toMatch(/drawn 2 times/);
@@ -255,6 +258,31 @@ describe('the editor in a browser', () => {
     // A structure module has no gun and no thrust of its own.
     await page.mouse.click(centre.x, centre.y);
     expect(await page.textContent('#moduleStats')).not.toMatch(/Gun/);
+  });
+
+  it('lets a core be thick, which costs it wall', async () => {
+    await openShip(page, 'Corvette');
+    const centre = await canvasCentre(page);
+    await page.mouse.click(centre.x, centre.y);
+    expect(await page.inputValue('#propKind')).toBe('core');
+    expect(await page.isVisible('#thickRow')).toBe(true);
+    const mass = (await page.textContent('#stats'))?.match(/[\d,.]+ t/)?.[0];
+    await page.check('#propThick');
+    expect(await page.isChecked('#propThick')).toBe(true);
+    expect((await page.textContent('#stats'))?.match(/[\d,.]+ t/)?.[0]).not.toBe(mass);
+  });
+
+  it('lets an engine be thick only once its nozzle is wider than a deck', async () => {
+    await page.click('#newShip');
+    await page.click('[data-add="engine"]');
+    // The default is a deck wide, so already as deep as it is wide.
+    expect(await page.isDisabled('#propThick')).toBe(true);
+    expect(await page.getAttribute('#propThick', 'title')).toMatch(/Too narrow/);
+    await page.fill('#propWidth', '6');
+    await page.dispatchEvent('#propWidth', 'change');
+    expect(await page.isDisabled('#propThick')).toBe(false);
+    await page.check('#propThick');
+    expect(await page.isChecked('#propThick')).toBe(true);
   });
 
   it('burns a selected engine, and lets it die down again', async () => {
@@ -316,7 +344,7 @@ describe('the editor in a browser', () => {
     const centre = await canvasCentre(page);
 
     await page.mouse.click(centre.x + 168, centre.y);
-    expect(await page.inputValue('#propKind')).toBe('turret');
+    expect(await page.inputValue('#propKind')).toBe('hullGun');
     await page.keyboard.down('Shift');
     await page.mouse.click(centre.x, centre.y);
     await page.keyboard.up('Shift');
@@ -338,7 +366,7 @@ describe('the editor in a browser', () => {
     expect(await page.isChecked('#assemblyMirror')).toBe(true);
 
     // And the ship now has two of everything that was assembled: clicking where
-    // the original's turret is picks an assembly rather than nothing.
+    // the original's gun is picks an assembly rather than nothing.
     await page.mouse.click(centre.x + 168, centre.y);
     expect(await page.isHidden('#assemblyPanel')).toBe(false);
   });
@@ -424,7 +452,7 @@ describe('the editor in a browser', () => {
     expect(await page.isHidden('#assemblyPanel')).toBe(false);
     await page.keyboard.press('Delete');
     expect(await page.isHidden('#assemblyPanel')).toBe(true);
-    // Gone from the ship: where its turret was is empty space now.
+    // Gone from the ship: where its gun was is empty space now.
     await page.mouse.click(centre.x + 168, centre.y);
     expect(await page.isHidden('#assemblyPanel')).toBe(true);
     expect(await page.isHidden('#properties')).toBe(true);
@@ -452,7 +480,7 @@ describe('the editor in a browser', () => {
 
     await page.mouse.click(centre.x + 168, centre.y);
     expect(await page.isHidden('#assemblyPanel')).toBe(true);
-    expect(await page.inputValue('#propKind')).toBe('turret');
+    expect(await page.inputValue('#propKind')).toBe('hullGun');
   });
 
   it('drags a selected assembly as one part', async () => {
@@ -608,7 +636,7 @@ describe('the editor in a browser', () => {
     await openShip(page, 'Corvette');
     expect(await redPixels(page)).toBe(0);
 
-    // The bow turret, dragged clear of the ship: attached to nothing.
+    // The bow gun, dragged clear of the ship: attached to nothing.
     const centre = await canvasCentre(page);
     await page.mouse.move(centre.x + 168, centre.y);
     await page.mouse.down();
@@ -634,7 +662,7 @@ describe('the editor in a browser', () => {
     expect(await page.isHidden('#barrelsRow')).toBe(true);
 
     await page.mouse.click(centre.x + 168, centre.y);
-    expect(await page.inputValue('#propKind')).toBe('turret');
+    expect(await page.inputValue('#propKind')).toBe('hullGun');
     expect(await page.isHidden('#barrelsRow')).toBe(false);
     expect(await page.textContent('#barrelsLabel')).toBe('barrels');
   });
@@ -680,9 +708,9 @@ describe('the editor in a browser', () => {
     expect(await page.isHidden('#shipTargetingFields')).toBe(true);
 
     await page.mouse.click(centre.x + 168, centre.y);
-    expect(await page.inputValue('#propKind')).toBe('turret');
+    expect(await page.inputValue('#propKind')).toBe('hullGun');
     expect(await page.isHidden('#shipDoctrine')).toBe(true);
-    expect(await page.textContent('#mountDoctrineSummary')).toBe('turret default');
+    expect(await page.textContent('#mountDoctrineSummary')).toBe('hull gun default');
     // Shut, so none of its thirteen boxes is between anyone and the layout.
     expect(await page.isHidden('#mountDoctrineFields')).toBe(true);
   });
@@ -698,17 +726,17 @@ describe('the editor in a browser', () => {
     // says "the archetype decides this" rather than "zero".
     const box = page.locator('#doctrine-mount-focusWeight');
     expect(await box.inputValue()).toBe('');
-    expect(await box.getAttribute('placeholder')).toBe('150');
+    expect(await box.getAttribute('placeholder')).toBe('300');
 
     await box.fill('0');
     await page.dispatchEvent('#doctrine-mount-focusWeight', 'input');
-    expect(await page.textContent('#mountDoctrineSummary')).toBe('turret, 1 change');
+    expect(await page.textContent('#mountDoctrineSummary')).toBe('hull gun, 1 change');
 
     // Clearing it takes the statement back out rather than writing a zero, so
     // the ship goes back to carrying no opinion at all.
     await box.fill('');
     await page.dispatchEvent('#doctrine-mount-focusWeight', 'input');
-    expect(await page.textContent('#mountDoctrineSummary')).toBe('turret default');
+    expect(await page.textContent('#mountDoctrineSummary')).toBe('hull gun default');
   });
 
   it('edits the ship’s own doctrine from its core', async () => {

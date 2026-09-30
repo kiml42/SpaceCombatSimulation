@@ -200,9 +200,16 @@ describe('welding on a slow contact', () => {
     });
 
     it('keeps a side\'s colours on what it leaves hooked to the other', () => {
-      // In `hooked` the blue ship's core is shot away from the pair, leaving
-      // some of its hull on the red one: red's now, and still drawn blue.
-      const run = hookedScenario();
+      // The blue ship's core is cut out of the pair, leaving the rest of its
+      // hull on the red one: red's now, and still drawn blue. Cut by hand,
+      // since the core is deck and no turret here can reach it.
+      const run = hookedUnderFire();
+      const body = run.world.bodies.indexOf(run.ships.body(0));
+      const design = run.ships.design(0);
+      joints(design).forEach((joint, k) => {
+        const blue = design.cores.find((core) => run.ships.owns(0, core));
+        if (joint.a === blue || joint.b === blue) run.ships.damage.cutWeld(body, k, joint.width);
+      });
       const snapshot = new Snapshot();
       let leftBehind = false;
       for (let s = 0; s < 3000 && !leftBehind; s++) {
@@ -294,6 +301,45 @@ describe('welding on a slow contact', () => {
     design.turrets.forEach((_, t) => {
       if (design.turrets[t]!.module >= own) expect(ships.isTurretDisabled(run.a, t)).toBe(true);
     });
+  });
+});
+
+describe('enemies hooked together', () => {
+  it('shoot each other across the body they share', () => {
+    // A core with a turret ahead of it and a plate beside it, and two of them
+    // pressed plate to plate: each turret has a clear view of the other.
+    const raft = compileBlueprint({
+      name: 'raft',
+      modules: [
+        { kind: 'core', x: 0, y: 0, length: 4, width: 4 },
+        { kind: 'structure', x: 0, y: -4, length: 4, width: 4 },
+        { kind: 'turret', x: 3.5, y: 0, length: 3, width: 3 },
+      ],
+    });
+    const plate = raft.modules.findIndex((m) => m.spec.kind === 'structure');
+    const edge = Math.max(...raft.modules.map((m) => -m.y + m.spec.width / 2));
+    const run = makeBattle({ seed: 3, projectiles: 256 }, (ships, world) => {
+      ships.spawn(world, { design: raft, x: 0, y: edge + 0.01, vy: -0.3, team: 0 });
+      ships.spawn(world, { design: raft, x: 0, y: -edge - 0.01, vy: 0.3, angle: Math.PI, team: 1 });
+      for (const ship of [0, 1]) {
+        const body = world.bodies.indexOf(ships.body(ship));
+        const hp = raft.modules[plate]!.stats.hitPoints;
+        ships.damage.absorb(body, plate, hp * DAMAGE_ENERGY_PER_KG * (1 - RAGGED_INTEGRITY * 0.5));
+      }
+    });
+    const struck = [0, 0];
+    for (let s = 0; s < 1200; s++) {
+      run.step();
+      if (run.ships.body(0) !== run.ships.body(1)) continue;
+      for (let h = 0; h < run.credit.count; h++) {
+        if (run.credit.attacker[h] !== run.credit.victim[h]) continue;
+        const victim = run.ships.pilotAt(run.credit.victim[h]!, run.credit.module[h]!);
+        if (victim === 0 || victim === 1) struck[victim]!++;
+      }
+    }
+    expect(run.ships.body(0)).toBe(run.ships.body(1));
+    expect(struck[0]).toBeGreaterThan(0);
+    expect(struck[1]).toBeGreaterThan(0);
   });
 });
 

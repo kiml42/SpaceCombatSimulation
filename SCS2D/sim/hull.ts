@@ -130,6 +130,9 @@ export interface Boxes {
  * it, because what a shot has left to give is spent in metres of armour and a
  * fraction would have to be multiplied back out by every caller.
  *
+ * `weaponsLayerOnly` casts in the weapons layer, where only its own modules
+ * matter (DESIGN.md §3); `skip` leaves one module out.
+ *
  * A segment that starts *inside* a module reports it, entering at zero: a
  * round that was stopped at a surface last step and resumes from there is
  * exactly that case, and so is a blast going off inside a hull.
@@ -147,6 +150,8 @@ export function modulesAlong(
   x1: number,
   y1: number,
   out: HullPath,
+  weaponsLayerOnly = false,
+  skip = -1,
 ): void {
   out.clear();
   const dx = x1 - x0;
@@ -159,6 +164,7 @@ export function modulesAlong(
 
   for (let i = 0; i < design.modules.length; i++) {
     const m = design.modules[i]!;
+    if (i === skip || (weaponsLayerOnly && !m.weaponsLayer)) continue;
     const c = cos(m.angle);
     const s = sin(m.angle);
 
@@ -312,10 +318,32 @@ export class Hulls implements RayNarrowPhase {
   nx = 0;
   ny = 0;
 
+  /**
+   * What the cast in hand is, set by the caller around it and cleared with
+   * `reset`: whether it is in the weapons layer, and the module it was fired
+   * from, which it never meets.
+   */
+  weaponsLayerOnly = false;
+  private skipBody = -1;
+  private skipModule = -1;
+
   constructor(
     private readonly designs: HullDesigns,
     private readonly live?: LiveModules,
   ) {}
+
+  /** Cast in a layer, from a module of a body, until `reset`. */
+  castFrom(weaponsLayerOnly: boolean, body: number, module: number): void {
+    this.weaponsLayerOnly = weaponsLayerOnly;
+    this.skipBody = body;
+    this.skipModule = module;
+  }
+
+  reset(): void {
+    this.weaponsLayerOnly = false;
+    this.skipBody = -1;
+    this.skipModule = -1;
+  }
 
   confirm(
     bodies: Bodies,
@@ -416,7 +444,16 @@ export class Hulls implements RayNarrowPhase {
     const ldx = dx * c + dy * s;
     const ldy = -dx * s + dy * c;
 
-    modulesAlong(design, lx0, ly0, lx0 + ldx, ly0 + ldy, this.path);
+    modulesAlong(
+      design,
+      lx0,
+      ly0,
+      lx0 + ldx,
+      ly0 + ldy,
+      this.path,
+      this.weaponsLayerOnly,
+      bodyIndex === this.skipBody ? this.skipModule : -1,
+    );
     if (this.live !== undefined) this.skipSpent(bodyIndex);
     if (this.path.count === 0) return -1;
 

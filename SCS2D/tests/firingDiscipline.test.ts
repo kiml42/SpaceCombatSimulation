@@ -14,7 +14,8 @@ import {
   World,
   type ShipDesign,
 } from '../sim/index.js';
-import { BEAM_CORVETTE, CORVETTE, DINKY } from '../scenarios/blueprints.js';
+import { BEAM_CORVETTE, DINKY } from '../scenarios/blueprints.js';
+import { TURRET_CORVETTE } from './fixtures.js';
 import { column } from '../scenarios/column.js';
 
 /**
@@ -33,7 +34,7 @@ import { column } from '../scenarios/column.js';
  */
 
 const DT = 1 / 60;
-const corvette = compileBlueprint(CORVETTE);
+const corvette = compileBlueprint(TURRET_CORVETTE);
 const beamCorvette = compileBlueprint(BEAM_CORVETTE);
 const dinky = compileBlueprint(DINKY);
 
@@ -132,7 +133,7 @@ describe('a gun with somebody in the way', () => {
     // into the line — which is how wreckage gets in the way for real.
     const consort = ships.spawn(world, { design: dinky, x: 0, y: 2000, team: 0 });
     const welds = joints(dinky);
-    const weld = welds.findIndex((j) => j.a === 0 && j.b === 4);
+    const weld = welds.findIndex((j) => j.a === 0 && j.b === 10);
     ships.damage.cutWeld(world.bodies.indexOf(ships.body(consort)), weld, welds[weld]!.width);
     expect(ships.sever(world)).toBe(1);
     const chunk = ships.highWater - 1;

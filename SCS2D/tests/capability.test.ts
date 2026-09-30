@@ -3,6 +3,7 @@ import { compileBlueprint, DamageEffect, DAMAGE_ENERGY_PER_KG, shipFleet } from 
 import { addCapability, EFFECTS, workingShare } from '../evolution/capability.js';
 import { Match, runMatch } from '../evolution/match.js';
 import { CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
+import { TURRET_DINKY } from './fixtures.js';
 
 /** What a hull can still do, and the two scores read from it. */
 
@@ -48,7 +49,7 @@ describe('scoring what works', () => {
   });
 
   it('pays whoever takes an opponent’s function away', () => {
-    const result = runMatch([GUNSHIP, DINKY], { seed: 11 });
+    const result = runMatch([GUNSHIP, TURRET_DINKY], { seed: 11 });
     expect(Math.max(...result.scores.map((score) => score.disabling))).toBeGreaterThan(0.1);
   });
 });

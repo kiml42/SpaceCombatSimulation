@@ -65,10 +65,14 @@ export interface BeamSpec {
   width: number;
   power: number;
   /**
-   * A body *index* the beam passes through — the firing ship, normally, so a
-   * turret does not shoot its own hull. - temporary until we set up the two layer world model.
+   * The body *index* that fired it. Passed through entirely unless
+   * `fromModule` says which part of it fired, in which case only that part is.
    */
   owner?: number;
+  /** The module of `owner` it was fired from, or -1. */
+  fromModule?: number;
+  /** Fired in the weapons layer, so it meets only weapons-layer modules. */
+  weaponsLayer?: boolean;
   /** Caller-defined classification (laser, particle beam, and so on). Uninterpreted here. */
   kind?: number;
 }
@@ -168,6 +172,9 @@ export class Beams {
   width!: Float64Array;
   power!: Float64Array;
   owner!: Int32Array;
+  fromModule!: Int32Array;
+  /** 1 for a beam in the weapons layer, which meets only weapons-layer modules. */
+  weaponsLayer!: Uint8Array;
   kind!: Int32Array;
   alive!: Uint8Array;
   /**
@@ -210,6 +217,10 @@ export class Beams {
     this.width = f64(this.width);
     this.power = f64(this.power);
     this.owner = i32(this.owner);
+    this.fromModule = i32(this.fromModule);
+    const layer = new Uint8Array(capacity);
+    if (this.weaponsLayer) layer.set(this.weaponsLayer);
+    this.weaponsLayer = layer;
     this.kind = i32(this.kind);
 
     const alive = new Uint8Array(capacity);
@@ -242,6 +253,8 @@ export class Beams {
     grid: SpatialGrid,
     hits: BeamHits,
     hulls?: Hulls,
+    fromModule = -1,
+    weaponsLayer = false,
   ): number {
     let i: number;
     const reused = this.free.pop();
@@ -259,6 +272,8 @@ export class Beams {
     this.width[i] = width;
     this.power[i] = power;
     this.owner[i] = owner;
+    this.fromModule[i] = fromModule;
+    this.weaponsLayer[i] = weaponsLayer ? 1 : 0;
     this.kind[i] = kind;
     this.alive[i] = 1;
     this.pending[i] = 0;
@@ -290,6 +305,8 @@ export class Beams {
       grid,
       hits,
       hulls,
+      spec.fromModule ?? -1,
+      spec.weaponsLayer ?? false,
     );
   }
 
@@ -335,7 +352,14 @@ export class Beams {
     const endX = this.endX[i];
     const endY = this.endY[i];
 
-    if (grid.raycast(bodies, startX, startY, endX, endY, hit, this.owner[i], hulls)) {
+    // A beam that knows which part fired it may land on the rest of its own
+    // ship; one that does not passes through all of it.
+    const from = this.fromModule[i]!;
+    const owner = this.owner[i]!;
+    hulls?.castFrom(this.weaponsLayer[i] === 1, owner, from);
+    const found = grid.raycast(bodies, startX, startY, endX, endY, hit, from >= 0 ? -1 : owner, hulls);
+    if (!found) hulls?.reset();
+    if (found) {
       const bi = hit.bodyIndex;
       const dx = endX - startX;
       const dy = endY - startY;
@@ -349,6 +373,7 @@ export class Beams {
         nx = hulls.nx;
         ny = hulls.ny;
       }
+      hulls?.reset();
       if (nx === 0 && ny === 0) {
         const ox = hit.x - bodies.x[bi];
         const oy = hit.y - bodies.y[bi];
@@ -401,6 +426,8 @@ export class Beams {
     grid: SpatialGrid,
     hits: BeamHits,
     hulls?: Hulls,
+    fromModule = -1,
+    weaponsLayer = false,
   ): number {
     return this.shootRaw(
       muzzleX,
@@ -415,6 +442,8 @@ export class Beams {
       grid,
       hits,
       hulls,
+      fromModule,
+      weaponsLayer,
     );
   }
 }

@@ -4,6 +4,7 @@ import {
   compileBlueprint,
   defaultTargeting,
   isWeaponMount,
+  refitModule,
   castableBeamLength,
   math,
   MAX_BEAM_LENGTH,
@@ -49,14 +50,16 @@ function mount(): { bodies: Bodies; index: number } {
 
 /**
  * The corvette with one instruction on every gun it has, wherever it is
- * written — a mount inside an assembly is still a mount.
+ * written — a mount inside an assembly is still a mount. `hull` lets its
+ * guns into the hull, so they can reach a hull-layer mark.
  */
-function armed(targeting: Partial<Targeting>): ShipDesign {
+function armed(targeting: Partial<Targeting>, hull = false): ShipDesign {
   const rewrite = (placements: readonly Placement[]): Placement[] =>
     placements.map((placement) => {
       if (!('kind' in placement)) return placement;
       if (!isWeaponMount(placement.kind)) return placement;
-      return { ...placement, targeting };
+      const gun = hull ? refitModule(placement, 'hullGun') : placement;
+      return { ...placement, ...gun, targeting };
     });
   const assemblies: Record<string, { modules: Placement[] }> = {};
   for (const [name, assembly] of Object.entries(CORVETTE.assemblies ?? {})) {
@@ -228,8 +231,11 @@ describe('a part a doctrine refuses', () => {
    *
    * The marks are put close in because a bare core is barely two metres
    * across, and a gun's reach is measured against what it is shooting at: the
-   * corvette's is 298 m against one of those. Further off and every case here
-   * would read the same way for the wrong reason.
+   * corvette's hull gun reaches 133 m against one of those. Further off and
+   * every case here would read the same way for the wrong reason.
+   *
+   * With a hull gun, since a core is in the hull layer and a turret's rounds
+   * pass over it.
    */
   function facing(
     targeting: Partial<Targeting>,
@@ -238,7 +244,7 @@ describe('a part a doctrine refuses', () => {
     const world = new World({ dt: DT, seed: 7 });
     const ships = new Ships();
     world.addForceProvider(ships.forceProvider());
-    const mine = ships.spawn(world, { design: armed(targeting), x: 0, y: 0, team: 0 });
+    const mine = ships.spawn(world, { design: armed(targeting, true), x: 0, y: 0, team: 0 });
     for (const mark of marks) {
       ships.spawn(world, { design: mark.design, x: mark.x, y: mark.y, angle: math.HALF_PI, team: 1 });
     }
@@ -263,13 +269,13 @@ describe('a part a doctrine refuses', () => {
     // modules it just refused, so there is nothing here for it.
     const refused = facing(
       { coreWeight: -1, gunWeight: -1, structureWeight: -1, engineWeight: 100 },
-      [{ design: bareCore, x: 250, y: 0 }],
+      [{ design: bareCore, x: 100, y: 0 }],
     );
     expect(refused.target).toBe(NO_TARGET);
     expect(refused.resting).toBe(true);
 
     // The same mount against the same ship, minus the refusal: it engages.
-    const willing = facing({ engineWeight: 100 }, [{ design: bareCore, x: 250, y: 0 }]);
+    const willing = facing({ engineWeight: 100 }, [{ design: bareCore, x: 100, y: 0 }]);
     expect(willing.target).not.toBe(NO_TARGET);
   });
 
@@ -279,7 +285,7 @@ describe('a part a doctrine refuses', () => {
     // else left stops being a target, but it is not being careful — it goes
     // on firing at anything on a hull that does have something worth
     // shooting. Below zero is the careful one.
-    const onlyCore = [{ design: bareCore, x: 250, y: 0 }];
+    const onlyCore = [{ design: bareCore, x: 100, y: 0 }];
     expect(facing({ coreWeight: 100 }, onlyCore).target).not.toBe(NO_TARGET);
     expect(facing({ coreWeight: 0, gunWeight: 100 }, onlyCore).target).toBe(NO_TARGET);
     expect(facing({ coreWeight: -1, gunWeight: 100 }, onlyCore).target).toBe(NO_TARGET);
@@ -299,8 +305,8 @@ describe('a part a doctrine refuses', () => {
     // would take the near one on every other measure, so this is the refusal
     // deciding rather than the ranking.
     const near = facing({ coreWeight: -1, gunWeight: 100, engineWeight: 100 }, [
-      { design: bareCore, x: 250, y: 0 },
-      { design: gunship, x: 1100, y: 0 },
+      { design: bareCore, x: 100, y: 0 },
+      { design: gunship, x: 500, y: 0 },
     ]);
     expect(near.target).not.toBe(NO_TARGET);
     // The second spawn is the bare core, the third the gunship.

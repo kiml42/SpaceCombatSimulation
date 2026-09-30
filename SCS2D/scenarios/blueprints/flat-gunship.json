@@ -26,13 +26,14 @@
       "width": 10
     },
     {
-      "kind": "turret",
+      "kind": "hullGun",
       "x": 26,
       "y": 0,
       "angle": 0,
       "length": 12,
       "width": 8,
-      "barrels": 1
+      "barrels": 2,
+      "nozzle": 0.8
     },
     {
       "kind": "structure",
@@ -88,7 +89,8 @@
       "y": 3,
       "angle": 180,
       "length": 8,
-      "width": 4
+      "width": 4,
+      "thick": true
     },
     {
       "kind": "engine",
@@ -96,7 +98,8 @@
       "y": -3,
       "angle": 180,
       "length": 8,
-      "width": 4
+      "width": 4,
+      "thick": true
     },
     {
       "kind": "structure",
@@ -132,7 +135,8 @@
       "y": 9,
       "angle": 90,
       "length": 2,
-      "width": 4
+      "width": 4,
+      "thick": true
     },
     {
       "kind": "engine",
@@ -140,7 +144,8 @@
       "y": -9,
       "angle": -90,
       "length": 2,
-      "width": 4
+      "width": 4,
+      "thick": true
     },
     {
       "kind": "engine",
@@ -148,7 +153,8 @@
       "y": 9,
       "angle": 90,
       "length": 2,
-      "width": 4
+      "width": 4,
+      "thick": true
     },
     {
       "kind": "engine",
@@ -156,7 +162,8 @@
       "y": -9,
       "angle": -90,
       "length": 2,
-      "width": 4
+      "width": 4,
+      "thick": true
     },
     {
       "kind": "engine",
@@ -164,7 +171,8 @@
       "y": 7,
       "angle": 0,
       "length": 3,
-      "width": 4
+      "width": 4,
+      "thick": true
     },
     {
       "kind": "engine",
@@ -172,7 +180,8 @@
       "y": -7,
       "angle": 0,
       "length": 3,
-      "width": 4
+      "width": 4,
+      "thick": true
     }
   ]
 }

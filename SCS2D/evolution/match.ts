@@ -530,7 +530,9 @@ export class Match {
 
       // Nobody is flying a hull whose cores have gone (DESIGN.md §4), and it
       // scores nothing more for being wreckage that has not been finished off.
-      fightingNow[i] = 1;
+      // A hulk still scores for surviving, but has stopped fighting: guns
+      // mission-kill (§3), and most of a fleet cannot reach a core at all.
+      if (!ships.isDisabled(ship)) fightingNow[i] = 1;
       this.survival[i]! += hull / this.capacities[i]!;
       addCapability(this.capability, i * EFFECTS, design, ships, body, ship);
       this.lifetime[i]! = this.step + 1;

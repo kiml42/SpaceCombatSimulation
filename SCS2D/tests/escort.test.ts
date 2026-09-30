@@ -26,6 +26,19 @@ const MARKER: Blueprint = {
 };
 
 /**
+ * A marker that stands up into the weapons layer, so turret fire can land on
+ * it: the core alone is deck, and deck-level rounds pass over it. Wide enough
+ * to stand in the line of a gunship's side turrets.
+ */
+const RAISED_MARKER: Blueprint = {
+  name: 'Thick marker',
+  modules: [
+    { kind: 'structure', x: 0, y: 0, length: 12, width: 30, thick: true },
+    { kind: 'core', x: 7, y: 0, length: 2, width: 2 },
+  ],
+};
+
+/**
  * The same hull with an engine on the back, for the one test that needs a
  * hostile hull somebody will deliberately shoot at: a ship that can neither
  * shoot nor move is a hulk, and nothing aims at a hulk whatever side it is
@@ -81,7 +94,7 @@ describe('escort and neutrals', () => {
     // That is the whole difference between an objective that is an object and
     // one that is a coordinate: this one can be sheltered behind, run into,
     // and shoved out of somebody's way.
-    const marker = compileBlueprint(MARKER);
+    const marker = compileBlueprint(RAISED_MARKER);
     const gunship = compileBlueprint(GUNSHIP);
     const battle = makeBattle({ seed: 3, projectiles: 512 }, (ships, world) => {
       ships.spawn(world, { design: gunship, x: -700, y: 0, angle: 0, team: 0 });

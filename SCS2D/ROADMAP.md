@@ -48,7 +48,7 @@ an entry is either still open or it is gone.
 | 4 | Headless evolution and analysis | Built |
 | 5 | v1: skirmish | Partly built |
 | 6 | Editor restructuring | Built |
-| 7 | Two layers | Not started |
+| 7 | Two layers | Partly built |
 | 8 | Fuel | Not started |
 | 9 | Fuel harvesting | Not started |
 | 10 | Raw material | Not started |
@@ -95,60 +95,38 @@ scored for what it does to the boss alone (`match.boss`, `--boss`, and a boss pi
 Not planned: per-ship doctrine overrides in a fleet (fork the design instead), and a group's own doctrine or
 lead, which waits for standing orders. Velocity stays out of the fleet file; the battle setup holds it.
 
+**Step 7 — Two layers.** The layers, depth and trigger masks are built. Three things make them make sense,
+in this order, and all three come before fuel: nothing in the resource steps needs them, but every design
+and evolution run does, and a ship tuned to half the rules is tuned twice.
+
+1. **Exploding shells.** A gun's rounds burst on a timer, which is how a turret reaches the hull layer at
+   all (§12's fuse entry is the reasoning).
+   - The fuse is set when the round is fired, to go off shortly before it would reach its aim point:
+     `interceptTime` already knows when that is. How much before is a per-mount setting in the editor, next
+     to its doctrine, so a mount can be tuned between bursting short and not bursting at all. A round that
+     hits something before its fuse goes off hits as it does now.
+   - A burst replaces the round with sub-munitions: a fixed number, sharing its mass, each leaving with the
+     round's velocity plus a spread in a random direction from the battle's seeded RNG. They are hull-layer
+     rounds, so they meet every module, deck and weapons layer alike; that is what "in both layers" comes
+     to under the rule that a hull-layer shot meets everything.
+   - No area cloud yet. **Beams stay in their own layer**: a laser has no fuse, which is the asymmetry §3
+     asks for.
+2. **Fighters.** A ship-level *fighter* flag, a checkbox in the editor. It follows DESIGN.md §3's strike
+   craft rather than inventing a new rule:
+   - **A fighter may carry no turret and nothing thick.** The editor disables both while the flag is set.
+     It flies in the **weapons layer**, where turrets and CIWS reach it, so a fighter is never out of their
+     reach the way the Dinky is today.
+   - **Its doctrine decides when it also occupies the hull layer**: that is a decision to ram, or to dock on
+     another ship's side. Occupancy is added, never swapped, so it only ever makes the fighter more
+     exposed; that is why there is no limit on how quickly it can change. It changes only while clear of
+     every hull (§3), which is what stops a fighter committing inside a capital's perimeter. Its hull
+     weapons fire in whichever layers it occupies.
+   - **The flag can evolve**, and a ship that evolves a turret or a thick module flies as an ordinary ship,
+     its flag ignored rather than refused, so a mutation that breaks the rule costs the design its role
+     rather than its place in the run.
+3. **Redesign the stock ships** for both, once they exist. The Star Destroyer needs it most.
+
 ### Not started — in order
-
-7. **Two layers** — the hull layer (the deck and below: hulls, their internals and hull-mounted weapons) and
-   the weapons layer above it (raised, "thick" modules and turrets, and later strike craft), as §3 already
-   describes and nothing yet implements. Firing arcs, traverse and projectile hits
-   read a *raised* flag, turrets and main engines are raised, structure may be either, and a hull weapon fires
-   in the hull layer. Before the resources, because it decides what each of them can be hit by: tanks, stores
-   and plants are hull internals, out of reach of deck turrets, so where they sit and what can reach them is
-   the layer question.
-
-   **Firing arcs.** Once the two layers are in place, the limits on turrets' firing arcs become clear and should
-   be implemented properly. Hull guns are in the hull layer, so they would hit any part of the ship, so they
-   should be unable to trigger when pointed at another part of the ship, but the barrel can traverse anywhere
-   in its available arc where it won't physically hit another part of the ship. Turrets are only blocked by thick
-   parts of the ship, so thick modules, and other turrets. As with hull guns, their traverse limit should be based
-   on what the barrel would hit, and their triggers should be limited by LOS in front of the barrel, just ignoring
-   everything in the hull layer because they're above it. This will lead to a single arc for traverse (possibly a
-   whole circle), but there may be multiple intervals in that arc where the turret cannot fire.
-
-   Today one arc does both jobs: a mount may fire wherever it may point, bar firing discipline's
-   friendly-hull cast, and `firingArc` takes the `min` over obstructions, which collapses a set of clear
-   sectors to its narrowest and throws away every one past the first blockage. The shape of the fix: each
-   mount compiles, alongside its two traverse bounds, a short sorted list of blocked intervals; §4's
-   `blocked` test becomes an interval lookup; target selection prefers a target in a *permitted* interval
-   over merely the nearest reachable bearing. Slew is untouched, and the mask is compile-time work — a
-   property of the layout, not of a step. Bounds stay measured as sweeps (§8's notes on the editor).
-
-   | | Today | With layers |
-   | --- | --- | --- |
-   | **Trigger arc** | Blocked by any module within *barrel length* | Blocked by raised modules and other turrets' domes, at **any** range down the round's path |
-   | **Traverse limit** | Blocked by any module within barrel length | Blocked by **raised** modules within barrel length |
-   | **Projectile hits** | Strike any module of any ship | Strike **raised** sections only |
-
-   Worth keeping in mind while building it:
-
-   - **The trigger mask is a superset of the traverse mask**, so the traverse limit never decides whether a
-     mount may fire — anything the barrel fouls is also on the round's path. Its only job is which way round
-     the mount has to turn.
-   - **Barrel length buys no reach past an obstruction.** To point along a bearing a long barrel occupies
-     the space a short barrel's round would have flown through. Length matters only the other way: an
-     obstruction *beyond* barrel reach stops the round while leaving the barrel free.
-   - **The trigger mask stays bearing-only rather than a ray cast per shot.** Under the fast-projectile
-     assumption it compiles once, and it is the conservative model: a mount should not fire along a bearing
-     with its own hull downrange, since misses and penetrations both come home.
-   - **Marking every module raised reproduces today exactly**, and is a safe first step for that reason —
-     but it is vacuous rather than a model. Un-raising a module then both opens every arc across it and
-     makes it immune to gunfire; the two cannot be tuned apart. Turrets and engines have to be raised (§3
-     has guns stripping "mounts, sensors and engines"), so `structure` is where all the choice is.
-
-   **Ships hooked together should be able to shoot each other then.** Today a ship never targets anything on
-   its own body, because a round never hits the body it left; with layers, a turret can hit its own hull and
-   will (a beam held on for its duty cycle, sweeping across it), so that exemption has to go anyway. Two enemy
-   ships sharing a body are then the closest targets either has, and have every reason to take them: lift
-   the same-body skip in `decide` and `decideTurrets` for hostile riders, and let a shot land on its own body.
 
 Steps 8 to 13 walk into the resource system one resource and one use at a time, fuel first: it is the
 scarcity every battle feels (§2), and much of §12 is parked until it exists — what a longer bell buys, the
@@ -280,6 +258,22 @@ The remaining pickers and the order weight should follow the shape already there
 - What evolution has left open — selection pressure, draw noise, arena size, clever piloting — is in §12.
 
 ---
+
+#### Two layers (step 7)
+
+- **The trigger mask covers everything the traverse limit covers**, so the traverse limit never decides
+  whether a mount may fire — anything the barrel fouls is also on the round's path. Its only job is which
+  way round the mount has to turn.
+- **Barrel length buys no reach past an obstruction.** A long barrel pointing past something occupies the
+  space a short barrel's round would have flown through. Length matters only the other way: an obstruction
+  *beyond* barrel reach stops the round while leaving the barrel free.
+- **The mask is bearing-only rather than a ray cast per shot.** It compiles once, and it is the
+  conservative model: a mount should not fire along a bearing with its own hull downrange, since misses
+  and penetrations both come home. Each sector is widened by the mount's barrel spread and half its bore,
+  because a mask measured from the mount's centre let an outer barrel's beam clip its own engine.
+- **A shot skips only the module that fired it**, rather than its whole ship, so the mask is all that
+  keeps a mount off its own hull. A lit beam is committed for its duty cycle and used to sweep across its
+  own engines after its target, so a lit beam's drive stops at the edge of a masked sector.
 
 ## 12. Open questions
 
@@ -633,19 +627,31 @@ Deliberately unresolved; decide when they block something.
   engines wasteful together without any two of them being opposites — which no layout drawn or bred so far
   does, and which is a linear program rather than a loop to find.
 - **Whether capitals may mount hull-layer guns.** Not needed for torpedoes — §3 settles those — but it is
-  an appealing separate axis. `hullGun` and `hullBeam` exist and have the narrow arcs and heavy bore this
-  imagines, but they fire in the weapons layer like any turret — there are no layers in the sim yet — so
-  what they can hit is still the open part. Deck turrets are **area**-limited: many of them, arcs unconstrained, but they
+  an appealing separate axis. `hullGun` and `hullBeam` exist, have the narrow arcs and heavy bore this
+  imagines, and fire in the hull layer, so they are the only guns that can reach a core below deck. What is open is
+  whether that earns them a place. Deck turrets are **area**-limited: many of them, arcs unconstrained, but they
   can only strip mounts. Edge-mounted hull-layer guns would be **perimeter**-limited: few, narrow arcs, but
   able to hole a hull directly. Big ships would then have to *specialise* rather than simply scale, and the
   "guns mission-kill, ordnance destroys" line in §3 would become "deck turrets mission-kill; edge guns and
-  ordnance destroy", with edge guns paying for it in coverage. Step 7 (§8) puts hull weapons in the hull
-  layer; what is left is whether edge guns then earn their place against deck turrets.
+  ordnance destroy", with edge guns paying for it in coverage.
+- **Whether a pilot hooked to an enemy should fly as though it were one.** Its mounts shoot at the other
+  ship on the body, but the ship-level choice of what to fight still skips anything on its own body,
+  since steering towards something at no range means nothing. Worth revisiting if hooked pairs start
+  leaving each other alone in ways that look wrong.
+- **Whether exhaust should know about layers.** A plume burns every module it reaches, in either layer, and
+  a thick engine's exhaust is still blocked by deck structure behind it. Left as it was, because nothing
+  yet makes the difference matter.
+- **How turret fleets fight craft they cannot see.** A thin engine is in the hull layer only, so a ship
+  whose engines are all under a deck across can be disabled only by hull weapons, and a craft built
+  wholly of such modules, like the Dinky, cannot be touched by a turret at all. Designs answer it for
+  now: the Corvette and Gunship carry hull guns at the bow, and turret tests use fixture ships
+  (`tests/fixtures.ts`) with a turret in place of the hull gun. Step 7's exploding shells and fighter
+  flag are the answer (§8).
 - **Engines split by layer, into two archetypes.** A single `engine` kind cannot express the choice the
   weapons layer creates, so it becomes two — a new *archetype* rather than a new coefficient, which is the
   distinction the materials question above already draws.
-  - A **raised main engine**: high thrust, efficient, heavy. In the weapons layer, so guns can strip it.
-  - A **hull-layer engine**: small, and therefore low absolute thrust. Guns cannot reach it.
+  - A **thick main engine**: high thrust, efficient, heavy. In the weapons layer, so turrets can strip it.
+  - A **thin engine**: small, and therefore low absolute thrust. Turrets cannot reach it.
 
   **Settled in direction: the hull-layer one is lighter in absolute terms and *worse* per unit of thrust.**
   Lighter because it is smaller; worse because a bank of them must outweigh one main engine of the same
@@ -655,8 +661,7 @@ Deliberately unresolved; decide when they block something.
   reason to fit them is not that they are cheap. It is that gunfire cannot reach them.
 
   Low thrust need not be stipulated — thrust is already exit area times a constant, and exit area is width
-  times deck height, so an engine that does not rise above the deck gets less exit and less thrust out of
-  the geometry. Efficiency has nowhere to live yet, since there is no propellant model, so for now the two
+  times depth, so a thin engine gets less exit and less thrust out of the geometry than a thick one. Efficiency has nowhere to live yet, since there is no propellant model, so for now the two
   differ in thrust and mass alone.
 
   What the split buys is a better mission kill than "disabled". A ship stripped of its main engines still
@@ -683,6 +688,9 @@ Deliberately unresolved; decide when they block something.
   The cheap middle is to arm on the timer and detonate on first proximity within a short window, so the
   check runs only while armed.
   A fuse is a delivery mechanism and the damage model it delivers into exists, so nothing blocks it.
+  **Decided (§8 step 7): timed first**, set shortly before the aim point, bursting into sub-munitions in
+  the hull layer. Proximity detonation and an area cloud wait until the timed version shows they are
+  wanted.
 - **Whether the remaining authored data lives in files rather than in code.** Blueprints do: they are JSON,
   parsed by `sim/blueprintFile.ts`, and the shipped ships go through exactly the validation a stranger's file
   does. What has not moved is `tests/fixtures/scenarios.ts`, and §9's promise of

@@ -70,6 +70,11 @@ export {
   countsOutlets,
   readsNozzle,
   readsWeapon,
+  readsThick,
+  inWeaponsLayer,
+  isThick,
+  moduleThickness,
+  canThicken,
   isWeaponMount,
   mountTraverse,
   FULL_TRAVERSE,
@@ -157,6 +162,8 @@ export {
   expandBlueprint,
   expandWithOrigins,
   firingArc,
+  barrelHalfWidth,
+  triggerMask,
   foldAngle,
   MAX_EXPANDED_MODULES,
   MAX_REPEAT,
@@ -231,6 +238,7 @@ export {
   Turrets,
   FiringSolution,
   interceptTime,
+  masked,
   type TurretSpec,
 } from './turrets.js';
 export {
