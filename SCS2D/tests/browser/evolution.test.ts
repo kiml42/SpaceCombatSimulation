@@ -167,6 +167,8 @@ describe('the evolution page in a browser', () => {
 
   it('draws the run as lines rather than an empty box', async () => {
     expect(await distinctColours(page, 'chart')).toBeGreaterThan(4);
+    // And what each generation weighed, under it.
+    expect(await distinctColours(page, 'massChart')).toBeGreaterThan(2);
   });
 
   it('lists what it bred, and what each generation fought', async () => {

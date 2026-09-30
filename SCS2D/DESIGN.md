@@ -386,7 +386,9 @@ inside any one file is not contiguous.
   puts the panel back to following the generation being fought — there is no list of generations to pick
   from, a thousand of them being a worse way of doing what the chart does better. The three sources of score are plotted apart as
   well as together, because they move at different times — a population learning to fly reaches the goal long
-  before it learns to shoot, and a total hides that behind one rising line. **What the page shows while a run
+  before it learns to shoot, and a total hides that behind one rising line. Under it, smaller charts give a fleet's
+  mass and, once a run fields more than one ship, its ship count: the generation's mean and its fittest, so
+  a run that scores better by growing can be told from one that scores better by paring down. **What the page shows while a run
   grinds is the population, not the fight.** A run fights hundreds of times faster than real time, so a window
   on whichever match is in progress is a fraction of a second of each and a flicker to the next — a picture of
   nothing, refreshed. A generation drawn as its ships, best first, changes at a pace worth watching: bare cores
@@ -453,7 +455,7 @@ inside any one file is not contiguous.
   embedded design that has drifted from the library's copy of the same name, which one button brings up to
   date. Fleets are saved to browser storage and exported and imported as fleet files.
   **A custom battle** on the viewer sets fleets — or single ships, as fleets of one — round a ring at a
-  chosen range, closing and crossing speed and seed, saved and loaded as a battle file; one side alone is
+  chosen range, closing and crossing speed, rotation and seed, saved and loaded as a battle file; one side alone is
   allowed, for watching an escort. Both editors' Battle links open it with what is being edited as the
   first side. It is set up paused at its first step, the
   picture following every change, and started with Fight. It says how each side stands — ships still
@@ -464,12 +466,13 @@ inside any one file is not contiguous.
   founders are ships and fleets alike; a ship grows into a fleet unless the most ships allowed is one. Before a run the page shows the founders unmutated and the run's
   first match paused at its start. **A boss battle** sets every entrant on one side against a ship or fleet
   that does not evolve, at the middle of the ring where the goal would be, each scored for what it does to
-  the boss alone.
+  the boss alone. Entrants can start already moving, towards the middle and across it, at speeds the run
+  sets (`--closing`, `--crossing`), the same two a custom battle has.
 - **Next:** the rest of §8 step 5 — a materials budget, designed scenarios, shareable by URL; then step 8,
   fuel, which starts the resource system.
   See ROADMAP.md §8.
-  §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight,
-  hemisphere, looking-at and ship-type pickers. Evolution is built and runs both headlessly and on a page
+  §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight
+  and ship-type pickers. What a chooser is already facing is a weight (`facingWeight`), zero by default. Evolution is built and runs both headlessly and on a page
   of its own; what it has left open is in ROADMAP.md §12, the arena radius being an absolute where a ratio
   belongs chief among them. ROADMAP.md §8 lists what is left of each partly built step, then the steps not started. The blueprint
   editor, step 1, is built; test flight inside it is an open question (§12), since the Battle link already

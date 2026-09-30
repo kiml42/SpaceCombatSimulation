@@ -45,6 +45,7 @@ const TARGETING_ROWS: readonly DoctrineRow[] = [
   { field: 'armedWeight', label: 'still armed', hint: 'Prefer what can still shoot back', step: 10 },
   { field: 'mobileWeight', label: 'still mobile', hint: 'Prefer what can still get away', step: 10 },
   { field: 'focusWeight', label: "ship's fight", hint: 'Prefer what the ship as a whole is fighting: large, and the ship concentrates', step: 10 },
+  { field: 'facingWeight', label: 'ahead', hint: 'Prefer what it is already pointed at: full weight dead ahead, nothing abeam, against astern', step: 10 },
   { field: 'escortWeight', label: 'escort', hint: 'How much it would rather stay with a consort than go to the best fight it can find', step: 20 },
   { field: 'coreWeight', label: 'aim: core', hint: 'How much it would rather hit the core it is flown from. Below zero is never', step: 10 },
   { field: 'engineWeight', label: 'aim: engines', hint: 'How much it would rather hit an engine. Below zero is never', step: 10 },

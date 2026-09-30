@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   APPROACH_FIELDS,
+  Bodies,
   Choice,
   DEFAULT_DOCTRINE,
   defaultTargeting,
@@ -11,6 +12,7 @@ import {
   blueprintFileProblem,
   compileBlueprint,
   doctrineProblem,
+  look,
   parseBlueprint,
   score,
   serialiseBlueprint,
@@ -40,6 +42,7 @@ const candidate = (over: Partial<Candidate> = {}): Candidate => ({
   mass: 100_000,
   armed: true,
   mobile: true,
+  facing: 1,
   ...over,
 });
 
@@ -243,6 +246,29 @@ describe('what a ship is worth shooting at', () => {
     expect(choice.ship).toBe(large.ship);
   });
 
+  it('prefers what it is already pointed at, when told to', () => {
+    // Nothing by default, so a doctrine that says nothing turns as it always
+    // did; with a weight, dead ahead beats abeam beats astern.
+    const ahead = candidate({ facing: 1 });
+    const abeam = candidate({ facing: 0 });
+    const astern = candidate({ facing: -1 });
+    expect(score(doctrine, ahead, REACH, 100_000, -1)).toBe(score(doctrine, astern, REACH, 100_000, -1));
+    const facing = { ...doctrine, facingWeight: 50 };
+    expect(score(facing, ahead, REACH, 100_000, -1) - score(facing, abeam, REACH, 100_000, -1)).toBeCloseTo(50);
+    expect(score(facing, abeam, REACH, 100_000, -1) - score(facing, astern, REACH, 100_000, -1)).toBeCloseTo(50);
+  });
+
+  it('measures facing along the hull it is asked from', () => {
+    const bodies = new Bodies();
+    const from = bodies.indexOf(bodies.create({ x: 0, y: 0, angle: Math.PI / 2 }));
+    const north = bodies.indexOf(bodies.create({ x: 0, y: 100 }));
+    const east = bodies.indexOf(bodies.create({ x: 100, y: 0 }));
+    const south = bodies.indexOf(bodies.create({ x: 0, y: -100 }));
+    expect(look(bodies, from, north, 1, 1, true, true).facing).toBeCloseTo(1);
+    expect(look(bodies, from, east, 2, 1, true, true).facing).toBeCloseTo(0);
+    expect(look(bodies, from, south, 3, 1, true, true).facing).toBeCloseTo(-1);
+  });
+
   it('scores a target beyond its reach against, so a ship closes', () => {
     expect(
       score(
@@ -334,6 +360,33 @@ describe('a ship deciding for itself', () => {
     const bodies = world.bodies;
     const body = bodies.indexOf(ships.body(a));
     expect(Math.hypot(bodies.vx[body]!, bodies.vy[body]!)).toBeCloseTo(0, 6);
+  });
+
+  it('turns for the nearer enemy astern, unless it prefers what is ahead', () => {
+    // Proximity alone cannot see the turn: the one astern is closer, so it
+    // wins. Weighting what is ahead is what lets a hull keep its guns on the
+    // fight it is facing.
+    const heading = (facingWeight: number): number => {
+      const world = new World({ dt: 1 / 60, seed: 5 });
+      const ships = new Ships();
+      world.addForceProvider(ships.forceProvider());
+      const design = compileBlueprint({
+        ...GUNSHIP,
+        doctrine: { ...DEFAULT_DOCTRINE, targeting: { ...DEFAULT_DOCTRINE.targeting, facingWeight } },
+      });
+      const enemy = compileBlueprint(CORVETTE);
+      const mine = ships.spawn(world, { design, x: 0, y: 0, team: 0 });
+      ships.spawn(world, { design: enemy, x: 1600, y: 0, angle: Math.PI, team: 1 });
+      ships.spawn(world, { design: enemy, x: -1400, y: 0, team: 1 });
+      for (let i = 0; i < 600; i++) {
+        ships.command(1 / 60, world);
+        world.step();
+      }
+      return Math.abs(world.bodies.angle[world.bodies.indexOf(ships.body(mine))]!);
+    };
+    // Spawned facing the further one, at +x.
+    expect(heading(0)).toBeGreaterThan(2);
+    expect(heading(200)).toBeLessThan(0.1);
   });
 
   it('reconsiders faster on a light hull than on a heavy one', () => {

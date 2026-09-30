@@ -34,6 +34,8 @@ import {
   Run,
   type GenerationRecord,
   entrantOf,
+  generationSize,
+  type GenerationSize,
   type MatchRecord,
   type RunConfig,
 } from '../evolution/run.js';
@@ -110,6 +112,8 @@ const FIELDS = [
   'duration',
   'radius',
   'scatter',
+  'closing',
+  'crossing',
   'survivalWeight',
   'functionalWeight',
   'damageWeight',
@@ -262,6 +266,19 @@ function download(name: string, text: string): void {
   URL.revokeObjectURL(url);
 }
 
+const NO_LAYOUT: ChartLayout = { x: 0, y: 0, width: 0, height: 0, count: 0 };
+
+/** One of the small charts under the score, and where it last drew itself. */
+interface SizeChart {
+  readonly canvas: HTMLCanvasElement;
+  readonly ctx: CanvasRenderingContext2D;
+  readonly legend: HTMLElement;
+  /** Places the legend reads a value to. */
+  readonly digits: number;
+  series: Series[];
+  layout: ChartLayout;
+}
+
 export function startEvolution(): void {
   const view = el<HTMLCanvasElement>('view');
   const chart = el<HTMLCanvasElement>('chart');
@@ -271,6 +288,30 @@ export function startEvolution(): void {
   const chartCtx: CanvasRenderingContext2D = context(chart);
   const chartTip = el<HTMLElement>('chartTip');
   const legend = el<HTMLElement>('legend');
+  /**
+   * What one fleet of each generation weighs and fields — averaged over the
+   * generation, and for its fittest — under what it scored: a run that
+   * scores better by growing is not the run that scores better by paring
+   * down. Ships only once a run has fielded more than one.
+   */
+  const sizeChart = (canvas: string, key: string, digits: number): SizeChart => {
+    const at = el<HTMLCanvasElement>(canvas);
+    return { canvas: at, ctx: context(at), legend: el<HTMLElement>(key), digits, series: [], layout: NO_LAYOUT };
+  };
+  const massChart = sizeChart('massChart', 'massLegend', 1);
+  const shipsChart = sizeChart('shipsChart', 'shipsLegend', 2);
+  const sizeCharts = [massChart, shipsChart];
+  const shipsBlock = el<HTMLElement>('shipsBlock');
+  /** Worked out once per generation: a fleet's ship count means parsing it. */
+  const sizes = new WeakMap<GenerationRecord, GenerationSize>();
+  const sizeOf = (generation: GenerationRecord): GenerationSize => {
+    let size = sizes.get(generation);
+    if (size === undefined) {
+      size = generationSize(generation);
+      sizes.set(generation, size);
+    }
+    return size;
+  };
 
   const startButton = el<HTMLButtonElement>('start');
   const pauseButton = el<HTMLButtonElement>('pause');
@@ -373,7 +414,7 @@ export function startEvolution(): void {
   let formationTarget = 0;
   let picked = -1;
   /** Where the chart drew itself, and which point the pointer is over. */
-  let chartLayout: ChartLayout = { x: 0, y: 0, width: 0, height: 0, count: 0 };
+  let chartLayout: ChartLayout = NO_LAYOUT;
   let chartSeries: Series[] = [];
   let hoverAt: number | null = null;
   /** Whether a drag across the chart is seeking through the generations. */
@@ -414,6 +455,8 @@ export function startEvolution(): void {
     duration: String(DEFAULT_MATCH.duration),
     radius: String(DEFAULT_MATCH.radius),
     scatter: String(Math.round((DEFAULT_MATCH.scatter * 180) / Math.PI)),
+    closing: String(DEFAULT_MATCH.closingSpeed),
+    crossing: String(DEFAULT_MATCH.crossingSpeed),
     survivalWeight: String(DEFAULT_MATCH.weights.survival),
     functionalWeight: String(DEFAULT_MATCH.weights.functional),
     damageWeight: String(DEFAULT_MATCH.weights.damage),
@@ -619,6 +662,8 @@ export function startEvolution(): void {
         duration: Math.max(1, number(inputs.duration, DEFAULT_MATCH.duration)),
         radius: Math.max(10, number(inputs.radius, DEFAULT_MATCH.radius)),
         scatter: (number(inputs.scatter, 180) * Math.PI) / 180,
+        closingSpeed: number(inputs.closing, DEFAULT_MATCH.closingSpeed),
+        crossingSpeed: number(inputs.crossing, DEFAULT_MATCH.crossingSpeed),
         goal:
           goalInput.value === 'none' || goalInput.value === 'boss' || DEFAULT_MATCH.goal === null
             ? null
@@ -676,6 +721,8 @@ export function startEvolution(): void {
     inputs.duration.value = String(match.duration);
     inputs.radius.value = String(match.radius);
     inputs.scatter.value = String((match.scatter * 180) / Math.PI);
+    inputs.closing.value = String(match.closingSpeed);
+    inputs.crossing.value = String(match.crossingSpeed);
     inputs.survivalWeight.value = String(match.weights.survival);
     inputs.functionalWeight.value = String(match.weights.functional);
     inputs.damageWeight.value = String(match.weights.damage);
@@ -742,7 +789,7 @@ export function startEvolution(): void {
 
   const resize = (): void => {
     const ratio = window.devicePixelRatio || 1;
-    for (const canvas of [view, chart]) {
+    for (const canvas of [view, chart, massChart.canvas, shipsChart.canvas]) {
       const rect = canvas.getBoundingClientRect();
       canvas.width = Math.round(rect.width * ratio);
       canvas.height = Math.round(rect.height * ratio);
@@ -934,6 +981,16 @@ export function startEvolution(): void {
       window.devicePixelRatio || 1,
       { hover: hoverAt ?? undefined, picked: markedGeneration() },
     );
+    for (const sub of sizeCharts) {
+      sub.layout = drawChart(
+        sub.ctx,
+        sub.series,
+        sub.canvas.width,
+        sub.canvas.height,
+        window.devicePixelRatio || 1,
+        { hover: hoverAt ?? undefined, picked: markedGeneration() },
+      );
+    }
   }
 
   /**
@@ -960,25 +1017,36 @@ export function startEvolution(): void {
    * labelled colours is two things to read where there was one.
    */
   function showLegend(): void {
-    legend.replaceChildren();
-    for (const line of chartSeries) {
+    fillLegend(legend, chartSeries, 3, '');
+    fillLegend(massChart.legend, massChart.series, massChart.digits, ' t');
+    fillLegend(shipsChart.legend, shipsChart.series, shipsChart.digits, '');
+  }
+
+  function fillLegend(into: HTMLElement, series: readonly Series[], digits: number, unit: string): void {
+    into.replaceChildren();
+    for (const line of series) {
       const entry = document.createElement('span');
       entry.style.color = line.colour;
       entry.textContent = line.name;
       const value = hoverAt === null ? undefined : line.values[hoverAt];
       if (value !== undefined && Number.isFinite(value)) {
         const reading = document.createElement('b');
-        reading.textContent = value.toFixed(3);
+        reading.textContent = value.toFixed(digits) + unit;
         entry.append(reading);
       }
-      legend.append(entry);
+      into.append(entry);
     }
   }
 
   /** Which generation the pointer is over, as an index, or null. */
-  const chartPointAt = (event: PointerEvent | MouseEvent, clamp = false): number | null => {
-    const rect = chart.getBoundingClientRect();
-    return indexAt(chartLayout, event.clientX - rect.left, clamp);
+  const chartPointAt = (
+    canvas: HTMLCanvasElement,
+    layout: ChartLayout,
+    event: PointerEvent | MouseEvent,
+    clamp = false,
+  ): number | null => {
+    const rect = canvas.getBoundingClientRect();
+    return indexAt(layout, event.clientX - rect.left, clamp);
   };
 
   const hoverChart = (at: number | null): void => {
@@ -1009,30 +1077,35 @@ export function startEvolution(): void {
     reselected = true;
   };
 
-  chart.addEventListener('pointermove', (event) => {
-    const at = chartPointAt(event, seeking);
-    hoverChart(at);
-    if (seeking && at !== null) goTo(at);
-  });
-  chart.addEventListener('pointerleave', () => {
-    if (!seeking) hoverChart(null);
-  });
-  chart.addEventListener('pointerdown', (event) => {
-    const at = chartPointAt(event, true);
-    if (at === null) return;
-    // Captured, so a drag that runs off the end of the plot goes on seeking
-    // to the end of the run rather than stopping where the canvas does.
-    chart.setPointerCapture(event.pointerId);
-    seeking = true;
-    goTo(at);
-  });
-  const stopSeeking = (event: PointerEvent): void => {
-    if (!seeking) return;
-    seeking = false;
-    if (chart.hasPointerCapture(event.pointerId)) chart.releasePointerCapture(event.pointerId);
+  /** Hover and drag-to-seek, the same on every chart since they share an axis. */
+  const seekable = (canvas: HTMLCanvasElement, layout: () => ChartLayout): void => {
+    canvas.addEventListener('pointermove', (event) => {
+      const at = chartPointAt(canvas, layout(), event, seeking);
+      hoverChart(at);
+      if (seeking && at !== null) goTo(at);
+    });
+    canvas.addEventListener('pointerleave', () => {
+      if (!seeking) hoverChart(null);
+    });
+    canvas.addEventListener('pointerdown', (event) => {
+      const at = chartPointAt(canvas, layout(), event, true);
+      if (at === null) return;
+      // Captured, so a drag that runs off the end of the plot goes on seeking
+      // to the end of the run rather than stopping where the canvas does.
+      canvas.setPointerCapture(event.pointerId);
+      seeking = true;
+      goTo(at);
+    });
+    const stopSeeking = (event: PointerEvent): void => {
+      if (!seeking) return;
+      seeking = false;
+      if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+    };
+    canvas.addEventListener('pointerup', stopSeeking);
+    canvas.addEventListener('pointercancel', stopSeeking);
   };
-  chart.addEventListener('pointerup', stopSeeking);
-  chart.addEventListener('pointercancel', stopSeeking);
+  seekable(chart, () => chartLayout);
+  for (const sub of sizeCharts) seekable(sub.canvas, () => sub.layout);
 
   // ---- the fleet ---------------------------------------------------------
 
@@ -1496,6 +1569,22 @@ export function startEvolution(): void {
       series.push({ name: 'vs. yardstick', colour: '#5bd6d6', values: scores });
     }
     chartSeries = series;
+
+    const size = closed.map(sizeOf);
+    const bestAndMean = (what: string, read: (s: GenerationSize) => [number, number]): Series[] =>
+      size.length === 0
+        ? []
+        : [
+            { name: `best's ${what}`, colour: '#e6edf5', values: size.map((s) => read(s)[0]) },
+            { name: `mean ${what}`, colour: '#7fa8e0', values: size.map((s) => read(s)[1]) },
+          ];
+    massChart.series = bestAndMean('mass', (s) => [s.bestMass / 1000, s.meanMass / 1000]);
+    shipsChart.series = bestAndMean('ships', (s) => [s.bestShips, s.meanShips]);
+    const fleets = size.some((s) => s.meanShips !== 1);
+    if (shipsBlock.hidden === fleets) {
+      shipsBlock.hidden = !fleets;
+      resize();
+    }
     paintChart();
     showLegend();
 
