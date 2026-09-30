@@ -29,7 +29,6 @@ export {
   ProjectileHits,
   NO_OWNER,
   NOT_INSIDE,
-  BURST_FRAGMENTS,
   type ProjectileSpec,
 } from './projectiles.js';
 export {
@@ -74,8 +73,14 @@ export {
   readsThick,
   readsFuse,
   DEFAULT_FUSE,
-  SOLID_SHOT_MASS,
-  firesSolidShot,
+  casingMass,
+  chargeShare,
+  DEFAULT_BURST_SPEED,
+  DEFAULT_FRAGMENTS,
+  EXPLOSIVE_DENSITY,
+  SHELL_DENSITY,
+  firesShells,
+  MAX_FRAGMENTS,
   inWeaponsLayer,
   isThick,
   moduleThickness,
@@ -261,7 +266,6 @@ export {
   Ships,
   NEUTRAL_TEAM,
   NO_TARGET,
-  BURST_SPREAD,
   type Order,
   type ShipSpec,
 } from './ships.js';

@@ -100,15 +100,22 @@ in this order, and all three come before fuel: nothing in the resource steps nee
 and evolution run does, and a ship tuned to half the rules is tuned twice.
 
 1. **Exploding shells — built.** A gun's rounds burst on a timer, which is how a turret reaches the hull
-   layer at all (§12's fuse entry is the reasoning). As built: every turret and hull gun fuses its rounds,
-   0.2 s short by default (`DEFAULT_FUSE`); a round bursts into 8 fragments (`BURST_FRAGMENTS`) that
-   spread at up to a tenth of the muzzle speed (`BURST_SPREAD`) and live twice the fuse, at least half a
-   second, so a miss does not fill the sky. A fuse of 0 fires **solid shot**: no burst, and a quarter
-   heavier (`SOLID_SHOT_MASS`) for the same charge, so slower with more momentum. Evolution retimes the
-   fuse and, one draw in five, swaps shells for solid shot or back.
+   layer at all (§12's fuse entry is the reasoning). As built, each turret and hull gun has a **shell**:
+   - `fragments` (8 by default, at most 64). One or fewer fires **solid shot**, all metal and never
+     bursting, which is the switch for whether any of the round is charge at all.
+   - `burstSpeed` (650 m/s by default): the most a fragment's velocity differs from the round's. It sizes
+     the charge, since the casing's kinetic energy is what the charge's yield supplies (`chargeShare`), and
+     charge is a fifth as dense as steel: a gentle burst is nearly solid, a fierce one light and fast. At
+     the default a quarter of the shell is charge, four-fifths the mass of solid shot.
+   - `fuse` (0.02 s by default): how long before the aim point it bursts. Zero bursts at the aim point,
+     which still counts on a miss or on what lies behind the target. The pattern is about the burst speed
+     times the fuse across, so the default is a tight one and a flak gun wants many fragments on a long fuse.
+   Fragments share the casing (the charge goes to gas), live twice the fuse and at least half a second,
+   and are marked (`Projectiles.fragment`). Evolution counts fragments, swapping to or from solid shot one
+   draw in five, and nudges the fuse and burst speed of a gun that fires shells.
    - The fuse is set when the round is fired, to go off shortly before it would reach its aim point:
      `interceptTime` already knows when that is. How much before is a per-mount setting in the editor
-     (`fuse`, seconds), so a mount can be tuned between bursting well short and firing solid shot. A
+     (`fuse`, seconds), so a mount can be tuned between bursting well short and bursting at the aim point. A
      round that hits something before its fuse goes off hits as it does now.
    - A burst replaces the round with sub-munitions: a fixed number, sharing its mass, each leaving with the
      round's velocity plus a spread in a random direction from the battle's seeded RNG, in opposed pairs so

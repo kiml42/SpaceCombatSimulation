@@ -70,6 +70,8 @@
       .field { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.3rem; }
       .field label { flex: 0 0 6.5rem; color: #7f93aa; }
       .field label.warn { color: #e6a45b; }
+      fieldset.shell { border: 1px solid #2a3542; margin: 0.2rem 0; padding: 0.1rem 0.4rem; }
+      fieldset.shell legend { color: #7f93aa; padding: 0 0.2rem; }
       .field input, .field textarea { flex: 1; min-width: 0; }
       .field input[type="checkbox"] { flex: 0 0 auto; }
       .pair { display: flex; gap: 0.4rem; }
@@ -246,16 +248,40 @@
               title="How far the weapon may train either way from its resting bearing. A limit only: the mount's own arc and whatever the ship is in the way of still apply. A turret's ring goes all the way round whatever it is told, so limiting one weighs the same; a hull weapon's bed is built for the arc it sweeps, so a narrower one is lighter and a fixed one carries no training gear at all."
             />
           </div>
-          <div class="field" id="fuseRow">
-            <label for="propFuse">fuse s</label>
-            <input
-              id="propFuse"
-              type="number"
-              step="0.05"
-              min="0"
-              title="How long before its round would reach what it is aimed at it bursts into fragments, seconds. Fragments meet every module, deck included, so this is how a turret reaches a hull. Longer spreads them wider and thinner. Zero fires solid shot instead: no burst, and a quarter heavier, so slower and harder-hitting."
-            />
-          </div>
+          <fieldset id="shellRow" class="shell">
+            <legend>shell</legend>
+            <div class="field">
+              <label for="propFragments">fragments</label>
+              <input
+                id="propFragments"
+                type="number"
+                step="1"
+                min="0"
+                max="64"
+                title="How many fragments the round bursts into. Fragments meet every module, deck included, which is how a turret reaches a hull. One or fewer fires solid shot: all metal, never bursting."
+              />
+            </div>
+            <div class="field">
+              <label for="propBurstSpeed">burst m/s</label>
+              <input
+                id="propBurstSpeed"
+                type="number"
+                step="10"
+                min="1"
+                title="How fast the fragments leave the burst. Faster spreads them wider, and needs more of the shell to be charge, so a lighter shell that leaves the barrel faster."
+              />
+            </div>
+            <div class="field">
+              <label for="propFuse">fuse s</label>
+              <input
+                id="propFuse"
+                type="number"
+                step="0.05"
+                min="0"
+                title="How long before its round would reach what it is aimed at it bursts, seconds. Longer spreads the fragments wider and thinner. Zero bursts at the aim point, which still counts on a miss or on what is behind the target."
+              />
+            </div>
+          </fieldset>
           <div class="field" id="weaponRow">
             <label for="propWeapon">weapon</label>
             <input

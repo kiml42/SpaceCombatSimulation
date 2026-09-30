@@ -156,7 +156,7 @@ export const CALIBRE_FRACTION = 0.04;
 export const BARREL_OUTER_CALIBRES = 2;
 
 /** How long before its aim point a round bursts when its mount does not say, seconds. */
-export const DEFAULT_FUSE = 0.2;
+export const DEFAULT_FUSE = 0.02;
 
 /**
  * The widest bore a turret carries, metres: a tube no wider outside than the
@@ -283,16 +283,33 @@ export const BARREL_CALIBRES = 50;
 export const SHELL_CALIBRES = 4.5;
 
 /**
- * Mean shell density, kg/m³. Below the density of steel because a shell is
- * ogive-nosed and part hollow, so it does not fill its own bounding cylinder.
+ * Mean density of solid shot, kg/m³: steel, a little under it because the
+ * round is ogive-nosed and does not fill its own bounding cylinder.
  */
-export const SHELL_DENSITY = 6200;
+export const SHELL_DENSITY = 7750;
+
+/** Density of the bursting charge, kg/m³. A cast high explosive. */
+export const EXPLOSIVE_DENSITY = 1650;
 
 /**
- * How much heavier solid shot is than a shell of the same size: all metal,
- * where a shell gives some of its volume to the charge that bursts it.
+ * Energy a kilogram of charge gives the casing it bursts, J/kg: the Gurney
+ * energy of a typical high explosive, so a burst's speed decides how much of
+ * the shell has to be charge (`chargeShare`).
  */
-export const SOLID_SHOT_MASS = 1.25;
+export const EXPLOSIVE_YIELD = 2.9e6;
+
+/** Fragments a shell bursts into when its mount does not say. One or fewer is solid shot. */
+export const DEFAULT_FRAGMENTS = 8;
+
+/** The most fragments a shell may burst into: each is a round in flight. */
+export const MAX_FRAGMENTS = 64;
+
+/**
+ * How fast fragments leave a burst when the mount does not say, m/s. About
+ * a quarter of the shell is then charge, so a shell is four-fifths the mass of
+ * solid shot.
+ */
+export const DEFAULT_BURST_SPEED = 650;
 
 /**
  * Muzzle energy per unit of bore volume, J/m³. Calibrated on the 16"/50: a
@@ -626,11 +643,23 @@ export interface ModuleSpec {
 
   /**
    * How long before it would reach its aim point a gun's round bursts,
-   * seconds. `DEFAULT_FUSE` when absent. Zero fires solid shot instead, which
-   * never bursts and is heavier (`SOLID_SHOT_MASS`). A projectile gun only
-   * (`readsFuse`).
+   * seconds. `DEFAULT_FUSE` when absent. Zero bursts at the aim point, which
+   * still counts on a miss or on what is behind the target. A shell only
+   * (`firesShells`).
    */
   fuse?: number;
+  /**
+   * How many fragments a gun's round bursts into. `DEFAULT_FRAGMENTS` when
+   * absent; one or fewer fires solid shot, all metal and never bursting. A
+   * projectile gun only (`readsFuse`).
+   */
+  fragments?: number;
+  /**
+   * How fast the fragments leave the burst, m/s. `DEFAULT_BURST_SPEED` when
+   * absent. Faster needs more of the shell to be charge, so a lighter shell.
+   * A shell only.
+   */
+  burstSpeed?: number;
 
   /**
    * What this mount goes after, where it differs from its archetype's default.
@@ -818,6 +847,12 @@ export function moduleProblem(spec: ModuleSpec): string | null {
   }
   if (spec.fuse !== undefined && !(spec.fuse >= 0)) {
     return `${spec.kind}: fuse must be at least 0, got ${spec.fuse}`;
+  }
+  if (spec.fragments !== undefined && !(Number.isInteger(spec.fragments) && spec.fragments >= 0 && spec.fragments <= MAX_FRAGMENTS)) {
+    return `${spec.kind}: fragments must be a whole number from 0 to ${MAX_FRAGMENTS}, got ${spec.fragments}`;
+  }
+  if (spec.burstSpeed !== undefined && !(spec.burstSpeed > 0)) {
+    return `${spec.kind}: burst speed must be more than 0, got ${spec.burstSpeed}`;
   }
   const thickness = BASE_WALL_THICKNESS * reinforcement;
   // For an engine it is the machinery block that has to be a box: the bell is
@@ -1429,18 +1464,38 @@ export function hullBeamStats(spec: ModuleSpec): GunStats {
   };
 }
 
-/** Whether a gun fires solid shot rather than shells: a fuse of zero. */
-export function firesSolidShot(spec: ModuleSpec): boolean {
-  return readsFuse(spec.kind) && spec.fuse === 0;
+/** Whether a gun fires shells that burst, rather than solid shot: more than one fragment. */
+export function firesShells(spec: ModuleSpec): boolean {
+  return readsFuse(spec.kind) && (spec.fragments ?? DEFAULT_FRAGMENTS) > 1;
 }
 
 /**
- * A gun with what it is loaded with: solid shot is heavier than a shell for
- * the same charge, so it leaves slower with more momentum.
+ * The share of a shell's volume given to charge for its casing to leave at
+ * `burstSpeed`: the casing's kinetic energy is what the charge's yield
+ * supplies, `½ ρs (1−φ) v² = ρe φ Y`.
+ */
+export function chargeShare(burstSpeed: number): number {
+  const casing = SHELL_DENSITY * burstSpeed * burstSpeed;
+  return casing / (2 * EXPLOSIVE_DENSITY * EXPLOSIVE_YIELD + casing);
+}
+
+/** The mass of a round that is casing rather than charge, kg: all of it, for solid shot. */
+export function casingMass(spec: ModuleSpec, roundMass: number): number {
+  if (!firesShells(spec)) return roundMass;
+  const share = chargeShare(spec.burstSpeed ?? DEFAULT_BURST_SPEED);
+  const casing = (1 - share) * SHELL_DENSITY;
+  return (roundMass * casing) / (casing + share * EXPLOSIVE_DENSITY);
+}
+
+/**
+ * A gun with what it is loaded with. Its bore is measured as solid shot; a
+ * shell gives some of that volume to charge, which is far lighter than steel,
+ * so for the same propellant it leaves faster with less momentum.
  */
 function loaded(gun: GunStats, spec: ModuleSpec): GunStats {
-  if (!firesSolidShot(spec)) return gun;
-  const roundMass = gun.roundMass * SOLID_SHOT_MASS;
+  if (!firesShells(spec)) return gun;
+  const share = chargeShare(spec.burstSpeed ?? DEFAULT_BURST_SPEED);
+  const roundMass = gun.roundMass * (1 - share + (share * EXPLOSIVE_DENSITY) / SHELL_DENSITY);
   const muzzleSpeed = roundMass > 0 ? sqrt((2 * gun.muzzleEnergy) / roundMass) : 0;
   return { ...gun, roundMass, muzzleSpeed };
 }

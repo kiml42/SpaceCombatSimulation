@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   BOTH_LAYERS,
-  BURST_FRAGMENTS,
-  BURST_SPREAD,
+  chargeShare,
+  DEFAULT_BURST_SPEED,
+  EXPLOSIVE_DENSITY,
   Beams,
   BeamHits,
   blueprintFileProblem,
@@ -10,7 +11,7 @@ import {
   compileBlueprint,
   DEFAULT_FUSE,
   moduleStats,
-  SOLID_SHOT_MASS,
+  SHELL_DENSITY,
   parseBlueprint,
   ProjectileHits,
   Projectiles,
@@ -32,13 +33,14 @@ import { mutate } from '../evolution/mutate.js';
 
 const DT = 1 / 60;
 
-function burstOne(fuse: number, spread = 50): { rounds: Projectiles; before: { mass: number; px: number; py: number } } {
+function burstOne(fuse: number, spread = 50, fragments = 8): { rounds: Projectiles; before: { mass: number; px: number; py: number } } {
   const rounds = new Projectiles(64);
   const bodies = new Bodies();
   const grid = new SpatialGrid(64);
   grid.rebuild(bodies);
-  rounds.spawn({ x: 0, y: 0, vx: 600, vy: 40, width: 0.4, ttl: 30, mass: 8, damage: 1e6, weaponsLayer: true, fuse, spread, fragmentLife: 1 });
-  const before = { mass: 8, px: 8 * 600, py: 8 * 40 };
+  // Eight kilograms, six of them casing: the charge goes to gas.
+  rounds.spawn({ x: 0, y: 0, vx: 600, vy: 40, width: 0.4, ttl: 30, mass: 8, casing: 6, damage: 1e6, weaponsLayer: true, fuse, spread, fragmentLife: 1, fragments });
+  const before = { mass: 6, px: 6 * 600, py: 6 * 40 };
   const rng = new Rng(3);
   for (let t = 0; t < fuse + DT; t += DT) rounds.step(DT, bodies, grid, new ProjectileHits(), undefined, undefined, rng);
   return { rounds, before };
@@ -51,10 +53,11 @@ function live(rounds: Projectiles): number[] {
 }
 
 describe('a fused round', () => {
-  it('bursts into fragments that share its mass and keep its momentum', () => {
-    const { rounds, before } = burstOne(0.5);
+  it('bursts into fragments that share its casing and keep its momentum', () => {
+    for (const n of [8, 5]) {
+    const { rounds, before } = burstOne(0.5, 50, n);
     const fragments = live(rounds);
-    expect(fragments).toHaveLength(BURST_FRAGMENTS);
+    expect(fragments).toHaveLength(n);
     let mass = 0;
     let px = 0;
     let py = 0;
@@ -66,6 +69,11 @@ describe('a fused round', () => {
     expect(mass).toBeCloseTo(before.mass, 9);
     expect(px).toBeCloseTo(before.px, 6);
     expect(py).toBeCloseTo(before.py, 6);
+    }
+  });
+
+  it('flies on whole with one fragment or none', () => {
+    expect(live(burstOne(0.5, 50, 1).rounds)).toHaveLength(1);
   });
 
   it('spreads them no faster than its spread, in both layers', () => {
@@ -122,21 +130,35 @@ describe('a gun with a fuse', () => {
     // Roughly the flight time to a ship eight hundred metres off, less the lead.
     expect(fuse).toBeGreaterThan(aim * 0.8 - DEFAULT_FUSE);
     expect(fuse).toBeLessThan(aim * 1.2 - DEFAULT_FUSE);
-    expect(spread).toBeCloseTo(muzzle * BURST_SPREAD, 9);
+    expect(spread).toBe(DEFAULT_BURST_SPEED);
+    expect(muzzle).toBeGreaterThan(0);
+  });
+
+  it('bursts at the aim point on a fuse of zero', () => {
+    expect(shot(0).fuse).toBeCloseTo(shot(0.1).fuse + 0.1, 6);
   });
 
   it('bursts it earlier the longer its fuse', () => {
     expect(shot(0.5).fuse).toBeCloseTo(shot(0.1).fuse - 0.4, 6);
   });
 
-  it('fires solid shot at a fuse of zero: no burst, heavier and slower', () => {
-    expect(shot(0).fuse).toBe(Infinity);
-    const shell = moduleStats({ kind: 'turret', x: 0, y: 0, length: 6, width: 4 }).gun!;
-    const solid = moduleStats({ kind: 'turret', x: 0, y: 0, length: 6, width: 4, fuse: 0 }).gun!;
-    expect(solid.roundMass).toBeCloseTo(shell.roundMass * SOLID_SHOT_MASS, 9);
+  it('fires solid shot with one fragment: no burst, heavier and slower', () => {
+    const turret = { kind: 'turret' as const, x: 0, y: 0, length: 6, width: 4 };
+    const shell = moduleStats(turret).gun!;
+    const solid = moduleStats({ ...turret, fragments: 1 }).gun!;
+    const share = chargeShare(DEFAULT_BURST_SPEED);
+    expect(shell.roundMass).toBeCloseTo(solid.roundMass * (1 - share + (share * EXPLOSIVE_DENSITY) / SHELL_DENSITY), 9);
     expect(solid.muzzleEnergy).toBeCloseTo(shell.muzzleEnergy, 6);
     expect(solid.muzzleSpeed).toBeLessThan(shell.muzzleSpeed);
-    expect(solid.roundMass * solid.muzzleSpeed).toBeGreaterThan(shell.roundMass * shell.muzzleSpeed);
+  });
+
+  it('gives a faster burst a lighter shell', () => {
+    const turret = { kind: 'turret' as const, x: 0, y: 0, length: 6, width: 4 };
+    const gentle = moduleStats({ ...turret, burstSpeed: 50 }).gun!;
+    const fierce = moduleStats({ ...turret, burstSpeed: 800 }).gun!;
+    expect(fierce.roundMass).toBeLessThan(gentle.roundMass * 0.9);
+    expect(fierce.muzzleSpeed).toBeGreaterThan(gentle.muzzleSpeed);
+    expect(chargeShare(800)).toBeGreaterThan(chargeShare(50));
   });
 });
 
@@ -148,9 +170,9 @@ describe('a fuse under evolution', () => {
     for (let i = 0; i < 1500 && !(seen.retimed && seen.solid); i++) {
       const child = mutate(parent, rng).blueprint;
       for (const p of child.modules) {
-        if (!('kind' in p) || (p.kind !== 'turret' && p.kind !== 'hullGun') || p.fuse === undefined) continue;
-        if (p.fuse === 0) seen.solid = true;
-        else if (p.fuse !== DEFAULT_FUSE) seen.retimed = true;
+        if (!('kind' in p) || (p.kind !== 'turret' && p.kind !== 'hullGun')) continue;
+        if (p.fragments === 1) seen.solid = true;
+        if (p.fuse !== undefined && p.fuse !== DEFAULT_FUSE) seen.retimed = true;
       }
       parent = child;
     }
