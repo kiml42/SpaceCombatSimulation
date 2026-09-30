@@ -1111,6 +1111,9 @@ export class Ships {
       const gunY = this.gunPoint.y;
       const gunVx = this.gunPoint.vx;
       const gunVy = this.gunPoint.vy;
+      const barrel = this.turrets.worldBearing(bodies, ti);
+      const faceX = cos(barrel);
+      const faceY = sin(barrel);
 
       this.choice.begin();
       this.maskedChoice.begin();
@@ -1147,13 +1150,23 @@ export class Ships {
           gunY,
           gunVx,
           gunVy,
+          faceX,
+          faceY,
           tb,
           e,
           this.designs[e]!.mass,
           !this.isDisarmed(e),
           !this.hasNoEngines(e),
         );
-        const candidate = hooked ? { ...seen, range: length(tx - gunX, ty - gunY), closing: 0 } : seen;
+        const hookedRange = hooked ? length(tx - gunX, ty - gunY) : 0;
+        const candidate = hooked
+          ? {
+              ...seen,
+              range: hookedRange,
+              closing: 0,
+              facing: hookedRange > 0 ? (faceX * (tx - gunX) + faceY * (ty - gunY)) / hookedRange : 1,
+            }
+          : seen;
         // Out of reach is out of the question, rather than merely a poor
         // score. Proximity alone would let a mount with nothing near it pick
         // something far outside what its own gun is good for and shoot at it
