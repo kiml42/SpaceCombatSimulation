@@ -29,12 +29,12 @@ import { DINKY } from '../scenarios/blueprints.js';
 
 const DT = 1 / 60;
 
-/** The Dinky as a strike craft, committing once its target's edge is `radii` of its radius off. */
-function fighter(radii = 0): Blueprint {
+/** The Dinky as a strike craft, ramming within `radii` of its target once it has `armed` of its guns or fewer. */
+function fighter(radii = 0, armed = 0): Blueprint {
   return {
     ...DINKY,
     fighter: true,
-    doctrine: { ...DEFAULT_DOCTRINE, approach: { ...DEFAULT_DOCTRINE.approach, commitRadii: radii } },
+    doctrine: { ...DEFAULT_DOCTRINE, approach: { ...DEFAULT_DOCTRINE.approach, ramRadii: radii, ramArmed: armed } },
   };
 }
 
@@ -63,7 +63,7 @@ describe('a fighter flag', () => {
   it('is kept in a file', () => {
     const back = parseBlueprint(serialiseBlueprint(fighter(2)));
     expect(back.fighter).toBe(true);
-    expect(back.doctrine!.approach.commitRadii).toBe(2);
+    expect(back.doctrine!.approach.ramRadii).toBe(2);
   });
 
   it('can evolve', () => {
@@ -75,13 +75,15 @@ describe('a fighter flag', () => {
 });
 
 describe('a fighter in battle', () => {
-  function scene(radii: number, gap: number): { world: World; ships: Ships; craft: number; hulk: number } {
+  /** A fighter `gap` off a hulk, ordered to ram it or to stand off. */
+  function scene(ram: boolean, gap: number, blueprint = fighter()): { world: World; ships: Ships; craft: number; hulk: number } {
     const world = new World({ dt: DT, seed: 2 });
     const ships = new Ships();
     world.addForceProvider(ships.forceProvider());
     const hulk = ships.spawn(world, { design: compileBlueprint(HULK), x: 0, y: 0, team: 1 });
-    const craft = ships.spawn(world, { design: compileBlueprint(fighter(radii)), x: gap, y: 0, team: 0 });
-    ships.pushOrder(craft, hulk, 0, 0, 10, OrderCancelCondition.None);
+    const craft = ships.spawn(world, { design: compileBlueprint(blueprint), x: gap, y: 0, team: 0 });
+    if (ram) ships.pushOrder(craft, hulk, 0, 0, 10, OrderCancelCondition.None);
+    else ships.pushOrder(craft, hulk, 50, 100, 10, OrderCancelCondition.None);
     return { world, ships, craft, hulk };
   }
 
@@ -89,29 +91,70 @@ describe('a fighter in battle', () => {
     return s.ships.layersOf(s.world.bodies.indexOf(s.ships.body(ship)));
   }
 
-  it('flies in the weapons layer until its doctrine commits it', () => {
-    const s = scene(0, 80);
+  it('flies in the weapons layer while it is not ramming', () => {
+    const s = scene(false, 80);
     s.ships.command(DT, s.world);
     expect(s.ships.isCommitted(s.craft)).toBe(false);
     expect(layersOf(s, s.craft)).toBe(WEAPONS_LAYER);
   });
 
-  it('commits within its range, clear of every hull', () => {
-    const s = scene(20, 80);
+  it('commits once it is ramming, clear of every hull', () => {
+    const s = scene(true, 80);
     s.ships.command(DT, s.world);
     expect(s.ships.isCommitted(s.craft)).toBe(true);
     expect(layersOf(s, s.craft)).toBe(BOTH_LAYERS);
   });
 
   it('does not commit while it overlaps a hull', () => {
-    const s = scene(20, 4);
+    const s = scene(true, 4);
     s.ships.command(DT, s.world);
     expect(s.ships.isCommitted(s.craft)).toBe(false);
   });
 
+  it('rams by its own doctrine only close in and with its guns gone', () => {
+    // No order: the doctrine picks the hulk, and decides whether to ram it.
+    const decide = (radii: number, disarm: boolean): boolean => {
+      const world = new World({ dt: DT, seed: 2 });
+      const ships = new Ships();
+      world.addForceProvider(ships.forceProvider());
+      ships.spawn(world, { design: compileBlueprint(HULK), x: 0, y: 0, team: 1 });
+      const design = compileBlueprint(fighter(radii));
+      const craft = ships.spawn(world, { design, x: 80, y: 0, team: 0 });
+      if (disarm) {
+        const b = world.bodies.indexOf(ships.body(craft));
+        for (const t of design.turrets) ships.damage.absorb(b, t.module, 1e12);
+      }
+      for (let i = 0; i < 30; i++) {
+        ships.command(DT, world);
+        world.step();
+      }
+      return ships.isCommitted(craft);
+    };
+    expect(decide(20, true)).toBe(true);
+    expect(decide(20, false)).toBe(false);
+    expect(decide(0, true)).toBe(false);
+  });
+
+  it('rams as any ship may, by closing to nothing', () => {
+    const world = new World({ dt: DT, seed: 2 });
+    const ships = new Ships();
+    world.addForceProvider(ships.forceProvider());
+    ships.spawn(world, { design: compileBlueprint(HULK), x: 0, y: 0, team: 1 });
+    const design = compileBlueprint({ ...fighter(20, 1), fighter: false });
+    const craft = ships.spawn(world, { design, x: 80, y: 0, team: 0 });
+    for (let i = 0; i < 30; i++) {
+      ships.command(DT, world);
+      world.step();
+    }
+    // `ramArmed` of one rams with every gun still working.
+    const station = (ships as unknown as { effectiveOrder(i: number): { maxRange: number } }).effectiveOrder(craft);
+    expect(station.maxRange).toBe(0);
+    expect(ships.isCommitted(craft)).toBe(false);
+  });
+
   /** Whether a round in `layers` flying at the fighter meets it. */
   function struck(committed: boolean, layers: number): boolean {
-    const s = scene(committed ? 20 : 0, 80);
+    const s = scene(committed, 80);
     s.ships.command(DT, s.world);
     const grid = new SpatialGrid(64);
     grid.rebuild(s.world.bodies);
@@ -132,8 +175,8 @@ describe('a fighter in battle', () => {
   });
 
   it('overflies a hull until committed', () => {
-    const touching = (radii: number): number => {
-      const s = scene(radii, 80);
+    const touching = (ram: boolean): number => {
+      const s = scene(ram, 80);
       s.ships.command(DT, s.world);
       // Parked on the hulk's structure, after the decision was made clear of it.
       const b = s.world.bodies.indexOf(s.ships.body(s.craft));
@@ -142,7 +185,7 @@ describe('a fighter in battle', () => {
       findContacts(s.world.bodies, s.ships, contacts);
       return contacts.count;
     };
-    expect(touching(0)).toBe(0);
-    expect(touching(20)).toBeGreaterThan(0);
+    expect(touching(false)).toBe(0);
+    expect(touching(true)).toBeGreaterThan(0);
   });
 });
