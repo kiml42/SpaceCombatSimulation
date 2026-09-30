@@ -567,9 +567,10 @@ Rules:
   Turrets and engines are *raised* into the weapons layer. Structure may be marked raised: it
   is then cover for the turrets behind it, and it pays in wall, in being within reach of guns, and in
   the arcs of every turret it stands in front of. A core may be raised on the same terms, a bridge up on
-  deck rather than below it: turrets can then reach it. A **raised hull weapon** has twice the machinery
-  behind its opening, so it bores as though it were twice as wide, and a hull beam's bank fills twice the
-  volume. It pays in wall, and in being within turrets' reach; it still fires at deck height.
+  deck rather than below it: turrets can then reach it. A **raised hull weapon** has twice the machinery, so
+  its stats are those of a mount twice as wide — bore, bank, walls and hit points — while its footprint, the
+  opening its barrels train in and their spacing stay its own. It pays in mass, and in being within turrets'
+  reach; it still fires at deck height.
 - **A barrel is never wider than the module is deep.** A turret's tubes (and a beam's housing) are held
   to the deck's depth, and a hull weapon's outlets to its own — twice that when raised — so a barrel is
   always a cylinder the hull can hold. It seldom binds, and only on very large mounts.

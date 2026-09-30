@@ -660,8 +660,8 @@ export interface ModuleSpec {
    * something guns can strip, and in the arcs of every turret it stands in
    * front of. A raised core is the bridge up on deck rather than below it:
    * in turrets' reach as well as in their way. A raised hull weapon has twice
-   * the machinery behind its opening, and bores as though it were twice as
-   * wide; it still fires at deck height.
+   * the machinery, so its stats are a mount's twice as wide (`workingWidth`);
+   * it still fires at deck height.
    */
   raised?: boolean;
 
@@ -1133,21 +1133,21 @@ export function hullMountGeometry(spec: ModuleSpec): HullMountGeometry {
   // What a single outlet would be, and each of several split the way a
   // turret splits it: tubes divide the bore, so each is `1/n` as wide; lenses
   // divide the optic's area, so each is `1/√n` as wide.
-  // Raised, it has twice the machinery behind the opening, and bores as
-  // though it were twice as wide.
-  const bored = spec.raised === true ? 2 * spec.width : spec.width;
+  const width = workingWidth(spec);
   const single =
     spec.kind === 'hullBeam'
-      ? HULL_APERTURE_FRACTION * bored
-      : BARREL_OUTER_CALIBRES * HULL_CALIBRE_FRACTION * bored;
+      ? HULL_APERTURE_FRACTION * width
+      : BARREL_OUTER_CALIBRES * HULL_CALIBRE_FRACTION * width;
   const each = spec.kind === 'hullBeam' ? single / sqrt(outlets) : single / outlets;
   // Spread across the face as a turret's barrels are, one gap outboard of
   // each end, so neighbours stand apart rather than touching.
+  // Laid out across the face the mount really has, which a raised one's extra
+  // machinery does not widen.
   const outletSpacing = outlets > 1 ? spec.width / (outlets + 1) : 0;
-  // No wider than the opening leaves room for, nor than the module is deep:
+  // No wider than the opening leaves room for, nor than the mount is deep:
   // an outlet is always a cylinder the hull can hold.
   const opening = HULL_BARREL_WIDTH_CAP * (outlets > 1 ? outletSpacing : spec.width);
-  const cap = opening < moduleHeight(spec) ? opening : moduleHeight(spec);
+  const cap = opening < outletDepth(spec) ? opening : outletDepth(spec);
   const outletWidth = each < cap ? each : cap;
   const barrelWidth = (outlets - 1) * outletSpacing + outletWidth;
   const blockLength = spec.length - barrelLength;
@@ -1256,9 +1256,27 @@ export function isRaised(spec: ModuleSpec): boolean {
   }
 }
 
-/** How tall a module's walls are, metres: taller where the height is a choice (`readsRaised`). */
+/**
+ * How tall a module's walls are, metres. Raised structure and cores are
+ * taller; a raised hull weapon is wider instead (`workingWidth`).
+ */
 export function moduleHeight(spec: ModuleSpec): number {
-  return readsRaised(spec.kind) && spec.raised === true ? RAISED_HEIGHT : DECK_HEIGHT;
+  return (spec.kind === 'structure' || spec.kind === 'core') && spec.raised === true ? RAISED_HEIGHT : DECK_HEIGHT;
+}
+
+/**
+ * The width a module's stats are worked out at, metres: its own, except a
+ * raised hull weapon's, which has the machinery of one twice as wide. Its
+ * footprint on the ship, the opening its barrels train in, and how they are
+ * spaced across it stay its own.
+ */
+export function workingWidth(spec: ModuleSpec): number {
+  return isHullMount(spec.kind) && spec.raised === true ? 2 * spec.width : spec.width;
+}
+
+/** The widest a hull weapon's outlet may be, metres: the depth of the mount, twice that raised. */
+function outletDepth(spec: ModuleSpec): number {
+  return spec.raised === true ? RAISED_HEIGHT : DECK_HEIGHT;
 }
 
 /**
@@ -1368,7 +1386,7 @@ export function hullBeamStats(spec: ModuleSpec): GunStats {
   const aperture = outletWidth;
   const apertureArea = PI * 0.25 * aperture * aperture;
   const power = OPTIC_INTENSITY_LIMIT * apertureArea;
-  const stored = BEAM_STORED_ENERGY_PER_VOLUME * blockLength * spec.width * moduleHeight(spec);
+  const stored = BEAM_STORED_ENERGY_PER_VOLUME * blockLength * workingWidth(spec) * DECK_HEIGHT;
   const beamOnTime = power > 0 ? stored / power : 0;
   // **The block is the bank and the cooling, so depth buys duty rather than
   // only burst.** The burn grows with the bank behind it while the recovery
@@ -1412,10 +1430,11 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
   // wall for the space it encloses, which is the pressure that stops layouts
   // being made of splinters.
   const height = moduleHeight(spec);
-  const outer = boxLength * spec.width * height;
+  const width = workingWidth(spec);
+  const outer = boxLength * width * height;
   const inner =
     (boxLength - 2 * wallThickness) *
-    (spec.width - 2 * wallThickness) *
+    (width - 2 * wallThickness) *
     (height - 2 * wallThickness);
   // Bells, which are skins rather than boxes: two flanks along the slant and a
   // roof and floor over the taper, with nothing enclosed and both ends open.
@@ -1423,7 +1442,7 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
   const wallVolume = outer - inner + skinVolume;
   const structureMass = wallVolume * HULL_DENSITY;
 
-  const capacity = (boxLength - 2 * wallThickness) * (spec.width - 2 * wallThickness);
+  const capacity = (boxLength - 2 * wallThickness) * (width - 2 * wallThickness);
 
   let fittingMass = 0;
   let thrust = 0;

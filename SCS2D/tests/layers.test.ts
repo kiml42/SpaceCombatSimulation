@@ -76,6 +76,21 @@ describe('which layer a module is in', () => {
     expect(bright.beamPower * bright.beamOnTime).toBeCloseTo(2 * dim.beamPower * dim.beamOnTime, 3);
   });
 
+  it('works a raised hull weapon out as a mount twice as wide', () => {
+    for (const kind of ['hullGun', 'hullBeam'] as const) {
+      const spec: ModuleSpec = { kind, x: 0, y: 0, length: 12, width: 4, barrels: 2 };
+      const raised = moduleStats({ ...spec, raised: true });
+      const wide = moduleStats({ ...spec, width: 8 });
+      // Laid out across its real face, though, so its outlets stay inside it.
+      expect(raised.gun!.barrelSpacing).toBeCloseTo(moduleStats(spec).gun!.barrelSpacing, 9);
+      for (const key of ['calibre', 'muzzleEnergy', 'beamPower', 'beamOnTime', 'cycleTime'] as const) {
+        expect(raised.gun![key]).toBeCloseTo(wide.gun![key], 9);
+      }
+      expect(raised.capacity).toBeCloseTo(wide.capacity, 9);
+      expect(raised.hitPoints).toBeCloseTo(wide.hitPoints, 6);
+    }
+  });
+
   it('holds every barrel to the depth of the module it is in', () => {
     const wide = moduleStats({ kind: 'turret', x: 0, y: 0, length: 200, width: 200 }).gun!;
     expect(2 * wide.calibre).toBeCloseTo(DECK_HEIGHT, 9);
