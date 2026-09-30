@@ -1,7 +1,7 @@
 import type { Bodies } from './bodies.js';
 import type { ShipDesign } from './blueprint.js';
 import { Terminal, deflected, incidenceAngle, strike } from './ballistics.js';
-import { HullPath, modulesAlong, type HullDesigns, type Hulls } from './hull.js';
+import { BOTH_LAYERS, HullPath, modulesAlong, OWN_LAYERS, type HullDesigns, type Hulls } from './hull.js';
 import type { SpatialGrid } from './spatialGrid.js';
 import { jointBetween, joints } from './connectivity.js';
 import { NOT_INSIDE, type ProjectileHits, type Projectiles } from './projectiles.js';
@@ -609,8 +609,9 @@ function walkRound(
   speed: number,
   time: number,
   out: RoundOutcome,
-  weaponsLayerOnly = false,
+  layers = BOTH_LAYERS,
   skip = -1,
+  bodyLayers = OWN_LAYERS,
 ): RoundOutcome {
   out.outcome = Terminal.Perforate;
   out.skidded = false;
@@ -633,7 +634,7 @@ function walkRound(
     out.ux = ux;
     out.uy = uy;
     out.speed = carried;
-    modulesAlong(design, ox - ux * reach, oy - uy * reach, ox + ux * reach, oy + uy * reach, path, weaponsLayerOnly, skip);
+    modulesAlong(design, ox - ux * reach, oy - uy * reach, ox + ux * reach, oy + uy * reach, path, layers, skip, bodyLayers);
 
     let k = crossing;
     if (k < 0) {
@@ -927,6 +928,7 @@ export class Impacts {
   /** The design each round inside a hull is walking, by round. */
   private readonly walking: (ShipDesign | null)[] = [];
   /** What `rounds` was given to fly a round on with, for the step in hand. */
+  private designs: HullDesigns | undefined;
   private readonly flight: {
     dt: number;
     grid: SpatialGrid | undefined;
@@ -974,6 +976,7 @@ export class Impacts {
     grid?: SpatialGrid,
     hulls?: Hulls,
   ): void {
+    this.designs = designs;
     this.flight.dt = dt;
     this.flight.grid = grid;
     this.flight.hulls = hulls;
@@ -1065,8 +1068,9 @@ export class Impacts {
       speed,
       time,
       this.outcome,
-      projectiles.weaponsLayer[round] === 1,
+      projectiles.layers[round]!,
       body === projectiles.owner[round] ? projectiles.fromModule[round]! : -1,
+      this.designs?.layersOf?.(body) ?? OWN_LAYERS,
     );
 
     const angle = bodies.angle[body]!;
@@ -1255,8 +1259,9 @@ export class Impacts {
       ex * c + ey * s,
       -ex * s + ey * c,
       this.path,
-      beams.weaponsLayer[beam] === 1,
+      beams.layers[beam]!,
       body === beams.owner[beam] ? beams.fromModule[beam]! : -1,
+      designs.layersOf?.(body) ?? OWN_LAYERS,
     );
 
     for (let k = 1; k < this.path.count; k++) {

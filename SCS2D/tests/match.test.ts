@@ -114,6 +114,25 @@ describe('match', () => {
     expect(ghostOf(false)).toBe(1);
   });
 
+  it('starts each entrant moving towards the middle and to its left, the boss at rest', () => {
+    const { battle } = new Match([CORVETTE, DINKY], { seed: 3, closingSpeed: 20, crossingSpeed: 5, goal: null });
+    const b = battle.world.bodies;
+    for (const id of battle.slots) {
+      const i = b.indexOf(battle.ships.body(id));
+      const out = Math.hypot(b.x[i]!, b.y[i]!);
+      // Inwards is minus the way out; left of that is a quarter turn on.
+      const inX = -b.x[i]! / out;
+      const inY = -b.y[i]! / out;
+      expect(b.vx[i]! * inX + b.vy[i]! * inY).toBeCloseTo(20, 9);
+      expect(-b.vx[i]! * inY + b.vy[i]! * inX).toBeCloseTo(5, 9);
+    }
+
+    const bossed = new Match([CORVETTE], { seed: 3, closingSpeed: 20, boss: DINKY }).battle;
+    const boss = bossed.world.bodies.indexOf(bossed.ships.body(bossed.slots[1]!));
+    expect(bossed.world.bodies.vx[boss]).toBe(0);
+    expect(bossed.world.bodies.vy[boss]).toBe(0);
+  });
+
   it('flies a lone ship to the clock, as a test of piloting alone', () => {
     const result = runMatch([CORVETTE], { seed: 5, duration: 20 });
     expect(result.ending).toEqual('timeout');

@@ -29,6 +29,7 @@ export {
   ProjectileHits,
   NO_OWNER,
   NOT_INSIDE,
+  BURST_FRAGMENTS,
   type ProjectileSpec,
 } from './projectiles.js';
 export {
@@ -71,6 +72,8 @@ export {
   readsNozzle,
   readsWeapon,
   readsThick,
+  readsFuse,
+  DEFAULT_FUSE,
   inWeaponsLayer,
   isThick,
   moduleThickness,
@@ -93,7 +96,17 @@ export {
   type ModuleStats,
   type EngineGeometry,
 } from './modules.js';
-export { HullPath, Hulls, modulesAlong, type HullDesigns } from './hull.js';
+export {
+  BOTH_LAYERS,
+  HULL_LAYER,
+  HullPath,
+  Hulls,
+  modulesAlong,
+  moduleLayers,
+  OWN_LAYERS,
+  WEAPONS_LAYER,
+  type HullDesigns,
+} from './hull.js';
 export {
   PLUME_POWER_PER_NEWTON,
   PLUME_RAYS,
@@ -159,6 +172,7 @@ export {
   blueprintProblem,
   blueprintProblems,
   compileBlueprint,
+  fighterProblem,
   compileDraft,
   expandBlueprint,
   expandWithOrigins,
@@ -246,6 +260,7 @@ export {
   Ships,
   NEUTRAL_TEAM,
   NO_TARGET,
+  BURST_SPREAD,
   type Order,
   type ShipSpec,
 } from './ships.js';

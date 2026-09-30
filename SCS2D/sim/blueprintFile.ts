@@ -13,6 +13,7 @@ import {
   MODULE_KINDS,
   readsNozzle,
   readsThick,
+  readsFuse,
   readsWeapon,
   type ModuleKind,
   type ModuleSpec,
@@ -73,6 +74,7 @@ const MODULE_KEYS: readonly string[] = [
   'barrels',
   'nozzle',
   'traverse',
+  'fuse',
   'weapon',
   'thick',
   'targeting',
@@ -95,7 +97,7 @@ const STEP_KEYS: readonly string[] = ['x', 'y', 'angle'];
 
 const ASSEMBLY_KEYS: readonly string[] = ['modules', 'notes'];
 
-const FILE_KEYS: readonly string[] = ['formatVersion', 'name', 'notes', 'doctrine', 'assemblies', 'modules'];
+const FILE_KEYS: readonly string[] = ['formatVersion', 'name', 'notes', 'fighter', 'doctrine', 'assemblies', 'modules'];
 
 export function degreesToRadians(degrees: number): number {
   return (degrees / 180) * PI;
@@ -182,6 +184,7 @@ function moduleShapeProblem(value: Record<string, unknown>, where: string): stri
     optionalNumberProblem(value['barrels'], `${where}: barrels`) ??
     optionalNumberProblem(value['nozzle'], `${where}: nozzle`) ??
     optionalNumberProblem(value['traverse'], `${where}: traverse`) ??
+    optionalNumberProblem(value['fuse'], `${where}: fuse`) ??
     optionalBooleanProblem(value['weapon'], `${where}: weapon`) ??
     optionalBooleanProblem(value['thick'], `${where}: thick`) ??
     targetingProblem(value['targeting'], `${where}: targeting`) ??
@@ -213,6 +216,9 @@ function dormantFieldProblem(value: Record<string, unknown>, where: string): str
   }
   if (value['traverse'] !== undefined && !isWeaponMount(kind)) {
     return `${where}: only a weapon has a traverse`;
+  }
+  if (value['fuse'] !== undefined && !readsFuse(kind)) {
+    return `${where}: only a gun has a fuse`;
   }
   if (value['weapon'] !== undefined && !readsWeapon(kind)) {
     return `${where}: only an engine can be used as a weapon`;
@@ -326,6 +332,9 @@ export function blueprintFileProblem(value: unknown): string | null {
   const notesProblem = optionalStringProblem(value['notes'], 'notes');
   if (notesProblem !== null) return notesProblem;
 
+  const fighter = optionalBooleanProblem(value['fighter'], 'fighter');
+  if (fighter !== null) return fighter;
+
   const doctrine = doctrineProblem(value['doctrine']);
   if (doctrine !== null) return doctrine;
 
@@ -342,6 +351,7 @@ function toBlueprint(file: Record<string, unknown>): Blueprint {
     modules: toPlacements(file['modules'] as unknown[]),
   };
   if (file['notes'] !== undefined) blueprint.notes = file['notes'] as string;
+  if (file['fighter'] !== undefined) blueprint.fighter = file['fighter'] as boolean;
   if (file['doctrine'] !== undefined) blueprint.doctrine = toDoctrine(file['doctrine']);
 
   const rawAssemblies = file['assemblies'] as Record<string, Record<string, unknown>> | undefined;
@@ -398,6 +408,7 @@ function toPlacements(raws: unknown[]): Placement[] {
     if (raw['nozzle'] !== undefined) spec.nozzle = raw['nozzle'] as number;
     // Degrees in the file and radians in the simulation, as every other angle.
     if (raw['traverse'] !== undefined) spec.traverse = degreesToRadians(raw['traverse'] as number);
+    if (raw['fuse'] !== undefined) spec.fuse = raw['fuse'] as number;
     if (raw['weapon'] !== undefined) spec.weapon = raw['weapon'] as boolean;
     if (raw['thick'] !== undefined) spec.thick = raw['thick'] as boolean;
     if (raw['targeting'] !== undefined) spec.targeting = { ...(raw['targeting'] as Partial<Targeting>) };
@@ -431,6 +442,7 @@ export function serialiseBlueprint(blueprint: Blueprint): Record<string, unknown
     name: blueprint.name,
   };
   if (blueprint.notes !== undefined) file['notes'] = blueprint.notes;
+  if (blueprint.fighter !== undefined) file['fighter'] = blueprint.fighter;
   if (blueprint.doctrine !== undefined) {
     // Only what it says differently from the default, so a file stays short
     // and a default that moves later moves for every ship that never had an
@@ -485,6 +497,9 @@ function serialisePlacement(placement: Placement): Record<string, unknown> {
   }
   if (placement.traverse !== undefined && isWeaponMount(placement.kind)) {
     raw['traverse'] = radiansToDegrees(placement.traverse);
+  }
+  if (placement.fuse !== undefined && readsFuse(placement.kind)) {
+    raw['fuse'] = placement.fuse;
   }
   if (placement.weapon !== undefined && readsWeapon(placement.kind)) {
     raw['weapon'] = placement.weapon;
