@@ -96,10 +96,12 @@
         pointer-events: none;
         z-index: 1;
       }
-      #legend { display: flex; flex-wrap: wrap; gap: 0.8rem; margin: 0.35rem 0 0; color: #7f93aa; }
-      #legend b { color: #e6edf5; font-weight: 600; margin-left: 0.25rem; }
+      .subChart { width: 100%; height: 100px; display: block; border-radius: 4px; margin-top: 0.5rem; cursor: crosshair; }
+      #legend, .legend { display: flex; flex-wrap: wrap; gap: 0.8rem; margin: 0.35rem 0 0; color: #7f93aa; }
+      #legend b, .legend b { color: #e6edf5; font-weight: 600; margin-left: 0.25rem; }
       #fighting { color: #7fd6a0; text-transform: none; letter-spacing: 0; }
-      #legend span::before {
+      #legend span::before,
+      .legend span::before {
         content: '';
         display: inline-block;
         width: 10px;
@@ -340,6 +342,12 @@
             <span style="color: #e9c05f">ground</span>
             <span style="color: #5bd6d6">vs. yardstick</span>
           </p>
+          <canvas id="massChart" class="subChart"></canvas>
+          <p id="massLegend" class="legend"></p>
+          <div id="shipsBlock" hidden>
+            <canvas id="shipsChart" class="subChart"></canvas>
+            <p id="shipsLegend" class="legend"></p>
+          </div>
           <div id="viewBar">
             <label>showing <select id="mode">
               <option value="fleet" selected>the combatants</option>

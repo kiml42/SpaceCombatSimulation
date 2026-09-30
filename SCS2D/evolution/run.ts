@@ -1,5 +1,6 @@
 import {
   compileBlueprint,
+  expandFleet,
   fleetHulls,
   fleetMass,
   parseBlueprint,
@@ -94,6 +95,49 @@ export function entrantOf(record: IndividualRecord): Entrant {
   if (record.fleet !== undefined) return parseFleet(record.fleet);
   if (record.blueprint !== undefined) return parseBlueprint(record.blueprint);
   throw new Error(`individual ${record.id} records no design`);
+}
+
+/** How many ships an individual fields: one for a ship, every hull for a fleet. */
+export function shipCount(record: IndividualRecord): number {
+  return record.fleet === undefined ? 1 : expandFleet(parseFleet(record.fleet)).length;
+}
+
+/** What a generation weighs and fields, on average and for its fittest. */
+export interface GenerationSize {
+  /** Dry mass, kg. */
+  readonly meanMass: number;
+  readonly bestMass: number;
+  readonly meanShips: number;
+  readonly bestShips: number;
+}
+
+/**
+ * The generation's size, for reading whether a run is growing its designs or
+ * paring them down. The fittest is the first with the best fitness, which is
+ * the one `bestFitness` was read from.
+ */
+export function generationSize(record: GenerationRecord): GenerationSize {
+  const individuals = record.individuals;
+  if (individuals.length === 0) return { meanMass: 0, bestMass: 0, meanShips: 0, bestShips: 0 };
+  let mass = 0;
+  let ships = 0;
+  let best = individuals[0]!;
+  let bestShips = 0;
+  for (const individual of individuals) {
+    const count = shipCount(individual);
+    mass += individual.mass;
+    ships += count;
+    if (individual.fitness > best.fitness || individual === best) {
+      best = individual;
+      bestShips = count;
+    }
+  }
+  return {
+    meanMass: mass / individuals.length,
+    bestMass: best.mass,
+    meanShips: ships / individuals.length,
+    bestShips,
+  };
 }
 
 /** One match, and enough to fight it again. */
