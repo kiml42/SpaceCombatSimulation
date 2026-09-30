@@ -13,7 +13,7 @@ import {
 } from '../scenarios/customBattle.js';
 
 const lone: Fleet = { name: 'Lone', designs: { Dinky: DINKY }, ships: [{ design: 'Dinky', x: 0, y: 0 }] };
-const setup: BattleSetup = { fleets: [LINE_OF_BATTLE, lone], range: 1000, closingSpeed: 20, crossingSpeed: -5, seed: 7 };
+const setup: BattleSetup = { fleets: [LINE_OF_BATTLE, lone], range: 1000, closingSpeed: 20, crossingSpeed: -5, rotation: 0, seed: 7 };
 
 describe('the battle file', () => {
   it('round-trips a setup', () => {
@@ -21,7 +21,20 @@ describe('the battle file', () => {
     expect(serialiseBattleSetup(parseBattleSetup(JSON.parse(JSON.stringify(file))))).toEqual(file);
   });
 
+  it('round-trips a rotation, in degrees in the file', () => {
+    const file = serialiseBattleSetup({ ...setup, rotation: Math.PI / 2 });
+    expect(file['rotation']).toBe(90);
+    expect(parseBattleSetup(JSON.parse(JSON.stringify(file))).rotation).toBeCloseTo(Math.PI / 2, 12);
+  });
+
+  it('leaves rotation out of a file with none, so older files read the same', () => {
+    const file = serialiseBattleSetup(setup);
+    expect('rotation' in file).toBe(false);
+    expect(parseBattleSetup(file).rotation).toBe(0);
+  });
+
   it.each([
+    ['a rotation that is not a number', { rotation: 'left' }, /rotation must be a finite number/],
     ['no fleets', { fleets: [] }, /at least one/],
     ['no range', { range: 0 }, /range must be greater/],
     ['a fractional seed', { seed: 1.5 }, /whole number/],

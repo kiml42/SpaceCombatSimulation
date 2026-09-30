@@ -96,10 +96,12 @@
         pointer-events: none;
         z-index: 1;
       }
-      #legend { display: flex; flex-wrap: wrap; gap: 0.8rem; margin: 0.35rem 0 0; color: #7f93aa; }
-      #legend b { color: #e6edf5; font-weight: 600; margin-left: 0.25rem; }
+      .subChart { width: 100%; height: 100px; display: block; border-radius: 4px; margin-top: 0.5rem; cursor: crosshair; }
+      #legend, .legend { display: flex; flex-wrap: wrap; gap: 0.8rem; margin: 0.35rem 0 0; color: #7f93aa; }
+      #legend b, .legend b { color: #e6edf5; font-weight: 600; margin-left: 0.25rem; }
       #fighting { color: #7fd6a0; text-transform: none; letter-spacing: 0; }
-      #legend span::before {
+      #legend span::before,
+      .legend span::before {
         content: '';
         display: inline-block;
         width: 10px;
@@ -268,6 +270,8 @@
           <div class="field"><label for="duration">seconds</label><input id="duration" type="number" min="1" step="5" /></div>
           <div class="field"><label for="radius">arena m</label><input id="radius" type="number" min="10" step="50" /></div>
           <div class="field"><label for="scatter">scatter °</label><input id="scatter" type="number" min="0" max="180" step="15" /></div>
+          <div class="field"><label for="closing">closing m/s</label><input id="closing" type="number" step="5" title="Each entrant's starting speed towards the middle" /></div>
+          <div class="field"><label for="crossing">crossing m/s</label><input id="crossing" type="number" step="5" title="Each entrant's starting speed to its left, across the line to the middle" /></div>
           <div class="field"><label for="goal">goal</label><select id="goal" title="Solid blocks shots and can be run into; a ghost is only somewhere to be; boss puts a ship or fleet there for every entrant to fight together">
             <option value="solid">solid</option>
             <option value="ghost">ghost</option>
@@ -340,6 +344,12 @@
             <span style="color: #e9c05f">ground</span>
             <span style="color: #5bd6d6">vs. yardstick</span>
           </p>
+          <canvas id="massChart" class="subChart"></canvas>
+          <p id="massLegend" class="legend"></p>
+          <div id="shipsBlock" hidden>
+            <canvas id="shipsChart" class="subChart"></canvas>
+            <p id="shipsLegend" class="legend"></p>
+          </div>
           <div id="viewBar">
             <label>showing <select id="mode">
               <option value="fleet" selected>the combatants</option>

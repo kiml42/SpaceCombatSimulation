@@ -63,7 +63,8 @@ an entry is either still open or it is gone.
 **Step 3 — Doctrine and orders.** What the step deferred, plus one thing using it turned up:
 
 - **Withdrawal** — a craft breaking off.
-- **More pickers**: line-of-sight, hemisphere, looking-at, and ship-type.
+- **More pickers**: line-of-sight and ship-type. Hemisphere as a hard discard too, if `facingWeight`'s
+  soft version — astern scores against — turns out not to be enough.
 - **How much a mount cares about its ship's orders, as a weight of its own.** An order is currently a
   mandate: every mount that can train on the ordered target takes it. That is right for a main battery and
   wrong for a close-in mount, which should go on swatting whatever is about to hit the ship while the hull is
@@ -80,7 +81,7 @@ Built: **the fleet file** (`sim/fleet.ts`, `sim/fleetFile.ts`), **a battle from 
 (`scenarios/fleetBattle.ts`), proved by `standoff` flying a fleet file with its checksum unchanged, **the
 fleet editor** (`dist/fleet.html`), and **a custom battle** on the viewer — fleets or single ships from the
 libraries, a file, or handed over by either editor's Battle link,
-range, closing and crossing speeds and a seed, saved and loaded as a battle file (`scenarios/customBattle.ts`),
+range, closing and crossing speeds, a rotation and a seed, saved and loaded as a battle file (`scenarios/customBattle.ts`),
 set up paused and live, and decided once no more than one side can still fight. Left in the editor: making, dissolving and renaming
 groups — it steps into and edits the ones a file brings, but cannot make one — later, as ship groups were.
 **Fleet evolution** is built, headless (`evolution/fleetMutate.ts`, `npm run evolve -- --fleet`) and on the
