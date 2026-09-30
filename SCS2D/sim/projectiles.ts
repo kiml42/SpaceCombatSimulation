@@ -62,8 +62,6 @@ export const NO_OWNER = -1;
 /** A projectile in open flight rather than passing through a hull. */
 export const NOT_INSIDE = -1;
 
-/** Sub-munitions a round bursts into. Even, so they leave in opposed pairs and the burst keeps its momentum. */
-export const BURST_FRAGMENTS = 8;
 
 export interface ProjectileSpec {
   x: number;
@@ -94,8 +92,12 @@ export interface ProjectileSpec {
   layers?: number;
   /** Caller-defined classification (AP, HE, and so on). Uninterpreted here. */
   kind?: number;
-  /** Seconds until it bursts into `BURST_FRAGMENTS`. Never when absent. */
+  /** Seconds until it bursts into `fragments`. Never when absent. */
   fuse?: number;
+  /** How many fragments it bursts into. */
+  fragments?: number;
+  /** The mass the fragments share, kg: the casing, with the charge gone to gas. The whole round when absent. */
+  casing?: number;
   /** The most a fragment's speed differs from the round's, m/s. */
   spread?: number;
   /** Seconds a fragment flies before it expires. */
@@ -217,6 +219,12 @@ export class Projectiles {
   spread!: Float64Array;
   /** Seconds a fragment flies before it expires: long enough to cross what it was fused for. */
   fragmentLife!: Float64Array;
+  /** How many fragments it bursts into. */
+  fragments!: Int32Array;
+  /** The mass its fragments share, kg. */
+  casing!: Float64Array;
+  /** 1 for a fragment of a burst, rather than a round a gun fired. */
+  fragment!: Uint8Array;
   alive!: Uint8Array;
   /**
    * Set on impact. A pending round is stopped at the point of contact and is
@@ -289,6 +297,11 @@ export class Projectiles {
     this.fuse = f64(this.fuse);
     this.spread = f64(this.spread);
     this.fragmentLife = f64(this.fragmentLife);
+    this.fragments = i32(this.fragments);
+    this.casing = f64(this.casing);
+    const fragment = new Uint8Array(capacity);
+    if (this.fragment) fragment.set(this.fragment);
+    this.fragment = fragment;
 
     const alive = new Uint8Array(capacity);
     if (this.alive) alive.set(this.alive);
@@ -332,6 +345,8 @@ export class Projectiles {
     fuse = Infinity,
     spread = 0,
     fragmentLife = 0,
+    fragments = 0,
+    casing = mass,
   ): number {
     let i: number;
     const reused = this.free.pop();
@@ -358,6 +373,9 @@ export class Projectiles {
     this.fuse[i] = fuse;
     this.spread[i] = spread;
     this.fragmentLife[i] = fragmentLife;
+    this.fragments[i] = fragments;
+    this.casing[i] = casing;
+    this.fragment[i] = 0;
     this.alive[i] = 1;
     this.pending[i] = 0;
     this.inside[i] = NOT_INSIDE;
@@ -384,6 +402,8 @@ export class Projectiles {
       spec.fuse ?? Infinity,
       spec.spread ?? 0,
       spec.fragmentLife ?? 0,
+      spec.fragments ?? 0,
+      spec.casing ?? spec.mass ?? 1,
     );
   }
 
@@ -505,7 +525,7 @@ export class Projectiles {
       if (this.cast(i, this.vx[i] * dt, this.vy[i] * dt, 0, 1, bodies, grid, hits, hulls)) continue;
       this.ttl[i] -= dt;
       if (this.ttl[i] <= 0) this.kill(i);
-      else if ((this.fuse[i] -= dt) <= 0 && rng !== undefined) bursting.push(i);
+      else if ((this.fuse[i] -= dt) <= 0 && rng !== undefined && this.fragments[i] > 1) bursting.push(i);
     }
     // After the walk, so no fragment is flown in the step it was made.
     for (let k = 0; k < bursting.length; k++) this.burst(bursting[k]!, rng!);
@@ -514,15 +534,16 @@ export class Projectiles {
   private readonly bursting: number[] = [];
 
   /**
-   * Replace a round with `BURST_FRAGMENTS` sharing its mass, energy and bore.
+   * Replace a round with its `fragments`, sharing its casing, energy and bore.
    *
    * Each leaves with the round's velocity plus a kick in a random direction,
    * spread evenly over a disc, and its twin with the opposite kick, so the
-   * burst carries on with the round's momentum. Fragments fly in both layers,
-   * so they meet every module, and do not burst again.
+   * casing carries on with its own momentum; an odd one out takes none. The
+   * charge is gone to gas. Fragments fly in both layers, so they meet every
+   * module, and do not burst again.
    */
   private burst(i: number, rng: Rng): void {
-    const n = BURST_FRAGMENTS;
+    const n = this.fragments[i]!;
     const x = this.x[i]!;
     const y = this.y[i]!;
     const vx = this.vx[i]!;
@@ -530,7 +551,7 @@ export class Projectiles {
     const width = this.width[i]! / sqrt(n);
     const life = this.fragmentLife[i]!;
     const ttl = life < this.ttl[i]! ? life : this.ttl[i]!;
-    const mass = this.mass[i]! / n;
+    const mass = this.casing[i]! / n;
     const damage = this.damage[i]! / n;
     const penetration = this.penetration[i]!;
     const owner = this.owner[i]!;
@@ -538,13 +559,16 @@ export class Projectiles {
     const from = this.fromModule[i]!;
     const spread = this.spread[i]!;
     this.kill(i);
-    for (let k = 0; k < n; k += 2) {
+    for (let k = 0; k + 1 < n; k += 2) {
       const angle = rng.nextFloat() * TAU;
       const speed = spread * sqrt(rng.nextFloat());
       const kx = cos(angle) * speed;
       const ky = sin(angle) * speed;
-      this.spawnRaw(x, y, vx + kx, vy + ky, width, ttl, mass, damage, penetration, owner, kind, from, BOTH_LAYERS);
-      this.spawnRaw(x, y, vx - kx, vy - ky, width, ttl, mass, damage, penetration, owner, kind, from, BOTH_LAYERS);
+      this.fragment[this.spawnRaw(x, y, vx + kx, vy + ky, width, ttl, mass, damage, penetration, owner, kind, from, BOTH_LAYERS)] = 1;
+      this.fragment[this.spawnRaw(x, y, vx - kx, vy - ky, width, ttl, mass, damage, penetration, owner, kind, from, BOTH_LAYERS)] = 1;
+    }
+    if (n % 2 === 1) {
+      this.fragment[this.spawnRaw(x, y, vx, vy, width, ttl, mass, damage, penetration, owner, kind, from, BOTH_LAYERS)] = 1;
     }
   }
 
@@ -665,6 +689,8 @@ export class Projectiles {
     fuse = Infinity,
     spread = 0,
     fragmentLife = 0,
+    fragments = 0,
+    casing = mass,
   ): number {
     return this.spawnRaw(
       muzzleX,
@@ -683,6 +709,8 @@ export class Projectiles {
       fuse,
       spread,
       fragmentLife,
+      fragments,
+      casing,
     );
   }
 }

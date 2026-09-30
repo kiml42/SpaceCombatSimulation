@@ -75,6 +75,8 @@ const MODULE_KEYS: readonly string[] = [
   'nozzle',
   'traverse',
   'fuse',
+  'fragments',
+  'burstSpeed',
   'weapon',
   'thick',
   'targeting',
@@ -185,6 +187,8 @@ function moduleShapeProblem(value: Record<string, unknown>, where: string): stri
     optionalNumberProblem(value['nozzle'], `${where}: nozzle`) ??
     optionalNumberProblem(value['traverse'], `${where}: traverse`) ??
     optionalNumberProblem(value['fuse'], `${where}: fuse`) ??
+    optionalNumberProblem(value['fragments'], `${where}: fragments`) ??
+    optionalNumberProblem(value['burstSpeed'], `${where}: burstSpeed`) ??
     optionalBooleanProblem(value['weapon'], `${where}: weapon`) ??
     optionalBooleanProblem(value['thick'], `${where}: thick`) ??
     targetingProblem(value['targeting'], `${where}: targeting`) ??
@@ -217,8 +221,8 @@ function dormantFieldProblem(value: Record<string, unknown>, where: string): str
   if (value['traverse'] !== undefined && !isWeaponMount(kind)) {
     return `${where}: only a weapon has a traverse`;
   }
-  if (value['fuse'] !== undefined && !readsFuse(kind)) {
-    return `${where}: only a gun has a fuse`;
+  for (const key of ['fuse', 'fragments', 'burstSpeed']) {
+    if (value[key] !== undefined && !readsFuse(kind)) return `${where}: only a gun has a ${key}`;
   }
   if (value['weapon'] !== undefined && !readsWeapon(kind)) {
     return `${where}: only an engine can be used as a weapon`;
@@ -409,6 +413,8 @@ function toPlacements(raws: unknown[]): Placement[] {
     // Degrees in the file and radians in the simulation, as every other angle.
     if (raw['traverse'] !== undefined) spec.traverse = degreesToRadians(raw['traverse'] as number);
     if (raw['fuse'] !== undefined) spec.fuse = raw['fuse'] as number;
+    if (raw['fragments'] !== undefined) spec.fragments = raw['fragments'] as number;
+    if (raw['burstSpeed'] !== undefined) spec.burstSpeed = raw['burstSpeed'] as number;
     if (raw['weapon'] !== undefined) spec.weapon = raw['weapon'] as boolean;
     if (raw['thick'] !== undefined) spec.thick = raw['thick'] as boolean;
     if (raw['targeting'] !== undefined) spec.targeting = { ...(raw['targeting'] as Partial<Targeting>) };
@@ -498,8 +504,10 @@ function serialisePlacement(placement: Placement): Record<string, unknown> {
   if (placement.traverse !== undefined && isWeaponMount(placement.kind)) {
     raw['traverse'] = radiansToDegrees(placement.traverse);
   }
-  if (placement.fuse !== undefined && readsFuse(placement.kind)) {
-    raw['fuse'] = placement.fuse;
+  if (readsFuse(placement.kind)) {
+    if (placement.fuse !== undefined) raw['fuse'] = placement.fuse;
+    if (placement.fragments !== undefined) raw['fragments'] = placement.fragments;
+    if (placement.burstSpeed !== undefined) raw['burstSpeed'] = placement.burstSpeed;
   }
   if (placement.weapon !== undefined && readsWeapon(placement.kind)) {
     raw['weapon'] = placement.weapon;
