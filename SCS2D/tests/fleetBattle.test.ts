@@ -47,4 +47,22 @@ describe('a battle built from fleets', () => {
     expect(b.vx[at(0)]).toBe(10);
     expect(b.vy[at(0)]).toBe(5);
   });
+
+  it('turns each fleet about its own origin, leaving its speeds alone', () => {
+    const turned = fleetBattle([pair, lone], {
+      seed: 1,
+      range: 1000,
+      closingSpeed: 10,
+      crossingSpeed: 5,
+      rotation: math.HALF_PI,
+    });
+    const b = turned.world.bodies;
+    const first = b.indexOf(turned.ships.body(turned.slots[0]![0]!));
+    // Fleet 0 now faces +y, so a ship on its left (+y) sits to -x of its origin.
+    expect(b.x[first]).toBeCloseTo(-520, 9);
+    expect(b.y[first]).toBeCloseTo(0, 9);
+    expect(b.angle[first]).toBeCloseTo(math.HALF_PI, 9);
+    expect(b.vx[first]).toBe(10);
+    expect(b.vy[first]).toBe(5);
+  });
 });

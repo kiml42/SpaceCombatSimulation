@@ -9,6 +9,12 @@ export interface FleetBattleOptions extends BattleOptions {
   readonly closingSpeed?: number;
   /** Each fleet's own speed to its left. */
   readonly crossingSpeed?: number;
+  /**
+   * How far each fleet is turned from facing the centre, radians,
+   * anticlockwise, about its own origin. The formation turns with it; the
+   * speeds above do not.
+   */
+  readonly rotation?: number;
 }
 
 /**
@@ -26,6 +32,7 @@ export function fleetBattle(
     const radius = options.range / 2;
     const closing = options.closingSpeed ?? 0;
     const crossing = options.crossingSpeed ?? 0;
+    const rotation = options.rotation ?? 0;
 
     const placed = fleets.map((fleet) => {
       const designs = new Map<string, ShipDesign>();
@@ -41,14 +48,16 @@ export function fleetBattle(
         if (ship === undefined) continue;
         const heading = (math.TAU * team) / fleets.length;
         const [c, s] = exactTurn(heading);
+        const facing = rotation === 0 ? heading : heading + rotation;
+        const [fc, fs] = rotation === 0 ? [c, s] : exactTurn(facing);
         const vx = closing * c - crossing * s;
         const vy = closing * s + crossing * c;
         slots[team]!.push(
           ships.spawn(world, {
             design: ship.compiled,
-            x: -radius * c + ship.x * c - ship.y * s,
-            y: -radius * s + ship.x * s + ship.y * c,
-            angle: foldAngle(heading + ship.angle),
+            x: -radius * c + ship.x * fc - ship.y * fs,
+            y: -radius * s + ship.x * fs + ship.y * fc,
+            angle: foldAngle(facing + ship.angle),
             team,
             ...(vx !== 0 || vy !== 0 ? { vx, vy } : {}),
           }),
