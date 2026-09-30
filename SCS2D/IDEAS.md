@@ -37,7 +37,6 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Mutate to change the whole scale of the ship
 - Crossing and closing velocity settings
 - Measure yardstick should remember what it previously measured if it's the same ship as the yardstick.
-  - Should be able to see a yardstick battle.
 - When mutation between gun and engine, the module should be rotates 180, to maintain the correct outward face.
 - Consider scoring for ramming
   - Currently just loses score by everything taking damage
