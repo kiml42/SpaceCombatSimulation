@@ -1,5 +1,8 @@
 import {
+  DEFAULT_BURST_SPEED,
+  DEFAULT_FRAGMENTS,
   DEFAULT_FUSE,
+  firesShells,
   DEFAULT_NOZZLE_SHARE,
   degreesToRadians,
   isInstance,
@@ -153,7 +156,7 @@ function el<T extends HTMLElement>(id: string): T {
   return found as T;
 }
 
-type ModuleNumberField = 'angle' | 'reinforcement' | 'barrels' | 'nozzle' | 'traverse' | 'fuse';
+type ModuleNumberField = 'angle' | 'reinforcement' | 'barrels' | 'nozzle' | 'traverse' | 'fuse' | 'fragments' | 'burstSpeed';
 
 /** A module's own value for a field, with the default the parser would have applied. */
 function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
@@ -164,6 +167,8 @@ function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
   // arc it actually has rather than a blank.
   if (key === 'traverse') return radiansToDegrees(mountTraverse(spec));
   if (key === 'fuse') return spec.fuse ?? DEFAULT_FUSE;
+  if (key === 'fragments') return spec.fragments ?? DEFAULT_FRAGMENTS;
+  if (key === 'burstSpeed') return spec.burstSpeed ?? DEFAULT_BURST_SPEED;
   return spec.barrels ?? 1;
 }
 
@@ -287,6 +292,8 @@ export function startEditor(): void {
     nozzle: el<HTMLInputElement>('propNozzle'),
     traverse: el<HTMLInputElement>('propTraverse'),
     fuse: el<HTMLInputElement>('propFuse'),
+    fragments: el<HTMLInputElement>('propFragments'),
+    burstSpeed: el<HTMLInputElement>('propBurstSpeed'),
     notes: el<HTMLTextAreaElement>('propNotes'),
   };
 
@@ -745,7 +752,11 @@ export function startEditor(): void {
     // The same field again: what sticks out of the module, named for the kind
     // showing it — a bell, a barrel, or the housing round a lens.
     el<HTMLElement>('traverseRow').hidden = !isWeaponMount(spec.kind);
-    el<HTMLElement>('fuseRow').hidden = !readsFuse(spec.kind);
+    el<HTMLElement>('shellRow').hidden = !readsFuse(spec.kind);
+    // Solid shot has no burst to time or to size.
+    const shells = firesShells(spec);
+    el<HTMLInputElement>('propFuse').disabled = !shells;
+    el<HTMLInputElement>('propBurstSpeed').disabled = !shells;
     el<HTMLElement>('nozzleRow').hidden = !nozzles && !hullMount;
     el<HTMLElement>('nozzleLabel').textContent = nozzles
       ? 'nozzle'

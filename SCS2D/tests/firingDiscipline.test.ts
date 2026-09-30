@@ -308,6 +308,8 @@ describe('a gun and the target it was trained on', () => {
         }
         if (seen.has(k)) continue;
         seen.add(k);
+        // A fragment flies wherever its burst threw it; this is about aim.
+        if (projectiles.fragment[k] === 1) continue;
         const shooter = shipOf(run, projectiles.owner[k]!);
         if (shooter < 0) continue;
         const own = bodies.indexOf(run.ships.body(shooter));
