@@ -422,6 +422,7 @@ function spreadDoctrine(doctrine: Doctrine): MutableDoctrine {
  */
 type Knob =
   | { readonly at: 'doctrine'; readonly half: 'targeting' | 'approach'; readonly field: string }
+  | { readonly at: 'fighter' }
   | { readonly at: 'reinforcement'; readonly site: ModuleSite }
   | { readonly at: 'kind'; readonly site: ModuleSite }
   | { readonly at: 'barrels'; readonly site: ModuleSite }
@@ -458,6 +459,8 @@ function knobs(draft: Draft): Knob[] {
   // cannot change the battle, and an edit accepted for changing nothing.
   for (const field of SHIP_TARGETING_FIELDS) out.push({ at: 'doctrine', half: 'targeting', field });
   for (const field of APPROACH_FIELDS) out.push({ at: 'doctrine', half: 'approach', field });
+  // Even while the layout rules it out: the flag is ignored until it does not.
+  out.push({ at: 'fighter' });
 
   for (const list of draft.lists) {
     for (let i = 0; i < list.placements.length; i++) {
@@ -543,6 +546,8 @@ function renumber(knob: Knob, draft: Draft, rng: Rng, bounds: MutationLimits): s
   switch (knob.at) {
     case 'doctrine':
       return turnDoctrine(draft, knob.half, knob.field, rng, bounds);
+    case 'fighter':
+      return enlist(draft.blueprint);
     case 'reinforcement':
       return reinforce(knob.site, rng, bounds);
     case 'kind':
@@ -646,6 +651,14 @@ function turnDoctrine(
   if (tidied === was) return null;
   held[field] = tidied;
   return `doctrine.${half}.${field} ${was} → ${tidied}`;
+}
+
+/** Make a ship a fighter, or an ordinary ship again. A flip, as `rearm` is. */
+function enlist(blueprint: Blueprint): string {
+  const was = blueprint.fighter === true;
+  if (was) delete blueprint.fighter;
+  else blueprint.fighter = true;
+  return `fighter: ${was ? 'no longer' : 'now'}`;
 }
 
 function reinforce(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {

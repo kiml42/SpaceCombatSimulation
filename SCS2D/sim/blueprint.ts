@@ -6,6 +6,7 @@ import {
   moduleStats,
   isHullMount,
   inWeaponsLayer,
+  isThick,
   mountTraverse,
   hullMountGeometry,
   engineGeometry,
@@ -260,6 +261,12 @@ export interface Blueprint {
    * fights by `DEFAULT_DOCTRINE`.
    */
   doctrine?: Doctrine;
+  /**
+   * A strike craft (DESIGN.md §3): it flies in the weapons layer, and takes
+   * the hull layer as well only when its doctrine commits it. Ignored on a
+   * ship with a turret or anything thick (`fighterProblem`).
+   */
+  fighter?: boolean;
 }
 
 /** A module in a compiled design: what was authored, plus what it works out to. */
@@ -356,6 +363,8 @@ export interface ShipDesign {
   readonly reach: number;
   /** What a ship of this design does when it has no orders. */
   readonly doctrine: Doctrine;
+  /** Flies as a strike craft: asked for, and nothing on it rules it out. */
+  readonly fighter: boolean;
   /**
    * Which body each module came from, for a hull that is two or more welded
    * together (`weldDesigns`); absent for one built in one piece. Faces only
@@ -951,6 +960,7 @@ function place(
     if (placement.barrels !== undefined) spec.barrels = placement.barrels;
     if (placement.nozzle !== undefined) spec.nozzle = placement.nozzle;
     if (placement.traverse !== undefined) spec.traverse = placement.traverse;
+    if (placement.fuse !== undefined) spec.fuse = placement.fuse;
     if (placement.weapon !== undefined) spec.weapon = placement.weapon;
     if (placement.thick !== undefined) spec.thick = placement.thick;
     if (placement.targeting !== undefined) spec.targeting = placement.targeting;
@@ -1349,7 +1359,21 @@ export function compileDraft(blueprint: Blueprint): ShipDesign {
     specs.map(moduleStats),
     layoutIndex,
     blueprint.doctrine ?? DEFAULT_DOCTRINE,
+    undefined,
+    blueprint.fighter === true && fighterProblem(specs) === null,
   );
+}
+
+/**
+ * Why these modules cannot fly as a fighter, or null. A turret or anything
+ * thick stands up out of the deck a strike craft skims (DESIGN.md §3).
+ */
+export function fighterProblem(specs: readonly ModuleSpec[]): string | null {
+  for (const spec of specs) {
+    if (spec.kind === 'turret' || spec.kind === 'beamTurret') return 'a fighter carries no turrets';
+    if (isThick(spec)) return 'a fighter has nothing thick';
+  }
+  return null;
 }
 
 /**
@@ -1389,7 +1413,8 @@ export function subDesign(design: ShipDesign, keep: readonly number[]): ShipDesi
     }
     joins = { pieces: keep.map((module) => design.pieces![module]!), seams };
   }
-  return designFrom(design.name, specs, stats, layoutIndex, design.doctrine, joins);
+  // A piece of a fighter is still small enough to be one.
+  return designFrom(design.name, specs, stats, layoutIndex, design.doctrine, joins, design.fighter);
 }
 
 /**
@@ -1449,6 +1474,7 @@ function designFrom(
   layoutIndex: readonly number[],
   doctrine: Doctrine = DEFAULT_DOCTRINE,
   joins?: Joins,
+  fighter = false,
 ): ShipDesign {
   const centres = specs.map(moduleCentre);
   let mass = 0;
@@ -1664,6 +1690,7 @@ function designFrom(
     modules,
     reach,
     doctrine,
+    fighter,
     mass,
     inertia,
     radius,

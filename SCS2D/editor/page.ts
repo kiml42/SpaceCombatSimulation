@@ -1,11 +1,14 @@
 import {
+  DEFAULT_FUSE,
   DEFAULT_NOZZLE_SHARE,
   degreesToRadians,
   isInstance,
   isHullMount,
   isWeaponMount,
   readsThick,
+  readsFuse,
   canThicken,
+  fighterProblem,
   isThick,
   mountTraverse,
   MAX_REPEAT,
@@ -23,6 +26,7 @@ import {
   type ModuleOrigin,
   type ModulePath,
   type ModuleSpec,
+  type ShipDesign,
   type Placement,
 } from '../sim/index.js';
 import { draw } from '../render/canvas2d.js';
@@ -149,7 +153,7 @@ function el<T extends HTMLElement>(id: string): T {
   return found as T;
 }
 
-type ModuleNumberField = 'angle' | 'reinforcement' | 'barrels' | 'nozzle' | 'traverse';
+type ModuleNumberField = 'angle' | 'reinforcement' | 'barrels' | 'nozzle' | 'traverse' | 'fuse';
 
 /** A module's own value for a field, with the default the parser would have applied. */
 function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
@@ -159,6 +163,7 @@ function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
   // What the mount would do if the layout said nothing, so the box shows the
   // arc it actually has rather than a blank.
   if (key === 'traverse') return radiansToDegrees(mountTraverse(spec));
+  if (key === 'fuse') return spec.fuse ?? DEFAULT_FUSE;
   return spec.barrels ?? 1;
 }
 
@@ -215,6 +220,8 @@ export function startEditor(): void {
 
   const shipList = el<HTMLSelectElement>('ship');
   const shipName = el<HTMLInputElement>('shipName');
+  const shipFighter = el<HTMLInputElement>('shipFighter');
+  const shipFighterLabel = el<HTMLElement>('shipFighterLabel');
   const shipNotes = el<HTMLTextAreaElement>('shipNotes');
   const properties = el<HTMLElement>('properties');
   const linked = el<HTMLElement>('linked');
@@ -279,6 +286,7 @@ export function startEditor(): void {
     barrels: el<HTMLInputElement>('propBarrels'),
     nozzle: el<HTMLInputElement>('propNozzle'),
     traverse: el<HTMLInputElement>('propTraverse'),
+    fuse: el<HTMLInputElement>('propFuse'),
     notes: el<HTMLTextAreaElement>('propNotes'),
   };
 
@@ -737,6 +745,7 @@ export function startEditor(): void {
     // The same field again: what sticks out of the module, named for the kind
     // showing it — a bell, a barrel, or the housing round a lens.
     el<HTMLElement>('traverseRow').hidden = !isWeaponMount(spec.kind);
+    el<HTMLElement>('fuseRow').hidden = !readsFuse(spec.kind);
     el<HTMLElement>('nozzleRow').hidden = !nozzles && !hullMount;
     el<HTMLElement>('nozzleLabel').textContent = nozzles
       ? 'nozzle'
@@ -748,10 +757,12 @@ export function startEditor(): void {
     weaponInput.checked = spec.weapon === true;
     el<HTMLElement>('thickRow').hidden = !readsThick(spec.kind);
     // One no more than a deck across is as deep as it is wide either way.
-    thickInput.disabled = !canThicken(spec);
+    thickInput.disabled = !canThicken(spec) || doc.blueprint.fighter === true;
     thickInput.checked = isThick(spec);
     thickInput.title = thickInput.disabled
-      ? spec.kind === 'engine'
+      ? doc.blueprint.fighter === true && canThicken(spec)
+        ? 'A fighter has nothing thick.'
+        : spec.kind === 'engine'
         ? 'Too narrow to be thick: each nozzle is no more than a deck wide, so already as deep as it is wide.'
         : 'Too narrow to be thick: no more than a deck across, so already as deep as it is wide.'
       : thickTitle;
@@ -928,10 +939,33 @@ export function startEditor(): void {
     deleteShipButton.disabled = !library.savedNames().includes(selected);
   };
 
+  /**
+   * The fighter box, and what it rules out: turrets and thick modules cannot
+   * be added while it is set. A layout that already has one flies as an
+   * ordinary ship, and the box says so rather than refusing it.
+   */
+  const renderFighter = (design: ShipDesign | null): void => {
+    const asked = doc.blueprint.fighter === true;
+    shipFighter.checked = asked;
+    const problem = asked && design !== null && !design.fighter ? fighterProblem(design.modules.map((m) => m.spec)) : null;
+    shipFighterLabel.title =
+      problem !== null
+        ? `Flies as an ordinary ship: ${problem}.`
+        : 'A strike craft: no turrets and nothing thick. It flies in the weapons layer, and drops into the hull layer as well only when its doctrine commits it, to ram or dock.';
+    shipFighterLabel.classList.toggle('warn', problem !== null);
+    for (const button of document.querySelectorAll<HTMLButtonElement>('[data-add="turret"], [data-add="beamTurret"]')) {
+      button.disabled = asked;
+    }
+    for (const option of kindSelect.options) {
+      option.disabled = asked && (option.value === 'turret' || option.value === 'beamTurret');
+    }
+  };
+
   const refresh = (): void => {
     const design = doc.view.design;
     envelope = design === null ? null : envelopes(design);
     if (document.activeElement !== shipName) shipName.value = doc.blueprint.name;
+    renderFighter(design);
     if (document.activeElement !== shipNotes) shipNotes.value = doc.blueprint.notes ?? '';
     undoButton.disabled = !doc.canUndo;
     redoButton.disabled = !doc.canRedo;
@@ -1400,6 +1434,12 @@ export function startEditor(): void {
     const name = shipName.value.trim();
     if (name === '') return;
     change({ ...doc.blueprint, name }, true);
+  });
+  shipFighter.addEventListener('change', () => {
+    const next = { ...doc.blueprint };
+    if (shipFighter.checked) next.fighter = true;
+    else delete next.fighter;
+    change(next);
   });
   shipName.addEventListener('focus', () => {
     gesture = false;

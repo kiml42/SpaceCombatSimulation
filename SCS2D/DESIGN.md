@@ -426,7 +426,9 @@ inside any one file is not contiguous.
   as a warm wedge inside the sweep. A mount prefers a target it can fire at, but with none it tracks one
   on a masked bearing with its trigger held, so it is on target as the ship turns. A lit beam's drive stops at the edge of a masked sector rather than
   sweep across its own ship. A shot may land on its own ship, but never on the mount that fired it, so
-  two enemies hooked together shoot each other. A module is as deep as it is across, capped at a deck
+  two enemies hooked together shoot each other. **A gun's rounds burst** a fifth of a second before their
+  aim point by default (a per-mount `fuse`), into fragments that fly in the hull layer, which is how a
+  turret reaches below the deck; a beam has no fuse, so it never does. A module is as deep as it is across, capped at a deck
   (3 m) unless it is thick. Shipped ships mark every engine wider than a deck thick, and the Corvette and
   Gunship carry their bow guns as hull guns. A match is over when at most one side can
   still shoot or push, since most fleets can no longer destroy each other.
@@ -593,12 +595,13 @@ Rules:
   protruding modules.
 
   A craft that **commits** drops to deck height and occupies *both* layers, so it can strike hull.
-  Whether to commit is a doctrine choice: to ram, or to dock on another ship's side.
+  Whether to commit is a doctrine choice: to ram, or (not yet built) to dock on another ship's side.
 
-  **A strike craft is a ship flagged as a fighter** (ROADMAP.md §8 step 7, not yet built). The flag rules
+  **A strike craft is a ship flagged as a fighter.** The flag rules
   out turrets and thick modules, which is what keeps a craft small enough to skim a deck, and puts the
   ship in the weapons layer for the battle. A ship that evolves either one flies as an ordinary ship, its
-  flag ignored.
+  flag ignored. Uncommitted, it collides only with other fighters, hull-layer fire passes under it, and its
+  own hull weapons fire in the weapons layer. Committing is not built yet.
 
   **Occupancy is added, never swapped.** A committed craft does not leave the weapons layer, so
   everything that could shoot at it still can — every turret is weapons-layer, and a craft
