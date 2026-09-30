@@ -398,6 +398,13 @@ export function startEvolution(): void {
   let yardstick: Yardstick | null = null;
   let measured: YardstickReport | null = null;
   /**
+   * Every measurement of this run so far, by the opponent's file text, so
+   * measuring against the same opponent again carries on from what was found
+   * rather than fighting every generation over again.
+   */
+  const measurements = new Map<string, YardstickReport>();
+  let measuringAgainst = '';
+  /**
    * The tiles, by ship rather than by generation: a design carried over into
    * the next generation keeps its tile, which is what makes seeking across a
    * run redraw only what actually changed.
@@ -1658,10 +1665,15 @@ export function startEvolution(): void {
     // The record rather than a copy of it, so a measurement started while a
     // run is still going carries on into the generations it has not closed
     // yet — the answer is per generation either way.
-    yardstick = new Yardstick(record, benchmark);
+    measuringAgainst = isFleet(benchmark) ? fleetFileText(benchmark) : toFileText(benchmark);
+    const before = measurements.get(measuringAgainst);
+    yardstick = new Yardstick(record, benchmark, undefined, before);
     measured = null;
     measureButton.disabled = true;
-    yardstickLine.textContent = `Measuring against ${benchmark.name}…`;
+    yardstickLine.textContent =
+      before === undefined
+        ? `Measuring against ${benchmark.name}…`
+        : `Measuring against ${benchmark.name} from generation ${before.points.length + 1}…`;
   });
 
   /**
@@ -1725,6 +1737,7 @@ export function startEvolution(): void {
     notice = '';
     yardstick = null;
     measured = null;
+    measurements.clear();
     yardstickLine.textContent = 'Measure once there is something to measure.';
     pictures.clear();
     shown = -1;
@@ -1788,6 +1801,7 @@ export function startEvolution(): void {
       }
       if (yardstick.done) {
         measured = yardstick.report();
+        measurements.set(measuringAgainst, measured);
         yardstick = null;
         // Said before the button comes back, not on the next sample: a button
         // offering another measurement beside a line still saying "measuring"

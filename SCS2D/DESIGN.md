@@ -408,7 +408,8 @@ inside any one file is not contiguous.
   learns to fly before it learns to shoot peaks while nothing can shoot back and reads as declining while it
   improves. The yardstick is offered instead, fought on the page in the same slices as the run and drawn as
   its own line over the ones that only mean something within a generation, and any design's yardstick match
-  can be watched — the same match, on the same seed, that the measurement fought. **Settings are a file.** A run is decided entirely by its seed and its
+  can be watched — the same match, on the same seed, that the measurement fought. Measuring against the
+  same opponent again carries on from what was measured, fighting only generations closed since. **Settings are a file.** A run is decided entirely by its seed and its
   configuration, so those few numbers are the whole record of what was tried: they are written out and read
   back as JSON, by the page and by `npm run evolve` alike, so an experiment can be kept beside its result,
   sent to somebody, or designed on the page and then fought overnight headlessly. Every field is optional
