@@ -28,7 +28,7 @@ const SETUP = {
     generations: 25,
     massBudget: 12_000,
     mutation: { kinds: { ...DEFAULT_KINDS, turret: 0 }, doctrine: { targeting: 0, approach: 2, gunnery: 1 } },
-    match: { duration: 45, radius: 900, weights: { survival: 0, functional: 0.5, damage: 0, disabling: 2, race: 1 } },
+    match: { duration: 45, radius: 900, closingSpeed: 30, crossingSpeed: -10, weights: { survival: 0, functional: 0.5, damage: 0, disabling: 2, race: 1 } },
   },
 };
 
@@ -51,6 +51,8 @@ describe('the run config file', () => {
     expect(back.config.mutation.doctrine).toEqual({ targeting: 0, approach: 2, gunnery: 1 });
     expect(back.config.match.duration).toEqual(45);
     expect(back.config.match.radius).toEqual(900);
+    expect(back.config.match.closingSpeed).toEqual(30);
+    expect(back.config.match.crossingSpeed).toEqual(-10);
     expect(back.config.match.weights).toEqual({ survival: 0, functional: 0.5, damage: 0, disabling: 2, race: 1 });
     // Written in degrees and read back in radians, exactly.
     expect(back.config.match.scatter).toEqual(DEFAULT_MATCH.scatter);

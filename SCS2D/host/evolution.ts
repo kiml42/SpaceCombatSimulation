@@ -110,6 +110,8 @@ const FIELDS = [
   'duration',
   'radius',
   'scatter',
+  'closing',
+  'crossing',
   'survivalWeight',
   'functionalWeight',
   'damageWeight',
@@ -414,6 +416,8 @@ export function startEvolution(): void {
     duration: String(DEFAULT_MATCH.duration),
     radius: String(DEFAULT_MATCH.radius),
     scatter: String(Math.round((DEFAULT_MATCH.scatter * 180) / Math.PI)),
+    closing: String(DEFAULT_MATCH.closingSpeed),
+    crossing: String(DEFAULT_MATCH.crossingSpeed),
     survivalWeight: String(DEFAULT_MATCH.weights.survival),
     functionalWeight: String(DEFAULT_MATCH.weights.functional),
     damageWeight: String(DEFAULT_MATCH.weights.damage),
@@ -619,6 +623,8 @@ export function startEvolution(): void {
         duration: Math.max(1, number(inputs.duration, DEFAULT_MATCH.duration)),
         radius: Math.max(10, number(inputs.radius, DEFAULT_MATCH.radius)),
         scatter: (number(inputs.scatter, 180) * Math.PI) / 180,
+        closingSpeed: number(inputs.closing, DEFAULT_MATCH.closingSpeed),
+        crossingSpeed: number(inputs.crossing, DEFAULT_MATCH.crossingSpeed),
         goal:
           goalInput.value === 'none' || goalInput.value === 'boss' || DEFAULT_MATCH.goal === null
             ? null
@@ -676,6 +682,8 @@ export function startEvolution(): void {
     inputs.duration.value = String(match.duration);
     inputs.radius.value = String(match.radius);
     inputs.scatter.value = String((match.scatter * 180) / Math.PI);
+    inputs.closing.value = String(match.closingSpeed);
+    inputs.crossing.value = String(match.crossingSpeed);
     inputs.survivalWeight.value = String(match.weights.survival);
     inputs.functionalWeight.value = String(match.weights.functional);
     inputs.damageWeight.value = String(match.weights.damage);

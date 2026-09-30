@@ -73,7 +73,16 @@ const FILE_KEYS: readonly string[] = [
 const FLEET_KEYS: readonly string[] = ['radius', 'maxShips', 'operators'];
 const OPERATOR_KEYS = Object.keys(DEFAULT_FLEET_LIMITS.operators) as FleetOperator[];
 
-const MATCH_KEYS: readonly string[] = ['duration', 'radius', 'scatter', 'goal', 'weights', 'boss'];
+const MATCH_KEYS: readonly string[] = [
+  'duration',
+  'radius',
+  'scatter',
+  'closingSpeed',
+  'crossingSpeed',
+  'goal',
+  'weights',
+  'boss',
+];
 const GOAL_KEYS: readonly string[] = ['x', 'y', 'scale', 'size'];
 const GOAL_OPTIONAL_KEYS: readonly string[] = ['solid'];
 const WEIGHT_KEYS: readonly (keyof ScoreWeights)[] = SCORE_PARTS;
@@ -105,6 +114,8 @@ export function serialiseRunConfig(setup: RunSetup): Record<string, unknown> {
       duration: match.duration,
       radius: match.radius,
       scatter: (match.scatter * 180) / PI,
+      closingSpeed: match.closingSpeed,
+      crossingSpeed: match.crossingSpeed,
       goal: match.goal === null ? null : { ...match.goal },
       weights: { ...match.weights },
       boss: setup.boss == null ? null : { [setup.boss.kind]: setup.boss.name },
@@ -223,6 +234,8 @@ export function parseRunConfig(value: unknown): RunSetup {
         duration: read(match['duration'], DEFAULT_MATCH.duration),
         radius: read(match['radius'], DEFAULT_MATCH.radius),
         scatter: (read(match['scatter'], (DEFAULT_MATCH.scatter * 180) / PI) / 180) * PI,
+        closingSpeed: read(match['closingSpeed'], DEFAULT_MATCH.closingSpeed),
+        crossingSpeed: read(match['crossingSpeed'], DEFAULT_MATCH.crossingSpeed),
         goal:
           match['goal'] === undefined
             ? DEFAULT_MATCH.goal
@@ -327,7 +340,9 @@ function matchProblem(value: unknown): string | null {
   const problem =
     numberProblem(value['duration'], 'match.duration') ??
     numberProblem(value['radius'], 'match.radius') ??
-    numberProblem(value['scatter'], 'match.scatter');
+    numberProblem(value['scatter'], 'match.scatter') ??
+    numberProblem(value['closingSpeed'], 'match.closingSpeed') ??
+    numberProblem(value['crossingSpeed'], 'match.crossingSpeed');
   if (problem !== null) return problem;
   if (value['duration'] !== undefined && (value['duration'] as number) <= 0) {
     return 'match.duration must be more than nothing';
