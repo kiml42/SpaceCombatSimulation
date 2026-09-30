@@ -420,10 +420,11 @@ inside any one file is not contiguous.
   **Two layers** (§3). Turrets, engines, and structure or cores marked *raised* stand above the deck; hull
   weapons and the rest of the structure and cores are the deck. A turret's rounds and beams meet only what is
   raised, so they strip mounts and engines and never reach a core below deck; a hull weapon's meet everything. Each
-  mount has a traverse — where its barrel may go, stopped by what it would foul within a barrel's
-  length — and, separately, a trigger mask: the bearings its own ship is downrange of, at any distance,
+  mount has a traverse — where its barrels may go, stopped by what the row of them would foul within a
+  barrel's length, as wide as the outer barrel — and, separately, a trigger mask: the bearings its own ship is downrange of, at any distance,
   where it may point but not fire. For a turret both count only what is raised. The editor draws the mask
-  as a warm wedge inside the sweep. A lit beam's drive stops at the edge of a masked sector rather than
+  as a warm wedge inside the sweep. A mount prefers a target it can fire at, but with none it tracks one
+  on a masked bearing with its trigger held, so it is on target as the ship turns. A lit beam's drive stops at the edge of a masked sector rather than
   sweep across its own ship. A shot may land on its own ship, but never on the mount that fired it, so
   two enemies hooked together shoot each other. Raised structure has walls twice as tall, so it weighs
   about twice as much. No shipped ship raises any structure. A match is over when at most one side can

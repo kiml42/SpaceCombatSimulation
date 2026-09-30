@@ -115,11 +115,38 @@ describe('a mount choosing its own target', () => {
     expect(s.aim(PORT)).toBe(1);
   });
 
-  it('holds its fire when nothing at all is within its arc', () => {
+  it('tracks what its own ship is in front of, holding its fire', () => {
+    // The port mount can train round onto an enemy off the starboard beam, but
+    // the hull is downrange: it follows the target so it is on it the moment
+    // the ship turns, and never fires into its own side.
     const s = scene(gunship, [{ design: corvette, x: 0, y: -900 }]);
-    s.run(60);
-    expect(s.aim(PORT)).toBe(NO_TARGET);
+    // Engines out, so the hull cannot turn the port mount clear.
+    const hull = s.world.bodies.indexOf(s.ships.body(s.mine));
+    gunship.engines.forEach((e) => s.ships.damage.absorb(hull, e.module!, s.ships.damage.capacityLeft(hull, e.module!)));
+    const port = s.ships.turretIndexOf(s.mine, PORT);
+    const rest = s.ships.turrets.bearing[port]!;
+    let masked = 0;
+    // Ten seconds: a heavy mount swings slowly, and has to come right round.
+    for (let step = 0; step < 600; step++) {
+      s.run(1);
+      if (!s.ships.turrets.fouled(port)) continue;
+      masked++;
+      expect(s.ships.turrets.readyToFire(port)).toBe(false);
+    }
+    expect(masked).toBeGreaterThan(0);
     expect(s.aim(STARBOARD)).toBe(1);
+    expect(s.aim(PORT)).toBe(1);
+    // Swung round towards it, rather than waiting at rest.
+    expect(Math.abs(s.ships.turrets.bearing[port]! - rest)).toBeGreaterThan(0.5);
+  });
+
+  it('prefers a target it can fire at to one it can only track', () => {
+    const s = scene(gunship, [
+      { design: corvette, x: 0, y: -900 },
+      { design: corvette, x: 0, y: 1400 },
+    ]);
+    s.run(60);
+    expect(s.aim(PORT)).toBe(2);
   });
 
   it('is drawn to what its ship is fighting when it can reach both', () => {

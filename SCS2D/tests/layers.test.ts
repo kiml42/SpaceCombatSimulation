@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  barrelHalfWidth,
   Bodies,
   compileBlueprint,
   firingArc,
@@ -103,6 +104,21 @@ describe('a turret', () => {
   it('cannot train through raised structure within its barrel', () => {
     const arc = firingArc(ahead(true, 1.5), 0, 5, isRaised);
     expect(arc.left + arc.right).toBe(0);
+  });
+
+  it('trains no nearer an obstruction than its outer barrel allows', () => {
+    // A block off to port, clear of the barrel's centre line as it swings
+    // round, but not of a row of barrels either side of it.
+    const layout: ModuleSpec[] = [
+      { kind: 'turret', x: 0, y: 0, length: 2, width: 2 },
+      { kind: 'structure', x: -3, y: 4, length: 2, width: 2, raised: true },
+    ];
+    const line = firingArc(layout, 0, 6, isRaised);
+    const row = firingArc(layout, 0, 6, isRaised, 1.5);
+    expect(row.left).toBeLessThan(line.left - 0.2);
+    expect(row.right).toBeLessThan(line.right);
+    const gun = moduleStats({ kind: 'turret', x: 0, y: 0, length: 6, width: 4, barrels: 4 }).gun!;
+    expect(barrelHalfWidth(gun)).toBeCloseTo(1.5 * gun.barrelSpacing + gun.calibre, 9);
   });
 
   it('keeps separate gaps between obstructions', () => {

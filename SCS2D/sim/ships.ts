@@ -619,6 +619,8 @@ export class Ships {
    */
   private readonly standing: Order[] = [];
   private readonly choice = new Choice();
+  /** A mount's pick among what it can point at but not fire at: tracked, trigger held. */
+  private readonly maskedChoice = new Choice();
 
   /** The wrench `command` decided, body frame, replayed by the force provider. */
   private readonly demandFx: number[] = [];
@@ -1111,6 +1113,7 @@ export class Ships {
       const gunVy = this.gunPoint.vy;
 
       this.choice.begin();
+      this.maskedChoice.begin();
       for (let e = 0; e < this.alive.length; e++) {
         if (e === i || this.alive[e] === 0) continue;
         if (this.derelict[e] === 1 || !this.hostile(i, e) || !this.hasControl(e)) continue;
@@ -1133,7 +1136,11 @@ export class Ships {
           // for it, however good it looks by every other measure.
           continue;
         }
-        if (!this.turrets.firesOn(bodies, ti, bearing(gunX, gunY, tx, ty))) continue;
+        // What it can point at but not fire at is still worth tracking: the
+        // gun is on it the moment the target, or the ship, moves clear.
+        const towards = bearing(gunX, gunY, tx, ty);
+        if (!this.turrets.bearsOn(bodies, ti, towards)) continue;
+        const clear = this.turrets.firesOn(bodies, ti, towards);
         const seen = lookFrom(
           bodies,
           gunX,
@@ -1159,12 +1166,14 @@ export class Ships {
         // the fighters alone or waste its shells on them.
         const against = reachAgainst(mount.gun, this.designs[e]!.radius);
         if (candidate.range > against) continue;
-        this.choice.offer(
+        (clear ? this.choice : this.maskedChoice).offer(
           candidate,
           score(doctrine, candidate, against, design.mass, targets[t]!, focus),
         );
       }
-      targets[t] = this.choice.ship;
+      // Something it can fire at first; only with nothing of that does it
+      // track what its own ship is in front of.
+      targets[t] = this.choice.ship !== NO_TARGET ? this.choice.ship : this.maskedChoice.ship;
       aims[t] = targets[t] === NO_TARGET
         ? WHOLE_SHIP
         : this.aimModule(bodies, mount, targets[t]!, gunX, gunY, bodies.indexOf(this.bodyIds[targets[t]!]!) === b);
@@ -1310,23 +1319,23 @@ export class Ships {
    */
   private turretAim(bodies: Bodies, i: number, t: number): number {
     const given = this.getCurrentOrder(i);
+    let bearsOnGiven = false;
     if (given !== undefined && given.target !== NO_TARGET && this.alive[given.target] === 1) {
       const tb = bodies.indexOf(this.bodyIds[given.target]!);
       const b = bodies.indexOf(this.bodyIds[i]!);
       if (tb >= 0 && b >= 0 && tb !== b) {
         const ti = this.turretIndex[i]![t]!;
         this.locateMount(bodies, b, this.designs[i]!.turrets[t]!);
-        const canBear = this.turrets.firesOn(
-          bodies,
-          ti,
-          bearing(this.gunPoint.x, this.gunPoint.y, bodies.x[tb]!, bodies.y[tb]!),
-        );
-        if (canBear) return given.target;
+        const towards = bearing(this.gunPoint.x, this.gunPoint.y, bodies.x[tb]!, bodies.y[tb]!);
+        if (this.turrets.firesOn(bodies, ti, towards)) return given.target;
+        bearsOnGiven = this.turrets.bearsOn(bodies, ti, towards);
       }
     }
     const own = this.turretTarget[i]![t]!;
-    if (own === NO_TARGET || this.alive[own] !== 1) return NO_TARGET;
-    return own;
+    if (own !== NO_TARGET && this.alive[own] === 1) return own;
+    // Nothing else to do: track the order where it may not fire, so the gun is
+    // on it as it comes clear.
+    return bearsOnGiven ? given!.target : NO_TARGET;
   }
 
   /**

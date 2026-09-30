@@ -3,6 +3,7 @@ import {
   HullPath,
   exhaustObstruction,
   firingArc,
+  barrelHalfWidth,
   isRaised,
   math,
   boxAngle,
@@ -316,7 +317,7 @@ export function moduleReadout(
             roundMass: gun.roundMass,
             muzzleSpeed: gun.muzzleSpeed,
             roundsPerMinute: gun.cycleTime > 0 ? 60 / gun.cycleTime : 0,
-            ...arcOf(layout, index, gun.barrelLength),
+            ...arcOf(layout, index, gun.barrelLength, barrelHalfWidth(gun)),
             traverseRate: radiansToDegrees(traverseRate(traverseAccel(stats.mass, stats.inertia))),
           },
   };
@@ -327,11 +328,13 @@ function arcOf(
   layout: readonly ModuleSpec[],
   index: number,
   reach: number,
+  width: number,
 ): { arcLeft: number; arcRight: number } {
   if (index < 0 || layout[index] === undefined) return { arcLeft: 0, arcRight: 0 };
   // The compiler's rule: a hull mount's barrel is fouled by anything, a
   // turret's only by what is raised.
-  const arc = firingArc(layout, index, reach, isHullMount(layout[index]!.kind) ? undefined : isRaised);
+  const hull = isHullMount(layout[index]!.kind);
+  const arc = firingArc(layout, index, reach, hull ? undefined : isRaised, hull ? 0 : width);
   // A hull mount is held to its own opening as well as to what the ship
   // leaves it, and the panel has to say the number the ship will actually
   // train through rather than the more generous of the two.

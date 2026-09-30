@@ -161,6 +161,7 @@ export {
   expandBlueprint,
   expandWithOrigins,
   firingArc,
+  barrelHalfWidth,
   triggerMask,
   foldAngle,
   MAX_EXPANDED_MODULES,

@@ -1,4 +1,4 @@
-import { abs, angleDelta, atan2, cos, max, min, normalizeAngle, PI, sin, sqrt, TAU } from './math.js';
+import { abs, angleDelta, asin, atan2, cos, max, min, normalizeAngle, PI, sin, sqrt, TAU } from './math.js';
 import {
   GunType,
   moduleCentre,
@@ -469,6 +469,18 @@ function distanceToModule(m: ModuleSpec, px: number, py: number): number {
 }
 
 /**
+ * How far a corner's bearing widens for something `pad` metres either side of
+ * a line from the mount: the line clears the corner once it is `pad` off it,
+ * which is the corner grown into a disc of that radius. Far corners need
+ * little; one within `pad` of the mount blocks every bearing near it.
+ */
+function cornerMargin(pad: number, dx: number, dy: number): number {
+  if (!(pad > 0)) return 0;
+  const r = sqrt(dx * dx + dy * dy);
+  return r <= pad ? PI : asin(pad / r);
+}
+
+/**
  * The traverse a mount has before its own ship is in the way of its barrel.
  *
  * Firing arcs are a property of the layout rather than something authored per
@@ -481,13 +493,16 @@ function distanceToModule(m: ModuleSpec, px: number, py: number): number {
  * pass through one. Where the mount may *fire* is a separate and wider
  * question, answered by `triggerMask`.
  *
- * The test is bearing-only: a module blocks the whole sector it subtends.
+ * The test is bearing-only: a module blocks the whole sector it subtends,
+ * widened by `pad` metres either side for barrels that are not a line — a
+ * row of them swings as wide as its outer barrel (`barrelHalfWidth`).
  */
 export function firingArc(
   modules: readonly ModuleSpec[],
   index: number,
   reach: number,
   blocks: (module: ModuleSpec) => boolean = () => true,
+  pad = 0,
 ): { left: number; right: number } {
   const mount = modules[index]!;
   const from = moduleCentre(mount);
@@ -500,7 +515,8 @@ export function firingArc(
     if (i === index) continue;
     const other = modules[i]!;
     if (!blocks(other)) continue;
-    if (distanceToModule(other, from.x, from.y) > reach) continue;
+    const distance = distanceToModule(other, from.x, from.y);
+    if (distance > sqrt(reach * reach + pad * pad)) continue;
 
     const c: number[] = [];
     corners(other, c);
@@ -513,8 +529,9 @@ export function firingArc(
     let hi = 0;
     for (let k = 0; k < 8; k += 2) {
       const d = angleDelta(centre, atan2(c[k + 1]! - from.y, c[k]! - from.x));
-      lo = min(lo, d);
-      hi = max(hi, d);
+      const margin = cornerMargin(pad, c[k]! - from.x, c[k + 1]! - from.y);
+      lo = min(lo, d - margin);
+      hi = max(hi, d + margin);
     }
 
     // The rest bearing itself is inside the blocked interval: the gun is
@@ -587,16 +604,14 @@ export function triggerMask(
     const centre = atan2(mid.y - from.y, mid.x - from.x);
     let lo = 0;
     let hi = 0;
-    for (let k = 0; k < 8; k += 2) {
-      const d = angleDelta(centre, atan2(c[k + 1]! - from.y, c[k]! - from.x));
-      lo = min(lo, d);
-      hi = max(hi, d);
-    }
     // Widened by what a shot leaves the centre line by: an outer barrel, and
     // the width of the shot itself.
-    const margin = pad > 0 ? atan2(pad, distance) : 0;
-    lo -= margin;
-    hi += margin;
+    for (let k = 0; k < 8; k += 2) {
+      const d = angleDelta(centre, atan2(c[k + 1]! - from.y, c[k]! - from.x));
+      const margin = cornerMargin(pad, c[k]! - from.x, c[k + 1]! - from.y);
+      lo = min(lo, d - margin);
+      hi = max(hi, d + margin);
+    }
     const turned = normalizeAngle(angleDelta(rest, centre) + lo);
     const start = turned >= PI ? turned - TAU : turned;
     sectors.push({ start, end: start + (hi - lo) });
@@ -616,6 +631,12 @@ export function triggerMask(
 }
 
 const everyModule = (): boolean => true;
+
+/** How far off a mount's centre line its outer barrel's wall reaches, metres. */
+export function barrelHalfWidth(gun: GunStats): number {
+  // A tube is twice its calibre across, as the renderer draws it.
+  return ((gun.barrelCount - 1) / 2) * gun.barrelSpacing + gun.calibre;
+}
 
 /** How far off a mount's centre line its shots may leave, metres. */
 export function shotSpread(gun: GunStats): number {
@@ -1547,7 +1568,7 @@ function designFrom(
       // its way: within a barrel's length for where it may train, and at any
       // range for where it may fire. A beam's housing is a stub, so a beam
       // trains nearly freely and its mask does the work.
-      const arc = firingArc(specs, i, gun.barrelLength, isRaised);
+      const arc = firingArc(specs, i, gun.barrelLength, isRaised, barrelHalfWidth(gun));
       const mask = triggerMask(specs, i, isRaised, shotSpread(gun));
 
       // One drive, so one figure: the rate limit is what this acceleration
