@@ -48,7 +48,7 @@ an entry is either still open or it is gone.
 | 4 | Headless evolution and analysis | Built |
 | 5 | v1: skirmish | Partly built |
 | 6 | Editor restructuring | Built |
-| 7 | Two layers | Built |
+| 7 | Two layers | Partly built |
 | 8 | Fuel | Not started |
 | 9 | Fuel harvesting | Not started |
 | 10 | Raw material | Not started |
@@ -94,6 +94,37 @@ scored for what it does to the boss alone (`match.boss`, `--boss`, and a boss pi
 
 Not planned: per-ship doctrine overrides in a fleet (fork the design instead), and a group's own doctrine or
 lead, which waits for standing orders. Velocity stays out of the fleet file; the battle setup holds it.
+
+**Step 7 — Two layers.** The layers, depth and trigger masks are built. Three things make them make sense,
+in this order, and all three come before fuel: nothing in the resource steps needs them, but every design
+and evolution run does, and a ship tuned to half the rules is tuned twice.
+
+1. **Exploding shells.** A gun's rounds burst on a timer, which is how a turret reaches the hull layer at
+   all (§12's fuse entry is the reasoning).
+   - The fuse is set when the round is fired, to go off shortly before it would reach its aim point:
+     `interceptTime` already knows when that is. How much before is a per-mount setting in the editor, next
+     to its doctrine, so a mount can be tuned between bursting short and not bursting at all. A round that
+     hits something before its fuse goes off hits as it does now.
+   - A burst replaces the round with sub-munitions: a fixed number, sharing its mass, each leaving with the
+     round's velocity plus a spread in a random direction from the battle's seeded RNG. They are hull-layer
+     rounds, so they meet every module, deck and weapons layer alike; that is what "in both layers" comes
+     to under the rule that a hull-layer shot meets everything.
+   - No area cloud yet. **Beams stay in their own layer**: a laser has no fuse, which is the asymmetry §3
+     asks for.
+2. **Fighters.** A ship-level *fighter* flag, a checkbox in the editor. It follows DESIGN.md §3's strike
+   craft rather than inventing a new rule:
+   - **A fighter may carry no turret and nothing thick.** The editor disables both while the flag is set.
+     It flies in the **weapons layer**, where turrets and CIWS reach it, so a fighter is never out of their
+     reach the way the Dinky is today.
+   - **Its doctrine decides when it also occupies the hull layer**: that is a decision to ram, or to dock on
+     another ship's side. Occupancy is added, never swapped, so it only ever makes the fighter more
+     exposed; that is why there is no limit on how quickly it can change. It changes only while clear of
+     every hull (§3), which is what stops a fighter committing inside a capital's perimeter. Its hull
+     weapons fire in whichever layers it occupies.
+   - **The flag can evolve**, and a ship that evolves a turret or a thick module flies as an ordinary ship,
+     its flag ignored rather than refused, so a mutation that breaks the rule costs the design its role
+     rather than its place in the run.
+3. **Redesign the stock ships** for both, once they exist. The Star Destroyer needs it most.
 
 ### Not started — in order
 
@@ -614,10 +645,8 @@ Deliberately unresolved; decide when they block something.
   whose engines are all under a deck across can be disabled only by hull weapons, and a craft built
   wholly of such modules, like the Dinky, cannot be touched by a turret at all. Designs answer it for
   now: the Corvette and Gunship carry hull guns at the bow, and turret tests use fixture ships
-  (`tests/fixtures.ts`) with a turret in place of the hull gun. The fighter-layer question below is
-  the longer answer.
-- **Whether fighters get to pick their layer.** They will be held under a deck's depth, and choose whether
-  to overfly thin hulls or collide with them.
+  (`tests/fixtures.ts`) with a turret in place of the hull gun. Step 7's exploding shells and fighter
+  flag are the answer (§8).
 - **Engines split by layer, into two archetypes.** A single `engine` kind cannot express the choice the
   weapons layer creates, so it becomes two — a new *archetype* rather than a new coefficient, which is the
   distinction the materials question above already draws.
@@ -659,6 +688,9 @@ Deliberately unresolved; decide when they block something.
   The cheap middle is to arm on the timer and detonate on first proximity within a short window, so the
   check runs only while armed.
   A fuse is a delivery mechanism and the damage model it delivers into exists, so nothing blocks it.
+  **Decided (§8 step 7): timed first**, set shortly before the aim point, bursting into sub-munitions in
+  the hull layer. Proximity detonation and an area cloud wait until the timed version shows they are
+  wanted.
 - **Whether the remaining authored data lives in files rather than in code.** Blueprints do: they are JSON,
   parsed by `sim/blueprintFile.ts`, and the shipped ships go through exactly the validation a stranger's file
   does. What has not moved is `tests/fixtures/scenarios.ts`, and §9's promise of
