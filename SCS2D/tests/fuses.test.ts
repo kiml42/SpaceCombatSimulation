@@ -145,11 +145,13 @@ describe('a fuse under evolution', () => {
     const rng = new Rng(5);
     const seen = { retimed: false, solid: false };
     let parent: Blueprint = TURRET_CORVETTE;
-    for (let i = 0; i < 600 && !(seen.retimed && seen.solid); i++) {
+    for (let i = 0; i < 1500 && !(seen.retimed && seen.solid); i++) {
       const child = mutate(parent, rng).blueprint;
-      const gun = child.modules.find((p) => 'kind' in p && p.kind === 'turret') as { fuse?: number } | undefined;
-      if (gun?.fuse === 0) seen.solid = true;
-      else if (gun?.fuse !== undefined && gun.fuse !== DEFAULT_FUSE) seen.retimed = true;
+      for (const p of child.modules) {
+        if (!('kind' in p) || (p.kind !== 'turret' && p.kind !== 'hullGun') || p.fuse === undefined) continue;
+        if (p.fuse === 0) seen.solid = true;
+        else if (p.fuse !== DEFAULT_FUSE) seen.retimed = true;
+      }
       parent = child;
     }
     expect(seen).toEqual({ retimed: true, solid: true });

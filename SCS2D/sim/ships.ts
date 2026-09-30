@@ -975,7 +975,9 @@ export class Ships {
     // choose between — but it may still have somewhere it would rather be,
     // which is why this no longer ends the question.
     let fighting = NO_TARGET;
-    if (design.reach > 0 && !this.isDisarmed(i)) {
+    // A ship that can ram still has a fight with nothing left to shoot.
+    const rammer = design.doctrine.approach.ramRadii > 0;
+    if (design.reach > 0 && (!this.isDisarmed(i) || rammer)) {
       this.choice.begin();
       for (let t = 0; t < this.alive.length; t++) {
         if (t === i || this.alive[t] === 0) continue;
@@ -1306,28 +1308,47 @@ export class Ships {
   }
 
   /**
-   * Whether a fighter takes the hull layer as well, as its doctrine says:
-   * once its target's edge is within `commitRadii` of the target's radius.
+   * Whether this ship's doctrine would ram its target now: close enough, by
+   * `ramRadii` of the target's radius from its edge, and with no more of its
+   * own guns working than `ramArmed` says.
+   */
+  private rams(i: number, target: number): boolean {
+    const approach = this.designs[i]!.doctrine.approach;
+    if (!(approach.ramRadii > 0) || this.armedShare(i) > approach.ramArmed) return false;
+    const bodies = this.bodyStore;
+    if (bodies === null) return false;
+    const b = bodies.indexOf(this.bodyIds[i]!);
+    const tb = bodies.indexOf(this.bodyIds[target]!);
+    if (b < 0 || tb < 0) return false;
+    const gap = length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!) - bodies.radius[tb]!;
+    return gap <= approach.ramRadii * bodies.radius[tb]!;
+  }
+
+  /** The share of this ship's mounts that can still fire; none for a ship with none. */
+  private armedShare(i: number): number {
+    const mounts = this.designs[i]!.turrets.length;
+    if (mounts === 0) return 0;
+    let working = 0;
+    for (let t = 0; t < mounts; t++) if (!this.isTurretDisabled(i, t)) working++;
+    return working / mounts;
+  }
+
+  /**
+   * Whether a fighter takes the hull layer as well: whenever it is ramming,
+   * which is flying at a target with a band of nothing, by its doctrine's
+   * decision or by order.
    *
    * Only while clear of every hull, in either direction (DESIGN.md §3), so a
    * fighter cannot drop inside a capital's perimeter or climb back out of one
    * it has struck. Clear of its bounding circle, which is the cautious answer.
    */
   private commitOne(bodies: Bodies, i: number): void {
-    const design = this.designs[i]!;
-    if (!design.fighter) return;
+    if (!this.designs[i]!.fighter) return;
     const b = bodies.indexOf(this.bodyIds[i]!);
     if (b < 0) return;
-    const radii = design.doctrine.approach.commitRadii;
-    const target = this.effectiveOrder(i)?.target ?? NO_TARGET;
-    let want = 0;
-    if (radii > 0 && target !== NO_TARGET && this.alive[target] === 1) {
-      const tb = bodies.indexOf(this.bodyIds[target]!);
-      if (tb >= 0) {
-        const gap = length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!) - bodies.radius[tb]!;
-        want = gap <= radii * bodies.radius[tb]! ? 1 : 0;
-      }
-    }
+    const order = this.effectiveOrder(i);
+    const ramming = order !== undefined && order.target !== NO_TARGET && order.maxRange === 0;
+    const want = ramming ? 1 : 0;
     if (want === this.committed[i] || !this.clearOfHulls(bodies, b)) return;
     this.committed[i] = want;
   }
@@ -1551,6 +1572,12 @@ export class Ships {
       min(approach.standoffRadii * this.designs[target]!.radius, approach.standoff * design.reach);
     standing.minRange = max(0, wanted * (1 - approach.tolerance));
     standing.maxRange = max(standing.minRange, wanted * (1 + approach.tolerance));
+    // Having decided to ram, it closes to nothing: a band of zero is the
+    // order to arrive.
+    if (this.rams(i, target)) {
+      standing.minRange = 0;
+      standing.maxRange = 0;
+    }
     standing.approachSpeed = approach.approachSpeed;
     return standing;
   }
