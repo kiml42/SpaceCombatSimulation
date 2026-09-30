@@ -12,6 +12,7 @@ import {
   blueprintFileProblem,
   compileBlueprint,
   doctrineProblem,
+  inSight,
   look,
   parseBlueprint,
   score,
@@ -43,6 +44,7 @@ const candidate = (over: Partial<Candidate> = {}): Candidate => ({
   armed: true,
   mobile: true,
   facing: 1,
+  clear: true,
   ...over,
 });
 
@@ -258,6 +260,31 @@ describe('what a ship is worth shooting at', () => {
     expect(score(facing, abeam, REACH, 100_000, -1) - score(facing, astern, REACH, 100_000, -1)).toBeCloseTo(50);
   });
 
+  it('prefers a clear line, when told to', () => {
+    const clear = candidate();
+    const blocked = candidate({ clear: false });
+    expect(score(doctrine, clear, REACH, 100_000, -1)).toBe(score(doctrine, blocked, REACH, 100_000, -1));
+    const sighted = { ...doctrine, sightWeight: 50 };
+    expect(score(sighted, clear, REACH, 100_000, -1) - score(sighted, blocked, REACH, 100_000, -1)).toBeCloseTo(50);
+  });
+
+  it('counts only what lies between as in the way', () => {
+    const bodies = new Bodies();
+    const from = bodies.indexOf(bodies.create({ x: 0, y: 0, radius: 5 }));
+    const to = bodies.indexOf(bodies.create({ x: 100, y: 0, radius: 5 }));
+    expect(inSight(bodies, 0, 0, from, to)).toBe(true);
+    // Behind the chooser, beyond the target, and off to one side: none of them in the way.
+    bodies.create({ x: -20, y: 0, radius: 10 });
+    bodies.create({ x: 120, y: 0, radius: 10 });
+    bodies.create({ x: 50, y: 20, radius: 10 });
+    expect(inSight(bodies, 0, 0, from, to)).toBe(true);
+    // A ghost is somewhere to be, not something to shoot through.
+    bodies.create({ x: 50, y: 0, radius: 10, ghost: true });
+    expect(inSight(bodies, 0, 0, from, to)).toBe(true);
+    bodies.create({ x: 50, y: 5, radius: 10 });
+    expect(inSight(bodies, 0, 0, from, to)).toBe(false);
+  });
+
   it('measures facing along the hull it is asked from', () => {
     const bodies = new Bodies();
     const from = bodies.indexOf(bodies.create({ x: 0, y: 0, angle: Math.PI / 2 }));
@@ -387,6 +414,31 @@ describe('a ship deciding for itself', () => {
     // Spawned facing the further one, at +x.
     expect(heading(0)).toBeGreaterThan(2);
     expect(heading(200)).toBeLessThan(0.1);
+  });
+
+  it('goes round a friend for the enemy behind it, only if it prefers a clear line', () => {
+    const heading = (sightWeight: number): number => {
+      const world = new World({ dt: 1 / 60, seed: 6 });
+      const ships = new Ships();
+      world.addForceProvider(ships.forceProvider());
+      const design = compileBlueprint({
+        ...GUNSHIP,
+        doctrine: { ...DEFAULT_DOCTRINE, targeting: { ...DEFAULT_DOCTRINE.targeting, sightWeight } },
+      });
+      const corvette = compileBlueprint(CORVETTE);
+      const mine = ships.spawn(world, { design, x: 0, y: 0, team: 0 });
+      ships.spawn(world, { design: corvette, x: 500, y: 0, team: 0 });
+      ships.spawn(world, { design: corvette, x: 1000, y: 0, angle: Math.PI, team: 1 });
+      ships.spawn(world, { design: corvette, x: 0, y: 1100, angle: -Math.PI / 2, team: 1 });
+      for (let i = 0; i < 600; i++) {
+        ships.command(1 / 60, world);
+        world.step();
+      }
+      return world.bodies.angle[world.bodies.indexOf(ships.body(mine))]!;
+    };
+    // Spawned facing the nearer enemy, with a friend between them.
+    expect(Math.abs(heading(0))).toBeLessThan(0.3);
+    expect(Math.abs(heading(200) - Math.PI / 2)).toBeLessThan(0.3);
   });
 
   it('reconsiders faster on a light hull than on a heavy one', () => {

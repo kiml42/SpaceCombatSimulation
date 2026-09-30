@@ -131,6 +131,7 @@ export {
 export {
   Choice,
   cohesionUrge,
+  inSight,
   look,
   score,
   type Candidate,

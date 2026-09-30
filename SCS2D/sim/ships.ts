@@ -12,7 +12,7 @@ import { components, cuts, jointBetween, joints, type Joint } from './connectivi
 import { Hulls } from './hull.js';
 import { Damage, DamageEffect } from './damage.js';
 import { plumeRays, plumeRayStarts, Plumes, WEAPON_PLUME_SHARE } from './exhaust.js';
-import { Choice, cohesionUrge, look, lookFrom, score } from './targeting.js';
+import { Choice, cohesionUrge, inSight, look, lookFrom, score } from './targeting.js';
 import { moduleRadius, engineGeometry } from './modules.js';
 import {
   atan2,
@@ -971,7 +971,7 @@ export class Ships {
         if (this.derelict[t] === 1 || !this.hostile(i, t) || !this.hasControl(t)) continue;
         const tb = bodies.indexOf(this.bodyIds[t]!);
         if (tb < 0 || tb === b) continue;
-        const candidate = look(
+        const seen = look(
           bodies,
           b,
           tb,
@@ -980,6 +980,10 @@ export class Ships {
           !this.isDisarmed(t),
           !this.hasNoEngines(t),
         );
+        const candidate =
+          doctrine.sightWeight !== 0 && !inSight(bodies, bodies.x[b]!, bodies.y[b]!, b, tb)
+            ? { ...seen, clear: false }
+            : seen;
         this.choice.offer(
           candidate,
           score(doctrine, candidate, design.reach, design.mass, loyalTo),
@@ -1179,8 +1183,13 @@ export class Ships {
         // the fighters alone or waste its shells on them.
         const against = reachAgainst(mount.gun, this.designs[e]!.radius);
         if (candidate.range > against) continue;
+        // A hooked target is alongside, with nothing between to look past.
+        const judged =
+          !hooked && doctrine.sightWeight !== 0 && !inSight(bodies, gunX, gunY, b, tb)
+            ? { ...candidate, clear: false }
+            : candidate;
         (clear ? this.choice : this.maskedChoice).offer(
-          candidate,
+          judged,
           score(doctrine, candidate, against, design.mass, targets[t]!, focus),
         );
       }

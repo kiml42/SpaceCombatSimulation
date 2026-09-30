@@ -82,6 +82,13 @@ export interface Targeting {
    */
   readonly facingWeight: number;
   /**
+   * Prefer what nothing else is in the way of — a friend, a neutral, a
+   * wreck or another enemy. For a mount, a shot at something behind a
+   * friend is a shot at the friend; for a hull, it is a fight it would have
+   * to go round something to have.
+   */
+  readonly sightWeight: number;
+  /**
    * Where on a target to aim, by what the module is for: the core it is flown
    * from, its engines, its guns, or the structure between them.
    *
@@ -267,6 +274,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     mobileWeight: 10,
     focusWeight: 60,
     facingWeight: 0,
+    sightWeight: 0,
     coreWeight: 100,
     engineWeight: 80,
     gunWeight: 100,
@@ -406,6 +414,7 @@ export const TARGETING_FIELDS: readonly (keyof Targeting)[] = [
   'mobileWeight',
   'focusWeight',
   'facingWeight',
+  'sightWeight',
   'coreWeight',
   'engineWeight',
   'gunWeight',
