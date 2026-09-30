@@ -417,6 +417,17 @@ inside any one file is not contiguous.
   beam, the opening turns out barely to constrain one at all: a lens is a fraction of the width a row
   of tubes is, so what holds a hull beam is the mounting limit until its housing runs most of the
   length of the module.
+  **Two layers** (§3). Turrets, engines and structure marked *raised* stand above the deck; cores, hull
+  weapons and the rest of the structure are the deck. A turret's rounds and beams meet only what is
+  raised, so they strip mounts and engines and never reach a core; a hull weapon's meet everything. Each
+  mount has a traverse — where its barrel may go, stopped by what it would foul within a barrel's
+  length — and, separately, a trigger mask: the bearings its own ship is downrange of, at any distance,
+  where it may point but not fire. For a turret both count only what is raised. The editor draws the mask
+  as a warm wedge inside the sweep. A lit beam's drive stops at the edge of a masked sector rather than
+  sweep across its own ship. A shot may land on its own ship, but never on the mount that fired it, so
+  two enemies hooked together shoot each other. Raised structure has walls twice as tall, so it weighs
+  about twice as much. No shipped ship raises any structure. A match is over when at most one side can
+  still shoot or push, since most fleets can no longer destroy each other.
   **An engine has a nozzle rather than being one.** An engine's length divides between a machinery block
   and a bell, and the bell's share is the knob: a long one is lighter, keeps more of the thrust pointed
   the right way and throws a longer flame, while the block is what has hit points and what the engine is
@@ -449,8 +460,8 @@ inside any one file is not contiguous.
   first match paused at its start. **A boss battle** sets every entrant on one side against a ship or fleet
   that does not evolve, at the middle of the ring where the goal would be, each scored for what it does to
   the boss alone.
-- **Next:** the rest of §8 step 5 — a materials budget, designed scenarios, shareable by URL; then step 7,
-  the two layers, and step 8, fuel, which starts the resource system.
+- **Next:** the rest of §8 step 5 — a materials budget, designed scenarios, shareable by URL; then step 8,
+  fuel, which starts the resource system.
   See ROADMAP.md §8.
   §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight,
   hemisphere, looking-at and ship-type pickers. Evolution is built and runs both headlessly and on a page
@@ -551,10 +562,15 @@ Rules:
   width, because a turret's is small in order to fit inside a ring and then be swung, and they pay for
   it in having almost nowhere to point: a hull mount trains about the root of its barrel, and the
   barrel has to stay inside the opening it comes out of.
-- Large modules may be flagged as **protruding** into the weapons layer: useful, but gun-vulnerable.
-  *Not implemented.* Firing arcs, traverse limits and projectile hits currently treat every module as
-  though it were in the weapons layer, which contradicts this section in three different ways —
-  ROADMAP.md §8 step 7 tabulates them, and is where they are fixed.
+- **Which layer a module is in** is fixed by its kind, except for structure. Turrets and engines are
+  *raised* into the weapons layer; cores and hull weapons are not. Structure may be marked raised: it
+  is then cover for the turrets behind it, and it pays in wall, in being within reach of guns, and in
+  the arcs of every turret it stands in front of.
+- **A turret trains and fires over the deck.** What stops its barrel is raised modules within a barrel's
+  length. What stops its trigger is raised modules at any range down the line of fire: its *trigger
+  mask*, a set of sectors it may point through but not fire into. The mask is always wider than the
+  traverse limit, so the traverse limit only ever decides which way round a mount turns. A hull weapon
+  asks the same two questions of every module, since it fires at deck height.
 - **Strike craft fly in the weapons layer; a committed craft occupies both.** Under a deck-plan
   projection the weapons layer is *above the deck* and the hull layer is *the deck and below*. A
   strafing run skims the deck, so its gunfire stays in the weapons layer and can only strip mounts and
@@ -564,7 +580,7 @@ Rules:
   Whether to commit is a doctrine choice.
 
   **Occupancy is added, never swapped.** A committed craft does not leave the weapons layer, so
-  everything that could shoot at it still can — every weapon in the game is weapons-layer, and a craft
+  everything that could shoot at it still can — every turret is weapons-layer, and a craft
   that dropped *out* of that layer would become untouchable by CIWS and lasers exactly when it ought to
   be most exposed.
 
@@ -596,8 +612,9 @@ Rules:
   (ROADMAP.md §12); the weld built so far hooks only torn metal, so a sound craft just bounces.
 
   In implementation this is one bit per body — *hull collision enabled* — read by the collision filter,
-  plus a guard on changing it. **Projectiles carry no such state**: they are weapons-layer without
-  exception, and which layer an impact lands in is pure geometry.
+  plus a guard on changing it. **A projectile carries one bit, fixed when it is fired**: the layer of the
+  mount it left. A turret's shot meets only raised modules, and a hull weapon's meets every module,
+  since what stands above the deck also stands on it.
 - Strike craft carry **edge-mounted weapons**, because a craft is small enough that its own hull is in
   the way of anything else.
 - Docks on capital surfaces let strike craft land, rearm and recharge.
@@ -875,9 +892,10 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   started with, so a towed wreck is not counted as its own.
   **Two ships on one body.** When both sides of a weld have cores, both ships ride the merged
   body: each keeps its side, orders, doctrine and scoring slot, and works only the modules it brought
-  (`Ships.owns`), so each pilot flies the whole body with its own engines and the thrusts add up. Neither
-  can shoot the other, since a round never hits the body it left — a stop-gap until two layers let a
-  shot land on its own hull (ROADMAP.md §8, step 7). A hulk whose cores are out rides too,
+  (`Ships.owns`), so each pilot flies the whole body with its own engines and the thrusts add up. Their
+  mounts shoot at each other, since a shot may land on its own body. Each mount's trigger mask is then
+  rebuilt from its own side's modules, so the other side's modules are targets, not its own ship
+  downrange. Their pilots still fly as though the other were not there. A hulk whose cores are out rides too,
   flying nothing, so its side still has it to score. A wreck hooked on after that is nobody's.
   When the body comes apart, each ship goes with the piece it is flown from — its lowest working core —
   so a torn seam parts them as the ships they were. Hits are credited to whoever works the module struck.
