@@ -162,6 +162,13 @@ export const CALIBRE_FRACTION = 0.04;
 export const BARREL_OUTER_CALIBRES = 2;
 
 /**
+ * The widest bore a turret carries, metres: a tube no wider outside than the
+ * deck is deep, so a barrel is always a cylinder the hull can hold. A beam's
+ * housing is held to the same, being drawn as wide.
+ */
+export const MAX_TURRET_CALIBRE = DECK_HEIGHT / BARREL_OUTER_CALIBRES;
+
+/**
  * The most of its room a hull mount's barrel or lens may fill: of the face,
  * for one; of the gap between neighbours, for several.
  *
@@ -644,14 +651,17 @@ export interface ModuleSpec {
   weapon?: boolean;
 
   /**
-   * Whether this structure or core stands up into the weapons layer; every
-   * other kind is one layer or the other by what it is (`isRaised`).
+   * Whether this structure, core or hull weapon stands up into the weapons
+   * layer; every other kind is one layer or the other by what it is
+   * (`isRaised`).
    *
    * Raised structure is cover: it stops deck-level fire at whatever is behind
    * it, which is what a turret wants. It pays for that in wall, in being
    * something guns can strip, and in the arcs of every turret it stands in
    * front of. A raised core is the bridge up on deck rather than below it:
-   * in turrets' reach as well as in their way.
+   * in turrets' reach as well as in their way. A raised hull weapon has twice
+   * the machinery behind its opening, and bores as though it were twice as
+   * wide; it still fires at deck height.
    */
   raised?: boolean;
 
@@ -1123,15 +1133,21 @@ export function hullMountGeometry(spec: ModuleSpec): HullMountGeometry {
   // What a single outlet would be, and each of several split the way a
   // turret splits it: tubes divide the bore, so each is `1/n` as wide; lenses
   // divide the optic's area, so each is `1/√n` as wide.
+  // Raised, it has twice the machinery behind the opening, and bores as
+  // though it were twice as wide.
+  const bored = spec.raised === true ? 2 * spec.width : spec.width;
   const single =
     spec.kind === 'hullBeam'
-      ? HULL_APERTURE_FRACTION * spec.width
-      : BARREL_OUTER_CALIBRES * HULL_CALIBRE_FRACTION * spec.width;
+      ? HULL_APERTURE_FRACTION * bored
+      : BARREL_OUTER_CALIBRES * HULL_CALIBRE_FRACTION * bored;
   const each = spec.kind === 'hullBeam' ? single / sqrt(outlets) : single / outlets;
   // Spread across the face as a turret's barrels are, one gap outboard of
   // each end, so neighbours stand apart rather than touching.
   const outletSpacing = outlets > 1 ? spec.width / (outlets + 1) : 0;
-  const cap = HULL_BARREL_WIDTH_CAP * (outlets > 1 ? outletSpacing : spec.width);
+  // No wider than the opening leaves room for, nor than the module is deep:
+  // an outlet is always a cylinder the hull can hold.
+  const opening = HULL_BARREL_WIDTH_CAP * (outlets > 1 ? outletSpacing : spec.width);
+  const cap = opening < moduleHeight(spec) ? opening : moduleHeight(spec);
   const outletWidth = each < cap ? each : cap;
   const barrelWidth = (outlets - 1) * outletSpacing + outletWidth;
   const blockLength = spec.length - barrelLength;
@@ -1212,9 +1228,9 @@ export function readsWeapon(kind: ModuleKind): boolean {
   return kind === 'engine';
 }
 
-/** Whether `raised` means anything on this kind: structure and cores may be either layer. */
+/** Whether `raised` means anything on this kind: structure, cores and hull weapons may be either layer. */
 export function readsRaised(kind: ModuleKind): boolean {
-  return kind === 'structure' || kind === 'core';
+  return kind === 'structure' || kind === 'core' || isHullMount(kind);
 }
 
 /**
@@ -1222,7 +1238,7 @@ export function readsRaised(kind: ModuleKind): boolean {
  * turrets and can be hit by them.
  *
  * Turrets and engines always do — guns strip "mounts, sensors and engines" —
- * and hull weapons never do. Structure and cores are whichever they say.
+ * and structure, cores and hull weapons are whichever they say.
  */
 export function isRaised(spec: ModuleSpec): boolean {
   switch (spec.kind) {
@@ -1232,6 +1248,8 @@ export function isRaised(spec: ModuleSpec): boolean {
       return true;
     case 'structure':
     case 'core':
+    case 'hullGun':
+    case 'hullBeam':
       return spec.raised === true;
     default:
       return false;
@@ -1350,7 +1368,7 @@ export function hullBeamStats(spec: ModuleSpec): GunStats {
   const aperture = outletWidth;
   const apertureArea = PI * 0.25 * aperture * aperture;
   const power = OPTIC_INTENSITY_LIMIT * apertureArea;
-  const stored = BEAM_STORED_ENERGY_PER_VOLUME * blockLength * spec.width * DECK_HEIGHT;
+  const stored = BEAM_STORED_ENERGY_PER_VOLUME * blockLength * spec.width * moduleHeight(spec);
   const beamOnTime = power > 0 ? stored / power : 0;
   // **The block is the bank and the cooling, so depth buys duty rather than
   // only burst.** The burn grows with the bank behind it while the recovery
@@ -1629,7 +1647,8 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
  * the barrels to converge at a chosen range is the natural answer when it does.
  */
 export function gunStats(mountLength: number, mountWidth: number, barrelCount: number = 1): GunStats {
-  const calibre = (mountWidth * CALIBRE_FRACTION) / barrelCount;
+  const wide = (mountWidth * CALIBRE_FRACTION) / barrelCount;
+  const calibre = wide < MAX_TURRET_CALIBRE ? wide : MAX_TURRET_CALIBRE;
   // The barrel wants to be as long as its calibre allows, but a mount cannot
   // carry a gun longer than itself without fouling the rest of the ship.
   const wanted = calibre * BARREL_CALIBRES * sqrt(barrelCount);
@@ -1700,7 +1719,8 @@ export function gunStats(mountLength: number, mountWidth: number, barrelCount: n
 export function beamGunStats(mountLength: number, mountWidth: number, barrelCount: number = 1): GunStats {
   // One disc, or `n` discs dividing the same area between them.
   const face = mountWidth < mountLength ? mountWidth : mountLength;
-  const aperture = (face * BEAM_APERTURE_FRACTION) / sqrt(barrelCount);
+  const wide = (face * BEAM_APERTURE_FRACTION) / sqrt(barrelCount);
+  const aperture = wide < MAX_TURRET_CALIBRE ? wide : MAX_TURRET_CALIBRE;
   const apertureArea = PI * 0.25 * aperture * aperture;
 
   // What the optic can pass without destroying itself, which is the whole of

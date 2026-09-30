@@ -218,7 +218,7 @@ function dormantFieldProblem(value: Record<string, unknown>, where: string): str
     return `${where}: only an engine can be used as a weapon`;
   }
   if (value['raised'] !== undefined && !readsRaised(kind)) {
-    return `${where}: only structure and cores choose their layer`;
+    return `${where}: only structure, cores and hull weapons choose their layer`;
   }
   return null;
 }

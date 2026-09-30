@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   barrelHalfWidth,
+  DECK_HEIGHT,
+  RAISED_HEIGHT,
   Bodies,
   compileBlueprint,
   firingArc,
@@ -55,6 +57,34 @@ describe('which layer a module is in', () => {
     expect(moduleStats({ ...low, raised: true }).mass).toBeGreaterThan(moduleStats(low).mass);
   });
 
+  it('gives a raised hull weapon twice the machinery, and puts it in reach', () => {
+    const low: ModuleSpec = { kind: 'hullGun', x: 0, y: 0, length: 12, width: 4 };
+    const high: ModuleSpec = { ...low, raised: true };
+    expect(isRaised(high)).toBe(true);
+    const lowStats = moduleStats(low);
+    const highStats = moduleStats(high);
+    // Bored as though twice as wide: twice the calibre, and more to carry it.
+    expect(highStats.gun!.calibre).toBeCloseTo(2 * lowStats.gun!.calibre, 9);
+    expect(highStats.gun!.muzzleEnergy).toBeGreaterThan(lowStats.gun!.muzzleEnergy);
+    expect(highStats.mass).toBeGreaterThan(lowStats.mass);
+    // A beam's bank fills twice the volume and its optic is twice as wide:
+    // four times the power, twice the energy a shot.
+    const beam: ModuleSpec = { kind: 'hullBeam', x: 0, y: 0, length: 12, width: 4 };
+    const dim = moduleStats(beam).gun!;
+    const bright = moduleStats({ ...beam, raised: true }).gun!;
+    expect(bright.beamPower).toBeCloseTo(4 * dim.beamPower, 6);
+    expect(bright.beamPower * bright.beamOnTime).toBeCloseTo(2 * dim.beamPower * dim.beamOnTime, 3);
+  });
+
+  it('holds every barrel to the depth of the module it is in', () => {
+    const wide = moduleStats({ kind: 'turret', x: 0, y: 0, length: 200, width: 200 }).gun!;
+    expect(2 * wide.calibre).toBeCloseTo(DECK_HEIGHT, 9);
+    const hull: ModuleSpec = { kind: 'hullGun', x: 0, y: 0, length: 120, width: 60 };
+    expect(2 * moduleStats(hull).gun!.calibre).toBeCloseTo(DECK_HEIGHT, 9);
+    // Raised, the cap is the raised module's depth.
+    expect(2 * moduleStats({ ...hull, raised: true }).gun!.calibre).toBeCloseTo(RAISED_HEIGHT, 9);
+  });
+
   it('is saved on structure and cores and refused anywhere else', () => {
     const bp: Blueprint = {
       name: 'Tower',
@@ -72,7 +102,7 @@ describe('which layer a module is in', () => {
     expect(compiled.modules[1]!.raised).toBe(true);
 
     const turret = { ...file, modules: [{ kind: 'turret', x: 0, y: 0, length: 4, width: 4, raised: true }] };
-    expect(blueprintFileProblem(turret)).toMatch(/only structure and cores/);
+    expect(blueprintFileProblem(turret)).toMatch(/only structure, cores and hull weapons/);
   });
 });
 

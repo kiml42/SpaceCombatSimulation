@@ -563,11 +563,16 @@ Rules:
   width, because a turret's is small in order to fit inside a ring and then be swung, and they pay for
   it in having almost nowhere to point: a hull mount trains about the root of its barrel, and the
   barrel has to stay inside the opening it comes out of.
-- **Which layer a module is in** is fixed by its kind, except for structure and cores. Turrets and
-  engines are *raised* into the weapons layer; hull weapons are not. Structure may be marked raised: it
+- **Which layer a module is in** is fixed by its kind, except for structure, cores and hull weapons.
+  Turrets and engines are *raised* into the weapons layer. Structure may be marked raised: it
   is then cover for the turrets behind it, and it pays in wall, in being within reach of guns, and in
   the arcs of every turret it stands in front of. A core may be raised on the same terms, a bridge up on
-  deck rather than below it: turrets can then reach it.
+  deck rather than below it: turrets can then reach it. A **raised hull weapon** has twice the machinery
+  behind its opening, so it bores as though it were twice as wide, and a hull beam's bank fills twice the
+  volume. It pays in wall, and in being within turrets' reach; it still fires at deck height.
+- **A barrel is never wider than the module is deep.** A turret's tubes (and a beam's housing) are held
+  to the deck's depth, and a hull weapon's outlets to its own — twice that when raised — so a barrel is
+  always a cylinder the hull can hold. It seldom binds, and only on very large mounts.
 - **A turret trains and fires over the deck.** What stops its barrel is raised modules within a barrel's
   length. What stops its trigger is raised modules at any range down the line of fire: its *trigger
   mask*, a set of sectors it may point through but not fire into. The mask is always wider than the
