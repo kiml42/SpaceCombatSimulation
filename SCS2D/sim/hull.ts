@@ -130,8 +130,10 @@ export interface Boxes {
  * it, because what a shot has left to give is spent in metres of armour and a
  * fraction would have to be multiplied back out by every caller.
  *
- * `weaponsLayerOnly` casts in the weapons layer, where only its own modules
- * matter (DESIGN.md §3); `skip` leaves one module out.
+ * `layers` is what the cast is in (DESIGN.md §3), and it meets only modules
+ * in one of them; `bodyLayers` puts every module of the ship in the same
+ * layers, as a fighter's are, or leaves each its own (`OWN_LAYERS`). `skip`
+ * leaves one module out.
  *
  * A segment that starts *inside* a module reports it, entering at zero: a
  * round that was stopped at a surface last step and resumes from there is
@@ -150,8 +152,9 @@ export function modulesAlong(
   x1: number,
   y1: number,
   out: HullPath,
-  weaponsLayerOnly = false,
+  layers = BOTH_LAYERS,
   skip = -1,
+  bodyLayers = OWN_LAYERS,
 ): void {
   out.clear();
   const dx = x1 - x0;
@@ -164,7 +167,7 @@ export function modulesAlong(
 
   for (let i = 0; i < design.modules.length; i++) {
     const m = design.modules[i]!;
-    if (i === skip || (weaponsLayerOnly && !m.weaponsLayer)) continue;
+    if (i === skip || (moduleLayers(m, bodyLayers) & layers) === 0) continue;
     const c = cos(m.angle);
     const s = sin(m.angle);
 
@@ -280,6 +283,22 @@ const EDGE_ON = 1e-6;
  */
 export interface HullDesigns {
   designOf(bodyIndex: number): ShipDesign | null;
+  /** The layers every module of this body is in, or `OWN_LAYERS` to leave each its own. */
+  layersOf?(bodyIndex: number): number;
+}
+
+/** The deck and below. */
+export const HULL_LAYER = 1;
+/** Above the deck, where turrets fire and strike craft fly. */
+export const WEAPONS_LAYER = 2;
+export const BOTH_LAYERS = HULL_LAYER | WEAPONS_LAYER;
+/** Each module in the layers its own kind and depth put it in. */
+export const OWN_LAYERS = -1;
+
+/** Which layers a module is in: the whole ship's, where it has one, else its own. */
+export function moduleLayers(m: { readonly weaponsLayer: boolean }, bodyLayers: number): number {
+  if (bodyLayers !== OWN_LAYERS) return bodyLayers;
+  return m.weaponsLayer ? BOTH_LAYERS : HULL_LAYER;
 }
 
 /**
@@ -320,10 +339,10 @@ export class Hulls implements RayNarrowPhase {
 
   /**
    * What the cast in hand is, set by the caller around it and cleared with
-   * `reset`: whether it is in the weapons layer, and the module it was fired
-   * from, which it never meets.
+   * `reset`: the layers it is in, and the module it was fired from, which it
+   * never meets.
    */
-  weaponsLayerOnly = false;
+  layers = BOTH_LAYERS;
   private skipBody = -1;
   private skipModule = -1;
 
@@ -332,15 +351,15 @@ export class Hulls implements RayNarrowPhase {
     private readonly live?: LiveModules,
   ) {}
 
-  /** Cast in a layer, from a module of a body, until `reset`. */
-  castFrom(weaponsLayerOnly: boolean, body: number, module: number): void {
-    this.weaponsLayerOnly = weaponsLayerOnly;
+  /** Cast in some layers, from a module of a body, until `reset`. */
+  castFrom(layers: number, body: number, module: number): void {
+    this.layers = layers;
     this.skipBody = body;
     this.skipModule = module;
   }
 
   reset(): void {
-    this.weaponsLayerOnly = false;
+    this.layers = BOTH_LAYERS;
     this.skipBody = -1;
     this.skipModule = -1;
   }
@@ -451,8 +470,9 @@ export class Hulls implements RayNarrowPhase {
       lx0 + ldx,
       ly0 + ldy,
       this.path,
-      this.weaponsLayerOnly,
+      this.layers,
       bodyIndex === this.skipBody ? this.skipModule : -1,
+      this.designs.layersOf?.(bodyIndex) ?? OWN_LAYERS,
     );
     if (this.live !== undefined) this.skipSpent(bodyIndex);
     if (this.path.count === 0) return -1;

@@ -201,6 +201,8 @@ export class Turrets {
   inertia!: Float64Array;
   muzzleSpeed!: Float64Array;
   muzzleOffset!: Float64Array;
+  /** Flight time to the point last aimed at, seconds, as `aimAt` returned it. */
+  aimTime!: Float64Array;
 
   /** Current bearing, body frame. */
   bearing!: Float64Array;
@@ -292,6 +294,7 @@ export class Turrets {
     this.inertia = f64(this.inertia);
     this.muzzleSpeed = f64(this.muzzleSpeed);
     this.muzzleOffset = f64(this.muzzleOffset);
+    this.aimTime = f64(this.aimTime);
     this.bearing = f64(this.bearing);
     this.rate = f64(this.rate);
     this.commanded = f64(this.commanded);
@@ -328,6 +331,7 @@ export class Turrets {
     this.inertia[i] = spec.inertia ?? 0;
     this.muzzleSpeed[i] = spec.muzzleSpeed ?? 0;
     this.muzzleOffset[i] = spec.muzzleOffset ?? 0;
+    this.aimTime[i] = -1;
     this.bearing[i] = rest;
     this.rate[i] = 0;
     this.commanded[i] = rest;
@@ -559,6 +563,7 @@ export class Turrets {
     const bearingRate = rangeSq > 0 ? (aimX * rvy - aimY * rvx) / rangeSq : 0;
 
     this.commandWorldBearing(bodies, i, atan2(aimY, aimX), bearingRate);
+    this.aimTime[i] = t;
     return t;
   }
 

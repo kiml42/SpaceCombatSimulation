@@ -1,9 +1,10 @@
 import type { Bodies } from './bodies.js';
 import type { WellSpec } from './gravity.js';
 import { wellPull } from './gravity.js';
-import { sqrt } from './math.js';
+import { cos, sin, sqrt, TAU } from './math.js';
+import type { Rng } from './rng.js';
 import { RayHit, type SpatialGrid } from './spatialGrid.js';
-import type { Hulls } from './hull.js';
+import { BOTH_LAYERS, HULL_LAYER, WEAPONS_LAYER, type Hulls } from './hull.js';
 
 /**
  * Projectiles: shells, slugs and other ballistic rounds in flight.
@@ -61,6 +62,9 @@ export const NO_OWNER = -1;
 /** A projectile in open flight rather than passing through a hull. */
 export const NOT_INSIDE = -1;
 
+/** Sub-munitions a round bursts into. Even, so they leave in opposed pairs and the burst keeps its momentum. */
+export const BURST_FRAGMENTS = 8;
+
 export interface ProjectileSpec {
   x: number;
   y: number;
@@ -86,8 +90,16 @@ export interface ProjectileSpec {
    * modules. Off by default: a round meets everything.
    */
   weaponsLayer?: boolean;
+  /** The layers it is in, as a `HULL_LAYER` / `WEAPONS_LAYER` mask. Overrides `weaponsLayer`. */
+  layers?: number;
   /** Caller-defined classification (AP, HE, and so on). Uninterpreted here. */
   kind?: number;
+  /** Seconds until it bursts into `BURST_FRAGMENTS`. Never when absent. */
+  fuse?: number;
+  /** The most a fragment's speed differs from the round's, m/s. */
+  spread?: number;
+  /** Seconds a fragment flies before it expires. */
+  fragmentLife?: number;
 }
 
 /**
@@ -196,9 +208,15 @@ export class Projectiles {
   penetration!: Float64Array;
   owner!: Int32Array;
   fromModule!: Int32Array;
-  /** 1 for a round in the weapons layer, which meets only weapons-layer modules. */
-  weaponsLayer!: Uint8Array;
+  /** The layers it is in, as a `HULL_LAYER` / `WEAPONS_LAYER` mask. */
+  layers!: Uint8Array;
   kind!: Int32Array;
+  /** Seconds until it bursts; `Infinity` for a round that never does. */
+  fuse!: Float64Array;
+  /** The most a fragment's speed differs from the round's, m/s. */
+  spread!: Float64Array;
+  /** Seconds a fragment flies before it expires: long enough to cross what it was fused for. */
+  fragmentLife!: Float64Array;
   alive!: Uint8Array;
   /**
    * Set on impact. A pending round is stopped at the point of contact and is
@@ -265,9 +283,12 @@ export class Projectiles {
     this.owner = i32(this.owner);
     this.fromModule = i32(this.fromModule);
     const layer = new Uint8Array(capacity);
-    if (this.weaponsLayer) layer.set(this.weaponsLayer);
-    this.weaponsLayer = layer;
+    if (this.layers) layer.set(this.layers);
+    this.layers = layer;
     this.kind = i32(this.kind);
+    this.fuse = f64(this.fuse);
+    this.spread = f64(this.spread);
+    this.fragmentLife = f64(this.fragmentLife);
 
     const alive = new Uint8Array(capacity);
     if (this.alive) alive.set(this.alive);
@@ -307,7 +328,10 @@ export class Projectiles {
     owner: number,
     kind: number,
     fromModule = -1,
-    weaponsLayer = false,
+    layers = HULL_LAYER,
+    fuse = Infinity,
+    spread = 0,
+    fragmentLife = 0,
   ): number {
     let i: number;
     const reused = this.free.pop();
@@ -329,8 +353,11 @@ export class Projectiles {
     this.penetration[i] = penetration;
     this.owner[i] = owner;
     this.fromModule[i] = fromModule;
-    this.weaponsLayer[i] = weaponsLayer ? 1 : 0;
+    this.layers[i] = layers;
     this.kind[i] = kind;
+    this.fuse[i] = fuse;
+    this.spread[i] = spread;
+    this.fragmentLife[i] = fragmentLife;
     this.alive[i] = 1;
     this.pending[i] = 0;
     this.inside[i] = NOT_INSIDE;
@@ -353,7 +380,10 @@ export class Projectiles {
       spec.owner ?? NO_OWNER,
       spec.kind ?? 0,
       spec.fromModule ?? -1,
-      spec.weaponsLayer ?? false,
+      spec.layers ?? (spec.weaponsLayer === true ? WEAPONS_LAYER : HULL_LAYER),
+      spec.fuse ?? Infinity,
+      spec.spread ?? 0,
+      spec.fragmentLife ?? 0,
     );
   }
 
@@ -450,8 +480,11 @@ export class Projectiles {
     hits: ProjectileHits,
     wells?: readonly WellSpec[],
     hulls?: Hulls,
+    rng?: Rng,
   ): void {
     hits.clear();
+    const bursting = this.bursting;
+    bursting.length = 0;
 
     for (let i = 0; i < this.highWater; i++) {
       if (this.alive[i] === 0 || this.pending[i] === 1 || this.inside[i] !== NOT_INSIDE) continue;
@@ -472,6 +505,46 @@ export class Projectiles {
       if (this.cast(i, this.vx[i] * dt, this.vy[i] * dt, 0, 1, bodies, grid, hits, hulls)) continue;
       this.ttl[i] -= dt;
       if (this.ttl[i] <= 0) this.kill(i);
+      else if ((this.fuse[i] -= dt) <= 0 && rng !== undefined) bursting.push(i);
+    }
+    // After the walk, so no fragment is flown in the step it was made.
+    for (let k = 0; k < bursting.length; k++) this.burst(bursting[k]!, rng!);
+  }
+
+  private readonly bursting: number[] = [];
+
+  /**
+   * Replace a round with `BURST_FRAGMENTS` sharing its mass, energy and bore.
+   *
+   * Each leaves with the round's velocity plus a kick in a random direction,
+   * spread evenly over a disc, and its twin with the opposite kick, so the
+   * burst carries on with the round's momentum. Fragments fly in both layers,
+   * so they meet every module, and do not burst again.
+   */
+  private burst(i: number, rng: Rng): void {
+    const n = BURST_FRAGMENTS;
+    const x = this.x[i]!;
+    const y = this.y[i]!;
+    const vx = this.vx[i]!;
+    const vy = this.vy[i]!;
+    const width = this.width[i]! / sqrt(n);
+    const life = this.fragmentLife[i]!;
+    const ttl = life < this.ttl[i]! ? life : this.ttl[i]!;
+    const mass = this.mass[i]! / n;
+    const damage = this.damage[i]! / n;
+    const penetration = this.penetration[i]!;
+    const owner = this.owner[i]!;
+    const kind = this.kind[i]!;
+    const from = this.fromModule[i]!;
+    const spread = this.spread[i]!;
+    this.kill(i);
+    for (let k = 0; k < n; k += 2) {
+      const angle = rng.nextFloat() * TAU;
+      const speed = spread * sqrt(rng.nextFloat());
+      const kx = cos(angle) * speed;
+      const ky = sin(angle) * speed;
+      this.spawnRaw(x, y, vx + kx, vy + ky, width, ttl, mass, damage, penetration, owner, kind, from, BOTH_LAYERS);
+      this.spawnRaw(x, y, vx - kx, vy - ky, width, ttl, mass, damage, penetration, owner, kind, from, BOTH_LAYERS);
     }
   }
 
@@ -522,7 +595,7 @@ export class Projectiles {
     // own ship; one that does not passes through all of it.
     const from = this.fromModule[i]!;
     const owner = this.owner[i]!;
-    hulls?.castFrom(this.weaponsLayer[i] === 1, owner, from);
+    hulls?.castFrom(this.layers[i]!, owner, from);
     const found = grid.raycast(bodies, x0, y0, x0 + dx, y0 + dy, hit, from >= 0 ? -1 : owner, hulls, skip);
     if (!found) {
       hulls?.reset();
@@ -588,7 +661,10 @@ export class Projectiles {
     penetration: number,
     kind: number,
     fromModule = -1,
-    weaponsLayer = false,
+    layers = HULL_LAYER,
+    fuse = Infinity,
+    spread = 0,
+    fragmentLife = 0,
   ): number {
     return this.spawnRaw(
       muzzleX,
@@ -603,7 +679,10 @@ export class Projectiles {
       bodyIndex,
       kind,
       fromModule,
-      weaponsLayer,
+      layers,
+      fuse,
+      spread,
+      fragmentLife,
     );
   }
 }

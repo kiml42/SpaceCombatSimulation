@@ -170,6 +170,19 @@ export interface MatchConfig {
    */
   readonly scatter: number;
   /**
+   * Each entrant's speed towards the middle at the start, m/s, and to its
+   * left across that line — the same two a custom battle is set up with.
+   * Along the bearing from the ring rather than the craft's own heading, so
+   * `scatter` turns where a craft points and not where it is going.
+   *
+   * Zero starts everything at rest. Closing is a free start on `race`,
+   * though every entrant gets the same one; what it asks of a design is
+   * what a custom battle's does: to fight, or stop, while already on the move.
+   * The boss starts at rest whatever these say.
+   */
+  readonly closingSpeed: number;
+  readonly crossingSpeed: number;
+  /**
    * A ship or fleet every entrant fights together, or null for a free-for-all.
    *
    * The boss stands at the middle of the ring, where the goal would be — so a
@@ -189,6 +202,8 @@ export const DEFAULT_MATCH: MatchConfig = {
   weights: { survival: 1, functional: 1, damage: 1, disabling: 1, race: 1 },
   wells: [],
   scatter: math.PI,
+  closingSpeed: 0,
+  crossingSpeed: 0,
   boss: null,
 };
 
@@ -413,6 +428,11 @@ export class Match {
             const alone = ship.x === 0 && ship.y === 0;
             const c = math.cos(heading);
             const s = math.sin(heading);
+            // Inwards is the opposite of the bearing out to the slot.
+            const inX = -math.cos(bearing);
+            const inY = -math.sin(bearing);
+            const vx = isBoss ? 0 : settings.closingSpeed * inX - settings.crossingSpeed * inY;
+            const vy = isBoss ? 0 : settings.closingSpeed * inY + settings.crossingSpeed * inX;
             slots.push(
               ships.spawn(world, {
                 design: ship.design,
@@ -421,6 +441,7 @@ export class Match {
                 angle: ship.angle === 0 ? heading : heading + ship.angle,
                 // Every entrant on one side against a boss.
                 team: boss === null ? i : isBoss ? BOSS_TEAM : 0,
+                ...(vx !== 0 || vy !== 0 ? { vx, vy } : {}),
               }),
             );
             owners.push(i);

@@ -162,7 +162,7 @@ export function makeBattle<Extra extends object = Record<never, never>>(
       // Exhaust burns whatever it is playing on, which is as much a weapon as
       // a gun and answers to the same rebuilt index.
       ships.scorch(world, grid, dt);
-      projectiles.step(dt, world.bodies, grid, hits, wells, ships.hulls);
+      projectiles.step(dt, world.bodies, grid, hits, wells, ships.hulls, world.rng);
       run.totalBeamHits += beamHits.count;
       // What the hits did. Rounds walk the modules along their path, a step's
       // travel at a time, and are killed or sent on their way; beams pour their power into what they are

@@ -35,7 +35,6 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 
 ## Evolution
 - Mutate to change the whole scale of the ship
-- Crossing and closing velocity settings
 - Measure yardstick should remember what it previously measured if it's the same ship as the yardstick.
 - When mutation between gun and engine, the module should be rotates 180, to maintain the correct outward face.
 - Consider scoring for ramming
@@ -51,5 +50,4 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
   - Thumbnails indicate the exact current state, possibly even a live view with its own camera tracking the ship (possibly rotated to match)
   - Click a ship to focus the main camera on it
 - If there are no live ships in the current view, track the dead ones - prevents sudden loss of tracking when the ship dies.
-- Rotation setting in custom battle
 - Randomisation settings for all parameters of a custom battle

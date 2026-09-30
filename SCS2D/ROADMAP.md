@@ -80,7 +80,7 @@ Built: **the fleet file** (`sim/fleet.ts`, `sim/fleetFile.ts`), **a battle from 
 (`scenarios/fleetBattle.ts`), proved by `standoff` flying a fleet file with its checksum unchanged, **the
 fleet editor** (`dist/fleet.html`), and **a custom battle** on the viewer — fleets or single ships from the
 libraries, a file, or handed over by either editor's Battle link,
-range, closing and crossing speeds and a seed, saved and loaded as a battle file (`scenarios/customBattle.ts`),
+range, closing and crossing speeds, a rotation and a seed, saved and loaded as a battle file (`scenarios/customBattle.ts`),
 set up paused and live, and decided once no more than one side can still fight. Left in the editor: making, dissolving and renaming
 groups — it steps into and edits the ones a file brings, but cannot make one — later, as ship groups were.
 **Fleet evolution** is built, headless (`evolution/fleetMutate.ts`, `npm run evolve -- --fleet`) and on the
@@ -99,24 +99,33 @@ lead, which waits for standing orders. Velocity stays out of the fleet file; the
 in this order, and all three come before fuel: nothing in the resource steps needs them, but every design
 and evolution run does, and a ship tuned to half the rules is tuned twice.
 
-1. **Exploding shells.** A gun's rounds burst on a timer, which is how a turret reaches the hull layer at
-   all (§12's fuse entry is the reasoning).
+1. **Exploding shells — built.** A gun's rounds burst on a timer, which is how a turret reaches the hull
+   layer at all (§12's fuse entry is the reasoning). As built: every turret and hull gun fuses its rounds,
+   0.2 s short by default (`DEFAULT_FUSE`); a round bursts into 8 fragments (`BURST_FRAGMENTS`) that
+   spread at up to a tenth of the muzzle speed (`BURST_SPREAD`) and live twice the fuse, at least half a
+   second, so a miss does not fill the sky. Evolution does not mutate the fuse yet.
    - The fuse is set when the round is fired, to go off shortly before it would reach its aim point:
-     `interceptTime` already knows when that is. How much before is a per-mount setting in the editor, next
-     to its doctrine, so a mount can be tuned between bursting short and not bursting at all. A round that
-     hits something before its fuse goes off hits as it does now.
+     `interceptTime` already knows when that is. How much before is a per-mount setting in the editor
+     (`fuse`, seconds), so a mount can be tuned between bursting well short and bursting only on a miss. A
+     round that hits something before its fuse goes off hits as it does now.
    - A burst replaces the round with sub-munitions: a fixed number, sharing its mass, each leaving with the
-     round's velocity plus a spread in a random direction from the battle's seeded RNG. They are hull-layer
+     round's velocity plus a spread in a random direction from the battle's seeded RNG, in opposed pairs so
+     the burst keeps the round's momentum. They are hull-layer
      rounds, so they meet every module, deck and weapons layer alike; that is what "in both layers" comes
      to under the rule that a hull-layer shot meets everything.
    - No area cloud yet. **Beams stay in their own layer**: a laser has no fuse, which is the asymmetry §3
      asks for.
-2. **Fighters.** A ship-level *fighter* flag, a checkbox in the editor. It follows DESIGN.md §3's strike
-   craft rather than inventing a new rule:
+2. **Fighters — built.** A ship-level *fighter* flag, a checkbox in the editor's Role section. It follows
+   DESIGN.md §3's strike craft rather than inventing a new rule. As built: shots, beams and hull casts carry
+   a layer mask (`HULL_LAYER`, `WEAPONS_LAYER`, both for fragments), and a fighter's modules are all in
+   the weapons layer (`Ships.layersOf`), so it overflies hulls and meets only other fighters. **Not built:
+   committing.** How a ship decides to ram, and how a fighter drops into the hull layer when it does, is
+   still being discussed, and is its own piece of work. No stock ship is a fighter yet: flagging the Dinky,
+   TIE and X-Wing is the obvious first move of item 3.
    - **A fighter may carry no turret and nothing thick.** The editor disables both while the flag is set.
      It flies in the **weapons layer**, where turrets and CIWS reach it, so a fighter is never out of their
      reach the way the Dinky is today.
-   - **Its doctrine decides when it also occupies the hull layer**: that is a decision to ram, or to dock on
+   - **Its doctrine decides when it also occupies the hull layer** (not built): that is a decision to ram, or to dock on
      another ship's side. Occupancy is added, never swapped, so it only ever makes the fighter more
      exposed; that is why there is no limit on how quickly it can change. It changes only while clear of
      every hull (§3), which is what stops a fighter committing inside a capital's perimeter. Its hull
