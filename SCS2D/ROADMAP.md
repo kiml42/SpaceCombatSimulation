@@ -813,6 +813,13 @@ Deliberately unresolved; decide when they block something.
   function taken, and a run cannot find it worth trying, even against a boss it could break in half. The
   collision code knows both bodies, so the fix is small: credit each with the damage it did to the other.
   Credit is read only by scoring, so no golden moves; scores do.
+- **A ship whose cores are out keeps its last throttle.** Nothing flies it, so its wrench is held rather
+  than recomputed and replayed every step (`Ships.forceProvider`): a stuck throttle, kept as a failure mode
+  of losing the link to the computer. Left for now. It contradicts the command rule — an uncommanded engine
+  thrusts nothing, yet the held wrench is applied in full — and a hulk that lost its core mid-turn spins up
+  without limit (a Super Swarm Dinky passes 5,000 rad/s by step 8,000). Either replay the held throttles
+  through what each engine can still do, which leaves a hulk drifting, or let an engine with no working core
+  keep burning at its last setting, as an exception to the command rule. Most goldens move either way.
 - **Whether collision pairing wants an index after all.** §4 says to test every body against every
   other, and at the scale the game is designed for that holds: the 21-ship swarm pays about 3% for
   solid hulls. The 301-ship stress fixture pays **82%** (2.8 s to 5.1 s over 3,000 steps), and almost
