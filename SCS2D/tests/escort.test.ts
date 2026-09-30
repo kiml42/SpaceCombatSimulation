@@ -30,7 +30,7 @@ const MARKER: Blueprint = {
  * it: the core alone is deck, and deck-level rounds pass over it.
  */
 const RAISED_MARKER: Blueprint = {
-  name: 'Raised marker',
+  name: 'Thick marker',
   modules: [
     { kind: 'structure', x: 0, y: 0, length: 12, width: 12, thick: true },
     { kind: 'core', x: 7, y: 0, length: 2, width: 2 },

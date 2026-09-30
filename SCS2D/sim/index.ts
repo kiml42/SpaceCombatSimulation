@@ -71,7 +71,7 @@ export {
   readsNozzle,
   readsWeapon,
   readsThick,
-  isRaised,
+  inWeaponsLayer,
   isThick,
   moduleThickness,
   canThicken,

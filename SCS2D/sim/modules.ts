@@ -651,7 +651,7 @@ export interface ModuleSpec {
    * way (`canThicken`).
    *
    * What is thick stands up through the weapons layer as well as the hull
-   * (`isRaised`). Thick structure is cover: it stops turret fire at whatever
+   * (`inWeaponsLayer`). Thick structure is cover: it stops turret fire at whatever
    * is behind it. A thick hull weapon or engine gets a wider barrel or
    * nozzle, and machinery that keeps growing with the square of the width. It
    * pays in wall, in turrets being able to reach it, and in the arcs of every
@@ -1236,7 +1236,7 @@ export function readsThick(kind: ModuleKind): boolean {
  * Turrets always are, and so are engines — guns strip "mounts, sensors and
  * engines" — and anything else that is thick.
  */
-export function isRaised(spec: ModuleSpec): boolean {
+export function inWeaponsLayer(spec: ModuleSpec): boolean {
   return spec.kind === 'turret' || spec.kind === 'beamTurret' || spec.kind === 'engine' || isThick(spec);
 }
 

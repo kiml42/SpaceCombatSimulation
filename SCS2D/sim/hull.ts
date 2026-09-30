@@ -130,7 +130,7 @@ export interface Boxes {
  * it, because what a shot has left to give is spent in metres of armour and a
  * fraction would have to be multiplied back out by every caller.
  *
- * `raisedOnly` casts in the weapons layer, where only raised modules are
+ * `weaponsLayerOnly` casts in the weapons layer, where only its own modules
  * matter (DESIGN.md §3); `skip` leaves one module out.
  *
  * A segment that starts *inside* a module reports it, entering at zero: a
@@ -150,7 +150,7 @@ export function modulesAlong(
   x1: number,
   y1: number,
   out: HullPath,
-  raisedOnly = false,
+  weaponsLayerOnly = false,
   skip = -1,
 ): void {
   out.clear();
@@ -164,7 +164,7 @@ export function modulesAlong(
 
   for (let i = 0; i < design.modules.length; i++) {
     const m = design.modules[i]!;
-    if (i === skip || (raisedOnly && !m.raised)) continue;
+    if (i === skip || (weaponsLayerOnly && !m.weaponsLayer)) continue;
     const c = cos(m.angle);
     const s = sin(m.angle);
 
@@ -323,7 +323,7 @@ export class Hulls implements RayNarrowPhase {
    * `reset`: whether it is in the weapons layer, and the module it was fired
    * from, which it never meets.
    */
-  raisedOnly = false;
+  weaponsLayerOnly = false;
   private skipBody = -1;
   private skipModule = -1;
 
@@ -333,14 +333,14 @@ export class Hulls implements RayNarrowPhase {
   ) {}
 
   /** Cast in a layer, from a module of a body, until `reset`. */
-  castFrom(raisedOnly: boolean, body: number, module: number): void {
-    this.raisedOnly = raisedOnly;
+  castFrom(weaponsLayerOnly: boolean, body: number, module: number): void {
+    this.weaponsLayerOnly = weaponsLayerOnly;
     this.skipBody = body;
     this.skipModule = module;
   }
 
   reset(): void {
-    this.raisedOnly = false;
+    this.weaponsLayerOnly = false;
     this.skipBody = -1;
     this.skipModule = -1;
   }
@@ -451,7 +451,7 @@ export class Hulls implements RayNarrowPhase {
       lx0 + ldx,
       ly0 + ldy,
       this.path,
-      this.raisedOnly,
+      this.weaponsLayerOnly,
       bodyIndex === this.skipBody ? this.skipModule : -1,
     );
     if (this.live !== undefined) this.skipSpent(bodyIndex);

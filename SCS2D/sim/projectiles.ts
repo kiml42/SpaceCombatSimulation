@@ -82,7 +82,7 @@ export interface ProjectileSpec {
   /** The module of `owner` it was fired from, or -1. */
   fromModule?: number;
   /**
-   * Fired in the weapons layer (DESIGN.md §3), so it meets only raised
+   * Fired in the weapons layer (DESIGN.md §3), so it meets only weapons-layer
    * modules. Off by default: a round meets everything.
    */
   weaponsLayer?: boolean;
@@ -196,7 +196,7 @@ export class Projectiles {
   penetration!: Float64Array;
   owner!: Int32Array;
   fromModule!: Int32Array;
-  /** 1 for a round in the weapons layer, which meets only raised modules. */
+  /** 1 for a round in the weapons layer, which meets only weapons-layer modules. */
   weaponsLayer!: Uint8Array;
   kind!: Int32Array;
   alive!: Uint8Array;

@@ -71,7 +71,7 @@ export interface BeamSpec {
   owner?: number;
   /** The module of `owner` it was fired from, or -1. */
   fromModule?: number;
-  /** Fired in the weapons layer, so it meets only raised modules. */
+  /** Fired in the weapons layer, so it meets only weapons-layer modules. */
   weaponsLayer?: boolean;
   /** Caller-defined classification (laser, particle beam, and so on). Uninterpreted here. */
   kind?: number;
@@ -173,7 +173,7 @@ export class Beams {
   power!: Float64Array;
   owner!: Int32Array;
   fromModule!: Int32Array;
-  /** 1 for a beam in the weapons layer, which meets only raised modules. */
+  /** 1 for a beam in the weapons layer, which meets only weapons-layer modules. */
   weaponsLayer!: Uint8Array;
   kind!: Int32Array;
   alive!: Uint8Array;

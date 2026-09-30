@@ -5,7 +5,7 @@ import {
   moduleProblem,
   moduleStats,
   isHullMount,
-  isRaised,
+  inWeaponsLayer,
   mountTraverse,
   hullMountGeometry,
   engineGeometry,
@@ -286,8 +286,8 @@ export interface DesignModule {
    * it pushes.
    */
   readonly angle: number;
-  /** In the weapons layer (`isRaised`): hit by turrets, and in their way. */
-  readonly raised: boolean;
+  /** In the weapons layer (`inWeaponsLayer`): hit by turrets, and in their way. */
+  readonly weaponsLayer: boolean;
 }
 
 /** A turret mount in a compiled design, ready to be added to a `Turrets` store. */
@@ -302,7 +302,7 @@ export interface DesignTurret {
   /** What this mount goes after: its archetype's doctrine, with its own overrides. */
   readonly targeting: Targeting;
   /**
-   * Fires in the hull layer, so hits every module rather than only raised
+   * Fires in the hull layer, so hits every module rather than only weapons-layer
    * ones. A hull weapon; never a turret.
    */
   readonly hullLayer: boolean;
@@ -1494,7 +1494,7 @@ function designFrom(
       radius = max(radius, sqrt(dx * dx + dy * dy));
     }
 
-    modules.push({ spec, stats: s, x, y, angle, index: layoutIndex[i]!, raised: isRaised(spec) });
+    modules.push({ spec, stats: s, x, y, angle, index: layoutIndex[i]!, weaponsLayer: inWeaponsLayer(spec) });
 
     if (spec.kind === 'core') {
       cores.push(modules.length - 1);
@@ -1568,8 +1568,8 @@ function designFrom(
       // its way: within a barrel's length for where it may train, and at any
       // range for where it may fire. A beam's housing is a stub, so a beam
       // trains nearly freely and its mask does the work.
-      const arc = firingArc(specs, i, gun.barrelLength, isRaised, barrelHalfWidth(gun));
-      const mask = triggerMask(specs, i, isRaised, shotSpread(gun));
+      const arc = firingArc(specs, i, gun.barrelLength, inWeaponsLayer, barrelHalfWidth(gun));
+      const mask = triggerMask(specs, i, inWeaponsLayer, shotSpread(gun));
 
       // One drive, so one figure: the rate limit is what this acceleration
       // reaches in the drive's spin-up time.

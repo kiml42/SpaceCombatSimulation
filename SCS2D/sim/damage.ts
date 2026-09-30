@@ -609,7 +609,7 @@ function walkRound(
   speed: number,
   time: number,
   out: RoundOutcome,
-  raisedOnly = false,
+  weaponsLayerOnly = false,
   skip = -1,
 ): RoundOutcome {
   out.outcome = Terminal.Perforate;
@@ -633,7 +633,7 @@ function walkRound(
     out.ux = ux;
     out.uy = uy;
     out.speed = carried;
-    modulesAlong(design, ox - ux * reach, oy - uy * reach, ox + ux * reach, oy + uy * reach, path, raisedOnly, skip);
+    modulesAlong(design, ox - ux * reach, oy - uy * reach, ox + ux * reach, oy + uy * reach, path, weaponsLayerOnly, skip);
 
     let k = crossing;
     if (k < 0) {

@@ -1387,7 +1387,7 @@ describe('a turret’s arc on the module panel', () => {
     ];
     const open = moduleReadout(modules[1]!, modules, 1).gun!;
     // The same mount walled in on one beam must lose sweep that way — by
-    // raised structure, since a turret trains over what is not.
+    // thick structure, since a turret trains over what is not.
     const wall: ModuleSpec = { kind: 'structure', x: 12, y: 6, length: 8, width: 6 };
     const walled: ModuleSpec[] = [...modules, { ...wall, thick: true }];
     const low = moduleReadout(modules[1]!, [...modules, wall], 1).gun!;

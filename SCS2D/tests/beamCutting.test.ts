@@ -129,15 +129,15 @@ describe('a beam held on a hull', () => {
 });
 
 describe('a beam in the weapons layer', () => {
-  /** A core with three blocks ahead of it, raised or not, and a beam down them. */
-  function deck(raised: boolean): { cut: number; hits: number } {
+  /** A core with three blocks ahead of it, thick or not, and a beam down them. */
+  function deck(thick: boolean): { cut: number; hits: number } {
     const design = compileBlueprint({
       name: 'deck',
       modules: [
         { kind: 'core', x: 0, y: 0, length: 4, width: 4 },
-        { kind: 'structure', x: 4, y: 0, length: 4, width: 4, thick: raised },
-        { kind: 'structure', x: 8, y: 0, length: 4, width: 4, thick: raised },
-        { kind: 'structure', x: 12, y: 0, length: 4, width: 4, thick: raised },
+        { kind: 'structure', x: 4, y: 0, length: 4, width: 4, thick },
+        { kind: 'structure', x: 8, y: 0, length: 4, width: 4, thick },
+        { kind: 'structure', x: 12, y: 0, length: 4, width: 4, thick },
       ],
     });
     const world = new World({ dt: 1 / 60, seed: 5 });
@@ -170,13 +170,13 @@ describe('a beam in the weapons layer', () => {
     return { cut, hits: landed };
   }
 
-  it('burns the seams between raised modules', () => {
-    const raised = deck(true);
-    expect(raised.hits).toBeGreaterThan(0);
-    expect(raised.cut).toBeGreaterThan(0);
+  it('burns the seams between thick modules', () => {
+    const thick = deck(true);
+    expect(thick.hits).toBeGreaterThan(0);
+    expect(thick.cut).toBeGreaterThan(0);
   });
 
-  it('passes over a deck with nothing raised on it', () => {
+  it('passes over a deck with nothing thick on it', () => {
     expect(deck(false)).toEqual({ cut: 0, hits: 0 });
   });
 });

@@ -1217,7 +1217,7 @@ export class Ships {
     const doctrine = mount.targeting;
     // A mount in the hull layer with no opinion about parts shoots at the
     // hull. One in the weapons layer cannot: amidships is usually deck, which
-    // its rounds pass over, so it always picks something raised. Nor can one
+    // its rounds pass over, so it always picks something in the weapons layer. Nor can one
     // hooked to its target, whose hull's middle may be its own.
     const anyPart = !picksParts(doctrine);
     if (anyPart && mount.hullLayer && !hooked) return WHOLE_SHIP;
@@ -1268,7 +1268,7 @@ export class Ships {
    */
   private reaches(mount: DesignTurret, design: ShipDesign, tb: number, target: number, k: number): boolean {
     if (this.damage.spent(tb, k) || !this.ownsAt(target, tb, k)) return false;
-    return mount.hullLayer || design.modules[k]!.raised;
+    return mount.hullLayer || design.modules[k]!.weaponsLayer;
   }
 
   /**
@@ -3263,7 +3263,7 @@ export class Ships {
           : triggerMask(
               specs,
               mount.module,
-              (_spec, k) => sides[k] === sides[mount.module] && (mount.hullLayer || design.modules[k]!.raised),
+              (_spec, k) => sides[k] === sides[mount.module] && (mount.hullLayer || design.modules[k]!.weaponsLayer),
               shotSpread(mount.gun),
             );
       const index = this.turrets.add({ ...mount.mount, mask, owner: b });
