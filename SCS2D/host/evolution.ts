@@ -9,7 +9,7 @@ import {
   type ShipDesign,
 } from '../sim/index.js';
 import { Flashes } from '../render/flashes.js';
-import { draw } from '../render/canvas2d.js';
+import { draw, teamColour } from '../render/canvas2d.js';
 import { drawChart, indexAt, xOf, type ChartLayout, type Series } from '../render/chart.js';
 import {
   easeScale,
@@ -329,6 +329,7 @@ export function startEvolution(): void {
   const fleetBox = el<HTMLElement>('fleet');
   const { table: fleetTable, body: fleetBody, none: emptyNote } = buildCombatantTable(fleetBox);
   const watchingLabel = el<HTMLElement>('watching');
+  const battleScores = el<HTMLElement>('battleScores');
   const latestButton = el<HTMLButtonElement>('latest');
   const shownGeneration = el<HTMLElement>('shownGeneration');
   const fightingLabel = el<HTMLElement>('fighting');
@@ -1819,8 +1820,51 @@ export function startEvolution(): void {
       `${last.wins} of ${last.individuals} beat it${where}`;
   }
 
+  /**
+   * Each side's score in the battle on show, and its parts: what the match
+   * would pay if it ended as it stands, so a replay says why it scored what
+   * the table says it did.
+   */
+  function reportScores(): void {
+    const match = modeSelect.value === 'battle' ? watchedMatch : null;
+    battleScores.hidden = match === null;
+    if (match === null) return;
+    const names = match === replay ? replayOf?.competitors : undefined;
+    const { slots, owners, ships } = match.battle;
+    const table = document.createElement('table');
+    const head = document.createElement('tr');
+    for (const [css, text, title] of [
+      ['', 'side', ''],
+      ['', 'score', 'weighted total'],
+      ...SCORE_COLUMNS.map((column) => [column.css, column.head, column.title] as const),
+    ] as const) {
+      const th = document.createElement('th');
+      th.className = css;
+      th.textContent = text;
+      th.title = title;
+      head.append(th);
+    }
+    table.append(head);
+    match.result().scores.forEach((score, i) => {
+      const tr = document.createElement('tr');
+      // In the colour its ships are drawn in: its own side, or one shared against a boss.
+      const k = owners.indexOf(i);
+      const colour = teamColour(k < 0 ? i : ships.teamOf(slots[k]!));
+      const parts = [score.survival, score.functional, score.damage, score.disabling, score.race];
+      for (const cell of [names?.[i] === undefined ? String(i + 1) : `#${names[i]}`, score.total.toFixed(3), ...parts.map((part) => part.toFixed(2))]) {
+        const td = document.createElement('td');
+        td.textContent = cell;
+        td.style.color = colour;
+        tr.append(td);
+      }
+      table.append(tr);
+    });
+    battleScores.replaceChildren(table);
+  }
+
   function report(): void {
     reportYardstick();
+    reportScores();
     if (run === null) {
       stateLabel.textContent = 'idle';
       barFill.style.width = '0';
