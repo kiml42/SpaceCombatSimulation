@@ -29,6 +29,7 @@ export {
   ProjectileHits,
   NO_OWNER,
   NOT_INSIDE,
+  BURST_FRAGMENTS,
   type ProjectileSpec,
 } from './projectiles.js';
 export {
@@ -71,6 +72,8 @@ export {
   readsNozzle,
   readsWeapon,
   readsThick,
+  readsFuse,
+  DEFAULT_FUSE,
   inWeaponsLayer,
   isThick,
   moduleThickness,
@@ -245,6 +248,7 @@ export {
   Ships,
   NEUTRAL_TEAM,
   NO_TARGET,
+  BURST_SPREAD,
   type Order,
   type ShipSpec,
 } from './ships.js';

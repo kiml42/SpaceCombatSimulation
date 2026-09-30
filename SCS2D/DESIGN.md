@@ -426,7 +426,9 @@ inside any one file is not contiguous.
   as a warm wedge inside the sweep. A mount prefers a target it can fire at, but with none it tracks one
   on a masked bearing with its trigger held, so it is on target as the ship turns. A lit beam's drive stops at the edge of a masked sector rather than
   sweep across its own ship. A shot may land on its own ship, but never on the mount that fired it, so
-  two enemies hooked together shoot each other. A module is as deep as it is across, capped at a deck
+  two enemies hooked together shoot each other. **A gun's rounds burst** a fifth of a second before their
+  aim point by default (a per-mount `fuse`), into fragments that fly in the hull layer, which is how a
+  turret reaches below the deck; a beam has no fuse, so it never does. A module is as deep as it is across, capped at a deck
   (3 m) unless it is thick. Shipped ships mark every engine wider than a deck thick, and the Corvette and
   Gunship carry their bow guns as hull guns. A match is over when at most one side can
   still shoot or push, since most fleets can no longer destroy each other.

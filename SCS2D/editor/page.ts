@@ -1,10 +1,12 @@
 import {
+  DEFAULT_FUSE,
   DEFAULT_NOZZLE_SHARE,
   degreesToRadians,
   isInstance,
   isHullMount,
   isWeaponMount,
   readsThick,
+  readsFuse,
   canThicken,
   isThick,
   mountTraverse,
@@ -149,7 +151,7 @@ function el<T extends HTMLElement>(id: string): T {
   return found as T;
 }
 
-type ModuleNumberField = 'angle' | 'reinforcement' | 'barrels' | 'nozzle' | 'traverse';
+type ModuleNumberField = 'angle' | 'reinforcement' | 'barrels' | 'nozzle' | 'traverse' | 'fuse';
 
 /** A module's own value for a field, with the default the parser would have applied. */
 function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
@@ -159,6 +161,7 @@ function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
   // What the mount would do if the layout said nothing, so the box shows the
   // arc it actually has rather than a blank.
   if (key === 'traverse') return radiansToDegrees(mountTraverse(spec));
+  if (key === 'fuse') return spec.fuse ?? DEFAULT_FUSE;
   return spec.barrels ?? 1;
 }
 
@@ -279,6 +282,7 @@ export function startEditor(): void {
     barrels: el<HTMLInputElement>('propBarrels'),
     nozzle: el<HTMLInputElement>('propNozzle'),
     traverse: el<HTMLInputElement>('propTraverse'),
+    fuse: el<HTMLInputElement>('propFuse'),
     notes: el<HTMLTextAreaElement>('propNotes'),
   };
 
@@ -737,6 +741,7 @@ export function startEditor(): void {
     // The same field again: what sticks out of the module, named for the kind
     // showing it — a bell, a barrel, or the housing round a lens.
     el<HTMLElement>('traverseRow').hidden = !isWeaponMount(spec.kind);
+    el<HTMLElement>('fuseRow').hidden = !readsFuse(spec.kind);
     el<HTMLElement>('nozzleRow').hidden = !nozzles && !hullMount;
     el<HTMLElement>('nozzleLabel').textContent = nozzles
       ? 'nozzle'

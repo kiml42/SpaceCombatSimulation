@@ -245,6 +245,16 @@
               title="How far the weapon may train either way from its resting bearing. A limit only: the mount's own arc and whatever the ship is in the way of still apply. A turret's ring goes all the way round whatever it is told, so limiting one weighs the same; a hull weapon's bed is built for the arc it sweeps, so a narrower one is lighter and a fixed one carries no training gear at all."
             />
           </div>
+          <div class="field" id="fuseRow">
+            <label for="propFuse">fuse s</label>
+            <input
+              id="propFuse"
+              type="number"
+              step="0.05"
+              min="0"
+              title="How long before its round would reach what it is aimed at it bursts into fragments, seconds. Fragments meet every module, deck included, so this is how a turret reaches a hull. Longer spreads them wider and thinner; zero bursts only a round that has missed."
+            />
+          </div>
           <div class="field" id="weaponRow">
             <label for="propWeapon">weapon</label>
             <input

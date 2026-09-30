@@ -272,6 +272,15 @@ describe('the editor in a browser', () => {
     expect((await page.textContent('#stats'))?.match(/[\d,.]+ t/)?.[0]).not.toBe(mass);
   });
 
+  it('offers a fuse on a gun and not on a beam', async () => {
+    await page.click('#newShip');
+    await page.click('[data-add="turret"]');
+    expect(await page.isVisible('#fuseRow')).toBe(true);
+    expect(Number(await page.inputValue('#propFuse'))).toBeCloseTo(0.2, 9);
+    await page.click('[data-add="beamTurret"]');
+    expect(await page.isVisible('#fuseRow')).toBe(false);
+  });
+
   it('lets an engine be thick only once its nozzle is wider than a deck', async () => {
     await page.click('#newShip');
     await page.click('[data-add="engine"]');

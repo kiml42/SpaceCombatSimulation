@@ -13,6 +13,7 @@ import {
   MODULE_KINDS,
   readsNozzle,
   readsThick,
+  readsFuse,
   readsWeapon,
   type ModuleKind,
   type ModuleSpec,
@@ -73,6 +74,7 @@ const MODULE_KEYS: readonly string[] = [
   'barrels',
   'nozzle',
   'traverse',
+  'fuse',
   'weapon',
   'thick',
   'targeting',
@@ -182,6 +184,7 @@ function moduleShapeProblem(value: Record<string, unknown>, where: string): stri
     optionalNumberProblem(value['barrels'], `${where}: barrels`) ??
     optionalNumberProblem(value['nozzle'], `${where}: nozzle`) ??
     optionalNumberProblem(value['traverse'], `${where}: traverse`) ??
+    optionalNumberProblem(value['fuse'], `${where}: fuse`) ??
     optionalBooleanProblem(value['weapon'], `${where}: weapon`) ??
     optionalBooleanProblem(value['thick'], `${where}: thick`) ??
     targetingProblem(value['targeting'], `${where}: targeting`) ??
@@ -213,6 +216,9 @@ function dormantFieldProblem(value: Record<string, unknown>, where: string): str
   }
   if (value['traverse'] !== undefined && !isWeaponMount(kind)) {
     return `${where}: only a weapon has a traverse`;
+  }
+  if (value['fuse'] !== undefined && !readsFuse(kind)) {
+    return `${where}: only a gun has a fuse`;
   }
   if (value['weapon'] !== undefined && !readsWeapon(kind)) {
     return `${where}: only an engine can be used as a weapon`;
@@ -398,6 +404,7 @@ function toPlacements(raws: unknown[]): Placement[] {
     if (raw['nozzle'] !== undefined) spec.nozzle = raw['nozzle'] as number;
     // Degrees in the file and radians in the simulation, as every other angle.
     if (raw['traverse'] !== undefined) spec.traverse = degreesToRadians(raw['traverse'] as number);
+    if (raw['fuse'] !== undefined) spec.fuse = raw['fuse'] as number;
     if (raw['weapon'] !== undefined) spec.weapon = raw['weapon'] as boolean;
     if (raw['thick'] !== undefined) spec.thick = raw['thick'] as boolean;
     if (raw['targeting'] !== undefined) spec.targeting = { ...(raw['targeting'] as Partial<Targeting>) };
@@ -485,6 +492,9 @@ function serialisePlacement(placement: Placement): Record<string, unknown> {
   }
   if (placement.traverse !== undefined && isWeaponMount(placement.kind)) {
     raw['traverse'] = radiansToDegrees(placement.traverse);
+  }
+  if (placement.fuse !== undefined && readsFuse(placement.kind)) {
+    raw['fuse'] = placement.fuse;
   }
   if (placement.weapon !== undefined && readsWeapon(placement.kind)) {
     raw['weapon'] = placement.weapon;

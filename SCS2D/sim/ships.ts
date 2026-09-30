@@ -13,7 +13,7 @@ import { Hulls } from './hull.js';
 import { Damage, DamageEffect } from './damage.js';
 import { plumeRays, plumeRayStarts, Plumes, WEAPON_PLUME_SHARE } from './exhaust.js';
 import { Choice, cohesionUrge, look, lookFrom, score } from './targeting.js';
-import { moduleRadius, engineGeometry } from './modules.js';
+import { DEFAULT_FUSE, moduleRadius, engineGeometry, readsFuse, type ModuleSpec } from './modules.js';
 import {
   atan2,
   angleDelta,
@@ -84,6 +84,18 @@ import { GunType, type GunStats, type ModuleKind } from './modules.js';
  * guard against rounds accumulating for ever, not a range limit.
  */
 const ROUND_FLIGHT_TIME = 30;
+
+/** How fast a burst's fragments spread, as a share of the gun's muzzle speed. */
+export const BURST_SPREAD = 0.1;
+
+/** The least a fragment flies, seconds, however short its fuse. */
+const FRAGMENT_MIN_LIFE = 0.5;
+
+/** Twice the lead, so a fragment outlives the burst's arrival at what it was aimed at. */
+function fragmentLife(spec: ModuleSpec): number {
+  const life = 2 * (spec.fuse ?? DEFAULT_FUSE);
+  return life > FRAGMENT_MIN_LIFE ? life : FRAGMENT_MIN_LIFE;
+}
 
 /**
  * How quickly a pilot tries to correct a velocity error, seconds. Larger is
@@ -1339,6 +1351,17 @@ export class Ships {
   }
 
   /**
+   * Seconds until a round from this mount bursts: its fuse short of the
+   * flight time to what it is aimed at. Never, with nothing to time it to.
+   */
+  private fuseFor(turret: number, target: number, spec: ModuleSpec): number {
+    const flight = this.turrets.aimTime[turret]!;
+    if (target === NO_TARGET || !(flight > 0) || !readsFuse(spec.kind)) return Infinity;
+    const fuse = flight - (spec.fuse ?? DEFAULT_FUSE);
+    return fuse > 0 ? fuse : 0;
+  }
+
+  /**
    * Whether a friendly hull is in the way of this shot.
    *
    * A straight cast from the muzzle along the barrel, at this instant and
@@ -1656,6 +1679,7 @@ export class Ships {
         }
 
         if (gun.type == GunType.Projectile) {
+          const fuse = design.modules[design.turrets[t]!.module]!.spec;
           projectiles.fireFrom(
             bodies,
             bodyIdx,
@@ -1671,6 +1695,9 @@ export class Ships {
             0,
             design.turrets[t]!.module,
             !design.turrets[t]!.hullLayer,
+            this.fuseFor(ti, target, fuse),
+            gun.muzzleSpeed * BURST_SPREAD,
+            fragmentLife(fuse),
           );
 
           // An impulse rather than a force: the round leaves within the step, so
