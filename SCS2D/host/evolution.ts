@@ -287,7 +287,8 @@ export function startEvolution(): void {
   const chartTip = el<HTMLElement>('chartTip');
   const legend = el<HTMLElement>('legend');
   /**
-   * What each generation weighs and fields, under what it scored: a run that
+   * What one fleet of each generation weighs and fields — averaged over the
+   * generation, and for its fittest — under what it scored: a run that
    * scores better by growing is not the run that scores better by paring
    * down. Ships only once a run has fielded more than one.
    */
