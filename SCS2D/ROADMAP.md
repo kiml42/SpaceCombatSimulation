@@ -597,7 +597,7 @@ Deliberately unresolved; decide when they block something.
   does, and which is a linear program rather than a loop to find.
 - **Whether capitals may mount hull-layer guns.** Not needed for torpedoes — §3 settles those — but it is
   an appealing separate axis. `hullGun` and `hullBeam` exist, have the narrow arcs and heavy bore this
-  imagines, and fire in the hull layer, so they are the only guns that can reach a core. What is open is
+  imagines, and fire in the hull layer, so they are the only guns that can reach a core below deck. What is open is
   whether that earns them a place. Deck turrets are **area**-limited: many of them, arcs unconstrained, but they
   can only strip mounts. Edge-mounted hull-layer guns would be **perimeter**-limited: few, narrow arcs, but
   able to hole a hull directly. Big ships would then have to *specialise* rather than simply scale, and the
@@ -611,7 +611,7 @@ Deliberately unresolved; decide when they block something.
   a raised engine's exhaust is still blocked by deck structure behind it. Left as it was, because nothing
   yet makes the difference matter.
 - **Whether raised turrets and engines should pay for their height the way raised structure does.** Only
-  raised structure has taller walls, because its height is a choice and theirs is not.
+  raised structure and cores have taller walls, because their height is a choice and a turret's is not.
 - **Engines split by layer, into two archetypes.** A single `engine` kind cannot express the choice the
   weapons layer creates, so it becomes two — a new *archetype* rather than a new coefficient, which is the
   distinction the materials question above already draws.

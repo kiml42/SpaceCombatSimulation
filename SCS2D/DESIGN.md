@@ -417,9 +417,9 @@ inside any one file is not contiguous.
   beam, the opening turns out barely to constrain one at all: a lens is a fraction of the width a row
   of tubes is, so what holds a hull beam is the mounting limit until its housing runs most of the
   length of the module.
-  **Two layers** (§3). Turrets, engines and structure marked *raised* stand above the deck; cores, hull
-  weapons and the rest of the structure are the deck. A turret's rounds and beams meet only what is
-  raised, so they strip mounts and engines and never reach a core; a hull weapon's meet everything. Each
+  **Two layers** (§3). Turrets, engines, and structure or cores marked *raised* stand above the deck; hull
+  weapons and the rest of the structure and cores are the deck. A turret's rounds and beams meet only what is
+  raised, so they strip mounts and engines and never reach a core below deck; a hull weapon's meet everything. Each
   mount has a traverse — where its barrel may go, stopped by what it would foul within a barrel's
   length — and, separately, a trigger mask: the bearings its own ship is downrange of, at any distance,
   where it may point but not fire. For a turret both count only what is raised. The editor draws the mask
@@ -562,10 +562,11 @@ Rules:
   width, because a turret's is small in order to fit inside a ring and then be swung, and they pay for
   it in having almost nowhere to point: a hull mount trains about the root of its barrel, and the
   barrel has to stay inside the opening it comes out of.
-- **Which layer a module is in** is fixed by its kind, except for structure. Turrets and engines are
-  *raised* into the weapons layer; cores and hull weapons are not. Structure may be marked raised: it
+- **Which layer a module is in** is fixed by its kind, except for structure and cores. Turrets and
+  engines are *raised* into the weapons layer; hull weapons are not. Structure may be marked raised: it
   is then cover for the turrets behind it, and it pays in wall, in being within reach of guns, and in
-  the arcs of every turret it stands in front of.
+  the arcs of every turret it stands in front of. A core may be raised on the same terms, a bridge up on
+  deck rather than below it: turrets can then reach it.
 - **A turret trains and fires over the deck.** What stops its barrel is raised modules within a barrel's
   length. What stops its trigger is raised modules at any range down the line of fire: its *trigger
   mask*, a set of sectors it may point through but not fire into. The mask is always wider than the

@@ -29,12 +29,13 @@ import {
 const PI = Math.PI;
 
 describe('which layer a module is in', () => {
-  it('is fixed by kind, except for structure', () => {
+  it('is fixed by kind, except for structure and cores', () => {
     const at = { x: 0, y: 0, length: 4, width: 4 };
     expect(isRaised({ kind: 'turret', ...at })).toBe(true);
     expect(isRaised({ kind: 'beamTurret', ...at })).toBe(true);
     expect(isRaised({ kind: 'engine', ...at })).toBe(true);
     expect(isRaised({ kind: 'core', ...at })).toBe(false);
+    expect(isRaised({ kind: 'core', ...at, raised: true })).toBe(true);
     expect(isRaised({ kind: 'hullGun', ...at })).toBe(false);
     expect(isRaised({ kind: 'structure', ...at })).toBe(false);
     expect(isRaised({ kind: 'structure', ...at, raised: true })).toBe(true);
@@ -48,21 +49,29 @@ describe('which layer a module is in', () => {
     expect(high.capacity).toBe(moduleStats(low).capacity);
   });
 
-  it('is saved on structure and refused anywhere else', () => {
+  it('costs a raised core more wall too', () => {
+    const low: ModuleSpec = { kind: 'core', x: 0, y: 0, length: 4, width: 4 };
+    expect(moduleStats({ ...low, raised: true }).mass).toBeGreaterThan(moduleStats(low).mass);
+  });
+
+  it('is saved on structure and cores and refused anywhere else', () => {
     const bp: Blueprint = {
       name: 'Tower',
       modules: [
-        { kind: 'core', x: 0, y: 0, length: 4, width: 4 },
+        { kind: 'core', x: 0, y: 0, length: 4, width: 4, raised: true },
         { kind: 'structure', x: 4, y: 0, length: 4, width: 4, raised: true },
       ],
     };
     const file = serialiseBlueprint(bp);
     const back = parseBlueprint(file);
+    expect(back.modules[0]).toMatchObject({ raised: true });
     expect(back.modules[1]).toMatchObject({ raised: true });
-    expect(compileBlueprint(back).modules[1]!.raised).toBe(true);
+    const compiled = compileBlueprint(back);
+    expect(compiled.modules[0]!.raised).toBe(true);
+    expect(compiled.modules[1]!.raised).toBe(true);
 
     const turret = { ...file, modules: [{ kind: 'turret', x: 0, y: 0, length: 4, width: 4, raised: true }] };
-    expect(blueprintFileProblem(turret)).toMatch(/only structure/);
+    expect(blueprintFileProblem(turret)).toMatch(/only structure and cores/);
   });
 });
 

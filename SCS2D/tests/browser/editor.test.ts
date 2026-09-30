@@ -257,6 +257,18 @@ describe('the editor in a browser', () => {
     expect(await page.textContent('#moduleStats')).not.toMatch(/Gun/);
   });
 
+  it('lets a core be raised above the deck, which costs it wall', async () => {
+    await openShip(page, 'Corvette');
+    const centre = await canvasCentre(page);
+    await page.mouse.click(centre.x, centre.y);
+    expect(await page.inputValue('#propKind')).toBe('core');
+    expect(await page.isVisible('#raisedRow')).toBe(true);
+    const mass = (await page.textContent('#stats'))?.match(/[\d,.]+ t/)?.[0];
+    await page.check('#propRaised');
+    expect(await page.isChecked('#propRaised')).toBe(true);
+    expect((await page.textContent('#stats'))?.match(/[\d,.]+ t/)?.[0]).not.toBe(mass);
+  });
+
   it('burns a selected engine, and lets it die down again', async () => {
     // How much warm colour is on the canvas. Exhaust is the only large warm
     // thing the page draws — the hull and its trim are neutral greys, whose

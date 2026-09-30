@@ -644,13 +644,14 @@ export interface ModuleSpec {
   weapon?: boolean;
 
   /**
-   * Whether this structure stands up into the weapons layer. Structure only;
-   * every other kind is one layer or the other by what it is (`isRaised`).
+   * Whether this structure or core stands up into the weapons layer; every
+   * other kind is one layer or the other by what it is (`isRaised`).
    *
    * Raised structure is cover: it stops deck-level fire at whatever is behind
    * it, which is what a turret wants. It pays for that in wall, in being
    * something guns can strip, and in the arcs of every turret it stands in
-   * front of.
+   * front of. A raised core is the bridge up on deck rather than below it:
+   * in turrets' reach as well as in their way.
    */
   raised?: boolean;
 
@@ -1211,9 +1212,9 @@ export function readsWeapon(kind: ModuleKind): boolean {
   return kind === 'engine';
 }
 
-/** Whether `raised` means anything on this kind: structure may be either layer. */
+/** Whether `raised` means anything on this kind: structure and cores may be either layer. */
 export function readsRaised(kind: ModuleKind): boolean {
-  return kind === 'structure';
+  return kind === 'structure' || kind === 'core';
 }
 
 /**
@@ -1221,7 +1222,7 @@ export function readsRaised(kind: ModuleKind): boolean {
  * turrets and can be hit by them.
  *
  * Turrets and engines always do — guns strip "mounts, sensors and engines" —
- * and cores and hull weapons never do. Structure is whichever it says.
+ * and hull weapons never do. Structure and cores are whichever they say.
  */
 export function isRaised(spec: ModuleSpec): boolean {
   switch (spec.kind) {
@@ -1230,15 +1231,16 @@ export function isRaised(spec: ModuleSpec): boolean {
     case 'engine':
       return true;
     case 'structure':
+    case 'core':
       return spec.raised === true;
     default:
       return false;
   }
 }
 
-/** How tall a module's walls are, metres. Only raised structure is taller. */
+/** How tall a module's walls are, metres: taller where the height is a choice (`readsRaised`). */
 export function moduleHeight(spec: ModuleSpec): number {
-  return spec.kind === 'structure' && spec.raised === true ? RAISED_HEIGHT : DECK_HEIGHT;
+  return readsRaised(spec.kind) && spec.raised === true ? RAISED_HEIGHT : DECK_HEIGHT;
 }
 
 /**
