@@ -228,18 +228,6 @@ export interface Approach {
    * one means every retro it has and less keeps a margin in hand.
    */
   readonly brake: number;
-  /**
-   * How close its target's edge has to be before a ship will ram it, in the
-   * target's radii. Zero never rams. Any ship may; a fighter that rams also
-   * drops into the hull layer (DESIGN.md §3).
-   */
-  readonly ramRadii: number;
-  /**
-   * The share of its own guns still working at or below which it will ram:
-   * zero rams only once it has nothing left to shoot with, one whenever it is
-   * close enough.
-   */
-  readonly ramArmed: number;
 }
 
 export interface Doctrine {
@@ -287,8 +275,6 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     approachSpeed: 60,
     accelerate: 1,
     brake: 0.8,
-    ramRadii: 0,
-    ramArmed: 0,
   },
 };
 
@@ -458,8 +444,6 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
   'approachSpeed',
   'accelerate',
   'brake',
-  'ramRadii',
-  'ramArmed',
 ];
 
 /**

@@ -9,7 +9,7 @@ import {
   type ShipDesign,
 } from './blueprint.js';
 import { components, cuts, jointBetween, joints, type Joint } from './connectivity.js';
-import { BOTH_LAYERS, HULL_LAYER, Hulls, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from './hull.js';
+import { HULL_LAYER, Hulls, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from './hull.js';
 import { Damage, DamageEffect } from './damage.js';
 import { plumeRays, plumeRayStarts, Plumes, WEAPON_PLUME_SHARE } from './exhaust.js';
 import { Choice, cohesionUrge, look, lookFrom, score } from './targeting.js';
@@ -541,8 +541,6 @@ export class Ships {
    * drawn, hit and severed by the code that already does those.
    */
   private readonly derelict: number[] = [];
-  /** 1 for a fighter its doctrine has taken down into the hull layer as well. */
-  private readonly committed: number[] = [];
 
   /**
    * Mass thrown away as scrap or lost track of, kilograms — everything the
@@ -925,7 +923,6 @@ export class Ships {
     this.turretAimModule.push(new Int32Array(mounts.length).fill(WHOLE_SHIP));
     this.team.push(spec.team ?? 0);
     this.derelict.push(0);
-    this.committed.push(0);
     this.cutSeen.push(-1);
     this.partedAt.push(-Infinity);
     this.chosen.push(NO_TARGET);
@@ -981,9 +978,7 @@ export class Ships {
     // choose between — but it may still have somewhere it would rather be,
     // which is why this no longer ends the question.
     let fighting = NO_TARGET;
-    // A ship that can ram still has a fight with nothing left to shoot.
-    const rammer = design.doctrine.approach.ramRadii > 0;
-    if (design.reach > 0 && (!this.isDisarmed(i) || rammer)) {
+    if (design.reach > 0 && !this.isDisarmed(i)) {
       this.choice.begin();
       for (let t = 0; t < this.alive.length; t++) {
         if (t === i || this.alive[t] === 0) continue;
@@ -1313,73 +1308,9 @@ export class Ships {
     return (layers & HULL_LAYER) !== 0 && (whole === OWN_LAYERS || (whole & HULL_LAYER) !== 0);
   }
 
-  /**
-   * Whether this ship's doctrine would ram its target now: close enough, by
-   * `ramRadii` of the target's radius from its edge, and with no more of its
-   * own guns working than `ramArmed` says.
-   */
-  private rams(i: number, target: number): boolean {
-    const approach = this.designs[i]!.doctrine.approach;
-    if (!(approach.ramRadii > 0) || this.armedShare(i) > approach.ramArmed) return false;
-    const bodies = this.bodyStore;
-    if (bodies === null) return false;
-    const b = bodies.indexOf(this.bodyIds[i]!);
-    const tb = bodies.indexOf(this.bodyIds[target]!);
-    if (b < 0 || tb < 0) return false;
-    const gap = length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!) - bodies.radius[tb]!;
-    return gap <= approach.ramRadii * bodies.radius[tb]!;
-  }
-
-  /** The share of this ship's mounts that can still fire; none for a ship with none. */
-  private armedShare(i: number): number {
-    const mounts = this.designs[i]!.turrets.length;
-    if (mounts === 0) return 0;
-    let working = 0;
-    for (let t = 0; t < mounts; t++) if (!this.isTurretDisabled(i, t)) working++;
-    return working / mounts;
-  }
-
-  /**
-   * Whether a fighter takes the hull layer as well: whenever it is ramming,
-   * which is flying at a target with a band of nothing, by its doctrine's
-   * decision or by order.
-   *
-   * Only while clear of every hull, in either direction (DESIGN.md §3), so a
-   * fighter cannot drop inside a capital's perimeter or climb back out of one
-   * it has struck. Clear of its bounding circle, which is the cautious answer.
-   */
-  private commitOne(bodies: Bodies, i: number): void {
-    if (!this.designs[i]!.fighter) return;
-    const b = bodies.indexOf(this.bodyIds[i]!);
-    if (b < 0) return;
-    const order = this.effectiveOrder(i);
-    const ramming = order !== undefined && order.target !== NO_TARGET && order.maxRange === 0;
-    const want = ramming ? 1 : 0;
-    if (want === this.committed[i] || !this.clearOfHulls(bodies, b)) return;
-    this.committed[i] = want;
-  }
-
-  /** Whether no other hull's bounding circle overlaps this body's. */
-  private clearOfHulls(bodies: Bodies, b: number): boolean {
-    for (let j = 0; j < bodies.highWater; j++) {
-      if (j === b || bodies.alive[j] === 0 || this.designOf(j) === null) continue;
-      const reach = bodies.radius[j]! + bodies.radius[b]!;
-      const dx = bodies.x[j]! - bodies.x[b]!;
-      const dy = bodies.y[j]! - bodies.y[b]!;
-      if (dx * dx + dy * dy < reach * reach) return false;
-    }
-    return true;
-  }
-
-  /** Whether this fighter has dropped into the hull layer as well. */
-  isCommitted(i: number): boolean {
-    return this.committed[i] === 1;
-  }
-
-  /** The layers every module of this ship is in, or `OWN_LAYERS`: a fighter's, by whether it has committed. */
+  /** The layers every module of this ship is in, or `OWN_LAYERS`: a fighter's is the weapons layer. */
   private shipLayers(i: number): number {
-    if (!this.designs[i]!.fighter) return OWN_LAYERS;
-    return this.committed[i] === 1 ? BOTH_LAYERS : WEAPONS_LAYER;
+    return this.designs[i]!.fighter ? WEAPONS_LAYER : OWN_LAYERS;
   }
 
   /** The layers this mount's shots fly in: a fighter's guns fire in whatever it occupies. */
@@ -1578,12 +1509,6 @@ export class Ships {
       min(approach.standoffRadii * this.designs[target]!.radius, approach.standoff * design.reach);
     standing.minRange = max(0, wanted * (1 - approach.tolerance));
     standing.maxRange = max(standing.minRange, wanted * (1 + approach.tolerance));
-    // Having decided to ram, it closes to nothing: a band of zero is the
-    // order to arrive.
-    if (this.rams(i, target)) {
-      standing.minRange = 0;
-      standing.maxRange = 0;
-    }
     standing.approachSpeed = approach.approachSpeed;
     return standing;
   }
@@ -1655,7 +1580,6 @@ export class Ships {
       this.decide(world, bodies, i);
       this.decideTurrets(world, bodies, i);
       this.flyOne(dt, bodies, i, grid);
-      this.commitOne(bodies, i);
       this.trainOne(bodies, i);
       const timers = this.cooldown[i]!;
       const b = bodies.indexOf(this.bodyIds[i]!);
