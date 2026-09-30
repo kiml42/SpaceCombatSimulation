@@ -26,6 +26,7 @@ import { degreesToRadians, radiansToDegrees } from '../sim/blueprintFile.js';
 import {
   DEFAULT_NOZZLE_SHARE,
   isWeaponMount,
+  readsRaised,
   mountTraverse,
   isHullMount,
   MODULE_KINDS,
@@ -428,6 +429,7 @@ type Knob =
   | { readonly at: 'traverse'; readonly site: ModuleSite }
   | { readonly at: 'gunnery'; readonly site: ModuleSite }
   | { readonly at: 'weapon'; readonly site: ModuleSite }
+  | { readonly at: 'raised'; readonly site: ModuleSite }
   | { readonly at: 'angle'; readonly site: ModuleSite }
   | { readonly at: 'face'; readonly site: ModuleSite }
   | { readonly at: 'seam'; readonly site: ModuleSite }
@@ -478,6 +480,7 @@ function knobs(draft: Draft): Knob[] {
       if (placement.kind !== 'structure' && placement.kind !== 'core') {
         out.push({ at: 'angle', site });
       }
+      if (readsRaised(placement.kind)) out.push({ at: 'raised', site });
       if (placement.kind === 'turret' || placement.kind === 'beamTurret') {
         out.push({ at: 'barrels', site });
       }
@@ -554,6 +557,8 @@ function renumber(knob: Knob, draft: Draft, rng: Rng, bounds: MutationLimits): s
       return retrain(knob.site, rng, bounds);
     case 'weapon':
       return rearm(knob.site);
+    case 'raised':
+      return raise(knob.site);
     case 'angle':
       return turnModule(knob.site, rng, bounds);
     case 'face':
@@ -769,6 +774,20 @@ function rearm(site: ModuleSite): string {
   if (was) delete site.spec.weapon;
   else site.spec.weapon = true;
   return `${site.where} ${site.spec.kind}: ${was ? 'no longer' : 'now'} a weapon`;
+}
+
+/**
+ * Stand structure up into the weapons layer, or lay it down.
+ *
+ * A flip, as `rearm` is. Raised is cover for the turrets behind it and heavier
+ * wall, and it is also in their way and in reach of enemy guns: whether that
+ * is worth it is the fitness's call.
+ */
+function raise(site: ModuleSite): string {
+  const was = site.spec.raised === true;
+  if (was) delete site.spec.raised;
+  else site.spec.raised = true;
+  return `${site.where} ${site.spec.kind}: ${was ? 'lowered to the deck' : 'raised'}`;
 }
 
 function turnModule(site: ModuleSite, rng: Rng, bounds: MutationLimits): string {

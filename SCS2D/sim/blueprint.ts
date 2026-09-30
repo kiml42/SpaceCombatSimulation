@@ -5,6 +5,7 @@ import {
   moduleProblem,
   moduleStats,
   isHullMount,
+  isRaised,
   mountTraverse,
   hullMountGeometry,
   engineGeometry,
@@ -285,6 +286,8 @@ export interface DesignModule {
    * it pushes.
    */
   readonly angle: number;
+  /** In the weapons layer (`isRaised`): hit by turrets, and in their way. */
+  readonly raised: boolean;
 }
 
 /** A turret mount in a compiled design, ready to be added to a `Turrets` store. */
@@ -298,6 +301,11 @@ export interface DesignTurret {
   readonly reach: number;
   /** What this mount goes after: its archetype's doctrine, with its own overrides. */
   readonly targeting: Targeting;
+  /**
+   * Fires in the hull layer, so hits every module rather than only raised
+   * ones. A hull weapon; never a turret.
+   */
+  readonly hullLayer: boolean;
 }
 
 export interface ShipDesign {
@@ -461,37 +469,25 @@ function distanceToModule(m: ModuleSpec, px: number, py: number): number {
 }
 
 /**
- * The traverse a turret has before its own ship is in the way.
+ * The traverse a mount has before its own ship is in the way of its barrel.
  *
  * Firing arcs are a property of the layout rather than something authored per
  * mount (DESIGN.md §3): put a gun behind the superstructure and it *is*
- * blocked, and the way to give it a better field of fire is to move it, which
- * is a design decision with costs. The alternative — a number the designer
- * types — would let every turret traverse fully for free and quietly delete
- * the reason ships have silhouettes.
+ * blocked, and the way to give it a better field of fire is to move it.
  *
- * What blocks is any module the barrel would sweep into: near enough to be
- * within reach, and subtending bearings the gun would otherwise train through.
- * The half-width returned is symmetric about the mount's rest bearing, and is
- * the narrowest such width over every obstruction, so a mount fouled on one
- * side loses the matching sector on the other, and one near neighbour hides
- * whatever clear sky lies past it. That is pessimistic, and deliberately so.
- * The honest model is two quantities rather than one — a traverse bound saying
- * where the barrel may physically go, and a *set* of permitted firing
- * intervals, since a gun may sweep past superstructure it must not shoot
- * through, and a mount ringed by neighbours has several such gaps. DESIGN.md
- * §12 records the shape of that change; it waits on the blueprint editor,
- * which is what would make a layout's field of fire legible to a player.
+ * What blocks is any module `blocks` admits that the barrel would sweep into:
+ * within `reach`, and subtending bearings the gun would otherwise train
+ * through. Each side stops at the nearest such module, since a barrel cannot
+ * pass through one. Where the mount may *fire* is a separate and wider
+ * question, answered by `triggerMask`.
  *
- * The test is bearing-only: a module is treated as blocking the whole sector
- * it subtends, without regard for the barrel being able to pass over a low
- * module or stop short of a distant one. In a deck plan that is the right
- * first answer, because everything drawn is full deck height.
+ * The test is bearing-only: a module blocks the whole sector it subtends.
  */
 export function firingArc(
   modules: readonly ModuleSpec[],
   index: number,
   reach: number,
+  blocks: (module: ModuleSpec) => boolean = () => true,
 ): { left: number; right: number } {
   const mount = modules[index]!;
   const from = moduleCentre(mount);
@@ -503,6 +499,7 @@ export function firingArc(
   for (let i = 0; i < modules.length; i++) {
     if (i === index) continue;
     const other = modules[i]!;
+    if (!blocks(other)) continue;
     if (distanceToModule(other, from.x, from.y) > reach) continue;
 
     const c: number[] = [];
@@ -551,6 +548,78 @@ export function firingArc(
   }
 
   return {left, right};
+}
+
+/**
+ * The bearings a mount may point along but must not fire along, because its
+ * own ship is downrange: every sector subtended by a module `blocks` admits,
+ * at any distance.
+ *
+ * `pad` widens every sector by that many metres either side, for a shot that
+ * leaves off the mount's centre line.
+ *
+ * Flat pairs `[start, end, …]`, radians from the rest bearing, sorted by
+ * start, with each start in [-π, π) and its end after it. Overlaps are merged.
+ * Compiled once: it is a property of the layout, not of a step.
+ */
+export function triggerMask(
+  modules: readonly ModuleSpec[],
+  index: number,
+  blocks: (module: ModuleSpec, index: number) => boolean,
+  pad = 0,
+): number[] {
+  const mount = modules[index]!;
+  const from = moduleCentre(mount);
+  const rest = normalizeAngle(mount.angle ?? 0);
+  const sectors: { start: number; end: number }[] = [];
+  const c: number[] = [];
+
+  for (let i = 0; i < modules.length; i++) {
+    if (i === index) continue;
+    const other = modules[i]!;
+    if (!blocks(other, i)) continue;
+    // Standing inside it: nowhere is clear.
+    const distance = distanceToModule(other, from.x, from.y);
+    if (distance === 0) return [-PI, PI];
+
+    corners(other, c);
+    const mid = moduleCentre(other);
+    const centre = atan2(mid.y - from.y, mid.x - from.x);
+    let lo = 0;
+    let hi = 0;
+    for (let k = 0; k < 8; k += 2) {
+      const d = angleDelta(centre, atan2(c[k + 1]! - from.y, c[k]! - from.x));
+      lo = min(lo, d);
+      hi = max(hi, d);
+    }
+    // Widened by what a shot leaves the centre line by: an outer barrel, and
+    // the width of the shot itself.
+    const margin = pad > 0 ? atan2(pad, distance) : 0;
+    lo -= margin;
+    hi += margin;
+    const turned = normalizeAngle(angleDelta(rest, centre) + lo);
+    const start = turned >= PI ? turned - TAU : turned;
+    sectors.push({ start, end: start + (hi - lo) });
+  }
+
+  sectors.sort((a, b) => a.start - b.start);
+  const out: number[] = [];
+  for (const sector of sectors) {
+    const last = out.length - 1;
+    if (last > 0 && sector.start <= out[last]!) {
+      out[last] = max(out[last]!, sector.end);
+    } else {
+      out.push(sector.start, sector.end);
+    }
+  }
+  return out;
+}
+
+const everyModule = (): boolean => true;
+
+/** How far off a mount's centre line its shots may leave, metres. */
+export function shotSpread(gun: GunStats): number {
+  return ((gun.barrelCount - 1) / 2) * gun.barrelSpacing + gun.calibre / 2;
 }
 
 /**
@@ -862,6 +931,7 @@ function place(
     if (placement.nozzle !== undefined) spec.nozzle = placement.nozzle;
     if (placement.traverse !== undefined) spec.traverse = placement.traverse;
     if (placement.weapon !== undefined) spec.weapon = placement.weapon;
+    if (placement.raised !== undefined) spec.raised = placement.raised;
     if (placement.targeting !== undefined) spec.targeting = placement.targeting;
     if (placement.notes !== undefined) spec.notes = placement.notes;
     out.push(spec);
@@ -1403,7 +1473,7 @@ function designFrom(
       radius = max(radius, sqrt(dx * dx + dy * dy));
     }
 
-    modules.push({ spec, stats: s, x, y, angle, index: layoutIndex[i]! });
+    modules.push({ spec, stats: s, x, y, angle, index: layoutIndex[i]!, raised: isRaised(spec) });
 
     if (spec.kind === 'core') {
       cores.push(modules.length - 1);
@@ -1433,8 +1503,11 @@ function designFrom(
       // usually single figures; the layout may ask for less than that, and
       // pays less for the bed; and the ship may be in the way of even that,
       // which is the question every mount is asked.
-      const reach = gun.type === GunType.Beam ? Infinity : gun.barrelLength;
-      const arc = firingArc(specs, i, reach);
+      //
+      // In the hull layer, so every module is in its way — the barrel's, and
+      // the round's all the way downrange.
+      const arc = firingArc(specs, i, gun.barrelLength);
+      const mask = triggerMask(specs, i, everyModule, shotSpread(gun));
       const limit = mountTraverse(spec);
       // Only the barrels swing, so that is what the drive is sized against.
       const accel = traverseAccel(s.mass, s.swingInertia);
@@ -1452,6 +1525,7 @@ function designFrom(
           inertia: s.swingInertia,
           muzzleSpeed: gun.muzzleSpeed,
           muzzleOffset: gun.barrelLength,
+          mask,
         },
         gun,
         // Filled once the hull's radius is final, which this loop is still
@@ -1459,6 +1533,7 @@ function designFrom(
         // *ship* expects, and the ship is not finished being measured yet.
         reach: 0,
         targeting: resolveTargeting(spec.targeting, defaultTargeting(spec.kind)),
+        hullLayer: true,
       });
     } else if ((spec.kind === 'turret' || spec.kind === 'beamTurret') && s.gun !== null) {
       const gun = s.gun;
@@ -1468,23 +1543,12 @@ function designFrom(
       // bounding circle has to contain.
       radius = max(radius, sqrt(x * x + y * y) + gun.barrelLength);
 
-      // What can block the mount, which is a different question for the two
-      // archetypes and only looks like the same one because a gun's answer is
-      // also its barrel length.
-      //
-      // A gun is blocked by whatever its *barrel* would foul while training,
-      // so only what lies within a barrel's length of the mount counts. That
-      // is an approximation — ROADMAP.md §12 has the rest — and it stands in
-      // for the mask on where the gun may shoot, which is a wider thing.
-      //
-      // A beam has nothing that sweeps: the emitter housing is a stub, and on
-      // barrel length alone a beam mount would train through its own ship
-      // without noticing. What blocks a beam is structure in the path of the
-      // beam itself, at any distance, so every module on the hull is a
-      // candidate. For a beam the two masks are therefore the same thing, and
-      // this is the real one rather than a stand-in for it.
-      const reach = gun.type === GunType.Beam ? Infinity : gun.barrelLength;
-      const arc = firingArc(specs, i, reach);
+      // Above the deck, so only what stands up into the weapons layer is in
+      // its way: within a barrel's length for where it may train, and at any
+      // range for where it may fire. A beam's housing is a stub, so a beam
+      // trains nearly freely and its mask does the work.
+      const arc = firingArc(specs, i, gun.barrelLength, isRaised);
+      const mask = triggerMask(specs, i, isRaised, shotSpread(gun));
 
       // One drive, so one figure: the rate limit is what this acceleration
       // reaches in the drive's spin-up time.
@@ -1503,6 +1567,7 @@ function designFrom(
           inertia: s.inertia,
           muzzleSpeed: gun.muzzleSpeed,
           muzzleOffset: gun.barrelLength,
+          mask,
         },
         gun,
         // Filled once the hull's radius is final, which this loop is still
@@ -1510,6 +1575,7 @@ function designFrom(
         // *ship* expects, and the ship is not finished being measured yet.
         reach: 0,
         targeting: resolveTargeting(spec.targeting, defaultTargeting(spec.kind)),
+        hullLayer: false,
       });
     }
   }

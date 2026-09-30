@@ -12,6 +12,7 @@ import {
   isWeaponMount,
   MODULE_KINDS,
   readsNozzle,
+  readsRaised,
   readsWeapon,
   type ModuleKind,
   type ModuleSpec,
@@ -73,6 +74,7 @@ const MODULE_KEYS: readonly string[] = [
   'nozzle',
   'traverse',
   'weapon',
+  'raised',
   'targeting',
   'notes',
 ];
@@ -181,6 +183,7 @@ function moduleShapeProblem(value: Record<string, unknown>, where: string): stri
     optionalNumberProblem(value['nozzle'], `${where}: nozzle`) ??
     optionalNumberProblem(value['traverse'], `${where}: traverse`) ??
     optionalBooleanProblem(value['weapon'], `${where}: weapon`) ??
+    optionalBooleanProblem(value['raised'], `${where}: raised`) ??
     targetingProblem(value['targeting'], `${where}: targeting`) ??
     optionalStringProblem(value['notes'], `${where}: notes`) ??
     dormantFieldProblem(value, where)
@@ -213,6 +216,9 @@ function dormantFieldProblem(value: Record<string, unknown>, where: string): str
   }
   if (value['weapon'] !== undefined && !readsWeapon(kind)) {
     return `${where}: only an engine can be used as a weapon`;
+  }
+  if (value['raised'] !== undefined && !readsRaised(kind)) {
+    return `${where}: only structure chooses its layer`;
   }
   return null;
 }
@@ -393,6 +399,7 @@ function toPlacements(raws: unknown[]): Placement[] {
     // Degrees in the file and radians in the simulation, as every other angle.
     if (raw['traverse'] !== undefined) spec.traverse = degreesToRadians(raw['traverse'] as number);
     if (raw['weapon'] !== undefined) spec.weapon = raw['weapon'] as boolean;
+    if (raw['raised'] !== undefined) spec.raised = raw['raised'] as boolean;
     if (raw['targeting'] !== undefined) spec.targeting = { ...(raw['targeting'] as Partial<Targeting>) };
     if (raw['notes'] !== undefined) spec.notes = raw['notes'] as string;
     return spec;
@@ -481,6 +488,9 @@ function serialisePlacement(placement: Placement): Record<string, unknown> {
   }
   if (placement.weapon !== undefined && readsWeapon(placement.kind)) {
     raw['weapon'] = placement.weapon;
+  }
+  if (placement.raised !== undefined && readsRaised(placement.kind)) {
+    raw['raised'] = placement.raised;
   }
   // Written as authored: a mount's block is already only its differences from
   // the ship it is on, so there is nothing to subtract.

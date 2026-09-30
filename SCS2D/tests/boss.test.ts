@@ -55,7 +55,7 @@ describe('a boss battle', () => {
   });
 
   it('is decided once the boss can no longer fight', () => {
-    const result = runMatch([GUNSHIP, GUNSHIP, GUNSHIP], { seed: 4, boss: BARE_CORE, weights: { ...runWeights } });
+    const result = runMatch([GUNSHIP, GUNSHIP, GUNSHIP], { seed: 4, boss: CORVETTE, weights: { ...runWeights } });
     expect(result.ending).toBe('decided');
     expect(Math.max(...result.scores.map((score) => score.damage))).toBeGreaterThan(0);
     expect(result.scores).toHaveLength(3);

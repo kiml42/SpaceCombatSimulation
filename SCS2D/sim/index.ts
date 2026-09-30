@@ -47,6 +47,7 @@ export {
 } from './engines.js';
 export {
   DECK_HEIGHT,
+  RAISED_HEIGHT,
   DEFAULT_NOZZLE_SHARE,
   HULL_APERTURE_FRACTION,
   HULL_BARREL_WIDTH_CAP,
@@ -70,6 +71,9 @@ export {
   countsOutlets,
   readsNozzle,
   readsWeapon,
+  readsRaised,
+  isRaised,
+  moduleHeight,
   isWeaponMount,
   mountTraverse,
   FULL_TRAVERSE,
@@ -157,6 +161,7 @@ export {
   expandBlueprint,
   expandWithOrigins,
   firingArc,
+  triggerMask,
   foldAngle,
   MAX_EXPANDED_MODULES,
   MAX_REPEAT,
@@ -231,6 +236,7 @@ export {
   Turrets,
   FiringSolution,
   interceptTime,
+  masked,
   type TurretSpec,
 } from './turrets.js';
 export {

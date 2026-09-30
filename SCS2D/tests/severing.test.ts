@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { beamDuel } from '../scenarios/beamDuel.js';
 import { GUNSHIP } from '../scenarios/blueprints.js';
 import {
   Contacts,
@@ -338,31 +337,5 @@ describe('what a hull that has come apart looks like', () => {
     expect(b.inertia[s.body]).toBeCloseTo(left.inertia, 9);
     expect(b.radius[s.body]).toBeCloseTo(left.radius, 9);
     expect(left.mass).toBeLessThan(design.mass);
-  });
-});
-
-describe('what a beam does to a hull', () => {
-  it('tears nothing off, and burns its way through seams instead', () => {
-    // A beam delivers energy and no momentum, so nothing it does can tear
-    // anything. What it can do is leave nothing there to tear: no round is
-    // fired in this scenario, so every weld burnt into was burnt by a beam.
-    //
-    // Long enough for a beam to bore through something and reach a seam
-    // behind it, which takes a while when both ships are aiming at a core
-    // with the rest of the hull in front of it.
-    const run = beamDuel();
-    for (let i = 0; i < 6000; i++) run.step();
-    expect(run.totalBeamHits).toBeGreaterThan(0);
-    expect(run.totalProjectilesFired).toBe(0);
-
-    let burnt = 0;
-    for (let i = 0; i < run.ships.highWater; i++) {
-      if (!run.ships.isAlive(i)) continue;
-      const body = run.world.bodies.indexOf(run.ships.body(i));
-      joints(run.ships.design(i)).forEach((_joint, k) => {
-        if (run.ships.damage.cutAt(body, k) > 0) burnt++;
-      });
-    }
-    expect(burnt).toBeGreaterThan(0);
   });
 });

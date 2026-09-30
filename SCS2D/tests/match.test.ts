@@ -79,7 +79,7 @@ describe('match', () => {
     // Without that, killing everything in ten seconds of a two-minute match
     // scores a twelfth of what failing to land a shot for two minutes scores.
     const weights = { survival: 1, functional: 1, damage: 1, disabling: 1, race: 0 };
-    const result = runMatch([GUNSHIP, DINKY], { seed: 11, weights });
+    const result = runMatch([GUNSHIP, CORVETTE], { seed: 11, weights });
     expect(result.ending).toEqual('decided');
     expect(result.elapsed).toBeLessThan(DEFAULT_MATCH.duration);
     const winner = result.scores.reduce((best, score) => (score.total > best.total ? score : best));
@@ -91,10 +91,10 @@ describe('match', () => {
   it('plays on after the last kill while the goal still counts', () => {
     // The survivor still has the goal to fly: stopping would score it as
     // though it stayed wherever the last kill left it.
-    const result = runMatch([GUNSHIP, DINKY], { seed: 11 });
+    const result = runMatch([GUNSHIP, CORVETTE], { seed: 11 });
     expect(result.ending).toEqual('decided');
     expect(result.elapsed).toBeCloseTo(DEFAULT_MATCH.duration, 9);
-    const early = runMatch([GUNSHIP, DINKY], { seed: 11, weights: { survival: 1, functional: 1, damage: 1, disabling: 1, race: 0 } });
+    const early = runMatch([GUNSHIP, CORVETTE], { seed: 11, weights: { survival: 1, functional: 1, damage: 1, disabling: 1, race: 0 } });
     // The same fight up to the kill, then flown rather than frozen.
     const last = Math.max(...result.scores.map((score) => score.lifetime));
     const winner = result.scores.findIndex((score) => score.lifetime === last);

@@ -49,6 +49,13 @@ import { asin, atan2, cos, max, PI, round, sin, sqrt } from './math.js';
  */
 export const DECK_HEIGHT = 3;
 
+/**
+ * How tall a raised module stands, metres: a deck's worth of hull with a
+ * second built on top of it. What a raised structure pays in wall for putting
+ * itself in the weapons layer (DESIGN.md §3).
+ */
+export const RAISED_HEIGHT = 2 * DECK_HEIGHT;
+
 /** Structural material density, kg/m³. Steel. */
 export const HULL_DENSITY = 7800;
 
@@ -637,6 +644,17 @@ export interface ModuleSpec {
   weapon?: boolean;
 
   /**
+   * Whether this structure stands up into the weapons layer. Structure only;
+   * every other kind is one layer or the other by what it is (`isRaised`).
+   *
+   * Raised structure is cover: it stops deck-level fire at whatever is behind
+   * it, which is what a turret wants. It pays for that in wall, in being
+   * something guns can strip, and in the arcs of every turret it stands in
+   * front of.
+   */
+  raised?: boolean;
+
+  /**
    * Why this module is here, in the author's own words. Carried through the
    * file format and the editor, and ignored by every scaling law.
    *
@@ -1193,6 +1211,36 @@ export function readsWeapon(kind: ModuleKind): boolean {
   return kind === 'engine';
 }
 
+/** Whether `raised` means anything on this kind: structure may be either layer. */
+export function readsRaised(kind: ModuleKind): boolean {
+  return kind === 'structure';
+}
+
+/**
+ * Whether a module stands in the weapons layer (DESIGN.md §3), and so blocks
+ * turrets and can be hit by them.
+ *
+ * Turrets and engines always do — guns strip "mounts, sensors and engines" —
+ * and cores and hull weapons never do. Structure is whichever it says.
+ */
+export function isRaised(spec: ModuleSpec): boolean {
+  switch (spec.kind) {
+    case 'turret':
+    case 'beamTurret':
+    case 'engine':
+      return true;
+    case 'structure':
+      return spec.raised === true;
+    default:
+      return false;
+  }
+}
+
+/** How tall a module's walls are, metres. Only raised structure is taller. */
+export function moduleHeight(spec: ModuleSpec): number {
+  return spec.kind === 'structure' && spec.raised === true ? RAISED_HEIGHT : DECK_HEIGHT;
+}
+
 /**
  * The part of a module another module may be welded to.
  *
@@ -1343,11 +1391,12 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
   // it, on all six faces — so a long thin module carries proportionally more
   // wall for the space it encloses, which is the pressure that stops layouts
   // being made of splinters.
-  const outer = boxLength * spec.width * DECK_HEIGHT;
+  const height = moduleHeight(spec);
+  const outer = boxLength * spec.width * height;
   const inner =
     (boxLength - 2 * wallThickness) *
     (spec.width - 2 * wallThickness) *
-    (DECK_HEIGHT - 2 * wallThickness);
+    (height - 2 * wallThickness);
   // Bells, which are skins rather than boxes: two flanks along the slant and a
   // roof and floor over the taper, with nothing enclosed and both ends open.
   const skinVolume = engine === null ? 0 : nozzleSkinVolume(engine, wallThickness);

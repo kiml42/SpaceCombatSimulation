@@ -4,6 +4,7 @@ import {
   isInstance,
   isHullMount,
   isWeaponMount,
+  readsRaised,
   mountTraverse,
   MAX_REPEAT,
   MODULE_KINDS,
@@ -251,6 +252,7 @@ export function startEditor(): void {
   const exportButton = el<HTMLButtonElement>('exportShip');
 
   const weaponInput = el<HTMLInputElement>('propWeapon');
+  const raisedInput = el<HTMLInputElement>('propRaised');
   const kindSelect = el<HTMLSelectElement>('propKind');
   const addHeading = el<HTMLElement>('addHeading');
   kindSelect.innerHTML = MODULE_KINDS.map(
@@ -741,6 +743,8 @@ export function startEditor(): void {
     // Only an engine has a plume to point.
     el<HTMLElement>('weaponRow').hidden = spec.kind !== 'engine';
     weaponInput.checked = spec.weapon === true;
+    el<HTMLElement>('raisedRow').hidden = !readsRaised(spec.kind);
+    raisedInput.checked = spec.raised === true;
 
     const origin = doc.selectedOrigin();
     offerTakeOut(takeOutButton, origin === null ? null : origin.path, 'module');
@@ -1092,6 +1096,22 @@ export function startEditor(): void {
         const next = { ...placement };
         if (on) next.weapon = true;
         else delete next.weapon;
+        return next;
+      }),
+    );
+  });
+
+  raisedInput.addEventListener('change', () => {
+    const path = doc.selection;
+    if (path === null) return;
+    const on = raisedInput.checked;
+    // Absent rather than false when it is off, as `weapon` is.
+    change(
+      updatePlacement(doc.blueprint, path, (placement) => {
+        if (!('kind' in placement)) return placement;
+        const next = { ...placement };
+        if (on) next.raised = true;
+        else delete next.raised;
         return next;
       }),
     );

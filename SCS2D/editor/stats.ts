@@ -3,6 +3,7 @@ import {
   HullPath,
   exhaustObstruction,
   firingArc,
+  isRaised,
   math,
   boxAngle,
   moduleCentre,
@@ -204,7 +205,7 @@ function exhaustEscaping(
   if (index < 0 || index >= layout.length) return 1;
   const modules = layout.map((spec) => {
     const centre = moduleCentre(spec);
-    return { spec, stats: moduleStats(spec), x: centre.x, y: centre.y, angle: boxAngle(spec), index: 0 };
+    return { spec, stats: moduleStats(spec), x: centre.x, y: centre.y, angle: boxAngle(spec), index: 0, raised: isRaised(spec) };
   });
   return exhaustObstruction({ modules }, index, rating, new HullPath(), [], []);
 }
@@ -328,7 +329,9 @@ function arcOf(
   reach: number,
 ): { arcLeft: number; arcRight: number } {
   if (index < 0 || layout[index] === undefined) return { arcLeft: 0, arcRight: 0 };
-  const arc = firingArc(layout, index, reach);
+  // The compiler's rule: a hull mount's barrel is fouled by anything, a
+  // turret's only by what is raised.
+  const arc = firingArc(layout, index, reach, isHullMount(layout[index]!.kind) ? undefined : isRaised);
   // A hull mount is held to its own opening as well as to what the ship
   // leaves it, and the panel has to say the number the ship will actually
   // train through rather than the more generous of the two.

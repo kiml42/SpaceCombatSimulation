@@ -61,6 +61,20 @@ import {
  */
 const ON_TARGET_FLOOR = 0.001;
 
+const NO_MASK: readonly number[] = [];
+
+/** Whether a bearing, radians from rest, falls in a `triggerMask`. */
+export function masked(mask: ArrayLike<number>, offset: number): boolean {
+  for (let k = 0; k < mask.length; k += 2) {
+    let d = offset - mask[k]!;
+    // Into [0, 2π): how far past this sector's start, going anticlockwise.
+    while (d < 0) d += TAU;
+    while (d >= TAU) d -= TAU;
+    if (d < mask[k + 1]! - mask[k]!) return true;
+  }
+  return false;
+}
+
 export enum TurretState {
   // ready to fire
   Idle = 0,
@@ -102,6 +116,11 @@ export interface TurretSpec {
   muzzleSpeed?: number;
   /** Distance from mount to muzzle along the barrel, metres. */
   muzzleOffset?: number;
+  /**
+   * Bearings it may point along but not fire along, as `triggerMask` compiles
+   * them: pairs of radians from `restBearing`. Clear all round when unsaid.
+   */
+  mask?: readonly number[];
 }
 
 /** Where a turret's shot starts and which way it goes. Filled in place. */
@@ -225,6 +244,14 @@ export class Turrets {
    * both have to hold.
    */
   blocked!: Uint8Array;
+  /** Each mount's `TurretSpec.mask`, fixed when it is added. */
+  mask: (readonly number[])[] = [];
+  /**
+   * 1 while the mount is burning a beam it cannot put out: the drive then
+   * stops at the edge of a masked sector rather than sweep the beam across
+   * its own ship.
+   */
+  lit!: Uint8Array;
   alive!: Uint8Array;
 
   capacity = 0;
@@ -273,6 +300,7 @@ export class Turrets {
     this.tolerance = f64(this.tolerance);
     this.fireSlack = f64(this.fireSlack);
     this.blocked = u8(this.blocked);
+    this.lit = u8(this.lit);
     this.alive = u8(this.alive);
 
     this.capacity = capacity;
@@ -308,6 +336,8 @@ export class Turrets {
     this.tolerance[i] = ON_TARGET_FLOOR;
     this.fireSlack[i] = 0;
     this.blocked[i] = 0;
+    this.mask[i] = spec.mask ?? NO_MASK;
+    this.lit[i] = 0;
     this.alive[i] = 1;
     this.count++;
     return i;
@@ -405,6 +435,22 @@ export class Turrets {
   bearsOn(bodies: Bodies, i: number, worldBearing: number): boolean {
     const wanted = normalizeAngle(worldBearing - bodies.angle[this.owner[i]!]!);
     return abs(angleDelta(this.clampToArc(i, wanted), wanted)) <= this.tolerance[i]!;
+  }
+
+  /**
+   * Whether this mount could point at a world bearing *and* fire along it,
+   * with nothing of its own ship downrange.
+   */
+  firesOn(bodies: Bodies, i: number, worldBearing: number): boolean {
+    if (!this.bearsOn(bodies, i, worldBearing)) return false;
+    const wanted = normalizeAngle(worldBearing - bodies.angle[this.owner[i]!]!);
+    return !masked(this.mask[i]!, angleDelta(this.restBearing[i]!, wanted));
+  }
+
+  /** Whether the barrel is pointing along a bearing its own ship is down. */
+  fouled(i: number): boolean {
+    const mask = this.mask[i]!;
+    return mask.length > 0 && masked(mask, angleDelta(this.restBearing[i]!, this.bearing[i]!));
   }
 
   /** Give up and return to the idle bearing, and stop tracking. */
@@ -560,7 +606,14 @@ export class Turrets {
       if (desired - previousRate > maxChange) next = previousRate + maxChange;
       else if (desired - previousRate < -maxChange) next = previousRate - maxChange;
 
-      this.bearing[i] = normalizeAngle(this.bearing[i]! + next * dt);
+      // A lit beam stops at the edge of its own ship rather than cross it.
+      const bearing = normalizeAngle(this.bearing[i]! + next * dt);
+      const intoShip =
+        this.lit[i] === 1 &&
+        !this.fouled(i) &&
+        masked(this.mask[i]!, angleDelta(this.restBearing[i]!, bearing));
+      if (intoShip) next = 0;
+      else this.bearing[i] = bearing;
       this.rate[i] = next;
       this.onTarget[i] =
         abs(angleDelta(this.bearing[i]!, this.commanded[i]!)) <= tolerance ? 1 : 0;
@@ -636,7 +689,7 @@ export class Turrets {
    * mechanical tolerance, which is a mount pointing where it was told.
    */
   readyToFire(i: number): boolean {
-    if (this.alive[i] !== 1 || this.blocked[i] === 1) return false;
+    if (this.alive[i] !== 1 || this.blocked[i] === 1 || this.fouled(i)) return false;
     if (this.onTarget[i] === 1) return true;
     const slack = this.fireSlack[i]!;
     return slack > 0 && abs(angleDelta(this.bearing[i]!, this.commanded[i]!)) <= slack;
