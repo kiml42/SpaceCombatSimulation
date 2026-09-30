@@ -155,6 +155,9 @@ export const CALIBRE_FRACTION = 0.04;
 /** A barrel's outside diameter in calibres. A tube is thick-walled steel. */
 export const BARREL_OUTER_CALIBRES = 2;
 
+/** How long before its aim point a round bursts when its mount does not say, seconds. */
+export const DEFAULT_FUSE = 0.2;
+
 /**
  * The widest bore a turret carries, metres: a tube no wider outside than the
  * deck is deep, so a barrel is always a cylinder the hull can hold. A beam's
@@ -616,6 +619,13 @@ export interface ModuleSpec {
   traverse?: number;
 
   /**
+   * How long before it would reach its aim point a gun's round bursts,
+   * seconds. `DEFAULT_FUSE` when absent. Zero bursts only a round that has
+   * missed. A projectile gun only (`readsFuse`).
+   */
+  fuse?: number;
+
+  /**
    * What this mount goes after, where it differs from its archetype's default.
    *
    * Only the differences, and the rest comes from the kind rather than from
@@ -798,6 +808,9 @@ export function moduleProblem(spec: ModuleSpec): string | null {
     // Dormant on a kind that does not train, as a bell is on a gun mount: only
     // the range applies there. See `isWeaponMount`.
     return `${spec.kind}: traverse must be at least 0, got ${spec.traverse}`;
+  }
+  if (spec.fuse !== undefined && !(spec.fuse >= 0)) {
+    return `${spec.kind}: fuse must be at least 0, got ${spec.fuse}`;
   }
   const thickness = BASE_WALL_THICKNESS * reinforcement;
   // For an engine it is the machinery block that has to be a box: the bell is
@@ -1172,6 +1185,11 @@ export function hullMountGeometry(spec: ModuleSpec): HullMountGeometry {
     pivot: spec.length * 0.5 - barrelLength,
     traverse: limit > 0 ? (limit < HULL_MAX_TRAVERSE ? limit : HULL_MAX_TRAVERSE) : 0,
   };
+}
+
+/** Whether `fuse` means anything on this kind: a gun that fires rounds. */
+export function readsFuse(kind: ModuleKind): boolean {
+  return kind === 'turret' || kind === 'hullGun';
 }
 
 /** Whether this kind trains a weapon, and so carries gear to train it with. */

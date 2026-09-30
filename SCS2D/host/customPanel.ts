@@ -1,4 +1,4 @@
-import { parseBlueprint, parseFleet, type Fleet } from '../sim/index.js';
+import { degreesToRadians, parseBlueprint, parseFleet, radiansToDegrees, type Fleet } from '../sim/index.js';
 import { teamColour } from '../render/canvas2d.js';
 import { FLEET_FILES, Library } from '../editor/library.js';
 import { shipFleet } from '../editor/handoff.js';
@@ -57,6 +57,7 @@ export function customPanel(changed: () => void, fight: () => void): CustomPanel
   const range = el<HTMLInputElement>('battleRange');
   const closing = el<HTMLInputElement>('battleClosing');
   const crossing = el<HTMLInputElement>('battleCrossing');
+  const rotation = el<HTMLInputElement>('battleRotation');
   const seed = el<HTMLInputElement>('battleSeed');
 
   const fleets = new Library(window.localStorage, FLEET_FILES);
@@ -80,6 +81,7 @@ export function customPanel(changed: () => void, fight: () => void): CustomPanel
     range.value = String(setup.range);
     closing.value = String(setup.closingSpeed);
     crossing.value = String(setup.crossingSpeed);
+    rotation.value = String(radiansToDegrees(setup.rotation));
     seed.value = String(setup.seed);
   };
   fill(DEFAULT_SETUP);
@@ -192,11 +194,12 @@ export function customPanel(changed: () => void, fight: () => void): CustomPanel
     range: Math.max(1, number(range, DEFAULT_SETUP.range)),
     closingSpeed: number(closing, DEFAULT_SETUP.closingSpeed),
     crossingSpeed: number(crossing, DEFAULT_SETUP.crossingSpeed),
+    rotation: degreesToRadians(number(rotation, 0)),
     seed: Math.round(number(seed, DEFAULT_SETUP.seed)),
   });
 
   fightButton.addEventListener('click', fight);
-  for (const input of [range, closing, crossing, seed]) input.addEventListener('input', changed);
+  for (const input of [range, closing, crossing, rotation, seed]) input.addEventListener('input', changed);
 
   el<HTMLButtonElement>('exportBattle').addEventListener('click', () => {
     const text = `${JSON.stringify(serialiseBattleSetup(setup()), null, 2)}\n`;

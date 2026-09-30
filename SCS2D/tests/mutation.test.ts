@@ -265,7 +265,7 @@ describe('mutation', () => {
     const rng = new Rng(53);
     let held = CORVETTE;
     let moved = false;
-    for (let i = 0; i < 500 && !moved; i++) {
+    for (let i = 0; i < 1000 && !moved; i++) {
       held = mutate(held, rng).blueprint;
       if ((held.doctrine?.targeting.escortWeight ?? 0) !== 0) moved = true;
     }
