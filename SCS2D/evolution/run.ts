@@ -102,9 +102,13 @@ export function shipCount(record: IndividualRecord): number {
   return record.fleet === undefined ? 1 : expandFleet(parseFleet(record.fleet)).length;
 }
 
-/** What a generation weighs and fields, on average and for its fittest. */
+/**
+ * What one individual of a generation weighs and fields: averaged over the
+ * individuals, and for the fittest. Per fleet rather than summed over the
+ * generation, so it reads the same whatever the population.
+ */
 export interface GenerationSize {
-  /** Dry mass, kg. */
+  /** Dry mass of one individual, kg. */
   readonly meanMass: number;
   readonly bestMass: number;
   readonly meanShips: number;
