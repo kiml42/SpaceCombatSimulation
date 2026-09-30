@@ -9,6 +9,8 @@ import {
   Bodies,
   compileBlueprint,
   DEFAULT_FUSE,
+  moduleStats,
+  SOLID_SHOT_MASS,
   parseBlueprint,
   ProjectileHits,
   Projectiles,
@@ -21,6 +23,7 @@ import {
 } from '../sim/index.js';
 import { OrderCancelCondition } from '../sim/ships.js';
 import { TURRET_CORVETTE } from './fixtures.js';
+import { mutate } from '../evolution/mutate.js';
 
 /**
  * Timed fuses (ROADMAP.md §8 step 7): a round bursts shortly before it would
@@ -123,7 +126,33 @@ describe('a gun with a fuse', () => {
   });
 
   it('bursts it earlier the longer its fuse', () => {
-    expect(shot(0.5).fuse).toBeCloseTo(shot(0).fuse - 0.5, 6);
+    expect(shot(0.5).fuse).toBeCloseTo(shot(0.1).fuse - 0.4, 6);
+  });
+
+  it('fires solid shot at a fuse of zero: no burst, heavier and slower', () => {
+    expect(shot(0).fuse).toBe(Infinity);
+    const shell = moduleStats({ kind: 'turret', x: 0, y: 0, length: 6, width: 4 }).gun!;
+    const solid = moduleStats({ kind: 'turret', x: 0, y: 0, length: 6, width: 4, fuse: 0 }).gun!;
+    expect(solid.roundMass).toBeCloseTo(shell.roundMass * SOLID_SHOT_MASS, 9);
+    expect(solid.muzzleEnergy).toBeCloseTo(shell.muzzleEnergy, 6);
+    expect(solid.muzzleSpeed).toBeLessThan(shell.muzzleSpeed);
+    expect(solid.roundMass * solid.muzzleSpeed).toBeGreaterThan(shell.roundMass * shell.muzzleSpeed);
+  });
+});
+
+describe('a fuse under evolution', () => {
+  it('is retimed, and swapped for solid shot and back', () => {
+    const rng = new Rng(5);
+    const seen = { retimed: false, solid: false };
+    let parent: Blueprint = TURRET_CORVETTE;
+    for (let i = 0; i < 600 && !(seen.retimed && seen.solid); i++) {
+      const child = mutate(parent, rng).blueprint;
+      const gun = child.modules.find((p) => 'kind' in p && p.kind === 'turret') as { fuse?: number } | undefined;
+      if (gun?.fuse === 0) seen.solid = true;
+      else if (gun?.fuse !== undefined && gun.fuse !== DEFAULT_FUSE) seen.retimed = true;
+      parent = child;
+    }
+    expect(seen).toEqual({ retimed: true, solid: true });
   });
 });
 

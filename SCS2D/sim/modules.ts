@@ -289,6 +289,12 @@ export const SHELL_CALIBRES = 4.5;
 export const SHELL_DENSITY = 6200;
 
 /**
+ * How much heavier solid shot is than a shell of the same size: all metal,
+ * where a shell gives some of its volume to the charge that bursts it.
+ */
+export const SOLID_SHOT_MASS = 1.25;
+
+/**
  * Muzzle energy per unit of bore volume, J/m³. Calibrated on the 16"/50: a
  * 1225 kg shell at 762 m/s is 356 MJ from 2.6 m³ of bore. Solid propellant
  * holds around 6.4 GJ/m³, so this is a couple of per cent of the bore filled
@@ -620,8 +626,9 @@ export interface ModuleSpec {
 
   /**
    * How long before it would reach its aim point a gun's round bursts,
-   * seconds. `DEFAULT_FUSE` when absent. Zero bursts only a round that has
-   * missed. A projectile gun only (`readsFuse`).
+   * seconds. `DEFAULT_FUSE` when absent. Zero fires solid shot instead, which
+   * never bursts and is heavier (`SOLID_SHOT_MASS`). A projectile gun only
+   * (`readsFuse`).
    */
   fuse?: number;
 
@@ -1422,6 +1429,22 @@ export function hullBeamStats(spec: ModuleSpec): GunStats {
   };
 }
 
+/** Whether a gun fires solid shot rather than shells: a fuse of zero. */
+export function firesSolidShot(spec: ModuleSpec): boolean {
+  return readsFuse(spec.kind) && spec.fuse === 0;
+}
+
+/**
+ * A gun with what it is loaded with: solid shot is heavier than a shell for
+ * the same charge, so it leaves slower with more momentum.
+ */
+function loaded(gun: GunStats, spec: ModuleSpec): GunStats {
+  if (!firesSolidShot(spec)) return gun;
+  const roundMass = gun.roundMass * SOLID_SHOT_MASS;
+  const muzzleSpeed = roundMass > 0 ? sqrt((2 * gun.muzzleEnergy) / roundMass) : 0;
+  return { ...gun, roundMass, muzzleSpeed };
+}
+
 export function moduleStats(spec: ModuleSpec): ModuleStats {
   const problem = moduleProblem(spec);
   if (problem !== null) throw new Error(`Invalid module — ${problem}`);
@@ -1500,7 +1523,7 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
     thrust = throughput * engine.divergence;
     fittingMass = throughput * ENGINE_MASS_PER_NEWTON;
   } else if (mount !== null) {
-    gun = spec.kind === 'hullGun' ? hullGunStats(spec) : hullBeamStats(spec);
+    gun = spec.kind === 'hullGun' ? loaded(hullGunStats(spec), spec) : hullBeamStats(spec);
     // The same two masses a turret carries, by the same reasoning — a tube of
     // steel or an optic out in front, and the machinery that works it behind.
     let protrudingMass: number;
@@ -1545,7 +1568,7 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
     }
   } else if (spec.kind === 'turret' || spec.kind === 'beamTurret') {
     gun = spec.kind === 'turret'
-      ? gunStats(spec.length, spec.width, spec.barrels)
+      ? loaded(gunStats(spec.length, spec.width, spec.barrels), spec)
       : beamGunStats(spec.length, spec.width, spec.barrels);
 
     // What hangs off the front of the mount, per barrel or emitter. The two

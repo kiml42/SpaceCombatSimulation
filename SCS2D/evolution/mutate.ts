@@ -27,6 +27,8 @@ import {
   DEFAULT_NOZZLE_SHARE,
   isWeaponMount,
   canThicken,
+  DEFAULT_FUSE,
+  readsFuse,
   mountTraverse,
   isHullMount,
   MODULE_KINDS,
@@ -428,6 +430,7 @@ type Knob =
   | { readonly at: 'barrels'; readonly site: ModuleSite }
   | { readonly at: 'nozzle'; readonly site: ModuleSite }
   | { readonly at: 'traverse'; readonly site: ModuleSite }
+  | { readonly at: 'fuse'; readonly site: ModuleSite }
   | { readonly at: 'gunnery'; readonly site: ModuleSite }
   | { readonly at: 'weapon'; readonly site: ModuleSite }
   | { readonly at: 'thick'; readonly site: ModuleSite }
@@ -493,6 +496,7 @@ function knobs(draft: Draft): Knob[] {
         // whether that trade is worth taking is exactly what a run is for.
         out.push({ at: 'traverse', site }, { at: 'gunnery', site });
       }
+      if (readsFuse(placement.kind)) out.push({ at: 'fuse', site });
       if (isHullMount(placement.kind)) {
         // How much of the mount is barrel is the archetype's real knob, and
         // the outlet count divides the same opening between more of them. The
@@ -560,6 +564,8 @@ function renumber(knob: Knob, draft: Draft, rng: Rng, bounds: MutationLimits): s
       return retarget(knob.site, rng, bounds);
     case 'traverse':
       return retrain(knob.site, rng, bounds);
+    case 'fuse':
+      return refuse(knob.site, rng, bounds);
     case 'weapon':
       return rearm(knob.site);
     case 'thick':
@@ -771,6 +777,37 @@ function retrain(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | n
   if (now === asDegrees) return null;
   site.spec.traverse = degreesToRadians(now);
   return `${site.where} ${site.spec.kind}: traverse ${asDegrees}° → ${now}°`;
+}
+
+/** How often a fuse knob swaps shells for solid shot, rather than retiming them. */
+const SOLID_SHOT_CHANCE = 0.2;
+
+/** The shortest fuse a nudge leaves, seconds: below it, a shell is solid shot by another name. */
+const MIN_FUSE = 0.01;
+
+/**
+ * Retime a gun's fuse, or change what it fires.
+ *
+ * Mostly a nudge, scaled by the fuse itself so a long one moves as far in
+ * proportion as a short one. Sometimes a swap between shells and solid shot,
+ * which is a decision rather than a quantity and lands on the default fuse
+ * coming back.
+ */
+function refuse(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {
+  const was = site.spec.fuse ?? DEFAULT_FUSE;
+  if (was === 0) {
+    delete site.spec.fuse;
+    return `${site.where} ${site.spec.kind}: shells again, fuse ${DEFAULT_FUSE} s`;
+  }
+  if (rng.chance(SOLID_SHOT_CHANCE)) {
+    site.spec.fuse = 0;
+    return `${site.where} ${site.spec.kind}: solid shot`;
+  }
+  const scale = max(was, DEFAULT_FUSE);
+  const now = max(MIN_FUSE, tidy(was + bounds.magnitude * scale * rng.nextRange(-1, 1), 3));
+  if (now === was) return null;
+  site.spec.fuse = now;
+  return `${site.where} ${site.spec.kind}: fuse ${was} s → ${now} s`;
 }
 
 /**

@@ -13,7 +13,7 @@ import { BOTH_LAYERS, HULL_LAYER, Hulls, moduleLayers, OWN_LAYERS, WEAPONS_LAYER
 import { Damage, DamageEffect } from './damage.js';
 import { plumeRays, plumeRayStarts, Plumes, WEAPON_PLUME_SHARE } from './exhaust.js';
 import { Choice, cohesionUrge, look, lookFrom, score } from './targeting.js';
-import { DEFAULT_FUSE, moduleRadius, engineGeometry, readsFuse, type ModuleSpec } from './modules.js';
+import { DEFAULT_FUSE, moduleRadius, engineGeometry, firesSolidShot, readsFuse, type ModuleSpec } from './modules.js';
 import {
   atan2,
   angleDelta,
@@ -1435,7 +1435,7 @@ export class Ships {
    */
   private fuseFor(turret: number, target: number, spec: ModuleSpec): number {
     const flight = this.turrets.aimTime[turret]!;
-    if (target === NO_TARGET || !(flight > 0) || !readsFuse(spec.kind)) return Infinity;
+    if (target === NO_TARGET || !(flight > 0) || !readsFuse(spec.kind) || firesSolidShot(spec)) return Infinity;
     const fuse = flight - (spec.fuse ?? DEFAULT_FUSE);
     return fuse > 0 ? fuse : 0;
   }

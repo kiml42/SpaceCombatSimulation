@@ -74,6 +74,8 @@ export {
   readsThick,
   readsFuse,
   DEFAULT_FUSE,
+  SOLID_SHOT_MASS,
+  firesSolidShot,
   inWeaponsLayer,
   isThick,
   moduleThickness,

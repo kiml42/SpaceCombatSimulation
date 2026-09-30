@@ -103,10 +103,12 @@ and evolution run does, and a ship tuned to half the rules is tuned twice.
    layer at all (§12's fuse entry is the reasoning). As built: every turret and hull gun fuses its rounds,
    0.2 s short by default (`DEFAULT_FUSE`); a round bursts into 8 fragments (`BURST_FRAGMENTS`) that
    spread at up to a tenth of the muzzle speed (`BURST_SPREAD`) and live twice the fuse, at least half a
-   second, so a miss does not fill the sky. Evolution does not mutate the fuse yet.
+   second, so a miss does not fill the sky. A fuse of 0 fires **solid shot**: no burst, and a quarter
+   heavier (`SOLID_SHOT_MASS`) for the same charge, so slower with more momentum. Evolution retimes the
+   fuse and, one draw in five, swaps shells for solid shot or back.
    - The fuse is set when the round is fired, to go off shortly before it would reach its aim point:
      `interceptTime` already knows when that is. How much before is a per-mount setting in the editor
-     (`fuse`, seconds), so a mount can be tuned between bursting well short and bursting only on a miss. A
+     (`fuse`, seconds), so a mount can be tuned between bursting well short and firing solid shot. A
      round that hits something before its fuse goes off hits as it does now.
    - A burst replaces the round with sub-munitions: a fixed number, sharing its mass, each leaving with the
      round's velocity plus a spread in a random direction from the battle's seeded RNG, in opposed pairs so
