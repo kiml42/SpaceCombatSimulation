@@ -118,14 +118,17 @@ and evolution run does, and a ship tuned to half the rules is tuned twice.
 2. **Fighters — built.** A ship-level *fighter* flag, a checkbox in the editor's Role section. It follows
    DESIGN.md §3's strike craft rather than inventing a new rule. As built: shots, beams and hull casts carry
    a layer mask (`HULL_LAYER`, `WEAPONS_LAYER`, both for fragments), and a fighter's modules are all in
-   the weapons layer (`Ships.layersOf`), so it overflies hulls and meets only other fighters. **Not built:
-   committing.** How a ship decides to ram, and how a fighter drops into the hull layer when it does, is
-   still being discussed, and is its own piece of work. No stock ship is a fighter yet: flagging the Dinky,
-   TIE and X-Wing is the obvious first move of item 3.
+   the weapons layer, or both once committed (`Ships.layersOf`). **Ramming is a doctrine decision any ship
+   can make**: `approach.ramRadii` (how close the target's edge must be, in its radii; 0, the default,
+   never rams) and `approach.ramArmed` (the share of its own guns still working at or below which it
+   will). A ramming ship closes to a band of nothing; a fighter commits whenever it is ramming, by that
+   decision or by an order to close to nothing. Docking is not a decision yet.
+   "Clear of every hull" is read cautiously, as clear of every bounding circle. No stock ship is a fighter
+   yet: flagging the Dinky, TIE and X-Wing is the obvious first move of item 3.
    - **A fighter may carry no turret and nothing thick.** The editor disables both while the flag is set.
      It flies in the **weapons layer**, where turrets and CIWS reach it, so a fighter is never out of their
      reach the way the Dinky is today.
-   - **Its doctrine decides when it also occupies the hull layer** (not built): that is a decision to ram, or to dock on
+   - **Its doctrine decides when it also occupies the hull layer**: that is a decision to ram, or to dock on
      another ship's side. Occupancy is added, never swapped, so it only ever makes the fighter more
      exposed; that is why there is no limit on how quickly it can change. It changes only while clear of
      every hull (§3), which is what stops a fighter committing inside a capital's perimeter. Its hull
