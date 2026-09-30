@@ -129,21 +129,6 @@ export interface AssemblyInstance {
   /** Reflect across the instance frame's own x-axis before placing it. */
   mirror?: boolean;
   /**
-   * Modules this copy carries and the assembly does not, placed in the same
-   * frame as the assembly's own — so they move and reflect with it, which is
-   * the thing that cannot be had by placing a module in the parent instead.
-   *
-   * Purely additive, deliberately. It is how one copy differs from another
-   * without an instance ever overriding a value, so "linked" keeps meaning
-   * "identical" about everything the assembly defines, and the differences
-   * between copies are all in one place and all visible.
-   *
-   * It is also what the editor's unlink is built from: taking a part out of
-   * the definition and handing every instance its own copy leaves the ship
-   * unchanged and each copy separately editable.
-   */
-  extra?: readonly Placement[];
-  /**
    * How many copies to place in a row, each `step` on from the last.
    *
    * This is what a long repeated structure is written as — a wing of six
@@ -200,11 +185,10 @@ export interface PathStep {
   /** Which copy of a repeated instance this descends through; 0 otherwise. */
   readonly copy: number;
   /**
-   * Which of an instance's two lists the next step reads: the assembly's own
-   * modules, or the extras this copy carries. Absent on the last step, which
-   * names a placement rather than descending through one.
+   * Present on a step that descends into an instance's assembly; absent on the
+   * last step, which names a placement rather than descending through one.
    */
-  readonly into?: 'assembly' | 'extra';
+  readonly into?: 'assembly';
   /**
    * The assembly this step descends into, when it descends into one.
    *
@@ -717,7 +701,7 @@ export function expandBlueprint(blueprint: Blueprint): ModuleSpec[] {
  * Separate from `expandBlueprint` because everything the simulation does works
  * on the flat list and would only be paying for a second array; separate from
  * a walk of its own because a second walk is a second set of rules about
- * mirroring, repetition and extras, and the two would drift. An editor
+ * mirroring and repetition, and the two would drift. An editor
  * selecting a module needs to reach the *placement* — which may be one
  * engine drawn eight times — and it has to be this walk that says so.
  */
@@ -780,13 +764,9 @@ export function placementAt(blueprint: Blueprint, path: ModulePath): Placement |
     if (entry === undefined) return null;
     if (i === path.length - 1) return entry;
     if (!isInstance(entry)) return null;
-    if (step.into === 'extra') {
-      list = entry.extra ?? [];
-    } else {
-      const assembly = blueprint.assemblies?.[entry.use];
-      if (assembly === undefined) return null;
-      list = assembly.modules;
-    }
+    const assembly = blueprint.assemblies?.[entry.use];
+    if (assembly === undefined) return null;
+    list = assembly.modules;
   }
   return null;
 }
@@ -853,17 +833,6 @@ function place(
         trail.push({ index, copy, into: 'assembly', assembly: placement.use });
         place(assembly.modules, blueprint, cx, cy, crot, flipped, depth + 1, out, origins, trail, writtenIn);
         trail.pop();
-        // Extras come after what the assembly defines, in the same frame. The
-        // ordering is worth noticing rather than assuming harmless: module
-        // order decides engine allocation and firing order, so moving a part
-        // out of a definition and into an instance's extras moves it down the
-        // list and changes the ship slightly, even though nothing about its
-        // geometry has.
-        if (placement.extra !== undefined) {
-          trail.push({ index, copy, into: 'extra' });
-          place(placement.extra, blueprint, cx, cy, crot, flipped, depth + 1, out, origins, trail, writtenIn);
-          trail.pop();
-        }
 
         const step = placement.step;
         if (step === undefined || copy + 1 >= copies) continue;
@@ -946,15 +915,6 @@ export function assemblyProblem(blueprint: Blueprint): string | null {
       // count silently does nothing at all.
       if ((repeat !== undefined && repeat > 1) !== (step !== undefined)) {
         return `${blueprint.name}: ${placement.use} needs repeat above 1 and step together, or neither`;
-      }
-
-      // Extras belong to the instance rather than to the assembly it places,
-      // so they are walked at the enclosing path — an extra referring back to
-      // the assembly that *contains* this instance is still a cycle, but one
-      // referring to the assembly being placed here is not.
-      if (placement.extra !== undefined) {
-        const inExtra = walk(placement.extra);
-        if (inExtra !== null) return inExtra;
       }
     }
     return null;

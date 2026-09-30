@@ -70,7 +70,7 @@ inside any one file is not contiguous.
   capacity, armour and gun — its kind among them, swapped for another in the same space and facing the same
   way, so a gun made an engine has its bell where the barrel was — and a selected engine burns and a selected gun fires at the
   rate its own figures claim; a module can be duplicated into a shared part placed
-  twice, and a shared part unlinked back into separate modules, or one copy of an assembly dissolved into
+  twice, and a part taken out of its assembly, leaving a separate copy beside every copy of it, or one copy of an assembly dissolved into
   the modules and assemblies it is made of while the others stay linked, with position, dragging
   and deletion belonging to the copy and everything else to all of them; several modules or assemblies can be
   picked at once and made into an assembly, nesting any assemblies among them, or added to the last assembly
@@ -449,9 +449,8 @@ inside any one file is not contiguous.
   first match paused at its start. **A boss battle** sets every entrant on one side against a ship or fleet
   that does not evolve, at the middle of the ring where the goal would be, each scored for what it does to
   the boss alone.
-- **Next:** the rest of §8 step 5 — a materials budget, designed scenarios, shareable by URL — or the rest of
-  step 6, assembling across assemblies; then step 7, the two layers, and step 8, fuel, which starts the
-  resource system.
+- **Next:** the rest of §8 step 5 — a materials budget, designed scenarios, shareable by URL; then step 7,
+  the two layers, and step 8, fuel, which starts the resource system.
   See ROADMAP.md §8.
   §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight,
   hemisphere, looking-at and ship-type pickers. Evolution is built and runs both headlessly and on a page

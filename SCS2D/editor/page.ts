@@ -53,8 +53,8 @@ import {
   removeCopy,
   removeInstance,
   snap,
-  unlinkable,
-  unlinkPlacement,
+  takeOutCount,
+  takeOutOfAssembly,
   updatePlacement,
 } from './edit.js';
 import {
@@ -223,7 +223,8 @@ export function startEditor(): void {
   const deleteShipButton = el<HTMLButtonElement>('deleteShip');
   const moduleStats = el<HTMLElement>('moduleStats');
   const duplicateButton = el<HTMLButtonElement>('propDuplicate');
-  const unlinkButton = el<HTMLButtonElement>('propUnlink');
+  const takeOutButton = el<HTMLButtonElement>('propTakeOut');
+  const assemblyTakeOut = el<HTMLButtonElement>('assemblyTakeOut');
   const selectAssemblyButton = el<HTMLButtonElement>('propSelectAssembly');
   const assemblySelection = el<HTMLElement>('assemblySelection');
   const assemblyCount = el<HTMLElement>('assemblyCount');
@@ -525,6 +526,18 @@ export function startEditor(): void {
    * reason it is worth reaching is `mirror` — the flag that makes a second
    * copy of a wing the other wing rather than the same one again.
    */
+  /** Enable a Take out button for what `path` names, saying what it will leave. */
+  const offerTakeOut = (button: HTMLButtonElement, path: ModulePath | null, what: string): void => {
+    const leaving = path === null ? 0 : takeOutCount(doc.blueprint, path);
+    button.disabled = leaving === 0;
+    button.title =
+      leaving === 0
+        ? `This ${what} is not inside an assembly`
+        : leaving === 1
+          ? `Take this ${what} out of its assembly, leaving it where it is`
+          : `Take this ${what} out of its assembly, leaving a separate one beside each of its ${leaving} copies`;
+  };
+
   const renderAssembly = (instance: AssemblyInstance): void => {
     const members = doc.blueprint.assemblies?.[instance.use]?.modules ?? [];
     const nested = members.filter((member) => !isModuleSpec(member)).length;
@@ -539,6 +552,7 @@ export function startEditor(): void {
     assemblyOf.textContent =
       parts.join(' and ') + (drawn > members.length ? `, and this copy draws ${drawn}` : '');
     if (document.activeElement !== assemblyName) assemblyName.value = instance.use;
+    offerTakeOut(assemblyTakeOut, path, 'assembly');
     renderAssemblyStats();
     for (const [input, value] of [
       [assemblyX, instance.x],
@@ -729,12 +743,7 @@ export function startEditor(): void {
     weaponInput.checked = spec.weapon === true;
 
     const origin = doc.selectedOrigin();
-    const shared = origin === null ? 0 : unlinkable(doc.blueprint, origin);
-    unlinkButton.disabled = shared < 2;
-    unlinkButton.title =
-      shared < 2
-        ? 'Only a shared part can be unlinked'
-        : `Give each of the ${shared} copies its own module, so they stop changing together`;
+    offerTakeOut(takeOutButton, origin === null ? null : origin.path, 'module');
 
     const within = origin === null ? null : instanceOf(origin);
     selectAssemblyButton.disabled = within === null;
@@ -1289,11 +1298,17 @@ export function startEditor(): void {
 
   assemblyDelete.addEventListener('click', deleteSelected);
 
-  unlinkButton.addEventListener('click', () => {
-    const origin = doc.selectedOrigin();
-    if (origin === null) return;
-    change(unlinkPlacement(doc.blueprint, origin));
-  });
+  /** Take what `path` names out of its assembly, keeping the loose copy it leaves picked. */
+  const takeOut = (path: ModulePath | null): void => {
+    if (path === null) return;
+    const taken = takeOutOfAssembly(doc.blueprint, path);
+    if (taken === null) return;
+    doc.apply(taken.blueprint);
+    doc.select(taken.path);
+    refresh();
+  };
+  takeOutButton.addEventListener('click', () => takeOut(doc.selectedOrigin()?.path ?? null));
+  assemblyTakeOut.addEventListener('click', () => takeOut(doc.selection));
 
   /**
    * A module a member of the selected copy was written beside: its frame is the

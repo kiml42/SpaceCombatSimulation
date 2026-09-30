@@ -41,8 +41,8 @@ import {
   positionHandle,
   removeCopy,
   removeInstance,
-  unlinkable,
-  unlinkPlacement,
+  takeOutCount,
+  takeOutOfAssembly,
   moduleAt,
   movePlacement,
   removePlacement,
@@ -1191,18 +1191,18 @@ describe('the placement that carries a copy’s position', () => {
   });
 });
 
-describe('unlinking a shared module', () => {
+describe('taking a module out of its assembly', () => {
   it('leaves the ship bit-identical when the module was the whole assembly', () => {
     const before = expandBlueprint(CORVETTE);
     const wing = before.findIndex((m) => m.length === 4 && m.width === 3);
     const origins = expandWithOrigins(CORVETTE).origins;
-    expect(unlinkable(CORVETTE, origins[wing]!)).toBe(4);
+    expect(takeOutCount(CORVETTE, origins[wing]!.path)).toBe(4);
 
-    const unlinked = unlinkPlacement(CORVETTE, origins[wing]!)!;
+    const taken = takeOutOfAssembly(CORVETTE, origins[wing]!.path)!.blueprint;
     // Exact, down to module order — which is part of the ship, since engine
     // allocation and firing both run over it.
-    expect(expandBlueprint(unlinked)).toEqual(before);
-    expect(unlinked.assemblies?.['wingBox']).toBeUndefined();
+    expect(expandBlueprint(taken)).toEqual(before);
+    expect(taken.assemblies?.['wingBox']).toBeUndefined();
   });
 
   it('lets the copies be edited apart afterwards', () => {
@@ -1210,14 +1210,14 @@ describe('unlinking a shared module', () => {
     const wing = expandWithOrigins(CORVETTE).modules.findIndex(
       (m) => m.length === 4 && m.width === 3,
     );
-    const doc = new EditorDocument(unlinkPlacement(CORVETTE, origins[wing]!)!);
+    const doc = new EditorDocument(takeOutOfAssembly(CORVETTE, origins[wing]!.path)!.blueprint);
     doc.selectModule(wing);
     expect(doc.selectedModules()).toHaveLength(1);
     doc.apply(updatePlacement(doc.blueprint, doc.selection!, (p) => ({ ...p, width: 5 }))!);
     expect(doc.view.modules.filter((m) => m.length === 4 && m.width === 5)).toHaveLength(1);
   });
 
-  it('hands the module to each instance as an extra when the assembly holds more', () => {
+  it('leaves a loose copy beside each copy of an assembly that holds more', () => {
     const bp = ship({
       assemblies: {
         wing: {
@@ -1227,20 +1227,90 @@ describe('unlinking a shared module', () => {
           ],
         },
       },
-      modules: [hull, { use: 'wing', x: 0, y: 6 }, { use: 'wing', x: 0, y: -6 }],
+      modules: [hull, { use: 'wing', x: 0, y: 6 }, { use: 'wing', x: 0, y: -6, mirror: true }],
     });
     const origins = expandWithOrigins(bp).origins;
-    const unlinked = unlinkPlacement(bp, origins[2]!)!;
-    expect(unlinked.assemblies?.['wing']?.modules).toHaveLength(1);
-    // Same modules in the same places, and each copy now separately editable.
-    expect(expandWithOrigins(unlinked).modules).toHaveLength(5);
-    const after = expandWithOrigins(unlinked);
+    const taken = takeOutOfAssembly(bp, origins[2]!.path)!.blueprint;
+    expect(taken.assemblies?.['wing']?.modules).toHaveLength(1);
+    // Written straight after each copy, in the ship's own list, so it no longer
+    // moves with the copy and each is separately editable.
+    expect(taken.modules.map((m) => ('use' in m ? m.use : m.kind))).toEqual([
+      'structure',
+      'wing',
+      'structure',
+      'wing',
+      'structure',
+    ]);
+    const key = (m: { x: number; y: number }): string => `${m.x.toFixed(9)},${m.y.toFixed(9)}`;
+    expect(expandBlueprint(taken).map(key).sort()).toEqual(expandBlueprint(bp).map(key).sort());
+    const after = expandWithOrigins(taken);
     expect(samePlacement(after.origins[2]!.path, after.origins[4]!.path)).toBe(false);
   });
 
-  it('is offered only for a part that is actually shared', () => {
-    const bp = ship({ modules: [hull] });
-    expect(unlinkable(bp, expandWithOrigins(bp).origins[0]!)).toBe(0);
+  it('carries a turned, mirrored and repeated copy\'s frame into the loose copies', () => {
+    const bp = ship({
+      assemblies: {
+        rib: {
+          modules: [
+            { kind: 'structure', x: 0, y: 0, length: 2, width: 2 },
+            { kind: 'engine', x: 2, y: 1, angle: 0.4, length: 2, width: 2 },
+          ],
+        },
+      },
+      modules: [hull, { use: 'rib', x: 5, y: 2, angle: 0.7, mirror: true, repeat: 3, step: { x: 0, y: 3, angle: 0.2 } }],
+    });
+    const engine = expandWithOrigins(bp).modules.findIndex((m) => m.kind === 'engine');
+    const taken = takeOutOfAssembly(bp, expandWithOrigins(bp).origins[engine]!.path)!.blueprint;
+    const pose = (m: { x: number; y: number; angle?: number }): number[] => [m.x, m.y, m.angle ?? 0];
+    const engines = (b: Blueprint): number[][] => expandBlueprint(b).filter((m) => m.kind === 'engine').map(pose);
+    const was = engines(bp);
+    const now = engines(taken);
+    expect(now).toHaveLength(3);
+    for (let k = 0; k < 3; k++) for (let j = 0; j < 3; j++) expect(now[k]![j]).toBeCloseTo(was[k]![j]!, 9);
+  });
+
+  it('takes a nested assembly out whole, still an assembly, beside each copy', () => {
+    const bp = ship({
+      assemblies: {
+        pod: { modules: [{ kind: 'structure', x: 0, y: 0, length: 2, width: 2 }, { kind: 'structure', x: 2, y: 0, length: 2, width: 2 }] },
+        wing: {
+          modules: [
+            { kind: 'structure', x: 0, y: 0, length: 4, width: 3 },
+            { use: 'pod', x: 3, y: 2.5, angle: 0.3 },
+          ],
+        },
+      },
+      modules: [hull, { use: 'wing', x: 0, y: 6, angle: 0.5 }, { use: 'wing', x: 0, y: -6, mirror: true }],
+    });
+    // The pod as the second wing draws it: path through that copy, ending at the pod.
+    const podPath: ModulePath = [
+      { index: 2, copy: 0, into: 'assembly', assembly: 'wing' },
+      { index: 1, copy: 0 },
+    ];
+    expect(takeOutCount(bp, podPath)).toBe(2);
+    const taken = takeOutOfAssembly(bp, podPath)!;
+    expect(taken.blueprint.assemblies?.['wing']?.modules).toHaveLength(1);
+    expect(taken.blueprint.modules.map((m) => ('use' in m ? m.use : m.kind))).toEqual([
+      'structure',
+      'wing',
+      'pod',
+      'wing',
+      'pod',
+    ]);
+    const key = (m: { x: number; y: number }): string => `${m.x.toFixed(9)},${m.y.toFixed(9)}`;
+    expect(expandBlueprint(taken.blueprint).map(key).sort()).toEqual(expandBlueprint(bp).map(key).sort());
+    // What was picked stays picked: the pod that came out of the second wing.
+    expect(taken.path).toEqual([{ index: 4, copy: 0 }]);
+  });
+
+  it('is offered for any part of an assembly, and not for a loose one', () => {
+    const once = ship({
+      assemblies: { pod: { modules: [{ kind: 'structure', x: 0, y: 0, length: 2, width: 2 }] } },
+      modules: [hull, { use: 'pod', x: 0, y: 5 }],
+    });
+    const origins = expandWithOrigins(once).origins;
+    expect(takeOutCount(once, origins[0]!.path)).toBe(0);
+    expect(takeOutCount(once, origins[1]!.path)).toBe(1);
   });
 });
 
@@ -2161,7 +2231,6 @@ describe('dissolving an assembly', () => {
         mirror: true,
         repeat: 2,
         step: { x: 0, y: 3, angle: 0.25 },
-        extra: [{ ...bar, x: 4, y: -1, angle: 0.3 }],
       },
       { ...bar, x: 3, y: -3 },
     ],
@@ -2190,12 +2259,12 @@ describe('dissolving an assembly', () => {
     expect(again.assemblies!.boom).toBeUndefined();
   });
 
-  it('takes a repeated, turned, reflected copy apart one level, extras included', () => {
+  it('takes a repeated, turned, reflected copy apart one level', () => {
     const before = layout();
     const dissolved = dissolveInstance(before, at(2))!;
     expect(drawn(dissolved.blueprint)).toEqual(drawn(before));
-    // Two copies of a bar, a nested pod and the extra bar.
-    expect(dissolved.paths).toHaveLength(6);
+    // Two copies of a bar and a nested pod.
+    expect(dissolved.paths).toHaveLength(4);
     const pods = dissolved.paths.map((path) => placementAt(dissolved.blueprint, path)!);
     expect(pods.filter((p) => 'use' in p && p.use === 'pod')).toHaveLength(2);
   });

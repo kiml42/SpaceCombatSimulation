@@ -269,6 +269,17 @@ describe('rejecting a file that arrived from somewhere else', () => {
     expect(blueprintFileProblem(instance({ repeat: 3, step: { x: 0 } }))).toMatch(/step y must be a finite number/);
   });
 
+  it('refuses the extras a copy used to carry: a part is taken out of the assembly instead', () => {
+    const withExtra = file({
+      assemblies: { seg: { modules: [{ kind: 'structure', x: 0, y: 0, length: 4, width: 4 }] } },
+      modules: [
+        { kind: 'structure', x: 0, y: 0, length: 10, width: 4 },
+        { use: 'seg', x: 0, y: 5, extra: [{ kind: 'structure', x: 0, y: 4, length: 4, width: 4 }] },
+      ],
+    });
+    expect(blueprintFileProblem(withExtra)).toMatch(/unknown key extra/);
+  });
+
   it('puts a step angle in degrees too', () => {
     const parsed = parseBlueprint(
       file({

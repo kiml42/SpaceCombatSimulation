@@ -47,7 +47,7 @@ an entry is either still open or it is gone.
 | 3 | Doctrine and orders | Partly built |
 | 4 | Headless evolution and analysis | Built |
 | 5 | v1: skirmish | Partly built |
-| 6 | Editor restructuring | Partly built |
+| 6 | Editor restructuring | Built |
 | 7 | Two layers | Not started |
 | 8 | Fuel | Not started |
 | 9 | Fuel harvesting | Not started |
@@ -94,12 +94,6 @@ scored for what it does to the boss alone (`match.boss`, `--boss`, and a boss pi
 
 Not planned: per-ship doctrine overrides in a fleet (fork the design instead), and a group's own doctrine or
 lead, which waits for standing orders. Velocity stays out of the fleet file; the battle setup holds it.
-
-**Step 6 — Editor restructuring.** Dissolving an assembly is built; one thing is left:
-
-- **Assembling across assemblies.** Making an assembly of things written in different assemblies is
-  refused. Until there are ships people rebuild rather than replace, the way round is to dissolve down to a
-  common list first.
 
 ### Not started — in order
 
@@ -223,12 +217,12 @@ that answers the question most likely to change the design.
   added.
 - **A group is built around the first module picked**, not the centre of the selection, because a group is
   usually a thing hanging off one connecting module and reflection should turn it about that joint.
-- **How one copy differs from another is additive**: an instance may carry `extra` modules in the
-  assembly's frame. That is the whole divergence mechanism, and nothing new in the format should be added
-  for it. Unlink has two shapes — a module that is its
-  whole assembly is expanded back inline, exactly; one that shares its assembly leaves the definition and
-  every instance gets it as an `extra`, which drops it from any *new* instance and moves it down the
-  expansion order. Dissolving one copy is the other way out, and changes neither geometry nor
+- **Copies of an assembly do not differ.** An instance places its assembly and nothing else, so "linked"
+  means identical. To make copies differ, a part is **taken out of the assembly**: it leaves the
+  definition, and every copy gets a loose one of its own, written just after it in the list it sits in, in
+  the same place — the geometry is unchanged, the part moves down the expansion order a little, and a *new*
+  copy will not have it. A loose part does not move with the copy it came out of; wrapping the two in a new
+  assembly is how to have that. Dissolving one copy is the other way out, and changes neither geometry nor
   order: its contents are written where it was, one level at a time.
 - **Module order is part of the ship, so restructuring is not bit-free.** Engine allocation and firing both
   run in list order, so a reordered layout does not check-sum the same — though `scenarios/ordering.ts`
