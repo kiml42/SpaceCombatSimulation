@@ -1,4 +1,11 @@
-import { NEUTRAL_TEAM, parseFleet, serialiseFleet, type Fleet } from '../sim/index.js';
+import {
+  degreesToRadians,
+  NEUTRAL_TEAM,
+  parseFleet,
+  radiansToDegrees,
+  serialiseFleet,
+  type Fleet,
+} from '../sim/index.js';
 import { fleetBattle } from './fleetBattle.js';
 import type { Battle } from './types.js';
 
@@ -19,6 +26,8 @@ export interface BattleSetup {
   closingSpeed: number;
   /** Each fleet's own speed to its left, m/s. */
   crossingSpeed: number;
+  /** How far each fleet is turned from facing the centre, radians anticlockwise. Degrees in the file. */
+  rotation: number;
   seed: number;
 }
 
@@ -26,10 +35,11 @@ export const DEFAULT_SETUP: Omit<BattleSetup, 'fleets'> = {
   range: 2000,
   closingSpeed: 0,
   crossingSpeed: 0,
+  rotation: 0,
   seed: 1,
 };
 
-const FILE_KEYS: readonly string[] = ['formatVersion', 'fleets', 'range', 'closingSpeed', 'crossingSpeed', 'seed'];
+const FILE_KEYS: readonly string[] = ['formatVersion', 'fleets', 'range', 'closingSpeed', 'crossingSpeed', 'rotation', 'seed'];
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -60,6 +70,7 @@ export function battleSetupProblem(value: unknown): string | null {
     finite(value['range'], 'range') ??
     finite(value['closingSpeed'], 'closingSpeed') ??
     finite(value['crossingSpeed'], 'crossingSpeed') ??
+    (value['rotation'] === undefined ? null : finite(value['rotation'], 'rotation')) ??
     finite(value['seed'], 'seed');
   if (problem !== null) return problem;
   if (!((value['range'] as number) > 0)) return 'range must be greater than zero';
@@ -76,10 +87,12 @@ export function parseBattleSetup(value: unknown): BattleSetup {
     range: file['range'] as number,
     closingSpeed: file['closingSpeed'] as number,
     crossingSpeed: file['crossingSpeed'] as number,
+    rotation: file['rotation'] === undefined ? 0 : degreesToRadians(file['rotation'] as number),
     seed: file['seed'] as number,
   };
 }
 
+/** Rotation is written only when there is one, so a file from before it existed reads back the same. */
 export function serialiseBattleSetup(setup: BattleSetup): Record<string, unknown> {
   return {
     formatVersion: BATTLE_FORMAT_VERSION,
@@ -87,6 +100,7 @@ export function serialiseBattleSetup(setup: BattleSetup): Record<string, unknown
     range: setup.range,
     closingSpeed: setup.closingSpeed,
     crossingSpeed: setup.crossingSpeed,
+    ...(setup.rotation !== 0 ? { rotation: radiansToDegrees(setup.rotation) } : {}),
     fleets: setup.fleets.map(serialiseFleet),
   };
 }
@@ -116,6 +130,7 @@ export function customBattle(setup: BattleSetup): CustomBattle {
     range: setup.range,
     closingSpeed: setup.closingSpeed,
     crossingSpeed: setup.crossingSpeed,
+    rotation: setup.rotation,
     projectiles: 1024,
     beams: 256,
   });

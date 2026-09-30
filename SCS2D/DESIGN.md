@@ -452,7 +452,7 @@ inside any one file is not contiguous.
   embedded design that has drifted from the library's copy of the same name, which one button brings up to
   date. Fleets are saved to browser storage and exported and imported as fleet files.
   **A custom battle** on the viewer sets fleets — or single ships, as fleets of one — round a ring at a
-  chosen range, closing and crossing speed and seed, saved and loaded as a battle file; one side alone is
+  chosen range, closing and crossing speed, rotation and seed, saved and loaded as a battle file; one side alone is
   allowed, for watching an escort. Both editors' Battle links open it with what is being edited as the
   first side. It is set up paused at its first step, the
   picture following every change, and started with Fight. It says how each side stands — ships still
