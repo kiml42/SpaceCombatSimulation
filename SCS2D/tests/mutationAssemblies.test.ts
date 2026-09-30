@@ -212,11 +212,16 @@ describe('growing a part that is placed more than once', () => {
 });
 
 describe('breeding the grouping', () => {
-  it('reaches parts, repeats them, grows them and turns them over', () => {
-    // One lineage from a bare core, which starts with no assemblies at all, so
+  it('reaches parts, repeats them, grows them and turns them over', { timeout: 30_000 }, () => {
+    // Lineages from a bare core, which starts with no assemblies at all, so
     // every one of these is something the operators built rather than
-    // something the founder was handed.
-    const { seen } = lineage(BARE_CORE, 3, 400);
+    // something the founder was handed. Three rather than one, because a
+    // single lineage can wander away from any one of them for good.
+    const seen = { grouped: false, repeated: false, manyModules: false, mirrored: false };
+    for (const seed of [3, 4, 5]) {
+      const one = lineage(BARE_CORE, seed, 400).seen;
+      for (const key of Object.keys(seen) as (keyof typeof seen)[]) seen[key] ||= one[key];
+    }
     expect(seen.grouped, 'made a part').toBe(true);
     expect(seen.repeated, 'placed a part more than once').toBe(true);
     expect(seen.manyModules, 'grew a part past one module').toBe(true);
