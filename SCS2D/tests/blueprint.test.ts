@@ -499,6 +499,7 @@ const FLEET: readonly BlueprintName[] = [
   'catamaran',
   'torch',
   'laserFrigate',
+  'torpedo',
 ];
 
 /**
@@ -553,7 +554,7 @@ describe('the authored blueprints', () => {
         expect(design.engineLayout.maxTorque(-1)).toBe(0);
       });
 
-      it.skipIf(!canFly)('compiles to a ship that can fly and fight', () => {
+      it.skipIf(!canFly)('compiles to a ship that can fly, and fight with whatever it carries', () => {
         const design = compileBlueprint(blueprint);
 
         expect(design.mass).toBeGreaterThan(0);
@@ -581,8 +582,8 @@ describe('the authored blueprints', () => {
           expect(design.engineLayout.hasFullAuthority()).toBe(true);
         }
 
-        // Something to fight with: a gun, or an engine meant as a weapon.
-        expect(design.turrets.length + design.weaponEngines.length).toBeGreaterThan(0);
+        // Nothing has to be armed: a support ship need not be. What is
+        // aboard has to work.
         if (design.turrets.length === 0) return;
         // A gun aboard has to be able to shoot; on a fleet ship, every
         // mount does. A showpiece is allowed a gun that is boxed in and

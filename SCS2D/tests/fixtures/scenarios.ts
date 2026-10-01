@@ -23,6 +23,7 @@ import { torchRun } from '../../scenarios/torchRun.js';
 import { column } from '../../scenarios/column.js';
 import { split } from '../../scenarios/split.js';
 import { swarm } from '../../scenarios/swarm.js';
+import { torpedoes } from '../../scenarios/torpedoes.js';
 import { fractal } from '../../scenarios/fractal.js';
 
 /**
@@ -348,6 +349,19 @@ export function beamVGunScenario(seed = 20260905): ScenarioRun {
   };
 }
 
+export function torpedoesScenario(seed = 20260905): ScenarioRun {
+  const run = torpedoes(seed);
+  return {
+    step: () => run.step(),
+    checksum: () =>
+      checksumDamage(
+        run.ships.damage,
+        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
+      ),
+    describe: () => describeBattle(run),
+  };
+}
+
 export function swarmScenario(seed = 20260905, corvetteCount = 20): ScenarioRun {
   const run = swarm(seed, corvetteCount);
   return {
@@ -490,6 +504,7 @@ export const SCENARIOS = {
   beamVGun: { steps: 3_000, build: () => beamVGunScenario() },
   swarm: { steps: 3_000, build: () => swarmScenario() },
   superSwarm: { steps: 3_000, build: () => swarmScenario(undefined, 300) },
+  torpedoes: { steps: 3_000, build: () => torpedoesScenario() },
   fractal: { steps: 3_000, build: () => fractalScenario() },
   ordering: { steps: 3_000, build: () => orderingScenario() },
   ram: { steps: 3_000, build: () => ramScenario() },

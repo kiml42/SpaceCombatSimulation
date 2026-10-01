@@ -62,7 +62,16 @@ an entry is either still open or it is gone.
 
 **Step 3 — Doctrine and orders.** What the step deferred, plus one thing using it turned up:
 
-- **Withdrawal** — a craft breaking off.
+- **Withdrawal** — a craft breaking off. **And keeping clear in the first place**: an unarmed ship — a fuel
+  tanker, once there is fuel to carry — wants a doctrine that moves it away from armed enemies rather than
+  towards a target, a weight against each by how dangerous it is and how close, so a support ship stays
+  behind its fleet without being ordered to. An unarmed ship with a ram doctrine already picks targets (a
+  torpedo); one without one currently does nothing at all.
+- **Main guns.** A way to mark which mounts are a ship's main battery, so that it counts itself armed only
+  while at least one of them works. Secondary mounts are expected to be CIWS, and losing them should not
+  make a capital think itself harmless — or make a ram doctrine's `ramArmed` fire because the point
+  defence is gone. `isDisarmed`, `armedWeight` on the enemy's side and the ram decision would all read the
+  main guns rather than every mount. It also answers the attack-orientation question in §12 below.
 - **More pickers**: ship-type. Hemisphere as a hard discard too, if `facingWeight`'s
   soft version — astern scores against — turns out not to be enough.
 - **How much a mount cares about its ship's orders, as a weight of its own.** An order is currently a
@@ -348,7 +357,10 @@ Deliberately unresolved; decide when they block something.
   cannot currently choose a module on a large one**, because aiming a fixed gun is a question for the pilot
   rather than the mount, and a pilot that knew what its guns wanted to hit would steer to put it under them.
   Both are the same missing idea — that where a ship points is a decision, not a consequence of where it is
-  going. **The Dinky is the worked example**: its gun trains five degrees and its doctrine says engines, so
+  going. **Marking main guns (step 3) gives the attack orientation something to derive from**: the
+  preferred heading to fight at is the one that brings the most main-gun arc to bear on the target, worked
+  out from the main mounts' firing arcs, with secondaries left out since they are CIWS and train on their
+  own. **The Dinky is the worked example**: its gun trains five degrees and its doctrine says engines, so
   what it actually shoots is whatever the *hull* is pointed at, and the hull points at its target's centre.
   **Which part a hull points at is a setting on the ship**, decided by the author against the alternative of
   deriving it from what the ship's weapons want: a hull with several limited-traverse guns has no single
