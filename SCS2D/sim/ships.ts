@@ -9,7 +9,7 @@ import {
   type ShipDesign,
 } from './blueprint.js';
 import { components, cuts, jointBetween, joints, type Joint } from './connectivity.js';
-import { HULL_LAYER, Hulls, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from './hull.js';
+import { BOTH_LAYERS, HULL_LAYER, Hulls, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from './hull.js';
 import { Damage, DamageEffect } from './damage.js';
 import { plumeRays, plumeRayStarts, Plumes, WEAPON_PLUME_SHARE } from './exhaust.js';
 import { Choice, cohesionUrge, inSight, look, lookFrom, score } from './targeting.js';
@@ -46,7 +46,7 @@ import type { World } from './world.js';
 import type { BeamHits, Beams, SpatialGrid } from './index.js';
 import { MAX_BEAM_LENGTH } from './beams.js';
 import { RayHit } from './spatialGrid.js';
-import type { Contacts } from './collision.js';
+import { hullsOverlap, type Contacts } from './collision.js';
 import { GunType, type GunStats, type ModuleKind } from './modules.js';
 
 /**
@@ -368,6 +368,11 @@ export interface Order {
   approachSpeed: number;
   /** Under what condition should this order be cancelled */
   cancelOn: OrderCancelCondition;
+  /**
+   * Fly into the target rather than hold a band, which is ignored. A fighter
+   * drops into the hull layer to do it.
+   */
+  ram: boolean;
 }
 
 /**
@@ -542,6 +547,8 @@ export class Ships {
    * drawn, hit and severed by the code that already does those.
    */
   private readonly derelict: number[] = [];
+  /** 1 for a fighter its doctrine has taken down into the hull layer as well. */
+  private readonly committed: number[] = [];
 
   /**
    * Mass thrown away as scrap or lost track of, kilograms — everything the
@@ -924,6 +931,7 @@ export class Ships {
     this.turretAimModule.push(new Int32Array(mounts.length).fill(WHOLE_SHIP));
     this.team.push(spec.team ?? 0);
     this.derelict.push(0);
+    this.committed.push(0);
     this.cutSeen.push(-1);
     this.partedAt.push(-Infinity);
     this.chosen.push(NO_TARGET);
@@ -937,6 +945,7 @@ export class Ships {
       maxRange: 0,
       approachSpeed: 0,
       cancelOn: OrderCancelCondition.CompleteDisable,
+      ram: false,
     });
     this.orders.push([]); // Initialise to an empty array of orders for this ship
     this.demandFx.push(0);
@@ -979,7 +988,9 @@ export class Ships {
     // choose between — but it may still have somewhere it would rather be,
     // which is why this no longer ends the question.
     let fighting = NO_TARGET;
-    if (design.reach > 0 && !this.isDisarmed(i)) {
+    // A ship that can ram still has a fight with nothing left to shoot.
+    const rammer = design.doctrine.approach.ramRadii > 0;
+    if (design.reach > 0 && (!this.isDisarmed(i) || rammer)) {
       this.choice.begin();
       for (let t = 0; t < this.alive.length; t++) {
         if (t === i || this.alive[t] === 0) continue;
@@ -1331,9 +1342,74 @@ export class Ships {
     return (layers & HULL_LAYER) !== 0 && (whole === OWN_LAYERS || (whole & HULL_LAYER) !== 0);
   }
 
-  /** The layers every module of this ship is in, or `OWN_LAYERS`: a fighter's is the weapons layer. */
+  /**
+   * Whether this ship's doctrine would ram its target now: close enough, by
+   * `ramRadii` of the target's radius from its edge, and with no more of its
+   * own guns working than `ramArmed` says.
+   */
+  private rams(i: number, target: number): boolean {
+    const approach = this.designs[i]!.doctrine.approach;
+    if (!(approach.ramRadii > 0) || this.armedShare(i) > approach.ramArmed) return false;
+    const bodies = this.bodyStore;
+    if (bodies === null) return false;
+    const b = bodies.indexOf(this.bodyIds[i]!);
+    const tb = bodies.indexOf(this.bodyIds[target]!);
+    if (b < 0 || tb < 0) return false;
+    const gap = length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!) - bodies.radius[tb]!;
+    return gap <= approach.ramRadii * bodies.radius[tb]!;
+  }
+
+  /** The share of this ship's mounts that can still fire; none for a ship with none. */
+  private armedShare(i: number): number {
+    const mounts = this.designs[i]!.turrets.length;
+    if (mounts === 0) return 0;
+    let working = 0;
+    for (let t = 0; t < mounts; t++) if (!this.isTurretDisabled(i, t)) working++;
+    return working / mounts;
+  }
+
+  /**
+   * Whether a fighter takes the hull layer as well: whenever it is ramming,
+   * which is flying at a target with a band of nothing, by its doctrine's
+   * decision or by order.
+   *
+   * Only while clear of every hull, in either direction (DESIGN.md §3), so a
+   * fighter cannot drop into a capital's structure or climb back out of one it
+   * has struck. Clear of its modules rather than its bounding circle, so a
+   * fighter alongside a long hull can still commit.
+   */
+  private commitOne(bodies: Bodies, i: number): void {
+    if (!this.designs[i]!.fighter) return;
+    const b = bodies.indexOf(this.bodyIds[i]!);
+    if (b < 0) return;
+    const order = this.effectiveOrder(i);
+    const ramming = order !== undefined && order.target !== NO_TARGET && order.ram;
+    const want = ramming ? 1 : 0;
+    if (want === this.committed[i] || !this.clearOfHulls(bodies, b)) return;
+    this.committed[i] = want;
+  }
+
+  /** Whether no module of this body overlaps any other hull's. */
+  private clearOfHulls(bodies: Bodies, b: number): boolean {
+    const own = this.designOf(b);
+    if (own === null) return true;
+    for (let j = 0; j < bodies.highWater; j++) {
+      if (j === b || bodies.alive[j] === 0 || bodies.ghost[j] === 1) continue;
+      const other = this.designOf(j);
+      if (other !== null && hullsOverlap(bodies, b, own, j, other)) return false;
+    }
+    return true;
+  }
+
+  /** Whether this fighter has dropped into the hull layer as well. */
+  isCommitted(i: number): boolean {
+    return this.committed[i] === 1;
+  }
+
+  /** The layers every module of this ship is in, or `OWN_LAYERS`: a fighter's, by whether it has committed. */
   private shipLayers(i: number): number {
-    return this.designs[i]!.fighter ? WEAPONS_LAYER : OWN_LAYERS;
+    if (!this.designs[i]!.fighter) return OWN_LAYERS;
+    return this.committed[i] === 1 ? BOTH_LAYERS : WEAPONS_LAYER;
   }
 
   /** The layers this mount's shots fly in: a fighter's guns fire in whatever it occupies. */
@@ -1532,6 +1608,7 @@ export class Ships {
       min(approach.standoffRadii * this.designs[target]!.radius, approach.standoff * design.reach);
     standing.minRange = max(0, wanted * (1 - approach.tolerance));
     standing.maxRange = max(standing.minRange, wanted * (1 + approach.tolerance));
+    standing.ram = this.rams(i, target);
     standing.approachSpeed = approach.approachSpeed;
     return standing;
   }
@@ -1548,9 +1625,15 @@ export class Ships {
       minRange: minRange,
       maxRange: maxRange,
       approachSpeed: approachSpeed,
-      cancelOn: cancelOn
+      cancelOn: cancelOn,
+      ram: false,
     };
     this.orders[i]!.push(order);
+  }
+
+  /** Add an order to ram `target`, closing at `approachSpeed`, to the end of this ship's queue. */
+  pushRam(i: number, target: number, approachSpeed: number, cancelOn: OrderCancelCondition = OrderCancelCondition.CompleteDisable): void {
+    this.orders[i]!.push({ target, minRange: 0, maxRange: 0, approachSpeed, cancelOn, ram: true });
   }
 
   /** Drop every order this ship has. It holds its heading and its fire. */
@@ -1603,6 +1686,7 @@ export class Ships {
       this.decide(world, bodies, i);
       this.decideTurrets(world, bodies, i);
       this.flyOne(dt, bodies, i, grid);
+      this.commitOne(bodies, i);
       this.trainOne(bodies, i);
       const timers = this.cooldown[i]!;
       const b = bodies.indexOf(this.bodyIds[i]!);
@@ -1965,7 +2049,9 @@ export class Ships {
       // Hooked on to it: nowhere to steer for.
       if (tb >= 0 && tb !== b) {
         wantAngle = atan2(bodies.y[tb]! - bodies.y[b]!, bodies.x[tb]! - bodies.x[b]!);
-        this.hold(bodies, i, b, tb, order.minRange, order.maxRange, order.approachSpeed, URGE_REFERENCE);
+        const near = order.ram ? 0 : order.minRange;
+        const far = order.ram ? 0 : order.maxRange;
+        this.hold(bodies, i, b, tb, near, far, order.approachSpeed, URGE_REFERENCE);
       }
     }
 

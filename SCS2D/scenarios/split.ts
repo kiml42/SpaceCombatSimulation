@@ -40,7 +40,7 @@ export function split(seed = 20260905): Battle {
       vx: -60,
       team: 1,
     });
-    ships.pushOrder(rammer, target, 0, 0, 60);
+    ships.pushRam(rammer, target, 60);
 
     // Far enough off that it arrives after the ram rather than during it.
     ships.spawn(world, { design: corvette, x: -1800, y: 1300, angle: 0, team: 1 });

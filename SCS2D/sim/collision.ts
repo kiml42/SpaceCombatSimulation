@@ -380,6 +380,22 @@ export function findContacts(bodies: Bodies, hulls: HullDesigns, out: Contacts):
   }
 }
 
+/** Whether any module of one hull overlaps any of another's, whatever layers they are in. */
+export function hullsOverlap(bodies: Bodies, i: number, designA: ShipDesign, j: number, designB: ShipDesign): boolean {
+  const dx = bodies.x[j]! - bodies.x[i]!;
+  const dy = bodies.y[j]! - bodies.y[i]!;
+  const reach = bodies.radius[i]! + bodies.radius[j]!;
+  if (dx * dx + dy * dy > reach * reach) return false;
+  boxesOf(designA, bodies.x[i]!, bodies.y[i]!, bodies.angle[i]!, boxesA);
+  boxesOf(designB, bodies.x[j]!, bodies.y[j]!, bodies.angle[j]!, boxesB);
+  for (let ma = 0; ma < designA.modules.length; ma++) {
+    for (let mb = 0; mb < designB.modules.length; mb++) {
+      if (overlap(boxesA[ma]!, boxesB[mb]!) > 0) return true;
+    }
+  }
+  return false;
+}
+
 /**
  * Turn the contacts into impulses, and push the hulls out of each other.
  *

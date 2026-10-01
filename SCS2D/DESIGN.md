@@ -609,8 +609,10 @@ Rules:
   **A strike craft is a ship flagged as a fighter.** The flag rules
   out turrets and thick modules, which is what keeps a craft small enough to skim a deck, and puts the
   ship in the weapons layer for the battle. A ship that evolves either one flies as an ordinary ship, its
-  flag ignored. Uncommitted, it collides only with other fighters, hull-layer fire passes under it, and its
-  own hull weapons fire in the weapons layer. Committing is not built yet.
+  flag ignored. It commits when it rams, by its doctrine's decision or by a ram order. Any ship's doctrine
+  can decide to ram: `approach.ramRadii` is how close its target's edge has to be, in the target's own
+  radii, and `approach.ramArmed` how little of its own armament it must have left. Uncommitted, it collides only with other fighters and hull-layer fire passes under
+  it; its own hull weapons fire in the weapons layer until it commits, and in both after.
 
   **Occupancy is added, never swapped.** A committed craft does not leave the weapons layer, so
   everything that could shoot at it still can — every turret is weapons-layer, and a craft
