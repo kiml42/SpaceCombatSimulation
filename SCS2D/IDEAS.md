@@ -45,6 +45,9 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - In-battle scores should be an overlay on the battle, not making it be a tiny bar at the bottom.
 - Continual layout shift in the sidebar is annoying - make the matches list be padded with empty rows so it stays a consistent length.
 - Make damage and function taken start at 0 and go negative, so the graph scales nicely at the beginning when they're all useless, highlighting even minor improvements.
+- We need a mechanism to let ships know what the goal is. This could be something like a "go close to that" order being given to all ships when the race goal is present. (At the moment we lean on the escort doctrine, but that just makes evolving a second ship mean they bunch up with each other instead of going for the goal)
+- Add a mutation to change which design an existing ship uses.
+- Allow ship names to mutate (can just add and remove and change random letters (or spaces), unpronounceable is probably better than just the name of the starting ship with a number)
 
 ## Fleet Editor
 - Allow grouping ships.
@@ -55,4 +58,4 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
   - Thumbnails indicate the exact current state, possibly even a live view with its own camera tracking the ship (possibly rotated to match)
   - Click a ship to focus the main camera on it
 - Randomisation settings for all parameters of a custom battle
-- team coloured beams and projectiles - as a UI option, so you can still see the more realistic mode by default.
+- team coloured beams and projectiles - as a UI option, so you can still see the more realistic mode by default. (turn it on by default for evolution)
