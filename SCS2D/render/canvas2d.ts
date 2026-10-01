@@ -101,8 +101,8 @@ const GLOW_CALIBRES = 5;
  * The glow's floor is the widest because it has to stay visible *around* the
  * tracer rather than merely be present. That ordering holds at every zoom, and
  * not by luck: where the tracer is at its floor the glow's larger floor wins,
- * and where the tracer is at its true width the glow is three times it, which
- * clears the glow's floor on its own.
+ * and where the tracer is at its true width the glow is `GLOW_CALIBRES` times
+ * it, which clears the glow's floor on its own.
  */
 const MIN_GLOW_PX = 2;
 const MIN_TRACER_PX = 0.1;

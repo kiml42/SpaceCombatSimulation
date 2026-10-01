@@ -16,7 +16,7 @@ inside any one file is not contiguous.
 
 | File | Holds | Read it when |
 | --- | --- | --- |
-| 2026-10-01 | **Fragments share the metal of the bore, not all of it, and shots are drawn thinner.** A burst's fragments were each `1/√n` the round's width, so their areas summed to the whole bore, charge included; they now sum to the metal share, `1 − chargeShare`, so at the default 650 m/s eight fragments are each about 31% of the bore wide rather than 35%. Solid shot is unchanged. The renderer's floors on a shot's or beam's stroke drop from 5 px glow and 2 px tracer to 3 and 1: shots were still easy to see landing, and fragments were drawn as wide as the round once zoomed out. Nine goldens with shell guns moved. |
+| 2026-10-01 | **Fragments share the metal of the bore, not all of it, and shots are drawn thinner.** A burst's fragments were each `1/√n` the round's width, so their areas summed to the whole bore, charge included; they now sum to the metal share, `1 − chargeShare`, so at the default 650 m/s eight fragments are each about 31% of the bore wide rather than 35%. Solid shot is unchanged. The renderer's floors drop — glow 5 → 2 px, tracer 2 → 0.1, barrel 2 → 1, flash 2 → 1 — and the glow widens from 3 to 5 calibres: shots were still easy to see landing, and fragments were drawn as wide as the round once zoomed out. Nine goldens with shell guns moved. |
 | **[DESIGN.md](DESIGN.md)** | Status, §§1–7 and 9–11 — what the game is, how it works, and why | Deciding how something should behave |
 | **[ROADMAP.md](ROADMAP.md)** | §8 build order, §12 open questions | Picking up work, or deferring a decision |
 | **[DECISIONS.md](DECISIONS.md)** | The Decision Log | Asking why something ended up the way it is |
