@@ -22,6 +22,12 @@ export interface Camera {
   y: number;
   /** Pixels per metre. */
   scale: number;
+  /**
+   * How fast following ships would carry the camera, m/s, kept while paused.
+   * Streaks are drawn relative to it. Still when absent.
+   */
+  vx?: number;
+  vy?: number;
 }
 
 /**
@@ -199,6 +205,9 @@ const FOLLOW_ORDER: readonly ((ship: ShipView) => boolean)[] = [
  * `dt` is *simulated* seconds — this is the half of the camera that chases the
  * battle, so it runs on the battle's clock. The easing in `frame` is the half
  * that settles, and runs on the frame.
+ *
+ * The pace is left in `camera.vx`/`vy` even when `dt` is zero, so a paused
+ * picture is drawn as if it were still moving.
  */
 export function moveWithVisibleShips(
   camera: Camera,
@@ -207,7 +216,9 @@ export function moveWithVisibleShips(
   widthPx: number,
   heightPx: number,
 ): void {
-  if (!(dt > 0) || snapshot.shipCount === 0) return;
+  camera.vx = 0;
+  camera.vy = 0;
+  if (snapshot.shipCount === 0) return;
   if (!(camera.scale > 0) || !(widthPx > 0) || !(heightPx > 0)) return;
 
   // The view in metres, about the camera.
@@ -220,19 +231,22 @@ export function moveWithVisibleShips(
   // the viewer has deliberately left behind, and rather than dividing by none
   // of them, which would put the camera at NaN and take the view with it.
   for (const worthFollowing of FOLLOW_ORDER) {
-    if (keepPaceWith(camera, snapshot, dt, halfWidth, halfHeight, worthFollowing)) return;
+    if (keepPaceWith(camera, snapshot, halfWidth, halfHeight, worthFollowing)) break;
+  }
+  if (dt > 0) {
+    camera.x += camera.vx * dt;
+    camera.y += camera.vy * dt;
   }
 }
 
 /**
- * Move the camera with the ships in shot that `worthFollowing` accepts, and
- * say whether there were any. A pass that finds nothing leaves the camera
- * exactly as it was, so the caller can try the next kind.
+ * Set the camera's pace to that of the ships in shot that `worthFollowing`
+ * accepts, and say whether there were any. A pass that finds nothing leaves
+ * the camera exactly as it was, so the caller can try the next kind.
  */
 function keepPaceWith(
   camera: Camera,
   snapshot: Snapshot,
-  dt: number,
   halfWidth: number,
   halfHeight: number,
   worthFollowing: (ship: ShipView) => boolean,
@@ -278,8 +292,8 @@ function keepPaceWith(
   }
 
   if (!(weight > 0)) return false;
-  camera.x += (vx / weight) * dt;
-  camera.y += (vy / weight) * dt;
+  camera.vx = vx / weight;
+  camera.vy = vy / weight;
   return true;
 }
 

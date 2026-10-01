@@ -220,6 +220,23 @@ describe('what the camera keeps up with', () => {
   });
 });
 
+describe('the pace it reports for streaks', () => {
+  it('keeps the pace while paused, without moving', () => {
+    const camera: Camera = { x: 0, y: 0, scale: 0.1 };
+    moveWithVisibleShips(camera, snapshotOf([ship(0, 0, 100, 40)]), 0, WIDTH, HEIGHT);
+    expect(camera.x).toBe(0);
+    expect(camera.vx).toBeCloseTo(100, 9);
+    expect(camera.vy).toBeCloseTo(40, 9);
+  });
+
+  it('is still with nothing in shot', () => {
+    const camera: Camera = { x: 0, y: 0, scale: 0.1, vx: 50, vy: 50 };
+    moveWithVisibleShips(camera, snapshotOf([ship(50_000, 0, 100, 0)]), 1, WIDTH, HEIGHT);
+    expect(camera.vx).toBe(0);
+    expect(camera.vy).toBe(0);
+  });
+});
+
 describe('the pace the camera keeps', () => {
   /** How far the camera moves in a second, for a lone ship that far out of the middle. */
   function paceAt(outFraction: number): number {
