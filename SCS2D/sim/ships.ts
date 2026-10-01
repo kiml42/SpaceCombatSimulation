@@ -46,7 +46,7 @@ import type { World } from './world.js';
 import type { BeamHits, Beams, SpatialGrid } from './index.js';
 import { MAX_BEAM_LENGTH } from './beams.js';
 import { RayHit } from './spatialGrid.js';
-import type { Contacts } from './collision.js';
+import { hullsOverlap, type Contacts } from './collision.js';
 import { GunType, type GunStats, type ModuleKind } from './modules.js';
 
 /**
@@ -368,6 +368,11 @@ export interface Order {
   approachSpeed: number;
   /** Under what condition should this order be cancelled */
   cancelOn: OrderCancelCondition;
+  /**
+   * Fly into the target rather than hold a band, which is ignored. A fighter
+   * drops into the hull layer to do it.
+   */
+  ram: boolean;
 }
 
 /**
@@ -940,6 +945,7 @@ export class Ships {
       maxRange: 0,
       approachSpeed: 0,
       cancelOn: OrderCancelCondition.CompleteDisable,
+      ram: false,
     });
     this.orders.push([]); // Initialise to an empty array of orders for this ship
     this.demandFx.push(0);
@@ -1368,28 +1374,29 @@ export class Ships {
    * decision or by order.
    *
    * Only while clear of every hull, in either direction (DESIGN.md §3), so a
-   * fighter cannot drop inside a capital's perimeter or climb back out of one
-   * it has struck. Clear of its bounding circle, which is the cautious answer.
+   * fighter cannot drop into a capital's structure or climb back out of one it
+   * has struck. Clear of its modules rather than its bounding circle, so a
+   * fighter alongside a long hull can still commit.
    */
   private commitOne(bodies: Bodies, i: number): void {
     if (!this.designs[i]!.fighter) return;
     const b = bodies.indexOf(this.bodyIds[i]!);
     if (b < 0) return;
     const order = this.effectiveOrder(i);
-    const ramming = order !== undefined && order.target !== NO_TARGET && order.maxRange === 0;
+    const ramming = order !== undefined && order.target !== NO_TARGET && order.ram;
     const want = ramming ? 1 : 0;
     if (want === this.committed[i] || !this.clearOfHulls(bodies, b)) return;
     this.committed[i] = want;
   }
 
-  /** Whether no other hull's bounding circle overlaps this body's. */
+  /** Whether no module of this body overlaps any other hull's. */
   private clearOfHulls(bodies: Bodies, b: number): boolean {
+    const own = this.designOf(b);
+    if (own === null) return true;
     for (let j = 0; j < bodies.highWater; j++) {
-      if (j === b || bodies.alive[j] === 0 || this.designOf(j) === null) continue;
-      const reach = bodies.radius[j]! + bodies.radius[b]!;
-      const dx = bodies.x[j]! - bodies.x[b]!;
-      const dy = bodies.y[j]! - bodies.y[b]!;
-      if (dx * dx + dy * dy < reach * reach) return false;
+      if (j === b || bodies.alive[j] === 0 || bodies.ghost[j] === 1) continue;
+      const other = this.designOf(j);
+      if (other !== null && hullsOverlap(bodies, b, own, j, other)) return false;
     }
     return true;
   }
@@ -1601,12 +1608,7 @@ export class Ships {
       min(approach.standoffRadii * this.designs[target]!.radius, approach.standoff * design.reach);
     standing.minRange = max(0, wanted * (1 - approach.tolerance));
     standing.maxRange = max(standing.minRange, wanted * (1 + approach.tolerance));
-    // Having decided to ram, it closes to nothing: a band of zero is the
-    // order to arrive.
-    if (this.rams(i, target)) {
-      standing.minRange = 0;
-      standing.maxRange = 0;
-    }
+    standing.ram = this.rams(i, target);
     standing.approachSpeed = approach.approachSpeed;
     return standing;
   }
@@ -1623,9 +1625,15 @@ export class Ships {
       minRange: minRange,
       maxRange: maxRange,
       approachSpeed: approachSpeed,
-      cancelOn: cancelOn
+      cancelOn: cancelOn,
+      ram: false,
     };
     this.orders[i]!.push(order);
+  }
+
+  /** Add an order to ram `target`, closing at `approachSpeed`, to the end of this ship's queue. */
+  pushRam(i: number, target: number, approachSpeed: number, cancelOn: OrderCancelCondition = OrderCancelCondition.CompleteDisable): void {
+    this.orders[i]!.push({ target, minRange: 0, maxRange: 0, approachSpeed, cancelOn, ram: true });
   }
 
   /** Drop every order this ship has. It holds its heading and its fire. */
@@ -2041,7 +2049,9 @@ export class Ships {
       // Hooked on to it: nowhere to steer for.
       if (tb >= 0 && tb !== b) {
         wantAngle = atan2(bodies.y[tb]! - bodies.y[b]!, bodies.x[tb]! - bodies.x[b]!);
-        this.hold(bodies, i, b, tb, order.minRange, order.maxRange, order.approachSpeed, URGE_REFERENCE);
+        const near = order.ram ? 0 : order.minRange;
+        const far = order.ram ? 0 : order.maxRange;
+        this.hold(bodies, i, b, tb, near, far, order.approachSpeed, URGE_REFERENCE);
       }
     }
 

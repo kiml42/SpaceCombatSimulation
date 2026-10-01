@@ -133,10 +133,11 @@ and evolution run does, and a ship tuned to half the rules is tuned twice.
    the weapons layer, or both once committed (`Ships.layersOf`). **Ramming is a doctrine decision any ship
    can make**: `approach.ramRadii` (how close the target's edge must be, in its radii; 0, the default,
    never rams) and `approach.ramArmed` (the share of its own guns still working at or below which it
-   will). A ramming ship closes to a band of nothing; a fighter commits whenever it is ramming, by that
-   decision or by an order to close to nothing. Docking is not a decision yet.
-   "Clear of every hull" is read cautiously, as clear of every bounding circle. No stock ship is a fighter
-   yet: flagging the Dinky, TIE and X-Wing is the obvious first move of item 3.
+   will). A ramming ship flies into its target; a fighter commits whenever it is ramming, by that
+   decision or by a ram order (`Ships.pushRam`), not by an ordinary order to close to nothing. "Clear of
+   every hull" is clear of its modules, not its bounding circle: committing is rare, and a circle would
+   keep a fighter alongside a long hull from committing. Docking is not a decision yet. No stock ship is a
+   fighter yet: flagging the Dinky, TIE and X-Wing is the obvious first move of item 3.
    - **A fighter may carry no turret and nothing thick.** The editor disables both while the flag is set.
      It flies in the **weapons layer**, where turrets and CIWS reach it, so a fighter is never out of their
      reach the way the Dinky is today.
@@ -839,6 +840,14 @@ Deliberately unresolved; decide when they block something.
   carries no command, and two ships hooked that way both ride it (DESIGN.md §4). A port or a claw is how a
   live ship joins on purpose, with rules of its own — which parts
   mate, whether the pair shares command, how a dock lets go — and is what makes §3's landing a landing.
+- **What else decides a ram.** Only range and remaining armament for now, to see how it behaves first.
+  Candidates: the target's mass against the rammer's, how much damage either has taken, the doctrine's
+  aggression.
+- **Ramming a mount without committing.** A fighter going for a turret or a thick module is after
+  something in the weapons layer already, so it could ram it without taking the hull layer. Waits on
+  targeting picking modules rather than ships.
+- **When a ship decides to dock.** Docking is a commit at a low closing speed, but nothing wants to dock
+  until fuel gives it a reason (step 8 on). Decide with the docking ports below.
 - **Credit for ramming.** Deferred; nothing depends on it. Damage is credited to whoever caused it only for
   shells and beams (`Credit`, filled in `Impacts.rounds` and `Impacts.beams`); a collision damages both
   hulls and credits nobody. So a ram costs the rammer hull and function and never pays in damage done or

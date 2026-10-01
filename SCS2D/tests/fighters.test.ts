@@ -82,7 +82,7 @@ describe('a fighter in battle', () => {
     world.addForceProvider(ships.forceProvider());
     const hulk = ships.spawn(world, { design: compileBlueprint(HULK), x: 0, y: 0, team: 1 });
     const craft = ships.spawn(world, { design: compileBlueprint(blueprint), x: gap, y: 0, team: 0 });
-    if (ram) ships.pushOrder(craft, hulk, 0, 0, 10, OrderCancelCondition.None);
+    if (ram) ships.pushRam(craft, hulk, 10, OrderCancelCondition.None);
     else ships.pushOrder(craft, hulk, 50, 100, 10, OrderCancelCondition.None);
     return { world, ships, craft, hulk };
   }
@@ -103,6 +103,30 @@ describe('a fighter in battle', () => {
     s.ships.command(DT, s.world);
     expect(s.ships.isCommitted(s.craft)).toBe(true);
     expect(layersOf(s, s.craft)).toBe(BOTH_LAYERS);
+  });
+
+  it('does not commit on an ordinary order to close to nothing', () => {
+    const s = scene(false, 80);
+    s.ships.clearOrder(s.craft);
+    s.ships.pushOrder(s.craft, s.hulk, 0, 0, 10, OrderCancelCondition.None);
+    s.ships.command(DT, s.world);
+    expect(s.ships.isCommitted(s.craft)).toBe(false);
+  });
+
+  it('commits alongside a long hull, inside its bounding circle but clear of its modules', () => {
+    const world = new World({ dt: DT, seed: 2 });
+    const ships = new Ships();
+    world.addForceProvider(ships.forceProvider());
+    const long: Blueprint = { name: 'Long', modules: [{ kind: 'core', x: 0, y: 0, length: 4, width: 4 }, { kind: 'structure', x: 32, y: 0, length: 60, width: 4 }] };
+    const hulk = ships.spawn(world, { design: compileBlueprint(long), x: 0, y: 0, team: 1 });
+    const craft = ships.spawn(world, { design: compileBlueprint(fighter()), x: 30, y: 14, team: 0 });
+    const bodies = world.bodies;
+    const [h, c] = [bodies.indexOf(ships.body(hulk)), bodies.indexOf(ships.body(craft))];
+    const apart = Math.hypot(bodies.x[h]! - bodies.x[c]!, bodies.y[h]! - bodies.y[c]!);
+    expect(apart).toBeLessThan(bodies.radius[h]! + bodies.radius[c]!);
+    ships.pushRam(craft, hulk, 10, OrderCancelCondition.None);
+    ships.command(DT, world);
+    expect(ships.isCommitted(craft)).toBe(true);
   });
 
   it('does not commit while it overlaps a hull', () => {
@@ -135,7 +159,7 @@ describe('a fighter in battle', () => {
     expect(decide(0, true)).toBe(false);
   });
 
-  it('rams as any ship may, by closing to nothing', () => {
+  it('rams as any ship may', () => {
     const world = new World({ dt: DT, seed: 2 });
     const ships = new Ships();
     world.addForceProvider(ships.forceProvider());
@@ -147,8 +171,8 @@ describe('a fighter in battle', () => {
       world.step();
     }
     // `ramArmed` of one rams with every gun still working.
-    const station = (ships as unknown as { effectiveOrder(i: number): { maxRange: number } }).effectiveOrder(craft);
-    expect(station.maxRange).toBe(0);
+    const station = (ships as unknown as { effectiveOrder(i: number): { ram: boolean } }).effectiveOrder(craft);
+    expect(station.ram).toBe(true);
     expect(ships.isCommitted(craft)).toBe(false);
   });
 
