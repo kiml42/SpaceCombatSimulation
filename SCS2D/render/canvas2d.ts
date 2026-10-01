@@ -104,8 +104,8 @@ const GLOW_CALIBRES = 3;
  * and where the tracer is at its true width the glow is three times it, which
  * clears the glow's floor on its own.
  */
-const MIN_GLOW_PX = 5;
-const MIN_TRACER_PX = 2;
+const MIN_GLOW_PX = 3;
+const MIN_TRACER_PX = 1;
 const MIN_BARREL_PX = 2;
 /** A flash is never smaller than this on screen, however far out the camera is. */
 const MIN_FLASH_PX = 2;

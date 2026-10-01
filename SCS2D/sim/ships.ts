@@ -96,7 +96,7 @@ import { GunType, type GunStats, type ModuleKind } from './modules.js';
 const ROUND_FLIGHT_TIME = 30;
 
 /** The least a fragment flies, seconds, however short its fuse. */
-const FRAGMENT_MIN_LIFE = 0.05;
+const FRAGMENT_MIN_LIFE = 0.5;
 
 /** Twice the lead, so a fragment outlives the burst's arrival at what it was aimed at. */
 function fragmentLife(spec: ModuleSpec): number {

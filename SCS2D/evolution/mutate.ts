@@ -795,7 +795,7 @@ function retrain(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | n
 const SOLID_SHOT_CHANCE = 0.2;
 
 /** The slowest burst a nudge leaves, m/s. */
-const MIN_BURST_SPEED = 0.1;
+const MIN_BURST_SPEED = 1;
 
 /**
  * Retime a shell's fuse: a nudge scaled by the fuse itself, so a long one
