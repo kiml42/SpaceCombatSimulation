@@ -2049,18 +2049,20 @@ export class Ships {
       // Hooked on to it: nowhere to steer for.
       if (tb >= 0 && tb !== b) {
         wantAngle = atan2(bodies.y[tb]! - bodies.y[b]!, bodies.x[tb]! - bodies.x[b]!);
-        const near = order.ram ? 0 : order.minRange;
-        const far = order.ram ? 0 : order.maxRange;
-        this.hold(bodies, i, b, tb, near, far, order.approachSpeed, URGE_REFERENCE);
+        if (order.ram) this.charge(bodies, b, tb, order.approachSpeed);
+        else this.hold(bodies, i, b, tb, order.minRange, order.maxRange, order.approachSpeed, URGE_REFERENCE);
       }
     }
 
-    const covering = this.cover(bodies, i, b);
-    if (target === NO_TARGET && covering >= 0) {
-      const cb = bodies.indexOf(this.bodyIds[covering]!);
-      if (cb >= 0) wantAngle = atan2(bodies.y[cb]! - bodies.y[b]!, bodies.x[cb]! - bodies.x[b]!);
+    // A ram overrides the rest of the doctrine: no cover, no keeping clear.
+    if (order === undefined || !order.ram) {
+      const covering = this.cover(bodies, i, b);
+      if (target === NO_TARGET && covering >= 0) {
+        const cb = bodies.indexOf(this.bodyIds[covering]!);
+        if (cb >= 0) wantAngle = atan2(bodies.y[cb]! - bodies.y[b]!, bodies.x[cb]! - bodies.x[b]!);
+      }
+      this.avoid(bodies, i, b, target !== NO_TARGET ? target : covering);
     }
-    this.avoid(bodies, i, b, target !== NO_TARGET ? target : covering);
 
     // Nothing to want is a want of its own: a craft with no orders, no charge
     // and nothing in its way kills its drift and waits.
@@ -2225,6 +2227,18 @@ export class Ships {
    * Every positional want in the game is this one — an order and a charge to
    * cover are the same shape with different bands.
    */
+  /**
+   * Close on `other` at `speed`, with nothing across the line between them,
+   * and no braking to arrive: a ram is meant to hit.
+   */
+  private charge(bodies: Bodies, b: number, other: number, speed: number): void {
+    const dx = bodies.x[other]! - bodies.x[b]!;
+    const dy = bodies.y[other]! - bodies.y[b]!;
+    const range = length(dx, dy);
+    const close = range > 0 ? speed / range : 0;
+    this.urge(URGE_REFERENCE, bodies.vx[other]! + dx * close, bodies.vy[other]! + dy * close);
+  }
+
   private hold(
     bodies: Bodies,
     i: number,
