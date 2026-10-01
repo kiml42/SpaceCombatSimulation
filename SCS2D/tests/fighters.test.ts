@@ -159,6 +159,32 @@ describe('a fighter in battle', () => {
     expect(decide(0, true)).toBe(false);
   });
 
+  it('sees a ram through once its doctrine has decided on one', () => {
+    const world = new World({ dt: DT, seed: 2 });
+    const ships = new Ships();
+    world.addForceProvider(ships.forceProvider());
+    const hulk = ships.spawn(world, { design: compileBlueprint(HULK), x: 0, y: 0, team: 1 });
+    const craft = ships.spawn(world, { design: compileBlueprint(fighter(20, 1)), x: 80, y: 0, team: 0 });
+    for (let i = 0; i < 30; i++) {
+      ships.command(DT, world);
+      world.step();
+    }
+    const order = (): { ram: boolean; target: number } =>
+      (ships as unknown as { effectiveOrder(i: number): { ram: boolean; target: number } }).effectiveOrder(craft);
+    expect(order().ram).toBe(true);
+    // Carried far out of `ramRadii`, with a nearer enemy put beside it: still the same ram.
+    const h = world.bodies.indexOf(ships.body(hulk));
+    world.bodies.x[h] = 5000;
+    const nearer = ships.spawn(world, { design: compileBlueprint(HULK), x: 120, y: 0, team: 1 });
+    for (let i = 0; i < 120; i++) {
+      ships.command(DT, world);
+      world.step();
+    }
+    expect(order().ram).toBe(true);
+    expect(order().target).toBe(hulk);
+    expect(order().target).not.toBe(nearer);
+  });
+
   it('rams as any ship may', () => {
     const world = new World({ dt: DT, seed: 2 });
     const ships = new Ships();

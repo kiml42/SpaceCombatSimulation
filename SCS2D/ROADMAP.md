@@ -133,7 +133,7 @@ and evolution run does, and a ship tuned to half the rules is tuned twice.
    the weapons layer, or both once committed (`Ships.layersOf`). **Ramming is a doctrine decision any ship
    can make**: `approach.ramRadii` (how close the target's edge must be, in its radii; 0, the default,
    never rams) and `approach.ramArmed` (the share of its own guns still working at or below which it
-   will). A ramming ship flies into its target; a fighter commits whenever it is ramming, by that
+   will). A ramming ship flies into its target, ignoring the rest of its movement doctrine, and once its doctrine has decided to ram it sees it through; a fighter commits whenever it is ramming, by that
    decision or by a ram order (`Ships.pushRam`), not by an ordinary order to close to nothing. "Clear of
    every hull" is clear of its modules, not its bounding circle: committing is rare, and a circle would
    keep a fighter alongside a long hull from committing. Docking is not a decision yet. No stock ship is a

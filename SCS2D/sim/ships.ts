@@ -627,6 +627,8 @@ export class Ships {
    * obeyed, and a ship that has run out of orders is not left idle.
    */
   private readonly chosen: number[] = [];
+  /** The ship its doctrine has committed it to ramming, or `NO_TARGET`. Kept until that ship is out of the fight. */
+  private readonly ramming: number[] = [];
   /**
    * What each ship is covering, which is never what it is fighting: a consort
    * is by definition something it will not shoot at. Chosen on the same
@@ -935,6 +937,7 @@ export class Ships {
     this.cutSeen.push(-1);
     this.partedAt.push(-Infinity);
     this.chosen.push(NO_TARGET);
+    this.ramming.push(NO_TARGET);
     this.consort.push(NO_TARGET);
     // Staggered by index, so a fleet spawned together does not all stop to
     // think on the same step for the rest of the battle.
@@ -971,7 +974,19 @@ export class Ships {
       // running out of orders is a fresh look rather than a stale one.
       this.chosen[i] = NO_TARGET;
       this.consort[i] = NO_TARGET;
+      this.ramming[i] = NO_TARGET;
       return;
+    }
+    // A ram, once decided, is seen through: no second look at the target, and
+    // no consort to break off for.
+    const rammed = this.ramming[i]!;
+    if (rammed !== NO_TARGET) {
+      if (this.alive[rammed] === 1 && this.derelict[rammed] === 0 && this.hasControl(rammed)) {
+        this.chosen[i] = rammed;
+        this.consort[i] = NO_TARGET;
+        return;
+      }
+      this.ramming[i] = NO_TARGET;
     }
     if (world.tick < this.rethinkAt[i]!) return;
 
@@ -1608,7 +1623,8 @@ export class Ships {
       min(approach.standoffRadii * this.designs[target]!.radius, approach.standoff * design.reach);
     standing.minRange = max(0, wanted * (1 - approach.tolerance));
     standing.maxRange = max(standing.minRange, wanted * (1 + approach.tolerance));
-    standing.ram = this.rams(i, target);
+    if (this.ramming[i] !== target && this.rams(i, target)) this.ramming[i] = target;
+    standing.ram = this.ramming[i] === target;
     standing.approachSpeed = approach.approachSpeed;
     return standing;
   }
