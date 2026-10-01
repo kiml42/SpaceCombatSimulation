@@ -458,6 +458,19 @@ describe('the evolution page in a browser', () => {
     expect(problems).toEqual([]);
   }, 180_000);
 
+  it('shows a design fighting the yardstick, as the measurement fought it', async () => {
+    await page.click('#watchYardstick');
+    expect(await page.inputValue('#mode')).toBe('battle');
+    await page.waitForFunction(() => / v Dinky · \d+%/.test(document.getElementById('watching')?.textContent ?? ''));
+    const sides = await page.$$eval('#battleScores tr td:first-child', (cells) => cells.map((cell) => cell.textContent));
+    expect(sides).toHaveLength(2);
+    expect(sides[0]).toMatch(/^#\d+$/);
+    expect(sides[1]).toBe('Dinky');
+    // Back to the ships, so the tests after this find the page as they expect.
+    await page.selectOption('#mode', 'fleet');
+    expect(problems).toEqual([]);
+  }, 60_000);
+
   it('hands the best of it to the editor', async () => {
     await page.click('#saveChampion');
     expect(await page.textContent('#championLine')).toMatch(/saved as/);
