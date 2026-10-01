@@ -618,7 +618,10 @@ export class Match {
     } else if (this.count > 1 && fighting === 1) this.ending = 'decided';
   }
 
-  /** What every entrant was worth. Call once it is `done`. */
+  /**
+   * What every entrant was worth. Final once the match is `done`; before
+   * that, what it would be worth if the match went on as it stands.
+   */
   result(): MatchResult {
     const settings = this.settings;
     const { ships, world } = this.battle;

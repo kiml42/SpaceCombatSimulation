@@ -388,7 +388,9 @@ inside any one file is not contiguous.
   well as together, because they move at different times — a population learning to fly reaches the goal long
   before it learns to shoot, and a total hides that behind one rising line. Under it, smaller charts give a fleet's
   mass and, once a run fields more than one ship, its ship count: the generation's mean and its fittest, so
-  a run that scores better by growing can be told from one that scores better by paring down. **What the page shows while a run
+  a run that scores better by growing can be told from one that scores better by paring down. A match
+  watched again shows each side's score and its parts as it goes — what it would pay if it ended there — so
+  a replay says why it scored what the table says. **What the page shows while a run
   grinds is the population, not the fight.** A run fights hundreds of times faster than real time, so a window
   on whichever match is in progress is a fraction of a second of each and a flicker to the next — a picture of
   nothing, refreshed. A generation drawn as its ships, best first, changes at a pace worth watching: bare cores
