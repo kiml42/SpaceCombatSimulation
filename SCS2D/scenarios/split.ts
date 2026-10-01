@@ -28,19 +28,19 @@ export function split(seed = 20260905): Battle {
     const target = ships.spawn(world, { design: catamaran, x: 0, y: 0, angle: 0, team: 0 });
 
     // Down the centreline at the bridge rather than at either hull, close enough
-    // that it arrives in the first few seconds. A band of zero range is an order
-    // to arrive rather than to shoot, and sixty metres a second is chosen: much
-    // slower and the bridge holds, much faster and the ram takes both hulls to
-    // pieces instead of taking them apart.
+    // that it arrives in the first few seconds. A ram flies in without braking,
+    // so thirty metres a second is what it hits at: much slower and the bridge
+    // holds, much faster and the ram takes both hulls to pieces instead of
+    // taking them apart.
     const rammer = ships.spawn(world, {
       design: corvette,
       x: 220,
       y: 0,
       angle: math.PI,
-      vx: -60,
+      vx: -30,
       team: 1,
     });
-    ships.pushRam(rammer, target, 60);
+    ships.pushRam(rammer, target, 30);
 
     // Far enough off that it arrives after the ram rather than during it.
     ships.spawn(world, { design: corvette, x: -1800, y: 1300, angle: 0, team: 1 });
