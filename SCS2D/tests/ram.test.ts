@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { compileBlueprint } from '../sim/index.js';
+import { compileBlueprint, DEFAULT_DOCTRINE, type Blueprint, type Placement } from '../sim/index.js';
 import { OrderCancelCondition } from '../sim/ships.js';
 import { makeBattle } from '../scenarios/battle.js';
 import { CORVETTE } from '../scenarios/blueprints.js';
@@ -33,5 +33,47 @@ describe('a ram order', () => {
     const band = stepsToContact(false);
     const ram = stepsToContact(true);
     expect(band < 0 || ram < band).toBe(true);
+  });
+});
+
+describe('an unarmed rammer', () => {
+  const WEAPONS = new Set(['turret', 'beamTurret', 'hullGun', 'hullBeam']);
+  /** The corvette with every weapon taken off, ramming within `radii` of its target. */
+  function unarmed(radii: number): Blueprint {
+    const strip = (modules: readonly Placement[]): Placement[] => modules.filter((m) => !('kind' in m && WEAPONS.has(m.kind)));
+    const assemblies = Object.fromEntries(
+      Object.entries(CORVETTE.assemblies ?? {}).map(([name, a]) => [name, { ...a, modules: strip(a.modules) }]),
+    );
+    const doctrine = CORVETTE.doctrine ?? DEFAULT_DOCTRINE;
+    return {
+      ...CORVETTE,
+      name: 'Ram',
+      assemblies,
+      modules: strip(CORVETTE.modules),
+      doctrine: { ...doctrine, approach: { ...doctrine.approach, ramRadii: radii, ramArmed: 0 } },
+    };
+  }
+
+  /** Whether it touches an enemy within 40 s, on its own doctrine. */
+  function hits(radii: number): boolean {
+    const design = compileBlueprint(unarmed(radii));
+    expect(design.reach).toBe(0);
+    const battle = makeBattle({ seed: 4 }, (ships, world) => {
+      ships.spawn(world, { design: compileBlueprint(CORVETTE), x: 0, y: 0, team: 0 });
+      ships.spawn(world, { design, x: 400, y: 0, angle: Math.PI, team: 1 });
+    });
+    for (let i = 0; i < 60 * 40; i++) {
+      battle.step();
+      if (battle.collisions.contacts.count > 0) return true;
+    }
+    return false;
+  }
+
+  it('picks a target and rams it with nothing to shoot', () => {
+    expect(hits(5)).toBe(true);
+  });
+
+  it('picks nothing without a ram doctrine', () => {
+    expect(hits(0)).toBe(false);
   });
 });

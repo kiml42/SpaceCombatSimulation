@@ -151,6 +151,9 @@ const HEADING_SETTLE_TIME = 0.25;
  */
 const URGE_REFERENCE = 100;
 
+/** Seconds of closing at its approach speed that stand in for an unarmed rammer's reach in choosing a target. */
+const RAM_HORIZON = 60;
+
 const TIMER_SETTLE = 1e-9;
 
 
@@ -1003,9 +1006,12 @@ export class Ships {
     // choose between — but it may still have somewhere it would rather be,
     // which is why this no longer ends the question.
     let fighting = NO_TARGET;
-    // A ship that can ram still has a fight with nothing left to shoot.
-    const rammer = design.doctrine.approach.ramRadii > 0;
-    if (design.reach > 0 && (!this.isDisarmed(i) || rammer)) {
+    // A ship that can ram still has a fight with nothing left to shoot, or
+    // nothing to shoot with at all.
+    const approach = design.doctrine.approach;
+    const rammer = approach.ramRadii > 0;
+    const reach = design.reach > 0 ? design.reach : rammer ? approach.approachSpeed * RAM_HORIZON : 0;
+    if ((design.reach > 0 && !this.isDisarmed(i)) || (rammer && reach > 0)) {
       this.choice.begin();
       for (let t = 0; t < this.alive.length; t++) {
         if (t === i || this.alive[t] === 0) continue;
@@ -1038,7 +1044,7 @@ export class Ships {
             : seen;
         this.choice.offer(
           candidate,
-          score(doctrine, candidate, design.reach, design.mass, loyalTo),
+          score(doctrine, candidate, reach, design.mass, loyalTo),
         );
       }
       fighting = this.choice.ship;
