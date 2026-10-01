@@ -473,8 +473,9 @@ inside any one file is not contiguous.
 - **Next:** the rest of §8 step 5 — a materials budget, designed scenarios, shareable by URL; then step 8,
   fuel, which starts the resource system.
   See ROADMAP.md §8.
-  §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight
-  and ship-type pickers. What a chooser is already facing is a weight (`facingWeight`), zero by default. Evolution is built and runs both headlessly and on a page
+  §8 step 3 is done bar what it deliberately deferred — withdrawal, and the
+  ship-type picker. What a chooser is already facing (`facingWeight`) and whether anything is in the way
+  (`sightWeight`) are weights, zero by default. Evolution is built and runs both headlessly and on a page
   of its own; what it has left open is in ROADMAP.md §12, the arena radius being an absolute where a ratio
   belongs chief among them. ROADMAP.md §8 lists what is left of each partly built step, then the steps not started. The blueprint
   editor, step 1, is built; test flight inside it is an open question (§12), since the Battle link already

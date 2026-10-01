@@ -63,7 +63,7 @@ an entry is either still open or it is gone.
 **Step 3 — Doctrine and orders.** What the step deferred, plus one thing using it turned up:
 
 - **Withdrawal** — a craft breaking off.
-- **More pickers**: line-of-sight and ship-type. Hemisphere as a hard discard too, if `facingWeight`'s
+- **More pickers**: ship-type. Hemisphere as a hard discard too, if `facingWeight`'s
   soft version — astern scores against — turns out not to be enough.
 - **How much a mount cares about its ship's orders, as a weight of its own.** An order is currently a
   mandate: every mount that can train on the ordered target takes it. That is right for a main battery and
