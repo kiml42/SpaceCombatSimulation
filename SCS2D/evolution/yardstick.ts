@@ -1,7 +1,7 @@
 import { Rng } from '../sim/index.js';
 import { max } from '../sim/math.js';
 import { Match, type Entrant, type MatchConfig } from './match.js';
-import { entrantOf, type GenerationRecord, type RunRecord } from './run.js';
+import { entrantOf, type GenerationRecord, type IndividualRecord, type RunRecord } from './run.js';
 
 /**
  * Measuring a run against something that does not evolve.
@@ -90,14 +90,25 @@ export class Yardstick {
   private wins = 0;
   matches = 0;
 
+  /**
+   * `from` is an earlier measurement of the same run against the same
+   * opponent under the same settings, carried on from rather than fought
+   * again: every generation fights the same seeds, so the generations it
+   * covers would come out the same.
+   */
   constructor(
     private readonly run: RunRecord,
     private readonly benchmark: Entrant,
     config?: Partial<YardstickConfig>,
+    from?: YardstickReport,
   ) {
     this.settings = { ...DEFAULT_YARDSTICK, ...config };
-    // One against one, always: a boss run is measured against the boss by naming it.
-    this.match = { ...run.config.match, boss: null, ...this.settings.match };
+    this.match = yardstickSettings(run, this.settings);
+    if (from !== undefined) {
+      this.points.push(...from.points);
+      this.generation = from.points.length;
+      this.matches = from.matches;
+    }
     this.draw = new Rng(this.settings.seed);
     this.seedFor(longest(run) - 1);
   }
@@ -164,10 +175,7 @@ export class Yardstick {
       return;
     }
     const individual = generation.individuals[this.slot]!;
-    this.fighting = new Match([entrantOf(individual), this.benchmark], {
-      ...this.match,
-      seed: this.seedFor(this.slot),
-    });
+    this.fighting = pairing(individual, this.benchmark, this.match, this.seedFor(this.slot));
   }
 
   private close(): void {
@@ -200,6 +208,36 @@ export class Yardstick {
     this.slot = 0;
     this.generation++;
   }
+}
+
+/** One against one, always: a boss run is measured against the boss by naming it. */
+function yardstickSettings(run: RunRecord, settings: YardstickConfig): Partial<MatchConfig> {
+  return { ...run.config.match, boss: null, ...settings.match };
+}
+
+function pairing(individual: IndividualRecord, benchmark: Entrant, match: Partial<MatchConfig>, seed: number): Match {
+  return new Match([entrantOf(individual), benchmark], { ...match, seed });
+}
+
+/**
+ * The very match a measurement fought for one design, to be watched: the
+ * individual in `slot` of a generation, against `benchmark`, on that slot's
+ * seed. The seeds are drawn in slot order, so the `slot`th draw is the one.
+ */
+export function yardstickMatch(
+  run: RunRecord,
+  benchmark: Entrant,
+  generation: number,
+  slot: number,
+  config?: Partial<YardstickConfig>,
+): Match {
+  const settings = { ...DEFAULT_YARDSTICK, ...config };
+  const individual = run.generations[generation]?.individuals[slot];
+  if (individual === undefined) throw new Error(`generation ${generation} has no individual ${slot}`);
+  const draw = new Rng(settings.seed);
+  let seed = 0;
+  for (let k = 0; k <= slot; k++) seed = draw.nextUint32();
+  return pairing(individual, benchmark, yardstickSettings(run, settings), seed);
 }
 
 /**

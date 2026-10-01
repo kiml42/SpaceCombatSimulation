@@ -38,6 +38,11 @@ export interface Candidate {
    * its barrel.
    */
   readonly facing: number;
+  /**
+   * Whether the line to it passes clear of every other solid body. Only
+   * looked for when a doctrine weighs it, and true otherwise.
+   */
+  readonly clear: boolean;
 }
 
 /** A hundred metres a second, so `closingWeight` is per ramming speed. */
@@ -90,6 +95,7 @@ export function score(
   if (candidate.armed) total += doctrine.armedWeight;
   if (candidate.mobile) total += doctrine.mobileWeight;
   total += doctrine.facingWeight * candidate.facing;
+  if (candidate.clear) total += doctrine.sightWeight;
   return total;
 }
 
@@ -175,6 +181,35 @@ export class Choice {
   }
 }
 
+/**
+ * Whether the straight line from a point to body `to` passes clear of every
+ * solid body but `from` and `to`, by their bounding circles.
+ *
+ * Bounding circles, so a long thin hull blocks more than it should: this is
+ * a preference, and erring towards "in the way" costs a mount a target it
+ * could have had rather than a round in a friend. Only what lies between the
+ * two counts — a body behind the chooser or beyond the target is not in the
+ * way of anything.
+ */
+export function inSight(bodies: Bodies, fromX: number, fromY: number, from: number, to: number): boolean {
+  const dx = bodies.x[to]! - fromX;
+  const dy = bodies.y[to]! - fromY;
+  const lengthSq = dx * dx + dy * dy;
+  if (!(lengthSq > 0)) return true;
+  for (let k = 0; k < bodies.count; k++) {
+    if (k === from || k === to || bodies.ghost[k] === 1) continue;
+    const ox = bodies.x[k]! - fromX;
+    const oy = bodies.y[k]! - fromY;
+    const along = (ox * dx + oy * dy) / lengthSq;
+    if (along <= 0 || along >= 1) continue;
+    const px = ox - along * dx;
+    const py = oy - along * dy;
+    const r = bodies.radius[k]!;
+    if (px * px + py * py < r * r) return false;
+  }
+  return true;
+}
+
 /** Fill in what the pickers need to know about a target, from the bodies. */
 export function look(
   bodies: Bodies,
@@ -238,5 +273,5 @@ export function lookFrom(
     const dvy = bodies.vy[to]! - fromVy;
     closing = -(dvx * dx + dvy * dy) / range;
   }
-  return { ship, range, closing, mass, armed, mobile, facing };
+  return { ship, range, closing, mass, armed, mobile, facing, clear: true };
 }

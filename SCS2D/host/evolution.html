@@ -141,6 +141,15 @@
       #fleet th.dmg { color: #e0655f; }
       #fleet th.dis { color: #e08ec0; }
       #fleet th.grnd { color: #e9c05f; }
+      #battleScores table { width: auto; margin: 0 0 0.4rem; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+      #battleScores th, #battleScores td { padding: 0 0.6rem 0 0; text-align: right; font-weight: normal; }
+      #battleScores th:first-child, #battleScores td:first-child { text-align: left; }
+      #battleScores th { color: #7f93aa; }
+      #battleScores th.hull { color: #7fd6a0; }
+      #battleScores th.func { color: #b48ee0; }
+      #battleScores th.dmg { color: #e0655f; }
+      #battleScores th.dis { color: #e08ec0; }
+      #battleScores th.grnd { color: #e9c05f; }
       #fleet tbody tr { border-top: 1px solid #141c28; cursor: pointer; }
       #fleet tbody tr:hover td { background: #101825; }
       #fleet tbody tr.picked td { background: #16202e; }
@@ -370,6 +379,7 @@
             </span>
             <span id="watching" class="grow"></span>
           </div>
+          <div id="battleScores" hidden title="What each side would score if the match ended as it stands"></div>
         </div>
         <div id="viewWrap">
           <canvas id="view" hidden></canvas>
@@ -416,6 +426,7 @@
           </div>
           <div class="buttons">
             <button id="measure" disabled>Measure</button>
+            <button id="watchYardstick" disabled title="Watch the picked design of the generation on show, or its best, fight the opponent as the measurement does">Watch</button>
           </div>
           <p id="yardstickLine" class="note">
             Every design of every generation, one against one against the same opponent under the same

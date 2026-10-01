@@ -9,7 +9,7 @@ import {
   type ShipDesign,
 } from '../sim/index.js';
 import { Flashes } from '../render/flashes.js';
-import { draw } from '../render/canvas2d.js';
+import { draw, teamColour } from '../render/canvas2d.js';
 import { drawChart, indexAt, xOf, type ChartLayout, type Series } from '../render/chart.js';
 import {
   easeScale,
@@ -27,7 +27,7 @@ import { DEFAULT_MATCH, isFleet, Match, type Entrant, type MatchConfig } from '.
 import { DEFAULT_FLEET_LIMITS } from '../evolution/fleetMutate.js';
 import { DEFAULT_DOCTRINE_WEIGHTS, DEFAULT_KINDS, type KindWeights } from '../evolution/mutate.js';
 import { parseRunConfig, serialiseRunConfig, type RunSetup } from '../evolution/configFile.js';
-import { latest, Yardstick, type YardstickReport } from '../evolution/yardstick.js';
+import { latest, Yardstick, yardstickMatch, type YardstickReport } from '../evolution/yardstick.js';
 import {
   finalist,
   DEFAULT_RUN,
@@ -332,6 +332,7 @@ export function startEvolution(): void {
   const fleetBox = el<HTMLElement>('fleet');
   const { table: fleetTable, body: fleetBody, none: emptyNote } = buildCombatantTable(fleetBox);
   const watchingLabel = el<HTMLElement>('watching');
+  const battleScores = el<HTMLElement>('battleScores');
   const latestButton = el<HTMLButtonElement>('latest');
   const shownGeneration = el<HTMLElement>('shownGeneration');
   const fightingLabel = el<HTMLElement>('fighting');
@@ -341,6 +342,7 @@ export function startEvolution(): void {
   const exportButton = el<HTMLButtonElement>('exportChampion');
   const benchmarkSelect = el<HTMLSelectElement>('benchmark');
   const measureButton = el<HTMLButtonElement>('measure');
+  const watchYardstickButton = el<HTMLButtonElement>('watchYardstick');
   const yardstickLine = el<HTMLElement>('yardstickLine');
   const inputs = Object.fromEntries(
     FIELDS.map((name) => [name, el<HTMLInputElement>(name)]),
@@ -384,6 +386,9 @@ export function startEvolution(): void {
   let paused = false;
   let replay: Match | null = null;
   let replayOf: MatchRecord | null = null;
+  /** Who is fighting in the match being watched, by id, and an opponent that has none. */
+  let replayIds: readonly number[] = [];
+  let replayVs: string | null = null;
   let replayPlaying = true;
   /**
    * Whether the match being watched has been given up on, and the next one
@@ -395,6 +400,13 @@ export function startEvolution(): void {
   let shown = -1;
   let yardstick: Yardstick | null = null;
   let measured: YardstickReport | null = null;
+  /**
+   * Every measurement of this run so far, by the opponent's file text, so
+   * measuring against the same opponent again carries on from what was found
+   * rather than fighting every generation over again.
+   */
+  const measurements = new Map<string, YardstickReport>();
+  let measuringAgainst = '';
   /**
    * The tiles, by ship rather than by generation: a design carried over into
    * the next generation keeps its tile, which is what makes seeking across a
@@ -1503,8 +1515,24 @@ export function startEvolution(): void {
     }
     // One is enough: a match of one ship is a run's test of its piloting.
     if (entrants.length === 0 || run === null) return;
-    replay = new Match(entrants, { ...run.config.match, seed: record.seed });
+    watchReplay(
+      new Match(entrants, { ...run.config.match, seed: record.seed }),
+      record,
+      record.competitors,
+      null,
+    );
+  };
+
+  const watchReplay = (
+    match: Match,
+    record: MatchRecord | null,
+    ids: readonly number[],
+    vs: string | null,
+  ): void => {
+    replay = match;
     replayOf = record;
+    replayIds = ids;
+    replayVs = vs;
     replayPlaying = true;
     skipping = false;
     playButton.textContent = 'Pause';
@@ -1592,6 +1620,7 @@ export function startEvolution(): void {
     saveButton.disabled = top === null;
     exportButton.disabled = top === null;
     measureButton.disabled = top === null || yardstick !== null;
+    watchYardstickButton.disabled = top === null;
     championLine.textContent =
       top === null
         ? '—'
@@ -1645,10 +1674,40 @@ export function startEvolution(): void {
     // The record rather than a copy of it, so a measurement started while a
     // run is still going carries on into the generations it has not closed
     // yet — the answer is per generation either way.
-    yardstick = new Yardstick(record, benchmark);
+    measuringAgainst = isFleet(benchmark) ? fleetFileText(benchmark) : toFileText(benchmark);
+    const before = measurements.get(measuringAgainst);
+    yardstick = new Yardstick(record, benchmark, undefined, before);
     measured = null;
     measureButton.disabled = true;
-    yardstickLine.textContent = `Measuring against ${benchmark.name}…`;
+    yardstickLine.textContent =
+      before === undefined
+        ? `Measuring against ${benchmark.name}…`
+        : `Measuring against ${benchmark.name} from generation ${before.points.length + 1}…`;
+  });
+
+  /**
+   * Watch the match the measurement fights for one design: the combatant
+   * picked in the generation on show, or its best, against the opponent
+   * chosen above, on the same seed — so a point on the yardstick line can be
+   * looked at rather than taken on trust.
+   */
+  watchYardstickButton.addEventListener('click', () => {
+    if (run === null || run.generations.length === 0) return;
+    const record = run.record();
+    const chosen = benchmarkSelect.value;
+    const benchmark = chosen === OWN_FINAL ? latest(record) : load(chosen);
+    if (benchmark === null) return;
+    // Only a closed generation is measured, so the one being fought shows the one before it.
+    const index = Math.min(showing().index, record.generations.length - 1);
+    const individuals = record.generations[index]!.individuals;
+    let slot = individuals.findIndex((individual) => individual.id === picked);
+    if (slot < 0) {
+      slot = 0;
+      for (let k = 1; k < individuals.length; k++) {
+        if (individuals[k]!.fitness > individuals[slot]!.fitness) slot = k;
+      }
+    }
+    watchReplay(yardstickMatch(record, benchmark, index, slot), null, [individuals[slot]!.id], benchmark.name);
   });
 
   /**
@@ -1687,6 +1746,7 @@ export function startEvolution(): void {
     notice = '';
     yardstick = null;
     measured = null;
+    measurements.clear();
     yardstickLine.textContent = 'Measure once there is something to measure.';
     pictures.clear();
     shown = -1;
@@ -1750,6 +1810,7 @@ export function startEvolution(): void {
       }
       if (yardstick.done) {
         measured = yardstick.report();
+        measurements.set(measuringAgainst, measured);
         yardstick = null;
         // Said before the button comes back, not on the next sample: a button
         // offering another measurement beside a line still saying "measuring"
@@ -1828,8 +1889,52 @@ export function startEvolution(): void {
       `${last.wins} of ${last.individuals} beat it${where}`;
   }
 
+  /**
+   * Each side's score in the battle on show, and its parts: what the match
+   * would pay if it ended as it stands, so a replay says why it scored what
+   * the table says it did.
+   */
+  function reportScores(): void {
+    const match = modeSelect.value === 'battle' ? watchedMatch : null;
+    battleScores.hidden = match === null;
+    if (match === null) return;
+    const names =
+      match === replay ? [...replayIds.map((id) => `#${id}`), ...(replayVs === null ? [] : [replayVs])] : [];
+    const { slots, owners, ships } = match.battle;
+    const table = document.createElement('table');
+    const head = document.createElement('tr');
+    for (const [css, text, title] of [
+      ['', 'side', ''],
+      ['', 'score', 'weighted total'],
+      ...SCORE_COLUMNS.map((column) => [column.css, column.head, column.title] as const),
+    ] as const) {
+      const th = document.createElement('th');
+      th.className = css;
+      th.textContent = text;
+      th.title = title;
+      head.append(th);
+    }
+    table.append(head);
+    match.result().scores.forEach((score, i) => {
+      const tr = document.createElement('tr');
+      // In the colour its ships are drawn in: its own side, or one shared against a boss.
+      const k = owners.indexOf(i);
+      const colour = teamColour(k < 0 ? i : ships.teamOf(slots[k]!));
+      const parts = [score.survival, score.functional, score.damage, score.disabling, score.race];
+      for (const cell of [names[i] ?? String(i + 1), score.total.toFixed(3), ...parts.map((part) => part.toFixed(2))]) {
+        const td = document.createElement('td');
+        td.textContent = cell;
+        td.style.color = colour;
+        tr.append(td);
+      }
+      table.append(tr);
+    });
+    battleScores.replaceChildren(table);
+  }
+
   function report(): void {
     reportYardstick();
+    reportScores();
     if (run === null) {
       stateLabel.textContent = 'idle';
       barFill.style.width = '0';
@@ -1861,7 +1966,7 @@ export function startEvolution(): void {
       watchingLabel.textContent = 'skipped · waiting for the next match';
     } else if (replay !== null) {
       watchingLabel.textContent =
-        `${(replayOf?.competitors ?? []).join(' v ')} · ${(replay.progress * 100).toFixed(0)}%` +
+        `${[...replayIds, ...(replayVs === null ? [] : [replayVs])].join(' v ')} · ${(replay.progress * 100).toFixed(0)}%` +
         `${replay.done ? ' · over' : ''}`;
     } else {
       watchingLabel.textContent = 'pick a match from the list';

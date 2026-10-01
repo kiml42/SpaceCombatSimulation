@@ -114,6 +114,16 @@ describe('match', () => {
     expect(ghostOf(false)).toBe(1);
   });
 
+  it('can be asked what it is worth mid-match without changing how it ends', () => {
+    const watched = new Match(FLEET, { seed: 5, duration: 20 });
+    let asked = 0;
+    while (!watched.done) {
+      watched.advance();
+      if (++asked % 60 === 0) watched.result();
+    }
+    expect(JSON.stringify(watched.result())).toEqual(JSON.stringify(runMatch(FLEET, { seed: 5, duration: 20 })));
+  });
+
   it('starts each entrant moving towards the middle and to its left, the boss at rest', () => {
     const { battle } = new Match([CORVETTE, DINKY], { seed: 3, closingSpeed: 20, crossingSpeed: 5, goal: null });
     const b = battle.world.bodies;

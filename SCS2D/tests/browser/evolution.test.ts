@@ -206,6 +206,11 @@ describe('the evolution page in a browser', () => {
     const held = await page.textContent('#watching');
     await page.waitForTimeout(400);
     expect(await page.textContent('#watching')).toBe(held);
+    // Each side's score so far, named by the individual flying it.
+    expect(await page.isHidden('#battleScores')).toBe(false);
+    const sides = await page.$$eval('#battleScores tr td:first-child', (cells) => cells.map((cell) => cell.textContent));
+    const clicked = ((await page.textContent('#matches tr.watched td:nth-child(2)')) ?? '').split(' ');
+    expect(sides).toEqual(clicked.map((id) => `#${id}`));
     expect(problems).toEqual([]);
   }, 60_000);
 
@@ -452,6 +457,31 @@ describe('the evolution page in a browser', () => {
     expect(line).toMatch(/beat it/);
     expect(problems).toEqual([]);
   }, 180_000);
+
+  it('remembers a measurement, and gives it again without fighting it again', async () => {
+    const before = await page.textContent('#yardstickLine');
+    await page.click('#measure');
+    // Every generation is already measured against this opponent, so it is
+    // over at the next frame rather than after another minute of battles.
+    await page.waitForFunction(() => document.getElementById('measure')?.hasAttribute('disabled') === false, undefined, {
+      timeout: 5_000,
+    });
+    expect(await page.textContent('#yardstickLine')).toBe(before);
+    expect(problems).toEqual([]);
+  });
+
+  it('shows a design fighting the yardstick, as the measurement fought it', async () => {
+    await page.click('#watchYardstick');
+    expect(await page.inputValue('#mode')).toBe('battle');
+    await page.waitForFunction(() => / v Dinky · \d+%/.test(document.getElementById('watching')?.textContent ?? ''));
+    const sides = await page.$$eval('#battleScores tr td:first-child', (cells) => cells.map((cell) => cell.textContent));
+    expect(sides).toHaveLength(2);
+    expect(sides[0]).toMatch(/^#\d+$/);
+    expect(sides[1]).toBe('Dinky');
+    // Back to the ships, so the tests after this find the page as they expect.
+    await page.selectOption('#mode', 'fleet');
+    expect(problems).toEqual([]);
+  }, 60_000);
 
   it('hands the best of it to the editor', async () => {
     await page.click('#saveChampion');

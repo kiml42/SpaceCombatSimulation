@@ -85,7 +85,7 @@ const TRACER_STREAK = 0.3;
  * and a heavy one is a large one — a fixed halo makes every round look the
  * same size at the zoom where its true size is finally legible.
  */
-const GLOW_CALIBRES = 3;
+const GLOW_CALIBRES = 5;
 
 /**
  * Smallest widths anything is drawn at on screen, in pixels.
@@ -101,14 +101,14 @@ const GLOW_CALIBRES = 3;
  * The glow's floor is the widest because it has to stay visible *around* the
  * tracer rather than merely be present. That ordering holds at every zoom, and
  * not by luck: where the tracer is at its floor the glow's larger floor wins,
- * and where the tracer is at its true width the glow is three times it, which
- * clears the glow's floor on its own.
+ * and where the tracer is at its true width the glow is `GLOW_CALIBRES` times
+ * it, which clears the glow's floor on its own.
  */
-const MIN_GLOW_PX = 5;
-const MIN_TRACER_PX = 2;
-const MIN_BARREL_PX = 2;
+const MIN_GLOW_PX = 2;
+const MIN_TRACER_PX = 0.1;
+const MIN_BARREL_PX = 1;
 /** A flash is never smaller than this on screen, however far out the camera is. */
-const MIN_FLASH_PX = 2;
+const MIN_FLASH_PX = 1;
 
 /** A module that has taken everything it can: still there, no longer anything. */
 const WRECKAGE = '#3c4048';
@@ -706,20 +706,28 @@ function drawProjectiles(ctx: CanvasRenderingContext2D, snapshot: Snapshot, came
   // meet, where a single stroke over one path would have composited once.
   // Worth it for a halo that is the round's own size, and rare enough not to
   // read as anything but two tracers crossing.
+  //
+  // Streaks follow a round's motion across the screen rather than through the
+  // world, as a camera's would: relative to the pace the camera follows ships
+  // at, which it keeps while paused so a still frame is not all dots.
+  const cvx = camera.vx ?? 0;
+  const cvy = camera.vy ?? 0;
   ctx.lineCap = 'round';
   for (let i = 0; i < snapshot.projectileCount; i++) {
     const colour = snapshot.projectileInside[i] === 1 ? TRACER_GLOW_INSIDE : TRACER_GLOW;
     if (colour === null) continue;
     ctx.strokeStyle = colour;
     const calibre = snapshot.projectileWidth[i]!;
-    const x = snapshot.projectileX[i]! + snapshot.projectileVx[i]! * GLOW_LEAD * calibre;
-    const y = snapshot.projectileY[i]! + snapshot.projectileVy[i]! * GLOW_LEAD * calibre;
+    const vx = snapshot.projectileVx[i]! - cvx;
+    const vy = snapshot.projectileVy[i]! - cvy;
+    const x = snapshot.projectileX[i]! + vx * GLOW_LEAD * calibre;
+    const y = snapshot.projectileY[i]! + vy * GLOW_LEAD * calibre;
     ctx.lineWidth = legibleWidth(GLOW_CALIBRES * calibre, MIN_GLOW_PX, camera.scale);
     ctx.beginPath();
     ctx.moveTo(x, y);
     ctx.lineTo(
-      x - snapshot.projectileVx[i]! * GLOW_STREAK * calibre,
-      y - snapshot.projectileVy[i]! * GLOW_STREAK * calibre
+      x - vx * GLOW_STREAK * calibre,
+      y - vy * GLOW_STREAK * calibre
     );
     ctx.stroke();
   }
@@ -740,8 +748,8 @@ function drawProjectiles(ctx: CanvasRenderingContext2D, snapshot: Snapshot, came
     ctx.beginPath();
     ctx.moveTo(x, y);
     ctx.lineTo(
-      x - snapshot.projectileVx[i]! * TRACER_STREAK * calibre,
-      y - snapshot.projectileVy[i]! * TRACER_STREAK * calibre
+      x - (snapshot.projectileVx[i]! - cvx) * TRACER_STREAK * calibre,
+      y - (snapshot.projectileVy[i]! - cvy) * TRACER_STREAK * calibre
     );
     ctx.stroke();
   }

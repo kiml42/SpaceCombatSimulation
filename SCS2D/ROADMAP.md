@@ -63,7 +63,7 @@ an entry is either still open or it is gone.
 **Step 3 — Doctrine and orders.** What the step deferred, plus one thing using it turned up:
 
 - **Withdrawal** — a craft breaking off.
-- **More pickers**: line-of-sight and ship-type. Hemisphere as a hard discard too, if `facingWeight`'s
+- **More pickers**: ship-type. Hemisphere as a hard discard too, if `facingWeight`'s
   soft version — astern scores against — turns out not to be enough.
 - **How much a mount cares about its ship's orders, as a weight of its own.** An order is currently a
   mandate: every mount that can train on the ordered target takes it. That is right for a main battery and
@@ -112,7 +112,8 @@ and evolution run does, and a ship tuned to half the rules is tuned twice.
    - `fuse` (0.02 s by default): how long before the aim point it bursts. Zero bursts at the aim point,
      which still counts on a miss or on what lies behind the target. The pattern is about the burst speed
      times the fuse across, so the default is a tight one and a flak gun wants many fragments on a long fuse.
-   Fragments share the casing (the charge goes to gas), live twice the fuse and at least half a second,
+   Fragments share the casing (the charge goes to gas) and the metal of the bore, so their areas sum to
+   the share that was not charge. They live twice the fuse and at least half a second,
    and are marked (`Projectiles.fragment`). Evolution counts fragments, swapping to or from solid shot one
    draw in five, and nudges the fuse and burst speed of a gun that fires shells.
    - The fuse is set when the round is fired, to go off shortly before it would reach its aim point:

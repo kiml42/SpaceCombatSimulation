@@ -388,7 +388,9 @@ inside any one file is not contiguous.
   well as together, because they move at different times — a population learning to fly reaches the goal long
   before it learns to shoot, and a total hides that behind one rising line. Under it, smaller charts give a fleet's
   mass and, once a run fields more than one ship, its ship count: the generation's mean and its fittest, so
-  a run that scores better by growing can be told from one that scores better by paring down. **What the page shows while a run
+  a run that scores better by growing can be told from one that scores better by paring down. A match
+  watched again shows each side's score and its parts as it goes — what it would pay if it ended there — so
+  a replay says why it scored what the table says. **What the page shows while a run
   grinds is the population, not the fight.** A run fights hundreds of times faster than real time, so a window
   on whichever match is in progress is a fraction of a second of each and a flicker to the next — a picture of
   nothing, refreshed. A generation drawn as its ships, best first, changes at a pace worth watching: bare cores
@@ -405,7 +407,9 @@ inside any one file is not contiguous.
   no such number exists: a fitness is a score against that generation's opponents, so a population that
   learns to fly before it learns to shoot peaks while nothing can shoot back and reads as declining while it
   improves. The yardstick is offered instead, fought on the page in the same slices as the run and drawn as
-  its own line over the ones that only mean something within a generation. **Settings are a file.** A run is decided entirely by its seed and its
+  its own line over the ones that only mean something within a generation, and any design's yardstick match
+  can be watched — the same match, on the same seed, that the measurement fought. Measuring against the
+  same opponent again carries on from what was measured, fighting only generations closed since. **Settings are a file.** A run is decided entirely by its seed and its
   configuration, so those few numbers are the whole record of what was tried: they are written out and read
   back as JSON, by the page and by `npm run evolve` alike, so an experiment can be kept beside its result,
   sent to somebody, or designed on the page and then fought overnight headlessly. Every field is optional
@@ -471,8 +475,9 @@ inside any one file is not contiguous.
 - **Next:** the rest of §8 step 5 — a materials budget, designed scenarios, shareable by URL; then step 8,
   fuel, which starts the resource system.
   See ROADMAP.md §8.
-  §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight
-  and ship-type pickers. What a chooser is already facing is a weight (`facingWeight`), zero by default. Evolution is built and runs both headlessly and on a page
+  §8 step 3 is done bar what it deliberately deferred — withdrawal, and the
+  ship-type picker. What a chooser is already facing (`facingWeight`) and whether anything is in the way
+  (`sightWeight`) are weights, zero by default. Evolution is built and runs both headlessly and on a page
   of its own; what it has left open is in ROADMAP.md §12, the arena radius being an absolute where a ratio
   belongs chief among them. ROADMAP.md §8 lists what is left of each partly built step, then the steps not started. The blueprint
   editor, step 1, is built; test flight inside it is an open question (§12), since the Battle link already

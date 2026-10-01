@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { parseBlueprint, serialiseBlueprint, type Blueprint } from '../sim/index.js';
 import { runEvolution } from '../evolution/run.js';
-import { latest, measure, trend, Yardstick } from '../evolution/yardstick.js';
+import { latest, measure, trend, Yardstick, yardstickMatch } from '../evolution/yardstick.js';
 import { CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
 
 /**
@@ -49,6 +49,30 @@ describe('the yardstick', { timeout: BUDGET }, () => {
       expect(point.wins).toBeLessThanOrEqual(point.individuals);
       expect(point.best).toBeGreaterThanOrEqual(point.mean);
     }
+  });
+
+  it('fights again, to be watched, exactly the match it measured', () => {
+    const run = runEvolution([CORVETTE], { ...settings, generations: 2 });
+    const report = measure(run, GUNSHIP, { match: { duration: 30 } });
+    for (const [g, point] of report.points.entries()) {
+      const scores = run.generations[g]!.individuals.map((_, slot) => {
+        const match = yardstickMatch(run, GUNSHIP, g, slot, { match: { duration: 30 } });
+        while (!match.done) match.advance();
+        return match.result().scores[0]!.total;
+      });
+      expect(Math.max(...scores)).toBe(point.best);
+      expect(scores.reduce((sum, score) => sum + score, 0) / scores.length).toBe(point.mean);
+    }
+  });
+
+  it('carries on from an earlier measurement to the same answer', () => {
+    const early = runEvolution([CORVETTE], { ...settings, generations: 2 });
+    const later = runEvolution([CORVETTE], settings);
+    const whole = measure(later, GUNSHIP, { match: { duration: 30 } });
+    const part = measure(early, GUNSHIP, { match: { duration: 30 } });
+    const resumed = new Yardstick(later, GUNSHIP, { match: { duration: 30 } }, part);
+    expect(resumed.progress).toBeCloseTo(2 / 3);
+    expect(JSON.stringify(resumed.finish())).toEqual(JSON.stringify(whole));
   });
 
   it('measures the same run twice the same way', () => {
