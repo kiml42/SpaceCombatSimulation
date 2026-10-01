@@ -310,8 +310,9 @@ inside any one file is not contiguous.
   that step; a ship's own fire and exhaust are part of that and nobody's credit, so hurting yourself never
   pays. Ground gained
   is by an entrant's nearest ship, so more ships help only by covering the one that gets there. Damage is credited to whoever
-  fired, which is the one thing a fitness function cannot get from what a hull has taken, and it is capped
-  per victim, since a gun must not be paid for firing into something it has already killed. What is left of
+  fired, or in a collision to the other hull, each with what it did to the other — so a ram that drives
+  armour into an enemy's guns or engines costs both hulls alike but takes function from only one. Who did it is the one thing a fitness function cannot get from what a
+  hull has taken. Damage is capped per victim, since a gun must not be paid for firing into something it has already killed. What is left of
   a match that ends early is credited to whoever is still standing: without it, winning outright scores less
   than failing to land a shot for the full two minutes. **A match ends early only when nothing more can be
   scored**: with nobody left, or with one left and the goal not counting. While the goal counts, a survivor

@@ -585,7 +585,7 @@ export class Match {
     this.delivered.fill(0);
     for (let h = 0; h < credit.count; h++) {
       // By ship rather than body, since two ships hooked together share one.
-      const attacker = this.entrantOf.get(ships.pilotAt(credit.attacker[h]!));
+      const attacker = this.entrantOf.get(ships.pilotAt(credit.attacker[h]!, credit.attackerModule[h]!));
       const victim = this.entrantOf.get(ships.pilotAt(credit.victim[h]!, credit.module[h]!));
       if (attacker === undefined || victim === undefined) continue;
       this.delivered[attacker * sides + victim]! += credit.energy[h]!;

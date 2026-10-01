@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Bodies } from '../sim/bodies.js';
 import {
   Contacts,
+  Credit,
   Damage,
   HullPath,
   IMPACT_COLLISION,
@@ -14,6 +15,7 @@ import {
   type ShipDesign,
 } from '../sim/index.js';
 import { CORVETTE, DINKY } from '../scenarios/blueprints.js';
+import { split } from '../scenarios/split.js';
 
 /**
  * What a collision costs the hulls that had it.
@@ -115,13 +117,14 @@ describe('a contact, end to end', () => {
       1,
       0,
       0.1,
-      0,
-      0,
+      2,
+      5,
     );
     contacts.impulse[0] = impulse;
     contacts.closing[0] = closing;
-    impacts.collisions(ships, ships.damage, world.bodies, contacts);
-    return { world, ships, impacts, heavy, light };
+    const credit = new Credit();
+    impacts.collisions(ships, ships.damage, world.bodies, contacts, credit);
+    return { world, ships, impacts, credit, heavy, light };
   }
 
   it('costs both hulls the same energy, which is not the same injury', () => {
@@ -154,5 +157,29 @@ describe('a contact, end to end', () => {
   it('costs nothing where the hulls were already coming apart', () => {
     const m = met(0, 0);
     expect(m.impacts.log.count).toBe(0);
+    expect(m.credit.count).toBe(0);
+  });
+
+  it('credits each hull with its half of what it did to the other', () => {
+    const m = met(2e6, 60);
+    const a = m.world.bodies.indexOf(m.ships.body(m.heavy));
+    const b = m.world.bodies.indexOf(m.ships.body(m.light));
+    const half = 0.25 * (1 - RESTITUTION) * 60 * 2e6;
+    expect(m.credit.count).toBe(2);
+    const rows = [0, 1].map((i) => [m.credit.attacker[i], m.credit.victim[i], m.credit.module[i], m.credit.attackerModule[i]]);
+    expect(rows).toContainEqual([b, a, 2, 5]);
+    expect(rows).toContainEqual([a, b, 5, 2]);
+    expect(m.credit.energy[0]).toBeCloseTo(half, 3);
+    expect(m.credit.energy[1]).toBeCloseTo(half, 3);
+  });
+
+  it('is credited in a battle, where a ram used to count for nobody', () => {
+    const battle = split();
+    let rammed = 0;
+    for (let i = 0; i < 1200 && rammed === 0; i++) {
+      battle.step();
+      for (let h = 0; h < battle.credit.count; h++) if (battle.credit.attackerModule[h]! >= 0) rammed++;
+    }
+    expect(rammed).toBeGreaterThan(0);
   });
 });

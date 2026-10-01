@@ -805,9 +805,11 @@ export class Credit {
   energy = new Float64Array(64);
   /** The victim's module it landed on first, or -1. */
   module = new Int32Array(64);
+  /** The attacker's module that did it, or -1: known for a collision, not for fire. */
+  attackerModule = new Int32Array(64);
   count = 0;
 
-  push(attacker: number, victim: number, energy: number, module = -1): void {
+  push(attacker: number, victim: number, energy: number, module = -1, attackerModule = -1): void {
     if (attacker < 0 || !(energy > 0)) return;
     if (this.count === this.attacker.length) this.grow();
     const i = this.count++;
@@ -815,6 +817,7 @@ export class Credit {
     this.victim[i] = victim;
     this.energy[i] = energy;
     this.module[i] = module;
+    this.attackerModule[i] = attackerModule;
   }
 
   clear(): void {
@@ -835,6 +838,9 @@ export class Credit {
     const module = new Int32Array(size);
     module.set(this.module);
     this.module = module;
+    const attackerModule = new Int32Array(size);
+    attackerModule.set(this.attackerModule);
+    this.attackerModule = attackerModule;
   }
 }
 
@@ -1189,7 +1195,11 @@ export class Impacts {
    * severing: what a ram breaks off should be broken off a hull that has
    * already taken the ram's damage.
    */
-  collisions(designs: HullDesigns, damage: Damage, bodies: Bodies, contacts: Contacts): void {
+  /**
+   * Given `credit`, each hull is credited with what it did to the other, so a
+   * ram pays for what it breaks as well as costing what it takes.
+   */
+  collisions(designs: HullDesigns, damage: Damage, bodies: Bodies, contacts: Contacts, credit?: Credit): void {
     for (let k = 0; k < contacts.count; k++) {
       const impulse = contacts.impulse[k]!;
       if (!(impulse > 0)) continue;
@@ -1206,8 +1216,12 @@ export class Impacts {
 
       // The normal runs from `a` towards `b`, so it points into `b` and the
       // other way into `a`.
-      this.crush(designs, damage, bodies, contacts.a[k]!, x, y, -nx, -ny, half);
-      this.crush(designs, damage, bodies, contacts.b[k]!, x, y, nx, ny, half);
+      const a = contacts.a[k]!;
+      const b = contacts.b[k]!;
+      const ma = contacts.moduleA[k]!;
+      const mb = contacts.moduleB[k]!;
+      if (this.crush(designs, damage, bodies, a, x, y, -nx, -ny, half)) credit?.push(b, a, half, ma, mb);
+      if (this.crush(designs, damage, bodies, b, x, y, nx, ny, half)) credit?.push(a, b, half, mb, ma);
       this.log.push(x, y, energy, IMPACT_COLLISION, bodies, contacts.a[k]!);
     }
   }
@@ -1222,10 +1236,11 @@ export class Impacts {
     nx: number,
     ny: number,
     energy: number,
-  ): void {
+  ): boolean {
     const design = designs.designOf(body);
-    if (design === null) return;
+    if (design === null) return false;
     resolveCollision(design, damage, bodies, body, this.path, x, y, nx, ny, energy);
+    return true;
   }
 
   private burnSeams(
