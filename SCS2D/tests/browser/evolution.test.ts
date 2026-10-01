@@ -206,6 +206,11 @@ describe('the evolution page in a browser', () => {
     const held = await page.textContent('#watching');
     await page.waitForTimeout(400);
     expect(await page.textContent('#watching')).toBe(held);
+    // Each side's score so far, named by the individual flying it.
+    expect(await page.isHidden('#battleScores')).toBe(false);
+    const sides = await page.$$eval('#battleScores tr td:first-child', (cells) => cells.map((cell) => cell.textContent));
+    const clicked = ((await page.textContent('#matches tr.watched td:nth-child(2)')) ?? '').split(' ');
+    expect(sides).toEqual(clicked.map((id) => `#${id}`));
     expect(problems).toEqual([]);
   }, 60_000);
 
