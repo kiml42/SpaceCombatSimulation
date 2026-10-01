@@ -98,6 +98,8 @@ export interface ProjectileSpec {
   fragments?: number;
   /** The mass the fragments share, kg: the casing, with the charge gone to gas. The whole round when absent. */
   casing?: number;
+  /** The share of its bore that is metal rather than charge. All of it when absent. */
+  metal?: number;
   /** The most a fragment's speed differs from the round's, m/s. */
   spread?: number;
   /** Seconds a fragment flies before it expires. */
@@ -223,6 +225,8 @@ export class Projectiles {
   fragments!: Int32Array;
   /** The mass its fragments share, kg. */
   casing!: Float64Array;
+  /** The share of its bore that is metal rather than charge. */
+  metal!: Float64Array;
   /** 1 for a fragment of a burst, rather than a round a gun fired. */
   fragment!: Uint8Array;
   alive!: Uint8Array;
@@ -299,6 +303,7 @@ export class Projectiles {
     this.fragmentLife = f64(this.fragmentLife);
     this.fragments = i32(this.fragments);
     this.casing = f64(this.casing);
+    this.metal = f64(this.metal);
     const fragment = new Uint8Array(capacity);
     if (this.fragment) fragment.set(this.fragment);
     this.fragment = fragment;
@@ -347,6 +352,7 @@ export class Projectiles {
     fragmentLife = 0,
     fragments = 0,
     casing = mass,
+    metal = 1,
   ): number {
     let i: number;
     const reused = this.free.pop();
@@ -375,6 +381,7 @@ export class Projectiles {
     this.fragmentLife[i] = fragmentLife;
     this.fragments[i] = fragments;
     this.casing[i] = casing;
+    this.metal[i] = metal;
     this.fragment[i] = 0;
     this.alive[i] = 1;
     this.pending[i] = 0;
@@ -404,6 +411,7 @@ export class Projectiles {
       spec.fragmentLife ?? 0,
       spec.fragments ?? 0,
       spec.casing ?? spec.mass ?? 1,
+      spec.metal ?? 1,
     );
   }
 
@@ -534,7 +542,8 @@ export class Projectiles {
   private readonly bursting: number[] = [];
 
   /**
-   * Replace a round with its `fragments`, sharing its casing, energy and bore.
+   * Replace a round with its `fragments`, sharing its casing, energy and the
+   * metal of its bore: their widths sum in area to what was not charge.
    *
    * Each leaves with the round's velocity plus a kick in a random direction,
    * spread evenly over a disc, and its twin with the opposite kick, so the
@@ -548,7 +557,7 @@ export class Projectiles {
     const y = this.y[i]!;
     const vx = this.vx[i]!;
     const vy = this.vy[i]!;
-    const width = this.width[i]! / sqrt(n);
+    const width = this.width[i]! * sqrt(this.metal[i]! / n);
     const life = this.fragmentLife[i]!;
     const ttl = life < this.ttl[i]! ? life : this.ttl[i]!;
     const mass = this.casing[i]! / n;
@@ -691,6 +700,7 @@ export class Projectiles {
     fragmentLife = 0,
     fragments = 0,
     casing = mass,
+    metal = 1,
   ): number {
     return this.spawnRaw(
       muzzleX,
@@ -711,6 +721,7 @@ export class Projectiles {
       fragmentLife,
       fragments,
       casing,
+      metal,
     );
   }
 }

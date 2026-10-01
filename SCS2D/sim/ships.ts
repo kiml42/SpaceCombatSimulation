@@ -15,6 +15,7 @@ import { plumeRays, plumeRayStarts, Plumes, WEAPON_PLUME_SHARE } from './exhaust
 import { Choice, cohesionUrge, inSight, look, lookFrom, score } from './targeting.js';
 import {
   casingMass,
+  chargeShare,
   DEFAULT_BURST_SPEED,
   DEFAULT_FRAGMENTS,
   DEFAULT_FUSE,
@@ -95,7 +96,7 @@ import { GunType, type GunStats, type ModuleKind } from './modules.js';
 const ROUND_FLIGHT_TIME = 30;
 
 /** The least a fragment flies, seconds, however short its fuse. */
-const FRAGMENT_MIN_LIFE = 0.5;
+const FRAGMENT_MIN_LIFE = 0.05;
 
 /** Twice the lead, so a fragment outlives the burst's arrival at what it was aimed at. */
 function fragmentLife(spec: ModuleSpec): number {
@@ -1759,6 +1760,7 @@ export class Ships {
             fragmentLife(fuse),
             firesShells(fuse) ? (fuse.fragments ?? DEFAULT_FRAGMENTS) : 0,
             casingMass(fuse, gun.roundMass),
+            firesShells(fuse) ? 1 - chargeShare(fuse.burstSpeed ?? DEFAULT_BURST_SPEED) : 1,
           );
 
           // An impulse rather than a force: the round leaves within the step, so
