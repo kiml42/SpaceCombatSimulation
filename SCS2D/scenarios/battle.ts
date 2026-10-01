@@ -141,21 +141,21 @@ export function makeBattle<Extra extends object = Record<never, never>>(
     totalCulled: 0,
 
     step(): void {
+      // Filled by this step's collisions and hits, for whatever is scoring the battle.
+      credit.clear();
       if (pilots) ships.command(dt, world, grid);
       world.step();
       // Hulls are solid: what the world's step drove into each other is pushed
       // back apart before anything asks where anything is.
       collisions.step(world.bodies, ships);
       run.totalContacts += collisions.contacts.count;
-      impacts.collisions(ships, ships.damage, world.bodies, collisions.contacts);
+      impacts.collisions(ships, ships.damage, world.bodies, collisions.contacts, credit);
       // A slow contact onto torn metal hooks the two into one, once the crush
       // has decided what is torn.
       run.totalWelded += ships.weld(world, collisions.contacts);
       grid.rebuild(world.bodies);
       beams.clear();
       beamHits.clear();
-      // Filled again by this step's hits, for whatever is scoring the battle.
-      credit.clear();
       const fireReport = ships.fire(world, projectiles, beams, grid, beamHits);
       run.totalProjectilesFired += fireReport.projectilesFired;
       run.totalBeamsFired += fireReport.beamsFired;

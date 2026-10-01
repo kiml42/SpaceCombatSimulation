@@ -848,12 +848,6 @@ Deliberately unresolved; decide when they block something.
   targeting picking modules rather than ships.
 - **When a ship decides to dock.** Docking is a commit at a low closing speed, but nothing wants to dock
   until fuel gives it a reason (step 8 on). Decide with the docking ports below.
-- **Credit for ramming.** Deferred; nothing depends on it. Damage is credited to whoever caused it only for
-  shells and beams (`Credit`, filled in `Impacts.rounds` and `Impacts.beams`); a collision damages both
-  hulls and credits nobody. So a ram costs the rammer hull and function and never pays in damage done or
-  function taken, and a run cannot find it worth trying, even against a boss it could break in half. The
-  collision code knows both bodies, so the fix is small: credit each with the damage it did to the other.
-  Credit is read only by scoring, so no golden moves; scores do.
 - **A ship whose cores are out keeps its last throttle.** Nothing flies it, so its wrench is held rather
   than recomputed and replayed every step (`Ships.forceProvider`): a stuck throttle, kept as a failure mode
   of losing the link to the computer. Left for now. It contradicts the command rule — an uncommanded engine
