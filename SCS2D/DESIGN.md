@@ -386,7 +386,9 @@ inside any one file is not contiguous.
   puts the panel back to following the generation being fought — there is no list of generations to pick
   from, a thousand of them being a worse way of doing what the chart does better. The three sources of score are plotted apart as
   well as together, because they move at different times — a population learning to fly reaches the goal long
-  before it learns to shoot, and a total hides that behind one rising line. **What the page shows while a run
+  before it learns to shoot, and a total hides that behind one rising line. Under it, smaller charts give a fleet's
+  mass and, once a run fields more than one ship, its ship count: the generation's mean and its fittest, so
+  a run that scores better by growing can be told from one that scores better by paring down. **What the page shows while a run
   grinds is the population, not the fight.** A run fights hundreds of times faster than real time, so a window
   on whichever match is in progress is a fraction of a second of each and a flicker to the next — a picture of
   nothing, refreshed. A generation drawn as its ships, best first, changes at a pace worth watching: bare cores
@@ -426,9 +428,10 @@ inside any one file is not contiguous.
   as a warm wedge inside the sweep. A mount prefers a target it can fire at, but with none it tracks one
   on a masked bearing with its trigger held, so it is on target as the ship turns. A lit beam's drive stops at the edge of a masked sector rather than
   sweep across its own ship. A shot may land on its own ship, but never on the mount that fired it, so
-  two enemies hooked together shoot each other. **A gun's rounds burst** a fifth of a second before their
-  aim point by default (a per-mount `fuse`), into fragments that fly in the hull layer, which is how a
-  turret reaches below the deck; a beam has no fuse, so it never does. A module is as deep as it is across, capped at a deck
+  two enemies hooked together shoot each other. **A gun's rounds burst** just short of their aim point,
+  into fragments that fly in both layers, which is how a turret reaches below the deck; a beam has no
+  fuse, so it never does. Each gun sets how many fragments, how fast they leave (which sizes the charge,
+  so the shell's mass) and how early; one fragment or fewer is solid shot, all metal and never bursting. A module is as deep as it is across, capped at a deck
   (3 m) unless it is thick. Shipped ships mark every engine wider than a deck thick, and the Corvette and
   Gunship carry their bow guns as hull guns. A match is over when at most one side can
   still shoot or push, since most fleets can no longer destroy each other.

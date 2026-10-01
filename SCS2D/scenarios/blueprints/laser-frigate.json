@@ -109,6 +109,7 @@
           "length": 2,
           "width": 3,
           "barrels": 2,
+          "fragments": 1,
           "targeting": {
             "focusWeight": 0
           }

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { compileBlueprint, fleetHulls, fleetMass, fleetReach, Rng, shipFleet, type Fleet } from '../sim/index.js';
 import { isFleet, Match, runMatch } from '../evolution/match.js';
 import { DEFAULT_FLEET_LIMITS, fleetFits, mutateFleet, type FleetOperator } from '../evolution/fleetMutate.js';
-import { entrantOf, runEvolution } from '../evolution/run.js';
+import { entrantOf, generationSize, runEvolution, shipCount } from '../evolution/run.js';
 import { parseRunConfig, runConfigFileProblem, serialiseRunConfig } from '../evolution/configFile.js';
 import { DEFAULT_RUN } from '../evolution/run.js';
 import { BARE_CORE, CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
@@ -200,8 +200,22 @@ describe('a run of fleets', () => {
     }
   });
 
+  it('sizes a generation by its mean and by its fittest', () => {
+    const run = runEvolution([pair()], settings);
+    for (const generation of run.generations) {
+      const size = generationSize(generation);
+      const all = generation.individuals;
+      const fittest = all.find((i) => i.fitness === generation.bestFitness)!;
+      expect(size.bestMass).toBe(fittest.mass);
+      expect(size.bestShips).toBe((entrantOf(fittest) as Fleet).ships.length);
+      expect(size.meanMass).toBeCloseTo(all.reduce((sum, i) => sum + i.mass, 0) / all.length);
+      expect(size.meanShips).toBeCloseTo(all.reduce((sum, i) => sum + shipCount(i), 0) / all.length);
+    }
+  });
+
   it('stays a run of ships when a ship may not grow', () => {
     const run = runEvolution([DINKY], { ...settings, generations: 1, fleet: { maxShips: 1 } });
+    expect(generationSize(run.generations[0]!).meanShips).toBe(1);
     for (const individual of run.generations[0]!.individuals) {
       expect(individual.fleet).toBeUndefined();
       expect(isFleet(entrantOf(individual))).toBe(false);

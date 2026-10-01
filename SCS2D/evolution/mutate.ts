@@ -21,12 +21,18 @@ import {
   type Doctrine,
   type Targeting,
 } from '../sim/doctrine.js';
-import { abs, clamp, cos, floor, HALF_PI, max, PI, round, sin } from '../sim/math.js';
+import { abs, clamp, cos, floor, HALF_PI, max, min, PI, round, sin } from '../sim/math.js';
 import { degreesToRadians, radiansToDegrees } from '../sim/blueprintFile.js';
 import {
   DEFAULT_NOZZLE_SHARE,
   isWeaponMount,
   canThicken,
+  DEFAULT_BURST_SPEED,
+  DEFAULT_FRAGMENTS,
+  DEFAULT_FUSE,
+  firesShells,
+  MAX_FRAGMENTS,
+  readsFuse,
   mountTraverse,
   isHullMount,
   MODULE_KINDS,
@@ -428,6 +434,9 @@ type Knob =
   | { readonly at: 'barrels'; readonly site: ModuleSite }
   | { readonly at: 'nozzle'; readonly site: ModuleSite }
   | { readonly at: 'traverse'; readonly site: ModuleSite }
+  | { readonly at: 'fuse'; readonly site: ModuleSite }
+  | { readonly at: 'fragments'; readonly site: ModuleSite }
+  | { readonly at: 'burstSpeed'; readonly site: ModuleSite }
   | { readonly at: 'gunnery'; readonly site: ModuleSite }
   | { readonly at: 'weapon'; readonly site: ModuleSite }
   | { readonly at: 'thick'; readonly site: ModuleSite }
@@ -493,6 +502,9 @@ function knobs(draft: Draft): Knob[] {
         // whether that trade is worth taking is exactly what a run is for.
         out.push({ at: 'traverse', site }, { at: 'gunnery', site });
       }
+      // What a gun fires: shells or solid shot, and for shells how they burst.
+      if (readsFuse(placement.kind)) out.push({ at: 'fragments', site });
+      if (firesShells(placement)) out.push({ at: 'fuse', site }, { at: 'burstSpeed', site });
       if (isHullMount(placement.kind)) {
         // How much of the mount is barrel is the archetype's real knob, and
         // the outlet count divides the same opening between more of them. The
@@ -560,6 +572,12 @@ function renumber(knob: Knob, draft: Draft, rng: Rng, bounds: MutationLimits): s
       return retarget(knob.site, rng, bounds);
     case 'traverse':
       return retrain(knob.site, rng, bounds);
+    case 'fuse':
+      return refuse(knob.site, rng, bounds);
+    case 'fragments':
+      return refragment(knob.site, rng, bounds);
+    case 'burstSpeed':
+      return recharge(knob.site, rng, bounds);
     case 'weapon':
       return rearm(knob.site);
     case 'thick':
@@ -771,6 +789,57 @@ function retrain(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | n
   if (now === asDegrees) return null;
   site.spec.traverse = degreesToRadians(now);
   return `${site.where} ${site.spec.kind}: traverse ${asDegrees}° → ${now}°`;
+}
+
+/** How often a fragments knob swaps shells for solid shot, rather than recounting them. */
+const SOLID_SHOT_CHANCE = 0.2;
+
+/** The slowest burst a nudge leaves, m/s. */
+const MIN_BURST_SPEED = 1;
+
+/**
+ * Retime a shell's fuse: a nudge scaled by the fuse itself, so a long one
+ * moves as far in proportion as a short one. Zero is a fuse like any other.
+ */
+function refuse(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {
+  const was = site.spec.fuse ?? DEFAULT_FUSE;
+  const scale = max(was, DEFAULT_FUSE);
+  const now = max(0, tidy(was + bounds.magnitude * scale * rng.nextRange(-1, 1), 3));
+  if (now === was) return null;
+  site.spec.fuse = now;
+  return `${site.where} ${site.spec.kind}: fuse ${was} s → ${now} s`;
+}
+
+/**
+ * Recount a shell's fragments, or change what the gun fires. Mostly a
+ * proportional nudge of at least one; sometimes a swap between shells and
+ * solid shot, which is a decision rather than a quantity.
+ */
+function refragment(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {
+  const was = site.spec.fragments ?? DEFAULT_FRAGMENTS;
+  if (was <= 1) {
+    delete site.spec.fragments;
+    return `${site.where} ${site.spec.kind}: shells again, ${DEFAULT_FRAGMENTS} fragments`;
+  }
+  if (rng.chance(SOLID_SHOT_CHANCE)) {
+    site.spec.fragments = 1;
+    return `${site.where} ${site.spec.kind}: solid shot`;
+  }
+  const step = bounds.magnitude * was * rng.nextRange(-1, 1);
+  const nudge = step >= 0 ? max(1, round(step)) : min(-1, round(step));
+  const now = min(MAX_FRAGMENTS, max(2, was + nudge));
+  if (now === was) return null;
+  site.spec.fragments = now;
+  return `${site.where} ${site.spec.kind}: fragments ${was} → ${now}`;
+}
+
+/** Re-size a shell's charge by how fast it bursts, in proportion to that speed. */
+function recharge(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {
+  const was = site.spec.burstSpeed ?? DEFAULT_BURST_SPEED;
+  const now = max(MIN_BURST_SPEED, tidy(was + bounds.magnitude * was * rng.nextRange(-1, 1), 1));
+  if (now === was) return null;
+  site.spec.burstSpeed = now;
+  return `${site.where} ${site.spec.kind}: burst ${was} m/s → ${now} m/s`;
 }
 
 /**
