@@ -85,7 +85,7 @@ const TRACER_STREAK = 0.3;
  * and a heavy one is a large one — a fixed halo makes every round look the
  * same size at the zoom where its true size is finally legible.
  */
-const GLOW_CALIBRES = 3;
+const GLOW_CALIBRES = 5;
 
 /**
  * Smallest widths anything is drawn at on screen, in pixels.
@@ -101,14 +101,14 @@ const GLOW_CALIBRES = 3;
  * The glow's floor is the widest because it has to stay visible *around* the
  * tracer rather than merely be present. That ordering holds at every zoom, and
  * not by luck: where the tracer is at its floor the glow's larger floor wins,
- * and where the tracer is at its true width the glow is three times it, which
- * clears the glow's floor on its own.
+ * and where the tracer is at its true width the glow is `GLOW_CALIBRES` times
+ * it, which clears the glow's floor on its own.
  */
-const MIN_GLOW_PX = 5;
-const MIN_TRACER_PX = 2;
-const MIN_BARREL_PX = 2;
+const MIN_GLOW_PX = 2;
+const MIN_TRACER_PX = 0.1;
+const MIN_BARREL_PX = 1;
 /** A flash is never smaller than this on screen, however far out the camera is. */
-const MIN_FLASH_PX = 2;
+const MIN_FLASH_PX = 1;
 
 /** A module that has taken everything it can: still there, no longer anything. */
 const WRECKAGE = '#3c4048';

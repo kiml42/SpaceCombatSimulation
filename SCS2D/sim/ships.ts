@@ -15,6 +15,7 @@ import { plumeRays, plumeRayStarts, Plumes, WEAPON_PLUME_SHARE } from './exhaust
 import { Choice, cohesionUrge, inSight, look, lookFrom, score } from './targeting.js';
 import {
   casingMass,
+  chargeShare,
   DEFAULT_BURST_SPEED,
   DEFAULT_FRAGMENTS,
   DEFAULT_FUSE,
@@ -1759,6 +1760,7 @@ export class Ships {
             fragmentLife(fuse),
             firesShells(fuse) ? (fuse.fragments ?? DEFAULT_FRAGMENTS) : 0,
             casingMass(fuse, gun.roundMass),
+            firesShells(fuse) ? 1 - chargeShare(fuse.burstSpeed ?? DEFAULT_BURST_SPEED) : 1,
           );
 
           // An impulse rather than a force: the round leaves within the step, so

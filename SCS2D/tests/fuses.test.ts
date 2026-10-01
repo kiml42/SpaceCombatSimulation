@@ -33,13 +33,13 @@ import { mutate } from '../evolution/mutate.js';
 
 const DT = 1 / 60;
 
-function burstOne(fuse: number, spread = 50, fragments = 8): { rounds: Projectiles; before: { mass: number; px: number; py: number } } {
+function burstOne(fuse: number, spread = 50, fragments = 8, metal = 1): { rounds: Projectiles; before: { mass: number; px: number; py: number } } {
   const rounds = new Projectiles(64);
   const bodies = new Bodies();
   const grid = new SpatialGrid(64);
   grid.rebuild(bodies);
   // Eight kilograms, six of them casing: the charge goes to gas.
-  rounds.spawn({ x: 0, y: 0, vx: 600, vy: 40, width: 0.4, ttl: 30, mass: 8, casing: 6, damage: 1e6, weaponsLayer: true, fuse, spread, fragmentLife: 1, fragments });
+  rounds.spawn({ x: 0, y: 0, vx: 600, vy: 40, width: 0.4, ttl: 30, mass: 8, casing: 6, damage: 1e6, weaponsLayer: true, fuse, spread, fragmentLife: 1, fragments, metal });
   const before = { mass: 6, px: 6 * 600, py: 6 * 40 };
   const rng = new Rng(3);
   for (let t = 0; t < fuse + DT; t += DT) rounds.step(DT, bodies, grid, new ProjectileHits(), undefined, undefined, rng);
@@ -70,6 +70,13 @@ describe('a fused round', () => {
     expect(px).toBeCloseTo(before.px, 6);
     expect(py).toBeCloseTo(before.py, 6);
     }
+  });
+
+  it('gives the fragments the metal of its bore, not the charge', () => {
+    const { rounds } = burstOne(0.5, 50, 5, 0.7);
+    let area = 0;
+    for (const i of live(rounds)) area += rounds.width[i]! ** 2;
+    expect(area).toBeCloseTo(0.7 * 0.4 ** 2, 12);
   });
 
   it('flies on whole with one fragment or none', () => {
