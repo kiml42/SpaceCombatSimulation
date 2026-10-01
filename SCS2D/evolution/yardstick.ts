@@ -90,13 +90,25 @@ export class Yardstick {
   private wins = 0;
   matches = 0;
 
+  /**
+   * `from` is an earlier measurement of the same run against the same
+   * opponent under the same settings, carried on from rather than fought
+   * again: every generation fights the same seeds, so the generations it
+   * covers would come out the same.
+   */
   constructor(
     private readonly run: RunRecord,
     private readonly benchmark: Entrant,
     config?: Partial<YardstickConfig>,
+    from?: YardstickReport,
   ) {
     this.settings = { ...DEFAULT_YARDSTICK, ...config };
     this.match = yardstickSettings(run, this.settings);
+    if (from !== undefined) {
+      this.points.push(...from.points);
+      this.generation = from.points.length;
+      this.matches = from.matches;
+    }
     this.draw = new Rng(this.settings.seed);
     this.seedFor(longest(run) - 1);
   }

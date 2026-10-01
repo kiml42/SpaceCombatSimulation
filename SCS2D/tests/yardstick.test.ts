@@ -65,6 +65,16 @@ describe('the yardstick', { timeout: BUDGET }, () => {
     }
   });
 
+  it('carries on from an earlier measurement to the same answer', () => {
+    const early = runEvolution([CORVETTE], { ...settings, generations: 2 });
+    const later = runEvolution([CORVETTE], settings);
+    const whole = measure(later, GUNSHIP, { match: { duration: 30 } });
+    const part = measure(early, GUNSHIP, { match: { duration: 30 } });
+    const resumed = new Yardstick(later, GUNSHIP, { match: { duration: 30 } }, part);
+    expect(resumed.progress).toBeCloseTo(2 / 3);
+    expect(JSON.stringify(resumed.finish())).toEqual(JSON.stringify(whole));
+  });
+
   it('measures the same run twice the same way', () => {
     const run = runEvolution([CORVETTE], settings);
     const one = measure(run, GUNSHIP, { match: { duration: 30 } });
