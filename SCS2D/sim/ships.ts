@@ -13,7 +13,16 @@ import { HULL_LAYER, Hulls, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from './hu
 import { Damage, DamageEffect } from './damage.js';
 import { plumeRays, plumeRayStarts, Plumes, WEAPON_PLUME_SHARE } from './exhaust.js';
 import { Choice, cohesionUrge, look, lookFrom, score } from './targeting.js';
-import { DEFAULT_FUSE, moduleRadius, engineGeometry, readsFuse, type ModuleSpec } from './modules.js';
+import {
+  casingMass,
+  DEFAULT_BURST_SPEED,
+  DEFAULT_FRAGMENTS,
+  DEFAULT_FUSE,
+  engineGeometry,
+  firesShells,
+  moduleRadius,
+  type ModuleSpec,
+} from './modules.js';
 import {
   atan2,
   angleDelta,
@@ -84,9 +93,6 @@ import { GunType, type GunStats, type ModuleKind } from './modules.js';
  * guard against rounds accumulating for ever, not a range limit.
  */
 const ROUND_FLIGHT_TIME = 30;
-
-/** How fast a burst's fragments spread, as a share of the gun's muzzle speed. */
-export const BURST_SPREAD = 0.1;
 
 /** The least a fragment flies, seconds, however short its fuse. */
 const FRAGMENT_MIN_LIFE = 0.5;
@@ -1131,6 +1137,9 @@ export class Ships {
       const gunY = this.gunPoint.y;
       const gunVx = this.gunPoint.vx;
       const gunVy = this.gunPoint.vy;
+      const barrel = this.turrets.worldBearing(bodies, ti);
+      const faceX = cos(barrel);
+      const faceY = sin(barrel);
 
       this.choice.begin();
       this.maskedChoice.begin();
@@ -1167,13 +1176,23 @@ export class Ships {
           gunY,
           gunVx,
           gunVy,
+          faceX,
+          faceY,
           tb,
           e,
           this.designs[e]!.mass,
           !this.isDisarmed(e),
           !this.hasNoEngines(e),
         );
-        const candidate = hooked ? { ...seen, range: length(tx - gunX, ty - gunY), closing: 0 } : seen;
+        const hookedRange = hooked ? length(tx - gunX, ty - gunY) : 0;
+        const candidate = hooked
+          ? {
+              ...seen,
+              range: hookedRange,
+              closing: 0,
+              facing: hookedRange > 0 ? (faceX * (tx - gunX) + faceY * (ty - gunY)) / hookedRange : 1,
+            }
+          : seen;
         // Out of reach is out of the question, rather than merely a poor
         // score. Proximity alone would let a mount with nothing near it pick
         // something far outside what its own gun is good for and shoot at it
@@ -1387,7 +1406,7 @@ export class Ships {
    */
   private fuseFor(turret: number, target: number, spec: ModuleSpec): number {
     const flight = this.turrets.aimTime[turret]!;
-    if (target === NO_TARGET || !(flight > 0) || !readsFuse(spec.kind)) return Infinity;
+    if (target === NO_TARGET || !(flight > 0) || !firesShells(spec)) return Infinity;
     const fuse = flight - (spec.fuse ?? DEFAULT_FUSE);
     return fuse > 0 ? fuse : 0;
   }
@@ -1727,8 +1746,10 @@ export class Ships {
             design.turrets[t]!.module,
             this.mountLayers(i, design.turrets[t]!),
             this.fuseFor(ti, target, fuse),
-            gun.muzzleSpeed * BURST_SPREAD,
+            fuse.burstSpeed ?? DEFAULT_BURST_SPEED,
             fragmentLife(fuse),
+            firesShells(fuse) ? (fuse.fragments ?? DEFAULT_FRAGMENTS) : 0,
+            casingMass(fuse, gun.roundMass),
           );
 
           // An impulse rather than a force: the round leaves within the step, so
