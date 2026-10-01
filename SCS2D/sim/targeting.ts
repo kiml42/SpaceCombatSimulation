@@ -1,6 +1,6 @@
 import type { Bodies } from './bodies.js';
 import type { Targeting } from './doctrine.js';
-import { abs, length, log } from './math.js';
+import { abs, cos, length, log, sin } from './math.js';
 
 /**
  * Choosing what to shoot at.
@@ -32,6 +32,17 @@ export interface Candidate {
   readonly armed: boolean;
   /** Whether it can still push itself about. */
   readonly mobile: boolean;
+  /**
+   * The cosine of how far off the chooser's facing it lies: one dead ahead,
+   * zero abeam, minus one astern. A hull faces along its nose, a mount along
+   * its barrel.
+   */
+  readonly facing: number;
+  /**
+   * Whether the line to it passes clear of every other solid body. Only
+   * looked for when a doctrine weighs it, and true otherwise.
+   */
+  readonly clear: boolean;
 }
 
 /** A hundred metres a second, so `closingWeight` is per ramming speed. */
@@ -83,6 +94,8 @@ export function score(
   if (candidate.ship === focusOn) total += doctrine.focusWeight;
   if (candidate.armed) total += doctrine.armedWeight;
   if (candidate.mobile) total += doctrine.mobileWeight;
+  total += doctrine.facingWeight * candidate.facing;
+  if (candidate.clear) total += doctrine.sightWeight;
   return total;
 }
 
@@ -168,6 +181,35 @@ export class Choice {
   }
 }
 
+/**
+ * Whether the straight line from a point to body `to` passes clear of every
+ * solid body but `from` and `to`, by their bounding circles.
+ *
+ * Bounding circles, so a long thin hull blocks more than it should: this is
+ * a preference, and erring towards "in the way" costs a mount a target it
+ * could have had rather than a round in a friend. Only what lies between the
+ * two counts — a body behind the chooser or beyond the target is not in the
+ * way of anything.
+ */
+export function inSight(bodies: Bodies, fromX: number, fromY: number, from: number, to: number): boolean {
+  const dx = bodies.x[to]! - fromX;
+  const dy = bodies.y[to]! - fromY;
+  const lengthSq = dx * dx + dy * dy;
+  if (!(lengthSq > 0)) return true;
+  for (let k = 0; k < bodies.count; k++) {
+    if (k === from || k === to || bodies.ghost[k] === 1) continue;
+    const ox = bodies.x[k]! - fromX;
+    const oy = bodies.y[k]! - fromY;
+    const along = (ox * dx + oy * dy) / lengthSq;
+    if (along <= 0 || along >= 1) continue;
+    const px = ox - along * dx;
+    const py = oy - along * dy;
+    const r = bodies.radius[k]!;
+    if (px * px + py * py < r * r) return false;
+  }
+  return true;
+}
+
 /** Fill in what the pickers need to know about a target, from the bodies. */
 export function look(
   bodies: Bodies,
@@ -178,12 +220,15 @@ export function look(
   armed: boolean,
   mobile: boolean,
 ): Candidate {
+  const angle = bodies.angle[from]!;
   return lookFrom(
     bodies,
     bodies.x[from]!,
     bodies.y[from]!,
     bodies.vx[from]!,
     bodies.vy[from]!,
+    cos(angle),
+    sin(angle),
     to,
     ship,
     mass,
@@ -207,6 +252,8 @@ export function lookFrom(
   fromY: number,
   fromVx: number,
   fromVy: number,
+  faceX: number,
+  faceY: number,
   to: number,
   ship: number,
   mass: number,
@@ -217,12 +264,14 @@ export function lookFrom(
   const dy = bodies.y[to]! - fromY;
   const range = length(dx, dy);
   let closing = 0;
+  let facing = 1;
   if (range > 0) {
+    facing = (faceX * dx + faceY * dy) / range;
     // Along the line between them: how fast the gap is shutting, which is
     // what "coming at you" means and is not the same as how fast it is going.
     const dvx = bodies.vx[to]! - fromVx;
     const dvy = bodies.vy[to]! - fromVy;
     closing = -(dvx * dx + dvy * dy) / range;
   }
-  return { ship, range, closing, mass, armed, mobile };
+  return { ship, range, closing, mass, armed, mobile, facing, clear: true };
 }

@@ -961,6 +961,8 @@ function place(
     if (placement.nozzle !== undefined) spec.nozzle = placement.nozzle;
     if (placement.traverse !== undefined) spec.traverse = placement.traverse;
     if (placement.fuse !== undefined) spec.fuse = placement.fuse;
+    if (placement.fragments !== undefined) spec.fragments = placement.fragments;
+    if (placement.burstSpeed !== undefined) spec.burstSpeed = placement.burstSpeed;
     if (placement.weapon !== undefined) spec.weapon = placement.weapon;
     if (placement.thick !== undefined) spec.thick = placement.thick;
     if (placement.targeting !== undefined) spec.targeting = placement.targeting;
