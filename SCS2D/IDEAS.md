@@ -1,6 +1,8 @@
 # Bugs
 Things that are obviously wrong.
 
+- When stating evolution in "A battle" setting, it doesn't start showing a battle, you need to switch to "the combatants" and back again.
+
 ## Simulation
 
 -----------------------------------------------------------------------
@@ -39,6 +41,9 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Consider scoring for ramming
   - Currently just loses score by everything taking damage
   - Might want to attribute the damage to both ships to the other, this would be asymmetrical is one manages to ram its armour into an active component on the other.
+- Random variation to arena size, and initial velocities. can be shown as `setting [X] +- [dx]` in one row each so it's not making the section longer, and clearly shows their link.
+- Allow naming of evolution runs -> file name when exported.
+- Graphs take up too much space. Could probably merge mass and ship count using left and right axes. Could use two different colours and have means solid, and bests dashed.
 
 ## Fleet Editor
 - Allow grouping ships.
@@ -49,3 +54,4 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
   - Thumbnails indicate the exact current state, possibly even a live view with its own camera tracking the ship (possibly rotated to match)
   - Click a ship to focus the main camera on it
 - Randomisation settings for all parameters of a custom battle
+- team coloured beams and projectiles - as a UI option, so you can still see the more realistic mode by default.
