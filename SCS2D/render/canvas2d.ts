@@ -706,20 +706,28 @@ function drawProjectiles(ctx: CanvasRenderingContext2D, snapshot: Snapshot, came
   // meet, where a single stroke over one path would have composited once.
   // Worth it for a halo that is the round's own size, and rare enough not to
   // read as anything but two tracers crossing.
+  //
+  // Streaks follow a round's motion across the screen rather than through the
+  // world, as a camera's would: relative to the pace the camera follows ships
+  // at, which it keeps while paused so a still frame is not all dots.
+  const cvx = camera.vx ?? 0;
+  const cvy = camera.vy ?? 0;
   ctx.lineCap = 'round';
   for (let i = 0; i < snapshot.projectileCount; i++) {
     const colour = snapshot.projectileInside[i] === 1 ? TRACER_GLOW_INSIDE : TRACER_GLOW;
     if (colour === null) continue;
     ctx.strokeStyle = colour;
     const calibre = snapshot.projectileWidth[i]!;
-    const x = snapshot.projectileX[i]! + snapshot.projectileVx[i]! * GLOW_LEAD * calibre;
-    const y = snapshot.projectileY[i]! + snapshot.projectileVy[i]! * GLOW_LEAD * calibre;
+    const vx = snapshot.projectileVx[i]! - cvx;
+    const vy = snapshot.projectileVy[i]! - cvy;
+    const x = snapshot.projectileX[i]! + vx * GLOW_LEAD * calibre;
+    const y = snapshot.projectileY[i]! + vy * GLOW_LEAD * calibre;
     ctx.lineWidth = legibleWidth(GLOW_CALIBRES * calibre, MIN_GLOW_PX, camera.scale);
     ctx.beginPath();
     ctx.moveTo(x, y);
     ctx.lineTo(
-      x - snapshot.projectileVx[i]! * GLOW_STREAK * calibre,
-      y - snapshot.projectileVy[i]! * GLOW_STREAK * calibre
+      x - vx * GLOW_STREAK * calibre,
+      y - vy * GLOW_STREAK * calibre
     );
     ctx.stroke();
   }
@@ -740,8 +748,8 @@ function drawProjectiles(ctx: CanvasRenderingContext2D, snapshot: Snapshot, came
     ctx.beginPath();
     ctx.moveTo(x, y);
     ctx.lineTo(
-      x - snapshot.projectileVx[i]! * TRACER_STREAK * calibre,
-      y - snapshot.projectileVy[i]! * TRACER_STREAK * calibre
+      x - (snapshot.projectileVx[i]! - cvx) * TRACER_STREAK * calibre,
+      y - (snapshot.projectileVy[i]! - cvy) * TRACER_STREAK * calibre
     );
     ctx.stroke();
   }

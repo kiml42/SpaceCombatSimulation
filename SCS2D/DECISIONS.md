@@ -16,6 +16,7 @@ inside any one file is not contiguous.
 
 | File | Holds | Read it when |
 | --- | --- | --- |
+| 2026-10-01 | **Tracer streaks are drawn relative to the camera's follow pace, not through the world.** A streak along a round's world velocity did not lie along the line it visibly took across the screen once the camera was following a ship, which was plain on a Star Destroyer's slow pan. A real camera's streaks are screen-space, but those collapse to dots when paused, so the streak uses the round's velocity less the pace `moveWithVisibleShips` follows ships at — which it now keeps on the camera while paused. Manual panning and `frame`'s easing are left out as unpredictable. A round keeping pace with the camera is a dot. Rendering only; no golden moved. |
 | **[DESIGN.md](DESIGN.md)** | Status, §§1–7 and 9–11 — what the game is, how it works, and why | Deciding how something should behave |
 | **[ROADMAP.md](ROADMAP.md)** | §8 build order, §12 open questions | Picking up work, or deferring a decision |
 | **[DECISIONS.md](DECISIONS.md)** | The Decision Log | Asking why something ended up the way it is |
