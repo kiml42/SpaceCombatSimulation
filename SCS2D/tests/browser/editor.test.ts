@@ -284,13 +284,19 @@ describe('the editor in a browser', () => {
     expect(await page.isDisabled('[data-add="turret"]')).toBe(false);
   });
 
-  it('offers a fuse on a gun and not on a beam', async () => {
+  it('offers a shell on a gun and not on a beam', async () => {
     await page.click('#newShip');
     await page.click('[data-add="turret"]');
-    expect(await page.isVisible('#fuseRow')).toBe(true);
-    expect(Number(await page.inputValue('#propFuse'))).toBeCloseTo(0.2, 9);
+    expect(await page.isVisible('#shellRow')).toBe(true);
+    expect(Number(await page.inputValue('#propFuse'))).toBeCloseTo(0.02, 9);
+    expect(Number(await page.inputValue('#propFragments'))).toBe(8);
+    // One fragment is solid shot, with no burst to time or size.
+    await page.fill('#propFragments', '1');
+    await page.dispatchEvent('#propFragments', 'change');
+    expect(await page.isDisabled('#propFuse')).toBe(true);
+    expect(await page.isDisabled('#propBurstSpeed')).toBe(true);
     await page.click('[data-add="beamTurret"]');
-    expect(await page.isVisible('#fuseRow')).toBe(false);
+    expect(await page.isVisible('#shellRow')).toBe(false);
   });
 
   it('lets an engine be thick only once its nozzle is wider than a deck', async () => {

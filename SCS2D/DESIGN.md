@@ -430,9 +430,10 @@ inside any one file is not contiguous.
   as a warm wedge inside the sweep. A mount prefers a target it can fire at, but with none it tracks one
   on a masked bearing with its trigger held, so it is on target as the ship turns. A lit beam's drive stops at the edge of a masked sector rather than
   sweep across its own ship. A shot may land on its own ship, but never on the mount that fired it, so
-  two enemies hooked together shoot each other. **A gun's rounds burst** a fifth of a second before their
-  aim point by default (a per-mount `fuse`), into fragments that fly in the hull layer, which is how a
-  turret reaches below the deck; a beam has no fuse, so it never does. A module is as deep as it is across, capped at a deck
+  two enemies hooked together shoot each other. **A gun's rounds burst** just short of their aim point,
+  into fragments that fly in both layers, which is how a turret reaches below the deck; a beam has no
+  fuse, so it never does. Each gun sets how many fragments, how fast they leave (which sizes the charge,
+  so the shell's mass) and how early; one fragment or fewer is solid shot, all metal and never bursting. A module is as deep as it is across, capped at a deck
   (3 m) unless it is thick. Shipped ships mark every engine wider than a deck thick, and the Corvette and
   Gunship carry their bow guns as hull guns. A match is over when at most one side can
   still shoot or push, since most fleets can no longer destroy each other.
@@ -472,8 +473,8 @@ inside any one file is not contiguous.
 - **Next:** the rest of §8 step 5 — a materials budget, designed scenarios, shareable by URL; then step 8,
   fuel, which starts the resource system.
   See ROADMAP.md §8.
-  §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight,
-  hemisphere, looking-at and ship-type pickers. Evolution is built and runs both headlessly and on a page
+  §8 step 3 is done bar what it deliberately deferred — withdrawal, and the line-of-sight
+  and ship-type pickers. What a chooser is already facing is a weight (`facingWeight`), zero by default. Evolution is built and runs both headlessly and on a page
   of its own; what it has left open is in ROADMAP.md §12, the arena radius being an absolute where a ratio
   belongs chief among them. ROADMAP.md §8 lists what is left of each partly built step, then the steps not started. The blueprint
   editor, step 1, is built; test flight inside it is an open question (§12), since the Battle link already

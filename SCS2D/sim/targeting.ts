@@ -1,6 +1,6 @@
 import type { Bodies } from './bodies.js';
 import type { Targeting } from './doctrine.js';
-import { abs, length, log } from './math.js';
+import { abs, cos, length, log, sin } from './math.js';
 
 /**
  * Choosing what to shoot at.
@@ -32,6 +32,12 @@ export interface Candidate {
   readonly armed: boolean;
   /** Whether it can still push itself about. */
   readonly mobile: boolean;
+  /**
+   * The cosine of how far off the chooser's facing it lies: one dead ahead,
+   * zero abeam, minus one astern. A hull faces along its nose, a mount along
+   * its barrel.
+   */
+  readonly facing: number;
 }
 
 /** A hundred metres a second, so `closingWeight` is per ramming speed. */
@@ -83,6 +89,7 @@ export function score(
   if (candidate.ship === focusOn) total += doctrine.focusWeight;
   if (candidate.armed) total += doctrine.armedWeight;
   if (candidate.mobile) total += doctrine.mobileWeight;
+  total += doctrine.facingWeight * candidate.facing;
   return total;
 }
 
@@ -178,12 +185,15 @@ export function look(
   armed: boolean,
   mobile: boolean,
 ): Candidate {
+  const angle = bodies.angle[from]!;
   return lookFrom(
     bodies,
     bodies.x[from]!,
     bodies.y[from]!,
     bodies.vx[from]!,
     bodies.vy[from]!,
+    cos(angle),
+    sin(angle),
     to,
     ship,
     mass,
@@ -207,6 +217,8 @@ export function lookFrom(
   fromY: number,
   fromVx: number,
   fromVy: number,
+  faceX: number,
+  faceY: number,
   to: number,
   ship: number,
   mass: number,
@@ -217,12 +229,14 @@ export function lookFrom(
   const dy = bodies.y[to]! - fromY;
   const range = length(dx, dy);
   let closing = 0;
+  let facing = 1;
   if (range > 0) {
+    facing = (faceX * dx + faceY * dy) / range;
     // Along the line between them: how fast the gap is shutting, which is
     // what "coming at you" means and is not the same as how fast it is going.
     const dvx = bodies.vx[to]! - fromVx;
     const dvy = bodies.vy[to]! - fromVy;
     closing = -(dvx * dx + dvy * dy) / range;
   }
-  return { ship, range, closing, mass, armed, mobile };
+  return { ship, range, closing, mass, armed, mobile, facing };
 }
