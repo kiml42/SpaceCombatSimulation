@@ -499,6 +499,7 @@ const FLEET: readonly BlueprintName[] = [
   'catamaran',
   'torch',
   'laserFrigate',
+  'torpedo',
 ];
 
 /**
@@ -581,8 +582,9 @@ describe('the authored blueprints', () => {
           expect(design.engineLayout.hasFullAuthority()).toBe(true);
         }
 
-        // Something to fight with: a gun, or an engine meant as a weapon.
-        expect(design.turrets.length + design.weaponEngines.length).toBeGreaterThan(0);
+        // Something to fight with: a gun, an engine meant as a weapon, or itself.
+        const rams = design.doctrine.approach.ramRadii > 0 ? 1 : 0;
+        expect(design.turrets.length + design.weaponEngines.length + rams).toBeGreaterThan(0);
         if (design.turrets.length === 0) return;
         // A gun aboard has to be able to shoot; on a fleet ship, every
         // mount does. A showpiece is allowed a gun that is boxed in and

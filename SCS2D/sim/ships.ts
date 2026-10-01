@@ -25,6 +25,7 @@ import {
   type ModuleSpec,
 } from './modules.js';
 import {
+  abs,
   atan2,
   angleDelta,
   PI,
@@ -153,6 +154,12 @@ const URGE_REFERENCE = 100;
 
 /** Seconds of closing at its approach speed that stand in for an unarmed rammer's reach in choosing a target. */
 const RAM_HORIZON = 60;
+
+/** Below this much velocity still to gain, m/s, a ram points its nose at the target rather than its thrust. */
+const RAM_AIM_SPEED = 5;
+
+/** How many times a ram may halve its ask for force to keep the torque to turn with. */
+const RAM_FORCE_HALVINGS = 6;
 
 const TIMER_SETTLE = 1e-9;
 
@@ -2091,12 +2098,23 @@ export class Ships {
     const wantVx = this.urgeWeight > 0 ? this.urgeVx / this.urgeWeight : 0;
     const wantVy = this.urgeWeight > 0 ? this.urgeVy / this.urgeWeight : 0;
 
-    const mass = bodies.mass[b]!;
-    const worldFx = (mass * (wantVx - bodies.vx[b]!)) / VELOCITY_RESPONSE_TIME;
-    const worldFy = (mass * (wantVy - bodies.vy[b]!)) / VELOCITY_RESPONSE_TIME;
+    // A ram is a race to the target, so it points its main thrust along the
+    // change of velocity it needs rather than its nose at the target.
+    if (order?.ram === true) {
+      const dvx = wantVx - bodies.vx[b]!;
+      const dvy = wantVy - bodies.vy[b]!;
+      if (dvx * dvx + dvy * dvy > RAM_AIM_SPEED * RAM_AIM_SPEED) wantAngle = atan2(dvy, dvx);
+    }
 
+    const mass = bodies.mass[b]!;
     // The allocator works in the body frame, so the demand is rotated into it.
     const angle = bodies.angle[b]!;
+    // A ram asks for far more than any layout gives, and a saturated ask for
+    // force leaves nothing to stop a turn with. So it points, then burns: the
+    // force asked for falls away with how far off its heading still is.
+    const aligned = order?.ram === true ? max(0, cos(angleDelta(angle, wantAngle))) : 1;
+    const worldFx = (aligned * mass * (wantVx - bodies.vx[b]!)) / VELOCITY_RESPONSE_TIME;
+    const worldFy = (aligned * mass * (wantVy - bodies.vy[b]!)) / VELOCITY_RESPONSE_TIME;
     const c = cos(angle);
     const s = sin(angle);
     const localFx = worldFx * c + worldFy * s;
@@ -2136,6 +2154,18 @@ export class Ships {
 
     const throttles = this.throttles[i]!;
     layout.allocate(demandFx, demandFy, demandTorque, throttles, this.allocation);
+    // A ram asks for more force than it can have, and what is given up for it
+    // can be the torque to stop a turn. Ask for less until the turn gets most
+    // of what it wanted.
+    if (order?.ram === true) {
+      for (let k = 0; k < RAM_FORCE_HALVINGS; k++) {
+        const short = demandTorque - this.allocation.torque;
+        if (abs(short) <= 0.5 * abs(demandTorque)) break;
+        demandFx *= 0.5;
+        demandFy *= 0.5;
+        layout.allocate(demandFx, demandFy, demandTorque, throttles, this.allocation);
+      }
+    }
 
     if (firing === 0) {
       this.demandFx[i] = this.allocation.fx;

@@ -6,6 +6,7 @@ import { beamVGun } from '../scenarios/beamVGun.js';
 import { fractal } from '../scenarios/fractal.js';
 import type { Battle } from '../scenarios/types.js';
 import { swarm } from '../scenarios/swarm.js';
+import { torpedoes } from '../scenarios/torpedoes.js';
 import { starWars } from '../scenarios/starWars.js';
 import { ram } from '../scenarios/ram.js';
 import { standoff } from '../scenarios/standoff.js';
@@ -57,6 +58,7 @@ export function start(): void {
     { name: 'Swarm', create: () => swarm(SEED) },
     { name: 'Fractal', create: () => fractal(SEED) },
     { name: 'Super Swarm', create: () => swarm(SEED, 300) },
+    { name: 'Torpedoes', create: () => torpedoes(SEED) },
     { name: 'Ram', create: () => ram(SEED) },
     { name: 'Standoff', create: () => standoff(SEED) },
     { name: 'Line Ahead', create: () => column(SEED) },
