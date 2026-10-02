@@ -76,6 +76,9 @@ const TRACER_GLOW_INSIDE: string | null = null;
 const TRIGGER_ON = '#ffd76a2e';
 const TRIGGER_OFF = '#9fb6d61a';
 const TRIGGER_FOULED = '#ff5a5a24';
+/** Where a gun's barrel is pointing now, along its wedge, in battle. */
+const BARREL_LINE = '#e6edf566';
+const BARREL_LINE_PX = 1;
 /** The narrowest a firing wedge's sides are drawn, in pixels; a gun's are a calibre wide otherwise. */
 const MIN_TRIGGER_PX = 3;
 
@@ -379,6 +382,18 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
       ctx.lineTo(mx, my);
       ctx.lineTo(mx + cos(aim + half) * triggerReach, my + sin(aim + half) * triggerReach);
       ctx.stroke();
+
+      // In battle, where the barrel actually points, so how far it is off its
+      // aim shows. A preview has no body, and its barrel is on its aim anyway.
+      if (ship.body >= 0) {
+        const bearing = ship.turretBearings[t] ?? aim;
+        ctx.strokeStyle = BARREL_LINE;
+        ctx.lineWidth = BARREL_LINE_PX / metresToPx;
+        ctx.beginPath();
+        ctx.moveTo(mx, my);
+        ctx.lineTo(mx + cos(bearing) * triggerReach, my + sin(bearing) * triggerReach);
+        ctx.stroke();
+      }
     }
 
     // The rotating part itself: a disc at the mount, sized to the module it
