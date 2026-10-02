@@ -140,6 +140,7 @@ export {
   TARGETING_FIELDS,
   doctrineProblem,
   defaultTargeting,
+  holdBand,
   resolveTargeting,
   serialiseDoctrine,
   serialiseTargeting,

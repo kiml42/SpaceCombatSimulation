@@ -169,6 +169,17 @@ export interface Targeting {
    * fleet in the game would huddle.
    */
   readonly escortWeight: number;
+  /**
+   * How far out a weapon fires, as a multiple of how far its shot is worth
+   * taking at what it is aiming at (`reachAgainst`).
+   *
+   * **A decision, not a limit.** Past that distance a round still flies and
+   * may still hit; it is just less likely to. Above one spends shells on long
+   * odds, below one saves them for a sure thing. A mount's own question, so a
+   * ship's says nothing; its reach, and so how close it flies, comes from its
+   * mounts'.
+   */
+  readonly fireRange: number;
 }
 
 /** How to fight it, once it has been chosen. */
@@ -257,6 +268,22 @@ export interface Approach {
   readonly ramArmed: number;
 }
 
+/**
+ * The band of ranges, centre to centre, a ship's doctrine holds it at against
+ * a target of `targetRadius`, given its own `reach`: `standoffRadii` of the
+ * target's radius off its skin, no further out than `standoff` of its reach,
+ * give or take `tolerance`.
+ */
+export function holdBand(approach: Approach, reach: number, targetRadius: number): { min: number; max: number } {
+  const off = approach.standoffRadii * targetRadius;
+  const cap = approach.standoff * reach;
+  const wanted = targetRadius + (off < cap ? off : cap);
+  const min = wanted * (1 - approach.tolerance);
+  const max = wanted * (1 + approach.tolerance);
+  const floor = min > 0 ? min : 0;
+  return { min: floor, max: max > floor ? max : floor };
+}
+
 export interface Doctrine {
   readonly targeting: Targeting;
   readonly approach: Approach;
@@ -292,6 +319,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     gunWeight: 100,
     structureWeight: 0,
     escortWeight: 0,
+    fireRange: 1,
   },
   approach: {
     standoffRadii: 50,
@@ -434,6 +462,7 @@ export const TARGETING_FIELDS: readonly (keyof Targeting)[] = [
   'gunWeight',
   'structureWeight',
   'escortWeight',
+  'fireRange',
 ];
 
 /**
@@ -448,6 +477,7 @@ export const TARGETING_FIELDS: readonly (keyof Targeting)[] = [
  * - the four aim weights choose a *part* of a target, which only a gun does —
  *   and with it how near that part a shot has to land, since a mount that has
  *   refused something has to be sure of what it would hit.
+ * - `fireRange` is how far a gun fires, which a hull does not.
  *
  * Stated here rather than filtered wherever it matters, because the editor
  * offering a field, mutation turning it and the simulation reading it have to
@@ -463,7 +493,8 @@ export const SHIP_TARGETING_FIELDS: readonly (keyof Targeting)[] = TARGETING_FIE
     field !== 'coreWeight' &&
     field !== 'engineWeight' &&
     field !== 'gunWeight' &&
-    field !== 'structureWeight',
+    field !== 'structureWeight' &&
+    field !== 'fireRange',
 );
 
 export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
@@ -482,8 +513,8 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
 ];
 
 /**
- * The fields that mean nothing at or below zero: a size, three distances and
- * two shares of thrust.
+ * The fields that mean nothing at or below zero: a size, a range, three
+ * distances and two shares of thrust.
  *
  * Stated once and read by everything that writes a doctrine rather than being
  * repeated wherever one is made up — the parser that refuses a bad file and
@@ -492,6 +523,7 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
  */
 export const POSITIVE_FIELDS: readonly string[] = [
   'preferredMass',
+  'fireRange',
   'standoffRadii',
   'escortRadii',
   'separationRadii',

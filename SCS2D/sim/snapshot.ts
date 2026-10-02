@@ -58,6 +58,12 @@ export interface ShipView {
   turretTriggerReach?: number[];
   /** Which turrets are pointing into their own ship, where they will not fire. */
   turretFouled?: boolean[];
+  /**
+   * The band of ranges its doctrine closes to, centre to centre, against the
+   * enemy it prefers, metres. Only a preview sets it.
+   */
+  holdMin?: number;
+  holdMax?: number;
   /** Throttle held by each engine, 0 to 1, in the design's engine order. */
   throttles: number[];
   /**

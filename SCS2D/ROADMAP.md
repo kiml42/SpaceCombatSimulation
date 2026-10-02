@@ -319,6 +319,14 @@ Deliberately unresolved; decide when they block something.
   deciding once the round trip is what slows design down. Whatever it is, it must not grow out of the
   editor's animation (§8's notes on the editor).
 
+- **Which of its guns a ship should fly to the range of.** A ship's reach, which its doctrine's standoff is
+  a fraction of, is the *best* of its mounts' against its own size of enemy. The gunship's quick-firing
+  point-defence turrets reach 3,286 m against a gunship, so it holds at 1,307–1,960 m while its main gun
+  reaches 1,354 m — the editor's band shows it at a glance. The alternatives are the main battery's reach
+  (by mass of gun, or by damage per second), the shortest, or a mount marked as the one to fly by; each
+  changes every ship's standoff, so it wants measuring against the fleet scenarios. A gun's `fireRange`
+  already lets a design pull one mount's reach in or out by hand.
+
 - **How far a gun should look for a consort in its line of fire.** It casts for half a second of the
   round's flight, on the reasoning that a gun asking about the whole flight would never fire. That covers
   the consort that has just crossed the muzzle and not the one holding station three intervals ahead: in

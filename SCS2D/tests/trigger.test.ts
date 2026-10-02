@@ -19,6 +19,7 @@ import {
   type Targeting,
 } from '../sim/index.js';
 import { MAX_CELLS_PER_RAY } from '../sim/spatialGrid.js';
+import { reachAgainst } from '../sim/blueprint.js';
 import { BARE_CORE, CORVETTE, GUNSHIP } from '../scenarios/blueprints.js';
 
 /**
@@ -209,6 +210,32 @@ describe('what a mount that refuses nothing fires on', () => {
     expect(cone({ gunWeight: 5 }, 250, 'turret').offset).not.toBe(0);
     expect(cone({}, 250, 'turret').offset).not.toBe(0);
     expect(cone({ gunWeight: 5 }, 1000, 'turret').offset).toBe(0);
+  });
+});
+
+describe('how far out a mount fires', () => {
+  it('is its doctrine’s to say, as a multiple of how far its shot is worth taking', () => {
+    const plain = armed({});
+    const eager = armed({ fireRange: 2 });
+    expect(eager.turrets[0]!.reach).toBeCloseTo(plain.turrets[0]!.reach * 2, 9);
+    // And the ship, which flies to where its guns will fire, reaches as far.
+    expect(eager.reach).toBeCloseTo(plain.reach * 2, 9);
+
+    // A gunship half as far again as a mount is worth shooting at it: held
+    // fire by default, fired on by a mount that will take the long odds.
+    const inReach = (design: ShipDesign): number => {
+      const world = new World({ dt: DT, seed: 11 });
+      const ships = new Ships();
+      world.addForceProvider(ships.forceProvider());
+      const mine = ships.spawn(world, { design, x: 0, y: 0, team: 0 });
+      const gunship = compileBlueprint(GUNSHIP);
+      const range = 1.5 * reachAgainst(design.turrets[0]!.gun, gunship.radius);
+      ships.spawn(world, { design: gunship, x: range, y: 0, angle: math.HALF_PI, team: 1 });
+      ships.command(DT, world);
+      return ships.turrets.inReach[ships.turretIndexOf(mine, 0)]!;
+    };
+    expect(inReach(plain)).toBe(0);
+    expect(inReach(eager)).toBe(1);
   });
 });
 
