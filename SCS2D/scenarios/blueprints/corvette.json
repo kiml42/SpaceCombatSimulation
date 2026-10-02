@@ -98,13 +98,6 @@
       "notes": "Amidships, with a section of hull either side of it: the compartment the ship is flown from is the one thing worth putting the rest of the ship in front of."
     },
     {
-      "kind": "structure",
-      "x": -3,
-      "y": 0,
-      "length": 2,
-      "width": 6
-    },
-    {
       "kind": "hullGun",
       "x": 9.75,
       "y": 0,
@@ -116,15 +109,16 @@
       "traverse": 15,
       "targeting": {
         "facingWeight": 100,
-        "sightWeight": 50
+        "sightWeight": 50,
+        "fireRange": 1.3
       }
     },
     {
       "kind": "engine",
-      "x": -4,
+      "x": -2,
       "y": 0,
       "angle": 180,
-      "length": 8,
+      "length": 10,
       "width": 6,
       "thick": true
     },
