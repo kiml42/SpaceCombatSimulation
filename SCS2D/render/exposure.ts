@@ -2,9 +2,9 @@
  * Drawing what moves as a camera would photograph it: exposed for one step of
  * the battle, with a shutter that opens and closes over a share of that time.
  *
- * A round is drawn along the line it crossed in that step, relative to the
- * camera, and fades in and out towards either end; a flash is drawn at
- * moments through the step and the moments summed. Presentation only, and
+ * The step is centred on the moment drawn. A round is drawn along the line it
+ * crosses in it, relative to the camera, and fades in and out towards either
+ * end; a flash is drawn at moments through it and the moments summed. Presentation only, and
  * DOM-free so it can be tested like the camera.
  */
 
@@ -18,8 +18,13 @@ export function shutterWeight(u: number): number {
   return edge >= SHUTTER_RAMP ? 1 : edge / SHUTTER_RAMP;
 }
 
-/** Where something moving at `(vx, vy)` was `dt` ago, relative to a camera moving at `(cvx, cvy)`. */
-export function exposureStart(
+/**
+ * Where something at `(x, y)` moving at `(vx, vy)` is at the opening and the
+ * closing of an exposure of `dt` centred on now, relative to a camera moving
+ * at `(cvx, cvy)`. Centred, so things that were together at one moment are
+ * drawn together: fragments' streaks cross where their shell burst.
+ */
+export function exposureEnds(
   x: number,
   y: number,
   vx: number,
@@ -27,8 +32,10 @@ export function exposureStart(
   cvx: number,
   cvy: number,
   dt: number,
-): { x: number; y: number } {
-  return { x: x - (vx - cvx) * dt, y: y - (vy - cvy) * dt };
+): { x0: number; y0: number; x1: number; y1: number } {
+  const hx = (vx - cvx) * dt * 0.5;
+  const hy = (vy - cvy) * dt * 0.5;
+  return { x0: x - hx, y0: y - hy, x1: x + hx, y1: y + hy };
 }
 
 /** The most moments a flash is drawn at in one exposure. */

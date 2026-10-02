@@ -8,6 +8,8 @@ import {
   ROUND_FLASH_LIFETIME,
   flashFade,
   flashRadius,
+  flashSize,
+  FLASH_BIRTH_SIZE,
 } from '../render/flashes.js';
 
 /**
@@ -147,5 +149,13 @@ describe('riding the hull it went off against', () => {
     expect(flashes.body[0]).toBe(9);
     expect(flashes.localX[0]).toBe(3);
     expect(flashes.localY[0]).toBe(4);
+  });
+});
+
+describe('a flash growing', () => {
+  it('starts small and reaches its full size as it dies', () => {
+    expect(flashSize(0, 1)).toBeCloseTo(FLASH_BIRTH_SIZE, 12);
+    expect(flashSize(0.25, 1)).toBeGreaterThan(flashSize(0.1, 1));
+    expect(flashSize(1, 1)).toBe(1);
   });
 });

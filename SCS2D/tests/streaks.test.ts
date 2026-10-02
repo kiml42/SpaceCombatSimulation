@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { exposureStart, flashSamples, MAX_FLASH_SAMPLES, SHUTTER_RAMP, shutterWeight } from '../render/exposure.js';
+import { exposureEnds, flashSamples, MAX_FLASH_SAMPLES, SHUTTER_RAMP, shutterWeight } from '../render/exposure.js';
 import { rgba } from '../render/sprites.js';
 
 /** What moves is drawn as though photographed with a shutter open for one step. */
@@ -15,15 +15,17 @@ describe('the shutter', () => {
 });
 
 describe('a tracer streak', () => {
-  it('starts where the round was a step ago, relative to the camera', () => {
-    const start = exposureStart(100, 50, 400, 300, 0, 300, 0.5);
-    expect(start.x).toBeCloseTo(-100, 12);
-    expect(start.y).toBeCloseTo(50, 12);
+  it('runs half a step either side of now, relative to the camera', () => {
+    const ends = exposureEnds(100, 50, 400, 300, 0, 300, 0.5);
+    expect(ends.x0).toBeCloseTo(0, 12);
+    expect(ends.x1).toBeCloseTo(200, 12);
+    expect(ends.y0).toBeCloseTo(50, 12);
+    expect(ends.y1).toBeCloseTo(50, 12);
   });
 
   it('has no length for a round keeping pace with the camera', () => {
-    const start = exposureStart(100, 50, 400, 300, 400, 300, 0.5);
-    expect(start).toEqual({ x: 100, y: 50 });
+    const ends = exposureEnds(100, 50, 400, 300, 400, 300, 0.5);
+    expect(ends).toEqual({ x0: 100, y0: 50, x1: 100, y1: 50 });
   });
 });
 

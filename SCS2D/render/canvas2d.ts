@@ -20,8 +20,8 @@ import { NEUTRAL, shipColours } from './teams.js';
 
 export { teamColour } from './teams.js';
 import { beamAlpha, BEAM_GLOW_ALPHA, flooredFade, legibleWidth, plumeAlpha } from './strokes.js';
-import { flashFade, flashPosition, type Flashes } from './flashes.js';
-import { exposureStart, flashSamples, shutterWeight } from './exposure.js';
+import { flashFade, flashPosition, flashSize, type Flashes } from './flashes.js';
+import { exposureEnds, flashSamples, shutterWeight } from './exposure.js';
 import { sprite } from './sprites.js';
 import { iconAlpha, ICON_OUTLINE, ICON_PX } from './icons.js';
 
@@ -675,8 +675,12 @@ function drawFlashes(
     if (glow === null || core === null) continue;
     const age = flashes.age[i]!;
     const lifetime = flashes.lifetime[i]!;
-    const opened = max(0, age - dt);
-    const exposure = age - opened;
+    // Centred on now, as a round's is, so a burst's flash covers the point
+    // its fragments' streaks cross.
+    const opened = max(0, age - dt * 0.5);
+    const closed = min(lifetime, age + dt * 0.5);
+    const exposure = closed - opened;
+    if (!(exposure > 0)) continue;
     // On the hull it went off against, wherever that hull has got to since,
     // and moving with it. A ship that has gone leaves its flashes where they
     // happened, and a burst drifts on at its shell's velocity.
@@ -689,25 +693,30 @@ function drawFlashes(
     const rvy = (anchor === null ? flashes.vy[i]! : anchor.vy) - cvy;
 
     const radius = flashes.radius[i]!;
-    const rStart = max(radius * flashFade(opened, lifetime), floor);
-    const rEnd = max(radius * flashFade(age, lifetime), floor);
+    const rStart = max(radius * flashSize(opened, lifetime), floor);
+    const rEnd = max(radius * flashSize(closed, lifetime), floor);
     const travelPx = length(rvx, rvy) * exposure * camera.scale;
-    const n = exposure > 0 ? flashSamples(travelPx, (rEnd - rStart) * camera.scale, max(rStart, rEnd) * camera.scale) : 1;
+    const widestPx = 2 * max(rStart, rEnd) * camera.scale;
+    const n = flashSamples(travelPx, (rEnd - rStart) * camera.scale, widestPx * 0.5);
 
+    // Shared between the moments, but only between those that overlap: a
+    // flash streaked out along its path stays as bright at any one point as
+    // it would standing still.
     let total = 0;
     for (let k = 0; k < n; k++) total += n === 1 ? 1 : shutterWeight((k + 0.5) / n);
+    const overlapping = travelPx > widestPx ? widestPx / travelPx : 1;
     for (let k = 0; k < n; k++) {
-      const u = n === 1 ? 1 : (k + 0.5) / n;
-      const weight = (n === 1 ? 1 : shutterWeight(u)) / total;
+      const u = n === 1 ? 0.5 : (k + 0.5) / n;
+      const weight = (n === 1 ? 1 : shutterWeight(u)) / (total * overlapping);
       const t = opened + u * exposure;
       const fade = flashFade(t, lifetime);
       if (fade <= 0 || weight <= 0) continue;
-      const back = age - t;
-      const x = at.x - rvx * back;
-      const y = at.y - rvy * back;
+      const ahead = t - age;
+      const x = at.x + rvx * ahead;
+      const y = at.y + rvy * ahead;
       // Floored on screen, so a hit is visible from far enough out to see the
       // battle it is part of.
-      const r = max(radius * fade, floor);
+      const r = max(radius * flashSize(t, lifetime), floor);
       ctx.setTransform(base);
       ctx.globalAlpha = 0.5 * fade * weight;
       ctx.drawImage(glow, x - 2.2 * r, y - 2.2 * r, 4.4 * r, 4.4 * r);
@@ -719,7 +728,7 @@ function drawFlashes(
 }
 
 /**
- * Draw a sprite over the stretch a round crossed in the last step: from
+ * Draw a sprite over the stretch a round crosses in a step centred on now: from
  * `(x0, y0)` to `(x1, y1)`, `width` across, and half a width further at either
  * end for the round's own size.
  */
@@ -792,8 +801,8 @@ function drawProjectiles(ctx: CanvasRenderingContext2D, snapshot: Snapshot, came
       const y = snapshot.projectileY[i]!;
       const vx = snapshot.projectileVx[i]!;
       const vy = snapshot.projectileVy[i]!;
-      const start = exposureStart(x, y, vx, vy, cvx, cvy, dt);
-      drawStreak(ctx, base, image, start.x, start.y, x, y, width, vx, vy);
+      const ends = exposureEnds(x, y, vx, vy, cvx, cvy, dt);
+      drawStreak(ctx, base, image, ends.x0, ends.y0, ends.x1, ends.y1, width, vx, vy);
     }
   }
   ctx.restore();

@@ -50,6 +50,19 @@ export function flashRadius(energy: number): number {
   return Math.min(FLASH_MAX_RADIUS, Math.max(FLASH_MIN_RADIUS, scaled));
 }
 
+/** The share of its full size a flash starts at. */
+export const FLASH_BIRTH_SIZE = 0.35;
+
+/**
+ * How big a flash is at this point in its life, as a share of its full size:
+ * it grows quickly at first and then more slowly, as a blast does.
+ */
+export function flashSize(age: number, lifetime: number): number {
+  if (!(lifetime > 0)) return 1;
+  const f = Math.min(1, Math.max(0, age / lifetime));
+  return FLASH_BIRTH_SIZE + (1 - FLASH_BIRTH_SIZE) * Math.sqrt(f);
+}
+
 /** How bright a flash is at this point in its life, 1 at birth and 0 at death. */
 export function flashFade(age: number, lifetime: number): number {
   if (!(lifetime > 0)) return 0;
