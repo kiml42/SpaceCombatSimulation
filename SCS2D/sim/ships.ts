@@ -1177,7 +1177,7 @@ export class Ships {
       }
       if (world.tick < schedule[t]!) continue;
       const mount = design.turrets[t]!;
-      const layers = this.mountLayers(i, mount);
+      const layers = this.aimLayers(i, mount);
       schedule[t] = world.tick + this.turretRethinkTicks(world, t, design);
 
       if (!(this.damage.remaining(b, mount.module, DamageEffect.FireRate) > 0)) {
@@ -1522,6 +1522,17 @@ export class Ships {
     const whole = this.shipLayers(i);
     if (whole !== OWN_LAYERS) return whole;
     return mount.hullLayer ? HULL_LAYER : WEAPONS_LAYER;
+  }
+
+  /**
+   * The layers a mount can land damage in, for choosing what to aim at: its
+   * own, and the hull too for one firing shells, whose fragments fly in both.
+   * So a shell turret aims at a ship's middle where a solid-shot one, whose
+   * rounds would pass over the deck there, cannot.
+   */
+  private aimLayers(i: number, mount: DesignTurret): number {
+    const layers = this.mountLayers(i, mount);
+    return firesShells(this.designs[i]!.modules[mount.module]!.spec) ? layers | HULL_LAYER : layers;
   }
 
   /**
@@ -2732,10 +2743,10 @@ export class Ships {
     // Nothing usable held: the part has been shot away, or this is a target
     // the mount was ordered onto rather than one it chose. A doctrine with no
     // refusals can fall back on the hull, which is where a mount with no
-    // opinion about parts aims anyway — if it fires in the hull layer. In the
-    // weapons layer amidships is deck its rounds pass over.
+    // opinion about parts aims anyway — if it fires, or bursts, in the hull
+    // layer. Solid shot in the weapons layer passes over the deck amidships.
     const hooked = targetBody === bodies.indexOf(this.bodyIds[i]!);
-    const layers = this.mountLayers(i, mount);
+    const layers = this.aimLayers(i, mount);
     if (!refusesAnything(doctrine) && this.meetsWhole(layers, target) && !hooked) return WHOLE_SHIP;
 
     // One that *has* refused something cannot: a ship's centre is whatever is

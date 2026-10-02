@@ -53,13 +53,18 @@ function mount(): { bodies: Bodies; index: number } {
  * written — a mount inside an assembly is still a mount. `hull` lets its
  * guns into the hull, so they can reach a hull-layer mark.
  */
-function armed(targeting: Partial<Targeting>, hull = false): ShipDesign {
+function armed(
+  targeting: Partial<Targeting>,
+  hull: boolean | 'turret' = false,
+  extra: Partial<Placement> = {},
+): ShipDesign {
   const rewrite = (placements: readonly Placement[]): Placement[] =>
     placements.map((placement) => {
       if (!('kind' in placement)) return placement;
       if (!isWeaponMount(placement.kind)) return placement;
-      const gun = hull ? refitModule(placement, 'hullGun') : placement;
-      return { ...placement, ...gun, targeting };
+      const gun =
+        hull === true ? refitModule(placement, 'hullGun') : hull === 'turret' ? refitModule(placement, 'turret') : placement;
+      return { ...placement, ...gun, targeting, ...extra } as Placement;
     });
   const assemblies: Record<string, { modules: Placement[] }> = {};
   for (const [name, assembly] of Object.entries(CORVETTE.assemblies ?? {})) {
@@ -154,11 +159,16 @@ describe('what a doctrine will accept hitting', () => {
 
 describe('what a mount that refuses nothing fires on', () => {
   /** One command step of the corvette's first mount against the gunship, side on at `range`. */
-  function cone(targeting: Partial<Targeting>, range: number, hull = false): { slack: number; offset: number } {
+  function cone(
+    targeting: Partial<Targeting>,
+    range: number,
+    hull: boolean | 'turret' = false,
+    extra: Partial<Placement> = {},
+  ): { slack: number; offset: number } {
     const world = new World({ dt: DT, seed: 11 });
     const ships = new Ships();
     world.addForceProvider(ships.forceProvider());
-    const mine = ships.spawn(world, { design: armed(targeting, hull), x: 0, y: 0, team: 0 });
+    const mine = ships.spawn(world, { design: armed(targeting, hull, extra), x: 0, y: 0, team: 0 });
     ships.spawn(world, { design: compileBlueprint(GUNSHIP), x: range, y: 0, angle: math.HALF_PI, team: 1 });
     ships.command(DT, world);
     const ti = ships.turretIndexOf(mine, 0);
@@ -181,11 +191,20 @@ describe('what a mount that refuses nothing fires on', () => {
     // aims at the ship and the cone is centred on the aim.
     expect(cone({ gunWeight: 5 }, 250, true).offset).not.toBe(0);
     expect(cone({ gunWeight: 5 }, 1000, true).offset).toBe(0);
-    // A turret's rounds pass over the deck amidships, so it takes the part
-    // nearest the middle: closer to it, sideways, than the gun it aims at near.
-    const near = cone({ gunWeight: 5 }, 250).offset * 250;
-    const far = cone({ gunWeight: 5 }, 1200).offset * 1200;
+    // A turret firing solid shot would put it over the deck amidships, so it
+    // takes the part nearest the middle: closer to it, sideways, than the gun
+    // it aims at near.
+    const solid = { fragments: 1 };
+    const near = cone({ gunWeight: 5 }, 250, 'turret', solid).offset * 250;
+    const far = cone({ gunWeight: 5 }, 1000, 'turret', solid).offset * 1000;
+    expect(near).not.toBe(0);
+    expect(far).not.toBe(0);
     expect(Math.abs(far)).toBeLessThan(Math.abs(near));
+  });
+
+  it('aims a shell turret at the middle, since its fragments reach the hull', () => {
+    expect(cone({ gunWeight: 5 }, 250, 'turret').offset).not.toBe(0);
+    expect(cone({ gunWeight: 5 }, 1000, 'turret').offset).toBe(0);
   });
 });
 
