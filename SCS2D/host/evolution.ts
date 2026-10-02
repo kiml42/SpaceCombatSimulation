@@ -960,6 +960,8 @@ export function startEvolution(): void {
       }
       frame(camera, shot, view.width, view.height);
     }
+    // Aged before this step's are added, which are born now.
+    flashes.step(simDt);
     for (let i = 0; i < shot.impactCount; i++) {
       flashes.add(
         shot.impactX[i]!,
@@ -971,9 +973,9 @@ export function startEvolution(): void {
         shot.impactLocalY[i]!,
         shot.impactVx[i]!,
         shot.impactVy[i]!,
+        shot.impactGrowth[i]!,
       );
     }
-    flashes.step(simDt);
     draw(ctx, shot, camera, view.width, view.height, flashes);
   }
 

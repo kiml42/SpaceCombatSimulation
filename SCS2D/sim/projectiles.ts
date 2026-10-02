@@ -547,6 +547,8 @@ export class Projectiles {
   burstY: number[] = [];
   burstVx: number[] = [];
   burstVy: number[] = [];
+  /** The most a burst's fragments' speed differs from the shell's, m/s. */
+  burstSpread: number[] = [];
   burstCharge: number[] = [];
   burstCount = 0;
 
@@ -569,6 +571,7 @@ export class Projectiles {
     this.burstY[k] = y;
     this.burstVx[k] = this.vx[i]!;
     this.burstVy[k] = this.vy[i]!;
+    this.burstSpread[k] = this.spread[i]!;
     this.burstCharge[k] = this.mass[i]! - this.casing[i]!;
     const vx = this.vx[i]!;
     const vy = this.vy[i]!;

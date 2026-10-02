@@ -245,6 +245,8 @@ export function start(): void {
     // Impacts belong to the battle, so they fade on *its* clock: a paused
     // battle holds its flashes, a single step advances them by one step, and
     // eight times speed burns them off eight times as fast.
+    // Aged before this step's are added, which are born now.
+    flashes.step(simDt);
     for (let i = 0; i < view.impactCount; i++) {
       flashes.add(
         view.impactX[i]!,
@@ -256,9 +258,9 @@ export function start(): void {
         view.impactLocalY[i]!,
         view.impactVx[i]!,
         view.impactVy[i]!,
+        view.impactGrowth[i]!,
       );
     }
-    flashes.step(simDt);
     draw(ctx, view, camera, canvas.width, canvas.height, flashes);
 
     if (sceneIndex === CUSTOM) panel.update(state as CustomBattle, view.time);

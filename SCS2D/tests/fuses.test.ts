@@ -101,6 +101,8 @@ describe('a fused round', () => {
     // Going on with the shell, as the gas does.
     expect(impacts.log.vx[0]).toBe(600);
     expect(impacts.log.vy[0]).toBe(0);
+    // And spreading as fast as its fastest fragment leaves.
+    expect(impacts.log.growth[0]).toBe(50);
   });
 
   it('flies on whole with one fragment or none', () => {

@@ -29,6 +29,28 @@ export const ROUND_FLASH_LIFETIME = 0.35;
  * ever-brightening blob.
  */
 export const BEAM_FLASH_LIFETIME = 0.1;
+/**
+ * A shell's burst of `BURST_REFERENCE_ENERGY`: high explosive, so a short bright
+ * flash rather than a lasting fireball — about three frames.
+ */
+export const BURST_FLASH_LIFETIME = 0.05;
+export const BURST_REFERENCE_ENERGY = 1e5;
+/** Seconds longer a burst lasts for each tenfold more charge. */
+const BURST_LIFETIME_PER_DECADE = 0.07;
+/** The shortest a burst lasts: under a frame, so a light shell's shows once. */
+const BURST_MIN_LIFETIME = 0.01;
+/** The longest: a heavy shell's flash, never a fireball. */
+const BURST_MAX_LIFETIME = 0.1;
+
+/**
+ * How long a burst of this energy lasts, seconds: a little longer for each
+ * tenfold more charge, between a single frame and six.
+ */
+export function burstLifetime(energy: number): number {
+  if (!(energy > 0)) return BURST_MIN_LIFETIME;
+  const lifetime = BURST_FLASH_LIFETIME + BURST_LIFETIME_PER_DECADE * Math.log10(energy / BURST_REFERENCE_ENERGY);
+  return Math.min(BURST_MAX_LIFETIME, Math.max(BURST_MIN_LIFETIME, lifetime));
+}
 
 /** The energy a flash is drawn at full size for, joules. */
 export const FLASH_REFERENCE_ENERGY = 1e6;
@@ -50,9 +72,35 @@ export function flashRadius(energy: number): number {
   return Math.min(FLASH_MAX_RADIUS, Math.max(FLASH_MIN_RADIUS, scaled));
 }
 
+/**
+ * How wide a flash is at `age`, metres. One with a `growth` is a blast: its
+ * full size at birth and spreading at that speed, as its fragments do. Any
+ * other grows by `flashSize`.
+ */
+export function flashExtent(radius: number, growth: number, age: number, lifetime: number): number {
+  if (growth > 0) return radius + growth * Math.max(0, age);
+  return radius * flashSize(age, lifetime);
+}
+
+/** The share of its full size a flash starts at. */
+export const FLASH_BIRTH_SIZE = 0.35;
+
+/**
+ * How big a flash is at this point in its life, as a share of its full size:
+ * it grows quickly at first and then more slowly, as a blast does.
+ */
+export function flashSize(age: number, lifetime: number): number {
+  if (!(lifetime > 0)) return 1;
+  const f = Math.min(1, Math.max(0, age / lifetime));
+  return FLASH_BIRTH_SIZE + (1 - FLASH_BIRTH_SIZE) * Math.sqrt(f);
+}
+
 /** How bright a flash is at this point in its life, 1 at birth and 0 at death. */
 export function flashFade(age: number, lifetime: number): number {
   if (!(lifetime > 0)) return 0;
+  // Before it was born is the moment it was born: an exposure reaching back
+  // past it is at its brightest there.
+  if (age <= 0) return 1;
   const left = 1 - age / lifetime;
   if (left <= 0) return 0;
   // Squared, so it is bright briefly and then gets out of the way, rather than
@@ -100,6 +148,8 @@ export class Flashes {
   /** Drift, m/s, for a flash that rides nothing. */
   vx = new Float64Array(64);
   vy = new Float64Array(64);
+  /** How fast it spreads, m/s, or 0 for one that grows by `flashSize`. */
+  growth = new Float64Array(64);
   count = 0;
 
   add(
@@ -112,6 +162,7 @@ export class Flashes {
     localY = 0,
     vx = 0,
     vy = 0,
+    growth = 0,
   ): void {
     const radius = flashRadius(energy);
     if (!(radius > 0)) return;
@@ -124,10 +175,11 @@ export class Flashes {
     this.localY[i] = localY;
     this.radius[i] = radius;
     this.age[i] = 0;
-    this.lifetime[i] = kind === 1 ? BEAM_FLASH_LIFETIME : ROUND_FLASH_LIFETIME;
+    this.lifetime[i] = kind === 1 ? BEAM_FLASH_LIFETIME : kind === 3 ? burstLifetime(energy) : ROUND_FLASH_LIFETIME;
     this.kind[i] = kind;
     this.vx[i] = vx;
     this.vy[i] = vy;
+    this.growth[i] = growth;
   }
 
   /** Age everything by `dt` *simulated* seconds and drop what has burned out. */
@@ -140,6 +192,7 @@ export class Flashes {
       this.y[kept] = this.y[i]! + this.vy[i]! * dt;
       this.vx[kept] = this.vx[i]!;
       this.vy[kept] = this.vy[i]!;
+      this.growth[kept] = this.growth[i]!;
       this.body[kept] = this.body[i]!;
       this.localX[kept] = this.localX[i]!;
       this.localY[kept] = this.localY[i]!;
@@ -173,6 +226,9 @@ export class Flashes {
     vy.set(this.vy);
     this.vx = vx;
     this.vy = vy;
+    const growth = new Float64Array(size);
+    growth.set(this.growth);
+    this.growth = growth;
     x.set(this.x);
     y.set(this.y);
     body.set(this.body);

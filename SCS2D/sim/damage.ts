@@ -859,6 +859,8 @@ export class ImpactLog {
   /** How fast it moves, m/s, for one that rides nothing: a burst goes on at its shell's velocity. */
   vx = new Float64Array(64);
   vy = new Float64Array(64);
+  /** How fast it spreads, m/s: a burst's, as fast as its fastest fragment leaves. */
+  growth = new Float64Array(64);
   count = 0;
 
   push(
@@ -870,9 +872,11 @@ export class ImpactLog {
     body = -1,
     vx = 0,
     vy = 0,
+    growth = 0,
   ): void {
     if (this.count === this.x.length) this.grow();
     const i = this.count++;
+    this.growth[i] = growth;
     this.x[i] = x;
     this.y[i] = y;
     this.vx[i] = vx;
@@ -904,6 +908,9 @@ export class ImpactLog {
     vy.set(this.vy);
     this.vx = vx;
     this.vy = vy;
+    const growth = new Float64Array(size);
+    growth.set(this.growth);
+    this.growth = growth;
     const x = new Float64Array(size);
     const y = new Float64Array(size);
     const energy = new Float64Array(size);
@@ -1216,7 +1223,8 @@ export class Impacts {
       const energy = projectiles.burstCharge[k]! * EXPLOSIVE_YIELD;
       const vx = projectiles.burstVx[k]!;
       const vy = projectiles.burstVy[k]!;
-      this.log.push(projectiles.burstX[k]!, projectiles.burstY[k]!, energy, IMPACT_BURST, undefined, -1, vx, vy);
+      const growth = projectiles.burstSpread[k]!;
+      this.log.push(projectiles.burstX[k]!, projectiles.burstY[k]!, energy, IMPACT_BURST, undefined, -1, vx, vy, growth);
     }
   }
 
