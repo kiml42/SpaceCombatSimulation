@@ -17,6 +17,7 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Allow dragging copies (when a module or assembly is set to be repeated) to set the offset (might get complicated with more than 2, so might need to restrict to the second one)
 - Allow scaling an assembly - this could get messy, as it would create a duplicate that behaves differently due to different scaling laws.
 - Snap to hulls
+- Category input for ships - ships grouped by category when selecting them anywhere. (e.g. "Star Wars.Imperial", "Stock")
 
 ## Turrets
 - Turrets fire a volley of one shot per barrel, and then reload. Can specify delay between shots to alow for firing all at once or staggered
