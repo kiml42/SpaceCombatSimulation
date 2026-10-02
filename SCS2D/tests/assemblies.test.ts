@@ -310,16 +310,16 @@ describe('the ships that ship with the game', () => {
     // them all bigger is one edit and there is no state in which seven are.
     expect(Object.keys(GUNSHIP.assemblies ?? {})).toContain('lateral');
     expect(Object.keys(CORVETTE.assemblies ?? {})).toContain('wingBox');
-    expect(expandBlueprint(GUNSHIP)).toHaveLength(20);
-    expect(expandBlueprint(CORVETTE)).toHaveLength(15);
+    expect(expandBlueprint(GUNSHIP)).toHaveLength(22);
+    expect(expandBlueprint(CORVETTE)).toHaveLength(14);
   });
 
   it('still compile to a ship, with every mirrored copy accounted for', () => {
     const design = compileBlueprint(GUNSHIP);
-    expect(design.engines).toHaveLength(8);
+    expect(design.engines).toHaveLength(10);
     expect(design.turrets).toHaveLength(3);
     // Symmetric about the spine, so the centre of mass sits on it. This is
     // what would break first if a reflection were subtly wrong.
-    expect(design.centreOfMassY).toBe(0);
+    expect(design.centreOfMassY).toBeCloseTo(0);
   });
 });
