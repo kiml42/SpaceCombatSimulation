@@ -124,6 +124,8 @@ const BEAM_FLASH_GLOW = '#8ef04a';
 /** A shell bursting: redder than a hit, since it is fire rather than metal. */
 const BURST_FLASH_CORE = '#fff0c8';
 const BURST_FLASH_GLOW = '#ff7a2e';
+/** Seconds of a moving flash's travel its streak trails behind it. */
+const FLASH_STREAK = 0.01;
 
 const WELL = '#3a4e7a';
 
@@ -684,19 +686,47 @@ function drawFlashes(
     const x = at.x;
     const y = at.y;
 
-    ctx.fillStyle = kind === IMPACT_BEAM ? BEAM_FLASH_GLOW : kind === IMPACT_BURST ? BURST_FLASH_GLOW : FLASH_GLOW;
-    ctx.globalAlpha = 0.5 * fade;
-    ctx.beginPath();
-    ctx.arc(x, y, radius * 2.2, 0, TAU);
-    ctx.fill();
-
-    ctx.fillStyle = kind === IMPACT_BEAM ? BEAM_FLASH_CORE : kind === IMPACT_BURST ? BURST_FLASH_CORE : FLASH_CORE;
-    ctx.globalAlpha = 0.9 * fade;
-    ctx.beginPath();
-    ctx.arc(x, y, radius, 0, TAU);
-    ctx.fill();
+    // A flash with a velocity of its own — a burst — is streaked behind it
+    // like a tracer, relative to the camera's pace as tracers are. One riding
+    // a hull moves with the hull and stays a disc.
+    const fvx = flashes.vx[i]!;
+    const fvy = flashes.vy[i]!;
+    const moving = anchor === null && (fvx !== 0 || fvy !== 0);
+    const sx = moving ? (fvx - (camera.vx ?? 0)) * FLASH_STREAK : 0;
+    const sy = moving ? (fvy - (camera.vy ?? 0)) * FLASH_STREAK : 0;
+    const glow = kind === IMPACT_BEAM ? BEAM_FLASH_GLOW : kind === IMPACT_BURST ? BURST_FLASH_GLOW : FLASH_GLOW;
+    const core = kind === IMPACT_BEAM ? BEAM_FLASH_CORE : kind === IMPACT_BURST ? BURST_FLASH_CORE : FLASH_CORE;
+    flashBlob(ctx, x, y, sx, sy, radius * 2.2, glow, 0.5 * fade);
+    flashBlob(ctx, x, y, sx, sy, radius, core, 0.9 * fade);
   }
   ctx.restore();
+}
+
+/** A disc, or a round-capped streak of that radius trailing back by `(sx, sy)`. */
+function flashBlob(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  sx: number,
+  sy: number,
+  radius: number,
+  colour: string,
+  alpha: number,
+): void {
+  ctx.globalAlpha = alpha;
+  ctx.beginPath();
+  if (sx === 0 && sy === 0) {
+    ctx.fillStyle = colour;
+    ctx.arc(x, y, radius, 0, TAU);
+    ctx.fill();
+    return;
+  }
+  ctx.strokeStyle = colour;
+  ctx.lineWidth = 2 * radius;
+  ctx.lineCap = 'round';
+  ctx.moveTo(x, y);
+  ctx.lineTo(x - sx, y - sy);
+  ctx.stroke();
 }
 
 function drawProjectiles(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Camera) {
