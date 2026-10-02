@@ -98,6 +98,9 @@ describe('a fused round', () => {
     expect(impacts.log.kind[0]).toBe(IMPACT_BURST);
     // Eight kilograms, six of them casing: two of charge.
     expect(impacts.log.energy[0]).toBeCloseTo(2 * EXPLOSIVE_YIELD, 3);
+    // Going on with the shell, as the gas does.
+    expect(impacts.log.vx[0]).toBe(600);
+    expect(impacts.log.vy[0]).toBe(0);
   });
 
   it('flies on whole with one fragment or none', () => {

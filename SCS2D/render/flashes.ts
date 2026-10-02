@@ -97,6 +97,9 @@ export class Flashes {
   age = new Float64Array(64);
   lifetime = new Float64Array(64);
   kind = new Uint8Array(64);
+  /** Drift, m/s, for a flash that rides nothing. */
+  vx = new Float64Array(64);
+  vy = new Float64Array(64);
   count = 0;
 
   add(
@@ -107,6 +110,8 @@ export class Flashes {
     body = -1,
     localX = 0,
     localY = 0,
+    vx = 0,
+    vy = 0,
   ): void {
     const radius = flashRadius(energy);
     if (!(radius > 0)) return;
@@ -121,6 +126,8 @@ export class Flashes {
     this.age[i] = 0;
     this.lifetime[i] = kind === 1 ? BEAM_FLASH_LIFETIME : ROUND_FLASH_LIFETIME;
     this.kind[i] = kind;
+    this.vx[i] = vx;
+    this.vy[i] = vy;
   }
 
   /** Age everything by `dt` *simulated* seconds and drop what has burned out. */
@@ -129,8 +136,10 @@ export class Flashes {
     for (let i = 0; i < this.count; i++) {
       const age = this.age[i]! + dt;
       if (age >= this.lifetime[i]!) continue;
-      this.x[kept] = this.x[i]!;
-      this.y[kept] = this.y[i]!;
+      this.x[kept] = this.x[i]! + this.vx[i]! * dt;
+      this.y[kept] = this.y[i]! + this.vy[i]! * dt;
+      this.vx[kept] = this.vx[i]!;
+      this.vy[kept] = this.vy[i]!;
       this.body[kept] = this.body[i]!;
       this.localX[kept] = this.localX[i]!;
       this.localY[kept] = this.localY[i]!;
@@ -158,6 +167,12 @@ export class Flashes {
     const age = new Float64Array(size);
     const lifetime = new Float64Array(size);
     const kind = new Uint8Array(size);
+    const vx = new Float64Array(size);
+    const vy = new Float64Array(size);
+    vx.set(this.vx);
+    vy.set(this.vy);
+    this.vx = vx;
+    this.vy = vy;
     x.set(this.x);
     y.set(this.y);
     body.set(this.body);

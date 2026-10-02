@@ -854,8 +854,11 @@ export class ImpactLog {
   localY = new Float64Array(64);
   /** Energy the ship absorbed, joules. What decides how bright it reads. */
   energy = new Float64Array(64);
-  /** 0 for a round, 1 for a beam. */
+  /** One of the `IMPACT_` kinds. */
   kind = new Uint8Array(64);
+  /** How fast it moves, m/s, for one that rides nothing: a burst goes on at its shell's velocity. */
+  vx = new Float64Array(64);
+  vy = new Float64Array(64);
   count = 0;
 
   push(
@@ -865,11 +868,15 @@ export class ImpactLog {
     kind: number,
     bodies?: Bodies,
     body = -1,
+    vx = 0,
+    vy = 0,
   ): void {
     if (this.count === this.x.length) this.grow();
     const i = this.count++;
     this.x[i] = x;
     this.y[i] = y;
+    this.vx[i] = vx;
+    this.vy[i] = vy;
     this.energy[i] = energy;
     this.kind[i] = kind;
     this.body[i] = body;
@@ -891,6 +898,12 @@ export class ImpactLog {
 
   private grow(): void {
     const size = this.x.length * 2;
+    const vx = new Float64Array(size);
+    const vy = new Float64Array(size);
+    vx.set(this.vx);
+    vy.set(this.vy);
+    this.vx = vx;
+    this.vy = vy;
     const x = new Float64Array(size);
     const y = new Float64Array(size);
     const energy = new Float64Array(size);
@@ -1200,7 +1213,10 @@ export class Impacts {
   /** Log this step's shell bursts, each as bright as its charge's energy. */
   bursts(projectiles: Projectiles): void {
     for (let k = 0; k < projectiles.burstCount; k++) {
-      this.log.push(projectiles.burstX[k]!, projectiles.burstY[k]!, projectiles.burstCharge[k]! * EXPLOSIVE_YIELD, IMPACT_BURST);
+      const energy = projectiles.burstCharge[k]! * EXPLOSIVE_YIELD;
+      const vx = projectiles.burstVx[k]!;
+      const vy = projectiles.burstVy[k]!;
+      this.log.push(projectiles.burstX[k]!, projectiles.burstY[k]!, energy, IMPACT_BURST, undefined, -1, vx, vy);
     }
   }
 

@@ -542,9 +542,11 @@ export class Projectiles {
 
   private readonly bursting: number[] = [];
 
-  /** Where rounds burst this step, and the charge each spent, kg. Presentation only. */
+  /** Where rounds burst this step, how fast they were going, and the charge each spent, kg. Presentation only. */
   burstX: number[] = [];
   burstY: number[] = [];
+  burstVx: number[] = [];
+  burstVy: number[] = [];
   burstCharge: number[] = [];
   burstCount = 0;
 
@@ -565,6 +567,8 @@ export class Projectiles {
     const k = this.burstCount++;
     this.burstX[k] = x;
     this.burstY[k] = y;
+    this.burstVx[k] = this.vx[i]!;
+    this.burstVy[k] = this.vy[i]!;
     this.burstCharge[k] = this.mass[i]! - this.casing[i]!;
     const vx = this.vx[i]!;
     const vy = this.vy[i]!;
