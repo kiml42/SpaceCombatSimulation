@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   BEAM_FLASH_LIFETIME,
+  BURST_FLASH_LIFETIME,
   flashPosition,
   FLASH_REFERENCE_ENERGY,
   FLASH_REFERENCE_RADIUS,
@@ -134,7 +135,7 @@ describe('riding the hull it went off against', () => {
 
   it('drifts with what made it, for one that rides nothing', () => {
     const flashes = new Flashes();
-    flashes.add(10, 20, FLASH_REFERENCE_ENERGY, 3, -1, 0, 0, 600, -40);
+    flashes.add(10, 20, FLASH_REFERENCE_ENERGY, 0, -1, 0, 0, 600, -40);
     flashes.step(0.1);
     expect(flashes.x[0]).toBeCloseTo(70, 9);
     expect(flashes.y[0]).toBeCloseTo(16, 9);
@@ -149,6 +150,21 @@ describe('riding the hull it went off against', () => {
     expect(flashes.body[0]).toBe(9);
     expect(flashes.localX[0]).toBe(3);
     expect(flashes.localY[0]).toBe(4);
+  });
+});
+
+describe('a burst', () => {
+  it('is a short flash, gone well before a hit\u2019s', () => {
+    const flashes = new Flashes();
+    flashes.add(0, 0, FLASH_REFERENCE_ENERGY, 3);
+    flashes.add(0, 0, FLASH_REFERENCE_ENERGY, 0);
+    flashes.step(BURST_FLASH_LIFETIME + 1e-9);
+    expect(flashes.count).toBe(1);
+    expect(flashes.kind[0]).toBe(0);
+  });
+
+  it('is at its brightest before it was born, so an exposure reaching back is', () => {
+    expect(flashFade(-0.01, BURST_FLASH_LIFETIME)).toBe(1);
   });
 });
 

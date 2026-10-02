@@ -29,6 +29,11 @@ export const ROUND_FLASH_LIFETIME = 0.35;
  * ever-brightening blob.
  */
 export const BEAM_FLASH_LIFETIME = 0.1;
+/**
+ * A shell's burst: high explosive, so a short bright flash rather than a
+ * lasting fireball — about three frames.
+ */
+export const BURST_FLASH_LIFETIME = 0.05;
 
 /** The energy a flash is drawn at full size for, joules. */
 export const FLASH_REFERENCE_ENERGY = 1e6;
@@ -66,6 +71,9 @@ export function flashSize(age: number, lifetime: number): number {
 /** How bright a flash is at this point in its life, 1 at birth and 0 at death. */
 export function flashFade(age: number, lifetime: number): number {
   if (!(lifetime > 0)) return 0;
+  // Before it was born is the moment it was born: an exposure reaching back
+  // past it is at its brightest there.
+  if (age <= 0) return 1;
   const left = 1 - age / lifetime;
   if (left <= 0) return 0;
   // Squared, so it is bright briefly and then gets out of the way, rather than
@@ -137,7 +145,7 @@ export class Flashes {
     this.localY[i] = localY;
     this.radius[i] = radius;
     this.age[i] = 0;
-    this.lifetime[i] = kind === 1 ? BEAM_FLASH_LIFETIME : ROUND_FLASH_LIFETIME;
+    this.lifetime[i] = kind === 1 ? BEAM_FLASH_LIFETIME : kind === 3 ? BURST_FLASH_LIFETIME : ROUND_FLASH_LIFETIME;
     this.kind[i] = kind;
     this.vx[i] = vx;
     this.vy[i] = vy;

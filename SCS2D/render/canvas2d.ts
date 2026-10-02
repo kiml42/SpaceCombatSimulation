@@ -675,9 +675,10 @@ function drawFlashes(
     if (glow === null || core === null) continue;
     const age = flashes.age[i]!;
     const lifetime = flashes.lifetime[i]!;
-    // Centred on now, as a round's is, so a burst's flash covers the point
+    // Centred on now, as a round's is, and reaching back half a step past the
+    // flash's birth at full brightness: so a burst's flash is brightest where
     // its fragments' streaks cross.
-    const opened = max(0, age - dt * 0.5);
+    const opened = age - dt * 0.5;
     const closed = min(lifetime, age + dt * 0.5);
     const exposure = closed - opened;
     if (!(exposure > 0)) continue;
