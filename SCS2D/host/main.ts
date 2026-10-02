@@ -254,6 +254,8 @@ export function start(): void {
         view.impactBody[i]!,
         view.impactLocalX[i]!,
         view.impactLocalY[i]!,
+        view.impactVx[i]!,
+        view.impactVy[i]!,
       );
     }
     flashes.step(simDt);

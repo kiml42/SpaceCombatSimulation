@@ -969,6 +969,8 @@ export function startEvolution(): void {
         shot.impactBody[i]!,
         shot.impactLocalX[i]!,
         shot.impactLocalY[i]!,
+        shot.impactVx[i]!,
+        shot.impactVy[i]!,
       );
     }
     flashes.step(simDt);

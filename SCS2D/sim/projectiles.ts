@@ -513,6 +513,7 @@ export class Projectiles {
     hits.clear();
     const bursting = this.bursting;
     bursting.length = 0;
+    this.burstCount = 0;
 
     for (let i = 0; i < this.highWater; i++) {
       if (this.alive[i] === 0 || this.pending[i] === 1 || this.inside[i] !== NOT_INSIDE) continue;
@@ -541,6 +542,14 @@ export class Projectiles {
 
   private readonly bursting: number[] = [];
 
+  /** Where rounds burst this step, how fast they were going, and the charge each spent, kg. Presentation only. */
+  burstX: number[] = [];
+  burstY: number[] = [];
+  burstVx: number[] = [];
+  burstVy: number[] = [];
+  burstCharge: number[] = [];
+  burstCount = 0;
+
   /**
    * Replace a round with its `fragments`, sharing its casing, energy and the
    * metal of its bore: their widths sum in area to what was not charge.
@@ -555,6 +564,12 @@ export class Projectiles {
     const n = this.fragments[i]!;
     const x = this.x[i]!;
     const y = this.y[i]!;
+    const k = this.burstCount++;
+    this.burstX[k] = x;
+    this.burstY[k] = y;
+    this.burstVx[k] = this.vx[i]!;
+    this.burstVy[k] = this.vy[i]!;
+    this.burstCharge[k] = this.mass[i]! - this.casing[i]!;
     const vx = this.vx[i]!;
     const vy = this.vy[i]!;
     const width = this.width[i]! * sqrt(this.metal[i]! / n);

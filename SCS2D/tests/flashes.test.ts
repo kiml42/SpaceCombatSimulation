@@ -130,6 +130,14 @@ describe('riding the hull it went off against', () => {
     expect(flashes.body[1]).toBe(-1);
   });
 
+  it('drifts with what made it, for one that rides nothing', () => {
+    const flashes = new Flashes();
+    flashes.add(10, 20, FLASH_REFERENCE_ENERGY, 3, -1, 0, 0, 600, -40);
+    flashes.step(0.1);
+    expect(flashes.x[0]).toBeCloseTo(70, 9);
+    expect(flashes.y[0]).toBeCloseTo(16, 9);
+  });
+
   it('keeps a survivor\u2019s anchor when a neighbour burns out', () => {
     const flashes = new Flashes();
     flashes.add(1, 1, FLASH_REFERENCE_ENERGY, 1, 7, 1, 2);

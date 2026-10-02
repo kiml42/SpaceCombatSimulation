@@ -8,7 +8,7 @@ import { NOT_INSIDE, type ProjectileHits, type Projectiles } from './projectiles
 import type { BeamHits, Beams } from './beams.js';
 import { RESTITUTION, type Contacts } from './collision.js';
 import { cos, max, min, sin, sqrt } from './math.js';
-import type { ModuleSpec } from './modules.js';
+import { EXPLOSIVE_YIELD, type ModuleSpec } from './modules.js';
 
 /**
  * What a hit does to the ship it landed on.
@@ -854,8 +854,11 @@ export class ImpactLog {
   localY = new Float64Array(64);
   /** Energy the ship absorbed, joules. What decides how bright it reads. */
   energy = new Float64Array(64);
-  /** 0 for a round, 1 for a beam. */
+  /** One of the `IMPACT_` kinds. */
   kind = new Uint8Array(64);
+  /** How fast it moves, m/s, for one that rides nothing: a burst goes on at its shell's velocity. */
+  vx = new Float64Array(64);
+  vy = new Float64Array(64);
   count = 0;
 
   push(
@@ -865,11 +868,15 @@ export class ImpactLog {
     kind: number,
     bodies?: Bodies,
     body = -1,
+    vx = 0,
+    vy = 0,
   ): void {
     if (this.count === this.x.length) this.grow();
     const i = this.count++;
     this.x[i] = x;
     this.y[i] = y;
+    this.vx[i] = vx;
+    this.vy[i] = vy;
     this.energy[i] = energy;
     this.kind[i] = kind;
     this.body[i] = body;
@@ -891,6 +898,12 @@ export class ImpactLog {
 
   private grow(): void {
     const size = this.x.length * 2;
+    const vx = new Float64Array(size);
+    const vy = new Float64Array(size);
+    vx.set(this.vx);
+    vy.set(this.vy);
+    this.vx = vx;
+    this.vy = vy;
     const x = new Float64Array(size);
     const y = new Float64Array(size);
     const energy = new Float64Array(size);
@@ -920,6 +933,8 @@ export const IMPACT_ROUND = 0;
 export const IMPACT_BEAM = 1;
 /** Two hulls meeting. Drawn like a round's: a flash, not a glow. */
 export const IMPACT_COLLISION = 2;
+/** A shell bursting, in open space or not. */
+export const IMPACT_BURST = 3;
 
 /**
  * Resolving a step's impacts: what each hit does, and a log of them to draw.
@@ -1195,6 +1210,16 @@ export class Impacts {
    * severing: what a ram breaks off should be broken off a hull that has
    * already taken the ram's damage.
    */
+  /** Log this step's shell bursts, each as bright as its charge's energy. */
+  bursts(projectiles: Projectiles): void {
+    for (let k = 0; k < projectiles.burstCount; k++) {
+      const energy = projectiles.burstCharge[k]! * EXPLOSIVE_YIELD;
+      const vx = projectiles.burstVx[k]!;
+      const vy = projectiles.burstVy[k]!;
+      this.log.push(projectiles.burstX[k]!, projectiles.burstY[k]!, energy, IMPACT_BURST, undefined, -1, vx, vy);
+    }
+  }
+
   /**
    * Given `credit`, each hull is credited with what it did to the other, so a
    * ram pays for what it breaks as well as costing what it takes.
