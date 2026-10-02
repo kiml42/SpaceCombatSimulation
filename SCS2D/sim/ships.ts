@@ -1177,7 +1177,7 @@ export class Ships {
       }
       if (world.tick < schedule[t]!) continue;
       const mount = design.turrets[t]!;
-      const layers = this.aimLayers(i, mount);
+      const layers = this.mountLayers(i, mount);
       schedule[t] = world.tick + this.turretRethinkTicks(world, t, design);
 
       if (!(this.damage.remaining(b, mount.module, DamageEffect.FireRate) > 0)) {
@@ -1285,7 +1285,10 @@ export class Ships {
           : this.maskedChoice.ship !== NO_TARGET
             ? this.maskedChoice.ship
             : this.farChoice.ship;
-      aims[t] = targets[t] === NO_TARGET ? WHOLE_SHIP : this.choosePart(bodies, b, mount, layers, targets[t]!, gunX, gunY);
+      aims[t] =
+        targets[t] === NO_TARGET
+          ? WHOLE_SHIP
+          : this.choosePart(bodies, b, mount, layers, targets[t]!, gunX, gunY, this.firesShellsFrom(i, mount));
       // Holding something it cannot fire on yet, it looks again soon: what it
       // can fire on may turn up long before its own reconsidering would.
       if (this.choice.ship === NO_TARGET && targets[t] !== NO_TARGET) {
@@ -1297,10 +1300,11 @@ export class Ships {
   /**
    * The part of a target a mount aims at, or the whole ship.
    *
-   * Further out than the part itself is worth shooting at, when hitting any
-   * of the ship will do, the middle of the ship: more of the shots land, and
-   * closer in, the aim moves onto the part. A mount whose rounds would pass
-   * over the deck there takes the part it can hit nearest the middle instead.
+   * The part, as a doctrine picks it, wherever that is worth shooting at.
+   * Further out than that, when hitting any of the ship will do, the middle
+   * of the ship: more of the shots land. A shell bursts into the hull layer,
+   * so it can be aimed there too; solid shot in the weapons layer would pass
+   * over the deck, and takes the part it can hit nearest the middle instead.
    */
   private choosePart(
     bodies: Bodies,
@@ -1310,6 +1314,7 @@ export class Ships {
     target: number,
     gunX: number,
     gunY: number,
+    shells: boolean,
   ): number {
     const tb = bodies.indexOf(this.bodyIds[target]!);
     const hooked = tb === b;
@@ -1319,7 +1324,7 @@ export class Ships {
     this.partPoint(bodies, tb, design, part);
     const range = length(this.partAt.x - gunX, this.partAt.y - gunY);
     if (range <= reachAgainst(mount.gun, moduleRadius(design.modules[part]!.spec))) return part;
-    if (this.meetsWhole(layers, target)) return WHOLE_SHIP;
+    if (this.meetsWhole(shells ? layers | HULL_LAYER : layers, target)) return WHOLE_SHIP;
     let middle = part;
     let nearest = Infinity;
     for (let k = 0; k < design.modules.length; k++) {
@@ -1524,15 +1529,9 @@ export class Ships {
     return mount.hullLayer ? HULL_LAYER : WEAPONS_LAYER;
   }
 
-  /**
-   * The layers a mount can land damage in, for choosing what to aim at: its
-   * own, and the hull too for one firing shells, whose fragments fly in both.
-   * So a shell turret aims at a ship's middle where a solid-shot one, whose
-   * rounds would pass over the deck there, cannot.
-   */
-  private aimLayers(i: number, mount: DesignTurret): number {
-    const layers = this.mountLayers(i, mount);
-    return firesShells(this.designs[i]!.modules[mount.module]!.spec) ? layers | HULL_LAYER : layers;
+  /** Whether this ship's mount fires shells, whose fragments fly in both layers. */
+  private firesShellsFrom(i: number, mount: DesignTurret): boolean {
+    return firesShells(this.designs[i]!.modules[mount.module]!.spec);
   }
 
   /**
@@ -2730,6 +2729,8 @@ export class Ships {
     const mount = this.designs[i]!.turrets[t]!;
     const doctrine = mount.targeting;
     const part = this.turretAimModule[i]![t]!;
+    // The ship as a whole, chosen for this target: too far out for a part.
+    if (part === WHOLE_SHIP && this.turretTarget[i]![t] === target) return WHOLE_SHIP;
     const held =
       this.turretTarget[i]![t] !== target ||
       part === WHOLE_SHIP ||
@@ -2743,10 +2744,10 @@ export class Ships {
     // Nothing usable held: the part has been shot away, or this is a target
     // the mount was ordered onto rather than one it chose. A doctrine with no
     // refusals can fall back on the hull, which is where a mount with no
-    // opinion about parts aims anyway — if it fires, or bursts, in the hull
-    // layer. Solid shot in the weapons layer passes over the deck amidships.
+    // opinion about parts aims anyway — if it fires in the hull layer. In the
+    // weapons layer amidships is deck its rounds pass over.
     const hooked = targetBody === bodies.indexOf(this.bodyIds[i]!);
-    const layers = this.aimLayers(i, mount);
+    const layers = this.mountLayers(i, mount);
     if (!refusesAnything(doctrine) && this.meetsWhole(layers, target) && !hooked) return WHOLE_SHIP;
 
     // One that *has* refused something cannot: a ship's centre is whatever is

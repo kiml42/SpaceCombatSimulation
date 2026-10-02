@@ -242,7 +242,8 @@ inside any one file is not contiguous.
   is allowed to hit any part of that ship, so anywhere on the hull will do — the whole ship's cone, about
   its middle, whatever part it is aiming at. Further off than that part is worth shooting at, it aims at
   the middle of the ship instead (or, for a mount whose solid shot would pass over the deck, the part
-  nearest the middle; shells burst into both layers, so they count as reaching the hull), and walks onto the part as it closes. One that has refused something
+  nearest the middle; shells burst into both layers, so they count as reaching the hull). Within that
+  range it picks a part just as it would anyway, and walks onto it as it closes. One that has refused something
   is sure only of the part it picked, and holds until that is under the muzzle. So a refusal says *mind
   what you hit* in both senses at once, and a beam — which refuses plating — is selective without being
   told twice. It is the trigger and not the aim, so a weapon that fires freely still walks its fire onto

@@ -202,8 +202,12 @@ describe('what a mount that refuses nothing fires on', () => {
     expect(Math.abs(far)).toBeLessThan(Math.abs(near));
   });
 
-  it('aims a shell turret at the middle, since its fragments reach the hull', () => {
+  it('aims a shell turret at the middle only when too far out for a part', () => {
+    // Its fragments reach the hull, so out there it can aim at the middle.
+    // Closer in it goes for a part as it always did, with a preference or
+    // without one.
     expect(cone({ gunWeight: 5 }, 250, 'turret').offset).not.toBe(0);
+    expect(cone({}, 250, 'turret').offset).not.toBe(0);
     expect(cone({ gunWeight: 5 }, 1000, 'turret').offset).toBe(0);
   });
 });
