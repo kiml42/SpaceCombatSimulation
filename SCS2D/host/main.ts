@@ -17,7 +17,7 @@ import { hooked } from '../scenarios/hooked.js';
 import { customBattle, type CustomBattle } from '../scenarios/customBattle.js';
 import { customPanel } from './customPanel.js';
 import { handedFleet } from '../editor/handoff.js';
-import { draw } from '../render/canvas2d.js';
+import { ARCS_KEY, draw, nextArcs, type Arcs } from '../render/canvas2d.js';
 import { frame, gridStep, moveWithVisibleShips, type Camera } from '../render/camera.js';
 import { el } from './dom.js';
 
@@ -189,6 +189,7 @@ export function start(): void {
     speed = Number(speedInput.value);
     speedLabel.textContent = `${speed}x`;
   });
+  let arcs: Arcs = 'none';
   window.addEventListener('keydown', (event) => {
     if (event.key === ' ') {
       event.preventDefault();
@@ -198,6 +199,8 @@ export function start(): void {
       state.step();
     } else if (event.key === 'f' || event.key === 'F') {
       autoFrame = true;
+    } else if (event.key.toLowerCase() === ARCS_KEY && !event.ctrlKey && !event.metaKey) {
+      arcs = nextArcs(arcs);
     }
   });
 
@@ -261,7 +264,7 @@ export function start(): void {
         view.impactGrowth[i]!,
       );
     }
-    draw(ctx, view, camera, canvas.width, canvas.height, flashes);
+    draw(ctx, view, camera, canvas.width, canvas.height, flashes, arcs);
 
     if (sceneIndex === CUSTOM) panel.update(state as CustomBattle, view.time);
 

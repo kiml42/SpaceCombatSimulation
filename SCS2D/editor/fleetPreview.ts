@@ -1,5 +1,6 @@
 import { Snapshot, type ShipDesign, type ShipView } from '../sim/index.js';
 import { centreOf, type FleetView } from './fleetDocument.js';
+import { restingTriggers } from './preview.js';
 
 /** The team a fleet is drawn as: a fleet is a side, so it wears one. */
 export const FLEET_TEAM = 0;
@@ -33,12 +34,7 @@ export function fleetSnapshot(
     shipView.angle = ship.angle;
     shipView.vx = 0;
     shipView.vy = 0;
-    shipView.turretBearings.length = design.turrets.length;
-    shipView.turretReady.length = design.turrets.length;
-    for (let t = 0; t < design.turrets.length; t++) {
-      shipView.turretBearings[t] = (design.turrets[t]!.mount.restBearing ?? 0) + ship.angle;
-      shipView.turretReady[t] = false;
-    }
+    restingTriggers(shipView, design);
     shipView.throttles.length = design.engines.length;
     shipView.throttles.fill(0);
     shipView.landed.length = 0;

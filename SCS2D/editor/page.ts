@@ -32,7 +32,7 @@ import {
   type ShipDesign,
   type Placement,
 } from '../sim/index.js';
-import { draw } from '../render/canvas2d.js';
+import { ARCS_KEY, draw, nextArcs, type Arcs } from '../render/canvas2d.js';
 import { easeScale, fitScale, frame, snapStep, type Camera } from '../render/camera.js';
 import { EditorDocument } from './document.js';
 import {
@@ -208,6 +208,8 @@ export function startEditor(): void {
   const snapshot = new Snapshot();
   const demonstration = new Demonstration();
   let fitPending = true;
+  // The editor is where a mount's arcs are being decided, so it shows them all.
+  let arcs: Arcs = 'trigger';
   /**
    * Refit to a different ship by easing the scale from the one before, so
    * switching between two ships shows which is bigger. The first fit, and F,
@@ -413,7 +415,7 @@ export function startEditor(): void {
       snapshot.shipCount = 0;
     }
     if (view.design !== null) demonstration.writeInto(snapshot);
-    draw(ctx, snapshot, camera, canvas.width, canvas.height);
+    draw(ctx, snapshot, camera, canvas.width, canvas.height, undefined, arcs);
     drawOverlay(
       ctx,
       {
@@ -1894,6 +1896,9 @@ export function startEditor(): void {
     if (event.key === 'f' || event.key === 'F') {
       fitPending = true;
       refresh();
+    } else if (event.key.toLowerCase() === ARCS_KEY && !event.ctrlKey && !event.metaKey) {
+      arcs = nextArcs(arcs);
+      refresh();
     } else if (event.key === 'Delete' || event.key === 'Backspace') {
       if (doc.selection === null) return;
       event.preventDefault();
@@ -1925,7 +1930,7 @@ export function startEditor(): void {
     'Shift-click to pick several and Create assembly, or Add them to the last assembly picked; ' +
     'with an assembly selected, a new module goes into it. Positions snap to a tenth of the grid on ' +
     `screen and facings to ${ANGLE_SNAP_DEGREES}° — hold Alt to escape. ` +
-    'Drag empty space to pan, scroll to zoom, F to fit, Delete to remove, Ctrl+Z to undo.';
+    'Drag empty space to pan, scroll to zoom, F to fit, A to cycle the arcs drawn, Delete to remove, Ctrl+Z to undo.';
 
   resize();
   refresh();

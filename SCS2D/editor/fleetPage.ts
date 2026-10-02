@@ -13,7 +13,7 @@ import {
   type FleetEntry,
   type FleetStep,
 } from '../sim/index.js';
-import { draw } from '../render/canvas2d.js';
+import { ARCS_KEY, draw, nextArcs, type Arcs } from '../render/canvas2d.js';
 import { frame, snapStep, type Camera } from '../render/camera.js';
 import { snap } from './edit.js';
 import {
@@ -80,6 +80,7 @@ export function startFleetEditor(): void {
   const camera: Camera = { x: 0, y: 0, scale: 1 };
   const snapshot = new Snapshot();
   let fitPending = true;
+  let arcs: Arcs = 'none';
 
   const fleetList = el<HTMLSelectElement>('fleet');
   const fleetName = el<HTMLInputElement>('fleetName');
@@ -149,7 +150,7 @@ export function startFleetEditor(): void {
       frame(camera, snapshot, canvas.width, canvas.height, 1);
       fitPending = false;
     }
-    draw(ctx, snapshot, camera, canvas.width, canvas.height);
+    draw(ctx, snapshot, camera, canvas.width, canvas.height, undefined, arcs);
     drawFleetOverlay(
       ctx,
       {
@@ -673,6 +674,9 @@ export function startFleetEditor(): void {
     if (event.key === 'f' || event.key === 'F') {
       fitPending = true;
       render();
+    } else if (event.key.toLowerCase() === ARCS_KEY && !event.ctrlKey && !event.metaKey) {
+      arcs = nextArcs(arcs);
+      render();
     } else if (event.key === 'Delete' || event.key === 'Backspace') {
       event.preventDefault();
       deleteSelected();
@@ -702,7 +706,7 @@ export function startFleetEditor(): void {
   el<HTMLElement>('hint').textContent =
     'Add ships from the library; click to select, Shift-click for several, drag to move, drag the knob to turn. ' +
     `Moves snap to a tenth of the grid and facings to ${ANGLE_SNAP_DEGREES}° — hold Alt to escape. ` +
-    'Drag empty space to pan, scroll to zoom, F to fit, Delete to remove, Ctrl+Z to undo.';
+    'Drag empty space to pan, scroll to zoom, F to fit, A to cycle the arcs drawn, Delete to remove, Ctrl+Z to undo.';
 
   resize();
   refresh();

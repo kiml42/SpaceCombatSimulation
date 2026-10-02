@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { capture, engineGeometry, math, Snapshot, weaponPlumeReach } from '../sim/index.js';
 import { duel } from '../scenarios/duel.js';
 import { torchRun } from '../scenarios/torchRun.js';
+import { nextArcs } from '../render/canvas2d.js';
 
 /** What a battle tells the renderer about where each gun will fire. */
 
@@ -61,4 +62,12 @@ describe('an engine’s firing wedge in battle', () => {
     }
     expect(firing).toBeGreaterThan(0);
   }, 30_000);
+});
+
+describe('the arcs drawn', () => {
+  it('cycle from none, to where guns can point, to where they will fire, and back', () => {
+    expect(nextArcs('none')).toBe('firing');
+    expect(nextArcs('firing')).toBe('trigger');
+    expect(nextArcs('trigger')).toBe('none');
+  });
 });

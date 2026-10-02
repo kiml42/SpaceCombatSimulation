@@ -121,6 +121,24 @@ describe('the editor in a browser', () => {
     expect(await distinctColours(page)).toBeGreaterThan(4);
   });
 
+  it('cycles through three sets of arcs on A, and back', async () => {
+    const picture = (): Promise<string> =>
+      page.evaluate(
+        () =>
+          new Promise<string>((done) =>
+            requestAnimationFrame(() => done((document.getElementById('view') as HTMLCanvasElement).toDataURL())),
+          ),
+      );
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    const seen: string[] = [await picture()];
+    for (let k = 0; k < 3; k++) {
+      await page.keyboard.press('a');
+      seen.push(await picture());
+    }
+    expect(new Set(seen.slice(0, 3)).size).toBe(3);
+    expect(seen[3]).toBe(seen[0]);
+  });
+
   it('shows what the layout works out to, and that it would fly', async () => {
     const stats = (await page.textContent('#stats')) ?? '';
     expect(stats).toMatch(/Dry mass/);
