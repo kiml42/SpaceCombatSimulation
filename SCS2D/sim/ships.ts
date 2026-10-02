@@ -11,7 +11,7 @@ import {
 import { components, cuts, jointBetween, joints, type Joint } from './connectivity.js';
 import { BOTH_LAYERS, HULL_LAYER, Hulls, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from './hull.js';
 import { Damage, DamageEffect } from './damage.js';
-import { plumeRays, plumeRayStarts, Plumes, WEAPON_PLUME_SHARE } from './exhaust.js';
+import { plumeRays, plumeRayStarts, Plumes, WEAPON_PLUME_SHARE, weaponPlumeReach } from './exhaust.js';
 import { Choice, cohesionUrge, inSight, look, lookFrom, score } from './targeting.js';
 import {
   casingMass,
@@ -509,6 +509,8 @@ export class Ships {
    * ship however many engines each has.
    */
   private forced = new Uint8Array(0);
+  /** Which of each ship's engines burned as weapons when it was last flown. */
+  private readonly lit: Uint8Array[] = [];
   /** Turret store indices owned by each ship, and their gun timers. */
   private readonly turretIndex: Int32Array[] = [];
   private readonly cooldown: Float64Array[] = [];
@@ -815,6 +817,16 @@ export class Ships {
    * guns are out — which is the whole reason this lives here and not in the
    * renderer, where the cutout would have to be guessed at.
    */
+  /**
+   * How far this mount is worth shooting at what it is aiming at, metres, or 0
+   * when it is aiming at nothing.
+   */
+  triggerReach(i: number, t: number): number {
+    const target = this.turretAiming[i]![t]!;
+    if (target === NO_TARGET || this.alive[target] !== 1) return 0;
+    return reachAgainst(this.designs[i]!.turrets[t]!.gun, this.designs[target]!.radius);
+  }
+
   isTurretDisabled(i: number, t: number): boolean {
     if (this.alive[i] === 0) return true;
     // A sound gun on a piece of hull that came off is still out of the fight:
@@ -927,6 +939,7 @@ export class Ships {
     this.designs.push(design);
     this.bodyIds.push(id);
     this.throttles.push(new Float64Array(design.engines.length));
+    this.lit.push(new Uint8Array(design.engines.length));
     this.landed.push(new Float64Array(plumeRayStarts(design)[design.engines.length]!));
     this.turretIndex.push(indices);
     this.cooldown.push(new Float64Array(mounts.length));
@@ -2211,6 +2224,8 @@ export class Ships {
   ): number {
     const design = this.designs[i]!;
     const armed = design.weaponEngines;
+    const lit = this.lit[i]!;
+    lit.fill(0);
     if (grid === undefined || armed.length === 0) return 0;
 
     if (this.forced.length < layout.count) this.forced = new Uint8Array(layout.count);
@@ -2246,6 +2261,7 @@ export class Ships {
       }
       if (!worth) continue;
       forced[t] = 1;
+      lit[t] = 1;
       firing++;
     }
     return firing;
@@ -3074,6 +3090,7 @@ export class Ships {
     this.turretAimModule[r] = this.turretAimModule[p]!;
     this.turretRethinkAt[r] = this.turretRethinkAt[p]!;
     this.throttles[r] = new Float64Array(design.engines.length);
+    this.lit[r] = new Uint8Array(design.engines.length);
     this.landed[r] = new Float64Array(plumeRayStarts(design)[design.engines.length]!);
     this.layouts[r] = null;
     this.layoutVersion[r] = -1;
@@ -3546,6 +3563,7 @@ export class Ships {
     this.turretAimModule[i] = aims;
     this.turretRethinkAt[i] = schedule;
     this.throttles[i] = new Float64Array(design.engines.length);
+    this.lit[i] = new Uint8Array(design.engines.length);
     this.landed[i] = new Float64Array(plumeRayStarts(design)[design.engines.length]!);
     this.layouts[i] = null;
     this.layoutVersion[i] = -1;
@@ -3671,6 +3689,27 @@ export class Ships {
   private exhaustOf(i: number, design: ShipDesign, bodyIndex: number, engine: number): number {
     const spec = design.engines[engine]!;
     return spec.maxThrust * this.left(i, bodyIndex, spec.module ?? -1, DamageEffect.Thrust);
+  }
+
+  /**
+   * How far into its flame one of this ship's engines would burn something
+   * worth firing on, at full throttle, metres: 0 unless it is a weapon that
+   * can still burn.
+   */
+  weaponReach(i: number, engine: number): number {
+    const design = this.designs[i]!;
+    const spec = design.engines[engine]!;
+    if (spec.weapon !== true) return 0;
+    const module = design.modules[spec.module ?? -1];
+    const bodies = this.bodyStore;
+    const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[i]!);
+    if (module === undefined || b < 0) return 0;
+    return weaponPlumeReach(engineGeometry(module.spec), this.exhaustOf(i, design, b, engine));
+  }
+
+  /** Whether one of this ship's engines is burning as a weapon. */
+  isEngineFiring(i: number, engine: number): boolean {
+    return this.hasControl(i) && this.lit[i]![engine] === 1;
   }
 
   /** Seconds until a gun is loaded again. Diagnostic. */

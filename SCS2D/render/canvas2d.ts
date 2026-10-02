@@ -69,6 +69,33 @@ const TRACER_GLOW = '#ffb2a888';
 const TRACER_INSIDE: string | null = '#ffe6a840';
 const TRACER_GLOW_INSIDE: string | null = null;
 
+/**
+ * Where a gun or a weapon engine will fire, faintly: on target and about to,
+ * not yet, and pointing into its own ship where it will not.
+ */
+const TRIGGER_ON = '#ffd76a2e';
+const TRIGGER_OFF = '#9fb6d61a';
+const TRIGGER_FOULED = '#ff5a5a24';
+/** Where a gun's barrel is pointing now, along its wedge, in battle. */
+const BARREL_LINE = '#e6edf566';
+const BARREL_LINE_PX = 1;
+/** The narrowest a firing wedge's sides are drawn, in pixels; a gun's are a calibre wide otherwise. */
+const MIN_TRIGGER_PX = 3;
+
+/**
+ * Which arcs a ship is drawn with: none, where each gun may point, or that and
+ * where each gun and weapon engine will fire.
+ */
+export type Arcs = 'none' | 'firing' | 'trigger';
+
+/** The next of `Arcs`, as the key that cycles them steps through. */
+export function nextArcs(arcs: Arcs): Arcs {
+  return arcs === 'none' ? 'firing' : arcs === 'firing' ? 'trigger' : 'none';
+}
+
+/** The key that cycles `Arcs` on every page that draws ships. */
+export const ARCS_KEY = 'a';
+
 const BEAM = '#3df72c';
 const BEAM_GLOW = '#a8f132';
 
@@ -167,7 +194,7 @@ const BURN_CORE = '255, 236, 200';
 
 
 
-function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number): void {
+function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number, arcs: Arcs): void {
   const design = ship.design;
 
   ctx.save();
@@ -286,7 +313,7 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     // A wrecked mount shows no arc: the wash says "this gun may shoot here",
     // which is a promise a gun that cannot shoot is not making. The barrel
     // stays, because it is still there.
-    if (ship.turretDisabled?.[t] !== true) {
+    if (arcs !== 'none' && ship.turretDisabled?.[t] !== true) {
       const scaled = face * ARC_RADIUS_SCALE;
       const span =
         scaled < ARC_MIN_RADIUS
@@ -330,6 +357,45 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
       }
     }
 
+    // Where it will fire: the bearing it is aiming along, as far either side as
+    // it will pull the trigger, out to as far as it is worth shooting at what
+    // it is aiming at. Tinted by whether it would fire now — on target, not
+    // yet, or pointing into its own ship.
+    const triggerReach = ship.turretTriggerReach?.[t] ?? 0;
+    // Its sides are lines a calibre wide, floored on screen, so a gun allowed
+    // only a hair either side still shows which way it will fire.
+    const half = ship.turretTrigger?.[t] ?? 0;
+    if (arcs === 'trigger' && triggerReach > 0 && ship.turretDisabled?.[t] !== true) {
+      const aim = ship.turretAim?.[t] ?? rest;
+      const tint =
+        ship.turretFouled?.[t] === true ? TRIGGER_FOULED : ship.turretReady[t] === true ? TRIGGER_ON : TRIGGER_OFF;
+      ctx.fillStyle = tint;
+      ctx.beginPath();
+      ctx.moveTo(mx, my);
+      ctx.arc(mx, my, triggerReach, aim - half, aim + half);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = tint;
+      ctx.lineWidth = legibleWidth(design.turrets[t]!.gun.calibre, MIN_TRIGGER_PX, metresToPx);
+      ctx.beginPath();
+      ctx.moveTo(mx + cos(aim - half) * triggerReach, my + sin(aim - half) * triggerReach);
+      ctx.lineTo(mx, my);
+      ctx.lineTo(mx + cos(aim + half) * triggerReach, my + sin(aim + half) * triggerReach);
+      ctx.stroke();
+
+      // In battle, where the barrel actually points, so how far it is off its
+      // aim shows. A preview has no body, and its barrel is on its aim anyway.
+      if (ship.body >= 0) {
+        const bearing = ship.turretBearings[t] ?? aim;
+        ctx.strokeStyle = BARREL_LINE;
+        ctx.lineWidth = BARREL_LINE_PX / metresToPx;
+        ctx.beginPath();
+        ctx.moveTo(mx, my);
+        ctx.lineTo(mx + cos(bearing) * triggerReach, my + sin(bearing) * triggerReach);
+        ctx.stroke();
+      }
+    }
+
     // The rotating part itself: a disc at the mount, sized to the module it
     // sits in so a heavy mount looks heavy. A hull mount has none — what turns
     // there is a barrel on trunnions, not a ring carrying a house, and a disc
@@ -342,7 +408,6 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
       ctx.fill();
     }
 
-    const ready = ship.turretReady[t] === true;
     const bearing = ship.turretBearings[t] ?? 0;
     const dirX = cos(bearing);
     const dirY = sin(bearing);
@@ -350,7 +415,7 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     const count = gun.barrelCount;
     const spacing = gun.barrelSpacing;
 
-    ctx.strokeStyle = ready ? colours.ready : BARREL;
+    ctx.strokeStyle = BARREL;
     // Twice the calibre: for a gun that is the barrel's outer diameter, the
     // tube the annulus in `moduleStats` charges steel for rather than the bore.
     // For a beam mount it is the housing round the optic rather than the optic
@@ -378,7 +443,54 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     ctx.stroke();
   }
 
+  if (arcs === 'trigger') drawEngineTriggers(ctx, ship, metresToPx);
   drawPlumes(ctx, ship);
+}
+
+/**
+ * Where each engine used as a weapon will burn: the part of each flame that
+ * lands enough to fire for, tinted as a gun's wedge is.
+ */
+function drawEngineTriggers(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number): void {
+  const reaches = ship.engineTriggerReach;
+  if (reaches === undefined) return;
+  const design = ship.design;
+  ctx.save();
+  ctx.translate(ship.x, ship.y);
+  ctx.rotate(ship.angle);
+  ctx.lineWidth = legibleWidth(0, MIN_TRIGGER_PX, metresToPx);
+  for (let t = 0; t < design.engines.length; t++) {
+    const reach = reaches[t] ?? 0;
+    const engine = design.engines[t]!;
+    const module = design.modules[engine.module ?? -1];
+    if (!(reach > 0) || module === undefined) continue;
+    const tint =
+      (engine.escaping ?? 1) <= 0 ? TRIGGER_FOULED : ship.engineFiring?.[t] === true ? TRIGGER_ON : TRIGGER_OFF;
+    const geometry = engineGeometry(module.spec);
+    const root = -module.spec.length / 2;
+    const half = geometry.exitWidth / 2;
+    ctx.save();
+    ctx.translate(module.x, module.y);
+    ctx.rotate(module.angle);
+    ctx.fillStyle = tint;
+    ctx.strokeStyle = tint;
+    for (let n = 0; n < geometry.nozzles; n++) {
+      const across = nozzleOffset(geometry, n);
+      ctx.beginPath();
+      ctx.moveTo(root, across - half);
+      ctx.lineTo(root - reach, across);
+      ctx.lineTo(root, across + half);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(root, across - half);
+      ctx.lineTo(root - reach, across);
+      ctx.lineTo(root, across + half);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  ctx.restore();
 }
 
 /**
@@ -608,6 +720,7 @@ export function draw(
   widthPx: number,
   heightPx: number,
   flashes?: Flashes,
+  arcs: Arcs = 'none',
 ): void {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = BACKGROUND;
@@ -622,7 +735,7 @@ export function draw(
   drawWells(ctx, snapshot, camera);
 
   for (let i = 0; i < snapshot.shipCount; i++) {
-    drawShip(ctx, snapshot.ships[i]!, camera.scale);
+    drawShip(ctx, snapshot.ships[i]!, camera.scale, arcs);
   }
 
   // Icons in a pass of their own, after every hull: an icon stands for the

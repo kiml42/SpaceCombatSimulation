@@ -1,4 +1,4 @@
-import { Snapshot, type ShipDesign } from '../sim/index.js';
+import { engineGeometry, masked, math, Snapshot, weaponPlumeReach, type ShipDesign, type ShipView } from '../sim/index.js';
 
 /**
  * A blueprint as a `Snapshot` the battle renderer can draw.
@@ -64,19 +64,11 @@ export function previewSnapshot(design: ShipDesign, out: Snapshot = new Snapshot
   view.vx = 0;
   view.vy = 0;
 
-  // Turret bearings are world bearings; the hull is unturned, so each gun
-  // rests at the bearing its mount was built at.
-  view.turretBearings.length = design.turrets.length;
-  view.turretReady.length = design.turrets.length;
-  for (let t = 0; t < design.turrets.length; t++) {
-    view.turretBearings[t] = design.turrets[t]!.mount.restBearing ?? 0;
-    view.turretReady[t] = false;
-  }
-
   // Engines are cold. A design is not running, and a plume drawn on a ship
   // standing still would be saying something untrue about it.
   view.throttles.length = design.engines.length;
   for (let t = 0; t < design.engines.length; t++) view.throttles[t] = 0;
+  restingTriggers(view, design);
 
   // A design has taken nothing: the editor draws the ship as it would be built,
   // not as one that has been somewhere.
@@ -94,4 +86,55 @@ export function previewSnapshot(design: ShipDesign, out: Snapshot = new Snapshot
   out.maxY = design.centreOfMassY + design.radius;
 
   return out;
+}
+
+/**
+ * A design at rest's turrets and firing wedges, at its view's angle.
+ *
+ * Where each gun would fire, against the enemy its doctrine wants: one
+ * standing still relative to it, of the size it prefers, at the furthest it is
+ * worth shooting at that. The gun is taken to be aimed straight at it from its
+ * rest bearing, so the wedge shows what it would be on target for. An engine
+ * used as a weapon shows where it would burn at full throttle, as firing on
+ * that enemy standing in it.
+ */
+export function restingTriggers(view: ShipView, design: ShipDesign): void {
+  view.turretBearings.length = design.turrets.length;
+  view.turretReady.length = design.turrets.length;
+  const aim = (view.turretAim ??= []);
+  const trigger = (view.turretTrigger ??= []);
+  const triggerReach = (view.turretTriggerReach ??= []);
+  const fouled = (view.turretFouled ??= []);
+  aim.length = trigger.length = triggerReach.length = fouled.length = design.turrets.length;
+  for (let t = 0; t < design.turrets.length; t++) {
+    const turret = design.turrets[t]!;
+    const rest = (turret.mount.restBearing ?? 0) + view.angle;
+    view.turretBearings[t] = rest;
+    aim[t] = rest;
+    const reach = turret.reach;
+    const enemy = design.radius * math.sqrt(orOne(turret.targeting.preferredMass));
+    trigger[t] = reach > 0 ? math.atan2(enemy, reach) : 0;
+    triggerReach[t] = reach;
+    const mask = turret.mount.mask;
+    fouled[t] = mask !== undefined && mask.length > 0 && masked(mask, 0);
+    view.turretReady[t] = !fouled[t];
+  }
+
+  const engineReach = (view.engineTriggerReach ??= []);
+  const engineFiring = (view.engineFiring ??= []);
+  engineReach.length = engineFiring.length = design.engines.length;
+  for (let t = 0; t < design.engines.length; t++) {
+    const engine = design.engines[t]!;
+    const module = design.modules[engine.module ?? -1];
+    engineReach[t] =
+      engine.weapon === true && module !== undefined
+        ? weaponPlumeReach(engineGeometry(module.spec), engine.maxThrust)
+        : 0;
+    engineFiring[t] = true;
+  }
+}
+
+/** A preferred mass, or one where it says none. */
+function orOne(preferredMass: number): number {
+  return preferredMass > 0 ? preferredMass : 1;
 }

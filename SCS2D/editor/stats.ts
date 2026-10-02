@@ -15,11 +15,15 @@ import {
   isWeaponMount,
   mountTraverse,
   nozzleReach,
+  weaponPlumeReach,
   plumeIntensity,
   shortfall,
   engineGeometry,
   traverseAccel,
   traverseRate,
+  defaultTargeting,
+  nominalReach,
+  resolveTargeting,
   type ModuleSpec,
   type ShipDesign,
 } from '../sim/index.js';
@@ -54,6 +58,11 @@ export interface TurretReadout {
   arcRight: number;
   /** Top training speed, degrees per second. */
   traverseRate: number;
+  /**
+   * How far it will fire at the enemy its doctrine wants, metres, as its
+   * firing wedge is drawn: null where the ship's size is not known.
+   */
+  triggerRange?: number | null;
 }
 
 export interface DesignStats {
@@ -235,6 +244,7 @@ export function moduleReadout(
   spec: ModuleSpec,
   layout: readonly ModuleSpec[] = [],
   index = -1,
+  shipRadius = 0,
 ): ModuleReadout {
   const stats = moduleStats(spec);
   const rows: [string, string][] = [
@@ -304,6 +314,13 @@ export function moduleReadout(
       `${nozzleReach(engine, stats.thrust).toLocaleString('en-GB', { maximumFractionDigits: 0 })} m, ` +
         `${(plumeIntensity(engine, stats.thrust) / 1000).toLocaleString('en-GB', { maximumFractionDigits: 1 })} kW/m²`,
     ]);
+    // Its firing wedge: the part of the flame worth lighting up for.
+    if (spec.weapon === true) {
+      rows.push([
+        'Fires within',
+        `${weaponPlumeReach(engine, stats.thrust).toLocaleString('en-GB', { maximumFractionDigits: 0 })} m of the nozzle`,
+      ]);
+    }
   }
   const gun = stats.gun;
   return {
@@ -319,6 +336,16 @@ export function moduleReadout(
             roundsPerMinute: gun.cycleTime > 0 ? 60 / gun.cycleTime : 0,
             ...arcOf(layout, index, gun.barrelLength, barrelHalfWidth(gun)),
             traverseRate: radiansToDegrees(traverseRate(traverseAccel(stats.mass, stats.inertia))),
+            // Against what its doctrine goes after, which is sized from the
+            // ship carrying it, so it needs the ship.
+            triggerRange:
+              shipRadius > 0
+                ? nominalReach(
+                    gun,
+                    shipRadius,
+                    resolveTargeting(spec.targeting, defaultTargeting(spec.kind)).preferredMass,
+                  )
+                : null,
           },
   };
 }

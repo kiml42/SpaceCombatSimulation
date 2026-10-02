@@ -47,8 +47,26 @@ export interface ShipView {
   turretBearings: number[];
   /** Which of those turrets are on target and clear to shoot. */
   turretReady: boolean[];
+  /**
+   * Where each turret will fire: the world bearing it is aiming along, how far
+   * off that it will pull the trigger (radians), and how far it is worth
+   * shooting at what it is aiming at (metres; 0 for nothing). Optional, so a
+   * view built by hand can leave them out.
+   */
+  turretAim?: number[];
+  turretTrigger?: number[];
+  turretTriggerReach?: number[];
+  /** Which turrets are pointing into their own ship, where they will not fire. */
+  turretFouled?: boolean[];
   /** Throttle held by each engine, 0 to 1, in the design's engine order. */
   throttles: number[];
+  /**
+   * How far along each of an engine's flames it will fire on what it finds,
+   * metres (0 unless it is a weapon), and whether it is firing now. Optional,
+   * as the turrets' are.
+   */
+  engineTriggerReach?: number[];
+  engineFiring?: boolean[];
   /**
    * How much of each flame ray landed on a hull last step, as that ray's
    * share of its power — 0 where it met nothing. Every engine's rays in
@@ -220,7 +238,13 @@ function shipView(snapshot: Snapshot, i: number): ShipView {
     vy: 0,
     turretBearings: [],
     turretReady: [],
+    turretAim: [],
+    turretTrigger: [],
+    turretTriggerReach: [],
+    turretFouled: [],
     throttles: [],
+    engineTriggerReach: [],
+    engineFiring: [],
     landed: [],
     integrity: [],
     hasControl: true,
@@ -278,16 +302,30 @@ export function capture(
     view.turretBearings.length = design.turrets.length;
     view.turretReady.length = design.turrets.length;
     view.turretDisabled.length = design.turrets.length;
+    const aim = (view.turretAim ??= []);
+    const trigger = (view.turretTrigger ??= []);
+    const triggerReach = (view.turretTriggerReach ??= []);
+    const fouled = (view.turretFouled ??= []);
+    aim.length = trigger.length = triggerReach.length = fouled.length = design.turrets.length;
     for (let t = 0; t < design.turrets.length; t++) {
       const ti = ships.turretIndexOf(i, t);
       view.turretBearings[t] = turrets.worldBearing(bodies, ti);
       view.turretReady[t] = turrets.readyToFire(ti);
+      aim[t] = turrets.worldCommand(bodies, ti);
+      trigger[t] = turrets.triggerHalfAngle(ti);
+      triggerReach[t] = ships.triggerReach(i, t);
+      fouled[t] = turrets.fouled(ti);
       view.turretDisabled[t] = ships.isTurretDisabled(i, t);
     }
 
     view.throttles.length = design.engines.length;
+    const engineReach = (view.engineTriggerReach ??= []);
+    const engineFiring = (view.engineFiring ??= []);
+    engineReach.length = engineFiring.length = design.engines.length;
     for (let t = 0; t < design.engines.length; t++) {
       view.throttles[t] = ships.throttleOf(i, t);
+      engineReach[t] = ships.weaponReach(i, t);
+      engineFiring[t] = ships.isEngineFiring(i, t);
     }
 
     const rays = ships.landedRays(i);

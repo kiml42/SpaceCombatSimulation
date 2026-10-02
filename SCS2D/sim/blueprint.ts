@@ -27,7 +27,7 @@ import {
 } from './doctrine.js';
 import { EngineLayout, type EngineSpec } from './engines.js';
 import { HullPath } from './hull.js';
-import { exhaustObstruction, nozzleReach, WEAPON_PLUME_SHARE } from './exhaust.js';
+import { exhaustObstruction, weaponPlumeReach } from './exhaust.js';
 import type { TurretSpec } from './turrets.js';
 
 /**
@@ -1657,7 +1657,7 @@ function designFrom(
     // doctrine closes to where its engine burns rather than to the skin.
     const spec = modules[engine.module ?? -1]?.spec;
     if (spec === undefined) continue;
-    reach = max(reach, nozzleReach(engineGeometry(spec), engine.maxThrust) * (1 - WEAPON_PLUME_SHARE));
+    reach = max(reach, weaponPlumeReach(engineGeometry(spec), engine.maxThrust));
   }
 
   // What each engine exhausts into, ray by ray. A plume needs it every step

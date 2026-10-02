@@ -6,9 +6,9 @@
  * wheel, so the value ordering that makes a turret legible holds for every
  * side rather than being got right once for blue and approximated afterwards.
  * The hues are spread as far apart as four will go without colliding with
- * something that already means a thing: a barrel goes amber when it is on
- * target, and a beam is a bright green, so the sides take blue, red, green and
- * magenta and leave the yellows alone.
+ * something that already means a thing: a gun's firing wedge goes amber when
+ * it is on target, and a beam is a bright green, so the sides take blue, red,
+ * green and magenta and leave the yellows alone.
  *
  * Four because that is a free-for-all of a size worth watching — an evolution
  * match puts every entrant on its own side (DESIGN.md §7). Past four they come
@@ -20,32 +20,27 @@ const TEAM_COLOURS = [
     hull: '#5b8dd6',
     trim: '#a8c8f0',
     pivot: '#2c4a72',
-    ready: '#e9c05f',
   },
   {
     hull: '#d65b5b',
     trim: '#f0a8a8',
     pivot: '#722c2c',
-    ready: '#e9c05f',
   },
   {
     hull: '#5bd66f',
     trim: '#a8f0b4',
     pivot: '#2c7238',
-    ready: '#e9c05f',
   },
   {
     hull: '#d65bd6',
     trim: '#f0a8f0',
     pivot: '#722c72',
-    ready: '#e9c05f',
   },
 ];
 export const NEUTRAL = {
   hull: '#8a8a8a',
   trim: '#c4c4c4',
   pivot: '#4a4a4a',
-  ready: '#e9c05f',
 };
 
 export function shipColours(team: number): (typeof TEAM_COLOURS)[number] {

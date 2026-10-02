@@ -9,7 +9,7 @@ import {
   type ShipDesign,
 } from '../sim/index.js';
 import { Flashes } from '../render/flashes.js';
-import { draw, teamColour } from '../render/canvas2d.js';
+import { ARCS_KEY, draw, nextArcs, teamColour, type Arcs } from '../render/canvas2d.js';
 import { drawChart, indexAt, xOf, type ChartLayout, type Series } from '../render/chart.js';
 import {
   easeScale,
@@ -437,6 +437,7 @@ export function startEvolution(): void {
   const flashes = new Flashes();
   const camera: Camera = { x: 0, y: 0, scale: 0.1 };
   let autoFrame = true;
+  let arcs: Arcs = 'none';
   let framed = false;
   let lastSimTime = 0;
   let accumulator = 0;
@@ -896,6 +897,8 @@ export function startEvolution(): void {
       autoFrame = true;
     } else if (event.key === 'n' || event.key === 'N') {
       if (!skipButton.disabled) skipMatch();
+    } else if (event.key.toLowerCase() === ARCS_KEY) {
+      arcs = nextArcs(arcs);
     }
   });
 
@@ -976,7 +979,7 @@ export function startEvolution(): void {
         shot.impactGrowth[i]!,
       );
     }
-    draw(ctx, shot, camera, view.width, view.height, flashes);
+    draw(ctx, shot, camera, view.width, view.height, flashes, arcs);
   }
 
   // ---- the chart ---------------------------------------------------------
