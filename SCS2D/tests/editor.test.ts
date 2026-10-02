@@ -3,6 +3,7 @@ import {
   blueprintProblem,
   engineGeometry,
   expandBlueprint,
+  holdBand,
   expandWithOrigins,
   math,
   radiansToDegrees as toDegrees,
@@ -80,7 +81,7 @@ import {
   splitHandle,
   type Handle,
 } from '../editor/handles.js';
-import { previewSnapshot } from '../editor/preview.js';
+import { doctrineBand, previewSnapshot } from '../editor/preview.js';
 import { designStats, envelopes, assemblyMass, headingCost, moduleReadout } from '../editor/stats.js';
 
 /**
@@ -1426,6 +1427,29 @@ describe('a gun\u2019s trigger range in the editor', () => {
   });
 });
 
+describe('the band a ship closes to, in the editor', () => {
+  it('is what its doctrine would hold against the enemy it wants, and drawn round it', () => {
+    const design = new EditorDocument(GUNSHIP).view.design!;
+    const band = doctrineBand(design);
+    const enemy = design.radius * Math.sqrt(design.doctrine.targeting.preferredMass);
+    expect(band).toEqual(holdBand(design.doctrine.approach, design.reach, enemy));
+    expect(band.max).toBeGreaterThan(band.min);
+    const view = previewSnapshot(design).ships[0]!;
+    expect([view.holdMin, view.holdMax]).toEqual([band.min, band.max]);
+  });
+
+  it('gives a gun’s trigger range at the distance its doctrine fires out to', () => {
+    const doc = new EditorDocument(GUNSHIP);
+    const index = doc.view.modules.findIndex((m) => m.kind === 'turret' || m.kind === 'hullGun');
+    const spec = doc.view.modules[index]!;
+    const radius = doc.view.design!.radius;
+    const plain = moduleReadout(spec, doc.view.modules, index, radius).gun!.triggerRange!;
+    const eager = moduleReadout({ ...spec, targeting: { ...spec.targeting, fireRange: 1.5 } }, doc.view.modules, index, radius)
+      .gun!.triggerRange!;
+    expect(eager).toBeCloseTo(plain * 1.5, 9);
+  });
+});
+
 describe('a weapon engine in the editor', () => {
   const doc = new EditorDocument(TORCH);
   const design = doc.view.design!;
@@ -2520,7 +2544,7 @@ describe('what an assembly weighs', () => {
       { kind: 'turret', x: 4, y: 9, length: 4, width: 3, barrels: 1 },
     ];
     const each = parts.map((spec) => moduleStats(spec).mass);
-    expect(assemblyMass(parts)).toBeCloseTo(each[0]! + each[1]!, 9);
-    expect(assemblyMass([])).toBe(0);
+    expect(assemblyMass(parts, [0, 1])).toBeCloseTo(each[0]! + each[1]!, 9);
+    expect(assemblyMass(parts, [])).toBe(0);
   });
 });

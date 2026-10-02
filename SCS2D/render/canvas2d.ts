@@ -3,7 +3,6 @@ import {
   IMPACT_BEAM,
   IMPACT_BURST,
   isHullMount,
-  isThick,
   math,
   nozzleOffset,
   nozzleReach,
@@ -76,6 +75,10 @@ const TRACER_GLOW_INSIDE: string | null = null;
 const TRIGGER_ON = '#ffd76a2e';
 const TRIGGER_OFF = '#9fb6d61a';
 const TRIGGER_FOULED = '#ff5a5a24';
+/** The band of ranges a ship's doctrine closes to, against the enemy it wants. */
+const HOLD_BAND = '#7fd6c214';
+const HOLD_EDGE = '#7fd6c266';
+
 /** Where a gun's barrel is pointing now, along its wedge, in battle. */
 const BARREL_LINE = '#e6edf566';
 const BARREL_LINE_PX = 1;
@@ -84,7 +87,8 @@ const MIN_TRIGGER_PX = 3;
 
 /**
  * Which arcs a ship is drawn with: none, where each gun may point, or that and
- * where each gun and weapon engine will fire.
+ * where each gun and weapon engine will fire, with the band a ship's doctrine
+ * closes to where it is known.
  */
 export type Arcs = 'none' | 'firing' | 'trigger';
 
@@ -201,6 +205,28 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
   ctx.translate(ship.x, ship.y);
   ctx.rotate(ship.angle);
 
+  // Where its doctrine closes to, centre to centre: under everything, so the
+  // trigger wedges' tips can be read against it.
+  const holdMax = ship.holdMax ?? 0;
+  if (arcs === 'trigger' && holdMax > 0) {
+    const holdMin = ship.holdMin ?? 0;
+    ctx.fillStyle = HOLD_BAND;
+    ctx.beginPath();
+    ctx.arc(0, 0, holdMax, 0, TAU);
+    if (holdMin > 0) ctx.arc(0, 0, holdMin, TAU, 0, true);
+    ctx.fill('evenodd');
+    ctx.strokeStyle = HOLD_EDGE;
+    ctx.lineWidth = 1 / metresToPx;
+    ctx.beginPath();
+    ctx.arc(0, 0, holdMax, 0, TAU);
+    ctx.stroke();
+    if (holdMin > 0) {
+      ctx.beginPath();
+      ctx.arc(0, 0, holdMin, 0, TAU);
+      ctx.stroke();
+    }
+  }
+
   // Module boxes, in the body frame the design already put them in.
   for (let i = 0; i < design.modules.length; i++) {
     if (ship.drawn?.[i] === false) continue;
@@ -226,8 +252,11 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
         ? WRECKAGE
         : spec.kind === 'structure'
           ? // Thick structure is drawn in the colour of the mounts and engines,
-            // since it is what stands with them in the weapons layer.
-            isThick(spec)
+            // since it is what stands with them in the weapons layer. Read from
+            // the compiled flag rather than the spec, since a plate that is
+            // thick by borrowing its neighbour's depth is only as high as what
+            // it covers.
+            m.weaponsLayer
             ? colours.trim
             : colours.hull
           : spec.kind === 'core'

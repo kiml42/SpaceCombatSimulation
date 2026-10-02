@@ -9,6 +9,8 @@ import {
   boxAngle,
   moduleCentre,
   moduleStats,
+  layoutStats,
+  statsInLayout,
   radiansToDegrees,
   hullMountGeometry,
   isHullMount,
@@ -24,6 +26,7 @@ import {
   defaultTargeting,
   nominalReach,
   resolveTargeting,
+  type GunStats,
   type ModuleSpec,
   type ShipDesign,
 } from '../sim/index.js';
@@ -213,16 +216,28 @@ function exhaustEscaping(
   rating: number,
 ): number {
   if (index < 0 || index >= layout.length) return 1;
-  const modules = layout.map((spec) => {
+  const stats = layoutStats(layout);
+  const modules = layout.map((spec, i) => {
     const centre = moduleCentre(spec);
-    return { spec, stats: moduleStats(spec), x: centre.x, y: centre.y, angle: boxAngle(spec), index: 0, weaponsLayer: inWeaponsLayer(spec) };
+    return {
+      spec,
+      stats: stats[i]!,
+      x: centre.x,
+      y: centre.y,
+      angle: boxAngle(spec),
+      index: 0,
+      weaponsLayer: inWeaponsLayer(spec, stats[i]!.thickness),
+    };
   });
   return exhaustObstruction({ modules }, index, rating, new HullPath(), [], []);
 }
 
-export function assemblyMass(modules: readonly ModuleSpec[]): number {
+export function assemblyMass(layout: readonly ModuleSpec[], picked: readonly number[]): number {
   let total = 0;
-  for (const spec of modules) total += moduleStats(spec).mass;
+  // Measured in the layout rather than on their own, since a thick plate takes
+  // its depth — and so its mass — from what it is welded to, which may be a
+  // module outside the assembly.
+  for (const index of picked) total += statsInLayout(layout, index).mass;
   return total;
 }
 
@@ -246,9 +261,14 @@ export function moduleReadout(
   index = -1,
   shipRadius = 0,
 ): ModuleReadout {
-  const stats = moduleStats(spec);
+  // In the layout where there is one, since a thick plate's depth is its
+  // neighbours' business; on its own otherwise.
+  const stats = layout[index] === spec ? statsInLayout(layout, index) : moduleStats(spec);
   const rows: [string, string][] = [
     ['Mass', `${(stats.mass / 1000).toLocaleString('en-GB', { maximumFractionDigits: 2 })} t`],
+    // What the plan view cannot show, and what decides both the wall it
+    // carries and whether a turret can reach it.
+    ['Depth', `${stats.thickness.toLocaleString('en-GB', { maximumFractionDigits: 2 })} m`],
     ['Capacity', `${stats.capacity.toLocaleString('en-GB', { maximumFractionDigits: 1 })} m²`],
     ['Armour', `${(stats.wallThickness * 1000).toLocaleString('en-GB', { maximumFractionDigits: 0 })} mm`],
     ['Hit points', stats.hitPoints.toLocaleString('en-GB', { maximumFractionDigits: 0 })],
@@ -338,16 +358,15 @@ export function moduleReadout(
             traverseRate: radiansToDegrees(traverseRate(traverseAccel(stats.mass, stats.inertia))),
             // Against what its doctrine goes after, which is sized from the
             // ship carrying it, so it needs the ship.
-            triggerRange:
-              shipRadius > 0
-                ? nominalReach(
-                    gun,
-                    shipRadius,
-                    resolveTargeting(spec.targeting, defaultTargeting(spec.kind)).preferredMass,
-                  )
-                : null,
+            triggerRange: shipRadius > 0 ? fireRangeOf(spec, gun, shipRadius) : null,
           },
   };
+}
+
+/** How far a mount will fire at the enemy its doctrine wants, as its design reach is. */
+function fireRangeOf(spec: ModuleSpec, gun: GunStats, shipRadius: number): number {
+  const targeting = resolveTargeting(spec.targeting, defaultTargeting(spec.kind));
+  return nominalReach(gun, shipRadius, targeting.preferredMass) * targeting.fireRange;
 }
 
 /** How far a mount may train either way, in degrees, given what is around it. */
@@ -361,7 +380,12 @@ function arcOf(
   // The compiler's rule: a hull mount's barrel is fouled by anything, a
   // turret's only by what is in the weapons layer.
   const hull = isHullMount(layout[index]!.kind);
-  const arc = firingArc(layout, index, reach, hull ? undefined : inWeaponsLayer, hull ? 0 : width);
+  // Measured in the layout, so a plate that is thick by borrowing the depth of
+  // the module it covers is in a turret's way here as it is in a battle.
+  const depths = hull ? [] : layoutStats(layout);
+  const raised = (spec: ModuleSpec, i: number): boolean =>
+    inWeaponsLayer(spec, depths[i]!.thickness);
+  const arc = firingArc(layout, index, reach, hull ? undefined : raised, hull ? 0 : width);
   // A hull mount is held to its own opening as well as to what the ship
   // leaves it, and the panel has to say the number the ship will actually
   // train through rather than the more generous of the two.

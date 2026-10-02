@@ -1,4 +1,4 @@
-import { engineGeometry, masked, math, Snapshot, weaponPlumeReach, type ShipDesign, type ShipView } from '../sim/index.js';
+import { engineGeometry, holdBand, masked, math, Snapshot, weaponPlumeReach, type ShipDesign, type ShipView } from '../sim/index.js';
 
 /**
  * A blueprint as a `Snapshot` the battle renderer can draw.
@@ -99,6 +99,10 @@ export function previewSnapshot(design: ShipDesign, out: Snapshot = new Snapshot
  * that enemy standing in it.
  */
 export function restingTriggers(view: ShipView, design: ShipDesign): void {
+  const band = doctrineBand(design);
+  view.holdMin = band.min;
+  view.holdMax = band.max;
+
   view.turretBearings.length = design.turrets.length;
   view.turretReady.length = design.turrets.length;
   const aim = (view.turretAim ??= []);
@@ -132,6 +136,16 @@ export function restingTriggers(view: ShipView, design: ShipDesign): void {
         : 0;
     engineFiring[t] = true;
   }
+}
+
+/**
+ * The band a design's doctrine closes to, centre to centre, against the enemy
+ * its own doctrine prefers: of the size it wants, the same way a gun's wedge
+ * is drawn against what that gun wants.
+ */
+export function doctrineBand(design: ShipDesign): { min: number; max: number } {
+  const enemy = design.radius * math.sqrt(orOne(design.doctrine.targeting.preferredMass));
+  return holdBand(design.doctrine.approach, design.reach, enemy);
 }
 
 /** A preferred mass, or one where it says none. */

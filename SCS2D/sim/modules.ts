@@ -695,7 +695,7 @@ export interface ModuleSpec {
    * Whether this module is free of the deck's depth (`moduleThickness`):
    * as deep as it is across, rather than held to `DECK_HEIGHT`. Nothing to a
    * module no more than a deck across, which is as deep as it is wide either
-   * way (`canThicken`).
+   * way (`canThicken`) — **except structure**, which may always be marked.
    *
    * What is thick stands up through the weapons layer as well as the hull
    * (`inWeaponsLayer`). Thick structure is cover: it stops turret fire at whatever
@@ -703,6 +703,20 @@ export interface ModuleSpec {
    * nozzle, and machinery that keeps growing with the square of the width. It
    * pays in wall, in turrets being able to reach it, and in the arcs of every
    * turret it stands in front of.
+   *
+   * **Thick structure takes its depth from what it is welded to**, which is
+   * the whole of why a plate narrower than a deck may be marked at all. Held
+   * to its own width, a strip of plating laid along a thick module would stand
+   * a third as high as the thing it was meant to be covering and stop nothing
+   * aimed at it — so a thick plate is as deep as the deepest module it
+   * touches, and no thinner than it would have been on its own. It is paid for
+   * at that depth: a plate standing as high as a citadel has a citadel's area
+   * of wall to carry, so applique armour costs what the steel in it costs.
+   *
+   * A neighbour offers the depth it has *of its own* and never one it
+   * borrowed, so depth does not travel: a run of plating over a hull stands as
+   * high as whatever is under each part of it rather than carrying the best
+   * module's depth along the run.
    */
   thick?: boolean;
 
@@ -750,6 +764,13 @@ export interface GunStats {
 
 /** Everything the scaling laws derive from a module's geometry. */
 export interface ModuleStats {
+  /**
+   * How deep the module is, metres — `moduleThickness`, measured in the layout
+   * it sits in, so a thick plate's borrowed depth is recorded here rather than
+   * worked out again. What is deeper than `DECK_HEIGHT` stands in the weapons
+   * layer, and a severed chunk keeps the depth it was built with.
+   */
+  thickness: number;
   /** Wall thickness after reinforcement, metres. Also the armour it presents. */
   wallThickness: number;
   /** Volume of structural material in the walls, m³. */
@@ -1298,20 +1319,32 @@ export function readsThick(kind: ModuleKind): boolean {
  * Whether a module stands in the weapons layer (DESIGN.md §3), and so blocks
  * turrets and can be hit by them. Every module is in the hull layer.
  *
- * Turrets always are, and anything else that is thick.
+ * Turrets always are, and so is anything deeper than one layer — which is what
+ * being thick buys. `touching` is what a thick plate borrows, as
+ * `moduleThickness` reads it: a plate is cover once it stands as high as the
+ * module it is covering, and not before.
  */
-export function inWeaponsLayer(spec: ModuleSpec): boolean {
-  return spec.kind === 'turret' || spec.kind === 'beamTurret' || isThick(spec);
+export function inWeaponsLayer(spec: ModuleSpec, touching = 0): boolean {
+  if (spec.kind === 'turret' || spec.kind === 'beamTurret') return true;
+  return moduleThickness(spec, touching) > DECK_HEIGHT;
 }
 
-/** Whether a module is marked thick and wide enough for that to make it deeper. */
+/** Whether a module is marked thick, on a kind and a size where that means anything. */
 export function isThick(spec: ModuleSpec): boolean {
   return spec.thick === true && canThicken(spec);
 }
 
-/** Whether marking a module thick would make it any deeper: false for one no more than a deck across. */
+/**
+ * Whether marking a module thick would make it any deeper.
+ *
+ * False for one no more than a deck across, since its own width already leaves
+ * it inside a single layer — **except structure**, whose depth comes from what
+ * it is welded to rather than from its own width, so a plate of any size may
+ * be marked. See `ModuleSpec.thick`.
+ */
 export function canThicken(spec: ModuleSpec): boolean {
-  return readsThick(spec.kind) && acrossOf(spec) > DECK_HEIGHT;
+  if (!readsThick(spec.kind)) return false;
+  return spec.kind === 'structure' || acrossOf(spec) > DECK_HEIGHT;
 }
 
 /**
@@ -1321,10 +1354,17 @@ export function canThicken(spec: ModuleSpec): boolean {
  * Across is the smaller of length and width for a box; the width alone for a
  * hull weapon, whose length is mostly barrel; and one nozzle's width for an
  * engine, so each bell is as deep as it is wide. A turret is held to a deck.
+ *
+ * `touching` is the depth of the deepest module this one is welded to, which
+ * only thick structure reads — a plate stands as high as what it covers, and
+ * falls back on its own width when nothing it touches is deeper. `layoutStats`
+ * is what works that out, so a module asked about on its own is as deep as it
+ * is across.
  */
-export function moduleThickness(spec: ModuleSpec): number {
+export function moduleThickness(spec: ModuleSpec, touching = 0): number {
   const across = acrossOf(spec);
-  return isThick(spec) || across < DECK_HEIGHT ? across : DECK_HEIGHT;
+  if (!isThick(spec)) return across < DECK_HEIGHT ? across : DECK_HEIGHT;
+  return across > touching ? across : touching;
 }
 
 function acrossOf(spec: ModuleSpec): number {
@@ -1501,7 +1541,14 @@ function loaded(gun: GunStats, spec: ModuleSpec): GunStats {
   return { ...gun, roundMass, muzzleSpeed };
 }
 
-export function moduleStats(spec: ModuleSpec): ModuleStats {
+/**
+ * The scaling laws, applied. Throws if the module could not exist.
+ *
+ * `touching` is the depth of the deepest module this one is welded to, which
+ * only thick structure reads — see `ModuleSpec.thick`. Everything else derives
+ * from the module alone, so a caller with no layout to hand may leave it out.
+ */
+export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
   const problem = moduleProblem(spec);
   if (problem !== null) throw new Error(`Invalid module — ${problem}`);
 
@@ -1519,7 +1566,7 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
   // it, on all six faces — so a long thin module carries proportionally more
   // wall for the space it encloses, which is the pressure that stops layouts
   // being made of splinters.
-  const height = moduleThickness(spec);
+  const height = moduleThickness(spec, touching);
   const width = spec.width;
   const outer = boxLength * width * height;
   const inner =
@@ -1690,6 +1737,7 @@ export function moduleStats(spec: ModuleSpec): ModuleStats {
         : (boxMass * (spec.length * spec.length + spec.width * spec.width)) / 12 + rodInertia;
 
   return {
+    thickness: height,
     wallThickness,
     wallVolume,
     structureMass,

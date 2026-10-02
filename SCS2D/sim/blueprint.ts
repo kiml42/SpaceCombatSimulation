@@ -4,6 +4,7 @@ import {
   moduleCentre,
   moduleProblem,
   moduleStats,
+  moduleThickness,
   isHullMount,
   inWeaponsLayer,
   isThick,
@@ -510,7 +511,7 @@ export function firingArc(
   modules: readonly ModuleSpec[],
   index: number,
   reach: number,
-  blocks: (module: ModuleSpec) => boolean = () => true,
+  blocks: (module: ModuleSpec, index: number) => boolean = () => true,
   pad = 0,
 ): { left: number; right: number } {
   const mount = modules[index]!;
@@ -523,7 +524,7 @@ export function firingArc(
   for (let i = 0; i < modules.length; i++) {
     if (i === index) continue;
     const other = modules[i]!;
-    if (!blocks(other)) continue;
+    if (!blocks(other, i)) continue;
     const distance = distanceToModule(other, from.x, from.y);
     if (distance > sqrt(reach * reach + pad * pad)) continue;
 
@@ -1358,12 +1359,55 @@ export function compileDraft(blueprint: Blueprint): ShipDesign {
   return designFrom(
     blueprint.name,
     specs,
-    specs.map(moduleStats),
+    layoutStats(specs),
     layoutIndex,
     blueprint.doctrine ?? DEFAULT_DOCTRINE,
     undefined,
     blueprint.fighter === true && fighterProblem(specs) === null,
   );
+}
+
+/**
+ * Every module's figures, measured in the layout they sit in.
+ *
+ * Only one thing a module is makes it ask about its neighbours — thick
+ * structure takes its depth from what it is welded to (`ModuleSpec.thick`) —
+ * so a layout with no thick plate in it costs exactly what measuring each
+ * module on its own costs, and one with a plate pays for the contact test the
+ * connectivity graph already runs.
+ */
+export function layoutStats(specs: readonly ModuleSpec[]): ModuleStats[] {
+  const stats: ModuleStats[] = [];
+  for (let i = 0; i < specs.length; i++) stats.push(statsInLayout(specs, i));
+  return stats;
+}
+
+/** One module's figures, measured in the layout it sits in. */
+export function statsInLayout(specs: readonly ModuleSpec[], i: number): ModuleStats {
+  return moduleStats(specs[i]!, touchingDepth(specs, i));
+}
+
+/**
+ * The depth of the deepest module this one is welded to, or zero where nothing
+ * reads it.
+ *
+ * What a neighbour offers is the depth it has of its *own* — `moduleThickness`
+ * with nothing borrowed — and never one it borrowed itself. That is what stops
+ * depth travelling: a run of plates over a hull each stand as high as the
+ * module under them rather than passing the best one along the run, and the
+ * answer cannot depend on the order the modules happen to be written in.
+ */
+function touchingDepth(specs: readonly ModuleSpec[], i: number): number {
+  const spec = specs[i]!;
+  if (spec.kind !== 'structure' || !isThick(spec)) return 0;
+  let deepest = 0;
+  for (let j = 0; j < specs.length; j++) {
+    if (j === i) continue;
+    const offered = moduleThickness(specs[j]!);
+    if (offered <= deepest) continue;
+    if (contactWidth(spec, specs[j]!) > 0) deepest = offered;
+  }
+  return deepest;
 }
 
 /**
@@ -1491,6 +1535,12 @@ function designFrom(
   comX /= mass;
   comY /= mass;
 
+  // Which modules stand up into the weapons layer, by index: read from the
+  // depth each was measured at rather than from its spec, so a plate that
+  // borrowed its height from the module it covers is in the way of a turret.
+  const raised = (_spec: ModuleSpec, i: number): boolean =>
+    inWeaponsLayer(specs[i]!, stats[i]!.thickness);
+
   const modules: DesignModule[] = [];
   const engines: EngineSpec[] = [];
   const turrets: DesignTurret[] = [];
@@ -1522,7 +1572,18 @@ function designFrom(
       radius = max(radius, sqrt(dx * dx + dy * dy));
     }
 
-    modules.push({ spec, stats: s, x, y, angle, index: layoutIndex[i]!, weaponsLayer: inWeaponsLayer(spec) });
+    modules.push({
+      spec,
+      stats: s,
+      x,
+      y,
+      angle,
+      index: layoutIndex[i]!,
+      // From the depth it was measured at, so a plate that borrowed its height
+      // from the module it covers is cover, and a severed chunk keeps what it
+      // was built with rather than re-deriving it from what is left.
+      weaponsLayer: inWeaponsLayer(spec, s.thickness),
+    });
 
     if (spec.kind === 'core') {
       cores.push(modules.length - 1);
@@ -1596,8 +1657,8 @@ function designFrom(
       // its way: within a barrel's length for where it may train, and at any
       // range for where it may fire. A beam's housing is a stub, so a beam
       // trains nearly freely and its mask does the work.
-      const arc = firingArc(specs, i, gun.barrelLength, inWeaponsLayer, barrelHalfWidth(gun));
-      const mask = triggerMask(specs, i, inWeaponsLayer, shotSpread(gun));
+      const arc = firingArc(specs, i, gun.barrelLength, raised, barrelHalfWidth(gun));
+      const mask = triggerMask(specs, i, raised, shotSpread(gun));
 
       // One drive, so one figure: the rate limit is what this acceleration
       // reaches in the drive's spin-up time.
@@ -1636,16 +1697,19 @@ function designFrom(
   // goes after, because what the ship's reach decides is how close its pilot
   // flies — and the pilot flies at what the hull chose, not at what the
   // point-defence guns are watching for.
-  const expects = (preferredMass: number, gun: GunStats): number =>
-    nominalReach(gun, radius, preferredMass);
+  //
+  // Both as far as each mount's doctrine says it will fire (`fireRange`), so a
+  // ship whose guns hold their fire for a sure thing closes to where it is.
+  const expects = (preferredMass: number, mount: DesignTurret): number =>
+    nominalReach(mount.gun, radius, preferredMass) * mount.targeting.fireRange;
   for (let t = 0; t < turrets.length; t++) {
     const mount = turrets[t]!;
-    turrets[t] = { ...mount, reach: expects(mount.targeting.preferredMass, mount.gun) };
+    turrets[t] = { ...mount, reach: expects(mount.targeting.preferredMass, mount) };
   }
 
   let reach = 0;
   for (const turret of turrets) {
-    reach = max(reach, expects(doctrine.targeting.preferredMass, turret.gun));
+    reach = max(reach, expects(doctrine.targeting.preferredMass, turret));
   }
 
   const weaponEngines: number[] = [];
