@@ -311,7 +311,7 @@ export function capture(
       const ti = ships.turretIndexOf(i, t);
       view.turretBearings[t] = turrets.worldBearing(bodies, ti);
       view.turretReady[t] = turrets.readyToFire(ti);
-      aim[t] = turrets.worldCommand(bodies, ti);
+      aim[t] = turrets.worldTrigger(bodies, ti);
       trigger[t] = turrets.triggerHalfAngle(ti);
       triggerReach[t] = ships.triggerReach(i, t);
       fouled[t] = turrets.fouled(ti);

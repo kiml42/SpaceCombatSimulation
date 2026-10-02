@@ -15,7 +15,9 @@ import { LASER_FRIGATE, TORCH } from './blueprints.js';
  * rule saying so.
  *
  * The frigate is built to fight ships, not strike craft: a big beam on its spine
- * and a few light turrets. Six torches, so it has more than one to deal with.
+ * and a few light turrets. Eight torches, all round it, so it has more than one
+ * to deal with and no side its turrets can face them all from: bunched across
+ * its bow, its guns are on each torch before it arrives and none comes back.
  */
 export function torchRun(seed = 20260905): Battle & { readonly torches: readonly number[]; readonly target: number } {
   return makeBattle({ seed, projectiles: 1024, beams: 64 }, (ships, world) => {
@@ -24,9 +26,10 @@ export function torchRun(seed = 20260905): Battle & { readonly torches: readonly
 
     const torches: number[] = [];
     const DISTANCE = 800;
-    for (let k = 0; k < 6; k++) {
-      // An arc across the frigate's bow, each pointed at it.
-      const bearing = math.PI + (k - 2.5) * 0.25;
+    const COUNT = 8;
+    for (let k = 0; k < COUNT; k++) {
+      // Evenly round the frigate, each pointed at it.
+      const bearing = math.PI + (k - (COUNT - 1) / 2) * (math.TAU / COUNT);
       torches.push(
         ships.spawn(world, {
           design: torch,
