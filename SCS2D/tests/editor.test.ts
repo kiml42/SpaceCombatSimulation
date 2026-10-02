@@ -868,13 +868,19 @@ describe('previewSnapshot', () => {
     expect(drawn[0]![1]).toBeCloseTo(doc.view.modules[0]!.y, 9);
   });
 
-  it('shows a ship at rest, with its guns where they were mounted', () => {
+  it('shows a ship at rest, with its guns where they were mounted and where they would fire', () => {
     const design = new EditorDocument(GUNSHIP).view.design!;
     const snapshot = previewSnapshot(design);
     const view = snapshot.ships[0]!;
     expect(view.throttles.every((t) => t === 0)).toBe(true);
-    expect(view.turretReady.every((r) => r === false)).toBe(true);
     expect(view.turretBearings).toEqual(design.turrets.map((t) => t.mount.restBearing ?? 0));
+    // Each gun's firing wedge, against the enemy its doctrine wants: aimed
+    // along its rest bearing, out to its nominal reach, and on target unless
+    // it rests pointing into its own ship.
+    expect(view.turretAim).toEqual(view.turretBearings);
+    expect(view.turretTriggerReach).toEqual(design.turrets.map((t) => t.reach));
+    expect(view.turretTrigger!.every((half) => half > 0)).toBe(true);
+    expect(view.turretReady).toEqual(view.turretFouled!.map((f) => !f));
     expect(snapshot.projectileCount).toBe(0);
   });
 

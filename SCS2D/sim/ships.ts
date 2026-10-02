@@ -815,6 +815,16 @@ export class Ships {
    * guns are out — which is the whole reason this lives here and not in the
    * renderer, where the cutout would have to be guessed at.
    */
+  /**
+   * How far this mount is worth shooting at what it is aiming at, metres, or 0
+   * when it is aiming at nothing.
+   */
+  triggerReach(i: number, t: number): number {
+    const target = this.turretAiming[i]![t]!;
+    if (target === NO_TARGET || this.alive[target] !== 1) return 0;
+    return reachAgainst(this.designs[i]!.turrets[t]!.gun, this.designs[target]!.radius);
+  }
+
   isTurretDisabled(i: number, t: number): boolean {
     if (this.alive[i] === 0) return true;
     // A sound gun on a piece of hull that came off is still out of the fight:

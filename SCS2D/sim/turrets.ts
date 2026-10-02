@@ -648,6 +648,18 @@ export class Turrets {
     return normalizeAngle(this.bearing[i]! + bodies.angle[this.owner[i]!]!);
   }
 
+  /** The world bearing this turret is being told to point at. */
+  worldCommand(bodies: Bodies, i: number): number {
+    return normalizeAngle(this.commanded[i]! + bodies.angle[this.owner[i]!]!);
+  }
+
+  /** How far off its commanded bearing this turret will fire, radians: `readyToFire`'s test. */
+  triggerHalfAngle(i: number): number {
+    const slack = this.fireSlack[i]!;
+    const tolerance = this.tolerance[i]!;
+    return slack > tolerance ? slack : tolerance;
+  }
+
   /**
    * Where a shot from this turret starts and which way it travels, filled into
    * `out`. One rotation for the mount and one for the barrel, no allocation.

@@ -69,6 +69,16 @@ const TRACER_GLOW = '#ffb2a888';
 const TRACER_INSIDE: string | null = '#ffe6a840';
 const TRACER_GLOW_INSIDE: string | null = null;
 
+/**
+ * Where a gun will fire, faintly: on target and about to, not yet, and pointing
+ * into its own ship where it will not.
+ */
+const TRIGGER_ON = '#ffd76a2e';
+const TRIGGER_OFF = '#9fb6d61a';
+const TRIGGER_FOULED = '#ff5a5a24';
+/** How wide, at its far end, a firing wedge is at least drawn, in pixels either side. */
+const MIN_TRIGGER_PX = 3;
+
 const BEAM = '#3df72c';
 const BEAM_GLOW = '#a8f132';
 
@@ -330,6 +340,25 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
       }
     }
 
+    // Where it will fire: the bearing it is aiming along, as far either side as
+    // it will pull the trigger, out to as far as it is worth shooting at what
+    // it is aiming at. Tinted by whether it would fire now — on target, not
+    // yet, or pointing into its own ship.
+    const triggerReach = ship.turretTriggerReach?.[t] ?? 0;
+    // Floored on screen at its far end, so a gun allowed only a hair either
+    // side still shows which way it will fire.
+    const half = max(ship.turretTrigger?.[t] ?? 0, MIN_TRIGGER_PX / (triggerReach * metresToPx));
+    if (triggerReach > 0 && ship.turretDisabled?.[t] !== true) {
+      const aim = ship.turretAim?.[t] ?? rest;
+      ctx.fillStyle =
+        ship.turretFouled?.[t] === true ? TRIGGER_FOULED : ship.turretReady[t] === true ? TRIGGER_ON : TRIGGER_OFF;
+      ctx.beginPath();
+      ctx.moveTo(mx, my);
+      ctx.arc(mx, my, triggerReach, aim - half, aim + half);
+      ctx.closePath();
+      ctx.fill();
+    }
+
     // The rotating part itself: a disc at the mount, sized to the module it
     // sits in so a heavy mount looks heavy. A hull mount has none — what turns
     // there is a barrel on trunnions, not a ring carrying a house, and a disc
@@ -342,7 +371,6 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
       ctx.fill();
     }
 
-    const ready = ship.turretReady[t] === true;
     const bearing = ship.turretBearings[t] ?? 0;
     const dirX = cos(bearing);
     const dirY = sin(bearing);
@@ -350,7 +378,7 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     const count = gun.barrelCount;
     const spacing = gun.barrelSpacing;
 
-    ctx.strokeStyle = ready ? colours.ready : BARREL;
+    ctx.strokeStyle = BARREL;
     // Twice the calibre: for a gun that is the barrel's outer diameter, the
     // tube the annulus in `moduleStats` charges steel for rather than the bore.
     // For a beam mount it is the housing round the optic rather than the optic

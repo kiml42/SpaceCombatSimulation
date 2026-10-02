@@ -1,4 +1,4 @@
-import { Snapshot, type ShipDesign } from '../sim/index.js';
+import { masked, math, Snapshot, type ShipDesign } from '../sim/index.js';
 
 /**
  * A blueprint as a `Snapshot` the battle renderer can draw.
@@ -68,9 +68,27 @@ export function previewSnapshot(design: ShipDesign, out: Snapshot = new Snapshot
   // rests at the bearing its mount was built at.
   view.turretBearings.length = design.turrets.length;
   view.turretReady.length = design.turrets.length;
+  // Where each gun would fire, against the enemy its doctrine wants: one
+  // standing still relative to it, of the size it prefers, at the furthest it
+  // is worth shooting at that. The gun is taken to be aimed straight at it
+  // from its rest bearing, so the wedge shows what it would be on target for.
+  const aim = (view.turretAim ??= []);
+  const trigger = (view.turretTrigger ??= []);
+  const triggerReach = (view.turretTriggerReach ??= []);
+  const fouled = (view.turretFouled ??= []);
+  aim.length = trigger.length = triggerReach.length = fouled.length = design.turrets.length;
   for (let t = 0; t < design.turrets.length; t++) {
-    view.turretBearings[t] = design.turrets[t]!.mount.restBearing ?? 0;
-    view.turretReady[t] = false;
+    const turret = design.turrets[t]!;
+    const rest = turret.mount.restBearing ?? 0;
+    view.turretBearings[t] = rest;
+    aim[t] = rest;
+    const reach = turret.reach;
+    const enemy = design.radius * math.sqrt(orOne(turret.targeting.preferredMass));
+    trigger[t] = reach > 0 ? math.atan2(enemy, reach) : 0;
+    triggerReach[t] = reach;
+    const mask = turret.mount.mask;
+    fouled[t] = mask !== undefined && mask.length > 0 && masked(mask, 0);
+    view.turretReady[t] = !fouled[t];
   }
 
   // Engines are cold. A design is not running, and a plume drawn on a ship
@@ -94,4 +112,9 @@ export function previewSnapshot(design: ShipDesign, out: Snapshot = new Snapshot
   out.maxY = design.centreOfMassY + design.radius;
 
   return out;
+}
+
+/** A preferred mass, or one where it says none. */
+function orOne(preferredMass: number): number {
+  return preferredMass > 0 ? preferredMass : 1;
 }
