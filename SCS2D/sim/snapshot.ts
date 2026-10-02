@@ -61,6 +61,13 @@ export interface ShipView {
   /** Throttle held by each engine, 0 to 1, in the design's engine order. */
   throttles: number[];
   /**
+   * How far along each of an engine's flames it will fire on what it finds,
+   * metres (0 unless it is a weapon), and whether it is firing now. Optional,
+   * as the turrets' are.
+   */
+  engineTriggerReach?: number[];
+  engineFiring?: boolean[];
+  /**
    * How much of each flame ray landed on a hull last step, as that ray's
    * share of its power — 0 where it met nothing. Every engine's rays in
    * turn, three per nozzle, starting where `plumeRayStarts` says.
@@ -236,6 +243,8 @@ function shipView(snapshot: Snapshot, i: number): ShipView {
     turretTriggerReach: [],
     turretFouled: [],
     throttles: [],
+    engineTriggerReach: [],
+    engineFiring: [],
     landed: [],
     integrity: [],
     hasControl: true,
@@ -310,8 +319,13 @@ export function capture(
     }
 
     view.throttles.length = design.engines.length;
+    const engineReach = (view.engineTriggerReach ??= []);
+    const engineFiring = (view.engineFiring ??= []);
+    engineReach.length = engineFiring.length = design.engines.length;
     for (let t = 0; t < design.engines.length; t++) {
       view.throttles[t] = ships.throttleOf(i, t);
+      engineReach[t] = ships.weaponReach(i, t);
+      engineFiring[t] = ships.isEngineFiring(i, t);
     }
 
     const rays = ships.landedRays(i);

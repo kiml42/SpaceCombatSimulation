@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   blueprintProblem,
+  engineGeometry,
   expandBlueprint,
   expandWithOrigins,
   math,
@@ -11,6 +12,7 @@ import {
   samePlacement,
   parseBlueprint,
   serialiseBlueprint,
+  weaponPlumeReach,
   type AssemblyInstance,
   type Blueprint,
   type ModulePath,
@@ -18,7 +20,7 @@ import {
   type Placement,
   type ShipDesign,
 } from '../sim/index.js';
-import { CORVETTE, GUNSHIP } from '../scenarios/blueprints.js';
+import { CORVETTE, GUNSHIP, TORCH } from '../scenarios/blueprints.js';
 import { EditorDocument } from '../editor/document.js';
 import {
   addModule,
@@ -1421,6 +1423,31 @@ describe('a gun\u2019s trigger range in the editor', () => {
   it('is not given without the ship to size its enemy from', () => {
     const spec: ModuleSpec = { kind: 'turret', x: 0, y: 0, length: 4, width: 4 };
     expect(moduleReadout(spec).gun!.triggerRange).toBeNull();
+  });
+});
+
+describe('a weapon engine in the editor', () => {
+  const doc = new EditorDocument(TORCH);
+  const design = doc.view.design!;
+  const reachOf = (t: number): number => {
+    const engine = design.engines[t]!;
+    return engine.weapon === true
+      ? weaponPlumeReach(engineGeometry(design.modules[engine.module!]!.spec), engine.maxThrust)
+      : 0;
+  };
+
+  it('draws its firing wedge out to where its flame is worth firing, and no other engine has one', () => {
+    const view = previewSnapshot(design).ships[0]!;
+    expect(design.engines.some((e) => e.weapon === true)).toBe(true);
+    expect(view.engineTriggerReach).toEqual(design.engines.map((_, t) => reachOf(t)));
+    expect(view.engineFiring).toEqual(design.engines.map(() => true));
+  });
+
+  it('says how far that is', () => {
+    const rows = doc.view.modules
+      .map((m, i) => moduleReadout(m, doc.view.modules, i, design.radius).rows.find(([k]) => k === 'Fires within'))
+      .filter((r) => r !== undefined);
+    expect(rows.length).toBe(design.weaponEngines.length);
   });
 });
 

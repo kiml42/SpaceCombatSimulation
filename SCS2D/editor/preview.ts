@@ -1,4 +1,4 @@
-import { masked, math, Snapshot, type ShipDesign } from '../sim/index.js';
+import { engineGeometry, masked, math, Snapshot, weaponPlumeReach, type ShipDesign } from '../sim/index.js';
 
 /**
  * A blueprint as a `Snapshot` the battle renderer can draw.
@@ -95,6 +95,20 @@ export function previewSnapshot(design: ShipDesign, out: Snapshot = new Snapshot
   // standing still would be saying something untrue about it.
   view.throttles.length = design.engines.length;
   for (let t = 0; t < design.engines.length; t++) view.throttles[t] = 0;
+  // An engine used as a weapon shows where it would burn at full throttle, as
+  // firing on the enemy its doctrine wants, standing in it.
+  const engineReach = (view.engineTriggerReach ??= []);
+  const engineFiring = (view.engineFiring ??= []);
+  engineReach.length = engineFiring.length = design.engines.length;
+  for (let t = 0; t < design.engines.length; t++) {
+    const engine = design.engines[t]!;
+    const module = design.modules[engine.module ?? -1];
+    engineReach[t] =
+      engine.weapon === true && module !== undefined
+        ? weaponPlumeReach(engineGeometry(module.spec), engine.maxThrust)
+        : 0;
+    engineFiring[t] = true;
+  }
 
   // A design has taken nothing: the editor draws the ship as it would be built,
   // not as one that has been somewhere.

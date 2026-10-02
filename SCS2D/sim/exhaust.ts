@@ -293,6 +293,15 @@ export function exhaustObstruction(
 export const WEAPON_PLUME_SHARE = 0.5;
 
 /**
+ * How far along one flame an engine used as a weapon will fire on what it
+ * finds: the part landing at least `WEAPON_PLUME_SHARE`. Rays fade linearly,
+ * so it is the flame's triangle cut short, and this is its length.
+ */
+export function weaponPlumeReach(geometry: EngineGeometry, force: number): number {
+  return nozzleReach(geometry, force) * (1 - WEAPON_PLUME_SHARE);
+}
+
+/**
  * Where the plumes land, and what that costs whoever is standing in them.
  *
  * Kept apart from `Ships` for the same reason `Impacts` is: the model can be

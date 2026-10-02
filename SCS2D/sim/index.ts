@@ -123,6 +123,7 @@ export {
   collimation,
   plumeIntensity,
   WEAPON_PLUME_SHARE,
+  weaponPlumeReach,
   nozzleReach,
   plumeRays,
   plumeRayStarts,

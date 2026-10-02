@@ -70,13 +70,13 @@ const TRACER_INSIDE: string | null = '#ffe6a840';
 const TRACER_GLOW_INSIDE: string | null = null;
 
 /**
- * Where a gun will fire, faintly: on target and about to, not yet, and pointing
- * into its own ship where it will not.
+ * Where a gun or a weapon engine will fire, faintly: on target and about to,
+ * not yet, and pointing into its own ship where it will not.
  */
 const TRIGGER_ON = '#ffd76a2e';
 const TRIGGER_OFF = '#9fb6d61a';
 const TRIGGER_FOULED = '#ff5a5a24';
-/** The narrowest a firing wedge's sides are drawn, in pixels; a calibre wide otherwise. */
+/** The narrowest a firing wedge's sides are drawn, in pixels; a gun's are a calibre wide otherwise. */
 const MIN_TRIGGER_PX = 3;
 
 const BEAM = '#3df72c';
@@ -414,7 +414,54 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     ctx.stroke();
   }
 
+  drawEngineTriggers(ctx, ship, metresToPx);
   drawPlumes(ctx, ship);
+}
+
+/**
+ * Where each engine used as a weapon will burn: the part of each flame that
+ * lands enough to fire for, tinted as a gun's wedge is.
+ */
+function drawEngineTriggers(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number): void {
+  const reaches = ship.engineTriggerReach;
+  if (reaches === undefined) return;
+  const design = ship.design;
+  ctx.save();
+  ctx.translate(ship.x, ship.y);
+  ctx.rotate(ship.angle);
+  ctx.lineWidth = legibleWidth(0, MIN_TRIGGER_PX, metresToPx);
+  for (let t = 0; t < design.engines.length; t++) {
+    const reach = reaches[t] ?? 0;
+    const engine = design.engines[t]!;
+    const module = design.modules[engine.module ?? -1];
+    if (!(reach > 0) || module === undefined) continue;
+    const tint =
+      (engine.escaping ?? 1) <= 0 ? TRIGGER_FOULED : ship.engineFiring?.[t] === true ? TRIGGER_ON : TRIGGER_OFF;
+    const geometry = engineGeometry(module.spec);
+    const root = -module.spec.length / 2;
+    const half = geometry.exitWidth / 2;
+    ctx.save();
+    ctx.translate(module.x, module.y);
+    ctx.rotate(module.angle);
+    ctx.fillStyle = tint;
+    ctx.strokeStyle = tint;
+    for (let n = 0; n < geometry.nozzles; n++) {
+      const across = nozzleOffset(geometry, n);
+      ctx.beginPath();
+      ctx.moveTo(root, across - half);
+      ctx.lineTo(root - reach, across);
+      ctx.lineTo(root, across + half);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(root, across - half);
+      ctx.lineTo(root - reach, across);
+      ctx.lineTo(root, across + half);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  ctx.restore();
 }
 
 /**

@@ -15,6 +15,7 @@ import {
   isWeaponMount,
   mountTraverse,
   nozzleReach,
+  weaponPlumeReach,
   plumeIntensity,
   shortfall,
   engineGeometry,
@@ -313,6 +314,13 @@ export function moduleReadout(
       `${nozzleReach(engine, stats.thrust).toLocaleString('en-GB', { maximumFractionDigits: 0 })} m, ` +
         `${(plumeIntensity(engine, stats.thrust) / 1000).toLocaleString('en-GB', { maximumFractionDigits: 1 })} kW/m²`,
     ]);
+    // Its firing wedge: the part of the flame worth lighting up for.
+    if (spec.weapon === true) {
+      rows.push([
+        'Fires within',
+        `${weaponPlumeReach(engine, stats.thrust).toLocaleString('en-GB', { maximumFractionDigits: 0 })} m of the nozzle`,
+      ]);
+    }
   }
   const gun = stats.gun;
   return {
