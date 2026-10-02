@@ -625,12 +625,14 @@ export function startEditor(): void {
       assemblyStats.innerHTML = '';
       return;
     }
-    const specs = own.modules.map((index) => doc.view.modules[index]!);
-    const mass = assemblyMass(specs);
+    const mass = assemblyMass(doc.view.modules, own.modules);
     const rows = [['Mass', `${numbers(mass / 1000, 2)} t`]];
     if (outlines.length > 1) {
-      const all = outlines.flatMap((assembly) => assembly.modules).map((i) => doc.view.modules[i]!);
-      rows.push([`All ${outlines.length} copies`, `${numbers(assemblyMass(all) / 1000, 2)} t`]);
+      const all = outlines.flatMap((assembly) => assembly.modules);
+      rows.push([
+        `All ${outlines.length} copies`,
+        `${numbers(assemblyMass(doc.view.modules, all) / 1000, 2)} t`,
+      ]);
     }
     assemblyStats.innerHTML = `<table>${rows
       .map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`)

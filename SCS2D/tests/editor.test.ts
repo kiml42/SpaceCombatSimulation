@@ -2544,7 +2544,7 @@ describe('what an assembly weighs', () => {
       { kind: 'turret', x: 4, y: 9, length: 4, width: 3, barrels: 1 },
     ];
     const each = parts.map((spec) => moduleStats(spec).mass);
-    expect(assemblyMass(parts)).toBeCloseTo(each[0]! + each[1]!, 9);
-    expect(assemblyMass([])).toBe(0);
+    expect(assemblyMass(parts, [0, 1])).toBeCloseTo(each[0]! + each[1]!, 9);
+    expect(assemblyMass(parts, [])).toBe(0);
   });
 });
