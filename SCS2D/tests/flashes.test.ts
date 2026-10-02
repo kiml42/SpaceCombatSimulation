@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   BEAM_FLASH_LIFETIME,
   BURST_FLASH_LIFETIME,
+  BURST_REFERENCE_ENERGY,
+  burstLifetime,
   flashPosition,
   FLASH_REFERENCE_ENERGY,
   FLASH_REFERENCE_RADIUS,
@@ -155,11 +157,19 @@ describe('riding the hull it went off against', () => {
 });
 
 describe('a burst', () => {
+  it('lasts longer the more charge it had, between one frame and six', () => {
+    expect(burstLifetime(BURST_REFERENCE_ENERGY)).toBeCloseTo(BURST_FLASH_LIFETIME, 12);
+    // A Dinky's: under a frame, so it shows once.
+    expect(burstLifetime(2.9e4)).toBeLessThan(1 / 60);
+    // A gunship's main gun: a little longer, never a fireball.
+    expect(burstLifetime(2.3e8)).toBe(0.1);
+  });
+
   it('is a short flash, gone well before a hit\u2019s', () => {
     const flashes = new Flashes();
-    flashes.add(0, 0, FLASH_REFERENCE_ENERGY, 3);
+    flashes.add(0, 0, BURST_REFERENCE_ENERGY, 3);
     flashes.add(0, 0, FLASH_REFERENCE_ENERGY, 0);
-    flashes.step(BURST_FLASH_LIFETIME + 1e-9);
+    flashes.step(burstLifetime(BURST_REFERENCE_ENERGY) + 1e-9);
     expect(flashes.count).toBe(1);
     expect(flashes.kind[0]).toBe(0);
   });

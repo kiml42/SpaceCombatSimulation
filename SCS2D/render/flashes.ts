@@ -30,10 +30,27 @@ export const ROUND_FLASH_LIFETIME = 0.35;
  */
 export const BEAM_FLASH_LIFETIME = 0.1;
 /**
- * A shell's burst: high explosive, so a short bright flash rather than a
- * lasting fireball — about three frames.
+ * A shell's burst of `BURST_REFERENCE_ENERGY`: high explosive, so a short bright
+ * flash rather than a lasting fireball — about three frames.
  */
 export const BURST_FLASH_LIFETIME = 0.05;
+export const BURST_REFERENCE_ENERGY = 1e5;
+/** Seconds longer a burst lasts for each tenfold more charge. */
+const BURST_LIFETIME_PER_DECADE = 0.07;
+/** The shortest a burst lasts: under a frame, so a light shell's shows once. */
+const BURST_MIN_LIFETIME = 0.01;
+/** The longest: a heavy shell's flash, never a fireball. */
+const BURST_MAX_LIFETIME = 0.1;
+
+/**
+ * How long a burst of this energy lasts, seconds: a little longer for each
+ * tenfold more charge, between a single frame and six.
+ */
+export function burstLifetime(energy: number): number {
+  if (!(energy > 0)) return BURST_MIN_LIFETIME;
+  const lifetime = BURST_FLASH_LIFETIME + BURST_LIFETIME_PER_DECADE * Math.log10(energy / BURST_REFERENCE_ENERGY);
+  return Math.min(BURST_MAX_LIFETIME, Math.max(BURST_MIN_LIFETIME, lifetime));
+}
 
 /** The energy a flash is drawn at full size for, joules. */
 export const FLASH_REFERENCE_ENERGY = 1e6;
@@ -158,7 +175,7 @@ export class Flashes {
     this.localY[i] = localY;
     this.radius[i] = radius;
     this.age[i] = 0;
-    this.lifetime[i] = kind === 1 ? BEAM_FLASH_LIFETIME : kind === 3 ? BURST_FLASH_LIFETIME : ROUND_FLASH_LIFETIME;
+    this.lifetime[i] = kind === 1 ? BEAM_FLASH_LIFETIME : kind === 3 ? burstLifetime(energy) : ROUND_FLASH_LIFETIME;
     this.kind[i] = kind;
     this.vx[i] = vx;
     this.vy[i] = vy;
