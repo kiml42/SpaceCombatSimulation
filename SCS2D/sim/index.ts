@@ -183,6 +183,8 @@ export {
   nominalReach,
   fighterProblem,
   compileDraft,
+  layoutStats,
+  statsInLayout,
   expandBlueprint,
   expandWithOrigins,
   firingArc,

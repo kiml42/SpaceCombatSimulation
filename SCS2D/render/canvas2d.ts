@@ -3,7 +3,6 @@ import {
   IMPACT_BEAM,
   IMPACT_BURST,
   isHullMount,
-  isThick,
   math,
   nozzleOffset,
   nozzleReach,
@@ -226,8 +225,11 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
         ? WRECKAGE
         : spec.kind === 'structure'
           ? // Thick structure is drawn in the colour of the mounts and engines,
-            // since it is what stands with them in the weapons layer.
-            isThick(spec)
+            // since it is what stands with them in the weapons layer. Read from
+            // the compiled flag rather than the spec, since a plate that is
+            // thick by borrowing its neighbour's depth is only as high as what
+            // it covers.
+            m.weaponsLayer
             ? colours.trim
             : colours.hull
           : spec.kind === 'core'
