@@ -42,7 +42,7 @@ import {
 import { Projectiles } from './projectiles.js';
 import { Allocation, EngineLayout } from './engines.js';
 import { FiringSolution, Turrets, TurretState } from './turrets.js';
-import type { Targeting } from './doctrine.js';
+import { holdBand, type Targeting } from './doctrine.js';
 import type { World } from './world.js';
 import type { BeamHits, Beams, SpatialGrid } from './index.js';
 import { MAX_BEAM_LENGTH } from './beams.js';
@@ -1323,7 +1323,7 @@ export class Ships {
     const design = this.designs[target]!;
     this.partPoint(bodies, tb, design, part);
     const range = length(this.partAt.x - gunX, this.partAt.y - gunY);
-    if (range <= reachAgainst(mount.gun, moduleRadius(design.modules[part]!.spec))) return part;
+    if (range <= this.reachFor(mount, moduleRadius(design.modules[part]!.spec))) return part;
     if (this.meetsWhole(shells ? layers | HULL_LAYER : layers, target)) return WHOLE_SHIP;
     let middle = part;
     let nearest = Infinity;
@@ -1340,14 +1340,19 @@ export class Ships {
   }
 
   /**
-   * How far a mount is worth firing at a target, aiming at `part` of it: the
-   * size of what it will fire on, which is the whole ship unless its doctrine
-   * minds what it hits.
+   * How far a mount will fire at a target, aiming at `part` of it: against
+   * the size of what it will fire on, which is the whole ship unless its
+   * doctrine minds what it hits, and as far out as its doctrine says.
    */
   private reachOn(mount: DesignTurret, target: number, part: number): number {
     const design = this.designs[target]!;
     const selective = refusesAnything(mount.targeting) && part >= 0 && part < design.modules.length;
-    return reachAgainst(mount.gun, selective ? moduleRadius(design.modules[part]!.spec) : design.radius);
+    return this.reachFor(mount, selective ? moduleRadius(design.modules[part]!.spec) : design.radius);
+  }
+
+  /** How far a mount will fire at something of this radius, metres. */
+  private reachFor(mount: DesignTurret, radius: number): number {
+    return reachAgainst(mount.gun, radius) * mount.targeting.fireRange;
   }
 
   /**
@@ -1718,11 +1723,9 @@ export class Ships {
     // 1,073: the station it is holding is a third of the way inside the ship,
     // so it flies into it, and no amount of keeping clear can save a craft
     // whose orders are to be there.
-    const wanted =
-      this.designs[target]!.radius +
-      min(approach.standoffRadii * this.designs[target]!.radius, approach.standoff * design.reach);
-    standing.minRange = max(0, wanted * (1 - approach.tolerance));
-    standing.maxRange = max(standing.minRange, wanted * (1 + approach.tolerance));
+    const band = holdBand(approach, design.reach, this.designs[target]!.radius);
+    standing.minRange = band.min;
+    standing.maxRange = band.max;
     if (this.ramming[i] !== target && this.rams(i, target)) this.ramming[i] = target;
     standing.ram = this.ramming[i] === target;
     standing.approachSpeed = approach.approachSpeed;

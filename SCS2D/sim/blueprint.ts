@@ -1636,16 +1636,19 @@ function designFrom(
   // goes after, because what the ship's reach decides is how close its pilot
   // flies — and the pilot flies at what the hull chose, not at what the
   // point-defence guns are watching for.
-  const expects = (preferredMass: number, gun: GunStats): number =>
-    nominalReach(gun, radius, preferredMass);
+  //
+  // Both as far as each mount's doctrine says it will fire (`fireRange`), so a
+  // ship whose guns hold their fire for a sure thing closes to where it is.
+  const expects = (preferredMass: number, mount: DesignTurret): number =>
+    nominalReach(mount.gun, radius, preferredMass) * mount.targeting.fireRange;
   for (let t = 0; t < turrets.length; t++) {
     const mount = turrets[t]!;
-    turrets[t] = { ...mount, reach: expects(mount.targeting.preferredMass, mount.gun) };
+    turrets[t] = { ...mount, reach: expects(mount.targeting.preferredMass, mount) };
   }
 
   let reach = 0;
   for (const turret of turrets) {
-    reach = max(reach, expects(doctrine.targeting.preferredMass, turret.gun));
+    reach = max(reach, expects(doctrine.targeting.preferredMass, turret));
   }
 
   const weaponEngines: number[] = [];

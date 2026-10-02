@@ -103,7 +103,7 @@ import {
   SHIP_TARGETING_ROWS,
   type DoctrineRow,
 } from './doctrine.js';
-import { previewSnapshot } from './preview.js';
+import { doctrineBand, previewSnapshot } from './preview.js';
 import { designStats, envelopes, assemblyMass, moduleReadout, type Envelopes } from './stats.js';
 
 /**
@@ -511,6 +511,9 @@ export function startEditor(): void {
     // on a ship with several mounts, and said nothing the module panel does
     // not say better.
     rows.push(['Turrets', `${s.turrets.length}`]);
+    // Against the enemy its own doctrine wants, as the band drawn round it is.
+    const band = doctrineBand(design);
+    rows.push(['Closes to', `${numbers(band.min, 0)}–${numbers(band.max, 0)} m, centre to centre`]);
     statsPanel.innerHTML =
       `<table>${rows.map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join('')}</table>`;
   };

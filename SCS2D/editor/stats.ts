@@ -24,6 +24,7 @@ import {
   defaultTargeting,
   nominalReach,
   resolveTargeting,
+  type GunStats,
   type ModuleSpec,
   type ShipDesign,
 } from '../sim/index.js';
@@ -338,16 +339,15 @@ export function moduleReadout(
             traverseRate: radiansToDegrees(traverseRate(traverseAccel(stats.mass, stats.inertia))),
             // Against what its doctrine goes after, which is sized from the
             // ship carrying it, so it needs the ship.
-            triggerRange:
-              shipRadius > 0
-                ? nominalReach(
-                    gun,
-                    shipRadius,
-                    resolveTargeting(spec.targeting, defaultTargeting(spec.kind)).preferredMass,
-                  )
-                : null,
+            triggerRange: shipRadius > 0 ? fireRangeOf(spec, gun, shipRadius) : null,
           },
   };
+}
+
+/** How far a mount will fire at the enemy its doctrine wants, as its design reach is. */
+function fireRangeOf(spec: ModuleSpec, gun: GunStats, shipRadius: number): number {
+  const targeting = resolveTargeting(spec.targeting, defaultTargeting(spec.kind));
+  return nominalReach(gun, shipRadius, targeting.preferredMass) * targeting.fireRange;
 }
 
 /** How far a mount may train either way, in degrees, given what is around it. */

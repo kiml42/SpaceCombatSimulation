@@ -145,6 +145,7 @@ describe('the editor in a browser', () => {
     // The holding curve is measured through the allocator, so its appearance
     // is also the check that the allocator ran without throwing on load.
     expect(stats).toMatch(/Heading cost/);
+    expect(stats).toMatch(/Closes to\s*\d[\d,]*–\d[\d,]* m/);
     expect(await page.textContent('#problems')).toMatch(/No problems/);
   });
 
