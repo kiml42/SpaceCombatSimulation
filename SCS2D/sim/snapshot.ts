@@ -100,6 +100,8 @@ export class Snapshot {
   /** Steps elapsed, and simulated seconds. */
   tick = 0;
   time = 0;
+  /** Seconds a step of the battle lasts: what a frame is exposed for. */
+  dt = 0;
 
   /**
    * Wells acting on the battle. Held by reference rather than copied: a well
@@ -244,6 +246,7 @@ export function capture(
 
   out.tick = world.tick;
   out.time = world.tick * world.dt;
+  out.dt = world.dt;
   out.wells = wells;
 
   let minX = Infinity;

@@ -20,10 +20,12 @@ import { NEUTRAL, shipColours } from './teams.js';
 
 export { teamColour } from './teams.js';
 import { beamAlpha, BEAM_GLOW_ALPHA, flooredFade, legibleWidth, plumeAlpha } from './strokes.js';
-import { flashFade, flashPosition, type FlashAnchor, type Flashes } from './flashes.js';
+import { flashFade, flashPosition, type Flashes } from './flashes.js';
+import { exposureStart, flashSamples, shutterWeight } from './exposure.js';
+import { sprite } from './sprites.js';
 import { iconAlpha, ICON_OUTLINE, ICON_PX } from './icons.js';
 
-const { cos, sin, max, min, PI, sqrt, TAU } = math;
+const { cos, sin, length, max, min, PI, sqrt, TAU } = math;
 
 /**
  * A Canvas2D view of a snapshot.
@@ -72,16 +74,6 @@ const BEAM_GLOW = '#a8f132';
 
 
 /**
- * Tracer geometry, in seconds of flight per metre of calibre — so a round's
- * streak is as long as a bigger round's is, scaled by how big it is. The glow
- * leads slightly ahead of the round so its nose is visible against whatever it
- * is about to hit.
- */
-const GLOW_LEAD = 0.025;
-const GLOW_STREAK = 0.35;
-const TRACER_STREAK = 0.3;
-
-/**
  * Width of the tracer's halo, in calibres. Proportional to the round rather
  * than a fixed size, so that close up a light round is a small bright thing
  * and a heavy one is a large one — a fixed halo makes every round look the
@@ -124,8 +116,6 @@ const BEAM_FLASH_GLOW = '#8ef04a';
 /** A shell bursting: redder than a hit, since it is fire rather than metal. */
 const BURST_FLASH_CORE = '#fff0c8';
 const BURST_FLASH_GLOW = '#ff7a2e';
-/** Seconds of a moving flash's travel its streak trails behind it. */
-const FLASH_STREAK = 0.01;
 
 const WELL = '#3a4e7a';
 
@@ -645,7 +635,7 @@ export function draw(
 }
 
 /** The ship a flash is riding, or null when nothing in the picture is it. */
-function shipByBody(snapshot: Snapshot, body: number): FlashAnchor | null {
+function shipByBody(snapshot: Snapshot, body: number): ShipView | null {
   if (body < 0) return null;
   for (let i = 0; i < snapshot.shipCount; i++) {
     const ship = snapshot.ships[i]!;
@@ -667,127 +657,146 @@ function drawFlashes(
   flashes: Flashes,
   camera: Camera,
 ): void {
+  // Exposed for the last step, as a camera would photograph it: drawn at
+  // moments through the step, each at the size and brightness it had then and
+  // where it was then relative to the camera, weighted by how open the shutter
+  // was, and summed.
+  const dt = snapshot.dt;
+  const cvx = camera.vx ?? 0;
+  const cvy = camera.vy ?? 0;
+  const floor = MIN_FLASH_PX / camera.scale;
+  const base = ctx.getTransform();
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
   for (let i = 0; i < flashes.count; i++) {
-    const fade = flashFade(flashes.age[i]!, flashes.lifetime[i]!);
-    if (fade <= 0) continue;
     const kind = flashes.kind[i]!;
-    // Floored on screen, so a hit is visible from far enough out to see the
-    // battle it is part of.
-    const radius = max(flashes.radius[i]! * fade, MIN_FLASH_PX / camera.scale);
-    // On the hull it went off against, wherever that hull has got to since.
-    // A ship that has gone leaves its flashes where they happened.
+    const glow = sprite('halo', kind === IMPACT_BEAM ? BEAM_FLASH_GLOW : kind === IMPACT_BURST ? BURST_FLASH_GLOW : FLASH_GLOW);
+    const core = sprite('disc', kind === IMPACT_BEAM ? BEAM_FLASH_CORE : kind === IMPACT_BURST ? BURST_FLASH_CORE : FLASH_CORE);
+    if (glow === null || core === null) continue;
+    const age = flashes.age[i]!;
+    const lifetime = flashes.lifetime[i]!;
+    const opened = max(0, age - dt);
+    const exposure = age - opened;
+    // On the hull it went off against, wherever that hull has got to since,
+    // and moving with it. A ship that has gone leaves its flashes where they
+    // happened, and a burst drifts on at its shell's velocity.
     const anchor = shipByBody(snapshot, flashes.body[i]!);
     const at =
       anchor === null
         ? { x: flashes.x[i]!, y: flashes.y[i]! }
         : flashPosition(flashes.localX[i]!, flashes.localY[i]!, anchor);
-    const x = at.x;
-    const y = at.y;
+    const rvx = (anchor === null ? flashes.vx[i]! : anchor.vx) - cvx;
+    const rvy = (anchor === null ? flashes.vy[i]! : anchor.vy) - cvy;
 
-    // A flash with a velocity of its own — a burst — is streaked behind it
-    // like a tracer, relative to the camera's pace as tracers are. One riding
-    // a hull moves with the hull and stays a disc.
-    const fvx = flashes.vx[i]!;
-    const fvy = flashes.vy[i]!;
-    const moving = anchor === null && (fvx !== 0 || fvy !== 0);
-    const sx = moving ? (fvx - (camera.vx ?? 0)) * FLASH_STREAK : 0;
-    const sy = moving ? (fvy - (camera.vy ?? 0)) * FLASH_STREAK : 0;
-    const glow = kind === IMPACT_BEAM ? BEAM_FLASH_GLOW : kind === IMPACT_BURST ? BURST_FLASH_GLOW : FLASH_GLOW;
-    const core = kind === IMPACT_BEAM ? BEAM_FLASH_CORE : kind === IMPACT_BURST ? BURST_FLASH_CORE : FLASH_CORE;
-    flashBlob(ctx, x, y, sx, sy, radius * 2.2, glow, 0.5 * fade);
-    flashBlob(ctx, x, y, sx, sy, radius, core, 0.9 * fade);
+    const radius = flashes.radius[i]!;
+    const rStart = max(radius * flashFade(opened, lifetime), floor);
+    const rEnd = max(radius * flashFade(age, lifetime), floor);
+    const travelPx = length(rvx, rvy) * exposure * camera.scale;
+    const n = exposure > 0 ? flashSamples(travelPx, (rEnd - rStart) * camera.scale, max(rStart, rEnd) * camera.scale) : 1;
+
+    let total = 0;
+    for (let k = 0; k < n; k++) total += n === 1 ? 1 : shutterWeight((k + 0.5) / n);
+    for (let k = 0; k < n; k++) {
+      const u = n === 1 ? 1 : (k + 0.5) / n;
+      const weight = (n === 1 ? 1 : shutterWeight(u)) / total;
+      const t = opened + u * exposure;
+      const fade = flashFade(t, lifetime);
+      if (fade <= 0 || weight <= 0) continue;
+      const back = age - t;
+      const x = at.x - rvx * back;
+      const y = at.y - rvy * back;
+      // Floored on screen, so a hit is visible from far enough out to see the
+      // battle it is part of.
+      const r = max(radius * fade, floor);
+      ctx.setTransform(base);
+      ctx.globalAlpha = 0.5 * fade * weight;
+      ctx.drawImage(glow, x - 2.2 * r, y - 2.2 * r, 4.4 * r, 4.4 * r);
+      ctx.globalAlpha = 0.9 * fade * weight;
+      ctx.drawImage(core, x - r, y - r, 2 * r, 2 * r);
+    }
   }
   ctx.restore();
 }
 
-/** A disc, or a round-capped streak of that radius trailing back by `(sx, sy)`. */
-function flashBlob(
+/**
+ * Draw a sprite over the stretch a round crossed in the last step: from
+ * `(x0, y0)` to `(x1, y1)`, `width` across, and half a width further at either
+ * end for the round's own size.
+ */
+function drawStreak(
   ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  sx: number,
-  sy: number,
-  radius: number,
-  colour: string,
-  alpha: number,
+  base: DOMMatrix,
+  image: CanvasImageSource,
+  x0: number,
+  y0: number,
+  x1: number,
+  y1: number,
+  width: number,
+  fallbackX: number,
+  fallbackY: number,
 ): void {
-  ctx.globalAlpha = alpha;
-  ctx.beginPath();
-  if (sx === 0 && sy === 0) {
-    ctx.fillStyle = colour;
-    ctx.arc(x, y, radius, 0, TAU);
-    ctx.fill();
-    return;
-  }
-  ctx.strokeStyle = colour;
-  ctx.lineWidth = 2 * radius;
-  ctx.lineCap = 'round';
-  ctx.moveTo(x, y);
-  ctx.lineTo(x - sx, y - sy);
-  ctx.stroke();
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  const travel = length(dx, dy);
+  // Still relative to the camera: the round's own heading, so it is not a
+  // disc turned whichever way.
+  const fallback = length(fallbackX, fallbackY);
+  const ux = travel > 0 ? dx / travel : fallback > 0 ? fallbackX / fallback : 1;
+  const uy = travel > 0 ? dy / travel : fallback > 0 ? fallbackY / fallback : 0;
+  const along = travel + width;
+  // The streak's own frame, composed onto the world's by hand: one call
+  // rather than a reset and a multiply for every round.
+  const a = ux * along;
+  const b = uy * along;
+  const c = -uy * width;
+  const d = ux * width;
+  const e = x0 - ux * width * 0.5;
+  const f = y0 - uy * width * 0.5;
+  ctx.setTransform(
+    base.a * a + base.c * b,
+    base.b * a + base.d * b,
+    base.a * c + base.c * d,
+    base.b * c + base.d * d,
+    base.a * e + base.c * f + base.e,
+    base.b * e + base.d * f + base.f,
+  );
+  ctx.drawImage(image, 0, -0.5, 1, 1);
 }
 
 function drawProjectiles(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Camera) {
-  // Tracers, in two passes so that every glow sits under every streak. Both
-  // are sized from the round's calibre and floored on screen, so a round is
-  // true to size close up and legible from far out. Streak length scales with
-  // calibre too, which makes a heavy shell read as a slower, fatter round than
-  // a light one.
-  //
-  // A stroke per round rather than one path for all of them, which the glow's
-  // translucency notices: two rounds whose glows cross now brighten where they
-  // meet, where a single stroke over one path would have composited once.
-  // Worth it for a halo that is the round's own size, and rare enough not to
-  // read as anything but two tracers crossing.
-  //
-  // Streaks follow a round's motion across the screen rather than through the
-  // world, as a camera's would: relative to the pace the camera follows ships
-  // at, which it keeps while paused so a still frame is not all dots.
+  // Tracers, in two passes so that every glow sits under every streak. Each
+  // is exposed for the last step, as a camera would photograph it: drawn over
+  // the line it crossed relative to the camera, fading in and out towards
+  // either end as the shutter opens and closes. The round has hard sides; its
+  // glow fades out from the line as well. Both are sized from the calibre and
+  // floored on screen, so a round is true to size close up and legible from
+  // far out.
+  const dt = snapshot.dt;
   const cvx = camera.vx ?? 0;
   const cvy = camera.vy ?? 0;
-  ctx.lineCap = 'round';
-  for (let i = 0; i < snapshot.projectileCount; i++) {
-    const colour = snapshot.projectileInside[i] === 1 ? TRACER_GLOW_INSIDE : TRACER_GLOW;
-    if (colour === null) continue;
-    ctx.strokeStyle = colour;
-    const calibre = snapshot.projectileWidth[i]!;
-    const vx = snapshot.projectileVx[i]! - cvx;
-    const vy = snapshot.projectileVy[i]! - cvy;
-    const x = snapshot.projectileX[i]! + vx * GLOW_LEAD * calibre;
-    const y = snapshot.projectileY[i]! + vy * GLOW_LEAD * calibre;
-    ctx.lineWidth = legibleWidth(GLOW_CALIBRES * calibre, MIN_GLOW_PX, camera.scale);
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(
-      x - vx * GLOW_STREAK * calibre,
-      y - vy * GLOW_STREAK * calibre
-    );
-    ctx.stroke();
+  const base = ctx.getTransform();
+  ctx.save();
+  for (let pass = 0; pass < 2; pass++) {
+    const glowPass = pass === 0;
+    for (let i = 0; i < snapshot.projectileCount; i++) {
+      const inside = snapshot.projectileInside[i] === 1;
+      const colour = glowPass ? (inside ? TRACER_GLOW_INSIDE : TRACER_GLOW) : inside ? TRACER_INSIDE : TRACER;
+      if (colour === null) continue;
+      const image = sprite(glowPass ? 'glowStreak' : 'streak', colour);
+      if (image === null) continue;
+      const calibre = snapshot.projectileWidth[i]!;
+      const width = glowPass
+        ? legibleWidth(GLOW_CALIBRES * calibre, MIN_GLOW_PX, camera.scale)
+        : legibleWidth(calibre, MIN_TRACER_PX, camera.scale);
+      const x = snapshot.projectileX[i]!;
+      const y = snapshot.projectileY[i]!;
+      const vx = snapshot.projectileVx[i]!;
+      const vy = snapshot.projectileVy[i]!;
+      const start = exposureStart(x, y, vx, vy, cvx, cvy, dt);
+      drawStreak(ctx, base, image, start.x, start.y, x, y, width, vx, vy);
+    }
   }
-
-  // A pass per round, because each carries its own width. Cheap at the round
-  // counts a battle reaches; if that ever stops being true, bucket by width
-  // rather than reaching for a single average.
-  for (let i = 0; i < snapshot.projectileCount; i++) {
-    const colour = snapshot.projectileInside[i] === 1 ? TRACER_INSIDE : TRACER;
-    if (colour === null) continue;
-    ctx.strokeStyle = colour;
-    const calibre = snapshot.projectileWidth[i]!;
-    const x = snapshot.projectileX[i]!;
-    const y = snapshot.projectileY[i]!;
-    // The round *is* its calibre wide. Twice the calibre is the barrel's outer
-    // diameter — right for the tube, wrong for what comes out of it.
-    ctx.lineWidth = legibleWidth(calibre, MIN_TRACER_PX, camera.scale);
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(
-      x - (snapshot.projectileVx[i]! - cvx) * TRACER_STREAK * calibre,
-      y - (snapshot.projectileVy[i]! - cvy) * TRACER_STREAK * calibre
-    );
-    ctx.stroke();
-  }
+  ctx.restore();
 }
 
 function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Camera) {
