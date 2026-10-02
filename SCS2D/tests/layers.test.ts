@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   barrelHalfWidth,
+  canThicken,
   DECK_HEIGHT,
   Bodies,
   compileBlueprint,
   firingArc,
   inWeaponsLayer,
+  layoutStats,
   isThick,
   masked,
   moduleStats,
@@ -44,10 +46,17 @@ describe('which layer a module is in', () => {
   });
 
   it('leaves a module no more than a deck across in the hull layer, marked or not', () => {
+    // A plate stands as high as what it covers, so on its own — with nothing
+    // to borrow from — being marked changes nothing about a narrow one.
     const narrow: ModuleSpec = { kind: 'structure', x: 0, y: 0, length: 8, width: 3, thick: true };
-    expect(isThick(narrow)).toBe(false);
     expect(inWeaponsLayer(narrow)).toBe(false);
     expect(moduleStats(narrow).mass).toBe(moduleStats({ ...narrow, thick: false }).mass);
+
+    // Nothing but structure may be marked at that size at all.
+    const engine: ModuleSpec = { kind: 'engine', x: 0, y: 0, length: 8, width: 3, thick: true };
+    expect(isThick(engine)).toBe(false);
+    expect(canThicken(engine)).toBe(false);
+    expect(inWeaponsLayer(engine)).toBe(false);
   });
 
   it('is saved where it may be chosen and refused on a turret', () => {
@@ -128,6 +137,58 @@ describe('how thick a module is', () => {
   it('gives a narrow hull weapon nothing to gain by being thick', () => {
     const small: ModuleSpec = { kind: 'hullGun', x: 0, y: 0, length: 12, width: 2 };
     expect(moduleStats({ ...small, thick: true }).gun!.calibre).toBeCloseTo(moduleStats(small).gun!.calibre, 9);
+  });
+});
+
+describe('thick structure takes its depth from what it is welded to', () => {
+  /** A plate narrower than a deck, which has no depth of its own worth having. */
+  const plate = (y: number, thick = true): ModuleSpec =>
+    ({ kind: 'structure', x: 0, y, length: 8, width: 2, thick });
+
+  /** What it covers: a citadel eight metres across, standing well clear of the deck. */
+  const citadel: ModuleSpec = { kind: 'structure', x: 0, y: 0, length: 8, width: 8, thick: true };
+
+  it('stands as high as the module it covers, and is cover in its own right', () => {
+    const [front, behind] = layoutStats([plate(5), citadel]);
+
+    expect(behind!.thickness).toBe(8);
+    expect(front!.thickness).toBe(8);
+    expect(inWeaponsLayer(plate(5), front!.thickness)).toBe(true);
+    // Paid for at that depth: the same plate held to its own width is a
+    // fraction of the wall.
+    expect(front!.mass).toBeGreaterThan(moduleStats(plate(5, false)).mass * 2.5);
+  });
+
+  it('takes nothing from a module it only passes near', () => {
+    const [alone] = layoutStats([plate(20), citadel]);
+
+    expect(alone!.thickness).toBe(2);
+    expect(inWeaponsLayer(plate(20), alone!.thickness)).toBe(false);
+  });
+
+  it('does not pass depth from plate to plate', () => {
+    // A run of plating off the citadel: the one on it stands with it, and the
+    // one beyond that is only as deep as it is wide.
+    const [outer, inner] = layoutStats([plate(7), plate(5), citadel]);
+
+    expect(inner!.thickness).toBe(8);
+    expect(outer!.thickness).toBe(2);
+  });
+
+  it('leaves a plate nobody marked exactly as it was', () => {
+    const [plain] = layoutStats([plate(5, false), citadel]);
+
+    expect(plain!.thickness).toBe(2);
+    expect(plain!.mass).toBeCloseTo(moduleStats(plate(5, false)).mass, 9);
+  });
+
+  it('is cover on a compiled ship only once it is standing', () => {
+    const core: ModuleSpec = { kind: 'core', x: 0, y: 7, length: 2, width: 2 };
+    const low = compileBlueprint({ name: 'Low', modules: [core, plate(5)] });
+    expect(low.modules[1]!.weaponsLayer).toBe(false);
+
+    const standing = compileBlueprint({ name: 'Standing', modules: [core, plate(5), citadel] });
+    expect(standing.modules[1]!.weaponsLayer).toBe(true);
   });
 });
 
