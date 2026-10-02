@@ -899,7 +899,7 @@ export function startEditor(): void {
     // Given the whole layout, so a turret's arc can be worked out from what is
     // around it — the one figure on this panel that is not a property of the
     // module alone.
-    const readout = moduleReadout(spec, doc.view.modules, index);
+    const readout = moduleReadout(spec, doc.view.modules, index, doc.view.design?.radius ?? 0);
     const rows = readout.rows.map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join('');
     const gun =
       readout.gun === null
@@ -910,7 +910,10 @@ export function startEditor(): void {
           `${numbers(readout.gun.roundMass, 1)} kg shell</td></tr>` +
           `<tr><th>Arc</th><td>${numbers(readout.gun.arcRight, 0)}°R–` +
           `${numbers(readout.gun.arcLeft, 0)}°L, trains at ` +
-          `${numbers(readout.gun.traverseRate)} °/s</td></tr>`;
+          `${numbers(readout.gun.traverseRate)} °/s</td></tr>` +
+          (readout.gun.triggerRange == null
+            ? ''
+            : `<tr><th>Fires within</th><td>${numbers(readout.gun.triggerRange, 0)} m of what its doctrine wants</td></tr>`);
     moduleStats.innerHTML = `<table>${rows}${gun}</table>`;
   };
 

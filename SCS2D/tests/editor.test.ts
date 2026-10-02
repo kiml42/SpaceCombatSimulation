@@ -1408,6 +1408,22 @@ describe('a turret’s arc on the module panel', () => {
   });
 });
 
+describe('a gun\u2019s trigger range in the editor', () => {
+  it('is as far as its firing wedge is drawn, against what its doctrine wants', () => {
+    const doc = new EditorDocument(GUNSHIP);
+    const design = doc.view.design!;
+    const ranges = doc.view.modules
+      .map((m, i) => moduleReadout(m, doc.view.modules, i, design.radius).gun?.triggerRange)
+      .filter((r) => r != null);
+    expect(ranges).toEqual(design.turrets.map((t) => t.reach));
+  });
+
+  it('is not given without the ship to size its enemy from', () => {
+    const spec: ModuleSpec = { kind: 'turret', x: 0, y: 0, length: 4, width: 4 };
+    expect(moduleReadout(spec).gun!.triggerRange).toBeNull();
+  });
+});
+
 describe('Demonstration', () => {
   /** A light mount, whose cycle is short enough to watch several rounds of. */
   const popgun = (): ShipDesign =>

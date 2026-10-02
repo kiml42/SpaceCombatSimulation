@@ -179,6 +179,7 @@ export {
   blueprintProblem,
   blueprintProblems,
   compileBlueprint,
+  nominalReach,
   fighterProblem,
   compileDraft,
   expandBlueprint,

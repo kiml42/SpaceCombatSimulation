@@ -76,7 +76,7 @@ const TRACER_GLOW_INSIDE: string | null = null;
 const TRIGGER_ON = '#ffd76a2e';
 const TRIGGER_OFF = '#9fb6d61a';
 const TRIGGER_FOULED = '#ff5a5a24';
-/** How wide, at its far end, a firing wedge is at least drawn, in pixels either side. */
+/** The narrowest a firing wedge's sides are drawn, in pixels; a calibre wide otherwise. */
 const MIN_TRIGGER_PX = 3;
 
 const BEAM = '#3df72c';
@@ -345,18 +345,26 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     // it is aiming at. Tinted by whether it would fire now — on target, not
     // yet, or pointing into its own ship.
     const triggerReach = ship.turretTriggerReach?.[t] ?? 0;
-    // Floored on screen at its far end, so a gun allowed only a hair either
-    // side still shows which way it will fire.
-    const half = max(ship.turretTrigger?.[t] ?? 0, MIN_TRIGGER_PX / (triggerReach * metresToPx));
+    // Its sides are lines a calibre wide, floored on screen, so a gun allowed
+    // only a hair either side still shows which way it will fire.
+    const half = ship.turretTrigger?.[t] ?? 0;
     if (triggerReach > 0 && ship.turretDisabled?.[t] !== true) {
       const aim = ship.turretAim?.[t] ?? rest;
-      ctx.fillStyle =
+      const tint =
         ship.turretFouled?.[t] === true ? TRIGGER_FOULED : ship.turretReady[t] === true ? TRIGGER_ON : TRIGGER_OFF;
+      ctx.fillStyle = tint;
       ctx.beginPath();
       ctx.moveTo(mx, my);
       ctx.arc(mx, my, triggerReach, aim - half, aim + half);
       ctx.closePath();
       ctx.fill();
+      ctx.strokeStyle = tint;
+      ctx.lineWidth = legibleWidth(design.turrets[t]!.gun.calibre, MIN_TRIGGER_PX, metresToPx);
+      ctx.beginPath();
+      ctx.moveTo(mx + cos(aim - half) * triggerReach, my + sin(aim - half) * triggerReach);
+      ctx.lineTo(mx, my);
+      ctx.lineTo(mx + cos(aim + half) * triggerReach, my + sin(aim + half) * triggerReach);
+      ctx.stroke();
     }
 
     // The rotating part itself: a disc at the mount, sized to the module it
