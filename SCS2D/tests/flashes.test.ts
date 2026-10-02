@@ -10,6 +10,7 @@ import {
   flashFade,
   flashRadius,
   flashSize,
+  flashExtent,
   FLASH_BIRTH_SIZE,
 } from '../render/flashes.js';
 
@@ -173,5 +174,14 @@ describe('a flash growing', () => {
     expect(flashSize(0, 1)).toBeCloseTo(FLASH_BIRTH_SIZE, 12);
     expect(flashSize(0.25, 1)).toBeGreaterThan(flashSize(0.1, 1));
     expect(flashSize(1, 1)).toBe(1);
+  });
+});
+
+describe('a blast', () => {
+  it('starts at its full size and spreads as fast as its fragments', () => {
+    expect(flashExtent(2, 650, 0, BURST_FLASH_LIFETIME)).toBe(2);
+    expect(flashExtent(2, 650, 0.01, BURST_FLASH_LIFETIME)).toBeCloseTo(8.5, 12);
+    // Without a growth, it grows by its share of a full size instead.
+    expect(flashExtent(2, 0, 0, 1)).toBeCloseTo(2 * FLASH_BIRTH_SIZE, 12);
   });
 });

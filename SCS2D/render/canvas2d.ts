@@ -20,7 +20,7 @@ import { NEUTRAL, shipColours } from './teams.js';
 
 export { teamColour } from './teams.js';
 import { beamAlpha, BEAM_GLOW_ALPHA, flooredFade, legibleWidth, plumeAlpha } from './strokes.js';
-import { flashFade, flashPosition, flashSize, type Flashes } from './flashes.js';
+import { flashExtent, flashFade, flashPosition, type Flashes } from './flashes.js';
 import { exposureEnds, flashSamples, shutterWeight } from './exposure.js';
 import { sprite } from './sprites.js';
 import { iconAlpha, ICON_OUTLINE, ICON_PX } from './icons.js';
@@ -116,6 +116,10 @@ const BEAM_FLASH_GLOW = '#8ef04a';
 /** A shell bursting: redder than a hit, since it is fire rather than metal. */
 const BURST_FLASH_CORE = '#fff0c8';
 const BURST_FLASH_GLOW = '#ff7a2e';
+/** How far a flash's glow reaches, in its core's radii. */
+const FLASH_GLOW_SHARE = 2.2;
+/** How much of a blast's width its bright core fills; the glow is the rest. */
+const BLAST_CORE_SHARE = 0.45;
 
 const WELL = '#3a4e7a';
 
@@ -671,7 +675,12 @@ function drawFlashes(
   for (let i = 0; i < flashes.count; i++) {
     const kind = flashes.kind[i]!;
     const glow = sprite('halo', kind === IMPACT_BEAM ? BEAM_FLASH_GLOW : kind === IMPACT_BURST ? BURST_FLASH_GLOW : FLASH_GLOW);
-    const core = sprite('disc', kind === IMPACT_BEAM ? BEAM_FLASH_CORE : kind === IMPACT_BURST ? BURST_FLASH_CORE : FLASH_CORE);
+    // A burst is a blast of gas rather than a spot of hot metal, so its core is
+    // soft: as bright in the middle, fading out to its edge.
+    const core = sprite(
+      kind === IMPACT_BURST ? 'halo' : 'disc',
+      kind === IMPACT_BEAM ? BEAM_FLASH_CORE : kind === IMPACT_BURST ? BURST_FLASH_CORE : FLASH_CORE,
+    );
     if (glow === null || core === null) continue;
     const age = flashes.age[i]!;
     const lifetime = flashes.lifetime[i]!;
@@ -694,8 +703,15 @@ function drawFlashes(
     const rvy = (anchor === null ? flashes.vy[i]! : anchor.vy) - cvy;
 
     const radius = flashes.radius[i]!;
-    const rStart = max(radius * flashSize(opened, lifetime), floor);
-    const rEnd = max(radius * flashSize(closed, lifetime), floor);
+    const growth = flashes.growth[i]!;
+    // A blast's glow is its edge, which goes out with its fastest fragments,
+    // and its core sits inside it; a hit's glow is a flare around its core.
+    const blast = growth > 0;
+    const coreShare = blast ? BLAST_CORE_SHARE : 1;
+    const glowShare = blast ? 1 : FLASH_GLOW_SHARE;
+    const start = blast ? radius * FLASH_GLOW_SHARE : radius;
+    const rStart = max(flashExtent(start, growth, opened, lifetime) * coreShare, floor);
+    const rEnd = max(flashExtent(start, growth, closed, lifetime) * coreShare, floor);
     const travelPx = length(rvx, rvy) * exposure * camera.scale;
     const widestPx = 2 * max(rStart, rEnd) * camera.scale;
     const n = flashSamples(travelPx, (rEnd - rStart) * camera.scale, widestPx * 0.5);
@@ -717,10 +733,12 @@ function drawFlashes(
       const y = at.y + rvy * ahead;
       // Floored on screen, so a hit is visible from far enough out to see the
       // battle it is part of.
-      const r = max(radius * flashSize(t, lifetime), floor);
+      const extent = flashExtent(start, growth, t, lifetime);
+      const r = max(extent * coreShare, floor);
+      const g = max(extent * glowShare, floor);
       ctx.setTransform(base);
       ctx.globalAlpha = 0.5 * fade * weight;
-      ctx.drawImage(glow, x - 2.2 * r, y - 2.2 * r, 4.4 * r, 4.4 * r);
+      ctx.drawImage(glow, x - g, y - g, 2 * g, 2 * g);
       ctx.globalAlpha = 0.9 * fade * weight;
       ctx.drawImage(core, x - r, y - r, 2 * r, 2 * r);
     }

@@ -258,6 +258,7 @@ export function start(): void {
         view.impactLocalY[i]!,
         view.impactVx[i]!,
         view.impactVy[i]!,
+        view.impactGrowth[i]!,
       );
     }
     draw(ctx, view, camera, canvas.width, canvas.height, flashes);

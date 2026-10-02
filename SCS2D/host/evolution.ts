@@ -973,6 +973,7 @@ export function startEvolution(): void {
         shot.impactLocalY[i]!,
         shot.impactVx[i]!,
         shot.impactVy[i]!,
+        shot.impactGrowth[i]!,
       );
     }
     draw(ctx, shot, camera, view.width, view.height, flashes);

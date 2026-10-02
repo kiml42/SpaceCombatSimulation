@@ -149,6 +149,7 @@ export class Snapshot {
   impactLocalY = new Float64Array(0);
   impactVx = new Float64Array(0);
   impactVy = new Float64Array(0);
+  impactGrowth = new Float64Array(0);
   impactCount = 0;
 
   /**
@@ -202,6 +203,7 @@ function growImpacts(snapshot: Snapshot, needed: number): void {
   snapshot.impactLocalY = new Float64Array(size);
   snapshot.impactVx = new Float64Array(size);
   snapshot.impactVy = new Float64Array(size);
+  snapshot.impactGrowth = new Float64Array(size);
 }
 
 function shipView(snapshot: Snapshot, i: number): ShipView {
@@ -370,6 +372,7 @@ export function capture(
       out.impactLocalY[i] = impacts.localY[i]!;
       out.impactVx[i] = impacts.vx[i]!;
       out.impactVy[i] = impacts.vy[i]!;
+      out.impactGrowth[i] = impacts.growth[i]!;
     }
     out.impactCount = impacts.count;
     impacts.clear();

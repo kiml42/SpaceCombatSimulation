@@ -55,6 +55,16 @@ export function flashRadius(energy: number): number {
   return Math.min(FLASH_MAX_RADIUS, Math.max(FLASH_MIN_RADIUS, scaled));
 }
 
+/**
+ * How wide a flash is at `age`, metres. One with a `growth` is a blast: its
+ * full size at birth and spreading at that speed, as its fragments do. Any
+ * other grows by `flashSize`.
+ */
+export function flashExtent(radius: number, growth: number, age: number, lifetime: number): number {
+  if (growth > 0) return radius + growth * Math.max(0, age);
+  return radius * flashSize(age, lifetime);
+}
+
 /** The share of its full size a flash starts at. */
 export const FLASH_BIRTH_SIZE = 0.35;
 
@@ -121,6 +131,8 @@ export class Flashes {
   /** Drift, m/s, for a flash that rides nothing. */
   vx = new Float64Array(64);
   vy = new Float64Array(64);
+  /** How fast it spreads, m/s, or 0 for one that grows by `flashSize`. */
+  growth = new Float64Array(64);
   count = 0;
 
   add(
@@ -133,6 +145,7 @@ export class Flashes {
     localY = 0,
     vx = 0,
     vy = 0,
+    growth = 0,
   ): void {
     const radius = flashRadius(energy);
     if (!(radius > 0)) return;
@@ -149,6 +162,7 @@ export class Flashes {
     this.kind[i] = kind;
     this.vx[i] = vx;
     this.vy[i] = vy;
+    this.growth[i] = growth;
   }
 
   /** Age everything by `dt` *simulated* seconds and drop what has burned out. */
@@ -161,6 +175,7 @@ export class Flashes {
       this.y[kept] = this.y[i]! + this.vy[i]! * dt;
       this.vx[kept] = this.vx[i]!;
       this.vy[kept] = this.vy[i]!;
+      this.growth[kept] = this.growth[i]!;
       this.body[kept] = this.body[i]!;
       this.localX[kept] = this.localX[i]!;
       this.localY[kept] = this.localY[i]!;
@@ -194,6 +209,9 @@ export class Flashes {
     vy.set(this.vy);
     this.vx = vx;
     this.vy = vy;
+    const growth = new Float64Array(size);
+    growth.set(this.growth);
+    this.growth = growth;
     x.set(this.x);
     y.set(this.y);
     body.set(this.body);
