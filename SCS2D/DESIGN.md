@@ -165,11 +165,13 @@ inside any one file is not contiguous.
   holding, so a hull that keeps its guns on target brakes on its retros. The `standoff` scenario is the evidence: two fleets a kilometre apart, not one order
   between them, and a battle anyway.
   **Every mount picks its own target**, through the same preferences the hull uses but from the mount's
-  point of view: nothing outside the arc it can train through, and **nothing beyond its own reach** — which
-  is a limit rather than a preference, so a mount with nothing in range trains back to its rest bearing
-  instead of firing at something it cannot hurt, and an order does not repeal it. The same distance bounds
-  the check for a consort in the line of fire, since a friend beyond where the shot goes is in the way of
-  nothing.
+  point of view. **It fires at nothing beyond its own reach**, which is a limit rather than a preference
+  and which an order does not repeal — but it *tracks* such a target, and one outside the arc it can train
+  through, so the barrel is already on it when it closes or comes round. What it can fire on now always
+  outranks what is in reach but behind its own ship or out of its arc, and both outrank what is out of
+  reach. Reach is against what it will fire on: the whole ship, or the part it picked if its doctrine minds
+  what it hits. The same distance bounds the check for a consort in the line of fire, since a friend beyond
+  where the shot goes is in the way of nothing.
   **A gun's reach is a property of the target as much as of the gun.** Against something that does not
   manoeuvre a shot is accurate at any range: the solution is exact and the round merely takes a while. What
   spoils it is the target changing velocity after the trigger, and the spread of where it might then be
@@ -237,7 +239,10 @@ inside any one file is not contiguous.
   capital it could not miss, and a fighter with five degrees of traverse gets its shots away. **Which thing
   has to be hit is the doctrine's own refusals rather than a setting beside them**: the question is whether
   the shot would land on something the weapon is allowed to shoot at, and a mount that has refused nothing
-  is allowed to hit any part of that ship, so anywhere on the hull will do. One that has refused something
+  is allowed to hit any part of that ship, so anywhere on the hull will do — the whole ship's cone, about
+  its middle, whatever part it is aiming at. Further off than that part is worth shooting at, it aims at
+  the middle of the ship instead (or, for a mount whose rounds pass over the deck, the part nearest the
+  middle), and walks onto the part as it closes. One that has refused something
   is sure only of the part it picked, and holds until that is under the muzzle. So a refusal says *mind
   what you hit* in both senses at once, and a beam — which refuses plating — is selective without being
   told twice. It is the trigger and not the aim, so a weapon that fires freely still walks its fire onto

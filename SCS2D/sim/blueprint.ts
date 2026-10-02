@@ -697,8 +697,8 @@ const EVASION_ACCEL = 10;
  * it; what limits it is having to hold the emitter on one spot long enough to
  * burn through, which gets harder the further off the target is.
  *
- * It is a hard limit rather than a preference — a mount ignores what lies
- * beyond it — so it has to be generous enough to cover the fight rather than
+ * It is a hard limit rather than a preference — a mount holds its fire at
+ * what lies beyond it — so it has to be generous enough to cover the fight rather than
  * tuned to where a beam is most effective. Five kilometres is twice the
  * longest a gun turret is willing to shoot at these muzzle velocities, which
  * keeps a beam mount from standing down while the guns beside it are working.

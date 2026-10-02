@@ -210,6 +210,11 @@ export class Turrets {
   rate!: Float64Array;
   /** Bearing being slewed toward, body frame, already clamped to the arc. */
   commanded!: Float64Array;
+  /** Bearing it was asked for, body frame, before the arc clamped it. */
+  wanted!: Float64Array;
+  /** Where the last aim pointed, relative to the mount and led, metres. */
+  aimDx!: Float64Array;
+  aimDy!: Float64Array;
   /**
    * Rate that bearing is itself changing at, body frame — the feed-forward
    * term. Includes the hull's own rotation, negated, so holding a world bearing
@@ -240,6 +245,15 @@ export class Turrets {
    * fact underneath — pointing where it was told — and stays exact.
    */
   fireSlack!: Float64Array;
+  /**
+   * Where the cone `fireSlack` is measured about, radians off `wanted`: the
+   * middle of the ship when the aim is on one of its parts.
+   */
+  fireOffset!: Float64Array;
+  /** How far it is worth firing at what it is aimed at, metres; 0 for nothing. */
+  fireReach!: Float64Array;
+  /** 0 while what it is aimed at is further off than `fireReach`: tracked, not fired on. */
+  inReach!: Uint8Array;
   /**
    * 1 when the last aim command lay outside the traverse arc. The turret slews
    * as close as it can, but a caller must not read `onTarget` as "may fire":
@@ -298,10 +312,16 @@ export class Turrets {
     this.bearing = f64(this.bearing);
     this.rate = f64(this.rate);
     this.commanded = f64(this.commanded);
+    this.wanted = f64(this.wanted);
+    this.aimDx = f64(this.aimDx);
+    this.aimDy = f64(this.aimDy);
     this.commandedRate = f64(this.commandedRate);
     this.onTarget = u8(this.onTarget);
     this.tolerance = f64(this.tolerance);
     this.fireSlack = f64(this.fireSlack);
+    this.fireOffset = f64(this.fireOffset);
+    this.fireReach = f64(this.fireReach);
+    this.inReach = u8(this.inReach);
     this.blocked = u8(this.blocked);
     this.lit = u8(this.lit);
     this.alive = u8(this.alive);
@@ -335,10 +355,16 @@ export class Turrets {
     this.bearing[i] = rest;
     this.rate[i] = 0;
     this.commanded[i] = rest;
+    this.wanted[i] = rest;
+    this.aimDx[i] = 0;
+    this.aimDy[i] = 0;
     this.commandedRate[i] = 0;
     this.onTarget[i] = 1;
     this.tolerance[i] = ON_TARGET_FLOOR;
     this.fireSlack[i] = 0;
+    this.fireOffset[i] = 0;
+    this.fireReach[i] = 0;
+    this.inReach[i] = 1;
     this.blocked[i] = 0;
     this.mask[i] = spec.mask ?? NO_MASK;
     this.lit[i] = 0;
@@ -421,6 +447,7 @@ export class Turrets {
     const b = this.owner[i];
     const wanted = normalizeAngle(worldBearing - bodies.angle[b]!);
     const allowed = this.clampToArc(i, wanted);
+    this.wanted[i] = wanted;
     // A turret pinned against the edge of its arc is not tracking anything, so
     // it should hold that bearing rather than keep sweeping past it.
     const clamped = abs(angleDelta(allowed, wanted)) > this.tolerance[i]!;
@@ -460,18 +487,26 @@ export class Turrets {
   /** Give up and return to the idle bearing, and stop tracking. */
   returnToRest(i: number): void {
     this.setCommand(i, this.restBearing[i]!, 0);
+    this.wanted[i] = this.restBearing[i]!;
     this.blocked[i] = 0;
     this.fireSlack[i] = 0;
+    this.fireOffset[i] = 0;
+    this.fireReach[i] = 0;
+    this.inReach[i] = 1;
   }
 
   /**
-   * How far off the commanded bearing this mount may fire, this step.
+   * How far off the bearing it was asked for this mount may fire, this step,
+   * measured about `offset` from it, and out to `reach` of the `range` it is at.
    *
    * Whoever aims the mount says so, because the answer is the angular size of
    * what it is pointed at and the mount does not know what that is.
    */
-  allowSlack(i: number, radians: number): void {
+  allowSlack(i: number, radians: number, offset = 0, reach = 0, range = 0): void {
     this.fireSlack[i] = radians > 0 ? radians : 0;
+    this.fireOffset[i] = offset;
+    this.fireReach[i] = reach;
+    this.inReach[i] = reach > 0 && range > reach ? 0 : 1;
   }
 
   /**
@@ -563,6 +598,8 @@ export class Turrets {
     const bearingRate = rangeSq > 0 ? (aimX * rvy - aimY * rvx) / rangeSq : 0;
 
     this.commandWorldBearing(bodies, i, atan2(aimY, aimX), bearingRate);
+    this.aimDx[i] = aimX;
+    this.aimDy[i] = aimY;
     this.aimTime[i] = t;
     return t;
   }
@@ -653,7 +690,15 @@ export class Turrets {
     return normalizeAngle(this.commanded[i]! + bodies.angle[this.owner[i]!]!);
   }
 
-  /** How far off its commanded bearing this turret will fire, radians: `readyToFire`'s test. */
+  /**
+   * The middle of the cone this turret will fire in, as a world bearing, and
+   * how far either side of it, radians: `readyToFire`'s test.
+   */
+  worldTrigger(bodies: Bodies, i: number): number {
+    const centre = this.fireSlack[i]! > this.tolerance[i]! ? this.wanted[i]! + this.fireOffset[i]! : this.commanded[i]!;
+    return normalizeAngle(centre + bodies.angle[this.owner[i]!]!);
+  }
+
   triggerHalfAngle(i: number): number {
     const slack = this.fireSlack[i]!;
     const tolerance = this.tolerance[i]!;
@@ -704,11 +749,15 @@ export class Turrets {
    * than a constant, so a gun stops waiting to be trained on the exact centre
    * of something it would hit anywhere. With no slack set it falls back to the
    * mechanical tolerance, which is a mount pointing where it was told.
+   *
+   * The cone is about where it was asked to point rather than where its arc
+   * let it, so a mount held at the end of its arc fires once the edge of a
+   * target comes round into it, and not at the empty sky beside one.
    */
   readyToFire(i: number): boolean {
-    if (this.alive[i] !== 1 || this.blocked[i] === 1 || this.fouled(i)) return false;
-    if (this.onTarget[i] === 1) return true;
+    if (this.alive[i] !== 1 || this.inReach[i] === 0 || this.fouled(i)) return false;
+    if (this.onTarget[i] === 1 && this.blocked[i] === 0) return true;
     const slack = this.fireSlack[i]!;
-    return slack > 0 && abs(angleDelta(this.bearing[i]!, this.commanded[i]!)) <= slack;
+    return slack > 0 && abs(angleDelta(this.bearing[i]!, this.wanted[i]! + this.fireOffset[i]!)) <= slack;
   }
 }

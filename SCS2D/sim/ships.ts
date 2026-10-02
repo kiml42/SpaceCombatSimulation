@@ -659,8 +659,12 @@ export class Ships {
    */
   private readonly standing: Order[] = [];
   private readonly choice = new Choice();
-  /** A mount's pick among what it can point at but not fire at: tracked, trigger held. */
+  /** A mount's pick among what is in reach but it cannot fire at now: tracked, trigger held. */
   private readonly maskedChoice = new Choice();
+  /** And among what is out of reach, so it is already pointed at it when it closes. */
+  private readonly farChoice = new Choice();
+  /** The middle of the last `firingSlack`'s cone, radians off its aim point. */
+  private slackOffset = 0;
 
   /** The wrench `command` decided, body frame, replayed by the force provider. */
   private readonly demandFx: number[] = [];
@@ -824,7 +828,7 @@ export class Ships {
   triggerReach(i: number, t: number): number {
     const target = this.turretAiming[i]![t]!;
     if (target === NO_TARGET || this.alive[target] !== 1) return 0;
-    return reachAgainst(this.designs[i]!.turrets[t]!.gun, this.designs[target]!.radius);
+    return this.turrets.fireReach[this.turretIndex[i]![t]!]!;
   }
 
   isTurretDisabled(i: number, t: number): boolean {
@@ -1200,6 +1204,7 @@ export class Ships {
 
       this.choice.begin();
       this.maskedChoice.begin();
+      this.farChoice.begin();
       for (let e = 0; e < this.alive.length; e++) {
         if (e === i || this.alive[e] === 0) continue;
         if (this.derelict[e] === 1 || !this.hostile(i, e) || !this.hasControl(e)) continue;
@@ -1222,10 +1227,9 @@ export class Ships {
           // for it, however good it looks by every other measure.
           continue;
         }
-        // What it can point at but not fire at is still worth tracking: the
-        // gun is on it the moment the target, or the ship, moves clear.
+        // What it cannot point at or fire at yet is still worth tracking: the
+        // gun is on it the moment the target, or the ship, moves round.
         const towards = bearing(gunX, gunY, tx, ty);
-        if (!this.turrets.bearsOn(bodies, ti, towards)) continue;
         const clear = this.turrets.firesOn(bodies, ti, towards);
         const seen = lookFrom(
           bodies,
@@ -1250,35 +1254,95 @@ export class Ships {
               facing: hookedRange > 0 ? (faceX * (tx - gunX) + faceY * (ty - gunY)) / hookedRange : 1,
             }
           : seen;
-        // Out of reach is out of the question, rather than merely a poor
-        // score. Proximity alone would let a mount with nothing near it pick
-        // something far outside what its own gun is good for and shoot at it
-        // all battle — every round short, and for a beam not even arriving,
-        // since a beam is only cast as far as it is worth casting.
+        // Out of reach is tracked but never preferred to anything in reach,
+        // and never fired on: proximity alone would let a mount shoot at
+        // something far outside what its gun is good for all battle.
         //
         // Against *this* target's size rather than the one the doctrine
         // expects: a capital is worth shooting at from far further off than a
-        // fighter, and a gun that used one figure for both would either let
-        // the fighters alone or waste its shells on them.
-        const against = reachAgainst(mount.gun, this.designs[e]!.radius);
-        if (candidate.range > against) continue;
+        // fighter. A doctrine that minds what it hits fires only on the part
+        // it picked, so its reach is against that part.
+        const against = this.reachOn(
+          mount,
+          e,
+          refusesAnything(doctrine) ? this.aimModule(bodies, mount, layers, e, gunX, gunY, hooked) : WHOLE_SHIP,
+        );
         // A hooked target is alongside, with nothing between to look past.
         const judged =
           !hooked && doctrine.sightWeight !== 0 && !inSight(bodies, gunX, gunY, b, tb)
             ? { ...candidate, clear: false }
             : candidate;
-        (clear ? this.choice : this.maskedChoice).offer(
+        (candidate.range > against ? this.farChoice : clear ? this.choice : this.maskedChoice).offer(
           judged,
           score(doctrine, candidate, against, design.mass, targets[t]!, focus),
         );
       }
-      // Something it can fire at first; only with nothing of that does it
-      // track what its own ship is in front of.
-      targets[t] = this.choice.ship !== NO_TARGET ? this.choice.ship : this.maskedChoice.ship;
-      aims[t] = targets[t] === NO_TARGET
-        ? WHOLE_SHIP
-        : this.aimModule(bodies, mount, layers, targets[t]!, gunX, gunY, bodies.indexOf(this.bodyIds[targets[t]!]!) === b);
+      // Something it can fire at first; then what is in reach but behind its
+      // own ship or out of its arc; then what it will be able to reach.
+      targets[t] =
+        this.choice.ship !== NO_TARGET
+          ? this.choice.ship
+          : this.maskedChoice.ship !== NO_TARGET
+            ? this.maskedChoice.ship
+            : this.farChoice.ship;
+      aims[t] = targets[t] === NO_TARGET ? WHOLE_SHIP : this.choosePart(bodies, b, mount, layers, targets[t]!, gunX, gunY);
+      // Holding something it cannot fire on yet, it looks again soon: what it
+      // can fire on may turn up long before its own reconsidering would.
+      if (this.choice.ship === NO_TARGET && targets[t] !== NO_TARGET) {
+        schedule[t] = world.tick + max(1, round(TURRET_MIN_RETHINK / world.dt));
+      }
     }
+  }
+
+  /**
+   * The part of a target a mount aims at, or the whole ship.
+   *
+   * Further out than the part itself is worth shooting at, when hitting any
+   * of the ship will do, the middle of the ship: more of the shots land, and
+   * closer in, the aim moves onto the part. A mount whose rounds would pass
+   * over the deck there takes the part it can hit nearest the middle instead.
+   */
+  private choosePart(
+    bodies: Bodies,
+    b: number,
+    mount: DesignTurret,
+    layers: number,
+    target: number,
+    gunX: number,
+    gunY: number,
+  ): number {
+    const tb = bodies.indexOf(this.bodyIds[target]!);
+    const hooked = tb === b;
+    const part = this.aimModule(bodies, mount, layers, target, gunX, gunY, hooked);
+    if (part < 0 || hooked || refusesAnything(mount.targeting)) return part;
+    const design = this.designs[target]!;
+    this.partPoint(bodies, tb, design, part);
+    const range = length(this.partAt.x - gunX, this.partAt.y - gunY);
+    if (range <= reachAgainst(mount.gun, moduleRadius(design.modules[part]!.spec))) return part;
+    if (this.meetsWhole(layers, target)) return WHOLE_SHIP;
+    let middle = part;
+    let nearest = Infinity;
+    for (let k = 0; k < design.modules.length; k++) {
+      if (!this.reaches(layers, design, tb, target, k)) continue;
+      const m = design.modules[k]!;
+      const off = m.x * m.x + m.y * m.y;
+      if (off < nearest) {
+        nearest = off;
+        middle = k;
+      }
+    }
+    return middle;
+  }
+
+  /**
+   * How far a mount is worth firing at a target, aiming at `part` of it: the
+   * size of what it will fire on, which is the whole ship unless its doctrine
+   * minds what it hits.
+   */
+  private reachOn(mount: DesignTurret, target: number, part: number): number {
+    const design = this.designs[target]!;
+    const selective = refusesAnything(mount.targeting) && part >= 0 && part < design.modules.length;
+    return reachAgainst(mount.gun, selective ? moduleRadius(design.modules[part]!.spec) : design.radius);
   }
 
   /**
@@ -1508,7 +1572,7 @@ export class Ships {
    */
   private turretAim(bodies: Bodies, i: number, t: number): number {
     const given = this.getCurrentOrder(i);
-    let bearsOnGiven = false;
+    let tracksGiven = false;
     if (given !== undefined && given.target !== NO_TARGET && this.alive[given.target] === 1) {
       const tb = bodies.indexOf(this.bodyIds[given.target]!);
       const b = bodies.indexOf(this.bodyIds[i]!);
@@ -1517,14 +1581,14 @@ export class Ships {
         this.locateMount(bodies, b, this.designs[i]!.turrets[t]!);
         const towards = bearing(this.gunPoint.x, this.gunPoint.y, bodies.x[tb]!, bodies.y[tb]!);
         if (this.turrets.firesOn(bodies, ti, towards)) return given.target;
-        bearsOnGiven = this.turrets.bearsOn(bodies, ti, towards);
+        tracksGiven = true;
       }
     }
     const own = this.turretTarget[i]![t]!;
     if (own !== NO_TARGET && this.alive[own] === 1) return own;
-    // Nothing else to do: track the order where it may not fire, so the gun is
-    // on it as it comes clear.
-    return bearsOnGiven ? given!.target : NO_TARGET;
+    // Nothing else to do: track the order where it may not fire, or cannot
+    // point, so the gun is on it as it comes clear or round.
+    return tracksGiven ? given!.target : NO_TARGET;
   }
 
   /**
@@ -1854,9 +1918,7 @@ export class Ships {
             i,
             bodyIdx,
             gun,
-            target === NO_TARGET
-              ? design.turrets[t]!.reach
-              : reachAgainst(gun, this.designs[target]!.radius),
+            target === NO_TARGET ? design.turrets[t]!.reach : this.turrets.fireReach[ti]!,
             target,
             this.mountLayers(i, design.turrets[t]!),
           )
@@ -2512,17 +2574,9 @@ export class Ships {
         this.turrets.returnToRest(ti);
         continue;
       }
-      // And still in reach. The choice above is only remade every rethink, and
-      // an order does not repeal arithmetic: a target that has opened past
-      // what this gun can do is one there is no point holding.
+      // Tracked whether or not it is in reach, so the gun is already on it
+      // when it closes; the trigger is held until it is (`allowSlack`).
       this.locateMount(bodies, own, mounts[t]!);
-      if (
-        length(bodies.x[tb]! - this.gunPoint.x, bodies.y[tb]! - this.gunPoint.y) >
-        reachAgainst(mounts[t]!.gun, this.designs[target]!.radius)
-      ) {
-        this.turrets.returnToRest(ti);
-        continue;
-      }
       // Where on it: a part, when the doctrine has an opinion about parts and
       // that part is still there, and otherwise the ship.
       //
@@ -2562,11 +2616,13 @@ export class Ships {
       // is the hull's.
       let sweepVx = bodies.vx[tb]!;
       let sweepVy = bodies.vy[tb]!;
+      let rx = 0;
+      let ry = 0;
       if (part !== WHOLE_SHIP) {
         const angle = bodies.angle[tb]!;
         const module = design.modules[part]!;
-        const rx = module.x * cos(angle) - module.y * sin(angle);
-        const ry = module.x * sin(angle) + module.y * cos(angle);
+        rx = module.x * cos(angle) - module.y * sin(angle);
+        ry = module.x * sin(angle) + module.y * cos(angle);
         const spin = bodies.angularVel[tb]!;
         x += rx;
         y += ry;
@@ -2574,9 +2630,16 @@ export class Ships {
         sweepVy += spin * rx;
       }
       this.turrets.aimAt(bodies, ti, x, y, bodies.vx[tb]!, bodies.vy[tb]!, sweepVx, sweepVy);
+      const slack = this.firingSlack(mounts[t]!.targeting, target, part, this.turrets.aimDx[ti]!, this.turrets.aimDy[ti]!, rx, ry);
+      // In reach of what it will fire on: the part it picked if it minds what
+      // it hits, and otherwise the ship, from its middle.
+      const selective = refusesAnything(mounts[t]!.targeting) && part !== WHOLE_SHIP;
       this.turrets.allowSlack(
         ti,
-        this.firingSlack(bodies, mounts[t]!.targeting, target, tb, part, x, y),
+        slack,
+        this.slackOffset,
+        this.reachOn(mounts[t]!, target, part),
+        selective ? length(x - this.gunPoint.x, y - this.gunPoint.y) : length(x - rx - this.gunPoint.x, y - ry - this.gunPoint.y),
       );
     }
   }
@@ -2600,12 +2663,10 @@ export class Ships {
    * that part is under the muzzle. A refusal therefore says two things at
    * once, and they are the same thing — *mind what you hit*.
    *
-   * Where the ship will do, the allowance is measured from the ship's centre
-   * rather than from the part, so a mount aiming at something out on a wing
-   * is not thereby allowed to shoot a ship's width past it: what is returned
-   * is the distance from the aim point to the nearer edge of the ship's cone,
-   * which is the most that can be allowed symmetrically and still land on the
-   * hull.
+   * Where the ship will do, the cone is the whole ship's, about its middle,
+   * whatever part the aim is on: `slackOffset` says how far that middle is off
+   * the aim point. A gun aiming at a wing fires once anywhere on the hull is
+   * under the muzzle.
    *
    * Approximate on purpose, and in the forgiving direction: a bounding circle
    * is not a silhouette, so a target seen end-on is taken to be as wide as it
@@ -2616,30 +2677,32 @@ export class Ships {
    * would land on, rather than whether any of them might be refused.
    */
   private firingSlack(
-    bodies: Bodies,
     doctrine: Targeting,
     target: number,
-    tb: number,
     part: number,
     aimX: number,
     aimY: number,
+    partX: number,
+    partY: number,
   ): number {
+    this.slackOffset = 0;
     const design = this.designs[target]!;
-    const range = length(aimX - this.gunPoint.x, aimY - this.gunPoint.y);
+    const range = length(aimX, aimY);
     if (!(range > 0)) return 0;
-    const partRadius =
-      part === WHOLE_SHIP ? design.radius : moduleRadius(design.modules[part]!.spec);
-    const slack = atan2(partRadius, range);
 
     // Selective, so the part it picked is the whole of what it will accept.
-    if (refusesAnything(doctrine)) return slack;
+    if (refusesAnything(doctrine) && part !== WHOLE_SHIP) {
+      return atan2(moduleRadius(design.modules[part]!.spec), range);
+    }
 
-    // How much of the ship's own cone is left once the aim point has been
-    // walked off its centre, which is what keeps a loose shot on the hull.
-    const offset = length(aimX - bodies.x[tb]!, aimY - bodies.y[tb]!);
-    const reach = design.radius - offset;
-    const loose = reach > 0 ? atan2(reach, range) : 0;
-    return loose > slack ? loose : slack;
+    // Otherwise the whole ship's cone, about its middle: where the aim is,
+    // less where the part sits on the hull, led alike.
+    const cx = aimX - partX;
+    const cy = aimY - partY;
+    const centre = length(cx, cy);
+    if (!(centre > 0)) return 0;
+    this.slackOffset = angleDelta(atan2(aimY, aimX), atan2(cy, cx));
+    return atan2(design.radius, centre);
   }
 
   /**
