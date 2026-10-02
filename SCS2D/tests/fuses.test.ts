@@ -4,6 +4,8 @@ import {
   chargeShare,
   DEFAULT_BURST_SPEED,
   EXPLOSIVE_DENSITY,
+  IMPACT_BURST,
+  Impacts,
   Beams,
   BeamHits,
   blueprintFileProblem,
@@ -23,6 +25,7 @@ import {
   type Blueprint,
 } from '../sim/index.js';
 import { OrderCancelCondition } from '../sim/ships.js';
+import { EXPLOSIVE_YIELD } from '../sim/modules.js';
 import { TURRET_CORVETTE } from './fixtures.js';
 import { mutate } from '../evolution/mutate.js';
 
@@ -77,6 +80,24 @@ describe('a fused round', () => {
     let area = 0;
     for (const i of live(rounds)) area += rounds.width[i]! ** 2;
     expect(area).toBeCloseTo(0.7 * 0.4 ** 2, 12);
+  });
+
+  it('logs a flash where it burst, as bright as its charge', () => {
+    const rounds = new Projectiles(64);
+    const bodies = new Bodies();
+    const grid = new SpatialGrid(64);
+    grid.rebuild(bodies);
+    rounds.spawn({ x: 0, y: 0, vx: 600, vy: 0, width: 0.4, ttl: 30, mass: 8, casing: 6, fuse: 0.1, spread: 50, fragmentLife: 1, fragments: 8 });
+    const impacts = new Impacts();
+    const rng = new Rng(3);
+    for (let t = 0; t < 0.1 + 2 * DT; t += DT) {
+      rounds.step(DT, bodies, grid, new ProjectileHits(), undefined, undefined, rng);
+      impacts.bursts(rounds);
+    }
+    expect(impacts.log.count).toBe(1);
+    expect(impacts.log.kind[0]).toBe(IMPACT_BURST);
+    // Eight kilograms, six of them casing: two of charge.
+    expect(impacts.log.energy[0]).toBeCloseTo(2 * EXPLOSIVE_YIELD, 3);
   });
 
   it('flies on whole with one fragment or none', () => {

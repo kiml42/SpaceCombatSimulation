@@ -288,6 +288,7 @@ export {
   Damage,
   DamageEffect,
   IMPACT_BEAM,
+  IMPACT_BURST,
   IMPACT_COLLISION,
   IMPACT_ROUND,
   ImpactLog,

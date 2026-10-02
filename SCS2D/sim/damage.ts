@@ -8,7 +8,7 @@ import { NOT_INSIDE, type ProjectileHits, type Projectiles } from './projectiles
 import type { BeamHits, Beams } from './beams.js';
 import { RESTITUTION, type Contacts } from './collision.js';
 import { cos, max, min, sin, sqrt } from './math.js';
-import type { ModuleSpec } from './modules.js';
+import { EXPLOSIVE_YIELD, type ModuleSpec } from './modules.js';
 
 /**
  * What a hit does to the ship it landed on.
@@ -920,6 +920,8 @@ export const IMPACT_ROUND = 0;
 export const IMPACT_BEAM = 1;
 /** Two hulls meeting. Drawn like a round's: a flash, not a glow. */
 export const IMPACT_COLLISION = 2;
+/** A shell bursting, in open space or not. */
+export const IMPACT_BURST = 3;
 
 /**
  * Resolving a step's impacts: what each hit does, and a log of them to draw.
@@ -1195,6 +1197,13 @@ export class Impacts {
    * severing: what a ram breaks off should be broken off a hull that has
    * already taken the ram's damage.
    */
+  /** Log this step's shell bursts, each as bright as its charge's energy. */
+  bursts(projectiles: Projectiles): void {
+    for (let k = 0; k < projectiles.burstCount; k++) {
+      this.log.push(projectiles.burstX[k]!, projectiles.burstY[k]!, projectiles.burstCharge[k]! * EXPLOSIVE_YIELD, IMPACT_BURST);
+    }
+  }
+
   /**
    * Given `credit`, each hull is credited with what it did to the other, so a
    * ram pays for what it breaks as well as costing what it takes.

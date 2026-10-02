@@ -1,5 +1,7 @@
 import {
   hullMountGeometry,
+  IMPACT_BEAM,
+  IMPACT_BURST,
   isHullMount,
   isThick,
   math,
@@ -119,6 +121,9 @@ const FLASH_GLOW = '#ffb257';
 /** A beam's, which reads as the beam's own colour boiling the hull away. */
 const BEAM_FLASH_CORE = '#eaffd9';
 const BEAM_FLASH_GLOW = '#8ef04a';
+/** A shell bursting: redder than a hit, since it is fire rather than metal. */
+const BURST_FLASH_CORE = '#fff0c8';
+const BURST_FLASH_GLOW = '#ff7a2e';
 
 const WELL = '#3a4e7a';
 
@@ -665,7 +670,7 @@ function drawFlashes(
   for (let i = 0; i < flashes.count; i++) {
     const fade = flashFade(flashes.age[i]!, flashes.lifetime[i]!);
     if (fade <= 0) continue;
-    const beam = flashes.kind[i] === 1;
+    const kind = flashes.kind[i]!;
     // Floored on screen, so a hit is visible from far enough out to see the
     // battle it is part of.
     const radius = max(flashes.radius[i]! * fade, MIN_FLASH_PX / camera.scale);
@@ -679,13 +684,13 @@ function drawFlashes(
     const x = at.x;
     const y = at.y;
 
-    ctx.fillStyle = beam ? BEAM_FLASH_GLOW : FLASH_GLOW;
+    ctx.fillStyle = kind === IMPACT_BEAM ? BEAM_FLASH_GLOW : kind === IMPACT_BURST ? BURST_FLASH_GLOW : FLASH_GLOW;
     ctx.globalAlpha = 0.5 * fade;
     ctx.beginPath();
     ctx.arc(x, y, radius * 2.2, 0, TAU);
     ctx.fill();
 
-    ctx.fillStyle = beam ? BEAM_FLASH_CORE : FLASH_CORE;
+    ctx.fillStyle = kind === IMPACT_BEAM ? BEAM_FLASH_CORE : kind === IMPACT_BURST ? BURST_FLASH_CORE : FLASH_CORE;
     ctx.globalAlpha = 0.9 * fade;
     ctx.beginPath();
     ctx.arc(x, y, radius, 0, TAU);
