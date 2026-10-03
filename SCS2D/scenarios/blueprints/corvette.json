@@ -11,6 +11,8 @@
     },
     "approach": {
       "standoffRadii": 30,
+      "standoff": 0.7,
+      "tolerance": 0.6,
       "ramRadii": 60
     }
   },
@@ -99,14 +101,16 @@
     },
     {
       "kind": "hullGun",
-      "x": 9.75,
+      "x": 13,
       "y": 0,
       "angle": 0,
-      "length": 6.5,
+      "length": 13,
       "width": 4,
       "barrels": 2,
-      "nozzle": 0.615385,
+      "barrelCalibres": 50,
       "traverse": 15,
+      "fuse": 0.04,
+      "burstSpeed": 200,
       "targeting": {
         "facingWeight": 100,
         "sightWeight": 50,
