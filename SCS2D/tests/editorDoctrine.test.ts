@@ -110,7 +110,7 @@ describe('what the panel shows of a ship’s doctrine', () => {
     expect(said('standoffRadii')).toBe(`${(DEFAULT_DOCTRINE.approach.standoffRadii * 60).toLocaleString('en-GB')} m off the skin of the size it wants`);
     const band = holdBand(v.approach, ship.reach, 60);
     expect(said('tolerance')).toBe(`holds ${Math.round(band.min).toLocaleString('en-GB')} m–${Math.round(band.max).toLocaleString('en-GB')} m, centre to centre`);
-    expect(said('escortMinRadii')).toBe('covers ships of 30 m radius or more');
+    expect(said('escortMinRadii')).toBe('covers friends of 30 m radius or more');
     expect(said('ramRadii')).toBe('within 120 m of the skin of the size it wants');
     expect(said('ramArmed')).toBe('with 2 of 4 guns working, or fewer');
     expect(said('accelerate')).toBe(`≈ ${(DEFAULT_DOCTRINE.approach.accelerate * 4).toFixed(2)} m/s² ahead`);

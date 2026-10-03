@@ -59,7 +59,7 @@ const APPROACH_ROWS: readonly DoctrineRow[] = [
   { field: 'standoffRadii', label: 'standoff', hint: "How close to get, in multiples of the target's own radius", step: 5 },
   { field: 'standoff', label: 'range cap', hint: 'The furthest it will hold, as a fraction of its own reach', step: 0.05 },
   { field: 'escortRadii', label: 'escort range', hint: 'How close to sit to what it is covering, in multiples of that ship’s radius', step: 1 },
-  { field: 'escortMinRadii', label: 'smallest covered', hint: 'The smallest friend it will cover, in multiples of its own radius: 0 covers anything, 1 only what is at least its own size', step: 0.1 },
+  { field: 'escortMinRadii', label: 'smallest covered', hint: 'The smallest friend it will cover, in multiples of its own radius: 1 only what is at least its own size, 0 anything. A neutral objective is gone to whatever its size', step: 0.1 },
   { field: 'escort', label: 'escort cap', hint: 'The furthest it will stray from what it is covering, as a fraction of its own reach', step: 0.05 },
   { field: 'separation', label: 'keeps clear', hint: 'How much it wants to stay out of everybody’s way', step: 25 },
   { field: 'separationRadii', label: 'clearance', hint: 'How close is too close, in multiples of the gap between two hulls’ skins', step: 0.5 },
@@ -221,8 +221,8 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
               absolute: (v, ship) =>
                 field === 'escortMinRadii'
                   ? v.approach.escortMinRadii > 0
-                    ? `covers ships of ${metres(v.approach.escortMinRadii * ship.radius)} radius or more`
-                    : 'covers any size'
+                    ? `covers friends of ${metres(v.approach.escortMinRadii * ship.radius)} radius or more`
+                    : 'covers friends of any size'
                   : field === 'escortRadii'
                     ? `${metres(v.approach.escortRadii * ship.radius)} off the skin of a consort its own size`
                     : ship.reach > 0

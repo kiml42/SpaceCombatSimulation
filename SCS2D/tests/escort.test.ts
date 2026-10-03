@@ -175,10 +175,11 @@ describe('escort and neutrals', () => {
     expect(covering).toBeLessThan(alone / 2);
   });
 
-  it('covers nothing smaller than it will bother with', () => {
-    // The same escort, told to cover only what is at least its own size: the
-    // marker is a fraction of a corvette's radius, so it goes to the fight
-    // as though there were nothing to cover.
+  it('covers no friend smaller than it will bother with', () => {
+    // The same escort, told to cover only what is at least its own size: a
+    // friendly marker is a fraction of a corvette's radius, so it goes to the
+    // fight as though there were nothing to cover. Told to cover anything, it
+    // stays with it.
     function fly(escortMinRadii: number): number {
       const consort = compileBlueprint(MARKER);
       const base = escorting(CORVETTE, 400);
@@ -190,7 +191,7 @@ describe('escort and neutrals', () => {
       const enemy = compileBlueprint(GUNSHIP);
       const battle = makeBattle({ seed: 5, projectiles: 512 }, (ships, world) => {
         const covering = ships.spawn(world, { design: escort, x: 0, y: 0, angle: 0, team: 0 });
-        const charge = ships.spawn(world, { design: consort, x: 0, y: 300, team: NEUTRAL_TEAM });
+        const charge = ships.spawn(world, { design: consort, x: 0, y: 300, team: 0 });
         ships.spawn(world, { design: enemy, x: 2500, y: 0, angle: math.PI, team: 1 });
         return { covering, charge };
       });

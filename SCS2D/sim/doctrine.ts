@@ -226,9 +226,10 @@ export interface Approach {
    */
   readonly escort: number;
   /**
-   * The smallest friend it will cover, in multiples of its own radius. Zero
-   * covers anything; one only what is at least its own size, so a capital
-   * does not trail round after a fighter it happens to be nearest.
+   * The smallest friend it will cover, in multiples of its own radius: one,
+   * the default, only what is at least its own size, so a capital does not
+   * trail round after a fighter it happens to be nearest; zero anything. A
+   * neutral objective is gone to whatever its size.
    */
   readonly escortMinRadii: number;
   /**
@@ -333,7 +334,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     standoff: 0.65,
     escortRadii: 8,
     escort: 0.15,
-    escortMinRadii: 0,
+    escortMinRadii: 1,
     separation: 300,
     separationRadii: 3,
     tolerance: 0.2,
