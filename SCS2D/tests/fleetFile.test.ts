@@ -3,6 +3,7 @@ import {
   blueprintProblem,
   expandFleet,
   fleetFileProblem,
+  fleetWarnings,
   math,
   parseFleet,
   serialiseBlueprint,
@@ -45,15 +46,12 @@ describe('the fleet file format', () => {
   });
 
   it.each([
-    ['an unknown key', file({ colour: 'red' }), /unknown key colour/],
     ['a wrong version', file({ formatVersion: 2 }), /formatVersion/],
     ['an unknown design', file({ ships: [{ design: 'Nope', x: 0, y: 0 }] }), /no design named Nope/],
     ['an unknown group', file({ ships: [{ group: 'Nope', x: 0, y: 0 }] }), /no group named Nope/],
     ['both design and group', file({ ships: [{ design: 'Dinky', group: 'Wing', x: 0, y: 0 }] }), /both/],
     ['a missing position', file({ ships: [{ design: 'Dinky', x: 0 }] }), /y must be/],
     ['a repeat that is not a whole number', file({ ships: [{ design: 'Dinky', x: 0, y: 0, repeat: 1.5 }] }), /repeat/],
-    ['a step with an unknown key', file({ ships: [{ design: 'Dinky', x: 0, y: 0, step: { x: 0, y: 1, z: 2 } }] }), /unknown key z/],
-    ['a mirrored single ship', file({ ships: [{ design: 'Dinky', x: 0, y: 0, mirror: true }] }), /unknown key mirror/],
     ['a design named differently inside', file({ designs: { Big: serialiseBlueprint(GUNSHIP) } }), /named "Gunship"/],
     ['a broken design', file({ designs: { Dinky: { formatVersion: 1, name: 'Dinky' } } }), /design Dinky: modules/],
     [
@@ -64,6 +62,20 @@ describe('the fleet file format', () => {
   ])('refuses %s', (_what, raw, message) => {
     expect(fleetFileProblem(raw)).toMatch(message);
     expect(() => parseFleet(raw)).toThrow(message);
+  });
+
+  it.each([
+    ['an unknown key', file({ colour: 'red' }), /the file has a key[^\n]*colour/],
+    ['a step with an unknown key', file({ ships: [{ design: 'Dinky', x: 0, y: 0, step: { x: 0, y: 1, z: 2 } }] }), /ships\[0\]: step has a key[^\n]*z/],
+    ['a mirrored single ship', file({ ships: [{ design: 'Dinky', x: 0, y: 0, mirror: true }] }), /ships\[0\] has a key[^\n]*mirror/],
+    ['a design with an unknown key', file({ designs: { ...designs, Dinky: { ...designs.Dinky, colour: 'red' } } }), /design Dinky: the file has a key[^\n]*colour/],
+  ])('opens %s, warns of it, and writes it back', (_what, raw, warning) => {
+    // A typo in a hand-edited file is a thing to be told about, not a reason
+    // to refuse the whole fleet.
+    expect(fleetFileProblem(raw)).toBeNull();
+    const fleet = parseFleet(raw);
+    expect(fleetWarnings(fleet).join('\n')).toMatch(warning);
+    expect(serialiseFleet(fleet)).toEqual(raw);
   });
 
   it('refuses a fleet whose groups multiply past the cap', () => {

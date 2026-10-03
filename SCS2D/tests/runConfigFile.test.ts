@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   parseRunConfig,
   runConfigFileProblem,
+  runConfigWarnings,
   serialiseRunConfig,
   RUN_CONFIG_FORMAT_VERSION,
 } from '../evolution/configFile.js';
@@ -90,15 +91,12 @@ describe('the run config file', () => {
       [null, /must be an object/],
       [[], /must be an object/],
       [{ formatVersion: 99 }, /formatVersion/],
-      [{ populaton: 4 }, /unknown key populaton/],
       [{ population: 0 }, /at least one/],
       [{ population: 2.5 }, /whole number/],
       [{ seed: 'one' }, /seed must be a finite number/],
       [{ massBudget: -1 }, /more than nothing/],
       [{ founders: 'Corvette' }, /list of ship names/],
-      [{ kinds: { engines: 1 } }, /unknown kind engines/],
       [{ kinds: { engine: -1 } }, /zero or more/],
-      [{ match: { durations: 10 } }, /unknown key durations/],
       [{ match: { duration: 0 } }, /more than nothing/],
       [{ match: { goal: { x: 0, y: 0, scale: 1 } } }, /missing size/],
       [{ match: { goal: { x: 0, y: 0, scale: 1, size: 1, solid: 'no' } } }, /solid must be true or false/],
@@ -109,6 +107,22 @@ describe('the run config file', () => {
       expect(problem, JSON.stringify(value)).toMatch(expected);
       expect(() => parseRunConfig(value)).toThrow();
     }
+  });
+
+  it('opens a file with a key it does not know, and says so', () => {
+    // A typo in a hand-edited file is to be told about, not a reason to refuse it.
+    const cases: [Record<string, unknown>, RegExp][] = [
+      [{ populaton: 4 }, /the file has a key[^\n]*populaton/],
+      [{ kinds: { engines: 1 } }, /kinds[^\n]*engines/],
+      [{ match: { durations: 10 } }, /match has a key[^\n]*durations/],
+      [{ fleet: { operators: { split: 1 } } }, /fleet\.operators has a key[^\n]*split/],
+    ];
+    for (const [value, expected] of cases) {
+      expect(runConfigFileProblem(value), JSON.stringify(value)).toBeNull();
+      expect(runConfigWarnings(value).join('\n')).toMatch(expected);
+      expect(() => parseRunConfig(value)).not.toThrow();
+    }
+    expect(runConfigWarnings(serialiseRunConfig(SETUP))).toEqual([]);
   });
 
   it('accepts what it writes, including the version it stamps', () => {

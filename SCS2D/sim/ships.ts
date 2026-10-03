@@ -1088,6 +1088,15 @@ export class Ships {
       // Wreckage is nobody's consort. A live friendly that cannot fight is:
       // a thing worth covering is usually a thing that cannot cover itself.
       if (this.derelict[t] === 1 || this.hostile(i, t)) continue;
+      // Nor is a friend too small for it to bother covering. A neutral is an
+      // objective rather than a ship to look after, and is gone to whatever
+      // its size: a goal is a marker far smaller than anything racing to it.
+      if (
+        this.team[t] === this.team[i] &&
+        this.designs[t]!.radius < approach.escortMinRadii * design.radius
+      ) {
+        continue;
+      }
       const tb = bodies.indexOf(this.bodyIds[t]!);
       if (tb < 0 || tb === b) continue;
       const candidate = look(

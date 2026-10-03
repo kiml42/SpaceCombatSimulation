@@ -3,6 +3,7 @@ import {
   compileDraft,
   expandBlueprint,
   expandFleet,
+  fleetWarnings,
   fleetProblem,
   centreOf,
   hullsOverlap,
@@ -43,6 +44,8 @@ export interface FleetView {
   hulls: readonly (readonly ModuleSpec[])[];
   /** Everything wrong, listed rather than enforced. */
   problems: readonly string[];
+  /** Keys its file carried that nothing reads, kept and saved back (`fleetWarnings`). */
+  warnings: readonly string[];
   /** Ships some problem names. */
   faulty: readonly number[];
   /** Designs whose embedded copy differs from the library's of the same name. */
@@ -60,7 +63,17 @@ function derive(fleet: Fleet, lookup: LibraryLookup): FleetView {
 
   const expansionProblem = fleetProblem(fleet);
   if (expansionProblem !== null) {
-    return { ships: [], designs: [], hulls: [], problems: [expansionProblem], faulty: [], stale: [], mass: 0, lines: [] };
+    return {
+      ships: [],
+      designs: [],
+      hulls: [],
+      problems: [expansionProblem],
+      warnings: fleetWarnings(fleet),
+      faulty: [],
+      stale: [],
+      mass: 0,
+      lines: [],
+    };
   }
   const ships = expandFleet(fleet);
 
@@ -116,6 +129,7 @@ function derive(fleet: Fleet, lookup: LibraryLookup): FleetView {
     designs,
     hulls,
     problems,
+    warnings: fleetWarnings(fleet),
     faulty: [...faulty].sort((a, b) => a - b),
     stale,
     mass,

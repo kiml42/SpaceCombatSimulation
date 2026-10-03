@@ -14,6 +14,7 @@ import {
   moduleThickness,
   parseBlueprint,
   blueprintFileProblem,
+  blueprintWarnings,
   ProjectileHits,
   Projectiles,
   serialiseBlueprint,
@@ -59,7 +60,7 @@ describe('which layer a module is in', () => {
     expect(inWeaponsLayer(engine)).toBe(false);
   });
 
-  it('is saved where it may be chosen and refused on a turret', () => {
+  it('is saved where it may be chosen, and unread on a turret', () => {
     const bp: Blueprint = {
       name: 'Tower',
       modules: [
@@ -76,7 +77,10 @@ describe('which layer a module is in', () => {
     expect(compiled.modules[1]!.weaponsLayer).toBe(true);
 
     const turret = { ...file, modules: [{ kind: 'turret', x: 0, y: 0, length: 4, width: 4, thick: true }] };
-    expect(blueprintFileProblem(turret)).toMatch(/a turret cannot be thick/);
+    expect(blueprintFileProblem(turret)).toBeNull();
+    const read = parseBlueprint(turret);
+    expect((read.modules[0] as ModuleSpec).thick).toBeUndefined();
+    expect(blueprintWarnings(read).join('\n')).toMatch(/modules\[0\] has a key[^\n]*thick/);
   });
 });
 

@@ -1010,6 +1010,37 @@ function fakeStore(): KeyValueStore {
   };
 }
 
+describe('a file with keys the game does not read', () => {
+  // A typo in a hand-edited ship: a turret's `barrel` for `barrels`, and a
+  // key at the top that nothing knows.
+  const raw = (): Record<string, unknown> => {
+    const file = serialiseBlueprint(CORVETTE) as Record<string, unknown>;
+    const modules = (file['modules'] as Record<string, unknown>[]).map((m) => ({ ...m }));
+    modules[0] = { ...modules[0], barrel: 8 };
+    return { ...file, colour: 'red', modules };
+  };
+
+  it('opens in the editor, says so, and keeps them through an edit', () => {
+    const doc = new EditorDocument(parseBlueprint(raw()));
+    expect(doc.view.design).not.toBeNull();
+    expect(doc.view.warnings.join('\n')).toMatch(/the file has a key[^\n]*colour/);
+    expect(doc.view.warnings.join('\n')).toMatch(/modules\[0\] has a key[^\n]*barrel/);
+    doc.apply(movePlacement(doc.blueprint, doc.view.origins[0]!, 1, 0)!);
+    expect(doc.view.warnings).toHaveLength(2);
+    const saved = serialiseBlueprint(doc.blueprint);
+    expect(saved['colour']).toBe('red');
+    expect((saved['modules'] as Record<string, unknown>[])[0]!['barrel']).toBe(8);
+  });
+
+  it('is saved to the library with them, and opens from it with them', () => {
+    const library = new Library(fakeStore());
+    library.save({ ...parseBlueprint(raw()), name: 'Typo' });
+    const back = library.load('Typo')!;
+    expect(serialiseBlueprint(back)['colour']).toBe('red');
+    expect(new EditorDocument(back).view.warnings).toHaveLength(2);
+  });
+});
+
 describe('Library', () => {
   it('lists the ships that come with the game', () => {
     const names = new Library(fakeStore()).list().map((e) => e.name);

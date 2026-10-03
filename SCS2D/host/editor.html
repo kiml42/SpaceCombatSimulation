@@ -84,6 +84,8 @@
       li { color: #e6a45b; margin-bottom: 0.2rem; word-break: break-word; }
       .ok { color: #7fd6a0; margin: 0; }
       .warn { color: #e6a45b; margin: 0; }
+      /* A key a file carried that nothing reads: told, not refused. */
+      .note, .note li { color: #d6c27f; margin: 0.4rem 0 0; }
       .none { color: #7f93aa; margin: 0; }
       /*
         Shut by default and quiet when shut: building a ship is the common
@@ -102,6 +104,11 @@
         font-weight: 400;
         margin: 0.8rem 0 0.4rem;
       }
+      details.doctrine h4 { font-size: 11px; color: #5d6f85; font-weight: 400; margin: 0.5rem 0 0.25rem; }
+      /* What a relative number comes to for this ship, on its own line beneath the box. */
+      details.doctrine .field { flex-wrap: wrap; }
+      details.doctrine .absolute { flex: 0 0 100%; padding-left: 6.9rem; color: #5d6f85; font-size: 11px; }
+      details.doctrine .absolute:empty { display: none; }
       details.doctrine .note { color: #5d6f85; margin: 0.5rem 0 0; }
       /* A stated number stands out from the ones still at their default. */
       details.doctrine input.stated { color: #e9c05f; border-color: #4a3f24; }
@@ -313,10 +320,7 @@
           </details>
           <details class="doctrine" id="shipDoctrine" hidden>
             <summary>What the ship does — <span class="summaryValue" id="shipDoctrineSummary"></span></summary>
-            <h3>What it picks a fight with</h3>
-            <div id="shipTargetingFields"></div>
-            <h3>How it flies the fight</h3>
-            <div id="shipApproachFields"></div>
+            <div id="shipDoctrineFields"></div>
             <p class="note">The ship's own doctrine, not this core's. Empty is the default.</p>
             <div class="buttons">
               <button id="shipDoctrineReset">Back to default</button>

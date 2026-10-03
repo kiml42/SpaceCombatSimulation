@@ -1,4 +1,4 @@
-import { degreesToRadians, parseBlueprint, parseFleet, radiansToDegrees, type Fleet } from '../sim/index.js';
+import { degreesToRadians, fleetWarnings, parseBlueprint, parseFleet, radiansToDegrees, type Fleet } from '../sim/index.js';
 import { teamColour } from '../render/canvas2d.js';
 import { FLEET_FILES, Library } from '../editor/library.js';
 import { shipFleet } from '../editor/handoff.js';
@@ -176,6 +176,11 @@ export function customPanel(changed: () => void, fight: () => void): CustomPanel
           const isFleet = typeof value === 'object' && value !== null && 'designs' in value;
           const fleet = isFleet ? parseFleet(value) : shipFleet(parseBlueprint(value));
           slots.push({ fleet, source: { kind: 'other', label: `${fleet.name} (file)` } });
+          // Read, and fought as read: a key nothing reads is said, not refused.
+          const warnings = fleetWarnings(fleet);
+          if (warnings.length > 0) {
+            window.alert(`${name} has keys the game does not read, so they will make no difference:\n\n${warnings.join('\n')}`);
+          }
         } catch (error) {
           window.alert(`Could not read ${name}.\n\n${error instanceof Error ? error.message : error}`);
         }
