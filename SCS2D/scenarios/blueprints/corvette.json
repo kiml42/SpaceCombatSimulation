@@ -1,43 +1,141 @@
 {
   "formatVersion": 1,
   "name": "Corvette",
+  "notes": "A light escort: one main engine, one gun, and enough manoeuvring thrust to turn faster than anything can track it. Drawn as a deck plan on round numbers, +x the bow and +y to port, with modules abutting exactly.",
   "doctrine": {
     "targeting": {
-      "preferredMass": 3
+      "preferredMass": 3,
+      "facingWeight": 50,
+      "sightWeight": 20,
+      "escortWeight": 5
+    },
+    "approach": {
+      "standoffRadii": 30,
+      "standoff": 0.7,
+      "tolerance": 0.6,
+      "ramRadii": 60
     }
   },
-  "notes": "A light escort: one main engine, one gun, and enough manoeuvring thrust to turn faster than anything can track it. Drawn as a deck plan on round numbers, +x the bow and +y to port, with modules abutting exactly.",
   "assemblies": {
     "wingBox": {
       "notes": "The wings exist to hold the manoeuvring engines out where their moment arm is worth having. That they also foul the bow gun's traverse is the trade this layout makes, and it is visible in the arc the design compiles to.",
-      "modules": [{ "kind": "structure", "x": 0, "y": 0, "length": 4, "width": 3 }]
+      "modules": [
+        {
+          "kind": "structure",
+          "x": 0,
+          "y": 0,
+          "length": 4,
+          "width": 3
+        }
+      ]
     },
     "lateral": {
-      "modules": [{ "kind": "engine", "x": 0, "y": -1, "angle": 90, "length": 2, "width": 3 }]
+      "modules": [
+        {
+          "kind": "engine",
+          "x": 0,
+          "y": -1,
+          "angle": 90,
+          "length": 2,
+          "width": 3
+        }
+      ]
     },
     "retro": {
-      "modules": [{ "kind": "engine", "x": -1, "y": 0, "angle": 0, "length": 2, "width": 3 }]
+      "modules": [
+        {
+          "kind": "engine",
+          "x": -1,
+          "y": 0,
+          "angle": 0,
+          "length": 2,
+          "width": 3
+        }
+      ]
+    },
+    "Side": {
+      "modules": [
+        {
+          "use": "wingBox",
+          "x": 0,
+          "y": -2.5
+        },
+        {
+          "use": "wingBox",
+          "x": -8,
+          "y": -2.5
+        },
+        {
+          "use": "lateral",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "use": "lateral",
+          "x": -8,
+          "y": 0
+        },
+        {
+          "use": "retro",
+          "x": 3,
+          "y": -2.5
+        }
+      ]
     }
   },
   "modules": [
-    { "kind": "structure", "x": 5, "y": 0, "length": 6, "width": 6 },
-    { "kind": "core", "x": 0, "y": 0, "length": 4, "width": 6,
-      "notes": "Amidships, with a section of hull either side of it: the compartment the ship is flown from is the one thing worth putting the rest of the ship in front of." },
-    { "kind": "structure", "x": -5, "y": 0, "length": 6, "width": 6 },
-    { "kind": "hullGun", "x": 10.5, "y": 0, "angle": 0, "length": 5, "width": 4, "barrels": 2, "barrelCalibres": 20 },
-    { "kind": "engine", "x": -8, "y": 0, "angle": 180, "length": 4, "width": 6, "thick": true },
-
-    { "use": "wingBox", "x": 4, "y": 4.5 },
-    { "use": "wingBox", "x": 4, "y": -4.5, "mirror": true },
-    { "use": "wingBox", "x": -4, "y": 4.5 },
-    { "use": "wingBox", "x": -4, "y": -4.5, "mirror": true },
-
-    { "use": "lateral", "x": 4, "y": 7 },
-    { "use": "lateral", "x": 4, "y": -7, "mirror": true },
-    { "use": "lateral", "x": -4, "y": 7 },
-    { "use": "lateral", "x": -4, "y": -7, "mirror": true },
-
-    { "use": "retro", "x": 7, "y": 4.5 },
-    { "use": "retro", "x": 7, "y": -4.5, "mirror": true }
+    {
+      "kind": "structure",
+      "x": 4.25,
+      "y": 0,
+      "length": 4.5,
+      "width": 6
+    },
+    {
+      "kind": "core",
+      "x": 0,
+      "y": 0,
+      "length": 4,
+      "width": 6,
+      "notes": "Amidships, with a section of hull either side of it: the compartment the ship is flown from is the one thing worth putting the rest of the ship in front of."
+    },
+    {
+      "kind": "hullGun",
+      "x": 13,
+      "y": 0,
+      "angle": 0,
+      "length": 13,
+      "width": 4,
+      "barrels": 2,
+      "barrelCalibres": 50,
+      "traverse": 15,
+      "fuse": 0.04,
+      "burstSpeed": 200,
+      "targeting": {
+        "facingWeight": 100,
+        "sightWeight": 50,
+        "fireRange": 1.3
+      }
+    },
+    {
+      "kind": "engine",
+      "x": -2,
+      "y": 0,
+      "angle": 180,
+      "length": 10,
+      "width": 6,
+      "thick": true
+    },
+    {
+      "use": "Side",
+      "x": 4,
+      "y": 7
+    },
+    {
+      "use": "Side",
+      "x": 4,
+      "y": -7,
+      "mirror": true
+    }
   ]
 }

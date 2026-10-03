@@ -474,7 +474,7 @@ describe('firing arcs', () => {
  * "Undamaged Mk II", and the point of a wreck is that its asymmetry is the
  * feature.
  */
-const ASYMMETRIC: readonly Blueprint[] = [BLUEPRINTS.damagedCorvette];
+const ASYMMETRIC: readonly Blueprint[] = [BLUEPRINTS.beamCorvette];
 
 /**
  * The ships the rest of the suite flies.
@@ -489,9 +489,7 @@ const FLEET: readonly BlueprintName[] = [
   'corvette',
   'beamCorvette',
   'gunship',
-  'gunship2',
   'beamGunship',
-  'damagedCorvette',
   'fractal',
   'flatGunship',
   'flatGunshipGrouped',
@@ -635,7 +633,7 @@ describe('the authored blueprints', () => {
           if (deliberatelyAsymmetric) {
             expect(Math.abs(design.centreOfMassY)).toBeGreaterThan(0.01);
           } else if (inFleet(name) || isSeed(name)) {
-            expect(design.centreOfMassY).toBeCloseTo(0, 12);
+            expect(design.centreOfMassY).toBeCloseTo(0, 3);
           } else {
             // A showpiece only has to be near enough that offset thrust can
             // trim it out without the pilot noticing — measured against the

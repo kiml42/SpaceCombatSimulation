@@ -1,7 +1,7 @@
 import { compileBlueprint, math } from '../sim/index.js';
 import type { Battle } from './types.js';
 import { CROSSING, SIDE_WELL, makeBattle } from './battle.js';
-import { CORVETTE, DAMAGED_CORVETTE, GUNSHIP } from './blueprints.js';
+import { CORVETTE, GUNSHIP } from './blueprints.js';
 import { OrderCancelCondition } from '../sim/ships.js';
 
 /**
@@ -25,12 +25,11 @@ import { OrderCancelCondition } from '../sim/ships.js';
 export function duel(seed = 20260905): Battle {
   return makeBattle({ seed, wells: [SIDE_WELL] }, (ships, world) => {
     const corvette = compileBlueprint(CORVETTE);
-    const damagedCorvette = compileBlueprint(DAMAGED_CORVETTE);
     const gunship = compileBlueprint(GUNSHIP);
 
     const distantCorvette = ships.spawn(world, { design: corvette, ...CROSSING.west, team: 0 });
     const closeCorvette = ships.spawn(world, {
-      design: damagedCorvette,
+      design: corvette,
       x: 2000,
       y: -740,
       angle: math.HALF_PI / 2,

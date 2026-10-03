@@ -1,9 +1,7 @@
 import { parseBlueprint, type Blueprint } from '../sim/index.js';
 import corvetteFile from './blueprints/corvette.json' with { type: 'json' };
 import beamCorvetteFile from './blueprints/beam-corvette.json' with { type: 'json' };
-import damagedCorvetteFile from './blueprints/damaged-corvette.json' with { type: 'json' };
 import gunshipFile from './blueprints/gunship.json' with { type: 'json' };
-import gunship2File from './blueprints/gunship2.json' with { type: 'json' };
 import flatGunshipFile from './blueprints/flat-gunship.json' with { type: 'json' };
 import flatGunshipGroupedFile from './blueprints/flat-gunship-grouped.json' with { type: 'json' };
 import beamGunshipFile from './blueprints/beam-gunship.json' with { type: 'json' };
@@ -50,9 +48,7 @@ import starDestroyerFile from './blueprints/star-destroyer.json' with { type: 'j
 
 export const CORVETTE: Blueprint = parseBlueprint(corvetteFile);
 export const BEAM_CORVETTE: Blueprint = parseBlueprint(beamCorvetteFile);
-export const DAMAGED_CORVETTE: Blueprint = parseBlueprint(damagedCorvetteFile);
 export const GUNSHIP: Blueprint = parseBlueprint(gunshipFile);
-export const GUNSHIP2: Blueprint = parseBlueprint(gunship2File);
 export const FLAT_GUNSHIP: Blueprint = parseBlueprint(flatGunshipFile);
 export const FLAT_GUNSHIP_GROUPED: Blueprint = parseBlueprint(flatGunshipGroupedFile);
 export const BEAM_GUNSHIP: Blueprint = parseBlueprint(beamGunshipFile);
@@ -73,9 +69,7 @@ export const BLUEPRINTS = {
     corvette: CORVETTE,
     beamCorvette: BEAM_CORVETTE,
     gunship: GUNSHIP,
-    gunship2: GUNSHIP2,
     beamGunship: BEAM_GUNSHIP,
-    damagedCorvette: DAMAGED_CORVETTE,
     fractal: FRACTAL,
     flatGunship: FLAT_GUNSHIP,
     dinky: DINKY,
