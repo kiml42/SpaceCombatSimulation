@@ -20,11 +20,14 @@ import {
 } from './modules.js';
 import {
   doctrineProblem,
+  doctrineUnread,
   serialiseDoctrine,
   targetingProblem,
+  TARGETING_FIELDS,
   toDoctrine,
   type Targeting,
 } from './doctrine.js';
+import { unreadOf, unreadWarning, writeUnread, type UnreadKeys } from './unread.js';
 
 /**
  * The blueprint file format: what a saved ship looks like, and how to get a
@@ -62,7 +65,7 @@ export const BLUEPRINT_FORMAT_VERSION = 1;
 
 
 
-/** Keys a module may carry. Anything else is a typo — see `unknownKeys`. */
+/** Keys a module may carry. Anything else is kept but unread — see `UnreadKeys`. */
 const MODULE_KEYS: readonly string[] = [
   'kind',
   'x',
@@ -113,18 +116,6 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-/**
- * Keys present that the format does not define.
- *
- * Rejected rather than ignored, because the failure they cause is silent: a
- * file saying `"barrel": 8` parses cleanly into a single-barrelled turret, and
- * nothing downstream has any way to notice that the author meant something
- * else. A complaint naming the key costs one line and saves that.
- */
-function unknownKeys(value: Record<string, unknown>, allowed: readonly string[]): string[] {
-  return Object.keys(value).filter((key) => !allowed.includes(key));
-}
-
 function numberProblem(value: unknown, what: string): string | null {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
     return `${what} must be a finite number, got ${JSON.stringify(value)}`;
@@ -168,9 +159,6 @@ function currentAngle(raw: Record<string, unknown>): number | undefined {
 }
 
 function moduleShapeProblem(value: Record<string, unknown>, where: string): string | null {
-  const extra = unknownKeys(value, MODULE_KEYS);
-  if (extra.length > 0) return `${where} has unknown ${extra.length > 1 ? 'keys' : 'key'} ${extra.join(', ')}`;
-
   const kind = currentKind(value['kind']);
   if (typeof kind !== 'string' || !MODULE_KINDS.includes(kind as ModuleKind)) {
     return `${where}: kind must be one of ${MODULE_KINDS.join(', ')}, got ${JSON.stringify(value['kind'])}`;
@@ -192,51 +180,32 @@ function moduleShapeProblem(value: Record<string, unknown>, where: string): stri
     optionalBooleanProblem(value['weapon'], `${where}: weapon`) ??
     optionalBooleanProblem(value['thick'], `${where}: thick`) ??
     targetingProblem(value['targeting'], `${where}: targeting`) ??
-    optionalStringProblem(value['notes'], `${where}: notes`) ??
-    dormantFieldProblem(value, where)
+    optionalStringProblem(value['notes'], `${where}: notes`)
   );
 }
 
 /**
- * A field a file's own kind would never read.
+ * The keys a module of this kind reads.
  *
- * **Kept out of files rather than out of memory.** A running mutation may
- * leave a field on a module the archetype does not read — a bell on what is
- * currently a gun mount, waiting for a refit back — because losing it costs a
- * lineage everything it learned about that part. A *file* is a different
- * thing: it is read by people and written once, so a `nozzle` on a turret
- * there is a mistake rather than a memory, and saying nothing about it would
- * make a ship that quietly is not what it says. `serialiseBlueprint` writes
- * only the fields the kind reads, so nothing this refuses can be produced by
- * saving.
+ * A field its kind would never read — a `nozzle` on a turret — is not refused:
+ * it is kept as unread, said as a warning, and written back as it was. In
+ * memory a running mutation may leave such a field on a module, waiting for a
+ * refit back; `serialiseBlueprint` writes only what the kind reads, so those
+ * never reach a file.
  */
-function dormantFieldProblem(value: Record<string, unknown>, where: string): string | null {
-  const kind = currentKind(value['kind']) as ModuleKind;
-  if (value['nozzle'] !== undefined && !readsNozzle(kind)) {
-    return `${where}: only an engine or a hull mount has a nozzle`;
-  }
-  if (value['barrels'] !== undefined && !countsOutlets(kind)) {
-    return `${where}: ${kind} has no barrels`;
-  }
-  if (value['traverse'] !== undefined && !isWeaponMount(kind)) {
-    return `${where}: only a weapon has a traverse`;
-  }
-  for (const key of ['fuse', 'fragments', 'burstSpeed']) {
-    if (value[key] !== undefined && !readsFuse(kind)) return `${where}: only a gun has a ${key}`;
-  }
-  if (value['weapon'] !== undefined && !readsWeapon(kind)) {
-    return `${where}: only an engine can be used as a weapon`;
-  }
-  if (value['thick'] !== undefined && !readsThick(kind)) {
-    return `${where}: a turret cannot be thick`;
-  }
-  return null;
+function moduleReads(kind: ModuleKind): readonly string[] {
+  return MODULE_KEYS.filter((key) => {
+    if (key === 'nozzle') return readsNozzle(kind);
+    if (key === 'barrels') return countsOutlets(kind);
+    if (key === 'traverse') return isWeaponMount(kind);
+    if (key === 'fuse' || key === 'fragments' || key === 'burstSpeed') return readsFuse(kind);
+    if (key === 'weapon') return readsWeapon(kind);
+    if (key === 'thick') return readsThick(kind);
+    return true;
+  });
 }
 
 function instanceShapeProblem(value: Record<string, unknown>, where: string): string | null {
-  const extra = unknownKeys(value, INSTANCE_KEYS);
-  if (extra.length > 0) return `${where} has unknown ${extra.length > 1 ? 'keys' : 'key'} ${extra.join(', ')}`;
-
   if (typeof value['use'] !== 'string' || value['use'] === '') {
     return `${where}: use must be the name of an assembly, got ${JSON.stringify(value['use'])}`;
   }
@@ -247,10 +216,6 @@ function instanceShapeProblem(value: Record<string, unknown>, where: string): st
   const step = value['step'];
   if (step !== undefined) {
     if (!isObject(step)) return `${where}: step must be an object, got ${JSON.stringify(step)}`;
-    const extraKeys = unknownKeys(step, STEP_KEYS);
-    if (extraKeys.length > 0) {
-      return `${where}: step has unknown ${extraKeys.length > 1 ? 'keys' : 'key'} ${extraKeys.join(', ')}`;
-    }
     const problem =
       numberProblem(step['x'], `${where}: step x`) ??
       numberProblem(step['y'], `${where}: step y`) ??
@@ -296,10 +261,6 @@ function assembliesShapeProblem(value: unknown): string | null {
 
   for (const [name, assembly] of Object.entries(value)) {
     if (!isObject(assembly)) return `assembly ${name} must be an object`;
-    const extra = unknownKeys(assembly, ASSEMBLY_KEYS);
-    if (extra.length > 0) {
-      return `assembly ${name} has unknown ${extra.length > 1 ? 'keys' : 'key'} ${extra.join(', ')}`;
-    }
     const notes = optionalStringProblem(assembly['notes'], `assembly ${name}: notes`);
     if (notes !== null) return notes;
     const modules = placementsShapeProblem(assembly['modules'], `assembly ${name}: modules`);
@@ -311,7 +272,9 @@ function assembliesShapeProblem(value: unknown): string | null {
 /**
  * What makes a file unreadable, or null.
  *
- * Its *shape* only: the keys, the format version, the types. Whether the
+ * Its *shape* only: the format version and the types. A key it does not know
+ * is not one of these: it is kept and warned about (`blueprintWarnings`), so a
+ * hand-edited file with a typo in it still opens. Whether the
  * layout it describes is a ship that could fly is `blueprintProblem`'s
  * question, and deliberately a separate one — a file naming an engine
  * welded to nothing is perfectly readable, and refusing to read it is what
@@ -319,9 +282,6 @@ function assembliesShapeProblem(value: unknown): string | null {
  */
 export function blueprintFileProblem(value: unknown): string | null {
   if (!isObject(value)) return `a blueprint file must be an object, got ${JSON.stringify(value)}`;
-
-  const extra = unknownKeys(value, FILE_KEYS);
-  if (extra.length > 0) return `unknown ${extra.length > 1 ? 'keys' : 'key'} ${extra.join(', ')}`;
 
   const version = value['formatVersion'];
   if (version !== BLUEPRINT_FORMAT_VERSION) {
@@ -356,7 +316,13 @@ function toBlueprint(file: Record<string, unknown>): Blueprint {
   };
   if (file['notes'] !== undefined) blueprint.notes = file['notes'] as string;
   if (file['fighter'] !== undefined) blueprint.fighter = file['fighter'] as boolean;
-  if (file['doctrine'] !== undefined) blueprint.doctrine = toDoctrine(file['doctrine']);
+  if (file['doctrine'] !== undefined) {
+    blueprint.doctrine = toDoctrine(file['doctrine']);
+    const unreadDoctrine = doctrineUnread(file['doctrine']);
+    if (unreadDoctrine !== undefined) blueprint.unreadDoctrine = unreadDoctrine;
+  }
+  const unread = unreadOf(file, FILE_KEYS);
+  if (unread !== undefined) blueprint.unread = unread;
 
   const rawAssemblies = file['assemblies'] as Record<string, Record<string, unknown>> | undefined;
   if (rawAssemblies !== undefined) {
@@ -364,6 +330,8 @@ function toBlueprint(file: Record<string, unknown>): Blueprint {
     for (const [name, raw] of Object.entries(rawAssemblies)) {
       const assembly: Assembly = { modules: toPlacements(raw['modules'] as unknown[]) };
       if (raw['notes'] !== undefined) assembly.notes = raw['notes'] as string;
+      const unreadAssembly = unreadOf(raw, ASSEMBLY_KEYS);
+      if (unreadAssembly !== undefined) assembly.unread = unreadAssembly;
       assemblies[name] = assembly;
     }
     blueprint.assemblies = assemblies;
@@ -392,14 +360,20 @@ function toPlacements(raws: unknown[]): Placement[] {
         const rawStep = raw['step'] as Record<string, unknown>;
         const step: AssemblyStep = { x: rawStep['x'] as number, y: rawStep['y'] as number };
         if (rawStep['angle'] !== undefined) step.angle = degreesToRadians(rawStep['angle'] as number);
+        const unreadStep = unreadOf(rawStep, STEP_KEYS);
+        if (unreadStep !== undefined) step.unread = unreadStep;
         instance.step = step;
       }
       if (raw['notes'] !== undefined) instance.notes = raw['notes'] as string;
+      const unreadInstance = unreadOf(raw, INSTANCE_KEYS);
+      if (unreadInstance !== undefined) instance.unread = unreadInstance;
       return instance;
     }
 
+    const kind = currentKind(raw['kind']) as ModuleKind;
+    const reads = moduleReads(kind);
     const spec: ModuleSpec = {
-      kind: currentKind(raw['kind']) as ModuleKind,
+      kind,
       x: raw['x'] as number,
       y: raw['y'] as number,
       length: raw['length'] as number,
@@ -408,17 +382,22 @@ function toPlacements(raws: unknown[]): Placement[] {
     const angle = currentAngle(raw);
     if (angle !== undefined) spec.angle = degreesToRadians(angle);
     if (raw['reinforcement'] !== undefined) spec.reinforcement = raw['reinforcement'] as number;
-    if (raw['barrels'] !== undefined) spec.barrels = raw['barrels'] as number;
-    if (raw['nozzle'] !== undefined) spec.nozzle = raw['nozzle'] as number;
+    // Only what this kind reads; anything else is kept below as unread.
+    const read = (key: string): boolean => raw[key] !== undefined && reads.includes(key);
+    if (read('barrels')) spec.barrels = raw['barrels'] as number;
+    if (read('nozzle')) spec.nozzle = raw['nozzle'] as number;
     // Degrees in the file and radians in the simulation, as every other angle.
-    if (raw['traverse'] !== undefined) spec.traverse = degreesToRadians(raw['traverse'] as number);
-    if (raw['fuse'] !== undefined) spec.fuse = raw['fuse'] as number;
-    if (raw['fragments'] !== undefined) spec.fragments = raw['fragments'] as number;
-    if (raw['burstSpeed'] !== undefined) spec.burstSpeed = raw['burstSpeed'] as number;
-    if (raw['weapon'] !== undefined) spec.weapon = raw['weapon'] as boolean;
-    if (raw['thick'] !== undefined) spec.thick = raw['thick'] as boolean;
+    if (read('traverse')) spec.traverse = degreesToRadians(raw['traverse'] as number);
+    if (read('fuse')) spec.fuse = raw['fuse'] as number;
+    if (read('fragments')) spec.fragments = raw['fragments'] as number;
+    if (read('burstSpeed')) spec.burstSpeed = raw['burstSpeed'] as number;
+    if (read('weapon')) spec.weapon = raw['weapon'] as boolean;
+    if (read('thick')) spec.thick = raw['thick'] as boolean;
+    // Copied whole, so a key the block does not know goes back out with it.
     if (raw['targeting'] !== undefined) spec.targeting = { ...(raw['targeting'] as Partial<Targeting>) };
     if (raw['notes'] !== undefined) spec.notes = raw['notes'] as string;
+    const unread = unreadOf(raw, reads);
+    if (unread !== undefined) spec.unread = unread;
     return spec;
   });
 }
@@ -449,11 +428,14 @@ export function serialiseBlueprint(blueprint: Blueprint): Record<string, unknown
   };
   if (blueprint.notes !== undefined) file['notes'] = blueprint.notes;
   if (blueprint.fighter !== undefined) file['fighter'] = blueprint.fighter;
-  if (blueprint.doctrine !== undefined) {
+  if (blueprint.doctrine !== undefined || blueprint.unreadDoctrine !== undefined) {
     // Only what it says differently from the default, so a file stays short
     // and a default that moves later moves for every ship that never had an
     // opinion about it.
-    const doctrine = serialiseDoctrine(blueprint.doctrine);
+    const doctrine = mergeUnread(
+      blueprint.doctrine === undefined ? undefined : serialiseDoctrine(blueprint.doctrine),
+      blueprint.unreadDoctrine,
+    );
     if (doctrine !== undefined) file['doctrine'] = doctrine;
   }
 
@@ -463,14 +445,71 @@ export function serialiseBlueprint(blueprint: Blueprint): Record<string, unknown
       const raw: Record<string, unknown> = {};
       if (assembly.notes !== undefined) raw['notes'] = assembly.notes;
       raw['modules'] = assembly.modules.map(serialisePlacement);
+      writeUnread(raw, assembly.unread);
       assemblies[name] = raw;
     }
     file['assemblies'] = assemblies;
   }
 
   file['modules'] = blueprint.modules.map(serialisePlacement);
+  writeUnread(file, blueprint.unread);
 
   return file;
+}
+
+/** A block as serialised, with its unread keys merged back in, one level into objects. */
+function mergeUnread(
+  block: Record<string, unknown> | undefined,
+  unread: UnreadKeys | undefined,
+): Record<string, unknown> | undefined {
+  if (unread === undefined) return block;
+  const out: Record<string, unknown> = { ...block };
+  for (const [key, value] of Object.entries(unread)) {
+    const held = out[key];
+    if (isObject(held) && isObject(value)) out[key] = { ...held, ...value };
+    else if (held === undefined) out[key] = value;
+  }
+  return out;
+}
+
+/**
+ * Everything in a blueprint that its file carried and nothing reads, as one
+ * warning per place: so an editor can say so on opening it and again on
+ * saving it, since saving writes those keys back as they were.
+ */
+export function blueprintWarnings(blueprint: Blueprint): string[] {
+  const out: string[] = [];
+  unreadWarning('the file', blueprint.unread, out);
+  if (blueprint.unreadDoctrine !== undefined) {
+    const { targeting, approach, ...top } = blueprint.unreadDoctrine as Record<string, unknown>;
+    unreadWarning('doctrine', Object.keys(top).length > 0 ? top : undefined, out);
+    unreadWarning('doctrine.targeting', isObject(targeting) ? targeting : undefined, out);
+    unreadWarning('doctrine.approach', isObject(approach) ? approach : undefined, out);
+  }
+  for (const [name, assembly] of Object.entries(blueprint.assemblies ?? {})) {
+    unreadWarning(`assembly ${name}`, assembly.unread, out);
+    placementWarnings(assembly.modules, `assembly ${name}: modules`, out);
+  }
+  placementWarnings(blueprint.modules, 'modules', out);
+  return out;
+}
+
+function placementWarnings(placements: readonly Placement[], where: string, out: string[]): void {
+  placements.forEach((placement, i) => {
+    const at = `${where}[${i}]`;
+    unreadWarning(at, placement.unread, out);
+    if (isInstance(placement)) {
+      unreadWarning(`${at}: step`, placement.step?.unread, out);
+      return;
+    }
+    if (placement.targeting !== undefined) {
+      unreadWarning(
+        `${at}: targeting`,
+        unreadOf(placement.targeting as Record<string, unknown>, TARGETING_FIELDS),
+        out,
+      );
+    }
+  });
 }
 
 function serialisePlacement(placement: Placement): Record<string, unknown> {
@@ -482,9 +521,11 @@ function serialisePlacement(placement: Placement): Record<string, unknown> {
     if (placement.step !== undefined) {
       const step: Record<string, unknown> = { x: placement.step.x, y: placement.step.y };
       if (placement.step.angle !== undefined) step['angle'] = radiansToDegrees(placement.step.angle);
+      writeUnread(step, placement.step.unread);
       raw['step'] = step;
     }
     if (placement.notes !== undefined) raw['notes'] = placement.notes;
+    writeUnread(raw, placement.unread);
     return raw;
   }
 
@@ -519,5 +560,6 @@ function serialisePlacement(placement: Placement): Record<string, unknown> {
   // the ship it is on, so there is nothing to subtract.
   if (placement.targeting !== undefined) raw['targeting'] = { ...placement.targeting };
   if (placement.notes !== undefined) raw['notes'] = placement.notes;
+  writeUnread(raw, placement.unread);
   return raw;
 }

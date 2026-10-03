@@ -1189,6 +1189,32 @@ describe('the editor in a browser', () => {
     await page.evaluate(() => window.localStorage.removeItem('scs2d.blueprint.Adrift'));
   });
 
+  it('imports a ship with a key it does not read, says so, and saves the key back', async () => {
+    // A hand-edited file with a typo opens rather than being refused.
+    const typo = {
+      formatVersion: 1,
+      name: 'Typo',
+      colour: 'red',
+      modules: [
+        { kind: 'core', x: 0, y: 0, length: 4, width: 4 },
+        { kind: 'turret', x: 3, y: 0, length: 2, width: 2, barrel: 8 },
+      ],
+    };
+    await page.setInputFiles('#importShip', {
+      name: 'typo.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify(typo)),
+    });
+    await page.waitForFunction(() => /Kept as written/.test(document.getElementById('problems')?.textContent ?? ''));
+    const problems = (await page.textContent('#problems')) ?? '';
+    expect(problems).toMatch(/colour/);
+    expect(problems).toMatch(/modules\[1\][^]*barrel/);
+    await page.click('#saveShip');
+    const saved = await page.evaluate(() => window.localStorage.getItem('scs2d.blueprint.Typo'));
+    expect(JSON.parse(saved!)).toMatchObject({ colour: 'red', modules: [{}, { barrel: 8 }] });
+    await page.evaluate(() => window.localStorage.removeItem('scs2d.blueprint.Typo'));
+  });
+
   it('hands the ship being edited to a custom battle as a fleet of one', async () => {
     await openShip(page, 'Corvette');
     await page.click('#battleLink');

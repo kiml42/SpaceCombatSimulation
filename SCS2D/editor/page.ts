@@ -520,14 +520,12 @@ export function startEditor(): void {
 
   const renderProblems = (): void => {
     const problems = doc.view.problems;
-    if (problems.length === 0) {
-      problemsPanel.innerHTML = '<p class="ok">No problems — this layout would fly.</p>';
-      return;
-    }
     problemsPanel.innerHTML =
-      `<p class="warn">${problems.length} problem${problems.length > 1 ? 's' : ''}</p><ul>` +
-      problems.map((p) => `<li>${escapeHtml(p)}</li>`).join('') +
-      '</ul>';
+      (problems.length === 0
+        ? '<p class="ok">No problems — this layout would fly.</p>'
+        : `<p class="warn">${problems.length} problem${problems.length > 1 ? 's' : ''}</p><ul>` +
+          problems.map((p) => `<li>${escapeHtml(p)}</li>`).join('') +
+          '</ul>') + unreadNote(doc.view.warnings);
   };
 
   /** Where the selected copy's position is written, and in what frame. */
@@ -1944,6 +1942,19 @@ export function startEditor(): void {
 /** A name not already in the library, so a new ship does not shadow a saved one. */
 function isModuleSpec(placement: Placement): boolean {
   return !('use' in placement);
+}
+
+/**
+ * Keys a file carried that nothing reads, said rather than refused: they are
+ * kept, and go back out with the ship when it is saved or exported.
+ */
+function unreadNote(warnings: readonly string[]): string {
+  if (warnings.length === 0) return '';
+  return (
+    `<p class="note">Kept as written, and saved and exported with the ship:</p><ul class="note">` +
+    warnings.map((w) => `<li>${escapeHtml(w)}</li>`).join('') +
+    '</ul>'
+  );
 }
 
 function escapeHtml(text: string): string {

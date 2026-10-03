@@ -123,13 +123,15 @@ export function serialiseRunConfig(setup: RunSetup): Record<string, unknown> {
   };
 }
 
-/** Whatever is wrong with a run-config file, or null if it is one. */
-export function runConfigFileProblem(value: unknown): string | null {
+/**
+ * Whatever is wrong with a run-config file, or null if it is one.
+ *
+ * A key it does not know is not wrong enough to refuse the file: it goes into
+ * `warnings`, if given, and is otherwise ignored (`runConfigWarnings`).
+ */
+export function runConfigFileProblem(value: unknown, warnings: string[] = []): string | null {
   if (!isRecord(value)) return 'a run config must be an object';
-  const extra = unknownKeys(value, FILE_KEYS);
-  if (extra.length > 0) {
-    return `unknown ${extra.length > 1 ? 'keys' : 'key'} ${extra.join(', ')}`;
-  }
+  unknownKeys(value, FILE_KEYS, 'the file', warnings);
 
   const version = value['formatVersion'];
   if (version !== undefined && version !== RUN_CONFIG_FORMAT_VERSION) {
@@ -151,16 +153,14 @@ export function runConfigFileProblem(value: unknown): string | null {
   const fleet = value['fleet'];
   if (fleet !== undefined) {
     if (!isRecord(fleet)) return 'fleet must be an object';
-    const extra = unknownKeys(fleet, FLEET_KEYS);
-    if (extra.length > 0) return `fleet has unknown ${extra.length > 1 ? 'keys' : 'key'} ${extra.join(', ')}`;
+    unknownKeys(fleet, FLEET_KEYS, 'fleet', warnings);
     const problem = numberProblem(fleet['radius'], 'fleet.radius') ?? countProblem(fleet['maxShips'], 'fleet.maxShips');
     if (problem !== null) return problem;
     if (fleet['radius'] !== undefined && (fleet['radius'] as number) <= 0) return 'fleet.radius must be more than nothing';
     const operators = fleet['operators'];
     if (operators !== undefined) {
       if (!isRecord(operators)) return 'fleet.operators must be an object of weights, one per change';
-      const unknown = unknownKeys(operators, OPERATOR_KEYS);
-      if (unknown.length > 0) return `fleet.operators has unknown ${unknown.length > 1 ? 'keys' : 'key'} ${unknown.join(', ')}`;
+      unknownKeys(operators, OPERATOR_KEYS, 'fleet.operators', warnings);
       for (const key of OPERATOR_KEYS) {
         const weight = operators[key];
         const bad = numberProblem(weight, `fleet.operators.${key}`);
@@ -178,10 +178,17 @@ export function runConfigFileProblem(value: unknown): string | null {
     countProblem(value['minMatches'], 'minMatches') ??
     numberProblem(value['seed'], 'seed') ??
     budgetProblem(value['massBudget']) ??
-    kindsProblem(value['kinds']) ??
-    doctrineProblem(value['doctrine']) ??
-    matchProblem(value['match'])
+    kindsProblem(value['kinds'], warnings) ??
+    doctrineProblem(value['doctrine'], warnings) ??
+    matchProblem(value['match'], warnings)
   );
+}
+
+/** The keys a run-config file carries that nothing reads, one warning per place. */
+export function runConfigWarnings(value: unknown): string[] {
+  const warnings: string[] = [];
+  runConfigFileProblem(value, warnings);
+  return warnings;
 }
 
 /**
@@ -260,8 +267,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function unknownKeys(value: Record<string, unknown>, allowed: readonly string[]): string[] {
-  return Object.keys(value).filter((key) => !allowed.includes(key));
+/** Say, in `warnings`, which of `value`'s keys nothing reads. */
+function unknownKeys(value: Record<string, unknown>, allowed: readonly string[], where: string, warnings: string[]): void {
+  const extra = Object.keys(value).filter((key) => !allowed.includes(key));
+  if (extra.length === 0) return;
+  warnings.push(`${where} has ${extra.length > 1 ? 'keys' : 'a key'} the game does not read, ignored: ${extra.join(', ')}`);
 }
 
 function numberProblem(value: unknown, what: string): string | null {
@@ -297,14 +307,11 @@ function currentKinds(value: unknown): unknown {
   return { engine: thruster, ...rest };
 }
 
-function kindsProblem(raw: unknown): string | null {
+function kindsProblem(raw: unknown, warnings: string[]): string | null {
   if (raw === undefined) return null;
   const value = currentKinds(raw);
   if (!isRecord(value)) return 'kinds must be an object of weights, one per module kind';
-  const extra = unknownKeys(value, MODULE_KINDS);
-  if (extra.length > 0) {
-    return `kinds has unknown ${extra.length > 1 ? 'kinds' : 'kind'} ${extra.join(', ')} — try ${MODULE_KINDS.join(', ')}`;
-  }
+  unknownKeys(value, MODULE_KINDS, `kinds (which are ${MODULE_KINDS.join(', ')})`, warnings);
   for (const kind of MODULE_KINDS) {
     const problem = numberProblem(value[kind], `kinds.${kind}`);
     if (problem !== null) return problem;
@@ -317,11 +324,10 @@ function kindsProblem(raw: unknown): string | null {
 
 const DOCTRINE_KEYS = Object.keys(DEFAULT_DOCTRINE_WEIGHTS);
 
-function doctrineProblem(value: unknown): string | null {
+function doctrineProblem(value: unknown, warnings: string[]): string | null {
   if (value === undefined) return null;
   if (!isRecord(value)) return 'doctrine must be an object of weights: targeting, approach, gunnery';
-  const extra = unknownKeys(value, DOCTRINE_KEYS);
-  if (extra.length > 0) return `doctrine has unknown ${extra.length > 1 ? 'keys' : 'key'} ${extra.join(', ')}`;
+  unknownKeys(value, DOCTRINE_KEYS, 'doctrine', warnings);
   for (const key of DOCTRINE_KEYS) {
     const problem = numberProblem(value[key], `doctrine.${key}`);
     if (problem !== null) return problem;
@@ -330,13 +336,10 @@ function doctrineProblem(value: unknown): string | null {
   return null;
 }
 
-function matchProblem(value: unknown): string | null {
+function matchProblem(value: unknown, warnings: string[]): string | null {
   if (value === undefined) return null;
   if (!isRecord(value)) return 'match must be an object';
-  const extra = unknownKeys(value, MATCH_KEYS);
-  if (extra.length > 0) {
-    return `match has unknown ${extra.length > 1 ? 'keys' : 'key'} ${extra.join(', ')}`;
-  }
+  unknownKeys(value, MATCH_KEYS, 'match', warnings);
   const problem =
     numberProblem(value['duration'], 'match.duration') ??
     numberProblem(value['radius'], 'match.radius') ??
@@ -350,7 +353,7 @@ function matchProblem(value: unknown): string | null {
   if (value['radius'] !== undefined && (value['radius'] as number) <= 0) {
     return 'match.radius must be more than nothing';
   }
-  return goalProblem(value['goal']) ?? weightsProblem(value['weights']) ?? bossProblem(value['boss']);
+  return goalProblem(value['goal'], warnings) ?? weightsProblem(value['weights'], warnings) ?? bossProblem(value['boss']);
 }
 
 function bossProblem(value: unknown): string | null {
@@ -368,13 +371,10 @@ function bossName(value: Record<string, unknown>): BossName | null {
   return { kind, name };
 }
 
-function goalProblem(value: unknown): string | null {
+function goalProblem(value: unknown, warnings: string[]): string | null {
   if (value === undefined || value === null) return null;
   if (!isRecord(value)) return 'match.goal must be an object, or null for a match that is only a fight';
-  const extra = unknownKeys(value, [...GOAL_KEYS, ...GOAL_OPTIONAL_KEYS]);
-  if (extra.length > 0) {
-    return `match.goal has unknown ${extra.length > 1 ? 'keys' : 'key'} ${extra.join(', ')}`;
-  }
+  unknownKeys(value, [...GOAL_KEYS, ...GOAL_OPTIONAL_KEYS], 'match.goal', warnings);
   if (value['solid'] !== undefined && typeof value['solid'] !== 'boolean') {
     return `match.goal.solid must be true or false, got ${JSON.stringify(value['solid'])}`;
   }
@@ -388,13 +388,10 @@ function goalProblem(value: unknown): string | null {
   return null;
 }
 
-function weightsProblem(value: unknown): string | null {
+function weightsProblem(value: unknown, warnings: string[]): string | null {
   if (value === undefined) return null;
   if (!isRecord(value)) return 'match.weights must be an object';
-  const extra = unknownKeys(value, WEIGHT_KEYS);
-  if (extra.length > 0) {
-    return `match.weights has unknown ${extra.length > 1 ? 'keys' : 'key'} ${extra.join(', ')}`;
-  }
+  unknownKeys(value, WEIGHT_KEYS, 'match.weights', warnings);
   for (const key of WEIGHT_KEYS) {
     const problem = numberProblem(value[key], `match.weights.${key}`);
     if (problem !== null) return problem;
