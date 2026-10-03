@@ -37,7 +37,7 @@
           "barrels": 4,
           "barrelCalibres": 75,
           "fuse": 0.08,
-          "burstSpeed": 40,
+          "burstSpeed": 400,
           "targeting": {
             "preferredMass": 0.2,
             "proximityWeight": 200,
@@ -165,6 +165,7 @@
         "facingWeight": 100,
         "sightWeight": 100,
         "coreWeight": 150,
+        "fuse": 0.08,
         "fireRange": 1.6
       }
     },
