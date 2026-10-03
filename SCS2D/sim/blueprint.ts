@@ -1,3 +1,4 @@
+import type { UnreadKeys } from './unread.js';
 import { abs, angleDelta, asin, atan2, cos, max, min, normalizeAngle, PI, sin, sqrt, TAU } from './math.js';
 import {
   GunType,
@@ -110,6 +111,8 @@ export interface Assembly {
   modules: readonly Placement[];
   /** Why this grouping exists. See `ModuleSpec.notes`. */
   notes?: string;
+  /** Keys its file carried that nothing reads, kept to be written back (`UnreadKeys`). */
+  unread?: UnreadKeys;
 }
 
 /**
@@ -152,6 +155,8 @@ export interface AssemblyInstance {
   step?: AssemblyStep;
   /** Why this copy is here. See `ModuleSpec.notes`. */
   notes?: string;
+  /** Keys its file carried that nothing reads, kept to be written back (`UnreadKeys`). */
+  unread?: UnreadKeys;
 }
 
 /**
@@ -165,6 +170,8 @@ export interface AssemblyStep {
   x: number;
   y: number;
   angle?: number;
+  /** Keys its file carried that nothing reads, kept to be written back (`UnreadKeys`). */
+  unread?: UnreadKeys;
 }
 
 /** Something a layout puts somewhere: a module itself, or a copy of a group. */
@@ -268,6 +275,10 @@ export interface Blueprint {
    * ship with a turret or anything thick (`fighterProblem`).
    */
   fighter?: boolean;
+  /** Keys its file carried that nothing reads, kept to be written back (`UnreadKeys`). */
+  unread?: UnreadKeys;
+  /** The same, inside its doctrine block, in the block's own shape. */
+  unreadDoctrine?: UnreadKeys;
 }
 
 /** A module in a compiled design: what was authored, plus what it works out to. */

@@ -1,3 +1,4 @@
+import { unreadOf, type UnreadKeys } from './unread.js';
 /**
  * What a craft does when nobody is telling it anything.
  *
@@ -548,12 +549,8 @@ function halfProblem(
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     return `${where} must be an object, got ${JSON.stringify(value)}`;
   }
+  // A key it does not know is kept and warned about, not refused (`UnreadKeys`).
   const raw = value as Record<string, unknown>;
-  const known = new Set<string>(fields);
-  const extra = Object.keys(raw).filter((key) => !known.has(key));
-  if (extra.length > 0) {
-    return `${where} has unknown ${extra.length > 1 ? 'keys' : 'key'} ${extra.join(', ')}`;
-  }
   for (const field of fields) {
     const held = raw[field];
     if (held === undefined) continue;
@@ -602,10 +599,6 @@ export function doctrineProblem(value: unknown): string | null {
     return `doctrine must be an object, got ${JSON.stringify(value)}`;
   }
   const raw = value as Record<string, unknown>;
-  const extra = Object.keys(raw).filter((key) => key !== 'targeting' && key !== 'approach');
-  if (extra.length > 0) {
-    return `doctrine has unknown ${extra.length > 1 ? 'keys' : 'key'} ${extra.join(', ')}`;
-  }
   return (
     halfProblem(raw['targeting'], 'doctrine.targeting', TARGETING_FIELDS, POSITIVE_FIELDS) ??
     halfProblem(raw['approach'], 'doctrine.approach', APPROACH_FIELDS, POSITIVE_FIELDS)
@@ -621,6 +614,25 @@ function toHalf<T>(value: unknown, fields: readonly string[], fallback: T): T {
     built[field] = typeof given === 'number' ? given : held[field]!;
   }
   return built as unknown as T;
+}
+
+/**
+ * What of a file's doctrine block nothing reads, in the block's own shape, or
+ * undefined: kept so that saving writes it back (`UnreadKeys`).
+ */
+export function doctrineUnread(value: unknown): UnreadKeys | undefined {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return undefined;
+  const raw = value as Record<string, unknown>;
+  const out: Record<string, unknown> = { ...unreadOf(raw, ['targeting', 'approach']) };
+  const half = (key: string, fields: readonly string[]): void => {
+    const held = raw[key];
+    if (typeof held !== 'object' || held === null || Array.isArray(held)) return;
+    const unread = unreadOf(held as Record<string, unknown>, fields);
+    if (unread !== undefined) out[key] = unread;
+  };
+  half('targeting', TARGETING_FIELDS);
+  half('approach', APPROACH_FIELDS);
+  return Object.keys(out).length > 0 ? out : undefined;
 }
 
 /** A doctrine from a file's block, with anything it leaves out defaulted. */

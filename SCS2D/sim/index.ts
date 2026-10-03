@@ -140,6 +140,7 @@ export {
   TARGETING_FIELDS,
   doctrineProblem,
   defaultTargeting,
+  doctrineUnread,
   holdBand,
   resolveTargeting,
   serialiseDoctrine,
@@ -227,6 +228,7 @@ export {
 export {
   BLUEPRINT_FORMAT_VERSION,
   blueprintFileProblem,
+  blueprintWarnings,
   degreesToRadians,
   parseBlueprint,
   radiansToDegrees,
@@ -250,7 +252,8 @@ export {
   type PlacedShip,
   type TrailStep,
 } from './fleet.js';
-export { FLEET_FORMAT_VERSION, fleetFileProblem, parseFleet, serialiseFleet } from './fleetFile.js';
+export { FLEET_FORMAT_VERSION, fleetFileProblem, fleetWarnings, parseFleet, serialiseFleet } from './fleetFile.js';
+export type { UnreadKeys } from './unread.js';
 export {
   centreOf,
   firstOverlap,

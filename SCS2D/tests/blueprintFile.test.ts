@@ -3,6 +3,7 @@ import {
   BLUEPRINT_FORMAT_VERSION,
   blueprintFileProblem,
   blueprintProblem,
+  blueprintWarnings,
   degreesToRadians,
   expandBlueprint,
   math,
@@ -47,6 +48,19 @@ function file(overrides: Record<string, unknown> = {}): Record<string, unknown> 
     modules: [{ kind: 'structure', x: 0, y: 0, length: 10, width: 4 }],
     ...overrides,
   };
+}
+
+/**
+ * A file with a key the format does not read: it opens, says so, and writes the
+ * key back where it found it rather than losing it.
+ */
+function keptAndWarned(raw: unknown, warning: RegExp): Record<string, unknown> {
+  expect(blueprintFileProblem(raw)).toBeNull();
+  const parsed = parseBlueprint(raw);
+  expect(blueprintWarnings(parsed).join('\n')).toMatch(warning);
+  const back = serialiseBlueprint(parsed);
+  expect(back).toEqual(raw);
+  return back;
 }
 
 describe('blueprint files', () => {
@@ -153,15 +167,19 @@ describe('rejecting a file that arrived from somewhere else', () => {
       barrels: 3,
     });
     // A bell on a core is a field that kind never reads. In memory it is a
-    // dormant value mutation is holding against a refit back, and allowed; in
-    // a *file* it is a ship claiming to be something it is not, and the format
-    // refuses it the way it refuses a key it does not know. Nothing
-    // `serialiseBlueprint` writes can land here, since it writes only what the
-    // kind reads.
-    const belledCore = file({
-      modules: [{ kind: 'core', x: 0, y: 0, length: 10, width: 4, nozzle: 0.3 }],
-    });
-    expect(blueprintFileProblem(belledCore)).toMatch(/only an engine or a hull mount/);
+    // dormant value mutation is holding against a refit back; in a *file* it
+    // is a mistake to be told about, not a reason to refuse the ship, so it is
+    // kept as written and warned of, as a key the format does not know is.
+    // Nothing `serialiseBlueprint` writes from memory can land here, since it
+    // writes only what the kind reads.
+    keptAndWarned(
+      file({ modules: [{ kind: 'core', x: 0, y: 0, length: 10, width: 4, nozzle: 0.3 }] }),
+      /modules\[0\] has a key the game does not read, kept as written: nozzle/,
+    );
+    expect(
+      (parseBlueprint(file({ modules: [{ kind: 'core', x: 0, y: 0, length: 10, width: 4, nozzle: 0.3 }] }))
+        .modules[0] as ModuleSpec).nozzle,
+    ).toBeUndefined();
     expect(blueprintProblem(parseBlueprint(file({
       modules: [{ kind: 'core', x: 0, y: 0, length: 10, width: 4 }],
     })))).toBeNull();
@@ -188,9 +206,10 @@ describe('rejecting a file that arrived from somewhere else', () => {
     expect(serialiseBlueprint(back)).toEqual(raw);
     // And a girder that says how far it trains is a mistake here, as a bell on
     // a core is, though mutation may hold one in memory against a refit back.
-    expect(blueprintFileProblem(file({
-      modules: [{ kind: 'structure', x: 0, y: 0, length: 10, width: 4, traverse: 30 }],
-    }))).toMatch(/only a weapon has a traverse/);
+    keptAndWarned(
+      file({ modules: [{ kind: 'structure', x: 0, y: 0, length: 10, width: 4, traverse: 30 }] }),
+      /traverse/,
+    );
     expect(
       serialiseBlueprint({
         name: 'Dormant',
@@ -204,16 +223,26 @@ describe('rejecting a file that arrived from somewhere else', () => {
     expect(blueprintFileProblem(file({ formatVersion: undefined }))).toMatch(/formatVersion must be 1/);
   });
 
-  it('refuses a key it does not recognise, rather than ignoring it', () => {
-    // The whole point: `barrel` for `barrels` parses cleanly into a
-    // single-barrelled turret, and nothing downstream can tell that the author
-    // asked for eight. A silently different ship is worse than a refusal.
-    expect(
-      blueprintFileProblem(
-        file({ modules: [{ kind: 'turret', x: 0, y: 0, length: 8, width: 6, barrel: 8 }] }),
-      ),
-    ).toMatch(/unknown key barrel/);
-    expect(blueprintFileProblem(file({ Name: 'Corvette' }))).toMatch(/unknown key Name/);
+  it('opens a file with a key it does not recognise, says so, and keeps it', () => {
+    // `barrel` for `barrels` parses into a single-barrelled turret, and nothing
+    // downstream can tell that the author asked for eight — so it is said, on
+    // opening and on saving. Refusing the file instead would make a typo cost
+    // the whole ship, which is no way to treat someone editing it by hand.
+    keptAndWarned(
+      file({ modules: [{ kind: 'turret', x: 0, y: 0, length: 8, width: 6, barrel: 8 }] }),
+      /modules\[0\] has a key the game does not read, kept as written: barrel/,
+    );
+    keptAndWarned(file({ Name: 'Corvette' }), /the file has a key the game does not read, kept as written: Name/);
+    keptAndWarned(
+      file({ doctrine: { targetting: { x: 1 }, approach: { standof: 2, standoff: 0.5 } } }),
+      /doctrine has a key[^\n]*targetting[\s\S]*doctrine\.approach has a key[^\n]*standof/,
+    );
+    keptAndWarned(
+      file({
+        modules: [{ kind: 'turret', x: 0, y: 0, length: 8, width: 6, targeting: { proximityweight: 3 } }],
+      }),
+      /modules\[0\]: targeting has a key[^\n]*proximityweight/,
+    );
   });
 
   it('refuses numbers that are not numbers, including the ones JSON allows', () => {
@@ -263,13 +292,11 @@ describe('rejecting a file that arrived from somewhere else', () => {
       });
     expect(blueprintFileProblem(instance({ repeat: 'four' }))).toMatch(/repeat must be a finite number/);
     expect(blueprintFileProblem(instance({ repeat: 3, step: 8 }))).toMatch(/step must be an object/);
-    expect(blueprintFileProblem(instance({ repeat: 3, step: { x: 0, y: 4, dx: 1 } }))).toMatch(
-      /step has unknown key dx/,
-    );
+    keptAndWarned(instance({ repeat: 3, step: { x: 0, y: 4, dx: 1 } }), /\[1\]: step has a key[^\n]*dx/);
     expect(blueprintFileProblem(instance({ repeat: 3, step: { x: 0 } }))).toMatch(/step y must be a finite number/);
   });
 
-  it('refuses the extras a copy used to carry: a part is taken out of the assembly instead', () => {
+  it('keeps, unread, the extras a copy used to carry: a part is taken out of the assembly instead', () => {
     const withExtra = file({
       assemblies: { seg: { modules: [{ kind: 'structure', x: 0, y: 0, length: 4, width: 4 }] } },
       modules: [
@@ -277,7 +304,8 @@ describe('rejecting a file that arrived from somewhere else', () => {
         { use: 'seg', x: 0, y: 5, extra: [{ kind: 'structure', x: 0, y: 4, length: 4, width: 4 }] },
       ],
     });
-    expect(blueprintFileProblem(withExtra)).toMatch(/unknown key extra/);
+    keptAndWarned(withExtra, /modules\[1\] has a key[^\n]*extra/);
+    expect(expandBlueprint(parseBlueprint(withExtra))).toHaveLength(2);
   });
 
   it('puts a step angle in degrees too', () => {

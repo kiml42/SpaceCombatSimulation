@@ -26,7 +26,7 @@ import { fitness } from '../evolution/generation.js';
 import { DEFAULT_MATCH, isFleet, Match, type Entrant, type MatchConfig } from '../evolution/match.js';
 import { DEFAULT_FLEET_LIMITS } from '../evolution/fleetMutate.js';
 import { DEFAULT_DOCTRINE_WEIGHTS, DEFAULT_KINDS, type KindWeights } from '../evolution/mutate.js';
-import { parseRunConfig, serialiseRunConfig, type RunSetup } from '../evolution/configFile.js';
+import { parseRunConfig, runConfigWarnings, serialiseRunConfig, type RunSetup } from '../evolution/configFile.js';
 import { latest, Yardstick, yardstickMatch, type YardstickReport } from '../evolution/yardstick.js';
 import {
   finalist,
@@ -783,14 +783,20 @@ export function startEvolution(): void {
     const chosen = file.files?.[0];
     if (chosen === undefined) return;
     void chosen.text().then((text) => {
+      let warnings: string[];
       try {
-        applySetup(parseRunConfig(JSON.parse(text)));
+        const value: unknown = JSON.parse(text);
+        applySetup(parseRunConfig(value));
+        warnings = runConfigWarnings(value);
       } catch (error) {
         window.alert(`Could not read those settings.\n\n${error instanceof Error ? error.message : error}`);
         return;
       }
-      readout.className = '';
-      notice = 'Settings read from a file. Press Start when you are ready.';
+      // Read anyway: a key nothing reads is said, not refused.
+      readout.className = warnings.length > 0 ? 'warn' : '';
+      notice =
+        'Settings read from a file. Press Start when you are ready.' +
+        (warnings.length > 0 ? ` Not read: ${warnings.join('; ')}.` : '');
       readout.textContent = notice;
     });
     // Cleared so that choosing the same file twice is two imports rather

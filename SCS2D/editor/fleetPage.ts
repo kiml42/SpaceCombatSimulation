@@ -220,12 +220,19 @@ export function startFleetEditor(): void {
 
   const renderProblems = (): void => {
     const view = doc.view;
+    const note =
+      view.warnings.length === 0
+        ? ''
+        : `<p class="note">Kept as written, and saved and exported with the fleet:</p><ul class="note">` +
+          view.warnings.map((w) => `<li>${escapeHtml(w)}</li>`).join('') +
+          '</ul>';
     if (view.problems.length === 0) {
-      problemsPanel.innerHTML = '<p class="ok">None.</p>';
+      problemsPanel.innerHTML = '<p class="ok">None.</p>' + note;
       return;
     }
     problemsPanel.innerHTML =
       `<ul>${view.problems.map((p) => `<li>${escapeHtml(p)}</li>`).join('')}</ul>` +
+      note +
       view.stale
         .map(
           (name) =>
