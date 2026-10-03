@@ -1,7 +1,7 @@
 import { compileBlueprint } from '../sim/index.js';
 import type { Battle } from './types.js';
 import { CROSSING, SIDE_WELL, makeBattle } from './battle.js';
-import { FRACTAL, GUNSHIP2 } from './blueprints.js';
+import { FRACTAL, GUNSHIP } from './blueprints.js';
 
 /** A ship of nested assemblies against a plain gunship. */
 export function fractal(seed = 20260905): Battle {
@@ -12,7 +12,7 @@ export function fractal(seed = 20260905): Battle {
       team: 0,
     });
     const b = ships.spawn(world, {
-      design: compileBlueprint(GUNSHIP2),
+      design: compileBlueprint(GUNSHIP),
       ...CROSSING.east,
       team: 1,
     });
