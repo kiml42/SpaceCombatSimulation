@@ -971,6 +971,7 @@ function place(
     if (placement.reinforcement !== undefined) spec.reinforcement = placement.reinforcement;
     if (placement.barrels !== undefined) spec.barrels = placement.barrels;
     if (placement.nozzle !== undefined) spec.nozzle = placement.nozzle;
+    if (placement.barrelCalibres !== undefined) spec.barrelCalibres = placement.barrelCalibres;
     if (placement.traverse !== undefined) spec.traverse = placement.traverse;
     if (placement.fuse !== undefined) spec.fuse = placement.fuse;
     if (placement.fragments !== undefined) spec.fragments = placement.fragments;

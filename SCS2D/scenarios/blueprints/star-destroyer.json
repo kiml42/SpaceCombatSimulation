@@ -160,6 +160,7 @@
           "angle": 0,
           "length": 160,
           "width": 60,
+          "barrelCalibres": 100,
           "barrels": 4,
           "targeting": {
             "structureWeight": 0

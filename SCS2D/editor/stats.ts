@@ -4,6 +4,9 @@ import {
   exhaustObstruction,
   firingArc,
   barrelHalfWidth,
+  barrelCalibres,
+  braceMass,
+  readsBarrelCalibres,
   inWeaponsLayer,
   math,
   boxAngle,
@@ -299,6 +302,20 @@ export function moduleReadout(
       `${radiansToDegrees(mount.traverse).toLocaleString('en-GB', { maximumFractionDigits: 1 })}° ` +
         `either way, with ${(((mount.outlets * mount.outletWidth) / spec.width) * 100).toLocaleString('en-GB', { maximumFractionDigits: 0 })}% ` +
         `of the face filled`,
+    ]);
+  }
+  if (readsBarrelCalibres(spec.kind) && stats.gun !== null) {
+    // How long, and what being long has cost in bracing.
+    const gun = stats.gun;
+    const bracing = braceMass(gun);
+    rows.push([
+      'Barrel',
+      `${gun.barrelLength.toLocaleString('en-GB', { maximumFractionDigits: 2 })} m, ` +
+        `${barrelCalibres(spec).toLocaleString('en-GB', { maximumFractionDigits: 1 })} calibres` +
+        (bracing > 0
+          ? `; ${gun.braceLength.toLocaleString('en-GB', { maximumFractionDigits: 2 })} m braced, ` +
+            `${(bracing / 1000).toLocaleString('en-GB', { maximumFractionDigits: 2 })} t of bracing`
+          : ''),
     ]);
   }
   if (isWeaponMount(spec.kind)) {

@@ -433,9 +433,9 @@ Deliberately unresolved; decide when they block something.
   invariant — the mount's bore budget sizes it, not how the budget is divided. So a multi-barrel mount
   has a mass floor but no penalty, and it is lighter than the single-barrel mount of the same size.
   Whether that is right is a balance question rather than a physical one, and the exponent on calibre
-  is the dial: below linear the machinery total rises with `n`, above it it falls. One neighbouring
-  thing is unsettled with it: `BARREL_CALIBRES * sqrt(n)` lets a barrel reach 141 calibres, which no
-  real gun approaches. Settle them together, and let the GA weigh in.
+  is the dial: below linear the machinery total rises with `n`, above it it falls. Shared bracing is
+  now the one place a row is cheaper by design, and it only bites past fifty calibres. Let the GA weigh
+  in.
 - **Barrel harmonisation.** A multi-barrel mount fires its barrels parallel, so a barrel `d` off the
   centreline misses the aim point by `d` at every range — spreading the barrels across the mount face
   made that a metre or two rather than a few centimetres. It costs nothing measurable today, ships

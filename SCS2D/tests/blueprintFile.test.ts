@@ -191,6 +191,41 @@ describe('rejecting a file that arrived from somewhere else', () => {
     ).toEqual([{ kind: 'core', x: 0, y: 0, length: 10, width: 4 }]);
   });
 
+  it('carries a gun\'s barrel length out and back, in calibres', () => {
+    const raw = file({
+      modules: [
+        { kind: 'core', x: 0, y: 0, length: 10, width: 4 },
+        { kind: 'turret', x: 6, y: 0, angle: 0, length: 5, width: 4, barrelCalibres: 70 },
+        { kind: 'hullGun', x: -9, y: 0, angle: 180, length: 8, width: 4, barrelCalibres: 12 },
+      ],
+    }) as Record<string, unknown>;
+    expect(blueprintFileProblem(raw)).toBeNull();
+    const back = serialiseBlueprint(parseBlueprint(raw))['modules'] as Record<string, unknown>[];
+    expect(back[1]).toMatchObject({ barrelCalibres: 70 });
+    expect(back[2]).toMatchObject({ barrelCalibres: 12 });
+    // A laser has no barrel to set.
+    keptAndWarned(
+      file({ modules: [{ kind: 'beamTurret', x: 0, y: 0, length: 5, width: 4, barrelCalibres: 30 }] }),
+      /modules\[0\] has a key the game does not read, kept as written: barrelCalibres/,
+    );
+  });
+
+  it('reads a hull mount\'s barrel share from an older file', () => {
+    // An 8x4 hull gun's bore is 0.4 m, so half of it is ten calibres.
+    const gun = parseBlueprint(
+      file({ modules: [{ kind: 'hullGun', x: 0, y: 0, length: 8, width: 4, nozzle: 0.75 }] }),
+    ).modules[0] as ModuleSpec;
+    expect(gun.barrelCalibres).toBe(15);
+    expect(gun.nozzle).toBeUndefined();
+    expect(gun.unread).toBeUndefined();
+    // A lens housing has one depth now, so its share is simply dropped.
+    const beam = parseBlueprint(
+      file({ modules: [{ kind: 'hullBeam', x: 0, y: 0, length: 8, width: 4, nozzle: 0.2 }] }),
+    ).modules[0] as ModuleSpec;
+    expect(beam.nozzle).toBeUndefined();
+    expect(beam.unread).toBeUndefined();
+  });
+
   it('carries a weapon\'s traverse limit out and back, in degrees', () => {
     // Degrees in the file and radians in the simulation, as every other angle
     // — a layout is written by a person and read by arithmetic.

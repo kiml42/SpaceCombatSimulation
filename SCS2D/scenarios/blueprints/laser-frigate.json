@@ -108,6 +108,7 @@
           "angle": 90,
           "length": 2,
           "width": 3,
+          "barrelCalibres": 33.333,
           "barrels": 2,
           "fragments": 1,
           "targeting": {
@@ -134,7 +135,6 @@
       "length": 50,
       "width": 8,
       "barrels": 1,
-      "nozzle": 0.05,
       "targeting": {
         "coreWeight": 80,
         "proximityWeight": 100

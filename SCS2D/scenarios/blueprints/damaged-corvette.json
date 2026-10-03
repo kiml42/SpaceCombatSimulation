@@ -19,7 +19,7 @@
     { "kind": "core", "x": 0, "y": 0, "length": 4, "width": 6,
       "notes": "Amidships, with a section of hull either side of it: the compartment the ship is flown from is the one thing worth putting the rest of the ship in front of." },
     { "kind": "structure", "x": -5, "y": 0, "length": 6, "width": 6 },
-    { "kind": "hullGun", "x": 10.5, "y": 0, "angle": 0, "length": 5, "width": 4, "barrels": 2, "nozzle": 0.8 },
+    { "kind": "hullGun", "x": 10.5, "y": 0, "angle": 0, "length": 5, "width": 4, "barrels": 2, "barrelCalibres": 20 },
     { "kind": "engine", "x": -8, "y": 0, "angle": 180, "length": 4, "width": 6, "thick": true },
 
     { "use": "wingBox", "x": 4, "y": -4.5, "mirror": true },

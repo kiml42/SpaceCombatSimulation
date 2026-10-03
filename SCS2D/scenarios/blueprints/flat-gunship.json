@@ -33,7 +33,7 @@
       "length": 12,
       "width": 8,
       "barrels": 2,
-      "nozzle": 0.8
+      "barrelCalibres": 24
     },
     {
       "kind": "structure",
@@ -49,6 +49,7 @@
       "angle": 90,
       "length": 8,
       "width": 6,
+      "barrelCalibres": 100,
       "barrels": 8,
       "targeting": {
         "preferredMass": 0.02,
@@ -73,6 +74,7 @@
       "angle": -90,
       "length": 8,
       "width": 6,
+      "barrelCalibres": 100,
       "barrels": 8,
       "targeting": {
         "preferredMass": 0.02,

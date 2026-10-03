@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   blueprintFileProblem,
+  MAX_BARREL_CALIBRES,
   blueprintProblem,
   compileDraft,
   expandBlueprint,
@@ -253,6 +254,29 @@ describe('mutation', () => {
       );
     }
     expect(found).toBe(true);
+  });
+
+  it('lengthens and shortens a gun\'s barrel, in whole calibres', () => {
+    // The Catamaran's turrets and the Corvette's hull gun both read it.
+    for (const parent of [CATAMARAN, CORVETTE]) {
+      const rng = new Rng(57);
+      let held = parent;
+      const seen: number[] = [];
+      for (let i = 0; i < 600 && seen.length < 3; i++) {
+        const child = mutate(held, rng);
+        held = child.blueprint;
+        for (const edit of child.edits) {
+          const m = / barrel [\d.]+ → (\d+(?:\.\d+)?) calibres/.exec(edit);
+          if (m !== null) seen.push(Number(m[1]));
+        }
+      }
+      expect(seen.length).toBeGreaterThan(0);
+      for (const calibres of seen) {
+        expect(Number.isInteger(calibres)).toBe(true);
+        expect(calibres).toBeGreaterThanOrEqual(1);
+        expect(calibres).toBeLessThanOrEqual(MAX_BARREL_CALIBRES);
+      }
+    }
   });
 
   it('finds a weight whose own default is zero', () => {

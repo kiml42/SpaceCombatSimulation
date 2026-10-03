@@ -74,6 +74,7 @@
           "angle": 0,
           "length": 5,
           "width": 4,
+          "barrelCalibres": 31.25,
           "barrels": 1
         },
         {
