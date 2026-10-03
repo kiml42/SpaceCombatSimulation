@@ -2,6 +2,17 @@
   "formatVersion": 1,
   "name": "Beam Corvette",
   "notes": "A light escort: one main engine, one gun, and enough manoeuvring thrust to turn faster than anything can track it. Drawn as a deck plan on round numbers, +x the bow and +y to port, with modules abutting exactly.",
+  "doctrine": {
+    "targeting": {
+      "escortWeight": 50
+    },
+    "approach": {
+      "standoffRadii": 100,
+      "escortMinRadii": 1.2,
+      "tolerance": 0.4,
+      "ramRadii": 30
+    }
+  },
   "assemblies": {
     "wingBox": {
       "notes": "The wings exist to hold the manoeuvring engines out where their moment arm is worth having. That they also foul the bow gun's traverse is the trade this layout makes, and it is visible in the arc the design compiles to.",
@@ -121,7 +132,6 @@
       "length": 4.5,
       "width": 3.5,
       "barrels": 1,
-      "nozzle": 0.111111,
       "targeting": {
         "proximityWeight": 50,
         "preferredMass": 1.8,
