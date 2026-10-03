@@ -226,6 +226,13 @@ export interface Approach {
    */
   readonly escort: number;
   /**
+   * The smallest friend it will cover, in multiples of its own radius: one,
+   * the default, only what is at least its own size, so a capital does not
+   * trail round after a fighter it happens to be nearest; zero anything. A
+   * neutral objective is gone to whatever its size.
+   */
+  readonly escortMinRadii: number;
+  /**
    * How much a craft wants to keep out of everybody's way.
    *
    * Weighed against holding its station like every other urge, and against
@@ -327,6 +334,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     standoff: 0.65,
     escortRadii: 8,
     escort: 0.15,
+    escortMinRadii: 1,
     separation: 300,
     separationRadii: 3,
     tolerance: 0.2,
@@ -472,13 +480,15 @@ export const TARGETING_FIELDS: readonly (keyof Targeting)[] = [
  * The two halves of `Targeting` used to be one list because a mount inherited
  * its ship's, so every field reached both. They are now separate questions —
  * which ship to fly at, and which of the things a gun can train on to shoot —
- * and two fields belong to only one of them:
+ * and some fields belong to only one of them:
  *
  * - `escortWeight` is a steering urge, and a mount steers nothing.
  * - the four aim weights choose a *part* of a target, which only a gun does —
  *   and with it how near that part a shot has to land, since a mount that has
  *   refused something has to be sure of what it would hit.
  * - `fireRange` is how far a gun fires, which a hull does not.
+ * - `focusWeight` draws a mount to what its ship is fighting; a ship has no
+ *   ship above it to be drawn to.
  *
  * Stated here rather than filtered wherever it matters, because the editor
  * offering a field, mutation turning it and the simulation reading it have to
@@ -491,6 +501,7 @@ export const MOUNT_TARGETING_FIELDS: readonly (keyof Targeting)[] = TARGETING_FI
 
 export const SHIP_TARGETING_FIELDS: readonly (keyof Targeting)[] = TARGETING_FIELDS.filter(
   (field) =>
+    field !== 'focusWeight' &&
     field !== 'coreWeight' &&
     field !== 'engineWeight' &&
     field !== 'gunWeight' &&
@@ -503,6 +514,7 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
   'standoff',
   'escortRadii',
   'escort',
+  'escortMinRadii',
   'separation',
   'separationRadii',
   'tolerance',

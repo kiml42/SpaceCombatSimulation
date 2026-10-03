@@ -1,5 +1,8 @@
 import {
   DEFAULT_BURST_SPEED,
+  DEFAULT_DOCTRINE,
+  defaultTargeting,
+  resolveTargeting,
   DEFAULT_FRAGMENTS,
   DEFAULT_FUSE,
   firesShells,
@@ -98,10 +101,13 @@ import {
   shipSummary,
   withMountField,
   withShipField,
-  MOUNT_ROWS,
-  SHIP_APPROACH_ROWS,
-  SHIP_TARGETING_ROWS,
-  type DoctrineRow,
+  MOUNT_SECTIONS,
+  sectionEntries,
+  SHIP_SECTIONS,
+  type DoctrineContext,
+  type DoctrineEntry,
+  type DoctrineSection,
+  type DoctrineValues,
 } from './doctrine.js';
 import { doctrineBand, previewSnapshot } from './preview.js';
 import { designStats, envelopes, assemblyMass, moduleReadout, type Envelopes } from './stats.js';
@@ -805,40 +811,85 @@ export function startEditor(): void {
   };
 
   /**
-   * The doctrine boxes, built from the field lists rather than written out in
-   * the page.
+   * The doctrine boxes, laid out by what each decision is about, from the
+   * section lists rather than written out in the page.
    *
-   * A doctrine number added in `sim/doctrine.ts` then appears here by itself,
-   * which is the only way a panel of twenty-one numbers stays in step with the
-   * thing it is editing. The half a box belongs to is part of its key, since
-   * the two halves are separate objects with no field names in common to rely
-   * on.
+   * Every box carries a line for what its number comes to for this ship, and
+   * is hidden while a setting above it has made it mean nothing. The half a
+   * box belongs to is part of its key, since the two halves are separate
+   * objects with no field names in common to rely on.
    */
   const doctrineInputs = new Map<string, HTMLInputElement>();
+  const doctrineRows = new Map<string, { field: HTMLElement; absolute: HTMLElement; entry: DoctrineEntry }>();
 
-  const buildDoctrine = (into: HTMLElement, rows: readonly DoctrineRow[], half: string): void => {
-    for (const row of rows) {
-      const field = document.createElement('div');
-      field.className = 'field';
-      const label = document.createElement('label');
-      const id = `doctrine-${half}-${row.field}`;
-      label.htmlFor = id;
-      label.textContent = row.label;
-      const input = document.createElement('input');
-      input.id = id;
-      input.type = 'number';
-      input.step = String(row.step);
-      input.title = row.hint;
-      label.title = row.hint;
-      field.append(label, input);
-      into.append(field);
-      doctrineInputs.set(`${half}.${row.field}`, input);
+  const buildDoctrine = (into: HTMLElement, sections: readonly DoctrineSection[]): void => {
+    for (const section of sections) {
+      const heading = document.createElement('h3');
+      heading.textContent = section.title;
+      into.append(heading);
+      for (const group of section.groups) {
+        // A section of one group says it once.
+        if (group.title !== section.title) {
+          const sub = document.createElement('h4');
+          sub.textContent = group.title;
+          into.append(sub);
+        }
+        for (const row of group.entries) {
+          const key = `${row.half}.${row.field}`;
+          const field = document.createElement('div');
+          field.className = 'field';
+          const label = document.createElement('label');
+          const id = `doctrine-${row.half}-${row.field}`;
+          label.htmlFor = id;
+          label.textContent = row.label;
+          const input = document.createElement('input');
+          input.id = id;
+          input.type = 'number';
+          input.step = String(row.step);
+          input.title = row.hint;
+          label.title = row.hint;
+          const absolute = document.createElement('span');
+          absolute.className = 'absolute';
+          field.append(label, input, absolute);
+          into.append(field);
+          doctrineInputs.set(key, input);
+          doctrineRows.set(key, { field, absolute, entry: row });
+        }
+      }
     }
   };
 
-  buildDoctrine(el<HTMLElement>('mountDoctrineFields'), MOUNT_ROWS, 'mount');
-  buildDoctrine(el<HTMLElement>('shipTargetingFields'), SHIP_TARGETING_ROWS, 'targeting');
-  buildDoctrine(el<HTMLElement>('shipApproachFields'), SHIP_APPROACH_ROWS, 'approach');
+  buildDoctrine(el<HTMLElement>('mountDoctrineFields'), MOUNT_SECTIONS);
+  buildDoctrine(el<HTMLElement>('shipDoctrineFields'), SHIP_SECTIONS);
+
+  /** Hide what a higher setting has made moot, and say what the rest comes to. */
+  const showDoctrineRows = (
+    entries: readonly DoctrineEntry[],
+    values: DoctrineValues,
+    ship: DoctrineContext | null,
+  ): void => {
+    for (const row of entries) {
+      const shown = doctrineRows.get(`${row.half}.${row.field}`)!;
+      shown.field.hidden = row.shown !== undefined && !row.shown(values);
+      shown.absolute.textContent = ship === null ? '' : (row.absolute?.(values, ship) ?? '');
+    }
+  };
+
+  /** What the panel says relative numbers in terms of: the ship being edited. */
+  const doctrineContext = (fireRange: number | null = null): DoctrineContext | null => {
+    const design = doc.view.design;
+    if (design === null || envelope === null) return null;
+    const stats = designStats(design, envelope);
+    return {
+      mass: design.mass,
+      radius: design.radius,
+      reach: design.reach,
+      accelFore: stats.accelFore,
+      accelAft: stats.accelAft,
+      guns: design.turrets.length,
+      fireRange,
+    };
+  };
 
   /**
    * Show a doctrine box: the stated value, or nothing over a placeholder of
@@ -878,25 +929,35 @@ export function startEditor(): void {
       mountDoctrineSummary.textContent = mountSummary(spec.kind, spec.targeting);
       mountDoctrineReset.disabled = spec.targeting === undefined;
       mountDoctrineReset.title = `Take this ${kindName(spec.kind)} back to what its archetype does`;
-      for (const row of MOUNT_ROWS) {
+      const entries = sectionEntries(MOUNT_SECTIONS);
+      for (const row of entries) {
         const input = doctrineInputs.get(`mount.${row.field}`)!;
         showDoctrineValue(input, held[row.field], mountDefault(spec.kind, row.field), sameThing);
       }
+      const index = doc.selectedModules()[0] ?? -1;
+      const fireRange =
+        moduleReadout(spec, doc.view.modules, index, doc.view.design?.radius ?? 0).gun?.triggerRange ?? null;
+      showDoctrineRows(
+        entries,
+        {
+          targeting: resolveTargeting(spec.targeting, defaultTargeting(spec.kind)),
+          approach: (doc.blueprint.doctrine ?? DEFAULT_DOCTRINE).approach,
+        },
+        doctrineContext(fireRange),
+      );
     }
     if (core) {
       const doctrine = doc.blueprint.doctrine;
       shipDoctrineSummary.textContent = shipSummary(doctrine);
       shipDoctrineReset.disabled = doctrine === undefined;
-      for (const [half, rows] of [
-        ['targeting', SHIP_TARGETING_ROWS],
-        ['approach', SHIP_APPROACH_ROWS],
-      ] as const) {
+      const entries = sectionEntries(SHIP_SECTIONS);
+      for (const row of entries) {
+        const half = row.half as 'targeting' | 'approach';
         const held = doctrine?.[half] as unknown as Record<string, number> | undefined;
-        for (const row of rows) {
-          const input = doctrineInputs.get(`${half}.${row.field}`)!;
-          showDoctrineValue(input, held?.[row.field], shipDefault(half, row.field), sameThing);
-        }
+        const input = doctrineInputs.get(`${half}.${row.field}`)!;
+        showDoctrineValue(input, held?.[row.field], shipDefault(half, row.field), sameThing);
       }
+      showDoctrineRows(entries, doctrine ?? DEFAULT_DOCTRINE, doctrineContext());
     }
   };
 
