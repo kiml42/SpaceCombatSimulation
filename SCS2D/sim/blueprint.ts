@@ -14,7 +14,7 @@ import {
   engineGeometry,
   boxAngle,
   weldBox,
-  traverseAccel,
+  mountAccel,
   traverseRate,
   type GunStats,
   type ModuleSpec,
@@ -1631,8 +1631,7 @@ function designFrom(
       const arc = firingArc(specs, i, gun.barrelLength);
       const mask = triggerMask(specs, i, everyModule, shotSpread(gun));
       const limit = mountTraverse(spec);
-      // Only the barrels swing, so that is what the drive is sized against.
-      const accel = traverseAccel(s.mass, s.swingInertia);
+      const accel = mountAccel(spec, s);
 
       turrets.push({
         module: i,
@@ -1674,7 +1673,7 @@ function designFrom(
 
       // One drive, so one figure: the rate limit is what this acceleration
       // reaches in the drive's spin-up time.
-      const accel = traverseAccel(s.mass, s.inertia);
+      const accel = mountAccel(spec, s);
 
       turrets.push({
         module: i,

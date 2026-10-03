@@ -728,8 +728,9 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
 - **Every gun says how long its barrel is, in calibres, and a long barrel has to be braced.** A turret's
   barrel runs out from its pivot over whatever is beside it, no longer held to the mount's own length; a
   hull gun's comes out of its module. Fifty calibres is the longest a barrel holds itself up, and what a
-  turret gets when its layout says nothing. Past that it is braced for as long as it is over, by a strip
-  a calibre wide either side, drawn darker beside it, so each calibre costs its tube and a strip of
+  turret gets when its layout says nothing. Past that it is braced for as long as it is over, out from
+  its root, by a strip a calibre wide either side, drawn darker beside it and swung as part of it, so
+  each calibre costs its tube and a strip of
   bracing too — and a row of barrels shares the strip between neighbours, needing `n + 1` rather than
   `2n`, which is what a multi-barrel mount gets for being a row. Nothing is longer than a hundred. Muzzle
   energy is in proportion to bore volume up to fifty calibres, by when the charge has burnt; past it the
@@ -892,7 +893,9 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   - **Both limits come from one drive.** The mount ring delivers torque proportional to the turret's
     mass, so acceleration is `torque / inertia`, and the rate limit is simply what that acceleration
     reaches in a fixed spin-up time. They are one mechanism described twice, not two numbers to balance:
-    a mount cannot be sluggish off the mark and fast at the top end.
+    a mount cannot be sluggish off the mark and fast at the top end. A hull mount's drive is sized by
+    the weapon it trains rather than the block it is welded into, and swings the barrels alone, so a
+    deeper block behind the same barrels trains them neither faster nor slower.
     - What makes that discriminate between mounts is **inertia**, which counts each barrel as a rod
       running out from the pivot rather than as part of the box the module is declared as. Mass cancels
       out of `torque / inertia` exactly, so without the barrels a mount's agility would depend on

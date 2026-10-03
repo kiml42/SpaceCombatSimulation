@@ -482,8 +482,8 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
 
 /**
  * The bracing on a row of long barrels: a block either side of the row and
- * one filling each gap between neighbours, which share it, over the braced
- * middle of the barrels.
+ * one filling each gap between neighbours, which share it, out from the root
+ * of the barrels.
  */
 function drawBracing(
   ctx: CanvasRenderingContext2D,
@@ -498,15 +498,14 @@ function drawBracing(
   const half = barrelWidth * 0.5;
   const first = count > 1 ? -(count - 1) * 0.5 * gun.barrelSpacing : 0;
   const last = -first;
-  const near = (gun.barrelLength - gun.braceLength) * 0.5;
-  const far = near + gun.braceLength;
+  const far = gun.braceLength;
   ctx.fillStyle = BRACE;
   const block = (from: number, to: number): void => {
     ctx.beginPath();
-    ctx.moveTo(mx + dirX * near - dirY * from, my + dirY * near + dirX * from);
+    ctx.moveTo(mx - dirY * from, my + dirX * from);
     ctx.lineTo(mx + dirX * far - dirY * from, my + dirY * far + dirX * from);
     ctx.lineTo(mx + dirX * far - dirY * to, my + dirY * far + dirX * to);
-    ctx.lineTo(mx + dirX * near - dirY * to, my + dirY * near + dirX * to);
+    ctx.lineTo(mx - dirY * to, my + dirX * to);
     ctx.closePath();
     ctx.fill();
   };

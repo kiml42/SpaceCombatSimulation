@@ -35,6 +35,7 @@ import {
   moduleCentre,
   moduleProblem,
   moduleStats,
+  mountAccel,
   refitModule,
   traverseAccel,
   traverseRate,
@@ -903,6 +904,27 @@ describe('traverse limits', () => {
       ((row.mass - barrelMass(row)) * (8 * 8 + 6 * 6)) / 12 + rodSpin + lateral,
       6,
     );
+  });
+
+  it('swings bracing as a rod out from the barrel\'s root, where it is', () => {
+    const stats = moduleStats({ kind: 'turret', x: 0, y: 0, length: 12, width: 8, barrelCalibres: 80 });
+    const gun = stats.gun!;
+    const brace = braceMass(gun);
+    expect(brace).toBeGreaterThan(0);
+    const tube = barrelMass(stats) - brace;
+    const box = ((stats.mass - tube - brace) * (12 * 12 + 8 * 8)) / 12;
+    expect(stats.inertia).toBeCloseTo(
+      box + (tube * gun.barrelLength ** 2) / 3 + (brace * gun.braceLength ** 2) / 3,
+      6,
+    );
+  });
+
+  it('trains a hull gun\'s barrels no differently for a deeper block behind them', () => {
+    const rate = (length: number) => {
+      const spec: ModuleSpec = { kind: 'hullGun', x: 0, y: 0, length, width: 4, barrelCalibres: 10 };
+      return mountAccel(spec, moduleStats(spec));
+    };
+    expect(rate(16)).toBeCloseTo(rate(6), 9);
   });
 
   it('makes a small mount quicker than a capital one, by a wide margin', () => {

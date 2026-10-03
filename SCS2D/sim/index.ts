@@ -103,6 +103,7 @@ export {
   engineGeometry,
   engineMachinery,
   traverseAccel,
+  mountAccel,
   traverseRate,
   TRAVERSE_SPINUP_TIME,
   type GunStats,

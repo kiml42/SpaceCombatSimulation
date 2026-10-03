@@ -774,7 +774,7 @@ export interface GunStats {
   /** Muzzle to breech, metres. */
   barrelLength: number;
   /**
-   * How much of each barrel is braced, metres, centred on its middle: what it
+   * How much of each barrel is braced, metres, out from its root: what it
    * runs past `BARREL_CALIBRES`. Zero for a barrel that holds itself up.
    */
   braceLength: number;
@@ -1615,10 +1615,9 @@ export function casingMass(spec: ModuleSpec, roundMass: number): number {
   return (roundMass * casing) / (casing + share * EXPLOSIVE_DENSITY);
 }
 
-/** Inertia about a barrel's root of `mass` of bracing centred on its middle. */
+/** Inertia about a barrel's root of `mass` of bracing running out from it. */
 function braceInertia(gun: GunStats, mass: number): number {
-  const centre = gun.barrelLength * 0.5;
-  return mass * (centre * centre + (gun.braceLength * gun.braceLength) / 12);
+  return (mass * gun.braceLength * gun.braceLength) / 3;
 }
 
 /**
@@ -1759,13 +1758,17 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
     const braceSpin = braceInertia(gun, braced);
     const braceMiddle = (braced * gun.braceLength * gun.braceLength) / 12;
     const ahead = mount.pivot + gun.barrelLength * 0.5;
+    const braceAhead = mount.pivot + gun.braceLength * 0.5;
     const each = protrudingMass + braced;
     for (let barrel = 0; barrel < gun.barrelCount; barrel++) {
       const offset = (barrel - (gun.barrelCount - 1) * 0.5) * gun.barrelSpacing;
       swing += spin + braceSpin + each * offset * offset;
       // The module's own moment wants them about its centre instead, which is
       // the rod's own moment plus where its centre of mass actually sits.
-      rodInertia += middle + braceMiddle + each * (ahead * ahead + offset * offset);
+      rodInertia +=
+        middle + protrudingMass * ahead * ahead +
+        braceMiddle + braced * braceAhead * braceAhead +
+        each * offset * offset;
     }
   } else if (spec.kind === 'turret' || spec.kind === 'beamTurret') {
     gun = spec.kind === 'turret'
@@ -2043,4 +2046,18 @@ export function traverseRate(accel: number): number {
  */
 export function traverseAccel(mass: number, inertia: number): number {
   return (TRAVERSE_TORQUE_PER_KG * mass) / inertia;
+}
+
+/**
+ * How fast a weapon mount's drive can swing it, radians per second squared.
+ *
+ * A turret turns bodily, so its drive is sized by and swings the whole mount.
+ * A hull mount swings only its barrels, and its drive is sized by the weapon
+ * it trains rather than the block it is welded into — so a deeper block,
+ * which is more loading gear behind the same barrels, trains them no faster
+ * and no slower.
+ */
+export function mountAccel(spec: ModuleSpec, stats: ModuleStats): number {
+  if (isHullMount(spec.kind)) return traverseAccel(stats.fittingMass, stats.swingInertia);
+  return traverseAccel(stats.mass, stats.inertia);
 }

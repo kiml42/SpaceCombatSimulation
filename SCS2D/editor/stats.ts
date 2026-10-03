@@ -24,7 +24,7 @@ import {
   plumeIntensity,
   shortfall,
   engineGeometry,
-  traverseAccel,
+  mountAccel,
   traverseRate,
   defaultTargeting,
   nominalReach,
@@ -372,7 +372,7 @@ export function moduleReadout(
             muzzleSpeed: gun.muzzleSpeed,
             roundsPerMinute: gun.cycleTime > 0 ? 60 / gun.cycleTime : 0,
             ...arcOf(layout, index, gun.barrelLength, barrelHalfWidth(gun)),
-            traverseRate: radiansToDegrees(traverseRate(traverseAccel(stats.mass, stats.inertia))),
+            traverseRate: radiansToDegrees(traverseRate(mountAccel(spec, stats))),
             // Against what its doctrine goes after, which is sized from the
             // ship carrying it, so it needs the ship.
             triggerRange: shipRadius > 0 ? fireRangeOf(spec, gun, shipRadius) : null,
