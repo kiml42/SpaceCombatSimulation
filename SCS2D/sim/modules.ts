@@ -1518,9 +1518,20 @@ export function hullGunStats(spec: ModuleSpec): GunStats {
     beamPower: 0,
     // One block loads every tube, so its depth is measured against the bore
     // they share rather than each tube's own.
-    cycleTime: hullCycleTime(calibre, blockLength, outlets) / outlets,
+    cycleTime: hullCycleTime(calibre, blockLength * loadingDecks(spec), outlets) / outlets,
     beamOnTime: 0,
   };
+}
+
+/**
+ * How many decks' worth of loading gear a hull gun's block holds per metre of
+ * its length: one when it is held to a deck (or narrower than one), and its
+ * depth over a deck's when it is thick. The gear fills the block, so standing
+ * through more of the ship buys rounds per minute as a longer block does.
+ */
+function loadingDecks(spec: ModuleSpec): number {
+  const thin = spec.width < DECK_HEIGHT ? spec.width : DECK_HEIGHT;
+  return moduleThickness(spec) / thin;
 }
 
 /**
