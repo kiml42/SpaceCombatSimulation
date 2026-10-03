@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   BARREL_CALIBRES,
+  BRACE_CALIBRES,
+  braceMass,
+  MAX_BARREL_CALIBRES,
   BASE_WALL_THICKNESS,
   BEAM_APERTURE_FRACTION,
   BEAM_DUTY_CYCLE,
@@ -32,6 +35,7 @@ import {
   moduleCentre,
   moduleProblem,
   moduleStats,
+  mountAccel,
   refitModule,
   traverseAccel,
   traverseRate,
@@ -236,24 +240,29 @@ describe('hull mount scaling', () => {
     expect(hull.gun!.muzzleEnergy).toBeGreaterThan(turret.gun!.muzzleEnergy * 2);
   });
 
-  it('takes its barrel length from the share it was given, not from its calibre', () => {
-    // A turret's barrel is as long as the calibre wants, capped by the mount.
-    // A hull mount's is authored, which is what makes the split a knob.
-    expect(moduleStats(gun(8, 4, { nozzle: 0.25 })).gun!.barrelLength).toBeCloseTo(2, 9);
-    expect(moduleStats(gun(8, 4, { nozzle: 0.75 })).gun!.barrelLength).toBeCloseTo(6, 9);
+  it('takes its barrel length from the calibres it was given, out of the module', () => {
+    // An 8x4 mount carries a 0.4 m bore.
+    expect(moduleStats(gun(8, 4, { barrelCalibres: 5 })).gun!.barrelLength).toBeCloseTo(2, 9);
+    expect(moduleStats(gun(8, 4, { barrelCalibres: 15 })).gun!.barrelLength).toBeCloseTo(6, 9);
+    expect(hullMountGeometry(gun(8, 4, { barrelCalibres: 15 })).blockLength).toBeCloseTo(2, 9);
     // And length is muzzle energy, since that is what the charge works over.
-    expect(moduleStats(gun(8, 4, { nozzle: 0.75 })).gun!.muzzleEnergy).toBeCloseTo(
-      moduleStats(gun(8, 4, { nozzle: 0.25 })).gun!.muzzleEnergy * 3,
+    expect(moduleStats(gun(8, 4, { barrelCalibres: 15 })).gun!.muzzleEnergy).toBeCloseTo(
+      moduleStats(gun(8, 4, { barrelCalibres: 5 })).gun!.muzzleEnergy * 3,
       6,
     );
+  });
+
+  it('refuses a barrel that leaves no block to load it from', () => {
+    expect(moduleProblem(gun(8, 4, { barrelCalibres: 20 }))).toMatch(/leaving no block/);
+    expect(moduleProblem(gun(8, 4, { barrelCalibres: 18 }))).toBeNull();
   });
 
   it('loads faster the deeper the block behind the barrel', () => {
     // The block is the loading gear, so giving length to it buys rounds per
     // minute the same way giving length to the barrel buys muzzle velocity.
-    const stubby = moduleStats(gun(8, 4, { nozzle: 0.1 })).gun!;
-    const middling = moduleStats(gun(8, 4, { nozzle: 0.5 })).gun!;
-    const lanky = moduleStats(gun(8, 4, { nozzle: 0.9 })).gun!;
+    const stubby = moduleStats(gun(8, 4, { barrelCalibres: 2 })).gun!;
+    const middling = moduleStats(gun(8, 4, { barrelCalibres: 10 })).gun!;
+    const lanky = moduleStats(gun(8, 4, { barrelCalibres: 18 })).gun!;
     expect(stubby.cycleTime).toBeLessThan(middling.cycleTime);
     expect(middling.cycleTime).toBeLessThan(lanky.cycleTime);
     // The bore is unchanged throughout, so this is the block and nothing else.
@@ -265,7 +274,7 @@ describe('hull mount scaling', () => {
     // a cycle that machinery cannot shorten is the ceiling on what the knob is
     // worth: a block two hundred times as deep as the round asks for is still
     // under four times a turret's rate, not four hundred.
-    const deep = moduleStats(gun(800, 4, { nozzle: 0.001 })).gun!;
+    const deep = moduleStats(gun(800, 4, { barrelCalibres: 2 })).gun!;
     const floor = CYCLE_TIME_PER_CALIBRE * deep.calibre * LOADING_FLOOR;
     expect(deep.cycleTime).toBeGreaterThan(floor);
     expect(deep.cycleTime).toBeLessThan(floor * 1.05);
@@ -288,9 +297,11 @@ describe('hull mount scaling', () => {
     const four = hullMountGeometry(gun(8, 4, { barrels: 4 }));
     expect(four.outletWidth).toBeCloseTo(one.outletWidth / 4, 9);
 
+    // Barrels as long in metres, so the block is the same.
     const single = moduleStats(gun(8, 4)).gun!;
-    const quad = moduleStats(gun(8, 4, { barrels: 4 })).gun!;
+    const quad = moduleStats(gun(8, 4, { barrels: 4, barrelCalibres: 40 })).gun!;
     expect(quad.calibre).toBeCloseTo(single.calibre / 4, 9);
+    expect(quad.barrelLength).toBeCloseTo(single.barrelLength, 9);
     expect(quad.cycleTime).toBeLessThan(single.cycleTime);
     // Less metal downrange per second for the same mount: splitting is a discount.
     const weightOfFire = (g: GunStats) => g.roundMass / g.cycleTime;
@@ -313,7 +324,8 @@ describe('hull mount scaling', () => {
     // The face in `n + 1` gaps, one outboard of each end, so neighbours stand
     // apart; the row that swings in the opening is the spread plus a barrel.
     const one = hullMountGeometry(gun(8, 4));
-    const three = hullMountGeometry(gun(8, 4, { barrels: 3 }));
+    const three = hullMountGeometry(gun(8, 4, { barrels: 3, barrelCalibres: 30 }));
+    expect(three.barrelLength).toBeCloseTo(one.barrelLength, 9);
     expect(one.outletSpacing).toBe(0);
     expect(three.outletSpacing).toBeCloseTo(1, 9);
     expect(moduleStats(gun(8, 4, { barrels: 3 })).gun!.barrelSpacing).toBeCloseTo(1, 9);
@@ -338,15 +350,14 @@ describe('hull mount scaling', () => {
     // Derived rather than authored, so the three things that should move it do:
     // a longer barrel sweeps further for the same angle, a fatter one starts
     // closer to the edge, and a wider mount is a wider opening.
-    const shortBarrel = hullMountGeometry(gun(8, 4, { nozzle: 0.25 })).traverse;
-    const longBarrel = hullMountGeometry(gun(8, 4, { nozzle: 0.75 })).traverse;
-    // Tubes never widen a gun's row, so a beam's row of lenses stands in for fat.
-    const lenses = (barrels: number) =>
-      hullMountGeometry({ kind: 'hullBeam', x: 0, y: 0, length: 8, width: 4, barrels }).traverse;
-    const wideMount = hullMountGeometry(gun(8, 8)).traverse;
+    const shortBarrel = hullMountGeometry(gun(8, 4, { barrelCalibres: 5 })).traverse;
+    const longBarrel = hullMountGeometry(gun(8, 4, { barrelCalibres: 15 })).traverse;
+    // A row of three as long in metres is a fatter thing to swing.
+    const row = hullMountGeometry(gun(8, 4, { barrels: 3, barrelCalibres: 30 })).traverse;
+    const wideMount = hullMountGeometry(gun(8, 8, { barrelCalibres: 5 })).traverse;
 
     expect(longBarrel).toBeLessThan(shortBarrel);
-    expect(lenses(36)).toBeLessThan(lenses(1));
+    expect(row).toBeLessThan(hullMountGeometry(gun(8, 4)).traverse);
     expect(wideMount).toBeGreaterThan(hullMountGeometry(gun(8, 4)).traverse);
 
     // The corner of the swung barrel lands exactly on the edge of the opening,
@@ -366,23 +377,23 @@ describe('hull mount scaling', () => {
     expect(stats.swingInertia).toBeLessThan(stats.inertia);
   });
 
-  it('gives a beam the same opening rule and a bank in what is left of the block', () => {
-    // Same geometry, deliberately, rather than a second rule invented for it.
-    const deep = moduleStats({ kind: 'hullBeam', x: 0, y: 0, length: 6, width: 4, nozzle: 0.5 });
-    const shallow = moduleStats({ kind: 'hullBeam', x: 0, y: 0, length: 6, width: 4, nozzle: 0.25 });
-    expect(deep.gun!.beamPower).toBeCloseTo(shallow.gun!.beamPower, 6);
-    // A shallower lens leaves more block, and the bank is in the block.
-    expect(shallow.gun!.beamOnTime).toBeGreaterThan(deep.gun!.beamOnTime);
+  it('gives a beam a housing as deep as a turret\'s and a bank in the rest', () => {
+    // A shallower housing is better in every way, so there is no knob for it.
+    const mount = hullMountGeometry({ kind: 'hullBeam', x: 0, y: 0, length: 6, width: 4 });
+    expect(mount.barrelLength).toBeCloseTo(mount.outletWidth * BEAM_EMITTER_APERTURES, 9);
+    expect(mount.blockLength).toBeCloseTo(6 - mount.barrelLength, 9);
+    // An old file's share is dormant on one, and changes nothing.
+    expect(hullMountGeometry({ kind: 'hullBeam', x: 0, y: 0, length: 6, width: 4, nozzle: 0.9 })).toEqual(mount);
   });
 
   it('gives a deeper beam a better duty cycle, not only a longer burst', () => {
     // The point of the law: the bank grows with the block and the recovery
     // does not, so depth is average power on target rather than a longer shot
     // paid for by an exactly proportionally longer wait.
-    const beam = (nozzle: number) =>
-      moduleStats({ kind: 'hullBeam', x: 0, y: 0, length: 8, width: 4, nozzle }).gun!;
-    const deep = beam(0.1);
-    const shallow = beam(0.8);
+    const beam = (length: number) =>
+      moduleStats({ kind: 'hullBeam', x: 0, y: 0, length, width: 4 }).gun!;
+    const deep = beam(16);
+    const shallow = beam(2);
     const duty = (g: GunStats) => g.beamOnTime / g.cycleTime;
     expect(duty(deep)).toBeGreaterThan(duty(shallow));
     // The optic is unchanged, so this is the block and nothing else.
@@ -403,16 +414,13 @@ describe('hull mount scaling', () => {
     expect(large.cycleTime - large.beamOnTime).toBeCloseTo(BEAM_RECHARGE_TIME, 9);
   });
 
-  it('leaves a beam at the mounting\'s limit until its housing runs long', () => {
-    // Worth recording rather than asserting in passing: a lens is a fraction
-    // of the width a row of tubes is, so the opening barely constrains one and
-    // what actually holds a hull beam is the mounting. The opening only starts
-    // to bite once the housing is most of the module.
-    const at = (nozzle: number): number =>
-      hullMountGeometry({ kind: 'hullBeam', x: 0, y: 0, length: 6, width: 4, nozzle }).traverse;
-    expect(at(0.25)).toBeCloseTo(HULL_MAX_TRAVERSE, 9);
-    expect(at(0.5)).toBeCloseTo(HULL_MAX_TRAVERSE, 9);
-    expect(at(0.9)).toBeLessThan(HULL_MAX_TRAVERSE);
+  it('leaves a single-lens beam at the mounting\'s limit', () => {
+    // A lens is a fraction of the width a row of tubes is and its housing is
+    // shallow, so the opening barely constrains one: the mounting holds it.
+    expect(hullMountGeometry({ kind: 'hullBeam', x: 0, y: 0, length: 6, width: 4 }).traverse).toBeCloseTo(
+      HULL_MAX_TRAVERSE,
+      9,
+    );
   });
 
   it('holds any hull mount to the mounting\'s limit however small its barrel', () => {
@@ -426,17 +434,15 @@ describe('hull mount scaling', () => {
     }
   });
 
-  it('refuses a share that leaves no barrel or no block, and one on a turret', () => {
-    // The field is shared with an engine's bell and the bounds are not quite:
-    // no bell at all is a legal, bad engine, where no barrel at all is a bore
-    // with nothing to accelerate a shell down and is not a weapon.
-    expect(moduleProblem(gun(8, 4, { nozzle: 0 }))).toMatch(/needs some barrel/);
-    expect(moduleProblem({ kind: 'engine', angle: Math.PI, x: 0, y: 0, length: 8, width: 4, nozzle: 0 })).toBeNull();
-    expect(moduleProblem(gun(8, 4, { nozzle: 1 }))).toMatch(/from 0 to under 1/);
-    // A turret does not read it, so on one it is dormant and allowed — and a
-    // zero that would be refused on a hull mount says nothing on a turret.
-    expect(moduleProblem({ kind: 'turret', x: 0, y: 0, length: 5, width: 4, nozzle: 0.5 })).toBeNull();
-    expect(moduleProblem({ kind: 'turret', x: 0, y: 0, length: 5, width: 4, nozzle: 0 })).toBeNull();
+  it('refuses a barrel of no length or past the cap, even where it is dormant', () => {
+    expect(moduleProblem(gun(8, 4, { barrelCalibres: 0 }))).toMatch(/more than 0/);
+    expect(moduleProblem({ kind: 'turret', x: 0, y: 0, length: 5, width: 4, barrelCalibres: MAX_BARREL_CALIBRES })).toBeNull();
+    expect(moduleProblem({ kind: 'turret', x: 0, y: 0, length: 5, width: 4, barrelCalibres: MAX_BARREL_CALIBRES + 1 })).toMatch(
+      /at most/,
+    );
+    // A hull gun's share is dormant, kept against a refit to an engine.
+    expect(moduleProblem(gun(8, 4, { nozzle: 0 }))).toBeNull();
+    expect(moduleProblem({ kind: 'beamTurret', x: 0, y: 0, length: 5, width: 4, barrelCalibres: 30 })).toBeNull();
   });
 });
 
@@ -543,10 +549,48 @@ describe('gun scaling', () => {
     expect(gun.barrelLength).toBeCloseTo(gun.calibre * BARREL_CALIBRES, 12);
   });
 
-  it('will not fit a barrel longer than the mount that carries it', () => {
+  it('runs its barrel out over the ship rather than holding it to the mount', () => {
     const cramped = gunStats(6, 8);
-    expect(cramped.barrelLength).toBe(6);
-    expect(cramped.barrelLength).toBeLessThan(cramped.calibre * BARREL_CALIBRES);
+    expect(cramped.barrelLength).toBeCloseTo(cramped.calibre * BARREL_CALIBRES, 12);
+    expect(cramped.barrelLength).toBeGreaterThan(6);
+    expect(gunStats(6, 8, 1, 20).barrelLength).toBeCloseTo(cramped.calibre * 20, 12);
+  });
+
+  it('buys velocity with barrel length, less of it past fifty calibres', () => {
+    const at = (calibres: number) => gunStats(12, 8, 1, calibres);
+    expect(at(50).muzzleEnergy).toBeCloseTo(at(25).muzzleEnergy * 2, 3);
+    expect(at(100).muzzleEnergy).toBeCloseTo(at(50).muzzleEnergy * (2 * Math.SQRT2 - 1), 3);
+    expect(at(100).muzzleSpeed).toBeGreaterThan(at(75).muzzleSpeed);
+    expect(at(100).muzzleEnergy - at(75).muzzleEnergy).toBeLessThan(at(75).muzzleEnergy - at(50).muzzleEnergy);
+    // No kink where the two meet.
+    const slope = (c: number) => (at(c + 0.01).muzzleEnergy - at(c - 0.01).muzzleEnergy) / 0.02;
+    expect(slope(BARREL_CALIBRES) / slope(BARREL_CALIBRES - 1)).toBeCloseTo(1, 2);
+    expect(at(100).roundMass).toBeCloseTo(at(25).roundMass, 12);
+  });
+
+  it('braces a barrel only past the length that holds itself up', () => {
+    expect(gunStats(12, 8, 1, BARREL_CALIBRES).braceLength).toBe(0);
+    const long = gunStats(12, 8, 1, 70);
+    expect(long.braceLength).toBeCloseTo(20 * long.calibre, 12);
+    expect(long.braceWidth).toBeCloseTo(BRACE_CALIBRES * long.calibre, 12);
+  });
+
+  it('makes each calibre past the brace point cost more steel than one before it', () => {
+    const mass = (calibres: number) =>
+      moduleStats({ kind: 'turret', x: 0, y: 0, length: 12, width: 8, barrelCalibres: calibres }).fittingMass;
+    const below = mass(50) - mass(40);
+    const above = mass(70) - mass(60);
+    expect(above).toBeGreaterThan(below * 1.5);
+  });
+
+  it('shares bracing between neighbouring barrels, so a row pays less a barrel', () => {
+    const perBarrel = (n: number) => {
+      const gun = gunStats(12, 8 * n, n, 80);
+      return braceMass(gun) / n / (gun.braceLength * gun.braceWidth * gun.calibre);
+    };
+    expect(perBarrel(2)).toBeLessThan(perBarrel(1));
+    expect(perBarrel(4)).toBeLessThan(perBarrel(2));
+    expect(perBarrel(2) / perBarrel(1)).toBeCloseTo(0.75, 9);
   });
 
   it('holds muzzle velocity roughly constant once the barrel fits', () => {
@@ -576,7 +620,8 @@ describe('gun scaling', () => {
     expect(multi.cycleTime).toBeCloseTo(single.cycleTime / (barrelCount * barrelCount), 6);
     expect(multi.barrelLength).toBeLessThan(single.barrelLength);
     expect(multi.roundMass).toBeLessThan(single.roundMass);
-    expect(multi.muzzleSpeed).toBeGreaterThan(single.muzzleSpeed);
+    // As many calibres long, so as fast.
+    expect(multi.muzzleSpeed).toBeCloseTo(single.muzzleSpeed, 6);
     expect(multi.muzzleEnergy).toBeLessThan(single.muzzleEnergy);
     expect(single.barrelSpacing).toBe(0);
     expect(multi.barrelSpacing).toBeGreaterThan(0);
@@ -621,13 +666,6 @@ describe('gun scaling', () => {
     // There is nothing to be spaced from, and reporting half a mount face as
     // the gap would be a lie the renderer could act on.
     expect(gunStats(12, 8, 1).barrelSpacing).toBe(0);
-  });
-
-  it('buys velocity with barrel length when the mount is what limits it', () => {
-    const stubby = gunStats(4, 8);
-    const long = gunStats(12, 8);
-    expect(long.muzzleSpeed).toBeGreaterThan(stubby.muzzleSpeed);
-    expect(long.roundMass).toBeCloseTo(stubby.roundMass, 12);
   });
 
   it('carries loading machinery for every barrel, sized by the round it moves', () => {
@@ -868,6 +906,27 @@ describe('traverse limits', () => {
     );
   });
 
+  it('swings bracing as a rod out from the barrel\'s root, where it is', () => {
+    const stats = moduleStats({ kind: 'turret', x: 0, y: 0, length: 12, width: 8, barrelCalibres: 80 });
+    const gun = stats.gun!;
+    const brace = braceMass(gun);
+    expect(brace).toBeGreaterThan(0);
+    const tube = barrelMass(stats) - brace;
+    const box = ((stats.mass - tube - brace) * (12 * 12 + 8 * 8)) / 12;
+    expect(stats.inertia).toBeCloseTo(
+      box + (tube * gun.barrelLength ** 2) / 3 + (brace * gun.braceLength ** 2) / 3,
+      6,
+    );
+  });
+
+  it('trains a hull gun\'s barrels no differently for a deeper block behind them', () => {
+    const rate = (length: number) => {
+      const spec: ModuleSpec = { kind: 'hullGun', x: 0, y: 0, length, width: 4, barrelCalibres: 10 };
+      return mountAccel(spec, moduleStats(spec));
+    };
+    expect(rate(16)).toBeCloseTo(rate(6), 9);
+  });
+
   it('makes a small mount quicker than a capital one, by a wide margin', () => {
     // The point of the whole law. A point-defence mount has to hold a bearing
     // against its own ship's manoeuvring; a 16" turret is allowed to need a
@@ -876,16 +935,16 @@ describe('traverse limits', () => {
       const s = moduleStats({ kind: 'turret', x: 0, y: 0, length, width, barrels });
       return traverseRate(traverseAccel(s.mass, s.inertia));
     };
-    expect(rate(5, 4)).toBeGreaterThan(radians(45));
+    expect(rate(5, 4)).toBeGreaterThan(radians(35));
     expect(rate(20, 14)).toBeLessThan(radians(5));
     expect(rate(5, 4) / rate(20, 14)).toBeGreaterThan(10);
   });
 });
 
-/** The barrel steel on a mount, kg: fittings less the loading machinery. */
+/** The barrel steel on a mount, kg: fittings less the loading machinery and the training gear. */
 function barrelMass(stats: ReturnType<typeof moduleStats>): number {
   const gun = stats.gun!;
-  return stats.fittingMass - MECHANISM_MASS_PER_CALIBRE * gun.calibre * gun.barrelCount;
+  return stats.fittingMass - stats.traverseMass - MECHANISM_MASS_PER_CALIBRE * gun.calibre * gun.barrelCount;
 }
 
 /** Degrees per second as radians per second, for a legible expectation. */

@@ -446,7 +446,8 @@ inside any one file is not contiguous.
   fuse, so it never does. Each gun sets how many fragments, how fast they leave (which sizes the charge,
   so the shell's mass) and how early; one fragment or fewer is solid shot, all metal and never bursting. A module is as deep as it is across, capped at a deck
   (3 m) unless it is thick. Shipped ships mark every engine wider than a deck thick, and the Corvette and
-  Gunship carry their bow guns as hull guns. A match is over when at most one side can
+  Gunship carry their bow guns as hull guns. Every gun sets its barrel in calibres; past fifty it is
+  braced and drawn so, and a hundred is the cap (§4). A match is over when at most one side can
   still shoot or push, since most fleets can no longer destroy each other.
   **An engine has a nozzle rather than being one.** An engine's length divides between a machinery block
   and a bell, and the bell's share is the knob: a long one is lighter, keeps more of the thrust pointed
@@ -720,10 +721,22 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
 - **A hull weapon is a block with a barrel out of the front of it**, which is an engine the other way
   round and answers the same questions the same way. The block is the breech and the loading gear, or
   the bank and the plant; it is what has walls, an interior and hit points, and it is the only part
-  the ship may be welded to. How the length divides between the two is the designer's, and it is the
-  archetype's one real knob: barrel length is what a charge accelerates a shell down, so a long barrel
-  is a fast shell — and a long barrel sweeps further for the same angle, so it is also a weapon with
-  almost no traverse left.
+  the ship may be welded to. A gun's barrel is as many calibres as its layout says and the block is
+  whatever length that leaves, so the split is the archetype's one real knob: barrel length is what a
+  charge accelerates a shell down, so a long barrel is a fast shell — and a long barrel sweeps further
+  for the same angle, so it is also a weapon with almost no traverse left.
+- **Every gun says how long its barrel is, in calibres, and a long barrel has to be braced.** A turret's
+  barrel runs out from its pivot over whatever is beside it, no longer held to the mount's own length; a
+  hull gun's comes out of its module. Fifty calibres is the longest a barrel holds itself up, and what a
+  turret gets when its layout says nothing. Past that it is braced for as long as it is over, out from
+  its root, by a strip a calibre wide either side, drawn darker beside it and swung as part of it, so
+  each calibre costs its tube and a strip of
+  bracing too — and a row of barrels shares the strip between neighbours, needing `n + 1` rather than
+  `2n`, which is what a multi-barrel mount gets for being a row. Nothing is longer than a hundred. Muzzle
+  energy is in proportion to bore volume up to fifty calibres, by when the charge has burnt; past it the
+  gas is only expanding, so `x` times the length is worth `2√x − 1` times the energy. A long barrel
+  therefore buys velocity at a falling rate and a rising price, rather than for free.
+  A laser has no such setting: its housing has one best depth, a turret's, and a hull beam is held to it.
 - **A hull weapon trains about the root of its barrel**, because that is where the trunnions of such a
   mount are: the block is welded into the ship and only the tube moves, so it trains briskly through
   very little. **How little is geometry rather than a number** — the barrel has to stay inside the
@@ -734,7 +747,7 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   asked — what the ship itself is in the way of — and the narrower of the two wins.
 - **The block behind a hull gun's barrel is its loading gear, so how deep it is sets the rate of
   fire.** Depth is counted in calibres of the round the machinery has to move, so the same
-  proportions mean the same rate whatever size the mount is drawn at, and a share that leaves the
+  proportions mean the same rate whatever size the mount is drawn at, and a barrel that leaves the
   expected depth loads at exactly a turret's rate for that bore. Part of a cycle is fixed however
   much machinery stands behind it — the breech, the ram, the run-out — so the knob approaches a
   ceiling of about four times that rate rather than running away with it. **That is what makes the
@@ -748,9 +761,9 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   technology rather than of the mount. A deep mount therefore spends more of its time firing, which is
   the only figure that matters over a battle; a flat duty cycle would have made a bigger bank buy a
   longer shot and an exactly proportionally longer wait, and so buy nothing. The lens housing earns
-  the beam nothing in return, since the aperture comes from the mount's width — so the knob on a hull
-  beam is one-sided today, the minimum housing being the best housing, and what would make it a trade
-  is the housing buying focus, which ROADMAP.md §12 holds with the rest of the optics.
+  the beam nothing, since the aperture comes from the mount's width, so it is not a knob: it is as deep
+  as a turret's, and the block is the rest. What would make it one is the housing buying focus, which
+  ROADMAP.md §12 holds with the rest of the optics.
 - **A weapon carries the gear that trains it, and a layout may say how much arc to build for.** Until
   this a mount weighed its barrels and the machinery that loads them, as though it were pointed by hand.
   The `traverse` a layout asks for is a *limit* — the archetype's own arc and whatever the ship is in the
@@ -880,7 +893,9 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   - **Both limits come from one drive.** The mount ring delivers torque proportional to the turret's
     mass, so acceleration is `torque / inertia`, and the rate limit is simply what that acceleration
     reaches in a fixed spin-up time. They are one mechanism described twice, not two numbers to balance:
-    a mount cannot be sluggish off the mark and fast at the top end.
+    a mount cannot be sluggish off the mark and fast at the top end. A hull mount's drive is sized by
+    the weapon it trains rather than the block it is welded into, and swings the barrels alone, so a
+    deeper block behind the same barrels trains them neither faster nor slower.
     - What makes that discriminate between mounts is **inertia**, which counts each barrel as a rod
       running out from the pivot rather than as part of the box the module is declared as. Mass cancels
       out of `torque / inertia` exactly, so without the barrels a mount's agility would depend on

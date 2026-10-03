@@ -80,7 +80,7 @@
           "length": 5.5,
           "width": 4,
           "barrels": 1,
-          "nozzle": 0.3
+          "barrelCalibres": 4.125
         },
         {
           "kind": "engine",
@@ -105,7 +105,8 @@
           "angle": 90,
           "length": 3,
           "width": 3,
-          "barrels": 3
+          "barrels": 3,
+          "barrelCalibres": 15
         }
       ]
     },
@@ -186,6 +187,7 @@
       "angle": 180,
       "length": 4,
       "width": 3,
+      "barrelCalibres": 66.667,
       "barrels": 2,
       "targeting": {
         "structureWeight": 0
