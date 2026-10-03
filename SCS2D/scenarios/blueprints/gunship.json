@@ -10,6 +10,8 @@
       "escortWeight": 10
     },
     "approach": {
+      "escortMinRadii": 1.2,
+      "tolerance": 0.3,
       "ramRadii": 5
     }
   },
@@ -20,18 +22,22 @@
         {
           "kind": "structure",
           "x": 0,
-          "y": -0.5,
+          "y": -1,
           "length": 8,
-          "width": 7
+          "width": 6,
+          "thick": true
         },
         {
           "kind": "turret",
           "x": 0,
-          "y": 6.25,
+          "y": 5.25,
           "angle": 90,
           "length": 6.5,
           "width": 6,
-          "barrels": 8,
+          "barrels": 4,
+          "barrelCalibres": 75,
+          "fuse": 0.08,
+          "burstSpeed": 40,
           "targeting": {
             "preferredMass": 0.2,
             "proximityWeight": 200,
@@ -56,7 +62,7 @@
           "x": 4,
           "y": -0.25,
           "angle": 180,
-          "length": 9,
+          "length": 8,
           "width": 4.5,
           "thick": true
         }
@@ -118,10 +124,11 @@
   "modules": [
     {
       "kind": "structure",
-      "x": 9,
+      "x": 6,
       "y": 0,
-      "length": 14,
-      "width": 10
+      "length": 8,
+      "width": 10,
+      "thick": true
     },
     {
       "kind": "core",
@@ -129,6 +136,7 @@
       "y": 0,
       "length": 4,
       "width": 10,
+      "thick": true,
       "notes": "A bay amidships, where the spine is thickest and everything else is in the way. Cutting the spine here is what would part the ship, so it is also the last place a shell reaches."
     },
     {
@@ -136,17 +144,21 @@
       "x": -8.75,
       "y": 0,
       "length": 13.5,
-      "width": 10
+      "width": 10,
+      "thick": true
     },
     {
       "kind": "hullGun",
-      "x": 26,
+      "x": 26.5,
       "y": 0,
       "angle": 0,
-      "length": 20,
+      "length": 33,
       "width": 8,
       "barrels": 2,
-      "nozzle": 0.6875,
+      "barrelCalibres": 50,
+      "fragments": 4,
+      "burstSpeed": 300,
+      "thick": true,
       "targeting": {
         "loyaltyWeight": 30,
         "focusWeight": 400,
@@ -181,13 +193,13 @@
     {
       "use": "Engine Node",
       "x": 17.5,
-      "y": 7,
+      "y": 6,
       "mirror": true
     },
     {
       "use": "Engine Node",
       "x": 17.5,
-      "y": -7
+      "y": -6
     },
     {
       "use": "Engine Node",
