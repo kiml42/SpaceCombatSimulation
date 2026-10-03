@@ -1,5 +1,6 @@
 import { cos, normalizeAngle, PI, sin, TAU } from './math.js';
 import type { Blueprint } from './blueprint.js';
+import type { UnreadKeys } from './unread.js';
 
 /**
  * A fleet: which ships, and where they stand relative to each other.
@@ -19,12 +20,16 @@ export interface Fleet {
   designs: Record<string, Blueprint>;
   groups?: Record<string, FleetGroup>;
   ships: FleetEntry[];
+  /** Keys its file carried that nothing reads, kept to be written back (`UnreadKeys`). */
+  unread?: UnreadKeys;
 }
 
 /** A named formation, placed as a unit and flattened away on load. */
 export interface FleetGroup {
   ships: FleetEntry[];
   notes?: string;
+  /** Keys its file carried that nothing reads, kept to be written back (`UnreadKeys`). */
+  unread?: UnreadKeys;
 }
 
 /** What every entry has: where it stands, and how many copies of it stand in a row. */
@@ -38,6 +43,8 @@ interface Placed {
   /** From each copy to the next, in that copy's own frame, as an assembly's step is. */
   step?: FleetStep;
   notes?: string;
+  /** Keys its file carried that nothing reads, kept to be written back (`UnreadKeys`). */
+  unread?: UnreadKeys;
 }
 
 export interface FleetStep {
@@ -45,6 +52,8 @@ export interface FleetStep {
   y: number;
   /** Radians. A turn walks the row round an arc. */
   angle?: number;
+  /** Keys its file carried that nothing reads, kept to be written back (`UnreadKeys`). */
+  unread?: UnreadKeys;
 }
 
 export interface FleetShip extends Placed {

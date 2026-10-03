@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   blueprintFileProblem,
+  blueprintWarnings,
   compileBlueprint,
   DEFAULT_DOCTRINE,
   defaultTargeting,
@@ -265,14 +266,15 @@ describe('a mount with a doctrine of its own', () => {
     );
   });
 
-  it('is refused when it says something nobody can read, and named where', () => {
+  it('is refused when it says something nobody can read, and warned of a key it does not know', () => {
     const file = serialiseBlueprint(DINKY) as Record<string, unknown>;
     const modules = file['modules'] as Record<string, unknown>[];
     // Whatever the Dinky's gun is mounted on: a mount's own targeting is a
     // property of the weapon rather than of the kind of mounting.
     const mount = modules.find((m) => isWeaponMount(m['kind'] as ModuleKind))!;
     mount['targeting'] = { aggression: 4 };
-    expect(blueprintFileProblem(file)).toMatch(/targeting has unknown key aggression/);
+    expect(blueprintFileProblem(file)).toBeNull();
+    expect(blueprintWarnings(parseBlueprint(file)).join('\n')).toMatch(/targeting has a key[^\n]*aggression/);
     mount['targeting'] = { preferredMass: 0 };
     expect(blueprintFileProblem(file)).toMatch(/greater than zero/);
   });

@@ -12,6 +12,7 @@ import {
   blueprintFileProblem,
   compileBlueprint,
   doctrineProblem,
+  doctrineUnread,
   inSight,
   look,
   parseBlueprint,
@@ -76,8 +77,13 @@ describe('a doctrine as written down', () => {
     expect(doctrineProblem(undefined)).toBeNull();
     expect(doctrineProblem({ approach: { standoff: 1.2 } })).toBeNull();
     expect(doctrineProblem({ approach: { standoff: 'close' } })).toMatch(/approach\.standoff/);
-    expect(doctrineProblem({ targeting: { aggression: 3 } })).toMatch(/targeting has unknown key/);
-    expect(doctrineProblem({ aggression: 3 })).toMatch(/unknown key/);
+    // A key it does not know is not unreadable: it is kept and warned about.
+    expect(doctrineProblem({ targeting: { aggression: 3 } })).toBeNull();
+    expect(doctrineProblem({ aggression: 3 })).toBeNull();
+    expect(doctrineUnread({ aggression: 3, targeting: { aggression: 4, proximityWeight: 1 } })).toEqual({
+      aggression: 3,
+      targeting: { aggression: 4 },
+    });
     expect(doctrineProblem({ targeting: { preferredMass: 0 } })).toMatch(/greater than zero/);
     expect(doctrineProblem({ approach: { standoffRadii: -2 } })).toMatch(/greater than zero/);
     expect(doctrineProblem({ approach: { accelerate: 0 } })).toMatch(/greater than zero/);

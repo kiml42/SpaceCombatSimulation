@@ -1,3 +1,4 @@
+import type { UnreadKeys } from './unread.js';
 import type { Targeting } from './doctrine.js';
 import { asin, atan2, cos, max, PI, round, sin, sqrt } from './math.js';
 
@@ -729,6 +730,8 @@ export interface ModuleSpec {
    * comment in a source file does not survive being edited by a tool.
    */
   notes?: string;
+  /** Keys its file carried that nothing reads, kept to be written back (`UnreadKeys`). */
+  unread?: UnreadKeys;
 }
 
 export enum GunType {

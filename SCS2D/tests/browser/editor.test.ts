@@ -751,7 +751,7 @@ describe('the editor in a browser', () => {
     // A core is asked what its ship does; it is not asked what it shoots at.
     expect(await page.isHidden('#mountDoctrine')).toBe(true);
     expect(await page.isHidden('#shipDoctrine')).toBe(false);
-    expect(await page.isHidden('#shipTargetingFields')).toBe(true);
+    expect(await page.isHidden('#shipDoctrineFields')).toBe(true);
 
     await page.mouse.click(centre.x + 168, centre.y);
     expect(await page.inputValue('#propKind')).toBe('hullGun');
@@ -1187,6 +1187,32 @@ describe('the editor in a browser', () => {
     // Drawn, not merely complained about: the ship is on the canvas to drag.
     expect(await page.textContent('#stats')).toMatch(/Modules/);
     await page.evaluate(() => window.localStorage.removeItem('scs2d.blueprint.Adrift'));
+  });
+
+  it('imports a ship with a key it does not read, says so, and saves the key back', async () => {
+    // A hand-edited file with a typo opens rather than being refused.
+    const typo = {
+      formatVersion: 1,
+      name: 'Typo',
+      colour: 'red',
+      modules: [
+        { kind: 'core', x: 0, y: 0, length: 4, width: 4 },
+        { kind: 'turret', x: 3, y: 0, length: 2, width: 2, barrel: 8 },
+      ],
+    };
+    await page.setInputFiles('#importShip', {
+      name: 'typo.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify(typo)),
+    });
+    await page.waitForFunction(() => /Kept as written/.test(document.getElementById('problems')?.textContent ?? ''));
+    const problems = (await page.textContent('#problems')) ?? '';
+    expect(problems).toMatch(/colour/);
+    expect(problems).toMatch(/modules\[1\][^]*barrel/);
+    await page.click('#saveShip');
+    const saved = await page.evaluate(() => window.localStorage.getItem('scs2d.blueprint.Typo'));
+    expect(JSON.parse(saved!)).toMatchObject({ colour: 'red', modules: [{}, { barrel: 8 }] });
+    await page.evaluate(() => window.localStorage.removeItem('scs2d.blueprint.Typo'));
   });
 
   it('hands the ship being edited to a custom battle as a fleet of one', async () => {
