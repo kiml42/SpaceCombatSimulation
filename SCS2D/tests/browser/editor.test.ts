@@ -751,7 +751,7 @@ describe('the editor in a browser', () => {
     // A core is asked what its ship does; it is not asked what it shoots at.
     expect(await page.isHidden('#mountDoctrine')).toBe(true);
     expect(await page.isHidden('#shipDoctrine')).toBe(false);
-    expect(await page.isHidden('#shipTargetingFields')).toBe(true);
+    expect(await page.isHidden('#shipDoctrineFields')).toBe(true);
 
     await page.mouse.click(centre.x + 168, centre.y);
     expect(await page.inputValue('#propKind')).toBe('hullGun');

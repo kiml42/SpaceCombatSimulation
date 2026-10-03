@@ -337,7 +337,8 @@ inside any one file is not contiguous.
   A craft escorting stations on its charge and fights on with whatever its mounts can reach, since where the
   hull goes and what the guns do are different questions, and it holds a band of its own rather than the
   gunnery standoff — where you sit to *shoot* at something being the wrong answer by an order of magnitude
-  for something you are covering.
+  for something you are covering. It covers nothing smaller than `escortMinRadii` of its own radius, so a capital
+  does not trail round after the nearest fighter.
   **Where a craft goes is several wants added up.** Holding the station it has been given, staying with what
   it is covering, and keeping out of everybody's way are not alternatives to choose between: each is a
   velocity it would like to have and how much it would like it, and the pilot flies their weighted average.

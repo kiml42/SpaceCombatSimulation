@@ -1088,6 +1088,8 @@ export class Ships {
       // Wreckage is nobody's consort. A live friendly that cannot fight is:
       // a thing worth covering is usually a thing that cannot cover itself.
       if (this.derelict[t] === 1 || this.hostile(i, t)) continue;
+      // Nor is anything too small for it to bother covering.
+      if (this.designs[t]!.radius < approach.escortMinRadii * design.radius) continue;
       const tb = bodies.indexOf(this.bodyIds[t]!);
       if (tb < 0 || tb === b) continue;
       const candidate = look(
