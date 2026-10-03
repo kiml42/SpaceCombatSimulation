@@ -110,7 +110,7 @@
       "width": 0.2,
       "reinforcement": 3,
       "barrels": 1,
-      "nozzle": 0.75,
+      "barrelCalibres": 45,
       "targeting": {
         "engineWeight": 150
       }

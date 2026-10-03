@@ -1,4 +1,4 @@
-import { PI } from './math.js';
+import { PI, round } from './math.js';
 import {
   isInstance,
   type Assembly,
@@ -8,9 +8,13 @@ import {
   type Placement,
 } from './blueprint.js';
 import {
+  BARREL_OUTER_CALIBRES,
   countsOutlets,
+  hullMountGeometry,
+  isHullMount,
   isWeaponMount,
   MODULE_KINDS,
+  readsBarrelCalibres,
   readsNozzle,
   readsThick,
   readsFuse,
@@ -76,6 +80,7 @@ const MODULE_KEYS: readonly string[] = [
   'reinforcement',
   'barrels',
   'nozzle',
+  'barrelCalibres',
   'traverse',
   'fuse',
   'fragments',
@@ -158,6 +163,22 @@ function currentAngle(raw: Record<string, unknown>): number | undefined {
   return turned > 180 ? turned - 360 : turned;
 }
 
+/**
+ * Read a hull mount's barrel the way files wrote it before barrels were
+ * measured in calibres: as `nozzle`, the share of the module it took. A gun's
+ * becomes the same length in calibres; a lens housing's has nothing to become,
+ * having one best depth. Whether there was one to read.
+ */
+function legacyBarrel(spec: ModuleSpec, raw: Record<string, unknown>): boolean {
+  const share = raw['nozzle'];
+  if (!isHullMount(spec.kind) || typeof share !== 'number') return false;
+  if (spec.kind === 'hullGun' && spec.barrelCalibres === undefined) {
+    const calibre = hullMountGeometry(spec).outletWidth / BARREL_OUTER_CALIBRES;
+    if (calibre > 0) spec.barrelCalibres = round((share * spec.length * 1000) / calibre) / 1000;
+  }
+  return true;
+}
+
 function moduleShapeProblem(value: Record<string, unknown>, where: string): string | null {
   const kind = currentKind(value['kind']);
   if (typeof kind !== 'string' || !MODULE_KINDS.includes(kind as ModuleKind)) {
@@ -173,6 +194,7 @@ function moduleShapeProblem(value: Record<string, unknown>, where: string): stri
     optionalNumberProblem(value['reinforcement'], `${where}: reinforcement`) ??
     optionalNumberProblem(value['barrels'], `${where}: barrels`) ??
     optionalNumberProblem(value['nozzle'], `${where}: nozzle`) ??
+    optionalNumberProblem(value['barrelCalibres'], `${where}: barrelCalibres`) ??
     optionalNumberProblem(value['traverse'], `${where}: traverse`) ??
     optionalNumberProblem(value['fuse'], `${where}: fuse`) ??
     optionalNumberProblem(value['fragments'], `${where}: fragments`) ??
@@ -196,6 +218,7 @@ function moduleShapeProblem(value: Record<string, unknown>, where: string): stri
 function moduleReads(kind: ModuleKind): readonly string[] {
   return MODULE_KEYS.filter((key) => {
     if (key === 'nozzle') return readsNozzle(kind);
+    if (key === 'barrelCalibres') return readsBarrelCalibres(kind);
     if (key === 'barrels') return countsOutlets(kind);
     if (key === 'traverse') return isWeaponMount(kind);
     if (key === 'fuse' || key === 'fragments' || key === 'burstSpeed') return readsFuse(kind);
@@ -386,6 +409,7 @@ function toPlacements(raws: unknown[]): Placement[] {
     const read = (key: string): boolean => raw[key] !== undefined && reads.includes(key);
     if (read('barrels')) spec.barrels = raw['barrels'] as number;
     if (read('nozzle')) spec.nozzle = raw['nozzle'] as number;
+    if (read('barrelCalibres')) spec.barrelCalibres = raw['barrelCalibres'] as number;
     // Degrees in the file and radians in the simulation, as every other angle.
     if (read('traverse')) spec.traverse = degreesToRadians(raw['traverse'] as number);
     if (read('fuse')) spec.fuse = raw['fuse'] as number;
@@ -396,7 +420,8 @@ function toPlacements(raws: unknown[]): Placement[] {
     // Copied whole, so a key the block does not know goes back out with it.
     if (raw['targeting'] !== undefined) spec.targeting = { ...(raw['targeting'] as Partial<Targeting>) };
     if (raw['notes'] !== undefined) spec.notes = raw['notes'] as string;
-    const unread = unreadOf(raw, reads);
+    const legacy = legacyBarrel(spec, raw);
+    const unread = unreadOf(raw, legacy ? [...reads, 'nozzle'] : reads);
     if (unread !== undefined) spec.unread = unread;
     return spec;
   });
@@ -541,6 +566,9 @@ function serialisePlacement(placement: Placement): Record<string, unknown> {
   }
   if (placement.nozzle !== undefined && readsNozzle(placement.kind)) {
     raw['nozzle'] = placement.nozzle;
+  }
+  if (placement.barrelCalibres !== undefined && readsBarrelCalibres(placement.kind)) {
+    raw['barrelCalibres'] = placement.barrelCalibres;
   }
   if (placement.traverse !== undefined && isWeaponMount(placement.kind)) {
     raw['traverse'] = radiansToDegrees(placement.traverse);

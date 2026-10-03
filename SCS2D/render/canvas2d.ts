@@ -11,6 +11,7 @@ import {
   PLUME_POWER_PER_NEWTON,
   PLUME_RAYS,
   engineGeometry,
+  type GunStats,
   type ShipView,
   type Snapshot,
 } from '../sim/index.js';
@@ -189,6 +190,8 @@ const ARC_MAX_RADIUS = 40;
 
 /** A barrel that is not clear to fire. Dark, because it sits on the pale sweep. */
 const BARREL = '#8f6f25';
+/** Bracing on a barrel too long to hold itself up: the barrel's colour, darker. */
+const BRACE = '#4f3d14';
 /** Flame colours, as the RGB a gradient fades to transparent from. */
 const PLUME = '255, 217, 160';
 const PLUME_CORE = '255, 244, 224';
@@ -470,10 +473,48 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
       ctx.lineTo(bx + dirX * reach, by + dirY * reach);
     }
     ctx.stroke();
+    if (gun.braceLength > 0) drawBracing(ctx, gun, physicalWidth, mx, my, dirX, dirY);
   }
 
   if (arcs === 'trigger') drawEngineTriggers(ctx, ship, metresToPx);
   drawPlumes(ctx, ship);
+}
+
+/**
+ * The bracing on a row of long barrels: a block either side of the row and
+ * one filling each gap between neighbours, which share it, out from the root
+ * of the barrels.
+ */
+function drawBracing(
+  ctx: CanvasRenderingContext2D,
+  gun: GunStats,
+  barrelWidth: number,
+  mx: number,
+  my: number,
+  dirX: number,
+  dirY: number,
+): void {
+  const count = gun.barrelCount;
+  const half = barrelWidth * 0.5;
+  const first = count > 1 ? -(count - 1) * 0.5 * gun.barrelSpacing : 0;
+  const last = -first;
+  const far = gun.braceLength;
+  ctx.fillStyle = BRACE;
+  const block = (from: number, to: number): void => {
+    ctx.beginPath();
+    ctx.moveTo(mx - dirY * from, my + dirX * from);
+    ctx.lineTo(mx + dirX * far - dirY * from, my + dirY * far + dirX * from);
+    ctx.lineTo(mx + dirX * far - dirY * to, my + dirY * far + dirX * to);
+    ctx.lineTo(mx - dirY * to, my + dirX * to);
+    ctx.closePath();
+    ctx.fill();
+  };
+  block(first - half - gun.braceWidth, first - half);
+  block(last + half, last + half + gun.braceWidth);
+  for (let k = 0; k + 1 < count; k++) {
+    const lat = first + k * gun.barrelSpacing;
+    block(lat + half, lat + gun.barrelSpacing - half);
+  }
 }
 
 /**

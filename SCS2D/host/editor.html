@@ -109,6 +109,9 @@
       details.doctrine .field { flex-wrap: wrap; }
       details.doctrine .absolute { flex: 0 0 100%; padding-left: 6.9rem; color: #5d6f85; font-size: 11px; }
       details.doctrine .absolute:empty { display: none; }
+      #barrelCalibresRow { flex-wrap: wrap; }
+      #barrelCalibresRow .readout { flex: 0 0 100%; padding-left: 6.9rem; color: #5d6f85; font-size: 11px; }
+      #barrelCalibresRow .readout:empty { display: none; }
       details.doctrine .note { color: #5d6f85; margin: 0.5rem 0 0; }
       /* A stated number stands out from the ones still at their default. */
       details.doctrine input.stated { color: #e9c05f; border-color: #4a3f24; }
@@ -242,8 +245,20 @@
               step="0.05"
               min="0"
               max="0.95"
-              title="How much of the module's length is the part that sticks out, rather than the block behind it. On an engine that is the bell: longer wastes less thrust sideways and is lighter, while the chamber and pumps behind it drive the gas, so most thrust comes from a bell in the middle. On a hull weapon it is the barrel or the lens housing: a longer barrel is a faster shell, and leaves less of the block to load from and less traverse, the barrel having to stay inside its own opening."
+              title="How much of the engine's length is bell, rather than the block behind it. Longer wastes less thrust sideways and is lighter, while the chamber and pumps behind it drive the gas, so most thrust comes from a bell in the middle."
             />
+          </div>
+          <div class="field" id="barrelCalibresRow">
+            <label for="propBarrelCalibres">barrel cal</label>
+            <input
+              id="propBarrelCalibres"
+              type="number"
+              step="1"
+              min="1"
+              max="100"
+              title="How long the barrels are, in calibres of the bore. Longer is a faster shell, with diminishing returns, and costs steel and traverse; on a hull gun it also takes length from the block that loads it. Past 50 calibres a barrel needs bracing, which makes each calibre heavier, and nothing may be longer than 100."
+            />
+            <span id="barrelMetres" class="readout"></span>
           </div>
           <div class="field" id="traverseRow">
             <label for="propTraverse">traverse °</label>

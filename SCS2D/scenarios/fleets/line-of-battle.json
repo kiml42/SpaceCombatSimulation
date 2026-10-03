@@ -25,6 +25,7 @@
               "angle": 90,
               "length": 8,
               "width": 6,
+              "barrelCalibres": 100,
               "barrels": 8,
               "targeting": {
                 "preferredMass": 0.02,
@@ -123,7 +124,7 @@
           "length": 12,
           "width": 8,
           "barrels": 2,
-          "nozzle": 0.8
+          "barrelCalibres": 24
         },
         {
           "use": "outrigger",
@@ -282,7 +283,7 @@
           "length": 5,
           "width": 4,
           "barrels": 2,
-          "nozzle": 0.8
+          "barrelCalibres": 20
         },
         {
           "kind": "engine",
@@ -602,7 +603,7 @@
           "width": 0.2,
           "reinforcement": 3,
           "barrels": 1,
-          "nozzle": 0.75,
+          "barrelCalibres": 45,
           "targeting": {
             "engineWeight": 150
           }

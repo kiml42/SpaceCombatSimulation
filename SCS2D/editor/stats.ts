@@ -4,6 +4,9 @@ import {
   exhaustObstruction,
   firingArc,
   barrelHalfWidth,
+  barrelCalibres,
+  braceMass,
+  readsBarrelCalibres,
   inWeaponsLayer,
   math,
   boxAngle,
@@ -21,7 +24,7 @@ import {
   plumeIntensity,
   shortfall,
   engineGeometry,
-  traverseAccel,
+  mountAccel,
   traverseRate,
   defaultTargeting,
   nominalReach,
@@ -301,6 +304,20 @@ export function moduleReadout(
         `of the face filled`,
     ]);
   }
+  if (readsBarrelCalibres(spec.kind) && stats.gun !== null) {
+    // How long, and what being long has cost in bracing.
+    const gun = stats.gun;
+    const bracing = braceMass(gun);
+    rows.push([
+      'Barrel',
+      `${gun.barrelLength.toLocaleString('en-GB', { maximumFractionDigits: 2 })} m, ` +
+        `${barrelCalibres(spec).toLocaleString('en-GB', { maximumFractionDigits: 1 })} calibres` +
+        (bracing > 0
+          ? `; ${gun.braceLength.toLocaleString('en-GB', { maximumFractionDigits: 2 })} m braced, ` +
+            `${(bracing / 1000).toLocaleString('en-GB', { maximumFractionDigits: 2 })} t of bracing`
+          : ''),
+    ]);
+  }
   if (isWeaponMount(spec.kind)) {
     // What it may train through and what that machine weighs — the second
     // being the number a designer is trading when they narrow the first, and
@@ -355,7 +372,7 @@ export function moduleReadout(
             muzzleSpeed: gun.muzzleSpeed,
             roundsPerMinute: gun.cycleTime > 0 ? 60 / gun.cycleTime : 0,
             ...arcOf(layout, index, gun.barrelLength, barrelHalfWidth(gun)),
-            traverseRate: radiansToDegrees(traverseRate(traverseAccel(stats.mass, stats.inertia))),
+            traverseRate: radiansToDegrees(traverseRate(mountAccel(spec, stats))),
             // Against what its doctrine goes after, which is sized from the
             // ship carrying it, so it needs the ship.
             triggerRange: shipRadius > 0 ? fireRangeOf(spec, gun, shipRadius) : null,

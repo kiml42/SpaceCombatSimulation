@@ -1,5 +1,9 @@
 import {
   DEFAULT_BURST_SPEED,
+  barrelCalibres,
+  readsBarrelCalibres,
+  moduleProblem,
+  moduleStats,
   DEFAULT_DOCTRINE,
   defaultTargeting,
   resolveTargeting,
@@ -85,6 +89,7 @@ import {
   assemblyKnob,
   facingTo,
   shareTo,
+  barrelCalibresTo,
   handleAt,
   handlesFor,
   resizedTo,
@@ -162,13 +167,23 @@ function el<T extends HTMLElement>(id: string): T {
   return found as T;
 }
 
-type ModuleNumberField = 'angle' | 'reinforcement' | 'barrels' | 'nozzle' | 'traverse' | 'fuse' | 'fragments' | 'burstSpeed';
+type ModuleNumberField =
+  | 'angle'
+  | 'reinforcement'
+  | 'barrels'
+  | 'nozzle'
+  | 'barrelCalibres'
+  | 'traverse'
+  | 'fuse'
+  | 'fragments'
+  | 'burstSpeed';
 
 /** A module's own value for a field, with the default the parser would have applied. */
 function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
   if (key === 'angle') return radiansToDegrees(spec.angle ?? 0);
   if (key === 'reinforcement') return spec.reinforcement ?? 1;
   if (key === 'nozzle') return spec.nozzle ?? DEFAULT_NOZZLE_SHARE;
+  if (key === 'barrelCalibres') return barrelCalibres(spec);
   // What the mount would do if the layout said nothing, so the box shows the
   // arc it actually has rather than a blank.
   if (key === 'traverse') return radiansToDegrees(mountTraverse(spec));
@@ -176,6 +191,15 @@ function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
   if (key === 'fragments') return spec.fragments ?? DEFAULT_FRAGMENTS;
   if (key === 'burstSpeed') return spec.burstSpeed ?? DEFAULT_BURST_SPEED;
   return spec.barrels ?? 1;
+}
+
+/** A gun's barrel in metres, and how much of it is braced. */
+function barrelReadout(spec: ModuleSpec): string {
+  if (!readsBarrelCalibres(spec.kind) || moduleProblem(spec) !== null) return '';
+  const gun = moduleStats(spec).gun;
+  if (gun === null) return '';
+  const metres = `= ${gun.barrelLength.toFixed(2)} m`;
+  return gun.braceLength > 0 ? `${metres}, ${gun.braceLength.toFixed(2)} m braced` : metres;
 }
 
 export function startEditor(): void {
@@ -298,6 +322,7 @@ export function startEditor(): void {
     reinforcement: el<HTMLInputElement>('propReinforcement'),
     barrels: el<HTMLInputElement>('propBarrels'),
     nozzle: el<HTMLInputElement>('propNozzle'),
+    barrelCalibres: el<HTMLInputElement>('propBarrelCalibres'),
     traverse: el<HTMLInputElement>('propTraverse'),
     fuse: el<HTMLInputElement>('propFuse'),
     fragments: el<HTMLInputElement>('propFragments'),
@@ -760,20 +785,15 @@ export function startEditor(): void {
       : spec.kind === 'beamTurret'
         ? 'emitters'
         : 'barrels';
-    // The same field again: what sticks out of the module, named for the kind
-    // showing it — a bell, a barrel, or the housing round a lens.
     el<HTMLElement>('traverseRow').hidden = !isWeaponMount(spec.kind);
     el<HTMLElement>('shellRow').hidden = !readsFuse(spec.kind);
     // Solid shot has no burst to time or to size.
     const shells = firesShells(spec);
     el<HTMLInputElement>('propFuse').disabled = !shells;
     el<HTMLInputElement>('propBurstSpeed').disabled = !shells;
-    el<HTMLElement>('nozzleRow').hidden = !nozzles && !hullMount;
-    el<HTMLElement>('nozzleLabel').textContent = nozzles
-      ? 'nozzle'
-      : spec.kind === 'hullBeam'
-        ? 'lens'
-        : 'barrel';
+    el<HTMLElement>('nozzleRow').hidden = !nozzles;
+    el<HTMLElement>('barrelCalibresRow').hidden = !readsBarrelCalibres(spec.kind);
+    el<HTMLElement>('barrelMetres').textContent = barrelReadout(spec);
     // Only an engine has a plume to point.
     el<HTMLElement>('weaponRow').hidden = spec.kind !== 'engine';
     weaponInput.checked = spec.weapon === true;
@@ -1764,8 +1784,13 @@ export function startEditor(): void {
     const world = worldAt(event);
     let next: Blueprint | null;
     if (drag.kind === 'split') {
-      const nozzle = shareTo(drag.spec, world.x, world.y, event.altKey ? 0 : snapMetres());
-      next = updatePlacement(drag.from, path, (p) => ({ ...p, nozzle }));
+      if (drag.spec.kind === 'hullGun') {
+        const barrelCalibres = barrelCalibresTo(drag.spec, world.x, world.y, event.altKey);
+        next = updatePlacement(drag.from, path, (p) => ({ ...p, barrelCalibres }));
+      } else {
+        const nozzle = shareTo(drag.spec, world.x, world.y, event.altKey ? 0 : snapMetres());
+        next = updatePlacement(drag.from, path, (p) => ({ ...p, nozzle }));
+      }
     } else if (drag.kind === 'size') {
       const step = event.altKey ? 0 : snapMetres();
       // Shift sizes about the middle, keeping it where it was.

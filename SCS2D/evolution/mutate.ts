@@ -24,7 +24,10 @@ import {
 import { abs, clamp, cos, floor, HALF_PI, max, min, PI, round, sin } from '../sim/math.js';
 import { degreesToRadians, radiansToDegrees } from '../sim/blueprintFile.js';
 import {
+  barrelCalibres,
   DEFAULT_NOZZLE_SHARE,
+  MAX_BARREL_CALIBRES,
+  readsBarrelCalibres,
   isWeaponMount,
   canThicken,
   DEFAULT_BURST_SPEED,
@@ -433,6 +436,7 @@ type Knob =
   | { readonly at: 'kind'; readonly site: ModuleSite }
   | { readonly at: 'barrels'; readonly site: ModuleSite }
   | { readonly at: 'nozzle'; readonly site: ModuleSite }
+  | { readonly at: 'barrelCalibres'; readonly site: ModuleSite }
   | { readonly at: 'traverse'; readonly site: ModuleSite }
   | { readonly at: 'fuse'; readonly site: ModuleSite }
   | { readonly at: 'fragments'; readonly site: ModuleSite }
@@ -505,13 +509,9 @@ function knobs(draft: Draft): Knob[] {
       // What a gun fires: shells or solid shot, and for shells how they burst.
       if (readsFuse(placement.kind)) out.push({ at: 'fragments', site });
       if (firesShells(placement)) out.push({ at: 'fuse', site }, { at: 'burstSpeed', site });
-      if (isHullMount(placement.kind)) {
-        // How much of the mount is barrel is the archetype's real knob, and
-        // the outlet count divides the same opening between more of them. The
-        // knob is `nozzle`, the same field an engine's bell is a share in:
-        // one quantity, so one line finds it on either archetype.
-        out.push({ at: 'barrels', site }, { at: 'nozzle', site });
-      }
+      // The outlet count divides a hull mount's opening between more of them.
+      if (isHullMount(placement.kind)) out.push({ at: 'barrels', site });
+      if (readsBarrelCalibres(placement.kind)) out.push({ at: 'barrelCalibres', site });
       if (placement.kind === 'engine') {
         // An engine's outlets are counted by the same field a gun's barrels
         // are, so a cluster is something a line can find.
@@ -568,6 +568,8 @@ function renumber(knob: Knob, draft: Draft, rng: Rng, bounds: MutationLimits): s
       return rebarrel(knob.site, rng);
     case 'nozzle':
       return rebell(knob.site, rng, bounds);
+    case 'barrelCalibres':
+      return relength(knob.site, rng, bounds);
     case 'gunnery':
       return retarget(knob.site, rng, bounds);
     case 'traverse':
@@ -748,28 +750,35 @@ function rebarrel(site: ModuleSite, rng: Rng): string | null {
 }
 
 /**
- * Lengthen or shorten what sticks out of a module: an engine's bell, or a
- * hull mount's barrel or lens housing.
+ * Lengthen or shorten an engine's bell.
  *
- * One operator, because it is one field and one quantity — how the module
- * divides between its protrusion and the block behind it. A share rather than
- * a length, so the knob means the same thing on a fighter's engine and a
- * capital's, and held off both ends: a module that is all protrusion has no
- * block, and the layout rules would refuse it rather than teach the search
- * anything.
+ * A share rather than a length, so the knob means the same thing on a
+ * fighter's engine and a capital's, and held off the far end: an engine that
+ * is all bell has no block, and the layout rules would refuse it rather than
+ * teach the search anything. No bell at all is a legal, bad engine.
  */
 function rebell(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {
-  const hullMount = isHullMount(site.spec.kind);
   const was = site.spec.nozzle ?? DEFAULT_NOZZLE_SHARE;
-  // Held off both ends, and off the far end harder on a weapon: all barrel
-  // leaves nothing to load it from, where an engine with no bell at all is a
-  // rocket whose nozzle has fallen off and is a legal, bad engine.
-  const low = hullMount ? 0.05 : 0;
-  const now = tidy(clamp(was + bounds.magnitude * rng.nextRange(-1, 1), low, 0.9), 3);
+  const now = tidy(clamp(was + bounds.magnitude * rng.nextRange(-1, 1), 0, 0.9), 3);
   if (now === was) return null;
   site.spec.nozzle = now;
-  const what = hullMount ? 'barrel' : 'nozzle';
-  return `${site.where} ${site.spec.kind}: ${what} ${was} → ${now}`;
+  return `${site.where} ${site.spec.kind}: nozzle ${was} → ${now}`;
+}
+
+/**
+ * Lengthen or shorten a gun's barrels, by a fraction of what they are — a
+ * calibre matters as much on a stub as ten do on a long gun — and by enough
+ * to move off a stub at all.
+ * Whole calibres, held inside what any barrel may be; one too long for a hull
+ * gun's own mount is refused by the layout rules like any other misfit.
+ */
+function relength(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {
+  const was = barrelCalibres(site.spec);
+  const step = max(2, was * bounds.magnitude) * rng.nextRange(-1, 1);
+  const now = clamp(round(was + step), 1, MAX_BARREL_CALIBRES);
+  if (now === was) return null;
+  site.spec.barrelCalibres = now;
+  return `${site.where} ${site.spec.kind}: barrel ${was} → ${now} calibres`;
 }
 
 /**
