@@ -754,7 +754,8 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   barrel/block split a real trade rather than a slider with one good end**: every metre given to the
   barrel is muzzle velocity bought with rounds per minute, and traverse falls out on the velocity
   side. Sustained throughput therefore peaks in the middle, at a little over half the module given to
-  the barrel.
+  the barrel. **A thick block holds more gear**: its depth counts in decks as well as length, so a
+  mount standing through two decks loads as one twice as long would — as a thick beam's bank holds more.
 - **A hull beam's block is its bank and its cooling, so depth buys duty rather than only burst.** The
   burn grows with the bank behind it and the recovery does not — the plant and heat sinks that refill
   it scale with the same machinery, so the volume cancels and the recovery is a property of the

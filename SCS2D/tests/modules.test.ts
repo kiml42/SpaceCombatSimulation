@@ -280,6 +280,14 @@ describe('hull mount scaling', () => {
     expect(deep.cycleTime).toBeLessThan(floor * 1.05);
   });
 
+  it('loads faster when thick, since the block holds more loading gear', () => {
+    const thin = moduleStats(gun(14, 6)).gun!;
+    const thick = moduleStats(gun(14, 6, { thick: true })).gun!;
+    expect(thick.cycleTime).toBeLessThan(thin.cycleTime * 0.7);
+    expect(thick.calibre).toBeCloseTo(thin.calibre, 9);
+    expect(thick.muzzleEnergy).toBeCloseTo(thin.muzzleEnergy, 3);
+  });
+
   it('loads at a turret\'s rate for its bore when the block is what it expects', () => {
     // The reference depth: half an 8x4 mount, which is what a layout that says
     // nothing about its proportions gets. So the knob moves the rate either
@@ -399,6 +407,14 @@ describe('hull mount scaling', () => {
     // The optic is unchanged, so this is the block and nothing else.
     expect(deep.beamPower).toBeCloseTo(shallow.beamPower, 6);
     expect(deep.beamPower * duty(deep)).toBeGreaterThan(shallow.beamPower * duty(shallow));
+  });
+
+  it('holds a thick beam on longer, in proportion to its depth', () => {
+    const thin = moduleStats({ kind: 'hullBeam', x: 0, y: 0, length: 14, width: 6 }).gun!;
+    const thick = moduleStats({ kind: 'hullBeam', x: 0, y: 0, length: 14, width: 6, thick: true }).gun!;
+    expect(thick.beamOnTime).toBeCloseTo(thin.beamOnTime * (6 / DECK_HEIGHT), 6);
+    expect(thick.beamOnTime / thick.cycleTime).toBeGreaterThan(thin.beamOnTime / thin.cycleTime);
+    expect(thick.beamPower).toBeCloseTo(thin.beamPower, 6);
   });
 
   it('takes the same time to recover however big the mount is', () => {
