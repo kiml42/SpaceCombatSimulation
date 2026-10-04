@@ -3,7 +3,10 @@ Things that are obviously wrong.
 
 - When stating evolution in "A battle" setting, it doesn't start showing a battle, you need to switch to "the combatants" and back again.
 
-## Simulation
+-----------------------------------------------------------------------
+
+# Balance
+- Beams are overpowered at the moment, outperforming guns most of the time. Adding power systems should help balance them. Check how well they perform once power is implemented.
 
 -----------------------------------------------------------------------
 
