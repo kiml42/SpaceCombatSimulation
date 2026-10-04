@@ -114,7 +114,7 @@ const BEAM_GLOW = '#a8f132';
  * makes every round look the same size at the zoom where its true size is
  * finally legible.
  */
-const GLOW_CALIBRES = 5;
+const GLOW_CALIBRES = 7;
 
 /**
  * Smallest widths anything is drawn at on screen, in pixels.
@@ -135,7 +135,10 @@ const GLOW_CALIBRES = 5;
  * at full opacity, so zoomed out a fainter round's glow is smaller: it is then
  * the only thing that tells a heavy round from a light one.
  */
-const MIN_GLOW_PX = 3;
+const MIN_GLOW_PX = 5;
+/** A beam's halo, in its widths, and its floor on screen: kept apart from a tracer's. */
+const BEAM_GLOW_WIDTHS = 5;
+const MIN_BEAM_GLOW_PX = 3;
 const MIN_TRACER_PX = 0.1;
 const MIN_BARREL_PX = 1;
 /** A flash is never smaller than this on screen, however far out the camera is. */
@@ -1033,12 +1036,12 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
   ctx.strokeStyle = BEAM_GLOW;
   for (let i = 0; i < snapshot.beamCount; i++) {
     const calibre = snapshot.beamWidth[i]!;
-    const halo = GLOW_CALIBRES * calibre;
+    const halo = BEAM_GLOW_WIDTHS * calibre;
     ctx.globalAlpha =
       beamAlpha(snapshot.beamPower[i]!) *
       BEAM_GLOW_ALPHA *
-      flooredFade(halo, MIN_GLOW_PX, camera.scale);
-    ctx.lineWidth = legibleWidth(halo, MIN_GLOW_PX, camera.scale);
+      flooredFade(halo, MIN_BEAM_GLOW_PX, camera.scale);
+    ctx.lineWidth = legibleWidth(halo, MIN_BEAM_GLOW_PX, camera.scale);
     ctx.beginPath();
     ctx.moveTo(snapshot.beamStartX[i]!, snapshot.beamStartY[i]!);
     ctx.lineTo(snapshot.beamEndX[i]!, snapshot.beamEndY[i]!);
