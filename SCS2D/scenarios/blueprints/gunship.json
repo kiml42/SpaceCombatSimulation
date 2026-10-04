@@ -35,7 +35,7 @@
           "length": 6,
           "width": 5,
           "barrels": 4,
-          "barrelCalibres": 75,
+          "barrelCalibres": 68,
           "fuse": 0.08,
           "burstSpeed": 400,
           "targeting": {
@@ -136,6 +136,7 @@
       "y": 0,
       "length": 4,
       "width": 10,
+      "reinforcement": 6,
       "thick": true,
       "notes": "A bay amidships, where the spine is thickest and everything else is in the way. Cutting the spine here is what would part the ship, so it is also the last place a shell reaches."
     },
