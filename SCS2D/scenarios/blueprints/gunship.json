@@ -30,10 +30,10 @@
         {
           "kind": "turret",
           "x": 0,
-          "y": 5.25,
+          "y": 5,
           "angle": 90,
-          "length": 6.5,
-          "width": 6,
+          "length": 6,
+          "width": 5,
           "barrels": 4,
           "barrelCalibres": 75,
           "fuse": 0.08,
