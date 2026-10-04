@@ -50,10 +50,10 @@
         {
           "kind": "engine",
           "x": 4,
-          "y": 0,
+          "y": 0.5,
           "angle": 180,
           "length": 8,
-          "width": 4,
+          "width": 3,
           "thick": true
         }
       ]
@@ -62,9 +62,9 @@
       "modules": [
         {
           "kind": "structure",
-          "x": -1.25,
-          "y": 0,
-          "length": 3.5,
+          "x": -1,
+          "y": 3.061616997868383e-17,
+          "length": 4,
           "width": 4
         },
         {
@@ -77,10 +77,10 @@
         },
         {
           "kind": "engine",
-          "x": 0.5,
-          "y": 0,
+          "x": 1,
+          "y": 6.123233995736766e-17,
           "angle": 0,
-          "length": 5.5,
+          "length": 4.5,
           "width": 4,
           "barrels": 1
         }
@@ -90,9 +90,9 @@
   "modules": [
     {
       "kind": "structure",
-      "x": 6,
+      "x": 7,
       "y": 0,
-      "length": 8,
+      "length": 10,
       "width": 10
     },
     {
@@ -112,13 +112,14 @@
     },
     {
       "kind": "hullBeam",
-      "x": 20,
+      "x": 18,
       "y": 0,
       "angle": 0,
-      "length": 20,
+      "length": 12,
       "width": 8,
       "barrels": 1,
-      "nozzle": 0.083333,
+      "traverse": 20,
+      "thick": true,
       "targeting": {
         "proximityWeight": 20,
         "preferredMass": 1,
@@ -142,23 +143,23 @@
     {
       "use": "mainEngine",
       "x": -24,
-      "y": 3
+      "y": 2
     },
     {
       "use": "mainEngine",
       "x": -24,
-      "y": -3,
+      "y": -2,
       "mirror": true
     },
     {
       "use": "Engine Node",
-      "x": 20,
+      "x": 19,
       "y": -6,
       "mirror": true
     },
     {
       "use": "Engine Node",
-      "x": 20,
+      "x": 19,
       "y": 6
     },
     {
