@@ -6,31 +6,122 @@
     "wingSegment": {
       "notes": "One bay of a wing: a box, a gun on its leading edge, thrust forward, and braking thrust outboard where it clears the gun. Repeated along the wing rather than duplicated, so every bay is the same bay.",
       "modules": [
-        { "kind": "structure", "x": 0, "y": 0, "length": 4, "width": 8 },
-        { "kind": "turret", "x": 4.5, "y": 0, "angle": 0, "length": 5, "width": 4, "barrelCalibres": 31.25, "barrels": 1 },
-        { "kind": "engine", "x": -2, "y": 0, "angle": 180, "length": 4, "width": 6, "thick": true },
         {
-          "kind": "engine", "x": 2, "y": 3, "angle": 0, "length": 2, "width": 2,
+          "kind": "structure",
+          "x": 0,
+          "y": 1,
+          "length": 4,
+          "width": 10
+        },
+        {
+          "kind": "turret",
+          "x": 4.5,
+          "y": 0,
+          "angle": 0,
+          "length": 5,
+          "width": 4,
+          "barrels": 1,
+          "barrelCalibres": 50
+        },
+        {
+          "kind": "engine",
+          "x": -2,
+          "y": 2,
+          "angle": 180,
+          "length": 4,
+          "width": 6,
+          "thick": true
+        },
+        {
+          "kind": "engine",
+          "x": 2,
+          "y": 4,
+          "angle": 0,
+          "length": 4,
+          "width": 3,
           "notes": "Braking thrust, tucked outboard of the gun. Every bay carries one, so a longer wing stops harder — which is the point of repeating a segment that is more than structure."
         }
       ]
     },
     "rcs": {
       "notes": "A manoeuvring engine on the spine.",
-      "modules": [{ "kind": "engine", "angle": 180, "x": 1, "y": 0, "length": 2, "width": 3 }]
+      "modules": [
+        {
+          "kind": "engine",
+          "x": 1.1,
+          "y": -6.123233995736766e-18,
+          "angle": 180,
+          "length": 6,
+          "width": 3
+        }
+      ]
+    },
+    "Side": {
+      "modules": [
+        {
+          "kind": "structure",
+          "x": 0,
+          "y": 0,
+          "length": 21.5,
+          "width": 5
+        },
+        {
+          "use": "wingSegment",
+          "x": 0.75,
+          "y": 6.5,
+          "repeat": 3,
+          "step": {
+            "x": -1,
+            "y": 10
+          }
+        },
+        {
+          "use": "rcs",
+          "x": 19.25,
+          "y": -4.4,
+          "angle": -90
+        },
+        {
+          "use": "rcs",
+          "x": -22.75,
+          "y": -4.4,
+          "angle": -90
+        }
+      ]
     }
   },
   "modules": [
-    { "kind": "structure", "x": 9.5, "y": 0, "length": 16, "width": 6 },
-    { "kind": "core", "x": 0, "y": 0, "length": 3, "width": 6 },
-    { "kind": "structure", "x": -9.5, "y": 0, "length": 16, "width": 6 },
-
-    { "use": "wingSegment", "x": 2, "y": 7, "repeat": 3, "step": { "x": -1, "y": 8 } },
-    { "use": "wingSegment", "x": 2, "y": -7, "mirror": true, "repeat": 3, "step": { "x": -1, "y": 8 } },
-
-    { "use": "rcs", "x": -19, "y": 1.5, "angle": -90 },
-    { "use": "rcs", "x": -19, "y": -1.5, "angle": 90 },
-    { "use": "rcs", "x": 15, "y": 4, "angle": -90 },
-    { "use": "rcs", "x": 15, "y": -4, "angle": 90 }
+    {
+      "kind": "structure",
+      "x": 9,
+      "y": 0,
+      "length": 15,
+      "width": 6
+    },
+    {
+      "kind": "core",
+      "x": 0,
+      "y": 0,
+      "length": 3,
+      "width": 6
+    },
+    {
+      "kind": "structure",
+      "x": -12,
+      "y": 0,
+      "length": 21,
+      "width": 6
+    },
+    {
+      "use": "Side",
+      "x": -1.25,
+      "y": 5.5
+    },
+    {
+      "use": "Side",
+      "x": -1.25,
+      "y": -5.5,
+      "mirror": true
+    }
   ]
 }
