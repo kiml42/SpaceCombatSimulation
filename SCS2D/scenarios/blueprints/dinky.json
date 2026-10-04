@@ -2,40 +2,58 @@
   "formatVersion": 1,
   "name": "Dinky",
   "notes": "A fighter. It cannot hope to destroy anything much larger than itself, so it puts engines above the guns everything else shoots at first: a capital it strands is a capital out of the battle, which is the most a craft this size can do to one.",
+  "fighter": true,
+  "doctrine": {
+    "targeting": {
+      "facingWeight": 100,
+      "sightWeight": 50,
+      "escortWeight": 100
+    },
+    "approach": {
+      "standoffRadii": 60,
+      "escortRadii": 10,
+      "escortMinRadii": 2,
+      "tolerance": 0.3,
+      "brake": 0.95,
+      "ramRadii": 1000,
+      "ramArmed": 0.5
+    }
+  },
   "assemblies": {
-    "engine": {
+    "Side": {
       "modules": [
         {
           "kind": "engine",
           "x": 0,
           "y": 0,
           "angle": 0,
-          "length": 0.2,
+          "length": 1,
           "width": 0.5
-        }
-      ]
-    },
-    "engine2": {
-      "modules": [
+        },
         {
           "kind": "engine",
-          "x": 0,
-          "y": 0,
-          "angle": 90,
-          "length": 0.1,
+          "x": 0.44,
+          "y": -0.25,
+          "angle": -90,
+          "length": 0.3,
+          "width": 0.1,
+          "nozzle": 0.333333
+        },
+        {
+          "kind": "engine",
+          "x": -1.45,
+          "y": 0.049999999999999815,
+          "angle": -90,
+          "length": 0.25,
           "width": 0.4
-        }
-      ]
-    },
-    "engine3": {
-      "modules": [
+        },
         {
           "kind": "engine",
-          "x": 0,
-          "y": 0,
-          "angle": 0,
-          "length": 0.1,
-          "width": 0.1
+          "x": 0.39000000000000007,
+          "y": -0.35000000000000003,
+          "angle": -180,
+          "length": 0.72,
+          "width": 0.2
         }
       ]
     }
@@ -43,44 +61,16 @@
   "modules": [
     {
       "kind": "structure",
-      "x": 0.85,
+      "x": 0.5,
       "y": 0,
-      "length": 1.5,
+      "length": 0.8,
       "width": 0.5,
       "reinforcement": 1
     },
     {
-      "use": "engine",
+      "use": "Side",
       "x": -0.1,
       "y": 0.25,
-      "angle": 180
-    },
-    {
-      "use": "engine2",
-      "x": 0.01,
-      "y": 0.5
-    },
-    {
-      "use": "engine2",
-      "x": 0.01,
-      "y": -0.5,
-      "angle": 180
-    },
-    {
-      "use": "engine2",
-      "x": 1.4,
-      "y": 0.25
-    },
-    {
-      "use": "engine2",
-      "x": 1.4,
-      "y": -0.25,
-      "angle": 180
-    },
-    {
-      "use": "engine",
-      "x": -0.1,
-      "y": -0.25,
       "angle": 180
     },
     {
@@ -88,32 +78,35 @@
       "x": 0,
       "y": 0,
       "length": 0.2,
-      "width": 1,
-      "notes": "Half a metre square of computing is a whole control centre, which is the only reason a fighter this size can be flown at all."
-    },
-    {
-      "use": "engine3",
-      "x": 0.1,
-      "y": 0.4
-    },
-    {
-      "use": "engine3",
-      "x": 0.1,
-      "y": -0.4
+      "width": 0.6,
+      "reinforcement": 1.5,
+      "notes": "A tiny simple fighter with just enough engines to fly"
     },
     {
       "kind": "hullGun",
-      "x": 2.2,
+      "x": 2.0999999999999996,
       "y": 0,
       "angle": 0,
-      "length": 1.2,
-      "width": 0.2,
+      "length": 2.4,
+      "width": 0.4,
       "reinforcement": 3,
       "barrels": 1,
-      "barrelCalibres": 45,
+      "barrelCalibres": 40,
+      "traverse": 6,
+      "fragments": 4,
+      "burstSpeed": 100,
       "targeting": {
-        "engineWeight": 150
+        "engineWeight": 150,
+        "facingWeight": 100,
+        "sightWeight": 100
       }
+    },
+    {
+      "use": "Side",
+      "x": -0.1,
+      "y": -0.25,
+      "angle": 180,
+      "mirror": true
     }
   ]
 }
