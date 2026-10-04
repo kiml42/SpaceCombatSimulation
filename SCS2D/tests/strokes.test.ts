@@ -7,6 +7,8 @@ import {
   legibleWidth,
   plumeAlpha,
   PLUME_MIN_ALPHA,
+  tracerAlpha,
+  TRACER_MIN_ALPHA,
 } from '../render/strokes.js';
 
 /**
@@ -106,5 +108,20 @@ describe('paying back the floor', () => {
     const scale = 1200 / 2000;
     expect(legibleWidth(0.4, 2, scale)).toBeGreaterThan(0.4);
     expect(flooredFade(0.4, 2, scale)).toBeLessThan(0.55);
+  });
+});
+
+describe('a tracer', () => {
+  it('is more opaque the longer it sits over each point of its streak', () => {
+    const long = tracerAlpha(1.8, 9.8);
+    const short = tracerAlpha(0.9, 8.7);
+    expect(long).toBeGreaterThan(short);
+    expect(tracerAlpha(0.9, 4)).toBeGreaterThan(short);
+  });
+
+  it('is fully opaque when it barely moves, and never below its floor', () => {
+    expect(tracerAlpha(1, 0)).toBe(1);
+    expect(tracerAlpha(0.04, 15)).toBe(TRACER_MIN_ALPHA);
+    expect(tracerAlpha(0, 10)).toBe(TRACER_MIN_ALPHA);
   });
 });

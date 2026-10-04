@@ -10,6 +10,7 @@ import {
   plumeRayStarts,
   PLUME_POWER_PER_NEWTON,
   PLUME_RAYS,
+  SHELL_CALIBRES,
   engineGeometry,
   type GunStats,
   type ShipView,
@@ -19,7 +20,7 @@ import { gridStep, type Camera } from './camera.js';
 import { NEUTRAL, shipColours } from './teams.js';
 
 export { teamColour } from './teams.js';
-import { beamAlpha, BEAM_GLOW_ALPHA, flooredFade, legibleWidth, plumeAlpha } from './strokes.js';
+import { beamAlpha, BEAM_GLOW_ALPHA, flooredFade, legibleWidth, plumeAlpha, tracerAlpha } from './strokes.js';
 import { flashExtent, flashFade, flashPosition, type Flashes } from './flashes.js';
 import { exposureEnds, flashSamples, shutterWeight } from './exposure.js';
 import { sprite } from './sprites.js';
@@ -106,12 +107,14 @@ const BEAM_GLOW = '#a8f132';
 
 
 /**
- * Width of the tracer's halo, in calibres. Proportional to the round rather
- * than a fixed size, so that close up a light round is a small bright thing
- * and a heavy one is a large one — a fixed halo makes every round look the
- * same size at the zoom where its true size is finally legible.
+ * Width of the tracer's halo, in calibres, for a round at full opacity
+ * (`tracerAlpha`); a fainter round's is narrower by as much, floored or not.
+ * Proportional to the round rather than a fixed size, so that close up a light
+ * round is a small bright thing and a heavy one is a large one — a fixed halo
+ * makes every round look the same size at the zoom where its true size is
+ * finally legible.
  */
-const GLOW_CALIBRES = 5;
+const GLOW_CALIBRES = 7;
 
 /**
  * Smallest widths anything is drawn at on screen, in pixels.
@@ -127,10 +130,15 @@ const GLOW_CALIBRES = 5;
  * The glow's floor is the widest because it has to stay visible *around* the
  * tracer rather than merely be present. That ordering holds at every zoom, and
  * not by luck: where the tracer is at its floor the glow's larger floor wins,
- * and where the tracer is at its true width the glow is `GLOW_CALIBRES` times
- * it, which clears the glow's floor on its own.
+ * and where the tracer is at its true width the glow is at least
+ * `GLOW_CALIBRES * TRACER_MIN_ALPHA` times it. The glow's floor is for a round
+ * at full opacity, so zoomed out a fainter round's glow is smaller: it is then
+ * the only thing that tells a heavy round from a light one.
  */
-const MIN_GLOW_PX = 2;
+const MIN_GLOW_PX = 5;
+/** A beam's halo, in its widths, and its floor on screen: kept apart from a tracer's. */
+const BEAM_GLOW_WIDTHS = 5;
+const MIN_BEAM_GLOW_PX = 3;
 const MIN_TRACER_PX = 0.1;
 const MIN_BARREL_PX = 1;
 /** A flash is never smaller than this on screen, however far out the camera is. */
@@ -981,7 +989,9 @@ function drawProjectiles(ctx: CanvasRenderingContext2D, snapshot: Snapshot, came
   // either end as the shutter opens and closes. The round has hard sides; its
   // glow fades out from the line as well. Both are sized from the calibre and
   // floored on screen, so a round is true to size close up and legible from
-  // far out.
+  // far out. A round that covers each point of its streak for longer, by being
+  // longer or slower, is more opaque; its glow is wider instead, which is what
+  // a brighter soft glow looks like.
   const dt = snapshot.dt;
   const cvx = camera.vx ?? 0;
   const cvy = camera.vy ?? 0;
@@ -996,14 +1006,16 @@ function drawProjectiles(ctx: CanvasRenderingContext2D, snapshot: Snapshot, came
       const image = sprite(glowPass ? 'glowStreak' : 'streak', colour);
       if (image === null) continue;
       const calibre = snapshot.projectileWidth[i]!;
-      const width = glowPass
-        ? legibleWidth(GLOW_CALIBRES * calibre, MIN_GLOW_PX, camera.scale)
-        : legibleWidth(calibre, MIN_TRACER_PX, camera.scale);
       const x = snapshot.projectileX[i]!;
       const y = snapshot.projectileY[i]!;
       const vx = snapshot.projectileVx[i]!;
       const vy = snapshot.projectileVy[i]!;
       const ends = exposureEnds(x, y, vx, vy, cvx, cvy, dt);
+      const exposure = tracerAlpha(SHELL_CALIBRES * calibre, length(ends.x1 - ends.x0, ends.y1 - ends.y0));
+      const width = glowPass
+        ? legibleWidth(GLOW_CALIBRES * calibre, MIN_GLOW_PX, camera.scale) * exposure
+        : legibleWidth(calibre, MIN_TRACER_PX, camera.scale);
+      ctx.globalAlpha = glowPass ? 1 : exposure;
       drawStreak(ctx, base, image, ends.x0, ends.y0, ends.x1, ends.y1, width, vx, vy);
     }
   }
@@ -1024,12 +1036,12 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
   ctx.strokeStyle = BEAM_GLOW;
   for (let i = 0; i < snapshot.beamCount; i++) {
     const calibre = snapshot.beamWidth[i]!;
-    const halo = GLOW_CALIBRES * calibre;
+    const halo = BEAM_GLOW_WIDTHS * calibre;
     ctx.globalAlpha =
       beamAlpha(snapshot.beamPower[i]!) *
       BEAM_GLOW_ALPHA *
-      flooredFade(halo, MIN_GLOW_PX, camera.scale);
-    ctx.lineWidth = legibleWidth(halo, MIN_GLOW_PX, camera.scale);
+      flooredFade(halo, MIN_BEAM_GLOW_PX, camera.scale);
+    ctx.lineWidth = legibleWidth(halo, MIN_BEAM_GLOW_PX, camera.scale);
     ctx.beginPath();
     ctx.moveTo(snapshot.beamStartX[i]!, snapshot.beamStartY[i]!);
     ctx.lineTo(snapshot.beamEndX[i]!, snapshot.beamEndY[i]!);
