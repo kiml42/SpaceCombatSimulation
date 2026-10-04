@@ -26,7 +26,8 @@
           "x": 0,
           "y": 0,
           "length": 4,
-          "width": 3
+          "width": 3,
+          "reinforcement": 1.5
         }
       ]
     },
@@ -37,18 +38,6 @@
           "x": 0,
           "y": -1,
           "angle": 90,
-          "length": 2,
-          "width": 3
-        }
-      ]
-    },
-    "retro": {
-      "modules": [
-        {
-          "kind": "engine",
-          "x": -1,
-          "y": 0,
-          "angle": 0,
           "length": 2,
           "width": 3
         }
@@ -77,9 +66,13 @@
           "y": 0
         },
         {
-          "use": "retro",
-          "x": 3,
-          "y": -2.5
+          "kind": "engine",
+          "x": 2,
+          "y": -2.5,
+          "angle": 0,
+          "length": 2,
+          "width": 3,
+          "reinforcement": 2
         }
       ]
     }
@@ -90,7 +83,8 @@
       "x": 4.25,
       "y": 0,
       "length": 4.5,
-      "width": 6
+      "width": 6,
+      "reinforcement": 1.5
     },
     {
       "kind": "core",
@@ -107,6 +101,7 @@
       "angle": 0,
       "length": 13,
       "width": 4,
+      "reinforcement": 2,
       "barrels": 2,
       "barrelCalibres": 50,
       "traverse": 15,
