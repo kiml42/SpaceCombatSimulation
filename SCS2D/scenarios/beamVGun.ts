@@ -9,20 +9,17 @@ export function beamVGun(seed = 20260905): Battle {
     const beamGunship = compileBlueprint(BEAM_GUNSHIP);
     const gunship = compileBlueprint(GUNSHIP);
 
-    const beamy = ships.spawn(world, {
+    ships.spawn(world, {
       design: beamGunship,
       ...CROSSING.west,
       vy: 80,
       team: 0,
     });
-    const gunny = ships.spawn(world, {
+    ships.spawn(world, {
       design: gunship,
       ...CROSSING.east,
       vx: 10,
       team: 1,
     });
-
-    ships.pushOrder(beamy, gunny, 1500, 2500, 80);
-    ships.pushOrder(gunny, beamy, 300, 500, 200);
   });
 }
