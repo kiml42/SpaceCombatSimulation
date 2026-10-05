@@ -412,6 +412,12 @@ describe('a welded design', () => {
     expect(across[0]!.seam).toBe(true);
   });
 
+  it('is a fighter only if both halves were', () => {
+    expect(dinky.fighter).toBe(true);
+    expect(weldDesigns(dinky, dinky, 0, 30, 0, 0, 0, 0.5).fighter).toBe(true);
+    expect(weldDesigns(dinky, corvette, 0, 30, 0, 0, 0, 0.5).fighter).toBe(false);
+  });
+
   it('keeps its seams through a sever that leaves both ends', () => {
     const keep = welded.modules.map((_, m) => m).filter((m) => m !== 3);
     const piece = subDesign(welded, keep);

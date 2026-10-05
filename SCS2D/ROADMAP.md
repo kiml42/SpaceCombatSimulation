@@ -692,6 +692,13 @@ Deliberately unresolved; decide when they block something.
   now: the Corvette and Gunship carry hull guns at the bow, and turret tests use fixture ships
   (`tests/fixtures.ts`) with a turret in place of the hull gun. Step 7's exploding shells and fighter
   flag are the answer (§8).
+- **What a ship does about an enemy none of its guns can reach.** Choosing what to fight ignores layers,
+  so a ship can pick an enemy every one of its mounts finds nothing reachable on. It then holds its band
+  round that enemy, holding fire, for as long as the enemy lasts. The alternatives are to pass such an
+  enemy over when choosing, to close and ram it where the doctrine allows, or to keep it as a target
+  while something else on the same side does the shooting. Which depends on whether an unreachable enemy
+  is worth anything to a ship that cannot hurt it — screening, say — so it wants a fleet scenario where it
+  happens before it is decided.
 - **Engines split by layer, into two archetypes.** A single `engine` kind cannot express the choice the
   weapons layer creates, so it becomes two — a new *archetype* rather than a new coefficient, which is the
   distinction the materials question above already draws.
