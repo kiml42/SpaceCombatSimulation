@@ -30,17 +30,17 @@
           "nozzle": 0.333333
         },
         {
-          "kind": "structure",
+          "kind": "tank",
           "x": 0,
-          "y": 0.8250000000000002,
-          "length": 0.5,
+          "y": 0.825,
+          "length": 0.7,
           "width": 1.15
         },
         {
-          "kind": "structure",
+          "kind": "tank",
           "x": 0,
           "y": 1.65,
-          "length": 1,
+          "length": 2.8,
           "width": 0.5
         },
         {
@@ -127,8 +127,8 @@
       "mirror": true
     },
     {
-      "kind": "structure",
-      "x": 0.9750000000000001,
+      "kind": "tank",
+      "x": 0.975,
       "y": 0,
       "length": 0.65,
       "width": 0.5,
