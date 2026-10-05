@@ -4,6 +4,7 @@
   "notes": "A capital. Its batteries go for the biggest thing on the board — nothing in the battle outweighs it, so a preference for its own mass is a preference for whatever is largest — and they shoot to disable rather than to destroy: guns, then engines, and never the hull while either is left.",
   "doctrine": {
     "targeting": {
+      "preferredMass": 0.2,
       "massWeight": 150
     },
     "approach": {
@@ -40,9 +41,9 @@
         },
         {
           "kind": "structure",
-          "x": -212,
+          "x": -137,
           "y": 240,
-          "length": 920,
+          "length": 770,
           "width": 60
         },
         {
@@ -57,9 +58,9 @@
         },
         {
           "kind": "structure",
-          "x": -280,
+          "x": -250,
           "y": 300,
-          "length": 700,
+          "length": 640,
           "width": 60
         },
         {
@@ -94,20 +95,8 @@
         },
         {
           "use": "beamTurret",
-          "x": -379,
-          "y": 457.5
-        },
-        {
-          "use": "beamTurret",
-          "x": -562.5,
-          "y": 466,
-          "angle": 90
-        },
-        {
-          "use": "beamTurret",
-          "x": -637.5,
-          "y": 286,
-          "angle": 90
+          "x": -586,
+          "y": 270.5
         },
         {
           "kind": "engine",
@@ -116,17 +105,17 @@
           "angle": 90,
           "length": 75,
           "width": 160,
-          "barrels": 33,
+          "barrels": 36,
           "nozzle": 0.111111
         },
         {
           "kind": "engine",
           "x": -395,
-          "y": 486,
+          "y": 478.5,
           "angle": 0,
           "length": 56,
-          "width": 42,
-          "barrels": 10,
+          "width": 57,
+          "barrels": 14,
           "nozzle": 0.076923
         },
         {
@@ -163,9 +152,9 @@
         {
           "kind": "structure",
           "x": 239,
-          "y": 52.5,
+          "y": 56,
           "length": 32,
-          "width": 45,
+          "width": 52,
           "thick": true
         },
         {
@@ -213,30 +202,23 @@
         {
           "kind": "structure",
           "x": 101,
-          "y": 112.5,
+          "y": 116,
           "length": 32,
-          "width": 45,
+          "width": 52,
           "thick": true
         },
         {
           "kind": "structure",
-          "x": -340,
-          "y": 457.5,
-          "length": 46,
-          "width": 15
-        },
-        {
-          "kind": "structure",
-          "x": 293,
+          "x": 296.5,
           "y": 60,
-          "length": 76,
+          "length": 83,
           "width": 60
         },
         {
           "kind": "structure",
-          "x": 338.5,
+          "x": 342,
           "y": 61,
-          "length": 15,
+          "length": 8,
           "width": 58
         },
         {
@@ -274,12 +256,12 @@
         {
           "use": "hullGun",
           "x": 422,
-          "y": 167.5
+          "y": 197.5
         },
         {
           "use": "hullGun",
           "x": 267,
-          "y": 228.5
+          "y": 258.5
         },
         {
           "use": "hullGun",
@@ -302,8 +284,30 @@
         {
           "use": "hullGun",
           "x": -631,
-          "y": 333.5,
+          "y": 367.5,
           "angle": -180
+        },
+        {
+          "kind": "structure",
+          "x": -597,
+          "y": 240,
+          "length": 150,
+          "width": 60,
+          "thick": true
+        },
+        {
+          "kind": "structure",
+          "x": -627,
+          "y": 300,
+          "length": 50,
+          "width": 60
+        },
+        {
+          "kind": "structure",
+          "x": -586,
+          "y": 304,
+          "length": 32,
+          "width": 52
         }
       ]
     },
@@ -325,7 +329,9 @@
           "targeting": {
             "structureWeight": 0,
             "facingWeight": 100,
-            "sightWeight": 20
+            "sightWeight": 20,
+            "preferredMass": 0.3,
+            "fireRange": 3
           }
         }
       ]
@@ -335,20 +341,25 @@
         {
           "kind": "turret",
           "x": 0,
-          "y": 0,
+          "y": 3.5,
           "angle": 90,
-          "length": 15,
+          "length": 8,
           "width": 32,
           "barrels": 4,
-          "barrelCalibres": 48,
+          "barrelCalibres": 37,
           "traverse": 140,
           "fuse": 0.06,
+          "fragments": 12,
           "burstSpeed": 300,
           "targeting": {
             "focusWeight": 0,
             "proximityWeight": 250,
-            "massWeight": 0,
-            "structureWeight": 0
+            "massWeight": 20,
+            "structureWeight": 0,
+            "facingWeight": 60,
+            "sightWeight": 30,
+            "fireRange": 4,
+            "preferredMass": 0.1
           },
           "notes": "Close-in defence, and it fights its own battle: no interest at all in what the ship as a whole has picked, no view on how big a target is, and every view on how near. Guns and engines before hull, because a fighter it disarms is a fighter that has stopped mattering, and a fighter it strands is one the batteries can take at their leisure."
         }
@@ -373,21 +384,25 @@
       "modules": [
         {
           "kind": "hullGun",
-          "x": 0,
-          "y": 0,
+          "x": 7,
+          "y": 2.5,
           "angle": 0,
-          "length": 38,
-          "width": 7,
-          "barrels": 2,
-          "barrelCalibres": 48,
+          "length": 52,
+          "width": 12,
+          "barrels": 4,
+          "barrelCalibres": 59,
           "traverse": 140,
           "fuse": 0.06,
           "burstSpeed": 300,
           "targeting": {
             "focusWeight": 0,
             "proximityWeight": 250,
-            "massWeight": 0,
-            "structureWeight": 0
+            "massWeight": 30,
+            "structureWeight": 0,
+            "facingWeight": 100,
+            "sightWeight": 50,
+            "fireRange": 3,
+            "preferredMass": 0.1
           },
           "notes": "Close-in defence, and it fights its own battle: no interest at all in what the ship as a whole has picked, no view on how big a target is, and every view on how near. Guns and engines before hull, because a fighter it disarms is a fighter that has stopped mattering, and a fighter it strands is one the batteries can take at their leisure."
         }
@@ -408,6 +423,7 @@
       "y": 0,
       "length": 40,
       "width": 60,
+      "reinforcement": 15,
       "thick": true,
       "notes": "The bridge, aft above the engines, where a Star Destroyer's is — and where every shot at it has to cross the length of the ship first."
     },
@@ -437,9 +453,9 @@
     },
     {
       "kind": "structure",
-      "x": 19,
+      "x": 22.5,
       "y": 0,
-      "length": 658,
+      "length": 665,
       "width": 60,
       "thick": true
     }
