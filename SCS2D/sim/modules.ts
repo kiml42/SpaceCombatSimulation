@@ -765,6 +765,21 @@ export enum GunType {
   'Beam' = 1
 }
 
+/**
+ * What a shell scatters when it bursts — absent on solid shot and on a beam.
+ *
+ * It is what a gun is loaded with rather than what it is, so it is filled in
+ * by `loaded` beside the other things the shell changes about the round.
+ */
+export interface BurstStats {
+  /** How many fragments one round bursts into. */
+  fragments: number;
+  /** How wide one fragment is, metres. */
+  fragmentWidth: number;
+  /** How far they have spread by the time the burst reaches the aim point, metres. */
+  radius: number;
+}
+
 /** What a gun derived from a turret module's geometry can do. */
 export interface GunStats {
   /** What type of gun is this, projectile, beam etc. */
@@ -796,6 +811,8 @@ export interface GunStats {
   cycleTime: number;
   /** Seconds a beam stays on. */
   beamOnTime: number;
+  /** What its shell bursts into, or null for solid shot and for a beam. */
+  burst: BurstStats | null;
 }
 
 /** Seconds from one shot to the next: a beam's burst, then its reload. */
@@ -1525,6 +1542,7 @@ export function hullGunStats(spec: ModuleSpec): GunStats {
     // they share rather than each tube's own.
     cycleTime: hullCycleTime(calibre, blockLength * loadingDecks(spec), outlets) / outlets,
     beamOnTime: 0,
+    burst: null,
   };
 }
 
@@ -1605,6 +1623,7 @@ export function hullBeamStats(spec: ModuleSpec): GunStats {
     beamPower: power,
     beamOnTime,
     cycleTime,
+    burst: null,
   };
 }
 
@@ -1640,13 +1659,28 @@ function braceInertia(gun: GunStats, mass: number): number {
  * A gun with what it is loaded with. Its bore is measured as solid shot; a
  * shell gives some of that volume to charge, which is far lighter than steel,
  * so for the same propellant it leaves faster with less momentum.
+ *
+ * This is also where the burst is described, since what a round scatters is a
+ * property of what the mount loads rather than of the barrel it goes down.
  */
 function loaded(gun: GunStats, spec: ModuleSpec): GunStats {
   if (!firesShells(spec)) return gun;
-  const share = chargeShare(spec.burstSpeed ?? DEFAULT_BURST_SPEED);
+  const burstSpeed = spec.burstSpeed ?? DEFAULT_BURST_SPEED;
+  const share = chargeShare(burstSpeed);
   const roundMass = gun.roundMass * (1 - share + (share * EXPLOSIVE_DENSITY) / SHELL_DENSITY);
   const muzzleSpeed = roundMass > 0 ? sqrt((2 * gun.muzzleEnergy) / roundMass) : 0;
-  return { ...gun, roundMass, muzzleSpeed };
+  const fragments = spec.fragments ?? DEFAULT_FRAGMENTS;
+  return {
+    ...gun,
+    roundMass,
+    muzzleSpeed,
+    burst: {
+      fragments,
+      // The casing's metal shared out, widths summing in area as `burst` does it.
+      fragmentWidth: gun.calibre * sqrt((1 - share) / fragments),
+      radius: burstSpeed * (spec.fuse ?? DEFAULT_FUSE)
+    }
+  };
 }
 
 /**
@@ -1957,7 +1991,8 @@ export function gunStats(
     muzzleEnergy,
     beamPower: 0,
     cycleTime: (CYCLE_TIME_PER_CALIBRE * calibre) / barrelCount,
-    beamOnTime: 0
+    beamOnTime: 0,
+    burst: null
   };
 }
 
@@ -2037,6 +2072,7 @@ export function beamGunStats(mountLength: number, mountWidth: number, barrelCoun
     beamPower: power,
     beamOnTime,
     cycleTime: beamOnTime / BEAM_DUTY_CYCLE,
+    burst: null,
   };
 }
 
