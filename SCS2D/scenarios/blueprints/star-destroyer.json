@@ -4,8 +4,12 @@
   "notes": "A capital. Its batteries go for the biggest thing on the board — nothing in the battle outweighs it, so a preference for its own mass is a preference for whatever is largest — and they shoot to disable rather than to destroy: guns, then engines, and never the hull while either is left.",
   "doctrine": {
     "targeting": {
+      "proximityWeight": 200,
       "preferredMass": 0.2,
-      "massWeight": 150
+      "massWeight": 150,
+      "closingWeight": 30,
+      "armedWeight": 20,
+      "mobileWeight": 5
     },
     "approach": {
       "standoffRadii": 20,
@@ -331,7 +335,7 @@
             "facingWeight": 100,
             "sightWeight": 20,
             "preferredMass": 0.3,
-            "fireRange": 3
+            "fireRange": 4
           }
         }
       ]
@@ -384,10 +388,10 @@
       "modules": [
         {
           "kind": "hullGun",
-          "x": 7,
-          "y": 2.5,
+          "x": 1,
+          "y": 2.4999999999999996,
           "angle": 0,
-          "length": 52,
+          "length": 40,
           "width": 12,
           "barrels": 4,
           "barrelCalibres": 59,
@@ -401,8 +405,8 @@
             "structureWeight": 0,
             "facingWeight": 100,
             "sightWeight": 50,
-            "fireRange": 3,
-            "preferredMass": 0.1
+            "preferredMass": 0.1,
+            "fireRange": 4
           },
           "notes": "Close-in defence, and it fights its own battle: no interest at all in what the ship as a whole has picked, no view on how big a target is, and every view on how near. Guns and engines before hull, because a fighter it disarms is a fighter that has stopped mattering, and a fighter it strands is one the batteries can take at their leisure."
         }

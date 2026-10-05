@@ -14,7 +14,7 @@ import { Rng } from '../sim/rng.js';
  * against whatever has got inside them. What the battle does is therefore a
  * property of four blueprints rather than of this file.
  */
-export function starWars(seed = 20260905, tieFighterCount = 8, xWingCount = 30): Battle {
+export function starWars(seed = 20260905, tieFighterCount = 30, xWingCount = 30): Battle {
   return makeBattle({ seed }, (ships, world) => {
     const xWingBlueprint = compileBlueprint(X_WING);
     const ghostBlueprint = compileBlueprint(GHOST);
@@ -26,7 +26,7 @@ export function starWars(seed = 20260905, tieFighterCount = 8, xWingCount = 30):
     const randomRadius = 1000;
 
     spawnMany(1, rng, randomRadius, ships, world, isdBlueprint, 10_000, 0, 0);
-    spawnMany(tieFighterCount, rng, randomRadius, ships, world, tieBlueprint, 1200, 0, 0);
+    spawnMany(tieFighterCount, rng, randomRadius, ships, world, tieBlueprint, 9_000, 0, 0);
 
     spawnMany(xWingCount, rng, randomRadius, ships, world, xWingBlueprint, -2400, 0, 1);
     spawnMany(2, rng, randomRadius, ships, world, ghostBlueprint, -4000, 0, 1);
