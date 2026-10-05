@@ -205,6 +205,40 @@ describe('escort and neutrals', () => {
     expect(fly(1)).toBeGreaterThan(fly(0) * 2);
   });
 
+  it('covers no friend with its core shot out', () => {
+    // Nobody aboard is nobody to cover: the escort goes to the fight as
+    // though there were nothing there, as it does for a hulk it might shoot.
+    function fly(hulk: boolean): number {
+      const consort = compileBlueprint(MARKER);
+      const base = escorting(CORVETTE, 400);
+      const escort = compileBlueprint({
+        ...base,
+        doctrine: { ...base.doctrine!, approach: { ...base.doctrine!.approach, escortMinRadii: 0 } },
+      });
+      const enemy = compileBlueprint(GUNSHIP);
+      const battle = makeBattle({ seed: 5, projectiles: 512 }, (ships, world) => {
+        const covering = ships.spawn(world, { design: escort, x: 0, y: 0, angle: 0, team: 0 });
+        const charge = ships.spawn(world, { design: consort, x: 0, y: 300, team: 0 });
+        ships.spawn(world, { design: enemy, x: 2500, y: 0, angle: math.PI, team: 1 });
+        return { covering, charge };
+      });
+      const bodies = battle.world.bodies;
+      if (hulk) {
+        // Only until it stops flying, so the hull is still there to cover.
+        const b = bodies.indexOf(battle.ships.body(battle.charge));
+        const blow = consort.modules[0]!.stats.hitPoints * 0.01;
+        while (battle.ships.hasControl(battle.charge)) battle.ships.damage.absorb(b, 0, blow);
+        expect(battle.ships.damage.spent(b, 0)).toBe(false);
+      }
+      for (let step = 0; step < 1800; step++) battle.step();
+      const a = bodies.indexOf(battle.ships.body(battle.covering));
+      const b = bodies.indexOf(battle.ships.body(battle.charge));
+      return math.length(bodies.x[a]! - bodies.x[b]!, bodies.y[a]! - bodies.y[b]!);
+    }
+
+    expect(fly(true)).toBeGreaterThan(fly(false) * 2);
+  });
+
   it('keeps a craft with its consort while it goes to the fight', () => {
     // What the tether controls is the gap to the charge, so that is what is
     // measured — averaged over the battle rather than read off at the end of
