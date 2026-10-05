@@ -1,15 +1,20 @@
-import { compileBlueprint } from '../sim/index.js';
+import {
+  compileBlueprint,
+  expandBlueprint,
+  MODULE_KINDS,
+  type Blueprint,
+  type ModuleSpec,
+} from '../sim/index.js';
 import { NO_TARGET, OrderCancelCondition } from '../sim/ships.js';
 import type { Battle } from './types.js';
 import { CROSSING, SIDE_WELL, makeBattle } from './battle.js';
-import { CORVETTE, FLAT_GUNSHIP, FLAT_GUNSHIP_GROUPED, GUNSHIP } from './blueprints.js';
-
+import { CORVETTE, GUNSHIP } from './blueprints.js';
 
 /**
  * What listing a ship's modules in a different order costs, flown two ways.
  *
  * Module order reaches the simulation twice: engines are allocated in it and
- * guns fire in it. The three layouts here are the same eighteen modules in the
+ * guns fire in it. The three layouts here are the Gunship's modules in the
  * same places, differing only in the list — flat in expansion order (the
  * control, which should track the assembled ship exactly), flat listed kind by
  * kind (the variable), and built from assemblies.
@@ -35,13 +40,24 @@ export interface OrderingBattle extends Battle {
   readonly target: number;
 }
 
+/** The Gunship with its assemblies expanded away, its modules listed in `order`. */
+function flatGunship(order: (modules: ModuleSpec[]) => ModuleSpec[]): Blueprint {
+  const flat: Blueprint = { name: GUNSHIP.name, modules: order(expandBlueprint(GUNSHIP)) };
+  if (GUNSHIP.doctrine !== undefined) flat.doctrine = GUNSHIP.doctrine;
+  return flat;
+}
+
+/** Every module of one kind together, kinds in `MODULE_KINDS` order; stable within a kind. */
+const byKind = (modules: ModuleSpec[]): ModuleSpec[] =>
+  modules.sort((a, b) => MODULE_KINDS.indexOf(a.kind) - MODULE_KINDS.indexOf(b.kind));
+
 /**
  * The layouts under test, in the order the contenders are reported: the
  * control, the variable, and the assembled ship the control is a copy of.
  */
 export const ORDERINGS = [
-  { name: 'flat, expansion order', blueprint: FLAT_GUNSHIP },
-  { name: 'flat, kinds together', blueprint: FLAT_GUNSHIP_GROUPED },
+  { name: 'flat, expansion order', blueprint: flatGunship((modules) => modules) },
+  { name: 'flat, kinds together', blueprint: flatGunship(byKind) },
   { name: 'assemblies', blueprint: GUNSHIP },
 ] as const;
 

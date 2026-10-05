@@ -12,9 +12,10 @@ import {
   Ships,
   World,
   type ModuleKind,
+  type Placement,
   type ShipDesign,
 } from '../sim/index.js';
-import { BEAM_GUNSHIP, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
+import { BEAM_GUNSHIP, DINKY, GUNSHIP, X_WING } from '../scenarios/blueprints.js';
 import { TURRET_CORVETTE, TURRET_DINKY, TURRET_GUNSHIP } from './fixtures.js';
 
 /**
@@ -29,7 +30,21 @@ import { TURRET_CORVETTE, TURRET_DINKY, TURRET_GUNSHIP } from './fixtures.js';
 
 const DT = 1 / 60;
 const gunship = compileBlueprint(TURRET_GUNSHIP);
-const beamGunship = compileBlueprint(BEAM_GUNSHIP);
+/** A placement with any targeting of its own taken off, so a mount is its archetype. */
+function archetypal<P extends Placement>(p: P): P {
+  if (!('kind' in p) || !isWeaponMount(p.kind)) return p;
+  const { targeting: _, ...rest } = p;
+  return rest as P;
+}
+
+/** The beam gunship with every mount its archetype: its outrigger beams opt out of `focusWeight`. */
+const beamGunship = compileBlueprint({
+  ...BEAM_GUNSHIP,
+  modules: BEAM_GUNSHIP.modules.map(archetypal),
+  assemblies: Object.fromEntries(
+    Object.entries(BEAM_GUNSHIP.assemblies ?? {}).map(([name, a]) => [name, { ...a, modules: a.modules.map(archetypal) }]),
+  ),
+});
 const corvette = compileBlueprint(TURRET_CORVETTE);
 const dinky = compileBlueprint(TURRET_DINKY);
 
@@ -160,8 +175,8 @@ describe('a mount choosing its own target', () => {
     ]);
     s.run(120);
     expect(s.ships.getCurrentOrder(s.mine)).toBeUndefined(); // doctrine, not orders
-    // Every mount here shares the ship's doctrine, and every one of them can
-    // see both, so the focus bonus is what decides — and they all agree.
+    // Every mount here is its archetype, and every one of them can see both,
+    // so the focus bonus is what decides — and they all agree.
     for (let t = 0; t < beamGunship.turrets.length; t++) {
       expect(beamGunship.turrets[t]!.targeting.focusWeight).toBeGreaterThan(0);
       expect(s.aim(t)).toBe(s.aim(0));
@@ -187,7 +202,7 @@ describe('a mount choosing its own target', () => {
   });
 
   it('drops a target the moment it stops being one', () => {
-    // Inside the nose gun's 1,040 m reach against a corvette: past that it
+    // Inside the nose gun's 1,490 m reach against a corvette: past that it
     // ignores the mark, and this is about a target that has *gone* rather than
     // one out of range.
     const s = scene(gunship, [{ design: corvette, x: 1000, y: 0 }]);
@@ -206,7 +221,7 @@ describe('a mount choosing its own target', () => {
     const switchSteps = (design: ShipDesign, turret: number): number => {
       // Close in, because these are marks a gun's reach is measured against
       // and a Dinky is two metres across: the gunship's bow gun is good for
-      // 386 m against one, and its own single mount for 423 m.
+      // 789 m against one, and its own single mount for 770 m.
       const s = scene(design, [
         { design: dinky, x: 280, y: 0 },
         { design: dinky, x: 330, y: 0 },
@@ -237,7 +252,9 @@ describe('a mount with a doctrine of its own', () => {
     expect(close.preferredMass).toBeLessThan(archetype.preferredMass);
     expect(close.proximityWeight).toBeGreaterThan(archetype.proximityWeight);
     expect(close.massWeight).toBe(archetype.massWeight);
-    expect(close.closingWeight).toBe(archetype.closingWeight);
+    // Its archetype's, not its ship's: the gunship's hull is far more loyal.
+    expect(close.loyaltyWeight).toBe(archetype.loyaltyWeight);
+    expect(design.doctrine.targeting.loyaltyWeight).not.toBe(archetype.loyaltyWeight);
     // And where it does have an opinion, it overrides: a close-in gun takes
     // no interest in what the ship as a whole is fighting.
     expect(close.focusWeight).toBe(0);
@@ -311,16 +328,18 @@ describe('a mount with a doctrine of its own', () => {
 
   it('sends the close-in guns after the fighter and the main gun after the capital', () => {
     // What a doctrine per mount is *for*: one hull fighting two fights at
-    // once because its guns are for different things. A shell from an
-    // eight-barrelled pom-pom is wasted on a capital, and the bow gun has
-    // nothing better to do with a fighter than miss it.
+    // once because its guns are for different things. A shell from a
+    // four-barrelled pom-pom is wasted on a capital, and the bow gun has
+    // nothing better to do with a fighter than miss it. An X-wing rather than
+    // a Dinky: the pom-poms want something a tenth the gunship's mass, and a
+    // Dinky is too small even for them.
     const capital = compileBlueprint(TURRET_GUNSHIP);
     // Both marks inside the reach of both kinds of mount, so what decides is
     // the doctrine rather than the range: the bow gun could take the fighter
     // and the pom-poms could take the capital, and neither does.
     const s = scene(capital, [
       { design: corvette, x: 1000, y: 0 },
-      { design: dinky, x: 300, y: 100 },
+      { design: compileBlueprint(X_WING), x: 300, y: 100 },
     ]);
     s.run(60);
     expect(s.aim(NOSE)).toBe(1);

@@ -2,7 +2,6 @@ import { compileBlueprint, math } from '../sim/index.js';
 import type { Battle } from './types.js';
 import { CROSSING, SIDE_WELL, makeBattle } from './battle.js';
 import { BEAM_CORVETTE, BEAM_GUNSHIP } from './blueprints.js';
-import { OrderCancelCondition } from '../sim/ships.js';
 
 /**
  * Beam-armed ships only: two beam corvettes closing on a beam gunship.

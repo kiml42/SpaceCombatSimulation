@@ -153,13 +153,12 @@ describe('the modules a shot crosses', () => {
 
   it('finds what a shot down the corvette’s axis goes through', () => {
     const design = compileBlueprint(CORVETTE);
-    // Nose-on from well ahead: the gun first, then the hull behind it — bow
-    // section, the core amidships and the stern section — then the engine
-    // bolted to the stern.
+    // Nose-on from well ahead: the gun first, then the bow section behind it,
+    // the core, and the engine bolted straight to the back of the core.
     modulesAlong(design, 100, 0, -100, 0, path);
     const kinds = [];
     for (let i = 0; i < path.count; i++) kinds.push(design.modules[path.module[i]!]!.spec.kind);
-    expect(kinds).toEqual(['hullGun', 'structure', 'core', 'structure', 'engine']);
+    expect(kinds).toEqual(['hullGun', 'structure', 'core', 'engine']);
     // In order, and each entered after the last was left.
     for (let i = 1; i < path.count; i++) {
       expect(path.entry[i]!).toBeGreaterThanOrEqual(path.entry[i - 1]!);

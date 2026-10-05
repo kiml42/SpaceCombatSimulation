@@ -19,12 +19,12 @@ const corvette: ShipDesign = compileBlueprint(CORVETTE);
 const dinky: ShipDesign = compileBlueprint(DINKY);
 
 /**
- * The corvette runs from x = -12.9 to x = +12.1 and is 17 m across, inside a
- * bounding circle of 14.6 m. So two of them nose to tail are clear at 25 m
+ * The corvette runs from x = -14.5 to x = +17 and is 16 m across, inside a
+ * bounding circle of 17.1 m. So two of them nose to tail are clear at 31.5 m
  * apart and overlapping at anything less, and two abeam at 20 m have circles
- * that overlap by a good margin with three metres of vacuum between the hulls.
+ * that overlap by a good margin with four metres of vacuum between the hulls.
  */
-const NOSE_TO_TAIL = 25;
+const NOSE_TO_TAIL = 31.5;
 
 interface Ship {
   design: ShipDesign;
@@ -92,7 +92,7 @@ describe('finding contacts', () => {
   it('finds nothing when only the bounding circles meet', () => {
     // The point of testing the hull rather than the circle. A corvette's circle
     // reaches its bow, so two of them abeam overlap as circles while their
-    // hulls are three metres of vacuum apart.
+    // hulls are four metres of vacuum apart.
     const abeam = 20;
     expect(abeam).toBeLessThan(corvette.radius * 2);
     const w = world({ design: corvette, x: 0, y: 0 }, { design: corvette, x: 0, y: abeam });

@@ -15,12 +15,21 @@ import { CORVETTE, DINKY } from '../scenarios/blueprints.js';
 const dinky: ShipDesign = compileBlueprint(DINKY);
 const corvette: ShipDesign = compileBlueprint(CORVETTE);
 
-/** A fighter's smallest engine, and the weld holding it on. */
-const SHARD = 9;
-const SHARD_JOINT = joints(dinky).findIndex((j) => j.a === 7 && j.b === SHARD);
-/** One worth keeping, held on by a weld of its own: the gun. */
-const KEEPER = 10;
-const KEEPER_JOINT = joints(dinky).findIndex((j) => j.a === 0 && j.b === KEEPER);
+/** The welds holding one module on, as indices into `joints`. */
+function weldsOf(design: ShipDesign, module: number): number[] {
+  const welds: number[] = [];
+  joints(design).forEach((j, k) => {
+    if (j.a === module || j.b === module) welds.push(k);
+  });
+  return welds;
+}
+
+/** One of a fighter's two smallest engines, and the welds holding it on. */
+const SHARD = 2;
+const SHARD_JOINTS = weldsOf(dinky, SHARD);
+/** One worth keeping: the gun. */
+const KEEPER = 6;
+const KEEPER_JOINTS = weldsOf(dinky, KEEPER);
 
 interface Scene {
   world: World;
@@ -37,14 +46,14 @@ function scene(design: ShipDesign = dinky): Scene {
 }
 
 /**
- * Cut exactly one weld through, which parts exactly one piece.
+ * Cut exactly these welds through, which parts exactly one piece.
  *
  * Cutting rather than hitting, so that what is under test is what becomes of
  * the piece rather than how many pieces a blow makes.
  */
-function breakOff(s: Scene, joint: number): number {
+function breakOff(s: Scene, welds: readonly number[]): number {
   const all = joints(s.ships.design(s.ship));
-  s.ships.damage.cutWeld(s.body, joint, all[joint]!.width);
+  for (const joint of welds) s.ships.damage.cutWeld(s.body, joint, all[joint]!.width);
   return s.ships.sever(s.world);
 }
 
@@ -58,7 +67,7 @@ describe('scrap, which is never created', () => {
   it('leaves the smallest pieces out of the world altogether', () => {
     expect(dinky.modules[SHARD]!.stats.mass).toBeLessThan(300);
     const s = scene();
-    expect(breakOff(s, SHARD_JOINT)).toBe(0);
+    expect(breakOff(s, SHARD_JOINTS)).toBe(0);
     // The ship has still lost it: this is scrap, not a miss.
     expect(s.ships.design(s.ship).modules.length).toBeLessThan(dinky.modules.length);
     expect(s.ships.count).toBe(1);
@@ -67,7 +76,7 @@ describe('scrap, which is never created', () => {
   it('counts what it threw away rather than dropping it quietly', () => {
     const s = scene();
     expect(s.ships.discarded).toBe(0);
-    breakOff(s, SHARD_JOINT);
+    breakOff(s, SHARD_JOINTS);
     expect(s.ships.discarded).toBeGreaterThan(0);
     expect(s.ships.discarded).toBeLessThan(300);
   });
@@ -75,16 +84,16 @@ describe('scrap, which is never created', () => {
   it('keeps a piece worth keeping', () => {
     const s = scene();
     expect(dinky.modules[KEEPER]!.stats.mass).toBeGreaterThan(300);
-    expect(breakOff(s, KEEPER_JOINT)).toBe(1);
+    expect(breakOff(s, KEEPER_JOINTS)).toBe(1);
     expect(s.ships.count).toBe(2);
     expect(s.ships.discarded).toBe(0);
   });
 });
 
 describe('wreckage that has drifted out of the fight', () => {
-  function broken(design: ShipDesign = dinky, joint = KEEPER_JOINT) {
+  function broken(design: ShipDesign = dinky, welds: readonly number[] = KEEPER_JOINTS) {
     const s = scene(design);
-    expect(breakOff(s, joint)).toBe(1);
+    expect(breakOff(s, welds)).toBe(1);
     return { ...s, piece: s.ship + 1 };
   }
 
@@ -106,10 +115,10 @@ describe('wreckage that has drifted out of the fight', () => {
 
   it('lets a light piece go where a heavy one is still worth having', () => {
     // The whole of the rule in one comparison: same distance, different mass.
-    const out = 8000;
+    const out = 20_000;
 
     const light = broken();
-    const heavy = broken(corvette, 0);
+    const heavy = broken(corvette, [0]);
     expect(light.ships.design(light.piece).mass).toBeLessThan(
       heavy.ships.design(heavy.piece).mass,
     );

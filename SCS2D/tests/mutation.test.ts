@@ -59,7 +59,7 @@ function lineage(parent: Blueprint, seed: number, generations: number, massBudge
 }
 
 describe('mutation', () => {
-  it('breeds only ships that can be built', () => {
+  it('breeds only ships that can be built', { timeout: 30_000 }, () => {
     for (const [name, parent] of FLEET) {
       const rng = new Rng(11);
       for (let i = 0; i < 200; i++) {

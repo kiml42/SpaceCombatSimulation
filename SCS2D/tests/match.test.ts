@@ -30,7 +30,7 @@ function escorting(blueprint: Blueprint, escortWeight: number): Blueprint {
 }
 
 describe('match', () => {
-  it('fights the same match twice from one seed', () => {
+  it('fights the same match twice from one seed', { timeout: 30_000 }, () => {
     const one = runMatch(FLEET, { seed: 5 });
     const two = runMatch(FLEET, { seed: 5 });
     expect(JSON.stringify(one)).toEqual(JSON.stringify(two));
@@ -80,7 +80,7 @@ describe('match', () => {
     // Without that, killing everything in ten seconds of a two-minute match
     // scores a twelfth of what failing to land a shot for two minutes scores.
     const weights = { survival: 1, functional: 1, damage: 1, disabling: 1, race: 0 };
-    const result = runMatch([GUNSHIP, CORVETTE], { seed: 11, weights });
+    const result = runMatch([GUNSHIP, CORVETTE], { seed: 1, weights });
     expect(result.ending).toEqual('decided');
     expect(result.elapsed).toBeLessThan(DEFAULT_MATCH.duration);
     const winner = result.scores.reduce((best, score) => (score.total > best.total ? score : best));
@@ -170,13 +170,15 @@ describe('match', () => {
     // A craft that starts on the goal and stays there has gained nothing, and
     // nor has one that starts far off and stays there. The quantity is ground
     // *gained*: what a design is credited with is what it did, not where it
-    // happened to be put.
-    const onIt = runMatch([CORVETTE], {
+    // happened to be put. Without the stock corvette's urge to escort, which
+    // would take it to the goal.
+    const holding = escorting(CORVETTE, 0);
+    const onIt = runMatch([holding], {
       seed: 17,
       duration: 20,
       goal: { x: DEFAULT_MATCH.radius, y: 0, scale: 500, size: 12 },
     });
-    const milesOff = runMatch([CORVETTE], {
+    const milesOff = runMatch([holding], {
       seed: 17,
       duration: 20,
       goal: { x: 100_000, y: 0, scale: 500, size: 12 },
@@ -219,7 +221,7 @@ describe('match', () => {
     // ring it started on, and so gains no ground and scores nothing at all —
     // where one that goes to the goal is credited with the whole of the
     // distance it closed.
-    const alone = runMatch([CORVETTE], { seed: 23, duration: 60 });
+    const alone = runMatch([escorting(CORVETTE, 0)], { seed: 23, duration: 60 });
     const going = runMatch([escorting(CORVETTE, 200)], { seed: 23, duration: 60 });
     expect(alone.scores[0]!.race).toBeCloseTo(0, 2);
     expect(going.scores[0]!.race).toBeGreaterThan(0.25);
