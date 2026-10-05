@@ -13,6 +13,10 @@ Things that are obviously wrong.
 # Ideas
 Ideas that aren't planned to be implemented yet, they may or may not be good ideas.
 
+## General
+- Engines should be able to do damage past destroyed modules like beams can
+- Engines and beams could reduce the mass of the part they hit/pass through after a certain amount of damage as if sublimating it
+-  
 
 ## Editor
 - Hover on the thrust diagram shows engine plumes on the main display for how it would achieve that thrust
@@ -21,15 +25,16 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Allow scaling an assembly - this could get messy, as it would create a duplicate that behaves differently due to different scaling laws.
 - Snap to hulls
 - Category input for ships - ships grouped by category when selecting them anywhere. (e.g. "Star Wars.Imperial", "Stock")
+- Make it clearer how the range is controlled in the core's doctrine
 
-## Turrets
-- Turrets fire a volley of one shot per barrel, and then reload. Can specify delay between shots to alow for firing all at once or staggered
+## Weapons
+- Turrets fire a volley of one shot per barrel, and then reload. Can specify delay between shots to allow for firing all at once or staggered
   - Beam turrets should allow for multiple beams to be on at the same time.
   - Might need to allow for reloading one while firing another to have continuous firing, could possibly just have each barrel reload independently, and just stagger the triggers by the set amount.
 - Improve barrel spacing on hull guns
 - Bullet spread
 
-## Maneuvering
+## Manoeuvring
 - Command ships with a max tangential velocity, also for doctrines
 - Ships need to have a max allowed rotational speed.
 - Ships need to be able to know when they're already turning towards the target, so not push themselves to turn faster.
@@ -66,3 +71,7 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Cap projectile rendering at their start and end positions so they don't overlap the barrel that launched them, or the target they hit.
 - Add a ship to a running battle, for quick testing. Dropdown in the corner to choose a ship to add to the battle. click and drag to chose position and velocity (position from first click, drag to N seconds worth of distance for the initial velocity.) Ship is instantly spawned when you let go.
 - Write names on ships' cores. Names should be their team colour and a sequential number e.g. "Red 5" for the fifth ship instantiated on the red team.
+- Select a ship
+  - Indicate what it's targetting
+  - Indicate the range and trigger arcs of its gun (when the setting is on, replaces showing arcs and triggers for all ships)
+  - Zoom the camera to fit it and its target (and anything else its currently considering for avoidance or escorting)

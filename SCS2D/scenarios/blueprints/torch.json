@@ -13,12 +13,12 @@
       "escortWeight": 20
     },
     "approach": {
-      "standoffRadii": 0.2,
-      "standoff": 0.1,
+      "standoffRadii": 0.6,
+      "standoff": 0.5,
       "escortRadii": 10,
       "escort": 1.1,
       "separationRadii": 1,
-      "tolerance": 0.3,
+      "tolerance": 0.1,
       "approachSpeed": 200,
       "brake": 0.9
     }
