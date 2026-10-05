@@ -3812,6 +3812,29 @@ export class Ships {
     return this.cooldown[i]![turret]!;
   }
 
+  /**
+   * How full a gun is, 0 to 1: through its reload while it reloads, what is
+   * left of its burst while a beam fires, and 1 when it is ready.
+   */
+  loadOf(i: number, turret: number): number {
+    const timer = this.cooldown[i]![turret]!;
+    if (!(timer > 0)) return 1;
+    const mount = this.designs[i]!.turrets[turret]!;
+    if (this.turretStates[i]![turret] === TurretState.CommittedOn) {
+      return mount.gun.beamOnTime > 0 ? min(1, timer / mount.gun.beamOnTime) : 0;
+    }
+    const bodies = this.bodyStore;
+    const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[i]!);
+    const rate = b < 0 ? 1 : this.damage.remaining(b, mount.module, DamageEffect.FireRate);
+    const cycle = mount.gun.cycleTime / (rate > 0 ? rate : 1);
+    return cycle > 0 ? max(0, 1 - timer / cycle) : 1;
+  }
+
+  /** Whether a gun is reloading, rather than ready or firing. */
+  isReloading(i: number, turret: number): boolean {
+    return this.turretStates[i]![turret] === TurretState.Reloading && this.cooldown[i]![turret]! > 0;
+  }
+
   /** Whether the pilot's demand exceeded what the layout can produce. */
   saturated(): boolean {
     return this.allocation.saturated;
