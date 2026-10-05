@@ -209,6 +209,10 @@ export class Demonstration {
     const view = snapshot.ships[0];
     if (view !== undefined) {
       for (let t = 0; t < view.throttles.length; t++) view.throttles[t] = this.throttles[t] ?? 0;
+      const load = (view.turretLoad ??= []);
+      const reloading = (view.turretReloading ??= []);
+      load.length = reloading.length = view.design.turrets.length;
+      for (let t = 0; t < load.length; t++) this.loadOf(view.design, t, load, reloading);
     }
     const rounds = this.rounds;
     snapshot.projectileX = rounds.x;
@@ -225,6 +229,27 @@ export class Demonstration {
     snapshot.beamWidth = beams.width;
     snapshot.beamPower = beams.power;
     snapshot.beamCount = beams.count;
+  }
+
+  /**
+   * How far through the cycle being shown a gun is, as the battle reports it:
+   * a beam's burst running down, then a reload filling up to the next shot.
+   */
+  private loadOf(design: ShipDesign, t: number, load: number[], reloading: boolean[]): void {
+    const gun = design.turrets[t]!.gun;
+    const cycle = gun.cycleTime;
+    const left = this.cycles[t] ?? 0;
+    load[t] = 1;
+    reloading[t] = false;
+    if (!(cycle > 0) || !(left > 0)) return;
+    const elapsed = cycle - left;
+    const burst = gun.type === GunType.Beam ? min(gun.beamOnTime, cycle) : 0;
+    if (elapsed < burst) {
+      load[t] = 1 - elapsed / burst;
+    } else {
+      load[t] = cycle > burst ? (elapsed - burst) / (cycle - burst) : 1;
+      reloading[t] = true;
+    }
   }
 
   /** Resize the per-module state when a different design is being shown. */

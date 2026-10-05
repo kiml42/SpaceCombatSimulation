@@ -204,8 +204,6 @@ const BRACE = '#4f3d14';
 const LOAD_TRACK = '#ffffff30';
 const LOAD_RELOADING = '#ffb000';
 const LOAD_READY = '#4cf24c';
-/** Below this thickness on screen a load display is not drawn. */
-const MIN_LOAD_PX = 0.75;
 /** Flame colours, as the RGB a gradient fades to transparent from. */
 const PLUME = '255, 217, 160';
 const PLUME_CORE = '255, 244, 224';
@@ -488,7 +486,7 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     }
     ctx.stroke();
     if (gun.braceLength > 0) drawBracing(ctx, gun, physicalWidth, mx, my, dirX, dirY);
-    if (ship.turretDisabled?.[t] !== true) drawLoad(ctx, ship, t, mx, my, bearing, metresToPx);
+    if (ship.turretDisabled?.[t] !== true) drawLoad(ctx, ship, t, mx, my, bearing);
   }
 
   if (arcs === 'trigger') drawEngineTriggers(ctx, ship, metresToPx);
@@ -543,17 +541,15 @@ function drawLoad(
   mx: number,
   my: number,
   bearing: number,
-  metresToPx: number,
 ): void {
-  const load = ship.turretLoad?.[t];
-  if (load === undefined) return;
+  // A view built by hand says nothing of loading, so its guns are ready.
+  const load = ship.turretLoad?.[t] ?? 1;
   const module = ship.design.modules[ship.design.turrets[t]!.module]!;
   const spec = module.spec;
   const colour = ship.turretReloading?.[t] === true ? LOAD_RELOADING : LOAD_READY;
   if (isHullMount(spec.kind)) {
     const block = hullMountGeometry(spec).blockLength;
     const thick = min(spec.width * 0.08, block * 0.25);
-    if (thick * metresToPx < MIN_LOAD_PX) return;
     const end = block * 0.12;
     const from = -spec.length / 2 + end;
     const span = block - 2 * end;
@@ -573,7 +569,6 @@ function drawLoad(
   // Inside the ring's back edge, by about its own thickness.
   const pivot = min(spec.length, spec.width) * 0.5;
   const thick = pivot * 0.14;
-  if (thick * metresToPx < MIN_LOAD_PX) return;
   const radius = pivot - 2 * thick;
   const back = bearing + PI;
   const half = PI * 0.3;
