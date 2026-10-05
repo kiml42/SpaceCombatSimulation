@@ -1,26 +1,16 @@
 {
   "formatVersion": 1,
   "name": "A Wing",
-  "fighter": true,
   "doctrine": {
     "targeting": {
-      "massWeight": 60,
       "armedWeight": 90,
       "mobileWeight": 80,
-      "facingWeight": 60,
-      "sightWeight": 20,
-      "escortWeight": 60
+      "escortWeight": 40
     },
     "approach": {
-      "standoffRadii": 25,
-      "escortRadii": 20,
-      "escort": 0.2,
-      "escortMinRadii": 1.2,
-      "tolerance": 0.5,
+      "standoffRadii": 3,
       "approachSpeed": 900,
-      "brake": 0.9,
-      "ramRadii": 30,
-      "ramArmed": 0.5
+      "brake": 0.9
     }
   },
   "assemblies": {
@@ -45,25 +35,22 @@
         },
         {
           "kind": "hullGun",
-          "x": 0.3,
-          "y": 0.8,
+          "x": 0.2999999999999998,
+          "y": 0.8000000000000003,
           "angle": 0,
           "length": 3.4,
           "width": 0.6,
-          "barrels": 1,
-          "fuse": 0.1,
-          "burstSpeed": 200,
-          "targeting": {
-            "facingWeight": 100,
-            "sightWeight": 20,
-            "proximityWeight": 200,
-            "closingWeight": 90
-          }
+          "barrels": 1
         },
         {
-          "use": "engine",
+          "kind": "engine",
           "x": 2.6999999999999997,
-          "y": -0.75
+          "y": -0.75,
+          "angle": 90,
+          "length": 0.3,
+          "width": 0.8,
+          "barrels": 3,
+          "nozzle": 0.55
         },
         {
           "kind": "engine",
@@ -73,30 +60,6 @@
           "length": 0.5,
           "width": 0.5,
           "barrels": 2
-        },
-        {
-          "kind": "engine",
-          "x": -1.6999999999999997,
-          "y": 0.4,
-          "angle": 90,
-          "length": 0.5,
-          "width": 0.6,
-          "barrels": 3,
-          "nozzle": 0.55
-        }
-      ]
-    },
-    "engine": {
-      "modules": [
-        {
-          "kind": "engine",
-          "x": 0,
-          "y": 0,
-          "angle": 90,
-          "length": 0.3,
-          "width": 0.8,
-          "barrels": 3,
-          "nozzle": 0.55
         }
       ]
     }
@@ -104,13 +67,13 @@
   "modules": [
     {
       "kind": "core",
-      "x": 0.4,
+      "x": 0.39999999999999997,
       "y": 0,
       "length": 1.4,
       "width": 1.8
     },
     {
-      "kind": "structure",
+      "kind": "tank",
       "x": 2.05,
       "y": 0,
       "length": 1.9,
