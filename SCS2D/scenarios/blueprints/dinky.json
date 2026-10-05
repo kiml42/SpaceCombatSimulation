@@ -24,16 +24,8 @@
       "modules": [
         {
           "kind": "engine",
-          "x": 0,
-          "y": 0,
-          "angle": 0,
-          "length": 1,
-          "width": 0.5
-        },
-        {
-          "kind": "engine",
-          "x": 0.39999999999999997,
-          "y": -0.25,
+          "x": -0.1,
+          "y": -0.05,
           "angle": -90,
           "length": 0.3,
           "width": 0.2,
@@ -41,20 +33,21 @@
         },
         {
           "kind": "engine",
-          "x": -1.2,
-          "y": 0.04999999999999985,
-          "angle": -90,
-          "length": 0.25,
-          "width": 0.4,
-          "barrels": 1
+          "x": -2.05,
+          "y": -0.05,
+          "angle": -180,
+          "length": 0.75,
+          "width": 0.2,
+          "barrels": 1,
+          "nozzle": 0.466667
         },
         {
           "kind": "engine",
-          "x": 0.30000000000000004,
-          "y": -0.4,
-          "angle": -180,
-          "length": 0.7,
-          "width": 0.3,
+          "x": -2.25,
+          "y": -0.15,
+          "angle": -90,
+          "length": 0.25,
+          "width": 0.4,
           "barrels": 1
         }
       ]
@@ -63,10 +56,10 @@
   "modules": [
     {
       "kind": "tank",
-      "x": 0.5,
+      "x": 0.8,
       "y": 0,
-      "length": 0.8,
-      "width": 0.5,
+      "length": 1.4,
+      "width": 0.8,
       "reinforcement": 1
     },
     {
@@ -74,6 +67,14 @@
       "x": -0.1,
       "y": 0.25,
       "angle": 180
+    },
+    {
+      "kind": "engine",
+      "x": -0.1,
+      "y": 0,
+      "angle": 180,
+      "length": 1,
+      "width": 0.8
     },
     {
       "kind": "core",
@@ -86,7 +87,7 @@
     },
     {
       "kind": "hullGun",
-      "x": 1.8,
+      "x": 2.4,
       "y": 0,
       "angle": 0,
       "length": 1.8,
