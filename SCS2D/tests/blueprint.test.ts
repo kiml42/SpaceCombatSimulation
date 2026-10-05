@@ -491,8 +491,6 @@ const FLEET: readonly BlueprintName[] = [
   'gunship',
   'beamGunship',
   'fractal',
-  'flatGunship',
-  'flatGunshipGrouped',
   'dinky',
   'catamaran',
   'torch',
