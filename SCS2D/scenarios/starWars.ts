@@ -1,7 +1,7 @@
 import { compileBlueprint, math, Ships, World, type ShipDesign } from '../sim/index.js';
 import { type Battle } from './types.js';
 import { makeBattle } from './battle.js';
-import { STAR_DESTROYER, TIE, X_WING, GHOST } from './blueprints.js';
+import { STAR_DESTROYER, TIE, X_WING, A_WING, Y_WING, GHOST } from './blueprints.js';
 import { Rng } from '../sim/rng.js';
 
 /**
@@ -14,9 +14,11 @@ import { Rng } from '../sim/rng.js';
  * against whatever has got inside them. What the battle does is therefore a
  * property of four blueprints rather than of this file.
  */
-export function starWars(seed = 20260905, tieFighterCount = 30, xWingCount = 30): Battle {
+export function starWars(seed = 20260905, tieFighterCount = 30, xWingCount = 20, aWingCount = 30, yWingCount = 8): Battle {
   return makeBattle({ seed }, (ships, world) => {
     const xWingBlueprint = compileBlueprint(X_WING);
+    const aWingBlueprint = compileBlueprint(A_WING);
+    const yWingBlueprint = compileBlueprint(Y_WING);
     const ghostBlueprint = compileBlueprint(GHOST);
 
     const tieBlueprint = compileBlueprint(TIE);
@@ -29,6 +31,8 @@ export function starWars(seed = 20260905, tieFighterCount = 30, xWingCount = 30)
     spawnMany(tieFighterCount, rng, randomRadius, ships, world, tieBlueprint, 9_000, 0, 0);
 
     spawnMany(xWingCount, rng, randomRadius, ships, world, xWingBlueprint, -2400, 0, 1);
+    spawnMany(aWingCount, rng, randomRadius, ships, world, aWingBlueprint, -2400, 0, 1);
+    spawnMany(yWingCount, rng, randomRadius, ships, world, yWingBlueprint, -2400, 0, 1);
     spawnMany(2, rng, randomRadius, ships, world, ghostBlueprint, -4000, 0, 1);
   });
 }

@@ -1,0 +1,139 @@
+{
+  "formatVersion": 1,
+  "name": "Y Wing",
+  "doctrine": {
+    "targeting": {
+      "proximityWeight": 30,
+      "preferredMass": 20,
+      "massWeight": 60,
+      "loyaltyWeight": 50,
+      "armedWeight": 100,
+      "mobileWeight": 60,
+      "facingWeight": 60,
+      "sightWeight": 10,
+      "escortWeight": 20
+    },
+    "approach": {
+      "standoffRadii": 30,
+      "escortMinRadii": 1.2,
+      "ramRadii": 10,
+      "ramArmed": 0.5
+    }
+  },
+  "assemblies": {
+    "thruster": {
+      "modules": [
+        {
+          "kind": "engine",
+          "x": 0,
+          "y": 0,
+          "angle": 180,
+          "length": 9.2,
+          "width": 1.6,
+          "nozzle": 0.55
+        },
+        {
+          "kind": "structure",
+          "x": -2.1,
+          "y": -1.7000000000000002,
+          "length": 2.2,
+          "width": 1.8
+        },
+        {
+          "kind": "engine",
+          "x": 0,
+          "y": -4.440892098500626e-16,
+          "angle": 0,
+          "length": 1,
+          "width": 1.2,
+          "reinforcement": 2
+        },
+        {
+          "kind": "engine",
+          "x": 3.3000000000000007,
+          "y": -2.5,
+          "angle": 90,
+          "length": 0.5,
+          "width": 1.4,
+          "barrels": 2
+        },
+        {
+          "kind": "engine",
+          "x": -3.2999999999999994,
+          "y": 0.7999999999999998,
+          "angle": 90,
+          "length": 0.5,
+          "width": 1.6,
+          "barrels": 2
+        }
+      ]
+    }
+  },
+  "modules": [
+    {
+      "kind": "core",
+      "x": -1.800000000000001,
+      "y": 0,
+      "length": 3,
+      "width": 1.8,
+      "reinforcement": 2.5
+    },
+    {
+      "kind": "hullGun",
+      "x": 6.3999999999999995,
+      "y": 0,
+      "angle": 0,
+      "length": 5,
+      "width": 2,
+      "reinforcement": 2,
+      "barrels": 1,
+      "barrelCalibres": 18,
+      "fuse": 0.05,
+      "fragments": 4,
+      "burstSpeed": 200,
+      "targeting": {
+        "facingWeight": 100,
+        "fireRange": 1.5
+      }
+    },
+    {
+      "kind": "turret",
+      "x": 3.2,
+      "y": 0,
+      "angle": 0,
+      "length": 1.4,
+      "width": 2,
+      "reinforcement": 1.5,
+      "barrels": 2,
+      "fuse": 0.1,
+      "fragments": 6,
+      "burstSpeed": 400,
+      "targeting": {
+        "focusWeight": 0,
+        "proximityWeight": 200,
+        "facingWeight": 60,
+        "preferredMass": 0.8,
+        "coreWeight": 40,
+        "fireRange": 2
+      }
+    },
+    {
+      "kind": "structure",
+      "x": 1.1,
+      "y": 0,
+      "length": 2.8,
+      "width": 1.4
+    },
+    {
+      "use": "thruster",
+      "x": 0.4,
+      "y": 3.5
+    },
+    {
+      "use": "thruster",
+      "x": 0.4,
+      "y": -3.5,
+      "mirror": true
+    }
+  ]
+}
