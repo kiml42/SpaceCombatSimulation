@@ -472,9 +472,9 @@ describe('firing arcs', () => {
  * Layouts that are deliberately not symmetric, listed by identity rather than
  * matched on a name: a substring test would silently exempt a future
  * "Undamaged Mk II", and the point of a wreck is that its asymmetry is the
- * feature.
+ * feature. None ships at present; a wreck added to the library goes here.
  */
-const ASYMMETRIC: readonly Blueprint[] = [BLUEPRINTS.beamCorvette];
+const ASYMMETRIC: readonly Blueprint[] = [];
 
 /**
  * The ships the rest of the suite flies.

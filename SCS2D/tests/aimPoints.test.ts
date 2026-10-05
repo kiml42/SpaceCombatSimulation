@@ -31,10 +31,15 @@ const gunship = compileBlueprint(TURRET_GUNSHIP);
  * gun's business and not its hull's — a ship's doctrine says which ship to
  * fly at, and no part of it reaches the aim point. Passing nothing strips
  * the preference the file carries back to what the archetype does.
+ *
+ * Not flown as a fighter: one keeps out of the hull layer until it rams, so
+ * its gun can only pick what sits in the weapons layer, and that is a test of
+ * layers rather than of aim points.
  */
 function armed(targeting?: Partial<Targeting>): ShipDesign {
   return compileBlueprint({
     ...DINKY,
+    fighter: false,
     modules: DINKY.modules.map((placement) => {
       if (!('kind' in placement) || !isWeaponMount(placement.kind)) return placement;
       const spec = { ...placement };

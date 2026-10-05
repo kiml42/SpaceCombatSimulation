@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { parseBlueprint, serialiseBlueprint, type Blueprint } from '../sim/index.js';
 import { runEvolution } from '../evolution/run.js';
 import { latest, measure, trend, Yardstick, yardstickMatch } from '../evolution/yardstick.js';
-import { CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
+import { CORVETTE, DINKY, GUNSHIP, TIE } from '../scenarios/blueprints.js';
 
 /**
  * Measuring a run against something that does not evolve.
@@ -112,7 +112,7 @@ describe('the yardstick', { timeout: BUDGET }, () => {
     // The plainest check that the number tracks something real: the same
     // designs, measured against a harder opponent, do worse.
     const run = runEvolution([CORVETTE], settings);
-    const easy = measure(run, DINKY, { match: { duration: 30 } });
+    const easy = measure(run, TIE, { match: { duration: 30 } });
     const hard = measure(run, GUNSHIP, { match: { duration: 30 } });
     const wins = (report: typeof easy): number =>
       report.points.reduce((total, point) => total + point.wins, 0);

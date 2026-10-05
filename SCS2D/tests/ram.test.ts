@@ -59,7 +59,9 @@ describe('an unarmed rammer', () => {
     const design = compileBlueprint(unarmed(radii));
     expect(design.reach).toBe(0);
     const battle = makeBattle({ seed: 4 }, (ships, world) => {
-      ships.spawn(world, { design: compileBlueprint(CORVETTE), x: 0, y: 0, team: 0 });
+      // A target that neither rams back nor shoots, since a corvette's shells
+      // knock pieces off the rammer that touch it.
+      ships.spawn(world, { design: compileBlueprint(unarmed(0)), x: 0, y: 0, team: 0 });
       ships.spawn(world, { design, x: 400, y: 0, angle: Math.PI, team: 1 });
     });
     for (let i = 0; i < 60 * 40; i++) {
@@ -70,7 +72,9 @@ describe('an unarmed rammer', () => {
   }
 
   it('picks a target and rams it with nothing to shoot', () => {
-    expect(hits(5)).toBe(true);
+    // Far enough out to ram from where it starts: nearer, it would hold its
+    // doctrine's standoff instead and never close.
+    expect(hits(40)).toBe(true);
   });
 
   it('picks nothing without a ram doctrine', () => {

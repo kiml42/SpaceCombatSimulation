@@ -119,18 +119,20 @@ describe('a doctrine as written down', () => {
       doctrine: toDoctrine({ approach: { standoff: 1.4 } }),
     });
     expect(design.doctrine.approach.standoff).toBe(1.4);
-    // The Dinky has an opinion about where to shoot and none at all about
-    // what to shoot: the adaptable default already sends a fighter after
-    // fighters, so it says nothing at all about flying and one thing about
-    // gunnery — engines above the guns the default puts first.
+    // The Dinky's hull block says how a fighter flies — in close, and onto
+    // the target when it can — and its gun's says where to shoot: engines
+    // above the guns the default puts first.
     //
-    // That one thing is on its gun rather than on its hull, which is where a
+    // The aim weight is on its gun rather than on its hull, which is where a
     // doctrine's aim weights have to live: a ship chooses a ship, and only a
     // mount chooses a part of one, so a hull block saying `engineWeight`
     // would be a number nothing ever read.
-    expect(compileBlueprint(DINKY).doctrine).toEqual(DEFAULT_DOCTRINE);
+    const dinky = compileBlueprint(DINKY).doctrine;
+    expect(dinky).toEqual(DINKY.doctrine);
+    expect(dinky.approach.ramRadii).toBeGreaterThan(0);
+    expect(dinky.targeting.engineWeight).toBe(DEFAULT_DOCTRINE.targeting.engineWeight);
     const gun = compileBlueprint(DINKY).turrets[0]!.targeting;
-    expect(gun).toEqual({ ...defaultTargeting('hullGun'), engineWeight: 150 });
+    expect(gun).toEqual({ ...defaultTargeting('hullGun'), engineWeight: 150, facingWeight: 100, sightWeight: 100 });
     expect(gun.engineWeight).toBeGreaterThan(gun.gunWeight);
   });
 });
@@ -383,7 +385,13 @@ describe('a ship deciding for itself', () => {
     const world = new World({ dt: 1 / 60, seed: 4 });
     const ships = new Ships();
     world.addForceProvider(ships.forceProvider());
-    const design = compileBlueprint(GUNSHIP);
+    // Without the gunship's pull towards a consort, which would move it for
+    // a friend rather than at one.
+    const { doctrine } = compileBlueprint(GUNSHIP);
+    const design = compileBlueprint({
+      ...GUNSHIP,
+      doctrine: { ...doctrine, targeting: { ...doctrine.targeting, escortWeight: 0 } },
+    });
     const a = ships.spawn(world, { design, x: 0, y: 0, team: 0 });
     ships.spawn(world, { design, x: 600, y: 0, team: 0 });
     for (let i = 0; i < 120; i++) {
@@ -411,7 +419,8 @@ describe('a ship deciding for itself', () => {
       const mine = ships.spawn(world, { design, x: 0, y: 0, team: 0 });
       ships.spawn(world, { design: enemy, x: 1600, y: 0, angle: Math.PI, team: 1 });
       ships.spawn(world, { design: enemy, x: -1400, y: 0, team: 1 });
-      for (let i = 0; i < 600; i++) {
+      // Fifteen seconds: long enough for a sluggish hull to come round.
+      for (let i = 0; i < 900; i++) {
         ships.command(1 / 60, world);
         world.step();
       }

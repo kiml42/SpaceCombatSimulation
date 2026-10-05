@@ -114,9 +114,12 @@ describe('spawning', () => {
   });
 
   it('gives each ship its own throttles, so two off one design do not share', () => {
+    // Without the corvette's urge to escort, which would set the idle one off
+    // after the other.
+    const loner = compileBlueprint({ ...TURRET_CORVETTE, doctrine: undefined });
     const r = rig();
-    const a = r.ships.spawn(r.world, { design: corvette, x: -2000 });
-    const b = r.ships.spawn(r.world, { design: corvette, x: 2000 });
+    const a = r.ships.spawn(r.world, { design: loner, x: -2000 });
+    const b = r.ships.spawn(r.world, { design: loner, x: 2000 });
     const enemy = r.ships.spawn(r.world, { design: gunship, x: 0 });
 
     // Only one of them is told to go anywhere.
@@ -125,7 +128,7 @@ describe('spawning', () => {
 
     let movedA = 0;
     let movedB = 0;
-    for (let t = 0; t < corvette.engines.length; t++) {
+    for (let t = 0; t < loner.engines.length; t++) {
       movedA += r.ships.throttleOf(a, t);
       movedB += r.ships.throttleOf(b, t);
     }
@@ -219,10 +222,13 @@ describe('the pilot', () => {
     // A queue, not a stack: a list of orders is a plan, so the ship works
     // through it from the front. It turns to the first target, and only takes
     // up the second once it is finished with the first.
+    // Marks that stay put: a stock Dinky's doctrine would have it escorting
+    // the gunship, which then backs away from its own target.
+    const mark = compileBlueprint({ ...DINKY, doctrine: undefined });
     const r = rig();
     const ship = r.ships.spawn(r.world, { design: gunship, x: 0, y: 0, angle: math.PI });
-    const first = r.ships.spawn(r.world, { design: dinky, x: 3000, y: 0 });
-    const second = r.ships.spawn(r.world, { design: dinky, x: -3000, y: 0 });
+    const first = r.ships.spawn(r.world, { design: mark, x: 3000, y: 0 });
+    const second = r.ships.spawn(r.world, { design: mark, x: -3000, y: 0 });
     r.ships.pushOrder(ship, first, 2000, 4000, 50);
     r.ships.pushOrder(ship, second, 2000, 4000, 50);
 
@@ -263,7 +269,7 @@ describe('the pilot', () => {
  * How far off a mark stands in the gunnery tests, metres.
  *
  * Inside the reach of every mount on the ships these tests fly — the
- * gunship's close-in turret is the shortest at 1,227 m — because a mount
+ * gunship's bow turret is the shortest at 2,172 m — because a mount
  * ignores what lies beyond its own range, so a mark further off would have
  * some of the guns holding their fire and the tests measuring that instead of
  * what they are about.

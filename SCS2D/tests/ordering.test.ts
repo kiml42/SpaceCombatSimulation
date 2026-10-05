@@ -46,8 +46,9 @@ describe('module ordering, one battle each', () => {
 
   it('fights a real battle, so the comparison is of something', () => {
     // Without this the rest would pass on three runs where nothing happened.
+    // Few rounds, but each bursts into fragments that hit as well.
     for (const outcome of [control!, kinds!, assembled!]) {
-      expect(outcome.fired).toBeGreaterThan(100);
+      expect(outcome.fired).toBeGreaterThan(50);
       expect(outcome.hits).toBeGreaterThan(100);
       // Started at (-1800, -240): a ship that never manoeuvred could not be a
       // kilometre and a half from there. Distance rather than a crossing of
