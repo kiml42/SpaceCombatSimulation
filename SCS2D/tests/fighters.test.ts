@@ -241,4 +241,16 @@ describe('a fighter in battle', () => {
     expect(touching(false)).toBe(0);
     expect(touching(true)).toBeGreaterThan(0);
   });
+
+  it('meets what stands above a deck, committed or not', () => {
+    const thick: Blueprint = { ...HULK, modules: [HULK.modules[0]!, { ...HULK.modules[1]!, thick: true }] };
+    const world = new World({ dt: DT, seed: 2 });
+    const ships = new Ships();
+    ships.spawn(world, { design: compileBlueprint(thick), x: 0, y: 0, team: 1 });
+    ships.spawn(world, { design: compileBlueprint(fighter()), x: 6, y: 0, team: 0 });
+    const contacts = new Contacts();
+    findContacts(world.bodies, ships, contacts);
+    expect(contacts.count).toBe(1);
+    expect(contacts.moduleA[0]).toBe(1);
+  });
 });

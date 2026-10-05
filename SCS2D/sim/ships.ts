@@ -718,9 +718,9 @@ export class Ships {
    * what the narrow phase asks, and what makes a round land on a ship's
    * modules rather than on the circle drawn round them.
    */
-  /** The layers every module of this body is in; `OWN_LAYERS` for anything but one fighter. */
+  /** The layers every module of this body is in; `OWN_LAYERS` for anything but a fighter. */
   layersOf(bodyIndex: number): number {
-    if (this.designOf(bodyIndex) === null || this.pilots[bodyIndex] != null) return OWN_LAYERS;
+    if (this.designOf(bodyIndex) === null) return OWN_LAYERS;
     const ship = this.shipByBody[bodyIndex];
     return ship === undefined ? OWN_LAYERS : this.shipLayers(ship);
   }

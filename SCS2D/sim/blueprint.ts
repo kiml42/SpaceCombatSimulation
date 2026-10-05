@@ -1556,7 +1556,8 @@ export function weldDesigns(
     ...(second.seams ?? []).map((seam) => ({ a: seam.a + n, b: seam.b + n, width: seam.width })),
     { a, b: b + n, width },
   ];
-  return designFrom(first.name, specs, stats, layoutIndex, first.doctrine, { pieces, seams });
+  // Two fighters welded are still small enough to be one.
+  return designFrom(first.name, specs, stats, layoutIndex, first.doctrine, { pieces, seams }, first.fighter && second.fighter);
 }
 
 /**

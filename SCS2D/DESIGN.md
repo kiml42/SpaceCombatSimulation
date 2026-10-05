@@ -638,8 +638,8 @@ Rules:
   ship in the weapons layer for the battle. A ship that evolves either one flies as an ordinary ship, its
   flag ignored. It commits when it rams, by its doctrine's decision or by a ram order. Any ship's doctrine
   can decide to ram: `approach.ramRadii` is how close its target's edge has to be, in the target's own
-  radii, and `approach.ramArmed` how little of its own armament it must have left. Uncommitted, it collides only with other fighters and hull-layer fire passes under
-  it; its own hull weapons fire in the weapons layer until it commits, and in both after.
+  radii, and `approach.ramArmed` how little of its own armament it must have left. Uncommitted, it collides only with weapons-layer modules — other fighters, turrets and thick structure —
+  and hull-layer fire passes under it; its own hull weapons fire in the weapons layer until it commits, and in both after.
 
   **Occupancy is added, never swapped.** A committed craft does not leave the weapons layer, so
   everything that could shoot at it still can — every turret is weapons-layer, and a craft
@@ -662,8 +662,8 @@ Rules:
 
   - The craft flies a **predictable terminal course** with its evasion given up, so it is far easier to
     hit. That is a consequence of the doctrine, not of the layer.
-  - It can now **collide with turrets** it would previously have overflown, so dense mount coverage
-    obstructs a dive just as it obstructs a strafing run.
+  - It can now **collide with thin hull** it would previously have overflown. Turrets and thick
+    structure stand above the deck, so they obstruct a strafing run and a dive alike.
   - Reaching a hull without ordnance therefore usually costs the craft, which is the right price.
 
   This is what makes "a torpedo is a fighter that crashes into things" literal — the crash is how a
