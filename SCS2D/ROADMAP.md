@@ -877,13 +877,21 @@ Deliberately unresolved; decide when they block something.
   through what each engine can still do, which leaves a hulk drifting, or let an engine with no working core
   keep burning at its last setting, as an exception to the command rule. Most goldens move either way.
   It does at least pay for it: a held wrench burns fuel, so a hulk stops once its tanks are dry.
+- **What a bigger core is for.** A core needs a cubic metre for its computing and the rest of it is fuel
+  tank, so past that size it is a tank that also flies the ship, paying for its computing by the floor it
+  fills (`CORE_MASS_PER_AREA`). A tank does the fuel's job for less, so the best core is the smallest that
+  will do and every other cubic metre goes into tanks. Something has to grow with a core for size to be a
+  choice: more control the more it holds (faster rethinking, more mounts it can direct, command reaching
+  further through a battered hull), the other resources' built-in stores as they arrive (§8), or a core
+  that is simply harder to kill for being bigger.
 - **Whether a ship's centre of mass should move as it burns.** Its mass and inertia fall with the fuel,
   and its centre of mass stays where the full ship's was. Draining every tank in proportion keeps the
   fuel's own centre still, so the true one slides along a single line, but following it means re-centring
   the body and its engine allocation as severing does. Worth doing if a ship flies visibly wrong late in a
   battle.
-- **The fuel dials: `EXHAUST_VELOCITY`, `FUEL_DENSITY` and `CORE_FUEL_SHARE`.** Set so a stock ship's tanks
-  are a tenth to a seventh of its mass and last two to five minutes with every engine flat out. Liquid
+- **The fuel dials: `EXHAUST_VELOCITY`, `FUEL_DENSITY` and `CORE_COMPUTING_VOLUME`.** A stock ship's fuel,
+  tanks and core together, is a seventh to a quarter of its mass and lasts two to eight minutes with every
+  engine flat out. Liquid
   methane rather than water because at water's density a deck-high module of fuel outweighs the ship
   around it several times. How many battles a tankful should last is a question for the fleet's balance.
 - **Whether chamber pressure should buy efficiency.** A real engine gains specific impulse with chamber

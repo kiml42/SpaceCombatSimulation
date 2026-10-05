@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   BASE_WALL_THICKNESS,
-  CORE_FUEL_SHARE,
+  CORE_COMPUTING_VOLUME,
   DECK_HEIGHT,
   FUEL_DENSITY,
   Fuel,
@@ -54,7 +54,12 @@ describe('a tank', () => {
 
   it('is the only kind but a core that carries any', () => {
     const core = moduleStats({ kind: 'core', x: 0, y: 0, length: 4, width: 4 });
-    expect(core.fuel).toBeCloseTo(interior(4, 4, DECK_HEIGHT) * CORE_FUEL_SHARE * FUEL_DENSITY, 6);
+    expect(core.fuel).toBeCloseTo((interior(4, 4, DECK_HEIGHT) - CORE_COMPUTING_VOLUME) * FUEL_DENSITY, 6);
+    // No fuel in a core with no room past its computing, and nothing else lost for it.
+    const small = { kind: 'core' as const, x: 0, y: 0, length: 1, width: 1 };
+    expect(interior(1, 1, 1)).toBeLessThan(CORE_COMPUTING_VOLUME);
+    expect(moduleStats(small).fuel).toBe(0);
+    expect(moduleStats(small).hitPoints).toBeGreaterThan(0);
     for (const kind of ['structure', 'engine', 'turret', 'hullGun'] as const) {
       expect(moduleStats({ kind, x: 0, y: 0, angle: 0, length: 6, width: 4 }).fuel).toBe(0);
     }
@@ -152,8 +157,8 @@ describe('a ship burning fuel', () => {
     const layout: Blueprint = {
       name: 'Thirsty',
       modules: [
-        { kind: 'core', x: 0, y: 0, length: 1, width: 1 },
-        { kind: 'engine', x: -0.5, y: 0, angle: Math.PI, length: 4, width: 4 },
+        { kind: 'core', x: 0, y: 0, length: 1.2, width: 1.2 },
+        { kind: 'engine', x: -0.6, y: 0, angle: Math.PI, length: 4, width: 4 },
       ],
     };
     expect(blueprintProblem(layout)).toBeNull();

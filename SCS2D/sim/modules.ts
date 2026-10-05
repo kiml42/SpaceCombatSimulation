@@ -560,13 +560,11 @@ export const CORE_MASS_PER_AREA = 150;
 export const CORE_MINIMUM_FITTING_MASS = 25;
 
 /**
- * Share of a core's interior that is fuel tank.
- *
- * A little, so that a bare core with one engine can move (ROADMAP.md §8): a
- * bigger core is then worth some of its bulk, and anything that means to fight
- * on its engines carries tanks.
+ * Interior a core needs for itself, m³; whatever it has beyond this is fuel
+ * tank, so a bare core with one engine can move (ROADMAP.md §8). A core no
+ * bigger than this holds no fuel and pays nothing else for it.
  */
-export const CORE_FUEL_SHARE = 0.1;
+export const CORE_COMPUTING_VOLUME = 1;
 
 /**
  * Traverse torque the mount ring can deliver per kilogram of turret, N·m/kg.
@@ -1822,7 +1820,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
     // and the fragility of a small one are the whole of what stops a ship
     // carrying five of them.
     fittingMass = max(CORE_MINIMUM_FITTING_MASS, CORE_MASS_PER_AREA * capacity);
-    fuel = inner * CORE_FUEL_SHARE * FUEL_DENSITY;
+    fuel = max(0, inner - CORE_COMPUTING_VOLUME) * FUEL_DENSITY;
   } else if (spec.kind === 'tank') {
     // A box whose whole interior is fuel. It packs the box as the box formula
     // assumes, so the inertia below already holds it.

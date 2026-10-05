@@ -490,8 +490,9 @@ inside any one file is not contiguous.
   that does not evolve, at the middle of the ring where the goal would be, each scored for what it does to
   the boss alone. Entrants can start already moving, towards the middle and across it, at speeds the run
   sets (`--closing`, `--crossing`), the same two a custom battle has.
-  **Fuel.** A `tank` archetype whose interior is reaction mass, and a tenth of every core's
-  (`CORE_FUEL_SHARE`), so a bare core with one engine can move. Each engine has an exhaust velocity:
+  **Fuel.** A `tank` archetype whose interior is reaction mass, and every core's interior past the cubic
+  metre its computing needs (`CORE_COMPUTING_VOLUME`), so a bare core with one engine can move; a core no
+  bigger than that holds none. Each engine has an exhaust velocity:
   `EXHAUST_VELOCITY`, less what its bell throws sideways (`divergence`) and what a small throat loses to its
   walls — about 1,900 s of specific impulse on a capital's main engine and 1,650 s on a fighter's, and
   never under 700 s. It burns the gas it throws over that, throttle by throttle, from the tanks on its own
