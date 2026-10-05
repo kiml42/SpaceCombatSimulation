@@ -48,9 +48,15 @@ export {
 export {
   DECK_HEIGHT,
   DEFAULT_NOZZLE_SHARE,
+  BARREL_CALIBRES,
+  BARREL_OUTER_CALIBRES,
+  DEFAULT_HULL_BARREL_CALIBRES,
+  MAX_BARREL_CALIBRES,
+  BRACE_CALIBRES,
   HULL_APERTURE_FRACTION,
   HULL_BARREL_WIDTH_CAP,
   HULL_CALIBRE_FRACTION,
+  CALIBRE_FRACTION,
   HULL_MAX_TRAVERSE,
   NOZZLE_SKIN_FRACTION,
   NOZZLE_THROAT_FRACTION,
@@ -69,6 +75,9 @@ export {
   isHullMount,
   countsOutlets,
   readsNozzle,
+  readsBarrelCalibres,
+  barrelCalibres,
+  braceMass,
   readsWeapon,
   readsThick,
   readsFuse,
@@ -78,6 +87,7 @@ export {
   DEFAULT_BURST_SPEED,
   DEFAULT_FRAGMENTS,
   EXPLOSIVE_DENSITY,
+  SHELL_CALIBRES,
   SHELL_DENSITY,
   firesShells,
   MAX_FRAGMENTS,
@@ -94,6 +104,7 @@ export {
   engineGeometry,
   engineMachinery,
   traverseAccel,
+  mountAccel,
   traverseRate,
   TRAVERSE_SPINUP_TIME,
   type GunStats,
@@ -141,6 +152,8 @@ export {
   TARGETING_FIELDS,
   doctrineProblem,
   defaultTargeting,
+  doctrineUnread,
+  holdBand,
   resolveTargeting,
   serialiseDoctrine,
   serialiseTargeting,
@@ -228,6 +241,7 @@ export {
 export {
   BLUEPRINT_FORMAT_VERSION,
   blueprintFileProblem,
+  blueprintWarnings,
   degreesToRadians,
   parseBlueprint,
   radiansToDegrees,
@@ -251,7 +265,8 @@ export {
   type PlacedShip,
   type TrailStep,
 } from './fleet.js';
-export { FLEET_FORMAT_VERSION, fleetFileProblem, parseFleet, serialiseFleet } from './fleetFile.js';
+export { FLEET_FORMAT_VERSION, fleetFileProblem, fleetWarnings, parseFleet, serialiseFleet } from './fleetFile.js';
+export type { UnreadKeys } from './unread.js';
 export {
   centreOf,
   firstOverlap,

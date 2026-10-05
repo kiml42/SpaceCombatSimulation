@@ -145,6 +145,7 @@ describe('the editor in a browser', () => {
     // The holding curve is measured through the allocator, so its appearance
     // is also the check that the allocator ran without throwing on load.
     expect(stats).toMatch(/Heading cost/);
+    expect(stats).toMatch(/Closes to\s*\d[\d,]*–\d[\d,]* m/);
     expect(await page.textContent('#problems')).toMatch(/No problems/);
   });
 
@@ -750,7 +751,7 @@ describe('the editor in a browser', () => {
     // A core is asked what its ship does; it is not asked what it shoots at.
     expect(await page.isHidden('#mountDoctrine')).toBe(true);
     expect(await page.isHidden('#shipDoctrine')).toBe(false);
-    expect(await page.isHidden('#shipTargetingFields')).toBe(true);
+    expect(await page.isHidden('#shipDoctrineFields')).toBe(true);
 
     await page.mouse.click(centre.x + 168, centre.y);
     expect(await page.inputValue('#propKind')).toBe('hullGun');
@@ -947,24 +948,28 @@ describe('the editor in a browser', () => {
     expect(await page.inputValue('#assemblyAngle')).toBe('0');
   });
 
-  it('shares a hull gun between block and barrel by dragging the split between them', async () => {
+  it('sets a hull gun\'s barrel in calibres by dragging the split between it and the block', async () => {
     await page.click('#newShip');
     await page.click('[data-add="hullGun"]');
-    expect(Number(await page.inputValue('#propNozzle'))).toBe(0.5);
+    expect(Number(await page.inputValue('#propBarrelCalibres'))).toBe(10);
+    expect(await page.textContent('#barrelMetres')).toBe('= 4.00 m');
     // Half barrel, so the split is in the middle, where a new module is drawn.
     const centre = await canvasCentre(page);
     await page.mouse.move(centre.x, centre.y);
     await page.mouse.down();
     await page.mouse.move(centre.x + 40, centre.y + 30, { steps: 6 });
     await page.mouse.up();
-    // Towards the muzzle is less barrel, and the gun has not moved.
-    const shorter = Number(await page.inputValue('#propNozzle'));
-    expect(shorter).toBeLessThan(0.5);
+    // Towards the muzzle is less barrel, in whole calibres, and the gun has not moved.
+    const shorter = Number(await page.inputValue('#propBarrelCalibres'));
+    expect(shorter).toBeLessThan(10);
     expect(shorter).toBeGreaterThan(0);
+    expect(Number.isInteger(shorter)).toBe(true);
     expect(await page.inputValue('#propX')).toBe('0');
     expect(await page.inputValue('#propY')).toBe('0');
     await page.click('#undo');
-    expect(Number(await page.inputValue('#propNozzle'))).toBe(0.5);
+    expect(Number(await page.inputValue('#propBarrelCalibres'))).toBe(10);
+    // A bell is an engine's alone now.
+    expect(await page.isHidden('#nozzleRow')).toBe(true);
   });
 
   it('repeats an assembly, and takes the step away when it drops back to one', async () => {
@@ -1186,6 +1191,32 @@ describe('the editor in a browser', () => {
     // Drawn, not merely complained about: the ship is on the canvas to drag.
     expect(await page.textContent('#stats')).toMatch(/Modules/);
     await page.evaluate(() => window.localStorage.removeItem('scs2d.blueprint.Adrift'));
+  });
+
+  it('imports a ship with a key it does not read, says so, and saves the key back', async () => {
+    // A hand-edited file with a typo opens rather than being refused.
+    const typo = {
+      formatVersion: 1,
+      name: 'Typo',
+      colour: 'red',
+      modules: [
+        { kind: 'core', x: 0, y: 0, length: 4, width: 4 },
+        { kind: 'turret', x: 3, y: 0, length: 2, width: 2, barrel: 8 },
+      ],
+    };
+    await page.setInputFiles('#importShip', {
+      name: 'typo.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify(typo)),
+    });
+    await page.waitForFunction(() => /Kept as written/.test(document.getElementById('problems')?.textContent ?? ''));
+    const problems = (await page.textContent('#problems')) ?? '';
+    expect(problems).toMatch(/colour/);
+    expect(problems).toMatch(/modules\[1\][^]*barrel/);
+    await page.click('#saveShip');
+    const saved = await page.evaluate(() => window.localStorage.getItem('scs2d.blueprint.Typo'));
+    expect(JSON.parse(saved!)).toMatchObject({ colour: 'red', modules: [{}, { barrel: 8 }] });
+    await page.evaluate(() => window.localStorage.removeItem('scs2d.blueprint.Typo'));
   });
 
   it('hands the ship being edited to a custom battle as a fleet of one', async () => {

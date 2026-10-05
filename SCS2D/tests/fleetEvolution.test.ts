@@ -3,7 +3,7 @@ import { compileBlueprint, fleetHulls, fleetMass, fleetReach, Rng, shipFleet, ty
 import { isFleet, Match, runMatch } from '../evolution/match.js';
 import { DEFAULT_FLEET_LIMITS, fleetFits, mutateFleet, type FleetOperator } from '../evolution/fleetMutate.js';
 import { entrantOf, generationSize, runEvolution, shipCount } from '../evolution/run.js';
-import { parseRunConfig, runConfigFileProblem, serialiseRunConfig } from '../evolution/configFile.js';
+import { parseRunConfig, runConfigFileProblem, runConfigWarnings, serialiseRunConfig } from '../evolution/configFile.js';
 import { DEFAULT_RUN } from '../evolution/run.js';
 import { BARE_CORE, CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
 import { LINE_OF_BATTLE } from '../scenarios/fleets.js';
@@ -235,8 +235,9 @@ describe('a run-config file with fleets', () => {
     expect(read.config.fleet).toEqual(setup.config.fleet);
   });
 
-  it('refuses a change it has never heard of', () => {
-    expect(runConfigFileProblem({ fleet: { operators: { teleport: 1 } } })).toMatch(/teleport/);
+  it('warns of a change it has never heard of, and refuses a negative weight', () => {
+    expect(runConfigFileProblem({ fleet: { operators: { teleport: 1 } } })).toBeNull();
+    expect(runConfigWarnings({ fleet: { operators: { teleport: 1 } } }).join('\n')).toMatch(/teleport/);
     expect(runConfigFileProblem({ fleet: { operators: { add: -1 } } })).toMatch(/zero or more/);
   });
 

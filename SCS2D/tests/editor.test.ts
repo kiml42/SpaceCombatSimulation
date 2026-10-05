@@ -3,6 +3,7 @@ import {
   blueprintProblem,
   engineGeometry,
   expandBlueprint,
+  holdBand,
   expandWithOrigins,
   math,
   radiansToDegrees as toDegrees,
@@ -80,7 +81,7 @@ import {
   splitHandle,
   type Handle,
 } from '../editor/handles.js';
-import { previewSnapshot } from '../editor/preview.js';
+import { doctrineBand, previewSnapshot } from '../editor/preview.js';
 import { designStats, envelopes, assemblyMass, headingCost, moduleReadout } from '../editor/stats.js';
 
 /**
@@ -1009,6 +1010,37 @@ function fakeStore(): KeyValueStore {
   };
 }
 
+describe('a file with keys the game does not read', () => {
+  // A typo in a hand-edited ship: a turret's `barrel` for `barrels`, and a
+  // key at the top that nothing knows.
+  const raw = (): Record<string, unknown> => {
+    const file = serialiseBlueprint(CORVETTE) as Record<string, unknown>;
+    const modules = (file['modules'] as Record<string, unknown>[]).map((m) => ({ ...m }));
+    modules[0] = { ...modules[0], barrel: 8 };
+    return { ...file, colour: 'red', modules };
+  };
+
+  it('opens in the editor, says so, and keeps them through an edit', () => {
+    const doc = new EditorDocument(parseBlueprint(raw()));
+    expect(doc.view.design).not.toBeNull();
+    expect(doc.view.warnings.join('\n')).toMatch(/the file has a key[^\n]*colour/);
+    expect(doc.view.warnings.join('\n')).toMatch(/modules\[0\] has a key[^\n]*barrel/);
+    doc.apply(movePlacement(doc.blueprint, doc.view.origins[0]!, 1, 0)!);
+    expect(doc.view.warnings).toHaveLength(2);
+    const saved = serialiseBlueprint(doc.blueprint);
+    expect(saved['colour']).toBe('red');
+    expect((saved['modules'] as Record<string, unknown>[])[0]!['barrel']).toBe(8);
+  });
+
+  it('is saved to the library with them, and opens from it with them', () => {
+    const library = new Library(fakeStore());
+    library.save({ ...parseBlueprint(raw()), name: 'Typo' });
+    const back = library.load('Typo')!;
+    expect(serialiseBlueprint(back)['colour']).toBe('red');
+    expect(new EditorDocument(back).view.warnings).toHaveLength(2);
+  });
+});
+
 describe('Library', () => {
   it('lists the ships that come with the game', () => {
     const names = new Library(fakeStore()).list().map((e) => e.name);
@@ -1423,6 +1455,29 @@ describe('a gun\u2019s trigger range in the editor', () => {
   it('is not given without the ship to size its enemy from', () => {
     const spec: ModuleSpec = { kind: 'turret', x: 0, y: 0, length: 4, width: 4 };
     expect(moduleReadout(spec).gun!.triggerRange).toBeNull();
+  });
+});
+
+describe('the band a ship closes to, in the editor', () => {
+  it('is what its doctrine would hold against the enemy it wants, and drawn round it', () => {
+    const design = new EditorDocument(GUNSHIP).view.design!;
+    const band = doctrineBand(design);
+    const enemy = design.radius * Math.sqrt(design.doctrine.targeting.preferredMass);
+    expect(band).toEqual(holdBand(design.doctrine.approach, design.reach, enemy));
+    expect(band.max).toBeGreaterThan(band.min);
+    const view = previewSnapshot(design).ships[0]!;
+    expect([view.holdMin, view.holdMax]).toEqual([band.min, band.max]);
+  });
+
+  it('gives a gun’s trigger range at the distance its doctrine fires out to', () => {
+    const doc = new EditorDocument(GUNSHIP);
+    const index = doc.view.modules.findIndex((m) => m.kind === 'turret' || m.kind === 'hullGun');
+    const spec = doc.view.modules[index]!;
+    const radius = doc.view.design!.radius;
+    const plain = moduleReadout(spec, doc.view.modules, index, radius).gun!.triggerRange!;
+    const eager = moduleReadout({ ...spec, targeting: { ...spec.targeting, fireRange: 1.5 } }, doc.view.modules, index, radius)
+      .gun!.triggerRange!;
+    expect(eager).toBeCloseTo(plain * 1.5, 9);
   });
 });
 

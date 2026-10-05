@@ -1,5 +1,6 @@
 import {
   blueprintFaults,
+  blueprintWarnings,
   compileDraft,
   expandWithOrigins,
   isInstance,
@@ -72,6 +73,11 @@ export interface Derived {
   /** Everything wrong with the layout, shown rather than enforced. */
   problems: readonly string[];
   /**
+   * Keys its file carried that nothing reads (`blueprintWarnings`): kept as
+   * written and saved back, so a typo is shown rather than refused or lost.
+   */
+  warnings: readonly string[];
+  /**
    * The drawn modules some problem names, in the order they are drawn.
    *
    * The problems list says what is wrong and this says *where*: a sentence
@@ -93,6 +99,7 @@ function faultyModules(faults: readonly BlueprintFault[], count: number): number
 function derive(blueprint: Blueprint): Derived {
   const faults = blueprintFaults(blueprint);
   const problems = faults.map((fault) => fault.message);
+  const warnings = blueprintWarnings(blueprint);
   let modules: readonly ModuleSpec[] = [];
   let origins: readonly ModuleOrigin[] = [];
   try {
@@ -108,6 +115,7 @@ function derive(blueprint: Blueprint): Derived {
       design: null,
       underivable: problems[0] ?? null,
       problems,
+      warnings,
       faulty: [],
     };
   }
@@ -119,11 +127,12 @@ function derive(blueprint: Blueprint): Derived {
       design: compileDraft(blueprint),
       underivable: null,
       problems,
+      warnings,
       faulty,
     };
   } catch (error) {
     const why = error instanceof Error ? error.message : String(error);
-    return { modules, origins, design: null, underivable: why, problems, faulty };
+    return { modules, origins, design: null, underivable: why, problems, warnings, faulty };
   }
 }
 

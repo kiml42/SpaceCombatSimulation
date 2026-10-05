@@ -1,5 +1,6 @@
 import {
   blueprintFileProblem,
+  blueprintWarnings,
   degreesToRadians,
   parseBlueprint,
   radiansToDegrees,
@@ -16,11 +17,13 @@ import {
   type FleetShip,
   type FleetStep,
 } from './fleet.js';
+import { unreadOf, unreadWarning, writeUnread } from './unread.js';
 
 /**
  * The fleet file format, modelled on the blueprint one: parse checks the
  * shape and throws, serialise is its inverse, degrees in the file and radians
- * in the sim. Each design is a whole blueprint file, so one can be copied out
+ * in the sim. A key it does not know is kept and warned about rather than
+ * refused (`UnreadKeys`, `fleetWarnings`). Each design is a whole blueprint file, so one can be copied out
  * into the library, or in from it, unchanged.
  */
 export const FLEET_FORMAT_VERSION = 1;
@@ -33,12 +36,6 @@ const GROUP_KEYS: readonly string[] = ['ships', 'notes'];
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function unknownKeysProblem(value: Record<string, unknown>, allowed: readonly string[], where: string): string | null {
-  const extra = Object.keys(value).filter((key) => !allowed.includes(key));
-  if (extra.length === 0) return null;
-  return `${where} has unknown ${extra.length > 1 ? 'keys' : 'key'} ${extra.join(', ')}`;
 }
 
 function numberProblem(value: unknown, what: string): string | null {
@@ -73,8 +70,8 @@ function entryProblem(value: unknown, where: string): string | null {
   if (isUse && 'design' in value) return `${where} names both a design and a group`;
 
   const shape = isUse
-    ? unknownKeysProblem(value, USE_KEYS, where) ?? nameProblem(value['group'], `${where}: group`)
-    : unknownKeysProblem(value, SHIP_KEYS, where) ?? nameProblem(value['design'], `${where}: design`);
+    ? nameProblem(value['group'], `${where}: group`)
+    : nameProblem(value['design'], `${where}: design`);
   if (shape !== null) return shape;
 
   if (isUse && value['mirror'] !== undefined && typeof value['mirror'] !== 'boolean') {
@@ -88,7 +85,6 @@ function entryProblem(value: unknown, where: string): string | null {
   if (step !== undefined) {
     if (!isObject(step)) return `${where}: step must be an object, got ${JSON.stringify(step)}`;
     const problem =
-      unknownKeysProblem(step, STEP_KEYS, `${where}: step`) ??
       numberProblem(step['x'], `${where}: step x`) ??
       numberProblem(step['y'], `${where}: step y`) ??
       optionalNumberProblem(step['angle'], `${where}: step angle`);
@@ -129,7 +125,6 @@ function groupsProblem(value: unknown): string | null {
   for (const [name, group] of Object.entries(value)) {
     if (!isObject(group)) return `group ${name} must be an object`;
     const problem =
-      unknownKeysProblem(group, GROUP_KEYS, `group ${name}`) ??
       optionalStringProblem(group['notes'], `group ${name}: notes`) ??
       entriesProblem(group['ships'], `group ${name}: ships`);
     if (problem !== null) return problem;
@@ -147,9 +142,6 @@ function groupsProblem(value: unknown): string | null {
  */
 export function fleetFileProblem(value: unknown): string | null {
   if (!isObject(value)) return `a fleet file must be an object, got ${JSON.stringify(value)}`;
-
-  const keys = unknownKeysProblem(value, FILE_KEYS, 'the file');
-  if (keys !== null) return keys;
 
   if (value['formatVersion'] !== FLEET_FORMAT_VERSION) {
     return `formatVersion must be ${FLEET_FORMAT_VERSION}, got ${JSON.stringify(value['formatVersion'])}`;
@@ -176,6 +168,8 @@ function toFleet(file: Record<string, unknown>): Fleet {
   }
   const fleet: Fleet = { name: file['name'] as string, designs, ships: toEntries(file['ships'] as unknown[]) };
   if (file['notes'] !== undefined) fleet.notes = file['notes'] as string;
+  const unread = unreadOf(file, FILE_KEYS);
+  if (unread !== undefined) fleet.unread = unread;
 
   const rawGroups = file['groups'] as Record<string, Record<string, unknown>> | undefined;
   if (rawGroups !== undefined) {
@@ -183,6 +177,8 @@ function toFleet(file: Record<string, unknown>): Fleet {
     for (const [name, raw] of Object.entries(rawGroups)) {
       const group: FleetGroup = { ships: toEntries(raw['ships'] as unknown[]) };
       if (raw['notes'] !== undefined) group.notes = raw['notes'] as string;
+      const unreadGroup = unreadOf(raw, GROUP_KEYS);
+      if (unreadGroup !== undefined) group.unread = unreadGroup;
       groups[name] = group;
     }
     fleet.groups = groups;
@@ -207,9 +203,13 @@ function toEntries(raws: unknown[]): FleetEntry[] {
       const rawStep = raw['step'] as Record<string, unknown>;
       const step: FleetStep = { x: rawStep['x'] as number, y: rawStep['y'] as number };
       if (rawStep['angle'] !== undefined) step.angle = degreesToRadians(rawStep['angle'] as number);
+      const unreadStep = unreadOf(rawStep, STEP_KEYS);
+      if (unreadStep !== undefined) step.unread = unreadStep;
       entry.step = step;
     }
     if (raw['notes'] !== undefined) entry.notes = raw['notes'] as string;
+    const unreadEntry = unreadOf(raw, 'group' in raw ? USE_KEYS : SHIP_KEYS);
+    if (unreadEntry !== undefined) entry.unread = unreadEntry;
     return entry;
   });
 }
@@ -236,13 +236,37 @@ export function serialiseFleet(fleet: Fleet): Record<string, unknown> {
       const raw: Record<string, unknown> = {};
       if (group.notes !== undefined) raw['notes'] = group.notes;
       raw['ships'] = group.ships.map(serialiseEntry);
+      writeUnread(raw, group.unread);
       groups[name] = raw;
     }
     file['groups'] = groups;
   }
 
   file['ships'] = fleet.ships.map(serialiseEntry);
+  writeUnread(file, fleet.unread);
   return file;
+}
+
+/** Everything in a fleet its file carried and nothing reads, designs and all, one warning per place. */
+export function fleetWarnings(fleet: Fleet): string[] {
+  const out: string[] = [];
+  unreadWarning('the file', fleet.unread, out);
+  for (const [name, design] of Object.entries(fleet.designs)) {
+    for (const warning of blueprintWarnings(design)) out.push(`design ${name}: ${warning}`);
+  }
+  for (const [name, group] of Object.entries(fleet.groups ?? {})) {
+    unreadWarning(`group ${name}`, group.unread, out);
+    entryWarnings(group.ships, `group ${name}: ships`, out);
+  }
+  entryWarnings(fleet.ships, 'ships', out);
+  return out;
+}
+
+function entryWarnings(entries: readonly FleetEntry[], where: string, out: string[]): void {
+  entries.forEach((entry, i) => {
+    unreadWarning(`${where}[${i}]`, entry.unread, out);
+    unreadWarning(`${where}[${i}]: step`, entry.step?.unread, out);
+  });
 }
 
 function serialiseEntry(entry: FleetEntry): Record<string, unknown> {
@@ -255,8 +279,10 @@ function serialiseEntry(entry: FleetEntry): Record<string, unknown> {
   if (entry.step !== undefined) {
     const step: Record<string, unknown> = { x: entry.step.x, y: entry.step.y };
     if (entry.step.angle !== undefined) step['angle'] = radiansToDegrees(entry.step.angle);
+    writeUnread(step, entry.step.unread);
     raw['step'] = step;
   }
   if (entry.notes !== undefined) raw['notes'] = entry.notes;
+  writeUnread(raw, entry.unread);
   return raw;
 }

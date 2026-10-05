@@ -2,9 +2,9 @@ import {
   APPROACH_FIELDS,
   DEFAULT_DOCTRINE,
   defaultTargeting,
-  MOUNT_TARGETING_FIELDS,
-  SHIP_TARGETING_FIELDS,
+  holdBand,
   TARGETING_FIELDS,
+  type Approach,
   type Doctrine,
   type ModuleKind,
   type Targeting,
@@ -51,6 +51,7 @@ const TARGETING_ROWS: readonly DoctrineRow[] = [
   { field: 'coreWeight', label: 'aim: core', hint: 'How much it would rather hit the core it is flown from. Below zero is never', step: 10 },
   { field: 'engineWeight', label: 'aim: engines', hint: 'How much it would rather hit an engine. Below zero is never', step: 10 },
   { field: 'gunWeight', label: 'aim: guns', hint: 'How much it would rather hit a gun. Below zero is never', step: 10 },
+  { field: 'fireRange', label: 'fires within', hint: 'How far out it fires, as a multiple of how far its shot is worth taking: above 1 spends shells on long odds, below 1 saves them for a sure thing', step: 0.1 },
   { field: 'structureWeight', label: 'aim: structure', hint: 'How much it would rather hit plating. All four at zero shoots at the ship rather than a part of it; zero is leave it alone — never aimed at, and a ship with nothing else left stops being a target — and below zero adds care at the trigger, holding fire until the part it aims at is under the muzzle rather than firing at anything on the hull', step: 10 },
 ];
 
@@ -58,6 +59,7 @@ const APPROACH_ROWS: readonly DoctrineRow[] = [
   { field: 'standoffRadii', label: 'standoff', hint: "How close to get, in multiples of the target's own radius", step: 5 },
   { field: 'standoff', label: 'range cap', hint: 'The furthest it will hold, as a fraction of its own reach', step: 0.05 },
   { field: 'escortRadii', label: 'escort range', hint: 'How close to sit to what it is covering, in multiples of that ship’s radius', step: 1 },
+  { field: 'escortMinRadii', label: 'smallest covered', hint: 'The smallest friend it will cover, in multiples of its own radius: 1 only what is at least its own size, 0 anything. A neutral objective is gone to whatever its size', step: 0.1 },
   { field: 'escort', label: 'escort cap', hint: 'The furthest it will stray from what it is covering, as a fraction of its own reach', step: 0.05 },
   { field: 'separation', label: 'keeps clear', hint: 'How much it wants to stay out of everybody’s way', step: 25 },
   { field: 'separationRadii', label: 'clearance', hint: 'How close is too close, in multiples of the gap between two hulls’ skins', step: 0.5 },
@@ -73,34 +75,261 @@ const ROW_OF = new Map<string, DoctrineRow>(
   [...TARGETING_ROWS, ...APPROACH_ROWS].map((row) => [row.field, row]),
 );
 
-function rows(fields: readonly string[]): readonly DoctrineRow[] {
-  return fields.map((field) => {
-    const row = ROW_OF.get(field);
-    if (row === undefined) throw new Error(`no editor row for doctrine field ${field}`);
-    return row;
-  });
+/**
+ * The doctrine a panel is showing, with every field resolved: what is stated,
+ * or what happens anyway. A mount's `approach` is its ship's, and unread.
+ */
+export interface DoctrineValues {
+  readonly targeting: Targeting;
+  readonly approach: Approach;
+}
+
+/** What the panel knows about the ship, so a relative number can be said in metres. */
+export interface DoctrineContext {
+  /** Kilograms. */
+  readonly mass: number;
+  /** Bounding radius, metres. */
+  readonly radius: number;
+  /** How far its guns reach against its own size of enemy, metres; 0 unarmed. */
+  readonly reach: number;
+  /** Acceleration holding a heading, ahead and astern, m/s². */
+  readonly accelFore: number;
+  readonly accelAft: number;
+  /** How many weapon mounts it has. */
+  readonly guns: number;
+  /** A mount's: how far it fires at the enemy it wants, metres. */
+  readonly fireRange?: number | null;
 }
 
 /**
- * What a weapon is asked about: everything a mount's targeting reads.
- *
- * `escortWeight` is not among them because a gun does not station-keep — it
- * is a steering urge, and a mount steers nothing. Offering it here would be
- * the panel inviting a number that changes nothing.
+ * One box as the panel lays it out: whose field it is, whether a setting above
+ * it has made it mean nothing, and what it comes to in metres or tonnes.
  */
-export const MOUNT_ROWS: readonly DoctrineRow[] = rows(MOUNT_TARGETING_FIELDS);
+export interface DoctrineEntry extends DoctrineRow {
+  readonly half: 'targeting' | 'approach' | 'mount';
+  /** Whether it means anything, given the rest; shown always when absent. */
+  readonly shown?: (values: DoctrineValues) => boolean;
+  /** What it comes to for this ship, or null where there is nothing to say. */
+  readonly absolute?: (values: DoctrineValues, ship: DoctrineContext) => string | null;
+}
+
+/** Boxes that go together, under a heading of their own. */
+export interface DoctrineGroup {
+  readonly title: string;
+  readonly entries: readonly DoctrineEntry[];
+}
+
+/** One thing a ship or a gun decides, and the boxes that decide it. */
+export interface DoctrineSection {
+  readonly title: string;
+  readonly groups: readonly DoctrineGroup[];
+}
+
+const metres = (value: number): string => `${Math.round(value).toLocaleString('en-GB')} m`;
+
+/** The radius of the enemy a doctrine prefers, sized as its own hull scaled by mass. */
+function enemyRadius(values: DoctrineValues, ship: DoctrineContext): number {
+  const preferred = values.targeting.preferredMass;
+  return ship.radius * Math.sqrt(preferred > 0 ? preferred : 1);
+}
+
+function entry(
+  half: DoctrineEntry['half'],
+  field: string,
+  extra: Pick<DoctrineEntry, 'shown' | 'absolute'> = {},
+): DoctrineEntry {
+  const row = ROW_OF.get(field);
+  if (row === undefined) throw new Error(`no editor row for doctrine field ${field}`);
+  return { ...row, half, ...extra };
+}
+
+const sizeWanted = (half: DoctrineEntry['half']): DoctrineEntry =>
+  entry(half, 'preferredMass', {
+    // How much size is worth comes first: at zero, which size is moot.
+    shown: (v) => v.targeting.massWeight !== 0,
+    absolute: (v, ship) =>
+      `≈ ${(ship.mass * v.targeting.preferredMass / 1000).toLocaleString('en-GB', { maximumFractionDigits: 1 })} t`,
+  });
+
+const preferences = (half: DoctrineEntry['half'], fields: readonly string[]): DoctrineEntry[] =>
+  fields.map((field) => entry(half, field));
 
 /**
- * What a ship is asked about: which fight to pick, and how to fly it.
- *
- * The four aim weights are missing for the mirror of the reason above. A ship
- * chooses a *ship*; only a mount chooses which part of one to shoot at, so a
- * hull's `engineWeight` is read by nothing. Leaving them out of the panel is
- * how it stays true rather than merely uncluttered.
+ * A ship's doctrine as the panel lays it out: by what each decision is about,
+ * rather than by which half of the file it is written in.
  */
-export const SHIP_TARGETING_ROWS: readonly DoctrineRow[] = rows(SHIP_TARGETING_FIELDS);
+export const SHIP_SECTIONS: readonly DoctrineSection[] = [
+  {
+    title: 'Picking a fight and closing on it',
+    groups: [
+      {
+        title: 'What it goes after',
+        entries: preferences('targeting', [
+          'proximityWeight',
+          'closingWeight',
+          'loyaltyWeight',
+          'armedWeight',
+          'mobileWeight',
+          'facingWeight',
+          'sightWeight',
+        ]),
+      },
+      { title: 'What size', entries: [entry('targeting', 'massWeight'), sizeWanted('targeting')] },
+      {
+        title: 'How close it holds',
+        entries: [
+          entry('approach', 'standoffRadii', {
+            absolute: (v, ship) =>
+              `${metres(v.approach.standoffRadii * enemyRadius(v, ship))} off the skin of the size it wants`,
+          }),
+          entry('approach', 'standoff', {
+            absolute: (v, ship) => (ship.reach > 0 ? `no further than ${metres(v.approach.standoff * ship.reach)}` : null),
+          }),
+          entry('approach', 'tolerance', {
+            absolute: (v, ship) => {
+              const band = holdBand(v.approach, ship.reach, enemyRadius(v, ship));
+              return `holds ${metres(band.min)}–${metres(band.max)}, centre to centre`;
+            },
+          }),
+        ],
+      },
+      {
+        title: 'How it gets there',
+        entries: [
+          entry('approach', 'approachSpeed'),
+          entry('approach', 'accelerate', {
+            absolute: (v, ship) => `≈ ${(v.approach.accelerate * ship.accelFore).toFixed(2)} m/s² ahead`,
+          }),
+          entry('approach', 'brake', {
+            absolute: (v, ship) => `≈ ${(v.approach.brake * ship.accelAft).toFixed(2)} m/s² astern`,
+          }),
+        ],
+      },
+    ],
+  },
+  {
+    title: 'Escorting',
+    groups: [
+      {
+        title: 'Escorting',
+        entries: [
+          entry('targeting', 'escortWeight'),
+          ...(['escortMinRadii', 'escortRadii', 'escort'] as const).map((field) =>
+            entry('approach', field, {
+              // Nothing about escorting matters to a ship that never escorts.
+              shown: (v) => v.targeting.escortWeight > 0,
+              absolute: (v, ship) =>
+                field === 'escortMinRadii'
+                  ? v.approach.escortMinRadii > 0
+                    ? `covers friends of ${metres(v.approach.escortMinRadii * ship.radius)} radius or more`
+                    : 'covers friends of any size'
+                  : field === 'escortRadii'
+                    ? `${metres(v.approach.escortRadii * ship.radius)} off the skin of a consort its own size`
+                    : ship.reach > 0
+                      ? `no further than ${metres(v.approach.escort * ship.reach)}`
+                      : 'no cap: it has no guns',
+            }),
+          ),
+        ],
+      },
+    ],
+  },
+  {
+    title: 'Ramming',
+    groups: [
+      {
+        title: 'Ramming',
+        entries: [
+          entry('approach', 'ramRadii', {
+            absolute: (v, ship) =>
+              v.approach.ramRadii > 0
+                ? `within ${metres(v.approach.ramRadii * enemyRadius(v, ship))} of the skin of the size it wants`
+                : 'never rams',
+          }),
+          entry('approach', 'ramArmed', {
+            shown: (v) => v.approach.ramRadii > 0,
+            absolute: (v, ship) =>
+{
+              if (ship.guns === 0) return 'it has no guns';
+              const working = Math.floor(v.approach.ramArmed * ship.guns + 1e-9);
+              const guns = ship.guns === 1 ? '1 gun' : `${ship.guns} guns`;
+              return working === 0
+                ? `only once none of its ${guns} works`
+                : `with ${working} of ${guns} working, or fewer`;
+            },
+          }),
+        ],
+      },
+    ],
+  },
+  {
+    title: 'Keeping clear',
+    groups: [
+      {
+        title: 'Keeping clear',
+        entries: [
+          entry('approach', 'separation'),
+          entry('approach', 'separationRadii', {
+            shown: (v) => v.approach.separation > 0,
+            absolute: (v, ship) =>
+              `${metres(2 * ship.radius * v.approach.separationRadii)} between centres, beside its own size`,
+          }),
+        ],
+      },
+    ],
+  },
+];
 
-export const SHIP_APPROACH_ROWS: readonly DoctrineRow[] = rows(APPROACH_FIELDS);
+/** A gun's doctrine as the panel lays it out. */
+export const MOUNT_SECTIONS: readonly DoctrineSection[] = [
+  {
+    title: 'What it shoots at',
+    groups: [
+      {
+        title: 'What it goes after',
+        entries: preferences('mount', [
+          'proximityWeight',
+          'closingWeight',
+          'loyaltyWeight',
+          'armedWeight',
+          'mobileWeight',
+          'focusWeight',
+          'facingWeight',
+          'sightWeight',
+        ]),
+      },
+      { title: 'What size', entries: [entry('mount', 'massWeight'), sizeWanted('mount')] },
+    ],
+  },
+  {
+    title: 'Where it aims',
+    groups: [
+      {
+        title: 'Where it aims',
+        entries: preferences('mount', ['coreWeight', 'engineWeight', 'gunWeight', 'structureWeight']),
+      },
+    ],
+  },
+  {
+    title: 'How far out it fires',
+    groups: [
+      {
+        title: 'How far out it fires',
+        entries: [
+          entry('mount', 'fireRange', {
+            absolute: (_v, ship) =>
+              ship.fireRange == null ? null : `fires within ${metres(ship.fireRange)} of the size it wants`,
+          }),
+        ],
+      },
+    ],
+  },
+];
+
+/** Every box a set of sections lays out, in order. */
+export function sectionEntries(sections: readonly DoctrineSection[]): DoctrineEntry[] {
+  return sections.flatMap((section) => section.groups.flatMap((group) => group.entries));
+}
 
 function isAimField(field: string): boolean {
   return (

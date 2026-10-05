@@ -9,6 +9,7 @@ import {
   Beams,
   BeamHits,
   blueprintFileProblem,
+  blueprintWarnings,
   Bodies,
   compileBlueprint,
   DEFAULT_FUSE,
@@ -230,8 +231,9 @@ describe('a fuse in a file', () => {
     expect(serialiseBlueprint(bp)).toMatchObject({ modules: [{}, { fuse: 0.35 }] });
   });
 
-  it('is refused on a beam and below zero', () => {
-    expect(blueprintFileProblem(ship(0.2, 'beamTurret'))).toMatch(/only a gun has a fuse/);
+  it('is unread on a beam, said so, and refused below zero', () => {
+    expect(blueprintFileProblem(ship(0.2, 'beamTurret'))).toBeNull();
+    expect(blueprintWarnings(parseBlueprint(ship(0.2, 'beamTurret'))).join('\n')).toMatch(/fuse/);
     expect(() => compileBlueprint(parseBlueprint(ship(-1)))).toThrow(/fuse must be at least 0/);
   });
 });

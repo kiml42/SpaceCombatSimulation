@@ -1,3 +1,4 @@
+import type { UnreadKeys } from './unread.js';
 import type { Targeting } from './doctrine.js';
 import { asin, atan2, cos, max, PI, round, sin, sqrt } from './math.js';
 
@@ -135,13 +136,11 @@ export const PUMP_DEPTH_WIDTHS = 0.35;
 export const THROAT_CHOKE = 2;
 
 /**
- * How much of a module is the part that sticks out, when its layout does not
- * say: an engine's bell, a hull gun's barrel, a hull beam's lens housing.
+ * How much of an engine is bell when its layout does not say.
  *
- * Half and half, which on an engine is enough expansion to be worth having
- * (`divergence` lands near 0.91 on a squarish one) while leaving a machinery
- * block big enough to bolt to on three sides, and on a hull mount is enough
- * barrel to be worth firing and enough block to load it from.
+ * Half and half, which is enough expansion to be worth having (`divergence`
+ * lands near 0.91 on a squarish one) while leaving a machinery block big
+ * enough to bolt to on three sides.
  */
 export const DEFAULT_NOZZLE_SHARE = 0.5;
 
@@ -195,8 +194,8 @@ export const HULL_BARREL_WIDTH_CAP = 0.8;
  * of its own mount gives a barrel a handful of calibres long, and a gun with a
  * bore wider than its barrel is long is a mortar throwing a ninety-tonne shell
  * at walking pace. At this figure a hull gun on an 8x4 mount carries two and a
- * half times a 5x4 turret's bore and five times its muzzle energy for a little
- * under twice its mass — and has twenty-odd degrees to point it through
+ * half times a 5x4 turret's bore and three times its muzzle energy for about
+ * half as much mass again — and has twenty-odd degrees to point it through
  * instead of a clear sky. That is the trade the archetype is for.
  */
 export const HULL_CALIBRE_FRACTION = 0.1;
@@ -273,11 +272,33 @@ export const LOADING_BLOCK_CALIBRES = 10;
 export const LOADING_FLOOR = 0.25;
 
 /**
- * Barrel length in calibres. Naval rifles run 45–55; the middle of that range
- * is the usual compromise between muzzle velocity and a barrel that can be
- * trained without the ship's own structure fouling it.
+ * The longest barrel that holds itself up, in calibres: a turret's barrel when
+ * its layout does not say, and the length muzzle energy is calibrated at.
+ * Naval rifles run 45–55, and past that a tube sags and whips when it fires.
  */
 export const BARREL_CALIBRES = 50;
+
+/**
+ * A hull gun's barrel when its layout does not say, in calibres: half of an
+ * 8x4 mount, the proportions the editor draws one at. A hull gun's bore comes
+ * from its opening and is far wider for its mount than a turret's, so a
+ * turret's fifty calibres would not fit inside one.
+ */
+export const DEFAULT_HULL_BARREL_CALIBRES = 10;
+
+/** The longest barrel any gun may have, in calibres, however well braced. */
+export const MAX_BARREL_CALIBRES = 100;
+
+/**
+ * Width of the bracing either side of a barrel longer than `BARREL_CALIBRES`,
+ * in calibres. It runs for as long as the barrel is over that, so past it each
+ * metre of barrel costs its own tube and a metre of bracing too.
+ *
+ * Neighbouring barrels share the bracing between them, so a row of `n` needs
+ * `n + 1` strips rather than `2n` — which is the discount a multi-barrel mount
+ * gets for being a row.
+ */
+export const BRACE_CALIBRES = 1;
 
 /** Shell length in calibres. A real armour-piercing shell is 4–5. */
 export const SHELL_CALIBRES = 4.5;
@@ -313,10 +334,14 @@ export const MAX_FRAGMENTS = 64;
 export const DEFAULT_BURST_SPEED = 650;
 
 /**
- * Muzzle energy per unit of bore volume, J/m³. Calibrated on the 16"/50: a
- * 1225 kg shell at 762 m/s is 356 MJ from 2.6 m³ of bore. Solid propellant
- * holds around 6.4 GJ/m³, so this is a couple of per cent of the bore filled
- * with charge at realistic efficiency — which is about right.
+ * Muzzle energy per unit of bore volume, J/m³, for a barrel `BARREL_CALIBRES`
+ * long. Calibrated on the 16"/50: a 1225 kg shell at 762 m/s is 356 MJ from
+ * 2.6 m³ of bore. Solid propellant holds around 6.4 GJ/m³, so this is a couple
+ * of per cent of the bore filled with charge at realistic efficiency.
+ *
+ * Shorter barrels get it in proportion. Longer ones get less (`muzzleEnergyOf`):
+ * the charge has burnt by then, and gas that is only expanding pushes less
+ * the further it goes, so each calibre past fifty is worth less than the last.
  */
 export const CHARGE_ENERGY_PER_BORE_VOLUME = 1.4e8;
 
@@ -600,28 +625,30 @@ export interface ModuleSpec {
   barrels?: number;
 
   /**
-   * How much of the module's length is the part that sticks out, as a
-   * fraction from 0 to 1. The rest is the block behind it, which is where the
-   * machinery lives and what the module is welded to the ship by.
-   * `DEFAULT_NOZZLE_SHARE` when unsaid.
+   * How much of an engine's length is bell, as a fraction from 0 to 1. The
+   * rest is the chamber and pumps behind it, which is what the engine is
+   * welded to the ship by. `DEFAULT_NOZZLE_SHARE` when unsaid.
    *
-   * **One field for three archetypes, because it is one quantity**, the way
-   * `barrels` counts a turret's barrels and an engine's nozzles alike: on a
-   * `engine` the protrusion is the bell and the block is chamber and pumps;
-   * on a `hullGun` it is the barrel and the breech and loading gear; on a
-   * `hullBeam` the lens housing and the bank and the plant. The editor names
-   * it for the kind it is showing. Nothing else has one.
+   * It cuts both ways, which is what makes it a knob rather than a slider:
+   * bell length is aim bought with flow. See `engineGeometry`.
    *
-   * It cuts both ways on every kind that has it, which is what makes it a
-   * knob rather than a slider: bell length is aim bought with flow, barrel
-   * length is muzzle velocity bought with rate of fire and with the traverse
-   * the opening leaves. See `engineGeometry` and `hullMountGeometry`.
-   *
-   * Zero on an engine is legal and is a rocket whose bell has blown off: gas
-   * thrown in every direction, about half the thrust, and a flame that goes
-   * nowhere.
+   * Zero is legal and is a rocket whose bell has blown off: gas thrown in
+   * every direction, about half the thrust, and a flame that goes nowhere.
    */
   nozzle?: number;
+
+  /**
+   * How long a gun's barrels are, in calibres of its bore. A turret's run out
+   * from its pivot; a hull gun's take that much of the module's length and
+   * leave the rest as the block that loads them. The function of the same
+   * name gives the default when unsaid.
+   *
+   * Length is muzzle energy, less so past `BARREL_CALIBRES`, and costs steel,
+   * swing and — on a hull gun — rate of fire and traverse. Past that a barrel
+   * needs bracing, so each calibre costs more, and nothing may exceed
+   * `MAX_BARREL_CALIBRES`. Guns only: a laser's housing has one best depth.
+   */
+  barrelCalibres?: number;
 
   /**
    * How far a weapon may train either way from where it rests, radians. The
@@ -729,6 +756,8 @@ export interface ModuleSpec {
    * comment in a source file does not survive being edited by a tool.
    */
   notes?: string;
+  /** Keys its file carried that nothing reads, kept to be written back (`UnreadKeys`). */
+  unread?: UnreadKeys;
 }
 
 export enum GunType {
@@ -759,6 +788,13 @@ export interface GunStats {
   calibre: number;
   /** Muzzle to breech, metres. */
   barrelLength: number;
+  /**
+   * How much of each barrel is braced, metres, out from its root: what it
+   * runs past `BARREL_CALIBRES`. Zero for a barrel that holds itself up.
+   */
+  braceLength: number;
+  /** Width of each strip of bracing, metres. */
+  braceWidth: number;
   /** Number of barrels. */
   barrelCount: number;
   /** Centre-to-centre distance between adjacent barrels across the mount, metres. */
@@ -869,14 +905,11 @@ export function moduleProblem(spec: ModuleSpec): string | null {
     // On a kind that does not read it the value is dormant — kept against a
     // refit back rather than refused, see `readsNozzle` — so only the range
     // applies there.
-    //
-    // Where zero means something different per archetype, so does whether it
-    // is allowed: an engine with no bell is a rocket whose nozzle has fallen
-    // off, which is a bad engine and a real one, while a weapon with no barrel
-    // is not a weapon — a bore with no length to accelerate down fires its
-    // shells at nothing a second.
-    if (spec.nozzle === 0 && isHullMount(spec.kind)) {
-      return `${spec.kind}: a hull mount needs some barrel, got ${spec.nozzle}`;
+  }
+  if (spec.barrelCalibres !== undefined) {
+    // Dormant on a kind that does not read it, as a bell is: only the range.
+    if (!(spec.barrelCalibres > 0) || !(spec.barrelCalibres <= MAX_BARREL_CALIBRES)) {
+      return `${spec.kind}: barrel must be more than 0 and at most ${MAX_BARREL_CALIBRES} calibres, got ${spec.barrelCalibres}`;
     }
   }
   if (spec.traverse !== undefined && !(spec.traverse >= 0)) {
@@ -894,6 +927,13 @@ export function moduleProblem(spec: ModuleSpec): string | null {
     return `${spec.kind}: burst speed must be more than 0, got ${spec.burstSpeed}`;
   }
   const thickness = BASE_WALL_THICKNESS * reinforcement;
+  if (isHullMount(spec.kind)) {
+    const { barrelLength } = hullMountGeometry(spec);
+    if (!(barrelLength < spec.length)) {
+      const what = spec.kind === 'hullGun' ? `a ${barrelCalibres(spec)}-calibre barrel` : 'the lens housing';
+      return `${spec.kind}: ${what} is ${barrelLength.toFixed(2)} m, leaving no block in a ${spec.length} m mount`;
+    }
+  }
   // For an engine it is the machinery block that has to be a box: the bell is
   // meant to be open at both ends. This is also what makes "all nozzle"
   // impossible by running out of block rather than by a rule of its own.
@@ -1203,7 +1243,7 @@ function engineInertia(
 export interface HullMountGeometry {
   /** Barrels or lenses across the face, at least one. */
   outlets: number;
-  /** The barrel's share of the module's length, 0 to 1. */
+  /** The barrel's share of the module's length. */
   share: number;
   /** Length of the block, metres. Always positive. */
   blockLength: number;
@@ -1224,8 +1264,6 @@ export interface HullMountGeometry {
 /** A hull mount's halves, its outlets and the arc its own barrel leaves it. */
 export function hullMountGeometry(spec: ModuleSpec): HullMountGeometry {
   const outlets = spec.barrels ?? 1;
-  const share = spec.nozzle ?? DEFAULT_NOZZLE_SHARE;
-  const barrelLength = spec.length * share;
   // What a single outlet would be, and each of several split the way a
   // turret splits it: tubes divide the bore, so each is `1/n` as wide; lenses
   // divide the optic's area, so each is `1/√n` as wide.
@@ -1244,6 +1282,13 @@ export function hullMountGeometry(spec: ModuleSpec): HullMountGeometry {
   const cap = opening < depth ? opening : depth;
   const outletWidth = each < cap ? each : cap;
   const barrelWidth = (outlets - 1) * outletSpacing + outletWidth;
+  // A gun's barrel is as many calibres as it says; a lens housing is as deep
+  // as a turret's, since a shallower one is better in every way.
+  const barrelLength =
+    spec.kind === 'hullBeam'
+      ? outletWidth * BEAM_EMITTER_APERTURES
+      : (barrelCalibres(spec) * outletWidth) / BARREL_OUTER_CALIBRES;
+  const share = barrelLength / spec.length;
   const blockLength = spec.length - barrelLength;
 
   // The corner of the swung barrel against the edge of the opening.
@@ -1314,7 +1359,45 @@ export function isHullMount(kind: ModuleKind): boolean {
  * keeping one is that it is ready to be used.
  */
 export function readsNozzle(kind: ModuleKind): boolean {
-  return kind === 'engine' || isHullMount(kind);
+  return kind === 'engine';
+}
+
+/** Whether `barrelCalibres` means anything on this kind: a gun with a barrel. */
+export function readsBarrelCalibres(kind: ModuleKind): boolean {
+  return kind === 'turret' || kind === 'hullGun';
+}
+
+/** How many calibres long a gun's barrels are: what it says, or its archetype's default. */
+export function barrelCalibres(spec: ModuleSpec): number {
+  if (spec.barrelCalibres !== undefined) return spec.barrelCalibres;
+  return spec.kind === 'hullGun' ? DEFAULT_HULL_BARREL_CALIBRES : BARREL_CALIBRES;
+}
+
+/**
+ * Kinetic energy a bore gives its round, joules: in proportion to the bore's
+ * volume up to `BARREL_CALIBRES`, and past it `2√x − 1` of that for `x` times
+ * the length, which meets the line there without a kink.
+ */
+function muzzleEnergyOf(calibre: number, calibres: number): number {
+  const boreArea = PI * 0.25 * calibre * calibre;
+  const x = calibres / BARREL_CALIBRES;
+  const share = x > 1 ? 2 * sqrt(x) - 1 : x;
+  return CHARGE_ENERGY_PER_BORE_VOLUME * boreArea * calibre * BARREL_CALIBRES * share;
+}
+
+/** How much of each barrel `calibres` long needs bracing, metres. */
+function braceLengthOf(calibre: number, calibres: number): number {
+  return calibres > BARREL_CALIBRES ? (calibres - BARREL_CALIBRES) * calibre : 0;
+}
+
+/**
+ * The steel bracing a gun's barrels, kg, for the whole row: `n + 1` strips,
+ * each as deep as a barrel is wide, since neighbours share the one between
+ * them.
+ */
+export function braceMass(gun: GunStats): number {
+  const section = gun.braceWidth * BARREL_OUTER_CALIBRES * gun.calibre;
+  return (gun.barrelCount + 1) * section * gun.braceLength * HULL_DENSITY;
 }
 
 /** Whether `barrels` means anything on this kind: barrels, outlets or nozzles. */
@@ -1421,27 +1504,29 @@ export function weldBox(spec: ModuleSpec): ModuleSpec {
  * A gun let into a hull: as big a bore as the opening allows, and nowhere to
  * point it.
  *
- * The derivations are the turret's — a bore, a barrel to accelerate a shell
- * down, a shell that is so many calibres long — and only what sets the bore
- * and the barrel length differs. The bore comes from the **opening** rather
- * than from a fraction of the mount, since there is no ring to fit inside;
- * the barrel length is **authored**, as the share of the module the designer
- * gave to it, rather than being whatever the calibre wanted. That is the
- * trade the archetype exists for: length is muzzle energy, and length is also
- * the traverse it no longer has.
+ * The derivations are the turret's — a bore, a barrel so many calibres long
+ * to accelerate a shell down, a shell that is so many calibres long — and only
+ * what sets the bore differs: it comes from the **opening** rather than from a
+ * fraction of the mount, since there is no ring to fit inside. The barrel
+ * takes its length out of the module, so that is the trade the archetype
+ * exists for: length is muzzle energy, and it is also the block it no longer
+ * loads from and the traverse it no longer has.
  */
 export function hullGunStats(spec: ModuleSpec): GunStats {
   const { outlets, outletWidth, outletSpacing, barrelLength, blockLength } = hullMountGeometry(spec);
   const calibre = outletWidth / BARREL_OUTER_CALIBRES;
+  const calibres = barrelCalibres(spec);
   const boreArea = PI * 0.25 * calibre * calibre;
   const roundMass = boreArea * (calibre * SHELL_CALIBRES) * SHELL_DENSITY;
-  const muzzleEnergy = CHARGE_ENERGY_PER_BORE_VOLUME * boreArea * barrelLength;
+  const muzzleEnergy = muzzleEnergyOf(calibre, calibres);
   const muzzleSpeed = roundMass > 0 ? sqrt((2 * muzzleEnergy) / roundMass) : 0;
 
   return {
     type: GunType.Projectile,
     calibre,
     barrelLength,
+    braceLength: braceLengthOf(calibre, calibres),
+    braceWidth: BRACE_CALIBRES * calibre,
     barrelCount: outlets,
     barrelSpacing: outletSpacing,
     roundMass,
@@ -1450,10 +1535,21 @@ export function hullGunStats(spec: ModuleSpec): GunStats {
     beamPower: 0,
     // One block loads every tube, so its depth is measured against the bore
     // they share rather than each tube's own.
-    cycleTime: hullCycleTime(calibre, blockLength, outlets) / outlets,
+    cycleTime: hullCycleTime(calibre, blockLength * loadingDecks(spec), outlets) / outlets,
     beamOnTime: 0,
     burst: null,
   };
+}
+
+/**
+ * How many decks' worth of loading gear a hull gun's block holds per metre of
+ * its length: one when it is held to a deck (or narrower than one), and its
+ * depth over a deck's when it is thick. The gear fills the block, so standing
+ * through more of the ship buys rounds per minute as a longer block does.
+ */
+function loadingDecks(spec: ModuleSpec): number {
+  const thin = spec.width < DECK_HEIGHT ? spec.width : DECK_HEIGHT;
+  return moduleThickness(spec) / thin;
 }
 
 /**
@@ -1512,6 +1608,8 @@ export function hullBeamStats(spec: ModuleSpec): GunStats {
     type: GunType.Beam,
     calibre: aperture,
     barrelLength,
+    braceLength: 0,
+    braceWidth: 0,
     barrelCount: outlets,
     barrelSpacing: outletSpacing,
     roundMass: 0,
@@ -1545,6 +1643,11 @@ export function casingMass(spec: ModuleSpec, roundMass: number): number {
   const share = chargeShare(spec.burstSpeed ?? DEFAULT_BURST_SPEED);
   const casing = (1 - share) * SHELL_DENSITY;
   return (roundMass * casing) / (casing + share * EXPLOSIVE_DENSITY);
+}
+
+/** Inertia about a barrel's root of `mass` of bracing running out from it. */
+function braceInertia(gun: GunStats, mass: number): number {
+  return (mass * gun.braceLength * gun.braceLength) / 3;
 }
 
 /**
@@ -1669,7 +1772,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
       const section = PI * 0.25 * (outer * outer - gun.calibre * gun.calibre);
       protrudingMass = section * gun.barrelLength * HULL_DENSITY;
       fittingMass =
-        (protrudingMass + MECHANISM_MASS_PER_CALIBRE * gun.calibre) * gun.barrelCount;
+        (protrudingMass + MECHANISM_MASS_PER_CALIBRE * gun.calibre) * gun.barrelCount + braceMass(gun);
     } else {
       protrudingMass = OPTIC_AREAL_DENSITY * PI * 0.25 * gun.calibre * gun.calibre;
       fittingMass = (protrudingMass + BEAM_MASS_PER_WATT * gun.beamPower) * gun.barrelCount;
@@ -1679,7 +1782,9 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
     // rather than about the middle of the module — the block does not move.
     // Each is a rod running out from that root, so it carries `m L²/3` there,
     // plus `m d²` for sitting off the centreline.
-    rodMass = protrudingMass * gun.barrelCount;
+    // Bracing swings with the barrels, each barrel taking its share of it.
+    const braced = braceMass(gun) / gun.barrelCount;
+    rodMass = (protrudingMass + braced) * gun.barrelCount;
     // **The bed is built for the arc it sweeps**, and what has to be built to
     // move is the whole weapon: the trunnions and the drive, but also a feed
     // and a recoil path that work at every angle the gun is allowed. So the
@@ -1695,17 +1800,24 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
     fittingMass += traverseMass;
     const spin = (protrudingMass * gun.barrelLength * gun.barrelLength) / 3;
     const middle = (protrudingMass * gun.barrelLength * gun.barrelLength) / 12;
+    const braceSpin = braceInertia(gun, braced);
+    const braceMiddle = (braced * gun.braceLength * gun.braceLength) / 12;
     const ahead = mount.pivot + gun.barrelLength * 0.5;
+    const braceAhead = mount.pivot + gun.braceLength * 0.5;
+    const each = protrudingMass + braced;
     for (let barrel = 0; barrel < gun.barrelCount; barrel++) {
       const offset = (barrel - (gun.barrelCount - 1) * 0.5) * gun.barrelSpacing;
-      swing += spin + protrudingMass * offset * offset;
+      swing += spin + braceSpin + each * offset * offset;
       // The module's own moment wants them about its centre instead, which is
       // the rod's own moment plus where its centre of mass actually sits.
-      rodInertia += middle + protrudingMass * (ahead * ahead + offset * offset);
+      rodInertia +=
+        middle + protrudingMass * ahead * ahead +
+        braceMiddle + braced * braceAhead * braceAhead +
+        each * offset * offset;
     }
   } else if (spec.kind === 'turret' || spec.kind === 'beamTurret') {
     gun = spec.kind === 'turret'
-      ? loaded(gunStats(spec.length, spec.width, spec.barrels), spec)
+      ? loaded(gunStats(spec.length, spec.width, spec.barrels, barrelCalibres(spec)), spec)
       : beamGunStats(spec.length, spec.width, spec.barrels);
 
     // What hangs off the front of the mount, per barrel or emitter. The two
@@ -1722,7 +1834,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
       // Plus the machinery behind each barrel, which every barrel needs its own
       // of and which does not scale down as steeply as the tube does.
       const mechanismMass = MECHANISM_MASS_PER_CALIBRE * gun.calibre;
-      fittingMass = (protrudingMass + mechanismMass) * gun.barrelCount;
+      fittingMass = (protrudingMass + mechanismMass) * gun.barrelCount + braceMass(gun);
     } else {
       // A laser's mass is its optic and the plant that feeds it, and neither
       // resembles a gun's. There is no tube of steel and no loading machinery,
@@ -1740,17 +1852,19 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
     // makes reach cost traverse — the box formula cannot see a barrel at all,
     // and under it a long gun and a stubby one of the same weight came round
     // equally fast.
-    rodMass = protrudingMass * gun.barrelCount;
+    const braced = braceMass(gun) / gun.barrelCount;
+    rodMass = (protrudingMass + braced) * gun.barrelCount;
     // **A turret's ring goes all the way round whatever it is told.** The gear
     // is sized by the whole mount, since that is what turns, and a limit on
     // where it may point is programming rather than a simpler machine — so
     // unlike a hull mount's bed this does not shrink when the arc does.
     traverseMass = (structureMass + fittingMass) * TRAVERSE_GEAR_FRACTION;
     fittingMass += traverseMass;
-    const spin = (protrudingMass * gun.barrelLength * gun.barrelLength) / 3;
+    const spin = (protrudingMass * gun.barrelLength * gun.barrelLength) / 3 + braceInertia(gun, braced);
+    const each = protrudingMass + braced;
     for (let barrel = 0; barrel < gun.barrelCount; barrel++) {
       const offset = (barrel - (gun.barrelCount - 1) * 0.5) * gun.barrelSpacing;
-      rodInertia += spin + protrudingMass * offset * offset;
+      rodInertia += spin + each * offset * offset;
     }
   }
 
@@ -1790,23 +1904,24 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
 /**
  * The gun a turret mount of this size carries.
  *
- * The bore is set by how wide the mount is, and the barrel by how long the
- * gun can be for that bore — so a turret is described by the same two numbers
- * as every other module, and its weapon falls out of them. Everything after
- * that is physics: charge energy scales with the volume of bore it fills,
- * shell mass with the cube of calibre, and muzzle velocity is whatever
- * dividing one by the other leaves.
+ * The bore is set by how wide the mount is, and the barrel is `calibres` of
+ * that bore long. Everything after that is physics: charge energy scales with
+ * the volume of bore it fills, less so past `BARREL_CALIBRES`, shell mass with
+ * the cube of calibre, and muzzle velocity is whatever dividing one by the
+ * other leaves.
  *
  * The trade this produces is the real one. Widening the mount buys a heavier
- * shell that hits harder but flies slower and reloads less often; lengthening
- * it buys velocity — flatter trajectory, shorter flight time, less lead to
- * misjudge — at the cost of a longer barrel that traverses more sluggishly.
+ * shell that hits harder but flies slower and reloads less often; a longer
+ * barrel buys velocity — flatter trajectory, shorter flight time, less lead to
+ * misjudge — at the cost of steel that traverses more sluggishly, and past
+ * `BARREL_CALIBRES` of bracing as well. The barrel is not held to the mount's
+ * own length: it is out over the ship, and the arc it leaves is the price.
  *
  * **Multiple barrels** put a row of what are essentially independent guns on
  * one mount, firing in turn, so the mount's rate of fire rises — twice over,
  * since each barrel is narrower than a single gun would be and a narrower gun
- * cycles faster. They are a little longer than one gun could be, since a row
- * of tubes braces itself.
+ * cycles faster. A row shares its bracing (`braceMass`), so long barrels cost
+ * it less than they cost one gun.
  *
  * Two rules shape that row, and they are independent of each other. Saying so
  * is worth the space, because they look related and are not:
@@ -1838,17 +1953,19 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
  * far wider than the row; against small targets it would bite, and harmonising
  * the barrels to converge at a chosen range is the natural answer when it does.
  */
-export function gunStats(mountLength: number, mountWidth: number, barrelCount: number = 1): GunStats {
+export function gunStats(
+  mountLength: number,
+  mountWidth: number,
+  barrelCount: number = 1,
+  calibres: number = BARREL_CALIBRES,
+): GunStats {
   const wide = (mountWidth * CALIBRE_FRACTION) / barrelCount;
   const calibre = wide < MAX_TURRET_CALIBRE ? wide : MAX_TURRET_CALIBRE;
-  // The barrel wants to be as long as its calibre allows, but a mount cannot
-  // carry a gun longer than itself without fouling the rest of the ship.
-  const wanted = calibre * BARREL_CALIBRES * sqrt(barrelCount);
-  const barrelLength = wanted < mountLength ? wanted : mountLength;
+  const barrelLength = calibre * calibres;
 
   const boreArea = PI * 0.25 * calibre * calibre;
   const roundMass = boreArea * (calibre * SHELL_CALIBRES) * SHELL_DENSITY;
-  const muzzleEnergy = CHARGE_ENERGY_PER_BORE_VOLUME * boreArea * barrelLength;
+  const muzzleEnergy = muzzleEnergyOf(calibre, calibres);
   const muzzleSpeed = sqrt((2 * muzzleEnergy) / roundMass);
   // One whole gap outboard of each end barrel, so `n` barrels make `n + 1`
   // gaps. Zero rather than a notional half-face for a single barrel, which has
@@ -1860,6 +1977,8 @@ export function gunStats(mountLength: number, mountWidth: number, barrelCount: n
     type: GunType.Projectile,
     calibre,
     barrelLength,
+    braceLength: braceLengthOf(calibre, calibres),
+    braceWidth: BRACE_CALIBRES * calibre,
     barrelCount,
     barrelSpacing,
     roundMass,
@@ -1936,6 +2055,8 @@ export function beamGunStats(mountLength: number, mountWidth: number, barrelCoun
     type: GunType.Beam,
     calibre: aperture,
     barrelLength,
+    braceLength: 0,
+    braceWidth: 0,
     barrelCount,
     barrelSpacing,
     // A beam has no round, so nothing here describes one. Negative muzzle
@@ -1972,4 +2093,18 @@ export function traverseRate(accel: number): number {
  */
 export function traverseAccel(mass: number, inertia: number): number {
   return (TRAVERSE_TORQUE_PER_KG * mass) / inertia;
+}
+
+/**
+ * How fast a weapon mount's drive can swing it, radians per second squared.
+ *
+ * A turret turns bodily, so its drive is sized by and swings the whole mount.
+ * A hull mount swings only its barrels, and its drive is sized by the weapon
+ * it trains rather than the block it is welded into — so a deeper block,
+ * which is more loading gear behind the same barrels, trains them no faster
+ * and no slower.
+ */
+export function mountAccel(spec: ModuleSpec, stats: ModuleStats): number {
+  if (isHullMount(spec.kind)) return traverseAccel(stats.fittingMass, stats.swingInertia);
+  return traverseAccel(stats.mass, stats.inertia);
 }

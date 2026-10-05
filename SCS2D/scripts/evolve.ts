@@ -1,12 +1,21 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { compileBlueprint, fleetHulls, fleetMass, parseBlueprint, parseFleet, type Fleet } from '../sim/index.js';
+import {
+  blueprintWarnings,
+  compileBlueprint,
+  fleetHulls,
+  fleetMass,
+  fleetWarnings,
+  parseBlueprint,
+  parseFleet,
+  type Fleet,
+} from '../sim/index.js';
 import { BLUEPRINTS, type BlueprintName } from '../scenarios/blueprints.js';
 import { FLEETS } from '../scenarios/fleets.js';
 import { finalist, matchCount, runEvolution, DEFAULT_RUN, type RunConfig } from '../evolution/run.js';
 import type { Entrant } from '../evolution/match.js';
 import { DEFAULT_DOCTRINE_WEIGHTS, DEFAULT_KINDS } from '../evolution/mutate.js';
-import { parseRunConfig, serialiseRunConfig, type BossName } from '../evolution/configFile.js';
+import { parseRunConfig, runConfigWarnings, serialiseRunConfig, type BossName } from '../evolution/configFile.js';
 import type { ModuleKind } from '../sim/modules.js';
 
 /**
@@ -39,6 +48,11 @@ interface Options {
  * holds — its library lists ships by name, having no notion of the key this
  * file uses. A key is accepted too, since that is what `--from` takes.
  */
+/** Say what a file carried that nothing reads, and carry on: it is not a reason to stop. */
+function warnUnread(file: string, warnings: readonly string[]): void {
+  for (const warning of warnings) process.stderr.write(`warning: ${file}: ${warning}\n`);
+}
+
 function resolve(name: string): BlueprintName {
   for (const [key, blueprint] of Object.entries(BLUEPRINTS)) {
     if (blueprint.name === name || key === name) return key as BlueprintName;
@@ -59,7 +73,9 @@ function fleetFrom(name: string): Fleet {
   const stock = FLEETS[name];
   if (stock !== undefined) return stock;
   try {
-    return parseFleet(JSON.parse(readFileSync(name, 'utf8')));
+    const fleet = parseFleet(JSON.parse(readFileSync(name, 'utf8')));
+    warnUnread(name, fleetWarnings(fleet));
+    return fleet;
   } catch (error) {
     if ((error as { code?: string }).code !== 'ENOENT') throw error;
     throw new Error(`no such fleet or fleet file: ${name}. The stock fleets are ${Object.keys(FLEETS).join(', ')}`);
@@ -82,9 +98,11 @@ function bossFrom(name: string): { boss: Entrant; named: BossName } {
   }
   if (typeof value === 'object' && value !== null && 'designs' in value) {
     const fleet = parseFleet(value);
+    warnUnread(name, fleetWarnings(fleet));
     return { boss: fleet, named: { kind: 'fleet', name: fleet.name } };
   }
   const blueprint = parseBlueprint(value);
+  warnUnread(name, blueprintWarnings(blueprint));
   return { boss: blueprint, named: { kind: 'ship', name: blueprint.name } };
 }
 
@@ -181,7 +199,10 @@ function parse(argv: readonly string[]): Options {
         break;
       // Settings written by the evolution page, or by `--save-config`.
       case '--config': {
-        const setup = parseRunConfig(JSON.parse(readFileSync(value(), 'utf8')));
+        const path = value();
+        const raw: unknown = JSON.parse(readFileSync(path, 'utf8'));
+        const setup = parseRunConfig(raw);
+        warnUnread(path, runConfigWarnings(raw));
         for (const name of setup.founders) from.push(resolve(name));
         for (const name of setup.fleets ?? []) fleets.push({ name, fleet: fleetFrom(name) });
         config = { ...setup.config };

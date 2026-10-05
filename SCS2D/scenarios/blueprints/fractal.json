@@ -7,7 +7,7 @@
       "notes": "One bay of a wing: a box, a gun on its leading edge, thrust forward, and braking thrust outboard where it clears the gun. Repeated along the wing rather than duplicated, so every bay is the same bay.",
       "modules": [
         { "kind": "structure", "x": 0, "y": 0, "length": 4, "width": 8 },
-        { "kind": "turret", "x": 4.5, "y": 0, "angle": 0, "length": 5, "width": 4, "barrels": 1 },
+        { "kind": "turret", "x": 4.5, "y": 0, "angle": 0, "length": 5, "width": 4, "barrelCalibres": 31.25, "barrels": 1 },
         { "kind": "engine", "x": -2, "y": 0, "angle": 180, "length": 4, "width": 6, "thick": true },
         {
           "kind": "engine", "x": 2, "y": 3, "angle": 0, "length": 2, "width": 2,

@@ -4,7 +4,10 @@ import {
   shiftSeam,
   type SharedFace,
   math,
+  BARREL_OUTER_CALIBRES,
   DEFAULT_NOZZLE_SHARE,
+  hullMountGeometry,
+  MAX_BARREL_CALIBRES,
   moduleCentre,
   readsNozzle,
   moduleRadius,
@@ -134,7 +137,7 @@ export function handlesFor(spec: ModuleSpec, scale: number): Handle[] {
     across,
   });
   const arm = hl + ROTATE_ARM_PX / scale;
-  const split = readsNozzle(spec.kind) ? [splitHandle(spec)] : [];
+  const split = readsNozzle(spec.kind) || spec.kind === 'hullGun' ? [splitHandle(spec)] : [];
   return [
     size(1, 1),
     size(1, -1),
@@ -156,10 +159,11 @@ export function handlesFor(spec: ModuleSpec, scale: number): Handle[] {
 }
 
 /**
- * The fraction of an engine or hull weapon that sticks out: its bell, barrel
- * or lens, at the far end of its facing.
+ * The fraction of an engine or hull gun that sticks out: its bell or barrel,
+ * at the far end of its facing.
  */
 function share(spec: ModuleSpec): number {
+  if (spec.kind === 'hullGun') return hullMountGeometry(spec).share;
   return spec.nozzle ?? DEFAULT_NOZZLE_SHARE;
 }
 
@@ -200,6 +204,22 @@ export function shareTo(spec: ModuleSpec, x: number, y: number, step: number): n
   const most = spec.length * MAX_SHARE;
   const length = out < floor ? floor : out > most ? most : out;
   return round((length / spec.length) * 1e6) / 1e6;
+}
+
+/**
+ * A hull gun's barrel in calibres when the split is dragged to a point: whole
+ * calibres unless `exact`, at least one, and leaving some block.
+ */
+export function barrelCalibresTo(spec: ModuleSpec, x: number, y: number, exact: boolean): number {
+  const angle = spec.angle ?? 0;
+  const mid = moduleCentre(spec);
+  const along = (x - mid.x) * cos(angle) + (y - mid.y) * sin(angle);
+  const calibre = hullMountGeometry(spec).outletWidth / BARREL_OUTER_CALIBRES;
+  const wanted = (spec.length / 2 - along) / calibre;
+  const fits = (spec.length * MAX_SHARE) / calibre;
+  const most = fits < MAX_BARREL_CALIBRES ? fits : MAX_BARREL_CALIBRES;
+  const held = wanted < 1 ? 1 : wanted > most ? most : wanted;
+  return exact ? round(held * 1000) / 1000 : max(1, Math.floor(held));
 }
 
 /** Which handle a point is within reach of — the nearest of them — or -1. */

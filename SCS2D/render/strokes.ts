@@ -79,6 +79,26 @@ export function plumeAlpha(intensity: number): number {
 }
 
 /**
+ * Tracer opacity, for a round `length` metres long that crosses `travel`
+ * metres on screen in one exposure.
+ *
+ * The streak's width already says how wide the round is. What it does not say
+ * is how much of the exposure the round spent over each point of it: the share
+ * is `length / (travel + length)`, so a longer round, or a slower one, leaves
+ * a denser streak. `TRACER_FULL_EXPOSURE` is the share drawn fully opaque,
+ * about a heavy shell's at gunnery speed; `TRACER_MIN_ALPHA` keeps the
+ * lightest rounds visible.
+ */
+const TRACER_FULL_EXPOSURE = 0.15;
+export const TRACER_MIN_ALPHA = 0.4;
+
+export function tracerAlpha(length: number, travel: number): number {
+  if (!(length > 0)) return TRACER_MIN_ALPHA;
+  const share = length / (travel + length) / TRACER_FULL_EXPOSURE;
+  return share >= 1 ? 1 : share > TRACER_MIN_ALPHA ? share : TRACER_MIN_ALPHA;
+}
+
+/**
  * How far to dim a beam that the on-screen floor has drawn wider than life.
  *
  * The floors exist so that detail does not vanish when it falls below a pixel,

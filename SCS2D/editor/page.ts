@@ -1,5 +1,12 @@
 import {
   DEFAULT_BURST_SPEED,
+  barrelCalibres,
+  readsBarrelCalibres,
+  moduleProblem,
+  moduleStats,
+  DEFAULT_DOCTRINE,
+  defaultTargeting,
+  resolveTargeting,
   DEFAULT_FRAGMENTS,
   DEFAULT_FUSE,
   firesShells,
@@ -82,6 +89,7 @@ import {
   assemblyKnob,
   facingTo,
   shareTo,
+  barrelCalibresTo,
   handleAt,
   handlesFor,
   resizedTo,
@@ -98,12 +106,15 @@ import {
   shipSummary,
   withMountField,
   withShipField,
-  MOUNT_ROWS,
-  SHIP_APPROACH_ROWS,
-  SHIP_TARGETING_ROWS,
-  type DoctrineRow,
+  MOUNT_SECTIONS,
+  sectionEntries,
+  SHIP_SECTIONS,
+  type DoctrineContext,
+  type DoctrineEntry,
+  type DoctrineSection,
+  type DoctrineValues,
 } from './doctrine.js';
-import { previewSnapshot } from './preview.js';
+import { doctrineBand, previewSnapshot } from './preview.js';
 import { designStats, envelopes, assemblyMass, moduleReadout, type Envelopes } from './stats.js';
 
 /**
@@ -156,13 +167,23 @@ function el<T extends HTMLElement>(id: string): T {
   return found as T;
 }
 
-type ModuleNumberField = 'angle' | 'reinforcement' | 'barrels' | 'nozzle' | 'traverse' | 'fuse' | 'fragments' | 'burstSpeed';
+type ModuleNumberField =
+  | 'angle'
+  | 'reinforcement'
+  | 'barrels'
+  | 'nozzle'
+  | 'barrelCalibres'
+  | 'traverse'
+  | 'fuse'
+  | 'fragments'
+  | 'burstSpeed';
 
 /** A module's own value for a field, with the default the parser would have applied. */
 function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
   if (key === 'angle') return radiansToDegrees(spec.angle ?? 0);
   if (key === 'reinforcement') return spec.reinforcement ?? 1;
   if (key === 'nozzle') return spec.nozzle ?? DEFAULT_NOZZLE_SHARE;
+  if (key === 'barrelCalibres') return barrelCalibres(spec);
   // What the mount would do if the layout said nothing, so the box shows the
   // arc it actually has rather than a blank.
   if (key === 'traverse') return radiansToDegrees(mountTraverse(spec));
@@ -170,6 +191,15 @@ function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
   if (key === 'fragments') return spec.fragments ?? DEFAULT_FRAGMENTS;
   if (key === 'burstSpeed') return spec.burstSpeed ?? DEFAULT_BURST_SPEED;
   return spec.barrels ?? 1;
+}
+
+/** A gun's barrel in metres, and how much of it is braced. */
+function barrelReadout(spec: ModuleSpec): string {
+  if (!readsBarrelCalibres(spec.kind) || moduleProblem(spec) !== null) return '';
+  const gun = moduleStats(spec).gun;
+  if (gun === null) return '';
+  const metres = `= ${gun.barrelLength.toFixed(2)} m`;
+  return gun.braceLength > 0 ? `${metres}, ${gun.braceLength.toFixed(2)} m braced` : metres;
 }
 
 export function startEditor(): void {
@@ -292,6 +322,7 @@ export function startEditor(): void {
     reinforcement: el<HTMLInputElement>('propReinforcement'),
     barrels: el<HTMLInputElement>('propBarrels'),
     nozzle: el<HTMLInputElement>('propNozzle'),
+    barrelCalibres: el<HTMLInputElement>('propBarrelCalibres'),
     traverse: el<HTMLInputElement>('propTraverse'),
     fuse: el<HTMLInputElement>('propFuse'),
     fragments: el<HTMLInputElement>('propFragments'),
@@ -511,20 +542,21 @@ export function startEditor(): void {
     // on a ship with several mounts, and said nothing the module panel does
     // not say better.
     rows.push(['Turrets', `${s.turrets.length}`]);
+    // Against the enemy its own doctrine wants, as the band drawn round it is.
+    const band = doctrineBand(design);
+    rows.push(['Closes to', `${numbers(band.min, 0)}–${numbers(band.max, 0)} m, centre to centre`]);
     statsPanel.innerHTML =
       `<table>${rows.map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join('')}</table>`;
   };
 
   const renderProblems = (): void => {
     const problems = doc.view.problems;
-    if (problems.length === 0) {
-      problemsPanel.innerHTML = '<p class="ok">No problems — this layout would fly.</p>';
-      return;
-    }
     problemsPanel.innerHTML =
-      `<p class="warn">${problems.length} problem${problems.length > 1 ? 's' : ''}</p><ul>` +
-      problems.map((p) => `<li>${escapeHtml(p)}</li>`).join('') +
-      '</ul>';
+      (problems.length === 0
+        ? '<p class="ok">No problems — this layout would fly.</p>'
+        : `<p class="warn">${problems.length} problem${problems.length > 1 ? 's' : ''}</p><ul>` +
+          problems.map((p) => `<li>${escapeHtml(p)}</li>`).join('') +
+          '</ul>') + unreadNote(doc.view.warnings);
   };
 
   /** Where the selected copy's position is written, and in what frame. */
@@ -753,20 +785,15 @@ export function startEditor(): void {
       : spec.kind === 'beamTurret'
         ? 'emitters'
         : 'barrels';
-    // The same field again: what sticks out of the module, named for the kind
-    // showing it — a bell, a barrel, or the housing round a lens.
     el<HTMLElement>('traverseRow').hidden = !isWeaponMount(spec.kind);
     el<HTMLElement>('shellRow').hidden = !readsFuse(spec.kind);
     // Solid shot has no burst to time or to size.
     const shells = firesShells(spec);
     el<HTMLInputElement>('propFuse').disabled = !shells;
     el<HTMLInputElement>('propBurstSpeed').disabled = !shells;
-    el<HTMLElement>('nozzleRow').hidden = !nozzles && !hullMount;
-    el<HTMLElement>('nozzleLabel').textContent = nozzles
-      ? 'nozzle'
-      : spec.kind === 'hullBeam'
-        ? 'lens'
-        : 'barrel';
+    el<HTMLElement>('nozzleRow').hidden = !nozzles;
+    el<HTMLElement>('barrelCalibresRow').hidden = !readsBarrelCalibres(spec.kind);
+    el<HTMLElement>('barrelMetres').textContent = barrelReadout(spec);
     // Only an engine has a plume to point.
     el<HTMLElement>('weaponRow').hidden = spec.kind !== 'engine';
     weaponInput.checked = spec.weapon === true;
@@ -804,40 +831,85 @@ export function startEditor(): void {
   };
 
   /**
-   * The doctrine boxes, built from the field lists rather than written out in
-   * the page.
+   * The doctrine boxes, laid out by what each decision is about, from the
+   * section lists rather than written out in the page.
    *
-   * A doctrine number added in `sim/doctrine.ts` then appears here by itself,
-   * which is the only way a panel of twenty-one numbers stays in step with the
-   * thing it is editing. The half a box belongs to is part of its key, since
-   * the two halves are separate objects with no field names in common to rely
-   * on.
+   * Every box carries a line for what its number comes to for this ship, and
+   * is hidden while a setting above it has made it mean nothing. The half a
+   * box belongs to is part of its key, since the two halves are separate
+   * objects with no field names in common to rely on.
    */
   const doctrineInputs = new Map<string, HTMLInputElement>();
+  const doctrineRows = new Map<string, { field: HTMLElement; absolute: HTMLElement; entry: DoctrineEntry }>();
 
-  const buildDoctrine = (into: HTMLElement, rows: readonly DoctrineRow[], half: string): void => {
-    for (const row of rows) {
-      const field = document.createElement('div');
-      field.className = 'field';
-      const label = document.createElement('label');
-      const id = `doctrine-${half}-${row.field}`;
-      label.htmlFor = id;
-      label.textContent = row.label;
-      const input = document.createElement('input');
-      input.id = id;
-      input.type = 'number';
-      input.step = String(row.step);
-      input.title = row.hint;
-      label.title = row.hint;
-      field.append(label, input);
-      into.append(field);
-      doctrineInputs.set(`${half}.${row.field}`, input);
+  const buildDoctrine = (into: HTMLElement, sections: readonly DoctrineSection[]): void => {
+    for (const section of sections) {
+      const heading = document.createElement('h3');
+      heading.textContent = section.title;
+      into.append(heading);
+      for (const group of section.groups) {
+        // A section of one group says it once.
+        if (group.title !== section.title) {
+          const sub = document.createElement('h4');
+          sub.textContent = group.title;
+          into.append(sub);
+        }
+        for (const row of group.entries) {
+          const key = `${row.half}.${row.field}`;
+          const field = document.createElement('div');
+          field.className = 'field';
+          const label = document.createElement('label');
+          const id = `doctrine-${row.half}-${row.field}`;
+          label.htmlFor = id;
+          label.textContent = row.label;
+          const input = document.createElement('input');
+          input.id = id;
+          input.type = 'number';
+          input.step = String(row.step);
+          input.title = row.hint;
+          label.title = row.hint;
+          const absolute = document.createElement('span');
+          absolute.className = 'absolute';
+          field.append(label, input, absolute);
+          into.append(field);
+          doctrineInputs.set(key, input);
+          doctrineRows.set(key, { field, absolute, entry: row });
+        }
+      }
     }
   };
 
-  buildDoctrine(el<HTMLElement>('mountDoctrineFields'), MOUNT_ROWS, 'mount');
-  buildDoctrine(el<HTMLElement>('shipTargetingFields'), SHIP_TARGETING_ROWS, 'targeting');
-  buildDoctrine(el<HTMLElement>('shipApproachFields'), SHIP_APPROACH_ROWS, 'approach');
+  buildDoctrine(el<HTMLElement>('mountDoctrineFields'), MOUNT_SECTIONS);
+  buildDoctrine(el<HTMLElement>('shipDoctrineFields'), SHIP_SECTIONS);
+
+  /** Hide what a higher setting has made moot, and say what the rest comes to. */
+  const showDoctrineRows = (
+    entries: readonly DoctrineEntry[],
+    values: DoctrineValues,
+    ship: DoctrineContext | null,
+  ): void => {
+    for (const row of entries) {
+      const shown = doctrineRows.get(`${row.half}.${row.field}`)!;
+      shown.field.hidden = row.shown !== undefined && !row.shown(values);
+      shown.absolute.textContent = ship === null ? '' : (row.absolute?.(values, ship) ?? '');
+    }
+  };
+
+  /** What the panel says relative numbers in terms of: the ship being edited. */
+  const doctrineContext = (fireRange: number | null = null): DoctrineContext | null => {
+    const design = doc.view.design;
+    if (design === null || envelope === null) return null;
+    const stats = designStats(design, envelope);
+    return {
+      mass: design.mass,
+      radius: design.radius,
+      reach: design.reach,
+      accelFore: stats.accelFore,
+      accelAft: stats.accelAft,
+      guns: design.turrets.length,
+      fireRange,
+    };
+  };
 
   /**
    * Show a doctrine box: the stated value, or nothing over a placeholder of
@@ -877,25 +949,35 @@ export function startEditor(): void {
       mountDoctrineSummary.textContent = mountSummary(spec.kind, spec.targeting);
       mountDoctrineReset.disabled = spec.targeting === undefined;
       mountDoctrineReset.title = `Take this ${kindName(spec.kind)} back to what its archetype does`;
-      for (const row of MOUNT_ROWS) {
+      const entries = sectionEntries(MOUNT_SECTIONS);
+      for (const row of entries) {
         const input = doctrineInputs.get(`mount.${row.field}`)!;
         showDoctrineValue(input, held[row.field], mountDefault(spec.kind, row.field), sameThing);
       }
+      const index = doc.selectedModules()[0] ?? -1;
+      const fireRange =
+        moduleReadout(spec, doc.view.modules, index, doc.view.design?.radius ?? 0).gun?.triggerRange ?? null;
+      showDoctrineRows(
+        entries,
+        {
+          targeting: resolveTargeting(spec.targeting, defaultTargeting(spec.kind)),
+          approach: (doc.blueprint.doctrine ?? DEFAULT_DOCTRINE).approach,
+        },
+        doctrineContext(fireRange),
+      );
     }
     if (core) {
       const doctrine = doc.blueprint.doctrine;
       shipDoctrineSummary.textContent = shipSummary(doctrine);
       shipDoctrineReset.disabled = doctrine === undefined;
-      for (const [half, rows] of [
-        ['targeting', SHIP_TARGETING_ROWS],
-        ['approach', SHIP_APPROACH_ROWS],
-      ] as const) {
+      const entries = sectionEntries(SHIP_SECTIONS);
+      for (const row of entries) {
+        const half = row.half as 'targeting' | 'approach';
         const held = doctrine?.[half] as unknown as Record<string, number> | undefined;
-        for (const row of rows) {
-          const input = doctrineInputs.get(`${half}.${row.field}`)!;
-          showDoctrineValue(input, held?.[row.field], shipDefault(half, row.field), sameThing);
-        }
+        const input = doctrineInputs.get(`${half}.${row.field}`)!;
+        showDoctrineValue(input, held?.[row.field], shipDefault(half, row.field), sameThing);
       }
+      showDoctrineRows(entries, doctrine ?? DEFAULT_DOCTRINE, doctrineContext());
     }
   };
 
@@ -1702,8 +1784,13 @@ export function startEditor(): void {
     const world = worldAt(event);
     let next: Blueprint | null;
     if (drag.kind === 'split') {
-      const nozzle = shareTo(drag.spec, world.x, world.y, event.altKey ? 0 : snapMetres());
-      next = updatePlacement(drag.from, path, (p) => ({ ...p, nozzle }));
+      if (drag.spec.kind === 'hullGun') {
+        const barrelCalibres = barrelCalibresTo(drag.spec, world.x, world.y, event.altKey);
+        next = updatePlacement(drag.from, path, (p) => ({ ...p, barrelCalibres }));
+      } else {
+        const nozzle = shareTo(drag.spec, world.x, world.y, event.altKey ? 0 : snapMetres());
+        next = updatePlacement(drag.from, path, (p) => ({ ...p, nozzle }));
+      }
     } else if (drag.kind === 'size') {
       const step = event.altKey ? 0 : snapMetres();
       // Shift sizes about the middle, keeping it where it was.
@@ -1941,6 +2028,19 @@ export function startEditor(): void {
 /** A name not already in the library, so a new ship does not shadow a saved one. */
 function isModuleSpec(placement: Placement): boolean {
   return !('use' in placement);
+}
+
+/**
+ * Keys a file carried that nothing reads, said rather than refused: they are
+ * kept, and go back out with the ship when it is saved or exported.
+ */
+function unreadNote(warnings: readonly string[]): string {
+  if (warnings.length === 0) return '';
+  return (
+    `<p class="note">Kept as written, and saved and exported with the ship:</p><ul class="note">` +
+    warnings.map((w) => `<li>${escapeHtml(w)}</li>`).join('') +
+    '</ul>'
+  );
 }
 
 function escapeHtml(text: string): string {

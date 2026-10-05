@@ -1,3 +1,4 @@
+import type { UnreadKeys } from './unread.js';
 import { abs, angleDelta, asin, atan2, cos, max, min, normalizeAngle, PI, sin, sqrt, TAU } from './math.js';
 import {
   GunType,
@@ -13,7 +14,7 @@ import {
   engineGeometry,
   boxAngle,
   weldBox,
-  traverseAccel,
+  mountAccel,
   traverseRate,
   type GunStats,
   type ModuleSpec,
@@ -110,6 +111,8 @@ export interface Assembly {
   modules: readonly Placement[];
   /** Why this grouping exists. See `ModuleSpec.notes`. */
   notes?: string;
+  /** Keys its file carried that nothing reads, kept to be written back (`UnreadKeys`). */
+  unread?: UnreadKeys;
 }
 
 /**
@@ -152,6 +155,8 @@ export interface AssemblyInstance {
   step?: AssemblyStep;
   /** Why this copy is here. See `ModuleSpec.notes`. */
   notes?: string;
+  /** Keys its file carried that nothing reads, kept to be written back (`UnreadKeys`). */
+  unread?: UnreadKeys;
 }
 
 /**
@@ -165,6 +170,8 @@ export interface AssemblyStep {
   x: number;
   y: number;
   angle?: number;
+  /** Keys its file carried that nothing reads, kept to be written back (`UnreadKeys`). */
+  unread?: UnreadKeys;
 }
 
 /** Something a layout puts somewhere: a module itself, or a copy of a group. */
@@ -268,6 +275,10 @@ export interface Blueprint {
    * ship with a turret or anything thick (`fighterProblem`).
    */
   fighter?: boolean;
+  /** Keys its file carried that nothing reads, kept to be written back (`UnreadKeys`). */
+  unread?: UnreadKeys;
+  /** The same, inside its doctrine block, in the block's own shape. */
+  unreadDoctrine?: UnreadKeys;
 }
 
 /** A module in a compiled design: what was authored, plus what it works out to. */
@@ -1000,6 +1011,7 @@ function place(
     if (placement.reinforcement !== undefined) spec.reinforcement = placement.reinforcement;
     if (placement.barrels !== undefined) spec.barrels = placement.barrels;
     if (placement.nozzle !== undefined) spec.nozzle = placement.nozzle;
+    if (placement.barrelCalibres !== undefined) spec.barrelCalibres = placement.barrelCalibres;
     if (placement.traverse !== undefined) spec.traverse = placement.traverse;
     if (placement.fuse !== undefined) spec.fuse = placement.fuse;
     if (placement.fragments !== undefined) spec.fragments = placement.fragments;
@@ -1659,8 +1671,7 @@ function designFrom(
       const arc = firingArc(specs, i, gun.barrelLength);
       const mask = triggerMask(specs, i, everyModule, shotSpread(gun));
       const limit = mountTraverse(spec);
-      // Only the barrels swing, so that is what the drive is sized against.
-      const accel = traverseAccel(s.mass, s.swingInertia);
+      const accel = mountAccel(spec, s);
 
       turrets.push({
         module: i,
@@ -1702,7 +1713,7 @@ function designFrom(
 
       // One drive, so one figure: the rate limit is what this acceleration
       // reaches in the drive's spin-up time.
-      const accel = traverseAccel(s.mass, s.inertia);
+      const accel = mountAccel(spec, s);
 
       turrets.push({
         module: i,
@@ -1737,16 +1748,19 @@ function designFrom(
   // goes after, because what the ship's reach decides is how close its pilot
   // flies — and the pilot flies at what the hull chose, not at what the
   // point-defence guns are watching for.
-  const expects = (preferredMass: number, gun: GunStats): number =>
-    nominalReach(gun, radius, preferredMass);
+  //
+  // Both as far as each mount's doctrine says it will fire (`fireRange`), so a
+  // ship whose guns hold their fire for a sure thing closes to where it is.
+  const expects = (preferredMass: number, mount: DesignTurret): number =>
+    nominalReach(mount.gun, radius, preferredMass) * mount.targeting.fireRange;
   for (let t = 0; t < turrets.length; t++) {
     const mount = turrets[t]!;
-    turrets[t] = { ...mount, reach: expects(mount.targeting.preferredMass, mount.gun) };
+    turrets[t] = { ...mount, reach: expects(mount.targeting.preferredMass, mount) };
   }
 
   let reach = 0;
   for (const turret of turrets) {
-    reach = max(reach, expects(doctrine.targeting.preferredMass, turret.gun));
+    reach = max(reach, expects(doctrine.targeting.preferredMass, turret));
   }
 
   const weaponEngines: number[] = [];

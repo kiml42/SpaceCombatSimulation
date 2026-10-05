@@ -86,7 +86,7 @@
           "length": 2.6,
           "width": 0.5,
           "barrels": 1,
-          "nozzle": 0.15,
+          "barrelCalibres": 7.8,
           "traverse": 5,
           "targeting": {
             "structureWeight": 0
