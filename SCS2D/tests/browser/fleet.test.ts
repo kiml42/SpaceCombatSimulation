@@ -70,7 +70,7 @@ beforeAll(async () => {
     if (message.type() === 'error') problems.push(`console: ${message.text()}`);
   });
   await page.goto(pathToFileURL(fleetPage).href);
-  await page.waitForFunction(() => (document.getElementById('stats')?.textContent ?? '').includes('dry mass'));
+  await page.waitForFunction(() => (document.getElementById('stats')?.textContent ?? '').includes('mass, fuelled'));
 }, 120_000);
 
 afterAll(async () => {

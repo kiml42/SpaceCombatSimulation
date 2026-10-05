@@ -11,6 +11,7 @@ import {
 import { components, cuts, jointBetween, joints, type Joint } from './connectivity.js';
 import { BOTH_LAYERS, HULL_LAYER, Hulls, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from './hull.js';
 import { Damage, DamageEffect } from './damage.js';
+import { Fuel } from './fuel.js';
 import { plumeRays, plumeRayStarts, Plumes, WEAPON_PLUME_SHARE, weaponPlumeReach } from './exhaust.js';
 import { Choice, cohesionUrge, inSight, look, lookFrom, score } from './targeting.js';
 import {
@@ -160,6 +161,13 @@ const RAM_AIM_SPEED = 5;
 
 /** How many times a ram may halve its ask for force to keep the torque to turn with. */
 const RAM_FORCE_HALVINGS = 6;
+
+/**
+ * A turn short by less than this share of the torque the ship has is no turn
+ * at all, and not worth giving up thrust for: a ram dead on its target asks for
+ * round-off.
+ */
+const RAM_TORQUE_NEGLIGIBLE = 1e-6;
 
 const TIMER_SETTLE = 1e-9;
 
@@ -326,7 +334,8 @@ const NOTHING_AIMABLE = -2;
 function partWeight(doctrine: Targeting, kind: ModuleKind): number {
   if (kind === 'core') return doctrine.coreWeight;
   if (kind === 'engine') return doctrine.engineWeight;
-  if (kind === 'structure') return doctrine.structureWeight;
+  // A tank is shot at as plating until hitting one does something more.
+  if (kind === 'structure' || kind === 'tank') return doctrine.structureWeight;
   return doctrine.gunWeight;
 }
 
@@ -463,6 +472,8 @@ export class Ships {
 
   /** What every ship has taken, by body index. */
   readonly damage = new Damage();
+  /** What each body has left in its tanks. */
+  readonly fuel = new Fuel();
 
   /**
    * The narrow phase over those hulls, so that a shot lands on a ship's
@@ -718,9 +729,9 @@ export class Ships {
    * what the narrow phase asks, and what makes a round land on a ship's
    * modules rather than on the circle drawn round them.
    */
-  /** The layers every module of this body is in; `OWN_LAYERS` for anything but one fighter. */
+  /** The layers every module of this body is in; `OWN_LAYERS` for anything but a fighter. */
   layersOf(bodyIndex: number): number {
-    if (this.designOf(bodyIndex) === null || this.pilots[bodyIndex] != null) return OWN_LAYERS;
+    if (this.designOf(bodyIndex) === null) return OWN_LAYERS;
     const ship = this.shipByBody[bodyIndex];
     return ship === undefined ? OWN_LAYERS : this.shipLayers(ship);
   }
@@ -940,6 +951,7 @@ export class Ships {
     this.hullDesign[bodyIdx] = design;
     this.hullBody[bodyIdx] = id;
     this.damage.register(bodyIdx, design);
+    this.fuel.register(bodyIdx, design);
     if (spec.invulnerable === true) this.damage.protect(bodyIdx);
     const mounts = design.turrets;
     const indices = new Int32Array(mounts.length);
@@ -1836,6 +1848,12 @@ export class Ships {
       }
     }
 
+    // Every ship pushing pays for it, flown or not: a hulk's last wrench is
+    // still applied, so it burns until it runs dry.
+    for (let i = 0; i < this.alive.length; i++) {
+      if (this.alive[i] === 1) this.burn(dt, bodies, i);
+    }
+
     // Slew every turret, collecting the hull reaction rather than letting it
     // write into forces the world is about to clear.
     if (this.reaction.length < bodies.highWater) {
@@ -2265,7 +2283,7 @@ export class Ships {
     if (order?.ram === true) {
       for (let k = 0; k < RAM_FORCE_HALVINGS; k++) {
         const short = demandTorque - this.allocation.torque;
-        if (abs(short) <= 0.5 * abs(demandTorque)) break;
+        if (abs(short) <= 0.5 * abs(demandTorque) || abs(short) <= maxTorque * RAM_TORQUE_NEGLIGIBLE) break;
         demandFx *= 0.5;
         demandFy *= 0.5;
         layout.allocate(demandFx, demandFy, demandTorque, throttles, this.allocation);
@@ -3001,9 +3019,12 @@ export class Ships {
 
     this.adopt(keep, bk, design, (m) => (m < n ? keep : other), (m) => (m < n ? m : m - n));
     this.pilots[bk] = pilots;
+    // Spun up against the inertia the fuel left aboard gives it.
+    bodies.angularVel[bk] = angular / bodies.inertia[bk]!;
 
     const gone = this.bodyIds[other]!;
     this.damage.forget(bo);
+    this.fuel.forget(bo);
     this.shipByBody[bo] = -1;
     this.pilots[bo] = null;
     this.sides[bo] = null;
@@ -3047,10 +3068,12 @@ export class Ships {
       const reach = area.radius + (design.mass - SCRAP_MASS) * SALVAGE_REACH;
       if (length(bodies.x[b]! - area.x, bodies.y[b]! - area.y) <= reach) continue;
 
-      this.discarded += design.mass;
-      this.discardedPx += design.mass * bodies.vx[b]!;
-      this.discardedPy += design.mass * bodies.vy[b]!;
+      const mass = bodies.mass[b]!;
+      this.discarded += mass;
+      this.discardedPx += mass * bodies.vx[b]!;
+      this.discardedPy += mass * bodies.vy[b]!;
       this.damage.forget(b);
+      this.fuel.forget(b);
       this.shipByBody[b] = -1;
       this.remove(i);
       world.destroy(this.bodyIds[i]!);
@@ -3499,11 +3522,13 @@ export class Ships {
     // vanishes: a piece this small is not created rather than removed. A piece
     // that still flies is not scrap at whatever mass — it is a ship, and the
     // smallest ship in the game weighs less than this.
-    if (!flies && chunk.mass < SCRAP_MASS) {
-      this.discarded += chunk.mass;
+    let mass = chunk.mass;
+    for (let m = 0; m < keep.length; m++) mass -= chunk.modules[m]!.stats.fuel - this.fuel.held(b, keep[m]!);
+    if (!flies && mass < SCRAP_MASS) {
+      this.discarded += mass;
       // Whatever it would have left with, had it been worth putting there.
-      this.discardedPx += chunk.mass * (bodies.vx[b]! - spin * offset.y);
-      this.discardedPy += chunk.mass * (bodies.vy[b]! + spin * offset.x);
+      this.discardedPx += mass * (bodies.vx[b]! - spin * offset.y);
+      this.discardedPy += mass * (bodies.vy[b]! + spin * offset.x);
       return false;
     }
 
@@ -3531,6 +3556,8 @@ export class Ships {
       this.scarsOf(b, keep),
       this.weldScarsOf(b, design, chunk, keep),
     );
+    this.fuel.register(chunkBody, chunk, keep.map((m) => this.fuel.held(b, m)));
+    this.settleMass(bodies, chunkBody);
     this.shipByBody[chunkBody] = j;
     this.sides[chunkBody] = this.sidesOf((m) => this.sideAt(b, keep[m]!), keep.length, this.team[j]!);
     return true;
@@ -3584,7 +3611,11 @@ export class Ships {
     const bodyOf = (ship: number): number => bodies.indexOf(this.bodyIds[ship]!);
     const sides = this.sidesOf((m) => this.sideAt(bodyOf(shipOf(m)), moduleOf(m)), design.modules.length, this.team[i]!);
     const scars: number[] = [];
-    for (let m = 0; m < design.modules.length; m++) scars.push(this.damage.absorbedAt(bodyOf(shipOf(m)), moduleOf(m)));
+    const fuel: number[] = [];
+    for (let m = 0; m < design.modules.length; m++) {
+      scars.push(this.damage.absorbedAt(bodyOf(shipOf(m)), moduleOf(m)));
+      fuel.push(this.fuel.held(bodyOf(shipOf(m)), moduleOf(m)));
+    }
     // A weld half sawn through stays half sawn through; a seam is new.
     const weldScars: number[] = [];
     for (const joint of joints(design)) {
@@ -3663,7 +3694,68 @@ export class Ships {
     this.layouts[i] = null;
     this.layoutVersion[i] = -1;
     this.damage.register(b, design, scars, weldScars);
+    this.fuel.register(b, design, fuel);
+    this.settleMass(bodies, b);
     this.cutSeen[i] = this.damage.cutVersion(b);
+  }
+
+  /**
+   * Draw what this ship's engines burned this step from its tanks, and throttle
+   * back any engine whose tanks could not supply it.
+   *
+   * Paid by gas thrown rather than by thrust delivered: an engine firing into
+   * its own hull burns its fuel all the same (`exhaustOf`).
+   */
+  private burn(dt: number, bodies: Bodies, i: number): void {
+    const b = bodies.indexOf(this.bodyIds[i]!);
+    if (b < 0) return;
+    const design = this.designs[i]!;
+    const throttles = this.throttles[i]!;
+    let burned = false;
+    let short = false;
+    for (let t = 0; t < design.engines.length; t++) {
+      const u = throttles[t]!;
+      if (!(u > 0)) continue;
+      const module = design.engines[t]!.module ?? -1;
+      const exhaust = design.modules[module]?.stats.exhaustVelocity ?? 0;
+      // A layout built by hand has no modules, and so nothing to run dry.
+      if (!(exhaust > 0)) continue;
+      const wanted = (u * this.exhaustOf(i, design, b, t) * dt) / exhaust;
+      if (!(wanted > 0)) continue;
+      const got = this.fuel.drain(b, module, wanted);
+      burned = true;
+      if (got < wanted) {
+        throttles[t] = (u * got) / wanted;
+        short = true;
+      }
+    }
+    if (burned) this.settleMass(bodies, b);
+    if (!short) return;
+
+    // What the engines that ran short actually push with.
+    const layout = this.layoutOf(i);
+    let fx = 0;
+    let fy = 0;
+    let torque = 0;
+    for (let t = 0; t < layout.count; t++) {
+      const u = throttles[t]!;
+      fx += layout.wfx[t]! * u;
+      fy += layout.wfy[t]! * u;
+      torque += layout.wt[t]! * u;
+    }
+    this.demandFx[i] = fx;
+    this.demandFy[i] = fy;
+    this.demandTorque[i] = torque;
+  }
+
+  /** A body's mass and inertia: its design's, less the fuel burnt from it. */
+  private settleMass(bodies: Bodies, b: number): void {
+    const design = this.hullDesign[b];
+    // Something nothing moves stays that way.
+    if (design === null || design === undefined || !(bodies.mass[b]! > 0)) return;
+    const id = this.hullBody[b]!;
+    bodies.setMass(id, design.mass - this.fuel.burntMass(b));
+    bodies.setInertia(id, design.inertia - this.fuel.burntInertia(b));
   }
 
   /** What each kept module has already absorbed, in the new design's order. */

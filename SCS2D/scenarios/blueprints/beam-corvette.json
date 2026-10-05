@@ -18,7 +18,7 @@
       "notes": "The wings exist to hold the manoeuvring engines out where their moment arm is worth having. That they also foul the bow gun's traverse is the trade this layout makes, and it is visible in the arc the design compiles to.",
       "modules": [
         {
-          "kind": "structure",
+          "kind": "tank",
           "x": 0,
           "y": 0,
           "length": 4,

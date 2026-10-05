@@ -456,7 +456,7 @@
       "thick": true
     },
     {
-      "kind": "structure",
+      "kind": "tank",
       "x": 22.5,
       "y": 0,
       "length": 665,

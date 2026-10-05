@@ -79,7 +79,7 @@
   },
   "modules": [
     {
-      "kind": "structure",
+      "kind": "tank",
       "x": 4.25,
       "y": 0,
       "length": 4.5,

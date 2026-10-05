@@ -7,7 +7,7 @@
       "notes": "Holds a manoeuvring engine out where its moment arm is worth having. Outboard only: an engine on the inboard face would exhaust across the bridge and into the other hull.",
       "modules": [
         {
-          "kind": "structure",
+          "kind": "tank",
           "x": 0,
           "y": 0,
           "length": 4,

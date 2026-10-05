@@ -138,7 +138,8 @@ export function customBattle(setup: BattleSetup): CustomBattle {
 }
 
 /**
- * Each side as it stands now: the ships still under command and their mass.
+ * Each side as it stands now: the ships still under command and their mass,
+ * counted with full tanks.
  * A hulk is a hull with its cores out, as doctrine has it, so a ship that has
  * lost only its guns still counts.
  */
@@ -154,7 +155,8 @@ export function tally(battle: Battle, sides: number): SideTally[] {
     out[team]!.ships++;
     if (!ships.isDisarmed(i)) out[team]!.armed++;
     if (!ships.hasNoEngines(i)) out[team]!.mobile++;
-    out[team]!.mass += body >= 0 ? world.bodies.mass[body]! : 0;
+    // Fuel burnt is not mass lost to the enemy.
+    out[team]!.mass += body >= 0 ? world.bodies.mass[body]! + ships.fuel.burntMass(body) : 0;
   }
   return out;
 }

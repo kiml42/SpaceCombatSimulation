@@ -490,8 +490,20 @@ inside any one file is not contiguous.
   that does not evolve, at the middle of the ring where the goal would be, each scored for what it does to
   the boss alone. Entrants can start already moving, towards the middle and across it, at speeds the run
   sets (`--closing`, `--crossing`), the same two a custom battle has.
-- **Next:** the rest of §8 step 5 — a materials budget, designed scenarios, shareable by URL; then step 8,
-  fuel, which starts the resource system.
+  **Fuel.** A `tank` archetype whose interior is reaction mass, and every core's interior past the cubic
+  metre its computing needs (`CORE_COMPUTING_VOLUME`), so a bare core with one engine can move; a core no
+  bigger than that holds none. Each engine has an exhaust velocity:
+  `EXHAUST_VELOCITY`, less what its bell throws sideways (`divergence`) and what a small throat loses to its
+  walls — about 1,900 s of specific impulse on a capital's main engine and 1,650 s on a fighter's, and
+  never under 700 s. It burns the gas it throws over that, throttle by throttle, from the tanks on its own
+  piece of hull, in proportion to their size so that tanks starting full run dry together; tanks are
+  drained in tiers, all one tier until a tank can carry a priority. A ship weighs its fuel and gets lighter
+  as it burns, its centre of mass held where the full ship's was; an engine with nothing left to burn
+  pushes nothing; a hulk burns its last throttle until it runs dry; fuel goes with its tank when a hull
+  comes apart or is welded. The editor has a Tank, and shows an engine's Isp and fuel flow, a tank's fuel,
+  and a ship's fuel, endurance flat out and Δv. Every stock ship has one or more modules made tanks.
+- **Next:** the rest of §8 step 8 — leaks, and pilots that know their fuel — and of step 5: a materials
+  budget, designed scenarios, shareable by URL.
   See ROADMAP.md §8.
   §8 step 3 is done bar what it deliberately deferred — withdrawal, and the
   ship-type picker. What a chooser is already facing (`facingWeight`) and whether anything is in the way
@@ -638,8 +650,8 @@ Rules:
   ship in the weapons layer for the battle. A ship that evolves either one flies as an ordinary ship, its
   flag ignored. It commits when it rams, by its doctrine's decision or by a ram order. Any ship's doctrine
   can decide to ram: `approach.ramRadii` is how close its target's edge has to be, in the target's own
-  radii, and `approach.ramArmed` how little of its own armament it must have left. Uncommitted, it collides only with other fighters and hull-layer fire passes under
-  it; its own hull weapons fire in the weapons layer until it commits, and in both after.
+  radii, and `approach.ramArmed` how little of its own armament it must have left. Uncommitted, it collides only with weapons-layer modules — other fighters, turrets and thick structure —
+  and hull-layer fire passes under it; its own hull weapons fire in the weapons layer until it commits, and in both after.
 
   **Occupancy is added, never swapped.** A committed craft does not leave the weapons layer, so
   everything that could shoot at it still can — every turret is weapons-layer, and a craft
@@ -662,8 +674,8 @@ Rules:
 
   - The craft flies a **predictable terminal course** with its evasion given up, so it is far easier to
     hit. That is a consequence of the doctrine, not of the layer.
-  - It can now **collide with turrets** it would previously have overflown, so dense mount coverage
-    obstructs a dive just as it obstructs a strafing run.
+  - It can now **collide with thin hull** it would previously have overflown. Turrets and thick
+    structure stand above the deck, so they obstruct a strafing run and a dive alike.
   - Reaching a hull without ordnance therefore usually costs the craft, which is the right price.
 
   This is what makes "a torpedo is a fighter that crashes into things" literal — the crash is how a

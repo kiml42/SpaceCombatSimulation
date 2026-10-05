@@ -50,8 +50,10 @@ describe('a match of fleets', () => {
   });
 
   it('scores survival as one fraction per fleet, not per ship', () => {
-    const alone = runMatch([shipFleet(DINKY)], { ...SHORT, seed: 2 });
-    const two = runMatch([pair()], { ...SHORT, seed: 2 });
+    // Over before the pair drift within reach of each other's flames.
+    const unhurt = { duration: 15, seed: 2 };
+    const alone = runMatch([shipFleet(DINKY)], unhurt);
+    const two = runMatch([pair()], unhurt);
     expect(alone.scores[0]!.survival).toBeCloseTo(1, 9);
     expect(two.scores[0]!.survival).toBeCloseTo(1, 9);
   });

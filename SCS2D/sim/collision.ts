@@ -1,6 +1,6 @@
 import type { Bodies } from './bodies.js';
 import type { ShipDesign } from './blueprint.js';
-import { HULL_LAYER, OWN_LAYERS, type HullDesigns } from './hull.js';
+import { BOTH_LAYERS, moduleLayers, OWN_LAYERS, type HullDesigns } from './hull.js';
 import { abs, cos, max, min, sin, sqrt } from './math.js';
 
 /**
@@ -234,8 +234,9 @@ const boxesB: Box[] = [];
 const solid: number[] = [];
 const solidDesigns: ShipDesign[] = [];
 /**
- * The layers each hull meets others in: an ordinary ship in the hull layer,
- * a fighter in whatever it occupies, so one skimming a deck overflies it.
+ * The layers each hull's modules are in: a fighter's all in whatever it
+ * occupies, an ordinary ship's each its own (`OWN_LAYERS`). So a fighter
+ * skimming a deck overflies thin hull and meets what stands above it.
  */
 const solidLayers: number[] = [];
 const point = { x: 0, y: 0 };
@@ -310,8 +311,7 @@ export function findContacts(bodies: Bodies, hulls: HullDesigns, out: Contacts):
     if (design === null) continue;
     solid.push(i);
     solidDesigns.push(design);
-    const layers = hulls.layersOf?.(i) ?? OWN_LAYERS;
-    solidLayers.push(layers === OWN_LAYERS ? HULL_LAYER : layers);
+    solidLayers.push(hulls.layersOf?.(i) ?? OWN_LAYERS);
   }
 
   for (let a = 0; a < solid.length; a++) {
@@ -324,7 +324,9 @@ export function findContacts(bodies: Bodies, hulls: HullDesigns, out: Contacts):
     for (let b = a + 1; b < solid.length; b++) {
       const j = solid[b]!;
       const designB = solidDesigns[b]!;
-      if ((solidLayers[a]! & solidLayers[b]!) === 0) continue;
+      const layersA = solidLayers[a]!;
+      const layersB = solidLayers[b]!;
+      if ((reachOf(layersA) & reachOf(layersB)) === 0) continue;
 
       // Could they have met at all? Bounding circles, as the broad phase.
       const dx = bodies.x[j]! - bodies.x[i]!;
@@ -348,7 +350,9 @@ export function findContacts(bodies: Bodies, hulls: HullDesigns, out: Contacts):
 
       for (let ma = 0; ma < designA.modules.length; ma++) {
         const boxA = boxesA[ma]!;
+        const inA = moduleLayers(designA.modules[ma]!, layersA);
         for (let mb = 0; mb < designB.modules.length; mb++) {
+          if ((inA & moduleLayers(designB.modules[mb]!, layersB)) === 0) continue;
           const boxB = boxesB[mb]!;
           // Corner circles first: most module pairs on two hulls that are
           // touching somewhere are nowhere near each other.
@@ -378,6 +382,11 @@ export function findContacts(bodies: Bodies, hulls: HullDesigns, out: Contacts):
       }
     }
   }
+}
+
+/** Every layer some module of a hull could be in: all of them, if each module has its own. */
+function reachOf(layers: number): number {
+  return layers === OWN_LAYERS ? BOTH_LAYERS : layers;
 }
 
 /** Whether any module of one hull overlaps any of another's, whatever layers they are in. */

@@ -130,7 +130,7 @@ beforeAll(async () => {
   });
   await page.goto(pathToFileURL(editorPage).href);
   try {
-    await page.waitForFunction(() => (document.getElementById('stats')?.textContent ?? '').includes('Dry mass'));
+    await page.waitForFunction(() => (document.getElementById('stats')?.textContent ?? '').includes('Endurance'));
   } catch (timeout) {
     if (problems.length > 0) throw new Error(`the page did not start:\n${problems.join('\n')}`);
     throw timeout;
@@ -173,7 +173,8 @@ describe('the editor in a browser', () => {
 
   it('shows what the layout works out to, and that it would fly', async () => {
     const stats = (await page.textContent('#stats')) ?? '';
-    expect(stats).toMatch(/Dry mass/);
+    expect(stats).toMatch(/Mass[\d.,]+ t, [\d.,]+ t of it fuel/);
+    expect(stats).toMatch(/Endurance[\d,]+ s flat out, [\d,]+ m\/s of Δv/);
     // The holding curve is measured through the allocator, so its appearance
     // is also the check that the allocator ran without throwing on load.
     expect(stats).toMatch(/Heading cost/);
