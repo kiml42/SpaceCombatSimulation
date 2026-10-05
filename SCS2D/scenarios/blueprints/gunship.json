@@ -164,6 +164,7 @@
       "barrelCalibres": 50,
       "fragments": 4,
       "burstSpeed": 300,
+      "fuse": 0.08,
       "thick": true,
       "targeting": {
         "loyaltyWeight": 30,
@@ -171,7 +172,6 @@
         "facingWeight": 100,
         "sightWeight": 100,
         "coreWeight": 150,
-        "fuse": 0.08,
         "fireRange": 1.6
       }
     },

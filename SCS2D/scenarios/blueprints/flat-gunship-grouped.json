@@ -239,13 +239,13 @@
       "fragments": 4,
       "burstSpeed": 300,
       "thick": true,
+      "fuse": 0.08,
       "targeting": {
         "loyaltyWeight": 30,
         "focusWeight": 400,
         "facingWeight": 100,
         "sightWeight": 100,
         "coreWeight": 150,
-        "fuse": 0.08,
         "fireRange": 1.6
       }
     }

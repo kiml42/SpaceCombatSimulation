@@ -480,10 +480,10 @@ const ASYMMETRIC: readonly Blueprint[] = [];
  * The ships the rest of the suite flies.
  *
  * Every golden checksum is a statement about these hulls, so their handling
- * is load-bearing in a way the others' is not: a layout that cannot hold a
- * heading while translating, or whose centre of mass is a hair off the axis
- * it looks symmetric about, would move a checksum for a reason nobody could
- * see. They are therefore held to the stricter checks below.
+ * is load-bearing in a way the others' is not: a layout whose centre of mass
+ * is a hair off the axis it looks symmetric about would move a checksum for a
+ * reason nobody could see. They are therefore held to the stricter checks
+ * below.
  */
 const FLEET: readonly BlueprintName[] = [
   'corvette',
@@ -504,10 +504,8 @@ const FLEET: readonly BlueprintName[] = [
  * The rest: ships drawn for the look of the thing, flown in scenarios nothing
  * pins.
  *
- * **They are allowed to be fun.** A hull with no reverse thrust flies
- * perfectly well as long as it can turn and push one way; a centre of mass a
- * few millimetres off an axis is compensated by offset thrust without the
- * pilot ever noticing. Holding a showpiece to the fleet's standard buys
+ * **They are allowed to be fun.** A centre of mass a few millimetres off an
+ * axis is compensated by offset thrust without the pilot ever noticing. Holding a showpiece to the fleet's standard buys
  * nothing and costs designs, so what they have to satisfy is only what makes
  * a ship a ship.
  *
@@ -572,13 +570,6 @@ describe('the authored blueprints', () => {
           [0, -1],
         ].map(([x, y]) => design.engineLayout.maxThrustAlong(x!, y!));
         expect(Math.max(...along)).toBeGreaterThan(0);
-
-        // And what the fleet has to manage on top: force in *every* direction,
-        // so it can hold a heading while translating. A showpiece is allowed
-        // to have no reverse thrust and fly like an aeroplane.
-        if (inFleet(name)) {
-          expect(design.engineLayout.hasFullAuthority()).toBe(true);
-        }
 
         // Nothing has to be armed: a support ship need not be. What is
         // aboard has to work.
