@@ -239,7 +239,7 @@
       "nozzle": 0.35
     },
     {
-      "kind": "structure",
+      "kind": "tank",
       "x": -559.5,
       "y": 0,
       "length": 335,

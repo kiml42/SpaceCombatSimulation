@@ -132,6 +132,8 @@ export const DEFAULT_DOCTRINE_WEIGHTS: DoctrineWeights = { targeting: 1, approac
 export const DEFAULT_KINDS: KindWeights = {
   engine: 5,
   structure: 4,
+  // Fuel is what an engine is worth anything with, past what a core carries.
+  tank: 2,
   turret: 2,
   beamTurret: 1,
   // A weapon let into the hull is a weapon: it wants size for exactly the
@@ -494,7 +496,7 @@ function knobs(draft: Draft): Knob[] {
         { at: 'slide', site },
         { at: 'kind', site },
       );
-      if (placement.kind !== 'structure' && placement.kind !== 'core') {
+      if (placement.kind !== 'structure' && placement.kind !== 'tank' && placement.kind !== 'core') {
         out.push({ at: 'angle', site });
       }
       if (canThicken(placement)) out.push({ at: 'thick', site });

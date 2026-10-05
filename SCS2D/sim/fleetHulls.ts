@@ -80,7 +80,7 @@ export function firstOverlap(hulls: readonly FleetHull[]): readonly [number, num
   return null;
 }
 
-/** Total dry mass, kg. */
+/** Total mass with every tank full, kg. */
 export function fleetMass(hulls: readonly FleetHull[]): number {
   let mass = 0;
   for (const hull of hulls) mass += hull.design.mass;

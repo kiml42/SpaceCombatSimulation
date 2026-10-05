@@ -309,7 +309,7 @@ describe('mutation', () => {
     for (let i = 0; i < 400; i++) {
       const child = mutate(held, rng, {
         structural: 1,
-        kinds: { engine: 0, structure: 0, turret: 0, beamTurret: 0, hullGun: 3, hullBeam: 1, core: 0 },
+        kinds: { engine: 0, structure: 0, tank: 0, turret: 0, beamTurret: 0, hullGun: 3, hullBeam: 1, core: 0 },
       });
       held = child.blueprint;
       for (const edit of child.edits) {
@@ -330,7 +330,7 @@ describe('mutation', () => {
       ],
     };
     const rng = new Rng(31);
-    const only = { engine: 1, structure: 0, turret: 0, beamTurret: 0, hullGun: 0, hullBeam: 0, core: 0 };
+    const only = { engine: 1, structure: 0, tank: 0, turret: 0, beamTurret: 0, hullGun: 0, hullBeam: 0, core: 0 };
     let seen = 0;
     for (let i = 0; i < 400 && seen < 3; i++) {
       const child = mutate(casemate, rng, { structural: 0, kinds: only });
@@ -427,7 +427,7 @@ describe('mutation', () => {
     for (let i = 0; i < 400; i++) {
       const child = mutate(held, rng, {
         structural: 1,
-        kinds: { engine: 1, structure: 0, turret: 0, beamTurret: 0, hullGun: 0, hullBeam: 0, core: 0 },
+        kinds: { engine: 1, structure: 0, tank: 0, turret: 0, beamTurret: 0, hullGun: 0, hullBeam: 0, core: 0 },
       });
       held = child.blueprint;
       for (const edit of child.edits) {
@@ -512,7 +512,7 @@ describe('mutation', () => {
     let held: Blueprint = CORVETTE;
     for (let i = 0; i < 50; i++) {
       const child = mutate(held, rng, {
-        kinds: { engine: 0, structure: 0, turret: 0, beamTurret: 0, hullGun: 0, hullBeam: 0, core: 0 },
+        kinds: { engine: 0, structure: 0, tank: 0, turret: 0, beamTurret: 0, hullGun: 0, hullBeam: 0, core: 0 },
       });
       expect(child.edits.length, `child ${i}`).toBeGreaterThan(0);
       expect(child.edits.some((edit) => /added to/.test(edit))).toBe(false);

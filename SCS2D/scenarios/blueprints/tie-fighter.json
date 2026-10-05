@@ -12,7 +12,7 @@
     "structure": {
       "modules": [
         {
-          "kind": "structure",
+          "kind": "tank",
           "x": 0,
           "y": 0,
           "length": 1,

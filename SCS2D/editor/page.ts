@@ -150,6 +150,7 @@ const ANGLE_SNAP_DEGREES = 15;
 /** What a freshly added module of each kind starts as, metres. */
 const DEFAULTS: Record<ModuleSpec['kind'], Omit<ModuleSpec, 'x' | 'y'>> = {
   structure: { kind: 'structure', length: 8, width: 5 },
+  tank: { kind: 'tank', length: 6, width: 4 },
   core: { kind: 'core', length: 3, width: 3 },
   // Facing aft along its bell, so it pushes the ship forward.
   engine: { kind: 'engine', angle: math.PI, length: 3, width: 3 },
@@ -518,7 +519,13 @@ export function startEditor(): void {
     }
     const s = designStats(design, envelope);
     const rows = [
-      ['Dry mass', `${numbers(s.mass / 1000, 2)} t`],
+      ['Mass', `${numbers(s.mass / 1000, 2)} t, ${numbers(s.fuel / 1000, 2)} t of it fuel`],
+      [
+        'Endurance',
+        Number.isFinite(s.endurance)
+          ? `${numbers(s.endurance, 0)} s flat out, ${numbers(s.deltaV, 0)} m/s of Δv`
+          : 'no engines',
+      ],
       ['Inertia', `${numbers(s.inertia / 1000, 0)} t·m²`],
       ['Modules', `${s.moduleCount} (${s.engineCount} engines)`],
       ['Radius', `${numbers(s.radius)} m`],

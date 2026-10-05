@@ -144,6 +144,9 @@ const MIN_BARREL_PX = 1;
 /** A flash is never smaller than this on screen, however far out the camera is. */
 const MIN_FLASH_PX = 1;
 
+/** A tank's wall as drawn round the fuel in it, as a share of its smaller side. */
+const TANK_INSET = 0.15;
+
 /** A module that has taken everything it can: still there, no longer anything. */
 const WRECKAGE = '#3c4048';
 
@@ -268,7 +271,7 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     ctx.fillStyle =
       integrity <= 0
         ? WRECKAGE
-        : spec.kind === 'structure'
+        : spec.kind === 'structure' || spec.kind === 'tank'
           ? // Thick structure is drawn in the colour of the mounts and engines,
             // since it is what stands with them in the weapons layer. Read from
             // the compiled flag rather than the spec, since a plate that is
@@ -322,6 +325,13 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
       ctx.fillRect(-halfLength, -halfWidth, mount.blockLength, spec.width);
     } else {
       ctx.fillRect(-halfLength, -halfWidth, spec.length, spec.width);
+      if (spec.kind === 'tank' && integrity > 0) {
+        // What is left in it, filling from the aft end inside the walls.
+        const inset = min(spec.length, spec.width) * TANK_INSET;
+        const level = (spec.length - 2 * inset) * (ship.fuel?.[i] ?? 1);
+        ctx.fillStyle = colours.pivot;
+        ctx.fillRect(-halfLength + inset, -halfWidth + inset, level, spec.width - 2 * inset);
+      }
     }
     ctx.restore();
   }

@@ -136,6 +136,47 @@ export const PUMP_DEPTH_WIDTHS = 0.35;
 export const THROAT_CHOKE = 2;
 
 /**
+ * Exhaust velocity of an ideal engine, m/s: what its gas would leave at if
+ * all of it went straight out of the back.
+ *
+ * Futuristic on purpose. The best chemical engines manage about 4.4 km/s (an
+ * Isp near 450 s); this is a drive that heats its reaction mass with something
+ * far hotter than combustion, so even the worst engine `engineExhaustVelocity`
+ * allows beats any flying today. It sets how long a tank lasts, and with
+ * `FUEL_DENSITY` how much tank a ship needs to fight a battle on full thrust.
+ */
+export const EXHAUST_VELOCITY = 2e4;
+
+/**
+ * The most efficiency a small throat can lose, as a fraction of its exhaust
+ * velocity.
+ *
+ * Losses to the walls — heat soaking into them, gas slowed against them —
+ * scale with a chamber's surface and output with its volume, so a small engine
+ * is the less efficient one, as small thrusters are in practice. Bounded, so
+ * a tiny engine is worse rather than useless.
+ */
+export const SMALL_ENGINE_LOSS = 0.3;
+
+/**
+ * The throat width at which an engine has lost half of `SMALL_ENGINE_LOSS`,
+ * metres. A fighter's thrusters sit below it and a capital's mains well above.
+ */
+export const SMALL_ENGINE_THROAT = 0.25;
+
+/**
+ * Density of reaction mass, kg/m³: liquid methane.
+ *
+ * A drive that only heats its propellant can throw whatever is denser and
+ * easier to keep than hydrogen. Water would be denser still, and makes a tank
+ * the size of a module several times heavier than the ship around it.
+ */
+export const FUEL_DENSITY = 420;
+
+/** Standard gravity, m/s², for stating an exhaust velocity as a specific impulse. */
+export const STANDARD_GRAVITY = 9.80665;
+
+/**
  * How much of an engine is bell when its layout does not say.
  *
  * Half and half, which is enough expansion to be worth having (`divergence`
@@ -519,6 +560,13 @@ export const CORE_MASS_PER_AREA = 150;
 export const CORE_MINIMUM_FITTING_MASS = 25;
 
 /**
+ * Interior a core needs for itself, m³; whatever it has beyond this is fuel
+ * tank, so a bare core with one engine can move (ROADMAP.md §8). A core no
+ * bigger than this holds no fuel and pays nothing else for it.
+ */
+export const CORE_COMPUTING_VOLUME = 1;
+
+/**
  * Traverse torque the mount ring can deliver per kilogram of turret, N·m/kg.
  * A bigger turret gets a bigger ring, so the torque available grows with the
  * mass it has to shift; what it does not grow with is how that mass is spread,
@@ -541,6 +589,7 @@ export const TRAVERSE_SPINUP_TIME = 2;
 
 export type ModuleKind =
   | 'structure'
+  | 'tank'
   | 'core'
   | 'engine'
   | 'turret'
@@ -562,6 +611,7 @@ export type ModuleKind =
  */
 export const MODULE_KINDS: readonly ModuleKind[] = [
   'structure',
+  'tank',
   'core',
   'engine',
   'turret',
@@ -858,6 +908,13 @@ export interface ModuleStats {
   hitPoints: number;
   /** Thrust at full throttle, newtons. Zero unless the module is an engine. */
   thrust: number;
+  /**
+   * How fast the exhaust leaves along the axis, m/s: thrust per kilogram of
+   * fuel a second. Zero unless the module is an engine.
+   */
+  exhaustVelocity: number;
+  /** Fuel the module holds when full, kg, counted in `mass`. Zero unless it is a tank. */
+  fuel: number;
   /** Gun derived from the mount, or null unless the module is a weapon. */
   gun: GunStats | null;
   /**
@@ -1091,8 +1148,8 @@ function tidy(value: number): number {
  * engine gets a good nozzle, and there is a reason to choose it beyond how
  * the flame is shaped.
  *
- * Fuel is not modelled yet. When it is, expansion buys efficiency as well as
- * thrust and this is where that comes from — ROADMAP.md §12.
+ * Expansion buys efficiency as well as thrust, from the same number: see
+ * `engineExhaustVelocity`.
  */
 export interface EngineGeometry {
   /** Nozzles across the exit face, at least one. */
@@ -1144,6 +1201,24 @@ export function engineGeometry(spec: ModuleSpec): EngineGeometry {
     halfAngle,
     divergence: (1 + axial) * 0.5,
   };
+}
+
+/**
+ * How fast an engine's exhaust leaves along its axis, m/s.
+ *
+ * `EXHAUST_VELOCITY`, less what the bell throws sideways — the same
+ * `divergence` that costs it thrust, since gas going the wrong way pushes
+ * nothing whatever it was fed — and less what a small throat loses to its
+ * walls. A long bell on a big throat is the efficient engine.
+ */
+export function engineExhaustVelocity(geometry: EngineGeometry): number {
+  const small = SMALL_ENGINE_THROAT / (SMALL_ENGINE_THROAT + geometry.throatWidth);
+  return EXHAUST_VELOCITY * geometry.divergence * (1 - SMALL_ENGINE_LOSS * small);
+}
+
+/** An exhaust velocity as a specific impulse, seconds. */
+export function specificImpulse(exhaustVelocity: number): number {
+  return exhaustVelocity / STANDARD_GRAVITY;
 }
 
 /**
@@ -1725,6 +1800,8 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
 
   let fittingMass = 0;
   let thrust = 0;
+  let exhaustVelocity = 0;
+  let fuel = 0;
   let gun: GunStats | null = null;
   // Mass that hangs off the pivot as a rod rather than filling the box, and
   // the inertia it accounts for. Barrels, and nothing else so far.
@@ -1743,6 +1820,11 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
     // and the fragility of a small one are the whole of what stops a ship
     // carrying five of them.
     fittingMass = max(CORE_MINIMUM_FITTING_MASS, CORE_MASS_PER_AREA * capacity);
+    fuel = max(0, inner - CORE_COMPUTING_VOLUME) * FUEL_DENSITY;
+  } else if (spec.kind === 'tank') {
+    // A box whose whole interior is fuel. It packs the box as the box formula
+    // assumes, so the inertia below already holds it.
+    fuel = inner * FUEL_DENSITY;
   } else if (engine !== null) {
     // Thrust comes out of the nozzle, so it scales with the exit area: each
     // bell square, as wide as it is deep. A thin engine wider than a deck
@@ -1766,6 +1848,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
     // chamber but somewhere inside, and an engine whose nozzle has fallen off
     // throws its gas sideways however hard it is pumping.
     thrust = throughput * engine.divergence;
+    exhaustVelocity = engineExhaustVelocity(engine);
     fittingMass = throughput * ENGINE_MASS_PER_NEWTON;
   } else if (mount !== null) {
     gun = spec.kind === 'hullGun' ? loaded(hullGunStats(spec), spec) : hullBeamStats(spec);
@@ -1873,7 +1956,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
     }
   }
 
-  const mass = structureMass + fittingMass;
+  const mass = structureMass + fittingMass + fuel;
   // Everything but the barrels rotates as the box it is: walls, and machinery
   // packed inside them.
   const boxMass = mass - rodMass;
@@ -1900,6 +1983,8 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
     inertia,
     hitPoints: structureMass,
     thrust,
+    exhaustVelocity,
+    fuel,
     gun,
     traverseMass,
     swingInertia: mount === null ? inertia : swing,

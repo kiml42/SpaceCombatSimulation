@@ -154,7 +154,7 @@
       "mirror": true
     },
     {
-      "kind": "structure",
+      "kind": "tank",
       "x": -1.5,
       "y": 0,
       "angle": 180,

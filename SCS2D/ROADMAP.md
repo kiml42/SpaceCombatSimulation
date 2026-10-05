@@ -49,7 +49,7 @@ an entry is either still open or it is gone.
 | 5 | v1: skirmish | Partly built |
 | 6 | Editor restructuring | Built |
 | 7 | Two layers | Partly built |
-| 8 | Fuel | Not started |
+| 8 | Fuel | Partly built |
 | 9 | Fuel harvesting | Not started |
 | 10 | Raw material | Not started |
 | 11 | Power | Not started |
@@ -160,12 +160,25 @@ and evolution run does, and a ship tuned to half the rules is tuned twice.
      rather than its place in the run.
 3. **Redesign the stock ships** for both, once they exist. The Star Destroyer needs it most.
 
+**Step 8 — Fuel.** Tanks, burning and the editor's figures are built (DESIGN.md Status). What is left:
+
+- **Leaks.** Damage to a tank does nothing yet. A holed tank losing fuel and pushing on the hull at the hole,
+  and sealing (§12), are what price tank size and placement — until then nothing stops evolution building
+  one enormous tank (§5).
+- **Drain priority.** Tanks are drained tier by tier (`drainPriority` in `sim/fuel.ts`), and every tank is
+  in the one tier. A priority per tank in the layout fills it in.
+- **Pilots that know their fuel.** Nothing flies differently for running low, so a ship spends its tanks
+  as freely as ever. Short-legged ships show it: the Dinky carries 68 kg (13 s flat out), the TIE and the
+  Torch little more for what they push, and in `swarm` every Dinky is dry before it reaches the gunships.
+  Bigger tanks or a pilot that husbands what it has; the second belongs with withdrawal (step 3).
+- **Fuel in the materials budget** (step 5). Fleet and evolution budgets count full tanks in a ship's mass,
+  and that is as far as it goes.
+
 ### Not started — in order
 
-Steps 8 to 13 walk into the resource system one resource and one use at a time, fuel first: it is the
-scarcity every battle feels (§2), and much of §12 is parked until it exists — what a longer bell buys, the
-dead zone on attitude hold, propellant-optimal allocation, how severed chunks divide their stores, and running
-cost. *Note: fuel is a re-balance, not an addition — tank mass moves the golden checksums, battles become
+Steps 8 to 13 walk into the resource system one resource and one use at a time, fuel first (partly built,
+above): it is the scarcity every battle feels (§2), and some of §12 was parked until it existed — the dead
+zone on attitude hold, propellant-optimal allocation, and running cost. *Note: fuel is a re-balance, not an addition — tank mass moves the golden checksums, battles become
 about managing what a ship carries, and scenarios will need revisiting.*
 
 **The core carries a little of each resource as it arrives** — a built-in tank, store and generator, scaled
@@ -173,10 +186,6 @@ with its size — so a bare core with one engine or one weapon can act, and a bi
 Today the best core is the smallest, most armoured one that can hide from a hit; this gives size a price in
 both directions.
 
-8. **Fuel** — tanks that start full and are drawn on by every engine, so a ship can run dry. With it, **leaks**:
-   a holed tank loses fuel and pushes on the hull at the hole. Leaks are what price tank size and placement —
-   without them evolution finds the one enormous tank (§5) — and sealing is what stops one hole ending a
-   battle (see §12). Fuel and its tanks join step 5's budget of materials.
 9. **Fuel harvesting** — siphoning what is left in a wreck, the first salvage, since pumping a liquid needs no
    construction. It needs a part that holds a wreck to drain it, and a pilot that goes after one: an order or
    picker for a wreck with fuel left, and a judgement about when to break off for it, close to step 3's
@@ -582,9 +591,9 @@ Deliberately unresolved; decide when they block something.
   a grapple exists, harvesting could come straight after step 10, keeping each step small and leaving
   construction, the largest, until last. The order built puts construction first, as the big use metal is
   harvested for.
-- **How severed chunks divide fuel, ammunition and power.** Which piece goes on being a ship is settled —
+- **How severed chunks divide ammunition and power.** Which piece goes on being a ship is settled —
   the one holding a working core, and every other piece with one becomes a ship of its own (DESIGN.md §4)
-  — but what a piece takes *with* it is not. The interesting case is a magazine cut off from the gun it
+  — and fuel goes with the tank it is in. The interesting case left is a magazine cut off from the gun it
   fed. Nothing consumes either yet, so there is nothing to divide; decide it when stores exist.
 - **What scrap and salvage reach are worth: `SCRAP_MASS` and `SALVAGE_REACH`.** They encode an economic
   judgement — what is too smashed to harvest, and how far is too far to go for — against an economy that
@@ -713,8 +722,8 @@ Deliberately unresolved; decide when they block something.
   reason to fit them is not that they are cheap. It is that gunfire cannot reach them.
 
   Low thrust need not be stipulated — thrust is already exit area times a constant, and exit area is width
-  times depth, so a thin engine gets less exit and less thrust out of the geometry than a thick one. Efficiency has nowhere to live yet, since there is no propellant model, so for now the two
-  differ in thrust and mass alone.
+  times depth, so a thin engine gets less exit and less thrust out of the geometry than a thick one. A small throat
+  also loses efficiency to its walls (`SMALL_ENGINE_LOSS`), so the thin one pays in fuel as well.
 
   What the split buys is a better mission kill than "disabled". A ship stripped of its main engines still
   has manoeuvring engines on long moment arms, so it can still *rotate* well while barely translating: a
@@ -811,17 +820,9 @@ Deliberately unresolved; decide when they block something.
   argues against raising it. Heat was part of the answer when a plume's bite was first settled in
   direction and is still owed, but it waits on there being a heat model to put it in rather than on
   anything about exhaust.
-- **What a bell should buy once there is fuel.** A nozzle's length already buys thrust and reach, both out
-  of the one divergence factor, because both are about how much of the gas is going the right way. The
-  thing it should buy and cannot yet is **efficiency**: expansion is what a real bell is for, and a long
-  one gets more delta-v out of the same propellant rather than only more push. There is no propellant, so
-  there is nothing for it to be efficient with, and pricing it now would mean inventing a second currency
-  to spend. When fuel arrives the number is already sitting in `EngineGeometry.divergence` and wants no
-  new law — which is also the argument for the shape the bell was given: one physical quantity with three
-  consequences, two of them already paid for.
-  The neighbouring question is what a *stubby* engine should do about it. A wide exit cannot be collimated
-  in a short length, so the shipped hulls — whose engines are much wider than they are long — sit well
-  below one and lost thrust when this landed. The designed answer is a cluster of narrow bells, which the
+- **What the stock ships' stubby engines should do about their bells.** A wide exit cannot be collimated
+  in a short length, so the shipped hulls — whose engines are much wider than they are long — keep well
+  under all of their gas pointed aft (`divergence`), and pay for it in thrust and in fuel. The designed answer is a cluster of narrow bells, which the
   nozzle count already gives them; whether the shipped ships should be re-drawn to take it, or left as
   evidence of what the law says about a hull drawn before it, is a decision about the fleet rather than
   about the model.
@@ -882,6 +883,27 @@ Deliberately unresolved; decide when they block something.
   without limit (a Super Swarm Dinky passes 5,000 rad/s by step 8,000). Either replay the held throttles
   through what each engine can still do, which leaves a hulk drifting, or let an engine with no working core
   keep burning at its last setting, as an exception to the command rule. Most goldens move either way.
+  It does at least pay for it: a held wrench burns fuel, so a hulk stops once its tanks are dry.
+- **What a bigger core is for.** A core needs a cubic metre for its computing and the rest of it is fuel
+  tank, so past that size it is a tank that also flies the ship, paying for its computing by the floor it
+  fills (`CORE_MASS_PER_AREA`). A tank does the fuel's job for less, so the best core is the smallest that
+  will do and every other cubic metre goes into tanks. Something has to grow with a core for size to be a
+  choice: more control the more it holds (faster rethinking, more mounts it can direct, command reaching
+  further through a battered hull), the other resources' built-in stores as they arrive (§8), or a core
+  that is simply harder to kill for being bigger.
+- **Whether a ship's centre of mass should move as it burns.** Its mass and inertia fall with the fuel,
+  and its centre of mass stays where the full ship's was. Draining every tank in proportion keeps the
+  fuel's own centre still, so the true one slides along a single line, but following it means re-centring
+  the body and its engine allocation as severing does. Worth doing if a ship flies visibly wrong late in a
+  battle.
+- **The fuel dials: `EXHAUST_VELOCITY`, `FUEL_DENSITY` and `CORE_COMPUTING_VOLUME`.** A stock ship's fuel,
+  tanks and core together, is a seventh to a quarter of its mass and lasts two to eight minutes with every
+  engine flat out. Liquid
+  methane rather than water because at water's density a deck-high module of fuel outweighs the ship
+  around it several times. How many battles a tankful should last is a question for the fleet's balance.
+- **Whether chamber pressure should buy efficiency.** A real engine gains specific impulse with chamber
+  pressure; here the machinery depth behind a throat (`supply` in `moduleStats`) buys flow and nothing
+  else. It would be a reason for deep machinery beyond thrust.
 - **Whether collision pairing wants an index after all.** §4 says to test every body against every
   other, and at the scale the game is designed for that holds: the 21-ship swarm pays about 3% for
   solid hulls. The 301-ship stress fixture pays **82%** (2.8 s to 5.1 s over 3,000 steps), and almost
