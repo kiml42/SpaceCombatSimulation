@@ -11,6 +11,7 @@ import {
   World,
   type ShipDesign,
   BeamHits,
+  DEFAULT_DOCTRINE,
 } from '../sim/index.js';
 import { BEAM_GUNSHIP, DINKY } from '../scenarios/blueprints.js';
 import { TURRET_CORVETTE, TURRET_GUNSHIP } from './fixtures.js';
@@ -116,7 +117,7 @@ describe('spawning', () => {
   it('gives each ship its own throttles, so two off one design do not share', () => {
     // Without the corvette's urge to escort, which would set the idle one off
     // after the other.
-    const loner = compileBlueprint({ ...TURRET_CORVETTE, doctrine: undefined });
+    const loner = compileBlueprint({ ...TURRET_CORVETTE, doctrine: DEFAULT_DOCTRINE });
     const r = rig();
     const a = r.ships.spawn(r.world, { design: loner, x: -2000 });
     const b = r.ships.spawn(r.world, { design: loner, x: 2000 });
@@ -224,7 +225,7 @@ describe('the pilot', () => {
     // up the second once it is finished with the first.
     // Marks that stay put: a stock Dinky's doctrine would have it escorting
     // the gunship, which then backs away from its own target.
-    const mark = compileBlueprint({ ...DINKY, doctrine: undefined });
+    const mark = compileBlueprint({ ...DINKY, doctrine: DEFAULT_DOCTRINE });
     const r = rig();
     const ship = r.ships.spawn(r.world, { design: gunship, x: 0, y: 0, angle: math.PI });
     const first = r.ships.spawn(r.world, { design: mark, x: 3000, y: 0 });
