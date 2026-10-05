@@ -5,6 +5,13 @@
   "doctrine": {
     "targeting": {
       "massWeight": 150
+    },
+    "approach": {
+      "standoffRadii": 20,
+      "standoff": 0.6,
+      "brake": 10,
+      "ramRadii": 1,
+      "ramArmed": 0.2
     }
   },
   "assemblies": {
@@ -12,142 +19,291 @@
       "modules": [
         {
           "kind": "structure",
-          "x": 17.5,
-          "y": 39,
-          "length": 1296.5,
+          "x": 466,
+          "y": 60,
+          "length": 240,
           "width": 60
         },
         {
           "kind": "structure",
-          "x": -113,
-          "y": 99,
-          "length": 1100,
+          "x": 337,
+          "y": 120,
+          "length": 440,
           "width": 60
         },
         {
           "kind": "structure",
-          "x": -202,
-          "y": 159,
-          "length": 922,
+          "x": 213,
+          "y": 180,
+          "length": 380,
           "width": 60
+        },
+        {
+          "kind": "structure",
+          "x": -212,
+          "y": 240,
+          "length": 920,
+          "width": 60
+        },
+        {
+          "use": "turret",
+          "x": -507,
+          "y": 130,
+          "repeat": 4,
+          "step": {
+            "x": 140,
+            "y": 0
+          }
+        },
+        {
+          "kind": "structure",
+          "x": -280,
+          "y": 300,
+          "length": 700,
+          "width": 60
+        },
+        {
+          "kind": "structure",
+          "x": -418,
+          "y": 420,
+          "length": 340,
+          "width": 60
+        },
+        {
+          "kind": "structure",
+          "x": -362,
+          "y": 360,
+          "length": 500,
+          "width": 60
+        },
+        {
+          "use": "beamTurret",
+          "x": 239,
+          "y": 82.5
+        },
+        {
+          "use": "beamTurret",
+          "x": 338.5,
+          "y": 16,
+          "angle": -90
+        },
+        {
+          "use": "beamTurret",
+          "x": 101,
+          "y": 142.5
+        },
+        {
+          "use": "beamTurret",
+          "x": -379,
+          "y": 457.5
+        },
+        {
+          "use": "beamTurret",
+          "x": -562.5,
+          "y": 466,
+          "angle": 90
+        },
+        {
+          "use": "beamTurret",
+          "x": -637.5,
+          "y": 286,
+          "angle": 90
         },
         {
           "kind": "engine",
-          "x": -663,
-          "y": 138,
+          "x": -475,
+          "y": 450,
+          "angle": 90,
+          "length": 75,
+          "width": 160,
+          "barrels": 33,
+          "nozzle": 0.111111
+        },
+        {
+          "kind": "engine",
+          "x": -395,
+          "y": 486,
+          "angle": 0,
+          "length": 56,
+          "width": 42,
+          "barrels": 10,
+          "nozzle": 0.076923
+        },
+        {
+          "kind": "engine",
+          "x": 557,
+          "y": 117.5,
+          "angle": 0,
+          "length": 30,
+          "width": 55,
+          "barrels": 11,
+          "nozzle": 0.166667
+        },
+        {
+          "use": "engine2",
+          "x": -537,
+          "y": 160
+        },
+        {
+          "kind": "structure",
+          "x": -162,
+          "y": 60,
+          "length": 770,
+          "width": 60,
+          "thick": true
+        },
+        {
+          "kind": "structure",
+          "x": -226,
+          "y": 120,
+          "length": 622,
+          "width": 60,
+          "thick": true
+        },
+        {
+          "kind": "structure",
+          "x": 239,
+          "y": 52.5,
+          "length": 32,
+          "width": 45,
+          "thick": true
+        },
+        {
+          "kind": "engine",
+          "x": -608,
+          "y": 82.5,
           "angle": 180,
-          "length": 150,
-          "width": 100,
-          "nozzle": 0.35
+          "length": 180,
+          "width": 26,
+          "nozzle": 0.277778,
+          "thick": true
         },
         {
           "kind": "structure",
-          "x": -453.5,
-          "y": 219,
-          "length": 387,
-          "width": 60
-        },
-        {
-          "use": "turret",
-          "x": -180,
-          "y": 219
-        },
-        {
-          "use": "turret",
-          "x": -273,
-          "y": 279
-        },
-        {
-          "use": "turret",
-          "x": -354,
-          "y": 339
-        },
-        {
-          "use": "turret",
-          "x": -443,
-          "y": 399
+          "x": -670.5,
+          "y": 102.75,
+          "length": 125,
+          "width": 14.5,
+          "thick": true
         },
         {
           "kind": "structure",
-          "x": -480.5,
-          "y": 279,
-          "length": 255,
+          "x": -577.5,
+          "y": 80,
+          "length": 61,
+          "width": 60,
+          "thick": true
+        },
+        {
+          "kind": "structure",
+          "x": -673,
+          "y": 59.75,
+          "length": 130,
+          "width": 19.5,
+          "thick": true
+        },
+        {
+          "kind": "structure",
+          "x": -542,
+          "y": 100,
+          "length": 10,
+          "width": 20,
+          "thick": true
+        },
+        {
+          "kind": "structure",
+          "x": 101,
+          "y": 112.5,
+          "length": 32,
+          "width": 45,
+          "thick": true
+        },
+        {
+          "kind": "structure",
+          "x": -340,
+          "y": 457.5,
+          "length": 46,
+          "width": 15
+        },
+        {
+          "kind": "structure",
+          "x": 293,
+          "y": 60,
+          "length": 76,
           "width": 60
         },
         {
           "kind": "structure",
-          "x": -543,
-          "y": 399,
-          "length": 40,
-          "width": 60
+          "x": 338.5,
+          "y": 61,
+          "length": 15,
+          "width": 58
         },
         {
-          "kind": "structure",
-          "x": -510.5,
-          "y": 339,
-          "length": 153,
-          "width": 60
+          "kind": "engine",
+          "x": 806,
+          "y": 0,
+          "angle": 90,
+          "length": 35,
+          "width": 160,
+          "reinforcement": 5,
+          "barrels": 45,
+          "nozzle": 0.166667
         },
         {
-          "use": "beamTurret",
-          "x": 680.25,
-          "y": 25
+          "kind": "engine",
+          "x": -702,
+          "y": 210,
+          "angle": 90,
+          "length": 50,
+          "width": 60,
+          "nozzle": 0.277778,
+          "thick": true
         },
         {
-          "use": "beamTurret",
-          "x": 451.5,
-          "y": 76.5
+          "kind": "engine",
+          "x": 651,
+          "y": 30,
+          "angle": 90,
+          "length": 42,
+          "width": 130,
+          "reinforcement": 5,
+          "barrels": 45,
+          "nozzle": 0.142857
         },
         {
-          "use": "beamTurret",
-          "x": 273.5,
-          "y": 136.5
+          "use": "hullGun",
+          "x": 422,
+          "y": 167.5
         },
         {
-          "use": "beamTurret",
-          "x": -414.5,
-          "y": 436.5
+          "use": "hullGun",
+          "x": 267,
+          "y": 228.5
         },
         {
-          "kind": "structure",
-          "x": -487,
-          "y": 459,
-          "length": 116,
-          "width": 60
-        },
-        {
-          "use": "beamTurret",
-          "x": -552.5,
-          "y": 443.5,
+          "use": "hullGun",
+          "x": 97,
+          "y": 289,
           "angle": 90
         },
         {
-          "use": "beamTurret",
-          "x": -615.5,
-          "y": 263.5,
+          "use": "hullGun",
+          "x": -232,
+          "y": 409,
           "angle": 90
         },
         {
-          "use": "engine",
-          "x": 874.5,
-          "y": 9
+          "use": "hullGun",
+          "x": -602,
+          "y": 409,
+          "angle": 90
         },
         {
-          "use": "engine",
-          "x": -522,
-          "y": 489
-        },
-        {
-          "use": "engine",
-          "x": -429,
-          "y": 467,
-          "angle": -90
-        },
-        {
-          "use": "engine",
-          "x": 437,
-          "y": 106,
-          "angle": -90
+          "use": "hullGun",
+          "x": -631,
+          "y": 333.5,
+          "angle": -180
         }
       ]
     },
@@ -155,15 +311,21 @@
       "modules": [
         {
           "kind": "turret",
-          "x": 0,
-          "y": 0,
-          "angle": 0,
-          "length": 160,
-          "width": 60,
-          "barrelCalibres": 100,
+          "x": 40,
+          "y": 50,
+          "angle": 90,
+          "length": 60,
+          "width": 140,
           "barrels": 4,
+          "barrelCalibres": 50,
+          "traverse": 120,
+          "fuse": 0.1,
+          "fragments": 20,
+          "burstSpeed": 400,
           "targeting": {
-            "structureWeight": 0
+            "structureWeight": 0,
+            "facingWeight": 100,
+            "sightWeight": 20
           }
         }
       ]
@@ -171,13 +333,17 @@
     "beamTurret": {
       "modules": [
         {
-          "kind": "beamTurret",
+          "kind": "turret",
           "x": 0,
           "y": 0,
-          "angle": 0,
-          "length": 29,
-          "width": 15,
-          "barrels": 1,
+          "angle": 90,
+          "length": 15,
+          "width": 32,
+          "barrels": 4,
+          "barrelCalibres": 48,
+          "traverse": 140,
+          "fuse": 0.06,
+          "burstSpeed": 300,
           "targeting": {
             "focusWeight": 0,
             "proximityWeight": 250,
@@ -188,16 +354,42 @@
         }
       ]
     },
-    "engine": {
+    "engine2": {
       "modules": [
         {
           "kind": "engine",
           "x": 0,
           "y": 0,
-          "angle": 90,
-          "length": 10,
-          "width": 43,
-          "barrels": 4
+          "angle": 180,
+          "length": 315,
+          "width": 100,
+          "nozzle": 0.380952,
+          "weapon": true,
+          "thick": true
+        }
+      ]
+    },
+    "hullGun": {
+      "modules": [
+        {
+          "kind": "hullGun",
+          "x": 0,
+          "y": 0,
+          "angle": 0,
+          "length": 38,
+          "width": 7,
+          "barrels": 2,
+          "barrelCalibres": 48,
+          "traverse": 140,
+          "fuse": 0.06,
+          "burstSpeed": 300,
+          "targeting": {
+            "focusWeight": 0,
+            "proximityWeight": 250,
+            "massWeight": 0,
+            "structureWeight": 0
+          },
+          "notes": "Close-in defence, and it fights its own battle: no interest at all in what the ship as a whole has picked, no view on how big a target is, and every view on how near. Guns and engines before hull, because a fighter it disarms is a fighter that has stopped mattering, and a fighter it strands is one the batteries can take at their leisure."
         }
       ]
     }
@@ -205,45 +397,51 @@
   "modules": [
     {
       "kind": "structure",
-      "x": 228,
+      "x": 553,
       "y": 0,
-      "length": 1156,
+      "length": 380,
       "width": 60
     },
     {
       "kind": "core",
-      "x": -371,
+      "x": -330,
       "y": 0,
-      "length": 42,
+      "length": 40,
       "width": 60,
+      "thick": true,
       "notes": "The bridge, aft above the engines, where a Star Destroyer's is — and where every shot at it has to cross the length of the ship first."
     },
     {
       "use": "structure",
-      "x": -96.5,
-      "y": 21
+      "x": 17,
+      "y": 0
     },
     {
       "use": "structure",
-      "x": -96.5,
-      "y": -21,
+      "x": 17,
+      "y": 0,
       "mirror": true
     },
     {
-      "kind": "engine",
-      "x": -727.25,
-      "y": 0,
-      "angle": 180,
-      "length": 150,
-      "width": 100,
-      "nozzle": 0.35
+      "use": "engine2",
+      "x": -530,
+      "y": 0
     },
     {
       "kind": "structure",
-      "x": -559.5,
+      "x": -440,
       "y": 0,
-      "length": 335,
-      "width": 60
+      "length": 180,
+      "width": 60,
+      "thick": true
+    },
+    {
+      "kind": "structure",
+      "x": 19,
+      "y": 0,
+      "length": 658,
+      "width": 60,
+      "thick": true
     }
   ]
 }
