@@ -9,7 +9,7 @@ import {
   type ShipDesign,
   type Targeting,
 } from '../sim/index.js';
-import { DINKY } from '../scenarios/blueprints.js';
+import { CORVETTE } from '../scenarios/blueprints.js';
 import { TURRET_GUNSHIP } from './fixtures.js';
 
 /**
@@ -27,20 +27,15 @@ const DT = 1 / 60;
 const gunship = compileBlueprint(TURRET_GUNSHIP);
 
 /**
- * The Dinky with one opinion on its gun, since where a shot lands is the
+ * The corvette with one opinion on its gun, since where a shot lands is the
  * gun's business and not its hull's — a ship's doctrine says which ship to
  * fly at, and no part of it reaches the aim point. Passing nothing strips
  * the preference the file carries back to what the archetype does.
- *
- * Not flown as a fighter: one keeps out of the hull layer until it rams, so
- * its gun can only pick what sits in the weapons layer, and that is a test of
- * layers rather than of aim points.
  */
 function armed(targeting?: Partial<Targeting>): ShipDesign {
   return compileBlueprint({
-    ...DINKY,
-    fighter: false,
-    modules: DINKY.modules.map((placement) => {
+    ...CORVETTE,
+    modules: CORVETTE.modules.map((placement) => {
       if (!('kind' in placement) || !isWeaponMount(placement.kind)) return placement;
       const spec = { ...placement };
       if (targeting === undefined) delete spec.targeting;
@@ -51,12 +46,12 @@ function armed(targeting?: Partial<Targeting>): ShipDesign {
 }
 
 /**
- * A fighter that puts engines above the guns the default shoots at first, and
+ * A corvette that puts engines above the guns the default shoots at first, and
  * one that has opted out of picking parts altogether.
  */
 const sniper = armed({ engineWeight: 150 });
 const indifferent = armed({ coreWeight: 0, engineWeight: 0, gunWeight: 0, structureWeight: 0 });
-/** A fighter that would rather cripple a ship than go for what flies it. */
+/** A corvette that would rather cripple a ship than go for what flies it. */
 const crippler = armed({ coreWeight: 0 });
 
 interface Aim {
@@ -78,7 +73,7 @@ interface Aim {
 }
 
 /**
- * One fighter training on a capital held broadside on, so that the ship's
+ * One corvette training on a capital held broadside on, so that the ship's
  * centre and its engines are in quite different directions.
  *
  * The world is never stepped, so nothing moves and the bearings the test
