@@ -179,7 +179,15 @@ inside any one file is not contiguous.
   once it is bigger. Setting the two equal gives the flight time worth taking, `√(2r/a)`, and the muzzle
   velocity turns it into a distance. A big ship is therefore worth shooting at from far further off than a
   small one — twice the radius is `√2` the range — which is why a fighter has to close and a capital does
-  not. The assumed evasion `a` is a statement about the class of thing being shot at rather than a
+  not. **A bursting shell is measured against what its fragments cover rather than against the hull**, since
+  it need only arrive near the target: fragments radiate from the burst, so `m` away the `n` of them are
+  spread round a circumference of `2πm`, and one still meets a target of radius `r` while the gaps between
+  them are no wider than the `2(r+w)` it presents to a fragment `w` across — `m ≤ n(r+w)/π`. A shell split
+  into more, smaller pieces therefore covers more ground and pays for it in what each piece carries. It is
+  capped by where the fragments have got to by the aim point, the burst speed over the fuse, so a long fuse
+  only spreads the same metal thinner rather than buying reach; and it is never less than the target itself,
+  so a burst is a bonus and never a penalty. Without it a gun firing at something fighter-sized concludes it
+  must be nearly on top of it, when its shells would in fact be bursting in the fighter's lap. The assumed evasion `a` is a statement about the class of thing being shot at rather than a
   measurement of it, since a gunner cannot know what an enemy has left in its engines; it is set a little
   above what the shipped fleet manages, which errs towards holding fire. **Where there is no target there
   is still a nominal reach**, for a pilot deciding how close to fly and an editor drawing a ring round a

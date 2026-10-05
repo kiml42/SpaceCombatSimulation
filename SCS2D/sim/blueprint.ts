@@ -670,7 +670,8 @@ const MAX_ASSEMBLY_DEPTH = 16;
 /**
  * How hard a gunner assumes a target might jink, m/s².
  *
- * **What sets a gun's useful reach, together with the target's own size.**
+ * **What sets a gun's useful reach, together with the target's effective size
+ * (`lethalRadius`).**
  * Against something that does not manoeuvre, a shot is accurate at any range:
  * the solution is exact and the round simply takes a while. What spoils it is
  * the target changing its velocity after the trigger, and the spread of where
@@ -682,6 +683,8 @@ const MAX_ASSEMBLY_DEPTH = 16;
  * So a gun's reach is not a property of the gun alone. A big ship is worth
  * shooting at from much further off than a small one — twice the radius is
  * √2 the range — which is why a fighter has to close and a capital does not.
+ * What counts as the target's size is `lethalRadius`, since a bursting shell
+ * is allowed to miss by as much as its fragments cover.
  *
  * **It is an assumption about the class of thing being shot at rather than a
  * measurement of the target**, because a gunner cannot know what an enemy has
@@ -707,6 +710,43 @@ const EVASION_ACCEL = 10;
 const BEAM_REACH = 5000;
 
 /**
+ * How far a miss may be and still land something, metres: the target's own
+ * radius for solid shot, and for a shell whatever its burst covers.
+ *
+ * **A bursting shell does not have to arrive at the target, only near it**,
+ * which is the whole point of fusing one — so what the reach above should be
+ * measured against is the burst, not the hull. Without this a gun firing at
+ * something fighter-sized concludes it must be nearly on top of it, and the
+ * gunship's battery holds its fire against a Dinky at ranges where its shells
+ * would in fact be bursting in the fighter's lap.
+ *
+ * What bounds it is density rather than extent. Fragments radiate from the
+ * burst, so by the time they are `m` away the `n` of them are spread around a
+ * circumference of `2πm` and the gaps between them are `2πm/n`; one still
+ * meets a target of radius `r` while that gap is no wider than the `2(r+w)` it
+ * presents to a fragment `w` across, which is `m ≤ n(r+w)/π`. Hence the count:
+ * **a shell that splits into more, smaller pieces covers more ground**, which
+ * it pays for in what each one carries.
+ *
+ * Capped by where the fragments have actually got to by the aim point
+ * (`burst.radius`, the burst speed over the fuse), since nothing can be caught
+ * by a cloud that has not reached it. The cap is what stops a long fuse buying
+ * reach on its own — past it a longer one only spreads the same metal thinner
+ * — though it is a soft edge in truth: fragments fly on for `fragmentLife`
+ * rather than stopping at the cloud's rim, so this is the conservative reading.
+ *
+ * Never less than the target itself: a burst is a bonus and never a penalty,
+ * and against a hull bigger than the cloud it is the hull that is being aimed
+ * at anyway.
+ */
+export function lethalRadius(gun: GunStats, targetRadius: number): number {
+  const burst = gun.burst;
+  if (burst === null) return targetRadius;
+  const covered = (burst.fragments * (targetRadius + burst.fragmentWidth)) / PI;
+  return max(targetRadius, min(covered, burst.radius));
+}
+
+/**
  * How far this gun is worth shooting at something of that size, metres.
  *
  * A ship's reach is the best of these, and a mount's own reach is this — the
@@ -719,7 +759,7 @@ const BEAM_REACH = 5000;
  */
 export function reachAgainst(gun: GunStats, targetRadius: number): number {
   if (gun.type === GunType.Beam) return BEAM_REACH;
-  return gun.muzzleSpeed * sqrt((2 * targetRadius) / EVASION_ACCEL);
+  return gun.muzzleSpeed * sqrt((2 * lethalRadius(gun, targetRadius)) / EVASION_ACCEL);
 }
 
 /**
