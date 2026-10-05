@@ -27,6 +27,8 @@ import {
 } from '../sim/index.js';
 import { OrderCancelCondition } from '../sim/ships.js';
 import { EXPLOSIVE_YIELD } from '../sim/modules.js';
+import { lethalRadius, reachAgainst } from '../sim/blueprint.js';
+import { moduleStats as statsOf, type ModuleSpec } from '../sim/modules.js';
 import { TURRET_CORVETTE } from './fixtures.js';
 import { mutate } from '../evolution/mutate.js';
 
@@ -233,5 +235,59 @@ describe('a fuse in a file', () => {
     expect(blueprintFileProblem(ship(0.2, 'beamTurret'))).toBeNull();
     expect(blueprintWarnings(parseBlueprint(ship(0.2, 'beamTurret'))).join('\n')).toMatch(/fuse/);
     expect(() => compileBlueprint(parseBlueprint(ship(-1)))).toThrow(/fuse must be at least 0/);
+  });
+});
+
+
+/**
+ * What a burst does to how far the gun is worth firing: a shell may miss by as
+ * much as its fragments cover, so it is that, not the hull, that `reachAgainst`
+ * is measured against.
+ */
+describe('how far a burst lets a gun shoot', () => {
+  const gunOf = (over: Partial<ModuleSpec> = {}) => {
+    const gun = statsOf({ kind: 'turret', x: 0, y: 0, length: 8, width: 6, ...over } as ModuleSpec).gun!;
+    expect(gun).not.toBeNull();
+    return gun;
+  };
+
+  /** A fighter is about this across, and is what the floor exists for. */
+  const POINT = 1.64;
+
+  it('covers more than a point-like target is wide, so the gun may shoot from further off', () => {
+    const shell = gunOf();
+    const solid = gunOf({ fragments: 1 });
+    expect(solid.burst).toBeNull();
+    expect(lethalRadius(solid, POINT)).toBe(POINT);
+    expect(lethalRadius(shell, POINT)).toBeGreaterThan(2 * POINT);
+    expect(reachAgainst(shell, POINT)).toBeGreaterThan(reachAgainst(solid, POINT));
+  });
+
+  it('covers more ground the more pieces the shell splits into', () => {
+    const few = lethalRadius(gunOf({ fragments: 4 }), POINT);
+    const many = lethalRadius(gunOf({ fragments: 16 }), POINT);
+    expect(many).toBeGreaterThan(few);
+  });
+
+  it('is capped by where the fragments have got to, so a long fuse buys nothing on its own', () => {
+    const cloud = (fuse: number) => gunOf({ fuse }).burst!.radius;
+    // Short enough that the cloud is the binding limit rather than the count.
+    expect(cloud(0.005)).toBeGreaterThan(POINT);
+    expect(lethalRadius(gunOf({ fuse: 0.005 }), POINT)).toBeCloseTo(cloud(0.005), 9);
+    // Long enough that the count binds instead, and lengthening it does no more.
+    expect(lethalRadius(gunOf({ fuse: 1 }), POINT)).toBe(lethalRadius(gunOf({ fuse: 10 }), POINT));
+  });
+
+  it('never makes a target smaller than it is', () => {
+    const shell = gunOf();
+    const hull = 32;
+    expect(lethalRadius(shell, hull)).toBe(hull);
+    expect(lethalRadius(gunOf({ fuse: 0 }), POINT)).toBe(POINT);
+  });
+
+  it('leaves a beam alone, having no round to burst', () => {
+    const beam = gunOf({ kind: 'beamTurret' });
+    expect(beam.burst).toBeNull();
+    expect(reachAgainst(beam, POINT)).toBe(reachAgainst(beam, 1000));
   });
 });
