@@ -341,6 +341,7 @@ function cloneBlueprint(parent: Blueprint): Draft {
     doctrine: doctrine as unknown as Doctrine,
   };
   if (parent.notes !== undefined) blueprint.notes = parent.notes;
+  if (parent.fighter === true) blueprint.fighter = true;
   if (Object.keys(assemblies).length > 0) blueprint.assemblies = assemblies;
 
   return { blueprint, lists, assemblies, doctrine };

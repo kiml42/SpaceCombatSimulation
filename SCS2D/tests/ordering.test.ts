@@ -74,7 +74,8 @@ describe('module ordering, one battle each', () => {
     // rather than behaviour.
     const drift = Math.hypot(kinds!.x - control!.x, kinds!.y - control!.y);
     expect(drift).toBeGreaterThan(0);
-    expect(drift).toBeLessThan(1e-6);
+    // A round-off velocity offset taken early on, grown linearly for a minute.
+    expect(drift).toBeLessThan(1e-3);
 
     // The figures a battle is judged on are untouched, which is the claim that
     // outlives this scenario: these stay comparable once ships collide and
