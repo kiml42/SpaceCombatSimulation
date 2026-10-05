@@ -1,0 +1,145 @@
+{
+  "formatVersion": 1,
+  "name": "A Wing",
+  "fighter": true,
+  "doctrine": {
+    "targeting": {
+      "massWeight": 60,
+      "armedWeight": 90,
+      "mobileWeight": 80,
+      "facingWeight": 60,
+      "sightWeight": 20,
+      "escortWeight": 60
+    },
+    "approach": {
+      "standoffRadii": 25,
+      "escortRadii": 20,
+      "escort": 0.2,
+      "escortMinRadii": 1.2,
+      "tolerance": 0.5,
+      "approachSpeed": 900,
+      "brake": 0.9,
+      "ramRadii": 30,
+      "ramArmed": 0.5
+    }
+  },
+  "assemblies": {
+    "structure": {
+      "modules": [
+        {
+          "kind": "structure",
+          "x": -0.3,
+          "y": 0,
+          "length": 1.4,
+          "width": 1
+        },
+        {
+          "kind": "engine",
+          "x": -1.0000000000000002,
+          "y": -0.24999999999999983,
+          "angle": 180,
+          "length": 2.4,
+          "width": 1.3,
+          "barrels": 1,
+          "nozzle": 0.6
+        },
+        {
+          "kind": "hullGun",
+          "x": 0.3,
+          "y": 0.8,
+          "angle": 0,
+          "length": 3.4,
+          "width": 0.6,
+          "barrels": 1,
+          "fuse": 0.1,
+          "burstSpeed": 200,
+          "targeting": {
+            "facingWeight": 100,
+            "sightWeight": 20,
+            "proximityWeight": 200,
+            "closingWeight": 90
+          }
+        },
+        {
+          "use": "engine",
+          "x": 2.6999999999999997,
+          "y": -0.75
+        },
+        {
+          "kind": "engine",
+          "x": 0.40000000000000013,
+          "y": 0.050000000000000266,
+          "angle": 0,
+          "length": 0.5,
+          "width": 0.5,
+          "barrels": 2
+        },
+        {
+          "kind": "engine",
+          "x": -1.6999999999999997,
+          "y": 0.4,
+          "angle": 90,
+          "length": 0.5,
+          "width": 0.6,
+          "barrels": 3,
+          "nozzle": 0.55
+        }
+      ]
+    },
+    "engine": {
+      "modules": [
+        {
+          "kind": "engine",
+          "x": 0,
+          "y": 0,
+          "angle": 90,
+          "length": 0.3,
+          "width": 0.8,
+          "barrels": 3,
+          "nozzle": 0.55
+        }
+      ]
+    }
+  },
+  "modules": [
+    {
+      "kind": "core",
+      "x": 0.4,
+      "y": 0,
+      "length": 1.4,
+      "width": 1.8
+    },
+    {
+      "kind": "structure",
+      "x": 2.05,
+      "y": 0,
+      "length": 1.9,
+      "width": 2.4
+    },
+    {
+      "use": "structure",
+      "x": 0.7,
+      "y": 1.4
+    },
+    {
+      "use": "structure",
+      "x": 0.7,
+      "y": -1.4,
+      "mirror": true
+    },
+    {
+      "kind": "structure",
+      "x": 3.4999999999999996,
+      "y": 0,
+      "length": 1,
+      "width": 1.3
+    },
+    {
+      "kind": "structure",
+      "x": -0.9500000000000003,
+      "y": 0,
+      "length": 1.3,
+      "width": 1
+    }
+  ]
+}
