@@ -1,7 +1,7 @@
 import { compileBlueprint, math } from '../sim/index.js';
 import { type Battle } from './types.js';
 import { CROSSING, makeBattle } from './battle.js';
-import { DINKY, BEAM_GUNSHIP, GUNSHIP } from './blueprints.js';
+import { DINKY, GUNSHIP } from './blueprints.js';
 import { Rng } from '../sim/rng.js';
 
 /**
@@ -11,10 +11,9 @@ import { Rng } from '../sim/rng.js';
 export function swarm(seed = 20260905, fighterCount = 20): Battle {
   return makeBattle({ seed }, (ships, world) => {
     const dinky = compileBlueprint(DINKY);
-    const beamGunship = compileBlueprint(BEAM_GUNSHIP);
     const gunship = compileBlueprint(GUNSHIP);
 
-    ships.spawn(world, { design: beamGunship, ...CROSSING.east, team: 1 });
+    ships.spawn(world, { design: gunship, ...CROSSING.east, team: 1 });
     ships.spawn(world, {
       design: gunship,
       x: CROSSING.east.x + 300,

@@ -65,3 +65,4 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - team coloured beams and projectiles - as a UI option, so you can still see the more realistic mode by default. (turn it on by default for evolution)
 - Cap projectile rendering at their start and end positions so they don't overlap the barrel that launched them, or the target they hit.
 - Add a ship to a running battle, for quick testing. Dropdown in the corner to choose a ship to add to the battle. click and drag to chose position and velocity (position from first click, drag to N seconds worth of distance for the initial velocity.) Ship is instantly spawned when you let go.
+- Write names on ships' cores. Names should be their team colour and a sequential number e.g. "Red 5" for the fifth ship instantiated on the red team.

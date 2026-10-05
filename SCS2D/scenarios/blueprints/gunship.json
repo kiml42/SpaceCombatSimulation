@@ -10,7 +10,10 @@
       "escortWeight": 10
     },
     "approach": {
-      "escortMinRadii": 1.2,
+      "escortRadii": 10,
+      "escort": 0.2,
+      "escortMinRadii": 0.9,
+      "separation": 400,
       "tolerance": 0.3,
       "ramRadii": 5
     }
@@ -35,11 +38,13 @@
           "length": 6,
           "width": 5,
           "barrels": 4,
-          "barrelCalibres": 68,
-          "fuse": 0.08,
-          "burstSpeed": 400,
+          "barrelCalibres": 90,
+          "traverse": 110.00000000000001,
+          "fuse": 0.2,
+          "fragments": 10,
+          "burstSpeed": 200,
           "targeting": {
-            "preferredMass": 0.2,
+            "preferredMass": 0.1,
             "proximityWeight": 200,
             "armedWeight": 250,
             "mobileWeight": 100,
