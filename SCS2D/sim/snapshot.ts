@@ -59,6 +59,12 @@ export interface ShipView {
   /** Which turrets are pointing into their own ship, where they will not fire. */
   turretFouled?: boolean[];
   /**
+   * How full each gun is, 0 to 1 (`Ships.loadOf`), and whether it is
+   * reloading rather than ready or firing. Optional, as the aim is.
+   */
+  turretLoad?: number[];
+  turretReloading?: boolean[];
+  /**
    * The band of ranges its doctrine closes to, centre to centre, against the
    * enemy it prefers, metres. Only a preview sets it.
    */
@@ -248,6 +254,8 @@ function shipView(snapshot: Snapshot, i: number): ShipView {
     turretTrigger: [],
     turretTriggerReach: [],
     turretFouled: [],
+    turretLoad: [],
+    turretReloading: [],
     throttles: [],
     engineTriggerReach: [],
     engineFiring: [],
@@ -312,7 +320,10 @@ export function capture(
     const trigger = (view.turretTrigger ??= []);
     const triggerReach = (view.turretTriggerReach ??= []);
     const fouled = (view.turretFouled ??= []);
+    const load = (view.turretLoad ??= []);
+    const reloading = (view.turretReloading ??= []);
     aim.length = trigger.length = triggerReach.length = fouled.length = design.turrets.length;
+    load.length = reloading.length = design.turrets.length;
     for (let t = 0; t < design.turrets.length; t++) {
       const ti = ships.turretIndexOf(i, t);
       view.turretBearings[t] = turrets.worldBearing(bodies, ti);
@@ -321,6 +332,8 @@ export function capture(
       trigger[t] = turrets.triggerHalfAngle(ti);
       triggerReach[t] = ships.triggerReach(i, t);
       fouled[t] = turrets.fouled(ti);
+      load[t] = ships.loadOf(i, t);
+      reloading[t] = ships.isReloading(i, t);
       view.turretDisabled[t] = ships.isTurretDisabled(i, t);
     }
 

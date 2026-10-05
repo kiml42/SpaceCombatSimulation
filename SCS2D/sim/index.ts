@@ -62,6 +62,7 @@ export {
   NOZZLE_THROAT_FRACTION,
   gunStats,
   beamGunStats,
+  firingPeriod,
   moduleCentre,
   boxAngle,
   refitModule,
