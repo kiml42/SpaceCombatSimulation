@@ -1,6 +1,6 @@
 import { MAX_BEAM_LENGTH } from '../sim/beams.js';
 import { math, type ShipDesign, type Snapshot } from '../sim/index.js';
-import { GunType } from '../sim/modules.js';
+import { GunType, firingPeriod } from '../sim/modules.js';
 
 const { cos, sin, min, max } = math;
 
@@ -11,7 +11,7 @@ const { cos, sin, min, max } = math;
  * both just numbers until you watch the gun cycle, and an engine's share of
  * the ship's thrust is a plume's length rather than a fraction. This animates
  * exactly the figures already on the panel, so it adds nothing that is not
- * already claimed — the rate is the gun's `cycleTime`, the rounds leave at its
+ * already claimed — the rate is the gun's `firingPeriod`, the rounds leave at its
  * `muzzleSpeed` and are its calibre wide, and the plume is drawn by the same
  * renderer from the same throttle a flying ship would report.
  *
@@ -154,7 +154,7 @@ export class Demonstration {
         this.cycles[t] = 0;
         continue;
       }
-      const cycle = turret.gun.cycleTime;
+      const cycle = firingPeriod(turret.gun);
       if (!(cycle > 0)) continue;
       // A gun waiting out a long cycle is still being shown, even with nothing
       // in the air to prove it.
@@ -237,17 +237,17 @@ export class Demonstration {
    */
   private loadOf(design: ShipDesign, t: number, load: number[], reloading: boolean[]): void {
     const gun = design.turrets[t]!.gun;
-    const cycle = gun.cycleTime;
+    const cycle = firingPeriod(gun);
     const left = this.cycles[t] ?? 0;
     load[t] = 1;
     reloading[t] = false;
     if (!(cycle > 0) || !(left > 0)) return;
     const elapsed = cycle - left;
-    const burst = gun.type === GunType.Beam ? min(gun.beamOnTime, cycle) : 0;
+    const burst = gun.type === GunType.Beam ? gun.beamOnTime : 0;
     if (elapsed < burst) {
       load[t] = 1 - elapsed / burst;
     } else {
-      load[t] = cycle > burst ? (elapsed - burst) / (cycle - burst) : 1;
+      load[t] = gun.cycleTime > 0 ? (elapsed - burst) / gun.cycleTime : 1;
       reloading[t] = true;
     }
   }

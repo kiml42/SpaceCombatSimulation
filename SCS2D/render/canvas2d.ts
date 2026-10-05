@@ -200,8 +200,11 @@ const ARC_MAX_RADIUS = 40;
 const BARREL = '#8f6f25';
 /** Bracing on a barrel too long to hold itself up: the barrel's colour, darker. */
 const BRACE = '#4f3d14';
-/** A gun's load display: amber while it reloads, green while it is ready or a beam is firing. */
-const LOAD_TRACK = '#ffffff30';
+/**
+ * A gun's load display: amber while it reloads, green while it is ready or a
+ * beam is firing, on a grey track that shows how full it will get.
+ */
+const LOAD_TRACK = '#707070';
 const LOAD_RELOADING = '#ffb000';
 const LOAD_READY = '#4cf24c';
 /** Flame colours, as the RGB a gradient fades to transparent from. */
@@ -486,7 +489,7 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     }
     ctx.stroke();
     if (gun.braceLength > 0) drawBracing(ctx, gun, physicalWidth, mx, my, dirX, dirY);
-    if (ship.turretDisabled?.[t] !== true) drawLoad(ctx, ship, t, mx, my, bearing);
+    drawLoad(ctx, ship, t, mx, my, bearing);
   }
 
   if (arcs === 'trigger') drawEngineTriggers(ctx, ship, metresToPx);
@@ -542,8 +545,9 @@ function drawLoad(
   my: number,
   bearing: number,
 ): void {
-  // A view built by hand says nothing of loading, so its guns are ready.
-  const load = ship.turretLoad?.[t] ?? 1;
+  // A view built by hand says nothing of loading, so its guns are ready. A
+  // disabled gun is empty, so it never shows a ready light.
+  const load = ship.turretDisabled?.[t] === true ? 0 : (ship.turretLoad?.[t] ?? 1);
   const module = ship.design.modules[ship.design.turrets[t]!.module]!;
   const spec = module.spec;
   const colour = ship.turretReloading?.[t] === true ? LOAD_RELOADING : LOAD_READY;

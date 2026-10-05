@@ -792,10 +792,15 @@ export interface GunStats {
   muzzleEnergy: number;
   /** beam power at the muzzle, watts. */
   beamPower: number;
-  /** Seconds between rounds. */
+  /** Seconds spent reloading between shots: after a beam's burst, not including it. */
   cycleTime: number;
   /** Seconds a beam stays on. */
   beamOnTime: number;
+}
+
+/** Seconds from one shot to the next: a beam's burst, then its reload. */
+export function firingPeriod(gun: GunStats): number {
+  return gun.type === GunType.Beam ? gun.beamOnTime + gun.cycleTime : gun.cycleTime;
 }
 
 /** Everything the scaling laws derive from a module's geometry. */

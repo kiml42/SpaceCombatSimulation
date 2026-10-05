@@ -1644,7 +1644,6 @@ describe('Demonstration', () => {
     const design = beamBoat();
     const turret = design.turrets[0]!;
     const { beamOnTime, cycleTime } = turret.gun;
-    expect(beamOnTime).toBeLessThan(cycleTime);
     const demo = new Demonstration();
     const snapshot = previewSnapshot(design);
     const view = snapshot.ships[0]!;
@@ -1656,10 +1655,19 @@ describe('Demonstration', () => {
     expect(view.turretReloading![0]).toBe(false);
     expect(view.turretLoad![0]).toBeCloseTo(0.5, 1);
 
-    for (let t = beamOnTime / 2; t < (beamOnTime + cycleTime) / 2; t += 1 / 240) demo.step(design, selected, 1 / 240);
+    // The reload is the whole of `cycleTime`, after the burst, as in battle.
+    for (let t = beamOnTime / 2; t < beamOnTime + cycleTime / 2; t += 1 / 240) demo.step(design, selected, 1 / 240);
     demo.writeInto(snapshot);
     expect(view.turretReloading![0]).toBe(true);
     expect(view.turretLoad![0]).toBeCloseTo(0.5, 1);
+  });
+
+  it('counts a beam’s burst as well as its reload in its rate of fire', () => {
+    const design = beamBoat();
+    const gun = design.turrets[0]!.gun;
+    const turret = designStats(design, envelopes(design)).turrets[0]!;
+    expect(gun.beamOnTime).toBeGreaterThan(0);
+    expect(turret.roundsPerMinute).toBeCloseTo(60 / (gun.beamOnTime + gun.cycleTime), 9);
   });
 
   it('runs a beam from the muzzle outward, rather than from the origin', () => {
