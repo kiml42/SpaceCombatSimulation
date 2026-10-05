@@ -12,6 +12,7 @@
  */
 
 export * as math from './math.js';
+export { Fuel } from './fuel.js';
 export { Rng, type RngState } from './rng.js';
 export {
   Bodies,
@@ -47,6 +48,7 @@ export {
 } from './engines.js';
 export {
   DECK_HEIGHT,
+  BASE_WALL_THICKNESS,
   DEFAULT_NOZZLE_SHARE,
   BARREL_CALIBRES,
   BARREL_OUTER_CALIBRES,
@@ -103,6 +105,13 @@ export {
   nozzleOffset,
   weldBox,
   engineGeometry,
+  engineExhaustVelocity,
+  specificImpulse,
+  EXHAUST_VELOCITY,
+  SMALL_ENGINE_LOSS,
+  FUEL_DENSITY,
+  CORE_FUEL_SHARE,
+  STANDARD_GRAVITY,
   engineMachinery,
   traverseAccel,
   mountAccel,

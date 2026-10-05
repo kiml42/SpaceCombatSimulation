@@ -121,6 +121,7 @@ const FIELDS = [
   'raceWeight',
   'kindEngine',
   'kindStructure',
+  'kindTank',
   'kindTurret',
   'kindBeamTurret',
   'kindHullGun',
@@ -477,6 +478,7 @@ export function startEvolution(): void {
     raceWeight: String(DEFAULT_MATCH.weights.race),
     kindEngine: String(DEFAULT_KINDS.engine),
     kindStructure: String(DEFAULT_KINDS.structure),
+    kindTank: String(DEFAULT_KINDS.tank),
     kindTurret: String(DEFAULT_KINDS.turret),
     kindBeamTurret: String(DEFAULT_KINDS.beamTurret),
     kindHullGun: String(DEFAULT_KINDS.hullGun),
@@ -659,6 +661,7 @@ export function startEvolution(): void {
         kinds: {
           engine: Math.max(0, number(inputs.kindEngine, DEFAULT_KINDS.engine)),
           structure: Math.max(0, number(inputs.kindStructure, DEFAULT_KINDS.structure)),
+          tank: Math.max(0, number(inputs.kindTank, DEFAULT_KINDS.tank)),
           turret: Math.max(0, number(inputs.kindTurret, DEFAULT_KINDS.turret)),
           beamTurret: Math.max(0, number(inputs.kindBeamTurret, DEFAULT_KINDS.beamTurret)),
           hullGun: Math.max(0, number(inputs.kindHullGun, DEFAULT_KINDS.hullGun)),
@@ -743,6 +746,7 @@ export function startEvolution(): void {
     inputs.raceWeight.value = String(match.weights.race);
     inputs.kindEngine.value = String(kinds.engine);
     inputs.kindStructure.value = String(kinds.structure);
+    inputs.kindTank.value = String(kinds.tank);
     inputs.kindTurret.value = String(kinds.turret);
     inputs.kindBeamTurret.value = String(kinds.beamTurret);
     inputs.kindHullGun.value = String(kinds.hullGun);

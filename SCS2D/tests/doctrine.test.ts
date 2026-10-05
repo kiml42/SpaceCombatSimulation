@@ -445,7 +445,7 @@ describe('a ship deciding for itself', () => {
       ships.spawn(world, { design: corvette, x: 500, y: 0, team: 0 });
       ships.spawn(world, { design: corvette, x: 1000, y: 0, angle: Math.PI, team: 1 });
       ships.spawn(world, { design: corvette, x: 0, y: 1100, angle: -Math.PI / 2, team: 1 });
-      for (let i = 0; i < 600; i++) {
+      for (let i = 0; i < 900; i++) {
         ships.command(1 / 60, world);
         world.step();
       }

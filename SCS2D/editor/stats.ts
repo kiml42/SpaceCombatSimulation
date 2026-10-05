@@ -1,5 +1,6 @@
 import {
   Allocation,
+  specificImpulse,
   HullPath,
   exhaustObstruction,
   firingArc,
@@ -73,8 +74,17 @@ export interface TurretReadout {
 }
 
 export interface DesignStats {
-  /** Dry mass, kg — the materials the ship is made of, and not a cost. */
+  /** Mass with every tank full, kg — the materials the ship is made of and its fuel, and not a cost. */
   mass: number;
+  /** Fuel aboard when full, kg: its tanks, and what its cores carry. */
+  fuel: number;
+  /** Seconds every engine could burn flat out on a full load. Infinite with no engines. */
+  endurance: number;
+  /**
+   * Change of velocity a full load buys, m/s, by the rocket equation, at the
+   * exhaust velocity of all its engines burning together.
+   */
+  deltaV: number;
   /** Moment of inertia about the centre of mass, kg·m². */
   inertia: number;
   /** Bounding-circle radius about the centre of mass, metres. */
@@ -124,9 +134,24 @@ export function designStats(design: ShipDesign, envelope: Envelopes): DesignStat
   const mass = design.mass;
   const inertia = design.inertia;
   const trim = trimmer(design);
+  let fuel = 0;
+  let thrust = 0;
+  // Kilograms a second, every engine flat out.
+  let flow = 0;
+  for (const module of design.modules) {
+    fuel += module.stats.fuel;
+    if (module.stats.exhaustVelocity > 0) {
+      thrust += module.stats.thrust;
+      flow += module.stats.thrust / module.stats.exhaustVelocity;
+    }
+  }
+  const exhaust = flow > 0 ? thrust / flow : 0;
 
   return {
     mass,
+    fuel,
+    endurance: flow > 0 ? fuel / flow : Infinity,
+    deltaV: fuel > 0 && fuel < mass ? exhaust * math.log(mass / (mass - fuel)) : 0,
     inertia,
     radius: design.radius,
     moduleCount: design.modules.length,
@@ -277,6 +302,15 @@ export function moduleReadout(
     ['Armour', `${(stats.wallThickness * 1000).toLocaleString('en-GB', { maximumFractionDigits: 0 })} mm`],
     ['Hit points', stats.hitPoints.toLocaleString('en-GB', { maximumFractionDigits: 0 })],
   ];
+  if (stats.fuel > 0) rows.push(['Fuel', `${(stats.fuel / 1000).toLocaleString('en-GB', { maximumFractionDigits: 2 })} t, counted in its mass`]);
+  if (stats.exhaustVelocity > 0) {
+    // What it costs to run, which the bell and the size of the throat decide.
+    rows.push([
+      'Efficiency',
+      `${specificImpulse(stats.exhaustVelocity).toLocaleString('en-GB', { maximumFractionDigits: 0 })} s Isp, ` +
+        `${(stats.thrust / stats.exhaustVelocity).toLocaleString('en-GB', { maximumFractionDigits: 1 })} kg/s flat out`,
+    ]);
+  }
   if (stats.thrust > 0) {
     // What the nozzle throws, and — where some of it runs into the ship — what
     // is left over to fly on. An engine part-buried in its own hull hands that

@@ -157,7 +157,7 @@ describe('resolving a collision', () => {
     // A fighter crashing into a corvette's flank, both already turning.
     const w = world(
       { design: corvette, x: 0, y: 0, vx: 120, spin: 0.2 },
-      { design: dinky, x: 7.5, y: 4.5, vx: -40, spin: -0.1 },
+      { design: dinky, x: 7.3, y: 4.5, vx: -40, spin: -0.1 },
     );
     const p = momentum(w.bodies);
     const l = angularMomentum(w.bodies);
@@ -204,7 +204,7 @@ describe('resolving a collision', () => {
     // makes a glancing blow tumble a ship rather than only shove it.
     const w = world(
       { design: corvette, x: 0, y: 0, vx: 150 },
-      { design: dinky, x: 7.5, y: 4.5, vx: -150 },
+      { design: dinky, x: 7.3, y: 4.5, vx: -150 },
     );
     findContacts(w.bodies, w.hulls, w.contacts);
     expect(w.contacts.count).toBe(1);

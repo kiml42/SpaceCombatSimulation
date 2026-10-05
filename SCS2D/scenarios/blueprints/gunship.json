@@ -106,7 +106,7 @@
     "Engine Node": {
       "modules": [
         {
-          "kind": "structure",
+          "kind": "tank",
           "x": -4.5,
           "y": 0,
           "length": 6,

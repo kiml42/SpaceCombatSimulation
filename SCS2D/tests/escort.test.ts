@@ -201,7 +201,8 @@ describe('escort and neutrals', () => {
         ships.spawn(world, { design: enemy, x: 2500, y: 0, angle: math.PI, team: 1 });
         return { covering, charge };
       });
-      for (let step = 0; step < 1800; step++) battle.step();
+      // Before the gunship arrives and takes the escort apart.
+      for (let step = 0; step < 1200; step++) battle.step();
       const bodies = battle.world.bodies;
       const a = bodies.indexOf(battle.ships.body(battle.covering));
       const b = bodies.indexOf(battle.ships.body(battle.charge));
@@ -236,7 +237,8 @@ describe('escort and neutrals', () => {
         while (battle.ships.hasControl(battle.charge)) battle.ships.damage.absorb(b, 0, blow);
         expect(battle.ships.damage.spent(b, 0)).toBe(false);
       }
-      for (let step = 0; step < 1800; step++) battle.step();
+      // Before the gunship arrives and takes the escort apart.
+      for (let step = 0; step < 1200; step++) battle.step();
       const a = bodies.indexOf(battle.ships.body(battle.covering));
       const b = bodies.indexOf(battle.ships.body(battle.charge));
       return math.length(bodies.x[a]! - bodies.x[b]!, bodies.y[a]! - bodies.y[b]!);

@@ -111,7 +111,7 @@
         "Engine Node": {
           "modules": [
             {
-              "kind": "structure",
+              "kind": "tank",
               "x": -4.5,
               "y": 0,
               "length": 6,
@@ -169,8 +169,8 @@
           "barrelCalibres": 50,
           "fragments": 4,
           "burstSpeed": 300,
-          "thick": true,
           "fuse": 0.08,
+          "thick": true,
           "targeting": {
             "loyaltyWeight": 30,
             "focusWeight": 400,
@@ -309,7 +309,7 @@
       },
       "modules": [
         {
-          "kind": "structure",
+          "kind": "tank",
           "x": 4.25,
           "y": 0,
           "length": 4.5,
@@ -385,7 +385,7 @@
           "notes": "The wings exist to hold the manoeuvring engines out where their moment arm is worth having. That they also foul the bow gun's traverse is the trade this layout makes, and it is visible in the arc the design compiles to.",
           "modules": [
             {
-              "kind": "structure",
+              "kind": "tank",
               "x": 0,
               "y": 0,
               "length": 4,
@@ -599,7 +599,7 @@
       },
       "modules": [
         {
-          "kind": "structure",
+          "kind": "tank",
           "x": 0.5,
           "y": 0,
           "length": 0.8,

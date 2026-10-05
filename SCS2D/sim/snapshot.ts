@@ -91,6 +91,8 @@ export interface ShipView {
    * drawn as wreckage rather than not drawn.
    */
   integrity: number[];
+  /** How full each module is of fuel, 0 to 1, and 1 for one that holds none. */
+  fuel?: number[];
   /**
    * Whether the ship still has a core with control in it (§4).
    *
@@ -354,6 +356,12 @@ export function capture(
     view.integrity.length = design.modules.length;
     for (let m = 0; m < design.modules.length; m++) {
       view.integrity[m] = ships.damage.integrity(b, m);
+    }
+    const fuel = (view.fuel ??= []);
+    fuel.length = design.modules.length;
+    for (let m = 0; m < design.modules.length; m++) {
+      const full = design.modules[m]!.stats.fuel;
+      fuel[m] = full > 0 ? ships.fuel.held(b, m) / full : 1;
     }
     const drawn = (view.drawn ??= []);
     drawn.length = design.modules.length;

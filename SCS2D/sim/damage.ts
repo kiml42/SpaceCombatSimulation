@@ -118,6 +118,8 @@ export const RAGGED_INTEGRITY = 0.25;
 
 export const DAMAGE_RESPONSES: Readonly<Record<ModuleSpec['kind'], readonly DamageResponse[]>> = {
   structure: [],
+  // Holds its fuel however badly it is hit, until leaks are built (ROADMAP.md §8 step 8).
+  tank: [],
   core: [{ effect: DamageEffect.Control, remaining: fadesOutAt(CONTROL_CUTOUT) }],
   engine: [{ effect: DamageEffect.Thrust, remaining: fadesOutAt(THRUST_CUTOUT) }],
   turret: [{ effect: DamageEffect.FireRate, remaining: fadesOutAt(FIRE_RATE_CUTOUT) }],
