@@ -5,42 +5,88 @@
   "doctrine": {
     "targeting": {
       "proximityWeight": 60,
-      "preferredMass": 20,
-      "massWeight": 150
+      "preferredMass": 2,
+      "massWeight": 150,
+      "closingWeight": 60,
+      "facingWeight": 100,
+      "sightWeight": 50,
+      "escortWeight": 20
     },
     "approach": {
-      "standoffRadii": 5,
-      "standoff": 0.05,
-      "separation": 100,
+      "standoffRadii": 0.2,
+      "standoff": 0.1,
+      "escortRadii": 10,
+      "escort": 1.1,
+      "separationRadii": 1,
       "tolerance": 0.3,
       "approachSpeed": 200,
-      "brake": 1
+      "brake": 0.9
     }
   },
   "assemblies": {
-    "lateral": {
+    "Side": {
       "modules": [
         {
-          "kind": "engine",
-          "x": 0.6,
-          "y": 0,
-          "angle": 90,
-          "length": 0.5,
-          "width": 1.8
+          "use": "engine",
+          "x": 24.5,
+          "y": 0.5000000000000001
+        },
+        {
+          "kind": "structure",
+          "x": 9.55,
+          "y": 0.25,
+          "length": 35,
+          "width": 0.5,
+          "reinforcement": 2
+        },
+        {
+          "use": "engine",
+          "x": -11.899999999999999,
+          "y": -8.326672684688674e-17
         }
       ]
     },
-    "main": {
+    "assembly": {
       "modules": [
         {
           "kind": "engine",
-          "x": 0.1,
+          "x": -15.25,
           "y": 0,
-          "angle": 180,
-          "length": 2.1,
-          "width": 1.6,
-          "reinforcement": 1,
-          "barrels": 1
+          "angle": 0,
+          "length": 38,
+          "width": 8,
+          "reinforcement": 1.5,
+          "barrels": 1,
+          "nozzle": 0.493151,
+          "weapon": true,
+          "thick": true,
+          "notes": "The weapon. Its thrust points aft, so firing it at a target is also braking, and holding it on is being pushed away."
+        },
+        {
+          "use": "Side",
+          "x": -2.6,
+          "y": 4
+        },
+        {
+          "use": "Side",
+          "x": -2.5,
+          "y": -4,
+          "mirror": true
+        }
+      ]
+    },
+    "engine": {
+      "modules": [
+        {
+          "kind": "engine",
+          "x": -1.5,
+          "y": 0,
+          "angle": 90,
+          "length": 3,
+          "width": 8,
+          "barrels": 1,
+          "weapon": true,
+          "thick": true
         }
       ]
     }
@@ -48,65 +94,28 @@
   "modules": [
     {
       "kind": "core",
-      "x": 2,
+      "x": 0.05,
       "y": 0,
       "length": 1.5,
-      "width": 3,
+      "width": 8,
       "reinforcement": 2,
       "notes": "Armoured, because the bow is always pointed at something with guns."
     },
     {
+      "use": "assembly",
+      "x": 16.05,
+      "y": 0
+    },
+    {
       "kind": "engine",
-      "x": 2.75,
+      "x": -0.7,
       "y": 0,
-      "angle": 0,
-      "length": 16,
-      "width": 6,
-      "thick": true,
-      "reinforcement": 1.5,
-      "barrels": 1,
+      "angle": 180,
+      "length": 6.5,
+      "width": 8,
       "nozzle": 0.5,
       "weapon": true,
-      "notes": "The weapon. Its thrust points aft, so firing it at a target is also braking, and holding it on is being pushed away."
-    },
-    {
-      "use": "main",
-      "x": 2.65,
-      "y": 2.3
-    },
-    {
-      "use": "main",
-      "x": 2.65,
-      "y": -2.3
-    },
-    {
-      "use": "lateral",
-      "x": 9.4,
-      "y": 3
-    },
-    {
-      "use": "lateral",
-      "x": 9.4,
-      "y": -3,
-      "angle": 0,
-      "mirror": true
-    },
-    {
-      "use": "lateral",
-      "x": 3.05,
-      "y": 3
-    },
-    {
-      "use": "lateral",
-      "x": 3.05,
-      "y": -3,
-      "angle": 0,
-      "mirror": true
-    },
-    {
-      "use": "main",
-      "x": 1.15,
-      "y": 0
+      "thick": true
     }
   ]
 }
