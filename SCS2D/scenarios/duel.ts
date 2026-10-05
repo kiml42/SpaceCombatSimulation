@@ -2,7 +2,6 @@ import { compileBlueprint, math } from '../sim/index.js';
 import type { Battle } from './types.js';
 import { CROSSING, SIDE_WELL, makeBattle } from './battle.js';
 import { CORVETTE, GUNSHIP } from './blueprints.js';
-import { OrderCancelCondition } from '../sim/ships.js';
 
 /**
  * A corvette and a gunship closing on each other and opening fire.
