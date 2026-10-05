@@ -1,8 +1,7 @@
 import { compileBlueprint, math } from '../sim/index.js';
 import type { Battle } from './types.js';
 import { CROSSING, SIDE_WELL, makeBattle } from './battle.js';
-import { CORVETTE, DAMAGED_CORVETTE, GUNSHIP } from './blueprints.js';
-import { OrderCancelCondition } from '../sim/ships.js';
+import { CORVETTE, GUNSHIP } from './blueprints.js';
 
 /**
  * A corvette and a gunship closing on each other and opening fire.
@@ -25,12 +24,11 @@ import { OrderCancelCondition } from '../sim/ships.js';
 export function duel(seed = 20260905): Battle {
   return makeBattle({ seed, wells: [SIDE_WELL] }, (ships, world) => {
     const corvette = compileBlueprint(CORVETTE);
-    const damagedCorvette = compileBlueprint(DAMAGED_CORVETTE);
     const gunship = compileBlueprint(GUNSHIP);
 
-    const distantCorvette = ships.spawn(world, { design: corvette, ...CROSSING.west, team: 0 });
-    const closeCorvette = ships.spawn(world, {
-      design: damagedCorvette,
+    ships.spawn(world, { design: corvette, ...CROSSING.west, team: 0 });
+    ships.spawn(world, {
+      design: corvette,
       x: 2000,
       y: -740,
       angle: math.HALF_PI / 2,
@@ -38,23 +36,8 @@ export function duel(seed = 20260905): Battle {
       vy: 90,
       team: 0,
     });
-    const b = ships.spawn(world, { design: gunship, ...CROSSING.east, team: 1 });
+    ships.spawn(world, { design: gunship, ...CROSSING.east, team: 1 });
 
-    // The corvettes want to be inside the gunship's reach; the gunship would
-    // rather hold it off. Neither gets what it wants, which is the interesting
-    // part.
-
-    // the gunship starts off attacking the closer corvette.
-    ships.pushOrder(closeCorvette, b, 300, 500, 120);
-
-    // this one starts far away and comes in later to help.
-    ships.pushOrder(distantCorvette, b, 300, 500, 120);
-
-    // The gunship has a plan rather than a target, worked through in order:
-    // silence the corvette already on it, deal with the one coming to help,
-    // then come back and finish the first off.
-    ships.pushOrder(b, closeCorvette, 900, 1200, 60, OrderCancelCondition.Disarm);
-    ships.pushOrder(b, distantCorvette, 900, 1200, 60, OrderCancelCondition.CompleteDisable);
-    ships.pushOrder(b, closeCorvette, 900, 1200, 60, OrderCancelCondition.CompleteDisable);
+    // no orders given, rely on the doctrine.
   });
 }

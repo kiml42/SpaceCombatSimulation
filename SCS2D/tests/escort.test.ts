@@ -105,16 +105,22 @@ describe('escort and neutrals', () => {
 
     const body = battle.world.bodies.indexOf(battle.ships.body(battle.neutral));
     let struck = 0;
+    // Read while it is whole: a gunship's ram can tear the structure off later,
+    // leaving module 0 the untouched core.
+    let worn = 1;
     for (let step = 0; step < 1800; step++) {
       battle.step();
       for (let h = 0; h < battle.credit.count; h++) {
         if (battle.credit.victim[h] === body) struck++;
       }
+      if (battle.ships.design(battle.neutral).modules.length === marker.modules.length) {
+        worn = Math.min(worn, battle.ships.damage.integrity(body, 0));
+      }
     }
     expect(struck).toBeGreaterThan(0);
     // Unprotected, so what it is hit by tells: an objective left like this
     // would be worn away by a battle fought over it.
-    expect(battle.ships.damage.integrity(body, 0)).toBeLessThan(1);
+    expect(worn).toBeLessThan(1);
   });
 
   it('leaves a protected hull unmarked by what does hit it', () => {

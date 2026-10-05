@@ -7,7 +7,13 @@
       "preferredMass": 2,
       "massWeight": 60,
       "loyaltyWeight": 80,
-      "armedWeight": 60
+      "armedWeight": 60,
+      "facingWeight": 30,
+      "sightWeight": 20,
+      "escortWeight": 10
+    },
+    "approach": {
+      "ramRadii": 10
     }
   },
   "assemblies": {
@@ -19,7 +25,8 @@
           "y": 0,
           "length": 60,
           "width": 1.5,
-          "reinforcement": 3
+          "reinforcement": 3,
+          "thick": true
         }
       ]
     },
@@ -40,7 +47,7 @@
         {
           "use": "engine",
           "x": 3.5,
-          "y": 3,
+          "y": 4,
           "angle": -90
         }
       ]
@@ -52,9 +59,8 @@
           "x": 0,
           "y": 0,
           "angle": 90,
-          "length": 2.5,
+          "length": 4,
           "width": 7,
-          "thick": true,
           "barrels": 2
         }
       ]
@@ -63,12 +69,11 @@
       "modules": [
         {
           "kind": "engine",
-          "x": 0,
+          "x": 0.5,
           "y": 0,
           "angle": 90,
-          "length": 2.5,
-          "width": 7,
-          "thick": true,
+          "length": 4,
+          "width": 6,
           "barrels": 2
         },
         {
@@ -89,12 +94,7 @@
         },
         {
           "use": "turret",
-          "x": -5.5,
-          "y": 1.25
-        },
-        {
-          "use": "turret",
-          "x": -59.5,
+          "x": -25.5,
           "y": 1.25
         }
       ]
@@ -102,17 +102,17 @@
     "turret": {
       "modules": [
         {
-          "kind": "turret",
-          "x": 0.5,
-          "y": -0.25,
+          "kind": "beamTurret",
+          "x": 0,
+          "y": 0.25,
           "angle": 90,
-          "length": 2,
+          "length": 3,
           "width": 3,
-          "barrelCalibres": 33.333,
-          "barrels": 2,
-          "fragments": 1,
+          "barrels": 1,
           "targeting": {
-            "focusWeight": 0
+            "focusWeight": 0,
+            "sightWeight": 100,
+            "facingWeight": 20
           }
         }
       ]
@@ -135,9 +135,15 @@
       "length": 50,
       "width": 8,
       "barrels": 1,
+      "traverse": 3,
+      "thick": true,
       "targeting": {
         "coreWeight": 80,
-        "proximityWeight": 100
+        "proximityWeight": 100,
+        "facingWeight": 100,
+        "sightWeight": 100,
+        "preferredMass": 2,
+        "massWeight": 100
       }
     },
     {
@@ -158,8 +164,8 @@
       "angle": 180,
       "length": 18,
       "width": 11,
-      "thick": true,
-      "nozzle": 0.5
+      "nozzle": 0.5,
+      "thick": true
     },
     {
       "use": "structure2",

@@ -749,26 +749,28 @@ describe('sizing a drawn module through the frame it was written in', () => {
 
 describe('pushing through the corvette’s bow', () => {
   it('keeps the turret against the engine that pushes it, step after step', () => {
-    // The bow structure's front face drawn back two metres, so the turret is
+    // The bow structure's front face drawn back two metres, so the gun is
     // pulled in between the two retro engines with a metre clear of each.
     const bow = expandWithOrigins(CORVETTE).origins[0]!;
-    const drawnBack = resizePlacement(CORVETTE, bow, 4, 6, -1, 0, true)!;
-    const turret = (bp: Blueprint) => placementAt(bp, [{ index: 3, copy: 0 }]) as ModuleSpec;
-    expect(turret(drawnBack).x).toBe(8.5);
+    const drawnBack = resizePlacement(CORVETTE, bow, 2.5, 6, -1, 0, true)!;
+    const turret = (bp: Blueprint) => placementAt(bp, [{ index: 2, copy: 0 }]) as ModuleSpec;
+    expect(turret(drawnBack).x).toBe(11);
 
     // Then its +y side pulled in, as a drag does: each step applied afresh to
-    // the layout the drag started from.
+    // the layout the drag started from. Each retro sits 2.5 m inboard of its
+    // side's origin.
     for (const by of [0.5, 1, 1.5, 2, 2.5]) {
-      const next = resizePlacement(drawnBack, bow, 4, 6 - by, 0, -by / 2, true)!;
-      const retro = next.modules[13] as AssemblyInstance;
-      const lower = next.modules[14] as AssemblyInstance;
-      const retroBottom = retro.y - 1.5;
+      const next = resizePlacement(drawnBack, bow, 2.5, 6 - by, 0, -by / 2, true)!;
+      const upper = next.modules[4] as AssemblyInstance;
+      const lower = next.modules[5] as AssemblyInstance;
+      const retroBottom = upper.y - 2.5 - 1.5;
       const turretTop = turret(next).y + 2;
       const turretBottom = turret(next).y - 2;
       // The retro closes on the turret, then pushes it without a gap opening.
       expect(retroBottom - turretTop).toBeCloseTo(Math.max(0, 1 - by), 9);
-      // The turret closes on the lower retro before it pushes that in turn.
-      expect(turretBottom - (lower.y + 1.5)).toBeCloseTo(Math.min(1, Math.max(0, 2 - by)), 9);
+      // The far side is carried the whole way by the main engine its wing
+      // abuts, so once the turret moves it keeps pace and never catches up.
+      expect(turretBottom - (lower.y + 2.5 + 1.5)).toBeCloseTo(1 + Math.min(1, by), 9);
     }
   });
 });
@@ -908,11 +910,12 @@ describe('designStats', () => {
   it('reports the acceleration a ship can use, not the most it can project', () => {
     const design = new EditorDocument(CORVETTE).view.design!;
     const stats = designStats(design, envelopes(design));
-    // The corvette is balanced on its axes, so on the cardinals the two agree —
-    // which is what makes the diagonal gap below a statement about the layout
-    // rather than about the measurement.
+    // Fore and aft the corvette is balanced, so the two agree. Abeam they do
+    // not: trimming out the laterals' torque costs some of their push, and the
+    // panel reports what is left.
     expect(stats.accelFore).toBeCloseTo(design.engineLayout.maxThrustAlong(1, 0) / design.mass, 2);
-    expect(stats.accelPort).toBeCloseTo(design.engineLayout.maxThrustAlong(0, 1) / design.mass, 2);
+    expect(stats.accelPort).toBeLessThan((design.engineLayout.maxThrustAlong(0, 1) / design.mass) * 0.97);
+    expect(stats.accelPort).toBeCloseTo(envelopes(design, 4).holding[1]!, 9);
   });
 
   it('reports a gun in the figures a player compares', () => {
@@ -946,15 +949,16 @@ describe('the manoeuvring envelopes', () => {
     }
   });
 
-  it('costs the corvette nothing on its axes and something on the diagonal', () => {
+  it('costs the corvette nothing fore and aft, and something abeam and on the diagonal', () => {
     const design = new EditorDocument(CORVETTE).view.design!;
     const envelope = envelopes(design, 8);
-    // The lateral engines are written at x = ±4 while the centre of mass sits
-    // at x = +0.92, pulled forward by the bow turret — so pushing abeam needs
-    // trimming, and the trim runs out where the main engine is already at full
-    // throttle. That is the whole of what the two curves are drawn to show.
+    // The lateral engines sit at x = ±4 while the centre of mass is at
+    // x = +2.5, pulled forward by the long bow gun — so pushing abeam needs
+    // more trim than the retros can give. That is the whole of what the two
+    // curves are drawn to show.
     expect(envelope.holding[0]).toBeCloseTo(envelope.free[0]!, 6);
-    expect(envelope.holding[2]).toBeCloseTo(envelope.free[2]!, 6);
+    expect(envelope.holding[4]).toBeCloseTo(envelope.free[4]!, 6);
+    expect(envelope.holding[2]!).toBeLessThan(envelope.free[2]! * 0.97);
     expect(envelope.holding[1]!).toBeLessThan(envelope.free[1]! * 0.95);
     expect(headingCost(envelope)).toBeGreaterThan(0.05);
   });
@@ -1200,15 +1204,15 @@ describe('the placement that carries a copy’s position', () => {
   });
 
   it('is the instance when the module is the whole of its assembly', () => {
-    const origins = expandWithOrigins(CORVETTE).origins;
-    const wing = expandWithOrigins(CORVETTE).modules.findIndex(
-      (m) => m.length === 4 && m.width === 3,
+    const origins = expandWithOrigins(GUNSHIP).origins;
+    const engine = expandWithOrigins(GUNSHIP).modules.findIndex(
+      (m) => m.length === 8 && m.width === 4.5,
     );
-    const handle = positionHandle(CORVETTE, origins[wing]!);
+    const handle = positionHandle(GUNSHIP, origins[engine]!);
     expect(handle.perCopy).toBe(true);
-    // Each wing box's instance is its own placement, so moving one moves one.
-    const moved = movePlacement(CORVETTE, handle.origin, 0, 2)!;
-    const before = positions(CORVETTE);
+    // Each main engine's instance is its own placement, so moving one moves one.
+    const moved = movePlacement(GUNSHIP, handle.origin, 0, 2)!;
+    const before = positions(GUNSHIP);
     const after = positions(moved);
     expect(after.filter((p, i) => p[1] !== before[i]![1])).toHaveLength(1);
   });
@@ -1233,28 +1237,28 @@ describe('the placement that carries a copy’s position', () => {
 
 describe('taking a module out of its assembly', () => {
   it('leaves the ship bit-identical when the module was the whole assembly', () => {
-    const before = expandBlueprint(CORVETTE);
-    const wing = before.findIndex((m) => m.length === 4 && m.width === 3);
-    const origins = expandWithOrigins(CORVETTE).origins;
-    expect(takeOutCount(CORVETTE, origins[wing]!.path)).toBe(4);
+    const before = expandBlueprint(GUNSHIP);
+    const engine = before.findIndex((m) => m.length === 8 && m.width === 4.5);
+    const origins = expandWithOrigins(GUNSHIP).origins;
+    expect(takeOutCount(GUNSHIP, origins[engine]!.path)).toBe(2);
 
-    const taken = takeOutOfAssembly(CORVETTE, origins[wing]!.path)!.blueprint;
+    const taken = takeOutOfAssembly(GUNSHIP, origins[engine]!.path)!.blueprint;
     // Exact, down to module order — which is part of the ship, since engine
     // allocation and firing both run over it.
     expect(expandBlueprint(taken)).toEqual(before);
-    expect(taken.assemblies?.['wingBox']).toBeUndefined();
+    expect(taken.assemblies?.['mainEngine']).toBeUndefined();
   });
 
   it('lets the copies be edited apart afterwards', () => {
-    const origins = expandWithOrigins(CORVETTE).origins;
-    const wing = expandWithOrigins(CORVETTE).modules.findIndex(
-      (m) => m.length === 4 && m.width === 3,
+    const origins = expandWithOrigins(GUNSHIP).origins;
+    const engine = expandWithOrigins(GUNSHIP).modules.findIndex(
+      (m) => m.length === 8 && m.width === 4.5,
     );
-    const doc = new EditorDocument(takeOutOfAssembly(CORVETTE, origins[wing]!.path)!.blueprint);
-    doc.selectModule(wing);
+    const doc = new EditorDocument(takeOutOfAssembly(GUNSHIP, origins[engine]!.path)!.blueprint);
+    doc.selectModule(engine);
     expect(doc.selectedModules()).toHaveLength(1);
     doc.apply(updatePlacement(doc.blueprint, doc.selection!, (p) => ({ ...p, width: 5 }))!);
-    expect(doc.view.modules.filter((m) => m.length === 4 && m.width === 5)).toHaveLength(1);
+    expect(doc.view.modules.filter((m) => m.length === 8 && m.width === 5)).toHaveLength(1);
   });
 
   it('leaves a loose copy beside each copy of an assembly that holds more', () => {
@@ -1474,9 +1478,12 @@ describe('the band a ship closes to, in the editor', () => {
     const index = doc.view.modules.findIndex((m) => m.kind === 'turret' || m.kind === 'hullGun');
     const spec = doc.view.modules[index]!;
     const radius = doc.view.design!.radius;
-    const plain = moduleReadout(spec, doc.view.modules, index, radius).gun!.triggerRange!;
-    const eager = moduleReadout({ ...spec, targeting: { ...spec.targeting, fireRange: 1.5 } }, doc.view.modules, index, radius)
-      .gun!.triggerRange!;
+    // Both set here, since the gunship's bow gun already sets its own.
+    const firing = (fireRange: number): number =>
+      moduleReadout({ ...spec, targeting: { ...spec.targeting, fireRange } }, doc.view.modules, index, radius).gun!
+        .triggerRange!;
+    const plain = firing(1);
+    const eager = firing(1.5);
     expect(eager).toBeCloseTo(plain * 1.5, 9);
   });
 });

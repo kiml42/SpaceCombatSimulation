@@ -1,31 +1,19 @@
 {
   "formatVersion": 1,
   "name": "Torpedo",
-  "fighter": true,
   "notes": "A torpedo is a fighter with nothing to shoot: the Dinky's frame with its gun taken off for an armoured nose, and a doctrine that rams. It flies in the weapons layer, where turrets can reach it, and takes the hull layer as well only when it commits.",
+  "fighter": true,
   "doctrine": {
     "targeting": {
       "preferredMass": 30
     },
     "approach": {
+      "approachSpeed": 250,
       "ramRadii": 1000,
-      "ramArmed": 0,
-      "approachSpeed": 250
+      "ramArmed": 1
     }
   },
   "assemblies": {
-    "engine": {
-      "modules": [
-        {
-          "kind": "engine",
-          "x": 0,
-          "y": 0,
-          "angle": 0,
-          "length": 0.2,
-          "width": 0.5
-        }
-      ]
-    },
     "engine2": {
       "modules": [
         {
@@ -33,20 +21,8 @@
           "x": 0,
           "y": 0,
           "angle": 90,
-          "length": 0.1,
+          "length": 0.3,
           "width": 0.4
-        }
-      ]
-    },
-    "engine3": {
-      "modules": [
-        {
-          "kind": "engine",
-          "x": 0,
-          "y": 0,
-          "angle": 0,
-          "length": 0.1,
-          "width": 0.1
         }
       ]
     }
@@ -61,37 +37,25 @@
       "reinforcement": 1
     },
     {
-      "use": "engine",
-      "x": -0.1,
-      "y": 0.25,
+      "use": "engine2",
+      "x": -0.59,
+      "y": 0.3
+    },
+    {
+      "use": "engine2",
+      "x": -0.59,
+      "y": -0.3,
       "angle": 180
     },
     {
       "use": "engine2",
-      "x": 0.01,
-      "y": 0.5
+      "x": 2.2,
+      "y": 0.15
     },
     {
       "use": "engine2",
-      "x": 0.01,
-      "y": -0.5,
-      "angle": 180
-    },
-    {
-      "use": "engine2",
-      "x": 1.4,
-      "y": 0.25
-    },
-    {
-      "use": "engine2",
-      "x": 1.4,
-      "y": -0.25,
-      "angle": 180
-    },
-    {
-      "use": "engine",
-      "x": -0.1,
-      "y": -0.25,
+      "x": 2.2,
+      "y": -0.15,
       "angle": 180
     },
     {
@@ -99,27 +63,25 @@
       "x": 0,
       "y": 0,
       "length": 0.2,
-      "width": 1,
+      "width": 0.6,
       "notes": "Half a metre square of computing is a whole control centre, which is the only reason a fighter this size can be flown at all."
     },
     {
-      "use": "engine3",
-      "x": 0.1,
-      "y": 0.4
-    },
-    {
-      "use": "engine3",
-      "x": 0.1,
-      "y": -0.4
-    },
-    {
       "kind": "structure",
-      "x": 2.0,
+      "x": 2,
       "y": 0,
       "length": 0.8,
-      "width": 0.5,
+      "width": 0.3,
       "reinforcement": 3,
       "notes": "The warhead, such as it is: armour for the ram to land on."
+    },
+    {
+      "kind": "engine",
+      "x": -0.10000000000000009,
+      "y": 0,
+      "angle": 180,
+      "length": 1.4,
+      "width": 0.6
     }
   ]
 }

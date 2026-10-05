@@ -38,6 +38,9 @@ function fighter(radii = 0, armed = 0): Blueprint {
   };
 }
 
+/** A Dinky not asked to fly as a fighter, though nothing on it rules that out. */
+const UNFLAGGED: Blueprint = { ...DINKY, fighter: false };
+
 const HULK: Blueprint = {
   name: 'Hulk',
   modules: [
@@ -49,7 +52,7 @@ const HULK: Blueprint = {
 describe('a fighter flag', () => {
   it('flies a ship with no turret and nothing thick as a fighter', () => {
     expect(compileBlueprint(fighter()).fighter).toBe(true);
-    expect(compileBlueprint(DINKY).fighter).toBe(false);
+    expect(compileBlueprint(UNFLAGGED).fighter).toBe(false);
   });
 
   it('is ignored on a ship that carries a turret or anything thick', () => {
@@ -69,7 +72,7 @@ describe('a fighter flag', () => {
   it('can evolve', () => {
     const rng = new Rng(7);
     let flipped = false;
-    for (let i = 0; i < 400 && !flipped; i++) flipped = mutate(DINKY, rng).blueprint.fighter === true;
+    for (let i = 0; i < 400 && !flipped; i++) flipped = mutate(UNFLAGGED, rng).blueprint.fighter === true;
     expect(flipped).toBe(true);
   });
 });

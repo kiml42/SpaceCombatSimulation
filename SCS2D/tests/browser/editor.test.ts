@@ -11,6 +11,10 @@ import { promisify } from 'node:util';
 import type { Browser, Page } from 'playwright';
 import { launchChromium } from './launch.js';
 import { ROTATE_ARM_PX } from '../../editor/handles.js';
+import { EditorDocument } from '../../editor/document.js';
+import { previewSnapshot } from '../../editor/preview.js';
+import { frame, type Camera } from '../../render/camera.js';
+import { CORVETTE } from '../../scenarios/blueprints.js';
 
 /**
  * The blueprint editor, driven in a real browser.
@@ -62,7 +66,6 @@ async function redPixels(p: Page): Promise<number> {
   });
 }
 
-/** The middle of the canvas, where a framed ship's hull sits. */
 /**
  * Open a ship and snap the view to it. Switching ships eases the scale over a
  * few frames, and a test that clicks at a worked-out point cannot wait for it.
@@ -74,11 +77,40 @@ async function openShip(p: Page, name: string): Promise<void> {
   await p.keyboard.press('f');
 }
 
+/** The middle of the canvas, where a framed ship's centre of mass sits. */
 async function canvasCentre(p: Page): Promise<{ x: number; y: number }> {
   const box = await p.locator('#view').boundingBox();
   if (box === null) throw new Error('the canvas has no box');
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
 }
+
+/**
+ * Where a point of the stock corvette's blueprint lands on screen once it is
+ * framed, worked out the way the page fits its view. The fit centres on the
+ * centre of mass, so the core is not at the middle of the canvas.
+ */
+async function onCorvette(p: Page, x: number, y: number): Promise<{ x: number; y: number }> {
+  const box = await p.locator('#view').boundingBox();
+  const size = await p.evaluate(() => {
+    const canvas = document.getElementById('view') as HTMLCanvasElement;
+    return { width: canvas.width, height: canvas.height };
+  });
+  if (box === null) throw new Error('the canvas has no box');
+  const design = new EditorDocument(CORVETTE).view.design;
+  if (design === null) throw new Error('the corvette does not compile');
+  const camera: Camera = { x: 0, y: 0, scale: 1 };
+  frame(camera, previewSnapshot(design), size.width, size.height, 1);
+  const cssPerPx = box.width / size.width;
+  return {
+    x: box.x + (size.width / 2 + (x - camera.x) * camera.scale) * cssPerPx,
+    y: box.y + (size.height / 2 - (y - camera.y) * camera.scale) * cssPerPx,
+  };
+}
+
+/** The corvette's core, amidships at its origin. */
+const corvetteCore = (p: Page) => onCorvette(p, 0, 0);
+/** The corvette's bow gun, at the middle of its box. */
+const corvetteGun = (p: Page) => onCorvette(p, 13, 0);
 
 beforeAll(async () => {
   // Build first, so these test what `npm run build` actually produces rather
@@ -150,16 +182,16 @@ describe('the editor in a browser', () => {
   });
 
   it('selects the module under the pointer', async () => {
-    // The middle of the corvette is the core it is flown from.
-    const centre = await canvasCentre(page);
-    await page.mouse.click(centre.x, centre.y);
+    const core = await corvetteCore(page);
+    await page.mouse.click(core.x, core.y);
     expect(await page.isVisible('#properties')).toBe(true);
     expect(await page.inputValue('#propKind')).toBe('core');
   });
 
   it('keeps the selection while panning, and clears it on a click in empty space', async () => {
     const centre = await canvasCentre(page);
-    await page.mouse.click(centre.x, centre.y);
+    const core = await corvetteCore(page);
+    await page.mouse.click(core.x, core.y);
     const empty = { x: centre.x - 400, y: centre.y - 250 };
     await page.mouse.move(empty.x, empty.y);
     await page.mouse.down();
@@ -172,14 +204,14 @@ describe('the editor in a browser', () => {
     expect(await page.isVisible('#properties')).toBe(false);
 
     await page.keyboard.press('f');
-    await page.mouse.click(centre.x, centre.y);
+    await page.mouse.click(core.x, core.y);
   });
 
   it('moves the selected module when it is dragged, and undoes it', async () => {
-    const centre = await canvasCentre(page);
-    await page.mouse.move(centre.x, centre.y);
+    const core = await corvetteCore(page);
+    await page.mouse.move(core.x, core.y);
     await page.mouse.down();
-    await page.mouse.move(centre.x + 60, centre.y, { steps: 6 });
+    await page.mouse.move(core.x + 60, core.y, { steps: 6 });
     await page.mouse.up();
 
     const moved = Number(await page.inputValue('#propX'));
@@ -194,20 +226,20 @@ describe('the editor in a browser', () => {
     // focus, so without a deliberate blur the edited box stays focused, is held
     // back from every refresh, and goes on showing the old module's value.
     await openShip(page, 'Corvette');
-    const centre = await canvasCentre(page);
-    await page.mouse.click(centre.x, centre.y);
+    const core = await corvetteCore(page);
+    await page.mouse.click(core.x, core.y);
     expect(await page.inputValue('#propKind')).toBe('core');
     const hull = await page.inputValue('#propLength');
 
     await page.fill('#propLength', '18');
-    // One of the bow gun's two barrels, off to the right of the hull along
-    // the ship's +x: the middle of the gun is the gap between them.
-    await page.mouse.click(centre.x + 168, centre.y + 21);
+    // The bow gun, well forward of the core along the ship's +x.
+    const gun = await corvetteGun(page);
+    await page.mouse.click(gun.x, gun.y);
     expect(await page.inputValue('#propKind')).toBe('hullGun');
     expect(await page.inputValue('#propLength')).not.toBe('18');
 
     await page.click('#undo');
-    await page.mouse.click(centre.x, centre.y);
+    await page.mouse.click(core.x, core.y);
     expect(await page.inputValue('#propLength')).toBe(hull);
   });
 
@@ -281,8 +313,8 @@ describe('the editor in a browser', () => {
 
   it('lets a core be thick, which costs it wall', async () => {
     await openShip(page, 'Corvette');
-    const centre = await canvasCentre(page);
-    await page.mouse.click(centre.x, centre.y);
+    const core = await corvetteCore(page);
+    await page.mouse.click(core.x, core.y);
     expect(await page.inputValue('#propKind')).toBe('core');
     expect(await page.isVisible('#thickRow')).toBe(true);
     const mass = (await page.textContent('#stats'))?.match(/[\d,.]+ t/)?.[0];
@@ -443,7 +475,7 @@ describe('the editor in a browser', () => {
       await page.mouse.click(x, y);
       await page.keyboard.up('Shift');
     };
-    // Turret and core into one assembly, then placed a second time.
+    // The bow gun and the hull behind it into one assembly, then placed a second time.
     await page.mouse.click(centre.x + 168, centre.y);
     await shiftClick(centre.x, centre.y);
     await page.click('#propAssembly');
@@ -561,10 +593,11 @@ describe('the editor in a browser', () => {
     await page.click('#propAssembly');
     expect(await page.textContent('#assemblyOf')).toMatch(/2 modules/);
 
-    // A module outside the assembly: the corvette's aft engine, well behind the
-    // hull along the ship's -x.
+    // A module outside the assembly: the corvette's main engine, aft of the
+    // core along the ship's -x.
+    const engine = await onCorvette(page, -9, 0);
     await page.keyboard.down('Shift');
-    await page.mouse.click(centre.x - 200, centre.y);
+    await page.mouse.click(engine.x, engine.y);
     await page.keyboard.up('Shift');
     expect(await page.isDisabled('#propAddToAssembly')).toBe(false);
 
@@ -578,8 +611,8 @@ describe('the editor in a browser', () => {
   it('reaches an assembly from a module inside it', async () => {
     await openShip(page, 'Gunship');
     const centre = await canvasCentre(page);
-    // The gunship's lateral engines are one engine placed eight times, so
-    // any of them is inside an assembly.
+    // The gunship's engines are all placed through assemblies, so any of
+    // them is inside one.
     await page.mouse.click(centre.x, centre.y);
     const inAssembly = (await page.isDisabled('#propSelectAssembly')) === false;
     if (!inAssembly) return; // whichever module the camera put under the centre
@@ -702,12 +735,13 @@ describe('the editor in a browser', () => {
     // stylesheet says otherwise. Checked here because nothing else would
     // notice: the panel simply offers a field that means nothing.
     await openShip(page, 'Corvette');
-    const centre = await canvasCentre(page);
-    await page.mouse.click(centre.x, centre.y);
+    const core = await corvetteCore(page);
+    await page.mouse.click(core.x, core.y);
     expect(await page.inputValue('#propKind')).toBe('core');
     expect(await page.isHidden('#barrelsRow')).toBe(true);
 
-    await page.mouse.click(centre.x + 168, centre.y);
+    const gun = await corvetteGun(page);
+    await page.mouse.click(gun.x, gun.y);
     expect(await page.inputValue('#propKind')).toBe('hullGun');
     expect(await page.isHidden('#barrelsRow')).toBe(false);
     expect(await page.textContent('#barrelsLabel')).toBe('barrels');
@@ -745,26 +779,28 @@ describe('the editor in a browser', () => {
     // section ever being opened, and what it says while shut is which
     // archetype is deciding rather than a number anyone has to read.
     await openShip(page, 'Corvette');
-    const centre = await canvasCentre(page);
-    await page.mouse.click(centre.x, centre.y);
+    const core = await corvetteCore(page);
+    await page.mouse.click(core.x, core.y);
     expect(await page.inputValue('#propKind')).toBe('core');
     // A core is asked what its ship does; it is not asked what it shoots at.
     expect(await page.isHidden('#mountDoctrine')).toBe(true);
     expect(await page.isHidden('#shipDoctrine')).toBe(false);
     expect(await page.isHidden('#shipDoctrineFields')).toBe(true);
 
-    await page.mouse.click(centre.x + 168, centre.y);
+    const gun = await corvetteGun(page);
+    await page.mouse.click(gun.x, gun.y);
     expect(await page.inputValue('#propKind')).toBe('hullGun');
     expect(await page.isHidden('#shipDoctrine')).toBe(true);
-    expect(await page.textContent('#mountDoctrineSummary')).toBe('hull gun default');
+    // The corvette's gun states three preferences of its own.
+    expect(await page.textContent('#mountDoctrineSummary')).toBe('hull gun, 3 changes');
     // Shut, so none of its thirteen boxes is between anyone and the layout.
     expect(await page.isHidden('#mountDoctrineFields')).toBe(true);
   });
 
   it('states a gun’s preference, and takes it back out of the ship', async () => {
     await openShip(page, 'Corvette');
-    const centre = await canvasCentre(page);
-    await page.mouse.click(centre.x + 168, centre.y);
+    const gun = await corvetteGun(page);
+    await page.mouse.click(gun.x, gun.y);
     await page.click('#mountDoctrine > summary');
     expect(await page.isHidden('#mountDoctrineFields')).toBe(false);
 
@@ -776,30 +812,32 @@ describe('the editor in a browser', () => {
 
     await box.fill('0');
     await page.dispatchEvent('#doctrine-mount-focusWeight', 'input');
-    expect(await page.textContent('#mountDoctrineSummary')).toBe('hull gun, 1 change');
+    // On top of the three the corvette's gun already states.
+    expect(await page.textContent('#mountDoctrineSummary')).toBe('hull gun, 4 changes');
 
     // Clearing it takes the statement back out rather than writing a zero, so
-    // the ship goes back to carrying no opinion at all.
+    // the gun goes back to only what its file says.
     await box.fill('');
     await page.dispatchEvent('#doctrine-mount-focusWeight', 'input');
-    expect(await page.textContent('#mountDoctrineSummary')).toBe('hull gun default');
+    expect(await page.textContent('#mountDoctrineSummary')).toBe('hull gun, 3 changes');
   });
 
   it('edits the ship’s own doctrine from its core', async () => {
     await openShip(page, 'Corvette');
-    const centre = await canvasCentre(page);
-    await page.mouse.click(centre.x, centre.y);
+    const core = await corvetteCore(page);
+    await page.mouse.click(core.x, core.y);
     await page.click('#shipDoctrine > summary');
-    // The Corvette already says one thing — it fights above its weight — so
-    // the count is what the file states rather than nothing.
-    expect(await page.textContent('#shipDoctrineSummary')).toBe('1 change');
+    // The Corvette already says nine things — among them that it fights above
+    // its weight — so the count is what the file states rather than nothing.
+    expect(await page.textContent('#shipDoctrineSummary')).toBe('9 changes');
     expect(await page.locator('#doctrine-targeting-preferredMass').inputValue()).toBe('3');
 
-    const box = page.locator('#doctrine-approach-standoff');
+    // One the file leaves to the archetype.
+    const box = page.locator('#doctrine-approach-brake');
     expect(await box.inputValue()).toBe('');
     await box.fill('0.9');
-    await page.dispatchEvent('#doctrine-approach-standoff', 'input');
-    expect(await page.textContent('#shipDoctrineSummary')).toBe('2 changes');
+    await page.dispatchEvent('#doctrine-approach-brake', 'input');
+    expect(await page.textContent('#shipDoctrineSummary')).toBe('10 changes');
 
     await page.click('#shipDoctrineReset');
     expect(await page.textContent('#shipDoctrineSummary')).toBe('default');

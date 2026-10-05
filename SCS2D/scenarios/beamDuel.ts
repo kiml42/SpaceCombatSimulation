@@ -2,7 +2,6 @@ import { compileBlueprint, math } from '../sim/index.js';
 import type { Battle } from './types.js';
 import { CROSSING, SIDE_WELL, makeBattle } from './battle.js';
 import { BEAM_CORVETTE, BEAM_GUNSHIP } from './blueprints.js';
-import { OrderCancelCondition } from '../sim/ships.js';
 
 /**
  * Beam-armed ships only: two beam corvettes closing on a beam gunship.
@@ -20,8 +19,8 @@ export function beamDuel(seed = 20260905): Battle {
     const corvette = compileBlueprint(BEAM_CORVETTE);
     const gunship = compileBlueprint(BEAM_GUNSHIP);
 
-    const distantCorvette = ships.spawn(world, { design: corvette, ...CROSSING.west, team: 0 });
-    const closeCorvette = ships.spawn(world, {
+    ships.spawn(world, { design: corvette, ...CROSSING.west, team: 0 });
+    ships.spawn(world, {
       design: corvette,
       x: 2000,
       y: -740,
@@ -30,16 +29,6 @@ export function beamDuel(seed = 20260905): Battle {
       vy: 90,
       team: 0,
     });
-    const b = ships.spawn(world, { design: gunship, ...CROSSING.east, team: 1 });
-
-    // Both corvettes go for the gunship, the near one first and the far one
-    // arriving later, so the gunship is fighting one and then two.
-    ships.pushOrder(closeCorvette, b, 300, 500, 120);
-    ships.pushOrder(distantCorvette, b, 300, 500, 120);
-
-    // The gunship holds the nearer of them off at a range its own mounts like.
-    ships.pushOrder(b, closeCorvette, 900, 1200, 60, OrderCancelCondition.Disarm);
-    ships.pushOrder(b, distantCorvette, 900, 1200, 60, OrderCancelCondition.CompleteDisable);
-    ships.pushOrder(b, closeCorvette, 900, 1200, 60, OrderCancelCondition.CompleteDisable);
+   ships.spawn(world, { design: gunship, ...CROSSING.east, team: 1 });
   });
 }

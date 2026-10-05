@@ -54,7 +54,7 @@ interface Shot {
  * ignores what lies beyond its own range, so a mark further off would measure
  * that rather than the discipline this file is about. Reach is measured
  * against the mark, and the mark is a corvette: the Dinky's gun is the
- * shortest at 1,139 m against one.
+ * shortest at 909 m against one.
  */
 function salvo(design: ShipDesign, between: { design: ShipDesign; x: number; team: number }[]): Shot {
   const world = new World({ dt: DT, seed: 6 });
@@ -67,11 +67,11 @@ function salvo(design: ShipDesign, between: { design: ShipDesign; x: number; tea
   const grid = new SpatialGrid(64);
 
   const mine = ships.spawn(world, { design, x: 0, y: 0, team: 0 });
-  const enemy = ships.spawn(world, { design: corvette, x: 1100, y: 0, team: 1 });
+  const enemy = ships.spawn(world, { design: corvette, x: 850, y: 0, team: 1 });
   for (const other of between) {
     ships.spawn(world, { design: other.design, x: other.x, y: 0, team: other.team });
   }
-  ships.pushOrder(mine, enemy, 1000, 1200, 10);
+  ships.pushOrder(mine, enemy, 750, 950, 10);
 
   let rounds = 0;
   let beamsLit = 0;
@@ -100,7 +100,7 @@ describe('a gun with somebody in the way', () => {
     // Deliberately not a rule about the whole flight of the round: a shell is
     // slow and a battle is wide, and a gun that asked about the whole of where
     // its round could go would never fire.
-    expect(salvo(dinky, [{ design: corvette, x: 900, team: 0 }]).rounds).toBeGreaterThan(0);
+    expect(salvo(dinky, [{ design: corvette, x: 650, team: 0 }]).rounds).toBeGreaterThan(0);
   });
 
   it('shoots at an enemy standing in front of a consort', () => {
@@ -125,16 +125,20 @@ describe('a gun with somebody in the way', () => {
     const beamHits = new BeamHits();
 
     const mine = ships.spawn(world, { design: dinky, x: 0, y: 0, team: 0 });
-    // Inside the Dinky's 1,139 m reach against a corvette, as above: past it
+    // Inside the Dinky's 909 m reach against a corvette, as above: past it
     // the gun ignores the mark and there is no shot for the wreckage to fail
     // to stop.
-    const enemy = ships.spawn(world, { design: corvette, x: 1100, y: 0, team: 1 });
+    const enemy = ships.spawn(world, { design: corvette, x: 850, y: 0, team: 1 });
     // A consort well clear of the line, broken in two, with the piece pushed
     // into the line — which is how wreckage gets in the way for real.
     const consort = ships.spawn(world, { design: dinky, x: 0, y: 2000, team: 0 });
+    // Its gun, cut free of everything it is welded to.
     const welds = joints(dinky);
-    const weld = welds.findIndex((j) => j.a === 0 && j.b === 10);
-    ships.damage.cutWeld(world.bodies.indexOf(ships.body(consort)), weld, welds[weld]!.width);
+    const gun = dinky.modules.findIndex((m) => m.spec.kind === 'hullGun');
+    welds.forEach((j, w) => {
+      if (j.a !== gun && j.b !== gun) return;
+      ships.damage.cutWeld(world.bodies.indexOf(ships.body(consort)), w, j.width);
+    });
     expect(ships.sever(world)).toBe(1);
     const chunk = ships.highWater - 1;
     expect(ships.isDerelict(chunk)).toBe(true);
@@ -142,7 +146,7 @@ describe('a gun with somebody in the way', () => {
     world.bodies.x[chunkBody] = 200;
     world.bodies.y[chunkBody] = 0;
 
-    ships.pushOrder(mine, enemy, 1000, 1200, 10);
+    ships.pushOrder(mine, enemy, 750, 950, 10);
 
     let rounds = 0;
     for (let i = 0; i < 60 * 20; i++) {
@@ -193,8 +197,8 @@ describe('a beam with somebody in the way', () => {
   it('holds for a consort a gun would have shot past', () => {
     // The whole length, because a beam arrives instantly along all of it:
     // anything in the line is hit rather than possibly hit.
-    expect(salvo(beamCorvette, [{ design: corvette, x: 900, team: 0 }]).beams).toBe(0);
-    expect(salvo(dinky, [{ design: corvette, x: 900, team: 0 }]).rounds).toBeGreaterThan(0);
+    expect(salvo(beamCorvette, [{ design: corvette, x: 650, team: 0 }]).beams).toBe(0);
+    expect(salvo(dinky, [{ design: corvette, x: 650, team: 0 }]).rounds).toBeGreaterThan(0);
   });
 });
 
@@ -240,11 +244,9 @@ describe('a fleet in line ahead', () => {
     // The fleets really are shooting: this is a rule holding fire, not a
     // scenario where nothing happens. A floor rather than a figure, because
     // how many rounds this window catches depends on how fast the columns
-    // close, and that moves with every change to what an engine delivers. The
-    // window itself cannot move: by eight hundred steps the files have drifted
-    // through each other and the own-side count is a dozen, which is the
-    // paragraph above rather than a broken rule.
-    expect(run.totalProjectilesFired).toBeGreaterThan(40);
+    // close, and that moves with every change to what an engine delivers.
+    // Few rounds and many hits, because a shell that bursts lands as several.
+    expect(run.totalProjectilesFired).toBeGreaterThan(20);
     expect(landed).toBeGreaterThan(25);
     // Not zero, because the check is made at the trigger and over the half
     // second the gun looks ahead rather than for the whole flight of the
@@ -253,7 +255,7 @@ describe('a fleet in line ahead', () => {
     // battle.
     //
     // **And the half second is a distance, which the column is deeper than.**
-    // The gunship's pom-poms throw at 1,192 m/s, so they look 596 m ahead —
+    // The gunship's pom-poms throw at 928 m/s, so they look 464 m ahead —
     // past the two consorts immediately in front of them and short of the
     // leader three intervals away, who is hit. That is the rule's shape
     // rather than a failure of it: what it covers is measured in seconds of
@@ -297,7 +299,8 @@ describe('a gun and the target it was trained on', () => {
     let worstAt = '';
     let rounds = 0;
 
-    for (let step = 0; step < 1200; step++) {
+    // Forty seconds, since most of what fires here is the two gunships.
+    for (let step = 0; step < 2400; step++) {
       run.step();
       for (let k = 0; k < projectiles.highWater; k++) {
         // A slot is reused once its round is gone, so a slot falling empty is

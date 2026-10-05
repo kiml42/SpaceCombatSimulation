@@ -196,11 +196,15 @@ describe('the line the section shows while it is shut', () => {
 
 describe('what the shipped fleet says now', () => {
   it('keeps the Dinky shooting at engines, from its gun rather than its hull', () => {
-    // The ship says nothing and its gun says one thing, which is the whole of
-    // §3's mission kill: a fighter that cannot destroy a capital can still
-    // strand one.
-    expect(DINKY.doctrine).toBeUndefined();
+    // The preference for engines is the gun's, not the ship's: §3's mission
+    // kill, since a fighter that cannot destroy a capital can still strand one.
+    expect((DINKY.doctrine ?? DEFAULT_DOCTRINE).targeting.engineWeight).toBe(
+      DEFAULT_DOCTRINE.targeting.engineWeight,
+    );
     const design = compileBlueprint(DINKY);
+    expect(design.turrets[0]!.targeting.engineWeight).toBeGreaterThan(
+      defaultTargeting('hullGun').engineWeight,
+    );
     expect(design.turrets[0]!.targeting.engineWeight).toBeGreaterThan(
       design.turrets[0]!.targeting.gunWeight,
     );

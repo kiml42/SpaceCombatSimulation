@@ -26,7 +26,8 @@ export function ram(seed = 20260905): Battle {
   return makeBattle({ seed, pilots: false, projectiles: 64, beams: 64 }, (ships, world) => {
     const corvette = compileBlueprint(CORVETTE);
     const gunship = compileBlueprint(GUNSHIP);
-    const dinky = compileBlueprint(DINKY);
+    // Unflagged, as a fighter with no pilot to commit it flies over a hull.
+    const dinky = compileBlueprint({ ...DINKY, fighter: false });
 
     // The anvil: adrift, facing along +x, hit by everything else.
     ships.spawn(world, { design: gunship, x: 0, y: 0, team: 0 });

@@ -2,58 +2,178 @@
   "formatVersion": 1,
   "name": "Beam Gunship",
   "notes": "A heavy gunship: a bow gun firing a shell an order of magnitude heavier than the corvette's, and a multi-barrelled turret on each beam for anything that gets inside it. Twice the corvette's engines move four times its mass, so it is markedly more sluggish — which is the point of having two ships to compare.",
+  "doctrine": {
+    "targeting": {
+      "proximityWeight": 60,
+      "closingWeight": 5,
+      "loyaltyWeight": 60,
+      "facingWeight": 50,
+      "sightWeight": 20,
+      "escortWeight": 3
+    },
+    "approach": {
+      "standoffRadii": 100,
+      "ramRadii": 30
+    }
+  },
   "assemblies": {
     "outrigger": {
       "notes": "An outrigger, holding a small fast-firing multi-barrelled gun clear of the spine. A gun flat against the hull has almost no traverse worth the mass it costs.",
       "modules": [
-        { "kind": "structure", "x": 0, "y": 0, "length": 6, "width": 10 },
         {
-          "kind": "beamTurret", "x": 0, "y": 8, "angle": 0, "length": 12, "width": 6, "barrels": 2,
-          "notes": "Many narrow barrels rather than one wide one: the same bore budget spent on rate of fire instead of weight of shell."
+          "kind": "structure",
+          "x": 0,
+          "y": -2.5,
+          "length": 6,
+          "width": 5
+        },
+        {
+          "kind": "beamTurret",
+          "x": 0,
+          "y": 3,
+          "angle": 90,
+          "length": 6,
+          "width": 6,
+          "barrels": 1,
+          "targeting": {
+            "focusWeight": 0,
+            "facingWeight": 50,
+            "sightWeight": 50,
+            "gunWeight": 200
+          }
         }
       ]
     },
     "mainEngine": {
       "notes": "One of the pair that drives the ship forward.",
-      "modules": [{ "kind": "engine", "x": 4, "y": 0, "angle": 180, "length": 8, "width": 4, "thick": true }]
+      "modules": [
+        {
+          "kind": "engine",
+          "x": 4,
+          "y": 0.5,
+          "angle": 180,
+          "length": 8,
+          "width": 3,
+          "thick": true
+        }
+      ]
     },
-    "wingBox": {
-      "notes": "A stub holding a manoeuvring engine out where its moment arm is worth having.",
-      "modules": [{ "kind": "structure", "x": 0, "y": 0, "length": 6, "width": 4 }]
-    },
-    "lateral": {
-      "notes": "A manoeuvring engine pushing inboard, so its exhaust leaves into clear air rather than into the stub it is bolted to.",
-      "modules": [{ "kind": "engine", "x": 0, "y": -1, "angle": 90, "length": 2, "width": 4, "thick": true }]
-    },
-    "retro": {
-      "notes": "Braking thrust, pushing aft.",
-      "modules": [{ "kind": "engine", "x": -1.5, "y": 0, "angle": 0, "length": 3, "width": 4, "thick": true }]
+    "Engine Node": {
+      "modules": [
+        {
+          "kind": "structure",
+          "x": -1,
+          "y": 3.061616997868383e-17,
+          "length": 4,
+          "width": 4
+        },
+        {
+          "kind": "engine",
+          "x": 1,
+          "y": 2,
+          "angle": 90,
+          "length": 2,
+          "width": 4
+        },
+        {
+          "kind": "engine",
+          "x": 1,
+          "y": 6.123233995736766e-17,
+          "angle": 0,
+          "length": 4.5,
+          "width": 4,
+          "barrels": 1
+        }
+      ]
     }
   },
   "modules": [
-    { "kind": "structure", "x": 11, "y": 0, "length": 18, "width": 10 },
-    { "kind": "core", "x": 0, "y": 0, "length": 4, "width": 10,
-      "notes": "A bay amidships, where the spine is thickest and everything else is in the way. Cutting the spine here is what would part the ship, so it is also the last place a shell reaches." },
-    { "kind": "structure", "x": -11, "y": 0, "length": 18, "width": 10 },
-    { "kind": "beamTurret", "x": 26, "y": 0, "angle": 0, "length": 12, "width": 8, "barrels": 1 },
-
-    { "use": "outrigger", "x": 0, "y": 10 },
-    { "use": "outrigger", "x": 0, "y": -10, "mirror": true },
-
-    { "use": "mainEngine", "x": -24, "y": 3 },
-    { "use": "mainEngine", "x": -24, "y": -3, "mirror": true },
-
-    { "use": "wingBox", "x": 12, "y": 7 },
-    { "use": "wingBox", "x": 12, "y": -7, "mirror": true },
-    { "use": "wingBox", "x": -12, "y": 7 },
-    { "use": "wingBox", "x": -12, "y": -7, "mirror": true },
-
-    { "use": "lateral", "x": 12, "y": 10 },
-    { "use": "lateral", "x": 12, "y": -10, "mirror": true },
-    { "use": "lateral", "x": -12, "y": 10 },
-    { "use": "lateral", "x": -12, "y": -10, "mirror": true },
-
-    { "use": "retro", "x": 16.5, "y": 7 },
-    { "use": "retro", "x": 16.5, "y": -7, "mirror": true }
+    {
+      "kind": "structure",
+      "x": 7,
+      "y": 0,
+      "length": 10,
+      "width": 10
+    },
+    {
+      "kind": "core",
+      "x": 0,
+      "y": 0,
+      "length": 4,
+      "width": 10,
+      "notes": "A bay amidships, where the spine is thickest and everything else is in the way. Cutting the spine here is what would part the ship, so it is also the last place a shell reaches."
+    },
+    {
+      "kind": "structure",
+      "x": -11,
+      "y": 0,
+      "length": 18,
+      "width": 10
+    },
+    {
+      "kind": "hullBeam",
+      "x": 18,
+      "y": 0,
+      "angle": 0,
+      "length": 12,
+      "width": 8,
+      "barrels": 1,
+      "traverse": 20,
+      "thick": true,
+      "targeting": {
+        "proximityWeight": 20,
+        "preferredMass": 1,
+        "loyaltyWeight": 30,
+        "facingWeight": 100,
+        "focusWeight": 600,
+        "sightWeight": 50
+      }
+    },
+    {
+      "use": "outrigger",
+      "x": 0,
+      "y": 10
+    },
+    {
+      "use": "outrigger",
+      "x": 0,
+      "y": -10,
+      "mirror": true
+    },
+    {
+      "use": "mainEngine",
+      "x": -24,
+      "y": 2
+    },
+    {
+      "use": "mainEngine",
+      "x": -24,
+      "y": -2,
+      "mirror": true
+    },
+    {
+      "use": "Engine Node",
+      "x": 19,
+      "y": -6,
+      "mirror": true
+    },
+    {
+      "use": "Engine Node",
+      "x": 19,
+      "y": 6
+    },
+    {
+      "use": "Engine Node",
+      "x": -18,
+      "y": -7,
+      "angle": -180
+    },
+    {
+      "use": "Engine Node",
+      "x": -18,
+      "y": 7,
+      "angle": -180,
+      "mirror": true
+    }
   ]
 }

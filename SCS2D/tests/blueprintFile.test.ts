@@ -13,7 +13,6 @@ import {
   type ModuleSpec,
 } from '../sim/index.js';
 import corvetteFile from '../scenarios/blueprints/corvette.json' with { type: 'json' };
-import damagedCorvetteFile from '../scenarios/blueprints/damaged-corvette.json' with { type: 'json' };
 import fractalFile from '../scenarios/blueprints/fractal.json' with { type: 'json' };
 import gunshipFile from '../scenarios/blueprints/gunship.json' with { type: 'json' };
 import { CORVETTE, GUNSHIP } from '../scenarios/blueprints.js';
@@ -35,7 +34,6 @@ import { CORVETTE, GUNSHIP } from '../scenarios/blueprints.js';
 
 const FILES = [
   ['corvette', corvetteFile],
-  ['damaged corvette', damagedCorvetteFile],
   ['gunship', gunshipFile],
   ['fractal', fractalFile],
 ] as const;
@@ -108,7 +106,7 @@ describe('blueprint files', () => {
     // about the ship that actually gets built — and it must reach *both*
     // copies, since the reason for a part does not stop applying when it is
     // mirrored onto the far beam.
-    const beams = expandBlueprint(GUNSHIP).filter((m) => m.kind === 'turret' && m.barrels === 8);
+    const beams = expandBlueprint(GUNSHIP).filter((m) => m.kind === 'turret' && m.barrels === 4);
     expect(beams).toHaveLength(2);
     for (const beam of beams) expect(beam.notes).toMatch(/same bore budget/);
   });
