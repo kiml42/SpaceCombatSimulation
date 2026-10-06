@@ -277,6 +277,8 @@ function parse(argv: readonly string[]): Options {
       // Champions each side keeps, and the share of matches fought against the other side's.
       case '--hall': coevolution = { ...coevolution, hall: Number(value()) }; break;
       case '--hall-share': coevolution = { ...coevolution, hallShare: Number(value()) }; break;
+      // Side B as it is, every generation: side A bred against a fixed opponent.
+      case '--versus-fixed': coevolution = { ...coevolution, rivalEvolves: false }; break;
       case '--quiet': quiet = true; break;
       default:
         throw new Error(`unknown argument ${arg}`);

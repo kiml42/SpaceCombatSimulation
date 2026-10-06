@@ -500,11 +500,16 @@ inside any one file is not contiguous.
   and side B, each bred only from its own winners, every match one of A against one of B with no goal.
   Each side keeps a hall of its last few champions, and a share of every individual's matches is against
   the other side's hall, so neither can win by beating only the opponent of the moment. Side B may have its
-  own population, winners, budget and fleet limits. Its generations are written beside side A's
+  own population, winners, budget, fleet limits and mutation weights. Its generations are written beside side A's
   (`rival` in the run file), and `npm run yardstick` measures such a run as a grid of each side's champions
   against the other's, since fitness against a moving opponent cannot say whether either is improving.
-  On the evolution page a Versus picker under the founders makes a run co-evolve: both sides take the one
-  set of settings, the score chart goes (every score there is against a side that is improving too), the
+  **The evolution page is two screens**: setting a run up, with every setting laid out across the width
+  beside the founders it would start from, and watching it, with the charts, the combatants and the matches;
+  Start moves from the first to the second, and the header goes between them. **Side A is on the left and
+  side B on the right throughout**: the shared settings above, then each side's founders, then every
+  per-side setting written once as a row with A's box and B's beside it. Picking side B's founders makes a
+  run co-evolve, and side B's boxes follow side A's until one of them is changed; unticking "side B evolves"
+  makes side B its founders every generation, a fixed opponent to be bred against. The score chart goes (every score there is against a side that is improving too), the
   mass and ship-count charts carry a pair of lines a side and are what a generation is picked from, and the
   combatants are tagged A or B and ranked within their own side.
   **Fuel.** A `tank` archetype whose interior is reaction mass, and every core's interior past the cubic

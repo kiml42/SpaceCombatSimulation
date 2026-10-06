@@ -2,7 +2,7 @@
 // The callbacks handed to `page.evaluate` are serialised and run in the
 // browser, so this file needs DOM types even though it executes in Node.
 
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
@@ -89,10 +89,28 @@ async function distinctColours(p: Page, id: string): Promise<number> {
   }, id);
 }
 
+/** Go to the screen the settings are on, if it is not already showing. */
+async function toSetup(p: Page): Promise<void> {
+  if (!(await p.isVisible('#setupScreen'))) await p.click('#toSetup');
+}
+
 /** Set a numeric field and tell the page it changed. */
 async function set(p: Page, id: string, value: string): Promise<void> {
+  await toSetup(p);
   await p.fill(`#${id}`, value);
   await p.dispatchEvent(`#${id}`, 'change');
+}
+
+/** Pick in one of the setup screen's lists. */
+async function choose(p: Page, selector: string, values: Parameters<Page['selectOption']>[1]): Promise<void> {
+  await toSetup(p);
+  await p.selectOption(selector, values);
+}
+
+/** Press one of the setup screen's buttons. */
+async function press(p: Page, selector: string): Promise<void> {
+  await toSetup(p);
+  await p.click(selector);
 }
 
 beforeAll(async () => {
@@ -114,7 +132,7 @@ beforeAll(async () => {
 
   // A run small enough to finish inside a test: two short matches' worth of
   // ships, two generations, and as much of each frame as the page will spend.
-  await page.selectOption('#founders', ['Dinky']);
+  await choose(page, '#founders', ['Dinky']);
   // Kept a run of ships; the fleet test lets them grow.
   await set(page, 'fleetShips', '1');
   await set(page, 'generations', '2');
@@ -131,6 +149,12 @@ afterAll(async () => {
 });
 
 describe('the evolution page in a browser', () => {
+  // The run's screen whenever there is a run, as there is after Start; a test
+  // that changes the settings goes to them through `set`, `choose` and `press`.
+  beforeEach(async () => {
+    if ((await page.isEnabled('#toRun')) && !(await page.isVisible('#results'))) await page.click('#toRun');
+  });
+
   it('loads without errors', () => {
     expect(problems).toEqual([]);
   });
@@ -221,7 +245,7 @@ describe('the evolution page in a browser', () => {
     await set(page, 'seed', '4242');
     await set(page, 'kindTurret', '0');
     const saving = page.waitForEvent('download');
-    await page.click('#exportConfig');
+    await press(page, '#exportConfig');
     const written = await (await saving).path();
     const file = JSON.parse(await readFile(written, 'utf8')) as Record<string, unknown>;
     expect(file['seed']).toEqual(4242);
@@ -232,7 +256,7 @@ describe('the evolution page in a browser', () => {
     // these back rather than only the boxes somebody remembered to wire up.
     await set(page, 'seed', '1');
     await set(page, 'kindTurret', '9');
-    await page.selectOption('#founders', ['Corvette']);
+    await choose(page, '#founders', ['Corvette']);
     await page.setInputFiles('#importConfigFile', written);
     await page.waitForFunction(() => document.getElementById('readout')?.textContent?.includes('read from a file') === true);
     expect(await page.inputValue('#seed')).toEqual('4242');
@@ -244,6 +268,7 @@ describe('the evolution page in a browser', () => {
   }, 60_000);
 
   it('folds a section away, and writes the doctrine weights with the rest', async () => {
+    await toSetup(page);
     await page.click('details[data-key="therun"] > summary');
     expect(await page.isVisible('#generations')).toBe(false);
     await page.click('details[data-key="therun"] > summary');
@@ -251,7 +276,7 @@ describe('the evolution page in a browser', () => {
 
     await set(page, 'doctrineApproach', '0');
     const saving = page.waitForEvent('download');
-    await page.click('#exportConfig');
+    await press(page, '#exportConfig');
     const file = JSON.parse(await readFile(await (await saving).path(), 'utf8')) as Record<string, unknown>;
     expect(file['doctrine']).toEqual({ targeting: 1, approach: 0, escort: 1, avoidance: 1, gunnery: 1 });
     await set(page, 'doctrineApproach', '1');
@@ -263,7 +288,7 @@ describe('the evolution page in a browser', () => {
     await set(page, 'structural', '0');
     await set(page, 'buildMove', '0');
     const saving = page.waitForEvent('download');
-    await page.click('#exportConfig');
+    await press(page, '#exportConfig');
     const download = await saving;
     expect(download.suggestedFilename()).toEqual('Star_Wars_tuning.json');
     const written = await download.path();
@@ -288,21 +313,21 @@ describe('the evolution page in a browser', () => {
 
   it('sets a boss for every entrant to fight, and writes it down', async () => {
     expect(await page.isDisabled('#boss')).toBe(true);
-    await page.selectOption('#goal', 'boss');
+    await choose(page, '#goal', 'boss');
     expect(await page.isDisabled('#boss')).toBe(false);
-    await page.selectOption('#boss', { label: 'Gunship' });
+    await choose(page, '#boss', { label: 'Gunship' });
     const saving = page.waitForEvent('download');
-    await page.click('#exportConfig');
+    await press(page, '#exportConfig');
     const written = await (await saving).path();
     const file = JSON.parse(await readFile(written, 'utf8')) as Record<string, unknown>;
     expect((file['match'] as Record<string, unknown>)['boss']).toEqual({ ship: 'Gunship' });
-    await page.selectOption('#goal', 'solid');
+    await choose(page, '#goal', 'solid');
     expect(await page.isDisabled('#boss')).toBe(true);
     // Read back, a file with a boss sets the goal to it.
     await page.setInputFiles('#importConfigFile', written);
     await page.waitForFunction(() => (document.getElementById('goal') as HTMLSelectElement).value === 'boss');
     expect(await page.inputValue('#boss')).toBe('ship:Gunship');
-    await page.selectOption('#goal', 'solid');
+    await choose(page, '#goal', 'solid');
     expect(problems).toEqual([]);
   });
 
@@ -523,7 +548,7 @@ describe('the evolution page in a browser', () => {
     // A Dinky and a corvette in one generation: fitted each to its own tile
     // they would fill it alike, and at one scale the corvette is far bigger.
     if (await page.isEnabled('#stop')) await page.click('#stop');
-    await page.selectOption('#founders', ['Dinky', 'Corvette']);
+    await choose(page, '#founders', ['Dinky', 'Corvette']);
     await set(page, 'generations', '1');
     await page.click('#start');
     await page.selectOption('#mode', 'fleet');
@@ -597,7 +622,7 @@ describe('the evolution page in a browser', () => {
     // cannot steer drifting apart until the clock runs out — and the page
     // otherwise had no way out of one but to sit through it.
     if (await page.isEnabled('#stop')) await page.click('#stop');
-    await page.selectOption('#founders', ['Dinky']);
+    await choose(page, '#founders', ['Dinky']);
     await set(page, 'group', '2');
     await set(page, 'minMatches', '2');
     await set(page, 'generations', '1');
@@ -628,7 +653,7 @@ describe('the evolution page in a browser', () => {
     // closely. The page is mostly a form, so they are off while a box has
     // the focus.
     if (await page.isEnabled('#stop')) await page.click('#stop');
-    await page.selectOption('#founders', ['Dinky']);
+    await choose(page, '#founders', ['Dinky']);
     await set(page, 'generations', '1');
     await page.click('#start');
     await page.waitForFunction(() => document.querySelectorAll('#matches tr').length > 0);
@@ -638,9 +663,11 @@ describe('the evolution page in a browser', () => {
 
     // A number box has the focus, so the keys belong to it rather than to
     // the battle: the full stop is part of a figure somebody is typing.
+    await toSetup(page);
     await page.focus('#duration');
     await page.keyboard.press('Space');
     expect(await page.textContent('#play')).toBe('Pause');
+    await page.click('#toRun');
     await page.locator('#view').click({ position: { x: 5, y: 5 } });
 
     // Space pauses, and the battle stops where it was.
@@ -669,7 +696,7 @@ describe('the evolution page in a browser', () => {
 
   it('replays a match of one ship', async () => {
     if (await page.isEnabled('#stop')) await page.click('#stop');
-    await page.selectOption('#founders', ['Dinky']);
+    await choose(page, '#founders', ['Dinky']);
     await set(page, 'group', '1');
     await set(page, 'generations', '1');
     await page.click('#start');
@@ -686,14 +713,14 @@ describe('the evolution page in a browser', () => {
   it('runs from a fleet, with its limits, and replays a match of fleets', async () => {
     if (await page.isEnabled('#stop')) await page.click('#stop');
     // A ship limited to one ship stays a ship; allowed more, it may grow into a fleet.
-    await page.selectOption('#founders', ['Dinky']);
+    await choose(page, '#founders', ['Dinky']);
     expect(await page.isVisible('#fleetRadius')).toBe(false);
     expect(await page.isVisible('#opAdd')).toBe(false);
     await set(page, 'fleetShips', '2');
     expect(await page.isVisible('#opAdd')).toBe(true);
     await set(page, 'fleetShips', '1');
     // So does picking a fleet, whatever the limit.
-    await page.selectOption('#founders', [{ label: 'Line of Battle' }]);
+    await choose(page, '#founders', [{ label: 'Line of Battle' }]);
     expect(await page.isVisible('#fleetRadius')).toBe(true);
     expect(await page.isVisible('#opAdd')).toBe(true);
     await set(page, 'fleetRadius', '400');
@@ -703,7 +730,7 @@ describe('the evolution page in a browser', () => {
     await set(page, 'generations', '1');
 
     const saving = page.waitForEvent('download');
-    await page.click('#exportConfig');
+    await press(page, '#exportConfig');
     const file = JSON.parse(await readFile(await (await saving).path(), 'utf8')) as Record<string, unknown>;
     expect(file['fleets']).toEqual(['Line of Battle']);
     expect(file['fleet']).toMatchObject({ radius: 400, maxShips: 8, operators: { add: 3 } });
@@ -724,23 +751,34 @@ describe('the evolution page in a browser', () => {
   }, 120_000);
   it('co-evolves two lineages against each other, and shows both', async () => {
     if (await page.isEnabled('#stop')) await page.click('#stop');
-    await page.selectOption('#founders', ['Dinky']);
+    await choose(page, '#founders', ['Dinky']);
     await set(page, 'fleetShips', '1');
     await set(page, 'generations', '2');
     await set(page, 'population', '4');
     await set(page, 'minMatches', '2');
     expect(await page.isVisible('#group')).toBe(true);
-    await page.selectOption('#versus', ['Dinky']);
+    await choose(page, '#versus', ['Dinky']);
     // One against one with no goal, scored against a moving opponent: what does not apply goes.
     expect(await page.isVisible('#group')).toBe(false);
     expect(await page.isVisible('#goal')).toBe(false);
-    expect(await page.isVisible('#chart')).toBe(false);
-    expect(await page.isVisible('#legend')).toBe(false);
+    // Side B has a column of settings of its own, starting as a copy of side A's.
+    expect(await page.isVisible('#b_population')).toBe(true);
+    expect(await page.inputValue('#b_population')).toBe('4');
+    await set(page, 'b_population', '6');
 
     const saving = page.waitForEvent('download');
-    await page.click('#exportConfig');
+    await press(page, '#exportConfig');
     const file = JSON.parse(await readFile(await (await saving).path(), 'utf8')) as Record<string, unknown>;
-    expect(file['versus']).toMatchObject({ founders: ['Dinky'] });
+    expect(file['versus']).toMatchObject({ founders: ['Dinky'], population: 6 });
+
+    // Side B fixed is side A bred against an opponent that does not change, as a boss is.
+    await toSetup(page);
+    await page.uncheck('#rivalEvolves');
+    const fixing = page.waitForEvent('download');
+    await press(page, '#exportConfig');
+    const fixed = JSON.parse(await readFile(await (await fixing).path(), 'utf8')) as Record<string, unknown>;
+    expect(fixed['versus']).toMatchObject({ evolves: false });
+    await page.check('#rivalEvolves');
 
     await page.click('#start');
     await page.waitForFunction(
@@ -748,10 +786,14 @@ describe('the evolution page in a browser', () => {
       undefined,
       { timeout: 120_000 },
     );
+    // On the run screen: the score chart is not drawn for a run scored against a moving opponent.
+    expect(await page.isVisible('#setupScreen')).toBe(false);
+    expect(await page.isVisible('#chart')).toBe(false);
+    expect(await page.isVisible('#legend')).toBe(false);
     await page.selectOption('#mode', 'fleet');
     const sides = await page.$$eval('#fleet tbody td.who .side', (tags) => tags.map((tag) => tag.textContent?.trim()));
     expect(sides.filter((side) => side === 'A')).toHaveLength(4);
-    expect(sides.filter((side) => side === 'B')).toHaveLength(4);
+    expect(sides.filter((side) => side === 'B')).toHaveLength(6);
     expect(await distinctColours(page, 'massChart')).toBeGreaterThan(2);
     expect(await page.textContent('#championLine')).toMatch(/A #\d+.*B #\d+/);
 
@@ -759,7 +801,9 @@ describe('the evolution page in a browser', () => {
     await page.click('#matches tr');
     await page.waitForFunction(() => /%/.test(document.getElementById('watching')?.textContent ?? ''));
 
-    await page.click('#clearVersus');
+    await press(page, '#clearVersus');
+    expect(await page.isVisible('#b_population')).toBe(false);
+    await page.click('#toRun');
     expect(await page.isVisible('#chart')).toBe(true);
     expect(await page.isVisible('#legend')).toBe(true);
     expect(problems).toEqual([]);
