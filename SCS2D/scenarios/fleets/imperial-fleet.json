@@ -619,27 +619,27 @@
   "ships": [
     {
       "design": "Star Destroyer",
-      "x": 0,
+      "x": -2600,
       "y": 0
     },
     {
       "design": "TIE Fighter",
       "x": 400,
-      "y": 400,
+      "y": 40,
       "repeat": 20,
       "step": {
-        "x": -30,
-        "y": 50
+        "x": -10,
+        "y": 60
       }
     },
     {
       "design": "TIE Fighter",
       "x": 400,
-      "y": -400,
+      "y": -40,
       "repeat": 20,
       "step": {
-        "x": -30,
-        "y": -50
+        "x": -10,
+        "y": -60
       }
     }
   ]
