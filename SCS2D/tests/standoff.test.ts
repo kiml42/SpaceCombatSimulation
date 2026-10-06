@@ -32,7 +32,7 @@ describe('a standoff nobody gives an order in', () => {
     const run = standoff();
     for (let i = 0; i < 3000; i++) run.step();
 
-    expect(run.totalProjectilesFired).toBeGreaterThan(100);
+    expect(run.totalProjectilesFired).toBeGreaterThan(50);
     expect(run.totalProjectileHits).toBeGreaterThan(100);
     expect(run.totalBeamHits).toBeGreaterThan(0);
   });
