@@ -20,6 +20,7 @@ import { findContacts, Contacts } from '../sim/collision.js';
 import { OrderCancelCondition } from '../sim/ships.js';
 import { mutate } from '../evolution/mutate.js';
 import { DINKY } from '../scenarios/blueprints.js';
+import { customBattle, DEFAULT_SETUP } from '../scenarios/customBattle.js';
 
 /**
  * Fighters (ROADMAP.md §8 step 7, DESIGN.md §3): strike craft that fly in the
@@ -225,6 +226,28 @@ describe('a fighter in battle', () => {
     expect(struck(false, HULL_LAYER)).toBe(false);
     expect(struck(false, BOTH_LAYERS)).toBe(true);
     expect(struck(true, HULL_LAYER)).toBe(true);
+  });
+
+  it('fights a ship flying in the other layer, with shells that burst into both', () => {
+    // A fighter's guns are in the weapons layer and a hull gun's in the hull
+    // layer, so neither could reach the other with a solid shot. Each fires
+    // shells, whose fragments fly in both, so each still takes the other on.
+    const fleet = (blueprint: Blueprint) =>
+      ({ name: blueprint.name, designs: { Dinky: blueprint }, ships: [{ design: 'Dinky', x: 0, y: 0 }] });
+    const battle = customBattle({ ...DEFAULT_SETUP, range: 600, fleets: [fleet(fighter()), fleet(UNFLAGGED)] });
+    const firstShot = [-1, -1];
+    for (let step = 0; step < 60 * 30 && firstShot.includes(-1); step++) {
+      battle.step();
+      const rounds = battle.projectiles;
+      for (let i = 0; i < 2; i++) {
+        const body = battle.world.bodies.indexOf(battle.ships.body(i));
+        for (let k = 0; k < rounds.highWater; k++) {
+          if (firstShot[i] === -1 && rounds.alive[k] === 1 && rounds.owner[k] === body) firstShot[i] = step;
+        }
+      }
+    }
+    expect(firstShot[0]).toBeGreaterThanOrEqual(0);
+    expect(firstShot[1]).toBeGreaterThanOrEqual(0);
   });
 
   it('overflies a hull until committed', () => {
