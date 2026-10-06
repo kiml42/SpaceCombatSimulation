@@ -102,7 +102,7 @@ export class Coevolution {
   private match: Match | null = null;
   private pairing: Pairing | null = null;
   private seed = 0;
-  private played = 0;
+  private fought = 0;
   private over = false;
 
   constructor(
@@ -135,9 +135,58 @@ export class Coevolution {
     return this.match;
   }
 
-  /** Each side's generation under test, A then B. */
-  get living(): readonly [Generation, Generation] {
-    return [this.sides[0].generation, this.sides[1].generation];
+  /** Side A's closed generations, as `Run.generations`. */
+  get generations(): readonly GenerationRecord[] {
+    return this.sides[0].generations;
+  }
+
+  /** Side B's closed generations. */
+  get rivalGenerations(): readonly GenerationRecord[] {
+    return this.sides[1].generations;
+  }
+
+  /** Side A's generation under test, as `Run.living`. */
+  get living(): Generation {
+    return this.sides[0].generation;
+  }
+
+  /** Side B's generation under test. */
+  get rivalLiving(): Generation {
+    return this.sides[1].generation;
+  }
+
+  /** Matches side A has been scored for in the generation under test, as `Run.played`. */
+  get played(): readonly MatchRecord[] {
+    return this.sides[0].matches;
+  }
+
+  /** Matches side B has been scored for in the generation under test. */
+  get rivalPlayed(): readonly MatchRecord[] {
+    return this.sides[1].matches;
+  }
+
+  /**
+   * The run's first match, fought by the founders themselves: the first
+   * pairing's seed, with each side's individual swapped for the founder it
+   * was bred from. Draws the match, so it is for a run that will not be fought.
+   */
+  unmutatedOpening(): Match | null {
+    if (this.match === null && !this.over) this.open();
+    const pairing = this.pairing;
+    if (this.match === null || pairing === null) return null;
+    const founderOf = (s: Side, index: number): Entrant => {
+      const individuals = s.generation.individuals;
+      const individual = individuals[index]!;
+      if (individual.parent < 0) return individual.entrant;
+      return individuals.find((each) => each.id === individual.parent)?.entrant ?? individual.entrant;
+    };
+    const [a, b] = this.sides;
+    return new Match([founderOf(a, pairing.a), founderOf(b, pairing.b)], {
+      ...this.config.match,
+      goal: null,
+      boss: null,
+      seed: this.seed,
+    });
   }
 
   /** How far through the whole run, from nothing to one. */
@@ -190,7 +239,7 @@ export class Coevolution {
   private open(): void {
     const wanted = this.config.minMatches;
     const settled = this.sides.every((s) => s.generation.settled(wanted));
-    if (settled || this.played >= this.limit) {
+    if (settled || this.fought >= this.limit) {
       this.roll();
       return;
     }
@@ -315,7 +364,7 @@ export class Coevolution {
     this.score(b, pairing.b, result.scores[1]!, idA, champion !== null);
     if (pairing.a >= 0) a.matches.push(record);
     if (pairing.b >= 0) b.matches.push(record);
-    this.played++;
+    this.fought++;
     this.match = null;
     this.pairing = null;
   }
@@ -337,7 +386,7 @@ export class Coevolution {
       this.enshrine(s);
     });
     this.onGeneration?.(records[0], records[1]);
-    this.played = 0;
+    this.fought = 0;
     if (a.generations.length >= this.config.generations) {
       this.over = true;
       return;
