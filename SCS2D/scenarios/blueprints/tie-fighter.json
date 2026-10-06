@@ -7,14 +7,22 @@
     "targeting": {
       "preferredMass": 2.5,
       "massWeight": 120,
-      "facingWeight": 60,
+      "closingWeight": 9.285,
+      "loyaltyWeight": 15.344,
+      "armedWeight": 73.115,
+      "mobileWeight": 11.591,
+      "facingWeight": 44.252,
       "sightWeight": 60,
       "escortWeight": 50
     },
     "approach": {
+      "standoffRadii": 61.681,
       "escortMinRadii": 1.5,
-      "ramRadii": 50,
-      "ramArmed": 0.5
+      "approachSpeed": 47.906,
+      "accelerate": 0.862,
+      "brake": 1.005,
+      "ramRadii": 50.984,
+      "ramArmed": 0.464
     }
   },
   "assemblies": {
@@ -34,14 +42,16 @@
           "x": 0,
           "y": 0.825,
           "length": 0.7,
-          "width": 1.15
+          "width": 1.15,
+          "reinforcement": 1.11
         },
         {
           "kind": "tank",
           "x": 0,
           "y": 1.65,
           "length": 2.8,
-          "width": 0.5
+          "width": 0.5,
+          "sealing": 0.0007
         },
         {
           "use": "engine2",
@@ -100,6 +110,7 @@
           "angle": 270,
           "length": 0.2,
           "width": 0.3,
+          "reinforcement": 1.12,
           "barrels": 1,
           "nozzle": 0.5
         }
