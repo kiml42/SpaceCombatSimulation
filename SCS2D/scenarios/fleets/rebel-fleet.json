@@ -535,15 +535,22 @@
       "fighter": true,
       "doctrine": {
         "targeting": {
+          "proximityWeight": 102.697,
+          "preferredMass": 0.837,
           "massWeight": 200,
-          "armedWeight": 90,
-          "mobileWeight": 80,
+          "closingWeight": 11.43,
+          "armedWeight": 71.048,
+          "mobileWeight": 76.4,
+          "sightWeight": 4.865,
           "escortWeight": 40
         },
         "approach": {
-          "standoffRadii": 3,
-          "approachSpeed": 900,
-          "brake": 0.9
+          "standoffRadii": 0.01,
+          "standoff": 0.712,
+          "escort": 0.187,
+          "approachSpeed": 734.508,
+          "accelerate": 0.75,
+          "brake": 1.057
         }
       },
       "assemblies": {
@@ -568,7 +575,7 @@
             },
             {
               "kind": "hullGun",
-              "x": 1.4499999999999997,
+              "x": 0.2999999999999998,
               "y": 0.8000000000000003,
               "angle": 0,
               "length": 5.7,
@@ -579,7 +586,9 @@
                 "facingWeight": 100,
                 "sightWeight": 20,
                 "massWeight": 300,
-                "closingWeight": 30
+                "closingWeight": 30,
+                "engineWeight": 86.401,
+                "focusWeight": 373.904
               }
             },
             {
@@ -599,7 +608,8 @@
               "angle": 0,
               "length": 1.2,
               "width": 0.6,
-              "barrels": 2
+              "barrels": 2,
+              "weapon": true
             },
             {
               "kind": "engine",
@@ -632,7 +642,8 @@
           "x": 2.05,
           "y": 0,
           "length": 1.9,
-          "width": 2.4
+          "width": 2.4,
+          "sealing": 0.0018
         },
         {
           "use": "structure",
