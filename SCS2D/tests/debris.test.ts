@@ -24,11 +24,11 @@ function weldsOf(design: ShipDesign, module: number): number[] {
   return welds;
 }
 
-/** One of a fighter's two smallest engines, and the welds holding it on. */
-const SHARD = 2;
+/** A fighter's smallest engine, and the welds holding it on. */
+const SHARD = 1;
 const SHARD_JOINTS = weldsOf(dinky, SHARD);
-/** One worth keeping: the gun. */
-const KEEPER = 6;
+/** One worth keeping: the main engine. */
+const KEEPER = 4;
 const KEEPER_JOINTS = weldsOf(dinky, KEEPER);
 
 interface Scene {
