@@ -17,7 +17,7 @@ import { finalist, matchCount, Run, DEFAULT_RUN, type GenerationRecord, type Run
 import { Coevolution, DEFAULT_COEVOLUTION, type CoevolutionConfig } from '../evolution/coevolution.js';
 import type { Entrant } from '../evolution/match.js';
 import { DEFAULT_BUILD_WEIGHTS, DEFAULT_DOCTRINE_WEIGHTS, DEFAULT_KINDS } from '../evolution/mutate.js';
-import { parseRunConfig, runConfigWarnings, serialiseRunConfig, type BossName } from '../evolution/configFile.js';
+import { parseRunConfig, runConfigWarnings, serialiseRunConfig } from '../evolution/configFile.js';
 import type { ModuleKind } from '../sim/modules.js';
 
 /**
@@ -37,8 +37,6 @@ interface Options {
   readonly from: readonly { name: string; blueprint: Blueprint }[];
   /** Fleet founders, by the name a config file would give them. Any makes it a run of fleets. */
   readonly fleets: readonly { name: string; fleet: Fleet }[];
-  /** What every entrant fights together, by the name a config file gives it, or null. */
-  readonly boss: BossName | null;
   /** Side B of a co-evolution run, or null for a run of one. */
   readonly versus: Versus | null;
   readonly out: string;
@@ -104,34 +102,9 @@ function fleetFrom(name: string): Fleet {
   }
 }
 
-/** A boss by stock ship, stock fleet or file, and the name a config file will give it. */
-function bossFrom(name: string): { boss: Entrant; named: BossName } {
-  for (const [key, blueprint] of Object.entries(BLUEPRINTS)) {
-    if (blueprint.name === name || key === name) return { boss: blueprint, named: { kind: 'ship', name: blueprint.name } };
-  }
-  const stock = FLEETS[name];
-  if (stock !== undefined) return { boss: stock, named: { kind: 'fleet', name } };
-  let value: unknown;
-  try {
-    value = JSON.parse(readFileSync(name, 'utf8'));
-  } catch (error) {
-    if ((error as { code?: string }).code !== 'ENOENT') throw error;
-    throw new Error(`no such ship, fleet or file for a boss: ${name}`);
-  }
-  if (typeof value === 'object' && value !== null && 'designs' in value) {
-    const fleet = parseFleet(value);
-    warnUnread(name, fleetWarnings(fleet));
-    return { boss: fleet, named: { kind: 'fleet', name: fleet.name } };
-  }
-  const blueprint = parseBlueprint(value);
-  warnUnread(name, blueprintWarnings(blueprint));
-  return { boss: blueprint, named: { kind: 'ship', name: blueprint.name } };
-}
-
 function parse(argv: readonly string[]): Options {
   const from: { name: string; blueprint: Blueprint }[] = [];
   const fleets: { name: string; fleet: Fleet }[] = [];
-  let boss: BossName | null = null;
   const versusFrom: { name: string; blueprint: Blueprint }[] = [];
   const versusFleets: { name: string; fleet: Fleet }[] = [];
   let coevolution: CoevolutionConfig = DEFAULT_COEVOLUTION;
@@ -172,13 +145,6 @@ function parse(argv: readonly string[]): Options {
       // How far from its origin a fleet may spread, and how many ships it may field.
       case '--deploy': fleet['radius'] = Number(value()); break;
       case '--ships': fleet['maxShips'] = Number(value()); break;
-      // A ship or fleet every entrant fights together.
-      case '--boss': {
-        const found = bossFrom(value());
-        match['boss'] = found.boss;
-        boss = found.named;
-        break;
-      }
       case '--out': out = value(); break;
       case '--seed': config['seed'] = Number(value()); break;
       case '--generations': config['generations'] = Number(value()); break;
@@ -252,11 +218,6 @@ function parse(argv: readonly string[]): Options {
         for (const name of setup.founders) from.push(shipFrom(name));
         for (const name of setup.fleets ?? []) fleets.push({ name, fleet: fleetFrom(name) });
         config = { ...setup.config };
-        if (setup.boss != null) {
-          const found = bossFrom(setup.boss.name);
-          config['match'] = { ...setup.config.match, boss: found.boss };
-          boss = found.named;
-        }
         if (setup.versus != null) {
           for (const name of setup.versus.founders) versusFrom.push(shipFrom(name));
           for (const name of setup.versus.fleets) versusFleets.push({ name, fleet: fleetFrom(name) });
@@ -279,6 +240,8 @@ function parse(argv: readonly string[]): Options {
       case '--hall-share': coevolution = { ...coevolution, hallShare: Number(value()) }; break;
       // Side B as it is, every generation: side A bred against a fixed opponent.
       case '--versus-fixed': coevolution = { ...coevolution, rivalEvolves: false }; break;
+      // Side B's entrants a match, where they differ from side A's `--group`.
+      case '--versus-group': coevolution = { ...coevolution, rival: { ...coevolution.rival, group: Number(value()) } }; break;
       case '--quiet': quiet = true; break;
       default:
         throw new Error(`unknown argument ${arg}`);
@@ -317,9 +280,8 @@ function parse(argv: readonly string[]): Options {
     config['massBudget'] = heaviest * budget;
   }
   const coevolving = versusFrom.length + versusFleets.length > 0;
-  if (coevolving && boss !== null) throw new Error('a co-evolution run is two lineages against each other, and has no boss');
   const versus = coevolving ? { from: versusFrom, fleets: versusFleets, coevolution } : null;
-  return { from, fleets, boss, versus, out, saveConfig, name, config, quiet };
+  return { from, fleets, versus, out, saveConfig, name, config, quiet };
 }
 
 const options = parse(process.argv.slice(2));
@@ -338,10 +300,11 @@ if (!options.quiet) {
   console.log(
     versus === null
       ? `${names(options)} — ${settings.generations} generations of ` +
-          `${settings.population}, ${settings.group} to a match, ${settings.minMatches} matches each` +
-          (options.boss === null ? '' : `, all against ${options.boss.name}`)
-      : `${names(options)} against ${names(versus)} — ${settings.generations} generations, one against one, ` +
-          `${settings.minMatches} matches each, a hall of ${versus.coevolution.hall}`,
+          `${settings.population}, ${settings.group} to a match, ${settings.minMatches} matches each`
+      : `${names(options)} against ${names(versus)} — ${settings.generations} generations, ` +
+          `${settings.group} against ${versus.coevolution.rival.group ?? settings.group}, ` +
+          `${settings.minMatches} matches each, a hall of ${versus.coevolution.hall}` +
+          (versus.coevolution.rivalEvolves ? '' : ', side B fixed'),
   );
 }
 
@@ -354,7 +317,6 @@ if (options.saveConfig !== '') {
         ...(options.name === undefined ? {} : { name: options.name }),
         founders: options.from.map(({ name }) => name),
         fleets: options.fleets.map(({ name }) => name),
-        boss: options.boss,
         versus:
           versus === null
             ? null

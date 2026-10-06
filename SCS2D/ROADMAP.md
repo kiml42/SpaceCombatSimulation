@@ -98,19 +98,21 @@ evolution page: a match
 takes fleets as entrants, a lone blueprint being a fleet of one, survival scored on the whole fleet's hull
 capacity left and ground gained by its nearest ship. Every operator has its inverse — mutate a design, fork and merge, add and remove, move and turn —
 and a mutant over the total dry mass, the deployment radius or the ship count, or with hulls overlapping, is
-refused. **A boss battle** evolves against a fixed ship or fleet: every entrant on one side against it,
-scored for what it does to the boss alone (`match.boss`, `--boss`, and a boss picker on the page).
+refused. Evolving against a fixed ship or fleet is co-evolution with a side B that does not evolve, which
+replaced the boss battle.
 
 **Co-evolution — built.** Two lineages bred against each other: a run is given two sets of founders, side
-A and side B, and every match is one child of A against one child of B, so each lineage evolves to counter
-the other. A boss battle is the special case of it where one side is a single entrant that never breeds.
+A and side B, and every match is children of A against children of B, so each lineage evolves to counter
+the other. Several of A against one of a side B that never breeds is what the boss battle was.
 
 - **Two populations, bred apart, in lockstep.** Each side is a `Generation` of its own, bred only from its
   own winners; both close and breed together, once every individual on both sides has played its matches.
-- **One against one.** Pairing takes the least-played A and the least-played B it has not met yet — the
-  cross-population form of `pickCompetitors`. One match scores both, so equal populations of N playing m
-  matches each cost N × m matches a generation, what a two-ship free-for-all costs now. Teams of several a
-  side are later, if ever.
+- **Each side's `group` a match, as allies.** Pairing takes the least-played of either side, the
+  least-played of its own side beside it, and the ones of the other side they have met least — the
+  cross-population form of `pickCompetitors`. A match's entrants are on two teams, clustered 45° wide on
+  the left (A) and the right (B); a hit on one's own side pays nothing, damage and disabling are shares of
+  the other side, and a match is decided once one side is left fighting. A hall match fields a whole
+  group of champions for the other side.
 - **No goal.** A race would let a lineage score without fighting; a co-evolution match is only a fight.
 - **A hall of fame against going round in circles.** Each side keeps its last few champions (about five),
   and about a quarter of every individual's matches are against the *other* side's hall rather than its
@@ -367,14 +369,6 @@ The remaining pickers and the order weight should follow the shape already there
 ## 12. Open questions
 
 Deliberately unresolved; decide when they block something.
-
-- **Whether co-evolution with a fixed side B replaces the boss battle.** A side B that does not evolve is a
-  boss in all but three ways: a boss fights every entrant of a match at once, all of them on one side, and
-  co-evolution is one against one; a boss stands at the middle, where co-evolution starts both on the ring;
-  and a boss match scores only what is done to the boss, where co-evolution scores both sides alike. One
-  against one measures a design alone, which is cleaner, but loses the boss's "a fleet of entrants against
-  one big thing". Replacing it removes `match.boss`, the boss picker and `--boss`, and moves those runs to
-  `versus` with `evolves: false`.
 
 - **Whether the editor needs a test flight of its own.** A throwaway sim inside the editor, flying the ship
   being edited without leaving the page. The Battle link already takes that ship into a custom battle, which

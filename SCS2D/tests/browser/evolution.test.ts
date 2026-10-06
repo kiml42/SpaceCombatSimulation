@@ -311,26 +311,6 @@ describe('the evolution page in a browser', () => {
     expect(problems).toEqual([]);
   });
 
-  it('sets a boss for every entrant to fight, and writes it down', async () => {
-    expect(await page.isDisabled('#boss')).toBe(true);
-    await choose(page, '#goal', 'boss');
-    expect(await page.isDisabled('#boss')).toBe(false);
-    await choose(page, '#boss', { label: 'Gunship' });
-    const saving = page.waitForEvent('download');
-    await press(page, '#exportConfig');
-    const written = await (await saving).path();
-    const file = JSON.parse(await readFile(written, 'utf8')) as Record<string, unknown>;
-    expect((file['match'] as Record<string, unknown>)['boss']).toEqual({ ship: 'Gunship' });
-    await choose(page, '#goal', 'solid');
-    expect(await page.isDisabled('#boss')).toBe(true);
-    // Read back, a file with a boss sets the goal to it.
-    await page.setInputFiles('#importConfigFile', written);
-    await page.waitForFunction(() => (document.getElementById('goal') as HTMLSelectElement).value === 'boss');
-    expect(await page.inputValue('#boss')).toBe('ship:Gunship');
-    await choose(page, '#goal', 'solid');
-    expect(problems).toEqual([]);
-  });
-
   it('draws a third and fourth side in colours of their own', async () => {
     // A match is a free-for-all, so four entrants are four sides — and two of
     // them are sides the renderer only ever had to draw once evolution
@@ -756,22 +736,24 @@ describe('the evolution page in a browser', () => {
     await set(page, 'generations', '2');
     await set(page, 'population', '4');
     await set(page, 'minMatches', '2');
-    expect(await page.isVisible('#group')).toBe(true);
+    await set(page, 'group', '2');
     await choose(page, '#versus', ['Dinky']);
-    // One against one with no goal, scored against a moving opponent: what does not apply goes.
-    expect(await page.isVisible('#group')).toBe(false);
+    // No goal, scored against a moving opponent: what does not apply goes.
     expect(await page.isVisible('#goal')).toBe(false);
     // Side B has a column of settings of its own, starting as a copy of side A's.
     expect(await page.isVisible('#b_population')).toBe(true);
     expect(await page.inputValue('#b_population')).toBe('4');
     await set(page, 'b_population', '6');
+    // Two of side A against one of side B each match.
+    expect(await page.inputValue('#b_group')).toBe('2');
+    await set(page, 'b_group', '1');
 
     const saving = page.waitForEvent('download');
     await press(page, '#exportConfig');
     const file = JSON.parse(await readFile(await (await saving).path(), 'utf8')) as Record<string, unknown>;
-    expect(file['versus']).toMatchObject({ founders: ['Dinky'], population: 6 });
+    expect(file['versus']).toMatchObject({ founders: ['Dinky'], population: 6, group: 1 });
 
-    // Side B fixed is side A bred against an opponent that does not change, as a boss is.
+    // Side B fixed is side A bred against an opponent that does not change.
     await toSetup(page);
     await page.uncheck('#rivalEvolves');
     const fixing = page.waitForEvent('download');
@@ -798,6 +780,7 @@ describe('the evolution page in a browser', () => {
     expect(await page.textContent('#championLine')).toMatch(/A #\d+.*B #\d+/);
 
     await page.selectOption('#mode', 'battle');
+    expect(await page.textContent('#matches tr')).toMatch(/^1\d+ \d+ v \d+/);
     await page.click('#matches tr');
     await page.waitForFunction(() => /%/.test(document.getElementById('watching')?.textContent ?? ''));
 

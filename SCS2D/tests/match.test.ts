@@ -124,7 +124,7 @@ describe('match', () => {
     expect(JSON.stringify(watched.result())).toEqual(JSON.stringify(runMatch(FLEET, { seed: 5, duration: 20 })));
   });
 
-  it('starts each entrant moving towards the middle and to its left, the boss at rest', () => {
+  it('starts each entrant moving towards the middle and to its left', () => {
     const { battle } = new Match([CORVETTE, DINKY], { seed: 3, closingSpeed: 20, crossingSpeed: 5, goal: null });
     const b = battle.world.bodies;
     for (const id of battle.slots) {
@@ -137,10 +137,6 @@ describe('match', () => {
       expect(-b.vx[i]! * inY + b.vy[i]! * inX).toBeCloseTo(5, 9);
     }
 
-    const bossed = new Match([CORVETTE], { seed: 3, closingSpeed: 20, boss: DINKY }).battle;
-    const boss = bossed.world.bodies.indexOf(bossed.ships.body(bossed.slots[1]!));
-    expect(bossed.world.bodies.vx[boss]).toBe(0);
-    expect(bossed.world.bodies.vy[boss]).toBe(0);
   });
 
   it('flies a lone ship to the clock, as a test of piloting alone', () => {

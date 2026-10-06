@@ -210,9 +210,9 @@ export class Yardstick {
   }
 }
 
-/** One against one, always: a boss run is measured against the boss by naming it. */
+/** One against one, always. */
 function yardstickSettings(run: RunRecord, settings: YardstickConfig): Partial<MatchConfig> {
-  return { ...run.config.match, boss: null, ...settings.match };
+  return { ...run.config.match, ...settings.match };
 }
 
 function pairing(individual: IndividualRecord, benchmark: Entrant, match: Partial<MatchConfig>, seed: number): Match {
@@ -338,7 +338,7 @@ export function championGrid(run: RunRecord, config?: Partial<GridConfig>): Cham
   const generations = sampled(count, settings.samples);
   const draw = new Rng(settings.seed);
   const seeds = Array.from({ length: settings.seeds }, () => draw.nextUint32());
-  const match: Partial<MatchConfig> = { ...run.config.match, goal: null, boss: null, ...settings.match };
+  const match: Partial<MatchConfig> = { ...run.config.match, goal: null, ...settings.match };
   const championsA = generations.map((g) => entrantOf(champion(run.generations[g]!)));
   const championsB = generations.map((g) => entrantOf(champion(rival[g]!)));
   let matches = 0;
@@ -347,7 +347,7 @@ export function championGrid(run: RunRecord, config?: Partial<GridConfig>): Cham
       let margin = 0;
       let wins = 0;
       for (const seed of seeds) {
-        const result = runMatch([a, b], { ...match, seed });
+        const result = runMatch([a, b], { ...match, seed }, [0, 1]);
         const mine = result.scores[0]!.total;
         const theirs = result.scores[1]!.total;
         margin += mine - theirs;

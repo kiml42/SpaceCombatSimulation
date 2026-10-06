@@ -52,11 +52,6 @@ export interface RunSetup {
   readonly founders: readonly string[];
   /** Fleets among the founders, which make it a run of fleets. */
   readonly fleets?: readonly string[];
-  /**
-   * What every entrant fights together, by name, or null for a free-for-all.
-   * A file names it; whoever reads the file finds it and sets `match.boss`.
-   */
-  readonly boss?: BossName | null;
   /** Side B of a co-evolution run, or null for a run of one. */
   readonly versus?: VersusSetup | null;
   readonly config: RunConfig;
@@ -71,11 +66,6 @@ export interface VersusSetup {
   readonly founders: readonly string[];
   readonly fleets: readonly string[];
   readonly coevolution: CoevolutionConfig;
-}
-
-export interface BossName {
-  readonly kind: 'ship' | 'fleet';
-  readonly name: string;
 }
 
 const FILE_KEYS: readonly string[] = [
@@ -106,6 +96,7 @@ const VERSUS_KEYS: readonly string[] = [
   'hallShare',
   'population',
   'winners',
+  'group',
   'massBudget',
   'fleet',
   'structural',
@@ -126,7 +117,6 @@ const MATCH_KEYS: readonly string[] = [
   'crossingSpeed',
   'goal',
   'weights',
-  'boss',
 ];
 const GOAL_KEYS: readonly string[] = ['x', 'y', 'scale', 'size'];
 const GOAL_OPTIONAL_KEYS: readonly string[] = ['solid'];
@@ -166,7 +156,6 @@ export function serialiseRunConfig(setup: RunSetup): Record<string, unknown> {
       crossingSpeed: match.crossingSpeed,
       goal: match.goal === null ? null : { ...match.goal },
       weights: { ...match.weights },
-      boss: setup.boss == null ? null : { [setup.boss.kind]: setup.boss.name },
     },
     ...(setup.versus == null ? {} : { versus: serialiseVersus(setup.versus) }),
   };
@@ -182,6 +171,7 @@ function serialiseVersus(versus: VersusSetup): Record<string, unknown> {
     hallShare,
     ...(rival.population === undefined ? {} : { population: rival.population }),
     ...(rival.winners === undefined ? {} : { winners: rival.winners }),
+    ...(rival.group === undefined ? {} : { group: rival.group }),
     ...(rival.massBudget === undefined ? {} : { massBudget: Number.isFinite(rival.massBudget) ? rival.massBudget : null }),
     ...(rival.fleet === undefined ? {} : { fleet: { ...rival.fleet } }),
     ...(rival.mutation?.structural === undefined ? {} : { structural: rival.mutation.structural }),
@@ -223,9 +213,6 @@ export function runConfigFileProblem(value: unknown, warnings: string[] = []): s
   if (fleetBad !== null) return fleetBad;
   const versusBad = versusProblem(value['versus'], warnings);
   if (versusBad !== null) return versusBad;
-  if (value['versus'] !== undefined && isRecord(value['match']) && value['match']['boss'] != null) {
-    return 'a run with versus is two lineages against each other, and has no boss';
-  }
 
   return (
     countProblem(value['generations'], 'generations') ??
@@ -281,6 +268,7 @@ function versusProblem(versus: unknown, warnings: string[]): string | null {
     chanceProblem(versus['hallShare'], 'versus.hallShare') ??
     countProblem(versus['population'], 'versus.population') ??
     countProblem(versus['winners'], 'versus.winners') ??
+    countProblem(versus['group'], 'versus.group') ??
     (versus['massBudget'] === null ? null : budgetProblem(versus['massBudget'])) ??
     fleetProblem(versus['fleet'], 'versus.fleet', warnings) ??
     chanceProblem(versus['structural'], 'versus.structural') ??
@@ -327,7 +315,6 @@ export function parseRunConfig(value: unknown): RunSetup {
     ...(typeof file['name'] === 'string' && file['name'] !== '' ? { name: file['name'] } : {}),
     founders: (file['founders'] as string[] | undefined) ?? [],
     fleets: (file['fleets'] as string[] | undefined) ?? [],
-    boss: isRecord(match['boss']) ? bossName(match['boss']) : null,
     versus: isRecord(file['versus']) ? parseVersus(file['versus']) : null,
     config: {
       seed: read(file['seed'], DEFAULT_RUN.seed),
@@ -373,6 +360,7 @@ function parseVersus(versus: Record<string, unknown>): VersusSetup {
   const rival: { -readonly [K in keyof SideSettings]?: SideSettings[K] } = {};
   if (typeof versus['population'] === 'number') rival.population = versus['population'];
   if (typeof versus['winners'] === 'number') rival.winners = versus['winners'];
+  if (typeof versus['group'] === 'number') rival.group = versus['group'];
   if (versus['massBudget'] !== undefined) rival.massBudget = versus['massBudget'] === null ? Infinity : (versus['massBudget'] as number);
   if (isRecord(versus['fleet'])) rival.fleet = { ...(versus['fleet'] as SideSettings['fleet']) };
   // Only what side B sets: the rest is side A's (`rivalSettings`).
@@ -490,22 +478,7 @@ function matchProblem(value: unknown, warnings: string[]): string | null {
   if (value['radius'] !== undefined && (value['radius'] as number) <= 0) {
     return 'match.radius must be more than nothing';
   }
-  return goalProblem(value['goal'], warnings) ?? weightsProblem(value['weights'], warnings) ?? bossProblem(value['boss']);
-}
-
-function bossProblem(value: unknown): string | null {
-  if (value === undefined || value === null) return null;
-  const named = isRecord(value) ? bossName(value) : null;
-  return named === null ? 'match.boss must be null, or { "ship": name } or { "fleet": name }' : null;
-}
-
-function bossName(value: Record<string, unknown>): BossName | null {
-  const keys = Object.keys(value);
-  if (keys.length !== 1) return null;
-  const kind = keys[0];
-  const name = value[kind!];
-  if ((kind !== 'ship' && kind !== 'fleet') || typeof name !== 'string') return null;
-  return { kind, name };
+  return goalProblem(value['goal'], warnings) ?? weightsProblem(value['weights'], warnings);
 }
 
 function goalProblem(value: unknown, warnings: string[]): string | null {

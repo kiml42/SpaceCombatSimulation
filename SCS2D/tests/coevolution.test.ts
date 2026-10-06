@@ -11,6 +11,7 @@ const SETTINGS: Partial<RunConfig> = {
   generations: 3,
   population: 4,
   winners: 2,
+  group: 1,
   minMatches: 4,
   fleet: { maxShips: 1 },
   match: { duration: 8 },
@@ -113,6 +114,27 @@ describe('a co-evolution run', () => {
     }
   });
 
+  it("fields each side's own number of entrants a match, as allies, and credits them against the other side", () => {
+    // Several of side A against one side B that does not evolve: a boss battle.
+    const fixed = runCoevolution([DINKY], [GUNSHIP], { ...SETTINGS, group: 3, generations: 2 }, { rivalEvolves: false, rival: { group: 1 } });
+    const b = fixed.rival!.generations[0]!.individuals[0]!.id;
+    for (const generation of fixed.generations) {
+      for (const match of generation.matches) {
+        expect(match.teams).toEqual([0, 0, 0, 1]);
+        expect(match.competitors[3]).toBe(b);
+      }
+      for (const individual of generation.individuals) expect(individual.matches).toBeGreaterThanOrEqual(4);
+    }
+    // Two a side, with both halls in play.
+    const even = runCoevolution([DINKY], [GUNSHIP], { ...SETTINGS, group: 2 }, { hall: 2 });
+    for (const generation of [...even.generations, ...even.rival!.generations]) {
+      for (const match of generation.matches) {
+        expect(match.teams).toEqual([0, 0, 1, 1]);
+        expect(new Set(match.competitors.slice(0, 2)).size + new Set(match.competitors.slice(2)).size).toBeGreaterThanOrEqual(3);
+      }
+    }
+  });
+
   it('comes out the same from the same seed', () => {
     const again = runCoevolution([DINKY], [GUNSHIP], SETTINGS, { hall: 2, hallShare: 0.25 });
     expect(JSON.stringify(again)).toEqual(JSON.stringify(run));
@@ -125,14 +147,14 @@ describe('a run-config file with versus', () => {
     versus: {
       founders: ['Gunship'],
       fleets: [],
-      coevolution: { rival: { population: 6, massBudget: Infinity }, hall: 3, hallShare: 0.5, rivalEvolves: true },
+      coevolution: { rival: { population: 6, group: 1, massBudget: Infinity }, hall: 3, hallShare: 0.5, rivalEvolves: true },
     },
     config: DEFAULT_RUN,
   };
 
   it('round-trips side B, its hall and its own settings', () => {
     const file = JSON.parse(JSON.stringify(serialiseRunConfig(setup)));
-    expect(file.versus).toEqual({ founders: ['Gunship'], hall: 3, hallShare: 0.5, population: 6, massBudget: null });
+    expect(file.versus).toEqual({ founders: ['Gunship'], hall: 3, hallShare: 0.5, population: 6, group: 1, massBudget: null });
     expect(parseRunConfig(file).versus).toEqual(setup.versus);
     expect(parseRunConfig({ founders: ['Dinky'] }).versus).toBeNull();
   });
@@ -159,9 +181,9 @@ describe('a run-config file with versus', () => {
     expect(runConfigFileProblem({ versus: { founders: ['Gunship'], kinds: { turret: -1 } } })).toMatch(/versus\.kinds\.turret/);
   });
 
-  it('refuses a side B with nothing to found it, a boss beside it, or a hall that is not a count', () => {
+  it('refuses a side B with nothing to found it, or a hall that is not a count', () => {
     expect(runConfigFileProblem({ versus: {} })).toMatch(/at least one founder/);
-    expect(runConfigFileProblem({ versus: { founders: ['Gunship'] }, match: { boss: { ship: 'Corvette' } } })).toMatch(/no boss/);
+    expect(runConfigFileProblem({ versus: { founders: ['Gunship'], group: 0 } })).toMatch(/versus\.group/);
     expect(runConfigFileProblem({ versus: { founders: ['Gunship'], hall: 1.5 } })).toMatch(/hall must be a whole number/);
     expect(runConfigFileProblem({ versus: { founders: ['Gunship'], hallShare: 2 } })).not.toBeNull();
   });
