@@ -162,9 +162,9 @@ and evolution run does, and a ship tuned to half the rules is tuned twice.
 
 **Step 8 — Fuel.** Tanks, burning and the editor's figures are built (DESIGN.md Status). What is left:
 
-- **Sealing.** Leaks are built (DESIGN.md Status); a hole stays open for as long as there is fuel behind it.
-  Sealing (§12) is what stops one hole ending a battle, and with leaks is what prices tank size and
-  placement against evolution building one enormous tank (§5).
+- **Lining the stock tanks.** Leaks and sealing are built (DESIGN.md Status), and no stock ship has a lining,
+  so every hole in one stays open while there is fuel behind it. How thick a lining each wants is a design
+  call about the fleet.
 - **Drain priority.** Tanks are drained tier by tier (`drainPriority` in `sim/fuel.ts`), and every tank is
   in the one tier. A priority per tank in the layout fills it in.
 - **Pilots that know their fuel.** Nothing flies differently for running low, so a ship spends its tanks
@@ -579,9 +579,10 @@ Deliberately unresolved; decide when they block something.
   than in hull radii, and the urge wants a way to dominate rather than merely to vote. Neither is a large
   change; both want a scene to tune against, and the crowded ones are the Star Wars fleet action and the
   super-swarm.
-- **How a leak is sealed.** Suggested: sealing as a continuous parameter on a tank — how fast a hole closes,
-  bought with wall mass — rather than a separate self-sealing part, which is the §6 rule of archetypes with
-  continuous parameters and gives evolution a dial.
+- **The sealing dials: `SEAL_SPEED`, `SEAL_REACH` and `SEALANT_DENSITY`.** Set so a 20 mm rubber lining closes
+  a fragment's pinhole in under a second and a shell's 200 mm gash in ten, and goes no wider than ten times
+  its own thickness. A lining closes whether or not fuel is against it, where a real one swells only where
+  fuel reaches it; the difference shows only in a tank that empties before its holes close.
 - **Which holes a round leaves.** Only the face it went in by, and only where that face is open to space: a
   round on through a bulkhead into the next module, and the hole it makes going out of the far side, open
   nothing. Fuel through a bulkhead would fill the next compartment rather than space, which wants a model
