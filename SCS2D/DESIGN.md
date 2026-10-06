@@ -505,9 +505,11 @@ inside any one file is not contiguous.
   against the other's, since fitness against a moving opponent cannot say whether either is improving.
   **The evolution page is two screens**: setting a run up, with every setting laid out across the width
   beside the founders it would start from, and watching it, with the charts, the combatants and the matches;
-  Start moves from the first to the second, and the header goes between them. A Versus picker under the
-  founders makes a run co-evolve, and side B then has a column of its own breeding, limits and mutation
-  settings beside side A's, following side A's until one of them is changed. The score chart goes (every score there is against a side that is improving too), the
+  Start moves from the first to the second, and the header goes between them. **Side A is on the left and
+  side B on the right throughout**: the shared settings above, then each side's founders, then every
+  per-side setting written once as a row with A's box and B's beside it. Picking side B's founders makes a
+  run co-evolve, and side B's boxes follow side A's until one of them is changed; unticking "side B evolves"
+  makes side B its founders every generation, a fixed opponent to be bred against. The score chart goes (every score there is against a side that is improving too), the
   mass and ship-count charts carry a pair of lines a side and are what a generation is picked from, and the
   combatants are tagged A or B and ranked within their own side.
   **Fuel.** A `tank` archetype whose interior is reaction mass, and every core's interior past the cubic

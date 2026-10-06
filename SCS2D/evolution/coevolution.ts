@@ -1,7 +1,7 @@
 import { Rng } from '../sim/index.js';
 import { max, min, round } from '../sim/math.js';
 import { Match, type Entrant, type Score } from './match.js';
-import { breed, fitness, Generation } from './generation.js';
+import { blank, breed, fitness, Generation } from './generation.js';
 import {
   DEFAULT_RUN,
   describe,
@@ -49,12 +49,18 @@ export interface CoevolutionConfig {
   readonly hall: number;
   /** The share of each individual's matches fought against the other side's hall, once it has one. */
   readonly hallShare: number;
+  /**
+   * Whether side B evolves. Not, and it is its founders and nothing else, every
+   * generation: a fixed opponent side A is bred against, as a boss is.
+   */
+  readonly rivalEvolves: boolean;
 }
 
 export const DEFAULT_COEVOLUTION: CoevolutionConfig = {
   rival: {},
   hall: 5,
   hallShare: 0.25,
+  rivalEvolves: true,
 };
 
 /**
@@ -102,6 +108,8 @@ interface Side {
   matches: MatchRecord[];
   /** The latest champions, oldest first. */
   readonly hall: Champion[];
+  /** Whether it breeds; one that does not is its founders every generation. */
+  readonly evolves: boolean;
   /** Matches each individual has fought against the other side's hall, by index. */
   hallPlayed: number[];
 }
@@ -147,9 +155,11 @@ export class Coevolution {
     this.rng = new Rng(settings.seed);
     const rival = rivalSettings(settings, this.coevolution.rival);
     const a = seedPopulation(founders, this.rng, settings);
-    const b = seedPopulation(rivals, this.rng, rival, a.individuals.length);
+    const evolves = this.coevolution.rivalEvolves;
+    // A side that does not evolve is its founders, with no mutants of them.
+    const b = seedPopulation(rivals, this.rng, evolves ? rival : { ...rival, population: rivals.length }, a.individuals.length);
     this.nextId = a.individuals.length + b.individuals.length;
-    this.sides = [side(settings, a), side(rival, b)];
+    this.sides = [side(settings, a, true), side(rival, b, evolves)];
     this.limit = (settings.population + rival.population) * settings.minMatches * 4 + 16;
     if (settings.generations <= 0 || founders.length === 0 || rivals.length === 0) this.over = true;
   }
@@ -289,7 +299,8 @@ export class Coevolution {
   private hallPairing(s: 0 | 1): Pairing | null {
     const own = this.sides[s];
     const other = this.sides[s === 0 ? 1 : 0];
-    if (other.hall.length === 0) return null;
+    // A side that does not evolve has nothing to learn from the other's past.
+    if (other.hall.length === 0 || !own.evolves) return null;
     const owed = this.hallQuota();
     let pick = -1;
     let pickDraw = 0;
@@ -420,6 +431,15 @@ export class Coevolution {
       return;
     }
     for (const s of [a, b]) {
+      if (!s.evolves) {
+        // The same designs again, under the same ids, with nothing recorded against them.
+        s.generation = new Generation(
+          s.generation.index + 1,
+          s.generation.individuals.map((each) => blank(each.id, each.entrant, each.parent, each.edits)),
+        );
+        s.hallPlayed = s.generation.individuals.map(() => 0);
+        continue;
+      }
       s.generation = breed(
         s.generation,
         this.rng,
@@ -438,7 +458,7 @@ export class Coevolution {
   /** Put a side's best of the generation in its hall, keeping only the latest. */
   private enshrine(s: Side): void {
     const size = this.coevolution.hall;
-    if (size <= 0) return;
+    if (size <= 0 || !s.evolves) return;
     let best = null as (typeof s.generation.individuals)[number] | null;
     for (const individual of s.generation.individuals) {
       if (individual.matches === 0) continue;
@@ -450,9 +470,10 @@ export class Coevolution {
   }
 }
 
-function side(config: RunConfig, generation: Generation): Side {
+function side(config: RunConfig, generation: Generation, evolves: boolean): Side {
   return {
     config,
+    evolves,
     generation,
     generations: [],
     matches: [],

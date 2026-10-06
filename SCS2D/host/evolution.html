@@ -51,11 +51,21 @@
       /* Packed down columns rather than across rows, so one tall card does not leave a hole beside it. */
       .cards { columns: 16rem; column-gap: 1.6rem; }
       #setupScreen .cards > details { break-inside: avoid; padding-bottom: 0.6rem; }
-      #sides { display: grid; grid-template-columns: 1fr; gap: 1.4rem; margin-top: 0.8rem; border-top: 1px solid #1c2533; padding-top: 0.4rem; }
-      body.coRun #sides { grid-template-columns: 1fr 1fr; }
-      .sideTitle { margin: 0.8rem 0 0.2rem; }
+      #sides { margin-top: 0.8rem; border-top: 1px solid #1c2533; padding-top: 0.6rem; }
+      /* Side A on the left and side B on the right, throughout: the founders side by side, and
+         every per-side setting a row with A's box and then B's. */
+      .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 1.6rem; }
+      .pair select { width: 100%; height: 9rem; }
+      .field.heads span { flex: 1; }
+      .field.heads b { flex: 0 0 5.5rem; color: #9fb0c4; font-weight: 600; font-size: 11px; }
+      .field input.rival { display: none; }
+      body.coRun .field input.rival { display: block; }
+      body.coRun.rivalFixed .field input.rival { visibility: hidden; }
+      .sideHeads { display: flex; align-items: center; gap: 1rem; }
+      .sideHeads .note { flex: 1; }
       .coOnly { display: none; }
       body.coRun .coOnly { display: block; }
+      body.coRun .field.coOnly, body.coRun .sideHeads.coOnly { display: flex; }
       .tabs { display: inline-flex; gap: 0.2rem; margin-right: 0.6rem; }
       .tab[aria-pressed='true'] { background: #2b3a50; color: #e6edf5; }
       #results { width: 18rem; border-left: 1px solid #1c2533; }
@@ -82,7 +92,7 @@
       .field input[type='checkbox'] { flex: 0 0 auto; }
       .buttons { display: flex; gap: 0.4rem; margin: 0.7rem 0; }
       .buttons button { flex: 1; padding-inline: 0.3rem; }
-      #founders, #versus { width: 100%; height: 9rem; }
+
       /* What a co-evolution run does not use: every match is one against one, with no goal. */
       body.coRun .soloOnly { display: none !important; }
       #bar {
@@ -274,19 +284,6 @@
             </div>
             <p class="note">A run is decided by its seed and these numbers, so the file is the whole of what was tried.</p>
           </details>
-          <details open data-key="founders">
-            <summary><h2>Founders</h2></summary>
-            <select id="founders" multiple title="The ships and fleets the run starts from"></select>
-            <p class="note">Ctrl-click for several. The rest of the first generation is mutants of these. A ship starts as a fleet of one, and grows into more unless the most ships is one.</p>
-            <h3>Versus</h3>
-            <select id="versus" multiple title="A second lineage, bred against the first: every match is one of each"></select>
-            <p class="note">Pick ships here to co-evolve two lineages against each other: every match is one of the founders' line against one of this one, with no goal, and each side also fights the other's recent champions. Side B gets its own breeding, limits and mutations below; the rest is shared. Leave it empty for an ordinary run.</p>
-            <div class="buttons"><button id="clearVersus" title="An ordinary run of one lineage">Clear</button></div>
-            <div class="coOnly">
-            <div class="field" title="Champions each side keeps, one per generation, the latest. Every individual fights some of the other side's, so neither can win by beating only the opponent of the moment. 0 keeps none."><label for="hall">hall of fame</label><input id="hall" type="number" min="0" step="1" /></div>
-            <div class="field" title="The share of each individual's matches fought against the other side's hall of fame, once it has one."><label for="hallShare">against the hall</label><input id="hallShare" type="number" min="0" max="1" step="0.05" /></div>
-            </div>
-          </details>
           <details open data-key="therun">
             <summary><h2>The run</h2></summary>
             <div class="field"><label for="generations">generations</label><input id="generations" type="number" min="1" step="1" /></div>
@@ -320,13 +317,36 @@
             <div class="field soloOnly"><label for="raceWeight">ground gained</label><input id="raceWeight" type="number" step="0.5" /></div>
             <p class="note">Zero a weight to breed for the others alone.</p>
           </details>
+          <details open class="coOnly" data-key="coevolution">
+            <summary><h2>Co-evolution</h2></summary>
+            <div class="field" title="Champions each side keeps, one per generation, the latest. Every individual fights some of the other side's, so neither can win by beating only the opponent of the moment. 0 keeps none."><label for="hall">hall of fame</label><input id="hall" type="number" min="0" step="1" /></div>
+            <div class="field" title="The share of each individual's matches fought against the other side's hall of fame, once it has one."><label for="hallShare">against the hall</label><input id="hallShare" type="number" min="0" max="1" step="0.05" /></div>
+            <p class="note">Each side keeps its latest champions, and spends a share of its matches against the other side's: neither can win by beating only the opponent of the moment.</p>
+          </details>
         </div>
         <div id="sides">
-        <div class="side" id="sideA">
-          <h2 class="sideTitle coOnly">Side A — the founders' lineage</h2>
+          <div class="pair">
+            <details open data-key="founders">
+              <summary><h2>Side A — founders</h2></summary>
+              <select id="founders" multiple title="The ships and fleets the run starts from"></select>
+              <p class="note">Ctrl-click for several. The rest of the first generation is mutants of these. A ship starts as a fleet of one, and grows into more unless the most ships is one.</p>
+            </details>
+            <details open data-key="versus">
+              <summary><h2>Side B — versus</h2></summary>
+              <select id="versus" multiple title="A second lineage, bred against the first: every match is one of each"></select>
+              <p class="note">Pick ships here to co-evolve two lineages against each other: every match is one of side A against one of side B, with no goal. Leave it empty for an ordinary run.</p>
+              <div class="buttons"><button id="clearVersus" title="An ordinary run of one lineage">Clear</button></div>
+              <div class="field coOnly" title="Unticked, side B is its founders every generation: a fixed opponent for side A to be bred against, as a boss is."><label for="rivalEvolves">side B evolves</label><input id="rivalEvolves" type="checkbox" checked /></div>
+            </details>
+          </div>
+          <div class="sideHeads coOnly">
+            <p id="rivalFollowing" class="note"></p>
+            <div class="buttons"><button id="sameAsA" title="Copy every setting of side A into side B, and have B follow A again">Same as side A</button></div>
+          </div>
           <div class="cards">
           <details open data-key="breeding">
             <summary><h2>Breeding and limits</h2></summary>
+            <div class="field heads coOnly"><span></span><b>A</b><b>B</b></div>
             <div class="field"><label for="population">population</label><input id="population" type="number" min="2" step="1" /></div>
             <div class="field"><label for="winners">bred from</label><input id="winners" type="number" min="1" step="1" /></div>
             <div class="field"><label for="massBudget">mass budget t</label><input id="massBudget" type="number" min="0" step="1" placeholder="none" /></div>
@@ -336,6 +356,7 @@
           </details>
           <details open data-key="shipMutations">
             <summary><h2>Ship mutations</h2></summary>
+            <div class="field heads coOnly"><span></span><b>A</b><b>B</b></div>
             <div class="field" title="Chance each generation of also adding, removing or copying a module, or regrouping modules into parts. 0 keeps the ship's structure as it is."><label for="structural">structural chance</label><input id="structural" type="number" min="0" max="1" step="0.05" /></div>
             <div class="field" title="How often a module or part is moved a grid step, turned, or mirrored."><label for="buildMove">move</label><input id="buildMove" type="number" min="0" step="0.5" /></div>
             <div class="field" title="How often a module is made longer or wider, or the seam between two modules is shifted."><label for="buildResize">resize</label><input id="buildResize" type="number" min="0" step="0.5" /></div>
@@ -355,6 +376,7 @@
           </details>
           <details open class="fleetOnly" data-key="fleetMutations">
             <summary><h2>Fleet mutations</h2></summary>
+            <div class="field heads coOnly"><span></span><b>A</b><b>B</b></div>
             <div class="field" title="Odds of mutating one of the fleet's designs, the way a single ship is mutated. Every ship built to that design changes with it."><label for="opDesign">design mutated</label><input id="opDesign" type="number" min="0" step="0.5" /></div>
             <div class="field" title="Odds of moving one of the fleet's ships or groups a few metres, or turning it, where it starts the battle."><label for="opMove">ship moved/turned</label><input id="opMove" type="number" min="0" step="0.5" /></div>
             <div class="field" title="Odds of adding a copy of one of the fleet's ships or groups, a little way off from it."><label for="opAdd">ship added</label><input id="opAdd" type="number" min="0" step="0.5" /></div>
@@ -365,6 +387,7 @@
           </details>
           <details open data-key="doctrineMutations">
             <summary><h2>Doctrine mutations</h2></summary>
+            <div class="field heads coOnly"><span></span><b>A</b><b>B</b></div>
             <div class="field" title="How often the ship's own targeting numbers are the ones changed — what it goes after: how big, how near, how armed or how fast a target it prefers. At 1, each is as likely to change as any number in the build; 0 leaves them as they are."><label for="doctrineTargeting">targeting</label><input id="doctrineTargeting" type="number" min="0" step="0.5" /></div>
             <div class="field" title="How often the ship's approach numbers are the ones changed — how it flies to a fight: the range it holds off at, how hard it accelerates and brakes, and when it rams. At 1, each is as likely to change as any number in the build; 0 leaves them as they are."><label for="doctrineApproach">approach</label><input id="doctrineApproach" type="number" min="0" step="0.5" /></div>
             <div class="field" title="How often the ship's escorting numbers are the ones changed: how much it would rather stay with a friend than fight, how close it keeps, and how small a friend it will cover. 0 leaves them as they are."><label for="doctrineEscort">escorting</label><input id="doctrineEscort" type="number" min="0" step="0.5" /></div>
@@ -373,7 +396,6 @@
             <p class="note">How often each part of a ship's doctrine changes, against a number in its build at 1; hover one for what it covers.</p>
           </details>
           </div>
-        </div>
         </div>
       </section>
       <section id="middle">

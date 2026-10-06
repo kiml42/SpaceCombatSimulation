@@ -80,7 +80,8 @@ Keep these working — they are the cold-start re-entry path:
 - `npm run evolve` — fight a headless evolution run and write it to `runs/`, rewritten after every generation; `--from <stock ships or blueprint files>`, `--fleet <stock fleet
   or fleet file>`, `--deploy <radius>`, `--ships <most>` (ship founders grow into fleets unless it is 1), `--generations`,
   `--population`, `--group`, `--matches`, `--budget`, `--duration`, `--radius`, `--closing`, `--crossing`, `--seed`, `--kinds`, `--doctrine`, `--build`, `--structural`, `--boss <ship, fleet or file>`,
-  `--versus <stock ships or blueprint files>` and `--versus-fleet` for co-evolution, with `--hall` and `--hall-share`,
+  `--versus <stock ships or blueprint files>` and `--versus-fleet` for co-evolution, with `--hall`, `--hall-share`
+  and `--versus-fixed` (side B does not evolve),
   `--out`, and `--config` / `--save-config` for the settings file the evolution page reads and writes
 - `npm run yardstick` — measure a finished run against a ship that does not evolve; `--run`, and
   `--against latest | founder | <stock ship> | <blueprint or fleet file>`; a co-evolution run is measured as

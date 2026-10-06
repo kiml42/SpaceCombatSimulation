@@ -112,6 +112,7 @@ const VERSUS_KEYS: readonly string[] = [
   'kinds',
   'build',
   'doctrine',
+  'evolves',
 ];
 
 const FLEET_KEYS: readonly string[] = ['radius', 'maxShips', 'operators'];
@@ -172,10 +173,11 @@ export function serialiseRunConfig(setup: RunSetup): Record<string, unknown> {
 }
 
 function serialiseVersus(versus: VersusSetup): Record<string, unknown> {
-  const { hall, hallShare, rival } = versus.coevolution;
+  const { hall, hallShare, rival, rivalEvolves } = versus.coevolution;
   return {
     founders: [...versus.founders],
     ...(versus.fleets.length > 0 ? { fleets: [...versus.fleets] } : {}),
+    ...(rivalEvolves ? {} : { evolves: false }),
     hall,
     hallShare,
     ...(rival.population === undefined ? {} : { population: rival.population }),
@@ -293,6 +295,9 @@ function versusProblem(versus: unknown, warnings: string[]): string | null {
   const founders = ((versus['founders'] as unknown[] | undefined) ?? []).length;
   const fleets = ((versus['fleets'] as unknown[] | undefined) ?? []).length;
   if (founders + fleets === 0) return 'versus needs at least one founder or fleet for side B';
+  if (versus['evolves'] !== undefined && typeof versus['evolves'] !== 'boolean') {
+    return `versus.evolves must be true or false, got ${JSON.stringify(versus['evolves'])}`;
+  }
   return null;
 }
 
@@ -384,6 +389,7 @@ function parseVersus(versus: Record<string, unknown>): VersusSetup {
       rival,
       hall: read(versus['hall'], DEFAULT_COEVOLUTION.hall),
       hallShare: read(versus['hallShare'], DEFAULT_COEVOLUTION.hallShare),
+      rivalEvolves: versus['evolves'] !== false,
     },
   };
 }

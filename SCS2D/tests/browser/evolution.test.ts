@@ -771,6 +771,15 @@ describe('the evolution page in a browser', () => {
     const file = JSON.parse(await readFile(await (await saving).path(), 'utf8')) as Record<string, unknown>;
     expect(file['versus']).toMatchObject({ founders: ['Dinky'], population: 6 });
 
+    // Side B fixed is side A bred against an opponent that does not change, as a boss is.
+    await toSetup(page);
+    await page.uncheck('#rivalEvolves');
+    const fixing = page.waitForEvent('download');
+    await press(page, '#exportConfig');
+    const fixed = JSON.parse(await readFile(await (await fixing).path(), 'utf8')) as Record<string, unknown>;
+    expect(fixed['versus']).toMatchObject({ evolves: false });
+    await page.check('#rivalEvolves');
+
     await page.click('#start');
     await page.waitForFunction(
       () => document.getElementById('state')?.textContent === 'finished',

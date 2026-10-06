@@ -141,7 +141,8 @@ Built headless: `evolution/coevolution.ts`, side B in the run file as `rival`, `
 with side B's population, winners, budget, fleet limits and mutation weights, `--versus`,
 `--versus-fleet`, `--hall` and `--hall-share` on the CLI, and the grid (`championGrid`) in `npm run
 yardstick`. On the evolution page, now a setup screen and a run screen: a Versus picker under the founders,
-side B's own column of breeding, limits and mutation settings, the score chart dropped and the
+side A's and side B's founders and per-side settings in A and B columns, side B fixed rather than
+evolving if unticked (`evolves: false`, `--versus-fixed`), the score chart dropped and the
 fields a co-evolution run does not use hidden while it is set, the mass and ship-count charts a pair of lines
 a side, a side tag on every combatant with each side ranked on its own, and the champion of each side saved
 or exported together. Left: the grid on the page.
@@ -366,6 +367,14 @@ The remaining pickers and the order weight should follow the shape already there
 ## 12. Open questions
 
 Deliberately unresolved; decide when they block something.
+
+- **Whether co-evolution with a fixed side B replaces the boss battle.** A side B that does not evolve is a
+  boss in all but three ways: a boss fights every entrant of a match at once, all of them on one side, and
+  co-evolution is one against one; a boss stands at the middle, where co-evolution starts both on the ring;
+  and a boss match scores only what is done to the boss, where co-evolution scores both sides alike. One
+  against one measures a design alone, which is cleaner, but loses the boss's "a fleet of entrants against
+  one big thing". Replacing it removes `match.boss`, the boss picker and `--boss`, and moves those runs to
+  `versus` with `evolves: false`.
 
 - **Whether the editor needs a test flight of its own.** A throwaway sim inside the editor, flying the ship
   being edited without leaving the page. The Battle link already takes that ship into a custom battle, which

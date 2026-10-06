@@ -141,24 +141,19 @@ type SideField = (typeof SIDE_FIELDS)[number];
 const RIVAL = 'b_';
 
 /**
- * Side B's settings: side A's cards copied, every id and folding key
- * prefixed, so the same reading code reads either side.
+ * Side B's box for each per-side setting, beside side A's: a copy of it with
+ * its id prefixed, so every setting is one row, A's box and then B's, and
+ * what it means is written once.
  */
-function cloneSideB(): void {
-  const a = el<HTMLElement>('sideA');
-  const b = a.cloneNode(true) as HTMLElement;
-  b.id = 'sideB';
-  b.classList.add('coOnly');
-  for (const tagged of b.querySelectorAll<HTMLElement>('[id]')) tagged.id = RIVAL + tagged.id;
-  for (const label of b.querySelectorAll<HTMLLabelElement>('label[for]')) label.htmlFor = RIVAL + label.htmlFor;
-  for (const section of b.querySelectorAll<HTMLElement>('[data-key]')) section.dataset['key'] = RIVAL + section.dataset['key'];
-  const title = b.querySelector('.sideTitle')!;
-  title.textContent = 'Side B — the lineage bred against it';
-  const copy = document.createElement('div');
-  copy.className = 'buttons';
-  copy.innerHTML = '<button id="sameAsA" title="Copy every setting of side A into side B">Same as side A</button>';
-  title.after(copy);
-  a.after(b);
+function addRivalInputs(): void {
+  for (const name of SIDE_FIELDS) {
+    const a = el<HTMLInputElement>(name);
+    const b = a.cloneNode(true) as HTMLInputElement;
+    b.id = RIVAL + name;
+    b.classList.add('rival');
+    b.title = `Side B's ${a.closest('.field')?.querySelector('label')?.textContent ?? name}`;
+    a.after(b);
+  }
 }
 
 const FIELDS = [
@@ -429,11 +424,12 @@ export function startEvolution(): void {
   const measureButton = el<HTMLButtonElement>('measure');
   const watchYardstickButton = el<HTMLButtonElement>('watchYardstick');
   const yardstickLine = el<HTMLElement>('yardstickLine');
-  cloneSideB();
+  addRivalInputs();
   const inputs = Object.fromEntries(
     FIELDS.map((name) => [name, el<HTMLInputElement>(name)]),
   ) as Record<(typeof FIELDS)[number], HTMLInputElement>;
-  const rivalTitle = el<HTMLElement>('sideB').querySelector<HTMLElement>('.sideTitle')!;
+  const rivalFollowing = el<HTMLElement>('rivalFollowing');
+  const rivalEvolvesInput = el<HTMLInputElement>('rivalEvolves');
   const rivalInputs = Object.fromEntries(
     SIDE_FIELDS.map((name) => [name, el<HTMLInputElement>(RIVAL + name)]),
   ) as Record<SideField, HTMLInputElement>;
@@ -484,6 +480,7 @@ export function startEvolution(): void {
     rival: rivalOwn ? sideSettings((name) => rivalInputs[name]) : {},
     hall: Math.max(0, Math.round(number(inputs.hall, DEFAULT_COEVOLUTION.hall))),
     hallShare: Math.min(1, Math.max(0, number(inputs.hallShare, DEFAULT_COEVOLUTION.hallShare))),
+    rivalEvolves: rivalEvolvesInput.checked,
   });
   const coRun = (): boolean => versusSelect.selectedOptions.length > 0;
   /** Whether side B has settings of its own, rather than following side A's. */
@@ -666,7 +663,13 @@ export function startEvolution(): void {
     if (!rivalOwn) for (const name of SIDE_FIELDS) rivalInputs[name].value = inputs[name].value;
     for (const name of SIDE_FIELDS) held[RIVAL + name] = rivalInputs[name].value;
     held['rivalOwn'] = rivalOwn ? '1' : '';
-    rivalTitle.textContent = `Side B — the lineage bred against it${rivalOwn ? '' : ', following side A until one of these is changed'}`;
+    held['rivalEvolves'] = rivalEvolvesInput.checked ? '1' : '';
+    document.body.classList.toggle('rivalFixed', !rivalEvolvesInput.checked);
+    rivalFollowing.textContent = !rivalEvolvesInput.checked
+      ? 'Side B does not evolve: it fights as its founders every generation, so it has no settings of its own.'
+      : rivalOwn
+        ? 'Side B has settings of its own, in the right-hand boxes.'
+        : "Side B follows side A's settings until one of its own boxes, on the right, is changed.";
     held['founders'] = [...foundersSelect.selectedOptions].map((o) => o.value).join('\n');
     held['versus'] = [...versusSelect.selectedOptions].map((o) => o.value).join('\n');
     try {
@@ -711,6 +714,8 @@ export function startEvolution(): void {
   const held = loadSetup();
   for (const name of FIELDS) inputs[name].value = held[name] ?? defaults[name];
   rivalOwn = held['rivalOwn'] === '1';
+  rivalEvolvesInput.checked = held['rivalEvolves'] !== '';
+  rivalEvolvesInput.addEventListener('change', saveSetup);
   for (const name of SIDE_FIELDS) rivalInputs[name].value = (rivalOwn ? held[RIVAL + name] : undefined) ?? inputs[name].value;
   // Settings saved when this was a checkbox held '1' or ''.
   const heldGoal = held['goal'] === '' ? 'none' : held['goal'] === '1' ? 'solid' : held['goal'];
@@ -979,6 +984,7 @@ export function startEvolution(): void {
     rivalOwn = Object.keys(coevolution.rival).length > 0;
     writeSide((name) => rivalInputs[name], rivalSettings({ ...DEFAULT_RUN, ...config }, coevolution.rival));
     inputs.hall.value = String(coevolution.hall);
+    rivalEvolvesInput.checked = coevolution.rivalEvolves;
     inputs.hallShare.value = String(coevolution.hallShare);
     const rivals = new Set([
       ...(versus?.founders ?? []).map((name) => valueOf('ship', name)),

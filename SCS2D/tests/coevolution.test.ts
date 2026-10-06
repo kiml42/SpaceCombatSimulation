@@ -97,6 +97,22 @@ describe('a co-evolution run', () => {
     expect(rivalSettings(a, {})).toEqual(a);
   });
 
+  it('keeps a side B that does not evolve as its founders, and breeds side A against it', () => {
+    const fixed = runCoevolution([DINKY], [GUNSHIP], SETTINGS, { rivalEvolves: false, hall: 2 });
+    for (const generation of fixed.rival!.generations) {
+      expect(generation.individuals.map((i) => [i.id, i.parent, i.edits.length])).toEqual([[4, -1, 0]]);
+    }
+    expect(fixed.generations[2]!.individuals.some((i) => i.parent >= 0)).toBe(true);
+    for (const generation of fixed.generations) {
+      for (const individual of generation.individuals) expect(individual.matches).toBeGreaterThanOrEqual(4);
+    }
+    // It plays no champions of side A's: every match it is in, side A was scored for too.
+    for (let g = 0; g < 3; g++) {
+      const a = seeds(fixed.generations[g]!);
+      for (const seed of seeds(fixed.rival!.generations[g]!)) expect(a.has(seed)).toBe(true);
+    }
+  });
+
   it('comes out the same from the same seed', () => {
     const again = runCoevolution([DINKY], [GUNSHIP], SETTINGS, { hall: 2, hallShare: 0.25 });
     expect(JSON.stringify(again)).toEqual(JSON.stringify(run));
@@ -109,7 +125,7 @@ describe('a run-config file with versus', () => {
     versus: {
       founders: ['Gunship'],
       fleets: [],
-      coevolution: { rival: { population: 6, massBudget: Infinity }, hall: 3, hallShare: 0.5 },
+      coevolution: { rival: { population: 6, massBudget: Infinity }, hall: 3, hallShare: 0.5, rivalEvolves: true },
     },
     config: DEFAULT_RUN,
   };
@@ -136,6 +152,10 @@ describe('a run-config file with versus', () => {
     expect(file.versus).toMatchObject({ structural: 0, kinds: { turret: 0 }, doctrine: { approach: 3 } });
     expect(file.versus.build).toBeUndefined();
     expect(parseRunConfig(file).versus!.coevolution.rival.mutation).toEqual(own.versus.coevolution.rival.mutation);
+    expect(file.versus.evolves).toBeUndefined();
+    const fixed = parseRunConfig({ versus: { founders: ['Gunship'], evolves: false } });
+    expect(fixed.versus!.coevolution.rivalEvolves).toBe(false);
+    expect(serialiseRunConfig(fixed).versus).toMatchObject({ evolves: false });
     expect(runConfigFileProblem({ versus: { founders: ['Gunship'], kinds: { turret: -1 } } })).toMatch(/versus\.kinds\.turret/);
   });
 
