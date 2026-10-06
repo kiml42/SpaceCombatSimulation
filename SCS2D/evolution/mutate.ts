@@ -107,8 +107,8 @@ export interface MutationLimits {
   /**
    * How often each sort of number in the build is the one changed, against
    * each other and the doctrine. Zero freezes it: a run with `move`, `resize`,
-   * `refit` and `visible` at zero, and no structural edits, keeps how a ship
-   * looks and tunes everything else.
+   * `refit`, `fittings` and `fighter` at zero, and no structural edits, keeps
+   * how a ship is built and tunes everything else.
    */
   readonly build: BuildWeights;
 }
@@ -130,13 +130,18 @@ export type DoctrineWeights = Readonly<
  * - `move`: where a module or part sits, which way it faces, and mirroring.
  * - `resize`: a module's length and width, and the seams between modules.
  * - `refit`: a module becoming another kind, of the kinds weighted above.
- * - `visible`: settings that show — barrels, their length, nozzles,
- *   thickness, traverse, and how many times a row repeats.
- * - `hidden`: settings that do not — reinforcement, sealing, fuses,
- *   fragments, burst speed, an engine used as a weapon, and being a fighter.
+ * - `fittings`: what would take real work on the craft to change — barrels,
+ *   their length, nozzles and thickness.
+ * - `tuning`: its loadout, which can change on a design someone drew —
+ *   reinforcement, sealing, traverse, fuses, fragments, burst speed, and an
+ *   engine used as a weapon.
+ * - `fighter`: whether the ship is a fighter, which changes how it is flown
+ *   and how others target it.
+ *
+ * How many times a row repeats is a structural edit, not a number.
  */
 export type BuildWeights = Readonly<
-  Record<'move' | 'resize' | 'refit' | 'visible' | 'hidden', number>
+  Record<'move' | 'resize' | 'refit' | 'fittings' | 'tuning' | 'fighter', number>
 >;
 
 /** Every number as likely as every other, doctrine or build. */
@@ -157,8 +162,9 @@ export const DEFAULT_BUILD_WEIGHTS: BuildWeights = {
   move: 1,
   resize: 1,
   refit: 1,
-  visible: 1,
-  hidden: 1,
+  fittings: 1,
+  tuning: 1,
+  fighter: 1,
 };
 
 /** Approach fields that are about covering a friend, and the targeting urge to. */
@@ -356,17 +362,17 @@ function knobWeight(knob: Knob, { doctrine, build }: MutationLimits): number {
     case 'nozzle':
     case 'barrelCalibres':
     case 'thick':
-    case 'traverse':
-    case 'repeat':
-      return build.visible;
+      return build.fittings;
     case 'reinforcement':
     case 'sealing':
+    case 'traverse':
     case 'fuse':
     case 'fragments':
     case 'burstSpeed':
     case 'weapon':
+      return build.tuning;
     case 'fighter':
-      return build.hidden;
+      return build.fighter;
   }
 }
 
@@ -545,8 +551,7 @@ type Knob =
   | { readonly at: 'seam'; readonly site: ModuleSite }
   | { readonly at: 'slide'; readonly site: ModuleSite }
   | { readonly at: 'place'; readonly site: InstanceSite }
-  | { readonly at: 'mirror'; readonly site: InstanceSite }
-  | { readonly at: 'repeat'; readonly site: InstanceSite };
+  | { readonly at: 'mirror'; readonly site: InstanceSite };
 
 interface ModuleSite {
   readonly spec: ModuleSpec;
@@ -578,7 +583,6 @@ function knobs(draft: Draft): Knob[] {
       if (isInstance(placement)) {
         const site: InstanceSite = { instance: placement, where };
         out.push({ at: 'place', site }, { at: 'mirror', site });
-        if (placement.step !== undefined) out.push({ at: 'repeat', site });
         continue;
       }
       const site: ModuleSite = { spec: placement, where, list: list.placements, label: list.label };
@@ -695,8 +699,6 @@ function renumber(knob: Knob, draft: Draft, rng: Rng, bounds: MutationLimits): s
       return movePlacement(knob.site, rng, bounds);
     case 'mirror':
       return reflect(knob.site);
-    case 'repeat':
-      return repeat(knob.site, rng);
   }
 }
 
@@ -1118,13 +1120,19 @@ function movePlacement(site: InstanceSite, rng: Rng, bounds: MutationLimits): st
   return `${site.where} ${site.instance.use}: ${axis} ${step > 0 ? '+' : ''}${step}`;
 }
 
-/** Lengthen or shorten a repeated row — the cheapest structural change there is. */
-function repeat(site: InstanceSite, rng: Rng): string | null {
-  const was = site.instance.repeat ?? 1;
+/**
+ * Lengthen or shorten a repeated row — the cheapest structural change there
+ * is, and its own inverse.
+ */
+function repeat(draft: Draft, rng: Rng): string | null {
+  const sites = instanceSites(draft).filter((site) => site.instance.step !== undefined);
+  if (sites.length === 0) return null;
+  const { list, index, instance } = sites[rng.nextInt(sites.length)]!;
+  const was = instance.repeat ?? 1;
   const now = was + (rng.chance(0.5) ? 1 : -1);
   if (now < 1 || now > MAX_REPEAT) return null;
-  site.instance.repeat = now;
-  return `${site.where} ${site.instance.use}: repeat ${was} → ${now}`;
+  instance.repeat = now;
+  return `${list.label}[${index}] ${instance.use}: repeat ${was} → ${now}`;
 }
 
 // -- Assemblies ------------------------------------------------------------
@@ -1550,7 +1558,7 @@ const ASSEMBLY_OPERATORS: readonly ((
   draft: Draft,
   rng: Rng,
   bounds: MutationLimits,
-) => string | null)[] = [group, ungroup, absorb, extend, instantiate, dropInstance];
+) => string | null)[] = [group, ungroup, absorb, extend, instantiate, dropInstance, repeat];
 
 /**
  * Turn an instance over where it stands.

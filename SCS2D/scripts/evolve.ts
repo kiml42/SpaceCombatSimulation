@@ -187,7 +187,7 @@ function parse(argv: readonly string[]): Options {
           doctrine[part] = number;
         }
         break;
-      // How often each sort of build number changes, as `move=0,hidden=2`.
+      // How often each sort of build number changes, as `move=0,tuning=2`.
       case '--build':
         for (const pair of value().split(',')) {
           const [part, weight] = pair.split('=');

@@ -122,8 +122,9 @@ const SIDE_FIELDS = [
   'buildMove',
   'buildResize',
   'buildRefit',
-  'buildVisible',
-  'buildHidden',
+  'buildFittings',
+  'buildTuning',
+  'buildFighter',
   'kindEngine',
   'kindStructure',
   'kindTank',
@@ -188,8 +189,9 @@ const FIELDS = [
   'buildMove',
   'buildResize',
   'buildRefit',
-  'buildVisible',
-  'buildHidden',
+  'buildFittings',
+  'buildTuning',
+  'buildFighter',
   'kindEngine',
   'kindStructure',
   'kindTank',
@@ -583,8 +585,9 @@ export function startEvolution(): void {
     buildMove: String(DEFAULT_BUILD_WEIGHTS.move),
     buildResize: String(DEFAULT_BUILD_WEIGHTS.resize),
     buildRefit: String(DEFAULT_BUILD_WEIGHTS.refit),
-    buildVisible: String(DEFAULT_BUILD_WEIGHTS.visible),
-    buildHidden: String(DEFAULT_BUILD_WEIGHTS.hidden),
+    buildFittings: String(DEFAULT_BUILD_WEIGHTS.fittings),
+    buildTuning: String(DEFAULT_BUILD_WEIGHTS.tuning),
+    buildFighter: String(DEFAULT_BUILD_WEIGHTS.fighter),
     kindEngine: String(DEFAULT_KINDS.engine),
     kindStructure: String(DEFAULT_KINDS.structure),
     kindTank: String(DEFAULT_KINDS.tank),
@@ -812,8 +815,9 @@ export function startEvolution(): void {
           move: Math.max(0, number(get('buildMove'), DEFAULT_BUILD_WEIGHTS.move)),
           resize: Math.max(0, number(get('buildResize'), DEFAULT_BUILD_WEIGHTS.resize)),
           refit: Math.max(0, number(get('buildRefit'), DEFAULT_BUILD_WEIGHTS.refit)),
-          visible: Math.max(0, number(get('buildVisible'), DEFAULT_BUILD_WEIGHTS.visible)),
-          hidden: Math.max(0, number(get('buildHidden'), DEFAULT_BUILD_WEIGHTS.hidden)),
+          fittings: Math.max(0, number(get('buildFittings'), DEFAULT_BUILD_WEIGHTS.fittings)),
+          tuning: Math.max(0, number(get('buildTuning'), DEFAULT_BUILD_WEIGHTS.tuning)),
+          fighter: Math.max(0, number(get('buildFighter'), DEFAULT_BUILD_WEIGHTS.fighter)),
         },
         kinds: {
           engine: Math.max(0, number(get('kindEngine'), DEFAULT_KINDS.engine)),
@@ -913,8 +917,9 @@ export function startEvolution(): void {
     get('buildMove').value = String(build.move);
     get('buildResize').value = String(build.resize);
     get('buildRefit').value = String(build.refit);
-    get('buildVisible').value = String(build.visible);
-    get('buildHidden').value = String(build.hidden);
+    get('buildFittings').value = String(build.fittings);
+    get('buildTuning').value = String(build.tuning);
+    get('buildFighter').value = String(build.fighter);
     get('kindEngine').value = String(kinds.engine);
     get('kindStructure').value = String(kinds.structure);
     get('kindTank').value = String(kinds.tank);
