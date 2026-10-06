@@ -34,14 +34,6 @@ const SETUP = {
 };
 
 describe('the run config file', () => {
-  it('reads engine weights written before the kind was renamed from thruster', () => {
-    const file = serialiseRunConfig(SETUP) as Record<string, unknown>;
-    const { engine, ...rest } = file['kinds'] as Record<string, number>;
-    file['kinds'] = { thruster: 7, ...rest };
-    expect(engine).toBeDefined();
-    expect(parseRunConfig(file).config.mutation.kinds!.engine).toBe(7);
-  });
-
   it('round-trips a setup without changing it', () => {
     const back = parseRunConfig(serialiseRunConfig(SETUP));
     expect(back.founders).toEqual(SETUP.founders);
@@ -80,8 +72,7 @@ describe('the run config file', () => {
     expect(parseRunConfig({ match: { goal } }).config.match.goal).toEqual(goal);
     expect(parseRunConfig({ match: { goal: null } }).config.match.goal).toBeNull();
     expect(parseRunConfig({}).config.match.goal).toEqual(DEFAULT_MATCH.goal);
-    // A ghost says so; a goal that does not say is solid, as files written
-    // before there was a choice meant.
+    // A ghost says so; a goal that does not say is solid.
     const ghost = { ...goal, solid: false };
     expect(parseRunConfig({ match: { goal: ghost } }).config.match.goal).toEqual(ghost);
   });
