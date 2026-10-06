@@ -69,7 +69,9 @@
       .field input[type='checkbox'] { flex: 0 0 auto; }
       .buttons { display: flex; gap: 0.4rem; margin: 0.7rem 0; }
       .buttons button { flex: 1; padding-inline: 0.3rem; }
-      #founders { width: 100%; height: 9rem; }
+      #founders, #versus { width: 100%; height: 9rem; }
+      /* What a co-evolution run does not use: every match is one against one, with no goal. */
+      body.coRun .soloOnly { display: none; }
       #bar {
         height: 4px;
         background: #16202e;
@@ -258,13 +260,17 @@
           <summary><h2>Founders</h2></summary>
           <select id="founders" multiple title="The ships and fleets the run starts from"></select>
           <p class="note">Ctrl-click for several. The rest of the first generation is mutants of these. A ship starts as a fleet of one, and grows into more unless the most ships is one.</p>
+          <h3>Versus</h3>
+          <select id="versus" multiple title="A second lineage, bred against the first: every match is one of each"></select>
+          <p class="note">Pick ships here to co-evolve two lineages against each other: every match is one of the founders' line against one of this one, with no goal, and each side also fights the other's recent champions. Both sides use the settings below. Leave it empty for an ordinary run.</p>
+          <div class="buttons"><button id="clearVersus" title="An ordinary run of one lineage">Clear</button></div>
         </details>
         <details open data-key="therun">
           <summary><h2>The run</h2></summary>
           <div class="field"><label for="generations">generations</label><input id="generations" type="number" min="1" step="1" /></div>
           <div class="field"><label for="population">population</label><input id="population" type="number" min="2" step="1" /></div>
           <div class="field"><label for="winners">bred from</label><input id="winners" type="number" min="1" step="1" /></div>
-          <div class="field"><label for="group">per match</label><input id="group" type="number" min="1" step="1" /></div>
+          <div class="field soloOnly"><label for="group">per match</label><input id="group" type="number" min="1" step="1" /></div>
           <div class="field"><label for="minMatches">matches each</label><input id="minMatches" type="number" min="1" step="1" /></div>
           <div class="field"><label for="seed">seed</label><input id="seed" type="number" step="1" /></div>
         </details>
@@ -282,13 +288,13 @@
           <div class="field"><label for="scatter">scatter °</label><input id="scatter" type="number" min="0" max="180" step="15" /></div>
           <div class="field"><label for="closing">closing m/s</label><input id="closing" type="number" step="5" title="Each entrant's starting speed towards the middle" /></div>
           <div class="field"><label for="crossing">crossing m/s</label><input id="crossing" type="number" step="5" title="Each entrant's starting speed to its left, across the line to the middle" /></div>
-          <div class="field"><label for="goal">goal</label><select id="goal" title="Solid blocks shots and can be run into; a ghost is only somewhere to be; boss puts a ship or fleet there for every entrant to fight together">
+          <div class="field soloOnly"><label for="goal">goal</label><select id="goal" title="Solid blocks shots and can be run into; a ghost is only somewhere to be; boss puts a ship or fleet there for every entrant to fight together">
             <option value="solid">solid</option>
             <option value="ghost">ghost</option>
             <option value="none">none</option>
             <option value="boss">boss</option>
           </select></div>
-          <div class="field" title="With the goal set to boss: a ship or fleet every entrant fights together, where the goal would be. Each is scored for what it does to the boss, and a hit on another entrant earns nothing."><label for="boss">boss</label><select id="boss" disabled></select></div>
+          <div class="field soloOnly" title="With the goal set to boss: a ship or fleet every entrant fights together, where the goal would be. Each is scored for what it does to the boss, and a hit on another entrant earns nothing."><label for="boss">boss</label><select id="boss" disabled></select></div>
         </details>
         <details open data-key="whatitisscoredon">
           <summary><h2>What it is scored on</h2></summary>
@@ -296,7 +302,7 @@
           <div class="field"><label for="functionalWeight">function kept</label><input id="functionalWeight" type="number" step="0.5" /></div>
           <div class="field"><label for="damageWeight">damage done</label><input id="damageWeight" type="number" step="0.5" /></div>
           <div class="field"><label for="disablingWeight">function taken</label><input id="disablingWeight" type="number" step="0.5" /></div>
-          <div class="field"><label for="raceWeight">ground gained</label><input id="raceWeight" type="number" step="0.5" /></div>
+          <div class="field soloOnly"><label for="raceWeight">ground gained</label><input id="raceWeight" type="number" step="0.5" /></div>
           <p class="note">Zero a weight to breed for the others alone.</p>
         </details>
         <details open data-key="mutations">
@@ -350,11 +356,11 @@
         <div style="padding: 0.7rem 0.9rem 0">
           <div id="bar"><div id="barFill"></div></div>
           <p id="readout">Pick founders and press Start.</p>
-          <div id="chartWrap">
+          <div id="chartWrap" class="soloOnly">
             <canvas id="chart"></canvas>
             <span id="chartTip" hidden></span>
           </div>
-          <p id="legend">
+          <p id="legend" class="soloOnly">
             <span style="color: #e6edf5">best</span>
             <span style="color: #7fa8e0">mean</span>
             <span style="color: #7fd6a0">hull kept</span>

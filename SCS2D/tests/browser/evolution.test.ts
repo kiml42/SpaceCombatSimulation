@@ -722,4 +722,44 @@ describe('the evolution page in a browser', () => {
     await set(page, 'group', '4');
     expect(problems).toEqual([]);
   }, 120_000);
+  it('co-evolves two lineages against each other, and shows both', async () => {
+    if (await page.isEnabled('#stop')) await page.click('#stop');
+    await page.selectOption('#founders', ['Dinky']);
+    await set(page, 'fleetShips', '1');
+    await set(page, 'generations', '2');
+    await set(page, 'population', '4');
+    await set(page, 'minMatches', '2');
+    expect(await page.isVisible('#group')).toBe(true);
+    await page.selectOption('#versus', ['Dinky']);
+    // One against one with no goal, scored against a moving opponent: what does not apply goes.
+    expect(await page.isVisible('#group')).toBe(false);
+    expect(await page.isVisible('#goal')).toBe(false);
+    expect(await page.isVisible('#chart')).toBe(false);
+
+    const saving = page.waitForEvent('download');
+    await page.click('#exportConfig');
+    const file = JSON.parse(await readFile(await (await saving).path(), 'utf8')) as Record<string, unknown>;
+    expect(file['versus']).toMatchObject({ founders: ['Dinky'] });
+
+    await page.click('#start');
+    await page.waitForFunction(
+      () => document.getElementById('state')?.textContent === 'finished',
+      undefined,
+      { timeout: 120_000 },
+    );
+    await page.selectOption('#mode', 'fleet');
+    const sides = await page.$$eval('#fleet tbody td.who .side', (tags) => tags.map((tag) => tag.textContent?.trim()));
+    expect(sides.filter((side) => side === 'A')).toHaveLength(4);
+    expect(sides.filter((side) => side === 'B')).toHaveLength(4);
+    expect(await distinctColours(page, 'massChart')).toBeGreaterThan(2);
+    expect(await page.textContent('#championLine')).toMatch(/A #\d+.*B #\d+/);
+
+    await page.selectOption('#mode', 'battle');
+    await page.click('#matches tr');
+    await page.waitForFunction(() => /%/.test(document.getElementById('watching')?.textContent ?? ''));
+
+    await page.click('#clearVersus');
+    expect(await page.isVisible('#chart')).toBe(true);
+    expect(problems).toEqual([]);
+  }, 180_000);
 });

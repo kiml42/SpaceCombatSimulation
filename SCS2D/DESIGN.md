@@ -503,6 +503,10 @@ inside any one file is not contiguous.
   own population, winners, budget and fleet limits. Its generations are written beside side A's
   (`rival` in the run file), and `npm run yardstick` measures such a run as a grid of each side's champions
   against the other's, since fitness against a moving opponent cannot say whether either is improving.
+  On the evolution page a Versus picker under the founders makes a run co-evolve: both sides take the one
+  set of settings, the score chart goes (every score there is against a side that is improving too), the
+  mass and ship-count charts carry a pair of lines a side and are what a generation is picked from, and the
+  combatants are tagged A or B and ranked within their own side.
   **Fuel.** A `tank` archetype whose interior is reaction mass, and every core's interior past the cubic
   metre its computing needs (`CORE_COMPUTING_VOLUME`), so a bare core with one engine can move; a core no
   bigger than that holds none. Each engine has an exhaust velocity:
