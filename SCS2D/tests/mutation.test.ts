@@ -588,13 +588,4 @@ describe('build weights', () => {
     expect(made.length).toBeGreaterThan(0);
     for (const edit of made) expect(edit).toMatch(/doctrine\.(targeting\.escortWeight|approach\.escort)/);
   });
-
-  it('lets escort and avoidance follow approach when not given', () => {
-    const rng = new Rng(13);
-    const made: string[] = [];
-    const doctrine = { targeting: 0, approach: 0, gunnery: 0 } as unknown as DoctrineWeights;
-    const build = { move: 1, resize: 1, refit: 1, visible: 1, hidden: 1 };
-    for (let i = 0; i < 40; i++) made.push(...mutate(GUNSHIP, rng, { structural: 0, build, doctrine }).edits);
-    expect(made.filter((edit) => edit.startsWith('doctrine.'))).toEqual([]);
-  });
 });

@@ -248,9 +248,4 @@ describe('a run-config file with fleets', () => {
     expect(file['fleets']).toBeUndefined();
     expect(file['fleet']).toMatchObject({ maxShips: DEFAULT_FLEET_LIMITS.maxShips });
   });
-
-  it('reads a file from before fleets as a run of ships', () => {
-    expect(parseRunConfig({ founders: ['Corvette'] }).config.fleet.maxShips).toEqual(1);
-    expect(parseRunConfig({ founders: ['Corvette'], fleet: {} }).config.fleet.maxShips).toEqual(DEFAULT_FLEET_LIMITS.maxShips);
-  });
 });

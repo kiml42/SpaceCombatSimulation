@@ -148,14 +148,9 @@ export const DEFAULT_DOCTRINE_WEIGHTS: DoctrineWeights = {
   gunnery: 1,
 };
 
-/**
- * Doctrine weights in full, with escort and avoidance following approach when
- * not given: they were part of approach before they had weights of their own,
- * so `approach: 0` written before then froze them too.
- */
+/** Doctrine weights in full, the defaults filling in whatever is not given. */
 export function doctrineWeights(given?: Partial<DoctrineWeights>): DoctrineWeights {
-  const approach = given?.approach ?? DEFAULT_DOCTRINE_WEIGHTS.approach;
-  return { ...DEFAULT_DOCTRINE_WEIGHTS, escort: approach, avoidance: approach, ...given };
+  return { ...DEFAULT_DOCTRINE_WEIGHTS, ...given };
 }
 
 export const DEFAULT_BUILD_WEIGHTS: BuildWeights = {
