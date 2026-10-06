@@ -241,20 +241,13 @@ export function parseRunConfig(value: unknown): RunSetup {
       massBudget: budget === undefined || budget === null ? Infinity : (budget as number),
       mutation: {
         structural: read(file['structural'], DEFAULT_LIMITS.structural),
-        kinds: { ...DEFAULT_KINDS, ...(currentKinds(file['kinds']) as Partial<KindWeights>) },
+        kinds: { ...DEFAULT_KINDS, ...(file['kinds'] as Partial<KindWeights>) },
         build: { ...DEFAULT_BUILD_WEIGHTS, ...(file['build'] as Partial<BuildWeights>) },
         doctrine: doctrineWeights(isRecord(file['doctrine']) ? (file['doctrine'] as Partial<DoctrineWeights>) : {}),
       },
       fleet: {
         radius: read(fleet['radius'], DEFAULT_FLEET_LIMITS.radius),
-        // A file with no fleet settings and no fleets predates ships growing into
-        // fleets, so it meant ships.
-        maxShips: read(
-          fleet['maxShips'],
-          file['fleet'] === undefined && ((file['fleets'] as unknown[] | undefined) ?? []).length === 0
-            ? 1
-            : DEFAULT_FLEET_LIMITS.maxShips,
-        ),
+        maxShips: read(fleet['maxShips'], DEFAULT_FLEET_LIMITS.maxShips),
         operators: {
           ...DEFAULT_FLEET_LIMITS.operators,
           ...(isRecord(fleet['operators']) ? (fleet['operators'] as Partial<Record<FleetOperator, number>>) : {}),
@@ -272,11 +265,7 @@ export function parseRunConfig(value: unknown): RunSetup {
             : match['goal'] === null
               ? null
               : ({ ...(match['goal'] as GoalSpec) } as GoalSpec),
-        // Weights written without `functional` and `disabling` predate them, so they meant nought.
-        weights:
-          match['weights'] === undefined
-            ? { ...DEFAULT_MATCH.weights }
-            : { ...DEFAULT_MATCH.weights, functional: 0, disabling: 0, ...(match['weights'] as Partial<ScoreWeights>) },
+        weights: { ...DEFAULT_MATCH.weights, ...(match['weights'] as Partial<ScoreWeights> | undefined) },
       },
     },
   };
@@ -323,16 +312,8 @@ function budgetProblem(value: unknown): string | null {
   return null;
 }
 
-/** Kind weights keyed as the format names kinds now: older files say `thruster`. */
-function currentKinds(value: unknown): unknown {
-  if (!isRecord(value) || !('thruster' in value)) return value;
-  const { thruster, ...rest } = value;
-  return { engine: thruster, ...rest };
-}
-
-function kindsProblem(raw: unknown, warnings: string[]): string | null {
-  if (raw === undefined) return null;
-  const value = currentKinds(raw);
+function kindsProblem(value: unknown, warnings: string[]): string | null {
+  if (value === undefined) return null;
   if (!isRecord(value)) return 'kinds must be an object of weights, one per module kind';
   unknownKeys(value, MODULE_KINDS, `kinds (which are ${MODULE_KINDS.join(', ')})`, warnings);
   for (const kind of MODULE_KINDS) {

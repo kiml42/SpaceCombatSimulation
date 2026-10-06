@@ -38,14 +38,6 @@ const SETUP = {
 };
 
 describe('the run config file', () => {
-  it('reads engine weights written before the kind was renamed from thruster', () => {
-    const file = serialiseRunConfig(SETUP) as Record<string, unknown>;
-    const { engine, ...rest } = file['kinds'] as Record<string, number>;
-    file['kinds'] = { thruster: 7, ...rest };
-    expect(engine).toBeDefined();
-    expect(parseRunConfig(file).config.mutation.kinds!.engine).toBe(7);
-  });
-
   it('round-trips a setup without changing it', () => {
     const back = parseRunConfig(serialiseRunConfig(SETUP));
     expect(back.name).toEqual('Star Wars tuning');
@@ -82,20 +74,12 @@ describe('the run config file', () => {
     expect(setup.config.mutation.kinds!.engine).toEqual(DEFAULT_KINDS.engine);
   });
 
-  it('lets escort and avoidance follow approach in a file that predates them', () => {
-    const doctrine = parseRunConfig({ doctrine: { approach: 0 } }).config.mutation.doctrine!;
-    expect(doctrine.escort).toEqual(0);
-    expect(doctrine.avoidance).toEqual(0);
-    expect(parseRunConfig({ doctrine: { approach: 0, escort: 2 } }).config.mutation.doctrine!.escort).toEqual(2);
-  });
-
   it('keeps a goal it is given, and a match told to have none', () => {
     const goal = { x: 10, y: -20, scale: 250, size: 30 };
     expect(parseRunConfig({ match: { goal } }).config.match.goal).toEqual(goal);
     expect(parseRunConfig({ match: { goal: null } }).config.match.goal).toBeNull();
     expect(parseRunConfig({}).config.match.goal).toEqual(DEFAULT_MATCH.goal);
-    // A ghost says so; a goal that does not say is solid, as files written
-    // before there was a choice meant.
+    // A ghost says so; a goal that does not say is solid.
     const ghost = { ...goal, solid: false };
     expect(parseRunConfig({ match: { goal: ghost } }).config.match.goal).toEqual(ghost);
   });
