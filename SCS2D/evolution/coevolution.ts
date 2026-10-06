@@ -1,6 +1,6 @@
 import { Rng } from '../sim/index.js';
 import { max, min, round } from '../sim/math.js';
-import { Match, type Entrant, type Score } from './match.js';
+import { Match, type Entrant } from './match.js';
 import { blank, breed, fitness, Generation } from './generation.js';
 import {
   DEFAULT_RUN,
@@ -18,9 +18,10 @@ import {
  * Co-evolution: two lineages bred against each other.
  *
  * A run is given two sets of founders, side A and side B, and every match is
- * one of A against one of B, so each lineage is selected for beating the other
- * as the other is now. A boss battle is the case of it where one side is a
- * single design that never breeds.
+ * some of A against some of B — each side's `group` of them, allies of each
+ * other — so each lineage is selected for beating the other as the other is
+ * now. A side B that does not evolve is a fixed opponent, and one of it
+ * against several of side A is what a boss battle was.
  *
  * **Each side is bred only from its own winners**, and both close and breed
  * together, once every individual on both sides has had its matches. There is
@@ -40,7 +41,7 @@ import {
  */
 
 /** What may differ between the sides; side B takes side A's where it says nothing. */
-export type SideSettings = Pick<RunConfig, 'population' | 'winners' | 'massBudget' | 'mutation' | 'fleet'>;
+export type SideSettings = Pick<RunConfig, 'population' | 'winners' | 'group' | 'massBudget' | 'mutation' | 'fleet'>;
 
 export interface CoevolutionConfig {
   /** Side B's settings where they differ from side A's, which are the run's. */
@@ -51,7 +52,7 @@ export interface CoevolutionConfig {
   readonly hallShare: number;
   /**
    * Whether side B evolves. Not, and it is its founders and nothing else, every
-   * generation: a fixed opponent side A is bred against, as a boss is.
+   * generation: a fixed opponent side A is bred against.
    */
   readonly rivalEvolves: boolean;
 }
@@ -114,12 +115,13 @@ interface Side {
   hallPlayed: number[];
 }
 
-/** What is in the match being fought: an index into each side's generation, or a champion. */
+/**
+ * What is in the match being fought: indices into each side's generation, or
+ * past champions standing in for one side, which are not scored.
+ */
 interface Pairing {
-  readonly a: number;
-  readonly b: number;
-  /** A past champion standing in for one side, which is not scored. */
-  readonly champion: { readonly side: 0 | 1; readonly id: number; readonly entrant: Entrant } | null;
+  readonly picked: readonly [readonly number[], readonly number[]];
+  readonly champions: { readonly side: 0 | 1; readonly list: readonly Champion[] } | null;
 }
 
 /**
@@ -218,13 +220,8 @@ export class Coevolution {
       if (individual.parent < 0) return individual.entrant;
       return individuals.find((each) => each.id === individual.parent)?.entrant ?? individual.entrant;
     };
-    const [a, b] = this.sides;
-    return new Match([founderOf(a, pairing.a), founderOf(b, pairing.b)], {
-      ...this.config.match,
-      goal: null,
-      boss: null,
-      seed: this.seed,
-    });
+    const { entrants, teams } = this.lineUp(pairing, founderOf);
+    return new Match(entrants, { ...this.config.match, goal: null, seed: this.seed }, teams);
   }
 
   /** How far through the whole run, from nothing to one. */
@@ -288,13 +285,14 @@ export class Coevolution {
     }
     this.pairing = pairing;
     this.seed = this.rng.nextUint32();
-    const [a, b] = this.entrants(pairing);
-    this.match = new Match([a, b], { ...this.config.match, goal: null, boss: null, seed: this.seed });
+    const { entrants, teams } = this.lineUp(pairing, (s, index) => s.generation.individuals[index]!.entrant);
+    this.match = new Match(entrants, { ...this.config.match, goal: null, seed: this.seed }, teams);
   }
 
   /**
    * A match for side `s` against the other side's hall, if any of `s` is still
-   * owed one: the one owed most, against the champion it has met least.
+   * owed one: the one owed most and those owed next most, against the
+   * champions they have met least.
    */
   private hallPairing(s: 0 | 1): Pairing | null {
     const own = this.sides[s];
@@ -302,22 +300,19 @@ export class Coevolution {
     // A side that does not evolve has nothing to learn from the other's past.
     if (other.hall.length === 0 || !own.evolves) return null;
     const owed = this.hallQuota();
-    let pick = -1;
-    let pickDraw = 0;
-    for (let i = 0; i < own.hallPlayed.length; i++) {
-      const draw = this.rng.nextFloat();
-      const played = own.hallPlayed[i]!;
-      if (played >= owed) continue;
-      if (pick >= 0 && (played > own.hallPlayed[pick]! || (played === own.hallPlayed[pick] && draw <= pickDraw))) continue;
-      pick = i;
-      pickDraw = draw;
-    }
-    if (pick < 0) return null;
-    const met = own.generation.individuals[pick]!.met;
-    let champion = other.hall[0]!;
-    for (const each of other.hall) if ((met.get(each.id) ?? 0) < (met.get(champion.id) ?? 0)) champion = each;
-    const stand = { side: (s === 0 ? 1 : 0) as 0 | 1, id: champion.id, entrant: champion.entrant };
-    return s === 0 ? { a: pick, b: -1, champion: stand } : { a: -1, b: pick, champion: stand };
+    if (own.hallPlayed.every((played) => played >= owed)) return null;
+    const individuals = own.generation.individuals;
+    const picked = this.pick(own, groupOf(own), (i) => [own.hallPlayed[i]!, individuals[i]!.matches]);
+    const met = (champion: Champion): number => {
+      let sum = 0;
+      for (const i of picked) sum += individuals[i]!.met.get(champion.id) ?? 0;
+      return sum;
+    };
+    // Stable, so the oldest of those met equally goes first; round again if the hall is short.
+    const order = [...other.hall].sort((x, y) => met(x) - met(y));
+    const list = Array.from({ length: groupOf(other) }, (_, k) => order[k % order.length]!);
+    const champions = { side: (s === 0 ? 1 : 0) as 0 | 1, list };
+    return { picked: s === 0 ? [picked, []] : [[], picked], champions };
   }
 
   /** Matches each individual owes the other side's hall. */
@@ -328,8 +323,9 @@ export class Coevolution {
   }
 
   /**
-   * One of A against one of B: whoever of either side has played least, then
-   * whoever of the other side it has met least, then has played least.
+   * Some of A against some of B: whoever of either side has played least,
+   * those of its own side who have played least beside it, then those of the
+   * other side they have met least, then have played least.
    */
   private livePairing(): Pairing | null {
     let first: { side: 0 | 1; index: number } | null = null;
@@ -348,71 +344,109 @@ export class Coevolution {
     }
     if (first === null) return null;
     const chosen: { side: 0 | 1; index: number } = first;
-    const me = this.sides[chosen.side].generation.individuals[chosen.index]!;
-    const other = this.sides[chosen.side === 0 ? 1 : 0].generation.individuals;
-    let partner = -1;
-    let partnerMet = 0;
-    let partnerMatches = 0;
-    let partnerDraw = 0;
-    other.forEach((individual, i) => {
-      const draw = this.rng.nextFloat();
-      const met = me.met.get(individual.id) ?? 0;
-      if (
-        partner >= 0 &&
-        (met > partnerMet ||
-          (met === partnerMet &&
-            (individual.matches > partnerMatches || (individual.matches === partnerMatches && draw <= partnerDraw))))
-      ) {
-        return;
-      }
-      partner = i;
-      partnerMet = met;
-      partnerMatches = individual.matches;
-      partnerDraw = draw;
+    const mine = this.sides[chosen.side];
+    const theirs = this.sides[chosen.side === 0 ? 1 : 0];
+    const ours = mine.generation.individuals;
+    const allies = this.pick(mine, groupOf(mine) - 1, (i) => [ours[i]!.matches], [chosen.index]);
+    const group = [chosen.index, ...allies];
+    const others = theirs.generation.individuals;
+    const opponents = this.pick(theirs, groupOf(theirs), (i) => {
+      let met = 0;
+      for (const j of group) met += ours[j]!.met.get(others[i]!.id) ?? 0;
+      return [met, others[i]!.matches];
     });
-    if (partner < 0) return null;
-    return chosen.side === 0
-      ? { a: chosen.index, b: partner, champion: null }
-      : { a: partner, b: chosen.index, champion: null };
+    if (opponents.length === 0) return null;
+    return { picked: chosen.side === 0 ? [group, opponents] : [opponents, group], champions: null };
   }
 
-  private entrants(pairing: Pairing): [Entrant, Entrant] {
-    const [a, b] = this.sides;
-    const champion = pairing.champion;
-    return [
-      champion?.side === 0 ? champion.entrant : a.generation.individuals[pairing.a]!.entrant,
-      champion?.side === 1 ? champion.entrant : b.generation.individuals[pairing.b]!.entrant,
-    ];
+  /**
+   * `count` of a side's individuals, one at a time, each the least by `key`
+   * compared entry by entry, ties broken by a draw. `taken` are left out.
+   */
+  private pick(s: Side, count: number, key: (index: number) => number[], taken: readonly number[] = []): number[] {
+    const picked: number[] = [];
+    const n = s.generation.individuals.length;
+    while (picked.length < count) {
+      let best = -1;
+      let bestKey: number[] = [];
+      let bestDraw = 0;
+      for (let i = 0; i < n; i++) {
+        if (picked.includes(i) || taken.includes(i)) continue;
+        const draw = this.rng.nextFloat();
+        const k = key(i);
+        if (best >= 0) {
+          let order = 0;
+          for (let e = 0; e < k.length && order === 0; e++) order = k[e]! - bestKey[e]!;
+          if (order > 0 || (order === 0 && draw <= bestDraw)) continue;
+        }
+        best = i;
+        bestKey = k;
+        bestDraw = draw;
+      }
+      if (best < 0) break;
+      picked.push(best);
+    }
+    return picked;
+  }
+
+  /** The match's entrants, side A's then side B's, with each one's side and id. */
+  private lineUp(
+    pairing: Pairing,
+    entrantOf: (s: Side, index: number) => Entrant,
+  ): { entrants: Entrant[]; teams: number[]; ids: number[] } {
+    const entrants: Entrant[] = [];
+    const teams: number[] = [];
+    const ids: number[] = [];
+    for (const k of [0, 1] as const) {
+      const s = this.sides[k];
+      if (pairing.champions?.side === k) {
+        for (const champion of pairing.champions.list) {
+          entrants.push(champion.entrant);
+          ids.push(champion.id);
+          teams.push(k);
+        }
+        continue;
+      }
+      for (const index of pairing.picked[k]) {
+        entrants.push(entrantOf(s, index));
+        ids.push(s.generation.individuals[index]!.id);
+        teams.push(k);
+      }
+    }
+    return { entrants, teams, ids };
   }
 
   private close(): void {
     const result = this.match!.result();
     const pairing = this.pairing!;
-    const [a, b] = this.sides;
-    const champion = pairing.champion;
-    const idA = champion?.side === 0 ? champion.id : a.generation.individuals[pairing.a]!.id;
-    const idB = champion?.side === 1 ? champion.id : b.generation.individuals[pairing.b]!.id;
+    const { teams, ids } = this.lineUp(pairing, (s, index) => s.generation.individuals[index]!.entrant);
     const record: MatchRecord = {
       seed: this.seed,
-      competitors: [idA, idB],
+      competitors: ids,
+      teams,
       ending: result.ending,
       elapsed: result.elapsed,
       scores: result.scores,
     };
-    this.score(a, pairing.a, result.scores[0]!, idB, champion !== null);
-    this.score(b, pairing.b, result.scores[1]!, idA, champion !== null);
-    if (pairing.a >= 0) a.matches.push(record);
-    if (pairing.b >= 0) b.matches.push(record);
+    const againstHall = pairing.champions !== null;
+    let at = 0;
+    for (const k of [0, 1] as const) {
+      const s = this.sides[k];
+      const opponents = ids.filter((_, e) => teams[e] !== k);
+      const fielded = teams.filter((team) => team === k).length;
+      // Champions are not scored: only the living are credited.
+      if (pairing.champions?.side !== k) {
+        pairing.picked[k].forEach((index, e) => {
+          s.generation.credit(index, result.scores[at + e]!, opponents);
+          if (againstHall) s.hallPlayed[index] = s.hallPlayed[index]! + 1;
+        });
+        s.matches.push(record);
+      }
+      at += fielded;
+    }
     this.fought++;
     this.match = null;
     this.pairing = null;
-  }
-
-  /** Credit one side's individual, if it was one of the living rather than a champion. */
-  private score(s: Side, index: number, score: Score, opponent: number, againstHall: boolean): void {
-    if (index < 0) return;
-    s.generation.credit(index, score, [opponent]);
-    if (againstHall) s.hallPlayed[index] = s.hallPlayed[index]! + 1;
   }
 
   /** Close both generations, keep their champions, and breed both. */
@@ -468,6 +502,11 @@ export class Coevolution {
     s.hall.push({ id: best.id, entrant: best.entrant });
     while (s.hall.length > size) s.hall.shift();
   }
+}
+
+/** How many of a side each match fields: its `group`, or all of it if it is smaller. */
+function groupOf(s: Side): number {
+  return max(1, min(s.config.group, s.generation.individuals.length));
 }
 
 function side(config: RunConfig, generation: Generation, evolves: boolean): Side {

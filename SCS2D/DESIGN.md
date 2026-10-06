@@ -492,15 +492,17 @@ inside any one file is not contiguous.
   **Fleet evolution** breeds fleets, scored as one entrant each, under a total mass budget, a deployment
   radius and a ship count — headless with `npm run evolve -- --fleet`, and on the evolution page, whose
   founders are ships and fleets alike; a ship grows into a fleet unless the most ships allowed is one. Before a run the page shows the founders unmutated and the run's
-  first match paused at its start. **A boss battle** sets every entrant on one side against a ship or fleet
-  that does not evolve, at the middle of the ring where the goal would be, each scored for what it does to
-  the boss alone. Entrants can start already moving, towards the middle and across it, at speeds the run
+  first match paused at its start. Entrants can start already moving, towards the middle and across it, at speeds the run
   sets (`--closing`, `--crossing`), the same two a custom battle has.
   **Co-evolution**, headless (`evolution/coevolution.ts`, `npm run evolve -- --versus`): two lineages, side A
-  and side B, each bred only from its own winners, every match one of A against one of B with no goal.
+  and side B, each bred only from its own winners, every match some of A against some of B with no goal —
+  each side's own number a match, allies of each other, clustered on its own side of the ring (A left, B
+  right, spread over 45°), scored only for what they do to the other side, and decided once one side is
+  left fighting. A side B that does not evolve, one a match against several of side A, is what a boss
+  battle was, and there is no separate one.
   Each side keeps a hall of its last few champions, and a share of every individual's matches is against
   the other side's hall, so neither can win by beating only the opponent of the moment. Side B may have its
-  own population, winners, budget, fleet limits and mutation weights. Its generations are written beside side A's
+  own population, winners, entrants a match, budget, fleet limits and mutation weights. Its generations are written beside side A's
   (`rival` in the run file), and `npm run yardstick` measures such a run as a grid of each side's champions
   against the other's, since fitness against a moving opponent cannot say whether either is improving.
   **The evolution page is two screens**: setting a run up, with every setting laid out across the width
