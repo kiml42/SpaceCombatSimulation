@@ -244,16 +244,21 @@ const SCORE_COLUMNS = [
 ] as const;
 
 /**
- * The combatants table, built once: a header that never changes and an empty
+ * The combatants table's score columns: what was kept over what was kept
+ * working, and what was done over what was disabled, so a row's height is
+ * used and the table is narrow enough for two sides beside each other.
+ * Indices into `SCORE_COLUMNS`.
+ */
+const STACKED_COLUMNS: readonly (readonly number[])[] = [[0, 1], [2, 3], [4]];
+
+/**
+ * A combatants table, built once: a header that never changes and an empty
  * body for the rows to be appended to and reordered in.
  */
 function buildCombatantTable(host: HTMLElement): {
   table: HTMLTableElement;
   body: HTMLTableSectionElement;
-  none: HTMLParagraphElement;
 } {
-  const none = document.createElement('p');
-  none.className = 'none';
   const table = document.createElement('table');
   const head = document.createElement('thead');
   const headRow = document.createElement('tr');
@@ -262,21 +267,37 @@ function buildCombatantTable(host: HTMLElement): {
     ['formation', 'fleet', 'how it is arranged, to its own scale'],
     ['made', 'made of', 'every kind of ship in it, and how many'],
     ['score', 'score', 'against this generation’s opponents'],
-    ...SCORE_COLUMNS.map((column) => [column.css, column.head, column.title] as const),
+    ['parts', '', ''],
     ['mass', 't', 'tonnes'],
     ['done', 'changed', 'what was done to its parent to make it'],
   ] as const) {
-    const th = document.createElement('th');
-    th.className = css;
-    th.textContent = text;
-    th.title = title;
-    headRow.append(th);
+    if (css !== 'parts') {
+      const th = document.createElement('th');
+      th.className = css;
+      th.textContent = text;
+      th.title = title;
+      headRow.append(th);
+      continue;
+    }
+    for (const stack of STACKED_COLUMNS) {
+      const th = document.createElement('th');
+      th.className = 'part';
+      for (const i of stack) {
+        const column = SCORE_COLUMNS[i]!;
+        const head = document.createElement('div');
+        head.className = column.css;
+        head.textContent = column.head;
+        head.title = column.title;
+        th.append(head);
+      }
+      headRow.append(th);
+    }
   }
   head.append(headRow);
   const body = document.createElement('tbody');
   table.append(head, body);
-  host.append(none, table);
-  return { table, body, none };
+  host.append(table);
+  return { table, body };
 }
 
 /** One kind of ship in a combatant, and how many of that kind it has. */
@@ -301,7 +322,8 @@ interface Picture {
 interface Tile {
   readonly tr: HTMLTableRowElement;
   readonly cells: Record<'who' | 'made' | 'score' | 'mass' | 'done', HTMLTableCellElement>;
-  readonly parts: readonly HTMLTableCellElement[];
+  /** One per part, in `SCORE_COLUMNS` order. */
+  readonly parts: readonly HTMLElement[];
   readonly canvases: readonly HTMLCanvasElement[];
   readonly formation: HTMLCanvasElement;
   readonly picture: Picture;
@@ -412,7 +434,13 @@ export function startEvolution(): void {
   const modeSelect = el<HTMLSelectElement>('mode');
   const battleControls = el<HTMLElement>('battleControls');
   const fleetBox = el<HTMLElement>('fleet');
-  const { table: fleetTable, body: fleetBody, none: emptyNote } = buildCombatantTable(fleetBox);
+  // One table a side, A's on the left; a run of one fills A's alone.
+  const emptyNote = document.createElement('p');
+  emptyNote.className = 'none';
+  const fleetPair = document.createElement('div');
+  fleetPair.className = 'pair';
+  fleetBox.append(emptyNote, fleetPair);
+  const fleetSides = [buildCombatantTable(fleetPair), buildCombatantTable(fleetPair)] as const;
   const watchingLabel = el<HTMLElement>('watching');
   const battleScores = el<HTMLElement>('battleScores');
   const latestButton = el<HTMLButtonElement>('latest');
@@ -1362,13 +1390,14 @@ export function startEvolution(): void {
     if (rows.length === 0) {
       for (const tile of fleetTiles.values()) tile.tr.remove();
       fleetTiles.clear();
-      fleetTable.hidden = true;
+      fleetPair.hidden = true;
       emptyNote.hidden = false;
       emptyNote.textContent = run === null ? 'Pick founders to see them here.' : 'Nothing bred yet.';
       return;
     }
     emptyNote.hidden = true;
-    fleetTable.hidden = false;
+    fleetPair.hidden = false;
+    fleetSides[1].table.hidden = !rows.some((row) => row.side === 1);
 
     // One scale for every hull on show, so a ship twice the size of another
     // looks it — down a column as much as across a row. Set by whichever kind
@@ -1409,7 +1438,7 @@ export function startEvolution(): void {
         fleetTiles.set(row.id, tile);
       }
       // Appending something already here moves it, so this is the reordering.
-      fleetBody.append(tile.tr);
+      fleetSides[row.side === 1 ? 1 : 0].body.append(tile.tr);
       tile.tr.classList.toggle('picked', row.id === picked);
       tile.tr.classList.toggle('champion', rank === 0 && row.id >= 0 && row.matches > 0);
       writeRow(tile, row, rank);
@@ -1534,11 +1563,18 @@ export function startEvolution(): void {
     made.append(kinds);
 
     const score = cell('score');
-    const parts = SCORE_COLUMNS.map((column) => {
-      const td = cell(column.css);
-      td.title = column.title;
-      return td;
-    });
+    const parts: HTMLElement[] = [];
+    for (const stack of STACKED_COLUMNS) {
+      const td = cell('part');
+      for (const i of stack) {
+        const column = SCORE_COLUMNS[i]!;
+        const figure = document.createElement('div');
+        figure.className = column.css;
+        figure.title = column.title;
+        td.append(figure);
+        parts[i] = figure;
+      }
+    }
     const mass = cell('mass');
     const done = cell('done');
     done.append(document.createElement('div'));
@@ -1780,11 +1816,25 @@ export function startEvolution(): void {
     return null;
   };
 
-  /** Who fought, by id, with the sides split by a v when it had sides. */
+  /** Who fought, by id; with sides, each side's led by its letter and the two split by a v. */
   const competitorsText = (record: MatchRecord): string => {
     const teams = record.teams;
     if (teams === undefined) return record.competitors.join(' ');
-    return record.competitors.map((id, k) => (k > 0 && teams[k] !== teams[k - 1] ? `v ${id}` : String(id))).join(' ');
+    return record.competitors
+      .map((id, k) => {
+        if (k > 0 && teams[k] === teams[k - 1]) return String(id);
+        const letter = teams[k] === 0 ? 'A' : 'B';
+        return k === 0 ? `${letter} ${id}` : `v ${letter} ${id}`;
+      })
+      .join(' ');
+  };
+
+  /** How a match ended: who won it, when it was decided and the record says. */
+  const endingText = (record: MatchRecord): string => {
+    const first = record.winners?.[0];
+    if (record.ending !== 'decided' || first === undefined) return record.ending;
+    if (record.teams !== undefined) return `${record.teams[first] === 0 ? 'A' : 'B'} won`;
+    return `#${record.competitors[first]} won`;
   };
 
   const startReplay = (record: MatchRecord, rows: readonly Row[]): void => {
@@ -1846,7 +1896,7 @@ export function startEvolution(): void {
       for (const cell of [
         String(i + 1),
         competitorsText(record),
-        record.ending,
+        endingText(record),
         record.elapsed.toFixed(0),
       ]) {
         const td = document.createElement('td');
@@ -2075,7 +2125,7 @@ export function startEvolution(): void {
     skipping = false;
     watch(null);
     // The rows, not the table: it is built once and kept.
-    fleetBody.replaceChildren();
+    for (const { body } of fleetSides) body.replaceChildren();
     fleetTiles.clear();
     fleetScale = 0;
     formationScale = 0;

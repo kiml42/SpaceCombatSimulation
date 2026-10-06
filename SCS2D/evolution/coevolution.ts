@@ -425,6 +425,7 @@ export class Coevolution {
       competitors: ids,
       teams,
       ending: result.ending,
+      winners: result.winners,
       elapsed: result.elapsed,
       scores: result.scores,
     };
