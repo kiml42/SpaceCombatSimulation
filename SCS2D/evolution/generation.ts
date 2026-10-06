@@ -2,7 +2,7 @@ import type { Rng } from '../sim/index.js';
 import { min } from '../sim/math.js';
 import { mutate, type MutationLimits } from './mutate.js';
 import { mutateFleet, type FleetMutationLimits } from './fleetMutate.js';
-import { isFleet, type Entrant, type MatchResult } from './match.js';
+import { isFleet, type Entrant, type MatchResult, type Score } from './match.js';
 
 /**
  * A generation: the individuals in it, who has fought whom, and what is bred
@@ -105,21 +105,22 @@ export class Generation {
   /** Take the result of a match those competitors fought. */
   record(competitors: readonly number[], result: MatchResult): void {
     for (let c = 0; c < competitors.length; c++) {
-      const individual = this.individuals[competitors[c]!]!;
-      const score = result.scores[c]!;
-      individual.matches += 1;
-      individual.score += score.total;
-      individual.survival += score.survival;
-      individual.functional += score.functional;
-      individual.damage += score.damage;
-      individual.disabling += score.disabling;
-      individual.race += score.race;
-      for (const other of competitors) {
-        if (other === competitors[c]) continue;
-        const id = this.individuals[other]!.id;
-        individual.met.set(id, (individual.met.get(id) ?? 0) + 1);
-      }
+      const opponents = competitors.filter((other) => other !== competitors[c]).map((other) => this.individuals[other]!.id);
+      this.credit(competitors[c]!, result.scores[c]!, opponents);
     }
+  }
+
+  /** Take one individual's part in a match: its score, and whom it met, by id. */
+  credit(index: number, score: Score, opponents: readonly number[]): void {
+    const individual = this.individuals[index]!;
+    individual.matches += 1;
+    individual.score += score.total;
+    individual.survival += score.survival;
+    individual.functional += score.functional;
+    individual.damage += score.damage;
+    individual.disabling += score.disabling;
+    individual.race += score.race;
+    for (const id of opponents) individual.met.set(id, (individual.met.get(id) ?? 0) + 1);
   }
 
   /** Whether everyone has had the hearing the run promised them. */

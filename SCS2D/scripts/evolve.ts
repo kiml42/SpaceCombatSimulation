@@ -13,7 +13,8 @@ import {
 } from '../sim/index.js';
 import { BLUEPRINTS } from '../scenarios/blueprints.js';
 import { FLEETS } from '../scenarios/fleets.js';
-import { finalist, matchCount, Run, DEFAULT_RUN, type RunConfig } from '../evolution/run.js';
+import { finalist, matchCount, Run, DEFAULT_RUN, type GenerationRecord, type RunConfig, type RunRecord } from '../evolution/run.js';
+import { Coevolution, DEFAULT_COEVOLUTION, type CoevolutionConfig } from '../evolution/coevolution.js';
 import type { Entrant } from '../evolution/match.js';
 import { DEFAULT_BUILD_WEIGHTS, DEFAULT_DOCTRINE_WEIGHTS, DEFAULT_KINDS } from '../evolution/mutate.js';
 import { parseRunConfig, runConfigWarnings, serialiseRunConfig, type BossName } from '../evolution/configFile.js';
@@ -38,6 +39,8 @@ interface Options {
   readonly fleets: readonly { name: string; fleet: Fleet }[];
   /** What every entrant fights together, by the name a config file gives it, or null. */
   readonly boss: BossName | null;
+  /** Side B of a co-evolution run, or null for a run of one. */
+  readonly versus: Versus | null;
   readonly out: string;
   /** Where to write the settings this run was given, or '' for nowhere. */
   readonly saveConfig: string;
@@ -45,6 +48,13 @@ interface Options {
   readonly name: string | undefined;
   readonly config: Partial<RunConfig>;
   readonly quiet: boolean;
+}
+
+/** Side B's founders, by the name a config file would give them, and how it is bred against side A. */
+interface Versus {
+  readonly from: readonly { name: string; blueprint: Blueprint }[];
+  readonly fleets: readonly { name: string; fleet: Fleet }[];
+  readonly coevolution: CoevolutionConfig;
 }
 
 /** Say what a file carried that nothing reads, and carry on: it is not a reason to stop. */
@@ -122,6 +132,9 @@ function parse(argv: readonly string[]): Options {
   const from: { name: string; blueprint: Blueprint }[] = [];
   const fleets: { name: string; fleet: Fleet }[] = [];
   let boss: BossName | null = null;
+  const versusFrom: { name: string; blueprint: Blueprint }[] = [];
+  const versusFleets: { name: string; fleet: Fleet }[] = [];
+  let coevolution: CoevolutionConfig = DEFAULT_COEVOLUTION;
   // Whatever a `--config` file said, which every flag then overrides: a saved
   // experiment with one number changed is the commonest thing to want, and
   // having to edit the file to get it would mean editing the record of what
@@ -244,9 +257,28 @@ function parse(argv: readonly string[]): Options {
           config['match'] = { ...setup.config.match, boss: found.boss };
           boss = found.named;
         }
+        if (setup.versus != null) {
+          for (const name of setup.versus.founders) versusFrom.push(shipFrom(name));
+          for (const name of setup.versus.fleets) versusFleets.push({ name, fleet: fleetFrom(name) });
+          coevolution = setup.versus.coevolution;
+        }
         break;
       }
       case '--save-config': saveConfig = value(); break;
+      // Side B of a co-evolution run: stock ships or blueprint files, as `--from` takes.
+      case '--versus':
+        for (const name of value().split(',')) versusFrom.push(shipFrom(name));
+        break;
+      case '--versus-fleet': {
+        const fleet = fleetFrom(value());
+        versusFleets.push({ name: fleet.name, fleet });
+        break;
+      }
+      // Champions each side keeps, and the share of matches fought against the other side's.
+      case '--hall': coevolution = { ...coevolution, hall: Number(value()) }; break;
+      case '--hall-share': coevolution = { ...coevolution, hallShare: Number(value()) }; break;
+      // Side B as it is, every generation: side A bred against a fixed opponent.
+      case '--versus-fixed': coevolution = { ...coevolution, rivalEvolves: false }; break;
       case '--quiet': quiet = true; break;
       default:
         throw new Error(`unknown argument ${arg}`);
@@ -279,9 +311,15 @@ function parse(argv: readonly string[]): Options {
     let heaviest = 0;
     for (const { blueprint } of from) heaviest = Math.max(heaviest, compileBlueprint(blueprint).mass);
     for (const { fleet } of fleets) heaviest = Math.max(heaviest, fleetMass(fleetHulls(fleet)));
+    // Both sides of a co-evolution run, which share the budget unless side B sets its own.
+    for (const { blueprint } of versusFrom) heaviest = Math.max(heaviest, compileBlueprint(blueprint).mass);
+    for (const { fleet } of versusFleets) heaviest = Math.max(heaviest, fleetMass(fleetHulls(fleet)));
     config['massBudget'] = heaviest * budget;
   }
-  return { from, fleets, boss, out, saveConfig, name, config, quiet };
+  const coevolving = versusFrom.length + versusFleets.length > 0;
+  if (coevolving && boss !== null) throw new Error('a co-evolution run is two lineages against each other, and has no boss');
+  const versus = coevolving ? { from: versusFrom, fleets: versusFleets, coevolution } : null;
+  return { from, fleets, boss, versus, out, saveConfig, name, config, quiet };
 }
 
 const options = parse(process.argv.slice(2));
@@ -290,12 +328,20 @@ const founders: Entrant[] = [
   ...options.fleets.map(({ fleet }) => fleet),
 ];
 const settings: RunConfig = { ...DEFAULT_RUN, ...options.config };
+const versus = options.versus;
+const rivals: Entrant[] =
+  versus === null ? [] : [...versus.from.map(({ blueprint }) => blueprint), ...versus.fleets.map(({ fleet }) => fleet)];
+const names = (side: { from: readonly { name: string }[]; fleets: readonly { name: string }[] }): string =>
+  [...side.from, ...side.fleets].map(({ name }) => name).join(', ');
 
 if (!options.quiet) {
   console.log(
-    `${[...options.from, ...options.fleets].map(({ name }) => name).join(', ')} — ${settings.generations} generations of ` +
-      `${settings.population}, ${settings.group} to a match, ${settings.minMatches} matches each` +
-      (options.boss === null ? '' : `, all against ${options.boss.name}`),
+    versus === null
+      ? `${names(options)} — ${settings.generations} generations of ` +
+          `${settings.population}, ${settings.group} to a match, ${settings.minMatches} matches each` +
+          (options.boss === null ? '' : `, all against ${options.boss.name}`)
+      : `${names(options)} against ${names(versus)} — ${settings.generations} generations, one against one, ` +
+          `${settings.minMatches} matches each, a hall of ${versus.coevolution.hall}`,
   );
 }
 
@@ -309,6 +355,14 @@ if (options.saveConfig !== '') {
         founders: options.from.map(({ name }) => name),
         fleets: options.fleets.map(({ name }) => name),
         boss: options.boss,
+        versus:
+          versus === null
+            ? null
+            : {
+                founders: versus.from.map(({ name }) => name),
+                fleets: versus.fleets.map(({ name }) => name),
+                coevolution: versus.coevolution,
+              },
         config: settings,
       }),
       null,
@@ -325,28 +379,41 @@ const writeRun = (): void => {
   writeFileSync(`${options.out}.part`, `${JSON.stringify(runner.record(), null, 2)}\n`);
   renameSync(`${options.out}.part`, options.out);
 };
-const runner: Run = new Run(founders, options.config, (generation) => {
-  writeRun();
-  if (options.quiet) return;
-  console.log(
-    `gen ${String(generation.index).padStart(3)}  ` +
-      `${String(generation.matches.length).padStart(3)} matches  ` +
-      `mean ${generation.meanFitness.toFixed(3)}  best ${generation.bestFitness.toFixed(3)}  ` +
-      `| hull ${generation.mean.survival.toFixed(2)}  function ${generation.mean.functional.toFixed(2)}  ` +
-      `damage ${generation.mean.damage.toFixed(3)}  disabling ${generation.mean.disabling.toFixed(3)}  ` +
-      `race ${generation.mean.race.toFixed(2)}`,
-  );
-});
+const line = (generation: GenerationRecord, label = 'gen'): string =>
+  `${label} ${String(generation.index).padStart(3)}  ` +
+  `${String(generation.matches.length).padStart(3)} matches  ` +
+  `mean ${generation.meanFitness.toFixed(3)}  best ${generation.bestFitness.toFixed(3)}  ` +
+  `| hull ${generation.mean.survival.toFixed(2)}  function ${generation.mean.functional.toFixed(2)}  ` +
+  `damage ${generation.mean.damage.toFixed(3)}  disabling ${generation.mean.disabling.toFixed(3)}  ` +
+  `race ${generation.mean.race.toFixed(2)}`;
+const runner: { record(): RunRecord; finish(): RunRecord } =
+  versus === null
+    ? new Run(founders, options.config, (generation) => {
+        writeRun();
+        if (!options.quiet) console.log(line(generation));
+      })
+    : new Coevolution(founders, rivals, options.config, versus.coevolution, (a, b) => {
+        writeRun();
+        if (!options.quiet) console.log(`${line(a, 'A')}\n${line(b, 'B')}`);
+      });
 const run = runner.finish();
 const spent = (Date.now() - started) / 1000;
 writeRun();
 
 if (!options.quiet) {
-  const best = finalist(run);
-  console.log(`\n${matchCount(run)} matches in ${spent.toFixed(1)}s → ${options.out}`);
-  if (best !== null) {
+  console.log(`\n${matchesIn(run)} matches in ${spent.toFixed(1)}s → ${options.out}`);
+  const sides: [string, RunRecord][] =
+    run.rival === undefined
+      ? [['', run]]
+      : [
+          ['side A ', run],
+          ['side B ', { config: run.config, generations: run.rival.generations }],
+        ];
+  for (const [label, side] of sides) {
+    const best = finalist(side);
+    if (best === null) continue;
     console.log(
-      `arrived at: generation ${best.generation}, individual ${best.individual.id}, ` +
+      `${label}arrived at: generation ${best.generation}, individual ${best.individual.id}, ` +
         `fitness ${best.individual.fitness.toFixed(3)} from ${best.individual.matches} matches, ` +
         `${(best.individual.mass / 1000).toFixed(1)} tonnes`,
     );
@@ -356,12 +423,22 @@ if (!options.quiet) {
         `damage ${best.individual.damage.toFixed(2)}  race ${best.individual.race.toFixed(2)}`,
     );
     for (const edit of best.individual.edits) console.log(`  ${edit}`);
-    // Said out loud because the number above invites exactly the wrong
-    // reading: a fitness is a score against that generation's opponents, so
-    // it cannot be compared with one from another generation.
-    console.log(
-      `\n  Fitness is scored against the rest of the generation, so these numbers do not\n` +
-        `  compare across generations. For that, run: npm run yardstick -- --run ${options.out}`,
-    );
   }
+  // Said out loud because the number above invites exactly the wrong
+  // reading: a fitness is a score against that generation's opponents, so
+  // it cannot be compared with one from another generation.
+  console.log(
+    `\n  Fitness is scored against the rest of the generation, so these numbers do not\n` +
+      `  compare across generations. For that, run: npm run yardstick -- --run ${options.out}`,
+  );
+}
+
+/** Matches fought, each once: a match between the sides is in both sides' records. */
+function matchesIn(record: RunRecord): number {
+  if (record.rival === undefined) return matchCount(record);
+  const seen = new Set<number>();
+  for (const generation of [...record.generations, ...record.rival.generations]) {
+    for (const match of generation.matches) seen.add(match.seed);
+  }
+  return seen.size;
 }

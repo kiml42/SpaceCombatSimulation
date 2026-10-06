@@ -15,6 +15,7 @@ import { isFleet, Match, SCORE_PARTS, type Entrant, type MatchConfig, type Match
 import { type MutationLimits } from './mutate.js';
 import { DEFAULT_FLEET_LIMITS, type FleetMutationLimits } from './fleetMutate.js';
 import { blank, breed, fitness, Generation, offspring, type Individual } from './generation.js';
+import type { CoevolutionConfig } from './coevolution.js';
 
 /**
  * A run: generations of designs, each fought in groups and bred from what
@@ -180,6 +181,18 @@ export type ScoreParts = Readonly<Record<(typeof SCORE_PARTS)[number], number>>;
 export interface RunRecord {
   readonly config: RunConfig;
   readonly generations: readonly GenerationRecord[];
+  /**
+   * The other lineage of a co-evolution run, side B, bred against this one;
+   * absent from a run of one. Side A is `generations`, so whatever reads a
+   * run of one reads side A of a co-evolution run the same way.
+   */
+  readonly rival?: RivalRecord;
+}
+
+/** Side B of a co-evolution run: what was set for it, and its generations. */
+export interface RivalRecord {
+  readonly config: CoevolutionConfig;
+  readonly generations: readonly GenerationRecord[];
 }
 
 /** Told as each generation finishes, so a caller can show progress. */
@@ -197,11 +210,12 @@ export function seedPopulation(
   founders: readonly Entrant[],
   rng: Rng,
   config: RunConfig,
+  firstId = 0,
 ): Generation {
   const fleets = isFleetRun(founders, config);
   const entrants = fleets ? founders.map((founder) => (isFleet(founder) ? founder : shipFleet(founder))) : founders;
   const individuals: Individual[] = [];
-  let id = 0;
+  let id = firstId;
   for (const founder of entrants) {
     if (individuals.length >= config.population) break;
     individuals.push(blank(id++, founder, -1, []));
@@ -226,11 +240,11 @@ export function isFleetRun(founders: readonly Entrant[], config: Pick<RunConfig,
 }
 
 /** How a ship is bred. In a run of fleets the budget is the fleet's, so it is not applied to one ship. */
-function mutationLimits(config: RunConfig): Partial<MutationLimits> {
+export function mutationLimits(config: RunConfig): Partial<MutationLimits> {
   return { massBudget: config.massBudget, ...config.mutation };
 }
 
-function fleetLimits(config: RunConfig): Partial<FleetMutationLimits> {
+export function fleetLimits(config: RunConfig): Partial<FleetMutationLimits> {
   return { massBudget: config.massBudget, ...config.fleet };
 }
 
@@ -444,7 +458,8 @@ export function runEvolution(
   return new Run(founders, config, onGeneration).finish();
 }
 
-function describe(generation: Generation, matches: readonly MatchRecord[]): GenerationRecord {
+/** A generation as a run records it, with the matches it was scored by. */
+export function describe(generation: Generation, matches: readonly MatchRecord[]): GenerationRecord {
   const individuals = generation.individuals.map((individual) => ({
     id: individual.id,
     parent: individual.parent,

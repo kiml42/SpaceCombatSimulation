@@ -101,6 +101,52 @@ and a mutant over the total dry mass, the deployment radius or the ship count, o
 refused. **A boss battle** evolves against a fixed ship or fleet: every entrant on one side against it,
 scored for what it does to the boss alone (`match.boss`, `--boss`, and a boss picker on the page).
 
+**Co-evolution — built.** Two lineages bred against each other: a run is given two sets of founders, side
+A and side B, and every match is one child of A against one child of B, so each lineage evolves to counter
+the other. A boss battle is the special case of it where one side is a single entrant that never breeds.
+
+- **Two populations, bred apart, in lockstep.** Each side is a `Generation` of its own, bred only from its
+  own winners; both close and breed together, once every individual on both sides has played its matches.
+- **One against one.** Pairing takes the least-played A and the least-played B it has not met yet — the
+  cross-population form of `pickCompetitors`. One match scores both, so equal populations of N playing m
+  matches each cost N × m matches a generation, what a two-ship free-for-all costs now. Teams of several a
+  side are later, if ever.
+- **No goal.** A race would let a lineage score without fighting; a co-evolution match is only a fight.
+- **A hall of fame against going round in circles.** Each side keeps its last few champions (about five),
+  and about a quarter of every individual's matches are against the *other* side's hall rather than its
+  current population. Without it A beats B, B adapts, A adapts back, and neither gets better at anything
+  but the current opponent. The hall also gives a side that is losing everything weaker opponents to score
+  against, so its selection still has something to go on.
+- **Scoring is the score parts as they are.** They are already continuous — damage dealt, function
+  disabled, hull kept — so a side losing every match still ranks its individuals by how badly. If lineages
+  learn to avoid each other, the answer is weighting damage and disabling above survival, which the
+  weights already allow.
+- **Settings per side in the back end, one set in the UI.** `Run` takes a config per side, so a fighter
+  lineage could race a capital lineage on different budgets, kinds or population sizes; the evolution page
+  sets one set of settings for both, so all it adds is a second founders picker. The config file and the
+  CLI (`--versus`, taking stock ships, blueprint files or fleets, as `--from` and `--fleet` do) can give the
+  sides different settings.
+- **The run file records which side each generation is for**, and a run of one side reads as it does now.
+- **The page drops the score chart for a co-evolution run** — fitness and the score parts alike. Every
+  score there is relative to the other side, which is getting better too: a better B lowers A's damage and
+  function taken, so a rising lineage can draw a falling line, and the chart only measures progress when
+  there is a goal. The mass and ship-count charts get a line per side instead, and take over picking a
+  generation, which they already do by hover and drag; the combatants table gets a column saying which
+  side a row is on.
+- **Progress is measured across generations, not within them.** The yardstick grows a grid: the champion
+  of A at generation i against the champion of B at generation j. An arms race shows as later generations
+  beating earlier opponents; cycling shows as the grid not improving down either axis.
+
+Built headless: `evolution/coevolution.ts`, side B in the run file as `rival`, `versus` in the config file
+with side B's population, winners, budget, fleet limits and mutation weights, `--versus`,
+`--versus-fleet`, `--hall` and `--hall-share` on the CLI, and the grid (`championGrid`) in `npm run
+yardstick`. On the evolution page, now a setup screen and a run screen: a Versus picker under the founders,
+side A's and side B's founders and per-side settings in A and B columns, side B fixed rather than
+evolving if unticked (`evolves: false`, `--versus-fixed`), the score chart dropped and the
+fields a co-evolution run does not use hidden while it is set, the mass and ship-count charts a pair of lines
+a side, a side tag on every combatant with each side ranked on its own, and the champion of each side saved
+or exported together. Left: the grid on the page.
+
 
 Not planned: per-ship doctrine overrides in a fleet (fork the design instead), and a group's own doctrine or
 lead, which waits for standing orders. Velocity stays out of the fleet file; the battle setup holds it.
@@ -322,6 +368,14 @@ The remaining pickers and the order weight should follow the shape already there
 ## 12. Open questions
 
 Deliberately unresolved; decide when they block something.
+
+- **Whether co-evolution with a fixed side B replaces the boss battle.** A side B that does not evolve is a
+  boss in all but three ways: a boss fights every entrant of a match at once, all of them on one side, and
+  co-evolution is one against one; a boss stands at the middle, where co-evolution starts both on the ring;
+  and a boss match scores only what is done to the boss, where co-evolution scores both sides alike. One
+  against one measures a design alone, which is cleaner, but loses the boss's "a fleet of entrants against
+  one big thing". Replacing it removes `match.boss`, the boss picker and `--boss`, and moves those runs to
+  `versus` with `evolves: false`.
 
 - **Whether the editor needs a test flight of its own.** A throwaway sim inside the editor, flying the ship
   being edited without leaving the page. The Battle link already takes that ship into a custom battle, which
