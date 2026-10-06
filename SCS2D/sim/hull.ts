@@ -201,12 +201,11 @@ export function modulesAlong(
       const inv = 1 / vx;
       let t0 = (-hl - px) * inv;
       let t1 = (hl - px) * inv;
-      let face = inv > 0 ? -1 : 1;
+      const face = inv > 0 ? -1 : 1;
       if (t0 > t1) {
         const swap = t0;
         t0 = t1;
         t1 = swap;
-        face = -face;
       }
       if (t0 > near) {
         near = t0;
@@ -224,12 +223,11 @@ export function modulesAlong(
       const inv = 1 / vy;
       let t0 = (-hw - py) * inv;
       let t1 = (hw - py) * inv;
-      let face = inv > 0 ? -1 : 1;
+      const face = inv > 0 ? -1 : 1;
       if (t0 > t1) {
         const swap = t0;
         t0 = t1;
         t1 = swap;
-        face = -face;
       }
       if (t0 > near) {
         near = t0;

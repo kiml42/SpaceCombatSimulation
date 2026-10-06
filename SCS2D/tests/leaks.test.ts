@@ -9,7 +9,7 @@ import {
   type Blueprint,
   type Rng,
 } from '../sim/index.js';
-import { LEAK_CHANCE, leakChance, leakRate, leakSpeed } from '../sim/fuel.js';
+import { LEAK_CHANCE, leakChance, leakRate, leakSpeed, type Leak } from '../sim/fuel.js';
 
 /** A core and a tank ahead of it, and nothing to fly with: what moves it is the leak. */
 const DRUM: Blueprint = {
@@ -102,17 +102,23 @@ describe('a holed tank', () => {
 });
 
 describe('a round through a tank', () => {
-  /** A round down the tank's length from the bow; how many holes it leaves. */
-  function shoot(rng: Rng): number {
+  /** A round down the tank's length from the bow; the holes it leaves. */
+  function shoot(rng: Rng): readonly Leak[] {
     const s = scene();
     resolveRound(drum, s.ships.damage, s.world.bodies, s.body, new HullPath(), bowX + 1, 0, -1, 0, 20, 0.1, 1200, undefined, s.ships, rng);
-    return s.ships.fuel.leaksOf(s.body).length;
+    return s.ships.fuel.leaksOf(s.body);
   }
 
   it('holes the face it went in by, and not the bulkhead it goes on through', () => {
     // The core behind the tank holds fuel too, and the round goes on into it.
     expect(drum.modules[0]!.stats.fuel).toBeGreaterThan(0);
-    expect(shoot(always)).toBe(1);
-    expect(shoot(never)).toBe(0);
+    expect(shoot(always)).toHaveLength(1);
+    expect(shoot(never)).toHaveLength(0);
+  });
+
+  it('lets the fuel out back the way the round came in', () => {
+    const [hole] = shoot(always);
+    expect(hole!.nx).toBeCloseTo(1, 12);
+    expect(hole!.ny).toBeCloseTo(0, 12);
   });
 });
