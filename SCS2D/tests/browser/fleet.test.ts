@@ -124,6 +124,22 @@ describe('the fleet editor in a browser', () => {
     expect(await page.textContent('#problems')).toMatch(/Gunship#1 and Dinky#\d overlap at the start/);
   });
 
+  it('swaps the selected ship for another design, and undoes it', async () => {
+    const x = await page.inputValue('#entryX');
+    await page.selectOption('#entryDesign', { label: 'Corvette' });
+    expect(await page.textContent('#selectionTitle')).toBe('Ship: Corvette');
+    expect(await page.inputValue('#entryX')).toBe(x);
+    // One the fleet does not carry yet comes from the library, and is embedded.
+    await page.selectOption('#entryDesign', { label: 'Catamaran' });
+    expect(await page.textContent('#selectionTitle')).toBe('Ship: Catamaran');
+    expect(await page.textContent('#stats')).toMatch(/Catamaran/);
+    await page.click('#undo');
+    await page.click('#undo');
+    expect(await page.textContent('#selectionTitle')).toBe('Ship: Dinky');
+    expect(await page.textContent('#stats')).not.toMatch(/Catamaran/);
+    expect(await page.isVisible('#designRow')).toBe(true);
+  });
+
   it('repeats a ship as a setting that updates as it is typed', async () => {
     await page.fill('#entryX', '-300');
     await page.fill('#repeatCount', '4');

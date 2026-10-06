@@ -16,6 +16,7 @@ import {
   MODULE_KINDS,
   readsBarrelCalibres,
   readsNozzle,
+  readsSealing,
   readsThick,
   readsFuse,
   readsWeapon,
@@ -87,6 +88,7 @@ const MODULE_KEYS: readonly string[] = [
   'burstSpeed',
   'weapon',
   'thick',
+  'sealing',
   'targeting',
   'notes',
 ];
@@ -201,6 +203,7 @@ function moduleShapeProblem(value: Record<string, unknown>, where: string): stri
     optionalNumberProblem(value['burstSpeed'], `${where}: burstSpeed`) ??
     optionalBooleanProblem(value['weapon'], `${where}: weapon`) ??
     optionalBooleanProblem(value['thick'], `${where}: thick`) ??
+    optionalNumberProblem(value['sealing'], `${where}: sealing`) ??
     targetingProblem(value['targeting'], `${where}: targeting`) ??
     optionalStringProblem(value['notes'], `${where}: notes`)
   );
@@ -224,6 +227,7 @@ function moduleReads(kind: ModuleKind): readonly string[] {
     if (key === 'fuse' || key === 'fragments' || key === 'burstSpeed') return readsFuse(kind);
     if (key === 'weapon') return readsWeapon(kind);
     if (key === 'thick') return readsThick(kind);
+    if (key === 'sealing') return readsSealing(kind);
     return true;
   });
 }
@@ -417,6 +421,7 @@ function toPlacements(raws: unknown[]): Placement[] {
     if (read('burstSpeed')) spec.burstSpeed = raw['burstSpeed'] as number;
     if (read('weapon')) spec.weapon = raw['weapon'] as boolean;
     if (read('thick')) spec.thick = raw['thick'] as boolean;
+    if (read('sealing')) spec.sealing = raw['sealing'] as number;
     // Copied whole, so a key the block does not know goes back out with it.
     if (raw['targeting'] !== undefined) spec.targeting = { ...(raw['targeting'] as Partial<Targeting>) };
     if (raw['notes'] !== undefined) spec.notes = raw['notes'] as string;
@@ -583,6 +588,9 @@ function serialisePlacement(placement: Placement): Record<string, unknown> {
   }
   if (placement.thick !== undefined && readsThick(placement.kind)) {
     raw['thick'] = placement.thick;
+  }
+  if (placement.sealing !== undefined && readsSealing(placement.kind)) {
+    raw['sealing'] = placement.sealing;
   }
   // Written as authored: a mount's block is already only its differences from
   // the ship it is on, so there is nothing to subtract.

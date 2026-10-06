@@ -76,11 +76,11 @@ describe('a ship cut in half', () => {
   });
 
   it('sends both halves after the enemy nobody told them about, and mostly leaves the wreck', () => {
-    // The point of the scenario: a piece with somebody aboard picks the
+    // The point of the scenario: a piece with a working core picks the
     // corvette still worth fighting, and both pick the same one without being
     // ordered to.
     //
-    // **What is never a target is a hull with nobody aboard**, since no shot
+    // **What is never a target is a hull with no working core**, since no shot
     // will ever remove one from the battle. The rammer is not one of those —
     // it comes out of its own ram disarmed and engineless but with its core
     // intact, so it is harmless and still finishable, and a mount that takes
@@ -108,7 +108,7 @@ describe('a ship cut in half', () => {
       for (const piece of pieces) {
         const target = run.ships.targetOfTurret(run.world.bodies, piece, 0);
         if (target < 0) continue;
-        // Never a hulk: there is nobody aboard one and nothing to finish.
+        // Never a hulk: nothing controls one and there is nothing to finish.
         expect(run.ships.hasControl(target)).toBe(true);
         expect(run.ships.design(target).name).toBe('Corvette');
         onAnything++;

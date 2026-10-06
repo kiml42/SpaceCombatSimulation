@@ -95,6 +95,14 @@ describe('the modules a shot crosses', () => {
     modulesAlong(row, 0, -10, 0, 10, path);
     expect(path.nx[0]).toBeCloseTo(0, 12);
     expect(path.ny[0]).toBeCloseTo(-1, 12);
+    // And from the far side, back the other way.
+    modulesAlong(row, 10, 0, -10, 0, path);
+    expect(path.nx[0]).toBeCloseTo(1, 12);
+    expect(path.ny[0]).toBeCloseTo(0, 12);
+
+    modulesAlong(row, 0, 10, 0, -10, path);
+    expect(path.nx[0]).toBeCloseTo(0, 12);
+    expect(path.ny[0]).toBeCloseTo(1, 12);
   });
 
   it('leaves the normal at zero for a module the shot began inside', () => {

@@ -173,6 +173,46 @@ export const SMALL_ENGINE_THROAT = 0.25;
  */
 export const FUEL_DENSITY = 420;
 
+/**
+ * Drag coefficient of a round driving through fuel. About what a fast
+ * projectile meets in water.
+ */
+export const FUEL_DRAG_COEFFICIENT = 0.3;
+
+/** The volume inside a module's walls and any sealing lining, m³. */
+export function interiorVolume(stats: ModuleStats): number {
+  return stats.interior;
+}
+
+/**
+ * Density of a sealing lining, kg/m³: rubber, which swells where fuel reaches it
+ * and so closes a hole punched through it.
+ */
+export const SEALANT_DENSITY = 1100;
+
+/**
+ * How fast a lining closes a hole, as the width it closes a second per metre of
+ * lining, 1/s. A 20 mm lining closes a fragment's pinhole in under a second and
+ * a shell's 200 mm gash in ten.
+ */
+export const SEAL_SPEED = 1;
+
+/**
+ * How wide a hole a lining can close, in its own thicknesses. Wider than this
+ * and the lining swells as far as it can and the rest stays open.
+ */
+export const SEAL_REACH = 10;
+
+/** Whether `sealing` means anything on this kind: what holds fuel. */
+export function readsSealing(kind: ModuleKind): boolean {
+  return kind === 'tank' || kind === 'core';
+}
+
+/** How thick a module's sealing lining is, metres: zero where its kind has none. */
+export function liningOf(spec: ModuleSpec): number {
+  return readsSealing(spec.kind) ? (spec.sealing ?? 0) : 0;
+}
+
 /** Standard gravity, m/s², for stating an exhaust velocity as a specific impulse. */
 export const STANDARD_GRAVITY = 9.80665;
 
@@ -798,6 +838,13 @@ export interface ModuleSpec {
   thick?: boolean;
 
   /**
+   * How thick a self-sealing lining is inside the walls, metres; zero or absent
+   * for none. A tank or a core only. Thicker closes a hole faster and closes a
+   * wider one (`SEAL_SPEED`, `SEAL_REACH`), and weighs more and holds less.
+   */
+  sealing?: number;
+
+  /**
    * Why this module is here, in the author's own words. Carried through the
    * file format and the editor, and ignored by every scaling law.
    *
@@ -915,6 +962,10 @@ export interface ModuleStats {
   exhaustVelocity: number;
   /** Fuel the module holds when full, kg, counted in `mass`. Zero unless it is a tank. */
   fuel: number;
+  /** Self-sealing lining inside the walls, metres; zero for none. */
+  lining: number;
+  /** Volume inside the walls and the lining, m³. */
+  interior: number;
   /** Gun derived from the mount, or null unless the module is a weapon. */
   gun: GunStats | null;
   /**
@@ -985,6 +1036,9 @@ export function moduleProblem(spec: ModuleSpec): string | null {
   if (spec.fragments !== undefined && !(Number.isInteger(spec.fragments) && spec.fragments >= 0 && spec.fragments <= MAX_FRAGMENTS)) {
     return `${spec.kind}: fragments must be a whole number from 0 to ${MAX_FRAGMENTS}, got ${spec.fragments}`;
   }
+  if (spec.sealing !== undefined && !(spec.sealing >= 0)) {
+    return `${spec.kind}: sealing must be at least 0, got ${spec.sealing}`;
+  }
   if (spec.burstSpeed !== undefined && !(spec.burstSpeed > 0)) {
     return `${spec.kind}: burst speed must be more than 0, got ${spec.burstSpeed}`;
   }
@@ -1012,6 +1066,9 @@ export function moduleProblem(spec: ModuleSpec): string | null {
       `${spec.kind}: walls ${thickness.toFixed(3)} m thick leave no interior in a ` +
       `${boxLength}x${spec.width} m module`
     );
+  }
+  if (2 * (thickness + liningOf(spec)) >= limiting) {
+    return `${spec.kind}: a ${(liningOf(spec) * 1000).toFixed(0)} mm sealing lining leaves no room inside`;
   }
   if (isHullMount(spec.kind)) {
     const { traverse, outletWidth } = hullMountGeometry(spec);
@@ -1797,6 +1854,13 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
   const structureMass = wallVolume * HULL_DENSITY;
 
   const capacity = (boxLength - 2 * wallThickness) * (width - 2 * wallThickness);
+  // A sealing lining is a second skin inside the first, and what it fills is
+  // room the fuel no longer has.
+  const lining = liningOf(spec);
+  const lined = wallThickness + lining;
+  const interior =
+    lining > 0 ? (boxLength - 2 * lined) * (width - 2 * lined) * (height - 2 * lined) : inner;
+  const liningMass = (inner - interior) * SEALANT_DENSITY;
 
   let fittingMass = 0;
   let thrust = 0;
@@ -1819,12 +1883,13 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
     // core buys no capability beyond being the control centre, so this mass
     // and the fragility of a small one are the whole of what stops a ship
     // carrying five of them.
-    fittingMass = max(CORE_MINIMUM_FITTING_MASS, CORE_MASS_PER_AREA * capacity);
-    fuel = max(0, inner - CORE_COMPUTING_VOLUME) * FUEL_DENSITY;
+    fittingMass = max(CORE_MINIMUM_FITTING_MASS, CORE_MASS_PER_AREA * capacity) + liningMass;
+    fuel = max(0, interior - CORE_COMPUTING_VOLUME) * FUEL_DENSITY;
   } else if (spec.kind === 'tank') {
     // A box whose whole interior is fuel. It packs the box as the box formula
     // assumes, so the inertia below already holds it.
-    fuel = inner * FUEL_DENSITY;
+    fittingMass = liningMass;
+    fuel = interior * FUEL_DENSITY;
   } else if (engine !== null) {
     // Thrust comes out of the nozzle, so it scales with the exit area: each
     // bell square, as wide as it is deep. A thin engine wider than a deck
@@ -1985,6 +2050,8 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
     thrust,
     exhaustVelocity,
     fuel,
+    lining,
+    interior,
     gun,
     traverseMass,
     swingInertia: mount === null ? inertia : swing,

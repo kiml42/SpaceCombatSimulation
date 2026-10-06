@@ -67,7 +67,7 @@ const CLOSING_SCALE = 100;
  * list by exactly what a doctrine says those are worth, with no special case
  * about what it has become. A ship with *nothing* left, though, is filtered
  * out before it ever reaches `score`: the caller checks `Ships.hasControl`,
- * because a hull with nobody aboard can never be finished off, so ranking it
+ * because a hull with no working core can never be finished off, so ranking it
  * low is not enough to stop a chooser sitting next to one forever when a live
  * threat is further off.
  *

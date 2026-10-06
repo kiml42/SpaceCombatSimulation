@@ -56,8 +56,8 @@ function snapshotOf(ships: ShipView[]): Snapshot {
   const snapshot = new Snapshot();
   snapshot.ships = ships;
   snapshot.shipCount = ships.length;
-  // As `capture` does: the ships anybody is still aboard are what is framed,
-  // and all of them when nobody is aboard any of them.
+  // As `capture` does: the ships still under control are what is framed,
+  // and all of them when none is.
   const framed = ships.some((s) => s.hasControl) ? ships.filter((s) => s.hasControl) : ships;
   snapshot.minX = Math.min(...framed.map((s) => s.x - 20));
   snapshot.maxX = Math.max(...framed.map((s) => s.x + 20));
@@ -335,7 +335,7 @@ describe('the pace the camera keeps', () => {
     expect(panned.y).toBe(0);
   });
 
-  it('falls back to the hulks once nobody is aboard anything', () => {
+  it('falls back to the hulks once nothing is under control', () => {
     // A fight that ends with every core shot out should leave the camera
     // travelling with what it made, rather than letting it slide off the edge.
     const camera: Camera = { x: 0, y: 0, scale: 0.1 };
@@ -361,7 +361,7 @@ describe('the pace the camera keeps', () => {
     moveWithVisibleShips(watching, snapshotOf([flown, hulk, piece]), 1, WIDTH, HEIGHT);
     expect(watching.x).toBeCloseTo(100, 9);
 
-    // The same scene with nobody aboard: the hulk, not the debris, and not the
+    // The same scene with nothing under control: the hulk, not the debris, and not the
     // mean of the two.
     const afterwards: Camera = { x: 0, y: 0, scale: 0.1 };
     moveWithVisibleShips(afterwards, snapshotOf([hulk, piece]), 1, WIDTH, HEIGHT);

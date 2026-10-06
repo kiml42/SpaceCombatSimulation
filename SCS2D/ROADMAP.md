@@ -162,9 +162,9 @@ and evolution run does, and a ship tuned to half the rules is tuned twice.
 
 **Step 8 — Fuel.** Tanks, burning and the editor's figures are built (DESIGN.md Status). What is left:
 
-- **Leaks - Built** Damage to a tank does nothing yet. A holed tank losing fuel and pushing on the hull at the hole,
-  and sealing (§12), are what price tank size and placement — until then nothing stops evolution building
-  one enormous tank (§5).
+- **Lining the stock tanks.** Leaks and sealing are built (DESIGN.md Status), and no stock ship has a lining,
+  so every hole in one stays open while there is fuel behind it. How thick a lining each wants is a design
+  call about the fleet.
 - **Drain priority.** Tanks are drained tier by tier (`drainPriority` in `sim/fuel.ts`), and every tank is
   in the one tier. A priority per tank in the layout fills it in.
 - **Pilots that know their fuel.** Nothing flies differently for running low, so a ship spends its tanks
@@ -580,11 +580,17 @@ Deliberately unresolved; decide when they block something.
   than in hull radii, and the urge wants a way to dominate rather than merely to vote. Neither is a large
   change; both want a scene to tune against, and the crowded ones are the Star Wars fleet action and the
   super-swarm.
-- **How a leak is sealed.** Suggested: sealing as a continuous parameter on a tank — how fast a hole closes,
-  bought with wall mass — rather than a separate self-sealing part, which is the §6 rule of archetypes with
-  continuous parameters and gives evolution a dial. A leak is also a new kind of damage response: today's are
-  capability curves over integrity, and a leak is an ongoing effect at a point, whose push needs to know where
-  the round struck. Check that the damage pass keeps the point before scoping step 8.
+- **The sealing dials: `SEAL_SPEED`, `SEAL_REACH` and `SEALANT_DENSITY`.** Set so a 20 mm rubber lining closes
+  a fragment's pinhole in under a second and a shell's 200 mm gash in ten, and goes no wider than ten times
+  its own thickness. A lining closes whether or not fuel is against it, where a real one swells only where
+  fuel reaches it; the difference shows only in a tank that empties before its holes close.
+- **Which holes a round leaves.** Only the face it went in by, and only where that face is open to space: a
+  round on through a bulkhead into the next module, and the hole it makes going out of the far side, open
+  nothing. Fuel through a bulkhead would fill the next compartment rather than space, which wants a model
+  of compartments; the far side is a second hole the walk has no face for yet.
+- **How hard a leak pushes.** The jet leaves at what the tank's pressure gives it, a few tens of metres a
+  second, so a shell's gash pushes with about 20 kN, a twentieth of a corvette's manoeuvring engine. Fuel that boils
+  as it leaves would go faster and push harder; nothing models what the fuel does once it is out.
 - **Whether a grapple is a dock.** Step 9's hold on a wreck is a deliberate dock. Suggested: build it as a
   claw on the ragged-metal weld (`Ships.weld`), with the claw's own rules for what it may grip — or decide
   on purpose that a tether is something else.
@@ -877,14 +883,6 @@ Deliberately unresolved; decide when they block something.
   targeting picking modules rather than ships.
 - **When a ship decides to dock.** Docking is a commit at a low closing speed, but nothing wants to dock
   until fuel gives it a reason (step 8 on). Decide with the docking ports below.
-- **A ship whose cores are out keeps its last throttle.** Nothing flies it, so its wrench is held rather
-  than recomputed and replayed every step (`Ships.forceProvider`): a stuck throttle, kept as a failure mode
-  of losing the link to the computer. Left for now. It contradicts the command rule — an uncommanded engine
-  thrusts nothing, yet the held wrench is applied in full — and a hulk that lost its core mid-turn spins up
-  without limit (a Super Swarm Dinky passes 5,000 rad/s by step 8,000). Either replay the held throttles
-  through what each engine can still do, which leaves a hulk drifting, or let an engine with no working core
-  keep burning at its last setting, as an exception to the command rule. Most goldens move either way.
-  It does at least pay for it: a held wrench burns fuel, so a hulk stops once its tanks are dry.
 - **What a bigger core is for.** A core needs a cubic metre for its computing and the rest of it is fuel
   tank, so past that size it is a tank that also flies the ship, paying for its computing by the floor it
   fills (`CORE_MASS_PER_AREA`). A tank does the fuel's job for less, so the best core is the smallest that
@@ -902,6 +900,9 @@ Deliberately unresolved; decide when they block something.
   engine flat out. Liquid
   methane rather than water because at water's density a deck-high module of fuel outweighs the ship
   around it several times. How many battles a tankful should last is a question for the fleet's balance.
+- **How hard fuel is to shoot through.** `FUEL_DRAG_COEFFICIENT` is water's figure for a fast projectile,
+  and everything a round loses to it is damage to the tank. A tank is then armour of a sort that thins as it
+  empties, which may want weighing against plating once leaks make holing one costly.
 - **Whether chamber pressure should buy efficiency.** A real engine gains specific impulse with chamber
   pressure; here the machinery depth behind a throat (`supply` in `moduleStats`) buys flow and nothing
   else. It would be a reason for deep machinery beyond thrust.

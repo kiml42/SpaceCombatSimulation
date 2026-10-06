@@ -2,6 +2,7 @@
 Things that are obviously wrong.
 
 - When stating evolution in "A battle" setting, it doesn't start showing a battle, you need to switch to "the combatants" and back again.
+- Turrets sometimes track through thick modules which should physically block them.
 
 -----------------------------------------------------------------------
 

@@ -213,7 +213,7 @@ describe('escort and neutrals', () => {
   });
 
   it('covers no friend with its core shot out', () => {
-    // Nobody aboard is nobody to cover: the escort goes to the fight as
+    // A friend nothing controls is nothing to cover: the escort goes to the fight as
     // though there were nothing there, as it does for a hulk it might shoot.
     function fly(hulk: boolean): number {
       const consort = compileBlueprint(MARKER);

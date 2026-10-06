@@ -155,7 +155,7 @@ function matchedPace(out: number): number {
 /**
  * What the camera would rather be following, best first.
  *
- * A battle is what anybody is watching, so ships with somebody aboard come
+ * A battle is what anybody is watching, so ships still under control come
  * first and nothing else is looked at while there is one in shot. Past that
  * the fallbacks are about not abandoning the viewer: a fight that ends with
  * every core shot out should leave the camera travelling with the hulks it

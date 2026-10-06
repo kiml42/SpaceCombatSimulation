@@ -17,6 +17,7 @@ import {
   isWeaponMount,
   readsThick,
   readsFuse,
+  readsSealing,
   canThicken,
   fighterProblem,
   isThick,
@@ -177,7 +178,8 @@ type ModuleNumberField =
   | 'traverse'
   | 'fuse'
   | 'fragments'
-  | 'burstSpeed';
+  | 'burstSpeed'
+  | 'sealing';
 
 /** A module's own value for a field, with the default the parser would have applied. */
 function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
@@ -191,6 +193,8 @@ function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
   if (key === 'fuse') return spec.fuse ?? DEFAULT_FUSE;
   if (key === 'fragments') return spec.fragments ?? DEFAULT_FRAGMENTS;
   if (key === 'burstSpeed') return spec.burstSpeed ?? DEFAULT_BURST_SPEED;
+  // Millimetres on the panel, metres in the layout.
+  if (key === 'sealing') return (spec.sealing ?? 0) * 1000;
   return spec.barrels ?? 1;
 }
 
@@ -328,6 +332,7 @@ export function startEditor(): void {
     fuse: el<HTMLInputElement>('propFuse'),
     fragments: el<HTMLInputElement>('propFragments'),
     burstSpeed: el<HTMLInputElement>('propBurstSpeed'),
+    sealing: el<HTMLInputElement>('propSealing'),
     notes: el<HTMLTextAreaElement>('propNotes'),
   };
 
@@ -805,6 +810,7 @@ export function startEditor(): void {
     el<HTMLElement>('weaponRow').hidden = spec.kind !== 'engine';
     weaponInput.checked = spec.weapon === true;
     el<HTMLElement>('thickRow').hidden = !readsThick(spec.kind);
+    el<HTMLElement>('sealingRow').hidden = !readsSealing(spec.kind);
     // One no more than a deck across is as deep as it is wide either way.
     thickInput.disabled = !canThicken(spec) || doc.blueprint.fighter === true;
     thickInput.checked = isThick(spec);
@@ -1218,6 +1224,7 @@ export function startEditor(): void {
       if (key === 'angle' || key === 'traverse') {
         editSelected({ [key]: degreesToRadians(value) } as Partial<ModuleSpec>, true);
       }
+      else if (key === 'sealing') editSelected({ sealing: value / 1000 }, true);
       else editSelected({ [key]: value } as Partial<ModuleSpec>, true);
     });
   }

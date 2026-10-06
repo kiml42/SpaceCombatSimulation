@@ -14,7 +14,7 @@ import { CATAMARAN, CORVETTE } from './blueprints.js';
  *
  * The corvette off the port bow is what proves it. Nothing is told to fight
  * it: each half picks it up on its own doctrine, closes to its own band and
- * opens fire, which a hulk cannot do and a piece with somebody aboard can.
+ * opens fire, which a hulk cannot do and a piece with a working core can.
  *
  * The one order in the scenario is the ram, because a gunship flying its own
  * doctrine would stand off at a kilometre and shoot rather than go through

@@ -1,6 +1,9 @@
 import {
   Allocation,
   specificImpulse,
+  readsSealing,
+  SEAL_REACH,
+  SEAL_SPEED,
   HullPath,
   exhaustObstruction,
   firingArc,
@@ -303,6 +306,15 @@ export function moduleReadout(
     ['Hit points', stats.hitPoints.toLocaleString('en-GB', { maximumFractionDigits: 0 })],
   ];
   if (stats.fuel > 0) rows.push(['Fuel', `${(stats.fuel / 1000).toLocaleString('en-GB', { maximumFractionDigits: 2 })} t, counted in its mass`]);
+  if (readsSealing(spec.kind)) {
+    rows.push([
+      'Sealing',
+      stats.lining > 0
+        ? `closes a hole up to ${(stats.lining * SEAL_REACH * 1000).toLocaleString('en-GB', { maximumFractionDigits: 0 })} mm across, ` +
+          `${(stats.lining * SEAL_SPEED * 1000).toLocaleString('en-GB', { maximumFractionDigits: 0 })} mm a second`
+        : 'none — a hole stays open',
+    ]);
+  }
   if (stats.exhaustVelocity > 0) {
     // What it costs to run, which the bell and the size of the throat decide.
     rows.push([

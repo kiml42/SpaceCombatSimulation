@@ -11,7 +11,9 @@ import {
 import { components, cuts, jointBetween, joints, type Joint } from './connectivity.js';
 import { BOTH_LAYERS, HULL_LAYER, Hulls, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from './hull.js';
 import { Damage, DamageEffect } from './damage.js';
-import { Fuel } from './fuel.js';
+import { Fuel, LEAK_HOLE_CALIBRES, leakChance, leakRate, leakSpeed, type Leak } from './fuel.js';
+import { SEAL_REACH, SEAL_SPEED } from './modules.js';
+import type { Rng } from './rng.js';
 import { plumeRays, plumeRayStarts, Plumes, WEAPON_PLUME_SHARE, weaponPlumeReach } from './exhaust.js';
 import { Choice, cohesionUrge, inSight, look, lookFrom, score } from './targeting.js';
 import {
@@ -49,7 +51,7 @@ import type { BeamHits, Beams, SpatialGrid } from './index.js';
 import { MAX_BEAM_LENGTH } from './beams.js';
 import { RayHit } from './spatialGrid.js';
 import { hullsOverlap, type Contacts } from './collision.js';
-import { GunType, type GunStats, type ModuleKind } from './modules.js';
+import { FUEL_DENSITY, GunType, interiorVolume, type GunStats, type ModuleKind } from './modules.js';
 
 /**
  * Ships: a compiled design bound to a body, flying itself and shooting.
@@ -560,7 +562,7 @@ export class Ships {
   private readonly team: number[] = [];
 
   /**
-   * Which ships have nobody aboard: the pieces other ships have been broken
+   * Which ships were never controlled: the pieces other ships have been broken
    * into.
    *
    * A chunk is a ship in every way that matters to the rest of the sim — it
@@ -687,6 +689,10 @@ export class Ships {
    * is flying is held rather than recomputed, and recoil added into it piled up.
    */
   private readonly recoil: number[] = [];
+  /** This step's push from fuel leaking out of each ship's body, body frame. */
+  private readonly leakFx: number[] = [];
+  private readonly leakFy: number[] = [];
+  private readonly leakTorque: number[] = [];
 
   private readonly alive: number[] = [];
 
@@ -736,6 +742,43 @@ export class Ships {
     return ship === undefined ? OWN_LAYERS : this.shipLayers(ship);
   }
 
+  /** Whether this ship is the first riding its body: the one a hull's own doings are told through. */
+  ownsBody(i: number): boolean {
+    const bodies = this.bodyStore;
+    const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[i]!);
+    return b >= 0 && this.shipByBody[b] === i;
+  }
+
+  holed(bodyIndex: number, module: number, integrity: number, x: number, y: number, nx: number, ny: number, calibre: number, rng: Rng): void {
+    const m = this.designOf(bodyIndex)?.modules[module];
+    if (m === undefined || !(this.fuel.held(bodyIndex, module) > 0)) return;
+    if (rng.nextFloat() >= leakChance(integrity)) return;
+    // Into the module's own frame, so the hole goes with it.
+    const c = cos(m.angle);
+    const s = sin(m.angle);
+    const dx = x - m.x;
+    const dy = y - m.y;
+    const width = calibre * LEAK_HOLE_CALIBRES;
+    const lining = m.stats.lining;
+    this.fuel.hole(bodyIndex, {
+      module,
+      x: dx * c + dy * s,
+      y: -dx * s + dy * c,
+      nx: nx * c + ny * s,
+      ny: -nx * s + ny * c,
+      width,
+      floor: max(0, width - lining * SEAL_REACH),
+      closing: lining * SEAL_SPEED,
+      rate: 0,
+    });
+  }
+
+  fuelDepth(bodyIndex: number, module: number): number {
+    const stats = this.designOf(bodyIndex)?.modules[module]?.stats;
+    if (stats === undefined || !(stats.fuel > 0)) return 0;
+    return min(1, this.fuel.held(bodyIndex, module) / (FUEL_DENSITY * interiorVolume(stats)));
+  }
+
   designOf(bodyIndex: number): ShipDesign | null {
     const design = this.hullDesign[bodyIndex];
     if (design === undefined || design === null) return null;
@@ -778,7 +821,7 @@ export class Ships {
   }
 
   /**
-   * Whether anybody is still flying this ship: a core damage has not finished
+   * Whether this ship is still under control: a core damage has not finished
    * with.
    *
    * A ship is controlled from its cores (DESIGN.md §4), so this is the one
@@ -790,7 +833,7 @@ export class Ships {
    */
   hasControl(i: number): boolean {
     if (this.alive[i] === 0) return false;
-    // Nobody was ever aboard a severed chunk, whatever it is carrying.
+    // A severed chunk was never controlled, whatever it is carrying.
     if (this.derelict[i] === 1) return false;
     const bodies = this.bodyStore;
     const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[i]!);
@@ -803,8 +846,8 @@ export class Ships {
   }
 
   /**
-   * A ship with nobody left aboard to cover: its cores shot out. Not a
-   * neutral, which is an objective rather than a crew.
+   * A ship with nothing left controlling it to cover: its cores shot out. Not a
+   * neutral, which is an objective rather than a ship.
    */
   private hulk(i: number): boolean {
     return this.team[i] !== NEUTRAL_TEAM && !this.hasControl(i);
@@ -1002,6 +1045,9 @@ export class Ships {
     this.demandFy.push(0);
     this.demandTorque.push(0);
     this.recoil.push(0);
+    this.leakFx.push(0);
+    this.leakFy.push(0);
+    this.leakTorque.push(0);
     this.alive.push(1);
 
     return i;
@@ -1060,13 +1106,13 @@ export class Ships {
       for (let t = 0; t < this.alive.length; t++) {
         if (t === i || this.alive[t] === 0) continue;
         // Wreckage is matter, not an enemy, nor is anything not hostile, and
-        // a hulk offers nothing worth closing on: nobody is aboard it, and no
+        // a hulk offers nothing worth closing on: nothing controls it, and no
         // shot fired at it will ever remove it from the battle, so scoring it
         // low is not enough to stop a ship parking next to one forever.
         //
         // **A hulk is a hull with its cores shot out, and nothing else is.**
         // A ship that has merely lost its guns and its engines is harmless
-        // and still a target: there is somebody aboard it, and a round
+        // and still a target: its core still controls it, and a round
         // through the core finishes it. Excluding those as well would make
         // being harmless the safest thing a hull could be — untouchable by
         // everyone, for as long as it liked.
@@ -1656,7 +1702,7 @@ export class Ships {
    *
    * The cast stops at the nearest hull, so an enemy between this gun and a
    * consort behind it is still shot at. Wreckage is not a friend however it
-   * is painted: nobody is aboard it, and holding fire for it would make every
+   * is painted: nothing controls it, and holding fire for it would make every
    * broken ship a shield. Nor is what this mount is shooting at, whoever's
    * side it is on — a ship told to fire on one of its own does so, because
    * this is a rule about what is *in the way* and not about who may be shot.
@@ -1803,9 +1849,9 @@ export class Ships {
         if (this.alive[i] === 0) continue;
         bodies.applyLocalWrench(
           this.bodyIds[i]!,
-          this.demandFx[i]!,
-          this.demandFy[i]!,
-          this.demandTorque[i]! + this.recoil[i]!,
+          this.demandFx[i]! + this.leakFx[i]!,
+          this.demandFy[i]! + this.leakFy[i]!,
+          this.demandTorque[i]! + this.recoil[i]! + this.leakTorque[i]!,
         );
       }
     };
@@ -1826,10 +1872,14 @@ export class Ships {
 
     for (let i = 0; i < this.alive.length; i++) {
       if (this.alive[i] === 0) continue;
-      // Nobody aboard a severed chunk, and nobody left aboard a ship whose
-      // cores have been shot out, so nothing holds its heading or kills its
-      // drift: it tumbles on with whatever the break or the last hit gave it.
-      if (!this.hasControl(i)) continue;
+      // Nothing controls a severed chunk, or a ship whose cores have been
+      // shot out, so nothing holds its heading or kills its
+      // drift: its engines and turrets fail safe and stop, and it tumbles on
+      // with whatever the break or the last hit gave it.
+      if (!this.hasControl(i)) {
+        this.failSafe(i);
+        continue;
+      }
       this.removeInvalidOrders(i);
       this.decide(world, bodies, i);
       this.decideTurrets(world, bodies, i);
@@ -1848,10 +1898,13 @@ export class Ships {
       }
     }
 
-    // Every ship pushing pays for it, flown or not: a hulk's last wrench is
-    // still applied, so it burns until it runs dry.
+    // Every ship pushing pays for what it burns.
     for (let i = 0; i < this.alive.length; i++) {
       if (this.alive[i] === 1) this.burn(dt, bodies, i);
+    }
+    // Once per body, however many ships ride it.
+    for (let i = 0; i < this.alive.length; i++) {
+      if (this.alive[i] === 1) this.leak(dt, bodies, i);
     }
 
     // Slew every turret, collecting the hull reaction rather than letting it
@@ -3502,9 +3555,9 @@ export class Ships {
    *
    * **A piece with a working core leaves as a ship**, not as wreckage: it is
    * flown, it shoots, it keeps the side it was on, and it works through a copy
-   * of the plan the ship was given, because whoever was aboard it was given
-   * that plan too. Everything else comes away as a piece of hull with nobody
-   * aboard. This is what a second core buys — a hull cut in two amidships
+   * of the plan the ship was given, because the core it is flown from was given
+   * that plan too. Everything else comes away as a piece of hull with nothing
+   * controlling it. This is what a second core buys — a hull cut in two amidships
    * becomes two ships rather than a ship and a wreck.
    */
   private detach(world: World, i: number, design: ShipDesign, keep: readonly number[], side = i): boolean {
@@ -3556,7 +3609,12 @@ export class Ships {
       this.scarsOf(b, keep),
       this.weldScarsOf(b, design, chunk, keep),
     );
-    this.fuel.register(chunkBody, chunk, keep.map((m) => this.fuel.held(b, m)));
+    this.fuel.register(
+      chunkBody,
+      chunk,
+      keep.map((m) => this.fuel.held(b, m)),
+      this.leaksInto(keep.length, (m) => ({ body: b, module: keep[m]! })),
+    );
     this.settleMass(bodies, chunkBody);
     this.shipByBody[chunkBody] = j;
     this.sides[chunkBody] = this.sidesOf((m) => this.sideAt(b, keep[m]!), keep.length, this.team[j]!);
@@ -3694,7 +3752,8 @@ export class Ships {
     this.layouts[i] = null;
     this.layoutVersion[i] = -1;
     this.damage.register(b, design, scars, weldScars);
-    this.fuel.register(b, design, fuel);
+    const leaks = this.leaksInto(design.modules.length, (m) => ({ body: bodyOf(shipOf(m)), module: moduleOf(m) }));
+    this.fuel.register(b, design, fuel, leaks);
     this.settleMass(bodies, b);
     this.cutSeen[i] = this.damage.cutVersion(b);
   }
@@ -3746,6 +3805,60 @@ export class Ships {
     this.demandFx[i] = fx;
     this.demandFy[i] = fy;
     this.demandTorque[i] = torque;
+  }
+
+  /**
+   * Let fuel out of every hole in this ship's body, and push the body the
+   * other way. Once per body: a ship riding another's leaks nothing of its own.
+   */
+  private leak(dt: number, bodies: Bodies, i: number): void {
+    this.leakFx[i] = 0;
+    this.leakFy[i] = 0;
+    this.leakTorque[i] = 0;
+    const b = bodies.indexOf(this.bodyIds[i]!);
+    if (b < 0 || this.shipByBody[b] !== i || !(dt > 0)) return;
+    const leaks = this.fuel.leaksOf(b);
+    if (leaks.length === 0) return;
+    const design = this.hullDesign[b]!;
+    let fx = 0;
+    let fy = 0;
+    let torque = 0;
+    let vented = false;
+    for (const leak of leaks) {
+      // The lining swells into the hole, pinching it off as far as it can reach.
+      if (leak.width > leak.floor) leak.width = max(leak.floor, leak.width - leak.closing * dt);
+      const fill = this.fuel.fill(b, leak.module);
+      const taken = this.fuel.vent(b, leak.module, leakRate(PI * 0.25 * leak.width * leak.width, fill) * dt);
+      leak.rate = taken / dt;
+      if (!(taken > 0)) continue;
+      vented = true;
+      const m = design.modules[leak.module]!;
+      const c = cos(m.angle);
+      const s = sin(m.angle);
+      const hx = m.x + leak.x * c - leak.y * s;
+      const hy = m.y + leak.x * s + leak.y * c;
+      // Pushed against the jet, at the hole.
+      const thrust = leak.rate * leakSpeed(fill);
+      const px = -(leak.nx * c - leak.ny * s) * thrust;
+      const py = -(leak.nx * s + leak.ny * c) * thrust;
+      fx += px;
+      fy += py;
+      torque += hx * py - hy * px;
+    }
+    if (vented) this.settleMass(bodies, b);
+    this.leakFx[i] = fx;
+    this.leakFy[i] = fy;
+    this.leakTorque[i] = torque;
+  }
+
+  /** Every hole in a body that comes over to a new design, renumbered by where each module went. */
+  private leaksInto(n: number, from: (module: number) => { body: number; module: number }): Leak[] {
+    const out: Leak[] = [];
+    for (let m = 0; m < n; m++) {
+      const { body, module } = from(m);
+      for (const leak of this.fuel.leaksOf(body)) if (leak.module === module) out.push({ ...leak, module: m });
+    }
+    return out;
   }
 
   /** A body's mass and inertia: its design's, less the fuel burnt from it. */
@@ -3803,6 +3916,16 @@ export class Ships {
     return { x: dx * c - dy * s, y: dx * s + dy * c };
   }
 
+  /** With no working core, every engine cuts out and every turret brakes to a stop. */
+  private failSafe(i: number): void {
+    const turrets = this.turretIndex[i]!;
+    for (let t = 0; t < turrets.length; t++) this.turrets.stop(turrets[t]!);
+    this.throttles[i]!.fill(0);
+    this.demandFx[i] = 0;
+    this.demandFy[i] = 0;
+    this.demandTorque[i] = 0;
+  }
+
   remove(i: number): void {
     if (this.alive[i] === 0) return;
     const indices = this.turretIndex[i]!;
@@ -3813,6 +3936,9 @@ export class Ships {
     this.demandFy[i] = 0;
     this.demandTorque[i] = 0;
     this.recoil[i] = 0;
+    this.leakFx[i] = 0;
+    this.leakFy[i] = 0;
+    this.leakTorque[i] = 0;
   }
 
   /**

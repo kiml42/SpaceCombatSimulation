@@ -12,6 +12,7 @@ import {
   entryAt,
   moveEntries,
   refreshDesign,
+  swapDesign,
   updateEntry,
 } from '../editor/fleetEdit.js';
 import { FleetDocument, toFrame, toFrameAngle } from '../editor/fleetDocument.js';
@@ -72,6 +73,22 @@ describe('editing a fleet', () => {
   it('drops a design nothing flies any more', () => {
     const fleet = addShip(addShip(emptyFleet('F'), DINKY, 0, 0), GUNSHIP, 100, 0);
     expect(Object.keys(deleteEntries(fleet, [[1]]).designs)).toEqual(['Dinky']);
+  });
+
+  it('swaps a ship for another design where it stands, and drops the one it was', () => {
+    const fleet = updateEntry(addShip(emptyFleet('F'), DINKY, 10, 20), [0], (e) => ({ ...e, angle: 1 }));
+    const swapped = swapDesign(fleet, [[0]], GUNSHIP);
+    expect(swapped.ships[0]).toEqual({ design: 'Gunship', x: 10, y: 20, angle: 1 });
+    expect(Object.keys(swapped.designs)).toEqual(['Gunship']);
+    // A design the fleet carries is the one used, as when adding.
+    const both = addShip(fleet, GUNSHIP, 100, 0);
+    const changed = { ...DINKY, notes: 'changed' };
+    expect(swapDesign(both, [[1]], changed).designs['Dinky']!.notes).toBe(DINKY.notes);
+  });
+
+  it('leaves a group use alone when asked to swap it', () => {
+    const group = LINE_OF_BATTLE.ships.findIndex((entry) => 'group' in entry);
+    expect(swapDesign(LINE_OF_BATTLE, [[group]], GUNSHIP).ships[group]).toEqual(LINE_OF_BATTLE.ships[group]);
   });
 
   it('moves and duplicates by path', () => {
