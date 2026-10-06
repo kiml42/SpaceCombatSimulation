@@ -16,6 +16,7 @@ inside any one file is not contiguous.
 
 | File | Holds | Read it when |
 | --- | --- | --- |
+| 2026-10-06 | **A ship with nobody aboard fails safe: its engines cut out, its turrets brake to a stop, and it drifts.** It used to keep its last throttle, applied in full every step: a stuck throttle, kept as a failure mode of losing the computer, which contradicted the command rule and let a hulk that lost its core mid-turn spin up without limit. Fuel made it worse rather than bounding it, since a big tanker never runs dry: a Leaky hulk with 52,000 t aboard spun up at its engines' last torque, 600 times what its leaks gave it, and looked as though its leaks were pulling. A turret on a hulk went on chasing the last bearing it was given, its reaction yawing the hull, so it now holds where it points (`Turrets.stop`). An engine that shuts down without a working core is the sensible fail-safe; one that burns on at its last setting is the failure it guards against. Every golden with a hulk in it moved; `orbit`, `tumble` and `gunnery` did not. |
 | **[DESIGN.md](DESIGN.md)** | Status, §§1–7 and 9–11 — what the game is, how it works, and why | Deciding how something should behave |
 | **[ROADMAP.md](ROADMAP.md)** | §8 build order, §12 open questions | Picking up work, or deferring a decision |
 | **[DECISIONS.md](DECISIONS.md)** | The Decision Log | Asking why something ended up the way it is |

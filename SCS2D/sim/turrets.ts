@@ -495,6 +495,12 @@ export class Turrets {
     this.inReach[i] = 1;
   }
 
+  /** Stop driving: brake to rest about where it points, and stop tracking. */
+  stop(i: number): void {
+    this.setCommand(i, this.bearing[i]!, 0);
+    this.wanted[i] = this.bearing[i]!;
+  }
+
   /**
    * How far off the bearing it was asked for this mount may fire, this step,
    * measured about `offset` from it, and out to `reach` of the `range` it is at.

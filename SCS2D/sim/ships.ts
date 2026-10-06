@@ -1874,8 +1874,12 @@ export class Ships {
       if (this.alive[i] === 0) continue;
       // Nobody aboard a severed chunk, and nobody left aboard a ship whose
       // cores have been shot out, so nothing holds its heading or kills its
-      // drift: it tumbles on with whatever the break or the last hit gave it.
-      if (!this.hasControl(i)) continue;
+      // drift: its engines and turrets fail safe and stop, and it tumbles on
+      // with whatever the break or the last hit gave it.
+      if (!this.hasControl(i)) {
+        this.failSafe(i);
+        continue;
+      }
       this.removeInvalidOrders(i);
       this.decide(world, bodies, i);
       this.decideTurrets(world, bodies, i);
@@ -1894,8 +1898,7 @@ export class Ships {
       }
     }
 
-    // Every ship pushing pays for it, flown or not: a hulk's last wrench is
-    // still applied, so it burns until it runs dry.
+    // Every ship pushing pays for what it burns.
     for (let i = 0; i < this.alive.length; i++) {
       if (this.alive[i] === 1) this.burn(dt, bodies, i);
     }
@@ -3911,6 +3914,16 @@ export class Ships {
     const c = cos(angle);
     const s = sin(angle);
     return { x: dx * c - dy * s, y: dx * s + dy * c };
+  }
+
+  /** With nobody aboard, every engine cuts out and every turret brakes to a stop. */
+  private failSafe(i: number): void {
+    const turrets = this.turretIndex[i]!;
+    for (let t = 0; t < turrets.length; t++) this.turrets.stop(turrets[t]!);
+    this.throttles[i]!.fill(0);
+    this.demandFx[i] = 0;
+    this.demandFy[i] = 0;
+    this.demandTorque[i] = 0;
   }
 
   remove(i: number): void {

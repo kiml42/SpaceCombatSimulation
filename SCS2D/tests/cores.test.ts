@@ -144,6 +144,34 @@ describe('a ship with its core shot out', () => {
     expect(b.vx[s.body]).toBeCloseTo(vx, 6);
     expect(b.angularVel[s.body]).toBeCloseTo(spin, 9);
   });
+
+  it('cuts its engines and stops its turrets if the core is lost mid-burn, and drifts', () => {
+    const s = scene(design);
+    const mark = s.ships.spawn(s.world, { design, x: 50_000, y: 0, team: 3 });
+    s.ships.clearOrder(s.ship);
+    s.ships.pushOrder(s.ship, mark, 0, 0, 5000);
+    s.world.addForceProvider(s.ships.forceProvider());
+    const step = (): void => {
+      s.ships.command(DT, s.world);
+      s.world.step();
+    };
+    for (let k = 0; k < 60; k++) step();
+    expect(s.ships.throttleOf(s.ship, 0)).toBeGreaterThan(0);
+
+    s.ships.damage.absorb(s.body, 0, 1e12);
+    step();
+    expect(s.ships.throttleOf(s.ship, 0)).toBe(0);
+    const fuel = s.ships.fuel.left(s.body);
+    // Long enough for the turret to brake to a stop too.
+    for (let k = 0; k < 60; k++) step();
+    const b = s.world.bodies;
+    const vx = b.vx[s.body]!;
+    const spin = b.angularVel[s.body]!;
+    for (let k = 0; k < 60; k++) step();
+    expect(b.vx[s.body]).toBeCloseTo(vx, 9);
+    expect(b.angularVel[s.body]).toBeCloseTo(spin, 9);
+    expect(s.ships.fuel.left(s.body)).toBe(fuel);
+  });
 });
 
 describe('a hull cut between its cores', () => {

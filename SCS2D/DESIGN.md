@@ -257,7 +257,8 @@ inside any one file is not contiguous.
   told twice. It is the trigger and not the aim, so a weapon that fires freely still walks its fire onto
   what its doctrine wanted.
   **A ship is flown from a core** (§4), and one whose cores have been shot out is a hulk with sound
-  engines and sound guns — so a mission kill is a place on the hull rather than a tally of mounts, and a
+  engines and sound guns, all of which fail safe: its engines cut out and its turrets brake to a stop, and
+  it drifts — so a mission kill is a place on the hull rather than a tally of mounts, and a
   ship worth its mass carries a second core, because a hull cut between two of them is two ships. The
   `split` scenario is that sentence made visible: the Catamaran is two hulls joined by a footbridge of thin
   structure with a core in each, a corvette is sent through the bridge at sixty metres a second, and the
@@ -499,7 +500,7 @@ inside any one file is not contiguous.
   piece of hull, in proportion to their size so that tanks starting full run dry together; tanks are
   drained in tiers, all one tier until a tank can carry a priority. A ship weighs its fuel and gets lighter
   as it burns, its centre of mass held where the full ship's was; an engine with nothing left to burn
-  pushes nothing; a hulk burns its last throttle until it runs dry; fuel goes with its tank when a hull
+  pushes nothing; fuel goes with its tank when a hull
   comes apart or is welded. A round through a module with fuel in it is slowed by liquid drag over the
   depth of fuel it crosses, and what it loses goes into the tank. A round through a face of a tank open to
   space can hole it, the likelier the more the tank has already been hurt; the hole is the round's width,
