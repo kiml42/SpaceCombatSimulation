@@ -74,6 +74,8 @@ export const BLUEPRINTS = {
     torpedo: TORPEDO,
 
     xWing: X_WING,
+    aWing: A_WING,
+    yWing: Y_WING,
     ghost: GHOST,
     tie: TIE,
     starDestroyer: STAR_DESTROYER,

@@ -1,0 +1,646 @@
+{
+  "formatVersion": 1,
+  "name": "Imperial Fleet",
+  "designs": {
+    "Star Destroyer": {
+      "formatVersion": 1,
+      "name": "Star Destroyer",
+      "notes": "A capital. Its batteries go for the biggest thing on the board — nothing in the battle outweighs it, so a preference for its own mass is a preference for whatever is largest — and they shoot to disable rather than to destroy: guns, then engines, and never the hull while either is left.",
+      "doctrine": {
+        "targeting": {
+          "proximityWeight": 200,
+          "preferredMass": 0.2,
+          "massWeight": 150,
+          "closingWeight": 30,
+          "armedWeight": 20,
+          "mobileWeight": 5
+        },
+        "approach": {
+          "standoffRadii": 20,
+          "standoff": 0.6,
+          "brake": 10,
+          "ramRadii": 1,
+          "ramArmed": 0.2
+        }
+      },
+      "assemblies": {
+        "structure": {
+          "modules": [
+            {
+              "kind": "structure",
+              "x": 466,
+              "y": 60,
+              "length": 240,
+              "width": 60
+            },
+            {
+              "kind": "structure",
+              "x": 337,
+              "y": 120,
+              "length": 440,
+              "width": 60
+            },
+            {
+              "kind": "structure",
+              "x": 213,
+              "y": 180,
+              "length": 380,
+              "width": 60
+            },
+            {
+              "kind": "structure",
+              "x": -137,
+              "y": 240,
+              "length": 770,
+              "width": 60
+            },
+            {
+              "use": "turret",
+              "x": -507,
+              "y": 130,
+              "repeat": 4,
+              "step": {
+                "x": 140,
+                "y": 0
+              }
+            },
+            {
+              "kind": "structure",
+              "x": -250,
+              "y": 300,
+              "length": 640,
+              "width": 60
+            },
+            {
+              "kind": "structure",
+              "x": -418,
+              "y": 420,
+              "length": 340,
+              "width": 60
+            },
+            {
+              "kind": "structure",
+              "x": -362,
+              "y": 360,
+              "length": 500,
+              "width": 60
+            },
+            {
+              "use": "beamTurret",
+              "x": 239,
+              "y": 82.5
+            },
+            {
+              "use": "beamTurret",
+              "x": 338.5,
+              "y": 16,
+              "angle": -90
+            },
+            {
+              "use": "beamTurret",
+              "x": 101,
+              "y": 142.5
+            },
+            {
+              "use": "beamTurret",
+              "x": -586,
+              "y": 270.5
+            },
+            {
+              "kind": "engine",
+              "x": -475,
+              "y": 450,
+              "angle": 90,
+              "length": 75,
+              "width": 160,
+              "barrels": 36,
+              "nozzle": 0.111111
+            },
+            {
+              "kind": "engine",
+              "x": -395,
+              "y": 478.5,
+              "angle": 0,
+              "length": 56,
+              "width": 57,
+              "barrels": 14,
+              "nozzle": 0.076923
+            },
+            {
+              "kind": "engine",
+              "x": 557,
+              "y": 117.5,
+              "angle": 0,
+              "length": 30,
+              "width": 55,
+              "barrels": 11,
+              "nozzle": 0.166667
+            },
+            {
+              "use": "engine2",
+              "x": -537,
+              "y": 160
+            },
+            {
+              "kind": "structure",
+              "x": -162,
+              "y": 60,
+              "length": 770,
+              "width": 60,
+              "thick": true
+            },
+            {
+              "kind": "structure",
+              "x": -226,
+              "y": 120,
+              "length": 622,
+              "width": 60,
+              "thick": true
+            },
+            {
+              "kind": "structure",
+              "x": 239,
+              "y": 56,
+              "length": 32,
+              "width": 52,
+              "thick": true
+            },
+            {
+              "kind": "engine",
+              "x": -608,
+              "y": 82.5,
+              "angle": 180,
+              "length": 180,
+              "width": 26,
+              "nozzle": 0.277778,
+              "thick": true
+            },
+            {
+              "kind": "structure",
+              "x": -670.5,
+              "y": 102.75,
+              "length": 125,
+              "width": 14.5,
+              "thick": true
+            },
+            {
+              "kind": "structure",
+              "x": -577.5,
+              "y": 80,
+              "length": 61,
+              "width": 60,
+              "thick": true
+            },
+            {
+              "kind": "structure",
+              "x": -673,
+              "y": 59.75,
+              "length": 130,
+              "width": 19.5,
+              "thick": true
+            },
+            {
+              "kind": "structure",
+              "x": -542,
+              "y": 100,
+              "length": 10,
+              "width": 20,
+              "thick": true
+            },
+            {
+              "kind": "structure",
+              "x": 101,
+              "y": 116,
+              "length": 32,
+              "width": 52,
+              "thick": true
+            },
+            {
+              "kind": "structure",
+              "x": 296.5,
+              "y": 60,
+              "length": 83,
+              "width": 60
+            },
+            {
+              "kind": "structure",
+              "x": 342,
+              "y": 61,
+              "length": 8,
+              "width": 58
+            },
+            {
+              "kind": "engine",
+              "x": 806,
+              "y": 0,
+              "angle": 90,
+              "length": 35,
+              "width": 160,
+              "reinforcement": 5,
+              "barrels": 45,
+              "nozzle": 0.166667
+            },
+            {
+              "kind": "engine",
+              "x": -702,
+              "y": 210,
+              "angle": 90,
+              "length": 50,
+              "width": 60,
+              "nozzle": 0.277778,
+              "thick": true
+            },
+            {
+              "kind": "engine",
+              "x": 651,
+              "y": 30,
+              "angle": 90,
+              "length": 42,
+              "width": 130,
+              "reinforcement": 5,
+              "barrels": 45,
+              "nozzle": 0.142857
+            },
+            {
+              "use": "hullGun",
+              "x": 422,
+              "y": 197.5
+            },
+            {
+              "use": "hullGun",
+              "x": 267,
+              "y": 258.5
+            },
+            {
+              "use": "hullGun",
+              "x": 97,
+              "y": 289,
+              "angle": 90
+            },
+            {
+              "use": "hullGun",
+              "x": -232,
+              "y": 409,
+              "angle": 90
+            },
+            {
+              "use": "hullGun",
+              "x": -602,
+              "y": 409,
+              "angle": 90
+            },
+            {
+              "use": "hullGun",
+              "x": -631,
+              "y": 367.5,
+              "angle": -180
+            },
+            {
+              "kind": "structure",
+              "x": -597,
+              "y": 240,
+              "length": 150,
+              "width": 60,
+              "thick": true
+            },
+            {
+              "kind": "structure",
+              "x": -627,
+              "y": 300,
+              "length": 50,
+              "width": 60
+            },
+            {
+              "kind": "structure",
+              "x": -586,
+              "y": 304,
+              "length": 32,
+              "width": 52
+            }
+          ]
+        },
+        "turret": {
+          "modules": [
+            {
+              "kind": "turret",
+              "x": 40,
+              "y": 50,
+              "angle": 90,
+              "length": 60,
+              "width": 140,
+              "barrels": 4,
+              "barrelCalibres": 50,
+              "traverse": 120,
+              "fuse": 0.1,
+              "fragments": 20,
+              "burstSpeed": 400,
+              "targeting": {
+                "structureWeight": 0,
+                "facingWeight": 100,
+                "sightWeight": 20,
+                "preferredMass": 0.3,
+                "fireRange": 4
+              }
+            }
+          ]
+        },
+        "beamTurret": {
+          "modules": [
+            {
+              "kind": "turret",
+              "x": 0,
+              "y": 3.5,
+              "angle": 90,
+              "length": 8,
+              "width": 32,
+              "barrels": 4,
+              "barrelCalibres": 37,
+              "traverse": 140,
+              "fuse": 0.06,
+              "fragments": 12,
+              "burstSpeed": 300,
+              "targeting": {
+                "focusWeight": 0,
+                "proximityWeight": 250,
+                "massWeight": 20,
+                "structureWeight": 0,
+                "facingWeight": 60,
+                "sightWeight": 30,
+                "fireRange": 4,
+                "preferredMass": 0.1
+              },
+              "notes": "Close-in defence, and it fights its own battle: no interest at all in what the ship as a whole has picked, no view on how big a target is, and every view on how near. Guns and engines before hull, because a fighter it disarms is a fighter that has stopped mattering, and a fighter it strands is one the batteries can take at their leisure."
+            }
+          ]
+        },
+        "engine2": {
+          "modules": [
+            {
+              "kind": "engine",
+              "x": 0,
+              "y": 0,
+              "angle": 180,
+              "length": 315,
+              "width": 100,
+              "nozzle": 0.380952,
+              "weapon": true,
+              "thick": true
+            }
+          ]
+        },
+        "hullGun": {
+          "modules": [
+            {
+              "kind": "hullGun",
+              "x": 1,
+              "y": 2.4999999999999996,
+              "angle": 0,
+              "length": 40,
+              "width": 12,
+              "barrels": 4,
+              "barrelCalibres": 59,
+              "traverse": 140,
+              "fuse": 0.06,
+              "burstSpeed": 300,
+              "targeting": {
+                "focusWeight": 0,
+                "proximityWeight": 250,
+                "massWeight": 30,
+                "structureWeight": 0,
+                "facingWeight": 100,
+                "sightWeight": 50,
+                "preferredMass": 0.1,
+                "fireRange": 4
+              },
+              "notes": "Close-in defence, and it fights its own battle: no interest at all in what the ship as a whole has picked, no view on how big a target is, and every view on how near. Guns and engines before hull, because a fighter it disarms is a fighter that has stopped mattering, and a fighter it strands is one the batteries can take at their leisure."
+            }
+          ]
+        }
+      },
+      "modules": [
+        {
+          "kind": "structure",
+          "x": 553,
+          "y": 0,
+          "length": 380,
+          "width": 60
+        },
+        {
+          "kind": "core",
+          "x": -330,
+          "y": 0,
+          "length": 40,
+          "width": 60,
+          "reinforcement": 15,
+          "thick": true,
+          "notes": "The bridge, aft above the engines, where a Star Destroyer's is — and where every shot at it has to cross the length of the ship first."
+        },
+        {
+          "use": "structure",
+          "x": 17,
+          "y": 0
+        },
+        {
+          "use": "structure",
+          "x": 17,
+          "y": 0,
+          "mirror": true
+        },
+        {
+          "use": "engine2",
+          "x": -530,
+          "y": 0
+        },
+        {
+          "kind": "structure",
+          "x": -440,
+          "y": 0,
+          "length": 180,
+          "width": 60,
+          "thick": true
+        },
+        {
+          "kind": "tank",
+          "x": 22.5,
+          "y": 0,
+          "length": 665,
+          "width": 60,
+          "thick": true
+        }
+      ]
+    },
+    "TIE Fighter": {
+      "formatVersion": 1,
+      "name": "TIE Fighter",
+      "notes": "A fighter, and a fighter's doctrine: other fighters first, by preferring a target about the size of an X-Wing, and guns and engines rather than hull. What is left over is a capital with its guns stripped, which is more than a TIE could have done to it by shooting at the hull. The ball is the whole ship: a spine of cockpit down the middle, a gun let into the hull either side of it, an engine outboard of each gun with its bell out the back, and plating filling the rest out to a circle. Nothing is bolted on to be shot off.",
+      "fighter": true,
+      "doctrine": {
+        "targeting": {
+          "preferredMass": 2.5,
+          "massWeight": 120,
+          "facingWeight": 60,
+          "sightWeight": 60,
+          "escortWeight": 50
+        },
+        "approach": {
+          "escortMinRadii": 1.5,
+          "ramRadii": 50,
+          "ramArmed": 0.5
+        }
+      },
+      "assemblies": {
+        "structure": {
+          "modules": [
+            {
+              "kind": "engine",
+              "x": 0.5,
+              "y": 0,
+              "angle": -180,
+              "length": 1.8,
+              "width": 0.5,
+              "nozzle": 0.333333
+            },
+            {
+              "kind": "tank",
+              "x": 0,
+              "y": 0.825,
+              "length": 0.7,
+              "width": 1.15
+            },
+            {
+              "kind": "tank",
+              "x": 0,
+              "y": 1.65,
+              "length": 2.8,
+              "width": 0.5
+            },
+            {
+              "use": "engine2",
+              "x": -4.440892098500626e-16,
+              "y": 2.0500000000000003,
+              "mirror": true
+            },
+            {
+              "kind": "engine",
+              "x": 1.05,
+              "y": -0.5,
+              "angle": 180,
+              "length": 3,
+              "width": 0.5,
+              "nozzle": 0.333333
+            },
+            {
+              "kind": "hullGun",
+              "x": 1.1,
+              "y": -1,
+              "angle": 0,
+              "length": 4.4,
+              "width": 0.5,
+              "reinforcement": 1.5,
+              "barrels": 1,
+              "barrelCalibres": 42,
+              "traverse": 5,
+              "targeting": {
+                "structureWeight": 0
+              }
+            },
+            {
+              "use": "engine2",
+              "x": -4.440892098500626e-16,
+              "y": 2.0500000000000003,
+              "angle": -180
+            }
+          ]
+        },
+        "engine2": {
+          "modules": [
+            {
+              "kind": "engine",
+              "x": 0,
+              "y": 0,
+              "angle": 180,
+              "length": 3.8,
+              "width": 0.3,
+              "barrels": 1,
+              "nozzle": 0.039474
+            },
+            {
+              "kind": "engine",
+              "x": -3.5000000000000004,
+              "y": -0.1499999999999995,
+              "angle": 270,
+              "length": 0.2,
+              "width": 0.3,
+              "barrels": 1,
+              "nozzle": 0.5
+            }
+          ]
+        }
+      },
+      "modules": [
+        {
+          "kind": "core",
+          "x": 0,
+          "y": 0,
+          "length": 1.3,
+          "width": 0.5,
+          "notes": "A spine down the middle of the ball rather than the whole of it. The pilot sits amidships as a TIE's does, and what fills the rest of the circle is the guns, the engines and the plating between them — so a hit on the ball is usually a hit on a weapon rather than on the pilot."
+        },
+        {
+          "use": "structure",
+          "x": 0,
+          "y": 1.5
+        },
+        {
+          "use": "structure",
+          "x": 0,
+          "y": -1.5,
+          "mirror": true
+        },
+        {
+          "kind": "tank",
+          "x": 0.975,
+          "y": 0,
+          "length": 0.65,
+          "width": 0.5,
+          "reinforcement": 1.5
+        },
+        {
+          "kind": "engine",
+          "x": -0.65,
+          "y": 0,
+          "angle": 180,
+          "length": 1.2,
+          "width": 0.5
+        }
+      ]
+    }
+  },
+  "ships": [
+    {
+      "design": "Star Destroyer",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "design": "TIE Fighter",
+      "x": 400,
+      "y": 400,
+      "repeat": 20,
+      "step": {
+        "x": -30,
+        "y": 50
+      }
+    },
+    {
+      "design": "TIE Fighter",
+      "x": 400,
+      "y": -400,
+      "repeat": 20,
+      "step": {
+        "x": -30,
+        "y": -50
+      }
+    }
+  ]
+}
