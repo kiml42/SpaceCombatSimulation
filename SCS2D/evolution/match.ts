@@ -241,6 +241,8 @@ export interface MatchResult {
   readonly elapsed: number;
   readonly steps: number;
   readonly ending: Ending;
+  /** Which entrants, by index, were still fighting when it was decided; empty unless it was. */
+  readonly winners: readonly number[];
   /** One per entrant, in the order they were given. */
   readonly scores: readonly Score[];
 }
@@ -359,6 +361,7 @@ export class Match {
   private measured = false;
   private step = 0;
   private ending: Ending = 'timeout';
+  private winners: number[] = [];
 
   /**
    * `teams` gives each entrant its side, numbered from zero; left out, every
@@ -632,8 +635,14 @@ export class Match {
 
     this.step++;
     if (this.teams === null) sidesFighting = fighting;
-    if (fighting === 0) this.ending = 'annihilated';
-    else if (this.sideCount > 1 && sidesFighting === 1) this.ending = 'decided';
+    if (fighting === 0) {
+      this.ending = 'annihilated';
+      this.winners = [];
+    } else if (this.sideCount > 1 && sidesFighting === 1) {
+      this.ending = 'decided';
+      this.winners = [];
+      for (let i = 0; i < this.count; i++) if (fightingNow[i] === 1) this.winners.push(i);
+    }
   }
 
   /**
@@ -723,6 +732,7 @@ export class Match {
       elapsed: this.step * settings.dt,
       steps: this.step,
       ending: this.ending,
+      winners: [...this.winners],
       scores,
     };
   }
