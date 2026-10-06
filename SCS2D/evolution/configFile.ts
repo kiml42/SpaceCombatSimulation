@@ -13,6 +13,7 @@ import {
 } from './mutate.js';
 import { DEFAULT_RUN, type RunConfig } from './run.js';
 import { DEFAULT_FLEET_LIMITS, type FleetOperator } from './fleetMutate.js';
+import { DEFAULT_COEVOLUTION, type CoevolutionConfig, type SideSettings } from './coevolution.js';
 
 /**
  * The run-config file: what a set of evolution settings looks like written
@@ -56,7 +57,20 @@ export interface RunSetup {
    * A file names it; whoever reads the file finds it and sets `match.boss`.
    */
   readonly boss?: BossName | null;
+  /** Side B of a co-evolution run, or null for a run of one. */
+  readonly versus?: VersusSetup | null;
   readonly config: RunConfig;
+}
+
+/**
+ * Side B of a co-evolution run: what founds it, and what it sets apart from
+ * side A, whose settings are the rest of the file's. A side's mutation
+ * weights are side A's.
+ */
+export interface VersusSetup {
+  readonly founders: readonly string[];
+  readonly fleets: readonly string[];
+  readonly coevolution: CoevolutionConfig;
 }
 
 export interface BossName {
@@ -81,6 +95,18 @@ const FILE_KEYS: readonly string[] = [
   'doctrine',
   'match',
   'fleets',
+  'fleet',
+  'versus',
+];
+
+const VERSUS_KEYS: readonly string[] = [
+  'founders',
+  'fleets',
+  'hall',
+  'hallShare',
+  'population',
+  'winners',
+  'massBudget',
   'fleet',
 ];
 
@@ -137,6 +163,21 @@ export function serialiseRunConfig(setup: RunSetup): Record<string, unknown> {
       weights: { ...match.weights },
       boss: setup.boss == null ? null : { [setup.boss.kind]: setup.boss.name },
     },
+    ...(setup.versus == null ? {} : { versus: serialiseVersus(setup.versus) }),
+  };
+}
+
+function serialiseVersus(versus: VersusSetup): Record<string, unknown> {
+  const { hall, hallShare, rival } = versus.coevolution;
+  return {
+    founders: [...versus.founders],
+    ...(versus.fleets.length > 0 ? { fleets: [...versus.fleets] } : {}),
+    hall,
+    hallShare,
+    ...(rival.population === undefined ? {} : { population: rival.population }),
+    ...(rival.winners === undefined ? {} : { winners: rival.winners }),
+    ...(rival.massBudget === undefined ? {} : { massBudget: Number.isFinite(rival.massBudget) ? rival.massBudget : null }),
+    ...(rival.fleet === undefined ? {} : { fleet: { ...rival.fleet } }),
   };
 }
 
@@ -168,24 +209,12 @@ export function runConfigFileProblem(value: unknown, warnings: string[] = []): s
       return 'fleets must be a list of fleet names';
     }
   }
-  const fleet = value['fleet'];
-  if (fleet !== undefined) {
-    if (!isRecord(fleet)) return 'fleet must be an object';
-    unknownKeys(fleet, FLEET_KEYS, 'fleet', warnings);
-    const problem = numberProblem(fleet['radius'], 'fleet.radius') ?? countProblem(fleet['maxShips'], 'fleet.maxShips');
-    if (problem !== null) return problem;
-    if (fleet['radius'] !== undefined && (fleet['radius'] as number) <= 0) return 'fleet.radius must be more than nothing';
-    const operators = fleet['operators'];
-    if (operators !== undefined) {
-      if (!isRecord(operators)) return 'fleet.operators must be an object of weights, one per change';
-      unknownKeys(operators, OPERATOR_KEYS, 'fleet.operators', warnings);
-      for (const key of OPERATOR_KEYS) {
-        const weight = operators[key];
-        const bad = numberProblem(weight, `fleet.operators.${key}`);
-        if (bad !== null) return bad;
-        if (weight !== undefined && (weight as number) < 0) return `fleet.operators.${key} must be zero or more`;
-      }
-    }
+  const fleetBad = fleetProblem(value['fleet'], 'fleet', warnings);
+  if (fleetBad !== null) return fleetBad;
+  const versusBad = versusProblem(value['versus'], warnings);
+  if (versusBad !== null) return versusBad;
+  if (value['versus'] !== undefined && isRecord(value['match']) && value['match']['boss'] != null) {
+    return 'a run with versus is two lineages against each other, and has no boss';
   }
 
   return (
@@ -202,6 +231,57 @@ export function runConfigFileProblem(value: unknown, warnings: string[] = []): s
     weightsOf(value['doctrine'], 'doctrine', DOCTRINE_KEYS, warnings) ??
     matchProblem(value['match'], warnings)
   );
+}
+
+function fleetProblem(fleet: unknown, where: string, warnings: string[]): string | null {
+  if (fleet === undefined) return null;
+  if (!isRecord(fleet)) return `${where} must be an object`;
+  unknownKeys(fleet, FLEET_KEYS, where, warnings);
+  const problem = numberProblem(fleet['radius'], `${where}.radius`) ?? countProblem(fleet['maxShips'], `${where}.maxShips`);
+  if (problem !== null) return problem;
+  if (fleet['radius'] !== undefined && (fleet['radius'] as number) <= 0) return `${where}.radius must be more than nothing`;
+  const operators = fleet['operators'];
+  if (operators !== undefined) {
+    if (!isRecord(operators)) return `${where}.operators must be an object of weights, one per change`;
+    unknownKeys(operators, OPERATOR_KEYS, `${where}.operators`, warnings);
+    for (const key of OPERATOR_KEYS) {
+      const weight = operators[key];
+      const bad = numberProblem(weight, `${where}.operators.${key}`);
+      if (bad !== null) return bad;
+      if (weight !== undefined && (weight as number) < 0) return `${where}.operators.${key} must be zero or more`;
+    }
+  }
+  return null;
+}
+
+function namesProblem(value: unknown, what: string): string | null {
+  if (value === undefined) return null;
+  if (!Array.isArray(value) || value.some((name) => typeof name !== 'string')) return `${what} must be a list of names`;
+  return null;
+}
+
+function versusProblem(versus: unknown, warnings: string[]): string | null {
+  if (versus === undefined || versus === null) return null;
+  if (!isRecord(versus)) return 'versus must be an object: side B\'s founders, and what it sets apart';
+  unknownKeys(versus, VERSUS_KEYS, 'versus', warnings);
+  const problem =
+    namesProblem(versus['founders'], 'versus.founders') ??
+    namesProblem(versus['fleets'], 'versus.fleets') ??
+    numberProblem(versus['hall'], 'versus.hall') ??
+    chanceProblem(versus['hallShare'], 'versus.hallShare') ??
+    countProblem(versus['population'], 'versus.population') ??
+    countProblem(versus['winners'], 'versus.winners') ??
+    (versus['massBudget'] === null ? null : budgetProblem(versus['massBudget'])) ??
+    fleetProblem(versus['fleet'], 'versus.fleet', warnings);
+  if (problem !== null) return problem;
+  const hall = versus['hall'];
+  if (hall !== undefined && (!Number.isInteger(hall) || (hall as number) < 0)) {
+    return `versus.hall must be a whole number of champions, none or more, got ${JSON.stringify(hall)}`;
+  }
+  const founders = ((versus['founders'] as unknown[] | undefined) ?? []).length;
+  const fleets = ((versus['fleets'] as unknown[] | undefined) ?? []).length;
+  if (founders + fleets === 0) return 'versus needs at least one founder or fleet for side B';
+  return null;
 }
 
 /** The keys a run-config file carries that nothing reads, one warning per place. */
@@ -231,6 +311,7 @@ export function parseRunConfig(value: unknown): RunSetup {
     founders: (file['founders'] as string[] | undefined) ?? [],
     fleets: (file['fleets'] as string[] | undefined) ?? [],
     boss: isRecord(match['boss']) ? bossName(match['boss']) : null,
+    versus: isRecord(file['versus']) ? parseVersus(file['versus']) : null,
     config: {
       seed: read(file['seed'], DEFAULT_RUN.seed),
       generations: read(file['generations'], DEFAULT_RUN.generations),
@@ -267,6 +348,23 @@ export function parseRunConfig(value: unknown): RunSetup {
               : ({ ...(match['goal'] as GoalSpec) } as GoalSpec),
         weights: { ...DEFAULT_MATCH.weights, ...(match['weights'] as Partial<ScoreWeights> | undefined) },
       },
+    },
+  };
+}
+
+function parseVersus(versus: Record<string, unknown>): VersusSetup {
+  const rival: { -readonly [K in keyof SideSettings]?: SideSettings[K] } = {};
+  if (typeof versus['population'] === 'number') rival.population = versus['population'];
+  if (typeof versus['winners'] === 'number') rival.winners = versus['winners'];
+  if (versus['massBudget'] !== undefined) rival.massBudget = versus['massBudget'] === null ? Infinity : (versus['massBudget'] as number);
+  if (isRecord(versus['fleet'])) rival.fleet = { ...(versus['fleet'] as SideSettings['fleet']) };
+  return {
+    founders: (versus['founders'] as string[] | undefined) ?? [],
+    fleets: (versus['fleets'] as string[] | undefined) ?? [],
+    coevolution: {
+      rival,
+      hall: read(versus['hall'], DEFAULT_COEVOLUTION.hall),
+      hallShare: read(versus['hallShare'], DEFAULT_COEVOLUTION.hallShare),
     },
   };
 }

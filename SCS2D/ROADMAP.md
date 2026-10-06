@@ -101,7 +101,7 @@ and a mutant over the total dry mass, the deployment radius or the ship count, o
 refused. **A boss battle** evolves against a fixed ship or fleet: every entrant on one side against it,
 scored for what it does to the boss alone (`match.boss`, `--boss`, and a boss picker on the page).
 
-**Co-evolution — planned.** Two lineages bred against each other: a run is given two sets of founders, side
+**Co-evolution — headless built; the page is left.** Two lineages bred against each other: a run is given two sets of founders, side
 A and side B, and every match is one child of A against one child of B, so each lineage evolves to counter
 the other. A boss battle is the special case of it where one side is a single entrant that never breeds.
 
@@ -137,7 +137,11 @@ the other. A boss battle is the special case of it where one side is a single en
   of A at generation i against the champion of B at generation j. An arms race shows as later generations
   beating earlier opponents; cycling shows as the grid not improving down either axis.
 
-Build it headless first (`Run`, the run file, the CLI and the yardstick), then the page.
+Built headless: `evolution/coevolution.ts`, side B in the run file as `rival`, `versus` in the config file
+with side B's population, winners, budget and fleet limits (its mutation weights are side A's), `--versus`,
+`--versus-fleet`, `--hall` and `--hall-share` on the CLI, and the grid (`championGrid`) in `npm run
+yardstick`. Left: the page — a second founders picker, the charts split by side, and the score chart
+dropped for such a run.
 
 
 Not planned: per-ship doctrine overrides in a fleet (fork the design instead), and a group's own doctrine or

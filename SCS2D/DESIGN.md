@@ -496,6 +496,13 @@ inside any one file is not contiguous.
   that does not evolve, at the middle of the ring where the goal would be, each scored for what it does to
   the boss alone. Entrants can start already moving, towards the middle and across it, at speeds the run
   sets (`--closing`, `--crossing`), the same two a custom battle has.
+  **Co-evolution**, headless (`evolution/coevolution.ts`, `npm run evolve -- --versus`): two lineages, side A
+  and side B, each bred only from its own winners, every match one of A against one of B with no goal.
+  Each side keeps a hall of its last few champions, and a share of every individual's matches is against
+  the other side's hall, so neither can win by beating only the opponent of the moment. Side B may have its
+  own population, winners, budget and fleet limits. Its generations are written beside side A's
+  (`rival` in the run file), and `npm run yardstick` measures such a run as a grid of each side's champions
+  against the other's, since fitness against a moving opponent cannot say whether either is improving.
   **Fuel.** A `tank` archetype whose interior is reaction mass, and every core's interior past the cubic
   metre its computing needs (`CORE_COMPUTING_VOLUME`), so a bare core with one engine can move; a core no
   bigger than that holds none. Each engine has an exhaust velocity:

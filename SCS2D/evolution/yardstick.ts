@@ -1,6 +1,6 @@
 import { Rng } from '../sim/index.js';
-import { max } from '../sim/math.js';
-import { Match, type Entrant, type MatchConfig } from './match.js';
+import { floor, max, min, round } from '../sim/math.js';
+import { Match, runMatch, type Entrant, type MatchConfig } from './match.js';
 import { entrantOf, type GenerationRecord, type IndividualRecord, type RunRecord } from './run.js';
 
 /**
@@ -290,4 +290,92 @@ export function trend(report: YardstickReport): { first: number; last: number; g
 /** A generation record's individuals, for a caller that wants the designs. */
 export function designsOf(generation: GenerationRecord): Entrant[] {
   return generation.individuals.map(entrantOf);
+}
+
+/** How side A's champion of one generation fared against side B's of another. */
+export interface GridCell {
+  /** A's mean score less B's, over the seeds: above nought, A came off better. */
+  readonly margin: number;
+  /** Of the seeds, how many A outscored B on. */
+  readonly wins: number;
+}
+
+export interface ChampionGrid {
+  /** The generations sampled, the same on both sides: the rows for A and the columns for B. */
+  readonly generations: readonly number[];
+  /** `cells[row][column]`: A's champion of `generations[row]` against B's of `generations[column]`. */
+  readonly cells: readonly (readonly GridCell[])[];
+  readonly seeds: number;
+  readonly matches: number;
+}
+
+export interface GridConfig {
+  /** Generations sampled from each side, evenly, first and last included. */
+  readonly samples: number;
+  /** Matches per cell, on seeds every cell shares, so cells differ by their designs alone. */
+  readonly seeds: number;
+  readonly seed: number;
+  readonly match: Partial<MatchConfig>;
+}
+
+export const DEFAULT_GRID: GridConfig = { samples: 8, seeds: 3, seed: 0x5EED, match: {} };
+
+/**
+ * Measure a co-evolution run: each side's champion of a generation against
+ * the other side's champion of every other generation.
+ *
+ * Fitness cannot do this, since each side is scored against the other as it
+ * is then, and both are moving. The grid can: an arms race shows as later
+ * rows beating earlier columns and later columns beating earlier rows, and a
+ * pair going round in circles as a grid that does not improve down either
+ * axis. Champions are the best of each generation by fitness, as `finalist`
+ * takes them.
+ */
+export function championGrid(run: RunRecord, config?: Partial<GridConfig>): ChampionGrid {
+  const settings = { ...DEFAULT_GRID, ...config };
+  const rival = run.rival?.generations ?? [];
+  const count = min(run.generations.length, rival.length);
+  const generations = sampled(count, settings.samples);
+  const draw = new Rng(settings.seed);
+  const seeds = Array.from({ length: settings.seeds }, () => draw.nextUint32());
+  const match: Partial<MatchConfig> = { ...run.config.match, goal: null, boss: null, ...settings.match };
+  const championsA = generations.map((g) => entrantOf(champion(run.generations[g]!)));
+  const championsB = generations.map((g) => entrantOf(champion(rival[g]!)));
+  let matches = 0;
+  const cells = championsA.map((a) =>
+    championsB.map((b) => {
+      let margin = 0;
+      let wins = 0;
+      for (const seed of seeds) {
+        const result = runMatch([a, b], { ...match, seed });
+        const mine = result.scores[0]!.total;
+        const theirs = result.scores[1]!.total;
+        margin += mine - theirs;
+        if (mine > theirs) wins++;
+        matches++;
+      }
+      return { margin: seeds.length > 0 ? margin / seeds.length : 0, wins };
+    }),
+  );
+  return { generations, cells, seeds: seeds.length, matches };
+}
+
+/** `samples` generation indices out of `count`, evenly spread, first and last included. */
+function sampled(count: number, samples: number): number[] {
+  if (count <= 0) return [];
+  const wanted = max(1, min(count, floor(samples)));
+  if (wanted === 1) return [count - 1];
+  const out: number[] = [];
+  for (let k = 0; k < wanted; k++) {
+    const g = round((k * (count - 1)) / (wanted - 1));
+    if (out[out.length - 1] !== g) out.push(g);
+  }
+  return out;
+}
+
+/** A generation's best by fitness, the first of equals. */
+function champion(generation: GenerationRecord): IndividualRecord {
+  let best = generation.individuals[0]!;
+  for (const individual of generation.individuals) if (individual.fitness > best.fitness) best = individual;
+  return best;
 }
