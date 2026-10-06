@@ -565,9 +565,9 @@ describe('build weights', () => {
       expandBlueprint(blueprint).map((m) => [m.kind, m.x, m.y, m.length, m.width, m.angle ?? 0, m.barrels ?? 1]),
     );
 
-  it('keeps how a ship looks when only hidden settings and doctrine may change', () => {
+  it('keeps how a ship is built when only tuning and doctrine may change', () => {
     const rng = new Rng(5);
-    const build = { move: 0, resize: 0, refit: 0, visible: 0, hidden: 1 };
+    const build = { move: 0, resize: 0, refit: 0, fittings: 0, tuning: 1, fighter: 0 };
     let held: Blueprint = GUNSHIP;
     let changed = 0;
     for (let i = 0; i < 60; i++) {
@@ -579,9 +579,28 @@ describe('build weights', () => {
     expect(looks(held)).toEqual(looks(GUNSHIP));
   });
 
+  it('changes how many times a row repeats only as a structural edit', () => {
+    const rowed: Blueprint = {
+      name: 'Rowed',
+      assemblies: { seg: { modules: [{ kind: 'structure', x: 0, y: 0, length: 2, width: 2 }] } },
+      modules: [
+        { kind: 'core', x: 0, y: 0, length: 4, width: 4 },
+        { use: 'seg', x: 3, y: 0, repeat: 3, step: { x: 2, y: 0 } },
+      ],
+    };
+    const repeats = (structural: number, seed: number): string[] => {
+      const rng = new Rng(seed);
+      const made: string[] = [];
+      for (let i = 0; i < 200; i++) made.push(...mutate(rowed, rng, { structural }).edits);
+      return made.filter((edit) => edit.includes('repeat'));
+    };
+    expect(repeats(0, 3)).toEqual([]);
+    expect(repeats(1, 3).length).toBeGreaterThan(0);
+  });
+
   it('never touches a sort of number weighted zero', () => {
     const rng = new Rng(11);
-    const build = { move: 0, resize: 0, refit: 0, visible: 0, hidden: 0 };
+    const build = { move: 0, resize: 0, refit: 0, fittings: 0, tuning: 0, fighter: 0 };
     const doctrine = { targeting: 0, approach: 0, escort: 1, avoidance: 0, gunnery: 0 };
     const made: string[] = [];
     for (let i = 0; i < 40; i++) made.push(...mutate(GUNSHIP, rng, { structural: 0, build, doctrine }).edits);

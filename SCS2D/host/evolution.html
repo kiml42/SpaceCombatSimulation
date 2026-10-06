@@ -287,7 +287,6 @@
           <details open data-key="therun">
             <summary><h2>The run</h2></summary>
             <div class="field"><label for="generations">generations</label><input id="generations" type="number" min="1" step="1" /></div>
-            <div class="field soloOnly"><label for="group">per match</label><input id="group" type="number" min="1" step="1" /></div>
             <div class="field"><label for="minMatches">matches each</label><input id="minMatches" type="number" min="1" step="1" /></div>
             <div class="field"><label for="seed">seed</label><input id="seed" type="number" step="1" /></div>
             <div class="field"><label for="effort">ms per frame</label><input id="effort" type="number" min="1" max="200" step="1" /></div>
@@ -300,13 +299,11 @@
             <div class="field"><label for="scatter">scatter °</label><input id="scatter" type="number" min="0" max="180" step="15" /></div>
             <div class="field"><label for="closing">closing m/s</label><input id="closing" type="number" step="5" title="Each entrant's starting speed towards the middle" /></div>
             <div class="field"><label for="crossing">crossing m/s</label><input id="crossing" type="number" step="5" title="Each entrant's starting speed to its left, across the line to the middle" /></div>
-            <div class="field soloOnly"><label for="goal">goal</label><select id="goal" title="Solid blocks shots and can be run into; a ghost is only somewhere to be; boss puts a ship or fleet there for every entrant to fight together">
+            <div class="field soloOnly"><label for="goal">goal</label><select id="goal" title="Solid blocks shots and can be run into; a ghost is only somewhere to be">
             <option value="solid">solid</option>
             <option value="ghost">ghost</option>
             <option value="none">none</option>
-            <option value="boss">boss</option>
             </select></div>
-            <div class="field soloOnly" title="With the goal set to boss: a ship or fleet every entrant fights together, where the goal would be. Each is scored for what it does to the boss, and a hit on another entrant earns nothing."><label for="boss">boss</label><select id="boss" disabled></select></div>
           </details>
           <details open data-key="whatitisscoredon">
             <summary><h2>What it is scored on</h2></summary>
@@ -336,7 +333,7 @@
               <select id="versus" multiple title="A second lineage, bred against the first: every match is one of each"></select>
               <p class="note">Pick ships here to co-evolve two lineages against each other: every match is one of side A against one of side B, with no goal. Leave it empty for an ordinary run.</p>
               <div class="buttons"><button id="clearVersus" title="An ordinary run of one lineage">Clear</button></div>
-              <div class="field coOnly" title="Unticked, side B is its founders every generation: a fixed opponent for side A to be bred against, as a boss is."><label for="rivalEvolves">side B evolves</label><input id="rivalEvolves" type="checkbox" checked /></div>
+              <div class="field coOnly" title="Unticked, side B is its founders every generation: a fixed opponent for side A to be bred against. Several of side A a match against one of a fixed side B is a boss battle."><label for="rivalEvolves">side B evolves</label><input id="rivalEvolves" type="checkbox" checked /></div>
             </details>
           </div>
           <div class="sideHeads coOnly">
@@ -349,6 +346,7 @@
             <div class="field heads coOnly"><span></span><b>A</b><b>B</b></div>
             <div class="field"><label for="population">population</label><input id="population" type="number" min="2" step="1" /></div>
             <div class="field"><label for="winners">bred from</label><input id="winners" type="number" min="1" step="1" /></div>
+            <div class="field"><label for="group">per match</label><input id="group" type="number" min="1" step="1" title="Entrants in each match. In co-evolution, each side's, fighting together against the other's" /></div>
             <div class="field"><label for="massBudget">mass budget t</label><input id="massBudget" type="number" min="0" step="1" placeholder="none" /></div>
             <div class="field"><label for="fleetShips">most ships</label><input id="fleetShips" type="number" min="1" step="1" title="One keeps a run of ships breeding ships" /></div>
             <div class="field fleetOnly"><label for="fleetRadius">spread m</label><input id="fleetRadius" type="number" min="1" step="50" title="How far from its origin any hull may reach" /></div>
@@ -357,13 +355,14 @@
           <details open data-key="shipMutations">
             <summary><h2>Ship mutations</h2></summary>
             <div class="field heads coOnly"><span></span><b>A</b><b>B</b></div>
-            <div class="field" title="Chance each generation of also adding, removing or copying a module, or regrouping modules into parts. 0 keeps the ship's structure as it is."><label for="structural">structural chance</label><input id="structural" type="number" min="0" max="1" step="0.05" /></div>
+            <div class="field" title="Chance each generation of also adding, removing or copying a module, regrouping modules into parts, or lengthening or shortening a repeated row. 0 keeps the ship's structure as it is."><label for="structural">structural chance</label><input id="structural" type="number" min="0" max="1" step="0.05" /></div>
             <div class="field" title="How often a module or part is moved a grid step, turned, or mirrored."><label for="buildMove">move</label><input id="buildMove" type="number" min="0" step="0.5" /></div>
             <div class="field" title="How often a module is made longer or wider, or the seam between two modules is shifted."><label for="buildResize">resize</label><input id="buildResize" type="number" min="0" step="0.5" /></div>
             <div class="field" title="How often a module is refitted into another kind, keeping its place and size. Which kind is drawn from the odds below."><label for="buildRefit">refit</label><input id="buildRefit" type="number" min="0" step="0.5" /></div>
-            <div class="field" title="How often a setting that shows is changed: barrels and their length, nozzles, thickness, traverse, and how many times a row repeats."><label for="buildVisible">visible settings</label><input id="buildVisible" type="number" min="0" step="0.5" /></div>
-            <div class="field" title="How often a setting that does not show is changed: reinforcement, sealing, fuses, fragments, burst speed, an engine used as a weapon, and being a fighter."><label for="buildHidden">hidden settings</label><input id="buildHidden" type="number" min="0" step="0.5" /></div>
-            <p class="note">How often each sort of number in a ship's build changes, against each other and the doctrine weights below. To tune a ship without changing how it looks, zero the structural chance, move, resize, refit and visible settings.</p>
+            <div class="field" title="How often something that would take real work on the craft is changed: barrels and their length, nozzles, and thickness."><label for="buildFittings">fittings</label><input id="buildFittings" type="number" min="0" step="0.5" /></div>
+            <div class="field" title="How often its loadout is changed: reinforcement, sealing, traverse, fuses, fragments, burst speed, and an engine used as a weapon."><label for="buildTuning">tuning</label><input id="buildTuning" type="number" min="0" step="0.5" /></div>
+            <div class="field" title="How often the ship switches between being a fighter and not, which changes how it flies and how others target it."><label for="buildFighter">fighter role</label><input id="buildFighter" type="number" min="0" step="0.5" /></div>
+            <p class="note">How often each sort of number in a ship's build changes, against each other and the doctrine weights below. To tune a ship without rebuilding it, zero the structural chance, move, resize, refit, fittings and fighter role.</p>
             <div class="field" title="Odds that a new or refitted module is an engine: pushes the ship, and can be steered by firing on one side."><label for="kindEngine">engines</label><input id="kindEngine" type="number" min="0" step="1" /></div>
             <div class="field" title="Odds that a new or refitted module is plain structure: holds the ship together and stops shells, as armour."><label for="kindStructure">structure</label><input id="kindStructure" type="number" min="0" step="1" /></div>
             <div class="field" title="Odds that a new or refitted module is a fuel tank: reaction mass for the engines, beyond the little each core carries."><label for="kindTank">tanks</label><input id="kindTank" type="number" min="0" step="1" /></div>

@@ -108,6 +108,7 @@ const FOLDED_KEY = 'scs2d.evolution.folded';
 const SIDE_FIELDS = [
   'population',
   'winners',
+  'group',
   'massBudget',
   'fleetRadius',
   'fleetShips',
@@ -121,8 +122,9 @@ const SIDE_FIELDS = [
   'buildMove',
   'buildResize',
   'buildRefit',
-  'buildVisible',
-  'buildHidden',
+  'buildFittings',
+  'buildTuning',
+  'buildFighter',
   'kindEngine',
   'kindStructure',
   'kindTank',
@@ -187,8 +189,9 @@ const FIELDS = [
   'buildMove',
   'buildResize',
   'buildRefit',
-  'buildVisible',
-  'buildHidden',
+  'buildFittings',
+  'buildTuning',
+  'buildFighter',
   'kindEngine',
   'kindStructure',
   'kindTank',
@@ -401,7 +404,6 @@ export function startEvolution(): void {
   const foundersSelect = el<HTMLSelectElement>('founders');
   const versusSelect = el<HTMLSelectElement>('versus');
   const goalInput = el<HTMLSelectElement>('goal');
-  const bossSelect = el<HTMLSelectElement>('boss');
   const playButton = el<HTMLButtonElement>('play');
   const stepButton = el<HTMLButtonElement>('step');
   const skipButton = el<HTMLButtonElement>('skip');
@@ -439,14 +441,6 @@ export function startEvolution(): void {
   const load = (value: string): Entrant | null => {
     const { kind, name } = pickOf(value);
     return kind === 'fleet' ? fleetLibrary.load(name) : library.load(name);
-  };
-  const chosenBoss = (): Entrant | null => {
-    if (goalInput.value !== 'boss' || bossSelect.value === '') return null;
-    try {
-      return load(bossSelect.value);
-    } catch {
-      return null;
-    }
   };
   const chosenFounders = (): Entrant[] => {
     const founders: Entrant[] = [];
@@ -591,8 +585,9 @@ export function startEvolution(): void {
     buildMove: String(DEFAULT_BUILD_WEIGHTS.move),
     buildResize: String(DEFAULT_BUILD_WEIGHTS.resize),
     buildRefit: String(DEFAULT_BUILD_WEIGHTS.refit),
-    buildVisible: String(DEFAULT_BUILD_WEIGHTS.visible),
-    buildHidden: String(DEFAULT_BUILD_WEIGHTS.hidden),
+    buildFittings: String(DEFAULT_BUILD_WEIGHTS.fittings),
+    buildTuning: String(DEFAULT_BUILD_WEIGHTS.tuning),
+    buildFighter: String(DEFAULT_BUILD_WEIGHTS.fighter),
     kindEngine: String(DEFAULT_KINDS.engine),
     kindStructure: String(DEFAULT_KINDS.structure),
     kindTank: String(DEFAULT_KINDS.tank),
@@ -657,7 +652,7 @@ export function startEvolution(): void {
   };
 
   const saveSetup = (): void => {
-    const held: Record<string, string> = { goal: goalInput.value, boss: bossSelect.value };
+    const held: Record<string, string> = { goal: goalInput.value };
     for (const name of FIELDS) held[name] = inputs[name].value;
     // Side B follows side A until it is given a setting of its own.
     if (!rivalOwn) for (const name of SIDE_FIELDS) rivalInputs[name].value = inputs[name].value;
@@ -719,7 +714,7 @@ export function startEvolution(): void {
   for (const name of SIDE_FIELDS) rivalInputs[name].value = (rivalOwn ? held[RIVAL + name] : undefined) ?? inputs[name].value;
   // Settings saved when this was a checkbox held '1' or ''.
   const heldGoal = held['goal'] === '' ? 'none' : held['goal'] === '1' ? 'solid' : held['goal'];
-  goalInput.value = heldGoal === 'ghost' || heldGoal === 'none' || heldGoal === 'boss' ? heldGoal : 'solid';
+  goalInput.value = heldGoal === 'ghost' || heldGoal === 'none' ? heldGoal : 'solid';
 
   const wanted = new Set((held['founders'] ?? 'Corvette').split('\n').map((value) => {
     const { kind, name } = pickOf(value);
@@ -755,16 +750,6 @@ export function startEvolution(): void {
   const wantedVersus = new Set((held['versus'] ?? '').split('\n').filter((value) => value !== ''));
   for (const option of versusSelect.options) option.selected = wantedVersus.has(option.value);
 
-  fillList(bossSelect, (_, name) => name);
-  if (held['boss'] !== undefined && held['boss'] !== '') bossSelect.value = held['boss'];
-  if (bossSelect.selectedIndex < 0) bossSelect.selectedIndex = 0;
-  /** The boss is chosen only once the goal is to be one. */
-  const showBoss = (): void => {
-    bossSelect.disabled = goalInput.value !== 'boss';
-  };
-  showBoss();
-  bossSelect.addEventListener('change', saveSetup);
-  goalInput.addEventListener('change', showBoss);
 
   const OWN_FINAL = '';
   benchmarkSelect.append(new Option('its own final design', OWN_FINAL));
@@ -810,6 +795,7 @@ export function startEvolution(): void {
     return {
       population: Math.max(2, Math.round(number(get('population'), DEFAULT_RUN.population))),
       winners: Math.max(1, Math.round(number(get('winners'), DEFAULT_RUN.winners))),
+      group: Math.max(1, Math.round(number(get('group'), DEFAULT_RUN.group))),
       massBudget: tonnes > 0 ? tonnes * 1000 : Infinity,
       fleet: {
         radius: Math.max(1, number(get('fleetRadius'), DEFAULT_FLEET_LIMITS.radius)),
@@ -829,8 +815,9 @@ export function startEvolution(): void {
           move: Math.max(0, number(get('buildMove'), DEFAULT_BUILD_WEIGHTS.move)),
           resize: Math.max(0, number(get('buildResize'), DEFAULT_BUILD_WEIGHTS.resize)),
           refit: Math.max(0, number(get('buildRefit'), DEFAULT_BUILD_WEIGHTS.refit)),
-          visible: Math.max(0, number(get('buildVisible'), DEFAULT_BUILD_WEIGHTS.visible)),
-          hidden: Math.max(0, number(get('buildHidden'), DEFAULT_BUILD_WEIGHTS.hidden)),
+          fittings: Math.max(0, number(get('buildFittings'), DEFAULT_BUILD_WEIGHTS.fittings)),
+          tuning: Math.max(0, number(get('buildTuning'), DEFAULT_BUILD_WEIGHTS.tuning)),
+          fighter: Math.max(0, number(get('buildFighter'), DEFAULT_BUILD_WEIGHTS.fighter)),
         },
         kinds: {
           engine: Math.max(0, number(get('kindEngine'), DEFAULT_KINDS.engine)),
@@ -857,7 +844,6 @@ export function startEvolution(): void {
     return {
       seed: number(inputs.seed, DEFAULT_RUN.seed),
       generations: Math.max(1, Math.round(number(inputs.generations, DEFAULT_RUN.generations))),
-      group: Math.max(1, Math.round(number(inputs.group, DEFAULT_RUN.group))),
       minMatches: Math.max(1, Math.round(number(inputs.minMatches, DEFAULT_RUN.minMatches))),
       ...sideSettings((name) => inputs[name]),
       match: {
@@ -867,10 +853,9 @@ export function startEvolution(): void {
         closingSpeed: number(inputs.closing, DEFAULT_MATCH.closingSpeed),
         crossingSpeed: number(inputs.crossing, DEFAULT_MATCH.crossingSpeed),
         goal:
-          goalInput.value === 'none' || goalInput.value === 'boss' || DEFAULT_MATCH.goal === null
+          goalInput.value === 'none' || DEFAULT_MATCH.goal === null
             ? null
             : { ...DEFAULT_MATCH.goal, solid: goalInput.value !== 'ghost' },
-        boss: chosenBoss(),
         weights: {
           survival: number(inputs.survivalWeight, 1),
           functional: number(inputs.functionalWeight, 1),
@@ -890,7 +875,6 @@ export function startEvolution(): void {
       ...(name === '' ? {} : { name }),
       founders: picked.filter((p) => p.kind === 'ship').map((p) => p.name),
       fleets: picked.filter((p) => p.kind === 'fleet').map((p) => p.name),
-      boss: coRun() || goalInput.value !== 'boss' || bossSelect.value === '' ? null : pickOf(bossSelect.value),
       versus: coRun() ? { ...versusNames(), coevolution: coevolutionSettings() } : null,
       config: { ...DEFAULT_RUN, ...configure() },
     };
@@ -917,6 +901,7 @@ export function startEvolution(): void {
     const kinds: KindWeights = { ...DEFAULT_KINDS, ...config.mutation.kinds };
     get('population').value = String(config.population);
     get('winners').value = String(config.winners);
+    get('group').value = String(config.group);
     get('massBudget').value = Number.isFinite(config.massBudget) ? String(config.massBudget / 1000) : '';
     get('fleetRadius').value = String(config.fleet.radius ?? DEFAULT_FLEET_LIMITS.radius);
     get('fleetShips').value = String(config.fleet.maxShips ?? DEFAULT_FLEET_LIMITS.maxShips);
@@ -932,8 +917,9 @@ export function startEvolution(): void {
     get('buildMove').value = String(build.move);
     get('buildResize').value = String(build.resize);
     get('buildRefit').value = String(build.refit);
-    get('buildVisible').value = String(build.visible);
-    get('buildHidden').value = String(build.hidden);
+    get('buildFittings').value = String(build.fittings);
+    get('buildTuning').value = String(build.tuning);
+    get('buildFighter').value = String(build.fighter);
     get('kindEngine').value = String(kinds.engine);
     get('kindStructure').value = String(kinds.structure);
     get('kindTank').value = String(kinds.tank);
@@ -956,7 +942,6 @@ export function startEvolution(): void {
     inputs.configName.value = setup.name ?? '';
     inputs.seed.value = String(config.seed);
     inputs.generations.value = String(config.generations);
-    inputs.group.value = String(config.group);
     inputs.minMatches.value = String(config.minMatches);
     inputs.duration.value = String(match.duration);
     inputs.radius.value = String(match.radius);
@@ -992,15 +977,6 @@ export function startEvolution(): void {
     ]);
     // Side B as the file has it, which for a run of one is nobody.
     for (const option of versusSelect.options) option.selected = rivals.has(option.value);
-    if (setup.boss != null) {
-      const wanted = valueOf(setup.boss.kind, setup.boss.name);
-      // A boss this library has not got is dropped, like a founder it has not got.
-      if ([...bossSelect.options].some((option) => option.value === wanted)) {
-        bossSelect.value = wanted;
-        goalInput.value = 'boss';
-      }
-    }
-    showBoss();
     showFleetSettings();
     saveSetup();
   };
@@ -1804,6 +1780,13 @@ export function startEvolution(): void {
     return null;
   };
 
+  /** Who fought, by id, with the sides split by a v when it had sides. */
+  const competitorsText = (record: MatchRecord): string => {
+    const teams = record.teams;
+    if (teams === undefined) return record.competitors.join(' ');
+    return record.competitors.map((id, k) => (k > 0 && teams[k] !== teams[k - 1] ? `v ${id}` : String(id))).join(' ');
+  };
+
   const startReplay = (record: MatchRecord, rows: readonly Row[]): void => {
     const entrants: Entrant[] = [];
     for (const id of record.competitors) {
@@ -1812,10 +1795,11 @@ export function startEvolution(): void {
     }
     // One is enough: a match of one ship is a run's test of its piloting.
     if (entrants.length === 0 || run === null) return;
-    // As the run fought it: a co-evolution match has no goal and no boss.
-    const match = run instanceof Coevolution ? { ...run.config.match, goal: null, boss: null } : run.config.match;
+    // As the run fought it: a co-evolution match has no goal, and has sides.
+    const match = run instanceof Coevolution ? { ...run.config.match, goal: null } : run.config.match;
+    const teams = record.teams !== undefined && record.teams.length === entrants.length ? record.teams : null;
     watchReplay(
-      new Match(entrants, { ...match, seed: record.seed }),
+      new Match(entrants, { ...match, seed: record.seed }, teams),
       record,
       record.competitors,
       null,
@@ -1861,7 +1845,7 @@ export function startEvolution(): void {
       if (record === replayOf) tr.className = 'watched';
       for (const cell of [
         String(i + 1),
-        record.competitors.join(' '),
+        competitorsText(record),
         record.ending,
         record.elapsed.toFixed(0),
       ]) {
@@ -2276,7 +2260,7 @@ export function startEvolution(): void {
     table.append(head);
     match.result().scores.forEach((score, i) => {
       const tr = document.createElement('tr');
-      // In the colour its ships are drawn in: its own side, or one shared against a boss.
+      // In the colour its ships are drawn in: its own, or its side's.
       const k = owners.indexOf(i);
       const colour = teamColour(k < 0 ? i : ships.teamOf(slots[k]!));
       const parts = [score.survival, score.functional, score.damage, score.disabling, score.race];

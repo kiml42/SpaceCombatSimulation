@@ -149,6 +149,8 @@ export function generationSize(record: GenerationRecord): GenerationSize {
 export interface MatchRecord {
   readonly seed: number;
   readonly competitors: readonly number[];
+  /** Each competitor's side, when the match had sides rather than being a free-for-all. */
+  readonly teams?: readonly number[];
   readonly ending: MatchResult['ending'];
   readonly elapsed: number;
   readonly scores: MatchResult['scores'];
