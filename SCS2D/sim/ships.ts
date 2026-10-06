@@ -1253,6 +1253,9 @@ export class Ships {
       if (world.tick < schedule[t]!) continue;
       const mount = design.turrets[t]!;
       const layers = this.mountLayers(i, mount);
+      // A shell's fragments fly in both layers, so it can hurt a ship its own
+      // layer would pass by.
+      const hurts = this.firesShellsFrom(i, mount) ? BOTH_LAYERS : layers;
       schedule[t] = world.tick + this.turretRethinkTicks(world, t, design);
 
       if (!(this.damage.remaining(b, mount.module, DamageEffect.FireRate) > 0)) {
@@ -1297,7 +1300,7 @@ export class Ships {
           this.partPoint(bodies, tb, this.designs[e]!, part);
           tx = this.partAt.x;
           ty = this.partAt.y;
-        } else if (!this.canAimAt(mount, layers, e, tb)) {
+        } else if (!this.canAimAt(mount, hurts, e, tb)) {
           // A ship with nothing left this mount will shoot at is not a target
           // for it, however good it looks by every other measure.
           continue;
@@ -1340,7 +1343,7 @@ export class Ships {
         const against = this.reachOn(
           mount,
           e,
-          refusesAnything(doctrine) ? this.aimModule(bodies, mount, layers, e, gunX, gunY, hooked) : WHOLE_SHIP,
+          refusesAnything(doctrine) ? this.aimFor(bodies, i, mount, layers, e, gunX, gunY, hooked) : WHOLE_SHIP,
         );
         // A hooked target is alongside, with nothing between to look past.
         const judged =
@@ -1363,7 +1366,7 @@ export class Ships {
       aims[t] =
         targets[t] === NO_TARGET
           ? WHOLE_SHIP
-          : this.choosePart(bodies, b, mount, layers, targets[t]!, gunX, gunY, this.firesShellsFrom(i, mount));
+          : this.choosePart(bodies, b, i, mount, layers, targets[t]!, gunX, gunY);
       // Holding something it cannot fire on yet, it looks again soon: what it
       // can fire on may turn up long before its own reconsidering would.
       if (this.choice.ship === NO_TARGET && targets[t] !== NO_TARGET) {
@@ -1384,16 +1387,17 @@ export class Ships {
   private choosePart(
     bodies: Bodies,
     b: number,
+    i: number,
     mount: DesignTurret,
     layers: number,
     target: number,
     gunX: number,
     gunY: number,
-    shells: boolean,
   ): number {
+    const shells = this.firesShellsFrom(i, mount);
     const tb = bodies.indexOf(this.bodyIds[target]!);
     const hooked = tb === b;
-    const part = this.aimModule(bodies, mount, layers, target, gunX, gunY, hooked);
+    const part = this.aimFor(bodies, i, mount, layers, target, gunX, gunY, hooked);
     if (part < 0 || hooked || refusesAnything(mount.targeting)) return part;
     const design = this.designs[target]!;
     this.partPoint(bodies, tb, design, part);
@@ -1503,6 +1507,25 @@ export class Ships {
     // here to shoot at — not the hull either, since the hull is the modules
     // it has just passed over.
     return best === WHOLE_SHIP ? NOTHING_AIMABLE : best;
+  }
+
+  /**
+   * `aimModule` for ship `i`'s mount, looking past its own layer when that has
+   * nothing to offer and it fires shells, whose fragments fly in both.
+   */
+  private aimFor(
+    bodies: Bodies,
+    i: number,
+    mount: DesignTurret,
+    layers: number,
+    target: number,
+    fromX: number,
+    fromY: number,
+    hooked: boolean,
+  ): number {
+    const part = this.aimModule(bodies, mount, layers, target, fromX, fromY, hooked);
+    if (part !== NOTHING_AIMABLE || !this.firesShellsFrom(i, mount)) return part;
+    return this.aimModule(bodies, mount, BOTH_LAYERS, target, fromX, fromY, hooked);
   }
 
   /** Where module `part` of a body is in the world, into `partAt`. */
@@ -2846,7 +2869,7 @@ export class Ships {
     // down. So it chooses again from what is actually left, now, and only
     // stands down when the answer is that there is nothing it will shoot at.
     // The mount is already located by the caller.
-    return this.aimModule(bodies, mount, layers, target, this.gunPoint.x, this.gunPoint.y, hooked);
+    return this.aimFor(bodies, i, mount, layers, target, this.gunPoint.x, this.gunPoint.y, hooked);
   }
 
   /**
