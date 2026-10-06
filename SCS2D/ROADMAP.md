@@ -158,7 +158,7 @@ and evolution run does, and a ship tuned to half the rules is tuned twice.
    - **The flag can evolve**, and a ship that evolves a turret or a thick module flies as an ordinary ship,
      its flag ignored rather than refused, so a mutation that breaks the rule costs the design its role
      rather than its place in the run.
-3. **Redesign the stock ships** for both, once they exist. The Star Destroyer needs it most.
+3. **Redesign the stock ships** Done.
 
 **Step 8 — Fuel.** Tanks, burning and the editor's figures are built (DESIGN.md Status). What is left:
 
