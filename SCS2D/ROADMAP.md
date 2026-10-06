@@ -162,7 +162,7 @@ and evolution run does, and a ship tuned to half the rules is tuned twice.
 
 **Step 8 — Fuel.** Tanks, burning and the editor's figures are built (DESIGN.md Status). What is left:
 
-- **Leaks.** Damage to a tank does nothing yet. A holed tank losing fuel and pushing on the hull at the hole,
+- **Leaks - Built** Damage to a tank does nothing yet. A holed tank losing fuel and pushing on the hull at the hole,
   and sealing (§12), are what price tank size and placement — until then nothing stops evolution building
   one enormous tank (§5).
 - **Drain priority.** Tanks are drained tier by tier (`drainPriority` in `sim/fuel.ts`), and every tank is
@@ -176,7 +176,7 @@ and evolution run does, and a ship tuned to half the rules is tuned twice.
 
 ### Not started — in order
 
-Steps 8 to 13 walk into the resource system one resource and one use at a time, fuel first (partly built,
+Steps 9 to 13 walk into the resource system one resource and one use at a time, fuel first (partly built,
 above): it is the scarcity every battle feels (§2), and some of §12 was parked until it existed — the dead
 zone on attitude hold, propellant-optimal allocation, and running cost. *Note: fuel is a re-balance, not an addition — tank mass moves the golden checksums, battles become
 about managing what a ship carries, and scenarios will need revisiting.*
@@ -190,6 +190,7 @@ both directions.
    construction. It needs a part that holds a wreck to drain it, and a pilot that goes after one: an order or
    picker for a wreck with fuel left, and a judgement about when to break off for it, close to step 3's
    withdrawal. The pilot may cost more than the part.
+   Also ships running out of fuel should be able to dock with a ship that has plenty an take some. Particularly relevant for fighters. Fighters should be able to dock on pads in the hull layer. Ships docking together should have docking fixtures on the side of the hull.
 10. **Raw material** — a store of metal, spent as ammunition and on repair. It answers §12's ammunition
     granularity and brings in the other half of §2's scarcity.
 11. **Power** — a generator that beams draw on, refilling each mount's bank at what the plant can spare, and a
