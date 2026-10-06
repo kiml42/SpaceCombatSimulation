@@ -382,8 +382,8 @@ inside any one file is not contiguous.
   drawn by score against a uniform number rather than taken off the top, so a design that drew a hard group
   is not thrown away on the strength of one battle and the worst is never impossible. The winners carry over
   unchanged as well as breeding, so a design that won on a lucky draw has to win again. `npm run evolve`
-  fights a run headlessly and writes it down: every generation, every design in it with the blueprint it
-  flew, and every match with the seed it was fought under — which is all it takes to watch any one of them
+  fights a run headlessly and writes it down, again after every generation so a run stopped part way keeps
+  what it finished: every generation, every design in it with the blueprint it flew, and every match with the seed it was fought under — which is all it takes to watch any one of them
   again, and a test fights every match of a run a second time to prove it. Three hundred matches take twenty
   seconds.
   **A run is measured against something that does not evolve.** Fitness is scored against the rest of the
@@ -432,7 +432,8 @@ inside any one file is not contiguous.
   same opponent again carries on from what was measured, fighting only generations closed since. **Settings are a file.** A run is decided entirely by its seed and its
   configuration, so those few numbers are the whole record of what was tried: they are written out and read
   back as JSON, by the page and by `npm run evolve` alike, so an experiment can be kept beside its result,
-  sent to somebody, or designed on the page and then fought overnight headlessly. Every field is optional
+  sent to somebody, or designed on the page and then fought overnight headlessly. A founder is a stock ship
+  by name or a blueprint file by its path, since a ship saved on the page lives in a browser. Every field is optional
   and anything left out is the default, angles are degrees as they are in a blueprint file, and no budget is
   `null` because JSON has no infinity.
   **A weapon can be let into a hull rather than sat on top of it.** A hull gun and a hull beam are a
