@@ -204,7 +204,7 @@ describe('the evolution page in a browser', () => {
     // Score, its five parts, and the tonnage, all on the row.
     const best = page.locator('#fleet tbody tr').first();
     expect(await best.locator('td.score').textContent()).toMatch(/^\d\.\d{3}$/);
-    expect(await best.locator('td.hull, td.func, td.dmg, td.dis, td.grnd').count()).toBe(5);
+    expect(await best.locator('td.part .hull, td.part .func, td.part .dmg, td.part .dis, td.part .grnd').count()).toBe(5);
     expect(await best.locator('td.mass').textContent()).toMatch(/^\d+\.\d$/);
     // And what was done to make it, which used to be a line in the sidebar.
     expect((await best.locator('td.done').textContent())?.length).toBeGreaterThan(0);

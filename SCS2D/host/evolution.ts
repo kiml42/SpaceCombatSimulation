@@ -244,6 +244,14 @@ const SCORE_COLUMNS = [
 ] as const;
 
 /**
+ * The combatants table's score columns: what was kept over what was kept
+ * working, and what was done over what was disabled, so a row's height is
+ * used and the table is narrow enough for two sides beside each other.
+ * Indices into `SCORE_COLUMNS`.
+ */
+const STACKED_COLUMNS: readonly (readonly number[])[] = [[0, 1], [2, 3], [4]];
+
+/**
  * A combatants table, built once: a header that never changes and an empty
  * body for the rows to be appended to and reordered in.
  */
@@ -259,15 +267,31 @@ function buildCombatantTable(host: HTMLElement): {
     ['formation', 'fleet', 'how it is arranged, to its own scale'],
     ['made', 'made of', 'every kind of ship in it, and how many'],
     ['score', 'score', 'against this generation’s opponents'],
-    ...SCORE_COLUMNS.map((column) => [column.css, column.head, column.title] as const),
+    ['parts', '', ''],
     ['mass', 't', 'tonnes'],
     ['done', 'changed', 'what was done to its parent to make it'],
   ] as const) {
-    const th = document.createElement('th');
-    th.className = css;
-    th.textContent = text;
-    th.title = title;
-    headRow.append(th);
+    if (css !== 'parts') {
+      const th = document.createElement('th');
+      th.className = css;
+      th.textContent = text;
+      th.title = title;
+      headRow.append(th);
+      continue;
+    }
+    for (const stack of STACKED_COLUMNS) {
+      const th = document.createElement('th');
+      th.className = 'part';
+      for (const i of stack) {
+        const column = SCORE_COLUMNS[i]!;
+        const head = document.createElement('div');
+        head.className = column.css;
+        head.textContent = column.head;
+        head.title = column.title;
+        th.append(head);
+      }
+      headRow.append(th);
+    }
   }
   head.append(headRow);
   const body = document.createElement('tbody');
@@ -298,7 +322,8 @@ interface Picture {
 interface Tile {
   readonly tr: HTMLTableRowElement;
   readonly cells: Record<'who' | 'made' | 'score' | 'mass' | 'done', HTMLTableCellElement>;
-  readonly parts: readonly HTMLTableCellElement[];
+  /** One per part, in `SCORE_COLUMNS` order. */
+  readonly parts: readonly HTMLElement[];
   readonly canvases: readonly HTMLCanvasElement[];
   readonly formation: HTMLCanvasElement;
   readonly picture: Picture;
@@ -1538,11 +1563,18 @@ export function startEvolution(): void {
     made.append(kinds);
 
     const score = cell('score');
-    const parts = SCORE_COLUMNS.map((column) => {
-      const td = cell(column.css);
-      td.title = column.title;
-      return td;
-    });
+    const parts: HTMLElement[] = [];
+    for (const stack of STACKED_COLUMNS) {
+      const td = cell('part');
+      for (const i of stack) {
+        const column = SCORE_COLUMNS[i]!;
+        const figure = document.createElement('div');
+        figure.className = column.css;
+        figure.title = column.title;
+        td.append(figure);
+        parts[i] = figure;
+      }
+    }
     const mass = cell('mass');
     const done = cell('done');
     done.append(document.createElement('div'));

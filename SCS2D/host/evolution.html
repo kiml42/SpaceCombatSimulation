@@ -169,11 +169,15 @@
       }
       /* The five parts head their columns in the colours the chart plots them
          in, so the graph above and the table below are read with one key. */
-      #fleet th.hull { color: #7fd6a0; }
-      #fleet th.func { color: #b48ee0; }
-      #fleet th.dmg { color: #e0655f; }
-      #fleet th.dis { color: #e08ec0; }
-      #fleet th.grnd { color: #e9c05f; }
+      #fleet .part .hull { color: #7fd6a0; }
+      #fleet .part .func { color: #b48ee0; }
+      #fleet .part .dmg { color: #e0655f; }
+      #fleet .part .dis { color: #e08ec0; }
+      #fleet .part .grnd { color: #e9c05f; }
+      /* Two parts a column, one over the other; the figures in their part's
+         colour too, so which is which reads without looking up. */
+      #fleet thead th.part { vertical-align: bottom; line-height: 1.2; }
+      #fleet td.part div { line-height: 1.5; }
       #battleScores table { width: auto; margin: 0 0 0.4rem; border-collapse: collapse; font-variant-numeric: tabular-nums; }
       #battleScores th, #battleScores td { padding: 0 0.6rem 0 0; text-align: right; font-weight: normal; }
       #battleScores th:first-child, #battleScores td:first-child { text-align: left; }
