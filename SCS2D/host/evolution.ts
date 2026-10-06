@@ -25,7 +25,14 @@ import type { FleetView } from '../editor/fleetDocument.js';
 import { fitness } from '../evolution/generation.js';
 import { DEFAULT_MATCH, isFleet, Match, type Entrant, type MatchConfig } from '../evolution/match.js';
 import { DEFAULT_FLEET_LIMITS } from '../evolution/fleetMutate.js';
-import { DEFAULT_DOCTRINE_WEIGHTS, DEFAULT_KINDS, type KindWeights } from '../evolution/mutate.js';
+import {
+  DEFAULT_BUILD_WEIGHTS,
+  DEFAULT_DOCTRINE_WEIGHTS,
+  DEFAULT_KINDS,
+  DEFAULT_LIMITS,
+  doctrineWeights,
+  type KindWeights,
+} from '../evolution/mutate.js';
 import { parseRunConfig, runConfigWarnings, serialiseRunConfig, type RunSetup } from '../evolution/configFile.js';
 import { latest, Yardstick, yardstickMatch, type YardstickReport } from '../evolution/yardstick.js';
 import {
@@ -94,6 +101,7 @@ const SETUP_KEY = 'scs2d.evolution.setup';
 const FOLDED_KEY = 'scs2d.evolution.folded';
 
 const FIELDS = [
+  'configName',
   'generations',
   'population',
   'winners',
@@ -119,6 +127,12 @@ const FIELDS = [
   'damageWeight',
   'disablingWeight',
   'raceWeight',
+  'structural',
+  'buildMove',
+  'buildResize',
+  'buildRefit',
+  'buildVisible',
+  'buildHidden',
   'kindEngine',
   'kindStructure',
   'kindTank',
@@ -129,6 +143,8 @@ const FIELDS = [
   'kindCore',
   'doctrineTargeting',
   'doctrineApproach',
+  'doctrineEscort',
+  'doctrineAvoidance',
   'doctrineGunnery',
   'effort',
 ] as const;
@@ -451,6 +467,7 @@ export function startEvolution(): void {
   // ---- settings ----------------------------------------------------------
 
   const defaults: Record<(typeof FIELDS)[number], string> = {
+    configName: '',
     generations: String(DEFAULT_RUN.generations),
     population: String(DEFAULT_RUN.population),
     winners: String(DEFAULT_RUN.winners),
@@ -476,6 +493,12 @@ export function startEvolution(): void {
     damageWeight: String(DEFAULT_MATCH.weights.damage),
     disablingWeight: String(DEFAULT_MATCH.weights.disabling),
     raceWeight: String(DEFAULT_MATCH.weights.race),
+    structural: String(DEFAULT_LIMITS.structural),
+    buildMove: String(DEFAULT_BUILD_WEIGHTS.move),
+    buildResize: String(DEFAULT_BUILD_WEIGHTS.resize),
+    buildRefit: String(DEFAULT_BUILD_WEIGHTS.refit),
+    buildVisible: String(DEFAULT_BUILD_WEIGHTS.visible),
+    buildHidden: String(DEFAULT_BUILD_WEIGHTS.hidden),
     kindEngine: String(DEFAULT_KINDS.engine),
     kindStructure: String(DEFAULT_KINDS.structure),
     kindTank: String(DEFAULT_KINDS.tank),
@@ -486,6 +509,8 @@ export function startEvolution(): void {
     kindCore: String(DEFAULT_KINDS.core),
     doctrineTargeting: String(DEFAULT_DOCTRINE_WEIGHTS.targeting),
     doctrineApproach: String(DEFAULT_DOCTRINE_WEIGHTS.approach),
+    doctrineEscort: String(DEFAULT_DOCTRINE_WEIGHTS.escort),
+    doctrineAvoidance: String(DEFAULT_DOCTRINE_WEIGHTS.avoidance),
     doctrineGunnery: String(DEFAULT_DOCTRINE_WEIGHTS.gunnery),
     effort: '12',
   };
@@ -572,6 +597,10 @@ export function startEvolution(): void {
 
   const held = loadSetup();
   for (const name of FIELDS) inputs[name].value = held[name] ?? defaults[name];
+  // Saved before escort and avoidance were split out of approach.
+  for (const name of ['doctrineEscort', 'doctrineAvoidance'] as const) {
+    if (held[name] === undefined && held['doctrineApproach'] !== undefined) inputs[name].value = held['doctrineApproach'];
+  }
   // Settings saved when this was a checkbox held '1' or ''.
   const heldGoal = held['goal'] === '' ? 'none' : held['goal'] === '1' ? 'solid' : held['goal'];
   goalInput.value = heldGoal === 'ghost' || heldGoal === 'none' || heldGoal === 'boss' ? heldGoal : 'solid';
@@ -658,6 +687,14 @@ export function startEvolution(): void {
         },
       },
       mutation: {
+        structural: Math.min(1, Math.max(0, number(inputs.structural, DEFAULT_LIMITS.structural))),
+        build: {
+          move: Math.max(0, number(inputs.buildMove, DEFAULT_BUILD_WEIGHTS.move)),
+          resize: Math.max(0, number(inputs.buildResize, DEFAULT_BUILD_WEIGHTS.resize)),
+          refit: Math.max(0, number(inputs.buildRefit, DEFAULT_BUILD_WEIGHTS.refit)),
+          visible: Math.max(0, number(inputs.buildVisible, DEFAULT_BUILD_WEIGHTS.visible)),
+          hidden: Math.max(0, number(inputs.buildHidden, DEFAULT_BUILD_WEIGHTS.hidden)),
+        },
         kinds: {
           engine: Math.max(0, number(inputs.kindEngine, DEFAULT_KINDS.engine)),
           structure: Math.max(0, number(inputs.kindStructure, DEFAULT_KINDS.structure)),
@@ -671,6 +708,8 @@ export function startEvolution(): void {
         doctrine: {
           targeting: Math.max(0, number(inputs.doctrineTargeting, DEFAULT_DOCTRINE_WEIGHTS.targeting)),
           approach: Math.max(0, number(inputs.doctrineApproach, DEFAULT_DOCTRINE_WEIGHTS.approach)),
+          escort: Math.max(0, number(inputs.doctrineEscort, DEFAULT_DOCTRINE_WEIGHTS.escort)),
+          avoidance: Math.max(0, number(inputs.doctrineAvoidance, DEFAULT_DOCTRINE_WEIGHTS.avoidance)),
           gunnery: Math.max(0, number(inputs.doctrineGunnery, DEFAULT_DOCTRINE_WEIGHTS.gunnery)),
         },
       },
@@ -699,7 +738,9 @@ export function startEvolution(): void {
   /** Everything the form says, as a run's settings. */
   const readSetup = (): RunSetup => {
     const picked = [...foundersSelect.selectedOptions].map((option) => pickOf(option.value));
+    const name = inputs.configName.value.trim();
     return {
+      ...(name === '' ? {} : { name }),
       founders: picked.filter((p) => p.kind === 'ship').map((p) => p.name),
       fleets: picked.filter((p) => p.kind === 'fleet').map((p) => p.name),
       boss: goalInput.value !== 'boss' || bossSelect.value === '' ? null : pickOf(bossSelect.value),
@@ -718,6 +759,7 @@ export function startEvolution(): void {
     const config = setup.config;
     const match: MatchConfig = { ...DEFAULT_MATCH, ...config.match };
     const kinds: KindWeights = { ...DEFAULT_KINDS, ...config.mutation.kinds };
+    inputs.configName.value = setup.name ?? '';
     inputs.seed.value = String(config.seed);
     inputs.generations.value = String(config.generations);
     inputs.population.value = String(config.population);
@@ -744,6 +786,13 @@ export function startEvolution(): void {
     inputs.damageWeight.value = String(match.weights.damage);
     inputs.disablingWeight.value = String(match.weights.disabling);
     inputs.raceWeight.value = String(match.weights.race);
+    const build = { ...DEFAULT_BUILD_WEIGHTS, ...config.mutation.build };
+    inputs.structural.value = String(config.mutation.structural ?? DEFAULT_LIMITS.structural);
+    inputs.buildMove.value = String(build.move);
+    inputs.buildResize.value = String(build.resize);
+    inputs.buildRefit.value = String(build.refit);
+    inputs.buildVisible.value = String(build.visible);
+    inputs.buildHidden.value = String(build.hidden);
     inputs.kindEngine.value = String(kinds.engine);
     inputs.kindStructure.value = String(kinds.structure);
     inputs.kindTank.value = String(kinds.tank);
@@ -752,9 +801,11 @@ export function startEvolution(): void {
     inputs.kindHullGun.value = String(kinds.hullGun);
     inputs.kindHullBeam.value = String(kinds.hullBeam);
     inputs.kindCore.value = String(kinds.core);
-    const doctrine = { ...DEFAULT_DOCTRINE_WEIGHTS, ...config.mutation.doctrine };
+    const doctrine = doctrineWeights(config.mutation.doctrine);
     inputs.doctrineTargeting.value = String(doctrine.targeting);
     inputs.doctrineApproach.value = String(doctrine.approach);
+    inputs.doctrineEscort.value = String(doctrine.escort);
+    inputs.doctrineAvoidance.value = String(doctrine.avoidance);
     inputs.doctrineGunnery.value = String(doctrine.gunnery);
     goalInput.value = match.goal === null ? 'none' : match.goal.solid === false ? 'ghost' : 'solid';
     const fleets = setup.fleets ?? [];
@@ -779,7 +830,9 @@ export function startEvolution(): void {
   };
 
   el<HTMLButtonElement>('exportConfig').addEventListener('click', () => {
-    download('evolution-config.json', `${JSON.stringify(serialiseRunConfig(readSetup()), null, 2)}\n`);
+    const setup = readSetup();
+    const file = setup.name === undefined ? 'evolution-config' : setup.name.replace(/[^\w.-]+/g, '_');
+    download(`${file}.json`, `${JSON.stringify(serialiseRunConfig(setup), null, 2)}\n`);
   });
   const file = el<HTMLInputElement>('importConfigFile');
   el<HTMLButtonElement>('importConfig').addEventListener('click', () => file.click());

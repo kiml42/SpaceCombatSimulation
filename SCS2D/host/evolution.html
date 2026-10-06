@@ -246,6 +246,7 @@
       <aside id="setup">
         <details open data-key="settings">
           <summary><h2>Settings</h2></summary>
+          <div class="field" title="What these settings are for. An exported file is named after it."><label for="configName">name</label><input id="configName" type="text" placeholder="evolution-config" /></div>
           <div class="buttons">
             <button id="exportConfig" title="Write these settings out as a file">Export</button>
             <button id="importConfig" title="Read settings back from a file">Import</button>
@@ -302,6 +303,13 @@
           <summary><h2>Mutations</h2></summary>
           <details open data-key="shipMutations">
           <summary><h3>Ship mutations</h3></summary>
+          <div class="field" title="Chance each generation of also adding, removing or copying a module, or regrouping modules into parts. 0 keeps the ship's structure as it is."><label for="structural">structural chance</label><input id="structural" type="number" min="0" max="1" step="0.05" /></div>
+          <div class="field" title="How often a module or part is moved a grid step, turned, or mirrored."><label for="buildMove">move</label><input id="buildMove" type="number" min="0" step="0.5" /></div>
+          <div class="field" title="How often a module is made longer or wider, or the seam between two modules is shifted."><label for="buildResize">resize</label><input id="buildResize" type="number" min="0" step="0.5" /></div>
+          <div class="field" title="How often a module is refitted into another kind, keeping its place and size. Which kind is drawn from the odds below."><label for="buildRefit">refit</label><input id="buildRefit" type="number" min="0" step="0.5" /></div>
+          <div class="field" title="How often a setting that shows is changed: barrels and their length, nozzles, thickness, traverse, and how many times a row repeats."><label for="buildVisible">visible settings</label><input id="buildVisible" type="number" min="0" step="0.5" /></div>
+          <div class="field" title="How often a setting that does not show is changed: reinforcement, sealing, fuses, fragments, burst speed, an engine used as a weapon, and being a fighter."><label for="buildHidden">hidden settings</label><input id="buildHidden" type="number" min="0" step="0.5" /></div>
+          <p class="note">How often each sort of number in a ship's build changes, against each other and the doctrine weights below. To tune a ship without changing how it looks, zero the structural chance, move, resize, refit and visible settings.</p>
           <div class="field" title="Odds that a new or refitted module is an engine: pushes the ship, and can be steered by firing on one side."><label for="kindEngine">engines</label><input id="kindEngine" type="number" min="0" step="1" /></div>
           <div class="field" title="Odds that a new or refitted module is plain structure: holds the ship together and stops shells, as armour."><label for="kindStructure">structure</label><input id="kindStructure" type="number" min="0" step="1" /></div>
           <div class="field" title="Odds that a new or refitted module is a fuel tank: reaction mass for the engines, beyond the little each core carries."><label for="kindTank">tanks</label><input id="kindTank" type="number" min="0" step="1" /></div>
@@ -325,7 +333,9 @@
           <details open data-key="doctrineMutations">
           <summary><h3>Doctrine mutations</h3></summary>
           <div class="field" title="How often the ship's own targeting numbers are the ones changed — what it goes after: how big, how near, how armed or how fast a target it prefers. At 1, each is as likely to change as any number in the build; 0 leaves them as they are."><label for="doctrineTargeting">targeting</label><input id="doctrineTargeting" type="number" min="0" step="0.5" /></div>
-          <div class="field" title="How often the ship's approach numbers are the ones changed — how it flies to a fight: the range it holds off at, how close it keeps to what it escorts, how far it keeps from friends, and how hard it accelerates and brakes. At 1, each is as likely to change as any number in the build; 0 leaves them as they are."><label for="doctrineApproach">approach</label><input id="doctrineApproach" type="number" min="0" step="0.5" /></div>
+          <div class="field" title="How often the ship's approach numbers are the ones changed — how it flies to a fight: the range it holds off at, how hard it accelerates and brakes, and when it rams. At 1, each is as likely to change as any number in the build; 0 leaves them as they are."><label for="doctrineApproach">approach</label><input id="doctrineApproach" type="number" min="0" step="0.5" /></div>
+          <div class="field" title="How often the ship's escorting numbers are the ones changed: how much it would rather stay with a friend than fight, how close it keeps, and how small a friend it will cover. 0 leaves them as they are."><label for="doctrineEscort">escorting</label><input id="doctrineEscort" type="number" min="0" step="0.5" /></div>
+          <div class="field" title="How often the ship's avoidance numbers are the ones changed: how much it wants to keep out of everybody's way, and how close is too close. 0 leaves them as they are."><label for="doctrineAvoidance">avoidance</label><input id="doctrineAvoidance" type="number" min="0" step="0.5" /></div>
           <div class="field" title="How often a weapon's own target preferences are the ones changed, so one mount can learn to pick targets differently from the rest of the ship. At 1, each weapon is as likely to change as any number in the build; 0 leaves them as they are."><label for="doctrineGunnery">weapon gunnery</label><input id="doctrineGunnery" type="number" min="0" step="0.5" /></div>
           <p class="note">How often each part of a ship's doctrine changes, against a number in its build at 1; hover one for what it covers.</p>
           </details>

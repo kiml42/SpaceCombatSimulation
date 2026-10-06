@@ -15,7 +15,7 @@ import {
   type Blueprint,
   type ModuleSpec,
 } from '../sim/index.js';
-import { DEFAULT_KINDS, DEFAULT_LIMITS, mutate } from '../evolution/mutate.js';
+import { DEFAULT_KINDS, DEFAULT_LIMITS, mutate, type DoctrineWeights } from '../evolution/mutate.js';
 import { CATAMARAN, CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
 
 /**
@@ -537,7 +537,7 @@ describe('mutation', () => {
 });
 
 describe('doctrine weights', () => {
-  const edits = (doctrine: { targeting: number; approach: number; gunnery: number }): string[] => {
+  const edits = (doctrine: DoctrineWeights): string[] => {
     const out: string[] = [];
     const rng = new Rng(9);
     for (let i = 0; i < 40; i++) out.push(...mutate(GUNSHIP, rng, { structural: 0, numbers: 1, doctrine }).edits);
@@ -545,15 +545,56 @@ describe('doctrine weights', () => {
   };
 
   it('never touches a doctrine weighted zero', () => {
-    const made = edits({ targeting: 0, approach: 0, gunnery: 0 });
+    const made = edits({ targeting: 0, approach: 0, escort: 0, avoidance: 0, gunnery: 0 });
     expect(made.length).toBeGreaterThan(0);
     expect(made.filter((edit) => edit.startsWith('doctrine.'))).toEqual([]);
   });
 
   it('turns mostly the doctrine weighted heavily', () => {
-    const made = edits({ targeting: 1000, approach: 0, gunnery: 0 });
+    const made = edits({ targeting: 1000, approach: 0, escort: 0, avoidance: 0, gunnery: 0 });
     const targeting = made.filter((edit) => edit.startsWith('doctrine.targeting.'));
     expect(targeting.length / made.length).toBeGreaterThan(0.8);
     expect(made.some((edit) => edit.startsWith('doctrine.approach.'))).toBe(false);
+  });
+});
+
+describe('build weights', () => {
+  /** Every module's kind, place and size, which is what a ship looks like. */
+  const looks = (blueprint: Blueprint): string =>
+    JSON.stringify(
+      expandBlueprint(blueprint).map((m) => [m.kind, m.x, m.y, m.length, m.width, m.angle ?? 0, m.barrels ?? 1]),
+    );
+
+  it('keeps how a ship looks when only hidden settings and doctrine may change', () => {
+    const rng = new Rng(5);
+    const build = { move: 0, resize: 0, refit: 0, visible: 0, hidden: 1 };
+    let held: Blueprint = GUNSHIP;
+    let changed = 0;
+    for (let i = 0; i < 60; i++) {
+      const child = mutate(held, rng, { structural: 0, build });
+      changed += child.edits.length;
+      held = child.blueprint;
+    }
+    expect(changed).toBeGreaterThan(0);
+    expect(looks(held)).toEqual(looks(GUNSHIP));
+  });
+
+  it('never touches a sort of number weighted zero', () => {
+    const rng = new Rng(11);
+    const build = { move: 0, resize: 0, refit: 0, visible: 0, hidden: 0 };
+    const doctrine = { targeting: 0, approach: 0, escort: 1, avoidance: 0, gunnery: 0 };
+    const made: string[] = [];
+    for (let i = 0; i < 40; i++) made.push(...mutate(GUNSHIP, rng, { structural: 0, build, doctrine }).edits);
+    expect(made.length).toBeGreaterThan(0);
+    for (const edit of made) expect(edit).toMatch(/doctrine\.(targeting\.escortWeight|approach\.escort)/);
+  });
+
+  it('lets escort and avoidance follow approach when not given', () => {
+    const rng = new Rng(13);
+    const made: string[] = [];
+    const doctrine = { targeting: 0, approach: 0, gunnery: 0 } as unknown as DoctrineWeights;
+    const build = { move: 1, resize: 1, refit: 1, visible: 1, hidden: 1 };
+    for (let i = 0; i < 40; i++) made.push(...mutate(GUNSHIP, rng, { structural: 0, build, doctrine }).edits);
+    expect(made.filter((edit) => edit.startsWith('doctrine.'))).toEqual([]);
   });
 });

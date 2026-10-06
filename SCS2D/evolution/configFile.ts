@@ -1,7 +1,16 @@
 import { PI } from '../sim/math.js';
 import { MODULE_KINDS } from '../sim/modules.js';
 import { DEFAULT_MATCH, SCORE_PARTS, type GoalSpec, type MatchConfig, type ScoreWeights } from './match.js';
-import { DEFAULT_DOCTRINE_WEIGHTS, DEFAULT_KINDS, type DoctrineWeights, type KindWeights } from './mutate.js';
+import {
+  DEFAULT_BUILD_WEIGHTS,
+  DEFAULT_DOCTRINE_WEIGHTS,
+  DEFAULT_KINDS,
+  DEFAULT_LIMITS,
+  doctrineWeights,
+  type BuildWeights,
+  type DoctrineWeights,
+  type KindWeights,
+} from './mutate.js';
 import { DEFAULT_RUN, type RunConfig } from './run.js';
 import { DEFAULT_FLEET_LIMITS, type FleetOperator } from './fleetMutate.js';
 
@@ -37,6 +46,8 @@ export const RUN_CONFIG_FORMAT_VERSION = 1;
 
 /** A run's settings, and the ships and fleets it starts from, by name. */
 export interface RunSetup {
+  /** What the settings are for, which an exported file is named after. */
+  readonly name?: string;
   readonly founders: readonly string[];
   /** Fleets among the founders, which make it a run of fleets. */
   readonly fleets?: readonly string[];
@@ -55,6 +66,7 @@ export interface BossName {
 
 const FILE_KEYS: readonly string[] = [
   'formatVersion',
+  'name',
   'founders',
   'seed',
   'generations',
@@ -63,7 +75,9 @@ const FILE_KEYS: readonly string[] = [
   'group',
   'minMatches',
   'massBudget',
+  'structural',
   'kinds',
+  'build',
   'doctrine',
   'match',
   'fleets',
@@ -94,6 +108,7 @@ export function serialiseRunConfig(setup: RunSetup): Record<string, unknown> {
   const kinds: KindWeights = { ...DEFAULT_KINDS, ...config.mutation.kinds };
   return {
     formatVersion: RUN_CONFIG_FORMAT_VERSION,
+    ...(setup.name ? { name: setup.name } : {}),
     founders: [...setup.founders],
     seed: config.seed,
     generations: config.generations,
@@ -102,8 +117,10 @@ export function serialiseRunConfig(setup: RunSetup): Record<string, unknown> {
     group: config.group,
     minMatches: config.minMatches,
     massBudget: Number.isFinite(config.massBudget) ? config.massBudget : null,
+    structural: config.mutation.structural ?? DEFAULT_LIMITS.structural,
     kinds: { ...kinds },
-    doctrine: { ...DEFAULT_DOCTRINE_WEIGHTS, ...config.mutation.doctrine },
+    build: { ...DEFAULT_BUILD_WEIGHTS, ...config.mutation.build },
+    doctrine: doctrineWeights(config.mutation.doctrine),
     ...((setup.fleets ?? []).length > 0 ? { fleets: [...setup.fleets!] } : {}),
     fleet: {
       radius: config.fleet.radius ?? DEFAULT_FLEET_LIMITS.radius,
@@ -138,6 +155,7 @@ export function runConfigFileProblem(value: unknown, warnings: string[] = []): s
     return `formatVersion must be ${RUN_CONFIG_FORMAT_VERSION}, got ${JSON.stringify(version)}`;
   }
 
+  if (value['name'] !== undefined && typeof value['name'] !== 'string') return 'name must be text';
   const founders = value['founders'];
   if (founders !== undefined) {
     if (!Array.isArray(founders) || founders.some((name) => typeof name !== 'string')) {
@@ -178,8 +196,10 @@ export function runConfigFileProblem(value: unknown, warnings: string[] = []): s
     countProblem(value['minMatches'], 'minMatches') ??
     numberProblem(value['seed'], 'seed') ??
     budgetProblem(value['massBudget']) ??
+    chanceProblem(value['structural'], 'structural') ??
     kindsProblem(value['kinds'], warnings) ??
-    doctrineProblem(value['doctrine'], warnings) ??
+    weightsOf(value['build'], 'build', BUILD_KEYS, warnings) ??
+    weightsOf(value['doctrine'], 'doctrine', DOCTRINE_KEYS, warnings) ??
     matchProblem(value['match'], warnings)
   );
 }
@@ -207,6 +227,7 @@ export function parseRunConfig(value: unknown): RunSetup {
 
   const fleet = isRecord(file['fleet']) ? file['fleet'] : {};
   return {
+    ...(typeof file['name'] === 'string' && file['name'] !== '' ? { name: file['name'] } : {}),
     founders: (file['founders'] as string[] | undefined) ?? [],
     fleets: (file['fleets'] as string[] | undefined) ?? [],
     boss: isRecord(match['boss']) ? bossName(match['boss']) : null,
@@ -219,8 +240,10 @@ export function parseRunConfig(value: unknown): RunSetup {
       minMatches: read(file['minMatches'], DEFAULT_RUN.minMatches),
       massBudget: budget === undefined || budget === null ? Infinity : (budget as number),
       mutation: {
+        structural: read(file['structural'], DEFAULT_LIMITS.structural),
         kinds: { ...DEFAULT_KINDS, ...(currentKinds(file['kinds']) as Partial<KindWeights>) },
-        doctrine: { ...DEFAULT_DOCTRINE_WEIGHTS, ...(file['doctrine'] as Partial<DoctrineWeights>) },
+        build: { ...DEFAULT_BUILD_WEIGHTS, ...(file['build'] as Partial<BuildWeights>) },
+        doctrine: doctrineWeights(isRecord(file['doctrine']) ? (file['doctrine'] as Partial<DoctrineWeights>) : {}),
       },
       fleet: {
         radius: read(fleet['radius'], DEFAULT_FLEET_LIMITS.radius),
@@ -323,15 +346,25 @@ function kindsProblem(raw: unknown, warnings: string[]): string | null {
 }
 
 const DOCTRINE_KEYS = Object.keys(DEFAULT_DOCTRINE_WEIGHTS);
+const BUILD_KEYS = Object.keys(DEFAULT_BUILD_WEIGHTS);
 
-function doctrineProblem(value: unknown, warnings: string[]): string | null {
+function chanceProblem(value: unknown, what: string): string | null {
+  const problem = numberProblem(value, what);
+  if (problem !== null) return problem;
+  if (value !== undefined && ((value as number) < 0 || (value as number) > 1)) {
+    return `${what} must be between 0 and 1, got ${JSON.stringify(value)}`;
+  }
+  return null;
+}
+
+function weightsOf(value: unknown, what: string, keys: readonly string[], warnings: string[]): string | null {
   if (value === undefined) return null;
-  if (!isRecord(value)) return 'doctrine must be an object of weights: targeting, approach, gunnery';
-  unknownKeys(value, DOCTRINE_KEYS, 'doctrine', warnings);
-  for (const key of DOCTRINE_KEYS) {
-    const problem = numberProblem(value[key], `doctrine.${key}`);
+  if (!isRecord(value)) return `${what} must be an object of weights: ${keys.join(', ')}`;
+  unknownKeys(value, keys, what, warnings);
+  for (const key of keys) {
+    const problem = numberProblem(value[key], `${what}.${key}`);
     if (problem !== null) return problem;
-    if (value[key] !== undefined && (value[key] as number) < 0) return `doctrine.${key} must be zero or more`;
+    if (value[key] !== undefined && (value[key] as number) < 0) return `${what}.${key} must be zero or more`;
   }
   return null;
 }
