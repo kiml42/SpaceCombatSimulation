@@ -7,7 +7,7 @@ import type { ImpactLog } from './damage.js';
 import type { Ships } from './ships.js';
 import type { Turrets } from './turrets.js';
 import type { World } from './world.js';
-import { cos, PI, sin, sqrt } from './math.js';
+import { cos, sin } from './math.js';
 
 /**
  * A read-only picture of the world, for anything outside the simulation to
@@ -393,7 +393,7 @@ export function capture(
         ly.push(m.y + leak.x * s + leak.y * c);
         ldx.push(leak.nx * c - leak.ny * s);
         ldy.push(leak.nx * s + leak.ny * c);
-        lw.push(sqrt((4 * leak.area) / PI));
+        lw.push(leak.width);
         lr.push(leak.rate);
       }
     }

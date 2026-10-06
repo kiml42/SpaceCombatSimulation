@@ -52,8 +52,12 @@ export interface Leak {
   /** Outward normal of the face it is in, in the same frame: the way the fuel leaves. */
   nx: number;
   ny: number;
-  /** Area open to space, m². */
-  area: number;
+  /** How wide it is open now, metres. */
+  width: number;
+  /** The narrowest the module's sealing lining can close it to, metres: zero if it can seal it. */
+  floor: number;
+  /** How fast the lining is closing it, metres a second; zero with no lining. */
+  closing: number;
   /** Fuel through it last step, kg/s. What a renderer draws the plume from. */
   rate: number;
 }

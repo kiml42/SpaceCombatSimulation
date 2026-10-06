@@ -12,6 +12,7 @@ import { components, cuts, jointBetween, joints, type Joint } from './connectivi
 import { BOTH_LAYERS, HULL_LAYER, Hulls, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from './hull.js';
 import { Damage, DamageEffect } from './damage.js';
 import { Fuel, LEAK_HOLE_CALIBRES, leakChance, leakRate, leakSpeed, type Leak } from './fuel.js';
+import { SEAL_REACH, SEAL_SPEED } from './modules.js';
 import type { Rng } from './rng.js';
 import { plumeRays, plumeRayStarts, Plumes, WEAPON_PLUME_SHARE, weaponPlumeReach } from './exhaust.js';
 import { Choice, cohesionUrge, inSight, look, lookFrom, score } from './targeting.js';
@@ -758,13 +759,16 @@ export class Ships {
     const dx = x - m.x;
     const dy = y - m.y;
     const width = calibre * LEAK_HOLE_CALIBRES;
+    const lining = m.stats.lining;
     this.fuel.hole(bodyIndex, {
       module,
       x: dx * c + dy * s,
       y: -dx * s + dy * c,
       nx: nx * c + ny * s,
       ny: -nx * s + ny * c,
-      area: PI * 0.25 * width * width,
+      width,
+      floor: max(0, width - lining * SEAL_REACH),
+      closing: lining * SEAL_SPEED,
       rate: 0,
     });
   }
@@ -3818,8 +3822,10 @@ export class Ships {
     let torque = 0;
     let vented = false;
     for (const leak of leaks) {
+      // The lining swells into the hole, pinching it off as far as it can reach.
+      if (leak.width > leak.floor) leak.width = max(leak.floor, leak.width - leak.closing * dt);
       const fill = this.fuel.fill(b, leak.module);
-      const taken = this.fuel.vent(b, leak.module, leakRate(leak.area, fill) * dt);
+      const taken = this.fuel.vent(b, leak.module, leakRate(PI * 0.25 * leak.width * leak.width, fill) * dt);
       leak.rate = taken / dt;
       if (!(taken > 0)) continue;
       vented = true;

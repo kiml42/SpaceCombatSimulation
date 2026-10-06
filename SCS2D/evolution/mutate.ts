@@ -36,6 +36,8 @@ import {
   firesShells,
   MAX_FRAGMENTS,
   readsFuse,
+  readsSealing,
+  moduleProblem,
   mountTraverse,
   isHullMount,
   MODULE_KINDS,
@@ -447,6 +449,7 @@ type Knob =
   | { readonly at: 'gunnery'; readonly site: ModuleSite }
   | { readonly at: 'weapon'; readonly site: ModuleSite }
   | { readonly at: 'thick'; readonly site: ModuleSite }
+  | { readonly at: 'sealing'; readonly site: ModuleSite }
   | { readonly at: 'angle'; readonly site: ModuleSite }
   | { readonly at: 'face'; readonly site: ModuleSite }
   | { readonly at: 'seam'; readonly site: ModuleSite }
@@ -500,6 +503,7 @@ function knobs(draft: Draft): Knob[] {
         out.push({ at: 'angle', site });
       }
       if (canThicken(placement)) out.push({ at: 'thick', site });
+      if (readsSealing(placement.kind)) out.push({ at: 'sealing', site });
       if (placement.kind === 'turret' || placement.kind === 'beamTurret') {
         out.push({ at: 'barrels', site });
       }
@@ -587,6 +591,8 @@ function renumber(knob: Knob, draft: Draft, rng: Rng, bounds: MutationLimits): s
       return rearm(knob.site);
     case 'thick':
       return thicken(knob.site);
+    case 'sealing':
+      return reseal(knob.site, rng, bounds);
     case 'angle':
       return turnModule(knob.site, rng, bounds);
     case 'face':
@@ -808,6 +814,22 @@ const SOLID_SHOT_CHANCE = 0.2;
 
 /** The slowest burst a nudge leaves, m/s. */
 const MIN_BURST_SPEED = 1;
+
+/** The least a sealing lining is nudged by, metres, so an unlined tank can start one. */
+const SEALING_STEP = 0.01;
+
+/**
+ * Thicken or thin a tank's sealing lining, proportionally, never below none and
+ * never so thick it leaves no room inside.
+ */
+function reseal(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {
+  const was = site.spec.sealing ?? 0;
+  const scale = max(was, SEALING_STEP);
+  const now = max(0, tidy(was + bounds.magnitude * scale * rng.nextRange(-1, 1), 4));
+  if (now === was || moduleProblem({ ...site.spec, sealing: now }) !== null) return null;
+  site.spec.sealing = now;
+  return `${site.where} ${site.spec.kind}: sealing ${was * 1000} mm → ${now * 1000} mm`;
+}
 
 /**
  * Retime a shell's fuse: a nudge scaled by the fuse itself, so a long one
