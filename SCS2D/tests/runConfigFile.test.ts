@@ -22,34 +22,33 @@ import { DEFAULT_MATCH } from '../evolution/match.js';
  */
 
 const SETUP = {
+  name: 'Star Wars tuning',
   founders: ['Corvette', 'Dinky'],
   config: {
     ...DEFAULT_RUN,
     seed: 42,
     generations: 25,
     massBudget: 12_000,
-    mutation: { kinds: { ...DEFAULT_KINDS, turret: 0 }, doctrine: { targeting: 0, approach: 2, gunnery: 1 } },
+    mutation: {
+      structural: 0,
+      build: { move: 0, resize: 0, refit: 0, visible: 0, hidden: 2 },
+      kinds: { ...DEFAULT_KINDS, turret: 0 }, doctrine: { targeting: 0, approach: 2, escort: 0, avoidance: 3, gunnery: 1 } },
     match: { duration: 45, radius: 900, closingSpeed: 30, crossingSpeed: -10, weights: { survival: 0, functional: 0.5, damage: 0, disabling: 2, race: 1 } },
   },
 };
 
 describe('the run config file', () => {
-  it('reads engine weights written before the kind was renamed from thruster', () => {
-    const file = serialiseRunConfig(SETUP) as Record<string, unknown>;
-    const { engine, ...rest } = file['kinds'] as Record<string, number>;
-    file['kinds'] = { thruster: 7, ...rest };
-    expect(engine).toBeDefined();
-    expect(parseRunConfig(file).config.mutation.kinds!.engine).toBe(7);
-  });
-
   it('round-trips a setup without changing it', () => {
     const back = parseRunConfig(serialiseRunConfig(SETUP));
+    expect(back.name).toEqual('Star Wars tuning');
     expect(back.founders).toEqual(SETUP.founders);
+    expect(back.config.mutation.structural).toEqual(0);
+    expect(back.config.mutation.build).toEqual({ move: 0, resize: 0, refit: 0, visible: 0, hidden: 2 });
     expect(back.config.seed).toEqual(42);
     expect(back.config.generations).toEqual(25);
     expect(back.config.massBudget).toEqual(12_000);
     expect(back.config.mutation.kinds!.turret).toEqual(0);
-    expect(back.config.mutation.doctrine).toEqual({ targeting: 0, approach: 2, gunnery: 1 });
+    expect(back.config.mutation.doctrine).toEqual({ targeting: 0, approach: 2, escort: 0, avoidance: 3, gunnery: 1 });
     expect(back.config.match.duration).toEqual(45);
     expect(back.config.match.radius).toEqual(900);
     expect(back.config.match.closingSpeed).toEqual(30);
@@ -80,8 +79,7 @@ describe('the run config file', () => {
     expect(parseRunConfig({ match: { goal } }).config.match.goal).toEqual(goal);
     expect(parseRunConfig({ match: { goal: null } }).config.match.goal).toBeNull();
     expect(parseRunConfig({}).config.match.goal).toEqual(DEFAULT_MATCH.goal);
-    // A ghost says so; a goal that does not say is solid, as files written
-    // before there was a choice meant.
+    // A ghost says so; a goal that does not say is solid.
     const ghost = { ...goal, solid: false };
     expect(parseRunConfig({ match: { goal: ghost } }).config.match.goal).toEqual(ghost);
   });
@@ -97,6 +95,10 @@ describe('the run config file', () => {
       [{ massBudget: -1 }, /more than nothing/],
       [{ founders: 'Corvette' }, /list of ship names/],
       [{ kinds: { engine: -1 } }, /zero or more/],
+      [{ build: { move: -1 } }, /build.move must be zero or more/],
+      [{ doctrine: { escort: 'x' } }, /doctrine.escort/],
+      [{ structural: 2 }, /between 0 and 1/],
+      [{ name: 3 }, /name must be text/],
       [{ match: { duration: 0 } }, /more than nothing/],
       [{ match: { goal: { x: 0, y: 0, scale: 1 } } }, /missing size/],
       [{ match: { goal: { x: 0, y: 0, scale: 1, size: 1, solid: 'no' } } }, /solid must be true or false/],
@@ -114,6 +116,7 @@ describe('the run config file', () => {
     const cases: [Record<string, unknown>, RegExp][] = [
       [{ populaton: 4 }, /the file has a key[^\n]*populaton/],
       [{ kinds: { engines: 1 } }, /kinds[^\n]*engines/],
+      [{ build: { scale: 1 } }, /build has a key[^\n]*scale/],
       [{ match: { durations: 10 } }, /match has a key[^\n]*durations/],
       [{ fleet: { operators: { split: 1 } } }, /fleet\.operators has a key[^\n]*split/],
     ];

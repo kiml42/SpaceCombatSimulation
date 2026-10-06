@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import {
   blueprintWarnings,
@@ -8,13 +8,14 @@ import {
   fleetWarnings,
   parseBlueprint,
   parseFleet,
+  type Blueprint,
   type Fleet,
 } from '../sim/index.js';
-import { BLUEPRINTS, type BlueprintName } from '../scenarios/blueprints.js';
+import { BLUEPRINTS } from '../scenarios/blueprints.js';
 import { FLEETS } from '../scenarios/fleets.js';
-import { finalist, matchCount, runEvolution, DEFAULT_RUN, type RunConfig } from '../evolution/run.js';
+import { finalist, matchCount, Run, DEFAULT_RUN, type RunConfig } from '../evolution/run.js';
 import type { Entrant } from '../evolution/match.js';
-import { DEFAULT_DOCTRINE_WEIGHTS, DEFAULT_KINDS } from '../evolution/mutate.js';
+import { DEFAULT_BUILD_WEIGHTS, DEFAULT_DOCTRINE_WEIGHTS, DEFAULT_KINDS } from '../evolution/mutate.js';
 import { parseRunConfig, runConfigWarnings, serialiseRunConfig, type BossName } from '../evolution/configFile.js';
 import type { ModuleKind } from '../sim/modules.js';
 
@@ -25,11 +26,14 @@ import type { ModuleKind } from '../sim/modules.js';
  * canvas, and a run of a few hundred matches takes seconds rather than the
  * hours the same battles would take to watch. What it writes is a run record —
  * every generation, every design in it, and every match with the seed it was
- * fought under, which is all it takes to watch any one of them again.
+ * fought under, which is all it takes to watch any one of them again. It is
+ * rewritten as each generation finishes, so a run stopped part way still
+ * leaves every generation it finished.
  */
 
 interface Options {
-  readonly from: readonly BlueprintName[];
+  /** Ship founders, by the name a config file would give them. */
+  readonly from: readonly { name: string; blueprint: Blueprint }[];
   /** Fleet founders, by the name a config file would give them. Any makes it a run of fleets. */
   readonly fleets: readonly { name: string; fleet: Fleet }[];
   /** What every entrant fights together, by the name a config file gives it, or null. */
@@ -37,31 +41,39 @@ interface Options {
   readonly out: string;
   /** Where to write the settings this run was given, or '' for nowhere. */
   readonly saveConfig: string;
+  /** The settings' name, from a `--config` file, kept when they are saved again. */
+  readonly name: string | undefined;
   readonly config: Partial<RunConfig>;
   readonly quiet: boolean;
 }
 
-/**
- * A ship named in a config file, as a key into the shipped fleet.
- *
- * By the ship's own name, because that is what a config written by the page
- * holds — its library lists ships by name, having no notion of the key this
- * file uses. A key is accepted too, since that is what `--from` takes.
- */
 /** Say what a file carried that nothing reads, and carry on: it is not a reason to stop. */
 function warnUnread(file: string, warnings: readonly string[]): void {
   for (const warning of warnings) process.stderr.write(`warning: ${file}: ${warning}\n`);
 }
 
-function resolve(name: string): BlueprintName {
+/**
+ * A ship by stock name or key, or read from a blueprint file, with the name a
+ * config file records it by: a stock ship's own, or a file's path, so that
+ * the config can find it again.
+ */
+function shipFrom(name: string): { name: string; blueprint: Blueprint } {
   for (const [key, blueprint] of Object.entries(BLUEPRINTS)) {
-    if (blueprint.name === name || key === name) return key as BlueprintName;
+    if (blueprint.name === name || key === name) return { name: blueprint.name, blueprint };
   }
-  throw new Error(
-    `the config names a ship this has never heard of: ${name}. It may be one saved in the ` +
-      `editor, which lives in a browser rather than here — export it from there as a file. ` +
-      `The ships this knows are ${Object.values(BLUEPRINTS).map((b) => b.name).join(', ')}`,
-  );
+  let value: unknown;
+  try {
+    value = JSON.parse(readFileSync(name, 'utf8'));
+  } catch (error) {
+    if ((error as { code?: string }).code !== 'ENOENT') throw error;
+    throw new Error(
+      `no such ship or blueprint file: ${name}. A ship saved in the editor lives in a browser rather ` +
+        `than here — export it from there as a file. The stock ships are ${Object.keys(BLUEPRINTS).join(', ')}`,
+    );
+  }
+  const blueprint = parseBlueprint(value);
+  warnUnread(name, blueprintWarnings(blueprint));
+  return { name, blueprint };
 }
 
 /**
@@ -107,7 +119,7 @@ function bossFrom(name: string): { boss: Entrant; named: BossName } {
 }
 
 function parse(argv: readonly string[]): Options {
-  const from: BlueprintName[] = [];
+  const from: { name: string; blueprint: Blueprint }[] = [];
   const fleets: { name: string; fleet: Fleet }[] = [];
   let boss: BossName | null = null;
   // Whatever a `--config` file said, which every flag then overrides: a saved
@@ -119,6 +131,9 @@ function parse(argv: readonly string[]): Options {
   const fleet: Record<string, unknown> = {};
   const kinds: Partial<Record<ModuleKind, number>> = {};
   const doctrine: Record<string, number> = {};
+  const build: Record<string, number> = {};
+  let structural: number | undefined;
+  let name: string | undefined;
   let out = 'runs/run.json';
   let saveConfig = '';
   let quiet = false;
@@ -132,13 +147,9 @@ function parse(argv: readonly string[]): Options {
       return next;
     };
     switch (arg) {
+      // Stock ships or blueprint files, comma-separated.
       case '--from':
-        for (const name of value().split(',')) {
-          if (!(name in BLUEPRINTS)) {
-            throw new Error(`no such ship: ${name}. Try ${Object.keys(BLUEPRINTS).join(', ')}`);
-          }
-          from.push(name as BlueprintName);
-        }
+        for (const name of value().split(',')) from.push(shipFrom(name));
         break;
       case '--fleet': {
         const fleet = fleetFrom(value());
@@ -197,13 +208,35 @@ function parse(argv: readonly string[]): Options {
           doctrine[part] = number;
         }
         break;
+      // How often each sort of build number changes, as `move=0,hidden=2`.
+      case '--build':
+        for (const pair of value().split(',')) {
+          const [part, weight] = pair.split('=');
+          if (part === undefined || !(part in DEFAULT_BUILD_WEIGHTS)) {
+            throw new Error(`no such build part: ${part}. Try ${Object.keys(DEFAULT_BUILD_WEIGHTS).join(', ')}`);
+          }
+          const number = Number(weight);
+          if (!Number.isFinite(number) || number < 0) throw new Error(`${part} wants a weight of zero or more, not ${weight}`);
+          build[part] = number;
+        }
+        break;
+      // Chance a generation also adds, removes or regroups modules, 0 to 1.
+      case '--structural': {
+        const raw = value();
+        structural = Number(raw);
+        if (!Number.isFinite(structural) || structural < 0 || structural > 1) {
+          throw new Error(`--structural wants a chance between 0 and 1, not ${raw}`);
+        }
+        break;
+      }
       // Settings written by the evolution page, or by `--save-config`.
       case '--config': {
         const path = value();
         const raw: unknown = JSON.parse(readFileSync(path, 'utf8'));
         const setup = parseRunConfig(raw);
+        name = setup.name;
         warnUnread(path, runConfigWarnings(raw));
-        for (const name of setup.founders) from.push(resolve(name));
+        for (const name of setup.founders) from.push(shipFrom(name));
         for (const name of setup.fleets ?? []) fleets.push({ name, fleet: fleetFrom(name) });
         config = { ...setup.config };
         if (setup.boss != null) {
@@ -220,40 +253,47 @@ function parse(argv: readonly string[]): Options {
     }
   }
 
-  if (from.length === 0 && fleets.length === 0) from.push('corvette');
+  if (from.length === 0 && fleets.length === 0) from.push(shipFrom('corvette'));
   if (Object.keys(match).length > 0) {
     config['match'] = { ...(config['match'] as object | undefined), ...match };
   }
   if (Object.keys(fleet).length > 0) {
     config['fleet'] = { ...(config['fleet'] as object | undefined), ...fleet };
   }
-  if (Object.keys(kinds).length > 0 || Object.keys(doctrine).length > 0) {
-    const held = config['mutation'] as { kinds?: object; doctrine?: object } | undefined;
+  if (
+    Object.keys(kinds).length > 0 ||
+    Object.keys(doctrine).length > 0 ||
+    Object.keys(build).length > 0 ||
+    structural !== undefined
+  ) {
+    const held = config['mutation'] as { kinds?: object; doctrine?: object; build?: object } | undefined;
     config['mutation'] = {
       ...held,
+      ...(structural === undefined ? {} : { structural }),
       kinds: { ...held?.kinds, ...kinds },
       doctrine: { ...held?.doctrine, ...doctrine },
+      build: { ...held?.build, ...build },
     };
   }
   if (budget > 0) {
     let heaviest = 0;
-    for (const name of from) heaviest = Math.max(heaviest, compileBlueprint(BLUEPRINTS[name]!).mass);
+    for (const { blueprint } of from) heaviest = Math.max(heaviest, compileBlueprint(blueprint).mass);
     for (const { fleet } of fleets) heaviest = Math.max(heaviest, fleetMass(fleetHulls(fleet)));
     config['massBudget'] = heaviest * budget;
   }
-  return { from, fleets, boss, out, saveConfig, config, quiet };
+  return { from, fleets, boss, out, saveConfig, name, config, quiet };
 }
 
 const options = parse(process.argv.slice(2));
 const founders: Entrant[] = [
-  ...options.from.map((name) => BLUEPRINTS[name]!),
+  ...options.from.map(({ blueprint }) => blueprint),
   ...options.fleets.map(({ fleet }) => fleet),
 ];
 const settings: RunConfig = { ...DEFAULT_RUN, ...options.config };
 
 if (!options.quiet) {
   console.log(
-    `${[...options.from, ...options.fleets.map(({ name }) => name)].join(', ')} — ${settings.generations} generations of ` +
+    `${[...options.from, ...options.fleets].map(({ name }) => name).join(', ')} — ${settings.generations} generations of ` +
       `${settings.population}, ${settings.group} to a match, ${settings.minMatches} matches each` +
       (options.boss === null ? '' : `, all against ${options.boss.name}`),
   );
@@ -265,7 +305,8 @@ if (options.saveConfig !== '') {
     options.saveConfig,
     `${JSON.stringify(
       serialiseRunConfig({
-        founders: options.from.map((name) => BLUEPRINTS[name]!.name),
+        ...(options.name === undefined ? {} : { name: options.name }),
+        founders: options.from.map(({ name }) => name),
         fleets: options.fleets.map(({ name }) => name),
         boss: options.boss,
         config: settings,
@@ -278,7 +319,14 @@ if (options.saveConfig !== '') {
 }
 
 const started = Date.now();
-const run = runEvolution(founders, options.config, (generation) => {
+mkdirSync(dirname(options.out), { recursive: true });
+// Beside it and then over it, so a run stopped mid-write keeps the last whole one.
+const writeRun = (): void => {
+  writeFileSync(`${options.out}.part`, `${JSON.stringify(runner.record(), null, 2)}\n`);
+  renameSync(`${options.out}.part`, options.out);
+};
+const runner: Run = new Run(founders, options.config, (generation) => {
+  writeRun();
   if (options.quiet) return;
   console.log(
     `gen ${String(generation.index).padStart(3)}  ` +
@@ -289,10 +337,9 @@ const run = runEvolution(founders, options.config, (generation) => {
       `race ${generation.mean.race.toFixed(2)}`,
   );
 });
+const run = runner.finish();
 const spent = (Date.now() - started) / 1000;
-
-mkdirSync(dirname(options.out), { recursive: true });
-writeFileSync(options.out, `${JSON.stringify(run, null, 2)}\n`);
+writeRun();
 
 if (!options.quiet) {
   const best = finalist(run);
