@@ -57,6 +57,34 @@ export const DEFAULT_COEVOLUTION: CoevolutionConfig = {
   hallShare: 0.25,
 };
 
+/**
+ * Side B's settings: side A's, with whatever side B sets in their place. The
+ * weight tables merge entry by entry, so a side B that sets one kind's odds
+ * keeps side A's for the rest.
+ */
+export function rivalSettings(a: RunConfig, rival: Partial<SideSettings>): RunConfig {
+  const mine = rival.mutation ?? {};
+  const theirs = a.mutation;
+  const table = <T extends object>(base: T | undefined, own: T | undefined): { table?: T } =>
+    base === undefined && own === undefined ? {} : { table: { ...base, ...own } as T };
+  const kinds = table(theirs.kinds, mine.kinds).table;
+  const build = table(theirs.build, mine.build).table;
+  const doctrine = table(theirs.doctrine, mine.doctrine).table;
+  const operators = table(a.fleet.operators, rival.fleet?.operators).table;
+  return {
+    ...a,
+    ...rival,
+    mutation: {
+      ...theirs,
+      ...mine,
+      ...(kinds === undefined ? {} : { kinds }),
+      ...(build === undefined ? {} : { build }),
+      ...(doctrine === undefined ? {} : { doctrine }),
+    },
+    fleet: { ...a.fleet, ...rival.fleet, ...(operators === undefined ? {} : { operators }) },
+  };
+}
+
 /** Told as each pair of generations closes. */
 export type OnCoGeneration = (a: GenerationRecord, b: GenerationRecord) => void;
 
@@ -117,7 +145,7 @@ export class Coevolution {
     this.coevolution = { ...DEFAULT_COEVOLUTION, ...coevolution };
     this.onGeneration = onGeneration;
     this.rng = new Rng(settings.seed);
-    const rival: RunConfig = { ...settings, ...this.coevolution.rival };
+    const rival = rivalSettings(settings, this.coevolution.rival);
     const a = seedPopulation(founders, this.rng, settings);
     const b = seedPopulation(rivals, this.rng, rival, a.individuals.length);
     this.nextId = a.individuals.length + b.individuals.length;

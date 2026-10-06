@@ -108,6 +108,10 @@ const VERSUS_KEYS: readonly string[] = [
   'winners',
   'massBudget',
   'fleet',
+  'structural',
+  'kinds',
+  'build',
+  'doctrine',
 ];
 
 const FLEET_KEYS: readonly string[] = ['radius', 'maxShips', 'operators'];
@@ -178,6 +182,10 @@ function serialiseVersus(versus: VersusSetup): Record<string, unknown> {
     ...(rival.winners === undefined ? {} : { winners: rival.winners }),
     ...(rival.massBudget === undefined ? {} : { massBudget: Number.isFinite(rival.massBudget) ? rival.massBudget : null }),
     ...(rival.fleet === undefined ? {} : { fleet: { ...rival.fleet } }),
+    ...(rival.mutation?.structural === undefined ? {} : { structural: rival.mutation.structural }),
+    ...(rival.mutation?.kinds === undefined ? {} : { kinds: { ...rival.mutation.kinds } }),
+    ...(rival.mutation?.build === undefined ? {} : { build: { ...rival.mutation.build } }),
+    ...(rival.mutation?.doctrine === undefined ? {} : { doctrine: { ...rival.mutation.doctrine } }),
   };
 }
 
@@ -272,7 +280,11 @@ function versusProblem(versus: unknown, warnings: string[]): string | null {
     countProblem(versus['population'], 'versus.population') ??
     countProblem(versus['winners'], 'versus.winners') ??
     (versus['massBudget'] === null ? null : budgetProblem(versus['massBudget'])) ??
-    fleetProblem(versus['fleet'], 'versus.fleet', warnings);
+    fleetProblem(versus['fleet'], 'versus.fleet', warnings) ??
+    chanceProblem(versus['structural'], 'versus.structural') ??
+    kindsProblem(versus['kinds'], warnings, 'versus.kinds') ??
+    weightsOf(versus['build'], 'versus.build', BUILD_KEYS, warnings) ??
+    weightsOf(versus['doctrine'], 'versus.doctrine', DOCTRINE_KEYS, warnings);
   if (problem !== null) return problem;
   const hall = versus['hall'];
   if (hall !== undefined && (!Number.isInteger(hall) || (hall as number) < 0)) {
@@ -358,6 +370,13 @@ function parseVersus(versus: Record<string, unknown>): VersusSetup {
   if (typeof versus['winners'] === 'number') rival.winners = versus['winners'];
   if (versus['massBudget'] !== undefined) rival.massBudget = versus['massBudget'] === null ? Infinity : (versus['massBudget'] as number);
   if (isRecord(versus['fleet'])) rival.fleet = { ...(versus['fleet'] as SideSettings['fleet']) };
+  // Only what side B sets: the rest is side A's (`rivalSettings`).
+  const mutation: { -readonly [K in keyof SideSettings['mutation']]?: SideSettings['mutation'][K] } = {};
+  if (typeof versus['structural'] === 'number') mutation.structural = versus['structural'];
+  if (isRecord(versus['kinds'])) mutation.kinds = { ...(versus['kinds'] as KindWeights) };
+  if (isRecord(versus['build'])) mutation.build = { ...(versus['build'] as BuildWeights) };
+  if (isRecord(versus['doctrine'])) mutation.doctrine = { ...(versus['doctrine'] as DoctrineWeights) };
+  if (Object.keys(mutation).length > 0) rival.mutation = mutation;
   return {
     founders: (versus['founders'] as string[] | undefined) ?? [],
     fleets: (versus['fleets'] as string[] | undefined) ?? [],
@@ -410,15 +429,15 @@ function budgetProblem(value: unknown): string | null {
   return null;
 }
 
-function kindsProblem(value: unknown, warnings: string[]): string | null {
+function kindsProblem(value: unknown, warnings: string[], what = 'kinds'): string | null {
   if (value === undefined) return null;
-  if (!isRecord(value)) return 'kinds must be an object of weights, one per module kind';
-  unknownKeys(value, MODULE_KINDS, `kinds (which are ${MODULE_KINDS.join(', ')})`, warnings);
+  if (!isRecord(value)) return `${what} must be an object of weights, one per module kind`;
+  unknownKeys(value, MODULE_KINDS, `${what} (which are ${MODULE_KINDS.join(', ')})`, warnings);
   for (const kind of MODULE_KINDS) {
-    const problem = numberProblem(value[kind], `kinds.${kind}`);
+    const problem = numberProblem(value[kind], `${what}.${kind}`);
     if (problem !== null) return problem;
     if (value[kind] !== undefined && (value[kind] as number) < 0) {
-      return `kinds.${kind} must be zero or more, got ${JSON.stringify(value[kind])}`;
+      return `${what}.${kind} must be zero or more, got ${JSON.stringify(value[kind])}`;
     }
   }
   return null;

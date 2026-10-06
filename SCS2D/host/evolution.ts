@@ -34,7 +34,7 @@ import {
   type KindWeights,
 } from '../evolution/mutate.js';
 import { parseRunConfig, runConfigWarnings, serialiseRunConfig, type RunSetup } from '../evolution/configFile.js';
-import { Coevolution, DEFAULT_COEVOLUTION, type CoevolutionConfig } from '../evolution/coevolution.js';
+import { Coevolution, DEFAULT_COEVOLUTION, rivalSettings, type CoevolutionConfig, type SideSettings } from '../evolution/coevolution.js';
 import { latest, Yardstick, yardstickMatch, type YardstickReport } from '../evolution/yardstick.js';
 import {
   finalist,
@@ -101,6 +101,66 @@ const SETUP_KEY = 'scs2d.evolution.setup';
 /** Which panel sections are folded away, so a refresh keeps them so. */
 const FOLDED_KEY = 'scs2d.evolution.folded';
 
+/**
+ * The settings each side of a co-evolution run has its own of: the cards in
+ * `#sideA`, copied for side B with ids prefixed `b_`.
+ */
+const SIDE_FIELDS = [
+  'population',
+  'winners',
+  'massBudget',
+  'fleetRadius',
+  'fleetShips',
+  'opDesign',
+  'opMove',
+  'opAdd',
+  'opRemove',
+  'opFork',
+  'opMerge',
+  'structural',
+  'buildMove',
+  'buildResize',
+  'buildRefit',
+  'buildVisible',
+  'buildHidden',
+  'kindEngine',
+  'kindStructure',
+  'kindTank',
+  'kindTurret',
+  'kindBeamTurret',
+  'kindHullGun',
+  'kindHullBeam',
+  'kindCore',
+  'doctrineTargeting',
+  'doctrineApproach',
+  'doctrineEscort',
+  'doctrineAvoidance',
+  'doctrineGunnery',
+] as const;
+type SideField = (typeof SIDE_FIELDS)[number];
+const RIVAL = 'b_';
+
+/**
+ * Side B's settings: side A's cards copied, every id and folding key
+ * prefixed, so the same reading code reads either side.
+ */
+function cloneSideB(): void {
+  const a = el<HTMLElement>('sideA');
+  const b = a.cloneNode(true) as HTMLElement;
+  b.id = 'sideB';
+  b.classList.add('coOnly');
+  for (const tagged of b.querySelectorAll<HTMLElement>('[id]')) tagged.id = RIVAL + tagged.id;
+  for (const label of b.querySelectorAll<HTMLLabelElement>('label[for]')) label.htmlFor = RIVAL + label.htmlFor;
+  for (const section of b.querySelectorAll<HTMLElement>('[data-key]')) section.dataset['key'] = RIVAL + section.dataset['key'];
+  const title = b.querySelector('.sideTitle')!;
+  title.textContent = 'Side B — the lineage bred against it';
+  const copy = document.createElement('div');
+  copy.className = 'buttons';
+  copy.innerHTML = '<button id="sameAsA" title="Copy every setting of side A into side B">Same as side A</button>';
+  title.after(copy);
+  a.after(b);
+}
+
 const FIELDS = [
   'configName',
   'generations',
@@ -148,6 +208,8 @@ const FIELDS = [
   'doctrineAvoidance',
   'doctrineGunnery',
   'effort',
+  'hall',
+  'hallShare',
 ] as const;
 
 /** One line of the results table, from a finished generation or a live one. */
@@ -334,6 +396,8 @@ export function startEvolution(): void {
   };
 
   const startButton = el<HTMLButtonElement>('start');
+  const toSetupButton = el<HTMLButtonElement>('toSetup');
+  const toRunButton = el<HTMLButtonElement>('toRun');
   const pauseButton = el<HTMLButtonElement>('pause');
   const stopButton = el<HTMLButtonElement>('stop');
   const stateLabel = el<HTMLElement>('state');
@@ -365,9 +429,14 @@ export function startEvolution(): void {
   const measureButton = el<HTMLButtonElement>('measure');
   const watchYardstickButton = el<HTMLButtonElement>('watchYardstick');
   const yardstickLine = el<HTMLElement>('yardstickLine');
+  cloneSideB();
   const inputs = Object.fromEntries(
     FIELDS.map((name) => [name, el<HTMLInputElement>(name)]),
   ) as Record<(typeof FIELDS)[number], HTMLInputElement>;
+  const rivalTitle = el<HTMLElement>('sideB').querySelector<HTMLElement>('.sideTitle')!;
+  const rivalInputs = Object.fromEntries(
+    SIDE_FIELDS.map((name) => [name, el<HTMLInputElement>(RIVAL + name)]),
+  ) as Record<SideField, HTMLInputElement>;
 
   const library = new Library(window.localStorage);
   const fleetLibrary = new Library(window.localStorage, FLEET_FILES);
@@ -409,13 +478,16 @@ export function startEvolution(): void {
     }
     return rivals;
   };
-  /**
-   * How side B is bred against side A: the page sets the same settings for
-   * both, so this is the defaults unless a config file said otherwise, kept so
-   * that exporting it again does not lose what the file set.
-   */
-  let coevolution: CoevolutionConfig = DEFAULT_COEVOLUTION;
+  /** How side B is bred against side A: its own column of settings, and the hall. */
+  const coevolutionSettings = (): CoevolutionConfig => ({
+    // Nothing set apart while side B follows side A, so a file says only what differs.
+    rival: rivalOwn ? sideSettings((name) => rivalInputs[name]) : {},
+    hall: Math.max(0, Math.round(number(inputs.hall, DEFAULT_COEVOLUTION.hall))),
+    hallShare: Math.min(1, Math.max(0, number(inputs.hallShare, DEFAULT_COEVOLUTION.hallShare))),
+  });
   const coRun = (): boolean => versusSelect.selectedOptions.length > 0;
+  /** Whether side B has settings of its own, rather than following side A's. */
+  let rivalOwn = false;
 
   let run: Run | Coevolution | null = null;
   /** Before a run: the founders as chosen, and the first match they would fight, paused at its start. */
@@ -538,6 +610,8 @@ export function startEvolution(): void {
     doctrineAvoidance: String(DEFAULT_DOCTRINE_WEIGHTS.avoidance),
     doctrineGunnery: String(DEFAULT_DOCTRINE_WEIGHTS.gunnery),
     effort: '12',
+    hall: String(DEFAULT_COEVOLUTION.hall),
+    hallShare: String(DEFAULT_COEVOLUTION.hallShare),
   };
 
   /**
@@ -576,7 +650,7 @@ export function startEvolution(): void {
         founders.length === 0
           ? null
           : co
-            ? new Coevolution(founders, rivals, readSetup().config, coevolution).unmutatedOpening()
+            ? new Coevolution(founders, rivals, readSetup().config, coevolutionSettings()).unmutatedOpening()
             : new Run(founders, readSetup().config).unmutatedOpening();
     } catch {
       // A founder that will not compile has nothing to show.
@@ -588,6 +662,11 @@ export function startEvolution(): void {
   const saveSetup = (): void => {
     const held: Record<string, string> = { goal: goalInput.value, boss: bossSelect.value };
     for (const name of FIELDS) held[name] = inputs[name].value;
+    // Side B follows side A until it is given a setting of its own.
+    if (!rivalOwn) for (const name of SIDE_FIELDS) rivalInputs[name].value = inputs[name].value;
+    for (const name of SIDE_FIELDS) held[RIVAL + name] = rivalInputs[name].value;
+    held['rivalOwn'] = rivalOwn ? '1' : '';
+    rivalTitle.textContent = `Side B — the lineage bred against it${rivalOwn ? '' : ', following side A until one of these is changed'}`;
     held['founders'] = [...foundersSelect.selectedOptions].map((o) => o.value).join('\n');
     held['versus'] = [...versusSelect.selectedOptions].map((o) => o.value).join('\n');
     try {
@@ -631,6 +710,8 @@ export function startEvolution(): void {
 
   const held = loadSetup();
   for (const name of FIELDS) inputs[name].value = held[name] ?? defaults[name];
+  rivalOwn = held['rivalOwn'] === '1';
+  for (const name of SIDE_FIELDS) rivalInputs[name].value = (rivalOwn ? held[RIVAL + name] : undefined) ?? inputs[name].value;
   // Settings saved when this was a checkbox held '1' or ''.
   const heldGoal = held['goal'] === '' ? 'none' : held['goal'] === '1' ? 'solid' : held['goal'];
   goalInput.value = heldGoal === 'ghost' || heldGoal === 'none' || heldGoal === 'boss' ? heldGoal : 'solid';
@@ -687,7 +768,8 @@ export function startEvolution(): void {
   /** Whether a fleet is among the founders, which makes it a run of fleets. */
   const fleetRun = (): boolean =>
     [...foundersSelect.selectedOptions, ...versusSelect.selectedOptions].some((o) => pickOf(o.value).kind === 'fleet') ||
-    Math.round(number(inputs.fleetShips, DEFAULT_FLEET_LIMITS.maxShips)) > 1;
+    Math.round(number(inputs.fleetShips, DEFAULT_FLEET_LIMITS.maxShips)) > 1 ||
+    (coRun() && Math.round(number(rivalInputs.fleetShips, DEFAULT_FLEET_LIMITS.maxShips)) > 1);
   const showFleetSettings = (): void => {
     document.body.classList.toggle('fleetRun', fleetRun());
     document.body.classList.toggle('coRun', coRun());
@@ -703,58 +785,76 @@ export function startEvolution(): void {
   });
 
   for (const name of FIELDS) inputs[name].addEventListener('change', saveSetup);
+  for (const name of SIDE_FIELDS) {
+    rivalInputs[name].addEventListener('change', () => {
+      rivalOwn = true;
+      saveSetup();
+    });
+  }
+  el<HTMLButtonElement>('sameAsA').addEventListener('click', () => {
+    rivalOwn = false;
+    showFleetSettings();
+    saveSetup();
+  });
   goalInput.addEventListener('change', saveSetup);
   foundersSelect.addEventListener('change', saveSetup);
 
-  const configure = (): Partial<RunConfig> => {
-    const tonnes = number(inputs.massBudget, 0);
+  /** One side's own settings, read from its inputs: side A's, or with `get` reading side B's. */
+  const sideSettings = (get: (name: SideField) => HTMLInputElement): SideSettings => {
+    const tonnes = number(get('massBudget'), 0);
     return {
-      seed: number(inputs.seed, DEFAULT_RUN.seed),
-      generations: Math.max(1, Math.round(number(inputs.generations, DEFAULT_RUN.generations))),
-      population: Math.max(2, Math.round(number(inputs.population, DEFAULT_RUN.population))),
-      winners: Math.max(1, Math.round(number(inputs.winners, DEFAULT_RUN.winners))),
-      group: Math.max(1, Math.round(number(inputs.group, DEFAULT_RUN.group))),
-      minMatches: Math.max(1, Math.round(number(inputs.minMatches, DEFAULT_RUN.minMatches))),
+      population: Math.max(2, Math.round(number(get('population'), DEFAULT_RUN.population))),
+      winners: Math.max(1, Math.round(number(get('winners'), DEFAULT_RUN.winners))),
       massBudget: tonnes > 0 ? tonnes * 1000 : Infinity,
       fleet: {
-        radius: Math.max(1, number(inputs.fleetRadius, DEFAULT_FLEET_LIMITS.radius)),
-        maxShips: Math.max(1, Math.round(number(inputs.fleetShips, DEFAULT_FLEET_LIMITS.maxShips))),
+        radius: Math.max(1, number(get('fleetRadius'), DEFAULT_FLEET_LIMITS.radius)),
+        maxShips: Math.max(1, Math.round(number(get('fleetShips'), DEFAULT_FLEET_LIMITS.maxShips))),
         operators: {
-          design: Math.max(0, number(inputs.opDesign, DEFAULT_FLEET_LIMITS.operators.design)),
-          move: Math.max(0, number(inputs.opMove, DEFAULT_FLEET_LIMITS.operators.move)),
-          add: Math.max(0, number(inputs.opAdd, DEFAULT_FLEET_LIMITS.operators.add)),
-          remove: Math.max(0, number(inputs.opRemove, DEFAULT_FLEET_LIMITS.operators.remove)),
-          fork: Math.max(0, number(inputs.opFork, DEFAULT_FLEET_LIMITS.operators.fork)),
-          merge: Math.max(0, number(inputs.opMerge, DEFAULT_FLEET_LIMITS.operators.merge)),
+          design: Math.max(0, number(get('opDesign'), DEFAULT_FLEET_LIMITS.operators.design)),
+          move: Math.max(0, number(get('opMove'), DEFAULT_FLEET_LIMITS.operators.move)),
+          add: Math.max(0, number(get('opAdd'), DEFAULT_FLEET_LIMITS.operators.add)),
+          remove: Math.max(0, number(get('opRemove'), DEFAULT_FLEET_LIMITS.operators.remove)),
+          fork: Math.max(0, number(get('opFork'), DEFAULT_FLEET_LIMITS.operators.fork)),
+          merge: Math.max(0, number(get('opMerge'), DEFAULT_FLEET_LIMITS.operators.merge)),
         },
       },
       mutation: {
-        structural: Math.min(1, Math.max(0, number(inputs.structural, DEFAULT_LIMITS.structural))),
+        structural: Math.min(1, Math.max(0, number(get('structural'), DEFAULT_LIMITS.structural))),
         build: {
-          move: Math.max(0, number(inputs.buildMove, DEFAULT_BUILD_WEIGHTS.move)),
-          resize: Math.max(0, number(inputs.buildResize, DEFAULT_BUILD_WEIGHTS.resize)),
-          refit: Math.max(0, number(inputs.buildRefit, DEFAULT_BUILD_WEIGHTS.refit)),
-          visible: Math.max(0, number(inputs.buildVisible, DEFAULT_BUILD_WEIGHTS.visible)),
-          hidden: Math.max(0, number(inputs.buildHidden, DEFAULT_BUILD_WEIGHTS.hidden)),
+          move: Math.max(0, number(get('buildMove'), DEFAULT_BUILD_WEIGHTS.move)),
+          resize: Math.max(0, number(get('buildResize'), DEFAULT_BUILD_WEIGHTS.resize)),
+          refit: Math.max(0, number(get('buildRefit'), DEFAULT_BUILD_WEIGHTS.refit)),
+          visible: Math.max(0, number(get('buildVisible'), DEFAULT_BUILD_WEIGHTS.visible)),
+          hidden: Math.max(0, number(get('buildHidden'), DEFAULT_BUILD_WEIGHTS.hidden)),
         },
         kinds: {
-          engine: Math.max(0, number(inputs.kindEngine, DEFAULT_KINDS.engine)),
-          structure: Math.max(0, number(inputs.kindStructure, DEFAULT_KINDS.structure)),
-          tank: Math.max(0, number(inputs.kindTank, DEFAULT_KINDS.tank)),
-          turret: Math.max(0, number(inputs.kindTurret, DEFAULT_KINDS.turret)),
-          beamTurret: Math.max(0, number(inputs.kindBeamTurret, DEFAULT_KINDS.beamTurret)),
-          hullGun: Math.max(0, number(inputs.kindHullGun, DEFAULT_KINDS.hullGun)),
-          hullBeam: Math.max(0, number(inputs.kindHullBeam, DEFAULT_KINDS.hullBeam)),
-          core: Math.max(0, number(inputs.kindCore, DEFAULT_KINDS.core)),
+          engine: Math.max(0, number(get('kindEngine'), DEFAULT_KINDS.engine)),
+          structure: Math.max(0, number(get('kindStructure'), DEFAULT_KINDS.structure)),
+          tank: Math.max(0, number(get('kindTank'), DEFAULT_KINDS.tank)),
+          turret: Math.max(0, number(get('kindTurret'), DEFAULT_KINDS.turret)),
+          beamTurret: Math.max(0, number(get('kindBeamTurret'), DEFAULT_KINDS.beamTurret)),
+          hullGun: Math.max(0, number(get('kindHullGun'), DEFAULT_KINDS.hullGun)),
+          hullBeam: Math.max(0, number(get('kindHullBeam'), DEFAULT_KINDS.hullBeam)),
+          core: Math.max(0, number(get('kindCore'), DEFAULT_KINDS.core)),
         },
         doctrine: {
-          targeting: Math.max(0, number(inputs.doctrineTargeting, DEFAULT_DOCTRINE_WEIGHTS.targeting)),
-          approach: Math.max(0, number(inputs.doctrineApproach, DEFAULT_DOCTRINE_WEIGHTS.approach)),
-          escort: Math.max(0, number(inputs.doctrineEscort, DEFAULT_DOCTRINE_WEIGHTS.escort)),
-          avoidance: Math.max(0, number(inputs.doctrineAvoidance, DEFAULT_DOCTRINE_WEIGHTS.avoidance)),
-          gunnery: Math.max(0, number(inputs.doctrineGunnery, DEFAULT_DOCTRINE_WEIGHTS.gunnery)),
+          targeting: Math.max(0, number(get('doctrineTargeting'), DEFAULT_DOCTRINE_WEIGHTS.targeting)),
+          approach: Math.max(0, number(get('doctrineApproach'), DEFAULT_DOCTRINE_WEIGHTS.approach)),
+          escort: Math.max(0, number(get('doctrineEscort'), DEFAULT_DOCTRINE_WEIGHTS.escort)),
+          avoidance: Math.max(0, number(get('doctrineAvoidance'), DEFAULT_DOCTRINE_WEIGHTS.avoidance)),
+          gunnery: Math.max(0, number(get('doctrineGunnery'), DEFAULT_DOCTRINE_WEIGHTS.gunnery)),
         },
       },
+    };
+  };
+
+  const configure = (): Partial<RunConfig> => {
+    return {
+      seed: number(inputs.seed, DEFAULT_RUN.seed),
+      generations: Math.max(1, Math.round(number(inputs.generations, DEFAULT_RUN.generations))),
+      group: Math.max(1, Math.round(number(inputs.group, DEFAULT_RUN.group))),
+      minMatches: Math.max(1, Math.round(number(inputs.minMatches, DEFAULT_RUN.minMatches))),
+      ...sideSettings((name) => inputs[name]),
       match: {
         duration: Math.max(1, number(inputs.duration, DEFAULT_MATCH.duration)),
         radius: Math.max(10, number(inputs.radius, DEFAULT_MATCH.radius)),
@@ -786,7 +886,7 @@ export function startEvolution(): void {
       founders: picked.filter((p) => p.kind === 'ship').map((p) => p.name),
       fleets: picked.filter((p) => p.kind === 'fleet').map((p) => p.name),
       boss: coRun() || goalInput.value !== 'boss' || bossSelect.value === '' ? null : pickOf(bossSelect.value),
-      versus: coRun() ? { ...versusNames(), coevolution } : null,
+      versus: coRun() ? { ...versusNames(), coevolution: coevolutionSettings() } : null,
       config: { ...DEFAULT_RUN, ...configure() },
     };
   };
@@ -807,27 +907,52 @@ export function startEvolution(): void {
    * is worth reading for its numbers even when it names somebody else's ship,
    * and what is missing is visible in the founders list.
    */
+  /** Put one side's own settings into its inputs: side A's, or with `get` side B's. */
+  const writeSide = (get: (name: SideField) => HTMLInputElement, config: RunConfig): void => {
+    const kinds: KindWeights = { ...DEFAULT_KINDS, ...config.mutation.kinds };
+    get('population').value = String(config.population);
+    get('winners').value = String(config.winners);
+    get('massBudget').value = Number.isFinite(config.massBudget) ? String(config.massBudget / 1000) : '';
+    get('fleetRadius').value = String(config.fleet.radius ?? DEFAULT_FLEET_LIMITS.radius);
+    get('fleetShips').value = String(config.fleet.maxShips ?? DEFAULT_FLEET_LIMITS.maxShips);
+    const operators = { ...DEFAULT_FLEET_LIMITS.operators, ...config.fleet.operators };
+    get('opDesign').value = String(operators.design);
+    get('opMove').value = String(operators.move);
+    get('opAdd').value = String(operators.add);
+    get('opRemove').value = String(operators.remove);
+    get('opFork').value = String(operators.fork);
+    get('opMerge').value = String(operators.merge);
+    const build = { ...DEFAULT_BUILD_WEIGHTS, ...config.mutation.build };
+    get('structural').value = String(config.mutation.structural ?? DEFAULT_LIMITS.structural);
+    get('buildMove').value = String(build.move);
+    get('buildResize').value = String(build.resize);
+    get('buildRefit').value = String(build.refit);
+    get('buildVisible').value = String(build.visible);
+    get('buildHidden').value = String(build.hidden);
+    get('kindEngine').value = String(kinds.engine);
+    get('kindStructure').value = String(kinds.structure);
+    get('kindTank').value = String(kinds.tank);
+    get('kindTurret').value = String(kinds.turret);
+    get('kindBeamTurret').value = String(kinds.beamTurret);
+    get('kindHullGun').value = String(kinds.hullGun);
+    get('kindHullBeam').value = String(kinds.hullBeam);
+    get('kindCore').value = String(kinds.core);
+    const doctrine = doctrineWeights(config.mutation.doctrine);
+    get('doctrineTargeting').value = String(doctrine.targeting);
+    get('doctrineApproach').value = String(doctrine.approach);
+    get('doctrineEscort').value = String(doctrine.escort);
+    get('doctrineAvoidance').value = String(doctrine.avoidance);
+    get('doctrineGunnery').value = String(doctrine.gunnery);
+  };
+
   const applySetup = (setup: RunSetup): void => {
     const config = setup.config;
     const match: MatchConfig = { ...DEFAULT_MATCH, ...config.match };
-    const kinds: KindWeights = { ...DEFAULT_KINDS, ...config.mutation.kinds };
     inputs.configName.value = setup.name ?? '';
     inputs.seed.value = String(config.seed);
     inputs.generations.value = String(config.generations);
-    inputs.population.value = String(config.population);
-    inputs.winners.value = String(config.winners);
     inputs.group.value = String(config.group);
     inputs.minMatches.value = String(config.minMatches);
-    inputs.massBudget.value = Number.isFinite(config.massBudget) ? String(config.massBudget / 1000) : '';
-    inputs.fleetRadius.value = String(config.fleet.radius ?? DEFAULT_FLEET_LIMITS.radius);
-    inputs.fleetShips.value = String(config.fleet.maxShips ?? DEFAULT_FLEET_LIMITS.maxShips);
-    const operators = { ...DEFAULT_FLEET_LIMITS.operators, ...config.fleet.operators };
-    inputs.opDesign.value = String(operators.design);
-    inputs.opMove.value = String(operators.move);
-    inputs.opAdd.value = String(operators.add);
-    inputs.opRemove.value = String(operators.remove);
-    inputs.opFork.value = String(operators.fork);
-    inputs.opMerge.value = String(operators.merge);
     inputs.duration.value = String(match.duration);
     inputs.radius.value = String(match.radius);
     inputs.scatter.value = String((match.scatter * 180) / Math.PI);
@@ -838,27 +963,7 @@ export function startEvolution(): void {
     inputs.damageWeight.value = String(match.weights.damage);
     inputs.disablingWeight.value = String(match.weights.disabling);
     inputs.raceWeight.value = String(match.weights.race);
-    const build = { ...DEFAULT_BUILD_WEIGHTS, ...config.mutation.build };
-    inputs.structural.value = String(config.mutation.structural ?? DEFAULT_LIMITS.structural);
-    inputs.buildMove.value = String(build.move);
-    inputs.buildResize.value = String(build.resize);
-    inputs.buildRefit.value = String(build.refit);
-    inputs.buildVisible.value = String(build.visible);
-    inputs.buildHidden.value = String(build.hidden);
-    inputs.kindEngine.value = String(kinds.engine);
-    inputs.kindStructure.value = String(kinds.structure);
-    inputs.kindTank.value = String(kinds.tank);
-    inputs.kindTurret.value = String(kinds.turret);
-    inputs.kindBeamTurret.value = String(kinds.beamTurret);
-    inputs.kindHullGun.value = String(kinds.hullGun);
-    inputs.kindHullBeam.value = String(kinds.hullBeam);
-    inputs.kindCore.value = String(kinds.core);
-    const doctrine = doctrineWeights(config.mutation.doctrine);
-    inputs.doctrineTargeting.value = String(doctrine.targeting);
-    inputs.doctrineApproach.value = String(doctrine.approach);
-    inputs.doctrineEscort.value = String(doctrine.escort);
-    inputs.doctrineAvoidance.value = String(doctrine.avoidance);
-    inputs.doctrineGunnery.value = String(doctrine.gunnery);
+    writeSide((name) => inputs[name], config);
     goalInput.value = match.goal === null ? 'none' : match.goal.solid === false ? 'ghost' : 'solid';
     const fleets = setup.fleets ?? [];
     if (setup.founders.length + fleets.length > 0) {
@@ -869,7 +974,12 @@ export function startEvolution(): void {
       for (const option of foundersSelect.options) option.selected = named.has(option.value);
     }
     const versus = setup.versus ?? null;
-    coevolution = versus?.coevolution ?? DEFAULT_COEVOLUTION;
+    const coevolution = versus?.coevolution ?? DEFAULT_COEVOLUTION;
+    // Side B's column in full: side A's settings, with whatever the file set apart for it.
+    rivalOwn = Object.keys(coevolution.rival).length > 0;
+    writeSide((name) => rivalInputs[name], rivalSettings({ ...DEFAULT_RUN, ...config }, coevolution.rival));
+    inputs.hall.value = String(coevolution.hall);
+    inputs.hallShare.value = String(coevolution.hallShare);
     const rivals = new Set([
       ...(versus?.founders ?? []).map((name) => valueOf('ship', name)),
       ...(versus?.fleets ?? []).map((name) => valueOf('fleet', name)),
@@ -1958,7 +2068,7 @@ export function startEvolution(): void {
     const rivals = chosenVersus();
     run =
       rivals.length > 0
-        ? new Coevolution(founders, rivals, readSetup().config, coevolution)
+        ? new Coevolution(founders, rivals, readSetup().config, coevolutionSettings())
         : new Run(founders, readSetup().config);
     previewMatch = null;
     previewRows = [];
@@ -1999,8 +2109,31 @@ export function startEvolution(): void {
     refresh();
   });
 
+  /**
+   * Setting a run up and watching it are two screens: the settings have the
+   * width to themselves, beside the founders they would start from, and a
+   * run has the width for its charts, combatants and matches.
+   */
+  const showScreen = (screen: 'setup' | 'run'): void => {
+    document.body.classList.toggle('screenSetup', screen === 'setup');
+    document.body.classList.toggle('screenRun', screen === 'run');
+    toSetupButton.setAttribute('aria-pressed', String(screen === 'setup'));
+    toRunButton.setAttribute('aria-pressed', String(screen === 'run'));
+    resize();
+    refresh();
+  };
+  toSetupButton.addEventListener('click', () => showScreen('setup'));
+  toRunButton.addEventListener('click', () => showScreen('run'));
+  startButton.addEventListener('click', () => {
+    if (run !== null) {
+      toRunButton.disabled = false;
+      showScreen('run');
+    }
+  });
+
   window.addEventListener('resize', resize);
   resize();
+  showScreen('setup');
   applyMode();
   refreshPreview();
 

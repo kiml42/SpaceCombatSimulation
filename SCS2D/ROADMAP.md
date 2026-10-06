@@ -138,12 +138,13 @@ the other. A boss battle is the special case of it where one side is a single en
   beating earlier opponents; cycling shows as the grid not improving down either axis.
 
 Built headless: `evolution/coevolution.ts`, side B in the run file as `rival`, `versus` in the config file
-with side B's population, winners, budget and fleet limits (its mutation weights are side A's), `--versus`,
+with side B's population, winners, budget, fleet limits and mutation weights, `--versus`,
 `--versus-fleet`, `--hall` and `--hall-share` on the CLI, and the grid (`championGrid`) in `npm run
-yardstick`. On the evolution page: a Versus picker under the founders, the score chart dropped and the
+yardstick`. On the evolution page, now a setup screen and a run screen: a Versus picker under the founders,
+side B's own column of breeding, limits and mutation settings, the score chart dropped and the
 fields a co-evolution run does not use hidden while it is set, the mass and ship-count charts a pair of lines
 a side, a side tag on every combatant with each side ranked on its own, and the champion of each side saved
-or exported together. Left: per-side mutation weights, and the grid on the page.
+or exported together. Left: the grid on the page.
 
 
 Not planned: per-ship doctrine overrides in a fleet (fork the design instead), and a group's own doctrine or

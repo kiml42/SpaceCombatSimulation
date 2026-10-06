@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DINKY, GUNSHIP } from '../scenarios/blueprints.js';
-import { runCoevolution } from '../evolution/coevolution.js';
+import { rivalSettings, runCoevolution } from '../evolution/coevolution.js';
 import { parseRunConfig, runConfigFileProblem, serialiseRunConfig } from '../evolution/configFile.js';
 import { DEFAULT_RUN, type GenerationRecord, type RunConfig, type RunRecord } from '../evolution/run.js';
 import { championGrid } from '../evolution/yardstick.js';
@@ -75,6 +75,28 @@ describe('a co-evolution run', () => {
     expect(uneven.rival!.generations.map((g) => g.individuals.length)).toEqual([6, 6]);
   });
 
+  it("takes side A's settings for side B, with side B's own laid over them entry by entry", () => {
+    const a: RunConfig = {
+      ...DEFAULT_RUN,
+      population: 8,
+      mutation: { structural: 0.3, kinds: { engine: 5, turret: 1 } as never, doctrine: { targeting: 2 } as never },
+      fleet: { maxShips: 3, operators: { add: 2 } as never },
+    };
+    const b = rivalSettings(a, {
+      winners: 3,
+      mutation: { kinds: { turret: 0 } as never },
+      fleet: { operators: { remove: 4 } as never },
+    });
+    expect(b.population).toBe(8);
+    expect(b.winners).toBe(3);
+    expect(b.mutation.structural).toBe(0.3);
+    expect(b.mutation.kinds).toEqual({ engine: 5, turret: 0 });
+    expect(b.mutation.doctrine).toEqual({ targeting: 2 });
+    expect(b.fleet).toEqual({ maxShips: 3, operators: { add: 2, remove: 4 } });
+    // Nothing set apart is side A exactly.
+    expect(rivalSettings(a, {})).toEqual(a);
+  });
+
   it('comes out the same from the same seed', () => {
     const again = runCoevolution([DINKY], [GUNSHIP], SETTINGS, { hall: 2, hallShare: 0.25 });
     expect(JSON.stringify(again)).toEqual(JSON.stringify(run));
@@ -97,6 +119,24 @@ describe('a run-config file with versus', () => {
     expect(file.versus).toEqual({ founders: ['Gunship'], hall: 3, hallShare: 0.5, population: 6, massBudget: null });
     expect(parseRunConfig(file).versus).toEqual(setup.versus);
     expect(parseRunConfig({ founders: ['Dinky'] }).versus).toBeNull();
+  });
+
+  it("keeps side B's own mutation weights, and only those it sets", () => {
+    const own = {
+      ...setup,
+      versus: {
+        ...setup.versus,
+        coevolution: {
+          ...setup.versus.coevolution,
+          rival: { mutation: { structural: 0, kinds: { turret: 0 } as never, doctrine: { approach: 3 } as never } },
+        },
+      },
+    };
+    const file = JSON.parse(JSON.stringify(serialiseRunConfig(own)));
+    expect(file.versus).toMatchObject({ structural: 0, kinds: { turret: 0 }, doctrine: { approach: 3 } });
+    expect(file.versus.build).toBeUndefined();
+    expect(parseRunConfig(file).versus!.coevolution.rival.mutation).toEqual(own.versus.coevolution.rival.mutation);
+    expect(runConfigFileProblem({ versus: { founders: ['Gunship'], kinds: { turret: -1 } } })).toMatch(/versus\.kinds\.turret/);
   });
 
   it('refuses a side B with nothing to found it, a boss beside it, or a hall that is not a count', () => {
