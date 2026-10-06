@@ -31,7 +31,7 @@ const SETUP = {
     massBudget: 12_000,
     mutation: {
       structural: 0,
-      build: { move: 0, resize: 0, refit: 0, visible: 0, hidden: 2 },
+      build: { move: 0, resize: 0, refit: 0, fittings: 0, tuning: 2, fighter: 0.5 },
       kinds: { ...DEFAULT_KINDS, turret: 0 }, doctrine: { targeting: 0, approach: 2, escort: 0, avoidance: 3, gunnery: 1 } },
     match: { duration: 45, radius: 900, closingSpeed: 30, crossingSpeed: -10, weights: { survival: 0, functional: 0.5, damage: 0, disabling: 2, race: 1 } },
   },
@@ -43,7 +43,7 @@ describe('the run config file', () => {
     expect(back.name).toEqual('Star Wars tuning');
     expect(back.founders).toEqual(SETUP.founders);
     expect(back.config.mutation.structural).toEqual(0);
-    expect(back.config.mutation.build).toEqual({ move: 0, resize: 0, refit: 0, visible: 0, hidden: 2 });
+    expect(back.config.mutation.build).toEqual({ move: 0, resize: 0, refit: 0, fittings: 0, tuning: 2, fighter: 0.5 });
     expect(back.config.seed).toEqual(42);
     expect(back.config.generations).toEqual(25);
     expect(back.config.massBudget).toEqual(12_000);
