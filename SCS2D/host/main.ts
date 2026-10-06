@@ -8,7 +8,6 @@ import type { Battle } from '../scenarios/types.js';
 import { swarm } from '../scenarios/swarm.js';
 import { torpedoes } from '../scenarios/torpedoes.js';
 import { starWars } from '../scenarios/starWars.js';
-// import { starWars2 } from '../scenarios/starWars2.js';
 import { ram } from '../scenarios/ram.js';
 import { standoff } from '../scenarios/standoff.js';
 import { column } from '../scenarios/column.js';
@@ -55,7 +54,6 @@ export function start(): void {
     { name: 'Duel', create: () => duel(SEED) },
     { name: 'Beam Duel', create: () => beamDuel(SEED) },
     { name: 'Star Wars', create: () => starWars(SEED) },
-    // { name: 'Star Wars 2', create: () => starWars2(SEED) },
     { name: 'Beam Vs Gun', create: () => beamVGun(SEED) },
     { name: 'Swarm', create: () => swarm(SEED) },
     { name: 'Fractal', create: () => fractal(SEED) },
