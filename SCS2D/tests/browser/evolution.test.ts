@@ -791,7 +791,10 @@ describe('the evolution page in a browser', () => {
     expect(await page.textContent('#championLine')).toMatch(/A #\d+.*B #\d+/);
 
     await page.selectOption('#mode', 'battle');
-    expect(await page.textContent('#matches tr')).toMatch(/^1\d+ \d+ v \d+/);
+    // Two of A against one of B, each side by its letter, and who won it if it was decided.
+    expect(await page.textContent('#matches tr')).toMatch(/^1A \d+ \d+ v B \d+(decided|A won|B won|annihilated|timeout)/);
+    const endings = await page.$$eval('#matches tr td:nth-child(3)', (cells) => cells.map((td) => td.textContent));
+    expect(endings.every((text) => text === 'A won' || text === 'B won' || text === 'annihilated' || text === 'timeout')).toBe(true);
     await page.click('#matches tr');
     await page.waitForFunction(() => /%/.test(document.getElementById('watching')?.textContent ?? ''));
 

@@ -152,6 +152,8 @@ export interface MatchRecord {
   /** Each competitor's side, when the match had sides rather than being a free-for-all. */
   readonly teams?: readonly number[];
   readonly ending: MatchResult['ending'];
+  /** Which competitors, by index, won a decided match. */
+  readonly winners?: readonly number[];
   readonly elapsed: number;
   readonly scores: MatchResult['scores'];
 }
@@ -414,6 +416,7 @@ export class Run {
       seed: this.seed,
       competitors: this.competitors.map((c) => this.generation.individuals[c]!.id),
       ending: result.ending,
+      winners: result.winners,
       elapsed: result.elapsed,
       scores: result.scores,
     });
