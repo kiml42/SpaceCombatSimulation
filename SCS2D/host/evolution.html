@@ -142,7 +142,15 @@
          than tiles because the figures are meant to be compared down a column
          as much as read across one. */
       #fleet { position: absolute; inset: 0; overflow: auto; padding: 0.2rem 0 1rem; }
-      #fleet table { width: 100%; border-collapse: collapse; }
+      /* Side A's table left of side B's, scrolled together. */
+      #fleet .pair { display: flex; gap: 1rem; align-items: flex-start; }
+      #fleet .pair[hidden] { display: none; }
+      #fleet table { flex: 1 1 0; min-width: max-content; border-collapse: collapse; }
+      /* Every row the same height, so a design with more kinds or a longer
+         changelog than the rest scrolls within its cell rather than shifting
+         every row below it as the ranking reorders. */
+      #fleet tbody tr { height: 6rem; }
+      #fleet td.made .kinds, #fleet td.done div { height: 5.4rem; overflow-y: auto; scrollbar-width: thin; }
       #fleet thead th {
         position: sticky;
         top: 0;
@@ -161,11 +169,15 @@
       }
       /* The five parts head their columns in the colours the chart plots them
          in, so the graph above and the table below are read with one key. */
-      #fleet th.hull { color: #7fd6a0; }
-      #fleet th.func { color: #b48ee0; }
-      #fleet th.dmg { color: #e0655f; }
-      #fleet th.dis { color: #e08ec0; }
-      #fleet th.grnd { color: #e9c05f; }
+      #fleet .part .hull { color: #7fd6a0; }
+      #fleet .part .func { color: #b48ee0; }
+      #fleet .part .dmg { color: #e0655f; }
+      #fleet .part .dis { color: #e08ec0; }
+      #fleet .part .grnd { color: #e9c05f; }
+      /* Two parts a column, one over the other; the figures in their part's
+         colour too, so which is which reads without looking up. */
+      #fleet thead th.part { vertical-align: bottom; line-height: 1.2; }
+      #fleet td.part div { line-height: 1.5; }
       #battleScores table { width: auto; margin: 0 0 0.4rem; border-collapse: collapse; font-variant-numeric: tabular-nums; }
       #battleScores th, #battleScores td { padding: 0 0.6rem 0 0; text-align: right; font-weight: normal; }
       #battleScores th:first-child, #battleScores td:first-child { text-align: left; }
