@@ -562,7 +562,7 @@ export class Ships {
   private readonly team: number[] = [];
 
   /**
-   * Which ships have nobody aboard: the pieces other ships have been broken
+   * Which ships were never controlled: the pieces other ships have been broken
    * into.
    *
    * A chunk is a ship in every way that matters to the rest of the sim — it
@@ -821,7 +821,7 @@ export class Ships {
   }
 
   /**
-   * Whether anybody is still flying this ship: a core damage has not finished
+   * Whether this ship is still under control: a core damage has not finished
    * with.
    *
    * A ship is controlled from its cores (DESIGN.md §4), so this is the one
@@ -833,7 +833,7 @@ export class Ships {
    */
   hasControl(i: number): boolean {
     if (this.alive[i] === 0) return false;
-    // Nobody was ever aboard a severed chunk, whatever it is carrying.
+    // A severed chunk was never controlled, whatever it is carrying.
     if (this.derelict[i] === 1) return false;
     const bodies = this.bodyStore;
     const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[i]!);
@@ -846,8 +846,8 @@ export class Ships {
   }
 
   /**
-   * A ship with nobody left aboard to cover: its cores shot out. Not a
-   * neutral, which is an objective rather than a crew.
+   * A ship with nothing left controlling it to cover: its cores shot out. Not a
+   * neutral, which is an objective rather than a ship.
    */
   private hulk(i: number): boolean {
     return this.team[i] !== NEUTRAL_TEAM && !this.hasControl(i);
@@ -1106,13 +1106,13 @@ export class Ships {
       for (let t = 0; t < this.alive.length; t++) {
         if (t === i || this.alive[t] === 0) continue;
         // Wreckage is matter, not an enemy, nor is anything not hostile, and
-        // a hulk offers nothing worth closing on: nobody is aboard it, and no
+        // a hulk offers nothing worth closing on: nothing controls it, and no
         // shot fired at it will ever remove it from the battle, so scoring it
         // low is not enough to stop a ship parking next to one forever.
         //
         // **A hulk is a hull with its cores shot out, and nothing else is.**
         // A ship that has merely lost its guns and its engines is harmless
-        // and still a target: there is somebody aboard it, and a round
+        // and still a target: its core still controls it, and a round
         // through the core finishes it. Excluding those as well would make
         // being harmless the safest thing a hull could be — untouchable by
         // everyone, for as long as it liked.
@@ -1702,7 +1702,7 @@ export class Ships {
    *
    * The cast stops at the nearest hull, so an enemy between this gun and a
    * consort behind it is still shot at. Wreckage is not a friend however it
-   * is painted: nobody is aboard it, and holding fire for it would make every
+   * is painted: nothing controls it, and holding fire for it would make every
    * broken ship a shield. Nor is what this mount is shooting at, whoever's
    * side it is on — a ship told to fire on one of its own does so, because
    * this is a rule about what is *in the way* and not about who may be shot.
@@ -1872,10 +1872,14 @@ export class Ships {
 
     for (let i = 0; i < this.alive.length; i++) {
       if (this.alive[i] === 0) continue;
-      // Nobody aboard a severed chunk, and nobody left aboard a ship whose
-      // cores have been shot out, so nothing holds its heading or kills its
-      // drift: it tumbles on with whatever the break or the last hit gave it.
-      if (!this.hasControl(i)) continue;
+      // Nothing controls a severed chunk, or a ship whose cores have been
+      // shot out, so nothing holds its heading or kills its
+      // drift: its engines and turrets fail safe and stop, and it tumbles on
+      // with whatever the break or the last hit gave it.
+      if (!this.hasControl(i)) {
+        this.failSafe(i);
+        continue;
+      }
       this.removeInvalidOrders(i);
       this.decide(world, bodies, i);
       this.decideTurrets(world, bodies, i);
@@ -1894,8 +1898,7 @@ export class Ships {
       }
     }
 
-    // Every ship pushing pays for it, flown or not: a hulk's last wrench is
-    // still applied, so it burns until it runs dry.
+    // Every ship pushing pays for what it burns.
     for (let i = 0; i < this.alive.length; i++) {
       if (this.alive[i] === 1) this.burn(dt, bodies, i);
     }
@@ -3552,9 +3555,9 @@ export class Ships {
    *
    * **A piece with a working core leaves as a ship**, not as wreckage: it is
    * flown, it shoots, it keeps the side it was on, and it works through a copy
-   * of the plan the ship was given, because whoever was aboard it was given
-   * that plan too. Everything else comes away as a piece of hull with nobody
-   * aboard. This is what a second core buys — a hull cut in two amidships
+   * of the plan the ship was given, because the core it is flown from was given
+   * that plan too. Everything else comes away as a piece of hull with nothing
+   * controlling it. This is what a second core buys — a hull cut in two amidships
    * becomes two ships rather than a ship and a wreck.
    */
   private detach(world: World, i: number, design: ShipDesign, keep: readonly number[], side = i): boolean {
@@ -3911,6 +3914,16 @@ export class Ships {
     const c = cos(angle);
     const s = sin(angle);
     return { x: dx * c - dy * s, y: dx * s + dy * c };
+  }
+
+  /** With no working core, every engine cuts out and every turret brakes to a stop. */
+  private failSafe(i: number): void {
+    const turrets = this.turretIndex[i]!;
+    for (let t = 0; t < turrets.length; t++) this.turrets.stop(turrets[t]!);
+    this.throttles[i]!.fill(0);
+    this.demandFx[i] = 0;
+    this.demandFy[i] = 0;
+    this.demandTorque[i] = 0;
   }
 
   remove(i: number): void {

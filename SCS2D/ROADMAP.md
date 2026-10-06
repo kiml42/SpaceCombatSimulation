@@ -882,14 +882,6 @@ Deliberately unresolved; decide when they block something.
   targeting picking modules rather than ships.
 - **When a ship decides to dock.** Docking is a commit at a low closing speed, but nothing wants to dock
   until fuel gives it a reason (step 8 on). Decide with the docking ports below.
-- **A ship whose cores are out keeps its last throttle.** Nothing flies it, so its wrench is held rather
-  than recomputed and replayed every step (`Ships.forceProvider`): a stuck throttle, kept as a failure mode
-  of losing the link to the computer. Left for now. It contradicts the command rule — an uncommanded engine
-  thrusts nothing, yet the held wrench is applied in full — and a hulk that lost its core mid-turn spins up
-  without limit (a Super Swarm Dinky passes 5,000 rad/s by step 8,000). Either replay the held throttles
-  through what each engine can still do, which leaves a hulk drifting, or let an engine with no working core
-  keep burning at its last setting, as an exception to the command rule. Most goldens move either way.
-  It does at least pay for it: a held wrench burns fuel, so a hulk stops once its tanks are dry.
 - **What a bigger core is for.** A core needs a cubic metre for its computing and the rest of it is fuel
   tank, so past that size it is a tank that also flies the ship, paying for its computing by the floor it
   fills (`CORE_MASS_PER_AREA`). A tank does the fuel's job for less, so the best core is the smallest that

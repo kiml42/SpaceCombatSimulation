@@ -404,7 +404,7 @@ export function capture(
     sides.length = design.modules.length;
     for (let m = 0; m < design.modules.length; m++) sides[m] = ships.moduleSide(i, m);
 
-    // Only the ships with somebody aboard are framed: a camera that kept
+    // Only the ships still under control are framed: a camera that kept
     // wreckage in shot would pull away from the battle to hold on it.
     if (view.hasControl) {
       const r = design.radius;

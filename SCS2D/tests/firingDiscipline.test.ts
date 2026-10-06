@@ -113,7 +113,7 @@ describe('a gun with somebody in the way', () => {
   });
 
   it('does not hold fire for wreckage of its own side', () => {
-    // Nobody is aboard it, and holding fire for it would make every broken
+    // Nothing controls it, and holding fire for it would make every broken
     // ship a shield. A chunk is a ship in every other way, so this is the one
     // place the difference has to be said out loud.
     const world = new World({ dt: DT, seed: 7 });

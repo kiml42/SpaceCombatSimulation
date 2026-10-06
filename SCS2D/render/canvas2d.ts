@@ -862,15 +862,15 @@ function fade(
  * each other rather than a field of specks. `render/icons.ts` decides when it
  * shows and how solid it is.
  *
- * **The team's colour is for a ship anybody is still aboard, and nothing
+ * **The team's colour is for a ship still under control, and nothing
  * else.** Not for one that can still fight: a hull with a sound core and
- * neither gun nor engine is somebody's ship, and drawing it grey said the
+ * neither gun nor engine is still a ship, and drawing it grey said the
  * opposite about an entire generation of engineless craft. What grey means
  * here is that the core is out — the one thing that stops a hull being a
  * ship — which is also the only state in which the arrowhead is telling you
  * about something you can do nothing with and nothing can be done with.
  *
- * A derelict piece — a severed chunk, with nobody ever aboard it — gets no
+ * A derelict piece — a severed chunk, never controlled — gets no
  * icon at all: it has no facing worth pointing out, and a debris field that
  * drew as many arrowheads as the battle that made it would count as ships
  * wreckage that no longer is any. A mission-killed hull keeps its icon in
