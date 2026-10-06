@@ -190,7 +190,7 @@ describe('a hull cut between its cores', () => {
       expect(s.ships.isDerelict(i)).toBe(false);
       expect(s.ships.hasControl(i)).toBe(true);
       expect(s.ships.teamOf(i)).toBe(2);
-      // Whoever was aboard was given the same plan, and works through it with
+      // Each core was given the same plan, and works through it with
       // what is left.
       expect(s.ships.orderCount(i)).toBe(1);
     }
@@ -206,7 +206,7 @@ describe('a hull cut between its cores', () => {
   });
 
   it('hands the ship to the piece that can still be flown', () => {
-    // The first core is wrecked, so the crew — such as it is — is the other
+    // The first core is wrecked, so what flies it is the other
     // one, and the piece holding it is the ship. A wrecked core flies nothing.
     const s = scene(compileBlueprint(TWIN_CORE));
     const id = s.ships.body(s.ship);

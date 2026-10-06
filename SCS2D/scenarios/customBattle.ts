@@ -108,7 +108,7 @@ export function serialiseBattleSetup(setup: BattleSetup): Record<string, unknown
 /** How one side stands. */
 export interface SideTally {
   team: number;
-  /** Ships somebody is still flying: a core that works. Pieces that come off are not counted. */
+  /** Ships still under control: a core that works. Pieces that come off are not counted. */
   ships: number;
   /** Their mass, kg. */
   mass: number;
@@ -163,7 +163,7 @@ export function tally(battle: Battle, sides: number): SideTally[] {
 
 /**
  * The side left able to fight once no other is, -1 when none is, or null while
- * two or more still are. Armed, not merely crewed: two sides with nothing left
+ * two or more still are. Armed, not merely under control: two sides with nothing left
  * to shoot with would otherwise drift for ever without deciding anything.
  */
 export function winner(sides: readonly SideTally[]): number | null {

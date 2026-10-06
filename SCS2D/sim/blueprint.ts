@@ -1481,7 +1481,7 @@ export function fighterProblem(specs: readonly ModuleSpec[]): string | null {
  * Everything is derived again from the modules that are left — mass, the
  * centre of mass they turn about, inertia, bounding radius, which engines
  * and guns went with them — because a chunk is a ship-shaped thing that
- * happens to have no crew, and nothing downstream should have to ask whether
+ * happens to have no working core, and nothing downstream should have to ask whether
  * the design it holds came from a blueprint or from a break.
  *
  * Firing arcs are worked out against the modules that remain, so a mount whose

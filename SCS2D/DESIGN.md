@@ -40,7 +40,7 @@ inside any one file is not contiguous.
   bending them — with pause, single-step, time scaling, and zoom and pan over an
   auto-framing camera. **The camera carries itself along with what it is watching rather
   than easing after it**, weighting the ships in shot by radius so a fleet action is steered
-  by the capital in it; it falls back from the ships anybody is aboard to the hulks and then
+  by the capital in it; it falls back from the ships still under control to the hulks and then
   to the wreckage, so a fight that ends with every core shot out is still followed; and it
   keeps a shade less than the pace of a ship out past where a settled frame would put it, so
   something arriving at the edge is allowed to make ground towards the middle before the
@@ -48,8 +48,8 @@ inside any one file is not contiguous.
   so that a ship wider than the view is held still wherever on it the camera has been zoomed. Each ship also carries an arrowhead in its team's colour, which
   fades in as its hull becomes too small on screen to read, so that zooming out to see a
   battle does not lose the small ships in it or which way they are facing. **What the picture asks
-  about a ship is whether anybody is aboard it, not whether it can fight**: a hull with a sound core and
-  neither gun nor engine is somebody's ship, so it is framed and drawn in its own colours, where asking
+  about a ship is whether it is still under control, not whether it can fight**: a hull with a sound core and
+  neither gun nor engine is still a ship, so it is framed and drawn in its own colours, where asking
   whether it could fight drew a whole generation of engineless craft as wreckage and left them out of shot.
   Grey is for a core that is out, and a severed piece gets no arrowhead at all. A blueprint editor on a second page of its own draws a layout
   through that same renderer and reports what it bought: mass, inertia, the
@@ -142,7 +142,7 @@ inside any one file is not contiguous.
   off at the root rather than knocking it off. A beam carries no momentum, so nothing it does can *tear*
   anything: what it does instead is boil along every seam its tunnel crosses until one of them is gone,
   and whatever that seam was holding is then simply no longer attached. What comes away is a body of its own with its share of the momentum, the spin
-  and the scars — a piece of ship with nobody aboard, which collides and takes damage like any other hull.
+  and the scars — a piece of ship with no core controlling it, which collides and takes damage like any other hull.
   **Torn metal hooks.** Two bodies meeting slowly, with a module on either torn past `RAGGED_INTEGRITY`,
   become one body joined by a seam. A ship can end up towing a wreck, but it commands nothing across a seam,
   and nothing past a ragged module of its own either. Two ships hooked together both ride the one body, each
@@ -482,7 +482,7 @@ inside any one file is not contiguous.
   allowed, for watching an escort. Both editors' Battle links open it with what is being edited as the
   first side. It is set up paused at its first step, the
   picture following every change, and started with Fight. It says how each side stands — ships still
-  crewed, how many armed and how many mobile, and the share of its mass lost — and names the winner once no
+  under control, how many armed and how many mobile, and the share of its mass lost — and names the winner once no
   more than one side can fight on, without stopping the battle.
   **Fleet evolution** breeds fleets, scored as one entrant each, under a total mass budget, a deployment
   radius and a ship count — headless with `npm run evolve -- --fleet`, and on the evolution page, whose

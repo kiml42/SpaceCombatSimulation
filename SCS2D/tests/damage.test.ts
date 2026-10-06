@@ -489,7 +489,7 @@ describe('a round taking time to cross a hull', () => {
 
 describe('what the picture is told about damage', () => {
   it('frames a hull with a sound core and nothing else', () => {
-    // **A ship is a ship because somebody is aboard it, not because it can
+    // **A ship is a ship because it is under control, not because it can
     // fight.** A bare core cannot move or shoot, and is exactly what the first
     // generation of a run bred from one is made of — framed by whether it can
     // fight, a whole match of them is drawn as wreckage and left out of shot,
@@ -511,7 +511,7 @@ describe('what the picture is told about damage', () => {
     // nothing and falling back on the all-wreckage case.
     expect(view.maxX).toBeGreaterThanOrEqual(500);
 
-    // Once the core is gone nobody is aboard, and the camera lets it go.
+    // Once the core is gone nothing controls it, and the camera lets it go.
     const body = world.bodies.indexOf(ships.body(hull));
     const core = bare.cores[0]!;
     ships.damage.absorb(body, core, bare.modules[core]!.stats.hitPoints * DAMAGE_ENERGY_PER_KG);
