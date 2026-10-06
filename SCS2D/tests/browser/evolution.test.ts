@@ -735,6 +735,7 @@ describe('the evolution page in a browser', () => {
     expect(await page.isVisible('#group')).toBe(false);
     expect(await page.isVisible('#goal')).toBe(false);
     expect(await page.isVisible('#chart')).toBe(false);
+    expect(await page.isVisible('#legend')).toBe(false);
 
     const saving = page.waitForEvent('download');
     await page.click('#exportConfig');
@@ -760,6 +761,7 @@ describe('the evolution page in a browser', () => {
 
     await page.click('#clearVersus');
     expect(await page.isVisible('#chart')).toBe(true);
+    expect(await page.isVisible('#legend')).toBe(true);
     expect(problems).toEqual([]);
   }, 180_000);
 });
