@@ -11,7 +11,8 @@ import {
 import { components, cuts, jointBetween, joints, type Joint } from './connectivity.js';
 import { BOTH_LAYERS, HULL_LAYER, Hulls, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from './hull.js';
 import { Damage, DamageEffect } from './damage.js';
-import { Fuel } from './fuel.js';
+import { Fuel, LEAK_HOLE_CALIBRES, leakChance, leakRate, leakSpeed, type Leak } from './fuel.js';
+import type { Rng } from './rng.js';
 import { plumeRays, plumeRayStarts, Plumes, WEAPON_PLUME_SHARE, weaponPlumeReach } from './exhaust.js';
 import { Choice, cohesionUrge, inSight, look, lookFrom, score } from './targeting.js';
 import {
@@ -687,6 +688,10 @@ export class Ships {
    * is flying is held rather than recomputed, and recoil added into it piled up.
    */
   private readonly recoil: number[] = [];
+  /** This step's push from fuel leaking out of each ship's body, body frame. */
+  private readonly leakFx: number[] = [];
+  private readonly leakFy: number[] = [];
+  private readonly leakTorque: number[] = [];
 
   private readonly alive: number[] = [];
 
@@ -734,6 +739,34 @@ export class Ships {
     if (this.designOf(bodyIndex) === null) return OWN_LAYERS;
     const ship = this.shipByBody[bodyIndex];
     return ship === undefined ? OWN_LAYERS : this.shipLayers(ship);
+  }
+
+  /** Whether this ship is the first riding its body: the one a hull's own doings are told through. */
+  ownsBody(i: number): boolean {
+    const bodies = this.bodyStore;
+    const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[i]!);
+    return b >= 0 && this.shipByBody[b] === i;
+  }
+
+  holed(bodyIndex: number, module: number, integrity: number, x: number, y: number, nx: number, ny: number, calibre: number, rng: Rng): void {
+    const m = this.designOf(bodyIndex)?.modules[module];
+    if (m === undefined || !(this.fuel.held(bodyIndex, module) > 0)) return;
+    if (rng.nextFloat() >= leakChance(integrity)) return;
+    // Into the module's own frame, so the hole goes with it.
+    const c = cos(m.angle);
+    const s = sin(m.angle);
+    const dx = x - m.x;
+    const dy = y - m.y;
+    const width = calibre * LEAK_HOLE_CALIBRES;
+    this.fuel.hole(bodyIndex, {
+      module,
+      x: dx * c + dy * s,
+      y: -dx * s + dy * c,
+      nx: nx * c + ny * s,
+      ny: -nx * s + ny * c,
+      area: PI * 0.25 * width * width,
+      rate: 0,
+    });
   }
 
   fuelDepth(bodyIndex: number, module: number): number {
@@ -1008,6 +1041,9 @@ export class Ships {
     this.demandFy.push(0);
     this.demandTorque.push(0);
     this.recoil.push(0);
+    this.leakFx.push(0);
+    this.leakFy.push(0);
+    this.leakTorque.push(0);
     this.alive.push(1);
 
     return i;
@@ -1809,9 +1845,9 @@ export class Ships {
         if (this.alive[i] === 0) continue;
         bodies.applyLocalWrench(
           this.bodyIds[i]!,
-          this.demandFx[i]!,
-          this.demandFy[i]!,
-          this.demandTorque[i]! + this.recoil[i]!,
+          this.demandFx[i]! + this.leakFx[i]!,
+          this.demandFy[i]! + this.leakFy[i]!,
+          this.demandTorque[i]! + this.recoil[i]! + this.leakTorque[i]!,
         );
       }
     };
@@ -1858,6 +1894,10 @@ export class Ships {
     // still applied, so it burns until it runs dry.
     for (let i = 0; i < this.alive.length; i++) {
       if (this.alive[i] === 1) this.burn(dt, bodies, i);
+    }
+    // Once per body, however many ships ride it.
+    for (let i = 0; i < this.alive.length; i++) {
+      if (this.alive[i] === 1) this.leak(dt, bodies, i);
     }
 
     // Slew every turret, collecting the hull reaction rather than letting it
@@ -3562,7 +3602,12 @@ export class Ships {
       this.scarsOf(b, keep),
       this.weldScarsOf(b, design, chunk, keep),
     );
-    this.fuel.register(chunkBody, chunk, keep.map((m) => this.fuel.held(b, m)));
+    this.fuel.register(
+      chunkBody,
+      chunk,
+      keep.map((m) => this.fuel.held(b, m)),
+      this.leaksInto(keep.length, (m) => ({ body: b, module: keep[m]! })),
+    );
     this.settleMass(bodies, chunkBody);
     this.shipByBody[chunkBody] = j;
     this.sides[chunkBody] = this.sidesOf((m) => this.sideAt(b, keep[m]!), keep.length, this.team[j]!);
@@ -3700,7 +3745,8 @@ export class Ships {
     this.layouts[i] = null;
     this.layoutVersion[i] = -1;
     this.damage.register(b, design, scars, weldScars);
-    this.fuel.register(b, design, fuel);
+    const leaks = this.leaksInto(design.modules.length, (m) => ({ body: bodyOf(shipOf(m)), module: moduleOf(m) }));
+    this.fuel.register(b, design, fuel, leaks);
     this.settleMass(bodies, b);
     this.cutSeen[i] = this.damage.cutVersion(b);
   }
@@ -3752,6 +3798,58 @@ export class Ships {
     this.demandFx[i] = fx;
     this.demandFy[i] = fy;
     this.demandTorque[i] = torque;
+  }
+
+  /**
+   * Let fuel out of every hole in this ship's body, and push the body the
+   * other way. Once per body: a ship riding another's leaks nothing of its own.
+   */
+  private leak(dt: number, bodies: Bodies, i: number): void {
+    this.leakFx[i] = 0;
+    this.leakFy[i] = 0;
+    this.leakTorque[i] = 0;
+    const b = bodies.indexOf(this.bodyIds[i]!);
+    if (b < 0 || this.shipByBody[b] !== i || !(dt > 0)) return;
+    const leaks = this.fuel.leaksOf(b);
+    if (leaks.length === 0) return;
+    const design = this.hullDesign[b]!;
+    let fx = 0;
+    let fy = 0;
+    let torque = 0;
+    let vented = false;
+    for (const leak of leaks) {
+      const fill = this.fuel.fill(b, leak.module);
+      const taken = this.fuel.vent(b, leak.module, leakRate(leak.area, fill) * dt);
+      leak.rate = taken / dt;
+      if (!(taken > 0)) continue;
+      vented = true;
+      const m = design.modules[leak.module]!;
+      const c = cos(m.angle);
+      const s = sin(m.angle);
+      const hx = m.x + leak.x * c - leak.y * s;
+      const hy = m.y + leak.x * s + leak.y * c;
+      // Pushed against the jet, at the hole.
+      const thrust = leak.rate * leakSpeed(fill);
+      const px = -(leak.nx * c - leak.ny * s) * thrust;
+      const py = -(leak.nx * s + leak.ny * c) * thrust;
+      fx += px;
+      fy += py;
+      torque += hx * py - hy * px;
+    }
+    if (vented) this.settleMass(bodies, b);
+    this.leakFx[i] = fx;
+    this.leakFy[i] = fy;
+    this.leakTorque[i] = torque;
+  }
+
+  /** Every hole in a body that comes over to a new design, renumbered by where each module went. */
+  private leaksInto(n: number, from: (module: number) => { body: number; module: number }): Leak[] {
+    const out: Leak[] = [];
+    for (let m = 0; m < n; m++) {
+      const { body, module } = from(m);
+      for (const leak of this.fuel.leaksOf(body)) if (leak.module === module) out.push({ ...leak, module: m });
+    }
+    return out;
   }
 
   /** A body's mass and inertia: its design's, less the fuel burnt from it. */
@@ -3819,6 +3917,9 @@ export class Ships {
     this.demandFy[i] = 0;
     this.demandTorque[i] = 0;
     this.recoil[i] = 0;
+    this.leakFx[i] = 0;
+    this.leakFy[i] = 0;
+    this.leakTorque[i] = 0;
   }
 
   /**

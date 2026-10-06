@@ -168,7 +168,7 @@ export function makeBattle<Extra extends object = Record<never, never>>(
       // What the hits did. Rounds walk the modules along their path, a step's
       // travel at a time, and are killed or sent on their way; beams pour their power into what they are
       // burning through.
-      impacts.rounds(ships, ships.damage, world.bodies, projectiles, hits, ships, credit, dt, grid, ships.hulls);
+      impacts.rounds(ships, ships.damage, world.bodies, projectiles, hits, ships, credit, dt, grid, ships.hulls, world.rng);
       // After, so that a round going on from one hull into the next counts.
       run.totalProjectileHits += hits.count;
       impacts.beams(ships.damage, beams, beamHits, dt, world.bodies, ships, credit);

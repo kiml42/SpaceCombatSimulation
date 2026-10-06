@@ -162,9 +162,9 @@ and evolution run does, and a ship tuned to half the rules is tuned twice.
 
 **Step 8 — Fuel.** Tanks, burning and the editor's figures are built (DESIGN.md Status). What is left:
 
-- **Leaks.** Damage to a tank does nothing yet. A holed tank losing fuel and pushing on the hull at the hole,
-  and sealing (§12), are what price tank size and placement — until then nothing stops evolution building
-  one enormous tank (§5).
+- **Sealing.** Leaks are built (DESIGN.md Status); a hole stays open for as long as there is fuel behind it.
+  Sealing (§12) is what stops one hole ending a battle, and with leaks is what prices tank size and
+  placement against evolution building one enormous tank (§5).
 - **Drain priority.** Tanks are drained tier by tier (`drainPriority` in `sim/fuel.ts`), and every tank is
   in the one tier. A priority per tank in the layout fills it in.
 - **Pilots that know their fuel.** Nothing flies differently for running low, so a ship spends its tanks
@@ -581,9 +581,14 @@ Deliberately unresolved; decide when they block something.
   super-swarm.
 - **How a leak is sealed.** Suggested: sealing as a continuous parameter on a tank — how fast a hole closes,
   bought with wall mass — rather than a separate self-sealing part, which is the §6 rule of archetypes with
-  continuous parameters and gives evolution a dial. A leak is also a new kind of damage response: today's are
-  capability curves over integrity, and a leak is an ongoing effect at a point, whose push needs to know where
-  the round struck. Check that the damage pass keeps the point before scoping step 8.
+  continuous parameters and gives evolution a dial.
+- **Which holes a round leaves.** Only the face it went in by, and only where that face is open to space: a
+  round on through a bulkhead into the next module, and the hole it makes going out of the far side, open
+  nothing. Fuel through a bulkhead would fill the next compartment rather than space, which wants a model
+  of compartments; the far side is a second hole the walk has no face for yet.
+- **How hard a leak pushes.** The jet leaves at what the tank's pressure gives it, a few tens of metres a
+  second, so a shell's gash pushes with about 20 kN, a twentieth of a corvette's manoeuvring engine. Fuel that boils
+  as it leaves would go faster and push harder; nothing models what the fuel does once it is out.
 - **Whether a grapple is a dock.** Step 9's hold on a wreck is a deliberate dock. Suggested: build it as a
   claw on the ragged-metal weld (`Ships.weld`), with the claw's own rules for what it may grip — or decide
   on purpose that a tether is something else.

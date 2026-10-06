@@ -7,6 +7,7 @@ import type { ImpactLog } from './damage.js';
 import type { Ships } from './ships.js';
 import type { Turrets } from './turrets.js';
 import type { World } from './world.js';
+import { cos, PI, sin, sqrt } from './math.js';
 
 /**
  * A read-only picture of the world, for anything outside the simulation to
@@ -93,6 +94,17 @@ export interface ShipView {
   integrity: number[];
   /** How full each module is of fuel, 0 to 1, and 1 for one that holds none. */
   fuel?: number[];
+  /**
+   * Holes fuel is leaking from, body frame: where each is, the way the fuel
+   * leaves, how wide the hole is, and how fast it is going out, kg/s. On the
+   * first ship riding a body only, so a hull's leaks are drawn once.
+   */
+  leakX?: number[];
+  leakY?: number[];
+  leakDirX?: number[];
+  leakDirY?: number[];
+  leakWidth?: number[];
+  leakRate?: number[];
   /**
    * Whether the ship still has a core with control in it (§4).
    *
@@ -362,6 +374,28 @@ export function capture(
     for (let m = 0; m < design.modules.length; m++) {
       const full = design.modules[m]!.stats.fuel;
       fuel[m] = full > 0 ? ships.fuel.held(b, m) / full : 1;
+    }
+    const lx = (view.leakX ??= []);
+    const ly = (view.leakY ??= []);
+    const ldx = (view.leakDirX ??= []);
+    const ldy = (view.leakDirY ??= []);
+    const lw = (view.leakWidth ??= []);
+    const lr = (view.leakRate ??= []);
+    lx.length = ly.length = ldx.length = ldy.length = lw.length = lr.length = 0;
+    if (ships.ownsBody(i)) {
+      for (const leak of ships.fuel.leaksOf(b)) {
+        if (!(leak.rate > 0)) continue;
+        const m = design.modules[leak.module];
+        if (m === undefined) continue;
+        const c = cos(m.angle);
+        const s = sin(m.angle);
+        lx.push(m.x + leak.x * c - leak.y * s);
+        ly.push(m.y + leak.x * s + leak.y * c);
+        ldx.push(leak.nx * c - leak.ny * s);
+        ldy.push(leak.nx * s + leak.ny * c);
+        lw.push(sqrt((4 * leak.area) / PI));
+        lr.push(leak.rate);
+      }
     }
     const drawn = (view.drawn ??= []);
     drawn.length = design.modules.length;
