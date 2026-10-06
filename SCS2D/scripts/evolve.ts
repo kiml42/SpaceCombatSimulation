@@ -15,7 +15,7 @@ import { BLUEPRINTS } from '../scenarios/blueprints.js';
 import { FLEETS } from '../scenarios/fleets.js';
 import { finalist, matchCount, Run, DEFAULT_RUN, type RunConfig } from '../evolution/run.js';
 import type { Entrant } from '../evolution/match.js';
-import { DEFAULT_DOCTRINE_WEIGHTS, DEFAULT_KINDS } from '../evolution/mutate.js';
+import { DEFAULT_BUILD_WEIGHTS, DEFAULT_DOCTRINE_WEIGHTS, DEFAULT_KINDS } from '../evolution/mutate.js';
 import { parseRunConfig, runConfigWarnings, serialiseRunConfig, type BossName } from '../evolution/configFile.js';
 import type { ModuleKind } from '../sim/modules.js';
 
@@ -41,6 +41,8 @@ interface Options {
   readonly out: string;
   /** Where to write the settings this run was given, or '' for nowhere. */
   readonly saveConfig: string;
+  /** The settings' name, from a `--config` file, kept when they are saved again. */
+  readonly name: string | undefined;
   readonly config: Partial<RunConfig>;
   readonly quiet: boolean;
 }
@@ -129,6 +131,9 @@ function parse(argv: readonly string[]): Options {
   const fleet: Record<string, unknown> = {};
   const kinds: Partial<Record<ModuleKind, number>> = {};
   const doctrine: Record<string, number> = {};
+  const build: Record<string, number> = {};
+  let structural: number | undefined;
+  let name: string | undefined;
   let out = 'runs/run.json';
   let saveConfig = '';
   let quiet = false;
@@ -203,11 +208,33 @@ function parse(argv: readonly string[]): Options {
           doctrine[part] = number;
         }
         break;
+      // How often each sort of build number changes, as `move=0,hidden=2`.
+      case '--build':
+        for (const pair of value().split(',')) {
+          const [part, weight] = pair.split('=');
+          if (part === undefined || !(part in DEFAULT_BUILD_WEIGHTS)) {
+            throw new Error(`no such build part: ${part}. Try ${Object.keys(DEFAULT_BUILD_WEIGHTS).join(', ')}`);
+          }
+          const number = Number(weight);
+          if (!Number.isFinite(number) || number < 0) throw new Error(`${part} wants a weight of zero or more, not ${weight}`);
+          build[part] = number;
+        }
+        break;
+      // Chance a generation also adds, removes or regroups modules, 0 to 1.
+      case '--structural': {
+        const raw = value();
+        structural = Number(raw);
+        if (!Number.isFinite(structural) || structural < 0 || structural > 1) {
+          throw new Error(`--structural wants a chance between 0 and 1, not ${raw}`);
+        }
+        break;
+      }
       // Settings written by the evolution page, or by `--save-config`.
       case '--config': {
         const path = value();
         const raw: unknown = JSON.parse(readFileSync(path, 'utf8'));
         const setup = parseRunConfig(raw);
+        name = setup.name;
         warnUnread(path, runConfigWarnings(raw));
         for (const name of setup.founders) from.push(shipFrom(name));
         for (const name of setup.fleets ?? []) fleets.push({ name, fleet: fleetFrom(name) });
@@ -233,12 +260,19 @@ function parse(argv: readonly string[]): Options {
   if (Object.keys(fleet).length > 0) {
     config['fleet'] = { ...(config['fleet'] as object | undefined), ...fleet };
   }
-  if (Object.keys(kinds).length > 0 || Object.keys(doctrine).length > 0) {
-    const held = config['mutation'] as { kinds?: object; doctrine?: object } | undefined;
+  if (
+    Object.keys(kinds).length > 0 ||
+    Object.keys(doctrine).length > 0 ||
+    Object.keys(build).length > 0 ||
+    structural !== undefined
+  ) {
+    const held = config['mutation'] as { kinds?: object; doctrine?: object; build?: object } | undefined;
     config['mutation'] = {
       ...held,
+      ...(structural === undefined ? {} : { structural }),
       kinds: { ...held?.kinds, ...kinds },
       doctrine: { ...held?.doctrine, ...doctrine },
+      build: { ...held?.build, ...build },
     };
   }
   if (budget > 0) {
@@ -247,7 +281,7 @@ function parse(argv: readonly string[]): Options {
     for (const { fleet } of fleets) heaviest = Math.max(heaviest, fleetMass(fleetHulls(fleet)));
     config['massBudget'] = heaviest * budget;
   }
-  return { from, fleets, boss, out, saveConfig, config, quiet };
+  return { from, fleets, boss, out, saveConfig, name, config, quiet };
 }
 
 const options = parse(process.argv.slice(2));
@@ -271,6 +305,7 @@ if (options.saveConfig !== '') {
     options.saveConfig,
     `${JSON.stringify(
       serialiseRunConfig({
+        ...(options.name === undefined ? {} : { name: options.name }),
         founders: options.from.map(({ name }) => name),
         fleets: options.fleets.map(({ name }) => name),
         boss: options.boss,
