@@ -285,6 +285,8 @@ export interface HullDesigns {
   designOf(bodyIndex: number): ShipDesign | null;
   /** The layers every module of this body is in, or `OWN_LAYERS` to leave each its own. */
   layersOf?(bodyIndex: number): number;
+  /** How much of a module's interior is fuel, 0 to 1, for what a round has to get through. */
+  fuelDepth?(bodyIndex: number, module: number): number;
 }
 
 /** The deck and below. */

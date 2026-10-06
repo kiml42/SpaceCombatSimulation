@@ -49,7 +49,7 @@ import type { BeamHits, Beams, SpatialGrid } from './index.js';
 import { MAX_BEAM_LENGTH } from './beams.js';
 import { RayHit } from './spatialGrid.js';
 import { hullsOverlap, type Contacts } from './collision.js';
-import { GunType, type GunStats, type ModuleKind } from './modules.js';
+import { FUEL_DENSITY, GunType, interiorVolume, type GunStats, type ModuleKind } from './modules.js';
 
 /**
  * Ships: a compiled design bound to a body, flying itself and shooting.
@@ -734,6 +734,12 @@ export class Ships {
     if (this.designOf(bodyIndex) === null) return OWN_LAYERS;
     const ship = this.shipByBody[bodyIndex];
     return ship === undefined ? OWN_LAYERS : this.shipLayers(ship);
+  }
+
+  fuelDepth(bodyIndex: number, module: number): number {
+    const stats = this.designOf(bodyIndex)?.modules[module]?.stats;
+    if (stats === undefined || !(stats.fuel > 0)) return 0;
+    return min(1, this.fuel.held(bodyIndex, module) / (FUEL_DENSITY * interiorVolume(stats)));
   }
 
   designOf(bodyIndex: number): ShipDesign | null {
