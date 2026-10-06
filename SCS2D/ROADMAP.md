@@ -901,6 +901,9 @@ Deliberately unresolved; decide when they block something.
   engine flat out. Liquid
   methane rather than water because at water's density a deck-high module of fuel outweighs the ship
   around it several times. How many battles a tankful should last is a question for the fleet's balance.
+- **How hard fuel is to shoot through.** `FUEL_DRAG_COEFFICIENT` is water's figure for a fast projectile,
+  and everything a round loses to it is damage to the tank. A tank is then armour of a sort that thins as it
+  empties, which may want weighing against plating once leaks make holing one costly.
 - **Whether chamber pressure should buy efficiency.** A real engine gains specific impulse with chamber
   pressure; here the machinery depth behind a throat (`supply` in `moduleStats`) buys flow and nothing
   else. It would be a reason for deep machinery beyond thrust.

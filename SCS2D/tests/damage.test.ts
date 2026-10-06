@@ -372,14 +372,28 @@ describe('a round taking time to cross a hull', () => {
     return { world, ships, bodies, body, grid, projectiles, hits: new ProjectileHits(), impacts: new Impacts() };
   }
 
-  /** What the same round does walked through the hull all at once. */
+  /** What the same round does walked through the hull all at once, through the same fuel. */
   function walkedOnce(): Damage {
-    const once = new Damage();
-    once.register(0, destroyer);
-    const bodies = new Bodies();
-    bodies.create({ x: 0, y: 0, mass: destroyer.mass, inertia: destroyer.inertia, radius: destroyer.radius });
-    resolveRound(destroyer, once, bodies, 0, new HullPath(), -destroyer.radius - 10, 0, 1, 0, 20000, 0.5, 3000);
-    return once;
+    const world = new World({ dt: 1 / 60, seed: 5 });
+    const ships = new Ships();
+    ships.spawn(world, { design: destroyer, x: 0, y: 0, team: 0 });
+    resolveRound(
+      destroyer,
+      ships.damage,
+      world.bodies,
+      0,
+      new HullPath(),
+      -destroyer.radius - 10,
+      0,
+      1,
+      0,
+      20000,
+      0.5,
+      3000,
+      undefined,
+      ships,
+    );
+    return ships.damage;
   }
 
   it('is still inside a long hull after the step it went in, and reaches the far end later', () => {

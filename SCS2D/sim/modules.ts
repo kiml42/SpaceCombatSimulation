@@ -173,6 +173,17 @@ export const SMALL_ENGINE_THROAT = 0.25;
  */
 export const FUEL_DENSITY = 420;
 
+/**
+ * Drag coefficient of a round driving through fuel. About what a fast
+ * projectile meets in water.
+ */
+export const FUEL_DRAG_COEFFICIENT = 0.3;
+
+/** The volume inside a module's walls, m³. */
+export function interiorVolume(stats: ModuleStats): number {
+  return stats.capacity * (stats.thickness - 2 * stats.wallThickness);
+}
+
 /** Standard gravity, m/s², for stating an exhaust velocity as a specific impulse. */
 export const STANDARD_GRAVITY = 9.80665;
 

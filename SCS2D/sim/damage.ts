@@ -7,8 +7,8 @@ import { jointBetween, joints } from './connectivity.js';
 import { NOT_INSIDE, type ProjectileHits, type Projectiles } from './projectiles.js';
 import type { BeamHits, Beams } from './beams.js';
 import { RESTITUTION, type Contacts } from './collision.js';
-import { cos, max, min, sin, sqrt } from './math.js';
-import { EXPLOSIVE_YIELD, type ModuleSpec } from './modules.js';
+import { cos, exp, max, min, PI, sin, sqrt } from './math.js';
+import { EXPLOSIVE_YIELD, FUEL_DENSITY, FUEL_DRAG_COEFFICIENT, type ModuleSpec } from './modules.js';
 
 /**
  * What a hit does to the ship it landed on.
@@ -614,6 +614,7 @@ function walkRound(
   layers = BOTH_LAYERS,
   skip = -1,
   bodyLayers = OWN_LAYERS,
+  fuel?: HullDesigns,
 ): RoundOutcome {
   out.outcome = Terminal.Perforate;
   out.skidded = false;
@@ -687,6 +688,7 @@ function walkRound(
       out.crossed++;
       out.outcome = hit.outcome;
       carried = hit.residualSpeed;
+      if (hit.outcome === Terminal.Perforate) carried = throughFuel(fuel, damage, bodyIndex, module, path.exit[k]! - path.entry[k]!, mass, calibre, carried, out);
       out.speed = carried;
 
       if (hit.outcome === Terminal.Embed) {
@@ -728,6 +730,36 @@ function walkRound(
 }
 
 /**
+ * What is left of a round's speed once it has driven through the fuel in a
+ * module it has holed, `length` metres across.
+ *
+ * Drag in a liquid, `dv/dx = -k v²` with `k = ρ Cd A / 2m`, over the share of
+ * the crossing that is fuel: a light, wide fragment is stopped short where a
+ * heavy shell barely notices. What it loses goes into the tank, which is the
+ * hammer a round in a full tank strikes it with.
+ */
+function throughFuel(
+  fuel: HullDesigns | undefined,
+  damage: Damage,
+  bodyIndex: number,
+  module: number,
+  length: number,
+  mass: number,
+  calibre: number,
+  speed: number,
+  out: RoundOutcome,
+): number {
+  const depth = fuel?.fuelDepth?.(bodyIndex, module) ?? 0;
+  if (!(depth > 0) || !(speed > 0) || !(mass > 0)) return speed;
+  const k = (FUEL_DENSITY * FUEL_DRAG_COEFFICIENT * PI * 0.25 * calibre * calibre) / (2 * mass);
+  const left = speed * exp(-k * length * depth);
+  const lost = 0.5 * mass * (speed * speed - left * left);
+  damage.absorb(bodyIndex, module, lost);
+  out.energy += lost;
+  return left;
+}
+
+/**
  * Walk a round all the way through the ship it just hit, as though it took no
  * time to cross.
  *
@@ -750,6 +782,7 @@ export function resolveRound(
   calibre: number,
   speed: number,
   out: RoundOutcome = roundOutcome(),
+  fuel?: HullDesigns,
 ): RoundOutcome {
   const angle = bodies.angle[bodyIndex]!;
   const c = cos(angle);
@@ -772,6 +805,10 @@ export function resolveRound(
     speed,
     Infinity,
     out,
+    BOTH_LAYERS,
+    -1,
+    OWN_LAYERS,
+    fuel,
   );
 }
 
@@ -1101,6 +1138,7 @@ export class Impacts {
       projectiles.layers[round]!,
       body === projectiles.owner[round] ? projectiles.fromModule[round]! : -1,
       this.designs?.layersOf?.(body) ?? OWN_LAYERS,
+      this.designs,
     );
 
     const angle = bodies.angle[body]!;
