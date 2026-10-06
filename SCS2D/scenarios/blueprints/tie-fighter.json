@@ -5,24 +5,28 @@
   "fighter": true,
   "doctrine": {
     "targeting": {
+      "proximityWeight": 111.881,
       "preferredMass": 2.5,
       "massWeight": 120,
-      "closingWeight": 9.285,
-      "loyaltyWeight": 15.344,
-      "armedWeight": 73.115,
-      "mobileWeight": 11.591,
-      "facingWeight": 44.252,
-      "sightWeight": 60,
+      "closingWeight": 11.759,
+      "loyaltyWeight": 10.73,
+      "armedWeight": 53.402,
+      "mobileWeight": 9.987,
+      "facingWeight": 38.182,
+      "sightWeight": 69.624,
       "escortWeight": 50
     },
     "approach": {
       "standoffRadii": 61.681,
+      "escortRadii": 6.214,
+      "escort": 0.167,
       "escortMinRadii": 1.5,
-      "approachSpeed": 47.906,
+      "tolerance": 0.188,
+      "approachSpeed": 61.24,
       "accelerate": 0.862,
-      "brake": 1.005,
-      "ramRadii": 50.984,
-      "ramArmed": 0.464
+      "brake": 1.019,
+      "ramRadii": 49.229,
+      "ramArmed": 0.435
     }
   },
   "assemblies": {
@@ -51,7 +55,8 @@
           "y": 1.65,
           "length": 2.8,
           "width": 0.5,
-          "sealing": 0.0007
+          "reinforcement": 1.07,
+          "sealing": 0.0034
         },
         {
           "use": "engine2",
@@ -80,7 +85,8 @@
           "barrelCalibres": 42,
           "traverse": 5,
           "targeting": {
-            "structureWeight": 0
+            "structureWeight": 0,
+            "closingWeight": 7.685
           }
         },
         {
@@ -110,7 +116,7 @@
           "angle": 270,
           "length": 0.2,
           "width": 0.3,
-          "reinforcement": 1.12,
+          "reinforcement": 1.34,
           "barrels": 1,
           "nozzle": 0.5
         }
@@ -124,6 +130,7 @@
       "y": 0,
       "length": 1.3,
       "width": 0.5,
+      "sealing": 0.0028,
       "notes": "A spine down the middle of the ball rather than the whole of it. The pilot sits amidships as a TIE's does, and what fills the rest of the circle is the guns, the engines and the plating between them — so a hit on the ball is usually a hit on a weapon rather than on the pilot."
     },
     {
@@ -143,7 +150,8 @@
       "y": 0,
       "length": 0.65,
       "width": 0.5,
-      "reinforcement": 1.5
+      "reinforcement": 1.5,
+      "sealing": 0.0024
     },
     {
       "kind": "engine",
@@ -151,7 +159,8 @@
       "y": 0,
       "angle": 180,
       "length": 1.2,
-      "width": 0.5
+      "width": 0.5,
+      "reinforcement": 1.23
     }
   ]
 }

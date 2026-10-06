@@ -5,21 +5,25 @@
   "doctrine": {
     "targeting": {
       "proximityWeight": 102.697,
-      "preferredMass": 0.837,
-      "massWeight": 200,
+      "preferredMass": 0.897,
+      "massWeight": 245.429,
       "closingWeight": 11.43,
+      "loyaltyWeight": 22.204,
       "armedWeight": 71.048,
       "mobileWeight": 76.4,
+      "facingWeight": -7.591,
       "sightWeight": 4.865,
-      "escortWeight": 40
+      "escortWeight": 42.242
     },
     "approach": {
       "standoffRadii": 0.01,
-      "standoff": 0.712,
-      "escort": 0.187,
+      "standoff": 0.677,
+      "escort": 0.186,
+      "escortMinRadii": 1.118,
+      "separation": 324.837,
       "approachSpeed": 734.508,
-      "accelerate": 0.75,
-      "brake": 1.057
+      "accelerate": 0.858,
+      "brake": 0.804
     }
   },
   "assemblies": {
@@ -39,6 +43,7 @@
           "angle": 180,
           "length": 2.4,
           "width": 1.3,
+          "reinforcement": 1.19,
           "barrels": 1,
           "nozzle": 0.6
         },
@@ -49,15 +54,20 @@
           "angle": 0,
           "length": 5.7,
           "width": 0.6,
+          "reinforcement": 1.76,
           "barrels": 1,
           "barrelCalibres": 50,
+          "traverse": 10.4,
+          "fuse": 0.02,
+          "fragments": 7,
           "targeting": {
             "facingWeight": 100,
-            "sightWeight": 20,
+            "sightWeight": 23.642,
             "massWeight": 300,
             "closingWeight": 30,
             "engineWeight": 86.401,
-            "focusWeight": 373.904
+            "focusWeight": 373.904,
+            "fireRange": 1.09
           }
         },
         {
@@ -68,7 +78,8 @@
           "length": 0.5,
           "width": 1,
           "barrels": 3,
-          "nozzle": 0.55
+          "nozzle": 0.55,
+          "weapon": true
         },
         {
           "kind": "engine",
@@ -86,14 +97,16 @@
           "y": 0.40000000000000013,
           "angle": 90,
           "length": 0.5,
-          "width": 0.5
+          "width": 0.5,
+          "reinforcement": 1.07
         },
         {
           "kind": "structure",
           "x": 0.20000000000000018,
           "y": -0.34999999999999987,
           "length": 0.4,
-          "width": 0.3
+          "width": 0.3,
+          "reinforcement": 1.52
         }
       ]
     }
@@ -104,7 +117,8 @@
       "x": 0.39999999999999997,
       "y": 0,
       "length": 1.4,
-      "width": 1.8
+      "width": 1.8,
+      "reinforcement": 1.24
     },
     {
       "kind": "tank",
@@ -112,7 +126,7 @@
       "y": 0,
       "length": 1.9,
       "width": 2.4,
-      "sealing": 0.0018
+      "sealing": 0.0014
     },
     {
       "use": "structure",
@@ -130,7 +144,8 @@
       "x": 3.499999999999999,
       "y": 0,
       "length": 1,
-      "width": 0.9
+      "width": 0.9,
+      "reinforcement": 1.11
     },
     {
       "kind": "structure",
