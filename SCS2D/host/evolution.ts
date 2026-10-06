@@ -244,16 +244,13 @@ const SCORE_COLUMNS = [
 ] as const;
 
 /**
- * The combatants table, built once: a header that never changes and an empty
+ * A combatants table, built once: a header that never changes and an empty
  * body for the rows to be appended to and reordered in.
  */
 function buildCombatantTable(host: HTMLElement): {
   table: HTMLTableElement;
   body: HTMLTableSectionElement;
-  none: HTMLParagraphElement;
 } {
-  const none = document.createElement('p');
-  none.className = 'none';
   const table = document.createElement('table');
   const head = document.createElement('thead');
   const headRow = document.createElement('tr');
@@ -275,8 +272,8 @@ function buildCombatantTable(host: HTMLElement): {
   head.append(headRow);
   const body = document.createElement('tbody');
   table.append(head, body);
-  host.append(none, table);
-  return { table, body, none };
+  host.append(table);
+  return { table, body };
 }
 
 /** One kind of ship in a combatant, and how many of that kind it has. */
@@ -412,7 +409,13 @@ export function startEvolution(): void {
   const modeSelect = el<HTMLSelectElement>('mode');
   const battleControls = el<HTMLElement>('battleControls');
   const fleetBox = el<HTMLElement>('fleet');
-  const { table: fleetTable, body: fleetBody, none: emptyNote } = buildCombatantTable(fleetBox);
+  // One table a side, A's on the left; a run of one fills A's alone.
+  const emptyNote = document.createElement('p');
+  emptyNote.className = 'none';
+  const fleetPair = document.createElement('div');
+  fleetPair.className = 'pair';
+  fleetBox.append(emptyNote, fleetPair);
+  const fleetSides = [buildCombatantTable(fleetPair), buildCombatantTable(fleetPair)] as const;
   const watchingLabel = el<HTMLElement>('watching');
   const battleScores = el<HTMLElement>('battleScores');
   const latestButton = el<HTMLButtonElement>('latest');
@@ -1362,13 +1365,14 @@ export function startEvolution(): void {
     if (rows.length === 0) {
       for (const tile of fleetTiles.values()) tile.tr.remove();
       fleetTiles.clear();
-      fleetTable.hidden = true;
+      fleetPair.hidden = true;
       emptyNote.hidden = false;
       emptyNote.textContent = run === null ? 'Pick founders to see them here.' : 'Nothing bred yet.';
       return;
     }
     emptyNote.hidden = true;
-    fleetTable.hidden = false;
+    fleetPair.hidden = false;
+    fleetSides[1].table.hidden = !rows.some((row) => row.side === 1);
 
     // One scale for every hull on show, so a ship twice the size of another
     // looks it — down a column as much as across a row. Set by whichever kind
@@ -1409,7 +1413,7 @@ export function startEvolution(): void {
         fleetTiles.set(row.id, tile);
       }
       // Appending something already here moves it, so this is the reordering.
-      fleetBody.append(tile.tr);
+      fleetSides[row.side === 1 ? 1 : 0].body.append(tile.tr);
       tile.tr.classList.toggle('picked', row.id === picked);
       tile.tr.classList.toggle('champion', rank === 0 && row.id >= 0 && row.matches > 0);
       writeRow(tile, row, rank);
@@ -2075,7 +2079,7 @@ export function startEvolution(): void {
     skipping = false;
     watch(null);
     // The rows, not the table: it is built once and kept.
-    fleetBody.replaceChildren();
+    for (const { body } of fleetSides) body.replaceChildren();
     fleetTiles.clear();
     fleetScale = 0;
     formationScale = 0;

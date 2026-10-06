@@ -142,7 +142,15 @@
          than tiles because the figures are meant to be compared down a column
          as much as read across one. */
       #fleet { position: absolute; inset: 0; overflow: auto; padding: 0.2rem 0 1rem; }
-      #fleet table { width: 100%; border-collapse: collapse; }
+      /* Side A's table left of side B's, scrolled together. */
+      #fleet .pair { display: flex; gap: 1rem; align-items: flex-start; }
+      #fleet .pair[hidden] { display: none; }
+      #fleet table { flex: 1 1 0; min-width: max-content; border-collapse: collapse; }
+      /* Every row the same height, so a design with more kinds or a longer
+         changelog than the rest scrolls within its cell rather than shifting
+         every row below it as the ranking reorders. */
+      #fleet tbody tr { height: 6rem; }
+      #fleet td.made .kinds, #fleet td.done div { height: 5.4rem; overflow-y: auto; scrollbar-width: thin; }
       #fleet thead th {
         position: sticky;
         top: 0;

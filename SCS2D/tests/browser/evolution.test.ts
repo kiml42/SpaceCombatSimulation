@@ -776,6 +776,17 @@ describe('the evolution page in a browser', () => {
     const sides = await page.$$eval('#fleet tbody td.who .side', (tags) => tags.map((tag) => tag.textContent?.trim()));
     expect(sides.filter((side) => side === 'A')).toHaveLength(4);
     expect(sides.filter((side) => side === 'B')).toHaveLength(6);
+    // A's table on the left, B's on the right, and every row one height whatever is in it.
+    const tables = await page.$$eval('#fleet table', (all) =>
+      all.map((table) => ({
+        left: table.getBoundingClientRect().left,
+        side: table.querySelector('td.who .side')?.textContent?.trim(),
+      })),
+    );
+    expect(tables.map((table) => table.side)).toEqual(['A', 'B']);
+    expect(tables[1]!.left).toBeGreaterThan(tables[0]!.left);
+    const heights = await page.$$eval('#fleet tbody tr', (rows) => rows.map((tr) => tr.getBoundingClientRect().height));
+    expect(Math.max(...heights) - Math.min(...heights)).toBeLessThan(1.5);
     expect(await distinctColours(page, 'massChart')).toBeGreaterThan(2);
     expect(await page.textContent('#championLine')).toMatch(/A #\d+.*B #\d+/);
 
