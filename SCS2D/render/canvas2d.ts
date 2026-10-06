@@ -504,6 +504,47 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
 
   if (arcs === 'trigger') drawEngineTriggers(ctx, ship, metresToPx);
   drawPlumes(ctx, ship);
+  drawLeaks(ctx, ship);
+}
+
+/** What leaking fuel looks like: vapour, white. */
+const LEAK = '235, 242, 250';
+/** How long a leak's plume is drawn, metres per √(kg/s) going out of it. */
+const LEAK_PLUME_LENGTH = 1.5;
+/** How far it has spread by its end, as a share of its length either side. */
+const LEAK_PLUME_SPREAD = 0.3;
+
+/**
+ * Fuel leaking from a hole: a white plume widening and fading as it goes, longer
+ * the faster fuel is going out, so a gash reads from across the battle and a
+ * pinhole as a wisp.
+ */
+function drawLeaks(ctx: CanvasRenderingContext2D, ship: ShipView): void {
+  const xs = ship.leakX;
+  if (xs === undefined || xs.length === 0) return;
+  ctx.save();
+  ctx.translate(ship.x, ship.y);
+  ctx.rotate(ship.angle);
+  for (let k = 0; k < xs.length; k++) {
+    const rate = ship.leakRate![k]!;
+    const half = ship.leakWidth![k]! / 2;
+    const length = max(half * 8, LEAK_PLUME_LENGTH * sqrt(rate));
+    const spread = half + length * LEAK_PLUME_SPREAD;
+    ctx.save();
+    ctx.translate(xs[k]!, ship.leakY![k]!);
+    // `fade` runs towards -x, so turn the plume's way round to face it.
+    ctx.rotate(math.atan2(ship.leakDirY![k]!, ship.leakDirX![k]!) + PI);
+    ctx.fillStyle = fade(ctx, 0, length, LEAK, 0.6);
+    ctx.beginPath();
+    ctx.moveTo(0, -half);
+    ctx.lineTo(0, half);
+    ctx.lineTo(-length, spread);
+    ctx.lineTo(-length, -spread);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
 }
 
 /**

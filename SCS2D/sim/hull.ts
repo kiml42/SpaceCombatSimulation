@@ -1,6 +1,7 @@
 import { abs, cos, max, min, sin, sqrt } from './math.js';
 import type { DesignModule, ShipDesign } from './blueprint.js';
 import type { Bodies } from './bodies.js';
+import type { Rng } from './rng.js';
 import { segmentCircleT, type RayNarrowPhase } from './spatialGrid.js';
 
 /**
@@ -287,6 +288,13 @@ export interface HullDesigns {
   layersOf?(bodyIndex: number): number;
   /** How much of a module's interior is fuel, 0 to 1, for what a round has to get through. */
   fuelDepth?(bodyIndex: number, module: number): number;
+  /**
+   * A round of `calibre` has gone through a face of a module that is open to
+   * space, at `(x, y)` with outward normal `(nx, ny)` in the hull's frame. The
+   * module's integrity was `integrity` before the round reached it, and `rng`
+   * is what decides whether the hole is left open.
+   */
+  holed?(bodyIndex: number, module: number, integrity: number, x: number, y: number, nx: number, ny: number, calibre: number, rng: Rng): void;
 }
 
 /** The deck and below. */

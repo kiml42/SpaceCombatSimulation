@@ -501,7 +501,10 @@ inside any one file is not contiguous.
   as it burns, its centre of mass held where the full ship's was; an engine with nothing left to burn
   pushes nothing; a hulk burns its last throttle until it runs dry; fuel goes with its tank when a hull
   comes apart or is welded. A round through a module with fuel in it is slowed by liquid drag over the
-  depth of fuel it crosses, and what it loses goes into the tank. The editor has a Tank, and shows an engine's Isp and fuel flow, a tank's fuel,
+  depth of fuel it crosses, and what it loses goes into the tank. A round through a face of a tank open to
+  space can hole it, the likelier the more the tank has already been hurt; the hole is the round's width,
+  fuel leaves through it by orifice flow at the pressure left behind it, the ship is pushed the other way,
+  and a white plume is drawn from it. A hole goes with its module through a sever or a weld. The editor has a Tank, and shows an engine's Isp and fuel flow, a tank's fuel,
   and a ship's fuel, endurance flat out and Δv. Every stock ship has one or more modules made tanks.
 - **Next:** the rest of §8 step 8 — leaks, and pilots that know their fuel — and of step 5: a materials
   budget, designed scenarios, shareable by URL.
