@@ -50,6 +50,8 @@ describe('a match between sides', () => {
     const weights = { survival: 1, functional: 1, damage: 1, disabling: 1, race: 0 };
     const result = runMatch([GUNSHIP, GUNSHIP, GUNSHIP], { seed: 4, weights, goal: null }, [0, 0, 1]);
     expect(result.ending).toBe('decided');
+    // Who it was decided for: side A's two, still fighting.
+    expect(result.winners).toEqual([0, 1]);
     // Both of side A are still fighting: in a free-for-all they would not be done.
     expect(result.scores[0]!.survival).toBeGreaterThan(0);
     expect(result.scores[1]!.survival).toBeGreaterThan(0);

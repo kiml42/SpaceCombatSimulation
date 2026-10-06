@@ -1780,11 +1780,25 @@ export function startEvolution(): void {
     return null;
   };
 
-  /** Who fought, by id, with the sides split by a v when it had sides. */
+  /** Who fought, by id; with sides, each side's led by its letter and the two split by a v. */
   const competitorsText = (record: MatchRecord): string => {
     const teams = record.teams;
     if (teams === undefined) return record.competitors.join(' ');
-    return record.competitors.map((id, k) => (k > 0 && teams[k] !== teams[k - 1] ? `v ${id}` : String(id))).join(' ');
+    return record.competitors
+      .map((id, k) => {
+        if (k > 0 && teams[k] === teams[k - 1]) return String(id);
+        const letter = teams[k] === 0 ? 'A' : 'B';
+        return k === 0 ? `${letter} ${id}` : `v ${letter} ${id}`;
+      })
+      .join(' ');
+  };
+
+  /** How a match ended: who won it, when it was decided and the record says. */
+  const endingText = (record: MatchRecord): string => {
+    const first = record.winners?.[0];
+    if (record.ending !== 'decided' || first === undefined) return record.ending;
+    if (record.teams !== undefined) return `${record.teams[first] === 0 ? 'A' : 'B'} won`;
+    return `#${record.competitors[first]} won`;
   };
 
   const startReplay = (record: MatchRecord, rows: readonly Row[]): void => {
@@ -1846,7 +1860,7 @@ export function startEvolution(): void {
       for (const cell of [
         String(i + 1),
         competitorsText(record),
-        record.ending,
+        endingText(record),
         record.elapsed.toFixed(0),
       ]) {
         const td = document.createElement('td');
