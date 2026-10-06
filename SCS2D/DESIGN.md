@@ -473,7 +473,9 @@ inside any one file is not contiguous.
   **A fleet editor on a page of its own** places ships from the ship library — each design embedded once —
   and drags, turns, duplicates and repeats them in rows and arcs on the same snapping grid and through the
   same renderer as the ship editor, with undo throughout. A group is clicked as one thing and clicked again
-  to step into it, and a member moved there moves in every use of the group. It counts ships and dry mass by design, and lists
+  to step into it, and a member moved there moves in every use of the group. A selected ship can be swapped
+  for another design, from the fleet's own or the library, where it stands and facing the same way, as a
+  module's kind is swapped in the ship editor; a design nothing flies any more is dropped. It counts ships and dry mass by design, and lists
   rather than enforces what is wrong: hulls overlapping at the start, a design that would not fly, and an
   embedded design that has drifted from the library's copy of the same name, which one button brings up to
   date. Fleets are saved to browser storage and exported and imported as fleet files.

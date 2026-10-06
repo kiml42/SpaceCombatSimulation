@@ -26,6 +26,7 @@ import {
   samePath,
   type EntryPath,
   refreshDesign,
+  swapDesign,
   updateEntry,
 } from './fleetEdit.js';
 import { battleHref } from './handoff.js';
@@ -46,6 +47,8 @@ const { atan2, max, sqrt } = math;
 const ANGLE_SNAP_DEGREES = 15;
 /** Where a stock entry shadowed by a saved one is told apart, as the ship editor does. */
 const STOCK = 'stock:';
+/** A design the fleet already carries, told apart from a library entry of the same name. */
+const CARRIED = 'fleet:';
 
 export function startFleetEditor(): void {
   const canvas = el<HTMLCanvasElement>('view');
@@ -89,6 +92,8 @@ export function startFleetEditor(): void {
   const selection = el<HTMLElement>('selection');
   const selectionTitle = el<HTMLElement>('selectionTitle');
   const single = el<HTMLElement>('single');
+  const designRow = el<HTMLElement>('designRow');
+  const entryDesign = el<HTMLSelectElement>('entryDesign');
   const entryX = el<HTMLInputElement>('entryX');
   const entryY = el<HTMLInputElement>('entryY');
   const entryAngle = el<HTMLInputElement>('entryAngle');
@@ -201,6 +206,17 @@ export function startFleetEditor(): void {
       (saved.length > 0 ? `<optgroup label="Saved">${options(saved, null)}</optgroup>` : '') +
       `<optgroup label="Stock">${options(all.filter((entry) => entry.stock), null)}</optgroup>`;
     if (keep !== '') addDesign.value = keep;
+    // What a ship can become: the fleet's own copies first, then any other in the library.
+    const carried = Object.keys(doc.fleet.designs).sort((a, b) => a.localeCompare(b));
+    const others = (entries: readonly LibraryEntry[]): LibraryEntry[] =>
+      entries.filter((entry) => !carried.includes(entry.name));
+    const savedOthers = others(saved);
+    entryDesign.innerHTML =
+      `<optgroup label="In this fleet">` +
+      carried.map((name) => `<option value="${escapeHtml(CARRIED + name)}">${escapeHtml(name)}</option>`).join('') +
+      `</optgroup>` +
+      (savedOthers.length > 0 ? `<optgroup label="Saved">${options(savedOthers, null)}</optgroup>` : '') +
+      `<optgroup label="Stock">${options(others(all.filter((entry) => entry.stock)), null)}</optgroup>`;
   };
 
   const kg = (mass: number): string =>
@@ -266,6 +282,8 @@ export function startFleetEditor(): void {
         : (isGroupUse(entry) ? `Group: ${entry.group}` : `Ship: ${entry.design}`) +
           (inside !== null && isGroupUse(inside) ? ` in ${inside.group}` : '');
     mirrorRow.hidden = !isGroupUse(entry);
+    designRow.hidden = isGroupUse(entry);
+    if (!isGroupUse(entry)) entryDesign.value = CARRIED + entry.design;
     const repeated = (entry.repeat ?? 1) > 1;
     stepRow.hidden = !repeated;
     stepAngleRow.hidden = !repeated;
@@ -306,18 +324,31 @@ export function startFleetEditor(): void {
     doc.select([[doc.fleet.ships.length - 1]]);
     refresh();
   };
-  el<HTMLButtonElement>('addShip').addEventListener('click', () => {
-    const value = addDesign.value;
+  /** The library ship an option names, or null after saying why it could not be read. */
+  const fromLibrary = (value: string): Blueprint | null => {
     const stock = value.startsWith(STOCK);
     const name = stock ? value.slice(STOCK.length) : value;
-    let blueprint: Blueprint | null;
     try {
-      blueprint = stock ? ships.loadStock(name) : ships.load(name);
+      return stock ? ships.loadStock(name) : ships.load(name);
     } catch (error) {
       window.alert(`Could not read the saved ${name}.\n\n${error instanceof Error ? error.message : error}`);
-      return;
+      return null;
     }
+  };
+  el<HTMLButtonElement>('addShip').addEventListener('click', () => {
+    const blueprint = fromLibrary(addDesign.value);
     if (blueprint !== null) place(blueprint);
+  });
+  entryDesign.addEventListener('change', () => {
+    const path = doc.selection[0];
+    const value = entryDesign.value;
+    const blueprint = value.startsWith(CARRIED)
+      ? (doc.fleet.designs[value.slice(CARRIED.length)] ?? null)
+      : fromLibrary(value);
+    if (path !== undefined && doc.selection.length === 1 && blueprint !== null) {
+      doc.apply(swapDesign(doc.fleet, [path], blueprint));
+    }
+    refresh();
   });
   const addShipFile = el<HTMLInputElement>('addShipFile');
   el<HTMLButtonElement>('addFromFile').addEventListener('click', () => addShipFile.click());

@@ -118,6 +118,22 @@ export function deleteEntries(fleet: Fleet, paths: readonly EntryPath[]): Fleet 
   return pruneDesigns(next);
 }
 
+/**
+ * Fly a different design from the same place, facing the same way. The new
+ * design is embedded as `addShip` does it, and one nothing flies any more is
+ * dropped. A group is not a ship, so a group use is left as it is.
+ */
+export function swapDesign(fleet: Fleet, paths: readonly EntryPath[], blueprint: Blueprint): Fleet {
+  let next = cloneFleet(fleet);
+  if (next.designs[blueprint.name] === undefined) {
+    next.designs[blueprint.name] = JSON.parse(JSON.stringify(blueprint)) as Blueprint;
+  }
+  for (const path of paths) {
+    next = updateEntry(next, path, (entry) => (isGroupUse(entry) ? entry : { ...entry, design: blueprint.name }));
+  }
+  return pruneDesigns(next);
+}
+
 /** Replace the embedded copy of a design with this one. */
 export function refreshDesign(fleet: Fleet, blueprint: Blueprint): Fleet {
   const next = cloneFleet(fleet);
