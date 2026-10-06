@@ -69,7 +69,7 @@
       [hidden] { display: none !important; }
       .field { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.3rem; }
       .field label { flex: 0 0 6.5rem; color: #7f93aa; }
-      .field input, .field textarea { flex: 1; min-width: 0; }
+      .field input, .field textarea, .field select { flex: 1; min-width: 0; }
       .field input[type="checkbox"] { flex: 0 0 auto; }
       .pair { display: flex; gap: 0.4rem; }
       .buttons { display: flex; gap: 0.4rem; margin-top: 0.6rem; }
@@ -150,6 +150,10 @@
         <section id="selection" hidden>
           <h2 id="selectionTitle">Selected</h2>
           <div id="single">
+            <div class="field" id="designRow">
+              <label for="entryDesign">design</label>
+              <select id="entryDesign" title="Swap this ship for another design, in the same place and facing the same way"></select>
+            </div>
             <div class="field">
               <label for="entryX">position</label>
               <input id="entryX" type="number" step="1" />
