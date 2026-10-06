@@ -402,6 +402,7 @@
     "Y Wing": {
       "formatVersion": 1,
       "name": "Y Wing",
+      "fighter": true,
       "doctrine": {
         "targeting": {
           "proximityWeight": 10,
@@ -531,6 +532,7 @@
     "A Wing": {
       "formatVersion": 1,
       "name": "A Wing",
+      "fighter": true,
       "doctrine": {
         "targeting": {
           "armedWeight": 90,
