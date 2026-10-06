@@ -253,8 +253,36 @@ describe('the evolution page in a browser', () => {
     const saving = page.waitForEvent('download');
     await page.click('#exportConfig');
     const file = JSON.parse(await readFile(await (await saving).path(), 'utf8')) as Record<string, unknown>;
-    expect(file['doctrine']).toEqual({ targeting: 1, approach: 0, gunnery: 1 });
+    expect(file['doctrine']).toEqual({ targeting: 1, approach: 0, escort: 1, avoidance: 1, gunnery: 1 });
     await set(page, 'doctrineApproach', '1');
+    expect(problems).toEqual([]);
+  });
+
+  it('names the exported file after the settings, and keeps the build weights', async () => {
+    await set(page, 'configName', 'Star Wars tuning');
+    await set(page, 'structural', '0');
+    await set(page, 'buildMove', '0');
+    const saving = page.waitForEvent('download');
+    await page.click('#exportConfig');
+    const download = await saving;
+    expect(download.suggestedFilename()).toEqual('Star_Wars_tuning.json');
+    const written = await download.path();
+    const file = JSON.parse(await readFile(written, 'utf8')) as Record<string, unknown>;
+    expect(file['name']).toEqual('Star Wars tuning');
+    expect(file['structural']).toEqual(0);
+    expect((file['build'] as Record<string, number>)['move']).toEqual(0);
+
+    await set(page, 'configName', '');
+    await set(page, 'structural', '0.3');
+    await set(page, 'buildMove', '1');
+    await page.setInputFiles('#importConfigFile', written);
+    await page.waitForFunction(() => (document.getElementById('configName') as HTMLInputElement).value !== '');
+    expect(await page.inputValue('#configName')).toEqual('Star Wars tuning');
+    expect(await page.inputValue('#structural')).toEqual('0');
+    expect(await page.inputValue('#buildMove')).toEqual('0');
+    await set(page, 'configName', '');
+    await set(page, 'structural', '0.3');
+    await set(page, 'buildMove', '1');
     expect(problems).toEqual([]);
   });
 

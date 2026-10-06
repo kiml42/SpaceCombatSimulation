@@ -101,17 +101,74 @@ export interface MutationLimits {
   readonly kinds: KindWeights;
   /**
    * How often a doctrine number is the one changed, against a number in the
-   * build at one: the ship's targeting, how it approaches, and each weapon's
-   * own gunnery. Zero freezes that part of the doctrine.
+   * build at one. Zero freezes that part of the doctrine.
    */
   readonly doctrine: DoctrineWeights;
+  /**
+   * How often each sort of number in the build is the one changed, against
+   * each other and the doctrine. Zero freezes it: a run with `move`, `resize`,
+   * `refit` and `visible` at zero, and no structural edits, keeps how a ship
+   * looks and tunes everything else.
+   */
+  readonly build: BuildWeights;
 }
 
 export type KindWeights = Readonly<Record<ModuleKind, number>>;
-export type DoctrineWeights = Readonly<Record<'targeting' | 'approach' | 'gunnery', number>>;
+
+/**
+ * - `targeting`: what the ship goes after.
+ * - `approach`: the range it fights at, how hard it flies there, and ramming.
+ * - `escort`: whether it covers friends, and how closely.
+ * - `avoidance`: how far it keeps out of everybody's way.
+ * - `gunnery`: each weapon's own target preferences.
+ */
+export type DoctrineWeights = Readonly<
+  Record<'targeting' | 'approach' | 'escort' | 'avoidance' | 'gunnery', number>
+>;
+
+/**
+ * - `move`: where a module or part sits, which way it faces, and mirroring.
+ * - `resize`: a module's length and width, and the seams between modules.
+ * - `refit`: a module becoming another kind, of the kinds weighted above.
+ * - `visible`: settings that show — barrels, their length, nozzles,
+ *   thickness, traverse, and how many times a row repeats.
+ * - `hidden`: settings that do not — reinforcement, sealing, fuses,
+ *   fragments, burst speed, an engine used as a weapon, and being a fighter.
+ */
+export type BuildWeights = Readonly<
+  Record<'move' | 'resize' | 'refit' | 'visible' | 'hidden', number>
+>;
 
 /** Every number as likely as every other, doctrine or build. */
-export const DEFAULT_DOCTRINE_WEIGHTS: DoctrineWeights = { targeting: 1, approach: 1, gunnery: 1 };
+export const DEFAULT_DOCTRINE_WEIGHTS: DoctrineWeights = {
+  targeting: 1,
+  approach: 1,
+  escort: 1,
+  avoidance: 1,
+  gunnery: 1,
+};
+
+/**
+ * Doctrine weights in full, with escort and avoidance following approach when
+ * not given: they were part of approach before they had weights of their own,
+ * so `approach: 0` written before then froze them too.
+ */
+export function doctrineWeights(given?: Partial<DoctrineWeights>): DoctrineWeights {
+  const approach = given?.approach ?? DEFAULT_DOCTRINE_WEIGHTS.approach;
+  return { ...DEFAULT_DOCTRINE_WEIGHTS, escort: approach, avoidance: approach, ...given };
+}
+
+export const DEFAULT_BUILD_WEIGHTS: BuildWeights = {
+  move: 1,
+  resize: 1,
+  refit: 1,
+  visible: 1,
+  hidden: 1,
+};
+
+/** Approach fields that are about covering a friend, and the targeting urge to. */
+const ESCORT_FIELDS: readonly string[] = ['escortWeight', 'escortRadii', 'escort', 'escortMinRadii'];
+const AVOIDANCE_FIELDS: readonly string[] = ['separation', 'separationRadii'];
 
 /**
  * What the operator reaches for, unless a run says otherwise.
@@ -166,6 +223,7 @@ export const DEFAULT_LIMITS: MutationLimits = {
   attempts: 24,
   kinds: DEFAULT_KINDS,
   doctrine: DEFAULT_DOCTRINE_WEIGHTS,
+  build: DEFAULT_BUILD_WEIGHTS,
 };
 
 /** A child, and what was done to its parent to get it. */
@@ -194,7 +252,8 @@ export function mutate(parent: Blueprint, rng: Rng, limits?: Partial<MutationLim
     ...DEFAULT_LIMITS,
     ...limits,
     kinds: { ...DEFAULT_LIMITS.kinds, ...limits?.kinds },
-    doctrine: { ...DEFAULT_LIMITS.doctrine, ...limits?.doctrine },
+    doctrine: doctrineWeights(limits?.doctrine),
+    build: { ...DEFAULT_LIMITS.build, ...limits?.build },
   };
 
   // Whether this is a structural generation is decided once, outside the
@@ -244,7 +303,7 @@ function breed(
     const available = knobs(draft);
     const wanted = 1 + rng.nextInt(max(1, bounds.numbers));
     for (let i = 0; i < wanted && available.length > 0; i++) {
-      const at = drawKnob(available, bounds.doctrine, rng);
+      const at = drawKnob(available, bounds, rng);
       if (at < 0) break;
       const edit = renumber(available.splice(at, 1)[0]!, draft, rng, bounds);
       if (edit !== null) edits.push(edit);
@@ -260,24 +319,60 @@ function breed(
 
 /**
  * Which knob to turn, by index, or -1 if every one left is weighted zero.
- * Evenly unless doctrine is weighted, so a run at the defaults draws exactly
+ * Evenly unless something is weighted, so a run at the defaults draws exactly
  * as it always has.
  */
-function drawKnob(available: readonly Knob[], weights: DoctrineWeights, rng: Rng): number {
-  if (weights.targeting === 1 && weights.approach === 1 && weights.gunnery === 1) {
-    return rng.nextInt(available.length);
-  }
-  const weightOf = (knob: Knob): number =>
-    max(0, knob.at === 'doctrine' ? weights[knob.half] : knob.at === 'gunnery' ? weights.gunnery : 1);
+function drawKnob(available: readonly Knob[], bounds: MutationLimits, rng: Rng): number {
+  if (allOnes(bounds.doctrine) && allOnes(bounds.build)) return rng.nextInt(available.length);
   let total = 0;
-  for (const knob of available) total += weightOf(knob);
+  for (const knob of available) total += max(0, knobWeight(knob, bounds));
   if (!(total > 0)) return -1;
   let draw = rng.nextFloat() * total;
   for (let i = 0; i < available.length; i++) {
-    draw -= weightOf(available[i]!);
+    draw -= max(0, knobWeight(available[i]!, bounds));
     if (draw < 0) return i;
   }
   return available.length - 1;
+}
+
+function allOnes(weights: Readonly<Record<string, number>>): boolean {
+  return Object.values(weights).every((weight) => weight === 1);
+}
+
+function knobWeight(knob: Knob, { doctrine, build }: MutationLimits): number {
+  switch (knob.at) {
+    case 'doctrine':
+      if (ESCORT_FIELDS.includes(knob.field)) return doctrine.escort;
+      if (AVOIDANCE_FIELDS.includes(knob.field)) return doctrine.avoidance;
+      return doctrine[knob.half];
+    case 'gunnery':
+      return doctrine.gunnery;
+    case 'slide':
+    case 'angle':
+    case 'place':
+    case 'mirror':
+      return build.move;
+    case 'face':
+    case 'seam':
+      return build.resize;
+    case 'kind':
+      return build.refit;
+    case 'barrels':
+    case 'nozzle':
+    case 'barrelCalibres':
+    case 'thick':
+    case 'traverse':
+    case 'repeat':
+      return build.visible;
+    case 'reinforcement':
+    case 'sealing':
+    case 'fuse':
+    case 'fragments':
+    case 'burstSpeed':
+    case 'weapon':
+    case 'fighter':
+      return build.hidden;
+  }
 }
 
 /** Whether a candidate is a ship, and one the budget can afford. */
