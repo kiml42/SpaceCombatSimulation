@@ -19,7 +19,7 @@ import { customPanel } from './customPanel.js';
 import { linkedBattle } from '../scenarios/battleLink.js';
 import { handedFleet } from '../editor/handoff.js';
 import { ARCS_KEY, draw, nextArcs, TEAM_SHOTS_KEY, type Arcs } from '../render/canvas2d.js';
-import { frame, gridStep, moveWithVisibleShips, type Camera } from '../render/camera.js';
+import { frame, gridStep, moveWithVisibleShips, PICK_PX, selectionBounds, shipAt, type Camera } from '../render/camera.js';
 import { el } from './dom.js';
 
 /**
@@ -37,6 +37,8 @@ const MAX_STEPS_PER_FRAME = 16;
 
 const SEED = 20260905;
 
+/** How far a pointer travels before a press is a pan rather than a click, CSS pixels. */
+const CLICK_SLOP_PX = 4;
 export function start(): void {
   const canvas = el<HTMLCanvasElement>('view');
   const ctx = canvas.getContext('2d');
@@ -73,6 +75,7 @@ export function start(): void {
   /** Build the current scene afresh, running or held at its first step. */
   const restart = (run = true): void => {
     state = scenes[sceneIndex]!.create();
+    selected = -1;
     panel.reset();
     flashes.clear();
     framed = false;
@@ -91,6 +94,8 @@ export function start(): void {
   let sceneIndex = 0;
   let state: Battle = scenes[sceneIndex]!.create();
   let snapshot = new Snapshot();
+  /** The body of the ship picked out by a click, or -1. */
+  let selected = -1;
   const flashes = new Flashes();
   const camera: Camera = { x: 0, y: 0, scale: 0.1 };
   // Auto-framing keeps everything in shot, which is what you want until you
@@ -169,12 +174,19 @@ export function start(): void {
   }, { passive: false });
 
   let dragging: { x: number; y: number } | null = null;
+  /** Where a press began, and whether it has moved far enough to be a pan rather than a click. */
+  let pressed: { x: number; y: number; panned: boolean } | null = null;
   canvas.addEventListener('pointerdown', (event) => {
     dragging = { x: event.clientX, y: event.clientY };
+    pressed = { x: event.clientX, y: event.clientY, panned: false };
     canvas.setPointerCapture(event.pointerId);
   });
   canvas.addEventListener('pointermove', (event) => {
     if (dragging === null) return;
+    if (pressed !== null && Math.hypot(event.clientX - pressed.x, event.clientY - pressed.y) > CLICK_SLOP_PX) {
+      pressed.panned = true;
+    }
+    if (pressed !== null && !pressed.panned) return;
     autoFrame = false;
     const ratio = canvas.width / canvas.getBoundingClientRect().width;
     camera.x -= ((event.clientX - dragging.x) * ratio) / camera.scale;
@@ -183,8 +195,21 @@ export function start(): void {
   });
   const endDrag = (): void => {
     dragging = null;
+    pressed = null;
   };
-  canvas.addEventListener('pointerup', endDrag);
+  // A click rather than a drag picks out the ship under it, or lets go of the
+  // one picked out when it lands on nothing.
+  canvas.addEventListener('pointerup', (event) => {
+    if (pressed !== null && !pressed.panned) {
+      const rect = canvas.getBoundingClientRect();
+      const ratio = canvas.width / rect.width;
+      const px = (event.clientX - rect.left) * ratio - canvas.width / 2;
+      const py = (event.clientY - rect.top) * ratio - canvas.height / 2;
+      selected = shipAt(snapshot, camera.x + px / camera.scale, camera.y - py / camera.scale, PICK_PX / camera.scale);
+      if (selected >= 0) autoFrame = true;
+    }
+    endDrag();
+  });
   canvas.addEventListener('pointercancel', endDrag);
   speedInput.addEventListener('input', () => {
     speed = Number(speedInput.value);
@@ -199,6 +224,8 @@ export function start(): void {
     } else if (event.key === '.') {
       setRunning(false);
       state.step();
+    } else if (event.key === 'Escape') {
+      selected = -1;
     } else if (event.key === 'f' || event.key === 'F') {
       autoFrame = true;
     } else if (event.key.toLowerCase() === ARCS_KEY && !event.ctrlKey && !event.metaKey) {
@@ -246,7 +273,7 @@ export function start(): void {
         frame(camera, view, canvas.width, canvas.height, 1);
         framed = true;
       }
-      frame(camera, view, canvas.width, canvas.height);
+      frame(camera, selectionBounds(view, selected) ?? view, canvas.width, canvas.height);
     }
 
     // Impacts belong to the battle, so they fade on *its* clock: a paused
@@ -268,7 +295,7 @@ export function start(): void {
         view.impactGrowth[i]!,
       );
     }
-    draw(ctx, view, camera, canvas.width, canvas.height, flashes, arcs, teamShots);
+    draw(ctx, view, camera, canvas.width, canvas.height, flashes, arcs, teamShots, selected);
 
     if (sceneIndex === CUSTOM) panel.update(state as CustomBattle, view.time);
 
