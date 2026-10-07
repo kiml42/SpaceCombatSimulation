@@ -90,6 +90,8 @@
       .field input, .field select { flex: 0 0 5.5rem; }
       .field input { width: 5.5rem; min-width: 0; }
       .field input[type='checkbox'] { flex: 0 0 auto; }
+      .field.spread input { flex: 0 0 3.6rem; width: 3.6rem; }
+      .field.spread span { color: #7f93aa; }
       .buttons { display: flex; gap: 0.4rem; margin: 0.7rem 0; }
       .buttons button { flex: 1; padding-inline: 0.3rem; }
 
@@ -307,10 +309,10 @@
           <details open data-key="thematch">
             <summary><h2>The match</h2></summary>
             <div class="field"><label for="duration">seconds</label><input id="duration" type="number" min="1" step="5" /></div>
-            <div class="field"><label for="radius">arena m</label><input id="radius" type="number" min="10" step="50" /></div>
+            <div class="field spread"><label for="radius">arena m</label><input id="radius" type="number" min="10" step="50" /><span>±</span><input id="radiusSpread" type="number" min="0" step="50" title="How far either side each match's arena is drawn, evenly. Zero holds it." /></div>
             <div class="field"><label for="scatter">scatter °</label><input id="scatter" type="number" min="0" max="180" step="15" /></div>
-            <div class="field"><label for="closing">closing m/s</label><input id="closing" type="number" step="5" title="Each entrant's starting speed towards the middle" /></div>
-            <div class="field"><label for="crossing">crossing m/s</label><input id="crossing" type="number" step="5" title="Each entrant's starting speed to its left, across the line to the middle" /></div>
+            <div class="field spread"><label for="closing">closing m/s</label><input id="closing" type="number" step="5" title="Each entrant's starting speed towards the middle" /><span>±</span><input id="closingSpread" type="number" min="0" step="5" title="How far either side each match's closing speed is drawn, evenly. Zero holds it." /></div>
+            <div class="field spread"><label for="crossing">crossing m/s</label><input id="crossing" type="number" step="5" title="Each entrant's starting speed to its left, across the line to the middle" /><span>±</span><input id="crossingSpread" type="number" min="0" step="5" title="How far either side each match's crossing speed is drawn, evenly. Zero holds it." /></div>
             <div class="field soloOnly"><label for="goal">goal</label><select id="goal" title="Solid blocks shots and can be run into; a ghost is only somewhere to be">
             <option value="solid">solid</option>
             <option value="ghost">ghost</option>

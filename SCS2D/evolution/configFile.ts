@@ -115,6 +115,9 @@ const MATCH_KEYS: readonly string[] = [
   'scatter',
   'closingSpeed',
   'crossingSpeed',
+  'radiusSpread',
+  'closingSpread',
+  'crossingSpread',
   'goal',
   'weights',
 ];
@@ -154,6 +157,10 @@ export function serialiseRunConfig(setup: RunSetup): Record<string, unknown> {
       scatter: (match.scatter * 180) / PI,
       closingSpeed: match.closingSpeed,
       crossingSpeed: match.crossingSpeed,
+      // Only where set, so a file that varies nothing reads as it always did.
+      ...(match.radiusSpread > 0 ? { radiusSpread: match.radiusSpread } : {}),
+      ...(match.closingSpread > 0 ? { closingSpread: match.closingSpread } : {}),
+      ...(match.crossingSpread > 0 ? { crossingSpread: match.crossingSpread } : {}),
       goal: match.goal === null ? null : { ...match.goal },
       weights: { ...match.weights },
     },
@@ -344,6 +351,9 @@ export function parseRunConfig(value: unknown): RunSetup {
         scatter: (read(match['scatter'], (DEFAULT_MATCH.scatter * 180) / PI) / 180) * PI,
         closingSpeed: read(match['closingSpeed'], DEFAULT_MATCH.closingSpeed),
         crossingSpeed: read(match['crossingSpeed'], DEFAULT_MATCH.crossingSpeed),
+        radiusSpread: read(match['radiusSpread'], DEFAULT_MATCH.radiusSpread),
+        closingSpread: read(match['closingSpread'], DEFAULT_MATCH.closingSpread),
+        crossingSpread: read(match['crossingSpread'], DEFAULT_MATCH.crossingSpread),
         goal:
           match['goal'] === undefined
             ? DEFAULT_MATCH.goal
@@ -470,8 +480,14 @@ function matchProblem(value: unknown, warnings: string[]): string | null {
     numberProblem(value['radius'], 'match.radius') ??
     numberProblem(value['scatter'], 'match.scatter') ??
     numberProblem(value['closingSpeed'], 'match.closingSpeed') ??
-    numberProblem(value['crossingSpeed'], 'match.crossingSpeed');
+    numberProblem(value['crossingSpeed'], 'match.crossingSpeed') ??
+    numberProblem(value['radiusSpread'], 'match.radiusSpread') ??
+    numberProblem(value['closingSpread'], 'match.closingSpread') ??
+    numberProblem(value['crossingSpread'], 'match.crossingSpread');
   if (problem !== null) return problem;
+  for (const key of ['radiusSpread', 'closingSpread', 'crossingSpread']) {
+    if (value[key] !== undefined && (value[key] as number) < 0) return `match.${key} must not be negative`;
+  }
   if (value['duration'] !== undefined && (value['duration'] as number) <= 0) {
     return 'match.duration must be more than nothing';
   }
