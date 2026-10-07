@@ -31,7 +31,6 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Snap to hulls
 - Category input for ships - ships grouped by category when selecting them anywhere. (e.g. "Star Wars.Imperial", "Stock")
 - Make it clearer how the range is controlled in the core's doctrine
-- Adding a module should place it in view of the camera, and size it based on the camera's zoom level.
 - Add calibre multiplier to scale what the default maths gives.
 
 ## Weapons
