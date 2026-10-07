@@ -47,7 +47,6 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Thrust orientation - same as attack orientation, but considering engines.
 
 ## Evolution
-- Mutate to change the whole scale of the ship
 - Consider scoring for ramming
   - Currently just loses score by everything taking damage
   - Might want to attribute the damage to both ships to the other, this would be asymmetrical is one manages to ram its armour into an active component on the other.
