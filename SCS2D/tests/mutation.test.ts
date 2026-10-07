@@ -15,7 +15,7 @@ import {
   type Blueprint,
   type ModuleSpec,
 } from '../sim/index.js';
-import { DEFAULT_KINDS, DEFAULT_LIMITS, mutate, type DoctrineWeights } from '../evolution/mutate.js';
+import { DEFAULT_BUILD_WEIGHTS, DEFAULT_KINDS, DEFAULT_LIMITS, mutate, type DoctrineWeights } from '../evolution/mutate.js';
 import { CATAMARAN, CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
 
 /**
@@ -610,5 +610,34 @@ describe('build weights', () => {
     for (let i = 0; i < 40; i++) made.push(...mutate(GUNSHIP, rng, { structural: 0, build, doctrine }).edits);
     expect(made.length).toBeGreaterThan(0);
     for (const edit of made) expect(edit).toMatch(/doctrine\.(targeting\.escortWeight|approach\.escort)/);
+  });
+});
+
+describe('scaling a whole ship', () => {
+  it('scales every module, position and corner by one factor, and keeps it a ship', { timeout: 30_000 }, () => {
+    const off = Object.fromEntries(Object.keys(DEFAULT_BUILD_WEIGHTS).map((key) => [key, 0]));
+    const rng = new Rng(3);
+    let seen = 0;
+    for (let i = 0; i < 300 && seen < 3; i++) {
+      const child = mutate(CATAMARAN, rng, {
+        structural: 0,
+        numbers: 1,
+        build: { ...off, resize: 1 } as typeof DEFAULT_BUILD_WEIGHTS,
+        doctrine: { targeting: 0, approach: 0, escort: 0, avoidance: 0, gunnery: 0 },
+      });
+      const edit = child.edits.find((e) => /whole ship scaled by/.test(e));
+      if (edit === undefined) continue;
+      seen++;
+      const factor = Number(/scaled by ([\d.]+)/.exec(edit)![1]);
+      expect(blueprintProblem(child.blueprint)).toBeNull();
+      // A module inside an assembly, and where the assembly is placed.
+      const name = Object.keys(CATAMARAN.assemblies!)[0]!;
+      const before = CATAMARAN.assemblies![name]!.modules[0] as ModuleSpec;
+      const after = child.blueprint.assemblies![name]!.modules[0] as ModuleSpec;
+      expect(after.length).toBeCloseTo(before.length * factor, 3);
+      expect(after.x).toBeCloseTo(before.x * factor, 3);
+      expect(child.blueprint.modules![0]!.y).toBeCloseTo(CATAMARAN.modules![0]!.y * factor, 3);
+    }
+    expect(seen).toBeGreaterThan(0);
   });
 });

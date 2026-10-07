@@ -121,7 +121,7 @@ describe('breeding a shape', () => {
     expect(walks).toBeGreaterThan(0);
   });
 
-  it('keeps every module a box when shape is weighted out', () => {
+  it('keeps every module a box when shape is weighted out', { timeout: 30_000 }, () => {
     // The off switch a long run reaches for: a hull with wedges in it compiles
     // about half as dear again, so a run that does not want them should not
     // pay for them.
@@ -135,12 +135,16 @@ describe('breeding a shape', () => {
     expect(modulesOf(held).some(isTriangle)).toBe(false);
   });
 
-  it('only cuts a corner where nothing was welded, so every weld survives', () => {
+  it('only cuts a corner where nothing was welded, so every weld survives', { timeout: 30_000 }, () => {
     // What makes this the one free-form shape change a lineage may make: the
     // two faces that go are the two nothing was attached to, so the legs of
     // what is left are the faces that were holding the module on.
+    //
+    // A generation whose only change is a cut is rare, a couple in a thousand,
+    // so a second pair of lines is bred for this one question.
+    const more = [...breedLine(CORVETTE, 13, GENERATIONS), ...breedLine(CATAMARAN, 13, GENERATIONS)];
     let cuts = 0;
-    for (const step of matching(both, CUT)) {
+    for (const step of matching([...both, ...more], CUT)) {
       // Only a generation whose *whole* change was the cut says anything about
       // the cut; anything else could have moved a weld on its own account.
       if (step.edits.length !== 1 || step.before.length !== step.after.length) continue;

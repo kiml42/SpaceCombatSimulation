@@ -312,7 +312,10 @@ inside any one file is not contiguous.
   it flies crabwise — drop an instance, and turn one over. Making a part and dissolving one change nothing
   about the ship at all: what they change is what the next generation can do, and there is no single
   mutation that both invents a grouping and pays off at once. Every operator has its inverse, because one
-  that can only add structure is a ratchet a lineage has no way down from. A doctrine number
+  that can only add structure is a ratchet a lineage has no way down from. A whole ship can be scaled in one
+  draw — every size, position, corner and assembly placement by one factor, up to a tenth either way at the
+  default magnitude — under `resize`'s weight, so a hull in proportion at one size is tried at another without
+  breaking on the way; the scaling laws do not scale with it, which is the question asked. A doctrine number
   is perturbed by a fraction of its *default* rather than of what is held, so nothing that has reached zero
   is stuck there — and where the default is zero too, by a fraction of what a number is worth in that half
   of the doctrine, since otherwise every draw is a fraction of nothing and the field is not slow to find but

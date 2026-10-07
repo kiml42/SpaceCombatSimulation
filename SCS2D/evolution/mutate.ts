@@ -386,6 +386,8 @@ function knobWeight(knob: Knob, { doctrine, build }: MutationLimits): number {
       return build.tuning;
     case 'fighter':
       return build.fighter;
+    case 'scale':
+      return build.resize;
   }
 }
 
@@ -546,6 +548,7 @@ function spreadDoctrine(doctrine: Doctrine): MutableDoctrine {
 type Knob =
   | { readonly at: 'doctrine'; readonly half: 'targeting' | 'approach'; readonly field: string }
   | { readonly at: 'fighter' }
+  | { readonly at: 'scale' }
   | { readonly at: 'reinforcement'; readonly site: ModuleSite }
   | { readonly at: 'kind'; readonly site: ModuleSite }
   | { readonly at: 'barrels'; readonly site: ModuleSite }
@@ -591,6 +594,7 @@ function knobs(draft: Draft): Knob[] {
   for (const field of APPROACH_FIELDS) out.push({ at: 'doctrine', half: 'approach', field });
   // Even while the layout rules it out: the flag is ignored until it does not.
   out.push({ at: 'fighter' });
+  out.push({ at: 'scale' });
 
   for (const list of draft.lists) {
     for (let i = 0; i < list.placements.length; i++) {
@@ -685,6 +689,8 @@ function renumber(knob: Knob, draft: Draft, rng: Rng, bounds: MutationLimits): s
       return turnDoctrine(draft, knob.half, knob.field, rng, bounds);
     case 'fighter':
       return enlist(draft.blueprint);
+    case 'scale':
+      return rescale(draft, rng, bounds);
     case 'reinforcement':
       return reinforce(knob.site, rng, bounds);
     case 'kind':
@@ -802,6 +808,49 @@ function turnDoctrine(
   if (tidied === was) return null;
   held[field] = tidied;
   return `doctrine.${half}.${field} ${was} → ${tidied}`;
+}
+
+/** The most a whole ship is scaled by in one draw, as a share of `magnitude`. */
+const SCALE_SHARE = 0.4;
+
+/**
+ * Make the whole ship bigger or smaller: every module's size and position,
+ * every corner, and every placement of an assembly and the step between its
+ * copies, by one factor about the layout's origin.
+ *
+ * What resizing module by module cannot do in any number of generations
+ * without breaking the ship on the way: a hull whose parts are in proportion
+ * at one size can be tried at another in a single step, and the welds survive
+ * because contact scales with everything else. The scaling laws do not, so a
+ * bigger ship is not a magnified one — its walls, guns and engines are what
+ * their new sizes buy — and that is the question the draw asks.
+ */
+function rescale(draft: Draft, rng: Rng, bounds: MutationLimits): string | null {
+  const factor = tidy(1 + bounds.magnitude * SCALE_SHARE * rng.nextRange(-1, 1), 3);
+  if (factor === 1 || !(factor > 0)) return null;
+  const by = (value: number): number => tidy(value * factor, 4);
+  for (const list of draft.lists) {
+    for (const placement of list.placements) {
+      placement.x = by(placement.x);
+      placement.y = by(placement.y);
+      if (isInstance(placement)) {
+        if (placement.step !== undefined) placement.step = { ...placement.step, x: by(placement.step.x), y: by(placement.step.y) };
+        continue;
+      }
+      if (placement.vertices !== undefined) {
+        // A triangle's box is derived from its corners, and its corners kept
+        // centred on it, so it goes back through the shaping rather than being
+        // scaled field by field.
+        const shaped = shapeModule(placement, placement.vertices.map((v) => v * factor));
+        if (shaped === null) return null;
+        Object.assign(placement, shaped);
+        continue;
+      }
+      placement.length = by(placement.length);
+      placement.width = by(placement.width);
+    }
+  }
+  return `whole ship scaled by ${factor}`;
 }
 
 /** Make a ship a fighter, or an ordinary ship again. A flip, as `rearm` is. */
