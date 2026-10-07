@@ -106,6 +106,18 @@ import {
   type Seam,
 } from './handles.js';
 import {
+  alignment,
+  cornersOf,
+  drawnAngles,
+  landing,
+  landOrGrid,
+  offsetBy,
+  snapField,
+  SNAP_WITHIN_PIXELS,
+  tidyMetres,
+  type SnapField,
+} from './snapping.js';
+import {
   kindName,
   mountDefault,
   mountSummary,
@@ -246,6 +258,23 @@ export function startEditor(): void {
    * was picked for. Alt passes 0 instead, which is no snapping at all.
    */
   const snapMetres = (): number => snapStep(camera.scale);
+  /**
+   * How far from a corner, an edge or a drawn angle a drag lands on it, in
+   * metres: a fixed distance on screen, so it is a reach of the hand rather
+   * than a distance on the ship, whatever the zoom. Alt passes 0, which is no
+   * snapping at all.
+   */
+  const snapWithin = (event: { altKey: boolean }): number =>
+    event.altKey ? 0 : SNAP_WITHIN_PIXELS / camera.scale;
+  /**
+   * What the drag may land on: everything the selection is not carrying.
+   *
+   * Rebuilt per move rather than held for the drag, since an edit mid-drag —
+   * a resize pushing its neighbours along — moves the targets as it goes.
+   */
+  const fieldNow = (): SnapField => snapField(doc.view.modules, (i) => doc.covers(i));
+  /** The angles the rest of the design is drawn at, which a facing may land on. */
+  const anglesNow = (): number[] => drawnAngles(doc.view.modules, (i) => doc.covers(i));
   const snapshot = new Snapshot();
   const demonstration = new Demonstration();
   let fitPending = true;
@@ -1740,6 +1769,13 @@ export function startEditor(): void {
         from: Blueprint;
         startX: number;
         startY: number;
+        /**
+         * The corners of everything the drag is carrying, where they were when
+         * it took hold. Read once rather than per move: the layout under the
+         * pointer is the moved one, so corners taken from it and offset again
+         * would count the drag twice.
+         */
+        corners: readonly number[];
         moved: boolean;
         /** The module pressed on, and whether releasing without a drag goes in a level. */
         hit: number;
@@ -1807,6 +1843,7 @@ export function startEditor(): void {
         world.x,
         world.y,
         event.altKey ? 0 : ANGLE_SNAP_DEGREES,
+        anglesNow(),
       );
       const origin: ModuleOrigin = { path: drag.path, ...pose.written, instanceFrame: null };
       const angle = toPlacementAngle(origin, bearing);
@@ -1853,28 +1890,40 @@ export function startEditor(): void {
       // One corner to wherever the pointer is, the other two left alone. No
       // neighbour is pushed: a corner moves two edges at once and neither of
       // them squarely, so there is no face to carry one by.
-      const moved = vertexTo(
-        drag.spec,
-        drag.handle.vertex ?? -1,
+      const point = landOrGrid(
+        fieldNow(),
         world.x,
         world.y,
+        snapWithin(event),
         event.altKey ? 0 : snapMetres(),
       );
+      const moved = vertexTo(drag.spec, drag.handle.vertex ?? -1, point.x, point.y, 0);
       // A corner dragged onto the line between the other two is no module at
       // all, so the drag simply stops there rather than refusing the shape.
       if (moved === null) return;
       next = reshapePlacement(drag.from, origin, moved.vertices, moved.dx, moved.dy);
     } else if (drag.kind === 'size') {
       const step = event.altKey ? 0 : snapMetres();
+      // A face landed against a neighbour is sized by where that neighbour is,
+      // so it keeps the grid only while it is near nothing.
+      const landed = landing(fieldNow(), world.x, world.y, snapWithin(event));
+      const point = landed ?? world;
       // Shift sizes about the middle, keeping it where it was.
-      const { length, width, dx, dy } = resizedTo(drag.spec, drag.handle, world.x, world.y, step, event.shiftKey);
+      const { length, width, dx, dy } = resizedTo(
+        drag.spec,
+        drag.handle,
+        point.x,
+        point.y,
+        landed === null ? step : 0,
+        event.shiftKey,
+      );
       // Neighbours move with the face unless Ctrl (⌘) asks for this module alone.
       const push = !(event.ctrlKey || event.metaKey);
       next = resizePlacement(drag.from, origin, length, width, dx, dy, push);
     } else {
       const angle = toPlacementAngle(
         origin,
-        facingTo(drag.spec, world.x, world.y, event.altKey ? 0 : ANGLE_SNAP_DEGREES),
+        facingTo(drag.spec, world.x, world.y, event.altKey ? 0 : ANGLE_SNAP_DEGREES, anglesNow()),
       );
       next = updatePlacement(drag.from, path, (p) => ({ ...p, angle }));
     }
@@ -1971,6 +2020,7 @@ export function startEditor(): void {
       from: doc.blueprint,
       startX: world.x,
       startY: world.y,
+      corners: cornersOf(doc.view.modules.filter((_, i) => doc.covers(i))),
       moved: false,
       hit,
       drill,
@@ -2004,8 +2054,14 @@ export function startEditor(): void {
     // face would part company. Snapping the movement keeps whatever offsets a
     // ship was designed with, and Alt escapes it entirely.
     const step = event.altKey ? 0 : snapMetres();
-    const dx = snap(world.x - moving.startX, step);
-    const dy = snap(world.y - moving.startY, step);
+    let dx = snap(world.x - moving.startX, step);
+    let dy = snap(world.y - moving.startY, step);
+    // What should land on a neighbour is one of the moving modules' own
+    // corners, wherever within them the drag was taken hold of, so the field
+    // is tried against those rather than against the pointer.
+    const pull = alignment(fieldNow(), offsetBy(moving.corners, dx, dy), snapWithin(event));
+    dx = tidyMetres(dx + pull.dx);
+    dy = tidyMetres(dy + pull.dy);
     if (dx === 0 && dy === 0 && !moving.moved) return;
     const next = movePlacement(moving.from, handle.origin, dx, dy);
     if (next === null) return;

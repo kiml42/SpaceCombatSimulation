@@ -67,7 +67,10 @@ inside any one file is not contiguous.
   gets the same bar where its bell, barrel or lens meets the block behind it; a tick box turns a piece of
   structure or a tank into a **triangle** — the wedge filling its own box to start with, each of whose three
   corners is then dragged on its own while the other two stay put, and which squares off again into the box
-  its corners fitted — and every snap is escaped by holding Alt —
+  its corners fitted. A drag lands on what is already drawn as readily as on the grid: a move, a resize or a
+  corner within a hand's reach on screen of another module's corner or edge goes exactly onto it, and a facing
+  lands on an angle the design is already drawn at — a module's own, or a wedge's hypotenuse — and on that
+  angle's square, as well as on the fixed increments. Every snap is escaped by holding Alt —
   with the rest of their values typed into a panel beside the module's own mass,
   capacity, armour and gun — its kind among them, swapped for another in the same space and facing the same
   way, so a gun made an engine has its bell where the barrel was — and a selected engine burns and a selected gun fires at the

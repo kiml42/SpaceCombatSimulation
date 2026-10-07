@@ -17,6 +17,7 @@ import {
   type ModuleSpec,
 } from '../sim/index.js';
 import { snap } from './edit.js';
+import { snapBearing } from './snapping.js';
 
 const { atan2, cos, sin, max, round, sqrt, HALF_PI } = math;
 
@@ -460,8 +461,18 @@ function tidy(value: number): number {
  * In the blueprint's frame, like everything else drawn — a module inside a
  * turned or mirrored assembly is written in another, and converting between the
  * two is the caller's job, as it is for a drag.
+ *
+ * `drawn` are the angles the rest of the design is already laid out at, which
+ * a facing lands on as readily as on an increment: a ship with a wedge in it
+ * has a diagonal that nothing on a 15° grid can be laid along.
  */
-export function facingTo(spec: ModuleSpec, x: number, y: number, stepDegrees: number): number {
+export function facingTo(
+  spec: ModuleSpec,
+  x: number,
+  y: number,
+  stepDegrees: number,
+  drawn: readonly number[] = [],
+): number {
   const bearing = radiansToDegrees(atan2(y - spec.y, x - spec.x));
-  return degreesToRadians(snap(bearing, stepDegrees));
+  return degreesToRadians(snapBearing(bearing, stepDegrees, drawn));
 }
