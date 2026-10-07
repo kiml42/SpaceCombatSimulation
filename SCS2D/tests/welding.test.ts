@@ -328,6 +328,55 @@ describe('welding on a slow contact', () => {
   });
 });
 
+describe('mounts remade by a weld', () => {
+  it('keep pointing and slewing where they were in the world, on either hull', () => {
+    // Stern to stern, so the two hulls face opposite ways: a mount carried
+    // into the other's frame without turning would point half a circle off.
+    const gunship = compileBlueprint(GUNSHIP);
+    const tail = Math.min(...corvette.modules.map((m) => m.x - m.spec.length / 2));
+    const stern = corvette.modules.findIndex((m) => m.x - m.spec.length / 2 === tail);
+    const pair: number[] = [];
+    const run = makeBattle({ seed: 1, projectiles: 256, beams: 64 }, (ships, world) => {
+      const gap = -2 * tail + 0.5;
+      for (const [x, angle, vx] of [[-gap / 2, Math.PI, 0.5], [gap / 2, 0, -0.5]] as const) {
+        const ship = ships.spawn(world, { design: corvette, x, y: 0, angle, vx });
+        wear(ships, world, ship, stern, RAGGED_INTEGRITY * 0.5);
+        pair.push(ship);
+      }
+      ships.spawn(world, { design: gunship, x: 0, y: 1500, team: 1 });
+    });
+    const { ships, world } = run;
+    const turrets = ships.turrets;
+    // Each mount's bearing and commanded bearing in the world, by ship and mount.
+    const inWorld = (ship: number): { bearing: number; commanded: number }[] => {
+      const angle = world.bodies.angle[world.bodies.indexOf(ships.body(ship))]!;
+      return ships.design(ship).turrets.map((_, t) => {
+        const ti = ships.turretIndexOf(ship, t);
+        return { bearing: angle + turrets.bearing[ti]!, commanded: angle + turrets.commanded[ti]! };
+      });
+    };
+    let before = pair.map(inWorld);
+    for (let s = 0; s < 600 && run.totalWelded === 0; s++) {
+      before = pair.map(inWorld);
+      run.step();
+    }
+    expect(run.totalWelded).toBe(1);
+
+    const kept = pair.findIndex((ship) => ships.isAlive(ship) && ships.design(ship).modules.length > corvette.modules.length);
+    expect(kept).toBeGreaterThanOrEqual(0);
+    const n = corvette.modules.length;
+    const after = inWorld(pair[kept]!);
+    const off = (a: number, b: number): number => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
+    ships.design(pair[kept]!).turrets.forEach((mount, t) => {
+      const from = mount.module < n ? kept : 1 - kept;
+      const k = corvette.turrets.findIndex((m) => m.module === mount.module % n);
+      // Within a step's slew, rather than reset to rest or half a circle round.
+      expect.soft(off(after[t]!.bearing, before[from]![k]!.bearing)).toBeLessThan(0.05);
+      expect.soft(off(after[t]!.commanded, before[from]![k]!.commanded)).toBeLessThan(0.05);
+    });
+  });
+});
+
 describe('enemies hooked together', () => {
   it('shoot each other across the body they share', () => {
     // A core with a turret ahead of it and a plate beside it, and two of them

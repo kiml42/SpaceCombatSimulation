@@ -3744,13 +3744,16 @@ export class Ships {
         if (was.turrets[k]!.module === module) before = k;
       }
       if (before < 0) continue;
-      this.turrets.bearing[index] = this.turrets.bearing[this.turretIndex[ship]![before]!]!;
+      // Pointing and slewing as it was, turned into this hull's frame: a ship
+      // merged in was flying a heading of its own.
+      const turn = bodies.angle[bodyOf(ship)]! - bodies.angle[b]!;
+      this.turrets.carry(this.turretIndex[ship]![before]!, index, turn);
       cooldown[t] = this.cooldown[ship]![before]!;
       states[t] = this.turretStates[ship]![before]!;
       barrels[t] = this.nextBarrelToFire[ship]![before]!;
       targets[t] = this.turretTarget[ship]![before]!;
-      // Not what it was aiming at: the mount is new and untrained, so it would
-      // fire wherever its barrel points until the next `command` trains it.
+      // Not what it was aiming at: a weld lands between aiming and firing, so
+      // it holds fire until the next `command` has aimed it from the new hull.
       aims[t] = this.turretAimModule[ship]![before]!;
       schedule[t] = this.turretRethinkAt[ship]![before]!;
     }
