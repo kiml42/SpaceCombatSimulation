@@ -3,7 +3,7 @@ import { DINKY, GUNSHIP } from '../scenarios/blueprints.js';
 import { rivalSettings, runCoevolution } from '../evolution/coevolution.js';
 import { parseRunConfig, runConfigFileProblem, serialiseRunConfig } from '../evolution/configFile.js';
 import { DEFAULT_RUN, type GenerationRecord, type RunConfig, type RunRecord } from '../evolution/run.js';
-import { championGrid } from '../evolution/yardstick.js';
+import { championGrid, GridMeasure } from '../evolution/yardstick.js';
 
 /** Small and short: what is under test is who fights whom and who breeds, not the fighting. */
 const SETTINGS: Partial<RunConfig> = {
@@ -200,6 +200,17 @@ describe('the champion grid', () => {
     for (const row of grid.cells) expect(row).toHaveLength(2);
     expect(grid.matches).toBe(4);
     expect(championGrid(run, { samples: 2, seeds: 1 })).toEqual(grid);
+  });
+
+  it('comes out the same fought a slice at a time, as the page fights it', () => {
+    const measure = new GridMeasure(run, { samples: 2, seeds: 1 });
+    let progress = measure.progress;
+    while (measure.advance(37)) {
+      expect(measure.progress).toBeGreaterThanOrEqual(progress);
+      progress = measure.progress;
+    }
+    expect(measure.progress).toBe(1);
+    expect(measure.report()).toEqual(championGrid(run, { samples: 2, seeds: 1 }));
   });
 
   it('is empty for a run of one', () => {

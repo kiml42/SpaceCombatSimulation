@@ -796,6 +796,16 @@ describe('the evolution page in a browser', () => {
     expect(Math.max(...heights) - Math.min(...heights)).toBeLessThan(1.5);
     expect(await distinctColours(page, 'massChart')).toBeGreaterThan(2);
     expect(await page.textContent('#championLine')).toMatch(/A #\d+.*B #\d+/);
+    // Measured as a grid of each side's champions against the other's.
+    await page.click('#measure');
+    await page.waitForFunction(() => /matches, \d+ a cell/.test(document.getElementById('yardstickLine')?.textContent ?? ''), undefined, {
+      timeout: 60_000,
+    });
+    expect(await page.isVisible('#grid')).toBe(true);
+    expect(await page.$$eval('#grid td', (cells) => cells.map((td) => td.textContent))).toEqual(
+      expect.arrayContaining([expect.stringMatching(/^\d\/3$/)]),
+    );
+    expect(await page.locator('#grid td').count()).toBe(4);
 
     await page.selectOption('#mode', 'battle');
     // Two of A against one of B, each side by its letter, and who won it if it was decided.

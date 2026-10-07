@@ -515,8 +515,9 @@ inside any one file is not contiguous.
   Each side keeps a hall of its last few champions, and a share of every individual's matches is against
   the other side's hall, so neither can win by beating only the opponent of the moment. Side B may have its
   own population, winners, entrants a match, budget, fleet limits and mutation weights. Its generations are written beside side A's
-  (`rival` in the run file), and `npm run yardstick` measures such a run as a grid of each side's champions
-  against the other's, since fitness against a moving opponent cannot say whether either is improving.
+  (`rival` in the run file), and `npm run yardstick` or the page's Measure button measures such a run as a
+  grid of each side's champions against the other's, since fitness against a moving opponent cannot say
+  whether either is improving.
   **The evolution page is two screens**: setting a run up, with every setting laid out across the width
   beside the founders it would start from, and watching it, with the charts, the combatants and the matches;
   Start moves from the first to the second, and the header goes between them. **Side A is on the left and
