@@ -427,6 +427,7 @@
               "fuse": 0.06,
               "fragments": 12,
               "burstSpeed": 300,
+              "main": false,
               "targeting": {
                 "focusWeight": 0,
                 "proximityWeight": 250,
@@ -452,6 +453,7 @@
               "width": 100,
               "nozzle": 0.380952,
               "weapon": true,
+              "main": false,
               "thick": true
             }
           ]
