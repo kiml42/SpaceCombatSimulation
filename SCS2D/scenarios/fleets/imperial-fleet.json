@@ -453,6 +453,7 @@
               "width": 100,
               "nozzle": 0.380952,
               "weapon": true,
+              "main": false,
               "thick": true
             }
           ]
