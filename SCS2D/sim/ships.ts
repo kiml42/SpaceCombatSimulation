@@ -872,7 +872,7 @@ export class Ships {
       if (design.turrets[t]!.main && !this.isTurretDisabled(i, t)) return false;
     }
     // An engine meant as a weapon is one while it can still burn.
-    for (const t of design.mainEngines) {
+    for (const t of design.mainWeaponEngines) {
       const module = design.engines[t]?.module ?? -1;
       if (this.left(i, b, module, DamageEffect.Thrust) > 0) return false;
     }
@@ -2414,7 +2414,7 @@ export class Ships {
       const turret = design.turrets[t]!;
       if (turret.main && !this.isTurretDisabled(i, t)) addTurret(arcs, turret.mount);
     }
-    for (const t of design.mainEngines) {
+    for (const t of design.mainWeaponEngines) {
       if (this.left(i, b, design.engines[t]!.module ?? -1, DamageEffect.Thrust) > 0) addFlame(arcs, design, t);
     }
     const current = angleDelta(bodies.angle[b]!, towards);

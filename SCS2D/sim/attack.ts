@@ -206,7 +206,7 @@ export function designArcs(design: ShipDesign, out: AttackArcs): AttackArcs {
   for (const turret of design.turrets) {
     if (turret.main) addTurret(out, turret.mount);
   }
-  for (const t of design.mainEngines) addFlame(out, design, t);
+  for (const t of design.mainWeaponEngines) addFlame(out, design, t);
   return out;
 }
 
