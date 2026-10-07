@@ -330,7 +330,8 @@ inside any one file is not contiguous.
   seed with an engine on it has already been told which way a ship is meant to go.
   **A match is fought and scored.** A handful of designs are put in an arena together — every entrant its
   own side, evenly round a ring, on a heading it did not choose — and the battle is run until one of them is left or
-  the clock runs out. Three things are scored in the one match rather than in separate kinds of match,
+  the clock runs out. The ring's radius and the starting speeds in and across may each carry a spread, drawn
+  once a match from its seed, so a run can breed against a range of arenas rather than one. Three things are scored in the one match rather than in separate kinds of match,
   because the trade between them is the interesting part: surviving, damage done, and and **ground gained** on a point
   worth reaching — that last measured from where a craft started rather than against the goal outright, so
   standing still is nothing, closing is positive and drifting away is negative. It falls away with distance
