@@ -3,6 +3,7 @@ import {
   NEUTRAL_TEAM,
   parseFleet,
   radiansToDegrees,
+  Rng,
   serialiseFleet,
   type Fleet,
 } from '../sim/index.js';
@@ -29,7 +30,23 @@ export interface BattleSetup {
   /** How far each fleet is turned from facing the centre, radians anticlockwise. Degrees in the file. */
   rotation: number;
   seed: number;
+  /**
+   * How far either side of `range`, the speeds and `rotation` the battle may
+   * be drawn, evenly, from its seed; absent or zero holds them. Rotation's in
+   * radians, degrees in the file. So a battle file can stand for a family of
+   * battles, and the seed picks one.
+   */
+  spread?: BattleSpread;
 }
+
+export interface BattleSpread {
+  range?: number;
+  closingSpeed?: number;
+  crossingSpeed?: number;
+  rotation?: number;
+}
+
+const SPREAD_KEYS: readonly (keyof BattleSpread)[] = ['range', 'closingSpeed', 'crossingSpeed', 'rotation'];
 
 export const DEFAULT_SETUP: Omit<BattleSetup, 'fleets'> = {
   range: 2000,
@@ -39,7 +56,7 @@ export const DEFAULT_SETUP: Omit<BattleSetup, 'fleets'> = {
   seed: 1,
 };
 
-const FILE_KEYS: readonly string[] = ['formatVersion', 'fleets', 'range', 'closingSpeed', 'crossingSpeed', 'rotation', 'seed'];
+const FILE_KEYS: readonly string[] = ['formatVersion', 'fleets', 'range', 'closingSpeed', 'crossingSpeed', 'rotation', 'seed', 'spread'];
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -74,6 +91,18 @@ export function battleSetupProblem(value: unknown): string | null {
     finite(value['seed'], 'seed');
   if (problem !== null) return problem;
   if (!((value['range'] as number) > 0)) return 'range must be greater than zero';
+  const spread = value['spread'];
+  if (spread !== undefined) {
+    if (!isObject(spread)) return 'spread must be an object';
+    const unknown = Object.keys(spread).filter((key) => !(SPREAD_KEYS as readonly string[]).includes(key));
+    if (unknown.length > 0) return `spread: unknown ${unknown.length > 1 ? 'keys' : 'key'} ${unknown.join(', ')}`;
+    for (const key of SPREAD_KEYS) {
+      if (spread[key] === undefined) continue;
+      const bad = finite(spread[key], `spread.${key}`);
+      if (bad !== null) return bad;
+      if ((spread[key] as number) < 0) return `spread.${key} must not be negative`;
+    }
+  }
   if (!Number.isInteger(value['seed'])) return 'seed must be a whole number';
   return null;
 }
@@ -89,7 +118,39 @@ export function parseBattleSetup(value: unknown): BattleSetup {
     crossingSpeed: file['crossingSpeed'] as number,
     rotation: file['rotation'] === undefined ? 0 : degreesToRadians(file['rotation'] as number),
     seed: file['seed'] as number,
+    ...(file['spread'] === undefined ? {} : { spread: readSpread(file['spread'] as Record<string, number>) }),
   };
+}
+
+function readSpread(raw: Record<string, number>): BattleSpread {
+  const out: BattleSpread = {};
+  for (const key of SPREAD_KEYS) {
+    if (raw[key] !== undefined) out[key] = key === 'rotation' ? degreesToRadians(raw[key]) : raw[key];
+  }
+  return out;
+}
+
+/** Whether a setup varies at all from one seed to the next. */
+function spreads(spread: BattleSpread | undefined): spread is BattleSpread {
+  return spread !== undefined && SPREAD_KEYS.some((key) => (spread[key] ?? 0) > 0);
+}
+
+/**
+ * The battle a setup's seed picks out of its spread: each figure drawn evenly
+ * within its spread either side, from a generator of its own so the battle's
+ * other draws are the ones an unspread setup would make. Unchanged where
+ * nothing spreads.
+ */
+export function drawnSetup(setup: BattleSetup): BattleSetup {
+  if (!spreads(setup.spread)) return setup;
+  const draw = new Rng(setup.seed ^ 0x5b4ead);
+  // All four, always in this order, so one spread widening leaves the rest.
+  const off = (key: keyof BattleSpread): number => (setup.spread![key] ?? 0) * draw.nextRange(-1, 1);
+  const range = setup.range + off('range');
+  const closingSpeed = setup.closingSpeed + off('closingSpeed');
+  const crossingSpeed = setup.crossingSpeed + off('crossingSpeed');
+  const rotation = setup.rotation + off('rotation');
+  return { ...setup, range: Math.max(1, range), closingSpeed, crossingSpeed, rotation };
 }
 
 /** Rotation is written only when there is one, so a file from before it existed reads back the same. */
@@ -101,8 +162,18 @@ export function serialiseBattleSetup(setup: BattleSetup): Record<string, unknown
     closingSpeed: setup.closingSpeed,
     crossingSpeed: setup.crossingSpeed,
     ...(setup.rotation !== 0 ? { rotation: radiansToDegrees(setup.rotation) } : {}),
+    ...(spreads(setup.spread) ? { spread: writeSpread(setup.spread) } : {}),
     fleets: setup.fleets.map(serialiseFleet),
   };
+}
+
+function writeSpread(spread: BattleSpread): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const key of SPREAD_KEYS) {
+    const value = spread[key] ?? 0;
+    if (value > 0) out[key] = key === 'rotation' ? radiansToDegrees(value) : value;
+  }
+  return out;
 }
 
 /** How one side stands. */
@@ -125,12 +196,13 @@ export interface CustomBattle extends Battle {
 }
 
 export function customBattle(setup: BattleSetup): CustomBattle {
+  const drawn = drawnSetup(setup);
   const battle = fleetBattle(setup.fleets, {
-    seed: setup.seed,
-    range: setup.range,
-    closingSpeed: setup.closingSpeed,
-    crossingSpeed: setup.crossingSpeed,
-    rotation: setup.rotation,
+    seed: drawn.seed,
+    range: drawn.range,
+    closingSpeed: drawn.closingSpeed,
+    crossingSpeed: drawn.crossingSpeed,
+    rotation: drawn.rotation,
     projectiles: 1024,
     beams: 256,
   });
