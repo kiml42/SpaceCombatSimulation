@@ -1911,6 +1911,19 @@ export function startEvolution(): void {
       tr.addEventListener('click', () => startReplay(record, rows));
       matchesBody.append(tr);
     }
+    // Padded to the most any generation has fought, so the panels under it
+    // stay put while a generation fills its list in.
+    let longest = matches.length;
+    for (const generation of run?.generations ?? []) longest = Math.max(longest, generation.matches.length);
+    for (let i = matches.length; i < longest; i++) {
+      const tr = document.createElement('tr');
+      tr.className = 'pad';
+      const td = document.createElement('td');
+      td.colSpan = 4;
+      td.textContent = '\u00a0';
+      tr.append(td);
+      matchesBody.append(tr);
+    }
 
     const series: Series[] = [];
     const closed = run === null ? [] : run.generations;
