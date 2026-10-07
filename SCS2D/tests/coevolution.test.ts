@@ -23,6 +23,9 @@ const sideB = run.rival!.generations;
 const ids = (generation: GenerationRecord): Set<number> => new Set(generation.individuals.map((i) => i.id));
 const seeds = (generation: GenerationRecord): Set<number> => new Set(generation.matches.map((m) => m.seed));
 
+// Each of these fights whole generations, so they are slow by nature; the
+// default timeout is for tests that are quick by nature, and on a busy runner
+// the longest of them was over it.
 describe('a co-evolution run', { timeout: 30_000 }, () => {
   it('breeds each side only from its own', () => {
     expect(run.generations).toHaveLength(3);
