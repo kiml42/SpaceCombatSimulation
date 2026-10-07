@@ -184,6 +184,18 @@ export interface MatchConfig {
    */
   readonly closingSpeed: number;
   readonly crossingSpeed: number;
+  /**
+   * How far each match's `radius`, `closingSpeed` and `crossingSpeed` may be
+   * drawn either side of the figure set, evenly; zero holds it exactly.
+   *
+   * DESIGN.md §7's distribution rather than a point: a run fought at one range
+   * and one closing speed breeds for that range and that speed. Drawn once a
+   * match, from its seed, so every entrant in it meets the same arena, and from
+   * a generator of its own, so a run with none is the run it always was.
+   */
+  readonly radiusSpread: number;
+  readonly closingSpread: number;
+  readonly crossingSpread: number;
 }
 
 export const DEFAULT_MATCH: MatchConfig = {
@@ -197,7 +209,35 @@ export const DEFAULT_MATCH: MatchConfig = {
   scatter: math.PI,
   closingSpeed: 0,
   crossingSpeed: 0,
+  radiusSpread: 0,
+  closingSpread: 0,
+  crossingSpread: 0,
 };
+
+/** The smallest arena a spread may draw, metres, as the page allows. */
+const SMALLEST_ARENA = 10;
+
+/** One match's arena and starting speeds, drawn from the spreads about the figures set. */
+export function drawnMatch(settings: MatchConfig): MatchConfig {
+  const { radiusSpread, closingSpread, crossingSpread } = settings;
+  if (!(radiusSpread > 0) && !(closingSpread > 0) && !(crossingSpread > 0)) return settings;
+  const draw = new Rng(settings.seed ^ 0x5b4ead);
+  // Always all three, in this order, so that widening one spread does not move
+  // the draws for the others.
+  const radius = settings.radius + max0(radiusSpread) * draw.nextRange(-1, 1);
+  const closing = settings.closingSpeed + max0(closingSpread) * draw.nextRange(-1, 1);
+  const crossing = settings.crossingSpeed + max0(crossingSpread) * draw.nextRange(-1, 1);
+  return {
+    ...settings,
+    radius: math.max(SMALLEST_ARENA, radius),
+    closingSpeed: closing,
+    crossingSpeed: crossing,
+  };
+}
+
+function max0(value: number): number {
+  return value > 0 ? value : 0;
+}
 
 /** What one entrant did, each part scaled so that one is as good as it gets. */
 export interface Score {
@@ -368,7 +408,7 @@ export class Match {
    * entrant is its own.
    */
   constructor(entrants: readonly Entrant[], config?: Partial<MatchConfig>, teams?: readonly number[] | null) {
-    const settings: MatchConfig = { ...DEFAULT_MATCH, ...config };
+    const settings: MatchConfig = drawnMatch({ ...DEFAULT_MATCH, ...config });
     this.settings = settings;
     const sided = teams === undefined || teams === null ? null : teams;
     if (sided !== null && sided.length !== entrants.length) throw new Error('a match needs a side for every entrant');

@@ -167,6 +167,9 @@ export class Snapshot {
   /** Rounds in flight, as flat pairs so a renderer can loop without objects. */
   projectileX = new Float64Array(0);
   projectileY = new Float64Array(0);
+  /** Where each round was fired or burst from. */
+  projectileStartX = new Float64Array(0);
+  projectileStartY = new Float64Array(0);
   projectileVx = new Float64Array(0);
   projectileVy = new Float64Array(0);
   projectileWidth = new Float64Array(0);
@@ -239,6 +242,8 @@ function growProjectiles(snapshot: Snapshot, needed: number): void {
   const size = needed * 2;
   snapshot.projectileX = new Float64Array(size);
   snapshot.projectileY = new Float64Array(size);
+  snapshot.projectileStartX = new Float64Array(size);
+  snapshot.projectileStartY = new Float64Array(size);
   snapshot.projectileVx = new Float64Array(size);
   snapshot.projectileVy = new Float64Array(size);
   snapshot.projectileWidth = new Float64Array(size);
@@ -464,6 +469,8 @@ export function capture(
     if (projectiles.alive[i] === 0) continue;
     out.projectileX[p] = projectiles.x[i]!;
     out.projectileY[p] = projectiles.y[i]!;
+    out.projectileStartX[p] = projectiles.startX[i]!;
+    out.projectileStartY[p] = projectiles.startY[i]!;
     out.projectileVx[p] = projectiles.vx[i]!;
     out.projectileVy[p] = projectiles.vy[i]!;
     out.projectileWidth[p] = projectiles.width[i]!;
