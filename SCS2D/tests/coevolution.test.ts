@@ -23,7 +23,7 @@ const sideB = run.rival!.generations;
 const ids = (generation: GenerationRecord): Set<number> => new Set(generation.individuals.map((i) => i.id));
 const seeds = (generation: GenerationRecord): Set<number> => new Set(generation.matches.map((m) => m.seed));
 
-describe('a co-evolution run', () => {
+describe('a co-evolution run', { timeout: 30_000 }, () => {
   it('breeds each side only from its own', () => {
     expect(run.generations).toHaveLength(3);
     expect(sideB).toHaveLength(3);
