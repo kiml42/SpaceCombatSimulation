@@ -17,7 +17,7 @@ import { hooked } from '../scenarios/hooked.js';
 import { customBattle, type CustomBattle } from '../scenarios/customBattle.js';
 import { customPanel } from './customPanel.js';
 import { handedFleet } from '../editor/handoff.js';
-import { ARCS_KEY, draw, nextArcs, type Arcs } from '../render/canvas2d.js';
+import { ARCS_KEY, draw, nextArcs, TEAM_SHOTS_KEY, type Arcs } from '../render/canvas2d.js';
 import { frame, gridStep, moveWithVisibleShips, type Camera } from '../render/camera.js';
 import { el } from './dom.js';
 
@@ -190,6 +190,7 @@ export function start(): void {
     speedLabel.textContent = `${speed}x`;
   });
   let arcs: Arcs = 'none';
+  let teamShots = false;
   window.addEventListener('keydown', (event) => {
     if (event.key === ' ') {
       event.preventDefault();
@@ -201,6 +202,8 @@ export function start(): void {
       autoFrame = true;
     } else if (event.key.toLowerCase() === ARCS_KEY && !event.ctrlKey && !event.metaKey) {
       arcs = nextArcs(arcs);
+    } else if (event.key.toLowerCase() === TEAM_SHOTS_KEY && !event.ctrlKey && !event.metaKey) {
+      teamShots = !teamShots;
     }
   });
 
@@ -264,7 +267,7 @@ export function start(): void {
         view.impactGrowth[i]!,
       );
     }
-    draw(ctx, view, camera, canvas.width, canvas.height, flashes, arcs);
+    draw(ctx, view, camera, canvas.width, canvas.height, flashes, arcs, teamShots);
 
     if (sceneIndex === CUSTOM) panel.update(state as CustomBattle, view.time);
 
