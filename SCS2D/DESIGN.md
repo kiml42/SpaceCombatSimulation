@@ -38,7 +38,8 @@ inside any one file is not contiguous.
   given in advance and worked through as targets are put out of the fight. A Canvas2D
   viewer draws snapshots of all of it — ships, turret bearings, tracers and the wells
   bending them — with pause, single-step, time scaling, and zoom and pan over an
-  auto-framing camera. Rounds and beams are drawn as light, or with C in the colours of the side that
+  auto-framing camera. A ship clicked is picked out — ringed, a line to what it is fighting, the arcs drawn
+  for it alone, and framed with its target — until Escape. Rounds and beams are drawn as light, or with C in the colours of the side that
   fired them, which the evolution page starts with. **The camera carries itself along with what it is watching rather
   than easing after it**, weighting the ships in shot by radius so a fleet action is steered
   by the capital in it; it falls back from the ships still under control to the hulks and then
