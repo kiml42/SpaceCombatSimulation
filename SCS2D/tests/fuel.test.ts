@@ -11,6 +11,8 @@ import {
   compileBlueprint,
   joints,
   moduleStats,
+  parseBlueprint,
+  serialiseBlueprint,
   specificImpulse,
   type Blueprint,
   type ShipDesign,
@@ -124,6 +126,44 @@ describe('draining tanks', () => {
     const asked = tanker.modules[BIG]!.stats.fuel / 2;
     expect(fuel.drain(0, ENGINE, asked)).toBeCloseTo(asked, 6);
     expect(fuel.held(0, SMALL)).toBe(0);
+  });
+
+  it('empties the tanks with the highest drain priority first', () => {
+    const modules = TANKER.modules!.map((m, i) => (i === SMALL ? { ...m, drainPriority: 1 } : i === 0 ? { ...m, drainPriority: -1 } : m));
+    const design = compileBlueprint({ ...TANKER, modules });
+    const fuel = new Fuel();
+    fuel.register(0, design);
+    const small = design.modules[SMALL]!.stats.fuel;
+    const big = design.modules[BIG]!.stats.fuel;
+    // The small tank alone, until it is dry.
+    fuel.drain(0, ENGINE, small / 2);
+    expect(fuel.held(0, SMALL)).toBeCloseTo(small / 2, 6);
+    expect(fuel.held(0, BIG)).toBe(big);
+    // Then the big one, leaving the core's reserve until last.
+    fuel.drain(0, ENGINE, small / 2 + big / 2);
+    expect(fuel.held(0, SMALL)).toBe(0);
+    expect(fuel.held(0, BIG)).toBeCloseTo(big / 2, 6);
+    expect(fuel.held(0, 0)).toBe(design.modules[0]!.stats.fuel);
+  });
+
+  it('keeps a drain priority in the file format on what holds fuel, and nowhere else', () => {
+    const file = serialiseBlueprint({
+      name: 'Primed',
+      modules: [
+        { kind: 'core', x: 0, y: 0, length: 4, width: 4 },
+        { kind: 'tank', x: 6, y: 0, length: 8, width: 4, drainPriority: 2 },
+        { kind: 'structure', x: -3, y: 0, length: 2, width: 4, drainPriority: 2 },
+      ],
+    }) as { modules: Record<string, unknown>[] };
+    expect(file.modules[1]!['drainPriority']).toBe(2);
+    expect(file.modules[2]!['drainPriority']).toBeUndefined();
+    const back = parseBlueprint(JSON.parse(JSON.stringify(file)));
+    expect((back.modules[1] as { drainPriority?: number }).drainPriority).toBe(2);
+  });
+
+  it('refuses a drain priority that is not a whole number', () => {
+    const modules = TANKER.modules!.map((m, i) => (i === SMALL ? { ...m, drainPriority: 0.5 } : m));
+    expect(blueprintProblem({ ...TANKER, modules })).toMatch(/drain priority/);
   });
 });
 
