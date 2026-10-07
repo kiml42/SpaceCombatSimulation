@@ -9,7 +9,7 @@ import {
   type ShipDesign,
 } from '../sim/index.js';
 import { Flashes } from '../render/flashes.js';
-import { ARCS_KEY, draw, nextArcs, teamColour, type Arcs } from '../render/canvas2d.js';
+import { ARCS_KEY, draw, nextArcs, TEAM_SHOTS_KEY, teamColour, type Arcs } from '../render/canvas2d.js';
 import { shipColours } from '../render/teams.js';
 import { drawChart, indexAt, xOf, type ChartLayout, type Series } from '../render/chart.js';
 import {
@@ -572,6 +572,9 @@ export function startEvolution(): void {
   const camera: Camera = { x: 0, y: 0, scale: 0.1 };
   let autoFrame = true;
   let arcs: Arcs = 'none';
+  // On here and off on the viewer: a run is watched to see who is doing what,
+  // a single battle as much to see it.
+  let teamShots = true;
   let framed = false;
   let lastSimTime = 0;
   let accumulator = 0;
@@ -1146,6 +1149,8 @@ export function startEvolution(): void {
       if (!skipButton.disabled) skipMatch();
     } else if (event.key.toLowerCase() === ARCS_KEY) {
       arcs = nextArcs(arcs);
+    } else if (event.key.toLowerCase() === TEAM_SHOTS_KEY) {
+      teamShots = !teamShots;
     }
   });
 
@@ -1226,7 +1231,7 @@ export function startEvolution(): void {
         shot.impactGrowth[i]!,
       );
     }
-    draw(ctx, shot, camera, view.width, view.height, flashes, arcs);
+    draw(ctx, shot, camera, view.width, view.height, flashes, arcs, teamShots);
   }
 
   // ---- the chart ---------------------------------------------------------
@@ -1916,6 +1921,19 @@ export function startEvolution(): void {
         tr.append(td);
       }
       tr.addEventListener('click', () => startReplay(record, rows));
+      matchesBody.append(tr);
+    }
+    // Padded to the most any generation has fought, so the panels under it
+    // stay put while a generation fills its list in.
+    let longest = matches.length;
+    for (const generation of run?.generations ?? []) longest = Math.max(longest, generation.matches.length);
+    for (let i = matches.length; i < longest; i++) {
+      const tr = document.createElement('tr');
+      tr.className = 'pad';
+      const td = document.createElement('td');
+      td.colSpan = 4;
+      td.textContent = '\u00a0';
+      tr.append(td);
       matchesBody.append(tr);
     }
 
