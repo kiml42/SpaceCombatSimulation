@@ -125,6 +125,7 @@ const SIDE_FIELDS = [
   'buildFittings',
   'buildTuning',
   'buildFighter',
+  'buildShape',
   'kindEngine',
   'kindStructure',
   'kindTank',
@@ -192,6 +193,7 @@ const FIELDS = [
   'buildFittings',
   'buildTuning',
   'buildFighter',
+  'buildShape',
   'kindEngine',
   'kindStructure',
   'kindTank',
@@ -616,6 +618,7 @@ export function startEvolution(): void {
     buildFittings: String(DEFAULT_BUILD_WEIGHTS.fittings),
     buildTuning: String(DEFAULT_BUILD_WEIGHTS.tuning),
     buildFighter: String(DEFAULT_BUILD_WEIGHTS.fighter),
+    buildShape: String(DEFAULT_BUILD_WEIGHTS.shape),
     kindEngine: String(DEFAULT_KINDS.engine),
     kindStructure: String(DEFAULT_KINDS.structure),
     kindTank: String(DEFAULT_KINDS.tank),
@@ -846,6 +849,7 @@ export function startEvolution(): void {
           fittings: Math.max(0, number(get('buildFittings'), DEFAULT_BUILD_WEIGHTS.fittings)),
           tuning: Math.max(0, number(get('buildTuning'), DEFAULT_BUILD_WEIGHTS.tuning)),
           fighter: Math.max(0, number(get('buildFighter'), DEFAULT_BUILD_WEIGHTS.fighter)),
+          shape: Math.max(0, number(get('buildShape'), DEFAULT_BUILD_WEIGHTS.shape)),
         },
         kinds: {
           engine: Math.max(0, number(get('kindEngine'), DEFAULT_KINDS.engine)),
@@ -948,6 +952,7 @@ export function startEvolution(): void {
     get('buildFittings').value = String(build.fittings);
     get('buildTuning').value = String(build.tuning);
     get('buildFighter').value = String(build.fighter);
+    get('buildShape').value = String(build.shape);
     get('kindEngine').value = String(kinds.engine);
     get('kindStructure').value = String(kinds.structure);
     get('kindTank').value = String(kinds.tank);
