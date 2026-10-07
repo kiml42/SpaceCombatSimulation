@@ -18,7 +18,10 @@ import {
   readsThick,
   readsFuse,
   readsSealing,
+  canShape,
   canThicken,
+  isTriangle,
+  shapeModule,
   fighterProblem,
   isThick,
   mountTraverse,
@@ -59,6 +62,7 @@ import {
   type InstancePose,
   instanceOf,
   moduleAt,
+  reshapePlacement,
   resizePlacement,
   renameAssembly,
   renameProblem,
@@ -94,6 +98,8 @@ import {
   handleAt,
   handlesFor,
   resizedTo,
+  vertexTo,
+  wedge,
   seamBetween,
   seamTo,
   type Handle,
@@ -303,6 +309,7 @@ export function startEditor(): void {
   const exportButton = el<HTMLButtonElement>('exportShip');
 
   const weaponInput = el<HTMLInputElement>('propWeapon');
+  const shapeInput = el<HTMLInputElement>('propShape');
   const thickInput = el<HTMLInputElement>('propThick');
   const thickTitle = thickInput.title;
   const kindSelect = el<HTMLSelectElement>('propKind');
@@ -809,6 +816,8 @@ export function startEditor(): void {
     // Only an engine has a plume to point.
     el<HTMLElement>('weaponRow').hidden = spec.kind !== 'engine';
     weaponInput.checked = spec.weapon === true;
+    el<HTMLElement>('shapeRow').hidden = !canShape(spec.kind);
+    shapeInput.checked = isTriangle(spec);
     el<HTMLElement>('thickRow').hidden = !readsThick(spec.kind);
     el<HTMLElement>('sealingRow').hidden = !readsSealing(spec.kind);
     // One no more than a deck across is as deep as it is wide either way.
@@ -1256,6 +1265,40 @@ export function startEditor(): void {
         else delete next.weapon;
         return next;
       }),
+    );
+  });
+
+  /**
+   * Box to triangle and back.
+   *
+   * A module made triangular starts as the wedge filling its own box — nose on
+   * the bow face, base across the stern — which is the shape a packing of
+   * rectangles cannot draw and the one anybody reaching for this wanted. Every
+   * other triangle is a corner or two away from it, and the corners are what
+   * the drag is for.
+   *
+   * Squaring one off gives back the box its corners fitted inside, in the place
+   * that box was, so the material does not jump.
+   */
+  shapeInput.addEventListener('change', () => {
+    const origin = doc.selectedOrigin();
+    const spec = doc.view.modules[doc.selectedLoose()[0] ?? -1];
+    if (origin === null || spec === undefined) return;
+    const shaped = shapeInput.checked
+      ? shapeModule(spec, wedge(spec))
+      : shapeModule(spec, null);
+    if (shaped === null) {
+      shapeInput.checked = isTriangle(spec);
+      return;
+    }
+    change(
+      reshapePlacement(
+        doc.blueprint,
+        origin,
+        shaped.vertices ?? null,
+        shaped.x - spec.x,
+        shaped.y - spec.y,
+      ),
     );
   });
 
@@ -1719,12 +1762,13 @@ export function startEditor(): void {
       }
     | {
         /**
-         * A corner or edge is dragged to size the module, the knob to turn it,
+         * A corner or edge is dragged to size the module, one of a shaped
+         * module's own corners to move that corner alone, the knob to turn it,
          * the split to share its length between block and bell or barrel.
          */
-        kind: 'size' | 'rotate' | 'split';
+        kind: 'size' | 'vertex' | 'rotate' | 'split';
         from: Blueprint;
-        /** The handle grabbed, which says which faces move. */
+        /** The handle grabbed, which says which faces, or which corner, move. */
         handle: Handle;
         /**
          * The module as it was drawn when the handle was grabbed.
@@ -1805,6 +1849,21 @@ export function startEditor(): void {
         const nozzle = shareTo(drag.spec, world.x, world.y, event.altKey ? 0 : snapMetres());
         next = updatePlacement(drag.from, path, (p) => ({ ...p, nozzle }));
       }
+    } else if (drag.kind === 'vertex') {
+      // One corner to wherever the pointer is, the other two left alone. No
+      // neighbour is pushed: a corner moves two edges at once and neither of
+      // them squarely, so there is no face to carry one by.
+      const moved = vertexTo(
+        drag.spec,
+        drag.handle.vertex ?? -1,
+        world.x,
+        world.y,
+        event.altKey ? 0 : snapMetres(),
+      );
+      // A corner dragged onto the line between the other two is no module at
+      // all, so the drag simply stops there rather than refusing the shape.
+      if (moved === null) return;
+      next = reshapePlacement(drag.from, origin, moved.vertices, moved.dx, moved.dy);
     } else if (drag.kind === 'size') {
       const step = event.altKey ? 0 : snapMetres();
       // Shift sizes about the middle, keeping it where it was.
@@ -1863,7 +1922,14 @@ export function startEditor(): void {
     if (grabbed >= 0 && spec !== undefined) {
       gesture = false;
       drag = {
-        kind: handles[grabbed]!.kind === 'rotate' ? 'rotate' : handles[grabbed]!.kind === 'split' ? 'split' : 'size',
+        kind:
+          handles[grabbed]!.kind === 'rotate'
+            ? 'rotate'
+            : handles[grabbed]!.kind === 'split'
+              ? 'split'
+              : handles[grabbed]!.kind === 'vertex'
+                ? 'vertex'
+                : 'size',
         from: doc.blueprint,
         handle: handles[grabbed]!,
         spec,

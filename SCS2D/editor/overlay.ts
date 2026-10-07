@@ -1,4 +1,4 @@
-import { math, moduleCentre, type ModuleSpec, type ShipDesign } from '../sim/index.js';
+import { math, moduleCentre, triangleOf, type ModuleSpec, type ShipDesign } from '../sim/index.js';
 import { describeStep, snapStep, type Camera } from '../render/camera.js';
 import { headingCost, type Envelopes } from './stats.js';
 import type { AssemblyOutline } from './document.js';
@@ -174,7 +174,8 @@ function drawFaults(ctx: CanvasRenderingContext2D, view: OverlayView): void {
     ctx.translate(mid.x, mid.y);
     ctx.rotate(spec.angle ?? 0);
     ctx.fillStyle = FAULT_FILL;
-    ctx.fillRect(-spec.length / 2, -spec.width / 2, spec.length, spec.width);
+    outline(ctx, spec);
+    ctx.fill();
     ctx.restore();
   }
 }
@@ -199,12 +200,29 @@ function drawSelection(ctx: CanvasRenderingContext2D, view: OverlayView, camera:
     ctx.strokeStyle = i === 0 ? SELECTION : SELECTION_LINKED;
     ctx.lineWidth = lineWidth;
     if (i > 0) ctx.setLineDash([lineWidth * 4, lineWidth * 3]);
-    ctx.strokeRect(-spec.length / 2, -spec.width / 2, spec.length, spec.width);
+    outline(ctx, spec);
+    ctx.stroke();
     ctx.setLineDash([]);
     ctx.restore();
   }
 
   drawAssemblies(ctx, view, lineWidth, GROUP_BOX_MARGIN_PX / camera.scale);
+}
+
+/**
+ * A path round the module, in its own frame: the box it declares, or the
+ * corners it is drawn by. Left on the context to be filled or stroked.
+ */
+export function outline(ctx: CanvasRenderingContext2D, spec: ModuleSpec): void {
+  const triangle = triangleOf(spec);
+  ctx.beginPath();
+  if (triangle === null) {
+    ctx.rect(-spec.length / 2, -spec.width / 2, spec.length, spec.width);
+    return;
+  }
+  ctx.moveTo(triangle[0]!, triangle[1]!);
+  for (let i = 2; i < triangle.length; i += 2) ctx.lineTo(triangle[i]!, triangle[i + 1]!);
+  ctx.closePath();
 }
 
 /**
@@ -295,13 +313,15 @@ function drawAssemblies(
       const s = Math.sin(angle);
       const halfL = spec.length / 2;
       const halfW = spec.width / 2;
+      const triangle = triangleOf(spec);
       const mid = moduleCentre(spec);
-      for (const [ox, oy] of [
-        [halfL, halfW],
-        [halfL, -halfW],
-        [-halfL, halfW],
-        [-halfL, -halfW],
-      ] as const) {
+      const points: (readonly [number, number])[] = [];
+      if (triangle === null) {
+        points.push([halfL, halfW], [halfL, -halfW], [-halfL, halfW], [-halfL, -halfW]);
+      } else {
+        for (let v = 0; v < triangle.length; v += 2) points.push([triangle[v]!, triangle[v + 1]!]);
+      }
+      for (const [ox, oy] of points) {
         const x = mid.x + ox * c - oy * s;
         const y = mid.y + ox * s + oy * c;
         if (x < minX) minX = x;

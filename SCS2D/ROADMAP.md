@@ -370,6 +370,15 @@ The remaining pickers and the order weight should follow the shape already there
 
 Deliberately unresolved; decide when they block something.
 
+- **Whether a lineage can breed a shape.** Structure and tanks may be triangles, and nothing in evolution
+  can make one, move a corner, or square one off: a founder's wedges are inherited exactly and every
+  structural operator steps over them, because each one is stated as a face — a size changes by moving one,
+  a neighbour is carried by one, a new module is berthed along one — and a triangle has none. Giving the
+  operators corners is a different shape of mutation rather than a missing case: moving one corner changes
+  two edges at once and neither squarely, so what was welded along them comes apart, which is the thing
+  face-moving was designed to avoid. Worth deciding once an evolved ship is being judged on its hull form;
+  until then a shape is something an author draws and a lineage keeps.
+
 - **Whether the editor needs a test flight of its own.** A throwaway sim inside the editor, flying the ship
   being edited without leaving the page. The Battle link already takes that ship into a custom battle, which
   is a good enough way into testing it; what an in-editor sim would add is a faster loop, and that is worth

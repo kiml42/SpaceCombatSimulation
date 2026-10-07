@@ -151,9 +151,13 @@ function tidy(value: number): number {
  * editor's number boxes, a refit into a kind that has to be a box. They are
  * *derived* rather than authored, and no law that cares where the matter
  * actually is may read them: the box is not centred on the module's position,
- * since a triangle's centroid is not the middle of the box round it.
+ * since a triangle's centroid is not the middle of the box round it. Its
+ * middle is reported with it, in the module's own frame, which is what squaring
+ * a triangle off again has to move the module by.
  */
-export function triangleBounds(vertices: readonly number[]): { length: number; width: number } {
+export function triangleBounds(
+  vertices: readonly number[],
+): { length: number; width: number; x: number; y: number } {
   let loX = Infinity;
   let hiX = -Infinity;
   let loY = Infinity;
@@ -164,7 +168,12 @@ export function triangleBounds(vertices: readonly number[]): { length: number; w
     loY = min(loY, vertices[i + 1]!);
     hiY = max(hiY, vertices[i + 1]!);
   }
-  return { length: tidy(hiX - loX), width: tidy(hiY - loY) };
+  return {
+    length: tidy(hiX - loX),
+    width: tidy(hiY - loY),
+    x: tidy((loX + hiX) * 0.5),
+    y: tidy((loY + hiY) * 0.5),
+  };
 }
 
 /**

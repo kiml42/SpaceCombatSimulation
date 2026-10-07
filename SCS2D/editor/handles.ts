@@ -9,7 +9,9 @@ import {
   hullMountGeometry,
   MAX_BARREL_CALIBRES,
   moduleCentre,
+  normalizeShape,
   readsNozzle,
+  triangleOf,
   moduleRadius,
   radiansToDegrees,
   type ModuleSpec,
@@ -38,12 +40,13 @@ const { atan2, cos, sin, max, round, sqrt, HALF_PI } = math;
 /** Where a handle sits, in the blueprint's own frame. */
 export interface Handle {
   /**
-   * A corner or edge, which sizes the module; the knob beyond the bow, which
+   * A corner or edge, which sizes the module; one of a shaped module's own
+   * corners, which moves that corner alone; the knob beyond the bow, which
    * turns it; the seam between two selected modules, which moves the face
    * they share; or the split between an engine's machinery and its bell, or a
    * hull weapon's block and its barrel, which sets how much is which.
    */
-  kind: 'size' | 'rotate' | 'seam' | 'split';
+  kind: 'size' | 'vertex' | 'rotate' | 'seam' | 'split';
   x: number;
   y: number;
   /**
@@ -52,6 +55,8 @@ export interface Handle {
    */
   along: -1 | 0 | 1;
   across: -1 | 0 | 1;
+  /** Which corner a vertex handle moves, as an index into `ModuleSpec.vertices`. */
+  vertex?: number;
   /** Which way a seam runs, radians, so it can be drawn along it. */
   angle?: number;
   /** Where a knob's arm starts, when that is not the selected module's middle. */
@@ -129,6 +134,26 @@ export function handlesFor(spec: ModuleSpec, scale: number): Handle[] {
   const hl = spec.length / 2;
   const hw = spec.width / 2;
   const mid = moduleCentre(spec);
+  const triangle = triangleOf(spec);
+  if (triangle !== null) {
+    // A shaped module has no faces to size it by: each corner is grabbed on
+    // its own, and the other two stay exactly where they are. The knob is
+    // still beyond the bow, since a triangle faces a way like anything else.
+    const corners: Handle[] = [];
+    for (let i = 0; i < triangle.length; i += 2) {
+      corners.push({
+        kind: 'vertex',
+        x: mid.x + triangle[i]! * c - triangle[i + 1]! * s,
+        y: mid.y + triangle[i]! * s + triangle[i + 1]! * c,
+        along: 0,
+        across: 0,
+        vertex: i / 2,
+      });
+    }
+    const reach = moduleRadius(spec) + ROTATE_ARM_PX / scale;
+    corners.push({ kind: 'rotate', x: mid.x + reach * c, y: mid.y + reach * s, along: 0, across: 0 });
+    return corners;
+  }
   const size = (along: Handle['along'], across: Handle['across']): Handle => ({
     kind: 'size',
     x: mid.x + along * hl * c - across * hw * s,
@@ -308,6 +333,67 @@ export function resizedTo(
     width: tidy(across.size),
     dx: tidy(centreX - offset.x - spec.x),
     dy: tidy(centreY - offset.y - spec.y),
+  };
+}
+
+/**
+ * The triangle a module takes when it is first shaped: the wedge filling its
+ * own box, nose on the bow face and base across the stern.
+ *
+ * In the module's own frame and about the middle of its box, which is where
+ * the box it replaces was — `shapeModule` re-centres it on its own centroid
+ * and moves the module to match, so the wedge stays where the box was drawn.
+ *
+ * The one shape worth starting from: it is what a hull of rectangles cannot
+ * draw and what anybody reaching for a triangle wanted, and every other
+ * triangle is a corner or two away from it.
+ */
+export function wedge(spec: ModuleSpec): number[] {
+  const hl = spec.length / 2;
+  const hw = spec.width / 2;
+  return [hl, 0, -hl, hw, -hl, -hw];
+}
+
+/**
+ * The corners a shaped module takes when one of them is dragged to a point,
+ * and how far its position moves so the other two stay where they were.
+ *
+ * In the module's own frame, like the corners themselves, so every copy of a
+ * shared part is reshaped the same way within its own frame and a mirrored
+ * pair stays mirrored. The dragged corner snaps in the layout's frame rather
+ * than the module's, so a corner put on the grid lands on it whatever the
+ * module is turned to.
+ *
+ * Null when the three corners would no longer enclose anything: a corner
+ * dragged onto the line between the other two is not a smaller module but no
+ * module at all, and the drag simply stops there.
+ */
+export function vertexTo(
+  spec: ModuleSpec,
+  index: number,
+  x: number,
+  y: number,
+  step: number,
+): { vertices: number[]; dx: number; dy: number } | null {
+  const triangle = triangleOf(spec);
+  if (triangle === null || index < 0 || index * 2 >= triangle.length) return null;
+  const angle = spec.angle ?? 0;
+  const c = cos(angle);
+  const s = sin(angle);
+  const mid = moduleCentre(spec);
+  const px = snap(x, step) - mid.x;
+  const py = snap(y, step) - mid.y;
+  const moved = triangle.slice();
+  moved[index * 2] = px * c + py * s;
+  moved[index * 2 + 1] = -px * s + py * c;
+
+  const shape = normalizeShape(moved);
+  if (shape === null) return null;
+  // The re-centring is in the module's own frame; a move is in the layout's.
+  return {
+    vertices: shape.vertices,
+    dx: tidy(shape.dx * c - shape.dy * s),
+    dy: tidy(shape.dx * s + shape.dy * c),
   };
 }
 

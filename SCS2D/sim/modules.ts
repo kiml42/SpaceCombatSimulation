@@ -1274,7 +1274,20 @@ export function grownOutline(spec: ModuleSpec, margin: number, out: number[]): n
 export function shapeModule(spec: ModuleSpec, vertices: readonly number[] | null): ModuleSpec | null {
   if (vertices === null) {
     const squared = { ...spec };
+    const triangle = triangleOf(spec);
     delete squared.vertices;
+    if (triangle === null) return squared;
+    // The box the corners fitted inside, left where that box was. A triangle's
+    // centroid is not the middle of that box, so leaving the position alone
+    // would slide the module as it squared off.
+    const bounds = triangleBounds(triangle);
+    const angle = spec.angle ?? 0;
+    const c = cos(angle);
+    const s = sin(angle);
+    squared.length = bounds.length;
+    squared.width = bounds.width;
+    squared.x = tidy(spec.x + bounds.x * c - bounds.y * s);
+    squared.y = tidy(spec.y + bounds.x * s + bounds.y * c);
     return squared;
   }
   if (!canShape(spec.kind)) return null;

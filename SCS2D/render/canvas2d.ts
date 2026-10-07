@@ -15,6 +15,8 @@ import {
   type GunStats,
   type ShipView,
   type Snapshot,
+  insetTriangle,
+  triangleOf,
 } from '../sim/index.js';
 import { gridStep, type Camera } from './camera.js';
 import { NEUTRAL, shipColours } from './teams.js';
@@ -324,13 +326,48 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
       const mount = hullMountGeometry(spec);
       ctx.fillRect(-halfLength, -halfWidth, mount.blockLength, spec.width);
     } else {
-      ctx.fillRect(-halfLength, -halfWidth, spec.length, spec.width);
+      const triangle = triangleOf(spec);
+      if (triangle !== null) {
+        // The corners as they are authored, which is what the simulation
+        // weighs, shoots at and welds — the module's own frame is already the
+        // one they are written in.
+        ctx.beginPath();
+        ctx.moveTo(triangle[0]!, triangle[1]!);
+        for (let v = 2; v < triangle.length; v += 2) ctx.lineTo(triangle[v]!, triangle[v + 1]!);
+        ctx.closePath();
+        ctx.fill();
+      } else {
+        ctx.fillRect(-halfLength, -halfWidth, spec.length, spec.width);
+      }
       if (spec.kind === 'tank' && integrity > 0) {
         // What is left in it, filling from the aft end inside the walls.
         const inset = min(spec.length, spec.width) * TANK_INSET;
         const level = (spec.length - 2 * inset) * (ship.fuel?.[i] ?? 1);
         ctx.fillStyle = colours.pivot;
-        ctx.fillRect(-halfLength + inset, -halfWidth + inset, level, spec.width - 2 * inset);
+        if (triangle !== null) {
+          // The same band of the tank, kept inside the shape rather than drawn
+          // as the box the corners fit in. Measured from the aftmost corner,
+          // so a triangular tank empties the way a rectangular one does.
+          const lining = insetTriangle(triangle, inset);
+          if (lining !== null) {
+            let aft = Infinity;
+            let fore = -Infinity;
+            for (let v = 0; v < lining.length; v += 2) {
+              aft = min(aft, lining[v]!);
+              fore = max(fore, lining[v]!);
+            }
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(lining[0]!, lining[1]!);
+            for (let v = 2; v < lining.length; v += 2) ctx.lineTo(lining[v]!, lining[v + 1]!);
+            ctx.closePath();
+            ctx.clip();
+            ctx.fillRect(aft, -halfWidth, (fore - aft) * (ship.fuel?.[i] ?? 1), spec.width);
+            ctx.restore();
+          }
+        } else {
+          ctx.fillRect(-halfLength + inset, -halfWidth + inset, level, spec.width - 2 * inset);
+        }
       }
     }
     ctx.restore();

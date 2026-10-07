@@ -987,6 +987,19 @@ function place(
     const own = placement.angle ?? 0;
     const angle = foldAngle(rotation + (mirrored ? -own : own));
     if (angle !== 0 || placement.angle !== undefined) spec.angle = angle;
+    if (placement.vertices !== undefined) {
+      // A mirrored copy's corners are reflected across its own frame's x-axis,
+      // exactly as its facing is: a wing's raked prow has to rake the other way
+      // on the far wing. Reflecting reverses the winding, so the last two are
+      // swapped back to keep every outline anticlockwise.
+      spec.vertices = mirrored
+        ? [
+            placement.vertices[0]!, -placement.vertices[1]!,
+            placement.vertices[4]!, -placement.vertices[5]!,
+            placement.vertices[2]!, -placement.vertices[3]!,
+          ]
+        : placement.vertices;
+    }
     if (placement.reinforcement !== undefined) spec.reinforcement = placement.reinforcement;
     if (placement.barrels !== undefined) spec.barrels = placement.barrels;
     if (placement.nozzle !== undefined) spec.nozzle = placement.nozzle;
