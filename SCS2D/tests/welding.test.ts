@@ -14,7 +14,7 @@ import {
 import { makeBattle } from '../scenarios/battle.js';
 import { hooked as hookedScenario } from '../scenarios/hooked.js';
 import { capture, Snapshot } from '../sim/snapshot.js';
-import { CORVETTE, DINKY } from '../scenarios/blueprints.js';
+import { CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
 import type { World } from '../sim/world.js';
 
 /**
@@ -302,9 +302,141 @@ describe('welding on a slow contact', () => {
       if (design.turrets[t]!.module >= own) expect(ships.isTurretDisabled(run.a, t)).toBe(true);
     });
   });
+
+  it('holds fire on the step a weld remakes the mounts, rather than firing wherever they point', () => {
+    // Two allies hooking stern to stern with an enemy off their beam, their
+    // guns already trained on it. The weld lands between aiming and firing.
+    const gunship = compileBlueprint(GUNSHIP);
+    const tail = Math.min(...corvette.modules.map((m) => m.x - m.spec.length / 2));
+    const stern = corvette.modules.findIndex((m) => m.x - m.spec.length / 2 === tail);
+    const run = makeBattle({ seed: 1, projectiles: 256, beams: 64 }, (ships, world) => {
+      const gap = -2 * tail + 0.5;
+      for (const [x, angle, vx] of [[-gap / 2, Math.PI, 0.5], [gap / 2, 0, -0.5]] as const) {
+        const ship = ships.spawn(world, { design: corvette, x, y: 0, angle, vx });
+        wear(ships, world, ship, stern, RAGGED_INTEGRITY * 0.5);
+      }
+      ships.spawn(world, { design: gunship, x: 0, y: 1500, team: 1 });
+    });
+    let fired = -1;
+    for (let s = 0; s < 600 && run.totalWelded === 0; s++) {
+      const before = run.totalProjectilesFired;
+      run.step();
+      fired = run.totalProjectilesFired - before;
+    }
+    expect(run.totalWelded).toBe(1);
+    expect(fired).toBe(0);
+  });
+});
+
+describe('mounts remade by a weld', () => {
+  it('keep pointing and slewing where they were in the world, on either hull', () => {
+    // Stern to stern, so the two hulls face opposite ways: a mount carried
+    // into the other's frame without turning would point half a circle off.
+    const gunship = compileBlueprint(GUNSHIP);
+    const tail = Math.min(...corvette.modules.map((m) => m.x - m.spec.length / 2));
+    const stern = corvette.modules.findIndex((m) => m.x - m.spec.length / 2 === tail);
+    const pair: number[] = [];
+    const run = makeBattle({ seed: 1, projectiles: 256, beams: 64 }, (ships, world) => {
+      const gap = -2 * tail + 0.5;
+      for (const [x, angle, vx] of [[-gap / 2, Math.PI, 0.5], [gap / 2, 0, -0.5]] as const) {
+        const ship = ships.spawn(world, { design: corvette, x, y: 0, angle, vx });
+        wear(ships, world, ship, stern, RAGGED_INTEGRITY * 0.5);
+        pair.push(ship);
+      }
+      ships.spawn(world, { design: gunship, x: 0, y: 1500, team: 1 });
+    });
+    const { ships, world } = run;
+    const turrets = ships.turrets;
+    // Each mount's bearing and commanded bearing in the world, by ship and mount.
+    const inWorld = (ship: number): { bearing: number; commanded: number }[] => {
+      const angle = world.bodies.angle[world.bodies.indexOf(ships.body(ship))]!;
+      return ships.design(ship).turrets.map((_, t) => {
+        const ti = ships.turretIndexOf(ship, t);
+        return { bearing: angle + turrets.bearing[ti]!, commanded: angle + turrets.commanded[ti]! };
+      });
+    };
+    let before = pair.map(inWorld);
+    for (let s = 0; s < 600 && run.totalWelded === 0; s++) {
+      before = pair.map(inWorld);
+      run.step();
+    }
+    expect(run.totalWelded).toBe(1);
+
+    const kept = pair.findIndex((ship) => ships.isAlive(ship) && ships.design(ship).modules.length > corvette.modules.length);
+    expect(kept).toBeGreaterThanOrEqual(0);
+    const n = corvette.modules.length;
+    const after = inWorld(pair[kept]!);
+    const off = (a: number, b: number): number => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
+    ships.design(pair[kept]!).turrets.forEach((mount, t) => {
+      const from = mount.module < n ? kept : 1 - kept;
+      const k = corvette.turrets.findIndex((m) => m.module === mount.module % n);
+      // Within a step's slew, rather than reset to rest or half a circle round.
+      expect.soft(off(after[t]!.bearing, before[from]![k]!.bearing)).toBeLessThan(0.05);
+      expect.soft(off(after[t]!.commanded, before[from]![k]!.commanded)).toBeLessThan(0.05);
+    });
+  });
+});
+
+describe('a mount that breaks off', () => {
+  it('keeps pointing where it was and brakes to a stop, rather than snapping to rest', () => {
+    const gunship = compileBlueprint(GUNSHIP);
+    let ship = -1;
+    const run = makeBattle({ seed: 1, projectiles: 64, beams: 16 }, (ships, world) => {
+      ship = ships.spawn(world, { design: gunship, x: 0, y: 0 });
+    });
+    const { ships, world } = run;
+    // A broadside mount trained well off its rest bearing, and still slewing.
+    const t = gunship.turrets.findIndex((m) => Math.abs(m.mount.restBearing ?? 0) > 1);
+    const module = gunship.turrets[t]!.module;
+    const ti = ships.turretIndexOf(ship, t);
+    const rest = ships.turrets.restBearing[ti]!;
+    ships.turrets.bearing[ti] = rest + 1.2;
+    ships.turrets.rate[ti] = 0.4;
+    const angle = world.bodies.angle[world.bodies.indexOf(ships.body(ship))]!;
+
+    const detach = (ships as unknown as {
+      detach(world: unknown, i: number, design: unknown, keep: readonly number[]): boolean;
+    }).detach.bind(ships);
+    expect(detach(world, ship, gunship, [module])).toBe(true);
+    let piece = -1;
+    for (let i = 0; i < ships.highWater; i++) if (ships.isAlive(i) && i !== ship) piece = i;
+    const pi = ships.turretIndexOf(piece, 0);
+    const pieceAngle = () => world.bodies.angle[world.bodies.indexOf(ships.body(piece))]!;
+    expect(pieceAngle() + ships.turrets.bearing[pi]!).toBeCloseTo(angle + rest + 1.2, 9);
+    expect(ships.turrets.rate[pi]).toBe(0.4);
+
+    // Nobody flies it, so it brakes where it points instead of heading home.
+    for (let s = 0; s < 120; s++) run.step();
+    expect(ships.turrets.rate[pi]).toBeCloseTo(0, 6);
+    // A little further on, for the braking, and nowhere near rest.
+    const travelled = ships.turrets.bearing[pi]! - (rest + 1.2);
+    expect(travelled).toBeGreaterThan(0);
+    expect(travelled).toBeLessThan(0.5);
+  });
 });
 
 describe('enemies hooked together', () => {
+  it('both take the new design when wreckage hooks on to them', () => {
+    // The battle page's seed, on which a piece of wreckage welds onto the pair
+    // about twenty seconds in. A ship left on the old design is drawn, aimed
+    // and fired from a layout its body no longer has.
+    const run = hookedScenario(20260905);
+    const { ships, world } = run;
+    for (let s = 0; s < 1500; s++) {
+      run.step();
+      const owners = new Map<number, number>();
+      for (let i = 0; i < ships.highWater; i++) {
+        if (!ships.isAlive(i)) continue;
+        const b = world.bodies.indexOf(ships.body(i));
+        const first = owners.get(b);
+        if (first === undefined) owners.set(b, i);
+        else expect(ships.design(i)).toBe(ships.design(first));
+      }
+    }
+    // The pair's own weld, and at least one more.
+    expect(run.totalWelded).toBeGreaterThan(1);
+  });
+
   it('shoot each other across the body they share', () => {
     // A core with a turret ahead of it and a plate beside it, and two of them
     // pressed plate to plate: each turret has a clear view of the other.

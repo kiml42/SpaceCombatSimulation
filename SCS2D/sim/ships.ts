@@ -3104,10 +3104,13 @@ export class Ships {
     this.shipByBody[bo] = -1;
     this.pilots[bo] = null;
     this.sides[bo] = null;
+    // Everyone already aboard takes the new design, wreckage hooked on or not:
+    // a ship left on the old one would be drawn, aimed and fired from a layout
+    // the body no longer has.
+    for (const r of staying) if (r !== keep) this.board(r, keep);
     if (flown) {
       const old = this.turretIndex[other]!;
       for (let t = 0; t < old.length; t++) this.turrets.remove(old[t]!);
-      for (const r of staying) if (r !== keep) this.board(r, keep);
       for (const r of moving) this.board(r, keep);
     } else {
       this.remove(other);
@@ -3625,6 +3628,16 @@ export class Ships {
       this.derelict[j] = 1;
     }
 
+    // Its mounts keep pointing and slewing as they were rather than starting
+    // at rest; with nothing to fly it, a fail-safe then brakes them where
+    // they point.
+    const from = this.turretIndex[i]!;
+    const to = this.turretIndex[j]!;
+    chunk.turrets.forEach((mount, t) => {
+      const before = design.turrets.findIndex((m) => m.module === keep[mount.module]);
+      if (before >= 0) this.turrets.carry(from[before]!, to[t]!, 0);
+    });
+
     const chunkBody = bodies.indexOf(this.bodyIds[j]!);
     this.damage.register(
       chunkBody,
@@ -3744,12 +3757,16 @@ export class Ships {
         if (was.turrets[k]!.module === module) before = k;
       }
       if (before < 0) continue;
-      this.turrets.bearing[index] = this.turrets.bearing[this.turretIndex[ship]![before]!]!;
+      // Pointing and slewing as it was, turned into this hull's frame: a ship
+      // merged in was flying a heading of its own.
+      const turn = bodies.angle[bodyOf(ship)]! - bodies.angle[b]!;
+      this.turrets.carry(this.turretIndex[ship]![before]!, index, turn);
       cooldown[t] = this.cooldown[ship]![before]!;
       states[t] = this.turretStates[ship]![before]!;
       barrels[t] = this.nextBarrelToFire[ship]![before]!;
       targets[t] = this.turretTarget[ship]![before]!;
-      aiming[t] = this.turretAiming[ship]![before]!;
+      // Not what it was aiming at: a weld lands between aiming and firing, so
+      // it holds fire until the next `command` has aimed it from the new hull.
       aims[t] = this.turretAimModule[ship]![before]!;
       schedule[t] = this.turretRethinkAt[ship]![before]!;
     }

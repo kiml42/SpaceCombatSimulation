@@ -2,107 +2,121 @@
   "formatVersion": 1,
   "name": "TIE Fighter",
   "notes": "A fighter, and a fighter's doctrine: other fighters first, by preferring a target about the size of an X-Wing, and guns and engines rather than hull. What is left over is a capital with its guns stripped, which is more than a TIE could have done to it by shooting at the hull. The ball is the whole ship: a spine of cockpit down the middle, a gun let into the hull either side of it, an engine outboard of each gun with its bell out the back, and plating filling the rest out to a circle. Nothing is bolted on to be shot off.",
+  "fighter": true,
   "doctrine": {
     "targeting": {
+      "proximityWeight": 111.881,
       "preferredMass": 2.5,
-      "massWeight": 120
+      "massWeight": 120,
+      "closingWeight": 11.759,
+      "loyaltyWeight": 10.73,
+      "armedWeight": 53.402,
+      "mobileWeight": 9.987,
+      "facingWeight": 38.182,
+      "sightWeight": 69.624,
+      "escortWeight": 50
+    },
+    "approach": {
+      "standoffRadii": 61.681,
+      "escortRadii": 6.214,
+      "escort": 0.167,
+      "escortMinRadii": 1.5,
+      "tolerance": 0.188,
+      "approachSpeed": 61.24,
+      "accelerate": 0.862,
+      "brake": 1.019,
+      "ramRadii": 49.229,
+      "ramArmed": 0.435
     }
   },
   "assemblies": {
     "structure": {
       "modules": [
         {
+          "kind": "engine",
+          "x": 0.5,
+          "y": 0,
+          "angle": -180,
+          "length": 1.8,
+          "width": 0.5,
+          "nozzle": 0.333333
+        },
+        {
           "kind": "tank",
           "x": 0,
-          "y": 0,
-          "length": 1,
-          "width": 0.5
+          "y": 0.825,
+          "length": 0.7,
+          "width": 1.15,
+          "reinforcement": 1.11
         },
         {
-          "kind": "structure",
-          "x": 0,
-          "y": 2,
-          "length": 7.2,
-          "width": 0.2
-        },
-        {
-          "kind": "structure",
-          "x": 0,
-          "y": 0.8250000000000002,
-          "length": 0.5,
-          "width": 1.15
-        },
-        {
-          "kind": "structure",
+          "kind": "tank",
           "x": 0,
           "y": 1.65,
-          "length": 1,
-          "width": 0.5
+          "length": 2.8,
+          "width": 0.5,
+          "reinforcement": 1.07,
+          "sealing": 0.0034
         },
         {
-          "use": "engine",
-          "x": -3.6,
-          "y": 2
-        },
-        {
-          "use": "engine",
-          "x": 3.6,
-          "y": 2,
-          "angle": 180
-        },
-        {
-          "use": "engine",
-          "x": -3.4,
-          "y": 2.1,
-          "angle": -90
-        },
-        {
-          "use": "engine",
-          "x": 3.4,
-          "y": 2.1,
-          "angle": -90
-        },
-        {
-          "kind": "structure",
-          "x": 0.5,
-          "y": -0.5,
-          "length": 0.5,
-          "width": 0.5
+          "use": "engine2",
+          "x": -4.440892098500626e-16,
+          "y": 2.0500000000000003,
+          "mirror": true
         },
         {
           "kind": "engine",
-          "x": 0.25,
+          "x": 1.05,
           "y": -0.5,
           "angle": 180,
-          "length": 2,
+          "length": 3,
           "width": 0.5,
-          "nozzle": 0.3
+          "nozzle": 0.333333
         },
         {
           "kind": "hullGun",
-          "x": 0.2,
+          "x": 1.1,
           "y": -1,
           "angle": 0,
-          "length": 2.6,
+          "length": 4.4,
           "width": 0.5,
+          "reinforcement": 1.5,
           "barrels": 1,
-          "barrelCalibres": 7.8,
+          "barrelCalibres": 42,
           "traverse": 5,
           "targeting": {
-            "structureWeight": 0
+            "structureWeight": 0,
+            "closingWeight": 7.685
           }
+        },
+        {
+          "use": "engine2",
+          "x": -4.440892098500626e-16,
+          "y": 2.0500000000000003,
+          "angle": -180
         }
       ]
     },
-    "engine": {
+    "engine2": {
       "modules": [
         {
           "kind": "engine",
           "x": 0,
           "y": 0,
           "angle": 180,
+          "length": 3.8,
+          "width": 0.3,
+          "barrels": 1,
+          "nozzle": 0.039474
+        },
+        {
+          "kind": "engine",
+          "x": -3.5000000000000004,
+          "y": -0.1499999999999995,
+          "angle": 270,
           "length": 0.2,
           "width": 0.3,
+          "reinforcement": 1.34,
           "barrels": 1,
           "nozzle": 0.5
         }
@@ -114,8 +128,9 @@
       "kind": "core",
       "x": 0,
       "y": 0,
-      "length": 2.5,
+      "length": 1.3,
       "width": 0.5,
+      "sealing": 0.0028,
       "notes": "A spine down the middle of the ball rather than the whole of it. The pilot sits amidships as a TIE's does, and what fills the rest of the circle is the guns, the engines and the plating between them — so a hit on the ball is usually a hit on a weapon rather than on the pilot."
     },
     {
@@ -128,6 +143,24 @@
       "x": 0,
       "y": -1.5,
       "mirror": true
+    },
+    {
+      "kind": "tank",
+      "x": 0.975,
+      "y": 0,
+      "length": 0.65,
+      "width": 0.5,
+      "reinforcement": 1.5,
+      "sealing": 0.0024
+    },
+    {
+      "kind": "engine",
+      "x": -0.65,
+      "y": 0,
+      "angle": 180,
+      "length": 1.2,
+      "width": 0.5,
+      "reinforcement": 1.23
     }
   ]
 }

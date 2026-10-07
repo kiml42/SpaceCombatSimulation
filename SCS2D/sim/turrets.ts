@@ -373,6 +373,32 @@ export class Turrets {
     return i;
   }
 
+  /**
+   * Take over mount `from`'s motion and tracking, for a mount rebuilt in its
+   * place: where it points, how fast it is slewing and where to, so a rebuild
+   * is not a jerk back to rest. `turn` is how far the new hull's frame is
+   * turned from the old one's, radians, and is taken off every body-frame
+   * bearing so the barrel keeps its world bearing.
+   */
+  carry(from: number, to: number, turn: number): void {
+    this.bearing[to] = normalizeAngle(this.bearing[from]! + turn);
+    this.commanded[to] = normalizeAngle(this.commanded[from]! + turn);
+    this.wanted[to] = normalizeAngle(this.wanted[from]! + turn);
+    this.rate[to] = this.rate[from]!;
+    this.commandedRate[to] = this.commandedRate[from]!;
+    this.aimDx[to] = this.aimDx[from]!;
+    this.aimDy[to] = this.aimDy[from]!;
+    this.aimTime[to] = this.aimTime[from]!;
+    this.onTarget[to] = this.onTarget[from]!;
+    this.tolerance[to] = this.tolerance[from]!;
+    this.blocked[to] = this.blocked[from]!;
+    this.fireSlack[to] = this.fireSlack[from]!;
+    this.fireOffset[to] = this.fireOffset[from]!;
+    this.fireReach[to] = this.fireReach[from]!;
+    this.inReach[to] = this.inReach[from]!;
+    this.lit[to] = this.lit[from]!;
+  }
+
   remove(i: number): void {
     if (i < 0 || i >= this.highWater || this.alive[i] === 0) return;
     this.alive[i] = 0;
