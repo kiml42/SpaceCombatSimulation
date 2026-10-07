@@ -9,6 +9,7 @@ import {
   moduleStats,
   moduleThickness,
   isHullMount,
+  isWeaponMount,
   inWeaponsLayer,
   isThick,
   mountTraverse,
@@ -328,6 +329,8 @@ export interface DesignTurret {
    * ones. A hull weapon; never a turret.
    */
   readonly hullLayer: boolean;
+  /** Part of the main battery (`ModuleSpec.main`, resolved against the rest of the ship). */
+  readonly main: boolean;
 }
 
 export interface ShipDesign {
@@ -350,6 +353,14 @@ export interface ShipDesign {
    * over every engine it has.
    */
   readonly weaponEngines: readonly number[];
+  /** Those of `weaponEngines` in the main battery. */
+  readonly mainEngines: readonly number[];
+  /**
+   * Whether the design names its main battery. When it does not, every
+   * weapon is main. Kept through a break, so a piece left with only its point
+   * defence knows that is all it has.
+   */
+  readonly marksMain: boolean;
   /** Shared by every ship built to this design. */
   readonly engineLayout: EngineLayout;
   readonly turrets: readonly DesignTurret[];
@@ -363,7 +374,7 @@ export interface ShipDesign {
    */
   readonly cores: readonly number[];
   /**
-   * How far out this ship's guns are worth using, metres.
+   * How far out this ship's main guns are worth using, metres.
    *
    * Derived from the guns themselves rather than configured: a round is worth
    * firing while the lead it needs is still a guess worth making, which is a
@@ -1009,6 +1020,7 @@ function place(
     if (placement.fragments !== undefined) spec.fragments = placement.fragments;
     if (placement.burstSpeed !== undefined) spec.burstSpeed = placement.burstSpeed;
     if (placement.weapon !== undefined) spec.weapon = placement.weapon;
+    if (placement.main !== undefined) spec.main = placement.main;
     if (placement.thick !== undefined) spec.thick = placement.thick;
     if (placement.sealing !== undefined) spec.sealing = placement.sealing;
     if (placement.targeting !== undefined) spec.targeting = placement.targeting;
@@ -1584,7 +1596,7 @@ export function subDesign(design: ShipDesign, keep: readonly number[]): ShipDesi
     joins = { pieces: keep.map((module) => design.pieces![module]!), seams };
   }
   // A piece of a fighter is still small enough to be one.
-  return designFrom(design.name, specs, stats, layoutIndex, design.doctrine, joins, design.fighter);
+  return designFrom(design.name, specs, stats, layoutIndex, design.doctrine, joins, design.fighter, design.marksMain);
 }
 
 /**
@@ -1629,7 +1641,22 @@ export function weldDesigns(
     { a, b: b + n, width },
   ];
   // Two fighters welded are still small enough to be one.
-  return designFrom(first.name, specs, stats, layoutIndex, first.doctrine, { pieces, seams }, first.fighter && second.fighter);
+  return designFrom(
+    first.name,
+    specs,
+    stats,
+    layoutIndex,
+    first.doctrine,
+    { pieces, seams },
+    first.fighter && second.fighter,
+    first.marksMain || second.marksMain,
+  );
+}
+
+/** Marked as main, on a kind where that means something: a mount, or a weapon engine. */
+function marked(spec: ModuleSpec): boolean {
+  if (spec.main !== true) return false;
+  return isWeaponMount(spec.kind) || (spec.kind === 'engine' && spec.weapon === true);
 }
 
 /**
@@ -1646,6 +1673,7 @@ function designFrom(
   doctrine: Doctrine = DEFAULT_DOCTRINE,
   joins?: Joins,
   fighter = false,
+  marksMain = specs.some(marked),
 ): ShipDesign {
   const centres = specs.map(moduleCentre);
   let mass = 0;
@@ -1768,6 +1796,7 @@ function designFrom(
         reach: 0,
         targeting: resolveTargeting(spec.targeting, defaultTargeting(spec.kind)),
         hullLayer: true,
+        main: !marksMain || spec.main === true,
       });
     } else if ((spec.kind === 'turret' || spec.kind === 'beamTurret') && s.gun !== null) {
       const gun = s.gun;
@@ -1810,6 +1839,7 @@ function designFrom(
         reach: 0,
         targeting: resolveTargeting(spec.targeting, defaultTargeting(spec.kind)),
         hullLayer: false,
+        main: !marksMain || spec.main === true,
       });
     }
   }
@@ -1831,20 +1861,24 @@ function designFrom(
     turrets[t] = { ...mount, reach: expects(mount.targeting.preferredMass, mount) };
   }
 
+  // The main battery's alone, so a ship flies to where its big guns bite
+  // rather than to where its point defence reaches.
   let reach = 0;
   for (const turret of turrets) {
-    reach = max(reach, expects(doctrine.targeting.preferredMass, turret));
+    if (turret.main) reach = max(reach, expects(doctrine.targeting.preferredMass, turret));
   }
 
   const weaponEngines: number[] = [];
+  const mainEngines: number[] = [];
   for (let t = 0; t < engines.length; t++) {
     const engine = engines[t]!;
     if (engine.weapon !== true) continue;
     weaponEngines.push(t);
+    const spec = modules[engine.module ?? -1]?.spec;
+    if (spec === undefined || (marksMain && spec.main !== true)) continue;
+    mainEngines.push(t);
     // As far as the flame lands the share it fires for, so a torch ship's
     // doctrine closes to where its engine burns rather than to the skin.
-    const spec = modules[engine.module ?? -1]?.spec;
-    if (spec === undefined) continue;
     reach = max(reach, weaponPlumeReach(engineGeometry(spec), engine.maxThrust));
   }
 
@@ -1888,6 +1922,8 @@ function designFrom(
     centreOfMassY: comY,
     engines,
     weaponEngines,
+    mainEngines,
+    marksMain,
     engineLayout: new EngineLayout(engines),
     turrets,
     cores,

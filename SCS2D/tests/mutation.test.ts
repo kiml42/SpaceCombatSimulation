@@ -333,7 +333,7 @@ describe('mutation', () => {
         { kind: 'hullGun', x: 8, y: 0, angle: 0, length: 6, width: 4 },
       ],
     };
-    const rng = new Rng(31);
+    const rng = new Rng(33);
     const only = { engine: 1, structure: 0, tank: 0, turret: 0, beamTurret: 0, hullGun: 0, hullBeam: 0, core: 0 };
     let seen = 0;
     for (let i = 0; i < 400 && seen < 3; i++) {

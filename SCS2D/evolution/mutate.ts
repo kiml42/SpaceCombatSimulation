@@ -381,6 +381,7 @@ function knobWeight(knob: Knob, { doctrine, build }: MutationLimits): number {
     case 'fragments':
     case 'burstSpeed':
     case 'weapon':
+    case 'main':
       return build.tuning;
     case 'fighter':
       return build.fighter;
@@ -555,6 +556,7 @@ type Knob =
   | { readonly at: 'burstSpeed'; readonly site: ModuleSite }
   | { readonly at: 'gunnery'; readonly site: ModuleSite }
   | { readonly at: 'weapon'; readonly site: ModuleSite }
+  | { readonly at: 'main'; readonly site: ModuleSite }
   | { readonly at: 'thick'; readonly site: ModuleSite }
   | { readonly at: 'sealing'; readonly site: ModuleSite }
   | { readonly at: 'angle'; readonly site: ModuleSite }
@@ -625,7 +627,7 @@ function knobs(draft: Draft): Knob[] {
         // How much arc a weapon is built for, which on a hull mount is mass
         // as well as coverage — a fixed gun carries no training gear, and
         // whether that trade is worth taking is exactly what a run is for.
-        out.push({ at: 'traverse', site }, { at: 'gunnery', site });
+        out.push({ at: 'traverse', site }, { at: 'gunnery', site }, { at: 'main', site });
       }
       // What a gun fires: shells or solid shot, and for shells how they burst.
       if (readsFuse(placement.kind)) out.push({ at: 'fragments', site });
@@ -637,6 +639,8 @@ function knobs(draft: Draft): Knob[] {
         // An engine's outlets are counted by the same field a gun's barrels
         // are, so a cluster is something a line can find.
         out.push({ at: 'weapon', site }, { at: 'barrels', site }, { at: 'nozzle', site });
+        // Main means nothing on an engine until it is a weapon.
+        if (placement.weapon === true) out.push({ at: 'main', site });
       }
     }
   }
@@ -703,6 +707,8 @@ function renumber(knob: Knob, draft: Draft, rng: Rng, bounds: MutationLimits): s
       return recharge(knob.site, rng, bounds);
     case 'weapon':
       return rearm(knob.site);
+    case 'main':
+      return promote(knob.site);
     case 'thick':
       return thicken(knob.site);
     case 'sealing':
@@ -1013,6 +1019,17 @@ function rearm(site: ModuleSite): string {
   if (was) delete site.spec.weapon;
   else site.spec.weapon = true;
   return `${site.where} ${site.spec.kind}: ${was ? 'no longer' : 'now'} a weapon`;
+}
+
+/**
+ * Put a weapon in the main battery, or take it out: a flip, as `rearm` is.
+ * Marking the first one demotes every other weapon on the ship.
+ */
+function promote(site: ModuleSite): string {
+  const was = site.spec.main === true;
+  if (was) delete site.spec.main;
+  else site.spec.main = true;
+  return `${site.where} ${site.spec.kind}: ${was ? 'no longer' : 'now'} main`;
 }
 
 /**

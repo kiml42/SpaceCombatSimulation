@@ -398,6 +398,7 @@
           "fuse": 0.1,
           "fragments": 20,
           "burstSpeed": 400,
+          "main": true,
           "targeting": {
             "structureWeight": 0,
             "facingWeight": 100,

@@ -845,6 +845,16 @@ export interface ModuleSpec {
   weapon?: boolean;
 
   /**
+   * Whether this weapon is part of the ship's main battery: a gun, a beam, or
+   * an engine marked as a weapon.
+   *
+   * A ship that marks none counts every weapon as main. One that marks any
+   * counts only those: it flies to their reach and is armed while one of them
+   * works, so losing its point defence does not make it think itself harmless.
+   */
+  main?: boolean;
+
+  /**
    * Whether this module is free of the deck's depth (`moduleThickness`):
    * as deep as it is across, rather than held to `DECK_HEIGHT`. Nothing to a
    * module no more than a deck across, which is as deep as it is wide either
@@ -1766,6 +1776,11 @@ export function countsOutlets(kind: ModuleKind): boolean {
 /** Whether `weapon` means anything on this kind. Only an engine has a plume to point. */
 export function readsWeapon(kind: ModuleKind): boolean {
   return kind === 'engine';
+}
+
+/** Whether `main` means anything on this kind: a weapon mount, or an engine that may be one. */
+export function readsMain(kind: ModuleKind): boolean {
+  return isWeaponMount(kind) || kind === 'engine';
 }
 
 /** Whether `thick` means anything on this kind: everything but a turret, which is held to a deck. */
