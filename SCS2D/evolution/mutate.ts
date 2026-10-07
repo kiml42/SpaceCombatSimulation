@@ -427,6 +427,7 @@ function knobWeight(knob: Knob, { doctrine, build }: MutationLimits): number {
     case 'fragments':
     case 'burstSpeed':
     case 'weapon':
+    case 'main':
       return build.tuning;
     case 'fighter':
       return build.fighter;
@@ -601,6 +602,7 @@ type Knob =
   | { readonly at: 'burstSpeed'; readonly site: ModuleSite }
   | { readonly at: 'gunnery'; readonly site: ModuleSite }
   | { readonly at: 'weapon'; readonly site: ModuleSite }
+  | { readonly at: 'main'; readonly site: ModuleSite }
   | { readonly at: 'thick'; readonly site: ModuleSite }
   | { readonly at: 'sealing'; readonly site: ModuleSite }
   | { readonly at: 'drainPriority'; readonly site: ModuleSite }
@@ -673,7 +675,7 @@ function knobs(draft: Draft): Knob[] {
         // How much arc a weapon is built for, which on a hull mount is mass
         // as well as coverage — a fixed gun carries no training gear, and
         // whether that trade is worth taking is exactly what a run is for.
-        out.push({ at: 'traverse', site }, { at: 'gunnery', site });
+        out.push({ at: 'traverse', site }, { at: 'gunnery', site }, { at: 'main', site });
       }
       // What a gun fires: shells or solid shot, and for shells how they burst.
       if (readsFuse(placement.kind)) out.push({ at: 'fragments', site });
@@ -685,6 +687,8 @@ function knobs(draft: Draft): Knob[] {
         // An engine's outlets are counted by the same field a gun's barrels
         // are, so a cluster is something a line can find.
         out.push({ at: 'weapon', site }, { at: 'barrels', site }, { at: 'nozzle', site });
+        // Main means nothing on an engine until it is a weapon.
+        if (placement.weapon === true) out.push({ at: 'main', site });
       }
     }
   }
@@ -751,6 +755,8 @@ function renumber(knob: Knob, draft: Draft, rng: Rng, bounds: MutationLimits): s
       return recharge(knob.site, rng, bounds);
     case 'weapon':
       return rearm(knob.site);
+    case 'main':
+      return promote(knob.site);
     case 'thick':
       return thicken(knob.site);
     case 'sealing':
@@ -1071,6 +1077,16 @@ function rearm(site: ModuleSite): string {
   if (was) delete site.spec.weapon;
   else site.spec.weapon = true;
   return `${site.where} ${site.spec.kind}: ${was ? 'no longer' : 'now'} a weapon`;
+}
+
+/**
+ * Put a weapon in the main battery, or take it out: a flip, as `rearm` is.
+ */
+function promote(site: ModuleSite): string {
+  const was = site.spec.main !== false;
+  if (was) site.spec.main = false;
+  else delete site.spec.main;
+  return `${site.where} ${site.spec.kind}: ${was ? 'no longer' : 'now'} main`;
 }
 
 /**
@@ -1413,7 +1429,7 @@ export function intoInstanceFrame(spec: ModuleSpec, instance: AssemblyInstance):
   const dy = spec.y - instance.y;
   const local = { x: dx * c + dy * sn, y: -dx * sn + dy * c };
   const spun = (spec.angle ?? 0) - turn;
-  const out: ModuleSpec = { ...spec, x: local.x, y: flipped ? -local.y : local.y };
+  const out: ModuleSpec = { ...spec, x: framed(local.x), y: framed(flipped ? -local.y : local.y) };
   if (spec.angle !== undefined || spun !== 0) out.angle = flipped ? -spun : spun;
   return out;
 }
@@ -1428,12 +1444,20 @@ export function outOfInstanceFrame(spec: ModuleSpec, instance: AssemblyInstance)
   const own = flipped ? -(spec.angle ?? 0) : (spec.angle ?? 0);
   const out: ModuleSpec = {
     ...spec,
-    x: instance.x + spec.x * c - localY * sn,
-    y: instance.y + spec.x * sn + localY * c,
+    x: framed(instance.x + spec.x * c - localY * sn),
+    y: framed(instance.y + spec.x * sn + localY * c),
   };
   const angle = turn + own;
   if (spec.angle !== undefined || angle !== 0) out.angle = angle;
   return out;
+}
+
+/**
+ * A position worked out through a frame, rounded as the parser rounds a
+ * triangle's: nine places, so a file written from it reads back unchanged.
+ */
+function framed(value: number): number {
+  return tidy(value, 9);
 }
 
 /** A name no assembly in this layout has, and a person can read. */
