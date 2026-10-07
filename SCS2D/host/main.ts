@@ -16,6 +16,7 @@ import { torchRun } from '../scenarios/torchRun.js';
 import { hooked } from '../scenarios/hooked.js';
 import { customBattle, type CustomBattle } from '../scenarios/customBattle.js';
 import { customPanel } from './customPanel.js';
+import { linkedBattle } from '../scenarios/battleLink.js';
 import { handedFleet } from '../editor/handoff.js';
 import { ARCS_KEY, draw, nextArcs, type Arcs } from '../render/canvas2d.js';
 import { frame, gridStep, moveWithVisibleShips, type Camera } from '../render/camera.js';
@@ -299,7 +300,18 @@ export function start(): void {
   } catch (error) {
     window.alert(`Could not read the fleet handed over.\n\n${error instanceof Error ? error.message : error}`);
   }
-  if (window.location.hash !== '') history.replaceState(null, '', window.location.pathname);
+  // A shared link carries a whole battle: open on it, paused at its start.
+  const hash = window.location.hash;
+  void linkedBattle(hash)
+    .then((linked) => {
+      if (linked === null) return;
+      panel.use(linked, 'link');
+      openCustom();
+    })
+    .catch((error: unknown) => {
+      window.alert(`Could not read the battle in the link.\n\n${error instanceof Error ? error.message : error}`);
+    });
+  if (hash !== '') history.replaceState(null, '', window.location.pathname);
 
   window.requestAnimationFrame(tick);
 }
