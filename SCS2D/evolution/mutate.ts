@@ -1369,7 +1369,7 @@ export function intoInstanceFrame(spec: ModuleSpec, instance: AssemblyInstance):
   const dy = spec.y - instance.y;
   const local = { x: dx * c + dy * sn, y: -dx * sn + dy * c };
   const spun = (spec.angle ?? 0) - turn;
-  const out: ModuleSpec = { ...spec, x: local.x, y: flipped ? -local.y : local.y };
+  const out: ModuleSpec = { ...spec, x: framed(local.x), y: framed(flipped ? -local.y : local.y) };
   if (spec.angle !== undefined || spun !== 0) out.angle = flipped ? -spun : spun;
   return out;
 }
@@ -1384,12 +1384,20 @@ export function outOfInstanceFrame(spec: ModuleSpec, instance: AssemblyInstance)
   const own = flipped ? -(spec.angle ?? 0) : (spec.angle ?? 0);
   const out: ModuleSpec = {
     ...spec,
-    x: instance.x + spec.x * c - localY * sn,
-    y: instance.y + spec.x * sn + localY * c,
+    x: framed(instance.x + spec.x * c - localY * sn),
+    y: framed(instance.y + spec.x * sn + localY * c),
   };
   const angle = turn + own;
   if (spec.angle !== undefined || angle !== 0) out.angle = angle;
   return out;
+}
+
+/**
+ * A position worked out through a frame, rounded as the parser rounds a
+ * triangle's: nine places, so a file written from it reads back unchanged.
+ */
+function framed(value: number): number {
+  return tidy(value, 9);
 }
 
 /** A name no assembly in this layout has, and a person can read. */
