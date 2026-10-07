@@ -460,7 +460,8 @@ inside any one file is not contiguous.
   the weapons layer as well. A turret's rounds and beams meet only what is in the weapons layer, so they strip
   mounts and thick engines and never reach a core below deck; a hull weapon's meet everything. Each
   mount has a traverse — where its barrels may go, stopped by what the row of them would foul within a
-  barrel's length, as wide as the outer barrel — and, separately, a trigger mask: the bearings its own ship is downrange of, at any distance,
+  barrel's length, as wide as the outer barrel, and which it slews round the way it allows, however much
+  further that is than the short way — and, separately, a trigger mask: the bearings its own ship is downrange of, at any distance,
   where it may point but not fire. For a turret both count only what is in the weapons layer. The editor draws the mask
   as a warm wedge inside the sweep. A mount prefers a target it can fire at, but with none it tracks one
   on a masked bearing with its trigger held, so it is on target as the ship turns. A lit beam's drive stops at the edge of a masked sector rather than
