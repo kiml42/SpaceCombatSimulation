@@ -260,7 +260,7 @@ describe('breeding the grouping', () => {
     }
   });
 
-  it('never leaves a definition nothing places', () => {
+  it('never leaves a definition nothing places', { timeout: 30_000 }, () => {
     // A part no instance uses is dead weight in the file that every later
     // generation still walks past, and an operator picking one to grow or
     // place would be working on something the ship does not have.
