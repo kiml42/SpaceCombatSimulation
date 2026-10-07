@@ -24,30 +24,30 @@
       "modules": [
         {
           "kind": "structure",
-          "x": 466,
+          "x": 539.5,
           "y": 60,
-          "length": 240,
+          "length": 93,
           "width": 60
         },
         {
           "kind": "structure",
-          "x": 337,
+          "x": 429.5,
           "y": 120,
-          "length": 440,
+          "length": 255,
           "width": 60
         },
         {
           "kind": "structure",
-          "x": 213,
+          "x": 274.4,
           "y": 180,
-          "length": 380,
+          "length": 252.8,
           "width": 60
         },
         {
           "kind": "structure",
-          "x": -137,
+          "x": -136.5,
           "y": 240,
-          "length": 770,
+          "length": 771,
           "width": 60
         },
         {
@@ -62,39 +62,39 @@
         },
         {
           "kind": "structure",
-          "x": -250,
+          "x": -237.5,
           "y": 300,
-          "length": 640,
+          "length": 665,
           "width": 60
         },
         {
           "kind": "structure",
-          "x": -418,
+          "x": -397.5,
           "y": 420,
-          "length": 340,
+          "length": 369,
           "width": 60
         },
         {
           "kind": "structure",
-          "x": -362,
+          "x": -335.5,
           "y": 360,
-          "length": 500,
+          "length": 553,
           "width": 60
         },
         {
           "use": "beamTurret",
-          "x": 239,
+          "x": 315,
           "y": 82.5
         },
         {
           "use": "beamTurret",
-          "x": 338.5,
+          "x": 485.5,
           "y": 16,
           "angle": -90
         },
         {
           "use": "beamTurret",
-          "x": 101,
+          "x": 161,
           "y": 142.5
         },
         {
@@ -104,20 +104,20 @@
         },
         {
           "kind": "engine",
-          "x": -475,
+          "x": -448.5,
           "y": 450,
           "angle": 90,
           "length": 75,
-          "width": 160,
+          "width": 207,
           "barrels": 36,
           "nozzle": 0.111111
         },
         {
           "kind": "engine",
-          "x": -395,
+          "x": -345,
           "y": 478.5,
           "angle": 0,
-          "length": 56,
+          "length": 85,
           "width": 57,
           "barrels": 14,
           "nozzle": 0.076923
@@ -139,23 +139,23 @@
         },
         {
           "kind": "structure",
-          "x": -162,
+          "x": -124,
           "y": 60,
-          "length": 770,
+          "length": 846,
           "width": 60,
           "thick": true
         },
         {
           "kind": "structure",
-          "x": -226,
+          "x": -196,
           "y": 120,
-          "length": 622,
+          "length": 682,
           "width": 60,
           "thick": true
         },
         {
           "kind": "structure",
-          "x": 239,
+          "x": 315,
           "y": 56,
           "length": 32,
           "width": 52,
@@ -205,7 +205,7 @@
         },
         {
           "kind": "structure",
-          "x": 101,
+          "x": 161,
           "y": 116,
           "length": 32,
           "width": 52,
@@ -213,14 +213,7 @@
         },
         {
           "kind": "structure",
-          "x": 296.5,
-          "y": 60,
-          "length": 83,
-          "width": 60
-        },
-        {
-          "kind": "structure",
-          "x": 342,
+          "x": 489,
           "y": 61,
           "length": 8,
           "width": 58
@@ -258,40 +251,6 @@
           "nozzle": 0.142857
         },
         {
-          "use": "hullGun",
-          "x": 422,
-          "y": 197.5
-        },
-        {
-          "use": "hullGun",
-          "x": 267,
-          "y": 258.5
-        },
-        {
-          "use": "hullGun",
-          "x": 97,
-          "y": 289,
-          "angle": 90
-        },
-        {
-          "use": "hullGun",
-          "x": -232,
-          "y": 409,
-          "angle": 90
-        },
-        {
-          "use": "hullGun",
-          "x": -602,
-          "y": 409,
-          "angle": 90
-        },
-        {
-          "use": "hullGun",
-          "x": -631,
-          "y": 367.5,
-          "angle": -180
-        },
-        {
           "kind": "structure",
           "x": -597,
           "y": 240,
@@ -301,9 +260,9 @@
         },
         {
           "kind": "structure",
-          "x": -627,
+          "x": -622,
           "y": 300,
-          "length": 50,
+          "length": 40,
           "width": 60
         },
         {
@@ -312,6 +271,85 @@
           "y": 304,
           "length": 32,
           "width": 52
+        },
+        {
+          "use": "structure2",
+          "x": 452.466666667,
+          "y": 170,
+          "mirror": true
+        },
+        {
+          "use": "structure2",
+          "x": 300.666666667,
+          "y": 230,
+          "mirror": true
+        },
+        {
+          "use": "structure2",
+          "x": 146.66666666700002,
+          "y": 290,
+          "mirror": true
+        },
+        {
+          "use": "structure2",
+          "x": -7.333333332999985,
+          "y": 350,
+          "mirror": true
+        },
+        {
+          "use": "structure2",
+          "x": -161.33333333299998,
+          "y": 410,
+          "mirror": true
+        },
+        {
+          "use": "structure3",
+          "x": 382.33333333300004,
+          "y": 50,
+          "mirror": true
+        },
+        {
+          "use": "structure3",
+          "x": 228.33333333300004,
+          "y": 110,
+          "mirror": true
+        },
+        {
+          "use": "structure3",
+          "x": 74.33333333300004,
+          "y": 170,
+          "mirror": true
+        },
+        {
+          "kind": "structure",
+          "x": 470.5,
+          "y": 60,
+          "length": 29,
+          "width": 60
+        },
+        {
+          "use": "structure4",
+          "x": -650.0000000000001,
+          "y": 290.00000000000006,
+          "mirror": true
+        },
+        {
+          "use": "structure4",
+          "x": -620.0000000000001,
+          "y": 350.00000000000006,
+          "mirror": true
+        },
+        {
+          "use": "structure4",
+          "x": -590.0000000000001,
+          "y": 410.00000000000006,
+          "mirror": true
+        },
+        {
+          "use": "structure4",
+          "x": -560.0000000000001,
+          "y": 470.00000000000006,
+          "mirror": true
         }
       ]
     },
@@ -384,31 +422,78 @@
         }
       ]
     },
-    "hullGun": {
+    "structure2": {
       "modules": [
         {
-          "kind": "hullGun",
-          "x": 1,
-          "y": 2.4999999999999996,
+          "kind": "structure",
+          "x": -0.333333334,
+          "y": 0,
+          "length": 154,
+          "width": 60,
+          "vertices": [
+            102.666666667,
+            20,
+            -51.333333333,
+            20,
+            -51.333333333,
+            -40
+          ]
+        }
+      ]
+    },
+    "structure3": {
+      "modules": [
+        {
+          "kind": "structure",
+          "x": -9.666666666,
+          "y": 0,
           "angle": 0,
-          "length": 40,
-          "width": 12,
-          "barrels": 4,
-          "barrelCalibres": 59,
-          "traverse": 140,
-          "fuse": 0.06,
-          "burstSpeed": 300,
-          "targeting": {
-            "focusWeight": 0,
-            "proximityWeight": 250,
-            "massWeight": 30,
-            "structureWeight": 0,
-            "facingWeight": 100,
-            "sightWeight": 50,
-            "preferredMass": 0.1,
-            "fireRange": 4
-          },
-          "notes": "Close-in defence, and it fights its own battle: no interest at all in what the ship as a whole has picked, no view on how big a target is, and every view on how near. Guns and engines before hull, because a fighter it disarms is a fighter that has stopped mattering, and a fighter it strands is one the batteries can take at their leisure."
+          "length": 125,
+          "width": 60,
+          "vertices": [
+            83.333333333,
+            20,
+            -41.666666667,
+            20,
+            -41.666666667,
+            -40
+          ],
+          "thick": true
+        },
+        {
+          "kind": "structure",
+          "x": 32.00088888899997,
+          "y": -20,
+          "angle": -180,
+          "length": 125.001333333,
+          "width": 60,
+          "vertices": [
+            83.334222222,
+            20,
+            -41.667111111,
+            20,
+            -41.667111111,
+            -40
+          ]
+        }
+      ]
+    },
+    "structure4": {
+      "modules": [
+        {
+          "kind": "structure",
+          "x": -2,
+          "y": 0,
+          "length": 30,
+          "width": 60,
+          "vertices": [
+            10,
+            20,
+            -20,
+            20,
+            10,
+            -40
+          ]
         }
       ]
     }
@@ -416,9 +501,9 @@
   "modules": [
     {
       "kind": "structure",
-      "x": 553,
+      "x": 626.5,
       "y": 0,
-      "length": 380,
+      "length": 233,
       "width": 60
     },
     {
@@ -457,9 +542,9 @@
     },
     {
       "kind": "tank",
-      "x": 22.5,
+      "x": 96,
       "y": 0,
-      "length": 665,
+      "length": 812,
       "width": 60,
       "thick": true
     }
