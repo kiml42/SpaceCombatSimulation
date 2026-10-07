@@ -38,6 +38,32 @@ export function exposureEnds(
   return { x0: x - hx, y0: y - hy, x1: x + hx, y1: y + hy };
 }
 
+/**
+ * A streak's ends with the trailing one held at the point the round left: a
+ * round a frame old has only been in flight for part of the exposure, and the
+ * rest of its streak would be drawn back down the barrel that fired it. Along
+ * the round's own velocity, so a camera panning across does not move the cut;
+ * a round wholly behind it, not yet out of the barrel, is drawn as nothing.
+ */
+export function clipToStart(
+  ends: { x0: number; y0: number; x1: number; y1: number },
+  startX: number,
+  startY: number,
+  vx: number,
+  vy: number,
+): { x0: number; y0: number; x1: number; y1: number } {
+  // Either end: a camera panning faster than the round turns its streak round.
+  const first = (ends.x0 - startX) * vx + (ends.y0 - startY) * vy;
+  const second = (ends.x1 - startX) * vx + (ends.y1 - startY) * vy;
+  if (!(first < 0) && !(second < 0)) return ends;
+  return {
+    x0: first < 0 ? startX : ends.x0,
+    y0: first < 0 ? startY : ends.y0,
+    x1: second < 0 ? startX : ends.x1,
+    y1: second < 0 ? startY : ends.y1,
+  };
+}
+
 /** The most moments a flash is drawn at in one exposure. */
 export const MAX_FLASH_SAMPLES = 64;
 

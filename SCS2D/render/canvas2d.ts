@@ -24,7 +24,7 @@ import { NEUTRAL, shipColours } from './teams.js';
 export { teamColour } from './teams.js';
 import { beamAlpha, BEAM_GLOW_ALPHA, flooredFade, legibleWidth, plumeAlpha, tracerAlpha } from './strokes.js';
 import { flashExtent, flashFade, flashPosition, type Flashes } from './flashes.js';
-import { exposureEnds, flashSamples, shutterWeight } from './exposure.js';
+import { clipToStart, exposureEnds, flashSamples, shutterWeight } from './exposure.js';
 import { sprite } from './sprites.js';
 import { iconAlpha, ICON_OUTLINE, ICON_PX } from './icons.js';
 
@@ -1178,7 +1178,11 @@ function drawProjectiles(ctx: CanvasRenderingContext2D, snapshot: Snapshot, came
       const y = snapshot.projectileY[i]!;
       const vx = snapshot.projectileVx[i]!;
       const vy = snapshot.projectileVy[i]!;
-      const ends = exposureEnds(x, y, vx, vy, cvx, cvy, dt);
+      const sx = snapshot.projectileStartX[i];
+      const sy = snapshot.projectileStartY[i];
+      const open = exposureEnds(x, y, vx, vy, cvx, cvy, dt);
+      // The editor's demonstration fills only the rounds' own figures.
+      const ends = sx === undefined || sy === undefined ? open : clipToStart(open, sx, sy, vx, vy);
       const exposure = tracerAlpha(SHELL_CALIBRES * calibre, length(ends.x1 - ends.x0, ends.y1 - ends.y0));
       const width = glowPass
         ? legibleWidth(GLOW_CALIBRES * calibre, MIN_GLOW_PX, camera.scale) * exposure
