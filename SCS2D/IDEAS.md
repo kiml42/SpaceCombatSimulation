@@ -58,7 +58,6 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Allow ship names to mutate (can just add and remove and change random letters (or spaces), unpronounceable is probably better than just the name of the starting ship with a number)
 
 ## Fleet Editor
-- Allow grouping ships.
 - Make duplicate consistent with the ship editor (which creates a one module subassembly)
 
 ## Battle UI
