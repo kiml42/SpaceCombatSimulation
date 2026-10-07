@@ -853,7 +853,7 @@ export class Ships {
     return this.team[i] !== NEUTRAL_TEAM && !this.hasControl(i);
   }
 
-  /** Returns true when the ship has no active weapons left: no gun, and no weapon engine. */
+  /** Returns true when the ship has no main weapon left: no main gun, and no main weapon engine. */
   isDisarmed(i: number): boolean {
     if (this.alive[i] === 0) return true;
     if (this.derelict[i] === 1) return true;
@@ -865,10 +865,10 @@ export class Ships {
     if (b < 0) return true;
     const design = this.designs[i]!;
     for (let t = 0; t < design.turrets.length; t++) {
-      if (!this.isTurretDisabled(i, t)) return false;
+      if (design.turrets[t]!.main && !this.isTurretDisabled(i, t)) return false;
     }
     // An engine meant as a weapon is one while it can still burn.
-    for (const t of design.weaponEngines) {
+    for (const t of design.mainWeaponEngines) {
       const module = design.engines[t]?.module ?? -1;
       if (this.left(i, b, module, DamageEffect.Thrust) > 0) return false;
     }
@@ -1572,13 +1572,17 @@ export class Ships {
     return gap <= approach.ramRadii * bodies.radius[tb]!;
   }
 
-  /** The share of this ship's mounts that can still fire; none for a ship with none. */
+  /** The share of this ship's main mounts that can still fire; none for a ship with none. */
   private armedShare(i: number): number {
-    const mounts = this.designs[i]!.turrets.length;
-    if (mounts === 0) return 0;
+    const turrets = this.designs[i]!.turrets;
+    let mounts = 0;
     let working = 0;
-    for (let t = 0; t < mounts; t++) if (!this.isTurretDisabled(i, t)) working++;
-    return working / mounts;
+    for (let t = 0; t < turrets.length; t++) {
+      if (!turrets[t]!.main) continue;
+      mounts++;
+      if (!this.isTurretDisabled(i, t)) working++;
+    }
+    return mounts === 0 ? 0 : working / mounts;
   }
 
   /**
@@ -1668,6 +1672,11 @@ export class Ships {
    * costing an escorting fleet the very broadside `focusWeight` exists to
    * hold together.
    */
+  /** What this ship is fighting: its order's target, else what its doctrine chose; `NO_TARGET` for nothing. */
+  fightingOf(i: number): number {
+    return this.focusOf(i);
+  }
+
   private focusOf(i: number): number {
     const given = this.getCurrentOrder(i);
     if (given !== undefined) return given.target;

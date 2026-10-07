@@ -328,6 +328,8 @@ export interface DesignTurret {
    * ones. A hull weapon; never a turret.
    */
   readonly hullLayer: boolean;
+  /** Part of the main battery (`ModuleSpec.main`). */
+  readonly main: boolean;
 }
 
 export interface ShipDesign {
@@ -350,6 +352,8 @@ export interface ShipDesign {
    * over every engine it has.
    */
   readonly weaponEngines: readonly number[];
+  /** Those of `weaponEngines` in the main battery. */
+  readonly mainWeaponEngines: readonly number[];
   /** Shared by every ship built to this design. */
   readonly engineLayout: EngineLayout;
   readonly turrets: readonly DesignTurret[];
@@ -363,7 +367,7 @@ export interface ShipDesign {
    */
   readonly cores: readonly number[];
   /**
-   * How far out this ship's guns are worth using, metres.
+   * How far out this ship's main guns are worth using, metres.
    *
    * Derived from the guns themselves rather than configured: a round is worth
    * firing while the lead it needs is still a guess worth making, which is a
@@ -1009,6 +1013,7 @@ function place(
     if (placement.fragments !== undefined) spec.fragments = placement.fragments;
     if (placement.burstSpeed !== undefined) spec.burstSpeed = placement.burstSpeed;
     if (placement.weapon !== undefined) spec.weapon = placement.weapon;
+    if (placement.main !== undefined) spec.main = placement.main;
     if (placement.thick !== undefined) spec.thick = placement.thick;
     if (placement.sealing !== undefined) spec.sealing = placement.sealing;
     if (placement.drainPriority !== undefined) spec.drainPriority = placement.drainPriority;
@@ -1781,6 +1786,7 @@ function designFrom(
         reach: 0,
         targeting: resolveTargeting(spec.targeting, defaultTargeting(spec.kind)),
         hullLayer: true,
+        main: spec.main !== false,
       });
     } else if ((spec.kind === 'turret' || spec.kind === 'beamTurret') && s.gun !== null) {
       const gun = s.gun;
@@ -1823,6 +1829,7 @@ function designFrom(
         reach: 0,
         targeting: resolveTargeting(spec.targeting, defaultTargeting(spec.kind)),
         hullLayer: false,
+        main: spec.main !== false,
       });
     }
   }
@@ -1844,20 +1851,24 @@ function designFrom(
     turrets[t] = { ...mount, reach: expects(mount.targeting.preferredMass, mount) };
   }
 
+  // The main battery's alone, so a ship flies to where its big guns bite
+  // rather than to where its point defence reaches.
   let reach = 0;
   for (const turret of turrets) {
-    reach = max(reach, expects(doctrine.targeting.preferredMass, turret));
+    if (turret.main) reach = max(reach, expects(doctrine.targeting.preferredMass, turret));
   }
 
   const weaponEngines: number[] = [];
+  const mainWeaponEngines: number[] = [];
   for (let t = 0; t < engines.length; t++) {
     const engine = engines[t]!;
     if (engine.weapon !== true) continue;
     weaponEngines.push(t);
+    const spec = modules[engine.module ?? -1]?.spec;
+    if (spec === undefined || spec.main === false) continue;
+    mainWeaponEngines.push(t);
     // As far as the flame lands the share it fires for, so a torch ship's
     // doctrine closes to where its engine burns rather than to the skin.
-    const spec = modules[engine.module ?? -1]?.spec;
-    if (spec === undefined) continue;
     reach = max(reach, weaponPlumeReach(engineGeometry(spec), engine.maxThrust));
   }
 
@@ -1901,6 +1912,7 @@ function designFrom(
     centreOfMassY: comY,
     engines,
     weaponEngines,
+    mainWeaponEngines,
     engineLayout: new EngineLayout(engines),
     turrets,
     cores,
