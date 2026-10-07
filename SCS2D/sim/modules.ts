@@ -221,6 +221,11 @@ export function readsSealing(kind: ModuleKind): boolean {
   return kind === 'tank' || kind === 'core';
 }
 
+/** Whether `drainPriority` means anything on this kind: what holds fuel. */
+export function readsDrainPriority(kind: ModuleKind): boolean {
+  return readsSealing(kind);
+}
+
 /** How thick a module's sealing lining is, metres: zero where its kind has none. */
 export function liningOf(spec: ModuleSpec): number {
   return readsSealing(spec.kind) ? (spec.sealing ?? 0) : 0;
@@ -892,6 +897,14 @@ export interface ModuleSpec {
   sealing?: number;
 
   /**
+   * Which tanks an engine draws on first: the highest priority among those it
+   * is connected to, and the next once they are dry. A whole number, zero when
+   * absent. A tank or a core only. So a drop tank outboard can be emptied
+   * before the one buried behind the armour.
+   */
+  drainPriority?: number;
+
+  /**
    * Why this module is here, in the author's own words. Carried through the
    * file format and the editor, and ignored by every scaling law.
    *
@@ -1122,6 +1135,9 @@ export function moduleProblem(spec: ModuleSpec): string | null {
   }
   if (spec.sealing !== undefined && !(spec.sealing >= 0)) {
     return `${spec.kind}: sealing must be at least 0, got ${spec.sealing}`;
+  }
+  if (spec.drainPriority !== undefined && !Number.isInteger(spec.drainPriority)) {
+    return `${spec.kind}: drain priority must be a whole number, got ${spec.drainPriority}`;
   }
   if (spec.burstSpeed !== undefined && !(spec.burstSpeed > 0)) {
     return `${spec.kind}: burst speed must be more than 0, got ${spec.burstSpeed}`;

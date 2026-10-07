@@ -38,7 +38,8 @@ inside any one file is not contiguous.
   given in advance and worked through as targets are put out of the fight. A Canvas2D
   viewer draws snapshots of all of it — ships, turret bearings, tracers and the wells
   bending them — with pause, single-step, time scaling, and zoom and pan over an
-  auto-framing camera. **The camera carries itself along with what it is watching rather
+  auto-framing camera. Rounds and beams are drawn as light, or with C in the colours of the side that
+  fired them, which the evolution page starts with. **The camera carries itself along with what it is watching rather
   than easing after it**, weighting the ships in shot by radius so a fleet action is steered
   by the capital in it; it falls back from the ships still under control to the hulks and then
   to the wreckage, so a fight that ends with every core shot out is still followed; and it
@@ -56,7 +57,9 @@ inside any one file is not contiguous.
   acceleration available in each direction — as figures, and as a pair of
   envelope curves separating what a layout can project from what it can use
   while holding a heading — and each turret's calibre, rate of fire, muzzle
-  speed and arc. Modules are
+  speed and arc. A module is added at the layout's origin while that is on screen and in the middle of
+  the view when it is not, at its usual size unless the zoom would make that a speck or fill the view,
+  when it arrives an eighth of the view across. Modules are
   clicked to select, dragged to move on a snapping grid a tenth of the grid drawn on screen —
   so the step follows the zoom, from tens of metres on a Star Destroyer down to centimetres on a
   drone — sized by dragging a corner
@@ -546,7 +549,9 @@ inside any one file is not contiguous.
   walls — about 1,900 s of specific impulse on a capital's main engine and 1,650 s on a fighter's, and
   never under 700 s. It burns the gas it throws over that, throttle by throttle, from the tanks on its own
   piece of hull, in proportion to their size so that tanks starting full run dry together; tanks are
-  drained in tiers, all one tier until a tank can carry a priority. A ship weighs its fuel and gets lighter
+  drained in tiers, highest `drainPriority` first (a whole number on a tank or a core, set in the editor and
+  nudged by evolution, zero by default), so a ship can empty an outboard tank before the one behind its
+  armour. A ship weighs its fuel and gets lighter
   as it burns, its centre of mass held where the full ship's was; an engine with nothing left to burn
   pushes nothing; fuel goes with its tank when a hull
   comes apart or is welded. A round through a module with fuel in it is slowed by liquid drag over the

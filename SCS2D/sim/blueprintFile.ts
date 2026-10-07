@@ -17,6 +17,7 @@ import {
   readsBarrelCalibres,
   readsNozzle,
   readsSealing,
+  readsDrainPriority,
   readsThick,
   readsFuse,
   readsWeapon,
@@ -94,6 +95,7 @@ const MODULE_KEYS: readonly string[] = [
   'main',
   'thick',
   'sealing',
+  'drainPriority',
   'targeting',
   'notes',
 ];
@@ -218,6 +220,7 @@ function moduleShapeProblem(value: Record<string, unknown>, where: string): stri
     optionalBooleanProblem(value['main'], `${where}: main`) ??
     optionalBooleanProblem(value['thick'], `${where}: thick`) ??
     optionalNumberProblem(value['sealing'], `${where}: sealing`) ??
+    optionalNumberProblem(value['drainPriority'], `${where}: drainPriority`) ??
     targetingProblem(value['targeting'], `${where}: targeting`) ??
     optionalStringProblem(value['notes'], `${where}: notes`)
   );
@@ -243,6 +246,7 @@ function moduleReads(kind: ModuleKind): readonly string[] {
     if (key === 'main') return readsMain(kind);
     if (key === 'thick') return readsThick(kind);
     if (key === 'sealing') return readsSealing(kind);
+    if (key === 'drainPriority') return readsDrainPriority(kind);
     if (key === 'vertices') return canShape(kind);
     return true;
   });
@@ -460,6 +464,7 @@ function toPlacements(raws: unknown[]): Placement[] {
     if (read('main')) spec.main = raw['main'] as boolean;
     if (read('thick')) spec.thick = raw['thick'] as boolean;
     if (read('sealing')) spec.sealing = raw['sealing'] as number;
+    if (read('drainPriority')) spec.drainPriority = raw['drainPriority'] as number;
     // Copied whole, so a key the block does not know goes back out with it.
     if (raw['targeting'] !== undefined) spec.targeting = { ...(raw['targeting'] as Partial<Targeting>) };
     if (raw['notes'] !== undefined) spec.notes = raw['notes'] as string;
@@ -643,6 +648,9 @@ function serialisePlacement(placement: Placement): Record<string, unknown> {
   }
   if (placement.sealing !== undefined && readsSealing(placement.kind)) {
     raw['sealing'] = placement.sealing;
+  }
+  if (placement.drainPriority !== undefined && readsDrainPriority(placement.kind)) {
+    raw['drainPriority'] = placement.drainPriority;
   }
   // Written as authored: a mount's block is already only its differences from
   // the ship it is on, so there is nothing to subtract.

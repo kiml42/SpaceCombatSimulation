@@ -1,7 +1,6 @@
 # Bugs
 Things that are obviously wrong.
 
-- When stating evolution in "A battle" setting, it doesn't start showing a battle, you need to switch to "the combatants" and back again.
 - Turrets sometimes track through thick modules which should physically block them.
 - Fighter engines in the turret layer immediately hit an overflown hull layer module. Should probably just make engine plumes follow the same rules as beams about staying in their own layers.
 
@@ -31,7 +30,6 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Snap to hulls
 - Category input for ships - ships grouped by category when selecting them anywhere. (e.g. "Star Wars.Imperial", "Stock")
 - Make it clearer how the range is controlled in the core's doctrine
-- Adding a module should place it in view of the camera, and size it based on the camera's zoom level.
 - Add calibre multiplier to scale what the default maths gives.
 
 ## Weapons
@@ -51,15 +49,12 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 
 ## Evolution
 - Mutate to change the whole scale of the ship
-- When mutation between gun and engine, the module should be rotates 180, to maintain the correct outward face.
 - Consider scoring for ramming
   - Currently just loses score by everything taking damage
   - Might want to attribute the damage to both ships to the other, this would be asymmetrical is one manages to ram its armour into an active component on the other.
 - Random variation to arena size, and initial velocities. can be shown as `setting [X] +- [dx]` in one row each so it's not making the section longer, and clearly shows their link.
-- Allow naming of evolution runs -> file name when exported.
 - Graphs take up too much space. Could probably merge mass and ship count using left and right axes. Could use two different colours and have means solid, and bests dashed.
 - In-battle scores should be an overlay on the battle, not making it be a tiny bar at the bottom.
-- Continual layout shift in the sidebar is annoying - make the matches list be padded with empty rows so it stays a consistent length.
 - Make damage and function taken start at 0 and go negative, so the graph scales nicely at the beginning when they're all useless, highlighting even minor improvements.
 - We need a mechanism to let ships know what the goal is. This could be something like a "go close to that" order being given to all ships when the race goal is present. (At the moment we lean on the escort doctrine, but that just makes evolving a second ship mean they bunch up with each other instead of going for the goal)
 - Add a mutation to change which design an existing ship uses.
@@ -74,7 +69,6 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
   - Thumbnails indicate the exact current state, possibly even a live view with its own camera tracking the ship (possibly rotated to match)
   - Click a ship to focus the main camera on it
 - Randomisation settings for all parameters of a custom battle
-- team coloured beams and projectiles - as a UI option, so you can still see the more realistic mode by default. (turn it on by default for evolution)
 - Cap projectile rendering at their start and end positions so they don't overlap the barrel that launched them, or the target they hit.
 - Add a ship to a running battle, for quick testing. Dropdown in the corner to choose a ship to add to the battle. click and drag to chose position and velocity (position from first click, drag to N seconds worth of distance for the initial velocity.) Ship is instantly spawned when you let go.
 - Write names on ships' cores. Names should be their team colour and a sequential number e.g. "Red 5" for the fifth ship instantiated on the red team.

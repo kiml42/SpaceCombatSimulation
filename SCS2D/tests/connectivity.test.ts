@@ -4,6 +4,7 @@ import {
   JOINT_IMPULSE_PER_AREA,
   compileBlueprint,
   components,
+  contactWidth,
   joints,
   subDesign,
   type Blueprint,
@@ -82,6 +83,14 @@ describe('deriving the joints', () => {
     // Still one ship: the corner piece is welded along the face it shares
     // with the module below it.
     expect(components(compileBlueprint(corner), () => false)).toHaveLength(1);
+  });
+
+  it('finds no joint at a corner between turned modules, where rounding leaves a sliver', () => {
+    // Turned by whole quarter turns, whose sines and cosines round: measured
+    // naively these meet across about 1e-16 m.
+    const a: ModuleSpec = { kind: 'structure', x: -3.25, y: 2.75, angle: 3 * Math.PI, length: 0.5, width: 0.5 };
+    const b: ModuleSpec = { kind: 'structure', x: -3.75, y: 3.25, angle: 3.5 * Math.PI, length: 0.5, width: 0.5 };
+    expect(contactWidth(a, b)).toBe(0);
   });
 
   it('holds every shipped hull together in one piece', () => {
