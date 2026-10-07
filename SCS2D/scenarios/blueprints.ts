@@ -13,6 +13,8 @@ import torpedoFile from './blueprints/torpedo.json' with { type: 'json' };
 
 // --- Star Wars ---
 import xWingFile from './blueprints/x-wing.json' with { type: 'json' };
+import aWingFile from './blueprints/a-wing.json' with { type: 'json' };
+import yWingFile from './blueprints/y-wing.json' with { type: 'json' };
 import ghostFile from './blueprints/ghost.json' with { type: 'json' };
 import tieFile from './blueprints/tie-fighter.json' with { type: 'json' };
 import starDestroyerFile from './blueprints/star-destroyer.json' with { type: 'json' };
@@ -52,6 +54,8 @@ export const LASER_FRIGATE: Blueprint = parseBlueprint(laserFrigateFile);
 export const TORPEDO: Blueprint = parseBlueprint(torpedoFile);
 
 export const X_WING: Blueprint = parseBlueprint(xWingFile);
+export const A_WING: Blueprint = parseBlueprint(aWingFile);
+export const Y_WING: Blueprint = parseBlueprint(yWingFile);
 export const GHOST: Blueprint = parseBlueprint(ghostFile);
 export const TIE: Blueprint = parseBlueprint(tieFile);
 export const STAR_DESTROYER: Blueprint = parseBlueprint(starDestroyerFile);
@@ -70,6 +74,8 @@ export const BLUEPRINTS = {
     torpedo: TORPEDO,
 
     xWing: X_WING,
+    aWing: A_WING,
+    yWing: Y_WING,
     ghost: GHOST,
     tie: TIE,
     starDestroyer: STAR_DESTROYER,
