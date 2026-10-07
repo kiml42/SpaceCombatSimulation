@@ -51,12 +51,10 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 
 ## Evolution
 - Mutate to change the whole scale of the ship
-- When mutation between gun and engine, the module should be rotates 180, to maintain the correct outward face.
 - Consider scoring for ramming
   - Currently just loses score by everything taking damage
   - Might want to attribute the damage to both ships to the other, this would be asymmetrical is one manages to ram its armour into an active component on the other.
 - Random variation to arena size, and initial velocities. can be shown as `setting [X] +- [dx]` in one row each so it's not making the section longer, and clearly shows their link.
-- Allow naming of evolution runs -> file name when exported.
 - Graphs take up too much space. Could probably merge mass and ship count using left and right axes. Could use two different colours and have means solid, and bests dashed.
 - In-battle scores should be an overlay on the battle, not making it be a tiny bar at the bottom.
 - Continual layout shift in the sidebar is annoying - make the matches list be padded with empty rows so it stays a consistent length.
