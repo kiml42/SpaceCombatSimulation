@@ -1,6 +1,19 @@
 import type { UnreadKeys } from './unread.js';
 import type { Targeting } from './doctrine.js';
-import { asin, atan2, cos, max, PI, round, sin, sqrt } from './math.js';
+import { abs, asin, atan2, cos, max, PI, round, sin, sqrt } from './math.js';
+import {
+  canShape,
+  insetTriangle,
+  MAX_CORNERS,
+  normalizeShape,
+  polygonArea,
+  polygonMomentOfArea,
+  triangleAcross,
+  triangleBounds,
+  triangleOf,
+  triangleRadius,
+  TRIANGLE_CORNERS,
+} from './shape.js';
 
 /**
  * Parametric ship modules: a few archetypes with continuous parameters, rather
@@ -695,6 +708,29 @@ export interface ModuleSpec {
   /** Extent across the facing, metres. */
   width: number;
   /**
+   * Three corners, flat `x, y` pairs in the module's own frame, which make it
+   * a **triangle** rather than the box its length and width describe. Hull and
+   * store only (`canShape`), and absent on everything else.
+   *
+   * The corners are what the author places, one at a time, and the whole of
+   * what the module is: its mass, its walls, what a shot crosses, what it is
+   * welded to and what a turret cannot see past all come from them. What they
+   * buy is a hull that can draw a prow — a shape a packing of rectangles can
+   * only step towards — and they cost the two things a rectangle has that a
+   * triangle does not: a face to grow by, and a face for something to stick
+   * out of. That is why only the two archetypes with nothing protruding may
+   * have them.
+   *
+   * **Centred on the triangle's own centroid and wound anticlockwise**
+   * (`normalizeShape`), so `x`/`y` goes on meaning the middle the module's
+   * mass acts at. `length` and `width` stay filled in as the box the corners
+   * fit inside, for the format's sake — a refit, a mutation, the editor's
+   * number boxes — and are derived rather than authored: that box is not
+   * centred on the module's position, so nothing that asks where the matter is
+   * may read them.
+   */
+  vertices?: readonly number[];
+  /**
    * Wall thickness multiplier, at least 1. Buying reinforcement buys armour
    * and structural strength, and pays for it in mass — which is the whole of
    * the armour trade-off.
@@ -984,6 +1020,19 @@ export interface ModuleStats {
 }
 
 /**
+ * How far a triangle's corners may average off the module's own position
+ * before the layout is refused, metres.
+ *
+ * A micron, which is a hundred-thousandth of the smallest module anyone draws
+ * and far above the last-bit noise a turned frame leaves. It is not a
+ * tolerance for sloppy authoring: a file whose corners do not average to the
+ * position it declares is one where the mass acts somewhere other than where
+ * every other law thinks the module is, and that disagreement is invisible
+ * until a ship flies crabwise.
+ */
+const CENTROID_TOLERANCE = 1e-6;
+
+/**
  * Why a module cannot exist, or null if it can.
  *
  * Separate from `moduleStats` so that an editor can report the problem rather
@@ -992,6 +1041,30 @@ export interface ModuleStats {
 export function moduleProblem(spec: ModuleSpec): string | null {
   if (!(spec.length > 0) || !(spec.width > 0)) {
     return `${spec.kind}: length and width must be positive, got ${spec.length}x${spec.width}`;
+  }
+  if (spec.vertices !== undefined) {
+    // Not dormant the way a bell is: a shape nothing reads is a module drawn
+    // as something other than what it weighs, so the kind has to admit it
+    // rather than carry it until a refit back.
+    if (!canShape(spec.kind)) {
+      return `${spec.kind}: only structure and tanks may be given corners`;
+    }
+    if (spec.vertices.length !== TRIANGLE_CORNERS * 2) {
+      return `${spec.kind}: a shaped module takes ${TRIANGLE_CORNERS} corners as x,y pairs, got ${spec.vertices.length / 2}`;
+    }
+    for (const value of spec.vertices) {
+      if (!Number.isFinite(value)) return `${spec.kind}: a corner is not a number`;
+    }
+    if (polygonArea(spec.vertices) <= 0) {
+      return `${spec.kind}: three corners in a line enclose nothing`;
+    }
+    // The centroid is the module's position, which is what keeps `x`/`y`
+    // meaning the same thing it means for a box (`normalizeShape`).
+    const cx = spec.vertices[0]! + spec.vertices[2]! + spec.vertices[4]!;
+    const cy = spec.vertices[1]! + spec.vertices[3]! + spec.vertices[5]!;
+    if (abs(cx) > CENTROID_TOLERANCE || abs(cy) > CENTROID_TOLERANCE) {
+      return `${spec.kind}: corners must be centred on the module's own middle`;
+    }
   }
   const reinforcement = spec.reinforcement ?? 1;
   if (!(reinforcement >= 1)) {
@@ -1105,6 +1178,11 @@ export function moduleProblem(spec: ModuleSpec): string | null {
  * than one held back over a rounding.
  */
 export function moduleRadius(spec: ModuleSpec): number {
+  const triangle = triangleOf(spec);
+  // A triangle's furthest corner, which is exact rather than conservative:
+  // the box round it is not centred on it, so the box's half-diagonal is
+  // neither a bound nor a useful approximation of one.
+  if (triangle !== null) return triangleRadius(triangle);
   return sqrt(spec.length * spec.length + spec.width * spec.width) / 2;
 }
 
@@ -1146,6 +1224,132 @@ export function boxAngle(spec: ModuleSpec): number {
 }
 
 /**
+ * A module's corners with every face pushed `margin` metres outward, written
+ * into `out` as x,y pairs, and how many there are.
+ *
+ * What a tolerance means geometrically: two modules count as touching when
+ * each grown by half of one has reached the other. Grown by its *own* faces
+ * rather than by a disc, so a box grows into a box — which is the arithmetic
+ * the layout rules have always done — and a triangle keeps its corners sharp
+ * instead of gaining three rounded ones a layout could then be welded by.
+ *
+ * A margin large enough to collapse a triangle leaves the module unchanged,
+ * since a tolerance is never meant to be a size.
+ */
+export function grownOutline(spec: ModuleSpec, margin: number, out: number[]): number {
+  const triangle = triangleOf(spec);
+  if (triangle !== null) {
+    const grown = insetTriangle(triangle, -margin);
+    return moduleOutline(grown === null ? spec : { ...spec, vertices: grown }, out);
+  }
+  const grown: ModuleSpec = {
+    ...spec,
+    length: spec.length + 2 * margin,
+    width: spec.width + 2 * margin,
+  };
+  // Grown about the middle it had. An engine's position is its mounting face
+  // and its middle is half its length from there, so lengthening one would
+  // otherwise walk it backwards into its own exhaust by the margin.
+  const was = moduleCentre(spec);
+  const now = moduleCentre(grown);
+  grown.x += was.x - now.x;
+  grown.y += was.y - now.y;
+  return moduleOutline(grown, out);
+}
+
+/**
+ * The module given these three corners, in its own frame, and moved so they
+ * stay where the caller put them — or null if they enclose nothing, or the
+ * kind may not be shaped.
+ *
+ * **The only way a triangle enters a layout.** The corners are re-centred on
+ * their own centroid and the module is moved by the same amount, so dragging
+ * one corner leaves the other two exactly where they were on the ship while
+ * `x`/`y` goes on being the middle. `length` and `width` are refilled as the
+ * box the corners fit inside, which keeps them derived rather than stale.
+ *
+ * Passing `null` for the corners makes the module the box they fitted inside,
+ * which is how a triangle is squared off again.
+ */
+export function shapeModule(spec: ModuleSpec, vertices: readonly number[] | null): ModuleSpec | null {
+  if (vertices === null) {
+    const squared = { ...spec };
+    delete squared.vertices;
+    return squared;
+  }
+  if (!canShape(spec.kind)) return null;
+  const shape = normalizeShape(vertices);
+  if (shape === null) return null;
+  const angle = spec.angle ?? 0;
+  const c = cos(angle);
+  const s = sin(angle);
+  const bounds = triangleBounds(shape.vertices);
+  return {
+    ...spec,
+    // The shift is in the module's own frame; its position is in the layout's.
+    x: tidy(spec.x + shape.dx * c - shape.dy * s),
+    y: tidy(spec.y + shape.dx * s + shape.dy * c),
+    length: bounds.length,
+    width: bounds.width,
+    vertices: shape.vertices,
+  };
+}
+
+/**
+ * A module's corners in the frame its layout is written in, written into `out`
+ * as x,y pairs, and how many there are.
+ *
+ * **The one place a module turns into geometry.** Everything that asks a
+ * geometric question — what a shot crosses, what two modules overlap along,
+ * what a turret cannot see past, what the renderer fills — comes through here,
+ * so a box and a triangle are the same question asked of a different number of
+ * corners rather than two code paths that can drift apart. A caller that
+ * rebuilds a rectangle from `length` and `width` instead draws a module the
+ * simulation does not have.
+ *
+ * A box gives its four corners about the middle of the box, which an engine's
+ * position is not; a triangle gives its three about its centroid, which its
+ * position is. Both come out wound anticlockwise, so `outlineAxes` can take
+ * the outward normals of either.
+ *
+ * `out` is written in place and truncated to the count, so a caller that keeps
+ * one array across a loop allocates nothing (non-negotiable 4).
+ */
+export function moduleOutline(spec: ModuleSpec, out: number[]): number {
+  const angle = boxAngle(spec);
+  const c = cos(angle);
+  const s = sin(angle);
+  const mid = moduleCentre(spec);
+  const triangle = triangleOf(spec);
+
+  if (triangle !== null) {
+    for (let i = 0; i < triangle.length; i += 2) {
+      const x = triangle[i]!;
+      const y = triangle[i + 1]!;
+      out[i] = mid.x + x * c - y * s;
+      out[i + 1] = mid.y + x * s + y * c;
+    }
+    out.length = TRIANGLE_CORNERS * 2;
+    return TRIANGLE_CORNERS;
+  }
+
+  const hl = spec.length * 0.5;
+  const hw = spec.width * 0.5;
+  // (+l,-w), (+l,+w), (-l,+w), (-l,-w): wound anticlockwise, as a triangle is
+  // stored, so that `outlineAxes` takes outward normals from either — and
+  // starting on the bow face, so a box's two axes come out along its length
+  // and then across it, which is the order the layout rules try them in.
+  for (let i = 0; i < MAX_CORNERS; i++) {
+    const dl = i < 2 ? hl : -hl;
+    const dw = i === 0 || i === 3 ? -hw : hw;
+    out[i * 2] = mid.x + dl * c - dw * s;
+    out[i * 2 + 1] = mid.y + dl * s + dw * c;
+  }
+  out.length = MAX_CORNERS * 2;
+  return MAX_CORNERS;
+}
+
+/**
  * The module as another kind, in the same box.
  *
  * The centre is what is kept, not the coordinates: an engine's position is its
@@ -1160,6 +1364,10 @@ export function boxAngle(spec: ModuleSpec): number {
 export function refitModule(spec: ModuleSpec, to: ModuleKind, turn = 0): ModuleSpec {
   const centre = moduleCentre(spec);
   const next: ModuleSpec = { ...spec, kind: to };
+  // Corners are the one field a refit cannot keep dormant: a kind with a bell
+  // or a barrel coming out of a face has to have the face. The module becomes
+  // the box its corners fitted inside, which is the same room on the hull.
+  if (next.vertices !== undefined && !canShape(to)) delete next.vertices;
   if (turn !== 0) {
     // Folded into (-π, π], so a file says 180 rather than 540 after a few turns.
     let angle = (spec.angle ?? 0) + turn;
@@ -1607,6 +1815,10 @@ export function moduleThickness(spec: ModuleSpec, touching = 0): number {
 function acrossOf(spec: ModuleSpec): number {
   if (spec.kind === 'engine') return spec.width / (spec.barrels ?? 1);
   if (isHullMount(spec.kind)) return spec.width;
+  const triangle = triangleOf(spec);
+  // The narrowest way through a triangle, which is what the box's smaller side
+  // is for a box: a long thin wedge is a thin module however far it reaches.
+  if (triangle !== null) return triangleAcross(triangle);
   return spec.length < spec.width ? spec.length : spec.width;
 }
 
@@ -1840,26 +2052,44 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
   // it, on all six faces — so a long thin module carries proportionally more
   // wall for the space it encloses, which is the pressure that stops layouts
   // being made of splinters.
+  //
+  // A triangle is the same law over its own outline: the floor it encloses in
+  // place of `length x width`, and the floor left inside walls of the same
+  // thickness in place of the box shrunk by two of them. It applies the same
+  // pressure through the shape rather than through the proportions — the inner
+  // triangle is similar to the outer one, so a sharp corner loses far more
+  // area to its walls than a blunt one, and a sliver of a plate is all wall.
   const height = moduleThickness(spec, touching);
   const width = spec.width;
-  const outer = boxLength * width * height;
-  const inner =
-    (boxLength - 2 * wallThickness) *
-    (width - 2 * wallThickness) *
-    (height - 2 * wallThickness);
+  const triangle = triangleOf(spec);
+  const floor = triangle !== null ? polygonArea(triangle) : boxLength * width;
+  const hollow = (depth: number): { floor: number; volume: number } => {
+    const lid = height - 2 * depth;
+    if (!(lid > 0)) return { floor: 0, volume: 0 };
+    if (triangle !== null) {
+      const inner = insetTriangle(triangle, depth);
+      const area = inner === null ? 0 : polygonArea(inner);
+      return { floor: area, volume: area * lid };
+    }
+    const along = boxLength - 2 * depth;
+    const across = width - 2 * depth;
+    if (!(along > 0) || !(across > 0)) return { floor: 0, volume: 0 };
+    return { floor: along * across, volume: along * across * lid };
+  };
+  const walled = hollow(wallThickness);
+  const outer = floor * height;
+  const inner = walled.volume;
   // Bells, which are skins rather than boxes: two flanks along the slant and a
   // roof and floor over the taper, with nothing enclosed and both ends open.
   const skinVolume = engine === null ? 0 : nozzleSkinVolume(engine, wallThickness);
   const wallVolume = outer - inner + skinVolume;
   const structureMass = wallVolume * HULL_DENSITY;
 
-  const capacity = (boxLength - 2 * wallThickness) * (width - 2 * wallThickness);
+  const capacity = walled.floor;
   // A sealing lining is a second skin inside the first, and what it fills is
   // room the fuel no longer has.
   const lining = liningOf(spec);
-  const lined = wallThickness + lining;
-  const interior =
-    lining > 0 ? (boxLength - 2 * lined) * (width - 2 * lined) * (height - 2 * lined) : inner;
+  const interior = lining > 0 ? hollow(wallThickness + lining).volume : inner;
   const liningMass = (inner - interior) * SEALANT_DENSITY;
 
   let fittingMass = 0;
@@ -2035,7 +2265,12 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
           (boxMass * (mount.blockLength * mount.blockLength + spec.width * spec.width)) / 12 +
           boxMass * (mount.barrelLength * 0.5) * (mount.barrelLength * 0.5) +
           rodInertia
-        : (boxMass * (spec.length * spec.length + spec.width * spec.width)) / 12 + rodInertia;
+        : triangle !== null
+          ? // The shape's own second moment, per unit of the floor it encloses.
+            // For a rectangle this is `(l² + w²) / 12` exactly, so the two are
+            // one law rather than a box's and a special case.
+            (boxMass * polygonMomentOfArea(triangle)) / floor + rodInertia
+          : (boxMass * (spec.length * spec.length + spec.width * spec.width)) / 12 + rodInertia;
 
   return {
     thickness: height,

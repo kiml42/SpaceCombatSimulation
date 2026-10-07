@@ -22,7 +22,9 @@ import {
   readsWeapon,
   type ModuleKind,
   type ModuleSpec,
+  shapeModule,
 } from './modules.js';
+import { canShape, TRIANGLE_CORNERS } from './shape.js';
 import {
   doctrineProblem,
   doctrineUnread,
@@ -78,6 +80,7 @@ const MODULE_KEYS: readonly string[] = [
   'angle',
   'length',
   'width',
+  'vertices',
   'reinforcement',
   'barrels',
   'nozzle',
@@ -187,11 +190,19 @@ function moduleShapeProblem(value: Record<string, unknown>, where: string): stri
     return `${where}: kind must be one of ${MODULE_KINDS.join(', ')}, got ${JSON.stringify(value['kind'])}`;
   }
 
+  const shaped = value['vertices'] !== undefined && canShape(kind as ModuleKind);
   return (
     numberProblem(value['x'], `${where}: x`) ??
+    verticesProblem(value['vertices'], kind as ModuleKind, `${where}: vertices`) ??
     numberProblem(value['y'], `${where}: y`) ??
-    numberProblem(value['length'], `${where}: length`) ??
-    numberProblem(value['width'], `${where}: width`) ??
+    // A shaped module's size is its corners, so it need not repeat it. The
+    // keys are still written back, since every other reader of a layout —
+    // a mutation, a refit, the editor's number boxes — asks a module how big
+    // it is before it asks what shape.
+    (shaped
+      ? null
+      : (numberProblem(value['length'], `${where}: length`) ??
+        numberProblem(value['width'], `${where}: width`))) ??
     optionalNumberProblem(value['angle'], `${where}: angle`) ??
     optionalNumberProblem(value['reinforcement'], `${where}: reinforcement`) ??
     optionalNumberProblem(value['barrels'], `${where}: barrels`) ??
@@ -228,8 +239,30 @@ function moduleReads(kind: ModuleKind): readonly string[] {
     if (key === 'weapon') return readsWeapon(kind);
     if (key === 'thick') return readsThick(kind);
     if (key === 'sealing') return readsSealing(kind);
+    if (key === 'vertices') return canShape(kind);
     return true;
   });
+}
+
+/**
+ * What makes a module's corners unreadable, or null.
+ *
+ * Only that they are three pairs of numbers on a kind that may be shaped:
+ * whether they enclose anything, and whether they are wound and centred as the
+ * simulation holds them, is `moduleProblem`'s to say — and a file's corners are
+ * re-centred as they are read, so an author may place them anywhere.
+ */
+function verticesProblem(value: unknown, kind: ModuleKind, where: string): string | null {
+  if (value === undefined) return null;
+  if (!canShape(kind)) return `${where}: only structure and tanks may be given corners`;
+  if (!Array.isArray(value) || value.length !== TRIANGLE_CORNERS * 2) {
+    return `${where}: must be ${TRIANGLE_CORNERS} corners as ${TRIANGLE_CORNERS * 2} x,y numbers`;
+  }
+  for (const corner of value) {
+    const problem = numberProblem(corner, where);
+    if (problem !== null) return problem;
+  }
+  return null;
 }
 
 function instanceShapeProblem(value: Record<string, unknown>, where: string): string | null {
@@ -403,8 +436,8 @@ function toPlacements(raws: unknown[]): Placement[] {
       kind,
       x: raw['x'] as number,
       y: raw['y'] as number,
-      length: raw['length'] as number,
-      width: raw['width'] as number,
+      length: (raw['length'] as number | undefined) ?? 0,
+      width: (raw['width'] as number | undefined) ?? 0,
     };
     const angle = currentAngle(raw);
     if (angle !== undefined) spec.angle = degreesToRadians(angle);
@@ -428,6 +461,14 @@ function toPlacements(raws: unknown[]): Placement[] {
     const legacy = legacyBarrel(spec, raw);
     const unread = unreadOf(raw, legacy ? [...reads, 'nozzle'] : reads);
     if (unread !== undefined) spec.unread = unread;
+    if (read('vertices')) {
+      // Re-centred on the corners' own middle and wound the way the simulation
+      // holds them, which moves the module's position rather than the corners:
+      // an author places three points on the ship and need not work out where
+      // their centroid landed, nor which way round they went.
+      const shaped = shapeModule(spec, raw['vertices'] as number[]);
+      if (shaped !== null) return shaped;
+    }
     return spec;
   });
 }
@@ -563,6 +604,9 @@ function serialisePlacement(placement: Placement): Record<string, unknown> {
   if (placement.angle !== undefined) raw['angle'] = radiansToDegrees(placement.angle);
   raw['length'] = placement.length;
   raw['width'] = placement.width;
+  if (placement.vertices !== undefined && canShape(placement.kind)) {
+    raw['vertices'] = [...placement.vertices];
+  }
   if (placement.reinforcement !== undefined) raw['reinforcement'] = placement.reinforcement;
   // Only what this kind reads: a dormant field is a running mutation's memory
   // of what the module used to be, and a file is not the place for it.

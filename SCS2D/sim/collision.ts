@@ -2,6 +2,7 @@ import type { Bodies } from './bodies.js';
 import type { ShipDesign } from './blueprint.js';
 import { BOTH_LAYERS, moduleLayers, OWN_LAYERS, type HullDesigns } from './hull.js';
 import { abs, cos, max, min, sin, sqrt } from './math.js';
+import { MAX_CORNERS, triangleOf } from './shape.js';
 
 /**
  * Hulls that are solid: ships meeting each other rather than passing through.
@@ -136,7 +137,14 @@ export class Contacts {
   }
 }
 
-/** One module's box in the world: centre, axes and half extents. */
+/**
+ * One module's outline in the world: where it is, and what shape it is there.
+ *
+ * A box is held as its centre, its two axes and its half extents, which is
+ * what the separating-axis test below wants and is two of our own sines to
+ * build. A module that is not a box (`shape.ts`) carries its corners instead,
+ * and `count` is which of the two it is: zero for a box, three for a triangle.
+ */
 interface Box {
   x: number;
   y: number;
@@ -147,9 +155,13 @@ interface Box {
   halfWidth: number;
   /** Corner distance, for rejecting a pair before the separating-axis test. */
   radius: number;
+  /** Corners in the world, `x, y` pairs, for a module that is not a box. */
+  corners: Float64Array;
+  /** How many of them there are, and zero for a box. */
+  count: number;
 }
 
-/** Fill `out` with a module's box in the world, given its body's pose. */
+/** Fill `out` with a module's outline in the world, given its body's pose. */
 function boxOf(design: ShipDesign, module: number, bx: number, by: number, angle: number, out: Box): void {
   const m = design.modules[module]!;
   const c = cos(angle);
@@ -159,9 +171,28 @@ function boxOf(design: ShipDesign, module: number, bx: number, by: number, angle
   const own = angle + m.angle;
   out.ux = cos(own);
   out.uy = sin(own);
-  out.halfLength = m.spec.length * 0.5;
-  out.halfWidth = m.spec.width * 0.5;
-  out.radius = sqrt(out.halfLength * out.halfLength + out.halfWidth * out.halfWidth);
+  const triangle = triangleOf(m.spec);
+  if (triangle === null) {
+    out.count = 0;
+    out.halfLength = m.spec.length * 0.5;
+    out.halfWidth = m.spec.width * 0.5;
+    out.radius = sqrt(out.halfLength * out.halfLength + out.halfWidth * out.halfWidth);
+    return;
+  }
+  // The corners are written about the module's own centre, which is where its
+  // position puts it, so the pose turns them and the centre carries them.
+  out.count = triangle.length / 2;
+  let furthest = 0;
+  for (let i = 0; i < triangle.length; i += 2) {
+    const x = triangle[i]!;
+    const y = triangle[i + 1]!;
+    out.corners[i] = out.x + x * out.ux - y * out.uy;
+    out.corners[i + 1] = out.y + x * out.uy + y * out.ux;
+    furthest = max(furthest, sqrt(x * x + y * y));
+  }
+  out.halfLength = 0;
+  out.halfWidth = 0;
+  out.radius = furthest;
 }
 
 /**
@@ -180,7 +211,10 @@ function boxesOf(
 ): void {
   for (let m = 0; m < design.modules.length; m++) {
     if (out.length <= m) {
-      out.push({ x: 0, y: 0, ux: 1, uy: 0, halfLength: 0, halfWidth: 0, radius: 0 });
+      out.push({
+        x: 0, y: 0, ux: 1, uy: 0, halfLength: 0, halfWidth: 0, radius: 0,
+        corners: new Float64Array(MAX_CORNERS * 2), count: 0,
+      });
     }
     boxOf(design, m, bx, by, angle, out[m]!);
   }
@@ -193,6 +227,55 @@ function reach(box: Box, ax: number, ay: number): number {
     abs(box.halfLength * (box.ux * ax + box.uy * ay)) +
     abs(box.halfWidth * (-box.uy * ax + box.ux * ay))
   );
+}
+
+/**
+ * The nearest and furthest an outline reaches along an axis, written into
+ * `span` as absolute projections rather than as a reach from a centre.
+ *
+ * A box reaches the same distance either way from its middle, so a half extent
+ * says everything about it; a triangle does not, and asking it for one would
+ * put its centroid halfway between its corners' projections and leave contacts
+ * resolving against a shape the ship has not got.
+ */
+function project(box: Box, ax: number, ay: number, span: { lo: number; hi: number }): void {
+  if (box.count === 0) {
+    const centre = box.x * ax + box.y * ay;
+    const half = reach(box, ax, ay);
+    span.lo = centre - half;
+    span.hi = centre + half;
+    return;
+  }
+  let lo = Infinity;
+  let hi = -Infinity;
+  for (let i = 0; i < box.count * 2; i += 2) {
+    const p = box.corners[i]! * ax + box.corners[i + 1]! * ay;
+    lo = min(lo, p);
+    hi = max(hi, p);
+  }
+  span.lo = lo;
+  span.hi = hi;
+}
+
+/** The separating axes an outline contributes, written into `out`. */
+function axesOf(box: Box, out: Float64Array, at: number): number {
+  if (box.count === 0) {
+    out[at] = box.ux;
+    out[at + 1] = box.uy;
+    out[at + 2] = -box.uy;
+    out[at + 3] = box.ux;
+    return 2;
+  }
+  for (let i = 0; i < box.count; i++) {
+    const a = i * 2;
+    const b = ((i + 1) % box.count) * 2;
+    const ex = box.corners[b]! - box.corners[a]!;
+    const ey = box.corners[b + 1]! - box.corners[a + 1]!;
+    const span = sqrt(ex * ex + ey * ey);
+    out[at + i * 2] = span > 0 ? ey / span : 1;
+    out[at + i * 2 + 1] = span > 0 ? -ex / span : 0;
+  }
+  return box.count;
 }
 
 /**
@@ -211,17 +294,15 @@ function contactPoint(a: Box, b: Box, nx: number, ny: number): void {
   const tx = -ny;
   const ty = nx;
 
-  // Across the normal: the strip both boxes cover.
-  const alongT = a.x * tx + a.y * ty;
-  const bAlongT = b.x * tx + b.y * ty;
-  const lo = max(alongT - reach(a, tx, ty), bAlongT - reach(b, tx, ty));
-  const hi = min(alongT + reach(a, tx, ty), bAlongT + reach(b, tx, ty));
-  const across = (lo + hi) * 0.5;
+  // Across the normal: the strip both outlines cover.
+  project(a, tx, ty, spanA);
+  project(b, tx, ty, spanB);
+  const across = (max(spanA.lo, spanB.lo) + min(spanA.hi, spanB.hi)) * 0.5;
 
   // Along it: between the face of one and the face of the other.
-  const faceA = a.x * nx + a.y * ny + reach(a, nx, ny);
-  const faceB = b.x * nx + b.y * ny - reach(b, nx, ny);
-  const depth = (faceA + faceB) * 0.5;
+  project(a, nx, ny, spanA);
+  project(b, nx, ny, spanB);
+  const depth = (spanA.hi + spanB.lo) * 0.5;
 
   point.x = nx * depth + tx * across;
   point.y = ny * depth + ty * across;
@@ -240,7 +321,9 @@ const solidDesigns: ShipDesign[] = [];
  */
 const solidLayers: number[] = [];
 const point = { x: 0, y: 0 };
-const axes = new Float64Array(8);
+const axes = new Float64Array(MAX_CORNERS * 2 * 2);
+const spanA = { lo: 0, hi: 0 };
+const spanB = { lo: 0, hi: 0 };
 
 /**
  * The shallowest way to push two boxes apart, or nothing if they are clear.
@@ -250,14 +333,8 @@ const axes = new Float64Array(8);
  * written into `axes[0..1]` pointing from A towards B.
  */
 function overlap(a: Box, b: Box): number {
-  axes[0] = a.ux;
-  axes[1] = a.uy;
-  axes[2] = -a.uy;
-  axes[3] = a.ux;
-  axes[4] = b.ux;
-  axes[5] = b.uy;
-  axes[6] = -b.uy;
-  axes[7] = b.ux;
+  const used = axesOf(a, axes, 0) * 2;
+  const count = used + axesOf(b, axes, used) * 2;
 
   const dx = b.x - a.x;
   const dy = b.y - a.y;
@@ -265,16 +342,27 @@ function overlap(a: Box, b: Box): number {
   let best = Infinity;
   let bestX = 0;
   let bestY = 0;
-  for (let k = 0; k < 8; k += 2) {
+  // Two boxes are measured as half extents from their centres, which is the
+  // same answer as the projections below and a handful of multiplications
+  // cheaper — and it is the pair nearly every contact in a battle is.
+  const boxes = a.count === 0 && b.count === 0;
+  for (let k = 0; k < count; k += 2) {
     const ax = axes[k]!;
     const ay = axes[k + 1]!;
-    const centres = dx * ax + dy * ay;
-    const gap = reach(a, ax, ay) + reach(b, ax, ay) - abs(centres);
+    let gap: number;
+    if (boxes) {
+      gap = reach(a, ax, ay) + reach(b, ax, ay) - abs(dx * ax + dy * ay);
+    } else {
+      project(a, ax, ay, spanA);
+      project(b, ax, ay, spanB);
+      gap = min(spanA.hi, spanB.hi) - max(spanA.lo, spanB.lo);
+    }
     // A single axis with daylight along it is a proof of separation.
     if (gap <= 0) return 0;
     if (gap < best) {
       best = gap;
       // Always from A towards B, so the impulse has a side to push from.
+      const centres = dx * ax + dy * ay;
       bestX = centres < 0 ? -ax : ax;
       bestY = centres < 0 ? -ay : ay;
     }

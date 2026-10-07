@@ -1,5 +1,6 @@
 import { abs, atan2, cos, HALF_PI, max, min, round, sin } from './math.js';
-import { boxAngle, moduleCentre, type ModuleSpec } from './modules.js';
+import { boxAngle, moduleCentre, moduleOutline, type ModuleSpec } from './modules.js';
+import { isTriangle, outlineAxes, projectOutline } from './shape.js';
 import {
   ATTACHMENT_TOLERANCE,
   contactWidth,
@@ -186,11 +187,18 @@ function firstContact(
 
 /** `firstContact` for one pair, by the separating-axis test swept along the motion. */
 function contact(a: ModuleSpec, b: ModuleSpec, dx: number, dy: number, limit: number): number | null {
-  const ca = corners(a);
-  const cb = corners(b);
-  const aa = boxAngle(a);
-  const ba = boxAngle(b);
-  const axes = [cos(aa), sin(aa), -sin(aa), cos(aa), cos(ba), sin(ba), -sin(ba), cos(ba), -dy, dx];
+  const ca: number[] = [];
+  const cb: number[] = [];
+  const countA = moduleOutline(a, ca);
+  const countB = moduleOutline(b, cb);
+  // The two outlines' edge normals, and the normal to the motion: enough to
+  // separate a pair of convex shapes sweeping past each other.
+  const axes: number[] = [];
+  const more: number[] = [];
+  const used = outlineAxes(ca, countA, axes);
+  const extra = outlineAxes(cb, countB, more);
+  for (let i = 0; i < extra * 2; i++) axes[used * 2 + i] = more[i]!;
+  axes.push(-dy, dx);
   // When the two start to touch, and the window in which they would overlap
   // by more than the tolerance; they meet only if that window opens in reach.
   let touch = 0;
@@ -200,18 +208,12 @@ function contact(a: ModuleSpec, b: ModuleSpec, dx: number, dy: number, limit: nu
     const ax = axes[k]!;
     const ay = axes[k + 1]!;
     const speed = dx * ax + dy * ay;
-    let aLo = Infinity;
-    let aHi = -Infinity;
-    let bLo = Infinity;
-    let bHi = -Infinity;
-    for (let c = 0; c < 8; c += 2) {
-      const pa = ca[c]! * ax + ca[c + 1]! * ay;
-      const pb = cb[c]! * ax + cb[c + 1]! * ay;
-      aLo = min(aLo, pa);
-      aHi = max(aHi, pa);
-      bLo = min(bLo, pb);
-      bHi = max(bHi, pb);
-    }
+    projectOutline(ca, countA, ax, ay, spanA);
+    projectOutline(cb, countB, ax, ay, spanB);
+    const aLo = spanA.lo;
+    const aHi = spanA.hi;
+    const bLo = spanB.lo;
+    const bHi = spanB.hi;
     if (abs(speed) < 1e-12) {
       if (min(aHi, bHi) - max(aLo, bLo) <= ATTACHMENT_TOLERANCE) return null;
       continue;
@@ -229,27 +231,21 @@ function contact(a: ModuleSpec, b: ModuleSpec, dx: number, dy: number, limit: nu
   return max(0, touch);
 }
 
-function corners(box: ModuleSpec): number[] {
-  const mid = moduleCentre(box);
-  const angle = boxAngle(box);
-  const c = cos(angle);
-  const s = sin(angle);
-  const hl = box.length / 2;
-  const hw = box.width / 2;
-  const out: number[] = [];
-  for (const [l, w] of [
-    [hl, hw],
-    [hl, -hw],
-    [-hl, -hw],
-    [-hl, hw],
-  ] as const) {
-    out.push(mid.x + l * c - w * s, mid.y + l * s + w * c);
-  }
-  return out;
-}
+/** Scratch for the sweeps' separating-axis tests. */
+const spanA = { lo: 0, hi: 0 };
+const spanB = { lo: 0, hi: 0 };
 
-/** The four faces of `before`, keeping those that are somewhere else in `after`. */
+/**
+ * The four faces of `before`, keeping those that are somewhere else in `after`.
+ *
+ * None at all for a module that is not a box: a triangle is edited by moving a
+ * corner, which moves two edges at once and neither of them squarely, so there
+ * is no face for a neighbour to be carried by. Its neighbours stay where they
+ * are and the layout rules report anything that has come apart, which is the
+ * same answer they give for a module dragged rather than resized.
+ */
 function movedFaces(before: ModuleSpec, after: ModuleSpec): Face[] {
+  if (isTriangle(before) || isTriangle(after)) return [];
   const angle = boxAngle(before);
   const ux = cos(angle);
   const uy = sin(angle);
@@ -333,8 +329,18 @@ export interface SharedFace {
   bWithinA: boolean;
 }
 
-/** The face two modules share, or null unless they are square to each other and joined along one. */
+/**
+ * The face two modules share, or null unless they are square to each other and
+ * joined along one.
+ *
+ * Never for a module that is not a box. A seam is a face the two can trade
+ * between them, one growing as the other gives up room, and a triangle has no
+ * face it could grow by: moving a corner moves two edges at once. The pair is
+ * still welded along whatever they touch — `contactWidth` is the question
+ * about that — and it is only the drag that has nothing to offer.
+ */
 export function sharedFace(a: ModuleSpec, b: ModuleSpec): SharedFace | null {
+  if (isTriangle(a) || isTriangle(b)) return null;
   const angleA = boxAngle(a);
   const turn = ((((boxAngle(b)) - angleA) % HALF_PI) + HALF_PI) % HALF_PI;
   if (min(turn, HALF_PI - turn) > 1e-9) return null;
