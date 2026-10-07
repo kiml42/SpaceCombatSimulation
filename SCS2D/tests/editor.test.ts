@@ -55,6 +55,7 @@ import {
   snap,
   toPlacementFrame,
   updatePlacement,
+  arrivingModule,
 } from '../editor/edit.js';
 import {
   emptyBlueprint,
@@ -2634,5 +2635,28 @@ describe('what an assembly weighs', () => {
     const each = parts.map((spec) => moduleStats(spec).mass);
     expect(assemblyMass(parts, [0, 1])).toBeCloseTo(each[0]! + each[1]!, 9);
     expect(assemblyMass(parts, [])).toBe(0);
+  });
+});
+
+describe('a module being added', () => {
+  const tank: ModuleSpec = { kind: 'tank', x: 0, y: 0, length: 6, width: 4 };
+
+  it('arrives at the origin, at its usual size, while the origin is on screen', () => {
+    expect(arrivingModule(tank, { x: 10, y: -5, width: 100, height: 60 }, 0.5)).toEqual(tank);
+  });
+
+  it('arrives in the middle of the view, on the grid, when the origin is off it', () => {
+    const added = arrivingModule(tank, { x: 412.3, y: -87.6, width: 100, height: 60 }, 0.5);
+    expect([added.x, added.y]).toEqual([412.5, -87.5]);
+    expect([added.length, added.width]).toEqual([6, 4]);
+  });
+
+  it('is sized to the view when its usual size would be a speck or fill it', () => {
+    // Out over a kilometre of hull: an eighth of the view, squared to the grid.
+    const big = arrivingModule(tank, { x: 0, y: 0, width: 2000, height: 1200 }, 10);
+    expect([big.length, big.width]).toEqual([150, 100]);
+    // In on a drone: the same share, and never smaller than a grid step.
+    const small = arrivingModule(tank, { x: 0, y: 0, width: 4, height: 3 }, 0.01);
+    expect([small.length, small.width]).toEqual([0.38, 0.25]);
   });
 });

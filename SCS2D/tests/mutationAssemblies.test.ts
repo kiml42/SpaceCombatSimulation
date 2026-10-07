@@ -63,8 +63,9 @@ const PARTS: readonly ModuleSpec[] = [
   { kind: 'engine', x: 1, y: -2, angle: 0, length: 1, width: 1 },
 ];
 
+/** Eight places: the frames round to nine, and a trip in and out rounds twice. */
 function near(a: number, b: number): void {
-  expect(a).toBeCloseTo(b, 9);
+  expect(a).toBeCloseTo(b, 8);
 }
 
 describe('the frame a part is written in', () => {
@@ -107,6 +108,34 @@ describe('the frame a part is written in', () => {
         near(back.x, part.x);
         near(back.y, part.y);
         near(back.angle ?? 0, part.angle ?? 0);
+      }
+    }
+  });
+
+  it('leaves a triangle where a file written from it reads back unchanged', () => {
+    // The parser re-centres every triangle and rounds where it lands, so a
+    // position carried through a frame unrounded saved differently the second
+    // time. Thirds, because a triangle's centroid is where they come from.
+    const triangles = parseBlueprint({
+      formatVersion: 1,
+      name: 'Corners',
+      modules: [
+        { kind: 'structure', x: 0, y: 0, vertices: [0, 0, 1, 0, 0, 1] },
+        { kind: 'tank', x: 2, y: 1, angle: 30, vertices: [0, 0, 2, 0, 0, 1] },
+      ],
+    }).modules as ModuleSpec[];
+    const steady = (blueprint: Blueprint): void => {
+      const file = serialiseBlueprint(blueprint);
+      expect(serialiseBlueprint(parseBlueprint(file))).toEqual(file);
+    };
+    for (const instance of FRAMES) {
+      for (const triangle of triangles) {
+        steady({ name: 'Out', modules: [CORE, outOfInstanceFrame(triangle, instance)] });
+        steady({
+          name: 'In',
+          assemblies: { part: { modules: [intoInstanceFrame(triangle, instance)] } },
+          modules: [CORE, instance],
+        });
       }
     }
   });
@@ -247,20 +276,25 @@ describe('breeding the grouping', () => {
 
   // Breeds a long line of an already large ship, so it is slow by nature; the
   // default timeout is for tests that are quick by nature.
-  it('keeps every generation a ship, and a file the parser accepts', { timeout: 30_000 }, () => {
+  it('keeps every generation a ship, and a file the parser accepts', { timeout: 60_000 }, () => {
     // The catamaran is the founder with assemblies already, so these operators
     // are working on a grouping somebody else wrote rather than their own.
-    const rng = new Rng(13);
-    let held: Blueprint = CATAMARAN;
-    for (let i = 0; i < 200; i++) {
-      held = mutate(held, rng, { structural: 1 }).blueprint;
-      const file = serialiseBlueprint(held);
-      expect(blueprintFileProblem(file), `generation ${i}`).toBeNull();
-      expect(JSON.stringify(serialiseBlueprint(parseBlueprint(file)))).toEqual(JSON.stringify(file));
+    // Several seeds, since each reaches dissolving and absorbing triangles at
+    // a different generation.
+    for (const seed of [1, 3, 11, 17]) {
+      const rng = new Rng(seed);
+      let held: Blueprint = CATAMARAN;
+      for (let i = 0; i < 200; i++) {
+        held = mutate(held, rng, { structural: 1 }).blueprint;
+        const file = serialiseBlueprint(held);
+        const where = `seed ${seed}, generation ${i}`;
+        expect(blueprintFileProblem(file), where).toBeNull();
+        expect(JSON.stringify(serialiseBlueprint(parseBlueprint(file))), where).toEqual(JSON.stringify(file));
+      }
     }
   });
 
-  it('never leaves a definition nothing places', () => {
+  it('never leaves a definition nothing places', { timeout: 30_000 }, () => {
     // A part no instance uses is dead weight in the file that every later
     // generation still walks past, and an operator picking one to grow or
     // place would be working on something the ship does not have.

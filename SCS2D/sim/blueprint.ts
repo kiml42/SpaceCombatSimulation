@@ -1022,6 +1022,7 @@ function place(
     if (placement.main !== undefined) spec.main = placement.main;
     if (placement.thick !== undefined) spec.thick = placement.thick;
     if (placement.sealing !== undefined) spec.sealing = placement.sealing;
+    if (placement.drainPriority !== undefined) spec.drainPriority = placement.drainPriority;
     if (placement.targeting !== undefined) spec.targeting = placement.targeting;
     if (placement.notes !== undefined) spec.notes = placement.notes;
     out.push(spec);
@@ -1190,10 +1191,22 @@ export function contactWidth(spec: ModuleSpec, other: ModuleSpec): number {
   if (boxes) {
     const ea = boxExtent(a.length * 0.5, a.width * 0.5, aux, auy, px, py);
     const eb = boxExtent(b.length * 0.5, b.width * 0.5, bux, buy, px, py);
-    return max(0, min(ea + eb - abs(dx * px + dy * py), min(ea, eb) * 2));
+    return weldWidth(min(ea + eb - abs(dx * px + dy * py), min(ea, eb) * 2));
   }
   const narrower = min(spanA.hi - spanA.lo, spanB.hi - spanB.lo);
-  return max(0, min(share(ca, realA, cb, realB, px, py), narrower));
+  return weldWidth(min(share(ca, realA, cb, realB, px, py), narrower));
+}
+
+/**
+ * The narrowest contact that is a joint, metres. Two modules meeting at a
+ * corner, turned by an angle whose sine and cosine round, measure a sliver
+ * of about 1e-16 m rather than nothing.
+ */
+const CONTACT_FLOOR = 1e-9;
+
+/** A measured contact width, or zero where it is only rounding. */
+function weldWidth(width: number): number {
+  return width > CONTACT_FLOOR ? width : 0;
 }
 
 /**

@@ -347,6 +347,15 @@
               title="How thick a self-sealing lining is inside the walls, millimetres. Thicker closes a hole faster, and closes wider ones; a hole wider than it can reach shrinks but stays open. It weighs, and takes room from the fuel. Zero never seals."
             />
           </div>
+          <div class="field" id="drainPriorityRow">
+            <label for="propDrainPriority">drain priority</label>
+            <input
+              id="propDrainPriority"
+              type="number"
+              step="1"
+              title="Which tanks an engine burns from first: the highest priority it is connected to, then the next once those are dry. Tanks of the same priority drain together. Zero by default."
+            />
+          </div>
           <div class="field">
             <label for="propNotes">notes</label>
             <textarea id="propNotes" placeholder="why this module is here"></textarea>

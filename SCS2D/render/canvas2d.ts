@@ -107,6 +107,9 @@ export function nextArcs(arcs: Arcs): Arcs {
 /** The key that cycles `Arcs` on every page that draws ships. */
 export const ARCS_KEY = 'a';
 
+/** The key that toggles rounds and beams between light and their side's colours. */
+export const TEAM_SHOTS_KEY = 'c';
+
 const BEAM = '#3df72c';
 const BEAM_GLOW = '#a8f132';
 
@@ -967,6 +970,8 @@ export function draw(
   heightPx: number,
   flashes?: Flashes,
   arcs: Arcs = 'none',
+  /** Rounds and beams in the colours of the side that fired them, rather than as light. */
+  teamShots = false,
 ): void {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = BACKGROUND;
@@ -992,8 +997,8 @@ export function draw(
   }
 
   drawBurns(ctx, snapshot);
-  drawProjectiles(ctx, snapshot, camera);
-  drawBeams(ctx, snapshot, camera);
+  drawProjectiles(ctx, snapshot, camera, teamShots);
+  drawBeams(ctx, snapshot, camera, teamShots);
   if (flashes !== undefined) drawFlashes(ctx, snapshot, flashes, camera);
 }
 
@@ -1150,7 +1155,17 @@ function drawStreak(
   ctx.drawImage(image, 0, -0.5, 1, 1);
 }
 
-function drawProjectiles(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Camera) {
+/** A round's colours: as light, or in its side's trim with a glow of its hull colour. */
+function tracerColour(team: number, teamShots: boolean, glow: boolean, inside: boolean): string | null {
+  if (!teamShots || team < 0) {
+    return glow ? (inside ? TRACER_GLOW_INSIDE : TRACER_GLOW) : inside ? TRACER_INSIDE : TRACER;
+  }
+  const { hull, trim } = shipColours(team);
+  if (glow) return inside ? TRACER_GLOW_INSIDE : `${hull}88`;
+  return inside ? `${trim}40` : trim;
+}
+
+function drawProjectiles(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Camera, teamShots: boolean) {
   // Tracers, in two passes so that every glow sits under every streak. Each
   // is exposed for the last step, as a camera would photograph it: drawn over
   // the line it crossed relative to the camera, fading in and out towards
@@ -1169,7 +1184,7 @@ function drawProjectiles(ctx: CanvasRenderingContext2D, snapshot: Snapshot, came
     const glowPass = pass === 0;
     for (let i = 0; i < snapshot.projectileCount; i++) {
       const inside = snapshot.projectileInside[i] === 1;
-      const colour = glowPass ? (inside ? TRACER_GLOW_INSIDE : TRACER_GLOW) : inside ? TRACER_INSIDE : TRACER;
+      const colour = tracerColour(snapshot.projectileTeam[i]!, teamShots, glowPass, inside);
       if (colour === null) continue;
       const image = sprite(glowPass ? 'glowStreak' : 'streak', colour);
       if (image === null) continue;
@@ -1190,7 +1205,7 @@ function drawProjectiles(ctx: CanvasRenderingContext2D, snapshot: Snapshot, came
   ctx.restore();
 }
 
-function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Camera) {
+function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Camera, teamShots: boolean) {
   // Beams, in two passes so that every glow sits under every streak. Both
   // are sized from the beam's width and floored on screen, so a beam is
   // true to size close up and legible from far out.
@@ -1201,8 +1216,9 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
   // Worth it for a halo that is the round's own size, and rare enough not to
   // read as anything but two tracers crossing.
   ctx.lineCap = 'butt';
-  ctx.strokeStyle = BEAM_GLOW;
+  const team = (i: number): number => (teamShots ? snapshot.beamTeam[i]! : -1);
   for (let i = 0; i < snapshot.beamCount; i++) {
+    ctx.strokeStyle = team(i) < 0 ? BEAM_GLOW : shipColours(team(i)).hull;
     const calibre = snapshot.beamWidth[i]!;
     const halo = BEAM_GLOW_WIDTHS * calibre;
     ctx.globalAlpha =
@@ -1219,8 +1235,8 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
   // A pass per beam, because each carries its own width and its own opacity.
   // Cheap at the beam counts a battle reaches; if that ever stops being true,
   // bucket by width rather than reaching for a single average.
-  ctx.strokeStyle = BEAM;
   for (let i = 0; i < snapshot.beamCount; i++) {
+    ctx.strokeStyle = team(i) < 0 ? BEAM : shipColours(team(i)).trim;
     const calibre = snapshot.beamWidth[i]!;
     ctx.globalAlpha =
       beamAlpha(snapshot.beamPower[i]!) * flooredFade(calibre, MIN_TRACER_PX, camera.scale);

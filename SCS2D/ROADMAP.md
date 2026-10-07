@@ -208,8 +208,6 @@ and evolution run does, and a ship tuned to half the rules is tuned twice.
 - **Lining the stock tanks.** Leaks and sealing are built (DESIGN.md Status), and no stock ship has a lining,
   so every hole in one stays open while there is fuel behind it. How thick a lining each wants is a design
   call about the fleet.
-- **Drain priority.** Tanks are drained tier by tier (`drainPriority` in `sim/fuel.ts`), and every tank is
-  in the one tier. A priority per tank in the layout fills it in.
 - **Pilots that know their fuel.** Nothing flies differently for running low, so a ship spends its tanks
   as freely as ever. Short-legged ships show it: the Dinky carries 68 kg (13 s flat out), the TIE and the
   Torch little more for what they push, and in `swarm` every Dinky is dry before it reaches the gunships.
