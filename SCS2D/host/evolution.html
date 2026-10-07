@@ -178,7 +178,14 @@
          colour too, so which is which reads without looking up. */
       #fleet thead th.part { vertical-align: bottom; line-height: 1.2; }
       #fleet td.part div { line-height: 1.5; }
-      #battleScores table { width: auto; margin: 0 0 0.4rem; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+      /* Over the battle rather than beside it, in a corner the camera keeps
+         clear, and out of the way of the pointer, which pans and zooms. */
+      #battleScores {
+        position: absolute; top: 0.5rem; left: 0.5rem; padding: 0.3rem 0.5rem;
+        background: #0b0f15cc; border-radius: 4px; pointer-events: none; font-size: 0.8rem;
+      }
+      #battleScores[hidden] { display: none; }
+      #battleScores table { width: auto; margin: 0; border-collapse: collapse; font-variant-numeric: tabular-nums; }
       #battleScores th, #battleScores td { padding: 0 0.6rem 0 0; text-align: right; font-weight: normal; }
       #battleScores th:first-child, #battleScores td:first-child { text-align: left; }
       #battleScores th { color: #7f93aa; }
@@ -456,10 +463,10 @@
             </span>
             <span id="watching" class="grow"></span>
           </div>
-          <div id="battleScores" hidden title="What each side would score if the match ended as it stands"></div>
         </div>
         <div id="viewWrap">
           <canvas id="view" hidden></canvas>
+          <div id="battleScores" hidden title="What each side would score if the match ended as it stands"></div>
           <div id="fleet"></div>
         </div>
       </section>
