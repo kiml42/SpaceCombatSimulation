@@ -67,11 +67,6 @@ an entry is either still open or it is gone.
   towards a target, a weight against each by how dangerous it is and how close, so a support ship stays
   behind its fleet without being ordered to. An unarmed ship with a ram doctrine already picks targets (a
   torpedo); one without one currently does nothing at all.
-- **Main guns.** A way to mark which mounts are a ship's main battery, so that it counts itself armed only
-  while at least one of them works. Secondary mounts are expected to be CIWS, and losing them should not
-  make a capital think itself harmless — or make a ram doctrine's `ramArmed` fire because the point
-  defence is gone. `isDisarmed`, `armedWeight` on the enemy's side and the ram decision would all read the
-  main guns rather than every mount. It also answers the attack-orientation question in §12 below.
 - **More pickers**: ship-type. Hemisphere as a hard discard too, if `facingWeight`'s
   soft version — astern scores against — turns out not to be enough.
 - **How much a mount cares about its ship's orders, as a weight of its own.** An order is currently a
@@ -376,13 +371,12 @@ Deliberately unresolved; decide when they block something.
   deciding once the round trip is what slows design down. Whatever it is, it must not grow out of the
   editor's animation (§8's notes on the editor).
 
-- **Which of its guns a ship should fly to the range of.** A ship's reach, which its doctrine's standoff is
-  a fraction of, is the *best* of its mounts' against its own size of enemy. The gunship's quick-firing
-  point-defence turrets reach 3,286 m against a gunship, so it holds at 1,307–1,960 m while its main gun
-  reaches 1,354 m — the editor's band shows it at a glance. The alternatives are the main battery's reach
-  (by mass of gun, or by damage per second), the shortest, or a mount marked as the one to fly by; each
-  changes every ship's standoff, so it wants measuring against the fleet scenarios. A gun's `fireRange`
-  already lets a design pull one mount's reach in or out by hand.
+- **Which of its main guns a ship should fly to the range of.** A ship flies to the *best* reach among its
+  main guns, so marking point defence secondary answers the case of point defence
+  out-ranging it. What is left is a battery of guns with different
+  reaches: the best, the shortest, or weighted by mass of gun or damage per second. Each changes every
+  such ship's standoff, so it wants measuring against the fleet scenarios. A gun's `fireRange` already
+  lets a design pull one mount's reach in or out by hand.
 
 - **How far a gun should look for a consort in its line of fire.** It casts for half a second of the
   round's flight, on the reasoning that a gun asking about the whole flight would never fire. That covers

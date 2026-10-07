@@ -342,6 +342,7 @@ export function startEditor(): void {
   const exportButton = el<HTMLButtonElement>('exportShip');
 
   const weaponInput = el<HTMLInputElement>('propWeapon');
+  const mainInput = el<HTMLInputElement>('propMain');
   const shapeInput = el<HTMLInputElement>('propShape');
   const thickInput = el<HTMLInputElement>('propThick');
   const thickTitle = thickInput.title;
@@ -850,6 +851,9 @@ export function startEditor(): void {
     // Only an engine has a plume to point.
     el<HTMLElement>('weaponRow').hidden = spec.kind !== 'engine';
     weaponInput.checked = spec.weapon === true;
+    // An engine is only a weapon once it is marked as one.
+    el<HTMLElement>('mainRow').hidden = !(isWeaponMount(spec.kind) || (spec.kind === 'engine' && spec.weapon === true));
+    mainInput.checked = spec.main !== false;
     el<HTMLElement>('shapeRow').hidden = !canShape(spec.kind);
     shapeInput.checked = isTriangle(spec);
     el<HTMLElement>('thickRow').hidden = !readsThick(spec.kind);
@@ -963,7 +967,7 @@ export function startEditor(): void {
       reach: design.reach,
       accelFore: stats.accelFore,
       accelAft: stats.accelAft,
-      guns: design.turrets.length,
+      guns: design.turrets.filter((turret) => turret.main).length,
       fireRange,
     };
   };
@@ -1298,6 +1302,22 @@ export function startEditor(): void {
         const next = { ...placement };
         if (on) next.weapon = true;
         else delete next.weapon;
+        return next;
+      }),
+    );
+  });
+
+  mainInput.addEventListener('change', () => {
+    const path = doc.selection;
+    if (path === null) return;
+    const on = mainInput.checked;
+    change(
+      updatePlacement(doc.blueprint, path, (placement) => {
+        if (!('kind' in placement)) return placement;
+        const next = { ...placement };
+        // Absent rather than true when it is on: main is the usual thing.
+        if (on) delete next.main;
+        else next.main = false;
         return next;
       }),
     );
