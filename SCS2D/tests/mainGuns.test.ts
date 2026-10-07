@@ -11,7 +11,7 @@ import {
 import { Ships } from '../sim/ships.js';
 import { GUNSHIP, STAR_DESTROYER } from '../scenarios/blueprints.js';
 
-/** A core with a big gun on the bow and a small one on the stern, either or both marked main. */
+/** A core with a big gun on the bow and a small one on the stern, either or both main. */
 function twoGuns(bigMain: boolean, smallMain: boolean): Blueprint {
   const big: ModuleSpec = { kind: 'turret', x: 4, y: 0, length: 4, width: 4, barrels: 2 };
   // Holding its fire for close in, so its reach is the shorter.
@@ -24,8 +24,8 @@ function twoGuns(bigMain: boolean, smallMain: boolean): Blueprint {
     width: 2,
     targeting: { fireRange: 0.5 },
   };
-  if (bigMain) big.main = true;
-  if (smallMain) small.main = true;
+  if (!bigMain) big.main = false;
+  if (!smallMain) small.main = false;
   return {
     name: 'Two guns',
     modules: [{ kind: 'core', x: 0, y: 0, length: 4, width: 4 }, big, small],
@@ -40,20 +40,19 @@ function knockOut(ships: Ships, world: World, ship: number, t: number): void {
 }
 
 describe('main guns', () => {
-  it('are every weapon when none is marked', () => {
-    const design = compileBlueprint(twoGuns(false, false));
-    expect(design.marksMain).toBe(false);
-    expect(design.turrets.every((t) => t.main)).toBe(true);
+  it('are every weapon not marked secondary', () => {
+    expect(compileBlueprint(twoGuns(true, true)).turrets.every((t) => t.main)).toBe(true);
+    expect(compileBlueprint(twoGuns(true, false)).turrets.map((t) => t.main)).toEqual([true, false]);
   });
 
-  it('are only the marked ones when any is', () => {
-    const design = compileBlueprint(twoGuns(true, false));
-    expect(design.marksMain).toBe(true);
-    expect(design.turrets.map((t) => t.main)).toEqual([true, false]);
+  it('can be none at all, for a ship with no main armament', () => {
+    const design = compileBlueprint(twoGuns(false, false));
+    expect(design.turrets.some((t) => t.main)).toBe(false);
+    expect(design.reach).toBe(0);
   });
 
   it('set the ship’s reach, whatever its secondaries reach', () => {
-    const all = compileBlueprint(twoGuns(false, false));
+    const all = compileBlueprint(twoGuns(true, true));
     const big = compileBlueprint(twoGuns(true, false));
     const small = compileBlueprint(twoGuns(false, true));
     expect(small.reach).toBeLessThan(big.reach);
@@ -72,37 +71,36 @@ describe('main guns', () => {
     expect(ships.isDisarmed(ship)).toBe(true);
   });
 
-  it('leave a ship armed on any one gun when none is marked', () => {
+  it('leave a ship armed on any one gun when every one is main', () => {
     const world = new World({ dt: 1 / 60, seed: 1 });
     const ships = new Ships();
-    const ship = ships.spawn(world, { design: compileBlueprint(twoGuns(false, false)), x: 0, y: 0, team: 0 });
+    const ship = ships.spawn(world, { design: compileBlueprint(twoGuns(true, true)), x: 0, y: 0, team: 0 });
     world.step();
     knockOut(ships, world, ship, 0);
     expect(ships.isDisarmed(ship)).toBe(false);
   });
 
-  it('stay marked on a piece broken off, so its point defence does not become its battery', () => {
+  it('stay secondary on a piece broken off, so its point defence does not become its battery', () => {
     const design = compileBlueprint(twoGuns(true, false));
     const core = design.cores[0]!;
     const small = design.turrets[1]!.module;
     const piece = subDesign(design, [core, small]);
-    expect(piece.marksMain).toBe(true);
     expect(piece.turrets[0]!.main).toBe(false);
   });
 
   it('round-trip through a file, and only on a kind that reads them', () => {
     const file = serialiseBlueprint(twoGuns(true, false));
-    expect(JSON.stringify(file)).toContain('"main":true');
-    expect(parseBlueprint(file).modules[1]).toMatchObject({ main: true });
-    const core: Blueprint = { name: 'Core', modules: [{ kind: 'core', x: 0, y: 0, length: 4, width: 4, main: true }] };
+    expect(JSON.stringify(file)).toContain('"main":false');
+    expect(parseBlueprint(file).modules[2]).toMatchObject({ main: false });
+    const core: Blueprint = { name: 'Core', modules: [{ kind: 'core', x: 0, y: 0, length: 4, width: 4, main: false }] };
     expect(JSON.stringify(serialiseBlueprint(core))).not.toContain('"main"');
   });
 
-  it('count a weapon engine only when it is marked, once anything is', () => {
+  it('count a weapon engine unless it is marked secondary', () => {
     const engine: ModuleSpec = { kind: 'engine', x: 0, y: -2, angle: -Math.PI / 2, length: 2, width: 2, weapon: true };
     const ship = (main: boolean): Blueprint => ({
       ...twoGuns(true, false),
-      modules: [...twoGuns(true, false).modules, main ? { ...engine, main: true } : engine],
+      modules: [...twoGuns(true, false).modules, main ? engine : { ...engine, main: false }],
     });
     expect(compileBlueprint(ship(false)).mainEngines).toEqual([]);
     expect(compileBlueprint(ship(true)).mainEngines).toEqual([0]);

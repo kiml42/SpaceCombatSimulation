@@ -202,11 +202,10 @@ inside any one file is not contiguous.
   three, mostly because a long thin hull has a large bounding radius for its mass — but it is an
   approximation in service of a nominal figure, and the real reach is worked out against the real target
   wherever there is one. **The pilot flies to its main battery's reach.** Any weapon — a gun, a beam, or an
-  engine marked as a weapon — may be marked *main*; a ship that marks none counts every weapon as main, and
-  one that marks any counts only those, both for how close it flies and for whether it is still armed. So a
-  capital that has lost its main guns knows it, however much point defence it has left, and enemies weighing
-  `armedWeight` and its own `ramArmed` see it the same way. The marks survive a break: a piece left with only
-  secondaries is disarmed rather than promoted. So a ship with an enemy on each beam fights both, and a gun that cannot reach what its ship is
+  engine marked as a weapon — is *main* unless marked secondary, and only main weapons count, both for how
+  close it flies and for whether it is still armed. So a capital that has lost its main guns knows it, however
+  much point defence it has left, and enemies weighing `armedWeight` and its own `ramArmed` see it the same
+  way; a piece broken off with only secondaries is disarmed, and a carrier can have no main armament at all. So a ship with an enemy on each beam fights both, and a gun that cannot reach what its ship is
   fighting fights what it can instead of sitting pinned against the edge of its arc. A further preference, for what the ship as a whole
   is fighting, is what keeps a broadside concentrated without tying it together; an order given is still
   obeyed by every mount that can train on it. How often a mount reconsiders is derived from the mount:

@@ -373,7 +373,7 @@ Deliberately unresolved; decide when they block something.
   editor's animation (§8's notes on the editor).
 
 - **Which of its main guns a ship should fly to the range of.** A ship flies to the *best* reach among its
-  main guns (every gun when none is marked), so marking a main battery answers the case of point defence
+  main guns, so marking point defence secondary answers the case of point defence
   out-ranging it. What is left is a battery of guns with different
   reaches: the best, the shortest, or weighted by mass of gun or damage per second. Each changes every
   such ship's standoff, so it wants measuring against the fleet scenarios. A gun's `fireRange` already
