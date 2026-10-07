@@ -154,6 +154,7 @@ export {
   triangleAcross,
   triangleBounds,
   triangleOf,
+  wedge,
   triangleRadius,
   TRIANGLE_CORNERS,
   insideOutline,

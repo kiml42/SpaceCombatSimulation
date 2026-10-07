@@ -294,8 +294,15 @@ inside any one file is not contiguous.
   of its box — left alone, the numbers slide the module half its own length into its neighbour, which
   refused every refit into an engine there was. The facing is kept, since every kind faces the way whatever sticks out
   of it points — an engine's bell as much as a gun's barrel — so whatever faced outboard still does. The editor's
-  kind swap is the same rule (`refitModule`). **The grouping is bred as well as the
-  modules.** A lineage can make a part of a module, dissolve one back into the layout, take a neighbour into
+  kind swap is the same rule (`refitModule`). **Shape is bred as far as a weld survives it.** Structure and
+  tanks arrive as a wedge now and then; a box welded on two faces and open on the other two has that
+  corner cut off, so the legs of what is left are the faces that were holding it on; and a triangle's
+  corner walks along one of the two edges that meet there, which keeps that edge's line exactly and so
+  keeps whatever was welded along it. A corner moved anywhere else swings both its edges and unsticks
+  both their neighbours, which is why none of the three is the general case. All three share a weight of
+  their own, so a run sets them to zero and keeps every module a box — which is also the fastest it can be,
+  a hull with wedges in it compiling about half as dear again as the same hull in boxes. **The grouping is bred as
+  well as the modules.** A lineage can make a part of a module, dissolve one back into the layout, take a neighbour into
   a part, grow one with a new module — on its outer edge by preference, which is the face likely to be free
   at every instance rather than at one, and the only way a part placed twice grows at all — place another
   instance of one — reflected as often as merely moved, since a ship is symmetric or
@@ -1089,8 +1096,9 @@ Mass from wall volume, capacity from interior area, strength from thickness and 
   sharp corner loses far more of its floor to wall than a blunt one, and a sliver of a plate is all
   wall. Depth is the narrowest way *through* the shape, so a long wedge is a thin module however far
   it reaches. What a triangle costs is the two things a rectangle has and it has not: a face to size
-  it by — so there is no seam to drag, no face for a neighbour to be carried by, and no mutation
-  operator that can touch it (ROADMAP.md §12) — and a face for something to stick out of, which is why
+  it by — so there is no seam to drag and no face for a neighbour to be carried by, and the three
+  draws that breed one are stated as corners rather than faces — and a face for something to stick out
+  of, which is why
   only those two archetypes may have corners at all. A triangle is stored centred on its own centroid
   and wound anticlockwise, so its position goes on meaning the middle its mass acts at; `length` and
   `width` stay filled in as the box the corners fit inside, derived rather than authored, and nothing
