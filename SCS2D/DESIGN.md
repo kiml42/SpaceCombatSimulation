@@ -309,7 +309,10 @@ inside any one file is not contiguous.
   it flies crabwise — drop an instance, and turn one over. Making a part and dissolving one change nothing
   about the ship at all: what they change is what the next generation can do, and there is no single
   mutation that both invents a grouping and pays off at once. Every operator has its inverse, because one
-  that can only add structure is a ratchet a lineage has no way down from. A doctrine number
+  that can only add structure is a ratchet a lineage has no way down from. A child's name drifts a letter
+  from its parent's one time in ten, from a generator of its own so the drift never moves a draw the design
+  depends on, and lines bred from one founder come to read as relatives rather than as the founder with a
+  number on. A doctrine number
   is perturbed by a fraction of its *default* rather than of what is held, so nothing that has reached zero
   is stuck there — and where the default is zero too, by a fraction of what a number is worth in that half
   of the doctrine, since otherwise every draw is a fraction of nothing and the field is not slow to find but
