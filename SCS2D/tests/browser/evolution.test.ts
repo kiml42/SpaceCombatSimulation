@@ -176,6 +176,9 @@ describe('the evolution page in a browser', () => {
   });
 
   it('fights a run and finishes it, without the page going away', async () => {
+    // Started with a battle showing, which has nothing to show until the
+    // first match is over and must then put it on.
+    await page.selectOption('#mode', 'battle');
     await page.click('#start');
     // The frame loop is what advances the run, so a page that blocked would
     // fail here rather than merely being slow: `waitForFunction` is polled
@@ -187,6 +190,7 @@ describe('the evolution page in a browser', () => {
     );
     expect(problems).toEqual([]);
     expect(await page.textContent('#readout')).toMatch(/matches fought/);
+    await page.waitForFunction(() => /\d+%|over/.test(document.getElementById('watching')?.textContent ?? ''));
   }, 180_000);
 
   it('draws the run as lines rather than an empty box', async () => {

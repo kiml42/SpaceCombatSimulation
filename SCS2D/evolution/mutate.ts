@@ -39,6 +39,7 @@ import {
   MAX_FRAGMENTS,
   readsFuse,
   readsSealing,
+  readsDrainPriority,
   moduleProblem,
   mountTraverse,
   isHullMount,
@@ -136,7 +137,7 @@ export type DoctrineWeights = Readonly<
  * - `fittings`: what would take real work on the craft to change — barrels,
  *   their length, nozzles and thickness.
  * - `tuning`: its loadout, which can change on a design someone drew —
- *   reinforcement, sealing, traverse, fuses, fragments, burst speed, and an
+ *   reinforcement, sealing, drain priority, traverse, fuses, fragments, burst speed, and an
  *   engine used as a weapon.
  * - `fighter`: whether the ship is a fighter, which changes how it is flown
  *   and how others target it.
@@ -376,6 +377,7 @@ function knobWeight(knob: Knob, { doctrine, build }: MutationLimits): number {
       return build.fittings;
     case 'reinforcement':
     case 'sealing':
+    case 'drainPriority':
     case 'traverse':
     case 'fuse':
     case 'fragments':
@@ -557,6 +559,7 @@ type Knob =
   | { readonly at: 'weapon'; readonly site: ModuleSite }
   | { readonly at: 'thick'; readonly site: ModuleSite }
   | { readonly at: 'sealing'; readonly site: ModuleSite }
+  | { readonly at: 'drainPriority'; readonly site: ModuleSite }
   | { readonly at: 'angle'; readonly site: ModuleSite }
   | { readonly at: 'face'; readonly site: ModuleSite }
   | { readonly at: 'shape'; readonly site: ModuleSite }
@@ -618,6 +621,7 @@ function knobs(draft: Draft): Knob[] {
       }
       if (canThicken(placement)) out.push({ at: 'thick', site });
       if (readsSealing(placement.kind)) out.push({ at: 'sealing', site });
+      if (readsDrainPriority(placement.kind)) out.push({ at: 'drainPriority', site });
       if (placement.kind === 'turret' || placement.kind === 'beamTurret') {
         out.push({ at: 'barrels', site });
       }
@@ -707,6 +711,8 @@ function renumber(knob: Knob, draft: Draft, rng: Rng, bounds: MutationLimits): s
       return thicken(knob.site);
     case 'sealing':
       return reseal(knob.site, rng, bounds);
+    case 'drainPriority':
+      return reprioritise(knob.site, rng);
     case 'angle':
       return turnModule(knob.site, rng, bounds);
     case 'face':
@@ -952,6 +958,14 @@ function reseal(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | nu
   if (now === was || moduleProblem({ ...site.spec, sealing: now }) !== null) return null;
   site.spec.sealing = now;
   return `${site.where} ${site.spec.kind}: sealing ${was * 1000} mm → ${now * 1000} mm`;
+}
+
+/** Move a tank one place earlier or later in the order its ship drains them. */
+function reprioritise(site: ModuleSite, rng: Rng): string | null {
+  const was = site.spec.drainPriority ?? 0;
+  const now = was + (rng.chance(0.5) ? 1 : -1);
+  site.spec.drainPriority = now;
+  return `${site.where} ${site.spec.kind}: drain priority ${was} → ${now}`;
 }
 
 /**
