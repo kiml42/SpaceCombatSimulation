@@ -271,6 +271,24 @@ function meet(
 }
 
 /**
+ * The triangle a module takes when it is first shaped: the wedge filling its
+ * own box, nose on the bow face and base across the stern.
+ *
+ * In the module's own frame and about the middle of its box, which is where
+ * the box it replaces was — `shapeModule` re-centres it on its own centroid
+ * and moves the module to match, so the wedge stays where the box was drawn.
+ *
+ * The one shape worth starting from: it is what a hull of rectangles cannot
+ * draw and what anybody reaching for a triangle wanted, and every other
+ * triangle is a corner or two away from it.
+ */
+export function wedge(spec: ModuleSpec): number[] {
+  const hl = spec.length / 2;
+  const hw = spec.width / 2;
+  return [hl, 0, -hl, hw, -hl, -hw];
+}
+
+/**
  * Second moment of area about the centroid, m⁴, for a corner list centred on
  * it — the shape's own contribution to how hard it is to turn.
  *
