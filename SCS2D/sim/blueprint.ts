@@ -1011,6 +1011,7 @@ function place(
     if (placement.weapon !== undefined) spec.weapon = placement.weapon;
     if (placement.thick !== undefined) spec.thick = placement.thick;
     if (placement.sealing !== undefined) spec.sealing = placement.sealing;
+    if (placement.drainPriority !== undefined) spec.drainPriority = placement.drainPriority;
     if (placement.targeting !== undefined) spec.targeting = placement.targeting;
     if (placement.notes !== undefined) spec.notes = placement.notes;
     out.push(spec);

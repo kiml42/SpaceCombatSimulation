@@ -485,7 +485,7 @@ describe('mutation', () => {
     // needs more draws the more of them there are.
     const rng = new Rng(7);
     let pushed = 0;
-    for (let i = 0; i < 400; i++) {
+    for (let i = 0; i < 800; i++) {
       const child = mutate(packed, rng, { structural: 0, numbers: 1 });
       if (child.edits.some((edit) => /layout\[0\] core: length 4 → 4\.5, moving 1 alongside/.test(edit))) {
         pushed++;
