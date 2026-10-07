@@ -1,6 +1,7 @@
 import {
   blueprintProblem,
   compileDraft,
+  contactWidth,
   isInstance,
   MAX_REPEAT,
   modulesOverlap,
@@ -21,8 +22,8 @@ import {
   type Doctrine,
   type Targeting,
 } from '../sim/doctrine.js';
-import { abs, clamp, cos, floor, HALF_PI, max, min, PI, round, sin } from '../sim/math.js';
-import { isTriangle } from '../sim/shape.js';
+import { abs, clamp, cos, floor, HALF_PI, max, min, PI, round, sin, sqrt } from '../sim/math.js';
+import { canShape, isTriangle, TRIANGLE_CORNERS, triangleOf, wedge } from '../sim/shape.js';
 import { degreesToRadians, radiansToDegrees } from '../sim/blueprintFile.js';
 import {
   barrelCalibres,
@@ -44,6 +45,7 @@ import {
   MODULE_KINDS,
   moduleCentre,
   refitModule,
+  shapeModule,
   type ModuleKind,
   type ModuleSpec,
 } from '../sim/modules.js';
@@ -356,6 +358,8 @@ function knobWeight(knob: Knob, { doctrine, build }: MutationLimits): number {
       return build.move;
     case 'face':
     case 'seam':
+    case 'shape':
+    case 'vertex':
       return build.resize;
     case 'kind':
       return build.refit;
@@ -549,6 +553,8 @@ type Knob =
   | { readonly at: 'sealing'; readonly site: ModuleSite }
   | { readonly at: 'angle'; readonly site: ModuleSite }
   | { readonly at: 'face'; readonly site: ModuleSite }
+  | { readonly at: 'shape'; readonly site: ModuleSite }
+  | { readonly at: 'vertex'; readonly site: ModuleSite }
   | { readonly at: 'seam'; readonly site: ModuleSite }
   | { readonly at: 'slide'; readonly site: ModuleSite }
   | { readonly at: 'place'; readonly site: InstanceSite }
@@ -596,6 +602,13 @@ function knobs(draft: Draft): Knob[] {
       );
       if (placement.kind !== 'structure' && placement.kind !== 'tank' && placement.kind !== 'core') {
         out.push({ at: 'angle', site });
+      }
+      // Shape, for the two archetypes that may have corners: a box with two
+      // free faces can lose the corner between them, and a triangle can walk
+      // one of its corners along an edge.
+      if (canShape(placement.kind)) {
+        if (isTriangle(placement)) out.push({ at: 'vertex', site });
+        else out.push({ at: 'shape', site });
       }
       if (canThicken(placement)) out.push({ at: 'thick', site });
       if (readsSealing(placement.kind)) out.push({ at: 'sealing', site });
@@ -692,6 +705,10 @@ function renumber(knob: Knob, draft: Draft, rng: Rng, bounds: MutationLimits): s
       return turnModule(knob.site, rng, bounds);
     case 'face':
       return moveFace(knob.site, draft, rng, bounds);
+    case 'shape':
+      return cutCorner(knob.site);
+    case 'vertex':
+      return moveVertex(knob.site, rng, bounds);
     case 'seam':
       return moveSeam(knob.site, rng, bounds);
     case 'slide':
@@ -902,6 +919,13 @@ function retrain(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | n
   return `${site.where} ${site.spec.kind}: traverse ${asDegrees}° → ${now}°`;
 }
 
+/**
+ * How often a newly added structure or tank arrives as a wedge rather than a
+ * box. A minority, because a box is the right guess nearly everywhere and a
+ * wedge is the one worth being able to reach.
+ */
+const SHAPED_ARRIVAL_CHANCE = 0.15;
+
 /** How often a fragments knob swaps shells for solid shot, rather than recounting them. */
 const SOLID_SHOT_CHANCE = 0.2;
 
@@ -1075,6 +1099,144 @@ function moveFace(site: ModuleSite, draft: Draft, rng: Rng, bounds: MutationLimi
 
   const change = `${site.where} ${spec.kind}: ${along ? 'length' : 'width'} ${was} → ${now}`;
   return pushed === 0 ? change : `${change}, moving ${pushed} alongside`;
+}
+
+/**
+ * Which of a box's four faces have nothing welded to them, as `[+x, +y, -x, -y]`.
+ *
+ * By where a neighbour's middle lies relative to this module's, in this
+ * module's own frame, once the two are known to touch at all. That is a
+ * heuristic and deliberately so: a module welded across a corner can be
+ * counted against either face it straddles. What it feeds is a *draw*, not a
+ * law — the layout rules still decide whether what comes out is a ship — and
+ * being wrong costs one refused candidate rather than a wrong answer.
+ */
+function openFaces(site: ModuleSite): boolean[] {
+  const spec = site.spec;
+  const open = [true, true, true, true];
+  const centre = moduleCentre(spec);
+  const angle = spec.angle ?? 0;
+  const c = cos(angle);
+  const sn = sin(angle);
+  for (const placement of site.list) {
+    if (isInstance(placement) || placement === spec) continue;
+    if (!(contactWidth(spec, placement) > 0)) continue;
+    const other = moduleCentre(placement);
+    const dx = other.x - centre.x;
+    const dy = other.y - centre.y;
+    // Into this module's own frame, where a face is an axis.
+    const localX = dx * c + dy * sn;
+    const localY = -dx * sn + dy * c;
+    if (abs(localX) >= abs(localY)) open[localX >= 0 ? 0 : 2] = false;
+    else open[localY >= 0 ? 1 : 3] = false;
+  }
+  return open;
+}
+
+/**
+ * Cut the corner off a box between two free faces, leaving a right triangle.
+ *
+ * **The two faces that go are the two nothing is welded to**, so the legs of
+ * what is left are the faces that were holding the module on and every weld
+ * it had survives at its full width. That is the whole reason this is the
+ * shape a lineage may reach for: the general case — a corner moved anywhere —
+ * changes two edges at once and takes apart whatever was welded along them,
+ * which is what kept shape out of evolution at all (ROADMAP.md §12).
+ *
+ * It needs exactly two free faces and they must be adjacent. Three or four
+ * free faces means the module is barely held on and which corner to cut is a
+ * guess rather than a reading; two opposite faces have no corner between them.
+ */
+function cutCorner(site: ModuleSite): string | null {
+  const spec = site.spec;
+  if (!canShape(spec.kind) || isTriangle(spec)) return null;
+
+  const open = openFaces(site);
+  const free: number[] = [];
+  for (let f = 0; f < 4; f++) if (open[f]!) free.push(f);
+  if (free.length !== 2) return null;
+  // Adjacent, not opposite: +x with -x has no corner between them.
+  const [a, b] = [free[0]!, free[1]!];
+  if ((a + 2) % 4 === b) return null;
+
+  // The corner where the two free faces meet, and the two that stay.
+  const hl = spec.length / 2;
+  const hw = spec.width / 2;
+  const corners: readonly (readonly [number, number])[] = [
+    [hl, hw],
+    [-hl, hw],
+    [-hl, -hw],
+    [hl, -hw],
+  ];
+  // Face 0 is +x, 1 is +y, 2 is -x, 3 is -y; the corner they share is the one
+  // both their signs agree with.
+  const sx = (f: number): number => (f === 0 ? 1 : f === 2 ? -1 : 0);
+  const sy = (f: number): number => (f === 1 ? 1 : f === 3 ? -1 : 0);
+  const cx = sx(a) + sx(b);
+  const cy = sy(a) + sy(b);
+  const cut = corners.findIndex(([x, y]) => (x > 0) === (cx > 0) && (y > 0) === (cy > 0));
+  if (cut < 0) return null;
+
+  const kept = corners.filter((_, i) => i !== cut).flatMap(([x, y]) => [x, y]);
+  const shaped = shapeModule(spec, kept);
+  if (shaped === null) return null;
+  Object.assign(spec, shaped);
+  return `${site.where} ${spec.kind}: cut the ${cornerName(cut)} corner off, leaving a wedge`;
+}
+
+/** Which corner of a box, by the quadrant it is in, for an edit to name. */
+function cornerName(corner: number): string {
+  return ['bow port', 'stern port', 'stern starboard', 'bow starboard'][corner] ?? 'a';
+}
+
+/**
+ * Walk one of a triangle's corners along one of the two edges that meet there.
+ *
+ * **Along an edge rather than anywhere**, which is what makes shape something
+ * a lineage can be trusted with. A corner moved freely swings both its edges
+ * and unsticks whatever was welded to either; moved along one of them, that
+ * edge keeps its line exactly — only its length changes — so a neighbour
+ * welded along it stays welded. The edge to keep is drawn evenly between the
+ * two, so a corner that is holding the module on keeps its edge half the time
+ * and the other half the candidate is thrown out by the layout rules, which is
+ * the ordinary price of a draw.
+ *
+ * Towards the far end of that edge or away from it, a grid step at a time, and
+ * never so far as to pass the far end: three corners in a line enclose
+ * nothing, and a module shrunk out of existence is removal's business.
+ */
+function moveVertex(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {
+  const spec = site.spec;
+  const triangle = triangleOf(spec);
+  if (triangle === null) return null;
+
+  const corner = rng.nextInt(TRIANGLE_CORNERS);
+  // The two corners this one shares an edge with; one of them is kept.
+  const keep = rng.chance(0.5) ? (corner + 1) % TRIANGLE_CORNERS : (corner + 2) % TRIANGLE_CORNERS;
+  const px = triangle[corner * 2]!;
+  const py = triangle[corner * 2 + 1]!;
+  const kx = triangle[keep * 2]!;
+  const ky = triangle[keep * 2 + 1]!;
+
+  const ex = px - kx;
+  const ey = py - ky;
+  const span = sqrt(ex * ex + ey * ey);
+  if (!(span > 0)) return null;
+  const step = rng.chance(0.5) ? bounds.grid : -bounds.grid;
+  const now = span + step;
+  // Past the far end the edge turns inside out; at it the triangle is a line.
+  if (now <= bounds.grid / 2) return null;
+
+  const moved = [...triangle];
+  moved[corner * 2] = kx + (ex / span) * now;
+  moved[corner * 2 + 1] = ky + (ey / span) * now;
+  const shaped = shapeModule(spec, moved);
+  if (shaped === null) return null;
+  Object.assign(spec, shaped);
+  return (
+    `${site.where} ${spec.kind}: corner ${corner + 1} walked ` +
+    `${step > 0 ? 'out along' : 'back along'} its edge to corner ${keep + 1}`
+  );
 }
 
 /**
@@ -1687,12 +1849,15 @@ function addModule(
     const outward = outwardOf(draft, anchor.list);
     for (const face of faces(anchor.spec, outward, rng)) {
       for (const along of berths(anchor.spec, face, copy, bounds, rng)) {
-        const added = against(anchor.spec, face, along, kind, copy, bounds);
+        const added = against(anchor.spec, face, along, kind, copy, bounds, rng);
         if (neighbours.some((neighbour) => modulesOverlap(added, neighbour))) continue;
         anchor.list.placements.push(added);
+        // Said out loud, because a wedge and a box are the same line of the
+        // file otherwise and the changelog is what a run is read back through.
+        const shaped = isTriangle(added) ? ' as a wedge' : '';
         return (
           `${anchor.list.label}[${anchor.index}] ${anchor.spec.kind}: ` +
-          `${copy ? `copied onto` : `a ${kind} added to`} its ${faceName(face)} face`
+          `${copy ? `copied onto` : `a ${kind} added${shaped} to`} its ${faceName(face)} face`
         );
       }
     }
@@ -1758,6 +1923,7 @@ function against(
   kind: ModuleKind,
   copy: boolean,
   bounds: MutationLimits,
+  rng: Rng,
 ): ModuleSpec {
   const angle = anchor.angle ?? 0;
   const normalAngle = angle + (face * PI) / 2;
@@ -1834,6 +2000,22 @@ function against(
           };
   if (copy && anchor.reinforcement !== undefined) added.reinforcement = anchor.reinforcement;
   if (copy && anchor.barrels !== undefined) added.barrels = anchor.barrels;
+
+  // **Some of what is added arrives as a wedge rather than a box.** A triangle
+  // is otherwise unreachable from a box hull: the only operator that can take
+  // a corner off needs two free faces, and a module freshly bolted on has
+  // three — so without this a lineage founded on rectangles could reach a
+  // wedge only by growing out past its own neighbours first. Arriving shaped
+  // puts the shape in the population's reach from the first generation, and
+  // the ones that are no use are thrown out by the same selection as anything
+  // else.
+  //
+  // The wedge filling its own box, which is the shape the editor's tick box
+  // makes and the one every other triangle is a corner or two away from.
+  if (canShape(kind) && rng.chance(SHAPED_ARRIVAL_CHANCE)) {
+    const shaped = shapeModule(added, wedge(added));
+    if (shaped !== null) return shaped;
+  }
   return added;
 }
 
