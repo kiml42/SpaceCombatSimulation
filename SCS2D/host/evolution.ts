@@ -118,6 +118,7 @@ const SIDE_FIELDS = [
   'opRemove',
   'opFork',
   'opMerge',
+  'opSwap',
   'structural',
   'buildMove',
   'buildResize',
@@ -175,6 +176,7 @@ const FIELDS = [
   'opRemove',
   'opFork',
   'opMerge',
+  'opSwap',
   'seed',
   'duration',
   'radius',
@@ -603,6 +605,7 @@ export function startEvolution(): void {
     opRemove: String(DEFAULT_FLEET_LIMITS.operators.remove),
     opFork: String(DEFAULT_FLEET_LIMITS.operators.fork),
     opMerge: String(DEFAULT_FLEET_LIMITS.operators.merge),
+    opSwap: String(DEFAULT_FLEET_LIMITS.operators.swap),
     seed: String(DEFAULT_RUN.seed),
     duration: String(DEFAULT_MATCH.duration),
     radius: String(DEFAULT_MATCH.radius),
@@ -841,6 +844,7 @@ export function startEvolution(): void {
           remove: Math.max(0, number(get('opRemove'), DEFAULT_FLEET_LIMITS.operators.remove)),
           fork: Math.max(0, number(get('opFork'), DEFAULT_FLEET_LIMITS.operators.fork)),
           merge: Math.max(0, number(get('opMerge'), DEFAULT_FLEET_LIMITS.operators.merge)),
+          swap: Math.max(0, number(get('opSwap'), DEFAULT_FLEET_LIMITS.operators.swap)),
         },
       },
       mutation: {
@@ -947,6 +951,7 @@ export function startEvolution(): void {
     get('opRemove').value = String(operators.remove);
     get('opFork').value = String(operators.fork);
     get('opMerge').value = String(operators.merge);
+    get('opSwap').value = String(operators.swap);
     const build = { ...DEFAULT_BUILD_WEIGHTS, ...config.mutation.build };
     get('structural').value = String(config.mutation.structural ?? DEFAULT_LIMITS.structural);
     get('buildMove').value = String(build.move);
