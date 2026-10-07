@@ -56,7 +56,8 @@ inside any one file is not contiguous.
   through that same renderer and reports what it bought: mass, inertia, the
   acceleration available in each direction — as figures, and as a pair of
   envelope curves separating what a layout can project from what it can use
-  while holding a heading — and each turret's calibre, rate of fire, muzzle
+  while holding a heading, the ship burning its engines as it would to push whichever way the pointer is
+  over them — and each turret's calibre, rate of fire, muzzle
   speed and arc. A module is added at the layout's origin while that is on screen and in the middle of
   the view when it is not, at its usual size unless the zoom would make that a speck or fill the view,
   when it arrives an eighth of the view across. Modules are

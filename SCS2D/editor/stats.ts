@@ -506,6 +506,31 @@ function trimmer(design: ShipDesign): (dirX: number, dirY: number) => number {
 }
 
 /**
+ * How each engine is throttled to push hardest at `angle` (radians from the
+ * bow, anticlockwise, ship frame) without turning the ship: the point the
+ * holding curve reaches in that direction, as the throttles that reach it. All
+ * zero where the layout cannot push that way at all without spinning.
+ */
+export function holdingThrottles(design: ShipDesign, angle: number): Float64Array {
+  const layout = design.engineLayout;
+  const throttles = new Float64Array(design.engines.length);
+  const result = new Allocation();
+  const dirX = cos(angle);
+  const dirY = sin(angle);
+  const ceiling = layout.maxThrustAlong(dirX, dirY) / design.mass;
+  if (!(ceiling > 0)) return throttles;
+  for (let step = MAGNITUDE_STEPS; step > 0; step--) {
+    const accel = (ceiling * step) / MAGNITUDE_STEPS;
+    const fx = accel * design.mass * dirX;
+    const fy = accel * design.mass * dirY;
+    layout.allocate(fx, fy, 0, throttles, result);
+    if (shortfall(fx, fy, 0, result) < TOLERANCE) return throttles;
+  }
+  throttles.fill(0);
+  return throttles;
+}
+
+/**
  * Both curves: the acceleration available in every direction, and how much of
  * it survives the requirement not to spin.
  *
