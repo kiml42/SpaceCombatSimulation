@@ -20,7 +20,8 @@ import { mutate, type MutationLimits } from './mutate.js';
  * Every operator has its inverse, so no change is a one-way door: a design is
  * mutated in every copy of it at once; a copy can be forked into a design of
  * its own and two designs merged back into one; a ship or a group can be added
- * and removed; and one can be moved or turned. Only the fleet's own entries are
+ * and removed; one can be moved or turned; and one can be swapped onto another
+ * of the fleet's designs, which a second swap undoes. Only the fleet's own entries are
  * moved, added or removed — what is inside a group changes only through its
  * designs.
  */
@@ -44,7 +45,7 @@ export interface FleetMutationLimits {
   readonly operators: Readonly<Record<FleetOperator, number>>;
 }
 
-export type FleetOperator = 'design' | 'move' | 'add' | 'remove' | 'fork' | 'merge';
+export type FleetOperator = 'design' | 'move' | 'add' | 'remove' | 'fork' | 'merge' | 'swap';
 
 /** Mostly the designs, as a ship's own numbers are what it mostly changes; the shape of the fleet less often. */
 export const DEFAULT_FLEET_LIMITS: FleetMutationLimits = {
@@ -55,7 +56,7 @@ export const DEFAULT_FLEET_LIMITS: FleetMutationLimits = {
   grid: 5,
   turn: PI / 12,
   attempts: 24,
-  operators: { design: 6, move: 3, add: 1, remove: 1, fork: 0.5, merge: 0.5 },
+  operators: { design: 6, move: 3, add: 1, remove: 1, fork: 0.5, merge: 0.5, swap: 0.5 },
 };
 
 export interface FleetMutant {
@@ -109,6 +110,8 @@ function apply(operator: FleetOperator, fleet: Fleet, rng: Rng, bounds: FleetMut
       return fork(fleet, rng);
     case 'merge':
       return merge(fleet, rng);
+    case 'swap':
+      return swap(fleet, rng);
   }
 }
 
@@ -194,6 +197,26 @@ function merge(fleet: Fleet, rng: Rng): string[] {
   for (const group of Object.values(fleet.groups ?? {})) repoint(group.ships);
   delete fleet.designs[gone];
   return [`${gone} merged into ${into}`];
+}
+
+/**
+ * Build one of the fleet's own ships to another of its designs instead: a
+ * line can find that one more of its frigates and one fewer of its gunships
+ * does better, without the frigate design having to be bred again from the
+ * gunship. Its own inverse.
+ */
+function swap(fleet: Fleet, rng: Rng): string[] {
+  const names = usedDesigns(fleet);
+  if (names.length < 2) return [];
+  const ships = fleet.ships.filter((entry) => !isGroupUse(entry));
+  if (ships.length === 0) return [];
+  const entry = ships[rng.nextInt(ships.length)]!;
+  if (isGroupUse(entry)) return [];
+  const others = names.filter((name) => name !== entry.design);
+  const from = entry.design;
+  entry.design = others[rng.nextInt(others.length)]!;
+  prune(fleet);
+  return [`a ${from} rebuilt as a ${entry.design}`];
 }
 
 function describe(entry: FleetEntry): string {

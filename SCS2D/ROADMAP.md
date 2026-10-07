@@ -92,7 +92,7 @@ groups — it steps into and edits the ones a file brings, but cannot make one �
 **Fleet evolution** is built, headless (`evolution/fleetMutate.ts`, `npm run evolve -- --fleet`) and on the
 evolution page: a match
 takes fleets as entrants, a lone blueprint being a fleet of one, survival scored on the whole fleet's hull
-capacity left and ground gained by its nearest ship. Every operator has its inverse — mutate a design, fork and merge, add and remove, move and turn —
+capacity left and ground gained by its nearest ship. Every operator has its inverse — mutate a design, fork and merge, add and remove, move and turn, and swap a ship onto another of the fleet's designs, which is its own —
 and a mutant over the total dry mass, the deployment radius or the ship count, or with hulls overlapping, is
 refused. Evolving against a fixed ship or fleet is co-evolution with a side B that does not evolve, which
 replaced the boss battle.

@@ -92,7 +92,7 @@ import {
 } from './library.js';
 import { battleHref, shipFleet } from './handoff.js';
 import { Demonstration } from './demonstrate.js';
-import { drawOverlay } from './overlay.js';
+import { drawOverlay, envelopeBearingAt } from './overlay.js';
 import {
   assemblyKnob,
   facingTo,
@@ -136,7 +136,7 @@ import {
   type DoctrineValues,
 } from './doctrine.js';
 import { doctrineBand, previewSnapshot } from './preview.js';
-import { designStats, envelopes, assemblyMass, moduleReadout, type Envelopes } from './stats.js';
+import { designStats, envelopes, assemblyMass, holdingThrottles, moduleReadout, type Envelopes } from './stats.js';
 
 /**
  * The blueprint editor's page: the canvas, the panels and the pointer.
@@ -472,6 +472,14 @@ export function startEditor(): void {
     }
   };
 
+  /** The bearing on the envelope the pointer is over, radians from the bow, or null. */
+  let thrustBearing: number | null = null;
+  canvas.addEventListener('pointerleave', () => {
+    if (thrustBearing === null) return;
+    thrustBearing = null;
+    render();
+  });
+
   const render = (): void => {
     matchBoxesToGrid();
     const view = doc.view;
@@ -494,6 +502,15 @@ export function startEditor(): void {
       snapshot.shipCount = 0;
     }
     if (view.design !== null) demonstration.writeInto(snapshot);
+    // Pointing at the envelope burns the engines the way the ship would to
+    // push that way without turning, on top of whatever is selected.
+    const shown = snapshot.ships[0];
+    if (thrustBearing !== null && view.design !== null && shown !== undefined) {
+      const burning = holdingThrottles(view.design, thrustBearing);
+      for (let t = 0; t < shown.throttles.length; t++) {
+        shown.throttles[t] = Math.max(shown.throttles[t] ?? 0, burning[t] ?? 0);
+      }
+    }
     draw(ctx, snapshot, camera, canvas.width, canvas.height, undefined, arcs);
     drawOverlay(
       ctx,
@@ -505,6 +522,7 @@ export function startEditor(): void {
         faulty: view.faulty,
         handles: currentHandles(),
         envelope,
+        envelopeBearing: thrustBearing,
       },
       camera,
       canvas.width,
@@ -2060,7 +2078,21 @@ export function startEditor(): void {
   });
 
   canvas.addEventListener('pointermove', (event) => {
-    if (drag === null) return;
+    if (drag === null) {
+      const rect = canvas.getBoundingClientRect();
+      const ratio = canvas.width / rect.width;
+      const bearing = envelopeBearingAt(
+        canvas.width,
+        canvas.height,
+        (event.clientX - rect.left) * ratio,
+        (event.clientY - rect.top) * ratio,
+      );
+      if (bearing !== thrustBearing) {
+        thrustBearing = bearing;
+        render();
+      }
+      return;
+    }
     if (drag.kind === 'pan') {
       if (event.clientX === drag.x && event.clientY === drag.y) return;
       const ratio = canvas.width / canvas.getBoundingClientRect().width;

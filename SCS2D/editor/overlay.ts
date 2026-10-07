@@ -111,6 +111,29 @@ export interface OverlayView {
    * zooming redraw; they do not re-measure the ship.
    */
   envelope: Envelopes | null;
+  /** A bearing on the envelope being pointed at, radians from the bow, or null. */
+  envelopeBearing?: number | null;
+}
+
+/** Where the envelope rosette's centre is drawn, device pixels. */
+function envelopeCentre(widthPx: number, heightPx: number): { x: number; y: number } {
+  return {
+    x: widthPx - ENVELOPE_RADIUS_PX - ENVELOPE_MARGIN_PX,
+    y: heightPx - ENVELOPE_RADIUS_PX - ENVELOPE_MARGIN_PX - ENVELOPE_CAPTION_PX,
+  };
+}
+
+/**
+ * The bearing on the envelope rosette under a point, radians from the bow
+ * anticlockwise in the ship's frame, or null when the point is off it.
+ */
+export function envelopeBearingAt(widthPx: number, heightPx: number, x: number, y: number): number | null {
+  const centre = envelopeCentre(widthPx, heightPx);
+  const dx = x - centre.x;
+  const dy = centre.y - y;
+  const r = Math.sqrt(dx * dx + dy * dy);
+  if (r > ENVELOPE_RADIUS_PX || r < 2) return null;
+  return Math.atan2(dy, dx);
 }
 
 /**
@@ -134,7 +157,7 @@ export function drawOverlay(
   // every label upside down.
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   drawGridCaption(ctx, camera, heightPx);
-  if (view.envelope !== null) drawEnvelope(ctx, view.envelope, widthPx, heightPx);
+  if (view.envelope !== null) drawEnvelope(ctx, view.envelope, widthPx, heightPx, view.envelopeBearing ?? null);
 }
 
 /**
@@ -442,6 +465,7 @@ function drawEnvelope(
   envelope: Envelopes,
   widthPx: number,
   heightPx: number,
+  bearing: number | null,
 ): void {
   let peak = 0;
   let held = 0;
@@ -451,8 +475,7 @@ function drawEnvelope(
   }
   if (!(peak > 0)) return;
 
-  const cx = widthPx - ENVELOPE_RADIUS_PX - ENVELOPE_MARGIN_PX;
-  const cy = heightPx - ENVELOPE_RADIUS_PX - ENVELOPE_MARGIN_PX - ENVELOPE_CAPTION_PX;
+  const { x: cx, y: cy } = envelopeCentre(widthPx, heightPx);
 
   /** Trace one curve, scaled against the larger of the two so the gap is to scale. */
   const trace = (values: Float64Array): void => {
@@ -491,6 +514,17 @@ function drawEnvelope(
   // radius an acceleration of it. Without it the curve has no zero, and a
   // lobed shape with no centre cannot be read as a magnitude at all.
   crosshair(ctx, cx, cy, 3.5, 1.5);
+
+  // The direction being pointed at, out to the edge of the widget, while the
+  // ship above burns its engines the way it would to push that way.
+  if (bearing !== null) {
+    ctx.strokeStyle = ENVELOPE;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + cos(bearing) * ENVELOPE_RADIUS_PX, cy - sin(bearing) * ENVELOPE_RADIUS_PX);
+    ctx.stroke();
+  }
 
   // Right-aligned to the widget's own edge rather than centred under it, so a
   // caption naming both curves has somewhere to go.
