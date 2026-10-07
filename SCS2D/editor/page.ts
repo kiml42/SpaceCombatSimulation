@@ -853,7 +853,7 @@ export function startEditor(): void {
     weaponInput.checked = spec.weapon === true;
     // An engine is only a weapon once it is marked as one.
     el<HTMLElement>('mainRow').hidden = !(isWeaponMount(spec.kind) || (spec.kind === 'engine' && spec.weapon === true));
-    mainInput.checked = spec.main === true;
+    mainInput.checked = spec.main !== false;
     el<HTMLElement>('shapeRow').hidden = !canShape(spec.kind);
     shapeInput.checked = isTriangle(spec);
     el<HTMLElement>('thickRow').hidden = !readsThick(spec.kind);
@@ -1314,8 +1314,9 @@ export function startEditor(): void {
       updatePlacement(doc.blueprint, path, (placement) => {
         if (!('kind' in placement)) return placement;
         const next = { ...placement };
-        if (on) next.main = true;
-        else delete next.main;
+        // Absent rather than true when it is on: main is the usual thing.
+        if (on) delete next.main;
+        else next.main = false;
         return next;
       }),
     );

@@ -202,11 +202,11 @@ inside any one file is not contiguous.
   three, mostly because a long thin hull has a large bounding radius for its mass — but it is an
   approximation in service of a nominal figure, and the real reach is worked out against the real target
   wherever there is one. **The pilot flies to its main battery's reach.** Any weapon — a gun, a beam, or an
-  engine marked as a weapon — may be marked *main*; a ship that marks none counts every weapon as main, and
-  one that marks any counts only those, both for how close it flies and for whether it is still armed. So a
-  capital that has lost its main guns knows it, however much point defence it has left, and enemies weighing
-  `armedWeight` and its own `ramArmed` see it the same way. The marks survive a break: a piece left with only
-  secondaries is disarmed rather than promoted. **Where the main guns bear is which way round it fights**:
+  engine marked as a weapon — is *main* unless marked secondary, and only main weapons count, both for how
+  close it flies and for whether it is still armed. So a capital that has lost its main guns knows it, however
+  much point defence it has left, and enemies weighing `armedWeight` and its own `ramArmed` see it the same
+  way; a piece broken off with only secondaries is disarmed, and a carrier can have no main armament at all.
+  **Where the main guns bear is which way round it fights**:
   of the bearings off its bow, the pilot holds its target on the one its working main guns bear on most,
   less doctrine's `turnBias` for every half turn it is from where the target already is, so a Star Destroyer
   fights on whichever beam is nearer and turns the other to the enemy only for enough more guns to pay for

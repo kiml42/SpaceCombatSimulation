@@ -846,11 +846,12 @@ export interface ModuleSpec {
 
   /**
    * Whether this weapon is part of the ship's main battery: a gun, a beam, or
-   * an engine marked as a weapon.
+   * an engine marked as a weapon. Main unless set false, so a designer marks
+   * the secondaries.
    *
-   * A ship that marks none counts every weapon as main. One that marks any
-   * counts only those: it flies to their reach and is armed while one of them
-   * works, so losing its point defence does not make it think itself harmless.
+   * A ship flies to its main guns' reach and is armed while one of them works,
+   * so losing its point defence does not make it think itself harmless. One
+   * with every weapon secondary, a carrier, has no main armament at all.
    */
   main?: boolean;
 

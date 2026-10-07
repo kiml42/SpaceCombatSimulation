@@ -48,6 +48,7 @@
               "fuse": 0.2,
               "fragments": 10,
               "burstSpeed": 200,
+              "main": false,
               "targeting": {
                 "preferredMass": 0.1,
                 "proximityWeight": 200,
@@ -170,7 +171,6 @@
           "fragments": 4,
           "burstSpeed": 300,
           "fuse": 0.08,
-          "main": true,
           "thick": true,
           "targeting": {
             "loyaltyWeight": 30,

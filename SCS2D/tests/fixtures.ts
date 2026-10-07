@@ -20,7 +20,6 @@ function withBowTurret(ship: Blueprint): Blueprint {
             width: p.width,
             barrels: 1,
             barrelCalibres: Math.min(BARREL_CALIBRES, p.length / (p.width * CALIBRE_FRACTION)),
-            ...(p.main === true ? { main: true } : {}),
           }
         : p,
     ),

@@ -59,7 +59,6 @@
           "barrels": 1,
           "nozzle": 0.493151,
           "weapon": true,
-          "main": true,
           "thick": true,
           "notes": "The weapon. Its thrust points aft, so firing it at a target is also braking, and holding it on is being pushed away."
         },
@@ -87,6 +86,7 @@
           "width": 8,
           "barrels": 1,
           "weapon": true,
+          "main": false,
           "thick": true
         }
       ]
@@ -116,6 +116,7 @@
       "width": 8,
       "nozzle": 0.5,
       "weapon": true,
+      "main": false,
       "thick": true
     }
   ]

@@ -1023,12 +1023,11 @@ function rearm(site: ModuleSite): string {
 
 /**
  * Put a weapon in the main battery, or take it out: a flip, as `rearm` is.
- * Marking the first one demotes every other weapon on the ship.
  */
 function promote(site: ModuleSite): string {
-  const was = site.spec.main === true;
-  if (was) delete site.spec.main;
-  else site.spec.main = true;
+  const was = site.spec.main !== false;
+  if (was) site.spec.main = false;
+  else delete site.spec.main;
   return `${site.where} ${site.spec.kind}: ${was ? 'no longer' : 'now'} main`;
 }
 
