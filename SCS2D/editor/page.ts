@@ -18,6 +18,7 @@ import {
   readsThick,
   readsFuse,
   readsSealing,
+  readsDrainPriority,
   canShape,
   canThicken,
   isTriangle,
@@ -197,7 +198,8 @@ type ModuleNumberField =
   | 'fuse'
   | 'fragments'
   | 'burstSpeed'
-  | 'sealing';
+  | 'sealing'
+  | 'drainPriority';
 
 /** A module's own value for a field, with the default the parser would have applied. */
 function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
@@ -213,6 +215,7 @@ function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
   if (key === 'burstSpeed') return spec.burstSpeed ?? DEFAULT_BURST_SPEED;
   // Millimetres on the panel, metres in the layout.
   if (key === 'sealing') return (spec.sealing ?? 0) * 1000;
+  if (key === 'drainPriority') return spec.drainPriority ?? 0;
   return spec.barrels ?? 1;
 }
 
@@ -369,6 +372,7 @@ export function startEditor(): void {
     fragments: el<HTMLInputElement>('propFragments'),
     burstSpeed: el<HTMLInputElement>('propBurstSpeed'),
     sealing: el<HTMLInputElement>('propSealing'),
+    drainPriority: el<HTMLInputElement>('propDrainPriority'),
     notes: el<HTMLTextAreaElement>('propNotes'),
   };
 
@@ -849,6 +853,7 @@ export function startEditor(): void {
     shapeInput.checked = isTriangle(spec);
     el<HTMLElement>('thickRow').hidden = !readsThick(spec.kind);
     el<HTMLElement>('sealingRow').hidden = !readsSealing(spec.kind);
+    el<HTMLElement>('drainPriorityRow').hidden = !readsDrainPriority(spec.kind);
     // One no more than a deck across is as deep as it is wide either way.
     thickInput.disabled = !canThicken(spec) || doc.blueprint.fighter === true;
     thickInput.checked = isThick(spec);

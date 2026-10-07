@@ -74,7 +74,7 @@ export interface Leak {
  *
  * **An engine draws on the tanks it is connected to**: those on its own piece
  * of hull, since a hook between two wrecks carries no fuel line. Within that,
- * tanks are drained tier by tier (`drainPriority`), and within a tier in
+ * tanks are drained tier by tier, highest `drainPriority` first, and within a tier in
  * proportion to how much each holds when full, so tanks that start full run
  * dry together.
  */
@@ -129,7 +129,7 @@ export class Fuel {
     for (let p = 0; p < pieces; p++) {
       const own: number[] = [];
       for (let m = 0; m < n; m++) if (pieceOf[m] === p && full[m]! > 0) own.push(m);
-      own.sort((a, b) => drainPriority(design.modules[a]!.spec) - drainPriority(design.modules[b]!.spec) || a - b);
+      own.sort((a, b) => drainPriority(design.modules[b]!.spec) - drainPriority(design.modules[a]!.spec) || a - b);
       const ends: number[] = [];
       for (let k = 1; k <= own.length; k++) {
         const last = k === own.length;
@@ -275,10 +275,7 @@ export class Fuel {
 
 const NO_LEAKS: readonly Leak[] = [];
 
-/**
- * Which tier a tank is drained in, lowest first. Every tank is in the same one
- * until a layout can say otherwise, which is where a drain priority goes.
- */
-function drainPriority(_spec: ModuleSpec): number {
-  return 0;
+/** Which tier a tank is drained in, highest first. */
+function drainPriority(spec: ModuleSpec): number {
+  return spec.drainPriority ?? 0;
 }
