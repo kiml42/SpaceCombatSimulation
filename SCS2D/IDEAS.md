@@ -3,6 +3,7 @@ Things that are obviously wrong.
 
 - When stating evolution in "A battle" setting, it doesn't start showing a battle, you need to switch to "the combatants" and back again.
 - Turrets sometimes track through thick modules which should physically block them.
+- Fighter engines in the turret layer immediately hit an overflown hull layer module. Should probably just make engine plumes follow the same rules as beams about staying in their own layers.
 
 -----------------------------------------------------------------------
 
@@ -19,6 +20,8 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Engines and beams could reduce the mass of the part they hit/pass through after a certain amount of damage as if sublimating it
 - Ships should be able to target specific modules, and, once we have the "main gun" setting in place, offset their aim for their main guns' projectile speed.
 - Ships should be able to point in the direction they want to accelerate, instead of just facing the target (there should be a doctrine weighting to balance between aiming the attack orientation at the enemy, and turning to make use of the main engines to accelerate)
+- Consider width and length as interchangeable for calculating turret stats. They should be based on teh size of the turret on top (based on the smaller dimension) and the area within the volume of the box underneath.
+- Only the dome of turrets should be in the turret layer, the box should be wholly in the hull layer.
 
 ## Editor
 - Hover on the thrust diagram shows engine plumes on the main display for how it would achieve that thrust
@@ -28,6 +31,8 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Snap to hulls
 - Category input for ships - ships grouped by category when selecting them anywhere. (e.g. "Star Wars.Imperial", "Stock")
 - Make it clearer how the range is controlled in the core's doctrine
+- Adding a module should place it in view of the camera, and size it based on the camera's zoom level.
+- Add calibre multiplier to scale what the default maths gives.
 
 ## Weapons
 - Turrets fire a volley of one shot per barrel, and then reload. Can specify delay between shots to allow for firing all at once or staggered
