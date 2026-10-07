@@ -47,7 +47,6 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Thrust orientation - same as attack orientation, but considering engines.
 
 ## Evolution
-- Mutate to change the whole scale of the ship
 - Consider scoring for ramming
   - Currently just loses score by everything taking damage
   - Might want to attribute the damage to both ships to the other, this would be asymmetrical is one manages to ram its armour into an active component on the other.
@@ -56,7 +55,6 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - In-battle scores should be an overlay on the battle, not making it be a tiny bar at the bottom.
 - Make damage and function taken start at 0 and go negative, so the graph scales nicely at the beginning when they're all useless, highlighting even minor improvements.
 - We need a mechanism to let ships know what the goal is. This could be something like a "go close to that" order being given to all ships when the race goal is present. (At the moment we lean on the escort doctrine, but that just makes evolving a second ship mean they bunch up with each other instead of going for the goal)
-- Add a mutation to change which design an existing ship uses.
 - Allow ship names to mutate (can just add and remove and change random letters (or spaces), unpronounceable is probably better than just the name of the starting ship with a number)
 
 ## Fleet Editor
@@ -71,7 +69,4 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Cap projectile rendering at their start and end positions so they don't overlap the barrel that launched them, or the target they hit.
 - Add a ship to a running battle, for quick testing. Dropdown in the corner to choose a ship to add to the battle. click and drag to chose position and velocity (position from first click, drag to N seconds worth of distance for the initial velocity.) Ship is instantly spawned when you let go.
 - Write names on ships' cores. Names should be their team colour and a sequential number e.g. "Red 5" for the fifth ship instantiated on the red team.
-- Select a ship
-  - Indicate what it's targetting
-  - Indicate the range and trigger arcs of its gun (when the setting is on, replaces showing arcs and triggers for all ships)
-  - Zoom the camera to fit it and its target (and anything else its currently considering for avoidance or escorting)
+- A selected ship's framing could take in what it is escorting or keeping clear of, as well as its target.
