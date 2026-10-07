@@ -56,7 +56,9 @@ inside any one file is not contiguous.
   acceleration available in each direction — as figures, and as a pair of
   envelope curves separating what a layout can project from what it can use
   while holding a heading — and each turret's calibre, rate of fire, muzzle
-  speed and arc. Modules are
+  speed and arc. A module is added at the layout's origin while that is on screen and in the middle of
+  the view when it is not, at its usual size unless the zoom would make that a speck or fill the view,
+  when it arrives an eighth of the view across. Modules are
   clicked to select, dragged to move on a snapping grid a tenth of the grid drawn on screen —
   so the step follows the zoom, from tens of metres on a Star Destroyer down to centimetres on a
   drone — sized by dragging a corner
