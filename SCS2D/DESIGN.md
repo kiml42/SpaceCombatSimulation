@@ -38,7 +38,8 @@ inside any one file is not contiguous.
   given in advance and worked through as targets are put out of the fight. A Canvas2D
   viewer draws snapshots of all of it — ships, turret bearings, tracers and the wells
   bending them — with pause, single-step, time scaling, and zoom and pan over an
-  auto-framing camera. Rounds and beams are drawn as light, or with C in the colours of the side that
+  auto-framing camera. A ship clicked is picked out — ringed, a line to what it is fighting, the arcs drawn
+  for it alone, and framed with its target — until Escape. Rounds and beams are drawn as light, or with C in the colours of the side that
   fired them, which the evolution page starts with. **The camera carries itself along with what it is watching rather
   than easing after it**, weighting the ships in shot by radius so a fleet action is steered
   by the capital in it; it falls back from the ships still under control to the hulks and then
@@ -332,7 +333,10 @@ inside any one file is not contiguous.
   it flies crabwise — drop an instance, and turn one over. Making a part and dissolving one change nothing
   about the ship at all: what they change is what the next generation can do, and there is no single
   mutation that both invents a grouping and pays off at once. Every operator has its inverse, because one
-  that can only add structure is a ratchet a lineage has no way down from. A doctrine number
+  that can only add structure is a ratchet a lineage has no way down from. A whole ship can be scaled in one
+  draw — every size, position, corner and assembly placement by one factor, up to a tenth either way at the
+  default magnitude — under `resize`'s weight, so a hull in proportion at one size is tried at another without
+  breaking on the way; the scaling laws do not scale with it, which is the question asked. A doctrine number
   is perturbed by a fraction of its *default* rather than of what is held, so nothing that has reached zero
   is stuck there — and where the default is zero too, by a fraction of what a number is worth in that half
   of the doctrine, since otherwise every draw is a fraction of nothing and the field is not slow to find but
