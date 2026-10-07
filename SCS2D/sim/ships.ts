@@ -2176,7 +2176,7 @@ export class Ships {
       for (let t = 0; t < design.engines.length; t++) {
         const force = throttles[t]! * this.exhaustOf(i, design, bodyIdx, t);
         if (!(force > 0)) continue;
-        this.plumes.burn(design, t, force, this.damage, bodies, bodyIdx, grid, this.hulls, dt, landed, starts[t]!);
+        this.plumes.burn(design, t, force, this.damage, bodies, bodyIdx, grid, this.hulls, dt, landed, starts[t]!, this.layersOf(bodyIdx));
       }
     }
   }
@@ -2437,7 +2437,7 @@ export class Ships {
       const engine = design.modules[design.engines[t]?.module ?? -1];
       const rays = engine === undefined ? 0 : plumeRays(engineGeometry(engine.spec));
       for (let ray = 0; ray < rays && !worth; ray++) {
-        if (!this.plumes.cast(design, t, ray, force, bodies, b, grid, this.hulls)) continue;
+        if (!this.plumes.cast(design, t, ray, force, bodies, b, grid, this.hulls, this.layersOf(b))) continue;
         if (this.plumes.share < WEAPON_PLUME_SHARE) continue;
         if (this.plumes.body === b) continue;
         const other = this.shipAt(bodies, this.plumes.body);

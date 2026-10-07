@@ -1,7 +1,7 @@
 import type { Bodies } from './bodies.js';
 import type { ShipDesign } from './blueprint.js';
 import type { Damage } from './damage.js';
-import { HullPath, modulesAlong, type Boxes, type Hulls } from './hull.js';
+import { HullPath, moduleLayers, modulesAlong, OWN_LAYERS, type Boxes, type Hulls } from './hull.js';
 import { cos, sin, sqrt } from './math.js';
 import {
   DECK_HEIGHT,
@@ -346,6 +346,10 @@ export class Plumes {
    * wall of metal to it. That is how a shell and a ram see a hull, and unlike
    * a beam, which is stopped only by matter it can still boil away.
    *
+   * **A plume stays in its engine's layer**, as a beam does: a fighter's
+   * flame passes over the deck it is flying above, and a capital's deck-level
+   * engine passes under the fighters behind it. A thick engine stands in both.
+   *
    * Held rather than returned, so that a caller deciding whether to *fire* can
    * ask the same question a burn does and get the same answer.
    */
@@ -359,6 +363,8 @@ export class Plumes {
     bodyIndex: number,
     grid: SpatialGrid,
     hulls: Hulls,
+    /** The body's layers (`Ships.layersOf`): `OWN_LAYERS` for each module its own. */
+    bodyLayers = OWN_LAYERS,
   ): boolean {
     this.body = -1;
     this.module = -1;
@@ -400,12 +406,17 @@ export class Plumes {
       const dx = ux * reach;
       const dy = uy * reach;
       const hit = this.hit;
-      if (!grid.raycast(bodies, x0, y0, x0 + dx, y0 + dy, hit, bodyIndex, hulls)) return false;
+      hulls.castFrom(moduleLayers(engine, bodyLayers), -1, -1);
+      if (!grid.raycast(bodies, x0, y0, x0 + dx, y0 + dy, hit, bodyIndex, hulls)) {
+        hulls.reset();
+        return false;
+      }
       distance = reach * hit.t;
       victimBody = hit.bodyIndex;
       // A body with no hull to cast against has no module to burn, and
       // `Damage.absorb` says so by refusing the index.
       victimModule = hulls.describe(bodies, victimBody, x0, y0, dx, dy) ? hulls.module : -1;
+      hulls.reset();
     }
 
     const share = 1 - distance / reach;
@@ -445,6 +456,7 @@ export class Plumes {
     /** Where to write each ray's `share` landing on anything, 0 where it met nothing. */
     landed?: Float64Array,
     landedAt = 0,
+    bodyLayers = OWN_LAYERS,
   ): void {
     if (!(dt > 0) || !(force > 0)) return;
     const engine = design.modules[design.engines[slot]?.module ?? -1];
@@ -454,7 +466,7 @@ export class Plumes {
     const rays = plumeRays(engineGeometry(engine.spec));
     const perRay = force / rays;
     for (let ray = 0; ray < rays; ray++) {
-      if (!this.cast(design, slot, ray, force, bodies, bodyIndex, grid, hulls)) continue;
+      if (!this.cast(design, slot, ray, force, bodies, bodyIndex, grid, hulls, bodyLayers)) continue;
       if (landed !== undefined) landed[landedAt + ray] = this.share;
       damage.absorb(this.body, this.module, PLUME_POWER_PER_NEWTON * perRay * this.share * dt);
       if (this.body === bodyIndex) continue;
