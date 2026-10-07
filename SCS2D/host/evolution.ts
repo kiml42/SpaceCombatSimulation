@@ -10,6 +10,7 @@ import {
 } from '../sim/index.js';
 import { Flashes } from '../render/flashes.js';
 import { ARCS_KEY, draw, nextArcs, teamColour, type Arcs } from '../render/canvas2d.js';
+import { shipColours } from '../render/teams.js';
 import { drawChart, indexAt, xOf, type ChartLayout, type Series } from '../render/chart.js';
 import {
   easeScale,
@@ -403,9 +404,7 @@ export function startEvolution(): void {
     return { canvas: at, ctx: context(at), legend: el<HTMLElement>(key), digits, series: [], layout: NO_LAYOUT };
   };
   const massChart = sizeChart('massChart', 'massLegend', 1);
-  const shipsChart = sizeChart('shipsChart', 'shipsLegend', 2);
-  const sizeCharts = [massChart, shipsChart];
-  const shipsBlock = el<HTMLElement>('shipsBlock');
+  const sizeCharts = [massChart];
   /** Worked out once per generation: a fleet's ship count means parsing it. */
   const sizes = new WeakMap<GenerationRecord, GenerationSize>();
   const sizeOf = (generation: GenerationRecord): GenerationSize => {
@@ -1050,7 +1049,7 @@ export function startEvolution(): void {
 
   const resize = (): void => {
     const ratio = window.devicePixelRatio || 1;
-    for (const canvas of [view, chart, massChart.canvas, shipsChart.canvas]) {
+    for (const canvas of [view, chart, massChart.canvas]) {
       const rect = canvas.getBoundingClientRect();
       canvas.width = Math.round(rect.width * ratio);
       canvas.height = Math.round(rect.height * ratio);
@@ -1285,11 +1284,19 @@ export function startEvolution(): void {
    */
   function showLegend(): void {
     fillLegend(legend, chartSeries, 3, '');
-    fillLegend(massChart.legend, massChart.series, massChart.digits, ' t');
-    fillLegend(shipsChart.legend, shipsChart.series, shipsChart.digits, '');
+    // Ships are read on the right-hand scale, and to more places: a mean of
+    // whole ships is a fraction.
+    fillLegend(massChart.legend, massChart.series, massChart.digits, ' t', 2, '');
   }
 
-  function fillLegend(into: HTMLElement, series: readonly Series[], digits: number, unit: string): void {
+  function fillLegend(
+    into: HTMLElement,
+    series: readonly Series[],
+    digits: number,
+    unit: string,
+    rightDigits = digits,
+    rightUnit = unit,
+  ): void {
     into.replaceChildren();
     for (const line of series) {
       const entry = document.createElement('span');
@@ -1298,7 +1305,7 @@ export function startEvolution(): void {
       const value = hoverAt === null ? undefined : line.values[hoverAt];
       if (value !== undefined && Number.isFinite(value)) {
         const reading = document.createElement('b');
-        reading.textContent = value.toFixed(digits) + unit;
+        reading.textContent = line.right === true ? value.toFixed(rightDigits) + rightUnit : value.toFixed(digits) + unit;
         entry.append(reading);
       }
       into.append(entry);
@@ -1936,36 +1943,43 @@ export function startEvolution(): void {
     }
     chartSeries = series;
 
-    // A line each for best and mean; in a co-evolution run, a pair for each
-    // side in its team's colour, the mean dashed.
-    const sides: { label: string; size: GenerationSize[]; best: string; mean: string; dashed: boolean }[] =
+    // Mass on the left scale and, once a run fields more than one ship,
+    // ships on the right: a colour for each, the mean solid and the best
+    // dashed. In a co-evolution run each side takes its team's colours, its
+    // hull colour for mass and its trim for ships.
+    const sides: { label: string; size: GenerationSize[]; mass: string; ships: string }[] =
       run instanceof Coevolution
         ? [
-            { label: 'A ', size: closed.map(sizeOf), best: teamColour(0), mean: teamColour(0), dashed: true },
-            { label: 'B ', size: run.rivalGenerations.map(sizeOf), best: teamColour(1), mean: teamColour(1), dashed: true },
+            { label: 'A ', size: closed.map(sizeOf), mass: teamColour(0), ships: shipColours(0).trim },
+            { label: 'B ', size: run.rivalGenerations.map(sizeOf), mass: teamColour(1), ships: shipColours(1).trim },
           ]
-        : [{ label: '', size: closed.map(sizeOf), best: '#e6edf5', mean: '#7fa8e0', dashed: false }];
-    const bestAndMean = (what: string, read: (s: GenerationSize) => [number, number]): Series[] =>
-      sides.flatMap((side) =>
-        side.size.length === 0
-          ? []
-          : [
-              { name: `${side.label}best's ${what}`, colour: side.best, values: side.size.map((s) => read(s)[0]) },
-              {
-                name: `${side.label}mean ${what}`,
-                colour: side.mean,
-                values: side.size.map((s) => read(s)[1]),
-                ...(side.dashed ? { dashed: true } : {}),
-              },
-            ],
-      );
-    massChart.series = bestAndMean('mass', (s) => [s.bestMass / 1000, s.meanMass / 1000]);
-    shipsChart.series = bestAndMean('ships', (s) => [s.bestShips, s.meanShips]);
+        : [{ label: '', size: closed.map(sizeOf), mass: '#7fa8e0', ships: '#e9a35f' }];
     const fleets = sides.some((side) => side.size.some((s) => s.meanShips !== 1));
-    if (shipsBlock.hidden === fleets) {
-      shipsBlock.hidden = !fleets;
-      resize();
-    }
+    type Side = (typeof sides)[number];
+    const bestAndMean = (
+      what: string,
+      colour: (side: Side) => string,
+      read: (s: GenerationSize) => [number, number],
+      right: boolean,
+    ): Series[] =>
+      sides.flatMap((side) => {
+        if (side.size.length === 0) return [];
+        const scale = right ? { right } : {};
+        return [
+          { name: `${side.label}mean ${what}`, colour: colour(side), values: side.size.map((s) => read(s)[1]), ...scale },
+          {
+            name: `${side.label}best's ${what}`,
+            colour: colour(side),
+            values: side.size.map((s) => read(s)[0]),
+            dashed: true,
+            ...scale,
+          },
+        ];
+      });
+    massChart.series = [
+      ...bestAndMean('mass', (side) => side.mass, (s) => [s.bestMass / 1000, s.meanMass / 1000], false),
+      ...(fleets ? bestAndMean('ships', (side) => side.ships, (s) => [s.bestShips, s.meanShips], true) : []),
+    ];
     paintChart();
     showLegend();
 
