@@ -378,6 +378,27 @@ describe('mounts remade by a weld', () => {
 });
 
 describe('enemies hooked together', () => {
+  it('both take the new design when wreckage hooks on to them', () => {
+    // The battle page's seed, on which a piece of wreckage welds onto the pair
+    // about twenty seconds in. A ship left on the old design is drawn, aimed
+    // and fired from a layout its body no longer has.
+    const run = hookedScenario(20260905);
+    const { ships, world } = run;
+    for (let s = 0; s < 1500; s++) {
+      run.step();
+      const owners = new Map<number, number>();
+      for (let i = 0; i < ships.highWater; i++) {
+        if (!ships.isAlive(i)) continue;
+        const b = world.bodies.indexOf(ships.body(i));
+        const first = owners.get(b);
+        if (first === undefined) owners.set(b, i);
+        else expect(ships.design(i)).toBe(ships.design(first));
+      }
+    }
+    // The pair's own weld, and at least one more.
+    expect(run.totalWelded).toBeGreaterThan(1);
+  });
+
   it('shoot each other across the body they share', () => {
     // A core with a turret ahead of it and a plate beside it, and two of them
     // pressed plate to plate: each turret has a clear view of the other.

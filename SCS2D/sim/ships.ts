@@ -3104,10 +3104,13 @@ export class Ships {
     this.shipByBody[bo] = -1;
     this.pilots[bo] = null;
     this.sides[bo] = null;
+    // Everyone already aboard takes the new design, wreckage hooked on or not:
+    // a ship left on the old one would be drawn, aimed and fired from a layout
+    // the body no longer has.
+    for (const r of staying) if (r !== keep) this.board(r, keep);
     if (flown) {
       const old = this.turretIndex[other]!;
       for (let t = 0; t < old.length; t++) this.turrets.remove(old[t]!);
-      for (const r of staying) if (r !== keep) this.board(r, keep);
       for (const r of moving) this.board(r, keep);
     } else {
       this.remove(other);
