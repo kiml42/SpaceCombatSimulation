@@ -140,11 +140,15 @@ export type DoctrineWeights = Readonly<
  *   engine used as a weapon.
  * - `fighter`: whether the ship is a fighter, which changes how it is flown
  *   and how others target it.
+ * - `shape`: whether structure and tanks become triangles — arriving as a
+ *   wedge, losing a corner, or walking one. Zero keeps every module a box,
+ *   which is also the cheapest a run can be: a hull with wedges in it compiles
+ *   about half as dear again as the same hull in boxes.
  *
  * How many times a row repeats is a structural edit, not a number.
  */
 export type BuildWeights = Readonly<
-  Record<'move' | 'resize' | 'refit' | 'fittings' | 'tuning' | 'fighter', number>
+  Record<'move' | 'resize' | 'refit' | 'fittings' | 'tuning' | 'fighter' | 'shape', number>
 >;
 
 /** Every number as likely as every other, doctrine or build. */
@@ -168,6 +172,7 @@ export const DEFAULT_BUILD_WEIGHTS: BuildWeights = {
   fittings: 1,
   tuning: 1,
   fighter: 1,
+  shape: 1,
 };
 
 /** Approach fields that are about covering a friend, and the targeting urge to. */
@@ -358,9 +363,10 @@ function knobWeight(knob: Knob, { doctrine, build }: MutationLimits): number {
       return build.move;
     case 'face':
     case 'seam':
+      return build.resize;
     case 'shape':
     case 'vertex':
-      return build.resize;
+      return build.shape;
     case 'kind':
       return build.refit;
     case 'barrels':
@@ -2012,7 +2018,7 @@ function against(
   //
   // The wedge filling its own box, which is the shape the editor's tick box
   // makes and the one every other triangle is a corner or two away from.
-  if (canShape(kind) && rng.chance(SHAPED_ARRIVAL_CHANCE)) {
+  if (canShape(kind) && bounds.build.shape > 0 && rng.chance(SHAPED_ARRIVAL_CHANCE)) {
     const shaped = shapeModule(added, wedge(added));
     if (shaped !== null) return shaped;
   }

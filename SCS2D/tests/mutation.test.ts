@@ -571,7 +571,7 @@ describe('build weights', () => {
 
   it('keeps how a ship is built when only tuning and doctrine may change', () => {
     const rng = new Rng(5);
-    const build = { move: 0, resize: 0, refit: 0, fittings: 0, tuning: 1, fighter: 0 };
+    const build = { move: 0, resize: 0, refit: 0, fittings: 0, tuning: 1, fighter: 0, shape: 0 };
     let held: Blueprint = GUNSHIP;
     let changed = 0;
     for (let i = 0; i < 60; i++) {
@@ -604,7 +604,7 @@ describe('build weights', () => {
 
   it('never touches a sort of number weighted zero', () => {
     const rng = new Rng(11);
-    const build = { move: 0, resize: 0, refit: 0, fittings: 0, tuning: 0, fighter: 0 };
+    const build = { move: 0, resize: 0, refit: 0, fittings: 0, tuning: 0, fighter: 0, shape: 0 };
     const doctrine = { targeting: 0, approach: 0, escort: 1, avoidance: 0, gunnery: 0 };
     const made: string[] = [];
     for (let i = 0; i < 40; i++) made.push(...mutate(GUNSHIP, rng, { structural: 0, build, doctrine }).edits);

@@ -287,6 +287,9 @@ describe('the evolution page in a browser', () => {
     await set(page, 'configName', 'Star Wars tuning');
     await set(page, 'structural', '0');
     await set(page, 'buildMove', '0');
+    // The shape weight is the switch a run uses to keep every module a box, so
+    // it has to survive the round trip like any other.
+    await set(page, 'buildShape', '0');
     const saving = page.waitForEvent('download');
     await press(page, '#exportConfig');
     const download = await saving;
@@ -296,18 +299,22 @@ describe('the evolution page in a browser', () => {
     expect(file['name']).toEqual('Star Wars tuning');
     expect(file['structural']).toEqual(0);
     expect((file['build'] as Record<string, number>)['move']).toEqual(0);
+    expect((file['build'] as Record<string, number>)['shape']).toEqual(0);
 
     await set(page, 'configName', '');
     await set(page, 'structural', '0.3');
     await set(page, 'buildMove', '1');
+    await set(page, 'buildShape', '1');
     await page.setInputFiles('#importConfigFile', written);
     await page.waitForFunction(() => (document.getElementById('configName') as HTMLInputElement).value !== '');
     expect(await page.inputValue('#configName')).toEqual('Star Wars tuning');
     expect(await page.inputValue('#structural')).toEqual('0');
     expect(await page.inputValue('#buildMove')).toEqual('0');
+    expect(await page.inputValue('#buildShape')).toEqual('0');
     await set(page, 'configName', '');
     await set(page, 'structural', '0.3');
     await set(page, 'buildMove', '1');
+    await set(page, 'buildShape', '1');
     expect(problems).toEqual([]);
   });
 

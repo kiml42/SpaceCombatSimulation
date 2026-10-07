@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mutate } from '../evolution/mutate.js';
+import { DEFAULT_BUILD_WEIGHTS, mutate } from '../evolution/mutate.js';
 import { Rng } from '../sim/rng.js';
 import {
   blueprintProblem,
@@ -119,6 +119,20 @@ describe('breeding a shape', () => {
       }
     }
     expect(walks).toBeGreaterThan(0);
+  });
+
+  it('keeps every module a box when shape is weighted out', () => {
+    // The off switch a long run reaches for: a hull with wedges in it compiles
+    // about half as dear again, so a run that does not want them should not
+    // pay for them.
+    const rng = new Rng(11);
+    let held: Blueprint = CORVETTE;
+    for (let i = 0; i < GENERATIONS; i++) {
+      const child = mutate(held, rng, { build: { ...DEFAULT_BUILD_WEIGHTS, shape: 0 } });
+      expect(child.edits.some((edit) => ARRIVED.test(edit) || CUT.test(edit) || WALKED.test(edit))).toBe(false);
+      held = child.blueprint;
+    }
+    expect(modulesOf(held).some(isTriangle)).toBe(false);
   });
 
   it('only cuts a corner where nothing was welded, so every weld survives', () => {

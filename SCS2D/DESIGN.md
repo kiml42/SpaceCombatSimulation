@@ -296,7 +296,9 @@ inside any one file is not contiguous.
   corner cut off, so the legs of what is left are the faces that were holding it on; and a triangle's
   corner walks along one of the two edges that meet there, which keeps that edge's line exactly and so
   keeps whatever was welded along it. A corner moved anywhere else swings both its edges and unsticks
-  both their neighbours, which is why none of the three is the general case. **The grouping is bred as
+  both their neighbours, which is why none of the three is the general case. All three share a weight of
+  their own, so a run sets them to zero and keeps every module a box — which is also the fastest it can be,
+  a hull with wedges in it compiling about half as dear again as the same hull in boxes. **The grouping is bred as
   well as the modules.** A lineage can make a part of a module, dissolve one back into the layout, take a neighbour into
   a part, grow one with a new module — on its outer edge by preference, which is the face likely to be free
   at every instance rather than at one, and the only way a part placed twice grows at all — place another
