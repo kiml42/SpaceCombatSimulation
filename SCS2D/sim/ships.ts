@@ -3625,6 +3625,16 @@ export class Ships {
       this.derelict[j] = 1;
     }
 
+    // Its mounts keep pointing and slewing as they were rather than starting
+    // at rest; with nothing to fly it, a fail-safe then brakes them where
+    // they point.
+    const from = this.turretIndex[i]!;
+    const to = this.turretIndex[j]!;
+    chunk.turrets.forEach((mount, t) => {
+      const before = design.turrets.findIndex((m) => m.module === keep[mount.module]);
+      if (before >= 0) this.turrets.carry(from[before]!, to[t]!, 0);
+    });
+
     const chunkBody = bodies.indexOf(this.bodyIds[j]!);
     this.damage.register(
       chunkBody,

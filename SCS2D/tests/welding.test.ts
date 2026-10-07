@@ -377,6 +377,44 @@ describe('mounts remade by a weld', () => {
   });
 });
 
+describe('a mount that breaks off', () => {
+  it('keeps pointing where it was and brakes to a stop, rather than snapping to rest', () => {
+    const gunship = compileBlueprint(GUNSHIP);
+    let ship = -1;
+    const run = makeBattle({ seed: 1, projectiles: 64, beams: 16 }, (ships, world) => {
+      ship = ships.spawn(world, { design: gunship, x: 0, y: 0 });
+    });
+    const { ships, world } = run;
+    // A broadside mount trained well off its rest bearing, and still slewing.
+    const t = gunship.turrets.findIndex((m) => Math.abs(m.mount.restBearing ?? 0) > 1);
+    const module = gunship.turrets[t]!.module;
+    const ti = ships.turretIndexOf(ship, t);
+    const rest = ships.turrets.restBearing[ti]!;
+    ships.turrets.bearing[ti] = rest + 1.2;
+    ships.turrets.rate[ti] = 0.4;
+    const angle = world.bodies.angle[world.bodies.indexOf(ships.body(ship))]!;
+
+    const detach = (ships as unknown as {
+      detach(world: unknown, i: number, design: unknown, keep: readonly number[]): boolean;
+    }).detach.bind(ships);
+    expect(detach(world, ship, gunship, [module])).toBe(true);
+    let piece = -1;
+    for (let i = 0; i < ships.highWater; i++) if (ships.isAlive(i) && i !== ship) piece = i;
+    const pi = ships.turretIndexOf(piece, 0);
+    const pieceAngle = () => world.bodies.angle[world.bodies.indexOf(ships.body(piece))]!;
+    expect(pieceAngle() + ships.turrets.bearing[pi]!).toBeCloseTo(angle + rest + 1.2, 9);
+    expect(ships.turrets.rate[pi]).toBe(0.4);
+
+    // Nobody flies it, so it brakes where it points instead of heading home.
+    for (let s = 0; s < 120; s++) run.step();
+    expect(ships.turrets.rate[pi]).toBeCloseTo(0, 6);
+    // A little further on, for the braking, and nowhere near rest.
+    const travelled = ships.turrets.bearing[pi]! - (rest + 1.2);
+    expect(travelled).toBeGreaterThan(0);
+    expect(travelled).toBeLessThan(0.5);
+  });
+});
+
 describe('enemies hooked together', () => {
   it('shoot each other across the body they share', () => {
     // A core with a turret ahead of it and a plate beside it, and two of them
