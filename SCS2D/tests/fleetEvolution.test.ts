@@ -13,7 +13,7 @@ import { LINE_OF_BATTLE } from '../scenarios/fleets.js';
 const SHORT = { duration: 20 };
 
 function only(operator: FleetOperator): Record<FleetOperator, number> {
-  const weights = { design: 0, move: 0, add: 0, remove: 0, fork: 0, merge: 0 };
+  const weights = { design: 0, move: 0, add: 0, remove: 0, fork: 0, merge: 0, swap: 0 };
   weights[operator] = 1;
   return weights;
 }
@@ -126,12 +126,25 @@ describe('breeding a fleet', () => {
       remove: LINE_OF_BATTLE,
       fork: pair(),
       merge: LINE_OF_BATTLE,
+      swap: LINE_OF_BATTLE,
     };
     for (const [operator, parent] of Object.entries(parents) as [FleetOperator, Fleet][]) {
       const child = mutateFleet(parent, new Rng(11), { ...limits, operators: only(operator) });
       expect(child.edits.length, operator).toBeGreaterThan(0);
       expect(fleetFits(child.fleet, limits), operator).toBe(true);
     }
+  });
+
+  it('swaps a ship onto another of its fleet\'s designs, keeping the count', () => {
+    const designs = (fleet: Fleet): string[] => fleet.ships.map((entry) => ('design' in entry ? entry.design : `group ${entry.group}`));
+    const before = designs(LINE_OF_BATTLE);
+    const child = mutateFleet(LINE_OF_BATTLE, new Rng(5), { operators: only('swap') });
+    expect(child.edits[0]).toMatch(/rebuilt as a/);
+    const after = designs(child.fleet);
+    expect(after).toHaveLength(before.length);
+    const changed = after.filter((name, i) => name !== before[i]);
+    expect(changed).toHaveLength(1);
+    expect(before).toContain(changed[0]);
   });
 
   it('never leaves the parent changed', () => {
