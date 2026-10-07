@@ -34,6 +34,7 @@ function ship(
     // The camera reads position, velocity and radius; the rest is for drawing.
     design: { radius: 20 } as ShipView['design'],
     team: 0,
+    serial: 0,
     x,
     y,
     angle: 0,

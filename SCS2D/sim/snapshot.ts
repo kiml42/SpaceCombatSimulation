@@ -39,6 +39,8 @@ export interface ShipView {
    */
   body: number;
   team: number;
+  /** Which of its side's ships it is, from one; zero for a ship with no such count, as in an editor. */
+  serial: number;
   x: number;
   y: number;
   angle: number;
@@ -273,6 +275,7 @@ function shipView(snapshot: Snapshot, i: number): ShipView {
     design: null as unknown as ShipDesign,
     body: -1,
     team: 0,
+    serial: 0,
     x: 0,
     y: 0,
     angle: 0,
@@ -339,6 +342,7 @@ export function capture(
     view.design = design;
     view.body = b;
     view.team = ships.teamOf(i);
+    view.serial = ships.serialOf(i);
     view.x = bodies.x[b]!;
     view.y = bodies.y[b]!;
     view.angle = bodies.angle[b]!;
