@@ -392,13 +392,12 @@ Deliberately unresolved; decide when they block something.
   physics — a jet runs a fixed number of its own widths — and is what is built, to be looked at before it is
   argued with. It gives the Star Destroyer's mains a 2.4 km flame and a Dinky's engines under 2 m. The
   square root keeps every trend and squashes both ends, to about 400 m and 12 m. One line in `plumeReach`.
-- **Turning to brake.** A craft brakes facing whatever it is fighting, on what it has pointing that way,
-  because targeting alone decides its heading. One whose big engines are all at the back plans on a sliver
-  of retro, so it creeps in, and one with no retro at all has only `BRAKE_FLOOR` in `sim/ships.ts` to set
-  out on, which overshoots. The alternative is a pilot that turns its mains towards the target when the
-  stopping curve asks for more than its retros give, losing its guns while it does — likely a doctrine
-  choice, "flip to brake" against "brake facing", since which is better depends on the layout. It needs
-  heading logic of its own, and `BRAKE_FLOOR` goes when it lands.
+- **Planning to brake on the mains.** A craft with `burnWeight` turns its main thrust axis along the change
+  of velocity it wants, braking included, when that buys enough of the push it asks for. But the stopping
+  curve it flies in on is planned on what it has pointing the other way *as it lies*, so one whose big
+  engines are all at the back still plans on a sliver of retro and creeps in, and one with no retro has only
+  `BRAKE_FLOOR` in `sim/ships.ts`. Planning on the mains, less the time a flip takes, is what is left; it
+  wants measuring against the fleet scenarios, and `BRAKE_FLOOR` goes when it lands.
 - **Whether a beam should have an opinion about where it hits.** Each archetype now carries its own
   targeting, and a beam turret's is the one where the obvious default was left untaken. The argument for
   taking it is good: picking a part costs accuracy, a beam turret is the mount that answers what is small
@@ -409,12 +408,6 @@ Deliberately unresolved; decide when they block something.
   That is a balance decision about what beams are *for*, and it wants the fleet in front of it rather than
   a place in a change about where a mount's defaults come from. The same question hangs over `hullBeam`,
   which has the same physics and a hull's aiming.
-- **Turning to accelerate as well as to fight.** A ship turns its target to its attack bearing — where its
-  main guns bear most — while it fights, and its main thrust axis comes into it only as where to hold the
-  target when the guns do not care. So a broadside closes on its laterals, side on, rather than turning its
-  mains towards the band and back again. The alternative is a doctrine weight between the two, pointing the
-  thrust axis along the change of velocity it wants while that is large and turning to fight as it settles;
-  it is the same heading logic **Turning to brake** wants, and the two are one piece of work.
 - **Which part a hull points at.** The attack bearing points the battery at the target's centre, led by its
   shot's time of flight. **The Dinky is the worked example**: its gun trains five degrees, so what it
   actually shoots is whatever the *hull* is pointed at. **Which part a hull points at is a setting on the

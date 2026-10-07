@@ -214,7 +214,13 @@ inside any one file is not contiguous.
   muzzle speeds (beams and flames arrive at once and lead nothing). Where the guns bear on the ship's main
   thrust axis — the way its layout pushes hardest — or bear everywhere, it holds the target on that, so a
   ship with turrets that train right round flies at what it is fighting. The editor draws each best bearing
-  out to the band and lists it. So a ship with an enemy on each beam fights both, and a gun that cannot reach what its ship is
+  out to the band and lists it. **It turns from its guns to its engines when doctrine says the push is
+  worth more**: `burnWeight` scores the share of its main thrust that pointing the thrust axis along the
+  change of velocity it wants would add, against `rangeHold` for keeping the guns on target, all of it inside
+  the band it holds and falling away beyond. The harder it wants to accelerate, and the further out it is, the
+  more readily it turns, held either way by a margin so it does not flip back and forth. So a ship whose one
+  big engine is its weapon closes bow first and fights stern first, braking on its flame. `burnWeight` is zero
+  by default. So a ship with an enemy on each beam fights both, and a gun that cannot reach what its ship is
   fighting fights what it can instead of sitting pinned against the edge of its arc. A further preference, for what the ship as a whole
   is fighting, is what keeps a broadside concentrated without tying it together; an order given is still
   obeyed by every mount that can train on it. How often a mount reconsiders is derived from the mount:

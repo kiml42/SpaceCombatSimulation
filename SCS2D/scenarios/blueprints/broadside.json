@@ -10,7 +10,8 @@
     "approach": {
       "standoffRadii": 30,
       "standoff": 0.7,
-      "tolerance": 0.6
+      "tolerance": 0.6,
+      "burnWeight": 2
     }
   },
   "assemblies": {

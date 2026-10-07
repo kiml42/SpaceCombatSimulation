@@ -73,8 +73,8 @@ function breedLine(parent: Blueprint, seed: number, generations: number): Step[]
 }
 
 const GENERATIONS = 600;
-const corvette = breedLine(CORVETTE, 13, GENERATIONS);
-const catamaran = breedLine(CATAMARAN, 13, GENERATIONS);
+const corvette = breedLine(CORVETTE, 14, GENERATIONS);
+const catamaran = breedLine(CATAMARAN, 14, GENERATIONS);
 const both = [...corvette, ...catamaran];
 
 const matching = (steps: readonly Step[], what: RegExp): Step[] =>

@@ -83,9 +83,12 @@ describe('the Broadside', () => {
   it('leads a crossing target with its broadside', () => {
     // An engineless core drifting across its port beam 2 km off: the hull is
     // held ahead of the target's centre, the way it is going.
+    // Never turning to burn, so its heading is the attack bearing's alone.
+    const doctrine = BROADSIDE.doctrine!;
+    const holding = { ...BROADSIDE, doctrine: { ...doctrine, approach: { ...doctrine.approach, burnWeight: 0 } } };
     const off = (vy: number): number => {
       const run = makeBattle({ seed: 4 }, (ships, world) => {
-        const mine = ships.spawn(world, { design: compileBlueprint(BROADSIDE), x: 0, y: 0, angle: -Math.PI / 2, team: 0 });
+        const mine = ships.spawn(world, { design: compileBlueprint(holding), x: 0, y: 0, angle: -Math.PI / 2, team: 0 });
         const them = ships.spawn(world, { design: compileBlueprint(BARE_CORE), x: 2000, y: 0, vy, team: 1 });
         ships.clearOrder(mine);
         ships.pushOrder(mine, them, 1500, 2500, 0, OrderCancelCondition.None);
