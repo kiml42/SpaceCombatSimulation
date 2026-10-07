@@ -496,6 +496,7 @@ const FLEET: readonly BlueprintName[] = [
   'torch',
   'laserFrigate',
   'torpedo',
+  'broadside',
 ];
 
 /**

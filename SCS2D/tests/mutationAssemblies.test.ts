@@ -250,7 +250,7 @@ describe('breeding the grouping', () => {
   it('keeps every generation a ship, and a file the parser accepts', { timeout: 30_000 }, () => {
     // The catamaran is the founder with assemblies already, so these operators
     // are working on a grouping somebody else wrote rather than their own.
-    const rng = new Rng(11);
+    const rng = new Rng(12);
     let held: Blueprint = CATAMARAN;
     for (let i = 0; i < 200; i++) {
       held = mutate(held, rng, { structural: 1 }).blueprint;

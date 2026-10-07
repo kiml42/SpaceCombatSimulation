@@ -206,7 +206,15 @@ inside any one file is not contiguous.
   one that marks any counts only those, both for how close it flies and for whether it is still armed. So a
   capital that has lost its main guns knows it, however much point defence it has left, and enemies weighing
   `armedWeight` and its own `ramArmed` see it the same way. The marks survive a break: a piece left with only
-  secondaries is disarmed rather than promoted. So a ship with an enemy on each beam fights both, and a gun that cannot reach what its ship is
+  secondaries is disarmed rather than promoted. **Where the main guns bear is which way round it fights**:
+  of the bearings off its bow, the pilot holds its target on the one its working main guns bear on most,
+  less doctrine's `turnBias` for every half turn it is from where the target already is, so a Star Destroyer
+  fights on whichever beam is nearer and turns the other to the enemy only for enough more guns to pay for
+  the turn. The battery is pointed where its shot will meet the target, led by the harmonic mean of its guns'
+  muzzle speeds (beams and flames arrive at once and lead nothing). Where the guns bear on the ship's main
+  thrust axis — the way its layout pushes hardest — or bear everywhere, it holds the target on that, so a
+  ship with turrets that train right round flies at what it is fighting. The editor draws each best bearing
+  out to the band and lists it. So a ship with an enemy on each beam fights both, and a gun that cannot reach what its ship is
   fighting fights what it can instead of sitting pinned against the edge of its arc. A further preference, for what the ship as a whole
   is fighting, is what keeps a broadside concentrated without tying it together; an order given is still
   obeyed by every mount that can train on it. How often a mount reconsiders is derived from the mount:

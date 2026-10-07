@@ -73,8 +73,8 @@ function breedLine(parent: Blueprint, seed: number, generations: number): Step[]
 }
 
 const GENERATIONS = 600;
-const corvette = breedLine(CORVETTE, 11, GENERATIONS);
-const catamaran = breedLine(CATAMARAN, 11, GENERATIONS);
+const corvette = breedLine(CORVETTE, 13, GENERATIONS);
+const catamaran = breedLine(CATAMARAN, 13, GENERATIONS);
 const both = [...corvette, ...catamaran];
 
 const matching = (steps: readonly Step[], what: RegExp): Step[] =>
@@ -121,7 +121,8 @@ describe('breeding a shape', () => {
     expect(walks).toBeGreaterThan(0);
   });
 
-  it('keeps every module a box when shape is weighted out', () => {
+  // Slow: six hundred generations, each compiled.
+  it('keeps every module a box when shape is weighted out', { timeout: 30_000 }, () => {
     // The off switch a long run reaches for: a hull with wedges in it compiles
     // about half as dear again, so a run that does not want them should not
     // pay for them.

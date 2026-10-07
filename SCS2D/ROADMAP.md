@@ -409,26 +409,21 @@ Deliberately unresolved; decide when they block something.
   That is a balance decision about what beams are *for*, and it wants the fleet in front of it rather than
   a place in a change about where a mount's defaults come from. The same question hangs over `hullBeam`,
   which has the same physics and a hull's aiming.
-- **A ship should say which way it fights as well as which way it accelerates.** A blueprint has one
-  orientation, so the heading a pilot holds is the heading its engines push along — which is exactly wrong
-  for a broadside, whose guns bear ninety degrees off the line it wants to travel. Two orientations in the
-  design, an attack one and an acceleration one, would let a hull be flown along one and pointed along the
-  other. It also subsumes a case that otherwise wants a mechanism of its own: **a small ship with fixed guns
-  cannot currently choose a module on a large one**, because aiming a fixed gun is a question for the pilot
-  rather than the mount, and a pilot that knew what its guns wanted to hit would steer to put it under them.
-  Both are the same missing idea — that where a ship points is a decision, not a consequence of where it is
-  going. **Marking main guns (step 3) gives the attack orientation something to derive from**: the
-  preferred heading to fight at is the one that brings the most main-gun arc to bear on the target, worked
-  out from the main mounts' firing arcs, with secondaries left out since they are CIWS and train on their
-  own. **The Dinky is the worked example**: its gun trains five degrees and its doctrine says engines, so
-  what it actually shoots is whatever the *hull* is pointed at, and the hull points at its target's centre.
-  **Which part a hull points at is a setting on the ship**, decided by the author against the alternative of
-  deriving it from what the ship's weapons want: a hull with several limited-traverse guns has no single
-  answer to derive from, and picking one would mean guessing which the designer meant as the main battery.
-  So a hull gets an aim preference of its own — the thing this codebase deliberately does *not* have today,
-  a ship choosing a part of another ship rather than a ship — and a gun that cannot train far follows it on
-  `focusWeight` alone, which is what that weight already does. Until it lands, such a preference belongs on
-  the gun, since on a hull it would be a number nothing reads.
+- **Turning to accelerate as well as to fight.** A ship turns its target to its attack bearing — where its
+  main guns bear most — while it fights, and its main thrust axis comes into it only as where to hold the
+  target when the guns do not care. So a broadside closes on its laterals, side on, rather than turning its
+  mains towards the band and back again. The alternative is a doctrine weight between the two, pointing the
+  thrust axis along the change of velocity it wants while that is large and turning to fight as it settles;
+  it is the same heading logic **Turning to brake** wants, and the two are one piece of work.
+- **Which part a hull points at.** The attack bearing points the battery at the target's centre, led by its
+  shot's time of flight. **The Dinky is the worked example**: its gun trains five degrees, so what it
+  actually shoots is whatever the *hull* is pointed at. **Which part a hull points at is a setting on the
+  ship**, decided by the author against the alternative of deriving it from what the ship's weapons want: a
+  hull with several limited-traverse guns has no single answer to derive from. So a hull gets an aim
+  preference of its own — the thing this codebase deliberately does *not* have today, a ship choosing a part
+  of another ship rather than a ship — and a gun that cannot train far follows it on `focusWeight` alone,
+  which is what that weight already does. Until it lands, such a preference belongs on the gun, since on a
+  hull it would be a number nothing reads.
 - **What a target's presented aspect is worth.** A weapon decides whether to fire from the bounding circle
   of what it is shooting at, so a ship end-on is taken to be as wide as it is long. The error is in the
   forgiving direction — a shot at a hull rather than a shot at nothing — but it means a fleet in line ahead

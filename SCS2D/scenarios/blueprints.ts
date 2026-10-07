@@ -9,6 +9,7 @@ import catamaranFile from './blueprints/catamaran.json' with { type: 'json' };
 import bareCoreFile from './blueprints/bare-core.json' with { type: 'json' };
 import torchFile from './blueprints/torch.json' with { type: 'json' };
 import laserFrigateFile from './blueprints/laser-frigate.json' with { type: 'json' };
+import broadsideFile from './blueprints/broadside.json' with { type: 'json' };
 import torpedoFile from './blueprints/torpedo.json' with { type: 'json' };
 
 // --- Star Wars ---
@@ -52,6 +53,7 @@ export const BARE_CORE: Blueprint = parseBlueprint(bareCoreFile);
 export const TORCH: Blueprint = parseBlueprint(torchFile);
 export const LASER_FRIGATE: Blueprint = parseBlueprint(laserFrigateFile);
 export const TORPEDO: Blueprint = parseBlueprint(torpedoFile);
+export const BROADSIDE: Blueprint = parseBlueprint(broadsideFile);
 
 export const X_WING: Blueprint = parseBlueprint(xWingFile);
 export const A_WING: Blueprint = parseBlueprint(aWingFile);
@@ -72,6 +74,7 @@ export const BLUEPRINTS = {
     torch: TORCH,
     laserFrigate: LASER_FRIGATE,
     torpedo: TORPEDO,
+    broadside: BROADSIDE,
 
     xWing: X_WING,
     aWing: A_WING,

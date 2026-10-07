@@ -23,6 +23,7 @@ export {
   type BodySpec,
 } from './bodies.js';
 export { World, type ForceProvider, type WorldOptions } from './world.js';
+export { AttackArcs, AttackRegion, attackBearing, bestAttackBearings, designArcs } from './attack.js';
 export { gravityWell, wellPull, wellPotentialEnergy, type WellSpec } from './gravity.js';
 export { SpatialGrid, IndexBuffer, RayHit, segmentCircleT, type RayNarrowPhase } from './spatialGrid.js';
 export {

@@ -82,6 +82,9 @@ const TRIGGER_FOULED = '#ff5a5a24';
 /** The band of ranges a ship's doctrine closes to, against the enemy it wants. */
 const HOLD_BAND = '#7fd6c214';
 const HOLD_EDGE = '#7fd6c266';
+/** Where a ship turns its target to, out to the band. */
+const ATTACK_LINE = '#7fd6c2b0';
+const ATTACK_DASH_PX = 6;
 
 /** Where a gun's barrel is pointing now, along its wedge, in battle. */
 const BARREL_LINE = '#e6edf566';
@@ -248,6 +251,18 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
       ctx.arc(0, 0, holdMin, 0, TAU);
       ctx.stroke();
     }
+    ctx.strokeStyle = ATTACK_LINE;
+    ctx.setLineDash([ATTACK_DASH_PX / metresToPx, ATTACK_DASH_PX / metresToPx]);
+    for (const bearing of ship.attackBearings ?? []) {
+      ctx.save();
+      ctx.rotate(bearing);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(holdMax, 0);
+      ctx.stroke();
+      ctx.restore();
+    }
+    ctx.setLineDash([]);
   }
 
   // Module boxes, in the body frame the design already put them in.

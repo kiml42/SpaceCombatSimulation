@@ -274,6 +274,14 @@ export interface Approach {
    * close enough.
    */
   readonly ramArmed: number;
+  /**
+   * What a half turn costs in choosing which way round to fight, as a share
+   * of its main battery. A ship weighs each bearing its main guns can bear on
+   * by the share of them that do, less this for every half turn away from
+   * where its target already is; so at 0.5 a half turn has to bring half its
+   * main guns more to bear. Zero turns for any gain.
+   */
+  readonly turnBias: number;
 }
 
 /**
@@ -343,6 +351,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     brake: 0.8,
     ramRadii: 0,
     ramArmed: 0,
+    turnBias: 0.5,
   },
 };
 
@@ -523,6 +532,7 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
   'brake',
   'ramRadii',
   'ramArmed',
+  'turnBias',
 ];
 
 /**
