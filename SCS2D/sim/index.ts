@@ -82,6 +82,7 @@ export {
   barrelCalibres,
   braceMass,
   readsWeapon,
+  readsMain,
   readsThick,
   readsFuse,
   DEFAULT_FUSE,

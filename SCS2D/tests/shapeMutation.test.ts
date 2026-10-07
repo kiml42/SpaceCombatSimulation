@@ -36,6 +36,9 @@ interface Step {
   readonly edits: readonly string[];
   readonly before: readonly ModuleSpec[];
   readonly after: readonly ModuleSpec[];
+  /** The same, one list per frame: the ship's own, then each assembly's. */
+  readonly beforeLists: readonly (readonly ModuleSpec[])[];
+  readonly afterLists: readonly (readonly ModuleSpec[])[];
 }
 
 /**
@@ -45,15 +48,13 @@ interface Step {
  * keeps its hulls in one, and a draw that reshapes a module inside an assembly
  * reshapes it on every copy.
  */
-const modulesOf = (blueprint: Blueprint): ModuleSpec[] => {
-  const out: ModuleSpec[] = [];
+const modulesOf = (blueprint: Blueprint): ModuleSpec[] => listsOf(blueprint).flat();
+
+/** The modules written in each frame: the ship's own, then each assembly's. */
+const listsOf = (blueprint: Blueprint): ModuleSpec[][] => {
   const isModule = (placement: Placement): placement is ModuleSpec => !('assembly' in placement);
-  const take = (placements: readonly Placement[]): void => {
-    for (const placement of placements) if (isModule(placement)) out.push(placement);
-  };
-  take(blueprint.modules ?? []);
-  for (const assembly of Object.values(blueprint.assemblies ?? {})) take(assembly.modules);
-  return out;
+  const take = (placements: readonly Placement[]): ModuleSpec[] => placements.filter(isModule);
+  return [take(blueprint.modules ?? []), ...Object.values(blueprint.assemblies ?? {}).map((a) => take(a.modules))];
 };
 
 function breedLine(parent: Blueprint, seed: number, generations: number): Step[] {
@@ -62,8 +63,15 @@ function breedLine(parent: Blueprint, seed: number, generations: number): Step[]
   let held = parent;
   for (let i = 0; i < generations; i++) {
     const before = modulesOf(held);
+    const beforeLists = listsOf(held);
     const child = mutate(held, rng);
-    steps.push({ edits: child.edits, before, after: modulesOf(child.blueprint) });
+    steps.push({
+      edits: child.edits,
+      before,
+      after: modulesOf(child.blueprint),
+      beforeLists,
+      afterLists: listsOf(child.blueprint),
+    });
     // The layout rules decide whether a draw was any good, and a shape draw
     // must not be able to breed something they would refuse.
     expect(blueprintProblem(child.blueprint)).toBeNull();
@@ -149,18 +157,24 @@ describe('breeding a shape', () => {
       // the cut; anything else could have moved a weld on its own account.
       if (step.edits.length !== 1 || step.before.length !== step.after.length) continue;
       cuts++;
-      expect(weldCount(step.after)).toBe(weldCount(step.before));
+      expect(weldCount(step.afterLists)).toBe(weldCount(step.beforeLists));
     }
     expect(cuts).toBeGreaterThan(0);
   });
 });
 
-/** How many pairs of modules are welded, which a corner cut must not change. */
-function weldCount(modules: readonly ModuleSpec[]): number {
+/**
+ * How many pairs of modules are welded, which a corner cut must not change.
+ * Within a frame only: modules written in different frames are not where
+ * their numbers say relative to each other.
+ */
+function weldCount(lists: readonly (readonly ModuleSpec[])[]): number {
   let welds = 0;
-  for (let a = 0; a < modules.length; a++) {
-    for (let b = a + 1; b < modules.length; b++) {
-      if (contactWidth(modules[a]!, modules[b]!) > 0) welds++;
+  for (const modules of lists) {
+    for (let a = 0; a < modules.length; a++) {
+      for (let b = a + 1; b < modules.length; b++) {
+        if (contactWidth(modules[a]!, modules[b]!) > 0) welds++;
+      }
     }
   }
   return welds;
