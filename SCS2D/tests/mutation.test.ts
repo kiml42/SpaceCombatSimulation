@@ -256,7 +256,11 @@ describe('mutation', () => {
     expect(found).toBe(true);
   });
 
-  it('lengthens and shortens a gun\'s barrel, in whole calibres', () => {
+  // Hundreds of mutants bred and compiled per parent to catch three barrel
+  // edits, which is the same budget its siblings above take for the same
+  // reason: a default five seconds is what one assertion costs, not what
+  // breeding a population does.
+  it('lengthens and shortens a gun\'s barrel, in whole calibres', { timeout: 30_000 }, () => {
     // The Catamaran's turrets and the Corvette's hull gun both read it.
     for (const parent of [CATAMARAN, CORVETTE]) {
       const rng = new Rng(57);
