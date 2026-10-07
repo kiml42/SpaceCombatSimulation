@@ -353,7 +353,7 @@ export interface ShipDesign {
    */
   readonly weaponEngines: readonly number[];
   /** Those of `weaponEngines` in the main battery. */
-  readonly mainEngines: readonly number[];
+  readonly mainWeaponEngines: readonly number[];
   /** Shared by every ship built to this design. */
   readonly engineLayout: EngineLayout;
   readonly turrets: readonly DesignTurret[];
@@ -1846,14 +1846,14 @@ function designFrom(
   }
 
   const weaponEngines: number[] = [];
-  const mainEngines: number[] = [];
+  const mainWeaponEngines: number[] = [];
   for (let t = 0; t < engines.length; t++) {
     const engine = engines[t]!;
     if (engine.weapon !== true) continue;
     weaponEngines.push(t);
     const spec = modules[engine.module ?? -1]?.spec;
     if (spec === undefined || spec.main === false) continue;
-    mainEngines.push(t);
+    mainWeaponEngines.push(t);
     // As far as the flame lands the share it fires for, so a torch ship's
     // doctrine closes to where its engine burns rather than to the skin.
     reach = max(reach, weaponPlumeReach(engineGeometry(spec), engine.maxThrust));
@@ -1899,7 +1899,7 @@ function designFrom(
     centreOfMassY: comY,
     engines,
     weaponEngines,
-    mainEngines,
+    mainWeaponEngines,
     engineLayout: new EngineLayout(engines),
     turrets,
     cores,

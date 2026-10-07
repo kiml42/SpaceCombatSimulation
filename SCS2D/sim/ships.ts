@@ -868,7 +868,7 @@ export class Ships {
       if (design.turrets[t]!.main && !this.isTurretDisabled(i, t)) return false;
     }
     // An engine meant as a weapon is one while it can still burn.
-    for (const t of design.mainEngines) {
+    for (const t of design.mainWeaponEngines) {
       const module = design.engines[t]?.module ?? -1;
       if (this.left(i, b, module, DamageEffect.Thrust) > 0) return false;
     }

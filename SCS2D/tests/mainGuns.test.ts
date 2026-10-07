@@ -102,8 +102,8 @@ describe('main guns', () => {
       ...twoGuns(true, false),
       modules: [...twoGuns(true, false).modules, main ? engine : { ...engine, main: false }],
     });
-    expect(compileBlueprint(ship(false)).mainEngines).toEqual([]);
-    expect(compileBlueprint(ship(true)).mainEngines).toEqual([0]);
+    expect(compileBlueprint(ship(false)).mainWeaponEngines).toEqual([]);
+    expect(compileBlueprint(ship(true)).mainWeaponEngines).toEqual([0]);
   });
 
   it('are the spinal gun on the gunship and the heavy turrets on the Star Destroyer', () => {
