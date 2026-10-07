@@ -3749,7 +3749,8 @@ export class Ships {
       states[t] = this.turretStates[ship]![before]!;
       barrels[t] = this.nextBarrelToFire[ship]![before]!;
       targets[t] = this.turretTarget[ship]![before]!;
-      aiming[t] = this.turretAiming[ship]![before]!;
+      // Not what it was aiming at: the mount is new and untrained, so it would
+      // fire wherever its barrel points until the next `command` trains it.
       aims[t] = this.turretAimModule[ship]![before]!;
       schedule[t] = this.turretRethinkAt[ship]![before]!;
     }
