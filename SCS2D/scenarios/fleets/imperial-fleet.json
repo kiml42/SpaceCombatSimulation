@@ -28,23 +28,23 @@
           "modules": [
             {
               "kind": "structure",
-              "x": 539.5,
+              "x": 601.9,
               "y": 60,
-              "length": 93,
+              "length": 217.8,
               "width": 60
             },
             {
               "kind": "structure",
-              "x": 429.5,
+              "x": 429.4,
               "y": 120,
-              "length": 255,
+              "length": 254.8,
               "width": 60
             },
             {
               "kind": "structure",
-              "x": 274.4,
+              "x": 275.4,
               "y": 180,
-              "length": 252.8,
+              "length": 254.8,
               "width": 60
             },
             {
@@ -125,16 +125,6 @@
               "width": 57,
               "barrels": 14,
               "nozzle": 0.076923
-            },
-            {
-              "kind": "engine",
-              "x": 557,
-              "y": 117.5,
-              "angle": 0,
-              "length": 30,
-              "width": 55,
-              "barrels": 11,
-              "nozzle": 0.166667
             },
             {
               "use": "engine2",
@@ -223,15 +213,9 @@
               "width": 58
             },
             {
-              "kind": "engine",
-              "x": 806,
-              "y": 0,
-              "angle": 90,
-              "length": 35,
-              "width": 160,
-              "reinforcement": 5,
-              "barrels": 45,
-              "nozzle": 0.166667
+              "use": "engine",
+              "x": 794.919314687,
+              "y": 57.226241031
             },
             {
               "kind": "engine",
@@ -242,17 +226,6 @@
               "width": 60,
               "nozzle": 0.277778,
               "thick": true
-            },
-            {
-              "kind": "engine",
-              "x": 651,
-              "y": 30,
-              "angle": 90,
-              "length": 42,
-              "width": 130,
-              "reinforcement": 5,
-              "barrels": 45,
-              "nozzle": 0.142857
             },
             {
               "kind": "structure",
@@ -278,7 +251,7 @@
             },
             {
               "use": "structure2",
-              "x": 452.466666667,
+              "x": 454.466666667,
               "y": 170,
               "mirror": true
             },
@@ -354,6 +327,63 @@
               "x": -560.0000000000001,
               "y": 470.00000000000006,
               "mirror": true
+            },
+            {
+              "use": "structure2",
+              "x": 608.466666667,
+              "y": 110,
+              "mirror": true
+            },
+            {
+              "use": "structure2",
+              "x": 762.466666667,
+              "y": 50,
+              "mirror": true
+            },
+            {
+              "kind": "structure",
+              "x": 890.4664101459998,
+              "y": 10.000812608,
+              "length": 76.999230439,
+              "width": 29.999700171,
+              "vertices": [
+                51.332820293,
+                -10.000512779,
+                -25.666410146,
+                19.999187392,
+                -25.666410146,
+                -9.998674614
+              ]
+            },
+            {
+              "use": "engine",
+              "x": 644.39215112,
+              "y": 115.873187876
+            },
+            {
+              "use": "engine",
+              "x": 494.246394394,
+              "y": 174.37153465199998
+            },
+            {
+              "use": "engine",
+              "x": 343.745589005,
+              "y": 233.08613415399998
+            },
+            {
+              "use": "engine",
+              "x": 193.218425438,
+              "y": 291.733080998
+            },
+            {
+              "use": "engine",
+              "x": 42.691261870999995,
+              "y": 350.380027842
+            },
+            {
+              "use": "engine",
+              "x": -107.83590169600001,
+              "y": 409.026974686
             }
           ]
         },
@@ -499,14 +529,29 @@
               ]
             }
           ]
+        },
+        "engine": {
+          "modules": [
+            {
+              "kind": "engine",
+              "x": 0,
+              "y": 0,
+              "angle": 68.713594886,
+              "length": 22,
+              "width": 160,
+              "reinforcement": 5,
+              "barrels": 49,
+              "nozzle": 0.090909
+            }
+          ]
         }
       },
       "modules": [
         {
           "kind": "structure",
-          "x": 626.5,
+          "x": 695.9,
           "y": 0,
-          "length": 233,
+          "length": 371.8,
           "width": 60
         },
         {
@@ -518,11 +563,6 @@
           "reinforcement": 15,
           "thick": true,
           "notes": "The bridge, aft above the engines, where a Star Destroyer's is — and where every shot at it has to cross the length of the ship first."
-        },
-        {
-          "use": "structure",
-          "x": 17,
-          "y": 0
         },
         {
           "use": "structure",
@@ -550,6 +590,11 @@
           "length": 812,
           "width": 60,
           "thick": true
+        },
+        {
+          "use": "structure",
+          "x": 17,
+          "y": 0
         }
       ]
     },

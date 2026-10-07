@@ -15,7 +15,7 @@ import { EditorDocument } from '../../editor/document.js';
 import { previewSnapshot } from '../../editor/preview.js';
 import { frame, type Camera } from '../../render/camera.js';
 import { CORVETTE } from '../../scenarios/blueprints.js';
-import type { Blueprint } from '../../sim/index.js';
+import { parseBlueprint, type Blueprint } from '../../sim/index.js';
 
 /**
  * The blueprint editor, driven in a real browser.
@@ -116,6 +116,66 @@ const PLATE: Blueprint = {
     { kind: 'structure', x: 0, y: 0, length: 4, width: 4 },
   ],
 };
+
+/**
+ * A hull whose faces are off the grid, with a plate adrift of it and one
+ * turned to an angle no increment offers.
+ *
+ * Its faces are at 2.3 and 6.3, which no grid the editor offers has a line on,
+ * so a plate that comes to rest flush with one got there by landing on the
+ * layout rather than by rounding. Written as a file, where angles are in
+ * degrees, since that is how a ship reaches the editor.
+ */
+const SNAPPING_FILE = {
+  formatVersion: 1,
+  name: 'Snapping',
+  modules: [
+    { kind: 'structure', x: -3.7, y: 0, length: 4, width: 4, angle: 20 },
+    { kind: 'core', x: 0.3, y: 0, length: 4, width: 4 },
+    { kind: 'structure', x: 4.3, y: 0, length: 4, width: 4 },
+    { kind: 'structure', x: 12, y: 0, length: 4, width: 4 },
+  ],
+};
+const SNAPPING: Blueprint = parseBlueprint(SNAPPING_FILE);
+
+/**
+ * Where a blueprint's own coordinates land on screen once the page has framed
+ * it, and how many pixels a metre is worth there.
+ */
+async function framing(
+  p: Page,
+  blueprint: Blueprint,
+): Promise<{ at: (x: number, y: number) => { x: number; y: number }; scale: number }> {
+  const box = await p.locator('#view').boundingBox();
+  const size = await p.evaluate(() => {
+    const canvas = document.getElementById('view') as HTMLCanvasElement;
+    return { width: canvas.width, height: canvas.height };
+  });
+  if (box === null) throw new Error('the canvas has no box');
+  const design = new EditorDocument(blueprint).view.design;
+  if (design === null) throw new Error(`${blueprint.name} does not compile`);
+  const camera: Camera = { x: 0, y: 0, scale: 1 };
+  frame(camera, previewSnapshot(design), size.width, size.height, 1);
+  const cssPerPx = box.width / size.width;
+  return {
+    at: (x, y) => ({
+      x: box.x + (size.width / 2 + (x - camera.x) * camera.scale) * cssPerPx,
+      y: box.y + (size.height / 2 - (y - camera.y) * camera.scale) * cssPerPx,
+    }),
+    scale: camera.scale * cssPerPx,
+  };
+}
+
+/** Put a ship's file in the library and open it. */
+async function openWritten(p: Page, name: string, file: unknown): Promise<void> {
+  await p.evaluate(
+    ([ship, written]) => window.localStorage.setItem(`scs2d.blueprint.${ship}`, written as string),
+    [name, JSON.stringify(file)],
+  );
+  await p.reload();
+  await openShip(p, name);
+  await p.keyboard.press('f');
+}
 
 /** The corvette's core, amidships at its origin. */
 const corvetteCore = (p: Page) => onCorvette(p, 0, 0);
@@ -1251,6 +1311,53 @@ describe('the editor in a browser', () => {
     expect(Number(await page.inputValue('#propLength'))).toBe(6);
     expect(Number(await page.inputValue('#propX'))).toBeCloseTo(1, 3);
     await page.evaluate(() => window.localStorage.removeItem('scs2d.blueprint.Plate'));
+  });
+
+  it('lands a dragged module flush against what is already there', async () => {
+    await openWritten(page, 'Snapping', SNAPPING_FILE);
+    const { at } = await framing(page, SNAPPING);
+    // The adrift plate, dragged most of the way onto the hull's bow face at
+    // 6.3 but deliberately not all of it, and not by a whole grid step.
+    const flush = 8.3;
+    await page.mouse.move(at(12, 0).x, at(12, 0).y);
+    await page.mouse.down();
+    await page.mouse.move(at(flush + 0.12, 0).x, at(flush + 0.12, 0).y, { steps: 6 });
+    await page.mouse.up();
+    expect(Number(await page.inputValue('#propX'))).toBeCloseTo(flush, 6);
+
+    // Alt escapes it, as it escapes the grid: the drag then means what it says.
+    await page.keyboard.down('Alt');
+    await page.mouse.move(at(flush, 0).x, at(flush, 0).y);
+    await page.mouse.down();
+    await page.mouse.move(at(flush + 0.12, 0).x, at(flush + 0.12, 0).y, { steps: 6 });
+    await page.mouse.up();
+    await page.keyboard.up('Alt');
+    const escaped = Number(await page.inputValue('#propX'));
+    expect(escaped).toBeGreaterThan(flush + 0.05);
+  });
+
+  it('turns a module onto an angle the design is already drawn at', async () => {
+    await openWritten(page, 'Snapping', SNAPPING_FILE);
+    const { at, scale } = await framing(page, SNAPPING);
+    // The adrift plate, taken by its knob and swung towards 19° and then 23°:
+    // both nearer the 20° the turned plate is drawn at than any multiple of 15.
+    const middle = at(12, 0);
+    await page.mouse.click(middle.x, middle.y);
+    const arm = 2 * scale + ROTATE_ARM_PX;
+    const swing = async (degrees: number): Promise<number> => {
+      const radians = (degrees * Math.PI) / 180;
+      await page.mouse.move(middle.x + arm, middle.y);
+      await page.mouse.down();
+      await page.mouse.move(middle.x + arm * Math.cos(radians), middle.y - arm * Math.sin(radians), { steps: 6 });
+      await page.mouse.up();
+      const turned = Number(await page.inputValue('#propAngle'));
+      await page.click('#undo');
+      return turned;
+    };
+    expect(await swing(19)).toBeCloseTo(20, 6);
+    expect(await swing(23)).toBeCloseTo(20, 6);
+    // And a swing near no drawn angle still lands on the increments.
+    expect(await swing(44)).toBeCloseTo(45, 6);
   });
 
   it('eases to a different ship’s scale, so switching shows which is bigger', async () => {
