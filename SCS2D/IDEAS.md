@@ -17,7 +17,8 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 ## General
 - Engines should be able to do damage past destroyed modules like beams can
 - Engines and beams could reduce the mass of the part they hit/pass through after a certain amount of damage as if sublimating it
--  
+- Ships should be able to target specific modules, and, once we have the "main gun" setting in place, offset their aim for their main guns' projectile speed.
+- Ships should be able to point in the direction they want to accelerate, instead of just facing the target (there should be a doctrine weighting to balance between aiming the attack orientation at the enemy, and turning to make use of the main engines to accelerate)
 
 ## Editor
 - Hover on the thrust diagram shows engine plumes on the main display for how it would achieve that thrust
