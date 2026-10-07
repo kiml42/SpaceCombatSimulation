@@ -1672,6 +1672,11 @@ export class Ships {
    * costing an escorting fleet the very broadside `focusWeight` exists to
    * hold together.
    */
+  /** What this ship is fighting: its order's target, else what its doctrine chose; `NO_TARGET` for nothing. */
+  fightingOf(i: number): number {
+    return this.focusOf(i);
+  }
+
   private focusOf(i: number): number {
     const given = this.getCurrentOrder(i);
     if (given !== undefined) return given.target;
