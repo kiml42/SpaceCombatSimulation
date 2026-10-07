@@ -30,6 +30,9 @@ export interface Camera {
   vy?: number;
 }
 
+/** What framing reads of a picture: the box everything in it fits inside. */
+export type Bounds = Pick<Snapshot, 'minX' | 'minY' | 'maxX' | 'maxY'>;
+
 /**
  * Keep the snapshot's bounds in shot, easing rather than snapping — except
  * when easing would crop.
@@ -70,7 +73,7 @@ export interface Camera {
  */
 export function frame(
   camera: Camera,
-  snapshot: Snapshot,
+  snapshot: Bounds,
   widthPx: number,
   heightPx: number,
   ease = 0.08,
@@ -99,7 +102,7 @@ export function frame(
 const FIT_MARGIN = 1.25;
 
 /** Pixels per metre at which a snapshot's bounds fill a view, with a margin round them. */
-export function fitScale(snapshot: Snapshot, widthPx: number, heightPx: number): number {
+export function fitScale(snapshot: Bounds, widthPx: number, heightPx: number): number {
   const spanX = max(snapshot.maxX - snapshot.minX, 1) * FIT_MARGIN;
   const spanY = max(snapshot.maxY - snapshot.minY, 1) * FIT_MARGIN;
   return min(widthPx / spanX, heightPx / spanY);
@@ -303,7 +306,7 @@ function keepPaceWith(
  */
 function contain(
   camera: Camera,
-  snapshot: Snapshot,
+  snapshot: Bounds,
   widthPx: number,
   heightPx: number,
 ): void {
@@ -362,4 +365,46 @@ export function describeStep(step: number): string {
   if (step < 0.01) return `${round3(step * 1000)} mm`;
   if (step < 1) return `${round3(step * 100)} cm`;
   return `${round3(step)} m`;
+}
+
+/** How near a click must land to a ship drawn too small to hit, screen pixels. */
+export const PICK_PX = 12;
+
+/**
+ * The body of the ship under a point, or -1: the nearest whose hull circle, or
+ * a few pixels round its centre when it is drawn smaller than that, holds the
+ * point.
+ */
+export function shipAt(snapshot: Snapshot, x: number, y: number, reach: number): number {
+  let best = -1;
+  let nearest = Infinity;
+  for (let i = 0; i < snapshot.shipCount; i++) {
+    const ship = snapshot.ships[i]!;
+    const d = Math.hypot(ship.x - x, ship.y - y);
+    if (d > Math.max(ship.design.radius, reach) || d >= nearest) continue;
+    nearest = d;
+    best = ship.body;
+  }
+  return best;
+}
+
+/** The bounds of the picked-out ship and what it is fighting, to frame on; null when nothing is picked out. */
+export function selectionBounds(snapshot: Snapshot, body: number): Bounds | null {
+  if (body < 0) return null;
+  const bounds = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity };
+  let target = -1;
+  for (let i = 0; i < snapshot.shipCount; i++) {
+    const ship = snapshot.ships[i]!;
+    if (ship.body === body) target = ship.fighting ?? -1;
+  }
+  for (let i = 0; i < snapshot.shipCount; i++) {
+    const ship = snapshot.ships[i]!;
+    if (ship.body !== body && ship.body !== target) continue;
+    const r = ship.design.radius;
+    bounds.minX = Math.min(bounds.minX, ship.x - r);
+    bounds.minY = Math.min(bounds.minY, ship.y - r);
+    bounds.maxX = Math.max(bounds.maxX, ship.x + r);
+    bounds.maxY = Math.max(bounds.maxY, ship.y + r);
+  }
+  return Number.isFinite(bounds.minX) ? bounds : null;
 }

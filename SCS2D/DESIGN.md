@@ -38,7 +38,8 @@ inside any one file is not contiguous.
   given in advance and worked through as targets are put out of the fight. A Canvas2D
   viewer draws snapshots of all of it — ships, turret bearings, tracers and the wells
   bending them — with pause, single-step, time scaling, and zoom and pan over an
-  auto-framing camera. Rounds and beams are drawn as light, or with C in the colours of the side that
+  auto-framing camera. A ship clicked is picked out — ringed, a line to what it is fighting, the arcs drawn
+  for it alone, and framed with its target — until Escape. Rounds and beams are drawn as light, or with C in the colours of the side that
   fired them, which the evolution page starts with. A ship's name — its side and which of that side's
   ships it is, as "Red 5" — is written on its core once the core is big enough on screen to carry it; a
   piece broken off keeps its ship's. **The camera carries itself along with what it is watching rather
@@ -58,8 +59,11 @@ inside any one file is not contiguous.
   through that same renderer and reports what it bought: mass, inertia, the
   acceleration available in each direction — as figures, and as a pair of
   envelope curves separating what a layout can project from what it can use
-  while holding a heading — and each turret's calibre, rate of fire, muzzle
-  speed and arc. Modules are
+  while holding a heading, the ship burning its engines as it would to push whichever way the pointer is
+  over them — and each turret's calibre, rate of fire, muzzle
+  speed and arc. A module is added at the layout's origin while that is on screen and in the middle of
+  the view when it is not, at its usual size unless the zoom would make that a speck or fill the view,
+  when it arrives an eighth of the view across. Modules are
   clicked to select, dragged to move on a snapping grid a tenth of the grid drawn on screen —
   so the step follows the zoom, from tens of metres on a Star Destroyer down to centimetres on a
   drone — sized by dragging a corner
@@ -204,7 +208,11 @@ inside any one file is not contiguous.
   radius. That last is an approximation — across the shipped fleet the implied constant spans a factor of
   three, mostly because a long thin hull has a large bounding radius for its mass — but it is an
   approximation in service of a nominal figure, and the real reach is worked out against the real target
-  wherever there is one. So a ship with an enemy on each beam fights both, and a gun that cannot reach what its ship is
+  wherever there is one. **The pilot flies to its main battery's reach.** Any weapon — a gun, a beam, or an
+  engine marked as a weapon — is *main* unless marked secondary, and only main weapons count, both for how
+  close it flies and for whether it is still armed. So a capital that has lost its main guns knows it, however
+  much point defence it has left, and enemies weighing `armedWeight` and its own `ramArmed` see it the same
+  way; a piece broken off with only secondaries is disarmed, and a carrier can have no main armament at all. So a ship with an enemy on each beam fights both, and a gun that cannot reach what its ship is
   fighting fights what it can instead of sitting pinned against the edge of its arc. A further preference, for what the ship as a whole
   is fighting, is what keeps a broadside concentrated without tying it together; an order given is still
   obeyed by every mount that can train on it. How often a mount reconsiders is derived from the mount:
@@ -312,7 +320,10 @@ inside any one file is not contiguous.
   it flies crabwise — drop an instance, and turn one over. Making a part and dissolving one change nothing
   about the ship at all: what they change is what the next generation can do, and there is no single
   mutation that both invents a grouping and pays off at once. Every operator has its inverse, because one
-  that can only add structure is a ratchet a lineage has no way down from. A doctrine number
+  that can only add structure is a ratchet a lineage has no way down from. A whole ship can be scaled in one
+  draw — every size, position, corner and assembly placement by one factor, up to a tenth either way at the
+  default magnitude — under `resize`'s weight, so a hull in proportion at one size is tried at another without
+  breaking on the way; the scaling laws do not scale with it, which is the question asked. A doctrine number
   is perturbed by a fraction of its *default* rather than of what is held, so nothing that has reached zero
   is stuck there — and where the default is zero too, by a fraction of what a number is worth in that half
   of the doctrine, since otherwise every draw is a fraction of nothing and the field is not slow to find but
