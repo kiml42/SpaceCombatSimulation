@@ -116,6 +116,7 @@ export {
   SEAL_SPEED,
   SEAL_REACH,
   readsSealing,
+  readsDrainPriority,
   liningOf,
   interiorVolume,
   CORE_COMPUTING_VOLUME,

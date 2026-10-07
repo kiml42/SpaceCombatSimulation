@@ -176,6 +176,9 @@ describe('the evolution page in a browser', () => {
   });
 
   it('fights a run and finishes it, without the page going away', async () => {
+    // Started with a battle showing, which has nothing to show until the
+    // first match is over and must then put it on.
+    await page.selectOption('#mode', 'battle');
     await page.click('#start');
     // The frame loop is what advances the run, so a page that blocked would
     // fail here rather than merely being slow: `waitForFunction` is polled
@@ -187,6 +190,7 @@ describe('the evolution page in a browser', () => {
     );
     expect(problems).toEqual([]);
     expect(await page.textContent('#readout')).toMatch(/matches fought/);
+    await page.waitForFunction(() => /\d+%|over/.test(document.getElementById('watching')?.textContent ?? ''));
   }, 180_000);
 
   it('draws the run as lines rather than an empty box', async () => {
@@ -386,10 +390,13 @@ describe('the evolution page in a browser', () => {
     // Let go, and the panel stays where it was left.
     await page.waitForTimeout(200);
     expect(await page.textContent('#shownGeneration')).toBe('1');
+    const firstRows = await rows(page, 'matches');
 
     // "Latest" is the way back to the newest generation, and to following it.
     await page.click('#latest');
     await page.waitForTimeout(300);
+    // The match list is padded to one length, so nothing under it moves.
+    expect(await rows(page, 'matches')).toBe(firstRows);
     expect(await page.textContent('#shownGeneration')).not.toBe('1');
     // Following the newest again, so there is nowhere to go back to.
     expect(await page.getAttribute('#latest', 'disabled')).not.toBeNull();
@@ -614,7 +621,7 @@ describe('the evolution page in a browser', () => {
     await set(page, 'minMatches', '2');
     await set(page, 'generations', '1');
     await page.click('#start');
-    await page.waitForFunction(() => document.querySelectorAll('#matches tr').length > 1);
+    await page.waitForFunction(() => document.querySelectorAll('#matches tr:not(.pad)').length > 1);
     await page.selectOption('#mode', 'battle');
     await page.click('#matches tr');
     const who = async (): Promise<string> =>
@@ -643,7 +650,7 @@ describe('the evolution page in a browser', () => {
     await choose(page, '#founders', ['Dinky']);
     await set(page, 'generations', '1');
     await page.click('#start');
-    await page.waitForFunction(() => document.querySelectorAll('#matches tr').length > 0);
+    await page.waitForFunction(() => document.querySelectorAll('#matches tr:not(.pad)').length > 0);
     await page.selectOption('#mode', 'battle');
     await page.click('#matches tr');
     await page.waitForFunction(() => /%/.test(document.getElementById('watching')?.textContent ?? ''));
@@ -687,7 +694,7 @@ describe('the evolution page in a browser', () => {
     await set(page, 'group', '1');
     await set(page, 'generations', '1');
     await page.click('#start');
-    await page.waitForFunction(() => document.querySelectorAll('#matches tr').length > 0);
+    await page.waitForFunction(() => document.querySelectorAll('#matches tr:not(.pad)').length > 0);
     await page.selectOption('#mode', 'battle');
     await page.click('#matches tr');
     // A match being watched says who is in it and how far through it is.
@@ -729,7 +736,7 @@ describe('the evolution page in a browser', () => {
     await page.waitForFunction(
       () => [...document.querySelectorAll('#fleet tbody tr')].some((tr) => tr.querySelectorAll('.kind').length > 1),
     );
-    await page.waitForFunction(() => document.querySelectorAll('#matches tr').length > 0, undefined, { timeout: 60_000 });
+    await page.waitForFunction(() => document.querySelectorAll('#matches tr:not(.pad)').length > 0, undefined, { timeout: 60_000 });
     await page.selectOption('#mode', 'battle');
     await page.click('#matches tr');
     await page.waitForFunction(() => /%/.test(document.getElementById('watching')?.textContent ?? ''));
