@@ -2218,7 +2218,9 @@ export function startEvolution(): void {
       }
     }
 
-    if (replay !== null && replayPlaying && (replay.done || skipping)) {
+    // Nothing on yet is waiting for a run's first match to finish, which a run
+    // started with a battle showing always is.
+    if (modeSelect.value === 'battle' && (replay === null || (replayPlaying && (replay.done || skipping)))) {
       rollOn();
     }
 

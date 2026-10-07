@@ -18,6 +18,7 @@ import {
   readsThick,
   readsFuse,
   readsSealing,
+  readsDrainPriority,
   canShape,
   canThicken,
   isTriangle,
@@ -50,6 +51,7 @@ import { EditorDocument } from './document.js';
 import {
   addModule,
   addModuleTo,
+  arrivingModule,
   addToAssembly,
   addToAssemblyProblem,
   dissolveInstance,
@@ -197,7 +199,8 @@ type ModuleNumberField =
   | 'fuse'
   | 'fragments'
   | 'burstSpeed'
-  | 'sealing';
+  | 'sealing'
+  | 'drainPriority';
 
 /** A module's own value for a field, with the default the parser would have applied. */
 function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
@@ -213,6 +216,7 @@ function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
   if (key === 'burstSpeed') return spec.burstSpeed ?? DEFAULT_BURST_SPEED;
   // Millimetres on the panel, metres in the layout.
   if (key === 'sealing') return (spec.sealing ?? 0) * 1000;
+  if (key === 'drainPriority') return spec.drainPriority ?? 0;
   return spec.barrels ?? 1;
 }
 
@@ -369,6 +373,7 @@ export function startEditor(): void {
     fragments: el<HTMLInputElement>('propFragments'),
     burstSpeed: el<HTMLInputElement>('propBurstSpeed'),
     sealing: el<HTMLInputElement>('propSealing'),
+    drainPriority: el<HTMLInputElement>('propDrainPriority'),
     notes: el<HTMLTextAreaElement>('propNotes'),
   };
 
@@ -849,6 +854,7 @@ export function startEditor(): void {
     shapeInput.checked = isTriangle(spec);
     el<HTMLElement>('thickRow').hidden = !readsThick(spec.kind);
     el<HTMLElement>('sealingRow').hidden = !readsSealing(spec.kind);
+    el<HTMLElement>('drainPriorityRow').hidden = !readsDrainPriority(spec.kind);
     // One no more than a deck across is as deep as it is wide either way.
     thickInput.disabled = !canThicken(spec) || doc.blueprint.fighter === true;
     thickInput.checked = isThick(spec);
@@ -1596,19 +1602,24 @@ export function startEditor(): void {
   for (const button of document.querySelectorAll<HTMLButtonElement>('[data-add]')) {
     button.addEventListener('click', () => {
       const kind = button.dataset['add'] as ModuleSpec['kind'];
-      // At the layout's own origin, not at the middle of the view. A ship is
-      // drawn about its origin — the authored ones are, and the frame the
-      // player types coordinates in is that one — so starting every module
-      // wherever the camera happened to be left builds a ship quietly off
-      // centre, and the first module of a new ship decides where the rest go.
       const spec: ModuleSpec = { ...DEFAULTS[kind], x: 0, y: 0 };
+      const view = {
+        x: camera.x,
+        y: camera.y,
+        width: canvas.width / camera.scale,
+        height: canvas.height / camera.scale,
+      };
       // With an assembly selected, the module goes into it, at its origin.
       const into = doc.selectedAssemblyPath();
       if (into !== null) {
-        addInto(into, spec);
+        const sized = arrivingModule(spec, view, snapMetres());
+        addInto(into, { ...sized, x: 0, y: 0 });
         return;
       }
-      const added = addModule(doc.blueprint, spec);
+      // The first module of a new ship is where it starts, at the size it
+      // starts at: the view is still whatever the last ship left it as.
+      const empty = (doc.blueprint.modules ?? []).length === 0;
+      const added = addModule(doc.blueprint, empty ? spec : arrivingModule(spec, view, snapMetres()));
       doc.apply(added.blueprint);
       doc.select(added.path);
       gesture = false;

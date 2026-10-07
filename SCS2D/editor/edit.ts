@@ -216,6 +216,48 @@ export function removePlacement(blueprint: Blueprint, path: ModulePath): Bluepri
   return copy as unknown as Blueprint;
 }
 
+/** What is on screen, in the blueprint's frame: its middle, and its size, metres. */
+export interface InView {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+}
+
+/** Sizes a new module is left at: at least this share of the view across its longer side, and at most that one. */
+const ARRIVAL_SMALLEST = 1 / 32;
+const ARRIVAL_LARGEST = 1 / 4;
+/** What a module too small or too large to work with is sized to instead. */
+const ARRIVAL_SHARE = 1 / 8;
+
+/**
+ * Where a new module arrives, and how big: somewhere it can be seen and taken
+ * hold of.
+ *
+ * At the layout's origin while that is on screen, since a ship is drawn and
+ * typed about its origin and the first module of a new one decides where the
+ * rest go. Otherwise in the middle of the view, on the snapping grid, so a
+ * module added while working at the far end of a long hull lands there.
+ *
+ * At its usual size, unless that would be a speck or fill the view: zoomed in
+ * on a drone's centimetres or out over a Star Destroyer's kilometre, it is
+ * scaled to an eighth of the view and squared to the grid. `step` is the
+ * snapping grid's step, metres.
+ */
+export function arrivingModule(spec: ModuleSpec, view: InView, step: number): ModuleSpec {
+  const span = min(view.width, view.height);
+  const longer = max(spec.length, spec.width);
+  let { length, width } = spec;
+  if (span > 0 && longer > 0 && (longer < span * ARRIVAL_SMALLEST || longer > span * ARRIVAL_LARGEST)) {
+    const k = (span * ARRIVAL_SHARE) / longer;
+    const grid = (value: number): number => (step > 0 ? Math.max(step, snap(value, step)) : value);
+    length = grid(spec.length * k);
+    width = grid(spec.width * k);
+  }
+  const onScreen = Math.abs(view.x) <= view.width / 2 && Math.abs(view.y) <= view.height / 2;
+  return { ...spec, length, width, x: onScreen ? 0 : snap(view.x, step), y: onScreen ? 0 : snap(view.y, step) };
+}
+
 /**
  * Add a module to the end of the layout's own list, and say where it landed.
  *

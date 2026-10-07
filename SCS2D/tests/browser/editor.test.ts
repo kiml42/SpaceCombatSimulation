@@ -1010,6 +1010,23 @@ describe('the editor in a browser', () => {
     expect(Number(await page.inputValue('#propLength'))).toBe(length);
   });
 
+  it('adds a module where the view is, at a size it can be seen at', async () => {
+    await openShip(page, 'Star Destroyer');
+    await page.click('[data-add="tank"]');
+    // Framed on the whole ship, the origin is in view: a module goes there, and
+    // a 6 m tank would be a speck on a kilometre of hull, so it is scaled up.
+    expect(await page.inputValue('#propX')).toBe('0');
+    expect(Number(await page.inputValue('#propLength'))).toBeGreaterThan(6);
+    await page.click('#undo');
+
+    // Zoomed in on the bow, with the origin far off screen: it lands in view.
+    const box = (await page.locator('#view').boundingBox())!;
+    await page.mouse.move(box.x + box.width * 0.05, box.y + box.height / 2);
+    for (let i = 0; i < 6; i++) await page.mouse.wheel(0, -400);
+    await page.click('[data-add="tank"]');
+    expect(Number(await page.inputValue('#propX'))).not.toBe(0);
+  });
+
   it('turns a selected assembly by its knob, about its origin', async () => {
     await page.click('#newShip');
     await page.click('[data-add="structure"]');
