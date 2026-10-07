@@ -20,6 +20,11 @@ Before proposing a change that reverses a design decision, check **DESIGN.md §1
 Those were settled deliberately with reasons recorded. Reopen one only with new information, and if it is
 reopened, update §11 and add an entry to [DECISIONS.md](DECISIONS.md).
 
+Before starting a piece of work, make sure you have the latest version checked out of the branch you're starting 
+from (usually master, and if not, make sure master has been merged into the branch). Work should usually go on a
+new branch with a name appropriate to the feature. Create a Pull Request once the work is complete (possibly create
+several stacked PRs along the way for particularly complex changes).
+
 ## Where things stand
 
 **DESIGN.md's Status block is the single source of truth** for what exists and what comes next. Read it first,
