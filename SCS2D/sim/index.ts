@@ -122,6 +122,8 @@ export {
   engineMachinery,
   traverseAccel,
   mountAccel,
+  moduleOutline,
+  shapeModule,
   traverseRate,
   TRAVERSE_SPINUP_TIME,
   type GunStats,
@@ -143,6 +145,20 @@ export {
   WEAPONS_LAYER,
   type HullDesigns,
 } from './hull.js';
+export {
+  canShape,
+  insetTriangle,
+  isTriangle,
+  normalizeShape,
+  polygonArea,
+  triangleAcross,
+  triangleBounds,
+  triangleOf,
+  triangleRadius,
+  TRIANGLE_CORNERS,
+  insideOutline,
+  distanceToOutline,
+} from './shape.js';
 export {
   PLUME_POWER_PER_NEWTON,
   PLUME_RAYS,

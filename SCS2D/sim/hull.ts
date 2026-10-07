@@ -1,4 +1,5 @@
 import { abs, cos, max, min, sin, sqrt } from './math.js';
+import { triangleOf } from './shape.js';
 import type { DesignModule, ShipDesign } from './blueprint.js';
 import type { Bodies } from './bodies.js';
 import type { Rng } from './rng.js';
@@ -169,6 +170,11 @@ export function modulesAlong(
   for (let i = 0; i < design.modules.length; i++) {
     const m = design.modules[i]!;
     if (i === skip || (moduleLayers(m, bodyLayers) & layers) === 0) continue;
+    const triangle = triangleOf(m.spec);
+    if (triangle !== null) {
+      shapedModuleAlong(m, triangle, i, x0, y0, ux, uy, length, out);
+      continue;
+    }
     const c = cos(m.angle);
     const s = sin(m.angle);
 
@@ -259,6 +265,100 @@ export function modulesAlong(
     }
     out.push(i, entry, exit, nx, ny);
   }
+}
+
+/**
+ * `modulesAlong` for a module that is not a box: the same answer by the same
+ * rules, over however many edges the module has.
+ *
+ * A box is two slabs, and a slab is a pair of parallel faces — which is what
+ * makes the test above a comparison per axis rather than per face. A triangle
+ * has no parallel faces at all, so each edge is clipped on its own: the
+ * segment enters at the latest of the edges it crosses inwards and leaves at
+ * the earliest it crosses outwards, which is the same near/far pair arrived at
+ * one edge at a time.
+ *
+ * Every rule the box path keeps: a face itself counts as outside, so a shot
+ * running exactly along one goes past rather than through; a segment that
+ * begins inside reports the module entering at zero and by no face; and a
+ * crossing of no length is not reported at all.
+ */
+function shapedModuleAlong(
+  m: DesignModule,
+  triangle: readonly number[],
+  index: number,
+  x0: number,
+  y0: number,
+  ux: number,
+  uy: number,
+  length: number,
+  out: HullPath,
+): void {
+  const c = cos(m.angle);
+  const s = sin(m.angle);
+  // The segment in the module's own frame, where its corners are written.
+  const ox = x0 - m.x;
+  const oy = y0 - m.y;
+  const px = ox * c + oy * s;
+  const py = -ox * s + oy * c;
+  const vx = ux * c + uy * s;
+  const vy = -ux * s + uy * c;
+
+  let near = 0;
+  let far = length;
+  let nlx = 0;
+  let nly = 0;
+  let entered = false;
+
+  for (let e = 0; e < triangle.length; e += 2) {
+    const j = (e + 2) % triangle.length;
+    const ex = triangle[j]! - triangle[e]!;
+    const ey = triangle[j + 1]! - triangle[e + 1]!;
+    const span = sqrt(ex * ex + ey * ey);
+    if (!(span > 0)) return;
+    // Anticlockwise winding puts the outside to the right of every edge.
+    const nx = ey / span;
+    const ny = -ex / span;
+    // How far outside this edge the segment starts, and how fast it closes.
+    const outside = (px - triangle[e]!) * nx + (py - triangle[e + 1]!) * ny;
+    const closing = vx * nx + vy * ny;
+
+    if (abs(closing) < EDGE_ON) {
+      // Parallel to the edge: outside it for the whole segment, or inside for
+      // all of it. The edge itself counts as outside.
+      if (outside >= 0) return;
+      continue;
+    }
+    const t = -outside / closing;
+    if (closing < 0) {
+      // Crossing inwards: the latest such crossing is where the module starts.
+      if (t > near) {
+        near = t;
+        nlx = nx;
+        nly = ny;
+        entered = true;
+      }
+    } else {
+      far = min(far, t);
+    }
+    if (near > far) return;
+  }
+
+  if (far < 0) return;
+  const entry = max(near, 0);
+  const exit = min(far, length);
+  if (!(exit > entry)) return;
+
+  // The face entered by, back in the ship's frame. A segment that began inside
+  // entered by no face at all, and says so with a zero normal.
+  const faced = entered && near > 0;
+  out.push(
+    index,
+    entry,
+    exit,
+    faced ? nlx * c - nly * s : 0,
+    faced ? nlx * s + nly * c : 0,
+  );
 }
 
 /**

@@ -1,6 +1,7 @@
-import { math, moduleCentre, type ModuleSpec } from '../sim/index.js';
+import { math, moduleCentre, moduleOutline, type ModuleSpec } from '../sim/index.js';
 import { describeStep, snapStep, type Camera } from '../render/camera.js';
 import { HANDLE_RADIUS_PX, ROTATE_ARM_PX } from './handles.js';
+import { outline } from './overlay.js';
 
 /** What the fleet editor draws over the fleet: selection, faults, the knob and which way is forward. */
 
@@ -62,7 +63,8 @@ export function drawFleetOverlay(
       ctx.translate(mid.x, mid.y);
       ctx.rotate(spec.angle ?? 0);
       ctx.fillStyle = FAULT_FILL;
-      ctx.fillRect(-spec.length / 2, -spec.width / 2, spec.length, spec.width);
+      outline(ctx, spec);
+      ctx.fill();
       ctx.restore();
     }
     ring(ctx, view.circles[i], camera, FAULT_FILL);
@@ -79,7 +81,8 @@ export function drawFleetOverlay(
         ctx.save();
         ctx.translate(mid.x, mid.y);
         ctx.rotate(spec.angle ?? 0);
-        ctx.strokeRect(-spec.length / 2, -spec.width / 2, spec.length, spec.width);
+        outline(ctx, spec);
+        ctx.stroke();
         ctx.restore();
       }
       ring(ctx, view.circles[i], camera, null);
@@ -159,20 +162,13 @@ function drawBox(
   let minV = Infinity;
   let maxU = -Infinity;
   let maxV = -Infinity;
+  const corners: number[] = [];
   for (const i of box.ships) {
     for (const spec of hulls[i] ?? []) {
-      const angle = spec.angle ?? 0;
-      const mc = cos(angle);
-      const ms = sin(angle);
-      const mid = moduleCentre(spec);
-      for (const [ol, ow] of [
-        [1, 1],
-        [1, -1],
-        [-1, 1],
-        [-1, -1],
-      ] as const) {
-        const x = mid.x + (ol * spec.length * mc - ow * spec.width * ms) / 2;
-        const y = mid.y + (ol * spec.length * ms + ow * spec.width * mc) / 2;
+      const count = moduleOutline(spec, corners);
+      for (let k = 0; k < count * 2; k += 2) {
+        const x = corners[k]!;
+        const y = corners[k + 1]!;
         // Into the box's own frame.
         const u = x * c + y * s;
         const v = -x * s + y * c;

@@ -3,7 +3,10 @@ import {
   expandWithOrigins,
   foldAngle,
   isInstance,
+  insideOutline,
   moduleCentre,
+  moduleOutline,
+  triangleBounds,
   samePlacement,
   math,
   placementAt,
@@ -19,7 +22,7 @@ import {
   type Placement,
 } from '../sim/index.js';
 
-const { cos, sin, round, ceil, min, max, abs, normalizeAngle } = math;
+const { cos, sin, round, ceil, min, max, normalizeAngle } = math;
 
 /**
  * Edits to a layout, as values.
@@ -408,6 +411,43 @@ export function resizePlacement(
   const pushed = pushNeighbours(now.list, now.index, copy.assemblies, before, after);
   now.list.splice(0, now.list.length, ...pushed);
   return copy as unknown as Blueprint;
+}
+
+/**
+ * The selected module reshaped to these corners, moved so the ones that did
+ * not change stay where they were.
+ *
+ * `vertices` are in the module's own frame, as its size is, so a shared part
+ * reshapes in every copy at once; `dx`/`dy` are in the frame it is drawn in,
+ * as a resize's are, so a mirrored copy moves the way its own frame says.
+ *
+ * Nothing is pushed aside. A corner moves two edges at once and neither of
+ * them squarely, so there is no face for a neighbour to be carried by — the
+ * layout rules report whatever has come apart, as they do for a module that
+ * has been dragged.
+ */
+export function reshapePlacement(
+  blueprint: Blueprint,
+  origin: ModuleOrigin,
+  vertices: readonly number[] | null,
+  dx: number,
+  dy: number,
+): Blueprint | null {
+  const shaped = updatePlacement(blueprint, origin.path, (p) => {
+    if (vertices === null) {
+      const squared = { ...p };
+      delete (squared as ModuleSpec).vertices;
+      return squared;
+    }
+    const bounds = triangleBounds(vertices);
+    return { ...p, vertices: [...vertices], length: bounds.length, width: bounds.width };
+  });
+  if (shaped === null) return null;
+  // Worked out through sines and cosines, so rounded before it reaches a file.
+  const movedX = round(dx * 1e9) / 1e9;
+  const movedY = round(dy * 1e9) / 1e9;
+  if (movedX === 0 && movedY === 0) return shaped;
+  return movePlacement(shaped, origin, movedX, movedY);
 }
 
 /** A placement as the one box it draws in its list's frame, or null if it is not one. */
@@ -1209,17 +1249,12 @@ export function snap(value: number, step: number): number {
  * would make the overlap impossible to undo by dragging.
  */
 export function moduleAt(modules: readonly ModuleSpec[], x: number, y: number): number {
+  const corners: number[] = [];
   for (let i = modules.length - 1; i >= 0; i--) {
     const m = modules[i]!;
-    const angle = m.angle ?? 0;
-    const c = cos(-angle);
-    const s = sin(-angle);
-    const mid = moduleCentre(m);
-    const dx = x - mid.x;
-    const dy = y - mid.y;
-    const along = dx * c - dy * s;
-    const across = dx * s + dy * c;
-    if (abs(along) <= m.length * 0.5 && abs(across) <= m.width * 0.5) return i;
+    // The outline the simulation has, so a click lands on the module that was
+    // drawn rather than on the box a triangle fits inside.
+    if (insideOutline(corners, moduleOutline(m, corners), x, y)) return i;
   }
   return -1;
 }

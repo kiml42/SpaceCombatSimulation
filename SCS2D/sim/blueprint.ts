@@ -2,7 +2,9 @@ import type { UnreadKeys } from './unread.js';
 import { abs, angleDelta, asin, atan2, cos, max, min, normalizeAngle, PI, sin, sqrt, TAU } from './math.js';
 import {
   GunType,
+  grownOutline,
   moduleCentre,
+  moduleOutline,
   moduleProblem,
   moduleStats,
   moduleThickness,
@@ -28,6 +30,7 @@ import {
   type Targeting,
 } from './doctrine.js';
 import { EngineLayout, type EngineSpec } from './engines.js';
+import { distanceToOutline, isTriangle, outlineAxes, projectOutline } from './shape.js';
 import { HullPath } from './hull.js';
 import { exhaustObstruction, weaponPlumeReach } from './exhaust.js';
 import type { TurretSpec } from './turrets.js';
@@ -401,24 +404,6 @@ interface Joins {
   readonly seams: readonly Seam[];
 }
 
-/** Corner offsets of a module, body frame, written into `out` as x,y pairs. */
-function corners(m: ModuleSpec, out: number[]): void {
-  const a = boxAngle(m);
-  const c = cos(a);
-  const s = sin(a);
-  const hl = m.length * 0.5;
-  const hw = m.width * 0.5;
-  // About the box's middle, which an engine's position is not.
-  const mid = moduleCentre(m);
-  let k = 0;
-  for (let i = 0; i < 4; i++) {
-    // (+,+), (+,-), (-,-), (-,+) so the corners come out in order round the box.
-    const dl = i < 2 ? hl : -hl;
-    const dw = i === 0 || i === 3 ? hw : -hw;
-    out[k++] = mid.x + dl * c - dw * s;
-    out[k++] = mid.y + dl * s + dw * c;
-  }
-}
 
 /**
  * Whether two oriented boxes overlap, by the separating-axis test.
@@ -429,54 +414,48 @@ function corners(m: ModuleSpec, out: number[]): void {
 export function modulesOverlap(a: ModuleSpec, b: ModuleSpec): boolean {
   const ca: number[] = [];
   const cb: number[] = [];
-  corners(a, ca);
-  corners(b, cb);
+  const countA = moduleOutline(a, ca);
+  const countB = moduleOutline(b, cb);
 
-  // Four candidate axes: the two face normals of each box. In the plane that
-  // is all of them, because a box's edges are its normals rotated a quarter
-  // turn.
-  const angleA = boxAngle(a);
-  const angleB = boxAngle(b);
-  const axes = [
-    cos(angleA), sin(angleA),
-    -sin(angleA), cos(angleA),
-    cos(angleB), sin(angleB),
-    -sin(angleB), cos(angleB),
-  ];
+  // The candidate axes are the two shapes' edge normals, which in the plane is
+  // all of them. A box contributes two, since its four edges are two pairs of
+  // opposites; a triangle contributes three.
+  const axes: number[] = [];
+  const more: number[] = [];
+  const used = outlineAxes(ca, countA, axes);
+  const extra = outlineAxes(cb, countB, more);
+  for (let i = 0; i < extra * 2; i++) axes[used * 2 + i] = more[i]!;
 
-  for (let i = 0; i < axes.length; i += 2) {
+  for (let i = 0; i < (used + extra) * 2; i += 2) {
     const ax = axes[i]!;
     const ay = axes[i + 1]!;
-
-    let minA = Infinity;
-    let maxA = -Infinity;
-    let minB = Infinity;
-    let maxB = -Infinity;
-    for (let k = 0; k < 8; k += 2) {
-      const pa = ca[k]! * ax + ca[k + 1]! * ay;
-      const pb = cb[k]! * ax + cb[k + 1]! * ay;
-      minA = min(minA, pa);
-      maxA = max(maxA, pa);
-      minB = min(minB, pb);
-      maxB = max(maxB, pb);
-    }
-
-    if (minA - maxB >= -TOUCH_TOLERANCE || minB - maxA >= -TOUCH_TOLERANCE) {
+    projectOutline(ca, countA, ax, ay, spanA);
+    projectOutline(cb, countB, ax, ay, spanB);
+    if (spanA.lo - spanB.hi >= -TOUCH_TOLERANCE || spanB.lo - spanA.hi >= -TOUCH_TOLERANCE) {
       return false;
     }
   }
   return true;
 }
 
-/** Distance from a point to the nearest point of a module's box, metres. */
+/** Scratch for the separating-axis tests, so a layout check allocates less. */
+const spanA = { lo: 0, hi: 0 };
+const spanB = { lo: 0, hi: 0 };
+
+/** Distance from a point to the nearest point of a module's outline, metres. */
 function distanceToModule(m: ModuleSpec, px: number, py: number): number {
+  if (isTriangle(m)) {
+    const c: number[] = [];
+    return distanceToOutline(c, moduleOutline(m, c), px, py);
+  }
   const a = boxAngle(m);
   const c = cos(a);
   const s = sin(a);
   const mid = moduleCentre(m);
   const dx = px - mid.x;
   const dy = py - mid.y;
-  // Into the box's own frame, where the nearest point is a clamp per axis.
+  // Into the box's own frame, where the nearest point is a clamp per axis —
+  // the same answer the outline gives, without walking four edges for it.
   const along = dx * c + dy * s;
   const across = -dx * s + dy * c;
   const hl = m.length * 0.5;
@@ -540,7 +519,7 @@ export function firingArc(
     if (distance > sqrt(reach * reach + pad * pad)) continue;
 
     const c: number[] = [];
-    corners(other, c);
+    const count = moduleOutline(other, c);
 
     // Bearings to the corners, taken relative to the bearing of the centre so
     // that the interval never has to be unwrapped.
@@ -548,7 +527,7 @@ export function firingArc(
     const centre = atan2(mid.y - from.y, mid.x - from.x);
     let lo = 0;
     let hi = 0;
-    for (let k = 0; k < 8; k += 2) {
+    for (let k = 0; k < count * 2; k += 2) {
       const d = angleDelta(centre, atan2(c[k + 1]! - from.y, c[k]! - from.x));
       const margin = cornerMargin(pad, c[k]! - from.x, c[k + 1]! - from.y);
       lo = min(lo, d - margin);
@@ -620,14 +599,14 @@ export function triggerMask(
     const distance = distanceToModule(other, from.x, from.y);
     if (distance === 0) return [-PI, PI];
 
-    corners(other, c);
+    const count = moduleOutline(other, c);
     const mid = moduleCentre(other);
     const centre = atan2(mid.y - from.y, mid.x - from.x);
     let lo = 0;
     let hi = 0;
     // Widened by what a shot leaves the centre line by: an outer barrel, and
     // the width of the shot itself.
-    for (let k = 0; k < 8; k += 2) {
+    for (let k = 0; k < count * 2; k += 2) {
       const d = angleDelta(centre, atan2(c[k + 1]! - from.y, c[k]! - from.x));
       const margin = cornerMargin(pad, c[k]! - from.x, c[k + 1]! - from.y);
       lo = min(lo, d - margin);
@@ -1008,6 +987,19 @@ function place(
     const own = placement.angle ?? 0;
     const angle = foldAngle(rotation + (mirrored ? -own : own));
     if (angle !== 0 || placement.angle !== undefined) spec.angle = angle;
+    if (placement.vertices !== undefined) {
+      // A mirrored copy's corners are reflected across its own frame's x-axis,
+      // exactly as its facing is: a wing's raked prow has to rake the other way
+      // on the far wing. Reflecting reverses the winding, so the last two are
+      // swapped back to keep every outline anticlockwise.
+      spec.vertices = mirrored
+        ? [
+            placement.vertices[0]!, -placement.vertices[1]!,
+            placement.vertices[4]!, -placement.vertices[5]!,
+            placement.vertices[2]!, -placement.vertices[3]!,
+          ]
+        : placement.vertices;
+    }
     if (placement.reinforcement !== undefined) spec.reinforcement = placement.reinforcement;
     if (placement.barrels !== undefined) spec.barrels = placement.barrels;
     if (placement.nozzle !== undefined) spec.nozzle = placement.nozzle;
@@ -1113,32 +1105,56 @@ export function contactWidth(spec: ModuleSpec, other: ModuleSpec): number {
   // somewhere to hang a ship from.
   const a = weldBox(spec);
   const b = weldBox(other);
-  const aa = boxAngle(a);
-  const ba = boxAngle(b);
-  const aux = cos(aa);
-  const auy = sin(aa);
-  const bux = cos(ba);
-  const buy = sin(ba);
   const half = ATTACHMENT_TOLERANCE * 0.5;
-  const ahl = a.length * 0.5 + half;
-  const ahw = a.width * 0.5 + half;
-  const bhl = b.length * 0.5 + half;
-  const bhw = b.width * 0.5 + half;
+  // Each grown by half the tolerance on its own faces, which is what "within
+  // a hundredth of touching counts as touching" means geometrically — and
+  // leaves a triangle's corners sharp rather than rounding them into
+  // something a layout could then be welded by.
+  const grownA: number[] = [];
+  const grownB: number[] = [];
+  const countA = grownOutline(a, half, grownA);
+  const countB = grownOutline(b, half, grownB);
+  // Two boxes are measured as extents either side of their centres, which is
+  // the same figure the spans give and the one a box has always been measured
+  // by. A shape that is not symmetric about its own middle has no such extent,
+  // so a pair with a triangle in it goes by the spans.
+  const boxes = !isTriangle(a) && !isTriangle(b);
+  const aux = cos(boxAngle(a));
+  const auy = sin(boxAngle(a));
+  const bux = cos(boxAngle(b));
+  const buy = sin(boxAngle(b));
   const ac = moduleCentre(a);
   const bc = moduleCentre(b);
   const dx = bc.x - ac.x;
   const dy = bc.y - ac.y;
+  const axes: number[] = [];
+  let count: number;
+  if (boxes) {
+    // A box's normals are its facing turned, which is exactly the pair its
+    // corners give and is what a box's faces have always been taken as.
+    axes.push(aux, auy, -auy, aux, bux, buy, -buy, bux);
+    count = 8;
+  } else {
+    const more: number[] = [];
+    const used = outlineAxes(grownA, countA, axes);
+    const extra = outlineAxes(grownB, countB, more);
+    for (let i = 0; i < extra * 2; i++) axes[used * 2 + i] = more[i]!;
+    count = (used + extra) * 2;
+  }
 
-  const axes = [aux, auy, -auy, aux, bux, buy, -buy, bux];
   let least = Infinity;
   let nx = 0;
   let ny = 0;
-  for (let k = 0; k < axes.length; k += 2) {
+  for (let k = 0; k < count; k += 2) {
     const px = axes[k]!;
     const py = axes[k + 1]!;
-    const ea = boxExtent(ahl, ahw, aux, auy, px, py);
-    const eb = boxExtent(bhl, bhw, bux, buy, px, py);
-    const overlap = ea + eb - abs(dx * px + dy * py);
+    const overlap = boxes
+      ? boxShare(
+          a.length * 0.5 + half, a.width * 0.5 + half, aux, auy,
+          b.length * 0.5 + half, b.width * 0.5 + half, bux, buy,
+          dx, dy, px, py,
+        )
+      : share(grownA, countA, grownB, countB, px, py);
     if (overlap <= 0) return 0;
     if (overlap < least) {
       least = overlap;
@@ -1149,12 +1165,67 @@ export function contactWidth(spec: ModuleSpec, other: ModuleSpec): number {
 
   // Along the join rather than across it, and no wider than the narrower of
   // the two: a small module welded to the middle of a big one is joined by
-  // all of itself and by only part of the other.
+  // all of itself and by only part of the other. Measured on the modules
+  // themselves, since the tolerance is for deciding whether there is a joint
+  // and not for how much steel is in it.
   const px = -ny;
   const py = nx;
-  const ea = boxExtent(a.length * 0.5, a.width * 0.5, aux, auy, px, py);
-  const eb = boxExtent(b.length * 0.5, b.width * 0.5, bux, buy, px, py);
-  return max(0, min(ea + eb - abs(dx * px + dy * py), min(ea, eb) * 2));
+  const ca: number[] = [];
+  const cb: number[] = [];
+  const realA = moduleOutline(a, ca);
+  const realB = moduleOutline(b, cb);
+  projectOutline(ca, realA, px, py, spanA);
+  projectOutline(cb, realB, px, py, spanB);
+  if (boxes) {
+    const ea = boxExtent(a.length * 0.5, a.width * 0.5, aux, auy, px, py);
+    const eb = boxExtent(b.length * 0.5, b.width * 0.5, bux, buy, px, py);
+    return max(0, min(ea + eb - abs(dx * px + dy * py), min(ea, eb) * 2));
+  }
+  const narrower = min(spanA.hi - spanA.lo, spanB.hi - spanB.lo);
+  return max(0, min(share(ca, realA, cb, realB, px, py), narrower));
+}
+
+/**
+ * How much of an axis two outlines both cover, metres, and negative where
+ * there is daylight between them.
+ *
+ * Taken as the overlap of their two spans rather than as extents either side
+ * of their centres, which is the same figure — and the only one of the two a
+ * shape that is not symmetric about its own middle can give.
+ */
+function share(
+  ca: readonly number[],
+  countA: number,
+  cb: readonly number[],
+  countB: number,
+  px: number,
+  py: number,
+): number {
+  projectOutline(ca, countA, px, py, spanA);
+  projectOutline(cb, countB, px, py, spanB);
+  return min(spanA.hi, spanB.hi) - max(spanA.lo, spanB.lo);
+}
+
+/** `share` where neither module is a triangle: extents either side of a centre. */
+function boxShare(
+  ahl: number,
+  ahw: number,
+  aux: number,
+  auy: number,
+  bhl: number,
+  bhw: number,
+  bux: number,
+  buy: number,
+  dx: number,
+  dy: number,
+  px: number,
+  py: number,
+): number {
+  return (
+    boxExtent(ahl, ahw, aux, auy, px, py) +
+    boxExtent(bhl, bhw, bux, buy, px, py) -
+    abs(dx * px + dy * py)
+  );
 }
 
 /** A box's extent along `(nx, ny)` from its own centre, metres. */
@@ -1619,8 +1690,8 @@ function designFrom(
     // Parallel axis: each module's own inertia, carried out to where it sits.
     inertia += s.inertia + s.mass * (x * x + y * y);
 
-    corners(spec, c);
-    for (let k = 0; k < 8; k += 2) {
+    const count = moduleOutline(spec, c);
+    for (let k = 0; k < count * 2; k += 2) {
       const dx = c[k]! - comX;
       const dy = c[k + 1]! - comY;
       radius = max(radius, sqrt(dx * dx + dy * dy));

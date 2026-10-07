@@ -22,6 +22,7 @@ import {
   type Targeting,
 } from '../sim/doctrine.js';
 import { abs, clamp, cos, floor, HALF_PI, max, min, PI, round, sin } from '../sim/math.js';
+import { isTriangle } from '../sim/shape.js';
 import { degreesToRadians, radiansToDegrees } from '../sim/blueprintFile.js';
 import {
   barrelCalibres,
@@ -1022,6 +1023,10 @@ function turnModule(site: ModuleSite, rng: Rng, bounds: MutationLimits): string 
  */
 function moveFace(site: ModuleSite, draft: Draft, rng: Rng, bounds: MutationLimits): string | null {
   const spec = site.spec;
+  // Nothing to move on a module that is not a box: its size is its corners,
+  // and changing the length and width of the box they fit inside would report
+  // a change the ship has not got.
+  if (isTriangle(spec)) return null;
   const before = { ...spec };
   const along = rng.chance(0.5);
   const side = rng.chance(0.5) ? 1 : -1;
@@ -1660,7 +1665,13 @@ function addModule(
     if (onlyParts && draft.assemblies[list.label] === undefined) continue;
     for (let i = 0; i < list.placements.length; i++) {
       const placement = list.placements[i]!;
-      if (!isInstance(placement)) anchors.push({ list, spec: placement, index: i });
+      // A box only: every berth below is measured as a face so far either side
+      // of the module's middle, and a triangle has neither the face nor the
+      // symmetry — its corners are an author's, and no operator here can draw
+      // one or reason about one (ROADMAP.md §12).
+      if (!isInstance(placement) && !isTriangle(placement)) {
+        anchors.push({ list, spec: placement, index: i });
+      }
     }
   }
   if (anchors.length === 0) return null;

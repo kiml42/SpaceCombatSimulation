@@ -15,6 +15,7 @@ import { EditorDocument } from '../../editor/document.js';
 import { previewSnapshot } from '../../editor/preview.js';
 import { frame, type Camera } from '../../render/camera.js';
 import { CORVETTE } from '../../scenarios/blueprints.js';
+import type { Blueprint } from '../../sim/index.js';
 
 /**
  * The blueprint editor, driven in a real browser.
@@ -106,6 +107,15 @@ async function onCorvette(p: Page, x: number, y: number): Promise<{ x: number; y
     y: box.y + (size.height / 2 - (y - camera.y) * camera.scale) * cssPerPx,
   };
 }
+
+/** A plate to shape, with a core beside it to hang it from. */
+const PLATE: Blueprint = {
+  name: 'Plate',
+  modules: [
+    { kind: 'core', x: -4, y: 0, length: 4, width: 4 },
+    { kind: 'structure', x: 0, y: 0, length: 4, width: 4 },
+  ],
+};
 
 /** The corvette's core, amidships at its origin. */
 const corvetteCore = (p: Page) => onCorvette(p, 0, 0);
@@ -1181,6 +1191,66 @@ describe('the editor in a browser', () => {
     await page.click('#undo');
     expect(await xOf(2)).toEqual([2, 4]);
     await page.evaluate(() => window.localStorage.removeItem('scs2d.blueprint.Pair'));
+  });
+
+  it('shapes a module into a wedge, and drags one corner of it', async () => {
+    // One block on its own, so the fit centres the canvas on its middle.
+    await page.evaluate((written) => {
+      window.localStorage.setItem('scs2d.blueprint.Plate', written);
+    }, JSON.stringify({ formatVersion: 1, ...PLATE }));
+    await page.reload();
+    await openShip(page, 'Plate');
+    await page.keyboard.press('f');
+    // Where a point of the layout lands once it is framed, worked out the way
+    // the page fits its view: the fit centres on the centre of mass, which a
+    // core beside a plate is not in the middle of.
+    const box = await page.locator('#view').boundingBox();
+    const size = await page.evaluate(() => {
+      const canvas = document.getElementById('view') as HTMLCanvasElement;
+      return { width: canvas.width, height: canvas.height };
+    });
+    if (box === null) throw new Error('the canvas has no box');
+    const design = new EditorDocument(PLATE).view.design;
+    if (design === null) throw new Error('the plate does not compile');
+    const camera: Camera = { x: 0, y: 0, scale: 1 };
+    frame(camera, previewSnapshot(design), size.width, size.height, 1);
+    const cssPerPx = box.width / size.width;
+    const scale = camera.scale * cssPerPx;
+    const at = (x: number, y: number) => ({
+      x: box.x + (size.width / 2 + (x - camera.x) * camera.scale) * cssPerPx,
+      y: box.y + (size.height / 2 - (y - camera.y) * camera.scale) * cssPerPx,
+    });
+    const centre = at(0, 0);
+
+    // The plate becomes the wedge filling its own box: the position moves onto
+    // the corners' own middle, and the box round them is the one it had.
+    await page.mouse.click(centre.x, centre.y);
+    expect(await page.locator('#shapeRow').isHidden()).toBe(false);
+    await page.check('#propShape');
+    expect(Number(await page.inputValue('#propX'))).toBeCloseTo(-2 / 3, 3);
+    expect(Number(await page.inputValue('#propLength'))).toBe(4);
+    expect(Number(await page.inputValue('#propWidth'))).toBe(4);
+
+    // Clicking the bow corner of that box misses it: the wedge is not there.
+    await page.mouse.click(centre.x + 1.8 * scale, centre.y - 1.8 * scale);
+    expect(await page.locator('#properties').isHidden()).toBe(true);
+
+    // The nose, at x = 2, dragged two metres forward. The stern stays put, so
+    // the module grows along its length alone.
+    await page.mouse.click(centre.x, centre.y);
+    await page.mouse.move(centre.x + 2 * scale, centre.y);
+    await page.mouse.down();
+    await page.mouse.move(centre.x + 4 * scale, centre.y, { steps: 4 });
+    await page.mouse.up();
+    expect(Number(await page.inputValue('#propLength'))).toBe(6);
+    expect(Number(await page.inputValue('#propWidth'))).toBe(4);
+    expect(await page.textContent('#problems')).not.toMatch(/overlap/);
+
+    // Squared off again, it is the box its corners fitted, where that box was.
+    await page.uncheck('#propShape');
+    expect(Number(await page.inputValue('#propLength'))).toBe(6);
+    expect(Number(await page.inputValue('#propX'))).toBeCloseTo(1, 3);
+    await page.evaluate(() => window.localStorage.removeItem('scs2d.blueprint.Plate'));
   });
 
   it('eases to a different ship’s scale, so switching shows which is bigger', async () => {

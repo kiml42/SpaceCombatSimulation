@@ -64,8 +64,10 @@ inside any one file is not contiguous.
   centre line stays on it — carrying whatever sits against the moving face along with it,
   unless Ctrl is held — and turned by dragging a knob beyond the bow, while two touching modules selected
   together get a bar on their shared face that grows one as it shrinks the other, and an engine or hull weapon
-  gets the same bar where its bell, barrel or lens meets the block behind it; every snap is escaped by
-  holding Alt —
+  gets the same bar where its bell, barrel or lens meets the block behind it; a tick box turns a piece of
+  structure or a tank into a **triangle** — the wedge filling its own box to start with, each of whose three
+  corners is then dragged on its own while the other two stay put, and which squares off again into the box
+  its corners fitted — and every snap is escaped by holding Alt —
   with the rest of their values typed into a panel beside the module's own mass,
   capacity, armour and gun — its kind among them, swapped for another in the same space and facing the same
   way, so a gun made an engine has its bell where the barrel was — and a selected engine burns and a selected gun fires at the
@@ -1073,6 +1075,23 @@ Mass from wall volume, capacity from interior area, strength from thickness and 
   mounts, which is what makes a hit amidships worth more than stripping a battery one mount at a time;
   the floor on a core's machinery is low enough that half a metre square is a working one, since every
   craft here is computer-flown.
+- **Hull and tanks may be triangles; every other archetype is a box.** A module is a box because
+  nearly every archetype has something coming out of one face of it — a bell, a barrel, a ring — and
+  a box is what those are measured against. Structure and a tank have nothing protruding, so they may
+  instead be given **three corners the author places one at a time**, and a hull of rectangles that
+  could only step towards a prow can draw one. The corners are the whole of the module: its walls, its
+  mass, what a shot crosses, what it is welded to, and what a turret cannot see past, all through one
+  outline that a box and a triangle both answer. The same laws apply over the shape rather than over
+  the proportions — the walls are what is left when the corners are inset by a wall's thickness, so a
+  sharp corner loses far more of its floor to wall than a blunt one, and a sliver of a plate is all
+  wall. Depth is the narrowest way *through* the shape, so a long wedge is a thin module however far
+  it reaches. What a triangle costs is the two things a rectangle has and it has not: a face to size
+  it by — so there is no seam to drag, no face for a neighbour to be carried by, and no mutation
+  operator that can touch it (ROADMAP.md §12) — and a face for something to stick out of, which is why
+  only those two archetypes may have corners at all. A triangle is stored centred on its own centroid
+  and wound anticlockwise, so its position goes on meaning the middle its mass acts at; `length` and
+  `width` stay filled in as the box the corners fit inside, derived rather than authored, and nothing
+  that asks where the matter is may read them.
 - **A module's position is where it is attached, which is its middle for every kind but an engine.**
   An engine is the one module with a side that means something: it is held on by the face it pushes
   from and exhausts out of the other, and a layout only cares where that mounting face is. So an
