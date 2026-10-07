@@ -14,7 +14,7 @@ import {
 import { makeBattle } from '../scenarios/battle.js';
 import { hooked as hookedScenario } from '../scenarios/hooked.js';
 import { capture, Snapshot } from '../sim/snapshot.js';
-import { CORVETTE, DINKY } from '../scenarios/blueprints.js';
+import { CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
 import type { World } from '../sim/world.js';
 
 /**
@@ -301,6 +301,30 @@ describe('welding on a slow contact', () => {
     design.turrets.forEach((_, t) => {
       if (design.turrets[t]!.module >= own) expect(ships.isTurretDisabled(run.a, t)).toBe(true);
     });
+  });
+
+  it('holds fire on the step a weld remakes the mounts, rather than firing wherever they point', () => {
+    // Two allies hooking stern to stern with an enemy off their beam, their
+    // guns already trained on it. The weld lands between aiming and firing.
+    const gunship = compileBlueprint(GUNSHIP);
+    const tail = Math.min(...corvette.modules.map((m) => m.x - m.spec.length / 2));
+    const stern = corvette.modules.findIndex((m) => m.x - m.spec.length / 2 === tail);
+    const run = makeBattle({ seed: 1, projectiles: 256, beams: 64 }, (ships, world) => {
+      const gap = -2 * tail + 0.5;
+      for (const [x, angle, vx] of [[-gap / 2, Math.PI, 0.5], [gap / 2, 0, -0.5]] as const) {
+        const ship = ships.spawn(world, { design: corvette, x, y: 0, angle, vx });
+        wear(ships, world, ship, stern, RAGGED_INTEGRITY * 0.5);
+      }
+      ships.spawn(world, { design: gunship, x: 0, y: 1500, team: 1 });
+    });
+    let fired = -1;
+    for (let s = 0; s < 600 && run.totalWelded === 0; s++) {
+      const before = run.totalProjectilesFired;
+      run.step();
+      fired = run.totalProjectilesFired - before;
+    }
+    expect(run.totalWelded).toBe(1);
+    expect(fired).toBe(0);
   });
 });
 
