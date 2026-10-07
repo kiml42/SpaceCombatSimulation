@@ -39,6 +39,8 @@ export interface ShipView {
    */
   body: number;
   team: number;
+  /** The body of what it is fighting, or -1 or absent for nothing. */
+  fighting?: number;
   x: number;
   y: number;
   angle: number;
@@ -165,6 +167,8 @@ export class Snapshot {
   projectileWidth = new Float64Array(0);
   /** 1 for a round passing through a hull, 0 for one in open flight. */
   projectileInside = new Uint8Array(0);
+  /** The side whose ship fired it, or -1 where that ship is gone. */
+  projectileTeam = new Int16Array(0);
   projectileCount = 0;
 
   /** Beams in flight, as flat pairs so a renderer can loop without objects. */
@@ -174,7 +178,19 @@ export class Snapshot {
   beamEndY = new Float64Array(0);
   beamWidth = new Float64Array(0);
   beamPower = new Float64Array(0);
+  /** The side whose ship fired it, or -1 where that ship is gone. */
+  beamTeam = new Int16Array(0);
   beamCount = 0;
+
+  /** Each body's side while a picture is taken, so a shot can be told whose it is. */
+  private bodyTeam = new Int16Array(0);
+
+  /** Every body's side, -1 for none, sized for `bodies`; filled by `capture`. */
+  teamsByBody(bodies: number): Int16Array {
+    if (this.bodyTeam.length < bodies) this.bodyTeam = new Int16Array(bodies * 2);
+    this.bodyTeam.fill(-1);
+    return this.bodyTeam;
+  }
 
   /**
    * Impacts since the last picture: where a hit landed and what it was worth.
@@ -222,6 +238,7 @@ function growProjectiles(snapshot: Snapshot, needed: number): void {
   snapshot.projectileVy = new Float64Array(size);
   snapshot.projectileWidth = new Float64Array(size);
   snapshot.projectileInside = new Uint8Array(size);
+  snapshot.projectileTeam = new Int16Array(size);
 }
 
 function growBeams(snapshot: Snapshot, needed: number): void {
@@ -233,6 +250,7 @@ function growBeams(snapshot: Snapshot, needed: number): void {
   snapshot.beamEndY = new Float64Array(size);
   snapshot.beamWidth = new Float64Array(size);
   snapshot.beamPower = new Float64Array(size);
+  snapshot.beamTeam = new Int16Array(size);
 }
 
 function growImpacts(snapshot: Snapshot, needed: number): void {
@@ -308,17 +326,23 @@ export function capture(
   let maxX = -Infinity;
   let maxY = -Infinity;
 
+  // A shot knows the body that fired it, and a body its ship's side. A body
+  // two hooked enemies share is the first one's.
+  const bodyTeam = out.teamsByBody(bodies.highWater);
   let n = 0;
   for (let i = 0; i < ships.highWater; i++) {
     if (!ships.isAlive(i)) continue;
     const b = bodies.indexOf(ships.body(i));
     if (b < 0) continue;
+    if (bodyTeam[b] === -1) bodyTeam[b] = ships.teamOf(i);
 
     const design = ships.design(i);
     const view = shipView(out, n++);
     view.design = design;
     view.body = b;
     view.team = ships.teamOf(i);
+    const fighting = ships.fightingOf(i);
+    view.fighting = fighting >= 0 && ships.isAlive(fighting) ? bodies.indexOf(ships.body(fighting)) : -1;
     view.x = bodies.x[b]!;
     view.y = bodies.y[b]!;
     view.angle = bodies.angle[b]!;
@@ -439,6 +463,7 @@ export function capture(
     out.projectileVy[p] = projectiles.vy[i]!;
     out.projectileWidth[p] = projectiles.width[i]!;
     out.projectileInside[p] = projectiles.inside[i] === NOT_INSIDE ? 0 : 1;
+    out.projectileTeam[p] = bodyTeam[projectiles.owner[i]!] ?? -1;
     p++;
   }
   out.projectileCount = p;
@@ -453,6 +478,7 @@ export function capture(
     out.beamEndY[b] = beams.endY[i]!;
     out.beamWidth[b] = beams.width[i]!;
     out.beamPower[b] = beams.power[i]!;
+    out.beamTeam[b] = bodyTeam[beams.owner[i]!] ?? -1;
     b++;
   }
   out.beamCount = b;

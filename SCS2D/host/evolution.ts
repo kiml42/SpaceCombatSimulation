@@ -9,7 +9,7 @@ import {
   type ShipDesign,
 } from '../sim/index.js';
 import { Flashes } from '../render/flashes.js';
-import { ARCS_KEY, draw, nextArcs, teamColour, type Arcs } from '../render/canvas2d.js';
+import { ARCS_KEY, draw, nextArcs, TEAM_SHOTS_KEY, teamColour, type Arcs } from '../render/canvas2d.js';
 import { drawChart, indexAt, xOf, type ChartLayout, type Series } from '../render/chart.js';
 import {
   easeScale,
@@ -125,6 +125,7 @@ const SIDE_FIELDS = [
   'opRemove',
   'opFork',
   'opMerge',
+  'opSwap',
   'structural',
   'buildMove',
   'buildResize',
@@ -182,6 +183,7 @@ const FIELDS = [
   'opRemove',
   'opFork',
   'opMerge',
+  'opSwap',
   'seed',
   'duration',
   'radius',
@@ -584,6 +586,9 @@ export function startEvolution(): void {
   const camera: Camera = { x: 0, y: 0, scale: 0.1 };
   let autoFrame = true;
   let arcs: Arcs = 'none';
+  // On here and off on the viewer: a run is watched to see who is doing what,
+  // a single battle as much to see it.
+  let teamShots = true;
   let framed = false;
   let lastSimTime = 0;
   let accumulator = 0;
@@ -611,6 +616,7 @@ export function startEvolution(): void {
     opRemove: String(DEFAULT_FLEET_LIMITS.operators.remove),
     opFork: String(DEFAULT_FLEET_LIMITS.operators.fork),
     opMerge: String(DEFAULT_FLEET_LIMITS.operators.merge),
+    opSwap: String(DEFAULT_FLEET_LIMITS.operators.swap),
     seed: String(DEFAULT_RUN.seed),
     duration: String(DEFAULT_MATCH.duration),
     radius: String(DEFAULT_MATCH.radius),
@@ -849,6 +855,7 @@ export function startEvolution(): void {
           remove: Math.max(0, number(get('opRemove'), DEFAULT_FLEET_LIMITS.operators.remove)),
           fork: Math.max(0, number(get('opFork'), DEFAULT_FLEET_LIMITS.operators.fork)),
           merge: Math.max(0, number(get('opMerge'), DEFAULT_FLEET_LIMITS.operators.merge)),
+          swap: Math.max(0, number(get('opSwap'), DEFAULT_FLEET_LIMITS.operators.swap)),
         },
       },
       mutation: {
@@ -955,6 +962,7 @@ export function startEvolution(): void {
     get('opRemove').value = String(operators.remove);
     get('opFork').value = String(operators.fork);
     get('opMerge').value = String(operators.merge);
+    get('opSwap').value = String(operators.swap);
     const build = { ...DEFAULT_BUILD_WEIGHTS, ...config.mutation.build };
     get('structural').value = String(config.mutation.structural ?? DEFAULT_LIMITS.structural);
     get('buildMove').value = String(build.move);
@@ -1158,6 +1166,8 @@ export function startEvolution(): void {
       if (!skipButton.disabled) skipMatch();
     } else if (event.key.toLowerCase() === ARCS_KEY) {
       arcs = nextArcs(arcs);
+    } else if (event.key.toLowerCase() === TEAM_SHOTS_KEY) {
+      teamShots = !teamShots;
     }
   });
 
@@ -1238,7 +1248,7 @@ export function startEvolution(): void {
         shot.impactGrowth[i]!,
       );
     }
-    draw(ctx, shot, camera, view.width, view.height, flashes, arcs);
+    draw(ctx, shot, camera, view.width, view.height, flashes, arcs, teamShots);
   }
 
   // ---- the chart ---------------------------------------------------------
@@ -1920,6 +1930,19 @@ export function startEvolution(): void {
         tr.append(td);
       }
       tr.addEventListener('click', () => startReplay(record, rows));
+      matchesBody.append(tr);
+    }
+    // Padded to the most any generation has fought, so the panels under it
+    // stay put while a generation fills its list in.
+    let longest = matches.length;
+    for (const generation of run?.generations ?? []) longest = Math.max(longest, generation.matches.length);
+    for (let i = matches.length; i < longest; i++) {
+      const tr = document.createElement('tr');
+      tr.className = 'pad';
+      const td = document.createElement('td');
+      td.colSpan = 4;
+      td.textContent = '\u00a0';
+      tr.append(td);
       matchesBody.append(tr);
     }
 
