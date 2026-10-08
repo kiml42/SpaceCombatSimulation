@@ -367,7 +367,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     ramRadii: 0,
     ramArmed: 0,
     turnBias: 0.5,
-    burnWeight: 0,
+    burnWeight: 2,
     rangeHold: 1,
   },
 };

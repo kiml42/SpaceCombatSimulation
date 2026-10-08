@@ -1,4 +1,4 @@
-import { compileBlueprint, math } from '../sim/index.js';
+import { compileBlueprint, DEFAULT_DOCTRINE, math } from '../sim/index.js';
 import { type Battle } from './types.js';
 import { makeBattle } from './battle.js';
 import { CATAMARAN, CORVETTE } from './blueprints.js';
@@ -22,7 +22,13 @@ import { CATAMARAN, CORVETTE } from './blueprints.js';
  */
 export function split(seed = 20260905): Battle {
   return makeBattle({ seed, projectiles: 256, beams: 64 }, (ships, world) => {
-    const catamaran = compileBlueprint(CATAMARAN);
+    // Held to its guns rather than turning to burn clear: the scenario is the
+    // cut, and a target that backs away takes the ram off its bridge.
+    const doctrine = CATAMARAN.doctrine ?? DEFAULT_DOCTRINE;
+    const catamaran = compileBlueprint({
+      ...CATAMARAN,
+      doctrine: { ...doctrine, approach: { ...doctrine.approach, burnWeight: 0 } },
+    });
     const corvette = compileBlueprint(CORVETTE);
 
     const target = ships.spawn(world, { design: catamaran, x: 0, y: 0, angle: 0, team: 0 });

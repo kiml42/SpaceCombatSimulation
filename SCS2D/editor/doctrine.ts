@@ -98,6 +98,9 @@ export interface DoctrineContext {
   /** Acceleration holding a heading, ahead and astern, m/s². */
   readonly accelFore: number;
   readonly accelAft: number;
+  /** Braking holding its guns on, and turned onto its mains, m/s² (`DesignStats`). */
+  readonly brakeHolding: number;
+  readonly brakeTurned: number;
   /** How many main weapon mounts it has. */
   readonly guns: number;
   /** A mount's: how far it fires at the enemy it wants, metres. */
@@ -212,7 +215,13 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
             absolute: (v, ship) => `≈ ${(v.approach.accelerate * ship.accelFore).toFixed(2)} m/s² ahead`,
           }),
           entry('approach', 'brake', {
-            absolute: (v, ship) => `≈ ${(v.approach.brake * ship.accelAft).toFixed(2)} m/s² astern`,
+            absolute: (v, ship) => {
+              const holding = `≈ ${(v.approach.brake * ship.brakeHolding).toFixed(2)} m/s² with its guns on`;
+              // A ship that turns to burn brakes on its mains too.
+              return v.approach.burnWeight > 0
+                ? `${holding}, ≈ ${(v.approach.brake * ship.brakeTurned).toFixed(2)} turned onto its mains`
+                : holding;
+            },
           }),
         ],
       },

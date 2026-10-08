@@ -226,7 +226,7 @@ inside any one file is not contiguous.
   change of velocity it wants would add, against `rangeHold` for keeping the guns on target, all of it inside
   the band it holds and falling away beyond. The harder it wants to accelerate, and the further out it is, the
   more readily it turns, held either way by a margin so it does not flip back and forth. So a ship whose one
-  big engine is its weapon closes bow first and fights stern first, braking on its flame. `burnWeight` is zero
+  big engine is its weapon closes bow first and fights stern first, braking on its flame. `burnWeight` is 2
   by default. So a ship with an enemy on each beam fights both, and a gun that cannot reach what its ship is
   fighting fights what it can instead of sitting pinned against the edge of its arc. A further preference, for what the ship as a whole
   is fighting, is what keeps a broadside concentrated without tying it together; an order given is still
