@@ -106,6 +106,8 @@ describe('a ship cut in half', () => {
     for (let i = 0; i < Math.round(35 * 60); i++) {
       run.step();
       for (const piece of pieces) {
+        // A half can lose its gun to the corvette while this runs.
+        if (run.ships.design(piece).turrets.length === 0) continue;
         const target = run.ships.targetOfTurret(run.world.bodies, piece, 0);
         if (target < 0) continue;
         // Never a hulk: nothing controls one and there is nothing to finish.

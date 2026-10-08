@@ -75,6 +75,11 @@ export interface ShipView {
    */
   holdMin?: number;
   holdMax?: number;
+  /**
+   * The bearings off its bow, body frame, that bring the most main guns to
+   * bear on a target: where it turns to fight. Only a preview sets it.
+   */
+  attackBearings?: number[];
   /** Throttle held by each engine, 0 to 1, in the design's engine order. */
   throttles: number[];
   /**

@@ -13,6 +13,7 @@ import { standoff } from '../scenarios/standoff.js';
 import { column } from '../scenarios/column.js';
 import { split } from '../scenarios/split.js';
 import { torchRun } from '../scenarios/torchRun.js';
+import { broadside } from '../scenarios/broadside.js';
 import { hooked } from '../scenarios/hooked.js';
 import { customBattle, type CustomBattle } from '../scenarios/customBattle.js';
 import { customPanel } from './customPanel.js';
@@ -68,6 +69,7 @@ export function start(): void {
     { name: 'Split', create: () => split(SEED) },
     { name: 'Torch Run', create: () => torchRun(SEED) },
     { name: 'Hooked', create: () => hooked(SEED) },
+    { name: 'Broadside', create: () => broadside(SEED) },
     // Last, and built from the panel's setup rather than from code.
     { name: 'Custom battle', create: (): Battle => customBattle(panel.setup()) },
   ];
