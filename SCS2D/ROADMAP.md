@@ -624,9 +624,10 @@ Deliberately unresolved; decide when they block something.
   ship on the body, but the ship-level choice of what to fight still skips anything on its own body,
   since steering towards something at no range means nothing. Worth revisiting if hooked pairs start
   leaving each other alone in ways that look wrong.
-- **Whether exhaust should know about layers.** A plume burns every module it reaches, in either layer, and
-  a thick engine's exhaust is still blocked by deck structure behind it. Left as it was, because nothing
-  yet makes the difference matter.
+- **Whether a ship's own hull should block its exhaust by layer.** A plume meets other ships in its
+  engine's layers, but its own hull blocks it in both, so a thick engine's flame is stopped by deck
+  structure behind it when its weapons-layer half could pass over. Left as it was, because nothing yet
+  makes the difference matter.
 - **What a ship does about an enemy none of its guns can reach.** Choosing what to fight ignores layers,
   so a ship can pick an enemy every one of its mounts finds nothing reachable on. It then holds its band
   round that enemy, holding fire, for as long as the enemy lasts. The alternatives are to pass such an
