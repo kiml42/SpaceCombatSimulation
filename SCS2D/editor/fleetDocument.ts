@@ -117,7 +117,7 @@ function derive(fleet: Fleet, lookup: LibraryLookup): FleetView {
   const lines: DesignLine[] = [];
   let mass = 0;
   ships.forEach((ship, i) => {
-    const each = designs[i]?.mass ?? 0;
+    const each = designs[i]?.launchMass ?? 0;
     mass += each;
     const line = lines.find((l) => l.name === ship.design);
     if (line === undefined) lines.push({ name: ship.design, count: 1, mass: each });

@@ -40,6 +40,7 @@ import {
   readsFuse,
   readsSealing,
   readsDrainPriority,
+  readsFill,
   moduleProblem,
   mountTraverse,
   isHullMount,
@@ -426,6 +427,7 @@ function knobWeight(knob: Knob, { doctrine, build }: MutationLimits): number {
     case 'reinforcement':
     case 'sealing':
     case 'drainPriority':
+    case 'fill':
     case 'traverse':
     case 'fuse':
     case 'fragments':
@@ -444,9 +446,10 @@ function knobWeight(knob: Knob, { doctrine, build }: MutationLimits): number {
 function buildable(blueprint: Blueprint, massBudget: number): boolean {
   if (blueprintProblem(blueprint) !== null) return false;
   if (massBudget === Infinity) return true;
-  // Dry mass is what a ship costs, there being no abstract points value for
-  // anything (DESIGN.md §2). Compiling is the only way to know it.
-  return compileDraft(blueprint).mass <= massBudget;
+  // Mass as it sets out is what a ship costs, there being no abstract points
+  // value for anything (DESIGN.md §2), so fuel it starts without is saved.
+  // Compiling is the only way to know it.
+  return compileDraft(blueprint).launchMass <= massBudget;
 }
 
 // -- The layout, in a form that can be edited ------------------------------
@@ -613,6 +616,7 @@ type Knob =
   | { readonly at: 'thick'; readonly site: ModuleSite }
   | { readonly at: 'sealing'; readonly site: ModuleSite }
   | { readonly at: 'drainPriority'; readonly site: ModuleSite }
+  | { readonly at: 'fill'; readonly site: ModuleSite }
   | { readonly at: 'angle'; readonly site: ModuleSite }
   | { readonly at: 'face'; readonly site: ModuleSite }
   | { readonly at: 'shape'; readonly site: ModuleSite }
@@ -676,6 +680,7 @@ function knobs(draft: Draft): Knob[] {
       if (canThicken(placement)) out.push({ at: 'thick', site });
       if (readsSealing(placement.kind)) out.push({ at: 'sealing', site });
       if (readsDrainPriority(placement.kind)) out.push({ at: 'drainPriority', site });
+      if (readsFill(placement.kind)) out.push({ at: 'fill', site });
       if (placement.kind === 'turret' || placement.kind === 'beamTurret') {
         out.push({ at: 'barrels', site });
       }
@@ -773,6 +778,8 @@ function renumber(knob: Knob, draft: Draft, rng: Rng, bounds: MutationLimits): s
       return reseal(knob.site, rng, bounds);
     case 'drainPriority':
       return reprioritise(knob.site, rng);
+    case 'fill':
+      return refill(knob.site, rng, bounds);
     case 'angle':
       return turnModule(knob.site, rng, bounds);
     case 'face':
@@ -1069,6 +1076,19 @@ function reprioritise(site: ModuleSite, rng: Rng): string | null {
   const now = was + (rng.chance(0.5) ? 1 : -1);
   site.spec.drainPriority = now;
   return `${site.where} ${site.spec.kind}: drain priority ${was} → ${now}`;
+}
+
+/**
+ * Start a tank fuller or emptier, by up to `magnitude` of a full load, never
+ * past either end. Full is left unsaid.
+ */
+function refill(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {
+  const was = site.spec.fill ?? 1;
+  const now = tidy(min(1, max(0, was + bounds.magnitude * rng.nextRange(-1, 1))), 3);
+  if (now === was) return null;
+  if (now < 1) site.spec.fill = now;
+  else delete site.spec.fill;
+  return `${site.where} ${site.spec.kind}: starts ${round(was * 100)}% full → ${round(now * 100)}%`;
 }
 
 /**

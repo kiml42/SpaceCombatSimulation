@@ -597,7 +597,10 @@ inside any one file is not contiguous.
   and a white plume is drawn from it. A hole goes with its module through a sever or a weld. A tank or
   core may have a self-sealing lining (`sealing`, set in the editor in millimetres): it weighs and takes room
   from the fuel, and closes a hole steadily, faster the thicker it is, up to ten times its own thickness
-  across — a wider hole narrows by that much and stays open. None by default, and none never seals. The editor has a Tank, and shows an engine's Isp and fuel flow, a tank's fuel,
+  across — a wider hole narrows by that much and stays open. None by default, and none never seals. A tank or
+  core may start part full (`fill`, a share set in the editor as a percentage and nudged by evolution, full by
+  default): the ship sets out lighter, and every budget counts it as it sets out (`launchMass`) rather than
+  full, so fuel a ship means to find is fuel it is not built with. The editor has a Tank, and shows an engine's Isp and fuel flow, a tank's fuel,
   and a ship's fuel, endurance flat out and Δv. Every stock ship has one or more modules made tanks. Fuel can
   be pumped between two pieces of one hull (`Fuel.transfer`): drawn from the source as an engine draws it,
   and put into the receiver's lowest drain priority first, the hull's mass unchanged and its inertia following
@@ -618,7 +621,7 @@ inside any one file is not contiguous.
   its claw at the source and comes in down a stopping curve that ends not at rest but at the middle of the
   claw's band, planned on the thrust it actually has astern; touching without taking hold, it backs off for
   `CLAW_RETRY` and comes again. Holding, it idles. An order outranks it, and a fighter closing on a source
-  commits as it does to ram. The stock **Scavenger** is built for it, and `scavenge` has two of them drain
+  commits as it does to ram. The stock **Scavenger** is built for it, its tank starting a fifth full, and `scavenge` has two of them drain
   three wrecks; evolution draws claws at a weight of one.
 - **Next:** the rest of §8 step 8 — leaks, and pilots that know their fuel — and of step 5: a materials
   budget, and designed scenarios.

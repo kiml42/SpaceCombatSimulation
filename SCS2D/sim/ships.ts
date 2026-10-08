@@ -1089,6 +1089,8 @@ export class Ships {
     this.hullBody[bodyIdx] = id;
     this.damage.register(bodyIdx, design);
     this.fuel.register(bodyIdx, design);
+    // Set out with tanks part full, it weighs only what it carries.
+    if (this.fuel.burntMass(bodyIdx) > 0) this.settleMass(world.bodies, bodyIdx);
     if (spec.invulnerable === true) this.damage.protect(bodyIdx);
     const mounts = design.turrets;
     const indices = new Int32Array(mounts.length);

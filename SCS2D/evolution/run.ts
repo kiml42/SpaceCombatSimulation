@@ -474,7 +474,7 @@ export function describe(generation: Generation, matches: readonly MatchRecord[]
     ...perMatch(individual),
     ...(isFleet(individual.entrant)
       ? { mass: fleetMass(fleetHulls(individual.entrant)), fleet: serialiseFleet(individual.entrant) }
-      : { mass: compileBlueprint(individual.entrant).mass, blueprint: serialiseBlueprint(individual.entrant) }),
+      : { mass: compileBlueprint(individual.entrant).launchMass, blueprint: serialiseBlueprint(individual.entrant) }),
   }));
 
   let total = 0;

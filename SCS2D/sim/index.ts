@@ -118,6 +118,8 @@ export {
   SEAL_REACH,
   readsSealing,
   readsDrainPriority,
+  readsFill,
+  fillOf,
   liningOf,
   interiorVolume,
   CORE_COMPUTING_VOLUME,

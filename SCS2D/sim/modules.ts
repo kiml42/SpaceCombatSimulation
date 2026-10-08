@@ -226,6 +226,16 @@ export function readsDrainPriority(kind: ModuleKind): boolean {
   return readsSealing(kind);
 }
 
+/** Whether `fill` means anything on this kind: what holds fuel. */
+export function readsFill(kind: ModuleKind): boolean {
+  return readsSealing(kind);
+}
+
+/** How full a module starts, 0 to 1. */
+export function fillOf(spec: ModuleSpec): number {
+  return readsFill(spec.kind) ? (spec.fill ?? 1) : 1;
+}
+
 /** How thick a module's sealing lining is, metres: zero where its kind has none. */
 export function liningOf(spec: ModuleSpec): number {
   return readsSealing(spec.kind) ? (spec.sealing ?? 0) : 0;
@@ -919,6 +929,13 @@ export interface ModuleSpec {
   drainPriority?: number;
 
   /**
+   * How full it starts, 0 to 1: all of it when absent. A tank or a core
+   * only. A ship sent out part full weighs less, so it costs less of a budget,
+   * and has to find the rest — from a wreck, or a carrier.
+   */
+  fill?: number;
+
+  /**
    * Why this module is here, in the author's own words. Carried through the
    * file format and the editor, and ignored by every scaling law.
    *
@@ -1151,6 +1168,9 @@ export function moduleProblem(spec: ModuleSpec): string | null {
   }
   if (spec.sealing !== undefined && !(spec.sealing >= 0)) {
     return `${spec.kind}: sealing must be at least 0, got ${spec.sealing}`;
+  }
+  if (spec.fill !== undefined && !(spec.fill >= 0 && spec.fill <= 1)) {
+    return `${spec.kind}: fill must be from 0 to 1, got ${spec.fill}`;
   }
   if (spec.drainPriority !== undefined && !Number.isInteger(spec.drainPriority)) {
     return `${spec.kind}: drain priority must be a whole number, got ${spec.drainPriority}`;
