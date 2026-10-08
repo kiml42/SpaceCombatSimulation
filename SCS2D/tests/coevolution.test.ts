@@ -34,7 +34,11 @@ describe('a co-evolution run', { timeout: 30_000 }, () => {
       [run.generations, 'Dinky'],
       [sideB, 'Gunship'],
     ] as const) {
-      for (const individual of side[0]!.individuals) expect(individual.blueprint!['name']).toBe(founder);
+      // A first generation is one breeding from its founder, so its name is the
+      // founder's or a letter away from it, as a name drifts.
+      for (const individual of side[0]!.individuals) {
+        expect(oneLetterFrom(individual.blueprint!['name'] as string, founder), individual.blueprint!['name'] as string).toBe(true);
+      }
       for (let g = 1; g < side.length; g++) {
         const before = [...side.slice(0, g)].flatMap((generation) => [...ids(generation)]);
         for (const individual of side[g]!.individuals) {
@@ -218,3 +222,15 @@ describe('the champion grid', () => {
     expect(championGrid(single).generations).toEqual([]);
   });
 });
+
+/** Whether one name is the other, or the other with one letter changed, added or taken away. */
+function oneLetterFrom(name: string, from: string): boolean {
+  if (name === from) return true;
+  if (Math.abs(name.length - from.length) > 1) return false;
+  let i = 0;
+  while (i < name.length && i < from.length && name[i] === from[i]) i++;
+  // The rest must match once the one letter that differs is stepped over on whichever side has it.
+  return (
+    name.slice(i + 1) === from.slice(i + 1) || name.slice(i + 1) === from.slice(i) || name.slice(i) === from.slice(i + 1)
+  );
+}

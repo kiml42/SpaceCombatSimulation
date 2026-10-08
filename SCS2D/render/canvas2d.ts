@@ -19,12 +19,12 @@ import {
   triangleOf,
 } from '../sim/index.js';
 import { gridStep, type Camera } from './camera.js';
-import { NEUTRAL, shipColours } from './teams.js';
+import { NEUTRAL, shipColours, teamName } from './teams.js';
 
 export { teamColour } from './teams.js';
 import { beamAlpha, BEAM_GLOW_ALPHA, flooredFade, legibleWidth, plumeAlpha, tracerAlpha } from './strokes.js';
 import { flashExtent, flashFade, flashPosition, type Flashes } from './flashes.js';
-import { exposureEnds, flashSamples, shutterWeight } from './exposure.js';
+import { clipToStart, exposureEnds, flashSamples, shutterWeight } from './exposure.js';
 import { sprite } from './sprites.js';
 import { iconAlpha, ICON_OUTLINE, ICON_PX } from './icons.js';
 
@@ -82,6 +82,9 @@ const TRIGGER_FOULED = '#ff5a5a24';
 /** The band of ranges a ship's doctrine closes to, against the enemy it wants. */
 const HOLD_BAND = '#7fd6c214';
 const HOLD_EDGE = '#7fd6c266';
+/** Where a ship turns its target to, out to the band. */
+const ATTACK_LINE = '#7fd6c2b0';
+const ATTACK_DASH_PX = 6;
 
 /** Where a gun's barrel is pointing now, along its wedge, in battle. */
 const BARREL_LINE = '#e6edf566';
@@ -251,6 +254,18 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
       ctx.arc(0, 0, holdMin, 0, TAU);
       ctx.stroke();
     }
+    ctx.strokeStyle = ATTACK_LINE;
+    ctx.setLineDash([ATTACK_DASH_PX / metresToPx, ATTACK_DASH_PX / metresToPx]);
+    for (const bearing of ship.attackBearings ?? []) {
+      ctx.save();
+      ctx.rotate(bearing);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(holdMax, 0);
+      ctx.stroke();
+      ctx.restore();
+    }
+    ctx.setLineDash([]);
   }
 
   // Module boxes, in the body frame the design already put them in.
@@ -946,6 +961,49 @@ function drawIcon(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
   ctx.restore();
 }
 
+/** Smallest a core is drawn, across, before its ship's name is written on it, pixels. */
+const NAME_MIN_CORE_PX = 18;
+/** The largest a name is written, and the smallest worth writing, pixels. */
+const NAME_MAX_PX = 14;
+const NAME_MIN_PX = 7;
+
+/**
+ * A ship's name — its side and which of that side's ships it is, as "Red 5" —
+ * written on its first working core in its side's trim, once the core is big
+ * enough on screen to carry it. Upright whichever way the ship is turned.
+ */
+function drawName(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number): void {
+  if (ship.serial <= 0 || ship.team < 0 || !ship.hasControl) return;
+  const core = ship.design.cores.find((m) => (ship.integrity[m] ?? 1) > 0);
+  if (core === undefined) return;
+  const module = ship.design.modules[core]!;
+  const across = Math.min(module.spec.length, module.spec.width) * metresToPx;
+  if (across < NAME_MIN_CORE_PX) return;
+  const c = Math.cos(ship.angle);
+  const s = Math.sin(ship.angle);
+  const at = ctx.getTransform().transformPoint({
+    x: ship.x + module.x * c - module.y * s,
+    y: ship.y + module.x * s + module.y * c,
+  });
+  const text = `${teamName(ship.team)} ${ship.serial}`;
+  const along = Math.max(module.spec.length, module.spec.width) * metresToPx;
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  let size = Math.min(NAME_MAX_PX, across * 0.4);
+  ctx.font = `${size}px ui-monospace, monospace`;
+  // No wider than the core is long, so it reads as written on the core.
+  const width = ctx.measureText(text).width;
+  if (width > along * 0.9) size *= (along * 0.9) / width;
+  if (size >= NAME_MIN_PX) {
+    ctx.font = `${size}px ui-monospace, monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = shipColours(ship.team).trim;
+    ctx.fillText(text, at.x, at.y);
+  }
+  ctx.restore();
+}
+
 /** Draw one snapshot. The canvas is cleared first; nothing persists between frames. */
 export function draw(
   ctx: CanvasRenderingContext2D,
@@ -982,6 +1040,7 @@ export function draw(
   // whichever of them happens to be drawn next.
   for (let i = 0; i < snapshot.shipCount; i++) {
     drawIcon(ctx, snapshot.ships[i]!, camera.scale);
+    drawName(ctx, snapshot.ships[i]!, camera.scale);
   }
 
   if (selected >= 0) drawSelected(ctx, snapshot, selected, camera.scale);
@@ -1223,7 +1282,11 @@ function drawProjectiles(ctx: CanvasRenderingContext2D, snapshot: Snapshot, came
       const y = snapshot.projectileY[i]!;
       const vx = snapshot.projectileVx[i]!;
       const vy = snapshot.projectileVy[i]!;
-      const ends = exposureEnds(x, y, vx, vy, cvx, cvy, dt);
+      const sx = snapshot.projectileStartX[i];
+      const sy = snapshot.projectileStartY[i];
+      const open = exposureEnds(x, y, vx, vy, cvx, cvy, dt);
+      // The editor's demonstration fills only the rounds' own figures.
+      const ends = sx === undefined || sy === undefined ? open : clipToStart(open, sx, sy, vx, vy);
       const exposure = tracerAlpha(SHELL_CALIBRES * calibre, length(ends.x1 - ends.x0, ends.y1 - ends.y0));
       const width = glowPass
         ? legibleWidth(GLOW_CALIBRES * calibre, MIN_GLOW_PX, camera.scale) * exposure

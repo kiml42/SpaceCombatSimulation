@@ -1,4 +1,16 @@
-import { engineGeometry, holdBand, masked, math, Snapshot, weaponPlumeReach, type ShipDesign, type ShipView } from '../sim/index.js';
+import {
+  AttackArcs,
+  bestAttackBearings,
+  designArcs,
+  engineGeometry,
+  holdBand,
+  masked,
+  math,
+  Snapshot,
+  weaponPlumeReach,
+  type ShipDesign,
+  type ShipView,
+} from '../sim/index.js';
 
 /**
  * A blueprint as a `Snapshot` the battle renderer can draw.
@@ -40,6 +52,7 @@ export function previewSnapshot(design: ShipDesign, out: Snapshot = new Snapshot
     design,
     body: -1,
     team: NO_TEAM,
+    serial: 0,
     x: 0,
     y: 0,
     angle: 0,
@@ -102,6 +115,7 @@ export function restingTriggers(view: ShipView, design: ShipDesign): void {
   const band = doctrineBand(design);
   view.holdMin = band.min;
   view.holdMax = band.max;
+  view.attackBearings = attackBearings(design).map((r) => r.bearing);
 
   view.turretBearings.length = design.turrets.length;
   view.turretReady.length = design.turrets.length;
@@ -146,6 +160,12 @@ export function restingTriggers(view: ShipView, design: ShipDesign): void {
 export function doctrineBand(design: ShipDesign): { min: number; max: number } {
   const enemy = design.radius * math.sqrt(orOne(design.doctrine.targeting.preferredMass));
   return holdBand(design.doctrine.approach, design.reach, enemy);
+}
+
+/** The bearings that bring the most of a design's main guns to bear, with how many of how many. */
+export function attackBearings(design: ShipDesign): { bearing: number; guns: number; total: number }[] {
+  const arcs = designArcs(design, new AttackArcs());
+  return bestAttackBearings(arcs, design.thrustBearing).map((r) => ({ ...r, total: arcs.total }));
 }
 
 /** A preferred mass, or one where it says none. */

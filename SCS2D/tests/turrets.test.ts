@@ -312,6 +312,52 @@ describe('traverse arcs', () => {
     expect(turrets.commanded[t]! * (180 / PI)).toBeCloseTo(150, 6);
   });
 
+  it('turns the way its arc allows, never through what blocks it', () => {
+    // Blocked astern, from 100° either side of the bow round to the stern.
+    // From 95° to -95° the short way is 170° across the stern; the arc's way
+    // is 190° across the bow, and that is the one a barrel can take.
+    const { bodies, index } = ship();
+    const turrets = new Turrets();
+    const arc = (100 * PI) / 180;
+    const t = turrets.add({ owner: index, x: 0, y: 0, restBearing: 0, leftArc: arc, rightArc: arc, maxRate: 2, maxAccel: 20 });
+    turrets.bearing[t] = (95 * PI) / 180;
+    turrets.commandWorldBearing(bodies, t, (-95 * PI) / 180);
+    let crossedBow = false;
+    for (let s = 0; s < 600; s++) {
+      turrets.step(DT, bodies);
+      const at = turrets.bearing[t]!;
+      expect(Math.abs(at)).toBeLessThanOrEqual(arc + 1e-9);
+      if (Math.abs(at) < 0.1) crossedBow = true;
+    }
+    expect(crossedBow).toBe(true);
+    expect(turrets.bearing[t]! * (180 / PI)).toBeCloseTo(-95, 3);
+  });
+
+  it('goes the long way round a lopsided arc to reach sky beyond its block', () => {
+    // The block spans 63.4° to 116.6°: from 30° to 150° is 120° through it, or
+    // 240° the other way round, which is the only way there is.
+    const { bodies, index } = ship();
+    const turrets = new Turrets();
+    const t = turrets.add({
+      owner: index,
+      x: 0,
+      y: 0,
+      restBearing: 0,
+      leftArc: (63.4 * PI) / 180,
+      rightArc: (243.4 * PI) / 180,
+      maxRate: 2,
+      maxAccel: 20,
+    });
+    turrets.bearing[t] = (30 * PI) / 180;
+    turrets.commandWorldBearing(bodies, t, (150 * PI) / 180);
+    for (let s = 0; s < 900; s++) {
+      turrets.step(DT, bodies);
+      const degrees = turrets.bearing[t]! * (180 / PI);
+      expect(degrees > 63.4 + 1e-6 && degrees < 116.6 - 1e-6).toBe(false);
+    }
+    expect(turrets.bearing[t]! * (180 / PI)).toBeCloseTo(150, 3);
+  });
+
   it('stops at the near end of the arc, not whichever end the sign picks', () => {
     // The difference only shows on a lopsided arc, and it is the difference
     // between a barrel resting against what blocks it and a barrel that has
