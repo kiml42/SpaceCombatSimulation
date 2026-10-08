@@ -4,7 +4,15 @@ import {
   designArcs,
   engineGeometry,
   holdBand,
+  HULL_LAYER,
+  landedIndex,
+  landedLength,
   masked,
+  OWN_LAYERS,
+  ownLanding,
+  plumeLayers,
+  plumeRays,
+  WEAPONS_LAYER,
   math,
   Snapshot,
   weaponPlumeReach,
@@ -77,10 +85,12 @@ export function previewSnapshot(design: ShipDesign, out: Snapshot = new Snapshot
   view.vx = 0;
   view.vy = 0;
 
-  // Engines are cold. A design is not running, and a plume drawn on a ship
-  // standing still would be saying something untrue about it.
+  // Engines are cold — a design is not running — except one firing into its
+  // own hull, which is lit so the picture says what it costs.
   view.throttles.length = design.engines.length;
   for (let t = 0; t < design.engines.length; t++) view.throttles[t] = 0;
+  lightSelfBurning(view);
+  landOnSelf(view);
   restingTriggers(view, design);
 
   // A design has taken nothing: the editor draws the ship as it would be built,
@@ -99,6 +109,35 @@ export function previewSnapshot(design: ShipDesign, out: Snapshot = new Snapshot
   out.maxY = design.centreOfMassY + design.radius;
 
   return out;
+}
+
+/** Light, at full throttle, every engine whose flame meets its own hull. */
+export function lightSelfBurning(view: ShipView): void {
+  const engines = view.design.engines;
+  for (let t = 0; t < engines.length; t++) if ((engines[t]!.escaping ?? 1) < 1) view.throttles[t] = 1;
+}
+
+/**
+ * Where each lit engine's flame meets its own hull, at the throttle it is shown
+ * at, into the view's `landed`: what the battle renderer clips a flame at and
+ * draws the burn glow from. Call again whenever the throttles shown change.
+ */
+export function landOnSelf(view: ShipView): void {
+  const design = view.design;
+  view.landed.length = landedLength(design);
+  view.landed.fill(0);
+  for (let t = 0; t < design.engines.length; t++) {
+    const force = (view.throttles[t] ?? 0) * design.engines[t]!.maxThrust;
+    if (!(force > 0)) continue;
+    const engine = design.modules[design.engines[t]!.module ?? -1];
+    if (engine === undefined) continue;
+    const layers = plumeLayers(design, t, OWN_LAYERS);
+    const rays = plumeRays(engineGeometry(engine.spec));
+    for (let layer = HULL_LAYER; layer <= WEAPONS_LAYER; layer <<= 1) {
+      if ((layers & layer) === 0) continue;
+      for (let ray = 0; ray < rays; ray++) view.landed[landedIndex(design, t, ray, layer)] = ownLanding(design, t, ray, force);
+    }
+  }
 }
 
 /**

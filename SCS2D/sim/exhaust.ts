@@ -612,14 +612,10 @@ export class Plumes {
 
     const geometry = engineGeometry(engine.spec);
     const exitWidth = geometry.exitWidth;
-    const { nozzle, across } = rayNozzle(ray);
-    const centre = nozzleOffset(geometry, nozzle);
+    const centre = nozzleOffset(geometry, rayNozzle(ray).nozzle);
     const axisReach = nozzleReach(geometry, force);
-    const from = centre + (across - 1 / 6) * exitWidth;
-    openBand(spec.slices ?? NO_SLICES, nozzle, from, from + exitWidth / 3, axisReach, centre, exitWidth);
+    this.own = ownLanding(design, slot, ray, force);
     this.open = band.open / (exitWidth / 3);
-    const centroidReach = rayReach(ray, geometry, force);
-    if (band.nearest < centroidReach) this.own = 1 - band.nearest / centroidReach;
     if (!(band.open > 0)) return false;
 
     const reach = reachAcross(axisReach, band.at - centre, exitWidth);
@@ -738,6 +734,28 @@ export class Plumes {
 }
 
 const NO_SLICES: readonly PlumeSlice[] = [];
+
+/**
+ * What is left of one ray's band of flame where it first meets its own ship,
+ * burning at `force` — measured as `Plumes.share` is, 1 at the nozzle — or 0
+ * if it meets none. Where the drawn flame is cut off by its own hull, so the
+ * editor can show a ship burning itself without flying it. Leaves the band's
+ * open stretch in `band` for `cast`.
+ */
+export function ownLanding(design: ShipDesign, slot: number, ray: number, force: number): number {
+  band.open = 0;
+  const spec = design.engines[slot];
+  const engine = design.modules[spec?.module ?? -1];
+  if (spec === undefined || engine === undefined || !(force > 0)) return 0;
+  const geometry = engineGeometry(engine.spec);
+  const exitWidth = geometry.exitWidth;
+  const { nozzle, across } = rayNozzle(ray);
+  const centre = nozzleOffset(geometry, nozzle);
+  const from = centre + (across - 1 / 6) * exitWidth;
+  openBand(spec.slices ?? NO_SLICES, nozzle, from, from + exitWidth / 3, nozzleReach(geometry, force), centre, exitWidth);
+  const centroidReach = rayReach(ray, geometry, force);
+  return band.nearest < centroidReach ? 1 - band.nearest / centroidReach : 0;
+}
 
 /**
  * Cut the welds holding a module a plume is playing on, with `joules` of its

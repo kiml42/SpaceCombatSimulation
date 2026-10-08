@@ -167,6 +167,7 @@ export {
   PLUME_POWER_PER_NEWTON,
   PLUME_RAYS,
   exhaustObstruction,
+  ownLanding,
   type PlumeSlice,
   PLUME_CORE_WIDTHS,
   Plumes,
