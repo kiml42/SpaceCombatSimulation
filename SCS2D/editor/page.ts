@@ -135,7 +135,7 @@ import {
   type DoctrineSection,
   type DoctrineValues,
 } from './doctrine.js';
-import { doctrineBand, previewSnapshot } from './preview.js';
+import { attackBearings, doctrineBand, previewSnapshot } from './preview.js';
 import { designStats, envelopes, assemblyMass, holdingThrottles, moduleReadout, type Envelopes } from './stats.js';
 
 /**
@@ -617,6 +617,11 @@ export function startEditor(): void {
     // Against the enemy its own doctrine wants, as the band drawn round it is.
     const band = doctrineBand(design);
     rows.push(['Closes to', `${numbers(band.min, 0)}–${numbers(band.max, 0)} m, centre to centre`]);
+    // Positive is to port, as every bearing in the body frame is.
+    const fights = attackBearings(design)
+      .map((r) => `${numbers(radiansToDegrees(r.bearing), 0)}° (${r.guns} of ${r.total} main guns)`)
+      .join(', ');
+    rows.push(['Fights with target at', fights]);
     statsPanel.innerHTML =
       `<table>${rows.map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join('')}</table>`;
   };
@@ -985,6 +990,8 @@ export function startEditor(): void {
       reach: design.reach,
       accelFore: stats.accelFore,
       accelAft: stats.accelAft,
+      brakeHolding: stats.brakeHolding,
+      brakeTurned: stats.brakeTurned,
       guns: design.turrets.filter((turret) => turret.main).length,
       fireRange,
     };

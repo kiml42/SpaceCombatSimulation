@@ -77,15 +77,16 @@ an entry is either still open or it is gone.
   low on a CIWS. It replaces the mandate rather than sitting beside it, so it moves the goldens of every
   scenario that issues an order — which is why it is a piece of work of its own.
 
-**Step 5 — v1: skirmish.** A fixed budget of *materials* rather than of points (§12), designed scenarios,
-shareable by URL. *This is the first thing worth giving people to play.* Designed scenarios are where the §12
+**Step 5 — v1: skirmish.** A fixed budget of *materials* rather than of points (§12), and designed
+scenarios. *This is the first thing worth giving people to play.* Designed scenarios are where the §12
 entry on authored data stops being optional, since a scenario to share has to be a file.
 
 Built: **the fleet file** (`sim/fleet.ts`, `sim/fleetFile.ts`), **a battle from fleets**
 (`scenarios/fleetBattle.ts`), proved by `standoff` flying a fleet file with its checksum unchanged, **the
 fleet editor** (`dist/fleet.html`), and **a custom battle** on the viewer — fleets or single ships from the
 libraries, a file, or handed over by either editor's Battle link,
-range, closing and crossing speeds, a rotation and a seed, saved and loaded as a battle file (`scenarios/customBattle.ts`),
+range, closing and crossing speeds, a rotation and a seed, saved and loaded as a battle file (`scenarios/customBattle.ts`)
+and shared as a link that carries the file (`scenarios/battleLink.ts`),
 set up paused and live, and decided once no more than one side can still fight.
 **Fleet evolution** is built, headless (`evolution/fleetMutate.ts`, `npm run evolve -- --fleet`) and on the
 evolution page: a match
@@ -94,55 +95,6 @@ capacity left and ground gained by its nearest ship. Every operator has its inve
 and a mutant over the total dry mass, the deployment radius or the ship count, or with hulls overlapping, is
 refused. Evolving against a fixed ship or fleet is co-evolution with a side B that does not evolve, which
 replaced the boss battle.
-
-**Co-evolution — built.** Two lineages bred against each other: a run is given two sets of founders, side
-A and side B, and every match is children of A against children of B, so each lineage evolves to counter
-the other. Several of A against one of a side B that never breeds is what the boss battle was.
-
-- **Two populations, bred apart, in lockstep.** Each side is a `Generation` of its own, bred only from its
-  own winners; both close and breed together, once every individual on both sides has played its matches.
-- **Each side's `group` a match, as allies.** Pairing takes the least-played of either side, the
-  least-played of its own side beside it, and the ones of the other side they have met least — the
-  cross-population form of `pickCompetitors`. A match's entrants are on two teams, clustered 45° wide on
-  the left (A) and the right (B); a hit on one's own side pays nothing, damage and disabling are shares of
-  the other side, and a match is decided once one side is left fighting. A hall match fields a whole
-  group of champions for the other side.
-- **No goal.** A race would let a lineage score without fighting; a co-evolution match is only a fight.
-- **A hall of fame against going round in circles.** Each side keeps its last few champions (about five),
-  and about a quarter of every individual's matches are against the *other* side's hall rather than its
-  current population. Without it A beats B, B adapts, A adapts back, and neither gets better at anything
-  but the current opponent. The hall also gives a side that is losing everything weaker opponents to score
-  against, so its selection still has something to go on.
-- **Scoring is the score parts as they are.** They are already continuous — damage dealt, function
-  disabled, hull kept — so a side losing every match still ranks its individuals by how badly. If lineages
-  learn to avoid each other, the answer is weighting damage and disabling above survival, which the
-  weights already allow.
-- **Settings per side in the back end, one set in the UI.** `Run` takes a config per side, so a fighter
-  lineage could race a capital lineage on different budgets, kinds or population sizes; the evolution page
-  sets one set of settings for both, so all it adds is a second founders picker. The config file and the
-  CLI (`--versus`, taking stock ships, blueprint files or fleets, as `--from` and `--fleet` do) can give the
-  sides different settings.
-- **The run file records which side each generation is for**, and a run of one side reads as it does now.
-- **The page drops the score chart for a co-evolution run** — fitness and the score parts alike. Every
-  score there is relative to the other side, which is getting better too: a better B lowers A's damage and
-  function taken, so a rising lineage can draw a falling line, and the chart only measures progress when
-  there is a goal. The mass and ship-count charts get a line per side instead, and take over picking a
-  generation, which they already do by hover and drag; the combatants table gets a column saying which
-  side a row is on.
-- **Progress is measured across generations, not within them.** The yardstick grows a grid: the champion
-  of A at generation i against the champion of B at generation j. An arms race shows as later generations
-  beating earlier opponents; cycling shows as the grid not improving down either axis.
-
-Built headless: `evolution/coevolution.ts`, side B in the run file as `rival`, `versus` in the config file
-with side B's population, winners, budget, fleet limits and mutation weights, `--versus`,
-`--versus-fleet`, `--hall` and `--hall-share` on the CLI, and the grid (`championGrid`) in `npm run
-yardstick`. On the evolution page, now a setup screen and a run screen: a Versus picker under the founders,
-side A's and side B's founders and per-side settings in A and B columns, side B fixed rather than
-evolving if unticked (`evolves: false`, `--versus-fixed`), the score chart dropped and the
-fields a co-evolution run does not use hidden while it is set, the mass and ship-count charts a pair of lines
-a side, a side tag on every combatant with each side ranked on its own, and the champion of each side saved
-or exported together. Left: the grid on the page.
-
 
 Not planned: per-ship doctrine overrides in a fleet (fork the design instead), and a group's own doctrine or
 lead, which waits for standing orders. Velocity stays out of the fleet file; the battle setup holds it.
@@ -389,13 +341,13 @@ Deliberately unresolved; decide when they block something.
   physics — a jet runs a fixed number of its own widths — and is what is built, to be looked at before it is
   argued with. It gives the Star Destroyer's mains a 2.4 km flame and a Dinky's engines under 2 m. The
   square root keeps every trend and squashes both ends, to about 400 m and 12 m. One line in `plumeReach`.
-- **Turning to brake.** A craft brakes facing whatever it is fighting, on what it has pointing that way,
-  because targeting alone decides its heading. One whose big engines are all at the back plans on a sliver
-  of retro, so it creeps in, and one with no retro at all has only `BRAKE_FLOOR` in `sim/ships.ts` to set
-  out on, which overshoots. The alternative is a pilot that turns its mains towards the target when the
-  stopping curve asks for more than its retros give, losing its guns while it does — likely a doctrine
-  choice, "flip to brake" against "brake facing", since which is better depends on the layout. It needs
-  heading logic of its own, and `BRAKE_FLOOR` goes when it lands.
+- **Braking on the mains between two craft that are both closing.** A craft whose doctrine would turn
+  to burn plans its approach on its mains when that gets it there sooner, turn included, and once on that
+  curve is held to it. Against something standing still that is quicker into the band and steadier in it
+  for every stock hull measured. Two Dinkies closing on each other from 600 m fire later than before (about
+  14 and 25 s against 8.5 s), since each flips to brake on a run in that the other is shortening. The
+  plan reckons with a target that holds still; reckoning with its closing too is what is left, and
+  `BRAKE_FLOOR` in `sim/ships.ts` still stands for the plan with the guns held on.
 - **Whether a beam should have an opinion about where it hits.** Each archetype now carries its own
   targeting, and a beam turret's is the one where the obvious default was left untaken. The argument for
   taking it is good: picking a part costs accuracy, a beam turret is the mount that answers what is small
@@ -406,26 +358,15 @@ Deliberately unresolved; decide when they block something.
   That is a balance decision about what beams are *for*, and it wants the fleet in front of it rather than
   a place in a change about where a mount's defaults come from. The same question hangs over `hullBeam`,
   which has the same physics and a hull's aiming.
-- **A ship should say which way it fights as well as which way it accelerates.** A blueprint has one
-  orientation, so the heading a pilot holds is the heading its engines push along — which is exactly wrong
-  for a broadside, whose guns bear ninety degrees off the line it wants to travel. Two orientations in the
-  design, an attack one and an acceleration one, would let a hull be flown along one and pointed along the
-  other. It also subsumes a case that otherwise wants a mechanism of its own: **a small ship with fixed guns
-  cannot currently choose a module on a large one**, because aiming a fixed gun is a question for the pilot
-  rather than the mount, and a pilot that knew what its guns wanted to hit would steer to put it under them.
-  Both are the same missing idea — that where a ship points is a decision, not a consequence of where it is
-  going. **Marking main guns (step 3) gives the attack orientation something to derive from**: the
-  preferred heading to fight at is the one that brings the most main-gun arc to bear on the target, worked
-  out from the main mounts' firing arcs, with secondaries left out since they are CIWS and train on their
-  own. **The Dinky is the worked example**: its gun trains five degrees and its doctrine says engines, so
-  what it actually shoots is whatever the *hull* is pointed at, and the hull points at its target's centre.
-  **Which part a hull points at is a setting on the ship**, decided by the author against the alternative of
-  deriving it from what the ship's weapons want: a hull with several limited-traverse guns has no single
-  answer to derive from, and picking one would mean guessing which the designer meant as the main battery.
-  So a hull gets an aim preference of its own — the thing this codebase deliberately does *not* have today,
-  a ship choosing a part of another ship rather than a ship — and a gun that cannot train far follows it on
-  `focusWeight` alone, which is what that weight already does. Until it lands, such a preference belongs on
-  the gun, since on a hull it would be a number nothing reads.
+- **Which part a hull points at.** The attack bearing points the battery at the target's centre, led by its
+  shot's time of flight. **The Dinky is the worked example**: its gun trains five degrees, so what it
+  actually shoots is whatever the *hull* is pointed at. **Which part a hull points at is a setting on the
+  ship**, decided by the author against the alternative of deriving it from what the ship's weapons want: a
+  hull with several limited-traverse guns has no single answer to derive from. So a hull gets an aim
+  preference of its own — the thing this codebase deliberately does *not* have today, a ship choosing a part
+  of another ship rather than a ship — and a gun that cannot train far follows it on `focusWeight` alone,
+  which is what that weight already does. Until it lands, such a preference belongs on the gun, since on a
+  hull it would be a number nothing reads.
 - **What a target's presented aspect is worth.** A weapon decides whether to fire from the bounding circle
   of what it is shooting at, so a ship end-on is taken to be as wide as it is long. The error is in the
   forgiving direction — a shot at a hull rather than a shot at nothing — but it means a fleet in line ahead

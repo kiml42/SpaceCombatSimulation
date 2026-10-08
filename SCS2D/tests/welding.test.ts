@@ -417,10 +417,10 @@ describe('a mount that breaks off', () => {
 
 describe('enemies hooked together', () => {
   it('both take the new design when wreckage hooks on to them', () => {
-    // A seed on which a piece of wreckage welds onto the pair about fifteen
-    // seconds in. A ship left on the old design is drawn, aimed and fired from
-    // a layout its body no longer has.
-    const run = hookedScenario(20260913);
+    // A seed on which wreckage welds onto the pair within the 25 s run. A ship
+    // left on the old design is drawn, aimed and fired from a layout its body
+    // no longer has.
+    const run = hookedScenario(20260915);
     const { ships, world } = run;
     for (let s = 0; s < 1500; s++) {
       run.step();

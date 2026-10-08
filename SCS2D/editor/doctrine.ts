@@ -63,11 +63,17 @@ const APPROACH_ROWS: readonly DoctrineRow[] = [
   { field: 'escort', label: 'escort cap', hint: 'The furthest it will stray from what it is covering, as a fraction of its own reach', step: 0.05 },
   { field: 'separation', label: 'keeps clear', hint: 'How much it wants to stay out of everybody’s way', step: 25 },
   { field: 'separationRadii', label: 'clearance', hint: 'How close is too close, in multiples of the gap between two hulls’ skins', step: 0.5 },
+  { field: 'avoidHorizon', label: 'looks ahead', hint: 'How far ahead it looks for something it is about to run into, seconds', step: 1 },
+  { field: 'dodgeSpeed', label: 'dodges at', hint: 'The sideways speed it asks for to get out of the way, metres per second', step: 10 },
+  { field: 'responseTime', label: 'responds in', hint: 'How quickly it corrects its velocity, seconds: smaller asks its engines for more, and turns to burn more readily', step: 0.25 },
   { field: 'tolerance', label: 'slack', hint: 'How much closer or further than that is close enough, as a fraction', step: 0.05 },
   { field: 'approachSpeed', label: 'closing speed', hint: 'The fastest it will close the difference, metres per second', step: 10 },
   { field: 'accelerate', label: 'speeds up on', hint: 'How much of its thrust towards the band to speed up with: 1 is all of it', step: 0.05 },
   { field: 'brake', label: 'brakes on', hint: 'How much of its thrust the other way to plan on stopping with: under 1 keeps a margin', step: 0.05 },
   { field: 'ramRadii', label: 'rams within', hint: "How close its target's edge has to be before it will ram, in the target's radii. 0 never rams. A fighter that rams drops into the hull layer too", step: 0.5 },
+  { field: 'turnBias', label: 'turn cost', hint: 'What a half turn costs in choosing which way round to fight, as a share of its main guns: at 0.5 a half turn has to bring half its main guns more to bear', step: 0.1 },
+  { field: 'burnWeight', label: 'turns to burn', hint: 'How much it would rather turn its main engines along the way it wants to go than keep its guns on target, for each share of the change it wants the turn would make sooner, turn included. Never turns when its guns-on thrust is enough, or to dodge what it cannot turn in time for. 0 never turns from its guns', step: 0.5 },
+  { field: 'rangeHold', label: 'holds guns on', hint: 'How much it would rather keep its guns on target: all of it inside the band it holds, falling away the further out it is', step: 0.5 },
   { field: 'ramArmed', label: 'rams armed', hint: 'The share of its own main guns still working at or below which it will ram: 0 only once it cannot shoot, 1 whenever it is close enough', step: 0.1 },
 ];
 
@@ -95,6 +101,9 @@ export interface DoctrineContext {
   /** Acceleration holding a heading, ahead and astern, m/s². */
   readonly accelFore: number;
   readonly accelAft: number;
+  /** Braking holding its guns on, and turned onto its mains, m/s² (`DesignStats`). */
+  readonly brakeHolding: number;
+  readonly brakeTurned: number;
   /** How many main weapon mounts it has. */
   readonly guns: number;
   /** A mount's: how far it fires at the enemy it wants, metres. */
@@ -194,14 +203,29 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
         ],
       },
       {
+        title: 'Which way round',
+        entries: [
+          entry('approach', 'turnBias'),
+          entry('approach', 'burnWeight'),
+          entry('approach', 'rangeHold', { shown: (v) => v.approach.burnWeight > 0 }),
+        ],
+      },
+      {
         title: 'How it gets there',
         entries: [
+          entry('approach', 'responseTime'),
           entry('approach', 'approachSpeed'),
           entry('approach', 'accelerate', {
             absolute: (v, ship) => `≈ ${(v.approach.accelerate * ship.accelFore).toFixed(2)} m/s² ahead`,
           }),
           entry('approach', 'brake', {
-            absolute: (v, ship) => `≈ ${(v.approach.brake * ship.accelAft).toFixed(2)} m/s² astern`,
+            absolute: (v, ship) => {
+              const holding = `≈ ${(v.approach.brake * ship.brakeHolding).toFixed(2)} m/s² with its guns on`;
+              // A ship that turns to burn brakes on its mains too.
+              return v.approach.burnWeight > 0
+                ? `${holding}, ≈ ${(v.approach.brake * ship.brakeTurned).toFixed(2)} turned onto its mains`
+                : holding;
+            },
           }),
         ],
       },
@@ -274,6 +298,8 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
             absolute: (v, ship) =>
               `${metres(2 * ship.radius * v.approach.separationRadii)} between centres, beside its own size`,
           }),
+          entry('approach', 'avoidHorizon', { shown: (v) => v.approach.separation > 0 }),
+          entry('approach', 'dodgeSpeed', { shown: (v) => v.approach.separation > 0 }),
         ],
       },
     ],

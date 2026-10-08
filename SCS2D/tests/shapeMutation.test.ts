@@ -150,7 +150,7 @@ describe('breeding a shape', () => {
     //
     // A generation whose only change is a cut is rare, a couple in a thousand,
     // so a second pair of lines is bred for this one question.
-    const more = [...breedLine(CORVETTE, 13, GENERATIONS), ...breedLine(CATAMARAN, 13, GENERATIONS)];
+    const more = [...breedLine(CORVETTE, 15, GENERATIONS), ...breedLine(CATAMARAN, 15, GENERATIONS)];
     let cuts = 0;
     for (const step of matching([...both, ...more], CUT)) {
       // Only a generation whose *whole* change was the cut says anything about

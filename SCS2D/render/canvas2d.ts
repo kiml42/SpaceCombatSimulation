@@ -6,8 +6,13 @@ import {
   math,
   nozzleOffset,
   nozzleReach,
+  HULL_LAYER,
+  landedIndex,
+  layerCount,
+  OWN_LAYERS,
   plumeIntensity,
-  plumeRayStarts,
+  plumeLayers,
+  WEAPONS_LAYER,
   PLUME_POWER_PER_NEWTON,
   PLUME_RAYS,
   SHELL_CALIBRES,
@@ -82,6 +87,9 @@ const TRIGGER_FOULED = '#ff5a5a24';
 /** The band of ranges a ship's doctrine closes to, against the enemy it wants. */
 const HOLD_BAND = '#7fd6c214';
 const HOLD_EDGE = '#7fd6c266';
+/** Where a ship turns its target to, out to the band. */
+const ATTACK_LINE = '#7fd6c2b0';
+const ATTACK_DASH_PX = 6;
 
 /** Where a gun's barrel is pointing now, along its wedge, in battle. */
 const BARREL_LINE = '#e6edf566';
@@ -251,6 +259,18 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
       ctx.arc(0, 0, holdMin, 0, TAU);
       ctx.stroke();
     }
+    ctx.strokeStyle = ATTACK_LINE;
+    ctx.setLineDash([ATTACK_DASH_PX / metresToPx, ATTACK_DASH_PX / metresToPx]);
+    for (const bearing of ship.attackBearings ?? []) {
+      ctx.save();
+      ctx.rotate(bearing);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(holdMax, 0);
+      ctx.stroke();
+      ctx.restore();
+    }
+    ctx.setLineDash([]);
   }
 
   // Module boxes, in the body frame the design already put them in.
@@ -735,13 +755,13 @@ function drawEngineTriggers(ctx: CanvasRenderingContext2D, ship: ShipView, metre
  * turret sweeps, which dimmed a burning engine to the colour of a shadow.
  */
 function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
-  eachNozzle(ctx, ship, (engine, force, reach, across, landed) => {
+  eachNozzle(ctx, ship, (engine, force, reach, across, landed, split) => {
     // One flame per nozzle, the same triangles the burn samples its rays
     // across. How hot it burns is its opacity, and it fades to nothing at its
     // tip the way its share of the power does, so the brightest part of the
     // picture is the part doing the most damage.
     const root = -engine.length / 2;
-    const alpha = plumeAlpha(plumeIntensity(engine.geometry, force));
+    const alpha = layerAlpha(plumeAlpha(plumeIntensity(engine.geometry, force)), split);
     const half = engine.geometry.exitWidth / 2;
 
     // Cut off where its core lands on a hull, inside the glow that marks it.
@@ -761,7 +781,7 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
     ctx.fill();
     // A brighter core, a third the width, so a hard burn reads as hotter
     // rather than merely longer.
-    ctx.fillStyle = fade(ctx, root, reach * 0.55, PLUME_CORE, min(1, alpha * 1.4));
+    ctx.fillStyle = fade(ctx, root, reach * 0.55, PLUME_CORE, layerAlpha(min(1, plumeAlpha(plumeIntensity(engine.geometry, force)) * 1.4), split));
     ctx.beginPath();
     ctx.moveTo(root, across - half / 3);
     ctx.lineTo(root, across + half / 3);
@@ -770,6 +790,15 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
     ctx.fill();
     ctx.restore();
   });
+}
+
+/**
+ * The opacity of one of `split` flames laid over each other that together
+ * look like one flame of `alpha`, so a thick engine's two flames are the
+ * single one where neither is blocked, and dimmer where one is.
+ */
+function layerAlpha(alpha: number, split: number): number {
+  return split > 1 ? 1 - sqrt(1 - alpha) : alpha;
 }
 
 /**
@@ -786,10 +815,10 @@ function drawBurns(ctx: CanvasRenderingContext2D, snapshot: Snapshot): void {
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
   for (let i = 0; i < snapshot.shipCount; i++) {
-    eachNozzle(ctx, snapshot.ships[i]!, (engine, force, reach, across, landed) => {
+    eachNozzle(ctx, snapshot.ships[i]!, (engine, force, reach, across, landed, split) => {
       // What of this nozzle's power is landing, and roughly where: the core's
       // landing if it has one, otherwise wherever its edges met something.
-      const perRay = (PLUME_POWER_PER_NEWTON * force) / (engine.geometry.nozzles * PLUME_RAYS);
+      const perRay = (PLUME_POWER_PER_NEWTON * force) / (engine.geometry.nozzles * PLUME_RAYS * split);
       let power = 0;
       let at = 0;
       let off = 0;
@@ -841,15 +870,15 @@ interface Engine {
 /**
  * Every burning nozzle on a ship, in its own module's frame with the exhaust
  * running along -x: what the flame and burn passes both draw from, so they
- * cannot disagree about where a flame is.
+ * cannot disagree about where a flame is. A thick engine's nozzle is visited
+ * once a layer, each with its share `split` of the flame.
  */
 function eachNozzle(
   ctx: CanvasRenderingContext2D,
   ship: ShipView,
-  visit: (engine: Engine, force: number, reach: number, across: number, landed: readonly number[]) => void,
+  visit: (engine: Engine, force: number, reach: number, across: number, landed: readonly number[], split: number) => void,
 ): void {
   const design = ship.design;
-  const starts = plumeRayStarts(design);
   // Engines are counted as they are met, because a design lists its
   // engines in the order its modules appear.
   let engine = 0;
@@ -870,9 +899,16 @@ function eachNozzle(
     ctx.save();
     ctx.translate(m.x, m.y);
     ctx.rotate(m.angle);
-    for (let n = 0; n < geometry.nozzles; n++) {
-      for (let k = 0; k < PLUME_RAYS; k++) landed[k] = ship.landed[starts[t]! + n * PLUME_RAYS + k] ?? 0;
-      visit({ geometry, length: spec.length }, force, reach, nozzleOffset(geometry, n), landed);
+    const layers = ship.plumeLayers?.[t] ?? plumeLayers(design, t, OWN_LAYERS);
+    const split = layerCount(layers);
+    for (let layer = HULL_LAYER; layer <= WEAPONS_LAYER; layer <<= 1) {
+      if ((layers & layer) === 0) continue;
+      for (let n = 0; n < geometry.nozzles; n++) {
+        for (let k = 0; k < PLUME_RAYS; k++) {
+          landed[k] = ship.landed[landedIndex(design, t, n * PLUME_RAYS + k, layer)] ?? 0;
+        }
+        visit({ geometry, length: spec.length }, force, reach, nozzleOffset(geometry, n), landed, split);
+      }
     }
     ctx.restore();
   }
