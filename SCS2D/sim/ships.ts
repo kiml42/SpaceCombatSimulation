@@ -52,7 +52,8 @@ import {
 } from './math.js';
 import { Projectiles } from './projectiles.js';
 import { Allocation, EngineLayout } from './engines.js';
-import { FiringSolution, Turrets, TurretState } from './turrets.js';
+import { addFlame, addTurret, attackBearing, AttackArcs, AttackRegion } from './attack.js';
+import { FiringSolution, interceptTime, Turrets, TurretState } from './turrets.js';
 import { holdBand, type Targeting } from './doctrine.js';
 import type { World } from './world.js';
 import type { BeamHits, Beams, SpatialGrid } from './index.js';
@@ -536,6 +537,9 @@ export class Ships {
    * ship however many engines each has.
    */
   private forced = new Uint8Array(0);
+  // Reused by `attackHeading` for every ship, every step.
+  private readonly attackArcs = new AttackArcs();
+  private readonly attackRegion = new AttackRegion();
   /** Which of each ship's engines burned as weapons when it was last flown. */
   private readonly lit: Uint8Array[] = [];
   /** Turret store indices owned by each ship, and their gun timers. */
@@ -2313,6 +2317,7 @@ export class Ships {
       // Hooked on to it: nowhere to steer for.
       if (tb >= 0 && tb !== b) {
         wantAngle = atan2(bodies.y[tb]! - bodies.y[b]!, bodies.x[tb]! - bodies.x[b]!);
+        if (!order.ram) wantAngle = this.attackHeading(i, b, tb, bodies, wantAngle);
         if (order.ram) this.charge(bodies, b, tb, order.approachSpeed);
         else this.hold(bodies, i, b, tb, order.minRange, order.maxRange, order.approachSpeed, URGE_REFERENCE);
       }
@@ -2425,6 +2430,36 @@ export class Ships {
     this.demandFx[i] = fx;
     this.demandFy[i] = fy;
     this.demandTorque[i] = torque;
+  }
+
+  /**
+   * The heading that puts a target lying at `towards` where this ship's
+   * working main guns bear most (`attackBearing`), led by those guns' time of
+   * flight, so a battery that cannot train far is pointed where its shot will
+   * meet the target rather than where the target is.
+   */
+  private attackHeading(i: number, b: number, tb: number, bodies: Bodies, towards: number): number {
+    const design = this.designs[i]!;
+    const arcs = this.attackArcs;
+    arcs.clear();
+    for (let t = 0; t < design.turrets.length; t++) {
+      const turret = design.turrets[t]!;
+      if (turret.main && !this.isTurretDisabled(i, t)) addTurret(arcs, turret.mount);
+    }
+    for (const t of design.mainWeaponEngines) {
+      if (this.left(i, b, design.engines[t]!.module ?? -1, DamageEffect.Thrust) > 0) addFlame(arcs, design, t);
+    }
+    const current = angleDelta(bodies.angle[b]!, towards);
+    const region = attackBearing(arcs, current, design.doctrine.approach.turnBias, design.thrustBearing, this.attackRegion);
+    if (region.speed > 0) {
+      const dx = bodies.x[tb]! - bodies.x[b]!;
+      const dy = bodies.y[tb]! - bodies.y[b]!;
+      const dvx = bodies.vx[tb]! - bodies.vx[b]!;
+      const dvy = bodies.vy[tb]! - bodies.vy[b]!;
+      const t = interceptTime(dx, dy, dvx, dvy, region.speed);
+      if (t > 0) towards = atan2(dy + dvy * t, dx + dvx * t);
+    }
+    return towards - region.aim;
   }
 
   /**

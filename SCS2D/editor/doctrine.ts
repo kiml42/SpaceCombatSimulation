@@ -68,6 +68,7 @@ const APPROACH_ROWS: readonly DoctrineRow[] = [
   { field: 'accelerate', label: 'speeds up on', hint: 'How much of its thrust towards the band to speed up with: 1 is all of it', step: 0.05 },
   { field: 'brake', label: 'brakes on', hint: 'How much of its thrust the other way to plan on stopping with: under 1 keeps a margin', step: 0.05 },
   { field: 'ramRadii', label: 'rams within', hint: "How close its target's edge has to be before it will ram, in the target's radii. 0 never rams. A fighter that rams drops into the hull layer too", step: 0.5 },
+  { field: 'turnBias', label: 'turn cost', hint: 'What a half turn costs in choosing which way round to fight, as a share of its main guns: at 0.5 a half turn has to bring half its main guns more to bear', step: 0.1 },
   { field: 'ramArmed', label: 'rams armed', hint: 'The share of its own main guns still working at or below which it will ram: 0 only once it cannot shoot, 1 whenever it is close enough', step: 0.1 },
 ];
 
@@ -192,6 +193,10 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
             },
           }),
         ],
+      },
+      {
+        title: 'Which way round',
+        entries: [entry('approach', 'turnBias')],
       },
       {
         title: 'How it gets there',

@@ -201,7 +201,8 @@ describe('a gun with a fuse', () => {
 describe('a fuse under evolution', () => {
   // Both draws are rare, and how long a line waits for one swings widely from
   // seed to seed, so the seed is one that finds both early rather than any.
-  it('is retimed, and swapped for solid shot and back', () => {
+  // Up to fifteen hundred generations: most seeds want a few hundred.
+  it('is retimed, and swapped for solid shot and back', { timeout: 30_000 }, () => {
     const rng = new Rng(7);
     const seen = { retimed: false, solid: false };
     let parent: Blueprint = TURRET_CORVETTE;
