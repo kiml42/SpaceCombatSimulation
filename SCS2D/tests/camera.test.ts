@@ -7,6 +7,8 @@ import {
   frame,
   gridStep,
   moveWithVisibleShips,
+  selectionBounds,
+  shipAt,
   snapStep,
   type Camera,
 } from '../render/camera.js';
@@ -34,6 +36,7 @@ function ship(
     // The camera reads position, velocity and radius; the rest is for drawing.
     design: { radius: 20 } as ShipView['design'],
     team: 0,
+    serial: 0,
     x,
     y,
     angle: 0,
@@ -404,5 +407,32 @@ describe('a shared scale', () => {
     expect(steps(1, 10)).toBeLessThan(100);
     // Lands on the target exactly, so an easing can tell that it has finished.
     expect(easeScale(0, 4, 0.15)).toBe(4);
+  });
+});
+
+describe('picking out a ship', () => {
+  const picked = (): Snapshot => {
+    const a = { ...ship(0, 0), body: 3, fighting: 7 };
+    const b = { ...ship(500, 0), body: 7, fighting: 3 };
+    const c = { ...ship(0, 300), body: 9 };
+    return snapshotOf([a, b, c]);
+  };
+
+  it('finds the ship whose hull holds the point, or the nearest within a reach for one too small to hit', () => {
+    const scene = picked();
+    expect(shipAt(scene, 10, 5, 0)).toBe(3);
+    expect(shipAt(scene, 495, 0, 0)).toBe(7);
+    expect(shipAt(scene, 250, 0, 0)).toBe(-1);
+    // Twenty metres of hull, but a reach of forty from far out.
+    expect(shipAt(scene, 0, 270, 0)).toBe(-1);
+    expect(shipAt(scene, 0, 270, 40)).toBe(9);
+  });
+
+  it('frames the ship and what it is fighting, and nothing else', () => {
+    const bounds = selectionBounds(picked(), 3)!;
+    expect(bounds).toEqual({ minX: -20, minY: -20, maxX: 520, maxY: 20 });
+    expect(selectionBounds(picked(), -1)).toBeNull();
+    // Fighting nothing frames the ship alone.
+    expect(selectionBounds(picked(), 9)).toEqual({ minX: -20, minY: 280, maxX: 20, maxY: 320 });
   });
 });

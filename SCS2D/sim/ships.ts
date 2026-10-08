@@ -438,6 +438,12 @@ export interface ShipSpec {
   angularVel?: number;
   /** Uninterpreted here; the caller's notion of sides. `NEUTRAL_TEAM` is not. */
   team?: number;
+  /**
+   * Which of its side's ships this is, counting from one in the order they
+   * were put in (`serialOf`). Given for a piece of a ship, which carries the
+   * ship's; drawn from the side's count otherwise.
+   */
+  serial?: number;
   /** Nothing can hurt it: no damage taken, no weld cut. See `Damage.protect`. */
   invulnerable?: boolean;
   /**
@@ -560,6 +566,9 @@ export class Ships {
   private readonly turretAimModule: Int32Array[] = [];
 
   private readonly team: number[] = [];
+  private readonly serial: number[] = [];
+  /** Ships each side has had put in, so the next is one more. */
+  private readonly served = new Map<number, number>();
 
   /**
    * Which ships were never controlled: the pieces other ships have been broken
@@ -853,7 +862,7 @@ export class Ships {
     return this.team[i] !== NEUTRAL_TEAM && !this.hasControl(i);
   }
 
-  /** Returns true when the ship has no active weapons left: no gun, and no weapon engine. */
+  /** Returns true when the ship has no main weapon left: no main gun, and no main weapon engine. */
   isDisarmed(i: number): boolean {
     if (this.alive[i] === 0) return true;
     if (this.derelict[i] === 1) return true;
@@ -865,10 +874,10 @@ export class Ships {
     if (b < 0) return true;
     const design = this.designs[i]!;
     for (let t = 0; t < design.turrets.length; t++) {
-      if (!this.isTurretDisabled(i, t)) return false;
+      if (design.turrets[t]!.main && !this.isTurretDisabled(i, t)) return false;
     }
     // An engine meant as a weapon is one while it can still burn.
-    for (const t of design.weaponEngines) {
+    for (const t of design.mainWeaponEngines) {
       const module = design.engines[t]?.module ?? -1;
       if (this.left(i, b, module, DamageEffect.Thrust) > 0) return false;
     }
@@ -964,6 +973,11 @@ export class Ships {
     return this.team[i]!;
   }
 
+  /** Which of its side's ships this is, from one; a piece broken off carries its ship's. */
+  serialOf(i: number): number {
+    return this.serial[i]!;
+  }
+
   /**
    * Put a ship in the world.
    *
@@ -1022,6 +1036,12 @@ export class Ships {
     this.turretRethinkAt.push(schedule);
     this.turretAimModule.push(new Int32Array(mounts.length).fill(WHOLE_SHIP));
     this.team.push(spec.team ?? 0);
+    let serial = spec.serial;
+    if (serial === undefined) {
+      serial = (this.served.get(spec.team ?? 0) ?? 0) + 1;
+      this.served.set(spec.team ?? 0, serial);
+    }
+    this.serial.push(serial);
     this.derelict.push(0);
     this.committed.push(0);
     this.cutSeen.push(-1);
@@ -1572,13 +1592,17 @@ export class Ships {
     return gap <= approach.ramRadii * bodies.radius[tb]!;
   }
 
-  /** The share of this ship's mounts that can still fire; none for a ship with none. */
+  /** The share of this ship's main mounts that can still fire; none for a ship with none. */
   private armedShare(i: number): number {
-    const mounts = this.designs[i]!.turrets.length;
-    if (mounts === 0) return 0;
+    const turrets = this.designs[i]!.turrets;
+    let mounts = 0;
     let working = 0;
-    for (let t = 0; t < mounts; t++) if (!this.isTurretDisabled(i, t)) working++;
-    return working / mounts;
+    for (let t = 0; t < turrets.length; t++) {
+      if (!turrets[t]!.main) continue;
+      mounts++;
+      if (!this.isTurretDisabled(i, t)) working++;
+    }
+    return mounts === 0 ? 0 : working / mounts;
   }
 
   /**
@@ -1668,6 +1692,11 @@ export class Ships {
    * costing an escorting fleet the very broadside `focusWeight` exists to
    * hold together.
    */
+  /** What this ship is fighting: its order's target, else what its doctrine chose; `NO_TARGET` for nothing. */
+  fightingOf(i: number): number {
+    return this.focusOf(i);
+  }
+
   private focusOf(i: number): number {
     const given = this.getCurrentOrder(i);
     if (given !== undefined) return given.target;
@@ -3620,6 +3649,7 @@ export class Ships {
       vy: bodies.vy[b]! + spin * offset.x,
       angularVel: spin,
       team: this.team[side]!,
+      serial: this.serial[side]!,
     });
     this.partedAt[j] = world.tick;
     if (flies) {

@@ -119,6 +119,7 @@ const SIDE_FIELDS = [
   'opRemove',
   'opFork',
   'opMerge',
+  'opSwap',
   'structural',
   'buildMove',
   'buildResize',
@@ -176,12 +177,16 @@ const FIELDS = [
   'opRemove',
   'opFork',
   'opMerge',
+  'opSwap',
   'seed',
   'duration',
   'radius',
+  'radiusSpread',
   'scatter',
   'closing',
+  'closingSpread',
   'crossing',
+  'crossingSpread',
   'survivalWeight',
   'functionalWeight',
   'damageWeight',
@@ -602,12 +607,16 @@ export function startEvolution(): void {
     opRemove: String(DEFAULT_FLEET_LIMITS.operators.remove),
     opFork: String(DEFAULT_FLEET_LIMITS.operators.fork),
     opMerge: String(DEFAULT_FLEET_LIMITS.operators.merge),
+    opSwap: String(DEFAULT_FLEET_LIMITS.operators.swap),
     seed: String(DEFAULT_RUN.seed),
     duration: String(DEFAULT_MATCH.duration),
     radius: String(DEFAULT_MATCH.radius),
     scatter: String(Math.round((DEFAULT_MATCH.scatter * 180) / Math.PI)),
     closing: String(DEFAULT_MATCH.closingSpeed),
     crossing: String(DEFAULT_MATCH.crossingSpeed),
+    radiusSpread: String(DEFAULT_MATCH.radiusSpread),
+    closingSpread: String(DEFAULT_MATCH.closingSpread),
+    crossingSpread: String(DEFAULT_MATCH.crossingSpread),
     survivalWeight: String(DEFAULT_MATCH.weights.survival),
     functionalWeight: String(DEFAULT_MATCH.weights.functional),
     damageWeight: String(DEFAULT_MATCH.weights.damage),
@@ -840,6 +849,7 @@ export function startEvolution(): void {
           remove: Math.max(0, number(get('opRemove'), DEFAULT_FLEET_LIMITS.operators.remove)),
           fork: Math.max(0, number(get('opFork'), DEFAULT_FLEET_LIMITS.operators.fork)),
           merge: Math.max(0, number(get('opMerge'), DEFAULT_FLEET_LIMITS.operators.merge)),
+          swap: Math.max(0, number(get('opSwap'), DEFAULT_FLEET_LIMITS.operators.swap)),
         },
       },
       mutation: {
@@ -886,6 +896,9 @@ export function startEvolution(): void {
         scatter: (number(inputs.scatter, 180) * Math.PI) / 180,
         closingSpeed: number(inputs.closing, DEFAULT_MATCH.closingSpeed),
         crossingSpeed: number(inputs.crossing, DEFAULT_MATCH.crossingSpeed),
+        radiusSpread: Math.max(0, number(inputs.radiusSpread, DEFAULT_MATCH.radiusSpread)),
+        closingSpread: Math.max(0, number(inputs.closingSpread, DEFAULT_MATCH.closingSpread)),
+        crossingSpread: Math.max(0, number(inputs.crossingSpread, DEFAULT_MATCH.crossingSpread)),
         goal:
           goalInput.value === 'none' || DEFAULT_MATCH.goal === null
             ? null
@@ -946,6 +959,7 @@ export function startEvolution(): void {
     get('opRemove').value = String(operators.remove);
     get('opFork').value = String(operators.fork);
     get('opMerge').value = String(operators.merge);
+    get('opSwap').value = String(operators.swap);
     const build = { ...DEFAULT_BUILD_WEIGHTS, ...config.mutation.build };
     get('structural').value = String(config.mutation.structural ?? DEFAULT_LIMITS.structural);
     get('buildMove').value = String(build.move);
@@ -983,6 +997,9 @@ export function startEvolution(): void {
     inputs.scatter.value = String((match.scatter * 180) / Math.PI);
     inputs.closing.value = String(match.closingSpeed);
     inputs.crossing.value = String(match.crossingSpeed);
+    inputs.radiusSpread.value = String(match.radiusSpread ?? DEFAULT_MATCH.radiusSpread);
+    inputs.closingSpread.value = String(match.closingSpread ?? DEFAULT_MATCH.closingSpread);
+    inputs.crossingSpread.value = String(match.crossingSpread ?? DEFAULT_MATCH.crossingSpread);
     inputs.survivalWeight.value = String(match.weights.survival);
     inputs.functionalWeight.value = String(match.weights.functional);
     inputs.damageWeight.value = String(match.weights.damage);

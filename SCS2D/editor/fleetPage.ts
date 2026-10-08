@@ -20,6 +20,9 @@ import {
   addShip,
   deleteEntries,
   duplicateEntries,
+  dissolveGroup,
+  makeGroup,
+  renameGroup,
   emptyFleet,
   entryAt,
   moveEntries,
@@ -106,6 +109,10 @@ export function startFleetEditor(): void {
   const stepY = el<HTMLInputElement>('stepY');
   const stepAngle = el<HTMLInputElement>('stepAngle');
   const upLevel = el<HTMLButtonElement>('upLevel');
+  const makeGroupButton = el<HTMLButtonElement>('makeGroup');
+  const dissolveButton = el<HTMLButtonElement>('dissolveGroup');
+  const groupNameRow = el<HTMLElement>('groupNameRow');
+  const groupName = el<HTMLInputElement>('groupName');
   const statsPanel = el<HTMLElement>('stats');
   const problemsPanel = el<HTMLElement>('problems');
   const undoButton = el<HTMLButtonElement>('undo');
@@ -282,6 +289,10 @@ export function startFleetEditor(): void {
         : (isGroupUse(entry) ? `Group: ${entry.group}` : `Ship: ${entry.design}`) +
           (inside !== null && isGroupUse(inside) ? ` in ${inside.group}` : '');
     mirrorRow.hidden = !isGroupUse(entry);
+    groupNameRow.hidden = !isGroupUse(entry);
+    if (isGroupUse(entry) && document.activeElement !== groupName) groupName.value = entry.group;
+    dissolveButton.hidden = picked.length !== 1 || !isGroupUse(entry);
+    makeGroupButton.disabled = makeGroup(doc.fleet, picked) === null;
     designRow.hidden = isGroupUse(entry);
     if (!isGroupUse(entry)) entryDesign.value = CARRIED + entry.design;
     const repeated = (entry.repeat ?? 1) > 1;
@@ -441,6 +452,34 @@ export function startFleetEditor(): void {
     const reach = path === undefined ? 0 : doc.reachOf(path);
     return Math.max(snapStep(camera.scale), Math.ceil(reach * 2.5));
   };
+
+  makeGroupButton.addEventListener('click', () => {
+    const made = makeGroup(doc.fleet, doc.selection);
+    if (made === null) return;
+    doc.apply(made.fleet);
+    doc.select([made.path]);
+    refresh();
+  });
+  dissolveButton.addEventListener('click', () => {
+    const path = doc.selection[0];
+    const dissolved = path === undefined ? null : dissolveGroup(doc.fleet, path);
+    if (dissolved === null) return;
+    doc.apply(dissolved.fleet);
+    doc.select(dissolved.paths);
+    refresh();
+  });
+  groupName.addEventListener('change', () => {
+    const path = doc.selection[0];
+    const entry = path === undefined ? null : entryAt(doc.fleet, path);
+    if (entry === null || !isGroupUse(entry)) return;
+    const renamed = renameGroup(doc.fleet, entry.group, groupName.value);
+    if (renamed === null) {
+      groupName.value = entry.group;
+      return;
+    }
+    doc.apply(renamed);
+    refresh();
+  });
 
   upLevel.addEventListener('click', () => {
     const path = doc.selection[0];

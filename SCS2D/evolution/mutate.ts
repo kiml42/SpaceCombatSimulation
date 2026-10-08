@@ -51,7 +51,7 @@ import {
   type ModuleSpec,
 } from '../sim/modules.js';
 import { pushNeighbours, sharedFace, shiftSeam, type SharedFace } from '../sim/push.js';
-import type { Rng } from '../sim/rng.js';
+import { Rng } from '../sim/rng.js';
 
 /**
  * How one blueprint becomes a different one: the operator a generation is
@@ -85,6 +85,8 @@ export interface MutationLimits {
   readonly magnitude: number;
   /** Chance of also making one structural edit: a module added, removed or copied. */
   readonly structural: number;
+  /** Chance of the child's name drifting a letter from its parent's (`driftName`). */
+  readonly rename: number;
   /** What positions and sizes move in, metres. */
   readonly grid: number;
   /** What angles turn in, radians. */
@@ -227,6 +229,7 @@ export const DEFAULT_LIMITS: MutationLimits = {
   numbers: 3,
   magnitude: 0.25,
   structural: 0.3,
+  rename: 0.1,
   grid: 0.5,
   turn: PI / 12,
   massBudget: Infinity,
@@ -276,10 +279,13 @@ export function mutate(parent: Blueprint, rng: Rng, limits?: Partial<MutationLim
   // attempts the rare one lost. Measured on the shipped fleet, that put a
   // module added or removed into one generation in twenty-five, against the
   // three in ten asked for here.
+  // Drawn from a generator of its own, seeded from where the run's stands, so
+  // a name drifting never moves a draw the design depends on.
+  const naming = new Rng(rng.clone().nextUint32() ^ 0x4e414d45);
   let spent = 0;
   if (rng.chance(bounds.structural)) {
     const child = breed(parent, rng, bounds, true);
-    if (child !== null) return child;
+    if (child !== null) return renamed(child, naming, bounds.rename);
     // Nowhere to put anything and nothing that can be spared: a dense little
     // hull has generations where this is simply true. Breeding a child that
     // differs in its numbers beats handing back a copy of its parent.
@@ -287,7 +293,45 @@ export function mutate(parent: Blueprint, rng: Rng, limits?: Partial<MutationLim
   }
 
   const child = breed(parent, rng, bounds, false);
-  return child ?? { blueprint: parent, edits: [], attempts: spent + bounds.attempts };
+  return child === null ? { blueprint: parent, edits: [], attempts: spent + bounds.attempts } : renamed(child, naming, bounds.rename);
+}
+
+/** The longest a name drifts to. */
+const LONGEST_NAME = 24;
+const LETTERS = 'abcdefghijklmnopqrstuvwxyz';
+
+/**
+ * Sometimes change a letter of the child's name, add one or take one away.
+ *
+ * So a lineage names itself: two lines bred from the same founder drift apart
+ * in name as they do in build, and a design forty generations on reads as a
+ * relative of its founder rather than as the founder with a number on. Nothing
+ * reads a name but people, so this is the only draw a child can have that
+ * changes nothing about how it fights.
+ */
+function renamed(child: Mutant, rng: Rng, chance: number): Mutant {
+  if (!rng.chance(chance)) return child;
+  const was = child.blueprint.name;
+  const now = driftName(was, rng);
+  if (now === was) return child;
+  // Not an edit: the edits are what changed about the design, which they
+  // bound and which a run's weights choose between, and a name is neither.
+  return { ...child, blueprint: { ...child.blueprint, name: now } };
+}
+
+/** One letter changed, added or taken away, keeping the case of what it replaces. */
+export function driftName(name: string, rng: Rng): string {
+  const letter = (like: string | undefined): string => {
+    const drawn = LETTERS[rng.nextInt(LETTERS.length)]!;
+    return like !== undefined && like !== like.toLowerCase() ? drawn.toUpperCase() : drawn;
+  };
+  const at = rng.nextInt(max(1, name.length));
+  const op = rng.nextInt(3);
+  if (op === 0 && name.length < LONGEST_NAME) return name.slice(0, at + 1) + letter(undefined) + name.slice(at + 1);
+  if (op === 1 && name.length > 2 && name[at] !== ' ') return name.slice(0, at) + name.slice(at + 1);
+  const old = name[at];
+  if (old === undefined || !/[a-z]/i.test(old)) return name;
+  return name.slice(0, at) + letter(old) + name.slice(at + 1);
 }
 
 /** Draw candidates of one kind until one is a ship, or the budget runs out. */
@@ -383,9 +427,12 @@ function knobWeight(knob: Knob, { doctrine, build }: MutationLimits): number {
     case 'fragments':
     case 'burstSpeed':
     case 'weapon':
+    case 'main':
       return build.tuning;
     case 'fighter':
       return build.fighter;
+    case 'scale':
+      return build.resize;
   }
 }
 
@@ -546,6 +593,7 @@ function spreadDoctrine(doctrine: Doctrine): MutableDoctrine {
 type Knob =
   | { readonly at: 'doctrine'; readonly half: 'targeting' | 'approach'; readonly field: string }
   | { readonly at: 'fighter' }
+  | { readonly at: 'scale' }
   | { readonly at: 'reinforcement'; readonly site: ModuleSite }
   | { readonly at: 'kind'; readonly site: ModuleSite }
   | { readonly at: 'barrels'; readonly site: ModuleSite }
@@ -557,6 +605,7 @@ type Knob =
   | { readonly at: 'burstSpeed'; readonly site: ModuleSite }
   | { readonly at: 'gunnery'; readonly site: ModuleSite }
   | { readonly at: 'weapon'; readonly site: ModuleSite }
+  | { readonly at: 'main'; readonly site: ModuleSite }
   | { readonly at: 'thick'; readonly site: ModuleSite }
   | { readonly at: 'sealing'; readonly site: ModuleSite }
   | { readonly at: 'drainPriority'; readonly site: ModuleSite }
@@ -591,6 +640,7 @@ function knobs(draft: Draft): Knob[] {
   for (const field of APPROACH_FIELDS) out.push({ at: 'doctrine', half: 'approach', field });
   // Even while the layout rules it out: the flag is ignored until it does not.
   out.push({ at: 'fighter' });
+  out.push({ at: 'scale' });
 
   for (const list of draft.lists) {
     for (let i = 0; i < list.placements.length; i++) {
@@ -629,7 +679,7 @@ function knobs(draft: Draft): Knob[] {
         // How much arc a weapon is built for, which on a hull mount is mass
         // as well as coverage — a fixed gun carries no training gear, and
         // whether that trade is worth taking is exactly what a run is for.
-        out.push({ at: 'traverse', site }, { at: 'gunnery', site });
+        out.push({ at: 'traverse', site }, { at: 'gunnery', site }, { at: 'main', site });
       }
       // What a gun fires: shells or solid shot, and for shells how they burst.
       if (readsFuse(placement.kind)) out.push({ at: 'fragments', site });
@@ -641,6 +691,8 @@ function knobs(draft: Draft): Knob[] {
         // An engine's outlets are counted by the same field a gun's barrels
         // are, so a cluster is something a line can find.
         out.push({ at: 'weapon', site }, { at: 'barrels', site }, { at: 'nozzle', site });
+        // Main means nothing on an engine until it is a weapon.
+        if (placement.weapon === true) out.push({ at: 'main', site });
       }
     }
   }
@@ -685,6 +737,8 @@ function renumber(knob: Knob, draft: Draft, rng: Rng, bounds: MutationLimits): s
       return turnDoctrine(draft, knob.half, knob.field, rng, bounds);
     case 'fighter':
       return enlist(draft.blueprint);
+    case 'scale':
+      return rescale(draft, rng, bounds);
     case 'reinforcement':
       return reinforce(knob.site, rng, bounds);
     case 'kind':
@@ -707,6 +761,8 @@ function renumber(knob: Knob, draft: Draft, rng: Rng, bounds: MutationLimits): s
       return recharge(knob.site, rng, bounds);
     case 'weapon':
       return rearm(knob.site);
+    case 'main':
+      return promote(knob.site);
     case 'thick':
       return thicken(knob.site);
     case 'sealing':
@@ -802,6 +858,49 @@ function turnDoctrine(
   if (tidied === was) return null;
   held[field] = tidied;
   return `doctrine.${half}.${field} ${was} → ${tidied}`;
+}
+
+/** The most a whole ship is scaled by in one draw, as a share of `magnitude`. */
+const SCALE_SHARE = 0.4;
+
+/**
+ * Make the whole ship bigger or smaller: every module's size and position,
+ * every corner, and every placement of an assembly and the step between its
+ * copies, by one factor about the layout's origin.
+ *
+ * What resizing module by module cannot do in any number of generations
+ * without breaking the ship on the way: a hull whose parts are in proportion
+ * at one size can be tried at another in a single step, and the welds survive
+ * because contact scales with everything else. The scaling laws do not, so a
+ * bigger ship is not a magnified one — its walls, guns and engines are what
+ * their new sizes buy — and that is the question the draw asks.
+ */
+function rescale(draft: Draft, rng: Rng, bounds: MutationLimits): string | null {
+  const factor = tidy(1 + bounds.magnitude * SCALE_SHARE * rng.nextRange(-1, 1), 3);
+  if (factor === 1 || !(factor > 0)) return null;
+  const by = (value: number): number => tidy(value * factor, 4);
+  for (const list of draft.lists) {
+    for (const placement of list.placements) {
+      placement.x = by(placement.x);
+      placement.y = by(placement.y);
+      if (isInstance(placement)) {
+        if (placement.step !== undefined) placement.step = { ...placement.step, x: by(placement.step.x), y: by(placement.step.y) };
+        continue;
+      }
+      if (placement.vertices !== undefined) {
+        // A triangle's box is derived from its corners, and its corners kept
+        // centred on it, so it goes back through the shaping rather than being
+        // scaled field by field.
+        const shaped = shapeModule(placement, placement.vertices.map((v) => v * factor));
+        if (shaped === null) return null;
+        Object.assign(placement, shaped);
+        continue;
+      }
+      placement.length = by(placement.length);
+      placement.width = by(placement.width);
+    }
+  }
+  return `whole ship scaled by ${factor}`;
 }
 
 /** Make a ship a fighter, or an ordinary ship again. A flip, as `rearm` is. */
@@ -1027,6 +1126,16 @@ function rearm(site: ModuleSite): string {
   if (was) delete site.spec.weapon;
   else site.spec.weapon = true;
   return `${site.where} ${site.spec.kind}: ${was ? 'no longer' : 'now'} a weapon`;
+}
+
+/**
+ * Put a weapon in the main battery, or take it out: a flip, as `rearm` is.
+ */
+function promote(site: ModuleSite): string {
+  const was = site.spec.main !== false;
+  if (was) site.spec.main = false;
+  else delete site.spec.main;
+  return `${site.where} ${site.spec.kind}: ${was ? 'no longer' : 'now'} main`;
 }
 
 /**

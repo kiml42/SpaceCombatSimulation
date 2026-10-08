@@ -90,6 +90,8 @@
       .field input, .field select { flex: 0 0 5.5rem; }
       .field input { width: 5.5rem; min-width: 0; }
       .field input[type='checkbox'] { flex: 0 0 auto; }
+      .field.spread input { flex: 0 0 3.6rem; width: 3.6rem; }
+      .field.spread span { color: #7f93aa; }
       .buttons { display: flex; gap: 0.4rem; margin: 0.7rem 0; }
       .buttons button { flex: 1; padding-inline: 0.3rem; }
 
@@ -178,7 +180,14 @@
          colour too, so which is which reads without looking up. */
       #fleet thead th.part { vertical-align: bottom; line-height: 1.2; }
       #fleet td.part div { line-height: 1.5; }
-      #battleScores table { width: auto; margin: 0 0 0.4rem; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+      /* Over the battle rather than beside it, in a corner the camera keeps
+         clear, and out of the way of the pointer, which pans and zooms. */
+      #battleScores {
+        position: absolute; top: 0.5rem; left: 0.5rem; padding: 0.3rem 0.5rem;
+        background: #0b0f15cc; border-radius: 4px; pointer-events: none; font-size: 0.8rem;
+      }
+      #battleScores[hidden] { display: none; }
+      #battleScores table { width: auto; margin: 0; border-collapse: collapse; font-variant-numeric: tabular-nums; }
       #battleScores th, #battleScores td { padding: 0 0.6rem 0 0; text-align: right; font-weight: normal; }
       #battleScores th:first-child, #battleScores td:first-child { text-align: left; }
       #battleScores th { color: #7f93aa; }
@@ -307,10 +316,10 @@
           <details open data-key="thematch">
             <summary><h2>The match</h2></summary>
             <div class="field"><label for="duration">seconds</label><input id="duration" type="number" min="1" step="5" /></div>
-            <div class="field"><label for="radius">arena m</label><input id="radius" type="number" min="10" step="50" /></div>
+            <div class="field spread"><label for="radius">arena m</label><input id="radius" type="number" min="10" step="50" /><span>±</span><input id="radiusSpread" type="number" min="0" step="50" title="How far either side each match's arena is drawn, evenly. Zero holds it." /></div>
             <div class="field"><label for="scatter">scatter °</label><input id="scatter" type="number" min="0" max="180" step="15" /></div>
-            <div class="field"><label for="closing">closing m/s</label><input id="closing" type="number" step="5" title="Each entrant's starting speed towards the middle" /></div>
-            <div class="field"><label for="crossing">crossing m/s</label><input id="crossing" type="number" step="5" title="Each entrant's starting speed to its left, across the line to the middle" /></div>
+            <div class="field spread"><label for="closing">closing m/s</label><input id="closing" type="number" step="5" title="Each entrant's starting speed towards the middle" /><span>±</span><input id="closingSpread" type="number" min="0" step="5" title="How far either side each match's closing speed is drawn, evenly. Zero holds it." /></div>
+            <div class="field spread"><label for="crossing">crossing m/s</label><input id="crossing" type="number" step="5" title="Each entrant's starting speed to its left, across the line to the middle" /><span>±</span><input id="crossingSpread" type="number" min="0" step="5" title="How far either side each match's crossing speed is drawn, evenly. Zero holds it." /></div>
             <div class="field soloOnly"><label for="goal">goal</label><select id="goal" title="Solid blocks shots and can be run into; a ghost is only somewhere to be">
             <option value="solid">solid</option>
             <option value="ghost">ghost</option>
@@ -395,6 +404,7 @@
             <div class="field" title="Odds of taking out one of the fleet's ships or groups. The last one is never removed."><label for="opRemove">ship removed</label><input id="opRemove" type="number" min="0" step="0.5" /></div>
             <div class="field" title="Odds of giving one ship its own copy of a design it shares, so it can go on changing separately. The opposite of a merge."><label for="opFork">design forked</label><input id="opFork" type="number" min="0" step="0.5" /></div>
             <div class="field" title="Odds of building every ship of one design to another of the fleet's designs instead, dropping the first. The opposite of a fork."><label for="opMerge">designs merged</label><input id="opMerge" type="number" min="0" step="0.5" /></div>
+            <div class="field" title="Odds of building one of the fleet's own ships to another of its designs instead. Its own opposite."><label for="opSwap">ship swapped</label><input id="opSwap" type="number" min="0" step="0.5" /></div>
             <p class="note">Relative odds of each change to a fleet; hover one for what it does. A design being mutated uses the odds above.</p>
           </details>
           <details open data-key="doctrineMutations">
@@ -452,10 +462,10 @@
             </span>
             <span id="watching" class="grow"></span>
           </div>
-          <div id="battleScores" hidden title="What each side would score if the match ended as it stands"></div>
         </div>
         <div id="viewWrap">
           <canvas id="view" hidden></canvas>
+          <div id="battleScores" hidden title="What each side would score if the match ended as it stands"></div>
           <div id="fleet"></div>
         </div>
       </section>

@@ -19,12 +19,12 @@ import {
   triangleOf,
 } from '../sim/index.js';
 import { gridStep, type Camera } from './camera.js';
-import { NEUTRAL, shipColours } from './teams.js';
+import { NEUTRAL, shipColours, teamName } from './teams.js';
 
 export { teamColour } from './teams.js';
 import { beamAlpha, BEAM_GLOW_ALPHA, flooredFade, legibleWidth, plumeAlpha, tracerAlpha } from './strokes.js';
 import { flashExtent, flashFade, flashPosition, type Flashes } from './flashes.js';
-import { exposureEnds, flashSamples, shutterWeight } from './exposure.js';
+import { clipToStart, exposureEnds, flashSamples, shutterWeight } from './exposure.js';
 import { sprite } from './sprites.js';
 import { iconAlpha, ICON_OUTLINE, ICON_PX } from './icons.js';
 
@@ -946,6 +946,49 @@ function drawIcon(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
   ctx.restore();
 }
 
+/** Smallest a core is drawn, across, before its ship's name is written on it, pixels. */
+const NAME_MIN_CORE_PX = 18;
+/** The largest a name is written, and the smallest worth writing, pixels. */
+const NAME_MAX_PX = 14;
+const NAME_MIN_PX = 7;
+
+/**
+ * A ship's name — its side and which of that side's ships it is, as "Red 5" —
+ * written on its first working core in its side's trim, once the core is big
+ * enough on screen to carry it. Upright whichever way the ship is turned.
+ */
+function drawName(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number): void {
+  if (ship.serial <= 0 || ship.team < 0 || !ship.hasControl) return;
+  const core = ship.design.cores.find((m) => (ship.integrity[m] ?? 1) > 0);
+  if (core === undefined) return;
+  const module = ship.design.modules[core]!;
+  const across = Math.min(module.spec.length, module.spec.width) * metresToPx;
+  if (across < NAME_MIN_CORE_PX) return;
+  const c = Math.cos(ship.angle);
+  const s = Math.sin(ship.angle);
+  const at = ctx.getTransform().transformPoint({
+    x: ship.x + module.x * c - module.y * s,
+    y: ship.y + module.x * s + module.y * c,
+  });
+  const text = `${teamName(ship.team)} ${ship.serial}`;
+  const along = Math.max(module.spec.length, module.spec.width) * metresToPx;
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  let size = Math.min(NAME_MAX_PX, across * 0.4);
+  ctx.font = `${size}px ui-monospace, monospace`;
+  // No wider than the core is long, so it reads as written on the core.
+  const width = ctx.measureText(text).width;
+  if (width > along * 0.9) size *= (along * 0.9) / width;
+  if (size >= NAME_MIN_PX) {
+    ctx.font = `${size}px ui-monospace, monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = shipColours(ship.team).trim;
+    ctx.fillText(text, at.x, at.y);
+  }
+  ctx.restore();
+}
+
 /** Draw one snapshot. The canvas is cleared first; nothing persists between frames. */
 export function draw(
   ctx: CanvasRenderingContext2D,
@@ -957,6 +1000,8 @@ export function draw(
   arcs: Arcs = 'none',
   /** Rounds and beams in the colours of the side that fired them, rather than as light. */
   teamShots = false,
+  /** The body of a ship picked out by the viewer, or -1: marked, its target shown, and the arcs only its. */
+  selected = -1,
 ): void {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = BACKGROUND;
@@ -971,7 +1016,8 @@ export function draw(
   drawWells(ctx, snapshot, camera);
 
   for (let i = 0; i < snapshot.shipCount; i++) {
-    drawShip(ctx, snapshot.ships[i]!, camera.scale, arcs);
+    const ship = snapshot.ships[i]!;
+    drawShip(ctx, ship, camera.scale, selected < 0 || ship.body === selected ? arcs : 'none');
   }
 
   // Icons in a pass of their own, after every hull: an icon stands for the
@@ -979,12 +1025,55 @@ export function draw(
   // whichever of them happens to be drawn next.
   for (let i = 0; i < snapshot.shipCount; i++) {
     drawIcon(ctx, snapshot.ships[i]!, camera.scale);
+    drawName(ctx, snapshot.ships[i]!, camera.scale);
   }
 
+  if (selected >= 0) drawSelected(ctx, snapshot, selected, camera.scale);
   drawBurns(ctx, snapshot);
   drawProjectiles(ctx, snapshot, camera, teamShots);
   drawBeams(ctx, snapshot, camera, teamShots);
   if (flashes !== undefined) drawFlashes(ctx, snapshot, flashes, camera);
+}
+
+/** Pixels between the selected ship's hull circle and the ring drawn round it. */
+const SELECTED_GAP_PX = 6;
+
+/**
+ * The ship the viewer has picked out: a ring round it in its side's trim, and
+ * a broken line from it to whatever it is fighting, with a smaller ring there.
+ */
+function drawSelected(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: number, metresToPx: number): void {
+  const ship = shipByBody(snapshot, body);
+  if (ship === null) return;
+  const colour = (ship.hasControl ? shipColours(ship.team) : NEUTRAL).trim;
+  const gap = SELECTED_GAP_PX / metresToPx;
+  ctx.save();
+  ctx.strokeStyle = colour;
+  ctx.lineWidth = 1.5 / metresToPx;
+  ctx.beginPath();
+  ctx.arc(ship.x, ship.y, ship.design.radius + gap, 0, Math.PI * 2);
+  ctx.stroke();
+  const target = shipByBody(snapshot, ship.fighting ?? -1);
+  if (target !== null) {
+    const dx = target.x - ship.x;
+    const dy = target.y - ship.y;
+    const length = Math.sqrt(dx * dx + dy * dy);
+    const from = ship.design.radius + gap;
+    const to = length - target.design.radius - gap;
+    if (to > from) {
+      ctx.setLineDash([6 / metresToPx, 6 / metresToPx]);
+      ctx.beginPath();
+      ctx.moveTo(ship.x + (dx / length) * from, ship.y + (dy / length) * from);
+      ctx.lineTo(ship.x + (dx / length) * to, ship.y + (dy / length) * to);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    ctx.globalAlpha = 0.6;
+    ctx.beginPath();
+    ctx.arc(target.x, target.y, target.design.radius + gap, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 
 /** The ship a flash is riding, or null when nothing in the picture is it. */
@@ -1178,7 +1267,11 @@ function drawProjectiles(ctx: CanvasRenderingContext2D, snapshot: Snapshot, came
       const y = snapshot.projectileY[i]!;
       const vx = snapshot.projectileVx[i]!;
       const vy = snapshot.projectileVy[i]!;
-      const ends = exposureEnds(x, y, vx, vy, cvx, cvy, dt);
+      const sx = snapshot.projectileStartX[i];
+      const sy = snapshot.projectileStartY[i];
+      const open = exposureEnds(x, y, vx, vy, cvx, cvy, dt);
+      // The editor's demonstration fills only the rounds' own figures.
+      const ends = sx === undefined || sy === undefined ? open : clipToStart(open, sx, sy, vx, vy);
       const exposure = tracerAlpha(SHELL_CALIBRES * calibre, length(ends.x1 - ends.x0, ends.y1 - ends.y0));
       const width = glowPass
         ? legibleWidth(GLOW_CALIBRES * calibre, MIN_GLOW_PX, camera.scale) * exposure

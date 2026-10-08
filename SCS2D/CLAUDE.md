@@ -84,7 +84,7 @@ Keep these working — they are the cold-start re-entry path:
 - `npm run golden` — re-derive golden checksums after a *deliberate* behaviour change
 - `npm run evolve` — fight a headless evolution run and write it to `runs/`, rewritten after every generation; `--from <stock ships or blueprint files>`, `--fleet <stock fleet
   or fleet file>`, `--deploy <radius>`, `--ships <most>` (ship founders grow into fleets unless it is 1), `--generations`,
-  `--population`, `--group`, `--matches`, `--budget`, `--duration`, `--radius`, `--closing`, `--crossing`, `--seed`, `--kinds`, `--doctrine`, `--build`, `--structural`,
+  `--population`, `--group`, `--matches`, `--budget`, `--duration`, `--radius`, `--closing`, `--crossing` (each with a `-spread` either side, drawn per match), `--seed`, `--kinds`, `--doctrine`, `--build`, `--structural`,
   `--versus <stock ships or blueprint files>` and `--versus-fleet` for co-evolution, with `--hall`, `--hall-share`,
   `--versus-group` (side B's entrants a match, where not `--group`) and `--versus-fixed` (side B does not evolve),
   `--out`, and `--config` / `--save-config` for the settings file the evolution page reads and writes
