@@ -20,7 +20,9 @@
       "separationRadii": 1,
       "tolerance": 0.1,
       "approachSpeed": 200,
-      "brake": 0.9
+      "brake": 0.9,
+      "burnWeight": 0.6,
+      "rangeHold": 0.8
     }
   },
   "assemblies": {
@@ -32,7 +34,7 @@
           "y": 0.5000000000000001
         },
         {
-          "kind": "tank",
+          "kind": "structure",
           "x": 9.55,
           "y": 0.25,
           "length": 35,
@@ -41,8 +43,8 @@
         },
         {
           "use": "engine",
-          "x": -11.899999999999999,
-          "y": -8.326672684688674e-17
+          "x": -10.45,
+          "y": 9.430705902947948e-17
         }
       ]
     },
@@ -104,20 +106,18 @@
     },
     {
       "use": "assembly",
-      "x": 16.05,
-      "y": 0
+      "x": -15.95,
+      "y": 0,
+      "angle": -180
     },
     {
-      "kind": "engine",
-      "x": -0.7,
+      "kind": "tank",
+      "x": 3.8,
       "y": 0,
-      "angle": 180,
-      "length": 6.5,
+      "length": 6,
       "width": 8,
-      "nozzle": 0.5,
-      "weapon": true,
-      "main": false,
-      "thick": true
+      "reinforcement": 3,
+      "sealing": 0.0005
     }
   ]
 }
