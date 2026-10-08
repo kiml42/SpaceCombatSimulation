@@ -54,7 +54,6 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - We need a mechanism to let ships know what the goal is. This could be something like a "go close to that" order being given to all ships when the race goal is present. (At the moment we lean on the escort doctrine, but that just makes evolving a second ship mean they bunch up with each other instead of going for the goal)
 
 ## Fleet Editor
-- Allow grouping ships.
 - Make duplicate consistent with the ship editor (which creates a one module subassembly)
 
 ## Battle UI
