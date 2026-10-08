@@ -569,7 +569,8 @@ inside any one file is not contiguous.
   per-side setting written once as a row with A's box and B's beside it. Picking side B's founders makes a
   run co-evolve, and side B's boxes follow side A's until one of them is changed; unticking "side B evolves"
   makes side B its founders every generation, a fixed opponent to be bred against. The score chart goes (every score there is against a side that is improving too), the
-  mass and ship-count charts carry a pair of lines a side and are what a generation is picked from, and the
+  size chart — mass on its left scale and, for fleets, ship count on its right, the mean solid and the best
+  dashed — carries its lines in each side's colours and is what a generation is picked from, and the
   combatants are tagged A or B and ranked within their own side.
   **Fuel.** A `tank` archetype whose interior is reaction mass, and every core's interior past the cubic
   metre its computing needs (`CORE_COMPUTING_VOLUME`), so a bare core with one engine can move; a core no

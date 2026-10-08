@@ -15,12 +15,19 @@ export interface Series {
   readonly values: readonly number[];
   /** Drawn as a broken line, for a series that is a comparison rather than a result. */
   readonly dashed?: boolean;
+  /**
+   * Read against a scale of its own down the right-hand side, for a second
+   * quantity sharing the chart. Its gridlines are the left scale's, relabelled.
+   */
+  readonly right?: boolean;
 }
 
 const BACKGROUND = '#0d1219';
 const AXIS = '#243044';
 const LABEL = '#7f93aa';
 const PADDING = { left: 46, right: 8, top: 8, bottom: 18 };
+/** Room for a right-hand scale's labels, where there is one. */
+const RIGHT_SCALE = 40;
 
 /** A round number near `rough`, so gridlines land on values worth reading. */
 function nice(rough: number): number {
@@ -106,18 +113,30 @@ export function drawChart(
   let count = 0;
   let low = Infinity;
   let high = -Infinity;
+  let rightLow = Infinity;
+  let rightHigh = -Infinity;
   for (const line of series) {
     count = Math.max(count, line.values.length);
     for (const value of line.values) {
       if (!Number.isFinite(value)) continue;
-      low = Math.min(low, value);
-      high = Math.max(high, value);
+      if (line.right === true) {
+        rightLow = Math.min(rightLow, value);
+        rightHigh = Math.max(rightHigh, value);
+      } else {
+        low = Math.min(low, value);
+        high = Math.max(high, value);
+      }
     }
+  }
+  const hasRight = series.some((line) => line.right === true);
+  if (!Number.isFinite(low)) {
+    low = 0;
+    high = 0;
   }
   const plot = {
     x: PADDING.left,
     y: PADDING.top,
-    width: Math.max(1, width - PADDING.left - PADDING.right),
+    width: Math.max(1, width - PADDING.left - PADDING.right - (hasRight ? RIGHT_SCALE : 0)),
     height: Math.max(1, height - PADDING.top - PADDING.bottom),
   };
 
@@ -138,11 +157,21 @@ export function drawChart(
   const step = nice((high - low) / 4);
   low = Math.floor(low / step) * step;
   high = Math.ceil(high / step) * step;
+  // The right scale over the same gridlines, starting from zero as the left
+  // does, with a round step of its own.
+  const rows = Math.max(1, Math.round((high - low) / step));
+  const rightBottom = Math.min(0, Number.isFinite(rightLow) ? rightLow : 0);
+  const rightStep = nice((Math.max(rightHigh, rightBottom + 1e-6) - rightBottom) / rows);
+  const rightFloor = Math.floor(rightBottom / rightStep) * rightStep;
+  const rightTop = rightFloor + rows * rightStep;
 
   const atX = (i: number): number =>
     plot.x + (count > 1 ? (i / (count - 1)) * plot.width : plot.width / 2);
-  const atY = (value: number): number =>
+  const atLeft = (value: number): number =>
     plot.y + plot.height - ((value - low) / (high - low)) * plot.height;
+  const atRight = (value: number): number =>
+    plot.y + plot.height - ((value - rightFloor) / (rightTop - rightFloor)) * plot.height;
+  const atY = atLeft;
 
   ctx.textAlign = 'right';
   ctx.textBaseline = 'middle';
@@ -155,7 +184,15 @@ export function drawChart(
     ctx.lineTo(plot.x + plot.width, y);
     ctx.stroke();
     ctx.fillStyle = LABEL;
-    ctx.fillText(value.toFixed(2), plot.x - 6, y);
+    // Whole numbers once the step is, so a scale in thousands still fits its margin.
+    ctx.fillText(value.toFixed(step >= 10 ? 0 : 2), plot.x - 6, y);
+  }
+  if (hasRight) {
+    ctx.textAlign = 'left';
+    for (let k = 0; k <= rows; k++) {
+      const value = rightFloor + k * rightStep;
+      ctx.fillText(Number(value.toFixed(6)).toString(), plot.x + plot.width + 6, Math.round(atRight(value)) + 0.5);
+    }
   }
 
   ctx.textAlign = 'center';
@@ -181,6 +218,7 @@ export function drawChart(
   ctx.lineWidth = 1.5;
   ctx.lineJoin = 'round';
   for (const line of series) {
+    const atY = line.right === true ? atRight : atLeft;
     ctx.strokeStyle = line.colour;
     ctx.setLineDash(line.dashed === true ? [3, 3] : []);
     ctx.beginPath();
@@ -207,7 +245,7 @@ export function drawChart(
       if (value === undefined || !Number.isFinite(value)) continue;
       ctx.fillStyle = line.colour;
       ctx.beginPath();
-      ctx.arc(atX(marks.hover), atY(value), 2.5, 0, Math.PI * 2);
+      ctx.arc(atX(marks.hover), (line.right === true ? atRight : atLeft)(value), 2.5, 0, Math.PI * 2);
       ctx.fill();
     }
   }
