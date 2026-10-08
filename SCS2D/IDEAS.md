@@ -18,6 +18,7 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Ships should be able to point in the direction they want to accelerate, instead of just facing the target (there should be a doctrine weighting to balance between aiming the attack orientation at the enemy, and turning to make use of the main engines to accelerate)
 - Consider width and length as interchangeable for calculating turret stats. They should be based on teh size of the turret on top (based on the smaller dimension) and the area within the volume of the box underneath.
 - Only the dome of turrets should be in the turret layer, the box should be wholly in the hull layer.
+- Beams from thick hull beams could be treated as a separate beam in each layer. Damage against a thick module stays the same, but is halved against a hull layer module or fighter, with the other half continuing, able to hit something else.
 
 ## Editor
 - Test button - switches to the game view, with the ship loaded into a default scene with one other stock ship, each given basic orders to attack each other.
