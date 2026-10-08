@@ -123,7 +123,8 @@ export type KindWeights = Readonly<Record<ModuleKind, number>>;
 
 /**
  * - `targeting`: what the ship goes after.
- * - `approach`: the range it fights at, how hard it flies there, and ramming.
+ * - `approach`: the range it fights at, how hard it flies there, ramming and
+ *   refuelling.
  * - `escort`: whether it covers friends, and how closely.
  * - `avoidance`: how far it keeps out of everybody's way.
  * - `gunnery`: each weapon's own target preferences.
@@ -215,8 +216,9 @@ export const DEFAULT_KINDS: KindWeights = {
   hullGun: 2,
   hullBeam: 1,
   core: 1,
-  // Never, until a pilot knows what to do with one (ROADMAP.md §8 step 9).
-  claw: 0,
+  // Rare: worth anything only to a doctrine that goes after wrecks, which a
+  // lineage has to find as well.
+  claw: 1,
 };
 
 /**

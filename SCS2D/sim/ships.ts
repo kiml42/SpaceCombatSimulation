@@ -339,6 +339,9 @@ export const CLAW_RETRY = 1;
 /** Share of a gripped module's capacity the jaws take as they close. */
 export const CLAW_BITE = 0.1;
 
+/** The closing speed a pilot brings its claw in at, m/s: the middle of its band. */
+const CLAW_APPROACH = (CLAW_SPEED_LOW + CLAW_SPEED_HIGH) / 2;
+
 /**
  * The chance a claw closing at `closing` takes a module left at `integrity`:
  * best within its band, falling off either side of it, and likelier the more
@@ -444,6 +447,11 @@ export interface Order {
    * drops into the hull layer to do it.
    */
   ram: boolean;
+  /**
+   * Fly the claw into the target, arriving inside its band of closing speed,
+   * to drink from it. Its doctrine's to give, never an order's.
+   */
+  grapple: boolean;
 }
 
 /**
@@ -722,6 +730,16 @@ export class Ships {
   private readonly chosen: number[] = [];
   /** The ship its doctrine has committed it to ramming, or `NO_TARGET`. Kept until that ship is out of the fight. */
   private readonly ramming: number[] = [];
+  /** What each ship has broken off to drink from with its claw, or `NO_TARGET`. */
+  private readonly salvaging: number[] = [];
+  /** The tick each ship next reconsiders whether, and where, to refuel. */
+  private readonly forageAt: number[] = [];
+  /** Whether each ship is refuelling: from running low until its claw's piece is full. */
+  private readonly refuelling: number[] = [];
+  /** The world tick `command` is flying. */
+  private now = 0;
+  /** The tick each ship last touched what it means to drink from without holding it. */
+  private readonly touchedSource: number[] = [];
   /**
    * What each ship is covering, which is never what it is fighting: a consort
    * is by definition something it will not shoot at. Chosen on the same
@@ -1113,6 +1131,10 @@ export class Ships {
     this.clawTried.push(-Infinity);
     this.chosen.push(NO_TARGET);
     this.ramming.push(NO_TARGET);
+    this.salvaging.push(NO_TARGET);
+    this.forageAt.push(i);
+    this.refuelling.push(0);
+    this.touchedSource.push(-Infinity);
     this.consort.push(NO_TARGET);
     // Staggered by index, so a fleet spawned together does not all stop to
     // think on the same step for the rest of the battle.
@@ -1124,6 +1146,7 @@ export class Ships {
       approachSpeed: 0,
       cancelOn: OrderCancelCondition.CompleteDisable,
       ram: false,
+      grapple: false,
     });
     this.orders.push([]); // Initialise to an empty array of orders for this ship
     this.demandFx.push(0);
@@ -1153,6 +1176,7 @@ export class Ships {
       this.chosen[i] = NO_TARGET;
       this.consort[i] = NO_TARGET;
       this.ramming[i] = NO_TARGET;
+      this.salvaging[i] = NO_TARGET;
       return;
     }
     // A ram, once decided, is seen through: no second look at the target, and
@@ -1687,7 +1711,7 @@ export class Ships {
     const b = bodies.indexOf(this.bodyIds[i]!);
     if (b < 0) return;
     const order = this.effectiveOrder(i);
-    const ramming = order !== undefined && order.target !== NO_TARGET && order.ram;
+    const ramming = order !== undefined && order.target !== NO_TARGET && (order.ram || order.grapple);
     const want = ramming ? 1 : 0;
     if (want === this.committed[i] || !this.clearOfHulls(bodies, b)) return;
     this.committed[i] = want;
@@ -1897,14 +1921,26 @@ export class Ships {
     const given = this.getCurrentOrder(i);
     if (given !== undefined) return given;
 
+    const design = this.designs[i]!;
+    const approach = design.doctrine.approach;
+    const standing = this.standing[i]!;
+    const source = this.salvaging[i]!;
+    if (source !== NO_TARGET && this.alive[source] === 1) {
+      standing.target = source;
+      standing.minRange = 0;
+      standing.maxRange = 0;
+      standing.ram = false;
+      standing.grapple = true;
+      standing.approachSpeed = approach.approachSpeed;
+      return standing;
+    }
+    standing.grapple = false;
+
     const target = this.chosen[i]!;
     if (target === NO_TARGET || this.alive[target] !== 1 || !this.hasControl(target)) {
       return undefined;
     }
 
-    const design = this.designs[i]!;
-    const approach = design.doctrine.approach;
-    const standing = this.standing[i]!;
     standing.target = target;
 
     // **Close until the target looks big enough to hit.** A gun misses
@@ -1946,13 +1982,14 @@ export class Ships {
       approachSpeed: approachSpeed,
       cancelOn: cancelOn,
       ram: false,
+      grapple: false,
     };
     this.orders[i]!.push(order);
   }
 
   /** Add an order to ram `target`, closing at `approachSpeed`, to the end of this ship's queue. */
   pushRam(i: number, target: number, approachSpeed: number, cancelOn: OrderCancelCondition = OrderCancelCondition.CompleteDisable): void {
-    this.orders[i]!.push({ target, minRange: 0, maxRange: 0, approachSpeed, cancelOn, ram: true });
+    this.orders[i]!.push({ target, minRange: 0, maxRange: 0, approachSpeed, cancelOn, ram: true, grapple: false });
   }
 
   /** Drop every order this ship has. It holds its heading and its fire. */
@@ -1994,6 +2031,7 @@ export class Ships {
   command(dt: number, world: World, grid?: SpatialGrid): void {
     const bodies = world.bodies;
     this.bodyStore = bodies;
+    this.now = world.tick;
 
     for (let i = 0; i < this.alive.length; i++) {
       if (this.alive[i] === 0) continue;
@@ -2007,6 +2045,7 @@ export class Ships {
       }
       this.removeInvalidOrders(i);
       this.decide(world, bodies, i);
+      this.forage(world, bodies, i);
       this.decideTurrets(world, bodies, i);
       this.flyOne(dt, bodies, i, grid);
       this.commitOne(bodies, i);
@@ -2379,8 +2418,21 @@ export class Ships {
     const target = order?.target ?? NO_TARGET;
     if (order !== undefined && target !== NO_TARGET && this.alive[target] === 1) {
       const tb = bodies.indexOf(this.bodyIds[target]!);
-      // Hooked on to it: nowhere to steer for.
-      if (tb >= 0 && tb !== b) {
+      // Holding it in its claw: nothing to fly for while it drinks.
+      if (order.grapple && tb === b) {
+        this.idle(i);
+        return;
+      }
+      const claw = order.grapple ? this.workingClaw(i, b) : -1;
+      if (order.grapple && claw < 0) {
+        this.salvaging[i] = NO_TARGET;
+      } else if (claw >= 0 && tb >= 0) {
+        // The jaws, not the bow, are what point at it.
+        const jaws = this.designs[i]!.modules[claw]!.spec.angle ?? 0;
+        wantAngle = atan2(bodies.y[tb]! - bodies.y[b]!, bodies.x[tb]! - bodies.x[b]!) - jaws;
+        this.grapple(bodies, i, b, tb, claw, wantAngle, this.now - this.touchedSource[i]! < CLAW_RETRY / dt);
+      } else if (tb >= 0 && tb !== b) {
+        // Not hooked on to it, which would leave nowhere to steer for.
         wantAngle = atan2(bodies.y[tb]! - bodies.y[b]!, bodies.x[tb]! - bodies.x[b]!);
         if (!order.ram) {
           wantAngle = this.attackHeading(i, b, tb, bodies, wantAngle);
@@ -2392,8 +2444,9 @@ export class Ships {
       }
     }
 
-    // A ram overrides the rest of the doctrine: no cover, no keeping clear.
-    if (order === undefined || !order.ram) {
+    // A ram overrides the rest of the doctrine: no cover, no keeping clear;
+    // and so does closing on a source, which means touching it.
+    if (order === undefined || !(order.ram || order.grapple)) {
       const covering = this.cover(bodies, i, b);
       if (target === NO_TARGET && covering >= 0) {
         const cb = bodies.indexOf(this.bodyIds[covering]!);
@@ -3291,13 +3344,17 @@ export class Ships {
     let joined = null as Set<number> | null;
     const settled = world.tick - WELD_SETTLE / world.dt;
     for (let k = 0; k < contacts.count; k++) {
-      // Pressed together, slowly: touching or drifting apart hooks nothing.
-      const closing = contacts.closing[k]!;
-      if (!(closing > 0) || closing > CLAW_SPEED_MAX) continue;
       const a = contacts.a[k]!;
       const b = contacts.b[k]!;
       const i = this.shipAt(bodies, a);
       const j = this.shipAt(bodies, b);
+      // A pilot pressed against its source has to stand off and come again,
+      // since leaning on it closes at nothing.
+      if (i >= 0 && j >= 0 && this.salvaging[i] === j) this.touchedSource[i] = world.tick;
+      if (i >= 0 && j >= 0 && this.salvaging[j] === i) this.touchedSource[j] = world.tick;
+      // Pressed together, slowly: touching or drifting apart hooks nothing.
+      const closing = contacts.closing[k]!;
+      if (!(closing > 0) || closing > CLAW_SPEED_MAX) continue;
       if (i < 0 || j < 0 || joined?.has(i) === true || joined?.has(j) === true) continue;
       if (this.partedAt[i]! > settled || this.partedAt[j]! > settled) continue;
       if (this.damage.isProtected(a) || this.damage.isProtected(b)) continue;
@@ -3333,8 +3390,8 @@ export class Ships {
    * battle's generator anything; a miss leaves the claw's ship waiting
    * `CLAW_RETRY`. Taking bites the module it closes on.
    *
-   * A claw goes for wrecks and enemies, never a friend, and only for fuel it
-   * has room for.
+   * A claw goes for wrecks and enemies, never a friend still under control,
+   * and only for fuel it has room for.
    */
   private grips(world: World, b: number, m: number, o: number, mo: number, nx: number, ny: number, closing: number): boolean {
     const design = this.hullDesign[b];
@@ -3348,7 +3405,7 @@ export class Ships {
     const holder = this.pilotAt(b, m);
     const held = this.pilotAt(o, mo);
     if (holder < 0 || held < 0 || holder === held) return false;
-    if (this.derelict[held] === 0 && !this.hostile(holder, held)) return false;
+    if (!this.drinkable(holder, held)) return false;
     if (!(this.fuel.pieceRoom(b, m) > 0) || !(this.fuel.pieceHeld(o, mo) > 0)) return false;
     if (world.tick - this.clawTried[holder]! < CLAW_RETRY / world.dt) return false;
     this.clawTried[holder] = world.tick;
@@ -4328,6 +4385,152 @@ export class Ships {
   }
 
   /** With no working core, every engine cuts out and every turret brakes to a stop. */
+  /**
+   * Break off for fuel, or go back to the fight.
+   *
+   * A ship with a working claw goes looking once its claw's piece of hull is
+   * down to its doctrine's `refuelBelow` of a full load, and keeps at it,
+   * source after source, until it is full; then the fight has it back. Where
+   * to drink is reconsidered as often as a fight would be, and sooner when the
+   * source is gone or dry.
+   */
+  private forage(world: World, bodies: Bodies, i: number): void {
+    const b = bodies.indexOf(this.bodyIds[i]!);
+    const approach = this.designs[i]!.doctrine.approach;
+    // An order given outranks it, as it outranks the rest of doctrine.
+    const claw = b >= 0 && approach.refuelBelow > 0 && this.orders[i]!.length === 0 ? this.workingClaw(i, b) : -1;
+    if (claw < 0) {
+      this.salvaging[i] = NO_TARGET;
+      this.refuelling[i] = 0;
+      return;
+    }
+    const own = this.fuel.pieceHeld(b, claw);
+    const room = this.fuel.pieceRoom(b, claw);
+    const full = own + room;
+    const hungry = full > 0 && room > 0 && (own <= approach.refuelBelow * full || this.refuelling[i] === 1);
+    this.refuelling[i] = hungry ? 1 : 0;
+    if (!hungry) {
+      this.salvaging[i] = NO_TARGET;
+      return;
+    }
+    const held = this.salvaging[i]!;
+    if (held !== NO_TARGET) {
+      const hb = this.alive[held] === 1 ? bodies.indexOf(this.bodyIds[held]!) : -1;
+      // Drinking: its claw lets go when it is done.
+      if (hb === b) return;
+      // Gone, dry, or in somebody else's claw: look again now rather than at
+      // the next rethink.
+      if (hb < 0 || this.shipByBody[hb] !== held || !(this.fuel.left(hb) > 0)) {
+        this.salvaging[i] = NO_TARGET;
+        this.forageAt[i] = world.tick;
+      }
+    }
+    if (world.tick < this.forageAt[i]!) return;
+    this.forageAt[i] = world.tick + this.rethinkTicks(world, this.designs[i]!.mass);
+    this.salvaging[i] = this.pickSource(bodies, i, b, claw, room);
+  }
+
+  /**
+   * The best thing to drink from: a wreck, or an enemy with no main guns left,
+   * scored by what it would gain for the time spent — getting there and
+   * pumping — and put off by armed enemies near it.
+   */
+  private pickSource(bodies: Bodies, i: number, b: number, claw: number, room: number): number {
+    const design = this.designs[i]!;
+    const approach = design.doctrine.approach;
+    const pump = design.modules[claw]!.stats.pumpRate;
+    if (!(pump > 0) || !(approach.approachSpeed > 0)) return NO_TARGET;
+    let best = NO_TARGET;
+    let bestScore = 0;
+    for (let t = 0; t < this.alive.length; t++) {
+      if (t === i || this.alive[t] === 0) continue;
+      // What a claw will close on, and of the enemies only those that cannot shoot back.
+      if (!this.drinkable(i, t) || (this.hasControl(t) && !this.isDisarmed(t))) continue;
+      const tb = bodies.indexOf(this.bodyIds[t]!);
+      // A body is offered once, by the ship it is.
+      if (tb < 0 || tb === b || this.shipByBody[tb] !== t) continue;
+      const fuel = this.fuel.left(tb);
+      if (!(fuel > 0)) continue;
+      const take = fuel < room ? fuel : room;
+      const gap = max(0, length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!) - bodies.radius[tb]!);
+      const time = gap / approach.approachSpeed + take / pump;
+      let danger = 0;
+      if (approach.refuelDanger > 0) {
+        for (let e = 0; e < this.alive.length; e++) {
+          if (this.alive[e] === 0 || this.derelict[e] === 1 || !this.hostile(i, e) || this.isDisarmed(e)) continue;
+          const eb = bodies.indexOf(this.bodyIds[e]!);
+          if (eb < 0 || eb === tb) continue;
+          const reach = this.designs[e]!.reach + bodies.radius[tb]!;
+          if (length(bodies.x[eb]! - bodies.x[tb]!, bodies.y[eb]! - bodies.y[tb]!) <= reach) danger++;
+        }
+      }
+      const score = take / time / (1 + max(0, approach.refuelDanger) * danger);
+      if (score > bestScore) {
+        best = t;
+        bestScore = score;
+      }
+    }
+    return best;
+  }
+
+  /** Whether ship `i`'s claw will close on ship `t`: a wreck of either side, or an enemy. */
+  private drinkable(i: number, t: number): boolean {
+    return this.derelict[t] === 1 || this.hostile(i, t) || !this.hasControl(t);
+  }
+
+  /** The first claw this ship works that can still close, or -1. */
+  private workingClaw(i: number, b: number): number {
+    const design = this.designs[i]!;
+    for (let m = 0; m < design.modules.length; m++) {
+      if (design.modules[m]!.spec.kind === 'claw' && this.left(i, b, m, DamageEffect.Grip) > 0) return m;
+    }
+    return -1;
+  }
+
+  /**
+   * Close on a source jaws first: down a stopping curve onto its edge that
+   * stops not at nothing but at `CLAW_APPROACH`, so the claw arrives inside
+   * its band. `facing` is the heading it holds to point the claw. `standOff`
+   * backs it away instead, for another run at it.
+   */
+  private grapple(bodies: Bodies, i: number, b: number, tb: number, claw: number, facing: number, standOff: boolean): void {
+    const dx = bodies.x[tb]! - bodies.x[b]!;
+    const dy = bodies.y[tb]! - bodies.y[b]!;
+    const range = length(dx, dy);
+    let vx = bodies.vx[tb]!;
+    let vy = bodies.vy[tb]!;
+    if (range > 0) {
+      const ux = dx / range;
+      const uy = dy / range;
+      const design = this.designs[i]!;
+      const module = design.modules[claw]!;
+      const turned = module.spec.angle ?? 0;
+      // How far ahead of the centre of mass its jaws reach.
+      const jaws = module.x * cos(turned) + module.y * sin(turned) + module.spec.length / 2;
+      const gap = max(0, range - bodies.radius[tb]! - jaws);
+      const approach = design.doctrine.approach;
+      // Planned on what it really has astern with its jaws held on, with no
+      // floor: a claw has to arrive slowly, so a craft that cannot brake
+      // facing its source comes in no faster than it can stop.
+      const retro = this.accelerationAlong(bodies, i, b, -ux, -uy, facing);
+      const stopping = stoppingSpeed(approach.brake * retro, gap, approach.responseTime);
+      const radial = standOff ? -CLAW_APPROACH : min(approach.approachSpeed, sqrt(stopping * stopping + CLAW_APPROACH * CLAW_APPROACH));
+      vx += ux * radial;
+      vy += uy * radial;
+    }
+    this.urge(URGE_REFERENCE, vx, vy);
+  }
+
+  /** Engines off and nothing asked of them, while what it is holding is pumped aboard. */
+  private idle(i: number): void {
+    this.throttles[i]!.fill(0);
+    this.demandFx[i] = 0;
+    this.demandFy[i] = 0;
+    this.demandTorque[i] = 0;
+    this.brakingOnMains[i] = 0;
+    this.burning[i] = 0;
+  }
+
   private failSafe(i: number): void {
     const turrets = this.turretIndex[i]!;
     for (let t = 0; t < turrets.length; t++) this.turrets.stop(turrets[t]!);

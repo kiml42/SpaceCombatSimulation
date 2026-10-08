@@ -320,6 +320,19 @@ export interface Approach {
    * already fighting.
    */
   readonly rangeHold: number;
+  /**
+   * The share of a full load at or below which a ship with a working claw
+   * breaks off to drink from a wreck or a disarmed enemy, and keeps at it
+   * until its claw lets go full. Zero never does; one goes whenever it has
+   * room.
+   */
+  readonly refuelBelow: number;
+  /**
+   * How much an armed enemy near a source puts it off: each one within its
+   * own reach of the source divides what the source is worth by one more of
+   * this. Zero or less ignores them.
+   */
+  readonly refuelDanger: number;
 }
 
 /**
@@ -395,6 +408,8 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     turnBias: 0.5,
     burnWeight: 2,
     rangeHold: 1,
+    refuelBelow: 0,
+    refuelDanger: 1,
   },
 };
 
@@ -581,6 +596,8 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
   'turnBias',
   'burnWeight',
   'rangeHold',
+  'refuelBelow',
+  'refuelDanger',
 ];
 
 /**

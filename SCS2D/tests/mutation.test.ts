@@ -431,6 +431,8 @@ describe('mutation', () => {
     for (let i = 0; i < 400; i++) {
       const child = mutate(held, rng, {
         structural: 1,
+        // Refits weighted up, since at the default a few hundred draws see none at all on some seeds.
+        build: { ...DEFAULT_BUILD_WEIGHTS, refit: 10 },
         kinds: { engine: 1, structure: 0, tank: 0, turret: 0, beamTurret: 0, hullGun: 0, hullBeam: 0, core: 0, claw: 0 },
       });
       held = child.blueprint;

@@ -603,15 +603,23 @@ inside any one file is not contiguous.
   and put into the receiver's lowest drain priority first, the hull's mass unchanged and its inertia following
   the fuel. **A claw** (`claw`) is a box with jaws on its bow face and a pump behind them, pumping
   `CLAW_PUMP_PER_METRE` for every metre of its width. It closes on whatever its bow meets within 45° — a
-  wreck's or an enemy's module, sound or torn, never a friend's — at a closing speed up to `CLAW_SPEED_MAX`
+  wreck's or an enemy's module, sound or torn, never a friend still under control — at a closing speed up to `CLAW_SPEED_MAX`
   (8 m/s), by chance: certain on a spent module, `CLAW_GRIP_CHANCE` on a sound one, best between
   `CLAW_SPEED_LOW` and `CLAW_SPEED_HIGH` (1 and 4 m/s) and falling off either side (`clawChance`). A miss waits
   `CLAW_RETRY`. Closing takes `CLAW_BITE` of the module's capacity, and the two become one body joined by a
   seam across the claw's whole jaw that holds `DOCK_HOLD` times a hook's. While the claw works it pumps
   what the other piece holds into its own (`Ships.pump`), and once its piece is full or the other dry it lets
   go, cutting the seam. Gripping a live enemy makes the two ride one body, pulling against each other. A
-  claw grips only for fuel it has room for. Nothing flies one yet, so evolution's weight for it is zero;
-  the `salvage` scenario drifts two leeches into wrecks.
+  claw grips only for fuel it has room for. The `salvage` scenario drifts two leeches into wrecks.
+  **A pilot takes its claw to wrecks** once its claw's piece of hull is down to its doctrine's
+  `refuelBelow` of a full load (zero, never, by default), and goes from source to source until it is full.
+  It picks the wreck, or the enemy with no main guns left, that pays the most fuel for the time it takes to
+  reach and drain, divided by one more `refuelDanger` for every armed enemy within reach of it. It points
+  its claw at the source and comes in down a stopping curve that ends not at rest but at the middle of the
+  claw's band, planned on the thrust it actually has astern; touching without taking hold, it backs off for
+  `CLAW_RETRY` and comes again. Holding, it idles. An order outranks it, and a fighter closing on a source
+  commits as it does to ram. The stock **Scavenger** is built for it, and `scavenge` has two of them drain
+  three wrecks; evolution draws claws at a weight of one.
 - **Next:** the rest of §8 step 8 — leaks, and pilots that know their fuel — and of step 5: a materials
   budget, and designed scenarios.
   See ROADMAP.md §8.
