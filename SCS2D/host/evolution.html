@@ -265,6 +265,9 @@
       tbody tr { cursor: pointer; }
       tbody tr:hover td { background: #16202e; }
       .note { color: #5d6f85; margin: 0.3rem 0 0; }
+      .grid { border-collapse: collapse; margin-top: 0.4rem; font-size: 0.75rem; }
+      .grid th, .grid td { padding: 0.1rem 0.3rem; text-align: center; }
+      .grid td { border: 1px solid #1c2633; }
       .warn { color: #e6a45b; }
       [hidden] { display: none !important; }
       body:not(.fleetRun) .fleetOnly { display: none; }
@@ -520,6 +523,7 @@
             seeds — the one number here that means the same thing in generation one and generation four
             hundred. Fought afterwards and never during, or a run would learn to beat that one opponent.
           </p>
+          <table id="grid" class="grid" hidden></table>
         </details>
       </aside>
     </main>

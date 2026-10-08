@@ -286,6 +286,37 @@ describe('the viewer in a browser', () => {
     await page.dispatchEvent('#speed', 'input');
   });
 
+  it('copies a link that opens the same battle, paused at its start', async () => {
+    await page.fill('#battleSeed', '4321');
+    await page.dispatchEvent('#battleSeed', 'input');
+    // The clipboard is stood in for, so the test reads what would have been copied.
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, 'clipboard', {
+        value: { writeText: (text: string) => ((window as unknown as { copied: string }).copied = text, Promise.resolve()) },
+        configurable: true,
+      });
+    });
+    await page.click('#linkBattle');
+    await page.waitForFunction(() => typeof (window as unknown as { copied?: string }).copied === 'string');
+    const href = await page.evaluate(() => (window as unknown as { copied: string }).copied);
+    expect(href).toMatch(/index\.html#battle=[\w-]+$/);
+
+    const opened = await browser.newPage({ viewport: { width: 1000, height: 620 } });
+    const errors: string[] = [];
+    opened.on('pageerror', (error) => errors.push(error.message));
+    await opened.goto(href);
+    await opened.waitForFunction(() => document.querySelectorAll('#fleetSlots .slot').length === 2);
+    expect(await opened.isVisible('#custom')).toBe(true);
+    expect(await opened.locator('#fleetSlots select').nth(1).locator('option:checked').textContent()).toBe('Lone (link)');
+    expect(await opened.inputValue('#battleSeed')).toBe('4321');
+    expect(await opened.inputValue('#battleRange')).toBe('1000');
+    expect(await opened.textContent('#play')).toBe('Play');
+    // The address is tidied, so a reload is the viewer and not the battle again.
+    expect(new URL(opened.url()).hash).toBe('');
+    expect(errors).toEqual([]);
+    await opened.close();
+  });
+
   it('reports no errors after all of that', () => {
     expect(problems).toEqual([]);
   });
