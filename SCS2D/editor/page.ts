@@ -990,6 +990,8 @@ export function startEditor(): void {
       reach: design.reach,
       accelFore: stats.accelFore,
       accelAft: stats.accelAft,
+      brakeHolding: stats.brakeHolding,
+      brakeTurned: stats.brakeTurned,
       guns: design.turrets.filter((turret) => turret.main).length,
       fireRange,
     };

@@ -61,14 +61,20 @@ describe('the attack bearing', () => {
     expect(best.every((b) => b.guns === 4)).toBe(true);
   });
 
-  it('leaves the gunship and the Torch fighting bow on', () => {
-    for (const blueprint of [GUNSHIP, TORCH]) {
-      const design = compileBlueprint(blueprint);
-      const best = bestAttackBearings(designArcs(design, new AttackArcs()), design.thrustBearing);
-      expect(best.length).toBe(1);
-      expect(best[0]!.bearing).toBeCloseTo(0, 9);
-      expect(best[0]!.guns).toBe(1);
-    }
+  it('leaves the gunship fighting bow on', () => {
+    const design = compileBlueprint(GUNSHIP);
+    const best = bestAttackBearings(designArcs(design, new AttackArcs()), design.thrustBearing);
+    expect(best.length).toBe(1);
+    expect(best[0]!.bearing).toBeCloseTo(0, 9);
+    expect(best[0]!.guns).toBe(1);
+  });
+
+  it('fights the Torch stern first, on its flame', () => {
+    const design = compileBlueprint(TORCH);
+    const best = bestAttackBearings(designArcs(design, new AttackArcs()), design.thrustBearing);
+    expect(best.length).toBe(1);
+    expect(Math.abs(best[0]!.bearing)).toBeCloseTo(Math.PI, 9);
+    expect(best[0]!.guns).toBe(1);
   });
 
   it('is beside the thrust axis on the Broadside', () => {
@@ -83,9 +89,12 @@ describe('the Broadside', () => {
   it('leads a crossing target with its broadside', () => {
     // An engineless core drifting across its port beam 2 km off: the hull is
     // held ahead of the target's centre, the way it is going.
+    // Never turning to burn, so its heading is the attack bearing's alone.
+    const doctrine = BROADSIDE.doctrine!;
+    const holding = { ...BROADSIDE, doctrine: { ...doctrine, approach: { ...doctrine.approach, burnWeight: 0 } } };
     const off = (vy: number): number => {
       const run = makeBattle({ seed: 4 }, (ships, world) => {
-        const mine = ships.spawn(world, { design: compileBlueprint(BROADSIDE), x: 0, y: 0, angle: -Math.PI / 2, team: 0 });
+        const mine = ships.spawn(world, { design: compileBlueprint(holding), x: 0, y: 0, angle: -Math.PI / 2, team: 0 });
         const them = ships.spawn(world, { design: compileBlueprint(BARE_CORE), x: 2000, y: 0, vy, team: 1 });
         ships.clearOrder(mine);
         ships.pushOrder(mine, them, 1500, 2500, 0, OrderCancelCondition.None);

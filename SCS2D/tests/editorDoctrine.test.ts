@@ -80,7 +80,16 @@ describe('which numbers the panel offers', () => {
 });
 
 describe('what the panel shows of a ship’s doctrine', () => {
-  const ship: DoctrineContext = { mass: 200_000, radius: 30, reach: 2000, accelFore: 4, accelAft: 2, guns: 4 };
+  const ship: DoctrineContext = {
+    mass: 200_000,
+    radius: 30,
+    reach: 2000,
+    accelFore: 4,
+    accelAft: 2,
+    brakeHolding: 2,
+    brakeTurned: 5,
+    guns: 4,
+  };
   const values = (approach: Partial<Doctrine['approach']>, targeting: Partial<Doctrine['targeting']> = {}): DoctrineValues => ({
     targeting: { ...DEFAULT_DOCTRINE.targeting, ...targeting },
     approach: { ...DEFAULT_DOCTRINE.approach, ...approach },
@@ -114,6 +123,12 @@ describe('what the panel shows of a ship’s doctrine', () => {
     expect(said('ramRadii')).toBe('within 120 m of the skin of the size it wants');
     expect(said('ramArmed')).toBe('with 2 of 4 guns working, or fewer');
     expect(said('accelerate')).toBe(`≈ ${(DEFAULT_DOCTRINE.approach.accelerate * 4).toFixed(2)} m/s² ahead`);
+  });
+
+  it('says how hard it brakes both ways when it turns to burn, and one way when it does not', () => {
+    const brake = (approach: Partial<Doctrine['approach']>): string => row('brake').absolute!(values(approach), ship)!;
+    expect(brake({ brake: 0.5, burnWeight: 2 })).toBe('≈ 1.00 m/s² with its guns on, ≈ 2.50 turned onto its mains');
+    expect(brake({ brake: 0.5, burnWeight: 0 })).toBe('≈ 1.00 m/s² with its guns on');
   });
 
   it('says how far a gun fires', () => {

@@ -221,7 +221,13 @@ inside any one file is not contiguous.
   muzzle speeds (beams and flames arrive at once and lead nothing). Where the guns bear on the ship's main
   thrust axis — the way its layout pushes hardest — or bear everywhere, it holds the target on that, so a
   ship with turrets that train right round flies at what it is fighting. The editor draws each best bearing
-  out to the band and lists it. So a ship with an enemy on each beam fights both, and a gun that cannot reach what its ship is
+  out to the band and lists it. **It turns from its guns to its engines when doctrine says the push is
+  worth more**: `burnWeight` scores the share of its main thrust that pointing the thrust axis along the
+  change of velocity it wants would add, against `rangeHold` for keeping the guns on target, all of it inside
+  the band it holds and falling away beyond. The harder it wants to accelerate, and the further out it is, the
+  more readily it turns, held either way by a margin so it does not flip back and forth. So a ship whose one
+  big engine is its weapon closes bow first and fights stern first, braking on its flame. `burnWeight` is 2
+  by default. So a ship with an enemy on each beam fights both, and a gun that cannot reach what its ship is
   fighting fights what it can instead of sitting pinned against the edge of its arc. A further preference, for what the ship as a whole
   is fighting, is what keeps a broadside concentrated without tying it together; an order given is still
   obeyed by every mount that can train on it. How often a mount reconsiders is derived from the mount:
@@ -494,7 +500,10 @@ inside any one file is not contiguous.
   sweep across its own ship. A shot may land on its own ship, but never on the mount that fired it, so
   two enemies hooked together shoot each other. **A gun's rounds burst** just short of their aim point,
   into fragments that fly in both layers, which is how a turret reaches below the deck; a beam has no
-  fuse, so it never does. Each gun sets how many fragments, how fast they leave (which sizes the charge,
+  fuse, so it never does. **An engine's plume stays in its engine's layers** as a beam does: a deck
+  engine's flame passes under a fighter, and a fighter's passes over a deck it flies above until it drops
+  into the hull layer. One in both layers (a thick engine, or a committed fighter's) is two flames, half the
+  power each, so a fighter in the weapons layer takes half and the deck behind it the other half. Each gun sets how many fragments, how fast they leave (which sizes the charge,
   so the shell's mass) and how early; one fragment or fewer is solid shot, all metal and never bursting. A module is as deep as it is across, capped at a deck
   (3 m) unless it is thick. Shipped ships mark every engine wider than a deck thick, and the Corvette and
   Gunship carry their bow guns as hull guns. Every gun sets its barrel in calibres; past fifty it is

@@ -14,7 +14,15 @@ import { Damage, DamageEffect } from './damage.js';
 import { Fuel, LEAK_HOLE_CALIBRES, leakChance, leakRate, leakSpeed, type Leak } from './fuel.js';
 import { SEAL_REACH, SEAL_SPEED } from './modules.js';
 import type { Rng } from './rng.js';
-import { plumeRays, plumeRayStarts, Plumes, WEAPON_PLUME_SHARE, weaponPlumeReach } from './exhaust.js';
+import {
+  landedIndex,
+  landedLength,
+  plumeLayers,
+  plumeRays,
+  Plumes,
+  WEAPON_PLUME_SHARE,
+  weaponPlumeReach,
+} from './exhaust.js';
 import { Choice, cohesionUrge, inSight, look, lookFrom, score } from './targeting.js';
 import {
   casingMass,
@@ -155,6 +163,13 @@ const HEADING_SETTLE_TIME = 0.25;
  * worth exactly as much as doing what it was told.
  */
 const URGE_REFERENCE = 100;
+
+/**
+ * How far one of turning to burn and holding the guns on target has to
+ * outscore the other to take over from it, as a share: enough that a craft
+ * near the line between them does not flip its hull back and forth across it.
+ */
+const BURN_MARGIN = 0.25;
 
 /** Seconds of closing at its approach speed that stand in for an unarmed rammer's reach in choosing a target. */
 const RAM_HORIZON = 60;
@@ -518,7 +533,7 @@ export class Ships {
   /**
    * How much of each of a ship's flame rays landed on something last step,
    * as the ray's `share`: what a renderer draws the burn's glow from, and
-   * where it cuts the flame off. Indexed by `plumeRayStarts`.
+   * where it cuts the flame off. Indexed by `landedIndex`.
    */
   private readonly landed: Float64Array[] = [];
   /** Scratch for the exhaust pass, so that burning allocates nothing. */
@@ -587,6 +602,8 @@ export class Ships {
   private readonly derelict: number[] = [];
   /** 1 for a fighter its doctrine has taken down into the hull layer as well. */
   private readonly committed: number[] = [];
+  /** Whether each ship has turned its main engines along its want rather than its guns to its target. */
+  private readonly burning: number[] = [];
 
   /**
    * Mass thrown away as scrap or lost track of, kilograms — everything the
@@ -1025,7 +1042,7 @@ export class Ships {
     this.bodyIds.push(id);
     this.throttles.push(new Float64Array(design.engines.length));
     this.lit.push(new Uint8Array(design.engines.length));
-    this.landed.push(new Float64Array(plumeRayStarts(design)[design.engines.length]!));
+    this.landed.push(new Float64Array(landedLength(design)));
     this.turretIndex.push(indices);
     this.cooldown.push(new Float64Array(mounts.length));
     this.turretStates.push(new Uint8Array(mounts.length));
@@ -1048,6 +1065,7 @@ export class Ships {
     this.serial.push(serial);
     this.derelict.push(0);
     this.committed.push(0);
+    this.burning.push(0);
     this.cutSeen.push(-1);
     this.partedAt.push(-Infinity);
     this.chosen.push(NO_TARGET);
@@ -2203,13 +2221,12 @@ export class Ships {
       const design = this.designs[i]!;
       const throttles = this.throttles[i]!;
       const landed = this.landed[i]!;
-      const starts = plumeRayStarts(design);
       landed.fill(0);
 
       for (let t = 0; t < design.engines.length; t++) {
         const force = throttles[t]! * this.exhaustOf(i, design, bodyIdx, t);
         if (!(force > 0)) continue;
-        this.plumes.burn(design, t, force, this.damage, bodies, bodyIdx, grid, this.hulls, dt, landed, starts[t]!);
+        this.plumes.burn(design, t, force, this.damage, bodies, bodyIdx, grid, this.hulls, dt, landed, this.layersOf(bodyIdx));
       }
     }
   }
@@ -2300,6 +2317,9 @@ export class Ships {
     this.urgeVy = 0;
     this.urgeWeight = 0;
     let wantAngle = bodies.angle[b]!;
+    // What it is fighting, if anything: the body, and how far out it holds it.
+    let fighting = -1;
+    let holdOut = 0;
 
     // No order at all is the same problem as an order with no target: hold
     // what you are doing and wait to be told something.
@@ -2310,7 +2330,11 @@ export class Ships {
       // Hooked on to it: nowhere to steer for.
       if (tb >= 0 && tb !== b) {
         wantAngle = atan2(bodies.y[tb]! - bodies.y[b]!, bodies.x[tb]! - bodies.x[b]!);
-        if (!order.ram) wantAngle = this.attackHeading(i, b, tb, bodies, wantAngle);
+        if (!order.ram) {
+          wantAngle = this.attackHeading(i, b, tb, bodies, wantAngle);
+          fighting = tb;
+          holdOut = order.maxRange;
+        }
         if (order.ram) this.charge(bodies, b, tb, order.approachSpeed);
         else this.hold(bodies, i, b, tb, order.minRange, order.maxRange, order.approachSpeed, URGE_REFERENCE);
       }
@@ -2330,6 +2354,9 @@ export class Ships {
     // and nothing in its way kills its drift and waits.
     const wantVx = this.urgeWeight > 0 ? this.urgeVx / this.urgeWeight : 0;
     const wantVy = this.urgeWeight > 0 ? this.urgeVy / this.urgeWeight : 0;
+
+    if (fighting >= 0) wantAngle = this.burnOrFight(i, b, fighting, bodies, wantAngle, wantVx, wantVy, holdOut);
+    else this.burning[i] = 0;
 
     // A ram is a race to the target, so it points its main thrust along the
     // change of velocity it needs rather than its nose at the target.
@@ -2456,6 +2483,58 @@ export class Ships {
   }
 
   /**
+   * The attack heading, or the heading that points the main thrust axis along
+   * the change of velocity this ship wants, whichever its doctrine scores
+   * higher: `burnWeight` for each share of the axis's thrust the turn would
+   * add to the push it wants, against `rangeHold` for how near the band it
+   * is. Held by `BURN_MARGIN` either way.
+   */
+  private burnOrFight(
+    i: number,
+    b: number,
+    tb: number,
+    bodies: Bodies,
+    attack: number,
+    wantVx: number,
+    wantVy: number,
+    maxRange: number,
+  ): number {
+    const design = this.designs[i]!;
+    const approach = design.doctrine.approach;
+    const dvx = wantVx - bodies.vx[b]!;
+    const dvy = wantVy - bodies.vy[b]!;
+    const dv = length(dvx, dvy);
+    const mass = bodies.mass[b]!;
+    const layout = this.layoutOf(i);
+    const axis = layout.maxThrustAlong(cos(design.thrustBearing), sin(design.thrustBearing)) / mass;
+    if (!(approach.burnWeight > 0) || !(dv > 0) || !(axis > 0)) {
+      this.burning[i] = 0;
+      return attack;
+    }
+    const ux = dvx / dv;
+    const uy = dvy / dv;
+    const want = dv / VELOCITY_RESPONSE_TIME;
+    // What the layout gives along the want with the guns held on target.
+    const c = cos(attack);
+    const s = sin(attack);
+    const held = layout.maxThrustAlong(ux * c + uy * s, -ux * s + uy * c) / mass;
+    const gain = max(0, min(want, axis) - min(want, held)) / axis;
+
+    const range = length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!);
+    const near = range > maxRange && maxRange > 0 ? maxRange / range : 1;
+    const burn = approach.burnWeight * gain;
+    const hold = approach.rangeHold * near;
+    const now = this.burning[i] === 1 ? burn * (1 + BURN_MARGIN) > hold : burn > hold * (1 + BURN_MARGIN);
+    this.burning[i] = now ? 1 : 0;
+    return now ? atan2(uy, ux) - design.thrustBearing : attack;
+  }
+
+  /** Whether this ship has turned its main engines along its want rather than its guns to its target. */
+  isBurning(i: number): boolean {
+    return this.burning[i] === 1;
+  }
+
+  /**
    * Mark every engine this ship should fire as a weapon this step, in
    * `forced`, and say how many.
    *
@@ -2498,16 +2577,22 @@ export class Ships {
       // burning as one dead astern, and the rays exist precisely so that the
       // flame's width counts.
       let worth = false;
+      // A thick engine's flame is in each layer, so is worth firing for
+      // what either of them would burn.
       const engine = design.modules[design.engines[t]?.module ?? -1];
       const rays = engine === undefined ? 0 : plumeRays(engineGeometry(engine.spec));
-      for (let ray = 0; ray < rays && !worth; ray++) {
-        if (!this.plumes.cast(design, t, ray, force, bodies, b, grid, this.hulls)) continue;
-        if (this.plumes.share < WEAPON_PLUME_SHARE) continue;
-        if (this.plumes.body === b) continue;
-        const other = this.shipAt(bodies, this.plumes.body);
-        if (other < 0 || this.derelict[other] === 1) continue;
-        if (this.team[other] === this.team[i] || this.isDisabled(other)) continue;
-        worth = true;
+      const layers = plumeLayers(design, t, this.layersOf(b));
+      for (let layer = HULL_LAYER; layer <= WEAPONS_LAYER && !worth; layer <<= 1) {
+        if ((layers & layer) === 0) continue;
+        for (let ray = 0; ray < rays && !worth; ray++) {
+          if (!this.plumes.cast(design, t, ray, force, bodies, b, grid, this.hulls, layer)) continue;
+          if (this.plumes.share < WEAPON_PLUME_SHARE) continue;
+          if (this.plumes.body === b) continue;
+          const other = this.shipAt(bodies, this.plumes.body);
+          if (other < 0 || this.derelict[other] === 1) continue;
+          if (this.team[other] === this.team[i] || this.isDisabled(other)) continue;
+          worth = true;
+        }
       }
       if (!worth) continue;
       forced[t] = 1;
@@ -3352,7 +3437,7 @@ export class Ships {
     this.turretRethinkAt[r] = this.turretRethinkAt[p]!;
     this.throttles[r] = new Float64Array(design.engines.length);
     this.lit[r] = new Uint8Array(design.engines.length);
-    this.landed[r] = new Float64Array(plumeRayStarts(design)[design.engines.length]!);
+    this.landed[r] = new Float64Array(landedLength(design));
     this.layouts[r] = null;
     this.layoutVersion[r] = -1;
     this.cutSeen[r] = this.cutSeen[p]!;
@@ -3853,7 +3938,7 @@ export class Ships {
     this.turretRethinkAt[i] = schedule;
     this.throttles[i] = new Float64Array(design.engines.length);
     this.lit[i] = new Uint8Array(design.engines.length);
-    this.landed[i] = new Float64Array(plumeRayStarts(design)[design.engines.length]!);
+    this.landed[i] = new Float64Array(landedLength(design));
     this.layouts[i] = null;
     this.layoutVersion[i] = -1;
     this.damage.register(b, design, scars, weldScars);
@@ -4077,8 +4162,15 @@ export class Ships {
    * How much of one flame ray landed on something last step, as its share of
    * the ray's power: 1 at the nozzle, 0 for a ray that met nothing.
    */
-  landedShare(i: number, engine: number, ray: number): number {
-    return this.landed[i]![plumeRayStarts(this.designs[i]!)[engine]! + ray] ?? 0;
+  landedShare(i: number, engine: number, ray: number, layer = HULL_LAYER): number {
+    return this.landed[i]![landedIndex(this.designs[i]!, engine, ray, layer)] ?? 0;
+  }
+
+  /** The layers one of this ship's engines' plumes is in. */
+  plumeLayersOf(i: number, engine: number): number {
+    const bodies = this.bodyStore;
+    const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[i]!);
+    return plumeLayers(this.designs[i]!, engine, b < 0 ? OWN_LAYERS : this.layersOf(b));
   }
 
   /** Every ray's `landedShare` for one ship, flat. Read-only. */
