@@ -7,7 +7,7 @@ import { BROADSIDE, CORVETTE } from './blueprints.js';
  * A Broadside against a corvette: a ship whose main guns do not point the way
  * it flies.
  *
- * The Broadside's engines push it bow first and its two main turrets train
+ * The Broadside's engines push it bow first and its three main guns train
  * only over its port beam, so it has to turn its side to the corvette to
  * fight. They start bow to bow, out of reach; nothing gives an order.
  */

@@ -40,7 +40,7 @@ const GOLDEN: Record<ScenarioName, string> = {
   ram: 'cfb9a18e',
   torchRun: 'c7818ed3',
   hooked: '150f72e5',
-  broadside: '7a46c76e',
+  broadside: '5fa8bbad',
 };
 
 describe('golden scenarios', () => {
