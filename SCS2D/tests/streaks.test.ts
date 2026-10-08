@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { exposureEnds, flashSamples, MAX_FLASH_SAMPLES, SHUTTER_RAMP, shutterWeight } from '../render/exposure.js';
+import { clipToStart, exposureEnds, flashSamples, MAX_FLASH_SAMPLES, SHUTTER_RAMP, shutterWeight } from '../render/exposure.js';
 import { rgba } from '../render/sprites.js';
 
 /** What moves is drawn as though photographed with a shutter open for one step. */
@@ -44,5 +44,34 @@ describe('a sprite colour', () => {
   it('reads an alpha when it has one', () => {
     expect(rgba('#ffb2a888')).toEqual([255, 178, 168, 136]);
     expect(rgba('#ffe6a8')).toEqual([255, 230, 168, 255]);
+  });
+});
+
+describe('a streak just out of the barrel', () => {
+  it('starts at the muzzle rather than reaching back down the barrel', () => {
+    // Fired from the origin at 600 m/s along x and a third of a step old: the
+    // open streak reaches back past the muzzle.
+    const dt = 1 / 60;
+    const x = 600 * (dt / 3);
+    const open = exposureEnds(x, 0, 600, 0, 0, 0, dt);
+    expect(open.x0).toBeLessThan(0);
+    const clipped = clipToStart(open, 0, 0, 600, 0);
+    expect(clipped.x0).toBe(0);
+    expect(clipped.x1).toBe(open.x1);
+  });
+
+  it('is untouched once the round is a full streak clear of the muzzle', () => {
+    const open = exposureEnds(100, 0, 600, 0, 0, 0, 1 / 60);
+    expect(clipToStart(open, 0, 0, 600, 0)).toBe(open);
+  });
+
+  it('is nothing for a round still behind the muzzle, and cut along the round, not the camera', () => {
+    const behind = clipToStart({ x0: -10, y0: 0, x1: -2, y1: 0 }, 0, 0, 600, 0);
+    expect(behind.x0).toBe(behind.x1);
+    // A camera panning fast enough to throw the streak backwards on screen
+    // does not move where the round left from.
+    const panned = exposureEnds(5, 0, 600, 0, 2000, 0, 1 / 60);
+    const cut = clipToStart(panned, 0, 0, 600, 0);
+    expect(Math.min(cut.x0, cut.x1)).toBeGreaterThanOrEqual(0);
   });
 });
