@@ -16,6 +16,7 @@ Things that are obviously wrong.
 Ideas that aren't planned to be implemented yet, they may or may not be good ideas.
 
 ## General
+- Doctrine to specify an allowed range of tangential velocities, to allow for fighters to do fast passes.
 - Engines should be able to do damage past destroyed modules like beams can
 - Engines and beams could reduce the mass of the part they hit/pass through after a certain amount of damage as if sublimating it
 - Ships should be able to target specific modules, and, once we have the "main gun" setting in place, offset their aim for their main guns' projectile speed.
@@ -71,3 +72,4 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Fuel tanks should still show their fuel level when damaged
 - The ship name on cores should rotate and scale with the ship, as if it is literally written on the hull.
 - Use time scale buttons instead of a slider (0.25, 0.5, 1, 2, 4, 8, 16)
+- Show the range the selected ship is trying to get into with the target as a ring around the target (or possibly the selected ship, to be consistent with the editor)
