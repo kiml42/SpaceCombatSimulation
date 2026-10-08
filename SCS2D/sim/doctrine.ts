@@ -274,6 +274,29 @@ export interface Approach {
    * close enough.
    */
   readonly ramArmed: number;
+  /**
+   * What a half turn costs in choosing which way round to fight, as a share
+   * of its main battery. A ship weighs each bearing its main guns can bear on
+   * by the share of them that do, less this for every half turn away from
+   * where its target already is; so at 0.5 a half turn has to bring half its
+   * main guns more to bear. Zero turns for any gain.
+   */
+  readonly turnBias: number;
+  /**
+   * How much it would rather turn its main thrust axis along the change of
+   * velocity it wants than hold its guns on target: points for each share of
+   * that axis's thrust the turn would add to the push it is asking for. So
+   * the harder it wants to accelerate, the more it turns to its engines. Zero
+   * never turns from its guns.
+   */
+  readonly burnWeight: number;
+  /**
+   * How much it would rather keep its guns on target: all of it inside the
+   * band it holds, and falling away as the band's outer edge over its range
+   * beyond it, so a ship far off turns to its engines more readily than one
+   * already fighting.
+   */
+  readonly rangeHold: number;
 }
 
 /**
@@ -343,6 +366,9 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     brake: 0.8,
     ramRadii: 0,
     ramArmed: 0,
+    turnBias: 0.5,
+    burnWeight: 2,
+    rangeHold: 1,
   },
 };
 
@@ -523,6 +549,9 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
   'brake',
   'ramRadii',
   'ramArmed',
+  'turnBias',
+  'burnWeight',
+  'rangeHold',
 ];
 
 /**

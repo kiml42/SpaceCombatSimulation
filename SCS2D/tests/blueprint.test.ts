@@ -17,7 +17,7 @@ import {
   moduleStats,
   type ModuleSpec,
 } from '../sim/modules.js';
-import { BLUEPRINTS, type BlueprintName } from '../scenarios/blueprints.js';
+import { BLUEPRINTS, BROADSIDE, type BlueprintName } from '../scenarios/blueprints.js';
 
 /**
  * What a compiled design has to get right is arithmetic that nothing
@@ -471,10 +471,10 @@ describe('firing arcs', () => {
 /**
  * Layouts that are deliberately not symmetric, listed by identity rather than
  * matched on a name: a substring test would silently exempt a future
- * "Undamaged Mk II", and the point of a wreck is that its asymmetry is the
- * feature. None ships at present.
+ * "Undamaged Mk II", and the point of a wreck, or of a ship with its whole
+ * battery on one beam, is that its asymmetry is the feature.
  */
-const ASYMMETRIC: readonly Blueprint[] = [];
+const ASYMMETRIC: readonly Blueprint[] = [BROADSIDE];
 
 /**
  * The ships the rest of the suite flies.
@@ -496,6 +496,7 @@ const FLEET: readonly BlueprintName[] = [
   'torch',
   'laserFrigate',
   'torpedo',
+  'broadside',
 ];
 
 /**

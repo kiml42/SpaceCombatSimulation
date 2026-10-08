@@ -212,7 +212,22 @@ inside any one file is not contiguous.
   engine marked as a weapon — is *main* unless marked secondary, and only main weapons count, both for how
   close it flies and for whether it is still armed. So a capital that has lost its main guns knows it, however
   much point defence it has left, and enemies weighing `armedWeight` and its own `ramArmed` see it the same
-  way; a piece broken off with only secondaries is disarmed, and a carrier can have no main armament at all. So a ship with an enemy on each beam fights both, and a gun that cannot reach what its ship is
+  way; a piece broken off with only secondaries is disarmed, and a carrier can have no main armament at all.
+  **Where the main guns bear is which way round it fights**:
+  of the bearings off its bow, the pilot holds its target on the one its working main guns bear on most,
+  less doctrine's `turnBias` for every half turn it is from where the target already is, so a Star Destroyer
+  fights on whichever beam is nearer and turns the other to the enemy only for enough more guns to pay for
+  the turn. The battery is pointed where its shot will meet the target, led by the harmonic mean of its guns'
+  muzzle speeds (beams and flames arrive at once and lead nothing). Where the guns bear on the ship's main
+  thrust axis — the way its layout pushes hardest — or bear everywhere, it holds the target on that, so a
+  ship with turrets that train right round flies at what it is fighting. The editor draws each best bearing
+  out to the band and lists it. **It turns from its guns to its engines when doctrine says the push is
+  worth more**: `burnWeight` scores the share of its main thrust that pointing the thrust axis along the
+  change of velocity it wants would add, against `rangeHold` for keeping the guns on target, all of it inside
+  the band it holds and falling away beyond. The harder it wants to accelerate, and the further out it is, the
+  more readily it turns, held either way by a margin so it does not flip back and forth. So a ship whose one
+  big engine is its weapon closes bow first and fights stern first, braking on its flame. `burnWeight` is 2
+  by default. So a ship with an enemy on each beam fights both, and a gun that cannot reach what its ship is
   fighting fights what it can instead of sitting pinned against the edge of its arc. A further preference, for what the ship as a whole
   is fighting, is what keeps a broadside concentrated without tying it together; an order given is still
   obeyed by every mount that can train on it. How often a mount reconsiders is derived from the mount:
@@ -485,7 +500,10 @@ inside any one file is not contiguous.
   sweep across its own ship. A shot may land on its own ship, but never on the mount that fired it, so
   two enemies hooked together shoot each other. **A gun's rounds burst** just short of their aim point,
   into fragments that fly in both layers, which is how a turret reaches below the deck; a beam has no
-  fuse, so it never does. Each gun sets how many fragments, how fast they leave (which sizes the charge,
+  fuse, so it never does. **An engine's plume stays in its engine's layers** as a beam does: a deck
+  engine's flame passes under a fighter, and a fighter's passes over a deck it flies above until it drops
+  into the hull layer. One in both layers (a thick engine, or a committed fighter's) is two flames, half the
+  power each, so a fighter in the weapons layer takes half and the deck behind it the other half. Each gun sets how many fragments, how fast they leave (which sizes the charge,
   so the shell's mass) and how early; one fragment or fewer is solid shot, all metal and never bursting. A module is as deep as it is across, capped at a deck
   (3 m) unless it is thick. Shipped ships mark every engine wider than a deck thick, and the Corvette and
   Gunship carry their bow guns as hull guns. Every gun sets its barrel in calibres; past fifty it is
@@ -515,7 +533,8 @@ inside any one file is not contiguous.
   embedded design that has drifted from the library's copy of the same name, which one button brings up to
   date. Fleets are saved to browser storage and exported and imported as fleet files.
   **A custom battle** on the viewer sets fleets — or single ships, as fleets of one — round a ring at a
-  chosen range, closing and crossing speed, rotation and seed, saved and loaded as a battle file; one side alone is
+  chosen range, closing and crossing speed, rotation and seed, saved and loaded as a battle file, and carried
+  whole in a link (Link copies one; opening it sets the battle up paused); one side alone is
   allowed, for watching an escort. Both editors' Battle links open it with what is being edited as the
   first side. It is set up paused at its first step, the
   picture following every change, and started with Fight. It says how each side stands — ships still
@@ -569,7 +588,7 @@ inside any one file is not contiguous.
   across — a wider hole narrows by that much and stays open. None by default, and none never seals. The editor has a Tank, and shows an engine's Isp and fuel flow, a tank's fuel,
   and a ship's fuel, endurance flat out and Δv. Every stock ship has one or more modules made tanks.
 - **Next:** the rest of §8 step 8 — leaks, and pilots that know their fuel — and of step 5: a materials
-  budget, designed scenarios, shareable by URL.
+  budget, and designed scenarios.
   See ROADMAP.md §8.
   §8 step 3 is done bar what it deliberately deferred — withdrawal, and the
   ship-type picker. What a chooser is already facing (`facingWeight`) and whether anything is in the way
