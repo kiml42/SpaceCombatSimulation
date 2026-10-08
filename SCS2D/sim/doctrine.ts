@@ -247,6 +247,29 @@ export interface Approach {
    * serves a fighter beside a fighter and a capital beside a capital.
    */
   readonly separationRadii: number;
+  /**
+   * How far ahead it looks for something it is about to run into, seconds.
+   *
+   * Long enough that the answer is a lean rather than a swerve, and short
+   * enough that it is not steering round a pass the next few seconds of
+   * everybody's manoeuvring will have changed anyway.
+   */
+  readonly avoidHorizon: number;
+  /**
+   * The sideways speed it asks for to get out of the way, m/s. Asked for within
+   * one response time, the default is more than any hull can push sideways, so
+   * a demand for everything it has that way. A want in the blend rather than a
+   * push on top: a craft dodging stops pressing on towards its band, which
+   * keeps a crowd from piling up. A push on top measured six times the
+   * contacts in `superSwarm`.
+   */
+  readonly dodgeSpeed: number;
+  /**
+   * How quickly it tries to correct a velocity error, seconds: the pilot asks
+   * for the error over this long. Larger is gentler, and asks less of its
+   * engines, so it also turns to burn less readily.
+   */
+  readonly responseTime: number;
   /** How much closer or further than that is close enough, as a fraction. */
   readonly tolerance: number;
   /** How briskly to close the difference, metres per second. */
@@ -360,6 +383,9 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     escortMinRadii: 1,
     separation: 300,
     separationRadii: 3,
+    avoidHorizon: 6,
+    dodgeSpeed: 60,
+    responseTime: 2,
     tolerance: 0.2,
     approachSpeed: 60,
     accelerate: 1,
@@ -543,6 +569,9 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
   'escortMinRadii',
   'separation',
   'separationRadii',
+  'avoidHorizon',
+  'dodgeSpeed',
+  'responseTime',
   'tolerance',
   'approachSpeed',
   'accelerate',
@@ -556,7 +585,7 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
 
 /**
  * The fields that mean nothing at or below zero: a size, a range, three
- * distances and two shares of thrust.
+ * distances, two times, a speed and two shares of thrust.
  *
  * Stated once and read by everything that writes a doctrine rather than being
  * repeated wherever one is made up — the parser that refuses a bad file and
@@ -569,6 +598,9 @@ export const POSITIVE_FIELDS: readonly string[] = [
   'standoffRadii',
   'escortRadii',
   'separationRadii',
+  'avoidHorizon',
+  'dodgeSpeed',
+  'responseTime',
   'accelerate',
   'brake',
 ];
