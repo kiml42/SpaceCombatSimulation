@@ -165,6 +165,28 @@ const HEADING_SETTLE_TIME = 0.25;
 const URGE_REFERENCE = 100;
 
 /**
+ * The fastest a craft can be closing and still stop within `gap` metres
+ * braking at `brake` m/s², once `delay` seconds have gone by at that speed.
+ */
+function stoppingSpeed(brake: number, gap: number, delay: number): number {
+  if (!(brake > 0) || !Number.isFinite(delay)) return 0;
+  const lag = brake * delay;
+  return sqrt(2 * brake * gap + lag * lag) - lag;
+}
+
+/**
+ * Roughly how long it takes to cover `gap` metres and stop: at the fastest of
+ * `cruise` and what it can stop from (`stoppingSpeed`), then braking at
+ * `brake` m/s². From that speed, so a measure of a plan, not of a craft.
+ */
+function arrivalTime(brake: number, gap: number, cruise: number, delay: number): number {
+  const v = min(cruise, stoppingSpeed(brake, gap, delay));
+  if (!(v > 0)) return Infinity;
+  const braking = (v * v) / (2 * brake);
+  return max(0, gap - braking) / v + v / brake;
+}
+
+/**
  * How far one of turning to burn and holding the guns on target has to
  * outscore the other to take over from it, as a share: enough that a craft
  * near the line between them does not flip its hull back and forth across it.
@@ -604,6 +626,8 @@ export class Ships {
   private readonly committed: number[] = [];
   /** Whether each ship has turned its main engines along its want rather than its guns to its target. */
   private readonly burning: number[] = [];
+  /** Whether each ship's approach is planned on braking with its mains, which it must then turn to do. */
+  private readonly brakingOnMains: number[] = [];
 
   /**
    * Mass thrown away as scrap or lost track of, kilograms — everything the
@@ -1066,6 +1090,7 @@ export class Ships {
     this.derelict.push(0);
     this.committed.push(0);
     this.burning.push(0);
+    this.brakingOnMains.push(0);
     this.cutSeen.push(-1);
     this.partedAt.push(-Infinity);
     this.chosen.push(NO_TARGET);
@@ -2336,7 +2361,7 @@ export class Ships {
           holdOut = order.maxRange;
         }
         if (order.ram) this.charge(bodies, b, tb, order.approachSpeed);
-        else this.hold(bodies, i, b, tb, order.minRange, order.maxRange, order.approachSpeed, URGE_REFERENCE);
+        else this.hold(bodies, i, b, tb, order.minRange, order.maxRange, order.approachSpeed, URGE_REFERENCE, true);
       }
     }
 
@@ -2355,6 +2380,7 @@ export class Ships {
     const wantVx = this.urgeWeight > 0 ? this.urgeVx / this.urgeWeight : 0;
     const wantVy = this.urgeWeight > 0 ? this.urgeVy / this.urgeWeight : 0;
 
+    if (fighting < 0) this.brakingOnMains[i] = 0;
     if (fighting >= 0) wantAngle = this.burnOrFight(i, b, fighting, bodies, wantAngle, wantVx, wantVy, holdOut);
     else this.burning[i] = 0;
 
@@ -2524,6 +2550,12 @@ export class Ships {
     const near = range > maxRange && maxRange > 0 ? maxRange / range : 1;
     const burn = approach.burnWeight * gain;
     const hold = approach.rangeHold * near;
+    // Committed to stopping on its mains: it holds them against its way in
+    // whatever the score, since its approach was planned on them.
+    if (this.brakingOnMains[i] === 1) {
+      this.burning[i] = 1;
+      return atan2(bodies.y[b]! - bodies.y[tb]!, bodies.x[b]! - bodies.x[tb]!) - design.thrustBearing;
+    }
     const now = this.burning[i] === 1 ? burn * (1 + BURN_MARGIN) > hold : burn > hold * (1 + BURN_MARGIN);
     this.burning[i] = now ? 1 : 0;
     return now ? atan2(uy, ux) - design.thrustBearing : attack;
@@ -2651,7 +2683,11 @@ export class Ships {
     maxRange: number,
     approachSpeed: number,
     weight: number,
+    fighting = false,
   ): void {
+    // Set again below while it is still closing on a curve planned on its mains.
+    const wasOnMains = this.brakingOnMains[i] === 1;
+    if (fighting) this.brakingOnMains[i] = 0;
     if (!(weight > 0)) return;
     const dx = bodies.x[other]! - bodies.x[b]!;
     const dy = bodies.y[other]! - bodies.y[b]!;
@@ -2680,9 +2716,29 @@ export class Ships {
         // the pilot taking its response time to answer. Braking itself is
         // never capped: `brake` is what the curve plans on, and a craft that
         // has fallen behind it spends whatever it has.
-        const lag = brake * VELOCITY_RESPONSE_TIME;
         const gap = outside * sense;
-        const stopping = sqrt(2 * brake * gap + lag * lag) - lag;
+        let stopping = stoppingSpeed(brake, gap, VELOCITY_RESPONSE_TIME);
+        // A craft that turns to burn brakes on its mains, once it has turned,
+        // and is held to it: a curve planned on them is one it cannot stop on
+        // otherwise.
+        if (fighting) {
+          const mains = this.mainsBrake(bodies, i, b, retro);
+          // Turned away and back again: it fights facing the other way. Only
+          // when that gets it there sooner, turns and all: on a short run in a
+          // flip costs more than it saves.
+          const turn = this.halfTurnTime(bodies, i, b);
+          const turned = mains > brake ? stoppingSpeed(mains, gap, VELOCITY_RESPONSE_TIME + turn) : 0;
+          const sooner =
+            turned > stopping &&
+            arrivalTime(mains, gap, approachSpeed, VELOCITY_RESPONSE_TIME + turn) + turn <
+              arrivalTime(brake, gap, approachSpeed, VELOCITY_RESPONSE_TIME);
+          if (sooner) stopping = turned;
+          // Once on it, held to it until it has stopped closing.
+          // On the curve: going as fast as it can stop from on its mains, so it
+          // has to turn and start now.
+          const onCurve = sooner && turned < approachSpeed && making >= turned;
+          this.brakingOnMains[i] = sense > 0 && making > 0 && (onCurve || wasOnMains) ? 1 : 0;
+        }
         let radial = min(approachSpeed, stopping);
         // A share below one caps how much faster it asks to be going within
         // one response time, which caps the push the pilot demands. At one it
@@ -2696,6 +2752,27 @@ export class Ships {
       }
     }
     this.urge(weight, vx, vy);
+  }
+
+  /**
+   * What this craft plans to brake at turned onto its mains, m/s²: `brake` of
+   * its main thrust axis's acceleration, if its doctrine would turn to burn for
+   * that over the `retro` it has with its guns held on, and 0 if not. Weighed
+   * as `burnOrFight` weighs it, against holding its guns on inside the band.
+   */
+  private mainsBrake(bodies: Bodies, i: number, b: number, retro: number): number {
+    const design = this.designs[i]!;
+    const approach = design.doctrine.approach;
+    const axis = this.layoutOf(i).maxThrustAlong(cos(design.thrustBearing), sin(design.thrustBearing)) / bodies.mass[b]!;
+    if (!(axis > retro)) return 0;
+    const turns = approach.burnWeight * ((axis - retro) / axis) > approach.rangeHold * (1 + BURN_MARGIN);
+    return turns ? approach.brake * axis : 0;
+  }
+
+  /** Seconds to turn half round from rest and stop there, flat out both ways. */
+  private halfTurnTime(bodies: Bodies, i: number, b: number): number {
+    const alpha = this.layoutOf(i).maxTorque(1) / bodies.inertia[b]!;
+    return alpha > 0 ? 2 * sqrt(PI / alpha) : Infinity;
   }
 
   /** How hard this craft can accelerate along a world direction as it lies, m/s². */

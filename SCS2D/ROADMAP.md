@@ -341,12 +341,13 @@ Deliberately unresolved; decide when they block something.
   physics — a jet runs a fixed number of its own widths — and is what is built, to be looked at before it is
   argued with. It gives the Star Destroyer's mains a 2.4 km flame and a Dinky's engines under 2 m. The
   square root keeps every trend and squashes both ends, to about 400 m and 12 m. One line in `plumeReach`.
-- **Planning to brake on the mains.** A craft with `burnWeight` turns its main thrust axis along the change
-  of velocity it wants, braking included, when that buys enough of the push it asks for. But the stopping
-  curve it flies in on is planned on what it has pointing the other way *as it lies*, so one whose big
-  engines are all at the back still plans on a sliver of retro and creeps in, and one with no retro has only
-  `BRAKE_FLOOR` in `sim/ships.ts`. Planning on the mains, less the time a flip takes, is what is left; it
-  wants measuring against the fleet scenarios, and `BRAKE_FLOOR` goes when it lands.
+- **Braking on the mains between two craft that are both closing.** A craft whose doctrine would turn
+  to burn plans its approach on its mains when that gets it there sooner, turn included, and once on that
+  curve is held to it. Against something standing still that is quicker into the band and steadier in it
+  for every stock hull measured. Two Dinkies closing on each other from 600 m fire later than before (about
+  14 and 25 s against 8.5 s), since each flips to brake on a run in that the other is shortening. The
+  plan reckons with a target that holds still; reckoning with its closing too is what is left, and
+  `BRAKE_FLOOR` in `sim/ships.ts` still stands for the plan with the guns held on.
 - **Whether a beam should have an opinion about where it hits.** Each archetype now carries its own
   targeting, and a beam turret's is the one where the obvious default was left untaken. The argument for
   taking it is good: picking a part costs accuracy, a beam turret is the mount that answers what is small
