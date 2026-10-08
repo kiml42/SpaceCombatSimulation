@@ -61,14 +61,20 @@ describe('the attack bearing', () => {
     expect(best.every((b) => b.guns === 4)).toBe(true);
   });
 
-  it('leaves the gunship and the Torch fighting bow on', () => {
-    for (const blueprint of [GUNSHIP, TORCH]) {
-      const design = compileBlueprint(blueprint);
-      const best = bestAttackBearings(designArcs(design, new AttackArcs()), design.thrustBearing);
-      expect(best.length).toBe(1);
-      expect(best[0]!.bearing).toBeCloseTo(0, 9);
-      expect(best[0]!.guns).toBe(1);
-    }
+  it('leaves the gunship fighting bow on', () => {
+    const design = compileBlueprint(GUNSHIP);
+    const best = bestAttackBearings(designArcs(design, new AttackArcs()), design.thrustBearing);
+    expect(best.length).toBe(1);
+    expect(best[0]!.bearing).toBeCloseTo(0, 9);
+    expect(best[0]!.guns).toBe(1);
+  });
+
+  it('fights the Torch stern first, on its flame', () => {
+    const design = compileBlueprint(TORCH);
+    const best = bestAttackBearings(designArcs(design, new AttackArcs()), design.thrustBearing);
+    expect(best.length).toBe(1);
+    expect(Math.abs(best[0]!.bearing)).toBeCloseTo(Math.PI, 9);
+    expect(best[0]!.guns).toBe(1);
   });
 
   it('is beside the thrust axis on the Broadside', () => {
