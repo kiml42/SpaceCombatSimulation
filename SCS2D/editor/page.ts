@@ -181,6 +181,7 @@ const DEFAULTS: Record<ModuleSpec['kind'], Omit<ModuleSpec, 'x' | 'y'>> = {
   // drawn square would train through an angle worth nothing.
   hullGun: { kind: 'hullGun', angle: 0, length: 8, width: 4, barrels: 1 },
   hullBeam: { kind: 'hullBeam', angle: 0, length: 6, width: 4, barrels: 1 },
+  claw: { kind: 'claw', angle: 0, length: 2, width: 2 },
 };
 
 function el<T extends HTMLElement>(id: string): T {

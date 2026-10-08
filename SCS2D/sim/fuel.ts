@@ -73,7 +73,8 @@ export interface Leak {
  * `burntInertia`); its centre of mass stays where the full ship's was.
  *
  * **An engine draws on the tanks it is connected to**: those on its own piece
- * of hull, since a hook between two wrecks carries no fuel line. Within that,
+ * of hull, since a hook between two wrecks carries no fuel line. Fuel crosses
+ * between pieces only when pumped (`transfer`). Within that,
  * tanks are drained tier by tier, highest `drainPriority` first, and within a tier in
  * proportion to how much each holds when full, so tanks that start full run
  * dry together.
@@ -186,11 +187,62 @@ export class Fuel {
    * there was. `engine` is the engine's module index.
    */
   drain(bodyIndex: number, engine: number, kg: number): number {
-    const contents = this.contents[bodyIndex];
-    if (contents === null || contents === undefined || !(kg > 0)) return 0;
-    const piece = this.pieceOf[bodyIndex]![engine] ?? 0;
+    const pieceOf = this.pieceOf[bodyIndex];
+    if (pieceOf === null || pieceOf === undefined || !(kg > 0)) return 0;
+    return this.take(bodyIndex, pieceOf[engine] ?? 0, kg);
+  }
+
+  /**
+   * Pump up to `kg` from the piece of hull module `from` is on to the piece
+   * `to` is on, and say how much went. Drawn as an engine would draw it, and
+   * put into the receiver's lowest tier first, so the tanks it would burn last
+   * fill first. Only as much as the receiver has room for goes.
+   */
+  transfer(bodyIndex: number, from: number, to: number, kg: number): number {
+    const pieceOf = this.pieceOf[bodyIndex];
+    if (pieceOf === null || pieceOf === undefined || !(kg > 0)) return 0;
+    const source = pieceOf[from] ?? 0;
+    const sink = pieceOf[to] ?? 0;
+    if (source === sink) return 0;
+    const room = this.room(bodyIndex, sink);
+    const taken = this.take(bodyIndex, source, kg < room ? kg : room);
+    return taken > 0 ? this.put(bodyIndex, sink, taken) : 0;
+  }
+
+  /** Fuel on the piece of hull a module is on, kg. */
+  pieceHeld(bodyIndex: number, module: number): number {
+    const pieceOf = this.pieceOf[bodyIndex];
+    const tanks = pieceOf === null || pieceOf === undefined ? undefined : this.tanks[bodyIndex]![pieceOf[module] ?? 0];
+    if (tanks === undefined) return 0;
+    const contents = this.contents[bodyIndex]!;
+    let held = 0;
+    for (let k = 0; k < tanks.length; k++) held += contents[tanks[k]!]!;
+    return held;
+  }
+
+  /** Space left on the piece of hull a module is on, kg. */
+  pieceRoom(bodyIndex: number, module: number): number {
+    const pieceOf = this.pieceOf[bodyIndex];
+    if (pieceOf === null || pieceOf === undefined) return 0;
+    return this.room(bodyIndex, pieceOf[module] ?? 0);
+  }
+
+  /** Space left in one piece's tanks, kg. */
+  private room(bodyIndex: number, piece: number): number {
     const tanks = this.tanks[bodyIndex]![piece];
     if (tanks === undefined) return 0;
+    const contents = this.contents[bodyIndex]!;
+    const full = this.full[bodyIndex]!;
+    let room = 0;
+    for (let k = 0; k < tanks.length; k++) room += full[tanks[k]!]! - contents[tanks[k]!]!;
+    return room;
+  }
+
+  /** Take up to `kg` from one piece's tanks, highest tier first, and say how much there was. */
+  private take(bodyIndex: number, piece: number, kg: number): number {
+    const tanks = this.tanks[bodyIndex]![piece];
+    if (tanks === undefined || !(kg > 0)) return 0;
+    const contents = this.contents[bodyIndex]!;
     const ends = this.tierEnds[bodyIndex]![piece]!;
     const full = this.full[bodyIndex]!;
     const spin = this.spin[bodyIndex]!;
@@ -229,6 +281,50 @@ export class Fuel {
     const supplied = kg - wanted;
     this.burnt[bodyIndex] = this.burnt[bodyIndex]! + supplied;
     return supplied;
+  }
+
+  /**
+   * Put up to `kg` into one piece's tanks, lowest tier first, and say how much
+   * went in. Within a tier in proportion to size, as `take` draws it.
+   */
+  private put(bodyIndex: number, piece: number, kg: number): number {
+    const tanks = this.tanks[bodyIndex]![piece];
+    if (tanks === undefined || !(kg > 0)) return 0;
+    const contents = this.contents[bodyIndex]!;
+    const ends = this.tierEnds[bodyIndex]![piece]!;
+    const full = this.full[bodyIndex]!;
+    const spin = this.spin[bodyIndex]!;
+
+    let wanted = kg;
+    for (let tier = ends.length - 1; tier >= 0 && wanted > 0; tier--) {
+      const start = tier > 0 ? ends[tier - 1]! : 0;
+      const end = ends[tier]!;
+      // A tank that fills before its share is met passes the rest to the others.
+      for (let pass = start; pass < end && wanted > 0; pass++) {
+        let size = 0;
+        for (let k = start; k < end; k++) {
+          const m = tanks[k]!;
+          if (contents[m]! < full[m]!) size += full[m]!;
+        }
+        if (!(size > 0)) break;
+        let given = 0;
+        for (let k = start; k < end; k++) {
+          const m = tanks[k]!;
+          const space = full[m]! - contents[m]!;
+          if (!(space > 0)) continue;
+          const share = (wanted * full[m]!) / size;
+          const give = share < space ? share : space;
+          contents[m] = contents[m]! + give;
+          given += give;
+          this.burntSpin[bodyIndex] = this.burntSpin[bodyIndex]! - give * spin[m]!;
+        }
+        wanted -= given;
+        if (wanted <= kg * 1e-12) wanted = 0;
+      }
+    }
+    const placed = kg - wanted;
+    this.burnt[bodyIndex] = this.burnt[bodyIndex]! - placed;
+    return placed;
   }
 
   /** Fuel burnt from a body's tanks since they were full, kg. */

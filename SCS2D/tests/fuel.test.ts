@@ -16,6 +16,7 @@ import {
   specificImpulse,
   type Blueprint,
   type ShipDesign,
+  weldDesigns,
 } from '../sim/index.js';
 import { designStats, envelopes, moduleReadout } from '../editor/stats.js';
 import { BLUEPRINTS } from '../scenarios/blueprints.js';
@@ -164,6 +165,64 @@ describe('draining tanks', () => {
   it('refuses a drain priority that is not a whole number', () => {
     const modules = TANKER.modules!.map((m, i) => (i === SMALL ? { ...m, drainPriority: 0.5 } : m));
     expect(blueprintProblem({ ...TANKER, modules })).toMatch(/drain priority/);
+  });
+});
+
+describe('pumping fuel between pieces', () => {
+  /** Two tankers hooked bow to bow: the second's modules follow the first's. */
+  function hooked(design = tanker): { fuel: Fuel; design: ShipDesign; n: number } {
+    const welded = weldDesigns(design, design, 0, 20, 0, BIG, BIG, 0.5);
+    const fuel = new Fuel();
+    const carried = welded.modules.map((m) => m.stats.fuel);
+    const n = design.modules.length;
+    // The second piece arrives dry.
+    for (let m = n; m < carried.length; m++) carried[m] = 0;
+    fuel.register(0, welded, carried);
+    return { fuel, design: welded, n };
+  }
+
+  it('moves what it is asked across, and the hull weighs the same', () => {
+    const { fuel, n } = hooked();
+    const left = fuel.left(0);
+    const burnt = fuel.burntMass(0);
+    expect(fuel.transfer(0, ENGINE, n + ENGINE, 100)).toBeCloseTo(100, 6);
+    expect(fuel.left(0)).toBeCloseTo(left, 6);
+    expect(fuel.burntMass(0)).toBeCloseTo(burnt, 6);
+    let other = 0;
+    for (let m = n; m < 2 * n; m++) other += fuel.held(0, m);
+    expect(other).toBeCloseTo(100, 6);
+  });
+
+  it('keeps the inertia a hull holding that fuel would have', () => {
+    const { fuel, design, n } = hooked();
+    fuel.transfer(0, 0, n, 500);
+    const fresh = new Fuel();
+    fresh.register(0, design, Array.from(fuel.contentsOf(0)!));
+    expect(fuel.burntInertia(0)).toBeCloseTo(fresh.burntInertia(0), 3);
+  });
+
+  it('goes no further than the receiver has room for, or the source has', () => {
+    const { fuel, n } = hooked();
+    const full = tanker.modules.reduce((sum, m) => sum + m.stats.fuel, 0);
+    expect(fuel.transfer(0, 0, n, full * 3)).toBeCloseTo(full, 6);
+    expect(fuel.transfer(0, 0, n, 1)).toBe(0);
+    expect(fuel.transfer(0, n, 0, full * 3)).toBeCloseTo(full, 6);
+  });
+
+  it('moves nothing within a piece', () => {
+    const { fuel } = hooked();
+    expect(fuel.transfer(0, 0, ENGINE, 100)).toBe(0);
+  });
+
+  it('fills the tanks burnt last first, and draws as an engine would', () => {
+    const modules = TANKER.modules!.map((m, i) => (i === SMALL ? { ...m, drainPriority: 1 } : m));
+    const { fuel, design, n } = hooked(compileBlueprint({ ...TANKER, modules }));
+    const small = design.modules[SMALL]!.stats.fuel;
+    // Out of the small tank first, into everything but the small tank first.
+    fuel.transfer(0, 0, n, small / 2);
+    expect(fuel.held(0, SMALL)).toBeCloseTo(small / 2, 6);
+    expect(fuel.held(0, n + SMALL)).toBe(0);
+    expect(fuel.held(0, n + BIG)).toBeGreaterThan(0);
   });
 });
 

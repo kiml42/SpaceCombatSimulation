@@ -50,7 +50,7 @@ an entry is either still open or it is gone.
 | 6 | Editor restructuring | Built |
 | 7 | Two layers | Built |
 | 8 | Fuel | Partly built |
-| 9 | Fuel harvesting | Not started |
+| 9 | Docking, fuel transfer and fuel harvesting | Partly built |
 | 10 | Raw material | Not started |
 | 11 | Power | Not started |
 | 12 | In-battle construction | Not started |
@@ -102,6 +102,44 @@ lead, which waits for standing orders. Velocity stays out of the fleet file; the
 - **Fuel in the materials budget** (step 5). Fleet and evolution budgets count full tanks in a ship's mass,
   and that is as far as it goes.
 
+**Step 9 — Docking, fuel transfer and fuel harvesting.** The first salvage, since pumping a liquid needs no
+construction. Fuel is pumped between two pieces of one hull (`Fuel.transfer`), and the claw is built: it
+grips, pumps and lets go (DESIGN.md Status). Every join is a deliberate weld on the existing seam machinery (`Ships.weld`), made by a part of
+its own, and the seam it makes carries a fuel line between the two pieces, which a torn-metal hook does not.
+What is left, in this order, each with a golden scenario of its own and every new doctrine number off by
+default, so no existing golden moves:
+
+1. **A pilot for the claw**, that goes after wrecks for their fuel: the ram's approach with the claw
+   forward, held inside the claw's band of closing speed. Its picker scores wrecks and disarmed enemies by
+   the fuel on the piece it would reach, the distance and the danger near it, and it lets evolution and
+   the stock fleet use claws, whose evolution weight is zero until then. A claw on a live but disarmed
+   enemy needs nothing more: two ships riding one body already pull against each other until the seam
+   goes, so the victim burns the fuel being stolen trying to tear free. The claw is the grapple step 13
+   reuses.
+2. **Pads, and fighters landing on them.** A pad is a part on a deck. A fighter docks on it from the
+   weapons layer, never committing — the two meet at the boundary between the layers — when the
+   fighter's bounding box lies wholly inside the pad's rectangle and it is closing slowly. Fuel goes to
+   the fighter. This is the case that leaves every Dinky in `swarm` dry before it reaches the gunships.
+3. **Ports, and a tanker.** A port is a fixture on a hull's side, and two ports mate face to face, closing
+   slowly. Station-keeping a point on one's own edge onto a point on another's is the hardest pilot of
+   the three, so it comes last; a tanker also wants step 3's withdrawal to keep it clear of the fight.
+
+**Throughout:**
+- **Claw and port are separate parts**, so the part shows intent; a vampire tanker that both steals and
+  gives carries both.
+- **A deliberate dock holds harder than a hook on torn metal.** Its seam is rated stronger than a debris
+  weld's.
+- **The smaller of two docked ships idles**: its pilot cuts its engines and the larger flies the body.
+  Whether the larger should fly the smaller's engines as its own is open (§12).
+- **Which way fuel flows**: a claw always takes. Across a pad or a port, fuel goes into a docked ship
+  that is refuelling and out of a docked friendly while it holds more than its own reserve.
+- **Letting go** cuts the dock's seam deliberately, along the path a torn seam takes. The dock then
+  ignores its mate until the two are clear. A ship lets go when it is full, when the source runs dry or
+  when a threat comes close.
+- **Doctrine**: a share of a full load below which a ship goes looking for fuel, one at which it stops,
+  a reserve a giver keeps, and a weight against the danger near a source. The pilot may cost more than
+  the parts.
+
 ### Not started — in order
 
 Steps 9 to 13 walk into the resource system one resource and one use at a time, fuel first (partly built,
@@ -114,11 +152,6 @@ with its size — so a bare core with one engine or one weapon can act, and a bi
 Today the best core is the smallest, most armoured one that can hide from a hit; this gives size a price in
 both directions.
 
-9. **Fuel harvesting** — siphoning what is left in a wreck, the first salvage, since pumping a liquid needs no
-   construction. It needs a part that holds a wreck to drain it, and a pilot that goes after one: an order or
-   picker for a wreck with fuel left, and a judgement about when to break off for it, close to step 3's
-   withdrawal. The pilot may cost more than the part.
-   Also ships running out of fuel should be able to dock with a ship that has plenty an take some. Particularly relevant for fighters. Fighters should be able to dock on pads in the hull layer. Ships docking together should have docking fixtures on the side of the hull.
 10. **Raw material** — a store of metal, spent as ammunition and on repair. It answers §12's ammunition
     granularity and brings in the other half of §2's scarcity.
 11. **Power** — a generator that beams draw on, refilling each mount's bank at what the plant can spare, and a
@@ -515,9 +548,6 @@ Deliberately unresolved; decide when they block something.
 - **How hard a leak pushes.** The jet leaves at what the tank's pressure gives it, a few tens of metres a
   second, so a shell's gash pushes with about 20 kN, a twentieth of a corvette's manoeuvring engine. Fuel that boils
   as it leaves would go faster and push harder; nothing models what the fuel does once it is out.
-- **Whether a grapple is a dock.** Step 9's hold on a wreck is a deliberate dock. Suggested: build it as a
-  claw on the ragged-metal weld (`Ships.weld`), with the claw's own rules for what it may grip — or decide
-  on purpose that a tether is something else.
 - **Whether harvesting wrecks should come before construction.** Once metal has uses (rounds and repair) and
   a grapple exists, harvesting could come straight after step 10, keeping each step small and leaving
   construction, the largest, until last. The order built puts construction first, as the big use metal is
@@ -761,19 +791,17 @@ Deliberately unresolved; decide when they block something.
   impact untouched. A real crush spreads: the plating either side of a rammed bow buckles too. Doing it
   needs a rule for how much reaches a neighbour and a way to walk the connectivity graph outward from the
   contact, neither hard, and neither worth guessing at before there is something to watch it on.
-- **Docking ports and claws.** Welding is built for ragged metal only: two bodies meeting at under
-  `WELD_SPEED` with a module on either torn past `RAGGED_INTEGRITY` become one body joined by a seam that
-  carries no command, and two ships hooked that way both ride it (DESIGN.md §4). A port or a claw is how a
-  live ship joins on purpose, with rules of its own — which parts
-  mate, whether the pair shares command, how a dock lets go — and is what makes §3's landing a landing.
+- **Whether a larger docked ship flies the smaller's engines.** For now the smaller of two docked ships idles
+  and the larger flies the body on its own engines (§8 step 9). Two ships that have agreed to dock could
+  instead share them: the larger solving its allocation over both hulls' engines while docked, a carrier
+  manoeuvring on its fighters' thrust. It needs command to cross a deliberate dock's seam where it crosses
+  no other, and an allocation solved for the joined design rather than once per blueprint.
 - **What else decides a ram.** Only range and remaining armament for now, to see how it behaves first.
   Candidates: the target's mass against the rammer's, how much damage either has taken, the doctrine's
   aggression.
 - **Ramming a mount without committing.** A fighter going for a turret or a thick module is after
   something in the weapons layer already, so it could ram it without taking the hull layer. Waits on
   targeting picking modules rather than ships.
-- **When a ship decides to dock.** Docking is a commit at a low closing speed, but nothing wants to dock
-  until fuel gives it a reason (step 8 on). Decide with the docking ports below.
 - **What a bigger core is for.** A core needs a cubic metre for its computing and the rest of it is fuel
   tank, so past that size it is a tank that also flies the ship, paying for its computing by the floor it
   fills (`CORE_MASS_PER_AREA`). A tank does the fuel's job for less, so the best core is the smallest that
@@ -810,6 +838,7 @@ Deliberately unresolved; decide when they block something.
 - Whether the mothership's build priorities are a doctrine blob (so async PvP competes on them) or
   a player-driven queue.
 - Concrete values, now that the units are settled: budgets, engagement ranges, timestep, the weld
-  dials (`WELD_SPEED`, `RAGGED_INTEGRITY`, `WELD_SETTLE`, `HOOK_SHARE`), edit-distance bounds, muzzle velocities, armour densities, and how hard a plume
+  dials (`WELD_SPEED`, `RAGGED_INTEGRITY`, `WELD_SETTLE`, `HOOK_SHARE`), the claw's (its speed band, `CLAW_GRIP_CHANCE`,
+  `CLAW_BITE`, `CLAW_PUMP_PER_METRE`, `DOCK_HOLD`), edit-distance bounds, muzzle velocities, armour densities, and how hard a plume
   burns (`PLUME_POWER_PER_NEWTON`, chosen for a timescale rather than derived).
 - Project name.

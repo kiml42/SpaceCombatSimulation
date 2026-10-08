@@ -598,7 +598,20 @@ inside any one file is not contiguous.
   core may have a self-sealing lining (`sealing`, set in the editor in millimetres): it weighs and takes room
   from the fuel, and closes a hole steadily, faster the thicker it is, up to ten times its own thickness
   across — a wider hole narrows by that much and stays open. None by default, and none never seals. The editor has a Tank, and shows an engine's Isp and fuel flow, a tank's fuel,
-  and a ship's fuel, endurance flat out and Δv. Every stock ship has one or more modules made tanks.
+  and a ship's fuel, endurance flat out and Δv. Every stock ship has one or more modules made tanks. Fuel can
+  be pumped between two pieces of one hull (`Fuel.transfer`): drawn from the source as an engine draws it,
+  and put into the receiver's lowest drain priority first, the hull's mass unchanged and its inertia following
+  the fuel. **A claw** (`claw`) is a box with jaws on its bow face and a pump behind them, pumping
+  `CLAW_PUMP_PER_METRE` for every metre of its width. It closes on whatever its bow meets within 45° — a
+  wreck's or an enemy's module, sound or torn, never a friend's — at a closing speed up to `CLAW_SPEED_MAX`
+  (8 m/s), by chance: certain on a spent module, `CLAW_GRIP_CHANCE` on a sound one, best between
+  `CLAW_SPEED_LOW` and `CLAW_SPEED_HIGH` (1 and 4 m/s) and falling off either side (`clawChance`). A miss waits
+  `CLAW_RETRY`. Closing takes `CLAW_BITE` of the module's capacity, and the two become one body joined by a
+  seam across the claw's whole jaw that holds `DOCK_HOLD` times a hook's. While the claw works it pumps
+  what the other piece holds into its own (`Ships.pump`), and once its piece is full or the other dry it lets
+  go, cutting the seam. Gripping a live enemy makes the two ride one body, pulling against each other. A
+  claw grips only for fuel it has room for. Nothing flies one yet, so evolution's weight for it is zero;
+  the `salvage` scenario drifts two leeches into wrecks.
 - **Next:** the rest of §8 step 8 — leaks, and pilots that know their fuel — and of step 5: a materials
   budget, and designed scenarios.
   See ROADMAP.md §8.
@@ -778,8 +791,11 @@ Rules:
   craft reaches the hull layer — so a pure kinetic-kill vehicle needs no warhead at all.
 
   **Ram versus dock is a closing speed**: under the §4 weld threshold a craft has landed, over it the
-  craft has rammed. What it lands *with* is a docking port or a claw, which have rules of their own
-  (ROADMAP.md §12); the weld built so far hooks only torn metal, so a sound craft just bounces.
+  craft has rammed. What it lands *with* is a pad, a port or a claw, each with rules of its own (ROADMAP.md
+  §8 step 9); the weld built so far hooks only torn metal, so a sound craft just bounces. **A fighter lands
+  on a pad without committing**: the pad is on the deck and the fighter above it, and they meet at the
+  boundary between the layers, so landing is not an exception to the occupancy rule. A claw takes at a
+  faster contact than a landing, and short of a ram.
 
   In implementation this is one bit per body — *hull collision enabled* — read by the collision filter,
   plus a guard on changing it. **A projectile carries one bit, fixed when it is fired**: the layer of the

@@ -883,6 +883,8 @@ export function startEvolution(): void {
           hullGun: Math.max(0, number(get('kindHullGun'), DEFAULT_KINDS.hullGun)),
           hullBeam: Math.max(0, number(get('kindHullBeam'), DEFAULT_KINDS.hullBeam)),
           core: Math.max(0, number(get('kindCore'), DEFAULT_KINDS.core)),
+          // No box until a pilot can use one (ROADMAP.md §8 step 9).
+          claw: DEFAULT_KINDS.claw,
         },
         doctrine: {
           targeting: Math.max(0, number(get('doctrineTargeting'), DEFAULT_DOCTRINE_WEIGHTS.targeting)),

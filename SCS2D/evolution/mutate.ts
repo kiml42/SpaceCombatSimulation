@@ -215,6 +215,8 @@ export const DEFAULT_KINDS: KindWeights = {
   hullGun: 2,
   hullBeam: 1,
   core: 1,
+  // Never, until a pilot knows what to do with one (ROADMAP.md §8 step 9).
+  claw: 0,
 };
 
 /**

@@ -607,6 +607,18 @@ export const BEAM_MASS_PER_WATT = 1e-4;
 export const CORE_MASS_PER_AREA = 150;
 
 /**
+ * A claw's jaws and pump per square metre of its floor, kg/m². Heavier than a
+ * core's racks: it is machinery that closes on a hull and holds it.
+ */
+export const CLAW_MASS_PER_AREA = 250;
+
+/**
+ * What a claw pumps per metre of its jaw, kg/s. Its jaw is its bow face, so a
+ * wider claw grips more and pumps faster.
+ */
+export const CLAW_PUMP_PER_METRE = 50;
+
+/**
  * Least a core's machinery can weigh, kg, however small the compartment.
  *
  * Every ship in this game is computer-flown, so a core is a processor, its
@@ -653,7 +665,8 @@ export type ModuleKind =
   | 'turret'
   | 'beamTurret'
   | 'hullGun'
-  | 'hullBeam';
+  | 'hullBeam'
+  | 'claw';
 
 /**
  * Every archetype there is, in one order.
@@ -676,6 +689,7 @@ export const MODULE_KINDS: readonly ModuleKind[] = [
   'beamTurret',
   'hullGun',
   'hullBeam',
+  'claw',
 ];
 
 /**
@@ -1041,6 +1055,8 @@ export interface ModuleStats {
    * hull trains briskly through the very little arc it has.
    */
   swingInertia: number;
+  /** Fuel a claw pumps across what it grips, kg/s. Zero unless the module is a claw. */
+  pumpRate: number;
 }
 
 /**
@@ -2162,6 +2178,9 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
     // carrying five of them.
     fittingMass = max(CORE_MINIMUM_FITTING_MASS, CORE_MASS_PER_AREA * capacity) + liningMass;
     fuel = max(0, interior - CORE_COMPUTING_VOLUME) * FUEL_DENSITY;
+  } else if (spec.kind === 'claw') {
+    // Jaws on the bow face and a pump behind them, priced by the floor they fill.
+    fittingMass = CLAW_MASS_PER_AREA * capacity;
   } else if (spec.kind === 'tank') {
     // A box whose whole interior is fuel. It packs the box as the box formula
     // assumes, so the inertia below already holds it.
@@ -2337,6 +2356,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
     gun,
     traverseMass,
     swingInertia: mount === null ? inertia : swing,
+    pumpRate: spec.kind === 'claw' ? CLAW_PUMP_PER_METRE * width : 0,
   };
 }
 
