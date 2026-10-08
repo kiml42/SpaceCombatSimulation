@@ -60,18 +60,13 @@ an entry is either still open or it is gone.
 
 ### Partly built — what is left
 
-**Step 3 — Doctrine and orders.** What the step deferred, plus one thing using it turned up:
+**Step 3 — Doctrine and orders.** What the step deferred:
 
 - **Withdrawal** — a craft breaking off. **And keeping clear in the first place**: an unarmed ship — a fuel
   tanker, once there is fuel to carry — wants a doctrine that moves it away from armed enemies rather than
   towards a target, a weight against each by how dangerous it is and how close, so a support ship stays
   behind its fleet without being ordered to. An unarmed ship with a ram doctrine already picks targets (a
   torpedo); one without one currently does nothing at all.
-- **Only the main battery takes its ship's orders.** An order is currently a mandate: every mount that can
-  train on the ordered target takes it. That is right for a main gun (`ModuleSpec.main`) and wrong for
-  anything else, which should ignore the order and pick by its own doctrine, so a close-in mount goes on
-  swatting whatever is about to hit the ship while the hull is ordered onto something big. It moves the
-  goldens of every scenario that issues an order, which is why it is a piece of work of its own.
 
 **Step 5 — v1: skirmish.** A fixed budget of *materials* rather than of points (§12), and designed
 scenarios. *This is the first thing worth giving people to play.* Designed scenarios are where the §12
@@ -214,7 +209,7 @@ What is left of the step should follow the shape already there:
 - **The ship picks a manoeuvre target and each mount picks its own firing target**, through the same stack,
   measured from the gun rather than the hull. Re-picking runs on an interval *derived* from the hull or mount
   rather than configured.
-- **An order outranks doctrine for every mount that takes it**, doctrine being strictly a fallback: when doctrine landed, only the
+- **An order outranks doctrine for every mount that takes it** — the main battery — doctrine being strictly a fallback: when doctrine landed, only the
   scenarios that give no orders moved.
 - **A gun fires at what its barrel was trained on**, recorded when it is trained — the hull turns between
   training and firing, and working the target out afresh at the trigger once had fighters firing over their

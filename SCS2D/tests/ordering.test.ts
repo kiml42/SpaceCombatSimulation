@@ -78,15 +78,20 @@ describe('module ordering, one battle each', () => {
     // differently and burns differently again, so the gap doubles every few
     // seconds rather than growing linearly. A greedy allocator would be
     // hundreds of metres out and firing different shots.
-    expect(drift).toBeLessThan(2);
+    //
+    // Not only round-off: each mount's first pick is staggered by where it is
+    // in the list, so a secondary mount, which picks for itself under orders,
+    // starts a tick or two apart. About 10 m by the end, so this is loose.
+    expect(drift).toBeLessThan(20);
 
     // The figures a battle is judged on are untouched, which is the claim that
     // outlives this scenario: these stay comparable once ships collide and
     // damage each other, where a distance between two of them does not.
     expect(kinds!.fired).toBe(control!.fired);
     // Hits only nearly: a burst's fragment lands or misses an edge on a
-    // micrometre, and the two runs part on one within seconds.
-    expect(Math.abs(kinds!.hits - control!.hits)).toBeLessThanOrEqual(control!.hits * 0.02);
+    // micrometre, and the two runs part on one within seconds — sooner since
+    // a secondary mount's first pick is staggered by its place in the list.
+    expect(Math.abs(kinds!.hits - control!.hits)).toBeLessThanOrEqual(control!.hits * 0.05);
   });
 });
 

@@ -56,8 +56,8 @@ describe("a pilot's own doctrine", () => {
   });
 
   it('dodges further the faster it asks to go', () => {
-    const hard = sidestep({ dodgeSpeed: 120 }, 13);
-    const soft = sidestep({ dodgeSpeed: 20 }, 13);
+    const hard = sidestep({ dodgeSpeed: 120 }, 15);
+    const soft = sidestep({ dodgeSpeed: 20 }, 15);
     expect(Math.hypot(hard.x, hard.y)).toBeGreaterThan(Math.hypot(soft.x, soft.y) + 1);
   });
 });

@@ -171,7 +171,9 @@ inside any one file is not contiguous.
   would otherwise park on one forever. What size of target a craft goes for is a ratio to its own mass — one meaning
   "something my own size", which sends a fighter after fighters and a capital after capitals without
   either being told. An order given always outranks it, so doctrine is a fallback and never
-  a second voice. How it closes is doctrine too, down a stopping curve: it speeds up on `accelerate` of
+  a second voice — for the ship and its main battery. **A secondary mount ignores orders** and picks by its
+  own doctrine, so a close-in gun goes on swatting whatever is about to hit the ship while the hull is
+  ordered onto something big. How it closes is doctrine too, down a stopping curve: it speeds up on `accelerate` of
   the thrust it has towards the band, holds `approachSpeed`, and starts braking where `brake` of what it
   has the other way will just stop it at the edge — both read off the layout in the heading it is
   holding, so a hull that keeps its guns on target brakes on its retros. The `standoff` scenario is the evidence: two fleets a kilometre apart, not one order
@@ -600,8 +602,7 @@ inside any one file is not contiguous.
 - **Next:** the rest of §8 step 8 — leaks, and pilots that know their fuel — and of step 5: a materials
   budget, and designed scenarios.
   See ROADMAP.md §8.
-  §8 step 3 is done bar withdrawal and only the main battery taking orders,
-  and step 7, two layers, is built. What a chooser is already facing (`facingWeight`) and whether anything is in the way
+  §8 step 3 is done bar withdrawal, and step 7, two layers, is built. What a chooser is already facing (`facingWeight`) and whether anything is in the way
   (`sightWeight`) are weights, zero by default. Evolution is built and runs both headlessly and on a page
   of its own; what it has left open is in ROADMAP.md §12, the arena radius being an absolute where a ratio
   belongs chief among them. ROADMAP.md §8 lists what is left of each partly built step, then the steps not started. The blueprint
