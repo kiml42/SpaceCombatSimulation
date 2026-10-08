@@ -174,8 +174,7 @@ describe('blueprint validation', () => {
   describe('an engine may be held on any way round', () => {
     // An engine carries the machinery it needs, so what it is bolted to is
     // nobody's business but the layout's: it is held on like any other module,
-    // and the only rule left about where one may go is the one every module
-    // obeys — it has to be attached to the ship.
+    // by its block — the bell, like a hull weapon's barrel, holds nothing.
     const hull = core(0, 0, 10, 4);
     // Given the way it pushes; an engine faces the other way, along its bell.
     const engine = (pushing: number): ModuleSpec => ({
@@ -191,21 +190,23 @@ describe('blueprint validation', () => {
       expect(blueprintProblem({ name: 'Right', modules: [hull, engine(0)] })).toBeNull();
     });
 
-    it('accepts one mounted back to front, or held on by its bell', () => {
-      // Both were refused while an engine was a nozzle on the end of a
-      // mounting. A ship that points its exhaust at its own hull is a bad
-      // design rather than an impossible one, and the plume that lands on the
-      // hull is what says so.
-      expect(
-        blueprintProblem({ name: 'Backwards', modules: [hull, { ...engine(PI), x: -7 }] }),
-      ).toBeNull();
-      const bellFirst: ModuleSpec = { kind: 'engine', x: -9, y: 0, angle: 0, length: 4, width: 4 };
-      expect(blueprintProblem({ name: 'Bell', modules: [hull, bellFirst] })).toBeNull();
+    it('accepts one held on along its block, any way round', () => {
+      // Beside the hull, pushing forward, welded by the side of its block.
+      const beside: ModuleSpec = { kind: 'engine', x: 0, y: -4, angle: Math.PI, length: 2, width: 4 };
+      expect(blueprintProblem({ name: 'Beside', modules: [hull, beside] })).toBeNull();
     });
 
-    it('accepts one bolted to another engine or to a gun', () => {
-      const stack: ModuleSpec = { kind: 'engine', x: -7, y: 0, angle: Math.PI, length: 2, width: 4 };
-      expect(blueprintProblem({ name: 'Stacked', modules: [hull, engine(0), stack] })).toBeNull();
+    it('refuses one held on only by its bell, as a hull weapon is never held by its barrel', () => {
+      // A bell is sheet metal in the exhaust: anything hung from it sits in
+      // the flame, so it is not somewhere to hang a ship from.
+      expect(blueprintProblem({ name: 'Backwards', modules: [hull, { ...engine(PI), x: -7 }] })).toMatch(/touches nothing/);
+      const bellFirst: ModuleSpec = { kind: 'engine', x: -9, y: 0, angle: 0, length: 4, width: 4 };
+      expect(blueprintProblem({ name: 'Bell', modules: [hull, bellFirst] })).toMatch(/touches nothing/);
+    });
+
+    it('accepts one bolted to another engine by their blocks', () => {
+      const bank: ModuleSpec = { ...engine(0), y: 4 };
+      expect(blueprintProblem({ name: 'Bank', modules: [hull, engine(0), bank] })).toBeNull();
     });
 
     it('still rejects one floating free of the ship', () => {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { compileBlueprint, joints } from '../sim/index.js';
+import { cuts } from '../sim/connectivity.js';
 import { CATAMARAN } from '../scenarios/blueprints.js';
 import { split } from '../scenarios/split.js';
 
@@ -31,8 +32,12 @@ describe('the Catamaran', () => {
     });
     expect(bridge.length).toBeGreaterThan(3);
 
+    // Against the welds a hull hangs anything from: one with a second load
+    // path beside it, as an engine welded along its block to a girder and by
+    // its back to a tank, parts nothing by letting go.
+    const holding = cuts(catamaran);
     const weakestHull = Math.min(
-      ...welds.filter((j) => !bridge.includes(j)).map((j) => j.strength),
+      ...welds.filter((j, k) => !bridge.includes(j) && holding[k] !== null).map((j) => j.strength),
     );
     const strongestBridge = Math.max(...bridge.map((j) => j.strength));
     expect(strongestBridge).toBeLessThan(weakestHull);

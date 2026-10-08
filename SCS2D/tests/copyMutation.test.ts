@@ -15,7 +15,7 @@ describe('copying an engine', () => {
     // that face was the bell's: most copied engines stacked up end to end.
     let copies = 0;
     for (const name of ['corvette', 'gunship', 'beamCorvette', 'catamaran', 'torch'] as const) {
-      for (const seed of [1, 2, 3]) {
+      for (const seed of [1, 2, 3, 4, 5]) {
         const rng = new Rng(seed * 7919 + name.length);
         let held: Blueprint = BLUEPRINTS[name];
         for (let g = 0; g < 300; g++) {
