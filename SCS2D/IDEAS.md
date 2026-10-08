@@ -1,6 +1,8 @@
 # Bugs
 Things that are obviously wrong.
 
+- Fuel tanks should stop supplying fuel when they are too damaged.
+
 -----------------------------------------------------------------------
 
 # Balance
@@ -19,6 +21,7 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Consider width and length as interchangeable for calculating turret stats. They should be based on teh size of the turret on top (based on the smaller dimension) and the area within the volume of the box underneath.
 - Only the dome of turrets should be in the turret layer, the box should be wholly in the hull layer.
 - Beams from thick hull beams could be treated as a separate beam in each layer. Damage against a thick module stays the same, but is halved against a hull layer module or fighter, with the other half continuing, able to hit something else.
+- Hysteresis on decision to use attack or thrust orientation, to avoid flip-flopping.
 
 ## Editor
 - Test button - switches to the game view, with the ship loaded into a default scene with one other stock ship, each given basic orders to attack each other.
@@ -63,3 +66,6 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Cap projectile rendering at the point they hit, so a streak does not overlap the target it struck. (The muzzle end is capped.)
 - Add a ship to a running battle, for quick testing. Dropdown in the corner to choose a ship to add to the battle. click and drag to chose position and velocity (position from first click, drag to N seconds worth of distance for the initial velocity.) Ship is instantly spawned when you let go.
 - A selected ship's framing could take in what it is escorting or keeping clear of, as well as its target.
+- Fuel tanks should still show their fuel level when damaged
+- The ship name on cores should rotate and scale with the ship, as if it is literally written on the hull.
+- Use time scale buttons instead of a slider (0.25, 0.5, 1, 2, 4, 8, 16)
