@@ -627,12 +627,6 @@ Deliberately unresolved; decide when they block something.
 - **Whether exhaust should know about layers.** A plume burns every module it reaches, in either layer, and
   a thick engine's exhaust is still blocked by deck structure behind it. Left as it was, because nothing
   yet makes the difference matter.
-- **How turret fleets fight craft they cannot see.** A thin engine is in the hull layer only, so a ship
-  whose engines are all under a deck across can be disabled only by hull weapons, and a craft built
-  wholly of such modules, like the Dinky, cannot be touched by a turret at all. Designs answer it for
-  now: the Corvette and Gunship carry hull guns at the bow, and turret tests use fixture ships
-  (`tests/fixtures.ts`) with a turret in place of the hull gun. Step 7's exploding shells and fighter
-  flag are the answer (§8).
 - **What a ship does about an enemy none of its guns can reach.** Choosing what to fight ignores layers,
   so a ship can pick an enemy every one of its mounts finds nothing reachable on. It then holds its band
   round that enemy, holding fire, for as long as the enemy lasts. The alternatives are to pass such an
@@ -663,27 +657,6 @@ Deliberately unresolved; decide when they block something.
   worth fighting rather than a formality, and it is the drifting hulk §3 wants and the salvage of §8 steps 9 and 13
   feeds on. Worth knowing that `hasFullAuthority()` is called by the editor's stats and tests and never by
   the sim, so a damaged ship failing it costs nothing — it looks like it would matter and does not.
-- **How a gun reaches the hull layer at all: proximity fuses.** §3 says HE shells give small guns light hull
-  damage and lasers cannot, which is a stipulated asymmetry with no mechanism under it. A fused round has
-  one: it detonates at a point, the blast reaches down into the hull layer, and the damage disperses with
-  distance, so guns hurt hulls slowly rather than not at all — a gradient rather than the hard immunity §3
-  says frustrates players.
-  It is worth preferring for a reason beyond that. A laser has no fuse, and therefore no mechanism to reach
-  the hull layer, so §3's asymmetry stops being a rule and becomes a consequence. And self-damage stays
-  geometric rather than arbitrary: a fuse going off near a target that is close to your own hull will blast
-  your own hull, which makes point-blank defensive fire genuinely risky without any "once it is clear of its
-  own ship" rule to write.
-  Two notes for whoever builds it. The primitives exist: `segmentCircleT` already answers "at what fraction
-  along this swept segment do I come within `r` of this point", and the grid already has `queryCircle` for
-  the blast. And there is a fork worth deciding early — a **timed** fuse is nearly free, since `interceptTime`
-  already computes when the round should arrive, but it detonates in the wrong place on a miss, which is
-  exactly when a fuse was supposed to earn its keep; a true proximity fuse costs a check per round per step.
-  The cheap middle is to arm on the timer and detonate on first proximity within a short window, so the
-  check runs only while armed.
-  A fuse is a delivery mechanism and the damage model it delivers into exists, so nothing blocks it.
-  **Decided (§8 step 7): timed first**, set shortly before the aim point, bursting into sub-munitions in
-  the hull layer. Proximity detonation and an area cloud wait until the timed version shows they are
-  wanted.
 - **Whether the remaining authored data lives in files rather than in code.** Blueprints do: they are JSON,
   parsed by `sim/blueprintFile.ts`, and the shipped ships go through exactly the validation a stranger's file
   does. What has not moved is `tests/fixtures/scenarios.ts`, and §9's promise of
