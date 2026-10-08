@@ -1278,6 +1278,8 @@ export class Ships {
     if (b < 0) return;
 
     const focus = this.focusOf(i);
+    // A secondary mount ignores orders, so converges on what doctrine chose.
+    const ownFocus = this.chosenOf(i);
 
     for (let t = 0; t < indices.length; t++) {
       // A mount another ship on this body works is that ship's to aim.
@@ -1395,7 +1397,7 @@ export class Ships {
             : candidate;
         (candidate.range > against ? this.farChoice : clear ? this.choice : this.maskedChoice).offer(
           judged,
-          score(doctrine, candidate, against, design.mass, targets[t]!, focus),
+          score(doctrine, candidate, against, design.mass, targets[t]!, mount.main ? focus : ownFocus),
         );
       }
       // Something it can fire at first; then what is in reach but behind its
@@ -1723,6 +1725,11 @@ export class Ships {
   private focusOf(i: number): number {
     const given = this.getCurrentOrder(i);
     if (given !== undefined) return given.target;
+    return this.chosenOf(i);
+  }
+
+  /** What this ship's doctrine chose to fight, orders aside; `NO_TARGET` for nothing. */
+  private chosenOf(i: number): number {
     const fighting = this.chosen[i]!;
     return fighting !== NO_TARGET && this.alive[fighting] === 1 ? fighting : NO_TARGET;
   }
@@ -1730,13 +1737,14 @@ export class Ships {
   /**
    * What one mount is shooting at.
    *
-   * An order given is an order obeyed, so a mount that can train on the
-   * ordered target takes it; one that cannot is not left idle for the sake of
-   * it, and fights what it can reach. With nothing ordered this is whatever
-   * the mount picked for itself.
+   * An order given is an order obeyed by the main battery, so a main mount
+   * that can train on the ordered target takes it; one that cannot is not left
+   * idle for the sake of it, and fights what it can reach. A secondary mount
+   * ignores orders, so a close-in gun goes on swatting whatever is about to
+   * hit the ship. Otherwise this is whatever the mount picked for itself.
    */
   private turretAim(bodies: Bodies, i: number, t: number): number {
-    const given = this.getCurrentOrder(i);
+    const given = this.designs[i]!.turrets[t]!.main ? this.getCurrentOrder(i) : undefined;
     let tracksGiven = false;
     if (given !== undefined && given.target !== NO_TARGET && this.alive[given.target] === 1) {
       const tb = bodies.indexOf(this.bodyIds[given.target]!);

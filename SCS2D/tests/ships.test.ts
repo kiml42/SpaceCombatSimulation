@@ -14,7 +14,8 @@ import {
   DEFAULT_DOCTRINE,
 } from '../sim/index.js';
 import { BEAM_GUNSHIP, DINKY } from '../scenarios/blueprints.js';
-import { TURRET_CORVETTE, TURRET_GUNSHIP } from './fixtures.js';
+import { makeBattle } from '../scenarios/battle.js';
+import { allMain, TURRET_CORVETTE, TURRET_GUNSHIP } from './fixtures.js';
 import { OrderCancelCondition } from '../sim/ships.js';
 import { DAMAGE_ENERGY_PER_KG } from '../sim/damage.js';
 
@@ -22,6 +23,8 @@ const DT = 1 / 60;
 
 const corvette = compileBlueprint(TURRET_CORVETTE);
 const gunship = compileBlueprint(TURRET_GUNSHIP);
+/** Every mount takes an order, so an ordered target draws a full salvo. */
+const salvoGunship = compileBlueprint(allMain(TURRET_GUNSHIP));
 const beamGunship = compileBlueprint(BEAM_GUNSHIP);
 const dinky = compileBlueprint(DINKY);
 
@@ -332,7 +335,7 @@ describe('gunnery', () => {
     // arithmetic is exact rather than approximate: a round created at rest
     // carries no hull momentum away with it.
     const r = rig();
-    const ship = r.ships.spawn(r.world, { design: gunship, x: 0, y: 0 });
+    const ship = r.ships.spawn(r.world, { design: salvoGunship, x: 0, y: 0 });
     const enemy = r.ships.spawn(r.world, { design: corvette, x: MARK_RANGE, y: 0 });
     r.ships.pushOrder(ship, enemy, MARK_RANGE - 100, MARK_RANGE + 100, 10, OrderCancelCondition.None);
 
@@ -364,7 +367,7 @@ describe('gunnery', () => {
     // across the line of fire — a bias in one direction, not scatter.
     const r = rig();
     const spin = 0.2;
-    const ship = r.ships.spawn(r.world, { design: gunship, x: 0, y: 0 });
+    const ship = r.ships.spawn(r.world, { design: salvoGunship, x: 0, y: 0 });
     const enemy = r.ships.spawn(r.world, { design: corvette, x: MARK_RANGE, y: 0 });
     r.ships.pushOrder(ship, enemy, MARK_RANGE - 100, MARK_RANGE + 100, 10, OrderCancelCondition.None);
 
@@ -399,7 +402,7 @@ describe('gunnery', () => {
 
       // Every gun on this design shares a calibre-derived muzzle speed only
       // per mount, so check against the mount that matches.
-      const speeds = gunship.turrets.map((t) => t.gun.muzzleSpeed);
+      const speeds = salvoGunship.turrets.map((t) => t.gun.muzzleSpeed);
       const nearest = speeds.reduce((a, c) =>
         math.abs(c - speed) < math.abs(a - speed) ? c : a,
       );
@@ -410,7 +413,7 @@ describe('gunnery', () => {
       // mount's muzzle is offset from the axis it fires along, so the two only
       // agree when the centre of mass happens to sit on that axis, and any
       // change to a module's mass moves it off.
-      const bearings = gunship.turrets.map((_, t) => {
+      const bearings = salvoGunship.turrets.map((_, t) => {
         const ti = r.ships.turretIndexOf(0, t);
         return bodies.angle[b]! + r.ships.turrets.bearing[ti]!;
       });
@@ -795,5 +798,31 @@ describe('a queue of orders', () => {
     r.ships.clearOrder(ship);
     expect(r.ships.orderCount(ship)).toBe(0);
     expect(r.ships.getCurrentOrder(ship)).toBeUndefined();
+  });
+});
+
+describe('who takes an order', () => {
+  it('is the main battery: a secondary mount goes on fighting what it chose', () => {
+    // Ordered onto a corvette a kilometre east, with another close in to the
+    // west. Every mount here can train either way.
+    const battle = makeBattle({ seed: 4 }, (ships, world) => {
+      const mine = ships.spawn(world, { design: gunship, x: 0, y: 0, team: 0 });
+      const ordered = ships.spawn(world, { design: corvette, x: MARK_RANGE, y: 0, team: 1 });
+      ships.spawn(world, { design: corvette, x: -150, y: 0, angle: Math.PI, team: 1 });
+      ships.pushOrder(mine, ordered, MARK_RANGE - 100, MARK_RANGE + 100, 10, OrderCancelCondition.None);
+      return { mine };
+    });
+    for (let s = 0; s < 600; s++) battle.step();
+
+    const bodies = battle.world.bodies;
+    const b = bodies.indexOf(battle.ships.body(battle.mine));
+    const east = (t: number): boolean =>
+      math.cos(bodies.angle[b]! + battle.ships.turrets.bearing[battle.ships.turretIndexOf(battle.mine, t)]!) > 0;
+    const mains = gunship.turrets.map((m, t) => (m.main ? t : -1)).filter((t) => t >= 0);
+    const secondaries = gunship.turrets.map((m, t) => (m.main ? -1 : t)).filter((t) => t >= 0);
+    expect(mains.length).toBeGreaterThan(0);
+    expect(secondaries.length).toBeGreaterThan(0);
+    for (const t of mains) expect(east(t)).toBe(true);
+    for (const t of secondaries) expect(east(t)).toBe(false);
   });
 });
