@@ -13,6 +13,7 @@ import {
 } from '../scenarios/customBattle.js';
 import { battleFragment } from '../scenarios/battleLink.js';
 import { el } from './dom.js';
+import { max } from '../sim/math.js';
 
 /**
  * The viewer's custom battle panel: which fleets, how far apart, how fast, and
@@ -207,16 +208,16 @@ export function customPanel(changed: () => void, fight: () => void): CustomPanel
   };
   const setup = (): BattleSetup => ({
     fleets: slots.map((slot) => slot.fleet),
-    range: Math.max(1, number(range, DEFAULT_SETUP.range)),
+    range: max(1, number(range, DEFAULT_SETUP.range)),
     closingSpeed: number(closing, DEFAULT_SETUP.closingSpeed),
     crossingSpeed: number(crossing, DEFAULT_SETUP.crossingSpeed),
     rotation: degreesToRadians(number(rotation, 0)),
     seed: Math.round(number(seed, DEFAULT_SETUP.seed)),
     spread: {
-      range: Math.max(0, number(rangeSpread, 0)),
-      closingSpeed: Math.max(0, number(closingSpread, 0)),
-      crossingSpeed: Math.max(0, number(crossingSpread, 0)),
-      rotation: degreesToRadians(Math.max(0, number(rotationSpread, 0))),
+      range: max(0, number(rangeSpread, 0)),
+      closingSpeed: max(0, number(closingSpread, 0)),
+      crossingSpeed: max(0, number(crossingSpread, 0)),
+      rotation: degreesToRadians(max(0, number(rotationSpread, 0))),
     },
   });
 
