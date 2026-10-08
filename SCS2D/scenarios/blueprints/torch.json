@@ -86,6 +86,7 @@
           "width": 8,
           "barrels": 1,
           "weapon": true,
+          "main": false,
           "thick": true
         }
       ]
@@ -115,6 +116,7 @@
       "width": 8,
       "nozzle": 0.5,
       "weapon": true,
+      "main": false,
       "thick": true
     }
   ]

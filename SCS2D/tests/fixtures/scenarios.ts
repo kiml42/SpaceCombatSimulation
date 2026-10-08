@@ -20,6 +20,7 @@ import { ram } from '../../scenarios/ram.js';
 import { hooked } from '../../scenarios/hooked.js';
 import { standoff } from '../../scenarios/standoff.js';
 import { torchRun } from '../../scenarios/torchRun.js';
+import { broadside } from '../../scenarios/broadside.js';
 import { column } from '../../scenarios/column.js';
 import { split } from '../../scenarios/split.js';
 import { swarm } from '../../scenarios/swarm.js';
@@ -414,6 +415,19 @@ export function torchRunScenario(seed = 20260905): ScenarioRun {
   };
 }
 
+export function broadsideScenario(seed = 20260905): ScenarioRun {
+  const run = broadside(seed);
+  return {
+    step: () => run.step(),
+    checksum: () =>
+      checksumDamage(
+        run.ships.damage,
+        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
+      ),
+    describe: () => describeBattle(run),
+  };
+}
+
 export function splitScenario(seed = 20260905): ScenarioRun {
   const run = split(seed);
   return {
@@ -513,6 +527,7 @@ export const SCENARIOS = {
   split: { steps: 3_000, build: () => splitScenario() },
   torchRun: { steps: 3_000, build: () => torchRunScenario() },
   hooked: { steps: 3_000, build: () => hookedScenario() },
+  broadside: { steps: 3_000, build: () => broadsideScenario() },
 } satisfies Record<string, Scenario>;
 
 export type ScenarioName = keyof typeof SCENARIOS;

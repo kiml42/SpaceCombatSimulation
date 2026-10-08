@@ -356,6 +356,12 @@ export interface ShipDesign {
   readonly mainWeaponEngines: readonly number[];
   /** Shared by every ship built to this design. */
   readonly engineLayout: EngineLayout;
+  /**
+   * The way it pushes hardest, body frame, radians: its main thrust axis,
+   * which it points at a target when its guns do not care which way it faces.
+   * The bow for a ship with no engines.
+   */
+  readonly thrustBearing: number;
   readonly turrets: readonly DesignTurret[];
   /**
    * The modules that fly this ship, as indices into `modules`.
@@ -1651,6 +1657,23 @@ export function weldDesigns(
 }
 
 /**
+ * The way a layout pushes hardest: of the ways its engines push, the one the
+ * whole layout gives the most along, the first of any tie.
+ */
+function thrustBearing(engines: readonly EngineSpec[], layout: EngineLayout): number {
+  let best = 0;
+  let bearing = 0;
+  for (const engine of engines) {
+    const along = layout.maxThrustAlong(engine.dirX, engine.dirY);
+    if (along > best) {
+      best = along;
+      bearing = atan2(engine.dirY, engine.dirX);
+    }
+  }
+  return bearing;
+}
+
+/**
  * Measure a design from modules that have already been chosen and measured.
  *
  * The half of compiling that both a blueprint and a severed chunk need, so
@@ -1899,6 +1922,7 @@ function designFrom(
     engine.escaping = escaping;
   }
 
+  const layout = new EngineLayout(engines);
   return {
     name,
     modules,
@@ -1913,7 +1937,8 @@ function designFrom(
     engines,
     weaponEngines,
     mainWeaponEngines,
-    engineLayout: new EngineLayout(engines),
+    engineLayout: layout,
+    thrustBearing: thrustBearing(engines, layout),
     turrets,
     cores,
     ...(joins === undefined ? {} : { pieces: joins.pieces, seams: joins.seams }),
