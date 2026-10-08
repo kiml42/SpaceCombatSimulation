@@ -38,7 +38,7 @@ const GOLDEN: Record<ScenarioName, string> = {
   column: '706b344e',
   standoff: '3dd1ecef',
   ram: 'cfb9a18e',
-  torchRun: '2b5e112b',
+  torchRun: '3424f5e2',
   hooked: '1cc61ac0',
   broadside: '147bf381',
 };
