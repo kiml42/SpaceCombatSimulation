@@ -5,8 +5,8 @@
   "doctrine": {
     "targeting": {
       "proximityWeight": 10,
-      "preferredMass": 20,
-      "massWeight": 60,
+      "preferredMass": 100,
+      "massWeight": 200,
       "loyaltyWeight": 50,
       "armedWeight": 100,
       "mobileWeight": 60
@@ -84,7 +84,9 @@
       "burstSpeed": 200,
       "targeting": {
         "facingWeight": 100,
-        "fireRange": 1.5
+        "fireRange": 1.5,
+        "preferredMass": 100,
+        "massWeight": 150
       }
     },
     {

@@ -406,8 +406,8 @@
       "doctrine": {
         "targeting": {
           "proximityWeight": 10,
-          "preferredMass": 20,
-          "massWeight": 60,
+          "preferredMass": 100,
+          "massWeight": 200,
           "loyaltyWeight": 50,
           "armedWeight": 100,
           "mobileWeight": 60
@@ -485,7 +485,9 @@
           "burstSpeed": 200,
           "targeting": {
             "facingWeight": 100,
-            "fireRange": 1.5
+            "fireRange": 1.5,
+            "preferredMass": 100,
+            "massWeight": 150
           }
         },
         {
@@ -536,25 +538,28 @@
       "doctrine": {
         "targeting": {
           "proximityWeight": 102.697,
-          "preferredMass": 0.897,
           "massWeight": 245.429,
           "closingWeight": 11.43,
           "loyaltyWeight": 22.204,
           "armedWeight": 71.048,
           "mobileWeight": 76.4,
-          "facingWeight": -7.591,
+          "facingWeight": 100,
           "sightWeight": 4.865,
           "escortWeight": 42.242
         },
         "approach": {
-          "standoffRadii": 0.01,
-          "standoff": 0.677,
+          "standoffRadii": 30,
+          "standoff": 0.7,
           "escort": 0.186,
           "escortMinRadii": 1.118,
           "separation": 324.837,
+          "tolerance": 0.4,
           "approachSpeed": 734.508,
           "accelerate": 0.858,
-          "brake": 0.804
+          "brake": 0.804,
+          "turnBias": 1,
+          "burnWeight": 1.5,
+          "rangeHold": 1.5
         }
       },
       "assemblies": {
@@ -588,7 +593,7 @@
               "reinforcement": 1.76,
               "barrels": 1,
               "barrelCalibres": 50,
-              "traverse": 10.4,
+              "traverse": 4,
               "fuse": 0.02,
               "fragments": 7,
               "targeting": {
@@ -598,19 +603,9 @@
                 "closingWeight": 30,
                 "engineWeight": 86.401,
                 "focusWeight": 373.904,
-                "fireRange": 1.09
+                "fireRange": 1.09,
+                "gunWeight": 120
               }
-            },
-            {
-              "kind": "engine",
-              "x": 2.8,
-              "y": -0.95,
-              "angle": 90,
-              "length": 0.5,
-              "width": 1,
-              "barrels": 3,
-              "nozzle": 0.55,
-              "weapon": true
             },
             {
               "kind": "engine",
@@ -619,8 +614,7 @@
               "angle": 0,
               "length": 1.2,
               "width": 0.6,
-              "barrels": 2,
-              "weapon": true
+              "barrels": 1
             },
             {
               "kind": "engine",
@@ -638,6 +632,31 @@
               "length": 0.4,
               "width": 0.3,
               "reinforcement": 1.52
+            },
+            {
+              "kind": "structure",
+              "x": 2.633333333,
+              "y": -0.7,
+              "length": 1,
+              "width": 0.75,
+              "vertices": [
+                0.666666667,
+                -0.25,
+                -0.333333333,
+                0.5,
+                -0.333333333,
+                -0.25
+              ]
+            },
+            {
+              "kind": "engine",
+              "x": 0.9000000000000005,
+              "y": 1.1,
+              "angle": 90,
+              "length": 0.2,
+              "width": 0.8,
+              "reinforcement": 1.07,
+              "barrels": 2
             }
           ]
         }
