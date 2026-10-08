@@ -108,21 +108,19 @@ lead, which waits for standing orders. Velocity stays out of the fleet file; the
   and that is as far as it goes.
 
 **Step 9 — Docking, fuel transfer and fuel harvesting.** The first salvage, since pumping a liquid needs no
-construction. Fuel is pumped between two pieces of one hull (`Fuel.transfer`, DESIGN.md Status); nothing
-pumps yet. Every join is a deliberate weld on the existing seam machinery (`Ships.weld`), made by a part of
+construction. Fuel is pumped between two pieces of one hull (`Fuel.transfer`), and the claw is built: it
+grips, pumps and lets go (DESIGN.md Status). Every join is a deliberate weld on the existing seam machinery (`Ships.weld`), made by a part of
 its own, and the seam it makes carries a fuel line between the two pieces, which a torn-metal hook does not.
 What is left, in this order, each with a golden scenario of its own and every new doctrine number off by
 default, so no existing golden moves:
 
-1. **The claw**, and a pilot that goes after wrecks for their fuel. It grips any module of any body, sound
-   or torn, wreck or live ship, and always pumps *in*. It tolerates a faster contact than `WELD_SPEED`,
-   so its approach is the ram's, made with the claw forward at a speed short of a ram. Whether it takes
-   is a chance, higher the more damaged the module it meets, and best in a band of closing speed,
-   falling off either side of it. It damages the module it grips. A claw on a live but disarmed enemy
-   needs nothing more: two ships riding one body already pull against each other until the seam goes,
-   so the victim burns the fuel being stolen trying to tear free. Its picker scores wrecks and disarmed
-   enemies by the fuel on the piece it would reach, the distance and the danger near it. This is the
-   grapple step 13 reuses.
+1. **A pilot for the claw**, that goes after wrecks for their fuel: the ram's approach with the claw
+   forward, held inside the claw's band of closing speed. Its picker scores wrecks and disarmed enemies by
+   the fuel on the piece it would reach, the distance and the danger near it, and it lets evolution and
+   the stock fleet use claws, whose evolution weight is zero until then. A claw on a live but disarmed
+   enemy needs nothing more: two ships riding one body already pull against each other until the seam
+   goes, so the victim burns the fuel being stolen trying to tear free. The claw is the grapple step 13
+   reuses.
 2. **Pads, and fighters landing on them.** A pad is a part on a deck. A fighter docks on it from the
    weapons layer, never committing — the two meet at the boundary between the layers — when the
    fighter's bounding box lies wholly inside the pad's rectangle and it is closing slowly. Fuel goes to
@@ -845,6 +843,7 @@ Deliberately unresolved; decide when they block something.
 - Whether the mothership's build priorities are a doctrine blob (so async PvP competes on them) or
   a player-driven queue.
 - Concrete values, now that the units are settled: budgets, engagement ranges, timestep, the weld
-  dials (`WELD_SPEED`, `RAGGED_INTEGRITY`, `WELD_SETTLE`, `HOOK_SHARE`), edit-distance bounds, muzzle velocities, armour densities, and how hard a plume
+  dials (`WELD_SPEED`, `RAGGED_INTEGRITY`, `WELD_SETTLE`, `HOOK_SHARE`), the claw's (its speed band, `CLAW_GRIP_CHANCE`,
+  `CLAW_BITE`, `CLAW_PUMP_PER_METRE`, `DOCK_HOLD`), edit-distance bounds, muzzle velocities, armour densities, and how hard a plume
   burns (`PLUME_POWER_PER_NEWTON`, chosen for a timescale rather than derived).
 - Project name.

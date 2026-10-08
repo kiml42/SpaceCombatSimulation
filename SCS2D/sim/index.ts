@@ -129,6 +129,8 @@ export {
   shapeModule,
   traverseRate,
   TRAVERSE_SPINUP_TIME,
+  CLAW_MASS_PER_AREA,
+  CLAW_PUMP_PER_METRE,
   type GunStats,
   type BurstStats,
   type ModuleKind,
@@ -216,6 +218,7 @@ export {
 } from './targeting.js';
 export {
   JOINT_IMPULSE_PER_AREA,
+  DOCK_HOLD,
   cuts,
   components,
   joints,
@@ -331,6 +334,13 @@ export {
   Ships,
   NEUTRAL_TEAM,
   NO_TARGET,
+  CLAW_BITE,
+  CLAW_GRIP_CHANCE,
+  CLAW_RETRY,
+  CLAW_SPEED_HIGH,
+  CLAW_SPEED_LOW,
+  CLAW_SPEED_MAX,
+  clawChance,
   type Order,
   type ShipSpec,
 } from './ships.js';

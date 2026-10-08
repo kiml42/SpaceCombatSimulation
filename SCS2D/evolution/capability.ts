@@ -26,6 +26,9 @@ function rating(stats: ModuleStats, effect: DamageEffect): number {
     }
     case DamageEffect.Control:
       return stats.hitPoints;
+    // Gripping is no part of what a hull can fight with.
+    case DamageEffect.Grip:
+      return 0;
   }
 }
 

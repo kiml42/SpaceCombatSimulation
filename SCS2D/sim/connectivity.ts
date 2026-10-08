@@ -48,6 +48,8 @@ export interface Joint {
    * is commanded across it.
    */
   readonly seam?: boolean;
+  /** A seam a claw holds, rated `DOCK_HOLD` times a hook's. */
+  readonly dock?: boolean;
 }
 
 /**
@@ -64,6 +66,12 @@ export interface Joint {
  * §12 with the others.
  */
 export const JOINT_IMPULSE_PER_AREA = 3.0e6;
+
+/**
+ * How many times stronger a seam made on purpose is than one torn metal made
+ * by accident: jaws closed on a hull, against an edge that happened to catch.
+ */
+export const DOCK_HOLD = 4;
 
 /**
  * Every joint in a design, in a fixed order: ascending by the lower module,
@@ -123,8 +131,9 @@ export function joints(design: ShipDesign): readonly Joint[] {
       width: seam.width,
       x: (design.modules[lo]!.x + design.modules[hi]!.x) * 0.5,
       y: (design.modules[lo]!.y + design.modules[hi]!.y) * 0.5,
-      strength: seam.width * thickness * JOINT_IMPULSE_PER_AREA,
+      strength: seam.width * thickness * JOINT_IMPULSE_PER_AREA * (seam.claw === true ? DOCK_HOLD : 1),
       seam: true,
+      ...(seam.claw === true ? { dock: true } : {}),
     });
   }
   cache.set(design, found);

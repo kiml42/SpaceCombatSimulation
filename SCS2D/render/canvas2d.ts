@@ -160,6 +160,9 @@ const MIN_FLASH_PX = 1;
 /** A tank's wall as drawn round the fuel in it, as a share of its smaller side. */
 const TANK_INSET = 0.15;
 
+/** How much of a claw's width each of its two jaws is drawn across. */
+const CLAW_JAW_SHARE = 0.3;
+
 /** A module that has taken everything it can: still there, no longer anything. */
 const WRECKAGE = '#3c4048';
 
@@ -348,6 +351,12 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
       // the whole reason it is a separate piece rather than part of the box.
       const mount = hullMountGeometry(spec);
       ctx.fillRect(-halfLength, -halfWidth, mount.blockLength, spec.width);
+    } else if (spec.kind === 'claw') {
+      // The pump aft, and two jaws reaching out of the bow face it grips with.
+      const jaw = spec.width * CLAW_JAW_SHARE;
+      ctx.fillRect(-halfLength, -halfWidth, halfLength, spec.width);
+      ctx.fillRect(0, -halfWidth, halfLength, jaw);
+      ctx.fillRect(0, halfWidth - jaw, halfLength, jaw);
     } else {
       const triangle = triangleOf(spec);
       if (triangle !== null) {

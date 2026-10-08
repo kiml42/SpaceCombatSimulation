@@ -209,6 +209,24 @@ export class Fuel {
     return taken > 0 ? this.put(bodyIndex, sink, taken) : 0;
   }
 
+  /** Fuel on the piece of hull a module is on, kg. */
+  pieceHeld(bodyIndex: number, module: number): number {
+    const pieceOf = this.pieceOf[bodyIndex];
+    const tanks = pieceOf === null || pieceOf === undefined ? undefined : this.tanks[bodyIndex]![pieceOf[module] ?? 0];
+    if (tanks === undefined) return 0;
+    const contents = this.contents[bodyIndex]!;
+    let held = 0;
+    for (let k = 0; k < tanks.length; k++) held += contents[tanks[k]!]!;
+    return held;
+  }
+
+  /** Space left on the piece of hull a module is on, kg. */
+  pieceRoom(bodyIndex: number, module: number): number {
+    const pieceOf = this.pieceOf[bodyIndex];
+    if (pieceOf === null || pieceOf === undefined) return 0;
+    return this.room(bodyIndex, pieceOf[module] ?? 0);
+  }
+
   /** Space left in one piece's tanks, kg. */
   private room(bodyIndex: number, piece: number): number {
     const tanks = this.tanks[bodyIndex]![piece];

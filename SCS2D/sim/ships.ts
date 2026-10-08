@@ -318,6 +318,45 @@ export const WELD_SPEED = 2;
 const HOOK_SHARE = 0.5;
 
 /**
+ * The closing speeds a claw takes best between, m/s: quicker than a ragged
+ * edge hooks, since jaws are made to close on what meets them, and short of
+ * a ram. Below the band it has too little to bite with; above it, up to
+ * `CLAW_SPEED_MAX`, it is more likely to glance off.
+ */
+export const CLAW_SPEED_LOW = 1;
+export const CLAW_SPEED_HIGH = 4;
+export const CLAW_SPEED_MAX = 8;
+
+/** Chance a claw takes a sound module in its band. Certain on one spent. */
+export const CLAW_GRIP_CHANCE = 0.5;
+
+/** Cosine of how far off its bow a claw can meet something and still close on it: 45°. */
+const CLAW_ALIGN = 0.7071067811865476;
+
+/** Seconds a claw that missed waits before it tries again. */
+export const CLAW_RETRY = 1;
+
+/** Share of a gripped module's capacity the jaws take as they close. */
+export const CLAW_BITE = 0.1;
+
+/**
+ * The chance a claw closing at `closing` takes a module left at `integrity`:
+ * best within its band, falling off either side of it, and likelier the more
+ * the module has already been torn open.
+ */
+export function clawChance(closing: number, integrity: number): number {
+  if (!(closing > 0) || closing > CLAW_SPEED_MAX) return 0;
+  const band =
+    closing < CLAW_SPEED_LOW
+      ? closing / CLAW_SPEED_LOW
+      : closing > CLAW_SPEED_HIGH
+        ? (CLAW_SPEED_MAX - closing) / (CLAW_SPEED_MAX - CLAW_SPEED_HIGH)
+        : 1;
+  const worn = integrity < 0 ? 1 : integrity > 1 ? 0 : 1 - integrity;
+  return band * (CLAW_GRIP_CHANCE + (1 - CLAW_GRIP_CHANCE) * worn);
+}
+
+/**
  * Seconds a hull that has just come apart must drift before it can hook
  * again. A break leaves both faces torn and touching, and without this the
  * pieces would catch each other again on the next step.
@@ -650,6 +689,8 @@ export class Ships {
   private readonly cutSeen: number[] = [];
   /** The world tick each ship last came apart at, or was broken off at. */
   private readonly partedAt: number[] = [];
+  /** The world tick each ship's claws last tried to close, so a miss waits `CLAW_RETRY`. */
+  private readonly clawTried: number[] = [];
 
   private readonly blowBody: number[] = [];
   private readonly blowModule: number[] = [];
@@ -1069,6 +1110,7 @@ export class Ships {
     this.brakingOnMains.push(0);
     this.cutSeen.push(-1);
     this.partedAt.push(-Infinity);
+    this.clawTried.push(-Infinity);
     this.chosen.push(NO_TARGET);
     this.ramming.push(NO_TARGET);
     this.consort.push(NO_TARGET);
@@ -3227,6 +3269,10 @@ export class Ships {
    * flying and fighting with what it brought, so they pull against each other.
    * A seam holds and tears like any weld, so a blow can part them again.
    *
+   * **A claw closes on what its bow meets**, sound or torn, at up to
+   * `CLAW_SPEED_MAX` and by chance (`clawChance`), and its seam holds
+   * `DOCK_HOLD` times harder and carries a fuel line (`pump`).
+   *
    * Every weld *removes* a body rather than holding two in a lasting contact.
    */
   weld(world: World, contacts: Contacts): number {
@@ -3239,7 +3285,7 @@ export class Ships {
     for (let k = 0; k < contacts.count; k++) {
       // Pressed together, slowly: touching or drifting apart hooks nothing.
       const closing = contacts.closing[k]!;
-      if (!(closing > 0) || closing > WELD_SPEED) continue;
+      if (!(closing > 0) || closing > CLAW_SPEED_MAX) continue;
       const a = contacts.a[k]!;
       const b = contacts.b[k]!;
       const i = this.shipAt(bodies, a);
@@ -3249,10 +3295,19 @@ export class Ships {
       if (this.damage.isProtected(a) || this.damage.isProtected(b)) continue;
       const ma = contacts.moduleA[k]!;
       const mb = contacts.moduleB[k]!;
-      if (!this.damage.ragged(a, ma) && !this.damage.ragged(b, mb)) continue;
+      // A claw closes on what its bow meets, ragged or not.
+      const nx = contacts.nx[k]!;
+      const ny = contacts.ny[k]!;
+      let claw: 'a' | 'b' | null = null;
+      if (this.grips(world, a, ma, b, mb, nx, ny, closing)) claw = 'a';
+      else if (this.grips(world, b, mb, a, ma, -nx, -ny, closing)) claw = 'b';
+      if (claw === null) {
+        if (closing > WELD_SPEED) continue;
+        if (!this.damage.ragged(a, ma) && !this.damage.ragged(b, mb)) continue;
+      }
       // A flown hull keeps its body; two wrecks keep the older's slot.
-      if (this.derelict[i] === 1 && this.derelict[j] === 0) this.merge(world, j, i, mb, ma);
-      else this.merge(world, i, j, ma, mb);
+      if (this.derelict[i] === 1 && this.derelict[j] === 0) this.merge(world, j, i, mb, ma, claw === 'a' ? 'b' : claw === 'b' ? 'a' : null);
+      else this.merge(world, i, j, ma, mb, claw);
       joined ??= new Set<number>();
       joined.add(i);
       joined.add(j);
@@ -3264,11 +3319,80 @@ export class Ships {
   }
 
   /**
+   * Whether module `m` of body `b` is a claw that closes on module `mo` of
+   * body `o`, met along `nx`, `ny` (pointing from the claw into what it met)
+   * at `closing`. Rolls for it, so only a claw that could take asks the
+   * battle's generator anything; a miss leaves the claw's ship waiting
+   * `CLAW_RETRY`. Taking bites the module it closes on.
+   *
+   * A claw goes for wrecks and enemies, never a friend, and only for fuel it
+   * has room for.
+   */
+  private grips(world: World, b: number, m: number, o: number, mo: number, nx: number, ny: number, closing: number): boolean {
+    const design = this.hullDesign[b];
+    if (design === null || design === undefined) return false;
+    const spec = design.modules[m]!.spec;
+    if (spec.kind !== 'claw') return false;
+    if (!(this.damage.remaining(b, m, DamageEffect.Grip) > 0)) return false;
+    const bodies = world.bodies;
+    const facing = bodies.angle[b]! + (spec.angle ?? 0);
+    if (nx * cos(facing) + ny * sin(facing) < CLAW_ALIGN) return false;
+    const holder = this.pilotAt(b, m);
+    const held = this.pilotAt(o, mo);
+    if (holder < 0 || held < 0 || holder === held) return false;
+    if (this.derelict[held] === 0 && !this.hostile(holder, held)) return false;
+    if (!(this.fuel.pieceRoom(b, m) > 0) || !(this.fuel.pieceHeld(o, mo) > 0)) return false;
+    if (world.tick - this.clawTried[holder]! < CLAW_RETRY / world.dt) return false;
+    this.clawTried[holder] = world.tick;
+    if (world.rng.nextFloat() >= clawChance(closing, this.damage.integrity(o, mo))) return false;
+    const capacity = this.damage.capacityLeft(o, mo) + this.damage.absorbedAt(o, mo);
+    this.damage.absorb(o, mo, CLAW_BITE * capacity);
+    return true;
+  }
+
+  /**
+   * Pump what every working claw holds into its own piece of hull, and let go
+   * once its piece is full or what it holds is dry, and say how many let go.
+   *
+   * A claw keeps hold while it cannot pump — its jaws are shut — so only one
+   * that is still working decides it is done.
+   */
+  pump(world: World): number {
+    const bodies = world.bodies;
+    this.bodyStore = bodies;
+    let released = 0;
+    for (let i = 0; i < this.alive.length; i++) {
+      if (this.alive[i] === 0) continue;
+      const b = bodies.indexOf(this.bodyIds[i]!);
+      // A body is walked once, by its primary, however many ships ride it.
+      if (b < 0 || this.shipByBody[b] !== i) continue;
+      const design = this.designs[i]!;
+      const seams = design.seams;
+      if (seams === undefined || this.damage.isProtected(b)) continue;
+      let moved = false;
+      for (const seam of seams) {
+        if (seam.claw !== true) continue;
+        const working = this.damage.remaining(b, seam.a, DamageEffect.Grip);
+        if (!(working > 0)) continue;
+        const rate = design.modules[seam.a]!.stats.pumpRate * working;
+        if (this.fuel.transfer(b, seam.b, seam.a, rate * world.dt) > 0) moved = true;
+        if (this.fuel.pieceRoom(b, seam.a) > 0 && this.fuel.pieceHeld(b, seam.b) > 0) continue;
+        // Done: the jaws open, which `sever` reads as the seam cut through.
+        const k = jointBetween(design, seam.a, seam.b);
+        this.damage.cutWeld(b, k, seam.width);
+        released++;
+      }
+      if (moved) this.settleMass(bodies, b);
+    }
+    return released;
+  }
+
+  /**
    * Make `other` part of `keep`, hooked where module `mk` of one met module
    * `mo` of the other. Momentum and angular momentum come out as they went in:
    * one rigid body moving as the two did between them.
    */
-  private merge(world: World, keep: number, other: number, mk: number, mo: number): void {
+  private merge(world: World, keep: number, other: number, mk: number, mo: number, claw: 'a' | 'b' | null = null): void {
     const bodies = world.bodies;
     const idK = this.bodyIds[keep]!;
     const bk = bodies.indexOf(idK);
@@ -3289,8 +3413,10 @@ export class Ships {
     const dy = dk.centreOfMassY + (-wx * sk + wy * ck) - (dO.centreOfMassX * st + dO.centreOfMassY * ct);
     const specK = dk.modules[mk]!.spec;
     const specO = dO.modules[mo]!.spec;
-    const width = HOOK_SHARE * min(min(specK.length, specK.width), min(specO.length, specO.width));
-    const design = weldDesigns(dk, dO, dx, dy, turn, mk, mo, width);
+    // A claw holds across its whole jaw; torn metal catches on part of an edge.
+    const width =
+      claw === 'a' ? specK.width : claw === 'b' ? specO.width : HOOK_SHARE * min(min(specK.length, specK.width), min(specO.length, specO.width));
+    const design = weldDesigns(dk, dO, dx, dy, turn, mk, mo, width, claw);
 
     const massK = bodies.mass[bk]!;
     const massO = bodies.mass[bo]!;
