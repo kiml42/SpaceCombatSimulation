@@ -147,9 +147,9 @@ describe('mutation', () => {
   });
 
   // 2,400 generations of a growing ship, which is the sample the ratio needs
-  // to be stable: 16 s here and over 30 s on a CI runner, so the budget is
-  // wide rather than close.
-  it('adds as much as it takes away', { timeout: 90_000 }, () => {
+  // to be stable: 45 s on a desktop and past 90 s on a loaded CI runner, so
+  // the budget is wide rather than close.
+  it('adds as much as it takes away', { timeout: 240_000 }, () => {
     // The operator is neutral about how big a ship is; selection is what
     // decides that. An imbalance here is invisible in any one child and
     // fatal over a run — a lineage that loses a module every time it gains

@@ -1,6 +1,6 @@
 import { Rng } from '../sim/index.js';
 import { floor, max, min, round } from '../sim/math.js';
-import { Match, runMatch, type Entrant, type MatchConfig } from './match.js';
+import { Match, type Entrant, type MatchConfig } from './match.js';
 import { entrantOf, type GenerationRecord, type IndividualRecord, type RunRecord } from './run.js';
 
 /**
@@ -332,32 +332,111 @@ export const DEFAULT_GRID: GridConfig = { samples: 8, seeds: 3, seed: 0x5EED, ma
  * takes them.
  */
 export function championGrid(run: RunRecord, config?: Partial<GridConfig>): ChampionGrid {
-  const settings = { ...DEFAULT_GRID, ...config };
-  const rival = run.rival?.generations ?? [];
-  const count = min(run.generations.length, rival.length);
-  const generations = sampled(count, settings.samples);
-  const draw = new Rng(settings.seed);
-  const seeds = Array.from({ length: settings.seeds }, () => draw.nextUint32());
-  const match: Partial<MatchConfig> = { ...run.config.match, goal: null, ...settings.match };
-  const championsA = generations.map((g) => entrantOf(champion(run.generations[g]!)));
-  const championsB = generations.map((g) => entrantOf(champion(rival[g]!)));
-  let matches = 0;
-  const cells = championsA.map((a) =>
-    championsB.map((b) => {
-      let margin = 0;
-      let wins = 0;
-      for (const seed of seeds) {
-        const result = runMatch([a, b], { ...match, seed }, [0, 1]);
-        const mine = result.scores[0]!.total;
-        const theirs = result.scores[1]!.total;
-        margin += mine - theirs;
-        if (mine > theirs) wins++;
-        matches++;
+  return new GridMeasure(run, config).finish();
+}
+
+/**
+ * `championGrid` in progress, stepped for the page as `Yardstick` is. Cells
+ * are fought row by row, each over every seed, so a partial grid fills in
+ * from the top.
+ */
+export class GridMeasure {
+  readonly generations: readonly number[];
+  /** The cells fought so far, row by row. */
+  readonly cells: GridCell[][] = [];
+  matches = 0;
+  private readonly seeds: readonly number[];
+  private readonly match: Partial<MatchConfig>;
+  private readonly championsA: readonly Entrant[];
+  private readonly championsB: readonly Entrant[];
+  private row = 0;
+  private column = 0;
+  private seed = 0;
+  private margin = 0;
+  private wins = 0;
+  private fighting: Match | null = null;
+
+  constructor(run: RunRecord, config?: Partial<GridConfig>) {
+    const settings = { ...DEFAULT_GRID, ...config };
+    const rival = run.rival?.generations ?? [];
+    const count = min(run.generations.length, rival.length);
+    this.generations = sampled(count, settings.samples);
+    const draw = new Rng(settings.seed);
+    this.seeds = Array.from({ length: settings.seeds }, () => draw.nextUint32());
+    this.match = { ...run.config.match, goal: null, ...settings.match };
+    this.championsA = this.generations.map((g) => entrantOf(champion(run.generations[g]!)));
+    this.championsB = this.generations.map((g) => entrantOf(champion(rival[g]!)));
+  }
+
+  get done(): boolean {
+    return this.row >= this.generations.length;
+  }
+
+  /** How far through, from nothing to one. */
+  get progress(): number {
+    const side = this.generations.length;
+    const total = side * side * this.seeds.length;
+    if (total === 0 || this.done) return 1;
+    return ((this.row * side + this.column) * this.seeds.length + this.seed) / total;
+  }
+
+  /** Fight up to `budget` simulation steps of it. */
+  advance(budget: number): boolean {
+    let left = max(1, budget);
+    while (left > 0 && !this.done) {
+      if (this.seeds.length === 0) {
+        this.closeCell();
+        continue;
       }
-      return { margin: seeds.length > 0 ? margin / seeds.length : 0, wins };
-    }),
-  );
-  return { generations, cells, seeds: seeds.length, matches };
+      if (this.fighting === null) {
+        this.fighting = new Match(
+          [this.championsA[this.row]!, this.championsB[this.column]!],
+          { ...this.match, seed: this.seeds[this.seed]! },
+          [0, 1],
+        );
+      }
+      while (left > 0 && !this.fighting.done) {
+        this.fighting.advance();
+        left--;
+      }
+      if (this.fighting.done) this.close();
+    }
+    return !this.done;
+  }
+
+  finish(): ChampionGrid {
+    while (!this.done) this.advance(1 << 20);
+    return this.report();
+  }
+
+  report(): ChampionGrid {
+    return { generations: this.generations, cells: this.cells, seeds: this.seeds.length, matches: this.matches };
+  }
+
+  private close(): void {
+    const result = this.fighting!.result();
+    this.fighting = null;
+    this.matches++;
+    const mine = result.scores[0]!.total;
+    const theirs = result.scores[1]!.total;
+    this.margin += mine - theirs;
+    if (mine > theirs) this.wins++;
+    this.seed++;
+    if (this.seed >= this.seeds.length) this.closeCell();
+  }
+
+  private closeCell(): void {
+    const n = this.seeds.length;
+    (this.cells[this.row] ??= []).push({ margin: n > 0 ? this.margin / n : 0, wins: this.wins });
+    this.margin = 0;
+    this.wins = 0;
+    this.seed = 0;
+    this.column++;
+    if (this.column >= this.generations.length) {
+      this.column = 0;
+      this.row++;
+    }
+  }
 }
 
 /** `samples` generation indices out of `count`, evenly spread, first and last included. */

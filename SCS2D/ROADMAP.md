@@ -142,7 +142,8 @@ side A's and side B's founders and per-side settings in A and B columns, side B 
 evolving if unticked (`evolves: false`, `--versus-fixed`), the score chart dropped and the
 fields a co-evolution run does not use hidden while it is set, the mass and ship-count charts a pair of lines
 a side, a side tag on every combatant with each side ranked on its own, and the champion of each side saved
-or exported together. Left: the grid on the page.
+or exported together, and the grid, fought from the Measure button and drawn as a table shaded by
+which side came off better.
 
 
 Not planned: per-ship doctrine overrides in a fleet (fork the design instead), and a group's own doctrine or
