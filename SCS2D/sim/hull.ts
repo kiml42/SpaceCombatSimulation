@@ -460,6 +460,11 @@ export class Hulls implements RayNarrowPhase {
   ) {}
 
   /** Cast in some layers, from a module of a body, until `reset`. */
+  /** The design a body is built to, or null for one with no hull. */
+  designOf(bodyIndex: number): ShipDesign | null {
+    return this.designs.designOf(bodyIndex);
+  }
+
   castFrom(layers: number, body: number, module: number): void {
     this.layers = layers;
     this.skipBody = body;

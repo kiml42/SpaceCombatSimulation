@@ -1,6 +1,7 @@
 import type { Bodies } from './bodies.js';
 import type { ShipDesign } from './blueprint.js';
-import type { Damage } from './damage.js';
+import { SEAM_CUT_ENERGY_PER_AREA, type Damage } from './damage.js';
+import { joints, jointsOf } from './connectivity.js';
 import {
   BOTH_LAYERS,
   HULL_LAYER,
@@ -706,7 +707,9 @@ export class Plumes {
     for (let k = 0; k < slices.length; k++) {
       const slice = slices[k]!;
       const width = burntWidth(slice, axisReach, nozzleOffset(geometry, slice.nozzle), exitWidth);
-      if (width > 0) damage.absorb(bodyIndex, slice.module, perWidth * width * dt);
+      if (!(width > 0)) continue;
+      damage.absorb(bodyIndex, slice.module, perWidth * width * dt);
+      heatSeams(damage, design, bodyIndex, slice.module, perWidth * width * dt);
     }
 
     const layers = moduleLayers(engine, bodyLayers);
@@ -725,6 +728,8 @@ export class Plumes {
         if (!hit) continue;
         const carried = perRay * this.open * this.share;
         damage.absorb(this.body, this.module, PLUME_POWER_PER_NEWTON * carried * dt);
+        const victim = this.body === bodyIndex ? design : hulls.designOf(this.body);
+        if (victim !== null) heatSeams(damage, victim, this.body, this.module, PLUME_POWER_PER_NEWTON * carried * dt);
         if (this.body === bodyIndex) continue;
         shove(bodies, this.body, this.dirX * carried * dt, this.dirY * carried * dt, this.x, this.y);
       }
@@ -733,6 +738,36 @@ export class Plumes {
 }
 
 const NO_SLICES: readonly PlumeSlice[] = [];
+
+/**
+ * Cut the welds holding a module a plume is playing on, with `joules` of its
+ * heat, shared between them by width.
+ *
+ * **What frees a module stood in a flame.** The plume's push on its own hull
+ * cancels within the hull, so it can tear nothing; its heat boils the seams
+ * the way a beam's does (`SEAM_CUT_ENERGY_PER_AREA`). Once one is cut through
+ * the module comes away as a piece of its own (`Ships.sever`), the engine has
+ * its thrust back, and the flame shoves the piece clear like anything else
+ * standing in it.
+ */
+function heatSeams(damage: Damage, design: ShipDesign, body: number, module: number, joules: number): void {
+  if (module < 0 || !(joules > 0)) return;
+  const touching = jointsOf(design, module);
+  if (touching.length === 0) return;
+  const all = joints(design);
+  let width = 0;
+  for (let k = 0; k < touching.length; k++) width += all[touching[k]!]!.width;
+  if (!(width > 0)) return;
+  for (let k = 0; k < touching.length; k++) {
+    const joint = all[touching[k]!]!;
+    // The thinner of the two walls meeting there is the section to boil through.
+    const a = design.modules[joint.a]!.stats.wallThickness;
+    const b = design.modules[joint.b]!.stats.wallThickness;
+    const thickness = a < b ? a : b;
+    if (!(thickness > 0)) continue;
+    damage.cutWeld(body, touching[k]!, (joules * joint.width) / width / (thickness * SEAM_CUT_ENERGY_PER_AREA));
+  }
+}
 
 /**
  * Push a body at a world-frame point, as an impulse.

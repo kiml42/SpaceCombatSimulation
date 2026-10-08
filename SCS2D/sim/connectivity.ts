@@ -264,3 +264,22 @@ export function jointBetween(design: ShipDesign, a: number, b: number): number {
 }
 
 const indexCache = new WeakMap<ShipDesign, Map<number, number>>();
+
+/** The joints that hold one module, as indices into `joints(design)`. */
+export function jointsOf(design: ShipDesign, module: number): readonly number[] {
+  let byModule = byModuleCache.get(design);
+  if (byModule === undefined) {
+    const lists: number[][] = design.modules.map(() => []);
+    const all = joints(design);
+    for (let k = 0; k < all.length; k++) {
+      lists[all[k]!.a]!.push(k);
+      lists[all[k]!.b]!.push(k);
+    }
+    byModule = lists;
+    byModuleCache.set(design, byModule);
+  }
+  return byModule[module] ?? NO_JOINTS;
+}
+
+const NO_JOINTS: readonly number[] = [];
+const byModuleCache = new WeakMap<ShipDesign, readonly (readonly number[])[]>();

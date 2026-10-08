@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { parseFleet } from '../sim/fleetFile.js';
+import { joints, jointsOf } from '../sim/connectivity.js';
+import { OrderCancelCondition } from '../sim/ships.js';
+import { makeBattle } from '../scenarios/battle.js';
+import { BARE_CORE } from '../scenarios/blueprints.js';
 import { Bodies } from '../sim/bodies.js';
 import {
   Damage,
@@ -316,6 +320,36 @@ describe('an engine firing into its own ship', () => {
     expect(w.damage.integrity(0, 1)).toBe(1);
     for (let m = 0; m < clear.modules.length; m++) expect(w.damage.integrity(1, m)).toBe(1);
   });
+
+  it('cuts through the welds holding what is in the way, and no others', () => {
+    const blocked = design(0.5);
+    const w = world([blocked]);
+    const holding = jointsOf(blocked, BLOCK);
+    expect(holding.length).toBeGreaterThan(0);
+    const weld = (k: number): number => w.damage.weldIntegrity(0, k, joints(blocked)[k]!.width);
+    burn(w, blocked, 0, 30);
+    for (const k of holding) expect(weld(k)).toBe(0);
+    for (let k = 0; k < joints(blocked).length; k++) if (!holding.includes(k)) expect(weld(k)).toBe(1);
+  });
+
+  it('frees an evolved ship\'s engines of the turrets it hid in front of them, flame and all', () => {
+    // Cut loose, a cluster is a piece of its own: the engine's thrust comes
+    // back, and the flame shoves the piece clear like anything else in it.
+    const fleet = parseFleet(JSON.parse(readFileSync('tests/fixtures/plume-exploit-fleet.json', 'utf8')));
+    const evolved = compileBlueprint(Object.values(fleet.designs)[0]!);
+    const run = makeBattle({ seed: 4 }, (ships, world) => {
+      const mine = ships.spawn(world, { design: evolved, x: 0, y: 0, team: 0 });
+      const them = ships.spawn(world, { design: compileBlueprint(BARE_CORE), x: 4000, y: 2000, team: 0 });
+      ships.clearOrder(mine);
+      ships.pushOrder(mine, them, 100, 200, 150, OrderCancelCondition.None);
+      return { mine, them };
+    });
+    const escaping = (): number[] => run.ships.design(run.mine).engines.map((t) => t.escaping ?? 1);
+    expect(Math.min(...escaping())).toBeLessThan(0.6);
+    for (let step = 0; step < 45 * 60; step++) run.step();
+    expect(Math.min(...escaping())).toBeGreaterThan(0.99);
+    expect(run.ships.design(run.mine).modules.length).toBeLessThan(evolved.modules.length);
+  }, 60_000);
 
   it('burns harder the nearer the obstruction is to the nozzle', () => {
     const reach = fullReach(design());
