@@ -401,27 +401,44 @@ export interface ShipDesign {
   readonly pieces?: readonly number[];
   /** Where the pieces hooked onto each other, by module index. */
   readonly seams?: readonly Seam[];
+  /**
+   * The pieces that were fighters when they were welded on, so a fighter
+   * that lets go of a carrier's pad comes away a fighter.
+   */
+  readonly fighterPieces?: readonly number[];
 }
 
-/** Two modules of different pieces, hooked together by a ragged edge or held by a claw. */
+/** The part a dock is made by: a claw gripping, or a pad a fighter has landed on. */
+export type DockKind = 'claw' | 'pad';
+
+/** Which of two welded hulls, if either, holds the other, and by what. */
+export interface DockAt {
+  /** `a` for the first hull's module, `b` for the second's. */
+  readonly at: 'a' | 'b';
+  readonly kind: DockKind;
+}
+
+/** Two modules of different pieces, hooked together by a ragged edge or held by a dock. */
 export interface Seam {
   readonly a: number;
   readonly b: number;
   /** How much edge is caught, metres: what the seam's section is cut from. */
   readonly width: number;
-  /** Module `a` is a claw gripping `b`: a dock, which holds harder and carries a fuel line. */
-  readonly claw?: boolean;
+  /** Module `a` is a dock holding `b`, which holds harder and carries a fuel line. */
+  readonly dock?: DockKind;
 }
 
 /** A seam with its modules renumbered, keeping what it is. */
 function renumbered(seam: Seam, a: number, b: number): Seam {
-  return seam.claw === true ? { a, b, width: seam.width, claw: true } : { a, b, width: seam.width };
+  return seam.dock !== undefined ? { a, b, width: seam.width, dock: seam.dock } : { a, b, width: seam.width };
 }
 
 /** How welded pieces hold together, carried by a design through a sever. */
 interface Joins {
   readonly pieces: readonly number[];
   readonly seams: readonly Seam[];
+  /** The pieces that were fighters when they were welded on. */
+  readonly fighterPieces?: readonly number[];
 }
 
 
@@ -1616,18 +1633,23 @@ export function subDesign(design: ShipDesign, keep: readonly number[]): ShipDesi
       const b = at.get(seam.b);
       if (a !== undefined && b !== undefined) seams.push(renumbered(seam, a, b));
     }
-    joins = { pieces: keep.map((module) => design.pieces![module]!), seams };
+    const pieces = keep.map((module) => design.pieces![module]!);
+    const fighterPieces = (design.fighterPieces ?? []).filter((piece) => pieces.includes(piece));
+    joins = fighterPieces.length > 0 ? { pieces, seams, fighterPieces } : { pieces, seams };
   }
-  // A piece of a fighter is still small enough to be one.
-  return designFrom(design.name, specs, stats, layoutIndex, design.doctrine, joins, design.fighter);
+  // A piece of a fighter is still small enough to be one, and so is a piece
+  // made only of what were fighters when they came aboard.
+  const fighters = joins?.fighterPieces;
+  const fighter = design.fighter || (fighters !== undefined && joins!.pieces.every((piece) => fighters.includes(piece)));
+  return designFrom(design.name, specs, stats, layoutIndex, design.doctrine, joins, fighter);
 }
 
 /**
  * One hull made of two, welded where module `a` of the first met module `b` of
  * the second. The second's modules follow the first's, moved into the first's
  * blueprint frame by `dx`, `dy` and turned by `dangle`, so every index into the
- * first design still means the same module. `claw` says which of the two, if
- * either, is a claw holding the other.
+ * first design still means the same module. `dock` says which of the two, if
+ * either, holds the other, and by what.
  */
 export function weldDesigns(
   first: ShipDesign,
@@ -1638,7 +1660,7 @@ export function weldDesigns(
   a: number,
   b: number,
   width: number,
-  claw: 'a' | 'b' | null = null,
+  dock: DockAt | null = null,
 ): ShipDesign {
   const c = cos(dangle);
   const s = sin(dangle);
@@ -1663,10 +1685,19 @@ export function weldDesigns(
   const seams: Seam[] = [
     ...(first.seams ?? []),
     ...(second.seams ?? []).map((seam) => renumbered(seam, seam.a + n, seam.b + n)),
-    claw === 'a' ? { a, b: b + n, width, claw: true } : claw === 'b' ? { a: b + n, b: a, width, claw: true } : { a, b: b + n, width },
+    dock === null
+      ? { a, b: b + n, width }
+      : dock.at === 'a'
+        ? { a, b: b + n, width, dock: dock.kind }
+        : { a: b + n, b: a, width, dock: dock.kind },
   ];
+  const fighterPieces = [
+    ...(first.fighter ? [...new Set(firstPieces)] : (first.fighterPieces ?? [])),
+    ...(second.fighter ? [...new Set(second.pieces ?? [0])] : (second.fighterPieces ?? [])).map((piece) => piece + offset),
+  ];
+  const joins: Joins = fighterPieces.length > 0 ? { pieces, seams, fighterPieces } : { pieces, seams };
   // Two fighters welded are still small enough to be one.
-  return designFrom(first.name, specs, stats, layoutIndex, first.doctrine, { pieces, seams }, first.fighter && second.fighter);
+  return designFrom(first.name, specs, stats, layoutIndex, first.doctrine, joins, first.fighter && second.fighter);
 }
 
 /**
@@ -1949,5 +1980,6 @@ function designFrom(
     turrets,
     cores,
     ...(joins === undefined ? {} : { pieces: joins.pieces, seams: joins.seams }),
+    ...(joins?.fighterPieces === undefined ? {} : { fighterPieces: joins.fighterPieces }),
   };
 }

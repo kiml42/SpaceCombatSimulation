@@ -67,7 +67,7 @@ export enum DamageEffect {
   FireRate = 1,
   /** Whether a core can still fly the ship and lay its guns. */
   Control = 2,
-  /** Whether a claw can still close and pump. */
+  /** Whether a claw or a pad can still hold and pump. */
   Grip = 3,
 }
 
@@ -134,6 +134,8 @@ export const DAMAGE_RESPONSES: Readonly<Record<ModuleSpec['kind'], readonly Dama
   hullBeam: [{ effect: DamageEffect.FireRate, remaining: fadesOutAt(FIRE_RATE_CUTOUT) }],
   // Jaws and a pump are plumbing and machinery, and give out as an engine's do.
   claw: [{ effect: DamageEffect.Grip, remaining: fadesOutAt(THRUST_CUTOUT) }],
+  // A pad's clamps and fuel line, the same.
+  pad: [{ effect: DamageEffect.Grip, remaining: fadesOutAt(THRUST_CUTOUT) }],
 };
 
 /** Each module's neighbours by built weld, seams left out, kept per design. */

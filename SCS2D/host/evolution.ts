@@ -144,6 +144,7 @@ const SIDE_FIELDS = [
   'kindHullBeam',
   'kindCore',
   'kindClaw',
+  'kindPad',
   'doctrineTargeting',
   'doctrineApproach',
   'doctrineEscort',
@@ -217,6 +218,7 @@ const FIELDS = [
   'kindHullBeam',
   'kindCore',
   'kindClaw',
+  'kindPad',
   'doctrineTargeting',
   'doctrineApproach',
   'doctrineEscort',
@@ -652,6 +654,7 @@ export function startEvolution(): void {
     kindHullBeam: String(DEFAULT_KINDS.hullBeam),
     kindCore: String(DEFAULT_KINDS.core),
     kindClaw: String(DEFAULT_KINDS.claw),
+    kindPad: String(DEFAULT_KINDS.pad),
     doctrineTargeting: String(DEFAULT_DOCTRINE_WEIGHTS.targeting),
     doctrineApproach: String(DEFAULT_DOCTRINE_WEIGHTS.approach),
     doctrineEscort: String(DEFAULT_DOCTRINE_WEIGHTS.escort),
@@ -887,6 +890,7 @@ export function startEvolution(): void {
           hullBeam: Math.max(0, number(get('kindHullBeam'), DEFAULT_KINDS.hullBeam)),
           core: Math.max(0, number(get('kindCore'), DEFAULT_KINDS.core)),
           claw: Math.max(0, number(get('kindClaw'), DEFAULT_KINDS.claw)),
+          pad: Math.max(0, number(get('kindPad'), DEFAULT_KINDS.pad)),
         },
         doctrine: {
           targeting: Math.max(0, number(get('doctrineTargeting'), DEFAULT_DOCTRINE_WEIGHTS.targeting)),
@@ -993,6 +997,7 @@ export function startEvolution(): void {
     get('kindHullBeam').value = String(kinds.hullBeam);
     get('kindCore').value = String(kinds.core);
     get('kindClaw').value = String(kinds.claw);
+    get('kindPad').value = String(kinds.pad);
     const doctrine = doctrineWeights(config.mutation.doctrine);
     get('doctrineTargeting').value = String(doctrine.targeting);
     get('doctrineApproach').value = String(doctrine.approach);

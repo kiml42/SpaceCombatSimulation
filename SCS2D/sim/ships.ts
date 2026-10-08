@@ -5,6 +5,7 @@ import {
   subDesign,
   triggerMask,
   weldDesigns,
+  type DockAt,
   type DesignTurret,
   type ShipDesign,
 } from './blueprint.js';
@@ -32,6 +33,7 @@ import {
   DEFAULT_FUSE,
   engineGeometry,
   firesShells,
+  moduleOutline,
   moduleRadius,
   type ModuleSpec,
 } from './modules.js';
@@ -342,6 +344,49 @@ export const CLAW_BITE = 0.1;
 /** The closing speed a pilot brings its claw in at, m/s: the middle of its band. */
 const CLAW_APPROACH = (CLAW_SPEED_LOW + CLAW_SPEED_HIGH) / 2;
 
+/** The most a fighter may be moving against a pad and still land on it, m/s: settling, not arriving. */
+export const PAD_SPEED = 1;
+
+/**
+ * How far out a fighter making for a pad lines itself up with it, in its own
+ * radii. Further off it points where it is going.
+ */
+const PAD_ALIGN_RADII = 4;
+
+/** A design's bounding box in its own body frame, about its centre of mass. */
+interface Footprint {
+  readonly minX: number;
+  readonly maxX: number;
+  readonly minY: number;
+  readonly maxY: number;
+}
+
+const footprints = new WeakMap<ShipDesign, Footprint>();
+
+function footprintOf(design: ShipDesign): Footprint {
+  const known = footprints.get(design);
+  if (known !== undefined) return known;
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+  const corners: number[] = [];
+  for (const module of design.modules) {
+    const n = moduleOutline(module.spec, corners) * 2;
+    for (let k = 0; k < n; k += 2) {
+      const x = corners[k]! - design.centreOfMassX;
+      const y = corners[k + 1]! - design.centreOfMassY;
+      minX = min(minX, x);
+      maxX = max(maxX, x);
+      minY = min(minY, y);
+      maxY = max(maxY, y);
+    }
+  }
+  const found = { minX, maxX, minY, maxY };
+  footprints.set(design, found);
+  return found;
+}
+
 /**
  * The chance a claw closing at `closing` takes a module left at `integrity`:
  * best within its band, falling off either side of it, and likelier the more
@@ -452,6 +497,8 @@ export interface Order {
    * to drink from it. Its doctrine's to give, never an order's.
    */
   grapple: boolean;
+  /** Settle onto a friend's pad, to be filled from it. Its doctrine's to give, never an order's. */
+  land: boolean;
 }
 
 /**
@@ -740,6 +787,8 @@ export class Ships {
   private now = 0;
   /** The tick each ship last touched what it means to drink from without holding it. */
   private readonly touchedSource: number[] = [];
+  /** The pad, by module of its ship's design, a fighter is making for to refuel; -1 for none. */
+  private readonly landingPad: number[] = [];
   /**
    * What each ship is covering, which is never what it is fighting: a consort
    * is by definition something it will not shoot at. Chosen on the same
@@ -1137,6 +1186,7 @@ export class Ships {
     this.forageAt.push(i);
     this.refuelling.push(0);
     this.touchedSource.push(-Infinity);
+    this.landingPad.push(-1);
     this.consort.push(NO_TARGET);
     // Staggered by index, so a fleet spawned together does not all stop to
     // think on the same step for the rest of the battle.
@@ -1149,6 +1199,7 @@ export class Ships {
       cancelOn: OrderCancelCondition.CompleteDisable,
       ram: false,
       grapple: false,
+      land: false,
     });
     this.orders.push([]); // Initialise to an empty array of orders for this ship
     this.demandFx.push(0);
@@ -1932,11 +1983,13 @@ export class Ships {
       standing.minRange = 0;
       standing.maxRange = 0;
       standing.ram = false;
-      standing.grapple = true;
+      standing.grapple = this.landingPad[i]! < 0;
+      standing.land = this.landingPad[i]! >= 0;
       standing.approachSpeed = approach.approachSpeed;
       return standing;
     }
     standing.grapple = false;
+    standing.land = false;
 
     const target = this.chosen[i]!;
     if (target === NO_TARGET || this.alive[target] !== 1 || !this.hasControl(target)) {
@@ -1985,13 +2038,14 @@ export class Ships {
       cancelOn: cancelOn,
       ram: false,
       grapple: false,
+      land: false,
     };
     this.orders[i]!.push(order);
   }
 
   /** Add an order to ram `target`, closing at `approachSpeed`, to the end of this ship's queue. */
   pushRam(i: number, target: number, approachSpeed: number, cancelOn: OrderCancelCondition = OrderCancelCondition.CompleteDisable): void {
-    this.orders[i]!.push({ target, minRange: 0, maxRange: 0, approachSpeed, cancelOn, ram: true, grapple: false });
+    this.orders[i]!.push({ target, minRange: 0, maxRange: 0, approachSpeed, cancelOn, ram: true, grapple: false, land: false });
   }
 
   /** Drop every order this ship has. It holds its heading and its fire. */
@@ -2420,13 +2474,15 @@ export class Ships {
     const target = order?.target ?? NO_TARGET;
     if (order !== undefined && target !== NO_TARGET && this.alive[target] === 1) {
       const tb = bodies.indexOf(this.bodyIds[target]!);
-      // Holding it in its claw: nothing to fly for while it drinks.
-      if (order.grapple && tb === b) {
+      // Holding it in its claw, or sat on its pad: nothing to fly for while it drinks.
+      if ((order.grapple || order.land) && tb === b) {
         this.idle(i);
         return;
       }
       const claw = order.grapple ? this.workingClaw(i, b) : -1;
-      if (order.grapple && claw < 0) {
+      if (order.land && tb >= 0) {
+        wantAngle = this.landOn(bodies, i, b, tb, this.landingPad[i]!);
+      } else if (order.grapple && claw < 0) {
         this.salvaging[i] = NO_TARGET;
       } else if (claw >= 0 && tb >= 0) {
         // The jaws, not the bow, are what point at it.
@@ -2448,7 +2504,7 @@ export class Ships {
 
     // A ram overrides the rest of the doctrine: no cover, no keeping clear;
     // and so does closing on a source, which means touching it.
-    if (order === undefined || !(order.ram || order.grapple)) {
+    if (order === undefined || !(order.ram || order.grapple || order.land)) {
       const covering = this.cover(bodies, i, b);
       if (target === NO_TARGET && covering >= 0) {
         const cb = bodies.indexOf(this.bodyIds[covering]!);
@@ -3373,8 +3429,10 @@ export class Ships {
         if (!this.damage.ragged(a, ma) && !this.damage.ragged(b, mb)) continue;
       }
       // A flown hull keeps its body; two wrecks keep the older's slot.
-      if (this.derelict[i] === 1 && this.derelict[j] === 0) this.merge(world, j, i, mb, ma, claw === 'a' ? 'b' : claw === 'b' ? 'a' : null);
-      else this.merge(world, i, j, ma, mb, claw);
+      const swap = this.derelict[i] === 1 && this.derelict[j] === 0;
+      const dock: DockAt | null = claw === null ? null : { at: (claw === 'a') !== swap ? 'a' : 'b', kind: 'claw' };
+      if (swap) this.merge(world, j, i, mb, ma, dock);
+      else this.merge(world, i, j, ma, mb, dock);
       joined ??= new Set<number>();
       joined.add(i);
       joined.add(j);
@@ -3438,13 +3496,23 @@ export class Ships {
       if (seams === undefined || this.damage.isProtected(b)) continue;
       let moved = false;
       for (const seam of seams) {
-        if (seam.claw !== true) continue;
+        if (seam.dock === undefined) continue;
         const working = this.damage.remaining(b, seam.a, DamageEffect.Grip);
         if (!(working > 0)) continue;
-        const rate = design.modules[seam.a]!.stats.pumpRate * working;
-        if (this.fuel.transfer(b, seam.b, seam.a, rate * world.dt) > 0) moved = true;
-        if (this.fuel.pieceRoom(b, seam.a) > 0 && this.fuel.pieceHeld(b, seam.b) > 0) continue;
-        // Done: the jaws open, which `sever` reads as the seam cut through.
+        const rate = design.modules[seam.a]!.stats.pumpRate * working * world.dt;
+        if (seam.dock === 'claw') {
+          // A claw drinks what it holds.
+          if (this.fuel.transfer(b, seam.b, seam.a, rate) > 0) moved = true;
+          if (this.fuel.pieceRoom(b, seam.a) > 0 && this.fuel.pieceHeld(b, seam.b) > 0) continue;
+        } else {
+          // A pad fills what has landed on it, from what its own ship can spare,
+          // and lets go at once of a fighter given an order.
+          const spare = this.fuel.pieceHeld(b, seam.a) - this.reserve(b, seam.a);
+          if (spare > 0 && this.fuel.transfer(b, seam.a, seam.b, rate < spare ? rate : spare) > 0) moved = true;
+          const ordered = (this.orders[this.pilotAt(b, seam.b)]?.length ?? 0) > 0;
+          if (!ordered && this.fuel.pieceRoom(b, seam.b) > 0 && this.fuel.pieceHeld(b, seam.a) > this.reserve(b, seam.a)) continue;
+        }
+        // Done: the dock lets go, which `sever` reads as the seam cut through.
         const k = jointBetween(design, seam.a, seam.b);
         this.damage.cutWeld(b, k, seam.width);
         released++;
@@ -3455,11 +3523,22 @@ export class Ships {
   }
 
   /**
+   * What the ship working module `m` of body `b` keeps back for itself from
+   * that module's piece of hull, kg: its doctrine's `refuelBelow` of a full
+   * load, below which it would go looking for fuel itself.
+   */
+  private reserve(b: number, m: number): number {
+    const owner = this.pilotAt(b, m);
+    const below = owner < 0 ? 0 : this.designs[owner]!.doctrine.approach.refuelBelow;
+    return below > 0 ? below * (this.fuel.pieceHeld(b, m) + this.fuel.pieceRoom(b, m)) : 0;
+  }
+
+  /**
    * Make `other` part of `keep`, hooked where module `mk` of one met module
    * `mo` of the other. Momentum and angular momentum come out as they went in:
    * one rigid body moving as the two did between them.
    */
-  private merge(world: World, keep: number, other: number, mk: number, mo: number, claw: 'a' | 'b' | null = null): void {
+  private merge(world: World, keep: number, other: number, mk: number, mo: number, dock: DockAt | null = null): void {
     const bodies = world.bodies;
     const idK = this.bodyIds[keep]!;
     const bk = bodies.indexOf(idK);
@@ -3480,10 +3559,14 @@ export class Ships {
     const dy = dk.centreOfMassY + (-wx * sk + wy * ck) - (dO.centreOfMassX * st + dO.centreOfMassY * ct);
     const specK = dk.modules[mk]!.spec;
     const specO = dO.modules[mo]!.spec;
-    // A claw holds across its whole jaw; torn metal catches on part of an edge.
+    // A dock holds across the whole of its part; torn metal catches on part of an edge.
     const width =
-      claw === 'a' ? specK.width : claw === 'b' ? specO.width : HOOK_SHARE * min(min(specK.length, specK.width), min(specO.length, specO.width));
-    const design = weldDesigns(dk, dO, dx, dy, turn, mk, mo, width, claw);
+      dock === null
+        ? HOOK_SHARE * min(min(specK.length, specK.width), min(specO.length, specO.width))
+        : dock.at === 'a'
+          ? specK.width
+          : specO.width;
+    const design = weldDesigns(dk, dO, dx, dy, turn, mk, mo, width, dock);
 
     const massK = bodies.mass[bk]!;
     const massO = bodies.mass[bo]!;
@@ -4398,38 +4481,239 @@ export class Ships {
    */
   private forage(world: World, bodies: Bodies, i: number): void {
     const b = bodies.indexOf(this.bodyIds[i]!);
-    const approach = this.designs[i]!.doctrine.approach;
+    const held = this.salvaging[i]!;
+    const hb = held !== NO_TARGET && this.alive[held] === 1 ? bodies.indexOf(this.bodyIds[held]!) : -1;
+    // Drinking: its claw or its pad lets go when it is done. First, since it
+    // now rides the other's body under a design that is both of theirs.
+    if (b >= 0 && hb === b && this.orders[i]!.length === 0) return;
+    const design = this.designs[i]!;
+    const approach = design.doctrine.approach;
     // An order given outranks it, as it outranks the rest of doctrine.
-    const claw = b >= 0 && approach.refuelBelow > 0 && this.orders[i]!.length === 0 ? this.workingClaw(i, b) : -1;
-    if (claw < 0) {
-      this.salvaging[i] = NO_TARGET;
-      this.refuelling[i] = 0;
+    const willing = b >= 0 && approach.refuelBelow > 0 && this.orders[i]!.length === 0;
+    const claw = willing ? this.workingClaw(i, b) : -1;
+    // A fighter with no claw lands on a friend's pad instead.
+    const lands = willing && claw < 0 && design.fighter;
+    const own = claw >= 0 ? claw : lands ? (design.cores[0] ?? 0) : -1;
+    if (own < 0) {
+      this.stopForaging(i);
       return;
     }
-    const own = this.fuel.pieceHeld(b, claw);
-    const room = this.fuel.pieceRoom(b, claw);
-    const full = own + room;
-    const hungry = full > 0 && room > 0 && (own <= approach.refuelBelow * full || this.refuelling[i] === 1);
+    const ownHeld = this.fuel.pieceHeld(b, own);
+    const room = this.fuel.pieceRoom(b, own);
+    const full = ownHeld + room;
+    const hungry = full > 0 && room > 0 && (ownHeld <= approach.refuelBelow * full || this.refuelling[i] === 1);
     this.refuelling[i] = hungry ? 1 : 0;
     if (!hungry) {
-      this.salvaging[i] = NO_TARGET;
+      this.stopForaging(i);
       return;
     }
-    const held = this.salvaging[i]!;
     if (held !== NO_TARGET) {
-      const hb = this.alive[held] === 1 ? bodies.indexOf(this.bodyIds[held]!) : -1;
-      // Drinking: its claw lets go when it is done.
-      if (hb === b) return;
-      // Gone, dry, or in somebody else's claw: look again now rather than at
-      // the next rethink.
-      if (hb < 0 || this.shipByBody[hb] !== held || !(this.fuel.left(hb) > 0)) {
+      // Gone, dry, taken, or no longer what it is after: look again now rather
+      // than at the next rethink.
+      const lost = lands
+        ? hb < 0 || this.landingPad[i]! < 0 || !this.padFree(bodies, held, this.landingPad[i]!)
+        : hb < 0 || this.landingPad[i]! >= 0 || this.shipByBody[hb] !== held || !(this.fuel.left(hb) > 0);
+      if (lost) {
         this.salvaging[i] = NO_TARGET;
+        this.landingPad[i] = -1;
         this.forageAt[i] = world.tick;
       }
     }
     if (world.tick < this.forageAt[i]!) return;
-    this.forageAt[i] = world.tick + this.rethinkTicks(world, this.designs[i]!.mass);
-    this.salvaging[i] = this.pickSource(bodies, i, b, claw, room);
+    this.forageAt[i] = world.tick + this.rethinkTicks(world, design.mass);
+    if (lands) {
+      this.pickPad(bodies, i, b, room);
+    } else {
+      this.salvaging[i] = this.pickSource(bodies, i, b, claw, room);
+      this.landingPad[i] = -1;
+    }
+  }
+
+  private stopForaging(i: number): void {
+    this.salvaging[i] = NO_TARGET;
+    this.landingPad[i] = -1;
+    this.refuelling[i] = 0;
+  }
+
+  /** How many armed enemies of ship `i` are within their own reach of body `tb`. */
+  private dangerNear(bodies: Bodies, i: number, tb: number): number {
+    let danger = 0;
+    for (let e = 0; e < this.alive.length; e++) {
+      if (this.alive[e] === 0 || this.derelict[e] === 1 || !this.hostile(i, e) || this.isDisarmed(e)) continue;
+      const eb = bodies.indexOf(this.bodyIds[e]!);
+      if (eb < 0 || eb === tb) continue;
+      const reach = this.designs[e]!.reach + bodies.radius[tb]!;
+      if (length(bodies.x[eb]! - bodies.x[tb]!, bodies.y[eb]! - bodies.y[tb]!) <= reach) danger++;
+    }
+    return danger;
+  }
+
+  /** Whether module `pad` of ship `t` is a pad still working, with nothing on it. */
+  private padFree(bodies: Bodies, t: number, pad: number): boolean {
+    const design = this.designs[t]!;
+    if (design.modules[pad]?.spec.kind !== 'pad') return false;
+    const tb = bodies.indexOf(this.bodyIds[t]!);
+    if (tb < 0 || !(this.left(t, tb, pad, DamageEffect.Grip) > 0)) return false;
+    for (const seam of design.seams ?? []) if (seam.dock === 'pad' && seam.a === pad) return false;
+    return true;
+  }
+
+  /**
+   * The best friend's pad to land on, by the fuel its ship can spare for the
+   * time it would take to get there and be filled, put off by armed enemies
+   * near it as a source is, and by every other fighter already making for it.
+   */
+  private pickPad(bodies: Bodies, i: number, b: number, room: number): void {
+    const approach = this.designs[i]!.doctrine.approach;
+    this.salvaging[i] = NO_TARGET;
+    this.landingPad[i] = -1;
+    if (!(approach.approachSpeed > 0)) return;
+    let bestScore = 0;
+    for (let t = 0; t < this.alive.length; t++) {
+      if (t === i || this.alive[t] === 0 || this.derelict[t] === 1) continue;
+      if (this.team[t] !== this.team[i] || this.hostile(i, t)) continue;
+      const tb = bodies.indexOf(this.bodyIds[t]!);
+      if (tb < 0 || tb === b) continue;
+      const design = this.designs[t]!;
+      let danger = -1;
+      for (let pad = 0; pad < design.modules.length; pad++) {
+        if (design.modules[pad]!.spec.kind !== 'pad' || !this.padFree(bodies, t, pad)) continue;
+        const spare = this.fuel.pieceHeld(tb, pad) - this.reserve(tb, pad);
+        const pump = design.modules[pad]!.stats.pumpRate;
+        if (!(spare > 0) || !(pump > 0)) continue;
+        const take = spare < room ? spare : room;
+        const gap = length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!);
+        if (danger < 0) danger = approach.refuelDanger > 0 ? this.dangerNear(bodies, i, tb) : 0;
+        // A pad another fighter is already making for is a wait behind it.
+        let queue = 0;
+        for (let o = 0; o < this.alive.length; o++) {
+          if (o !== i && this.alive[o] === 1 && this.salvaging[o] === t && this.landingPad[o] === pad) queue++;
+        }
+        const score = take / (gap / approach.approachSpeed + take / pump) / (1 + max(0, approach.refuelDanger) * danger) / (1 + queue);
+        if (score > bestScore) {
+          bestScore = score;
+          this.salvaging[i] = t;
+          this.landingPad[i] = pad;
+        }
+      }
+    }
+  }
+
+  /**
+   * Where module `m` of body `tb` is and how it is moving, world frame, and
+   * which way it faces.
+   */
+  private modulePlace(bodies: Bodies, tb: number, design: ShipDesign, m: number): { x: number; y: number; vx: number; vy: number; angle: number } {
+    const module = design.modules[m]!;
+    const angle = bodies.angle[tb]!;
+    const c = cos(angle);
+    const s = sin(angle);
+    const rx = module.x * c - module.y * s;
+    const ry = module.x * s + module.y * c;
+    const spin = bodies.angularVel[tb]!;
+    return {
+      x: bodies.x[tb]! + rx,
+      y: bodies.y[tb]! + ry,
+      vx: bodies.vx[tb]! - spin * ry,
+      vy: bodies.vy[tb]! + spin * rx,
+      angle: angle + (module.spec.angle ?? 0),
+    };
+  }
+
+  /**
+   * Fly onto a pad: down a stopping curve onto its middle, matching how it is
+   * moving. Like a ram it points its mains along the change of velocity it
+   * still needs, and plans to brake on them with a half turn allowed for,
+   * since a fighter mostly pushes one way. Once near and nearly matched it
+   * lines up with the pad, unless it would fit inside it at any heading.
+   * Returns the heading to hold.
+   */
+  private landOn(bodies: Bodies, i: number, b: number, tb: number, pad: number): number {
+    const host = this.designOf(tb);
+    if (host === null || host.modules[pad] === undefined) return bodies.angle[b]!;
+    const design = this.designs[i]!;
+    const approach = design.doctrine.approach;
+    const place = this.modulePlace(bodies, tb, host, pad);
+    const dx = place.x - bodies.x[b]!;
+    const dy = place.y - bodies.y[b]!;
+    const range = length(dx, dy);
+    let vx = place.vx;
+    let vy = place.vy;
+    if (range > 0) {
+      const ux = dx / range;
+      const uy = dy / range;
+      const mains =
+        this.layoutOf(i).maxThrustAlong(cos(design.thrustBearing), sin(design.thrustBearing)) / bodies.mass[b]!;
+      const delay = approach.responseTime + this.halfTurnTime(bodies, i, b);
+      const radial = min(approach.approachSpeed, stoppingSpeed(approach.brake * mains, range, delay));
+      vx += ux * radial;
+      vy += uy * radial;
+    }
+    this.urge(URGE_REFERENCE, vx, vy);
+
+    const dvx = vx - bodies.vx[b]!;
+    const dvy = vy - bodies.vy[b]!;
+    if (length(dvx, dvy) > PAD_SPEED / 2) return atan2(dvy, dvx) - design.thrustBearing;
+    const box = footprintOf(design);
+    const spec = host.modules[pad]!.spec;
+    const diagonal = length(box.maxX - box.minX, box.maxY - box.minY);
+    const near = range <= PAD_ALIGN_RADII * bodies.radius[b]!;
+    if (!near || diagonal <= min(spec.length, spec.width)) return bodies.angle[b]!;
+    // Lined up with the pad either way round, whichever is nearer.
+    const along = angleDelta(bodies.angle[b]!, place.angle);
+    return abs(along) <= PI / 2 ? place.angle : place.angle + PI;
+  }
+
+  /**
+   * Take aboard every fighter that has settled onto the pad it was making for:
+   * its whole outline inside the pad's, and moving with it to within
+   * `PAD_SPEED`. Say how many landed.
+   *
+   * A fighter flies above a deck, so it never touches a pad; landing is the
+   * two meeting at the boundary between the layers, and no commitment.
+   */
+  land(world: World): number {
+    const bodies = world.bodies;
+    this.bodyStore = bodies;
+    const settled = world.tick - WELD_SETTLE / world.dt;
+    let landed = 0;
+    for (let i = 0; i < this.alive.length; i++) {
+      const pad = this.landingPad[i]!;
+      if (this.alive[i] === 0 || pad < 0 || this.committed[i] === 1 || !this.designs[i]!.fighter) continue;
+      const c = this.salvaging[i]!;
+      if (c === NO_TARGET || this.alive[c] === 0 || this.partedAt[i]! > settled) continue;
+      const b = bodies.indexOf(this.bodyIds[i]!);
+      const cb = bodies.indexOf(this.bodyIds[c]!);
+      if (b < 0 || cb < 0 || b === cb || !this.padFree(bodies, c, pad)) continue;
+      if (this.damage.isProtected(b) || this.damage.isProtected(cb)) continue;
+      const host = this.designs[c]!;
+      const place = this.modulePlace(bodies, cb, host, pad);
+      if (length(bodies.vx[b]! - place.vx, bodies.vy[b]! - place.vy) > PAD_SPEED) continue;
+      if (!this.within(bodies, b, this.designs[i]!, place, host.modules[pad]!.spec)) continue;
+      this.merge(world, c, i, pad, this.designs[i]!.cores[0] ?? 0, { at: 'a', kind: 'pad' });
+      landed++;
+    }
+    return landed;
+  }
+
+  /** Whether every corner of body `b`'s bounding box lies inside a pad of `spec` at `place`. */
+  private within(bodies: Bodies, b: number, design: ShipDesign, place: { x: number; y: number; angle: number }, spec: ModuleSpec): boolean {
+    const box = footprintOf(design);
+    const angle = bodies.angle[b]!;
+    const c = cos(angle);
+    const s = sin(angle);
+    const pc = cos(place.angle);
+    const ps = sin(place.angle);
+    const halfL = spec.length / 2;
+    const halfW = spec.width / 2;
+    for (let k = 0; k < 4; k++) {
+      const lx = k < 2 ? box.minX : box.maxX;
+      const ly = k % 2 === 0 ? box.minY : box.maxY;
+      const dx = bodies.x[b]! + lx * c - ly * s - place.x;
+      const dy = bodies.y[b]! + lx * s + ly * c - place.y;
+      if (abs(dx * pc + dy * ps) > halfL || abs(-dx * ps + dy * pc) > halfW) return false;
+    }
+    return true;
   }
 
   /**
@@ -4456,16 +4740,7 @@ export class Ships {
       const take = fuel < room ? fuel : room;
       const gap = max(0, length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!) - bodies.radius[tb]!);
       const time = gap / approach.approachSpeed + take / pump;
-      let danger = 0;
-      if (approach.refuelDanger > 0) {
-        for (let e = 0; e < this.alive.length; e++) {
-          if (this.alive[e] === 0 || this.derelict[e] === 1 || !this.hostile(i, e) || this.isDisarmed(e)) continue;
-          const eb = bodies.indexOf(this.bodyIds[e]!);
-          if (eb < 0 || eb === tb) continue;
-          const reach = this.designs[e]!.reach + bodies.radius[tb]!;
-          if (length(bodies.x[eb]! - bodies.x[tb]!, bodies.y[eb]! - bodies.y[tb]!) <= reach) danger++;
-        }
-      }
+      const danger = approach.refuelDanger > 0 ? this.dangerNear(bodies, i, tb) : 0;
       const score = take / time / (1 + max(0, approach.refuelDanger) * danger);
       if (score > bestScore) {
         best = t;

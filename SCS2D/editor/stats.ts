@@ -341,7 +341,8 @@ export function moduleReadout(
     ]);
   }
   if (stats.pumpRate > 0) {
-    rows.push(['Pump', `${stats.pumpRate.toLocaleString('en-GB', { maximumFractionDigits: 0 })} kg/s from what its bow grips`]);
+    const rate = `${stats.pumpRate.toLocaleString('en-GB', { maximumFractionDigits: 0 })} kg/s`;
+    rows.push(['Pump', spec.kind === 'pad' ? `${rate} into a fighter landed on it` : `${rate} from what its bow grips`]);
   }
   if (stats.exhaustVelocity > 0) {
     // What it costs to run, which the bell and the size of the throat decide.

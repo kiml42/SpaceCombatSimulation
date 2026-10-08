@@ -133,6 +133,8 @@ export {
   TRAVERSE_SPINUP_TIME,
   CLAW_MASS_PER_AREA,
   CLAW_PUMP_PER_METRE,
+  PAD_MASS_PER_AREA,
+  PAD_PUMP_PER_METRE,
   type GunStats,
   type BurstStats,
   type ModuleKind,
@@ -343,6 +345,7 @@ export {
   CLAW_SPEED_LOW,
   CLAW_SPEED_MAX,
   clawChance,
+  PAD_SPEED,
   type Order,
   type ShipSpec,
 } from './ships.js';

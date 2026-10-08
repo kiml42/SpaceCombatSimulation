@@ -629,6 +629,16 @@ export const CLAW_MASS_PER_AREA = 250;
 export const CLAW_PUMP_PER_METRE = 50;
 
 /**
+ * A landing pad's fittings per square metre of its floor, kg/m²: a flat
+ * reinforced deck, its clamps, and a fuel line up through it. Light, since
+ * most of a pad is room left clear.
+ */
+export const PAD_MASS_PER_AREA = 50;
+
+/** What a pad pumps per metre of its width, kg/s, into what has landed on it. */
+export const PAD_PUMP_PER_METRE = 50;
+
+/**
  * Least a core's machinery can weigh, kg, however small the compartment.
  *
  * Every ship in this game is computer-flown, so a core is a processor, its
@@ -676,7 +686,8 @@ export type ModuleKind =
   | 'beamTurret'
   | 'hullGun'
   | 'hullBeam'
-  | 'claw';
+  | 'claw'
+  | 'pad';
 
 /**
  * Every archetype there is, in one order.
@@ -700,6 +711,7 @@ export const MODULE_KINDS: readonly ModuleKind[] = [
   'hullGun',
   'hullBeam',
   'claw',
+  'pad',
 ];
 
 /**
@@ -1072,7 +1084,7 @@ export interface ModuleStats {
    * hull trains briskly through the very little arc it has.
    */
   swingInertia: number;
-  /** Fuel a claw pumps across what it grips, kg/s. Zero unless the module is a claw. */
+  /** Fuel a claw or a pad pumps across what it holds, kg/s. Zero for anything else. */
   pumpRate: number;
 }
 
@@ -1836,9 +1848,12 @@ export function readsMain(kind: ModuleKind): boolean {
   return isWeaponMount(kind) || kind === 'engine';
 }
 
-/** Whether `thick` means anything on this kind: everything but a turret, which is held to a deck. */
+/**
+ * Whether `thick` means anything on this kind: everything but a turret, which
+ * is held to a deck, and a pad, which is a deck a fighter above it lands on.
+ */
 export function readsThick(kind: ModuleKind): boolean {
-  return kind !== 'turret' && kind !== 'beamTurret';
+  return kind !== 'turret' && kind !== 'beamTurret' && kind !== 'pad';
 }
 
 /**
@@ -2198,6 +2213,8 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
     // carrying five of them.
     fittingMass = max(CORE_MINIMUM_FITTING_MASS, CORE_MASS_PER_AREA * capacity) + liningMass;
     fuel = max(0, interior - CORE_COMPUTING_VOLUME) * FUEL_DENSITY;
+  } else if (spec.kind === 'pad') {
+    fittingMass = PAD_MASS_PER_AREA * capacity;
   } else if (spec.kind === 'claw') {
     // Jaws on the bow face and a pump behind them, priced by the floor they fill.
     fittingMass = CLAW_MASS_PER_AREA * capacity;
@@ -2376,7 +2393,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
     gun,
     traverseMass,
     swingInertia: mount === null ? inertia : swing,
-    pumpRate: spec.kind === 'claw' ? CLAW_PUMP_PER_METRE * width : 0,
+    pumpRate: spec.kind === 'claw' ? CLAW_PUMP_PER_METRE * width : spec.kind === 'pad' ? PAD_PUMP_PER_METRE * width : 0,
   };
 }
 

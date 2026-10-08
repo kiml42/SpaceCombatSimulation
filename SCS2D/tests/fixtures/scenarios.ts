@@ -20,6 +20,7 @@ import { ram } from '../../scenarios/ram.js';
 import { hooked } from '../../scenarios/hooked.js';
 import { salvage } from '../../scenarios/salvage.js';
 import { scavenge } from '../../scenarios/scavenge.js';
+import { carrier } from '../../scenarios/carrier.js';
 import { standoff } from '../../scenarios/standoff.js';
 import { torchRun } from '../../scenarios/torchRun.js';
 import { broadside } from '../../scenarios/broadside.js';
@@ -508,6 +509,19 @@ export function scavengeScenario(seed = 20261008): ScenarioRun {
   };
 }
 
+export function carrierScenario(seed = 20261008): ScenarioRun {
+  const run = carrier(seed);
+  return {
+    step: () => run.step(),
+    checksum: () =>
+      checksumDamage(
+        run.ships.damage,
+        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
+      ),
+    describe: () => describeBattle(run),
+  };
+}
+
 export function orderingScenario(seed = 20260905): ScenarioRun {
   const run = soloOrdering(0, seed);
   return {
@@ -559,6 +573,8 @@ export const SCENARIOS = {
   salvage: { steps: 3_000, build: () => salvageScenario() },
   // Long enough for both scavengers to drink their fill, one from three wrecks.
   scavenge: { steps: 18_000, build: () => scavengeScenario() },
+  // Long enough for all three fighters to land, fill and lift off.
+  carrier: { steps: 3_000, build: () => carrierScenario() },
 } satisfies Record<string, Scenario>;
 
 export type ScenarioName = keyof typeof SCENARIOS;

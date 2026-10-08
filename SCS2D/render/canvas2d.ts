@@ -163,6 +163,9 @@ const TANK_INSET = 0.15;
 /** How much of a claw's width each of its two jaws is drawn across. */
 const CLAW_JAW_SHARE = 0.3;
 
+/** How far in from a pad's edge its landing square is drawn, as a share of its smaller side. */
+const PAD_MARK_INSET = 0.1;
+
 /** A module that has taken everything it can: still there, no longer anything. */
 const WRECKAGE = '#3c4048';
 
@@ -351,6 +354,14 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
       // the whole reason it is a separate piece rather than part of the box.
       const mount = hullMountGeometry(spec);
       ctx.fillRect(-halfLength, -halfWidth, mount.blockLength, spec.width);
+    } else if (spec.kind === 'pad') {
+      // A deck in the hull's colour with a landing square marked on it.
+      const inset = min(spec.length, spec.width) * PAD_MARK_INSET;
+      ctx.fillStyle = integrity <= 0 ? WRECKAGE : colours.hull;
+      ctx.fillRect(-halfLength, -halfWidth, spec.length, spec.width);
+      ctx.strokeStyle = colours.trim;
+      ctx.lineWidth = inset * 0.5;
+      ctx.strokeRect(-halfLength + inset, -halfWidth + inset, spec.length - 2 * inset, spec.width - 2 * inset);
     } else if (spec.kind === 'claw') {
       // The pump aft, and two jaws reaching out of the bow face it grips with.
       const jaw = spec.width * CLAW_JAW_SHARE;

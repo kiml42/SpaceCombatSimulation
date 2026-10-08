@@ -183,6 +183,8 @@ const DEFAULTS: Record<ModuleSpec['kind'], Omit<ModuleSpec, 'x' | 'y'>> = {
   hullGun: { kind: 'hullGun', angle: 0, length: 8, width: 4, barrels: 1 },
   hullBeam: { kind: 'hullBeam', angle: 0, length: 6, width: 4, barrels: 1 },
   claw: { kind: 'claw', angle: 0, length: 2, width: 2 },
+  // Room for a fighter to sit on, wholly inside it.
+  pad: { kind: 'pad', length: 12, width: 10 },
 };
 
 function el<T extends HTMLElement>(id: string): T {

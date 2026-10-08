@@ -220,6 +220,9 @@ export const DEFAULT_KINDS: KindWeights = {
   // Rare: worth anything only to a doctrine that goes after wrecks, which a
   // lineage has to find as well.
   claw: 1,
+  // A pad serves other ships, so it pays only in a fleet that carries
+  // fighters; a run of fleets can raise it.
+  pad: 0,
 };
 
 /**
