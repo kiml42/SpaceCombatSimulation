@@ -17,7 +17,10 @@ import {
   engineGeometry,
   type ModuleSpec,
   type ShipDesign,
+  landedIndex,
+  landedLength,
 } from '../sim/index.js';
+import { BOTH_LAYERS, HULL_LAYER, OWN_LAYERS, WEAPONS_LAYER } from '../sim/hull.js';
 import { moduleReadout } from '../editor/stats.js';
 import { THRUST_PER_EXIT_AREA } from '../sim/modules.js';
 
@@ -453,6 +456,70 @@ describe('an engine firing at somebody else', () => {
     expect(w.damage.integrity(1, 0)).toBeLessThan(1);
     expect(w.damage.integrity(1, 1)).toBe(1);
     for (let m = 0; m < firing.modules.length; m++) expect(w.damage.integrity(0, m)).toBe(1);
+  });
+});
+
+describe('the layer a plume is in', () => {
+  /** The firing ship and a deck-level hull in its flame, either of them flying in `layers`. */
+  function parked(firingLayers: number, victimLayers: number) {
+    const firing = design();
+    const victim = compileBlueprint({ name: 'Victim', modules: [hull(0, 4)] });
+    const bodies = new Bodies();
+    bodies.create({ x: 0, y: 0, angle: 0, mass: firing.mass, inertia: firing.inertia, radius: firing.radius });
+    bodies.create({ x: -9, y: 0, angle: 0, mass: victim.mass, inertia: victim.inertia, radius: victim.radius });
+    const damage = new Damage();
+    damage.register(0, firing);
+    damage.register(1, victim);
+    const grid = new SpatialGrid(64);
+    grid.rebuild(bodies);
+    const layers = [firingLayers, victimLayers];
+    const hulls = new Hulls({ designOf: (b: number) => [firing, victim][b] ?? null, layersOf: (b: number) => layers[b]! });
+    const plumes = new Plumes();
+    for (let step = 0; step < 60; step++) {
+      plumes.burn(firing, 0, firing.engines[0]!.maxThrust, damage, bodies, 0, grid, hulls, 1 / 60, undefined, firingLayers);
+    }
+    return damage.integrity(1, 0);
+  }
+
+  it('passes over a deck when it is a fighter flying above it', () => {
+    expect(parked(WEAPONS_LAYER, OWN_LAYERS)).toBe(1);
+  });
+
+  it('burns a deck once the fighter has dropped into the hull layer', () => {
+    expect(parked(BOTH_LAYERS, OWN_LAYERS)).toBeLessThan(1);
+  });
+
+  it('burns a fighter behind a ship whose engine stands in both layers', () => {
+    // The engine here is thick, so it is in the weapons layer as well.
+    expect(parked(OWN_LAYERS, WEAPONS_LAYER)).toBeLessThan(1);
+  });
+
+  it('splits a thick engine between the layers, so half goes on past a fighter to the deck behind', () => {
+    const firing = design();
+    const fighter = compileBlueprint({ name: 'Fighter', modules: [hull(0, 2)] });
+    const deck = compileBlueprint({ name: 'Deck', modules: [hull(0, 2)] });
+    const bodies = new Bodies();
+    bodies.create({ x: 0, y: 0, angle: 0, mass: firing.mass, inertia: firing.inertia, radius: firing.radius });
+    bodies.create({ x: -7, y: 0, angle: 0, mass: fighter.mass, inertia: fighter.inertia, radius: fighter.radius });
+    bodies.create({ x: -11, y: 0, angle: 0, mass: deck.mass, inertia: deck.inertia, radius: deck.radius });
+    const damage = new Damage();
+    damage.register(0, firing);
+    damage.register(1, fighter);
+    damage.register(2, deck);
+    const grid = new SpatialGrid(64);
+    grid.rebuild(bodies);
+    const layers = [OWN_LAYERS, WEAPONS_LAYER, OWN_LAYERS];
+    const hulls = new Hulls({ designOf: (b: number) => [firing, fighter, deck][b] ?? null, layersOf: (b: number) => layers[b]! });
+    const landed = new Float64Array(landedLength(firing));
+    new Plumes().burn(firing, 0, firing.engines[0]!.maxThrust, damage, bodies, 0, grid, hulls, 1 / 60, landed);
+
+    expect(damage.integrity(1, 0)).toBeLessThan(1);
+    expect(damage.integrity(2, 0)).toBeLessThan(1);
+    // The core ray: the weapons layer's half stops at the fighter, nearer the nozzle.
+    const hull1 = landed[landedIndex(firing, 0, 1, HULL_LAYER)]!;
+    const weapons1 = landed[landedIndex(firing, 0, 1, WEAPONS_LAYER)]!;
+    expect(hull1).toBeGreaterThan(0);
+    expect(weapons1).toBeGreaterThan(hull1);
   });
 });
 
