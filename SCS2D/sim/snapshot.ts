@@ -91,10 +91,12 @@ export interface ShipView {
   engineFiring?: boolean[];
   /**
    * How much of each flame ray landed on a hull last step, as that ray's
-   * share of its power — 0 where it met nothing. Every engine's rays in
-   * turn, three per nozzle, starting where `plumeRayStarts` says.
+   * share of its power — 0 where it met nothing. Every ray twice, once a
+   * layer, where `landedIndex` says.
    */
   landed: number[];
+  /** The layers each engine's plume is in. Optional, as the triggers are. */
+  plumeLayers?: number[];
   /**
    * How much of each module is left, 1 untouched and 0 spent, in the design's
    * module order. A spent module is still there and still stops shells — it is
@@ -304,6 +306,7 @@ function shipView(snapshot: Snapshot, i: number): ShipView {
     throttles: [],
     engineTriggerReach: [],
     engineFiring: [],
+    plumeLayers: [],
     landed: [],
     integrity: [],
     hasControl: true,
@@ -398,6 +401,9 @@ export function capture(
       engineReach[t] = ships.weaponReach(i, t);
       engineFiring[t] = ships.isEngineFiring(i, t);
     }
+    const plumeLayers = (view.plumeLayers ??= []);
+    plumeLayers.length = design.engines.length;
+    for (let t = 0; t < design.engines.length; t++) plumeLayers[t] = ships.plumeLayersOf(i, t);
 
     const rays = ships.landedRays(i);
     view.landed.length = rays.length;

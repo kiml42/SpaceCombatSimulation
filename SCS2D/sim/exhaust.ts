@@ -1,7 +1,17 @@
 import type { Bodies } from './bodies.js';
 import type { ShipDesign } from './blueprint.js';
 import type { Damage } from './damage.js';
-import { HullPath, modulesAlong, type Boxes, type Hulls } from './hull.js';
+import {
+  BOTH_LAYERS,
+  HULL_LAYER,
+  HullPath,
+  moduleLayers,
+  modulesAlong,
+  OWN_LAYERS,
+  WEAPONS_LAYER,
+  type Boxes,
+  type Hulls,
+} from './hull.js';
 import { cos, sin, sqrt } from './math.js';
 import {
   DECK_HEIGHT,
@@ -176,6 +186,32 @@ export function plumeRayStarts(design: ShipDesign): Int32Array {
   return starts;
 }
 
+/**
+ * Where one ray's landing is kept in a ship's flat list of them. Every ray has
+ * two slots, the hull layer's and then, past all of those, the weapons
+ * layer's, because a thick engine casts each ray once in each layer.
+ */
+export function landedIndex(design: ShipDesign, engine: number, ray: number, layer: number): number {
+  const starts = plumeRayStarts(design);
+  return starts[engine]! + ray + (layer === WEAPONS_LAYER ? starts[design.engines.length]! : 0);
+}
+
+/** How long a ship's list of ray landings is: two slots a ray. */
+export function landedLength(design: ShipDesign): number {
+  return 2 * plumeRayStarts(design)[design.engines.length]!;
+}
+
+/** The layers an engine's plume is in: its own, or the whole ship's for a fighter. */
+export function plumeLayers(design: ShipDesign, engine: number, bodyLayers: number): number {
+  const m = design.modules[design.engines[engine]?.module ?? -1];
+  return m === undefined ? 0 : moduleLayers(m, bodyLayers);
+}
+
+/** How many layers a plume is in, and so how many ways each ray is split. */
+export function layerCount(layers: number): number {
+  return ((layers & HULL_LAYER) !== 0 ? 1 : 0) + ((layers & WEAPONS_LAYER) !== 0 ? 1 : 0);
+}
+
 /** Which nozzle a ray belongs to, and which of its three it is. */
 function rayNozzle(ray: number): { nozzle: number; across: number } {
   const nozzle = (ray / PLUME_RAYS) | 0;
@@ -346,6 +382,11 @@ export class Plumes {
    * wall of metal to it. That is how a shell and a ram see a hull, and unlike
    * a beam, which is stopped only by matter it can still boil away.
    *
+   * **A plume stays in its engine's layer**, as a beam does: a fighter's
+   * flame passes over the deck it is flying above, and a capital's deck-level
+   * engine passes under the fighters behind it. A thick engine stands in both
+   * and is cast in each separately, so `layers` is one layer for a burn.
+   *
    * Held rather than returned, so that a caller deciding whether to *fire* can
    * ask the same question a burn does and get the same answer.
    */
@@ -359,6 +400,8 @@ export class Plumes {
     bodyIndex: number,
     grid: SpatialGrid,
     hulls: Hulls,
+    /** The layers to cast in. */
+    layers = BOTH_LAYERS,
   ): boolean {
     this.body = -1;
     this.module = -1;
@@ -400,12 +443,17 @@ export class Plumes {
       const dx = ux * reach;
       const dy = uy * reach;
       const hit = this.hit;
-      if (!grid.raycast(bodies, x0, y0, x0 + dx, y0 + dy, hit, bodyIndex, hulls)) return false;
+      hulls.castFrom(layers, -1, -1);
+      if (!grid.raycast(bodies, x0, y0, x0 + dx, y0 + dy, hit, bodyIndex, hulls)) {
+        hulls.reset();
+        return false;
+      }
       distance = reach * hit.t;
       victimBody = hit.bodyIndex;
       // A body with no hull to cast against has no module to burn, and
       // `Damage.absorb` says so by refusing the index.
       victimModule = hulls.describe(bodies, victimBody, x0, y0, dx, dy) ? hulls.module : -1;
+      hulls.reset();
     }
 
     const share = 1 - distance / reach;
@@ -431,6 +479,9 @@ export class Plumes {
    * ship pushes nothing: that momentum was taken off the engine's thrust when
    * the design was compiled, so paying it again here would be the ship pushing
    * itself.
+   *
+   * **A thick engine burns in each layer with half of every ray**, so what is
+   * in one layer takes its half and the other half goes on past it.
    */
   burn(
     design: ShipDesign,
@@ -442,24 +493,30 @@ export class Plumes {
     grid: SpatialGrid,
     hulls: Hulls,
     dt: number,
-    /** Where to write each ray's `share` landing on anything, 0 where it met nothing. */
+    /** Where to write each ray's `share` landing on anything (`landedIndex`), 0 where it met nothing. */
     landed?: Float64Array,
-    landedAt = 0,
+    /** The body's layers (`Ships.layersOf`): `OWN_LAYERS` for each module its own. */
+    bodyLayers = OWN_LAYERS,
   ): void {
     if (!(dt > 0) || !(force > 0)) return;
     const engine = design.modules[design.engines[slot]?.module ?? -1];
     if (engine === undefined) return;
+    const layers = moduleLayers(engine, bodyLayers);
     // A ray is one equal slice of the engine: a third of one of its nozzles,
-    // so that share of the gas, the power and the momentum.
+    // so that share of the gas, the power and the momentum, split again
+    // between the layers it is in.
     const rays = plumeRays(engineGeometry(engine.spec));
-    const perRay = force / rays;
-    for (let ray = 0; ray < rays; ray++) {
-      if (!this.cast(design, slot, ray, force, bodies, bodyIndex, grid, hulls)) continue;
-      if (landed !== undefined) landed[landedAt + ray] = this.share;
-      damage.absorb(this.body, this.module, PLUME_POWER_PER_NEWTON * perRay * this.share * dt);
-      if (this.body === bodyIndex) continue;
-      const impulse = perRay * this.share * dt;
-      shove(bodies, this.body, this.dirX * impulse, this.dirY * impulse, this.x, this.y);
+    const perRay = force / rays / layerCount(layers);
+    for (let layer = HULL_LAYER; layer <= WEAPONS_LAYER; layer <<= 1) {
+      if ((layers & layer) === 0) continue;
+      for (let ray = 0; ray < rays; ray++) {
+        if (!this.cast(design, slot, ray, force, bodies, bodyIndex, grid, hulls, layer)) continue;
+        if (landed !== undefined) landed[landedIndex(design, slot, ray, layer)] = this.share;
+        damage.absorb(this.body, this.module, PLUME_POWER_PER_NEWTON * perRay * this.share * dt);
+        if (this.body === bodyIndex) continue;
+        const impulse = perRay * this.share * dt;
+        shove(bodies, this.body, this.dirX * impulse, this.dirY * impulse, this.x, this.y);
+      }
     }
   }
 }
