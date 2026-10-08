@@ -180,9 +180,12 @@ const FIELDS = [
   'seed',
   'duration',
   'radius',
+  'radiusSpread',
   'scatter',
   'closing',
+  'closingSpread',
   'crossing',
+  'crossingSpread',
   'survivalWeight',
   'functionalWeight',
   'damageWeight',
@@ -612,6 +615,9 @@ export function startEvolution(): void {
     scatter: String(Math.round((DEFAULT_MATCH.scatter * 180) / Math.PI)),
     closing: String(DEFAULT_MATCH.closingSpeed),
     crossing: String(DEFAULT_MATCH.crossingSpeed),
+    radiusSpread: String(DEFAULT_MATCH.radiusSpread),
+    closingSpread: String(DEFAULT_MATCH.closingSpread),
+    crossingSpread: String(DEFAULT_MATCH.crossingSpread),
     survivalWeight: String(DEFAULT_MATCH.weights.survival),
     functionalWeight: String(DEFAULT_MATCH.weights.functional),
     damageWeight: String(DEFAULT_MATCH.weights.damage),
@@ -891,6 +897,9 @@ export function startEvolution(): void {
         scatter: (number(inputs.scatter, 180) * Math.PI) / 180,
         closingSpeed: number(inputs.closing, DEFAULT_MATCH.closingSpeed),
         crossingSpeed: number(inputs.crossing, DEFAULT_MATCH.crossingSpeed),
+        radiusSpread: Math.max(0, number(inputs.radiusSpread, DEFAULT_MATCH.radiusSpread)),
+        closingSpread: Math.max(0, number(inputs.closingSpread, DEFAULT_MATCH.closingSpread)),
+        crossingSpread: Math.max(0, number(inputs.crossingSpread, DEFAULT_MATCH.crossingSpread)),
         goal:
           goalInput.value === 'none' || DEFAULT_MATCH.goal === null
             ? null
@@ -989,6 +998,9 @@ export function startEvolution(): void {
     inputs.scatter.value = String((match.scatter * 180) / Math.PI);
     inputs.closing.value = String(match.closingSpeed);
     inputs.crossing.value = String(match.crossingSpeed);
+    inputs.radiusSpread.value = String(match.radiusSpread ?? DEFAULT_MATCH.radiusSpread);
+    inputs.closingSpread.value = String(match.closingSpread ?? DEFAULT_MATCH.closingSpread);
+    inputs.crossingSpread.value = String(match.crossingSpread ?? DEFAULT_MATCH.crossingSpread);
     inputs.survivalWeight.value = String(match.weights.survival);
     inputs.functionalWeight.value = String(match.weights.functional);
     inputs.damageWeight.value = String(match.weights.damage);
