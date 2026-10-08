@@ -1,7 +1,6 @@
 # Bugs
 Things that are obviously wrong.
 
-- Turrets sometimes track through thick modules which should physically block them.
 - Fighter engines in the turret layer immediately hit an overflown hull layer module. Should probably just make engine plumes follow the same rules as beams about staying in their own layers.
 
 -----------------------------------------------------------------------
