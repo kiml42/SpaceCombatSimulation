@@ -719,6 +719,9 @@ export class Ships {
   private urgeVx = 0;
   private urgeVy = 0;
   private urgeWeight = 0;
+  /** The heaviest dodge in the blend: how much it is wanted, and seconds until the near miss. */
+  private dodgeWeight = 0;
+  private dodgeWhen = 0;
   private readonly rethinkAt: number[] = [];
   /**
    * The order doctrine makes up, one per ship and rewritten in place, so that
@@ -2341,6 +2344,7 @@ export class Ships {
     this.urgeVx = 0;
     this.urgeVy = 0;
     this.urgeWeight = 0;
+    this.dodgeWeight = 0;
     let wantAngle = bodies.angle[b]!;
     // What it is fighting, if anything: the body, and how far out it holds it.
     let fighting = -1;
@@ -2361,7 +2365,7 @@ export class Ships {
           holdOut = order.maxRange;
         }
         if (order.ram) this.charge(bodies, b, tb, order.approachSpeed);
-        else this.hold(bodies, i, b, tb, order.minRange, order.maxRange, order.approachSpeed, URGE_REFERENCE, true);
+        else this.hold(bodies, i, b, tb, order.minRange, order.maxRange, order.approachSpeed, URGE_REFERENCE, wantAngle);
       }
     }
 
@@ -2511,9 +2515,13 @@ export class Ships {
   /**
    * The attack heading, or the heading that points the main thrust axis along
    * the change of velocity this ship wants, whichever its doctrine scores
-   * higher: `burnWeight` for each share of the axis's thrust the turn would
-   * add to the push it wants, against `rangeHold` for how near the band it
+   * higher: `burnWeight` for the share of that change turning makes before
+   * holding would, turn included, against `rangeHold` for how near the band it
    * is. Held by `BURN_MARGIN` either way.
+   *
+   * A ship whose guns-on thrust already gives what the pilot asks for never
+   * turns. When a dodge is most of what it wants, only what each makes
+   * before the near miss counts, so a quick sidestep beats a slow flip.
    */
   private burnOrFight(
     i: number,
@@ -2539,12 +2547,27 @@ export class Ships {
     }
     const ux = dvx / dv;
     const uy = dvy / dv;
-    const want = dv / VELOCITY_RESPONSE_TIME;
     // What the layout gives along the want with the guns held on target.
     const c = cos(attack);
     const s = sin(attack);
     const held = layout.maxThrustAlong(ux * c + uy * s, -ux * s + uy * c) / mass;
-    const gain = max(0, min(want, axis) - min(want, held)) / axis;
+    const burnHeading = atan2(uy, ux) - design.thrustBearing;
+    const turn = this.turnTime(bodies, i, b, angleDelta(attack, burnHeading));
+    if (!(turn < Infinity)) {
+      this.burning[i] = 0;
+      return attack;
+    }
+    // The pilot asks for no more than the change over its response time, so
+    // thrust past that is no use either way. Turning has made the change by
+    // `turned`; compare what holding has made of it by then, or by the near
+    // miss if that is sooner.
+    const want = dv / VELOCITY_RESPONSE_TIME;
+    const turnedRate = min(axis, want);
+    const heldRate = min(held, want);
+    const turned = turn + dv / turnedRate;
+    const dodging = this.dodgeWeight > 0 && 2 * this.dodgeWeight >= this.urgeWeight;
+    const by = dodging ? min(turned, this.dodgeWhen) : turned;
+    const gain = max(0, min(dv, turnedRate * max(0, by - turn)) - min(dv, heldRate * by)) / dv;
 
     const range = length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!);
     const near = range > maxRange && maxRange > 0 ? maxRange / range : 1;
@@ -2558,7 +2581,7 @@ export class Ships {
     }
     const now = this.burning[i] === 1 ? burn * (1 + BURN_MARGIN) > hold : burn > hold * (1 + BURN_MARGIN);
     this.burning[i] = now ? 1 : 0;
-    return now ? atan2(uy, ux) - design.thrustBearing : attack;
+    return now ? burnHeading : attack;
   }
 
   /** Whether this ship has turned its main engines along its want rather than its guns to its target. */
@@ -2658,6 +2681,8 @@ export class Ships {
    * sailing through, however far out it started. Both are read off the layout
    * in the heading it is holding, since that is what it will have to do it
    * with: a hull whose guns keep it facing its target brakes on its retros.
+   * For a craft fighting the other, that is `fightingAt`, its attack heading,
+   * not however it lies mid-turn.
    *
    * Every positional want in the game is this one — an order and a charge to
    * cover are the same shape with different bands.
@@ -2683,8 +2708,9 @@ export class Ships {
     maxRange: number,
     approachSpeed: number,
     weight: number,
-    fighting = false,
+    fightingAt?: number,
   ): void {
+    const fighting = fightingAt !== undefined;
     // Set again below while it is still closing on a curve planned on its mains.
     const wasOnMains = this.brakingOnMains[i] === 1;
     if (fighting) this.brakingOnMains[i] = 0;
@@ -2707,8 +2733,9 @@ export class Ships {
         const making = (bodies.vx[b]! - vx) * ux + (bodies.vy[b]! - vy) * uy;
 
         const approach = this.designs[i]!.doctrine.approach;
-        const push = this.accelerationAlong(bodies, i, b, ux, uy);
-        const retro = max(this.accelerationAlong(bodies, i, b, -ux, -uy), BRAKE_FLOOR * push);
+        const facing = fightingAt ?? bodies.angle[b]!;
+        const push = this.accelerationAlong(bodies, i, b, ux, uy, facing);
+        const retro = max(this.accelerationAlong(bodies, i, b, -ux, -uy, facing), BRAKE_FLOOR * push);
         const accelerate = approach.accelerate * push;
         const brake = approach.brake * retro;
 
@@ -2733,6 +2760,8 @@ export class Ships {
             arrivalTime(mains, gap, approachSpeed, VELOCITY_RESPONSE_TIME + turn) + turn <
               arrivalTime(brake, gap, approachSpeed, VELOCITY_RESPONSE_TIME);
           if (sooner) stopping = turned;
+          // Already turned onto them: planned on them, with no turn to allow for.
+          if (wasOnMains && mains > 0) stopping = max(stopping, stoppingSpeed(mains, gap, VELOCITY_RESPONSE_TIME));
           // Once on it, held to it until it has stopped closing.
           // On the curve: going as fast as it can stop from on its mains, so it
           // has to turn and start now.
@@ -2758,7 +2787,8 @@ export class Ships {
    * What this craft plans to brake at turned onto its mains, m/s²: `brake` of
    * its main thrust axis's acceleration, if its doctrine would turn to burn for
    * that over the `retro` it has with its guns held on, and 0 if not. Weighed
-   * as `burnOrFight` weighs it, against holding its guns on inside the band.
+   * as `burnOrFight` weighs a change too big for the turn to matter, against
+   * holding its guns on inside the band.
    */
   private mainsBrake(bodies: Bodies, i: number, b: number, retro: number): number {
     const design = this.designs[i]!;
@@ -2771,13 +2801,17 @@ export class Ships {
 
   /** Seconds to turn half round from rest and stop there, flat out both ways. */
   private halfTurnTime(bodies: Bodies, i: number, b: number): number {
-    const alpha = this.layoutOf(i).maxTorque(1) / bodies.inertia[b]!;
-    return alpha > 0 ? 2 * sqrt(PI / alpha) : Infinity;
+    return this.turnTime(bodies, i, b, PI);
   }
 
-  /** How hard this craft can accelerate along a world direction as it lies, m/s². */
-  private accelerationAlong(bodies: Bodies, i: number, b: number, dirX: number, dirY: number): number {
-    const angle = bodies.angle[b]!;
+  /** Seconds to turn through `by` radians from rest and stop there, flat out both ways. */
+  private turnTime(bodies: Bodies, i: number, b: number, by: number): number {
+    const alpha = this.layoutOf(i).maxTorque(by >= 0 ? 1 : -1) / bodies.inertia[b]!;
+    return alpha > 0 ? 2 * sqrt(abs(by) / alpha) : Infinity;
+  }
+
+  /** How hard this craft can accelerate along a world direction facing `angle`, m/s². */
+  private accelerationAlong(bodies: Bodies, i: number, b: number, dirX: number, dirY: number, angle: number): number {
     const c = cos(angle);
     const s = sin(angle);
     const force = this.layoutOf(i).maxThrustAlong(dirX * c + dirY * s, -dirX * s + dirY * c);
@@ -2896,11 +2930,12 @@ export class Ships {
 
       const crowding = 1 - miss / (touching + room);
       const soon = 1 - when / AVOID_HORIZON;
-      this.urge(
-        approach.separation * crowding * soon,
-        vx + awayX * DODGE_SPEED,
-        vy + awayY * DODGE_SPEED,
-      );
+      const weight = approach.separation * crowding * soon;
+      if (weight > this.dodgeWeight) {
+        this.dodgeWeight = weight;
+        this.dodgeWhen = when;
+      }
+      this.urge(weight, vx + awayX * DODGE_SPEED, vy + awayY * DODGE_SPEED);
     }
   }
 
