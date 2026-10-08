@@ -26,15 +26,16 @@ export function torchRun(seed = 20260905): Battle & { readonly torches: readonly
 
     const torches: number[] = [];
     const DISTANCE = 800;
-    const COUNT = 8;
+    const STAGGER = 500;
+    const COUNT = 4;
     for (let k = 0; k < COUNT; k++) {
       // Evenly round the frigate, each pointed at it.
       const bearing = math.PI + (k - (COUNT - 1) / 2) * (math.TAU / COUNT);
       torches.push(
         ships.spawn(world, {
           design: torch,
-          x: math.cos(bearing) * DISTANCE,
-          y: math.sin(bearing) * DISTANCE,
+          x: math.cos(bearing) * (DISTANCE + k * STAGGER),
+          y: math.sin(bearing) * (DISTANCE + k * STAGGER),
           angle: bearing + math.PI,
           team: 0,
         }),
