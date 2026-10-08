@@ -1871,17 +1871,19 @@ function acrossOf(spec: ModuleSpec): number {
  * The part of a module another module may be welded to.
  *
  * The whole of it for nearly everything, and the **block alone** for a hull
- * mount: a barrel sticking out of a ship is not somewhere to hang the rest of
- * the ship from, and letting it weld would make a long gun the cheapest spar
- * in the game. Both the layout rule and the connectivity graph ask
- * `contactWidth`, and `contactWidth` asks this, so the two cannot disagree
- * about what is attached to what.
+ * mount and an engine: a barrel sticking out of a ship is not somewhere to
+ * hang the rest of the ship from, and letting it weld would make a long gun
+ * the cheapest spar in the game; a bell is sheet metal in the exhaust, and
+ * anything hung from it sits in the flame. Both the layout rule and the
+ * connectivity graph ask `contactWidth`, and `contactWidth` asks this, so the
+ * two cannot disagree about what is attached to what.
  *
- * The barrel is still *there* — it takes up room, nothing may overlap it, and
- * it stops shells like any other matter. What it does not do is hold the ship
- * together.
+ * The barrel or bell is still *there* — it takes up room, nothing may overlap
+ * it, and it stops shells like any other matter. What it does not do is hold
+ * the ship together.
  */
 export function weldBox(spec: ModuleSpec): ModuleSpec {
+  if (spec.kind === 'engine') return engineMachinery(spec);
   if (!isHullMount(spec.kind)) return spec;
   const { blockLength, barrelLength } = hullMountGeometry(spec);
   const angle = spec.angle ?? 0;
