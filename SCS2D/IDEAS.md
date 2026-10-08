@@ -67,3 +67,4 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - A selected ship's framing could take in what it is escorting or keeping clear of, as well as its target.
 - Fuel tanks should still show their fuel level when damaged
 - The ship name on cores should rotate and scale with the ship, as if it is literally written on the hull.
+- Use time scale buttons instead of a slider (0.25, 0.5, 1, 2, 4, 8, 16)
