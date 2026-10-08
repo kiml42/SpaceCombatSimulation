@@ -164,6 +164,13 @@ const HEADING_SETTLE_TIME = 0.25;
  */
 const URGE_REFERENCE = 100;
 
+/**
+ * How far one of turning to burn and holding the guns on target has to
+ * outscore the other to take over from it, as a share: enough that a craft
+ * near the line between them does not flip its hull back and forth across it.
+ */
+const BURN_MARGIN = 0.25;
+
 /** Seconds of closing at its approach speed that stand in for an unarmed rammer's reach in choosing a target. */
 const RAM_HORIZON = 60;
 
@@ -595,6 +602,8 @@ export class Ships {
   private readonly derelict: number[] = [];
   /** 1 for a fighter its doctrine has taken down into the hull layer as well. */
   private readonly committed: number[] = [];
+  /** Whether each ship has turned its main engines along its want rather than its guns to its target. */
+  private readonly burning: number[] = [];
 
   /**
    * Mass thrown away as scrap or lost track of, kilograms — everything the
@@ -1056,6 +1065,7 @@ export class Ships {
     this.serial.push(serial);
     this.derelict.push(0);
     this.committed.push(0);
+    this.burning.push(0);
     this.cutSeen.push(-1);
     this.partedAt.push(-Infinity);
     this.chosen.push(NO_TARGET);
@@ -2307,6 +2317,9 @@ export class Ships {
     this.urgeVy = 0;
     this.urgeWeight = 0;
     let wantAngle = bodies.angle[b]!;
+    // What it is fighting, if anything: the body, and how far out it holds it.
+    let fighting = -1;
+    let holdOut = 0;
 
     // No order at all is the same problem as an order with no target: hold
     // what you are doing and wait to be told something.
@@ -2317,7 +2330,11 @@ export class Ships {
       // Hooked on to it: nowhere to steer for.
       if (tb >= 0 && tb !== b) {
         wantAngle = atan2(bodies.y[tb]! - bodies.y[b]!, bodies.x[tb]! - bodies.x[b]!);
-        if (!order.ram) wantAngle = this.attackHeading(i, b, tb, bodies, wantAngle);
+        if (!order.ram) {
+          wantAngle = this.attackHeading(i, b, tb, bodies, wantAngle);
+          fighting = tb;
+          holdOut = order.maxRange;
+        }
         if (order.ram) this.charge(bodies, b, tb, order.approachSpeed);
         else this.hold(bodies, i, b, tb, order.minRange, order.maxRange, order.approachSpeed, URGE_REFERENCE);
       }
@@ -2337,6 +2354,9 @@ export class Ships {
     // and nothing in its way kills its drift and waits.
     const wantVx = this.urgeWeight > 0 ? this.urgeVx / this.urgeWeight : 0;
     const wantVy = this.urgeWeight > 0 ? this.urgeVy / this.urgeWeight : 0;
+
+    if (fighting >= 0) wantAngle = this.burnOrFight(i, b, fighting, bodies, wantAngle, wantVx, wantVy, holdOut);
+    else this.burning[i] = 0;
 
     // A ram is a race to the target, so it points its main thrust along the
     // change of velocity it needs rather than its nose at the target.
@@ -2460,6 +2480,58 @@ export class Ships {
       if (t > 0) towards = atan2(dy + dvy * t, dx + dvx * t);
     }
     return towards - region.aim;
+  }
+
+  /**
+   * The attack heading, or the heading that points the main thrust axis along
+   * the change of velocity this ship wants, whichever its doctrine scores
+   * higher: `burnWeight` for each share of the axis's thrust the turn would
+   * add to the push it wants, against `rangeHold` for how near the band it
+   * is. Held by `BURN_MARGIN` either way.
+   */
+  private burnOrFight(
+    i: number,
+    b: number,
+    tb: number,
+    bodies: Bodies,
+    attack: number,
+    wantVx: number,
+    wantVy: number,
+    maxRange: number,
+  ): number {
+    const design = this.designs[i]!;
+    const approach = design.doctrine.approach;
+    const dvx = wantVx - bodies.vx[b]!;
+    const dvy = wantVy - bodies.vy[b]!;
+    const dv = length(dvx, dvy);
+    const mass = bodies.mass[b]!;
+    const layout = this.layoutOf(i);
+    const axis = layout.maxThrustAlong(cos(design.thrustBearing), sin(design.thrustBearing)) / mass;
+    if (!(approach.burnWeight > 0) || !(dv > 0) || !(axis > 0)) {
+      this.burning[i] = 0;
+      return attack;
+    }
+    const ux = dvx / dv;
+    const uy = dvy / dv;
+    const want = dv / VELOCITY_RESPONSE_TIME;
+    // What the layout gives along the want with the guns held on target.
+    const c = cos(attack);
+    const s = sin(attack);
+    const held = layout.maxThrustAlong(ux * c + uy * s, -ux * s + uy * c) / mass;
+    const gain = max(0, min(want, axis) - min(want, held)) / axis;
+
+    const range = length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!);
+    const near = range > maxRange && maxRange > 0 ? maxRange / range : 1;
+    const burn = approach.burnWeight * gain;
+    const hold = approach.rangeHold * near;
+    const now = this.burning[i] === 1 ? burn * (1 + BURN_MARGIN) > hold : burn > hold * (1 + BURN_MARGIN);
+    this.burning[i] = now ? 1 : 0;
+    return now ? atan2(uy, ux) - design.thrustBearing : attack;
+  }
+
+  /** Whether this ship has turned its main engines along its want rather than its guns to its target. */
+  isBurning(i: number): boolean {
+    return this.burning[i] === 1;
   }
 
   /**

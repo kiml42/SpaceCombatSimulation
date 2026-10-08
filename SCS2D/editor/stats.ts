@@ -14,6 +14,9 @@ import {
   readsBarrelCalibres,
   inWeaponsLayer,
   math,
+  AttackArcs,
+  bestAttackBearings,
+  designArcs,
   boxAngle,
   moduleCentre,
   moduleStats,
@@ -107,6 +110,13 @@ export interface DesignStats {
   accelAft: number;
   accelPort: number;
   accelStarboard: number;
+  /**
+   * Braking, m/s², two ways: holding its main guns on a target ahead of it
+   * (away from its best attack bearing), and turned to put its main thrust
+   * axis against its way, as a ship that turns to burn does.
+   */
+  brakeHolding: number;
+  brakeTurned: number;
   /** Angular acceleration available, rad/s², turning each way. */
   turnLeft: number;
   turnRight: number;
@@ -137,6 +147,8 @@ export function designStats(design: ShipDesign, envelope: Envelopes): DesignStat
   const mass = design.mass;
   const inertia = design.inertia;
   const trim = trimmer(design);
+  // The first of its best attack bearings: where it holds its target to fight.
+  const attack = bestAttackBearings(designArcs(design, new AttackArcs()), design.thrustBearing)[0]!.bearing;
   let fuel = 0;
   let thrust = 0;
   // Kilograms a second, every engine flat out.
@@ -165,6 +177,8 @@ export function designStats(design: ShipDesign, envelope: Envelopes): DesignStat
     accelAft: trim(-1, 0),
     accelPort: trim(0, 1),
     accelStarboard: trim(0, -1),
+    brakeHolding: trim(-math.cos(attack), -math.sin(attack)),
+    brakeTurned: trim(math.cos(design.thrustBearing), math.sin(design.thrustBearing)),
     turnLeft: layout.maxTorque(1) / inertia,
     turnRight: layout.maxTorque(-1) / inertia,
     fullAuthority: layout.hasFullAuthority(),

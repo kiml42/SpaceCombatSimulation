@@ -10,8 +10,15 @@ describe('a ram order', () => {
   /** Steps until the rammer first touches a target crossing its bow, or -1. */
   function stepsToContact(ram: boolean): number {
     const corvette = compileBlueprint(CORVETTE);
+    // A target that keeps its guns on rather than burning clear, so this is
+    // about how the rammer flies and not about the target dodging it.
+    const doctrine = CORVETTE.doctrine ?? DEFAULT_DOCTRINE;
+    const sitting = compileBlueprint({
+      ...CORVETTE,
+      doctrine: { ...doctrine, approach: { ...doctrine.approach, burnWeight: 0 } },
+    });
     const battle = makeBattle({ seed: 4 }, (ships, world) => {
-      const target = ships.spawn(world, { design: corvette, x: 0, y: 0, vy: 30, team: 0 });
+      const target = ships.spawn(world, { design: sitting, x: 0, y: 0, vy: 30, team: 0 });
       const rammer = ships.spawn(world, { design: corvette, x: 300, y: 0, angle: Math.PI, team: 1 });
       ships.clearOrder(rammer);
       ships.clearOrder(target);
