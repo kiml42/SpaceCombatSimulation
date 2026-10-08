@@ -31,7 +31,7 @@ const GOLDEN: Record<ScenarioName, string> = {
   beamVGun: '56ffb50e',
   swarm: '5f1b3981',
   superSwarm: '1f6f44b0',
-  torpedoes: '5aeeea81',
+  torpedoes: '06c8984c',
   fractal: 'c79af9ee',
   ordering: 'ee29871e',
   split: '59097ea5',

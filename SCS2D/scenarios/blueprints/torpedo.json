@@ -8,7 +8,7 @@
       "preferredMass": 30
     },
     "approach": {
-      "approachSpeed": 250,
+      "approachSpeed": 900,
       "ramRadii": 1000,
       "ramArmed": 1
     }
@@ -18,11 +18,11 @@
       "modules": [
         {
           "kind": "engine",
-          "x": 0,
+          "x": -0.05,
           "y": 0,
           "angle": 90,
-          "length": 0.3,
-          "width": 0.4
+          "length": 0.2,
+          "width": 0.2
         }
       ]
     }
@@ -34,29 +34,31 @@
       "y": 0,
       "length": 1.5,
       "width": 0.5,
-      "reinforcement": 1
+      "reinforcement": 1.5
     },
     {
       "use": "engine2",
-      "x": -0.59,
-      "y": 0.3
+      "x": -0.74,
+      "y": 0.3,
+      "angle": -180,
+      "mirror": true
     },
     {
       "use": "engine2",
-      "x": -0.59,
+      "x": -0.74,
       "y": -0.3,
       "angle": 180
     },
     {
       "use": "engine2",
-      "x": 2.2,
+      "x": 2.35,
       "y": 0.15
     },
     {
       "use": "engine2",
-      "x": 2.2,
+      "x": 2.35,
       "y": -0.15,
-      "angle": 180
+      "mirror": true
     },
     {
       "kind": "core",
