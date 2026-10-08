@@ -80,6 +80,26 @@ describe('turning to burn', () => {
     expect(track.some((t) => t.burning)).toBe(false);
   });
 
+  it('sidesteps something about to hit it on the thrust it has, rather than turning', () => {
+    // Settled in its band, with a core coming up from astern, just off its
+    // track, to pass at 13 s: too soon for a turn onto its mains to pay.
+    const run = makeBattle({ seed: 4 }, (ships, world) => {
+      const design = compileBlueprint(withApproach(BROADSIDE, { burnWeight: 4 }));
+      const mine = ships.spawn(world, { design, x: 0, y: 0, angle: Math.PI / 2, team: 0 });
+      const them = ships.spawn(world, { design: compileBlueprint(BARE_CORE), x: 500, y: 0, team: 1 });
+      ships.spawn(world, { design: compileBlueprint(BARE_CORE), x: 10, y: -1300, vy: 100, team: 0 });
+      ships.clearOrder(mine);
+      ships.pushOrder(mine, them, 300, 600, 150, OrderCancelCondition.None);
+      return { mine, them };
+    });
+    let burning = false;
+    for (let s = 0; s < 13 * 60; s++) {
+      run.step();
+      if (s >= 11 * 60) burning ||= run.ships.isBurning(run.mine);
+    }
+    expect(burning).toBe(false);
+  });
+
   it('flies a one-engine ship in bow first and fights it stern first on its flame', () => {
     const track = fly(ONE_ENGINE, 60);
     // Closing: the engine pushes it at the target.

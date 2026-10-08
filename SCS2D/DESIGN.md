@@ -222,10 +222,13 @@ inside any one file is not contiguous.
   thrust axis — the way its layout pushes hardest — or bear everywhere, it holds the target on that, so a
   ship with turrets that train right round flies at what it is fighting. The editor draws each best bearing
   out to the band and lists it. **It turns from its guns to its engines when doctrine says the push is
-  worth more**: `burnWeight` scores the share of its main thrust that pointing the thrust axis along the
-  change of velocity it wants would add, against `rangeHold` for keeping the guns on target, all of it inside
-  the band it holds and falling away beyond. The harder it wants to accelerate, and the further out it is, the
-  more readily it turns, held either way by a margin so it does not flip back and forth. So a ship whose one
+  worth more**: `burnWeight` scores the share of the change of velocity it wants that pointing the thrust
+  axis along it makes before holding the guns on would, the turn included, against `rangeHold` for keeping the
+  guns on target, all of it inside the band it holds and falling away beyond. Neither side counts thrust past
+  what the pilot asks for, so a ship whose guns-on thrust already gives that never turns, and when dodging is
+  most of what it wants only what each makes before the near miss counts, so it sidesteps rather than flips.
+  The more it wants to change, and the further out it is, the more readily it turns, held either way by a
+  margin so it does not flip back and forth. So a ship whose one
   big engine is its weapon closes bow first and fights stern first, braking on its flame. A craft that would turn to burn to brake plans its approach on its mains when
   that gets it into its band sooner, the half turn and the turn back included, and is held to that plan once
   on it. `burnWeight` is 2

@@ -69,7 +69,7 @@ const APPROACH_ROWS: readonly DoctrineRow[] = [
   { field: 'brake', label: 'brakes on', hint: 'How much of its thrust the other way to plan on stopping with: under 1 keeps a margin', step: 0.05 },
   { field: 'ramRadii', label: 'rams within', hint: "How close its target's edge has to be before it will ram, in the target's radii. 0 never rams. A fighter that rams drops into the hull layer too", step: 0.5 },
   { field: 'turnBias', label: 'turn cost', hint: 'What a half turn costs in choosing which way round to fight, as a share of its main guns: at 0.5 a half turn has to bring half its main guns more to bear', step: 0.1 },
-  { field: 'burnWeight', label: 'turns to burn', hint: 'How much it would rather turn its main engines along the way it wants to go than keep its guns on target, for each share of their thrust the turn would add: the harder it wants to accelerate, the more it turns. 0 never turns from its guns', step: 0.5 },
+  { field: 'burnWeight', label: 'turns to burn', hint: 'How much it would rather turn its main engines along the way it wants to go than keep its guns on target, for each share of the change it wants the turn would make sooner, turn included. Never turns when its guns-on thrust is enough, or to dodge what it cannot turn in time for. 0 never turns from its guns', step: 0.5 },
   { field: 'rangeHold', label: 'holds guns on', hint: 'How much it would rather keep its guns on target: all of it inside the band it holds, falling away the further out it is', step: 0.5 },
   { field: 'ramArmed', label: 'rams armed', hint: 'The share of its own main guns still working at or below which it will ram: 0 only once it cannot shoot, 1 whenever it is close enough', step: 0.1 },
 ];
