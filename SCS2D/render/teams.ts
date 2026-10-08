@@ -48,6 +48,13 @@ export function shipColours(team: number): (typeof TEAM_COLOURS)[number] {
   return team < 0 ? NEUTRAL : TEAM_COLOURS[team % TEAM_COLOURS.length]!;
 }
 
+const TEAM_NAMES = ['Blue', 'Red', 'Green', 'Magenta'];
+
+/** A side's name, which is its colour's; empty for nobody's side. */
+export function teamName(team: number): string {
+  return team < 0 ? '' : TEAM_NAMES[team % TEAM_NAMES.length]!;
+}
+
 /** A side's hull colour, for anything that names the side outside the picture. */
 export function teamColour(team: number): string {
   return shipColours(team).hull;

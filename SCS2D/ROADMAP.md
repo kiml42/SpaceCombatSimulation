@@ -87,8 +87,7 @@ fleet editor** (`dist/fleet.html`), and **a custom battle** on the viewer — fl
 libraries, a file, or handed over by either editor's Battle link,
 range, closing and crossing speeds, a rotation and a seed, saved and loaded as a battle file (`scenarios/customBattle.ts`)
 and shared as a link that carries the file (`scenarios/battleLink.ts`),
-set up paused and live, and decided once no more than one side can still fight. Left in the editor: making, dissolving and renaming
-groups — it steps into and edits the ones a file brings, but cannot make one — later, as ship groups were.
+set up paused and live, and decided once no more than one side can still fight.
 **Fleet evolution** is built, headless (`evolution/fleetMutate.ts`, `npm run evolve -- --fleet`) and on the
 evolution page: a match
 takes fleets as entrants, a lone blueprint being a fleet of one, survival scored on the whole fleet's hull

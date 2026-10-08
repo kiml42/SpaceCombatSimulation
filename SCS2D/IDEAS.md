@@ -1,7 +1,6 @@
 # Bugs
 Things that are obviously wrong.
 
-- Turrets sometimes track through thick modules which should physically block them.
 - Fighter engines in the turret layer immediately hit an overflown hull layer module. Should probably just make engine plumes follow the same rules as beams about staying in their own layers.
 
 -----------------------------------------------------------------------
@@ -50,22 +49,17 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Consider scoring for ramming
   - Currently just loses score by everything taking damage
   - Might want to attribute the damage to both ships to the other, this would be asymmetrical is one manages to ram its armour into an active component on the other.
-- Random variation to arena size, and initial velocities. can be shown as `setting [X] +- [dx]` in one row each so it's not making the section longer, and clearly shows their link.
 - Graphs take up too much space. Could probably merge mass and ship count using left and right axes. Could use two different colours and have means solid, and bests dashed.
-- In-battle scores should be an overlay on the battle, not making it be a tiny bar at the bottom.
 - Make damage and function taken start at 0 and go negative, so the graph scales nicely at the beginning when they're all useless, highlighting even minor improvements.
 - We need a mechanism to let ships know what the goal is. This could be something like a "go close to that" order being given to all ships when the race goal is present. (At the moment we lean on the escort doctrine, but that just makes evolving a second ship mean they bunch up with each other instead of going for the goal)
-- Allow ship names to mutate (can just add and remove and change random letters (or spaces), unpronounceable is probably better than just the name of the starting ship with a number)
 
 ## Fleet Editor
-- Allow grouping ships.
 - Make duplicate consistent with the ship editor (which creates a one module subassembly)
 
 ## Battle UI
 - Fleet status display - show thumbnails of all ships in each fleet, one on the left, one on the right.
   - Thumbnails indicate the exact current state, possibly even a live view with its own camera tracking the ship (possibly rotated to match)
   - Click a ship to focus the main camera on it
-- Cap projectile rendering at their start and end positions so they don't overlap the barrel that launched them, or the target they hit.
+- Cap projectile rendering at the point they hit, so a streak does not overlap the target it struck. (The muzzle end is capped.)
 - Add a ship to a running battle, for quick testing. Dropdown in the corner to choose a ship to add to the battle. click and drag to chose position and velocity (position from first click, drag to N seconds worth of distance for the initial velocity.) Ship is instantly spawned when you let go.
-- Write names on ships' cores. Names should be their team colour and a sequential number e.g. "Red 5" for the fifth ship instantiated on the red team.
 - A selected ship's framing could take in what it is escorting or keeping clear of, as well as its target.

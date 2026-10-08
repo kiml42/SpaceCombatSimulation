@@ -39,6 +39,8 @@ export interface ShipView {
    */
   body: number;
   team: number;
+  /** Which of its side's ships it is, from one; zero for a ship with no such count, as in an editor. */
+  serial: number;
   /** The body of what it is fighting, or -1 or absent for nothing. */
   fighting?: number;
   x: number;
@@ -162,6 +164,9 @@ export class Snapshot {
   /** Rounds in flight, as flat pairs so a renderer can loop without objects. */
   projectileX = new Float64Array(0);
   projectileY = new Float64Array(0);
+  /** Where each round was fired or burst from. */
+  projectileStartX = new Float64Array(0);
+  projectileStartY = new Float64Array(0);
   projectileVx = new Float64Array(0);
   projectileVy = new Float64Array(0);
   projectileWidth = new Float64Array(0);
@@ -234,6 +239,8 @@ function growProjectiles(snapshot: Snapshot, needed: number): void {
   const size = needed * 2;
   snapshot.projectileX = new Float64Array(size);
   snapshot.projectileY = new Float64Array(size);
+  snapshot.projectileStartX = new Float64Array(size);
+  snapshot.projectileStartY = new Float64Array(size);
   snapshot.projectileVx = new Float64Array(size);
   snapshot.projectileVy = new Float64Array(size);
   snapshot.projectileWidth = new Float64Array(size);
@@ -275,6 +282,7 @@ function shipView(snapshot: Snapshot, i: number): ShipView {
     design: null as unknown as ShipDesign,
     body: -1,
     team: 0,
+    serial: 0,
     x: 0,
     y: 0,
     angle: 0,
@@ -341,6 +349,7 @@ export function capture(
     view.design = design;
     view.body = b;
     view.team = ships.teamOf(i);
+    view.serial = ships.serialOf(i);
     const fighting = ships.fightingOf(i);
     view.fighting = fighting >= 0 && ships.isAlive(fighting) ? bodies.indexOf(ships.body(fighting)) : -1;
     view.x = bodies.x[b]!;
@@ -459,6 +468,8 @@ export function capture(
     if (projectiles.alive[i] === 0) continue;
     out.projectileX[p] = projectiles.x[i]!;
     out.projectileY[p] = projectiles.y[i]!;
+    out.projectileStartX[p] = projectiles.startX[i]!;
+    out.projectileStartY[p] = projectiles.startY[i]!;
     out.projectileVx[p] = projectiles.vx[i]!;
     out.projectileVy[p] = projectiles.vy[i]!;
     out.projectileWidth[p] = projectiles.width[i]!;
