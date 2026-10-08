@@ -48,14 +48,16 @@ export const DAMAGE_ENERGY_PER_KG = 1000;
 const HOLE_CALIBRES = 3;
 
 /**
- * What it takes to cut a square metre of weld with a beam, joules.
+ * What it takes to cut a square metre of weld with heat, joules: a beam or a
+ * plume.
  *
- * A beam has no momentum to tear anything with, so this is the whole of how a
- * beam can take a piece off a ship: it boils its way along a seam until there
- * is no seam left. The figure is what decides whether that is a few seconds of
- * held fire or half a minute — a dial, in §12 with the rest.
+ * Neither has the momentum to tear anything, so this is the whole of how a
+ * beam can take a piece off a ship, and how a plume frees what it plays on: it
+ * boils its way along a seam until there is no seam left. The figure is what
+ * decides whether that is a few seconds of held fire or half a minute — a
+ * dial, in §12 with the rest.
  */
-const BEAM_CUT_ENERGY_PER_AREA = 6.0e7;
+export const SEAM_CUT_ENERGY_PER_AREA = 6.0e7;
 
 /** What damage takes away from a module, beyond eventually stopping it. */
 export enum DamageEffect {
@@ -1383,7 +1385,7 @@ export class Impacts {
           design.modules[into]!.stats.wallThickness,
         );
         if (thickness > 0) {
-          damage.cutWeld(body, joint, energy / (thickness * BEAM_CUT_ENERGY_PER_AREA));
+          damage.cutWeld(body, joint, energy / (thickness * SEAM_CUT_ENERGY_PER_AREA));
         }
       }
       if (into === stopped) break;

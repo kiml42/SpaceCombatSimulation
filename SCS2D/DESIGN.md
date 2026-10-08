@@ -936,7 +936,10 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   escapes. **`EngineLayout` flies the engine at that fraction**, so the allocator, the manoeuvring
   envelope and everything the editor claims about a ship all read the honest figure without knowing why.
   Blocked exhaust still *burns* what it is buried in, each part of a module by how far out it stands;
-  what it no longer does is push. That is what makes a
+  what it no longer does is push. **Its heat also cuts the welds holding what it burns**, as a beam boils
+  through a seam, shared between them by width: a module stood in a flame comes away as a piece of its own
+  once a weld is through, the engine has its thrust back, and the flame shoves the piece clear like anything
+  else in it. The same goes for anything a plume lands on beyond its own ship. That is what makes a
   buried nozzle cost something instead of being free, and it is why the plume the renderer draws is the
   rating rather than the delivery: the gas is thrown either way.
 - **An engine can be pointed at things on purpose.** An engine marked `weapon` in the blueprint burns
