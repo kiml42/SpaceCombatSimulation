@@ -48,7 +48,7 @@ an entry is either still open or it is gone.
 | 4 | Headless evolution and analysis | Built |
 | 5 | v1: skirmish | Partly built |
 | 6 | Editor restructuring | Built |
-| 7 | Two layers | Partly built |
+| 7 | Two layers | Built |
 | 8 | Fuel | Partly built |
 | 9 | Fuel harvesting | Not started |
 | 10 | Raw material | Not started |
@@ -67,15 +67,11 @@ an entry is either still open or it is gone.
   towards a target, a weight against each by how dangerous it is and how close, so a support ship stays
   behind its fleet without being ordered to. An unarmed ship with a ram doctrine already picks targets (a
   torpedo); one without one currently does nothing at all.
-- **More pickers**: ship-type. Hemisphere as a hard discard too, if `facingWeight`'s
-  soft version — astern scores against — turns out not to be enough.
-- **How much a mount cares about its ship's orders, as a weight of its own.** An order is currently a
-  mandate: every mount that can train on the ordered target takes it. That is right for a main battery and
-  wrong for a close-in mount, which should go on swatting whatever is about to hit the ship while the hull is
-  ordered onto something big. The shape is the one the rest of targeting already has: a weight scoring the
-  ordered target alongside every other candidate, defaulted high enough that an ordinary mount obeys and set
-  low on a CIWS. It replaces the mandate rather than sitting beside it, so it moves the goldens of every
-  scenario that issues an order — which is why it is a piece of work of its own.
+- **Only the main battery takes its ship's orders.** An order is currently a mandate: every mount that can
+  train on the ordered target takes it. That is right for a main gun (`ModuleSpec.main`) and wrong for
+  anything else, which should ignore the order and pick by its own doctrine, so a close-in mount goes on
+  swatting whatever is about to hit the ship while the hull is ordered onto something big. It moves the
+  goldens of every scenario that issues an order, which is why it is a piece of work of its own.
 
 **Step 5 — v1: skirmish.** A fixed budget of *materials* rather than of points (§12), and designed
 scenarios. *This is the first thing worth giving people to play.* Designed scenarios are where the §12
@@ -98,61 +94,6 @@ replaced the boss battle.
 
 Not planned: per-ship doctrine overrides in a fleet (fork the design instead), and a group's own doctrine or
 lead, which waits for standing orders. Velocity stays out of the fleet file; the battle setup holds it.
-
-**Step 7 — Two layers.** The layers, depth and trigger masks are built. Three things make them make sense,
-in this order, and all three come before fuel: nothing in the resource steps needs them, but every design
-and evolution run does, and a ship tuned to half the rules is tuned twice.
-
-1. **Exploding shells — built.** A gun's rounds burst on a timer, which is how a turret reaches the hull
-   layer at all (§12's fuse entry is the reasoning). As built, each turret and hull gun has a **shell**:
-   - `fragments` (8 by default, at most 64). One or fewer fires **solid shot**, all metal and never
-     bursting, which is the switch for whether any of the round is charge at all.
-   - `burstSpeed` (650 m/s by default): the most a fragment's velocity differs from the round's. It sizes
-     the charge, since the casing's kinetic energy is what the charge's yield supplies (`chargeShare`), and
-     charge is far less dense than steel: a gentle burst is nearly solid, a fierce one light and fast. Solid
-     shot keeps the mass every round had before shells; at the default a fifth of a shell is charge, so it
-     is about 84% of that.
-   - `fuse` (0.02 s by default): how long before the aim point it bursts. Zero bursts at the aim point,
-     which still counts on a miss or on what lies behind the target. The pattern is about the burst speed
-     times the fuse across, so the default is a tight one and a flak gun wants many fragments on a long fuse.
-   Fragments share the casing (the charge goes to gas) and the metal of the bore, so their areas sum to
-   the share that was not charge. They live twice the fuse and at least half a second,
-   and are marked (`Projectiles.fragment`). Evolution counts fragments, swapping to or from solid shot one
-   draw in five, and nudges the fuse and burst speed of a gun that fires shells.
-   - The fuse is set when the round is fired, to go off shortly before it would reach its aim point:
-     `interceptTime` already knows when that is. How much before is a per-mount setting in the editor
-     (`fuse`, seconds), so a mount can be tuned between bursting well short and bursting at the aim point. A
-     round that hits something before its fuse goes off hits as it does now.
-   - A burst replaces the round with sub-munitions: a fixed number, sharing its mass, each leaving with the
-     round's velocity plus a spread in a random direction from the battle's seeded RNG, in opposed pairs so
-     the burst keeps the round's momentum. They are hull-layer
-     rounds, so they meet every module, deck and weapons layer alike; that is what "in both layers" comes
-     to under the rule that a hull-layer shot meets everything.
-   - No area cloud yet. **Beams stay in their own layer**: a laser has no fuse, which is the asymmetry §3
-     asks for.
-2. **Fighters — built.** A ship-level *fighter* flag, a checkbox in the editor's Role section. It follows
-   DESIGN.md §3's strike craft rather than inventing a new rule. As built: shots, beams and hull casts carry
-   a layer mask (`HULL_LAYER`, `WEAPONS_LAYER`, both for fragments), and a fighter's modules are all in
-   the weapons layer, or both once committed (`Ships.layersOf`). **Ramming is a doctrine decision any ship
-   can make**: `approach.ramRadii` (how close the target's edge must be, in its radii; 0, the default,
-   never rams) and `approach.ramArmed` (the share of its own guns still working at or below which it
-   will). A ramming ship flies into its target, ignoring the rest of its movement doctrine, and once its doctrine has decided to ram it sees it through; a fighter commits whenever it is ramming, by that
-   decision or by a ram order (`Ships.pushRam`), not by an ordinary order to close to nothing. "Clear of
-   every hull" is clear of its modules, not its bounding circle: committing is rare, and a circle would
-   keep a fighter alongside a long hull from committing. Docking is not a decision yet. No stock ship is a
-   fighter yet: flagging the Dinky, TIE and X-Wing is the obvious first move of item 3.
-   - **A fighter may carry no turret and nothing thick.** The editor disables both while the flag is set.
-     It flies in the **weapons layer**, where turrets and CIWS reach it, so a fighter is never out of their
-     reach the way the Dinky is today.
-   - **Its doctrine decides when it also occupies the hull layer**: that is a decision to ram, or to dock on
-     another ship's side. Occupancy is added, never swapped, so it only ever makes the fighter more
-     exposed; that is why there is no limit on how quickly it can change. It changes only while clear of
-     every hull (§3), which is what stops a fighter committing inside a capital's perimeter. Its hull
-     weapons fire in whichever layers it occupies.
-   - **The flag can evolve**, and a ship that evolves a turret or a thick module flies as an ordinary ship,
-     its flag ignored rather than refused, so a mutation that breaks the rule costs the design its role
-     rather than its place in the run.
-3. **Redesign the stock ships** Done.
 
 **Step 8 — Fuel.** Tanks, burning and the editor's figures are built (DESIGN.md Status). What is left:
 
@@ -262,7 +203,7 @@ that answers the question most likely to change the design.
 
 #### Doctrine and orders (step 3)
 
-The remaining pickers and the order weight should follow the shape already there:
+What is left of the step should follow the shape already there:
 
 - **Doctrine is a block in the blueprint file**, shared by reference and copied only when overridden — the
   same copy-on-write split the engine layout uses. A mount's own block holds only its *differences* from
@@ -273,7 +214,7 @@ The remaining pickers and the order weight should follow the shape already there
 - **The ship picks a manoeuvre target and each mount picks its own firing target**, through the same stack,
   measured from the gun rather than the hull. Re-picking runs on an interval *derived* from the hull or mount
   rather than configured.
-- **An order always outranks doctrine**, which is strictly a fallback: when doctrine landed, only the
+- **An order outranks doctrine for every mount that takes it**, doctrine being strictly a fallback: when doctrine landed, only the
   scenarios that give no orders moved.
 - **A gun fires at what its barrel was trained on**, recorded when it is trained — the hull turns between
   training and firing, and working the target out afresh at the trigger once had fighters firing over their
@@ -310,10 +251,18 @@ The remaining pickers and the order weight should follow the shape already there
 - **A shot skips only the module that fired it**, rather than its whole ship, so the mask is all that
   keeps a mount off its own hull. A lit beam is committed for its duty cycle and used to sweep across its
   own engines after its target, so a lit beam's drive stops at the edge of a masked sector.
+- **A ship's own hull should block its exhaust by layer too** — not built, and not wanted soon. A plume
+  meets other ships only in its engine's layers, but its own hull blocks it in both, so a thick engine's
+  flame is stopped by deck structure behind it when its weapons-layer half should pass over. Whoever builds
+  it: the own-hull slices are worked out once per design, so they will want working out once per layer.
 
 ## 12. Open questions
 
 Deliberately unresolved; decide when they block something.
+
+- **Whether targeting needs more pickers.** A ship-type picker, and hemisphere as a hard discard if
+  `facingWeight`'s soft version — astern scores against — turns out not to be enough. Neither is clearly
+  wanted; add one when a design needs a preference the existing weights cannot express.
 
 - **Whether the editor needs a test flight of its own.** A throwaway sim inside the editor, flying the ship
   being edited without leaving the page. The Battle link already takes that ship into a custom battle, which
@@ -679,15 +628,6 @@ Deliberately unresolved; decide when they block something.
   ship on the body, but the ship-level choice of what to fight still skips anything on its own body,
   since steering towards something at no range means nothing. Worth revisiting if hooked pairs start
   leaving each other alone in ways that look wrong.
-- **Whether exhaust should know about layers.** A plume burns every module it reaches, in either layer, and
-  a thick engine's exhaust is still blocked by deck structure behind it. Left as it was, because nothing
-  yet makes the difference matter.
-- **How turret fleets fight craft they cannot see.** A thin engine is in the hull layer only, so a ship
-  whose engines are all under a deck across can be disabled only by hull weapons, and a craft built
-  wholly of such modules, like the Dinky, cannot be touched by a turret at all. Designs answer it for
-  now: the Corvette and Gunship carry hull guns at the bow, and turret tests use fixture ships
-  (`tests/fixtures.ts`) with a turret in place of the hull gun. Step 7's exploding shells and fighter
-  flag are the answer (§8).
 - **What a ship does about an enemy none of its guns can reach.** Choosing what to fight ignores layers,
   so a ship can pick an enemy every one of its mounts finds nothing reachable on. It then holds its band
   round that enemy, holding fire, for as long as the enemy lasts. The alternatives are to pass such an
@@ -718,27 +658,6 @@ Deliberately unresolved; decide when they block something.
   worth fighting rather than a formality, and it is the drifting hulk §3 wants and the salvage of §8 steps 9 and 13
   feeds on. Worth knowing that `hasFullAuthority()` is called by the editor's stats and tests and never by
   the sim, so a damaged ship failing it costs nothing — it looks like it would matter and does not.
-- **How a gun reaches the hull layer at all: proximity fuses.** §3 says HE shells give small guns light hull
-  damage and lasers cannot, which is a stipulated asymmetry with no mechanism under it. A fused round has
-  one: it detonates at a point, the blast reaches down into the hull layer, and the damage disperses with
-  distance, so guns hurt hulls slowly rather than not at all — a gradient rather than the hard immunity §3
-  says frustrates players.
-  It is worth preferring for a reason beyond that. A laser has no fuse, and therefore no mechanism to reach
-  the hull layer, so §3's asymmetry stops being a rule and becomes a consequence. And self-damage stays
-  geometric rather than arbitrary: a fuse going off near a target that is close to your own hull will blast
-  your own hull, which makes point-blank defensive fire genuinely risky without any "once it is clear of its
-  own ship" rule to write.
-  Two notes for whoever builds it. The primitives exist: `segmentCircleT` already answers "at what fraction
-  along this swept segment do I come within `r` of this point", and the grid already has `queryCircle` for
-  the blast. And there is a fork worth deciding early — a **timed** fuse is nearly free, since `interceptTime`
-  already computes when the round should arrive, but it detonates in the wrong place on a miss, which is
-  exactly when a fuse was supposed to earn its keep; a true proximity fuse costs a check per round per step.
-  The cheap middle is to arm on the timer and detonate on first proximity within a short window, so the
-  check runs only while armed.
-  A fuse is a delivery mechanism and the damage model it delivers into exists, so nothing blocks it.
-  **Decided (§8 step 7): timed first**, set shortly before the aim point, bursting into sub-munitions in
-  the hull layer. Proximity detonation and an area cloud wait until the timed version shows they are
-  wanted.
 - **Whether the remaining authored data lives in files rather than in code.** Blueprints do: they are JSON,
   parsed by `sim/blueprintFile.ts`, and the shipped ships go through exactly the validation a stranger's file
   does. What has not moved is `tests/fixtures/scenarios.ts`, and §9's promise of

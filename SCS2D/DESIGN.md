@@ -600,8 +600,8 @@ inside any one file is not contiguous.
 - **Next:** the rest of §8 step 8 — leaks, and pilots that know their fuel — and of step 5: a materials
   budget, and designed scenarios.
   See ROADMAP.md §8.
-  §8 step 3 is done bar what it deliberately deferred — withdrawal, and the
-  ship-type picker. What a chooser is already facing (`facingWeight`) and whether anything is in the way
+  §8 step 3 is done bar withdrawal and only the main battery taking orders,
+  and step 7, two layers, is built. What a chooser is already facing (`facingWeight`) and whether anything is in the way
   (`sightWeight`) are weights, zero by default. Evolution is built and runs both headlessly and on a page
   of its own; what it has left open is in ROADMAP.md §12, the arena radius being an absolute where a ratio
   belongs chief among them. ROADMAP.md §8 lists what is left of each partly built step, then the steps not started. The blueprint
