@@ -81,7 +81,9 @@
       .swatch { width: 0.8rem; height: 0.8rem; border-radius: 2px; flex: none; }
       .field { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.3rem; color: #8fa2b8; }
       .field span { flex: 0 0 8rem; }
-      .field input { flex: 1; }
+      .field input { flex: 1; min-width: 0; }
+      .field b { font-weight: normal; }
+      .field input.spread { flex: 0 0 3.5rem; }
       .buttons { display: flex; gap: 0.4rem; margin: 0.5rem 0; }
       .buttons button { flex: 1; padding-inline: 0.3rem; }
       .side { display: flex; align-items: center; gap: 0.4rem; color: #e6edf5; margin-top: 0.4rem; }
@@ -122,10 +124,10 @@
         </div>
         <input id="fleetFile" type="file" accept="application/json,.json" multiple hidden />
         <h2>Setup</h2>
-        <label class="field"><span>range m</span><input id="battleRange" type="number" min="1" step="100" /></label>
-        <label class="field"><span>closing m/s</span><input id="battleClosing" type="number" step="5" /></label>
-        <label class="field"><span>crossing m/s</span><input id="battleCrossing" type="number" step="5" /></label>
-        <label class="field" title="How far each fleet is turned from facing the centre, anticlockwise"><span>rotation °</span><input id="battleRotation" type="number" step="15" /></label>
+        <label class="field"><span>range m</span><input id="battleRange" type="number" min="1" step="100" /><b>±</b><input id="battleRangeSpread" class="spread" type="number" min="0" step="100" title="How far either side each battle drawn from this setup may be, by its seed. Zero holds it." /></label>
+        <label class="field"><span>closing m/s</span><input id="battleClosing" type="number" step="5" /><b>±</b><input id="battleClosingSpread" class="spread" type="number" min="0" step="5" title="How far either side each battle drawn from this setup may be, by its seed. Zero holds it." /></label>
+        <label class="field"><span>crossing m/s</span><input id="battleCrossing" type="number" step="5" /><b>±</b><input id="battleCrossingSpread" class="spread" type="number" min="0" step="5" title="How far either side each battle drawn from this setup may be, by its seed. Zero holds it." /></label>
+        <label class="field" title="How far each fleet is turned from facing the centre, anticlockwise"><span>rotation °</span><input id="battleRotation" type="number" step="15" /><b>±</b><input id="battleRotationSpread" class="spread" type="number" min="0" step="15" title="How far either side each battle drawn from this setup may be, by its seed. Zero holds it." /></label>
         <label class="field"><span>seed</span><input id="battleSeed" type="number" step="1" /></label>
         <div class="buttons">
           <button id="fight">Fight</button>

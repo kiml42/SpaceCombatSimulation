@@ -62,6 +62,10 @@ export function customPanel(changed: () => void, fight: () => void): CustomPanel
   const crossing = el<HTMLInputElement>('battleCrossing');
   const rotation = el<HTMLInputElement>('battleRotation');
   const seed = el<HTMLInputElement>('battleSeed');
+  const rangeSpread = el<HTMLInputElement>('battleRangeSpread');
+  const closingSpread = el<HTMLInputElement>('battleClosingSpread');
+  const crossingSpread = el<HTMLInputElement>('battleCrossingSpread');
+  const rotationSpread = el<HTMLInputElement>('battleRotationSpread');
 
   const fleets = new Library(window.localStorage, FLEET_FILES);
   const ships = new Library(window.localStorage);
@@ -86,6 +90,10 @@ export function customPanel(changed: () => void, fight: () => void): CustomPanel
     crossing.value = String(setup.crossingSpeed);
     rotation.value = String(radiansToDegrees(setup.rotation));
     seed.value = String(setup.seed);
+    rangeSpread.value = String(setup.spread?.range ?? 0);
+    closingSpread.value = String(setup.spread?.closingSpeed ?? 0);
+    crossingSpread.value = String(setup.spread?.crossingSpeed ?? 0);
+    rotationSpread.value = String(radiansToDegrees(setup.spread?.rotation ?? 0));
   };
   fill(DEFAULT_SETUP);
 
@@ -204,10 +212,18 @@ export function customPanel(changed: () => void, fight: () => void): CustomPanel
     crossingSpeed: number(crossing, DEFAULT_SETUP.crossingSpeed),
     rotation: degreesToRadians(number(rotation, 0)),
     seed: Math.round(number(seed, DEFAULT_SETUP.seed)),
+    spread: {
+      range: Math.max(0, number(rangeSpread, 0)),
+      closingSpeed: Math.max(0, number(closingSpread, 0)),
+      crossingSpeed: Math.max(0, number(crossingSpread, 0)),
+      rotation: degreesToRadians(Math.max(0, number(rotationSpread, 0))),
+    },
   });
 
   fightButton.addEventListener('click', fight);
-  for (const input of [range, closing, crossing, rotation, seed]) input.addEventListener('input', changed);
+  for (const input of [range, closing, crossing, rotation, seed, rangeSpread, closingSpread, crossingSpread, rotationSpread]) {
+    input.addEventListener('input', changed);
+  }
 
   el<HTMLButtonElement>('exportBattle').addEventListener('click', () => {
     const text = `${JSON.stringify(serialiseBattleSetup(setup()), null, 2)}\n`;
