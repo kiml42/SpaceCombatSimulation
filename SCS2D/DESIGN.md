@@ -486,8 +486,9 @@ inside any one file is not contiguous.
   two enemies hooked together shoot each other. **A gun's rounds burst** just short of their aim point,
   into fragments that fly in both layers, which is how a turret reaches below the deck; a beam has no
   fuse, so it never does. **An engine's plume stays in its engine's layers** as a beam does: a deck
-  engine's flame passes under a fighter, a thick one's meets it, and a fighter's passes over a deck it flies
-  above until it drops into the hull layer. Each gun sets how many fragments, how fast they leave (which sizes the charge,
+  engine's flame passes under a fighter, and a fighter's passes over a deck it flies above until it drops
+  into the hull layer. One in both layers (a thick engine, or a committed fighter's) is two flames, half the
+  power each, so a fighter in the weapons layer takes half and the deck behind it the other half. Each gun sets how many fragments, how fast they leave (which sizes the charge,
   so the shell's mass) and how early; one fragment or fewer is solid shot, all metal and never bursting. A module is as deep as it is across, capped at a deck
   (3 m) unless it is thick. Shipped ships mark every engine wider than a deck thick, and the Corvette and
   Gunship carry their bow guns as hull guns. Every gun sets its barrel in calibres; past fifty it is
