@@ -117,6 +117,32 @@ describe('the fleet editor in a browser', () => {
     await page.click('#undo');
   });
 
+  it('renames, dissolves and makes groups', async () => {
+    const lower = await onScreen(page, 0, -120);
+    await page.mouse.click(lower.x, lower.y);
+    // A click on what is already selected steps into it; the group is a level up.
+    if ((await page.textContent('#selectionTitle'))?.startsWith('Ship')) await page.click('#upLevel');
+    expect(await page.textContent('#selectionTitle')).toBe('Group: Fighter Pair');
+    await page.fill('#groupName', 'Escort');
+    await page.dispatchEvent('#groupName', 'change');
+    expect(await page.textContent('#selectionTitle')).toBe('Group: Escort');
+    // Dissolved, its two ships are selected where they stood, and none is lost.
+    await page.click('#dissolveGroup');
+    expect(await page.textContent('#selectionTitle')).toBe('2 selected');
+    expect(await shipCount(page)).toBe('ships5');
+    // And made again, of the same two.
+    await page.click('#makeGroup');
+    expect(await page.textContent('#selectionTitle')).toBe('Group: Group');
+    expect(await shipCount(page)).toBe('ships5');
+    // Undone back to the stock fleet as it was.
+    for (let i = 0; i < 5 && !/Fighter Pair/.test((await page.textContent('#selectionTitle')) ?? ''); i++) {
+      await page.click('#undo');
+    }
+    expect(await page.textContent('#selectionTitle')).toMatch(/Fighter Pair/);
+    expect(await shipCount(page)).toBe('ships5');
+    expect(problems).toEqual([]);
+  });
+
   it('adds a ship from the library and lists it overlapping', async () => {
     await page.selectOption('#addDesign', { label: 'Dinky' });
     await page.click('#addShip');

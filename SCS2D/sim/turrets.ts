@@ -406,6 +406,38 @@ export class Turrets {
     this.count--;
   }
 
+  /**
+   * How far the turret has to turn to reach its commanded bearing, signed.
+   *
+   * The short way round, unless that crosses what its arc leaves out: a mount
+   * that cannot traverse the whole circle goes round the way its arc allows,
+   * however much further that is, rather than swing its barrel through the
+   * hull that stops it.
+   */
+  private slewError(i: number): number {
+    const short = angleDelta(this.bearing[i]!, this.commanded[i]!);
+    const left = this.leftArc[i]!;
+    const right = this.rightArc[i]!;
+    if (left + right >= TAU) return short;
+    const rest = this.restBearing[i]!;
+    const allowed = this.arcOffset(rest, this.commanded[i]!, left, right) - this.arcOffset(rest, this.bearing[i]!, left, right);
+    // The same turn, where the short way is the allowed way: kept as the short
+    // way's own figure, which rounds differently.
+    return (allowed >= 0) === (short >= 0) ? short : allowed;
+  }
+
+  /**
+   * A bearing as a sweep from rest within the arc, from `-right` to `+left`,
+   * unwrapped past half a circle where the arc goes that far; a bearing
+   * outside the arc is taken the short way from rest.
+   */
+  private arcOffset(rest: number, bearing: number, left: number, right: number): number {
+    const offset = angleDelta(rest, bearing);
+    if (offset > left && offset - TAU >= -right) return offset - TAU;
+    if (offset < -right && offset + TAU <= left) return offset + TAU;
+    return offset;
+  }
+
   /** Clamp a body-frame bearing into this turret's traverse arc. */
   private clampToArc(i: number, bodyBearing: number): number {
     const left = this.leftArc[i]!;
@@ -655,7 +687,7 @@ export class Turrets {
     for (let i = 0; i < this.highWater; i++) {
       if (this.alive[i] === 0) continue;
 
-      const error = angleDelta(this.bearing[i]!, this.commanded[i]!);
+      const error = this.slewError(i);
       const accel = this.maxAccel[i]!;
       const rateLimit = this.maxRate[i]!;
 

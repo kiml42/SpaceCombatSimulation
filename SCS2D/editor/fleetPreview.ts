@@ -70,6 +70,7 @@ function freshView(design: ShipDesign): ShipView {
     design,
     body: -1,
     team: FLEET_TEAM,
+    serial: 0,
     x: 0,
     y: 0,
     angle: 0,

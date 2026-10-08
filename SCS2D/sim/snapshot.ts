@@ -39,6 +39,8 @@ export interface ShipView {
    */
   body: number;
   team: number;
+  /** Which of its side's ships it is, from one; zero for a ship with no such count, as in an editor. */
+  serial: number;
   /** The body of what it is fighting, or -1 or absent for nothing. */
   fighting?: number;
   x: number;
@@ -285,6 +287,7 @@ function shipView(snapshot: Snapshot, i: number): ShipView {
     design: null as unknown as ShipDesign,
     body: -1,
     team: 0,
+    serial: 0,
     x: 0,
     y: 0,
     angle: 0,
@@ -351,6 +354,7 @@ export function capture(
     view.design = design;
     view.body = b;
     view.team = ships.teamOf(i);
+    view.serial = ships.serialOf(i);
     const fighting = ships.fightingOf(i);
     view.fighting = fighting >= 0 && ships.isAlive(fighting) ? bodies.indexOf(ships.body(fighting)) : -1;
     view.x = bodies.x[b]!;
