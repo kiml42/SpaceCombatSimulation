@@ -35,7 +35,14 @@ import {
 } from '../evolution/mutate.js';
 import { parseRunConfig, runConfigWarnings, serialiseRunConfig, type RunSetup } from '../evolution/configFile.js';
 import { Coevolution, DEFAULT_COEVOLUTION, rivalSettings, type CoevolutionConfig, type SideSettings } from '../evolution/coevolution.js';
-import { latest, Yardstick, yardstickMatch, type YardstickReport } from '../evolution/yardstick.js';
+import {
+  GridMeasure,
+  latest,
+  Yardstick,
+  yardstickMatch,
+  type ChampionGrid,
+  type YardstickReport,
+} from '../evolution/yardstick.js';
 import {
   finalist,
   DEFAULT_RUN,
@@ -461,6 +468,7 @@ export function startEvolution(): void {
   const measureButton = el<HTMLButtonElement>('measure');
   const watchYardstickButton = el<HTMLButtonElement>('watchYardstick');
   const yardstickLine = el<HTMLElement>('yardstickLine');
+  const gridTable = el<HTMLTableElement>('grid');
   addRivalInputs();
   const inputs = Object.fromEntries(
     FIELDS.map((name) => [name, el<HTMLInputElement>(name)]),
@@ -547,6 +555,9 @@ export function startEvolution(): void {
    */
   const measurements = new Map<string, YardstickReport>();
   let measuringAgainst = '';
+  /** A co-evolution run's champion grid, being fought or fought. */
+  let grid: GridMeasure | null = null;
+  let gridResult: ChampionGrid | null = null;
   /**
    * The tiles, by ship rather than by generation: a design carried over into
    * the next generation keeps its tile, which is what makes seeking across a
@@ -2009,11 +2020,11 @@ export function startEvolution(): void {
     const co = run instanceof Coevolution;
     saveButton.disabled = top === null;
     exportButton.disabled = top === null;
-    // A co-evolution run is measured as a grid, headless; a line against a
-    // fixed ship would be drawn on the chart such a run does not show.
-    measureButton.disabled = top === null || yardstick !== null || co;
+    // A co-evolution run is measured as a grid of champions rather than
+    // against one opponent, which it has no line on a chart to draw against.
+    measureButton.disabled = top === null || yardstick !== null || grid !== null;
     watchYardstickButton.disabled = top === null || co;
-    if (co) yardstickLine.textContent = 'A co-evolution run is measured with npm run yardstick, as a grid of champions.';
+    benchmarkSelect.disabled = co;
     const describeTop = (each: (typeof tops)[number]): string =>
       `${each.label}#${each.individual.id}, best of generation ${each.generation + 1}: ` +
       `${each.individual.fitness.toFixed(3)} over ${each.individual.matches} matches, ` +
@@ -2071,6 +2082,14 @@ export function startEvolution(): void {
   measureButton.addEventListener('click', () => {
     if (run === null || run.generations.length === 0) return;
     const record = run.record();
+    if (run instanceof Coevolution) {
+      grid = new GridMeasure(record);
+      gridResult = null;
+      measureButton.disabled = true;
+      yardstickLine.textContent = "Fighting each side's champions against the other's…";
+      drawGrid();
+      return;
+    }
     const chosen = benchmarkSelect.value;
     const benchmark = chosen === OWN_FINAL ? latest(record) : load(chosen);
     if (benchmark === null) {
@@ -2158,6 +2177,9 @@ export function startEvolution(): void {
     measured = null;
     measurements.clear();
     yardstickLine.textContent = 'Measure once there is something to measure.';
+    grid = null;
+    gridResult = null;
+    drawGrid();
     pictures.clear();
     shown = -1;
     replay = null;
@@ -2253,6 +2275,20 @@ export function startEvolution(): void {
       }
     }
 
+    if (grid !== null) {
+      const budget = Math.max(1, Math.min(200, number(inputs.effort, 12)));
+      const until = performance.now() + budget;
+      while (performance.now() < until && grid.advance(240)) {
+        // Measuring.
+      }
+      if (grid.done) {
+        gridResult = grid.report();
+        grid = null;
+        measureButton.disabled = false;
+      }
+      drawGrid();
+    }
+
     // Nothing on yet is waiting for a run's first match to finish, which a run
     // started with a battle showing always is.
     if (modeSelect.value === 'battle' && (replay === null || (replayPlaying && (replay.done || skipping)))) {
@@ -2308,6 +2344,59 @@ export function startEvolution(): void {
 
     window.requestAnimationFrame(tick);
   };
+
+  /**
+   * A co-evolution run's champion grid: A's champions down the side, B's
+   * across the top, each cell shaded towards the side that came off better
+   * and saying how many of its seeds A won.
+   */
+  function drawGrid(): void {
+    const shown = grid?.report() ?? gridResult;
+    gridTable.hidden = shown === null;
+    if (shown === null) return;
+    if (grid === null) {
+      yardstickLine.textContent =
+        `${shown.matches} matches, ${shown.seeds} a cell. Down a column, later A against the same B; ` +
+        'along a row, later B against the same A. An arms race shades towards each side going down and across.';
+    } else {
+      yardstickLine.textContent = `Fighting each side's champions against the other's, ${(grid.progress * 100).toFixed(0)}%`;
+    }
+    let most = 0;
+    for (const row of shown.cells) for (const cell of row) most = Math.max(most, Math.abs(cell.margin));
+    const head = document.createElement('tr');
+    const corner = document.createElement('th');
+    corner.textContent = 'A↓ B→';
+    head.append(corner);
+    for (const g of shown.generations) {
+      const th = document.createElement('th');
+      th.textContent = String(g + 1);
+      th.style.color = teamColour(1);
+      head.append(th);
+    }
+    const rows = [head];
+    shown.generations.forEach((g, r) => {
+      const tr = document.createElement('tr');
+      const th = document.createElement('th');
+      th.textContent = String(g + 1);
+      th.style.color = teamColour(0);
+      tr.append(th);
+      for (let c = 0; c < shown.generations.length; c++) {
+        const td = document.createElement('td');
+        const cell = shown.cells[r]?.[c];
+        if (cell !== undefined) {
+          td.textContent = `${cell.wins}/${shown.seeds}`;
+          td.title =
+            `A's champion of generation ${g + 1} against B's of generation ${shown.generations[c]! + 1}: ` +
+            `won ${cell.wins} of ${shown.seeds}, by ${cell.margin >= 0 ? '+' : ''}${cell.margin.toFixed(3)} on average`;
+          const share = most > 0 ? Math.round((Math.abs(cell.margin) / most) * 60) : 0;
+          td.style.background = `color-mix(in srgb, ${teamColour(cell.margin >= 0 ? 0 : 1)} ${share}%, transparent)`;
+        }
+        tr.append(td);
+      }
+      rows.push(tr);
+    });
+    gridTable.replaceChildren(...rows);
+  }
 
   /** What a measurement says, once there is one. */
   function reportYardstick(): void {

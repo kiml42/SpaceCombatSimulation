@@ -2,6 +2,8 @@
 Things that are obviously wrong.
 
 - Fuel tanks should stop supplying fuel when they are too damaged.
+- Fighter engines in the turret layer immediately hit an overflown hull layer module. Should probably just make engine plumes follow the same rules as beams about staying in their own layers.
+- When setting up a co-evolution run between two very large fleets, the UI hangs on every input. Setting up runs with fleets this big is probably a bad idea anyway, but the UI shouldn't hang making it difficult to change your mind.
 
 -----------------------------------------------------------------------
 

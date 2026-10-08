@@ -11,6 +11,7 @@ import {
   type BattleSetup,
   type CustomBattle,
 } from '../scenarios/customBattle.js';
+import { battleFragment } from '../scenarios/battleLink.js';
 import { el } from './dom.js';
 
 /**
@@ -43,6 +44,8 @@ export interface CustomPanel {
   reset(): void;
   /** Start the setup from this fleet alone, as the first side. */
   load(fleet: Fleet, label: string): void;
+  /** Take a whole setup, its sides labelled as coming from `from`. */
+  use(setup: BattleSetup, from: string): void;
 }
 
 /**
@@ -217,11 +220,27 @@ export function customPanel(changed: () => void, fight: () => void): CustomPanel
   });
   const battleFile = el<HTMLInputElement>('battleFile');
   el<HTMLButtonElement>('importBattle').addEventListener('click', () => battleFile.click());
-  pick(battleFile, (text) => {
-    const loaded = parseBattleSetup(JSON.parse(text));
+  const use = (loaded: BattleSetup, from: string): void => {
     slots.length = 0;
-    for (const fleet of loaded.fleets) slots.push({ fleet, source: { kind: 'other', label: `${fleet.name} (file)` } });
+    for (const fleet of loaded.fleets) slots.push({ fleet, source: { kind: 'other', label: `${fleet.name} (${from})` } });
     fill(loaded);
+  };
+  pick(battleFile, (text) => use(parseBattleSetup(JSON.parse(text)), 'file'));
+
+  // The whole battle in the address, for whoever it is sent to.
+  const linkButton = el<HTMLButtonElement>('linkBattle');
+  linkButton.addEventListener('click', () => {
+    void battleFragment(setup()).then(async (fragment) => {
+      const href = `${window.location.href.split('#')[0]}${fragment}`;
+      try {
+        await navigator.clipboard.writeText(href);
+        linkButton.textContent = 'Copied';
+        window.setTimeout(() => (linkButton.textContent = 'Link'), 1500);
+      } catch {
+        // No clipboard, as on a page opened from a file: show it to be copied by hand.
+        window.prompt('A link to this battle:', href);
+      }
+    });
   });
 
   renderSlots();
@@ -272,6 +291,10 @@ export function customPanel(changed: () => void, fight: () => void): CustomPanel
     load(fleet, label) {
       slots.length = 0;
       slots.push({ fleet, source: { kind: 'other', label } });
+      renderSlots();
+    },
+    use(loaded, from) {
+      use(loaded, from);
       renderSlots();
     },
   };
