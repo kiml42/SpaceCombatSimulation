@@ -66,7 +66,8 @@ describe('turning to burn', () => {
   });
 
   it('turns the Broadside bow on to close, and beam on once it is going fast enough', () => {
-    const track = fly(withApproach(BROADSIDE, { burnWeight: 4, approachSpeed: 150 }), 40);
+    // Long enough to close, flip to brake on its mains and settle in the band.
+    const track = fly(withApproach(BROADSIDE, { burnWeight: 4, approachSpeed: 150 }), 60);
     expect(track[0]!.burning).toBe(true);
     expect(Math.abs(track[1]!.off)).toBeLessThan(deg(10));
     const last = track.at(-1)!;

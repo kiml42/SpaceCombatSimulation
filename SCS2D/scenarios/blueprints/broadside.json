@@ -1,16 +1,16 @@
 {
   "formatVersion": 1,
   "name": "Broadside",
-  "notes": "A corvette's hull and engines with its guns turned to port: three turrets that train only over the port beam, marked main. Its main engine still pushes it bow first, so to fight it has to turn its side to the enemy, and it closes along one axis and shoots along another.",
+  "notes": "A corvette's hull and engines with its guns turned to port: three hull guns that train only over the port beam, marked main. Its main engine still pushes it bow first, so to fight it has to turn its side to the enemy, and it closes along one axis and shoots along another.",
   "doctrine": {
     "targeting": {
       "preferredMass": 3,
       "sightWeight": 20
     },
     "approach": {
-      "standoffRadii": 30,
+      "standoffRadii": 25,
       "standoff": 0.7,
-      "tolerance": 0.6,
+      "tolerance": 0.4,
       "burnWeight": 2
     }
   },
@@ -44,32 +44,64 @@
       "modules": [
         {
           "use": "wingBox",
-          "x": 0,
+          "x": -8,
           "y": -2.5
         },
+        {
+          "use": "lateral",
+          "x": -8,
+          "y": 0
+        },
+        {
+          "use": "assembly",
+          "x": 8,
+          "y": -2.5
+        }
+      ]
+    },
+    "assembly": {
+      "modules": [
         {
           "use": "wingBox",
-          "x": -8,
-          "y": -2.5
-        },
-        {
-          "use": "lateral",
           "x": 0,
           "y": 0
         },
         {
           "use": "lateral",
-          "x": -8,
-          "y": 0
+          "x": 0,
+          "y": 2.5
         },
         {
           "kind": "engine",
           "x": 2,
-          "y": -2.5,
+          "y": 0,
           "angle": 0,
           "length": 2,
           "width": 3,
           "reinforcement": 1.5
+        }
+      ]
+    },
+    "hullGun": {
+      "modules": [
+        {
+          "kind": "hullGun",
+          "x": 0,
+          "y": 0,
+          "angle": 90,
+          "length": 9.5,
+          "width": 3,
+          "reinforcement": 2,
+          "barrels": 2,
+          "barrelCalibres": 50,
+          "traverse": 60,
+          "fuse": 0.04,
+          "burstSpeed": 200,
+          "main": true,
+          "targeting": {
+            "facingWeight": 100,
+            "sightWeight": 50
+          }
         }
       ]
     }
@@ -77,66 +109,42 @@
   "modules": [
     {
       "kind": "tank",
-      "x": 4.25,
-      "y": 0,
+      "x": 12.25,
+      "y": 1.5,
       "length": 4.5,
       "width": 6,
       "reinforcement": 1
     },
     {
       "kind": "core",
-      "x": 0,
+      "x": 4,
       "y": 0,
-      "length": 4,
+      "length": 12,
       "width": 6,
       "notes": "Amidships, with a section of hull either side of it: the compartment the ship is flown from is the one thing worth putting the rest of the ship in front of."
     },
     {
-      "kind": "turret",
-      "x": 8.5,
-      "y": 0,
-      "angle": 90,
-      "length": 4,
-      "width": 4,
-      "barrels": 2,
-      "barrelCalibres": 50,
-      "traverse": 60,
-      "fuse": 0.04,
-      "burstSpeed": 200,
-      "main": true
+      "use": "hullGun",
+      "x": -0.5,
+      "y": 8.25,
+      "repeat": 3,
+      "step": {
+        "x": 4.5,
+        "y": 0
+      }
     },
     {
-      "kind": "turret",
-      "x": 12.5,
-      "y": 0,
-      "angle": 90,
-      "length": 4,
-      "width": 4,
-      "barrels": 2,
-      "barrelCalibres": 50,
-      "traverse": 60,
-      "fuse": 0.04,
-      "burstSpeed": 200,
-      "main": true
-    },
-    {
-      "kind": "turret",
-      "x": 16.5,
-      "y": 0,
-      "angle": 90,
-      "length": 4,
-      "width": 4,
-      "barrels": 2,
-      "barrelCalibres": 50,
-      "traverse": 60,
-      "fuse": 0.04,
-      "burstSpeed": 200,
-      "main": true
+      "kind": "structure",
+      "x": 4,
+      "y": 3.25,
+      "angle": 0,
+      "length": 12,
+      "width": 0.5
     },
     {
       "kind": "engine",
       "x": -2,
-      "y": 0,
+      "y": 1.5,
       "angle": 180,
       "length": 10,
       "width": 6,
@@ -145,13 +153,36 @@
     {
       "use": "Side",
       "x": 4,
-      "y": 7
+      "y": 8.5
     },
     {
       "use": "Side",
       "x": 4,
-      "y": -7,
+      "y": -5.5,
       "mirror": true
+    },
+    {
+      "kind": "structure",
+      "x": 14.75,
+      "y": 1.5,
+      "length": 0.5,
+      "width": 6,
+      "reinforcement": 1.5
+    },
+    {
+      "kind": "turret",
+      "x": 8.75,
+      "y": -4.25,
+      "angle": 90,
+      "length": 2.5,
+      "width": 2.5,
+      "barrels": 3,
+      "main": false,
+      "targeting": {
+        "focusWeight": 0,
+        "closingWeight": 100,
+        "proximityWeight": 200
+      }
     }
   ]
 }
