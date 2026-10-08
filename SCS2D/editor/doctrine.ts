@@ -63,6 +63,9 @@ const APPROACH_ROWS: readonly DoctrineRow[] = [
   { field: 'escort', label: 'escort cap', hint: 'The furthest it will stray from what it is covering, as a fraction of its own reach', step: 0.05 },
   { field: 'separation', label: 'keeps clear', hint: 'How much it wants to stay out of everybody’s way', step: 25 },
   { field: 'separationRadii', label: 'clearance', hint: 'How close is too close, in multiples of the gap between two hulls’ skins', step: 0.5 },
+  { field: 'avoidHorizon', label: 'looks ahead', hint: 'How far ahead it looks for something it is about to run into, seconds', step: 1 },
+  { field: 'dodgeSpeed', label: 'dodges at', hint: 'The sideways speed it asks for to get out of the way, metres per second', step: 10 },
+  { field: 'responseTime', label: 'responds in', hint: 'How quickly it corrects its velocity, seconds: smaller asks its engines for more, and turns to burn more readily', step: 0.25 },
   { field: 'tolerance', label: 'slack', hint: 'How much closer or further than that is close enough, as a fraction', step: 0.05 },
   { field: 'approachSpeed', label: 'closing speed', hint: 'The fastest it will close the difference, metres per second', step: 10 },
   { field: 'accelerate', label: 'speeds up on', hint: 'How much of its thrust towards the band to speed up with: 1 is all of it', step: 0.05 },
@@ -210,6 +213,7 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
       {
         title: 'How it gets there',
         entries: [
+          entry('approach', 'responseTime'),
           entry('approach', 'approachSpeed'),
           entry('approach', 'accelerate', {
             absolute: (v, ship) => `≈ ${(v.approach.accelerate * ship.accelFore).toFixed(2)} m/s² ahead`,
@@ -294,6 +298,8 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
             absolute: (v, ship) =>
               `${metres(2 * ship.radius * v.approach.separationRadii)} between centres, beside its own size`,
           }),
+          entry('approach', 'avoidHorizon', { shown: (v) => v.approach.separation > 0 }),
+          entry('approach', 'dodgeSpeed', { shown: (v) => v.approach.separation > 0 }),
         ],
       },
     ],

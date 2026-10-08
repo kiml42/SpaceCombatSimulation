@@ -118,14 +118,6 @@ function fragmentLife(spec: ModuleSpec): number {
 }
 
 /**
- * How quickly a pilot tries to correct a velocity error, seconds. Larger is
- * gentler. Chosen for feel rather than derived from anything — unlike the
- * scaling laws in `modules.ts`, a pilot's urgency is not a physical property
- * of the ship. It is doctrine (DESIGN.md §2), and this is its default.
- */
-const VELOCITY_RESPONSE_TIME = 2;
-
-/**
  * What a craft with nothing pointing the way it would brake plans to stop on,
  * as a share of what it has pointing the other way. It has no such thing, so
  * it overshoots and comes about; without it, it would never set out. A
@@ -211,25 +203,6 @@ const RAM_TORQUE_NEGLIGIBLE = 1e-6;
 
 const TIMER_SETTLE = 1e-9;
 
-
-/**
- * How far ahead a pilot looks for something it is about to run into, seconds.
- *
- * Long enough that the answer is a lean rather than a swerve, and short enough
- * that a craft is not steering around a pass that the next few seconds of
- * everybody's manoeuvring will have changed anyway.
- */
-const AVOID_HORIZON = 6;
-
-/**
- * The sideways speed a craft asks for to get out of the way, m/s. Asked for
- * within one response time, that is far more than any hull can push sideways,
- * so it is a demand for everything it has that way. It is a want in the blend
- * rather than a push on top, deliberately: a craft dodging stops pressing on
- * towards its band, which is what keeps a crowd from piling up. A push on top
- * measured six times the contacts in `superSwarm`.
- */
-const DODGE_SPEED = 60;
 
 /** No order, or an order whose target has gone. */
 /**
@@ -2403,8 +2376,9 @@ export class Ships {
     // force leaves nothing to stop a turn with. So it points, then burns: the
     // force asked for falls away with how far off its heading still is.
     const aligned = order?.ram === true ? max(0, cos(angleDelta(angle, wantAngle))) : 1;
-    const worldFx = (aligned * mass * (wantVx - bodies.vx[b]!)) / VELOCITY_RESPONSE_TIME;
-    const worldFy = (aligned * mass * (wantVy - bodies.vy[b]!)) / VELOCITY_RESPONSE_TIME;
+    const response = this.designs[i]!.doctrine.approach.responseTime;
+    const worldFx = (aligned * mass * (wantVx - bodies.vx[b]!)) / response;
+    const worldFy = (aligned * mass * (wantVy - bodies.vy[b]!)) / response;
     const c = cos(angle);
     const s = sin(angle);
     const localFx = worldFx * c + worldFy * s;
@@ -2561,7 +2535,7 @@ export class Ships {
     // thrust past that is no use either way. Turning has made the change by
     // `turned`; compare what holding has made of it by then, or by the near
     // miss if that is sooner.
-    const want = dv / VELOCITY_RESPONSE_TIME;
+    const want = dv / approach.responseTime;
     const turnedRate = min(axis, want);
     const heldRate = min(held, want);
     const turned = turn + dv / turnedRate;
@@ -2744,7 +2718,8 @@ export class Ships {
         // never capped: `brake` is what the curve plans on, and a craft that
         // has fallen behind it spends whatever it has.
         const gap = outside * sense;
-        let stopping = stoppingSpeed(brake, gap, VELOCITY_RESPONSE_TIME);
+        const response = approach.responseTime;
+        let stopping = stoppingSpeed(brake, gap, response);
         // A craft that turns to burn brakes on its mains, once it has turned,
         // and is held to it: a curve planned on them is one it cannot stop on
         // otherwise.
@@ -2754,14 +2729,14 @@ export class Ships {
           // when that gets it there sooner, turns and all: on a short run in a
           // flip costs more than it saves.
           const turn = this.halfTurnTime(bodies, i, b);
-          const turned = mains > brake ? stoppingSpeed(mains, gap, VELOCITY_RESPONSE_TIME + turn) : 0;
+          const turned = mains > brake ? stoppingSpeed(mains, gap, response + turn) : 0;
           const sooner =
             turned > stopping &&
-            arrivalTime(mains, gap, approachSpeed, VELOCITY_RESPONSE_TIME + turn) + turn <
-              arrivalTime(brake, gap, approachSpeed, VELOCITY_RESPONSE_TIME);
+            arrivalTime(mains, gap, approachSpeed, response + turn) + turn <
+              arrivalTime(brake, gap, approachSpeed, response);
           if (sooner) stopping = turned;
           // Already turned onto them: planned on them, with no turn to allow for.
-          if (wasOnMains && mains > 0) stopping = max(stopping, stoppingSpeed(mains, gap, VELOCITY_RESPONSE_TIME));
+          if (wasOnMains && mains > 0) stopping = max(stopping, stoppingSpeed(mains, gap, response));
           // Once on it, held to it until it has stopped closing.
           // On the curve: going as fast as it can stop from on its mains, so it
           // has to turn and start now.
@@ -2774,7 +2749,7 @@ export class Ships {
         // is left alone, since the layout is the cap then, and capping the want
         // as well would only let a sideways correction crowd it out.
         if (approach.accelerate < 1) {
-          radial = min(radial, max(making, 0) + accelerate * VELOCITY_RESPONSE_TIME);
+          radial = min(radial, max(making, 0) + accelerate * response);
         }
         vx += ux * radial;
         vy += uy * radial;
@@ -2905,7 +2880,7 @@ export class Ships {
       const speedSq = rvx * rvx + rvy * rvy;
       const closing = dx * rvx + dy * rvy;
       const when = speedSq > 0 ? max(0, -closing / speedSq) : 0;
-      if (when > AVOID_HORIZON) continue;
+      if (when > approach.avoidHorizon) continue;
       const missX = dx + rvx * when;
       const missY = dy + rvy * when;
       const miss = length(missX, missY);
@@ -2929,13 +2904,13 @@ export class Ships {
       }
 
       const crowding = 1 - miss / (touching + room);
-      const soon = 1 - when / AVOID_HORIZON;
+      const soon = 1 - when / approach.avoidHorizon;
       const weight = approach.separation * crowding * soon;
       if (weight > this.dodgeWeight) {
         this.dodgeWeight = weight;
         this.dodgeWhen = when;
       }
-      this.urge(weight, vx + awayX * DODGE_SPEED, vy + awayY * DODGE_SPEED);
+      this.urge(weight, vx + awayX * approach.dodgeSpeed, vy + awayY * approach.dodgeSpeed);
     }
   }
 
