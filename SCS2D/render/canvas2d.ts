@@ -764,12 +764,18 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
     const alpha = layerAlpha(plumeAlpha(plumeIntensity(engine.geometry, force)), split);
     const half = engine.geometry.exitWidth / 2;
 
-    // Cut off where its core lands on a hull, inside the glow that marks it.
-    const cut = landed[1]! > 0 ? (1 - landed[1]!) * reach : Infinity;
+    // Each third cut off where it lands on a hull, inside the glow that marks
+    // it. A side third reaches a third as far as the core.
     ctx.save();
-    if (cut < reach) {
+    let cutAny = false;
+    for (let k = 0; k < PLUME_RAYS; k++) if (landed[k]! > 0) cutAny = true;
+    if (cutAny) {
       ctx.beginPath();
-      ctx.rect(root - cut, across - half, cut, half * 2);
+      for (let k = 0; k < PLUME_RAYS; k++) {
+        const third = k === 1 ? reach : reach / 3;
+        const cut = landed[k]! > 0 ? (1 - landed[k]!) * third : reach;
+        ctx.rect(root - cut, across - half + (k * half * 2) / 3, cut, (half * 2) / 3);
+      }
       ctx.clip();
     }
     ctx.fillStyle = fade(ctx, root, reach, PLUME, alpha);

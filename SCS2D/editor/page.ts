@@ -135,7 +135,7 @@ import {
   type DoctrineSection,
   type DoctrineValues,
 } from './doctrine.js';
-import { attackBearings, doctrineBand, previewSnapshot } from './preview.js';
+import { attackBearings, doctrineBand, landOnSelf, lightSelfBurning, previewSnapshot } from './preview.js';
 import { designStats, envelopes, assemblyMass, holdingThrottles, moduleReadout, type Envelopes } from './stats.js';
 
 /**
@@ -502,6 +502,7 @@ export function startEditor(): void {
       snapshot.shipCount = 0;
     }
     if (view.design !== null) demonstration.writeInto(snapshot);
+    if (view.design !== null && snapshot.ships[0] !== undefined) lightSelfBurning(snapshot.ships[0]);
     // Pointing at the envelope burns the engines the way the ship would to
     // push that way without turning, on top of whatever is selected.
     const shown = snapshot.ships[0];
@@ -511,6 +512,7 @@ export function startEditor(): void {
         shown.throttles[t] = Math.max(shown.throttles[t] ?? 0, burning[t] ?? 0);
       }
     }
+    if (shown !== undefined && view.design !== null) landOnSelf(shown);
     draw(ctx, snapshot, camera, canvas.width, canvas.height, undefined, arcs);
     drawOverlay(
       ctx,
