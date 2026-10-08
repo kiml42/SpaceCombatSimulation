@@ -302,7 +302,9 @@ inside any one file is not contiguous.
   structure with a core in each, a corvette is sent through the bridge at sixty metres a second, and the
   two halves pick up the enemy across the field on their own doctrine without being told anything.
   **Ships breed.** A blueprint is mutated into another: the numbers in its modules, the numbers in its
-  doctrine, and its shape — a module added, copied onto a free face, or taken off. What decides whether a
+  doctrine, and its shape — a module added, copied onto a free face, or taken off. An engine or hull weapon
+  is copied as the same thing again beside it, the same way round, so a copy never sits in its flame or line
+  of fire. What decides whether a
   mutant is a ship is the layout rules themselves, which refuse a candidate rather than repair it, since a
   repair rule would be a second opinion about what a ship is. Two things make that affordable on a hull
   that is a tight packing of boxes: a size changes by moving *one* face, so the opposite face stays against

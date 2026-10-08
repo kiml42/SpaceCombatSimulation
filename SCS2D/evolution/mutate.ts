@@ -1984,7 +1984,11 @@ function addModule(
     const kind = copy ? anchor.spec.kind : pickKind(rng, bounds.kinds);
     if (kind === null) return null;
     const outward = outwardOf(draft, anchor.list);
+    // A copy of something that points goes beside it, never in front of it or
+    // behind it, where one would fire into the other.
+    const beside = copy && points(kind);
     for (const face of faces(anchor.spec, outward, rng)) {
+      if (beside && face % 2 === 0) continue;
       for (const along of berths(anchor.spec, face, copy, bounds, rng)) {
         const added = against(anchor.spec, face, along, kind, copy, bounds, rng);
         if (neighbours.some((neighbour) => modulesOverlap(added, neighbour))) continue;
@@ -2086,6 +2090,18 @@ function against(
   const across = copy ? (endOn ? anchor.width : anchor.length) : bounds.grid;
   const out = copy ? (endOn ? anchor.length : anchor.width) : bounds.grid;
 
+  // **A copy of an engine or a hull weapon is the same thing again, beside
+  // it**: the same way round, a width over, so two engines make a bank firing
+  // the same way and two guns a battery. Bolted to a face pointing out of it,
+  // as a new one is, a copy on the bell or the muzzle sat in its original's
+  // flame or line of fire, and one on the back pointed the other way —
+  // measured over the stock fleet's lineages, more than half of all copied
+  // engines left an engine firing into the ship.
+  if (copy && points(kind)) {
+    const { notes: _notes, ...same } = anchor;
+    return { ...same, x: tidy(anchor.x + nx * anchor.width, 6), y: tidy(anchor.y + ny * anchor.width, 6) };
+  }
+
   // Which way a module has to face to be *held on* by this face is the
   // archetype's business, and two of them answer differently.
   //
@@ -2154,6 +2170,11 @@ function against(
     if (shaped !== null) return shaped;
   }
   return added;
+}
+
+/** Whether a kind points somewhere — an engine's bell, a hull weapon's muzzle — so a copy must not go in front of it. */
+function points(kind: ModuleKind): boolean {
+  return kind === 'engine' || isHullMount(kind);
 }
 
 /** Which face of a module a thing went on, in the module's own terms. */
