@@ -275,7 +275,7 @@ function exhaustEscaping(
       weaponsLayer: inWeaponsLayer(spec, stats[i]!.thickness),
     };
   });
-  return exhaustObstruction({ modules }, index, rating, new HullPath(), [], []);
+  return exhaustObstruction({ modules }, index, rating, new HullPath(), []);
 }
 
 export function assemblyMass(layout: readonly ModuleSpec[], picked: readonly number[]): number {

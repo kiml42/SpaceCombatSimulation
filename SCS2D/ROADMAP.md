@@ -799,12 +799,9 @@ Deliberately unresolved; decide when they block something.
   non-negotiable 6 turning out to be load-bearing for something other than what it was written for, and it
   is also exactly what a replay file needs (§8's async fleet-vs-fleet), so the two features want the same
   mechanism built once.
-- **How finely a plume should be sampled, and whether it carries heat.** Settled in shape: the flame is
-  three rays across the nozzle, each a third of the gas, which is the cheapest count that tells the middle
-  of a jet from its edges and is what gives a buried nozzle a thrust penalty to lose in thirds rather than
-  an on/off. Whether thirds are a fine enough gradient for §7's search to climb is a question for a
-  generation that actually evolves its engine placement; the count is one constant, and nothing but cost
-  argues against raising it. Heat was part of the answer when a plume's bite was first settled in
+- **Whether a plume carries heat.** How finely it is sampled is settled: what its own ship stands in is
+  swept exactly, since an evolved fleet learnt to hide turrets between three rays, and what leaves the
+  ship is three bands a nozzle. Heat was part of the answer when a plume's bite was first settled in
   direction and is still owed, but it waits on there being a heat model to put it in rather than on
   anything about exhaust.
 - **What the stock ships' stubby engines should do about their bells.** A wide exit cannot be collimated

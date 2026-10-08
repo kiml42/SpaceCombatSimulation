@@ -32,7 +32,7 @@ import {
 import { EngineLayout, type EngineSpec } from './engines.js';
 import { distanceToOutline, isTriangle, outlineAxes, projectOutline } from './shape.js';
 import { HullPath } from './hull.js';
-import { exhaustObstruction, weaponPlumeReach } from './exhaust.js';
+import { exhaustObstruction, weaponPlumeReach, type PlumeSlice } from './exhaust.js';
 import type { TurretSpec } from './turrets.js';
 
 /**
@@ -1895,30 +1895,21 @@ function designFrom(
     reach = max(reach, weaponPlumeReach(engineGeometry(spec), engine.maxThrust));
   }
 
-  // What each engine exhausts into, ray by ray. A plume needs it every step
+  // What each engine exhausts into, across each nozzle. A plume needs it every step
   // and nothing in a battle can change it: an engine firing into its own hull
   // is firing into it for as long as the hull is one piece, and a piece cut
   // off is a design of its own that works this out again.
   //
   // What comes out of it is `escaping` — the share of the exhaust that leaves
   // the ship at all, and therefore the share of the rated thrust the ship
-  // actually gets. A ray stopped by the ship's own structure hands its
-  // momentum straight back, so it is not thrust; a ray stopped beyond the
-  // flame's own end never had anything left to hand back, and does not count.
+  // actually gets. Exhaust stopped by the ship's own structure hands its
+  // momentum straight back, so it is not thrust; structure beyond the flame's
+  // own end meets nothing left to hand back, and does not count.
   const exhaust = new HullPath();
-  const blocks: number[] = [];
-  const blockedAt: number[] = [];
   for (const engine of engines) {
-    const escaping = exhaustObstruction(
-      { modules },
-      engine.module!,
-      engine.maxThrust,
-      exhaust,
-      blocks,
-      blockedAt,
-    );
-    engine.blocks = [...blocks];
-    engine.blockedAt = [...blockedAt];
+    const slices: PlumeSlice[] = [];
+    const escaping = exhaustObstruction({ modules }, engine.module!, engine.maxThrust, exhaust, slices);
+    engine.slices = slices;
     engine.escaping = escaping;
   }
 
