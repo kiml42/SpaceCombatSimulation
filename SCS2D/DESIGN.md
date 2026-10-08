@@ -40,7 +40,9 @@ inside any one file is not contiguous.
   bending them — with pause, single-step, time scaling, and zoom and pan over an
   auto-framing camera. A ship clicked is picked out — ringed, a line to what it is fighting, the arcs drawn
   for it alone, and framed with its target — until Escape. Rounds and beams are drawn as light, or with C in the colours of the side that
-  fired them, which the evolution page starts with. **The camera carries itself along with what it is watching rather
+  fired them, which the evolution page starts with. A ship's name — its side and which of that side's
+  ships it is, as "Red 5" — is written on its core once the core is big enough on screen to carry it; a
+  piece broken off keeps its ship's. **The camera carries itself along with what it is watching rather
   than easing after it**, weighting the ships in shot by radius so a fleet action is steered
   by the capital in it; it falls back from the ships still under control to the hulks and then
   to the wreckage, so a fight that ends with every core shot out is still followed; and it
