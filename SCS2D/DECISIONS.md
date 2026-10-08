@@ -16,6 +16,7 @@ inside any one file is not contiguous.
 
 | File | Holds | Read it when |
 | --- | --- | --- |
+| 2026-10-08 | **A ship's own hull should block its exhaust by layer, as other ships do.** Answers ROADMAP.md §12's question on exhaust and layers, half of which PR 195 had already answered. Not built, and not wanted soon: a thick engine with deck structure behind it is rare, so it is a note on step 7 rather than a step of its own. |
 | 2026-10-08 | **Only a ship's main battery takes its orders**; every other mount ignores them and picks by its own doctrine. Not a weight per mount, as ROADMAP.md had it: a close-in mount has no reason to care about the order at all, and a main gun no reason not to. Not yet built. **More pickers** (ship-type, hemisphere as a hard discard) moved from step 3 to an open question, as nothing yet clearly needs them. **Step 7, two layers, is built**: rebalancing the stock ships was the last of it, and further balance is small tweaks as they come up. Two §12 questions it answered are removed: how turret fleets fight craft they cannot see (exploding shells and the fighter flag), and how a gun reaches the hull layer (a timed fuse, built). |
 | **[DESIGN.md](DESIGN.md)** | Status, §§1–7 and 9–11 — what the game is, how it works, and why | Deciding how something should behave |
 | **[ROADMAP.md](ROADMAP.md)** | §8 build order, §12 open questions | Picking up work, or deferring a decision |
