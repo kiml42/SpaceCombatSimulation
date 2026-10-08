@@ -777,8 +777,11 @@ Rules:
   craft reaches the hull layer — so a pure kinetic-kill vehicle needs no warhead at all.
 
   **Ram versus dock is a closing speed**: under the §4 weld threshold a craft has landed, over it the
-  craft has rammed. What it lands *with* is a docking port or a claw, which have rules of their own
-  (ROADMAP.md §12); the weld built so far hooks only torn metal, so a sound craft just bounces.
+  craft has rammed. What it lands *with* is a pad, a port or a claw, each with rules of its own (ROADMAP.md
+  §8 step 9); the weld built so far hooks only torn metal, so a sound craft just bounces. **A fighter lands
+  on a pad without committing**: the pad is on the deck and the fighter above it, and they meet at the
+  boundary between the layers, so landing is not an exception to the occupancy rule. A claw takes at a
+  faster contact than a landing, and short of a ram.
 
   In implementation this is one bit per body — *hull collision enabled* — read by the collision filter,
   plus a guard on changing it. **A projectile carries one bit, fixed when it is fired**: the layer of the
