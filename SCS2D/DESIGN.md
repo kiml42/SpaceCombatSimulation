@@ -40,7 +40,9 @@ inside any one file is not contiguous.
   bending them — with pause, single-step, time scaling, and zoom and pan over an
   auto-framing camera. A ship clicked is picked out — ringed, a line to what it is fighting, the arcs drawn
   for it alone, and framed with its target — until Escape. Rounds and beams are drawn as light, or with C in the colours of the side that
-  fired them, which the evolution page starts with. **The camera carries itself along with what it is watching rather
+  fired them, which the evolution page starts with. A ship's name — its side and which of that side's
+  ships it is, as "Red 5" — is written on its core once the core is big enough on screen to carry it; a
+  piece broken off keeps its ship's. **The camera carries itself along with what it is watching rather
   than easing after it**, weighting the ships in shot by radius so a fleet action is steered
   by the capital in it; it falls back from the ships still under control to the hulks and then
   to the wreckage, so a fight that ends with every core shot out is still followed; and it
@@ -321,8 +323,10 @@ inside any one file is not contiguous.
   that can only add structure is a ratchet a lineage has no way down from. A whole ship can be scaled in one
   draw — every size, position, corner and assembly placement by one factor, up to a tenth either way at the
   default magnitude — under `resize`'s weight, so a hull in proportion at one size is tried at another without
-  breaking on the way; the scaling laws do not scale with it, which is the question asked. A doctrine number
-  is perturbed by a fraction of its *default* rather than of what is held, so nothing that has reached zero
+  breaking on the way; the scaling laws do not scale with it, which is the question asked. A child's name
+  drifts a letter from its parent's one time in ten, from a generator of its own so the drift never moves a
+  draw the design depends on, and lines bred from one founder come to read as relatives rather than as the
+  founder with a number on. A doctrine number is perturbed by a fraction of its *default* rather than of what is held, so nothing that has reached zero
   is stuck there — and where the default is zero too, by a fraction of what a number is worth in that half
   of the doctrine, since otherwise every draw is a fraction of nothing and the field is not slow to find but
   unreachable. **A run can start from nothing**: the Bare Core is a single control compartment that cannot
@@ -330,7 +334,8 @@ inside any one file is not contiguous.
   seed with an engine on it has already been told which way a ship is meant to go.
   **A match is fought and scored.** A handful of designs are put in an arena together — every entrant its
   own side, evenly round a ring, on a heading it did not choose — and the battle is run until one of them is left or
-  the clock runs out. Three things are scored in the one match rather than in separate kinds of match,
+  the clock runs out. The ring's radius and the starting speeds in and across may each carry a spread, drawn
+  once a match from its seed, so a run can breed against a range of arenas rather than one. Three things are scored in the one match rather than in separate kinds of match,
   because the trade between them is the interesting part: surviving, damage done, and and **ground gained** on a point
   worth reaching — that last measured from where a craft started rather than against the goal outright, so
   standing still is nothing, closing is positive and drifting away is negative. It falls away with distance
@@ -472,7 +477,8 @@ inside any one file is not contiguous.
   the weapons layer as well. A turret's rounds and beams meet only what is in the weapons layer, so they strip
   mounts and thick engines and never reach a core below deck; a hull weapon's meet everything. Each
   mount has a traverse — where its barrels may go, stopped by what the row of them would foul within a
-  barrel's length, as wide as the outer barrel — and, separately, a trigger mask: the bearings its own ship is downrange of, at any distance,
+  barrel's length, as wide as the outer barrel, and which it slews round the way it allows, however much
+  further that is than the short way — and, separately, a trigger mask: the bearings its own ship is downrange of, at any distance,
   where it may point but not fire. For a turret both count only what is in the weapons layer. The editor draws the mask
   as a warm wedge inside the sweep. A mount prefers a target it can fire at, but with none it tracks one
   on a masked bearing with its trigger held, so it is on target as the ship turns. A lit beam's drive stops at the edge of a masked sector rather than
@@ -500,7 +506,9 @@ inside any one file is not contiguous.
   **A fleet editor on a page of its own** places ships from the ship library — each design embedded once —
   and drags, turns, duplicates and repeats them in rows and arcs on the same snapping grid and through the
   same renderer as the ship editor, with undo throughout. A group is clicked as one thing and clicked again
-  to step into it, and a member moved there moves in every use of the group. A selected ship can be swapped
+  to step into it, and a member moved there moves in every use of the group. Ships and groups selected in one
+  list are made a group where they stand, a group use dissolved back into what it places — every copy,
+  mirrored and turned as it was — and a group renamed in every use. A selected ship can be swapped
   for another design, from the fleet's own or the library, where it stands and facing the same way, as a
   module's kind is swapped in the ship editor; a design nothing flies any more is dropped. It counts ships and dry mass by design, and lists
   rather than enforces what is wrong: hulls overlapping at the start, a design that would not fly, and an
