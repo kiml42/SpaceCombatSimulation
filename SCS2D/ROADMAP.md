@@ -77,15 +77,16 @@ an entry is either still open or it is gone.
   low on a CIWS. It replaces the mandate rather than sitting beside it, so it moves the goldens of every
   scenario that issues an order — which is why it is a piece of work of its own.
 
-**Step 5 — v1: skirmish.** A fixed budget of *materials* rather than of points (§12), designed scenarios,
-shareable by URL. *This is the first thing worth giving people to play.* Designed scenarios are where the §12
+**Step 5 — v1: skirmish.** A fixed budget of *materials* rather than of points (§12), and designed
+scenarios. *This is the first thing worth giving people to play.* Designed scenarios are where the §12
 entry on authored data stops being optional, since a scenario to share has to be a file.
 
 Built: **the fleet file** (`sim/fleet.ts`, `sim/fleetFile.ts`), **a battle from fleets**
 (`scenarios/fleetBattle.ts`), proved by `standoff` flying a fleet file with its checksum unchanged, **the
 fleet editor** (`dist/fleet.html`), and **a custom battle** on the viewer — fleets or single ships from the
 libraries, a file, or handed over by either editor's Battle link,
-range, closing and crossing speeds, a rotation and a seed, saved and loaded as a battle file (`scenarios/customBattle.ts`),
+range, closing and crossing speeds, a rotation and a seed, saved and loaded as a battle file (`scenarios/customBattle.ts`)
+and shared as a link that carries the file (`scenarios/battleLink.ts`),
 set up paused and live, and decided once no more than one side can still fight.
 **Fleet evolution** is built, headless (`evolution/fleetMutate.ts`, `npm run evolve -- --fleet`) and on the
 evolution page: a match

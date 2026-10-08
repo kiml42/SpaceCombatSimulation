@@ -533,7 +533,8 @@ inside any one file is not contiguous.
   embedded design that has drifted from the library's copy of the same name, which one button brings up to
   date. Fleets are saved to browser storage and exported and imported as fleet files.
   **A custom battle** on the viewer sets fleets — or single ships, as fleets of one — round a ring at a
-  chosen range, closing and crossing speed, rotation and seed, saved and loaded as a battle file; one side alone is
+  chosen range, closing and crossing speed, rotation and seed, saved and loaded as a battle file, and carried
+  whole in a link (Link copies one; opening it sets the battle up paused); one side alone is
   allowed, for watching an escort. Both editors' Battle links open it with what is being edited as the
   first side. It is set up paused at its first step, the
   picture following every change, and started with Fight. It says how each side stands — ships still
@@ -586,7 +587,7 @@ inside any one file is not contiguous.
   across — a wider hole narrows by that much and stays open. None by default, and none never seals. The editor has a Tank, and shows an engine's Isp and fuel flow, a tank's fuel,
   and a ship's fuel, endurance flat out and Δv. Every stock ship has one or more modules made tanks.
 - **Next:** the rest of §8 step 8 — leaks, and pilots that know their fuel — and of step 5: a materials
-  budget, designed scenarios, shareable by URL.
+  budget, and designed scenarios.
   See ROADMAP.md §8.
   §8 step 3 is done bar what it deliberately deferred — withdrawal, and the
   ship-type picker. What a chooser is already facing (`facingWeight`) and whether anything is in the way
