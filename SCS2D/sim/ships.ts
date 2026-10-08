@@ -446,6 +446,12 @@ export interface ShipSpec {
   angularVel?: number;
   /** Uninterpreted here; the caller's notion of sides. `NEUTRAL_TEAM` is not. */
   team?: number;
+  /**
+   * Which of its side's ships this is, counting from one in the order they
+   * were put in (`serialOf`). Given for a piece of a ship, which carries the
+   * ship's; drawn from the side's count otherwise.
+   */
+  serial?: number;
   /** Nothing can hurt it: no damage taken, no weld cut. See `Damage.protect`. */
   invulnerable?: boolean;
   /**
@@ -571,6 +577,9 @@ export class Ships {
   private readonly turretAimModule: Int32Array[] = [];
 
   private readonly team: number[] = [];
+  private readonly serial: number[] = [];
+  /** Ships each side has had put in, so the next is one more. */
+  private readonly served = new Map<number, number>();
 
   /**
    * Which ships were never controlled: the pieces other ships have been broken
@@ -977,6 +986,11 @@ export class Ships {
     return this.team[i]!;
   }
 
+  /** Which of its side's ships this is, from one; a piece broken off carries its ship's. */
+  serialOf(i: number): number {
+    return this.serial[i]!;
+  }
+
   /**
    * Put a ship in the world.
    *
@@ -1035,6 +1049,12 @@ export class Ships {
     this.turretRethinkAt.push(schedule);
     this.turretAimModule.push(new Int32Array(mounts.length).fill(WHOLE_SHIP));
     this.team.push(spec.team ?? 0);
+    let serial = spec.serial;
+    if (serial === undefined) {
+      serial = (this.served.get(spec.team ?? 0) ?? 0) + 1;
+      this.served.set(spec.team ?? 0, serial);
+    }
+    this.serial.push(serial);
     this.derelict.push(0);
     this.committed.push(0);
     this.burning.push(0);
@@ -3736,6 +3756,7 @@ export class Ships {
       vy: bodies.vy[b]! + spin * offset.x,
       angularVel: spin,
       team: this.team[side]!,
+      serial: this.serial[side]!,
     });
     this.partedAt[j] = world.tick;
     if (flies) {

@@ -52,6 +52,7 @@ export function previewSnapshot(design: ShipDesign, out: Snapshot = new Snapshot
     design,
     body: -1,
     team: NO_TEAM,
+    serial: 0,
     x: 0,
     y: 0,
     angle: 0,

@@ -163,6 +163,10 @@
               <label for="entryAngle">facing °</label>
               <input id="entryAngle" type="number" step="15" />
             </div>
+            <div class="field" id="groupNameRow">
+              <label for="groupName">group</label>
+              <input id="groupName" type="text" title="The group's name, in its definition and every use of it" />
+            </div>
             <div class="field" id="mirrorRow">
               <label for="entryMirror">mirrored</label>
               <input id="entryMirror" type="checkbox" />
@@ -183,6 +187,8 @@
           </div>
           <div class="buttons">
             <button id="upLevel" title="Select the group this is in">Select group</button>
+            <button id="makeGroup" title="Make a group of what is selected, where it stands">Make group</button>
+            <button id="dissolveGroup" title="Put this group's ships back where they stand, and drop the group if nothing else uses it">Dissolve</button>
             <button id="duplicateEntry">Duplicate</button>
             <button id="deleteEntry">Delete</button>
           </div>
