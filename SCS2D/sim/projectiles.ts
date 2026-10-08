@@ -203,6 +203,9 @@ export class ProjectileHits {
 export class Projectiles {
   x!: Float64Array;
   y!: Float64Array;
+  /** Where it was fired or burst from, for drawing; nothing in the simulation reads it. */
+  startX!: Float64Array;
+  startY!: Float64Array;
   vx!: Float64Array;
   vy!: Float64Array;
   width!: Float64Array;
@@ -285,6 +288,8 @@ export class Projectiles {
     };
     this.x = f64(this.x);
     this.y = f64(this.y);
+    this.startX = f64(this.startX);
+    this.startY = f64(this.startY);
     this.vx = f64(this.vx);
     this.vy = f64(this.vy);
     this.width = f64(this.width);
@@ -365,6 +370,8 @@ export class Projectiles {
 
     this.x[i] = x;
     this.y[i] = y;
+    this.startX[i] = x;
+    this.startY[i] = y;
     this.vx[i] = vx;
     this.vy[i] = vy;
     this.width[i] = width;
