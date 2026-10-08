@@ -34,7 +34,9 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Category input for ships - ships grouped by category when selecting them anywhere. (e.g. "Star Wars.Imperial", "Stock")
 - Make it clearer how the range is controlled in the core's doctrine
 - Add calibre multiplier to scale what the default maths gives.
-- For engines and hull weapons, make the module size specify the size of the machinery block witht eh barrel/nozzle extending out from there. The barrel/nozzle will still need ot be considered for overlapping. This shopuld make it easier to adjust things in the editor, as you won't have the option to set a module length that doesn't work with a given barrel length.
+- For engines and hull weapons, make the module size specify the size of the machinery block witht eh barrel/nozzle extending out from there. The barrel/nozzle will still need ot be considered for overlapping. This should make it easier to adjust things in the editor, as you won't have the option to set a module length that doesn't work with a given barrel length.
+- Thrust efficiency diagram overlaying the thrust diagram, to show which directions are efficient, as well as which are high thrust.
+- Expand the thrust diagram on mouseover or click.
 
 ## Weapons
 - Turrets fire a volley of one shot per barrel, and then reload. Can specify delay between shots to allow for firing all at once or staggered
