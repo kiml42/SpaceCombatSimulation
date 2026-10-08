@@ -34,6 +34,7 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Category input for ships - ships grouped by category when selecting them anywhere. (e.g. "Star Wars.Imperial", "Stock")
 - Make it clearer how the range is controlled in the core's doctrine
 - Add calibre multiplier to scale what the default maths gives.
+- For engines and hull weapons, make the module size specify the size of the machinery block witht eh barrel/nozzle extending out from there. The barrel/nozzle will still need ot be considered for overlapping. This shopuld make it easier to adjust things in the editor, as you won't have the option to set a module length that doesn't work with a given barrel length.
 
 ## Weapons
 - Turrets fire a volley of one shot per barrel, and then reload. Can specify delay between shots to allow for firing all at once or staggered
@@ -59,6 +60,8 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Dropdown to choose what to graph (score, mass, ship count, weapon count, engine count, possibly even select anything from doctrines to see how those are evolving)
   - Might want to show the total change over the run in the dropdown, so it's easy to see what is generally changing and will likely have an interesting graph.
 - Add an export button to every fleet in the "the combatants" view, should fit under the score neatly.
+- Co-evolution mode fills up scores for all the As and then all the Bs, it would be better if the battles order was randomised, so they fill up together.
+  - Also, we could show partial scores if we added a battle count section (probably beneath the score value) showing "X/Y", so you can see how many of its battles the ship has completed.
 
 ## Fleet Editor
 - Make duplicate consistent with the ship editor (which creates a one module subassembly)
@@ -67,6 +70,7 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Fleet status display - show thumbnails of all ships in each fleet, one on the left, one on the right.
   - Thumbnails indicate the exact current state, possibly even a live view with its own camera tracking the ship (possibly rotated to match)
   - Click a ship to focus the main camera on it
+- Randomisation settings for all parameters of a custom battle
 - Cap projectile rendering at the point they hit, so a streak does not overlap the target it struck. (The muzzle end is capped.)
 - Add a ship to a running battle, for quick testing. Dropdown in the corner to choose a ship to add to the battle. click and drag to chose position and velocity (position from first click, drag to N seconds worth of distance for the initial velocity.) Ship is instantly spawned when you let go.
 - A selected ship's framing could take in what it is escorting or keeping clear of, as well as its target.
