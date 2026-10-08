@@ -50,7 +50,7 @@ an entry is either still open or it is gone.
 | 6 | Editor restructuring | Built |
 | 7 | Two layers | Built |
 | 8 | Fuel | Partly built |
-| 9 | Docking, fuel transfer and fuel harvesting | Not started |
+| 9 | Docking, fuel transfer and fuel harvesting | Partly built |
 | 10 | Raw material | Not started |
 | 11 | Power | Not started |
 | 12 | In-battle construction | Not started |
@@ -107,6 +107,46 @@ lead, which waits for standing orders. Velocity stays out of the fleet file; the
 - **Fuel in the materials budget** (step 5). Fleet and evolution budgets count full tanks in a ship's mass,
   and that is as far as it goes.
 
+**Step 9 — Docking, fuel transfer and fuel harvesting.** The first salvage, since pumping a liquid needs no
+construction. Fuel is pumped between two pieces of one hull (`Fuel.transfer`, DESIGN.md Status); nothing
+pumps yet. Every join is a deliberate weld on the existing seam machinery (`Ships.weld`), made by a part of
+its own, and the seam it makes carries a fuel line between the two pieces, which a torn-metal hook does not.
+What is left, in this order, each with a golden scenario of its own and every new doctrine number off by
+default, so no existing golden moves:
+
+1. **The claw**, and a pilot that goes after wrecks for their fuel. It grips any module of any body, sound
+   or torn, wreck or live ship, and always pumps *in*. It tolerates a faster contact than `WELD_SPEED`,
+   so its approach is the ram's, made with the claw forward at a speed short of a ram. Whether it takes
+   is a chance, higher the more damaged the module it meets, and best in a band of closing speed,
+   falling off either side of it. It damages the module it grips. A claw on a live but disarmed enemy
+   needs nothing more: two ships riding one body already pull against each other until the seam goes,
+   so the victim burns the fuel being stolen trying to tear free. Its picker scores wrecks and disarmed
+   enemies by the fuel on the piece it would reach, the distance and the danger near it. This is the
+   grapple step 13 reuses.
+2. **Pads, and fighters landing on them.** A pad is a part on a deck. A fighter docks on it from the
+   weapons layer, never committing — the two meet at the boundary between the layers — when the
+   fighter's bounding box lies wholly inside the pad's rectangle and it is closing slowly. Fuel goes to
+   the fighter. This is the case that leaves every Dinky in `swarm` dry before it reaches the gunships.
+3. **Ports, and a tanker.** A port is a fixture on a hull's side, and two ports mate face to face, closing
+   slowly. Station-keeping a point on one's own edge onto a point on another's is the hardest pilot of
+   the three, so it comes last; a tanker also wants step 3's withdrawal to keep it clear of the fight.
+
+**Throughout:**
+- **Claw and port are separate parts**, so the part shows intent; a vampire tanker that both steals and
+  gives carries both.
+- **A deliberate dock holds harder than a hook on torn metal.** Its seam is rated stronger than a debris
+  weld's.
+- **The smaller of two docked ships idles**: its pilot cuts its engines and the larger flies the body.
+  Whether the larger should fly the smaller's engines as its own is open (§12).
+- **Which way fuel flows**: a claw always takes. Across a pad or a port, fuel goes into a docked ship
+  that is refuelling and out of a docked friendly while it holds more than its own reserve.
+- **Letting go** cuts the dock's seam deliberately, along the path a torn seam takes. The dock then
+  ignores its mate until the two are clear. A ship lets go when it is full, when the source runs dry or
+  when a threat comes close.
+- **Doctrine**: a share of a full load below which a ship goes looking for fuel, one at which it stops,
+  a reserve a giver keeps, and a weight against the danger near a source. The pilot may cost more than
+  the parts.
+
 ### Not started — in order
 
 Steps 9 to 13 walk into the resource system one resource and one use at a time, fuel first (partly built,
@@ -119,47 +159,6 @@ with its size — so a bare core with one engine or one weapon can act, and a bi
 Today the best core is the smallest, most armoured one that can hide from a hit; this gives size a price in
 both directions.
 
-9. **Docking, fuel transfer and fuel harvesting** — the first salvage, since pumping a liquid needs no
-   construction. Every join is a deliberate weld on the existing seam machinery (`Ships.weld`), made by a
-   part of its own, and the seam it makes carries a fuel line between the two pieces, which a torn-metal
-   hook does not. In this order, each with a golden scenario of its own and every new doctrine number off by
-   default, so no existing golden moves:
-   1. **Moving fuel across a seam.** `Fuel.transfer` between two pieces of one body: drawn from the source
-      by the tiers `drain` uses, filling the receiver's lowest `drainPriority` tanks first. Total mass is
-      unchanged, but the burnt bookkeeping has to fall as tanks refill, and the inertia moves with the fuel.
-      A part's pump rate grows with its size.
-   2. **The claw**, and a pilot that goes after wrecks for their fuel. It grips any module of any body, sound
-      or torn, wreck or live ship, and always pumps *in*. It tolerates a faster contact than `WELD_SPEED`,
-      so its approach is the ram's, made with the claw forward at a speed short of a ram. Whether it takes
-      is a chance, higher the more damaged the module it meets, and best in a band of closing speed,
-      falling off either side of it. It damages the module it grips. A claw on a live but disarmed enemy
-      needs nothing more: two ships riding one body already pull against each other until the seam goes,
-      so the victim burns the fuel being stolen trying to tear free. Its picker scores wrecks and disarmed
-      enemies by the fuel on the piece it would reach, the distance and the danger near it. This is the
-      grapple step 13 reuses.
-   3. **Pads, and fighters landing on them.** A pad is a part on a deck. A fighter docks on it from the
-      weapons layer, never committing — the two meet at the boundary between the layers — when the
-      fighter's bounding box lies wholly inside the pad's rectangle and it is closing slowly. Fuel goes to
-      the fighter. This is the case that leaves every Dinky in `swarm` dry before it reaches the gunships.
-   4. **Ports, and a tanker.** A port is a fixture on a hull's side, and two ports mate face to face, closing
-      slowly. Station-keeping a point on one's own edge onto a point on another's is the hardest pilot of
-      the three, so it comes last; a tanker also wants step 3's withdrawal to keep it clear of the fight.
-
-   **Throughout:**
-   - **Claw and port are separate parts**, so the part shows intent; a vampire tanker that both steals and
-     gives carries both.
-   - **A deliberate dock holds harder than a hook on torn metal.** Its seam is rated stronger than a debris
-     weld's.
-   - **The smaller of two docked ships idles**: its pilot cuts its engines and the larger flies the body.
-     Whether the larger should fly the smaller's engines as its own is open (§12).
-   - **Which way fuel flows**: a claw always takes. Across a pad or a port, fuel goes into a docked ship
-     that is refuelling and out of a docked friendly while it holds more than its own reserve.
-   - **Letting go** cuts the dock's seam deliberately, along the path a torn seam takes. The dock then
-     ignores its mate until the two are clear. A ship lets go when it is full, when the source runs dry or
-     when a threat comes close.
-   - **Doctrine**: a share of a full load below which a ship goes looking for fuel, one at which it stops,
-     a reserve a giver keeps, and a weight against the danger near a source. The pilot may cost more than
-     the parts.
 10. **Raw material** — a store of metal, spent as ammunition and on repair. It answers §12's ammunition
     granularity and brings in the other half of §2's scarcity.
 11. **Power** — a generator that beams draw on, refilling each mount's bank at what the plant can spare, and a

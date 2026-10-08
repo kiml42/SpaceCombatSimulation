@@ -596,7 +596,10 @@ inside any one file is not contiguous.
   core may have a self-sealing lining (`sealing`, set in the editor in millimetres): it weighs and takes room
   from the fuel, and closes a hole steadily, faster the thicker it is, up to ten times its own thickness
   across — a wider hole narrows by that much and stays open. None by default, and none never seals. The editor has a Tank, and shows an engine's Isp and fuel flow, a tank's fuel,
-  and a ship's fuel, endurance flat out and Δv. Every stock ship has one or more modules made tanks.
+  and a ship's fuel, endurance flat out and Δv. Every stock ship has one or more modules made tanks. Fuel can
+  be pumped between two pieces of one hull (`Fuel.transfer`): drawn from the source as an engine draws it,
+  and put into the receiver's lowest drain priority first, the hull's mass unchanged and its inertia following
+  the fuel. Nothing pumps yet; the docks of §8 step 9 will.
 - **Next:** the rest of §8 step 8 — leaks, and pilots that know their fuel — and of step 5: a materials
   budget, and designed scenarios.
   See ROADMAP.md §8.
