@@ -21,6 +21,7 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Consider width and length as interchangeable for calculating turret stats. They should be based on teh size of the turret on top (based on the smaller dimension) and the area within the volume of the box underneath.
 - Only the dome of turrets should be in the turret layer, the box should be wholly in the hull layer.
 - Beams from thick hull beams could be treated as a separate beam in each layer. Damage against a thick module stays the same, but is halved against a hull layer module or fighter, with the other half continuing, able to hit something else.
+- Hysteresis on decision to use attack or thrust orientation, to avoid flip-flopping.
 
 ## Editor
 - Test button - switches to the game view, with the ship loaded into a default scene with one other stock ship, each given basic orders to attack each other.
