@@ -284,10 +284,10 @@ export interface Approach {
   readonly turnBias: number;
   /**
    * How much it would rather turn its main thrust axis along the change of
-   * velocity it wants than hold its guns on target: points for each share of
-   * that axis's thrust the turn would add to the push it is asking for. So
-   * the harder it wants to accelerate, the more it turns to its engines. Zero
-   * never turns from its guns.
+   * velocity it wants than hold its guns on target: points for the share of
+   * that change turning makes before holding would, the turn included. So it
+   * never turns when its guns-on thrust gives what it asks for, nor to dodge
+   * what it cannot turn in time for. Zero never turns from its guns.
    */
   readonly burnWeight: number;
   /**
