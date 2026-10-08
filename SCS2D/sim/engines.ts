@@ -1,3 +1,4 @@
+import type { PlumeSlice } from './exhaust.js';
 import type { Bodies, BodyId } from './bodies.js';
 import { sqrt } from './math.js';
 
@@ -70,22 +71,19 @@ export interface EngineSpec {
    */
   module?: number;
   /**
-   * What this engine's exhaust runs into on its own ship, one entry per ray
-   * the plume is sampled by (`exhaust.ts`): the module that ray meets, or -1
-   * for a ray in clear air.
+   * What this engine's exhaust runs into on its own ship: every stretch across
+   * its nozzles some module stands in, however far out (`exhaust.ts`).
    *
    * Geometry, and the hull's geometry never changes — damage stops a module
    * working without moving it (DESIGN.md §4) — so this is worked out once when
    * the design is compiled, for the same reason the allocation matrix is.
    */
-  blocks?: readonly number[];
-  /** How far aft of the nozzle each of those is, metres. */
-  blockedAt?: readonly number[];
+  slices?: readonly PlumeSlice[];
   /**
-   * What fraction of the exhaust actually leaves the ship, 0 to 1 in thirds.
+   * What fraction of the exhaust actually leaves the ship, 0 to 1.
    *
-   * A ray that runs into the ship's own hull delivers its momentum back to the
-   * hull it was pushing, so that share of the thrust never happens — the push
+   * Exhaust that runs into the ship's own hull delivers its momentum back to
+   * the hull it was pushing, so that share of the thrust never happens — the push
    * on the blocked module and the thrust off the nozzle are the same
    * newton-seconds with opposite signs. `EngineLayout` therefore flies the
    * engine at this fraction of its rating, which is what makes a buried nozzle

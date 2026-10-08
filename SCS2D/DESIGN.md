@@ -920,20 +920,23 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
 - **An engine burns and shoves what it is pointed at.** A plume reaches back from each nozzle as far as the
   thrust being produced and the bell allows, and the first thing standing in it takes the engine's power —
   at full strength against the nozzle, falling off to nothing at the flame's end — and the exhaust's
-  momentum with it, so a plume on a hull's flank spins it as well as drives it away. Each flame is sampled
-  by **three rays across its own nozzle**, each carrying an equal share of the gas and reaching as far as
-  the drawn plume does at its own offset, which is a third of the way out for the two at the edges. So a
-  plume is wide at the nozzle and a thin core further out, and something beside the axis is burnt rather
-  than missed. Per nozzle rather than per engine, because three rays stretched across a cluster's whole
-  face would fall in the gaps between its flames.
-- **An engine gets no thrust for exhaust it fires into itself.** A ray that runs into the ship's own hull
+  momentum with it, so a plume on a hull's flank spins it as well as drives it away. Each flame is a
+  triangle as wide as its own nozzle, reaching furthest down the axis and nowhere at the edges, so a plume
+  is wide at the nozzle and a thin core further out. **What its own ship stands in is swept exactly across
+  the nozzle**: wherever a module's outline starts or ends across the exit cuts it, and between two cuts
+  the nearest module is the same all the way across, so nothing can sit in a flame between samples of it.
+  What leaves the ship is cast in **three bands across its own nozzle**, each from the middle of its open
+  part, so something beside the axis is burnt rather than missed. Per nozzle rather than per engine,
+  because three bands stretched across a cluster's whole face would fall in the gaps between its flames.
+- **An engine gets no thrust for exhaust it fires into itself.** Exhaust that runs into the ship's own hull
   hands its momentum back to the hull it was pushing: the push on the blocked module and the thrust off
-  the nozzle are the same newton-seconds with opposite signs, so that third of the engine is not thrust at
-  all. A nozzle's own obstruction is fixed geometry — damage stops a module working without moving it — so
+  the nozzle are the same newton-seconds with opposite signs, so that share of the engine is not thrust at
+  all, to the width of flame the module stands in. A nozzle's own obstruction is fixed geometry — damage stops a module working without moving it — so
   it is worked out when the design is compiled, and what comes out is the fraction of the exhaust that
   escapes. **`EngineLayout` flies the engine at that fraction**, so the allocator, the manoeuvring
   envelope and everything the editor claims about a ship all read the honest figure without knowing why.
-  A blocked ray still *burns* what it is buried in; what it no longer does is push. That is what makes a
+  Blocked exhaust still *burns* what it is buried in, each part of a module by how far out it stands;
+  what it no longer does is push. That is what makes a
   buried nozzle cost something instead of being free, and it is why the plume the renderer draws is the
   rating rather than the delivery: the gas is thrown either way.
 - **An engine can be pointed at things on purpose.** An engine marked `weapon` in the blueprint burns

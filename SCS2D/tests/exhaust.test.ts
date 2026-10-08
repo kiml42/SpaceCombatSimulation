@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { parseFleet } from '../sim/fleetFile.js';
 import { Bodies } from '../sim/bodies.js';
 import {
   Damage,
@@ -229,26 +231,31 @@ describe('how far a plume reaches', () => {
 describe('what an engine exhausts into', () => {
   // Worked out when the design is compiled, because a hull's geometry is
   // fixed: damage stops a module working without moving it.
-  it('is nothing for a nozzle in clear air, on any of its rays', () => {
+  it('is nothing for a nozzle in clear air', () => {
     const t = design().engines[0]!;
-    expect(t.blocks).toEqual([-1, -1, -1]);
+    expect(t.slices).toEqual([]);
     expect(t.escaping).toBe(1);
   });
 
-  it('names the module in the way, and how far aft of the nozzle it is', () => {
+  it('names the module in the way across the whole nozzle, and how far aft of it it is', () => {
     const t = design(5).engines[0]!;
-    expect(t.blocks).toEqual([BLOCK, BLOCK, BLOCK]);
-    for (const at of t.blockedAt!) expect(at).toBeCloseTo(5, 9);
+    const width = engineGeometry(design(5).modules[0]!.spec).exitWidth;
+    expect(t.slices!.every((slice) => slice.module === BLOCK)).toBe(true);
+    const covered = t.slices!.reduce((sum, slice) => sum + slice.to - slice.from, 0);
+    expect(covered).toBeCloseTo(width, 9);
+    for (const slice of t.slices!) {
+      expect(slice.nearFrom).toBeCloseTo(5, 9);
+      expect(slice.nearTo).toBeCloseTo(5, 9);
+    }
   });
 
-  it('costs the thrust of every ray it stops, and no more', () => {
-    // A ray that runs into the ship hands its momentum back to the hull it was
-    // pushing, so that third of the engine is not thrust at all.
+  it('costs the thrust of exactly the stretch of flame it stands in', () => {
+    // The flame is a triangle as wide as the nozzle, so a wall a share `d` of
+    // the way out stands in the middle `1 - d` of it. What it stops hands its
+    // momentum back to the hull it was pushing, so is not thrust at all.
     const reach = fullReach(design());
-    // Well inside the side rays' own reach, so all three are stopped.
-    expect(design(reach * 0.1).engines[0]!.escaping).toBe(0);
-    // Past where the side rays end but inside the core's, so only the core is.
-    expect(design(reach * 0.5).engines[0]!.escaping).toBeCloseTo(2 / 3, 9);
+    expect(design(reach * 0.1).engines[0]!.escaping).toBeCloseTo(0.1, 9);
+    expect(design(reach * 0.5).engines[0]!.escaping).toBeCloseTo(0.5, 9);
     // Past the flame altogether: nothing is in it to stop.
     expect(design(reach * 1.1).engines[0]!.escaping).toBe(1);
   });
@@ -258,7 +265,39 @@ describe('what an engine exhausts into', () => {
     const clear = design().engineLayout.maxThrustAlong(1, 0);
     const buried = design(reach * 0.1).engineLayout.maxThrustAlong(1, 0);
     expect(clear).toBeGreaterThan(0);
-    expect(buried).toBe(0);
+    expect(buried).toBeCloseTo(clear * 0.1, 6);
+  });
+
+  it('leaves nowhere in the flame to hide, however narrow and wherever its edges fall', () => {
+    // Half a metre wide, with an edge exactly where a ray used to run — down
+    // the middle, and a third of the way across — and a face counts as
+    // outside, so three samples saw nothing at all. Each runs out past the
+    // flame's end to a crossbar hung off the spar, to be part of the ship.
+    const width = engineGeometry(design().modules[0]!.spec).exitWidth;
+    const reach = fullReach(design());
+    const arm = (y: number): ModuleSpec => ({ kind: 'structure', x: -8 - reach, y: y + 0.25, angle: 0, length: 2 * reach, width: 0.5 });
+    const pinned = compileBlueprint({
+      name: 'Pinned',
+      modules: [
+        ...[engine(-5, 0), hull(0, 10)],
+        { kind: 'structure', x: -20, y: 3.5, angle: 0, length: 50, width: 1 },
+        arm(0),
+        arm(width / 3),
+        { kind: 'structure', x: -8 - 2 * reach - 0.5, y: 1.5, angle: 0, length: 1, width: 3 },
+      ],
+    });
+    expect(pinned.engines[0]!.escaping).toBeLessThan(1);
+  });
+
+  it('catches the turrets an evolved fleet hid in front of its engines', () => {
+    const fleet = parseFleet(JSON.parse(readFileSync('tests/fixtures/plume-exploit-fleet.json', 'utf8')));
+    const d = compileBlueprint(Object.values(fleet.designs)[0]!);
+    // Its two forward engines carry a cluster of beam turrets and a core across
+    // half their exit, each module exactly between the rays it used to be
+    // sampled by. Now each loses the half it fires into them.
+    const forward = d.engines.filter((t) => t.slices!.some((slice) => d.modules[slice.module]!.spec.kind === 'beamTurret'));
+    expect(forward.length).toBe(4);
+    for (const t of forward) expect(t.escaping).toBeCloseTo(0.5, 1);
   });
 });
 

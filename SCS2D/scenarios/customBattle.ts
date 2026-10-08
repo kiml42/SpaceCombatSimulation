@@ -1,5 +1,6 @@
 import {
   degreesToRadians,
+  math,
   NEUTRAL_TEAM,
   parseFleet,
   radiansToDegrees,
@@ -150,7 +151,7 @@ export function drawnSetup(setup: BattleSetup): BattleSetup {
   const closingSpeed = setup.closingSpeed + off('closingSpeed');
   const crossingSpeed = setup.crossingSpeed + off('crossingSpeed');
   const rotation = setup.rotation + off('rotation');
-  return { ...setup, range: Math.max(1, range), closingSpeed, crossingSpeed, rotation };
+  return { ...setup, range: math.max(1, range), closingSpeed, crossingSpeed, rotation };
 }
 
 /** Rotation is written only when there is one, so a file from before it existed reads back the same. */
