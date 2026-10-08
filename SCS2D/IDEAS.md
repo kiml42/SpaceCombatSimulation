@@ -56,6 +56,8 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
   - Might want to attribute the damage to both ships to the other, this would be asymmetrical is one manages to ram its armour into an active component on the other.
 - Make damage and function taken start at 0 and go negative, so the graph scales nicely at the beginning when they're all useless, highlighting even minor improvements.
 - We need a mechanism to let ships know what the goal is. This could be something like a "go close to that" order being given to all ships when the race goal is present. (At the moment we lean on the escort doctrine, but that just makes evolving a second ship mean they bunch up with each other instead of going for the goal)
+- Dropdown to choose what to graph (score, mass, ship count, weapon count, engine count, possibly even select anything from doctrines to see how those are evolving)
+  - Might want to show the total change over the run in the dropdown, so it's easy to see what is generally changing and will likely have an interesting graph.
 
 ## Fleet Editor
 - Make duplicate consistent with the ship editor (which creates a one module subassembly)
