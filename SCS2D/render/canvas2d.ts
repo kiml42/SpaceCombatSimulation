@@ -21,6 +21,7 @@ import {
   type ShipView,
   type Snapshot,
   insetTriangle,
+  fillOf,
   triangleOf,
 } from '../sim/index.js';
 import { gridStep, type Camera } from './camera.js';
@@ -159,6 +160,8 @@ const MIN_FLASH_PX = 1;
 
 /** A tank's wall as drawn round the fuel in it, as a share of its smaller side. */
 const TANK_INSET = 0.15;
+/** A tank's gauge: its whole capacity in this, and what it holds in the side's pale trim over it. */
+const FUEL_TRACK = '#1a1d22';
 
 /** How much of a claw's width each of its two jaws is drawn across. */
 const CLAW_JAW_SHARE = 0.3;
@@ -390,11 +393,14 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
       } else {
         ctx.fillRect(-halfLength, -halfWidth, spec.length, spec.width);
       }
-      if (spec.kind === 'tank' && integrity > 0) {
-        // What is left in it, filling from the aft end inside the walls.
+      if (spec.kind === 'tank') {
+        // A gauge, like a gun's load: the whole capacity as a track inside the
+        // walls, and what is left in it filling from the aft end. Drawn at full
+        // strength however torn the tank, since a wreck's fuel is still there
+        // for a claw to take.
         const inset = min(spec.length, spec.width) * TANK_INSET;
-        const level = (spec.length - 2 * inset) * (ship.fuel?.[i] ?? 1);
-        ctx.fillStyle = colours.pivot;
+        const share = ship.fuel?.[i] ?? fillOf(spec);
+        ctx.globalAlpha = 1;
         if (triangle !== null) {
           // The same band of the tank, kept inside the shape rather than drawn
           // as the box the corners fit in. Measured from the aftmost corner,
@@ -412,12 +418,19 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
             ctx.moveTo(lining[0]!, lining[1]!);
             for (let v = 2; v < lining.length; v += 2) ctx.lineTo(lining[v]!, lining[v + 1]!);
             ctx.closePath();
+            ctx.fillStyle = FUEL_TRACK;
+            ctx.fill();
             ctx.clip();
-            ctx.fillRect(aft, -halfWidth, (fore - aft) * (ship.fuel?.[i] ?? 1), spec.width);
+            ctx.fillStyle = colours.trim;
+            ctx.fillRect(aft, -halfWidth, (fore - aft) * share, spec.width);
             ctx.restore();
           }
         } else {
-          ctx.fillRect(-halfLength + inset, -halfWidth + inset, level, spec.width - 2 * inset);
+          const inner = spec.length - 2 * inset;
+          ctx.fillStyle = FUEL_TRACK;
+          ctx.fillRect(-halfLength + inset, -halfWidth + inset, inner, spec.width - 2 * inset);
+          ctx.fillStyle = colours.trim;
+          ctx.fillRect(-halfLength + inset, -halfWidth + inset, inner * share, spec.width - 2 * inset);
         }
       }
     }
