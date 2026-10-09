@@ -228,9 +228,9 @@ export const DEFAULT_KINDS: KindWeights = {
   port: 0,
   // Metal is what a gun is worth anything with, past what a core carries.
   hold: 2,
-  // Nothing draws on charge yet, so neither is worth anything.
-  battery: 0,
-  generator: 0,
+  // Power is what a beam is worth anything with, past what a core carries.
+  battery: 1,
+  generator: 1,
 };
 
 /**
@@ -680,7 +680,14 @@ function knobs(draft: Draft): Knob[] {
         { at: 'slide', site },
         { at: 'kind', site },
       );
-      if (placement.kind !== 'structure' && placement.kind !== 'tank' && placement.kind !== 'hold' && placement.kind !== 'core') {
+      if (
+        placement.kind !== 'structure' &&
+        placement.kind !== 'tank' &&
+        placement.kind !== 'hold' &&
+        placement.kind !== 'core' &&
+        placement.kind !== 'battery' &&
+        placement.kind !== 'generator'
+      ) {
         out.push({ at: 'angle', site });
       }
       // Shape, for the archetypes that may have corners: a box with two
