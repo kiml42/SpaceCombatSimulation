@@ -4,6 +4,7 @@ Things that are obviously wrong.
 - Fuel tanks should stop supplying fuel when they are too damaged.
 - Fighter engines in the turret layer immediately hit an overflown hull layer module. Should probably just make engine plumes follow the same rules as beams about staying in their own layers.
 - When setting up a co-evolution run between two very large fleets, the UI hangs on every input. Setting up runs with fleets this big is probably a bad idea anyway, but the UI shouldn't hang making it difficult to change your mind.
+- If you add a ship to a fleet from a file that shares a name with an existing ship in the fleet, you get a copy of that ship, instead of the new ship. Should either rename the new ship, or replace the old ship. either way, it should alert you.
 
 -----------------------------------------------------------------------
 
@@ -25,6 +26,7 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Only the dome of turrets should be in the turret layer, the box should be wholly in the hull layer.
 - Beams from thick hull beams could be treated as a separate beam in each layer. Damage against a thick module stays the same, but is halved against a hull layer module or fighter, with the other half continuing, able to hit something else.
 - Hysteresis on decision to use attack or thrust orientation, to avoid flip-flopping.
+- Ability for fighters to stay docked until ordered to leave, or an enemy comes within a specified range
 
 ## Editor
 - Test button - switches to the game view, with the ship loaded into a default scene with one other stock ship, each given basic orders to attack each other.
