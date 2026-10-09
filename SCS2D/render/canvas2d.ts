@@ -162,6 +162,8 @@ const MIN_FLASH_PX = 1;
 const TANK_INSET = 0.15;
 /** A tank's gauge: its whole capacity in this, and what it holds in the side's pale trim over it. */
 const FUEL_TRACK = '#1a1d22';
+/** How round a tank's corners are drawn, as a share of its smaller side: enough to read as a tank. */
+const TANK_ROUNDING = 0.35;
 
 /** How much of a claw's width each of its two jaws is drawn across. */
 const CLAW_JAW_SHARE = 0.3;
@@ -390,6 +392,10 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
         for (let v = 2; v < triangle.length; v += 2) ctx.lineTo(triangle[v]!, triangle[v + 1]!);
         ctx.closePath();
         ctx.fill();
+      } else if (spec.kind === 'tank') {
+        ctx.beginPath();
+        ctx.roundRect(-halfLength, -halfWidth, spec.length, spec.width, min(spec.length, spec.width) * TANK_ROUNDING);
+        ctx.fill();
       } else {
         ctx.fillRect(-halfLength, -halfWidth, spec.length, spec.width);
       }
@@ -426,11 +432,18 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
             ctx.restore();
           }
         } else {
+          // Rounded as the tank is, and the fuel kept inside the rounding.
           const inner = spec.length - 2 * inset;
+          const across = spec.width - 2 * inset;
+          ctx.save();
+          ctx.beginPath();
+          ctx.roundRect(-halfLength + inset, -halfWidth + inset, inner, across, max(0, min(spec.length, spec.width) * TANK_ROUNDING - inset));
           ctx.fillStyle = FUEL_TRACK;
-          ctx.fillRect(-halfLength + inset, -halfWidth + inset, inner, spec.width - 2 * inset);
+          ctx.fill();
+          ctx.clip();
           ctx.fillStyle = colours.trim;
-          ctx.fillRect(-halfLength + inset, -halfWidth + inset, inner * share, spec.width - 2 * inset);
+          ctx.fillRect(-halfLength + inset, -halfWidth + inset, inner * share, across);
+          ctx.restore();
         }
       }
     }
