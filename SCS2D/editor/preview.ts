@@ -1,4 +1,5 @@
 import {
+  aboardPose,
   AttackArcs,
   bestAttackBearings,
   designArcs,
@@ -108,7 +109,50 @@ export function previewSnapshot(design: ShipDesign, out: Snapshot = new Snapshot
   out.maxX = design.centreOfMassX + design.radius;
   out.maxY = design.centreOfMassY + design.radius;
 
+  // The fighters it sets out with, lying on their pads.
+  for (const aboard of design.aboard ?? []) {
+    const pose = aboardPose(design, aboard);
+    const fighter = aboard.design;
+    const rider = out.ships[out.shipCount] ?? restingView(fighter);
+    out.ships[out.shipCount++] = rider;
+    rider.design = fighter;
+    rider.team = NO_TEAM;
+    rider.x = design.centreOfMassX + pose.x;
+    rider.y = design.centreOfMassY + pose.y;
+    rider.angle = pose.angle;
+    rider.throttles.length = fighter.engines.length;
+    rider.throttles.fill(0);
+    rider.landed.length = 0;
+    rider.integrity.length = fighter.modules.length;
+    rider.integrity.fill(1);
+    rider.turretDisabled.length = fighter.turrets.length;
+    rider.turretDisabled.fill(false);
+    restingTriggers(rider, fighter);
+  }
+
   return out;
+}
+
+function restingView(design: ShipDesign): ShipView {
+  return {
+    design,
+    body: -1,
+    team: NO_TEAM,
+    serial: 0,
+    x: 0,
+    y: 0,
+    angle: 0,
+    vx: 0,
+    vy: 0,
+    turretBearings: [],
+    turretReady: [],
+    throttles: [],
+    landed: [],
+    integrity: [],
+    hasControl: true,
+    isDerelict: false,
+    turretDisabled: [],
+  };
 }
 
 /** Light, at full throttle, every engine whose flame meets its own hull. */

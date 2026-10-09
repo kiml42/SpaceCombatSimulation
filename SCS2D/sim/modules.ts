@@ -226,6 +226,11 @@ export function readsDrainPriority(kind: ModuleKind): boolean {
   return readsSealing(kind);
 }
 
+/** Whether `docked` means anything on this kind: a pad. */
+export function readsDocked(kind: ModuleKind): boolean {
+  return kind === 'pad';
+}
+
 /** Whether `fill` means anything on this kind: what holds fuel. */
 export function readsFill(kind: ModuleKind): boolean {
   return readsSealing(kind);
@@ -957,6 +962,12 @@ export interface ModuleSpec {
    * and has to find the rest — from a wreck, or a carrier.
    */
   fill?: number;
+
+  /**
+   * The fighter that sets out docked on this pad, by its name in the
+   * blueprint's `hangar`. A pad only.
+   */
+  docked?: string;
 
   /**
    * Why this module is here, in the author's own words. Carried through the

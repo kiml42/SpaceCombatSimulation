@@ -279,6 +279,12 @@ export interface Blueprint {
    * ship with a turret or anything thick (`fighterProblem`).
    */
   fighter?: boolean;
+  /**
+   * The fighters it sets out with docked on its pads, by name: copies, so the
+   * file stands alone, as a fleet carries its designs. Every pad's `docked`
+   * names one of these.
+   */
+  hangar?: Readonly<Record<string, Blueprint>>;
   /** Keys its file carried that nothing reads, kept to be written back (`UnreadKeys`). */
   unread?: UnreadKeys;
   /** The same, inside its doctrine block, in the block's own shape. */
@@ -406,6 +412,8 @@ export interface ShipDesign {
    * that lets go of a carrier's pad comes away a fighter.
    */
   readonly fighterPieces?: readonly number[];
+  /** The fighters it sets out with docked on its pads. Absent for none. */
+  readonly aboard?: readonly Aboard[];
 }
 
 /** The part a dock is made by: a claw gripping, a pad a fighter has landed on, or two ports mated. */
@@ -1051,6 +1059,7 @@ function place(
     if (placement.sealing !== undefined) spec.sealing = placement.sealing;
     if (placement.drainPriority !== undefined) spec.drainPriority = placement.drainPriority;
     if (placement.fill !== undefined) spec.fill = placement.fill;
+    if (placement.docked !== undefined) spec.docked = placement.docked;
     if (placement.targeting !== undefined) spec.targeting = placement.targeting;
     if (placement.notes !== undefined) spec.notes = placement.notes;
     out.push(spec);
@@ -1382,6 +1391,96 @@ function detachedGroups(modules: readonly ModuleSpec[]): number[][] {
  * would be built from — which is the same list `expandWithOrigins` gives
  * places in the layout for.
  */
+/** A design's bounding box in its own body frame, about its centre of mass. */
+export interface Footprint {
+  readonly minX: number;
+  readonly maxX: number;
+  readonly minY: number;
+  readonly maxY: number;
+}
+
+const footprints = new WeakMap<ShipDesign, Footprint>();
+
+export function footprintOf(design: ShipDesign): Footprint {
+  const known = footprints.get(design);
+  if (known !== undefined) return known;
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+  const corners: number[] = [];
+  for (const module of design.modules) {
+    const n = moduleOutline(module.spec, corners) * 2;
+    for (let k = 0; k < n; k += 2) {
+      const x = corners[k]! - design.centreOfMassX;
+      const y = corners[k + 1]! - design.centreOfMassY;
+      minX = min(minX, x);
+      maxX = max(maxX, x);
+      minY = min(minY, y);
+      maxY = max(maxY, y);
+    }
+  }
+  const found = { minX, maxX, minY, maxY };
+  footprints.set(design, found);
+  return found;
+}
+
+/** A fighter that sets out docked on a pad (`ModuleSpec.docked`). */
+export interface Aboard {
+  /** The pad, as an index into the carrier's modules. */
+  readonly pad: number;
+  readonly design: ShipDesign;
+}
+
+/** Whether a fighter's footprint fits inside a pad, lying along the pad's facing. */
+export function padHolds(fighter: ShipDesign, pad: ModuleSpec): boolean {
+  const box = footprintOf(fighter);
+  return box.maxX - box.minX <= pad.length && box.maxY - box.minY <= pad.width;
+}
+
+/** The fighter a pad sets out with, compiled, or why it cannot. Null for an empty pad. */
+function dockedOn(blueprint: Blueprint, spec: ModuleSpec): ShipDesign | string | null {
+  if (spec.kind !== 'pad' || spec.docked === undefined) return null;
+  const name = spec.docked;
+  const fighter = blueprint.hangar?.[name];
+  if (fighter === undefined) return `no fighter named ${name} in the hangar`;
+  const problem = blueprintProblem(fighter);
+  if (problem !== null) return `${name} cannot be built: ${problem}`;
+  const design = compileDraft(fighter);
+  if (!design.fighter) return `${name} is not a fighter`;
+  if ((design.aboard?.length ?? 0) > 0) return `${name} carries fighters of its own, which a docked fighter may not`;
+  if (!padHolds(design, spec)) {
+    const box = footprintOf(design);
+    return (
+      `${name} (${(box.maxX - box.minX).toFixed(1)} × ${(box.maxY - box.minY).toFixed(1)} m) is too big ` +
+      `for this pad (${spec.length.toFixed(1)} × ${spec.width.toFixed(1)} m)`
+    );
+  }
+  return design;
+}
+
+/**
+ * Where a fighter set out on a pad lies, in the carrier's body frame about its
+ * centre of mass: its own centre of mass and heading, its footprint centred on
+ * the pad and lying along the pad's facing.
+ */
+export function aboardPose(carrier: ShipDesign, aboard: Aboard): { x: number; y: number; angle: number } {
+  const pad = carrier.modules[aboard.pad]!;
+  const box = footprintOf(aboard.design);
+  const bx = (box.minX + box.maxX) / 2;
+  const by = (box.minY + box.maxY) / 2;
+  const c = cos(pad.angle);
+  const s = sin(pad.angle);
+  return { x: pad.x - (bx * c - by * s), y: pad.y - (bx * s + by * c), angle: pad.angle };
+}
+
+/** What a design costs a budget, kg: its launch mass and every fighter it sets out with. */
+export function budgetMass(design: ShipDesign): number {
+  let mass = design.launchMass;
+  for (const aboard of design.aboard ?? []) mass += aboard.design.launchMass;
+  return mass;
+}
+
 export interface BlueprintFault {
   readonly message: string;
   /** Empty when the complaint is about the layout as a whole rather than a part of it. */
@@ -1435,6 +1534,13 @@ export function blueprintFaults(blueprint: Blueprint): BlueprintFault[] {
       if (modulesOverlap(modules[i]!, modules[k]!)) {
         faults.push({ message: `${blueprint.name}: modules ${i} and ${k} overlap`, modules: [i, k] });
       }
+    }
+  }
+
+  for (let i = 0; i < modules.length; i++) {
+    const docked = dockedOn(blueprint, modules[i]!);
+    if (typeof docked === 'string') {
+      faults.push({ message: `${blueprint.name}, module ${i} — pad: ${docked}`, modules: [i] });
     }
   }
 
@@ -1532,7 +1638,7 @@ export function compileDraft(blueprint: Blueprint): ShipDesign {
     if (moduleProblem(expanded[i]!) === null) layoutIndex.push(i);
   }
 
-  return designFrom(
+  const design = designFrom(
     blueprint.name,
     specs,
     layoutStats(specs),
@@ -1541,6 +1647,12 @@ export function compileDraft(blueprint: Blueprint): ShipDesign {
     undefined,
     blueprint.fighter === true && fighterProblem(specs) === null,
   );
+  const aboard: Aboard[] = [];
+  for (let m = 0; m < specs.length; m++) {
+    const docked = dockedOn(blueprint, specs[m]!);
+    if (docked !== null && typeof docked !== 'string') aboard.push({ pad: m, design: docked });
+  }
+  return aboard.length > 0 ? { ...design, aboard } : design;
 }
 
 /**

@@ -1,4 +1,4 @@
-import { compileBlueprint, expandBlueprint, modulesOverlap, type ShipDesign } from './blueprint.js';
+import { budgetMass, compileBlueprint, expandBlueprint, modulesOverlap, type ShipDesign } from './blueprint.js';
 import { expandFleet, type Fleet, type PlacedShip } from './fleet.js';
 import { cos, sin, sqrt } from './math.js';
 import type { ModuleSpec } from './modules.js';
@@ -83,7 +83,7 @@ export function firstOverlap(hulls: readonly FleetHull[]): readonly [number, num
 /** Total mass as the fleet sets out, each tank as full as it is built to start, kg. */
 export function fleetMass(hulls: readonly FleetHull[]): number {
   let mass = 0;
-  for (const hull of hulls) mass += hull.design.launchMass;
+  for (const hull of hulls) mass += budgetMass(hull.design);
   return mass;
 }
 

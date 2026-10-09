@@ -161,6 +161,30 @@ export function updatePlacement(
 }
 
 /**
+ * Set the fighter a pad sets out with, or clear it with null. The fighter is
+ * copied into the hangar, and the hangar loses whatever no pad names any more.
+ */
+export function dockFighter(blueprint: Blueprint, path: ModulePath, fighter: Blueprint | null): Blueprint | null {
+  const next = updatePlacement(blueprint, path, (placement) => {
+    if (isInstance(placement)) return placement;
+    const { docked: _, ...rest } = placement;
+    return fighter === null ? rest : { ...rest, docked: fighter.name };
+  });
+  if (next === null) return null;
+  const hangar: Record<string, Blueprint> = { ...next.hangar };
+  if (fighter !== null) hangar[fighter.name] = cloneBlueprint(fighter);
+  const named = new Set<string>();
+  const walk = (list: readonly Placement[]): void => {
+    for (const p of list) if (!isInstance(p) && p.docked !== undefined) named.add(p.docked);
+  };
+  walk(next.modules);
+  for (const assembly of Object.values(next.assemblies ?? {})) walk(assembly.modules);
+  for (const name of Object.keys(hangar)) if (!named.has(name)) delete hangar[name];
+  const { hangar: __, ...rest } = next;
+  return Object.keys(hangar).length > 0 ? { ...rest, hangar } : rest;
+}
+
+/**
  * Delete the copy that was selected, rather than the part it is a copy of.
  *
  * The same split as `positionHandle`, and for the same reason: when a module

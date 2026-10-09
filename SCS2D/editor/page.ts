@@ -20,6 +20,10 @@ import {
   readsSealing,
   readsDrainPriority,
   readsFill,
+  readsDocked,
+  padHolds,
+  blueprintProblem,
+  compileDraft,
   canShape,
   canThicken,
   isTriangle,
@@ -82,6 +86,7 @@ import {
   takeOutCount,
   takeOutOfAssembly,
   updatePlacement,
+  dockFighter,
 } from './edit.js';
 import {
   emptyBlueprint,
@@ -356,6 +361,7 @@ export function startEditor(): void {
   const thickInput = el<HTMLInputElement>('propThick');
   const thickTitle = thickInput.title;
   const kindSelect = el<HTMLSelectElement>('propKind');
+  const dockedSelect = el<HTMLSelectElement>('propDocked');
   const addHeading = el<HTMLElement>('addHeading');
   kindSelect.innerHTML = MODULE_KINDS.map(
     (kind) => `<option value="${kind}">${kindName(kind)}</option>`,
@@ -895,6 +901,8 @@ export function startEditor(): void {
     el<HTMLElement>('sealingRow').hidden = !readsSealing(spec.kind);
     el<HTMLElement>('drainPriorityRow').hidden = !readsDrainPriority(spec.kind);
     el<HTMLElement>('fillRow').hidden = !readsFill(spec.kind);
+    el<HTMLElement>('dockedRow').hidden = !readsDocked(spec.kind);
+    if (readsDocked(spec.kind)) renderDocked(spec);
     // One no more than a deck across is as deep as it is wide either way.
     thickInput.disabled = !canThicken(spec) || doc.blueprint.fighter === true;
     thickInput.checked = isThick(spec);
@@ -1193,6 +1201,55 @@ export function startEditor(): void {
   /** Which placement the properties panel is currently showing. */
   let shownSelection: ModulePath | null = null;
 
+  /** Compiled fighters by their layout, so a pad's list does not recompile the library on every repaint. */
+  const fighterCache = new Map<string, ShipDesign | null>();
+  const asFighter = (blueprint: Blueprint): ShipDesign | null => {
+    if (blueprint.fighter !== true) return null;
+    const key = JSON.stringify(blueprint);
+    const known = fighterCache.get(key);
+    if (known !== undefined) return known;
+    const compiled = blueprintProblem(blueprint) === null ? compileDraft(blueprint) : null;
+    const design = compiled !== null && compiled.fighter ? compiled : null;
+    fighterCache.set(key, design);
+    return design;
+  };
+
+  /** Every fighter a pad could set out with: the library's, and any the hangar carries that it has not. */
+  const fighterChoices = (): Map<string, Blueprint> => {
+    const choices = new Map<string, Blueprint>();
+    for (const entry of library.list()) {
+      if (choices.has(entry.name)) continue;
+      let blueprint: Blueprint | null = null;
+      try {
+        blueprint = library.load(entry.name);
+      } catch {
+        continue;
+      }
+      if (blueprint !== null && asFighter(blueprint) !== null) choices.set(entry.name, blueprint);
+    }
+    for (const [name, blueprint] of Object.entries(doc.blueprint.hangar ?? {})) {
+      if (!choices.has(name)) choices.set(name, blueprint);
+    }
+    return choices;
+  };
+
+  const renderDocked = (spec: ModuleSpec): void => {
+    const options = ['<option value="">none</option>'];
+    for (const [name, blueprint] of fighterChoices()) {
+      // The copy aboard is what flies, so it is what is measured for the pad it is on.
+      const flown = name === spec.docked ? (doc.blueprint.hangar?.[name] ?? blueprint) : blueprint;
+      const design = asFighter(flown);
+      const fits = design !== null && padHolds(design, spec);
+      const chosen = name === spec.docked ? ' selected' : '';
+      options.push(`<option value="${escapeHtml(name)}"${chosen}>${escapeHtml(name)}${fits ? '' : ' ✗ too big'}</option>`);
+    }
+    if (spec.docked !== undefined && !options.some((o) => o.includes(' selected'))) {
+      options.push(`<option value="${escapeHtml(spec.docked)}" selected>${escapeHtml(spec.docked)} ✗ missing</option>`);
+    }
+    dockedSelect.innerHTML = options.join('');
+    el<HTMLElement>('propDockedLabel').classList.toggle('warn', dockedSelect.selectedOptions[0]?.textContent?.includes('✗') === true);
+  };
+
   const change = (next: Blueprint | null, continues = false): void => {
     if (next === null) return;
     if (continues && gesture) doc.amend(next);
@@ -1327,6 +1384,13 @@ export function startEditor(): void {
       else editSelected({ [key]: value } as Partial<ModuleSpec>, true);
     });
   }
+
+  dockedSelect.addEventListener('change', () => {
+    const path = doc.selection;
+    if (path === null) return;
+    const name = dockedSelect.value;
+    change(dockFighter(doc.blueprint, path, name === '' ? null : (fighterChoices().get(name) ?? null)));
+  });
 
   // Every copy of a shared part is swapped, as any other edit to it is.
   kindSelect.addEventListener('change', () => {

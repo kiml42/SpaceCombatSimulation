@@ -405,6 +405,27 @@ describe('the editor in a browser', () => {
     }
   });
 
+  it('sets a pad out with a fighter, marking those too big for it', async () => {
+    await page.click('#newShip');
+    await page.click('[data-add="pad"]');
+    expect(await page.isVisible('#dockedRow')).toBe(true);
+    const label = async (name: string): Promise<string> =>
+      (await page.textContent(`#propDocked option[value="${name}"]`)) ?? '';
+    expect(await label('Dinky')).toBe('Dinky');
+    await page.selectOption('#propDocked', 'Dinky');
+    expect(await page.inputValue('#propDocked')).toBe('Dinky');
+    expect(await page.textContent('#problems')).not.toMatch(/too big/);
+    // Shrunk under it, the fighter no longer fits and the layout says so.
+    await page.fill('#propLength', '2');
+    await page.dispatchEvent('#propLength', 'change');
+    expect(await label('Dinky')).toMatch(/✗ too big/);
+    expect(await page.textContent('#problems')).toMatch(/Dinky .* too big for this pad/);
+    await page.selectOption('#propDocked', '');
+    expect(await page.textContent('#problems')).not.toMatch(/too big/);
+    await page.click('[data-add="tank"]');
+    expect(await page.isVisible('#dockedRow')).toBe(false);
+  });
+
   it('marks a ship a fighter, which rules out turrets and thick modules', async () => {
     await page.click('#newShip');
     await page.click('[data-add="structure"]');

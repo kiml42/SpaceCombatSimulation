@@ -1,5 +1,7 @@
 import { Bodies, type BodyId } from './bodies.js';
 import {
+  aboardPose,
+  footprintOf,
   reachAgainst,
   shotSpread,
   subDesign,
@@ -34,7 +36,6 @@ import {
   DEFAULT_FUSE,
   engineGeometry,
   firesShells,
-  moduleOutline,
   moduleRadius,
   type ModuleSpec,
 } from './modules.js';
@@ -368,40 +369,6 @@ const PORT_HEADING_SLACK = 0.1;
  * radii. Further off it points where it is going.
  */
 const PAD_ALIGN_RADII = 4;
-
-/** A design's bounding box in its own body frame, about its centre of mass. */
-interface Footprint {
-  readonly minX: number;
-  readonly maxX: number;
-  readonly minY: number;
-  readonly maxY: number;
-}
-
-const footprints = new WeakMap<ShipDesign, Footprint>();
-
-function footprintOf(design: ShipDesign): Footprint {
-  const known = footprints.get(design);
-  if (known !== undefined) return known;
-  let minX = Infinity;
-  let maxX = -Infinity;
-  let minY = Infinity;
-  let maxY = -Infinity;
-  const corners: number[] = [];
-  for (const module of design.modules) {
-    const n = moduleOutline(module.spec, corners) * 2;
-    for (let k = 0; k < n; k += 2) {
-      const x = corners[k]! - design.centreOfMassX;
-      const y = corners[k + 1]! - design.centreOfMassY;
-      minX = min(minX, x);
-      maxX = max(maxX, x);
-      minY = min(minY, y);
-      maxY = max(maxY, y);
-    }
-  }
-  const found = { minX, maxX, minY, maxY };
-  footprints.set(design, found);
-  return found;
-}
 
 /**
  * The chance a claw closing at `closing` takes a module left at `integrity`:
@@ -1236,7 +1203,38 @@ export class Ships {
     this.leakTorque.push(0);
     this.alive.push(1);
 
+    if (spec.ghost !== true) for (const aboard of design.aboard ?? []) this.launchAboard(world, i, spec, aboard.pad, aboard.design);
     return i;
+  }
+
+  /**
+   * Set a fighter out docked on pad `pad` of ship `i`: lying along the pad, in
+   * the middle of it and moving with it, then taken aboard as one that had
+   * landed there is.
+   */
+  private launchAboard(world: World, i: number, spec: ShipSpec, pad: number, fighter: ShipDesign): void {
+    const bodies = world.bodies;
+    const b = bodies.indexOf(this.bodyIds[i]!);
+    const pose = aboardPose(this.designs[i]!, { pad, design: fighter });
+    const angle = bodies.angle[b]!;
+    const c = cos(angle);
+    const s = sin(angle);
+    const x = bodies.x[b]! + pose.x * c - pose.y * s;
+    const y = bodies.y[b]! + pose.x * s + pose.y * c;
+    const heading = angle + pose.angle;
+    const spin = bodies.angularVel[b]!;
+    const f = this.spawn(world, {
+      design: fighter,
+      x,
+      y,
+      angle: heading,
+      vx: bodies.vx[b]! - spin * (y - bodies.y[b]!),
+      vy: bodies.vy[b]! + spin * (x - bodies.x[b]!),
+      angularVel: spin,
+      team: spec.team ?? 0,
+      ...(spec.invulnerable === true ? { invulnerable: true } : {}),
+    });
+    this.merge(world, i, f, pad, fighter.cores[0] ?? 0, { at: 'a', kind: 'pad' });
   }
 
   /**
