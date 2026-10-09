@@ -142,7 +142,7 @@ import {
   type DoctrineValues,
 } from './doctrine.js';
 import { attackBearings, doctrineBand, landOnSelf, lightSelfBurning, previewSnapshot } from './preview.js';
-import { designStats, envelopes, assemblyMass, holdingThrottles, moduleReadout, type Envelopes } from './stats.js';
+import { designStats, envelopes, assemblyMass, holdingThrottles, moduleReadout, roundsAboard, type Envelopes } from './stats.js';
 
 /**
  * The blueprint editor's page: the canvas, the panels and the pointer.
@@ -609,6 +609,12 @@ export function startEditor(): void {
         Number.isFinite(s.endurance)
           ? `${numbers(s.endurance, 0)} s flat out, ${numbers(s.deltaV, 0)} m/s of Δv`
           : 'no engines',
+      ],
+      [
+        'Ammunition',
+        s.mainRounds === null
+          ? 'no guns that fire rounds'
+          : `${numbers(s.mainRounds.rounds, 0)} rounds of its ${numbers(s.mainRounds.roundMass, 1)} kg main gun`,
       ],
       ['Inertia', `${numbers(s.inertia / 1000, 0)} t·m²`],
       ['Modules', `${s.moduleCount} (${s.engineCount} engines)`],
@@ -1094,6 +1100,7 @@ export function startEditor(): void {
     // around it — the one figure on this panel that is not a property of the
     // module alone.
     const readout = moduleReadout(spec, doc.view.modules, index, doc.view.design?.radius ?? 0);
+    const design = doc.view.design;
     const rows = readout.rows.map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join('');
     const gun =
       readout.gun === null
@@ -1102,6 +1109,9 @@ export function startEditor(): void {
           `${readout.gun.barrels > 1 ? ` ×${readout.gun.barrels}` : ''}, ` +
           `${numbers(readout.gun.roundsPerMinute)} rpm, ${numbers(readout.gun.muzzleSpeed, 0)} m/s, ` +
           `${numbers(readout.gun.roundMass, 1)} kg shell</td></tr>` +
+          (design === null || !(readout.gun.roundMass > 0) || design.modules[index]?.spec.kind !== spec.kind
+            ? ''
+            : `<tr><th>Rounds</th><td>${numbers(roundsAboard(design, index), 0)} from the metal its piece of hull sets out with, shared with every gun there</td></tr>`) +
           `<tr><th>Arc</th><td>${numbers(readout.gun.arcRight, 0)}°R–` +
           `${numbers(readout.gun.arcLeft, 0)}°L, trains at ` +
           `${numbers(readout.gun.traverseRate)} °/s</td></tr>` +
