@@ -153,8 +153,10 @@ export function makeBattle<Extra extends object = Record<never, never>>(
       // A slow contact onto torn metal hooks the two into one, once the crush
       // has decided what is torn.
       run.totalWelded += ships.weld(world, collisions.contacts);
-      // What claws hold is pumped aboard, and a claw done with it lets go.
+      // What claws hold is pumped aboard, what pads hold is filled, and a dock
+      // done with it lets go; then fighters settled onto pads are taken aboard.
       ships.pump(world);
+      ships.land(world);
       grid.rebuild(world.bodies);
       beams.clear();
       beamHits.clear();

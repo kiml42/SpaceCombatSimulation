@@ -2,6 +2,7 @@ import {
   Allocation,
   specificImpulse,
   readsSealing,
+  fillOf,
   SEAL_REACH,
   SEAL_SPEED,
   HullPath,
@@ -80,14 +81,14 @@ export interface TurretReadout {
 }
 
 export interface DesignStats {
-  /** Mass with every tank full, kg — the materials the ship is made of and its fuel, and not a cost. */
+  /** Mass as it sets out, kg — the materials the ship is made of and the fuel it starts with. */
   mass: number;
-  /** Fuel aboard when full, kg: its tanks, and what its cores carry. */
+  /** Fuel aboard as it sets out, kg: its tanks, and what its cores carry, each as full as it starts. */
   fuel: number;
-  /** Seconds every engine could burn flat out on a full load. Infinite with no engines. */
+  /** Seconds every engine could burn flat out on what it sets out with. Infinite with no engines. */
   endurance: number;
   /**
-   * Change of velocity a full load buys, m/s, by the rocket equation, at the
+   * Change of velocity what it sets out with buys, m/s, by the rocket equation, at the
    * exhaust velocity of all its engines burning together.
    */
   deltaV: number;
@@ -144,7 +145,8 @@ export interface DesignStats {
 
 export function designStats(design: ShipDesign, envelope: Envelopes): DesignStats {
   const layout = design.engineLayout;
-  const mass = design.mass;
+  // As it sets out, so a ship that starts part full shows what it really has.
+  const mass = design.launchMass;
   const inertia = design.inertia;
   const trim = trimmer(design);
   // The first of its best attack bearings: where it holds its target to fight.
@@ -154,7 +156,7 @@ export function designStats(design: ShipDesign, envelope: Envelopes): DesignStat
   // Kilograms a second, every engine flat out.
   let flow = 0;
   for (const module of design.modules) {
-    fuel += module.stats.fuel;
+    fuel += module.stats.fuel * fillOf(module.spec);
     if (module.stats.exhaustVelocity > 0) {
       thrust += module.stats.thrust;
       flow += module.stats.thrust / module.stats.exhaustVelocity;
@@ -319,7 +321,16 @@ export function moduleReadout(
     ['Armour', `${(stats.wallThickness * 1000).toLocaleString('en-GB', { maximumFractionDigits: 0 })} mm`],
     ['Hit points', stats.hitPoints.toLocaleString('en-GB', { maximumFractionDigits: 0 })],
   ];
-  if (stats.fuel > 0) rows.push(['Fuel', `${(stats.fuel / 1000).toLocaleString('en-GB', { maximumFractionDigits: 2 })} t, counted in its mass`]);
+  if (stats.fuel > 0) {
+    const tonnes = (kg: number): string => `${(kg / 1000).toLocaleString('en-GB', { maximumFractionDigits: 2 })} t`;
+    const fill = fillOf(spec);
+    rows.push([
+      'Fuel',
+      fill < 1
+        ? `${tonnes(stats.fuel)} when full, starting with ${tonnes(stats.fuel * fill)}; the full load is counted in its mass`
+        : `${tonnes(stats.fuel)}, counted in its mass`,
+    ]);
+  }
   if (readsSealing(spec.kind)) {
     rows.push([
       'Sealing',
@@ -330,7 +341,8 @@ export function moduleReadout(
     ]);
   }
   if (stats.pumpRate > 0) {
-    rows.push(['Pump', `${stats.pumpRate.toLocaleString('en-GB', { maximumFractionDigits: 0 })} kg/s from what its bow grips`]);
+    const rate = `${stats.pumpRate.toLocaleString('en-GB', { maximumFractionDigits: 0 })} kg/s`;
+    rows.push(['Pump', spec.kind === 'pad' ? `${rate} into a fighter landed on it` : `${rate} from what its bow grips`]);
   }
   if (stats.exhaustVelocity > 0) {
     // What it costs to run, which the bell and the size of the throat decide.

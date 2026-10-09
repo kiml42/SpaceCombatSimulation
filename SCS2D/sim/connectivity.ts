@@ -48,7 +48,7 @@ export interface Joint {
    * is commanded across it.
    */
   readonly seam?: boolean;
-  /** A seam a claw holds, rated `DOCK_HOLD` times a hook's. */
+  /** A seam a dock holds, rated `DOCK_HOLD` times a hook's. */
   readonly dock?: boolean;
 }
 
@@ -131,9 +131,9 @@ export function joints(design: ShipDesign): readonly Joint[] {
       width: seam.width,
       x: (design.modules[lo]!.x + design.modules[hi]!.x) * 0.5,
       y: (design.modules[lo]!.y + design.modules[hi]!.y) * 0.5,
-      strength: seam.width * thickness * JOINT_IMPULSE_PER_AREA * (seam.claw === true ? DOCK_HOLD : 1),
+      strength: seam.width * thickness * JOINT_IMPULSE_PER_AREA * (seam.dock !== undefined ? DOCK_HOLD : 1),
       seam: true,
-      ...(seam.claw === true ? { dock: true } : {}),
+      ...(seam.dock !== undefined ? { dock: true } : {}),
     });
   }
   cache.set(design, found);

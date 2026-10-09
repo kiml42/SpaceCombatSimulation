@@ -104,7 +104,7 @@ describe('gripping a wreck', () => {
     expect(run.totalWelded).toBe(1);
     expect(run.ships.body(run.a)).toBe(run.ships.body(run.b));
     const design = run.ships.design(run.a);
-    const seam = design.seams!.find((s) => s.claw === true)!;
+    const seam = design.seams!.find((s) => s.dock === 'claw')!;
     expect(design.modules[seam.a]!.spec.kind).toBe('claw');
     const joint = joints(design).find((j) => j.dock === true)!;
     const thickness = Math.min(design.modules[joint.a]!.stats.wallThickness, design.modules[joint.b]!.stats.wallThickness);
@@ -137,7 +137,7 @@ describe('gripping a wreck', () => {
     for (let m = 0; m < corvette.modules.length; m++) before.set(m, sound.ships.damage.absorbedAt(wreckBody, m));
     runUntil(sound, () => sound.totalWelded > 0);
     const merged = sound.world.bodies.indexOf(sound.ships.body(sound.a));
-    const seam = sound.ships.design(sound.a).seams!.find((s) => s.claw === true)!;
+    const seam = sound.ships.design(sound.a).seams!.find((s) => s.dock === 'claw')!;
     const offset = leech.modules.length;
     expect(sound.ships.damage.absorbedAt(merged, seam.b)).toBeGreaterThan(before.get(seam.b - offset)!);
   });
@@ -145,7 +145,7 @@ describe('gripping a wreck', () => {
 
 /** Whether the leech's claw holds anything: torn metal may still hook on a slow bounce. */
 function holding(run: ReturnType<typeof approach>): boolean {
-  return run.ships.design(run.a).seams?.some((seam) => seam.claw === true) === true;
+  return run.ships.design(run.a).seams?.some((seam) => seam.dock === 'claw') === true;
 }
 
 describe('gripping a live enemy', () => {

@@ -16,6 +16,8 @@ import { torchRun } from '../scenarios/torchRun.js';
 import { broadside } from '../scenarios/broadside.js';
 import { hooked } from '../scenarios/hooked.js';
 import { salvage } from '../scenarios/salvage.js';
+import { scavenge } from '../scenarios/scavenge.js';
+import { carrier } from '../scenarios/carrier.js';
 import { customBattle, type CustomBattle } from '../scenarios/customBattle.js';
 import { customPanel } from './customPanel.js';
 import { linkedBattle } from '../scenarios/battleLink.js';
@@ -71,6 +73,8 @@ export function start(): void {
     { name: 'Hooked', create: () => hooked(SEED) },
     { name: 'Broadside', create: () => broadside(SEED) },
     { name: 'Salvage', create: () => salvage(SEED) },
+    { name: 'Scavenge', create: () => scavenge(SEED) },
+    { name: 'Carrier', create: () => carrier(SEED) },
     // Last, and built from the panel's setup rather than from code.
     { name: 'Custom battle', create: (): Battle => customBattle(panel.setup()) },
   ];

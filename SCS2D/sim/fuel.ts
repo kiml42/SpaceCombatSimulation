@@ -1,6 +1,6 @@
 import type { ShipDesign } from './blueprint.js';
 import { sqrt } from './math.js';
-import { FUEL_DENSITY, type ModuleSpec } from './modules.js';
+import { FUEL_DENSITY, fillOf, type ModuleSpec } from './modules.js';
 
 /**
  * Pressure in a full tank, pascals: five atmospheres, about what keeps a
@@ -99,7 +99,7 @@ export class Fuel {
   /**
    * Give a body a fuel record, sized from its design. `carried` is what each
    * module already holds, for a body made from another; absent, every tank is
-   * full.
+   * as full as it is built to start (`ModuleSpec.fill`).
    */
   register(bodyIndex: number, design: ShipDesign, carried?: readonly number[], leaks?: readonly Leak[]): void {
     const n = design.modules.length;
@@ -114,7 +114,7 @@ export class Fuel {
       const module = design.modules[m]!;
       const capacity = module.stats.fuel;
       full[m] = capacity;
-      const held = carried === undefined ? capacity : (carried[m] ?? 0);
+      const held = carried === undefined ? capacity * fillOf(module.spec) : (carried[m] ?? 0);
       contents[m] = held < capacity ? held : capacity;
       const { length, width } = module.spec;
       spin[m] = (length * length + width * width) / 12 + module.x * module.x + module.y * module.y;

@@ -356,6 +356,17 @@
               title="Which tanks an engine burns from first: the highest priority it is connected to, then the next once those are dry. Tanks of the same priority drain together. Zero by default."
             />
           </div>
+          <div class="field" id="fillRow">
+            <label for="propFill">starts full %</label>
+            <input
+              id="propFill"
+              type="number"
+              step="10"
+              min="0"
+              max="100"
+              title="How full it starts, per cent. A ship sent out part full weighs less, so it costs less of a budget, and has to find the rest from a wreck or a carrier. 100 by default."
+            />
+          </div>
           <div class="field">
             <label for="propNotes">notes</label>
             <textarea id="propNotes" placeholder="why this module is here"></textarea>

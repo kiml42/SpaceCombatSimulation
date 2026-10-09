@@ -168,6 +168,35 @@ describe('draining tanks', () => {
   });
 });
 
+describe('a tank that starts part full', () => {
+  const modules = TANKER.modules!.map((m, i) => (i === BIG ? { ...m, fill: 0.25 } : m));
+  const design = compileBlueprint({ ...TANKER, modules });
+  const big = design.modules[BIG]!.stats.fuel;
+
+  it('holds what it says, and the ship sets out weighing only that', () => {
+    expect(design.mass).toBeCloseTo(tanker.mass, 6);
+    expect(design.launchMass).toBeCloseTo(tanker.mass - 0.75 * big, 6);
+    const world = new World({ dt: 1 / 60, seed: 1 });
+    const ships = new Ships();
+    const i = ships.spawn(world, { design, x: 0, y: 0 });
+    const body = world.bodies.indexOf(ships.body(i));
+    expect(ships.fuel.held(body, BIG)).toBeCloseTo(0.25 * big, 6);
+    expect(ships.fuel.held(body, SMALL)).toBe(design.modules[SMALL]!.stats.fuel);
+    expect(world.bodies.mass[body]!).toBeCloseTo(design.launchMass, 6);
+  });
+
+  it('keeps its fill in the file format on what holds fuel, and refuses one past either end', () => {
+    const file = serialiseBlueprint({ name: 'Light', modules }) as { modules: Record<string, unknown>[] };
+    expect(file.modules[BIG]!['fill']).toBe(0.25);
+    expect(file.modules[ENGINE]!['fill']).toBeUndefined();
+    const back = parseBlueprint(JSON.parse(JSON.stringify(file)));
+    expect((back.modules![BIG] as { fill?: number }).fill).toBe(0.25);
+    for (const fill of [-0.1, 1.5]) {
+      expect(blueprintProblem({ ...TANKER, modules: TANKER.modules!.map((m, i) => (i === BIG ? { ...m, fill } : m)) })).toMatch(/fill/);
+    }
+  });
+});
+
 describe('pumping fuel between pieces', () => {
   /** Two tankers hooked bow to bow: the second's modules follow the first's. */
   function hooked(design = tanker): { fuel: Fuel; design: ShipDesign; n: number } {

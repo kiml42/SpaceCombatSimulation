@@ -1,0 +1,94 @@
+{
+  "formatVersion": 1,
+  "name": "Scavenger",
+  "notes": "Unarmed, with a claw on the bow and a tank behind the core that starts a fifth full, so it is cheap to send out and has to scavenge. Below three quarters of a full load it goes for the wreck, or the disarmed enemy, that pays most fuel for the time it takes, avoiding any an armed enemy is near; it brings the claw in at a walking pace, drinks, and moves on to the next until it is full.",
+  "doctrine": {
+    "approach": {
+      "approachSpeed": 30,
+      "refuelBelow": 0.75
+    }
+  },
+  "modules": [
+    {
+      "kind": "core",
+      "x": 0,
+      "y": 0,
+      "length": 3,
+      "width": 3
+    },
+    {
+      "kind": "tank",
+      "x": -3.5,
+      "y": 0,
+      "length": 4,
+      "width": 3,
+      "fill": 0.2,
+      "notes": "Sent out a fifth full: fuel it can drink from a wreck is fuel it does not have to be built with, so it costs less of a budget."
+    },
+    {
+      "kind": "claw",
+      "x": 2.5,
+      "y": 0,
+      "angle": 0,
+      "length": 2,
+      "width": 2,
+      "notes": "Its jaws are the bow, so pointing the ship at a wreck is pointing the claw."
+    },
+    {
+      "kind": "engine",
+      "x": -5.5,
+      "y": 0,
+      "angle": 180,
+      "length": 2,
+      "width": 2
+    },
+    {
+      "kind": "engine",
+      "x": -3.5,
+      "y": 1.5,
+      "angle": 90,
+      "length": 1,
+      "width": 1
+    },
+    {
+      "kind": "engine",
+      "x": -3.5,
+      "y": -1.5,
+      "angle": -90,
+      "length": 1,
+      "width": 1
+    },
+    {
+      "kind": "engine",
+      "x": 0,
+      "y": 1.5,
+      "angle": 90,
+      "length": 1,
+      "width": 1
+    },
+    {
+      "kind": "engine",
+      "x": 0,
+      "y": -1.5,
+      "angle": -90,
+      "length": 1,
+      "width": 1
+    },
+    {
+      "kind": "engine",
+      "x": 1.5,
+      "y": 1.25,
+      "angle": 0,
+      "length": 1,
+      "width": 0.5
+    },
+    {
+      "kind": "engine",
+      "x": 1.5,
+      "y": -1.25,
+      "angle": 0,
+      "length": 1,
+      "width": 0.5
+    }
+  ]
+}

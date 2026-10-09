@@ -320,6 +320,19 @@ export interface Approach {
    * already fighting.
    */
   readonly rangeHold: number;
+  /**
+   * The share of a full load at or below which a ship with a working claw
+   * breaks off to drink from a wreck or a disarmed enemy, and keeps at it
+   * until its claw lets go full. Zero never does; one goes whenever it has
+   * room.
+   */
+  readonly refuelBelow: number;
+  /**
+   * How much an armed enemy near a source puts it off: each one within its
+   * own reach of the source divides what the source is worth by one more of
+   * this. Zero or less ignores them.
+   */
+  readonly refuelDanger: number;
 }
 
 /**
@@ -395,6 +408,8 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     turnBias: 0.5,
     burnWeight: 2,
     rangeHold: 1,
+    refuelBelow: 0,
+    refuelDanger: 1,
   },
 };
 
@@ -581,6 +596,8 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
   'turnBias',
   'burnWeight',
   'rangeHold',
+  'refuelBelow',
+  'refuelDanger',
 ];
 
 /**
@@ -680,11 +697,15 @@ export function doctrineProblem(value: unknown): string | null {
 
 function toHalf<T>(value: unknown, fields: readonly string[], fallback: T): T {
   const raw = typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : {};
-  const held = fallback as unknown as Record<string, number>;
-  const built: Record<string, number> = {};
+  // A copy of the fallback, every field already in place, with only the
+  // values overwritten. Built up a key at a time from an empty object instead,
+  // a block of this many fields falls out of V8's fast layout, and every read
+  // of it — a pilot reads its doctrine for every other ship, every step —
+  // becomes a dictionary lookup: a tenth more on the whole of `superSwarm`.
+  const built = { ...(fallback as unknown as Record<string, number>) };
   for (const field of fields) {
     const given = raw[field];
-    built[field] = typeof given === 'number' ? given : held[field]!;
+    if (typeof given === 'number') built[field] = given;
   }
   return built as unknown as T;
 }

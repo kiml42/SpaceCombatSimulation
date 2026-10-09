@@ -19,6 +19,7 @@ import {
   readsFuse,
   readsSealing,
   readsDrainPriority,
+  readsFill,
   canShape,
   canThicken,
   isTriangle,
@@ -182,6 +183,8 @@ const DEFAULTS: Record<ModuleSpec['kind'], Omit<ModuleSpec, 'x' | 'y'>> = {
   hullGun: { kind: 'hullGun', angle: 0, length: 8, width: 4, barrels: 1 },
   hullBeam: { kind: 'hullBeam', angle: 0, length: 6, width: 4, barrels: 1 },
   claw: { kind: 'claw', angle: 0, length: 2, width: 2 },
+  // Room for a fighter to sit on, wholly inside it.
+  pad: { kind: 'pad', length: 12, width: 10 },
 };
 
 function el<T extends HTMLElement>(id: string): T {
@@ -201,7 +204,8 @@ type ModuleNumberField =
   | 'fragments'
   | 'burstSpeed'
   | 'sealing'
-  | 'drainPriority';
+  | 'drainPriority'
+  | 'fill';
 
 /** A module's own value for a field, with the default the parser would have applied. */
 function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
@@ -218,6 +222,8 @@ function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
   // Millimetres on the panel, metres in the layout.
   if (key === 'sealing') return (spec.sealing ?? 0) * 1000;
   if (key === 'drainPriority') return spec.drainPriority ?? 0;
+  // Per cent on the panel, a share in the layout.
+  if (key === 'fill') return (spec.fill ?? 1) * 100;
   return spec.barrels ?? 1;
 }
 
@@ -376,6 +382,7 @@ export function startEditor(): void {
     burstSpeed: el<HTMLInputElement>('propBurstSpeed'),
     sealing: el<HTMLInputElement>('propSealing'),
     drainPriority: el<HTMLInputElement>('propDrainPriority'),
+    fill: el<HTMLInputElement>('propFill'),
     notes: el<HTMLTextAreaElement>('propNotes'),
   };
 
@@ -885,6 +892,7 @@ export function startEditor(): void {
     el<HTMLElement>('thickRow').hidden = !readsThick(spec.kind);
     el<HTMLElement>('sealingRow').hidden = !readsSealing(spec.kind);
     el<HTMLElement>('drainPriorityRow').hidden = !readsDrainPriority(spec.kind);
+    el<HTMLElement>('fillRow').hidden = !readsFill(spec.kind);
     // One no more than a deck across is as deep as it is wide either way.
     thickInput.disabled = !canThicken(spec) || doc.blueprint.fighter === true;
     thickInput.checked = isThick(spec);
@@ -1301,6 +1309,19 @@ export function startEditor(): void {
         editSelected({ [key]: degreesToRadians(value) } as Partial<ModuleSpec>, true);
       }
       else if (key === 'sealing') editSelected({ sealing: value / 1000 }, true);
+      // Full is what a tank is when nothing says otherwise, so it is left unsaid.
+      else if (key === 'fill') {
+        const path = doc.selection;
+        if (path === null) return;
+        const share = Math.min(Math.max(value, 0), 100) / 100;
+        change(
+          updatePlacement(doc.blueprint, path, (placement) => {
+            const { fill: _, ...rest } = placement as ModuleSpec;
+            return (share < 1 ? { ...rest, fill: share } : rest) as Placement;
+          }),
+          true,
+        );
+      }
       else editSelected({ [key]: value } as Partial<ModuleSpec>, true);
     });
   }

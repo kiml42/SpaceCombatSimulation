@@ -103,26 +103,15 @@ lead, which waits for standing orders. Velocity stays out of the fleet file; the
   and that is as far as it goes.
 
 **Step 9 — Docking, fuel transfer and fuel harvesting.** The first salvage, since pumping a liquid needs no
-construction. Fuel is pumped between two pieces of one hull (`Fuel.transfer`), and the claw is built: it
-grips, pumps and lets go (DESIGN.md Status). Every join is a deliberate weld on the existing seam machinery (`Ships.weld`), made by a part of
+construction. Fuel is pumped between two pieces of one hull (`Fuel.transfer`), the claw is built with a
+pilot that takes it to wrecks, and fighters land on pads to be filled (DESIGN.md Status). Every join is a deliberate weld on the existing seam machinery (`Ships.weld`), made by a part of
 its own, and the seam it makes carries a fuel line between the two pieces, which a torn-metal hook does not.
-What is left, in this order, each with a golden scenario of its own and every new doctrine number off by
-default, so no existing golden moves:
+What is left, with a golden scenario of its own and every new doctrine number off by default, so no
+existing golden moves:
 
-1. **A pilot for the claw**, that goes after wrecks for their fuel: the ram's approach with the claw
-   forward, held inside the claw's band of closing speed. Its picker scores wrecks and disarmed enemies by
-   the fuel on the piece it would reach, the distance and the danger near it, and it lets evolution and
-   the stock fleet use claws, whose evolution weight is zero until then. A claw on a live but disarmed
-   enemy needs nothing more: two ships riding one body already pull against each other until the seam
-   goes, so the victim burns the fuel being stolen trying to tear free. The claw is the grapple step 13
-   reuses.
-2. **Pads, and fighters landing on them.** A pad is a part on a deck. A fighter docks on it from the
-   weapons layer, never committing — the two meet at the boundary between the layers — when the
-   fighter's bounding box lies wholly inside the pad's rectangle and it is closing slowly. Fuel goes to
-   the fighter. This is the case that leaves every Dinky in `swarm` dry before it reaches the gunships.
-3. **Ports, and a tanker.** A port is a fixture on a hull's side, and two ports mate face to face, closing
-   slowly. Station-keeping a point on one's own edge onto a point on another's is the hardest pilot of
-   the three, so it comes last; a tanker also wants step 3's withdrawal to keep it clear of the fight.
+1. **Ports, and a tanker.** A port is a fixture on a hull's side, and two ports mate face to face, closing
+   slowly. Station-keeping a point on one's own edge onto a point on another's is the hardest pilot
+   of the docks, so it comes last; a tanker also wants step 3's withdrawal to keep it clear of the fight.
 
 **Throughout:**
 - **Claw and port are separate parts**, so the part shows intent; a vampire tanker that both steals and

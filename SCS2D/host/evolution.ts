@@ -144,6 +144,8 @@ const SIDE_FIELDS = [
   'kindHullGun',
   'kindHullBeam',
   'kindCore',
+  'kindClaw',
+  'kindPad',
   'doctrineTargeting',
   'doctrineApproach',
   'doctrineEscort',
@@ -216,6 +218,8 @@ const FIELDS = [
   'kindHullGun',
   'kindHullBeam',
   'kindCore',
+  'kindClaw',
+  'kindPad',
   'doctrineTargeting',
   'doctrineApproach',
   'doctrineEscort',
@@ -650,6 +654,8 @@ export function startEvolution(): void {
     kindHullGun: String(DEFAULT_KINDS.hullGun),
     kindHullBeam: String(DEFAULT_KINDS.hullBeam),
     kindCore: String(DEFAULT_KINDS.core),
+    kindClaw: String(DEFAULT_KINDS.claw),
+    kindPad: String(DEFAULT_KINDS.pad),
     doctrineTargeting: String(DEFAULT_DOCTRINE_WEIGHTS.targeting),
     doctrineApproach: String(DEFAULT_DOCTRINE_WEIGHTS.approach),
     doctrineEscort: String(DEFAULT_DOCTRINE_WEIGHTS.escort),
@@ -884,8 +890,8 @@ export function startEvolution(): void {
           hullGun: Math.max(0, number(get('kindHullGun'), DEFAULT_KINDS.hullGun)),
           hullBeam: Math.max(0, number(get('kindHullBeam'), DEFAULT_KINDS.hullBeam)),
           core: Math.max(0, number(get('kindCore'), DEFAULT_KINDS.core)),
-          // No box until a pilot can use one (ROADMAP.md §8 step 9).
-          claw: DEFAULT_KINDS.claw,
+          claw: Math.max(0, number(get('kindClaw'), DEFAULT_KINDS.claw)),
+          pad: Math.max(0, number(get('kindPad'), DEFAULT_KINDS.pad)),
         },
         doctrine: {
           targeting: Math.max(0, number(get('doctrineTargeting'), DEFAULT_DOCTRINE_WEIGHTS.targeting)),
@@ -991,6 +997,8 @@ export function startEvolution(): void {
     get('kindHullGun').value = String(kinds.hullGun);
     get('kindHullBeam').value = String(kinds.hullBeam);
     get('kindCore').value = String(kinds.core);
+    get('kindClaw').value = String(kinds.claw);
+    get('kindPad').value = String(kinds.pad);
     const doctrine = doctrineWeights(config.mutation.doctrine);
     get('doctrineTargeting').value = String(doctrine.targeting);
     get('doctrineApproach').value = String(doctrine.approach);

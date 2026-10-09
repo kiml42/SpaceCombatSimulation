@@ -233,7 +233,7 @@ export function startFleetEditor(): void {
     const view = doc.view;
     const rows = [
       `<tr><th>ships</th><td>${view.ships.length}</td></tr>`,
-      `<tr><th>mass, fuelled</th><td>${kg(view.mass)}</td></tr>`,
+      `<tr><th>mass at launch</th><td>${kg(view.mass)}</td></tr>`,
       ...view.lines.map(
         (line) => `<tr><th>${escapeHtml(line.name)}</th><td>${line.count} × ${kg(line.mass)}</td></tr>`,
       ),
