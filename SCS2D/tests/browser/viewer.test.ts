@@ -317,6 +317,39 @@ describe('the viewer in a browser', () => {
     await opened.close();
   });
 
+  it('zooms in under a pinch on a touch screen, and pans with it', async () => {
+    const touch = await browser.newPage({ viewport: { width: 400, height: 800 }, hasTouch: true, isMobile: true });
+    await touch.goto(pathToFileURL(page404).href);
+    await touch.waitForFunction(() => /step \d+/.test(document.getElementById('readout')?.textContent ?? ''));
+    await touch.click('#play');
+    const grid = async (): Promise<number> => Number(/grid ([\d.]+)/.exec((await touch.textContent('#readout')) ?? '')![1]);
+    await painted(touch);
+    const before = await grid();
+
+    // Two fingers drawn apart across the middle of the view, through the
+    // browser's own touch input so the page sees real pointer events.
+    const box = (await touch.locator('#view').boundingBox())!;
+    const cx = box.x + box.width / 2;
+    const cy = box.y + box.height / 2;
+    const cdp = await touch.context().newCDPSession(touch);
+    const fingers = (apart: number) => [
+      { x: cx - apart, y: cy, id: 0 },
+      { x: cx + apart, y: cy, id: 1 },
+    ];
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: fingers(40) });
+    for (const apart of [60, 80, 100, 120, 140, 160]) {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: fingers(apart) });
+    }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await painted(touch);
+    // Four times as close: the grid drops a couple of its 1-2-5 steps, and
+    // stays there, because a pinch hands the camera over just as a scroll does.
+    expect(await grid()).toBeLessThan(before / 3);
+    await touch.waitForTimeout(300);
+    expect(await grid()).toBeLessThan(before / 3);
+    await touch.close();
+  });
+
   it('reports no errors after all of that', () => {
     expect(problems).toEqual([]);
   });

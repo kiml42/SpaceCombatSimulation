@@ -367,8 +367,22 @@ export function describeStep(step: number): string {
   return `${round3(step)} m`;
 }
 
-/** How near a click must land to a ship drawn too small to hit, screen pixels. */
+/**
+ * Scale the view by `factor` about a point `px`, `py` canvas pixels from its
+ * centre (y down), so whatever is under that point stays under it.
+ */
+export function zoomAt(camera: Camera, px: number, py: number, factor: number): void {
+  const x = camera.x + px / camera.scale;
+  const y = camera.y - py / camera.scale;
+  camera.scale *= factor;
+  camera.x = x - px / camera.scale;
+  camera.y = y + py / camera.scale;
+}
+
+/** How near a click must land to a ship drawn too small to hit, CSS pixels. */
 export const PICK_PX = 12;
+/** The same for a tap, which a fingertip makes far less precise. */
+export const TOUCH_PICK_PX = 28;
 
 /**
  * The body of the ship under a point, or -1: the nearest whose hull circle, or

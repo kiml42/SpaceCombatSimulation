@@ -95,6 +95,11 @@
         #custom { width: auto; max-width: none; border-left: none; border-top: 1px solid #1c2533; }
       }
       @media (max-width: 720px) { #readout { margin-left: 0; width: 100%; } }
+      .touch { display: none; }
+      @media (pointer: coarse) {
+        .desk { display: none; }
+        .touch { display: inline; }
+      }
     </style>
   </head>
   <body>
@@ -141,6 +146,6 @@
         <p id="outcome"></p>
       </aside>
     </main>
-    <footer>Space to pause, full stop to single-step, F to re-fit, A to cycle the arcs drawn: none, where each gun can point, and where it will fire (amber when on target). C to colour rounds and beams by the side that fired them. Scroll to zoom, drag to pan, click a ship to pick it out (its target is marked, the arcs are only its, and F frames the two of them), Escape to let it go. Blue, red, green and magenta are the sides, grey a side beyond the fourth or a hulk. The ring marks where the gravity well pulls at 1 m/s².</footer>
+    <footer><span class="desk">Space to pause, full stop to single-step, F to re-fit, A to cycle the arcs drawn: none, where each gun can point, and where it will fire (amber when on target). C to colour rounds and beams by the side that fired them. Scroll to zoom, drag to pan, click a ship to pick it out (its target is marked, the arcs are only its, and F frames the two of them), Escape to let it go. Blue, red, green and magenta are the sides, grey a side beyond the fourth or a hulk. The ring marks where the gravity well pulls at 1 m/s².</span><span class="touch">Drag to pan, pinch to zoom, tap a ship to pick it out and tap empty space to let it go. Blue, red, green and magenta are the sides.</span></footer>
   </body>
 </html>
