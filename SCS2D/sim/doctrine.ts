@@ -697,11 +697,15 @@ export function doctrineProblem(value: unknown): string | null {
 
 function toHalf<T>(value: unknown, fields: readonly string[], fallback: T): T {
   const raw = typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : {};
-  const held = fallback as unknown as Record<string, number>;
-  const built: Record<string, number> = {};
+  // A copy of the fallback, every field already in place, with only the
+  // values overwritten. Built up a key at a time from an empty object instead,
+  // a block of this many fields falls out of V8's fast layout, and every read
+  // of it — a pilot reads its doctrine for every other ship, every step —
+  // becomes a dictionary lookup: a tenth more on the whole of `superSwarm`.
+  const built = { ...(fallback as unknown as Record<string, number>) };
   for (const field of fields) {
     const given = raw[field];
-    built[field] = typeof given === 'number' ? given : held[field]!;
+    if (typeof given === 'number') built[field] = given;
   }
   return built as unknown as T;
 }
