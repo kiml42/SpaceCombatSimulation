@@ -90,8 +90,9 @@ describe('module ordering, one battle each', () => {
     expect(kinds!.fired).toBe(control!.fired);
     // Hits only nearly: a burst's fragment lands or misses an edge on a
     // micrometre, and the two runs part on one within seconds — sooner since
-    // a secondary mount's first pick is staggered by its place in the list.
-    expect(Math.abs(kinds!.hits - control!.hits)).toBeLessThanOrEqual(control!.hits * 0.05);
+    // a secondary mount's first pick is staggered by its place in the list,
+    // and each round fired leaves the ship lighter by its own grams.
+    expect(Math.abs(kinds!.hits - control!.hits)).toBeLessThanOrEqual(control!.hits * 0.08);
   });
 });
 

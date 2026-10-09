@@ -74,7 +74,7 @@ describe('a module given corners', () => {
   it('refuses a kind with something sticking out of a face', () => {
     expect(shapeModule(plate({ kind: 'engine' }), wedge())).toBeNull();
     expect(moduleProblem(plate({ kind: 'turret', vertices: wedge() }))).toContain(
-      'only structure and tanks',
+      'only structure, tanks and holds',
     );
   });
 

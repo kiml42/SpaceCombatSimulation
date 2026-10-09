@@ -335,7 +335,7 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     ctx.fillStyle =
       integrity <= 0
         ? WRECKAGE
-        : spec.kind === 'structure' || spec.kind === 'tank'
+        : spec.kind === 'structure' || spec.kind === 'tank' || spec.kind === 'hold'
           ? // Thick structure is drawn in the colour of the mounts and engines,
             // since it is what stands with them in the weapons layer. Read from
             // the compiled flag rather than the spec, since a plate that is
@@ -420,13 +420,14 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
       } else {
         ctx.fillRect(-halfLength, -halfWidth, spec.length, spec.width);
       }
-      if (spec.kind === 'tank') {
+      if (spec.kind === 'tank' || spec.kind === 'hold') {
         // A gauge, like a gun's load: the whole capacity as a track inside the
         // walls, and what is left in it filling from the aft end. Drawn at full
-        // strength however torn the tank, since a wreck's fuel is still there
-        // for a claw to take.
+        // strength however torn the store, since a wreck's load is still there
+        // for a claw to take. Metal is drawn darker than fuel.
         const inset = min(spec.length, spec.width) * TANK_INSET;
-        const share = ship.fuel?.[i] ?? fillOf(spec);
+        const share = (spec.kind === 'tank' ? ship.fuel?.[i] : ship.metal?.[i]) ?? fillOf(spec);
+        const content = spec.kind === 'tank' ? colours.trim : colours.pivot;
         ctx.globalAlpha = 1;
         if (triangle !== null) {
           // The same band of the tank, kept inside the shape rather than drawn
@@ -446,7 +447,7 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
             ctx.fillStyle = FUEL_TRACK;
             ctx.fill();
             ctx.clip();
-            ctx.fillStyle = colours.trim;
+            ctx.fillStyle = content;
             ctx.fillRect(aft, -halfWidth, (fore - aft) * share, spec.width);
             ctx.restore();
           }
@@ -460,7 +461,7 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
           ctx.fillStyle = FUEL_TRACK;
           ctx.fill();
           ctx.clip();
-          ctx.fillStyle = colours.trim;
+          ctx.fillStyle = content;
           ctx.fillRect(-halfLength + inset, -halfWidth + inset, inner * share, across);
           ctx.restore();
         }

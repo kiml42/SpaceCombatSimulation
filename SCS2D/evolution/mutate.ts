@@ -226,6 +226,8 @@ export const DEFAULT_KINDS: KindWeights = {
   pad: 0,
   // A port is worth something only with another ship's to meet it.
   port: 0,
+  // Metal is what a gun is worth anything with, past what a core carries.
+  hold: 2,
 };
 
 /**
@@ -453,7 +455,7 @@ function buildable(blueprint: Blueprint, massBudget: number): boolean {
   if (blueprintProblem(blueprint) !== null) return false;
   if (massBudget === Infinity) return true;
   // Mass as it sets out is what a ship costs, there being no abstract points
-  // value for anything (DESIGN.md §2), so fuel it starts without is saved.
+  // value for anything (DESIGN.md §2), so fuel and metal it starts without are saved.
   // Compiling is the only way to know it.
   return budgetMass(compileDraft(blueprint)) <= massBudget;
 }
@@ -675,10 +677,10 @@ function knobs(draft: Draft): Knob[] {
         { at: 'slide', site },
         { at: 'kind', site },
       );
-      if (placement.kind !== 'structure' && placement.kind !== 'tank' && placement.kind !== 'core') {
+      if (placement.kind !== 'structure' && placement.kind !== 'tank' && placement.kind !== 'hold' && placement.kind !== 'core') {
         out.push({ at: 'angle', site });
       }
-      // Shape, for the two archetypes that may have corners: a box with two
+      // Shape, for the archetypes that may have corners: a box with two
       // free faces can lose the corner between them, and a triangle can walk
       // one of its corners along an edge.
       if (canShape(placement.kind)) {

@@ -105,6 +105,8 @@ export interface ShipView {
   integrity: number[];
   /** How full each module is of fuel, 0 to 1, and 1 for one that holds none. */
   fuel?: number[];
+  /** How full each module is of metal, 0 to 1, and 1 for one that holds none. */
+  metal?: number[];
   /**
    * Holes fuel is leaking from, body frame: where each is, the way the fuel
    * leaves, how wide the hole is, and how fast it is going out, kg/s. On the
@@ -418,6 +420,12 @@ export function capture(
     for (let m = 0; m < design.modules.length; m++) {
       const full = design.modules[m]!.stats.fuel;
       fuel[m] = full > 0 ? ships.fuel.held(b, m) / full : 1;
+    }
+    const metal = (view.metal ??= []);
+    metal.length = design.modules.length;
+    for (let m = 0; m < design.modules.length; m++) {
+      const full = design.modules[m]!.stats.metal;
+      metal[m] = full > 0 ? ships.metal.held(b, m) / full : 1;
     }
     const lx = (view.leakX ??= []);
     const ly = (view.leakY ??= []);

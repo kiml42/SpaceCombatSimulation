@@ -1,6 +1,7 @@
 import type { ShipDesign } from './blueprint.js';
 import { sqrt } from './math.js';
-import { FUEL_DENSITY, fillOf, type ModuleSpec } from './modules.js';
+import { FUEL_DENSITY } from './modules.js';
+import { Store } from './store.js';
 
 /**
  * Pressure in a full tank, pascals: five atmospheres, about what keeps a
@@ -63,93 +64,20 @@ export interface Leak {
 }
 
 /**
- * What every body has left in its tanks, by module, and what burning it has
- * taken off the body's mass.
+ * What every body has left in its tanks, and the holes it is leaking from.
  *
- * Fuel is kept per module rather than per ship because a hull comes apart
- * along its modules: a severed chunk takes its tanks with what is in them, and
- * a weld brings both hulls' tanks aboard. A design's mass and inertia are its
- * full ones, so a body's are those less what has burnt (`burntMass`,
- * `burntInertia`); its centre of mass stays where the full ship's was.
- *
- * **An engine draws on the tanks it is connected to**: those on its own piece
- * of hull, since a hook between two wrecks carries no fuel line. Fuel crosses
- * between pieces only when pumped (`transfer`). Within that,
- * tanks are drained tier by tier, highest `drainPriority` first, and within a tier in
- * proportion to how much each holds when full, so tanks that start full run
- * dry together.
+ * **An engine draws on the tanks it is connected to** (`drain`), tier by tier,
+ * highest `drainPriority` first.
  */
-export class Fuel {
-  /** Kilograms in each module now. */
-  private readonly contents: (Float64Array | null)[] = [];
-  /** Kilograms in each module when full. */
-  private readonly full: (Float64Array | null)[] = [];
-  /** Moment about the centre of mass per kilogram of fuel in each module, m². */
-  private readonly spin: (Float64Array | null)[] = [];
-  /** Which piece of the hull each module is on. */
-  private readonly pieceOf: (Int32Array | null)[] = [];
-  /** Every piece's tanks, tier by tier, as module indices. */
-  private readonly tanks: (Int32Array[] | null)[] = [];
-  /** Where each tier of a piece's `tanks` ends, exclusive. */
-  private readonly tierEnds: (Int32Array[] | null)[] = [];
-  private readonly burnt: number[] = [];
-  private readonly burntSpin: number[] = [];
+export class Fuel extends Store {
   private readonly leaks: (Leak[] | null)[] = [];
 
-  /**
-   * Give a body a fuel record, sized from its design. `carried` is what each
-   * module already holds, for a body made from another; absent, every tank is
-   * as full as it is built to start (`ModuleSpec.fill`).
-   */
-  register(bodyIndex: number, design: ShipDesign, carried?: readonly number[], leaks?: readonly Leak[]): void {
-    const n = design.modules.length;
-    const contents = new Float64Array(n);
-    const full = new Float64Array(n);
-    const spin = new Float64Array(n);
-    const pieceOf = new Int32Array(n);
-    let pieces = 1;
-    let burnt = 0;
-    let burntSpin = 0;
-    for (let m = 0; m < n; m++) {
-      const module = design.modules[m]!;
-      const capacity = module.stats.fuel;
-      full[m] = capacity;
-      const held = carried === undefined ? capacity * fillOf(module.spec) : (carried[m] ?? 0);
-      contents[m] = held < capacity ? held : capacity;
-      const { length, width } = module.spec;
-      spin[m] = (length * length + width * width) / 12 + module.x * module.x + module.y * module.y;
-      burnt += capacity - contents[m]!;
-      burntSpin += (capacity - contents[m]!) * spin[m]!;
-      const piece = design.pieces?.[m] ?? 0;
-      pieceOf[m] = piece;
-      if (piece + 1 > pieces) pieces = piece + 1;
-    }
+  constructor() {
+    super((stats) => stats.fuel, (spec) => spec.drainPriority ?? 0);
+  }
 
-    const tanks: Int32Array[] = [];
-    const tierEnds: Int32Array[] = [];
-    for (let p = 0; p < pieces; p++) {
-      const own: number[] = [];
-      for (let m = 0; m < n; m++) if (pieceOf[m] === p && full[m]! > 0) own.push(m);
-      own.sort((a, b) => drainPriority(design.modules[b]!.spec) - drainPriority(design.modules[a]!.spec) || a - b);
-      const ends: number[] = [];
-      for (let k = 1; k <= own.length; k++) {
-        const last = k === own.length;
-        if (last || drainPriority(design.modules[own[k]!]!.spec) !== drainPriority(design.modules[own[k - 1]!]!.spec)) {
-          ends.push(k);
-        }
-      }
-      tanks.push(Int32Array.from(own));
-      tierEnds.push(Int32Array.from(ends));
-    }
-
-    this.contents[bodyIndex] = contents;
-    this.full[bodyIndex] = full;
-    this.spin[bodyIndex] = spin;
-    this.pieceOf[bodyIndex] = pieceOf;
-    this.tanks[bodyIndex] = tanks;
-    this.tierEnds[bodyIndex] = tierEnds;
-    this.burnt[bodyIndex] = burnt;
-    this.burntSpin[bodyIndex] = burntSpin;
+  override register(bodyIndex: number, design: ShipDesign, carried?: readonly number[], leaks?: readonly Leak[]): void {
+    super.register(bodyIndex, design, carried);
     this.leaks[bodyIndex] = leaks === undefined ? [] : leaks.map((leak) => ({ ...leak }));
   }
 
@@ -171,207 +99,15 @@ export class Fuel {
     const take = kg < held ? kg : held;
     if (!(take > 0)) return 0;
     contents[module] = held - take;
-    this.burnt[bodyIndex] = this.burnt[bodyIndex]! + take;
-    this.burntSpin[bodyIndex] = this.burntSpin[bodyIndex]! + take * this.spin[bodyIndex]![module]!;
+    this.spent[bodyIndex] = this.spent[bodyIndex]! + take;
+    this.spentSpin[bodyIndex] = this.spentSpin[bodyIndex]! + take * this.spin[bodyIndex]![module]!;
     return take;
   }
 
-  /** How full one module is, 0 to 1 of what it holds when full; 0 for one that holds none. */
-  fill(bodyIndex: number, module: number): number {
-    const full = this.full[bodyIndex]?.[module] ?? 0;
-    return full > 0 ? (this.contents[bodyIndex]![module] ?? 0) / full : 0;
-  }
-
-  /**
-   * Take up to `kg` from the tanks an engine is connected to, and say how much
-   * there was. `engine` is the engine's module index.
-   */
-  drain(bodyIndex: number, engine: number, kg: number): number {
-    const pieceOf = this.pieceOf[bodyIndex];
-    if (pieceOf === null || pieceOf === undefined || !(kg > 0)) return 0;
-    return this.take(bodyIndex, pieceOf[engine] ?? 0, kg);
-  }
-
-  /**
-   * Pump up to `kg` from the piece of hull module `from` is on to the piece
-   * `to` is on, and say how much went. Drawn as an engine would draw it, and
-   * put into the receiver's lowest tier first, so the tanks it would burn last
-   * fill first. Only as much as the receiver has room for goes.
-   */
-  transfer(bodyIndex: number, from: number, to: number, kg: number): number {
-    const pieceOf = this.pieceOf[bodyIndex];
-    if (pieceOf === null || pieceOf === undefined || !(kg > 0)) return 0;
-    const source = pieceOf[from] ?? 0;
-    const sink = pieceOf[to] ?? 0;
-    if (source === sink) return 0;
-    const room = this.room(bodyIndex, sink);
-    const taken = this.take(bodyIndex, source, kg < room ? kg : room);
-    return taken > 0 ? this.put(bodyIndex, sink, taken) : 0;
-  }
-
-  /** Fuel on the piece of hull a module is on, kg. */
-  pieceHeld(bodyIndex: number, module: number): number {
-    const pieceOf = this.pieceOf[bodyIndex];
-    const tanks = pieceOf === null || pieceOf === undefined ? undefined : this.tanks[bodyIndex]![pieceOf[module] ?? 0];
-    if (tanks === undefined) return 0;
-    const contents = this.contents[bodyIndex]!;
-    let held = 0;
-    for (let k = 0; k < tanks.length; k++) held += contents[tanks[k]!]!;
-    return held;
-  }
-
-  /** Space left on the piece of hull a module is on, kg. */
-  pieceRoom(bodyIndex: number, module: number): number {
-    const pieceOf = this.pieceOf[bodyIndex];
-    if (pieceOf === null || pieceOf === undefined) return 0;
-    return this.room(bodyIndex, pieceOf[module] ?? 0);
-  }
-
-  /** Space left in one piece's tanks, kg. */
-  private room(bodyIndex: number, piece: number): number {
-    const tanks = this.tanks[bodyIndex]![piece];
-    if (tanks === undefined) return 0;
-    const contents = this.contents[bodyIndex]!;
-    const full = this.full[bodyIndex]!;
-    let room = 0;
-    for (let k = 0; k < tanks.length; k++) room += full[tanks[k]!]! - contents[tanks[k]!]!;
-    return room;
-  }
-
-  /** Take up to `kg` from one piece's tanks, highest tier first, and say how much there was. */
-  private take(bodyIndex: number, piece: number, kg: number): number {
-    const tanks = this.tanks[bodyIndex]![piece];
-    if (tanks === undefined || !(kg > 0)) return 0;
-    const contents = this.contents[bodyIndex]!;
-    const ends = this.tierEnds[bodyIndex]![piece]!;
-    const full = this.full[bodyIndex]!;
-    const spin = this.spin[bodyIndex]!;
-
-    let wanted = kg;
-    let start = 0;
-    for (let tier = 0; tier < ends.length && wanted > 0; tier++) {
-      const end = ends[tier]!;
-      // In proportion to size, among the tanks with anything left. A tank that
-      // empties before its share is met passes the rest to the others, so this
-      // repeats at most once per tank.
-      for (let pass = start; pass < end && wanted > 0; pass++) {
-        let size = 0;
-        for (let k = start; k < end; k++) {
-          const m = tanks[k]!;
-          if (contents[m]! > 0) size += full[m]!;
-        }
-        if (!(size > 0)) break;
-        let taken = 0;
-        for (let k = start; k < end; k++) {
-          const m = tanks[k]!;
-          const held = contents[m]!;
-          if (!(held > 0)) continue;
-          const share = (wanted * full[m]!) / size;
-          const take = share < held ? share : held;
-          contents[m] = held - take;
-          taken += take;
-          this.burntSpin[bodyIndex] = this.burntSpin[bodyIndex]! + take * spin[m]!;
-        }
-        wanted -= taken;
-        // Round-off can leave a sliver no tank will part with.
-        if (wanted <= kg * 1e-12) wanted = 0;
-      }
-      start = end;
-    }
-    const supplied = kg - wanted;
-    this.burnt[bodyIndex] = this.burnt[bodyIndex]! + supplied;
-    return supplied;
-  }
-
-  /**
-   * Put up to `kg` into one piece's tanks, lowest tier first, and say how much
-   * went in. Within a tier in proportion to size, as `take` draws it.
-   */
-  private put(bodyIndex: number, piece: number, kg: number): number {
-    const tanks = this.tanks[bodyIndex]![piece];
-    if (tanks === undefined || !(kg > 0)) return 0;
-    const contents = this.contents[bodyIndex]!;
-    const ends = this.tierEnds[bodyIndex]![piece]!;
-    const full = this.full[bodyIndex]!;
-    const spin = this.spin[bodyIndex]!;
-
-    let wanted = kg;
-    for (let tier = ends.length - 1; tier >= 0 && wanted > 0; tier--) {
-      const start = tier > 0 ? ends[tier - 1]! : 0;
-      const end = ends[tier]!;
-      // A tank that fills before its share is met passes the rest to the others.
-      for (let pass = start; pass < end && wanted > 0; pass++) {
-        let size = 0;
-        for (let k = start; k < end; k++) {
-          const m = tanks[k]!;
-          if (contents[m]! < full[m]!) size += full[m]!;
-        }
-        if (!(size > 0)) break;
-        let given = 0;
-        for (let k = start; k < end; k++) {
-          const m = tanks[k]!;
-          const space = full[m]! - contents[m]!;
-          if (!(space > 0)) continue;
-          const share = (wanted * full[m]!) / size;
-          const give = share < space ? share : space;
-          contents[m] = contents[m]! + give;
-          given += give;
-          this.burntSpin[bodyIndex] = this.burntSpin[bodyIndex]! - give * spin[m]!;
-        }
-        wanted -= given;
-        if (wanted <= kg * 1e-12) wanted = 0;
-      }
-    }
-    const placed = kg - wanted;
-    this.burnt[bodyIndex] = this.burnt[bodyIndex]! - placed;
-    return placed;
-  }
-
-  /** Fuel burnt from a body's tanks since they were full, kg. */
-  burntMass(bodyIndex: number): number {
-    return this.burnt[bodyIndex] ?? 0;
-  }
-
-  /** What that fuel contributed to the body's moment of inertia, kg·m². */
-  burntInertia(bodyIndex: number): number {
-    return this.burntSpin[bodyIndex] ?? 0;
-  }
-
-  /** Kilograms in one module now. */
-  held(bodyIndex: number, module: number): number {
-    return this.contents[bodyIndex]?.[module] ?? 0;
-  }
-
-  /** What each module holds now, for a body made from this one. Null if it has no record. */
-  contentsOf(bodyIndex: number): Float64Array | null {
-    return this.contents[bodyIndex] ?? null;
-  }
-
-  /** Fuel left across a body, kg. */
-  left(bodyIndex: number): number {
-    const contents = this.contents[bodyIndex];
-    if (contents === null || contents === undefined) return 0;
-    let total = 0;
-    for (let m = 0; m < contents.length; m++) total += contents[m]!;
-    return total;
-  }
-
-  forget(bodyIndex: number): void {
-    this.contents[bodyIndex] = null;
-    this.full[bodyIndex] = null;
-    this.spin[bodyIndex] = null;
-    this.pieceOf[bodyIndex] = null;
-    this.tanks[bodyIndex] = null;
-    this.tierEnds[bodyIndex] = null;
-    this.burnt[bodyIndex] = 0;
-    this.burntSpin[bodyIndex] = 0;
+  override forget(bodyIndex: number): void {
+    super.forget(bodyIndex);
     this.leaks[bodyIndex] = null;
   }
 }
 
 const NO_LEAKS: readonly Leak[] = [];
-
-/** Which tier a tank is drained in, highest first. */
-function drainPriority(spec: ModuleSpec): number {
-  return spec.drainPriority ?? 0;
-}

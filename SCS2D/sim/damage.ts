@@ -137,6 +137,7 @@ export const DAMAGE_RESPONSES: Readonly<Record<ModuleSpec['kind'], readonly Dama
   // A pad's clamps and fuel line, the same.
   pad: [{ effect: DamageEffect.Grip, remaining: fadesOutAt(THRUST_CUTOUT) }],
   port: [{ effect: DamageEffect.Grip, remaining: fadesOutAt(THRUST_CUTOUT) }],
+  hold: [],
 };
 
 /** Each module's neighbours by built weld, seams left out, kept per design. */

@@ -653,6 +653,17 @@ inside any one file is not contiguous.
   beam; the `tanker` scenario has two Pickets dock on either side of one. **Any dock lets go the moment an
   armed enemy is within reach of the pair**, when the ship being filled minds danger (`refuelDanger` above
   zero), and while one is, no claw grips, no fighter lands and no port mates for it.
+  **Metal.** A `hold` archetype whose interior is metal (`METAL_DENSITY`, steel racked about half solid), and
+  a twentieth of every core's interior past its computing (`CORE_METAL_SHARE`), the rest of it still fuel, so
+  a bare core with one gun can fire a few rounds. A gun loads each round whole from the holds and cores on its
+  own piece of hull, as an engine draws fuel from its tanks, and holds its fire, ready, while they have less
+  than a round; a round's whole mass, casing and charge, is metal. A ship weighs its metal and gets lighter by
+  every round that leaves, so a shot keeps the momentum of hull and round together. Fuel and metal are kept
+  by the same per-module, per-piece store (`sim/store.ts`): metal goes with its hold through a sever or a
+  weld, and a hold or core may start part full (`fill`). A hold may be shaped, is shot at as plating and has
+  no failure mode of its own. The editor has a Hold and shows a module's metal and a ship's; the battle draws a
+  hold's gauge as it draws a tank's; evolution draws holds at a weight of two. The Dinky and the TIE, whose
+  cores are too small to carry any, each give a slice of a tank to a hold.
 - **Next:** the rest of §8 step 8 — leaks, and pilots that know their fuel — and of step 5: a materials
   budget, and designed scenarios.
   See ROADMAP.md §8.

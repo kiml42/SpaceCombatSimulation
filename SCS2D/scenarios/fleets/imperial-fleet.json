@@ -747,9 +747,9 @@
         },
         {
           "kind": "tank",
-          "x": 0.975,
+          "x": 0.85,
           "y": 0,
-          "length": 0.65,
+          "length": 0.4,
           "width": 0.5,
           "reinforcement": 1.5,
           "sealing": 0.0024
@@ -762,6 +762,14 @@
           "length": 1.2,
           "width": 0.5,
           "reinforcement": 1.23
+        },
+        {
+          "kind": "hold",
+          "x": 1.175,
+          "y": 0,
+          "length": 0.25,
+          "width": 0.5,
+          "reinforcement": 1.5
         }
       ]
     }

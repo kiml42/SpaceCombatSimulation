@@ -147,6 +147,7 @@ const SIDE_FIELDS = [
   'kindClaw',
   'kindPad',
   'kindPort',
+  'kindHold',
   'doctrineTargeting',
   'doctrineApproach',
   'doctrineEscort',
@@ -222,6 +223,7 @@ const FIELDS = [
   'kindClaw',
   'kindPad',
   'kindPort',
+  'kindHold',
   'doctrineTargeting',
   'doctrineApproach',
   'doctrineEscort',
@@ -659,6 +661,7 @@ export function startEvolution(): void {
     kindClaw: String(DEFAULT_KINDS.claw),
     kindPad: String(DEFAULT_KINDS.pad),
     kindPort: String(DEFAULT_KINDS.port),
+    kindHold: String(DEFAULT_KINDS.hold),
     doctrineTargeting: String(DEFAULT_DOCTRINE_WEIGHTS.targeting),
     doctrineApproach: String(DEFAULT_DOCTRINE_WEIGHTS.approach),
     doctrineEscort: String(DEFAULT_DOCTRINE_WEIGHTS.escort),
@@ -896,6 +899,7 @@ export function startEvolution(): void {
           claw: Math.max(0, number(get('kindClaw'), DEFAULT_KINDS.claw)),
           pad: Math.max(0, number(get('kindPad'), DEFAULT_KINDS.pad)),
           port: Math.max(0, number(get('kindPort'), DEFAULT_KINDS.port)),
+          hold: Math.max(0, number(get('kindHold'), DEFAULT_KINDS.hold)),
         },
         doctrine: {
           targeting: Math.max(0, number(get('doctrineTargeting'), DEFAULT_DOCTRINE_WEIGHTS.targeting)),
@@ -1004,6 +1008,7 @@ export function startEvolution(): void {
     get('kindClaw').value = String(kinds.claw);
     get('kindPad').value = String(kinds.pad);
     get('kindPort').value = String(kinds.port);
+    get('kindHold').value = String(kinds.hold);
     const doctrine = doctrineWeights(config.mutation.doctrine);
     get('doctrineTargeting').value = String(doctrine.targeting);
     get('doctrineApproach').value = String(doctrine.approach);

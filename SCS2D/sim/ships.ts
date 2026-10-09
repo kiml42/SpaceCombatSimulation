@@ -16,6 +16,7 @@ import { components, cuts, jointBetween, joints, type Joint } from './connectivi
 import { BOTH_LAYERS, HULL_LAYER, Hulls, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from './hull.js';
 import { Damage, DamageEffect } from './damage.js';
 import { Fuel, LEAK_HOLE_CALIBRES, leakChance, leakRate, leakSpeed, type Leak } from './fuel.js';
+import { Metal } from './metal.js';
 import { SEAL_REACH, SEAL_SPEED } from './modules.js';
 import type { Rng } from './rng.js';
 import {
@@ -417,8 +418,8 @@ const NOTHING_AIMABLE = -2;
 function partWeight(doctrine: Targeting, kind: ModuleKind): number {
   if (kind === 'core') return doctrine.coreWeight;
   if (kind === 'engine') return doctrine.engineWeight;
-  // A tank is shot at as plating until hitting one does something more.
-  if (kind === 'structure' || kind === 'tank') return doctrine.structureWeight;
+  // A tank or a hold is shot at as plating until hitting one does something more.
+  if (kind === 'structure' || kind === 'tank' || kind === 'hold') return doctrine.structureWeight;
   return doctrine.gunWeight;
 }
 
@@ -572,6 +573,7 @@ export class Ships {
   readonly damage = new Damage();
   /** What each body has left in its tanks. */
   readonly fuel = new Fuel();
+  readonly metal = new Metal();
 
   /**
    * The narrow phase over those hulls, so that a shot lands on a ship's
@@ -1127,8 +1129,9 @@ export class Ships {
     this.hullBody[bodyIdx] = id;
     this.damage.register(bodyIdx, design);
     this.fuel.register(bodyIdx, design);
-    // Set out with tanks part full, it weighs only what it carries.
-    if (this.fuel.burntMass(bodyIdx) > 0) this.settleMass(world.bodies, bodyIdx);
+    this.metal.register(bodyIdx, design);
+    // Set out with stores part full, it weighs only what it carries.
+    if (this.fuel.spentMass(bodyIdx) > 0 || this.metal.spentMass(bodyIdx) > 0) this.settleMass(world.bodies, bodyIdx);
     if (spec.invulnerable === true) this.damage.protect(bodyIdx);
     const mounts = design.turrets;
     const indices = new Int32Array(mounts.length);
@@ -2204,6 +2207,7 @@ export class Ships {
       let impulseX = 0;
       let impulseY = 0;
       let angularImpulse = 0;
+      let loaded = false;
 
       for (let t = 0; t < indices.length; t++) {
         let state = turretStates[t]!;
@@ -2274,6 +2278,9 @@ export class Ships {
         }
 
         if (gun.type == GunType.Projectile) {
+          // A gun with nothing to load holds, ready, until there is.
+          if (!this.metal.load(bodyIdx, design.turrets[t]!.module, gun.roundMass)) continue;
+          loaded = true;
           const fuse = design.modules[design.turrets[t]!.module]!.spec;
           projectiles.fireFrom(
             bodies,
@@ -2308,10 +2315,8 @@ export class Ships {
           // already had while attached rather than anything the gun gave it, so
           // the charge does not push back for it.
           //
-          // Total momentum is not conserved across a shot, and cannot be while
-          // ammunition has no mass aboard (§12): a round is created carrying the
-          // hull's velocity, which adds `roundMass · hullVelocity` to the system.
-          // Everything beyond that balances exactly.
+          // The round was part of the hull's mass until it was loaded, so the
+          // hull's velocity it leaves with is momentum the hull no longer has.
           const impulse = gun.roundMass * gun.muzzleSpeed;
           const jx = -this.solution.dirX * impulse;
           const jy = -this.solution.dirY * impulse;
@@ -2356,6 +2361,8 @@ export class Ships {
         }
       }
 
+      // Lighter by what left, before what pushed it off acts on what remains.
+      if (loaded) this.settleMass(bodies, bodyIdx);
       const mass = bodies.mass[bodyIdx]!;
       if (mass > 0 && (impulseX !== 0 || impulseY !== 0)) {
         bodies.vx[bodyIdx] = bodies.vx[bodyIdx]! + impulseX / mass;
@@ -3737,6 +3744,7 @@ export class Ships {
     const gone = this.bodyIds[other]!;
     this.damage.forget(bo);
     this.fuel.forget(bo);
+    this.metal.forget(bo);
     this.shipByBody[bo] = -1;
     this.pilots[bo] = null;
     this.sides[bo] = null;
@@ -3789,6 +3797,7 @@ export class Ships {
       this.discardedPy += mass * bodies.vy[b]!;
       this.damage.forget(b);
       this.fuel.forget(b);
+      this.metal.forget(b);
       this.shipByBody[b] = -1;
       this.remove(i);
       world.destroy(this.bodyIds[i]!);
@@ -4238,7 +4247,10 @@ export class Ships {
     // that still flies is not scrap at whatever mass — it is a ship, and the
     // smallest ship in the game weighs less than this.
     let mass = chunk.mass;
-    for (let m = 0; m < keep.length; m++) mass -= chunk.modules[m]!.stats.fuel - this.fuel.held(b, keep[m]!);
+    for (let m = 0; m < keep.length; m++) {
+      const { stats } = chunk.modules[m]!;
+      mass -= stats.fuel - this.fuel.held(b, keep[m]!) + stats.metal - this.metal.held(b, keep[m]!);
+    }
     if (!flies && mass < SCRAP_MASS) {
       this.discarded += mass;
       // Whatever it would have left with, had it been worth putting there.
@@ -4288,6 +4300,7 @@ export class Ships {
       keep.map((m) => this.fuel.held(b, m)),
       this.leaksInto(keep.length, (m) => ({ body: b, module: keep[m]! })),
     );
+    this.metal.register(chunkBody, chunk, keep.map((m) => this.metal.held(b, m)));
     this.settleMass(bodies, chunkBody);
     this.shipByBody[chunkBody] = j;
     this.sides[chunkBody] = this.sidesOf((m) => this.sideAt(b, keep[m]!), keep.length, this.team[j]!);
@@ -4343,9 +4356,11 @@ export class Ships {
     const sides = this.sidesOf((m) => this.sideAt(bodyOf(shipOf(m)), moduleOf(m)), design.modules.length, this.team[i]!);
     const scars: number[] = [];
     const fuel: number[] = [];
+    const metal: number[] = [];
     for (let m = 0; m < design.modules.length; m++) {
       scars.push(this.damage.absorbedAt(bodyOf(shipOf(m)), moduleOf(m)));
       fuel.push(this.fuel.held(bodyOf(shipOf(m)), moduleOf(m)));
+      metal.push(this.metal.held(bodyOf(shipOf(m)), moduleOf(m)));
     }
     // A weld half sawn through stays half sawn through; a seam is new.
     const weldScars: number[] = [];
@@ -4431,6 +4446,7 @@ export class Ships {
     this.damage.register(b, design, scars, weldScars);
     const leaks = this.leaksInto(design.modules.length, (m) => ({ body: bodyOf(shipOf(m)), module: moduleOf(m) }));
     this.fuel.register(b, design, fuel, leaks);
+    this.metal.register(b, design, metal);
     this.settleMass(bodies, b);
     this.cutSeen[i] = this.damage.cutVersion(b);
   }
@@ -4538,14 +4554,14 @@ export class Ships {
     return out;
   }
 
-  /** A body's mass and inertia: its design's, less the fuel burnt from it. */
+  /** A body's mass and inertia: its design's, less the fuel and metal spent from it. */
   private settleMass(bodies: Bodies, b: number): void {
     const design = this.hullDesign[b];
     // Something nothing moves stays that way.
     if (design === null || design === undefined || !(bodies.mass[b]! > 0)) return;
     const id = this.hullBody[b]!;
-    bodies.setMass(id, design.mass - this.fuel.burntMass(b));
-    bodies.setInertia(id, design.inertia - this.fuel.burntInertia(b));
+    bodies.setMass(id, design.mass - this.fuel.spentMass(b) - this.metal.spentMass(b));
+    bodies.setInertia(id, design.inertia - this.fuel.spentInertia(b) - this.metal.spentInertia(b));
   }
 
   /** What each kept module has already absorbed, in the new design's order. */

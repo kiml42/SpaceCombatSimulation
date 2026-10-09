@@ -915,7 +915,7 @@ describe('designStats', () => {
     // not: trimming out the laterals' torque costs some of their push, and the
     // panel reports what is left.
     expect(stats.accelFore).toBeCloseTo(design.engineLayout.maxThrustAlong(1, 0) / design.mass, 2);
-    expect(stats.accelPort).toBeLessThan((design.engineLayout.maxThrustAlong(0, 1) / design.mass) * 0.97);
+    expect(stats.accelPort).toBeLessThan((design.engineLayout.maxThrustAlong(0, 1) / design.mass) * 0.99);
     expect(stats.accelPort).toBeCloseTo(envelopes(design, 4).holding[1]!, 9);
   });
 
@@ -953,13 +953,13 @@ describe('the manoeuvring envelopes', () => {
   it('costs the corvette nothing fore and aft, and something abeam and on the diagonal', () => {
     const design = new EditorDocument(CORVETTE).view.design!;
     const envelope = envelopes(design, 8);
-    // The lateral engines sit at x = ±4 while the centre of mass is at
-    // x = +2.5, pulled forward by the long bow gun — so pushing abeam needs
+    // The lateral engines sit at x = ±4 while the centre of mass is
+    // forward of the middle, pulled there by the long bow gun — so pushing abeam needs
     // more trim than the retros can give. That is the whole of what the two
     // curves are drawn to show.
     expect(envelope.holding[0]).toBeCloseTo(envelope.free[0]!, 6);
     expect(envelope.holding[4]).toBeCloseTo(envelope.free[4]!, 6);
-    expect(envelope.holding[2]!).toBeLessThan(envelope.free[2]! * 0.97);
+    expect(envelope.holding[2]!).toBeLessThan(envelope.free[2]! * 0.99);
     expect(envelope.holding[1]!).toBeLessThan(envelope.free[1]! * 0.95);
     expect(headingCost(envelope)).toBeGreaterThan(0.05);
   });

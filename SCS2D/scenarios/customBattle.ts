@@ -228,8 +228,8 @@ export function tally(battle: Battle, sides: number): SideTally[] {
     out[team]!.ships++;
     if (!ships.isDisarmed(i)) out[team]!.armed++;
     if (!ships.hasNoEngines(i)) out[team]!.mobile++;
-    // Fuel burnt is not mass lost to the enemy.
-    out[team]!.mass += body >= 0 ? world.bodies.mass[body]! + ships.fuel.burntMass(body) : 0;
+    // Fuel burnt and rounds fired are not mass lost to the enemy.
+    out[team]!.mass += body >= 0 ? world.bodies.mass[body]! + ships.fuel.spentMass(body) + ships.metal.spentMass(body) : 0;
   }
   return out;
 }
