@@ -160,8 +160,15 @@ const MIN_FLASH_PX = 1;
 
 /** A tank's wall as drawn round the fuel in it, as a share of its smaller side. */
 const TANK_INSET = 0.15;
-/** A tank's gauge: its whole capacity in this, and what it holds in the side's pale trim over it. */
+/** A store's gauge: its whole capacity in this, and what it holds over it. */
 const FUEL_TRACK = '#1a1d22';
+/**
+ * What a store holds, the same on every side so it reads at a glance: fuel
+ * teal, metal the grey of a neutral hull. Kept clear of the sides' hues and of
+ * a gun's amber and green load colours, which a gauge looks like.
+ */
+const FUEL = '#2ec4b6';
+const METAL = NEUTRAL.hull;
 /** How round a tank's gauge is drawn at its ends, as a share of the tank's smaller side: enough to read as a tank. */
 const TANK_ROUNDING = 0.35;
 
@@ -452,10 +459,10 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
         // A gauge, like a gun's load: the whole capacity as a track inside the
         // walls, and what is left in it filling from the aft end. Drawn at full
         // strength however torn the store, since a wreck's load is still there
-        // for a claw to take. Metal is drawn darker than fuel.
+        // for a claw to take.
         const inset = min(spec.length, spec.width) * TANK_INSET;
         const share = (spec.kind === 'tank' ? ship.fuel?.[i] : ship.metal?.[i]) ?? fillOf(spec);
-        const content = spec.kind === 'tank' ? colours.trim : colours.hull;
+        const content = spec.kind === 'tank' ? FUEL : METAL;
         ctx.globalAlpha = 1;
         if (triangle !== null) {
           // The same band of the tank, kept inside the shape rather than drawn
@@ -516,8 +523,8 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
           ctx.fillRect(-along / 2 + inset, y, run * share, bar);
           ctx.restore();
         };
-        if (stores.fuel >= 0) gauge(stores.fuel, -across / 2 + inset, colours.trim);
-        if (stores.metal >= 0) gauge(stores.metal, across / 2 - inset - bar, colours.hull);
+        if (stores.fuel >= 0) gauge(stores.fuel, -across / 2 + inset, FUEL);
+        if (stores.metal >= 0) gauge(stores.metal, across / 2 - inset - bar, METAL);
       }
     }
     ctx.restore();
