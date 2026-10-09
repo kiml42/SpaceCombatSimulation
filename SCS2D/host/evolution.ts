@@ -56,6 +56,7 @@ import {
   type RunConfig,
 } from '../evolution/run.js';
 import { el } from './dom.js';
+import { viewGestures } from './viewGestures.js';
 
 /**
  * The evolution page: set a run going, watch what it is doing, and fight any
@@ -1184,37 +1185,9 @@ export function startEvolution(): void {
     }
   });
 
-  view.addEventListener('wheel', (event) => {
-    event.preventDefault();
+  viewGestures(view, camera, () => {
     autoFrame = false;
-    const rect = view.getBoundingClientRect();
-    const ratio = view.width / rect.width;
-    const px = (event.clientX - rect.left) * ratio - view.width / 2;
-    const py = (event.clientY - rect.top) * ratio - view.height / 2;
-    const before = { x: camera.x + px / camera.scale, y: camera.y - py / camera.scale };
-    camera.scale *= Math.exp(-event.deltaY * 0.0015);
-    camera.x = before.x - px / camera.scale;
-    camera.y = before.y + py / camera.scale;
-  }, { passive: false });
-
-  let dragging: { x: number; y: number } | null = null;
-  view.addEventListener('pointerdown', (event) => {
-    dragging = { x: event.clientX, y: event.clientY };
-    view.setPointerCapture(event.pointerId);
   });
-  view.addEventListener('pointermove', (event) => {
-    if (dragging === null) return;
-    autoFrame = false;
-    const ratio = view.width / view.getBoundingClientRect().width;
-    camera.x -= ((event.clientX - dragging.x) * ratio) / camera.scale;
-    camera.y += ((event.clientY - dragging.y) * ratio) / camera.scale;
-    dragging = { x: event.clientX, y: event.clientY };
-  });
-  const endDrag = (): void => {
-    dragging = null;
-  };
-  view.addEventListener('pointerup', endDrag);
-  view.addEventListener('pointercancel', endDrag);
 
   function paint(): void {
     const match = watchedMatch;

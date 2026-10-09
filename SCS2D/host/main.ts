@@ -21,8 +21,9 @@ import { customPanel } from './customPanel.js';
 import { linkedBattle } from '../scenarios/battleLink.js';
 import { handedFleet } from '../editor/handoff.js';
 import { ARCS_KEY, draw, nextArcs, TEAM_SHOTS_KEY, type Arcs } from '../render/canvas2d.js';
-import { frame, gridStep, moveWithVisibleShips, PICK_PX, selectionBounds, shipAt, type Camera } from '../render/camera.js';
+import { frame, gridStep, moveWithVisibleShips, selectionBounds, shipAt, type Camera } from '../render/camera.js';
 import { el } from './dom.js';
+import { viewGestures } from './viewGestures.js';
 
 /**
  * The browser host: owns the clock, the canvas and the controls, and nothing else.
@@ -39,8 +40,6 @@ const MAX_STEPS_PER_FRAME = 16;
 
 const SEED = 20260905;
 
-/** How far a pointer travels before a press is a pan rather than a click, CSS pixels. */
-const CLICK_SLOP_PX = 4;
 export function start(): void {
   const canvas = el<HTMLCanvasElement>('view');
   const ctx = canvas.getContext('2d');
@@ -163,58 +162,19 @@ export function start(): void {
     autoFrame = true;
   });
 
-  // Zoom about the pointer, so the thing under the cursor stays under it.
-  canvas.addEventListener('wheel', (event) => {
-    event.preventDefault();
-    autoFrame = false;
-    const rect = canvas.getBoundingClientRect();
-    const ratio = canvas.width / rect.width;
-    const px = (event.clientX - rect.left) * ratio - canvas.width / 2;
-    const py = (event.clientY - rect.top) * ratio - canvas.height / 2;
-    const before = { x: camera.x + px / camera.scale, y: camera.y - py / camera.scale };
-    camera.scale *= Math.exp(-event.deltaY * 0.0015);
-    camera.x = before.x - px / camera.scale;
-    camera.y = before.y + py / camera.scale;
-  }, { passive: false });
-
-  let dragging: { x: number; y: number } | null = null;
-  /** Where a press began, and whether it has moved far enough to be a pan rather than a click. */
-  let pressed: { x: number; y: number; panned: boolean } | null = null;
-  canvas.addEventListener('pointerdown', (event) => {
-    dragging = { x: event.clientX, y: event.clientY };
-    pressed = { x: event.clientX, y: event.clientY, panned: false };
-    canvas.setPointerCapture(event.pointerId);
-  });
-  canvas.addEventListener('pointermove', (event) => {
-    if (dragging === null) return;
-    if (pressed !== null && Math.hypot(event.clientX - pressed.x, event.clientY - pressed.y) > CLICK_SLOP_PX) {
-      pressed.panned = true;
-    }
-    if (pressed !== null && !pressed.panned) return;
-    autoFrame = false;
-    const ratio = canvas.width / canvas.getBoundingClientRect().width;
-    camera.x -= ((event.clientX - dragging.x) * ratio) / camera.scale;
-    camera.y += ((event.clientY - dragging.y) * ratio) / camera.scale;
-    dragging = { x: event.clientX, y: event.clientY };
-  });
-  const endDrag = (): void => {
-    dragging = null;
-    pressed = null;
-  };
-  // A click rather than a drag picks out the ship under it, or lets go of the
+  // A tap rather than a drag picks out the ship under it, or lets go of the
   // one picked out when it lands on nothing.
-  canvas.addEventListener('pointerup', (event) => {
-    if (pressed !== null && !pressed.panned) {
-      const rect = canvas.getBoundingClientRect();
-      const ratio = canvas.width / rect.width;
-      const px = (event.clientX - rect.left) * ratio - canvas.width / 2;
-      const py = (event.clientY - rect.top) * ratio - canvas.height / 2;
-      selected = shipAt(snapshot, camera.x + px / camera.scale, camera.y - py / camera.scale, PICK_PX / camera.scale);
+  viewGestures(
+    canvas,
+    camera,
+    () => {
+      autoFrame = false;
+    },
+    (x, y, reach) => {
+      selected = shipAt(snapshot, x, y, reach);
       if (selected >= 0) autoFrame = true;
-    }
-    endDrag();
-  });
-  canvas.addEventListener('pointercancel', endDrag);
+    },
+  );
   speedInput.addEventListener('input', () => {
     speed = Number(speedInput.value);
     speedLabel.textContent = `${speed}x`;
