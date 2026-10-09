@@ -80,6 +80,16 @@ export interface TurretReadout {
   triggerRange?: number | null;
 }
 
+/** A power, for a readout. */
+export function megawatts(watts: number): string {
+  return `${(watts / 1e6).toLocaleString('en-GB', { maximumFractionDigits: 2 })} MW`;
+}
+
+/** An energy, for a readout. */
+export function megajoules(joules: number): string {
+  return `${(joules / 1e6).toLocaleString('en-GB', { maximumFractionDigits: 1 })} MJ`;
+}
+
 export interface DesignStats {
   /** Mass as it sets out, kg — the materials the ship is made of and the fuel it starts with. */
   mass: number;
@@ -87,6 +97,13 @@ export interface DesignStats {
   fuel: number;
   /** Metal aboard as it sets out, kg: its holds, and what its cores carry, each as full as it starts. */
   metal: number;
+  /** What its generators make, W. */
+  generation: number;
+  /** What its batteries hold when full, J, and as it sets out. */
+  storage: number;
+  storageAtStart: number;
+  /** The most its batteries can give out together, W. */
+  discharge: number;
   /** Seconds every engine could burn flat out on what it sets out with. Infinite with no engines. */
   endurance: number;
   /**
@@ -191,12 +208,20 @@ export function designStats(design: ShipDesign, envelope: Envelopes): DesignStat
   const attack = bestAttackBearings(designArcs(design, new AttackArcs()), design.thrustBearing)[0]!.bearing;
   let fuel = 0;
   let metal = 0;
+  let generation = 0;
+  let storage = 0;
+  let storageAtStart = 0;
+  let discharge = 0;
   let thrust = 0;
   // Kilograms a second, every engine flat out.
   let flow = 0;
   for (const module of design.modules) {
     fuel += module.stats.fuel * fillOf(module.spec);
     metal += module.stats.metal * fillOf(module.spec);
+    generation += module.stats.generation;
+    storage += module.stats.charge;
+    storageAtStart += module.stats.charge * fillOf(module.spec);
+    discharge += module.stats.chargeRate;
     if (module.stats.exhaustVelocity > 0) {
       thrust += module.stats.thrust;
       flow += module.stats.thrust / module.stats.exhaustVelocity;
@@ -208,6 +233,10 @@ export function designStats(design: ShipDesign, envelope: Envelopes): DesignStat
     mass,
     fuel,
     metal,
+    generation,
+    storage,
+    storageAtStart,
+    discharge,
     endurance: flow > 0 ? fuel / flow : Infinity,
     deltaV: fuel > 0 && fuel < mass ? exhaust * math.log(mass / (mass - fuel)) : 0,
     inertia,
@@ -376,6 +405,15 @@ export function moduleReadout(
   };
   load('Fuel', stats.fuel);
   load('Metal', stats.metal);
+  if (stats.charge > 0) {
+    const fill = fillOf(spec);
+    rows.push([
+      'Charge',
+      `${megajoules(stats.charge)}${fill < 1 ? `, starting with ${megajoules(stats.charge * fill)}` : ''}, ` +
+        `passed in or out at up to ${megawatts(stats.chargeRate)}`,
+    ]);
+  }
+  if (stats.generation > 0) rows.push(['Generates', megawatts(stats.generation)]);
   if (readsSealing(spec.kind)) {
     rows.push([
       'Sealing',

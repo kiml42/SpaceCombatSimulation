@@ -16,6 +16,7 @@ import { components, cuts, jointBetween, joints, type Joint } from './connectivi
 import { BOTH_LAYERS, HULL_LAYER, Hulls, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from './hull.js';
 import { Damage, DamageEffect } from './damage.js';
 import { Fuel, LEAK_HOLE_CALIBRES, leakChance, leakRate, leakSpeed, type Leak } from './fuel.js';
+import { Charge } from './charge.js';
 import { Metal } from './metal.js';
 import { SEAL_REACH, SEAL_SPEED } from './modules.js';
 import type { Rng } from './rng.js';
@@ -574,6 +575,7 @@ export class Ships {
   /** What each body has left in its tanks. */
   readonly fuel = new Fuel();
   readonly metal = new Metal();
+  readonly power = new Charge();
 
   /**
    * The narrow phase over those hulls, so that a shot lands on a ship's
@@ -1132,6 +1134,7 @@ export class Ships {
     this.damage.register(bodyIdx, design);
     this.fuel.register(bodyIdx, design);
     this.metal.register(bodyIdx, design);
+    this.power.register(bodyIdx, design);
     // Set out with stores part full, it weighs only what it carries.
     if (this.fuel.spentMass(bodyIdx) > 0 || this.metal.spentMass(bodyIdx) > 0) this.settleMass(world.bodies, bodyIdx);
     if (spec.invulnerable === true) this.damage.protect(bodyIdx);
@@ -2121,6 +2124,13 @@ export class Ships {
     this.bodyStore = bodies;
     this.now = world.tick;
 
+    // What every body's generators make this step, for what draws on it below.
+    for (let i = 0; i < this.alive.length; i++) {
+      if (this.alive[i] === 0) continue;
+      const b = bodies.indexOf(this.bodyIds[i]!);
+      if (b >= 0 && this.shipByBody[b] === i) this.power.open(b, dt, this.damage);
+    }
+
     for (let i = 0; i < this.alive.length; i++) {
       if (this.alive[i] === 0) continue;
       // Nothing controls a severed chunk, or a ship whose cores have been
@@ -2148,6 +2158,13 @@ export class Ships {
           timers[t] = remaining > TIMER_SETTLE ? remaining : 0;
         }
       }
+    }
+
+    // What nothing drew on charges the batteries.
+    for (let i = 0; i < this.alive.length; i++) {
+      if (this.alive[i] === 0) continue;
+      const b = bodies.indexOf(this.bodyIds[i]!);
+      if (b >= 0 && this.shipByBody[b] === i) this.power.close(b);
     }
 
     // Every ship pushing pays for what it burns.
@@ -3760,6 +3777,7 @@ export class Ships {
     this.damage.forget(bo);
     this.fuel.forget(bo);
     this.metal.forget(bo);
+    this.power.forget(bo);
     this.shipByBody[bo] = -1;
     this.pilots[bo] = null;
     this.sides[bo] = null;
@@ -3813,6 +3831,7 @@ export class Ships {
       this.damage.forget(b);
       this.fuel.forget(b);
       this.metal.forget(b);
+      this.power.forget(b);
       this.shipByBody[b] = -1;
       this.remove(i);
       world.destroy(this.bodyIds[i]!);
@@ -4316,6 +4335,7 @@ export class Ships {
       this.leaksInto(keep.length, (m) => ({ body: b, module: keep[m]! })),
     );
     this.metal.register(chunkBody, chunk, keep.map((m) => this.metal.held(b, m)));
+    this.power.register(chunkBody, chunk, keep.map((m) => this.power.held(b, m)));
     this.settleMass(bodies, chunkBody);
     this.shipByBody[chunkBody] = j;
     this.sides[chunkBody] = this.sidesOf((m) => this.sideAt(b, keep[m]!), keep.length, this.team[j]!);
@@ -4372,10 +4392,12 @@ export class Ships {
     const scars: number[] = [];
     const fuel: number[] = [];
     const metal: number[] = [];
+    const charge: number[] = [];
     for (let m = 0; m < design.modules.length; m++) {
       scars.push(this.damage.absorbedAt(bodyOf(shipOf(m)), moduleOf(m)));
       fuel.push(this.fuel.held(bodyOf(shipOf(m)), moduleOf(m)));
       metal.push(this.metal.held(bodyOf(shipOf(m)), moduleOf(m)));
+      charge.push(this.power.held(bodyOf(shipOf(m)), moduleOf(m)));
     }
     // A weld half sawn through stays half sawn through; a seam is new.
     const weldScars: number[] = [];
@@ -4462,6 +4484,7 @@ export class Ships {
     const leaks = this.leaksInto(design.modules.length, (m) => ({ body: bodyOf(shipOf(m)), module: moduleOf(m) }));
     this.fuel.register(b, design, fuel, leaks);
     this.metal.register(b, design, metal);
+    this.power.register(b, design, charge);
     this.settleMass(bodies, b);
     this.cutSeen[i] = this.damage.cutVersion(b);
   }

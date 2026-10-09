@@ -672,6 +672,18 @@ inside any one file is not contiguous.
   alongside fuel, each at its rate, from what the carrier can spare above its own `rearmBelow`, and lets go
   once neither has more to give. A pad is scored by the fuel and metal it would hand over. The `rearm`
   scenario has three Dinkies fire themselves dry at a hulk and take turns on a Tender's two pads.
+  **Power: generators and batteries.** A `generator` makes power by its interior
+  (`GENERATOR_POWER_PER_VOLUME`) for as long as it works, needing nothing and giving off nothing. A
+  `battery` holds charge by its interior (`BATTERY_ENERGY_PER_VOLUME`) and passes it in or out at a rate set
+  by its sides, perimeter times depth (`BATTERY_POWER_PER_AREA`), so several small batteries in the room of
+  one big one hold less but deliver faster. Charge is the third store (`sim/charge.ts`, on `sim/store.ts`):
+  per module and per piece of hull, weighing nothing. Each step a piece's generators make what damage leaves
+  them; loads draw from that first and then from the batteries, each battery limited by its rate; what
+  nothing used charges the batteries, as far as their room and rate allow, and the rest is lost. A battery
+  holds less as its cells break (`DamageEffect.Storage`, charge past that lost) and passes less as its wiring
+  goes (`Discharge`); a generator gives out as an engine does (`Generation`). A battery may start part full
+  (`fill`). The editor has a Power group and shows a ship's generation, storage and peak discharge; the
+  battle draws a battery's gauge in violet and a generator as a violet disc. Nothing draws on charge yet.
 - **Next:** the rest of §8 step 8 — leaks, and pilots that know their fuel — and of step 5: a materials
   budget, and designed scenarios.
   See ROADMAP.md §8.

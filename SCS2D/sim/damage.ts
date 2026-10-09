@@ -69,6 +69,12 @@ export enum DamageEffect {
   Control = 2,
   /** Whether a claw, a pad or a port can still hold and pump. */
   Grip = 3,
+  /** What a generator makes. */
+  Generation = 4,
+  /** How much a battery can hold. Charge past what is left is lost. */
+  Storage = 5,
+  /** How fast a battery can take charge in or give it out. */
+  Discharge = 6,
 }
 
 /**
@@ -138,6 +144,14 @@ export const DAMAGE_RESPONSES: Readonly<Record<ModuleSpec['kind'], readonly Dama
   pad: [{ effect: DamageEffect.Grip, remaining: fadesOutAt(THRUST_CUTOUT) }],
   port: [{ effect: DamageEffect.Grip, remaining: fadesOutAt(THRUST_CUTOUT) }],
   hold: [],
+  // A plant gives out as an engine does.
+  generator: [{ effect: DamageEffect.Generation, remaining: fadesOutAt(THRUST_CUTOUT) }],
+  // Every cell broken is charge it no longer holds, and the wiring goes as the
+  // plumbing does.
+  battery: [
+    { effect: DamageEffect.Storage, remaining: (integrity) => (integrity > 0 ? integrity : 0) },
+    { effect: DamageEffect.Discharge, remaining: fadesOutAt(THRUST_CUTOUT) },
+  ],
 };
 
 /** Each module's neighbours by built weld, seams left out, kept per design. */

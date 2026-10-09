@@ -228,6 +228,9 @@ export const DEFAULT_KINDS: KindWeights = {
   port: 0,
   // Metal is what a gun is worth anything with, past what a core carries.
   hold: 2,
+  // Nothing draws on charge yet, so neither is worth anything.
+  battery: 0,
+  generator: 0,
 };
 
 /**

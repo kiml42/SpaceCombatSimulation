@@ -243,9 +243,9 @@ export function readsDocked(kind: ModuleKind): boolean {
   return kind === 'pad';
 }
 
-/** Whether `fill` means anything on this kind: what holds fuel or metal. */
+/** Whether `fill` means anything on this kind: what holds fuel, metal or charge. */
 export function readsFill(kind: ModuleKind): boolean {
-  return readsSealing(kind) || kind === 'hold';
+  return readsSealing(kind) || kind === 'hold' || kind === 'battery';
 }
 
 /** How full a module starts, 0 to 1. */
@@ -665,6 +665,35 @@ export const PORT_MASS_PER_AREA = 200;
 export const PORT_PUMP_PER_METRE = 50;
 
 /**
+ * Energy a battery holds per cubic metre inside its walls, J/m³: about a
+ * supercapacitor's, well short of a chemical cell's, so a battery is a buffer
+ * for a fight rather than a whole battle's worth of shooting.
+ */
+export const BATTERY_ENERGY_PER_VOLUME = 5e7;
+
+/** A battery's cells per cubic metre inside its walls, kg/m³. */
+export const BATTERY_MASS_PER_VOLUME = 1000;
+
+/**
+ * What a battery can pass in or out per square metre of its sides, W/m².
+ *
+ * By its sides, the perimeter times its depth, because that is where the
+ * wiring is: storage grows with volume and the rate with the edge, so several
+ * small batteries in the room of one big one hold less but deliver faster.
+ */
+export const BATTERY_POWER_PER_AREA = 1.5e6;
+
+/**
+ * What a generator makes per cubic metre inside its walls, W/m³. A reactor
+ * that needs nothing and gives off nothing, which is all it is until fuel and
+ * heat reach it.
+ */
+export const GENERATOR_POWER_PER_VOLUME = 1e6;
+
+/** A generator's plant per cubic metre inside its walls, kg/m³: heavier than a battery's cells. */
+export const GENERATOR_MASS_PER_VOLUME = 1500;
+
+/**
  * Least a core's machinery can weigh, kg, however small the compartment.
  *
  * Every ship in this game is computer-flown, so a core is a processor, its
@@ -715,7 +744,9 @@ export type ModuleKind =
   | 'claw'
   | 'pad'
   | 'port'
-  | 'hold';
+  | 'hold'
+  | 'battery'
+  | 'generator';
 
 /**
  * Every archetype there is, in one order.
@@ -742,6 +773,8 @@ export const MODULE_KINDS: readonly ModuleKind[] = [
   'pad',
   'port',
   'hold',
+  'battery',
+  'generator',
 ];
 
 /**
@@ -1124,6 +1157,12 @@ export interface ModuleStats {
   swingInertia: number;
   /** Fuel a claw, a pad or a port pumps across what it holds, kg/s. Zero for anything else. */
   pumpRate: number;
+  /** Energy the module holds when full, J. Zero unless it is a battery. */
+  charge: number;
+  /** The most it can take in or give out, W. Zero unless it is a battery. */
+  chargeRate: number;
+  /** What it makes, W. Zero unless it is a generator. */
+  generation: number;
 }
 
 /**
@@ -2234,6 +2273,9 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
   let exhaustVelocity = 0;
   let fuel = 0;
   let metal = 0;
+  let charge = 0;
+  let chargeRate = 0;
+  let generation = 0;
   let gun: GunStats | null = null;
   // Mass that hangs off the pivot as a rod rather than filling the box, and
   // the inertia it accounts for. Barrels, and nothing else so far.
@@ -2271,6 +2313,13 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
   } else if (spec.kind === 'hold') {
     // A box whose whole interior is metal, as a tank's is fuel.
     metal = interior * METAL_DENSITY;
+  } else if (spec.kind === 'battery') {
+    fittingMass = interior * BATTERY_MASS_PER_VOLUME;
+    charge = interior * BATTERY_ENERGY_PER_VOLUME;
+    chargeRate = BATTERY_POWER_PER_AREA * 2 * (spec.length + spec.width) * height;
+  } else if (spec.kind === 'generator') {
+    fittingMass = interior * GENERATOR_MASS_PER_VOLUME;
+    generation = interior * GENERATOR_POWER_PER_VOLUME;
   } else if (engine !== null) {
     // Thrust comes out of the nozzle, so it scales with the exit area: each
     // bell square, as wide as it is deep. A thin engine wider than a deck
@@ -2450,6 +2499,9 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
           : spec.kind === 'port'
             ? PORT_PUMP_PER_METRE * width
             : 0,
+    charge,
+    chargeRate,
+    generation,
   };
 }
 

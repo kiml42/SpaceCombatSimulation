@@ -52,7 +52,7 @@ an entry is either still open or it is gone.
 | 8 | Fuel | Partly built |
 | 9 | Docking, fuel transfer and fuel harvesting | Built |
 | 10 | Raw material | Partly built |
-| 11 | Power | Not started |
+| 11 | Power | Partly built |
 | 12 | In-battle construction | Not started |
 | 13 | Harvesting wrecks | Not started |
 | 14 | Mining | Not started |
@@ -164,6 +164,12 @@ DECISIONS.md.
 Newtonian combat feel good? do the scaling laws hold?) rather than the known ones, kept the sim boundary pure
 by construction, and put something on screen within days. The same test still picks the next step: the one
 that answers the question most likely to change the design.
+
+#### Power (step 11)
+
+- **Charge is the third store** (`sim/charge.ts`), per module and per piece of hull like fuel and metal, but
+  weightless and with a rate: a load calls `Charge.draw` between `open` and `close` in `Ships.command`, and
+  gets the piece's generation first and then its batteries'. A new consumer of power is a call to `draw`.
 
 #### Raw material (step 10)
 

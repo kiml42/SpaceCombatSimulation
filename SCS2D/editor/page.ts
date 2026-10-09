@@ -142,7 +142,7 @@ import {
   type DoctrineValues,
 } from './doctrine.js';
 import { attackBearings, doctrineBand, landOnSelf, lightSelfBurning, previewSnapshot } from './preview.js';
-import { designStats, envelopes, assemblyMass, holdingThrottles, moduleReadout, roundsAboard, type Envelopes } from './stats.js';
+import { designStats, envelopes, assemblyMass, holdingThrottles, moduleReadout, roundsAboard, megawatts, megajoules, type Envelopes } from './stats.js';
 
 /**
  * The blueprint editor's page: the canvas, the panels and the pointer.
@@ -179,6 +179,8 @@ const DEFAULTS: Record<ModuleSpec['kind'], Omit<ModuleSpec, 'x' | 'y'>> = {
   structure: { kind: 'structure', length: 8, width: 5 },
   tank: { kind: 'tank', length: 6, width: 4 },
   hold: { kind: 'hold', length: 4, width: 3 },
+  battery: { kind: 'battery', length: 4, width: 3 },
+  generator: { kind: 'generator', length: 4, width: 4 },
   core: { kind: 'core', length: 3, width: 3 },
   // Facing aft along its bell, so it pushes the ship forward.
   engine: { kind: 'engine', angle: math.PI, length: 3, width: 3 },
@@ -609,6 +611,14 @@ export function startEditor(): void {
         Number.isFinite(s.endurance)
           ? `${numbers(s.endurance, 0)} s flat out, ${numbers(s.deltaV, 0)} m/s of Δv`
           : 'no engines',
+      ],
+      [
+        'Power',
+        s.generation > 0 || s.storage > 0
+          ? `${megawatts(s.generation)} generated, ${megajoules(s.storageAtStart)} stored` +
+            (s.storageAtStart < s.storage ? ` of ${megajoules(s.storage)}` : '') +
+            (s.discharge > 0 ? `, given out at up to ${megawatts(s.discharge)}` : '')
+          : 'no generators or batteries',
       ],
       [
         'Ammunition',
