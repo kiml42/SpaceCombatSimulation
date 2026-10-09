@@ -617,7 +617,8 @@ export function startEditor(): void {
         s.generation > 0 || s.storage > 0
           ? `${megawatts(s.generation)} generated, ${megajoules(s.storageAtStart)} stored` +
             (s.storageAtStart < s.storage ? ` of ${megajoules(s.storage)}` : '') +
-            (s.discharge > 0 ? `, given out at up to ${megawatts(s.discharge)}` : '')
+            (s.discharge > 0 ? `, given out at up to ${megawatts(s.discharge)}` : '') +
+            (s.beamDraw > 0 ? `; its beams draw ${megawatts(s.beamDraw)} firing flat out` : '')
           : 'no generators or batteries',
       ],
       [

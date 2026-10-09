@@ -131,7 +131,13 @@ export const DAMAGE_RESPONSES: Readonly<Record<ModuleSpec['kind'], readonly Dama
   structure: [],
   // Holds its fuel however badly it is hit, until leaks are built (ROADMAP.md §8 step 8).
   tank: [],
-  core: [{ effect: DamageEffect.Control, remaining: fadesOutAt(CONTROL_CUTOUT) }],
+  // Its plant and cells go as a generator's and a battery's do.
+  core: [
+    { effect: DamageEffect.Control, remaining: fadesOutAt(CONTROL_CUTOUT) },
+    { effect: DamageEffect.Generation, remaining: fadesOutAt(THRUST_CUTOUT) },
+    { effect: DamageEffect.Storage, remaining: (integrity) => (integrity > 0 ? integrity : 0) },
+    { effect: DamageEffect.Discharge, remaining: fadesOutAt(THRUST_CUTOUT) },
+  ],
   engine: [{ effect: DamageEffect.Thrust, remaining: fadesOutAt(THRUST_CUTOUT) }],
   turret: [{ effect: DamageEffect.FireRate, remaining: fadesOutAt(FIRE_RATE_CUTOUT) }],
   beamTurret: [{ effect: DamageEffect.FireRate, remaining: fadesOutAt(FIRE_RATE_CUTOUT) }],

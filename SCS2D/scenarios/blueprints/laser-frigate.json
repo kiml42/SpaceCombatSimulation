@@ -35,9 +35,17 @@
         {
           "kind": "tank",
           "x": 0,
-          "y": 1.5,
+          "y": 2.5,
           "length": 7,
-          "width": 8
+          "width": 6
+        },
+        {
+          "kind": "generator",
+          "x": 0,
+          "y": -1.5,
+          "length": 7,
+          "width": 2,
+          "notes": "Powers the spine beam past what the core can, from a slice of the tank."
         },
         {
           "use": "engine",
