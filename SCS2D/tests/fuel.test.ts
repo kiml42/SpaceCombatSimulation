@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   BASE_WALL_THICKNESS,
   CORE_COMPUTING_VOLUME,
+  CORE_METAL_SHARE,
+  METAL_DENSITY,
   DECK_HEIGHT,
   FUEL_DENSITY,
   Fuel,
@@ -57,7 +59,9 @@ describe('a tank', () => {
 
   it('is the only kind but a core that carries any', () => {
     const core = moduleStats({ kind: 'core', x: 0, y: 0, length: 4, width: 4 });
-    expect(core.fuel).toBeCloseTo((interior(4, 4, DECK_HEIGHT) - CORE_COMPUTING_VOLUME) * FUEL_DENSITY, 6);
+    const spare = interior(4, 4, DECK_HEIGHT) - CORE_COMPUTING_VOLUME;
+    expect(core.fuel).toBeCloseTo(spare * (1 - CORE_METAL_SHARE) * FUEL_DENSITY, 6);
+    expect(core.metal).toBeCloseTo(spare * CORE_METAL_SHARE * METAL_DENSITY, 6);
     // No fuel in a core with no room past its computing, and nothing else lost for it.
     const small = { kind: 'core' as const, x: 0, y: 0, length: 1, width: 1 };
     expect(interior(1, 1, 1)).toBeLessThan(CORE_COMPUTING_VOLUME);
@@ -116,7 +120,7 @@ describe('draining tanks', () => {
     expect(fuel.drain(0, ENGINE, full * 2)).toBeCloseTo(full, 6);
     expect(fuel.left(0)).toBe(0);
     expect(fuel.drain(0, ENGINE, 1)).toBe(0);
-    expect(fuel.burntMass(0)).toBeCloseTo(full, 6);
+    expect(fuel.spentMass(0)).toBeCloseTo(full, 6);
   });
 
   it('spreads a tank that runs dry first across the rest', () => {
@@ -213,10 +217,10 @@ describe('pumping fuel between pieces', () => {
   it('moves what it is asked across, and the hull weighs the same', () => {
     const { fuel, n } = hooked();
     const left = fuel.left(0);
-    const burnt = fuel.burntMass(0);
+    const burnt = fuel.spentMass(0);
     expect(fuel.transfer(0, ENGINE, n + ENGINE, 100)).toBeCloseTo(100, 6);
     expect(fuel.left(0)).toBeCloseTo(left, 6);
-    expect(fuel.burntMass(0)).toBeCloseTo(burnt, 6);
+    expect(fuel.spentMass(0)).toBeCloseTo(burnt, 6);
     let other = 0;
     for (let m = n; m < 2 * n; m++) other += fuel.held(0, m);
     expect(other).toBeCloseTo(100, 6);
@@ -227,7 +231,7 @@ describe('pumping fuel between pieces', () => {
     fuel.transfer(0, 0, n, 500);
     const fresh = new Fuel();
     fresh.register(0, design, Array.from(fuel.contentsOf(0)!));
-    expect(fuel.burntInertia(0)).toBeCloseTo(fresh.burntInertia(0), 3);
+    expect(fuel.spentInertia(0)).toBeCloseTo(fresh.spentInertia(0), 3);
   });
 
   it('goes no further than the receiver has room for, or the source has', () => {
@@ -274,7 +278,7 @@ describe('a ship burning fuel', () => {
   it('gets lighter by exactly what it burns', () => {
     const s = flying();
     for (let i = 0; i < 120; i++) step(s);
-    const burnt = s.ships.fuel.burntMass(s.body);
+    const burnt = s.ships.fuel.spentMass(s.body);
     expect(burnt).toBeGreaterThan(0);
     expect(s.world.bodies.mass[s.body]).toBeCloseTo(tanker.mass - burnt, 6);
     expect(s.world.bodies.inertia[s.body]).toBeLessThan(tanker.inertia);

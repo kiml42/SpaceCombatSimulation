@@ -51,7 +51,7 @@ an entry is either still open or it is gone.
 | 7 | Two layers | Built |
 | 8 | Fuel | Partly built |
 | 9 | Docking, fuel transfer and fuel harvesting | Built |
-| 10 | Raw material | Not started |
+| 10 | Raw material | Partly built |
 | 11 | Power | Not started |
 | 12 | In-battle construction | Not started |
 | 13 | Harvesting wrecks | Not started |
@@ -99,6 +99,20 @@ lead, which waits for standing orders. Velocity stays out of the fleet file; the
 - **Fuel in the materials budget** (step 5). Fleet and evolution budgets count full tanks in a ship's mass,
   and that is as far as it goes.
 
+**Step 10 — Raw material.** Metal, holds and guns loading from them are built (DESIGN.md Status). What is left:
+
+- **Repair** — a ship spending metal on its own damaged modules, the second use the step names.
+- **Magazines: guns turning metal into rounds ahead of firing** (§12). Wanted, not yet settled in shape.
+- **Pilots that know their ammunition.** Nothing fights differently for running low: a ship fires as freely
+  with its last round as its first, and a gun that is dry just stops. Fire discipline by what is left, and
+  breaking off to rearm, belong with withdrawal (step 3) and with harvesting (step 13).
+- **Stocking the stock ships.** Only what a core carries, and the two fighters' new holds. The X-Wing's core
+  holds about fourteen of its rounds and the Y-Wing's under two of its main gun's; every unarmed ship
+  carries metal it cannot spend, since a core's share is fixed. How much each wants is a design call about
+  the fleet.
+- **Metal through a dock.** A claw, pad or port pumps fuel only; metal will want its own transfer across the
+  same seams, which the store already offers (`Store.transfer`).
+
 ### Not started — in order
 
 Steps 9 to 13 walk into the resource system one resource and one use at a time, fuel first (partly built,
@@ -111,8 +125,8 @@ with its size — so a bare core with one engine or one weapon can act, and a bi
 Today the best core is the smallest, most armoured one that can hide from a hit; this gives size a price in
 both directions.
 
-10. **Raw material** — a store of metal, spent as ammunition and on repair. It answers §12's ammunition
-    granularity and brings in the other half of §2's scarcity.
+10. **Raw material** — a store of metal, spent as ammunition and on repair (partly built, above). It brings
+    in the other half of §2's scarcity.
 11. **Power** — a generator that beams draw on, refilling each mount's bank at what the plant can spare, and a
     module to hit to silence them. Straight after raw material, because once guns spend ammunition and beams
     spend nothing, beams win by default; a plant gives them a resource to run short of and a part to lose.
@@ -149,6 +163,14 @@ DECISIONS.md.
 Newtonian combat feel good? do the scaling laws hold?) rather than the known ones, kept the sim boundary pure
 by construction, and put something on screen within days. The same test still picks the next step: the one
 that answers the question most likely to change the design.
+
+#### Raw material (step 10)
+
+- **A gun takes its round in one place**: `Metal.load`, called as the gun fires. A magazine (§12) goes
+  between the two — the gun loads from its own magazine, and the magazine refills from the hold — without
+  anything else that reads metal having to change.
+- **Fuel and metal are one store** (`sim/store.ts`), so power, or anything else a module holds, is a
+  capacity and a priority rather than a third copy of the bookkeeping.
 
 #### Docking and fuel (step 9)
 
@@ -522,10 +544,10 @@ Deliberately unresolved; decide when they block something.
   a grapple exists, harvesting could come straight after step 10, keeping each step small and leaving
   construction, the largest, until last. The order built puts construction first, as the big use metal is
   harvested for.
-- **How severed chunks divide ammunition and power.** Which piece goes on being a ship is settled —
-  the one holding a working core, and every other piece with one becomes a ship of its own (DESIGN.md §4)
-  — and fuel goes with the tank it is in. The interesting case left is a magazine cut off from the gun it
-  fed. Nothing consumes either yet, so there is nothing to divide; decide it when stores exist.
+- **How severed chunks divide power.** Which piece goes on being a ship is settled — the one holding a
+  working core, and every other piece with one becomes a ship of its own (DESIGN.md §4) — and fuel and metal
+  go with the module they are in. Nothing consumes power yet, so there is nothing to divide; decide it when a
+  generator exists.
 - **What scrap and salvage reach are worth: `SCRAP_MASS` and `SALVAGE_REACH`.** They encode an economic
   judgement — what is too smashed to harvest, and how far is too far to go for — against an economy that
   does not exist yet, so they will want revisiting when it does. Worth knowing before tuning them: the
@@ -804,7 +826,17 @@ Deliberately unresolved; decide when they block something.
 - Whether fighter-vs-fighter collision matters at swarm density, or whether only capitals and
   turrets are solid. Now measurable rather than speculative: the 301-ship fixture logs 6,642 contacts
   over 3,000 steps, most of them swarm craft brushing each other.
-- Ammunition model granularity — per-mount magazines, shared bunkerage, or both.
+- **Whether a body's centre of mass should follow what its stores hold.** It stays where the full ship's
+  was, so a hull that comes apart while spinning with part-empty tanks or holds gains or loses a little
+  momentum: the pieces are spun off about the full ship's centre, not the real one. Found when a Dinky set
+  out with a quarter-full hold and `ram`'s momentum books stopped balancing; the stock hold starts full
+  instead. Fixing it means moving the centre of mass as stores drain, which every hull frame hangs off.
+- **Magazines: whether a gun must turn metal into rounds and keep them before it can fire.** A gun loads
+  each round straight from the holds on its piece of hull. The alternative wanted is a magazine in the mount:
+  metal drawn from the hold at some rate, made into rounds and stored, and the gun firing only what is
+  stored. Open: how fast a mount makes rounds and what sets it, how many it keeps and what that costs in
+  room and mass, whether a magazine can cook off when hit (with the failure modes above), and what becomes
+  of a magazine cut off from its hold — or of rounds stored in a gun that is severed from the ship.
 - Whether the mothership's build priorities are a doctrine blob (so async PvP competes on them) or
   a player-driven queue.
 - Concrete values, now that the units are settled: budgets, engagement ranges, timestep, the weld

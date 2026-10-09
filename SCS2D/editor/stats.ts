@@ -85,6 +85,8 @@ export interface DesignStats {
   mass: number;
   /** Fuel aboard as it sets out, kg: its tanks, and what its cores carry, each as full as it starts. */
   fuel: number;
+  /** Metal aboard as it sets out, kg: its holds, and what its cores carry, each as full as it starts. */
+  metal: number;
   /** Seconds every engine could burn flat out on what it sets out with. Infinite with no engines. */
   endurance: number;
   /**
@@ -152,11 +154,13 @@ export function designStats(design: ShipDesign, envelope: Envelopes): DesignStat
   // The first of its best attack bearings: where it holds its target to fight.
   const attack = bestAttackBearings(designArcs(design, new AttackArcs()), design.thrustBearing)[0]!.bearing;
   let fuel = 0;
+  let metal = 0;
   let thrust = 0;
   // Kilograms a second, every engine flat out.
   let flow = 0;
   for (const module of design.modules) {
     fuel += module.stats.fuel * fillOf(module.spec);
+    metal += module.stats.metal * fillOf(module.spec);
     if (module.stats.exhaustVelocity > 0) {
       thrust += module.stats.thrust;
       flow += module.stats.thrust / module.stats.exhaustVelocity;
@@ -167,6 +171,7 @@ export function designStats(design: ShipDesign, envelope: Envelopes): DesignStat
   return {
     mass,
     fuel,
+    metal,
     endurance: flow > 0 ? fuel / flow : Infinity,
     deltaV: fuel > 0 && fuel < mass ? exhaust * math.log(mass / (mass - fuel)) : 0,
     inertia,
@@ -321,16 +326,19 @@ export function moduleReadout(
     ['Armour', `${(stats.wallThickness * 1000).toLocaleString('en-GB', { maximumFractionDigits: 0 })} mm`],
     ['Hit points', stats.hitPoints.toLocaleString('en-GB', { maximumFractionDigits: 0 })],
   ];
-  if (stats.fuel > 0) {
-    const tonnes = (kg: number): string => `${(kg / 1000).toLocaleString('en-GB', { maximumFractionDigits: 2 })} t`;
+  const tonnes = (kg: number): string => `${(kg / 1000).toLocaleString('en-GB', { maximumFractionDigits: 2 })} t`;
+  const load = (label: string, kg: number): void => {
+    if (!(kg > 0)) return;
     const fill = fillOf(spec);
     rows.push([
-      'Fuel',
+      label,
       fill < 1
-        ? `${tonnes(stats.fuel)} when full, starting with ${tonnes(stats.fuel * fill)}; the full load is counted in its mass`
-        : `${tonnes(stats.fuel)}, counted in its mass`,
+        ? `${tonnes(kg)} when full, starting with ${tonnes(kg * fill)}; the full load is counted in its mass`
+        : `${tonnes(kg)}, counted in its mass`,
     ]);
-  }
+  };
+  load('Fuel', stats.fuel);
+  load('Metal', stats.metal);
   if (readsSealing(spec.kind)) {
     rows.push([
       'Sealing',

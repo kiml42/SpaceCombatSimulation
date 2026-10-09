@@ -342,9 +342,9 @@ export interface DesignTurret {
 export interface ShipDesign {
   readonly name: string;
   readonly modules: readonly DesignModule[];
-  /** Total mass with every tank full, kg: what a body's mass is measured down from as it burns. */
+  /** Total mass with every store full, kg: what a body's mass is measured down from as it spends. */
   readonly mass: number;
-  /** Mass as it sets out, kg: less what its tanks start without (`ModuleSpec.fill`). What a budget counts. */
+  /** Mass as it sets out, kg: less what its stores start without (`ModuleSpec.fill`). What a budget counts. */
   readonly launchMass: number;
   /** Moment of inertia about the centre of mass, kg·m². */
   readonly inertia: number;
@@ -1852,7 +1852,7 @@ function designFrom(
   for (let i = 0; i < specs.length; i++) {
     const m = stats[i]!.mass;
     mass += m;
-    unfilled += stats[i]!.fuel * (1 - fillOf(specs[i]!));
+    unfilled += (stats[i]!.fuel + stats[i]!.metal) * (1 - fillOf(specs[i]!));
     comX += centres[i]!.x * m;
     comY += centres[i]!.y * m;
   }

@@ -270,7 +270,7 @@ function moduleReads(kind: ModuleKind): readonly string[] {
  */
 function verticesProblem(value: unknown, kind: ModuleKind, where: string): string | null {
   if (value === undefined) return null;
-  if (!canShape(kind)) return `${where}: only structure and tanks may be given corners`;
+  if (!canShape(kind)) return `${where}: only structure, tanks and holds may be given corners`;
   if (!Array.isArray(value) || value.length !== TRIANGLE_CORNERS * 2) {
     return `${where}: must be ${TRIANGLE_CORNERS} corners as ${TRIANGLE_CORNERS * 2} x,y numbers`;
   }

@@ -192,6 +192,18 @@ export const FUEL_DENSITY = 420;
  */
 export const FUEL_DRAG_COEFFICIENT = 0.3;
 
+/**
+ * Density of metal in a hold, kg/m³: steel stock racked with the gaps that
+ * handling it needs, about half solid.
+ */
+export const METAL_DENSITY = HULL_DENSITY * 0.5;
+
+/**
+ * The share of a core's interior past its computing that holds metal rather
+ * than fuel, so a bare core with one gun can fire a few rounds.
+ */
+export const CORE_METAL_SHARE = 0.05;
+
 /** The volume inside a module's walls and any sealing lining, m³. */
 export function interiorVolume(stats: ModuleStats): number {
   return stats.interior;
@@ -231,9 +243,9 @@ export function readsDocked(kind: ModuleKind): boolean {
   return kind === 'pad';
 }
 
-/** Whether `fill` means anything on this kind: what holds fuel. */
+/** Whether `fill` means anything on this kind: what holds fuel or metal. */
 export function readsFill(kind: ModuleKind): boolean {
-  return readsSealing(kind);
+  return readsSealing(kind) || kind === 'hold';
 }
 
 /** How full a module starts, 0 to 1. */
@@ -702,7 +714,8 @@ export type ModuleKind =
   | 'hullBeam'
   | 'claw'
   | 'pad'
-  | 'port';
+  | 'port'
+  | 'hold';
 
 /**
  * Every archetype there is, in one order.
@@ -728,6 +741,7 @@ export const MODULE_KINDS: readonly ModuleKind[] = [
   'claw',
   'pad',
   'port',
+  'hold',
 ];
 
 /**
@@ -1087,6 +1101,8 @@ export interface ModuleStats {
   exhaustVelocity: number;
   /** Fuel the module holds when full, kg, counted in `mass`. Zero unless it is a tank. */
   fuel: number;
+  /** Metal the module holds when full, kg, counted in `mass`. Zero unless it is a hold. */
+  metal: number;
   /** Self-sealing lining inside the walls, metres; zero for none. */
   lining: number;
   /** Volume inside the walls and the lining, m³. */
@@ -1138,7 +1154,7 @@ export function moduleProblem(spec: ModuleSpec): string | null {
     // as something other than what it weighs, so the kind has to admit it
     // rather than carry it until a refit back.
     if (!canShape(spec.kind)) {
-      return `${spec.kind}: only structure and tanks may be given corners`;
+      return `${spec.kind}: only structure, tanks and holds may be given corners`;
     }
     if (spec.vertices.length !== TRIANGLE_CORNERS * 2) {
       return `${spec.kind}: a shaped module takes ${TRIANGLE_CORNERS} corners as x,y pairs, got ${spec.vertices.length / 2}`;
@@ -2217,6 +2233,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
   let thrust = 0;
   let exhaustVelocity = 0;
   let fuel = 0;
+  let metal = 0;
   let gun: GunStats | null = null;
   // Mass that hangs off the pivot as a rod rather than filling the box, and
   // the inertia it accounts for. Barrels, and nothing else so far.
@@ -2235,7 +2252,9 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
     // and the fragility of a small one are the whole of what stops a ship
     // carrying five of them.
     fittingMass = max(CORE_MINIMUM_FITTING_MASS, CORE_MASS_PER_AREA * capacity) + liningMass;
-    fuel = max(0, interior - CORE_COMPUTING_VOLUME) * FUEL_DENSITY;
+    const spare = max(0, interior - CORE_COMPUTING_VOLUME);
+    fuel = spare * (1 - CORE_METAL_SHARE) * FUEL_DENSITY;
+    metal = spare * CORE_METAL_SHARE * METAL_DENSITY;
   } else if (spec.kind === 'port') {
     // A collar on its outward face and a coupling behind it.
     fittingMass = PORT_MASS_PER_AREA * capacity;
@@ -2249,6 +2268,9 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
     // assumes, so the inertia below already holds it.
     fittingMass = liningMass;
     fuel = interior * FUEL_DENSITY;
+  } else if (spec.kind === 'hold') {
+    // A box whose whole interior is metal, as a tank's is fuel.
+    metal = interior * METAL_DENSITY;
   } else if (engine !== null) {
     // Thrust comes out of the nozzle, so it scales with the exit area: each
     // bell square, as wide as it is deep. A thin engine wider than a deck
@@ -2380,7 +2402,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
     }
   }
 
-  const mass = structureMass + fittingMass + fuel;
+  const mass = structureMass + fittingMass + fuel + metal;
   // Everything but the barrels rotates as the box it is: walls, and machinery
   // packed inside them.
   const boxMass = mass - rodMass;
@@ -2414,6 +2436,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
     thrust,
     exhaustVelocity,
     fuel,
+    metal,
     lining,
     interior,
     gun,

@@ -54,7 +54,7 @@ export const MIN_TRIANGLE_AREA = 1e-6;
  * width, and a triangle has neither.
  */
 export function canShape(kind: ModuleKind): boolean {
-  return kind === 'structure' || kind === 'tank';
+  return kind === 'structure' || kind === 'tank' || kind === 'hold';
 }
 
 /** The module's corners in its own frame, or null if it is the box it declares. */

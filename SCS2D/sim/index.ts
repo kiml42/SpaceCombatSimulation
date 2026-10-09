@@ -13,6 +13,8 @@
 
 export * as math from './math.js';
 export { Fuel } from './fuel.js';
+export { Metal } from './metal.js';
+export { Store } from './store.js';
 export { Rng, type RngState } from './rng.js';
 export {
   Bodies,
@@ -113,6 +115,8 @@ export {
   SMALL_ENGINE_LOSS,
   FUEL_DENSITY,
   FUEL_DRAG_COEFFICIENT,
+  METAL_DENSITY,
+  CORE_METAL_SHARE,
   SEALANT_DENSITY,
   SEAL_SPEED,
   SEAL_REACH,

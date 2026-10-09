@@ -178,6 +178,7 @@ const ANGLE_SNAP_DEGREES = 15;
 const DEFAULTS: Record<ModuleSpec['kind'], Omit<ModuleSpec, 'x' | 'y'>> = {
   structure: { kind: 'structure', length: 8, width: 5 },
   tank: { kind: 'tank', length: 6, width: 4 },
+  hold: { kind: 'hold', length: 4, width: 3 },
   core: { kind: 'core', length: 3, width: 3 },
   // Facing aft along its bell, so it pushes the ship forward.
   engine: { kind: 'engine', angle: math.PI, length: 3, width: 3 },
@@ -602,7 +603,7 @@ export function startEditor(): void {
     }
     const s = designStats(design, envelope);
     const rows = [
-      ['Mass', `${numbers(s.mass / 1000, 2)} t, ${numbers(s.fuel / 1000, 2)} t of it fuel`],
+      ['Mass', `${numbers(s.mass / 1000, 2)} t, ${numbers(s.fuel / 1000, 2)} t of it fuel and ${numbers(s.metal / 1000, 2)} t metal`],
       [
         'Endurance',
         Number.isFinite(s.endurance)
