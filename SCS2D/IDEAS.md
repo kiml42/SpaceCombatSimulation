@@ -5,6 +5,8 @@ Things that are obviously wrong.
 - Fighter engines in the turret layer immediately hit an overflown hull layer module. Should probably just make engine plumes follow the same rules as beams about staying in their own layers.
 - When setting up a co-evolution run between two very large fleets, the UI hangs on every input. Setting up runs with fleets this big is probably a bad idea anyway, but the UI shouldn't hang making it difficult to change your mind.
 - If you add a ship to a fleet from a file that shares a name with an existing ship in the fleet, you get a copy of that ship, instead of the new ship. Should either rename the new ship, or replace the old ship. either way, it should alert you.
+- In evolution, things end up connected to engine bells, which shouldn't be allowed as connection surfaces.
+- Welding in battles sometimes happens to the bounding box around the barrels for hull guns, which looks silly, so shouldn't be possible (they should be considered non-connectable surfaces).
 
 -----------------------------------------------------------------------
 
