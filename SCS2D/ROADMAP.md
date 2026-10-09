@@ -50,7 +50,7 @@ an entry is either still open or it is gone.
 | 6 | Editor restructuring | Built |
 | 7 | Two layers | Built |
 | 8 | Fuel | Partly built |
-| 9 | Docking, fuel transfer and fuel harvesting | Partly built |
+| 9 | Docking, fuel transfer and fuel harvesting | Built |
 | 10 | Raw material | Not started |
 | 11 | Power | Not started |
 | 12 | In-battle construction | Not started |
@@ -102,33 +102,6 @@ lead, which waits for standing orders. Velocity stays out of the fleet file; the
 - **Fuel in the materials budget** (step 5). Fleet and evolution budgets count full tanks in a ship's mass,
   and that is as far as it goes.
 
-**Step 9 — Docking, fuel transfer and fuel harvesting.** The first salvage, since pumping a liquid needs no
-construction. Fuel is pumped between two pieces of one hull (`Fuel.transfer`), the claw is built with a
-pilot that takes it to wrecks, and fighters land on pads to be filled (DESIGN.md Status). Every join is a deliberate weld on the existing seam machinery (`Ships.weld`), made by a part of
-its own, and the seam it makes carries a fuel line between the two pieces, which a torn-metal hook does not.
-What is left, with a golden scenario of its own and every new doctrine number off by default, so no
-existing golden moves:
-
-1. **Ports, and a tanker.** A port is a fixture on a hull's side, and two ports mate face to face, closing
-   slowly. Station-keeping a point on one's own edge onto a point on another's is the hardest pilot
-   of the docks, so it comes last; a tanker also wants step 3's withdrawal to keep it clear of the fight.
-
-**Throughout:**
-- **Claw and port are separate parts**, so the part shows intent; a vampire tanker that both steals and
-  gives carries both.
-- **A deliberate dock holds harder than a hook on torn metal.** Its seam is rated stronger than a debris
-  weld's.
-- **The smaller of two docked ships idles**: its pilot cuts its engines and the larger flies the body.
-  Whether the larger should fly the smaller's engines as its own is open (§12).
-- **Which way fuel flows**: a claw always takes. Across a pad or a port, fuel goes into a docked ship
-  that is refuelling and out of a docked friendly while it holds more than its own reserve.
-- **Letting go** cuts the dock's seam deliberately, along the path a torn seam takes. The dock then
-  ignores its mate until the two are clear. A ship lets go when it is full, when the source runs dry or
-  when a threat comes close.
-- **Doctrine**: a share of a full load below which a ship goes looking for fuel, one at which it stops,
-  a reserve a giver keeps, and a weight against the danger near a source. The pilot may cost more than
-  the parts.
-
 ### Not started — in order
 
 Steps 9 to 13 walk into the resource system one resource and one use at a time, fuel first (partly built,
@@ -179,6 +152,17 @@ DECISIONS.md.
 Newtonian combat feel good? do the scaling laws hold?) rather than the known ones, kept the sim boundary pure
 by construction, and put something on screen within days. The same test still picks the next step: the one
 that answers the question most likely to change the design.
+
+#### Docking and fuel (step 9)
+
+- **Every join is a weld made by a part, and the seam names it** (`Seam.dock`: claw, pad or port). A new kind
+  of dock is a kind there, a part, and a branch in `Ships.pump` saying which way fuel goes and when it lets go.
+- **The claw is the grapple step 13 reuses.** What it pumps is fuel, through `Fuel.transfer`; metal will want
+  a store and a transfer of its own, and the same seam to carry it.
+- **The smaller of two docked ships idles.** Whether the larger should fly the smaller's engines is in §12.
+- **A tanker has nowhere to be.** Unarmed, it picks no fight and holds where it is; keeping it clear of one is
+  step 3's withdrawal, not anything of step 9's.
+- **A ship refuels until it is full.** The plan had a second share to stop at; nothing has needed it.
 
 #### Editor (step 1)
 

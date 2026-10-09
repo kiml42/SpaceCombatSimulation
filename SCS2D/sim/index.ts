@@ -135,6 +135,8 @@ export {
   CLAW_PUMP_PER_METRE,
   PAD_MASS_PER_AREA,
   PAD_PUMP_PER_METRE,
+  PORT_MASS_PER_AREA,
+  PORT_PUMP_PER_METRE,
   type GunStats,
   type BurstStats,
   type ModuleKind,

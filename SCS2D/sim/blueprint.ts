@@ -408,8 +408,8 @@ export interface ShipDesign {
   readonly fighterPieces?: readonly number[];
 }
 
-/** The part a dock is made by: a claw gripping, or a pad a fighter has landed on. */
-export type DockKind = 'claw' | 'pad';
+/** The part a dock is made by: a claw gripping, a pad a fighter has landed on, or two ports mated. */
+export type DockKind = 'claw' | 'pad' | 'port';
 
 /** Which of two welded hulls, if either, holds the other, and by what. */
 export interface DockAt {

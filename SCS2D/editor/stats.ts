@@ -342,7 +342,9 @@ export function moduleReadout(
   }
   if (stats.pumpRate > 0) {
     const rate = `${stats.pumpRate.toLocaleString('en-GB', { maximumFractionDigits: 0 })} kg/s`;
-    rows.push(['Pump', spec.kind === 'pad' ? `${rate} into a fighter landed on it` : `${rate} from what its bow grips`]);
+    const across =
+      spec.kind === 'pad' ? 'into a fighter landed on it' : spec.kind === 'port' ? 'either way across a dock' : 'from what its bow grips';
+    rows.push(['Pump', `${rate} ${across}`]);
   }
   if (stats.exhaustVelocity > 0) {
     // What it costs to run, which the bell and the size of the throat decide.

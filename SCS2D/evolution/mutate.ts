@@ -223,6 +223,8 @@ export const DEFAULT_KINDS: KindWeights = {
   // A pad serves other ships, so it pays only in a fleet that carries
   // fighters; a run of fleets can raise it.
   pad: 0,
+  // A port is worth something only with another ship's to meet it.
+  port: 0,
 };
 
 /**

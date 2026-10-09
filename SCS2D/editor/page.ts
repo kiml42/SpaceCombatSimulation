@@ -185,6 +185,8 @@ const DEFAULTS: Record<ModuleSpec['kind'], Omit<ModuleSpec, 'x' | 'y'>> = {
   claw: { kind: 'claw', angle: 0, length: 2, width: 2 },
   // Room for a fighter to sit on, wholly inside it.
   pad: { kind: 'pad', length: 12, width: 10 },
+  // Facing out of the hull it is bolted to, its face the side that mates.
+  port: { kind: 'port', angle: 0, length: 1, width: 2 },
 };
 
 function el<T extends HTMLElement>(id: string): T {
