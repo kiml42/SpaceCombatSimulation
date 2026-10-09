@@ -394,6 +394,17 @@ describe('the editor in a browser', () => {
     expect((await page.textContent('#stats'))?.match(/[\d,.]+ t/)?.[0]).not.toBe(mass);
   });
 
+  it('offers a button for every kind of module, each adding one of that kind', async () => {
+    await page.click('#newShip');
+    const kinds = await page.$$eval('#propKind option', (options) => options.map((o) => (o as HTMLOptionElement).value));
+    const buttons = await page.$$eval('[data-add]', (found) => found.map((b) => (b as HTMLElement).dataset['add']));
+    expect([...buttons].sort()).toEqual([...kinds].sort());
+    for (const kind of ['claw', 'pad', 'port']) {
+      await page.click(`[data-add="${kind}"]`);
+      expect(await page.inputValue('#propKind')).toBe(kind);
+    }
+  });
+
   it('marks a ship a fighter, which rules out turrets and thick modules', async () => {
     await page.click('#newShip');
     await page.click('[data-add="structure"]');
@@ -453,15 +464,19 @@ describe('the editor in a browser', () => {
         return warm;
       });
 
-    // Added rather than hunted for by pixel: where a given module lands on
-    // screen depends on how the camera framed the ship. A new module is
-    // selected the moment it is placed, which is the state under test.
     await page.click('#newShip');
     await page.click('[data-add="engine"]');
     expect(await page.inputValue('#propKind')).toBe('engine');
     // Facing aft along its bell, so it pushes the ship forward.
     expect(await page.inputValue('#propAngle')).toBe('180');
+    // Measured cold once the camera has finished framing it, since the warm
+    // count scales with the zoom. Alone on the ship, it is then mid-canvas.
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(1500);
     const cold = await warmth();
+    const box = (await page.locator('#view').boundingBox())!;
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    expect(await page.inputValue('#propKind')).toBe('engine');
 
     await page.waitForTimeout(1200);
     const burning = await warmth();

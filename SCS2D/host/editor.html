@@ -77,6 +77,8 @@
       .pair { display: flex; gap: 0.4rem; }
       .buttons { display: flex; gap: 0.4rem; margin-top: 0.6rem; }
       .buttons button { flex: 1; padding-inline: 0.3rem; }
+      .addGroup { margin-bottom: 0.4rem; }
+      .addGroup h3 { font-size: 11px; font-weight: 400; color: #7f93aa; margin: 0.3rem 0 0.2rem; }
       #moduleStats, #assemblyStats { margin-top: 0.7rem; padding-top: 0.6rem; border-top: 1px solid #1c2533; }
       #moduleStats td, #assemblyStats td { color: #c8d3e0; }
       textarea { width: 100%; resize: vertical; min-height: 3.2rem; }
@@ -148,14 +150,29 @@
       <aside id="panel">
         <section>
           <h2 id="addHeading">Add a module</h2>
-          <button data-add="structure">Structure</button>
-          <button data-add="tank">Tank</button>
-          <button data-add="core">Core</button>
-          <button data-add="engine">Engine</button>
-          <button data-add="turret">Turret</button>
-          <button data-add="beamTurret">Beam turret</button>
-          <button data-add="hullGun">Hull gun</button>
-          <button data-add="hullBeam">Hull beam</button>
+          <div class="addGroup">
+            <h3>Structural</h3>
+            <button data-add="core">Core</button>
+            <button data-add="structure">Structure</button>
+            <button data-add="tank">Tank</button>
+          </div>
+          <div class="addGroup">
+            <h3>Propulsion</h3>
+            <button data-add="engine">Engine</button>
+          </div>
+          <div class="addGroup">
+            <h3>Weapons</h3>
+            <button data-add="turret">Turret</button>
+            <button data-add="beamTurret">Beam turret</button>
+            <button data-add="hullGun">Hull gun</button>
+            <button data-add="hullBeam">Hull beam</button>
+          </div>
+          <div class="addGroup">
+            <h3>Docking</h3>
+            <button data-add="claw" title="Jaws and a pump on the bow, to drink from wrecks and disarmed enemies">Claw</button>
+            <button data-add="pad" title="A deck a friendly fighter lands on, to be filled from this ship's tanks">Pad</button>
+            <button data-add="port" title="A coupling on the hull's side, to dock face to face with a friend's port and share fuel">Port</button>
+          </div>
         </section>
         <section id="assemblySelection" hidden>
           <h2>Several selected</h2>
