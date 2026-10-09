@@ -246,6 +246,31 @@ const BURN_CORE = '255, 236, 200';
 
 
 
+/**
+ * Trace a triangle with its corners rounded by up to `radius`. A sharp corner
+ * gets less, so the curve never eats more than a fifth of the edges beside it
+ * and a prow keeps its point.
+ */
+function roundedTriangle(ctx: CanvasRenderingContext2D, corners: readonly number[], radius: number): void {
+  ctx.moveTo((corners[4]! + corners[0]!) / 2, (corners[5]! + corners[1]!) / 2);
+  for (let k = 0; k < 3; k++) {
+    const x = corners[2 * k]!;
+    const y = corners[2 * k + 1]!;
+    const nx = corners[(2 * k + 2) % 6]!;
+    const ny = corners[(2 * k + 3) % 6]!;
+    const px = corners[(2 * k + 4) % 6]!;
+    const py = corners[(2 * k + 5) % 6]!;
+    const toNext = length(nx - x, ny - y);
+    const toPrev = length(px - x, py - y);
+    // The tangent of half the corner's angle, from its cosine.
+    const cosine = max(-1, min(1, ((nx - x) * (px - x) + (ny - y) * (py - y)) / (toNext * toPrev)));
+    const halfTan = sqrt((1 - cosine) / (1 + cosine));
+    const r = max(0, min(radius, 0.2 * min(toNext, toPrev) * halfTan));
+    ctx.arcTo(x, y, nx, ny, r);
+  }
+  ctx.closePath();
+}
+
 function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number, arcs: Arcs): void {
   const design = ship.design;
 
@@ -417,9 +442,7 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
             }
             ctx.save();
             ctx.beginPath();
-            ctx.moveTo(lining[0]!, lining[1]!);
-            for (let v = 2; v < lining.length; v += 2) ctx.lineTo(lining[v]!, lining[v + 1]!);
-            ctx.closePath();
+            roundedTriangle(ctx, lining, min(spec.length, spec.width) * TANK_ROUNDING - inset);
             ctx.fillStyle = FUEL_TRACK;
             ctx.fill();
             ctx.clip();

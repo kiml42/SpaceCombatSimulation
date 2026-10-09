@@ -554,7 +554,8 @@
           "tolerance": 0.3,
           "brake": 0.95,
           "ramRadii": 1000,
-          "ramArmed": 0.5
+          "ramArmed": 0.5,
+          "refuelBelow": 0.5
         }
       },
       "assemblies": {
