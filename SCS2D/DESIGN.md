@@ -38,8 +38,8 @@ inside any one file is not contiguous.
   given in advance and worked through as targets are put out of the fight. A Canvas2D
   viewer draws snapshots of all of it — ships, turret bearings, tracers and the wells
   bending them — with pause, single-step, time scaling, and zoom and pan over an
-  auto-framing camera. A ship clicked is picked out — ringed, a line to what it is fighting, the arcs drawn
-  for it alone, and framed with its target — until Escape. Rounds and beams are drawn as light, or with C in the colours of the side that
+  auto-framing camera, by mouse or by touch (pinch to zoom). A ship clicked or tapped is picked out — ringed, a line to what it is fighting, the arcs drawn
+  for it alone, and framed with its target — until Escape or a tap on empty space. Rounds and beams are drawn as light, or with C in the colours of the side that
   fired them, which the evolution page starts with. A ship's name — its side and which of that side's
   ships it is, as "Red 5" — is written on its core once the core is big enough on screen to carry it; a
   piece broken off keeps its ship's. **The camera carries itself along with what it is watching rather

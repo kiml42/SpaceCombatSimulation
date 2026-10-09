@@ -10,6 +10,7 @@ import {
   selectionBounds,
   shipAt,
   snapStep,
+  zoomAt,
   type Camera,
 } from '../render/camera.js';
 
@@ -178,6 +179,18 @@ describe('the camera', () => {
     // the whole exercise is that these two are different.
     expect(snapStep(1.2)).toBe(10);
     expect(snapStep(640)).toBe(0.02);
+  });
+
+  it('zooms about a point, leaving what is under it where it was', () => {
+    const camera: Camera = { x: 100, y: -50, scale: 0.5 };
+    const px = 120;
+    const py = -80;
+    const under = (): { x: number; y: number } => ({ x: camera.x + px / camera.scale, y: camera.y - py / camera.scale });
+    const before = under();
+    zoomAt(camera, px, py, 3);
+    expect(camera.scale).toBeCloseTo(1.5, 12);
+    expect(under().x).toBeCloseTo(before.x, 9);
+    expect(under().y).toBeCloseTo(before.y, 9);
   });
 
   it('names a step in the unit that makes it a small whole number', () => {
