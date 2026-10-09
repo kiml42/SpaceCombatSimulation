@@ -143,6 +143,42 @@ export interface DesignStats {
    */
   headingCost: number;
   turrets: TurretReadout[];
+  /**
+   * Its main gun — the heaviest round in its main battery — and how many of
+   * those rounds it sets out with metal for; null with no gun that fires them.
+   */
+  mainRounds: { roundMass: number; rounds: number } | null;
+}
+
+/**
+ * How many rounds the gun at `module` can load from the metal its piece of
+ * hull sets out with, every gun there sharing it: zero for anything that
+ * fires no rounds.
+ */
+export function roundsAboard(design: ShipDesign, module: number): number {
+  const roundMass = design.modules[module]?.stats.gun?.roundMass ?? 0;
+  if (!(roundMass > 0)) return 0;
+  const piece = design.pieces?.[module] ?? 0;
+  let metal = 0;
+  for (let m = 0; m < design.modules.length; m++) {
+    if ((design.pieces?.[m] ?? 0) !== piece) continue;
+    const { stats, spec } = design.modules[m]!;
+    metal += stats.metal * fillOf(spec);
+  }
+  // A whisker under a whole round is still a whole round, not round-off short of one.
+  return Math.floor(metal / roundMass + 1e-9);
+}
+
+/** The main battery's heaviest gun, and how many of its rounds the ship sets out with. */
+function mainRounds(design: ShipDesign): DesignStats['mainRounds'] {
+  let best = -1;
+  for (const turret of design.turrets) {
+    if (!turret.main || !(turret.gun.roundMass > 0)) continue;
+    if (best < 0 || turret.gun.roundMass > design.turrets[best]!.gun.roundMass) best = design.turrets.indexOf(turret);
+  }
+  if (best < 0) return null;
+  const turret = design.turrets[best]!;
+  return { roundMass: turret.gun.roundMass, rounds: roundsAboard(design, turret.module) };
 }
 
 export function designStats(design: ShipDesign, envelope: Envelopes): DesignStats {
@@ -190,6 +226,7 @@ export function designStats(design: ShipDesign, envelope: Envelopes): DesignStat
     turnRight: layout.maxTorque(-1) / inertia,
     fullAuthority: layout.hasFullAuthority(),
     headingCost: headingCost(envelope),
+    mainRounds: mainRounds(design),
     turrets: design.turrets.map((turret) => {
       const gun = turret.gun;
       const mount = turret.mount;

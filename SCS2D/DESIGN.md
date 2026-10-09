@@ -661,8 +661,10 @@ inside any one file is not contiguous.
   every round that leaves, so a shot keeps the momentum of hull and round together. Fuel and metal are kept
   by the same per-module, per-piece store (`sim/store.ts`): metal goes with its hold through a sever or a
   weld, and a hold or core may start part full (`fill`). A hold may be shaped, is shot at as plating and has
-  no failure mode of its own. The editor has a Hold and shows a module's metal and a ship's; the battle draws a
-  hold's gauge as it draws a tank's; evolution draws holds at a weight of two. The Dinky and the TIE, whose
+  no failure mode of its own. The editor has a Hold and shows a module's metal and a ship's, how many rounds
+  a selected gun can load from what its piece of hull sets out with, and how many rounds of its main gun — the
+  main battery's heaviest — the ship sets out with; the battle draws a hold's gauge as it draws a tank's, and
+  a gauge of the whole ship's fuel and another of its metal along a core's long sides; evolution draws holds at a weight of two. The Dinky and the TIE, whose
   cores are too small to carry any, each give a slice of a tank to a hold.
   **A fighter rearms on a pad.** Once its metal is down to its doctrine's `rearmBelow` of a full load — at
   zero, the default, once it cannot load another round; below zero, never — it makes for a friend's pad as

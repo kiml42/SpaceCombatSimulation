@@ -165,6 +165,11 @@ const FUEL_TRACK = '#1a1d22';
 /** How round a tank's gauge is drawn at its ends, as a share of the tank's smaller side: enough to read as a tank. */
 const TANK_ROUNDING = 0.35;
 
+/** A core's two gauges, the ship's fuel and metal along its long sides: each this share of its smaller side. */
+const CORE_GAUGE = 0.18;
+/** How far in from the core's edge they sit, as a share of its smaller side. */
+const CORE_GAUGE_INSET = 0.08;
+
 /** How much of a claw's width each of its two jaws is drawn across. */
 const CLAW_JAW_SHARE = 0.3;
 
@@ -271,6 +276,28 @@ function roundedTriangle(ctx: CanvasRenderingContext2D, corners: readonly number
   ctx.closePath();
 }
 
+/**
+ * How full the whole ship is of fuel and of metal, 0 to 1, or -1 for one that
+ * carries none: what each module holds, weighted by what it holds when full.
+ */
+function storeShares(ship: ShipView): { fuel: number; metal: number } {
+  let fuel = 0;
+  let fuelFull = 0;
+  let metal = 0;
+  let metalFull = 0;
+  const modules = ship.design.modules;
+  for (let m = 0; m < modules.length; m++) {
+    const { stats, spec } = modules[m]!;
+    // Only what this ship draws: a hull it shares with another counts once.
+    if (ship.drawn?.[m] === false) continue;
+    fuel += (ship.fuel?.[m] ?? fillOf(spec)) * stats.fuel;
+    fuelFull += stats.fuel;
+    metal += (ship.metal?.[m] ?? fillOf(spec)) * stats.metal;
+    metalFull += stats.metal;
+  }
+  return { fuel: fuelFull > 0 ? fuel / fuelFull : -1, metal: metalFull > 0 ? metal / metalFull : -1 };
+}
+
 function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number, arcs: Arcs): void {
   const design = ship.design;
 
@@ -312,6 +339,7 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     ctx.setLineDash([]);
   }
 
+  const stores = storeShares(ship);
   // Module boxes, in the body frame the design already put them in.
   for (let i = 0; i < design.modules.length; i++) {
     if (ship.drawn?.[i] === false) continue;
@@ -427,7 +455,7 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
         // for a claw to take. Metal is drawn darker than fuel.
         const inset = min(spec.length, spec.width) * TANK_INSET;
         const share = (spec.kind === 'tank' ? ship.fuel?.[i] : ship.metal?.[i]) ?? fillOf(spec);
-        const content = spec.kind === 'tank' ? colours.trim : colours.pivot;
+        const content = spec.kind === 'tank' ? colours.trim : colours.hull;
         ctx.globalAlpha = 1;
         if (triangle !== null) {
           // The same band of the tank, kept inside the shape rather than drawn
@@ -465,6 +493,31 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
           ctx.fillRect(-halfLength + inset, -halfWidth + inset, inner * share, across);
           ctx.restore();
         }
+      }
+      if (spec.kind === 'core' && integrity > 0) {
+        // The whole ship's fuel and metal, a gauge along each long side.
+        ctx.globalAlpha = 1;
+        const sideways = spec.width > spec.length;
+        if (sideways) ctx.rotate(PI / 2);
+        const along = sideways ? spec.width : spec.length;
+        const across = sideways ? spec.length : spec.width;
+        const small = min(along, across);
+        const bar = small * CORE_GAUGE;
+        const inset = small * CORE_GAUGE_INSET;
+        const run = along - 2 * inset;
+        const gauge = (share: number, y: number, fill: string): void => {
+          ctx.save();
+          ctx.beginPath();
+          ctx.roundRect(-along / 2 + inset, y, run, bar, bar / 2);
+          ctx.fillStyle = FUEL_TRACK;
+          ctx.fill();
+          ctx.clip();
+          ctx.fillStyle = fill;
+          ctx.fillRect(-along / 2 + inset, y, run * share, bar);
+          ctx.restore();
+        };
+        if (stores.fuel >= 0) gauge(stores.fuel, -across / 2 + inset, colours.trim);
+        if (stores.metal >= 0) gauge(stores.metal, across / 2 - inset - bar, colours.hull);
       }
     }
     ctx.restore();

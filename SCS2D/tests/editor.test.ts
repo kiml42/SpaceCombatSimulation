@@ -83,7 +83,7 @@ import {
   type Handle,
 } from '../editor/handles.js';
 import { doctrineBand, previewSnapshot } from '../editor/preview.js';
-import { designStats, envelopes, assemblyMass, headingCost, moduleReadout } from '../editor/stats.js';
+import { designStats, envelopes, assemblyMass, headingCost, moduleReadout, roundsAboard } from '../editor/stats.js';
 
 /**
  * The editor's half: what an edit does to a layout, and what the page reads
@@ -926,6 +926,27 @@ describe('designStats', () => {
     expect(turret.calibre).toBe(gun.calibre);
     expect(turret.roundsPerMinute).toBeCloseTo(60 / gun.cycleTime, 9);
     expect(turret.arcLeft).toBeGreaterThan(0);
+  });
+
+  it('counts the rounds a gun can load from the metal it sets out with', () => {
+    const design = new EditorDocument(GUNSHIP).view.design!;
+    const main = design.turrets.filter((t) => t.main && t.gun.roundMass > 0).sort((a, b) => b.gun.roundMass - a.gun.roundMass)[0]!;
+    let metal = 0;
+    for (const m of design.modules) metal += m.stats.metal;
+    const rounds = Math.floor(metal / main.gun.roundMass);
+    expect(rounds).toBeGreaterThan(0);
+    expect(roundsAboard(design, main.module)).toBe(rounds);
+    expect(designStats(design, envelopes(design)).mainRounds).toEqual({ roundMass: main.gun.roundMass, rounds });
+    // Anything that fires no rounds has none.
+    expect(roundsAboard(design, design.cores[0]!)).toBe(0);
+  });
+
+  it('counts only what a ship sets out with, and nothing for a ship without guns', () => {
+    const emptied = { ...GUNSHIP, modules: GUNSHIP.modules!.map((m) => ('kind' in m && m.kind === 'core' ? { ...m, fill: 0 } : m)) };
+    const design = new EditorDocument(emptied).view.design!;
+    expect(designStats(design, envelopes(design)).mainRounds?.rounds).toBe(0);
+    const unarmed = new EditorDocument(TORCH).view.design!;
+    expect(designStats(unarmed, envelopes(unarmed)).mainRounds).toBeNull();
   });
 });
 
