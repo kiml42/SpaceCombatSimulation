@@ -18,6 +18,7 @@ import { hooked } from '../scenarios/hooked.js';
 import { salvage } from '../scenarios/salvage.js';
 import { scavenge } from '../scenarios/scavenge.js';
 import { carrier } from '../scenarios/carrier.js';
+import { tanker } from '../scenarios/tanker.js';
 import { customBattle, type CustomBattle } from '../scenarios/customBattle.js';
 import { customPanel } from './customPanel.js';
 import { linkedBattle } from '../scenarios/battleLink.js';
@@ -75,6 +76,7 @@ export function start(): void {
     { name: 'Salvage', create: () => salvage(SEED) },
     { name: 'Scavenge', create: () => scavenge(SEED) },
     { name: 'Carrier', create: () => carrier(SEED) },
+    { name: 'Tanker', create: () => tanker(SEED) },
     // Last, and built from the panel's setup rather than from code.
     { name: 'Custom battle', create: (): Battle => customBattle(panel.setup()) },
   ];
@@ -131,8 +133,13 @@ export function start(): void {
   const resize = (): void => {
     const ratio = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
-    canvas.width = Math.round(rect.width * ratio);
-    canvas.height = Math.round(rect.height * ratio);
+    const width = Math.round(rect.width * ratio);
+    const height = Math.round(rect.height * ratio);
+    // Setting either clears the canvas, even to the size it already is, and
+    // the observer's first call comes after a frame is drawn and before it is
+    // shown: assigned regardless, the first frame on screen is blank.
+    if (canvas.width !== width) canvas.width = width;
+    if (canvas.height !== height) canvas.height = height;
   };
   // The canvas rather than the window: showing the custom battle panel resizes it too.
   new ResizeObserver(resize).observe(canvas);

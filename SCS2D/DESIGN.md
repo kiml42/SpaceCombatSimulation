@@ -635,6 +635,19 @@ inside any one file is not contiguous.
   is no more to spare, or at once when it is given an order. A merged design remembers which of its pieces
   were fighters (`fighterPieces`), so it lifts off a fighter. The `carrier` scenario has three Dinkies take
   turns on a two-pad Tender; evolution's weight for a pad is zero, since it pays only in a fleet with fighters.
+  **A port** (`port`) is a coupling on a hull's side, never thick, with a pump of `PORT_PUMP_PER_METRE` for
+  every metre of its face. Anything but a fighter with a working port and no claw that runs low picks a
+  friend's free port as it would a pad — from a friend under control and not refuelling itself — comes to a
+  point one of its own radii off it, flown mains-first, lines up face to face on the port's axis, and closes
+  the last stretch at half a metre a second. Two ports mate when they meet within 30° of face to face at no
+  more than `PORT_SPEED` and one of the two ships was making for exactly that pair; fuel then passes, through
+  the narrower coupling, into whichever is refuelling from what the other can spare above its own
+  `refuelBelow`, and they part when it is full, nothing more can be spared, or either is given an order. Of
+  two ships docked by ports the smaller idles and the larger flies the pair. A ship does not shy away from a
+  friend coming to land on it or dock with it. The stock **Tanker** carries a great tank and a port on each
+  beam; the `tanker` scenario has two Pickets dock on either side of one. **Any dock lets go the moment an
+  armed enemy is within reach of the pair**, when the ship being filled minds danger (`refuelDanger` above
+  zero), and while one is, no claw grips, no fighter lands and no port mates for it.
 - **Next:** the rest of §8 step 8 — leaks, and pilots that know their fuel — and of step 5: a materials
   budget, and designed scenarios.
   See ROADMAP.md §8.

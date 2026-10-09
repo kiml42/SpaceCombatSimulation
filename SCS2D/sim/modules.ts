@@ -639,6 +639,15 @@ export const PAD_MASS_PER_AREA = 50;
 export const PAD_PUMP_PER_METRE = 50;
 
 /**
+ * A docking port's collar, clamps and coupling per square metre of its floor,
+ * kg/m²: machinery like a claw's, without the jaws.
+ */
+export const PORT_MASS_PER_AREA = 200;
+
+/** What a port pumps per metre of its face, kg/s, across a dock to another port. */
+export const PORT_PUMP_PER_METRE = 50;
+
+/**
  * Least a core's machinery can weigh, kg, however small the compartment.
  *
  * Every ship in this game is computer-flown, so a core is a processor, its
@@ -687,7 +696,8 @@ export type ModuleKind =
   | 'hullGun'
   | 'hullBeam'
   | 'claw'
-  | 'pad';
+  | 'pad'
+  | 'port';
 
 /**
  * Every archetype there is, in one order.
@@ -712,6 +722,7 @@ export const MODULE_KINDS: readonly ModuleKind[] = [
   'hullBeam',
   'claw',
   'pad',
+  'port',
 ];
 
 /**
@@ -1084,7 +1095,7 @@ export interface ModuleStats {
    * hull trains briskly through the very little arc it has.
    */
   swingInertia: number;
-  /** Fuel a claw or a pad pumps across what it holds, kg/s. Zero for anything else. */
+  /** Fuel a claw, a pad or a port pumps across what it holds, kg/s. Zero for anything else. */
   pumpRate: number;
 }
 
@@ -1850,10 +1861,11 @@ export function readsMain(kind: ModuleKind): boolean {
 
 /**
  * Whether `thick` means anything on this kind: everything but a turret, which
- * is held to a deck, and a pad, which is a deck a fighter above it lands on.
+ * is held to a deck, a pad, which is a deck a fighter above it lands on, and a
+ * port, which mates in the hull layer with another.
  */
 export function readsThick(kind: ModuleKind): boolean {
-  return kind !== 'turret' && kind !== 'beamTurret' && kind !== 'pad';
+  return kind !== 'turret' && kind !== 'beamTurret' && kind !== 'pad' && kind !== 'port';
 }
 
 /**
@@ -2213,6 +2225,9 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
     // carrying five of them.
     fittingMass = max(CORE_MINIMUM_FITTING_MASS, CORE_MASS_PER_AREA * capacity) + liningMass;
     fuel = max(0, interior - CORE_COMPUTING_VOLUME) * FUEL_DENSITY;
+  } else if (spec.kind === 'port') {
+    // A collar on its outward face and a coupling behind it.
+    fittingMass = PORT_MASS_PER_AREA * capacity;
   } else if (spec.kind === 'pad') {
     fittingMass = PAD_MASS_PER_AREA * capacity;
   } else if (spec.kind === 'claw') {
@@ -2393,7 +2408,14 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
     gun,
     traverseMass,
     swingInertia: mount === null ? inertia : swing,
-    pumpRate: spec.kind === 'claw' ? CLAW_PUMP_PER_METRE * width : spec.kind === 'pad' ? PAD_PUMP_PER_METRE * width : 0,
+    pumpRate:
+      spec.kind === 'claw'
+        ? CLAW_PUMP_PER_METRE * width
+        : spec.kind === 'pad'
+          ? PAD_PUMP_PER_METRE * width
+          : spec.kind === 'port'
+            ? PORT_PUMP_PER_METRE * width
+            : 0,
   };
 }
 

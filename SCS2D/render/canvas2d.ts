@@ -166,6 +166,9 @@ const CLAW_JAW_SHARE = 0.3;
 /** How far in from a pad's edge its landing square is drawn, as a share of its smaller side. */
 const PAD_MARK_INSET = 0.1;
 
+/** How much of a port's length its collar is drawn as. */
+const PORT_COLLAR_SHARE = 0.3;
+
 /** A module that has taken everything it can: still there, no longer anything. */
 const WRECKAGE = '#3c4048';
 
@@ -362,6 +365,11 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
       ctx.strokeStyle = colours.trim;
       ctx.lineWidth = inset * 0.5;
       ctx.strokeRect(-halfLength + inset, -halfWidth + inset, spec.length - 2 * inset, spec.width - 2 * inset);
+    } else if (spec.kind === 'port') {
+      // A coupling block with a collar standing proud of its outward face.
+      const collar = spec.length * PORT_COLLAR_SHARE;
+      ctx.fillRect(-halfLength, -halfWidth, spec.length - collar, spec.width);
+      ctx.fillRect(halfLength - collar, -halfWidth * 0.7, collar, spec.width * 0.7);
     } else if (spec.kind === 'claw') {
       // The pump aft, and two jaws reaching out of the bow face it grips with.
       const jaw = spec.width * CLAW_JAW_SHARE;
