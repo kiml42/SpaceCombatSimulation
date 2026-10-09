@@ -3063,9 +3063,6 @@ export class Ships {
       // meant to be carrying out — a ship told to ram would sheer off at the
       // last moment and call it seamanship.
       if (t === flying) continue;
-      // Nor a friend coming to land on it or dock with it: shying away from
-      // that is refusing it.
-      if (this.salvaging[t] === i && (this.landingPad[t]! >= 0 || this.dockPort[t]! >= 0)) continue;
       const ob = bodies.indexOf(this.bodyIds[t]!);
       // Nothing to keep clear of in something that cannot be hit.
       if (ob < 0 || ob === b || bodies.ghost[ob] === 1) continue;
@@ -3092,6 +3089,9 @@ export class Ships {
       const missY = dy + rvy * when;
       const miss = length(missX, missY);
       if (miss >= touching + room) continue;
+      // Nor a friend coming to land on it or dock with it: shying away from
+      // that is refusing it.
+      if (this.salvaging[t] === i && (this.landingPad[t]! >= 0 || this.dockPort[t]! >= 0)) continue;
 
       // Away from where the gap is going to be. A pass that would be dead on
       // has no side to go to, so the side is taken across the closing motion
@@ -4931,7 +4931,9 @@ export class Ships {
 
   /** The ship docked to this one by a port on the body they share, or -1. */
   private portPartner(i: number, b: number): number {
-    for (const seam of this.designs[i]!.seams ?? []) {
+    const seams = this.designs[i]!.seams;
+    if (seams === undefined) return -1;
+    for (const seam of seams) {
       if (seam.dock !== 'port') continue;
       const pa = this.pilotAt(b, seam.a);
       const pb = this.pilotAt(b, seam.b);
