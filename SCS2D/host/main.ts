@@ -133,8 +133,13 @@ export function start(): void {
   const resize = (): void => {
     const ratio = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
-    canvas.width = Math.round(rect.width * ratio);
-    canvas.height = Math.round(rect.height * ratio);
+    const width = Math.round(rect.width * ratio);
+    const height = Math.round(rect.height * ratio);
+    // Setting either clears the canvas, even to the size it already is, and
+    // the observer's first call comes after a frame is drawn and before it is
+    // shown: assigned regardless, the first frame on screen is blank.
+    if (canvas.width !== width) canvas.width = width;
+    if (canvas.height !== height) canvas.height = height;
   };
   // The canvas rather than the window: showing the custom battle panel resizes it too.
   new ResizeObserver(resize).observe(canvas);
