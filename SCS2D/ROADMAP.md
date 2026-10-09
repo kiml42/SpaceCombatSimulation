@@ -92,9 +92,6 @@ lead, which waits for standing orders. Velocity stays out of the fleet file; the
 
 **Step 8 — Fuel.** Tanks, burning and the editor's figures are built (DESIGN.md Status). What is left:
 
-- **Lining the stock tanks.** Leaks and sealing are built (DESIGN.md Status), and no stock ship has a lining,
-  so every hole in one stays open while there is fuel behind it. How thick a lining each wants is a design
-  call about the fleet.
 - **Pilots that know their fuel.** Nothing flies differently for running low, so a ship spends its tanks
   as freely as ever. Short-legged ships show it: the Dinky carries 68 kg (13 s flat out), the TIE and the
   Torch little more for what they push, and in `swarm` every Dinky is dry before it reaches the gunships.
