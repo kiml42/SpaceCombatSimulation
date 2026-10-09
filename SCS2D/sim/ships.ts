@@ -5096,8 +5096,14 @@ export class Ships {
   }
 
   private failSafe(i: number): void {
+    // A rider shares its host's mount state, so stops only the mounts it works.
     const turrets = this.turretIndex[i]!;
-    for (let t = 0; t < turrets.length; t++) this.turrets.stop(turrets[t]!);
+    const b = this.bodyStore === null ? -1 : this.bodyStore.indexOf(this.bodyIds[i]!);
+    const mounts = this.designs[i]!.turrets;
+    for (let t = 0; t < turrets.length; t++) {
+      if (b >= 0 && !this.ownsAt(i, b, mounts[t]!.module)) continue;
+      this.turrets.stop(turrets[t]!);
+    }
     this.throttles[i]!.fill(0);
     this.demandFx[i] = 0;
     this.demandFy[i] = 0;
