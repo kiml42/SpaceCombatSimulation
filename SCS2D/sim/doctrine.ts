@@ -333,6 +333,13 @@ export interface Approach {
    * this. Zero or less ignores them.
    */
   readonly refuelDanger: number;
+  /**
+   * The share of a full load of metal at or below which a fighter breaks off to
+   * land on a friend's pad and rearm. Zero waits until it cannot load another
+   * round; below zero never does. Either this or `refuelBelow` sends it, and
+   * the pad fills it with both.
+   */
+  readonly rearmBelow: number;
 }
 
 /**
@@ -410,6 +417,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     rangeHold: 1,
     refuelBelow: 0,
     refuelDanger: 1,
+    rearmBelow: 0,
   },
 };
 
@@ -598,6 +606,7 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
   'rangeHold',
   'refuelBelow',
   'refuelDanger',
+  'rearmBelow',
 ];
 
 /**

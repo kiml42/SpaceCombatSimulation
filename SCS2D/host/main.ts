@@ -18,6 +18,7 @@ import { hooked } from '../scenarios/hooked.js';
 import { salvage } from '../scenarios/salvage.js';
 import { scavenge } from '../scenarios/scavenge.js';
 import { carrier } from '../scenarios/carrier.js';
+import { rearm } from '../scenarios/rearm.js';
 import { tanker } from '../scenarios/tanker.js';
 import { customBattle, type CustomBattle } from '../scenarios/customBattle.js';
 import { customPanel } from './customPanel.js';
@@ -76,6 +77,7 @@ export function start(): void {
     { name: 'Salvage', create: () => salvage(SEED) },
     { name: 'Scavenge', create: () => scavenge(SEED) },
     { name: 'Carrier', create: () => carrier(SEED) },
+    { name: 'Rearm', create: () => rearm(SEED) },
     { name: 'Tanker', create: () => tanker(SEED) },
     // Last, and built from the panel's setup rather than from code.
     { name: 'Custom battle', create: (): Battle => customBattle(panel.setup()) },

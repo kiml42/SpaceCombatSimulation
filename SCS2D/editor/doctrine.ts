@@ -75,6 +75,7 @@ const APPROACH_ROWS: readonly DoctrineRow[] = [
   { field: 'burnWeight', label: 'turns to burn', hint: 'How much it would rather turn its main engines along the way it wants to go than keep its guns on target, for each share of the change it wants the turn would make sooner, turn included. Never turns when its guns-on thrust is enough, or to dodge what it cannot turn in time for. 0 never turns from its guns', step: 0.5 },
   { field: 'rangeHold', label: 'holds guns on', hint: 'How much it would rather keep its guns on target: all of it inside the band it holds, falling away the further out it is', step: 0.5 },
   { field: 'refuelBelow', label: 'refuels below', hint: 'The share of a full load at or below which a ship with a claw breaks off to drink from a wreck or a disarmed enemy, going from one to the next until it is full. 0 never does', step: 0.05 },
+  { field: 'rearmBelow', label: 'rearms below', hint: 'The share of a full load of metal at or below which a fighter breaks off to land on a friend’s pad and rearm, taking on fuel as well. 0 waits until it cannot load another round; below 0 never does', step: 0.05 },
   { field: 'refuelDanger', label: 'wary of', hint: 'How much an armed enemy within reach of a wreck puts it off: each one divides what the wreck is worth by one more of this. 0 ignores them', step: 0.5 },
   { field: 'ramArmed', label: 'rams armed', hint: 'The share of its own main guns still working at or below which it will ram: 0 only once it cannot shoot, 1 whenever it is close enough', step: 0.1 },
 ];
@@ -289,16 +290,24 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
     ],
   },
   {
-    title: 'Refuelling',
+    title: 'Refuelling and rearming',
     groups: [
       {
-        title: 'Refuelling',
+        title: 'Refuelling and rearming',
         entries: [
           entry('approach', 'refuelBelow', {
             absolute: (v) =>
               v.approach.refuelBelow > 0 ? `below ${Math.round(v.approach.refuelBelow * 100)}% full, with a claw` : 'never',
           }),
-          entry('approach', 'refuelDanger', { shown: (v) => v.approach.refuelBelow > 0 }),
+          entry('approach', 'rearmBelow', {
+            absolute: (v) =>
+              v.approach.rearmBelow < 0
+                ? 'never'
+                : v.approach.rearmBelow > 0
+                  ? `below ${Math.round(v.approach.rearmBelow * 100)}% full, on a pad`
+                  : 'once it cannot load a round, on a pad',
+          }),
+          entry('approach', 'refuelDanger', { shown: (v) => v.approach.refuelBelow > 0 || v.approach.rearmBelow >= 0 }),
         ],
       },
     ],

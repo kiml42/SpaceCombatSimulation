@@ -770,6 +770,8 @@ export class Ships {
   private readonly forageAt: number[] = [];
   /** Whether each ship is refuelling: from running low until its claw's piece is full. */
   private readonly refuelling: number[] = [];
+  /** Whether each fighter is rearming: from running low on metal until it is full. */
+  private readonly rearming: number[] = [];
   /** The world tick `command` is flying. */
   private now = 0;
   /** The tick each ship last touched what it means to drink from without holding it. */
@@ -1177,6 +1179,7 @@ export class Ships {
     this.salvaging.push(NO_TARGET);
     this.forageAt.push(i);
     this.refuelling.push(0);
+    this.rearming.push(0);
     this.touchedSource.push(-Infinity);
     this.landingPad.push(-1);
     this.dockPort.push(-1);
@@ -3617,12 +3620,17 @@ export class Ships {
               if (this.fuel.pieceRoom(b, to) > 0 && this.fuel.pieceHeld(b, from) > this.reserve(b, from)) continue;
             }
           } else {
-            // A pad fills what has landed on it, from what its own ship can spare,
-            // and lets go at once of a fighter given an order.
+            // A pad fills what has landed on it with fuel and metal together,
+            // each from what its own ship can spare, and lets go once neither
+            // has more to give, or at once of a fighter given an order.
             const spare = this.fuel.pieceHeld(b, seam.a) - this.reserve(b, seam.a);
             if (spare > 0 && this.fuel.transfer(b, seam.a, seam.b, rate < spare ? rate : spare) > 0) moved = true;
+            const spareMetal = this.metal.pieceHeld(b, seam.a) - this.metalReserve(b, seam.a);
+            if (spareMetal > 0 && this.metal.transfer(b, seam.a, seam.b, rate < spareMetal ? rate : spareMetal) > 0) moved = true;
             const ordered = (this.orders[this.pilotAt(b, seam.b)]?.length ?? 0) > 0;
-            if (!ordered && this.fuel.pieceRoom(b, seam.b) > 0 && this.fuel.pieceHeld(b, seam.a) > this.reserve(b, seam.a)) continue;
+            const fuelLeft = this.fuel.pieceRoom(b, seam.b) > 0 && this.fuel.pieceHeld(b, seam.a) > this.reserve(b, seam.a);
+            const metalLeft = this.metal.pieceRoom(b, seam.b) > 0 && this.metal.pieceHeld(b, seam.a) > this.metalReserve(b, seam.a);
+            if (!ordered && (fuelLeft || metalLeft)) continue;
           }
         }
         // Done: the dock lets go, which `sever` reads as the seam cut through.
@@ -3662,6 +3670,13 @@ export class Ships {
     const owner = this.pilotAt(b, m);
     const below = owner < 0 ? 0 : this.designs[owner]!.doctrine.approach.refuelBelow;
     return below > 0 ? below * (this.fuel.pieceHeld(b, m) + this.fuel.pieceRoom(b, m)) : 0;
+  }
+
+  /** The same for metal: its doctrine's `rearmBelow` of a full load. */
+  private metalReserve(b: number, m: number): number {
+    const owner = this.pilotAt(b, m);
+    const below = owner < 0 ? 0 : this.designs[owner]!.doctrine.approach.rearmBelow;
+    return below > 0 ? below * (this.metal.pieceHeld(b, m) + this.metal.pieceRoom(b, m)) : 0;
   }
 
   /**
@@ -4611,13 +4626,14 @@ export class Ships {
 
   /** With no working core, every engine cuts out and every turret brakes to a stop. */
   /**
-   * Break off for fuel, or go back to the fight.
+   * Break off for fuel or metal, or go back to the fight.
    *
    * A ship with a working claw goes looking once its claw's piece of hull is
    * down to its doctrine's `refuelBelow` of a full load, and keeps at it,
    * source after source, until it is full; then the fight has it back. Where
    * to drink is reconsidered as often as a fight would be, and sooner when the
-   * source is gone or dry.
+   * source is gone or dry. A fighter also goes to a pad once its metal is down
+   * to `rearmBelow`, and whichever sent it, it comes back for both.
    */
   private forage(world: World, bodies: Bodies, i: number): void {
     const b = bodies.indexOf(this.bodyIds[i]!);
@@ -4629,11 +4645,13 @@ export class Ships {
     const design = this.designs[i]!;
     const approach = design.doctrine.approach;
     // An order given outranks it, as it outranks the rest of doctrine.
-    const willing = b >= 0 && approach.refuelBelow > 0 && this.orders[i]!.length === 0;
+    const free = b >= 0 && this.orders[i]!.length === 0;
+    const willing = free && approach.refuelBelow > 0;
     const claw = willing ? this.workingClaw(i, b) : -1;
     // A fighter with no claw lands on a friend's pad instead, and anything
-    // else with a port of its own docks with a friend's.
-    const lands = willing && claw < 0 && design.fighter;
+    // else with a port of its own docks with a friend's. Only a pad rearms.
+    const rearms = free && claw < 0 && design.fighter && approach.rearmBelow >= 0;
+    const lands = (willing || rearms) && claw < 0 && design.fighter;
     const port = willing && claw < 0 && !design.fighter ? this.workingPort(bodies, i, b) : -1;
     const own = claw >= 0 ? claw : lands ? (design.cores[0] ?? 0) : port;
     if (own < 0) {
@@ -4641,11 +4659,16 @@ export class Ships {
       return;
     }
     const ownHeld = this.fuel.pieceHeld(b, own);
-    const room = this.fuel.pieceRoom(b, own);
+    const room = willing ? this.fuel.pieceRoom(b, own) : 0;
     const full = ownHeld + room;
-    const hungry = full > 0 && room > 0 && (ownHeld <= approach.refuelBelow * full || this.refuelling[i] === 1);
-    this.refuelling[i] = hungry ? 1 : 0;
-    if (!hungry) {
+    const metalRoom = rearms ? this.metal.pieceRoom(b, own) : 0;
+    const thirsty = full > 0 && room > 0 && ownHeld <= approach.refuelBelow * full;
+    const empty = metalRoom > 0 && this.outOfRounds(i, b, own, approach.rearmBelow);
+    const going =
+      thirsty || empty || (this.refuelling[i] === 1 && room > 0) || (this.rearming[i] === 1 && metalRoom > 0);
+    this.refuelling[i] = going && room > 0 ? 1 : 0;
+    this.rearming[i] = going && metalRoom > 0 ? 1 : 0;
+    if (!going) {
       this.stopForaging(i);
       return;
     }
@@ -4668,7 +4691,7 @@ export class Ships {
     if (world.tick < this.forageAt[i]!) return;
     this.forageAt[i] = world.tick + this.rethinkTicks(world, design.mass);
     if (lands) {
-      this.pickPad(bodies, i, b, room);
+      this.pickPad(bodies, i, b, room, metalRoom);
     } else if (port >= 0) {
       this.pickPort(bodies, i, b, port, room);
     } else {
@@ -4684,6 +4707,24 @@ export class Ships {
     this.dockPort[i] = -1;
     this.ownPort[i] = -1;
     this.refuelling[i] = 0;
+    this.rearming[i] = 0;
+  }
+
+  /**
+   * Whether ship `i` is down to its doctrine's `below` of a full load of metal
+   * on the piece of hull module `own` is on: at zero, too little for any of its
+   * guns there to load a round. False for a ship with no gun there to feed.
+   */
+  private outOfRounds(i: number, b: number, own: number, below: number): boolean {
+    const design = this.designs[i]!;
+    let round = Infinity;
+    for (const mount of design.turrets) {
+      const kg = mount.gun.roundMass;
+      if (kg > 0 && kg < round && this.metal.pieceAt(b, mount.module) === this.metal.pieceAt(b, own)) round = kg;
+    }
+    if (round === Infinity) return false;
+    const held = this.metal.pieceHeld(b, own);
+    return held < round || held <= below * (held + this.metal.pieceRoom(b, own));
   }
 
   /** How many armed enemies of ship `i` are within their own reach of body `tb`. */
@@ -4710,11 +4751,12 @@ export class Ships {
   }
 
   /**
-   * The best friend's pad to land on, by the fuel its ship can spare for the
-   * time it would take to get there and be filled, put off by armed enemies
-   * near it as a source is, and by every other fighter already making for it.
+   * The best friend's pad to land on, by the fuel and metal its ship can spare
+   * for the time it would take to get there and be filled, put off by armed
+   * enemies near it as a source is, and by every other fighter already making
+   * for it.
    */
-  private pickPad(bodies: Bodies, i: number, b: number, room: number): void {
+  private pickPad(bodies: Bodies, i: number, b: number, room: number, metalRoom: number): void {
     const approach = this.designs[i]!.doctrine.approach;
     this.salvaging[i] = NO_TARGET;
     this.landingPad[i] = -1;
@@ -4731,9 +4773,12 @@ export class Ships {
       for (let pad = 0; pad < design.modules.length; pad++) {
         if (design.modules[pad]!.spec.kind !== 'pad' || !this.padFree(bodies, t, pad)) continue;
         const spare = this.fuel.pieceHeld(tb, pad) - this.reserve(tb, pad);
+        const spareMetal = this.metal.pieceHeld(tb, pad) - this.metalReserve(tb, pad);
         const pump = design.modules[pad]!.stats.pumpRate;
-        if (!(spare > 0) || !(pump > 0)) continue;
-        const take = spare < room ? spare : room;
+        const fuelTake = max(0, min(spare, room));
+        const metalTake = max(0, min(spareMetal, metalRoom));
+        const take = fuelTake + metalTake;
+        if (!(take > 0) || !(pump > 0)) continue;
         const gap = length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!);
         if (danger < 0) danger = approach.refuelDanger > 0 ? this.dangerNear(bodies, i, tb) : 0;
         // A pad another fighter is already making for is a wait behind it.
@@ -4741,7 +4786,8 @@ export class Ships {
         for (let o = 0; o < this.alive.length; o++) {
           if (o !== i && this.alive[o] === 1 && this.salvaging[o] === t && this.landingPad[o] === pad) queue++;
         }
-        const score = take / (gap / approach.approachSpeed + take / pump) / (1 + max(0, approach.refuelDanger) * danger) / (1 + queue);
+        // Fuel and metal come aboard together, each at the pad's rate.
+        const score = take / (gap / approach.approachSpeed + max(fuelTake, metalTake) / pump) / (1 + max(0, approach.refuelDanger) * danger) / (1 + queue);
         if (score > bestScore) {
           bestScore = score;
           this.salvaging[i] = t;
