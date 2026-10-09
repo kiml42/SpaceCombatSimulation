@@ -1,5 +1,6 @@
 import {
   blueprintProblem,
+  budgetMass,
   compileDraft,
   contactWidth,
   isInstance,
@@ -454,7 +455,7 @@ function buildable(blueprint: Blueprint, massBudget: number): boolean {
   // Mass as it sets out is what a ship costs, there being no abstract points
   // value for anything (DESIGN.md §2), so fuel it starts without is saved.
   // Compiling is the only way to know it.
-  return compileDraft(blueprint).launchMass <= massBudget;
+  return budgetMass(compileDraft(blueprint)) <= massBudget;
 }
 
 // -- The layout, in a form that can be edited ------------------------------
@@ -514,6 +515,8 @@ function cloneBlueprint(parent: Blueprint): Draft {
   };
   if (parent.notes !== undefined) blueprint.notes = parent.notes;
   if (parent.fighter === true) blueprint.fighter = true;
+  // Its fighters ride along unbred, as the fleet's designs do.
+  if (parent.hangar !== undefined) blueprint.hangar = parent.hangar;
   if (Object.keys(assemblies).length > 0) blueprint.assemblies = assemblies;
 
   return { blueprint, lists, assemblies, doctrine };

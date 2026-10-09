@@ -635,6 +635,11 @@ inside any one file is not contiguous.
   is no more to spare, or at once when it is given an order. A merged design remembers which of its pieces
   were fighters (`fighterPieces`), so it lifts off a fighter. The `carrier` scenario has three Dinkies take
   turns on a two-pad Tender; evolution's weight for a pad is zero, since it pays only in a fleet with fighters.
+  **A pad may set out with a fighter docked on it** (`ModuleSpec.docked`, naming a copy in the blueprint's
+  `hangar`, as a fleet carries its designs). It is spawned lying along the pad, centred on it, and welded as
+  one that had landed, so it is topped up from the carrier and lifts off once full. A fighter too big for its
+  pad, or one that is missing or not a fighter, is a blueprint problem, and a budget counts the carrier and
+  everything it sets out with (`budgetMass`).
   **A port** (`port`) is a coupling on a hull's side, never thick, with a pump of `PORT_PUMP_PER_METRE` for
   every metre of its face. Anything but a fighter with a working port and no claw that runs low picks a
   friend's free port as it would a pad — from a friend under control and not refuelling itself — comes to a

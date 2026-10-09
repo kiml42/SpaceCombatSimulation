@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  blueprintProblems,
+  budgetMass,
   compileBlueprint,
+  parseBlueprint,
+  serialiseBlueprint,
   inWeaponsLayer,
   moduleStats,
   PAD_PUMP_PER_METRE,
@@ -11,8 +15,9 @@ import {
   type ShipDesign,
 } from '../sim/index.js';
 import { makeBattle } from '../scenarios/battle.js';
-import { DINKY } from '../scenarios/blueprints.js';
+import { CORVETTE, DINKY } from '../scenarios/blueprints.js';
 import { OrderCancelCondition } from '../sim/ships.js';
+import { dockFighter } from '../editor/edit.js';
 
 /** Fighters landing on a friend's pad to be filled from it (ROADMAP.md §8 step 9). */
 
@@ -161,5 +166,73 @@ describe('a fighter low on fuel', () => {
     }
     expect(both).toBe(false);
     expect([...landed].sort()).toEqual([run.f, run.g].sort());
+  });
+});
+
+/** A carrier whose pad sets out with `fighter` docked on it. */
+function laden(pad = 20, fighter: Blueprint = DINKY): Blueprint {
+  const blueprint: Blueprint = {
+    name: 'Carrier',
+    modules: [
+      { kind: 'core', x: 0, y: 0, length: 6, width: 6 },
+      { kind: 'tank', x: -13, y: 0, length: 20, width: 10 },
+      { kind: 'pad', x: 3 + pad / 2, y: 0, length: pad, width: pad, docked: fighter.name },
+    ],
+    hangar: { [fighter.name]: fighter },
+  };
+  return blueprint;
+}
+
+describe('a pad set out with a fighter docked on it', () => {
+  it('compiles with the fighter aboard, and costs a budget both', () => {
+    const design = compileBlueprint(laden());
+    expect(design.aboard?.map((a) => a.pad)).toEqual([PAD]);
+    const dinky = compileBlueprint(DINKY);
+    expect(budgetMass(design)).toBeCloseTo(design.launchMass + dinky.launchMass, 6);
+  });
+
+  it('is a problem when the fighter is too big for it, or it is shrunk under one', () => {
+    expect(blueprintProblems(laden(4)).some((p) => /too big for this pad/.test(p))).toBe(true);
+    const fits = laden();
+    const shrunk: Blueprint = {
+      ...fits,
+      modules: fits.modules.map((m, i) => (i === PAD ? { ...m, length: 4, width: 4, x: 5 } : m)),
+    };
+    expect(blueprintProblems(fits)).toEqual([]);
+    expect(blueprintProblems(shrunk).some((p) => /module 2 — pad: Dinky .* too big/.test(p))).toBe(true);
+  });
+
+  it('is a problem when what it names is missing, or not a fighter', () => {
+    const missing: Blueprint = { ...laden(), hangar: {} };
+    expect(blueprintProblems(missing).some((p) => /no fighter named Dinky/.test(p))).toBe(true);
+    expect(blueprintProblems(laden(60, CORVETTE)).some((p) => /is not a fighter/.test(p))).toBe(true);
+  });
+
+  it('is set and cleared in the editor, the hangar keeping only what a pad names', () => {
+    const bare: Blueprint = { ...laden(), hangar: {} };
+    expect(blueprintProblems(bare).some((p) => /no fighter named Dinky/.test(p))).toBe(true);
+    const set = dockFighter(bare, [{ index: PAD, copy: 0 }], DINKY)!;
+    expect(blueprintProblems(set)).toEqual([]);
+    expect(Object.keys(set.hangar ?? {})).toEqual(['Dinky']);
+    const cleared = dockFighter(set, [{ index: PAD, copy: 0 }], null)!;
+    expect(cleared.hangar).toBeUndefined();
+    expect(compileBlueprint(cleared).aboard).toBeUndefined();
+  });
+
+  it('keeps its fighter through a file', () => {
+    const back = parseBlueprint(JSON.parse(JSON.stringify(serialiseBlueprint(laden()))));
+    expect(back.hangar?.['Dinky']?.fighter).toBe(true);
+    expect(compileBlueprint(back).aboard?.length).toBe(1);
+  });
+
+  it('spawns it docked, and it lifts off full and a fighter, touching nothing', () => {
+    const run = makeBattle({ seed: 3 }, (ships, world) => ({ c: ships.spawn(world, { design: compileBlueprint(laden()), x: 0, y: 0, angle: 0.3, vx: 5 }) }));
+    const f = run.c + 1;
+    expect(run.ships.body(f)).toBe(run.ships.body(run.c));
+    for (let s = 0; s < 60 && run.ships.body(f) === run.ships.body(run.c); s++) run.step();
+    expect(run.ships.body(f)).not.toBe(run.ships.body(run.c));
+    expect(run.ships.design(f).fighter).toBe(true);
+    expect(run.ships.teamOf(f)).toBe(run.ships.teamOf(run.c));
+    expect(run.totalContacts).toBe(0);
   });
 });

@@ -19,6 +19,7 @@ import {
   readsSealing,
   readsDrainPriority,
   readsFill,
+  readsDocked,
   readsThick,
   readsFuse,
   readsWeapon,
@@ -98,6 +99,7 @@ const MODULE_KEYS: readonly string[] = [
   'sealing',
   'drainPriority',
   'fill',
+  'docked',
   'targeting',
   'notes',
 ];
@@ -118,7 +120,7 @@ const STEP_KEYS: readonly string[] = ['x', 'y', 'angle'];
 
 const ASSEMBLY_KEYS: readonly string[] = ['modules', 'notes'];
 
-const FILE_KEYS: readonly string[] = ['formatVersion', 'name', 'notes', 'fighter', 'doctrine', 'assemblies', 'modules'];
+const FILE_KEYS: readonly string[] = ['formatVersion', 'name', 'notes', 'fighter', 'doctrine', 'hangar', 'assemblies', 'modules'];
 
 export function degreesToRadians(degrees: number): number {
   return (degrees / 180) * PI;
@@ -224,6 +226,7 @@ function moduleShapeProblem(value: Record<string, unknown>, where: string): stri
     optionalNumberProblem(value['sealing'], `${where}: sealing`) ??
     optionalNumberProblem(value['drainPriority'], `${where}: drainPriority`) ??
     optionalNumberProblem(value['fill'], `${where}: fill`) ??
+    optionalStringProblem(value['docked'], `${where}: docked`) ??
     targetingProblem(value['targeting'], `${where}: targeting`) ??
     optionalStringProblem(value['notes'], `${where}: notes`)
   );
@@ -251,6 +254,7 @@ function moduleReads(kind: ModuleKind): readonly string[] {
     if (key === 'sealing') return readsSealing(kind);
     if (key === 'drainPriority') return readsDrainPriority(kind);
     if (key === 'fill') return readsFill(kind);
+    if (key === 'docked') return readsDocked(kind);
     if (key === 'vertices') return canShape(kind);
     return true;
   });
@@ -352,6 +356,17 @@ function assembliesShapeProblem(value: unknown): string | null {
  * welded to nothing is perfectly readable, and refusing to read it is what
  * makes such a ship impossible to open and put right.
  */
+/** What makes a hangar unreadable, or null: an object of blueprint files, by name. */
+function hangarProblem(value: unknown): string | null {
+  if (value === undefined) return null;
+  if (!isObject(value)) return `hangar must be an object, got ${JSON.stringify(value)}`;
+  for (const [name, file] of Object.entries(value)) {
+    const problem = blueprintFileProblem(file);
+    if (problem !== null) return `hangar, ${name}: ${problem}`;
+  }
+  return null;
+}
+
 export function blueprintFileProblem(value: unknown): string | null {
   if (!isObject(value)) return `a blueprint file must be an object, got ${JSON.stringify(value)}`;
 
@@ -374,6 +389,9 @@ export function blueprintFileProblem(value: unknown): string | null {
   const doctrine = doctrineProblem(value['doctrine']);
   if (doctrine !== null) return doctrine;
 
+  const hangar = hangarProblem(value['hangar']);
+  if (hangar !== null) return hangar;
+
   const assemblies = assembliesShapeProblem(value['assemblies']);
   if (assemblies !== null) return assemblies;
 
@@ -395,6 +413,13 @@ function toBlueprint(file: Record<string, unknown>): Blueprint {
   }
   const unread = unreadOf(file, FILE_KEYS);
   if (unread !== undefined) blueprint.unread = unread;
+
+  const rawHangar = file['hangar'] as Record<string, Record<string, unknown>> | undefined;
+  if (rawHangar !== undefined) {
+    const hangar: Record<string, Blueprint> = {};
+    for (const [name, raw] of Object.entries(rawHangar)) hangar[name] = toBlueprint(raw);
+    blueprint.hangar = hangar;
+  }
 
   const rawAssemblies = file['assemblies'] as Record<string, Record<string, unknown>> | undefined;
   if (rawAssemblies !== undefined) {
@@ -470,6 +495,7 @@ function toPlacements(raws: unknown[]): Placement[] {
     if (read('sealing')) spec.sealing = raw['sealing'] as number;
     if (read('drainPriority')) spec.drainPriority = raw['drainPriority'] as number;
     if (read('fill')) spec.fill = raw['fill'] as number;
+    if (read('docked')) spec.docked = raw['docked'] as string;
     // Copied whole, so a key the block does not know goes back out with it.
     if (raw['targeting'] !== undefined) spec.targeting = { ...(raw['targeting'] as Partial<Targeting>) };
     if (raw['notes'] !== undefined) spec.notes = raw['notes'] as string;
@@ -523,6 +549,12 @@ export function serialiseBlueprint(blueprint: Blueprint): Record<string, unknown
       blueprint.unreadDoctrine,
     );
     if (doctrine !== undefined) file['doctrine'] = doctrine;
+  }
+
+  if (blueprint.hangar !== undefined) {
+    const hangar: Record<string, unknown> = {};
+    for (const [name, fighter] of Object.entries(blueprint.hangar)) hangar[name] = serialiseBlueprint(fighter);
+    file['hangar'] = hangar;
   }
 
   if (blueprint.assemblies !== undefined) {
@@ -658,6 +690,7 @@ function serialisePlacement(placement: Placement): Record<string, unknown> {
     raw['drainPriority'] = placement.drainPriority;
   }
   if (placement.fill !== undefined && readsFill(placement.kind)) raw['fill'] = placement.fill;
+  if (placement.docked !== undefined && readsDocked(placement.kind)) raw['docked'] = placement.docked;
   // Written as authored: a mount's block is already only its differences from
   // the ship it is on, so there is nothing to subtract.
   if (placement.targeting !== undefined) raw['targeting'] = { ...placement.targeting };
