@@ -303,6 +303,44 @@ describe('welding on a slow contact', () => {
     });
   });
 
+  it('leaves the mounts of a ship carrying a hulk aimed where it aims them', () => {
+    // A hulk hooked on fails safe every step, and shares the carrier's mount
+    // state: stopping the carrier's guns where they point would call them on
+    // target, and the bow gun would fire with the enemy well off its arc.
+    const gunship = compileBlueprint(GUNSHIP);
+    const tail = Math.min(...corvette.modules.map((m) => m.x - m.spec.length / 2));
+    const stern = corvette.modules.findIndex((m) => m.x - m.spec.length / 2 === tail);
+    const pair: number[] = [];
+    const run = makeBattle({ seed: 1, projectiles: 256, beams: 64 }, (ships, world) => {
+      const gap = -2 * tail + 0.5;
+      for (const [x, angle, vx] of [[-gap / 2, Math.PI, 0.5], [gap / 2, 0, -0.5]] as const) {
+        const ship = ships.spawn(world, { design: corvette, x, y: 0, angle, vx });
+        wear(ships, world, ship, stern, RAGGED_INTEGRITY * 0.5);
+        pair.push(ship);
+      }
+      wreck(ships, world, pair[1]!);
+      ships.spawn(world, { design: gunship, x: 0, y: 1500, team: 1 });
+    });
+    for (let s = 0; s < 600 && run.totalWelded === 0; s++) run.step();
+    expect(run.ships.body(pair[0]!)).toBe(run.ships.body(pair[1]!));
+    expect(run.ships.hasControl(pair[1]!)).toBe(false);
+    // Rounds from the shared hull only: the gunship is firing too.
+    const { projectiles, world } = run;
+    const ours = (): Set<number> => {
+      const body = world.bodies.indexOf(run.ships.body(pair[0]!));
+      const out = new Set<number>();
+      for (let p = 0; p < projectiles.highWater; p++) {
+        if (projectiles.alive[p] === 1 && projectiles.owner[p] === body) out.add(p);
+      }
+      return out;
+    };
+    for (let s = 0; s < 30; s++) {
+      const before = ours();
+      run.step();
+      expect([...ours()].filter((p) => !before.has(p))).toEqual([]);
+    }
+  });
+
   it('holds fire on the step a weld remakes the mounts, rather than firing wherever they point', () => {
     // Two allies hooking stern to stern with an enemy off their beam, their
     // guns already trained on it. The weld lands between aiming and firing.
