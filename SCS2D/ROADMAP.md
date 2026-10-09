@@ -103,15 +103,16 @@ lead, which waits for standing orders. Velocity stays out of the fleet file; the
 
 - **Repair** — a ship spending metal on its own damaged modules, the second use the step names.
 - **Magazines: guns turning metal into rounds ahead of firing** (§12). Wanted, not yet settled in shape.
-- **Pilots that know their ammunition.** Nothing fights differently for running low: a ship fires as freely
-  with its last round as its first, and a gun that is dry just stops. Fire discipline by what is left, and
-  breaking off to rearm, belong with withdrawal (step 3) and with harvesting (step 13).
+- **Pilots that know their ammunition.** Only a fighter breaks off to rearm, and only on a pad. Nothing else
+  fights differently for running low: a ship fires as freely with its last round as its first, and a gun
+  that is dry just stops. Fire discipline by what is left belongs with withdrawal (step 3).
 - **Stocking the stock ships.** Only what a core carries, and the two fighters' new holds. The X-Wing's core
   holds about fourteen of its rounds and the Y-Wing's under two of its main gun's; every unarmed ship
   carries metal it cannot spend, since a core's share is fixed. How much each wants is a design call about
   the fleet.
-- **Metal through a dock.** A claw, pad or port pumps fuel only; metal will want its own transfer across the
-  same seams, which the store already offers (`Store.transfer`).
+- **Metal through a claw or a port.** A pad pumps metal as well as fuel; a claw and a port pump fuel only.
+  A claw drinking metal from a wreck is step 13's; a port is the same change as the pad's, once a ship
+  other than a fighter has a reason to rearm.
 
 ### Not started — in order
 

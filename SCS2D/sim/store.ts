@@ -127,6 +127,11 @@ export class Store {
     return taken > 0 ? this.put(bodyIndex, sink, taken) : 0;
   }
 
+  /** Which piece of hull a module is on, or -1 for a body with no record. */
+  pieceAt(bodyIndex: number, module: number): number {
+    return this.pieceOf[bodyIndex]?.[module] ?? -1;
+  }
+
   /** What is held on the piece of hull a module is on, kg. */
   pieceHeld(bodyIndex: number, module: number): number {
     const pieceOf = this.pieceOf[bodyIndex];

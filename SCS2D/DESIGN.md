@@ -664,6 +664,12 @@ inside any one file is not contiguous.
   no failure mode of its own. The editor has a Hold and shows a module's metal and a ship's; the battle draws a
   hold's gauge as it draws a tank's; evolution draws holds at a weight of two. The Dinky and the TIE, whose
   cores are too small to carry any, each give a slice of a tank to a hold.
+  **A fighter rearms on a pad.** Once its metal is down to its doctrine's `rearmBelow` of a full load — at
+  zero, the default, once it cannot load another round; below zero, never — it makes for a friend's pad as
+  it would for fuel, and whichever of the two thresholds sent it, it comes back for both. A pad pumps metal
+  alongside fuel, each at its rate, from what the carrier can spare above its own `rearmBelow`, and lets go
+  once neither has more to give. A pad is scored by the fuel and metal it would hand over. The `rearm`
+  scenario has three Dinkies fire themselves dry at a hulk and take turns on a Tender's two pads.
 - **Next:** the rest of §8 step 8 — leaks, and pilots that know their fuel — and of step 5: a materials
   budget, and designed scenarios.
   See ROADMAP.md §8.
