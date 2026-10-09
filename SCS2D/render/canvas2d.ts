@@ -1085,9 +1085,14 @@ export function draw(
   drawGrid(ctx, camera, widthPx, heightPx);
   drawWells(ctx, snapshot, camera);
 
-  for (let i = 0; i < snapshot.shipCount; i++) {
-    const ship = snapshot.ships[i]!;
-    drawShip(ctx, ship, camera.scale, selected < 0 || ship.body === selected ? arcs : 'none');
+  // Fighters after every other hull: they fly above the deck, so a capital
+  // spawned after them must not be painted over them.
+  for (const fighters of [false, true]) {
+    for (let i = 0; i < snapshot.shipCount; i++) {
+      const ship = snapshot.ships[i]!;
+      if (ship.design.fighter !== fighters) continue;
+      drawShip(ctx, ship, camera.scale, selected < 0 || ship.body === selected ? arcs : 'none');
+    }
   }
 
   // Icons in a pass of their own, after every hull: an icon stands for the
