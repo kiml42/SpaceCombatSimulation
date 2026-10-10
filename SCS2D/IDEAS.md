@@ -29,6 +29,8 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Beams from thick hull beams could be treated as a separate beam in each layer. Damage against a thick module stays the same, but is halved against a hull layer module or fighter, with the other half continuing, able to hit something else.
 - Hysteresis on decision to use attack or thrust orientation, to avoid flip-flopping.
 - Ability for fighters to stay docked until ordered to leave, or an enemy comes within a specified range
+- Fighters should be able to dip into the hull layer (like they do for ramming) so they can fire beams and non-fragmenting projectiles at the hulls of ships. The balancing cost of this is that they can be hit by anything.
+- Ships shouldn't fire engines that make them spin faster while trying to cancel out a spin. The pilot trying to hold orientation should generally win.
 
 ## Editor
 - Test button - switches to the game view, with the ship loaded into a default scene with one other stock ship, each given basic orders to attack each other.
