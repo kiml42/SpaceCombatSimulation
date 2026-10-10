@@ -2,6 +2,7 @@ import {
   hullMountGeometry,
   IMPACT_BEAM,
   IMPACT_BURST,
+  IMPACT_MUZZLE,
   isHullMount,
   math,
   nozzleOffset,
@@ -29,7 +30,7 @@ import { NEUTRAL, shipColours, teamName } from './teams.js';
 
 export { teamColour } from './teams.js';
 import { beamAlpha, BEAM_GLOW_ALPHA, flooredFade, legibleWidth, plumeAlpha, tracerAlpha } from './strokes.js';
-import { flashExtent, flashFade, flashPosition, type Flashes } from './flashes.js';
+import { flashExtent, flashFade, flashPosition, muzzleWedge, type Flashes } from './flashes.js';
 import { clipToStart, exposureEnds, flashSamples, shutterWeight } from './exposure.js';
 import { sprite } from './sprites.js';
 import { iconAlpha, ICON_OUTLINE, ICON_PX } from './icons.js';
@@ -204,6 +205,10 @@ const BURST_FLASH_CORE = '#fff0c8';
 const BURST_FLASH_GLOW = '#ff7a2e';
 /** How far a flash's glow reaches, in its core's radii. */
 const FLASH_GLOW_SHARE = 2.2;
+/** A muzzle flash's glow, in its core's widths: tight, so the wedge keeps its shape. */
+const MUZZLE_GLOW_SHARE = 1.5;
+/** Most discs a muzzle flash's wedge is drawn with. */
+const MAX_WEDGE_DISCS = 32;
 /** How much of a blast's width its bright core fills; the glow is the rest. */
 const BLAST_CORE_SHARE = 0.45;
 
@@ -1307,10 +1312,10 @@ function drawFlashes(
   for (let i = 0; i < flashes.count; i++) {
     const kind = flashes.kind[i]!;
     const glow = sprite('halo', kind === IMPACT_BEAM ? BEAM_FLASH_GLOW : kind === IMPACT_BURST ? BURST_FLASH_GLOW : FLASH_GLOW);
-    // A burst is a blast of gas rather than a spot of hot metal, so its core is
-    // soft: as bright in the middle, fading out to its edge.
+    // A burst or a muzzle is a blast of gas rather than a spot of hot metal, so
+    // its core is soft: as bright in the middle, fading out to its edge.
     const core = sprite(
-      kind === IMPACT_BURST ? 'halo' : 'disc',
+      kind === IMPACT_BURST || kind === IMPACT_MUZZLE ? 'halo' : 'disc',
       kind === IMPACT_BEAM ? BEAM_FLASH_CORE : kind === IMPACT_BURST ? BURST_FLASH_CORE : FLASH_CORE,
     );
     if (glow === null || core === null) continue;
@@ -1334,6 +1339,17 @@ function drawFlashes(
         : flashPosition(flashes.localX[i]!, flashes.localY[i]!, anchor);
     const rvx = (anchor === null ? flashes.vx[i]! : anchor.vx) - cvx;
     const rvy = (anchor === null ? flashes.vy[i]! : anchor.vy) - cvy;
+    // The way it points, turned with the hull it rides.
+    let dirX = flashes.dirX[i]!;
+    let dirY = flashes.dirY[i]!;
+    if (anchor !== null) {
+      const c = cos(anchor.angle);
+      const sn = sin(anchor.angle);
+      const lx = dirX;
+      dirX = lx * c - dirY * sn;
+      dirY = lx * sn + dirY * c;
+    }
+    const pointing = dirX !== 0 || dirY !== 0;
 
     const radius = flashes.radius[i]!;
     const growth = flashes.growth[i]!;
@@ -1364,6 +1380,11 @@ function drawFlashes(
       const ahead = t - age;
       const x = at.x + rvx * ahead;
       const y = at.y + rvy * ahead;
+      if (pointing) {
+        ctx.setTransform(base);
+        drawWedge(ctx, glow, core, x, y, dirX, dirY, flashes.radius[i]!, t, lifetime, fade * weight, floor);
+        continue;
+      }
       // Floored on screen, so a hit is visible from far enough out to see the
       // battle it is part of.
       const extent = flashExtent(start, growth, t, lifetime);
@@ -1377,6 +1398,44 @@ function drawFlashes(
     }
   }
   ctx.restore();
+}
+
+/**
+ * A muzzle flash: discs from its narrow back to its wide front, out along the
+ * barrel's line, brightest at the muzzle end.
+ */
+function drawWedge(
+  ctx: CanvasRenderingContext2D,
+  glow: CanvasImageSource,
+  core: CanvasImageSource,
+  x: number,
+  y: number,
+  dirX: number,
+  dirY: number,
+  radius: number,
+  age: number,
+  lifetime: number,
+  brightness: number,
+  floor: number,
+): void {
+  const wedge = muzzleWedge(radius, age, lifetime);
+  const span = wedge.front - wedge.back;
+  const n = min(MAX_WEDGE_DISCS, max(2, Math.ceil(span / max(wedge.backWidth * 0.5, floor)) + 1));
+  const spacing = span / (n - 1);
+  for (let k = 0; k < n; k++) {
+    const u = k / (n - 1);
+    const along = wedge.back + u * span;
+    const r = max(wedge.backWidth + u * (wedge.frontWidth - wedge.backWidth), floor);
+    const g = r * MUZZLE_GLOW_SHARE;
+    // Shared between the discs that overlap, so a long wedge is no brighter than a short one.
+    const share = min(1, (2.5 * spacing) / r) * (1 - 0.5 * u);
+    const cx = x + dirX * along;
+    const cy = y + dirY * along;
+    ctx.globalAlpha = 0.5 * brightness * share;
+    ctx.drawImage(glow, cx - g, cy - g, 2 * g, 2 * g);
+    ctx.globalAlpha = 0.9 * brightness * share;
+    ctx.drawImage(core, cx - r, cy - r, 2 * r, 2 * r);
+  }
 }
 
 /**

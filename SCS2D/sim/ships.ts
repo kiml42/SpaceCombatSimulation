@@ -2332,7 +2332,19 @@ export class Ships {
             casingMass(fuse, gun.roundMass),
             firesShells(fuse) ? 1 - chargeShare(fuse.burstSpeed ?? DEFAULT_BURST_SPEED) : 1,
           );
-          log?.push(this.solution.x, this.solution.y, gun.muzzleEnergy, IMPACT_MUZZLE, bodies, bodyIdx);
+          log?.push(
+            this.solution.x,
+            this.solution.y,
+            gun.muzzleEnergy,
+            IMPACT_MUZZLE,
+            bodies,
+            bodyIdx,
+            0,
+            0,
+            0,
+            this.solution.dirX,
+            this.solution.dirY,
+          );
 
           // An impulse rather than a force: the round leaves within the step, so
           // there is no interval to spread it over. A beam mount firing off the
