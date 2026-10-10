@@ -150,12 +150,17 @@ export class Store {
     return this.room(bodyIndex, pieceOf[module] ?? 0);
   }
 
+  /** What each module can hold now, kg: what it holds when full, unless damage takes some away. */
+  protected ceiling(bodyIndex: number): Float64Array {
+    return this.full[bodyIndex]!;
+  }
+
   /** Space left in one piece's stores, kg. */
   private room(bodyIndex: number, piece: number): number {
     const stores = this.stores[bodyIndex]![piece];
     if (stores === undefined) return 0;
     const contents = this.contents[bodyIndex]!;
-    const full = this.full[bodyIndex]!;
+    const full = this.ceiling(bodyIndex);
     let room = 0;
     for (let k = 0; k < stores.length; k++) room += full[stores[k]!]! - contents[stores[k]!]!;
     return room;
@@ -216,6 +221,7 @@ export class Store {
     const contents = this.contents[bodyIndex]!;
     const ends = this.tierEnds[bodyIndex]![piece]!;
     const full = this.full[bodyIndex]!;
+    const ceiling = this.ceiling(bodyIndex);
     const spin = this.spin[bodyIndex]!;
 
     let wanted = kg;
@@ -227,13 +233,13 @@ export class Store {
         let size = 0;
         for (let k = start; k < end; k++) {
           const m = stores[k]!;
-          if (contents[m]! < full[m]!) size += full[m]!;
+          if (contents[m]! < ceiling[m]!) size += full[m]!;
         }
         if (!(size > 0)) break;
         let given = 0;
         for (let k = start; k < end; k++) {
           const m = stores[k]!;
-          const space = full[m]! - contents[m]!;
+          const space = ceiling[m]! - contents[m]!;
           if (!(space > 0)) continue;
           const share = (wanted * full[m]!) / size;
           const give = share < space ? share : space;

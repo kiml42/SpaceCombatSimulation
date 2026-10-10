@@ -49,6 +49,10 @@ export class Charge extends Store {
     this.cap[bodyIndex] = Float64Array.from(this.full[bodyIndex]!);
   }
 
+  protected override ceiling(bodyIndex: number): Float64Array {
+    return this.cap[bodyIndex] ?? this.full[bodyIndex]!;
+  }
+
   /** Start a step of `dt` seconds for one body. */
   open(bodyIndex: number, dt: number, damage: Damage): void {
     const supply = this.supply[bodyIndex];

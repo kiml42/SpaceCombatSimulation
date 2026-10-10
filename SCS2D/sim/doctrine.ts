@@ -334,10 +334,23 @@ export interface Approach {
    */
   readonly refuelDanger: number;
   /**
+   * The share of a full load of fuel or charge at or below which it goes to a
+   * friend to be filled: a fighter to a pad it fits on, anything else with a
+   * port to a port. It is also what it keeps back for itself when a friend
+   * docks with it. Zero never goes, and keeps nothing back.
+   */
+  readonly dockBelow: number;
+  /**
+   * How much an armed enemy near a friend puts it off docking there, as
+   * `refuelDanger` does a source; above zero, a dock also will not hold while
+   * one is in reach. Zero or less ignores them.
+   */
+  readonly dockDanger: number;
+  /**
    * The share of a full load of metal at or below which a fighter breaks off to
    * land on a friend's pad and rearm. Zero waits until it cannot load another
-   * round; below zero never does. Either this or `refuelBelow` sends it, and
-   * the pad fills it with both.
+   * round; below zero never does. Either this or `dockBelow` sends it, and
+   * the pad fills it with everything it has room for.
    */
   readonly rearmBelow: number;
 }
@@ -417,6 +430,8 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     rangeHold: 1,
     refuelBelow: 0,
     refuelDanger: 1,
+    dockBelow: 0.25,
+    dockDanger: 0,
     rearmBelow: 0,
   },
 };
@@ -606,6 +621,8 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
   'rangeHold',
   'refuelBelow',
   'refuelDanger',
+  'dockBelow',
+  'dockDanger',
   'rearmBelow',
 ];
 

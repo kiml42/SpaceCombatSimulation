@@ -555,7 +555,7 @@
           "brake": 0.95,
           "ramRadii": 1000,
           "ramArmed": 0.5,
-          "refuelBelow": 0.5
+          "dockBelow": 0.5
         }
       },
       "assemblies": {

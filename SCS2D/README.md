@@ -63,7 +63,8 @@ understanding it turns a regression into the new expected behaviour, permanently
 | `npm test` | Unit tests, determinism tests and the golden checksums. Runs from a cold checkout. |
 | `npm run typecheck` | All three TS projects — `sim/` has no ambient types, `render/` and `host/` have the DOM |
 | `npm run build` | Bundle to `dist/index.html` |
-| `npm run dev` | The same build, on every save |
+| `npm run dev` | The same build, on every save; also keeps the stock fleets' designs in step with `scenarios/blueprints/` |
+| `npm run sync-fleets` | Copy each stock blueprint into the stock fleets that embed it |
 | `npm run golden` | Re-derive the golden checksums after a *deliberate* change |
 | `npm run test:browser` | Drive the built page in Chromium — `npx playwright install chromium` once first |
 
