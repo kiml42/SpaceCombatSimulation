@@ -620,7 +620,7 @@ export const SCENARIOS = {
   // Long enough for all three fighters to fire themselves dry and rearm.
   rearm: { steps: 3_000, build: () => rearmScenario() },
   // Long enough for both pickets to dock, fill and part.
-  tanker: { steps: 22_000, build: () => tankerScenario() },
+  tanker: { steps: 6_600, build: () => tankerScenario() },
   // Long enough for the tender to cast off and grip a wreck, and the first fighters to come back to recharge.
   beamCarrier: { steps: 7_200, build: () => beamCarrierScenario() },
 } satisfies Record<string, Scenario>;

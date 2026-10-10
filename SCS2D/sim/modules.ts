@@ -669,7 +669,7 @@ export const PAD_PUMP_PER_METRE = 50;
 export const PORT_MASS_PER_AREA = 200;
 
 /** What a port pumps per metre of its face, kg/s, across a dock to another port. */
-export const PORT_PUMP_PER_METRE = 50;
+export const PORT_PUMP_PER_METRE = 250;
 
 /**
  * Power a pad or a port passes across a dock per metre of its width, W/m:
