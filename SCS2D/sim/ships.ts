@@ -14,7 +14,7 @@ import {
 } from './blueprint.js';
 import { components, cuts, jointBetween, joints, type Joint } from './connectivity.js';
 import { BOTH_LAYERS, HULL_LAYER, Hulls, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from './hull.js';
-import { Damage, DamageEffect } from './damage.js';
+import { Damage, DamageEffect, IMPACT_MUZZLE, type ImpactLog } from './damage.js';
 import { Fuel, LEAK_HOLE_CALIBRES, leakChance, leakRate, leakSpeed, type Leak } from './fuel.js';
 import { Charge } from './charge.js';
 import { Metal } from './metal.js';
@@ -2206,9 +2206,17 @@ export class Ships {
 
   /**
    * Fire every gun that is loaded, on target and clear to shoot. Call after
-   * the world has stepped and the index has been rebuilt.
+   * the world has stepped and the index has been rebuilt. Given `log`, each
+   * round fired is recorded at its muzzle, for a flash.
    */
-  fire(world: World, projectiles: Projectiles, beams: Beams, grid: SpatialGrid, beamHits: BeamHits): FireReport {
+  fire(
+    world: World,
+    projectiles: Projectiles,
+    beams: Beams,
+    grid: SpatialGrid,
+    beamHits: BeamHits,
+    log?: ImpactLog,
+  ): FireReport {
     const bodies = world.bodies;
     this.bodyStore = bodies;
     let projectilesFired = 0;
@@ -2335,6 +2343,19 @@ export class Ships {
             firesShells(fuse) ? (fuse.fragments ?? DEFAULT_FRAGMENTS) : 0,
             casingMass(fuse, gun.roundMass),
             firesShells(fuse) ? 1 - chargeShare(fuse.burstSpeed ?? DEFAULT_BURST_SPEED) : 1,
+          );
+          log?.push(
+            this.solution.x,
+            this.solution.y,
+            gun.muzzleEnergy,
+            IMPACT_MUZZLE,
+            bodies,
+            bodyIdx,
+            0,
+            0,
+            0,
+            this.solution.dirX,
+            this.solution.dirY,
           );
 
           // An impulse rather than a force: the round leaves within the step, so

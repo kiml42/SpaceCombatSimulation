@@ -21,6 +21,8 @@
  * happens. DOM-free arithmetic, so it is unit-tested like the camera.
  */
 
+import { IMPACT_BEAM, IMPACT_BURST, IMPACT_MUZZLE } from '../sim/index.js';
+
 /** How long a round's flash lasts, in simulated seconds. */
 export const ROUND_FLASH_LIFETIME = 0.35;
 /**
@@ -50,6 +52,45 @@ export function burstLifetime(energy: number): number {
   if (!(energy > 0)) return BURST_MIN_LIFETIME;
   const lifetime = BURST_FLASH_LIFETIME + BURST_LIFETIME_PER_DECADE * Math.log10(energy / BURST_REFERENCE_ENERGY);
   return Math.min(BURST_MAX_LIFETIME, Math.max(BURST_MIN_LIFETIME, lifetime));
+}
+
+/**
+ * A gun going off: a few frames, so a gun can be seen to fire even when its
+ * round is too small or too fast to follow.
+ */
+export const MUZZLE_FLASH_LIFETIME = 0.08;
+/**
+ * A muzzle flash's size as a share of a hit's of the same energy: the charge
+ * mostly goes into the round, not the flare, and at full size the flash would
+ * hide the gun it came from.
+ */
+export const MUZZLE_FLASH_SHARE = 0.4;
+/** How far ahead of the muzzle a muzzle flash reaches at the end of its life, in its radii. */
+export const MUZZLE_FLASH_REACH = 3;
+/** Its width at the muzzle, as a share of its radius. */
+const MUZZLE_FLASH_THROAT = 0.2;
+
+/**
+ * Where a muzzle flash is along the barrel's line at `age`: its back and front,
+ * metres ahead of the muzzle, and its half-width at each.
+ *
+ * A wedge rather than a disc, narrow at the back and wide at the front, which
+ * travels out ahead of the barrel as it grows — the gas leaving with the round,
+ * rather than something going off on the gun.
+ */
+export function muzzleWedge(
+  radius: number,
+  age: number,
+  lifetime: number,
+): { back: number; front: number; backWidth: number; frontWidth: number } {
+  const f = lifetime > 0 ? Math.sqrt(Math.min(1, Math.max(0, age / lifetime))) : 1;
+  const reach = radius * MUZZLE_FLASH_REACH;
+  return {
+    back: reach * 0.5 * f,
+    front: reach * (FLASH_BIRTH_SIZE + (1 - FLASH_BIRTH_SIZE) * f),
+    backWidth: radius * MUZZLE_FLASH_THROAT,
+    frontWidth: radius * (FLASH_BIRTH_SIZE + (1 - FLASH_BIRTH_SIZE) * f),
+  };
 }
 
 /** The energy a flash is drawn at full size for, joules. */
@@ -150,6 +191,9 @@ export class Flashes {
   vy = new Float64Array(64);
   /** How fast it spreads, m/s, or 0 for one that grows by `flashSize`. */
   growth = new Float64Array(64);
+  /** The way it points, in its body's frame where it rides one; zero for a flash that points no way. */
+  dirX = new Float64Array(64);
+  dirY = new Float64Array(64);
   count = 0;
 
   add(
@@ -163,8 +207,10 @@ export class Flashes {
     vx = 0,
     vy = 0,
     growth = 0,
+    dirX = 0,
+    dirY = 0,
   ): void {
-    const radius = flashRadius(energy);
+    const radius = flashRadius(energy) * (kind === IMPACT_MUZZLE ? MUZZLE_FLASH_SHARE : 1);
     if (!(radius > 0)) return;
     if (this.count === this.x.length) this.grow();
     const i = this.count++;
@@ -175,11 +221,20 @@ export class Flashes {
     this.localY[i] = localY;
     this.radius[i] = radius;
     this.age[i] = 0;
-    this.lifetime[i] = kind === 1 ? BEAM_FLASH_LIFETIME : kind === 3 ? burstLifetime(energy) : ROUND_FLASH_LIFETIME;
+    this.lifetime[i] =
+      kind === IMPACT_BEAM
+        ? BEAM_FLASH_LIFETIME
+        : kind === IMPACT_BURST
+          ? burstLifetime(energy)
+          : kind === IMPACT_MUZZLE
+            ? MUZZLE_FLASH_LIFETIME
+            : ROUND_FLASH_LIFETIME;
     this.kind[i] = kind;
     this.vx[i] = vx;
     this.vy[i] = vy;
     this.growth[i] = growth;
+    this.dirX[i] = dirX;
+    this.dirY[i] = dirY;
   }
 
   /** Age everything by `dt` *simulated* seconds and drop what has burned out. */
@@ -193,6 +248,8 @@ export class Flashes {
       this.vx[kept] = this.vx[i]!;
       this.vy[kept] = this.vy[i]!;
       this.growth[kept] = this.growth[i]!;
+      this.dirX[kept] = this.dirX[i]!;
+      this.dirY[kept] = this.dirY[i]!;
       this.body[kept] = this.body[i]!;
       this.localX[kept] = this.localX[i]!;
       this.localY[kept] = this.localY[i]!;
@@ -229,6 +286,12 @@ export class Flashes {
     const growth = new Float64Array(size);
     growth.set(this.growth);
     this.growth = growth;
+    const dirX = new Float64Array(size);
+    const dirY = new Float64Array(size);
+    dirX.set(this.dirX);
+    dirY.set(this.dirY);
+    this.dirX = dirX;
+    this.dirY = dirY;
     x.set(this.x);
     y.set(this.y);
     body.set(this.body);
