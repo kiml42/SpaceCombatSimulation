@@ -927,6 +927,12 @@ export class Credit {
 }
 
 export class ImpactLog {
+  /**
+   * Whether something drains this, as a viewer's `capture` does. Until then
+   * nothing will, and a battle empties it every step rather than let a
+   * headless run hold every hit it ever saw.
+   */
+  watched = false;
   x = new Float64Array(64);
   y = new Float64Array(64);
   /** Body struck, or -1 for a hit on nothing in particular. */
