@@ -3,6 +3,7 @@ import { watch as watchDir } from 'node:fs';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { BLUEPRINT_DIR, syncFleetsAndLog } from './syncFleets.js';
 
 /**
  * Bundle each page into one self-contained HTML file in `dist/`.
@@ -88,6 +89,9 @@ async function emit(page: Page, files: readonly OutputFile[] | undefined): Promi
 }
 
 if (process.argv.includes('--watch')) {
+  // Before the first build, so it bundles fleets already in step.
+  await syncFleetsAndLog();
+
   const contexts = await Promise.all(
     PAGES.map(async (page) =>
       context({
@@ -117,6 +121,15 @@ if (process.argv.includes('--watch')) {
     PAGES.forEach((page, i) => {
       if (file === page.shell) void contexts[i]!.rebuild();
     });
+  });
+
+  // A saved blueprint is copied into the stock fleets that embed it. The fleet
+  // files are bundle inputs, so writing them triggers the rebuild. Editors fire
+  // several events a save, hence the debounce.
+  let syncTimer: ReturnType<typeof setTimeout> | undefined;
+  watchDir(BLUEPRINT_DIR, () => {
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(() => void syncFleetsAndLog(), 100);
   });
 
   console.log('watching — edit and save, then refresh the page. Ctrl+C to stop.');

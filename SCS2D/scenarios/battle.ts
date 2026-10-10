@@ -143,6 +143,7 @@ export function makeBattle<Extra extends object = Record<never, never>>(
     step(): void {
       // Filled by this step's collisions and hits, for whatever is scoring the battle.
       credit.clear();
+      if (!impacts.log.watched) impacts.log.clear();
       if (pilots) ships.command(dt, world, grid);
       world.step();
       // Hulls are solid: what the world's step drove into each other is pushed
