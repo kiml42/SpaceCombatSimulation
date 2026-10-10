@@ -270,6 +270,8 @@ export function start(): void {
         view.impactVx[i]!,
         view.impactVy[i]!,
         view.impactGrowth[i]!,
+        view.impactDirX[i]!,
+        view.impactDirY[i]!,
       );
     }
     draw(ctx, view, camera, canvas.width, canvas.height, flashes, arcs, teamShots, selected);

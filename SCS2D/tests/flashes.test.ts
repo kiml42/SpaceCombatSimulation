@@ -14,7 +14,10 @@ import {
   flashSize,
   flashExtent,
   FLASH_BIRTH_SIZE,
+  MUZZLE_FLASH_LIFETIME,
+  muzzleWedge,
 } from '../render/flashes.js';
+import { IMPACT_MUZZLE, IMPACT_ROUND } from '../sim/index.js';
 
 /**
  * Impact flashes: the arithmetic of how big and how bright, and the ageing
@@ -193,5 +196,35 @@ describe('a blast', () => {
     expect(flashExtent(2, 650, 0.01, BURST_FLASH_LIFETIME)).toBeCloseTo(8.5, 12);
     // Without a growth, it grows by its share of a full size instead.
     expect(flashExtent(2, 0, 0, 1)).toBeCloseTo(2 * FLASH_BIRTH_SIZE, 12);
+  });
+});
+
+describe('a muzzle flash', () => {
+  it('is smaller than a hit of the same energy, and gone sooner', () => {
+    const flashes = new Flashes();
+    flashes.add(0, 0, FLASH_REFERENCE_ENERGY, IMPACT_MUZZLE);
+    flashes.add(0, 0, FLASH_REFERENCE_ENERGY, IMPACT_ROUND);
+    expect(flashes.radius[0]).toBeLessThan(flashes.radius[1]!);
+    flashes.step(MUZZLE_FLASH_LIFETIME + 1e-9);
+    expect(flashes.count).toBe(1);
+    expect(flashes.kind[0]).toBe(IMPACT_ROUND);
+  });
+
+  it('is a wedge, widening forward and moving out ahead of the barrel as it grows', () => {
+    const born = muzzleWedge(1, 0, MUZZLE_FLASH_LIFETIME);
+    const old = muzzleWedge(1, MUZZLE_FLASH_LIFETIME, MUZZLE_FLASH_LIFETIME);
+    expect(born.back).toBe(0);
+    expect(born.frontWidth).toBeGreaterThan(born.backWidth);
+    expect(old.back).toBeGreaterThan(born.back);
+    expect(old.front).toBeGreaterThan(born.front);
+    expect(old.frontWidth).toBeGreaterThan(born.frontWidth);
+  });
+
+  it('keeps the way it points', () => {
+    const flashes = new Flashes();
+    flashes.add(0, 0, FLASH_REFERENCE_ENERGY, IMPACT_ROUND);
+    flashes.add(0, 0, FLASH_REFERENCE_ENERGY, IMPACT_MUZZLE, 2, 1, 1, 0, 0, 0, 0, 1);
+    flashes.step(ROUND_FLASH_LIFETIME * 0.1);
+    expect(flashes.dirY[1]).toBe(1);
   });
 });

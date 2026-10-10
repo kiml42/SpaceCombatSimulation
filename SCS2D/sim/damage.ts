@@ -949,6 +949,9 @@ export class ImpactLog {
   vy = new Float64Array(64);
   /** How fast it spreads, m/s: a burst's, as fast as its fastest fragment leaves. */
   growth = new Float64Array(64);
+  /** The way it points, a unit vector in the struck body's frame, or zero for no way: a muzzle's. */
+  dirX = new Float64Array(64);
+  dirY = new Float64Array(64);
   count = 0;
 
   push(
@@ -961,10 +964,14 @@ export class ImpactLog {
     vx = 0,
     vy = 0,
     growth = 0,
+    dirX = 0,
+    dirY = 0,
   ): void {
     if (this.count === this.x.length) this.grow();
     const i = this.count++;
     this.growth[i] = growth;
+    this.dirX[i] = dirX;
+    this.dirY[i] = dirY;
     this.x[i] = x;
     this.y[i] = y;
     this.vx[i] = vx;
@@ -982,6 +989,8 @@ export class ImpactLog {
     const dy = y - bodies.y[body]!;
     this.localX[i] = dx * c + dy * sn;
     this.localY[i] = -dx * sn + dy * c;
+    this.dirX[i] = dirX * c + dirY * sn;
+    this.dirY[i] = -dirX * sn + dirY * c;
   }
 
   clear(): void {
@@ -999,6 +1008,12 @@ export class ImpactLog {
     const growth = new Float64Array(size);
     growth.set(this.growth);
     this.growth = growth;
+    const dirX = new Float64Array(size);
+    const dirY = new Float64Array(size);
+    dirX.set(this.dirX);
+    dirY.set(this.dirY);
+    this.dirX = dirX;
+    this.dirY = dirY;
     const x = new Float64Array(size);
     const y = new Float64Array(size);
     const energy = new Float64Array(size);
@@ -1030,6 +1045,8 @@ export const IMPACT_BEAM = 1;
 export const IMPACT_COLLISION = 2;
 /** A shell bursting, in open space or not. */
 export const IMPACT_BURST = 3;
+/** A gun firing: logged at its muzzle, with the round's energy, rather than at anything hit. */
+export const IMPACT_MUZZLE = 4;
 
 /**
  * Resolving a step's impacts: what each hit does, and a log of them to draw.
