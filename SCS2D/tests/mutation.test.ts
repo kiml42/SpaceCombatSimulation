@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   blueprintFileProblem,
+  budgetMass,
   MAX_BARREL_CALIBRES,
   blueprintProblem,
   compileDraft,
@@ -140,9 +141,10 @@ describe('mutation', () => {
   });
 
   it('never breeds a child over the mass budget', () => {
-    const budget = compileDraft(CORVETTE).mass * 1.1;
+    // As it sets out: a part-full core or tank costs only what it carries.
+    const budget = budgetMass(compileDraft(CORVETTE)) * 1.1;
     for (const child of lineage(CORVETTE, 31, 100, budget)) {
-      expect(compileDraft(child).mass).toBeLessThanOrEqual(budget);
+      expect(budgetMass(compileDraft(child))).toBeLessThanOrEqual(budget);
     }
   });
 

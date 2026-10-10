@@ -169,7 +169,7 @@ that answers the question most likely to change the design.
 
 - **Docks pass charge as they pass fuel**: a pad from its carrier to what has landed, a port into whichever ship
   is refuelling, each at `DOCK_POWER_PER_METRE` of the part's width (a port's, the narrower), from what the
-  giver can spare above its own `refuelBelow`. A dock holds until fuel, metal (on a pad) and charge are all
+  giver can spare above its own `dockBelow`. A dock holds until fuel, metal (on a pad) and charge are all
   full or can be spared no more.
 - **A beam's reload is paid for in charge** (`Ships.recharged`): over its reload a beam draws the energy its
   bank holds, and its reload timer runs only as fast as its piece of hull supplies it, the main battery
@@ -299,10 +299,6 @@ Deliberately unresolved; decide when they block something.
   which trade fuel for power; and plasma beams, which would burn both fuel and power. Each is a call to
   `Charge.draw` where its load is; the open part is the balance, and whether a ship with no power left should
   be a hulk. Fuel for the generator and heat from everything are the step after.
-- **Whether a ship should seek a pad or a port for charge alone.** A docked ship is filled with charge as well
-  as fuel and metal, and a dock holds until all three are full or the giver can spare no more, but a ship goes
-  looking for a dock only when it is low on fuel or metal. A beam fighter whose core cannot keep up might want
-  to go for charge too, which wants a doctrine threshold of its own.
 - **Whether a claw should drain an enemy's batteries.** It drinks fuel from what it grips; draining charge is
   the natural extension, and a way to disarm a beam ship without shooting it.
 

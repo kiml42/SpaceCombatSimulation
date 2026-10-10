@@ -28,7 +28,7 @@ export function carrier(seed = 20261008): Battle {
   return makeBattle({ seed, projectiles: 64, beams: 16 }, (ships, world) => {
     const tender = compileBlueprint(TENDER);
     const base = compileBlueprint(DINKY).doctrine;
-    const dinky = compileBlueprint({ ...DINKY, doctrine: { ...base, approach: { ...base.approach, refuelBelow: 0.5 } } });
+    const dinky = compileBlueprint({ ...DINKY, doctrine: { ...base, approach: { ...base.approach, dockBelow: 0.5 } } });
     ships.spawn(world, { design: tender, x: 0, y: 0, angle: 0.2 });
     for (const [x, y] of [[-400, 250], [-450, -100], [300, 350]] as const) {
       const f = ships.spawn(world, { design: dinky, x, y, angle: 0 });
