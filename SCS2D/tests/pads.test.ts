@@ -236,3 +236,27 @@ describe('a pad set out with a fighter docked on it', () => {
     expect(run.totalContacts).toBe(0);
   });
 });
+
+describe('a pad passing charge', () => {
+  /** A fighter that is a core and an empty battery, too small a core to make much. */
+  const SPARK: Blueprint = {
+    name: 'Spark',
+    fighter: true,
+    modules: [
+      { kind: 'core', x: 0, y: 0, length: 1, width: 1 },
+      { kind: 'battery', x: 1, y: 0, length: 1, width: 1, fill: 0 },
+    ],
+  };
+
+  it('fills a fighter aboard from its carrier, and lets it go once full', () => {
+    const run = makeBattle({ seed: 3 }, (ships, world) => ({ c: ships.spawn(world, { design: compileBlueprint(laden(20, SPARK)), x: 0, y: 0 }) }));
+    const f = run.c + 1;
+    const battery = compileBlueprint(SPARK).modules[1]!.stats.charge;
+    expect(battery).toBeGreaterThan(0);
+    const held = (): number => run.ships.power.held(run.world.bodies.indexOf(run.ships.body(f)), run.ships.design(f).modules.length - 1);
+    expect(run.ships.body(f)).toBe(run.ships.body(run.c));
+    for (let s = 0; s < 600 && run.ships.body(f) === run.ships.body(run.c); s++) run.step();
+    expect(run.ships.body(f)).not.toBe(run.ships.body(run.c));
+    expect(held()).toBeCloseTo(battery, 0);
+  });
+});

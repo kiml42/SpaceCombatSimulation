@@ -672,6 +672,12 @@ export const PORT_MASS_PER_AREA = 200;
 export const PORT_PUMP_PER_METRE = 50;
 
 /**
+ * Power a pad or a port passes across a dock per metre of its width, W/m:
+ * a coupling's heavy cabling, as its pump is its plumbing.
+ */
+export const DOCK_POWER_PER_METRE = 1e6;
+
+/**
  * Energy a battery holds per cubic metre inside its walls, J/m³: about a
  * supercapacitor's, well short of a chemical cell's, so a battery is a buffer
  * for a fight rather than a whole battle's worth of shooting.

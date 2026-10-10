@@ -692,7 +692,10 @@ inside any one file is not contiguous.
   Frigate and the Beam Gunship, whose cores alone would run their beams at an eighth and a fifth of their
   rate, each give a slice of a tank or plating to a generator. The editor shows what a ship's beams draw
   firing flat out beside what it generates. Severed chunks take their own power: charge goes with its
-  module, as fuel and metal do.
+  module, as fuel and metal do. **Docks pass charge**: a pad fills what has landed on it, and a port the ship that is
+  refuelling, at `DOCK_POWER_PER_METRE` of the part's width, from what the giver can spare above its
+  `refuelBelow`; a dock holds until charge is full too. Evolution draws batteries and generators at a weight of
+  one each, and a mutation does not turn either, since neither has a facing that matters.
 - **Next:** the rest of §8 step 8 — leaks, and pilots that know their fuel — and of step 5: a materials
   budget, and designed scenarios.
   See ROADMAP.md §8.

@@ -52,7 +52,7 @@ an entry is either still open or it is gone.
 | 8 | Fuel | Partly built |
 | 9 | Docking, fuel transfer and fuel harvesting | Built |
 | 10 | Raw material | Partly built |
-| 11 | Power | Partly built |
+| 11 | Power | Built |
 | 12 | In-battle construction | Not started |
 | 13 | Harvesting wrecks | Not started |
 | 14 | Mining | Not started |
@@ -167,6 +167,10 @@ that answers the question most likely to change the design.
 
 #### Power (step 11)
 
+- **Docks pass charge as they pass fuel**: a pad from its carrier to what has landed, a port into whichever ship
+  is refuelling, each at `DOCK_POWER_PER_METRE` of the part's width (a port's, the narrower), from what the
+  giver can spare above its own `refuelBelow`. A dock holds until fuel, metal (on a pad) and charge are all
+  full or can be spared no more.
 - **A beam's reload is paid for in charge** (`Ships.recharged`): over its reload a beam draws the energy its
   bank holds, and its reload timer runs only as fast as its piece of hull supplies it, the main battery
   served first. Its own gear's rate (`BEAM_DUTY_CYCLE`, `BEAM_RECHARGE_TIME`) stays the fastest it can go.
@@ -289,6 +293,18 @@ What is left of the step should follow the shape already there:
 ## 12. Open questions
 
 Deliberately unresolved; decide when they block something.
+
+- **What else should draw power.** Only beams do (§8 step 11). Candidates: turrets drawing to turn, so a dark
+  ship cannot train its guns; cores drawing to run, so a ship that runs flat loses control; electric engines,
+  which trade fuel for power; and plasma beams, which would burn both fuel and power. Each is a call to
+  `Charge.draw` where its load is; the open part is the balance, and whether a ship with no power left should
+  be a hulk. Fuel for the generator and heat from everything are the step after.
+- **Whether a ship should seek a pad or a port for charge alone.** A docked ship is filled with charge as well
+  as fuel and metal, and a dock holds until all three are full or the giver can spare no more, but a ship goes
+  looking for a dock only when it is low on fuel or metal. A beam fighter whose core cannot keep up might want
+  to go for charge too, which wants a doctrine threshold of its own.
+- **Whether a claw should drain an enemy's batteries.** It drinks fuel from what it grips; draining charge is
+  the natural extension, and a way to disarm a beam ship without shooting it.
 
 - **Whether targeting needs more pickers.** A ship-type picker, and hemisphere as a hard discard if
   `facingWeight`'s soft version — astern scores against — turns out not to be enough. Neither is clearly

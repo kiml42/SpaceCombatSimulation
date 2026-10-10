@@ -66,7 +66,7 @@ import type { BeamHits, Beams, SpatialGrid } from './index.js';
 import { MAX_BEAM_LENGTH } from './beams.js';
 import { RayHit } from './spatialGrid.js';
 import { hullsOverlap, type Contacts } from './collision.js';
-import { FUEL_DENSITY, GunType, interiorVolume, type GunStats, type ModuleKind } from './modules.js';
+import { DOCK_POWER_PER_METRE, FUEL_DENSITY, GunType, interiorVolume, type GunStats, type ModuleKind } from './modules.js';
 
 /**
  * Ships: a compiled design bound to a body, flying itself and shooting.
@@ -3637,7 +3637,13 @@ export class Ships {
               const narrower = min(design.modules[seam.a]!.stats.pumpRate, design.modules[seam.b]!.stats.pumpRate);
               const flow = narrower * min(working, bothWorking) * world.dt;
               if (spare > 0 && this.fuel.transfer(b, from, to, flow < spare ? flow : spare) > 0) moved = true;
-              if (this.fuel.pieceRoom(b, to) > 0 && this.fuel.pieceHeld(b, from) > this.reserve(b, from)) continue;
+              // Charge alongside, through the narrower coupling's cabling.
+              const cable = DOCK_POWER_PER_METRE * min(design.modules[seam.a]!.spec.width, design.modules[seam.b]!.spec.width) * min(working, bothWorking) * world.dt;
+              const spareCharge = this.power.pieceHeld(b, from) - this.chargeReserve(b, from);
+              if (spareCharge > 0) this.power.transfer(b, from, to, cable < spareCharge ? cable : spareCharge);
+              const fuelLeft = this.fuel.pieceRoom(b, to) > 0 && this.fuel.pieceHeld(b, from) > this.reserve(b, from);
+              const chargeLeft = this.power.pieceRoom(b, to) > 0 && this.power.pieceHeld(b, from) > this.chargeReserve(b, from);
+              if (fuelLeft || chargeLeft) continue;
             }
           } else {
             // A pad fills what has landed on it with fuel and metal together,
@@ -3647,10 +3653,14 @@ export class Ships {
             if (spare > 0 && this.fuel.transfer(b, seam.a, seam.b, rate < spare ? rate : spare) > 0) moved = true;
             const spareMetal = this.metal.pieceHeld(b, seam.a) - this.metalReserve(b, seam.a);
             if (spareMetal > 0 && this.metal.transfer(b, seam.a, seam.b, rate < spareMetal ? rate : spareMetal) > 0) moved = true;
+            const cable = DOCK_POWER_PER_METRE * design.modules[seam.a]!.spec.width * working * world.dt;
+            const spareCharge = this.power.pieceHeld(b, seam.a) - this.chargeReserve(b, seam.a);
+            if (spareCharge > 0) this.power.transfer(b, seam.a, seam.b, cable < spareCharge ? cable : spareCharge);
             const ordered = (this.orders[this.pilotAt(b, seam.b)]?.length ?? 0) > 0;
             const fuelLeft = this.fuel.pieceRoom(b, seam.b) > 0 && this.fuel.pieceHeld(b, seam.a) > this.reserve(b, seam.a);
             const metalLeft = this.metal.pieceRoom(b, seam.b) > 0 && this.metal.pieceHeld(b, seam.a) > this.metalReserve(b, seam.a);
-            if (!ordered && (fuelLeft || metalLeft)) continue;
+            const chargeLeft = this.power.pieceRoom(b, seam.b) > 0 && this.power.pieceHeld(b, seam.a) > this.chargeReserve(b, seam.a);
+            if (!ordered && (fuelLeft || metalLeft || chargeLeft)) continue;
           }
         }
         // Done: the dock lets go, which `sever` reads as the seam cut through.
@@ -3690,6 +3700,13 @@ export class Ships {
     const owner = this.pilotAt(b, m);
     const below = owner < 0 ? 0 : this.designs[owner]!.doctrine.approach.refuelBelow;
     return below > 0 ? below * (this.fuel.pieceHeld(b, m) + this.fuel.pieceRoom(b, m)) : 0;
+  }
+
+  /** The same for charge, kept back by its doctrine's `refuelBelow` as fuel is. */
+  private chargeReserve(b: number, m: number): number {
+    const owner = this.pilotAt(b, m);
+    const below = owner < 0 ? 0 : this.designs[owner]!.doctrine.approach.refuelBelow;
+    return below > 0 ? below * (this.power.pieceHeld(b, m) + this.power.pieceRoom(b, m)) : 0;
   }
 
   /** The same for metal: its doctrine's `rearmBelow` of a full load. */
