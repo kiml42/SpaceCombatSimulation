@@ -234,7 +234,17 @@ inside any one file is not contiguous.
   big engine is its weapon closes bow first and fights stern first, braking on its flame. A craft that would turn to burn to brake plans its approach on its mains when
   that gets it into its band sooner, the half turn and the turn back included, and is held to that plan once
   on it. `burnWeight` is 2
-  by default. So a ship with an enemy on each beam fights both, and a gun that cannot reach what its ship is
+  by default. **A ship may attack on the move** (`tangentialMin`, `tangentialMax`, m/s, both 0 by default,
+  which comes to rest at the band): it holds its sideways speed relative to what it is attacking between the
+  two, going round whichever way it already is. Out past the band it flies the line that grazes a circle at
+  the band's inner edge, so it comes in aiming to miss with its speed sideways by the time it is in range,
+  closing faster than that far out only as fast as it can still slow to it. In the band it circles if it has
+  the speed and its thrust can hold the turn (v²/r) at it, and otherwise carries on through on a pass or heads
+  out; out past the band, the same line points it back, and on that run its guns wait for its mains
+  (`rangeHold` does not count), so it turns and burns for another pass. Whether it circles or makes passes
+  comes from its build and its speed, not a setting: the `circling` scenario has a Y-wing circle a Corvette
+  and `passes` a fast-set Dinky make passes at one. Only an attack: a ram, a dock and an escort still close
+  to rest. The stock fighters attack at 20–60 m/s. So a ship with an enemy on each beam fights both, and a gun that cannot reach what its ship is
   fighting fights what it can instead of sitting pinned against the edge of its arc. A further preference, for what the ship as a whole
   is fighting, is what keeps a broadside concentrated without tying it together; an order given is still
   obeyed by every mount that can train on it. How often a mount reconsiders is derived from the mount:
@@ -922,7 +932,7 @@ Rules:
 - **Accepted loss:** strike craft have one lateral evasion axis instead of two, and the
   three-dimensional shell of fighters around a capital is gone. Mitigated by nested range bands,
   per-squadron approach angles and orbit directions, and by fast-pass attack profiles (approach,
-  fire at closest approach, retreat) which suit a plane well. A fully 3D sequel is a possible
+  fire at closest approach, retreat) which suit a plane well — built as attacking on the move (§3). A fully 3D sequel is a possible
   long-term outcome, not a near-term option.
 
 ---

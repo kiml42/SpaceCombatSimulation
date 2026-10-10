@@ -23,6 +23,7 @@ import { scavenge } from '../../scenarios/scavenge.js';
 import { carrier } from '../../scenarios/carrier.js';
 import { rearm } from '../../scenarios/rearm.js';
 import { beamCarrier } from '../../scenarios/beamCarrier.js';
+import { circling, passes } from '../../scenarios/passes.js';
 import { tanker } from '../../scenarios/tanker.js';
 import { standoff } from '../../scenarios/standoff.js';
 import { torchRun } from '../../scenarios/torchRun.js';
@@ -525,6 +526,21 @@ export function carrierScenario(seed = 20261008): ScenarioRun {
   };
 }
 
+function onTheMoveScenario(run: ReturnType<typeof passes>): ScenarioRun {
+  return {
+    step: () => run.step(),
+    checksum: () =>
+      checksumDamage(
+        run.ships.damage,
+        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
+      ),
+    describe: () => describeBattle(run),
+  };
+}
+
+export const passesScenario = (seed = 20261012): ScenarioRun => onTheMoveScenario(passes(seed));
+export const circlingScenario = (seed = 20261012): ScenarioRun => onTheMoveScenario(circling(seed));
+
 export function beamCarrierScenario(seed = 20261011): ScenarioRun {
   const run = beamCarrier(seed);
   return {
@@ -623,6 +639,9 @@ export const SCENARIOS = {
   tanker: { steps: 6_600, build: () => tankerScenario() },
   // Long enough for the tender to cast off and grip a wreck, and the first fighters to come back to recharge.
   beamCarrier: { steps: 7_200, build: () => beamCarrierScenario() },
+  // Long enough for the Dinky to make three passes, and the Y-wing to settle into its circle.
+  passes: { steps: 6_000, build: () => passesScenario() },
+  circling: { steps: 6_000, build: () => circlingScenario() },
 } satisfies Record<string, Scenario>;
 
 export type ScenarioName = keyof typeof SCENARIOS;

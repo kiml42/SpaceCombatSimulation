@@ -696,6 +696,10 @@ export class Ships {
   private readonly committed: number[] = [];
   /** Whether each ship has turned its main engines along its want rather than its guns to its target. */
   private readonly burning: number[] = [];
+  /** Whether each ship is on the run out of an attacking pass or back in, where its guns wait for its mains. */
+  private readonly running: number[] = [];
+  /** Which way round each ship is going on an attack, +1 or -1, or 0 before it has picked. */
+  private readonly passSide: number[] = [];
   /** Whether each ship's approach is planned on braking with its mains, which it must then turn to do. */
   private readonly brakingOnMains: number[] = [];
 
@@ -1194,6 +1198,8 @@ export class Ships {
     this.derelict.push(0);
     this.committed.push(0);
     this.burning.push(0);
+    this.running.push(0);
+    this.passSide.push(0);
     this.brakingOnMains.push(0);
     this.cutSeen.push(-1);
     this.partedAt.push(-Infinity);
@@ -2873,7 +2879,8 @@ export class Ships {
     const gain = max(0, min(dv, turnedRate * max(0, by - turn)) - min(dv, heldRate * by)) / dv;
 
     const range = length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!);
-    const near = range > maxRange && maxRange > 0 ? maxRange / range : 1;
+    // On the run out of a pass or back in, its guns wait for its mains.
+    const near = this.running[i] === 1 ? 0 : range > maxRange && maxRange > 0 ? maxRange / range : 1;
     const burn = approach.burnWeight * gain;
     const hold = approach.rangeHold * near;
     // Committed to stopping on its mains: it holds them against its way in
@@ -3016,11 +3023,18 @@ export class Ships {
     const fighting = fightingAt !== undefined;
     // Set again below while it is still closing on a curve planned on its mains.
     const wasOnMains = this.brakingOnMains[i] === 1;
-    if (fighting) this.brakingOnMains[i] = 0;
+    if (fighting) {
+      this.brakingOnMains[i] = 0;
+      this.running[i] = 0;
+    }
     if (!(weight > 0)) return;
     const dx = bodies.x[other]! - bodies.x[b]!;
     const dy = bodies.y[other]! - bodies.y[b]!;
     const range = length(dx, dy);
+    if (fighting && range > 0 && this.doctrines[i]!.approach.tangentialMax > 0) {
+      this.pass(bodies, i, b, other, dx / range, dy / range, range, minRange, maxRange, approachSpeed, fightingAt, weight);
+      return;
+    }
     let vx = bodies.vx[other]!;
     let vy = bodies.vy[other]!;
     if (range > 0) {
@@ -3085,6 +3099,77 @@ export class Ships {
       }
     }
     this.urge(weight, vx, vy);
+  }
+
+  /**
+   * Attack on the move, for a doctrine that wants sideways speed: hold it
+   * between `tangentialMin` and `tangentialMax` relative to the target, going
+   * round whichever way it already is, since that costs the least.
+   *
+   * Out past the band it flies the line that grazes a circle at the band's
+   * inner edge, so it comes in aiming to miss and its speed is sideways by the
+   * time it is in range; it may close faster than that far out, no faster
+   * than it can slow to it by the band. In the band it circles if it has the
+   * speed and its thrust can hold the turn at it, closing no further inside
+   * the inner edge; otherwise it carries on through on a pass. Out past the
+   * band on the far side, the same line points it back, which is a turn onto
+   * its mains for the next pass.
+   */
+  private pass(
+    bodies: Bodies,
+    i: number,
+    b: number,
+    other: number,
+    ux: number,
+    uy: number,
+    range: number,
+    minRange: number,
+    maxRange: number,
+    approachSpeed: number,
+    facing: number,
+    weight: number,
+  ): void {
+    const approach = this.doctrines[i]!.approach;
+    const lo = approach.tangentialMin;
+    const hi = approach.tangentialMax;
+    const rvx = bodies.vx[b]! - bodies.vx[other]!;
+    const rvy = bodies.vy[b]! - bodies.vy[other]!;
+    const across = ux * rvy - uy * rvx;
+    // Kept until it is plainly going round the other way, so a craft with
+    // next to no sideways speed does not flip from side to side.
+    let side = this.passSide[i]!;
+    if (side === 0 || across * side < -lo / 2) side = across < 0 ? -1 : 1;
+    this.passSide[i] = side;
+    const tx = -uy * side;
+    const ty = ux * side;
+    const closing = rvx * ux + rvy * uy;
+    const speed = clamp(across * side, lo, hi);
+    const inner = minRange > 0 ? minRange : maxRange / 2;
+    let wantX: number;
+    let wantY: number;
+    if (range > maxRange) {
+      this.running[i] = 1;
+      const arrive = clamp(approachSpeed, lo, hi);
+      const brake = approach.brake * this.accelerationAlong(bodies, i, b, -ux, -uy, facing);
+      const fly = max(arrive, min(approachSpeed, sqrt(arrive * arrive + 2 * brake * (range - maxRange))));
+      const graze = min(1, inner / range);
+      const straight = sqrt(1 - graze * graze);
+      wantX = (ux * straight + tx * graze) * fly;
+      wantY = (uy * straight + ty * graze) * fly;
+    } else {
+      // Circles only once it has the speed. Short of it, it carries on through
+      // if it is passing, or heads out if not, and the run back in on its
+      // mains brings it.
+      const pull = approach.accelerate * this.accelerationAlong(bodies, i, b, ux, uy, facing);
+      const circling = across * side >= lo && (speed * speed) / range <= pull;
+      const arrive = clamp(approachSpeed, lo, hi);
+      const passing = circling || closing > lo / 2;
+      const radial = circling ? (range < inner ? min(closing, 0) : 0) : passing ? closing : min(closing, -arrive);
+      if (!passing) this.running[i] = 1;
+      wantX = ux * radial + tx * speed;
+      wantY = uy * radial + ty * speed;
+    }
+    this.urge(weight, bodies.vx[other]! + wantX, bodies.vy[other]! + wantY);
   }
 
   /**
