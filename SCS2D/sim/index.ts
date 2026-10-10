@@ -14,6 +14,7 @@
 export * as math from './math.js';
 export { Fuel } from './fuel.js';
 export { Metal } from './metal.js';
+export { Charge } from './charge.js';
 export { Store } from './store.js';
 export { Rng, type RngState } from './rng.js';
 export {
@@ -142,6 +143,11 @@ export {
   PAD_PUMP_PER_METRE,
   PORT_MASS_PER_AREA,
   PORT_PUMP_PER_METRE,
+  BATTERY_ENERGY_PER_VOLUME,
+  BATTERY_MASS_PER_VOLUME,
+  BATTERY_POWER_PER_AREA,
+  GENERATOR_POWER_PER_VOLUME,
+  GENERATOR_MASS_PER_VOLUME,
   type GunStats,
   type BurstStats,
   type ModuleKind,

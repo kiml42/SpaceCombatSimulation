@@ -148,6 +148,8 @@ const SIDE_FIELDS = [
   'kindPad',
   'kindPort',
   'kindHold',
+  'kindBattery',
+  'kindGenerator',
   'doctrineTargeting',
   'doctrineApproach',
   'doctrineEscort',
@@ -224,6 +226,8 @@ const FIELDS = [
   'kindPad',
   'kindPort',
   'kindHold',
+  'kindBattery',
+  'kindGenerator',
   'doctrineTargeting',
   'doctrineApproach',
   'doctrineEscort',
@@ -662,6 +666,8 @@ export function startEvolution(): void {
     kindPad: String(DEFAULT_KINDS.pad),
     kindPort: String(DEFAULT_KINDS.port),
     kindHold: String(DEFAULT_KINDS.hold),
+    kindBattery: String(DEFAULT_KINDS.battery),
+    kindGenerator: String(DEFAULT_KINDS.generator),
     doctrineTargeting: String(DEFAULT_DOCTRINE_WEIGHTS.targeting),
     doctrineApproach: String(DEFAULT_DOCTRINE_WEIGHTS.approach),
     doctrineEscort: String(DEFAULT_DOCTRINE_WEIGHTS.escort),
@@ -900,6 +906,8 @@ export function startEvolution(): void {
           pad: Math.max(0, number(get('kindPad'), DEFAULT_KINDS.pad)),
           port: Math.max(0, number(get('kindPort'), DEFAULT_KINDS.port)),
           hold: Math.max(0, number(get('kindHold'), DEFAULT_KINDS.hold)),
+          battery: Math.max(0, number(get('kindBattery'), DEFAULT_KINDS.battery)),
+          generator: Math.max(0, number(get('kindGenerator'), DEFAULT_KINDS.generator)),
         },
         doctrine: {
           targeting: Math.max(0, number(get('doctrineTargeting'), DEFAULT_DOCTRINE_WEIGHTS.targeting)),
@@ -1009,6 +1017,8 @@ export function startEvolution(): void {
     get('kindPad').value = String(kinds.pad);
     get('kindPort').value = String(kinds.port);
     get('kindHold').value = String(kinds.hold);
+    get('kindBattery').value = String(kinds.battery);
+    get('kindGenerator').value = String(kinds.generator);
     const doctrine = doctrineWeights(config.mutation.doctrine);
     get('doctrineTargeting').value = String(doctrine.targeting);
     get('doctrineApproach').value = String(doctrine.approach);

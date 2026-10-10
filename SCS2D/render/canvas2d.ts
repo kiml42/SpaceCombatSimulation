@@ -169,6 +169,10 @@ const FUEL_TRACK = '#1a1d22';
  */
 const FUEL = '#2ec4b6';
 const METAL = NEUTRAL.hull;
+/** Charge, the third store: electric violet, the other hue the sides leave free. */
+const CHARGE = '#9b7bff';
+/** How much of a generator's smaller side its disc is drawn across. */
+const GENERATOR_DISC = 0.55;
 /** How round a tank's gauge is drawn at its ends, as a share of the tank's smaller side: enough to read as a tank. */
 const TANK_ROUNDING = 0.35;
 
@@ -370,7 +374,7 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     ctx.fillStyle =
       integrity <= 0
         ? WRECKAGE
-        : spec.kind === 'structure' || spec.kind === 'tank' || spec.kind === 'hold'
+        : spec.kind === 'structure' || spec.kind === 'tank' || spec.kind === 'hold' || spec.kind === 'battery'
           ? // Thick structure is drawn in the colour of the mounts and engines,
             // since it is what stands with them in the weapons layer. Read from
             // the compiled flag rather than the spec, since a plate that is
@@ -455,14 +459,15 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
       } else {
         ctx.fillRect(-halfLength, -halfWidth, spec.length, spec.width);
       }
-      if (spec.kind === 'tank' || spec.kind === 'hold') {
+      if (spec.kind === 'tank' || spec.kind === 'hold' || spec.kind === 'battery') {
         // A gauge, like a gun's load: the whole capacity as a track inside the
         // walls, and what is left in it filling from the aft end. Drawn at full
         // strength however torn the store, since a wreck's load is still there
         // for a claw to take.
         const inset = min(spec.length, spec.width) * TANK_INSET;
-        const share = (spec.kind === 'tank' ? ship.fuel?.[i] : ship.metal?.[i]) ?? fillOf(spec);
-        const content = spec.kind === 'tank' ? FUEL : METAL;
+        const share =
+          (spec.kind === 'tank' ? ship.fuel?.[i] : spec.kind === 'hold' ? ship.metal?.[i] : ship.charge?.[i]) ?? fillOf(spec);
+        const content = spec.kind === 'tank' ? FUEL : spec.kind === 'hold' ? METAL : CHARGE;
         ctx.globalAlpha = 1;
         if (triangle !== null) {
           // The same band of the tank, kept inside the shape rather than drawn
@@ -500,6 +505,14 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
           ctx.fillRect(-halfLength + inset, -halfWidth + inset, inner * share, across);
           ctx.restore();
         }
+      }
+      if (spec.kind === 'generator') {
+        // The plant: a disc of charge, dark once it has stopped making any.
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = integrity > 0 ? CHARGE : FUEL_TRACK;
+        ctx.beginPath();
+        ctx.arc(0, 0, (min(spec.length, spec.width) * GENERATOR_DISC) / 2, 0, TAU);
+        ctx.fill();
       }
       if (spec.kind === 'core' && integrity > 0) {
         // The whole ship's fuel and metal, a gauge along each long side.

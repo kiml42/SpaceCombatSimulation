@@ -26,8 +26,12 @@ function rating(stats: ModuleStats, effect: DamageEffect): number {
     }
     case DamageEffect.Control:
       return stats.hitPoints;
-    // Gripping is no part of what a hull can fight with.
+    // Gripping is no part of what a hull can fight with, and power is counted
+    // in what it drives rather than again for itself.
     case DamageEffect.Grip:
+    case DamageEffect.Generation:
+    case DamageEffect.Storage:
+    case DamageEffect.Discharge:
       return 0;
   }
 }
