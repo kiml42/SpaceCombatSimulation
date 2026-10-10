@@ -311,7 +311,7 @@ export class Demonstration {
       rounds.vy[i] = dirY * gun.muzzleSpeed;
       rounds.width[i] = gun.calibre;
       rounds.age[i] = 0;
-      this.flashes.add(rounds.x[i]!, rounds.y[i]!, gun.muzzleEnergy, IMPACT_MUZZLE);
+      this.flashes.add(rounds.x[i]!, rounds.y[i]!, gun.muzzleEnergy, IMPACT_MUZZLE, -1, 0, 0, 0, 0, 0, dirX, dirY);
     } else {
       if (beams.count >= MAX_ROUNDS) return;
       const i = beams.count++;

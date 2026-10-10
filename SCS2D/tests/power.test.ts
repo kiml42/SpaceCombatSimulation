@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
+  BeamHits,
+  Beams,
   BATTERY_ENERGY_PER_VOLUME,
+  CORE_BATTERY_SHARE,
+  CORE_COMPUTING_VOLUME,
+  CORE_GENERATOR_SHARE,
+  Projectiles,
+  SpatialGrid,
   BATTERY_POWER_PER_AREA,
   DAMAGE_ENERGY_PER_KG,
   GENERATOR_POWER_PER_VOLUME,
@@ -11,18 +18,23 @@ import {
   parseBlueprint,
   serialiseBlueprint,
   type Blueprint,
+  type ModuleSpec,
 } from '../sim/index.js';
+import { TURRET_CORVETTE } from './fixtures.js';
 
 const DT = 1 / 60;
 
-/** A core with a generator astern and a battery to port, the battery set out empty. */
+/**
+ * A generator astern and a battery ahead of a core too small to carry any
+ * power of its own, the battery set out empty.
+ */
 function plant(generator = 4, battery = 3, fill = 0): Blueprint {
   return {
     name: 'Plant',
     modules: [
-      { kind: 'core', x: 0, y: 0, length: 3, width: 3 },
-      { kind: 'generator', x: -1.5 - generator / 2, y: 0, length: generator, width: generator },
-      { kind: 'battery', x: 0, y: 1.5 + battery / 2, length: battery, width: battery, fill },
+      { kind: 'core', x: 0, y: 0, length: 1, width: 1 },
+      { kind: 'generator', x: -0.5 - generator / 2, y: 0, length: generator, width: generator },
+      { kind: 'battery', x: 0.5 + battery / 2, y: 0, length: battery, width: battery, fill },
     ],
   };
 }
@@ -115,5 +127,93 @@ describe('a damaged battery', () => {
     // The generator tops it up to what it can still hold, and no more.
     r.step(1);
     expect(r.ships.power.held(r.body, BATTERY)).toBeCloseTo(stats.charge * 0.5, -3);
+  });
+});
+
+/**
+ * Hull beams on a plate ahead of a core too small to carry power, and a
+ * generator `generator` metres long astern of it. The second beam, if any, is
+ * a secondary.
+ */
+function beamer(generator: number, beams = 1): Blueprint {
+  const modules: ModuleSpec[] = [
+    { kind: 'core', x: 0, y: 0, length: 1, width: 1 },
+    { kind: 'structure', x: 1, y: 0, length: 1, width: 10 },
+    { kind: 'hullBeam', x: 4.5, y: 2.5, angle: 0, length: 6, width: 4 },
+  ];
+  if (beams > 1) modules.push({ kind: 'hullBeam', x: 4.5, y: -2.5, angle: 0, length: 6, width: 4, main: false });
+  if (generator > 0) modules.push({ kind: 'generator', x: -0.5 - generator / 2, y: 0, length: generator, width: 1 });
+  return { name: 'Beamer', modules };
+}
+
+/** Shots each beam fires in `seconds` at an enemy that cannot be hurt. */
+function shots(blueprint: Blueprint, seconds = 30): number[] {
+  const design = compileBlueprint(blueprint);
+  const world = new World({ dt: DT, seed: 6 });
+  const ships = new Ships();
+  world.addForceProvider(ships.forceProvider());
+  const projectiles = new Projectiles(256);
+  const beams = new Beams(16);
+  const hits = new BeamHits();
+  const grid = new SpatialGrid(64);
+  const me = ships.spawn(world, { design, x: 0, y: 0, team: 0 });
+  const foe = ships.spawn(world, { design: compileBlueprint(TURRET_CORVETTE), x: 850, y: 0, team: 1, invulnerable: true });
+  ships.pushOrder(me, foe, 750, 950, 10);
+  const count = design.turrets.map(() => 0);
+  const wasLit = design.turrets.map(() => false);
+  for (let s = 0; s < seconds / DT; s++) {
+    ships.command(DT, world);
+    grid.rebuild(world.bodies);
+    ships.fire(world, projectiles, beams, grid, hits);
+    design.turrets.forEach((_, t) => {
+      const lit = ships.turrets.lit[ships.turretIndexOf(me, t)] === 1;
+      if (lit && !wasLit[t]) count[t]!++;
+      wasLit[t] = lit;
+    });
+  }
+  return count;
+}
+
+describe('a beam', () => {
+  it('fires once and then never again with no power to refill its bank', () => {
+    expect(shots(beamer(0))[0]).toBe(1);
+  });
+
+  it('fires as often as its piece of hull has the power for', () => {
+    const small = shots(beamer(1))[0]!;
+    const big = shots(beamer(4))[0]!;
+    expect(small).toBeGreaterThan(1);
+    expect(big).toBeGreaterThan(small * 2);
+  });
+
+  it('serves the main battery first when there is not enough to go round', () => {
+    // About one beam's worth of plant for two.
+    const [main, secondary] = shots(beamer(8, 2));
+    expect(main).toBeGreaterThan(secondary! * 2);
+  });
+});
+
+describe('a core', () => {
+  it('carries a generator and a battery in its room past its computing', () => {
+    const core = moduleStats({ kind: 'core', x: 0, y: 0, length: 4, width: 6 });
+    const spare = core.interior - CORE_COMPUTING_VOLUME;
+    expect(core.generation).toBeCloseTo(spare * CORE_GENERATOR_SHARE * GENERATOR_POWER_PER_VOLUME, 3);
+    expect(core.charge).toBeCloseTo(spare * CORE_BATTERY_SHARE * BATTERY_ENERGY_PER_VOLUME, 3);
+    expect(core.chargeRate).toBeGreaterThan(0);
+    // None in one no bigger than its computing.
+    const small = moduleStats({ kind: 'core', x: 0, y: 0, length: 1, width: 1 });
+    expect(small.generation).toBe(0);
+    expect(small.charge).toBe(0);
+  });
+
+  it('powers a beam bolted to it on its own', () => {
+    const blueprint: Blueprint = {
+      name: 'Core and beam',
+      modules: [
+        { kind: 'core', x: 0, y: 0, length: 4, width: 6 },
+        { kind: 'hullBeam', x: 5, y: 0, angle: 0, length: 6, width: 4 },
+      ],
+    };
+    expect(shots(blueprint)[0]).toBeGreaterThan(3);
   });
 });

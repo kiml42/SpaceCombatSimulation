@@ -226,6 +226,9 @@ export class Snapshot {
   impactVx = new Float64Array(0);
   impactVy = new Float64Array(0);
   impactGrowth = new Float64Array(0);
+  /** The way each points, in its body's frame where it has one; zero for none. */
+  impactDirX = new Float64Array(0);
+  impactDirY = new Float64Array(0);
   impactCount = 0;
 
   /**
@@ -284,6 +287,8 @@ function growImpacts(snapshot: Snapshot, needed: number): void {
   snapshot.impactVx = new Float64Array(size);
   snapshot.impactVy = new Float64Array(size);
   snapshot.impactGrowth = new Float64Array(size);
+  snapshot.impactDirX = new Float64Array(size);
+  snapshot.impactDirY = new Float64Array(size);
 }
 
 function shipView(snapshot: Snapshot, i: number): ShipView {
@@ -536,9 +541,12 @@ export function capture(
       out.impactVx[i] = impacts.vx[i]!;
       out.impactVy[i] = impacts.vy[i]!;
       out.impactGrowth[i] = impacts.growth[i]!;
+      out.impactDirX[i] = impacts.dirX[i]!;
+      out.impactDirY[i] = impacts.dirY[i]!;
     }
     out.impactCount = impacts.count;
     impacts.clear();
+    impacts.watched = true;
   }
 
   if (n === 0) {

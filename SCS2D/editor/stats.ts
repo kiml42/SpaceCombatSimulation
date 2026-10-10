@@ -42,6 +42,7 @@ import {
   type ModuleSpec,
   type ShipDesign,
 } from '../sim/index.js';
+import { GunType } from '../sim/modules.js';
 
 const { cos, sin, max, min, TAU } = math;
 
@@ -104,6 +105,8 @@ export interface DesignStats {
   storageAtStart: number;
   /** The most its batteries can give out together, W. */
   discharge: number;
+  /** What its beams draw firing as fast as they can, W. */
+  beamDraw: number;
   /** Seconds every engine could burn flat out on what it sets out with. Infinite with no engines. */
   endurance: number;
   /**
@@ -237,6 +240,11 @@ export function designStats(design: ShipDesign, envelope: Envelopes): DesignStat
     storage,
     storageAtStart,
     discharge,
+    beamDraw: design.turrets.reduce(
+      (sum, turret) =>
+        sum + (turret.gun.type === GunType.Beam && turret.gun.cycleTime > 0 ? (turret.gun.beamPower * turret.gun.beamOnTime) / turret.gun.cycleTime : 0),
+      0,
+    ),
     endurance: flow > 0 ? fuel / flow : Infinity,
     deltaV: fuel > 0 && fuel < mass ? exhaust * math.log(mass / (mass - fuel)) : 0,
     inertia,

@@ -14,6 +14,8 @@ describe('a gun firing', () => {
         muzzles++;
         expect(log.body[i]).toBeGreaterThanOrEqual(0);
         expect(log.energy[i]).toBeGreaterThan(0);
+        // Along the barrel, a unit vector in the hull's frame.
+        expect(Math.hypot(log.dirX[i]!, log.dirY[i]!)).toBeCloseTo(1, 9);
       }
       log.clear();
     }

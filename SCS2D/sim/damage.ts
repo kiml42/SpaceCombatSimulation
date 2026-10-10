@@ -131,7 +131,13 @@ export const DAMAGE_RESPONSES: Readonly<Record<ModuleSpec['kind'], readonly Dama
   structure: [],
   // Holds its fuel however badly it is hit, until leaks are built (ROADMAP.md §8 step 8).
   tank: [],
-  core: [{ effect: DamageEffect.Control, remaining: fadesOutAt(CONTROL_CUTOUT) }],
+  // Its plant and cells go as a generator's and a battery's do.
+  core: [
+    { effect: DamageEffect.Control, remaining: fadesOutAt(CONTROL_CUTOUT) },
+    { effect: DamageEffect.Generation, remaining: fadesOutAt(THRUST_CUTOUT) },
+    { effect: DamageEffect.Storage, remaining: (integrity) => (integrity > 0 ? integrity : 0) },
+    { effect: DamageEffect.Discharge, remaining: fadesOutAt(THRUST_CUTOUT) },
+  ],
   engine: [{ effect: DamageEffect.Thrust, remaining: fadesOutAt(THRUST_CUTOUT) }],
   turret: [{ effect: DamageEffect.FireRate, remaining: fadesOutAt(FIRE_RATE_CUTOUT) }],
   beamTurret: [{ effect: DamageEffect.FireRate, remaining: fadesOutAt(FIRE_RATE_CUTOUT) }],
@@ -921,6 +927,12 @@ export class Credit {
 }
 
 export class ImpactLog {
+  /**
+   * Whether something drains this, as a viewer's `capture` does. Until then
+   * nothing will, and a battle empties it every step rather than let a
+   * headless run hold every hit it ever saw.
+   */
+  watched = false;
   x = new Float64Array(64);
   y = new Float64Array(64);
   /** Body struck, or -1 for a hit on nothing in particular. */
@@ -937,6 +949,9 @@ export class ImpactLog {
   vy = new Float64Array(64);
   /** How fast it spreads, m/s: a burst's, as fast as its fastest fragment leaves. */
   growth = new Float64Array(64);
+  /** The way it points, a unit vector in the struck body's frame, or zero for no way: a muzzle's. */
+  dirX = new Float64Array(64);
+  dirY = new Float64Array(64);
   count = 0;
 
   push(
@@ -949,10 +964,14 @@ export class ImpactLog {
     vx = 0,
     vy = 0,
     growth = 0,
+    dirX = 0,
+    dirY = 0,
   ): void {
     if (this.count === this.x.length) this.grow();
     const i = this.count++;
     this.growth[i] = growth;
+    this.dirX[i] = dirX;
+    this.dirY[i] = dirY;
     this.x[i] = x;
     this.y[i] = y;
     this.vx[i] = vx;
@@ -970,6 +989,8 @@ export class ImpactLog {
     const dy = y - bodies.y[body]!;
     this.localX[i] = dx * c + dy * sn;
     this.localY[i] = -dx * sn + dy * c;
+    this.dirX[i] = dirX * c + dirY * sn;
+    this.dirY[i] = -dirX * sn + dirY * c;
   }
 
   clear(): void {
@@ -987,6 +1008,12 @@ export class ImpactLog {
     const growth = new Float64Array(size);
     growth.set(this.growth);
     this.growth = growth;
+    const dirX = new Float64Array(size);
+    const dirY = new Float64Array(size);
+    dirX.set(this.dirX);
+    dirY.set(this.dirY);
+    this.dirX = dirX;
+    this.dirY = dirY;
     const x = new Float64Array(size);
     const y = new Float64Array(size);
     const energy = new Float64Array(size);
