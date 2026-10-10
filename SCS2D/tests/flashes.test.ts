@@ -14,7 +14,9 @@ import {
   flashSize,
   flashExtent,
   FLASH_BIRTH_SIZE,
+  MUZZLE_FLASH_LIFETIME,
 } from '../render/flashes.js';
+import { IMPACT_MUZZLE, IMPACT_ROUND } from '../sim/index.js';
 
 /**
  * Impact flashes: the arithmetic of how big and how bright, and the ageing
@@ -193,5 +195,17 @@ describe('a blast', () => {
     expect(flashExtent(2, 650, 0.01, BURST_FLASH_LIFETIME)).toBeCloseTo(8.5, 12);
     // Without a growth, it grows by its share of a full size instead.
     expect(flashExtent(2, 0, 0, 1)).toBeCloseTo(2 * FLASH_BIRTH_SIZE, 12);
+  });
+});
+
+describe('a muzzle flash', () => {
+  it('is smaller than a hit of the same energy, and gone sooner', () => {
+    const flashes = new Flashes();
+    flashes.add(0, 0, FLASH_REFERENCE_ENERGY, IMPACT_MUZZLE);
+    flashes.add(0, 0, FLASH_REFERENCE_ENERGY, IMPACT_ROUND);
+    expect(flashes.radius[0]).toBeLessThan(flashes.radius[1]!);
+    flashes.step(MUZZLE_FLASH_LIFETIME + 1e-9);
+    expect(flashes.count).toBe(1);
+    expect(flashes.kind[0]).toBe(IMPACT_ROUND);
   });
 });

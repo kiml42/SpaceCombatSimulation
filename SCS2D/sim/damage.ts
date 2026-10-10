@@ -1018,6 +1018,8 @@ export const IMPACT_BEAM = 1;
 export const IMPACT_COLLISION = 2;
 /** A shell bursting, in open space or not. */
 export const IMPACT_BURST = 3;
+/** A gun firing: logged at its muzzle, with the round's energy, rather than at anything hit. */
+export const IMPACT_MUZZLE = 4;
 
 /**
  * Resolving a step's impacts: what each hit does, and a log of them to draw.

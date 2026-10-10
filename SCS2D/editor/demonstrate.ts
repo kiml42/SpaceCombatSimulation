@@ -1,6 +1,7 @@
 import { MAX_BEAM_LENGTH } from '../sim/beams.js';
-import { math, type ShipDesign, type Snapshot } from '../sim/index.js';
+import { IMPACT_MUZZLE, math, type ShipDesign, type Snapshot } from '../sim/index.js';
 import { GunType, firingPeriod } from '../sim/modules.js';
+import { Flashes } from '../render/flashes.js';
 
 const { cos, sin, min, max } = math;
 
@@ -95,6 +96,8 @@ export class Demonstration {
   };
   /** Which barrel of each turret fires next, so a multi-barrel mount alternates. */
   private barrels = new Int32Array(0);
+  /** Muzzle flashes, drawn as a battle's are. */
+  readonly flashes = new Flashes();
 
   /**
    * Whether there is anything to keep drawing for.
@@ -124,6 +127,7 @@ export class Demonstration {
     this.barrels = new Int32Array(0);
     this.rounds.count = 0;
     this.beams.count = 0;
+    this.flashes.clear();
   }
 
   /**
@@ -137,6 +141,8 @@ export class Demonstration {
   step(design: ShipDesign, selected: readonly number[], dt: number): void {
     this.fit(design);
     let busy = false;
+    // Aged before this frame's shots are added, which are born now.
+    this.flashes.step(dt);
 
     for (let t = 0; t < design.engines.length; t++) {
       const module = design.modules[this.engineModule(design, t)];
@@ -201,7 +207,7 @@ export class Demonstration {
       beams.remaining[i] = beams.remaining[last]!;
     }
 
-    this.busy = busy || rounds.count > 0 || beams.count > 0;
+    this.busy = busy || rounds.count > 0 || beams.count > 0 || this.flashes.count > 0;
   }
 
   /** Write what is being shown into a snapshot the renderer already understands. */
@@ -305,6 +311,7 @@ export class Demonstration {
       rounds.vy[i] = dirY * gun.muzzleSpeed;
       rounds.width[i] = gun.calibre;
       rounds.age[i] = 0;
+      this.flashes.add(rounds.x[i]!, rounds.y[i]!, gun.muzzleEnergy, IMPACT_MUZZLE);
     } else {
       if (beams.count >= MAX_ROUNDS) return;
       const i = beams.count++;

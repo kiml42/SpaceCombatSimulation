@@ -21,6 +21,8 @@
  * happens. DOM-free arithmetic, so it is unit-tested like the camera.
  */
 
+import { IMPACT_BEAM, IMPACT_BURST, IMPACT_MUZZLE } from '../sim/index.js';
+
 /** How long a round's flash lasts, in simulated seconds. */
 export const ROUND_FLASH_LIFETIME = 0.35;
 /**
@@ -51,6 +53,18 @@ export function burstLifetime(energy: number): number {
   const lifetime = BURST_FLASH_LIFETIME + BURST_LIFETIME_PER_DECADE * Math.log10(energy / BURST_REFERENCE_ENERGY);
   return Math.min(BURST_MAX_LIFETIME, Math.max(BURST_MIN_LIFETIME, lifetime));
 }
+
+/**
+ * A gun going off: a few frames, so a gun can be seen to fire even when its
+ * round is too small or too fast to follow.
+ */
+export const MUZZLE_FLASH_LIFETIME = 0.08;
+/**
+ * A muzzle flash's size as a share of a hit's of the same energy: the charge
+ * mostly goes into the round, not the flare, and at full size the flash would
+ * hide the gun it came from.
+ */
+export const MUZZLE_FLASH_SHARE = 0.4;
 
 /** The energy a flash is drawn at full size for, joules. */
 export const FLASH_REFERENCE_ENERGY = 1e6;
@@ -164,7 +178,7 @@ export class Flashes {
     vy = 0,
     growth = 0,
   ): void {
-    const radius = flashRadius(energy);
+    const radius = flashRadius(energy) * (kind === IMPACT_MUZZLE ? MUZZLE_FLASH_SHARE : 1);
     if (!(radius > 0)) return;
     if (this.count === this.x.length) this.grow();
     const i = this.count++;
@@ -175,7 +189,14 @@ export class Flashes {
     this.localY[i] = localY;
     this.radius[i] = radius;
     this.age[i] = 0;
-    this.lifetime[i] = kind === 1 ? BEAM_FLASH_LIFETIME : kind === 3 ? burstLifetime(energy) : ROUND_FLASH_LIFETIME;
+    this.lifetime[i] =
+      kind === IMPACT_BEAM
+        ? BEAM_FLASH_LIFETIME
+        : kind === IMPACT_BURST
+          ? burstLifetime(energy)
+          : kind === IMPACT_MUZZLE
+            ? MUZZLE_FLASH_LIFETIME
+            : ROUND_FLASH_LIFETIME;
     this.kind[i] = kind;
     this.vx[i] = vx;
     this.vy[i] = vy;

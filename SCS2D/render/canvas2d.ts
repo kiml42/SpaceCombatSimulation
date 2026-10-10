@@ -1322,7 +1322,8 @@ function drawFlashes(
     const opened = age - dt * 0.5;
     const closed = min(lifetime, age + dt * 0.5);
     const exposure = closed - opened;
-    if (!(exposure > 0)) continue;
+    // A picture with no step, as the editor's, is an instant rather than an exposure.
+    if (dt > 0 ? !(exposure > 0) : !(age < lifetime)) continue;
     // On the hull it went off against, wherever that hull has got to since,
     // and moving with it. A ship that has gone leaves its flashes where they
     // happened, and a burst drifts on at its shell's velocity.

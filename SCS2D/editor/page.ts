@@ -532,7 +532,7 @@ export function startEditor(): void {
       }
     }
     if (shown !== undefined && view.design !== null) landOnSelf(shown);
-    draw(ctx, snapshot, camera, canvas.width, canvas.height, undefined, arcs);
+    draw(ctx, snapshot, camera, canvas.width, canvas.height, demonstration.flashes, arcs);
     drawOverlay(
       ctx,
       {
