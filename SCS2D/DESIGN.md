@@ -127,7 +127,7 @@ inside any one file is not contiguous.
   through, and bores deeper as it destroys. A module that has taken all it can
   stops working and goes on stopping shells, so a battered ship is sluggish and
   quiet rather than lighter, and a ship that can neither move nor shoot drifts
-  as a hulk. Hits flash on the canvas and wrecked modules are drawn as wreckage.
+  as a hulk. Hits and gun muzzles flash on the canvas, and wrecked modules are drawn as wreckage.
   **An engine is a weapon at close quarters**: a plume reaches back a fixed number of its own nozzle's
   widths, further for machinery that feeds it harder and for a longer bell that collimates it, so a big
   engine throws a long flame and a cluster of nozzles throws short ones. How fiercely it burns — its power

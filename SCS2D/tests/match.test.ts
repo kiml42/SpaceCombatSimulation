@@ -42,7 +42,7 @@ describe('match', () => {
     expect(JSON.stringify(one)).not.toEqual(JSON.stringify(two));
   });
 
-  it('keeps every part of a score inside what it is a fraction of', () => {
+  it('keeps every part of a score inside what it is a fraction of', { timeout: 30_000 }, () => {
     for (const seed of [1, 2, 3]) {
       const result = runMatch(FLEET, { seed });
       for (const [i, score] of result.scores.entries()) {

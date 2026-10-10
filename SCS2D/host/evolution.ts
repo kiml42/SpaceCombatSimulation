@@ -1260,6 +1260,8 @@ export function startEvolution(): void {
         shot.impactVx[i]!,
         shot.impactVy[i]!,
         shot.impactGrowth[i]!,
+        shot.impactDirX[i]!,
+        shot.impactDirY[i]!,
       );
     }
     draw(ctx, shot, camera, view.width, view.height, flashes, arcs, teamShots);

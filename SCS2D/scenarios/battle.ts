@@ -160,7 +160,7 @@ export function makeBattle<Extra extends object = Record<never, never>>(
       grid.rebuild(world.bodies);
       beams.clear();
       beamHits.clear();
-      const fireReport = ships.fire(world, projectiles, beams, grid, beamHits);
+      const fireReport = ships.fire(world, projectiles, beams, grid, beamHits, impacts.log);
       run.totalProjectilesFired += fireReport.projectilesFired;
       run.totalBeamsFired += fireReport.beamsFired;
       // Exhaust burns whatever it is playing on, which is as much a weapon as
