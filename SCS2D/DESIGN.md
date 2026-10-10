@@ -624,16 +624,19 @@ inside any one file is not contiguous.
   commits as it does to ram. The stock **Scavenger** is built for it, its tank starting a fifth full, and `scavenge` has two of them drain
   three wrecks; evolution draws claws at a weight of one.
   **A pad** (`pad`) is a deck a friendly fighter lands on: never thick and never in the weapons layer, with a
-  pump of `PAD_PUMP_PER_METRE` for every metre of its width. A fighter with no claw that runs low makes for
-  the free pad that pays it most fuel for the time, divided as a source is by armed enemies near it and also
-  by every other fighter already making for that pad. It flies there as a ram does, mains along the change of
-  velocity it needs, braking on them with a half turn allowed for, and lines up with the pad only if it
-  would not fit at any heading. It lands — never committing, the pad and the fighter meeting at the boundary
+  pump of `PAD_PUMP_PER_METRE` for every metre of its width. A fighter with no claw whose fuel or charge is
+  down to its doctrine's `dockBelow` of a full load (a quarter, by default) makes for the free pad, of those it
+  fits on, that pays it most for the time, divided by one more `dockDanger` (zero, so no matter, by default)
+  for every armed enemy near it and by one more for every other fighter already making for that pad. It flies
+  there as a ram does, mains along the change of velocity it needs, braking on them with a half turn allowed
+  for, and within `PAD_ALIGN_RADII` of its own radii eases in at no more than `PAD_SPEED`, slowing as it
+  closes, lined up with the pad if it would not fit at any heading. It lands — never committing, the pad and the fighter meeting at the boundary
   between the layers — once its whole bounding box lies inside the pad and it moves with it to within
   `PAD_SPEED`, and the two become one body with a dock's seam. It idles while the pad fills it from what the
-  carrier can spare above the carrier's own `refuelBelow`, and the pad lets it go when it is full, when there
+  carrier can spare above the carrier's own `dockBelow`, and the pad lets it go when it is full, when there
   is no more to spare, or at once when it is given an order. A merged design remembers which of its pieces
-  were fighters (`fighterPieces`), so it lifts off a fighter. The `carrier` scenario has three Dinkies take
+  were fighters (`fighterPieces`), so it lifts off a fighter, and every ship keeps the doctrine it set out with
+  whatever hull it rides, so a fighter flies on its own and not its carrier's. The `carrier` scenario has three Dinkies take
   turns on a two-pad Tender; evolution's weight for a pad is zero, since it pays only in a fleet with fighters.
   **A pad may set out with a fighter docked on it** (`ModuleSpec.docked`, naming a copy in the blueprint's
   `hangar`, as a fleet carries its designs). It is spawned lying along the pad, centred on it, and welded as
@@ -641,18 +644,21 @@ inside any one file is not contiguous.
   pad, or one that is missing or not a fighter, is a blueprint problem, and a budget counts the carrier and
   everything it sets out with (`budgetMass`).
   **A port** (`port`) is a coupling on a hull's side, never thick, with a pump of `PORT_PUMP_PER_METRE` for
-  every metre of its face. Anything but a fighter with a working port and no claw that runs low picks a
+  every metre of its face. Anything but a fighter with a working port and no claw that is down to its
+  `dockBelow` picks a
   friend's free port as it would a pad — from a friend under control and not refuelling itself — comes to a
   point one of its own radii off it, flown mains-first, lines up face to face on the port's axis, and closes
   the last stretch at half a metre a second. Two ports mate when they meet within 30° of face to face at no
   more than `PORT_SPEED` and one of the two ships was making for exactly that pair; fuel then passes, through
   the narrower coupling, into whichever is refuelling from what the other can spare above its own
-  `refuelBelow`, and they part when it is full, nothing more can be spared, or either is given an order. Of
+  `dockBelow`, and they part when it is full, nothing more can be spared, or either is given an order. Of
   two ships docked by ports the smaller idles and the larger flies the pair. A ship does not shy away from a
   friend coming to land on it or dock with it. The stock **Tanker** carries a great tank and a port on each
   beam; the `tanker` scenario has two Pickets dock on either side of one. **Any dock lets go the moment an
   armed enemy is within reach of the pair**, when the ship being filled minds danger (`refuelDanger` above
-  zero), and while one is, no claw grips, no fighter lands and no port mates for it.
+  zero for a claw, `dockDanger` for a pad or a port), and while one is, no claw grips, no fighter lands and no
+  port mates for it. Docking is with a friend and stealing fuel is from a wreck or an enemy, so the two are
+  wary by separate numbers, and by default only a claw is.
   **Metal.** A `hold` archetype whose interior is metal (`METAL_DENSITY`, steel racked about half solid), and
   a twentieth of every core's interior past its computing (`CORE_METAL_SHARE`), the rest of it still fuel, so
   a bare core with one gun can fire a few rounds. A gun loads each round whole from the holds and cores on its
@@ -694,7 +700,9 @@ inside any one file is not contiguous.
   firing flat out beside what it generates. Severed chunks take their own power: charge goes with its
   module, as fuel and metal do. **Docks pass charge**: a pad fills what has landed on it, and a port the ship that is
   refuelling, at `DOCK_POWER_PER_METRE` of the part's width, from what the giver can spare above its
-  `refuelBelow`; a dock holds until charge is full too. Evolution draws batteries and generators at a weight of
+  `dockBelow`; a dock holds until charge is full too, and a fighter whose batteries are down to its
+  `dockBelow` goes to a pad for charge alone. A battery's room is what damage leaves it, so a pad never
+  holds a fighter to fill cells that are broken. Evolution draws batteries and generators at a weight of
   one each, and a mutation does not turn either, since neither has a facing that matters.
 - **Next:** the rest of §8 step 8 — leaks, and pilots that know their fuel — and of step 5: a materials
   budget, and designed scenarios.

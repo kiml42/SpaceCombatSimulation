@@ -3,6 +3,7 @@ import {
   blueprintProblems,
   budgetMass,
   compileBlueprint,
+  DEFAULT_DOCTRINE,
   parseBlueprint,
   serialiseBlueprint,
   inWeaponsLayer,
@@ -22,7 +23,7 @@ import { dockFighter } from '../editor/edit.js';
 /** Fighters landing on a friend's pad to be filled from it (ROADMAP.md §8 step 9). */
 
 /** A core, a big tank, and a pad on its bow big enough for a Dinky. */
-function carrierOf(pad = 20, refuelBelow = 0): ShipDesign {
+function carrierOf(pad = 20, dockBelow = 0): ShipDesign {
   const blueprint: Blueprint = {
     name: 'Carrier',
     modules: [
@@ -32,14 +33,14 @@ function carrierOf(pad = 20, refuelBelow = 0): ShipDesign {
     ],
   };
   const design = compileBlueprint(blueprint);
-  return compileBlueprint({ ...blueprint, doctrine: { ...design.doctrine, approach: { ...design.doctrine.approach, refuelBelow } } });
+  return compileBlueprint({ ...blueprint, doctrine: { ...design.doctrine, approach: { ...design.doctrine.approach, dockBelow } } });
 }
 const PAD = 2;
 const TANK = 1;
 
-function fighterOf(refuelBelow: number): ShipDesign {
+function fighterOf(dockBelow: number): ShipDesign {
   const doctrine = compileBlueprint(DINKY).doctrine;
-  return compileBlueprint({ ...DINKY, doctrine: { ...doctrine, approach: { ...doctrine.approach, refuelBelow } } });
+  return compileBlueprint({ ...DINKY, doctrine: { ...doctrine, approach: { ...doctrine.approach, dockBelow } } });
 }
 
 interface Setup {
@@ -133,7 +134,30 @@ describe('a fighter low on fuel', () => {
     expect(aboard(run, run.f)).toBe(false);
   });
 
-  it('stays out of it with doctrine that never refuels', () => {
+  it('lands by default once down to a quarter of a load, and not before', () => {
+    const plain = compileBlueprint({ ...DINKY, doctrine: DEFAULT_DOCTRINE });
+    const low = scene({ fighter: plain, spent: 0.8 });
+    runUntil(low, () => aboard(low, low.f), 60);
+    expect(aboard(low, low.f)).toBe(true);
+    const half = scene({ fighter: plain, spent: 0.5 });
+    runUntil(half, () => aboard(half, half.f), 60);
+    expect(aboard(half, half.f)).toBe(false);
+  });
+
+  it('keeps its own doctrine after a carrier has carried it, and comes back again', () => {
+    // The carrier never docks itself: a fighter flying on its doctrine would not either.
+    const run = scene();
+    runUntil(run, () => aboard(run, run.f), 60);
+    runUntil(run, () => !aboard(run, run.f), 30);
+    expect(aboard(run, run.f)).toBe(false);
+    const b = run.world.bodies.indexOf(run.ships.body(run.f));
+    const design = run.ships.design(run.f);
+    for (let m = 0; m < design.modules.length; m++) run.ships.fuel.vent(b, m, run.ships.fuel.held(b, m) * 0.8);
+    runUntil(run, () => aboard(run, run.f), 60);
+    expect(aboard(run, run.f)).toBe(true);
+  });
+
+  it('stays out of it with doctrine that never docks', () => {
     const run = scene({ fighter: fighterOf(0) });
     runUntil(run, () => aboard(run, run.f), 60);
     expect(aboard(run, run.f)).toBe(false);
@@ -247,6 +271,19 @@ describe('a pad passing charge', () => {
       { kind: 'battery', x: 1, y: 0, length: 1, width: 1, fill: 0 },
     ],
   };
+
+  it('is gone to for charge alone once a fighter\'s batteries are down to its dockBelow', () => {
+    // A Dinky with a battery where its hold was, setting out a tenth charged and full of fuel.
+    const modules = DINKY.modules!.map((m) => ((m as { kind?: string }).kind === 'hold' ? { ...m, kind: 'battery' as const, fill: 0.1 } : m));
+    const sparky = compileBlueprint({ ...DINKY, modules });
+    const battery = sparky.modules.findIndex((m) => m.spec.kind === 'battery');
+    const run = scene({ fighter: sparky, spent: 0 });
+    runUntil(run, () => aboard(run, run.f), 60);
+    expect(aboard(run, run.f)).toBe(true);
+    runUntil(run, () => !aboard(run, run.f), 30);
+    const b = run.world.bodies.indexOf(run.ships.body(run.f));
+    expect(run.ships.power.held(b, battery)).toBeCloseTo(sparky.modules[battery]!.stats.charge, -2);
+  });
 
   it('fills a fighter aboard from its carrier, and lets it go once full', () => {
     const run = makeBattle({ seed: 3 }, (ships, world) => ({ c: ships.spawn(world, { design: compileBlueprint(laden(20, SPARK)), x: 0, y: 0 }) }));

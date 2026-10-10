@@ -5,7 +5,7 @@
   "doctrine": {
     "approach": {
       "approachSpeed": 20,
-      "refuelBelow": 0.25
+      "dockBelow": 0.25
     }
   },
   "modules": [
