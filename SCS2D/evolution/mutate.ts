@@ -16,6 +16,8 @@ import {
   DEFAULT_DOCTRINE,
   defaultTargeting,
   MOUNT_TARGETING_FIELDS,
+  NON_NEGATIVE_FIELDS,
+  ORDERED_FIELDS,
   POSITIVE_FIELDS,
   SHIP_TARGETING_FIELDS,
   TARGETING_FIELDS,
@@ -882,11 +884,16 @@ function turnDoctrine(
   // opinion about what a doctrine may say, and would be wrong the first time
   // a field was added over there.
   if (POSITIVE_FIELDS.includes(field)) now = max(now, 0.01);
+  if (NON_NEGATIVE_FIELDS.includes(field)) now = max(now, 0);
   const tidied = tidy(now, 3);
   // A draw small enough to round away, or one clamped back onto the floor it
   // was already sitting on. Neither is an edit, and counting it as one would
   // let a candidate that changed nothing be accepted as a child.
   if (tidied === was) return null;
+  // Nor one that crosses the other end of its band.
+  for (const [lower, upper] of ORDERED_FIELDS) {
+    if ((field === lower && tidied > held[upper]!) || (field === upper && tidied < held[lower]!)) return null;
+  }
   held[field] = tidied;
   return `doctrine.${half}.${field} ${was} → ${tidied}`;
 }

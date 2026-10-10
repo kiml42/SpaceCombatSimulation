@@ -19,6 +19,7 @@ import { salvage } from '../scenarios/salvage.js';
 import { scavenge } from '../scenarios/scavenge.js';
 import { carrier } from '../scenarios/carrier.js';
 import { beamCarrier } from '../scenarios/beamCarrier.js';
+import { circling, passes } from '../scenarios/passes.js';
 import { rearm } from '../scenarios/rearm.js';
 import { tanker } from '../scenarios/tanker.js';
 import { customBattle, type CustomBattle } from '../scenarios/customBattle.js';
@@ -81,6 +82,8 @@ export function start(): void {
     { name: 'Rearm', create: () => rearm(SEED) },
     { name: 'Tanker', create: () => tanker(SEED) },
     { name: 'Beam Carrier', create: () => beamCarrier(SEED) },
+    { name: 'Passes', create: () => passes(SEED) },
+    { name: 'Circling', create: () => circling(SEED) },
     // Last, and built from the panel's setup rather than from code.
     { name: 'Custom battle', create: (): Battle => customBattle(panel.setup()) },
   ];

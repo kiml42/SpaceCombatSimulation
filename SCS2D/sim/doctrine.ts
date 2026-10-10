@@ -353,6 +353,18 @@ export interface Approach {
    * the pad fills it with everything it has room for.
    */
   readonly rearmBelow: number;
+  /**
+   * The sideways speed it wants relative to what it is attacking, m/s, held
+   * between this and `tangentialMax`: zero for both comes to rest at its
+   * band, as a gun platform; above zero it comes in aiming to miss, passing
+   * at the band's inner edge, and circles if its thrust can hold the turn
+   * at that speed or makes passes if it cannot, turning back for another
+   * once it is out past the band. Only an attack: a ram, a dock and an
+   * escort still close to rest.
+   */
+  readonly tangentialMin: number;
+  /** The most sideways speed it keeps on an attack, m/s; see `tangentialMin`. */
+  readonly tangentialMax: number;
 }
 
 /**
@@ -432,6 +444,8 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     refuelDanger: 1,
     dockBelow: 0.25,
     dockDanger: 0,
+    tangentialMin: 0,
+    tangentialMax: 0,
     rearmBelow: 0,
   },
 };
@@ -624,7 +638,15 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
   'dockBelow',
   'dockDanger',
   'rearmBelow',
+  'tangentialMin',
+  'tangentialMax',
 ];
+
+/** Fields that mean nothing below zero, though zero itself is a setting. */
+export const NON_NEGATIVE_FIELDS: readonly string[] = ['tangentialMin', 'tangentialMax'];
+
+/** Pairs of approach fields that are the two ends of one band, the first no more than the second. */
+export const ORDERED_FIELDS: readonly (readonly [keyof Approach, keyof Approach])[] = [['tangentialMin', 'tangentialMax']];
 
 /**
  * The fields that mean nothing at or below zero: a size, a range, three
@@ -676,6 +698,9 @@ function halfProblem(
     if (positive.includes(field) && !(held > 0)) {
       return `${where}.${field} must be greater than zero, got ${held}`;
     }
+    if (NON_NEGATIVE_FIELDS.includes(field) && held < 0) {
+      return `${where}.${field} must not be below zero, got ${held}`;
+    }
   }
   return null;
 }
@@ -715,10 +740,17 @@ export function doctrineProblem(value: unknown): string | null {
     return `doctrine must be an object, got ${JSON.stringify(value)}`;
   }
   const raw = value as Record<string, unknown>;
-  return (
+  const problem =
     halfProblem(raw['targeting'], 'doctrine.targeting', TARGETING_FIELDS, POSITIVE_FIELDS) ??
-    halfProblem(raw['approach'], 'doctrine.approach', APPROACH_FIELDS, POSITIVE_FIELDS)
-  );
+    halfProblem(raw['approach'], 'doctrine.approach', APPROACH_FIELDS, POSITIVE_FIELDS);
+  if (problem !== null) return problem;
+  const approach = toHalf(raw['approach'], APPROACH_FIELDS, DEFAULT_DOCTRINE.approach);
+  for (const [lower, upper] of ORDERED_FIELDS) {
+    if (approach[lower] > approach[upper]) {
+      return `doctrine.approach.${lower} (${approach[lower]}) must be no more than ${upper} (${approach[upper]})`;
+    }
+  }
+  return null;
 }
 
 function toHalf<T>(value: unknown, fields: readonly string[], fallback: T): T {

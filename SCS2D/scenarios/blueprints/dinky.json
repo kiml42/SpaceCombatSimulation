@@ -17,7 +17,9 @@
       "brake": 0.95,
       "ramRadii": 1000,
       "ramArmed": 0.5,
-      "dockBelow": 0.5
+      "dockBelow": 0.5,
+      "tangentialMin": 20,
+      "tangentialMax": 60
     }
   },
   "assemblies": {
