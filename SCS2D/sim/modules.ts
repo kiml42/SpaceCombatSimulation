@@ -650,7 +650,7 @@ export const CLAW_MASS_PER_AREA = 250;
  * What a claw pumps per metre of its jaw, kg/s. Its jaw is its bow face, so a
  * wider claw grips more and pumps faster.
  */
-export const CLAW_PUMP_PER_METRE = 50;
+export const CLAW_PUMP_PER_METRE = 250;
 
 /**
  * A landing pad's fittings per square metre of its floor, kg/m²: a flat
@@ -669,7 +669,7 @@ export const PAD_PUMP_PER_METRE = 50;
 export const PORT_MASS_PER_AREA = 200;
 
 /** What a port pumps per metre of its face, kg/s, across a dock to another port. */
-export const PORT_PUMP_PER_METRE = 50;
+export const PORT_PUMP_PER_METRE = 250;
 
 /**
  * Power a pad or a port passes across a dock per metre of its width, W/m:

@@ -22,6 +22,7 @@ import { salvage } from '../../scenarios/salvage.js';
 import { scavenge } from '../../scenarios/scavenge.js';
 import { carrier } from '../../scenarios/carrier.js';
 import { rearm } from '../../scenarios/rearm.js';
+import { beamCarrier } from '../../scenarios/beamCarrier.js';
 import { tanker } from '../../scenarios/tanker.js';
 import { standoff } from '../../scenarios/standoff.js';
 import { torchRun } from '../../scenarios/torchRun.js';
@@ -524,6 +525,19 @@ export function carrierScenario(seed = 20261008): ScenarioRun {
   };
 }
 
+export function beamCarrierScenario(seed = 20261011): ScenarioRun {
+  const run = beamCarrier(seed);
+  return {
+    step: () => run.step(),
+    checksum: () =>
+      checksumDamage(
+        run.ships.damage,
+        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
+      ),
+    describe: () => describeBattle(run),
+  };
+}
+
 export function rearmScenario(seed = 20261010): ScenarioRun {
   const run = rearm(seed);
   return {
@@ -606,7 +620,9 @@ export const SCENARIOS = {
   // Long enough for all three fighters to fire themselves dry and rearm.
   rearm: { steps: 3_000, build: () => rearmScenario() },
   // Long enough for both pickets to dock, fill and part.
-  tanker: { steps: 22_000, build: () => tankerScenario() },
+  tanker: { steps: 6_600, build: () => tankerScenario() },
+  // Long enough for the tender to cast off and grip a wreck, and the first fighters to come back to recharge.
+  beamCarrier: { steps: 7_200, build: () => beamCarrierScenario() },
 } satisfies Record<string, Scenario>;
 
 export type ScenarioName = keyof typeof SCENARIOS;
