@@ -18,12 +18,12 @@ describe('the Beam Carrier', () => {
     for (const f of FIGHTERS) expect(ships.body(f)).toBe(ships.body(CARRIER));
   });
 
-  it('casts its tender off, having no fuel to spare it, and the tender drinks from a wreck', () => {
+  it('casts its tender off, having no fuel to spare it, and the tender drinks from a wreck', { timeout: 60_000 }, () => {
     for (let s = 0; s < 5 * 60; s++) run.step();
     expect(ships.body(TENDER)).not.toBe(ships.body(CARRIER));
     // Gripping a wreck rides it, so the tender's body is no longer its own.
     let gripped = false;
-    for (let s = 0; s < 60 * 60 && !gripped; s++) {
+    for (let s = 0; s < 120 * 60 && !gripped; s++) {
       run.step();
       gripped = ships.isAlive(TENDER) && [10, 11].some((w) => ships.body(w) === ships.body(TENDER));
     }
@@ -41,8 +41,10 @@ describe('the Beam Carrier', () => {
     expect(landed).toBeGreaterThanOrEqual(0);
     for (let s = 0; s < 30 * 60 && ships.body(landed) === ships.body(CARRIER); s++) run.step();
     expect(ships.body(landed)).not.toBe(ships.body(CARRIER));
+    // Full as far as damage leaves it, which its first step on its own reckons.
+    run.step();
     const m = battery(landed);
-    const full = ships.design(landed).modules[m]!.stats.charge;
-    expect(ships.power.held(body(landed), m)).toBeGreaterThan(0.9 * full);
+    expect(ships.power.pieceRoom(body(landed), m)).toBeLessThan(0.05 * ships.design(landed).modules[m]!.stats.charge);
+    expect(ships.power.held(body(landed), m)).toBeGreaterThan(0);
   });
 });

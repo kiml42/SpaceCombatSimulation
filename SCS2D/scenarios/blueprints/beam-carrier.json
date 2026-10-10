@@ -140,7 +140,7 @@
           "y": 0,
           "angle": 90,
           "length": 3,
-          "width": 5,
+          "width": 3,
           "barrels": 2,
           "main": false
         },
@@ -162,14 +162,16 @@
           "y": 0,
           "length": 8,
           "width": 4,
-          "docked": "Dinky Beam"
+          "docked": "Dinky Beam",
+          "reinforcement": 3
         },
         {
           "kind": "battery",
           "x": 6,
           "y": 0,
           "length": 4,
-          "width": 4
+          "width": 4,
+          "reinforcement": 3
         }
       ]
     },
@@ -269,7 +271,8 @@
       "y": 12.5,
       "length": 12,
       "width": 5,
-      "thick": true
+      "thick": true,
+      "reinforcement": 3
     },
     {
       "kind": "tank",
@@ -277,7 +280,7 @@
       "y": 4,
       "length": 93,
       "width": 12,
-      "reinforcement": 3,
+      "reinforcement": 6,
       "sealing": 0.002,
       "fill": 0.45
     },
@@ -309,7 +312,8 @@
       "x": -70.5,
       "y": -4,
       "length": 4,
-      "width": 4
+      "width": 4,
+      "reinforcement": 3
     },
     {
       "use": "Engine Block",
@@ -325,10 +329,10 @@
     {
       "kind": "beamTurret",
       "x": -43.5,
-      "y": 17.5,
+      "y": 16.5,
       "angle": 0,
-      "length": 11,
-      "width": 5,
+      "length": 6,
+      "width": 3,
       "barrels": 1
     },
     {
@@ -337,14 +341,16 @@
       "y": -7.5,
       "angle": -90,
       "length": 3,
-      "width": 7
+      "width": 7,
+      "reinforcement": 3
     },
     {
       "kind": "generator",
       "x": -69,
       "y": 4,
       "length": 7,
-      "width": 12
+      "width": 12,
+      "reinforcement": 3
     },
     {
       "kind": "tank",

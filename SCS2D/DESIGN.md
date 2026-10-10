@@ -663,7 +663,8 @@ inside any one file is not contiguous.
   is a pair of ports face to face, and every part has a core of its own, it is spawned as one ship per part,
   docked at those ports, rather than welded: each flies its own part and can let go. The fighters on its pads
   launch onto whichever part carries them. The stock **Beam Carrier** is built this way: eight pads, each
-  with a battery beside it, a Dinky Beam on every pad, and a tender with a claw docked amidships. In the
+  with a battery beside it, a Dinky Beam on every pad, and a tender with a claw docked amidships. It is
+  reinforced and lightly armed, so its fighters do the fighting. In the
   `beamCarrier` scenario it sets out short of fuel, so its tender casts off to drink from two wrecks, and its
   fighters fight a wave of TIEs on their batteries and come back to the pads to recharge.
   **Metal.** A `hold` archetype whose interior is metal (`METAL_DENSITY`, steel racked about half solid), and
