@@ -13,7 +13,8 @@
     "evolve": "tsx scripts/evolve.ts",
     "yardstick": "tsx scripts/yardstick.ts",
     "build": "tsx scripts/build.ts",
-    "dev": "tsx scripts/build.ts --watch"
+    "dev": "tsx scripts/build.ts --watch",
+    "sync-fleets": "tsx scripts/syncFleets.ts"
   },
   "devDependencies": {
     "@types/node": "^26.4.1",
