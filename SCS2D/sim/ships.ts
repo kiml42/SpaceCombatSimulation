@@ -581,6 +581,8 @@ export class Ships {
   readonly fuel = new Fuel();
   readonly metal = new Metal();
   readonly power = new Charge();
+  /** How deep in a spawn this is, so only one asked for from outside is split at its ports. */
+  private spawning = 0;
 
   /**
    * The narrow phase over those hulls, so that a shot lands on a ship's
@@ -1221,8 +1223,60 @@ export class Ships {
     this.leakTorque.push(0);
     this.alive.push(1);
 
-    if (spec.ghost !== true) for (const aboard of design.aboard ?? []) this.launchAboard(world, i, spec, aboard.pad, aboard.design);
+    if (spec.ghost !== true) {
+      let at = (m: number): number => m;
+      if (design.pieces === undefined && this.spawning === 0) {
+        this.spawning++;
+        at = this.dockAtPorts(world, i);
+        this.spawning--;
+      }
+      for (const aboard of design.aboard ?? []) {
+        if (at(aboard.pad) >= 0) this.launchAboard(world, i, spec, at(aboard.pad), aboard.design);
+      }
+    }
     return i;
+  }
+
+  /**
+   * Set a layout out as the ships its cores fly, docked port to port, where
+   * the only thing joining them is a pair of ports face to face: so a support
+   * ship drawn against its mother ship's side starts docked to it rather than
+   * welded, and can let go. A part with no core of its own stays welded.
+   */
+  private dockAtPorts(world: World, i: number): (m: number) => number {
+    const unchanged = (m: number): number => m;
+    const design = this.designs[i]!;
+    const mated = joints(design).filter(
+      (joint) => design.modules[joint.a]!.spec.kind === 'port' && design.modules[joint.b]!.spec.kind === 'port',
+    );
+    if (mated.length === 0) return unchanged;
+    const groups = components(design, (joint) => mated.includes(joint));
+    if (groups.length < 2) return unchanged;
+    const cores = new Set(design.cores);
+    if (!groups.every((group) => group.some((m) => cores.has(m)))) return unchanged;
+    // The group holding the first core goes on as this ship; each other is a ship of its own.
+    const main = groups.find((group) => group.includes(design.cores[0]!))!;
+    const others: { ship: number; group: number[] }[] = [];
+    for (const group of groups) {
+      if (group === main) continue;
+      const before = this.alive.length;
+      if (this.detach(world, i, design, group)) others.push({ ship: before, group });
+    }
+    this.reshape(world, i, design, main);
+    // Where each module of the layout ends up in the docked hull: this ship's
+    // own first, then each docked ship's after them in turn.
+    const where = new Int32Array(design.modules.length).fill(-1);
+    main.forEach((m, k) => (where[m] = k));
+    for (const { ship, group } of others) {
+      const joint = mated.find((j) => (main.includes(j.a) && group.includes(j.b)) || (main.includes(j.b) && group.includes(j.a)));
+      if (joint === undefined) continue;
+      const mine = main.includes(joint.a) ? joint.a : joint.b;
+      const theirs = mine === joint.a ? joint.b : joint.a;
+      const offset = this.designs[i]!.modules.length;
+      this.merge(world, i, ship, where[mine]!, group.indexOf(theirs), { at: 'a', kind: 'port' });
+      group.forEach((m, k) => (where[m] = offset + k));
+    }
+    return (m) => where[m]!;
   }
 
   /**

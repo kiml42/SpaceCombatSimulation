@@ -659,6 +659,13 @@ inside any one file is not contiguous.
   zero for a claw, `dockDanger` for a pad or a port), and while one is, no claw grips, no fighter lands and no
   port mates for it. Docking is with a friend and stealing fuel is from a wreck or an enemy, so the two are
   wary by separate numbers, and by default only a claw is.
+  **A layout may set out as ships docked port to port.** Where the only thing joining two parts of a layout
+  is a pair of ports face to face, and every part has a core of its own, it is spawned as one ship per part,
+  docked at those ports, rather than welded: each flies its own part and can let go. The fighters on its pads
+  launch onto whichever part carries them. The stock **Beam Carrier** is built this way: eight pads, each
+  with a battery beside it, a Dinky Beam on every pad, and a tender with a claw docked amidships. In the
+  `beamCarrier` scenario it sets out short of fuel, so its tender casts off to drink from two wrecks, and its
+  fighters fight a wave of TIEs on their batteries and come back to the pads to recharge.
   **Metal.** A `hold` archetype whose interior is metal (`METAL_DENSITY`, steel racked about half solid), and
   a twentieth of every core's interior past its computing (`CORE_METAL_SHARE`), the rest of it still fuel, so
   a bare core with one gun can fire a few rounds. A gun loads each round whole from the holds and cores on its
