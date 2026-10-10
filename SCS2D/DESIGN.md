@@ -629,7 +629,10 @@ inside any one file is not contiguous.
   fits on, that pays it most for the time, divided by one more `dockDanger` (zero, so no matter, by default)
   for every armed enemy near it and by one more for every other fighter already making for that pad. It flies
   there as a ram does, mains along the change of velocity it needs, braking on them with a half turn allowed
-  for, and within `PAD_ALIGN_RADII` of its own radii eases in at no more than `PAD_SPEED`, slowing as it
+  for. It comes in over the pad's clear side — of its four sides, the one with the longest run before
+  anything in the weapons layer, and of those the one opening onto empty space — and from the wrong side it
+  first circles the carrier outside its radius, `PAD_ORBIT_STEP` at a time, rather than fly through what is in
+  the way. Within `PAD_ALIGN_RADII` of its own radii it eases in at no more than `PAD_SPEED`, slowing as it
   closes, lined up with the pad if it would not fit at any heading. It lands — never committing, the pad and the fighter meeting at the boundary
   between the layers — once its whole bounding box lies inside the pad and it moves with it to within
   `PAD_SPEED`, and the two become one body with a dock's seam. It idles while the pad fills it from what the
@@ -653,7 +656,8 @@ inside any one file is not contiguous.
   the narrower coupling, into whichever is refuelling from what the other can spare above its own
   `dockBelow`, and they part when it is full, nothing more can be spared, or either is given an order. Of
   two ships docked by ports the smaller idles and the larger flies the pair. A ship does not shy away from a
-  friend coming to land on it or dock with it. The stock **Tanker** carries a great tank and a port on each
+  friend coming to land on it or dock with it, nor from its own fighters at all — those that last set out from
+  or landed on it — trusting them to keep clear, so a carrier does not run from its wing. The stock **Tanker** carries a great tank and a port on each
   beam; the `tanker` scenario has two Pickets dock on either side of one. **Any dock lets go the moment an
   armed enemy is within reach of the pair**, when the ship being filled minds danger (`refuelDanger` above
   zero for a claw, `dockDanger` for a pad or a port), and while one is, no claw grips, no fighter lands and no
@@ -664,7 +668,7 @@ inside any one file is not contiguous.
   docked at those ports, rather than welded: each flies its own part and can let go. The fighters on its pads
   launch onto whichever part carries them. The stock **Beam Carrier** is built this way: eight pads, each
   with a battery beside it, a Dinky Beam on every pad, and a tender with a claw docked amidships. It is
-  reinforced and lightly armed, so its fighters do the fighting. In the
+  reinforced and armed only with two light turrets, so its fighters do the fighting. In the
   `beamCarrier` scenario it sets out short of fuel, so its tender casts off to drink from two wrecks, and its
   fighters fight a wave of TIEs on their batteries and come back to the pads to recharge.
   **Metal.** A `hold` archetype whose interior is metal (`METAL_DENSITY`, steel racked about half solid), and

@@ -334,13 +334,13 @@ export const CLAW_SPEED_HIGH = 4;
 export const CLAW_SPEED_MAX = 8;
 
 /** Chance a claw takes a sound module in its band. Certain on one spent. */
-export const CLAW_GRIP_CHANCE = 0.5;
+export const CLAW_GRIP_CHANCE = 0.8;
 
 /** Cosine of how far off its bow a claw can meet something and still close on it: 45°. */
 const CLAW_ALIGN = 0.7071067811865476;
 
 /** Seconds a claw that missed waits before it tries again. */
-export const CLAW_RETRY = 1;
+export const CLAW_RETRY = 0.5;
 
 /** Share of a gripped module's capacity the jaws take as they close. */
 export const CLAW_BITE = 0.1;
@@ -371,6 +371,13 @@ const PORT_HEADING_SLACK = 0.1;
  * radii. Further off it points where it is going.
  */
 const PAD_ALIGN_RADII = 4;
+
+/**
+ * How far round its carrier, radians, a fighter coming in from the wrong side
+ * steers at a time: it circles the hull outside its radius rather than flying
+ * through what stands between it and the pad.
+ */
+const PAD_ORBIT_STEP = 0.5;
 
 /**
  * The chance a claw closing at `closing` takes a module left at `integrity`:
@@ -781,6 +788,10 @@ export class Ships {
   private readonly refuelling: number[] = [];
   /** Whether each fighter is rearming: from running low on metal until it is full. */
   private readonly rearming: number[] = [];
+  /** For each design, each pad's clear side as an angle in the design's frame; NaN not yet worked out. */
+  private readonly padSides = new WeakMap<ShipDesign, Float64Array>();
+  /** The carrier each fighter last set out from or landed on, or -1. */
+  private readonly home: number[] = [];
   /** Whether each fighter is recharging: from running its batteries down until they are full. */
   private readonly recharging: number[] = [];
   /** The world tick `command` is flying. */
@@ -1194,6 +1205,7 @@ export class Ships {
     this.refuelling.push(0);
     this.rearming.push(0);
     this.recharging.push(0);
+    this.home.push(-1);
     this.touchedSource.push(-Infinity);
     this.landingPad.push(-1);
     this.dockPort.push(-1);
@@ -1307,6 +1319,7 @@ export class Ships {
       ...(spec.invulnerable === true ? { invulnerable: true } : {}),
     });
     this.merge(world, i, f, pad, fighter.cores[0] ?? 0, { at: 'a', kind: 'pad' });
+    this.home[f] = i;
   }
 
   /**
@@ -3175,6 +3188,9 @@ export class Ships {
       // meant to be carrying out — a ship told to ram would sheer off at the
       // last moment and call it seamanship.
       if (t === flying) continue;
+      // Nor its own fighters: a carrier trusts what flies from its pads to
+      // keep clear of it, rather than running from its wing as it comes and goes.
+      if (this.home[t] === i) continue;
       const ob = bodies.indexOf(this.bodyIds[t]!);
       // Nothing to keep clear of in something that cannot be hit.
       if (ob < 0 || ob === b || bodies.ghost[ob] === 1) continue;
@@ -4989,15 +5005,49 @@ export class Ships {
     const design = this.designs[i]!;
     const approach = this.doctrines[i]!.approach;
     const place = this.modulePlace(bodies, tb, host, pad);
-    const dx = place.x - bodies.x[b]!;
-    const dy = place.y - bodies.y[b]!;
-    const range = length(dx, dy);
-    const near = range <= PAD_ALIGN_RADII * bodies.radius[b]!;
+    const mine = bodies.radius[b]!;
+    const range = length(place.x - bodies.x[b]!, place.y - bodies.y[b]!);
+    const near = range <= PAD_ALIGN_RADII * mine;
+    // Come in over the pad's clear side, from outside the hull: one beyond the
+    // carrier's radius off the pad that way, circling round to it first if
+    // the hull is in the way.
+    const out = bodies.angle[tb]! + this.padSide(host, pad);
+    const nx = cos(out);
+    const ny = sin(out);
+    const rx = bodies.x[b]! - place.x;
+    const ry = bodies.y[b]! - place.y;
+    const ahead = rx * nx + ry * ny;
+    const lined = ahead > 0 && abs(ry * nx - rx * ny) <= ahead;
+    let gx = place.x;
+    let gy = place.y;
+    let left = range;
+    if (!near && !lined) {
+      const reach = bodies.radius[tb]!;
+      const ax = place.x + nx * reach;
+      const ay = place.y + ny * reach;
+      const cx = bodies.x[tb]!;
+      const cy = bodies.y[tb]!;
+      const from = atan2(bodies.y[b]! - cy, bodies.x[b]! - cx);
+      const off = angleDelta(from, atan2(ay - cy, ax - cx));
+      if (abs(off) > PAD_ORBIT_STEP) {
+        const ring = max(length(ax - cx, ay - cy), reach + 2 * mine);
+        const step = from + (off > 0 ? PAD_ORBIT_STEP : -PAD_ORBIT_STEP);
+        gx = cx + cos(step) * ring;
+        gy = cy + sin(step) * ring;
+      } else {
+        gx = ax;
+        gy = ay;
+      }
+      left = length(gx - bodies.x[b]!, gy - bodies.y[b]!) + reach;
+    }
+    const dx = gx - bodies.x[b]!;
+    const dy = gy - bodies.y[b]!;
+    const gap = length(dx, dy);
     let vx = place.vx;
     let vy = place.vy;
-    if (range > 0) {
-      const ux = dx / range;
-      const uy = dy / range;
+    if (gap > 0) {
+      const ux = dx / gap;
+      const uy = dy / gap;
       let radial: number;
       if (near) {
         // The last few metres eased in at what it may land at, so it settles
@@ -5007,7 +5057,7 @@ export class Ships {
         const mains =
           this.layoutOf(i).maxThrustAlong(cos(design.thrustBearing), sin(design.thrustBearing)) / bodies.mass[b]!;
         const delay = approach.responseTime + this.halfTurnTime(bodies, i, b);
-        radial = min(approach.approachSpeed, stoppingSpeed(approach.brake * mains, range, delay));
+        radial = min(approach.approachSpeed, stoppingSpeed(approach.brake * mains, left, delay));
       }
       vx += ux * radial;
       vy += uy * radial;
@@ -5026,6 +5076,74 @@ export class Ships {
     const dvx = vx - bodies.vx[b]!;
     const dvy = vy - bodies.vy[b]!;
     return length(dvx, dvy) > PAD_SPEED / 2 ? atan2(dvy, dvx) - design.thrustBearing : bodies.angle[b]!;
+  }
+
+  /**
+   * Which way off pad `pad` of `design` is clear for a fighter to come in by,
+   * as an angle in the design's frame: of the pad's four sides, the one with
+   * the longest run before anything in the weapons layer, and of those, the
+   * longest before anything at all, so it comes in from open space rather
+   * than along the decks.
+   */
+  private padSide(design: ShipDesign, pad: number): number {
+    let sides = this.padSides.get(design);
+    if (sides === undefined) {
+      sides = new Float64Array(design.modules.length).fill(NaN);
+      this.padSides.set(design, sides);
+    }
+    const known = sides[pad]!;
+    if (!Number.isNaN(known)) return known;
+    const module = design.modules[pad]!;
+    const facing = module.spec.angle ?? 0;
+    let best = facing;
+    let longest = -1;
+    for (let k = 0; k < 4; k++) {
+      const a = facing + (k * PI) / 2;
+      const ux = cos(a);
+      const uy = sin(a);
+      const depth = (k % 2 === 0 ? module.spec.length : module.spec.width) / 2;
+      const across = (k % 2 === 0 ? module.spec.width : module.spec.length) / 2;
+      const cap = 2 * design.radius;
+      const run = this.clearRun(design, pad, ux, uy, depth, across, cap, true) * cap + this.clearRun(design, pad, ux, uy, depth, across, cap, false);
+      if (run > longest) {
+        longest = run;
+        best = a;
+      }
+    }
+    sides[pad] = best;
+    return best;
+  }
+
+  /**
+   * How far out from pad `pad`'s side along `ux`, `uy` is clear, metres, up to
+   * `cap`: of anything in the weapons layer, or of anything at all.
+   */
+  private clearRun(design: ShipDesign, pad: number, ux: number, uy: number, depth: number, across: number, cap: number, weaponsOnly: boolean): number {
+    const module = design.modules[pad]!;
+    let run = 0;
+    for (; run < cap; run += 1) {
+      for (let side = -1; side <= 1; side++) {
+        const px = module.x + ux * (depth + run + 0.5) - uy * side * across;
+        const py = module.y + uy * (depth + run + 0.5) + ux * side * across;
+        if (this.inModule(design, pad, px, py, weaponsOnly)) return run;
+      }
+    }
+    return run;
+  }
+
+  /** Whether a point in `design`'s frame lies inside any of its modules but `except`, or any in the weapons layer. */
+  private inModule(design: ShipDesign, except: number, x: number, y: number, weaponsOnly: boolean): boolean {
+    for (let m = 0; m < design.modules.length; m++) {
+      const module = design.modules[m]!;
+      if (m === except || (weaponsOnly && !module.weaponsLayer)) continue;
+      const a = module.spec.angle ?? 0;
+      const c = cos(a);
+      const s = sin(a);
+      const dx = x - module.x;
+      const dy = y - module.y;
+      if (abs(dx * c + dy * s) <= module.spec.length / 2 && abs(dy * c - dx * s) <= module.spec.width / 2) return true;
+    }
+    return false;
   }
 
   /** The first of this ship's ports still working and not already mated, or -1. */
@@ -5204,6 +5322,7 @@ export class Ships {
       if (length(bodies.vx[b]! - place.vx, bodies.vy[b]! - place.vy) > PAD_SPEED) continue;
       if (!this.within(bodies, b, this.designs[i]!, place, host.modules[pad]!.spec)) continue;
       this.merge(world, c, i, pad, this.designs[i]!.cores[0] ?? 0, { at: 'a', kind: 'pad' });
+      this.home[i] = c;
       landed++;
     }
     return landed;

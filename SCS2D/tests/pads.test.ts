@@ -119,6 +119,31 @@ describe('a fighter low on fuel', () => {
     expect(run.totalContacts).toBe(0);
   });
 
+  it('comes round to a pad from the far side of its carrier rather than through what is in the way', () => {
+    // A turret, which a fighter can hit, across the carrier from its pad, and the fighter behind it.
+    const blueprint: Blueprint = {
+      name: 'Shielded carrier',
+      modules: [
+        { kind: 'core', x: 0, y: 0, length: 6, width: 6 },
+        { kind: 'pad', x: 13, y: 0, length: 20, width: 20 },
+        { kind: 'beamTurret', x: -4, y: 0, angle: 0, length: 2, width: 6, main: false },
+        { kind: 'tank', x: 0, y: -8, length: 6, width: 10 },
+      ],
+    };
+    const carrier = compileBlueprint(blueprint);
+    const run = makeBattle({ seed: 3 }, (ships, world) => {
+      const c = ships.spawn(world, { design: carrier, x: 0, y: 0, angle: 0 });
+      const f = ships.spawn(world, { design: fighterOf(0.5), x: -60, y: 0, angle: 0 });
+      const b = world.bodies.indexOf(ships.body(f));
+      const design = ships.design(f);
+      for (let m = 0; m < design.modules.length; m++) ships.fuel.vent(b, m, ships.fuel.held(b, m) * 0.8);
+      return { c, f, g: -1 };
+    });
+    runUntil(run, () => aboard(run, run.f), 90);
+    expect(aboard(run, run.f)).toBe(true);
+    expect(run.totalContacts).toBe(0);
+  });
+
   it('lifts off at once when given an order', () => {
     const run = scene();
     runUntil(run, () => aboard(run, run.f), 60);
