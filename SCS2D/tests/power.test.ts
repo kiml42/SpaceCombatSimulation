@@ -120,6 +120,14 @@ describe('a generator', () => {
 });
 
 describe('a damaged battery', () => {
+  it('has room only for what its broken cells leave it', () => {
+    const r = run(plant(4, 3, 1));
+    const stats = compileBlueprint(plant()).modules[BATTERY]!.stats;
+    r.ships.damage.absorb(r.body, BATTERY, stats.hitPoints * DAMAGE_ENERGY_PER_KG * 0.5);
+    r.step(1);
+    expect(r.ships.power.pieceRoom(r.body, BATTERY)).toBeCloseTo(0, -3);
+  });
+
   it('loses the charge its broken cells held', () => {
     const r = run(plant(4, 3, 1));
     const stats = compileBlueprint(plant()).modules[BATTERY]!.stats;

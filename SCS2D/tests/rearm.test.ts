@@ -20,9 +20,9 @@ function carrierOf(rearmBelow = 0): ShipDesign {
 }
 const CORE = 0;
 
-function fighterOf(rearmBelow: number, refuelBelow = 0.5): ShipDesign {
+function fighterOf(rearmBelow: number, dockBelow = 0.5): ShipDesign {
   const doctrine = compileBlueprint(DINKY).doctrine;
-  return compileBlueprint({ ...DINKY, doctrine: { ...doctrine, approach: { ...doctrine.approach, rearmBelow, refuelBelow } } });
+  return compileBlueprint({ ...DINKY, doctrine: { ...doctrine, approach: { ...doctrine.approach, rearmBelow, dockBelow } } });
 }
 
 interface Setup {

@@ -9,7 +9,7 @@ import { TANKER } from './blueprints.js';
  */
 export const PICKET: Blueprint = {
   name: 'Picket',
-  doctrine: { ...DEFAULT_DOCTRINE, approach: { ...DEFAULT_DOCTRINE.approach, approachSpeed: 20, refuelBelow: 0.5 } },
+  doctrine: { ...DEFAULT_DOCTRINE, approach: { ...DEFAULT_DOCTRINE.approach, approachSpeed: 20, dockBelow: 0.5 } },
   modules: [
     { kind: 'core', x: 0, y: 0, length: 4, width: 4 },
     { kind: 'tank', x: -4, y: 0, length: 4, width: 4 },

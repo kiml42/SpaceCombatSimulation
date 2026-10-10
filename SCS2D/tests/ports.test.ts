@@ -7,18 +7,18 @@ import { OrderCancelCondition } from '../sim/ships.js';
 
 /** Ships docking port to port with a friend to be filled from it (ROADMAP.md §8 step 9). */
 
-function picketOf(refuelBelow = 0.5, tank = 4): ShipDesign {
+function picketOf(dockBelow = 0.5, tank = 4): ShipDesign {
   const modules = PICKET.modules!.map((m, i) => (i === 1 ? { ...m, length: tank } : m));
   // A longer tank pushes the stern back with it.
   const shifted = modules.map((m, i) => (i === 1 ? { ...m, x: -2 - tank / 2 } : i === 3 ? { ...m, x: -2 - tank } : m));
   const blueprint: Blueprint = { ...PICKET, modules: shifted };
-  return compileBlueprint({ ...blueprint, doctrine: { ...PICKET.doctrine!, approach: { ...PICKET.doctrine!.approach, refuelBelow } } });
+  return compileBlueprint({ ...blueprint, doctrine: { ...PICKET.doctrine!, approach: { ...PICKET.doctrine!.approach, dockBelow } } });
 }
 
-function tankerOf(refuelBelow = 0.25, engines = true): ShipDesign {
+function tankerOf(dockBelow = 0.25, engines = true): ShipDesign {
   const doctrine = compileBlueprint(TANKER).doctrine;
   const modules = TANKER.modules!.filter((m) => engines || (m as { kind: string }).kind !== 'engine');
-  return compileBlueprint({ ...TANKER, modules, doctrine: { ...doctrine, approach: { ...doctrine.approach, refuelBelow } } });
+  return compileBlueprint({ ...TANKER, modules, doctrine: { ...doctrine, approach: { ...doctrine.approach, dockBelow } } });
 }
 
 interface Setup {
@@ -109,8 +109,9 @@ describe('a ship low on fuel with a port', () => {
     expect(fuel()).toBeLessThan(reserve + 1);
   });
 
-  it('lets go when an armed enemy comes within reach, and stays off while it is there', () => {
-    const run = scene();
+  it('lets go when an armed enemy comes within reach, and stays off while it is there, if it minds', () => {
+    const wary = PICKET.doctrine!.approach;
+    const run = scene({ picket: compileBlueprint({ ...PICKET, doctrine: { ...PICKET.doctrine!, approach: { ...wary, dockDanger: 1 } } }) });
     runUntil(run, () => docked(run), 90);
     expect(docked(run)).toBe(true);
     const at = run.world.bodies.indexOf(run.ships.body(run.t));
@@ -129,6 +130,22 @@ describe('a ship low on fuel with a port', () => {
       if (docked(run)) again = true;
     }
     expect(again).toBe(false);
+  });
+
+  it('holds on with an armed enemy in reach by default, since docking is with a friend', () => {
+    const run = scene();
+    runUntil(run, () => docked(run), 90);
+    expect(docked(run)).toBe(true);
+    const at = run.world.bodies.indexOf(run.ships.body(run.t));
+    run.ships.spawn(run.world, {
+      design: compileBlueprint(GUNSHIP),
+      x: run.world.bodies.x[at]! + 1500,
+      y: run.world.bodies.y[at]!,
+      team: 1,
+      invulnerable: true,
+    });
+    for (let s = 0; s < 5; s++) run.step();
+    expect(docked(run)).toBe(true);
   });
 
   it('parts at once when given an order', () => {
