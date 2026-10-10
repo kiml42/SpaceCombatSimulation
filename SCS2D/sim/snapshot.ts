@@ -546,6 +546,7 @@ export function capture(
     }
     out.impactCount = impacts.count;
     impacts.clear();
+    impacts.watched = true;
   }
 
   if (n === 0) {
