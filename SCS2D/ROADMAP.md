@@ -52,7 +52,7 @@ an entry is either still open or it is gone.
 | 8 | Fuel | Partly built |
 | 9 | Docking, fuel transfer and fuel harvesting | Built |
 | 10 | Raw material | Partly built |
-| 11 | Power | Partly built |
+| 11 | Power | Built |
 | 12 | In-battle construction | Not started |
 | 13 | Harvesting wrecks | Not started |
 | 14 | Mining | Not started |
@@ -167,6 +167,13 @@ that answers the question most likely to change the design.
 
 #### Power (step 11)
 
+- **Docks pass charge as they pass fuel**: a pad from its carrier to what has landed, a port into whichever ship
+  is refuelling, each at `DOCK_POWER_PER_METRE` of the part's width (a port's, the narrower), from what the
+  giver can spare above its own `refuelBelow`. A dock holds until fuel, metal (on a pad) and charge are all
+  full or can be spared no more.
+- **A beam's reload is paid for in charge** (`Ships.recharged`): over its reload a beam draws the energy its
+  bank holds, and its reload timer runs only as fast as its piece of hull supplies it, the main battery
+  served first. Its own gear's rate (`BEAM_DUTY_CYCLE`, `BEAM_RECHARGE_TIME`) stays the fastest it can go.
 - **Charge is the third store** (`sim/charge.ts`), per module and per piece of hull like fuel and metal, but
   weightless and with a rate: a load calls `Charge.draw` between `open` and `close` in `Ships.command`, and
   gets the piece's generation first and then its batteries'. A new consumer of power is a call to `draw`.
@@ -286,6 +293,18 @@ What is left of the step should follow the shape already there:
 ## 12. Open questions
 
 Deliberately unresolved; decide when they block something.
+
+- **What else should draw power.** Only beams do (§8 step 11). Candidates: turrets drawing to turn, so a dark
+  ship cannot train its guns; cores drawing to run, so a ship that runs flat loses control; electric engines,
+  which trade fuel for power; and plasma beams, which would burn both fuel and power. Each is a call to
+  `Charge.draw` where its load is; the open part is the balance, and whether a ship with no power left should
+  be a hulk. Fuel for the generator and heat from everything are the step after.
+- **Whether a ship should seek a pad or a port for charge alone.** A docked ship is filled with charge as well
+  as fuel and metal, and a dock holds until all three are full or the giver can spare no more, but a ship goes
+  looking for a dock only when it is low on fuel or metal. A beam fighter whose core cannot keep up might want
+  to go for charge too, which wants a doctrine threshold of its own.
+- **Whether a claw should drain an enemy's batteries.** It drinks fuel from what it grips; draining charge is
+  the natural extension, and a way to disarm a beam ship without shooting it.
 
 - **Whether targeting needs more pickers.** A ship-type picker, and hemisphere as a hard discard if
   `facingWeight`'s soft version — astern scores against — turns out not to be enough. Neither is clearly
@@ -429,10 +448,10 @@ Deliberately unresolved; decide when they block something.
   range `D²/2.44λ` lands between about 9 km and 190 km across the shipped mounts, which puts the interesting
   part of the curve inside the engagement ranges this game means to reach. It is the number to revisit first
   when intensity acquires a consumer.
-- **What a beam turret's duty cycle should be.** `BEAM_DUTY_CYCLE` is a flat fraction standing in for two
-  systems that do not exist. (Hull beams have moved off it to a fixed recovery time, `BEAM_RECHARGE_TIME`;
-  the turret entry above says why turrets have not.) The bank refills at whatever the ship's plant can spare, which is a power model;
-  and the mount can keep firing until its heat sinks are full, which is a heat model and is properly a
+- **What a beam turret's duty cycle should be.** `BEAM_DUTY_CYCLE` is a flat fraction standing in for a
+  system that does not exist. (Hull beams have moved off it to a fixed recovery time, `BEAM_RECHARGE_TIME`;
+  the turret entry above says why turrets have not.) Power is built: both are now the fastest the mount's own
+  gear refills its bank, and a ship short of power refills slower. What is left is heat: the mount can keep firing until its heat sinks are full, which is a heat model and is properly a
   *cumulative* limit across an engagement rather than a per-shot one — a beam mount should warm up over minutes
   and eventually have to stop, not reload. Worth knowing how large that problem is: radiating 300 MW of waste
   heat at 500 K needs something like 88,000 m² of radiator, which is why a laser warship is a hard ship to
@@ -551,10 +570,6 @@ Deliberately unresolved; decide when they block something.
   a grapple exists, harvesting could come straight after step 10, keeping each step small and leaving
   construction, the largest, until last. The order built puts construction first, as the big use metal is
   harvested for.
-- **How severed chunks divide power.** Which piece goes on being a ship is settled — the one holding a
-  working core, and every other piece with one becomes a ship of its own (DESIGN.md §4) — and fuel and metal
-  go with the module they are in. Nothing consumes power yet, so there is nothing to divide; decide it when a
-  generator exists.
 - **What scrap and salvage reach are worth: `SCRAP_MASS` and `SALVAGE_REACH`.** They encode an economic
   judgement — what is too smashed to harvest, and how far is too far to go for — against an economy that
   does not exist yet, so they will want revisiting when it does. Worth knowing before tuning them: the

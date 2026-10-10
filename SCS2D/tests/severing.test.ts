@@ -246,8 +246,9 @@ describe('what a hull that has come apart looks like', () => {
     s.ships.sever(s.world);
     const after = totals(s);
     expect(after.mass).toBeCloseTo(before.mass, 9);
-    expect(after.px).toBeCloseTo(before.px, 9);
-    expect(after.py).toBeCloseTo(before.py, 9);
+    // Momentum is millions of kg·m/s, so a last-bit difference is a nanounit.
+    expect(after.px).toBeCloseTo(before.px, 6);
+    expect(after.py).toBeCloseTo(before.py, 6);
     expect(after.l).toBeCloseTo(before.l, 6);
   });
 

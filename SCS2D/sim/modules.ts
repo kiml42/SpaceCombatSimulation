@@ -204,6 +204,14 @@ export const METAL_DENSITY = HULL_DENSITY * 0.5;
  */
 export const CORE_METAL_SHARE = 0.05;
 
+/**
+ * The shares of a core's interior past its computing given to a generator and
+ * to a battery, so a core big enough can drive anything bolted to it. A battery's
+ * share passes power at that share of what a battery the core's size would.
+ */
+export const CORE_GENERATOR_SHARE = 0.1;
+export const CORE_BATTERY_SHARE = 0.1;
+
 /** The volume inside a module's walls and any sealing lining, m³. */
 export function interiorVolume(stats: ModuleStats): number {
   return stats.interior;
@@ -563,19 +571,18 @@ export const OPTIC_INTENSITY_LIMIT = 2e8;
 export const BEAM_STORED_ENERGY_PER_VOLUME = 1.2e5;
 
 /**
- * Fraction of the time a beam mount can be firing.
+ * Fraction of the time a beam turret can be firing, given all the power it
+ * wants: how fast its own charging gear refills its bank. Short of power it
+ * refills slower, at what its piece of hull can supply (`Ships.recharged`).
  *
- * **A stop-gap until power and heat are modelled**, which are what actually
- * decide this: the bank refills at whatever the ship's plant can spare, and
- * the mount can keep it up until its heat sinks are full. Neither exists, so
- * the recharge is a flat fraction rather than a rate. When power lands, this
- * constant is what it replaces.
+ * **A stop-gap until heat is modelled**, which is what should decide the
+ * rest: the mount can keep firing until its heat sinks are full.
  */
 export const BEAM_DUTY_CYCLE = 0.25;
 
 /**
  * How long a beam mount takes to be ready again after emptying its bank,
- * seconds.
+ * seconds, given all the power it wants; short of power it takes longer.
  *
  * **A time rather than a rate, and that is not a simplification.** The bank
  * holds energy in proportion to the machinery's volume, and the plant and heat
@@ -663,6 +670,12 @@ export const PORT_MASS_PER_AREA = 200;
 
 /** What a port pumps per metre of its face, kg/s, across a dock to another port. */
 export const PORT_PUMP_PER_METRE = 50;
+
+/**
+ * Power a pad or a port passes across a dock per metre of its width, W/m:
+ * a coupling's heavy cabling, as its pump is its plumbing.
+ */
+export const DOCK_POWER_PER_METRE = 1e6;
 
 /**
  * Energy a battery holds per cubic metre inside its walls, J/m³: about a
@@ -1157,11 +1170,11 @@ export interface ModuleStats {
   swingInertia: number;
   /** Fuel a claw, a pad or a port pumps across what it holds, kg/s. Zero for anything else. */
   pumpRate: number;
-  /** Energy the module holds when full, J. Zero unless it is a battery. */
+  /** Energy the module holds when full, J. Zero unless it is a battery or a core. */
   charge: number;
-  /** The most it can take in or give out, W. Zero unless it is a battery. */
+  /** The most it can take in or give out, W. Zero unless it is a battery or a core. */
   chargeRate: number;
-  /** What it makes, W. Zero unless it is a generator. */
+  /** What it makes, W. Zero unless it is a generator or a core. */
   generation: number;
 }
 
@@ -2295,8 +2308,13 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
     // carrying five of them.
     fittingMass = max(CORE_MINIMUM_FITTING_MASS, CORE_MASS_PER_AREA * capacity) + liningMass;
     const spare = max(0, interior - CORE_COMPUTING_VOLUME);
-    fuel = spare * (1 - CORE_METAL_SHARE) * FUEL_DENSITY;
+    fuel = spare * (1 - CORE_METAL_SHARE - CORE_GENERATOR_SHARE - CORE_BATTERY_SHARE) * FUEL_DENSITY;
     metal = spare * CORE_METAL_SHARE * METAL_DENSITY;
+    generation = spare * CORE_GENERATOR_SHARE * GENERATOR_POWER_PER_VOLUME;
+    charge = spare * CORE_BATTERY_SHARE * BATTERY_ENERGY_PER_VOLUME;
+    chargeRate = spare > 0 ? CORE_BATTERY_SHARE * BATTERY_POWER_PER_AREA * 2 * (spec.length + spec.width) * height : 0;
+    fittingMass +=
+      spare * (CORE_GENERATOR_SHARE * GENERATOR_MASS_PER_VOLUME + CORE_BATTERY_SHARE * BATTERY_MASS_PER_VOLUME);
   } else if (spec.kind === 'port') {
     // A collar on its outward face and a coupling behind it.
     fittingMass = PORT_MASS_PER_AREA * capacity;

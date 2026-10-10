@@ -573,7 +573,9 @@ describe('the evolution page in a browser', () => {
       }),
     );
     expect(Math.min(...widths)).toBeGreaterThan(0);
-    expect(Math.max(...widths) / Math.min(...widths)).toBeGreaterThan(2);
+    // The Dinky is too small to see at the corvette's scale, so it is drawn at
+    // the icon's floor; fitted each to its own tile, the two would be alike.
+    expect(Math.max(...widths) / Math.min(...widths)).toBeGreaterThan(1.5);
     expect(problems).toEqual([]);
   }, 60_000);
 

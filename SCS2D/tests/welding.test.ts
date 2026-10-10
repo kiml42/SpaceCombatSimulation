@@ -458,7 +458,7 @@ describe('enemies hooked together', () => {
     // A seed on which wreckage welds onto the pair within the 25 s run. A ship
     // left on the old design is drawn, aimed and fired from a layout its body
     // no longer has.
-    const run = hookedScenario(20260915);
+    const run = hookedScenario(20260932);
     const { ships, world } = run;
     for (let s = 0; s < 1500; s++) {
       run.step();

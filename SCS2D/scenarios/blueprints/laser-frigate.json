@@ -35,9 +35,17 @@
         {
           "kind": "tank",
           "x": 0,
-          "y": 1.5,
+          "y": 2.5,
           "length": 7,
-          "width": 8
+          "width": 6
+        },
+        {
+          "kind": "generator",
+          "x": 2,
+          "y": -1.5,
+          "length": 3,
+          "width": 2,
+          "notes": "Powers the spine beam past what the core can, from a slice of the tank."
         },
         {
           "use": "engine",
@@ -49,6 +57,13 @@
           "x": 3.5,
           "y": 4,
           "angle": -90
+        },
+        {
+          "kind": "battery",
+          "x": -1.5182019869999994,
+          "y": -1.5,
+          "length": 4.036403974,
+          "width": 2
         }
       ]
     },
@@ -121,7 +136,7 @@
   "modules": [
     {
       "kind": "core",
-      "x": -1,
+      "x": -0.963596026,
       "y": 0,
       "length": 5,
       "width": 8,
@@ -129,7 +144,7 @@
     },
     {
       "kind": "hullBeam",
-      "x": 26.5,
+      "x": 26.536403974,
       "y": 0,
       "angle": 0,
       "length": 50,
@@ -148,18 +163,18 @@
     },
     {
       "use": "structure",
-      "x": 12.75,
+      "x": 12.786403974,
       "y": 4.75
     },
     {
       "use": "structure",
-      "x": 12.75,
+      "x": 12.786403974,
       "y": -4.75,
       "mirror": true
     },
     {
       "kind": "engine",
-      "x": -3.5,
+      "x": -3.463596026,
       "y": 0,
       "angle": 180,
       "length": 18,
@@ -169,23 +184,23 @@
     },
     {
       "use": "structure2",
-      "x": -5.5,
+      "x": -5.463596026,
       "y": 8
     },
     {
       "use": "structure2",
-      "x": -5.5,
+      "x": -5.463596026,
       "y": -8,
       "mirror": true
     },
     {
       "use": "engine2",
-      "x": 48.5,
+      "x": 48.536403974,
       "y": 5.5
     },
     {
       "use": "engine2",
-      "x": 48.5,
+      "x": 48.536403974,
       "y": -5.5,
       "angle": 0,
       "mirror": true

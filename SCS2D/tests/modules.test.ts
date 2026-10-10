@@ -13,6 +13,11 @@ import {
   BEAM_STORED_ENERGY_PER_VOLUME,
   CALIBRE_FRACTION,
   CORE_MASS_PER_AREA,
+  CORE_COMPUTING_VOLUME,
+  CORE_GENERATOR_SHARE,
+  CORE_BATTERY_SHARE,
+  GENERATOR_MASS_PER_VOLUME,
+  BATTERY_MASS_PER_VOLUME,
   CYCLE_TIME_PER_CALIBRE,
   CORE_MINIMUM_FITTING_MASS,
   DECK_HEIGHT,
@@ -531,8 +536,12 @@ describe('core scaling', () => {
     // so twice the floor is twice the equipment.
     const small = moduleStats(box('core', 4, 4));
     const large = moduleStats(box('core', 8, 4));
-    expect(small.fittingMass).toBeCloseTo(CORE_MASS_PER_AREA * small.capacity, 6);
-    expect(large.fittingMass).toBeCloseTo(CORE_MASS_PER_AREA * large.capacity, 6);
+    // Plus the generator and battery in its spare room, by volume.
+    const plant = (interior: number): number =>
+      (interior - CORE_COMPUTING_VOLUME) *
+      (CORE_GENERATOR_SHARE * GENERATOR_MASS_PER_VOLUME + CORE_BATTERY_SHARE * BATTERY_MASS_PER_VOLUME);
+    expect(small.fittingMass).toBeCloseTo(CORE_MASS_PER_AREA * small.capacity + plant(small.interior), 6);
+    expect(large.fittingMass).toBeCloseTo(CORE_MASS_PER_AREA * large.capacity + plant(large.interior), 6);
     expect(large.fittingMass).toBeGreaterThan(small.fittingMass * 1.9);
   });
 
