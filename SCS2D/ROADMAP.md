@@ -167,6 +167,9 @@ that answers the question most likely to change the design.
 
 #### Power (step 11)
 
+- **A beam's reload is paid for in charge** (`Ships.recharged`): over its reload a beam draws the energy its
+  bank holds, and its reload timer runs only as fast as its piece of hull supplies it, the main battery
+  served first. Its own gear's rate (`BEAM_DUTY_CYCLE`, `BEAM_RECHARGE_TIME`) stays the fastest it can go.
 - **Charge is the third store** (`sim/charge.ts`), per module and per piece of hull like fuel and metal, but
   weightless and with a rate: a load calls `Charge.draw` between `open` and `close` in `Ships.command`, and
   gets the piece's generation first and then its batteries'. A new consumer of power is a call to `draw`.
@@ -429,10 +432,10 @@ Deliberately unresolved; decide when they block something.
   range `D²/2.44λ` lands between about 9 km and 190 km across the shipped mounts, which puts the interesting
   part of the curve inside the engagement ranges this game means to reach. It is the number to revisit first
   when intensity acquires a consumer.
-- **What a beam turret's duty cycle should be.** `BEAM_DUTY_CYCLE` is a flat fraction standing in for two
-  systems that do not exist. (Hull beams have moved off it to a fixed recovery time, `BEAM_RECHARGE_TIME`;
-  the turret entry above says why turrets have not.) The bank refills at whatever the ship's plant can spare, which is a power model;
-  and the mount can keep firing until its heat sinks are full, which is a heat model and is properly a
+- **What a beam turret's duty cycle should be.** `BEAM_DUTY_CYCLE` is a flat fraction standing in for a
+  system that does not exist. (Hull beams have moved off it to a fixed recovery time, `BEAM_RECHARGE_TIME`;
+  the turret entry above says why turrets have not.) Power is built: both are now the fastest the mount's own
+  gear refills its bank, and a ship short of power refills slower. What is left is heat: the mount can keep firing until its heat sinks are full, which is a heat model and is properly a
   *cumulative* limit across an engagement rather than a per-shot one — a beam mount should warm up over minutes
   and eventually have to stop, not reload. Worth knowing how large that problem is: radiating 300 MW of waste
   heat at 500 K needs something like 88,000 m² of radiator, which is why a laser warship is a hard ship to
@@ -551,10 +554,6 @@ Deliberately unresolved; decide when they block something.
   a grapple exists, harvesting could come straight after step 10, keeping each step small and leaving
   construction, the largest, until last. The order built puts construction first, as the big use metal is
   harvested for.
-- **How severed chunks divide power.** Which piece goes on being a ship is settled — the one holding a
-  working core, and every other piece with one becomes a ship of its own (DESIGN.md §4) — and fuel and metal
-  go with the module they are in. Nothing consumes power yet, so there is nothing to divide; decide it when a
-  generator exists.
 - **What scrap and salvage reach are worth: `SCRAP_MASS` and `SALVAGE_REACH`.** They encode an economic
   judgement — what is too smashed to harvest, and how far is too far to go for — against an economy that
   does not exist yet, so they will want revisiting when it does. Worth knowing before tuning them: the

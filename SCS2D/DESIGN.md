@@ -683,7 +683,16 @@ inside any one file is not contiguous.
   holds less as its cells break (`DamageEffect.Storage`, charge past that lost) and passes less as its wiring
   goes (`Discharge`); a generator gives out as an engine does (`Generation`). A battery may start part full
   (`fill`). The editor has a Power group and shows a ship's generation, storage and peak discharge; the
-  battle draws a battery's gauge in violet and a generator as a violet disc. Nothing draws on charge yet.
+  battle draws a battery's gauge in violet and a generator as a violet disc. **A beam's reload is paid for
+  in charge**: over its reload it draws the energy its bank holds from its piece of hull, the main battery
+  first, and reloads only as fast as that comes; with power to spare it reloads at its own gear's rate as
+  before, and with none it fires once. **A core carries a generator and a battery** in a tenth of its spare
+  interior each (`CORE_GENERATOR_SHARE`, `CORE_BATTERY_SHARE`), taken from its fuel, so a big enough core
+  drives what is bolted to it; damage takes them as it takes a generator's and a battery's. The Laser
+  Frigate and the Beam Gunship, whose cores alone would run their beams at an eighth and a fifth of their
+  rate, each give a slice of a tank or plating to a generator. The editor shows what a ship's beams draw
+  firing flat out beside what it generates. Severed chunks take their own power: charge goes with its
+  module, as fuel and metal do.
 - **Next:** the rest of §8 step 8 — leaks, and pilots that know their fuel — and of step 5: a materials
   budget, and designed scenarios.
   See ROADMAP.md §8.

@@ -2151,11 +2151,14 @@ export class Ships {
       const timers = this.cooldown[i]!;
       const b = bodies.indexOf(this.bodyIds[i]!);
       const mounts = this.designs[i]!.turrets;
-      for (let t = 0; t < timers.length; t++) {
-        if (!this.ownsAt(i, b, mounts[t]!.module)) continue;
-        if (timers[t]! > 0) {
-          const remaining = timers[t]! - dt;
-          timers[t] = remaining > TIMER_SETTLE ? remaining : 0;
+      // The main battery first, so it has the power when there is not enough to go round.
+      for (let pass = 0; pass < 2; pass++) {
+        for (let t = 0; t < timers.length; t++) {
+          if (mounts[t]!.main !== (pass === 0) || !this.ownsAt(i, b, mounts[t]!.module)) continue;
+          if (timers[t]! > 0) {
+            const remaining = timers[t]! - dt * this.recharged(b, i, t, dt);
+            timers[t] = remaining > TIMER_SETTLE ? remaining : 0;
+          }
         }
       }
     }
@@ -5166,6 +5169,23 @@ export class Ships {
       vy += uy * radial;
     }
     this.urge(URGE_REFERENCE, vx, vy);
+  }
+
+  /**
+   * How much of a step's reload a gun gets through, 0 to 1. A gun that loads
+   * rounds gets all of it. A beam refills its bank from its piece of hull's
+   * power over its reload, so it gets the share of the step's energy that
+   * power could supply.
+   */
+  private recharged(b: number, i: number, t: number, dt: number): number {
+    if (this.turretStates[i]![t] !== TurretState.Reloading) return 1;
+    const mount = this.designs[i]!.turrets[t]!;
+    const gun = mount.gun;
+    if (gun.type !== GunType.Beam || !(gun.cycleTime > 0)) return 1;
+    const rate = this.damage.remaining(b, mount.module, DamageEffect.FireRate);
+    const need = (gun.beamPower * gun.beamOnTime * rate * dt) / gun.cycleTime;
+    if (!(need > 0)) return 1;
+    return this.power.draw(b, mount.module, need) / need;
   }
 
   /** Engines off and nothing asked of them, while what it is holding is pumped aboard. */

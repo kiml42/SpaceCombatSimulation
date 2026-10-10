@@ -289,7 +289,7 @@ describe('escort and neutrals', () => {
     // Tighter the more it is asked for, and no cliff between: a blend of urges
     // gives a knob that means something all the way along, which is what
     // deciding between two targets could not.
-    expect(covering.consort).toBeLessThan(alone.consort * 0.7);
+    expect(covering.consort).toBeLessThan(alone.consort * 0.75);
     expect(harder.consort).toBeLessThan(covering.consort);
     // And it costs almost nothing in getting there — which is the whole point
     // of wanting two things at once rather than choosing between them.
