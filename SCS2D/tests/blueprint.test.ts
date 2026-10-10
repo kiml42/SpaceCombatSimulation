@@ -17,7 +17,7 @@ import {
   moduleStats,
   type ModuleSpec,
 } from '../sim/modules.js';
-import { BLUEPRINTS, BROADSIDE, type BlueprintName } from '../scenarios/blueprints.js';
+import { BEAM_CARRIER, BLUEPRINTS, BROADSIDE, type BlueprintName } from '../scenarios/blueprints.js';
 
 /**
  * What a compiled design has to get right is arithmetic that nothing
@@ -472,10 +472,11 @@ describe('firing arcs', () => {
 /**
  * Layouts that are deliberately not symmetric, listed by identity rather than
  * matched on a name: a substring test would silently exempt a future
- * "Undamaged Mk II", and the point of a wreck, or of a ship with its whole
- * battery on one beam, is that its asymmetry is the feature.
+ * "Undamaged Mk II", and the point of a wreck, of a ship with its whole
+ * battery on one beam, or of a carrier with its tender docked on one side, is
+ * that its asymmetry is the feature.
  */
-const ASYMMETRIC: readonly Blueprint[] = [BROADSIDE];
+const ASYMMETRIC: readonly Blueprint[] = [BROADSIDE, BEAM_CARRIER];
 
 /**
  * The ships the rest of the suite flies.
@@ -515,7 +516,7 @@ const FLEET: readonly BlueprintName[] = [
  * group or the other on purpose — see the test below that checks the two
  * cover every ship exactly once.
  */
-const SHOWCASE: readonly BlueprintName[] = ['xWing', 'ghost', 'tie', 'starDestroyer', 'aWing', 'yWing'];
+const SHOWCASE: readonly BlueprintName[] = ['xWing', 'ghost', 'tie', 'starDestroyer', 'aWing', 'yWing', 'beamCarrier'];
 
 /**
  * Seeds: layouts that are somewhere for evolution to start rather than ships.
@@ -609,7 +610,7 @@ describe('the authored blueprints', () => {
 
       it(
         deliberatelyAsymmetric
-          ? 'is asymmetric about its own axis, as a wreck should be'
+          ? 'is asymmetric about its own axis, as it is drawn to be'
           : inFleet(name) || isSeed(name)
             ? 'is symmetric about its own axis'
             : 'is balanced closely enough to fly straight',
