@@ -123,7 +123,7 @@ the base of steps 12 and 13. The shape, settled with the author (DECISIONS.md):
 - **Damage sheds mass** (DESIGN.md §4): a little by the time a module stops working, more with damage past
   that, never below half. Repairing a module means putting that metal back. The work also takes time and
   power in proportion to the damage undone, so a module broken without losing much is cheap in metal but
-  not instant.
+  not instant: for a module only partly damaged, time is the cost that matters most.
 - **Robots repair larger ships.** A robot is not a body: it is a place on its ship's hull, moving module to
   module across shared faces at a set speed, and drawn there. It is lost with the module it is on, destroyed
   or cut away, and never crosses to a severed piece. It carries a load of metal and a charge of power from
