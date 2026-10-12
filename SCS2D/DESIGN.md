@@ -752,8 +752,9 @@ inside any one file is not contiguous.
   `rechargeBelow` goes to a pad for charge alone. A battery's room is what damage leaves it, so a pad never
   holds a fighter to fill cells that are broken. Evolution draws batteries and generators at a weight of
   one each, and a mutation does not turn either, since neither has a facing that matters.
-- **Next:** the rest of §8 step 8 — leaks, and pilots that know their fuel — and of step 5: a materials
-  budget, and designed scenarios.
+- **Next:** repair, construction and salvage, one mechanism built in six stages (ROADMAP.md §8), the first
+  being the mass damage sheds from a module. Alongside it, the rest of §8 step 8 — leaks, and pilots that
+  know their fuel — and of step 5: a materials budget, and designed scenarios.
   See ROADMAP.md §8.
   §8 step 3 is done bar withdrawal, and step 7, two layers, is built. What a chooser is already facing (`facingWeight`) and whether anything is in the way
   (`sightWeight`) are weights, zero by default. Evolution is built and runs both headlessly and on a page
@@ -784,7 +785,7 @@ inside any one file is not contiguous.
   and hits scored are identical too. Measured by `scenarios/ordering.ts`, which
   flies three gunships of one geometry both stacked in one battle and one to a
   battle each.
-- **Last updated:** 2026-09-26
+- **Last updated:** 2026-10-12
 
 ---
 
@@ -1123,25 +1124,36 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   fighting is let go. How far is "clear" grows with the piece's mass, so a shard goes as soon as it
   leaves and a serious chunk effectively never does — which makes "worth hunting down" fall out of the
   rule rather than being declared. What is discarded is counted, mass and momentum both, so the books
-  can still be balanced.
-- **Destruction is a state change, not a removal. Matter is conserved.** A "destroyed" module becomes
-  *non-functional* — an engine gives no thrust, a magazine holds no rounds, a turret does not fire — but it
-  keeps its mass, its place in the layout, and its ability to stop a shell. Mass leaves a ship only by being
-  **severed** (the connectivity graph above), never by being shot to nothing.
+  can still be balanced, and so is what damage boils or shreds off a module (below).
+- **Destruction is a state change, not a removal, and costs a module only some of its matter.** A
+  "destroyed" module becomes *non-functional* — an engine gives no thrust, a magazine holds no rounds, a
+  turret does not fire — but it keeps its place in the layout, its ability to stop a shell, and **at least
+  half its mass**. Damage boils a little off with a beam's heat or shreds it away with a shell, so a module
+  is completely broken well before it has lost a significant share of itself; damage past that point goes
+  on taking mass, down to a floor of half. Mass leaves a ship otherwise only by being **severed** (the
+  connectivity graph above). What is lost has to be put back as metal to repair the module, which is what
+  gives repair a cost (ROADMAP.md §8). *Not built yet: until the shedding lands, a module keeps all its
+  mass.*
+
+  Half, because nothing draws a damaged module any smaller: a part that kept its outline while losing most
+  of its matter would be a lie on screen, and a ship hit harder than another would have to look the same.
+  It can go lower once a module can be drawn with holes in it.
 
   This is worth more than its realism:
 
   - **Wrecked structure is free armour**, which is exactly right. A mission-killed capital is a drifting
     hulk that still soaks rounds, so the mission-kill/kill distinction in §3 gets teeth: stripping a ship's
-    function does not make it easier to finish off.
+    function does not make it easier to finish off. Half a module still stops a shell.
   - **Damage never changes topology.** The connectivity graph is only edited by severing, so it cannot be
-    invalidated by a hit — and mass properties, which are expensive to recompute, change only when a chunk
-    actually detaches.
+    invalidated by a hit. Mass properties are no longer that lucky: what damage sheds moves a hull's mass
+    and centre of mass a little, so they change with damage as well as with severing, and recomputing them
+    has to stay cheap enough to do on a hit.
   - **The engine allocation matrix does still need recomputing** when an engine is destroyed, since the
-    geometry of what can push is what changed. Mass properties do not. Two different triggers.
-  - **A battered ship gets sluggish rather than lighter**, because it is carrying its own wreckage. That is
-    both correct and a better feel than a ship growing nimbler as it loses modules.
-  - It gives salvage something to be: the matter is all still accounted for somewhere.
+    geometry of what can push is what changed.
+  - **A battered ship gets sluggish rather than lighter**, because it is carrying most of its own wreckage.
+    That is both correct and a better feel than a ship growing nimbler as it loses modules; the little it
+    does shed is too little to turn that round.
+  - It gives salvage something to be: what is left of a wreck is still most of what it was.
 
   **Settled with the damage model: neither a step nor a smooth slide, but a list of responses.** A module
   carries the failure modes it is subject to, each saying how much of one capability survives at a given
