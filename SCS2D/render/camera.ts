@@ -158,10 +158,10 @@ function matchedPace(out: number): number {
 /**
  * What the camera would rather be following, best first.
  *
- * A battle is what anybody is watching, so ships still under control come
+ * A battle is what anybody is watching, so ships still in the fight come
  * first and nothing else is looked at while there is one in shot. Past that
  * the fallbacks are about not abandoning the viewer: a fight that ends with
- * every core shot out should leave the camera travelling with the hulks it
+ * every ship a hulk, core out or mission-killed, should leave the camera travelling with the hulks it
  * made rather than watching them slide off the edge, and a hull that came
  * apart entirely should leave it travelling with the pieces.
  *
@@ -174,8 +174,8 @@ function matchedPace(out: number): number {
  * Fixed at module scope so a frame allocates nothing.
  */
 const FOLLOW_ORDER: readonly ((ship: ShipView) => boolean)[] = [
-  (ship) => ship.hasControl,
-  (ship) => !ship.hasControl && !ship.isDerelict,
+  (ship) => ship.hasControl && !ship.isMissionKilled,
+  (ship) => (!ship.hasControl || ship.isMissionKilled) && !ship.isDerelict,
   (ship) => ship.isDerelict,
 ];
 

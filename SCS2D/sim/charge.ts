@@ -116,6 +116,18 @@ export class Charge extends Store {
     return direct + taken;
   }
 
+  /** What the generators on module `m`'s piece of hull make as damage leaves them, W. */
+  pieceGeneration(bodyIndex: number, m: number, damage: Damage): number {
+    const makes = this.makes[bodyIndex];
+    if (makes === null || makes === undefined) return 0;
+    const pieceOf = this.pieceOf[bodyIndex]!;
+    let total = 0;
+    for (let k = 0; k < makes.length; k++) {
+      if (makes[k]! > 0 && pieceOf[k] === pieceOf[m]) total += makes[k]! * damage.remaining(bodyIndex, k, DamageEffect.Generation);
+    }
+    return total;
+  }
+
   /** End a step for one body: bank what its generators made and nothing used. */
   close(bodyIndex: number): void {
     const supply = this.supply[bodyIndex];

@@ -151,6 +151,7 @@ function restingView(design: ShipDesign): ShipView {
     integrity: [],
     hasControl: true,
     isDerelict: false,
+    isMissionKilled: false,
     turretDisabled: [],
   };
 }

@@ -52,10 +52,11 @@ inside any one file is not contiguous.
   so that a ship wider than the view is held still wherever on it the camera has been zoomed. Each ship also carries an arrowhead in its team's colour, which
   fades in as its hull becomes too small on screen to read, so that zooming out to see a
   battle does not lose the small ships in it or which way they are facing. **What the picture asks
-  about a ship is whether it is still under control, not whether it can fight**: a hull with a sound core and
-  neither gun nor engine is still a ship, so it is framed and drawn in its own colours, where asking
+  about a ship is whether it is still in the fight, not whether it was built to fight**: a hull with a sound
+  core and neither gun nor engine is still a ship, so it is framed and drawn in its own colours, where asking
   whether it could fight drew a whole generation of engineless craft as wreckage and left them out of shot.
-  Grey is for a core that is out, and a severed piece gets no arrowhead at all. A blueprint editor on a second page of its own draws a layout
+  Grey, and framed only with the hulks, is for a core that is out, or for a ship that set out with a gun or
+  an engine and has lost them all, or the stores to use them. A severed piece gets no arrowhead at all. A blueprint editor on a second page of its own draws a layout
   through that same renderer and reports what it bought: mass, inertia, the
   acceleration available in each direction — as figures, and as a pair of
   envelope curves separating what a layout can project from what it can use
@@ -215,6 +216,11 @@ inside any one file is not contiguous.
   close it flies and for whether it is still armed. So a capital that has lost its main guns knows it, however
   much point defence it has left, and enemies weighing `armedWeight` and its own `ramArmed` see it the same
   way; a piece broken off with only secondaries is disarmed, and a carrier can have no main armament at all.
+  **Running dry counts as being shot out**: a gun without a round's metal on its piece of hull is not armed,
+  a beam recharging is not armed unless its piece's batteries, and what its generators make in a cycle, cover
+  the rest of the shot, and an engine without fuel on its piece does not make it mobile. Only empty is not
+  reason enough to ram, though: a fighter goes on counting empty guns as working while a friend has a pad
+  it could rearm or recharge on.
   **Where the main guns bear is which way round it fights**:
   of the bearings off its bow, the pilot holds its target on the one its working main guns bear on most,
   less doctrine's `turnBias` for every half turn it is from where the target already is, so a Star Destroyer

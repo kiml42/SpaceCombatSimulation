@@ -1096,13 +1096,11 @@ function fade(
  * each other rather than a field of specks. `render/icons.ts` decides when it
  * shows and how solid it is.
  *
- * **The team's colour is for a ship still under control, and nothing
- * else.** Not for one that can still fight: a hull with a sound core and
- * neither gun nor engine is still a ship, and drawing it grey said the
- * opposite about an entire generation of engineless craft. What grey means
- * here is that the core is out — the one thing that stops a hull being a
- * ship — which is also the only state in which the arrowhead is telling you
- * about something you can do nothing with and nothing can be done with.
+ * **The team's colour is for a ship still in the fight.** Grey is for one
+ * whose core is out, or one that has lost every gun and engine it had, or
+ * the stores to use them. Not for one built with neither: a hull with a sound
+ * core and nothing else is still a ship, and drawing it grey said the
+ * opposite about an entire generation of engineless craft.
  *
  * A derelict piece — a severed chunk, never controlled — gets no
  * icon at all: it has no facing worth pointing out, and a debris field that
@@ -1116,7 +1114,7 @@ function drawIcon(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
   if (ship.isDerelict) return;
   const alpha = iconAlpha(ship.design.radius * 2 * metresToPx);
   if (alpha <= 0) return;
-  const colours = ship.hasControl ? shipColours(ship.team) : NEUTRAL;
+  const colours = ship.hasControl && !ship.isMissionKilled ? shipColours(ship.team) : NEUTRAL;
   const size = ICON_PX / metresToPx;
 
   ctx.save();
@@ -1244,7 +1242,7 @@ const SELECTED_GAP_PX = 6;
 function drawSelected(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: number, metresToPx: number): void {
   const ship = shipByBody(snapshot, body);
   if (ship === null) return;
-  const colour = (ship.hasControl ? shipColours(ship.team) : NEUTRAL).trim;
+  const colour = (ship.hasControl && !ship.isMissionKilled ? shipColours(ship.team) : NEUTRAL).trim;
   const gap = SELECTED_GAP_PX / metresToPx;
   ctx.save();
   ctx.strokeStyle = colour;
