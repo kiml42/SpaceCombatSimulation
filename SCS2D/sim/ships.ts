@@ -391,6 +391,10 @@ const PAD_ALIGN_RADII = 4;
  */
 const HULL_ORBIT_STEP = 0.5;
 
+/** How far apart, radians, and how far out, metres, robots on one module are drawn. */
+const ROBOT_SPREAD = 2.4;
+const ROBOT_SPREAD_RADIUS = 1;
+
 /** Which turn a module takes to be mended: cores, then engines and weapons, then the rest. */
 function repairTier(design: ShipDesign, m: number): number {
   const kind = design.modules[m]!.spec.kind;
@@ -4243,27 +4247,51 @@ export class Ships {
   }
 
   /**
-   * Where each robot out on ship `i`'s hull is, in its body's frame, as x, y
-   * pairs into `out`: nothing unless `i` is the ship that flies the body, so a
-   * hull two ships share shows its robots once.
+   * How many robots are home in each module of ship `i`'s hull, by module,
+   * into `out`: all nought unless `i` is the ship that flies the body.
    */
-  robotPlaces(i: number, out: number[]): void {
+  robotsBerthed(i: number, out: number[]): void {
+    const b = this.bodyStore === null ? -1 : this.bodyStore.indexOf(this.bodyIds[i]!);
+    const design = b >= 0 ? this.hullDesign[b] : null;
+    out.length = design?.modules.length ?? 0;
+    out.fill(0);
+    if (b < 0 || this.shipByBody[b] !== i) return;
+    for (const robot of this.robots.on(b) ?? []) if (robot.mode === RobotMode.Berthed) out[robot.bay] = (out[robot.bay] ?? 0) + 1;
+  }
+
+  /**
+   * Each robot out on ship `i`'s hull, `ROBOT_VIEW_STRIDE` numbers apiece into
+   * `out`: where it is and which way it faces, in its body's frame, and the
+   * share of its charge and of its metal it has left. Nothing unless `i` is
+   * the ship that flies the body, so a hull two ships share shows its robots
+   * once.
+   */
+  robotViews(i: number, out: number[]): void {
     out.length = 0;
     const b = this.bodyStore === null ? -1 : this.bodyStore.indexOf(this.bodyIds[i]!);
     if (b < 0 || this.shipByBody[b] !== i) return;
     const robots = this.robots.on(b);
     const design = this.hullDesign[b];
     if (robots === null || design === null || design === undefined) return;
-    for (const robot of robots) {
+    for (let r = 0; r < robots.length; r++) {
+      const robot = robots[r]!;
       if (robot.mode === RobotMode.Berthed) continue;
       const here = design.modules[robot.at]!;
+      // Spread about where it is, a metre round, so robots on one module are each seen.
+      const dx = cos(r * ROBOT_SPREAD) * ROBOT_SPREAD_RADIUS;
+      const dy = sin(r * ROBOT_SPREAD) * ROBOT_SPREAD_RADIUS;
+      const charge = robot.charge / ROBOT_CHARGE;
+      const metal = robot.metal / ROBOT_LOAD;
       if (robot.path !== null && robot.leg < robot.path.length - 1) {
+        // Facing along the weld it is crawling.
         const there = design.modules[robot.path[robot.leg + 1]!]!;
         const leg = legLength(design, robot.path, robot.leg);
         const t = leg > 0 ? robot.along / leg : 0;
-        out.push(here.x + (there.x - here.x) * t, here.y + (there.y - here.y) * t);
+        const heading = atan2(there.y - here.y, there.x - here.x);
+        out.push(here.x + (there.x - here.x) * t + dx, here.y + (there.y - here.y) * t + dy, heading, charge, metal);
       } else {
-        out.push(here.x, here.y);
+        // Facing in to the middle of the module it is working on.
+        out.push(here.x + dx, here.y + dy, r * ROBOT_SPREAD + PI, charge, metal);
       }
     }
   }

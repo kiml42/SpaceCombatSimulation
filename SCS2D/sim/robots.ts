@@ -13,6 +13,9 @@ import { ROBOT_CHARGE, ROBOT_LOAD } from './modules.js';
  * this holds where each robot is and how it gets about.
  */
 
+/** How many numbers a snapshot gives each robot: x, y, heading, and the shares of its charge and metal left. */
+export const ROBOT_VIEW_STRIDE = 5;
+
 export const enum RobotMode {
   /** In its bay, being refilled or waiting for work. */
   Berthed = 0,

@@ -10,6 +10,7 @@ import {
   ROBOT_MASS,
   ROBOT_REPAIR_RATE,
   ROBOT_SPEED,
+  ROBOT_VIEW_STRIDE,
   type Blueprint,
 } from '../sim/index.js';
 import { makeBattle } from '../scenarios/battle.js';
@@ -50,8 +51,8 @@ const body = (run: Run): number => run.world.bodies.indexOf(run.ships.body(run.a
 const absorbed = (run: Run, m: number): number => run.ships.damage.absorbedAt(body(run), m);
 const out = (run: Run): number => {
   const places: number[] = [];
-  run.ships.robotPlaces(run.a, places);
-  return places.length / 2;
+  run.ships.robotViews(run.a, places);
+  return places.length / ROBOT_VIEW_STRIDE;
 };
 
 describe('a robot bay', () => {
@@ -65,6 +66,19 @@ describe('a robot bay', () => {
 });
 
 describe('robots', () => {
+  it('show where they are going and what they carry', () => {
+    const run = scene((absorb) => absorb(CORE, 0.3));
+    run.step();
+    const views: number[] = [];
+    run.ships.robotViews(run.a, views);
+    expect(views.length).toBe(line.modules[BAY]!.stats.robots * ROBOT_VIEW_STRIDE);
+    // Crawling forward, towards the core, full of both.
+    const heading = views[2]!;
+    expect(Math.cos(heading)).toBeLessThan(-0.9);
+    expect(views[3]).toBeCloseTo(1, 6);
+    expect(views[4]).toBeCloseTo(1, 6);
+  });
+
   it('stay in their bay while nothing needs mending', () => {
     const run = scene(() => {});
     for (let s = 0; s < 120; s++) run.step();
@@ -162,7 +176,7 @@ describe('robots', () => {
     };
     const places: number[] = [];
     for (let s = 0; s < 300 * 60; s++) run.step();
-    ships.robotPlaces(0, places);
+    ships.robotViews(0, places);
     expect(total()).toBe(0);
     expect(places.length).toBe(0);
   });

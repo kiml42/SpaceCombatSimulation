@@ -675,9 +675,11 @@ inside any one file is not contiguous.
   whatever hull it rides, so a fighter flies on its own and not its carrier's. The `carrier` scenario has three Dinkies take
   turns on a two-pad Tender; evolution's weight for a pad is zero, since it pays only in a fleet with fighters.
   **A robot bay** (`robotBay`) berths a robot for every `ROBOT_BERTH_VOLUME` of its interior, priced by
-  their weight (`ROBOT_MASS`) and its racks. A robot is not a body but a place on its hull: it crawls module
+  their weight (`ROBOT_MASS`) and its racks, and is drawn as a deck with a round pad for each berth, a robot
+  sitting on its pad while it is home. A robot is not a body but a place on its hull: it crawls module
   to module across the welds the hull was built with, never a seam, at `ROBOT_SPEED`, and is drawn there as
-  a dot in the trim colour. It sets out with `ROBOT_LOAD` of metal and `ROBOT_CHARGE` it may spend, goes to
+  a beetle facing the way it crawls, its two wing cases bars that empty as it spends its charge and its
+  metal. It sets out with `ROBOT_LOAD` of metal and `ROBOT_CHARGE` it may spend, goes to
   the damaged module of its ship's that matters most — cores, then engines and weapons, then the rest, the
   one fewest robots are after, the nearest of those — and mends it at `ROBOT_REPAIR_RATE`, at a pad's costs:
   `REPAIR_ENERGY_PER_JOULE` of what it carries, and the metal the module shed and `REPAIR_WASTE` more, drawn
