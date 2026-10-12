@@ -121,7 +121,8 @@ lead, which waits for standing orders. Velocity stays out of the fleet file; the
 the base of steps 12 and 13. The shape, settled with the author (DECISIONS.md):
 
 - **Damage sheds mass** (DESIGN.md §4): a little by the time a module stops working, more with damage past
-  that, never below half. Repairing a module means putting that metal back. The work also takes time and
+  that, never below half. Repairing a module means putting that metal back, and a little more (wastage,
+  below). The work also takes time and
   power in proportion to the damage undone, so a module broken without losing much is cheap in metal but
   not instant: for a module only partly damaged, time is the cost that matters most.
 - **Robots repair larger ships.** A robot is not a body: it is a place on its ship's hull, moving module to
@@ -136,12 +137,18 @@ the base of steps 12 and 13. The shape, settled with the author (DECISIONS.md):
   kilogram: cores, then engines and weapons, then structure. Work goes on in combat. Doctrine to wait until
   clear, or to set priorities, comes later.
 - **Rebuilding** returns a ship to the design it launched with. A module the ship has lost is rebuilt only
-  against hull already there, so a ship regrows outwards. It costs the module's full mass in metal, and takes
+  against hull already there, so a ship regrows outwards. It costs the module's full mass in metal and its
+  wastage, and takes
   that mass over the robots' work rate until module complexity (§2) gives build time a measure of its own.
   Pads do the same for fighters. This is the base of in-battle construction (step 12).
 - **Disassembly** turns modules that are not the ship's own — wreckage welded on, a wreck in its claw — into
-  metal in its holds, at their current mass and as far as the holds have room. This is harvesting wrecks
-  (step 13). A ship never strips its own modules.
+  metal in its holds, at their current mass less wastage, as far as the holds have room. This is harvesting
+  wrecks (step 13). A ship never strips its own modules.
+- **Every step wastes a little.** Disassembling yields a little less metal than the module weighed, and
+  repairing or building takes a little more than ends up in the module, so stripping a sound module off a
+  hulk and building the same module again always costs something. The waste leaves the world, counted as
+  discarded matter is. It is a rate rather than a constant, so better technology could lower it, and it gives
+  an upgrade a place to go if technology is ever modelled.
 - Robots stay on their own ship. Crossing a port seam to work on a docked friend can come later.
 
 A PR a stage:
@@ -610,7 +617,8 @@ Deliberately unresolved; decide when they block something.
 - **Keeping mass properties cheap.** Damage now moves a hull's mass and centre of mass on every hit, where
   only severing used to. Recompute on each hit, once a step for each hull hit, or only once the change is
   worth it?
-- **The numbers for repair.** Time and power for a joule of damage undone; a robot's speed over a hull, the
+- **The numbers for repair.** How much each step wastes, and whether disassembly and building waste alike;
+  time and power for a joule of damage undone; a robot's speed over a hull, the
   metal and charge it carries and how fast it works; a bay's room for robots, how fast it refills them, and
   what a new robot costs in metal and time; how fast a pad repairs.
 - **What scrap and salvage reach are worth: `SCRAP_MASS` and `SALVAGE_REACH`.** They encode an economic
