@@ -44,9 +44,9 @@ const GOLDEN: Record<ScenarioName, string> = {
   salvage: '0e391d9a',
   scavenge: '2d7f7d1f',
   carrier: 'f2e5ef2f',
-  rearm: '670fd368',
+  rearm: '021fe098',
   tanker: '11648a70',
-  beamCarrier: '9795005e',
+  beamCarrier: '835c96f9',
   passes: '7607fb2c',
   circling: '49c38346',
 };

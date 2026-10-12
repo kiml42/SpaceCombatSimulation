@@ -48,6 +48,16 @@ export const SHED_AT_BREAK = 0.1;
  */
 export const SHED_FLOOR = 0.5;
 
+/**
+ * The share more metal than it puts back that repairing a module takes: lost
+ * as filings, spatter and offcuts, so nothing is ever rebuilt from exactly the
+ * mass it was taken apart for.
+ */
+export const REPAIR_WASTE = 0.1;
+
+/** Charge repairing a joule of damage takes, J. */
+export const REPAIR_ENERGY_PER_JOULE = 10;
+
 /** The share of its dry mass a module has shed, having absorbed `absorbed` of the `capacity` that breaks it. */
 export function shedShare(absorbed: number, capacity: number): number {
   if (!(capacity > 0) || !(absorbed > 0)) return 0;
@@ -341,6 +351,39 @@ export class Damage {
   /** What that took off the body's moment of inertia, kg·m². */
   shedInertia(bodyIndex: number): number {
     return this.shedSpin[bodyIndex] ?? 0;
+  }
+
+  /**
+   * The metal undoing `joules` of module `module`'s damage puts back, kg,
+   * before waste: none for damage beyond what took it to its floor.
+   */
+  repairMetal(bodyIndex: number, module: number, joules: number): number {
+    const absorbed = this.absorbed[bodyIndex];
+    const capacity = this.capacity[bodyIndex];
+    const dry = this.dry[bodyIndex];
+    if (!absorbed || !capacity || !dry || !(joules > 0)) return 0;
+    const a = absorbed[module] ?? 0;
+    const cap = capacity[module] ?? 0;
+    return (shedShare(a, cap) - shedShare(max(0, a - joules), cap)) * (dry[module] ?? 0);
+  }
+
+  /**
+   * Undo up to `joules` of a module's damage, and say how much: what it had
+   * shed comes back with it. Settling the hull's mass is the caller's, having
+   * settled what was shed before.
+   */
+  repair(bodyIndex: number, module: number, joules: number): number {
+    const absorbed = this.absorbed[bodyIndex];
+    if (!absorbed || !(joules > 0)) return 0;
+    const a = absorbed[module] ?? 0;
+    const undone = joules < a ? joules : a;
+    if (!(undone > 0)) return 0;
+    const kg = this.repairMetal(bodyIndex, module, undone);
+    absorbed[module] = a - undone;
+    this.versions[bodyIndex] = (this.versions[bodyIndex] ?? 0) + 1;
+    this.shed[bodyIndex] = this.shed[bodyIndex]! - kg;
+    this.shedSpin[bodyIndex] = this.shedSpin[bodyIndex]! - kg * this.spin[bodyIndex]![module]!;
+    return undone;
   }
 
   /** What damage has shed from one module, kg: the metal repairing it has to put back. */

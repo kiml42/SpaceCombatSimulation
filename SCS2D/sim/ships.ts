@@ -15,7 +15,7 @@ import {
 } from './blueprint.js';
 import { components, cuts, jointBetween, joints, type Joint } from './connectivity.js';
 import { BOTH_LAYERS, HULL_LAYER, Hulls, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from './hull.js';
-import { Damage, DamageEffect, IMPACT_MUZZLE, type ImpactLog } from './damage.js';
+import { Damage, DamageEffect, IMPACT_MUZZLE, REPAIR_ENERGY_PER_JOULE, REPAIR_WASTE, type ImpactLog } from './damage.js';
 import { Fuel, LEAK_HOLE_CALIBRES, leakChance, leakRate, leakSpeed, type Leak } from './fuel.js';
 import { Charge } from './charge.js';
 import { Metal } from './metal.js';
@@ -68,7 +68,7 @@ import type { BeamHits, Beams, SpatialGrid } from './index.js';
 import { MAX_BEAM_LENGTH } from './beams.js';
 import { RayHit } from './spatialGrid.js';
 import { hullsOverlap, type Contacts } from './collision.js';
-import { DOCK_POWER_PER_METRE, FUEL_DENSITY, GunType, interiorVolume, type GunStats, type ModuleKind } from './modules.js';
+import { DOCK_POWER_PER_METRE, FUEL_DENSITY, PAD_REPAIR_PER_METRE, GunType, interiorVolume, type GunStats, type ModuleKind } from './modules.js';
 
 /**
  * Ships: a compiled design bound to a body, flying itself and shooting.
@@ -380,6 +380,15 @@ const PAD_ALIGN_RADII = 4;
  * than flying through what stands between it and where it is going.
  */
 const HULL_ORBIT_STEP = 0.5;
+
+/** Which turn a module takes to be mended: cores, then engines and weapons, then the rest. */
+function repairTier(design: ShipDesign, m: number): number {
+  const kind = design.modules[m]!.spec.kind;
+  if (kind === 'core') return 0;
+  if (kind === 'engine') return 1;
+  for (let t = 0; t < design.turrets.length; t++) if (design.turrets[t]!.module === m) return 1;
+  return 2;
+}
 
 /** A design's engines' exhaust speed, m/s, weighted by their thrust; 0 for one with none. */
 const EXHAUST = new WeakMap<ShipDesign, number>();
@@ -3952,8 +3961,9 @@ export class Ships {
             }
           } else {
             // A pad fills what has landed on it with fuel and metal together,
-            // each from what its own ship can spare, and lets go once neither
-            // has more to give, or at once of a fighter given an order.
+            // each from what its own ship can spare, and mends it, and lets go
+            // once there is no more to give or mend, or at once of a fighter
+            // given an order.
             const spare = this.fuel.pieceHeld(b, seam.a) - this.reserve(b, seam.a);
             if (spare > 0 && this.fuel.transfer(b, seam.a, seam.b, rate < spare ? rate : spare) > 0) moved = true;
             const spareMetal = this.metal.pieceHeld(b, seam.a) - this.metalReserve(b, seam.a);
@@ -3961,11 +3971,14 @@ export class Ships {
             const cable = DOCK_POWER_PER_METRE * design.modules[seam.a]!.spec.width * working * world.dt;
             const spareCharge = this.power.pieceHeld(b, seam.a) - this.chargeReserve(b, seam.a);
             if (spareCharge > 0) this.power.transfer(b, seam.a, seam.b, cable < spareCharge ? cable : spareCharge);
-            const ordered = (this.orders[this.pilotAt(b, seam.b)]?.length ?? 0) > 0;
+            const landed = this.pilotAt(b, seam.b);
+            const mending = PAD_REPAIR_PER_METRE * design.modules[seam.a]!.spec.width * working * world.dt;
+            const repairLeft = landed >= 0 && this.mend(bodies, b, landed, seam.a, mending);
+            const ordered = (this.orders[landed]?.length ?? 0) > 0;
             const fuelLeft = this.fuel.pieceRoom(b, seam.b) > 0 && this.fuel.pieceHeld(b, seam.a) > this.reserve(b, seam.a);
             const metalLeft = this.metal.pieceRoom(b, seam.b) > 0 && this.metal.pieceHeld(b, seam.a) > this.metalReserve(b, seam.a);
             const chargeLeft = this.power.pieceRoom(b, seam.b) > 0 && this.power.pieceHeld(b, seam.a) > this.chargeReserve(b, seam.a);
-            if (!ordered && (fuelLeft || metalLeft || chargeLeft)) continue;
+            if (!ordered && (fuelLeft || metalLeft || chargeLeft || repairLeft)) continue;
           }
         }
         // Done: the dock lets go, which `sever` reads as the seam cut through.
@@ -3976,6 +3989,53 @@ export class Ships {
       if (moved) this.settleMass(bodies, b);
     }
     return released;
+  }
+
+  /**
+   * Undo up to `joules` of the damage to ship `i`'s modules on body `b`, from
+   * the metal and charge module `from`'s piece of hull can spare: cores first,
+   * then engines and weapons, then the rest. Each joule takes
+   * `REPAIR_ENERGY_PER_JOULE` of charge, and the metal it had shed and
+   * `REPAIR_WASTE` more, which leaves the world. Says whether it mended
+   * something and has more to mend.
+   */
+  private mend(bodies: Bodies, b: number, i: number, from: number, joules: number): boolean {
+    this.settleShed(bodies);
+    const design = this.hullDesign[b]!;
+    let metal = this.metal.pieceHeld(b, from) - this.metalReserve(b, from);
+    let charge = this.power.pieceHeld(b, from) - this.chargeReserve(b, from);
+    let budget = joules;
+    let usedMetal = 0;
+    let usedCharge = 0;
+    let left = false;
+    for (let tier = 0; tier < 3; tier++) {
+      for (let m = 0; m < design.modules.length; m++) {
+        if (repairTier(design, m) !== tier || !this.ownsAt(i, b, m)) continue;
+        const absorbed = this.damage.absorbedAt(b, m);
+        if (!(absorbed > 0)) continue;
+        let undo = min(budget, charge / REPAIR_ENERGY_PER_JOULE);
+        // What it costs in metal rises no faster than the damage undone, so
+        // cutting the damage down to the metal there is never asks for more.
+        const kg = this.damage.repairMetal(b, m, undo) * (1 + REPAIR_WASTE);
+        if (kg > metal) undo *= metal / kg;
+        const cost = this.damage.repairMetal(b, m, undo) * (1 + REPAIR_WASTE);
+        const undone = this.damage.repair(b, m, undo);
+        budget -= undone;
+        metal -= cost;
+        charge -= undone * REPAIR_ENERGY_PER_JOULE;
+        usedMetal += cost;
+        usedCharge += undone * REPAIR_ENERGY_PER_JOULE;
+        if (this.damage.absorbedAt(b, m) > 0) left = true;
+      }
+    }
+    if (!(usedCharge > 0)) return false;
+    const mass = bodies.mass[b]!;
+    const inertia = bodies.inertia[b]!;
+    if (usedMetal > 0) this.metal.drain(b, from, usedMetal);
+    this.power.drain(b, from, usedCharge);
+    this.settleMass(bodies, b);
+    this.discardFrom(bodies, b, mass, inertia);
+    return left;
   }
 
   /** Whether the ship a dock is filling minds danger and has an armed enemy in reach of the pair. */
@@ -5001,7 +5061,15 @@ export class Ships {
     const mass = bodies.mass[b]!;
     const inertia = bodies.inertia[b]!;
     this.settleMass(bodies, b);
-    // What it lost, which is nothing for a body nothing moves.
+    this.discardFrom(bodies, b, mass, inertia);
+  };
+
+  /**
+   * Count as discarded what body `b` lost since it weighed `mass` and turned
+   * with `inertia`: it left at the body's own speed, so the books still
+   * balance. Nothing, for a body nothing moves.
+   */
+  private discardFrom(bodies: Bodies, b: number, mass: number, inertia: number): void {
     const kg = mass - bodies.mass[b]!;
     this.discarded += kg;
     this.discardedPx += kg * bodies.vx[b]!;
@@ -5009,7 +5077,7 @@ export class Ships {
     // Its share of the hull's turning, and of the hull's motion about the origin.
     this.discardedL +=
       (inertia - bodies.inertia[b]!) * bodies.angularVel[b]! + kg * (bodies.x[b]! * bodies.vy[b]! - bodies.y[b]! * bodies.vx[b]!);
-  };
+  }
 
   /** What each kept module has already absorbed, in the new design's order. */
   private scarsOf(bodyIndex: number, keep: readonly number[]): number[] {

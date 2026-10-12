@@ -662,6 +662,9 @@ export const PAD_MASS_PER_AREA = 50;
 /** What a pad pumps per metre of its width, kg/s, into what has landed on it. */
 export const PAD_PUMP_PER_METRE = 50;
 
+/** Damage a pad undoes per metre of its width, J/s, on what has landed on it. */
+export const PAD_REPAIR_PER_METRE = 2e4;
+
 /**
  * A docking port's collar, clamps and coupling per square metre of its floor,
  * kg/m²: machinery like a claw's, without the jaws.

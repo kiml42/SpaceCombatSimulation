@@ -665,8 +665,12 @@ inside any one file is not contiguous.
   closes, lined up with the pad if it would not fit at any heading. It lands — never committing, the pad and the fighter meeting at the boundary
   between the layers — once its whole bounding box lies inside the pad and it moves with it to within
   `PAD_SPEED`, and the two become one body with a dock's seam. It idles while the pad fills it from what the
-  carrier can spare above the carrier's own `refuelBelow`, and the pad lets it go when it is full, when there
-  is no more to spare, or at once when it is given an order. A merged design remembers which of its pieces
+  carrier can spare above the carrier's own `refuelBelow`, and **mends it**: `PAD_REPAIR_PER_METRE` of
+  damage a second for every metre of the pad's width, cores first, then engines and weapons, then the rest,
+  each joule taking `REPAIR_ENERGY_PER_JOULE` of the carrier's charge and the metal the module had shed and
+  `REPAIR_WASTE` more, the waste counted as discarded. The pad lets it go when it is full and mended, when
+  there is no more to spare, or at once when it is given an order. Nothing yet sends a fighter in to be
+  mended: it is mended while it is down for anything else. A merged design remembers which of its pieces
   were fighters (`fighterPieces`), so it lifts off a fighter, and every ship keeps the doctrine it set out with
   whatever hull it rides, so a fighter flies on its own and not its carrier's. The `carrier` scenario has three Dinkies take
   turns on a two-pad Tender; evolution's weight for a pad is zero, since it pays only in a fleet with fighters.
@@ -757,7 +761,7 @@ inside any one file is not contiguous.
   holds a fighter to fill cells that are broken. Evolution draws batteries and generators at a weight of
   one each, and a mutation does not turn either, since neither has a facing that matters.
 - **Next:** repair, construction and salvage, one mechanism built in six stages (ROADMAP.md §8): with damage
-  shedding mass built, pads repairing landed fighters is next. Alongside it, the rest of §8 step 8 — leaks, and pilots that
+  shedding mass and pads mending landed fighters built, the robot bay and robots repairing are next. Alongside it, the rest of §8 step 8 — leaks, and pilots that
   know their fuel — and of step 5: a materials budget, and designed scenarios.
   See ROADMAP.md §8.
   §8 step 3 is done bar withdrawal, and step 7, two layers, is built. What a chooser is already facing (`facingWeight`) and whether anything is in the way
