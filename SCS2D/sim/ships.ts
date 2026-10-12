@@ -8,6 +8,7 @@ import {
   triggerMask,
   weldDesigns,
   type DockAt,
+  type Footprint,
   type Seam,
   type DesignTurret,
   type ShipDesign,
@@ -49,6 +50,7 @@ import {
   brakingRate,
   clamp,
   cos,
+  exp,
   length,
   max,
   min,
@@ -373,11 +375,27 @@ const PORT_HEADING_SLACK = 0.1;
 const PAD_ALIGN_RADII = 4;
 
 /**
- * How far round its carrier, radians, a fighter coming in from the wrong side
- * steers at a time: it circles the hull outside its radius rather than flying
- * through what stands between it and the pad.
+ * How far round a friend, radians, a ship coming in from the wrong side for a
+ * pad or a port steers at a time: it circles the hull outside its radius rather
+ * than flying through what stands between it and where it is going.
  */
-const PAD_ORBIT_STEP = 0.5;
+const HULL_ORBIT_STEP = 0.5;
+
+/** A design's engines' exhaust speed, m/s, weighted by their thrust; 0 for one with none. */
+const EXHAUST = new WeakMap<ShipDesign, number>();
+function exhaustOf(design: ShipDesign): number {
+  const known = EXHAUST.get(design);
+  if (known !== undefined) return known;
+  let thrust = 0;
+  let weighted = 0;
+  for (const module of design.modules) {
+    thrust += module.stats.thrust;
+    weighted += module.stats.thrust * module.stats.exhaustVelocity;
+  }
+  const exhaust = thrust > 0 ? weighted / thrust : 0;
+  EXHAUST.set(design, exhaust);
+  return exhaust;
+}
 
 /**
  * The chance a claw closing at `closing` takes a module left at `integrity`:
@@ -692,6 +710,8 @@ export class Ships {
    * drawn, hit and severed by the code that already does those.
    */
   private readonly derelict: number[] = [];
+  /** Whether each ship set out with a gun or an engine to lose; a piece takes its ship's. */
+  private readonly couldFight: number[] = [];
   /** 1 for a fighter its doctrine has taken down into the hull layer as well. */
   private readonly committed: number[] = [];
   /** Whether each ship has turned its main engines along its want rather than its guns to its target. */
@@ -790,6 +810,10 @@ export class Ships {
   private readonly forageAt: number[] = [];
   /** Whether each ship is refuelling: from running low until its claw's piece is full. */
   private readonly refuelling: number[] = [];
+  /** Whether each ship is being filled at a friend's port: from running down to `refuelBelow` until it is full. */
+  private readonly docking: number[] = [];
+  /** Whether each ship is taking fuel to a friend: from setting out until it has given what it can spare. */
+  private readonly delivering: number[] = [];
   /** Whether each fighter is rearming: from running low on metal until it is full. */
   private readonly rearming: number[] = [];
   /** For each design, each pad's clear side as an angle in the design's frame; NaN not yet worked out. */
@@ -808,6 +832,9 @@ export class Ships {
   private readonly dockPort: number[] = [];
   /** Which of its own ports it means to mate with it; -1 for none. */
   private readonly ownPort: number[] = [];
+  /** Where `aroundHull` last said to steer for, world metres. */
+  private wayX = 0;
+  private wayY = 0;
   /**
    * What each ship is covering, which is never what it is fighting: a consort
    * is by definition something it will not shoot at. Chosen on the same
@@ -1010,7 +1037,7 @@ export class Ships {
     return this.team[i] !== NEUTRAL_TEAM && !this.hasControl(i);
   }
 
-  /** Returns true when the ship has no main weapon left: no main gun, and no main weapon engine. */
+  /** Returns true when the ship has no main weapon left: no sound main gun with a round to load, and no main weapon engine that can burn. */
   isDisarmed(i: number): boolean {
     if (this.alive[i] === 0) return true;
     if (this.derelict[i] === 1) return true;
@@ -1022,14 +1049,43 @@ export class Ships {
     if (b < 0) return true;
     const design = this.designs[i]!;
     for (let t = 0; t < design.turrets.length; t++) {
-      if (design.turrets[t]!.main && !this.isTurretDisabled(i, t)) return false;
+      if (design.turrets[t]!.main && this.canFire(i, b, t)) return false;
     }
     // An engine meant as a weapon is one while it can still burn.
     for (const t of design.mainWeaponEngines) {
-      const module = design.engines[t]?.module ?? -1;
-      if (this.left(i, b, module, DamageEffect.Thrust) > 0) return false;
+      if (this.canBurn(i, b, t)) return false;
     }
     return true;
+  }
+
+  /**
+   * Whether mount `t` is sound and can shoot once more: a gun with a round on
+   * its piece of hull to load, a beam with the rest of a shot's charge stored
+   * there, or made there within a cycle.
+   */
+  private canFire(i: number, b: number, t: number): boolean {
+    if (this.isTurretDisabled(i, t)) return false;
+    const mount = this.designs[i]!.turrets[t]!;
+    const gun = mount.gun;
+    if (gun.type === GunType.Projectile) {
+      return !(gun.roundMass > 0) || this.metal.pieceHeld(b, mount.module) >= gun.roundMass;
+    }
+    const timer = this.cooldown[i]![t]!;
+    if (!(timer > 0) || !(gun.cycleTime > 0)) return true;
+    const rate = this.damage.remaining(b, mount.module, DamageEffect.FireRate);
+    const need = (gun.beamPower * gun.beamOnTime * rate * timer) / gun.cycleTime;
+    const made = this.power.pieceGeneration(b, mount.module, this.damage) * gun.cycleTime;
+    return this.power.pieceHeld(b, mount.module) + made >= need;
+  }
+
+  /** Whether engine `t` is sound and has fuel on its piece of hull to burn. */
+  private canBurn(i: number, b: number, t: number): boolean {
+    const design = this.designs[i]!;
+    const module = design.engines[t]?.module ?? -1;
+    if (!(this.left(i, b, module, DamageEffect.Thrust) > 0)) return false;
+    // A layout built by hand has no modules, and so nothing to run dry.
+    if (!((design.modules[module]?.stats.exhaustVelocity ?? 0) > 0)) return true;
+    return this.fuel.pieceHeld(b, module) > 0;
   }
 
   /**
@@ -1066,7 +1122,7 @@ export class Ships {
     return !(this.left(i, b, turret.module, DamageEffect.FireRate) > 0);
   }
 
-  /** Returns true when this ship has no active engines */
+  /** Returns true when this ship has no engine that is sound and fuelled. */
   hasNoEngines(i: number): boolean {
     if (this.alive[i] === 0) return true;
     if (this.derelict[i] === 1) return true;
@@ -1075,9 +1131,9 @@ export class Ships {
     const bodies = this.bodyStore;
     const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[i]!);
     if (b < 0) return true;
-    const design = this.designs[i]!;
-    for (const engine of design.engines) {
-      if (this.left(i, b, engine.module ?? -1, DamageEffect.Thrust) > 0) return false;
+    const engines = this.designs[i]!.engines;
+    for (let t = 0; t < engines.length; t++) {
+      if (this.canBurn(i, b, t)) return false;
     }
     return true;
   }
@@ -1100,6 +1156,14 @@ export class Ships {
     if (this.derelict[i] === 1) return true;
     if (!this.hasControl(i)) return true;
     return this.isDisarmed(i) && this.hasNoEngines(i);
+  }
+
+  /**
+   * Whether a ship still flown has lost all it had to fight with: disabled,
+   * having set out able to shoot or move. One built with neither is not.
+   */
+  isMissionKilled(i: number): boolean {
+    return this.couldFight[i] === 1 && this.hasControl(i) && this.isDisabled(i);
   }
 
   /** Whether this is a piece of a ship rather than a ship: no pilot, no guns. */
@@ -1196,6 +1260,7 @@ export class Ships {
     }
     this.serial.push(serial);
     this.derelict.push(0);
+    this.couldFight.push(design.turrets.some((t) => t.main) || design.engines.length > 0 ? 1 : 0);
     this.committed.push(0);
     this.burning.push(0);
     this.running.push(0);
@@ -1209,6 +1274,8 @@ export class Ships {
     this.salvaging.push(NO_TARGET);
     this.forageAt.push(i);
     this.refuelling.push(0);
+    this.docking.push(0);
+    this.delivering.push(0);
     this.rearming.push(0);
     this.recharging.push(0);
     this.home.push(-1);
@@ -1836,31 +1903,75 @@ export class Ships {
   /**
    * Whether this ship's doctrine would ram its target now: close enough, by
    * `ramRadii` of the target's radius from its edge, and with no more of its
-   * own guns working than `ramArmed` says.
+   * own guns working than `ramArmed` says. Guns that are only empty count as
+   * working while a friend's pad could fill them.
    */
   private rams(i: number, target: number): boolean {
     const approach = this.doctrines[i]!.approach;
-    if (!(approach.ramRadii > 0) || this.armedShare(i) > approach.ramArmed) return false;
+    if (!(approach.ramRadii > 0)) return false;
     const bodies = this.bodyStore;
     if (bodies === null) return false;
     const b = bodies.indexOf(this.bodyIds[i]!);
     const tb = bodies.indexOf(this.bodyIds[target]!);
     if (b < 0 || tb < 0) return false;
     const gap = length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!) - bodies.radius[tb]!;
-    return gap <= approach.ramRadii * bodies.radius[tb]!;
+    if (gap > approach.ramRadii * bodies.radius[tb]!) return false;
+    if (this.armedShare(i, b, true) > approach.ramArmed) return false;
+    return this.armedShare(i, b, false) <= approach.ramArmed || !this.canRestock(bodies, i, b);
   }
 
-  /** The share of this ship's main mounts that can still fire; none for a ship with none. */
-  private armedShare(i: number): number {
+  /**
+   * The share of this ship's main mounts that can still fire, none for a ship
+   * with none; with `stores`, only those with a shot to fire.
+   */
+  private armedShare(i: number, b: number, stores: boolean): number {
     const turrets = this.designs[i]!.turrets;
     let mounts = 0;
     let working = 0;
     for (let t = 0; t < turrets.length; t++) {
       if (!turrets[t]!.main) continue;
       mounts++;
-      if (!this.isTurretDisabled(i, t)) working++;
+      if (stores ? this.canFire(i, b, t) : !this.isTurretDisabled(i, t)) working++;
     }
     return mounts === 0 ? 0 : working / mounts;
+  }
+
+  /**
+   * Whether a friend has a pad this ship would land on for the metal or charge
+   * it has room for, as `forage` would send it. Taken or not: a pad in use is
+   * a wait, not a dead end.
+   */
+  private canRestock(bodies: Bodies, i: number, b: number): boolean {
+    const design = this.designs[i]!;
+    const approach = this.doctrines[i]!.approach;
+    if (!design.fighter || !(approach.approachSpeed > 0)) return false;
+    if (approach.scavengeFuelBelow > 0 && this.workingClaw(i, b) >= 0) return false;
+    const own = design.cores[0] ?? 0;
+    const metalRoom = approach.rearmBelow >= 0 ? this.metal.pieceRoom(b, own) : 0;
+    const chargeRoom = approach.rechargeBelow > 0 ? this.power.pieceRoom(b, own) : 0;
+    if (!(metalRoom > 0 || chargeRoom > 0)) return false;
+    const box = footprintOf(design);
+    for (let t = 0; t < this.alive.length; t++) {
+      if (t === i || this.alive[t] === 0 || this.derelict[t] === 1) continue;
+      if (this.team[t] !== this.team[i] || this.hostile(i, t)) continue;
+      const tb = bodies.indexOf(this.bodyIds[t]!);
+      if (tb < 0 || tb === b) continue;
+      const modules = this.designs[t]!.modules;
+      for (let pad = 0; pad < modules.length; pad++) {
+        if (modules[pad]!.spec.kind !== 'pad' || !(modules[pad]!.stats.pumpRate > 0)) continue;
+        if (!this.fitsPad(box, modules[pad]!.spec) || !(this.left(t, tb, pad, DamageEffect.Grip) > 0)) continue;
+        if (metalRoom > 0 && this.metal.pieceHeld(tb, pad) > this.metalReserve(tb, pad)) return true;
+        if (chargeRoom > 0 && this.power.pieceHeld(tb, pad) > this.chargeReserve(tb, pad)) return true;
+      }
+    }
+    return false;
+  }
+
+  /** Whether a ship of footprint `box` fits on `pad`, either way round. */
+  private fitsPad(box: Footprint, pad: ModuleSpec): boolean {
+    const long = box.maxX - box.minX;
+    const wide = box.maxY - box.minY;
+    return (long <= pad.length && wide <= pad.width) || (long <= pad.width && wide <= pad.length);
   }
 
   /**
@@ -2661,8 +2772,13 @@ export class Ships {
       } else if (claw >= 0 && tb >= 0) {
         // The jaws, not the bow, are what point at it.
         const jaws = this.designs[i]!.modules[claw]!.spec.angle ?? 0;
-        wantAngle = atan2(bodies.y[tb]! - bodies.y[b]!, bodies.x[tb]! - bodies.x[b]!) - jaws;
-        this.grapple(bodies, i, b, tb, claw, wantAngle, this.now - this.touchedSource[i]! < CLAW_RETRY / dt);
+        const across = this.hullAcross(bodies, i, b, tb, target);
+        if (across >= 0) {
+          wantAngle = this.roundHull(bodies, i, b, across, tb) - jaws;
+        } else {
+          wantAngle = atan2(bodies.y[tb]! - bodies.y[b]!, bodies.x[tb]! - bodies.x[b]!) - jaws;
+          this.grapple(bodies, i, b, tb, claw, wantAngle, this.now - this.touchedSource[i]! < CLAW_RETRY / dt);
+        }
       } else if (tb >= 0 && tb !== b) {
         // Not hooked on to it, which would leave nowhere to steer for.
         wantAngle = atan2(bodies.y[tb]! - bodies.y[b]!, bodies.x[tb]! - bodies.x[b]!);
@@ -3809,15 +3925,16 @@ export class Ships {
             // spared, or either is given an order.
             const oa = this.pilotAt(b, seam.a);
             const ob = this.pilotAt(b, seam.b);
-            const intoB = this.refuelling[ob] === 1 && this.refuelling[oa] !== 1;
-            const intoA = this.refuelling[oa] === 1 && this.refuelling[ob] !== 1;
+            // Or out of whichever is delivering, whether the other asked or not.
+            const intoB = (this.docking[ob] === 1 && this.docking[oa] !== 1) || this.delivering[oa] === 1;
+            const intoA = (this.docking[oa] === 1 && this.docking[ob] !== 1) || this.delivering[ob] === 1;
             const ordered = (this.orders[oa]?.length ?? 0) > 0 || (this.orders[ob]?.length ?? 0) > 0;
             const bothWorking = this.damage.remaining(b, seam.b, DamageEffect.Grip);
             if (!(bothWorking > 0)) continue;
             if (!ordered && (intoA || intoB)) {
               const from = intoB ? seam.a : seam.b;
               const to = intoB ? seam.b : seam.a;
-              const spare = this.fuel.pieceHeld(b, from) - this.reserve(b, from);
+              const spare = this.fuel.pieceHeld(b, from) - this.keepsBack(b, from);
               // Through the narrower of the two couplings, as worn as the worse.
               const narrower = min(design.modules[seam.a]!.stats.pumpRate, design.modules[seam.b]!.stats.pumpRate);
               const flow = narrower * min(working, bothWorking) * world.dt;
@@ -3826,7 +3943,7 @@ export class Ships {
               const cable = DOCK_POWER_PER_METRE * min(design.modules[seam.a]!.spec.width, design.modules[seam.b]!.spec.width) * min(working, bothWorking) * world.dt;
               const spareCharge = this.power.pieceHeld(b, from) - this.chargeReserve(b, from);
               if (spareCharge > 0) this.power.transfer(b, from, to, cable < spareCharge ? cable : spareCharge);
-              const fuelLeft = this.fuel.pieceRoom(b, to) > 0 && this.fuel.pieceHeld(b, from) > this.reserve(b, from);
+              const fuelLeft = this.fuel.pieceRoom(b, to) > 0 && this.fuel.pieceHeld(b, from) > this.keepsBack(b, from);
               const chargeLeft = this.power.pieceRoom(b, to) > 0 && this.power.pieceHeld(b, from) > this.chargeReserve(b, from);
               if (fuelLeft || chargeLeft) continue;
             }
@@ -3866,35 +3983,35 @@ export class Ships {
     else {
       const oa = this.pilotAt(b, seam.a);
       const ob = this.pilotAt(b, seam.b);
-      receiver = this.refuelling[oa] === 1 ? oa : this.refuelling[ob] === 1 ? ob : -1;
+      receiver = this.docking[oa] === 1 ? oa : this.docking[ob] === 1 ? ob : -1;
     }
     return receiver >= 0 && this.threatened(bodies, receiver, b, seam.dock !== 'claw');
   }
 
   /**
    * Whether ship `i` minds danger and has an armed enemy within reach of body
-   * `at`: by its `refuelDanger` at a source, by its `dockDanger` at a friend's dock.
+   * `at`: by its `scavengeDanger` at a source, by its `dockDanger` at a friend's dock.
    */
   private threatened(bodies: Bodies, i: number, at: number, dock: boolean): boolean {
     const approach = this.doctrines[i]!.approach;
-    return (dock ? approach.dockDanger : approach.refuelDanger) > 0 && this.dangerNear(bodies, i, at) > 0;
+    return (dock ? approach.dockDanger : approach.scavengeDanger) > 0 && this.dangerNear(bodies, i, at) > 0;
   }
 
   /**
    * What the ship working module `m` of body `b` keeps back for itself from
-   * that module's piece of hull, kg: its doctrine's `dockBelow` of a full
+   * that module's piece of hull, kg: its doctrine's `refuelBelow` of a full
    * load, below which it would go to a friend for fuel itself.
    */
   private reserve(b: number, m: number): number {
     const owner = this.pilotAt(b, m);
-    const below = owner < 0 ? 0 : this.doctrines[owner]!.approach.dockBelow;
+    const below = owner < 0 ? 0 : this.doctrines[owner]!.approach.refuelBelow;
     return below > 0 ? below * (this.fuel.pieceHeld(b, m) + this.fuel.pieceRoom(b, m)) : 0;
   }
 
-  /** The same for charge, kept back by its doctrine's `dockBelow` as fuel is. */
+  /** The same for charge, kept back by its doctrine's `rechargeBelow`. */
   private chargeReserve(b: number, m: number): number {
     const owner = this.pilotAt(b, m);
-    const below = owner < 0 ? 0 : this.doctrines[owner]!.approach.dockBelow;
+    const below = owner < 0 ? 0 : this.doctrines[owner]!.approach.rechargeBelow;
     return below > 0 ? below * (this.power.pieceHeld(b, m) + this.power.pieceRoom(b, m)) : 0;
   }
 
@@ -4514,6 +4631,7 @@ export class Ships {
       serial: this.serial[side]!,
     });
     this.partedAt[j] = world.tick;
+    this.couldFight[j] = this.couldFight[side]!;
     if (flies) {
       this.orders[j] = this.orders[side]!.map((order) => ({ ...order }));
     } else {
@@ -4861,12 +4979,12 @@ export class Ships {
    * Break off for fuel, metal or charge, or go back to the fight.
    *
    * A ship with a working claw goes looking once its claw's piece of hull is
-   * down to its doctrine's `refuelBelow` of a full load, and keeps at it,
+   * down to its doctrine's `scavengeFuelBelow` of a full load, and keeps at it,
    * source after source, until it is full; then the fight has it back. Where
    * to drink is reconsidered as often as a fight would be, and sooner when the
    * source is gone or dry. Without one, a fighter goes to a friend's pad, and
    * anything else with a port to a friend's port, once its fuel or charge is
-   * down to `dockBelow`; a fighter also goes once its metal is down to
+   * down to `refuelBelow`; a fighter also goes once its metal is down to
    * `rearmBelow`, and whichever sent it, it comes back for all of them.
    */
   private forage(world: World, bodies: Bodies, i: number): void {
@@ -4880,30 +4998,50 @@ export class Ships {
     const approach = this.doctrines[i]!.approach;
     // An order given outranks it, as it outranks the rest of doctrine.
     const free = b >= 0 && this.orders[i]!.length === 0;
-    const forages = free && approach.refuelBelow > 0;
-    const docks = free && approach.dockBelow > 0;
+    // Taking fuel to a friend, it keeps at it while it has fuel to give.
+    const giverPort = free && !design.fighter && approach.deliverFuelAbove > 0 ? this.workingPort(bodies, i, b) : -1;
+    const deliverable = giverPort >= 0 && this.canDeliver(b, giverPort, approach.deliverFuelAbove);
+    if (this.delivering[i] === 1) {
+      if (deliverable) {
+        this.deliver(world, bodies, i, b, giverPort);
+        return;
+      }
+      this.stopForaging(i);
+    }
+    const forages = free && approach.scavengeFuelBelow > 0;
+    const docks = free && approach.refuelBelow > 0;
+    const recharges = free && approach.rechargeBelow > 0;
     const claw = forages ? this.workingClaw(i, b) : -1;
     // A fighter with no claw lands on a friend's pad instead, and anything
     // else with a port of its own docks with a friend's. Only a pad rearms.
     const rearms = free && claw < 0 && design.fighter && approach.rearmBelow >= 0;
-    const lands = (docks || rearms) && claw < 0 && design.fighter;
-    const port = docks && claw < 0 && !design.fighter ? this.workingPort(bodies, i, b) : -1;
-    const own = claw >= 0 ? claw : lands ? (design.cores[0] ?? 0) : port;
+    const lands = (docks || rearms || recharges) && claw < 0 && design.fighter;
+    const port = docks && !design.fighter ? this.workingPort(bodies, i, b) : -1;
+    // A ship with a claw too docks only once it is down to `refuelBelow`, and
+    // until it is full; otherwise it goes scavenging by `scavengeFuelBelow`.
+    let viaPort = port >= 0 && claw < 0;
+    if (port >= 0 && claw >= 0) {
+      const portHeld = this.fuel.pieceHeld(b, port);
+      const portRoom = this.fuel.pieceRoom(b, port);
+      viaPort = portRoom > 0 && (this.docking[i] === 1 || portHeld <= approach.refuelBelow * (portHeld + portRoom));
+    }
+    const scavenges = claw >= 0 && !viaPort;
+    const own = scavenges ? claw : lands ? (design.cores[0] ?? 0) : viaPort ? port : -1;
     if (own < 0) {
       this.stopForaging(i);
       return;
     }
-    const below = claw >= 0 ? approach.refuelBelow : approach.dockBelow;
+    const below = scavenges ? approach.scavengeFuelBelow : approach.refuelBelow;
     const ownHeld = this.fuel.pieceHeld(b, own);
-    const room = claw >= 0 || docks ? this.fuel.pieceRoom(b, own) : 0;
+    const room = scavenges || docks ? this.fuel.pieceRoom(b, own) : 0;
     const full = ownHeld + room;
     const metalRoom = rearms ? this.metal.pieceRoom(b, own) : 0;
-    const chargeRoom = lands && docks ? this.power.pieceRoom(b, own) : 0;
+    const chargeRoom = lands && recharges ? this.power.pieceRoom(b, own) : 0;
     const charge = chargeRoom > 0 ? this.power.pieceHeld(b, own) : 0;
     const thirsty = full > 0 && room > 0 && ownHeld <= below * full;
     const empty = metalRoom > 0 && this.outOfRounds(i, b, own, approach.rearmBelow);
     // Only running flat sends it for charge, so it never lands for a sliver of it.
-    const flat = chargeRoom > 0 && charge <= below * (charge + chargeRoom);
+    const flat = chargeRoom > 0 && charge <= approach.rechargeBelow * (charge + chargeRoom);
     const recharging = chargeRoom > 0 && (flat || this.recharging[i] === 1);
     const going =
       thirsty ||
@@ -4912,10 +5050,13 @@ export class Ships {
       (this.refuelling[i] === 1 && room > 0) ||
       (this.rearming[i] === 1 && metalRoom > 0);
     this.refuelling[i] = going && room > 0 ? 1 : 0;
+    this.docking[i] = going && room > 0 && viaPort ? 1 : 0;
     this.rearming[i] = going && metalRoom > 0 ? 1 : 0;
     this.recharging[i] = recharging ? 1 : 0;
     if (!going) {
-      this.stopForaging(i);
+      // Full, or wanting nothing: what it can spare goes to a friend.
+      if (deliverable) this.deliver(world, bodies, i, b, giverPort);
+      else this.stopForaging(i);
       return;
     }
     if (held !== NO_TARGET) {
@@ -4923,7 +5064,7 @@ export class Ships {
       // than at the next rethink.
       const lost = lands
         ? hb < 0 || this.landingPad[i]! < 0 || !this.padFree(bodies, held, this.landingPad[i]!)
-        : port >= 0
+        : viaPort
           ? hb < 0 || this.dockPort[i]! < 0 || this.ownPort[i] !== port || !this.portFree(bodies, held, this.dockPort[i]!)
           : hb < 0 || this.landingPad[i]! >= 0 || this.dockPort[i]! >= 0 || this.shipByBody[hb] !== held || !(this.fuel.left(hb) > 0);
       if (lost) {
@@ -4938,12 +5079,112 @@ export class Ships {
     this.forageAt[i] = world.tick + this.rethinkTicks(world, design.mass);
     if (lands) {
       this.pickPad(bodies, i, b, room, metalRoom, recharging ? chargeRoom : 0);
-    } else if (port >= 0) {
+    } else if (viaPort) {
       this.pickPort(bodies, i, b, port, room);
     } else {
       this.salvaging[i] = this.pickSource(bodies, i, b, claw, room);
       this.landingPad[i] = -1;
       this.dockPort[i] = -1;
+      // Nothing left to scavenge: what it has goes to a friend instead.
+      if (this.salvaging[i] === NO_TARGET && deliverable) this.deliver(world, bodies, i, b, giverPort);
+    }
+  }
+
+  /**
+   * Whether the ship working port `port` of body `b` holds enough to deliver:
+   * more than `above` of a full load on that port's piece of hull, and more
+   * than it keeps back for itself.
+   */
+  private canDeliver(b: number, port: number, above: number): boolean {
+    const held = this.fuel.pieceHeld(b, port);
+    const full = held + this.fuel.pieceRoom(b, port);
+    return full > 0 && held > above * full && held > this.reserve(b, port);
+  }
+
+  /**
+   * What the ship working module `m` of body `b` keeps back from a friend
+   * docked with it, kg: its `refuelBelow` of a full load, or, taking fuel to
+   * a friend, its `deliverFuelAbove`, so it gives only what it holds above
+   * that and is never left at its own threshold for refuelling.
+   */
+  private keepsBack(b: number, m: number): number {
+    const owner = this.pilotAt(b, m);
+    const kept = this.reserve(b, m);
+    if (owner < 0 || this.delivering[owner] !== 1) return kept;
+    const above = this.doctrines[owner]!.approach.deliverFuelAbove;
+    return max(kept, above * (this.fuel.pieceHeld(b, m) + this.fuel.pieceRoom(b, m)));
+  }
+
+  /**
+   * Take fuel to a friend: keep to the friend's port it is making for until it
+   * is gone, taken or full, or it is time to look again, then pick afresh.
+   */
+  private deliver(world: World, bodies: Bodies, i: number, b: number, port: number): void {
+    this.refuelling[i] = 0;
+    this.docking[i] = 0;
+    this.rearming[i] = 0;
+    this.recharging[i] = 0;
+    this.landingPad[i] = -1;
+    const held = this.salvaging[i]!;
+    const hb = held !== NO_TARGET && this.alive[held] === 1 ? bodies.indexOf(this.bodyIds[held]!) : -1;
+    const keep =
+      this.delivering[i] === 1 &&
+      hb >= 0 &&
+      this.dockPort[i]! >= 0 &&
+      this.ownPort[i] === port &&
+      this.portFree(bodies, held, this.dockPort[i]!) &&
+      this.fuel.pieceRoom(hb, this.dockPort[i]!) > 0;
+    if (keep && world.tick < this.forageAt[i]!) return;
+    this.forageAt[i] = world.tick + this.rethinkTicks(world, this.designs[i]!.mass);
+    this.pickDelivery(bodies, i, b, port);
+    this.delivering[i] = this.salvaging[i] !== NO_TARGET ? 1 : 0;
+  }
+
+  /**
+   * The best friend's port to take fuel to, as a port to be filled at is
+   * chosen: the fuel it can give and the friend has room for, for the time to
+   * get there and pump it through the slower of the two ports, put off by armed
+   * enemies near it and by every other ship already making for it.
+   */
+  private pickDelivery(bodies: Bodies, i: number, b: number, own: number): void {
+    const design = this.designs[i]!;
+    const approach = this.doctrines[i]!.approach;
+    this.salvaging[i] = NO_TARGET;
+    this.dockPort[i] = -1;
+    this.ownPort[i] = -1;
+    if (!(approach.approachSpeed > 0)) return;
+    const held = this.fuel.pieceHeld(b, own);
+    const spare = held - max(this.reserve(b, own), approach.deliverFuelAbove * (held + this.fuel.pieceRoom(b, own)));
+    if (!(spare > 0)) return;
+    const ownPump = design.modules[own]!.stats.pumpRate;
+    let bestScore = 0;
+    for (let t = 0; t < this.alive.length; t++) {
+      if (t === i || this.alive[t] === 0 || this.derelict[t] === 1 || this.delivering[t] === 1) continue;
+      if (this.team[t] !== this.team[i] || this.hostile(i, t) || !this.hasControl(t)) continue;
+      const tb = bodies.indexOf(this.bodyIds[t]!);
+      if (tb < 0 || tb === b) continue;
+      const host = this.designs[t]!;
+      let danger = -1;
+      for (let p = 0; p < host.modules.length; p++) {
+        if (host.modules[p]!.spec.kind !== 'port' || !this.ownsAt(t, tb, p) || !this.portFree(bodies, t, p)) continue;
+        const room = this.fuel.pieceRoom(tb, p);
+        const pump = min(ownPump, host.modules[p]!.stats.pumpRate);
+        if (!(room > 0) || !(pump > 0)) continue;
+        const take = spare < room ? spare : room;
+        const gap = length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!);
+        if (danger < 0) danger = approach.dockDanger > 0 ? this.dangerNear(bodies, i, tb) : 0;
+        let queue = 0;
+        for (let o = 0; o < this.alive.length; o++) {
+          if (o !== i && this.alive[o] === 1 && this.salvaging[o] === t && this.dockPort[o] === p) queue++;
+        }
+        const score = take / (gap / approach.approachSpeed + take / pump) / (1 + max(0, approach.dockDanger) * danger) / (1 + queue);
+        if (score > bestScore) {
+          bestScore = score;
+          this.salvaging[i] = t;
+          this.dockPort[i] = p;
+          this.ownPort[i] = own;
+        }
+      }
     }
   }
 
@@ -4953,6 +5194,8 @@ export class Ships {
     this.dockPort[i] = -1;
     this.ownPort[i] = -1;
     this.refuelling[i] = 0;
+    this.docking[i] = 0;
+    this.delivering[i] = 0;
     this.rearming[i] = 0;
     this.recharging[i] = 0;
   }
@@ -5010,8 +5253,6 @@ export class Ships {
     this.dockPort[i] = -1;
     if (!(approach.approachSpeed > 0)) return;
     const box = footprintOf(this.designs[i]!);
-    const long = box.maxX - box.minX;
-    const wide = box.maxY - box.minY;
     let bestScore = 0;
     for (let t = 0; t < this.alive.length; t++) {
       if (t === i || this.alive[t] === 0 || this.derelict[t] === 1) continue;
@@ -5022,9 +5263,7 @@ export class Ships {
       let danger = -1;
       for (let pad = 0; pad < design.modules.length; pad++) {
         const spec = design.modules[pad]!.spec;
-        if (spec.kind !== 'pad' || !this.padFree(bodies, t, pad)) continue;
-        // Only a pad it fits on, either way round.
-        if (!((long <= spec.length && wide <= spec.width) || (long <= spec.width && wide <= spec.length))) continue;
+        if (spec.kind !== 'pad' || !this.padFree(bodies, t, pad) || !this.fitsPad(box, spec)) continue;
         const spare = this.fuel.pieceHeld(tb, pad) - this.reserve(tb, pad);
         const spareMetal = this.metal.pieceHeld(tb, pad) - this.metalReserve(tb, pad);
         const pump = design.modules[pad]!.stats.pumpRate;
@@ -5108,22 +5347,9 @@ export class Ships {
     let left = range;
     if (!near && !lined) {
       const reach = bodies.radius[tb]!;
-      const ax = place.x + nx * reach;
-      const ay = place.y + ny * reach;
-      const cx = bodies.x[tb]!;
-      const cy = bodies.y[tb]!;
-      const from = atan2(bodies.y[b]! - cy, bodies.x[b]! - cx);
-      const off = angleDelta(from, atan2(ay - cy, ax - cx));
-      if (abs(off) > PAD_ORBIT_STEP) {
-        const ring = max(length(ax - cx, ay - cy), reach + 2 * mine);
-        const step = from + (off > 0 ? PAD_ORBIT_STEP : -PAD_ORBIT_STEP);
-        gx = cx + cos(step) * ring;
-        gy = cy + sin(step) * ring;
-      } else {
-        gx = ax;
-        gy = ay;
-      }
-      left = length(gx - bodies.x[b]!, gy - bodies.y[b]!) + reach;
+      left = this.aroundHull(bodies, b, tb, place.x + nx * reach, place.y + ny * reach) + reach;
+      gx = this.wayX;
+      gy = this.wayY;
     }
     const dx = gx - bodies.x[b]!;
     const dy = gy - bodies.y[b]!;
@@ -5161,6 +5387,87 @@ export class Ships {
     const dvx = vx - bodies.vx[b]!;
     const dvy = vy - bodies.vy[b]!;
     return length(dvx, dvy) > PAD_SPEED / 2 ? atan2(dvy, dvx) - design.thrustBearing : bodies.angle[b]!;
+  }
+
+  /**
+   * Steer body `b` for the point `ax`, `ay` off body `tb`'s hull, circling the
+   * hull outside its radius when that point is round the far side rather than
+   * flying through it. Leaves the next point to make for in `wayX`, `wayY`,
+   * and returns how far that is.
+   */
+  private aroundHull(bodies: Bodies, b: number, tb: number, ax: number, ay: number): number {
+    const cx = bodies.x[tb]!;
+    const cy = bodies.y[tb]!;
+    const from = atan2(bodies.y[b]! - cy, bodies.x[b]! - cx);
+    const off = angleDelta(from, atan2(ay - cy, ax - cx));
+    if (abs(off) > HULL_ORBIT_STEP) {
+      const ring = max(length(ax - cx, ay - cy), bodies.radius[tb]! + 2 * bodies.radius[b]!);
+      const step = from + (off > 0 ? HULL_ORBIT_STEP : -HULL_ORBIT_STEP);
+      this.wayX = cx + cos(step) * ring;
+      this.wayY = cy + sin(step) * ring;
+    } else {
+      this.wayX = ax;
+      this.wayY = ay;
+    }
+    return length(this.wayX - bodies.x[b]!, this.wayY - bodies.y[b]!);
+  }
+
+  /**
+   * The body of the nearest hull across body `b`'s line to body `tb` that a
+   * claw ship should go round, or -1: a ship under control larger than it, not
+   * after the same source, and far enough short of it to circle clear.
+   */
+  private hullAcross(bodies: Bodies, i: number, b: number, tb: number, source: number): number {
+    const x = bodies.x[b]!;
+    const y = bodies.y[b]!;
+    const dx = bodies.x[tb]! - x;
+    const dy = bodies.y[tb]! - y;
+    const range = length(dx, dy);
+    if (!(range > 0)) return -1;
+    const ux = dx / range;
+    const uy = dy / range;
+    const short = range - bodies.radius[tb]!;
+    let nearest = -1;
+    let nearestAt = short;
+    for (let t = 0; t < this.alive.length; t++) {
+      if (t === i || this.alive[t] === 0 || this.derelict[t] === 1 || this.salvaging[t] === source) continue;
+      if (!this.hasControl(t)) continue;
+      const ob = bodies.indexOf(this.bodyIds[t]!);
+      if (ob < 0 || ob === b || ob === tb || bodies.ghost[ob] === 1 || !(bodies.radius[ob]! > bodies.radius[b]!)) continue;
+      const cx = bodies.x[ob]! - x;
+      const cy = bodies.y[ob]! - y;
+      const at = cx * ux + cy * uy;
+      if (!(at > 0) || at + bodies.radius[ob]! + 2 * bodies.radius[b]! >= nearestAt) continue;
+      if (abs(cx * uy - cy * ux) < bodies.radius[ob]! + bodies.radius[b]!) {
+        nearest = ob;
+        nearestAt = at;
+      }
+    }
+    return nearest;
+  }
+
+  /**
+   * Fly body `b` round body `ob`'s hull, outside its radius, to the side of it
+   * facing body `tb`, matching how `ob` is moving. Returns the heading to the
+   * next point to make for.
+   */
+  private roundHull(bodies: Bodies, i: number, b: number, ob: number, tb: number): number {
+    const cx = bodies.x[ob]!;
+    const cy = bodies.y[ob]!;
+    const out = atan2(bodies.y[tb]! - cy, bodies.x[tb]! - cx);
+    const clear = bodies.radius[ob]! + 2 * bodies.radius[b]!;
+    const gap = this.aroundHull(bodies, b, ob, cx + cos(out) * clear, cy + sin(out) * clear);
+    const dx = this.wayX - bodies.x[b]!;
+    const dy = this.wayY - bodies.y[b]!;
+    let vx = bodies.vx[ob]!;
+    let vy = bodies.vy[ob]!;
+    if (gap > 0) {
+      const speed = this.doctrines[i]!.approach.approachSpeed;
+      vx += (dx / gap) * speed;
+      vy += (dy / gap) * speed;
+    }
+    this.urge(URGE_REFERENCE, vx, vy);
+    return atan2(dy, dx);
   }
 
   /**
@@ -5269,7 +5576,7 @@ export class Ships {
     const ownPump = design.modules[own]!.stats.pumpRate;
     let bestScore = 0;
     for (let t = 0; t < this.alive.length; t++) {
-      if (t === i || this.alive[t] === 0 || this.derelict[t] === 1 || this.refuelling[t] === 1) continue;
+      if (t === i || this.alive[t] === 0 || this.derelict[t] === 1 || this.docking[t] === 1) continue;
       if (this.team[t] !== this.team[i] || this.hostile(i, t) || !this.hasControl(t)) continue;
       const tb = bodies.indexOf(this.bodyIds[t]!);
       if (tb < 0 || tb === b) continue;
@@ -5301,7 +5608,8 @@ export class Ships {
   /**
    * Bring this ship's port `own` onto port `theirs` of body `tb`, face to face.
    * It flies to a point a little off their port first, mains along the change
-   * of velocity it needs as a ram does; once there, lined up and on the port's
+   * of velocity it needs as a ram does, and round their hull to the front of
+   * the port if it starts anywhere else; once there, lined up and on the port's
    * axis, it closes the last stretch at `PORT_APPROACH`, slow enough to mate.
    * Returns the heading to hold.
    */
@@ -5331,11 +5639,24 @@ export class Ships {
     const width = min(mine.spec.width, host.modules[theirs]!.spec.width);
     const lined = abs(angleDelta(bodies.angle[b]!, heading)) <= PORT_HEADING_SLACK && lateral <= width * 0.25;
     const standoff = PORT_STANDOFF_RADII * bodies.radius[b]!;
-    const tx = lined ? gx : gx + nx * standoff;
-    const ty = lined ? gy : gy + ny * standoff;
+    let tx = lined ? gx : gx + nx * standoff;
+    let ty = lined ? gy : gy + ny * standoff;
+    // Not out in front of their port: round their hull to a point a radius of
+    // theirs off it first, rather than through the hull.
+    const fx = bodies.x[b]! - (place.x + nx * face);
+    const fy = bodies.y[b]! - (place.y + ny * face);
+    const ahead = fx * nx + fy * ny;
+    let left = -1;
+    if (!lined && !(ahead > 0 && abs(fy * nx - fx * ny) <= ahead)) {
+      const reach = bodies.radius[tb]!;
+      left = this.aroundHull(bodies, b, tb, place.x + nx * (face + reach), place.y + ny * (face + reach)) + reach;
+      tx = this.wayX;
+      ty = this.wayY;
+    }
     const dx = tx - bodies.x[b]!;
     const dy = ty - bodies.y[b]!;
     const range = length(dx, dy);
+    if (left < 0) left = range;
     let vx = place.vx;
     let vy = place.vy;
     if (range > 0) {
@@ -5345,7 +5666,7 @@ export class Ships {
       } else {
         const mains = this.layoutOf(i).maxThrustAlong(cos(design.thrustBearing), sin(design.thrustBearing)) / bodies.mass[b]!;
         const delay = approach.responseTime + this.halfTurnTime(bodies, i, b);
-        radial = min(approach.approachSpeed, stoppingSpeed(approach.brake * mains, range, delay));
+        radial = min(approach.approachSpeed, stoppingSpeed(approach.brake * mains, left, delay));
       }
       vx += (dx / range) * radial;
       vy += (dy / range) * radial;
@@ -5353,7 +5674,7 @@ export class Ships {
     this.urge(URGE_REFERENCE, vx, vy);
     const dvx = vx - bodies.vx[b]!;
     const dvy = vy - bodies.vy[b]!;
-    const far = range > PAD_ALIGN_RADII * bodies.radius[b]!;
+    const far = left > PAD_ALIGN_RADII * bodies.radius[b]!;
     if (far && length(dvx, dvy) > PORT_SPEED) return atan2(dvy, dvx) - design.thrustBearing;
     return heading;
   }
@@ -5435,14 +5756,19 @@ export class Ships {
 
   /**
    * The best thing to drink from: a wreck, or an enemy with no main guns left,
-   * scored by what it would gain for the time spent — getting there and
-   * pumping — and put off by armed enemies near it.
+   * scored by what it would gain, less what getting there burns, for the time
+   * spent — getting there at what it can close at and pumping — and put off by
+   * armed enemies near it. One that pays no more than the trip costs, or that
+   * is going away faster than it can follow, is not gone for.
    */
   private pickSource(bodies: Bodies, i: number, b: number, claw: number, room: number): number {
     const design = this.designs[i]!;
     const approach = this.doctrines[i]!.approach;
     const pump = design.modules[claw]!.stats.pumpRate;
     if (!(pump > 0) || !(approach.approachSpeed > 0)) return NO_TARGET;
+    const mass = bodies.mass[b]!;
+    const mains = this.layoutOf(i).maxThrustAlong(cos(design.thrustBearing), sin(design.thrustBearing)) / mass;
+    const exhaust = exhaustOf(design);
     let best = NO_TARGET;
     let bestScore = 0;
     for (let t = 0; t < this.alive.length; t++) {
@@ -5455,10 +5781,26 @@ export class Ships {
       const fuel = this.fuel.left(tb);
       if (!(fuel > 0)) continue;
       const take = fuel < room ? fuel : room;
-      const gap = max(0, length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!) - bodies.radius[tb]!);
-      const time = gap / approach.approachSpeed + take / pump;
-      const danger = approach.refuelDanger > 0 ? this.dangerNear(bodies, i, tb) : 0;
-      const score = take / time / (1 + max(0, approach.refuelDanger) * danger);
+      const dx = bodies.x[tb]! - bodies.x[b]!;
+      const dy = bodies.y[tb]! - bodies.y[b]!;
+      const apart = length(dx, dy);
+      // Getting there at its closing speed less however fast the source is
+      // going away: one it cannot gain on is no source at all.
+      const receding = apart > 0 ? ((bodies.vx[tb]! - bodies.vx[b]!) * dx + (bodies.vy[tb]! - bodies.vy[b]!) * dy) / apart : 0;
+      const closing = approach.approachSpeed - receding;
+      if (!(closing > 0)) continue;
+      const gap = max(0, apart - bodies.radius[tb]!);
+      // What the trip burns: matching the source's motion, then speeding up
+      // and slowing down again, no faster than the gap gives room for. A
+      // source has to pay more than that to be worth going for at all.
+      const cruise = min(closing, sqrt(mains * gap));
+      const dv = length(bodies.vx[tb]! - bodies.vx[b]!, bodies.vy[tb]! - bodies.vy[b]!) + 2 * cruise;
+      const cost = exhaust > 0 ? mass * (1 - exp(-dv / exhaust)) : 0;
+      const gain = take - cost;
+      if (!(gain > 0)) continue;
+      const time = gap / closing + take / pump;
+      const danger = approach.scavengeDanger > 0 ? this.dangerNear(bodies, i, tb) : 0;
+      const score = gain / time / (1 + max(0, approach.scavengeDanger) * danger);
       if (score > bestScore) {
         best = t;
         bestScore = score;

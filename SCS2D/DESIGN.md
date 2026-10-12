@@ -52,10 +52,11 @@ inside any one file is not contiguous.
   so that a ship wider than the view is held still wherever on it the camera has been zoomed. Each ship also carries an arrowhead in its team's colour, which
   fades in as its hull becomes too small on screen to read, so that zooming out to see a
   battle does not lose the small ships in it or which way they are facing. **What the picture asks
-  about a ship is whether it is still under control, not whether it can fight**: a hull with a sound core and
-  neither gun nor engine is still a ship, so it is framed and drawn in its own colours, where asking
+  about a ship is whether it is still in the fight, not whether it was built to fight**: a hull with a sound
+  core and neither gun nor engine is still a ship, so it is framed and drawn in its own colours, where asking
   whether it could fight drew a whole generation of engineless craft as wreckage and left them out of shot.
-  Grey is for a core that is out, and a severed piece gets no arrowhead at all. A blueprint editor on a second page of its own draws a layout
+  Grey, and framed only with the hulks, is for a core that is out, or for a ship that set out with a gun or
+  an engine and has lost them all, or the stores to use them. A severed piece gets no arrowhead at all. A blueprint editor on a second page of its own draws a layout
   through that same renderer and reports what it bought: mass, inertia, the
   acceleration available in each direction — as figures, and as a pair of
   envelope curves separating what a layout can project from what it can use
@@ -215,6 +216,11 @@ inside any one file is not contiguous.
   close it flies and for whether it is still armed. So a capital that has lost its main guns knows it, however
   much point defence it has left, and enemies weighing `armedWeight` and its own `ramArmed` see it the same
   way; a piece broken off with only secondaries is disarmed, and a carrier can have no main armament at all.
+  **Running dry counts as being shot out**: a gun without a round's metal on its piece of hull is not armed,
+  a beam recharging is not armed unless its piece's batteries, and what its generators make in a cycle, cover
+  the rest of the shot, and an engine without fuel on its piece does not make it mobile. Only empty is not
+  reason enough to ram, though: a fighter goes on counting empty guns as working while a friend has a pad
+  it could rearm or recharge on.
   **Where the main guns bear is which way round it fights**:
   of the bearings off its bow, the pilot holds its target on the one its working main guns bear on most,
   less doctrine's `turnBias` for every half turn it is from where the target already is, so a Star Destroyer
@@ -625,28 +631,37 @@ inside any one file is not contiguous.
   go, cutting the seam. Gripping a live enemy makes the two ride one body, pulling against each other. A
   claw grips only for fuel it has room for. The `salvage` scenario drifts two leeches into wrecks.
   **A pilot takes its claw to wrecks** once its claw's piece of hull is down to its doctrine's
-  `refuelBelow` of a full load (zero, never, by default), and goes from source to source until it is full.
-  It picks the wreck, or the enemy with no main guns left, that pays the most fuel for the time it takes to
-  reach and drain, divided by one more `refuelDanger` for every armed enemy within reach of it. It points
+  `scavengeFuelBelow` of a full load (zero, never, by default), and goes from source to source until it is full.
+  It picks the wreck, or the enemy with no main guns left, that pays the most fuel, less what the trip burns,
+  for the time it takes to reach and drain, divided by one more `scavengeDanger` for every armed enemy within
+  reach of it. The trip is reckoned at what it can close at, `approachSpeed` less however fast the source is
+  going away, and burns what matching the source's motion and then speeding up and stopping again costs at its
+  engines' exhaust speed; a source going away faster than it can follow, or holding no more than that, is
+  not gone for. It points
   its claw at the source and comes in down a stopping curve that ends not at rest but at the middle of the
   claw's band, planned on the thrust it actually has astern; touching without taking hold, it backs off for
-  `CLAW_RETRY` and comes again. Holding, it idles. An order outranks it, and a fighter closing on a source
+  `CLAW_RETRY` and comes again. A ship under control and larger than itself lying across its way — the friend
+  it has just left, say — it first circles outside that ship's radius, as a fighter does a carrier for a pad,
+  until the line is clear; not one so near the source that circling it would reach the source, nor a rival
+  after the same source.
+  Holding, it idles. An order outranks it, and a fighter closing on a source
   commits as it does to ram. The stock **Scavenger** is built for it, its tank starting a fifth full, and `scavenge` has two of them drain
   three wrecks; evolution draws claws at a weight of one.
   **A pad** (`pad`) is a deck a friendly fighter lands on: never thick and never in the weapons layer, with a
-  pump of `PAD_PUMP_PER_METRE` for every metre of its width. A fighter with no claw whose fuel or charge is
-  down to its doctrine's `dockBelow` of a full load (a quarter, by default) makes for the free pad, of those it
+  pump of `PAD_PUMP_PER_METRE` for every metre of its width. A fighter with no claw whose fuel is down to its
+  doctrine's `refuelBelow` of a full load, or its charge to its `rechargeBelow` (a quarter each, by default),
+  makes for the free pad, of those it
   fits on, that pays it most for the time, divided by one more `dockDanger` (zero, so no matter, by default)
   for every armed enemy near it and by one more for every other fighter already making for that pad. It flies
   there as a ram does, mains along the change of velocity it needs, braking on them with a half turn allowed
   for. It comes in over the pad's clear side — of its four sides, the one with the longest run before
   anything in the weapons layer, and of those the one opening onto empty space — and from the wrong side it
-  first circles the carrier outside its radius, `PAD_ORBIT_STEP` at a time, rather than fly through what is in
+  first circles the carrier outside its radius, `HULL_ORBIT_STEP` at a time, rather than fly through what is in
   the way. Within `PAD_ALIGN_RADII` of its own radii it eases in at no more than `PAD_SPEED`, slowing as it
   closes, lined up with the pad if it would not fit at any heading. It lands — never committing, the pad and the fighter meeting at the boundary
   between the layers — once its whole bounding box lies inside the pad and it moves with it to within
   `PAD_SPEED`, and the two become one body with a dock's seam. It idles while the pad fills it from what the
-  carrier can spare above the carrier's own `dockBelow`, and the pad lets it go when it is full, when there
+  carrier can spare above the carrier's own `refuelBelow`, and the pad lets it go when it is full, when there
   is no more to spare, or at once when it is given an order. A merged design remembers which of its pieces
   were fighters (`fighterPieces`), so it lifts off a fighter, and every ship keeps the doctrine it set out with
   whatever hull it rides, so a fighter flies on its own and not its carrier's. The `carrier` scenario has three Dinkies take
@@ -657,19 +672,29 @@ inside any one file is not contiguous.
   pad, or one that is missing or not a fighter, is a blueprint problem, and a budget counts the carrier and
   everything it sets out with (`budgetMass`).
   **A port** (`port`) is a coupling on a hull's side, never thick, with a pump of `PORT_PUMP_PER_METRE` for
-  every metre of its face. Anything but a fighter with a working port and no claw that is down to its
-  `dockBelow` picks a
+  every metre of its face. Anything but a fighter with a working port that is down to its
+  `refuelBelow` picks a
   friend's free port as it would a pad — from a friend under control and not refuelling itself — comes to a
-  point one of its own radii off it, flown mains-first, lines up face to face on the port's axis, and closes
+  point one of its own radii off it, flown mains-first — from anywhere but out in front of the port, first
+  circling the friend's hull as a fighter does a pad, to a point a radius of the friend's off the port — lines
+  up face to face on the port's axis, and closes
   the last stretch at half a metre a second. Two ports mate when they meet within 30° of face to face at no
   more than `PORT_SPEED` and one of the two ships was making for exactly that pair; fuel then passes, through
   the narrower coupling, into whichever is refuelling from what the other can spare above its own
-  `dockBelow`, and they part when it is full, nothing more can be spared, or either is given an order. Of
+  `refuelBelow`, and they part when it is full, nothing more can be spared, or either is given an order. A
+  ship with a claw as well docks only once it is that low, and is filled until full; above it, it scavenges
+  by its `scavengeFuelBelow` instead, so a tender with `scavengeFuelBelow` set high scavenges whenever it has room worth
+  the trip and takes fuel from its carrier only when it is nearly dry. Which ship a port fills is the one
+  that is docking for fuel, not one that is out scavenging (`Ships.docking`). **A ship can deliver fuel
+  unasked** (`deliverFuelAbove`, zero, never, by default): with a port and more than that share of a load,
+  once it is full or can find nothing left to scavenge, it takes what it holds over that share to the
+  friend's port that takes the most for the time, docks, and pumps it across whether the friend is asking or
+  not, parting once the friend is full or it is down to that share. Of
   two ships docked by ports the smaller idles and the larger flies the pair. A ship does not shy away from a
   friend coming to land on it or dock with it, nor from its own fighters at all — those that last set out from
   or landed on it — trusting them to keep clear, so a carrier does not run from its wing. The stock **Tanker** carries a great tank and a port on each
   beam; the `tanker` scenario has two Pickets dock on either side of one. **Any dock lets go the moment an
-  armed enemy is within reach of the pair**, when the ship being filled minds danger (`refuelDanger` above
+  armed enemy is within reach of the pair**, when the ship being filled minds danger (`scavengeDanger` above
   zero for a claw, `dockDanger` for a pad or a port), and while one is, no claw grips, no fighter lands and no
   port mates for it. Docking is with a friend and stealing fuel is from a wreck or an enemy, so the two are
   wary by separate numbers, and by default only a claw is.
@@ -679,8 +704,9 @@ inside any one file is not contiguous.
   launch onto whichever part carries them. The stock **Beam Carrier** is built this way: eight pads, each
   with a battery beside it, a Dinky Beam on every pad, and a tender with a claw docked amidships. It is
   reinforced and armed only with two light turrets, so its fighters do the fighting. In the
-  `beamCarrier` scenario it sets out short of fuel, so its tender casts off to drink from two wrecks, and its
-  fighters fight a wave of TIEs on their batteries and come back to the pads to recharge.
+  `beamCarrier` scenario its tender, above the carrier's `refuelBelow` of a tenth, casts off at once to scavenge
+  from two wrecks, and once full brings what it holds over three fifths back to the carrier; its fighters fight
+  a wave of TIEs on their batteries and come back to the pads, leaving with every store full.
   **Metal.** A `hold` archetype whose interior is metal (`METAL_DENSITY`, steel racked about half solid), and
   a twentieth of every core's interior past its computing (`CORE_METAL_SHARE`), the rest of it still fuel, so
   a bare core with one gun can fire a few rounds. A gun loads each round whole from the holds and cores on its
@@ -722,8 +748,8 @@ inside any one file is not contiguous.
   firing flat out beside what it generates. Severed chunks take their own power: charge goes with its
   module, as fuel and metal do. **Docks pass charge**: a pad fills what has landed on it, and a port the ship that is
   refuelling, at `DOCK_POWER_PER_METRE` of the part's width, from what the giver can spare above its
-  `dockBelow`; a dock holds until charge is full too, and a fighter whose batteries are down to its
-  `dockBelow` goes to a pad for charge alone. A battery's room is what damage leaves it, so a pad never
+  `rechargeBelow`; a dock holds until charge is full too, and a fighter whose batteries are down to its
+  `rechargeBelow` goes to a pad for charge alone. A battery's room is what damage leaves it, so a pad never
   holds a fighter to fill cells that are broken. Evolution draws batteries and generators at a weight of
   one each, and a mutation does not turn either, since neither has a facing that matters.
 - **Next:** the rest of §8 step 8 — leaks, and pilots that know their fuel — and of step 5: a materials

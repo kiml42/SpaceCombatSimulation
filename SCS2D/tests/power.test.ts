@@ -13,6 +13,7 @@ import {
   GENERATOR_POWER_PER_VOLUME,
   Ships,
   World,
+  blueprintProblem,
   compileBlueprint,
   moduleStats,
   parseBlueprint,
@@ -223,5 +224,48 @@ describe('a core', () => {
       ],
     };
     expect(shots(blueprint)[0]).toBeGreaterThan(3);
+  });
+});
+
+/** A core too small to make any charge, a battery, and a beam. */
+const LANCE: Blueprint = {
+  name: 'Lance',
+  fighter: true,
+  modules: [
+    { kind: 'core', x: 0, y: 0, length: 1, width: 1 },
+    { kind: 'battery', x: -1, y: 0, length: 1, width: 1 },
+    { kind: 'beamTurret', x: 2, y: 0, length: 3, width: 3 },
+  ],
+};
+
+describe('a beam out of charge', () => {
+  it('is disarmed while it has a shot to recharge and nothing to recharge it from', () => {
+    expect(blueprintProblem(LANCE)).toBeNull();
+    const design = compileBlueprint(LANCE);
+    expect(design.modules[0]!.stats.generation).toBe(0);
+    const world = new World({ dt: 1 / 60, seed: 1 });
+    const ships = new Ships();
+    const ship = ships.spawn(world, { design, x: 0, y: 0, team: 0 });
+    world.step();
+    const b = world.bodies.indexOf(ships.body(ship));
+    const cooldown = (ships as unknown as { cooldown: number[][] }).cooldown[ship]!;
+    // Ready to fire, it holds its shot whatever the batteries hold.
+    ships.power.drain(b, 1, ships.power.held(b, 1));
+    expect(ships.isDisarmed(ship)).toBe(false);
+    // Just fired, with nothing to recharge from.
+    cooldown[0] = design.turrets[0]!.gun.cycleTime;
+    expect(ships.isDisarmed(ship)).toBe(true);
+  });
+
+  it('is armed while its batteries hold the rest of a shot', () => {
+    const design = compileBlueprint(LANCE);
+    const world = new World({ dt: 1 / 60, seed: 1 });
+    const ships = new Ships();
+    const ship = ships.spawn(world, { design, x: 0, y: 0, team: 0 });
+    world.step();
+    const gun = design.turrets[0]!.gun;
+    expect(design.modules[1]!.stats.charge).toBeGreaterThan(gun.beamPower * gun.beamOnTime);
+    (ships as unknown as { cooldown: number[][] }).cooldown[ship]![0] = gun.cycleTime;
+    expect(ships.isDisarmed(ship)).toBe(false);
   });
 });

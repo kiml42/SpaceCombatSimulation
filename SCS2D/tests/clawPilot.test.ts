@@ -10,6 +10,7 @@ import { makeBattle } from '../scenarios/battle.js';
 import { CORVETTE, GUNSHIP, SCAVENGER } from '../scenarios/blueprints.js';
 import type { World } from '../sim/world.js';
 import { OrderCancelCondition } from '../sim/ships.js';
+import { PI } from '../sim/math.js';
 
 /** A pilot taking its claw to wrecks for their fuel (ROADMAP.md §8 step 9). */
 
@@ -19,13 +20,13 @@ const TANK = 1;
 const CLAW = 2;
 
 /** The stock Scavenger with its tanks starting full, so each test says how much room it has. */
-function scavenger(refuelBelow: number, refuelDanger = 1): ShipDesign {
+function scavenger(scavengeFuelBelow: number, scavengeDanger = 1): ShipDesign {
   const doctrine = compileBlueprint(SCAVENGER).doctrine;
   const modules = SCAVENGER.modules!.map((m) => {
     const { fill: _, ...full } = m as ModuleSpec;
     return full;
   });
-  return compileBlueprint({ ...SCAVENGER, modules, doctrine: { ...doctrine, approach: { ...doctrine.approach, refuelBelow, refuelDanger } } });
+  return compileBlueprint({ ...SCAVENGER, modules, doctrine: { ...doctrine, approach: { ...doctrine.approach, scavengeFuelBelow, scavengeDanger } } });
 }
 
 /** Shoot out a hull's cores, leaving a wreck with its tanks full. */
@@ -111,8 +112,30 @@ describe('a pilot with a claw', () => {
     expect(salvaging(run.ships, run.a)).toBe(-1);
   });
 
+  it('goes round a friend in the way of its wreck, rather than through it', () => {
+    // A friendly gunship, under control and keeping still, square across the line.
+    const still = compileBlueprint({ ...GUNSHIP, doctrine: { ...gunship.doctrine, approach: { ...gunship.doctrine.approach, separation: 0 } } });
+    const friend = (ships: Ships, world: World): void => {
+      ships.spawn(world, { design: still, x: -300, y: 0, angle: PI / 2, team: 0 });
+    };
+    const run = scene(scavenger(0.5), 15_000, [[0, 0]], friend);
+    runUntil(run, () => holding(run, run.wrecks[0]!), 120);
+    expect(holding(run, run.wrecks[0]!)).toBe(true);
+    expect(run.totalContacts).toBeLessThan(10);
+  });
+
   it('goes for the nearer of two wrecks alike', () => {
     const run = scene(scavenger(0.5), 15_000, [[600, 0], [0, 0]]);
+    for (let s = 0; s < 120; s++) run.step();
+    expect(salvaging(run.ships, run.a)).toBe(run.wrecks[1]);
+  });
+
+  it('passes over a wreck going away faster than it can follow for a farther one', () => {
+    // The nearer wreck recedes at 40 m/s, past the stock Scavenger's 30.
+    const fleeing = (ships: Ships, world: World): void => {
+      world.bodies.vx[world.bodies.indexOf(ships.body(1))] = 40;
+    };
+    const run = scene(scavenger(0.5), 15_000, [[0, 0], [0, -4000]], fleeing);
     for (let s = 0; s < 120; s++) run.step();
     expect(salvaging(run.ships, run.a)).toBe(run.wrecks[1]);
   });

@@ -20,9 +20,9 @@ function carrierOf(rearmBelow = 0): ShipDesign {
 }
 const CORE = 0;
 
-function fighterOf(rearmBelow: number, dockBelow = 0.5): ShipDesign {
+function fighterOf(rearmBelow: number, refuelBelow = 0.5): ShipDesign {
   const doctrine = compileBlueprint(DINKY).doctrine;
-  return compileBlueprint({ ...DINKY, doctrine: { ...doctrine, approach: { ...doctrine.approach, rearmBelow, dockBelow } } });
+  return compileBlueprint({ ...DINKY, doctrine: { ...doctrine, approach: { ...doctrine.approach, rearmBelow, refuelBelow } } });
 }
 
 interface Setup {
@@ -117,5 +117,32 @@ describe('a carrier', () => {
     runUntil(run, () => !aboard(run), 30);
     // It may land for nothing, but it leaves with nothing the carrier was keeping.
     expect(carrierMetal()).toBeGreaterThanOrEqual(before * 0.999 - 1e-6);
+  });
+});
+
+describe('a fighter out of rounds with a ram doctrine', () => {
+  /** Whether a dry fighter beside an enemy would ram it, with a friend's pad to go to or not. */
+  function rams(withCarrier: boolean): boolean {
+    const doctrine = compileBlueprint(DINKY).doctrine;
+    const fighter = compileBlueprint({ ...DINKY, doctrine: { ...doctrine, approach: { ...doctrine.approach, ramRadii: 50, ramArmed: 0 } } });
+    const run = makeBattle({ seed: 3 }, (ships, world) => {
+      if (withCarrier) ships.spawn(world, { design: carrierOf(), x: 0, y: 0, team: 0 });
+      const f = ships.spawn(world, { design: fighter, x: -300, y: 200, team: 0 });
+      const e = ships.spawn(world, { design: carrierOf(), x: -300, y: 300, team: 1 });
+      return { f, e };
+    });
+    run.step();
+    const b = run.world.bodies.indexOf(run.ships.body(run.f));
+    for (let m = 0; m < fighter.modules.length; m++) run.ships.metal.drain(b, m, run.ships.metal.held(b, m));
+    expect(run.ships.isDisarmed(run.f)).toBe(true);
+    return (run.ships as unknown as { rams(i: number, t: number): boolean }).rams(run.f, run.e);
+  }
+
+  it('would rather rearm than ram while a friend has a pad for it', () => {
+    expect(rams(true)).toBe(false);
+  });
+
+  it('rams when there is nowhere to rearm', () => {
+    expect(rams(false)).toBe(true);
   });
 });

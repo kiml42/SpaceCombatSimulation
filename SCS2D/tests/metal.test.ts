@@ -100,6 +100,22 @@ describe('loading a round', () => {
   });
 });
 
+describe('a ship out of metal', () => {
+  it('is disarmed, as if its guns were shot out', () => {
+    const world = new World({ dt: DT, seed: 6 });
+    const ships = new Ships();
+    const ship = ships.spawn(world, { design: corvette, x: 0, y: 0, team: 0 });
+    const body = world.bodies.indexOf(ships.body(ship));
+    const mount = corvette.turrets[0]!;
+    expect(ships.isDisarmed(ship)).toBe(false);
+    // Not quite a round left.
+    const held = ships.metal.pieceHeld(body, mount.module);
+    ships.metal.drain(body, mount.module, held - mount.gun.roundMass / 2);
+    expect(ships.isDisarmed(ship)).toBe(true);
+    expect(ships.isDisabled(ship)).toBe(ships.hasNoEngines(ship));
+  });
+});
+
 describe('a gun firing', () => {
   it('holds its fire with nothing to load', () => {
     expect(firing(corvette, 20).rounds).toBeGreaterThan(0);

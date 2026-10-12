@@ -23,7 +23,7 @@ import { dockFighter } from '../editor/edit.js';
 /** Fighters landing on a friend's pad to be filled from it (ROADMAP.md §8 step 9). */
 
 /** A core, a big tank, and a pad on its bow big enough for a Dinky. */
-function carrierOf(pad = 20, dockBelow = 0): ShipDesign {
+function carrierOf(pad = 20, refuelBelow = 0): ShipDesign {
   const blueprint: Blueprint = {
     name: 'Carrier',
     modules: [
@@ -33,14 +33,14 @@ function carrierOf(pad = 20, dockBelow = 0): ShipDesign {
     ],
   };
   const design = compileBlueprint(blueprint);
-  return compileBlueprint({ ...blueprint, doctrine: { ...design.doctrine, approach: { ...design.doctrine.approach, dockBelow } } });
+  return compileBlueprint({ ...blueprint, doctrine: { ...design.doctrine, approach: { ...design.doctrine.approach, refuelBelow } } });
 }
 const PAD = 2;
 const TANK = 1;
 
-function fighterOf(dockBelow: number): ShipDesign {
+function fighterOf(refuelBelow: number): ShipDesign {
   const doctrine = compileBlueprint(DINKY).doctrine;
-  return compileBlueprint({ ...DINKY, doctrine: { ...doctrine, approach: { ...doctrine.approach, dockBelow } } });
+  return compileBlueprint({ ...DINKY, doctrine: { ...doctrine, approach: { ...doctrine.approach, refuelBelow } } });
 }
 
 interface Setup {
@@ -297,7 +297,7 @@ describe('a pad passing charge', () => {
     ],
   };
 
-  it('is gone to for charge alone once a fighter\'s batteries are down to its dockBelow', () => {
+  it('is gone to for charge alone once a fighter\'s batteries are down to its refuelBelow', () => {
     // A Dinky with a battery where its hold was, setting out a tenth charged and full of fuel.
     const modules = DINKY.modules!.map((m) => ((m as { kind?: string }).kind === 'hold' ? { ...m, kind: 'battery' as const, fill: 0.1 } : m));
     const sparky = compileBlueprint({ ...DINKY, modules });

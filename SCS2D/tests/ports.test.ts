@@ -7,18 +7,18 @@ import { OrderCancelCondition } from '../sim/ships.js';
 
 /** Ships docking port to port with a friend to be filled from it (ROADMAP.md §8 step 9). */
 
-function picketOf(dockBelow = 0.5, tank = 4): ShipDesign {
+function picketOf(refuelBelow = 0.5, tank = 4): ShipDesign {
   const modules = PICKET.modules!.map((m, i) => (i === 1 ? { ...m, length: tank } : m));
   // A longer tank pushes the stern back with it.
   const shifted = modules.map((m, i) => (i === 1 ? { ...m, x: -2 - tank / 2 } : i === 3 ? { ...m, x: -2 - tank } : m));
   const blueprint: Blueprint = { ...PICKET, modules: shifted };
-  return compileBlueprint({ ...blueprint, doctrine: { ...PICKET.doctrine!, approach: { ...PICKET.doctrine!.approach, dockBelow } } });
+  return compileBlueprint({ ...blueprint, doctrine: { ...PICKET.doctrine!, approach: { ...PICKET.doctrine!.approach, refuelBelow } } });
 }
 
-function tankerOf(dockBelow = 0.25, engines = true): ShipDesign {
+function tankerOf(refuelBelow = 0.25, engines = true): ShipDesign {
   const doctrine = compileBlueprint(TANKER).doctrine;
   const modules = TANKER.modules!.filter((m) => engines || (m as { kind: string }).kind !== 'engine');
-  return compileBlueprint({ ...TANKER, modules, doctrine: { ...doctrine, approach: { ...doctrine.approach, dockBelow } } });
+  return compileBlueprint({ ...TANKER, modules, doctrine: { ...doctrine, approach: { ...doctrine.approach, refuelBelow } } });
 }
 
 interface Setup {
@@ -66,6 +66,68 @@ describe('a ship low on fuel with a port', () => {
     expect(docked(run)).toBe(false);
     const b = run.world.bodies.indexOf(run.ships.body(run.p));
     expect(run.ships.fuel.pieceRoom(b, run.ships.design(run.p).cores[0]!)).toBeCloseTo(0, 3);
+    expect(run.totalContacts).toBeLessThan(10);
+  });
+
+  it('with a claw too, docks only once it is down to its refuelBelow, not its scavengeFuelBelow', () => {
+    // A claw on the bow, between the forward thrusters, and both thresholds above the fifth it holds.
+    const clawed = (refuelBelow: number): ShipDesign => {
+      const base = picketOf(refuelBelow);
+      const blueprint: Blueprint = {
+        ...PICKET,
+        modules: [...PICKET.modules!, { kind: 'claw', x: 2.5, y: 0, angle: 0, length: 1, width: 1 }],
+        doctrine: { ...base.doctrine, approach: { ...base.doctrine.approach, refuelBelow, scavengeFuelBelow: 0.9 } },
+      };
+      return compileBlueprint(blueprint);
+    };
+    const low = scene({ picket: clawed(0.5) });
+    runUntil(low, () => docked(low), 90);
+    expect(docked(low)).toBe(true);
+    const scavenging = scene({ picket: clawed(0.1) });
+    runUntil(scavenging, () => docked(scavenging), 90);
+    expect(docked(scavenging)).toBe(false);
+  });
+
+  it('with deliverFuelAbove, takes what it holds over that to a friend with room, unasked, and parts once given', () => {
+    const base = picketOf();
+    const giver = compileBlueprint({ ...PICKET, doctrine: { ...base.doctrine, approach: { ...base.doctrine.approach, deliverFuelAbove: 0.5 } } });
+    const run = makeBattle({ seed: 3 }, (ships, world) => {
+      const t = ships.spawn(world, { design: tankerOf(), x: 0, y: 0, angle: 0.4 });
+      const tb = world.bodies.indexOf(ships.body(t));
+      const tanker = ships.design(t);
+      // Half empty, but above its own threshold, so it is not asking.
+      for (let m = 0; m < tanker.modules.length; m++) ships.fuel.vent(tb, m, ships.fuel.held(tb, m) * 0.5);
+      const p = ships.spawn(world, { design: giver, x: -200, y: 150, angle: 0 });
+      return { t, p };
+    });
+    const tankerFuel = (): number => run.ships.fuel.left(run.world.bodies.indexOf(run.ships.body(run.t)));
+    const before = tankerFuel();
+    runUntil(run, () => docked(run), 90);
+    expect(docked(run)).toBe(true);
+    runUntil(run, () => !docked(run), 120);
+    expect(docked(run)).toBe(false);
+    expect(tankerFuel()).toBeGreaterThan(before);
+    // It kept its own half.
+    const pb = run.world.bodies.indexOf(run.ships.body(run.p));
+    const core = run.ships.design(run.p).cores[0]!;
+    const held = run.ships.fuel.pieceHeld(pb, core);
+    expect(held / (held + run.ships.fuel.pieceRoom(pb, core))).toBeGreaterThan(0.45);
+  });
+
+  it('comes round the hull to a port on the far side, rather than through it', () => {
+    const tanker = tankerOf();
+    const port = tanker.modules.find((m) => m.spec.kind === 'port')!;
+    const facing = port.spec.angle ?? 0;
+    const run = makeBattle({ seed: 3 }, (ships, world) => {
+      const t = ships.spawn(world, { design: tanker, x: 0, y: 0, angle: 0 });
+      // Straight behind the hull from its port.
+      const p = ships.spawn(world, { design: picketOf(), x: port.x - 200 * Math.cos(facing), y: port.y - 200 * Math.sin(facing), angle: 0 });
+      const b = world.bodies.indexOf(ships.body(p));
+      for (let m = 0; m < ships.design(p).modules.length; m++) ships.fuel.vent(b, m, ships.fuel.held(b, m) * 0.8);
+      return { t, p };
+    });
+    runUntil(run, () => docked(run), 120);
+    expect(docked(run)).toBe(true);
     expect(run.totalContacts).toBeLessThan(10);
   });
 

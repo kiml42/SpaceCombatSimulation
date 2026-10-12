@@ -312,6 +312,16 @@ describe('a ship burning fuel', () => {
     expect(s.world.bodies.vx[s.body]).toBeCloseTo(vx, 9);
   });
 
+  it('is stranded once it runs dry, as if its engines were shot out', () => {
+    const s = flying();
+    expect(s.ships.hasNoEngines(s.ship)).toBe(false);
+    s.ships.fuel.drain(s.body, ENGINE, s.ships.fuel.left(s.body));
+    expect(s.ships.fuel.left(s.body)).toBe(0);
+    expect(s.ships.hasNoEngines(s.ship)).toBe(true);
+    // Nothing to shoot with either.
+    expect(s.ships.isDisabled(s.ship)).toBe(true);
+  });
+
   it('keeps what is in a tank with the piece that tank goes with', () => {
     const world = new World({ dt: 1 / 60, seed: 3 });
     const ships = new Ships();
