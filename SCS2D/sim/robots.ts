@@ -1,7 +1,7 @@
 import type { ShipDesign } from './blueprint.js';
 import { joints } from './connectivity.js';
 import { length } from './math.js';
-import { ROBOT_CHARGE, ROBOT_LOAD } from './modules.js';
+import { ROBOT_CHARGE, ROBOT_LOAD, ROBOT_MASS, ROBOT_REFILL_TIME } from './modules.js';
 
 /**
  * Robots that crawl a hull mending it (ROADMAP.md §8, repair stage 3).
@@ -46,6 +46,13 @@ export interface Robot {
   refill: number;
   /** The damage version of its body when it last found nothing to mend, or -1. */
   idleAt: number;
+  /**
+   * The module it stood on last step, and how much of that module was left:
+   * a module destroyed under it takes it with it, where one it reaches already
+   * destroyed does not.
+   */
+  stood: number;
+  stoodOn: number;
 }
 
 /** Where to go next across a design's welds: each module's neighbours, and the distances to them. */
@@ -132,27 +139,87 @@ export function legLength(design: ShipDesign, path: Int32Array, leg: number): nu
   return length(a.x - b.x, a.y - b.y);
 }
 
-/** Every body's robots, by body index. */
+/** Every body's robots, by body index, and what each body's bays are building. */
 export class Robots {
   private readonly of: (Robot[] | null)[] = [];
+  private readonly designs: (ShipDesign | null)[] = [];
+  /** Seconds each bay has put into the robot it is building, by module. */
+  private readonly builds: (Float64Array | null)[] = [];
+  /** The mass of the robots each body's bays are short of, kg, and its moment of inertia, kg·m². */
+  private readonly missing: number[] = [];
+  private readonly missingSpin: number[] = [];
 
-  /** A fresh hull's robots: every bay full, every robot berthed and ready. */
+  /** A hull's robots: those `carried` over to it, or for a fresh one every bay full, every robot berthed and ready. */
   register(bodyIndex: number, design: ShipDesign, carried?: Robot[]): void {
+    let robots: Robot[];
     if (carried !== undefined) {
-      this.of[bodyIndex] = carried.length > 0 ? carried : null;
-      return;
+      robots = carried;
+    } else {
+      robots = [];
+      for (let m = 0; m < design.modules.length; m++) {
+        const count = design.modules[m]!.stats.robots;
+        for (let r = 0; r < count; r++) robots.push(stocked(m));
+      }
     }
-    const robots: Robot[] = [];
+    let berths = 0;
+    let missing = 0;
+    let missingSpin = 0;
     for (let m = 0; m < design.modules.length; m++) {
       const count = design.modules[m]!.stats.robots;
-      for (let r = 0; r < count; r++) robots.push(berthed(m));
+      if (!(count > 0)) continue;
+      berths += count;
+      let home = 0;
+      for (const robot of robots) if (robot.bay === m) home++;
+      missing += (count - home) * ROBOT_MASS;
+      missingSpin += (count - home) * ROBOT_MASS * spinOf(design, m);
     }
-    this.of[bodyIndex] = robots.length > 0 ? robots : null;
+    // A hull with bays keeps a list, empty or not, so a bay that has lost every robot still builds.
+    this.of[bodyIndex] = berths > 0 || robots.length > 0 ? robots : null;
+    this.designs[bodyIndex] = design;
+    this.builds[bodyIndex] = berths > 0 ? new Float64Array(design.modules.length) : null;
+    this.missing[bodyIndex] = missing;
+    this.missingSpin[bodyIndex] = missingSpin;
   }
 
-  /** A body's robots, or null for none. */
+  /** A body's robots, or null for a body with no bays and none aboard. */
   on(bodyIndex: number): Robot[] | null {
     return this.of[bodyIndex] ?? null;
+  }
+
+  /** Seconds each of a body's bays has put into the robot it is building, by module, or null for none. */
+  buildsOn(bodyIndex: number): Float64Array | null {
+    return this.builds[bodyIndex] ?? null;
+  }
+
+  /** What the robots a body's bays are short of weigh, kg. */
+  missingMass(bodyIndex: number): number {
+    return this.missing[bodyIndex] ?? 0;
+  }
+
+  /** What they would add to the body's moment of inertia, kg·m². */
+  missingInertia(bodyIndex: number): number {
+    return this.missingSpin[bodyIndex] ?? 0;
+  }
+
+  /** Lose robot `r` of a body: its bay is a robot short. */
+  lose(bodyIndex: number, r: number): void {
+    const robots = this.of[bodyIndex];
+    const design = this.designs[bodyIndex];
+    if (!robots || !design) return;
+    const robot = robots[r]!;
+    robots.splice(r, 1);
+    this.missing[bodyIndex] = (this.missing[bodyIndex] ?? 0) + ROBOT_MASS;
+    this.missingSpin[bodyIndex] = (this.missingSpin[bodyIndex] ?? 0) + ROBOT_MASS * spinOf(design, robot.bay);
+  }
+
+  /** A new robot in bay `bay` of a body, empty until the bay has filled it. */
+  build(bodyIndex: number, bay: number): void {
+    const robots = this.of[bodyIndex];
+    const design = this.designs[bodyIndex];
+    if (!robots || !design) return;
+    robots.push(empty(bay));
+    this.missing[bodyIndex] = (this.missing[bodyIndex] ?? 0) - ROBOT_MASS;
+    this.missingSpin[bodyIndex] = (this.missingSpin[bodyIndex] ?? 0) - ROBOT_MASS * spinOf(design, bay);
   }
 
   /**
@@ -178,22 +245,53 @@ export class Robots {
       robot.at = at;
       robot.target = -1;
       robot.idleAt = -1;
+      robot.stoodOn = -1;
       robot.path = null;
       robot.leg = 0;
       robot.along = 0;
       if (robot.mode !== RobotMode.Berthed) robot.mode = at === bay ? RobotMode.Berthed : RobotMode.Home;
       out.push(robot);
     }
-    this.of[bodyIndex] = left.length > 0 ? left : null;
+    this.of[bodyIndex] = left;
     return out;
   }
 
   forget(bodyIndex: number): void {
     this.of[bodyIndex] = null;
+    this.designs[bodyIndex] = null;
+    this.builds[bodyIndex] = null;
+    this.missing[bodyIndex] = 0;
+    this.missingSpin[bodyIndex] = 0;
   }
 }
 
+/** Moment about the centre of mass per kilogram at module `m`, m². */
+function spinOf(design: ShipDesign, m: number): number {
+  const module = design.modules[m]!;
+  const { length, width } = module.spec;
+  return (length * length + width * width) / 12 + module.x * module.x + module.y * module.y;
+}
+
 /** A robot in its bay, set out stocked as a ship sets out with its stores full. */
-function berthed(bay: number): Robot {
-  return { bay, at: bay, mode: RobotMode.Berthed, target: -1, path: null, leg: 0, along: 0, metal: ROBOT_LOAD, charge: ROBOT_CHARGE, refill: 0, idleAt: -1 };
+function stocked(bay: number): Robot {
+  return {
+    bay,
+    at: bay,
+    mode: RobotMode.Berthed,
+    target: -1,
+    path: null,
+    leg: 0,
+    along: 0,
+    metal: ROBOT_LOAD,
+    charge: ROBOT_CHARGE,
+    refill: 0,
+    idleAt: -1,
+    stood: 1,
+    stoodOn: -1,
+  };
+}
+
+/** A robot just built: empty, and to be refilled before it goes anywhere. */
+function empty(bay: number): Robot {
+  return { ...stocked(bay), metal: 0, charge: 0, refill: ROBOT_REFILL_TIME };
 }

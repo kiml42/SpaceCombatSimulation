@@ -7,6 +7,7 @@ import {
   moduleStats,
   REPAIR_WASTE,
   ROBOT_BERTH_VOLUME,
+  ROBOT_BUILD_TIME,
   ROBOT_MASS,
   ROBOT_REPAIR_RATE,
   ROBOT_SPEED,
@@ -179,5 +180,53 @@ describe('robots', () => {
     ships.robotViews(0, places);
     expect(total()).toBe(0);
     expect(places.length).toBe(0);
+  });
+
+  describe('lost and built anew', () => {
+    const HOLD = of('hold');
+    const count = (run: Run): number => run.ships.robots.on(body(run))?.length ?? 0;
+    const working = (run: Run, m: number): number =>
+      (run.ships.robots.on(body(run)) ?? []).filter((r) => r.mode === 2 && r.target === m).length;
+
+    it('are lost with a module destroyed under them, and their bay builds them again', () => {
+      const run = scene((absorb) => absorb(HOLD, 0.3));
+      const berths = line.modules[BAY]!.stats.robots;
+      let steps = 0;
+      while (working(run, HOLD) === 0 && steps++ < 60 * 60) run.step();
+      const caught = working(run, HOLD);
+      expect(caught).toBeGreaterThan(0);
+      const mass = run.world.bodies.mass[body(run)]!;
+      const discarded = run.ships.discarded;
+      // Torn apart while they are on it.
+      run.ships.damage.absorb(body(run), HOLD, capacity(HOLD) * 2);
+      run.step();
+      expect(count(run)).toBe(berths - caught);
+      expect(mass - run.world.bodies.mass[body(run)]!).toBeGreaterThanOrEqual(caught * ROBOT_MASS - 1e-6);
+      expect(run.ships.discarded - discarded).toBeGreaterThanOrEqual(caught * ROBOT_MASS - 1e-6);
+      // Built again, one at a time, no sooner than a bay can.
+      steps = 0;
+      while (count(run) < berths && steps++ < 600 * 60) run.step();
+      expect(count(run)).toBe(berths);
+      expect(steps / 60).toBeGreaterThanOrEqual(caught * ROBOT_BUILD_TIME - 1);
+    });
+
+    it('are not lost going to mend a module already destroyed', () => {
+      const run = scene((absorb) => absorb(HOLD, 1.5));
+      const berths = line.modules[BAY]!.stats.robots;
+      let steps = 0;
+      while (absorbed(run, HOLD) > 0 && steps++ < 600 * 60) run.step();
+      expect(absorbed(run, HOLD)).toBe(0);
+      expect(count(run)).toBe(berths);
+    });
+
+    it('in a bay that is destroyed are lost, and none are built', () => {
+      const run = scene(() => {});
+      run.step();
+      run.ships.damage.absorb(body(run), BAY, capacity(BAY) * 2);
+      run.step();
+      expect(count(run)).toBe(0);
+      for (let s = 0; s < (ROBOT_BUILD_TIME + 5) * 60; s++) run.step();
+      expect(count(run)).toBe(0);
+    });
   });
 });

@@ -689,6 +689,9 @@ export const ROBOT_CHARGE = 5e7;
 /** How long a bay takes to refill a robot, s. */
 export const ROBOT_REFILL_TIME = 5;
 
+/** How long a bay takes to build a robot to replace one lost, s. */
+export const ROBOT_BUILD_TIME = 20;
+
 /**
  * A docking port's collar, clamps and coupling per square metre of its floor,
  * kg/m²: machinery like a claw's, without the jaws.
