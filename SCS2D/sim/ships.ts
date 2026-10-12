@@ -710,6 +710,8 @@ export class Ships {
    * drawn, hit and severed by the code that already does those.
    */
   private readonly derelict: number[] = [];
+  /** Whether each ship set out with a gun or an engine to lose; a piece takes its ship's. */
+  private readonly couldFight: number[] = [];
   /** 1 for a fighter its doctrine has taken down into the hull layer as well. */
   private readonly committed: number[] = [];
   /** Whether each ship has turned its main engines along its want rather than its guns to its target. */
@@ -1156,6 +1158,14 @@ export class Ships {
     return this.isDisarmed(i) && this.hasNoEngines(i);
   }
 
+  /**
+   * Whether a ship still flown has lost all it had to fight with: disabled,
+   * having set out able to shoot or move. One built with neither is not.
+   */
+  isMissionKilled(i: number): boolean {
+    return this.couldFight[i] === 1 && this.hasControl(i) && this.isDisabled(i);
+  }
+
   /** Whether this is a piece of a ship rather than a ship: no pilot, no guns. */
   isDerelict(i: number): boolean {
     return this.derelict[i] === 1;
@@ -1250,6 +1260,7 @@ export class Ships {
     }
     this.serial.push(serial);
     this.derelict.push(0);
+    this.couldFight.push(design.turrets.some((t) => t.main) || design.engines.length > 0 ? 1 : 0);
     this.committed.push(0);
     this.burning.push(0);
     this.running.push(0);
@@ -4615,6 +4626,7 @@ export class Ships {
       serial: this.serial[side]!,
     });
     this.partedAt[j] = world.tick;
+    this.couldFight[j] = this.couldFight[side]!;
     if (flies) {
       this.orders[j] = this.orders[side]!.map((order) => ({ ...order }));
     } else {

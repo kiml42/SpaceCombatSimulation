@@ -131,6 +131,23 @@ describe('a ship with its core shot out', () => {
     expect(s.ships.isDisabled(s.ship)).toBe(true);
   });
 
+  it('is mission-killed, still flown, once its guns and engines have nothing to use', () => {
+    const s = scene(design);
+    expect(s.ships.isMissionKilled(s.ship)).toBe(false);
+    for (let m = 0; m < design.modules.length; m++) {
+      s.ships.fuel.drain(s.body, m, s.ships.fuel.held(s.body, m));
+      s.ships.metal.drain(s.body, m, s.ships.metal.held(s.body, m));
+    }
+    expect(s.ships.hasControl(s.ship)).toBe(true);
+    expect(s.ships.isMissionKilled(s.ship)).toBe(true);
+  });
+
+  it('is not mission-killed when it was built with neither gun nor engine', () => {
+    const s = scene(compileBlueprint({ name: 'Bare', modules: [core(0, 0, 4, 4), structure(4, 0, 4, 4)] }));
+    expect(s.ships.isDisabled(s.ship)).toBe(true);
+    expect(s.ships.isMissionKilled(s.ship)).toBe(false);
+  });
+
   it('drifts: a ship with nothing flying it does not hold its heading', () => {
     const s = scene(design);
     s.ships.damage.absorb(s.body, 0, 1e12);

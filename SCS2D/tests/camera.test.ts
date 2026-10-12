@@ -32,6 +32,7 @@ function ship(
   vy = 0,
   hasControl = true,
   isDerelict = false,
+  isMissionKilled = false,
 ): ShipView {
   return {
     // The camera reads position, velocity and radius; the rest is for drawing.
@@ -51,6 +52,7 @@ function ship(
     body: -1,
     hasControl,
     isDerelict,
+    isMissionKilled,
     turretDisabled: [],
   };
 }
@@ -60,9 +62,10 @@ function snapshotOf(ships: ShipView[]): Snapshot {
   const snapshot = new Snapshot();
   snapshot.ships = ships;
   snapshot.shipCount = ships.length;
-  // As `capture` does: the ships still under control are what is framed,
+  // As `capture` does: the ships still in the fight are what is framed,
   // and all of them when none is.
-  const framed = ships.some((s) => s.hasControl) ? ships.filter((s) => s.hasControl) : ships;
+  const fighting = (s: ShipView): boolean => s.hasControl && !s.isMissionKilled;
+  const framed = ships.some(fighting) ? ships.filter(fighting) : ships;
   snapshot.minX = Math.min(...framed.map((s) => s.x - 20));
   snapshot.maxX = Math.max(...framed.map((s) => s.x + 20));
   snapshot.minY = Math.min(...framed.map((s) => s.y - 20));
@@ -210,6 +213,14 @@ describe('what the camera keeps up with', () => {
     const hulk = ship(0, 0, -900, 0, false);
     const camera: Camera = { x: 0, y: 0, scale: 0.1 };
     moveWithVisibleShips(camera, snapshotOf([flown, hulk]), 1, WIDTH, HEIGHT);
+    expect(camera.x).toBeCloseTo(100, 9);
+  });
+
+  it('keeps up with the ships still fighting, not one flown that has lost its guns and engines', () => {
+    const flown = ship(0, 0, 100, 0);
+    const killed = ship(0, 0, -900, 0, true, false, true);
+    const camera: Camera = { x: 0, y: 0, scale: 0.1 };
+    moveWithVisibleShips(camera, snapshotOf([flown, killed]), 1, WIDTH, HEIGHT);
     expect(camera.x).toBeCloseTo(100, 9);
   });
 

@@ -52,10 +52,11 @@ inside any one file is not contiguous.
   so that a ship wider than the view is held still wherever on it the camera has been zoomed. Each ship also carries an arrowhead in its team's colour, which
   fades in as its hull becomes too small on screen to read, so that zooming out to see a
   battle does not lose the small ships in it or which way they are facing. **What the picture asks
-  about a ship is whether it is still under control, not whether it can fight**: a hull with a sound core and
-  neither gun nor engine is still a ship, so it is framed and drawn in its own colours, where asking
+  about a ship is whether it is still in the fight, not whether it was built to fight**: a hull with a sound
+  core and neither gun nor engine is still a ship, so it is framed and drawn in its own colours, where asking
   whether it could fight drew a whole generation of engineless craft as wreckage and left them out of shot.
-  Grey is for a core that is out, and a severed piece gets no arrowhead at all. A blueprint editor on a second page of its own draws a layout
+  Grey, and framed only with the hulks, is for a core that is out, or for a ship that set out with a gun or
+  an engine and has lost them all, or the stores to use them. A severed piece gets no arrowhead at all. A blueprint editor on a second page of its own draws a layout
   through that same renderer and reports what it bought: mass, inertia, the
   acceleration available in each direction — as figures, and as a pair of
   envelope curves separating what a layout can project from what it can use

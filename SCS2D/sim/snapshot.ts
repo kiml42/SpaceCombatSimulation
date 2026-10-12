@@ -123,14 +123,11 @@ export interface ShipView {
   /**
    * Whether the ship still has a core with control in it (§4).
    *
-   * **This, and not whether the ship can fight, is what the view asks.** A
-   * hull with a sound core and nothing else is a ship — it can be pushed, it
-   * can be run into, it is somebody's, and in a race it is a competitor — so
-   * a camera that framed only what could shoot or move would leave a whole
-   * generation of engineless craft out of shot and draw them as wreckage. A
-   * ship that *can* neither move nor shoot is still a mission kill and still
-   * worth scoring as one; that is `Ships.isDisabled`, a question about the
-   * fight rather than about the picture.
+   * A hull with a sound core and nothing else is a ship — it can be pushed,
+   * it can be run into, it is somebody's, and in a race it is a competitor —
+   * so the view does not grey it for being unable to fight, or engineless
+   * craft would draw as wreckage. It greys one that has *lost* the means to
+   * fight, which is `isMissionKilled`.
    */
   hasControl: boolean;
   /**
@@ -139,6 +136,12 @@ export interface ShipView {
    * standing for ships that are still flown, not for the wreckage they shed.
    */
   isDerelict: boolean;
+  /**
+   * Whether it is still flown but has lost every gun and engine it had, or the
+   * stores to use them (`Ships.isMissionKilled`). Drawn grey and framed last,
+   * with the hulks; a ship built with neither stays in its colours.
+   */
+  isMissionKilled: boolean;
   /**
    * Which of its mounts are out, in the design's turret order. Read from the
    * gunnery rather than worked out from `integrity`, so that a gun drawn as
@@ -320,6 +323,7 @@ function shipView(snapshot: Snapshot, i: number): ShipView {
     integrity: [],
     hasControl: true,
     isDerelict: false,
+    isMissionKilled: false,
     turretDisabled: [],
     drawn: [],
     sides: [],
@@ -376,6 +380,7 @@ export function capture(
     view.vy = bodies.vy[b]!;
     view.hasControl = ships.hasControl(i);
     view.isDerelict = ships.isDerelict(i);
+    view.isMissionKilled = ships.isMissionKilled(i);
 
     view.turretBearings.length = design.turrets.length;
     view.turretReady.length = design.turrets.length;
@@ -469,9 +474,9 @@ export function capture(
     sides.length = design.modules.length;
     for (let m = 0; m < design.modules.length; m++) sides[m] = ships.moduleSide(i, m);
 
-    // Only the ships still under control are framed: a camera that kept
+    // Only the ships still in the fight are framed: a camera that kept
     // wreckage in shot would pull away from the battle to hold on it.
-    if (view.hasControl) {
+    if (view.hasControl && !view.isMissionKilled) {
       const r = design.radius;
       if (view.x - r < minX) minX = view.x - r;
       if (view.y - r < minY) minY = view.y - r;
