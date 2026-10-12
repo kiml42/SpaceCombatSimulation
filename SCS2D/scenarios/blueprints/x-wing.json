@@ -19,7 +19,9 @@
       "standoff": 0.2,
       "approachSpeed": 250,
       "brake": 1,
-      "ramRadii": 600
+      "ramRadii": 600,
+      "tangentialMin": 20,
+      "tangentialMax": 60
     }
   },
   "assemblies": {
