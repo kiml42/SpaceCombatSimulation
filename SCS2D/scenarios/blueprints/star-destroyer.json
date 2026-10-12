@@ -5,7 +5,6 @@
   "doctrine": {
     "targeting": {
       "proximityWeight": 200,
-      "preferredMass": 0.2,
       "massWeight": 150,
       "closingWeight": 30,
       "armedWeight": 20,
@@ -75,11 +74,14 @@
           "width": 60
         },
         {
-          "kind": "structure",
-          "x": -335.5,
+          "use": "pad",
+          "x": -582,
           "y": 360,
-          "length": 553,
-          "width": 60
+          "repeat": 9,
+          "step": {
+            "x": 61,
+            "y": 0
+          }
         },
         {
           "use": "beamTurret",
@@ -128,10 +130,10 @@
           "y": 160
         },
         {
-          "kind": "structure",
-          "x": -124,
+          "kind": "hold",
+          "x": -437,
           "y": 60,
-          "length": 846,
+          "length": 220,
           "width": 60,
           "thick": true
         },
@@ -170,7 +172,7 @@
           "thick": true
         },
         {
-          "kind": "structure",
+          "kind": "battery",
           "x": -577.5,
           "y": 80,
           "length": 61,
@@ -380,6 +382,21 @@
           "use": "engine",
           "x": -93.12144862800001,
           "y": 403.294070894
+        },
+        {
+          "kind": "structure",
+          "x": -61,
+          "y": 360,
+          "length": 4,
+          "width": 60
+        },
+        {
+          "kind": "structure",
+          "x": -14,
+          "y": 60,
+          "length": 626,
+          "width": 60,
+          "thick": true
         }
       ]
     },
@@ -427,12 +444,14 @@
           "targeting": {
             "focusWeight": 0,
             "proximityWeight": 250,
-            "massWeight": 20,
+            "massWeight": 150,
             "structureWeight": 0,
             "facingWeight": 60,
             "sightWeight": 30,
             "fireRange": 4,
-            "preferredMass": 0.1
+            "preferredMass": 0.01,
+            "closingWeight": 100,
+            "loyaltyWeight": 100
           },
           "notes": "Close-in defence, and it fights its own battle: no interest at all in what the ship as a whole has picked, no view on how big a target is, and every view on how near. Guns and engines before hull, because a fighter it disarms is a fighter that has stopped mattering, and a fighter it strands is one the batteries can take at their leisure."
         }
@@ -541,6 +560,24 @@
           "nozzle": 0.090909
         }
       ]
+    },
+    "pad": {
+      "modules": [
+        {
+          "kind": "pad",
+          "x": 0,
+          "y": 0,
+          "length": 60,
+          "width": 60
+        },
+        {
+          "kind": "structure",
+          "x": 30.5,
+          "y": 0,
+          "length": 1,
+          "width": 60
+        }
+      ]
     }
   },
   "modules": [
@@ -573,7 +610,7 @@
       "y": 0
     },
     {
-      "kind": "structure",
+      "kind": "generator",
       "x": -440,
       "y": 0,
       "length": 180,
