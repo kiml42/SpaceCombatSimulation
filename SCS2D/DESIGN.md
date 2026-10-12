@@ -626,8 +626,12 @@ inside any one file is not contiguous.
   claw grips only for fuel it has room for. The `salvage` scenario drifts two leeches into wrecks.
   **A pilot takes its claw to wrecks** once its claw's piece of hull is down to its doctrine's
   `scavengeFuelBelow` of a full load (zero, never, by default), and goes from source to source until it is full.
-  It picks the wreck, or the enemy with no main guns left, that pays the most fuel for the time it takes to
-  reach and drain, divided by one more `scavengeDanger` for every armed enemy within reach of it. It points
+  It picks the wreck, or the enemy with no main guns left, that pays the most fuel, less what the trip burns,
+  for the time it takes to reach and drain, divided by one more `scavengeDanger` for every armed enemy within
+  reach of it. The trip is reckoned at what it can close at, `approachSpeed` less however fast the source is
+  going away, and burns what matching the source's motion and then speeding up and stopping again costs at its
+  engines' exhaust speed; a source going away faster than it can follow, or holding no more than that, is
+  not gone for. It points
   its claw at the source and comes in down a stopping curve that ends not at rest but at the middle of the
   claw's band, planned on the thrust it actually has astern; touching without taking hold, it backs off for
   `CLAW_RETRY` and comes again. Holding, it idles. An order outranks it, and a fighter closing on a source

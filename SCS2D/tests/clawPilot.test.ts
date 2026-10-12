@@ -117,6 +117,16 @@ describe('a pilot with a claw', () => {
     expect(salvaging(run.ships, run.a)).toBe(run.wrecks[1]);
   });
 
+  it('passes over a wreck going away faster than it can follow for a farther one', () => {
+    // The nearer wreck recedes at 40 m/s, past the stock Scavenger's 30.
+    const fleeing = (ships: Ships, world: World): void => {
+      world.bodies.vx[world.bodies.indexOf(ships.body(1))] = 40;
+    };
+    const run = scene(scavenger(0.5), 15_000, [[0, 0], [0, -4000]], fleeing);
+    for (let s = 0; s < 120; s++) run.step();
+    expect(salvaging(run.ships, run.a)).toBe(run.wrecks[1]);
+  });
+
   it('passes over a wreck an armed enemy is near for one nobody guards', () => {
     const guard = (ships: Ships, world: World): void => {
       ships.spawn(world, { design: gunship, x: 0, y: 300, angle: 0, team: 1 });
