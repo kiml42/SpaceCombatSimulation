@@ -128,7 +128,11 @@ inside any one file is not contiguous.
   through, and bores deeper as it destroys. A module that has taken all it can
   stops working and goes on stopping shells, so a battered ship is sluggish and
   quiet rather than lighter, and a ship that can neither move nor shoot drifts
-  as a hulk. Hits and gun muzzles flash on the canvas, and wrecked modules are drawn as wreckage.
+  as a hulk. **Damage sheds mass**: a module has lost a tenth of its structure and fittings by the time
+  it breaks (`SHED_AT_BREAK`), and goes on shedding at that rate under further damage until it has lost
+  half (`SHED_FLOOR`). The hull is lighter to push and to turn by what it shed, its centre of mass staying
+  where it was, and what was shed is counted as discarded, momentum and angular momentum with it. The
+  metal each module has shed is what repairing it will put back (`Damage.shedAt`). Hits and gun muzzles flash on the canvas, and wrecked modules are drawn as wreckage.
   **An engine is a weapon at close quarters**: a plume reaches back a fixed number of its own nozzle's
   widths, further for machinery that feeds it harder and for a longer bell that collimates it, so a big
   engine throws a long flame and a cluster of nozzles throws short ones. How fiercely it burns — its power
@@ -752,8 +756,8 @@ inside any one file is not contiguous.
   `rechargeBelow` goes to a pad for charge alone. A battery's room is what damage leaves it, so a pad never
   holds a fighter to fill cells that are broken. Evolution draws batteries and generators at a weight of
   one each, and a mutation does not turn either, since neither has a facing that matters.
-- **Next:** repair, construction and salvage, one mechanism built in six stages (ROADMAP.md §8), the first
-  being the mass damage sheds from a module. Alongside it, the rest of §8 step 8 — leaks, and pilots that
+- **Next:** repair, construction and salvage, one mechanism built in six stages (ROADMAP.md §8): with damage
+  shedding mass built, pads repairing landed fighters is next. Alongside it, the rest of §8 step 8 — leaks, and pilots that
   know their fuel — and of step 5: a materials budget, and designed scenarios.
   See ROADMAP.md §8.
   §8 step 3 is done bar withdrawal, and step 7, two layers, is built. What a chooser is already facing (`facingWeight`) and whether anything is in the way
@@ -1132,8 +1136,7 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   is completely broken well before it has lost a significant share of itself; damage past that point goes
   on taking mass, down to a floor of half. Mass leaves a ship otherwise only by being **severed** (the
   connectivity graph above). What is lost has to be put back as metal to repair the module, which is what
-  gives repair a cost (ROADMAP.md §8). *Not built yet: until the shedding lands, a module keeps all its
-  mass.*
+  gives repair a cost (ROADMAP.md §8).
 
   Half, because nothing draws a damaged module any smaller: a part that kept its outline while losing most
   of its matter would be a lie on screen, and a ship hit harder than another would have to look the same.
@@ -1145,9 +1148,11 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
     hulk that still soaks rounds, so the mission-kill/kill distinction in §3 gets teeth: stripping a ship's
     function does not make it easier to finish off. Half a module still stops a shell.
   - **Damage never changes topology.** The connectivity graph is only edited by severing, so it cannot be
-    invalidated by a hit. Mass properties are no longer that lucky: what damage sheds moves a hull's mass
-    and centre of mass a little, so they change with damage as well as with severing, and recomputing them
-    has to stay cheap enough to do on a hit.
+    invalidated by a hit. Mass properties are no longer that lucky: what damage sheds changes a hull's mass
+    and inertia, as spending fuel does. They are kept cheap the same way: what is shed is subtracted from
+    the design's, settled at most once a step for each hull hit, and the centre of mass stays where the
+    design put it. A hull that comes apart therefore holds its mass somewhere other than its design says,
+    so the piece that stays with the ship takes up whatever momentum the others' shares leave over.
   - **The engine allocation matrix does still need recomputing** when an engine is destroyed, since the
     geometry of what can push is what changed.
   - **A battered ship gets sluggish rather than lighter**, because it is carrying most of its own wreckage.

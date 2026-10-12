@@ -101,8 +101,8 @@ lead, which waits for standing orders. Velocity stays out of the fleet file; the
 
 **Step 10 — Raw material.** Metal, holds and guns loading from them are built (DESIGN.md Status). What is left:
 
-- **Repair** — a ship spending metal on its own damaged modules, the second use the step names. Stages 1 to 4
-  of the plan under *Not started* below.
+- **Repair** — a ship spending metal on its own damaged modules, the second use the step names. Stages 2 to 4
+  of the plan under *Not started* below; stage 1, damage shedding mass, is built (DESIGN.md Status).
 - **Magazines: guns turning metal into rounds ahead of firing** (§12). Wanted, not yet settled in shape.
 - **Pilots that know their ammunition.** Only a fighter breaks off to rearm, and only on a pad. Nothing else
   fights differently for running low: a ship fires as freely with its last round as its first, and a gun
@@ -151,10 +151,8 @@ the base of steps 12 and 13. The shape, settled with the author (DECISIONS.md):
   an upgrade a place to go if technology is ever modelled.
 - Robots stay on their own ship. Crossing a port seam to work on a docked friend can come later.
 
-A PR a stage:
+A PR a stage. Stage 1, mass shed by damage with what repairing it would cost kept on the books, is built.
 
-1. **Mass shed by damage**, with what repairing it would cost kept on the books. A re-balance: lighter
-   wrecks move most golden checksums.
 2. **Pads repair landed fighters** — the simplest repairer, and what proves the costs.
 3. **The robot bay, and robots repairing.**
 4. **Robots lost, and built anew.**
@@ -610,13 +608,9 @@ Deliberately unresolved; decide when they block something.
 - **How hard a leak pushes.** The jet leaves at what the tank's pressure gives it, a few tens of metres a
   second, so a shell's gash pushes with about 20 kN, a twentieth of a corvette's manoeuvring engine. Fuel that boils
   as it leaves would go faster and push harder; nothing models what the fuel does once it is out.
-- **How mass sheds with damage.** Settled: a little by the time a module stops working, never below half
-  (DESIGN.md §4). Open: how much is gone at the point it stops working, how much further damage takes it to
-  the floor, and whether a beam's boiling and a shell's shredding differ. The floor can drop once a module
-  can be drawn with holes in it.
-- **Keeping mass properties cheap.** Damage now moves a hull's mass and centre of mass on every hit, where
-  only severing used to. Recompute on each hit, once a step for each hull hit, or only once the change is
-  worth it?
+- **Whether a beam's boiling and a shell's shredding should shed differently.** Both shed by energy
+  absorbed, a tenth of a module by the time it breaks and half at five times that (DESIGN.md §4), which
+  are first guesses to tune. The floor can drop once a module can be drawn with holes in it.
 - **The numbers for repair.** How much each step wastes, and whether disassembly and building waste alike;
   time and power for a joule of damage undone; a robot's speed over a hull, the
   metal and charge it carries and how fast it works; a bay's room for robots, how fast it refills them, and
