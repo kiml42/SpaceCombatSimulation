@@ -185,9 +185,9 @@
   "modules": [
     {
       "kind": "core",
-      "x": 10,
+      "x": 7,
       "y": 0,
-      "length": 24,
+      "length": 18,
       "width": 48,
       "reinforcement": 6,
       "thick": true
@@ -237,6 +237,15 @@
       "reinforcement": 4,
       "barrels": 12,
       "nozzle": 0.222222
+    },
+    {
+      "kind": "structure",
+      "x": 19,
+      "y": 0,
+      "length": 6,
+      "width": 48,
+      "reinforcement": 10,
+      "thick": true
     }
   ]
 }
