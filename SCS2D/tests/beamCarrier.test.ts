@@ -18,19 +18,16 @@ describe('the Beam Carrier', () => {
     for (const f of FIGHTERS) expect(ships.body(f)).toBe(ships.body(CARRIER));
   });
 
-  it('casts its tender off, having no fuel to spare it, and the tender drinks from a wreck', { timeout: 60_000 }, () => {
+  it('casts its tender off at once, the tender being above its refuelBelow, without taking the carrier\'s fuel', () => {
+    const tank = (): number => ships.fuel.pieceHeld(body(TENDER), ships.design(TENDER).modules.findIndex((m) => m.spec.kind === 'claw'));
     for (let s = 0; s < 5 * 60; s++) run.step();
     expect(ships.body(TENDER)).not.toBe(ships.body(CARRIER));
-    // Gripping a wreck rides it, so the tender's body is no longer its own.
-    let gripped = false;
-    for (let s = 0; s < 120 * 60 && !gripped; s++) {
-      run.step();
-      gripped = ships.isAlive(TENDER) && [10, 11].some((w) => ships.body(w) === ships.body(TENDER));
-    }
-    expect(gripped).toBe(true);
+    const after = tank();
+    for (let s = 0; s < 60; s++) run.step();
+    expect(tank()).toBeLessThanOrEqual(after);
   });
 
-  it('brings its fighters back to recharge, and sends them out full', { timeout: 60_000 }, () => {
+  it('brings its fighters back to recharge, and sends them out with every store full', { timeout: 60_000 }, () => {
     const out = new Set(FIGHTERS.filter((f) => ships.body(f) !== ships.body(CARRIER)));
     expect(out.size).toBe(FIGHTERS.length);
     let landed = -1;
@@ -46,5 +43,31 @@ describe('the Beam Carrier', () => {
     const m = battery(landed);
     expect(ships.power.pieceRoom(body(landed), m)).toBeLessThan(0.05 * ships.design(landed).modules[m]!.stats.charge);
     expect(ships.power.held(body(landed), m)).toBeGreaterThan(0);
+    // Its fuel topped up too, the carrier keeping back only a tenth.
+    expect(ships.fuel.pieceRoom(body(landed), ships.design(landed).cores[0]!)).toBeCloseTo(0, 0);
+  });
+
+  it('has its tender drink from the wrecks instead', { timeout: 60_000 }, () => {
+    // Gripping a wreck rides it, so the tender's body is no longer its own.
+    let gripped = false;
+    for (let s = 0; s < 150 * 60 && !gripped; s++) {
+      run.step();
+      gripped = ships.isAlive(TENDER) && [10, 11].some((w) => ships.body(w) === ships.body(TENDER));
+    }
+    expect(gripped).toBe(true);
+  });
+
+  it('has its tender bring what it scavenges back to the carrier, unasked, once it is full', { timeout: 60_000 }, () => {
+    const carrierFuel = (): number => ships.fuel.pieceHeld(body(CARRIER), 1);
+    const before = carrierFuel();
+    let docked = false;
+    for (let s = 0; s < 300 * 60 && !docked; s++) {
+      run.step();
+      docked = ships.body(TENDER) === ships.body(CARRIER);
+    }
+    expect(docked).toBe(true);
+    for (let s = 0; s < 120 * 60 && ships.body(TENDER) === ships.body(CARRIER); s++) run.step();
+    expect(ships.body(TENDER)).not.toBe(ships.body(CARRIER));
+    expect(carrierFuel()).toBeGreaterThan(before);
   });
 });
