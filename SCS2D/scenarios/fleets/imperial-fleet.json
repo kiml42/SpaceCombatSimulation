@@ -210,9 +210,9 @@
             {
               "kind": "structure",
               "x": 489,
-              "y": 61,
+              "y": 52.5,
               "length": 8,
-              "width": 58
+              "width": 75
             },
             {
               "use": "engine",
@@ -401,6 +401,23 @@
               "length": 626,
               "width": 60,
               "thick": true
+            },
+            {
+              "use": "structure5",
+              "x": 307.5,
+              "y": 86
+            },
+            {
+              "use": "structure5",
+              "x": 153.5,
+              "y": 146
+            },
+            {
+              "kind": "structure",
+              "x": -593.5,
+              "y": 274,
+              "length": 17,
+              "width": 8
             }
           ]
         },
@@ -433,11 +450,11 @@
           "modules": [
             {
               "kind": "turret",
-              "x": 0,
-              "y": 3.5,
+              "x": 8.5,
+              "y": 3.4999999999999996,
               "angle": 90,
               "length": 8,
-              "width": 32,
+              "width": 15,
               "barrels": 4,
               "barrelCalibres": 37,
               "traverse": 140,
@@ -448,14 +465,13 @@
               "targeting": {
                 "focusWeight": 0,
                 "proximityWeight": 250,
-                "massWeight": 150,
+                "massWeight": 250,
                 "structureWeight": 0,
                 "facingWeight": 60,
                 "sightWeight": 30,
                 "fireRange": 4,
                 "preferredMass": 0.01,
-                "closingWeight": 100,
-                "loyaltyWeight": 100
+                "closingWeight": 2000
               },
               "notes": "Close-in defence, and it fights its own battle: no interest at all in what the ship as a whole has picked, no view on how big a target is, and every view on how near. Guns and engines before hull, because a fighter it disarms is a fighter that has stopped mattering, and a fighter it strands is one the batteries can take at their leisure."
             }
@@ -499,22 +515,6 @@
           "modules": [
             {
               "kind": "structure",
-              "x": -9.666666666,
-              "y": 0,
-              "angle": 0,
-              "length": 125,
-              "width": 60,
-              "vertices": [
-                83.333333333,
-                20,
-                -41.666666667,
-                20,
-                -41.666666667,
-                -40
-              ]
-            },
-            {
-              "kind": "structure",
               "x": 32.000888889,
               "y": -20,
               "angle": -180,
@@ -528,6 +528,38 @@
                 -41.667111111,
                 -40
               ]
+            },
+            {
+              "kind": "structure",
+              "x": -9.666666666,
+              "y": -17.333333333,
+              "length": 125,
+              "width": 60,
+              "vertices": [
+                83.333333333,
+                37.333333333,
+                -41.666666667,
+                -14.666666667,
+                -41.666666667,
+                -22.666666667
+              ]
+            },
+            {
+              "kind": "structure",
+              "x": -9.666222222,
+              "y": 2.666666667,
+              "angle": 0,
+              "length": 125.001333333,
+              "width": 52,
+              "vertices": [
+                83.334222222,
+                17.333333333,
+                -41.667111111,
+                17.333333333,
+                -41.667111111,
+                -34.666666667
+              ],
+              "thick": true
             }
           ]
         },
@@ -580,6 +612,18 @@
               "y": 0,
               "length": 1,
               "width": 60
+            }
+          ]
+        },
+        "structure5": {
+          "modules": [
+            {
+              "kind": "structure",
+              "x": 0,
+              "y": 0,
+              "length": 17,
+              "width": 8,
+              "thick": true
             }
           ]
         }
