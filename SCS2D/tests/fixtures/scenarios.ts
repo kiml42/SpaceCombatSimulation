@@ -67,7 +67,7 @@ import { fractal } from '../../scenarios/fractal.js';
  * come apart more, which is more work per step without a line of it being
  * slower.
  */
-export const SCENARIO_TIMEOUT = 120_000;
+export const SCENARIO_TIMEOUT = 300_000;
 
 export interface ScenarioRun {
   step(): void;

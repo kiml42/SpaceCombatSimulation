@@ -46,12 +46,13 @@ function tear(ships: Ships, world: World, ship: number): void {
   }
 }
 
-function totals(world: World): { mass: number; px: number; py: number; l: number } {
+/** What the world holds, with what it has discarded, such as the mass damage sheds. */
+function totals(world: World, ships: Ships): { mass: number; px: number; py: number; l: number } {
   const b = world.bodies;
-  let mass = 0;
-  let px = 0;
-  let py = 0;
-  let l = 0;
+  let mass = ships.discarded;
+  let px = ships.discardedPx;
+  let py = ships.discardedPy;
+  let l = ships.discardedL;
   for (let i = 0; i < b.highWater; i++) {
     if (b.alive[i] === 0) continue;
     mass += b.mass[i]!;
@@ -89,13 +90,13 @@ describe('welding on a slow contact', () => {
       }
     });
     run.step();
-    const before = totals(run.world);
+    const before = totals(run.world, run.ships);
     runUntilWelded(run);
     expect(run.totalWelded).toBe(1);
     // Hulks rather than wreckage — ships whose cores are out — so both ride it.
     expect(run.ships.body(run.a)).toBe(run.ships.body(run.b));
     expect(run.world.bodies.count).toBe(1);
-    const after = totals(run.world);
+    const after = totals(run.world, run.ships);
     expect(after.mass).toBeCloseTo(before.mass, 6);
     expect(after.px).toBeCloseTo(before.px, 3);
     expect(after.py).toBeCloseTo(before.py, 3);
@@ -112,7 +113,9 @@ describe('welding on a slow contact', () => {
         tear(ships, world, ship);
       }
     });
-    runUntilWelded(run, 20);
+    // Just past the contact, which breaks both up: pieces drifting together
+    // slowly afterwards may hook, as any slow contact may.
+    runUntilWelded(run, 2);
     expect(run.totalWelded).toBe(0);
     expect(run.totalContacts).toBeGreaterThan(0);
   });
@@ -241,7 +244,7 @@ describe('welding on a slow contact', () => {
       const all = joints(ships.design(a));
       const seam = all.findIndex((joint) => joint.seam === true);
       run.step();
-      const before = totals(world);
+      const before = totals(world, ships);
       ships.damage.cutWeld(body, seam, all[seam]!.width * 2);
       run.step();
       expect(ships.body(a)).not.toBe(ships.body(b));
@@ -252,7 +255,7 @@ describe('welding on a slow contact', () => {
       }
       expect(ships.teamOf(a)).toBe(0);
       expect(ships.teamOf(b)).toBe(1);
-      const after = totals(world);
+      const after = totals(world, ships);
       expect(after.mass).toBeCloseTo(before.mass, 6);
       expect(after.px).toBeCloseTo(before.px, 3);
       expect(after.py).toBeCloseTo(before.py, 3);

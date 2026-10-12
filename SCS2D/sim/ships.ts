@@ -735,6 +735,8 @@ export class Ships {
    */
   discardedPx = 0;
   discardedPy = 0;
+  /** And its angular momentum about the origin, kg·m²/s. */
+  discardedL = 0;
 
   /**
    * Which ship each body is, so a blow landing on a body finds the hull it
@@ -3685,6 +3687,7 @@ export class Ships {
   sever(world: World, contacts?: Contacts): number {
     const bodies = world.bodies;
     this.bodyStore = bodies;
+    this.settleShed(bodies);
 
     if (contacts !== undefined) {
       for (let k = 0; k < contacts.count; k++) {
@@ -4029,6 +4032,7 @@ export class Ships {
    */
   private merge(world: World, keep: number, other: number, mk: number, mo: number, dock: DockAt | null = null): void {
     const bodies = world.bodies;
+    this.settleShed(bodies);
     const idK = this.bodyIds[keep]!;
     const bk = bodies.indexOf(idK);
     const bo = bodies.indexOf(this.bodyIds[other]!);
@@ -4154,6 +4158,8 @@ export class Ships {
       this.discarded += mass;
       this.discardedPx += mass * bodies.vx[b]!;
       this.discardedPy += mass * bodies.vy[b]!;
+      this.discardedL +=
+        bodies.inertia[b]! * bodies.angularVel[b]! + mass * (bodies.x[b]! * bodies.vy[b]! - bodies.y[b]! * bodies.vx[b]!);
       this.damage.forget(b);
       this.fuel.forget(b);
       this.metal.forget(b);
@@ -4415,6 +4421,43 @@ export class Ships {
    */
   private breakUp(world: World, i: number, design: ShipDesign, parts: readonly number[][]): number {
     const bodies = world.bodies;
+    this.settleShed(bodies);
+    this.momentum(bodies);
+    const beforeX = this.momentumX;
+    const beforeY = this.momentumY;
+    const pieces = this.breakApart(world, i, design, parts);
+    // Each piece leaves at the hull's velocity at its own centre of mass, which
+    // conserves momentum only if the hull's mass is where its design put it.
+    // What spending and damage have taken off unevenly says otherwise, so the
+    // piece that stays with the ship takes up the difference.
+    this.momentum(bodies);
+    const b = bodies.indexOf(this.bodyIds[i]!);
+    const mass = bodies.mass[b]!;
+    if (mass > 0) {
+      bodies.vx[b] = bodies.vx[b]! + (beforeX - this.momentumX) / mass;
+      bodies.vy[b] = bodies.vy[b]! + (beforeY - this.momentumY) / mass;
+    }
+    return pieces;
+  }
+
+  /** The world's momentum, with what it has discarded, into `momentumX` and `momentumY`. */
+  private momentum(bodies: Bodies): void {
+    let x = this.discardedPx;
+    let y = this.discardedPy;
+    for (let b = 0; b < bodies.highWater; b++) {
+      if (bodies.alive[b] === 0) continue;
+      x += bodies.mass[b]! * bodies.vx[b]!;
+      y += bodies.mass[b]! * bodies.vy[b]!;
+    }
+    this.momentumX = x;
+    this.momentumY = y;
+  }
+
+  private momentumX = 0;
+  private momentumY = 0;
+
+  private breakApart(world: World, i: number, design: ShipDesign, parts: readonly number[][]): number {
+    const bodies = world.bodies;
     const b = bodies.indexOf(this.bodyIds[i]!);
     const pilots = this.pilots[b] ?? null;
     let pieces = 0;
@@ -4610,12 +4653,19 @@ export class Ships {
     for (let m = 0; m < keep.length; m++) {
       const { stats } = chunk.modules[m]!;
       mass -= stats.fuel - this.fuel.held(b, keep[m]!) + stats.metal - this.metal.held(b, keep[m]!);
+      mass -= this.damage.shedAt(b, keep[m]!);
     }
     if (!flies && mass < SCRAP_MASS) {
       this.discarded += mass;
       // Whatever it would have left with, had it been worth putting there.
-      this.discardedPx += mass * (bodies.vx[b]! - spin * offset.y);
-      this.discardedPy += mass * (bodies.vy[b]! + spin * offset.x);
+      const vx = bodies.vx[b]! - spin * offset.y;
+      const vy = bodies.vy[b]! + spin * offset.x;
+      this.discardedPx += mass * vx;
+      this.discardedPy += mass * vy;
+      // Its inertia taken as its full design's, scaled to what it weighs.
+      this.discardedL +=
+        ((chunk.inertia * mass) / chunk.mass) * spin +
+        mass * ((bodies.x[b]! + offset.x) * vy - (bodies.y[b]! + offset.y) * vx);
       return false;
     }
 
@@ -4681,6 +4731,7 @@ export class Ships {
    */
   private reshape(world: World, i: number, was: ShipDesign, keep: readonly number[]): void {
     const bodies = world.bodies;
+    this.settleShed(bodies);
     const id = this.bodyIds[i]!;
     const b = bodies.indexOf(id);
     const design = subDesign(was, keep);
@@ -4919,15 +4970,46 @@ export class Ships {
     return out;
   }
 
-  /** A body's mass and inertia: its design's, less the fuel and metal spent from it. */
+  /**
+   * A body's mass and inertia: its design's, less the fuel and metal spent
+   * from it and what damage has shed. Its centre of mass stays put.
+   */
   private settleMass(bodies: Bodies, b: number): void {
     const design = this.hullDesign[b];
     // Something nothing moves stays that way.
     if (design === null || design === undefined || !(bodies.mass[b]! > 0)) return;
     const id = this.hullBody[b]!;
-    bodies.setMass(id, design.mass - this.fuel.spentMass(b) - this.metal.spentMass(b));
-    bodies.setInertia(id, design.inertia - this.fuel.spentInertia(b) - this.metal.spentInertia(b));
+    bodies.setMass(id, design.mass - this.fuel.spentMass(b) - this.metal.spentMass(b) - this.damage.shedMass(b));
+    bodies.setInertia(
+      id,
+      design.inertia - this.fuel.spentInertia(b) - this.metal.spentInertia(b) - this.damage.shedInertia(b),
+    );
   }
+
+  /**
+   * Settle every hull damage has shed mass from since last asked, counting
+   * what it shed as discarded: it left at the hull's own speed, so the books
+   * still balance. Done before anything reads a hull's mass to remake it.
+   */
+  private settleShed(bodies: Bodies): void {
+    this.bodyStore = bodies;
+    this.damage.takeUnsettled(this.settleShedOf);
+  }
+
+  private readonly settleShedOf = (b: number): void => {
+    const bodies = this.bodyStore!;
+    const mass = bodies.mass[b]!;
+    const inertia = bodies.inertia[b]!;
+    this.settleMass(bodies, b);
+    // What it lost, which is nothing for a body nothing moves.
+    const kg = mass - bodies.mass[b]!;
+    this.discarded += kg;
+    this.discardedPx += kg * bodies.vx[b]!;
+    this.discardedPy += kg * bodies.vy[b]!;
+    // Its share of the hull's turning, and of the hull's motion about the origin.
+    this.discardedL +=
+      (inertia - bodies.inertia[b]!) * bodies.angularVel[b]! + kg * (bodies.x[b]! * bodies.vy[b]! - bodies.y[b]! * bodies.vx[b]!);
+  };
 
   /** What each kept module has already absorbed, in the new design's order. */
   private scarsOf(bodyIndex: number, keep: readonly number[]): number[] {

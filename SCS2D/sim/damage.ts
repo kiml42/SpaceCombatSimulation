@@ -37,6 +37,24 @@ import { EXPLOSIVE_YIELD, FUEL_DENSITY, FUEL_DRAG_COEFFICIENT, type ModuleSpec }
 export const DAMAGE_ENERGY_PER_KG = 1000;
 
 /**
+ * The share of a module's dry mass damage has boiled or shredded off by the
+ * time it stops working. It goes on shedding at the same rate past that.
+ */
+export const SHED_AT_BREAK = 0.1;
+
+/**
+ * The most of its dry mass a module can shed, however hard it is hit: a
+ * module is never drawn any smaller, so it never loses more than half.
+ */
+export const SHED_FLOOR = 0.5;
+
+/** The share of its dry mass a module has shed, having absorbed `absorbed` of the `capacity` that breaks it. */
+export function shedShare(absorbed: number, capacity: number): number {
+  if (!(capacity > 0) || !(absorbed > 0)) return 0;
+  return min(SHED_FLOOR, (SHED_AT_BREAK * absorbed) / capacity);
+}
+
+/**
  * How wide a hole a round makes, in calibres.
  *
  * A perforation is not a neat bore: the plate petals and spalls, and what is
@@ -210,6 +228,16 @@ export class Damage {
   private readonly frontier: number[] = [];
   /** Bodies nothing can hurt, by body index. */
   private readonly protectedBody: boolean[] = [];
+  /** Each module's structure and fittings, kg: what damage sheds a share of. */
+  private readonly dry: (Float64Array | null)[] = [];
+  /** Moment about the centre of mass per kilogram of each module, m². */
+  private readonly spin: (Float64Array | null)[] = [];
+  /** What damage has shed from each body, kg, and its moment of inertia, kg·m². */
+  private readonly shed: number[] = [];
+  private readonly shedSpin: number[] = [];
+  /** Shed since the body's mass was last settled, kg, and the bodies with any. */
+  private readonly unsettled: number[] = [];
+  private readonly unsettledBodies: number[] = [];
 
   /**
    * Give a body a damage record, sized from its design.
@@ -227,16 +255,34 @@ export class Damage {
   ): void {
     const n = design.modules.length;
     const capacity = new Float64Array(n);
+    const dry = new Float64Array(n);
+    const spin = new Float64Array(n);
     const kinds: ModuleSpec['kind'][] = [];
     for (let i = 0; i < n; i++) {
       const module = design.modules[i]!;
       capacity[i] = module.stats.hitPoints * DAMAGE_ENERGY_PER_KG;
+      dry[i] = module.stats.structureMass + module.stats.fittingMass;
+      const { length, width } = module.spec;
+      spin[i] = (length * length + width * width) / 12 + module.x * module.x + module.y * module.y;
       kinds.push(module.spec.kind);
     }
     const absorbed = new Float64Array(n);
     if (carried !== undefined) {
       for (let i = 0; i < n; i++) absorbed[i] = carried[i] ?? 0;
     }
+    // What its scars had already shed was counted when they were made.
+    let shed = 0;
+    let shedSpin = 0;
+    for (let i = 0; i < n; i++) {
+      const kg = shedShare(absorbed[i]!, capacity[i]!) * dry[i]!;
+      shed += kg;
+      shedSpin += kg * spin[i]!;
+    }
+    this.dry[bodyIndex] = dry;
+    this.spin[bodyIndex] = spin;
+    this.shed[bodyIndex] = shed;
+    this.shedSpin[bodyIndex] = shedSpin;
+    this.unsettled[bodyIndex] = 0;
     this.absorbed[bodyIndex] = absorbed;
     const cut = new Float64Array(joints(design).length);
     if (welds !== undefined) {
@@ -275,8 +321,50 @@ export class Damage {
     if (absorbed === null || absorbed === undefined) return;
     if (module < 0 || module >= absorbed.length) return;
     if (!(joules > 0)) return;
+    const capacity = this.capacity[bodyIndex]![module]!;
+    const before = shedShare(absorbed[module]!, capacity);
     absorbed[module] += joules;
     this.versions[bodyIndex] = (this.versions[bodyIndex] ?? 0) + 1;
+    const kg = (shedShare(absorbed[module]!, capacity) - before) * this.dry[bodyIndex]![module]!;
+    if (!(kg > 0)) return;
+    this.shed[bodyIndex] = this.shed[bodyIndex]! + kg;
+    this.shedSpin[bodyIndex] = this.shedSpin[bodyIndex]! + kg * this.spin[bodyIndex]![module]!;
+    if (!(this.unsettled[bodyIndex]! > 0)) this.unsettledBodies.push(bodyIndex);
+    this.unsettled[bodyIndex] = this.unsettled[bodyIndex]! + kg;
+  }
+
+  /** What damage has shed from a body, kg. */
+  shedMass(bodyIndex: number): number {
+    return this.shed[bodyIndex] ?? 0;
+  }
+
+  /** What that took off the body's moment of inertia, kg·m². */
+  shedInertia(bodyIndex: number): number {
+    return this.shedSpin[bodyIndex] ?? 0;
+  }
+
+  /** What damage has shed from one module, kg: the metal repairing it has to put back. */
+  shedAt(bodyIndex: number, module: number): number {
+    const absorbed = this.absorbed[bodyIndex];
+    const capacity = this.capacity[bodyIndex];
+    const dry = this.dry[bodyIndex];
+    if (!absorbed || !capacity || !dry) return 0;
+    return shedShare(absorbed[module] ?? 0, capacity[module] ?? 0) * (dry[module] ?? 0);
+  }
+
+  /**
+   * Every body that has shed mass since this was last asked, with how much,
+   * for its mass to be settled and what it lost counted; each is then settled.
+   */
+  takeUnsettled(visit: (bodyIndex: number, kg: number) => void): void {
+    const bodies = this.unsettledBodies;
+    for (let k = 0; k < bodies.length; k++) {
+      const b = bodies[k]!;
+      const kg = this.unsettled[b]!;
+      this.unsettled[b] = 0;
+      if (kg > 0) visit(b, kg);
+    }
+    bodies.length = 0;
   }
 
   /** How much of a module is left, 1 untouched and 0 spent. */
@@ -438,6 +526,11 @@ export class Damage {
     this.absorbed[bodyIndex] = null;
     this.capacity[bodyIndex] = null;
     this.kinds[bodyIndex] = null;
+    this.dry[bodyIndex] = null;
+    this.spin[bodyIndex] = null;
+    this.shed[bodyIndex] = 0;
+    this.shedSpin[bodyIndex] = 0;
+    this.unsettled[bodyIndex] = 0;
   }
 }
 
