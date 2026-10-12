@@ -49,6 +49,7 @@ import {
   brakingRate,
   clamp,
   cos,
+  exp,
   length,
   max,
   min,
@@ -378,6 +379,22 @@ const PAD_ALIGN_RADII = 4;
  * through what stands between it and the pad.
  */
 const PAD_ORBIT_STEP = 0.5;
+
+/** A design's engines' exhaust speed, m/s, weighted by their thrust; 0 for one with none. */
+const EXHAUST = new WeakMap<ShipDesign, number>();
+function exhaustOf(design: ShipDesign): number {
+  const known = EXHAUST.get(design);
+  if (known !== undefined) return known;
+  let thrust = 0;
+  let weighted = 0;
+  for (const module of design.modules) {
+    thrust += module.stats.thrust;
+    weighted += module.stats.thrust * module.stats.exhaustVelocity;
+  }
+  const exhaust = thrust > 0 ? weighted / thrust : 0;
+  EXHAUST.set(design, exhaust);
+  return exhaust;
+}
 
 /**
  * The chance a claw closing at `closing` takes a module left at `integrity`:
@@ -5567,14 +5584,19 @@ export class Ships {
 
   /**
    * The best thing to drink from: a wreck, or an enemy with no main guns left,
-   * scored by what it would gain for the time spent — getting there and
-   * pumping — and put off by armed enemies near it.
+   * scored by what it would gain, less what getting there burns, for the time
+   * spent — getting there at what it can close at and pumping — and put off by
+   * armed enemies near it. One that pays no more than the trip costs, or that
+   * is going away faster than it can follow, is not gone for.
    */
   private pickSource(bodies: Bodies, i: number, b: number, claw: number, room: number): number {
     const design = this.designs[i]!;
     const approach = this.doctrines[i]!.approach;
     const pump = design.modules[claw]!.stats.pumpRate;
     if (!(pump > 0) || !(approach.approachSpeed > 0)) return NO_TARGET;
+    const mass = bodies.mass[b]!;
+    const mains = this.layoutOf(i).maxThrustAlong(cos(design.thrustBearing), sin(design.thrustBearing)) / mass;
+    const exhaust = exhaustOf(design);
     let best = NO_TARGET;
     let bestScore = 0;
     for (let t = 0; t < this.alive.length; t++) {
@@ -5587,10 +5609,26 @@ export class Ships {
       const fuel = this.fuel.left(tb);
       if (!(fuel > 0)) continue;
       const take = fuel < room ? fuel : room;
-      const gap = max(0, length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!) - bodies.radius[tb]!);
-      const time = gap / approach.approachSpeed + take / pump;
+      const dx = bodies.x[tb]! - bodies.x[b]!;
+      const dy = bodies.y[tb]! - bodies.y[b]!;
+      const apart = length(dx, dy);
+      // Getting there at its closing speed less however fast the source is
+      // going away: one it cannot gain on is no source at all.
+      const receding = apart > 0 ? ((bodies.vx[tb]! - bodies.vx[b]!) * dx + (bodies.vy[tb]! - bodies.vy[b]!) * dy) / apart : 0;
+      const closing = approach.approachSpeed - receding;
+      if (!(closing > 0)) continue;
+      const gap = max(0, apart - bodies.radius[tb]!);
+      // What the trip burns: matching the source's motion, then speeding up
+      // and slowing down again, no faster than the gap gives room for. A
+      // source has to pay more than that to be worth going for at all.
+      const cruise = min(closing, sqrt(mains * gap));
+      const dv = length(bodies.vx[tb]! - bodies.vx[b]!, bodies.vy[tb]! - bodies.vy[b]!) + 2 * cruise;
+      const cost = exhaust > 0 ? mass * (1 - exp(-dv / exhaust)) : 0;
+      const gain = take - cost;
+      if (!(gain > 0)) continue;
+      const time = gap / closing + take / pump;
       const danger = approach.scavengeDanger > 0 ? this.dangerNear(bodies, i, tb) : 0;
-      const score = take / time / (1 + max(0, approach.scavengeDanger) * danger);
+      const score = gain / time / (1 + max(0, approach.scavengeDanger) * danger);
       if (score > bestScore) {
         best = t;
         bestScore = score;
