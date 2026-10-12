@@ -69,6 +69,25 @@ describe('a ship low on fuel with a port', () => {
     expect(run.totalContacts).toBeLessThan(10);
   });
 
+  it('with a claw too, docks only once it is down to its dockBelow, not its refuelBelow', () => {
+    // A claw on the bow, between the forward thrusters, and both thresholds above the fifth it holds.
+    const clawed = (dockBelow: number): ShipDesign => {
+      const base = picketOf(dockBelow);
+      const blueprint: Blueprint = {
+        ...PICKET,
+        modules: [...PICKET.modules!, { kind: 'claw', x: 2.5, y: 0, angle: 0, length: 1, width: 1 }],
+        doctrine: { ...base.doctrine, approach: { ...base.doctrine.approach, dockBelow, refuelBelow: 0.9 } },
+      };
+      return compileBlueprint(blueprint);
+    };
+    const low = scene({ picket: clawed(0.5) });
+    runUntil(low, () => docked(low), 90);
+    expect(docked(low)).toBe(true);
+    const scavenging = scene({ picket: clawed(0.1) });
+    runUntil(scavenging, () => docked(scavenging), 90);
+    expect(docked(scavenging)).toBe(false);
+  });
+
   it('idles while docked when it is the smaller, and flies the pair when it is the larger', () => {
     const throttles = (run: Run, i: number): number =>
       (run.ships as unknown as { throttles: Float64Array[] }).throttles[i]!.reduce((sum, u) => sum + u, 0);

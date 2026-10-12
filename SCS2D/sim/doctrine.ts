@@ -322,9 +322,10 @@ export interface Approach {
   readonly rangeHold: number;
   /**
    * The share of a full load at or below which a ship with a working claw
-   * breaks off to drink from a wreck or a disarmed enemy, and keeps at it
-   * until its claw lets go full. Zero never does; one goes whenever it has
-   * room.
+   * breaks off to scavenge from a wreck or a disarmed enemy, and keeps at it
+   * until its claw lets go full: set high, it goes whenever it has room
+   * enough to be worth the trip. Zero never does; one goes whenever it has
+   * room. Being filled by a friend is `dockBelow`'s.
    */
   readonly refuelBelow: number;
   /**
@@ -336,8 +337,9 @@ export interface Approach {
   /**
    * The share of a full load of fuel or charge at or below which it goes to a
    * friend to be filled: a fighter to a pad it fits on, anything else with a
-   * port to a port. It is also what it keeps back for itself when a friend
-   * docks with it. Zero never goes, and keeps nothing back.
+   * port to a port — a ship with a claw too, which docks only this low and
+   * otherwise scavenges by `refuelBelow`. It is also what it keeps back for
+   * itself when a friend docks with it. Zero never goes, and keeps nothing back.
    */
   readonly dockBelow: number;
   /**

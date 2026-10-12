@@ -790,6 +790,8 @@ export class Ships {
   private readonly forageAt: number[] = [];
   /** Whether each ship is refuelling: from running low until its claw's piece is full. */
   private readonly refuelling: number[] = [];
+  /** Whether each ship is being filled at a friend's port: from running down to `dockBelow` until it is full. */
+  private readonly docking: number[] = [];
   /** Whether each fighter is rearming: from running low on metal until it is full. */
   private readonly rearming: number[] = [];
   /** For each design, each pad's clear side as an angle in the design's frame; NaN not yet worked out. */
@@ -1209,6 +1211,7 @@ export class Ships {
     this.salvaging.push(NO_TARGET);
     this.forageAt.push(i);
     this.refuelling.push(0);
+    this.docking.push(0);
     this.rearming.push(0);
     this.recharging.push(0);
     this.home.push(-1);
@@ -3809,8 +3812,8 @@ export class Ships {
             // spared, or either is given an order.
             const oa = this.pilotAt(b, seam.a);
             const ob = this.pilotAt(b, seam.b);
-            const intoB = this.refuelling[ob] === 1 && this.refuelling[oa] !== 1;
-            const intoA = this.refuelling[oa] === 1 && this.refuelling[ob] !== 1;
+            const intoB = this.docking[ob] === 1 && this.docking[oa] !== 1;
+            const intoA = this.docking[oa] === 1 && this.docking[ob] !== 1;
             const ordered = (this.orders[oa]?.length ?? 0) > 0 || (this.orders[ob]?.length ?? 0) > 0;
             const bothWorking = this.damage.remaining(b, seam.b, DamageEffect.Grip);
             if (!(bothWorking > 0)) continue;
@@ -3866,7 +3869,7 @@ export class Ships {
     else {
       const oa = this.pilotAt(b, seam.a);
       const ob = this.pilotAt(b, seam.b);
-      receiver = this.refuelling[oa] === 1 ? oa : this.refuelling[ob] === 1 ? ob : -1;
+      receiver = this.docking[oa] === 1 ? oa : this.docking[ob] === 1 ? ob : -1;
     }
     return receiver >= 0 && this.threatened(bodies, receiver, b, seam.dock !== 'claw');
   }
@@ -4887,15 +4890,24 @@ export class Ships {
     // else with a port of its own docks with a friend's. Only a pad rearms.
     const rearms = free && claw < 0 && design.fighter && approach.rearmBelow >= 0;
     const lands = (docks || rearms) && claw < 0 && design.fighter;
-    const port = docks && claw < 0 && !design.fighter ? this.workingPort(bodies, i, b) : -1;
-    const own = claw >= 0 ? claw : lands ? (design.cores[0] ?? 0) : port;
+    const port = docks && !design.fighter ? this.workingPort(bodies, i, b) : -1;
+    // A ship with a claw too docks only once it is down to `dockBelow`, and
+    // until it is full; otherwise it goes scavenging by `refuelBelow`.
+    let viaPort = port >= 0 && claw < 0;
+    if (port >= 0 && claw >= 0) {
+      const portHeld = this.fuel.pieceHeld(b, port);
+      const portRoom = this.fuel.pieceRoom(b, port);
+      viaPort = portRoom > 0 && (this.docking[i] === 1 || portHeld <= approach.dockBelow * (portHeld + portRoom));
+    }
+    const scavenges = claw >= 0 && !viaPort;
+    const own = scavenges ? claw : lands ? (design.cores[0] ?? 0) : viaPort ? port : -1;
     if (own < 0) {
       this.stopForaging(i);
       return;
     }
-    const below = claw >= 0 ? approach.refuelBelow : approach.dockBelow;
+    const below = scavenges ? approach.refuelBelow : approach.dockBelow;
     const ownHeld = this.fuel.pieceHeld(b, own);
-    const room = claw >= 0 || docks ? this.fuel.pieceRoom(b, own) : 0;
+    const room = scavenges || docks ? this.fuel.pieceRoom(b, own) : 0;
     const full = ownHeld + room;
     const metalRoom = rearms ? this.metal.pieceRoom(b, own) : 0;
     const chargeRoom = lands && docks ? this.power.pieceRoom(b, own) : 0;
@@ -4912,6 +4924,7 @@ export class Ships {
       (this.refuelling[i] === 1 && room > 0) ||
       (this.rearming[i] === 1 && metalRoom > 0);
     this.refuelling[i] = going && room > 0 ? 1 : 0;
+    this.docking[i] = going && room > 0 && viaPort ? 1 : 0;
     this.rearming[i] = going && metalRoom > 0 ? 1 : 0;
     this.recharging[i] = recharging ? 1 : 0;
     if (!going) {
@@ -4923,7 +4936,7 @@ export class Ships {
       // than at the next rethink.
       const lost = lands
         ? hb < 0 || this.landingPad[i]! < 0 || !this.padFree(bodies, held, this.landingPad[i]!)
-        : port >= 0
+        : viaPort
           ? hb < 0 || this.dockPort[i]! < 0 || this.ownPort[i] !== port || !this.portFree(bodies, held, this.dockPort[i]!)
           : hb < 0 || this.landingPad[i]! >= 0 || this.dockPort[i]! >= 0 || this.shipByBody[hb] !== held || !(this.fuel.left(hb) > 0);
       if (lost) {
@@ -4938,7 +4951,7 @@ export class Ships {
     this.forageAt[i] = world.tick + this.rethinkTicks(world, design.mass);
     if (lands) {
       this.pickPad(bodies, i, b, room, metalRoom, recharging ? chargeRoom : 0);
-    } else if (port >= 0) {
+    } else if (viaPort) {
       this.pickPort(bodies, i, b, port, room);
     } else {
       this.salvaging[i] = this.pickSource(bodies, i, b, claw, room);
@@ -4953,6 +4966,7 @@ export class Ships {
     this.dockPort[i] = -1;
     this.ownPort[i] = -1;
     this.refuelling[i] = 0;
+    this.docking[i] = 0;
     this.rearming[i] = 0;
     this.recharging[i] = 0;
   }
@@ -5269,7 +5283,7 @@ export class Ships {
     const ownPump = design.modules[own]!.stats.pumpRate;
     let bestScore = 0;
     for (let t = 0; t < this.alive.length; t++) {
-      if (t === i || this.alive[t] === 0 || this.derelict[t] === 1 || this.refuelling[t] === 1) continue;
+      if (t === i || this.alive[t] === 0 || this.derelict[t] === 1 || this.docking[t] === 1) continue;
       if (this.team[t] !== this.team[i] || this.hostile(i, t) || !this.hasControl(t)) continue;
       const tb = bodies.indexOf(this.bodyIds[t]!);
       if (tb < 0 || tb === b) continue;

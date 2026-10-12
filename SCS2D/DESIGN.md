@@ -657,14 +657,18 @@ inside any one file is not contiguous.
   pad, or one that is missing or not a fighter, is a blueprint problem, and a budget counts the carrier and
   everything it sets out with (`budgetMass`).
   **A port** (`port`) is a coupling on a hull's side, never thick, with a pump of `PORT_PUMP_PER_METRE` for
-  every metre of its face. Anything but a fighter with a working port and no claw that is down to its
+  every metre of its face. Anything but a fighter with a working port that is down to its
   `dockBelow` picks a
   friend's free port as it would a pad — from a friend under control and not refuelling itself — comes to a
   point one of its own radii off it, flown mains-first, lines up face to face on the port's axis, and closes
   the last stretch at half a metre a second. Two ports mate when they meet within 30° of face to face at no
   more than `PORT_SPEED` and one of the two ships was making for exactly that pair; fuel then passes, through
   the narrower coupling, into whichever is refuelling from what the other can spare above its own
-  `dockBelow`, and they part when it is full, nothing more can be spared, or either is given an order. Of
+  `dockBelow`, and they part when it is full, nothing more can be spared, or either is given an order. A
+  ship with a claw as well docks only once it is that low, and is filled until full; above it, it scavenges
+  by its `refuelBelow` instead, so a tender with `refuelBelow` set high scavenges whenever it has room worth
+  the trip and takes fuel from its carrier only when it is nearly dry. Which ship a port fills is the one
+  that is docking for fuel, not one that is out scavenging (`Ships.docking`). Of
   two ships docked by ports the smaller idles and the larger flies the pair. A ship does not shy away from a
   friend coming to land on it or dock with it, nor from its own fighters at all — those that last set out from
   or landed on it — trusting them to keep clear, so a carrier does not run from its wing. The stock **Tanker** carries a great tank and a port on each
@@ -679,8 +683,9 @@ inside any one file is not contiguous.
   launch onto whichever part carries them. The stock **Beam Carrier** is built this way: eight pads, each
   with a battery beside it, a Dinky Beam on every pad, and a tender with a claw docked amidships. It is
   reinforced and armed only with two light turrets, so its fighters do the fighting. In the
-  `beamCarrier` scenario it sets out short of fuel, so its tender casts off to drink from two wrecks, and its
-  fighters fight a wave of TIEs on their batteries and come back to the pads to recharge.
+  `beamCarrier` scenario its tender, above the carrier's `dockBelow` of a tenth, casts off at once to scavenge
+  from two wrecks, and its fighters fight a wave of TIEs on their batteries and come back to the pads, leaving
+  with every store full.
   **Metal.** A `hold` archetype whose interior is metal (`METAL_DENSITY`, steel racked about half solid), and
   a twentieth of every core's interior past its computing (`CORE_METAL_SHARE`), the rest of it still fuel, so
   a bare core with one gun can fire a few rounds. A gun loads each round whole from the holds and cores on its
