@@ -216,7 +216,10 @@ inside any one file is not contiguous.
   much point defence it has left, and enemies weighing `armedWeight` and its own `ramArmed` see it the same
   way; a piece broken off with only secondaries is disarmed, and a carrier can have no main armament at all.
   **Running dry counts as being shot out**: a gun without a round's metal on its piece of hull is not armed,
-  and an engine without fuel on its piece does not make it mobile.
+  a beam recharging is not armed unless its piece's batteries, and what its generators make in a cycle, cover
+  the rest of the shot, and an engine without fuel on its piece does not make it mobile. Only empty is not
+  reason enough to ram, though: a fighter goes on counting empty guns as working while a friend has a pad
+  it could rearm or recharge on.
   **Where the main guns bear is which way round it fights**:
   of the bearings off its bow, the pilot holds its target on the one its working main guns bear on most,
   less doctrine's `turnBias` for every half turn it is from where the target already is, so a Star Destroyer

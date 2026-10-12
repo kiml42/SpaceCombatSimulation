@@ -8,6 +8,7 @@ import {
   triggerMask,
   weldDesigns,
   type DockAt,
+  type Footprint,
   type Seam,
   type DesignTurret,
   type ShipDesign,
@@ -1055,12 +1056,24 @@ export class Ships {
     return true;
   }
 
-  /** Whether mount `t` is sound and has a round on its piece of hull to load. */
+  /**
+   * Whether mount `t` is sound and can shoot once more: a gun with a round on
+   * its piece of hull to load, a beam with the rest of a shot's charge stored
+   * there, or made there within a cycle.
+   */
   private canFire(i: number, b: number, t: number): boolean {
     if (this.isTurretDisabled(i, t)) return false;
     const mount = this.designs[i]!.turrets[t]!;
-    if (mount.gun.type !== GunType.Projectile || !(mount.gun.roundMass > 0)) return true;
-    return this.metal.pieceHeld(b, mount.module) >= mount.gun.roundMass;
+    const gun = mount.gun;
+    if (gun.type === GunType.Projectile) {
+      return !(gun.roundMass > 0) || this.metal.pieceHeld(b, mount.module) >= gun.roundMass;
+    }
+    const timer = this.cooldown[i]![t]!;
+    if (!(timer > 0) || !(gun.cycleTime > 0)) return true;
+    const rate = this.damage.remaining(b, mount.module, DamageEffect.FireRate);
+    const need = (gun.beamPower * gun.beamOnTime * rate * timer) / gun.cycleTime;
+    const made = this.power.pieceGeneration(b, mount.module, this.damage) * gun.cycleTime;
+    return this.power.pieceHeld(b, mount.module) + made >= need;
   }
 
   /** Whether engine `t` is sound and has fuel on its piece of hull to burn. */
@@ -1879,33 +1892,75 @@ export class Ships {
   /**
    * Whether this ship's doctrine would ram its target now: close enough, by
    * `ramRadii` of the target's radius from its edge, and with no more of its
-   * own guns working than `ramArmed` says.
+   * own guns working than `ramArmed` says. Guns that are only empty count as
+   * working while a friend's pad could fill them.
    */
   private rams(i: number, target: number): boolean {
     const approach = this.doctrines[i]!.approach;
-    if (!(approach.ramRadii > 0) || this.armedShare(i) > approach.ramArmed) return false;
+    if (!(approach.ramRadii > 0)) return false;
     const bodies = this.bodyStore;
     if (bodies === null) return false;
     const b = bodies.indexOf(this.bodyIds[i]!);
     const tb = bodies.indexOf(this.bodyIds[target]!);
     if (b < 0 || tb < 0) return false;
     const gap = length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!) - bodies.radius[tb]!;
-    return gap <= approach.ramRadii * bodies.radius[tb]!;
+    if (gap > approach.ramRadii * bodies.radius[tb]!) return false;
+    if (this.armedShare(i, b, true) > approach.ramArmed) return false;
+    return this.armedShare(i, b, false) <= approach.ramArmed || !this.canRestock(bodies, i, b);
   }
 
-  /** The share of this ship's main mounts that can still fire, rounds and all; none for a ship with none. */
-  private armedShare(i: number): number {
+  /**
+   * The share of this ship's main mounts that can still fire, none for a ship
+   * with none; with `stores`, only those with a shot to fire.
+   */
+  private armedShare(i: number, b: number, stores: boolean): number {
     const turrets = this.designs[i]!.turrets;
-    const bodies = this.bodyStore;
-    const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[i]!);
     let mounts = 0;
     let working = 0;
     for (let t = 0; t < turrets.length; t++) {
       if (!turrets[t]!.main) continue;
       mounts++;
-      if (b >= 0 && this.canFire(i, b, t)) working++;
+      if (stores ? this.canFire(i, b, t) : !this.isTurretDisabled(i, t)) working++;
     }
     return mounts === 0 ? 0 : working / mounts;
+  }
+
+  /**
+   * Whether a friend has a pad this ship would land on for the metal or charge
+   * it has room for, as `forage` would send it. Taken or not: a pad in use is
+   * a wait, not a dead end.
+   */
+  private canRestock(bodies: Bodies, i: number, b: number): boolean {
+    const design = this.designs[i]!;
+    const approach = this.doctrines[i]!.approach;
+    if (!design.fighter || !(approach.approachSpeed > 0)) return false;
+    if (approach.scavengeFuelBelow > 0 && this.workingClaw(i, b) >= 0) return false;
+    const own = design.cores[0] ?? 0;
+    const metalRoom = approach.rearmBelow >= 0 ? this.metal.pieceRoom(b, own) : 0;
+    const chargeRoom = approach.rechargeBelow > 0 ? this.power.pieceRoom(b, own) : 0;
+    if (!(metalRoom > 0 || chargeRoom > 0)) return false;
+    const box = footprintOf(design);
+    for (let t = 0; t < this.alive.length; t++) {
+      if (t === i || this.alive[t] === 0 || this.derelict[t] === 1) continue;
+      if (this.team[t] !== this.team[i] || this.hostile(i, t)) continue;
+      const tb = bodies.indexOf(this.bodyIds[t]!);
+      if (tb < 0 || tb === b) continue;
+      const modules = this.designs[t]!.modules;
+      for (let pad = 0; pad < modules.length; pad++) {
+        if (modules[pad]!.spec.kind !== 'pad' || !(modules[pad]!.stats.pumpRate > 0)) continue;
+        if (!this.fitsPad(box, modules[pad]!.spec) || !(this.left(t, tb, pad, DamageEffect.Grip) > 0)) continue;
+        if (metalRoom > 0 && this.metal.pieceHeld(tb, pad) > this.metalReserve(tb, pad)) return true;
+        if (chargeRoom > 0 && this.power.pieceHeld(tb, pad) > this.chargeReserve(tb, pad)) return true;
+      }
+    }
+    return false;
+  }
+
+  /** Whether a ship of footprint `box` fits on `pad`, either way round. */
+  private fitsPad(box: Footprint, pad: ModuleSpec): boolean {
+    const long = box.maxX - box.minX;
+    const wide = box.maxY - box.minY;
+    return (long <= pad.length && wide <= pad.width) || (long <= pad.width && wide <= pad.length);
   }
 
   /**
@@ -5181,8 +5236,6 @@ export class Ships {
     this.dockPort[i] = -1;
     if (!(approach.approachSpeed > 0)) return;
     const box = footprintOf(this.designs[i]!);
-    const long = box.maxX - box.minX;
-    const wide = box.maxY - box.minY;
     let bestScore = 0;
     for (let t = 0; t < this.alive.length; t++) {
       if (t === i || this.alive[t] === 0 || this.derelict[t] === 1) continue;
@@ -5193,9 +5246,7 @@ export class Ships {
       let danger = -1;
       for (let pad = 0; pad < design.modules.length; pad++) {
         const spec = design.modules[pad]!.spec;
-        if (spec.kind !== 'pad' || !this.padFree(bodies, t, pad)) continue;
-        // Only a pad it fits on, either way round.
-        if (!((long <= spec.length && wide <= spec.width) || (long <= spec.width && wide <= spec.length))) continue;
+        if (spec.kind !== 'pad' || !this.padFree(bodies, t, pad) || !this.fitsPad(box, spec)) continue;
         const spare = this.fuel.pieceHeld(tb, pad) - this.reserve(tb, pad);
         const spareMetal = this.metal.pieceHeld(tb, pad) - this.metalReserve(tb, pad);
         const pump = design.modules[pad]!.stats.pumpRate;
