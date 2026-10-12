@@ -1034,7 +1034,7 @@ export class Ships {
     return this.team[i] !== NEUTRAL_TEAM && !this.hasControl(i);
   }
 
-  /** Returns true when the ship has no main weapon left: no main gun, and no main weapon engine. */
+  /** Returns true when the ship has no main weapon left: no sound main gun with a round to load, and no main weapon engine that can burn. */
   isDisarmed(i: number): boolean {
     if (this.alive[i] === 0) return true;
     if (this.derelict[i] === 1) return true;
@@ -1046,14 +1046,31 @@ export class Ships {
     if (b < 0) return true;
     const design = this.designs[i]!;
     for (let t = 0; t < design.turrets.length; t++) {
-      if (design.turrets[t]!.main && !this.isTurretDisabled(i, t)) return false;
+      if (design.turrets[t]!.main && this.canFire(i, b, t)) return false;
     }
     // An engine meant as a weapon is one while it can still burn.
     for (const t of design.mainWeaponEngines) {
-      const module = design.engines[t]?.module ?? -1;
-      if (this.left(i, b, module, DamageEffect.Thrust) > 0) return false;
+      if (this.canBurn(i, b, t)) return false;
     }
     return true;
+  }
+
+  /** Whether mount `t` is sound and has a round on its piece of hull to load. */
+  private canFire(i: number, b: number, t: number): boolean {
+    if (this.isTurretDisabled(i, t)) return false;
+    const mount = this.designs[i]!.turrets[t]!;
+    if (mount.gun.type !== GunType.Projectile || !(mount.gun.roundMass > 0)) return true;
+    return this.metal.pieceHeld(b, mount.module) >= mount.gun.roundMass;
+  }
+
+  /** Whether engine `t` is sound and has fuel on its piece of hull to burn. */
+  private canBurn(i: number, b: number, t: number): boolean {
+    const design = this.designs[i]!;
+    const module = design.engines[t]?.module ?? -1;
+    if (!(this.left(i, b, module, DamageEffect.Thrust) > 0)) return false;
+    // A layout built by hand has no modules, and so nothing to run dry.
+    if (!((design.modules[module]?.stats.exhaustVelocity ?? 0) > 0)) return true;
+    return this.fuel.pieceHeld(b, module) > 0;
   }
 
   /**
@@ -1090,7 +1107,7 @@ export class Ships {
     return !(this.left(i, b, turret.module, DamageEffect.FireRate) > 0);
   }
 
-  /** Returns true when this ship has no active engines */
+  /** Returns true when this ship has no engine that is sound and fuelled. */
   hasNoEngines(i: number): boolean {
     if (this.alive[i] === 0) return true;
     if (this.derelict[i] === 1) return true;
@@ -1099,9 +1116,9 @@ export class Ships {
     const bodies = this.bodyStore;
     const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[i]!);
     if (b < 0) return true;
-    const design = this.designs[i]!;
-    for (const engine of design.engines) {
-      if (this.left(i, b, engine.module ?? -1, DamageEffect.Thrust) > 0) return false;
+    const engines = this.designs[i]!.engines;
+    for (let t = 0; t < engines.length; t++) {
+      if (this.canBurn(i, b, t)) return false;
     }
     return true;
   }
@@ -1876,15 +1893,17 @@ export class Ships {
     return gap <= approach.ramRadii * bodies.radius[tb]!;
   }
 
-  /** The share of this ship's main mounts that can still fire; none for a ship with none. */
+  /** The share of this ship's main mounts that can still fire, rounds and all; none for a ship with none. */
   private armedShare(i: number): number {
     const turrets = this.designs[i]!.turrets;
+    const bodies = this.bodyStore;
+    const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[i]!);
     let mounts = 0;
     let working = 0;
     for (let t = 0; t < turrets.length; t++) {
       if (!turrets[t]!.main) continue;
       mounts++;
-      if (!this.isTurretDisabled(i, t)) working++;
+      if (b >= 0 && this.canFire(i, b, t)) working++;
     }
     return mounts === 0 ? 0 : working / mounts;
   }

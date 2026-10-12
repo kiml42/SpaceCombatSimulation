@@ -215,6 +215,8 @@ inside any one file is not contiguous.
   close it flies and for whether it is still armed. So a capital that has lost its main guns knows it, however
   much point defence it has left, and enemies weighing `armedWeight` and its own `ramArmed` see it the same
   way; a piece broken off with only secondaries is disarmed, and a carrier can have no main armament at all.
+  **Running dry counts as being shot out**: a gun without a round's metal on its piece of hull is not armed,
+  and an engine without fuel on its piece does not make it mobile.
   **Where the main guns bear is which way round it fights**:
   of the bearings off its bow, the pilot holds its target on the one its working main guns bear on most,
   less doctrine's `turnBias` for every half turn it is from where the target already is, so a Star Destroyer
