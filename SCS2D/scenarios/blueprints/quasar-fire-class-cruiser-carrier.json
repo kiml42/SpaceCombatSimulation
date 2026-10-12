@@ -1,6 +1,13 @@
 {
   "formatVersion": 1,
   "name": "Quasar Fire-class cruiser-carrier",
+  "doctrine": {
+    "approach": {
+      "separation": 800,
+      "separationRadii": 5,
+      "avoidHorizon": 20
+    }
+  },
   "assemblies": {
     "pad": {
       "modules": [
@@ -106,7 +113,8 @@
           "angle": 0,
           "length": 16,
           "width": 8,
-          "barrels": 1
+          "barrels": 1,
+          "main": false
         },
         {
           "kind": "hold",
@@ -129,7 +137,8 @@
           "angle": 0,
           "length": 10,
           "width": 25,
-          "barrels": 1
+          "barrels": 1,
+          "main": false
         },
         {
           "kind": "engine",
