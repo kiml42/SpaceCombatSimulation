@@ -179,9 +179,8 @@ const GENERATOR_DISC = 0.55;
 /** How much of a berth's cell its round pad fills across, as a radius. */
 const ROBOT_PAD = 0.38;
 
-/** A robot out on a hull, nose to tail in metres; never drawn shorter than `ROBOT_MIN_PX`. */
+/** A robot out on a hull, nose to tail in metres: drawn to scale, so it is seen when zoomed in close. */
 const ROBOT_LENGTH = 1.2;
-const ROBOT_MIN_PX = 9;
 /** How far short of the tail each wing case stops, radians round the shell. */
 const ROBOT_WING_GAP = 0.22;
 /** How round a tank's gauge is drawn at its ends, as a share of the tank's smaller side: enough to read as a tank. */
@@ -649,10 +648,9 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
   // Robots out on the hull, over the modules they crawl across.
   const robots = ship.robots ?? [];
   if (robots.length > 0) {
-    const size = max(ROBOT_LENGTH, ROBOT_MIN_PX / metresToPx);
     const colours = shipColours(ship.team);
     for (let r = 0; r + ROBOT_VIEW_STRIDE <= robots.length; r += ROBOT_VIEW_STRIDE) {
-      drawRobot(ctx, robots[r]!, robots[r + 1]!, robots[r + 2]!, robots[r + 3]!, robots[r + 4]!, size, colours.trim, colours.pivot);
+      drawRobot(ctx, robots[r]!, robots[r + 1]!, robots[r + 2]!, robots[r + 3]!, robots[r + 4]!, ROBOT_LENGTH, colours.trim, colours.pivot);
     }
   }
   ctx.restore();
