@@ -103,9 +103,8 @@ lead, which waits for standing orders. Velocity stays out of the fleet file; the
 
 - **Repair** — a ship spending metal on its own damaged modules, the second use the step names. Stages 3 and 4
   of the plan under *Not started* below; stage 1, damage shedding mass, and stage 2, pads mending fighters,
-  are built (DESIGN.md Status). Left of stage 2: a doctrine that sends a fighter in to be mended — a
-  `repairBelow`, as `refuelBelow` is for fuel — since today one is mended only while it is down for
-  something else.
+  are built (DESIGN.md Status). A fighter is mended only while it is down for something else: what sends
+  one in *to be* mended is deferred, and open in §12.
 - **Magazines: guns turning metal into rounds ahead of firing** (§12). Wanted, not yet settled in shape.
 - **Pilots that know their ammunition.** Only a fighter breaks off to rearm, and only on a pad. Nothing else
   fights differently for running low: a ship fires as freely with its last round as its first, and a gun
@@ -614,6 +613,10 @@ Deliberately unresolved; decide when they block something.
 - **Whether a beam's boiling and a shell's shredding should shed differently.** Both shed by energy
   absorbed, a tenth of a module by the time it breaks and half at five times that (DESIGN.md §4), which
   are first guesses to tune. The floor can drop once a module can be drawn with holes in it.
+- **What sends a ship in to be mended.** Not a `repairBelow` beside `refuelBelow`: one threshold on how
+  damaged a ship is would weigh a scratched hull the same as a lost gun. It has to weigh damage by the
+  function lost, so a fighter shrugs off some damaged modules but runs for a pad at once if it loses a gun.
+  Deferred by the author until repair has settled.
 - **The numbers for repair.** How much each step wastes (repair wastes a tenth, a first guess), and whether
   disassembly and building waste alike; time and power for a joule of damage undone (a pad mends 20 kJ/s a
   metre of its width, at 10 J of charge a joule, both first guesses); a robot's speed over a hull, the
