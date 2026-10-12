@@ -103,8 +103,7 @@
           "angle": 0,
           "length": 16,
           "width": 8,
-          "barrels": 1,
-          "main": false
+          "barrels": 1
         },
         {
           "kind": "hold",
@@ -127,8 +126,7 @@
           "angle": 0,
           "length": 10,
           "width": 25,
-          "barrels": 1,
-          "main": false
+          "barrels": 1
         },
         {
           "kind": "engine",
@@ -187,6 +185,7 @@
       "y": 0,
       "length": 24,
       "width": 48,
+      "reinforcement": 6,
       "thick": true
     },
     {
