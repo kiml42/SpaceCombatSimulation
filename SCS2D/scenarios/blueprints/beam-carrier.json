@@ -4,8 +4,9 @@
   "notes": "A carrier for beam fighters: eight pads, each with a battery to recharge what lands on it, and a tender docked port to port amidships that casts off to scavenge fuel with its claw.",
   "doctrine": {
     "approach": {
-      "refuelBelow": 0.8,
-      "dockBelow": 0.1
+      "scavengeFuelBelow": 0.8,
+      "refuelBelow": 0.1,
+      "deliverFuelAbove": 0.6
     }
   },
   "hangar": {
@@ -28,9 +29,10 @@
           "brake": 0.95,
           "ramRadii": 1000,
           "ramArmed": 0.5,
-          "dockBelow": 0.5,
+          "refuelBelow": 0.5,
           "tangentialMin": 20,
-          "tangentialMax": 60
+          "tangentialMax": 60,
+          "rechargeBelow": 0.5
         }
       },
       "assemblies": {

@@ -74,10 +74,12 @@ const APPROACH_ROWS: readonly DoctrineRow[] = [
   { field: 'turnBias', label: 'turn cost', hint: 'What a half turn costs in choosing which way round to fight, as a share of its main guns: at 0.5 a half turn has to bring half its main guns more to bear', step: 0.1 },
   { field: 'burnWeight', label: 'turns to burn', hint: 'How much it would rather turn its main engines along the way it wants to go than keep its guns on target, for each share of the change it wants the turn would make sooner, turn included. Never turns when its guns-on thrust is enough, or to dodge what it cannot turn in time for. 0 never turns from its guns', step: 0.5 },
   { field: 'rangeHold', label: 'holds guns on', hint: 'How much it would rather keep its guns on target: all of it inside the band it holds, falling away the further out it is', step: 0.5 },
-  { field: 'refuelBelow', label: 'refuels below', hint: 'The share of a full load at or below which a ship with a claw breaks off to scavenge from a wreck or a disarmed enemy, going from one to the next until it is full: set high, it goes whenever it has room enough to be worth the trip. Being filled by a friend is docks below. 0 never does', step: 0.05 },
+  { field: 'scavengeFuelBelow', label: 'scavenges below', hint: 'The share of a full load of fuel at or below which a ship with a claw breaks off to scavenge from a wreck or a disarmed enemy, going from one to the next until it is full: set high, it goes whenever it has room enough to be worth the trip. Being filled by a friend is refuels below. 0 never does', step: 0.05 },
   { field: 'rearmBelow', label: 'rearms below', hint: 'The share of a full load of metal at or below which a fighter breaks off to land on a friend’s pad and rearm, taking on fuel and charge as well. 0 waits until it cannot load another round; below 0 never does', step: 0.05 },
-  { field: 'refuelDanger', label: 'wary of', hint: 'How much an armed enemy within reach of a wreck puts it off: each one divides what the wreck is worth by one more of this. 0 ignores them', step: 0.5 },
-  { field: 'dockBelow', label: 'docks below', hint: 'The share of a full load of fuel or charge at or below which it goes to a friend to be filled: a fighter to a pad it fits on, anything else with a port to a port, a ship with a claw too, which docks only this low and otherwise scavenges. Also what it keeps back for itself when a friend docks with it. 0 never goes, and keeps nothing back', step: 0.05 },
+  { field: 'scavengeDanger', label: 'scavenges wary of', hint: 'How much an armed enemy within reach of a wreck puts it off: each one divides what the wreck is worth by one more of this. 0 ignores them', step: 0.5 },
+  { field: 'refuelBelow', label: 'refuels below', hint: 'The share of a full load of fuel at or below which it goes to a friend to be refuelled: a fighter to a pad it fits on, anything else with a port to a port, a ship with a claw too, which docks only this low and otherwise scavenges. Also the fuel it keeps back when it fills a friend. 0 never goes, and keeps nothing back', step: 0.05 },
+  { field: 'rechargeBelow', label: 'recharges below', hint: 'The share of its batteries at or below which a fighter goes to a friend’s pad to recharge, and the charge it keeps back when it charges a friend. 0 never goes', step: 0.05 },
+  { field: 'deliverFuelAbove', label: 'delivers above', hint: 'The share of a full load of fuel above which a ship with a port takes what it holds over this to a friend with room, unasked: once it is full, or once it can find nothing left to scavenge. 0 never delivers', step: 0.05 },
   { field: 'dockDanger', label: 'docks wary of', hint: 'How much an armed enemy near a friend puts it off docking there: each one divides what the dock is worth by one more of this, and above 0 a dock lets go while one is in reach. 0 ignores them', step: 0.5 },
   { field: 'tangentialMin', label: 'passes at least', hint: 'The least sideways speed it keeps relative to what it is attacking, metres per second. Above 0 it comes in aiming to miss, at the inner edge of its band, and circles if its thrust can hold the turn or makes passes if it cannot. 0 for both comes to rest at its band', step: 5 },
   { field: 'tangentialMax', label: 'passes at most', hint: 'The most sideways speed it keeps relative to what it is attacking, metres per second; 0 for both comes to rest at its band', step: 5 },
@@ -314,9 +316,9 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
       {
         title: 'Refuelling and rearming',
         entries: [
-          entry('approach', 'refuelBelow', {
+          entry('approach', 'scavengeFuelBelow', {
             absolute: (v) =>
-              v.approach.refuelBelow > 0 ? `below ${Math.round(v.approach.refuelBelow * 100)}% full, with a claw` : 'never',
+              v.approach.scavengeFuelBelow > 0 ? `below ${Math.round(v.approach.scavengeFuelBelow * 100)}% full, with a claw` : 'never',
           }),
           entry('approach', 'rearmBelow', {
             absolute: (v) =>
@@ -326,12 +328,24 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
                   ? `below ${Math.round(v.approach.rearmBelow * 100)}% full, on a pad`
                   : 'once it cannot load a round, on a pad',
           }),
-          entry('approach', 'refuelDanger', { shown: (v) => v.approach.refuelBelow > 0 }),
-          entry('approach', 'dockBelow', {
+          entry('approach', 'scavengeDanger', { shown: (v) => v.approach.scavengeFuelBelow > 0 }),
+          entry('approach', 'refuelBelow', {
             absolute: (v) =>
-              v.approach.dockBelow > 0 ? `below ${Math.round(v.approach.dockBelow * 100)}% full, at a friend’s pad or port` : 'never',
+              v.approach.refuelBelow > 0 ? `below ${Math.round(v.approach.refuelBelow * 100)}% full, at a friend’s pad or port` : 'never',
           }),
-          entry('approach', 'dockDanger', { shown: (v) => v.approach.dockBelow > 0 || v.approach.rearmBelow >= 0 }),
+          entry('approach', 'rechargeBelow', {
+            absolute: (v) =>
+              v.approach.rechargeBelow > 0 ? `below ${Math.round(v.approach.rechargeBelow * 100)}% charged, on a pad` : 'never',
+          }),
+          entry('approach', 'deliverFuelAbove', {
+            absolute: (v) =>
+              v.approach.deliverFuelAbove > 0
+                ? `what it holds over ${Math.round(v.approach.deliverFuelAbove * 100)}%, to a friend’s port`
+                : 'never',
+          }),
+          entry('approach', 'dockDanger', {
+            shown: (v) => v.approach.refuelBelow > 0 || v.approach.rechargeBelow > 0 || v.approach.rearmBelow >= 0,
+          }),
         ],
       },
     ],

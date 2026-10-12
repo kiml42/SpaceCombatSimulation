@@ -325,34 +325,47 @@ export interface Approach {
    * breaks off to scavenge from a wreck or a disarmed enemy, and keeps at it
    * until its claw lets go full: set high, it goes whenever it has room
    * enough to be worth the trip. Zero never does; one goes whenever it has
-   * room. Being filled by a friend is `dockBelow`'s.
+   * room. Being filled by a friend is `refuelBelow`'s.
    */
-  readonly refuelBelow: number;
+  readonly scavengeFuelBelow: number;
   /**
    * How much an armed enemy near a source puts it off: each one within its
    * own reach of the source divides what the source is worth by one more of
    * this. Zero or less ignores them.
    */
-  readonly refuelDanger: number;
+  readonly scavengeDanger: number;
   /**
-   * The share of a full load of fuel or charge at or below which it goes to a
-   * friend to be filled: a fighter to a pad it fits on, anything else with a
-   * port to a port — a ship with a claw too, which docks only this low and
-   * otherwise scavenges by `refuelBelow`. It is also what it keeps back for
-   * itself when a friend docks with it. Zero never goes, and keeps nothing back.
+   * The share of a full load of fuel at or below which it goes to a friend to
+   * be refuelled: a fighter to a pad it fits on, anything else with a port to
+   * a port — a ship with a claw too, which docks only this low and otherwise
+   * scavenges by `scavengeFuelBelow`. It is also the fuel it keeps back for
+   * itself when it fills a friend. Zero never goes, and keeps nothing back.
    */
-  readonly dockBelow: number;
+  readonly refuelBelow: number;
+  /**
+   * The same for charge: the share of its batteries at or below which a
+   * fighter goes to a friend's pad to recharge, and what it keeps back for
+   * itself when it charges a friend.
+   */
+  readonly rechargeBelow: number;
+  /**
+   * The share of a full load of fuel above which a ship with a port takes
+   * what it holds over this to a friend with room for it, whether or not the
+   * friend is asking: once it is full, or once it can find nothing left to
+   * scavenge. Zero never delivers.
+   */
+  readonly deliverFuelAbove: number;
   /**
    * How much an armed enemy near a friend puts it off docking there, as
-   * `refuelDanger` does a source; above zero, a dock also will not hold while
+   * `scavengeDanger` does a source; above zero, a dock also will not hold while
    * one is in reach. Zero or less ignores them.
    */
   readonly dockDanger: number;
   /**
    * The share of a full load of metal at or below which a fighter breaks off to
    * land on a friend's pad and rearm. Zero waits until it cannot load another
-   * round; below zero never does. Either this or `dockBelow` sends it, and
-   * the pad fills it with everything it has room for.
+   * round; below zero never does. This, `refuelBelow` or `rechargeBelow`
+   * sends it, and the pad fills it with everything it has room for.
    */
   readonly rearmBelow: number;
   /**
@@ -442,9 +455,11 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     turnBias: 0.5,
     burnWeight: 2,
     rangeHold: 1,
-    refuelBelow: 0,
-    refuelDanger: 1,
-    dockBelow: 0.25,
+    scavengeFuelBelow: 0,
+    scavengeDanger: 1,
+    refuelBelow: 0.25,
+    rechargeBelow: 0.25,
+    deliverFuelAbove: 0,
     dockDanger: 0,
     tangentialMin: 0,
     tangentialMax: 0,
@@ -635,9 +650,11 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
   'turnBias',
   'burnWeight',
   'rangeHold',
+  'scavengeFuelBelow',
+  'scavengeDanger',
   'refuelBelow',
-  'refuelDanger',
-  'dockBelow',
+  'rechargeBelow',
+  'deliverFuelAbove',
   'dockDanger',
   'rearmBelow',
   'tangentialMin',

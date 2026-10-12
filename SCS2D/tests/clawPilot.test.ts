@@ -19,13 +19,13 @@ const TANK = 1;
 const CLAW = 2;
 
 /** The stock Scavenger with its tanks starting full, so each test says how much room it has. */
-function scavenger(refuelBelow: number, refuelDanger = 1): ShipDesign {
+function scavenger(scavengeFuelBelow: number, scavengeDanger = 1): ShipDesign {
   const doctrine = compileBlueprint(SCAVENGER).doctrine;
   const modules = SCAVENGER.modules!.map((m) => {
     const { fill: _, ...full } = m as ModuleSpec;
     return full;
   });
-  return compileBlueprint({ ...SCAVENGER, modules, doctrine: { ...doctrine, approach: { ...doctrine.approach, refuelBelow, refuelDanger } } });
+  return compileBlueprint({ ...SCAVENGER, modules, doctrine: { ...doctrine, approach: { ...doctrine.approach, scavengeFuelBelow, scavengeDanger } } });
 }
 
 /** Shoot out a hull's cores, leaving a wreck with its tanks full. */

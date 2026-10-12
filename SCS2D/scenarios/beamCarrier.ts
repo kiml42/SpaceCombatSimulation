@@ -10,7 +10,7 @@ const RAIDERS = 8;
  * A Beam Carrier, short of fuel, against a wave of TIEs, with two wrecks behind it.
  *
  * It sets out with its tender docked port to port and a Dinky Beam on each of
- * its eight pads. The carrier is below its own `dockBelow`, so it has no fuel
+ * its eight pads. The carrier is below its own `refuelBelow`, so it has no fuel
  * to spare its tender, and the tender casts off to drink from the wrecks with
  * its claw. The fighters launch charged, fight the TIEs on their batteries,
  * and come back to the pads to recharge once they are down to half.

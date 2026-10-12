@@ -18,7 +18,7 @@ describe('the Beam Carrier', () => {
     for (const f of FIGHTERS) expect(ships.body(f)).toBe(ships.body(CARRIER));
   });
 
-  it('casts its tender off at once, the tender being above its dockBelow, without taking the carrier\'s fuel', () => {
+  it('casts its tender off at once, the tender being above its refuelBelow, without taking the carrier\'s fuel', () => {
     const tank = (): number => ships.fuel.pieceHeld(body(TENDER), ships.design(TENDER).modules.findIndex((m) => m.spec.kind === 'claw'));
     for (let s = 0; s < 5 * 60; s++) run.step();
     expect(ships.body(TENDER)).not.toBe(ships.body(CARRIER));
@@ -55,5 +55,19 @@ describe('the Beam Carrier', () => {
       gripped = ships.isAlive(TENDER) && [10, 11].some((w) => ships.body(w) === ships.body(TENDER));
     }
     expect(gripped).toBe(true);
+  });
+
+  it('has its tender bring what it scavenges back to the carrier, unasked, once it is full', { timeout: 60_000 }, () => {
+    const carrierFuel = (): number => ships.fuel.pieceHeld(body(CARRIER), 1);
+    const before = carrierFuel();
+    let docked = false;
+    for (let s = 0; s < 300 * 60 && !docked; s++) {
+      run.step();
+      docked = ships.body(TENDER) === ships.body(CARRIER);
+    }
+    expect(docked).toBe(true);
+    for (let s = 0; s < 120 * 60 && ships.body(TENDER) === ships.body(CARRIER); s++) run.step();
+    expect(ships.body(TENDER)).not.toBe(ships.body(CARRIER));
+    expect(carrierFuel()).toBeGreaterThan(before);
   });
 });

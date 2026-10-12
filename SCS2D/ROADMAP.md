@@ -169,7 +169,7 @@ that answers the question most likely to change the design.
 
 - **Docks pass charge as they pass fuel**: a pad from its carrier to what has landed, a port into whichever ship
   is refuelling, each at `DOCK_POWER_PER_METRE` of the part's width (a port's, the narrower), from what the
-  giver can spare above its own `dockBelow`. A dock holds until fuel, metal (on a pad) and charge are all
+  giver can spare above its own `rechargeBelow`. A dock holds until fuel, metal (on a pad) and charge are all
   full or can be spared no more.
 - **A beam's reload is paid for in charge** (`Ships.recharged`): over its reload a beam draws the energy its
   bank holds, and its reload timer runs only as fast as its piece of hull supplies it, the main battery
