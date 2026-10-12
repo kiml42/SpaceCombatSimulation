@@ -79,6 +79,8 @@ const APPROACH_ROWS: readonly DoctrineRow[] = [
   { field: 'refuelDanger', label: 'wary of', hint: 'How much an armed enemy within reach of a wreck puts it off: each one divides what the wreck is worth by one more of this. 0 ignores them', step: 0.5 },
   { field: 'dockBelow', label: 'docks below', hint: 'The share of a full load of fuel or charge at or below which it goes to a friend to be filled: a fighter to a pad it fits on, anything else with a port to a port. Also what it keeps back for itself when a friend docks with it. 0 never goes, and keeps nothing back', step: 0.05 },
   { field: 'dockDanger', label: 'docks wary of', hint: 'How much an armed enemy near a friend puts it off docking there: each one divides what the dock is worth by one more of this, and above 0 a dock lets go while one is in reach. 0 ignores them', step: 0.5 },
+  { field: 'tangentialMin', label: 'passes at least', hint: 'The least sideways speed it keeps relative to what it is attacking, metres per second. Above 0 it comes in aiming to miss, at the inner edge of its band, and circles if its thrust can hold the turn or makes passes if it cannot. 0 for both comes to rest at its band', step: 5 },
+  { field: 'tangentialMax', label: 'passes at most', hint: 'The most sideways speed it keeps relative to what it is attacking, metres per second; 0 for both comes to rest at its band', step: 5 },
   { field: 'ramArmed', label: 'rams armed', hint: 'The share of its own main guns still working at or below which it will ram: 0 only once it cannot shoot, 1 whenever it is close enough', step: 0.1 },
 ];
 
@@ -205,6 +207,21 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
               return `holds ${metres(band.min)}–${metres(band.max)}, centre to centre`;
             },
           }),
+        ],
+      },
+      {
+        title: 'On the move',
+        entries: [
+          entry('approach', 'tangentialMin', {
+            absolute: (v, ship) => {
+              if (!(v.approach.tangentialMax > 0)) return 'comes to rest at its band';
+              const band = holdBand(v.approach, ship.reach, enemyRadius(v, ship));
+              const middle = (band.min + band.max) / 2;
+              const rate = (speed: number): string => ((speed / middle) * 180 / Math.PI).toFixed(1);
+              return `${rate(v.approach.tangentialMin)}–${rate(v.approach.tangentialMax)}°/s round the size it wants, mid-band`;
+            },
+          }),
+          entry('approach', 'tangentialMax'),
         ],
       },
       {

@@ -228,7 +228,9 @@
           "standoff": 0.2,
           "approachSpeed": 250,
           "brake": 1,
-          "ramRadii": 600
+          "ramRadii": 600,
+          "tangentialMin": 20,
+          "tangentialMax": 60
         }
       },
       "assemblies": {
@@ -411,6 +413,10 @@
           "loyaltyWeight": 50,
           "armedWeight": 100,
           "mobileWeight": 60
+        },
+        "approach": {
+          "tangentialMin": 20,
+          "tangentialMax": 60
         }
       },
       "assemblies": {
@@ -559,7 +565,9 @@
           "brake": 0.804,
           "turnBias": 1,
           "burnWeight": 1.5,
-          "rangeHold": 1.5
+          "rangeHold": 1.5,
+          "tangentialMin": 20,
+          "tangentialMax": 60
         }
       },
       "assemblies": {

@@ -26,7 +26,9 @@
       "accelerate": 0.862,
       "brake": 1.019,
       "ramRadii": 49.229,
-      "ramArmed": 0.435
+      "ramArmed": 0.435,
+      "tangentialMin": 20,
+      "tangentialMax": 60
     }
   },
   "assemblies": {
