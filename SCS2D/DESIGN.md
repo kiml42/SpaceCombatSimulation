@@ -646,7 +646,7 @@ inside any one file is not contiguous.
   there as a ram does, mains along the change of velocity it needs, braking on them with a half turn allowed
   for. It comes in over the pad's clear side — of its four sides, the one with the longest run before
   anything in the weapons layer, and of those the one opening onto empty space — and from the wrong side it
-  first circles the carrier outside its radius, `PAD_ORBIT_STEP` at a time, rather than fly through what is in
+  first circles the carrier outside its radius, `HULL_ORBIT_STEP` at a time, rather than fly through what is in
   the way. Within `PAD_ALIGN_RADII` of its own radii it eases in at no more than `PAD_SPEED`, slowing as it
   closes, lined up with the pad if it would not fit at any heading. It lands — never committing, the pad and the fighter meeting at the boundary
   between the layers — once its whole bounding box lies inside the pad and it moves with it to within
@@ -665,7 +665,9 @@ inside any one file is not contiguous.
   every metre of its face. Anything but a fighter with a working port that is down to its
   `refuelBelow` picks a
   friend's free port as it would a pad — from a friend under control and not refuelling itself — comes to a
-  point one of its own radii off it, flown mains-first, lines up face to face on the port's axis, and closes
+  point one of its own radii off it, flown mains-first — from anywhere but out in front of the port, first
+  circling the friend's hull as a fighter does a pad, to a point a radius of the friend's off the port — lines
+  up face to face on the port's axis, and closes
   the last stretch at half a metre a second. Two ports mate when they meet within 30° of face to face at no
   more than `PORT_SPEED` and one of the two ships was making for exactly that pair; fuel then passes, through
   the narrower coupling, into whichever is refuelling from what the other can spare above its own
