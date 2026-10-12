@@ -516,7 +516,16 @@ const FLEET: readonly BlueprintName[] = [
  * group or the other on purpose — see the test below that checks the two
  * cover every ship exactly once.
  */
-const SHOWCASE: readonly BlueprintName[] = ['xWing', 'ghost', 'tie', 'starDestroyer', 'aWing', 'yWing', 'beamCarrier'];
+const SHOWCASE: readonly BlueprintName[] = [
+  'xWing',
+  'ghost',
+  'tie',
+  'starDestroyer',
+  'aWing',
+  'yWing',
+  'beamCarrier',
+  'quasar'
+];
 
 /**
  * Seeds: layouts that are somewhere for evolution to start rather than ships.
@@ -698,7 +707,7 @@ describe('the authored blueprints', () => {
             expect(
               inside,
               `${blueprint.name}: engine at (${t.spec.x}, ${t.spec.y}) exhausts into ` +
-                `${other.spec.kind} at (${other.spec.x}, ${other.spec.y})`,
+              `${other.spec.kind} at (${other.spec.x}, ${other.spec.y})`,
             ).toBe(false);
           }
         }

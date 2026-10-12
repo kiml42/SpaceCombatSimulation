@@ -92,8 +92,10 @@ describe('the fleet file format', () => {
     for (const fleet of Object.values(FLEETS)) {
       for (const [name, design] of Object.entries(fleet.designs)) {
         expect(blueprintProblem(design), `${fleet.name}: ${name}`).toBeNull();
+        const ship = library.get(name);
+        expect(ship, `${fleet.name}: ${name} not found in library`).toBeDefined();
         expect(serialiseBlueprint(design), `${fleet.name}: ${name} out of sync`).toEqual(
-          serialiseBlueprint(library.get(name)!),
+          serialiseBlueprint(ship!),
         );
       }
     }
