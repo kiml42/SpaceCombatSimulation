@@ -732,7 +732,8 @@
               "x": 0,
               "y": 0,
               "length": 50,
-              "width": 50
+              "width": 50,
+              "reinforcement": 2
             }
           ]
         },
@@ -769,6 +770,7 @@
               "y": 94,
               "length": 30,
               "width": 140,
+              "reinforcement": 3,
               "thick": true
             },
             {
@@ -817,7 +819,8 @@
               "x": 47,
               "y": 85.5,
               "length": 50,
-              "width": 17
+              "width": 17,
+              "reinforcement": 2
             },
             {
               "kind": "hullBeam",
@@ -896,6 +899,7 @@
               "angle": -59.145795494000005,
               "length": 10,
               "width": 135,
+              "reinforcement": 4,
               "barrels": 33
             }
           ]
@@ -916,7 +920,8 @@
           "x": 174.5,
           "y": -0.000001715,
           "length": 205,
-          "width": 60.003955601
+          "width": 60.003955601,
+          "reinforcement": 3
         },
         {
           "kind": "engine",
@@ -943,7 +948,8 @@
           "x": 47,
           "y": 0,
           "length": 50,
-          "width": 54
+          "width": 54,
+          "reinforcement": 3
         },
         {
           "kind": "engine",
@@ -951,6 +957,7 @@
           "y": 0,
           "length": 18,
           "width": 44,
+          "reinforcement": 4,
           "barrels": 12,
           "nozzle": 0.222222
         }
