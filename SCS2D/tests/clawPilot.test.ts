@@ -10,6 +10,7 @@ import { makeBattle } from '../scenarios/battle.js';
 import { CORVETTE, GUNSHIP, SCAVENGER } from '../scenarios/blueprints.js';
 import type { World } from '../sim/world.js';
 import { OrderCancelCondition } from '../sim/ships.js';
+import { PI } from '../sim/math.js';
 
 /** A pilot taking its claw to wrecks for their fuel (ROADMAP.md §8 step 9). */
 
@@ -109,6 +110,18 @@ describe('a pilot with a claw', () => {
     const run = scene(scavenger(0.5), 2_000, [[0, 0]]);
     for (let s = 0; s < 120; s++) run.step();
     expect(salvaging(run.ships, run.a)).toBe(-1);
+  });
+
+  it('goes round a friend in the way of its wreck, rather than through it', () => {
+    // A friendly gunship, under control and keeping still, square across the line.
+    const still = compileBlueprint({ ...GUNSHIP, doctrine: { ...gunship.doctrine, approach: { ...gunship.doctrine.approach, separation: 0 } } });
+    const friend = (ships: Ships, world: World): void => {
+      ships.spawn(world, { design: still, x: -300, y: 0, angle: PI / 2, team: 0 });
+    };
+    const run = scene(scavenger(0.5), 15_000, [[0, 0]], friend);
+    runUntil(run, () => holding(run, run.wrecks[0]!), 120);
+    expect(holding(run, run.wrecks[0]!)).toBe(true);
+    expect(run.totalContacts).toBeLessThan(10);
   });
 
   it('goes for the nearer of two wrecks alike', () => {
