@@ -150,6 +150,7 @@ const SIDE_FIELDS = [
   'kindHold',
   'kindBattery',
   'kindGenerator',
+  'kindRobotBay',
   'doctrineTargeting',
   'doctrineApproach',
   'doctrineEscort',
@@ -228,6 +229,7 @@ const FIELDS = [
   'kindHold',
   'kindBattery',
   'kindGenerator',
+  'kindRobotBay',
   'doctrineTargeting',
   'doctrineApproach',
   'doctrineEscort',
@@ -668,6 +670,7 @@ export function startEvolution(): void {
     kindHold: String(DEFAULT_KINDS.hold),
     kindBattery: String(DEFAULT_KINDS.battery),
     kindGenerator: String(DEFAULT_KINDS.generator),
+    kindRobotBay: String(DEFAULT_KINDS.robotBay),
     doctrineTargeting: String(DEFAULT_DOCTRINE_WEIGHTS.targeting),
     doctrineApproach: String(DEFAULT_DOCTRINE_WEIGHTS.approach),
     doctrineEscort: String(DEFAULT_DOCTRINE_WEIGHTS.escort),
@@ -908,6 +911,7 @@ export function startEvolution(): void {
           hold: Math.max(0, number(get('kindHold'), DEFAULT_KINDS.hold)),
           battery: Math.max(0, number(get('kindBattery'), DEFAULT_KINDS.battery)),
           generator: Math.max(0, number(get('kindGenerator'), DEFAULT_KINDS.generator)),
+          robotBay: Math.max(0, number(get('kindRobotBay'), DEFAULT_KINDS.robotBay)),
         },
         doctrine: {
           targeting: Math.max(0, number(get('doctrineTargeting'), DEFAULT_DOCTRINE_WEIGHTS.targeting)),
@@ -1019,6 +1023,7 @@ export function startEvolution(): void {
     get('kindHold').value = String(kinds.hold);
     get('kindBattery').value = String(kinds.battery);
     get('kindGenerator').value = String(kinds.generator);
+    get('kindRobotBay').value = String(kinds.robotBay);
     const doctrine = doctrineWeights(config.mutation.doctrine);
     get('doctrineTargeting').value = String(doctrine.targeting);
     get('doctrineApproach').value = String(doctrine.approach);

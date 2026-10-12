@@ -1,6 +1,6 @@
 import type { UnreadKeys } from './unread.js';
 import type { Targeting } from './doctrine.js';
-import { abs, asin, atan2, cos, max, PI, round, sin, sqrt } from './math.js';
+import { abs, asin, atan2, cos, floor as roundDown, max, PI, round, sin, sqrt } from './math.js';
 import {
   canShape,
   insetTriangle,
@@ -665,6 +665,30 @@ export const PAD_PUMP_PER_METRE = 50;
 /** Damage a pad undoes per metre of its width, J/s, on what has landed on it. */
 export const PAD_REPAIR_PER_METRE = 2e4;
 
+/** Bay interior a robot and its berth take up, m³. */
+export const ROBOT_BERTH_VOLUME = 10;
+
+/** What a robot weighs, kg, counted in its bay's fittings. */
+export const ROBOT_MASS = 300;
+
+/** A robot bay's racks and charging gear per cubic metre of its interior, kg/m³. */
+export const ROBOT_BAY_MASS_PER_VOLUME = 50;
+
+/** How fast a robot crawls over a hull, m/s. */
+export const ROBOT_SPEED = 2;
+
+/** Damage a robot undoes a second, J/s. */
+export const ROBOT_REPAIR_RATE = 5e4;
+
+/** Metal a robot carries out from its bay, kg. */
+export const ROBOT_LOAD = 500;
+
+/** Charge a robot carries out from its bay, J. */
+export const ROBOT_CHARGE = 5e7;
+
+/** How long a bay takes to refill a robot, s. */
+export const ROBOT_REFILL_TIME = 5;
+
 /**
  * A docking port's collar, clamps and coupling per square metre of its floor,
  * kg/m²: machinery like a claw's, without the jaws.
@@ -762,7 +786,8 @@ export type ModuleKind =
   | 'port'
   | 'hold'
   | 'battery'
-  | 'generator';
+  | 'generator'
+  | 'robotBay';
 
 /**
  * Every archetype there is, in one order.
@@ -791,6 +816,7 @@ export const MODULE_KINDS: readonly ModuleKind[] = [
   'hold',
   'battery',
   'generator',
+  'robotBay',
 ];
 
 /**
@@ -1179,6 +1205,8 @@ export interface ModuleStats {
   chargeRate: number;
   /** What it makes, W. Zero unless it is a generator or a core. */
   generation: number;
+  /** Robots it berths. Zero unless it is a robot bay. */
+  robots: number;
 }
 
 /**
@@ -2292,6 +2320,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
   let charge = 0;
   let chargeRate = 0;
   let generation = 0;
+  let robots = 0;
   let gun: GunStats | null = null;
   // Mass that hangs off the pivot as a rod rather than filling the box, and
   // the inertia it accounts for. Barrels, and nothing else so far.
@@ -2341,6 +2370,9 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
   } else if (spec.kind === 'generator') {
     fittingMass = interior * GENERATOR_MASS_PER_VOLUME;
     generation = interior * GENERATOR_POWER_PER_VOLUME;
+  } else if (spec.kind === 'robotBay') {
+    robots = roundDown(interior / ROBOT_BERTH_VOLUME);
+    fittingMass = interior * ROBOT_BAY_MASS_PER_VOLUME + robots * ROBOT_MASS;
   } else if (engine !== null) {
     // Thrust comes out of the nozzle, so it scales with the exit area: each
     // bell square, as wide as it is deep. A thin engine wider than a deck
@@ -2523,6 +2555,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
     charge,
     chargeRate,
     generation,
+    robots,
   };
 }
 

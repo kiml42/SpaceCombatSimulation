@@ -19,6 +19,7 @@ import { soloOrdering } from '../../scenarios/ordering.js';
 import { ram } from '../../scenarios/ram.js';
 import { hooked } from '../../scenarios/hooked.js';
 import { salvage } from '../../scenarios/salvage.js';
+import { mending } from '../../scenarios/mending.js';
 import { scavenge } from '../../scenarios/scavenge.js';
 import { carrier } from '../../scenarios/carrier.js';
 import { rearm } from '../../scenarios/rearm.js';
@@ -487,6 +488,19 @@ export function hookedScenario(seed = 20260929): ScenarioRun {
   };
 }
 
+export function mendingScenario(seed = 20261013): ScenarioRun {
+  const run = mending(seed);
+  return {
+    step: () => run.step(),
+    checksum: () =>
+      checksumDamage(
+        run.ships.damage,
+        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
+      ),
+    describe: () => describeBattle(run),
+  };
+}
+
 export function salvageScenario(seed = 20261008): ScenarioRun {
   const run = salvage(seed);
   return {
@@ -629,6 +643,8 @@ export const SCENARIOS = {
   hooked: { steps: 3_000, build: () => hookedScenario() },
   broadside: { steps: 3_000, build: () => broadsideScenario() },
   salvage: { steps: 3_000, build: () => salvageScenario() },
+  // Long enough for the robots to mend everything and come home.
+  mending: { steps: 15_600, build: () => mendingScenario() },
   // Long enough for both scavengers to drink their fill, one from three wrecks.
   scavenge: { steps: 18_000, build: () => scavengeScenario() },
   // Long enough for all three fighters to land, fill and lift off.

@@ -233,6 +233,8 @@ export const DEFAULT_KINDS: KindWeights = {
   // Power is what a beam is worth anything with, past what a core carries.
   battery: 1,
   generator: 1,
+  // Mends a ship rather than fighting with it; zero until what it is worth is tuned.
+  robotBay: 0,
 };
 
 /**
@@ -688,7 +690,8 @@ function knobs(draft: Draft): Knob[] {
         placement.kind !== 'hold' &&
         placement.kind !== 'core' &&
         placement.kind !== 'battery' &&
-        placement.kind !== 'generator'
+        placement.kind !== 'generator' &&
+        placement.kind !== 'robotBay'
       ) {
         out.push({ at: 'angle', site });
       }

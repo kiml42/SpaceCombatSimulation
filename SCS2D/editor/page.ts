@@ -181,6 +181,8 @@ const DEFAULTS: Record<ModuleSpec['kind'], Omit<ModuleSpec, 'x' | 'y'>> = {
   hold: { kind: 'hold', length: 4, width: 3 },
   battery: { kind: 'battery', length: 4, width: 3 },
   generator: { kind: 'generator', length: 4, width: 4 },
+  // Berths for four robots.
+  robotBay: { kind: 'robotBay', length: 4, width: 4 },
   core: { kind: 'core', length: 3, width: 3 },
   // Facing aft along its bell, so it pushes the ship forward.
   engine: { kind: 'engine', angle: math.PI, length: 3, width: 3 },

@@ -174,6 +174,10 @@ const METAL = NEUTRAL.hull;
 const CHARGE = '#9b7bff';
 /** How much of a generator's smaller side its disc is drawn across. */
 const GENERATOR_DISC = 0.55;
+
+/** A robot out on a hull, radius in metres; never drawn smaller than `ROBOT_MIN_PX` across. */
+const ROBOT_RADIUS = 0.5;
+const ROBOT_MIN_PX = 2;
 /** How round a tank's gauge is drawn at its ends, as a share of the tank's smaller side: enough to read as a tank. */
 const TANK_ROUNDING = 0.35;
 
@@ -511,6 +515,15 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
           ctx.restore();
         }
       }
+      if (spec.kind === 'robotBay') {
+        // A berth ring in the trim colour, dark once it can no longer tend its robots.
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = integrity > 0 ? colours.trim : FUEL_TRACK;
+        ctx.lineWidth = min(spec.length, spec.width) * 0.08;
+        ctx.beginPath();
+        ctx.arc(0, 0, min(spec.length, spec.width) * 0.3, 0, TAU);
+        ctx.stroke();
+      }
       if (spec.kind === 'generator') {
         // The plant: a disc of charge, dark once it has stopped making any.
         ctx.globalAlpha = 1;
@@ -546,6 +559,17 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
       }
     }
     ctx.restore();
+  }
+  // Robots out on the hull, over the modules they crawl across.
+  const robots = ship.robots ?? [];
+  if (robots.length > 0) {
+    ctx.fillStyle = shipColours(ship.team).trim;
+    const radius = max(ROBOT_RADIUS, ROBOT_MIN_PX / 2 / metresToPx);
+    for (let r = 0; r + 1 < robots.length; r += 2) {
+      ctx.beginPath();
+      ctx.arc(robots[r]!, robots[r + 1]!, radius, 0, TAU);
+      ctx.fill();
+    }
   }
   ctx.restore();
 

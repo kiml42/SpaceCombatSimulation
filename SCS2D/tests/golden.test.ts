@@ -42,6 +42,7 @@ const GOLDEN: Record<ScenarioName, string> = {
   hooked: '85699c7c',
   broadside: 'c8455755',
   salvage: '0e391d9a',
+  mending: '806dfc37',
   scavenge: '2d7f7d1f',
   carrier: 'f2e5ef2f',
   rearm: '021fe098',
