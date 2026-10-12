@@ -374,11 +374,11 @@ const PORT_HEADING_SLACK = 0.1;
 const PAD_ALIGN_RADII = 4;
 
 /**
- * How far round its carrier, radians, a fighter coming in from the wrong side
- * steers at a time: it circles the hull outside its radius rather than flying
- * through what stands between it and the pad.
+ * How far round a friend, radians, a ship coming in from the wrong side for a
+ * pad or a port steers at a time: it circles the hull outside its radius rather
+ * than flying through what stands between it and where it is going.
  */
-const PAD_ORBIT_STEP = 0.5;
+const HULL_ORBIT_STEP = 0.5;
 
 /** A design's engines' exhaust speed, m/s, weighted by their thrust; 0 for one with none. */
 const EXHAUST = new WeakMap<ShipDesign, number>();
@@ -829,6 +829,9 @@ export class Ships {
   private readonly dockPort: number[] = [];
   /** Which of its own ports it means to mate with it; -1 for none. */
   private readonly ownPort: number[] = [];
+  /** Where `aroundHull` last said to steer for, world metres. */
+  private wayX = 0;
+  private wayY = 0;
   /**
    * What each ship is covering, which is never what it is fighting: a consort
    * is by definition something it will not shoot at. Chosen on the same
@@ -5257,22 +5260,9 @@ export class Ships {
     let left = range;
     if (!near && !lined) {
       const reach = bodies.radius[tb]!;
-      const ax = place.x + nx * reach;
-      const ay = place.y + ny * reach;
-      const cx = bodies.x[tb]!;
-      const cy = bodies.y[tb]!;
-      const from = atan2(bodies.y[b]! - cy, bodies.x[b]! - cx);
-      const off = angleDelta(from, atan2(ay - cy, ax - cx));
-      if (abs(off) > PAD_ORBIT_STEP) {
-        const ring = max(length(ax - cx, ay - cy), reach + 2 * mine);
-        const step = from + (off > 0 ? PAD_ORBIT_STEP : -PAD_ORBIT_STEP);
-        gx = cx + cos(step) * ring;
-        gy = cy + sin(step) * ring;
-      } else {
-        gx = ax;
-        gy = ay;
-      }
-      left = length(gx - bodies.x[b]!, gy - bodies.y[b]!) + reach;
+      left = this.aroundHull(bodies, b, tb, place.x + nx * reach, place.y + ny * reach) + reach;
+      gx = this.wayX;
+      gy = this.wayY;
     }
     const dx = gx - bodies.x[b]!;
     const dy = gy - bodies.y[b]!;
@@ -5310,6 +5300,29 @@ export class Ships {
     const dvx = vx - bodies.vx[b]!;
     const dvy = vy - bodies.vy[b]!;
     return length(dvx, dvy) > PAD_SPEED / 2 ? atan2(dvy, dvx) - design.thrustBearing : bodies.angle[b]!;
+  }
+
+  /**
+   * Steer body `b` for the point `ax`, `ay` off body `tb`'s hull, circling the
+   * hull outside its radius when that point is round the far side rather than
+   * flying through it. Leaves the next point to make for in `wayX`, `wayY`,
+   * and returns how far that is.
+   */
+  private aroundHull(bodies: Bodies, b: number, tb: number, ax: number, ay: number): number {
+    const cx = bodies.x[tb]!;
+    const cy = bodies.y[tb]!;
+    const from = atan2(bodies.y[b]! - cy, bodies.x[b]! - cx);
+    const off = angleDelta(from, atan2(ay - cy, ax - cx));
+    if (abs(off) > HULL_ORBIT_STEP) {
+      const ring = max(length(ax - cx, ay - cy), bodies.radius[tb]! + 2 * bodies.radius[b]!);
+      const step = from + (off > 0 ? HULL_ORBIT_STEP : -HULL_ORBIT_STEP);
+      this.wayX = cx + cos(step) * ring;
+      this.wayY = cy + sin(step) * ring;
+    } else {
+      this.wayX = ax;
+      this.wayY = ay;
+    }
+    return length(this.wayX - bodies.x[b]!, this.wayY - bodies.y[b]!);
   }
 
   /**
@@ -5450,7 +5463,8 @@ export class Ships {
   /**
    * Bring this ship's port `own` onto port `theirs` of body `tb`, face to face.
    * It flies to a point a little off their port first, mains along the change
-   * of velocity it needs as a ram does; once there, lined up and on the port's
+   * of velocity it needs as a ram does, and round their hull to the front of
+   * the port if it starts anywhere else; once there, lined up and on the port's
    * axis, it closes the last stretch at `PORT_APPROACH`, slow enough to mate.
    * Returns the heading to hold.
    */
@@ -5480,11 +5494,24 @@ export class Ships {
     const width = min(mine.spec.width, host.modules[theirs]!.spec.width);
     const lined = abs(angleDelta(bodies.angle[b]!, heading)) <= PORT_HEADING_SLACK && lateral <= width * 0.25;
     const standoff = PORT_STANDOFF_RADII * bodies.radius[b]!;
-    const tx = lined ? gx : gx + nx * standoff;
-    const ty = lined ? gy : gy + ny * standoff;
+    let tx = lined ? gx : gx + nx * standoff;
+    let ty = lined ? gy : gy + ny * standoff;
+    // Not out in front of their port: round their hull to a point a radius of
+    // theirs off it first, rather than through the hull.
+    const fx = bodies.x[b]! - (place.x + nx * face);
+    const fy = bodies.y[b]! - (place.y + ny * face);
+    const ahead = fx * nx + fy * ny;
+    let left = -1;
+    if (!lined && !(ahead > 0 && abs(fy * nx - fx * ny) <= ahead)) {
+      const reach = bodies.radius[tb]!;
+      left = this.aroundHull(bodies, b, tb, place.x + nx * (face + reach), place.y + ny * (face + reach)) + reach;
+      tx = this.wayX;
+      ty = this.wayY;
+    }
     const dx = tx - bodies.x[b]!;
     const dy = ty - bodies.y[b]!;
     const range = length(dx, dy);
+    if (left < 0) left = range;
     let vx = place.vx;
     let vy = place.vy;
     if (range > 0) {
@@ -5494,7 +5521,7 @@ export class Ships {
       } else {
         const mains = this.layoutOf(i).maxThrustAlong(cos(design.thrustBearing), sin(design.thrustBearing)) / bodies.mass[b]!;
         const delay = approach.responseTime + this.halfTurnTime(bodies, i, b);
-        radial = min(approach.approachSpeed, stoppingSpeed(approach.brake * mains, range, delay));
+        radial = min(approach.approachSpeed, stoppingSpeed(approach.brake * mains, left, delay));
       }
       vx += (dx / range) * radial;
       vy += (dy / range) * radial;
@@ -5502,7 +5529,7 @@ export class Ships {
     this.urge(URGE_REFERENCE, vx, vy);
     const dvx = vx - bodies.vx[b]!;
     const dvy = vy - bodies.vy[b]!;
-    const far = range > PAD_ALIGN_RADII * bodies.radius[b]!;
+    const far = left > PAD_ALIGN_RADII * bodies.radius[b]!;
     if (far && length(dvx, dvy) > PORT_SPEED) return atan2(dvy, dvx) - design.thrustBearing;
     return heading;
   }

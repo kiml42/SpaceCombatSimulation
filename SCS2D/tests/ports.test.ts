@@ -114,6 +114,23 @@ describe('a ship low on fuel with a port', () => {
     expect(held / (held + run.ships.fuel.pieceRoom(pb, core))).toBeGreaterThan(0.45);
   });
 
+  it('comes round the hull to a port on the far side, rather than through it', () => {
+    const tanker = tankerOf();
+    const port = tanker.modules.find((m) => m.spec.kind === 'port')!;
+    const facing = port.spec.angle ?? 0;
+    const run = makeBattle({ seed: 3 }, (ships, world) => {
+      const t = ships.spawn(world, { design: tanker, x: 0, y: 0, angle: 0 });
+      // Straight behind the hull from its port.
+      const p = ships.spawn(world, { design: picketOf(), x: port.x - 200 * Math.cos(facing), y: port.y - 200 * Math.sin(facing), angle: 0 });
+      const b = world.bodies.indexOf(ships.body(p));
+      for (let m = 0; m < ships.design(p).modules.length; m++) ships.fuel.vent(b, m, ships.fuel.held(b, m) * 0.8);
+      return { t, p };
+    });
+    runUntil(run, () => docked(run), 120);
+    expect(docked(run)).toBe(true);
+    expect(run.totalContacts).toBeLessThan(10);
+  });
+
   it('idles while docked when it is the smaller, and flies the pair when it is the larger', () => {
     const throttles = (run: Run, i: number): number =>
       (run.ships as unknown as { throttles: Float64Array[] }).throttles[i]!.reduce((sum, u) => sum + u, 0);
