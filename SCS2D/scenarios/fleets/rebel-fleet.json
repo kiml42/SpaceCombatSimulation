@@ -720,6 +720,382 @@
           "width": 0.8
         }
       ]
+    },
+    "Quasar Fire-class cruiser-carrier": {
+      "formatVersion": 1,
+      "name": "Quasar Fire-class cruiser-carrier",
+      "hangar": {
+        "Y Wing": {
+          "formatVersion": 1,
+          "name": "Y Wing",
+          "fighter": true,
+          "doctrine": {
+            "targeting": {
+              "proximityWeight": 10,
+              "preferredMass": 100,
+              "massWeight": 200,
+              "loyaltyWeight": 50,
+              "armedWeight": 100,
+              "mobileWeight": 60
+            }
+          },
+          "assemblies": {
+            "thruster": {
+              "modules": [
+                {
+                  "kind": "engine",
+                  "x": -1,
+                  "y": 1.3,
+                  "angle": 180,
+                  "length": 12.2,
+                  "width": 2.2,
+                  "nozzle": 0.55
+                },
+                {
+                  "kind": "tank",
+                  "x": -2.1,
+                  "y": -1.2,
+                  "length": 2.2,
+                  "width": 2.8
+                },
+                {
+                  "kind": "engine",
+                  "x": -1,
+                  "y": 1.2999999999999998,
+                  "angle": 0,
+                  "length": 1.5,
+                  "width": 2
+                },
+                {
+                  "kind": "engine",
+                  "x": 5.000000000000001,
+                  "y": -2.5,
+                  "angle": 90,
+                  "length": 0.8,
+                  "width": 1.8,
+                  "barrels": 1
+                },
+                {
+                  "kind": "engine",
+                  "x": -5.3500000000000005,
+                  "y": 2.4,
+                  "angle": 90,
+                  "length": 0.8,
+                  "width": 1.7,
+                  "barrels": 1
+                }
+              ]
+            }
+          },
+          "modules": [
+            {
+              "kind": "core",
+              "x": -2.5,
+              "y": 0,
+              "length": 1.6,
+              "width": 2.6,
+              "reinforcement": 2.5
+            },
+            {
+              "kind": "hullGun",
+              "x": 6.599999999999999,
+              "y": 0,
+              "angle": 0,
+              "length": 8.2,
+              "width": 2.8,
+              "reinforcement": 2,
+              "barrels": 1,
+              "barrelCalibres": 18,
+              "fuse": 0.05,
+              "fragments": 4,
+              "burstSpeed": 200,
+              "targeting": {
+                "facingWeight": 100,
+                "fireRange": 1.5,
+                "preferredMass": 100,
+                "massWeight": 150
+              }
+            },
+            {
+              "kind": "hullGun",
+              "x": -5.550000000000001,
+              "y": 0,
+              "angle": -180,
+              "length": 4.5,
+              "width": 2.6,
+              "barrels": 2,
+              "barrelCalibres": 20,
+              "fuse": 0.1,
+              "fragments": 6,
+              "burstSpeed": 400,
+              "targeting": {
+                "focusWeight": 0,
+                "proximityWeight": 200,
+                "facingWeight": 60,
+                "preferredMass": 0.8,
+                "coreWeight": 40,
+                "fireRange": 2
+              }
+            },
+            {
+              "kind": "hold",
+              "x": 1.5,
+              "y": 0,
+              "length": 2,
+              "width": 1.8
+            },
+            {
+              "use": "thruster",
+              "x": -1.2000000000000002,
+              "y": 3.9
+            },
+            {
+              "use": "thruster",
+              "x": -1.2000000000000002,
+              "y": -3.9,
+              "mirror": true
+            },
+            {
+              "kind": "tank",
+              "x": -0.6000000000000002,
+              "y": 0,
+              "length": 2.2,
+              "width": 1.8
+            }
+          ]
+        }
+      },
+      "assemblies": {
+        "pad": {
+          "modules": [
+            {
+              "kind": "pad",
+              "x": 0,
+              "y": 0,
+              "length": 50,
+              "width": 50,
+              "docked": "Y Wing"
+            }
+          ]
+        },
+        "Side": {
+          "modules": [
+            {
+              "use": "pad",
+              "x": 47,
+              "y": 52
+            },
+            {
+              "kind": "structure",
+              "x": 162.672688958,
+              "y": 68.001666667,
+              "length": 191.018066874,
+              "width": 114,
+              "vertices": [
+                127.345377916,
+                -37.996666667,
+                -63.672688958,
+                75.998333333,
+                -63.672688958,
+                -38.001666667
+              ]
+            },
+            {
+              "use": "pad",
+              "x": 47,
+              "y": 119
+            },
+            {
+              "kind": "tank",
+              "x": 7,
+              "y": 94,
+              "length": 30,
+              "width": 140,
+              "thick": true
+            },
+            {
+              "use": "engine",
+              "x": -8,
+              "y": 72.5
+            },
+            {
+              "use": "engine",
+              "x": -8,
+              "y": 147.5
+            },
+            {
+              "kind": "hold",
+              "x": -16.5,
+              "y": 39.5,
+              "length": 17,
+              "width": 31,
+              "thick": true
+            },
+            {
+              "kind": "hold",
+              "x": -16.5,
+              "y": 110,
+              "length": 17,
+              "width": 40,
+              "thick": true
+            },
+            {
+              "kind": "tank",
+              "x": 47.666666667,
+              "y": 159.333333333,
+              "length": 77,
+              "width": 46,
+              "vertices": [
+                51.333333333,
+                -15.333333333,
+                -25.666666667,
+                30.666666667,
+                -25.666666667,
+                -15.333333333
+              ]
+            },
+            {
+              "kind": "battery",
+              "x": 47,
+              "y": 85.5,
+              "length": 50,
+              "width": 17
+            },
+            {
+              "kind": "hullBeam",
+              "x": 285,
+              "y": 26.005,
+              "angle": 0,
+              "length": 16,
+              "width": 8,
+              "barrels": 1
+            },
+            {
+              "kind": "hold",
+              "x": 85.5,
+              "y": 87,
+              "length": 27,
+              "width": 114
+            },
+            {
+              "kind": "tank",
+              "x": 7,
+              "y": 177.05,
+              "length": 30,
+              "width": 26
+            },
+            {
+              "kind": "beamTurret",
+              "x": -13,
+              "y": 177.55,
+              "angle": 0,
+              "length": 10,
+              "width": 25,
+              "barrels": 1
+            },
+            {
+              "kind": "engine",
+              "x": -22.999999999,
+              "y": 165.050130878,
+              "angle": 89.998500252,
+              "length": 26,
+              "width": 10,
+              "barrels": 3
+            },
+            {
+              "use": "engine2",
+              "x": 252.78824661700003,
+              "y": 52.244379977,
+              "mirror": true
+            },
+            {
+              "use": "engine2",
+              "x": 135.27021169000002,
+              "y": 122.37632409399998,
+              "mirror": true
+            }
+          ]
+        },
+        "engine": {
+          "modules": [
+            {
+              "kind": "engine",
+              "x": 0,
+              "y": 0,
+              "angle": 180,
+              "length": 35,
+              "width": 35,
+              "thick": true
+            }
+          ]
+        },
+        "engine2": {
+          "modules": [
+            {
+              "kind": "engine",
+              "x": -23.608065139,
+              "y": -14.103519433999999,
+              "angle": -59.145795494000005,
+              "length": 10,
+              "width": 135,
+              "barrels": 33
+            }
+          ]
+        }
+      },
+      "modules": [
+        {
+          "kind": "core",
+          "x": 10,
+          "y": 0,
+          "length": 24,
+          "width": 48,
+          "thick": true
+        },
+        {
+          "kind": "tank",
+          "x": 174.5,
+          "y": -0.000001715,
+          "length": 205,
+          "width": 60.003955601
+        },
+        {
+          "kind": "engine",
+          "x": -2,
+          "y": 0,
+          "angle": 180,
+          "length": 48,
+          "width": 48,
+          "thick": true
+        },
+        {
+          "use": "Side",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "use": "Side",
+          "x": 0,
+          "y": 0,
+          "mirror": true
+        },
+        {
+          "kind": "generator",
+          "x": 47,
+          "y": 0,
+          "length": 50,
+          "width": 54
+        },
+        {
+          "kind": "engine",
+          "x": 277,
+          "y": 0,
+          "length": 18,
+          "width": 44,
+          "barrels": 12,
+          "nozzle": 0.222222
+        }
+      ]
     }
   },
   "ships": [
@@ -787,6 +1163,11 @@
         "x": -10,
         "y": -60
       }
+    },
+    {
+      "design": "Quasar Fire-class cruiser-carrier",
+      "x": -760,
+      "y": 0
     }
   ]
 }
