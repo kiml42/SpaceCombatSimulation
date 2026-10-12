@@ -4055,7 +4055,9 @@ export class Ships {
    * needs mending most, mending it, and home to be refilled.
    *
    * A robot works only for the ship that works its bay, and only on that
-   * ship's modules, and goes nowhere while that ship has no control. It goes
+   * ship's modules, but on what it carries: neither a ship with no control
+   * nor a bay out of command or broken stops it, only one that cannot refill
+   * it once it is spent. It goes
    * for cores first, then engines and weapons, then the rest, the nearest of
    * each, sharing out the work so two do not crowd one module while another
    * waits. Mending costs what it costs on a pad (`mend`): charge from what it
@@ -4077,7 +4079,7 @@ export class Ships {
       for (let r = 0; r < robots.length; r++) {
         const robot = robots[r]!;
         const owner = this.pilotAt(b, robot.bay);
-        if (owner < 0 || !this.hasControl(owner)) continue;
+        if (owner < 0) continue;
         if (this.tendOne(b, design, robots, robot, owner, dt)) mended = true;
       }
       if (mended) {
@@ -4090,19 +4092,24 @@ export class Ships {
   /** One robot's step. Says whether it mended anything. */
   private tendOne(b: number, design: ShipDesign, robots: Robot[], robot: Robot, owner: number, dt: number): boolean {
     if (robot.mode === RobotMode.Berthed) {
+      // A working bay refills it, and tops its charge up from what its piece
+      // of hull can spare, each step it waits.
       const working = this.damage.remaining(b, robot.bay, DamageEffect.Tending);
-      if (!(working > 0)) return false;
-      if (robot.refill > 0) {
-        robot.refill -= dt * working;
+      if (working > 0) {
+        if (robot.refill > 0) {
+          robot.refill -= dt * working;
+          if (!(robot.refill > 0)) {
+            robot.refill = 0;
+            robot.metal = ROBOT_LOAD;
+          }
+        }
+        const want = ROBOT_CHARGE - robot.charge;
+        const spare = this.power.pieceHeld(b, robot.bay) - this.chargeReserve(b, robot.bay);
+        if (want > 0 && spare > 0) robot.charge += this.power.drain(b, robot.bay, want < spare ? want : spare);
         if (robot.refill > 0) return false;
-        robot.refill = 0;
-        robot.metal = ROBOT_LOAD;
       }
-      // Charge topped up from what its piece of hull can spare, each step it waits.
-      const want = ROBOT_CHARGE - robot.charge;
-      const spare = this.power.pieceHeld(b, robot.bay) - this.chargeReserve(b, robot.bay);
-      if (want > 0 && spare > 0) robot.charge += this.power.drain(b, robot.bay, want < spare ? want : spare);
-      if (!(robot.charge >= ROBOT_REPAIR_RATE * REPAIR_ENERGY_PER_JOULE * dt)) return false;
+      // It goes on what it carries, whether its bay can still refill it or not.
+      if (!(robot.metal > 0) || !(robot.charge >= ROBOT_REPAIR_RATE * REPAIR_ENERGY_PER_JOULE * dt)) return false;
       // Nothing has been hit since it last looked and found nothing to do.
       if (robot.idleAt === this.damage.version(b)) return false;
       this.sendOut(b, design, robots, robot, owner);

@@ -684,8 +684,9 @@ inside any one file is not contiguous.
   from its piece of hull. It goes straight on to the next job, and home once it is short of either; its bay
   refills it over `ROBOT_REFILL_TIME`, slower as the bay is damaged, topping its charge up from what its
   piece can spare above its ship's `rechargeBelow`. Robots work only for the ship working their bay, on that
-  ship's modules, and only while it has control and the bay is under command — so a spine torn ragged
-  between the core and the bay leaves the robots home. One whose module, or whose bay, goes with another
+  ship's modules, but on what they carry: a ship with no control, or a bay broken or cut off from command by
+  a spine torn ragged, stops none of them — only a bay that cannot refill them once they are spent, which is
+  how robots mend the very spine that cut their bay off. One whose module, or whose bay, goes with another
   piece of hull is lost. The `mending` scenario has a battered Mender's four robots mend it whole in four
   minutes; evolution's weight for a bay is zero until robots are tuned.
   **A pad may set out with a fighter docked on it** (`ModuleSpec.docked`, naming a copy in the blueprint's

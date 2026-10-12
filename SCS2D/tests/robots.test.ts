@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   compileBlueprint,
   DAMAGE_ENERGY_PER_KG,
+  DamageEffect,
   joints,
   moduleStats,
   REPAIR_WASTE,
@@ -107,14 +108,29 @@ describe('robots', () => {
     expect(steps / 60).toBeGreaterThanOrEqual((capacity(NEAR) * 0.5) / (ROBOT_REPAIR_RATE * robots));
   });
 
-  it('do nothing for a ship that has lost control', () => {
+  it('work on for a ship that has lost control, and give it back', () => {
     const run = scene((absorb) => {
       absorb(CORE, 0.9);
       absorb(NEAR, 0.5);
     });
-    for (let s = 0; s < 60 * 60; s++) run.step();
-    expect(out(run)).toBe(0);
-    expect(absorbed(run, NEAR)).toBe(capacity(NEAR) * 0.5);
+    expect(run.ships.hasControl(run.a)).toBe(false);
+    let steps = 0;
+    while ((absorbed(run, CORE) > 0 || absorbed(run, NEAR) > 0) && steps++ < 600 * 60) run.step();
+    expect(absorbed(run, CORE)).toBe(0);
+    expect(absorbed(run, NEAR)).toBe(0);
+    expect(run.ships.hasControl(run.a)).toBe(true);
+  });
+
+  it('mend the ragged spine that cuts their bay off from command', () => {
+    // Torn past ragged beside the bay, so no command reaches it.
+    const run = scene((absorb) => absorb(NEAR, 2));
+    run.step();
+    expect(run.ships.damage.remaining(body(run), BAY, DamageEffect.Tending)).toBe(0);
+    expect(out(run)).toBeGreaterThan(0);
+    let steps = 0;
+    while (absorbed(run, NEAR) > 0 && steps++ < 600 * 60) run.step();
+    expect(absorbed(run, NEAR)).toBe(0);
+    expect(run.ships.damage.remaining(body(run), BAY, DamageEffect.Tending)).toBe(1);
   });
 
   it('cut off from their bay are lost with the piece they were on', () => {

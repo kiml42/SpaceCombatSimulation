@@ -613,10 +613,6 @@ Deliberately unresolved; decide when they block something.
 - **Whether a beam's boiling and a shell's shredding should shed differently.** Both shed by energy
   absorbed, a tenth of a module by the time it breaks and half at five times that (DESIGN.md §4), which
   are first guesses to tune. The floor can drop once a module can be drawn with holes in it.
-- **Whether a bay needs command.** A bay out of its ship's command does nothing, as any module does, so a
-  spine torn ragged between the core and the bay leaves the robots home when mending the spine is what
-  would give command back. A bay that works on its own, or robots that go first for whatever cuts their
-  bay off, would mend it.
 - **What a robot bay is worth to evolution.** Weighted zero, as a pad is, until robots are tuned.
 - **What sends a ship in to be mended.** Not a `repairBelow` beside `refuelBelow`: one threshold on how
   damaged a ship is would weigh a scratched hull the same as a lost gun. It has to weigh damage by the
