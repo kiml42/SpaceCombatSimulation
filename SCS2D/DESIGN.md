@@ -640,7 +640,11 @@ inside any one file is not contiguous.
   not gone for. It points
   its claw at the source and comes in down a stopping curve that ends not at rest but at the middle of the
   claw's band, planned on the thrust it actually has astern; touching without taking hold, it backs off for
-  `CLAW_RETRY` and comes again. Holding, it idles. An order outranks it, and a fighter closing on a source
+  `CLAW_RETRY` and comes again. A ship under control and larger than itself lying across its way — the friend
+  it has just left, say — it first circles outside that ship's radius, as a fighter does a carrier for a pad,
+  until the line is clear; not one so near the source that circling it would reach the source, nor a rival
+  after the same source.
+  Holding, it idles. An order outranks it, and a fighter closing on a source
   commits as it does to ram. The stock **Scavenger** is built for it, its tank starting a fifth full, and `scavenge` has two of them drain
   three wrecks; evolution draws claws at a weight of one.
   **A pad** (`pad`) is a deck a friendly fighter lands on: never thick and never in the weapons layer, with a

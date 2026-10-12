@@ -2772,8 +2772,13 @@ export class Ships {
       } else if (claw >= 0 && tb >= 0) {
         // The jaws, not the bow, are what point at it.
         const jaws = this.designs[i]!.modules[claw]!.spec.angle ?? 0;
-        wantAngle = atan2(bodies.y[tb]! - bodies.y[b]!, bodies.x[tb]! - bodies.x[b]!) - jaws;
-        this.grapple(bodies, i, b, tb, claw, wantAngle, this.now - this.touchedSource[i]! < CLAW_RETRY / dt);
+        const across = this.hullAcross(bodies, i, b, tb, target);
+        if (across >= 0) {
+          wantAngle = this.roundHull(bodies, i, b, across, tb) - jaws;
+        } else {
+          wantAngle = atan2(bodies.y[tb]! - bodies.y[b]!, bodies.x[tb]! - bodies.x[b]!) - jaws;
+          this.grapple(bodies, i, b, tb, claw, wantAngle, this.now - this.touchedSource[i]! < CLAW_RETRY / dt);
+        }
       } else if (tb >= 0 && tb !== b) {
         // Not hooked on to it, which would leave nowhere to steer for.
         wantAngle = atan2(bodies.y[tb]! - bodies.y[b]!, bodies.x[tb]! - bodies.x[b]!);
@@ -5405,6 +5410,64 @@ export class Ships {
       this.wayY = ay;
     }
     return length(this.wayX - bodies.x[b]!, this.wayY - bodies.y[b]!);
+  }
+
+  /**
+   * The body of the nearest hull across body `b`'s line to body `tb` that a
+   * claw ship should go round, or -1: a ship under control larger than it, not
+   * after the same source, and far enough short of it to circle clear.
+   */
+  private hullAcross(bodies: Bodies, i: number, b: number, tb: number, source: number): number {
+    const x = bodies.x[b]!;
+    const y = bodies.y[b]!;
+    const dx = bodies.x[tb]! - x;
+    const dy = bodies.y[tb]! - y;
+    const range = length(dx, dy);
+    if (!(range > 0)) return -1;
+    const ux = dx / range;
+    const uy = dy / range;
+    const short = range - bodies.radius[tb]!;
+    let nearest = -1;
+    let nearestAt = short;
+    for (let t = 0; t < this.alive.length; t++) {
+      if (t === i || this.alive[t] === 0 || this.derelict[t] === 1 || this.salvaging[t] === source) continue;
+      if (!this.hasControl(t)) continue;
+      const ob = bodies.indexOf(this.bodyIds[t]!);
+      if (ob < 0 || ob === b || ob === tb || bodies.ghost[ob] === 1 || !(bodies.radius[ob]! > bodies.radius[b]!)) continue;
+      const cx = bodies.x[ob]! - x;
+      const cy = bodies.y[ob]! - y;
+      const at = cx * ux + cy * uy;
+      if (!(at > 0) || at + bodies.radius[ob]! + 2 * bodies.radius[b]! >= nearestAt) continue;
+      if (abs(cx * uy - cy * ux) < bodies.radius[ob]! + bodies.radius[b]!) {
+        nearest = ob;
+        nearestAt = at;
+      }
+    }
+    return nearest;
+  }
+
+  /**
+   * Fly body `b` round body `ob`'s hull, outside its radius, to the side of it
+   * facing body `tb`, matching how `ob` is moving. Returns the heading to the
+   * next point to make for.
+   */
+  private roundHull(bodies: Bodies, i: number, b: number, ob: number, tb: number): number {
+    const cx = bodies.x[ob]!;
+    const cy = bodies.y[ob]!;
+    const out = atan2(bodies.y[tb]! - cy, bodies.x[tb]! - cx);
+    const clear = bodies.radius[ob]! + 2 * bodies.radius[b]!;
+    const gap = this.aroundHull(bodies, b, ob, cx + cos(out) * clear, cy + sin(out) * clear);
+    const dx = this.wayX - bodies.x[b]!;
+    const dy = this.wayY - bodies.y[b]!;
+    let vx = bodies.vx[ob]!;
+    let vy = bodies.vy[ob]!;
+    if (gap > 0) {
+      const speed = this.doctrines[i]!.approach.approachSpeed;
+      vx += (dx / gap) * speed;
+      vy += (dy / gap) * speed;
+    }
+    this.urge(URGE_REFERENCE, vx, vy);
+    return atan2(dy, dx);
   }
 
   /**
