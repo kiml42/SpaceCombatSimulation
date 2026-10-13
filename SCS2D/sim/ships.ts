@@ -431,9 +431,14 @@ function originTier(design: ShipDesign, m: number): number {
   return repairTier(origin.design, origin.module);
 }
 
+/**
+ * How soon a module is mended or rebuilt, 0 first: cores, which command, and
+ * robot bays, which make every other job quicker; then engines and weapons;
+ * then the rest.
+ */
 function repairTier(design: ShipDesign, m: number): number {
   const kind = design.modules[m]!.spec.kind;
-  if (kind === 'core') return 0;
+  if (kind === 'core' || kind === 'robotBay') return 0;
   if (kind === 'engine') return 1;
   for (let t = 0; t < design.turrets.length; t++) if (design.turrets[t]!.module === m) return 1;
   return 2;
@@ -4618,6 +4623,40 @@ export class Ships {
   }
 
   /**
+   * Each robot home on ship `i`'s hull, three numbers apiece into `out`: its
+   * bay, and the share of its charge and of its metal it has, its metal
+   * counted up over its refill so that is seen happening. Nothing unless `i`
+   * is the ship that flies the body.
+   */
+  robotsDocked(i: number, out: number[]): void {
+    out.length = 0;
+    const b = this.bodyStore === null ? -1 : this.bodyStore.indexOf(this.bodyIds[i]!);
+    if (b < 0 || this.shipByBody[b] !== i) return;
+    for (const robot of this.robots.on(b) ?? []) {
+      if (robot.mode !== RobotMode.Berthed) continue;
+      const metal = robot.refill > 0 ? 1 - robot.refill / ROBOT_REFILL_TIME : robot.metal / ROBOT_LOAD;
+      out.push(robot.bay, robot.charge / ROBOT_CHARGE, metal);
+    }
+  }
+
+  /**
+   * For each module of ship `i`'s hull, how many robots it is the bay of,
+   * home or out, into `crews`, and how far it is through building the next,
+   * 0 to 1, into `builds`. All nought unless `i` is the ship that flies the body.
+   */
+  robotCrews(i: number, crews: number[], builds: number[]): void {
+    const b = this.bodyStore === null ? -1 : this.bodyStore.indexOf(this.bodyIds[i]!);
+    const design = b >= 0 ? this.hullDesign[b] : null;
+    crews.length = builds.length = design?.modules.length ?? 0;
+    crews.fill(0);
+    builds.fill(0);
+    if (b < 0 || this.shipByBody[b] !== i) return;
+    for (const robot of this.robots.on(b) ?? []) crews[robot.bay] = (crews[robot.bay] ?? 0) + 1;
+    const made = this.robots.buildsOn(b);
+    if (made !== null) for (let m = 0; m < builds.length; m++) builds[m] = (made[m] ?? 0) / ROBOT_BUILD_TIME;
+  }
+
+  /**
    * Each robot out on ship `i`'s hull, `ROBOT_VIEW_STRIDE` numbers apiece into
    * `out`: where it is and which way it faces, in its body's frame, and the
    * share of its charge and of its metal it has left. Nothing unless `i` is
@@ -5397,7 +5436,8 @@ export class Ships {
     this.power.register(chunkBody, chunk, keep.map((m) => this.power.held(b, m)));
     const kept = new Int32Array(design.modules.length).fill(-1);
     for (let k = 0; k < keep.length; k++) kept[keep[k]!] = k;
-    this.robots.register(chunkBody, chunk, this.robots.take(b, (m) => kept[m] ?? -1));
+    const madeBefore = this.robots.buildsOn(b);
+    this.robots.register(chunkBody, chunk, this.robots.take(b, (m) => kept[m] ?? -1), (m) => madeBefore?.[keep[m]!] ?? 0);
     this.settleMass(bodies, chunkBody);
     this.shipByBody[chunkBody] = j;
     this.sides[chunkBody] = this.sidesOf((m) => this.sideAt(b, keep[m]!), keep.length, this.team[j]!);
@@ -5559,10 +5599,16 @@ export class Ships {
     this.metal.register(b, design, metal);
     this.power.register(b, design, charge);
     // Grown in place, every robot is where it was and about what it was about.
+    // What each bay had put into its next robot, wherever the bay came from.
+    const made = (m: number): number => {
+      const was = moduleOf(m);
+      return was < 0 ? 0 : (this.robots.buildsOn(bodyOf(shipOf(m)))?.[was] ?? 0);
+    };
     this.robots.register(
       b,
       design,
       keepRobots ? (this.robots.on(b) ?? []) : this.robotsInto(design.modules.length, bodyOf, shipOf, moduleOf),
+      made,
     );
     this.settleMass(bodies, b);
     this.cutSeen[i] = this.damage.cutVersion(b);

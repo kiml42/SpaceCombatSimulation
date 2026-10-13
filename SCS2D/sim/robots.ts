@@ -151,8 +151,12 @@ export class Robots {
   private readonly missing: number[] = [];
   private readonly missingSpin: number[] = [];
 
-  /** A hull's robots: those `carried` over to it, or for a fresh one every bay full, every robot berthed and ready. */
-  register(bodyIndex: number, design: ShipDesign, carried?: Robot[]): void {
+  /**
+   * A hull's robots: those `carried` over to it, or for a fresh one every bay
+   * full, every robot berthed and ready; and how far each bay was through
+   * building one (`built`, by module), which a remade hull keeps.
+   */
+  register(bodyIndex: number, design: ShipDesign, carried?: Robot[], built?: (module: number) => number): void {
     let robots: Robot[];
     if (carried !== undefined) {
       robots = carried;
@@ -178,7 +182,9 @@ export class Robots {
     // A hull with bays keeps a list, empty or not, so a bay that has lost every robot still builds.
     this.of[bodyIndex] = berths > 0 || robots.length > 0 ? robots : null;
     this.designs[bodyIndex] = design;
-    this.builds[bodyIndex] = berths > 0 ? new Float64Array(design.modules.length) : null;
+    const builds = berths > 0 ? new Float64Array(design.modules.length) : null;
+    if (builds !== null && built !== undefined) for (let m = 0; m < builds.length; m++) builds[m] = built(m);
+    this.builds[bodyIndex] = builds;
     this.missing[bodyIndex] = missing;
     this.missingSpin[bodyIndex] = missingSpin;
   }

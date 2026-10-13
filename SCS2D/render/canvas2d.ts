@@ -179,6 +179,11 @@ const GENERATOR_DISC = 0.55;
 /** How much of a berth's cell its round pad fills across, as a radius. */
 const ROBOT_PAD = 0.38;
 
+/** How many numbers a snapshot gives each robot home: its bay, and its charge and metal shares. */
+const ROBOT_DOCK_STRIDE = 3;
+/** Fuller than this a robot home is drawn as a filled pad rather than as itself. */
+const ROBOT_FULL = 0.999;
+
 /** A robot out on a hull, nose to tail in metres: drawn to scale, so it is seen when zoomed in close. */
 const ROBOT_LENGTH = 1.2;
 /** How far short of the tail each wing case stops, radians round the shell. */
@@ -592,17 +597,43 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
         const cellLength = spec.length / across;
         const cellWidth = spec.width / down;
         const pad = min(cellLength, cellWidth) * ROBOT_PAD;
-        const home = ship.berthed?.[i] ?? 0;
-        ctx.strokeStyle = integrity > 0 ? colours.trim : FUEL_TRACK;
-        ctx.fillStyle = colours.trim;
+        // The robots home here, in the order they are given.
+        const docked = ship.docked ?? [];
+        const here: number[] = [];
+        for (let r = 0; r + ROBOT_DOCK_STRIDE <= docked.length; r += ROBOT_DOCK_STRIDE) if (docked[r] === i) here.push(r);
+        const home = ship.docked === undefined ? (ship.berthed?.[i] ?? 0) : here.length;
+        // The pad after every robot it has is the one it is building on.
+        const building = ship.crews?.[i] ?? m.stats.robots;
+        const progress = ship.builds?.[i] ?? 0;
         ctx.lineWidth = pad * 0.25;
         for (let k = 0; k < m.stats.robots; k++) {
           const x = -halfLength + cellLength * ((k % across) + 0.5);
           const y = -halfWidth + cellWidth * (floor(k / across) + 0.5);
+          if (k === building && progress > 0) {
+            // A loading ring: the pad's circle drawn round as the robot is built.
+            ctx.strokeStyle = FUEL_TRACK;
+            ctx.beginPath();
+            ctx.arc(x, y, pad, 0, TAU);
+            ctx.stroke();
+            ctx.strokeStyle = colours.trim;
+            ctx.beginPath();
+            ctx.arc(x, y, pad, -PI / 2, -PI / 2 + TAU * min(1, progress));
+            ctx.stroke();
+            continue;
+          }
+          ctx.strokeStyle = integrity > 0 ? colours.trim : FUEL_TRACK;
           ctx.beginPath();
           ctx.arc(x, y, pad, 0, TAU);
           ctx.stroke();
-          if (k < home) {
+          if (k >= home) continue;
+          const r = here[k];
+          const charge = r === undefined ? 1 : docked[r + 1]!;
+          const metal = r === undefined ? 1 : docked[r + 2]!;
+          if (charge < ROBOT_FULL || metal < ROBOT_FULL) {
+            // Being filled: the robot itself, so its bars are seen filling.
+            drawRobot(ctx, x, y, 0, charge, metal, min(ROBOT_LENGTH, pad * 2.2), colours.trim, colours.pivot);
+          } else {
+            ctx.fillStyle = colours.trim;
             ctx.beginPath();
             ctx.arc(x, y, pad * 0.55, 0, TAU);
             ctx.fill();

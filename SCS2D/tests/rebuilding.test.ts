@@ -3,6 +3,7 @@ import {
   compileBlueprint,
   DAMAGE_ENERGY_PER_KG,
   DamageEffect,
+  ROBOT_BUILD_TIME,
   joints,
   moduleStats,
   type Blueprint,
@@ -154,6 +155,18 @@ describe('robots rebuilding', () => {
     // Nothing made from nothing: what went in came out of the hold, and a tenth more was lost.
     expect(matter(run)).toBeCloseTo(before, 3);
     expect(run.ships.discarded - discarded).toBeCloseTo(wall * 0.1, 3);
+  });
+
+  it('leave a bay building a robot as far through it as it was, however often the hull is remade', { timeout: 60_000 }, () => {
+    const run = scene();
+    const berths = builder.modules[BAY]!.stats.robots;
+    run.ships.robots.lose(body(run), 0);
+    lose(run, FIN, HOLD);
+    const count = (): number => run.ships.robots.on(body(run))!.length;
+    const seconds = runUntil(run, () => count() === berths, 120);
+    expect(count()).toBe(berths);
+    // The fin's walls went up a step at a time meanwhile, each a remade hull.
+    expect(seconds).toBeLessThan(ROBOT_BUILD_TIME + 2);
   });
 
   it('keep the momentum of a hull growing as it moves and turns', { timeout: 60_000 }, () => {
