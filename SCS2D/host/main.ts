@@ -18,7 +18,7 @@ import { hooked } from '../scenarios/hooked.js';
 import { salvage } from '../scenarios/salvage.js';
 import { mending, rebuilding } from '../scenarios/mending.js';
 import { scavenge } from '../scenarios/scavenge.js';
-import { carrier } from '../scenarios/carrier.js';
+import { carrier, padRebuild } from '../scenarios/carrier.js';
 import { beamCarrier } from '../scenarios/beamCarrier.js';
 import { circling, passes } from '../scenarios/passes.js';
 import { rearm } from '../scenarios/rearm.js';
@@ -82,6 +82,7 @@ export function start(): void {
     { name: 'Rebuilding', create: () => rebuilding(SEED) },
     { name: 'Scavenge', create: () => scavenge(SEED) },
     { name: 'Carrier', create: () => carrier(SEED) },
+    { name: 'Pad Rebuild', create: () => padRebuild(SEED) },
     { name: 'Rearm', create: () => rearm(SEED) },
     { name: 'Tanker', create: () => tanker(SEED) },
     { name: 'Beam Carrier', create: () => beamCarrier(SEED) },

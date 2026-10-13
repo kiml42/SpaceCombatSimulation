@@ -681,7 +681,9 @@ inside any one file is not contiguous.
   nothing is left to mend, **it builds back what the fighter has lost**, as robots do and at the same work
   for its rate: fittings first, then a shell's walls, then a module lost, against what is left of the
   fighter, cores first, paid for in the carrier's metal and charge. The pad lets it go when it is full,
-  mended and whole, when there is no more to spare, or at once when it is given an order. Nothing yet sends
+  mended and whole, when there is no more to spare, or at once when it is given an order. The `padRebuild`
+  scenario has two Dinkies, each short of an outrigger engine, land on a Workshop, a Tender with a hold, and
+  lift off whole; a pad's rate makes that the work of half a second. Nothing yet sends
   a fighter in to be mended: it is mended while it is down for anything else. A merged design remembers which of its pieces
   were fighters (`fighterPieces`), so it lifts off a fighter, and every ship keeps the doctrine it set out with
   whatever hull it rides, so a fighter flies on its own and not its carrier's. The `carrier` scenario has three Dinkies take
