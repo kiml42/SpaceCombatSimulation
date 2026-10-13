@@ -55,6 +55,12 @@ export const SHED_FLOOR = 0.5;
  */
 export const REPAIR_WASTE = 0.1;
 
+/**
+ * The share of a module's metal lost taking it apart: what disassembly yields
+ * is its mass less this, the rest gone as filings and slag.
+ */
+export const DISASSEMBLY_WASTE = 0.1;
+
 /** Charge repairing a joule of damage takes, J. */
 export const REPAIR_ENERGY_PER_JOULE = 10;
 

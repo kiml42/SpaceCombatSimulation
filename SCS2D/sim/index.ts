@@ -402,6 +402,7 @@ export {
   REPAIR_ENERGY_PER_JOULE,
   repairWork,
   REPAIR_WASTE,
+  DISASSEMBLY_WASTE,
   DAMAGE_RESPONSES,
   Damage,
   DamageEffect,

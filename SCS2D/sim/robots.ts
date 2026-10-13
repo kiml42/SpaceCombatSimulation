@@ -7,7 +7,8 @@ import { ROBOT_CHARGE, ROBOT_LOAD, ROBOT_MASS, ROBOT_REFILL_TIME } from './modul
  * Robots that crawl a hull mending it (ROADMAP.md §8, repair stage 3).
  *
  * A robot is not a body: it is a place on its hull, moving module to module
- * across the welds the hull was built with, never across a seam. It sets out
+ * across the welds the hull was built with, and across a seam only onto
+ * wreckage it is taking apart. It sets out
  * from its bay with an allowance of metal and charge, works until either runs
  * out, and comes home to be refilled. What it does with them is `Ships`'s;
  * this holds where each robot is and how it gets about.
@@ -37,6 +38,8 @@ export interface Robot {
   target: number;
   /** The module of its ship's launch design it is to start building against `target`, or -1. */
   build: number;
+  /** Whether `target` is wreckage it is taking apart rather than its own hull. */
+  strip: boolean;
   /** Modules it will cross, from `at`, and how far along the leg from `path[leg]` to the next it is, m. */
   path: Int32Array | null;
   leg: number;
@@ -57,10 +60,12 @@ export interface Robot {
   stoodOn: number;
 }
 
-/** Where to go next across a design's welds: each module's neighbours, and the distances to them. */
+/** Where to go next across a design's welds, and its seams: each module's neighbours, and the distances to them. */
 interface Graph {
   readonly next: readonly (readonly number[])[];
   readonly far: readonly (readonly number[])[];
+  readonly seamNext: readonly (readonly number[])[];
+  readonly seamFar: readonly (readonly number[])[];
 }
 
 const graphs = new WeakMap<ShipDesign, Graph>();
@@ -70,17 +75,20 @@ function graphOf(design: ShipDesign): Graph {
   if (known !== undefined) return known;
   const next: number[][] = design.modules.map(() => []);
   const far: number[][] = design.modules.map(() => []);
+  const seamNext: number[][] = design.modules.map(() => []);
+  const seamFar: number[][] = design.modules.map(() => []);
   for (const joint of joints(design)) {
-    if (joint.seam === true) continue;
     const a = design.modules[joint.a]!;
     const b = design.modules[joint.b]!;
     const d = length(a.x - b.x, a.y - b.y);
-    next[joint.a]!.push(joint.b);
-    far[joint.a]!.push(d);
-    next[joint.b]!.push(joint.a);
-    far[joint.b]!.push(d);
+    const to = joint.seam === true ? seamNext : next;
+    const by = joint.seam === true ? seamFar : far;
+    to[joint.a]!.push(joint.b);
+    by[joint.a]!.push(d);
+    to[joint.b]!.push(joint.a);
+    by[joint.b]!.push(d);
   }
-  const graph = { next, far };
+  const graph = { next, far, seamNext, seamFar };
   graphs.set(design, graph);
   return graph;
 }
@@ -88,11 +96,19 @@ function graphOf(design: ShipDesign): Graph {
 /**
  * Distances over the welds from module `from` to every module, and the module
  * each is reached from, into `dist` and `prev` (sized to the design). Modules
- * `crosses` refuses are not walked through. Unreachable is Infinity.
+ * `crosses` refuses are not walked through, and a seam is crossed only where
+ * `seam` allows it. Unreachable is Infinity.
  */
-export function walk(design: ShipDesign, from: number, dist: Float64Array, prev: Int32Array, crosses: (m: number) => boolean): void {
+export function walk(
+  design: ShipDesign,
+  from: number,
+  dist: Float64Array,
+  prev: Int32Array,
+  crosses: (m: number) => boolean,
+  seam: (a: number, b: number) => boolean = never,
+): void {
   const n = design.modules.length;
-  const { next, far } = graphOf(design);
+  const { next, far, seamNext, seamFar } = graphOf(design);
   dist.fill(Infinity, 0, n);
   prev.fill(-1, 0, n);
   const done = new Uint8Array(n);
@@ -120,7 +136,62 @@ export function walk(design: ShipDesign, from: number, dist: Float64Array, prev:
         prev[v] = u;
       }
     }
+    const over = seamNext[u]!;
+    const across = seamFar[u]!;
+    for (let k = 0; k < over.length; k++) {
+      const v = over[k]!;
+      const via = best + across[k]!;
+      if (via < dist[v]! && seam(u, v)) {
+        dist[v] = via;
+        prev[v] = u;
+      }
+    }
   }
+}
+
+const never = (): boolean => false;
+
+/** Each module's neighbours across every joint, seams included. */
+const linked = new WeakMap<ShipDesign, readonly (readonly number[])[]>();
+
+function linksOf(design: ShipDesign): readonly (readonly number[])[] {
+  const known = linked.get(design);
+  if (known !== undefined) return known;
+  const links: number[][] = design.modules.map(() => []);
+  for (const joint of joints(design)) {
+    links[joint.a]!.push(joint.b);
+    links[joint.b]!.push(joint.a);
+  }
+  linked.set(design, links);
+  return links;
+}
+
+/** Whether the rest of a hull still holds together with module `m` gone. */
+export function staysWhole(design: ShipDesign, m: number): boolean {
+  const n = design.modules.length;
+  if (n < 2) return false;
+  const links = linksOf(design);
+  const seen = new Uint8Array(n);
+  const start = m === 0 ? 1 : 0;
+  const queue = [start];
+  seen[start] = 1;
+  seen[m] = 1;
+  let reached = 1;
+  while (queue.length > 0) {
+    const u = queue.pop()!;
+    for (const v of links[u]!) {
+      if (seen[v] === 1) continue;
+      seen[v] = 1;
+      reached++;
+      queue.push(v);
+    }
+  }
+  return reached === n - 1;
+}
+
+/** A module joined to `m`, the first of them; `m` itself if none is. */
+export function neighbourOf(design: ShipDesign, m: number): number {
+  return linksOf(design)[m]![0] ?? m;
 }
 
 /** The modules from `walk`'s start to `to`, both ends included, or null if it is unreachable. */
@@ -253,6 +324,7 @@ export class Robots {
       robot.at = at;
       robot.target = -1;
       robot.build = -1;
+      robot.strip = false;
       robot.idleAt = -1;
       robot.stoodOn = -1;
       robot.path = null;
@@ -289,6 +361,7 @@ function stocked(bay: number): Robot {
     mode: RobotMode.Berthed,
     target: -1,
     build: -1,
+    strip: false,
     path: null,
     leg: 0,
     along: 0,
