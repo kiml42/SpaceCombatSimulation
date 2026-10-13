@@ -86,6 +86,13 @@ export class Fuel extends Store {
     this.leaks[bodyIndex]?.push(leak);
   }
 
+  /** Close every hole in one module of a body: what mending it does first. */
+  seal(bodyIndex: number, module: number): void {
+    const leaks = this.leaks[bodyIndex];
+    if (!leaks) return;
+    for (let k = leaks.length - 1; k >= 0; k--) if (leaks[k]!.module === module) leaks.splice(k, 1);
+  }
+
   /** Every hole in a body. */
   leaksOf(bodyIndex: number): readonly Leak[] {
     return this.leaks[bodyIndex] ?? NO_LEAKS;
