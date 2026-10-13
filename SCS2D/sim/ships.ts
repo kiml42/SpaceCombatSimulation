@@ -4126,6 +4126,8 @@ export class Ships {
         if (kg > metal) undo *= metal / kg;
         const cost = this.damage.repairMetal(b, m, undo) * (1 + REPAIR_WASTE);
         const undone = this.damage.repair(b, m, undo);
+        // Its holes are the first thing plugged.
+        if (undone > 0) this.fuel.seal(b, m);
         budget -= undone;
         metal -= cost;
         charge -= undone * REPAIR_ENERGY_PER_JOULE;
@@ -4317,6 +4319,8 @@ export class Ships {
     }
     const cost = this.damage.repairMetal(b, m, undo) * (1 + REPAIR_WASTE);
     const undone = this.damage.repair(b, m, undo);
+    // Its holes are the first thing plugged.
+    if (undone > 0) this.fuel.seal(b, m);
     robot.charge -= undone * REPAIR_ENERGY_PER_JOULE;
     robot.metal -= cost;
     if (cost > 0) this.metal.drain(b, m, cost);
