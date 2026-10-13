@@ -410,6 +410,9 @@ const ROBOT_SPREAD = 2.4;
 const ROBOT_SPREAD_RADIUS = 1;
 
 /** Which turn a module takes to be mended: cores, then engines and weapons, then the rest. */
+/** Less metal than this a robot carries, or a hull holds, is rounding rather than metal, kg. */
+const ROBOT_SPENT = 1e-6;
+
 /** A ship's hull matched to the design it set out as, for rebuilding what it has lost. */
 interface Rebuild {
   /** The hull this was worked out for. */
@@ -4206,7 +4209,7 @@ export class Ships {
         if (robot.refill > 0) return false;
       }
       // It goes on what it carries, whether its bay can still refill it or not.
-      if (!(robot.metal > 0) || !(robot.charge >= ROBOT_REPAIR_RATE * REPAIR_ENERGY_PER_JOULE * dt)) return false;
+      if (!(robot.metal > ROBOT_SPENT) || !(robot.charge >= ROBOT_REPAIR_RATE * REPAIR_ENERGY_PER_JOULE * dt)) return false;
       // Nothing has been hit since it last looked and found nothing to do.
       if (robot.idleAt === this.damage.version(b)) return false;
       this.sendOut(b, design, robots, robot, owner);
@@ -4271,10 +4274,7 @@ export class Ships {
     robot.metal -= cost;
     if (cost > 0) this.metal.drain(b, m, cost);
     // Out of what this needs, short of finishing it: home for more.
-    if (short && this.damage.absorbedAt(b, m) > 0) {
-      this.route(b, design, robot, owner, robot.bay);
-      robot.mode = RobotMode.Home;
-    }
+    if (short && this.damage.absorbedAt(b, m) > 0) this.sendHome(b, design, robot, owner, m);
     return undone > 0;
   }
 
@@ -4330,11 +4330,21 @@ export class Ships {
     robot.metal -= put * waste;
     // Out of what this needs, short of finishing it: home for more.
     if (short && more) {
-      this.route(b, design, robot, owner, robot.bay);
-      robot.mode = RobotMode.Home;
+      this.sendHome(b, design, robot, owner, m);
       robot.build = -1;
     }
     return robot.build < 0 && design.modules[m]!.shell === undefined && put > 0;
+  }
+
+  /**
+   * Send a robot home from module `m`, short of what its work there needs.
+   * If that piece of hull has no metal left to give, it stays berthed until
+   * something on the hull changes, rather than going straight back out.
+   */
+  private sendHome(b: number, design: ShipDesign, robot: Robot, owner: number, m: number): void {
+    this.route(b, design, robot, owner, robot.bay);
+    robot.mode = RobotMode.Home;
+    if (!(this.metal.pieceHeld(b, m) > ROBOT_SPENT)) robot.idleAt = this.damage.version(b);
   }
 
   /** Ship `i`'s hull matched to its launch design, worked out again when the hull has changed. */

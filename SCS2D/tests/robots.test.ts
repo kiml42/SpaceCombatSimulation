@@ -123,6 +123,32 @@ describe('robots', () => {
     expect(absorbed(run, BAY)).toBe(0);
   });
 
+  it('with only rounding left of their metal and a bay that cannot refill them, stay berthed', () => {
+    // No core working, so no command reaches the bay.
+    const run = scene((absorb) => absorb(CORE, 1.5));
+    for (const robot of run.ships.robots.on(body(run))!) robot.metal = 1e-13;
+    for (let s = 0; s < 60 * 60; s++) {
+      run.step();
+      expect(out(run)).toBe(0);
+    }
+  });
+
+  it('come home and stay there when their hull has no metal left to mend with', () => {
+    const run = scene((absorb) => absorb(NEAR, 0.5));
+    const b = body(run);
+    run.ships.metal.drain(b, NEAR, run.ships.metal.pieceHeld(b, NEAR));
+    expect(run.ships.metal.pieceHeld(b, NEAR)).toBe(0);
+    let steps = 0;
+    while (out(run) === 0 && steps++ < 60 * 60) run.step();
+    while (out(run) > 0 && steps++ < 120 * 60) run.step();
+    expect(out(run)).toBe(0);
+    for (let s = 0; s < 60 * 60; s++) {
+      run.step();
+      expect(out(run)).toBe(0);
+    }
+    expect(absorbed(run, NEAR)).toBeGreaterThan(0);
+  });
+
   it('mend no faster than the robots there can work', () => {
     const run = scene((absorb) => absorb(NEAR, 0.5));
     let steps = 0;
