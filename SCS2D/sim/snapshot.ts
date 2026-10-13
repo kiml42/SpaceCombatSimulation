@@ -42,6 +42,10 @@ export interface ShipView {
   team: number;
   /** Which of its side's ships it is, from one; zero for a ship with no such count, as in an editor. */
   serial: number;
+  /** Which ship it is after its side's name, as "1" or "1.2" (`Ships.nameOf`); absent for its serial. */
+  name?: string;
+  /** Which core of the design it set out as each of its cores is, from one, in its design's core order. Optional. */
+  coreNumbers?: number[];
   /** The body of what it is fighting, or -1 or absent for nothing. */
   fighting?: number;
   x: number;
@@ -386,6 +390,8 @@ export function capture(
     view.body = b;
     view.team = ships.teamOf(i);
     view.serial = ships.serialOf(i);
+    view.name = ships.nameOf(i);
+    ships.coreNumbers(i, (view.coreNumbers ??= []));
     const fighting = ships.fightingOf(i);
     view.fighting = fighting >= 0 && ships.isAlive(fighting) ? bodies.indexOf(ships.body(fighting)) : -1;
     view.x = bodies.x[b]!;

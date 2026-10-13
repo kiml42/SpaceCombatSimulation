@@ -41,8 +41,11 @@ inside any one file is not contiguous.
   auto-framing camera, by mouse or by touch (pinch to zoom). A ship clicked or tapped is picked out — ringed, a line to what it is fighting, the arcs drawn
   for it alone, and framed with its target — until Escape or a tap on empty space. Rounds and beams are drawn as light, or with C in the colours of the side that
   fired them, which the evolution page starts with. A ship's name — its side and which of that side's
-  ships it is, as "Red 5" — is written on its core once the core is big enough on screen to carry it; a
-  piece broken off keeps its ship's. **The camera carries itself along with what it is watching rather
+  ships it is, as "Red 5" — is written on each of its working cores once the core is big enough on screen to
+  carry it; a piece broken off keeps its ship's. A ship with more than one core numbers each by which core
+  of the design it set out as it is ("Red 5.1", "Red 5.2"), and cut between them, each ship it becomes is
+  named for the core it is flown from, so a Catamaran's halves are "Red 5.1" and "Red 5.2", and once one
+  has rebuilt the other's core, its own two are "Red 5.1.1" and "Red 5.1.2". **The camera carries itself along with what it is watching rather
   than easing after it**, weighting the ships in shot by radius so a fleet action is steered
   by the capital in it; it falls back from the ships still under control to the hulks and then
   to the wreckage, so a fight that ends with every core shot out is still followed; and it

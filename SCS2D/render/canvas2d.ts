@@ -1283,13 +1283,26 @@ const NAME_MIN_PX = 7;
 
 /**
  * A ship's name — its side and which of that side's ships it is, as "Red 5" —
- * written on its first working core in its side's trim, once the core is big
- * enough on screen to carry it. Upright whichever way the ship is turned.
+ * written on each of its working cores in its side's trim, once the core is
+ * big enough on screen to carry it. Upright whichever way the ship is turned.
+ * A ship with more than one core numbers each, as "Red 5.2", by which core of
+ * the design it set out as it is, so the ships it becomes if it is cut between
+ * them can be told apart, and told from where they came.
  */
 function drawName(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number): void {
   if (ship.serial <= 0 || ship.team < 0 || !ship.hasControl) return;
-  const core = ship.design.cores.find((m) => (ship.integrity[m] ?? 1) > 0);
-  if (core === undefined) return;
+  const cores = ship.design.cores;
+  const name = `${teamName(ship.team)} ${ship.name ?? ship.serial}`;
+  for (let k = 0; k < cores.length; k++) {
+    const core = cores[k]!;
+    if (!((ship.integrity[core] ?? 1) > 0)) continue;
+    const number = ship.coreNumbers?.[k] ?? 0;
+    drawLabel(ctx, ship, core, cores.length > 1 && number > 0 ? `${name}.${number}` : name, metresToPx);
+  }
+}
+
+/** `text` written across module `core` of a ship, upright, if the core is big enough on screen. */
+function drawLabel(ctx: CanvasRenderingContext2D, ship: ShipView, core: number, text: string, metresToPx: number): void {
   const module = ship.design.modules[core]!;
   const across = Math.min(module.spec.length, module.spec.width) * metresToPx;
   if (across < NAME_MIN_CORE_PX) return;
@@ -1299,7 +1312,6 @@ function drawName(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     x: ship.x + module.x * c - module.y * s,
     y: ship.y + module.x * s + module.y * c,
   });
-  const text = `${teamName(ship.team)} ${ship.serial}`;
   const along = Math.max(module.spec.length, module.spec.width) * metresToPx;
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);

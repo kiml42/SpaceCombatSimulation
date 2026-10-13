@@ -624,6 +624,8 @@ export interface ShipSpec {
    * ship's; drawn from the side's count otherwise.
    */
   serial?: number;
+  /** Which ship it is after its side's name (`nameOf`); its serial when not given. */
+  name?: string;
   /** Nothing can hurt it: no damage taken, no weld cut. See `Damage.protect`. */
   invulnerable?: boolean;
   /**
@@ -766,6 +768,9 @@ export class Ships {
 
   private readonly team: number[] = [];
   private readonly serial: number[] = [];
+  private readonly names: string[] = [];
+  /** Whether a ship has had a piece fly off it this step, flown from a core of its own. */
+  private readonly parted: number[] = [];
   /** Ships each side has had put in, so the next is one more. */
   private readonly served = new Map<number, number>();
 
@@ -1269,6 +1274,33 @@ export class Ships {
   }
 
   /**
+   * Which ship this is, after its side's name: its serial, and for a ship
+   * that came of one cut between its cores, that ship's name and the number
+   * of the core it is flown from, as "1.2".
+   */
+  nameOf(i: number): string {
+    return this.names[i]!;
+  }
+
+  /**
+   * Each of ship `i`'s cores' numbers, in its design's core order, into `out`:
+   * which core of the design it set out as each is, from one, and nought for
+   * one that design never had.
+   */
+  coreNumbers(i: number, out: number[]): void {
+    const design = this.designs[i]!;
+    out.length = design.cores.length;
+    for (let k = 0; k < design.cores.length; k++) out[k] = this.coreNumber(i, design, design.cores[k]!);
+  }
+
+  /** Which core of ship `i`'s launch design module `m` of `design` is, from one, or nought. */
+  private coreNumber(i: number, design: ShipDesign, m: number): number {
+    const launch = this.launched[i]!;
+    for (let k = 0; k < launch.cores.length; k++) if (sameOrigin(launch, launch.cores[k]!, design, m)) return k + 1;
+    return 0;
+  }
+
+  /**
    * Put a ship in the world.
    *
    * Mass, inertia and bounding radius come from the design rather than the
@@ -1340,6 +1372,7 @@ export class Ships {
       this.served.set(spec.team ?? 0, serial);
     }
     this.serial.push(serial);
+    this.names.push(spec.name ?? `${serial}`);
     this.derelict.push(0);
     this.couldFight.push(design.turrets.some((t) => t.main) || design.engines.length > 0 ? 1 : 0);
     this.committed.push(0);
@@ -5151,7 +5184,17 @@ export class Ships {
     this.momentum(bodies);
     const beforeX = this.momentumX;
     const beforeY = this.momentumY;
+    this.parted[i] = 0;
     const pieces = this.breakApart(world, i, design, parts);
+    // Cut between its cores, it is now the ship flown from the one it kept, as
+    // each piece that flew off is the ship flown from its own.
+    if (this.parted[i] === 1) {
+      const kept = this.designs[i]!;
+      const core = kept.cores.find((c) => this.damage.remaining(bodies.indexOf(this.bodyIds[i]!), c, DamageEffect.Control) > 0) ?? kept.cores[0];
+      const number = core === undefined ? 0 : this.coreNumber(i, kept, core);
+      if (number > 0) this.names[i] = `${this.names[i]}.${number}`;
+      this.parted[i] = 0;
+    }
     // Each piece leaves at the hull's velocity at its own centre of mass, which
     // conserves momentum only if the hull's mass is where its design put it.
     // What spending and damage have taken off unevenly says otherwise, so the
@@ -5413,6 +5456,13 @@ export class Ships {
       // Still that ship, so it rebuilds to the design that ship set out as: a
       // hull cut in two can grow back into two. Wreckage sets out as itself.
       this.launched[j] = this.launched[side]!;
+      // Named for the core it is flown from.
+      const core = chunk.cores.find((c) => this.damage.remaining(b, keep[c]!, DamageEffect.Control) > 0);
+      const number = core === undefined ? 0 : this.coreNumber(side, design, keep[core]!);
+      if (number > 0) {
+        this.names[j] = `${this.names[side]}.${number}`;
+        if (side === i) this.parted[i] = 1;
+      }
     } else {
       this.derelict[j] = 1;
     }
