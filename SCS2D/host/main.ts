@@ -90,8 +90,8 @@ export function start(): void {
     { name: 'Custom battle', create: (): Battle => customBattle(panel.setup()) },
   ];
   const CUSTOM = scenes.length - 1;
-  /** Build the current scene afresh, running or held at its first step. */
-  const restart = (run = true): void => {
+  /** Build the current scene afresh, running or held at its first step: by default, whichever it was. */
+  const restart = (run = running): void => {
     state = scenes[sceneIndex]!.create();
     selected = -1;
     panel.reset();
@@ -167,7 +167,7 @@ export function start(): void {
     setRunning(false);
     state.step();
   });
-  resetButton.addEventListener('click', () => restart(sceneIndex !== CUSTOM));
+  resetButton.addEventListener('click', () => restart(sceneIndex !== CUSTOM && running));
   sceneSelect.addEventListener('change', () => {
     if (sceneSelect.selectedIndex === CUSTOM) {
       openCustom();
