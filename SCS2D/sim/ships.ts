@@ -86,6 +86,7 @@ import {
   FUEL_DENSITY,
   PAD_REPAIR_PER_METRE,
   ROBOT_BUILD_TIME,
+  berthRate,
   ROBOT_CHARGE,
   ROBOT_LOAD,
   ROBOT_MASS,
@@ -4422,7 +4423,7 @@ export class Ships {
       }
       const working = this.damage.remaining(b, m, DamageEffect.Tending);
       if (!(working > 0)) continue;
-      builds[m] = min(ROBOT_BUILD_TIME, builds[m]! + dt * working);
+      builds[m] = min(ROBOT_BUILD_TIME, builds[m]! + dt * working * berthRate(design.modules[m]!.stats));
       if (builds[m]! < ROBOT_BUILD_TIME) continue;
       const cost = ROBOT_MASS * (1 + REPAIR_WASTE);
       if (this.metal.pieceHeld(b, m) < cost) continue;
@@ -4439,7 +4440,7 @@ export class Ships {
     if (robot.mode === RobotMode.Berthed) {
       // A working bay refills it, and tops its charge up from its piece of
       // hull, reserves and all, each step it waits.
-      const working = this.damage.remaining(b, robot.bay, DamageEffect.Tending);
+      const working = this.damage.remaining(b, robot.bay, DamageEffect.Tending) * berthRate(design.modules[robot.bay]!.stats);
       if (working > 0) {
         if (robot.refill > 0) {
           robot.refill -= dt * working;
@@ -4448,10 +4449,12 @@ export class Ships {
             robot.metal = ROBOT_LOAD;
           }
         }
-        const want = ROBOT_CHARGE - robot.charge;
+        // Charged as it is filled, as fast as there is charge to give.
+        const want = min(ROBOT_CHARGE - robot.charge, ((ROBOT_CHARGE / ROBOT_REFILL_TIME) * dt * working));
         const spare = this.power.pieceHeld(b, robot.bay);
         if (want > 0 && spare > 0) robot.charge += this.power.drain(b, robot.bay, want < spare ? want : spare);
-        if (robot.refill > 0) return false;
+        // Waits to be full while its piece of hull has the charge to fill it.
+        if (robot.refill > 0 || (robot.charge < ROBOT_CHARGE - 1 && spare > want)) return false;
       }
       // It goes on what it carries, whether its bay can still refill it or not.
       if (!(robot.metal > ROBOT_SPENT) || !(robot.charge >= ROBOT_REPAIR_RATE * REPAIR_ENERGY_PER_JOULE * dt)) return false;
