@@ -15,7 +15,7 @@ const RAIDERS = 8;
  * its claw. The fighters launch charged, fight the TIEs on their batteries,
  * and come back to the pads to recharge once they are down to half.
  */
-export function beamCarrier(seed = 20261011): Battle {
+export function beamCarrier(seed = 20261011, raiders = RAIDERS): Battle {
   return makeBattle({ seed, projectiles: 1024, beams: 256 }, (ships, world) => {
     ships.spawn(world, { design: compileBlueprint(BEAM_CARRIER), x: 0, y: 0, angle: 0, team: 0 });
     // Wrecks: Corvettes whose cores are shot out, drifting behind the carrier.
@@ -26,8 +26,8 @@ export function beamCarrier(seed = 20261011): Battle {
       for (const core of corvette.cores) ships.damage.absorb(b, core, corvette.modules[core]!.stats.hitPoints * DAMAGE_ENERGY_PER_KG * 0.7);
     }
     const tie = compileBlueprint(TIE);
-    for (let k = 0; k < RAIDERS; k++) {
-      ships.spawn(world, { design: tie, x: 3000 + 150 * k, y: (k - (RAIDERS - 1) / 2) * 400, angle: math.PI, team: 1 });
+    for (let k = 0; k < raiders; k++) {
+      ships.spawn(world, { design: tie, x: 3000 + 150 * k, y: (k - (raiders - 1) / 2) * 400, angle: math.PI, team: 1 });
     }
   });
 }

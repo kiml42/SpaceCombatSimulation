@@ -426,8 +426,9 @@ inside any one file is not contiguous.
   gunnery standoff — where you sit to *shoot* at something being the wrong answer by an order of magnitude
   for something you are covering. The band is measured from skin to skin, both hulls' radii out, so two
   ships of a size never station inside the circle the pair sweep turning, and a craft keeps clear of its
-  charge as of anything else. It covers no friend smaller than `escortMinRadii` of its own radius — its own
-  size, by default — so a capital does not trail round after the nearest fighter; a neutral objective is
+  charge as of anything else, though no further out than its station, or covering and keeping clear pull it
+  back and forth across the line between them. It covers no friend smaller than `escortMinRadii` of its own
+  radius — its own size, by default — so a capital does not trail round after the nearest fighter; a neutral objective is
   gone to whatever its size, since a goal is a marker far smaller than anything racing to it. A friend that
   has lost control is covered only while it has robots aboard, which may yet mend its core; wreckage and
   any other hulk are nobody's charge. The Catamaran's halves escort each other this way, three radii apart.
@@ -1346,6 +1347,12 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
     other comes off — which matters beyond the fuel, since an engine burns what its plume is pointed at.
     Judged on the wrench and not on which way each pushes: a bow engine and a stern one pushing
     opposite ways are a *couple*, which is how a ship turns on the spot, and are left alone.
+  - **A lopsided layout turns as well as pushes**, and the pilot allows for it twice. It plans the braking
+    of a turn on the torque that stops it, not the one that starts it, since a turn planned on the
+    stronger way overshoots past half round and goes round again. And asked for more force than it has,
+    the allocator can give the turn up for it, or turn the hull the wrong way, so the pilot halves the
+    force it asks for while a turn worth having is starved. Only starved: a lopsided hull loses a little
+    turn whenever it pushes at all, and halving for that would leave it unable to move.
   - This is the exact problem ("RCS engines") that stalled the old project.
 - **Integrator:** symplectic (velocity Verlet / leapfrog), fixed timestep, with substepping near
   deep gravity wells. Semi-implicit Euler visibly precesses and spirals orbits.

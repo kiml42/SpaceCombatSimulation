@@ -223,15 +223,21 @@ const RAM_HORIZON = 60;
 /** Below this much velocity still to gain, m/s, a ram points its nose at the target rather than its thrust. */
 const RAM_AIM_SPEED = 5;
 
-/** How many times a ram may halve its ask for force to keep the torque to turn with. */
-const RAM_FORCE_HALVINGS = 6;
+/** How many times a pilot may halve its ask for force to keep the torque to turn with. */
+const FORCE_HALVINGS = 6;
 
 /**
  * A turn short by less than this share of the torque the ship has is no turn
- * at all, and not worth giving up thrust for: a ram dead on its target asks for
- * round-off.
+ * at all, and not worth giving up thrust for: a craft dead on its heading asks
+ * for round-off.
  */
-const RAM_TORQUE_NEGLIGIBLE = 1e-6;
+const TORQUE_NEGLIGIBLE = 1e-6;
+
+/**
+ * A turn asking less than this share of the torque a craft has is not worth
+ * giving up thrust for, nor is one given more than this share of what it asked.
+ */
+const TURN_SHARE = 0.1;
 
 const TIMER_SETTLE = 1e-9;
 
@@ -2920,7 +2926,7 @@ export class Ships {
       }
       // Clear of what it is covering, as of anything else: a charge is
       // stationed on, never flown into.
-      this.avoid(bodies, i, b, target);
+      this.avoid(bodies, i, b, target, covering);
     }
 
     // Nothing to want is a want of its own: a craft with no orders, no charge
@@ -2963,7 +2969,11 @@ export class Ships {
     const inertia = bodies.inertia[b]!;
     const layout = this.layoutOf(i);
     const maxTorque = layout.maxTorque(error >= 0 ? 1 : -1);
-    const maxAlpha = inertia > 0 ? maxTorque / inertia : 0;
+    // Planned on the torque that stops the turn, not the one that starts it.
+    // On a lopsided layout those differ, and a turn planned on the stronger
+    // overshoots past half round, where the error wraps and it goes round again.
+    const brakeTorque = layout.maxTorque(error >= 0 ? -1 : 1);
+    const maxAlpha = inertia > 0 ? brakeTorque / inertia : 0;
     const turn = min(brakingRate(error, maxAlpha, dt), (error >= 0 ? error : -error) / HEADING_SETTLE_TIME);
     const wantRate = error >= 0 ? turn : -turn;
     const localTorque =
@@ -2976,7 +2986,7 @@ export class Ships {
     const firing = this.aimEngines(bodies, grid, i, layout);
     let demandFx = localFx;
     let demandFy = localFy;
-    let demandTorque = clamp(localTorque, -maxTorque, maxTorque);
+    let demandTorque = clamp(localTorque, -layout.maxTorque(-1), layout.maxTorque(1));
     if (firing > 0) {
       const forced = this.forced;
       for (let t = 0; t < layout.count; t++) {
@@ -2989,17 +2999,28 @@ export class Ships {
 
     const throttles = this.throttles[i]!;
     layout.allocate(demandFx, demandFy, demandTorque, throttles, this.allocation);
-    // A ram asks for more force than it can have, and what is given up for it
-    // can be the torque to stop a turn. Ask for less until the turn gets most
-    // of what it wanted.
-    if (order?.ram === true) {
-      for (let k = 0; k < RAM_FORCE_HALVINGS; k++) {
-        const short = demandTorque - this.allocation.torque;
-        if (abs(short) <= 0.5 * abs(demandTorque) || abs(short) <= maxTorque * RAM_TORQUE_NEGLIGIBLE) break;
-        demandFx *= 0.5;
-        demandFy *= 0.5;
-        layout.allocate(demandFx, demandFy, demandTorque, throttles, this.allocation);
+    // Asked for more force than it has, the allocator can give up the turn for
+    // it, and a lopsided layout can even turn the wrong way. So ask for less: a
+    // ram until it gets most of its turn, anything else only while a turn worth
+    // having is starved, since a lopsided hull loses a little whenever it pushes.
+    const ram = order?.ram === true;
+    for (let k = 0; k < FORCE_HALVINGS; k++) {
+      const got = this.allocation.torque;
+      const short = demandTorque - got;
+      if (abs(short) <= maxTorque * TORQUE_NEGLIGIBLE) break;
+      if (ram) {
+        if (abs(short) <= 0.5 * abs(demandTorque)) break;
+      } else {
+        const sense = demandTorque >= 0 ? 1 : -1;
+        if (abs(demandTorque) <= TURN_SHARE * layout.maxTorque(sense)) break;
+        if (got * sense >= TURN_SHARE * abs(demandTorque)) break;
+        const missX = demandFx - this.allocation.fx;
+        const missY = demandFy - this.allocation.fy;
+        if (missX * missX + missY * missY <= 0.25 * (demandFx * demandFx + demandFy * demandFy)) break;
       }
+      demandFx *= 0.5;
+      demandFy *= 0.5;
+      layout.allocate(demandFx, demandFy, demandTorque, throttles, this.allocation);
     }
 
     if (firing === 0) {
@@ -3493,7 +3514,7 @@ export class Ships {
    * keeping clear is a whisper at the edge of the look-ahead and the loudest
    * thing in the blend just before a collision.
    */
-  private avoid(bodies: Bodies, i: number, b: number, flying: number): void {
+  private avoid(bodies: Bodies, i: number, b: number, flying: number, covering: number): void {
     const approach = this.doctrines[i]!.approach;
     if (!(approach.separation > 0) || !(approach.separationRadii > 0)) return;
     const mine = this.designs[i]!.radius;
@@ -3518,7 +3539,10 @@ export class Ships {
       if (ob < 0 || ob === b || bodies.ghost[ob] === 1) continue;
 
       const touching = mine + this.designs[t]!.radius;
-      const room = touching * approach.separationRadii;
+      let room = touching * approach.separationRadii;
+      // Its charge no further out than its station, or the two wants fight:
+      // covering pulls it in to where keeping clear pushes it out.
+      if (t === covering) room = min(room, max(0, this.escortBand(i, this.designs[i]!, t) - touching));
       const dx = bodies.x[ob]! - x;
       const dy = bodies.y[ob]! - y;
       const rvx = bodies.vx[ob]! - vx;

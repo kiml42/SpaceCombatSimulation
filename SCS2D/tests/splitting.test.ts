@@ -106,8 +106,10 @@ describe('a ship cut in half', () => {
     // is measured against the corvette it is chasing — 949 m, not the larger
     // figure its own doctrine nominates — so it takes a while to get there.
     const { run, live } = at(25);
-    const pieces = halves(run, live);
-    expect(pieces.length).toBe(2);
+    expect(halves(run, live).length).toBe(2);
+    // A half the corvette has already disarmed has nothing to lock on with.
+    const pieces = halves(run, live).filter((s) => run.ships.design(s).turrets.length > 0);
+    expect(pieces.length).toBeGreaterThan(0);
 
     const lockedOn = new Set<number>();
     let onTheLiveOne = 0;
