@@ -67,7 +67,7 @@
           "y": 0,
           "length": 4,
           "width": 6,
-          "reinforcement": 4,
+          "reinforcement": 6,
           "notes": "One each, which is the point: a hull cut off from the other still has somebody aboard it."
         },
         {
@@ -86,6 +86,7 @@
           "angle": 0,
           "length": 5,
           "width": 4,
+          "reinforcement": 2,
           "barrels": 1,
           "barrelCalibres": 31.25
         },

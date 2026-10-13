@@ -1,7 +1,7 @@
 import { compileBlueprint, DEFAULT_DOCTRINE, math } from '../sim/index.js';
 import { type Battle } from './types.js';
 import { makeBattle } from './battle.js';
-import { CATAMARAN, CORVETTE } from './blueprints.js';
+import { CATAMARAN, CORVETTE, BARE_CORE } from './blueprints.js';
 
 /**
  * A ship cut in half, and both halves flying on.
@@ -24,14 +24,19 @@ export function split(seed = 20260905): Battle {
   return makeBattle({ seed, projectiles: 256, beams: 64 }, (ships, world) => {
     // Held to its guns rather than turning to burn clear: the scenario is the
     // cut, and a target that backs away takes the ram off its bridge.
-    const doctrine = CATAMARAN.doctrine ?? DEFAULT_DOCTRINE;
     const catamaran = compileBlueprint({
-      ...CATAMARAN,
-      doctrine: { ...doctrine, approach: { ...doctrine.approach, burnWeight: 0 } },
+      ...CATAMARAN
     });
     const corvette = compileBlueprint(CORVETTE);
+    const core = compileBlueprint(BARE_CORE);
 
-    const target = ships.spawn(world, { design: catamaran, x: 0, y: 0, angle: 0, team: 0 });
+    const target = ships.spawn(world, {
+      design: catamaran,
+      x: 0,
+      y: 0,
+      angle: math.PI,
+      team: 0
+    });
 
     // Down the centreline at the bridge rather than at either hull, close enough
     // that it arrives in the first few seconds. A ram flies in without braking,
@@ -39,11 +44,11 @@ export function split(seed = 20260905): Battle {
     // holds, much faster and the ram takes both hulls to pieces instead of
     // taking them apart.
     const rammer = ships.spawn(world, {
-      design: corvette,
+      design: core,
       x: 220,
       y: 0,
-      angle: math.PI,
-      vx: -30,
+      angle: 0,
+      vx: -80,
       team: 1,
     });
     ships.pushRam(rammer, target, 30);
