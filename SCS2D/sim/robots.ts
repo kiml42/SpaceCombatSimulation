@@ -235,7 +235,9 @@ export class Robots {
    * gives a module of the old body's design its index in the new one, or -1.
    * Only one whose bay and whose module both come over goes: it can still get
    * home. Taken from the old body, so a piece cut off takes its robots with it.
-   * Anything it was walking is forgotten, and it makes for home afresh.
+   * Each carries on where it was and about what it was about, walking the
+   * same welds; one whose way or whose work did not come over finds new
+   * (`Ships.tend`).
    */
   take(bodyIndex: number, moduleOf: (module: number) => number): Robot[] {
     const robots = this.of[bodyIndex];
@@ -251,14 +253,22 @@ export class Robots {
       }
       robot.bay = bay;
       robot.at = at;
-      robot.target = -1;
-      robot.build = -1;
+      robot.target = robot.target >= 0 ? moduleOf(robot.target) : -1;
+      if (robot.target < 0) robot.build = -1;
       robot.idleAt = -1;
       robot.stoodOn = -1;
-      robot.path = null;
-      robot.leg = 0;
-      robot.along = 0;
-      if (robot.mode !== RobotMode.Berthed) robot.mode = at === bay ? RobotMode.Berthed : RobotMode.Home;
+      const path = robot.path;
+      if (path !== null) {
+        for (let k = 0; k < path.length && robot.path !== null; k++) {
+          const to = moduleOf(path[k]!);
+          if (to < 0) robot.path = null;
+          else path[k] = to;
+        }
+        if (robot.path === null) {
+          robot.leg = 0;
+          robot.along = 0;
+        }
+      }
       out.push(robot);
     }
     this.of[bodyIndex] = left;

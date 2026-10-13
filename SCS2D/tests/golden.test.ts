@@ -34,7 +34,7 @@ const GOLDEN: Record<ScenarioName, string> = {
   torpedoes: 'fb46113d',
   fractal: '44c7de4d',
   ordering: '1bd86b64',
-  split: '31db1987',
+  split: '1a22d9f6',
   column: '9c0e5b21',
   standoff: 'b0c25ed8',
   ram: '5e17fcad',
