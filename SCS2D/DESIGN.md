@@ -423,7 +423,9 @@ inside any one file is not contiguous.
   gunnery standoff — where you sit to *shoot* at something being the wrong answer by an order of magnitude
   for something you are covering. It covers no friend smaller than `escortMinRadii` of its own radius — its own
   size, by default — so a capital does not trail round after the nearest fighter; a neutral objective is
-  gone to whatever its size, since a goal is a marker far smaller than anything racing to it.
+  gone to whatever its size, since a goal is a marker far smaller than anything racing to it. A friend that
+  has lost control is covered only while it has robots aboard, which may yet mend its core; wreckage and
+  any other hulk are nobody's charge. The Catamaran's halves escort each other this way, three radii apart.
   **Where a craft goes is several wants added up.** Holding the station it has been given, staying with what
   it is covering, and keeping out of everybody's way are not alternatives to choose between: each is a
   velocity it would like to have and how much it would like it, and the pilot flies their weighted average.
@@ -677,11 +679,12 @@ inside any one file is not contiguous.
   turns on a two-pad Tender; evolution's weight for a pad is zero, since it pays only in a fleet with fighters.
   **A robot bay** (`robotBay`) berths a robot for every `ROBOT_BERTH_VOLUME` of its interior, priced by
   their weight (`ROBOT_MASS`) and its racks, and is drawn as a deck with a round pad for each berth, a robot
-  sitting on its pad while it is home. A robot is not a body but a place on its hull: it crawls module
+  home sitting on its pad as a disc once it is full and as itself while it is being filled, and the pad of
+  one being built filling round as a ring. A robot is not a body but a place on its hull: it crawls module
   to module across the welds the hull was built with, never a seam, at `ROBOT_SPEED`, and is drawn there as
   a beetle facing the way it crawls, its two wing cases bars that empty as it spends its charge and its
   metal. It sets out with `ROBOT_LOAD` of metal and `ROBOT_CHARGE` it may spend, goes to
-  the damaged module of its ship's that matters most — cores, then engines and weapons, then the rest, the
+  the damaged module of its ship's that matters most — cores and robot bays, then engines and weapons, then the rest, the
   one fewest robots are after, the nearest of those — and mends it at `ROBOT_REPAIR_RATE`, at a pad's costs:
   `REPAIR_ENERGY_PER_JOULE` of what it carries, and the metal the module shed and `REPAIR_WASTE` more, drawn
   from its piece of hull. It goes straight on to the next job, and home once it is short of either; its bay

@@ -323,3 +323,43 @@ describe('escort and neutrals', () => {
     expect(dealt).toBeGreaterThan(0);
   });
 });
+
+describe('an escort and a friend that has lost control', () => {
+  const WRECKED: Blueprint = {
+    name: 'Wrecked',
+    modules: [
+      { kind: 'core', x: 0, y: 0, length: 6, width: 6 },
+      { kind: 'hold', x: 0, y: 4.5, length: 6, width: 3 },
+    ],
+  };
+  const MENDING: Blueprint = {
+    name: 'Wrecked with robots',
+    modules: [...WRECKED.modules, { kind: 'robotBay', x: 0, y: -5, length: 6, width: 4 }],
+  };
+
+  /** How far an escort ends up from a friend whose core is shot out. */
+  function after(friend: Blueprint): number {
+    const corvette = compileBlueprint(escorting(CORVETTE, 400));
+    const escort = compileBlueprint({
+      ...escorting(CORVETTE, 400),
+      doctrine: { ...corvette.doctrine, approach: { ...corvette.doctrine.approach, escortMinRadii: 0 } },
+    });
+    const hulk = compileBlueprint(friend);
+    const run = makeBattle({ seed: 1 }, (ships, world) => {
+      const e = ships.spawn(world, { design: escort, x: 0, y: 0, team: 0 });
+      const h = ships.spawn(world, { design: hulk, x: 800, y: 0, team: 0 });
+      const b = world.bodies.indexOf(ships.body(h));
+      ships.damage.absorb(b, hulk.cores[0]!, hulk.modules[hulk.cores[0]!]!.stats.hitPoints * 1000 * 5);
+      return { e, h };
+    });
+    for (let s = 0; s < 120 * 60; s++) run.step();
+    const a = run.world.bodies.indexOf(run.ships.body(run.e));
+    const b = run.world.bodies.indexOf(run.ships.body(run.h));
+    return Math.hypot(run.world.bodies.x[a]! - run.world.bodies.x[b]!, run.world.bodies.y[a]! - run.world.bodies.y[b]!);
+  }
+
+  it('stays with it while it has robots aboard that may mend it, and not otherwise', () => {
+    expect(after(MENDING)).toBeLessThan(300);
+    expect(after(WRECKED)).toBeGreaterThan(700);
+  });
+});

@@ -1105,6 +1105,12 @@ export class Ships {
    * A ship with nothing left controlling it to cover: its cores shot out. Not a
    * neutral, which is an objective rather than a ship.
    */
+  /** Whether ship `i`'s hull has robots aboard, which may bring it back. */
+  private mending(bodies: Bodies, i: number): boolean {
+    const b = bodies.indexOf(this.bodyIds[i]!);
+    return b >= 0 && (this.robots.on(b)?.length ?? 0) > 0;
+  }
+
   private hulk(i: number): boolean {
     return this.team[i] !== NEUTRAL_TEAM && !this.hasControl(i);
   }
@@ -1571,7 +1577,9 @@ export class Ships {
       if (t === i || this.alive[t] === 0) continue;
       // Wreckage is nobody's consort. A live friendly that cannot fight is:
       // a thing worth covering is usually a thing that cannot cover itself.
-      if (this.derelict[t] === 1 || this.hostile(i, t) || this.hulk(t)) continue;
+      // So is a hulk with robots aboard, which may yet mend its core.
+      if (this.derelict[t] === 1 || this.hostile(i, t)) continue;
+      if (this.hulk(t) && !this.mending(bodies, t)) continue;
       // Nor is a friend too small for it to bother covering. A neutral is an
       // objective rather than a ship to look after, and is gone to whatever
       // its size: a goal is a marker far smaller than anything racing to it.
@@ -3409,7 +3417,8 @@ export class Ships {
    */
   private cover(bodies: Bodies, i: number, b: number): number {
     const consort = this.consort[i]!;
-    if (consort === NO_TARGET || this.alive[consort] !== 1 || this.hulk(consort)) return NO_TARGET;
+    if (consort === NO_TARGET || this.alive[consort] !== 1) return NO_TARGET;
+    if (this.hulk(consort) && !this.mending(bodies, consort)) return NO_TARGET;
     const cb = bodies.indexOf(this.bodyIds[consort]!);
     if (cb < 0 || cb === b) return NO_TARGET;
 
