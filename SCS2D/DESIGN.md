@@ -714,7 +714,7 @@ inside any one file is not contiguous.
   is hit is mended before any more is built, and one cut away again is lost again. The `rebuilding`
   scenario has a turning Rebuilder lose its fin and its engine and build both back, each once what came off
   has drifted clear. Each hull of the Catamaran carries a bay, a hold and a generator enough to rebuild the
-  other, so either half of one cut in two grows back into the whole ship, in about eighty minutes.
+  other, so either half of one cut in two grows back into the whole ship, in about an hour.
   **A pad may set out with a fighter docked on it** (`ModuleSpec.docked`, naming a copy in the blueprint's
   `hangar`, as a fleet carries its designs). It is spawned lying along the pad, centred on it, and welded as
   one that had landed, so it is topped up from the carrier and lifts off once full. A fighter too big for its

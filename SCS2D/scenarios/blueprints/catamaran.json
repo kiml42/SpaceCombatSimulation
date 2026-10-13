@@ -1,16 +1,16 @@
 {
   "formatVersion": 1,
   "name": "Catamaran",
-  "notes": "Two hulls and a footbridge. Each hull is a whole ship \u2014 core, gun, engines \u2014 and what joins them is four sections of thin structure, so the pair is held together by welds a fraction of the width of the ones inside either hull. Built to be cut in half: what the two halves then do is what tells you whether a piece with a core of its own is a ship or wreckage. Each hull carries a robot bay, a hold and a generator, enough between them to rebuild the other half, so each half of a cut Catamaran can grow back into the whole ship.",
+  "notes": "Two hulls and a footbridge. Each hull is a whole ship — core, gun, engines — and what joins them is four sections of thin structure, so the pair is held together by welds a fraction of the width of the ones inside either hull. Built to be cut in half: what the two halves then do is what tells you whether a piece with a core of its own is a ship or wreckage. Each hull carries a robot bay, a hold and a generator, enough between them to rebuild the other half, so each half of a cut Catamaran can grow back into the whole ship.",
   "assemblies": {
     "wingBox": {
       "notes": "Holds a manoeuvring engine out where its moment arm is worth having. Outboard only: an engine on the inboard face would exhaust across the bridge and into the other hull.",
       "modules": [
         {
           "kind": "tank",
-          "x": 0,
+          "x": -1,
           "y": 0,
-          "length": 4,
+          "length": 6,
           "width": 3
         }
       ]
@@ -40,13 +40,13 @@
       ]
     },
     "hull": {
-      "notes": "One of the pair, drawn as if it were the whole ship \u2014 which is what it becomes.",
+      "notes": "One of the pair, drawn as if it were the whole ship — which is what it becomes.",
       "modules": [
         {
-          "kind": "structure",
-          "x": 5,
+          "kind": "robotBay",
+          "x": 5.75,
           "y": 0,
-          "length": 6,
+          "length": 7.5,
           "width": 6,
           "reinforcement": 2
         },
@@ -56,30 +56,31 @@
           "y": 0,
           "length": 4,
           "width": 6,
-          "notes": "One each, which is the point: a hull cut off from the other still has somebody aboard it.",
-          "reinforcement": 2
+          "reinforcement": 4,
+          "notes": "One each, which is the point: a hull cut off from the other still has somebody aboard it."
         },
         {
-          "kind": "structure",
-          "x": -5,
+          "kind": "hold",
+          "x": -5.5,
           "y": 0,
-          "length": 6,
+          "length": 7,
           "width": 6,
-          "reinforcement": 2
+          "reinforcement": 2,
+          "thick": true
         },
         {
           "kind": "turret",
-          "x": 10.5,
+          "x": 12,
           "y": 0,
           "angle": 0,
           "length": 5,
           "width": 4,
-          "barrelCalibres": 31.25,
-          "barrels": 1
+          "barrels": 1,
+          "barrelCalibres": 31.25
         },
         {
           "kind": "engine",
-          "x": -8,
+          "x": -9,
           "y": 0,
           "angle": 180,
           "length": 4,
@@ -88,7 +89,7 @@
         },
         {
           "use": "wingBox",
-          "x": 4,
+          "x": 6,
           "y": 4.5
         },
         {
@@ -98,33 +99,18 @@
         },
         {
           "use": "lateral",
-          "x": 4,
-          "y": 7
+          "x": 13,
+          "y": 3
         },
         {
           "use": "lateral",
-          "x": -4,
-          "y": 7
+          "x": -9.5,
+          "y": 4
         },
         {
           "use": "retro",
-          "x": 7,
-          "y": 4.5
-        },
-        {
-          "kind": "robotBay",
-          "x": 6,
-          "y": -5,
-          "length": 8,
-          "width": 4,
-          "notes": "Inboard, but shallow, out of the way of anything driven through the bridge. Its hold holds the metal to rebuild the other half."
-        },
-        {
-          "kind": "hold",
-          "x": -7,
-          "y": -5,
-          "length": 10,
-          "width": 4
+          "x": 15.5,
+          "y": 0
         },
         {
           "kind": "generator",
