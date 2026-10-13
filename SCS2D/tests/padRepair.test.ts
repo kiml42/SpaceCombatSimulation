@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   compileBlueprint,
   DAMAGE_ENERGY_PER_KG,
+  joints,
   PAD_REPAIR_PER_METRE,
   REPAIR_WASTE,
   type Blueprint,
@@ -113,5 +114,44 @@ describe('a pad', () => {
     runUntil(run, empty, 30);
     expect(aboard(run)).toBe(false);
     expect(absorbed(run, GUN)).toBeGreaterThan(0);
+  });
+
+  it('builds back what a fighter has lost before letting it go, walls first, from the carrier', { timeout: 60_000 }, () => {
+    const carrier = carrierOf();
+    // An engine at the end of an outrigger, so nothing else comes away with it.
+    const all = joints(fighter);
+    const LOST = fighter.modules.findIndex(
+      (m, k) => m.spec.kind === 'engine' && all.filter((j) => j.a === k || j.b === k).length === 1,
+    );
+    const run = makeBattle({ seed: 3 }, (ships, world) => {
+      const c = ships.spawn(world, { design: carrier, x: 0, y: 0, angle: 0.3 });
+      const f = ships.spawn(world, { design: fighter, x: -300, y: 200, angle: 0 });
+      const b = world.bodies.indexOf(ships.body(f));
+      for (let m = 0; m < fighter.modules.length; m++) ships.fuel.vent(b, m, ships.fuel.held(b, m) * 0.8);
+      const k = all.findIndex((j) => j.a === LOST || j.b === LOST);
+      ships.damage.cutWeld(b, k, all[k]!.width * 2);
+      return { c, f };
+    });
+    run.step();
+    // What came off, out of the way.
+    const kept = [run.c, run.f].map((i) => run.world.bodies.indexOf(run.ships.body(i)));
+    for (let j = 0; j < run.world.bodies.highWater; j++) {
+      if (run.world.bodies.alive[j] === 1 && !kept.includes(j)) run.world.bodies.y[j] = run.world.bodies.y[j]! + 5000;
+    }
+    expect(run.ships.design(run.f).modules.length).toBe(fighter.modules.length - 1);
+    const metal = (): number => run.ships.metal.pieceHeld(run.world.bodies.indexOf(run.ships.body(run.c)), HOLD);
+    runUntil(run, () => aboard(run), 60);
+    expect(aboard(run)).toBe(true);
+    const before = metal();
+    runUntil(run, () => !aboard(run), 300);
+    expect(aboard(run)).toBe(false);
+    const flown = run.ships.design(run.f);
+    const b = run.world.bodies.indexOf(run.ships.body(run.f));
+    expect(flown.modules.length).toBe(fighter.modules.length);
+    expect(flown.modules.every((m, k) => m.shell === undefined && !(run.ships.damage.unbuiltAt(b, k) > 0))).toBe(true);
+    expect(flown.engines.length).toBe(fighter.engines.length);
+    // Paid for from the carrier's hold.
+    const engine = fighter.modules[LOST]!.stats;
+    expect(before - metal()).toBeGreaterThanOrEqual((engine.structureMass + engine.fittingMass) * (1 + REPAIR_WASTE) - 1);
   });
 });

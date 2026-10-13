@@ -156,12 +156,10 @@ the base of steps 12 and 13. The shape, settled with the author (DECISIONS.md):
   an upgrade a place to go if technology is ever modelled.
 - Robots stay on their own ship. Crossing a port seam to work on a docked friend can come later.
 
-A PR a stage. Stages 1 to 4 are built: mass shed by damage with what repairing it would cost kept on the
-books, pads repairing landed fighters, the robot bay and robots repairing, and robots lost and built anew.
-Stage 5 is built for robots.
+A PR a stage. Stages 1 to 5 are built: mass shed by damage with what repairing it would cost kept on the
+books, pads repairing landed fighters, the robot bay and robots repairing, robots lost and built anew, and
+lost modules rebuilt by robots and by pads.
 
-5. **Rebuilding lost modules** by pads: a landed fighter's, grown against what is left of it and paid for
-   from the carrier, the pad holding it until it is whole.
 6. **Disassembling what is not the ship's own into metal.**
 
 Steps 9 to 13 walk into the resource system one resource and one use at a time, fuel first (partly built,
