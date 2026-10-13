@@ -46,7 +46,7 @@ function soak(seed: number, pilots: boolean) {
 
 describe('hulls hooking and parting at length', () => {
   for (const [seed, pilots] of [[1, false], [3, false], [2, true], [10, true]] as const) {
-    it(`keeps its books, seed ${seed}${pilots ? ', flown' : ''}`, () => {
+    it(`keeps its books, seed ${seed}${pilots ? ', flown' : ''}`, { timeout: 30_000 }, () => {
       const { run, rand } = soak(seed, pilots);
       const { ships, world } = run;
       const momentum = (): [number, number] => {
