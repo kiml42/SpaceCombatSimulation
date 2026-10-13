@@ -1414,7 +1414,8 @@ describe('the editor in a browser', () => {
   });
 
   it('eases to a different ship’s scale, so switching shows which is bigger', async () => {
-    // Pixels bright enough to be hull, which the grid and the background are not.
+    // Pixels bright enough to be hull, a fighter's darker shade included, which the
+    // grid and the background are not.
     const hull = (): Promise<number> =>
       page.evaluate(() => {
         const canvas = document.getElementById('view') as HTMLCanvasElement;
@@ -1423,7 +1424,7 @@ describe('the editor in a browser', () => {
         const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
         let n = 0;
         for (let i = 0; i < data.length; i += 4) {
-          if (data[i]! + data[i + 1]! + data[i + 2]! > 450) n++;
+          if (data[i]! + data[i + 1]! + data[i + 2]! > 300) n++;
         }
         return n;
       });

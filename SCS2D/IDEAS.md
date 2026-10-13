@@ -2,7 +2,6 @@
 Things that are obviously wrong.
 
 - Fuel tanks should stop supplying fuel when they are too damaged.
-- Fighter engines in the turret layer immediately hit an overflown hull layer module. Should probably just make engine plumes follow the same rules as beams about staying in their own layers.
 - When setting up a co-evolution run between two very large fleets, the UI hangs on every input. Setting up runs with fleets this big is probably a bad idea anyway, but the UI shouldn't hang making it difficult to change your mind.
 - If you add a ship to a fleet from a file that shares a name with an existing ship in the fleet, you get a copy of that ship, instead of the new ship. Should either rename the new ship, or replace the old ship. either way, it should alert you.
 - In evolution, things end up connected to engine bells, which shouldn't be allowed as connection surfaces.
@@ -11,7 +10,7 @@ Things that are obviously wrong.
 -----------------------------------------------------------------------
 
 # Balance
-- Beams are overpowered at the moment, outperforming guns most of the time. Adding power systems should help balance them. Check how well they perform once power is implemented.
+- Beams are overpowered at the moment, outperforming guns most of the time. Even after the addition of reactors. E.g. the reactor on the Beam Gunship is tiny, and it easily destroys the normal gunship very quickly. Beam weapons of this sort of size should require a much larger reactor for continuous fire (or could use batteries for continuous fire for a while, at lower mass and complexity)
 
 -----------------------------------------------------------------------
 
@@ -19,11 +18,7 @@ Things that are obviously wrong.
 Ideas that aren't planned to be implemented yet, they may or may not be good ideas.
 
 ## General
-- Doctrine to specify an allowed range of tangential velocities, to allow for fighters to do fast passes.
 - Engines should be able to do damage past destroyed modules like beams can
-- Engines and beams could reduce the mass of the part they hit/pass through after a certain amount of damage as if sublimating it
-- Ships should be able to target specific modules, and, once we have the "main gun" setting in place, offset their aim for their main guns' projectile speed.
-- Ships should be able to point in the direction they want to accelerate, instead of just facing the target (there should be a doctrine weighting to balance between aiming the attack orientation at the enemy, and turning to make use of the main engines to accelerate)
 - Consider width and length as interchangeable for calculating turret stats. They should be based on teh size of the turret on top (based on the smaller dimension) and the area within the volume of the box underneath.
 - Only the dome of turrets should be in the turret layer, the box should be wholly in the hull layer.
 - Beams from thick hull beams could be treated as a separate beam in each layer. Damage against a thick module stays the same, but is halved against a hull layer module or fighter, with the other half continuing, able to hit something else.
@@ -37,36 +32,28 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Ramming doctrine should be able to have a different preferred size to normal attack (e.g. Dinkies should ram big ships that can't dodge if they get disabled)
 
 ## Editor
-- Test button - switches to the game view, with the ship loaded into a default scene with one other stock ship, each given basic orders to attack each other.
+- Test button - switches to the game view, with the ship loaded into a default scene with one other stock ship, their doctrines will make them fight.
 - Allow dragging copies (when a module or assembly is set to be repeated) to set the offset (might get complicated with more than 2, so might need to restrict to the second one)
 - Allow scaling an assembly - this could get messy, as it would create a duplicate that behaves differently due to different scaling laws.
-- Snap to hulls
 - Category input for ships - ships grouped by category when selecting them anywhere. (e.g. "Star Wars.Imperial", "Stock")
 - Make it clearer how the range is controlled in the core's doctrine
 - Add calibre multiplier to scale what the default maths gives.
-- For engines and hull weapons, make the module size specify the size of the machinery block witht eh barrel/nozzle extending out from there. The barrel/nozzle will still need ot be considered for overlapping. This should make it easier to adjust things in the editor, as you won't have the option to set a module length that doesn't work with a given barrel length.
+- For engines and hull weapons, make the module size specify the size of the machinery block with the barrel/nozzle extending out from there. The barrel/nozzle will still need ot be considered for overlapping. This should make it easier to adjust things in the editor, as you won't have the option to set a module length that doesn't work with a given barrel length.
 - Thrust efficiency diagram overlaying the thrust diagram, to show which directions are efficient, as well as which are high thrust.
 - Expand the thrust diagram on mouseover or click.
 
 ## Weapons
-- Turrets fire a volley of one shot per barrel, and then reload. Can specify delay between shots to allow for firing all at once or staggered
+- Maybe: Turrets fire a volley of one shot per barrel, and then reload. Can specify delay between shots to allow for firing all at once or staggered
   - Beam turrets should allow for multiple beams to be on at the same time.
   - Might need to allow for reloading one while firing another to have continuous firing, could possibly just have each barrel reload independently, and just stagger the triggers by the set amount.
 - Improve barrel spacing on hull guns
-- Bullet spread
+- Bullet spread (inaccuracy. Could get worse as a gun gets damaged.)
 
 ## Manoeuvring
-- Command ships with a max tangential velocity, also for doctrines
-- Ships need to have a max allowed rotational speed.
+- Ships need to have a max allowed rotational speed, or some other mechanism to stop them spinning up faster and faster when they have damaged engines.
 - Ships need to be able to know when they're already turning towards the target, so not push themselves to turn faster.
-- Attack orientation
-  - Set manually, or define some weapons as main guns and use their overlapping angles to find the best orientation. (make sure engines used as weapons can be included.)
-- Thrust orientation - same as attack orientation, but considering engines.
 
 ## Evolution
-- Consider scoring for ramming
-  - Currently just loses score by everything taking damage
-  - Might want to attribute the damage to both ships to the other, this would be asymmetrical is one manages to ram its armour into an active component on the other.
 - Make damage and function taken start at 0 and go negative, so the graph scales nicely at the beginning when they're all useless, highlighting even minor improvements.
 - We need a mechanism to let ships know what the goal is. This could be something like a "go close to that" order being given to all ships when the race goal is present. (At the moment we lean on the escort doctrine, but that just makes evolving a second ship mean they bunch up with each other instead of going for the goal)
 - Dropdown to choose what to graph (score, mass, ship count, weapon count, engine count, possibly even select anything from doctrines to see how those are evolving)
@@ -77,16 +64,16 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 
 ## Fleet Editor
 - Make duplicate consistent with the ship editor (which creates a one module subassembly)
+- Allow stepping into a single ship to edit it in place, without needing to switch to the ship editor - this would combine both editors into a single page with two modes.
 
 ## Battle UI
 - Fleet status display - show thumbnails of all ships in each fleet, one on the left, one on the right.
   - Thumbnails indicate the exact current state, possibly even a live view with its own camera tracking the ship (possibly rotated to match)
   - Click a ship to focus the main camera on it
-- Randomisation settings for all parameters of a custom battle
 - Cap projectile rendering at the point they hit, so a streak does not overlap the target it struck. (The muzzle end is capped.)
 - Add a ship to a running battle, for quick testing. Dropdown in the corner to choose a ship to add to the battle. click and drag to chose position and velocity (position from first click, drag to N seconds worth of distance for the initial velocity.) Ship is instantly spawned when you let go.
 - A selected ship's framing could take in what it is escorting or keeping clear of, as well as its target.
-- Fuel tanks should still show their fuel level when damaged
+  - Could also highlight them, possibly with a symbol to show what sort of attention the selected ship is paying to each
 - The ship name on cores should rotate and scale with the ship, as if it is literally written on the hull.
-- Use time scale buttons instead of a slider (0.25, 0.5, 1, 2, 4, 8, 16)
+- Use time scale buttons instead of a slider (0.25, 0.5, 1, 2, 4, 8, 16) (or possibly a dropdown) (either way, it should be consistent with the evolution battle UI)
 - Show the range the selected ship is trying to get into with the target as a ring around the target (or possibly the selected ship, to be consistent with the editor)

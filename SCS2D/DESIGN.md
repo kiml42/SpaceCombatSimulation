@@ -54,7 +54,9 @@ inside any one file is not contiguous.
   camera matches it — how far out a ship sits being measured to the nearest part of its hull,
   so that a ship wider than the view is held still wherever on it the camera has been zoomed. Each ship also carries an arrowhead in its team's colour, which
   fades in as its hull becomes too small on screen to read, so that zooming out to see a
-  battle does not lose the small ships in it or which way they are facing. **What the picture asks
+  battle does not lose the small ships in it or which way they are facing. A fighter, hull and arrowhead,
+  is drawn a shade darker than its side's ships, aboard a carrier or not, so it stands out on the pad and
+  hull it lands on, which are in its side's own tones. **What the picture asks
   about a ship is whether it is still in the fight, not whether it was built to fight**: a hull with a sound
   core and neither gun nor engine is still a ship, so it is framed and drawn in its own colours, where asking
   whether it could fight drew a whole generation of engineless craft as wreckage and left them out of shot.

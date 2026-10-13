@@ -43,9 +43,50 @@ export const NEUTRAL = {
   pivot: '#4a4a4a',
 };
 
-export function shipColours(team: number): (typeof TEAM_COLOURS)[number] {
+type Palette = (typeof TEAM_COLOURS)[number];
+
+/**
+ * How far a fighter's hull and trim are drawn towards its side's dark pivot
+ * tone, and how much darker its pivot is: enough to stand out on a carrier's
+ * pad and hull, which are drawn in the side's own tones. Towards the pivot
+ * rather than towards black, so a fighter keeps the saturation that tells it
+ * from a grey hulk.
+ */
+const FIGHTER_SHADE = 0.5;
+const FIGHTER_PIVOT = 0.7;
+
+function channel(hex: string, k: number): number {
+  return parseInt(hex.slice(k, k + 2), 16);
+}
+
+function toHex(r: number, g: number, b: number): string {
+  return `#${[r, g, b].map((c) => Math.round(c).toString(16).padStart(2, '0')).join('')}`;
+}
+
+function towards(hex: string, dark: string, share: number): string {
+  const mix = (k: number): number => channel(hex, k) + (channel(dark, k) - channel(hex, k)) * share;
+  return toHex(mix(1), mix(3), mix(5));
+}
+
+function shaded(palette: Palette): Palette {
+  return {
+    hull: towards(palette.hull, palette.pivot, FIGHTER_SHADE),
+    trim: towards(palette.trim, palette.pivot, FIGHTER_SHADE),
+    pivot: towards(palette.pivot, '#000000', 1 - FIGHTER_PIVOT),
+  };
+}
+
+const FIGHTER_COLOURS = TEAM_COLOURS.map(shaded);
+const NEUTRAL_FIGHTER = shaded(NEUTRAL);
+
+export function shipColours(team: number): Palette {
   // Below zero is nobody's side (`NEUTRAL_TEAM`, the editor's `NO_TEAM`).
   return team < 0 ? NEUTRAL : TEAM_COLOURS[team % TEAM_COLOURS.length]!;
+}
+
+/** A side's colours for a fighter: its ships', a shade darker. */
+export function fighterColours(team: number): Palette {
+  return team < 0 ? NEUTRAL_FIGHTER : FIGHTER_COLOURS[team % FIGHTER_COLOURS.length]!;
 }
 
 const TEAM_NAMES = ['Blue', 'Red', 'Green', 'Magenta'];
