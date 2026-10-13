@@ -7,9 +7,10 @@
       "escortWeight": 400
     },
     "approach": {
-      "escortRadii": 3,
+      "escortRadii": 4,
       "escortMinRadii": 0.5,
       "separation": 600,
+      "separationRadii": 2,
       "avoidHorizon": 12
     }
   },
