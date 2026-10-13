@@ -698,7 +698,9 @@ inside any one file is not contiguous.
   minutes; evolution's weight for a bay is zero until robots are tuned.
   **Robots rebuild what their ship has lost**, once nothing is left to mend, back to the design it set out
   with: every module of a design remembers which module of a compiled design it is (`DesignModule.origin`),
-  so a hull cut down or welded up still knows what is missing. A lost module is rebuilt only against a
+  so a hull cut down or welded up still knows what is missing. A piece that flies off as a ship of its own
+  rebuilds to the design the ship it came from set out as, so a hull cut in two can grow back into two
+  whole ships; wreckage sets out as itself and rebuilds nothing. A lost module is rebuilt only against a
   whole module of the hull it shared a weld with, in the same tiers as mending. **Its walls go up first**:
   a shell (`DesignModule.shell`), drawn and hit as structure, laid along the face it is built against and
   growing across the module in `SHELL_STEPS` steps — a strip of a box, a triangle of a triangle — each step
@@ -710,7 +712,8 @@ inside any one file is not contiguous.
   does nothing (`Damage.unbuiltAt`) and is drawn as broken as it is. A shell or a module being fitted that
   is hit is mended before any more is built, and one cut away again is lost again. The `rebuilding`
   scenario has a turning Rebuilder lose its fin and its engine and build both back, each once what came off
-  has drifted clear.
+  has drifted clear. Each hull of the Catamaran carries a bay, a hold and a generator enough to rebuild the
+  other, so either half of one cut in two grows back into the whole ship, in about eighty minutes.
   **A pad may set out with a fighter docked on it** (`ModuleSpec.docked`, naming a copy in the blueprint's
   `hangar`, as a fleet carries its designs). It is spawned lying along the pad, centred on it, and welded as
   one that had landed, so it is topped up from the carrier and lifts off once full. A fighter too big for its

@@ -12,6 +12,7 @@ import { faceToward, fittingOf, SHELL_STEPS, shellOf } from '../sim/rebuild.js';
 import { moduleOutline, type ModuleSpec } from '../sim/modules.js';
 import { polygonArea } from '../sim/shape.js';
 import { makeBattle } from '../scenarios/battle.js';
+import { CATAMARAN } from '../scenarios/blueprints.js';
 
 /** Robots rebuilding what their ship has lost (ROADMAP.md §8, repair stage 5). */
 
@@ -238,5 +239,30 @@ describe('robots rebuilding', () => {
     }
     runUntil(run, () => find(run, FIN) >= 0, 120);
     expect(find(run, FIN)).toBeGreaterThanOrEqual(0);
+  });
+
+  it('grow both halves of a catamaran cut in two back into the whole ship', { timeout: 120_000 }, () => {
+    const catamaran = compileBlueprint(CATAMARAN);
+    // Flown, for the power its generators make.
+    const run = makeBattle({ seed: 1 }, (ships, world) => ({ a: ships.spawn(world, { design: catamaran, x: 0, y: 0, angle: 0 }) }));
+    const all = joints(catamaran);
+    const mid = all.findIndex((j) => Math.abs(catamaran.modules[j.a]!.spec.y) < 3 && Math.abs(catamaran.modules[j.b]!.spec.y) < 3);
+    run.ships.damage.cutWeld(body(run), mid, all[mid]!.width * 2);
+    run.step();
+    expect(run.ships.count).toBe(2);
+    const other = run.world.bodies.indexOf(run.ships.body(1));
+    run.world.bodies.y[other] = run.world.bodies.y[other]! - 200;
+    const whole = (i: number): boolean => {
+      const hull = run.ships.design(i);
+      const b = run.world.bodies.indexOf(run.ships.body(i));
+      return (
+        hull.modules.length === catamaran.modules.length &&
+        hull.modules.every((m, k) => m.shell === undefined && !(run.ships.damage.unbuiltAt(b, k) > 0))
+      );
+    };
+    runUntil(run, () => whole(0) && whole(1), 6000);
+    expect(whole(0)).toBe(true);
+    expect(whole(1)).toBe(true);
+    expect(run.ships.design(0).cores.length).toBe(2);
   });
 });

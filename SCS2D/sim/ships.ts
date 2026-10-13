@@ -636,7 +636,7 @@ export class Ships {
   readonly turrets: Turrets;
 
   private readonly designs: (ShipDesign | null)[] = [];
-  /** The design each ship set out as: what its robots rebuild it to. */
+  /** What each ship's robots rebuild it to: the design it set out as, or that of the ship it flew off. */
   private readonly launched: ShipDesign[] = [];
   /** Each ship's hull matched to its launch design (`rebuildFor`). */
   private readonly rebuilds: (Rebuild | null)[] = [];
@@ -5352,6 +5352,9 @@ export class Ships {
     this.couldFight[j] = this.couldFight[side]!;
     if (flies) {
       this.orders[j] = this.orders[side]!.map((order) => ({ ...order }));
+      // Still that ship, so it rebuilds to the design that ship set out as: a
+      // hull cut in two can grow back into two. Wreckage sets out as itself.
+      this.launched[j] = this.launched[side]!;
     } else {
       this.derelict[j] = 1;
     }
