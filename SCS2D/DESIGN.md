@@ -1368,6 +1368,11 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
     the allocator can give the turn up for it, or turn the hull the wrong way, so the pilot halves the
     force it asks for while a turn worth having is starved. Only starved: a lopsided hull loses a little
     turn whenever it pushes at all, and halving for that would leave it unable to move.
+  - **A pilot never turns into something.** Before turning either way it asks whether that would swing
+    any module of its hull towards a module of another hull nearer than it needs to stop turning that
+    way, from the rate it has, plus a tenth of its radius; if so it does not start the turn, and stops one
+    under way. Module by module, since what a turn sweeps is the ends of a hull, not its middle. What it
+    means to touch — the target of a ram, a claw, a landing or a dock — is left out.
   - This is the exact problem ("RCS engines") that stalled the old project.
 - **Integrator:** symplectic (velocity Verlet / leapfrog), fixed timestep, with substepping near
   deep gravity wells. Semi-implicit Euler visibly precesses and spirals orbits.

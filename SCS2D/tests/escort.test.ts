@@ -179,7 +179,9 @@ describe('escort and neutrals', () => {
 
     const alone = fly(0);
     const covering = fly(400);
-    expect(covering).toBeLessThan(alone / 2);
+    // Not by as much as it might: the enemy breaks the escort in two early,
+    // and it will not turn into its own wreckage while that lies alongside.
+    expect(covering).toBeLessThan(alone * 0.6);
   });
 
   it('covers no friend smaller than it will bother with', () => {

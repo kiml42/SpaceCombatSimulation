@@ -137,4 +137,21 @@ describe('a ship cut in half', () => {
     }
     expect(onTheLiveOne).toBeGreaterThan(onAnything * 0.7);
   });
+
+  it('keeps both halves from turning into each other', () => {
+    // Cut apart they lie hull to hull, and each turns to bring its gun on the
+    // corvette: the shortest way round swings one's bow into the other's stern.
+    const run = split();
+    let touched = -1;
+    for (let step = 0; step < 20 * 60 && touched < 0; step++) {
+      run.step();
+      const live = [...Array(run.ships.highWater).keys()].filter((s) => run.ships.isAlive(s) && !run.ships.isDerelict(s));
+      const pieces = halves(run, live);
+      if (pieces.length !== 2) continue;
+      const [a, b] = pieces.map((p) => run.world.bodies.indexOf(run.ships.body(p)));
+      const c = run.collisions.contacts;
+      for (let k = 0; k < c.count; k++) if ((c.a[k] === a && c.b[k] === b) || (c.a[k] === b && c.b[k] === a)) touched = step;
+    }
+    expect(touched).toBe(-1);
+  });
 });
