@@ -682,7 +682,7 @@ export const SCENARIOS = {
   hooked: { steps: 3_000, build: () => hookedScenario() },
   broadside: { steps: 3_000, build: () => broadsideScenario() },
   salvage: { steps: 3_000, build: () => salvageScenario() },
-  scrapyard: { steps: 10_800, build: () => scrapyardScenario() },
+  scrapyard: { steps: 18_000, build: () => scrapyardScenario() },
   // Long enough for the robots to mend everything and come home.
   mending: { steps: 15_600, build: () => mendingScenario() },
   rebuilding: { steps: 10_800, build: () => rebuildingScenario() },

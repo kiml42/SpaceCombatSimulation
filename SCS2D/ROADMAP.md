@@ -350,11 +350,10 @@ Deliberately unresolved; decide when they block something.
 - **Whether a claw should drain an enemy's batteries.** It drinks fuel from what it grips; draining charge is
   the natural extension, and a way to disarm a beam ship without shooting it.
 
-- **Disassembly's numbers and reach.** Taking a kilogram apart is the work of mending a kilogram's worth of
-  damage, with no complexity, and wastes a tenth, both first guesses. A friendly hulk with no robots of its
-  own is wreckage to anyone holding it, which may be too eager while it could still be mended by someone
-  else's. A module whose metal the hold has no room for stays, so a full hold leaves a wreck half taken
-  apart until it is emptied.
+- **Disassembly's numbers and reach.** Taking a kilogram apart is the work of building it, complexity and
+  all, and wastes a tenth, both first guesses. A friendly hulk with no robots of its own is wreckage to anyone
+  holding it, which may be too eager while it could still be mended by someone else's. A full hold leaves a
+  wreck half taken apart, its robots home with what they could not put away, until it is emptied.
 
 - **How build time should count against a design.** A module's mass and complexity (§2) set how long it
   takes to make, which repair and rebuilding already use, but nothing counts it yet. Evolution wants a time

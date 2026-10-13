@@ -55,6 +55,7 @@ import {
   firesShells,
   moduleRadius,
   type ModuleSpec,
+  type ModuleStats,
 } from './modules.js';
 import {
   abs,
@@ -428,6 +429,17 @@ const ROBOT_SPREAD_RADIUS = 1;
 const ROBOT_SPENT = 1e-6;
 
 /** A ship's hull matched to the design it set out as, for rebuilding what it has lost. */
+/** What a module of wreckage being taken apart was whole, and how far down it has come. */
+interface StripShape {
+  /** It whole, in its hull's frame. */
+  readonly spec: ModuleSpec;
+  readonly stats: ModuleStats;
+  /** The face its walls go down towards. */
+  readonly face: number;
+  /** How much of its walls still stand. */
+  readonly share: number;
+}
+
 interface Rebuild {
   /** The hull this was worked out for. */
   readonly design: ShipDesign;
@@ -667,15 +679,13 @@ export class Ships {
   /** Shell steps finished this tick, as ship, launch module, the module built from and the one paying. */
   private readonly grows: number[] = [];
   /**
-   * The work robots have put into taking each module of wreckage apart, J,
-   * by the module's spec, which a hull keeps through being remade; and the
-   * body it was on, since a spec can be shared.
+   * What a module of wreckage being taken apart was whole, by the spec of the
+   * shell it is now: what each step down is cut from, and the face it goes
+   * down towards.
    */
-  private readonly stripWork = new WeakMap<ModuleSpec, { body: number; work: number }>();
-  /** A module of wreckage taken apart this tick, by body: -1 for none. */
+  private readonly stripShapes = new WeakMap<ModuleSpec, StripShape>();
+  /** A module of wreckage with a step of it taken apart this tick, by body: -1 for none. */
   private readonly stripped: number[] = [];
-  /** The bay of the robot that finished it, whose piece of hull takes the metal. */
-  private readonly strippedInto: number[] = [];
   /**
    * Each ship's own doctrine, as it set out. A ship riding a merged hull shares
    * that hull's design, so its doctrine is read from here rather than from it.
@@ -4414,7 +4424,7 @@ export class Ships {
       const done = this.stripped[b] ?? -1;
       if (done >= 0) {
         this.stripped[b] = -1;
-        this.takeApart(world, b, done, this.strippedInto[b]!);
+        this.stepDown(world, b, done);
       }
     }
   }
@@ -4465,6 +4475,13 @@ export class Ships {
       // A working bay refills it, and tops its charge up from its piece of
       // hull, reserves and all, each step it waits.
       const working = this.damage.remaining(b, robot.bay, DamageEffect.Tending);
+      // What it brought home goes into the holds, as far as they have room.
+      let unloaded = false;
+      if (robot.cargo > 0) {
+        const put = this.metal.add(b, robot.bay, robot.cargo);
+        robot.cargo = put < robot.cargo ? robot.cargo - put : 0;
+        unloaded = put > 0;
+      }
       if (working > 0) {
         if (robot.refill > 0) {
           robot.refill -= dt * working;
@@ -4476,15 +4493,15 @@ export class Ships {
         const want = ROBOT_CHARGE - robot.charge;
         const spare = this.power.pieceHeld(b, robot.bay);
         if (want > 0 && spare > 0) robot.charge += this.power.drain(b, robot.bay, want < spare ? want : spare);
-        if (robot.refill > 0) return false;
+        if (robot.refill > 0) return unloaded;
       }
       // It goes on what it carries, whether its bay can still refill it or not.
-      if (!(robot.metal > ROBOT_SPENT) || !(robot.charge >= ROBOT_REPAIR_RATE * REPAIR_ENERGY_PER_JOULE * dt)) return false;
+      if (!(robot.metal > ROBOT_SPENT) || !(robot.charge >= ROBOT_REPAIR_RATE * REPAIR_ENERGY_PER_JOULE * dt)) return unloaded;
       // Nothing has been hit since it last looked and found nothing to do.
-      if (robot.idleAt === this.damage.version(b)) return false;
+      if (robot.idleAt === this.damage.version(b)) return unloaded;
       this.sendOut(b, design, robots, robot, owner);
       if (robot.target < 0) robot.idleAt = this.damage.version(b);
-      return false;
+      return unloaded;
     }
     if (robot.mode === RobotMode.Out || robot.mode === RobotMode.Home) {
       if (robot.path === null) {
@@ -4923,7 +4940,8 @@ export class Ships {
 
   /**
    * Whether ship `s` has a robot on body `b` with the charge for a step's
-   * work, or a piece of hull at module `from` to charge one from.
+   * work, or a piece of hull at module `from` that has charge to give one or
+   * makes it.
    */
   private canStrip(b: number, s: number, from: number, dt: number): boolean {
     const step = ROBOT_REPAIR_RATE * REPAIR_ENERGY_PER_JOULE * dt;
@@ -4933,7 +4951,7 @@ export class Ships {
       if (robot.charge >= step) return true;
       any = true;
     }
-    return any && this.power.pieceHeld(b, from) >= step;
+    return any && (this.power.pieceHeld(b, from) >= step || this.power.pieceGeneration(b, from, this.damage) > 0);
   }
 
   /** Whether ship `s` has robots of its own on body `b`. */
@@ -4942,46 +4960,33 @@ export class Ships {
     return false;
   }
 
-  /** The metal taking module `m` of body `b` apart gives, kg: what is left of it, less `DISASSEMBLY_WASTE`. */
-  private yieldOf(b: number, design: ShipDesign, m: number): number {
-    return this.massLeft(b, design, m) * (1 - DISASSEMBLY_WASTE);
-  }
-
-  /** What is left of module `m`'s walls and fittings, kg. */
-  private massLeft(b: number, design: ShipDesign, m: number): number {
-    const stats = design.modules[m]!.stats;
-    const kg = stats.structureMass + stats.fittingMass - this.damage.shedAt(b, m) - this.damage.unbuiltAt(b, m);
-    return kg > 0 ? kg : 0;
-  }
-
   /**
-   * Whether ship `owner` has wreckage on body `b` that its piece of hull at
-   * module `into` has room for the metal of, and that can come off without
-   * cutting the rest loose (`staysWhole`).
+   * Whether ship `owner` has wreckage on body `b` its robots could take apart,
+   * one that can come off without cutting the rest loose (`staysWhole`), and
+   * room in the holds on its piece of hull at module `into` to bring it home to.
    */
   private strippable(owner: number, b: number, design: ShipDesign, into: number): boolean {
-    const room = this.metal.pieceRoom(b, into);
+    if (!(this.metal.pieceRoom(b, into) > ROBOT_SPENT)) return false;
     for (let m = 0; m < design.modules.length; m++) {
-      if (this.wreckage(owner, b, m) && this.yieldOf(b, design, m) <= room && staysWhole(design, m)) return true;
+      if (this.wreckage(owner, b, m) && staysWhole(design, m)) return true;
     }
     return false;
   }
 
   /**
    * Give a robot wreckage to take apart, once there is nothing to mend or
-   * build: a module whose metal its bay's piece of hull has room for, and
+   * build and its bay's holds have room for what it brings home: a module
    * whose going leaves the rest held on, so a wreck comes off from its far
    * end inwards and never drifts free. Fewest robots already at it first, the
    * nearest of those. Says whether it found any.
    */
   private sendToStrip(b: number, design: ShipDesign, robots: Robot[], robot: Robot, owner: number, dist: Float64Array): boolean {
-    const room = this.metal.pieceRoom(b, robot.bay);
+    if (!(this.metal.pieceRoom(b, robot.bay) > ROBOT_SPENT) || !(robot.cargo < ROBOT_LOAD - ROBOT_SPENT)) return false;
     let best = -1;
     let bestCrowd = Infinity;
     let bestDist = Infinity;
     for (let m = 0; m < design.modules.length; m++) {
-      if (!Number.isFinite(dist[m]!) || !this.wreckage(owner, b, m)) continue;
-      if (this.yieldOf(b, design, m) > room || !staysWhole(design, m)) continue;
+      if (!Number.isFinite(dist[m]!) || !this.wreckage(owner, b, m) || !staysWhole(design, m)) continue;
       let crowd = 0;
       for (let k = 0; k < robots.length; k++) if (robots[k] !== robot && robots[k]!.target === m) crowd++;
       if (crowd < bestCrowd || (crowd === bestCrowd && dist[m]! < bestDist)) {
@@ -4997,10 +5002,32 @@ export class Ships {
   }
 
   /**
-   * One robot's step taking wreckage apart: a kilogram is the work of mending
-   * a kilogram's worth of damage, paid for in charge as mending is, and the
-   * module comes off once the work for all that is left of it is in
-   * (`takeApart`). Its metal goes into the robot's bay's piece of hull.
+   * Where taking module `m` of body `b` apart has got to: what it was whole,
+   * how much of its walls stand, the face they go down towards, and the
+   * metal the next step down holds, kg — its fittings, while it has any, and a
+   * step of its walls, less what damage has shed of them.
+   */
+  private stripStep(b: number, design: ShipDesign, m: number): StripShape & { kg: number } {
+    const module = design.modules[m]!;
+    const shape = this.stripShapes.get(module.spec);
+    const stats = module.stats;
+    const dry = stats.structureMass + stats.fittingMass;
+    const kept = dry > 0 ? 1 - this.damage.shedAt(b, m) / dry : 0;
+    const whole = shape?.stats ?? stats;
+    const fittings = shape === undefined ? fittingOf(stats) : 0;
+    const kg = (fittings + whole.structureMass / SHELL_STEPS) * (kept > 0 ? kept : 0);
+    if (shape !== undefined) return { ...shape, kg };
+    const face = faceToward(module.spec, design.modules[neighbourOf(design, m)]!.spec);
+    return { spec: module.spec, stats, face, share: 1, kg };
+  }
+
+  /**
+   * One robot's step taking wreckage apart, which is building run backwards:
+   * any metal the wreck holds first, as it is, then its fittings out and its
+   * walls down a step at a time (`stepDown`), a kilogram the work it took to
+   * build, paid for in charge. What comes off goes into the robot, less
+   * `DISASSEMBLY_WASTE`, and once it is full, or short of charge, it takes it
+   * home to its bay's holds.
    */
   private stripOne(b: number, design: ShipDesign, robots: Robot[], robot: Robot, owner: number, dt: number): boolean {
     const m = robot.target;
@@ -5008,49 +5035,92 @@ export class Ships {
       this.sendOut(b, design, robots, robot, owner);
       return false;
     }
-    if (this.yieldOf(b, design, m) > this.metal.pieceRoom(b, robot.bay)) {
+    const room = ROBOT_LOAD - robot.cargo;
+    if (!(room > ROBOT_SPENT)) {
       this.sendHome(b, design, robot, owner, robot.bay);
       return false;
     }
-    const spec = design.modules[m]!.spec;
-    const id = this.hullBody[b]!;
-    const known = this.stripWork.get(spec);
-    const done = known !== undefined && known.body === id ? known.work : 0;
-    const need = this.massLeft(b, design, m) * DAMAGE_ENERGY_PER_KG;
-    const step = ROBOT_REPAIR_RATE * dt;
-    let work = min(step, robot.charge / REPAIR_ENERGY_PER_JOULE);
+    const lift = (ROBOT_REPAIR_RATE / DAMAGE_ENERGY_PER_KG) * dt;
+    const loose = this.metal.pieceHeld(b, m);
+    if (loose > ROBOT_SPENT) {
+      robot.cargo += this.metal.drain(b, m, min(lift, room));
+      return true;
+    }
+    const step = this.stripStep(b, design, m);
+    const work = buildWork(step.stats);
+    const per = work * REPAIR_ENERGY_PER_JOULE;
+    const done = this.damage.unbuiltAt(b, m);
+    let kg = min((ROBOT_REPAIR_RATE / work) * dt, robot.charge / per);
     // Short of charge for a full step's work: this is its last.
-    const short = work < step;
-    work = min(work, need - done);
-    if (work > 0) {
-      robot.charge -= work * REPAIR_ENERGY_PER_JOULE;
-      this.stripWork.set(spec, { body: id, work: done + work });
+    const short = kg < (ROBOT_REPAIR_RATE / work) * dt;
+    kg = min(kg, room / (1 - DISASSEMBLY_WASTE), step.kg - done);
+    if (kg > 0) {
+      this.damage.unfit(b, m, kg);
+      robot.charge -= kg * per;
+      robot.cargo += kg * (1 - DISASSEMBLY_WASTE);
     }
-    if (done + work >= need) {
-      this.stripped[b] = m;
-      this.strippedInto[b] = robot.bay;
-    } else if (short) {
-      this.sendHome(b, design, robot, owner, robot.bay);
-    }
-    return false;
+    if (done + (kg > 0 ? kg : 0) >= step.kg - ROBOT_SPENT) this.stripped[b] = m;
+    if (short || !(ROBOT_LOAD - robot.cargo > ROBOT_SPENT)) this.sendHome(b, design, robot, owner, robot.bay);
+    return kg > 0;
   }
 
   /**
-   * Take module `m` of body `b` off its hull: what is left of it becomes metal
-   * on the piece of hull module `into` is on, less `DISASSEMBLY_WASTE`, along
-   * with any metal it held; the waste and anything else it held leave the
-   * world. Robots on it step back onto a neighbour. A ship with nothing left
-   * of it goes.
+   * Take a step of module `m` of body `b` down, the work for it done: a
+   * module's fittings and the first step of its walls, then each step after,
+   * the shell shrinking towards the face it was built against as a rebuilt
+   * one grows, and at the last, what is left of it off the hull (`takeApart`).
    */
-  private takeApart(world: World, b: number, m: number, into: number): void {
+  private stepDown(world: World, b: number, m: number): void {
     const bodies = world.bodies;
     const p = this.shipAt(bodies, b);
     if (p < 0) return;
     const design = this.designs[p]!;
-    if (m >= design.modules.length || into >= design.modules.length || design.modules.length < 2 || !staysWhole(design, m)) return;
-    const gives = this.yieldOf(b, design, m);
-    if (gives > this.metal.pieceRoom(b, into)) return;
-    const held = this.metal.held(b, m);
+    if (m >= design.modules.length || !staysWhole(design, m)) return;
+    const step = this.stripStep(b, design, m);
+    const share = step.share - 1 / SHELL_STEPS;
+    if (!(share > 1e-9)) {
+      this.takeApart(world, b, m);
+      return;
+    }
+    this.settleShed(bodies);
+    const part = shellOf(step.spec, step.stats, step.face, share);
+    const next = rebuiltDesign(design, m, part.spec, part.stats, originOf(design, m), { share, face: step.face }, design.pieces?.[m] ?? 0);
+    this.stripShapes.set(part.spec, { spec: step.spec, stats: step.stats, face: step.face, share });
+
+    this.momentum(bodies);
+    const beforeX = this.momentumX;
+    const beforeY = this.momentumY;
+    const mass = bodies.mass[b]!;
+    const inertia = bodies.inertia[b]!;
+    this.regrow(world, p, b, design, next, m, p);
+    // A smaller shell takes what damage it had as harder hit, but nothing was
+    // destroyed under a robot working it: it takes its footing again.
+    for (const robot of this.robots.on(b) ?? []) if (robot.stoodOn === m) robot.stoodOn = -1;
+    // What was taken off is already out of it, as fittings not in.
+    this.damage.fit(b, m, step.kg);
+    this.settleMass(bodies, b);
+    // Never more of it than there was: what the walls left had shed is lost.
+    if (bodies.mass[b]! > mass) {
+      this.damage.unfit(b, m, bodies.mass[b]! - mass);
+      this.settleMass(bodies, b);
+    }
+    this.discardFrom(bodies, b, mass, inertia);
+    this.momentum(bodies);
+    bodies.vx[b] = bodies.vx[b]! + (beforeX - this.momentumX) / bodies.mass[b]!;
+    bodies.vy[b] = bodies.vy[b]! + (beforeY - this.momentumY) / bodies.mass[b]!;
+  }
+
+  /**
+   * Take what is left of module `m` of body `b` off its hull, its last step
+   * taken apart: anything still in it leaves the world. Robots on it step back
+   * onto a neighbour. A ship with nothing left of it goes.
+   */
+  private takeApart(world: World, b: number, m: number): void {
+    const bodies = world.bodies;
+    const p = this.shipAt(bodies, b);
+    if (p < 0) return;
+    const design = this.designs[p]!;
+    if (m >= design.modules.length || design.modules.length < 2 || !staysWhole(design, m)) return;
     this.settleShed(bodies);
 
     const keep: number[] = [];
@@ -5100,7 +5170,6 @@ export class Ships {
     const pilots = this.pilots[b];
     if (pilots !== null && pilots !== undefined) this.pilots[b] = Int32Array.from(keep, (k) => pilots[k]!);
     this.adopt(p, b, next, () => p, (k) => keep[k]!, true, true);
-    this.metal.add(b, after(into), gives + held);
     for (const r of riders) if (r !== p) this.board(r, p);
     this.renumber(bodies, b, riders, m);
     // A ship riding here with none of its hull left is gone, and the body
@@ -5219,7 +5288,8 @@ export class Ships {
       const dx = cos(r * ROBOT_SPREAD) * ROBOT_SPREAD_RADIUS;
       const dy = sin(r * ROBOT_SPREAD) * ROBOT_SPREAD_RADIUS;
       const charge = robot.charge / ROBOT_CHARGE;
-      const metal = robot.metal / ROBOT_LOAD;
+      // Taking wreckage apart, it fills with what it carries home.
+      const metal = (robot.strip || robot.cargo > 0 ? robot.cargo : robot.metal) / ROBOT_LOAD;
       if (robot.path !== null && robot.leg < robot.path.length - 1) {
         // Facing along the weld it is crawling.
         const there = design.modules[robot.path[robot.leg + 1]!]!;
@@ -6341,7 +6411,8 @@ export class Ships {
         this.metal.spentMass(b) -
         this.damage.shedMass(b) -
         this.robots.missingMass(b) -
-        this.damage.unbuiltMass(b),
+        this.damage.unbuiltMass(b) +
+        this.robots.cargoMass(b),
     );
     bodies.setInertia(
       id,

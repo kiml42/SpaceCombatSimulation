@@ -743,17 +743,20 @@ inside any one file is not contiguous.
   **Robots take apart what is not their ship's own**, once nothing is left to mend or rebuild: hull on the
   same body that nobody flies, that a ship with no control flies and no robots of its own are mending, or a
   piece their own ship hooked on rather than set out with — never a ship under control, friend or foe. It is
-  wreckage welded on or a hulk in the claw, reached across the seam it hangs by. A module comes off whole
-  once the work for what is left of it is in, a kilogram the work of mending a kilogram's worth of damage at
-  a robot's rate and charge, and only one whose going leaves the rest held on (`staysWhole`), so a wreck comes
-  apart from its far end inwards and never drifts loose. What is left of it goes into the hold on the robot's
-  bay's piece of hull less `DISASSEMBLY_WASTE`, with any metal it held, and only if the hold has room for it;
-  the waste and anything else it held are discarded. A ship with nothing left of it is gone, and the body
-  passes to one that has some. A claw closes on a wreck its robots could take apart into metal it has
-  room for, as it does on one with fuel it has room for, and holds on while its robots have the charge and
-  the hold the room to take it apart. The `scrapyard` scenario has two salvagers drift into a dead leech,
-  gone in under three minutes, and a dead corvette, which comes apart until, about nineteen minutes in, the
-  hold has no room for the last of it and the claw lets it go.
+  wreckage welded on or a hulk in the claw, reached across the seam it hangs by. **Taking it apart is building
+  run backwards**: the robot loads any metal the wreck holds as it is, then takes a module's fittings out,
+  leaving it standing full size and doing nothing, and then its walls down a step at a time, a shell
+  shrinking towards the face it hangs by as a rebuilt one grows, until the last step takes what is left of it
+  off the hull. A kilogram is the work of building it (`buildWork`), at a robot's rate and charge, and only a
+  module whose going leaves the rest held on (`staysWhole`) is started, so a wreck comes apart from its far
+  end inwards and never drifts loose. What comes off goes into the robot, less `DISASSEMBLY_WASTE`, up to
+  `ROBOT_LOAD`; full, or short of charge, it carries it home and puts it in the holds on its bay's piece of
+  hull, as far as they have room, and a robot goes out to strip only while they have some. What it carries
+  is the hull's mass until then. The waste, and anything else a module held, are discarded. A ship with
+  nothing left of it is gone, and the body passes to one that has some. A claw closes on a wreck its robots
+  could take apart, as it does on one with fuel it has room for, and holds on while its robots have the
+  charge and the holds the room. The `scrapyard` scenario has two salvagers drift into a dead leech, gone in
+  under five minutes, and a dead corvette, gone in about forty-two, by when the hold is nearly full.
   **A pad may set out with a fighter docked on it** (`ModuleSpec.docked`, naming a copy in the blueprint's
   `hangar`, as a fleet carries its designs). It is spawned lying along the pad, centred on it, and welded as
   one that had landed, so it is topped up from the carrier and lifts off once full. A fighter too big for its

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { compileBlueprint, DAMAGE_ENERGY_PER_KG, DISASSEMBLY_WASTE, type ShipDesign } from '../sim/index.js';
+import { compileBlueprint, DAMAGE_ENERGY_PER_KG, ROBOT_LOAD, type ShipDesign } from '../sim/index.js';
+import type { Robot } from '../sim/robots.js';
 import { makeBattle } from '../scenarios/battle.js';
 import { CORVETTE } from '../scenarios/blueprints.js';
 import { LEECH, SALVAGER } from '../scenarios/salvage.js';
@@ -71,20 +72,56 @@ describe('taking wreckage apart', () => {
     expect(matter(run)).toBeCloseTo(total, -1);
   });
 
-  it('gives what is left of a module, less the waste', { timeout: 60_000 }, () => {
+  it('carries what it takes off home, and only there puts it in the holds', { timeout: 60_000 }, () => {
     const corvette = compileBlueprint(CORVETTE);
     const run = approach(corvette);
     runFor(run, 10, () => modules(run) > OWN);
-    const was = run.world.bodies.mass[body(run)]!;
-    const before = held(run);
-    const thrown = run.ships.discarded;
-    runFor(run, 600, () => modules(run) < OWN + corvette.modules.length);
-    expect(modules(run)).toBe(OWN + corvette.modules.length - 1);
-    const gained = held(run) - before;
-    const wasted = run.ships.discarded - thrown;
-    // The hull lost the waste, and the rest of the module is metal aboard.
-    expect(was - run.world.bodies.mass[body(run)]!).toBeCloseTo(wasted, 0);
-    expect(wasted / (gained + wasted)).toBeCloseTo(DISASSEMBLY_WASTE, 3);
+    const robots = (): Robot[] => (run.ships as unknown as { robots: { on(b: number): Robot[] } }).robots.on(body(run));
+    let carried = 0;
+    let unloads = 0;
+    for (let s = 0; s < 600 * 60; s++) {
+      const before = held(run);
+      const cargo = robots().map((r) => r.cargo);
+      run.step();
+      const after = robots().map((r) => r.cargo);
+      for (const r of robots()) expect(r.cargo).toBeLessThanOrEqual(ROBOT_LOAD + 1e-6);
+      carried = Math.max(carried, ...after);
+      if (held(run) > before + 1e-6) {
+        // What went into the holds came out of robots that had got home.
+        const dropped = cargo.reduce((sum, kg, r) => sum + Math.max(0, kg - after[r]!), 0);
+        expect(dropped).toBeCloseTo(held(run) - before, 3);
+        unloads++;
+      }
+    }
+    expect(carried).toBeCloseTo(ROBOT_LOAD, 3);
+    expect(unloads).toBeGreaterThan(4);
+  });
+
+  it('takes a module apart as it was built, backwards: its fittings out, then its walls down a step at a time', { timeout: 60_000 }, () => {
+    const leech = compileBlueprint(LEECH);
+    const run = approach(leech);
+    runFor(run, 10, () => modules(run) > OWN);
+    const tank = (): { share: number; unbuilt: number } | null => {
+      const design = run.ships.design(run.a);
+      for (let m = OWN; m < design.modules.length; m++) {
+        if (design.modules[m]!.index !== 1) continue;
+        return { share: design.modules[m]!.shell?.share ?? 1, unbuilt: run.ships.damage.unbuiltAt(body(run), m) };
+      }
+      return null;
+    };
+    const shares: number[] = [];
+    let emptied = false;
+    for (let s = 0; s < 600 * 60 && tank() !== null; s++) {
+      run.step();
+      const now = tank();
+      if (now === null) break;
+      if (now.share === 1 && now.unbuilt > 0) emptied = true;
+      if (shares[shares.length - 1] !== now.share) shares.push(now.share);
+    }
+    expect(emptied).toBe(true);
+    expect(tank()).toBeNull();
+    // Every step of its walls, from whole down, then gone.
+    expect(shares.map((share) => Math.round(share * 10))).toEqual([10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
   });
 
   it('takes a wreck apart to nothing, and the ship it was is gone', { timeout: 60_000 }, () => {

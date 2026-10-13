@@ -40,6 +40,8 @@ export interface Robot {
   build: number;
   /** Whether `target` is wreckage it is taking apart rather than its own hull. */
   strip: boolean;
+  /** Metal it has taken off wreckage and is carrying home to its bay's holds, kg. */
+  cargo: number;
   /** Modules it will cross, from `at`, and how far along the leg from `path[leg]` to the next it is, m. */
   path: Int32Array | null;
   leg: number;
@@ -275,6 +277,13 @@ export class Robots {
     return this.missing[bodyIndex] ?? 0;
   }
 
+  /** Metal a body's robots are carrying home, kg: the body's until it is put in its holds. */
+  cargoMass(bodyIndex: number): number {
+    let kg = 0;
+    for (const robot of this.of[bodyIndex] ?? []) kg += robot.cargo;
+    return kg;
+  }
+
   /** What they would add to the body's moment of inertia, kg·m². */
   missingInertia(bodyIndex: number): number {
     return this.missingSpin[bodyIndex] ?? 0;
@@ -362,6 +371,7 @@ function stocked(bay: number): Robot {
     target: -1,
     build: -1,
     strip: false,
+    cargo: 0,
     path: null,
     leg: 0,
     along: 0,
