@@ -93,17 +93,24 @@ async function step(p: Page): Promise<number> {
 
 /** How many distinct colours the canvas is showing. Blank pages score 1. */
 async function distinctColours(p: Page): Promise<number> {
-  return p.evaluate(() => {
-    const canvas = document.getElementById('view') as HTMLCanvasElement;
-    const ctx = canvas.getContext('2d');
-    if (ctx === null) return 0;
-    const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const seen = new Set<number>();
-    for (let i = 0; i < data.length; i += 4) {
-      seen.add((data[i]! << 16) | (data[i + 1]! << 8) | data[i + 2]!);
-    }
-    return seen.size;
-  });
+  // Read in an animation frame, which runs after the viewer's own has drawn:
+  // between frames a resize may have cleared the canvas and not yet redrawn it.
+  return p.evaluate(
+    () =>
+      new Promise<number>((resolve) =>
+        requestAnimationFrame(() => {
+          const canvas = document.getElementById('view') as HTMLCanvasElement;
+          const ctx = canvas.getContext('2d');
+          if (ctx === null) return resolve(0);
+          const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const seen = new Set<number>();
+          for (let i = 0; i < data.length; i += 4) {
+            seen.add((data[i]! << 16) | (data[i + 1]! << 8) | data[i + 2]!);
+          }
+          resolve(seen.size);
+        }),
+      ),
+  );
 }
 
 beforeAll(async () => {
