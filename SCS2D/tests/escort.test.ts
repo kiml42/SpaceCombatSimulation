@@ -7,7 +7,7 @@ import {
   type Doctrine,
 } from '../sim/index.js';
 import { makeBattle } from '../scenarios/battle.js';
-import { CORVETTE, GUNSHIP } from '../scenarios/blueprints.js';
+import { CATAMARAN, CORVETTE, GUNSHIP } from '../scenarios/blueprints.js';
 
 /**
  * Something to fly at that is not something to shoot at.
@@ -361,5 +361,27 @@ describe('an escort and a friend that has lost control', () => {
   it('stays with it while it has robots aboard that may mend it, and not otherwise', () => {
     expect(after(MENDING)).toBeLessThan(300);
     expect(after(WRECKED)).toBeGreaterThan(700);
+  });
+});
+
+describe('two ships the same size covering each other', () => {
+  it('keep further apart than either can reach turning, and never touch', () => {
+    // Wide for their guns' reach, so a station off the other's skin alone
+    // would be inside the circle the pair sweep as they turn.
+    const pair = compileBlueprint(CATAMARAN);
+    const run = makeBattle({ seed: 1 }, (ships, world) => ({
+      a: ships.spawn(world, { design: pair, x: 0, y: 0, angle: 0, angularVel: 0.5 }),
+      b: ships.spawn(world, { design: pair, x: pair.radius * 3, y: 0, angle: 1, angularVel: -0.5 }),
+    }));
+    let contacts = 0;
+    for (let s = 0; s < 90 * 60; s++) {
+      run.step();
+      contacts += run.collisions.contacts.count;
+    }
+    const a = run.world.bodies.indexOf(run.ships.body(run.a));
+    const b = run.world.bodies.indexOf(run.ships.body(run.b));
+    const gap = Math.hypot(run.world.bodies.x[a]! - run.world.bodies.x[b]!, run.world.bodies.y[a]! - run.world.bodies.y[b]!);
+    expect(contacts).toBe(0);
+    expect(gap).toBeGreaterThan(pair.radius * 2);
   });
 });
