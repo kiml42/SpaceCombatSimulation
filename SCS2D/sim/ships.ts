@@ -2923,7 +2923,9 @@ export class Ships {
     }
 
     // A ram overrides the rest of the doctrine: no cover, no keeping clear;
-    // and so does closing on a source, which means touching it.
+    // and so does closing on a source, which means touching it, but for a hulk
+    // coming through, which keeps clear of nothing.
+    if (order?.grapple === true) this.avoid(bodies, i, b, target, NO_TARGET, true);
     if (order === undefined || !(order.ram || order.grapple || order.land || order.dock)) {
       const covering = this.cover(bodies, i, b);
       if (target === NO_TARGET && covering >= 0) {
@@ -3586,7 +3588,7 @@ export class Ships {
    * keeping clear is a whisper at the edge of the look-ahead and the loudest
    * thing in the blend just before a collision.
    */
-  private avoid(bodies: Bodies, i: number, b: number, flying: number, covering: number): void {
+  private avoid(bodies: Bodies, i: number, b: number, flying: number, covering: number, hulksOnly = false): void {
     const approach = this.doctrines[i]!.approach;
     if (!(approach.separation > 0) || !(approach.separationRadii > 0)) return;
     const mine = this.designs[i]!.radius;
@@ -3606,6 +3608,7 @@ export class Ships {
       // Nor its own fighters: a carrier trusts what flies from its pads to
       // keep clear of it, rather than running from its wing as it comes and goes.
       if (this.home[t] === i) continue;
+      if (hulksOnly && this.hasControl(t)) continue;
       const ob = bodies.indexOf(this.bodyIds[t]!);
       // Nothing to keep clear of in something that cannot be hit.
       if (ob < 0 || ob === b || bodies.ghost[ob] === 1) continue;
@@ -4946,7 +4949,33 @@ export class Ships {
       const ob = this.pilotAt(b, seam.b);
       receiver = this.docking[oa] === 1 ? oa : this.docking[ob] === 1 ? ob : -1;
     }
-    return receiver >= 0 && this.threatened(bodies, receiver, b, seam.dock !== 'claw');
+    if (receiver < 0) return false;
+    if (this.threatened(bodies, receiver, b, seam.dock !== 'claw')) return true;
+    // Holding a wreck, it cannot get out of the way of anything: what can
+    // will, but a hulk cannot.
+    return seam.dock === 'claw' && this.hulkBearingDown(bodies, receiver, b);
+  }
+
+  /** Whether a hulk will hit body `b` within ship `i`'s look-ahead. */
+  private hulkBearingDown(bodies: Bodies, i: number, b: number): boolean {
+    const approach = this.doctrines[i]!.approach;
+    if (!(approach.separation > 0)) return false;
+    const mine = bodies.radius[b]!;
+    for (let t = 0; t < this.alive.length; t++) {
+      if (this.alive[t] === 0 || this.hasControl(t)) continue;
+      const ob = bodies.indexOf(this.bodyIds[t]!);
+      if (ob < 0 || ob === b || bodies.ghost[ob] === 1) continue;
+      const dx = bodies.x[ob]! - bodies.x[b]!;
+      const dy = bodies.y[ob]! - bodies.y[b]!;
+      const rvx = bodies.vx[ob]! - bodies.vx[b]!;
+      const rvy = bodies.vy[ob]! - bodies.vy[b]!;
+      const closing = dx * rvx + dy * rvy;
+      if (!(closing < 0)) continue;
+      const when = -closing / (rvx * rvx + rvy * rvy);
+      if (when > approach.avoidHorizon) continue;
+      if (length(dx + rvx * when, dy + rvy * when) < mine + bodies.radius[ob]!) return true;
+    }
+    return false;
   }
 
   /**

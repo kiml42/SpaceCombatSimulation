@@ -124,6 +124,33 @@ describe('a pilot with a claw', () => {
     expect(run.totalContacts).toBeLessThan(10);
   });
 
+  it('drinking, gets out of the way of a wreck coasting at it', () => {
+    // Looking far enough ahead to get clear on its own engines, which are
+    // slow; and a second wreck, far off until the first is in its claw.
+    const design = scavenger(0.5);
+    const watchful = compileBlueprint({ ...SCAVENGER, modules: design.modules.map((m) => m.spec), doctrine: { ...design.doctrine, approach: { ...design.doctrine.approach, avoidHorizon: 20 } } });
+    const run = scene(watchful, 15_000, [[0, 0], [0, 5000]]);
+    runUntil(run, () => holding(run, run.wrecks[0]!), 90);
+    expect(holding(run, run.wrecks[0]!)).toBe(true);
+    const bodies = run.world.bodies;
+    const at = bodies.indexOf(run.ships.body(run.a));
+    const hulk = bodies.indexOf(run.ships.body(run.wrecks[1]!));
+    // Dead on, a long way short of how far it could have dodged at a standstill.
+    bodies.x[hulk] = bodies.x[at]!;
+    bodies.y[hulk] = bodies.y[at]! + 800;
+    bodies.vx[hulk] = bodies.vx[at]!;
+    bodies.vy[hulk] = bodies.vy[at]! - 40;
+    let hit = 0;
+    for (let s = 0; s < 40 * 60; s++) {
+      run.step();
+      const c = run.collisions.contacts;
+      const mine = bodies.indexOf(run.ships.body(run.a));
+      const theirs = bodies.indexOf(run.ships.body(run.wrecks[1]!));
+      for (let k = 0; k < c.count; k++) if ((c.a[k] === mine && c.b[k] === theirs) || (c.a[k] === theirs && c.b[k] === mine)) hit++;
+    }
+    expect(hit).toBe(0);
+  });
+
   it('goes for the nearer of two wrecks alike', () => {
     const run = scene(scavenger(0.5), 15_000, [[600, 0], [0, 0]]);
     for (let s = 0; s < 120; s++) run.step();
