@@ -681,7 +681,7 @@ export const ROBOT_SPEED = 2;
 export const ROBOT_REPAIR_RATE = 5e4;
 
 /** Metal a robot carries out from its bay, kg. */
-export const ROBOT_LOAD = 500;
+export const ROBOT_LOAD = 1000;
 
 /** Charge a robot carries out from its bay, J. */
 export const ROBOT_CHARGE = 5e7;

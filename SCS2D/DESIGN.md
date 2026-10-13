@@ -731,7 +731,7 @@ inside any one file is not contiguous.
   is hit is mended before any more is built, and one cut away again is lost again. The `rebuilding`
   scenario has a turning Rebuilder lose its fin and its engine and build both back, each once what came off
   has drifted clear. Each hull of the Catamaran carries a bay, a hold and a generator enough to rebuild the
-  other, so either half of one cut in two grows back into the whole ship, in about an hour.
+  other, so either half of one cut in two grows back into the whole ship, in about twenty-five minutes.
   **Every module has a complexity** (`complexityOf`), work over and above its mass that making or mending it
   takes, the same whatever its size, at `COMPLEXITY_WORK` a unit: structure, tanks and holds 1, a battery 2,
   claws, pads and ports 3, engines and hull weapons 4, turrets 7, generators and robot bays 6, cores 16, with
