@@ -1210,6 +1210,8 @@ export interface ModuleStats {
   generation: number;
   /** Robots it berths. Zero unless it is a robot bay. */
   robots: number;
+  /** How intricate it is to make or mend (`complexityOf`), in units of `COMPLEXITY_WORK`. */
+  complexity: number;
 }
 
 /**
@@ -2257,6 +2259,50 @@ function loaded(gun: GunStats, spec: ModuleSpec): GunStats {
  * only thick structure reads — see `ModuleSpec.thick`. Everything else derives
  * from the module alone, so a caller with no layout to hand may leave it out.
  */
+/**
+ * The work one unit of complexity takes to build in, J: what a module costs to
+ * make or mend over and above its mass, whatever its size. Set so a pad puts a
+ * Dinky's engine back in about five seconds rather than half of one, while a
+ * big engine's rebuild is still mostly the moving of its mass.
+ */
+export const COMPLEXITY_WORK = 4e5;
+
+/** How intricate each kind is, in units of `COMPLEXITY_WORK`: walls and boxes are simple, a core very much not. */
+const KIND_COMPLEXITY: Record<ModuleKind, number> = {
+  structure: 1,
+  tank: 1,
+  hold: 1,
+  battery: 2,
+  claw: 3,
+  pad: 3,
+  port: 3,
+  engine: 4,
+  hullGun: 4,
+  hullBeam: 4,
+  turret: 7,
+  beamTurret: 7,
+  generator: 6,
+  robotBay: 6,
+  core: 16,
+};
+
+/** What a self-sealing lining adds to a tank's complexity. */
+const LINING_COMPLEXITY = 2;
+
+/** What each nozzle or barrel past the first adds. */
+const OUTLET_COMPLEXITY = 1;
+
+/**
+ * How intricate a module is to make or mend, in units of `COMPLEXITY_WORK`:
+ * its kind's, plus a self-sealing lining and every outlet past the first.
+ */
+export function complexityOf(spec: ModuleSpec): number {
+  let units = KIND_COMPLEXITY[spec.kind];
+  if (liningOf(spec) > 0) units += LINING_COMPLEXITY;
+  if (countsOutlets(spec.kind)) units += ((spec.barrels ?? 1) - 1) * OUTLET_COMPLEXITY;
+  return units;
+}
+
 export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
   const problem = moduleProblem(spec);
   if (problem !== null) throw new Error(`Invalid module — ${problem}`);
@@ -2559,6 +2605,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
     chargeRate,
     generation,
     robots,
+    complexity: complexityOf(spec),
   };
 }
 

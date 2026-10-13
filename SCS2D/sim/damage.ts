@@ -9,7 +9,7 @@ import type { BeamHits, Beams } from './beams.js';
 import type { Rng } from './rng.js';
 import { RESTITUTION, type Contacts } from './collision.js';
 import { cos, exp, max, min, PI, sin, sqrt } from './math.js';
-import { EXPLOSIVE_YIELD, FUEL_DENSITY, FUEL_DRAG_COEFFICIENT, type ModuleSpec } from './modules.js';
+import { COMPLEXITY_WORK, EXPLOSIVE_YIELD, FUEL_DENSITY, FUEL_DRAG_COEFFICIENT, type ModuleSpec, type ModuleStats } from './modules.js';
 
 /**
  * What a hit does to the ship it landed on.
@@ -57,6 +57,15 @@ export const REPAIR_WASTE = 0.1;
 
 /** Charge repairing a joule of damage takes, J. */
 export const REPAIR_ENERGY_PER_JOULE = 10;
+
+/**
+ * The work undoing a joule of a module's damage takes, J: one, and its share
+ * of the module's complexity, spread over the damage that breaks it.
+ */
+export function repairWork(stats: ModuleStats): number {
+  const capacity = stats.hitPoints * DAMAGE_ENERGY_PER_KG;
+  return capacity > 0 ? 1 + (stats.complexity * COMPLEXITY_WORK) / capacity : 1;
+}
 
 /** The share of its dry mass a module has shed, having absorbed `absorbed` of the `capacity` that breaks it. */
 export function shedShare(absorbed: number, capacity: number): number {
