@@ -20,14 +20,14 @@ import { components, cuts, jointBetween, joints, type Joint } from './connectivi
 import { BOTH_LAYERS, HULL_LAYER, Hulls, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from './hull.js';
 import {
   Damage,
-  DAMAGE_ENERGY_PER_KG,
   DamageEffect,
   IMPACT_MUZZLE,
   REPAIR_ENERGY_PER_JOULE,
   REPAIR_WASTE,
+  repairWork,
   type ImpactLog,
 } from './damage.js';
-import { faceToward, fittingOf, inFrame, SHELL_STEPS, shellOf } from './rebuild.js';
+import { buildWork, faceToward, fittingOf, inFrame, SHELL_STEPS, shellOf } from './rebuild.js';
 import { Fuel, LEAK_HOLE_CALIBRES, leakChance, leakRate, leakSpeed, type Leak } from './fuel.js';
 import { Charge } from './charge.js';
 import { Metal } from './metal.js';
@@ -4150,11 +4150,16 @@ export class Ships {
       }
     }
     if (best < 0) return false;
-    const perKg = DAMAGE_ENERGY_PER_KG * REPAIR_ENERGY_PER_JOULE;
+    const fitting = bestBuild < 0 && design.modules[best]!.shell === undefined;
+    const l = fitting ? -1 : bestBuild >= 0 ? bestBuild : rebuild.at.indexOf(best);
+    const origin = fitting ? null : originOf(launch, l);
+    const whole = origin === null ? design.modules[best]!.stats : origin.design.modules[origin.module]!.stats;
+    const work = buildWork(whole);
+    const perKg = work * REPAIR_ENERGY_PER_JOULE;
     const waste = 1 + REPAIR_WASTE;
     const metal = this.metal.pieceHeld(b, pad);
-    let kg = min(joules / DAMAGE_ENERGY_PER_KG, this.power.pieceHeld(b, pad) / perKg);
-    if (bestBuild < 0 && design.modules[best]!.shell === undefined) {
+    let kg = min(joules / work, this.power.pieceHeld(b, pad) / perKg);
+    if (fitting) {
       kg = min(kg, metal / waste);
       if (!(kg > 0)) return false;
       const mass = bodies.mass[b]!;
@@ -4167,9 +4172,7 @@ export class Ships {
       this.discardFrom(bodies, b, mass, inertia);
       return true;
     }
-    const l = bestBuild >= 0 ? bestBuild : rebuild.at.indexOf(best);
-    const origin = originOf(launch, l);
-    const wall = origin.design.modules[origin.module]!.stats.structureMass / SHELL_STEPS;
+    const wall = whole.structureMass / SHELL_STEPS;
     // Nothing to pay for the step with, or a step waiting on room to go up.
     if (metal < wall * waste) return false;
     kg = min(kg, wall - rebuild.work[l]!);
@@ -4213,7 +4216,8 @@ export class Ships {
         if (repairTier(design, m) !== tier || !this.ownsAt(i, b, m)) continue;
         const absorbed = this.damage.absorbedAt(b, m);
         if (!(absorbed > 0)) continue;
-        let undo = min(budget, charge / REPAIR_ENERGY_PER_JOULE);
+        const work = repairWork(design.modules[m]!.stats);
+        let undo = min(budget / work, charge / (work * REPAIR_ENERGY_PER_JOULE));
         // What it costs in metal rises no faster than the damage undone, so
         // cutting the damage down to the metal there is never asks for more.
         const kg = this.damage.repairMetal(b, m, undo) * (1 + REPAIR_WASTE);
@@ -4222,11 +4226,11 @@ export class Ships {
         const undone = this.damage.repair(b, m, undo);
         // Its holes are the first thing plugged.
         if (undone > 0) this.fuel.seal(b, m);
-        budget -= undone;
+        budget -= undone * work;
         metal -= cost;
-        charge -= undone * REPAIR_ENERGY_PER_JOULE;
+        charge -= undone * work * REPAIR_ENERGY_PER_JOULE;
         usedMetal += cost;
-        usedCharge += undone * REPAIR_ENERGY_PER_JOULE;
+        usedCharge += undone * work * REPAIR_ENERGY_PER_JOULE;
         if (this.damage.absorbedAt(b, m) > 0) left = true;
       }
     }
@@ -4400,8 +4404,9 @@ export class Ships {
       this.sendOut(b, design, robots, robot, owner);
       return false;
     }
-    const step = ROBOT_REPAIR_RATE * dt;
-    let undo = min(step, robot.charge / REPAIR_ENERGY_PER_JOULE);
+    const work = repairWork(design.modules[m]!.stats);
+    const step = (ROBOT_REPAIR_RATE * dt) / work;
+    let undo = min(step, robot.charge / (work * REPAIR_ENERGY_PER_JOULE));
     // Short of charge for a full step's work: this is its last.
     let short = undo < step;
     const spare = min(robot.metal, this.metal.pieceHeld(b, m));
@@ -4414,7 +4419,7 @@ export class Ships {
     const undone = this.damage.repair(b, m, undo);
     // Its holes are the first thing plugged.
     if (undone > 0) this.fuel.seal(b, m);
-    robot.charge -= undone * REPAIR_ENERGY_PER_JOULE;
+    robot.charge -= undone * work * REPAIR_ENERGY_PER_JOULE;
     robot.metal -= cost;
     if (cost > 0) this.metal.drain(b, m, cost);
     // Out of what this needs, short of finishing it: home for more.
@@ -4432,15 +4437,21 @@ export class Ships {
    */
   private buildOne(b: number, design: ShipDesign, robots: Robot[], robot: Robot, owner: number, dt: number): boolean {
     const m = robot.target;
-    const step = (ROBOT_REPAIR_RATE / DAMAGE_ENERGY_PER_KG) * dt;
-    const charge = DAMAGE_ENERGY_PER_KG * REPAIR_ENERGY_PER_JOULE;
+    const fitting = robot.build < 0 && design.modules[m]!.shell === undefined;
+    const rebuild = fitting ? null : this.rebuildFor(owner, design);
+    const l = rebuild === null ? -1 : robot.build >= 0 ? robot.build : rebuild.at.indexOf(m);
+    const origin = rebuild === null ? null : originOf(this.launched[owner]!, l);
+    const whole = origin === null ? design.modules[m]!.stats : origin.design.modules[origin.module]!.stats;
+    const work = buildWork(whole);
+    const step = (ROBOT_REPAIR_RATE / work) * dt;
+    const charge = work * REPAIR_ENERGY_PER_JOULE;
     const waste = 1 + REPAIR_WASTE;
     let kg = min(step, min(robot.charge / charge, robot.metal / waste));
     let short = kg < step;
     const spare = this.metal.pieceHeld(b, m);
     let more: boolean;
     let put = 0;
-    if (robot.build < 0 && design.modules[m]!.shell === undefined) {
+    if (rebuild === null) {
       if (kg * waste > spare) {
         kg = spare > 0 ? spare / waste : 0;
         short = true;
@@ -4449,10 +4460,7 @@ export class Ships {
       if (put > 0) this.metal.drain(b, m, put * waste);
       more = this.damage.unbuiltAt(b, m) > 0;
     } else {
-      const rebuild = this.rebuildFor(owner, design);
-      const l = robot.build >= 0 ? robot.build : rebuild.at.indexOf(m);
-      const origin = originOf(this.launched[owner]!, l);
-      const wall = origin.design.modules[origin.module]!.stats.structureMass / SHELL_STEPS;
+      const wall = whole.structureMass / SHELL_STEPS;
       // Waiting on a step that is in the way of something: mending comes first, if any has come up since.
       if (rebuild.work[l]! >= wall && robot.idleAt !== this.damage.version(b)) {
         robot.idleAt = this.damage.version(b);

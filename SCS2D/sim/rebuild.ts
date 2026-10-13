@@ -1,5 +1,6 @@
 import { cos, sin } from './math.js';
-import { boxAngle, moduleOutline, ROBOT_MASS, type ModuleSpec, type ModuleStats } from './modules.js';
+import { DAMAGE_ENERGY_PER_KG } from './damage.js';
+import { boxAngle, COMPLEXITY_WORK, moduleOutline, ROBOT_MASS, type ModuleSpec, type ModuleStats } from './modules.js';
 import { distanceToOutline, polygonArea, polygonMomentOfArea, triangleBounds } from './shape.js';
 
 /**
@@ -16,6 +17,16 @@ export const SHELL_STEPS = 10;
 export function fittingOf(stats: ModuleStats): number {
   const kg = stats.fittingMass - stats.robots * ROBOT_MASS;
   return kg > 0 ? kg : 0;
+}
+
+/**
+ * The work building a kilogram of a module takes, J: a kilogram's worth of
+ * damage, and its share of the module's complexity, spread over its walls and
+ * fittings alike.
+ */
+export function buildWork(stats: ModuleStats): number {
+  const kg = stats.structureMass + fittingOf(stats);
+  return kg > 0 ? DAMAGE_ENERGY_PER_KG + (stats.complexity * COMPLEXITY_WORK) / kg : DAMAGE_ENERGY_PER_KG;
 }
 
 /** The edge of a module's outline nearest another's: the face it is built against. */
@@ -122,6 +133,7 @@ export function shellOf(spec: ModuleSpec, stats: ModuleStats, face: number, shar
       chargeRate: 0,
       generation: 0,
       robots: 0,
+      complexity: stats.complexity * share,
     },
   };
 }
