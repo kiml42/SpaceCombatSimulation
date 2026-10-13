@@ -1653,11 +1653,13 @@ export class Ships {
    */
   private escortBand(i: number, design: ShipDesign, target: number): number {
     const approach = this.doctrines[i]!.approach;
-    const skin = this.designs[target]!.radius;
-    const wanted = approach.escortRadii * skin;
-    // From the consort's skin, for the same reason a standoff is: keeping
-    // station a hundred metres off a thing a kilometre across is a place
-    // inside it.
+    const theirs = this.designs[target]!.radius;
+    const wanted = approach.escortRadii * theirs;
+    // From skin to skin, for the same reason a standoff is from the target's:
+    // keeping station a hundred metres off a thing a kilometre across is a
+    // place inside it, and so is a station closer than two hulls the same
+    // size can turn without touching.
+    const skin = theirs + design.radius;
     if (!(design.reach > 0)) return skin + wanted;
     return skin + min(wanted, approach.escort * design.reach);
   }
@@ -2916,7 +2918,9 @@ export class Ships {
         const cb = bodies.indexOf(this.bodyIds[covering]!);
         if (cb >= 0) wantAngle = atan2(bodies.y[cb]! - bodies.y[b]!, bodies.x[cb]! - bodies.x[b]!);
       }
-      this.avoid(bodies, i, b, target !== NO_TARGET ? target : covering);
+      // Clear of what it is covering, as of anything else: a charge is
+      // stationed on, never flown into.
+      this.avoid(bodies, i, b, target);
     }
 
     // Nothing to want is a want of its own: a craft with no orders, no charge

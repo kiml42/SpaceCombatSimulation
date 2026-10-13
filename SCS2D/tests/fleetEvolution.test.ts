@@ -72,13 +72,16 @@ describe('a match of fleets', () => {
     const nearest = (): number => {
       const goal = world.bodies.indexOf(ships.body(marker));
       let best = 0;
+      let fighting = false;
       slots.forEach((slot, k) => {
         if (owners[k] !== 0 || !ships.isAlive(slot) || !ships.hasControl(slot)) return;
         const body = world.bodies.indexOf(ships.body(slot));
         const d = Math.sqrt((world.bodies.x[body]! - world.bodies.x[goal]!) ** 2 + (world.bodies.y[body]! - world.bodies.y[goal]!) ** 2);
         best = Math.max(best, 500 / (500 + d));
+        if (!ships.isDisabled(slot)) fighting = true;
       });
-      return best;
+      // A fleet with nothing left that can fight races no further.
+      return fighting ? best : 0;
     };
     const start = nearest();
     let sum = 0;

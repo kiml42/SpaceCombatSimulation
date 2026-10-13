@@ -424,7 +424,9 @@ inside any one file is not contiguous.
   A craft escorting stations on its charge and fights on with whatever its mounts can reach, since where the
   hull goes and what the guns do are different questions, and it holds a band of its own rather than the
   gunnery standoff — where you sit to *shoot* at something being the wrong answer by an order of magnitude
-  for something you are covering. It covers no friend smaller than `escortMinRadii` of its own radius — its own
+  for something you are covering. The band is measured from skin to skin, both hulls' radii out, so two
+  ships of a size never station inside the circle the pair sweep turning, and a craft keeps clear of its
+  charge as of anything else. It covers no friend smaller than `escortMinRadii` of its own radius — its own
   size, by default — so a capital does not trail round after the nearest fighter; a neutral objective is
   gone to whatever its size, since a goal is a marker far smaller than anything racing to it. A friend that
   has lost control is covered only while it has robots aboard, which may yet mend its core; wreckage and
