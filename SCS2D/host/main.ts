@@ -16,7 +16,7 @@ import { torchRun } from '../scenarios/torchRun.js';
 import { broadside } from '../scenarios/broadside.js';
 import { hooked } from '../scenarios/hooked.js';
 import { salvage } from '../scenarios/salvage.js';
-import { mending } from '../scenarios/mending.js';
+import { mending, rebuilding } from '../scenarios/mending.js';
 import { scavenge } from '../scenarios/scavenge.js';
 import { carrier } from '../scenarios/carrier.js';
 import { beamCarrier } from '../scenarios/beamCarrier.js';
@@ -79,6 +79,7 @@ export function start(): void {
     { name: 'Broadside', create: () => broadside(SEED) },
     { name: 'Salvage', create: () => salvage(SEED) },
     { name: 'Mending', create: () => mending(SEED) },
+    { name: 'Rebuilding', create: () => rebuilding(SEED) },
     { name: 'Scavenge', create: () => scavenge(SEED) },
     { name: 'Carrier', create: () => carrier(SEED) },
     { name: 'Rearm', create: () => rearm(SEED) },

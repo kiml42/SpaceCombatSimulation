@@ -695,6 +695,21 @@ inside any one file is not contiguous.
   and slower as it is damaged, from a robot's mass of metal and `REPAIR_WASTE` more off its piece of hull,
   waiting for the metal if it has none to spare; a new robot sets out only once its bay has filled it. The `mending` scenario has a battered Mender's four robots mend it whole in four
   minutes; evolution's weight for a bay is zero until robots are tuned.
+  **Robots rebuild what their ship has lost**, once nothing is left to mend, back to the design it set out
+  with: every module of a design remembers which module of a compiled design it is (`DesignModule.origin`),
+  so a hull cut down or welded up still knows what is missing. A lost module is rebuilt only against a
+  whole module of the hull it shared a weld with, in the same tiers as mending. **Its walls go up first**:
+  a shell (`DesignModule.shell`), drawn and hit as structure, laid along the face it is built against and
+  growing across the module in `SHELL_STEPS` steps — a strip of a box, a triangle of a triangle — each step
+  a remade hull, as a severed one is. A kilogram of wall is the work of mending a kilogram's worth of
+  damage, at a robot's rate and charge, and a step is paid for when it goes up: its share of the module's
+  walls in metal and `REPAIR_WASTE` more, off the piece it is built from. A step waits while anything else
+  is in the way of it, wreckage included. **At the last step it is the module itself, whole but for its
+  fittings**, which the robots then put in at the same rate and price; until they are all in, the module
+  does nothing (`Damage.unbuiltAt`) and is drawn as broken as it is. A shell or a module being fitted that
+  is hit is mended before any more is built, and one cut away again is lost again. The `rebuilding`
+  scenario has a turning Rebuilder lose its fin and its engine and build both back, each once what came off
+  has drifted clear.
   **A pad may set out with a fighter docked on it** (`ModuleSpec.docked`, naming a copy in the blueprint's
   `hangar`, as a fleet carries its designs). It is spawned lying along the pad, centred on it, and welded as
   one that had landed, so it is topped up from the carrier and lifts off once full. A fighter too big for its
@@ -782,8 +797,8 @@ inside any one file is not contiguous.
   holds a fighter to fill cells that are broken. Evolution draws batteries and generators at a weight of
   one each, and a mutation does not turn either, since neither has a facing that matters.
 - **Next:** repair, construction and salvage, one mechanism built in six stages (ROADMAP.md §8): with damage
-  shedding mass, pads mending landed fighters and robots mending their own hull, lost and built anew
-  built, rebuilding lost modules is next. Alongside it, the rest of §8 step 8 — leaks, and pilots that
+  shedding mass, pads mending landed fighters, robots mending their own hull, lost and built anew, and
+  robots rebuilding lost modules built, pads rebuilding what a fighter has lost is next. Alongside it, the rest of §8 step 8 — leaks, and pilots that
   know their fuel — and of step 5: a materials budget, and designed scenarios.
   See ROADMAP.md §8.
   §8 step 3 is done bar withdrawal, and step 7, two layers, is built. What a chooser is already facing (`facingWeight`) and whether anything is in the way

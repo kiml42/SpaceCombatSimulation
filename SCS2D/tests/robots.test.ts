@@ -115,6 +115,14 @@ describe('robots', () => {
     expect(run.ships.discarded - discardedBefore).toBeCloseTo(shed * REPAIR_WASTE, 3);
   });
 
+  it('run short mending their own bay, and berth there to refill', { timeout: 60_000 }, () => {
+    const run = scene((absorb) => absorb(BAY, 0.6));
+    for (const robot of run.ships.robots.on(body(run))!) robot.metal = 10;
+    let steps = 0;
+    while (absorbed(run, BAY) > 0 && steps++ < 600 * 60) run.step();
+    expect(absorbed(run, BAY)).toBe(0);
+  });
+
   it('mend no faster than the robots there can work', () => {
     const run = scene((absorb) => absorb(NEAR, 0.5));
     let steps = 0;

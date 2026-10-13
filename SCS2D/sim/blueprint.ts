@@ -317,6 +317,45 @@ export interface DesignModule {
   readonly angle: number;
   /** In the weapons layer (`inWeaponsLayer`): hit by turrets, and in their way. */
   readonly weaponsLayer: boolean;
+  /** The module this one is of the design it was compiled in; absent when that is this design. */
+  readonly origin?: Compiled;
+  /** Present while only that module's walls are going up (`shellOf`). */
+  readonly shell?: Shell;
+}
+
+/** A module of a compiled design, which is what a severed or rebuilt module still is. */
+export interface Compiled {
+  readonly design: ShipDesign;
+  readonly module: number;
+}
+
+/** How far a module's walls are up: across `share` of it, from edge `face` of its outline. */
+export interface Shell {
+  readonly share: number;
+  readonly face: number;
+}
+
+/** What a module carries over from the design it was cut or welded from. */
+interface Mark {
+  readonly origin: Compiled;
+  readonly shell?: Shell;
+}
+
+/** Where module `m` of a design was compiled. */
+export function originOf(design: ShipDesign, m: number): Compiled {
+  return design.modules[m]!.origin ?? { design, module: m };
+}
+
+/** Whether module `a` of one design and module `b` of another are the same module of the same compiled design. */
+export function sameOrigin(da: ShipDesign, a: number, db: ShipDesign, b: number): boolean {
+  const oa = da.modules[a]!.origin;
+  const ob = db.modules[b]!.origin;
+  return (oa?.design ?? da) === (ob?.design ?? db) && (oa?.module ?? a) === (ob?.module ?? b);
+}
+
+function markOf(design: ShipDesign, m: number): Mark {
+  const shell = design.modules[m]!.shell;
+  return shell === undefined ? { origin: originOf(design, m) } : { origin: originOf(design, m), shell };
 }
 
 /** A turret mount in a compiled design, ready to be added to a `Turrets` store. */
@@ -1729,11 +1768,13 @@ export function subDesign(design: ShipDesign, keep: readonly number[]): ShipDesi
   const specs: ModuleSpec[] = [];
   const stats: ModuleStats[] = [];
   const layoutIndex: number[] = [];
+  const marks: Mark[] = [];
   for (let k = 0; k < keep.length; k++) {
     const module = design.modules[keep[k]!]!;
     specs.push(module.spec);
     stats.push(module.stats);
     layoutIndex.push(module.index);
+    marks.push(markOf(design, keep[k]!));
   }
   let joins: Joins | undefined;
   if (design.pieces !== undefined) {
@@ -1753,7 +1794,7 @@ export function subDesign(design: ShipDesign, keep: readonly number[]): ShipDesi
   // made only of what were fighters when they came aboard.
   const fighters = joins?.fighterPieces;
   const fighter = design.fighter || (fighters !== undefined && joins!.pieces.every((piece) => fighters.includes(piece)));
-  return designFrom(design.name, specs, stats, layoutIndex, design.doctrine, joins, fighter);
+  return designFrom(design.name, specs, stats, layoutIndex, design.doctrine, joins, fighter, marks);
 }
 
 /**
@@ -1779,6 +1820,8 @@ export function weldDesigns(
   const specs: ModuleSpec[] = first.modules.map((module) => module.spec);
   const stats: ModuleStats[] = first.modules.map((module) => module.stats);
   const layoutIndex = first.modules.map((module) => module.index);
+  const marks = first.modules.map((_, m) => markOf(first, m));
+  second.modules.forEach((_, m) => marks.push(markOf(second, m)));
   for (const module of second.modules) {
     const spec = module.spec;
     specs.push({
@@ -1809,7 +1852,38 @@ export function weldDesigns(
   ];
   const joins: Joins = fighterPieces.length > 0 ? { pieces, seams, fighterPieces } : { pieces, seams };
   // Two fighters welded are still small enough to be one.
-  return designFrom(first.name, specs, stats, layoutIndex, first.doctrine, joins, first.fighter && second.fighter);
+  return designFrom(first.name, specs, stats, layoutIndex, first.doctrine, joins, first.fighter && second.fighter, marks);
+}
+
+/**
+ * A design with module `at` put in place of what it has there, or added after
+ * its last when `at` is its length: the same module of `origin`, whole or as a
+ * shell, on piece `piece` of a welded hull. Every other module keeps its index.
+ */
+export function rebuiltDesign(
+  design: ShipDesign,
+  at: number,
+  spec: ModuleSpec,
+  stats: ModuleStats,
+  origin: Compiled,
+  shell: Shell | null,
+  piece = 0,
+): ShipDesign {
+  const specs = design.modules.map((module) => module.spec);
+  const all = design.modules.map((module) => module.stats);
+  const layoutIndex = design.modules.map((module) => module.index);
+  const marks = design.modules.map((_, m) => markOf(design, m));
+  specs[at] = spec;
+  all[at] = stats;
+  layoutIndex[at] = origin.design.modules[origin.module]!.index;
+  marks[at] = shell === null ? { origin } : { origin, shell };
+  let joins: Joins | undefined;
+  if (design.pieces !== undefined) {
+    const pieces = design.pieces.slice();
+    pieces[at] = piece;
+    joins = { pieces, seams: design.seams ?? [], ...(design.fighterPieces === undefined ? {} : { fighterPieces: design.fighterPieces }) };
+  }
+  return designFrom(design.name, specs, all, layoutIndex, design.doctrine, joins, design.fighter, marks);
 }
 
 /**
@@ -1843,6 +1917,7 @@ function designFrom(
   doctrine: Doctrine = DEFAULT_DOCTRINE,
   joins?: Joins,
   fighter = false,
+  marks?: readonly Mark[],
 ): ShipDesign {
   const centres = specs.map(moduleCentre);
   let mass = 0;
@@ -1907,6 +1982,8 @@ function designFrom(
       // from the module it covers is cover, and a severed chunk keeps what it
       // was built with rather than re-deriving it from what is left.
       weaponsLayer: inWeaponsLayer(spec, s.thickness),
+      ...(marks === undefined ? {} : { origin: marks[i]!.origin }),
+      ...(marks?.[i]?.shell === undefined ? {} : { shell: marks[i]!.shell }),
     });
 
     if (spec.kind === 'core') {

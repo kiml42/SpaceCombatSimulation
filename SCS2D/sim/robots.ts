@@ -33,8 +33,10 @@ export interface Robot {
   /** The module it is on, or last left. */
   at: number;
   mode: RobotMode;
-  /** The module it is going to mend, or -1. */
+  /** The module it is going to mend, or build against, or -1. */
   target: number;
+  /** The module of its ship's launch design it is to start building against `target`, or -1. */
+  build: number;
   /** Modules it will cross, from `at`, and how far along the leg from `path[leg]` to the next it is, m. */
   path: Int32Array | null;
   leg: number;
@@ -244,6 +246,7 @@ export class Robots {
       robot.bay = bay;
       robot.at = at;
       robot.target = -1;
+      robot.build = -1;
       robot.idleAt = -1;
       robot.stoodOn = -1;
       robot.path = null;
@@ -279,6 +282,7 @@ function stocked(bay: number): Robot {
     at: bay,
     mode: RobotMode.Berthed,
     target: -1,
+    build: -1,
     path: null,
     leg: 0,
     along: 0,

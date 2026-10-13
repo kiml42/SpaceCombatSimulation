@@ -249,6 +249,10 @@ export class Damage {
   /** What damage has shed from each body, kg, and its moment of inertia, kg·m². */
   private readonly shed: number[] = [];
   private readonly shedSpin: number[] = [];
+  /** Fittings each rebuilt module still lacks, kg (`Ships.tend`), and each body's total and its moment. */
+  private readonly unbuilt: (Float64Array | null)[] = [];
+  private readonly unbuiltTotal: number[] = [];
+  private readonly unbuiltSpin: number[] = [];
   /** Shed since the body's mass was last settled, kg, and the bodies with any. */
   private readonly unsettled: number[] = [];
   private readonly unsettledBodies: number[] = [];
@@ -266,6 +270,7 @@ export class Damage {
     design: ShipDesign,
     carried?: readonly number[],
     welds?: readonly number[],
+    unfitted?: readonly number[],
   ): void {
     const n = design.modules.length;
     const capacity = new Float64Array(n);
@@ -292,6 +297,19 @@ export class Damage {
       shed += kg;
       shedSpin += kg * spin[i]!;
     }
+    const unbuilt = new Float64Array(n);
+    let unbuiltTotal = 0;
+    let unbuiltSpin = 0;
+    if (unfitted !== undefined) {
+      for (let i = 0; i < n; i++) {
+        unbuilt[i] = unfitted[i] ?? 0;
+        unbuiltTotal += unbuilt[i]!;
+        unbuiltSpin += unbuilt[i]! * spin[i]!;
+      }
+    }
+    this.unbuilt[bodyIndex] = unbuilt;
+    this.unbuiltTotal[bodyIndex] = unbuiltTotal;
+    this.unbuiltSpin[bodyIndex] = unbuiltSpin;
     this.dry[bodyIndex] = dry;
     this.spin[bodyIndex] = spin;
     this.shed[bodyIndex] = shed;
@@ -388,6 +406,46 @@ export class Damage {
     this.shed[bodyIndex] = this.shed[bodyIndex]! - kg;
     this.shedSpin[bodyIndex] = this.shedSpin[bodyIndex]! - kg * this.spin[bodyIndex]![module]!;
     return undone;
+  }
+
+  /** Fittings a rebuilt module still lacks, kg: until they are in, it does nothing. */
+  unbuiltAt(bodyIndex: number, module: number): number {
+    return this.unbuilt[bodyIndex]?.[module] ?? 0;
+  }
+
+  /** What every module of a body still lacks, kg, and its moment of inertia, kg·m². */
+  unbuiltMass(bodyIndex: number): number {
+    return this.unbuiltTotal[bodyIndex] ?? 0;
+  }
+
+  unbuiltInertia(bodyIndex: number): number {
+    return this.unbuiltSpin[bodyIndex] ?? 0;
+  }
+
+  /** Leave a module of a body without `kg` of its fittings, as one whose walls have just gone up. */
+  unfit(bodyIndex: number, module: number, kg: number): void {
+    const unbuilt = this.unbuilt[bodyIndex];
+    if (!unbuilt || !(kg > 0)) return;
+    unbuilt[module] = unbuilt[module]! + kg;
+    this.unbuiltTotal[bodyIndex] = this.unbuiltTotal[bodyIndex]! + kg;
+    this.unbuiltSpin[bodyIndex] = this.unbuiltSpin[bodyIndex]! + kg * this.spin[bodyIndex]![module]!;
+    this.versions[bodyIndex] = (this.versions[bodyIndex] ?? 0) + 1;
+  }
+
+  /** Put up to `kg` of a module's fittings in, and say how much went. Settling the hull's mass is the caller's. */
+  fit(bodyIndex: number, module: number, kg: number): number {
+    const unbuilt = this.unbuilt[bodyIndex];
+    if (!unbuilt || !(kg > 0)) return 0;
+    const left = unbuilt[module] ?? 0;
+    const put = kg < left ? kg : left;
+    if (!(put > 0)) return 0;
+    // To the last gram, so a module is finished rather than a rounding error short.
+    unbuilt[module] = put < left ? left - put : 0;
+    this.unbuiltTotal[bodyIndex] = this.unbuiltTotal[bodyIndex]! - put;
+    this.unbuiltSpin[bodyIndex] = this.unbuiltSpin[bodyIndex]! - put * this.spin[bodyIndex]![module]!;
+    // Working now, which is a change to what the hull can do.
+    if (unbuilt[module] === 0) this.versions[bodyIndex] = (this.versions[bodyIndex] ?? 0) + 1;
+    return put;
   }
 
   /** What damage has shed from one module, kg: the metal repairing it has to put back. */
@@ -503,6 +561,7 @@ export class Damage {
     if (!kinds) return 1;
     const kind = kinds[module];
     if (kind === undefined) return 1;
+    if (this.unbuilt[bodyIndex]![module]! > 0) return 0;
     const integrity = this.integrity(bodyIndex, module);
     let left = 1;
     for (const response of DAMAGE_RESPONSES[kind]) {
@@ -586,6 +645,9 @@ export class Damage {
     this.shed[bodyIndex] = 0;
     this.shedSpin[bodyIndex] = 0;
     this.unsettled[bodyIndex] = 0;
+    this.unbuilt[bodyIndex] = null;
+    this.unbuiltTotal[bodyIndex] = 0;
+    this.unbuiltSpin[bodyIndex] = 0;
   }
 }
 
