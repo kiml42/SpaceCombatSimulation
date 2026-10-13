@@ -34,7 +34,6 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 ## Editor
 - Test button - switches to the game view, with the ship loaded into a default scene with one other stock ship, their doctrines will make them fight.
 - Allow dragging copies (when a module or assembly is set to be repeated) to set the offset (might get complicated with more than 2, so might need to restrict to the second one)
-- Allow scaling an assembly - this could get messy, as it would create a duplicate that behaves differently due to different scaling laws.
 - Category input for ships - ships grouped by category when selecting them anywhere. (e.g. "Star Wars.Imperial", "Stock")
 - Make it clearer how the range is controlled in the core's doctrine
 - Add calibre multiplier to scale what the default maths gives.
@@ -52,6 +51,7 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 ## Manoeuvring
 - Ships need to have a max allowed rotational speed, or some other mechanism to stop them spinning up faster and faster when they have damaged engines.
 - Ships need to be able to know when they're already turning towards the target, so not push themselves to turn faster.
+- Ships should consider if their rotation will result in a collision. e.g. one side of the catamaran in split gets its front broken off because it turns in a way that moves it towards the other half while trying to get an engine lined up to move away.
 
 ## Evolution
 - Make damage and function taken start at 0 and go negative, so the graph scales nicely at the beginning when they're all useless, highlighting even minor improvements.
@@ -61,6 +61,10 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Add an export button to every fleet in the "the combatants" view, should fit under the score neatly.
 - Co-evolution mode fills up scores for all the As and then all the Bs, it would be better if the battles order was randomised, so they fill up together.
   - Also, we could show partial scores if we added a battle count section (probably beneath the score value) showing "X/Y", so you can see how many of its battles the ship has completed.
+- Whole ship scale mutation
+- Assembly scale mutation - scales everything in all copies of the assembly up or down.
+- Make mutation settings for numbers define the maximum range and make all numbers always mutate a little (still rejecting invalid values) (could include positions and scales as well)
+- Duplicated parts or assemblies can be placed anywhere on the surface of the ship, not just close to the module they're a duplicate of (possibly with a higher chance of appearing nearby)
 
 ## Fleet Editor
 - Make duplicate consistent with the ship editor (which creates a one module subassembly)
