@@ -678,9 +678,14 @@ inside any one file is not contiguous.
   damage a second for every metre of the pad's width, cores first, then engines and weapons, then the rest,
   each joule taking `REPAIR_ENERGY_PER_JOULE` of the carrier's charge and the metal the module had shed and
   `REPAIR_WASTE` more, the waste counted as discarded — reserves and all, since repairing and rebuilding
-  draw on what a ship keeps back for itself, where refuelling, rearming and recharging a friend do not. The pad lets it go when it is full and mended, when
-  there is no more to spare, or at once when it is given an order. Nothing yet sends a fighter in to be
-  mended: it is mended while it is down for anything else. A merged design remembers which of its pieces
+  draw on what a ship keeps back for itself, where refuelling, rearming and recharging a friend do not. Once
+  nothing is left to mend, **it builds back what the fighter has lost**, as robots do and at the same work
+  for its rate: fittings first, then a shell's walls, then a module lost, against what is left of the
+  fighter, cores first, paid for in the carrier's metal and charge. The pad lets it go when it is full,
+  mended and whole, when there is no more to spare, or at once when it is given an order. The `padRebuild`
+  scenario has two Dinkies, each short of an outrigger engine, land on a Workshop, a Tender with a hold, and
+  lift off whole; the engine's complexity makes that the work of about four seconds. Nothing yet sends
+  a fighter in to be mended: it is mended while it is down for anything else. A merged design remembers which of its pieces
   were fighters (`fighterPieces`), so it lifts off a fighter, and every ship keeps the doctrine it set out with
   whatever hull it rides, so a fighter flies on its own and not its carrier's. The `carrier` scenario has three Dinkies take
   turns on a two-pad Tender; evolution's weight for a pad is zero, since it pays only in a fleet with fighters.
@@ -725,6 +730,14 @@ inside any one file is not contiguous.
   scenario has a turning Rebuilder lose its fin and its engine and build both back, each once what came off
   has drifted clear. Each hull of the Catamaran carries a bay, a hold and a generator enough to rebuild the
   other, so either half of one cut in two grows back into the whole ship, in about an hour.
+  **Every module has a complexity** (`complexityOf`), work over and above its mass that making or mending it
+  takes, the same whatever its size, at `COMPLEXITY_WORK` a unit: structure, tanks and holds 1, a battery 2,
+  claws, pads and ports 3, engines and hull weapons 4, turrets 7, generators and robot bays 6, cores 16, with
+  2 more for a self-sealing lining and 1 for every barrel or nozzle past the first. Building a module spreads
+  it over every kilogram of walls and fittings (`buildWork`), and mending one over the damage that breaks it
+  (`repairWork`), so it costs time and charge alike, in proportion. A Dinky's outrigger engine is almost all
+  complexity and a Catamaran's main engine almost all mass, so small parts are slow to replace without large
+  repairs slowing much: it adds 7% to the `mending` scenario.
   **A pad may set out with a fighter docked on it** (`ModuleSpec.docked`, naming a copy in the blueprint's
   `hangar`, as a fleet carries its designs). It is spawned lying along the pad, centred on it, and welded as
   one that had landed, so it is topped up from the carrier and lifts off once full. A fighter too big for its
@@ -877,7 +890,7 @@ so decisions are never under time pressure.
 | Strike craft | Up to ~100. No hard distinction between fighter and guided torpedo — one has a gun, the other a warhead. |
 | Production | Edit a blueprint and *future* production uses it. Fleets transition gradually, so design changes are visible as a shifting mix rather than a step change. |
 | Doctrine | Editable per craft, with "propagate to all identical craft" as a tactical verb — flip a whole swarm from defensive to aggressive mid-battle. |
-| Cost | **There is no abstract cost value for anything.** A ship costs the materials that make up its dry mass, the time to build it (from a module-complexity metric, deliberately not yet pinned down), and the propellant and raw materials it consumes running. Those are the only currencies, and every budget — a skirmish allowance, an evolution fitness penalty, the price of a better material — is denominated in them. Points values are what a game reaches for when it has not decided what a thing really costs. |
+| Cost | **There is no abstract cost value for anything.** A ship costs the materials that make up its dry mass, the time to build it (its mass and its modules' complexity, which repair and rebuilding already use, though no budget counts it yet), and the propellant and raw materials it consumes running. Those are the only currencies, and every budget — a skirmish allowance, an evolution fitness penalty, the price of a better material — is denominated in them. Points values are what a game reaches for when it has not decided what a thing really costs. |
 | Scarcity | Ammunition and propellant are limited. This is what makes engagement-range and manoeuvre doctrine matter rather than being sliders nobody touches. |
 | Orders | Every order is *(target object, allowed distance range, allowed approach-angle range)*, mostly defaulted from doctrine — so issuing one collapses to picking a target. Fixed points in space rarely make sense; orders are relative to objects. A ship holds a **queue** of them and works through it in the order given, each carrying the condition that finishes it. |
 | Scale rationale | Small numbers are a design requirement, not a technical limit: you must be able to attribute a battle outcome to a design change. |

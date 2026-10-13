@@ -20,14 +20,14 @@ import { components, cuts, jointBetween, joints, type Joint } from './connectivi
 import { BOTH_LAYERS, HULL_LAYER, Hulls, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from './hull.js';
 import {
   Damage,
-  DAMAGE_ENERGY_PER_KG,
   DamageEffect,
   IMPACT_MUZZLE,
   REPAIR_ENERGY_PER_JOULE,
   REPAIR_WASTE,
+  repairWork,
   type ImpactLog,
 } from './damage.js';
-import { faceToward, fittingOf, inFrame, SHELL_STEPS, shellOf } from './rebuild.js';
+import { buildWork, faceToward, fittingOf, inFrame, SHELL_STEPS, shellOf } from './rebuild.js';
 import { Fuel, LEAK_HOLE_CALIBRES, leakChance, leakRate, leakSpeed, type Leak } from './fuel.js';
 import { Charge } from './charge.js';
 import { Metal } from './metal.js';
@@ -656,7 +656,7 @@ export class Ships {
   private readonly launched: ShipDesign[] = [];
   /** Each ship's hull matched to its launch design (`rebuildFor`). */
   private readonly rebuilds: (Rebuild | null)[] = [];
-  /** Shell steps robots have finished this tick, as ship, launch module and the module built from. */
+  /** Shell steps finished this tick, as ship, launch module, the module built from and the one paying. */
   private readonly grows: number[] = [];
   /**
    * Each ship's own doctrine, as it set out. A ship riding a merged hull shares
@@ -4107,7 +4107,9 @@ export class Ships {
             if (spareCharge > 0) this.power.transfer(b, seam.a, seam.b, cable < spareCharge ? cable : spareCharge);
             const landed = this.pilotAt(b, seam.b);
             const mending = PAD_REPAIR_PER_METRE * design.modules[seam.a]!.spec.width * working * world.dt;
-            const repairLeft = landed >= 0 && this.mend(bodies, b, landed, seam.a, mending);
+            // Mended first, and then built back to what it set out as.
+            let repairLeft = landed >= 0 && this.mend(bodies, b, landed, seam.a, mending);
+            if (landed >= 0 && !repairLeft) repairLeft = this.padBuild(bodies, b, design, landed, seam.a, mending);
             const ordered = (this.orders[landed]?.length ?? 0) > 0;
             const fuelLeft = this.fuel.pieceRoom(b, seam.b) > 0 && this.fuel.pieceHeld(b, seam.a) > this.reserve(b, seam.a);
             const metalLeft = this.metal.pieceRoom(b, seam.b) > 0 && this.metal.pieceHeld(b, seam.a) > this.metalReserve(b, seam.a);
@@ -4121,8 +4123,99 @@ export class Ships {
         released++;
       }
       if (moved) this.settleMass(bodies, b);
+      this.growAll(world);
     }
     return released;
+  }
+
+  /**
+   * Build some of what fighter `i`, landed on pad `pad` of body `b`, has lost
+   * since it set out, with `joules` of the pad's work: a kilogram for each
+   * kilogram's worth of damage, as robots build, from the metal and charge
+   * on the pad's piece of hull. Its fittings first, then a shell's walls,
+   * then a module lost, against what is left of it, cores first. Says
+   * whether it built anything.
+   */
+  private padBuild(bodies: Bodies, b: number, design: ShipDesign, i: number, pad: number, joules: number): boolean {
+    const launch = this.launched[i];
+    if (launch === undefined) return false;
+    const rebuild = this.rebuildFor(i, design);
+    let best = -1;
+    let bestBuild = -1;
+    let bestTier = 3;
+    for (let m = 0; m < design.modules.length; m++) {
+      if (!this.ownsAt(i, b, m)) continue;
+      if (design.modules[m]!.shell === undefined && !(this.damage.unbuiltAt(b, m) > 0)) continue;
+      const tier = originTier(design, m);
+      if (tier < bestTier) {
+        best = m;
+        bestBuild = -1;
+        bestTier = tier;
+      }
+    }
+    if (best < 0 && rebuild.frame >= 0) {
+      const compiled = originOf(design, rebuild.frame).design;
+      for (const joint of joints(launch)) {
+        if (joint.seam === true) continue;
+        for (const [l, against] of [
+          [joint.a, joint.b],
+          [joint.b, joint.a],
+        ] as const) {
+          const m = rebuild.at[against]!;
+          if (rebuild.at[l]! >= 0 || m < 0 || !this.ownsAt(i, b, m)) continue;
+          if (design.modules[m]!.shell !== undefined || originOf(design, m).design !== compiled) continue;
+          const tier = repairTier(launch, l);
+          if (tier < bestTier) {
+            best = m;
+            bestBuild = l;
+            bestTier = tier;
+          }
+        }
+      }
+    }
+    if (best < 0) return false;
+    const fitting = bestBuild < 0 && design.modules[best]!.shell === undefined;
+    const l = fitting ? -1 : bestBuild >= 0 ? bestBuild : rebuild.at.indexOf(best);
+    const origin = fitting ? null : originOf(launch, l);
+    const whole = origin === null ? design.modules[best]!.stats : origin.design.modules[origin.module]!.stats;
+    const work = buildWork(whole);
+    const perKg = work * REPAIR_ENERGY_PER_JOULE;
+    const waste = 1 + REPAIR_WASTE;
+    const metal = this.metal.pieceHeld(b, pad);
+    let kg = min(joules / work, this.power.pieceHeld(b, pad) / perKg);
+    if (fitting) {
+      kg = min(kg, metal / waste);
+      if (!(kg > 0)) return false;
+      const mass = bodies.mass[b]!;
+      const inertia = bodies.inertia[b]!;
+      const put = this.damage.fit(b, best, kg);
+      if (!(put > 0)) return false;
+      this.metal.drain(b, pad, put * waste);
+      this.power.drain(b, pad, put * perKg);
+      this.settleMass(bodies, b);
+      this.discardFrom(bodies, b, mass, inertia);
+      return true;
+    }
+    const wall = whole.structureMass / SHELL_STEPS;
+    // Nothing to pay for the step with, or a step waiting on room to go up.
+    if (metal < wall * waste) return false;
+    kg = min(kg, wall - rebuild.work[l]!);
+    if (!(kg > 0)) {
+      if (rebuild.work[l]! >= wall) this.grows.push(i, l, best, pad);
+      return false;
+    }
+    rebuild.work[l] = rebuild.work[l]! + kg;
+    this.power.drain(b, pad, kg * perKg);
+    if (rebuild.work[l]! >= wall) this.grows.push(i, l, best, pad);
+    return true;
+  }
+
+  /** Put up every shell step finished since last asked (`grow`). */
+  private growAll(world: World): void {
+    for (let k = 0; k < this.grows.length; k += 4) {
+      this.grow(world, this.grows[k]!, this.grows[k + 1]!, this.grows[k + 2]!, this.grows[k + 3]!);
+    }
+    this.grows.length = 0;
   }
 
   /**
@@ -4147,7 +4240,8 @@ export class Ships {
         if (repairTier(design, m) !== tier || !this.ownsAt(i, b, m)) continue;
         const absorbed = this.damage.absorbedAt(b, m);
         if (!(absorbed > 0)) continue;
-        let undo = min(budget, charge / REPAIR_ENERGY_PER_JOULE);
+        const work = repairWork(design.modules[m]!.stats);
+        let undo = min(budget / work, charge / (work * REPAIR_ENERGY_PER_JOULE));
         // What it costs in metal rises no faster than the damage undone, so
         // cutting the damage down to the metal there is never asks for more.
         const kg = this.damage.repairMetal(b, m, undo) * (1 + REPAIR_WASTE);
@@ -4156,11 +4250,11 @@ export class Ships {
         const undone = this.damage.repair(b, m, undo);
         // Its holes are the first thing plugged.
         if (undone > 0) this.fuel.seal(b, m);
-        budget -= undone;
+        budget -= undone * work;
         metal -= cost;
-        charge -= undone * REPAIR_ENERGY_PER_JOULE;
+        charge -= undone * work * REPAIR_ENERGY_PER_JOULE;
         usedMetal += cost;
-        usedCharge += undone * REPAIR_ENERGY_PER_JOULE;
+        usedCharge += undone * work * REPAIR_ENERGY_PER_JOULE;
         if (this.damage.absorbedAt(b, m) > 0) left = true;
       }
     }
@@ -4221,8 +4315,7 @@ export class Ships {
         this.settleMass(bodies, b);
         this.discardFrom(bodies, b, mass, inertia);
       }
-      for (let k = 0; k < this.grows.length; k += 3) this.grow(world, this.grows[k]!, this.grows[k + 1]!, this.grows[k + 2]!);
-      this.grows.length = 0;
+      this.growAll(world);
     }
   }
 
@@ -4335,8 +4428,9 @@ export class Ships {
       this.sendOut(b, design, robots, robot, owner);
       return false;
     }
-    const step = ROBOT_REPAIR_RATE * dt;
-    let undo = min(step, robot.charge / REPAIR_ENERGY_PER_JOULE);
+    const work = repairWork(design.modules[m]!.stats);
+    const step = (ROBOT_REPAIR_RATE * dt) / work;
+    let undo = min(step, robot.charge / (work * REPAIR_ENERGY_PER_JOULE));
     // Short of charge for a full step's work: this is its last.
     let short = undo < step;
     const spare = min(robot.metal, this.metal.pieceHeld(b, m));
@@ -4349,7 +4443,7 @@ export class Ships {
     const undone = this.damage.repair(b, m, undo);
     // Its holes are the first thing plugged.
     if (undone > 0) this.fuel.seal(b, m);
-    robot.charge -= undone * REPAIR_ENERGY_PER_JOULE;
+    robot.charge -= undone * work * REPAIR_ENERGY_PER_JOULE;
     robot.metal -= cost;
     if (cost > 0) this.metal.drain(b, m, cost);
     // Out of what this needs, short of finishing it: home for more.
@@ -4367,15 +4461,21 @@ export class Ships {
    */
   private buildOne(b: number, design: ShipDesign, robots: Robot[], robot: Robot, owner: number, dt: number): boolean {
     const m = robot.target;
-    const step = (ROBOT_REPAIR_RATE / DAMAGE_ENERGY_PER_KG) * dt;
-    const charge = DAMAGE_ENERGY_PER_KG * REPAIR_ENERGY_PER_JOULE;
+    const fitting = robot.build < 0 && design.modules[m]!.shell === undefined;
+    const rebuild = fitting ? null : this.rebuildFor(owner, design);
+    const l = rebuild === null ? -1 : robot.build >= 0 ? robot.build : rebuild.at.indexOf(m);
+    const origin = rebuild === null ? null : originOf(this.launched[owner]!, l);
+    const whole = origin === null ? design.modules[m]!.stats : origin.design.modules[origin.module]!.stats;
+    const work = buildWork(whole);
+    const step = (ROBOT_REPAIR_RATE / work) * dt;
+    const charge = work * REPAIR_ENERGY_PER_JOULE;
     const waste = 1 + REPAIR_WASTE;
     let kg = min(step, min(robot.charge / charge, robot.metal / waste));
     let short = kg < step;
     const spare = this.metal.pieceHeld(b, m);
     let more: boolean;
     let put = 0;
-    if (robot.build < 0 && design.modules[m]!.shell === undefined) {
+    if (rebuild === null) {
       if (kg * waste > spare) {
         kg = spare > 0 ? spare / waste : 0;
         short = true;
@@ -4384,10 +4484,7 @@ export class Ships {
       if (put > 0) this.metal.drain(b, m, put * waste);
       more = this.damage.unbuiltAt(b, m) > 0;
     } else {
-      const rebuild = this.rebuildFor(owner, design);
-      const l = robot.build >= 0 ? robot.build : rebuild.at.indexOf(m);
-      const origin = originOf(this.launched[owner]!, l);
-      const wall = origin.design.modules[origin.module]!.stats.structureMass / SHELL_STEPS;
+      const wall = whole.structureMass / SHELL_STEPS;
       // Waiting on a step that is in the way of something: mending comes first, if any has come up since.
       if (rebuild.work[l]! >= wall && robot.idleAt !== this.damage.version(b)) {
         robot.idleAt = this.damage.version(b);
@@ -4402,7 +4499,7 @@ export class Ships {
       kg = min(kg, wall - rebuild.work[l]!);
       if (kg > 0) rebuild.work[l] = rebuild.work[l]! + kg;
       put = kg > 0 ? kg : 0;
-      if (rebuild.work[l]! >= wall) this.grows.push(owner, l, m);
+      if (rebuild.work[l]! >= wall) this.grows.push(owner, l, m, m);
       more = true;
     }
     robot.charge -= put * charge;
@@ -4511,12 +4608,12 @@ export class Ships {
 
   /**
    * Put up the next step of the walls of launch module `l` of ship `i`, built
-   * from module `from` of its hull, once robots have put the work in and its
-   * piece of hull can pay for the metal: a shell first laid against `from`,
+   * from module `from` of its hull, once robots or a pad have put the work in
+   * and the piece of hull `payer` is on can pay for the metal: a shell first laid against `from`,
    * growing across the module, and at its last step the module itself, whole
    * but for its fittings. Not while anything else is in the way of it.
    */
-  private grow(world: World, i: number, l: number, from: number): void {
+  private grow(world: World, i: number, l: number, from: number, payer = from): void {
     const bodies = world.bodies;
     const b = bodies.indexOf(this.bodyIds[i]!);
     const p = b < 0 ? -1 : this.shipAt(bodies, b);
@@ -4554,14 +4651,14 @@ export class Ships {
       if (other !== null && moduleOverlapsHull(next, at, x, y, bodies.angle[b]!, bodies, j, other)) return;
     }
     const cost = wall * (1 + REPAIR_WASTE);
-    if (this.metal.pieceHeld(b, from) < cost) return;
+    if (this.metal.pieceHeld(b, payer) < cost) return;
 
     this.momentum(bodies);
     const beforeX = this.momentumX;
     const beforeY = this.momentumY;
     const mass = bodies.mass[b]!;
     const inertia = bodies.inertia[b]!;
-    this.metal.drain(b, from, cost);
+    this.metal.drain(b, payer, cost);
     rebuild.work[l] = 0;
     this.regrow(world, p, b, design, next, at, i);
     if (share >= 1 - 1e-9) this.damage.unfit(b, at, fittingOf(whole.stats));

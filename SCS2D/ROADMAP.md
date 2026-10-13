@@ -141,7 +141,7 @@ the base of steps 12 and 13. The shape, settled with the author (DECISIONS.md):
 - **Rebuilding** returns a ship to the design it launched with. A module the ship has lost is rebuilt only
   against hull already there, so a ship regrows outwards. It costs the module's full mass in metal and its
   wastage, and takes
-  that mass over the robots' work rate until module complexity (§2) gives build time a measure of its own.
+  that mass and its complexity over the robots' work rate.
   The walls go up first, as a shell growing across the module from the face it is built against, and the
   fittings go in after, while the module stands full size and does nothing — so damage to a module being
   built is damage like any other. Pads do the same for fighters. This is the base of in-battle construction
@@ -156,12 +156,10 @@ the base of steps 12 and 13. The shape, settled with the author (DECISIONS.md):
   an upgrade a place to go if technology is ever modelled.
 - Robots stay on their own ship. Crossing a port seam to work on a docked friend can come later.
 
-A PR a stage. Stages 1 to 4 are built: mass shed by damage with what repairing it would cost kept on the
-books, pads repairing landed fighters, the robot bay and robots repairing, and robots lost and built anew.
-Stage 5 is built for robots.
+A PR a stage. Stages 1 to 5 are built: mass shed by damage with what repairing it would cost kept on the
+books, pads repairing landed fighters, the robot bay and robots repairing, robots lost and built anew, and
+lost modules rebuilt by robots and by pads.
 
-5. **Rebuilding lost modules** by pads: a landed fighter's, grown against what is left of it and paid for
-   from the carrier, the pad holding it until it is whole.
 6. **Disassembling what is not the ship's own into metal.**
 
 Steps 9 to 13 walk into the resource system one resource and one use at a time, fuel first (partly built,
@@ -180,7 +178,7 @@ both directions.
     module to hit to silence them. Straight after raw material, because once guns spend ammunition and beams
     spend nothing, beams win by default; a plant gives them a resource to run short of and a part to lose.
 12. **In-battle construction** — new modules made from raw material during a battle, and new ships budded off.
-    The largest of the steps: it needs the build-time and complexity metric §2 leaves open, and build doctrine.
+    The largest of the steps: it needs build doctrine, and build time counted in a budget (§12).
     Rebuilding what a ship was designed with (stage 5 above) is its base; what is left is building what the
     design did not have.
 13. **Harvesting wrecks** — metal regained from wreckage, with the grapple step 9 built. The natural bridge to
@@ -272,8 +270,8 @@ that answers the question most likely to change the design.
 - **The editor's animation is not a start on test flight.** A selected engine burns and a selected gun fires
   at its own rate, but nothing integrates or collides, so it cannot grow into a test flight by accident.
 - **No cost line, now or ever.** Dry mass is not standing in for a cost; it *is* the materials a ship is made
-  of, one of the three real costs (§2). Build time needs a complexity metric and running cost needs a fuel
-  model; until they exist, mass is the whole of what the editor can honestly show.
+  of, one of the three real costs (§2). Build time has its measure now, in mass and complexity, and is
+  waiting on its readout (§12); running cost needs a fuel model.
 - **Firing arcs are measured as sweeps**, how far a mount turns to reach each edge, not as signed bearings: an
   obstruction wholly to port has both edges at positive bearings, and one dead astern is reached by turning
   either way. Every consumer must agree which bound is which — the clamp and the renderer once had them
@@ -352,6 +350,12 @@ Deliberately unresolved; decide when they block something.
   be a hulk. Fuel for the generator and heat from everything are the step after.
 - **Whether a claw should drain an enemy's batteries.** It drinks fuel from what it grips; draining charge is
   the natural extension, and a way to disarm a beam ship without shooting it.
+
+- **How build time should count against a design.** A module's mass and complexity (§2) set how long it
+  takes to make, which repair and rebuilding already use, but nothing counts it yet. Evolution wants a time
+  budget beside the mass one, so a design of many intricate small parts pays for them; and the editor wants
+  readouts to match — each module's complexity, and the ship's build time and the time to rebuild what it
+  is likeliest to lose, at a pad's or a robot's rate.
 
 - **Whether targeting needs more pickers.** A ship-type picker, and hemisphere as a hard discard if
   `facingWeight`'s soft version — astern scores against — turns out not to be enough. Neither is clearly
