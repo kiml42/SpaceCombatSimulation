@@ -1,4 +1,4 @@
-import { compileBlueprint, DEFAULT_DOCTRINE, math } from '../sim/index.js';
+import { compileBlueprint, math } from '../sim/index.js';
 import { type Battle } from './types.js';
 import { makeBattle } from './battle.js';
 import { CATAMARAN, CORVETTE, BARE_CORE } from './blueprints.js';
@@ -24,9 +24,7 @@ export function split(seed = 20260905): Battle {
   return makeBattle({ seed, projectiles: 256, beams: 64 }, (ships, world) => {
     // Held to its guns rather than turning to burn clear: the scenario is the
     // cut, and a target that backs away takes the ram off its bridge.
-    const catamaran = compileBlueprint({
-      ...CATAMARAN
-    });
+    const catamaran = compileBlueprint(CATAMARAN);
     const corvette = compileBlueprint(CORVETTE);
     const core = compileBlueprint(BARE_CORE);
 
