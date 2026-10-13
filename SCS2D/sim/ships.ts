@@ -431,9 +431,14 @@ function originTier(design: ShipDesign, m: number): number {
   return repairTier(origin.design, origin.module);
 }
 
+/**
+ * How soon a module is mended or rebuilt, 0 first: cores, which command, and
+ * robot bays, which make every other job quicker; then engines and weapons;
+ * then the rest.
+ */
 function repairTier(design: ShipDesign, m: number): number {
   const kind = design.modules[m]!.spec.kind;
-  if (kind === 'core') return 0;
+  if (kind === 'core' || kind === 'robotBay') return 0;
   if (kind === 'engine') return 1;
   for (let t = 0; t < design.turrets.length; t++) if (design.turrets[t]!.module === m) return 1;
   return 2;
@@ -619,6 +624,8 @@ export interface ShipSpec {
    * ship's; drawn from the side's count otherwise.
    */
   serial?: number;
+  /** Which ship it is after its side's name (`nameOf`); its serial when not given. */
+  name?: string;
   /** Nothing can hurt it: no damage taken, no weld cut. See `Damage.protect`. */
   invulnerable?: boolean;
   /**
@@ -761,6 +768,9 @@ export class Ships {
 
   private readonly team: number[] = [];
   private readonly serial: number[] = [];
+  private readonly names: string[] = [];
+  /** Whether a ship has had a piece fly off it this step, flown from a core of its own. */
+  private readonly parted: number[] = [];
   /** Ships each side has had put in, so the next is one more. */
   private readonly served = new Map<number, number>();
 
@@ -1100,6 +1110,12 @@ export class Ships {
    * A ship with nothing left controlling it to cover: its cores shot out. Not a
    * neutral, which is an objective rather than a ship.
    */
+  /** Whether ship `i`'s hull has robots aboard, which may bring it back. */
+  private mending(bodies: Bodies, i: number): boolean {
+    const b = bodies.indexOf(this.bodyIds[i]!);
+    return b >= 0 && (this.robots.on(b)?.length ?? 0) > 0;
+  }
+
   private hulk(i: number): boolean {
     return this.team[i] !== NEUTRAL_TEAM && !this.hasControl(i);
   }
@@ -1258,6 +1274,33 @@ export class Ships {
   }
 
   /**
+   * Which ship this is, after its side's name: its serial, and for a ship
+   * that came of one cut between its cores, that ship's name and the number
+   * of the core it is flown from, as "1.2".
+   */
+  nameOf(i: number): string {
+    return this.names[i]!;
+  }
+
+  /**
+   * Each of ship `i`'s cores' numbers, in its design's core order, into `out`:
+   * which core of the design it set out as each is, from one, and nought for
+   * one that design never had.
+   */
+  coreNumbers(i: number, out: number[]): void {
+    const design = this.designs[i]!;
+    out.length = design.cores.length;
+    for (let k = 0; k < design.cores.length; k++) out[k] = this.coreNumber(i, design, design.cores[k]!);
+  }
+
+  /** Which core of ship `i`'s launch design module `m` of `design` is, from one, or nought. */
+  private coreNumber(i: number, design: ShipDesign, m: number): number {
+    const launch = this.launched[i]!;
+    for (let k = 0; k < launch.cores.length; k++) if (sameOrigin(launch, launch.cores[k]!, design, m)) return k + 1;
+    return 0;
+  }
+
+  /**
    * Put a ship in the world.
    *
    * Mass, inertia and bounding radius come from the design rather than the
@@ -1329,6 +1372,7 @@ export class Ships {
       this.served.set(spec.team ?? 0, serial);
     }
     this.serial.push(serial);
+    this.names.push(spec.name ?? `${serial}`);
     this.derelict.push(0);
     this.couldFight.push(design.turrets.some((t) => t.main) || design.engines.length > 0 ? 1 : 0);
     this.committed.push(0);
@@ -1566,7 +1610,9 @@ export class Ships {
       if (t === i || this.alive[t] === 0) continue;
       // Wreckage is nobody's consort. A live friendly that cannot fight is:
       // a thing worth covering is usually a thing that cannot cover itself.
-      if (this.derelict[t] === 1 || this.hostile(i, t) || this.hulk(t)) continue;
+      // So is a hulk with robots aboard, which may yet mend its core.
+      if (this.derelict[t] === 1 || this.hostile(i, t)) continue;
+      if (this.hulk(t) && !this.mending(bodies, t)) continue;
       // Nor is a friend too small for it to bother covering. A neutral is an
       // objective rather than a ship to look after, and is gone to whatever
       // its size: a goal is a marker far smaller than anything racing to it.
@@ -3404,7 +3450,8 @@ export class Ships {
    */
   private cover(bodies: Bodies, i: number, b: number): number {
     const consort = this.consort[i]!;
-    if (consort === NO_TARGET || this.alive[consort] !== 1 || this.hulk(consort)) return NO_TARGET;
+    if (consort === NO_TARGET || this.alive[consort] !== 1) return NO_TARGET;
+    if (this.hulk(consort) && !this.mending(bodies, consort)) return NO_TARGET;
     const cb = bodies.indexOf(this.bodyIds[consort]!);
     if (cb < 0 || cb === b) return NO_TARGET;
 
@@ -4618,6 +4665,40 @@ export class Ships {
   }
 
   /**
+   * Each robot home on ship `i`'s hull, three numbers apiece into `out`: its
+   * bay, and the share of its charge and of its metal it has, its metal
+   * counted up over its refill so that is seen happening. Nothing unless `i`
+   * is the ship that flies the body.
+   */
+  robotsDocked(i: number, out: number[]): void {
+    out.length = 0;
+    const b = this.bodyStore === null ? -1 : this.bodyStore.indexOf(this.bodyIds[i]!);
+    if (b < 0 || this.shipByBody[b] !== i) return;
+    for (const robot of this.robots.on(b) ?? []) {
+      if (robot.mode !== RobotMode.Berthed) continue;
+      const metal = robot.refill > 0 ? 1 - robot.refill / ROBOT_REFILL_TIME : robot.metal / ROBOT_LOAD;
+      out.push(robot.bay, robot.charge / ROBOT_CHARGE, metal);
+    }
+  }
+
+  /**
+   * For each module of ship `i`'s hull, how many robots it is the bay of,
+   * home or out, into `crews`, and how far it is through building the next,
+   * 0 to 1, into `builds`. All nought unless `i` is the ship that flies the body.
+   */
+  robotCrews(i: number, crews: number[], builds: number[]): void {
+    const b = this.bodyStore === null ? -1 : this.bodyStore.indexOf(this.bodyIds[i]!);
+    const design = b >= 0 ? this.hullDesign[b] : null;
+    crews.length = builds.length = design?.modules.length ?? 0;
+    crews.fill(0);
+    builds.fill(0);
+    if (b < 0 || this.shipByBody[b] !== i) return;
+    for (const robot of this.robots.on(b) ?? []) crews[robot.bay] = (crews[robot.bay] ?? 0) + 1;
+    const made = this.robots.buildsOn(b);
+    if (made !== null) for (let m = 0; m < builds.length; m++) builds[m] = (made[m] ?? 0) / ROBOT_BUILD_TIME;
+  }
+
+  /**
    * Each robot out on ship `i`'s hull, `ROBOT_VIEW_STRIDE` numbers apiece into
    * `out`: where it is and which way it faces, in its body's frame, and the
    * share of its charge and of its metal it has left. Nothing unless `i` is
@@ -5103,7 +5184,17 @@ export class Ships {
     this.momentum(bodies);
     const beforeX = this.momentumX;
     const beforeY = this.momentumY;
+    this.parted[i] = 0;
     const pieces = this.breakApart(world, i, design, parts);
+    // Cut between its cores, it is now the ship flown from the one it kept, as
+    // each piece that flew off is the ship flown from its own.
+    if (this.parted[i] === 1) {
+      const kept = this.designs[i]!;
+      const core = kept.cores.find((c) => this.damage.remaining(bodies.indexOf(this.bodyIds[i]!), c, DamageEffect.Control) > 0) ?? kept.cores[0];
+      const number = core === undefined ? 0 : this.coreNumber(i, kept, core);
+      if (number > 0) this.names[i] = `${this.names[i]}.${number}`;
+      this.parted[i] = 0;
+    }
     // Each piece leaves at the hull's velocity at its own centre of mass, which
     // conserves momentum only if the hull's mass is where its design put it.
     // What spending and damage have taken off unevenly says otherwise, so the
@@ -5365,6 +5456,13 @@ export class Ships {
       // Still that ship, so it rebuilds to the design that ship set out as: a
       // hull cut in two can grow back into two. Wreckage sets out as itself.
       this.launched[j] = this.launched[side]!;
+      // Named for the core it is flown from.
+      const core = chunk.cores.find((c) => this.damage.remaining(b, keep[c]!, DamageEffect.Control) > 0);
+      const number = core === undefined ? 0 : this.coreNumber(side, design, keep[core]!);
+      if (number > 0) {
+        this.names[j] = `${this.names[side]}.${number}`;
+        if (side === i) this.parted[i] = 1;
+      }
     } else {
       this.derelict[j] = 1;
     }
@@ -5397,7 +5495,8 @@ export class Ships {
     this.power.register(chunkBody, chunk, keep.map((m) => this.power.held(b, m)));
     const kept = new Int32Array(design.modules.length).fill(-1);
     for (let k = 0; k < keep.length; k++) kept[keep[k]!] = k;
-    this.robots.register(chunkBody, chunk, this.robots.take(b, (m) => kept[m] ?? -1));
+    const madeBefore = this.robots.buildsOn(b);
+    this.robots.register(chunkBody, chunk, this.robots.take(b, (m) => kept[m] ?? -1), (m) => madeBefore?.[keep[m]!] ?? 0);
     this.settleMass(bodies, chunkBody);
     this.shipByBody[chunkBody] = j;
     this.sides[chunkBody] = this.sidesOf((m) => this.sideAt(b, keep[m]!), keep.length, this.team[j]!);
@@ -5559,10 +5658,16 @@ export class Ships {
     this.metal.register(b, design, metal);
     this.power.register(b, design, charge);
     // Grown in place, every robot is where it was and about what it was about.
+    // What each bay had put into its next robot, wherever the bay came from.
+    const made = (m: number): number => {
+      const was = moduleOf(m);
+      return was < 0 ? 0 : (this.robots.buildsOn(bodyOf(shipOf(m)))?.[was] ?? 0);
+    };
     this.robots.register(
       b,
       design,
       keepRobots ? (this.robots.on(b) ?? []) : this.robotsInto(design.modules.length, bodyOf, shipOf, moduleOf),
+      made,
     );
     this.settleMass(bodies, b);
     this.cutSeen[i] = this.damage.cutVersion(b);

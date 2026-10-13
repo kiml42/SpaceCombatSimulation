@@ -149,6 +149,17 @@ describe('robots', () => {
     expect(absorbed(run, NEAR)).toBeGreaterThan(0);
   });
 
+  it('mend their own bay before structure, since it makes every other job quicker', { timeout: 60_000 }, () => {
+    const run = scene((absorb) => {
+      absorb(BAY, 0.3);
+      absorb(NEAR, 0.3);
+    });
+    let steps = 0;
+    while (absorbed(run, BAY) > 0 && steps++ < 600 * 60) run.step();
+    expect(absorbed(run, BAY)).toBe(0);
+    expect(absorbed(run, NEAR)).toBe(capacity(NEAR) * 0.3);
+  });
+
   it('mend no faster than the robots there can work', () => {
     const run = scene((absorb) => absorb(NEAR, 0.5));
     let steps = 0;

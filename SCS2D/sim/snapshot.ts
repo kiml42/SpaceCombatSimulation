@@ -42,6 +42,10 @@ export interface ShipView {
   team: number;
   /** Which of its side's ships it is, from one; zero for a ship with no such count, as in an editor. */
   serial: number;
+  /** Which ship it is after its side's name, as "1" or "1.2" (`Ships.nameOf`); absent for its serial. */
+  name?: string;
+  /** Which core of the design it set out as each of its cores is, from one, in its design's core order. Optional. */
+  coreNumbers?: number[];
   /** The body of what it is fighting, or -1 or absent for nothing. */
   fighting?: number;
   x: number;
@@ -112,6 +116,12 @@ export interface ShipView {
   robots?: number[];
   /** How many robots are home in each module, in the design's module order. Optional, as `robots` is. */
   berthed?: number[];
+  /** Each robot home, three numbers apiece: its bay, and the share of its charge and of its metal it has. Optional. */
+  docked?: number[];
+  /** How many robots each module is the bay of, home or out, by module. Optional. */
+  crews?: number[];
+  /** How far each bay is through building its next robot, 0 to 1, by module. Optional. */
+  builds?: number[];
   /** How full each module is of fuel, 0 to 1, and 1 for one that holds none. */
   fuel?: number[];
   /** How full each module is of metal, 0 to 1, and 1 for one that holds none. */
@@ -380,6 +390,8 @@ export function capture(
     view.body = b;
     view.team = ships.teamOf(i);
     view.serial = ships.serialOf(i);
+    view.name = ships.nameOf(i);
+    ships.coreNumbers(i, (view.coreNumbers ??= []));
     const fighting = ships.fightingOf(i);
     view.fighting = fighting >= 0 && ships.isAlive(fighting) ? bodies.indexOf(ships.body(fighting)) : -1;
     view.x = bodies.x[b]!;
@@ -431,6 +443,8 @@ export function capture(
     const rays = ships.landedRays(i);
     ships.robotViews(i, (view.robots ??= []));
     ships.robotsBerthed(i, (view.berthed ??= []));
+    ships.robotsDocked(i, (view.docked ??= []));
+    ships.robotCrews(i, (view.crews ??= []), (view.builds ??= []));
     view.landed.length = rays.length;
     for (let r = 0; r < rays.length; r++) view.landed[r] = rays[r]!;
 

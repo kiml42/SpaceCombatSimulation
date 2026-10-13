@@ -3,6 +3,7 @@ import {
   compileBlueprint,
   DAMAGE_ENERGY_PER_KG,
   DamageEffect,
+  ROBOT_BUILD_TIME,
   joints,
   moduleStats,
   type Blueprint,
@@ -156,6 +157,18 @@ describe('robots rebuilding', () => {
     expect(run.ships.discarded - discarded).toBeCloseTo(wall * 0.1, 3);
   });
 
+  it('leave a bay building a robot as far through it as it was, however often the hull is remade', { timeout: 60_000 }, () => {
+    const run = scene();
+    const berths = builder.modules[BAY]!.stats.robots;
+    run.ships.robots.lose(body(run), 0);
+    lose(run, FIN, HOLD);
+    const count = (): number => run.ships.robots.on(body(run))!.length;
+    const seconds = runUntil(run, () => count() === berths, 120);
+    expect(count()).toBe(berths);
+    // The fin's walls went up a step at a time meanwhile, each a remade hull.
+    expect(seconds).toBeLessThan(ROBOT_BUILD_TIME + 2);
+  });
+
   it('keep the momentum of a hull growing as it moves and turns', { timeout: 60_000 }, () => {
     const run = scene(3, 0.02);
     lose(run, FIN, HOLD);
@@ -264,5 +277,12 @@ describe('robots rebuilding', () => {
     expect(whole(0)).toBe(true);
     expect(whole(1)).toBe(true);
     expect(run.ships.design(0).cores.length).toBe(2);
+    // Each named for the core it kept, its cores numbered as the ship it came of numbered them.
+    expect([run.ships.nameOf(0), run.ships.nameOf(1)].sort()).toEqual(['1.1', '1.2']);
+    for (const i of [0, 1]) {
+      const numbers: number[] = [];
+      run.ships.coreNumbers(i, numbers);
+      expect(numbers.slice().sort()).toEqual([1, 2]);
+    }
   });
 });

@@ -179,6 +179,11 @@ const GENERATOR_DISC = 0.55;
 /** How much of a berth's cell its round pad fills across, as a radius. */
 const ROBOT_PAD = 0.38;
 
+/** How many numbers a snapshot gives each robot home: its bay, and its charge and metal shares. */
+const ROBOT_DOCK_STRIDE = 3;
+/** Fuller than this a robot home is drawn as a filled pad rather than as itself. */
+const ROBOT_FULL = 0.999;
+
 /** A robot out on a hull, nose to tail in metres: drawn to scale, so it is seen when zoomed in close. */
 const ROBOT_LENGTH = 1.2;
 /** How far short of the tail each wing case stops, radians round the shell. */
@@ -592,17 +597,43 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
         const cellLength = spec.length / across;
         const cellWidth = spec.width / down;
         const pad = min(cellLength, cellWidth) * ROBOT_PAD;
-        const home = ship.berthed?.[i] ?? 0;
-        ctx.strokeStyle = integrity > 0 ? colours.trim : FUEL_TRACK;
-        ctx.fillStyle = colours.trim;
+        // The robots home here, in the order they are given.
+        const docked = ship.docked ?? [];
+        const here: number[] = [];
+        for (let r = 0; r + ROBOT_DOCK_STRIDE <= docked.length; r += ROBOT_DOCK_STRIDE) if (docked[r] === i) here.push(r);
+        const home = ship.docked === undefined ? (ship.berthed?.[i] ?? 0) : here.length;
+        // The pad after every robot it has is the one it is building on.
+        const building = ship.crews?.[i] ?? m.stats.robots;
+        const progress = ship.builds?.[i] ?? 0;
         ctx.lineWidth = pad * 0.25;
         for (let k = 0; k < m.stats.robots; k++) {
           const x = -halfLength + cellLength * ((k % across) + 0.5);
           const y = -halfWidth + cellWidth * (floor(k / across) + 0.5);
+          if (k === building && progress > 0) {
+            // A loading ring: the pad's circle drawn round as the robot is built.
+            ctx.strokeStyle = FUEL_TRACK;
+            ctx.beginPath();
+            ctx.arc(x, y, pad, 0, TAU);
+            ctx.stroke();
+            ctx.strokeStyle = colours.trim;
+            ctx.beginPath();
+            ctx.arc(x, y, pad, -PI / 2, -PI / 2 + TAU * min(1, progress));
+            ctx.stroke();
+            continue;
+          }
+          ctx.strokeStyle = integrity > 0 ? colours.trim : FUEL_TRACK;
           ctx.beginPath();
           ctx.arc(x, y, pad, 0, TAU);
           ctx.stroke();
-          if (k < home) {
+          if (k >= home) continue;
+          const r = here[k];
+          const charge = r === undefined ? 1 : docked[r + 1]!;
+          const metal = r === undefined ? 1 : docked[r + 2]!;
+          if (charge < ROBOT_FULL || metal < ROBOT_FULL) {
+            // Being filled: the robot itself, so its bars are seen filling.
+            drawRobot(ctx, x, y, 0, charge, metal, min(ROBOT_LENGTH, pad * 2.2), colours.trim, colours.pivot);
+          } else {
+            ctx.fillStyle = colours.trim;
             ctx.beginPath();
             ctx.arc(x, y, pad * 0.55, 0, TAU);
             ctx.fill();
@@ -1252,13 +1283,26 @@ const NAME_MIN_PX = 7;
 
 /**
  * A ship's name — its side and which of that side's ships it is, as "Red 5" —
- * written on its first working core in its side's trim, once the core is big
- * enough on screen to carry it. Upright whichever way the ship is turned.
+ * written on each of its working cores in its side's trim, once the core is
+ * big enough on screen to carry it. Upright whichever way the ship is turned.
+ * A ship with more than one core numbers each, as "Red 5.2", by which core of
+ * the design it set out as it is, so the ships it becomes if it is cut between
+ * them can be told apart, and told from where they came.
  */
 function drawName(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number): void {
   if (ship.serial <= 0 || ship.team < 0 || !ship.hasControl) return;
-  const core = ship.design.cores.find((m) => (ship.integrity[m] ?? 1) > 0);
-  if (core === undefined) return;
+  const cores = ship.design.cores;
+  const name = `${teamName(ship.team)} ${ship.name ?? ship.serial}`;
+  for (let k = 0; k < cores.length; k++) {
+    const core = cores[k]!;
+    if (!((ship.integrity[core] ?? 1) > 0)) continue;
+    const number = ship.coreNumbers?.[k] ?? 0;
+    drawLabel(ctx, ship, core, cores.length > 1 && number > 0 ? `${name}.${number}` : name, metresToPx);
+  }
+}
+
+/** `text` written across module `core` of a ship, upright, if the core is big enough on screen. */
+function drawLabel(ctx: CanvasRenderingContext2D, ship: ShipView, core: number, text: string, metresToPx: number): void {
   const module = ship.design.modules[core]!;
   const across = Math.min(module.spec.length, module.spec.width) * metresToPx;
   if (across < NAME_MIN_CORE_PX) return;
@@ -1268,7 +1312,6 @@ function drawName(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     x: ship.x + module.x * c - module.y * s,
     y: ship.y + module.x * s + module.y * c,
   });
-  const text = `${teamName(ship.team)} ${ship.serial}`;
   const along = Math.max(module.spec.length, module.spec.width) * metresToPx;
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
