@@ -188,6 +188,23 @@ describe('robots rebuilding', () => {
     expect(run.ships.damage.remaining(body(run), at, DamageEffect.Thrust)).toBe(1);
   });
 
+  it('build from what their ship keeps back for itself', { timeout: 60_000 }, () => {
+    // Keeping back every kilogram and joule it holds.
+    const hoarder = compileBlueprint({
+      ...BUILDER,
+      doctrine: { ...builder.doctrine, approach: { ...builder.doctrine.approach, rearmBelow: 1, rechargeBelow: 1 } },
+    });
+    const run = makeBattle({ seed: 1, pilots: false }, (ships, world) => ({ a: ships.spawn(world, { design: hoarder, x: 0, y: 0, angle: 0 }) }));
+    const b = (): number => run.world.bodies.indexOf(run.ships.body(run.a));
+    for (const robot of run.ships.robots.on(b())!) robot.charge = 0;
+    lose(run, FIN, HOLD);
+    const hull2 = (): ShipDesign => run.ships.design(run.a);
+    const rebuilt = (): boolean =>
+      hull2().modules.some((m) => m.origin?.design === hoarder && m.origin.module === FIN && m.shell === undefined);
+    runUntil(run, rebuilt, 600);
+    expect(rebuilt()).toBe(true);
+  });
+
   it('mend a shell that is hit before building any more of it', { timeout: 60_000 }, () => {
     const run = scene();
     lose(run, FIN, HOLD);

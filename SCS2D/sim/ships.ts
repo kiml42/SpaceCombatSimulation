@@ -4049,7 +4049,7 @@ export class Ships {
 
   /**
    * Undo up to `joules` of the damage to ship `i`'s modules on body `b`, from
-   * the metal and charge module `from`'s piece of hull can spare: cores first,
+   * the metal and charge on module `from`'s piece of hull, reserves and all: cores first,
    * then engines and weapons, then the rest. Each joule takes
    * `REPAIR_ENERGY_PER_JOULE` of charge, and the metal it had shed and
    * `REPAIR_WASTE` more, which leaves the world. Says whether it mended
@@ -4058,8 +4058,8 @@ export class Ships {
   private mend(bodies: Bodies, b: number, i: number, from: number, joules: number): boolean {
     this.settleShed(bodies);
     const design = this.hullDesign[b]!;
-    let metal = this.metal.pieceHeld(b, from) - this.metalReserve(b, from);
-    let charge = this.power.pieceHeld(b, from) - this.chargeReserve(b, from);
+    let metal = this.metal.pieceHeld(b, from);
+    let charge = this.power.pieceHeld(b, from);
     let budget = joules;
     let usedMetal = 0;
     let usedCharge = 0;
@@ -4155,8 +4155,8 @@ export class Ships {
   /**
    * Each of a body's working bays that is short of robots builds one, over
    * `ROBOT_BUILD_TIME` and slower as the bay is damaged, from a robot's mass
-   * of metal and `REPAIR_WASTE` more off its piece of hull, above what its
-   * ship keeps back. A bay with the time put in but not the metal waits.
+   * of metal and `REPAIR_WASTE` more off its piece of hull, reserves and all.
+   * A bay with the time put in but not the metal waits.
    * Says whether one was built.
    */
   private buildRobots(b: number, design: ShipDesign, robots: Robot[], dt: number): boolean {
@@ -4177,7 +4177,7 @@ export class Ships {
       builds[m] = min(ROBOT_BUILD_TIME, builds[m]! + dt * working);
       if (builds[m]! < ROBOT_BUILD_TIME) continue;
       const cost = ROBOT_MASS * (1 + REPAIR_WASTE);
-      if (this.metal.pieceHeld(b, m) - this.metalReserve(b, m) < cost) continue;
+      if (this.metal.pieceHeld(b, m) < cost) continue;
       this.metal.drain(b, m, cost);
       this.robots.build(b, m);
       builds[m] = 0;
@@ -4189,8 +4189,8 @@ export class Ships {
   /** One robot's step. Says whether it mended anything. */
   private tendOne(b: number, design: ShipDesign, robots: Robot[], robot: Robot, owner: number, dt: number): boolean {
     if (robot.mode === RobotMode.Berthed) {
-      // A working bay refills it, and tops its charge up from what its piece
-      // of hull can spare, each step it waits.
+      // A working bay refills it, and tops its charge up from its piece of
+      // hull, reserves and all, each step it waits.
       const working = this.damage.remaining(b, robot.bay, DamageEffect.Tending);
       if (working > 0) {
         if (robot.refill > 0) {
@@ -4201,7 +4201,7 @@ export class Ships {
           }
         }
         const want = ROBOT_CHARGE - robot.charge;
-        const spare = this.power.pieceHeld(b, robot.bay) - this.chargeReserve(b, robot.bay);
+        const spare = this.power.pieceHeld(b, robot.bay);
         if (want > 0 && spare > 0) robot.charge += this.power.drain(b, robot.bay, want < spare ? want : spare);
         if (robot.refill > 0) return false;
       }
@@ -4259,7 +4259,7 @@ export class Ships {
     let undo = min(step, robot.charge / REPAIR_ENERGY_PER_JOULE);
     // Short of charge for a full step's work: this is its last.
     let short = undo < step;
-    const spare = min(robot.metal, this.metal.pieceHeld(b, m) - this.metalReserve(b, robot.bay));
+    const spare = min(robot.metal, this.metal.pieceHeld(b, m));
     const kg = this.damage.repairMetal(b, m, undo) * (1 + REPAIR_WASTE);
     if (kg > 0 && kg > spare) {
       undo *= spare > 0 ? spare / kg : 0;
@@ -4284,7 +4284,7 @@ export class Ships {
    * the next step, which go up when the step is paid for (`grow`). A
    * kilogram is the work of mending a kilogram's worth of damage, and costs
    * `REPAIR_WASTE` more metal than ends up in the module, off its piece of
-   * hull above what its ship keeps back. Says whether it put anything in.
+   * hull, reserves and all. Says whether it put anything in.
    */
   private buildOne(b: number, design: ShipDesign, robots: Robot[], robot: Robot, owner: number, dt: number): boolean {
     const m = robot.target;
@@ -4293,7 +4293,7 @@ export class Ships {
     const waste = 1 + REPAIR_WASTE;
     let kg = min(step, min(robot.charge / charge, robot.metal / waste));
     let short = kg < step;
-    const spare = this.metal.pieceHeld(b, m) - this.metalReserve(b, robot.bay);
+    const spare = this.metal.pieceHeld(b, m);
     let more: boolean;
     let put = 0;
     if (robot.build < 0 && design.modules[m]!.shell === undefined) {

@@ -161,9 +161,7 @@ books, pads repairing landed fighters, the robot bay and robots repairing, and r
 Stage 5 is built for robots.
 
 5. **Rebuilding lost modules** by pads: a landed fighter's, grown against what is left of it and paid for
-   from the carrier, the pad holding it until it is whole. *Note: a ship that loses its batteries may have
-   no charge to spare above its `rechargeBelow` to rebuild them with, since its core's is all it has left;
-   whether rebuilding should dig into that reserve, or a battery come first, is open.*
+   from the carrier, the pad holding it until it is whole.
 6. **Disassembling what is not the ship's own into metal.**
 
 Steps 9 to 13 walk into the resource system one resource and one use at a time, fuel first (partly built,

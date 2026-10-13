@@ -668,7 +668,8 @@ inside any one file is not contiguous.
   carrier can spare above the carrier's own `refuelBelow`, and **mends it**: `PAD_REPAIR_PER_METRE` of
   damage a second for every metre of the pad's width, cores first, then engines and weapons, then the rest,
   each joule taking `REPAIR_ENERGY_PER_JOULE` of the carrier's charge and the metal the module had shed and
-  `REPAIR_WASTE` more, the waste counted as discarded. The pad lets it go when it is full and mended, when
+  `REPAIR_WASTE` more, the waste counted as discarded — reserves and all, since repairing and rebuilding
+  draw on what a ship keeps back for itself, where refuelling, rearming and recharging a friend do not. The pad lets it go when it is full and mended, when
   there is no more to spare, or at once when it is given an order. Nothing yet sends a fighter in to be
   mended: it is mended while it is down for anything else. A merged design remembers which of its pieces
   were fighters (`fighterPieces`), so it lifts off a fighter, and every ship keeps the doctrine it set out with
@@ -684,8 +685,8 @@ inside any one file is not contiguous.
   one fewest robots are after, the nearest of those — and mends it at `ROBOT_REPAIR_RATE`, at a pad's costs:
   `REPAIR_ENERGY_PER_JOULE` of what it carries, and the metal the module shed and `REPAIR_WASTE` more, drawn
   from its piece of hull. It goes straight on to the next job, and home once it is short of either; its bay
-  refills it over `ROBOT_REFILL_TIME`, slower as the bay is damaged, topping its charge up from what its
-  piece can spare above its ship's `rechargeBelow`. Robots work only for the ship working their bay, on that
+  refills it over `ROBOT_REFILL_TIME`, slower as the bay is damaged, topping its charge up from its piece,
+  reserves and all. Robots work only for the ship working their bay, on that
   ship's modules, but on what they carry: a ship with no control, or a bay broken or cut off from command by
   a spine torn ragged, stops none of them — only a bay that cannot refill them once they are spent, which is
   how robots mend the very spine that cut their bay off. One whose module, or whose bay, goes with another

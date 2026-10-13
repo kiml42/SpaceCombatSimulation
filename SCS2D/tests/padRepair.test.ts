@@ -91,13 +91,27 @@ describe('a pad', () => {
     expect(run.ships.discarded - discardedBefore).toBeCloseTo(shed * REPAIR_WASTE, 3);
   });
 
-  it('lets go of what it cannot mend for want of charge, rather than holding it', () => {
+  it('mends from what its carrier keeps back for itself', () => {
     // A carrier keeping back every joule it holds.
     const run = scene(carrierOf(1));
     runUntil(run, () => aboard(run), 60);
     expect(aboard(run)).toBe(true);
-    runUntil(run, () => !aboard(run), 30);
+    runUntil(run, () => !aboard(run), 120);
+    expect(absorbed(run, GUN)).toBe(0);
+  });
+
+  it('lets go of what it cannot mend for want of metal, rather than holding it', () => {
+    const run = scene();
+    runUntil(run, () => aboard(run), 60);
+    expect(aboard(run)).toBe(true);
+    // Not a kilogram left aboard the carrier.
+    const empty = (): boolean => {
+      const b = run.world.bodies.indexOf(run.ships.body(run.c));
+      for (let m = 0; m < run.ships.design(run.c).modules.length; m++) run.ships.metal.drain(b, m, run.ships.metal.held(b, m));
+      return !aboard(run);
+    };
+    runUntil(run, empty, 30);
     expect(aboard(run)).toBe(false);
-    expect(absorbed(run, GUN)).toBe(capacity(GUN) * 2);
+    expect(absorbed(run, GUN)).toBeGreaterThan(0);
   });
 });
