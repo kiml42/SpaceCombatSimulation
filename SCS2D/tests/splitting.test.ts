@@ -106,8 +106,10 @@ describe('a ship cut in half', () => {
     // is measured against the corvette it is chasing — 949 m, not the larger
     // figure its own doctrine nominates — so it takes a while to get there.
     const { run, live } = at(25);
-    const pieces = halves(run, live);
-    expect(pieces.length).toBe(2);
+    expect(halves(run, live).length).toBe(2);
+    // A half the corvette has already disarmed has nothing to lock on with.
+    const pieces = halves(run, live).filter((s) => run.ships.design(s).turrets.length > 0);
+    expect(pieces.length).toBeGreaterThan(0);
 
     const lockedOn = new Set<number>();
     let onTheLiveOne = 0;
@@ -134,5 +136,22 @@ describe('a ship cut in half', () => {
       expect(run.ships.orderCount(piece)).toBe(0);
     }
     expect(onTheLiveOne).toBeGreaterThan(onAnything * 0.7);
+  });
+
+  it('keeps both halves from turning into each other', () => {
+    // Cut apart they lie hull to hull, and each turns to bring its gun on the
+    // corvette: the shortest way round swings one's bow into the other's stern.
+    const run = split();
+    let touched = -1;
+    for (let step = 0; step < 20 * 60 && touched < 0; step++) {
+      run.step();
+      const live = [...Array(run.ships.highWater).keys()].filter((s) => run.ships.isAlive(s) && !run.ships.isDerelict(s));
+      const pieces = halves(run, live);
+      if (pieces.length !== 2) continue;
+      const [a, b] = pieces.map((p) => run.world.bodies.indexOf(run.ships.body(p)));
+      const c = run.collisions.contacts;
+      for (let k = 0; k < c.count; k++) if ((c.a[k] === a && c.b[k] === b) || (c.a[k] === b && c.b[k] === a)) touched = step;
+    }
+    expect(touched).toBe(-1);
   });
 });

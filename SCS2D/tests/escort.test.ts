@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   compileBlueprint,
+  joints,
   math,
   NEUTRAL_TEAM,
   type Blueprint,
@@ -178,7 +179,9 @@ describe('escort and neutrals', () => {
 
     const alone = fly(0);
     const covering = fly(400);
-    expect(covering).toBeLessThan(alone / 2);
+    // Not by as much as it might: the enemy breaks the escort in two early,
+    // and it will not turn into its own wreckage while that lies alongside.
+    expect(covering).toBeLessThan(alone * 0.6);
   });
 
   it('covers no friend smaller than it will bother with', () => {
@@ -383,5 +386,33 @@ describe('two ships the same size covering each other', () => {
     const gap = Math.hypot(run.world.bodies.x[a]! - run.world.bodies.x[b]!, run.world.bodies.y[a]! - run.world.bodies.y[b]!);
     expect(contacts).toBe(0);
     expect(gap).toBeGreaterThan(pair.radius * 2);
+  });
+});
+
+describe('the halves of a cut Catamaran covering each other', () => {
+  it('hold station without spinning, and keep most of their fuel', { timeout: 60_000 }, () => {
+    // Each half is lopsided: its engines turn it far harder one way than the
+    // other, and pushing it at all turns it.
+    const catamaran = compileBlueprint(CATAMARAN);
+    const run = makeBattle({ seed: 1 }, (ships, world) => ({ a: ships.spawn(world, { design: catamaran, x: 0, y: 0, angle: 0 }) }));
+    const all = joints(catamaran);
+    const mid = all.findIndex((j) => Math.abs(catamaran.modules[j.a]!.spec.y) < 3 && Math.abs(catamaran.modules[j.b]!.spec.y) < 3);
+    const at = (i: number): number => run.world.bodies.indexOf(run.ships.body(i));
+    run.ships.damage.cutWeld(at(0), mid, all[mid]!.width * 2);
+    run.step();
+    expect(run.ships.count).toBe(2);
+    run.world.bodies.y[at(1)] = run.world.bodies.y[at(1)]! - 200;
+    const full = [run.ships.fuel.left(at(0)), run.ships.fuel.left(at(1))];
+    let contacts = 0;
+    for (let s = 0; s < 600 * 60; s++) {
+      run.step();
+      contacts += run.collisions.contacts.count;
+    }
+    expect(run.ships.count).toBe(2);
+    expect(contacts).toBe(0);
+    for (const i of [0, 1]) {
+      expect(run.ships.fuel.left(at(i))).toBeGreaterThan(0.9 * full[i]!);
+      expect(Math.abs(run.world.bodies.angularVel[at(i)]!)).toBeLessThan(0.01);
+    }
   });
 });
