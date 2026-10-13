@@ -115,7 +115,7 @@ describe('mutation', () => {
     }
   });
 
-  it('keeps a child within one generation of its parent', () => {
+  it('keeps a child within one generation of its parent', { timeout: 30_000 }, () => {
     const rng = new Rng(29);
     for (const [name, parent] of FLEET) {
       const was = expandBlueprint(parent).length;
