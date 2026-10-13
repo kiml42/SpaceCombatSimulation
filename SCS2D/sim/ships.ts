@@ -73,8 +73,10 @@ import {
   DOCK_POWER_PER_METRE,
   FUEL_DENSITY,
   PAD_REPAIR_PER_METRE,
+  ROBOT_BUILD_TIME,
   ROBOT_CHARGE,
   ROBOT_LOAD,
+  ROBOT_MASS,
   ROBOT_REFILL_TIME,
   ROBOT_REPAIR_RATE,
   ROBOT_SPEED,
@@ -4082,15 +4084,66 @@ export class Ships {
       let mended = false;
       for (let r = 0; r < robots.length; r++) {
         const robot = robots[r]!;
+        // A module destroyed under a robot takes it with it.
+        const on = this.robotOn(design, robot);
+        const left = this.damage.integrity(b, on);
+        if (robot.stoodOn === on && robot.stood > 0 && !(left > 0)) {
+          this.robots.lose(b, r--);
+          mended = true;
+          continue;
+        }
+        robot.stoodOn = on;
+        robot.stood = left;
         const owner = this.pilotAt(b, robot.bay);
         if (owner < 0) continue;
         if (this.tendOne(b, design, robots, robot, owner, dt)) mended = true;
       }
+      if (this.buildRobots(b, design, robots, dt)) mended = true;
       if (mended) {
         this.settleMass(bodies, b);
         this.discardFrom(bodies, b, mass, inertia);
       }
     }
+  }
+
+  /** The module a robot is on: where it stands, or of the two its leg joins, the nearer. */
+  private robotOn(design: ShipDesign, robot: Robot): number {
+    if (robot.path === null || robot.leg >= robot.path.length - 1) return robot.at;
+    return robot.along * 2 < legLength(design, robot.path, robot.leg) ? robot.at : robot.path[robot.leg + 1]!;
+  }
+
+  /**
+   * Each of a body's working bays that is short of robots builds one, over
+   * `ROBOT_BUILD_TIME` and slower as the bay is damaged, from a robot's mass
+   * of metal and `REPAIR_WASTE` more off its piece of hull, above what its
+   * ship keeps back. A bay with the time put in but not the metal waits.
+   * Says whether one was built.
+   */
+  private buildRobots(b: number, design: ShipDesign, robots: Robot[], dt: number): boolean {
+    const builds = this.robots.buildsOn(b);
+    if (builds === null) return false;
+    let built = false;
+    for (let m = 0; m < design.modules.length; m++) {
+      const berths = design.modules[m]!.stats.robots;
+      if (!(berths > 0) || this.pilotAt(b, m) < 0) continue;
+      let home = 0;
+      for (let r = 0; r < robots.length; r++) if (robots[r]!.bay === m) home++;
+      if (home >= berths) {
+        builds[m] = 0;
+        continue;
+      }
+      const working = this.damage.remaining(b, m, DamageEffect.Tending);
+      if (!(working > 0)) continue;
+      builds[m] = min(ROBOT_BUILD_TIME, builds[m]! + dt * working);
+      if (builds[m]! < ROBOT_BUILD_TIME) continue;
+      const cost = ROBOT_MASS * (1 + REPAIR_WASTE);
+      if (this.metal.pieceHeld(b, m) - this.metalReserve(b, m) < cost) continue;
+      this.metal.drain(b, m, cost);
+      this.robots.build(b, m);
+      builds[m] = 0;
+      built = true;
+    }
+    return built;
   }
 
   /** One robot's step. Says whether it mended anything. */
@@ -5327,10 +5380,17 @@ export class Ships {
     // Something nothing moves stays that way.
     if (design === null || design === undefined || !(bodies.mass[b]! > 0)) return;
     const id = this.hullBody[b]!;
-    bodies.setMass(id, design.mass - this.fuel.spentMass(b) - this.metal.spentMass(b) - this.damage.shedMass(b));
+    bodies.setMass(
+      id,
+      design.mass - this.fuel.spentMass(b) - this.metal.spentMass(b) - this.damage.shedMass(b) - this.robots.missingMass(b),
+    );
     bodies.setInertia(
       id,
-      design.inertia - this.fuel.spentInertia(b) - this.metal.spentInertia(b) - this.damage.shedInertia(b),
+      design.inertia -
+        this.fuel.spentInertia(b) -
+        this.metal.spentInertia(b) -
+        this.damage.shedInertia(b) -
+        this.robots.missingInertia(b),
     );
   }
 

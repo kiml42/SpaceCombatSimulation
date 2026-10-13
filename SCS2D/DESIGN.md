@@ -689,7 +689,11 @@ inside any one file is not contiguous.
   ship's modules, but on what they carry: a ship with no control, or a bay broken or cut off from command by
   a spine torn ragged, stops none of them — only a bay that cannot refill them once they are spent, which is
   how robots mend the very spine that cut their bay off. One whose module, or whose bay, goes with another
-  piece of hull is lost. The `mending` scenario has a battered Mender's four robots mend it whole in four
+  piece of hull is lost, and so is one on a module destroyed under it — a bay destroyed takes the robots
+  home in it — though not one that goes to mend a module already destroyed. A lost robot's mass leaves the
+  hull, counted as discarded. A working bay short of robots builds one at a time, over `ROBOT_BUILD_TIME`
+  and slower as it is damaged, from a robot's mass of metal and `REPAIR_WASTE` more off its piece of hull,
+  waiting for the metal if it has none to spare; a new robot sets out only once its bay has filled it. The `mending` scenario has a battered Mender's four robots mend it whole in four
   minutes; evolution's weight for a bay is zero until robots are tuned.
   **A pad may set out with a fighter docked on it** (`ModuleSpec.docked`, naming a copy in the blueprint's
   `hangar`, as a fleet carries its designs). It is spawned lying along the pad, centred on it, and welded as
@@ -778,8 +782,8 @@ inside any one file is not contiguous.
   holds a fighter to fill cells that are broken. Evolution draws batteries and generators at a weight of
   one each, and a mutation does not turn either, since neither has a facing that matters.
 - **Next:** repair, construction and salvage, one mechanism built in six stages (ROADMAP.md §8): with damage
-  shedding mass, pads mending landed fighters and robots mending their own hull built, robots lost and
-  built anew are next. Alongside it, the rest of §8 step 8 — leaks, and pilots that
+  shedding mass, pads mending landed fighters and robots mending their own hull, lost and built anew
+  built, rebuilding lost modules is next. Alongside it, the rest of §8 step 8 — leaks, and pilots that
   know their fuel — and of step 5: a materials budget, and designed scenarios.
   See ROADMAP.md §8.
   §8 step 3 is done bar withdrawal, and step 7, two layers, is built. What a chooser is already facing (`facingWeight`) and whether anything is in the way
