@@ -19,6 +19,7 @@ import {
   SHELL_CALIBRES,
   engineGeometry,
   type GunStats,
+  type ShipDesign,
   type ShipView,
   type Snapshot,
   insetTriangle,
@@ -27,7 +28,7 @@ import {
   ROBOT_VIEW_STRIDE,
 } from '../sim/index.js';
 import { gridStep, type Camera } from './camera.js';
-import { NEUTRAL, shipColours, teamName } from './teams.js';
+import { fighterColours, NEUTRAL, shipColours, teamName } from './teams.js';
 
 export { teamColour } from './teams.js';
 import { beamAlpha, BEAM_GLOW_ALPHA, flooredFade, legibleWidth, plumeAlpha, tracerAlpha } from './strokes.js';
@@ -433,7 +434,7 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     if (ship.drawn?.[i] === false) continue;
     const m = design.modules[i]!;
     // A piece hooked on from another ship keeps that ship's colours.
-    const colours = shipColours(ship.sides?.[i] ?? ship.team);
+    const colours = moduleColours(design, i, ship.sides?.[i] ?? ship.team);
     const spec = m.spec;
     ctx.save();
     ctx.translate(m.x, m.y);
@@ -694,7 +695,8 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
 
   for (let t = 0; t < design.turrets.length; t++) {
     if (ship.drawn?.[design.turrets[t]!.module] === false) continue;
-    const colours = shipColours(ship.sides?.[design.turrets[t]!.module] ?? ship.team);
+    const module = design.turrets[t]!.module;
+    const colours = moduleColours(design, module, ship.sides?.[module] ?? ship.team);
     const mount = design.turrets[t]!.mount;
     const mx = ship.x + mount.x * c - mount.y * s;
     const my = ship.y + mount.x * s + mount.y * c;
@@ -1251,7 +1253,8 @@ function drawIcon(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
   if (ship.isDerelict) return;
   const alpha = iconAlpha(ship.design.radius * 2 * metresToPx);
   if (alpha <= 0) return;
-  const colours = ship.hasControl && !ship.isMissionKilled ? shipColours(ship.team) : NEUTRAL;
+  const palette = ship.design.fighter ? fighterColours : shipColours;
+  const colours = palette(ship.hasControl && !ship.isMissionKilled ? ship.team : -1);
   const size = ICON_PX / metresToPx;
 
   ctx.save();
@@ -1628,6 +1631,14 @@ function drawStreak(
     base.b * e + base.d * f + base.f,
   );
   ctx.drawImage(image, 0, -0.5, 1, 1);
+}
+
+/** Module `m`'s colours: a fighter's, aboard a carrier or not, a shade darker than its side's ships. */
+function moduleColours(design: ShipDesign, m: number, team: number): ReturnType<typeof shipColours> {
+  if (design.fighter) return fighterColours(team);
+  const fighters = design.fighterPieces;
+  if (fighters !== undefined && fighters.includes(design.pieces?.[m] ?? 0)) return fighterColours(team);
+  return shipColours(team);
 }
 
 /** A round's colours: as light, or in its side's trim with a glow of its hull colour. */

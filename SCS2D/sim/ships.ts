@@ -166,6 +166,12 @@ const BRAKE_FLOOR = 0.25;
 const HEADING_SETTLE_TIME = 0.25;
 
 /**
+ * How near, as a share of its own radius, a hull will let its turn swing a
+ * part of it towards another hull, over and above the room it needs to stop.
+ */
+const TURN_CLEARANCE_RADII = 0.1;
+
+/**
  * How near zero a countdown has to get before it counts as finished, seconds.
  *
  * A timer set to a whole number of timesteps does not reach exactly zero by
@@ -2977,7 +2983,12 @@ export class Ships {
     const brakeTorque = layout.maxTorque(error >= 0 ? -1 : 1);
     const maxAlpha = inertia > 0 ? brakeTorque / inertia : 0;
     const turn = min(brakingRate(error, maxAlpha, dt), (error >= 0 ? error : -error) / HEADING_SETTLE_TIME);
-    const wantRate = error >= 0 ? turn : -turn;
+    let wantRate = error >= 0 ? turn : -turn;
+    // Never round into something, but for what it means to touch: a turn that
+    // would swing the hull into a neighbour is not started, and one already
+    // under way is stopped.
+    const touching = order !== undefined && (order.ram || order.grapple || order.land || order.dock) ? target : NO_TARGET;
+    if (wantRate !== 0 && this.turnBlocked(bodies, i, b, layout, wantRate > 0 ? 1 : -1, touching)) wantRate = 0;
     const localTorque =
       dt > 0 ? (inertia * (wantRate - bodies.angularVel[b]!)) / dt : 0;
 
@@ -3151,6 +3162,67 @@ export class Ships {
     const now = this.burning[i] === 1 ? burn * (1 + BURN_MARGIN) > hold : burn > hold * (1 + BURN_MARGIN);
     this.burning[i] = now ? 1 : 0;
     return now ? burnHeading : attack;
+  }
+
+  /**
+   * Whether turning the way `sense` says (+1 anticlockwise) would swing part
+   * of this hull into a neighbour other than `touching`.
+   *
+   * Module by module, each as the circle round its box, since what a turn
+   * sweeps is the ends of a hull and not its middle. It would when a module
+   * the turn carries towards a module of another hull is nearer it than the
+   * hull needs to stop turning that way, from the rate it has, plus
+   * `TURN_CLEARANCE_RADII`.
+   */
+  private turnBlocked(bodies: Bodies, i: number, b: number, layout: EngineLayout, sense: number, touching: number): boolean {
+    const design = this.designs[i]!;
+    const x = bodies.x[b]!;
+    const y = bodies.y[b]!;
+    const w = bodies.angularVel[b]! * sense;
+    const inertia = bodies.inertia[b]!;
+    // How far round it would go before it could stop, at most half a turn:
+    // past that it reaches everything it can.
+    const alpha = inertia > 0 ? layout.maxTorque(-sense) / inertia : 0;
+    const stop = w > 0 ? (alpha > 0 ? min(PI, (w * w) / (2 * alpha)) : PI) : 0;
+    // A point turned through that is moved this share of its distance out.
+    const chord = 2 * sin(0.5 * stop);
+    const margin = TURN_CLEARANCE_RADII * design.radius;
+    const sweep = design.radius * chord + margin;
+    let c = NaN;
+    let sn = NaN;
+    for (let t = 0; t < this.alive.length; t++) {
+      if (t === i || t === touching || this.alive[t] === 0) continue;
+      const ob = bodies.indexOf(this.bodyIds[t]!);
+      if (ob < 0 || ob === b || bodies.ghost[ob] === 1) continue;
+      // A body walked once, however many ships ride it.
+      if (this.shipByBody[ob] !== t) continue;
+      const theirs = this.designs[t]!;
+      const ox = bodies.x[ob]!;
+      const oy = bodies.y[ob]!;
+      if (!(length(ox - x, oy - y) < design.radius + theirs.radius + sweep)) continue;
+      if (c !== c) {
+        c = cos(bodies.angle[b]!);
+        sn = sin(bodies.angle[b]!);
+      }
+      const oc = cos(bodies.angle[ob]!);
+      const os = sin(bodies.angle[ob]!);
+      for (const m of design.modules) {
+        const rx = m.x * c - m.y * sn;
+        const ry = m.x * sn + m.y * c;
+        const room = length(rx, ry) * chord + margin;
+        const size = 0.5 * length(m.spec.length, m.spec.width);
+        // Too far from the whole of the other hull to reach any of it.
+        if (!(length(ox - x - rx, oy - y - ry) < size + theirs.radius + room)) continue;
+        for (const n of theirs.modules) {
+          const dx = ox + n.x * oc - n.y * os - x - rx;
+          const dy = oy + n.x * os + n.y * oc - y - ry;
+          // Anticlockwise carries this module along (-ry, rx).
+          if (!(sense * (-ry * dx + rx * dy) > 0)) continue;
+          if (length(dx, dy) - size - 0.5 * length(n.spec.length, n.spec.width) < room) return true;
+        }
+      }
+    }
+    return false;
   }
 
   /** Whether this ship has turned its main engines along its want rather than its guns to its target. */
