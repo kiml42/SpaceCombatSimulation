@@ -668,7 +668,8 @@ inside any one file is not contiguous.
   carrier can spare above the carrier's own `refuelBelow`, and **mends it**: `PAD_REPAIR_PER_METRE` of
   damage a second for every metre of the pad's width, cores first, then engines and weapons, then the rest,
   each joule taking `REPAIR_ENERGY_PER_JOULE` of the carrier's charge and the metal the module had shed and
-  `REPAIR_WASTE` more, the waste counted as discarded. The pad lets it go when it is full and mended, when
+  `REPAIR_WASTE` more, the waste counted as discarded — reserves and all, since repairing and rebuilding
+  draw on what a ship keeps back for itself, where refuelling, rearming and recharging a friend do not. The pad lets it go when it is full and mended, when
   there is no more to spare, or at once when it is given an order. Nothing yet sends a fighter in to be
   mended: it is mended while it is down for anything else. A merged design remembers which of its pieces
   were fighters (`fighterPieces`), so it lifts off a fighter, and every ship keeps the doctrine it set out with
@@ -684,17 +685,36 @@ inside any one file is not contiguous.
   one fewest robots are after, the nearest of those — and mends it at `ROBOT_REPAIR_RATE`, at a pad's costs:
   `REPAIR_ENERGY_PER_JOULE` of what it carries, and the metal the module shed and `REPAIR_WASTE` more, drawn
   from its piece of hull. It goes straight on to the next job, and home once it is short of either; its bay
-  refills it over `ROBOT_REFILL_TIME`, slower as the bay is damaged, topping its charge up from what its
-  piece can spare above its ship's `rechargeBelow`. Robots work only for the ship working their bay, on that
+  refills it over `ROBOT_REFILL_TIME`, slower as the bay is damaged, topping its charge up from its piece,
+  reserves and all. Robots work only for the ship working their bay, on that
   ship's modules, but on what they carry: a ship with no control, or a bay broken or cut off from command by
   a spine torn ragged, stops none of them — only a bay that cannot refill them once they are spent, which is
-  how robots mend the very spine that cut their bay off. One whose module, or whose bay, goes with another
+  how robots mend the very spine that cut their bay off. Spent, with no bay to refill them or no metal left
+  on their piece of hull, they go home and stay there until something on the hull changes. One whose module, or whose bay, goes with another
   piece of hull is lost, and so is one on a module destroyed under it — a bay destroyed takes the robots
   home in it — though not one that goes to mend a module already destroyed. A lost robot's mass leaves the
   hull, counted as discarded. A working bay short of robots builds one at a time, over `ROBOT_BUILD_TIME`
   and slower as it is damaged, from a robot's mass of metal and `REPAIR_WASTE` more off its piece of hull,
   waiting for the metal if it has none to spare; a new robot sets out only once its bay has filled it. The `mending` scenario has a battered Mender's four robots mend it whole in four
   minutes; evolution's weight for a bay is zero until robots are tuned.
+  **Robots rebuild what their ship has lost**, once nothing is left to mend, back to the design it set out
+  with: every module of a design remembers which module of a compiled design it is (`DesignModule.origin`),
+  so a hull cut down or welded up still knows what is missing. A piece that flies off as a ship of its own
+  rebuilds to the design the ship it came from set out as, so a hull cut in two can grow back into two
+  whole ships; wreckage sets out as itself and rebuilds nothing. A lost module is rebuilt only against a
+  whole module of the hull it shared a weld with, in the same tiers as mending. **Its walls go up first**:
+  a shell (`DesignModule.shell`), drawn and hit as structure, laid along the face it is built against and
+  growing across the module in `SHELL_STEPS` steps — a strip of a box, a triangle of a triangle — each step
+  a remade hull, as a severed one is. A kilogram of wall is the work of mending a kilogram's worth of
+  damage, at a robot's rate and charge, and a step is paid for when it goes up: its share of the module's
+  walls in metal and `REPAIR_WASTE` more, off the piece it is built from. A step waits while anything else
+  is in the way of it, wreckage included. **At the last step it is the module itself, whole but for its
+  fittings**, which the robots then put in at the same rate and price; until they are all in, the module
+  does nothing (`Damage.unbuiltAt`) and is drawn as broken as it is. A shell or a module being fitted that
+  is hit is mended before any more is built, and one cut away again is lost again. The `rebuilding`
+  scenario has a turning Rebuilder lose its fin and its engine and build both back, each once what came off
+  has drifted clear. Each hull of the Catamaran carries a bay, a hold and a generator enough to rebuild the
+  other, so either half of one cut in two grows back into the whole ship, in about an hour.
   **A pad may set out with a fighter docked on it** (`ModuleSpec.docked`, naming a copy in the blueprint's
   `hangar`, as a fleet carries its designs). It is spawned lying along the pad, centred on it, and welded as
   one that had landed, so it is topped up from the carrier and lifts off once full. A fighter too big for its
@@ -782,8 +802,8 @@ inside any one file is not contiguous.
   holds a fighter to fill cells that are broken. Evolution draws batteries and generators at a weight of
   one each, and a mutation does not turn either, since neither has a facing that matters.
 - **Next:** repair, construction and salvage, one mechanism built in six stages (ROADMAP.md §8): with damage
-  shedding mass, pads mending landed fighters and robots mending their own hull, lost and built anew
-  built, rebuilding lost modules is next. Alongside it, the rest of §8 step 8 — leaks, and pilots that
+  shedding mass, pads mending landed fighters, robots mending their own hull, lost and built anew, and
+  robots rebuilding lost modules built, pads rebuilding what a fighter has lost is next. Alongside it, the rest of §8 step 8 — leaks, and pilots that
   know their fuel — and of step 5: a materials budget, and designed scenarios.
   See ROADMAP.md §8.
   §8 step 3 is done bar withdrawal, and step 7, two layers, is built. What a chooser is already facing (`facingWeight`) and whether anything is in the way

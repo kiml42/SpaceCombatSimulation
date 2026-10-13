@@ -142,7 +142,10 @@ the base of steps 12 and 13. The shape, settled with the author (DECISIONS.md):
   against hull already there, so a ship regrows outwards. It costs the module's full mass in metal and its
   wastage, and takes
   that mass over the robots' work rate until module complexity (§2) gives build time a measure of its own.
-  Pads do the same for fighters. This is the base of in-battle construction (step 12).
+  The walls go up first, as a shell growing across the module from the face it is built against, and the
+  fittings go in after, while the module stands full size and does nothing — so damage to a module being
+  built is damage like any other. Pads do the same for fighters. This is the base of in-battle construction
+  (step 12).
 - **Disassembly** turns modules that are not the ship's own — wreckage welded on, a wreck in its claw — into
   metal in its holds, at their current mass less wastage, as far as the holds have room. This is harvesting
   wrecks (step 13). A ship never strips its own modules.
@@ -155,8 +158,10 @@ the base of steps 12 and 13. The shape, settled with the author (DECISIONS.md):
 
 A PR a stage. Stages 1 to 4 are built: mass shed by damage with what repairing it would cost kept on the
 books, pads repairing landed fighters, the robot bay and robots repairing, and robots lost and built anew.
+Stage 5 is built for robots.
 
-5. **Rebuilding lost modules**, by robots and by pads.
+5. **Rebuilding lost modules** by pads: a landed fighter's, grown against what is left of it and paid for
+   from the carrier, the pad holding it until it is whole.
 6. **Disassembling what is not the ship's own into metal.**
 
 Steps 9 to 13 walk into the resource system one resource and one use at a time, fuel first (partly built,

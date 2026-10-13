@@ -493,6 +493,32 @@ export function hullsOverlap(bodies: Bodies, i: number, designA: ShipDesign, j: 
   return false;
 }
 
+const lone: Box[] = [];
+
+/** Whether module `m` of a hull posed at `bx`, `by`, `angle` would overlap any module of body `j`'s. */
+export function moduleOverlapsHull(
+  design: ShipDesign,
+  m: number,
+  bx: number,
+  by: number,
+  angle: number,
+  bodies: Bodies,
+  j: number,
+  other: ShipDesign,
+): boolean {
+  const dx = bodies.x[j]! - bx;
+  const dy = bodies.y[j]! - by;
+  const reach = design.radius + bodies.radius[j]!;
+  if (dx * dx + dy * dy > reach * reach) return false;
+  if (lone.length === 0) {
+    lone.push({ x: 0, y: 0, ux: 1, uy: 0, halfLength: 0, halfWidth: 0, radius: 0, corners: new Float64Array(MAX_CORNERS * 2), count: 0 });
+  }
+  boxOf(design, m, bx, by, angle, lone[0]!);
+  boxesOf(other, bodies.x[j]!, bodies.y[j]!, bodies.angle[j]!, boxesB);
+  for (let mb = 0; mb < other.modules.length; mb++) if (overlap(lone[0]!, boxesB[mb]!) > 0) return true;
+  return false;
+}
+
 /**
  * Turn the contacts into impulses, and push the hulls out of each other.
  *

@@ -26,9 +26,10 @@ describe('the Catamaran', () => {
     const bridge = welds.filter((j) => {
       const a = catamaran.modules[j.a]!;
       const b = catamaran.modules[j.b]!;
-      // Everything in a hull sits well off the centreline; the bridge is what
-      // crosses it.
-      return Math.abs(a.y) < 11 || Math.abs(b.y) < 11;
+      // The bridge is the structure in the gap between the hulls; a hull's own
+      // modules there are its bay and its hold.
+      const link = (m: typeof a): boolean => m.spec.kind === 'structure' && Math.abs(m.y) < 11;
+      return link(a) || link(b);
     });
     expect(bridge.length).toBeGreaterThan(3);
 

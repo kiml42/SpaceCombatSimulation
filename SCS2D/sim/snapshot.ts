@@ -8,6 +8,7 @@ import type { Ships } from './ships.js';
 import type { Turrets } from './turrets.js';
 import type { World } from './world.js';
 import { cos, sin } from './math.js';
+import { fittingOf } from './rebuild.js';
 
 /**
  * A read-only picture of the world, for anything outside the simulation to
@@ -435,7 +436,10 @@ export function capture(
 
     view.integrity.length = design.modules.length;
     for (let m = 0; m < design.modules.length; m++) {
-      view.integrity[m] = ships.damage.integrity(b, m);
+      // A rebuilt module waiting for its fittings looks as broken as it is.
+      const fitting = fittingOf(design.modules[m]!.stats);
+      const fitted = fitting > 0 ? 1 - ships.damage.unbuiltAt(b, m) / fitting : 1;
+      view.integrity[m] = ships.damage.integrity(b, m) * fitted;
     }
     const fuel = (view.fuel ??= []);
     fuel.length = design.modules.length;
