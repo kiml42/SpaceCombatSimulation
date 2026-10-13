@@ -217,6 +217,26 @@ describe('the viewer in a browser', () => {
     expect(await advanced(page)).toBeGreaterThan(0);
   });
 
+  it('stays paused through a reset or a change of scene', async () => {
+    await page.click('#play');
+    expect(await page.textContent('#play')).toBe('Play');
+
+    await page.click('#reset');
+    await painted(page);
+    const reset = await step(page);
+    await page.waitForTimeout(200);
+    expect(await step(page)).toBe(reset);
+
+    await page.selectOption('#scene', { label: 'Duel' });
+    await painted(page);
+    expect(await step(page)).toBe(0);
+    await page.waitForTimeout(200);
+    expect(await step(page)).toBe(0);
+    expect(await page.textContent('#play')).toBe('Play');
+
+    await page.click('#play');
+  });
+
   it('sets up a custom battle paused, live, and fights it without stopping at the end', async () => {
     expect(await page.isHidden('#custom')).toBe(true);
     await page.click('#customBattle');
