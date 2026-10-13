@@ -769,7 +769,10 @@ inside any one file is not contiguous.
   armed enemy is within reach of the pair**, when the ship being filled minds danger (`scavengeDanger` above
   zero for a claw, `dockDanger` for a pad or a port), and while one is, no claw grips, no fighter lands and no
   port mates for it. Docking is with a friend and stealing fuel is from a wreck or an enemy, so the two are
-  wary by separate numbers, and by default only a claw is.
+  wary by separate numbers, and by default only a claw is. **A claw also lets go of a hulk bearing down on
+  it**, one that will hit within its `avoidHorizon`, for a ship that keeps out of the way at all: anything
+  under control keeps clear of it, but a hulk cannot, and dragging a wreck it cannot dodge. Closing on a
+  source, it keeps clear of hulks and of nothing else.
   **A layout may set out as ships docked port to port.** Where the only thing joining two parts of a layout
   is a pair of ports face to face, and every part has a core of its own, it is spawned as one ship per part,
   docked at those ports, rather than welded: each flies its own part and can let go. The fighters on its pads
