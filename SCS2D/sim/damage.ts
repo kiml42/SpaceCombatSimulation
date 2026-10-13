@@ -103,6 +103,8 @@ export enum DamageEffect {
   Storage = 5,
   /** How fast a battery can take charge in or give it out. */
   Discharge = 6,
+  /** How well a robot bay refills its robots and sends them out. */
+  Tending = 7,
 }
 
 /**
@@ -178,6 +180,8 @@ export const DAMAGE_RESPONSES: Readonly<Record<ModuleSpec['kind'], readonly Dama
   pad: [{ effect: DamageEffect.Grip, remaining: fadesOutAt(THRUST_CUTOUT) }],
   port: [{ effect: DamageEffect.Grip, remaining: fadesOutAt(THRUST_CUTOUT) }],
   hold: [],
+  // Racks and chargers are machinery too.
+  robotBay: [{ effect: DamageEffect.Tending, remaining: fadesOutAt(THRUST_CUTOUT) }],
   // A plant gives out as an engine does.
   generator: [{ effect: DamageEffect.Generation, remaining: fadesOutAt(THRUST_CUTOUT) }],
   // Every cell broken is charge it no longer holds, and the wiring goes as the
@@ -393,6 +397,14 @@ export class Damage {
     const dry = this.dry[bodyIndex];
     if (!absorbed || !capacity || !dry) return 0;
     return shedShare(absorbed[module] ?? 0, capacity[module] ?? 0) * (dry[module] ?? 0);
+  }
+
+  /** The same for one body alone, if it has shed anything since. */
+  takeUnsettledAt(bodyIndex: number, visit: (bodyIndex: number, kg: number) => void): void {
+    const kg = this.unsettled[bodyIndex] ?? 0;
+    if (!(kg > 0)) return;
+    this.unsettled[bodyIndex] = 0;
+    visit(bodyIndex, kg);
   }
 
   /**

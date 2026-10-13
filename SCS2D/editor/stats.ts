@@ -422,6 +422,7 @@ export function moduleReadout(
     ]);
   }
   if (stats.generation > 0) rows.push(['Generates', megawatts(stats.generation)]);
+  if (spec.kind === 'robotBay') rows.push(['Robots', stats.robots === 1 ? '1 berthed' : `${stats.robots} berthed`]);
   if (readsSealing(spec.kind)) {
     rows.push([
       'Sealing',

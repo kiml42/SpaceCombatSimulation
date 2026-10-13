@@ -15,6 +15,7 @@ export * as math from './math.js';
 export { Fuel } from './fuel.js';
 export { Metal } from './metal.js';
 export { Charge } from './charge.js';
+export { ROBOT_VIEW_STRIDE } from './robots.js';
 export { Store } from './store.js';
 export { Rng, type RngState } from './rng.js';
 export {
@@ -142,6 +143,13 @@ export {
   PAD_MASS_PER_AREA,
   PAD_PUMP_PER_METRE,
   PAD_REPAIR_PER_METRE,
+  ROBOT_BERTH_VOLUME,
+  ROBOT_CHARGE,
+  ROBOT_LOAD,
+  ROBOT_MASS,
+  ROBOT_REFILL_TIME,
+  ROBOT_REPAIR_RATE,
+  ROBOT_SPEED,
   PORT_MASS_PER_AREA,
   PORT_PUMP_PER_METRE,
   BATTERY_ENERGY_PER_VOLUME,

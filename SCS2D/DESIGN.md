@@ -674,6 +674,23 @@ inside any one file is not contiguous.
   were fighters (`fighterPieces`), so it lifts off a fighter, and every ship keeps the doctrine it set out with
   whatever hull it rides, so a fighter flies on its own and not its carrier's. The `carrier` scenario has three Dinkies take
   turns on a two-pad Tender; evolution's weight for a pad is zero, since it pays only in a fleet with fighters.
+  **A robot bay** (`robotBay`) berths a robot for every `ROBOT_BERTH_VOLUME` of its interior, priced by
+  their weight (`ROBOT_MASS`) and its racks, and is drawn as a deck with a round pad for each berth, a robot
+  sitting on its pad while it is home. A robot is not a body but a place on its hull: it crawls module
+  to module across the welds the hull was built with, never a seam, at `ROBOT_SPEED`, and is drawn there as
+  a beetle facing the way it crawls, its two wing cases bars that empty as it spends its charge and its
+  metal. It sets out with `ROBOT_LOAD` of metal and `ROBOT_CHARGE` it may spend, goes to
+  the damaged module of its ship's that matters most — cores, then engines and weapons, then the rest, the
+  one fewest robots are after, the nearest of those — and mends it at `ROBOT_REPAIR_RATE`, at a pad's costs:
+  `REPAIR_ENERGY_PER_JOULE` of what it carries, and the metal the module shed and `REPAIR_WASTE` more, drawn
+  from its piece of hull. It goes straight on to the next job, and home once it is short of either; its bay
+  refills it over `ROBOT_REFILL_TIME`, slower as the bay is damaged, topping its charge up from what its
+  piece can spare above its ship's `rechargeBelow`. Robots work only for the ship working their bay, on that
+  ship's modules, but on what they carry: a ship with no control, or a bay broken or cut off from command by
+  a spine torn ragged, stops none of them — only a bay that cannot refill them once they are spent, which is
+  how robots mend the very spine that cut their bay off. One whose module, or whose bay, goes with another
+  piece of hull is lost. The `mending` scenario has a battered Mender's four robots mend it whole in four
+  minutes; evolution's weight for a bay is zero until robots are tuned.
   **A pad may set out with a fighter docked on it** (`ModuleSpec.docked`, naming a copy in the blueprint's
   `hangar`, as a fleet carries its designs). It is spawned lying along the pad, centred on it, and welded as
   one that had landed, so it is topped up from the carrier and lifts off once full. A fighter too big for its
@@ -761,7 +778,8 @@ inside any one file is not contiguous.
   holds a fighter to fill cells that are broken. Evolution draws batteries and generators at a weight of
   one each, and a mutation does not turn either, since neither has a facing that matters.
 - **Next:** repair, construction and salvage, one mechanism built in six stages (ROADMAP.md §8): with damage
-  shedding mass and pads mending landed fighters built, the robot bay and robots repairing are next. Alongside it, the rest of §8 step 8 — leaks, and pilots that
+  shedding mass, pads mending landed fighters and robots mending their own hull built, robots lost and
+  built anew are next. Alongside it, the rest of §8 step 8 — leaks, and pilots that
   know their fuel — and of step 5: a materials budget, and designed scenarios.
   See ROADMAP.md §8.
   §8 step 3 is done bar withdrawal, and step 7, two layers, is built. What a chooser is already facing (`facingWeight`) and whether anything is in the way

@@ -101,9 +101,9 @@ lead, which waits for standing orders. Velocity stays out of the fleet file; the
 
 **Step 10 — Raw material.** Metal, holds and guns loading from them are built (DESIGN.md Status). What is left:
 
-- **Repair** — a ship spending metal on its own damaged modules, the second use the step names. Stages 3 and 4
-  of the plan under *Not started* below; stage 1, damage shedding mass, and stage 2, pads mending fighters,
-  are built (DESIGN.md Status). A fighter is mended only while it is down for something else: what sends
+- **Repair** — a ship spending metal on its own damaged modules, the second use the step names. Stage 4
+  of the plan under *Not started* below; stage 1, damage shedding mass, stage 2, pads mending fighters, and
+  stage 3, robots mending their own hull, are built (DESIGN.md Status). A fighter is mended only while it is down for something else: what sends
   one in *to be* mended is deferred, and open in §12.
 - **Magazines: guns turning metal into rounds ahead of firing** (§12). Wanted, not yet settled in shape.
 - **Pilots that know their ammunition.** Only a fighter breaks off to rearm, and only on a pad. Nothing else
@@ -153,11 +153,11 @@ the base of steps 12 and 13. The shape, settled with the author (DECISIONS.md):
   an upgrade a place to go if technology is ever modelled.
 - Robots stay on their own ship. Crossing a port seam to work on a docked friend can come later.
 
-A PR a stage. Stage 1, mass shed by damage with what repairing it would cost kept on the books, and stage 2,
-pads repairing landed fighters, are built.
+A PR a stage. Stage 1, mass shed by damage with what repairing it would cost kept on the books, stage 2,
+pads repairing landed fighters, and stage 3, the robot bay and robots repairing, are built.
 
-3. **The robot bay, and robots repairing.**
-4. **Robots lost, and built anew.**
+4. **Robots lost, and built anew.** Already lost: a robot whose module or bay goes with another piece of
+   hull. Not yet: one on a module that is destroyed, and a bay building new ones from metal.
 5. **Rebuilding lost modules**, by robots and by pads.
 6. **Disassembling what is not the ship's own into metal.**
 
@@ -613,15 +613,16 @@ Deliberately unresolved; decide when they block something.
 - **Whether a beam's boiling and a shell's shredding should shed differently.** Both shed by energy
   absorbed, a tenth of a module by the time it breaks and half at five times that (DESIGN.md §4), which
   are first guesses to tune. The floor can drop once a module can be drawn with holes in it.
+- **What a robot bay is worth to evolution.** Weighted zero, as a pad is, until robots are tuned.
 - **What sends a ship in to be mended.** Not a `repairBelow` beside `refuelBelow`: one threshold on how
   damaged a ship is would weigh a scratched hull the same as a lost gun. It has to weigh damage by the
   function lost, so a fighter shrugs off some damaged modules but runs for a pad at once if it loses a gun.
   Deferred by the author until repair has settled.
 - **The numbers for repair.** How much each step wastes (repair wastes a tenth, a first guess), and whether
   disassembly and building waste alike; time and power for a joule of damage undone (a pad mends 20 kJ/s a
-  metre of its width, at 10 J of charge a joule, both first guesses); a robot's speed over a hull, the
-  metal and charge it carries and how fast it works; a bay's room for robots, how fast it refills them, and
-  what a new robot costs in metal and time; how fast a pad repairs.
+  metre of its width, at 10 J of charge a joule, both first guesses); a robot's speed over a hull (2 m/s), the
+  metal and charge it carries (500 kg and 50 MJ) and how fast it works (50 kJ/s), a berth (10 m³ of bay) and
+  a refill (5 s), all first guesses; and what a new robot costs in metal and time.
 - **What scrap and salvage reach are worth: `SCRAP_MASS` and `SALVAGE_REACH`.** They encode an economic
   judgement — what is too smashed to harvest, and how far is too far to go for — against an economy that
   does not exist yet, so they will want revisiting when it does. Worth knowing before tuning them: the

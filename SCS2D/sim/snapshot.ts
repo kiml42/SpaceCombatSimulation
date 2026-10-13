@@ -103,6 +103,14 @@ export interface ShipView {
    * drawn as wreckage rather than not drawn.
    */
   integrity: number[];
+  /**
+   * Each robot out on the hull, `ROBOT_VIEW_STRIDE` numbers apiece: where it
+   * is and which way it faces, body frame, and the share of its charge and of
+   * its metal left. Optional, so a view built by hand can leave it out.
+   */
+  robots?: number[];
+  /** How many robots are home in each module, in the design's module order. Optional, as `robots` is. */
+  berthed?: number[];
   /** How full each module is of fuel, 0 to 1, and 1 for one that holds none. */
   fuel?: number[];
   /** How full each module is of metal, 0 to 1, and 1 for one that holds none. */
@@ -420,6 +428,8 @@ export function capture(
     for (let t = 0; t < design.engines.length; t++) plumeLayers[t] = ships.plumeLayersOf(i, t);
 
     const rays = ships.landedRays(i);
+    ships.robotViews(i, (view.robots ??= []));
+    ships.robotsBerthed(i, (view.berthed ??= []));
     view.landed.length = rays.length;
     for (let r = 0; r < rays.length; r++) view.landed[r] = rays[r]!;
 

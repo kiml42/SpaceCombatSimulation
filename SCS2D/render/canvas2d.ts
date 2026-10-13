@@ -24,6 +24,7 @@ import {
   insetTriangle,
   fillOf,
   triangleOf,
+  ROBOT_VIEW_STRIDE,
 } from '../sim/index.js';
 import { gridStep, type Camera } from './camera.js';
 import { NEUTRAL, shipColours, teamName } from './teams.js';
@@ -35,7 +36,7 @@ import { clipToStart, exposureEnds, flashSamples, shutterWeight } from './exposu
 import { sprite } from './sprites.js';
 import { iconAlpha, ICON_OUTLINE, ICON_PX } from './icons.js';
 
-const { cos, sin, length, max, min, PI, sqrt, TAU } = math;
+const { ceil, cos, floor, sin, length, max, min, PI, round, sqrt, TAU } = math;
 
 /**
  * A Canvas2D view of a snapshot.
@@ -174,6 +175,14 @@ const METAL = NEUTRAL.hull;
 const CHARGE = '#9b7bff';
 /** How much of a generator's smaller side its disc is drawn across. */
 const GENERATOR_DISC = 0.55;
+
+/** How much of a berth's cell its round pad fills across, as a radius. */
+const ROBOT_PAD = 0.38;
+
+/** A robot out on a hull, nose to tail in metres: drawn to scale, so it is seen when zoomed in close. */
+const ROBOT_LENGTH = 1.2;
+/** How far short of the tail each wing case stops, radians round the shell. */
+const ROBOT_WING_GAP = 0.22;
 /** How round a tank's gauge is drawn at its ends, as a share of the tank's smaller side: enough to read as a tank. */
 const TANK_ROUNDING = 0.35;
 
@@ -314,6 +323,64 @@ function storeShares(ship: ShipView): { fuel: number; metal: number } {
   return { fuel: fuelFull > 0 ? fuel / fuelFull : -1, metal: metalFull > 0 ? metal / metalFull : -1 };
 }
 
+/**
+ * A robot as a beetle `size` long, facing `heading`: a shell with its head at
+ * the front, and over its back two wing cases, each a curved bar filling from
+ * the waist back with what it has left — charge on its left, metal on its right.
+ */
+function drawRobot(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  heading: number,
+  charge: number,
+  metal: number,
+  size: number,
+  shell: string,
+  head: string,
+): void {
+  const half = size / 2;
+  const broad = size * 0.32;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(heading);
+  // The shell, its back a little behind the middle.
+  const back = -size * 0.08;
+  ctx.fillStyle = shell;
+  ctx.beginPath();
+  ctx.ellipse(back, 0, half * 0.82, broad, 0, 0, TAU);
+  ctx.fill();
+  // The head, ahead of it.
+  ctx.fillStyle = head;
+  ctx.beginPath();
+  ctx.ellipse(half * 0.68, 0, size * 0.16, broad * 0.62, 0, 0, TAU);
+  ctx.fill();
+  // The wing cases: a track round each side of the back, filled from the waist.
+  const inset = broad * 0.72;
+  const along = half * 0.62;
+  ctx.lineWidth = size * 0.11;
+  ctx.lineCap = 'round';
+  const wing = (side: number, share: number, fill: string): void => {
+    const from = (side * PI) / 2;
+    // Stopping short of the tail, so the two cases part down the middle.
+    const to = side * (PI - ROBOT_WING_GAP);
+    const clockwise = side < 0;
+    ctx.strokeStyle = FUEL_TRACK;
+    ctx.beginPath();
+    ctx.ellipse(back, 0, along, inset, 0, from, to, clockwise);
+    ctx.stroke();
+    const left = max(0, min(1, share));
+    if (!(left > 0)) return;
+    ctx.strokeStyle = fill;
+    ctx.beginPath();
+    ctx.ellipse(back, 0, along, inset, 0, from, from + (to - from) * left, clockwise);
+    ctx.stroke();
+  };
+  wing(-1, charge, CHARGE);
+  wing(1, metal, METAL);
+  ctx.restore();
+}
+
 function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number, arcs: Arcs): void {
   const design = ship.design;
 
@@ -390,7 +457,10 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
             : colours.hull
           : spec.kind === 'core'
             ? colours.pivot
-            : colours.trim;
+            : spec.kind === 'robotBay'
+              ? // A deck, as a pad is, for its berth pads to stand out on.
+                colours.hull
+              : colours.trim;
     ctx.globalAlpha = integrity <= 0 ? 1 : 0.45 + 0.55 * integrity;
     const halfLength = spec.length / 2;
     const halfWidth = spec.width / 2;
@@ -511,6 +581,34 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
           ctx.restore();
         }
       }
+      if (spec.kind === 'robotBay') {
+        // A round pad for each berth, in a grid as near square as the bay
+        // allows, dark once it can no longer tend its robots; a robot home
+        // sits on its pad.
+        ctx.globalAlpha = 1;
+        const berths = max(1, m.stats.robots);
+        const across = max(1, round(sqrt((berths * spec.length) / spec.width)));
+        const down = ceil(berths / across);
+        const cellLength = spec.length / across;
+        const cellWidth = spec.width / down;
+        const pad = min(cellLength, cellWidth) * ROBOT_PAD;
+        const home = ship.berthed?.[i] ?? 0;
+        ctx.strokeStyle = integrity > 0 ? colours.trim : FUEL_TRACK;
+        ctx.fillStyle = colours.trim;
+        ctx.lineWidth = pad * 0.25;
+        for (let k = 0; k < m.stats.robots; k++) {
+          const x = -halfLength + cellLength * ((k % across) + 0.5);
+          const y = -halfWidth + cellWidth * (floor(k / across) + 0.5);
+          ctx.beginPath();
+          ctx.arc(x, y, pad, 0, TAU);
+          ctx.stroke();
+          if (k < home) {
+            ctx.beginPath();
+            ctx.arc(x, y, pad * 0.55, 0, TAU);
+            ctx.fill();
+          }
+        }
+      }
       if (spec.kind === 'generator') {
         // The plant: a disc of charge, dark once it has stopped making any.
         ctx.globalAlpha = 1;
@@ -546,6 +644,14 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
       }
     }
     ctx.restore();
+  }
+  // Robots out on the hull, over the modules they crawl across.
+  const robots = ship.robots ?? [];
+  if (robots.length > 0) {
+    const colours = shipColours(ship.team);
+    for (let r = 0; r + ROBOT_VIEW_STRIDE <= robots.length; r += ROBOT_VIEW_STRIDE) {
+      drawRobot(ctx, robots[r]!, robots[r + 1]!, robots[r + 2]!, robots[r + 3]!, robots[r + 4]!, ROBOT_LENGTH, colours.trim, colours.pivot);
+    }
   }
   ctx.restore();
 
