@@ -9,7 +9,7 @@ import { split } from '../scenarios/split.js';
  *
  * What makes a piece a ship is a working core (DESIGN.md §4), so a hull built
  * with one in each half survives being cut between them as two ships. This is
- * that claim, end to end: the Catamaran, a corvette sent through its bridge,
+ * that claim, end to end: the Catamaran, a bare core sent through its bridge,
  * and two craft afterwards where there was one.
  */
 
@@ -26,9 +26,9 @@ describe('the Catamaran', () => {
     const bridge = welds.filter((j) => {
       const a = catamaran.modules[j.a]!;
       const b = catamaran.modules[j.b]!;
-      // The bridge is the structure in the gap between the hulls; a hull's own
-      // modules there are its bay and its hold.
-      const link = (m: typeof a): boolean => m.spec.kind === 'structure' && Math.abs(m.y) < 11;
+      // The bridge runs core to core; a hull's other structure mounts its engines.
+      const link = (m: typeof a): boolean =>
+        m.spec.kind === 'structure' && Math.abs(m.x - catamaran.modules[catamaran.cores[0]!]!.x) < 0.5;
       return link(a) || link(b);
     });
     expect(bridge.length).toBeGreaterThan(3);
@@ -61,7 +61,7 @@ describe('a ship cut in half', () => {
     live.filter((s) => run.ships.design(s).name === catamaran.name);
 
   it('is one ship before the ram and two after it', () => {
-    const before = at(3);
+    const before = at(2);
     expect(halves(before.run, before.live).length).toBe(1);
     expect(before.run.totalSevered).toBe(0);
 
@@ -91,8 +91,8 @@ describe('a ship cut in half', () => {
     //
     // **What is never a target is a hull with no working core**, since no shot
     // will ever remove one from the battle. The rammer is not one of those —
-    // it comes out of its own ram disarmed and engineless but with its core
-    // intact, so it is harmless and still finishable, and a mount that takes
+    // a bare core, disarmed and engineless but with its core intact, so it is
+    // harmless and still finishable, and a mount that takes
     // it is not wasting its rounds. It is merely spending them on the wrong
     // thing while a live corvette is about, which is what the preferences for
     // what can still shoot and still run are there to say — and at very short
@@ -111,11 +111,15 @@ describe('a ship cut in half', () => {
     const pieces = halves(run, live).filter((s) => run.ships.design(s).turrets.length > 0);
     expect(pieces.length).toBeGreaterThan(0);
 
+    const corvette = live.find((s) => run.ships.design(s).name === 'Corvette')!;
     const lockedOn = new Set<number>();
     let onTheLiveOne = 0;
     let onAnything = 0;
+    // Until the corvette is beaten: on the step it goes down, a turret still
+    // holds it, and drops it on the next.
     for (let i = 0; i < Math.round(35 * 60); i++) {
       run.step();
+      if (run.ships.isDisabled(corvette)) break;
       for (const piece of pieces) {
         // A half can lose its gun to the corvette while this runs.
         if (run.ships.design(piece).turrets.length === 0) continue;

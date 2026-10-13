@@ -1,15 +1,16 @@
 {
   "formatVersion": 1,
   "name": "Catamaran",
-  "notes": "Two hulls and a footbridge. Each hull is a whole ship \u2014 core, gun, engines \u2014 and what joins them is four sections of thin structure, so the pair is held together by welds a fraction of the width of the ones inside either hull. Built to be cut in half: what the two halves then do is what tells you whether a piece with a core of its own is a ship or wreckage. Each hull carries a robot bay, a hold and a generator, enough between them to rebuild the other half, so each half of a cut Catamaran can grow back into the whole ship.",
+  "notes": "Two hulls and a footbridge. Each hull is a whole ship — core, gun, engines — and what joins them is four sections of thin structure, so the pair is held together by welds a fraction of the width of the ones inside either hull. Built to be cut in half: what the two halves then do is what tells you whether a piece with a core of its own is a ship or wreckage. Each hull carries a robot bay, a hold and a generator, enough between them to rebuild the other half, so each half of a cut Catamaran can grow back into the whole ship.",
   "doctrine": {
     "targeting": {
       "escortWeight": 400
     },
     "approach": {
-      "escortRadii": 3,
+      "escortRadii": 4,
       "escortMinRadii": 0.5,
       "separation": 600,
+      "separationRadii": 2,
       "avoidHorizon": 12
     }
   },
@@ -51,7 +52,7 @@
       ]
     },
     "hull": {
-      "notes": "One of the pair, drawn as if it were the whole ship \u2014 which is what it becomes.",
+      "notes": "One of the pair, drawn as if it were the whole ship — which is what it becomes.",
       "modules": [
         {
           "kind": "robotBay",
@@ -67,7 +68,7 @@
           "y": 0,
           "length": 4,
           "width": 6,
-          "reinforcement": 4,
+          "reinforcement": 6,
           "notes": "One each, which is the point: a hull cut off from the other still has somebody aboard it."
         },
         {
@@ -86,6 +87,7 @@
           "angle": 0,
           "length": 5,
           "width": 4,
+          "reinforcement": 2,
           "barrels": 1,
           "barrelCalibres": 31.25
         },
@@ -129,6 +131,28 @@
           "y": 4.5,
           "length": 4,
           "width": 3
+        },
+        {
+          "use": "link",
+          "x": 0,
+          "y": -5.75,
+          "repeat": 3,
+          "step": {
+            "x": 0,
+            "y": -5.5
+          }
+        },
+        {
+          "use": "structure",
+          "x": 10.008829191,
+          "y": -2.333333332999999
+        },
+        {
+          "use": "structure",
+          "x": -9.491170809,
+          "y": -3.333333332999999,
+          "angle": -180,
+          "mirror": true
         }
       ]
     },
@@ -143,39 +167,46 @@
           "width": 5.5
         }
       ]
+    },
+    "structure": {
+      "modules": [
+        {
+          "kind": "structure",
+          "x": 0,
+          "y": 0,
+          "length": 1.526487572,
+          "width": 1,
+          "vertices": [
+            1.017658381,
+            0.333333333,
+            -0.508829191,
+            0.333333333,
+            -0.508829191,
+            -0.666666667
+          ]
+        },
+        {
+          "kind": "engine",
+          "x": 0.26481792100000057,
+          "y": -0.1598514619999989,
+          "angle": -56.771244699,
+          "length": 1.6,
+          "width": 1.8
+        }
+      ]
     }
   },
   "modules": [
     {
       "use": "hull",
-      "x": 0,
-      "y": 14
+      "x": -3,
+      "y": 19.5
     },
     {
       "use": "hull",
-      "x": 0,
-      "y": -14,
+      "x": -3,
+      "y": -19.5,
       "mirror": true
-    },
-    {
-      "use": "link",
-      "x": 0,
-      "y": 8.25
-    },
-    {
-      "use": "link",
-      "x": 0,
-      "y": 2.75
-    },
-    {
-      "use": "link",
-      "x": 0,
-      "y": -2.75
-    },
-    {
-      "use": "link",
-      "x": 0,
-      "y": -8.25
     }
   ]
 }
