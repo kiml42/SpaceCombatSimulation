@@ -13,6 +13,7 @@ import {
   type DockAt,
   type Footprint,
   type Seam,
+  type DesignModule,
   type DesignTurret,
   type ShipDesign,
 } from './blueprint.js';
@@ -33,7 +34,7 @@ import { buildWork, faceToward, fittingOf, inFrame, SHELL_STEPS, shellOf } from 
 import { Fuel, LEAK_HOLE_CALIBRES, leakChance, leakRate, leakSpeed, type Leak } from './fuel.js';
 import { Charge } from './charge.js';
 import { Metal } from './metal.js';
-import { SEAL_REACH, SEAL_SPEED } from './modules.js';
+import { isHullMount, moduleCentre, SEAL_REACH, SEAL_SPEED, weldBox } from './modules.js';
 import type { Rng } from './rng.js';
 import {
   landedIndex,
@@ -361,6 +362,31 @@ const SHOCK_REACH = 15;
  * off, m/s — a drift, not a ram. A dial, in ROADMAP.md §12 with the others.
  */
 export const WELD_SPEED = 2;
+
+/** How far past the end of a module's weldable part a contact may still weld it, metres. */
+const WELD_REACH = 0.05;
+
+/**
+ * Whether world point `x`, `y` is on the part of `module` that may be welded
+ * (`weldBox`), with its body at `bx`, `by` turned `angle`: not an engine's
+ * bell, nor a hull mount's barrel, which a layout cannot be attached by either.
+ */
+export function onWeldablePart(module: DesignModule, bx: number, by: number, angle: number, x: number, y: number): boolean {
+  const spec = module.spec;
+  if (spec.kind !== 'engine' && !isHullMount(spec.kind)) return true;
+  const weld = weldBox(spec);
+  const whole = moduleCentre(spec);
+  const part = moduleCentre(weld);
+  // The welded part's middle, along the module from its centre.
+  const offset = (part.x - whole.x) * cos(module.angle) + (part.y - whole.y) * sin(module.angle);
+  const c = cos(angle);
+  const s = sin(angle);
+  const cx = bx + module.x * c - module.y * s;
+  const cy = by + module.x * s + module.y * c;
+  const own = angle + module.angle;
+  const along = (x - cx) * cos(own) + (y - cy) * sin(own);
+  return abs(along - offset) <= weld.length * 0.5 + WELD_REACH;
+}
 
 /** How much of the smaller module's narrower side a hooked edge catches. */
 const HOOK_SHARE = 0.5;
@@ -4060,6 +4086,9 @@ export class Ships {
       if (claw === null && !port) {
         if (closing > WELD_SPEED) continue;
         if (!this.damage.ragged(a, ma) && !this.damage.ragged(b, mb)) continue;
+        const x = contacts.x[k]!;
+        const y = contacts.y[k]!;
+        if (!this.weldsAt(bodies, a, ma, x, y) || !this.weldsAt(bodies, b, mb, x, y)) continue;
       }
       // A flown hull keeps its body; two wrecks keep the older's slot.
       const swap = this.derelict[i] === 1 && this.derelict[j] === 0;
@@ -4078,6 +4107,12 @@ export class Ships {
       welded++;
     }
     return welded;
+  }
+
+  /** `onWeldablePart` for module `m` of body `b`, as it is posed now. */
+  private weldsAt(bodies: Bodies, b: number, m: number, x: number, y: number): boolean {
+    const module = this.hullDesign[b]?.modules[m];
+    return module === undefined || onWeldablePart(module, bodies.x[b]!, bodies.y[b]!, bodies.angle[b]!, x, y);
   }
 
   /**
