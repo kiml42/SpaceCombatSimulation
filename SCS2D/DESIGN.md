@@ -61,7 +61,7 @@ inside any one file is not contiguous.
   core and neither gun nor engine is still a ship, so it is framed and drawn in its own colours, where asking
   whether it could fight drew a whole generation of engineless craft as wreckage and left them out of shot.
   Grey, and framed only with the hulks, is for a core that is out, or for a ship that set out with a gun or
-  an engine and has lost them all, or the stores to use them. A severed piece gets no arrowhead at all. A blueprint editor on a second page of its own draws a layout
+  an engine and has lost them all, or the stores to use them. A severed piece gets no arrowhead at all, nor does a ship riding another's hull, as a fighter on its pad. An arrowhead points the way its ship's core does, which is not always its body's way: a fighter keeps the frame of the carrier it launched from. A blueprint editor on a second page of its own draws a layout
   through that same renderer and reports what it bought: mass, inertia, the
   acceleration available in each direction — as figures, and as a pair of
   envelope curves separating what a layout can project from what it can use

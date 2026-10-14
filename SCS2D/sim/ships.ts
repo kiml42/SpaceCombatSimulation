@@ -1045,6 +1045,18 @@ export class Ships {
     return b >= 0 && this.shipByBody[b] === i;
   }
 
+  /**
+   * The core this ship flies from, or -1: a module of its body's design, so on
+   * a shared body it says where on the hull this ship is.
+   */
+  flownCore(i: number): number {
+    const bodies = this.bodyStore;
+    const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[i]!);
+    if (b < 0) return -1;
+    for (const core of this.designs[i]!.cores) if (this.pilotAt(b, core) === i) return core;
+    return -1;
+  }
+
   holed(bodyIndex: number, module: number, integrity: number, x: number, y: number, nx: number, ny: number, calibre: number, rng: Rng): void {
     const m = this.designOf(bodyIndex)?.modules[module];
     if (m === undefined || !(this.fuel.held(bodyIndex, module) > 0)) return;

@@ -19,6 +19,7 @@ import { makeBattle } from '../scenarios/battle.js';
 import { CORVETTE, DINKY } from '../scenarios/blueprints.js';
 import { OrderCancelCondition } from '../sim/ships.js';
 import { dockFighter } from '../editor/edit.js';
+import { capture, Snapshot, type ShipView } from '../sim/snapshot.js';
 
 /** Fighters landing on a friend's pad to be filled from it (ROADMAP.md §8 step 9). */
 
@@ -283,6 +284,30 @@ describe('a pad set out with a fighter docked on it', () => {
     expect(run.ships.design(f).fighter).toBe(true);
     expect(run.ships.teamOf(f)).toBe(run.ships.teamOf(run.c));
     expect(run.totalContacts).toBe(0);
+  });
+});
+
+describe('a fighter launched from a pad turned across its carrier', () => {
+  it('points its icon along its own nose, and has none while it rides the pad', () => {
+    const turned: Blueprint = {
+      ...laden(),
+      modules: laden().modules.map((m, i) => (i === PAD ? { ...m, angle: Math.PI / 2 } : m)),
+    };
+    const run = makeBattle({ seed: 3 }, (ships, world) => ({ c: ships.spawn(world, { design: compileBlueprint(turned), x: 0, y: 0, angle: 0.3 }) }));
+    const f = run.c + 1;
+    const view = (): ShipView => {
+      const snapshot = capture(new Snapshot(), run.world, run.ships, run.projectiles, run.beams);
+      return snapshot.ships.slice(0, snapshot.shipCount).find((v) => v.name === run.ships.nameOf(f))!;
+    };
+    expect(view().riding).toBe(true);
+    for (let s = 0; s < 60 && run.ships.body(f) === run.ships.body(run.c); s++) run.step();
+    expect(run.ships.body(f)).not.toBe(run.ships.body(run.c));
+    const v = view();
+    expect(v.riding).toBe(false);
+    // The Dinky's gun points along its nose.
+    const gun = v.design.modules.find((m) => m.spec.kind === 'hullGun')!;
+    expect(Math.abs(v.heading! - v.angle)).toBeGreaterThan(1);
+    expect(Math.cos(v.heading! - (v.angle + gun.angle))).toBeCloseTo(1, 6);
   });
 });
 
