@@ -124,6 +124,7 @@
         z-index: 1;
       }
       .subChart { width: 100%; height: 100px; display: block; border-radius: 4px; margin-top: 0.5rem; cursor: crosshair; }
+      .sizeMetric { display: block; margin-top: 0.5rem; font-size: 0.8rem; color: #8a9bb0; }
       #legend, .legend { display: flex; flex-wrap: wrap; gap: 0.8rem; margin: 0.35rem 0 0; color: #7f93aa; }
       #legend b, .legend b { color: #e6edf5; font-weight: 600; margin-left: 0.25rem; }
       #fighting { color: #7fd6a0; text-transform: none; letter-spacing: 0; }
@@ -453,6 +454,10 @@
             <span style="color: #5bd6d6">vs. yardstick</span>
           </p>
           <div class="runOnly">
+          <label class="sizeMetric">size by <select id="sizeMetric">
+            <option value="mass">mass and ships</option>
+            <option value="fittings">weapons and engines</option>
+          </select></label>
           <canvas id="massChart" class="subChart"></canvas>
           <p id="massLegend" class="legend"></p>
           </div>

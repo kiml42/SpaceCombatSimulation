@@ -439,6 +439,8 @@ export function startEvolution(): void {
     return { canvas: at, ctx: context(at), legend: el<HTMLElement>(key), digits, series: [], layout: NO_LAYOUT };
   };
   const massChart = sizeChart('massChart', 'massLegend', 1);
+  /** What the chart under the score shows: mass and ships, or weapons and engines. */
+  const sizeMetric = el<HTMLSelectElement>('sizeMetric');
   const sizeCharts = [massChart];
   /** Worked out once per generation: a fleet's ship count means parsing it. */
   const sizes = new WeakMap<GenerationRecord, GenerationSize>();
@@ -1346,7 +1348,8 @@ export function startEvolution(): void {
     fillLegend(legend, chartSeries, 3, '');
     // Ships are read on the right-hand scale, and to more places: a mean of
     // whole ships is a fraction.
-    fillLegend(massChart.legend, massChart.series, massChart.digits, ' t', 2, '');
+    if (sizeMetric.value === 'fittings') fillLegend(massChart.legend, massChart.series, 1, '', 1, '');
+    else fillLegend(massChart.legend, massChart.series, massChart.digits, ' t', 2, '');
   }
 
   function fillLegend(
@@ -2038,7 +2041,7 @@ export function startEvolution(): void {
     chartSeries = series;
 
     // Mass on the left scale and, once a run fields more than one ship,
-    // ships on the right: a colour for each, the mean solid and the best
+    // ships on the right — or, as `sizeMetric` asks, weapons and engines: a colour for each, the mean solid and the best
     // dashed. In a co-evolution run each side takes its team's colours, its
     // hull colour for mass and its trim for ships.
     const sides: { label: string; size: GenerationSize[]; mass: string; ships: string }[] =
@@ -2070,10 +2073,16 @@ export function startEvolution(): void {
           },
         ];
       });
-    massChart.series = [
-      ...bestAndMean('mass', (side) => side.mass, (s) => [s.bestMass / 1000, s.meanMass / 1000], false),
-      ...(fleets ? bestAndMean('ships', (side) => side.ships, (s) => [s.bestShips, s.meanShips], true) : []),
-    ];
+    massChart.series =
+      sizeMetric.value === 'fittings'
+        ? [
+            ...bestAndMean('weapons', (side) => side.mass, (s) => [s.bestWeapons, s.meanWeapons], false),
+            ...bestAndMean('engines', (side) => side.ships, (s) => [s.bestEngines, s.meanEngines], true),
+          ]
+        : [
+            ...bestAndMean('mass', (side) => side.mass, (s) => [s.bestMass / 1000, s.meanMass / 1000], false),
+            ...(fleets ? bestAndMean('ships', (side) => side.ships, (s) => [s.bestShips, s.meanShips], true) : []),
+          ];
     paintChart();
     showLegend();
 
@@ -2119,6 +2128,7 @@ export function startEvolution(): void {
       return { entrant: { ...entrant, name: `${entrant.name}${side} g${top.generation + 1}` }, id: top.individual.id };
     });
 
+  sizeMetric.addEventListener('change', () => refresh());
   saveButton.addEventListener('click', () => {
     const best = champions();
     if (best.length === 0) return;
