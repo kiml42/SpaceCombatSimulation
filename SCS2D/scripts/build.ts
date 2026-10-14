@@ -44,8 +44,31 @@ const PAGES = [
 
 type Page = (typeof PAGES)[number];
 
+/**
+ * The skirmish enemy's search runs in a worker, which needs a script of its
+ * own; it is bundled first and handed to every page as a string, so the page
+ * stays one file. Under `--watch` it is bundled once, at the start.
+ */
+async function workerBundle(): Promise<string> {
+  const result = await build({
+    entryPoints: [join(root, 'host', 'answerWorker.ts')],
+    bundle: true,
+    format: 'iife',
+    target: 'es2022',
+    minify: true,
+    write: false,
+    legalComments: 'none',
+  });
+  const js = result.outputFiles[0]?.text;
+  if (js === undefined) throw new Error('esbuild produced no worker');
+  return js;
+}
+
+const ANSWER_WORKER = await workerBundle();
+
 function optionsFor(page: Page): BuildOptions {
   return {
+    define: { __ANSWER_WORKER__: JSON.stringify(ANSWER_WORKER) },
     entryPoints: [join(root, 'host', page.entry)],
     bundle: true,
     format: 'iife',

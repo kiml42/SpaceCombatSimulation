@@ -15,6 +15,7 @@ import {
   roundSetup,
   serialiseSkirmish,
   skirmishFragment,
+  won,
 } from '../scenarios/skirmish.js';
 
 const lone = (name: string, design: typeof GUNSHIP): Fleet => ({
@@ -184,7 +185,16 @@ describe('the skirmish', () => {
     expect(next.round).toBe(2);
     expect(next.tries).toBe(0);
     expect(next.seed).not.toBe(5);
-    expect(next.budget).toEqual(billOfFleet(LINE_OF_BATTLE));
+    // The budget is the player's: the enemy's answer is not held to it.
+    expect(next.budget).toEqual(skirmish.budget);
+    expect(next.enemy).toBe(LINE_OF_BATTLE);
+  });
+
+  it('remembers the seed a round was won on until the next round', () => {
+    const skirmish = won(newSkirmish(gunship, gunship, 5));
+    expect(skirmish.won).toBe(5);
+    expect(parseSkirmish(JSON.parse(JSON.stringify(serialiseSkirmish(skirmish)))).won).toBe(5);
+    expect(nextRound(skirmish, gunship).won).toBeUndefined();
   });
 
   it('round-trips, an empty fleet and all, through a link fragment', () => {

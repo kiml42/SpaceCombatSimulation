@@ -33,6 +33,11 @@ export interface Skirmish {
   tries: number;
   /** This round's seed. */
   seed: number;
+  /**
+   * Set once the player has won the round, on the seed it was won on, while
+   * the enemy evolves an answer; cleared by the next round.
+   */
+  won?: number;
 }
 
 /** Clear water between the two fleets' furthest hulls at the start, metres. */
@@ -56,15 +61,25 @@ export function canFight(skirmish: Skirmish): boolean {
 
 /** The battle a round is: the player's fleet first, so it is blue. */
 export function roundSetup(skirmish: Skirmish): BattleSetup {
-  const reach = fleetReach(fleetHulls(skirmish.player)) + fleetReach(fleetHulls(skirmish.enemy));
+  return roundBattle(skirmish.player, skirmish.enemy, skirmish.seed);
+}
+
+/** Two fleets as a round sets them out, on this seed. */
+export function roundBattle(player: Fleet, enemy: Fleet, seed: number): BattleSetup {
+  const reach = fleetReach(fleetHulls(player)) + fleetReach(fleetHulls(enemy));
   return {
-    fleets: [skirmish.player, skirmish.enemy],
+    fleets: [player, enemy],
     range: math.max(MIN_RANGE, reach + GAP),
     closingSpeed: 0,
     crossingSpeed: 0,
     rotation: 0,
-    seed: skirmish.seed,
+    seed,
   };
+}
+
+/** The round won: the enemy is to answer it, on the seed it was won on. */
+export function won(skirmish: Skirmish): Skirmish {
+  return { ...skirmish, won: skirmish.seed };
 }
 
 /** The same round, to be fought again. */
@@ -72,16 +87,13 @@ export function lost(skirmish: Skirmish): Skirmish {
   return { ...skirmish, tries: skirmish.tries + 1 };
 }
 
-/** The next round, against `enemy`, on a new seed. */
+/**
+ * The next round, against the enemy's answer, on a new seed. The budget is
+ * the player's and does not follow the enemy, whose is unlimited.
+ */
 export function nextRound(skirmish: Skirmish, enemy: Fleet): Skirmish {
-  return {
-    ...skirmish,
-    enemy,
-    budget: billOfFleet(enemy),
-    round: skirmish.round + 1,
-    tries: 0,
-    seed: new Rng(skirmish.seed).nextUint32(),
-  };
+  const { won: _, ...rest } = skirmish;
+  return { ...rest, enemy, round: skirmish.round + 1, tries: 0, seed: new Rng(skirmish.seed).nextUint32() };
 }
 
 export function serialiseSkirmish(skirmish: Skirmish): Record<string, unknown> {
@@ -90,6 +102,7 @@ export function serialiseSkirmish(skirmish: Skirmish): Record<string, unknown> {
     round: skirmish.round,
     tries: skirmish.tries,
     seed: skirmish.seed,
+    ...(skirmish.won === undefined ? {} : { won: skirmish.won }),
     budget: { ...skirmish.budget },
     enemy: serialiseFleet(skirmish.enemy),
     player: serialiseFleet(skirmish.player),
@@ -129,7 +142,9 @@ export function parseSkirmish(value: unknown): Skirmish {
       return fail(`${key}: ${(error as Error).message}`);
     }
   };
+  const wonSeed = file['won'] === undefined ? undefined : whole('won', 0);
   return {
+    ...(wonSeed === undefined ? {} : { won: wonSeed }),
     round: whole('round', 1),
     tries: whole('tries', 0),
     seed: whole('seed', 0),

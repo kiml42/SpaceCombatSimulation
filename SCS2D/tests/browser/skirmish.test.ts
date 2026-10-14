@@ -8,6 +8,9 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import type { Browser, Page } from 'playwright';
 import { launchChromium } from './launch.js';
+import { shipFleet } from '../../sim/index.js';
+import { CORVETTE, GUNSHIP } from '../../scenarios/blueprints.js';
+import { newSkirmish, skirmishFragment, won } from '../../scenarios/skirmish.js';
 
 /**
  * The skirmish loop in a real browser: choosing an enemy and a fleet, fighting,
@@ -115,4 +118,19 @@ describe('the skirmish in a browser', () => {
     expect(await page.isVisible('#skirmish')).toBe(true);
     expect(problems).toEqual([]);
   });
+
+  it('watches the enemy evolve an answer to a round won, and goes on to the next round', async () => {
+    // A Gunship beats a Corvette on seed 7, and the search finds an answer in a generation or two.
+    const skirmish = won(newSkirmish(shipFleet(CORVETTE), shipFleet(GUNSHIP), 7));
+    await page.goto(pathToFileURL(skirmishPage).href + skirmishFragment(skirmish));
+    await page.waitForSelector('#answering:not([hidden])');
+    expect(await page.isVisible('#editFleet')).toBe(false);
+    await page.waitForSelector('#answered:not([hidden])', { timeout: 90_000 });
+    expect(await page.textContent('#answerProgress')).toMatch(/^Found in generation \d+/);
+    await page.click('#nextRound');
+    expect(await page.textContent('#roundTitle')).toBe('Round 2');
+    expect(await page.isVisible('#answering')).toBe(false);
+    expect(await page.isVisible('#editFleet')).toBe(true);
+    expect(problems).toEqual([]);
+  }, 120_000);
 });

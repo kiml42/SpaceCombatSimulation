@@ -137,10 +137,13 @@
             <button id="retry" title="Fight this round again from the start">Restart</button>
           </div>
           <p id="outcome"></p>
-          <div id="next" hidden>
-            <h2>Next enemy</h2>
-            <select id="nextEnemy"></select>
-            <div class="buttons"><button id="nextRound" class="primary">Next round</button></div>
+          <div id="answering" hidden>
+            <h2>The enemy answers</h2>
+            <p id="answerProgress" class="muted"></p>
+            <div class="buttons">
+              <button id="watchAnswer" title="Stop or start watching the best enemy so far fight your fleet">Stop watching</button>
+            </div>
+            <div class="buttons" id="answered" hidden><button id="nextRound" class="primary">Next round</button></div>
           </div>
           <h2>Sides</h2>
           <div id="sides"></div>
