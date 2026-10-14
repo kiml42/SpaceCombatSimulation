@@ -107,6 +107,8 @@ export function startSkirmish(): void {
   );
   el<HTMLButtonElement>('fit').addEventListener('click', () => view.fit());
   const speed = el<HTMLSelectElement>('speed');
+  // Read once at the start too: a browser may restore the list's choice on reload.
+  view.setSpeed(Number(speed.value));
   speed.addEventListener('change', () => view.setSpeed(Number(speed.value)));
   playButton.addEventListener('click', () => view.setRunning(!view.running));
 
