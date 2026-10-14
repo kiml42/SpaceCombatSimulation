@@ -13,9 +13,24 @@ import {
   type Fleet,
   type FleetEntry,
   type Rng,
+  degreesToRadians,
+  radiansToDegrees,
 } from '../sim/index.js';
 import { max, PI, round } from '../sim/math.js';
 import { mutate, type MutationLimits } from './mutate.js';
+
+/**
+ * An angle that a file, which holds degrees, reads back as exactly itself, so
+ * the record of a fleet is the fleet that fought. Most are after one trip.
+ */
+export function settled(angle: number): number {
+  for (let k = 0; k < 4; k++) {
+    const back = degreesToRadians(radiansToDegrees(angle));
+    if (back === angle) break;
+    angle = back;
+  }
+  return angle;
+}
 
 /**
  * Breeding a fleet from a fleet.
@@ -144,7 +159,7 @@ function move(fleet: Fleet, rng: Rng, bounds: FleetMutationLimits): string[] {
       entry.y += steps * bounds.grid;
       return [`${what} moved ${steps * bounds.grid} m along y`];
     default:
-      entry.angle = (entry.angle ?? 0) + steps * bounds.turn;
+      entry.angle = settled((entry.angle ?? 0) + steps * bounds.turn);
       return [`${what} turned ${round((steps * bounds.turn * 180) / PI)}°`];
   }
 }
