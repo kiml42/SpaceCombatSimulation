@@ -167,6 +167,8 @@ function parse(argv: readonly string[]): Options {
       case '--radius-spread': match['radiusSpread'] = Number(value()); break;
       case '--closing-spread': match['closingSpread'] = Number(value()); break;
       case '--crossing-spread': match['crossingSpread'] = Number(value()); break;
+      // Seconds a side may go without firing or ramming before it loses.
+      case '--quiet': match['quietLimit'] = Number(value()); break;
       // A weight per module kind, as `engine=5,turret=0` — only the kinds
       // named are changed, the rest keeping their defaults.
       case '--kinds':

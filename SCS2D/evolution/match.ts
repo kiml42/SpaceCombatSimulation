@@ -13,6 +13,7 @@ import {
 } from '../sim/index.js';
 import { addCapability, EFFECTS, workingShare } from './capability.js';
 import { makeBattle } from '../scenarios/battle.js';
+import { Decision } from '../scenarios/decision.js';
 import type { Battle } from '../scenarios/types.js';
 
 /**
@@ -196,6 +197,12 @@ export interface MatchConfig {
   readonly radiusSpread: number;
   readonly closingSpread: number;
   readonly crossingSpread: number;
+  /**
+   * Seconds a side may go without firing or ramming before the match is
+   * decided against it, the skirmish's rule (`scenarios/decision.ts`); zero
+   * leaves a match to be decided only by one side being left under command.
+   */
+  readonly quietLimit: number;
 }
 
 export const DEFAULT_MATCH: MatchConfig = {
@@ -212,6 +219,7 @@ export const DEFAULT_MATCH: MatchConfig = {
   radiusSpread: 0,
   closingSpread: 0,
   crossingSpread: 0,
+  quietLimit: 0,
 };
 
 /** The smallest arena a spread may draw, metres, as the page allows. */
@@ -402,6 +410,8 @@ export class Match {
   private step = 0;
   private ending: Ending = 'timeout';
   private winners: number[] = [];
+  /** The skirmish's rule, where `quietLimit` asks for it. */
+  private readonly decision: Decision | null;
 
   /**
    * `teams` gives each entrant its side, numbered from zero; left out, every
@@ -434,6 +444,11 @@ export class Match {
     }
     const ring = ringRadius(placed, halfGap, settings);
     this.total = math.round(settings.duration / settings.dt);
+    // Its time cap is the match's own clock.
+    this.decision =
+      settings.quietLimit > 0
+        ? new Decision(sided === null ? count : math.max(...sided) + 1, { quietLimit: settings.quietLimit, timeCap: Infinity })
+        : null;
 
     this.battle = makeBattle(
       {
@@ -682,6 +697,17 @@ export class Match {
       this.ending = 'decided';
       this.winners = [];
       for (let i = 0; i < this.count; i++) if (fightingNow[i] === 1) this.winners.push(i);
+    } else if (this.decision !== null && this.ending === 'timeout') {
+      // A draw, every side disarmed, is left to the clock.
+      this.decision.observe(this.battle);
+      const side = this.decision.outcome;
+      if (side !== null && side >= 0) {
+        this.ending = 'decided';
+        this.winners = [];
+        for (let i = 0; i < this.count; i++) {
+          if (fightingNow[i] === 1 && (this.teams === null ? i : this.teams[i]!) === side) this.winners.push(i);
+        }
+      }
     }
   }
 

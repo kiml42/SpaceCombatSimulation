@@ -89,6 +89,16 @@ describe('match', () => {
     expect(result.elapsed / DEFAULT_MATCH.duration).toBeLessThan(0.9);
   });
 
+  it('ends a match on the skirmish rule when asked to', () => {
+    const weights = { survival: 1, functional: 1, damage: 1, disabling: 1, race: 0 };
+    const own = runMatch([GUNSHIP, CORVETTE], { seed: 1, weights });
+    // A limit shorter than any reload: the first to fire is the last in the fight.
+    const quiet = runMatch([GUNSHIP, CORVETTE], { seed: 1, weights, quietLimit: 0.05 });
+    expect(quiet.ending).toEqual('decided');
+    expect(quiet.winners).toHaveLength(1);
+    expect(quiet.elapsed).toBeLessThan(own.elapsed);
+  });
+
   it('plays on after the last kill while the goal still counts', () => {
     // The survivor still has the goal to fly: stopping would score it as
     // though it stayed wherever the last kill left it.

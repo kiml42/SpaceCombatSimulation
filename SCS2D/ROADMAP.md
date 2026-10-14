@@ -97,7 +97,8 @@ editors so a ship is edited in place within its fleet comes later, as does an up
 Built in order, a PR or more each: the loop without an enemy that answers (beat the stock fleets); the
 enemy answering in a worker, watched; then the decision rule's numbers tuned against real rounds.
 
-Built: **the fleet file** (`sim/fleet.ts`, `sim/fleetFile.ts`), **a battle from fleets**
+Built: **the decision rule** (`scenarios/decision.ts`), and evolution's optional end on it (`quietLimit`),
+**the fleet file** (`sim/fleet.ts`, `sim/fleetFile.ts`), **a battle from fleets**
 (`scenarios/fleetBattle.ts`), proved by `standoff` flying a fleet file with its checksum unchanged, **the
 fleet editor** (`dist/fleet.html`), and **a custom battle** on the viewer — fleets or single ships from the
 libraries, a file, or handed over by either editor's Battle link,

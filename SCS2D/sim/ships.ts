@@ -985,6 +985,8 @@ export class Ships {
    * is flying is held rather than recomputed, and recoil added into it piled up.
    */
   private readonly recoil: number[] = [];
+  /** 1 for a ship that fired this step: a round left one of its guns, or one of its beams was lit. */
+  private readonly fired: number[] = [];
   /** This step's push from fuel leaking out of each ship's body, body frame. */
   private readonly leakFx: number[] = [];
   private readonly leakFy: number[] = [];
@@ -1126,6 +1128,16 @@ export class Ships {
     this.layouts[i] = layout;
     this.layoutVersion[i] = version;
     return layout;
+  }
+
+  /** Whether ship `i` fired a gun or had a beam lit in the last `fire`. A torch burning at an enemy is not counted. */
+  firedThisStep(i: number): boolean {
+    return this.fired[i] === 1;
+  }
+
+  /** The ship `i`'s doctrine has committed it to ramming, or `NO_TARGET`. */
+  ramTarget(i: number): number {
+    return this.ramming[i] ?? NO_TARGET;
   }
 
   /**
@@ -1464,6 +1476,7 @@ export class Ships {
     this.demandFy.push(0);
     this.demandTorque.push(0);
     this.recoil.push(0);
+    this.fired.push(0);
     this.leakFx.push(0);
     this.leakFy.push(0);
     this.leakTorque.push(0);
@@ -2570,6 +2583,7 @@ export class Ships {
     this.bodyStore = bodies;
     let projectilesFired = 0;
     let beamsFired = 0;
+    this.fired.fill(0);
 
     for (let i = 0; i < this.alive.length; i++) {
       if (this.alive[i] === 0) continue;
@@ -2735,6 +2749,7 @@ export class Ships {
           turretStates[t] = TurretState.Reloading; // Projectile guns immediately reload after firing.
 
           projectilesFired++;  // increment for every shot fired
+          this.fired[i] = 1;
         } else {
           beams.fireFrom(
             bodyIdx,
@@ -2752,6 +2767,7 @@ export class Ships {
             design.turrets[t]!.module,
             this.mountLayers(i, design.turrets[t]!),
           );
+          this.fired[i] = 1;
           if (state == TurretState.Idle) {
             // was idle before, now committed on for beamOnTime
             state = turretStates[t] = TurretState.CommittedOn;
@@ -7521,6 +7537,7 @@ export class Ships {
     this.demandFy[i] = 0;
     this.demandTorque[i] = 0;
     this.recoil[i] = 0;
+    this.fired[i] = 0;
     this.leakFx[i] = 0;
     this.leakFy[i] = 0;
     this.leakTorque[i] = 0;

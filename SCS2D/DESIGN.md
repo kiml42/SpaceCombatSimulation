@@ -877,7 +877,9 @@ inside any one file is not contiguous.
   sends a fighter in to be mended and a ship out to wrecks for their metal. What is left of it is a stock
   salvager to fly it.
   Alongside it, §8 step 5's skirmish: an endless loop against an enemy fleet that evolves to beat the
-  player's, planned in ROADMAP.md §8.
+  player's, planned in ROADMAP.md §8. Its decision rule is built (`scenarios/decision.ts`): a side is out
+  once it has not fired or rammed for `QUIET_LIMIT` (30 s) since the first shot, with a `TIME_CAP` draw,
+  and evolution takes it as an optional end to a match (`quietLimit`).
   See ROADMAP.md §8.
   §8 step 3 is done, withdrawal left open (ROADMAP.md §12), and step 7, two layers, is built. What a chooser is already facing (`facingWeight`) and whether anything is in the way
   (`sightWeight`) are weights, zero by default. Evolution is built and runs both headlessly and on a page
@@ -908,7 +910,7 @@ inside any one file is not contiguous.
   and hits scored are identical too. Measured by `scenarios/ordering.ts`, which
   flies three gunships of one geometry both stacked in one battle and one to a
   battle each.
-- **Last updated:** 2026-10-12
+- **Last updated:** 2026-10-14
 
 ---
 
