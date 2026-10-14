@@ -18,6 +18,7 @@ import { frame, snapStep, type Camera } from '../render/camera.js';
 import { snap } from './edit.js';
 import {
   addShip,
+  distinctDesign,
   deleteEntries,
   duplicateEntries,
   dissolveGroup,
@@ -428,7 +429,12 @@ export function startFleetEditor(): void {
     if (file === undefined) return;
     void file.text().then((text) => {
       try {
-        place(parseBlueprint(JSON.parse(text)));
+        const read = parseBlueprint(JSON.parse(text));
+        const blueprint = distinctDesign(doc.fleet, read);
+        if (blueprint.name !== read.name) {
+          window.alert(`The fleet already has a different ${read.name}, so this one is added as ${blueprint.name}.`);
+        }
+        place(blueprint);
       } catch (error) {
         window.alert(`Could not read that file.\n\n${error instanceof Error ? error.message : error}`);
       }
