@@ -54,7 +54,7 @@ an entry is either still open or it is gone.
 | 10 | Raw material | Partly built |
 | 11 | Power | Built |
 | 12 | In-battle construction | Not started |
-| 13 | Harvesting wrecks | Not started |
+| 13 | Harvesting wrecks | Partly built |
 | 14 | Mining | Not started |
 | 15 | Campaign | Not started |
 
@@ -101,9 +101,8 @@ lead, which waits for standing orders. Velocity stays out of the fleet file; the
 
 **Step 10 — Raw material.** Metal, holds and guns loading from them are built (DESIGN.md Status). What is left:
 
-- **Repair** — a ship spending metal on its own damaged modules, the second use the step names. Stages
-  1 to 4 of the plan under *Not started* below are built (DESIGN.md Status): damage shedding mass, pads
-  mending fighters, robots mending their own hull, and robots lost and built anew. A fighter is mended only while it is down for something else: what sends
+- **Repair** — a ship spending metal on its own damaged modules, the second use the step names. All six
+  stages of the plan under *Not started* below are built (DESIGN.md Status). A fighter is mended only while it is down for something else: what sends
   one in *to be* mended is deferred, and open in §12.
 - **Magazines: guns turning metal into rounds ahead of firing** (§12). Wanted, not yet settled in shape.
 - **Pilots that know their ammunition.** Only a fighter breaks off to rearm, and only on a pad. Nothing else
@@ -154,13 +153,12 @@ the base of steps 12 and 13. The shape, settled with the author (DECISIONS.md):
   hulk and building the same module again always costs something. The waste leaves the world, counted as
   discarded matter is. It is a rate rather than a constant, so better technology could lower it, and it gives
   an upgrade a place to go if technology is ever modelled.
-- Robots stay on their own ship. Crossing a port seam to work on a docked friend can come later.
+- Robots stay on their own ship, crossing a seam only onto wreckage to take it apart. Crossing a port seam
+  to work on a docked friend can come later.
 
-A PR a stage. Stages 1 to 5 are built: mass shed by damage with what repairing it would cost kept on the
-books, pads repairing landed fighters, the robot bay and robots repairing, robots lost and built anew, and
-lost modules rebuilt by robots and by pads.
-
-6. **Disassembling what is not the ship's own into metal.**
+A PR a stage. All six are built: mass shed by damage with what repairing it would cost kept on the books,
+pads repairing landed fighters, the robot bay and robots repairing, robots lost and built anew, lost
+modules rebuilt by robots and by pads, and wreckage taken apart into metal.
 
 Steps 9 to 13 walk into the resource system one resource and one use at a time, fuel first (partly built,
 above): it is the scarcity every battle feels (§2), and some of §12 was parked until it existed — the dead
@@ -182,8 +180,9 @@ both directions.
     Rebuilding what a ship was designed with (stage 5 above) is its base; what is left is building what the
     design did not have.
 13. **Harvesting wrecks** — metal regained from wreckage, with the grapple step 9 built. The natural bridge to
-    an economy: no map features needed, and income tied directly to combat. Built by stage 6 above, so it
-    lands before the rest of step 12.
+    an economy: no map features needed, and income tied directly to combat. Stage 6 above takes apart what
+    a ship has hold of; what is left is a pilot going out for wrecks for their metal, as a scavenger does for
+    fuel, and a stock salvager to fly it.
 14. **Mining** — metal and fuel from map features, so maps have economic character. By here both resources
     exist, so this step is the map and the income, not the resources. *It replaces "did I spend 500 points
     well?" with "did I manage income well?"*
@@ -350,6 +349,11 @@ Deliberately unresolved; decide when they block something.
   be a hulk. Fuel for the generator and heat from everything are the step after.
 - **Whether a claw should drain an enemy's batteries.** It drinks fuel from what it grips; draining charge is
   the natural extension, and a way to disarm a beam ship without shooting it.
+
+- **Disassembly's numbers and reach.** Taking a kilogram apart is the work of building it, complexity and
+  all, and wastes a tenth, both first guesses. A friendly hulk with no robots of its own is wreckage to anyone
+  holding it, which may be too eager while it could still be mended by someone else's. A full hold leaves a
+  wreck half taken apart, its robots home with what they could not put away, until it is emptied.
 
 - **How build time should count against a design.** A module's mass and complexity (§2) set how long it
   takes to make, which repair and rebuilding already use, but nothing counts it yet. Evolution wants a time
