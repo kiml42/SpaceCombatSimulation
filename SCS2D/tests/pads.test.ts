@@ -171,6 +171,42 @@ describe('a fighter low on fuel', () => {
     expect(run.ships.fuel.pieceRoom(b, run.ships.design(run.f).cores[0]!)).toBeCloseTo(0, 3);
   });
 
+  /** A fighter waiting aboard with a 200 m sortie range, and whether `enemy`, spawned `at` metres off, sends it out. */
+  function sortsOutFor(enemy: Blueprint, at: number): boolean {
+    const doctrine = compileBlueprint(DINKY).doctrine;
+    const fighter = compileBlueprint({ ...DINKY, doctrine: { ...doctrine, approach: { ...doctrine.approach, refuelBelow: 0.5, sortieRange: 200 } } });
+    const run = scene({ fighter });
+    runUntil(run, () => aboard(run, run.f), 60);
+    for (let s = 0; s < 60 * 30; s++) run.step();
+    expect(aboard(run, run.f)).toBe(true);
+    run.ships.spawn(run.world, { design: compileBlueprint(enemy), x: at, y: 0, team: 1 });
+    runUntil(run, () => !aboard(run, run.f), 3);
+    return !aboard(run, run.f);
+  }
+
+  it('goes out for an enemy whose guns reach its carrier, however far its sortie range', () => {
+    const reach = compileBlueprint(CORVETTE).reach;
+    expect(reach).toBeGreaterThan(400);
+    expect(sortsOutFor(CORVETTE, reach - 100)).toBe(true);
+  });
+
+  it('goes out for an unarmed enemy that would ram, within its sortie range', () => {
+    const weapons = new Set(['turret', 'beamTurret', 'hullGun', 'hullBeam']);
+    const strip = (modules: Blueprint['modules']): Blueprint['modules'] => modules.filter((m) => !('kind' in m && weapons.has(m.kind)));
+    const doctrine = CORVETTE.doctrine ?? DEFAULT_DOCTRINE;
+    const rammer: Blueprint = {
+      ...CORVETTE,
+      name: 'Rammer',
+      modules: strip(CORVETTE.modules),
+      assemblies: Object.fromEntries(Object.entries(CORVETTE.assemblies ?? {}).map(([name, a]) => [name, { ...a, modules: strip(a.modules) }])),
+      doctrine: { ...doctrine, approach: { ...doctrine.approach, ramRadii: 40, ramArmed: 0 } },
+    };
+    expect(compileBlueprint(rammer).reach).toBe(0);
+    expect(sortsOutFor(rammer, 150)).toBe(true);
+    // And not for the same hull with no ram in its doctrine, harmless where it is.
+    expect(sortsOutFor({ ...rammer, doctrine: { ...doctrine, approach: { ...doctrine.approach, ramRadii: 0 } } }, 150)).toBe(false);
+  });
+
   it('does not land on a pad it does not fit inside', () => {
     const run = scene({ carrier: carrierOf(4) });
     runUntil(run, () => aboard(run, run.f), 60);

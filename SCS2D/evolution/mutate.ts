@@ -19,6 +19,7 @@ import {
   ORDERED_FIELDS,
   POSITIVE_FIELDS,
   SHIP_TARGETING_FIELDS,
+  UNEVOLVED_FIELDS,
   TARGETING_FIELDS,
   toDoctrine,
   type Doctrine,
@@ -662,7 +663,9 @@ function knobs(draft: Draft): Knob[] {
   // and nothing but a mount does that — a knob on one would be a draw that
   // cannot change the battle, and an edit accepted for changing nothing.
   for (const field of SHIP_TARGETING_FIELDS) out.push({ at: 'doctrine', half: 'targeting', field });
-  for (const field of APPROACH_FIELDS) out.push({ at: 'doctrine', half: 'approach', field });
+  for (const field of APPROACH_FIELDS) {
+    if (!UNEVOLVED_FIELDS.includes(field)) out.push({ at: 'doctrine', half: 'approach', field });
+  }
   // Even while the layout rules it out: the flag is ignored until it does not.
   out.push({ at: 'fighter' });
   out.push({ at: 'scale' });

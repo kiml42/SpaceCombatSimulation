@@ -230,6 +230,7 @@ export {
   MOUNT_TARGETING_FIELDS,
   SHIP_TARGETING_FIELDS,
   TARGETING_FIELDS,
+  UNEVOLVED_FIELDS,
   doctrineProblem,
   defaultTargeting,
   doctrineUnread,

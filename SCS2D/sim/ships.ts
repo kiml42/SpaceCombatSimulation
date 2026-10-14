@@ -5382,16 +5382,23 @@ export class Ships {
     return false;
   }
 
-  /** Whether fighter `i`, aboard body `b`, waits for an armed enemy to come within its `sortieRange` of it. */
+  /**
+   * Whether fighter `i`, aboard body `b`, waits: no enemy that can fight —
+   * armed, or able to ram — within its `sortieRange` of the carrier, and none
+   * whose guns reach the carrier from further off.
+   */
   private waitsAboard(bodies: Bodies, i: number, b: number): boolean {
     const range = this.doctrines[i]!.approach.sortieRange;
     if (!(range > 0)) return false;
     for (let t = 0; t < this.alive.length; t++) {
-      if (this.alive[t] === 0 || !this.hostile(i, t) || this.isDisarmed(t)) continue;
+      if (this.alive[t] === 0 || this.derelict[t] === 1 || !this.hostile(i, t)) continue;
+      const armed = !this.isDisarmed(t);
+      if (!armed && !(this.hasControl(t) && this.doctrines[t]!.approach.ramRadii > 0)) continue;
       const tb = bodies.indexOf(this.bodyIds[t]!);
       if (tb < 0 || tb === b) continue;
-      const gap = length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!) - bodies.radius[tb]! - bodies.radius[b]!;
-      if (gap <= range) return false;
+      const apart = length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!);
+      if (apart - bodies.radius[tb]! - bodies.radius[b]! <= range) return false;
+      if (armed && apart <= this.designs[t]!.reach + bodies.radius[b]!) return false;
     }
     return true;
   }
