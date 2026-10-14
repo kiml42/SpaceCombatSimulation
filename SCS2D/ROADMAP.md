@@ -51,7 +51,7 @@ an entry is either still open or it is gone.
 | 7 | Two layers | Built |
 | 8 | Fuel | Built |
 | 9 | Docking, fuel transfer and fuel harvesting | Built |
-| 10 | Raw material | Partly built |
+| 10 | Raw material | Built |
 | 11 | Power | Built |
 | 12 | In-battle construction | Not started |
 | 13 | Harvesting wrecks | Partly built |
@@ -90,26 +90,9 @@ replaced the boss battle.
 Not planned: per-ship doctrine overrides in a fleet (fork the design instead), and a group's own doctrine or
 lead, which waits for standing orders. Velocity stays out of the fleet file; the battle setup holds it.
 
-**Step 10 — Raw material.** Metal, holds and guns loading from them are built (DESIGN.md Status). What is left:
-
-- **Repair** — a ship spending metal on its own damaged modules, the second use the step names. All six
-  stages of the plan under *Not started* below are built (DESIGN.md Status). A fighter is mended only while it is down for something else: what sends
-  one in *to be* mended is deferred, and open in §12.
-- **Magazines: guns turning metal into rounds ahead of firing** (§12). Wanted, not yet settled in shape.
-- **Pilots that know their ammunition.** Only a fighter breaks off to rearm, and only on a pad. Nothing else
-  fights differently for running low: a ship fires as freely with its last round as its first, and a gun
-  that is dry just stops. Fire discipline by what is left belongs with withdrawal (step 3).
-- **Stocking the stock ships.** Only what a core carries, and the two fighters' new holds. The X-Wing's core
-  holds about fourteen of its rounds and the Y-Wing's under two of its main gun's; every unarmed ship
-  carries metal it cannot spend, since a core's share is fixed. How much each wants is a design call about
-  the fleet.
-- **Metal through a claw or a port.** A pad pumps metal as well as fuel; a claw and a port pump fuel only.
-  A claw does not drink metal: a wreck's metal is had by gripping it and stripping it (stage 6 below). A port
-  is the same change as the pad's, once a ship other than a fighter has a reason to rearm.
-
 ### Not started — in order
 
-**Repair, construction and salvage are one mechanism, built next in six stages.** It finishes step 10 and is
+**Repair, construction and salvage are one mechanism, built in six stages.** It finished step 10 and is
 the base of steps 12 and 13. The shape, settled with the author (DECISIONS.md):
 
 - **Damage sheds mass** (DESIGN.md §4): a little by the time a module stops working, more with damage past
@@ -161,7 +144,7 @@ with its size — so a bare core with one engine or one weapon can act, and a bi
 Today the best core is the smallest, most armoured one that can hide from a hit; this gives size a price in
 both directions.
 
-10. **Raw material** — a store of metal, spent as ammunition and on repair (partly built, above). It brings
+10. **Raw material** — a store of metal, spent as ammunition and on repair (built). It brings
     in the other half of §2's scarcity.
 11. **Power** — a generator that beams draw on, refilling each mount's bank at what the plant can spare, and a
     module to hit to silence them. Straight after raw material, because once guns spend ammunition and beams
@@ -618,10 +601,10 @@ Deliberately unresolved; decide when they block something.
   absorbed, a tenth of a module by the time it breaks and half at five times that (DESIGN.md §4), which
   are first guesses to tune. The floor can drop once a module can be drawn with holes in it.
 - **What a robot bay is worth to evolution.** Weighted zero, as a pad is, until robots are tuned.
-- **What sends a ship in to be mended.** Not a `repairBelow` beside `refuelBelow`: one threshold on how
-  damaged a ship is would weigh a scratched hull the same as a lost gun. It has to weigh damage by the
-  function lost, so a fighter shrugs off some damaged modules but runs for a pad at once if it loses a gun.
-  Deferred by the author until repair has settled.
+- **What sends a ship in to be mended.** A fighter goes at its `repairBelow`, one threshold on the lower of
+  its weakest core and the share of its mass still sound, so a scratched hull weighs the same as a lost gun.
+  Wanted: damage weighed by the function lost, so a fighter shrugs off some damaged modules but runs for a pad
+  at once if it loses a gun. Only a fighter goes, and only to a pad.
 - **The numbers for repair.** How much each step wastes (repair wastes a tenth, a first guess), and whether
   disassembly and building waste alike; time and power for a joule of damage undone (a pad mends 20 kJ/s a
   metre of its width, at 10 J of charge a joule, both first guesses); a robot's speed over a hull (2 m/s), the
@@ -911,6 +894,15 @@ Deliberately unresolved; decide when they block something.
   momentum: the pieces are spun off about the full ship's centre, not the real one. Found when a Dinky set
   out with a quarter-full hold and `ram`'s momentum books stopped balancing; the stock hold starts full
   instead. Fixing it means moving the centre of mass as stores drain, which every hull frame hangs off.
+- **Pilots that know their ammunition.** Only a fighter breaks off to rearm, and only on a pad. Nothing else
+  fights differently for running low: a ship fires as freely with its last round as its first, and a gun
+  that is dry just stops. Fire discipline by what is left belongs with withdrawal (§8 step 3).
+- **How much metal the stock ships carry.** Only what a core carries, and the two fighters' holds. The
+  X-Wing's core holds about fourteen of its rounds and the Y-Wing's under two of its main gun's; every unarmed
+  ship carries metal it cannot spend, since a core's share is fixed. A design call about the fleet.
+- **Metal through a port.** A pad pumps metal as well as fuel; a claw and a port pump fuel only. A claw has
+  no need: a wreck's metal is had by gripping it and stripping it. A port is the same change as the pad's,
+  once a ship other than a fighter has a reason to rearm.
 - **Magazines: whether a gun must turn metal into rounds and keep them before it can fire.** A gun loads
   each round straight from the holds on its piece of hull. The alternative wanted is a magazine in the mount:
   metal drawn from the hold at some rate, made into rounds and stored, and the gun firing only what is

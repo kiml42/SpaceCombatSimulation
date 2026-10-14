@@ -701,8 +701,8 @@ inside any one file is not contiguous.
   fighter, cores first, paid for in the carrier's metal and charge. The pad lets it go when it is full,
   mended and whole, when there is no more to spare, or at once when it is given an order. The `padRebuild`
   scenario has two Dinkies, each short of an outrigger engine, land on a Workshop, a Tender with a hold, and
-  lift off whole; the engine's complexity makes that the work of about four seconds. Nothing yet sends
-  a fighter in to be mended: it is mended while it is down for anything else. A merged design remembers which of its pieces
+  lift off whole; the engine's complexity makes that the work of about four seconds. A fighter goes in
+  to be mended at its `repairBelow` (below), and is mended while it is down for anything else. A merged design remembers which of its pieces
   were fighters (`fighterPieces`), so it lifts off a fighter, and every ship keeps the doctrine it set out with
   whatever hull it rides, so a fighter flies on its own and not its carrier's. The `carrier` scenario has three Dinkies take
   turns on a two-pad Tender; evolution's weight for a pad is zero, since it pays only in a fleet with fighters.
