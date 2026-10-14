@@ -1378,7 +1378,9 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   plain ascending order, which keeps damage application order reproducible.
 - **Weld on slow contact** (`Ships.weld`, built). A module at or under `RAGGED_INTEGRITY` has ragged edges,
   and two bodies closing at under `WELD_SPEED` hook together if either touching module is ragged and
-  neither has parted within `WELD_SETTLE`. They merge into
+  neither has parted within `WELD_SETTLE`, unless the contact is on a hull mount's barrel (`onWeldablePart`): a
+  stop-gap, as a barrel still collides as the rest of its module's rectangle rather than where it is drawn. An
+  engine's bell does weld, though a layout is never attached by one, as debris can snag on it. They merge into
   one body, momentum and angular momentum kept, with their designs joined by a **seam** (`ShipDesign.seams`)
   a `HOOK_SHARE` of the narrower face wide. A seam tears like any weld, but carries no command. This makes
   wreckage into larger chunks worth chasing down and harvesting, instead of lots of tiny fragments.

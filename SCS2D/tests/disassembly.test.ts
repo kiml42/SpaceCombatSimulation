@@ -16,13 +16,13 @@ interface Setup {
   first?: boolean;
 }
 
-/** A salvager drifting bow first into `other`, torn open everywhere and its cores out unless `live`. */
+/** A salvager drifting bow first into `other`'s stern, `other` torn open everywhere and its cores out unless `live`. */
 function approach(other: ShipDesign, setup: Setup = {}) {
   return makeBattle({ seed: 1 }, (ships, world) => {
     const gap = salvager.radius + other.radius + 1;
     const spawn = () => ships.spawn(world, { design: salvager, x: -gap / 2, y: 0, angle: 0, vx: 0.6 });
     const pre = setup.first === true ? -1 : spawn();
-    const b = ships.spawn(world, { design: other, x: gap / 2, y: 0, angle: Math.PI, vx: -0.6, team: 1 });
+    const b = ships.spawn(world, { design: other, x: gap / 2, y: 0, angle: 0, vx: -0.6, team: 1 });
     const a = pre >= 0 ? pre : spawn();
     const body = world.bodies.indexOf(ships.body(b));
     for (let m = 0; m < other.modules.length; m++) {
