@@ -665,7 +665,17 @@ export const PAD_PUMP_PER_METRE = 50;
 /** Damage a pad undoes per metre of its width, J/s, on what has landed on it. */
 export const PAD_REPAIR_PER_METRE = 2e4;
 
-/** Bay interior a robot and its berth take up, m³. */
+/**
+ * The square of a bay's deck a robot's berth takes, metres a side: a bay has
+ * as many as fit across its length and its width, in a grid.
+ */
+export const ROBOT_BERTH_PITCH = 2;
+
+/**
+ * Bay interior behind each berth at which a robot is built and refilled in
+ * `ROBOT_BUILD_TIME` and `ROBOT_REFILL_TIME`, m³: more is quicker in proportion
+ * (`berthRate`), less slower.
+ */
 export const ROBOT_BERTH_VOLUME = 10;
 
 /** What a robot weighs, kg, counted in its bay's fittings. */
@@ -691,6 +701,19 @@ export const ROBOT_REFILL_TIME = 5;
 
 /** How long a bay takes to build a robot to replace one lost, s. */
 export const ROBOT_BUILD_TIME = 20;
+
+/** How many berths a robot bay has along its length and across its width. */
+export function berthGrid(spec: ModuleSpec): { across: number; down: number } {
+  return { across: roundDown(spec.length / ROBOT_BERTH_PITCH), down: roundDown(spec.width / ROBOT_BERTH_PITCH) };
+}
+
+/**
+ * How fast a bay builds and refills its robots against the standard: the
+ * interior behind each berth over `ROBOT_BERTH_VOLUME`. Nought for no berths.
+ */
+export function berthRate(stats: ModuleStats): number {
+  return stats.robots > 0 ? stats.interior / stats.robots / ROBOT_BERTH_VOLUME : 0;
+}
 
 /**
  * A docking port's collar, clamps and coupling per square metre of its floor,
@@ -2420,7 +2443,8 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
     fittingMass = interior * GENERATOR_MASS_PER_VOLUME;
     generation = interior * GENERATOR_POWER_PER_VOLUME;
   } else if (spec.kind === 'robotBay') {
-    robots = roundDown(interior / ROBOT_BERTH_VOLUME);
+    const grid = berthGrid(spec);
+    robots = grid.across * grid.down;
     fittingMass = interior * ROBOT_BAY_MASS_PER_VOLUME + robots * ROBOT_MASS;
   } else if (engine !== null) {
     // Thrust comes out of the nozzle, so it scales with the exit area: each

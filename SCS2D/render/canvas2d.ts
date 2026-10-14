@@ -26,6 +26,8 @@ import {
   fillOf,
   triangleOf,
   ROBOT_VIEW_STRIDE,
+  ROBOT_BERTH_PITCH,
+  berthGrid,
 } from '../sim/index.js';
 import { gridStep, type Camera } from './camera.js';
 import { fighterColours, NEUTRAL, shipColours, teamName } from './teams.js';
@@ -37,7 +39,7 @@ import { clipToStart, exposureEnds, flashSamples, shutterWeight } from './exposu
 import { sprite } from './sprites.js';
 import { iconAlpha, ICON_OUTLINE, ICON_PX } from './icons.js';
 
-const { ceil, cos, floor, sin, length, max, min, PI, round, sqrt, TAU } = math;
+const { cos, floor, sin, length, max, min, PI, sqrt, TAU } = math;
 
 /**
  * A Canvas2D view of a snapshot.
@@ -177,7 +179,7 @@ const CHARGE = '#9b7bff';
 /** How much of a generator's smaller side its disc is drawn across. */
 const GENERATOR_DISC = 0.55;
 
-/** How much of a berth's cell its round pad fills across, as a radius. */
+/** How much of a berth's square its round pad fills across, as a radius. */
 const ROBOT_PAD = 0.38;
 
 /** How many numbers a snapshot gives each robot home: its bay, and its charge and metal shares. */
@@ -595,16 +597,14 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
         }
       }
       if (spec.kind === 'robotBay') {
-        // A round pad for each berth, in a grid as near square as the bay
-        // allows, dark once it can no longer tend its robots; a robot home
-        // sits on its pad.
+        // A round pad for each berth, all one size, spread evenly over the
+        // bay in the grid its berths make (`berthGrid`), dark once it can no
+        // longer tend its robots; a robot home sits on its pad.
         ctx.globalAlpha = 1;
-        const berths = max(1, m.stats.robots);
-        const across = max(1, round(sqrt((berths * spec.length) / spec.width)));
-        const down = ceil(berths / across);
-        const cellLength = spec.length / across;
-        const cellWidth = spec.width / down;
-        const pad = min(cellLength, cellWidth) * ROBOT_PAD;
+        const { across, down } = berthGrid(spec);
+        const cellLength = spec.length / max(1, across);
+        const cellWidth = spec.width / max(1, down);
+        const pad = ROBOT_BERTH_PITCH * ROBOT_PAD;
         // The robots home here, in the order they are given.
         const docked = ship.docked ?? [];
         const here: number[] = [];

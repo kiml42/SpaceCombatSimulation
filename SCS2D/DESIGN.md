@@ -691,8 +691,11 @@ inside any one file is not contiguous.
   were fighters (`fighterPieces`), so it lifts off a fighter, and every ship keeps the doctrine it set out with
   whatever hull it rides, so a fighter flies on its own and not its carrier's. The `carrier` scenario has three Dinkies take
   turns on a two-pad Tender; evolution's weight for a pad is zero, since it pays only in a fleet with fighters.
-  **A robot bay** (`robotBay`) berths a robot for every `ROBOT_BERTH_VOLUME` of its interior, priced by
-  their weight (`ROBOT_MASS`) and its racks, and is drawn as a deck with a round pad for each berth, a robot
+  **A robot bay** (`robotBay`) berths as many robots as squares of `ROBOT_BERTH_PITCH` fit along its length
+  and across its width (`berthGrid`), priced by their weight (`ROBOT_MASS`) and its racks, and builds and
+  refills them faster the more of its interior there is behind each berth, at the rate in `ROBOT_BUILD_TIME`
+  and `ROBOT_REFILL_TIME` for `ROBOT_BERTH_VOLUME` (`berthRate`). It is drawn as a deck with a round pad, all
+  of one size, for each berth, spread evenly over it in the berths' grid, a robot
   home sitting on its pad as a disc once it is full and as itself while it is being filled, and the pad of
   one being built filling round as a ring. A robot is not a body but a place on its hull: it crawls module
   to module across the welds the hull was built with, and across a seam only onto wreckage, at `ROBOT_SPEED`, and is drawn there as
@@ -702,8 +705,8 @@ inside any one file is not contiguous.
   one fewest robots are after, the nearest of those — and mends it at `ROBOT_REPAIR_RATE`, at a pad's costs:
   `REPAIR_ENERGY_PER_JOULE` of what it carries, and the metal the module shed and `REPAIR_WASTE` more, drawn
   from its piece of hull. It goes straight on to the next job, and home once it is short of either; its bay
-  refills it over `ROBOT_REFILL_TIME`, slower as the bay is damaged, topping its charge up from its piece,
-  reserves and all. Robots work only for the ship working their bay, on that
+  refills it over `ROBOT_REFILL_TIME`, slower as the bay is damaged, charging it as fast from its piece,
+  reserves and all, and keeps it until it is full while the piece has the charge. Robots work only for the ship working their bay, on that
   ship's modules, but on what they carry: a ship with no control, or a bay broken or cut off from command by
   a spine torn ragged, stops none of them — only a bay that cannot refill them once they are spent, which is
   how robots mend the very spine that cut their bay off. Spent, with no bay to refill them or no metal left

@@ -6,7 +6,10 @@ import {
   joints,
   moduleStats,
   REPAIR_WASTE,
+  ROBOT_BERTH_PITCH,
   ROBOT_BERTH_VOLUME,
+  berthGrid,
+  berthRate,
   ROBOT_BUILD_TIME,
   ROBOT_MASS,
   ROBOT_REPAIR_RATE,
@@ -57,12 +60,29 @@ const out = (run: Run): number => {
 };
 
 describe('a robot bay', () => {
-  it('berths a robot for every berth its interior holds, and weighs them', () => {
-    const small = moduleStats({ kind: 'robotBay', x: 0, y: 0, length: 4, width: 4 });
-    const large = moduleStats({ kind: 'robotBay', x: 0, y: 0, length: 6, width: 6 });
-    expect(small.robots).toBe(Math.floor(small.interior / ROBOT_BERTH_VOLUME));
-    expect(large.robots).toBeGreaterThan(small.robots);
-    expect(small.fittingMass).toBeGreaterThan(small.robots * ROBOT_MASS);
+  const bay = (length: number, width: number) => moduleStats({ kind: 'robotBay', x: 0, y: 0, length, width });
+
+  it('berths as many robots as squares of its deck fit, in a grid, and weighs them', () => {
+    expect(bay(4, 4).robots).toBe(4);
+    expect(bay(7.5, 6).robots).toBe(9);
+    expect(bay(5, 3).robots).toBe(2);
+    expect(bay(1.5, 4).robots).toBe(0);
+    for (const [length, width] of [[4, 4], [7.5, 6], [5, 3]] as const) {
+      const { across, down } = berthGrid({ kind: 'robotBay', x: 0, y: 0, length, width });
+      expect(across).toBe(Math.floor(length / ROBOT_BERTH_PITCH));
+      expect(down).toBe(Math.floor(width / ROBOT_BERTH_PITCH));
+      expect(bay(length, width).robots).toBe(across * down);
+    }
+    expect(bay(4, 4).fittingMass).toBeGreaterThan(bay(4, 4).robots * ROBOT_MASS);
+  });
+
+  it('builds and refills its robots faster the more room it has behind each berth', () => {
+    // The same four berths, with more bay behind each in the bigger one.
+    expect(bay(5.9, 5.9).robots).toBe(bay(4, 4).robots);
+    expect(berthRate(bay(5.9, 5.9))).toBeGreaterThan(berthRate(bay(4, 4)));
+    const standard = bay(4, 4);
+    expect(berthRate(standard)).toBeCloseTo(standard.interior / standard.robots / ROBOT_BERTH_VOLUME, 9);
+    expect(berthRate(bay(1.5, 4))).toBe(0);
   });
 });
 
@@ -277,7 +297,7 @@ describe('robots', () => {
       steps = 0;
       while (count(run) < berths && steps++ < 600 * 60) run.step();
       expect(count(run)).toBe(berths);
-      expect(steps / 60).toBeGreaterThanOrEqual(caught * ROBOT_BUILD_TIME - 1);
+      expect(steps / 60).toBeGreaterThanOrEqual((caught * ROBOT_BUILD_TIME) / berthRate(line.modules[BAY]!.stats) - 1);
     });
 
     it('are not lost going to mend a module already destroyed', () => {

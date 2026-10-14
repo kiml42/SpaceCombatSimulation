@@ -632,7 +632,7 @@ Deliberately unresolved; decide when they block something.
 - **The numbers for repair.** How much each step wastes (repair wastes a tenth, a first guess), and whether
   disassembly and building waste alike; time and power for a joule of damage undone (a pad mends 20 kJ/s a
   metre of its width, at 10 J of charge a joule, both first guesses); a robot's speed over a hull (2 m/s), the
-  metal and charge it carries (1,000 kg and 50 MJ) and how fast it works (50 kJ/s), a berth (10 m³ of bay) and
+  metal and charge it carries (1,000 kg and 50 MJ) and how fast it works (50 kJ/s), a berth (a 2 m square of deck, with 10 m³ of bay behind it for the standard rate) and
   a refill (5 s), and what a new robot costs (its 300 kg of metal and a tenth more, over 20 s), all first
   guesses.
 - **What scrap and salvage reach are worth: `SCRAP_MASS` and `SALVAGE_REACH`.** They encode an economic
