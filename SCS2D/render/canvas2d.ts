@@ -1261,10 +1261,14 @@ function fade(
  * wreckage that no longer is any. A mission-killed hull keeps its icon in
  * grey rather than losing it, because it is still a solid thing in the way,
  * and at the zoom where icons are what you are reading, losing it would make
- * it vanish rather than read as a hulk.
+ * it vanish rather than read as a hulk. A ship riding another's body, as a
+ * fighter on its pad, has none: the hull's own stands for it.
+ *
+ * It points the way the ship does (`ShipView.heading`), which is not always
+ * its body's angle: a fighter launched from a pad keeps the carrier's frame.
  */
 function drawIcon(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number): void {
-  if (ship.isDerelict) return;
+  if (ship.isDerelict || ship.riding === true) return;
   const alpha = iconAlpha(ship.design.radius * 2 * metresToPx);
   if (alpha <= 0) return;
   const palette = ship.design.fighter ? fighterColours : shipColours;
@@ -1273,7 +1277,7 @@ function drawIcon(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
 
   ctx.save();
   ctx.translate(ship.x, ship.y);
-  ctx.rotate(ship.angle);
+  ctx.rotate(ship.heading ?? ship.angle);
   ctx.scale(size, size);
   ctx.globalAlpha = alpha;
   ctx.beginPath();
