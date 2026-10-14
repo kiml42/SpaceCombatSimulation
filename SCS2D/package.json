@@ -17,10 +17,10 @@
     "sync-fleets": "tsx scripts/syncFleets.ts"
   },
   "devDependencies": {
-    "@types/node": "^26.4.1",
-    "playwright": "^1.63.0",
-    "tsx": "^4.23.13",
+    "@types/node": "^26.6.5",
+    "playwright": "^1.64.1",
+    "tsx": "^4.23.15",
     "typescript": "^7.0.2",
-    "vitest": "^4.1.11"
+    "vitest": "^5.0.4"
   }
 }
