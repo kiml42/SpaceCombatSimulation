@@ -2239,19 +2239,25 @@ export class Ships {
    * costing an escorting fleet the very broadside `focusWeight` exists to
    * hold together.
    */
-  /** What this ship is staying with as an escort, as `cover` has it; `NO_TARGET` for nothing. */
-  coveringOf(i: number): number {
-    const consort = this.consort[i] ?? NO_TARGET;
-    if (consort === NO_TARGET || consort === i || this.alive[consort] !== 1) return NO_TARGET;
-    const bodies = this.bodyStore;
-    if (bodies === null) return NO_TARGET;
-    if (this.hulk(consort) && !this.mending(bodies, consort)) return NO_TARGET;
-    return consort;
-  }
-
   /** What this ship is fighting: its order's target, else what its doctrine chose; `NO_TARGET` for nothing. */
   fightingOf(i: number): number {
     return this.focusOf(i);
+  }
+
+  /** What this ship is staying with as an escort, as `cover` flies it; `NO_TARGET` for nothing, or for a ship out of control. */
+  coveringOf(i: number): number {
+    const bodies = this.bodyStore;
+    if (bodies === null || this.alive[i] !== 1 || !this.hasControl(i)) return NO_TARGET;
+    return this.liveConsort(bodies, i, bodies.indexOf(this.bodyIds[i]!));
+  }
+
+  /** Ship `i`'s consort while it is one worth staying with: alive, not a hulk left to itself, and on a body of its own. */
+  private liveConsort(bodies: Bodies, i: number, b: number): number {
+    const consort = this.consort[i] ?? NO_TARGET;
+    if (consort === NO_TARGET || this.alive[consort] !== 1) return NO_TARGET;
+    if (this.hulk(consort) && !this.mending(bodies, consort)) return NO_TARGET;
+    const cb = bodies.indexOf(this.bodyIds[consort]!);
+    return cb < 0 || cb === b ? NO_TARGET : consort;
   }
 
   /**
@@ -3621,11 +3627,9 @@ export class Ships {
    * stringing out.
    */
   private cover(bodies: Bodies, i: number, b: number): number {
-    const consort = this.consort[i]!;
-    if (consort === NO_TARGET || this.alive[consort] !== 1) return NO_TARGET;
-    if (this.hulk(consort) && !this.mending(bodies, consort)) return NO_TARGET;
+    const consort = this.liveConsort(bodies, i, b);
+    if (consort === NO_TARGET) return NO_TARGET;
     const cb = bodies.indexOf(this.bodyIds[consort]!);
-    if (cb < 0 || cb === b) return NO_TARGET;
 
     const design = this.designs[i]!;
     const station = this.escortBand(i, design, consort);

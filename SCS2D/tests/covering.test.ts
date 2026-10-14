@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { DAMAGE_ENERGY_PER_KG } from '../sim/index.js';
 import { capture, Snapshot } from '../sim/snapshot.js';
 import { duel } from '../scenarios/duel.js';
 
@@ -15,5 +16,19 @@ describe('what a ship is escorting', () => {
     expect(corvettes[0]!.covering).toBe(corvettes[1]!.body);
     expect(corvettes[1]!.covering).toBe(corvettes[0]!.body);
     expect(ships.find((ship) => ship.design.name === 'Gunship')!.covering).toBe(-1);
+  });
+
+  it('is -1 for a ship whose cores are out, whatever it was covering', () => {
+    const battle = duel();
+    for (let s = 0; s < 60; s++) battle.step();
+    const { ships, world } = battle;
+    const corvette = [0, 1, 2].find((i) => ships.design(i).name === 'Corvette' && ships.coveringOf(i) >= 0)!;
+    expect(corvette).toBeDefined();
+    const body = world.bodies.indexOf(ships.body(corvette));
+    for (const core of ships.design(corvette).cores) {
+      ships.damage.absorb(body, core, ships.design(corvette).modules[core]!.stats.hitPoints * DAMAGE_ENERGY_PER_KG);
+    }
+    expect(ships.hasControl(corvette)).toBe(false);
+    expect(ships.coveringOf(corvette)).toBe(-1);
   });
 });
