@@ -299,8 +299,7 @@ describe('the viewer in a browser', () => {
     );
 
     await page.click('#fight');
-    await page.fill('#speed', '8');
-    await page.dispatchEvent('#speed', 'input');
+    await page.selectOption('#speed', '8');
     await page.waitForFunction(() => (document.getElementById('outcome')?.textContent ?? '') !== '', null, {
       timeout: 20_000,
     });
@@ -309,8 +308,7 @@ describe('the viewer in a browser', () => {
     expect(await page.textContent('#play')).toBe('Pause');
     const decidedAt = await step(page);
     expect(await advanced(page, decidedAt)).toBeGreaterThan(decidedAt);
-    await page.fill('#speed', '1');
-    await page.dispatchEvent('#speed', 'input');
+    await page.selectOption('#speed', '1');
   });
 
   it('copies a link that opens the same battle, paused at its start', async () => {
