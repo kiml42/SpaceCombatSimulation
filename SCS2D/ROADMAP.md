@@ -78,8 +78,13 @@ that evolves to beat you, settled with the author (DECISIONS.md):
 
 **A battle is decided** when one side has fired or rammed in the last 30 s and the other has not. A ship too
 far off to shoot is out of it, and an unarmed ship never fires. A hard time cap ends a stalemate, and a
-draw is a loss for the player, who has to win. The enemy's matches are decided the same way, or what it
-evolves to win and what the player sees would disagree.
+draw is a loss for the player, who has to win.
+
+**The enemy evolves under evolution's own rules**: a match ends when one side is left fighting or at its
+time limit, and an enemy ahead at the limit is taken to win in the end. That is an assumption, so a winner
+is checked by fighting the round itself to the skirmish's decision before it is shown, and the search goes
+on if the player survives it. The skirmish's rule is also offered to evolution as an optional way to end a
+match.
 
 **The enemy's evolution runs in a worker**, at full speed, and the page replays each generation's best
 enemy against the player's fleet as it arrives — a replay is the two fleets and a seed — with a generation
@@ -322,7 +327,8 @@ Deliberately unresolved; decide when they block something.
   so it grows only as it must, but it never shrinks, and drifts larger round by round. A preference for
   efficiency would let it get leaner as well as stronger.
 - **The skirmish's numbers.** How long without firing puts a side out of a battle (30 s, a first guess),
-  the time cap on a stalemate, how many random seeds the enemy evolves on, and how long a round's evolution
+  the time cap on a stalemate, how many random seeds the enemy evolves on, what
+  counts as ahead when an evolution match runs out of time, and how long a round's evolution
   may take before something gives.
 
 - **Whether the editor needs a test flight of its own.** A throwaway sim inside the editor, flying the ship
