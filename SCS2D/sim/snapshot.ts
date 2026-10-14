@@ -48,6 +48,12 @@ export interface ShipView {
   coreNumbers?: number[];
   /** The body of what it is fighting, or -1 or absent for nothing. */
   fighting?: number;
+  /**
+   * The band of ranges it is holding against what it is fighting, centre to
+   * centre, metres; absent when it holds none, as for a ram.
+   */
+  fightingMin?: number;
+  fightingMax?: number;
   x: number;
   y: number;
   angle: number;
@@ -398,6 +404,14 @@ export function capture(
     ships.coreNumbers(i, (view.coreNumbers ??= []));
     const fighting = ships.fightingOf(i);
     view.fighting = fighting >= 0 && ships.isAlive(fighting) ? bodies.indexOf(ships.body(fighting)) : -1;
+    const held = view.fighting >= 0 ? ships.heldOrder(i) : undefined;
+    if (held === undefined) {
+      delete view.fightingMin;
+      delete view.fightingMax;
+    } else {
+      view.fightingMin = held.minRange;
+      view.fightingMax = held.maxRange;
+    }
     view.x = bodies.x[b]!;
     view.y = bodies.y[b]!;
     view.angle = bodies.angle[b]!;
