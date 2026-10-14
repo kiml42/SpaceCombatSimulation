@@ -106,11 +106,8 @@ export function startSkirmish(): void {
     },
   );
   el<HTMLButtonElement>('fit').addEventListener('click', () => view.fit());
-  const speed = el<HTMLInputElement>('speed');
-  speed.addEventListener('input', () => {
-    view.setSpeed(Number(speed.value));
-    el<HTMLElement>('speedLabel').textContent = `${speed.value}x`;
-  });
+  const speed = el<HTMLSelectElement>('speed');
+  speed.addEventListener('change', () => view.setSpeed(Number(speed.value)));
   playButton.addEventListener('click', () => view.setRunning(!view.running));
 
   // ---- the setup ------------------------------------------------------------
