@@ -76,8 +76,11 @@ import { viewGestures } from './viewGestures.js';
  */
 const DESIGNS_KEPT = 512;
 
-/** Cap on replay steps per frame, so a tab left in the background cannot catch up in one lurch. */
-const MAX_STEPS_PER_FRAME = 16;
+/**
+ * Cap on replay steps per frame, so a tab left in the background cannot catch
+ * up in one lurch; twice what 16x asks at 60 Hz, so a slow frame is made up.
+ */
+const MAX_STEPS_PER_FRAME = 32;
 
 /**
  * The box one kind of ship is drawn in, CSS pixels.
