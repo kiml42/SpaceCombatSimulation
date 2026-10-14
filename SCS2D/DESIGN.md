@@ -697,7 +697,7 @@ inside any one file is not contiguous.
   one being built filling round as a ring. A robot is not a body but a place on its hull: it crawls module
   to module across the welds the hull was built with, and across a seam only onto wreckage, at `ROBOT_SPEED`, and is drawn there as
   a beetle facing the way it crawls, its two wing cases bars that empty as it spends its charge and its
-  metal. It sets out with `ROBOT_LOAD` of metal and `ROBOT_CHARGE` it may spend, goes to
+  metal, over every capital hull and its mounts and under every fighter, flying or landed. It sets out with `ROBOT_LOAD` of metal and `ROBOT_CHARGE` it may spend, goes to
   the damaged module of its ship's that matters most — cores and robot bays, then engines and weapons, then the rest, the
   one fewest robots are after, the nearest of those — and mends it at `ROBOT_REPAIR_RATE`, at a pad's costs:
   `REPAIR_ENERGY_PER_JOULE` of what it carries, and the metal the module shed and `REPAIR_WASTE` more, drawn
