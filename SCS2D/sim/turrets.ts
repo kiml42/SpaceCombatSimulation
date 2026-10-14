@@ -428,14 +428,20 @@ export class Turrets {
 
   /**
    * A bearing as a sweep from rest within the arc, from `-right` to `+left`,
-   * unwrapped past half a circle where the arc goes that far; a bearing
-   * outside the arc is taken the short way from rest.
+   * unwrapped past half a circle where the arc goes that far. A bearing
+   * outside the arc, as a mount that has overrun an end by a hair, is past
+   * whichever end it is nearer: taken the short way from rest, one just past
+   * an end at half a circle read as nearly a full turn off it, and the mount
+   * went the long way round, through its block, to get back.
    */
   private arcOffset(rest: number, bearing: number, left: number, right: number): number {
     const offset = angleDelta(rest, bearing);
+    if (offset >= -right && offset <= left) return offset;
     if (offset > left && offset - TAU >= -right) return offset - TAU;
     if (offset < -right && offset + TAU <= left) return offset + TAU;
-    return offset;
+    const pastLeft = offset - left >= 0 ? offset - left : offset - left + TAU;
+    const pastRight = TAU - left - right - pastLeft;
+    return pastLeft <= pastRight ? left + pastLeft : -right - pastRight;
   }
 
   /** Clamp a body-frame bearing into this turret's traverse arc. */
