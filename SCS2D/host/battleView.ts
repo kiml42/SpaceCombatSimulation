@@ -1,0 +1,204 @@
+import { capture, Snapshot } from '../sim/index.js';
+import { Flashes } from '../render/flashes.js';
+import { ARCS_KEY, draw, nextArcs, TEAM_SHOTS_KEY, type Arcs } from '../render/canvas2d.js';
+import { frame, moveWithVisibleShips, selectionBounds, shipAt, type Camera } from '../render/camera.js';
+import type { Battle } from '../scenarios/types.js';
+import { viewGestures } from './viewGestures.js';
+
+/**
+ * A battle drawn on a canvas and run on the wall clock: the camera, the
+ * flashes, picking a ship out, and the keys that go with them. The page
+ * decides what battle it is and what else to show.
+ *
+ * **The wall clock lives here and only here.** The simulation takes a fixed
+ * step and has no idea what time it is (DESIGN.md non-negotiable 2); this
+ * accumulates real elapsed time and decides how many fixed steps to run for it.
+ * That is what lets the same battle run at half speed, at eight times speed, or
+ * flat out in a headless test, and come out identical.
+ */
+
+/** Cap on steps per frame. A tab left in the background must not try to catch up. */
+const MAX_STEPS_PER_FRAME = 16;
+
+export interface BattleView {
+  /** Show this battle from its start, running or held. */
+  show(battle: Battle, running: boolean): void;
+  setRunning(running: boolean): void;
+  readonly running: boolean;
+  /** Hold the battle and take one step. */
+  step(): void;
+  setSpeed(speed: number): void;
+  /** Frame everything again, and keep it framed. */
+  fit(): void;
+  readonly camera: Readonly<Camera>;
+}
+
+/**
+ * `stepped` is told after every step, for whatever is judging the battle;
+ * `drawn` after every frame, with what was drawn; `runningChanged` whenever
+ * it starts or stops.
+ */
+export function battleView(
+  canvas: HTMLCanvasElement,
+  stepped: (battle: Battle) => void,
+  drawn: (view: Snapshot) => void,
+  runningChanged: (running: boolean) => void,
+): BattleView {
+  const ctx = canvas.getContext('2d');
+  if (ctx === null) throw new Error('no 2d context');
+
+  let battle: Battle | null = null;
+  const snapshot = new Snapshot();
+  const flashes = new Flashes();
+  const camera: Camera = { x: 0, y: 0, scale: 0.1 };
+  let selected = -1;
+  let autoFrame = true;
+  let framed = false;
+  let running = false;
+  let speed = 1;
+  let accumulator = 0;
+  let last = 0;
+  let lastSimTime = 0;
+  let arcs: Arcs = 'none';
+  let teamShots = false;
+
+  const resize = (): void => {
+    const ratio = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    const width = Math.round(rect.width * ratio);
+    const height = Math.round(rect.height * ratio);
+    // Setting either clears the canvas, even to the size it already is.
+    if (canvas.width !== width) canvas.width = width;
+    if (canvas.height !== height) canvas.height = height;
+  };
+  new ResizeObserver(resize).observe(canvas);
+  resize();
+
+  const setRunning = (next: boolean): void => {
+    running = next;
+    // Drop whatever time passed while paused, rather than running it off in one burst.
+    last = 0;
+    runningChanged(running);
+  };
+  const step = (): void => {
+    if (battle === null) return;
+    battle.step();
+    stepped(battle);
+  };
+
+  viewGestures(
+    canvas,
+    camera,
+    () => {
+      autoFrame = false;
+    },
+    (x, y, reach) => {
+      selected = shipAt(snapshot, x, y, reach);
+      if (selected >= 0) autoFrame = true;
+    },
+  );
+
+  window.addEventListener('keydown', (event) => {
+    // Typing in a field is not a command; a list or a slider still answers to Space.
+    const focus = document.activeElement;
+    if ((focus instanceof HTMLInputElement && focus.type !== 'range') || focus instanceof HTMLTextAreaElement) return;
+    if (event.key === ' ') {
+      event.preventDefault();
+      setRunning(!running);
+    } else if (event.key === '.') {
+      setRunning(false);
+      step();
+    } else if (event.key === 'Escape') {
+      selected = -1;
+    } else if (event.key === 'f' || event.key === 'F') {
+      autoFrame = true;
+    } else if (event.key.toLowerCase() === ARCS_KEY && !event.ctrlKey && !event.metaKey) {
+      arcs = nextArcs(arcs);
+    } else if (event.key.toLowerCase() === TEAM_SHOTS_KEY && !event.ctrlKey && !event.metaKey) {
+      teamShots = !teamShots;
+    }
+  });
+
+  const tick = (now: number): void => {
+    window.requestAnimationFrame(tick);
+    if (last === 0) last = now;
+    const elapsed = Math.min((now - last) / 1000, 0.25);
+    last = now;
+    if (battle === null) return;
+
+    if (running) {
+      accumulator += elapsed * speed;
+      let steps = 0;
+      while (accumulator >= battle.dt && steps < MAX_STEPS_PER_FRAME) {
+        step();
+        accumulator -= battle.dt;
+        steps++;
+      }
+      // Falling behind slows the battle down rather than queueing up a lurch.
+      if (steps === MAX_STEPS_PER_FRAME) accumulator = 0;
+    }
+
+    const view = capture(snapshot, battle.world, battle.ships, battle.projectiles, battle.beams, battle.wells, battle.impacts.log);
+    const simDt = view.time > lastSimTime ? view.time - lastSimTime : 0;
+    lastSimTime = view.time;
+
+    moveWithVisibleShips(camera, view, simDt, canvas.width, canvas.height);
+    if (autoFrame) {
+      if (!framed) {
+        frame(camera, view, canvas.width, canvas.height, 1);
+        framed = true;
+      }
+      frame(camera, selectionBounds(view, selected) ?? view, canvas.width, canvas.height);
+    }
+
+    // Flashes fade on the battle's clock, so a paused battle holds them.
+    flashes.step(simDt);
+    for (let i = 0; i < view.impactCount; i++) {
+      flashes.add(
+        view.impactX[i]!,
+        view.impactY[i]!,
+        view.impactEnergy[i]!,
+        view.impactKind[i]!,
+        view.impactBody[i]!,
+        view.impactLocalX[i]!,
+        view.impactLocalY[i]!,
+        view.impactVx[i]!,
+        view.impactVy[i]!,
+        view.impactGrowth[i]!,
+        view.impactDirX[i]!,
+        view.impactDirY[i]!,
+      );
+    }
+    draw(ctx, view, camera, canvas.width, canvas.height, flashes, arcs, teamShots, selected);
+    drawn(view);
+  };
+  window.requestAnimationFrame(tick);
+
+  return {
+    show(next, run) {
+      battle = next;
+      selected = -1;
+      flashes.clear();
+      framed = false;
+      autoFrame = true;
+      accumulator = 0;
+      lastSimTime = 0;
+      setRunning(run);
+    },
+    setRunning,
+    step() {
+      setRunning(false);
+      step();
+    },
+    get running() {
+      return running;
+    },
+    setSpeed(next) {
+      speed = next;
+    },
+    fit() {
+      autoFrame = true;
+    },
+    camera,
+  };
+}
