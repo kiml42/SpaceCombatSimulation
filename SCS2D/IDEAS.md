@@ -76,7 +76,6 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
   - Click a ship to focus the main camera on it
 - Cap projectile rendering at the point they hit, so a streak does not overlap the target it struck. (The muzzle end is capped.)
 - Add a ship to a running battle, for quick testing. Dropdown in the corner to choose a ship to add to the battle. click and drag to chose position and velocity (position from first click, drag to N seconds worth of distance for the initial velocity.) Ship is instantly spawned when you let go.
-- A selected ship's framing could take in what it is escorting or keeping clear of, as well as its target.
-  - Could also highlight them, possibly with a symbol to show what sort of attention the selected ship is paying to each
+- A selected ship's framing takes in and rings what it is escorting; it could do the same for what it is keeping clear of, possibly with a symbol to show what sort of attention the selected ship is paying to each
 - The ship name on cores should rotate and scale with the ship, as if it is literally written on the hull.
 - Use time scale buttons instead of a slider (0.25, 0.5, 1, 2, 4, 8, 16) (or possibly a dropdown) (either way, it should be consistent with the evolution battle UI)

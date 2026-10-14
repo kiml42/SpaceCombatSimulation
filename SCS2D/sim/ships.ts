@@ -2239,6 +2239,16 @@ export class Ships {
    * costing an escorting fleet the very broadside `focusWeight` exists to
    * hold together.
    */
+  /** What this ship is staying with as an escort, as `cover` has it; `NO_TARGET` for nothing. */
+  coveringOf(i: number): number {
+    const consort = this.consort[i] ?? NO_TARGET;
+    if (consort === NO_TARGET || consort === i || this.alive[consort] !== 1) return NO_TARGET;
+    const bodies = this.bodyStore;
+    if (bodies === null) return NO_TARGET;
+    if (this.hulk(consort) && !this.mending(bodies, consort)) return NO_TARGET;
+    return consort;
+  }
+
   /** What this ship is fighting: its order's target, else what its doctrine chose; `NO_TARGET` for nothing. */
   fightingOf(i: number): number {
     return this.focusOf(i);
