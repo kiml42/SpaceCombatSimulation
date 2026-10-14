@@ -159,11 +159,15 @@ describe('mutation', () => {
     // as it likes but never fill its tanks past the parent's fuel.
     const parent = billOf(compileDraft(CORVETTE));
     const budget: Budget = { ...NO_BUDGET, fuel: parent.fuel };
+    // Three lineages rather than one, since a single one can pare itself
+    // down for a hundred generations and never grow at all.
     let grew = false;
-    for (const child of lineage(CORVETTE, 32, 100, budget)) {
-      const bill = billOf(compileDraft(child));
-      expect(bill.fuel).toBeLessThanOrEqual(budget.fuel);
-      grew ||= bill.metal > parent.metal || bill.build > parent.build;
+    for (const seed of [32, 33, 34]) {
+      for (const child of lineage(CORVETTE, seed, 100, budget)) {
+        const bill = billOf(compileDraft(child));
+        expect(bill.fuel).toBeLessThanOrEqual(budget.fuel);
+        grew ||= bill.metal > parent.metal || bill.build > parent.build;
+      }
     }
     expect(grew).toBe(true);
   });
