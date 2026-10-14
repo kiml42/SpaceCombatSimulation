@@ -64,6 +64,9 @@
       th { text-align: left; font-weight: 400; color: #7f93aa; padding: 0.1rem 0.6rem 0.1rem 0; vertical-align: top; }
       td { text-align: right; padding: 0.1rem 0; }
       #stats td { color: #e6edf5; }
+      #skirmishBudget td { color: #e6edf5; }
+      #skirmishBudget tr.over th, #skirmishBudget tr.over td { color: #e8796b; }
+      #backToSkirmish { font-weight: 600; }
       /* A display rule of our own outranks the browser's for [hidden], so
          anything laid out here would stay on screen when hidden without this. */
       [hidden] { display: none !important; }
@@ -130,6 +133,8 @@
       <button id="undo">Undo</button>
       <button id="redo">Redo</button>
       <a id="battleLink" href="index.html" title="Try this in a custom battle">Battle</a>
+      <a id="backToSkirmish" href="skirmish.html" title="Fight the skirmish round with this fleet" hidden>Back to battle</a>
+      <a href="skirmish.html">Skirmish</a>
       <a href="editor.html">Ships</a>
       <a href="evolution.html">Evolution</a>
     </header>
@@ -192,6 +197,11 @@
             <button id="duplicateEntry">Duplicate</button>
             <button id="deleteEntry">Delete</button>
           </div>
+        </section>
+        <section id="skirmish" hidden>
+          <h2 id="skirmishTitle">Skirmish</h2>
+          <table id="skirmishBudget"></table>
+          <p id="skirmishNote" class="note"></p>
         </section>
         <section>
           <h2>What it works out to</h2>

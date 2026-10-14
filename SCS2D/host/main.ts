@@ -1,5 +1,4 @@
-import { capture, math, Snapshot } from '../sim/index.js';
-import { Flashes } from '../render/flashes.js';
+import { math } from '../sim/index.js';
 import { duel } from '../scenarios/duel.js';
 import { beamDuel } from '../scenarios/beamDuel.js';
 import { beamVGun } from '../scenarios/beamVGun.js';
@@ -27,31 +26,18 @@ import { customBattle, type CustomBattle } from '../scenarios/customBattle.js';
 import { customPanel } from './customPanel.js';
 import { linkedBattle } from '../scenarios/battleLink.js';
 import { handedFleet } from '../editor/handoff.js';
-import { ARCS_KEY, draw, nextArcs, TEAM_SHOTS_KEY, type Arcs } from '../render/canvas2d.js';
-import { frame, gridStep, moveWithVisibleShips, selectionBounds, shipAt, type Camera } from '../render/camera.js';
+import { gridStep } from '../render/camera.js';
+import { battleView } from './battleView.js';
 import { el } from './dom.js';
-import { viewGestures } from './viewGestures.js';
 
 /**
- * The browser host: owns the clock, the canvas and the controls, and nothing else.
- *
- * **The wall clock lives here and only here.** The simulation takes a fixed
- * step and has no idea what time it is (DESIGN.md non-negotiable 2); this
- * accumulates real elapsed time and decides how many fixed steps to run for it.
- * That is what lets the same battle run at half speed, at eight times speed, or
- * flat out in a headless test, and come out identical.
+ * The scenarios page: a battle picked from the list, or set up as a custom
+ * battle, run on the wall clock by `battleView`.
  */
-
-/** Cap on steps per frame. A tab left in the background must not try to catch up. */
-const MAX_STEPS_PER_FRAME = 16;
 
 const SEED = 20260905;
 
 export function start(): void {
-  const canvas = el<HTMLCanvasElement>('view');
-  const ctx = canvas.getContext('2d');
-  if (ctx === null) throw new Error('no 2d context');
-
   const readout = el<HTMLElement>('readout');
   const metrics = el<HTMLElement>('metrics');
   const playButton = el<HTMLButtonElement>('play');
@@ -94,14 +80,10 @@ export function start(): void {
   ];
   const CUSTOM = scenes.length - 1;
   /** Build the current scene afresh, running or held at its first step: by default, whichever it was. */
-  const restart = (run = running): void => {
+  const restart = (run = view.running): void => {
     state = scenes[sceneIndex]!.create();
-    selected = -1;
     panel.reset();
-    flashes.clear();
-    framed = false;
-    autoFrame = true;
-    setRunning(run);
+    view.show(state, run);
   };
   // A custom battle is set up paused at its first step, so the opening
   // positions can be seen as they are chosen, and started with Fight.
@@ -114,24 +96,31 @@ export function start(): void {
   const panel = customPanel(openCustom, () => restart(true));
   let sceneIndex = 0;
   let state: Battle = scenes[sceneIndex]!.create();
-  let snapshot = new Snapshot();
-  /** The body of the ship picked out by a click, or -1. */
-  let selected = -1;
-  const flashes = new Flashes();
-  const camera: Camera = { x: 0, y: 0, scale: 0.1 };
-  // Auto-framing keeps everything in shot, which is what you want until you
-  // want to look at something. Any manual zoom or pan hands control over;
-  // "Fit" gives it back.
-  let autoFrame = true;
-  let running = true;
-  let speed = 1;
-  let accumulator = 0;
-  let last = 0;
-  let framed = false;
-  // Simulated time at the last frame, so the camera knows how far the ships
-  // have travelled since it last looked — which is not how much wall time
-  // passed, once the speed control is off 1x.
-  let lastSimTime = 0;
+
+  const view = battleView(
+    el<HTMLCanvasElement>('view'),
+    () => {},
+    (shown) => {
+      if (sceneIndex === CUSTOM) panel.update(state as CustomBattle, shown.time);
+      // Between the first two ships, whatever the scenario holds — but only if
+      // there are two. A single survivor has nothing to measure against.
+      const first = shown.ships[0];
+      const second = shown.ships[1];
+      const range =
+        first !== undefined && second !== undefined ? math.distance(first.x, first.y, second.x, second.y) : 0;
+      readout.textContent = `t ${shown.time.toFixed(1)} s · step ${shown.tick} · grid ${gridStep(view.camera.scale)} m`;
+      // Not shown: kept for the browser tests and anyone inspecting the page.
+      metrics.textContent =
+        `range ${range.toFixed(range < 10 ? 3 : 0)} m · in flight ${shown.projectileCount} · ` +
+        `p.fired ${state.totalProjectilesFired} · p.hits ${state.totalProjectileHits} · ` +
+        `b.fired ${state.totalBeamsFired} · b.hits ${state.totalBeamHits} · ` +
+        `severed ${state.totalSevered} · scrap ${(state.ships.discarded / 1000).toFixed(1)} t`;
+    },
+    (running) => {
+      playButton.textContent = running ? 'Pause' : 'Play';
+    },
+  );
+  view.show(state, true);
 
   // Named rather than numbered, and the list is the scenes array itself, so a
   // scenario added there appears here without being mentioned twice.
@@ -142,35 +131,9 @@ export function start(): void {
   }
   sceneSelect.selectedIndex = sceneIndex;
 
-  const resize = (): void => {
-    const ratio = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    const width = Math.round(rect.width * ratio);
-    const height = Math.round(rect.height * ratio);
-    // Setting either clears the canvas, even to the size it already is, and
-    // the observer's first call comes after a frame is drawn and before it is
-    // shown: assigned regardless, the first frame on screen is blank.
-    if (canvas.width !== width) canvas.width = width;
-    if (canvas.height !== height) canvas.height = height;
-  };
-  // The canvas rather than the window: showing the custom battle panel resizes it too.
-  new ResizeObserver(resize).observe(canvas);
-  resize();
-
-  const setRunning = (next: boolean): void => {
-    running = next;
-    playButton.textContent = running ? 'Pause' : 'Play';
-    // Drop whatever time passed while paused, rather than running it off in
-    // one burst on resume.
-    last = 0;
-  };
-
-  playButton.addEventListener('click', () => setRunning(!running));
-  stepButton.addEventListener('click', () => {
-    setRunning(false);
-    state.step();
-  });
-  resetButton.addEventListener('click', () => restart(sceneIndex !== CUSTOM && running));
+  playButton.addEventListener('click', () => view.setRunning(!view.running));
+  stepButton.addEventListener('click', () => view.step());
+  resetButton.addEventListener('click', () => restart(sceneIndex !== CUSTOM && view.running));
   sceneSelect.addEventListener('change', () => {
     if (sceneSelect.selectedIndex === CUSTOM) {
       openCustom();
@@ -181,133 +144,12 @@ export function start(): void {
     restart();
   });
   el<HTMLButtonElement>('customBattle').addEventListener('click', openCustom);
-  fitButton.addEventListener('click', () => {
-    autoFrame = true;
-  });
+  fitButton.addEventListener('click', () => view.fit());
 
-  // A tap rather than a drag picks out the ship under it, or lets go of the
-  // one picked out when it lands on nothing.
-  viewGestures(
-    canvas,
-    camera,
-    () => {
-      autoFrame = false;
-    },
-    (x, y, reach) => {
-      selected = shipAt(snapshot, x, y, reach);
-      if (selected >= 0) autoFrame = true;
-    },
-  );
   speedInput.addEventListener('input', () => {
-    speed = Number(speedInput.value);
-    speedLabel.textContent = `${speed}x`;
+    view.setSpeed(Number(speedInput.value));
+    speedLabel.textContent = `${speedInput.value}x`;
   });
-  let arcs: Arcs = 'none';
-  let teamShots = false;
-  window.addEventListener('keydown', (event) => {
-    if (event.key === ' ') {
-      event.preventDefault();
-      setRunning(!running);
-    } else if (event.key === '.') {
-      setRunning(false);
-      state.step();
-    } else if (event.key === 'Escape') {
-      selected = -1;
-    } else if (event.key === 'f' || event.key === 'F') {
-      autoFrame = true;
-    } else if (event.key.toLowerCase() === ARCS_KEY && !event.ctrlKey && !event.metaKey) {
-      arcs = nextArcs(arcs);
-    } else if (event.key.toLowerCase() === TEAM_SHOTS_KEY && !event.ctrlKey && !event.metaKey) {
-      teamShots = !teamShots;
-    }
-  });
-
-  const tick = (now: number): void => {
-    if (last === 0) last = now;
-    const elapsed = Math.min((now - last) / 1000, 0.25);
-    last = now;
-
-    if (running) {
-      accumulator += elapsed * speed;
-      let steps = 0;
-      while (accumulator >= state.dt && steps < MAX_STEPS_PER_FRAME) {
-        state.step();
-        accumulator -= state.dt;
-        steps++;
-      }
-      // Whatever could not be run this frame is dropped rather than owed:
-      // falling behind should slow the battle down, not queue up a lurch.
-      if (steps === MAX_STEPS_PER_FRAME) accumulator = 0;
-    }
-
-    const view = capture(
-      snapshot,
-      state.world,
-      state.ships,
-      state.projectiles,
-      state.beams,
-      state.wells,
-      state.impacts.log,
-    );
-    // Negative when the battle has just been reset, which is not elapsed time.
-    const simDt = view.time > lastSimTime ? view.time - lastSimTime : 0;
-    lastSimTime = view.time;
-
-    moveWithVisibleShips(camera, view, simDt, canvas.width, canvas.height);
-    if (autoFrame) {
-      if (!framed) {
-        // Snap to the opening positions rather than easing in from nowhere.
-        frame(camera, view, canvas.width, canvas.height, 1);
-        framed = true;
-      }
-      frame(camera, selectionBounds(view, selected) ?? view, canvas.width, canvas.height);
-    }
-
-    // Impacts belong to the battle, so they fade on *its* clock: a paused
-    // battle holds its flashes, a single step advances them by one step, and
-    // eight times speed burns them off eight times as fast.
-    // Aged before this step's are added, which are born now.
-    flashes.step(simDt);
-    for (let i = 0; i < view.impactCount; i++) {
-      flashes.add(
-        view.impactX[i]!,
-        view.impactY[i]!,
-        view.impactEnergy[i]!,
-        view.impactKind[i]!,
-        view.impactBody[i]!,
-        view.impactLocalX[i]!,
-        view.impactLocalY[i]!,
-        view.impactVx[i]!,
-        view.impactVy[i]!,
-        view.impactGrowth[i]!,
-        view.impactDirX[i]!,
-        view.impactDirY[i]!,
-      );
-    }
-    draw(ctx, view, camera, canvas.width, canvas.height, flashes, arcs, teamShots, selected);
-
-    if (sceneIndex === CUSTOM) panel.update(state as CustomBattle, view.time);
-
-    // Between the first two ships, whatever the scenario holds — but only if
-    // there are two. A single survivor has nothing to measure against, and
-    // reading past the end of the list would take the viewer down with it.
-    const first = view.ships[0];
-    const second = view.ships[1];
-    const range =
-      first !== undefined && second !== undefined
-        ? math.distance(first.x, first.y, second.x, second.y)
-        : 0;
-    readout.textContent = `t ${view.time.toFixed(1)} s · step ${view.tick} · grid ${gridStep(camera.scale)} m`;
-    // Not shown: kept for the browser tests and anyone inspecting the page.
-    metrics.textContent =
-      `range ${range.toFixed(range < 10 ? 3 : 0)} m · in flight ${view.projectileCount} · ` +
-      `p.fired ${state.totalProjectilesFired} · p.hits ${state.totalProjectileHits} · ` +
-      `b.fired ${state.totalBeamsFired} · b.hits ${state.totalBeamHits} · ` +
-      `severed ${state.totalSevered} · scrap ${(state.ships.discarded / 1000).toFixed(1)} t`;
-
-    window.requestAnimationFrame(tick);
-  };
-
   // An editor's Battle link carries what it holds: open straight into a custom
   // battle with it as the first side, paused for the rest to be chosen.
   try {
@@ -332,5 +174,4 @@ export function start(): void {
     });
   if (hash !== '') history.replaceState(null, '', window.location.pathname);
 
-  window.requestAnimationFrame(tick);
 }

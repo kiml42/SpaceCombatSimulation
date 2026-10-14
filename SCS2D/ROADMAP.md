@@ -94,8 +94,9 @@ count and a way to skip to the result. This is DESIGN.md §7's adaptive enemy su
 skirmish's own state — both fleets, the budget, the round and its seed — is one saved slot. Merging the
 editors so a ship is edited in place within its fleet comes later, as does an upgrade card (§12).
 
-Built in order, a PR or more each: the loop without an enemy that answers (beat the stock fleets); the
-enemy answering in a worker, watched; then the decision rule's numbers tuned against real rounds.
+Built in order, a PR or more each: the loop without an enemy that answers (beat the stock fleets) — built,
+`dist/skirmish.html`, a win offering another stock enemy until the enemy answers; the enemy answering in
+a worker, watched; then the decision rule's numbers tuned against real rounds.
 
 Built: **the fleet file** (`sim/fleet.ts`, `sim/fleetFile.ts`), **a battle from fleets**
 (`scenarios/fleetBattle.ts`), proved by `standoff` flying a fleet file with its checksum unchanged, **the
