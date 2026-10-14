@@ -127,6 +127,15 @@ export class Store {
     return taken > 0 ? this.put(bodyIndex, sink, taken) : 0;
   }
 
+  /** Put up to `kg` into the stores on the piece of hull module `to` is on, and say how much went in. */
+  add(bodyIndex: number, to: number, kg: number): number {
+    const pieceOf = this.pieceOf[bodyIndex];
+    if (pieceOf === null || pieceOf === undefined || !(kg > 0)) return 0;
+    const sink = pieceOf[to] ?? 0;
+    const room = this.room(bodyIndex, sink);
+    return this.put(bodyIndex, sink, kg < room ? kg : room);
+  }
+
   /** Which piece of hull a module is on, or -1 for a body with no record. */
   pieceAt(bodyIndex: number, module: number): number {
     return this.pieceOf[bodyIndex]?.[module] ?? -1;

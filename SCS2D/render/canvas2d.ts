@@ -389,8 +389,15 @@ function drawRobot(
   ctx.restore();
 }
 
-function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number, arcs: Arcs): void {
+/**
+ * One ship's modules and mounts: its capital hull's, or with `fighters` those
+ * of fighters, whether it is one or carries them. What belongs to the ship
+ * as a whole is drawn with whichever of the two it is.
+ */
+function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number, arcs: Arcs, fighters: boolean): void {
   const design = ship.design;
+  const whole = design.fighter === fighters;
+  if (!whole && (!fighters || design.fighterPieces === undefined)) return;
 
   ctx.save();
   ctx.translate(ship.x, ship.y);
@@ -399,7 +406,7 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
   // Where its doctrine closes to, centre to centre: under everything, so the
   // trigger wedges' tips can be read against it.
   const holdMax = ship.holdMax ?? 0;
-  if (arcs === 'trigger' && holdMax > 0) {
+  if (whole && arcs === 'trigger' && holdMax > 0) {
     const holdMin = ship.holdMin ?? 0;
     ctx.fillStyle = HOLD_BAND;
     ctx.beginPath();
@@ -433,7 +440,7 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
   const stores = storeShares(ship);
   // Module boxes, in the body frame the design already put them in.
   for (let i = 0; i < design.modules.length; i++) {
-    if (ship.drawn?.[i] === false) continue;
+    if (ship.drawn?.[i] === false || isFighterModule(design, i) !== fighters) continue;
     const m = design.modules[i]!;
     // A piece hooked on from another ship keeps that ship's colours.
     const colours = moduleColours(design, i, ship.sides?.[i] ?? ship.team);
@@ -677,14 +684,6 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     }
     ctx.restore();
   }
-  // Robots out on the hull, over the modules they crawl across.
-  const robots = ship.robots ?? [];
-  if (robots.length > 0) {
-    const colours = shipColours(ship.team);
-    for (let r = 0; r + ROBOT_VIEW_STRIDE <= robots.length; r += ROBOT_VIEW_STRIDE) {
-      drawRobot(ctx, robots[r]!, robots[r + 1]!, robots[r + 2]!, robots[r + 3]!, robots[r + 4]!, ROBOT_LENGTH, colours.trim, colours.pivot);
-    }
-  }
   ctx.restore();
 
   // Turrets are drawn in world space: a turret's bearing is a world bearing, so
@@ -694,8 +693,8 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
   const s = sin(ship.angle);
 
   for (let t = 0; t < design.turrets.length; t++) {
-    if (ship.drawn?.[design.turrets[t]!.module] === false) continue;
     const module = design.turrets[t]!.module;
+    if (ship.drawn?.[module] === false || isFighterModule(design, module) !== fighters) continue;
     const colours = moduleColours(design, module, ship.sides?.[module] ?? ship.team);
     const mount = design.turrets[t]!.mount;
     const mx = ship.x + mount.x * c - mount.y * s;
@@ -853,9 +852,24 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     drawLoad(ctx, ship, t, mx, my, bearing);
   }
 
+  if (!whole) return;
   if (arcs === 'trigger') drawEngineTriggers(ctx, ship, metresToPx);
   drawPlumes(ctx, ship);
   drawLeaks(ctx, ship);
+}
+
+/** A ship's robots out on its hull: over every capital hull, under every fighter. */
+function drawRobots(ctx: CanvasRenderingContext2D, ship: ShipView): void {
+  const robots = ship.robots ?? [];
+  if (robots.length === 0) return;
+  const colours = shipColours(ship.team);
+  ctx.save();
+  ctx.translate(ship.x, ship.y);
+  ctx.rotate(ship.angle);
+  for (let r = 0; r + ROBOT_VIEW_STRIDE <= robots.length; r += ROBOT_VIEW_STRIDE) {
+    drawRobot(ctx, robots[r]!, robots[r + 1]!, robots[r + 2]!, robots[r + 3]!, robots[r + 4]!, ROBOT_LENGTH, colours.trim, colours.pivot);
+  }
+  ctx.restore();
 }
 
 /** What leaking fuel looks like: vapour, white. */
@@ -1359,14 +1373,18 @@ export function draw(
   drawGrid(ctx, camera, widthPx, heightPx);
   drawWells(ctx, snapshot, camera);
 
-  // Fighters after every other hull: they fly above the deck, so a capital
-  // spawned after them must not be painted over them.
-  for (const fighters of [false, true]) {
-    for (let i = 0; i < snapshot.shipCount; i++) {
-      const ship = snapshot.ships[i]!;
-      if (ship.design.fighter !== fighters) continue;
-      drawShip(ctx, ship, camera.scale, selected < 0 || ship.body === selected ? arcs : 'none');
-    }
+  // Every capital hull, then the robots crawling over them, then every
+  // fighter, aboard a carrier or not: robots work on the deck, and a fighter
+  // sits above it, so neither a capital spawned later nor a robot under a
+  // landed fighter may be painted over what is on top.
+  for (let i = 0; i < snapshot.shipCount; i++) {
+    const ship = snapshot.ships[i]!;
+    drawShip(ctx, ship, camera.scale, selected < 0 || ship.body === selected ? arcs : 'none', false);
+  }
+  for (let i = 0; i < snapshot.shipCount; i++) drawRobots(ctx, snapshot.ships[i]!);
+  for (let i = 0; i < snapshot.shipCount; i++) {
+    const ship = snapshot.ships[i]!;
+    drawShip(ctx, ship, camera.scale, selected < 0 || ship.body === selected ? arcs : 'none', true);
   }
 
   // Icons in a pass of their own, after every hull: an icon stands for the
@@ -1635,10 +1653,14 @@ function drawStreak(
 
 /** Module `m`'s colours: a fighter's, aboard a carrier or not, a shade darker than its side's ships. */
 function moduleColours(design: ShipDesign, m: number, team: number): ReturnType<typeof shipColours> {
-  if (design.fighter) return fighterColours(team);
+  return isFighterModule(design, m) ? fighterColours(team) : shipColours(team);
+}
+
+/** Whether module `m` is a fighter's, flying or aboard a carrier. */
+function isFighterModule(design: ShipDesign, m: number): boolean {
+  if (design.fighter) return true;
   const fighters = design.fighterPieces;
-  if (fighters !== undefined && fighters.includes(design.pieces?.[m] ?? 0)) return fighterColours(team);
-  return shipColours(team);
+  return fighters !== undefined && fighters.includes(design.pieces?.[m] ?? 0);
 }
 
 /** A round's colours: as light, or in its side's trim with a glow of its hull colour. */

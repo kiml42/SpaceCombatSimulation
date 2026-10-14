@@ -55,6 +55,12 @@ export const SHED_FLOOR = 0.5;
  */
 export const REPAIR_WASTE = 0.1;
 
+/**
+ * The share of a module's metal lost taking it apart: what disassembly yields
+ * is its mass less this, the rest gone as filings and slag.
+ */
+export const DISASSEMBLY_WASTE = 0.1;
+
 /** Charge repairing a joule of damage takes, J. */
 export const REPAIR_ENERGY_PER_JOULE = 10;
 
@@ -431,14 +437,15 @@ export class Damage {
     return this.unbuiltSpin[bodyIndex] ?? 0;
   }
 
-  /** Leave a module of a body without `kg` of its fittings, as one whose walls have just gone up. */
+  /** Take `kg` out of a module: fittings not yet put in, or what robots are taking apart. */
   unfit(bodyIndex: number, module: number, kg: number): void {
     const unbuilt = this.unbuilt[bodyIndex];
     if (!unbuilt || !(kg > 0)) return;
+    // Out of work now, if it was working: a change to what the hull can do.
+    if (unbuilt[module] === 0) this.versions[bodyIndex] = (this.versions[bodyIndex] ?? 0) + 1;
     unbuilt[module] = unbuilt[module]! + kg;
     this.unbuiltTotal[bodyIndex] = this.unbuiltTotal[bodyIndex]! + kg;
     this.unbuiltSpin[bodyIndex] = this.unbuiltSpin[bodyIndex]! + kg * this.spin[bodyIndex]![module]!;
-    this.versions[bodyIndex] = (this.versions[bodyIndex] ?? 0) + 1;
   }
 
   /** Put up to `kg` of a module's fittings in, and say how much went. Settling the hull's mass is the caller's. */
