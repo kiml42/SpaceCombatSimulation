@@ -77,7 +77,9 @@ that evolves to beat you, settled with the author (DECISIONS.md):
    seed. Its budget is unlimited: the search stops as soon as it wins, so it grows only as far as it must.
 
 **A battle is decided** when one side has fired or rammed in the last 30 s and the other has not. A ship too
-far off to shoot is out of it, and an unarmed ship never fires. A hard time cap ends a stalemate, and a
+far off to shoot is out of it, and an unarmed ship never fires. A hit landing counts as firing, and a side
+left with nothing armed or ramming is out at once, so a slow round that wins after the last shot does not
+hand the battle to the ship it disables. A hard time cap ends a stalemate, and a
 draw is a loss for the player, who has to win.
 
 **The enemy evolves under evolution's own rules**: a match ends when one side is left fighting or at its

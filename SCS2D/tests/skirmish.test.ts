@@ -27,9 +27,9 @@ const core = lone('Core', BARE_CORE);
 const empty: Fleet = { name: 'Mine', designs: {}, ships: [] };
 
 /** Fight two fleets until the rule decides, or `until` seconds pass. */
-function fight(a: Fleet, b: Fleet, until: number): { decision: Decision | null; time: number } {
-  const battle = customBattle({ fleets: [a, b], range: 1000, closingSpeed: 0, crossingSpeed: 0, rotation: 0, seed: 3 });
-  const activity = new Activity(2);
+function fight(a: Fleet, b: Fleet, until: number, range = 1000, cap = TIME_CAP): { decision: Decision | null; time: number } {
+  const battle = customBattle({ fleets: [a, b], range, closingSpeed: 0, crossingSpeed: 0, rotation: 0, seed: 3 });
+  const activity = new Activity(2, cap);
   let decision: Decision | null = null;
   while (decision === null && battle.world.tick * battle.dt < until) {
     battle.step();
@@ -38,21 +38,120 @@ function fight(a: Fleet, b: Fleet, until: number): { decision: Decision | null; 
   return { decision, time: battle.world.tick * battle.dt };
 }
 
+/**
+ * Two ships, one a side, as the rule sees them, driven by hand: each step says
+ * who fired, who is disarmed, and which hits landed.
+ */
+function staged(dt = 1) {
+  const fired = [-1, -1];
+  const disarmed = [false, false];
+  const hits: [number, number][] = [];
+  const world = { tick: 0, dt };
+  const ships = {
+    highWater: 2,
+    isAlive: () => true,
+    teamOf: (i: number) => i,
+    hasControl: () => true,
+    isRamming: () => false,
+    isDisarmed: (i: number) => disarmed[i]!,
+    lastFired: (i: number) => fired[i]!,
+    pilotAt: (body: number) => body,
+  };
+  const credit = {
+    get count() {
+      return hits.length;
+    },
+    get attacker() {
+      return Int32Array.from(hits.map((h) => h[0]));
+    },
+    get victim() {
+      return Int32Array.from(hits.map((h) => h[1]));
+    },
+    get attackerModule() {
+      return new Int32Array(hits.length).fill(-1);
+    },
+    get module() {
+      return new Int32Array(hits.length).fill(-1);
+    },
+  };
+  const activity = new Activity(2);
+  return {
+    fired,
+    disarmed,
+    hits,
+    /** Advance to `time`, observing each step; what was decided. */
+    to(time: number): Decision | null {
+      let decision: Decision | null = null;
+      while (world.tick * dt < time) {
+        world.tick++;
+        decision = activity.observe({ ships: ships as never, world, credit: credit as never });
+        hits.length = 0;
+      }
+      return decision;
+    },
+    tick: () => world.tick,
+  };
+}
+
 describe('deciding a skirmish battle', () => {
-  it('gives it to the side still firing once the other has been quiet for 30 s', () => {
+  it('gives it to the armed side at once against one with nothing to fight with', () => {
     const { decision } = fight(gunship, core, TIME_CAP);
     expect(decision?.winner).toBe(0);
-    expect(decision?.reason).toBe('quiet');
-    expect(decision!.time).toBeGreaterThanOrEqual(QUIET_TIME);
+    expect(decision!.time).toBeLessThan(1);
   });
 
-  it('decides nothing before 30 s, however quiet', () => {
-    expect(fight(core, core, QUIET_TIME - 1).decision).toBeNull();
+  it('calls two unarmed sides a draw at once', () => {
+    expect(fight(core, core, 10).decision?.winner).toBe(-1);
   });
 
-  it('calls a battle nobody fights in a draw at the time cap', { timeout: 120_000 }, () => {
-    const { decision } = fight(core, core, TIME_CAP + 1);
-    expect(decision).toEqual({ winner: -1, reason: 'time', time: expect.closeTo(TIME_CAP, 1) });
+  it('decides nothing while both armed sides are quiet, until the time cap', () => {
+    // Too far apart to fire at all in the time.
+    expect(fight(gunship, gunship, QUIET_TIME + 5, 200_000).decision).toBeNull();
+    const { decision } = fight(gunship, gunship, 60, 200_000, 40);
+    expect(decision).toEqual({ winner: -1, reason: 'time', time: expect.closeTo(40, 1) });
+  });
+
+  it('puts a side out once it has been quiet for 30 s while the other fires', () => {
+    const battle = staged();
+    battle.fired[0] = 0;
+    expect(battle.to(QUIET_TIME - 1)).toBeNull();
+    for (let t = 1; t <= QUIET_TIME + 1; t++) {
+      battle.fired[1] = battle.tick() + 1;
+      const decision = battle.to(t);
+      if (decision !== null) {
+        expect(decision.winner).toBe(1);
+        return;
+      }
+    }
+    throw new Error('never decided');
+  });
+
+  it('gives it to the side whose slow round lands, not to the one it disables', () => {
+    const battle = staged();
+    // A fires its last round at once; B fires at 20 s; A's round lands at 25 s
+    // and disarms B, by which time A has been quiet for 25 s.
+    battle.fired[0] = 1;
+    expect(battle.to(19)).toBeNull();
+    battle.fired[1] = 20;
+    expect(battle.to(24)).toBeNull();
+    battle.hits.push([0, 1]);
+    battle.disarmed[1] = true;
+    expect(battle.to(25)).toEqual({ winner: 0, reason: 'quiet', time: 25 });
+  });
+
+  it('counts a hit landing as firing', () => {
+    const quiet = staged();
+    quiet.fired[0] = 1;
+    quiet.fired[1] = 20;
+    expect(quiet.to(40)?.winner).toBe(1);
+
+    // The same, but A's round lands at 25 s without disarming B: A is still in it.
+    const hit = staged();
+    hit.fired[0] = 1;
+    hit.fired[1] = 20;
+    expect(hit.to(24)).toBeNull();
+    hit.hits.push([0, 1]);
+    expect(hit.to(40)).toBeNull();
   });
 });
 
