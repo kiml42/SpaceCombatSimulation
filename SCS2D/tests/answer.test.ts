@@ -40,10 +40,18 @@ describe("the skirmish enemy's answer", () => {
   });
 
   it('is decided by its seed', { timeout: 120_000 }, () => {
-    const a = search(3).progress;
-    const b = search(3).progress;
-    expect(a.generation).toBe(b.generation);
-    expect(serialiseFleet(a.found!)).toEqual(serialiseFleet(b.found!));
+    // A fixed amount of work rather than a whole search, so the test costs the same on any seed.
+    const run = (): EnemySearch => {
+      const going = new EnemySearch(gunship, corvette, WON, 3);
+      going.advance(15_000);
+      return going;
+    };
+    const a = run().progress;
+    const b = run().progress;
+    expect(a.generation).toBeGreaterThan(0);
+    expect(b.generation).toBe(a.generation);
+    expect(serialiseFleet(b.best.enemy)).toEqual(serialiseFleet(a.best.enemy));
+    expect(b.best.margin).toBe(a.best.margin);
   });
 
   it('reports each generation as it finishes', () => {
