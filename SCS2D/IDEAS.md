@@ -80,4 +80,3 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
   - Could also highlight them, possibly with a symbol to show what sort of attention the selected ship is paying to each
 - The ship name on cores should rotate and scale with the ship, as if it is literally written on the hull.
 - Use time scale buttons instead of a slider (0.25, 0.5, 1, 2, 4, 8, 16) (or possibly a dropdown) (either way, it should be consistent with the evolution battle UI)
-- Show the range the selected ship is trying to get into with the target as a ring around the target (or possibly the selected ship, to be consistent with the editor)
