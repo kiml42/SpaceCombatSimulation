@@ -324,6 +324,7 @@
             <div class="field"><label for="scatter">scatter °</label><input id="scatter" type="number" min="0" max="180" step="15" /></div>
             <div class="field spread"><label for="closing">closing m/s</label><input id="closing" type="number" step="5" title="Each entrant's starting speed towards the middle" /><span>±</span><input id="closingSpread" type="number" min="0" step="5" title="How far either side each match's closing speed is drawn, evenly. Zero holds it." /></div>
             <div class="field spread"><label for="crossing">crossing m/s</label><input id="crossing" type="number" step="5" title="Each entrant's starting speed to its left, across the line to the middle" /><span>±</span><input id="crossingSpread" type="number" min="0" step="5" title="How far either side each match's crossing speed is drawn, evenly. Zero holds it." /></div>
+            <div class="field"><label for="quietLimit">quiet s</label><input id="quietLimit" type="number" min="0" step="5" title="A side that has not fired or rammed for this long loses, as in a skirmish. Zero leaves it to the clock." /></div>
             <div class="field soloOnly"><label for="goal">goal</label><select id="goal" title="Solid blocks shots and can be run into; a ghost is only somewhere to be">
             <option value="solid">solid</option>
             <option value="ghost">ghost</option>

@@ -2252,6 +2252,19 @@ export class Ships {
     return this.focusOf(i);
   }
 
+  /**
+   * The order whose band of ranges ship `i` is holding against what it is
+   * fighting, or undefined: for nothing, or for an order that closes to touch
+   * — a ram, a grip, a landing or a dock — rather than to a range.
+   */
+  heldOrder(i: number): Readonly<Order> | undefined {
+    const standing = this.standing[i];
+    const order = this.getCurrentOrder(i) ?? (standing !== undefined && standing.target === this.chosenOf(i) ? standing : undefined);
+    if (order === undefined || order.target === NO_TARGET) return undefined;
+    if (order.ram || order.grapple || order.land || order.dock || !(order.maxRange > 0)) return undefined;
+    return order;
+  }
+
   private focusOf(i: number): number {
     const given = this.getCurrentOrder(i);
     if (given !== undefined) return given.target;
