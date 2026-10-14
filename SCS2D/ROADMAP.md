@@ -60,9 +60,37 @@ an entry is either still open or it is gone.
 
 ### Partly built — what is left
 
-**Step 5 — v1: skirmish.** A fixed budget of *materials* rather than of points (§12), and designed
-scenarios. *This is the first thing worth giving people to play.* Designed scenarios are where the §12
-entry on authored data stops being optional, since a scenario to share has to be a file.
+**Step 5 — v1: skirmish.** *The first thing worth giving people to play.* An endless loop against an enemy
+that evolves to beat you, settled with the author (DECISIONS.md):
+
+1. **Choose an enemy** from the stock fleets. Its bill sets the player's budget in metal, fuel and build
+   time, so the first round is even on cost.
+2. **Choose or build a fleet** within that budget. The fleet editor shows the budget against the fleet's
+   bill, and the fleet cannot be sent to fight while over it.
+3. **Watch the fight.** A round has a fixed setup — seed, range, closing and crossing speeds — so a retry
+   is the same battle, and what changes the result is the player's edit.
+4. **Lose, and edit.** *Edit fleet* goes to the fleet editor with the fleet; *Back to battle* reruns the
+   same round with it. Repeat until it wins.
+5. **Win, and the enemy answers.** The enemy evolves against the player's fleet, held fixed, on random
+   seeds, and must also beat it on the seed the player just won on. It starts from the last enemy and stops
+   at the first that wins; the player is shown that battle, and goes back to 4. The next round takes a new
+   seed. Its budget is unlimited: the search stops as soon as it wins, so it grows only as far as it must.
+
+**A battle is decided** when one side has fired or rammed in the last 30 s and the other has not. A ship too
+far off to shoot is out of it, and an unarmed ship never fires. A hard time cap ends a stalemate, and a
+draw is a loss for the player, who has to win. The enemy's matches are decided the same way, or what it
+evolves to win and what the player sees would disagree.
+
+**The enemy's evolution runs in a worker**, at full speed, and the page replays each generation's best
+enemy against the player's fleet as it arrives — a replay is the two fleets and a seed — with a generation
+count and a way to skip to the result. This is DESIGN.md §7's adaptive enemy surfaced as it happens.
+
+**Pages stay separate**, handing fleets over in the link as the editors' Battle links already do; the
+skirmish's own state — both fleets, the budget, the round and its seed — is one saved slot. Merging the
+editors so a ship is edited in place within its fleet comes later, as does an upgrade card (§12).
+
+Built in order, a PR or more each: the loop without an enemy that answers (beat the stock fleets); the
+enemy answering in a worker, watched; then the decision rule's numbers tuned against real rounds.
 
 Built: **the fleet file** (`sim/fleet.ts`, `sim/fleetFile.ts`), **a battle from fleets**
 (`scenarios/fleetBattle.ts`), proved by `standoff` flying a fleet file with its checksum unchanged, **the
@@ -286,6 +314,16 @@ Deliberately unresolved; decide when they block something.
 - **Whether targeting needs more pickers.** A ship-type picker, and hemisphere as a hard discard if
   `facingWeight`'s soft version — astern scores against — turns out not to be enough. Neither is clearly
   wanted; add one when a design needs a preference the existing weights cannot express.
+
+- **Upgrade cards in the skirmish.** A pick of one after a few losses in a row — more metal, fuel or build
+  time, another ship, a wider deployment — as a way to ease a player who is stuck. Wanted, not settled:
+  how many losses, which cards, and how many to choose from.
+- **Whether the skirmish enemy should prefer the cheapest fleet that wins.** It stops at the first winner,
+  so it grows only as it must, but it never shrinks, and drifts larger round by round. A preference for
+  efficiency would let it get leaner as well as stronger.
+- **The skirmish's numbers.** How long without firing puts a side out of a battle (30 s, a first guess),
+  the time cap on a stalemate, how many random seeds the enemy evolves on, and how long a round's evolution
+  may take before something gives.
 
 - **Whether the editor needs a test flight of its own.** A throwaway sim inside the editor, flying the ship
   being edited without leaving the page. The Battle link already takes that ship into a custom battle, which
