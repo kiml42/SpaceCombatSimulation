@@ -42,9 +42,11 @@ export interface Targeting {
    */
   readonly preferredMass: number;
   /**
-   * What size to go after instead while it would ram, its guns gone, as
-   * `preferredMass` is; zero for the same. A disabled fighter is better
-   * thrown at a capital that cannot dodge than at another fighter.
+   * What size to go after instead while it would ram — its working main guns
+   * at or below `ramArmed`, with nothing to restock them — as `preferredMass`
+   * is; zero for the same. A disabled fighter is better thrown at a capital
+   * that cannot dodge than at another fighter. With `ramArmed` at one, that is
+   * all the time.
    */
   readonly ramMass: number;
   /** How much going after the right size of thing is worth. */
@@ -555,7 +557,6 @@ const MOUNT_TARGETING: Record<string, Targeting> = {
     ...DEFAULT_DOCTRINE.targeting,
     proximityWeight: 150,
     preferredMass: 0.1,
-    ramMass: 0,
     massWeight: 120,
     mobileWeight: 100,
     focusWeight: 30,
@@ -584,7 +585,6 @@ const MOUNT_TARGETING: Record<string, Targeting> = {
     ...DEFAULT_DOCTRINE.targeting,
     proximityWeight: 150,
     preferredMass: 0.5,
-    ramMass: 0,
     massWeight: 80,
     mobileWeight: 60,
     focusWeight: 250,
