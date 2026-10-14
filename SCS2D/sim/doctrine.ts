@@ -369,6 +369,13 @@ export interface Approach {
    */
   readonly rearmBelow: number;
   /**
+   * How whole a fighter is, at or below which it breaks off to land on a
+   * friend's pad and be mended: the lower of its weakest core's integrity and
+   * the share of the mass it set out with that is still sound. The pad lets
+   * it go once it is mended and built back whole. Zero never goes.
+   */
+  readonly repairBelow: number;
+  /**
    * The sideways speed it wants relative to what it is attacking, m/s, held
    * between this and `tangentialMax`: zero for both comes to rest at its
    * band, as a gun platform; above zero it comes in aiming to miss, passing
@@ -464,6 +471,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     tangentialMin: 0,
     tangentialMax: 0,
     rearmBelow: 0,
+    repairBelow: 0.6,
   },
 };
 
@@ -657,6 +665,7 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
   'deliverFuelAbove',
   'dockDanger',
   'rearmBelow',
+  'repairBelow',
   'tangentialMin',
   'tangentialMax',
 ];
