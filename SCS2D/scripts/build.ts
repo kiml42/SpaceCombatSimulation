@@ -39,6 +39,7 @@ const PAGES = [
   { entry: 'editorEntry.ts', shell: 'editor.html', out: 'editor.html' },
   { entry: 'evolutionEntry.ts', shell: 'evolution.html', out: 'evolution.html' },
   { entry: 'fleetEntry.ts', shell: 'fleet.html', out: 'fleet.html' },
+  { entry: 'skirmishEntry.ts', shell: 'skirmish.html', out: 'skirmish.html' },
 ] as const;
 
 type Page = (typeof PAGES)[number];

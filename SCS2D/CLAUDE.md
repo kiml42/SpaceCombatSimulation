@@ -91,8 +91,8 @@ Keep these working — they are the cold-start re-entry path:
 - `npm run yardstick` — measure a finished run against a ship that does not evolve; `--run`, and
   `--against latest | founder | <stock ship> | <blueprint or fleet file>`; a co-evolution run is measured as
   a grid of each side's champions against the other's, `--samples` generations a side and `--seeds` matches a cell
-- `npm run build` — bundle each page to `dist/index.html`, `dist/editor.html`, `dist/fleet.html` and
-  `dist/evolution.html`, one file each with nothing external
+- `npm run build` — bundle each page to `dist/index.html`, `dist/editor.html`, `dist/fleet.html`,
+  `dist/evolution.html` and `dist/skirmish.html`, one file each with nothing external
 - `npm run dev` — the same build on every save, for tinkering; refresh the page to see it. Also runs `sync-fleets`
   on start and whenever a blueprint is saved
 - `npm run sync-fleets` — copy each stock blueprint into the stock fleets that embed a design of the same name
