@@ -9,6 +9,7 @@ import {
 import { DEFAULT_KINDS } from '../evolution/mutate.js';
 import { DEFAULT_RUN } from '../evolution/run.js';
 import { DEFAULT_MATCH } from '../evolution/match.js';
+import { NO_BUDGET } from '../sim/bill.js';
 
 /**
  * Settings, written down and read back.
@@ -28,7 +29,7 @@ const SETUP = {
     ...DEFAULT_RUN,
     seed: 42,
     generations: 25,
-    massBudget: 12_000,
+    budget: { metal: 12_000, fuel: 3_000, build: Infinity },
     mutation: {
       structural: 0,
       build: { move: 0, resize: 0, refit: 0, fittings: 0, tuning: 2, fighter: 0.5, shape: 1 },
@@ -46,7 +47,7 @@ describe('the run config file', () => {
     expect(back.config.mutation.build).toEqual({ move: 0, resize: 0, refit: 0, fittings: 0, tuning: 2, fighter: 0.5, shape: 1 });
     expect(back.config.seed).toEqual(42);
     expect(back.config.generations).toEqual(25);
-    expect(back.config.massBudget).toEqual(12_000);
+    expect(back.config.budget).toEqual({ metal: 12_000, fuel: 3_000, build: Infinity });
     expect(back.config.mutation.kinds!.turret).toEqual(0);
     expect(back.config.mutation.doctrine).toEqual({ targeting: 0, approach: 2, escort: 0, avoidance: 3, gunnery: 1 });
     expect(back.config.match.duration).toEqual(45);
@@ -61,8 +62,13 @@ describe('the run config file', () => {
 
   it('writes no budget as null, since JSON has no infinity', () => {
     const file = serialiseRunConfig({ founders: [], config: DEFAULT_RUN });
-    expect(file['massBudget']).toBeNull();
-    expect(parseRunConfig(file).config.massBudget).toEqual(Infinity);
+    expect(file['budget']).toEqual({ metal: null, fuel: null, build: null });
+    expect(parseRunConfig(file).config.budget).toEqual(NO_BUDGET);
+  });
+
+  it('reads an older file\'s massBudget as its metal', () => {
+    expect(parseRunConfig({ massBudget: 5_000 }).config.budget).toEqual({ ...NO_BUDGET, metal: 5_000 });
+    expect(parseRunConfig({ budget: { fuel: 400 } }).config.budget).toEqual({ ...NO_BUDGET, fuel: 400 });
   });
 
   it('takes the defaults for everything a file leaves out', () => {
@@ -93,6 +99,8 @@ describe('the run config file', () => {
       [{ population: 2.5 }, /whole number/],
       [{ seed: 'one' }, /seed must be a finite number/],
       [{ massBudget: -1 }, /more than nothing/],
+      [{ budget: { build: 0 } }, /budget.build must be more than nothing/],
+      [{ budget: 5 }, /budget must be an object/],
       [{ founders: 'Corvette' }, /list of ship names/],
       [{ kinds: { engine: -1 } }, /zero or more/],
       [{ build: { move: -1 } }, /build.move must be zero or more/],

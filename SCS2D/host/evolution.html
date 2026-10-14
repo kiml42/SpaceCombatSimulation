@@ -371,7 +371,9 @@
             <div class="field"><label for="population">population</label><input id="population" type="number" min="2" step="1" /></div>
             <div class="field"><label for="winners">bred from</label><input id="winners" type="number" min="1" step="1" /></div>
             <div class="field"><label for="group">per match</label><input id="group" type="number" min="1" step="1" title="Entrants in each match. In co-evolution, each side's, fighting together against the other's" /></div>
-            <div class="field"><label for="massBudget">mass budget t</label><input id="massBudget" type="number" min="0" step="1" placeholder="none" /></div>
+            <div class="field"><label for="metalBudget">metal budget t</label><input id="metalBudget" type="number" min="0" step="1" placeholder="none" title="Hull, fittings and the metal in its holds" /></div>
+            <div class="field"><label for="fuelBudget">fuel budget t</label><input id="fuelBudget" type="number" min="0" step="1" placeholder="none" title="The fuel in its tanks as it sets out" /></div>
+            <div class="field"><label for="buildBudget">build budget min</label><input id="buildBudget" type="number" min="0" step="1" placeholder="none" title="How long one robot would take to build every module" /></div>
             <div class="field"><label for="fleetShips">most ships</label><input id="fleetShips" type="number" min="1" step="1" title="One keeps a run of ships breeding ships" /></div>
             <div class="field fleetOnly"><label for="fleetRadius">spread m</label><input id="fleetRadius" type="number" min="1" step="50" title="How far from its origin any hull may reach" /></div>
             <p class="note">A mutant over any of these is refused. <span class="fleetOnly">They are the whole fleet's, and a fleet whose hulls overlap is refused too.</span> More than one ship lets a ship grow into a fleet; one keeps it a ship.</p>

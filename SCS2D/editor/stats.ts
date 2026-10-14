@@ -38,11 +38,22 @@ import {
   defaultTargeting,
   nominalReach,
   resolveTargeting,
+  billOf,
+  ROBOT_REPAIR_RATE,
+  type Bill,
   type GunStats,
   type ModuleSpec,
   type ShipDesign,
 } from '../sim/index.js';
 import { GunType } from '../sim/modules.js';
+import { buildWork, fittingOf } from '../sim/rebuild.js';
+
+/** A build time, in seconds, minutes or hours as reads best. */
+export function buildTime(seconds: number): string {
+  if (seconds < 90) return `${Math.round(seconds)} s`;
+  if (seconds < 5400) return `${Math.round(seconds / 60)} min`;
+  return `${(seconds / 3600).toLocaleString('en-GB', { maximumFractionDigits: 1 })} h`;
+}
 
 const { cos, sin, max, min, TAU } = math;
 
@@ -109,6 +120,8 @@ export interface DesignStats {
   beamDraw: number;
   /** Seconds every engine could burn flat out on what it sets out with. Infinite with no engines. */
   endurance: number;
+  /** What it costs, every fighter it sets out with included: the budget evolution holds it to. */
+  bill: Bill;
   /**
    * Change of velocity what it sets out with buys, m/s, by the rocket equation, at the
    * exhaust velocity of all its engines burning together.
@@ -246,6 +259,7 @@ export function designStats(design: ShipDesign, envelope: Envelopes): DesignStat
       0,
     ),
     endurance: flow > 0 ? fuel / flow : Infinity,
+    bill: billOf(design),
     deltaV: fuel > 0 && fuel < mass ? exhaust * math.log(mass / (mass - fuel)) : 0,
     inertia,
     radius: design.radius,
@@ -399,6 +413,7 @@ export function moduleReadout(
     ['Capacity', `${stats.capacity.toLocaleString('en-GB', { maximumFractionDigits: 1 })} m²`],
     ['Armour', `${(stats.wallThickness * 1000).toLocaleString('en-GB', { maximumFractionDigits: 0 })} mm`],
     ['Hit points', stats.hitPoints.toLocaleString('en-GB', { maximumFractionDigits: 0 })],
+    ['Build', `${buildTime((buildWork(stats) * (stats.structureMass + fittingOf(stats))) / ROBOT_REPAIR_RATE)} for one robot`],
   ];
   const tonnes = (kg: number): string => `${(kg / 1000).toLocaleString('en-GB', { maximumFractionDigits: 2 })} t`;
   const load = (label: string, kg: number): void => {

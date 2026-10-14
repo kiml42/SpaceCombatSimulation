@@ -1,6 +1,5 @@
 import {
   blueprintProblem,
-  budgetMass,
   compileDraft,
   contactWidth,
   isInstance,
@@ -56,6 +55,7 @@ import {
 } from '../sim/modules.js';
 import { pushNeighbours, sharedFace, shiftSeam, type SharedFace } from '../sim/push.js';
 import { Rng } from '../sim/rng.js';
+import { affords, billOf, isLimited, NO_BUDGET, type Budget } from '../sim/bill.js';
 
 /**
  * How one blueprint becomes a different one: the operator a generation is
@@ -95,8 +95,8 @@ export interface MutationLimits {
   readonly grid: number;
   /** What angles turn in, radians. */
   readonly turn: number;
-  /** Dry mass a child may not exceed, kg. */
-  readonly massBudget: number;
+  /** What a child may not cost more than, in metal, fuel or build time. */
+  readonly budget: Budget;
   /** Candidates drawn before giving up and returning the parent. */
   readonly attempts: number;
   /**
@@ -252,7 +252,7 @@ export const DEFAULT_LIMITS: MutationLimits = {
   rename: 0.1,
   grid: 0.5,
   turn: PI / 12,
-  massBudget: Infinity,
+  budget: NO_BUDGET,
   attempts: 24,
   kinds: DEFAULT_KINDS,
   doctrine: DEFAULT_DOCTRINE_WEIGHTS,
@@ -384,7 +384,7 @@ function breed(
     }
 
     if (edits.length === 0) continue;
-    if (buildable(draft.blueprint, bounds.massBudget)) {
+    if (buildable(draft.blueprint, bounds.budget)) {
       return { blueprint: draft.blueprint, edits, attempts: attempt };
     }
   }
@@ -458,13 +458,13 @@ function knobWeight(knob: Knob, { doctrine, build }: MutationLimits): number {
 }
 
 /** Whether a candidate is a ship, and one the budget can afford. */
-function buildable(blueprint: Blueprint, massBudget: number): boolean {
+function buildable(blueprint: Blueprint, budget: Budget): boolean {
   if (blueprintProblem(blueprint) !== null) return false;
-  if (massBudget === Infinity) return true;
-  // Mass as it sets out is what a ship costs, there being no abstract points
-  // value for anything (DESIGN.md §2), so fuel and metal it starts without are saved.
-  // Compiling is the only way to know it.
-  return budgetMass(compileDraft(blueprint)) <= massBudget;
+  if (!isLimited(budget)) return true;
+  // What it sets out with is what it costs, there being no abstract points
+  // value for anything (DESIGN.md §2), so fuel and metal it starts without are
+  // saved. Compiling is the only way to know it.
+  return affords(budget, billOf(compileDraft(blueprint)));
 }
 
 // -- The layout, in a form that can be edited ------------------------------
@@ -705,7 +705,8 @@ function knobs(draft: Draft): Knob[] {
       if (canThicken(placement)) out.push({ at: 'thick', site });
       if (readsSealing(placement.kind)) out.push({ at: 'sealing', site });
       if (readsDrainPriority(placement.kind)) out.push({ at: 'drainPriority', site });
-      if (readsFill(placement.kind)) out.push({ at: 'fill', site });
+      // Batteries set out full: charge is not in the budget.
+      if (readsFill(placement.kind) && placement.kind !== 'battery') out.push({ at: 'fill', site });
       if (placement.kind === 'turret' || placement.kind === 'beamTurret') {
         out.push({ at: 'barrels', site });
       }

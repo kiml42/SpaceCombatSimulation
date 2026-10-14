@@ -33,6 +33,7 @@ import {
   updateEntry,
 } from './fleetEdit.js';
 import { battleHref } from './handoff.js';
+import { buildTime } from './stats.js';
 import { centreOf, FleetDocument, toFrame, toFrameAngle, type EntryFrame } from './fleetDocument.js';
 import { drawFleetOverlay, knobFor, type FleetOverlayView } from './fleetOverlay.js';
 import { fleetSnapshot } from './fleetPreview.js';
@@ -234,6 +235,7 @@ export function startFleetEditor(): void {
     const rows = [
       `<tr><th>ships</th><td>${view.ships.length}</td></tr>`,
       `<tr><th>mass at launch</th><td>${kg(view.mass)}</td></tr>`,
+      `<tr><th>cost</th><td>${kg(view.bill.metal)} metal, ${kg(view.bill.fuel)} fuel, ${buildTime(view.bill.build)} to build</td></tr>`,
       ...view.lines.map(
         (line) => `<tr><th>${escapeHtml(line.name)}</th><td>${line.count} × ${kg(line.mass)}</td></tr>`,
       ),

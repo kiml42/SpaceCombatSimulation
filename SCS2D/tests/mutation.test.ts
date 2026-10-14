@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   blueprintFileProblem,
-  budgetMass,
+  billOf,
+  NO_BUDGET,
+  type Budget,
   MAX_BARREL_CALIBRES,
   blueprintProblem,
   compileDraft,
@@ -48,12 +50,12 @@ const FLEET: readonly (readonly [string, Blueprint])[] = [
 ];
 
 /** Breed one blueprint down a line, returning every generation. */
-function lineage(parent: Blueprint, seed: number, generations: number, massBudget: number): Blueprint[] {
+function lineage(parent: Blueprint, seed: number, generations: number, budget: Budget): Blueprint[] {
   const rng = new Rng(seed);
   const out: Blueprint[] = [];
   let held = parent;
   for (let i = 0; i < generations; i++) {
-    held = mutate(held, rng, { massBudget }).blueprint;
+    held = mutate(held, rng, { budget }).blueprint;
     out.push(held);
   }
   return out;
@@ -78,16 +80,16 @@ describe('mutation', () => {
   });
 
   it('breeds the same children from the same seed', () => {
-    const one = lineage(GUNSHIP, 5, 20, Infinity);
-    const two = lineage(GUNSHIP, 5, 20, Infinity);
+    const one = lineage(GUNSHIP, 5, 20, NO_BUDGET);
+    const two = lineage(GUNSHIP, 5, 20, NO_BUDGET);
     expect(one.map((bp) => JSON.stringify(serialiseBlueprint(bp)))).toEqual(
       two.map((bp) => JSON.stringify(serialiseBlueprint(bp))),
     );
   });
 
   it('breeds different children from different seeds', () => {
-    const one = JSON.stringify(serialiseBlueprint(lineage(GUNSHIP, 5, 20, Infinity)[19]!));
-    const two = JSON.stringify(serialiseBlueprint(lineage(GUNSHIP, 6, 20, Infinity)[19]!));
+    const one = JSON.stringify(serialiseBlueprint(lineage(GUNSHIP, 5, 20, NO_BUDGET)[19]!));
+    const two = JSON.stringify(serialiseBlueprint(lineage(GUNSHIP, 6, 20, NO_BUDGET)[19]!));
     expect(one).not.toEqual(two);
   });
 
@@ -140,12 +142,30 @@ describe('mutation', () => {
     }
   });
 
-  it('never breeds a child over the mass budget', () => {
+  it('never breeds a child over its budget, in metal, fuel or build time', () => {
     // As it sets out: a part-full core or tank costs only what it carries.
-    const budget = budgetMass(compileDraft(CORVETTE)) * 1.1;
+    const parent = billOf(compileDraft(CORVETTE));
+    const budget: Budget = { metal: parent.metal * 1.1, fuel: parent.fuel * 1.1, build: parent.build * 1.1 };
     for (const child of lineage(CORVETTE, 31, 100, budget)) {
-      expect(budgetMass(compileDraft(child))).toBeLessThanOrEqual(budget);
+      const bill = billOf(compileDraft(child));
+      expect(bill.metal).toBeLessThanOrEqual(budget.metal);
+      expect(bill.fuel).toBeLessThanOrEqual(budget.fuel);
+      expect(bill.build).toBeLessThanOrEqual(budget.build);
     }
+  });
+
+  it('holds each of the three to its own limit', () => {
+    // Fuel held to what the parent carries, the rest free: a lineage may grow
+    // as it likes but never fill its tanks past the parent's fuel.
+    const parent = billOf(compileDraft(CORVETTE));
+    const budget: Budget = { ...NO_BUDGET, fuel: parent.fuel };
+    let grew = false;
+    for (const child of lineage(CORVETTE, 32, 100, budget)) {
+      const bill = billOf(compileDraft(child));
+      expect(bill.fuel).toBeLessThanOrEqual(budget.fuel);
+      grew ||= bill.metal > parent.metal || bill.build > parent.build;
+    }
+    expect(grew).toBe(true);
   });
 
   // 2,400 generations of a growing ship, which is the sample the ratio needs
@@ -175,7 +195,7 @@ describe('mutation', () => {
       const rng = new Rng(seed);
       let held: Blueprint = GUNSHIP;
       for (let i = 0; i < 800; i++) {
-        const child = mutate(held, rng, { massBudget: budget });
+        const child = mutate(held, rng, { budget: { ...NO_BUDGET, metal: budget } });
         held = child.blueprint;
         for (const edit of child.edits) {
           if (/removed/.test(edit)) removed++;
@@ -209,7 +229,7 @@ describe('mutation', () => {
       const rng = new Rng(seed);
       let held: Blueprint = CORVETTE;
       for (let i = 0; i < 200; i++) {
-        const child = mutate(held, rng, { structural: 1, massBudget: budget });
+        const child = mutate(held, rng, { structural: 1, budget: { ...NO_BUDGET, metal: budget } });
         held = child.blueprint;
         generations++;
         if (child.edits.some((edit) => /removed|added|copied/.test(edit))) structural++;
@@ -538,7 +558,7 @@ describe('mutation', () => {
       name: 'Core',
       modules: [{ kind: 'core', x: 0, y: 0, length: 4, width: 4 }],
     };
-    const child = mutate(alone, new Rng(47), { massBudget: 1 });
+    const child = mutate(alone, new Rng(47), { budget: { ...NO_BUDGET, metal: 1 } });
     expect(child.edits).toEqual([]);
     expect(child.blueprint).toBe(alone);
   });
@@ -585,6 +605,33 @@ describe('build weights', () => {
     }
     expect(changed).toBeGreaterThan(0);
     expect(looks(held)).toEqual(looks(GUNSHIP));
+  });
+
+  it('starts tanks and holds fuller or emptier, and batteries always full', () => {
+    const depot: Blueprint = {
+      name: 'Depot',
+      modules: [
+        { kind: 'core', x: 0, y: 0, length: 4, width: 4 },
+        { kind: 'tank', x: -4, y: 0, length: 4, width: 4 },
+        { kind: 'hold', x: 4, y: 0, length: 4, width: 4 },
+        { kind: 'battery', x: 0, y: 4, length: 4, width: 4 },
+      ],
+    };
+    const rng = new Rng(9);
+    const build = { move: 0, resize: 0, refit: 0, fittings: 0, tuning: 1, fighter: 0, shape: 0 };
+    const filled = new Set<string>();
+    let held = depot;
+    for (let i = 0; i < 200; i++) {
+      const child = mutate(held, rng, { structural: 0, build, doctrine: { targeting: 0, approach: 0, escort: 0, avoidance: 0, gunnery: 0 } });
+      for (const edit of child.edits) {
+        const m = / (\w+): starts \d+% full/.exec(edit);
+        if (m !== null) filled.add(m[1]!);
+      }
+      held = child.blueprint;
+    }
+    expect(filled.has('tank')).toBe(true);
+    expect(filled.has('hold')).toBe(true);
+    expect(filled.has('battery')).toBe(false);
   });
 
   it('changes how many times a row repeats only as a structural edit', () => {

@@ -118,7 +118,9 @@ const SIDE_FIELDS = [
   'population',
   'winners',
   'group',
-  'massBudget',
+  'metalBudget',
+  'fuelBudget',
+  'buildBudget',
   'fleetRadius',
   'fleetShips',
   'opDesign',
@@ -183,7 +185,9 @@ const FIELDS = [
   'winners',
   'group',
   'minMatches',
-  'massBudget',
+  'metalBudget',
+  'fuelBudget',
+  'buildBudget',
   'fleetRadius',
   'fleetShips',
   'opDesign',
@@ -624,7 +628,9 @@ export function startEvolution(): void {
     winners: String(DEFAULT_RUN.winners),
     group: String(DEFAULT_RUN.group),
     minMatches: String(DEFAULT_RUN.minMatches),
-    massBudget: '',
+    metalBudget: '',
+    fuelBudget: '',
+    buildBudget: '',
     fleetRadius: String(DEFAULT_FLEET_LIMITS.radius),
     fleetShips: String(DEFAULT_FLEET_LIMITS.maxShips),
     opDesign: String(DEFAULT_FLEET_LIMITS.operators.design),
@@ -866,12 +872,16 @@ export function startEvolution(): void {
 
   /** One side's own settings, read from its inputs: side A's, or with `get` reading side B's. */
   const sideSettings = (get: (name: SideField) => HTMLInputElement): SideSettings => {
-    const tonnes = number(get('massBudget'), 0);
+    // Blank or nothing is no limit.
+    const limit = (name: SideField, scale: number): number => {
+      const value = number(get(name), 0);
+      return value > 0 ? value * scale : Infinity;
+    };
     return {
       population: Math.max(2, Math.round(number(get('population'), DEFAULT_RUN.population))),
       winners: Math.max(1, Math.round(number(get('winners'), DEFAULT_RUN.winners))),
       group: Math.max(1, Math.round(number(get('group'), DEFAULT_RUN.group))),
-      massBudget: tonnes > 0 ? tonnes * 1000 : Infinity,
+      budget: { metal: limit('metalBudget', 1000), fuel: limit('fuelBudget', 1000), build: limit('buildBudget', 60) },
       fleet: {
         radius: Math.max(1, number(get('fleetRadius'), DEFAULT_FLEET_LIMITS.radius)),
         maxShips: Math.max(1, Math.round(number(get('fleetShips'), DEFAULT_FLEET_LIMITS.maxShips))),
@@ -989,7 +999,10 @@ export function startEvolution(): void {
     get('population').value = String(config.population);
     get('winners').value = String(config.winners);
     get('group').value = String(config.group);
-    get('massBudget').value = Number.isFinite(config.massBudget) ? String(config.massBudget / 1000) : '';
+    const shown = (value: number, scale: number): string => (Number.isFinite(value) ? String(value / scale) : '');
+    get('metalBudget').value = shown(config.budget.metal, 1000);
+    get('fuelBudget').value = shown(config.budget.fuel, 1000);
+    get('buildBudget').value = shown(config.budget.build, 60);
     get('fleetRadius').value = String(config.fleet.radius ?? DEFAULT_FLEET_LIMITS.radius);
     get('fleetShips').value = String(config.fleet.maxShips ?? DEFAULT_FLEET_LIMITS.maxShips);
     const operators = { ...DEFAULT_FLEET_LIMITS.operators, ...config.fleet.operators };

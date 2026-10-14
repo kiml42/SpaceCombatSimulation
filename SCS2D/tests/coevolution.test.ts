@@ -4,6 +4,7 @@ import { rivalSettings, runCoevolution } from '../evolution/coevolution.js';
 import { parseRunConfig, runConfigFileProblem, serialiseRunConfig } from '../evolution/configFile.js';
 import { DEFAULT_RUN, type GenerationRecord, type RunConfig, type RunRecord } from '../evolution/run.js';
 import { championGrid, GridMeasure } from '../evolution/yardstick.js';
+import { NO_BUDGET } from '../sim/bill.js';
 
 /** Small and short: what is under test is who fights whom and who breeds, not the fighting. */
 const SETTINGS: Partial<RunConfig> = {
@@ -154,14 +155,14 @@ describe('a run-config file with versus', () => {
     versus: {
       founders: ['Gunship'],
       fleets: [],
-      coevolution: { rival: { population: 6, group: 1, massBudget: Infinity }, hall: 3, hallShare: 0.5, rivalEvolves: true },
+      coevolution: { rival: { population: 6, group: 1, budget: NO_BUDGET }, hall: 3, hallShare: 0.5, rivalEvolves: true },
     },
     config: DEFAULT_RUN,
   };
 
   it('round-trips side B, its hall and its own settings', () => {
     const file = JSON.parse(JSON.stringify(serialiseRunConfig(setup)));
-    expect(file.versus).toEqual({ founders: ['Gunship'], hall: 3, hallShare: 0.5, population: 6, group: 1, massBudget: null });
+    expect(file.versus).toEqual({ founders: ['Gunship'], hall: 3, hallShare: 0.5, population: 6, group: 1, budget: { metal: null, fuel: null, build: null } });
     expect(parseRunConfig(file).versus).toEqual(setup.versus);
     expect(parseRunConfig({ founders: ['Dinky'] }).versus).toBeNull();
   });

@@ -4,6 +4,11 @@ import {
   expandFleet,
   fleetHulls,
   fleetMass,
+  fleetBill,
+  billOf,
+  NO_BUDGET,
+  type Bill,
+  type Budget,
   parseBlueprint,
   parseFleet,
   Rng,
@@ -42,16 +47,17 @@ export interface RunConfig {
   readonly minMatches: number;
   readonly generations: number;
   /**
-   * Dry mass a design may not exceed, kg, or Infinity for none.
+   * What a design may not cost more than, in metal, fuel and build time, each
+   * Infinity for none.
    *
    * A budget is what stops a run answering "how do I win a fight" with "be
    * bigger than the other one" — which is true, uninteresting, and the first
-   * thing an unbounded search finds. Denominated in mass because that is what
-   * a ship costs (DESIGN.md §2).
+   * thing an unbounded search finds. Denominated in what a ship is made of
+   * and how long it takes to make (DESIGN.md §2).
    */
-  readonly massBudget: number;
+  readonly budget: Budget;
   readonly mutation: Partial<MutationLimits>;
-  /** How fleets are bred, in a run started from one. The mass budget above is the whole fleet's. */
+  /** How fleets are bred, in a run started from one. The budget above is the whole fleet's. */
   readonly fleet: Partial<FleetMutationLimits>;
   readonly match: Partial<MatchConfig>;
 }
@@ -63,7 +69,7 @@ export const DEFAULT_RUN: RunConfig = {
   group: 4,
   minMatches: 3,
   generations: 10,
-  massBudget: Infinity,
+  budget: NO_BUDGET,
   mutation: {},
   fleet: {},
   match: {},
@@ -82,8 +88,10 @@ export interface IndividualRecord {
   readonly damage: number;
   readonly disabling?: number;
   readonly race: number;
-  /** Dry mass, kg — what the design cost. */
+  /** Mass as it sets out, kg. */
   readonly mass: number;
+  /** What it cost, in metal, fuel and build time; absent from runs written before budgets had three parts. */
+  readonly bill?: Bill;
   /**
    * The design itself, so a run can be read without the ships it started
    * from: a blueprint file in a run of ships, a fleet file in a run of fleets.
@@ -246,11 +254,11 @@ export function isFleetRun(founders: readonly Entrant[], config: Pick<RunConfig,
 
 /** How a ship is bred. In a run of fleets the budget is the fleet's, so it is not applied to one ship. */
 export function mutationLimits(config: RunConfig): Partial<MutationLimits> {
-  return { massBudget: config.massBudget, ...config.mutation };
+  return { budget: config.budget, ...config.mutation };
 }
 
 export function fleetLimits(config: RunConfig): Partial<FleetMutationLimits> {
-  return { massBudget: config.massBudget, ...config.fleet };
+  return { budget: config.budget, ...config.fleet };
 }
 
 /**
@@ -474,8 +482,12 @@ export function describe(generation: Generation, matches: readonly MatchRecord[]
     fitness: fitness(individual),
     ...perMatch(individual),
     ...(isFleet(individual.entrant)
-      ? { mass: fleetMass(fleetHulls(individual.entrant)), fleet: serialiseFleet(individual.entrant) }
-      : { mass: budgetMass(compileBlueprint(individual.entrant)), blueprint: serialiseBlueprint(individual.entrant) }),
+      ? { mass: fleetMass(fleetHulls(individual.entrant)), bill: fleetBill(fleetHulls(individual.entrant)), fleet: serialiseFleet(individual.entrant) }
+      : {
+          mass: budgetMass(compileBlueprint(individual.entrant)),
+          bill: billOf(compileBlueprint(individual.entrant)),
+          blueprint: serialiseBlueprint(individual.entrant),
+        }),
   }));
 
   let total = 0;
