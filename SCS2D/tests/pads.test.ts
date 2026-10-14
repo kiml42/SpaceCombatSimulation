@@ -154,6 +154,23 @@ describe('a fighter low on fuel', () => {
     expect(aboard(run, run.f)).toBe(false);
   });
 
+  it('waits aboard for an armed enemy to come within its sortie range, then goes', () => {
+    const doctrine = compileBlueprint(DINKY).doctrine;
+    const fighter = compileBlueprint({ ...DINKY, doctrine: { ...doctrine, approach: { ...doctrine.approach, refuelBelow: 0.5, sortieRange: 1500 } } });
+    const run = scene({ fighter });
+    runUntil(run, () => aboard(run, run.f), 60);
+    expect(aboard(run, run.f)).toBe(true);
+    // Long after it is full, with nobody about, it is still aboard.
+    for (let s = 0; s < 60 * 60; s++) run.step();
+    expect(aboard(run, run.f)).toBe(true);
+    // An enemy coming within range sends it out, full.
+    run.ships.spawn(run.world, { design: compileBlueprint(CORVETTE), x: 1000, y: 0, team: 1 });
+    runUntil(run, () => !aboard(run, run.f), 5);
+    expect(aboard(run, run.f)).toBe(false);
+    const b = run.world.bodies.indexOf(run.ships.body(run.f));
+    expect(run.ships.fuel.pieceRoom(b, run.ships.design(run.f).cores[0]!)).toBeCloseTo(0, 3);
+  });
+
   it('does not land on a pad it does not fit inside', () => {
     const run = scene({ carrier: carrierOf(4) });
     runUntil(run, () => aboard(run, run.f), 60);

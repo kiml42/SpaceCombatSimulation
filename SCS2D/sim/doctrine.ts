@@ -379,6 +379,12 @@ export interface Approach {
    */
   readonly dockDanger: number;
   /**
+   * How near an armed enemy must come to a fighter's carrier, metres, before
+   * the fighter leaves a pad it has nothing more to take on from; an order
+   * sends it at once. Zero leaves as soon as it is done.
+   */
+  readonly sortieRange: number;
+  /**
    * The share of a full load of metal at or below which a fighter breaks off to
    * land on a friend's pad and rearm. Zero waits until it cannot load another
    * round; below zero never does. This, `refuelBelow` or `rechargeBelow`
@@ -488,6 +494,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     rechargeBelow: 0.25,
     deliverFuelAbove: 0,
     dockDanger: 0,
+    sortieRange: 0,
     tangentialMin: 0,
     tangentialMax: 0,
     rearmBelow: 0,
@@ -690,6 +697,7 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
   'rechargeBelow',
   'deliverFuelAbove',
   'dockDanger',
+  'sortieRange',
   'rearmBelow',
   'repairBelow',
   'tangentialMin',
@@ -697,7 +705,7 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
 ];
 
 /** Fields that mean nothing below zero, though zero itself is a setting. */
-export const NON_NEGATIVE_FIELDS: readonly string[] = ['tangentialMin', 'tangentialMax', 'fuelPerMetal', 'ramMass'];
+export const NON_NEGATIVE_FIELDS: readonly string[] = ['tangentialMin', 'tangentialMax', 'fuelPerMetal', 'ramMass', 'sortieRange'];
 
 /** Pairs of approach fields that are the two ends of one band, the first no more than the second. */
 export const ORDERED_FIELDS: readonly (readonly [keyof Approach, keyof Approach])[] = [['tangentialMin', 'tangentialMax']];

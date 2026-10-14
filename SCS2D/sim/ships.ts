@@ -4252,6 +4252,7 @@ export class Ships {
             let repairLeft = landed >= 0 && this.mend(bodies, b, landed, seam.a, mending);
             if (landed >= 0 && !repairLeft) repairLeft = this.padBuild(bodies, b, design, landed, seam.a, mending);
             const ordered = (this.orders[landed]?.length ?? 0) > 0;
+            if (!ordered && landed >= 0 && this.waitsAboard(bodies, landed, b)) continue;
             const fuelLeft = this.fuel.pieceRoom(b, seam.b) > 0 && this.fuel.pieceHeld(b, seam.a) > this.reserve(b, seam.a);
             const metalLeft = this.metal.pieceRoom(b, seam.b) > 0 && this.metal.pieceHeld(b, seam.a) > this.metalReserve(b, seam.a);
             const chargeLeft = this.power.pieceRoom(b, seam.b) > 0 && this.power.pieceHeld(b, seam.a) > this.chargeReserve(b, seam.a);
@@ -5379,6 +5380,20 @@ export class Ships {
       if (length(dx + rvx * when, dy + rvy * when) < mine + bodies.radius[ob]!) return true;
     }
     return false;
+  }
+
+  /** Whether fighter `i`, aboard body `b`, waits for an armed enemy to come within its `sortieRange` of it. */
+  private waitsAboard(bodies: Bodies, i: number, b: number): boolean {
+    const range = this.doctrines[i]!.approach.sortieRange;
+    if (!(range > 0)) return false;
+    for (let t = 0; t < this.alive.length; t++) {
+      if (this.alive[t] === 0 || !this.hostile(i, t) || this.isDisarmed(t)) continue;
+      const tb = bodies.indexOf(this.bodyIds[t]!);
+      if (tb < 0 || tb === b) continue;
+      const gap = length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!) - bodies.radius[tb]! - bodies.radius[b]!;
+      if (gap <= range) return false;
+    }
+    return true;
   }
 
   /**
