@@ -44,7 +44,7 @@ an entry is either still open or it is gone.
 | Slice 0 | Two ships fight, deterministically | Built |
 | 1 | Blueprint editor | Built |
 | 2 | Terminal ballistics and the damage model | Built |
-| 3 | Doctrine and orders | Partly built |
+| 3 | Doctrine and orders | Built |
 | 4 | Headless evolution and analysis | Built |
 | 5 | v1: skirmish | Partly built |
 | 6 | Editor restructuring | Built |
@@ -59,14 +59,6 @@ an entry is either still open or it is gone.
 | 15 | Campaign | Not started |
 
 ### Partly built — what is left
-
-**Step 3 — Doctrine and orders.** What the step deferred:
-
-- **Withdrawal** — a craft breaking off. **And keeping clear in the first place**: an unarmed ship — a fuel
-  tanker, once there is fuel to carry — wants a doctrine that moves it away from armed enemies rather than
-  towards a target, a weight against each by how dangerous it is and how close, so a support ship stays
-  behind its fleet without being ordered to. An unarmed ship with a ram doctrine already picks targets (a
-  torpedo); one without one currently does nothing at all.
 
 **Step 5 — v1: skirmish.** A fixed budget of *materials* rather than of points (§12), and designed
 scenarios. *This is the first thing worth giving people to play.* Designed scenarios are where the §12
@@ -216,7 +208,7 @@ that answers the question most likely to change the design.
   a store and a transfer of its own, and the same seam to carry it.
 - **The smaller of two docked ships idles.** Whether the larger should fly the smaller's engines is in §12.
 - **A tanker has nowhere to be.** Unarmed, it picks no fight and holds where it is; keeping it clear of one is
-  step 3's withdrawal, not anything of step 9's.
+  withdrawal (§12), not anything of step 9's.
 - **A ship refuels until it is full.** The plan had a second share to stop at; nothing has needed it.
 
 #### Editor (step 1)
@@ -330,12 +322,20 @@ Deliberately unresolved; decide when they block something.
   holding it, which may be too eager while it could still be mended by someone else's. A full hold leaves a
   wreck half taken apart, its robots home with what they could not put away, until it is emptied.
 
+- **Withdrawal: a craft breaking off.** Not needed for v1. A fighter already breaks off for a pad at its
+  `refuelBelow`, `rearmBelow`, `rechargeBelow` and `repairBelow`; nothing breaks off for anything else, and
+  nothing without a pad to go to breaks off at all. **And keeping clear in the first place**: an unarmed
+  ship — a tanker — wants a doctrine that moves it away from armed enemies rather than towards a target, a
+  weight against each by how dangerous it is and how close, so a support ship stays behind its fleet without
+  being ordered to. An unarmed ship with a ram doctrine already picks targets (a torpedo); one without one
+  does nothing at all.
+
 - **Pilots that know their fuel.** Nothing flies differently for running low, so a ship spends its tanks as
   freely as ever. Short-legged ships show it: the Dinky carries 68 kg (13 s flat out), the TIE and the Torch
   little more for what they push, and in `swarm` every Dinky is dry before it reaches the gunships. A fighter
   goes home to refuel at its `refuelBelow`, but a ship with no pad or port to go to burns to empty. The answer
   may be bigger tanks, now that evolution can pay for fuel on its own budget, or a pilot that husbands what it
-  has, which belongs with withdrawal (§8 step 3).
+  has, which belongs with withdrawal (above).
 
 - **Whether targeting needs more pickers.** A ship-type picker, and hemisphere as a hard discard if
   `facingWeight`'s soft version — astern scores against — turns out not to be enough. Neither is clearly
@@ -896,7 +896,7 @@ Deliberately unresolved; decide when they block something.
   instead. Fixing it means moving the centre of mass as stores drain, which every hull frame hangs off.
 - **Pilots that know their ammunition.** Only a fighter breaks off to rearm, and only on a pad. Nothing else
   fights differently for running low: a ship fires as freely with its last round as its first, and a gun
-  that is dry just stops. Fire discipline by what is left belongs with withdrawal (§8 step 3).
+  that is dry just stops. Fire discipline by what is left belongs with withdrawal (§12).
 - **How much metal the stock ships carry.** Only what a core carries, and the two fighters' holds. The
   X-Wing's core holds about fourteen of its rounds and the Y-Wing's under two of its main gun's; every unarmed
   ship carries metal it cannot spend, since a core's share is fixed. A design call about the fleet.
