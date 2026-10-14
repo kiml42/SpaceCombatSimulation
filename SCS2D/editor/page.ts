@@ -96,9 +96,12 @@ import {
   unusedName,
   type LibraryEntry,
 } from './library.js';
-import { battleHref, shipFleet } from './handoff.js';
+import { battleHref, designHref, fleetHref, handedDesign, shipFleet, type DesignInFleet } from './handoff.js';
+import { replaceDesign, replacedName } from './fleetEdit.js';
+import { budgetRows } from './budget.js';
+import { billOfFleet, canFight } from '../scenarios/skirmish.js';
 import { Demonstration } from './demonstrate.js';
-import { drawOverlay, envelopeBearingAt } from './overlay.js';
+import { drawOverlay, envelopeBearingAt, overEnvelope } from './overlay.js';
 import {
   assemblyKnob,
   facingTo,
@@ -273,7 +276,16 @@ export function startEditor(): void {
       return null;
     }
   };
-  const doc = new EditorDocument(read('Corvette') ?? emptyBlueprint('New ship'));
+  // Opened from the fleet editor, the ship is one of a fleet's designs, to be taken back to it.
+  let inFleet: DesignInFleet | null = null;
+  try {
+    inFleet = handedDesign(window.location.hash);
+  } catch (error) {
+    window.alert(`Could not read the fleet's design handed over.\n\n${error instanceof Error ? error.message : error}`);
+  }
+  const doc = new EditorDocument(
+    (inFleet === null ? null : inFleet.fleet.designs[inFleet.design]) ?? read('Corvette') ?? emptyBlueprint('New ship'),
+  );
   const camera: Camera = { x: 0, y: 0, scale: 8 };
   /**
    * The grid an edit snaps to, metres: a tenth of the grid on screen, so it
@@ -495,9 +507,12 @@ export function startEditor(): void {
 
   /** The bearing on the envelope the pointer is over, radians from the bow, or null. */
   let thrustBearing: number | null = null;
+  /** Whether the pointer is over the thrust rosette, which is drawn larger while it is. */
+  let thrustExpanded = false;
   canvas.addEventListener('pointerleave', () => {
-    if (thrustBearing === null) return;
+    if (thrustBearing === null && !thrustExpanded) return;
     thrustBearing = null;
+    thrustExpanded = false;
     render();
   });
 
@@ -546,6 +561,7 @@ export function startEditor(): void {
         handles: currentHandles(),
         envelope,
         envelopeBearing: thrustBearing,
+        envelopeExpanded: thrustExpanded,
       },
       camera,
       canvas.width,
@@ -1197,7 +1213,41 @@ export function startEditor(): void {
     }
   };
 
+  let keepTimer: ReturnType<typeof setTimeout> | undefined;
+  const renderInFleet = (): void => {
+    if (inFleet === null) return;
+    const fleet = replaceDesign(inFleet.fleet, inFleet.design, doc.blueprint);
+    const skirmish = inFleet.skirmish;
+    el<HTMLElement>('inFleetTitle').textContent = skirmish === undefined ? `In ${fleet.name}` : `Skirmish — round ${skirmish.round}`;
+    el<HTMLElement>('inFleetBudget').innerHTML = skirmish === undefined ? '' : budgetRows(billOfFleet(fleet), skirmish.budget);
+    el<HTMLElement>('inFleetNote').textContent =
+      skirmish === undefined
+        ? 'Back to fleet takes this design back to every ship of it in the fleet.'
+        : canFight({ ...skirmish, player: fleet })
+          ? `The fleet with this design, against ${skirmish.enemy.name}.`
+          : 'The fleet with this design is over budget.';
+    // Kept in the address as it is edited, so a reload picks up where this left off.
+    clearTimeout(keepTimer);
+    keepTimer = setTimeout(() => {
+      if (inFleet === null) return;
+      const design = replacedName(inFleet.fleet, inFleet.design, doc.blueprint);
+      history.replaceState(null, '', designHref({ ...inFleet, fleet, design }).slice('editor.html'.length));
+    }, 300);
+  };
+  if (inFleet !== null) {
+    el<HTMLElement>('inFleet').hidden = false;
+    const back = el<HTMLAnchorElement>('backToFleet');
+    back.hidden = false;
+    // One way back into a battle when in a skirmish, and it is through the fleet.
+    if (inFleet.skirmish !== undefined) el<HTMLElement>('battleLink').hidden = true;
+    back.addEventListener('click', () => {
+      if (inFleet === null) return;
+      back.href = fleetHref(replaceDesign(inFleet.fleet, inFleet.design, doc.blueprint), inFleet.skirmish);
+    });
+  }
+
   const refresh = (): void => {
+    renderInFleet();
     const design = doc.view.design;
     envelope = design === null ? null : envelopes(design);
     if (document.activeElement !== shipName) shipName.value = doc.blueprint.name;
@@ -1867,7 +1917,7 @@ export function startEditor(): void {
       // Storage full or refused: nothing more to be done on the way out.
     }
   };
-  for (const link of document.querySelectorAll('header a')) link.addEventListener('click', keep);
+  for (const link of document.querySelectorAll('a')) link.addEventListener('click', keep);
   saveButton.addEventListener('click', () => {
     library.save(doc.blueprint);
     refresh();
@@ -2217,14 +2267,14 @@ export function startEditor(): void {
     if (drag === null) {
       const rect = canvas.getBoundingClientRect();
       const ratio = canvas.width / rect.width;
-      const bearing = envelopeBearingAt(
-        canvas.width,
-        canvas.height,
-        (event.clientX - rect.left) * ratio,
-        (event.clientY - rect.top) * ratio,
-      );
-      if (bearing !== thrustBearing) {
+      const x = (event.clientX - rect.left) * ratio;
+      const y = (event.clientY - rect.top) * ratio;
+      // Grown while pointed at, and so kept until the pointer leaves it at the larger size.
+      const expanded = envelope !== null && overEnvelope(canvas.width, canvas.height, x, y, thrustExpanded);
+      const bearing = expanded ? envelopeBearingAt(canvas.width, canvas.height, x, y, true) : null;
+      if (bearing !== thrustBearing || expanded !== thrustExpanded) {
         thrustBearing = bearing;
+        thrustExpanded = expanded;
         render();
       }
       return;

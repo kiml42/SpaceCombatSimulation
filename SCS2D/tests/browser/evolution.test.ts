@@ -201,6 +201,12 @@ describe('the evolution page in a browser', () => {
     expect(await distinctColours(page, 'chart')).toBeGreaterThan(4);
     // And what each generation weighed, under it.
     expect(await distinctColours(page, 'massChart')).toBeGreaterThan(2);
+    // Or what it was armed and driven with.
+    await page.selectOption('#sizeMetric', 'fittings');
+    expect(await page.textContent('#massLegend')).toMatch(/mean weapons.*mean engines/);
+    expect(await distinctColours(page, 'massChart')).toBeGreaterThan(2);
+    await page.selectOption('#sizeMetric', 'mass');
+    expect(await page.textContent('#massLegend')).toMatch(/mean mass/);
   });
 
   it('lists what it bred, and what each generation fought', async () => {
