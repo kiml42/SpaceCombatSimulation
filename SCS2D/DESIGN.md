@@ -695,9 +695,9 @@ inside any one file is not contiguous.
   their weight (`ROBOT_MASS`) and its racks, and is drawn as a deck with a round pad for each berth, a robot
   home sitting on its pad as a disc once it is full and as itself while it is being filled, and the pad of
   one being built filling round as a ring. A robot is not a body but a place on its hull: it crawls module
-  to module across the welds the hull was built with, never a seam, at `ROBOT_SPEED`, and is drawn there as
+  to module across the welds the hull was built with, and across a seam only onto wreckage, at `ROBOT_SPEED`, and is drawn there as
   a beetle facing the way it crawls, its two wing cases bars that empty as it spends its charge and its
-  metal. It sets out with `ROBOT_LOAD` of metal and `ROBOT_CHARGE` it may spend, goes to
+  metal, over every capital hull and its mounts and under every fighter, flying or landed. It sets out with `ROBOT_LOAD` of metal and `ROBOT_CHARGE` it may spend, goes to
   the damaged module of its ship's that matters most — cores and robot bays, then engines and weapons, then the rest, the
   one fewest robots are after, the nearest of those — and mends it at `ROBOT_REPAIR_RATE`, at a pad's costs:
   `REPAIR_ENERGY_PER_JOULE` of what it carries, and the metal the module shed and `REPAIR_WASTE` more, drawn
@@ -742,6 +742,23 @@ inside any one file is not contiguous.
   (`repairWork`), so it costs time and charge alike, in proportion. A Dinky's outrigger engine is almost all
   complexity and a Catamaran's main engine almost all mass, so small parts are slow to replace without large
   repairs slowing much: it adds 7% to the `mending` scenario.
+  **Robots take apart what is not their ship's own**, once nothing is left to mend or rebuild: hull on the
+  same body that nobody flies, that a ship with no control flies and no robots of its own are mending, or a
+  piece their own ship hooked on rather than set out with — never a ship under control, friend or foe. It is
+  wreckage welded on or a hulk in the claw, reached across the seam it hangs by. **Taking it apart is building
+  run backwards**: the robot loads any metal the wreck holds as it is, then takes a module's fittings out,
+  leaving it standing full size and doing nothing, and then its walls down a step at a time, a shell
+  shrinking towards the face it hangs by as a rebuilt one grows, until the last step takes what is left of it
+  off the hull. A kilogram is the work of building it (`buildWork`), at a robot's rate and charge, and only a
+  module whose going leaves the rest held on (`staysWhole`) is started, so a wreck comes apart from its far
+  end inwards and never drifts loose. What comes off goes into the robot, less `DISASSEMBLY_WASTE`, up to
+  `ROBOT_LOAD`; full, or short of charge, it carries it home and puts it in the holds on its bay's piece of
+  hull, as far as they have room, and a robot goes out to strip only while they have some. What it carries
+  is the hull's mass until then. The waste, and anything else a module held, are discarded. A ship with
+  nothing left of it is gone, and the body passes to one that has some. A claw closes on a wreck its robots
+  could take apart, as it does on one with fuel it has room for, and holds on while its robots have the
+  charge and the holds the room. The `scrapyard` scenario has two salvagers drift into a dead leech, gone in
+  under five minutes, and a dead corvette, gone in about forty-two, by when the hold is nearly full.
   **A pad may set out with a fighter docked on it** (`ModuleSpec.docked`, naming a copy in the blueprint's
   `hangar`, as a fleet carries its designs). It is spawned lying along the pad, centred on it, and welded as
   one that had landed, so it is topped up from the carrier and lifts off once full. A fighter too big for its
@@ -831,10 +848,12 @@ inside any one file is not contiguous.
   `rechargeBelow` goes to a pad for charge alone. A battery's room is what damage leaves it, so a pad never
   holds a fighter to fill cells that are broken. Evolution draws batteries and generators at a weight of
   one each, and a mutation does not turn either, since neither has a facing that matters.
-- **Next:** repair, construction and salvage, one mechanism built in six stages (ROADMAP.md §8): with damage
-  shedding mass, pads mending landed fighters, robots mending their own hull, lost and built anew, and
-  robots rebuilding lost modules built, pads rebuilding what a fighter has lost is next. Alongside it, the rest of §8 step 8 — leaks, and pilots that
-  know their fuel — and of step 5: a materials budget, and designed scenarios.
+- **Next:** repair, construction and salvage, one mechanism, is built in all six stages (ROADMAP.md §8):
+  damage shedding mass, pads mending landed fighters, robots mending their own hull, lost and built anew,
+  lost modules rebuilt by robots and by pads, and robots taking wreckage apart into metal. What is left of
+  it is doctrine: a ship going out to find wrecks for their metal, and what sends a fighter in to be mended.
+  Alongside it, the rest of §8 step 8 — pilots that know their fuel — and of step 5: a materials budget,
+  and designed scenarios.
   See ROADMAP.md §8.
   §8 step 3 is done bar withdrawal, and step 7, two layers, is built. What a chooser is already facing (`facingWeight`) and whether anything is in the way
   (`sightWeight`) are weights, zero by default. Evolution is built and runs both headlessly and on a page

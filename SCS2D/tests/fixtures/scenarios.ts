@@ -18,7 +18,7 @@ import { beamDuel } from '../../scenarios/beamDuel.js';
 import { soloOrdering } from '../../scenarios/ordering.js';
 import { ram } from '../../scenarios/ram.js';
 import { hooked } from '../../scenarios/hooked.js';
-import { salvage } from '../../scenarios/salvage.js';
+import { salvage, scrapyard } from '../../scenarios/salvage.js';
 import { mending, rebuilding } from '../../scenarios/mending.js';
 import { scavenge } from '../../scenarios/scavenge.js';
 import { carrier, padRebuild } from '../../scenarios/carrier.js';
@@ -527,6 +527,19 @@ export function salvageScenario(seed = 20261008): ScenarioRun {
   };
 }
 
+export function scrapyardScenario(seed = 20261013): ScenarioRun {
+  const run = scrapyard(seed);
+  return {
+    step: () => run.step(),
+    checksum: () =>
+      checksumDamage(
+        run.ships.damage,
+        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
+      ),
+    describe: () => describeBattle(run),
+  };
+}
+
 export function scavengeScenario(seed = 20261008): ScenarioRun {
   const run = scavenge(seed);
   return {
@@ -669,6 +682,7 @@ export const SCENARIOS = {
   hooked: { steps: 3_000, build: () => hookedScenario() },
   broadside: { steps: 3_000, build: () => broadsideScenario() },
   salvage: { steps: 3_000, build: () => salvageScenario() },
+  scrapyard: { steps: 18_000, build: () => scrapyardScenario() },
   // Long enough for the robots to mend everything and come home.
   mending: { steps: 15_600, build: () => mendingScenario() },
   rebuilding: { steps: 10_800, build: () => rebuildingScenario() },
