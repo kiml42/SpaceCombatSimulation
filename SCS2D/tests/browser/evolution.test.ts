@@ -201,6 +201,12 @@ describe('the evolution page in a browser', () => {
     expect(await distinctColours(page, 'chart')).toBeGreaterThan(4);
     // And what each generation weighed, under it.
     expect(await distinctColours(page, 'massChart')).toBeGreaterThan(2);
+    // Or what it was armed and driven with.
+    await page.selectOption('#sizeMetric', 'fittings');
+    expect(await page.textContent('#massLegend')).toMatch(/mean weapons.*mean engines/);
+    expect(await distinctColours(page, 'massChart')).toBeGreaterThan(2);
+    await page.selectOption('#sizeMetric', 'mass');
+    expect(await page.textContent('#massLegend')).toMatch(/mean mass/);
   });
 
   it('lists what it bred, and what each generation fought', async () => {
@@ -218,6 +224,8 @@ describe('the evolution page in a browser', () => {
     expect((await best.locator('td.done').textContent())?.length).toBeGreaterThan(0);
     expect(await rows(page, 'matches')).toBeGreaterThan(0);
     expect(await page.textContent('#championLine')).toMatch(/best of generation \d/);
+    // A finished generation owes nothing, so no count of matches is shown.
+    expect(await page.locator('#fleet td.score .count:not(:empty)').count()).toBe(0);
   });
 
   it('exports any one combatant as a file, without picking its row', async () => {
@@ -795,11 +803,6 @@ describe('the evolution page in a browser', () => {
     await page.check('#rivalEvolves');
 
     await page.click('#start');
-    // Each combatant's matches so far, while it still owes some.
-    await page.selectOption('#mode', 'fleet');
-    await page.waitForFunction(() =>
-      [...document.querySelectorAll('#fleet td.score .count')].some((count) => /^\d+\/\d+$/.test(count.textContent ?? '')),
-    );
     await page.waitForFunction(
       () => document.getElementById('state')?.textContent === 'finished',
       undefined,
