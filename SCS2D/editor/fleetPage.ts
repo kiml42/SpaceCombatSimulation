@@ -360,6 +360,8 @@ export function startFleetEditor(): void {
   if (skirmish !== null) {
     skirmishPanel.hidden = false;
     backToSkirmish.hidden = false;
+    // One way into a battle, and it is the skirmish's: a custom battle beside it reads as the same thing.
+    el<HTMLElement>('battleLink').hidden = true;
     backToSkirmish.addEventListener('click', (event) => {
       const now: Skirmish = { ...skirmish!, player: doc.fleet };
       if (!canFight(now)) {
@@ -832,6 +834,17 @@ export function startFleetEditor(): void {
     resize();
     render();
   }).observe(canvas);
+
+  // Following a link away keeps the work, in case it was not saved. A reload
+  // does not: that is how changes are thrown away.
+  const keep = (): void => {
+    try {
+      fleets.saveIfChanged(doc.fleet);
+    } catch {
+      // Storage full or refused: nothing more to be done on the way out.
+    }
+  };
+  for (const link of document.querySelectorAll('header a')) link.addEventListener('click', keep);
 
   // The fleet as it stands, saved or not, goes with the link.
   el<HTMLAnchorElement>('battleLink').addEventListener('click', (event) => {

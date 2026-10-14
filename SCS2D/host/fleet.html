@@ -66,7 +66,17 @@
       #stats td { color: #e6edf5; }
       #skirmishBudget td { color: #e6edf5; }
       #skirmishBudget tr.over th, #skirmishBudget tr.over td { color: #e8796b; }
-      #backToSkirmish { font-weight: 600; }
+      #backToSkirmish {
+        background: #2f5f9e;
+        color: #fff;
+        border: 1px solid #4f7cc0;
+        border-radius: 4px;
+        padding: 0.25rem 0.9rem;
+        font-weight: 600;
+        text-decoration: none;
+      }
+      #backToSkirmish:hover { background: #3a70b6; }
+      #backToSkirmish.blocked { opacity: 0.5; }
       /* A display rule of our own outranks the browser's for [hidden], so
          anything laid out here would stay on screen when hidden without this. */
       [hidden] { display: none !important; }

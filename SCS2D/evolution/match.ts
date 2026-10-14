@@ -447,7 +447,7 @@ export class Match {
     // Its time cap is the match's own clock.
     this.activity =
       settings.quietLimit > 0
-        ? new Activity(sided === null ? count : math.max(...sided) + 1, settings.quietLimit, Infinity)
+        ? new Activity(sided === null ? count : math.max(...sided) + 1, Infinity, settings.quietLimit)
         : null;
 
     this.battle = makeBattle(

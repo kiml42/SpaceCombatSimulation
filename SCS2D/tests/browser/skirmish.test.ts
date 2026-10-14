@@ -84,10 +84,13 @@ describe('the skirmish in a browser', () => {
     expect(await page.textContent('#skirmishTitle')).toBe('Skirmish — round 1');
     expect(await page.textContent('#skirmishBudget')).toContain('metal');
     expect(await page.inputValue('#fleetName')).toBe('Gunship');
+    expect(await page.isVisible('#battleLink')).toBe(false);
     await page.click('#backToSkirmish');
     await page.waitForURL(/skirmish\.html/);
     await page.waitForSelector('#round:not([hidden])');
     expect(await page.textContent('#playerName')).toBe('Gunship');
+    // Leaving the editor by a link saved the fleet.
+    expect(await page.evaluate(() => window.localStorage.getItem('scs2d.fleet.Gunship') !== null)).toBe(true);
     expect(problems).toEqual([]);
   });
 });

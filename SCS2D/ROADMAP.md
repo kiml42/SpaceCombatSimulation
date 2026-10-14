@@ -77,7 +77,9 @@ that evolves to beat you, settled with the author (DECISIONS.md):
    seed. Its budget is unlimited: the search stops as soon as it wins, so it grows only as far as it must.
 
 **A battle is decided** when one side has fired or rammed in the last 30 s and the other has not. A ship too
-far off to shoot is out of it, and an unarmed ship never fires. A hard time cap ends a stalemate, and a
+far off to shoot is out of it, and an unarmed ship never fires. A hit landing counts as firing, and a side
+left with nothing armed or ramming is out at once, so a slow round that wins after the last shot does not
+hand the battle to the ship it disables. A hard time cap ends a stalemate, and a
 draw is a loss for the player, who has to win.
 
 **The enemy evolves under evolution's own rules**: a match ends when one side is left fighting or at its
@@ -95,7 +97,8 @@ skirmish's own state — both fleets, the budget, the round and its seed — is 
 editors so a ship is edited in place within its fleet comes later, as does an upgrade card (§12).
 
 Built in order, a PR or more each: the loop without an enemy that answers (beat the stock fleets) — built,
-`dist/skirmish.html`, a win offering another stock enemy until the enemy answers; the enemy answering in
+`dist/skirmish.html`, a win offering another stock enemy until the enemy answers; opening a ship of the fleet in the ship editor
+and coming back to the fleet, a round trip like the fleet editor's; the enemy answering in
 a worker, watched; then the decision rule's numbers tuned against real rounds.
 
 Built: **the fleet file** (`sim/fleet.ts`, `sim/fleetFile.ts`), **a battle from fleets**
