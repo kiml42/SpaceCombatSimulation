@@ -95,7 +95,8 @@ skirmish's own state — both fleets, the budget, the round and its seed — is 
 editors so a ship is edited in place within its fleet comes later, as does an upgrade card (§12).
 
 Built in order, a PR or more each: the loop without an enemy that answers (beat the stock fleets) — built,
-`dist/skirmish.html`, a win offering another stock enemy until the enemy answers; the enemy answering in
+`dist/skirmish.html`, a win offering another stock enemy until the enemy answers; opening a ship of the fleet in the ship editor
+and coming back to the fleet, a round trip like the fleet editor's; the enemy answering in
 a worker, watched; then the decision rule's numbers tuned against real rounds.
 
 Built: **the fleet file** (`sim/fleet.ts`, `sim/fleetFile.ts`), **a battle from fleets**

@@ -146,6 +146,30 @@ export class Library<T extends { name: string } = Blueprint> {
     this.store.setItem(this.kind.prefix + value.name, JSON.stringify(this.kind.serialise(value), null, 2));
   }
 
+  /**
+   * Save it if it differs from what its name opens, so leaving an editor keeps
+   * the work without shadowing an untouched stock copy. One that would not read
+   * back, an empty fleet say, is left unsaved. Whether it saved.
+   */
+  saveIfChanged(value: T): boolean {
+    const text = JSON.stringify(this.kind.serialise(value));
+    try {
+      this.kind.parse(JSON.parse(text));
+    } catch {
+      return false;
+    }
+    let kept: string | null = null;
+    try {
+      const current = this.load(value.name);
+      kept = current === null ? null : JSON.stringify(this.kind.serialise(current));
+    } catch {
+      // Unreadable: overwritten by something that reads.
+    }
+    if (kept === text) return false;
+    this.save(value);
+    return true;
+  }
+
   /** Delete the saved copy. A built-in one of the same name reappears. */
   remove(name: string): void {
     this.store.removeItem(this.kind.prefix + name);
