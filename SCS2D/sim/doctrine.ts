@@ -41,6 +41,12 @@ export interface Targeting {
    * wants capitals, a twentieth is a mount that exists to swat fighters.
    */
   readonly preferredMass: number;
+  /**
+   * What size to go after instead while it would ram, its guns gone, as
+   * `preferredMass` is; zero for the same. A disabled fighter is better
+   * thrown at a capital that cannot dodge than at another fighter.
+   */
+  readonly ramMass: number;
   /** How much going after the right size of thing is worth. */
   readonly massWeight: number;
   /** Prefer what is coming at you, per hundred metres per second of closing. */
@@ -438,6 +444,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
   targeting: {
     proximityWeight: 100,
     preferredMass: 1,
+    ramMass: 0,
     massWeight: 40,
     closingWeight: 10,
     loyaltyWeight: 20,
@@ -541,6 +548,7 @@ const MOUNT_TARGETING: Record<string, Targeting> = {
     ...DEFAULT_DOCTRINE.targeting,
     proximityWeight: 150,
     preferredMass: 0.1,
+    ramMass: 0,
     massWeight: 120,
     mobileWeight: 100,
     focusWeight: 30,
@@ -569,6 +577,7 @@ const MOUNT_TARGETING: Record<string, Targeting> = {
     ...DEFAULT_DOCTRINE.targeting,
     proximityWeight: 150,
     preferredMass: 0.5,
+    ramMass: 0,
     massWeight: 80,
     mobileWeight: 60,
     focusWeight: 250,
@@ -600,6 +609,7 @@ export function defaultTargeting(kind: string): Targeting {
 export const TARGETING_FIELDS: readonly (keyof Targeting)[] = [
   'proximityWeight',
   'preferredMass',
+  'ramMass',
   'massWeight',
   'closingWeight',
   'loyaltyWeight',
@@ -625,6 +635,7 @@ export const TARGETING_FIELDS: readonly (keyof Targeting)[] = [
  * and some fields belong to only one of them:
  *
  * - `escortWeight` is a steering urge, and a mount steers nothing.
+ * - `ramMass` picks what the hull is thrown at, and a mount is never thrown.
  * - the four aim weights choose a *part* of a target, which only a gun does —
  *   and with it how near that part a shot has to land, since a mount that has
  *   refused something has to be sure of what it would hit.
@@ -638,7 +649,7 @@ export const TARGETING_FIELDS: readonly (keyof Targeting)[] = [
  * three to discover.
  */
 export const MOUNT_TARGETING_FIELDS: readonly (keyof Targeting)[] = TARGETING_FIELDS.filter(
-  (field) => field !== 'escortWeight',
+  (field) => field !== 'escortWeight' && field !== 'ramMass',
 );
 
 export const SHIP_TARGETING_FIELDS: readonly (keyof Targeting)[] = TARGETING_FIELDS.filter(
@@ -686,7 +697,7 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
 ];
 
 /** Fields that mean nothing below zero, though zero itself is a setting. */
-export const NON_NEGATIVE_FIELDS: readonly string[] = ['tangentialMin', 'tangentialMax', 'fuelPerMetal'];
+export const NON_NEGATIVE_FIELDS: readonly string[] = ['tangentialMin', 'tangentialMax', 'fuelPerMetal', 'ramMass'];
 
 /** Pairs of approach fields that are the two ends of one band, the first no more than the second. */
 export const ORDERED_FIELDS: readonly (readonly [keyof Approach, keyof Approach])[] = [['tangentialMin', 'tangentialMax']];
