@@ -701,8 +701,8 @@ inside any one file is not contiguous.
   fighter, cores first, paid for in the carrier's metal and charge. The pad lets it go when it is full,
   mended and whole, when there is no more to spare, or at once when it is given an order. The `padRebuild`
   scenario has two Dinkies, each short of an outrigger engine, land on a Workshop, a Tender with a hold, and
-  lift off whole; the engine's complexity makes that the work of about four seconds. Nothing yet sends
-  a fighter in to be mended: it is mended while it is down for anything else. A merged design remembers which of its pieces
+  lift off whole; the engine's complexity makes that the work of about four seconds. A fighter goes in
+  to be mended at its `repairBelow` (below), and is mended while it is down for anything else. A merged design remembers which of its pieces
   were fighters (`fighterPieces`), so it lifts off a fighter, and every ship keeps the doctrine it set out with
   whatever hull it rides, so a fighter flies on its own and not its carrier's. The `carrier` scenario has three Dinkies take
   turns on a two-pad Tender; evolution's weight for a pad is zero, since it pays only in a fleet with fighters.
@@ -871,7 +871,7 @@ inside any one file is not contiguous.
   `rechargeBelow` goes to a pad for charge alone. A battery's room is what damage leaves it, so a pad never
   holds a fighter to fill cells that are broken. Evolution draws batteries and generators at a weight of
   one each, and a mutation does not turn either, since neither has a facing that matters.
-- **Next:** repair, construction and salvage, one mechanism, is built in all six stages (ROADMAP.md §8):
+- **Next:** repair, construction and salvage, one mechanism, is built in all six stages:
   damage shedding mass, pads mending landed fighters, robots mending their own hull, lost and built anew,
   lost modules rebuilt by robots and by pads, and robots taking wreckage apart into metal, with doctrine that
   sends a fighter in to be mended and a ship out to wrecks for their metal. What is left of it is a stock
@@ -879,7 +879,7 @@ inside any one file is not contiguous.
   Alongside it, the rest of §8 step 5: designed scenarios, and a skirmish allowance in the three currencies
   evolution's budget already counts.
   See ROADMAP.md §8.
-  §8 step 3 is done bar withdrawal, and step 7, two layers, is built. What a chooser is already facing (`facingWeight`) and whether anything is in the way
+  §8 step 3 is done, withdrawal left open (ROADMAP.md §12), and step 7, two layers, is built. What a chooser is already facing (`facingWeight`) and whether anything is in the way
   (`sightWeight`) are weights, zero by default. Evolution is built and runs both headlessly and on a page
   of its own; what it has left open is in ROADMAP.md §12, the arena radius being an absolute where a ratio
   belongs chief among them. ROADMAP.md §8 lists what is left of each partly built step, then the steps not started. The blueprint
