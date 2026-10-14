@@ -75,6 +75,8 @@ const APPROACH_ROWS: readonly DoctrineRow[] = [
   { field: 'burnWeight', label: 'turns to burn', hint: 'How much it would rather turn its main engines along the way it wants to go than keep its guns on target, for each share of the change it wants the turn would make sooner, turn included. Never turns when its guns-on thrust is enough, or to dodge what it cannot turn in time for. 0 never turns from its guns', step: 0.5 },
   { field: 'rangeHold', label: 'holds guns on', hint: 'How much it would rather keep its guns on target: all of it inside the band it holds, falling away the further out it is', step: 0.5 },
   { field: 'scavengeFuelBelow', label: 'scavenges below', hint: 'The share of a full load of fuel at or below which a ship with a claw breaks off to scavenge from a wreck or a disarmed enemy, going from one to the next until it is full: set high, it goes whenever it has room enough to be worth the trip. Being filled by a friend is refuels below. 0 never does', step: 0.05 },
+  { field: 'scavengeMetalBelow', label: 'strips wrecks below', hint: 'The share of a full load of metal at or below which a ship with a claw and robots breaks off to grip a wreck and take it apart for its metal, going from one to the next until its holds are full. 0 never does', step: 0.05 },
+  { field: 'fuelPerMetal', label: 'fuel per metal', hint: 'How much fuel it will burn to fetch a kilogram of metal from a wreck: what the metal is worth against the trip there', step: 0.25 },
   { field: 'rearmBelow', label: 'rearms below', hint: 'The share of a full load of metal at or below which a fighter breaks off to land on a friend’s pad and rearm, taking on fuel and charge as well. 0 waits until it cannot load another round; below 0 never does', step: 0.05 },
   { field: 'repairBelow', label: 'repairs below', hint: 'How whole a fighter is at or below which it breaks off to land on a friend’s pad and be mended: the lower of its weakest core and the share of the mass it set out with still sound. The pad lets it go once it is whole. 0 never goes', step: 0.05 },
   { field: 'scavengeDanger', label: 'scavenges wary of', hint: 'How much an armed enemy within reach of a wreck puts it off: each one divides what the wreck is worth by one more of this. 0 ignores them', step: 0.5 },
@@ -321,6 +323,14 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
             absolute: (v) =>
               v.approach.scavengeFuelBelow > 0 ? `below ${Math.round(v.approach.scavengeFuelBelow * 100)}% full, with a claw` : 'never',
           }),
+          entry('approach', 'scavengeMetalBelow', {
+            absolute: (v) =>
+              v.approach.scavengeMetalBelow > 0 ? `below ${Math.round(v.approach.scavengeMetalBelow * 100)}% full, with a claw and robots` : 'never',
+          }),
+          entry('approach', 'fuelPerMetal', {
+            shown: (v) => v.approach.scavengeMetalBelow > 0,
+            absolute: (v) => `${v.approach.fuelPerMetal} kg of fuel for a kilogram of metal`,
+          }),
           entry('approach', 'rearmBelow', {
             absolute: (v) =>
               v.approach.rearmBelow < 0
@@ -332,7 +342,7 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
           entry('approach', 'repairBelow', {
             absolute: (v) => (v.approach.repairBelow > 0 ? `below ${Math.round(v.approach.repairBelow * 100)}% whole, on a pad` : 'never'),
           }),
-          entry('approach', 'scavengeDanger', { shown: (v) => v.approach.scavengeFuelBelow > 0 }),
+          entry('approach', 'scavengeDanger', { shown: (v) => v.approach.scavengeFuelBelow > 0 || v.approach.scavengeMetalBelow > 0 }),
           entry('approach', 'refuelBelow', {
             absolute: (v) =>
               v.approach.refuelBelow > 0 ? `below ${Math.round(v.approach.refuelBelow * 100)}% full, at a friend’s pad or port` : 'never',

@@ -6553,7 +6553,7 @@ export class Ships {
       }
       this.stopForaging(i);
     }
-    const forages = free && approach.scavengeFuelBelow > 0;
+    const forages = free && (approach.scavengeFuelBelow > 0 || approach.scavengeMetalBelow > 0);
     const docks = free && approach.refuelBelow > 0;
     const recharges = free && approach.rechargeBelow > 0;
     const claw = forages ? this.workingClaw(i, b) : -1;
@@ -6572,6 +6572,8 @@ export class Ships {
       viaPort = portRoom > 0 && (this.docking[i] === 1 || portHeld <= approach.refuelBelow * (portHeld + portRoom));
     }
     const scavenges = claw >= 0 && !viaPort;
+    // Metal from a wreck comes by its robots taking it apart.
+    const strips = scavenges && approach.scavengeMetalBelow > 0 && this.hasRobots(b, i);
     const own = scavenges ? claw : lands ? (design.cores[0] ?? 0) : viaPort ? port : -1;
     if (own < 0) {
       this.stopForaging(i);
@@ -6579,13 +6581,16 @@ export class Ships {
     }
     const below = scavenges ? approach.scavengeFuelBelow : approach.refuelBelow;
     const ownHeld = this.fuel.pieceHeld(b, own);
-    const room = scavenges || docks ? this.fuel.pieceRoom(b, own) : 0;
+    const wantsFuel = scavenges ? approach.scavengeFuelBelow > 0 : docks;
+    const room = wantsFuel ? this.fuel.pieceRoom(b, own) : 0;
     const full = ownHeld + room;
-    const metalRoom = rearms ? this.metal.pieceRoom(b, own) : 0;
+    const metalRoom = rearms || strips ? this.metal.pieceRoom(b, own) : 0;
     const chargeRoom = lands && recharges ? this.power.pieceRoom(b, own) : 0;
     const charge = chargeRoom > 0 ? this.power.pieceHeld(b, own) : 0;
     const thirsty = full > 0 && room > 0 && ownHeld <= below * full;
-    const empty = metalRoom > 0 && this.outOfRounds(i, b, own, approach.rearmBelow);
+    const empty = rearms && metalRoom > 0 && this.outOfRounds(i, b, own, approach.rearmBelow);
+    const metalHeld = strips ? this.metal.pieceHeld(b, own) : 0;
+    const hungry = strips && metalRoom > 0 && metalHeld <= approach.scavengeMetalBelow * (metalHeld + metalRoom);
     // Only running flat sends it for charge, so it never lands for a sliver of it.
     const flat = chargeRoom > 0 && charge <= approach.rechargeBelow * (charge + chargeRoom);
     const recharging = chargeRoom > 0 && (flat || this.recharging[i] === 1);
@@ -6594,6 +6599,7 @@ export class Ships {
     const going =
       thirsty ||
       empty ||
+      hungry ||
       recharging ||
       hurt ||
       (this.refuelling[i] === 1 && room > 0) ||
@@ -6615,7 +6621,11 @@ export class Ships {
         ? hb < 0 || this.landingPad[i]! < 0 || !this.padFree(bodies, held, this.landingPad[i]!)
         : viaPort
           ? hb < 0 || this.dockPort[i]! < 0 || this.ownPort[i] !== port || !this.portFree(bodies, held, this.dockPort[i]!)
-          : hb < 0 || this.landingPad[i]! >= 0 || this.dockPort[i]! >= 0 || this.shipByBody[hb] !== held || !(this.fuel.left(hb) > 0);
+          : hb < 0 ||
+            this.landingPad[i]! >= 0 ||
+            this.dockPort[i]! >= 0 ||
+            this.shipByBody[hb] !== held ||
+            !((room > 0 && this.fuel.left(hb) > 0) || (metalRoom > 0 && this.strippableWreck(held)));
       if (lost) {
         this.salvaging[i] = NO_TARGET;
         this.landingPad[i] = -1;
@@ -6631,7 +6641,7 @@ export class Ships {
     } else if (viaPort) {
       this.pickPort(bodies, i, b, port, room);
     } else {
-      this.salvaging[i] = this.pickSource(bodies, i, b, claw, room);
+      this.salvaging[i] = this.pickSource(bodies, i, b, claw, room, strips ? metalRoom : 0);
       this.landingPad[i] = -1;
       this.dockPort[i] = -1;
       // Nothing left to scavenge: what it has goes to a friend instead.
@@ -7326,13 +7336,15 @@ export class Ships {
   }
 
   /**
-   * The best thing to drink from: a wreck, or an enemy with no main guns left,
-   * scored by what it would gain, less what getting there burns, for the time
-   * spent — getting there at what it can close at and pumping — and put off by
-   * armed enemies near it. One that pays no more than the trip costs, or that
-   * is going away faster than it can follow, is not gone for.
+   * The best thing to drink from or take apart: a wreck, or an enemy with no
+   * main guns left, scored by what it would gain, less what getting there
+   * burns, for the time spent — getting there at what it can close at,
+   * pumping and taking apart — and put off by armed enemies near it. Metal
+   * counts as `fuelPerMetal` of fuel a kilogram. One that pays no more than the
+   * trip costs, or that is going away faster than it can follow, is not gone
+   * for.
    */
-  private pickSource(bodies: Bodies, i: number, b: number, claw: number, room: number): number {
+  private pickSource(bodies: Bodies, i: number, b: number, claw: number, room: number, metalRoom: number): number {
     const design = this.designs[i]!;
     const approach = this.doctrines[i]!.approach;
     const pump = design.modules[claw]!.stats.pumpRate;
@@ -7340,6 +7352,9 @@ export class Ships {
     const mass = bodies.mass[b]!;
     const mains = this.layoutOf(i).maxThrustAlong(cos(design.thrustBearing), sin(design.thrustBearing)) / mass;
     const exhaust = exhaustOf(design);
+    let robots = 0;
+    if (metalRoom > 0) for (const robot of this.robots.on(b) ?? []) if (this.pilotAt(b, robot.bay) === i) robots++;
+    const stripRate = (robots * ROBOT_REPAIR_RATE) / DAMAGE_ENERGY_PER_KG;
     let best = NO_TARGET;
     let bestScore = 0;
     for (let t = 0; t < this.alive.length; t++) {
@@ -7350,8 +7365,11 @@ export class Ships {
       // A body is offered once, by the ship it is.
       if (tb < 0 || tb === b || this.shipByBody[tb] !== t) continue;
       const fuel = this.fuel.left(tb);
-      if (!(fuel > 0)) continue;
       const take = fuel < room ? fuel : room;
+      // What its robots would bring home of it, less what taking it apart wastes.
+      const metal = metalRoom > 0 && this.strippableWreck(t) ? (bodies.mass[tb]! - fuel) * (1 - DISASSEMBLY_WASTE) : 0;
+      const strip = metal < metalRoom ? metal : metalRoom;
+      if (!(take > 0 || strip > 0)) continue;
       const dx = bodies.x[tb]! - bodies.x[b]!;
       const dy = bodies.y[tb]! - bodies.y[b]!;
       const apart = length(dx, dy);
@@ -7367,9 +7385,9 @@ export class Ships {
       const cruise = min(closing, sqrt(mains * gap));
       const dv = length(bodies.vx[tb]! - bodies.vx[b]!, bodies.vy[tb]! - bodies.vy[b]!) + 2 * cruise;
       const cost = exhaust > 0 ? mass * (1 - exp(-dv / exhaust)) : 0;
-      const gain = take - cost;
+      const gain = take + strip * approach.fuelPerMetal - cost;
       if (!(gain > 0)) continue;
-      const time = gap / closing + take / pump;
+      const time = gap / closing + take / pump + (strip > 0 ? strip / stripRate : 0);
       const danger = approach.scavengeDanger > 0 ? this.dangerNear(bodies, i, tb) : 0;
       const score = gain / time / (1 + max(0, approach.scavengeDanger) * danger);
       if (score > bestScore) {
@@ -7378,6 +7396,15 @@ export class Ships {
       }
     }
     return best;
+  }
+
+  /** Whether ship `t` is wreckage whole, as robots take it apart: nobody flies it, or nobody mends it. */
+  private strippableWreck(t: number): boolean {
+    if (this.derelict[t] === 1) return true;
+    if (this.hasControl(t)) return false;
+    const bodies = this.bodyStore;
+    const tb = bodies === null ? -1 : bodies.indexOf(this.bodyIds[t]!);
+    return tb >= 0 && !this.hasRobots(tb, t);
   }
 
   /** Whether ship `i`'s claw will close on ship `t`: a wreck of either side, or an enemy. */

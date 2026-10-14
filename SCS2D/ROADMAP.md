@@ -181,8 +181,8 @@ both directions.
     design did not have.
 13. **Harvesting wrecks** — metal regained from wreckage, with the grapple step 9 built. The natural bridge to
     an economy: no map features needed, and income tied directly to combat. Stage 6 above takes apart what
-    a ship has hold of; what is left is a pilot going out for wrecks for their metal, as a scavenger does for
-    fuel, and a stock salvager to fly it.
+    a ship has hold of, and `scavengeMetalBelow` sends a pilot out for wrecks for their metal, as
+    `scavengeFuelBelow` does for fuel; what is left is a stock salvager to fly it.
 14. **Mining** — metal and fuel from map features, so maps have economic character. By here both resources
     exist, so this step is the map and the income, not the resources. *It replaces "did I spend 500 points
     well?" with "did I manage income well?"*
