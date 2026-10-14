@@ -8,6 +8,9 @@ import {
   billOf,
   NO_BUDGET,
   type Bill,
+  type Blueprint,
+  type ShipDesign,
+  isWeaponMount,
   type Budget,
   parseBlueprint,
   parseFleet,
@@ -112,6 +115,58 @@ export function shipCount(record: IndividualRecord): number {
   return record.fleet === undefined ? 1 : expandFleet(parseFleet(record.fleet)).length;
 }
 
+/** What an individual fields: its ships, and the weapons and engines on all of them. */
+export interface Fittings {
+  readonly ships: number;
+  readonly weapons: number;
+  readonly engines: number;
+}
+
+export function fittingsOf(record: IndividualRecord): Fittings {
+  const count = (blueprint: Blueprint): { weapons: number; engines: number } => {
+    let weapons = 0;
+    let engines = 0;
+    const add = (design: ShipDesign): void => {
+      for (const module of design.modules) {
+        if (isWeaponMount(module.spec.kind)) weapons++;
+        else if (module.spec.kind === 'engine') engines++;
+      }
+      for (const fighter of design.aboard ?? []) add(fighter.design);
+    };
+    // Compiled, so a repeated assembly counts every copy, and the fighters it
+    // sets out with count too.
+    add(compileBlueprint(blueprint));
+    return { weapons, engines };
+  };
+  // A record that a rule tightened since will not read counts for nothing,
+  // rather than taking the chart with it.
+  try {
+    return fittingsOfRecord(record, count);
+  } catch {
+    return { ships: 1, weapons: 0, engines: 0 };
+  }
+}
+
+function fittingsOfRecord(
+  record: IndividualRecord,
+  count: (blueprint: Blueprint) => { weapons: number; engines: number },
+): Fittings {
+  if (record.fleet !== undefined) {
+    const fleet = parseFleet(record.fleet);
+    const each = new Map(Object.entries(fleet.designs).map(([name, blueprint]) => [name, count(blueprint)]));
+    const ships = expandFleet(fleet);
+    let weapons = 0;
+    let engines = 0;
+    for (const ship of ships) {
+      weapons += each.get(ship.design)?.weapons ?? 0;
+      engines += each.get(ship.design)?.engines ?? 0;
+    }
+    return { ships: ships.length, weapons, engines };
+  }
+  if (record.blueprint === undefined) return { ships: 1, weapons: 0, engines: 0 };
+  return { ships: 1, ...count(parseBlueprint(record.blueprint)) };
+}
+
 /**
  * What one individual of a generation weighs and fields: averaged over the
  * individuals, and for the fittest. Per fleet rather than summed over the
@@ -123,6 +178,10 @@ export interface GenerationSize {
   readonly bestMass: number;
   readonly meanShips: number;
   readonly bestShips: number;
+  readonly meanWeapons: number;
+  readonly bestWeapons: number;
+  readonly meanEngines: number;
+  readonly bestEngines: number;
 }
 
 /**
@@ -132,25 +191,36 @@ export interface GenerationSize {
  */
 export function generationSize(record: GenerationRecord): GenerationSize {
   const individuals = record.individuals;
-  if (individuals.length === 0) return { meanMass: 0, bestMass: 0, meanShips: 0, bestShips: 0 };
+  if (individuals.length === 0) {
+    return { meanMass: 0, bestMass: 0, meanShips: 0, bestShips: 0, meanWeapons: 0, bestWeapons: 0, meanEngines: 0, bestEngines: 0 };
+  }
   let mass = 0;
   let ships = 0;
+  let weapons = 0;
+  let engines = 0;
   let best = individuals[0]!;
-  let bestShips = 0;
+  let bestFittings: Fittings = { ships: 0, weapons: 0, engines: 0 };
   for (const individual of individuals) {
-    const count = shipCount(individual);
+    const fittings = fittingsOf(individual);
     mass += individual.mass;
-    ships += count;
+    ships += fittings.ships;
+    weapons += fittings.weapons;
+    engines += fittings.engines;
     if (individual.fitness > best.fitness || individual === best) {
       best = individual;
-      bestShips = count;
+      bestFittings = fittings;
     }
   }
+  const n = individuals.length;
   return {
-    meanMass: mass / individuals.length,
+    meanMass: mass / n,
     bestMass: best.mass,
-    meanShips: ships / individuals.length,
-    bestShips,
+    meanShips: ships / n,
+    bestShips: bestFittings.ships,
+    meanWeapons: weapons / n,
+    bestWeapons: bestFittings.weapons,
+    meanEngines: engines / n,
+    bestEngines: bestFittings.engines,
   };
 }
 

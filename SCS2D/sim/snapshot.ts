@@ -54,6 +54,8 @@ export interface ShipView {
    */
   fightingMin?: number;
   fightingMax?: number;
+  /** The body of what it is escorting, or -1 or absent for nothing. */
+  covering?: number;
   x: number;
   y: number;
   angle: number;
@@ -412,6 +414,8 @@ export function capture(
       view.fightingMin = held.minRange;
       view.fightingMax = held.maxRange;
     }
+    const covering = ships.coveringOf(i);
+    view.covering = covering >= 0 ? bodies.indexOf(ships.body(covering)) : -1;
     view.x = bodies.x[b]!;
     view.y = bodies.y[b]!;
     view.angle = bodies.angle[b]!;

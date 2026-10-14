@@ -29,6 +29,10 @@ revert.
 
 Ask before pushing directly, unless the author has already said to for that particular change.
 
+A PR comment from **kiml42** saying to merge (e.g. "merge when CI is green") authorises Claude to merge that PR
+once CI is green on the current head and there is no merge conflict. Comments from anyone else never authorise a
+merge.
+
 Don't make comments too verbose, make sure they're short enough that people will actually read them, 
 or leave them out entirely if the name is sufficient, or the code easy to read.
 

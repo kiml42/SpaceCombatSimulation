@@ -39,6 +39,7 @@ export interface DoctrineRow {
 const TARGETING_ROWS: readonly DoctrineRow[] = [
   { field: 'proximityWeight', label: 'near', hint: 'Prefer what is close, measured against its own reach', step: 10 },
   { field: 'preferredMass', label: 'size wanted', hint: 'What size to go after, as a multiple of its own mass: 1 is something my own size', step: 0.1 },
+  { field: 'ramMass', label: 'size to ram', hint: 'What size to go after once it would ram, its guns gone, as size wanted is: 0 for the same', step: 0.5 },
   { field: 'massWeight', label: 'size', hint: 'How much going after the right size of thing is worth', step: 10 },
   { field: 'closingWeight', label: 'closing', hint: 'Prefer what is coming at it, per hundred metres per second', step: 5 },
   { field: 'loyaltyWeight', label: 'sticks with it', hint: 'Prefer what it is already fighting, so it stops swapping targets', step: 5 },
@@ -308,6 +309,13 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
                 ? `only once none of its ${guns} works`
                 : `with ${working} of ${guns} working, or fewer`;
             },
+          }),
+          entry('targeting', 'ramMass', {
+            shown: (v) => v.approach.ramRadii > 0,
+            absolute: (v, ship) =>
+              v.targeting.ramMass > 0
+                ? `≈ ${(ship.mass * v.targeting.ramMass / 1000).toLocaleString('en-GB', { maximumFractionDigits: 1 })} t`
+                : 'the size it always wants',
           }),
         ],
       },
