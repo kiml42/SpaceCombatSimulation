@@ -1,16 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { compileBlueprint, expandFleet, serialiseBlueprint, serialiseFleet } from '../sim/index.js';
+import { compileBlueprint, expandFleet, isWeaponMount, serialiseBlueprint, serialiseFleet, type ShipDesign } from '../sim/index.js';
 import { fittingsOf, generationSize, type GenerationRecord, type IndividualRecord } from '../evolution/run.js';
-import { CORVETTE, DINKY } from '../scenarios/blueprints.js';
+import { BEAM_CARRIER, CORVETTE, DINKY } from '../scenarios/blueprints.js';
 import { LINE_OF_BATTLE } from '../scenarios/fleets.js';
 
 /** What the evolution page's size chart reads off a generation when asked for weapons and engines. */
 
-const WEAPONS = ['turret', 'beamTurret', 'hullGun', 'hullBeam'];
-
 function counted(name: keyof typeof LINE_OF_BATTLE.designs | string, blueprint = LINE_OF_BATTLE.designs[name]!): [number, number] {
-  const modules = compileBlueprint(blueprint).modules;
-  return [modules.filter((m) => WEAPONS.includes(m.spec.kind)).length, modules.filter((m) => m.spec.kind === 'engine').length];
+  const tally = (design: ShipDesign): [number, number] =>
+    (design.aboard ?? []).reduce<[number, number]>(
+      ([w, e], fighter) => {
+        const [fw, fe] = tally(fighter.design);
+        return [w + fw, e + fe];
+      },
+      [design.modules.filter((m) => isWeaponMount(m.spec.kind)).length, design.modules.filter((m) => m.spec.kind === 'engine').length],
+    );
+  return tally(compileBlueprint(blueprint));
 }
 
 const ship = (fitness: number, blueprint = CORVETTE): IndividualRecord =>
@@ -22,6 +27,20 @@ describe('what an individual fields', () => {
     expect(weapons).toBeGreaterThan(0);
     expect(engines).toBeGreaterThan(0);
     expect(fittingsOf(ship(1))).toEqual({ ships: 1, weapons, engines });
+  });
+
+  it('counts the fighters a carrier sets out with', () => {
+    const carrier = compileBlueprint(BEAM_CARRIER);
+    expect(carrier.aboard?.length ?? 0).toBeGreaterThan(0);
+    const own = carrier.modules.filter((m) => isWeaponMount(m.spec.kind)).length;
+    const fittings = fittingsOf(ship(1, BEAM_CARRIER));
+    expect(fittings.weapons).toBeGreaterThan(own);
+    expect(fittings.weapons).toBe(counted('', BEAM_CARRIER)[0]);
+  });
+
+  it('counts a design that will not compile as nothing, rather than failing', () => {
+    const broken = { id: 1, fitness: 1, mass: 1, blueprint: { ...serialiseBlueprint(DINKY), modules: [] } } as unknown as IndividualRecord;
+    expect(fittingsOf(broken)).toEqual({ ships: 1, weapons: 0, engines: 0 });
   });
 
   it('counts every ship of a fleet', () => {

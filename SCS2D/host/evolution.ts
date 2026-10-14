@@ -447,7 +447,7 @@ export function startEvolution(): void {
   /** What the chart under the score shows: mass and ships, or weapons and engines. */
   const sizeMetric = el<HTMLSelectElement>('sizeMetric');
   const sizeCharts = [massChart];
-  /** Worked out once per generation: a fleet's ship count means parsing it. */
+  /** Worked out once per generation: counting what each individual fields means compiling it. */
   const sizes = new WeakMap<GenerationRecord, GenerationSize>();
   const sizeOf = (generation: GenerationRecord): GenerationSize => {
     let size = sizes.get(generation);

@@ -9,6 +9,8 @@ import {
   NO_BUDGET,
   type Bill,
   type Blueprint,
+  type ShipDesign,
+  isWeaponMount,
   type Budget,
   parseBlueprint,
   parseFleet,
@@ -113,9 +115,6 @@ export function shipCount(record: IndividualRecord): number {
   return record.fleet === undefined ? 1 : expandFleet(parseFleet(record.fleet)).length;
 }
 
-/** Kinds that count as a weapon, for reading what a run is arming itself with. */
-const WEAPON_KINDS: ReadonlySet<string> = new Set(['turret', 'beamTurret', 'hullGun', 'hullBeam']);
-
 /** What an individual fields: its ships, and the weapons and engines on all of them. */
 export interface Fittings {
   readonly ships: number;
@@ -127,13 +126,31 @@ export function fittingsOf(record: IndividualRecord): Fittings {
   const count = (blueprint: Blueprint): { weapons: number; engines: number } => {
     let weapons = 0;
     let engines = 0;
-    // Compiled, so a repeated assembly counts every copy.
-    for (const module of compileBlueprint(blueprint).modules) {
-      if (WEAPON_KINDS.has(module.spec.kind)) weapons++;
-      else if (module.spec.kind === 'engine') engines++;
-    }
+    const add = (design: ShipDesign): void => {
+      for (const module of design.modules) {
+        if (isWeaponMount(module.spec.kind)) weapons++;
+        else if (module.spec.kind === 'engine') engines++;
+      }
+      for (const fighter of design.aboard ?? []) add(fighter.design);
+    };
+    // Compiled, so a repeated assembly counts every copy, and the fighters it
+    // sets out with count too.
+    add(compileBlueprint(blueprint));
     return { weapons, engines };
   };
+  // A record that a rule tightened since will not read counts for nothing,
+  // rather than taking the chart with it.
+  try {
+    return fittingsOfRecord(record, count);
+  } catch {
+    return { ships: 1, weapons: 0, engines: 0 };
+  }
+}
+
+function fittingsOfRecord(
+  record: IndividualRecord,
+  count: (blueprint: Blueprint) => { weapons: number; engines: number },
+): Fittings {
   if (record.fleet !== undefined) {
     const fleet = parseFleet(record.fleet);
     const each = new Map(Object.entries(fleet.designs).map(([name, blueprint]) => [name, count(blueprint)]));
