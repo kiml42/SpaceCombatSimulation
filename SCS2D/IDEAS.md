@@ -2,7 +2,7 @@
 Things that are obviously wrong.
 
 - Fuel tanks should stop supplying fuel when they are too damaged.
-- When setting up a co-evolution run between two very large fleets, the UI hangs on every input. Setting up runs with fleets this big is probably a bad idea anyway, but the UI shouldn't hang making it difficult to change your mind.
+- When setting up a co-evolution run between two very large fleets, the UI hangs once the settings stop changing (no longer on every keystroke): the preview of the opening match breeds a whole first generation to draw it, about 30 s for the Imperial Fleet against the Rebel Fleet. Previewing the founders without breeding would fix it, at the cost of the preview's seed no longer being the run's.
 - If you add a ship to a fleet from a file that shares a name with an existing ship in the fleet, you get a copy of that ship, instead of the new ship. Should either rename the new ship, or replace the old ship. either way, it should alert you.
 - In evolution, things end up connected to engine bells, which shouldn't be allowed as connection surfaces.
 - Welding in battles sometimes happens to the bounding box around the barrels for hull guns, which looks silly, so shouldn't be possible (they should be considered non-connectable surfaces).

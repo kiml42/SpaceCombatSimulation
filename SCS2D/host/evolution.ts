@@ -404,6 +404,9 @@ function download(name: string, text: string): void {
 
 const NO_LAYOUT: ChartLayout = { x: 0, y: 0, width: 0, height: 0, count: 0 };
 
+/** How long the settings must sit still before the preview is built again, ms. */
+const PREVIEW_DELAY_MS = 300;
+
 /** One of the small charts under the score, and where it last drew itself. */
 interface SizeChart {
   readonly canvas: HTMLCanvasElement;
@@ -718,18 +721,38 @@ export function startEvolution(): void {
       edits: [],
       entrant,
     }));
-    try {
-      previewMatch =
-        founders.length === 0
-          ? null
-          : co
-            ? new Coevolution(founders, rivals, readSetup().config, coevolutionSettings()).unmutatedOpening()
-            : new Run(founders, readSetup().config).unmutatedOpening();
-    } catch {
-      // A founder that will not compile has nothing to show.
-      previewMatch = null;
+    // Building the opening breeds a whole first generation, which for big
+    // fleets takes seconds: done again only when something it reads changed.
+    const config = readSetup().config;
+    const key = JSON.stringify([founders, rivals, config, co ? coevolutionSettings() : null]);
+    if (key !== previewKey) {
+      previewKey = key;
+      try {
+        previewMatch =
+          founders.length === 0
+            ? null
+            : co
+              ? new Coevolution(founders, rivals, config, coevolutionSettings()).unmutatedOpening()
+              : new Run(founders, config).unmutatedOpening();
+      } catch {
+        // A founder that will not compile has nothing to show.
+        previewMatch = null;
+      }
     }
     refresh();
+  };
+
+  /** What `previewMatch` was built from, so an edit that changes none of it does not build it again. */
+  let previewKey = '';
+  let previewTimer: ReturnType<typeof setTimeout> | null = null;
+  /** `refreshPreview` once the settings have stopped changing for `PREVIEW_DELAY_MS`, rather than on every keystroke. */
+  const schedulePreview = (): void => {
+    showFleetSettings();
+    if (previewTimer !== null) clearTimeout(previewTimer);
+    previewTimer = setTimeout(() => {
+      previewTimer = null;
+      refreshPreview();
+    }, PREVIEW_DELAY_MS);
   };
 
   const saveSetup = (): void => {
@@ -753,7 +776,7 @@ export function startEvolution(): void {
     } catch {
       // Storage being full or refused costs the settings, not the run.
     }
-    refreshPreview();
+    schedulePreview();
   };
 
   const loadSetup = (): Record<string, string> => {
@@ -2207,6 +2230,7 @@ export function startEvolution(): void {
         ? new Coevolution(founders, rivals, readSetup().config, coevolutionSettings())
         : new Run(founders, readSetup().config);
     previewMatch = null;
+    previewKey = '';
     previewRows = [];
     savedAs = null;
     notice = '';
