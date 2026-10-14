@@ -99,6 +99,15 @@ describe('match', () => {
     expect(quiet.elapsed).toBeLessThan(own.elapsed);
   });
 
+  it('gives a quiet win to one side, every winner on it', () => {
+    const weights = { survival: 1, functional: 1, damage: 1, disabling: 1, race: 0 };
+    const teams = [0, 1, 1];
+    const quiet = runMatch([GUNSHIP, CORVETTE, DINKY], { seed: 1, weights, quietLimit: 0.05 }, teams);
+    expect(quiet.ending).toEqual('decided');
+    expect(quiet.winners.length).toBeGreaterThan(0);
+    expect(new Set(quiet.winners.map((i) => teams[i]))).toHaveProperty('size', 1);
+  });
+
   it('plays on after the last kill while the goal still counts', () => {
     // The survivor still has the goal to fly: stopping would score it as
     // though it stayed wherever the last kill left it.

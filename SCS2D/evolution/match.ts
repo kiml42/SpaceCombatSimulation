@@ -410,6 +410,8 @@ export class Match {
   private step = 0;
   private ending: Ending = 'timeout';
   private winners: number[] = [];
+  /** Whether the skirmish's rule decided it, which nothing after undoes. */
+  private quietDecided = false;
   /** The skirmish's rule, where `quietLimit` asks for it. */
   private readonly activity: Activity | null;
 
@@ -444,11 +446,9 @@ export class Match {
     }
     const ring = ringRadius(placed, halfGap, settings);
     this.total = math.round(settings.duration / settings.dt);
-    // Its time cap is the match's own clock.
-    this.activity =
-      settings.quietLimit > 0
-        ? new Activity(sided === null ? count : math.max(...sided) + 1, Infinity, settings.quietLimit)
-        : null;
+    // Its time cap is the match's own clock, and with one side it can never decide.
+    const sides = sided === null ? count : this.fightingSide.length;
+    this.activity = settings.quietLimit > 0 && this.sideCount > 1 ? new Activity(sides, Infinity, settings.quietLimit) : null;
 
     this.battle = makeBattle(
       {
@@ -690,6 +690,8 @@ export class Match {
 
     this.step++;
     if (this.teams === null) sidesFighting = fighting;
+    // Decided on quiet stays decided, for a match played on for the goal.
+    if (this.quietDecided) return;
     if (fighting === 0) {
       this.ending = 'annihilated';
       this.winners = [];
@@ -699,12 +701,15 @@ export class Match {
       for (let i = 0; i < this.count; i++) if (fightingNow[i] === 1) this.winners.push(i);
     } else if (this.activity !== null && this.ending === 'timeout') {
       const side = this.activity.observe(this.battle)?.winner ?? -1;
-      if (side >= 0) {
+      const winners: number[] = [];
+      for (let i = 0; i < this.count; i++) {
+        if (fightingNow[i] === 1 && (this.teams === null ? i : this.teams[i]!) === side) winners.push(i);
+      }
+      // A side kept in by a round landing after its last ship lost control has nobody to win.
+      if (winners.length > 0) {
         this.ending = 'decided';
-        this.winners = [];
-        for (let i = 0; i < this.count; i++) {
-          if (fightingNow[i] === 1 && (this.teams === null ? i : this.teams[i]!) === side) this.winners.push(i);
-        }
+        this.winners = winners;
+        this.quietDecided = true;
       }
     }
   }

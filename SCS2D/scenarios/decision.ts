@@ -2,7 +2,7 @@ import { NEUTRAL_TEAM, type Credit, type Ships } from '../sim/index.js';
 
 /**
  * When a skirmish battle is decided: once one side has fired or rammed in the
- * last `QUIET_TIME` and no other has. A ship too far off to shoot is out of
+ * last `quietTime` (`QUIET_TIME` unless given) and no other has. A ship too far off to shoot is out of
  * it, and an unarmed ship never fires. A hit landing counts as firing, so a
  * slow round that wins after the last shot does not hand the battle to the
  * ship it disables, and a side left with nothing armed or ramming is out at
@@ -31,7 +31,7 @@ export interface Watched {
 
 /** Watches a battle step by step and says when it is decided. */
 export class Activity {
-  /** When each side last fired or rammed, s; the start counts, so nobody is out before `QUIET_TIME`. */
+  /** When each side last fired or rammed, s; the start counts, so nobody is out before `quietTime`. */
   private readonly lastActive: Float64Array;
   /** Whether each side has a ship under control that is armed or ramming, this step. */
   private readonly able: Uint8Array;
@@ -73,7 +73,7 @@ export class Activity {
     let active = -1;
     let count = 0;
     for (let team = 0; team < this.sides; team++) {
-      // A side with nothing left to fight with is out at once, not 30 s later.
+      // A side with nothing left to fight with is out at once, not `quietTime` later.
       if (this.able[team] === 1 && now - this.lastActive[team]! < this.quietTime) {
         active = team;
         count++;
