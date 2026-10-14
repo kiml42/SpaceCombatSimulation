@@ -359,6 +359,8 @@ interface Tile {
   readonly cells: Record<'who' | 'made' | 'score' | 'mass' | 'done', HTMLTableCellElement>;
   /** One per part, in `SCORE_COLUMNS` order. */
   readonly parts: readonly HTMLElement[];
+  /** The score itself, above the export button in the same cell. */
+  readonly figure: HTMLElement;
   readonly canvases: readonly HTMLCanvasElement[];
   readonly formation: HTMLCanvasElement;
   readonly picture: Picture;
@@ -401,6 +403,11 @@ function download(name: string, text: string): void {
   link.download = name;
   link.click();
   URL.revokeObjectURL(url);
+}
+
+/** Save a ship or fleet as a file named for it. */
+function exportEntrant(entrant: Entrant): void {
+  download(`${entrant.name.replace(/[^\w.-]+/g, '_')}.json`, isFleet(entrant) ? fleetFileText(entrant) : toFileText(entrant));
 }
 
 const NO_LAYOUT: ChartLayout = { x: 0, y: 0, width: 0, height: 0, count: 0 };
@@ -1586,7 +1593,7 @@ export function startEvolution(): void {
       who.append(from);
     }
 
-    score.textContent = row.id < 0 ? '' : row.matches > 0 ? row.fitness.toFixed(3) : '—';
+    tile.figure.textContent = row.id < 0 ? '' : row.matches > 0 ? row.fitness.toFixed(3) : '—';
     score.title = row.id < 0 ? '' : `${row.matches} match${row.matches === 1 ? '' : 'es'} fought`;
 
     for (const [i, part] of tile.parts.entries()) {
@@ -1661,6 +1668,18 @@ export function startEvolution(): void {
     made.append(kinds);
 
     const score = cell('score');
+    const figure = document.createElement('div');
+    const exportOne = document.createElement('button');
+    exportOne.className = 'export';
+    exportOne.textContent = 'export';
+    exportOne.title = `Save ${row.entrant.name} as a file`;
+    exportOne.addEventListener('click', (event) => {
+      // Not a pick of the row as well.
+      event.stopPropagation();
+      // Named for its id too: a child keeps its parent's name, so a lineage would export as its founder over and over.
+      exportEntrant(row.id < 0 ? row.entrant : { ...row.entrant, name: `${row.entrant.name} #${row.id}` });
+    });
+    score.append(figure, exportOne);
     const parts: HTMLElement[] = [];
     for (const stack of STACKED_COLUMNS) {
       const td = cell('part');
@@ -1686,6 +1705,7 @@ export function startEvolution(): void {
       tr,
       cells: { who, made, score, mass, done },
       parts,
+      figure,
       canvases,
       formation,
       picture,
@@ -2139,12 +2159,7 @@ export function startEvolution(): void {
     championLine.textContent = savedAs.text;
   });
   exportButton.addEventListener('click', () => {
-    for (const { entrant } of champions()) {
-      download(
-        `${entrant.name.replace(/[^\w.-]+/g, '_')}.json`,
-        isFleet(entrant) ? fleetFileText(entrant) : toFileText(entrant),
-      );
-    }
+    for (const { entrant } of champions()) exportEntrant(entrant);
   });
   measureButton.addEventListener('click', () => {
     if (run === null || run.generations.length === 0) return;
