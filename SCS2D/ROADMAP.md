@@ -331,6 +331,10 @@ Deliberately unresolved; decide when they block something.
 - **Whether the skirmish enemy should prefer the cheapest fleet that wins.** It stops at the first winner,
   so it grows only as it must, but it never shrinks, and drifts larger round by round. A preference for
   efficiency would let it get leaner as well as stronger.
+- **How far one round lets the skirmish enemy grow.** With no budget, one mutation can add a whole ship, so
+  an answer can be the enemy doubled: found by the author, three corvettes that beat one gunship next faced
+  two. A step that large is a much harder round than the one just won. Wanted: some bound on how much an
+  answer may grow in one round — a share of the player's budget, say, or of what the enemy cost before.
 - **The skirmish's numbers.** How long without firing puts a side out of a battle (30 s), the time cap on a
   stalemate (600 s), and the enemy's search: five mutants a generation, three seeds each, 180 s a match, and
   ahead at the time limit meaning more of its starting mass still under control than the player has, all
