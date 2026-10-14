@@ -209,6 +209,7 @@ const FIELDS = [
   'closingSpread',
   'crossing',
   'crossingSpread',
+  'quietLimit',
   'survivalWeight',
   'functionalWeight',
   'damageWeight',
@@ -361,6 +362,10 @@ interface Tile {
   readonly cells: Record<'who' | 'made' | 'score' | 'mass' | 'done', HTMLTableCellElement>;
   /** One per part, in `SCORE_COLUMNS` order. */
   readonly parts: readonly HTMLElement[];
+  /** The score itself, above the export button in the same cell. */
+  readonly figure: HTMLElement;
+  /** Matches fought of those owed, while any are still owed. */
+  readonly count: HTMLElement;
   readonly canvases: readonly HTMLCanvasElement[];
   readonly formation: HTMLCanvasElement;
   readonly picture: Picture;
@@ -405,7 +410,15 @@ function download(name: string, text: string): void {
   URL.revokeObjectURL(url);
 }
 
+/** Save a ship or fleet as a file named for it. */
+function exportEntrant(entrant: Entrant): void {
+  download(`${entrant.name.replace(/[^\w.-]+/g, '_')}.json`, isFleet(entrant) ? fleetFileText(entrant) : toFileText(entrant));
+}
+
 const NO_LAYOUT: ChartLayout = { x: 0, y: 0, width: 0, height: 0, count: 0 };
+
+/** How long the settings must sit still before the preview is built again, ms. */
+const PREVIEW_DELAY_MS = 300;
 
 /** One of the small charts under the score, and where it last drew itself. */
 interface SizeChart {
@@ -438,8 +451,10 @@ export function startEvolution(): void {
     return { canvas: at, ctx: context(at), legend: el<HTMLElement>(key), digits, series: [], layout: NO_LAYOUT };
   };
   const massChart = sizeChart('massChart', 'massLegend', 1);
+  /** What the chart under the score shows: mass and ships, or weapons and engines. */
+  const sizeMetric = el<HTMLSelectElement>('sizeMetric');
   const sizeCharts = [massChart];
-  /** Worked out once per generation: a fleet's ship count means parsing it. */
+  /** Worked out once per generation: counting what each individual fields means compiling it. */
   const sizes = new WeakMap<GenerationRecord, GenerationSize>();
   const sizeOf = (generation: GenerationRecord): GenerationSize => {
     let size = sizes.get(generation);
@@ -652,6 +667,7 @@ export function startEvolution(): void {
     radiusSpread: String(DEFAULT_MATCH.radiusSpread),
     closingSpread: String(DEFAULT_MATCH.closingSpread),
     crossingSpread: String(DEFAULT_MATCH.crossingSpread),
+    quietLimit: String(DEFAULT_MATCH.quietLimit),
     survivalWeight: String(DEFAULT_MATCH.weights.survival),
     functionalWeight: String(DEFAULT_MATCH.weights.functional),
     damageWeight: String(DEFAULT_MATCH.weights.damage),
@@ -721,18 +737,41 @@ export function startEvolution(): void {
       edits: [],
       entrant,
     }));
-    try {
-      previewMatch =
-        founders.length === 0
-          ? null
-          : co
-            ? new Coevolution(founders, rivals, readSetup().config, coevolutionSettings()).unmutatedOpening()
-            : new Run(founders, readSetup().config).unmutatedOpening();
-    } catch {
-      // A founder that will not compile has nothing to show.
-      previewMatch = null;
+    // Building the opening breeds a whole first generation, which for big
+    // fleets takes seconds: done again only when something it reads changed.
+    // How long the run goes on, and who breeds, are not among them.
+    const config = readSetup().config;
+    const coSettings = co ? coevolutionSettings() : null;
+    const opening = { ...config, generations: config.generations > 0, minMatches: 0, winners: 0 };
+    const key = JSON.stringify([founders, rivals, opening, coSettings]);
+    if (key !== previewKey) {
+      previewKey = key;
+      try {
+        previewMatch =
+          founders.length === 0
+            ? null
+            : co
+              ? new Coevolution(founders, rivals, config, coSettings!).unmutatedOpening()
+              : new Run(founders, config).unmutatedOpening();
+      } catch {
+        // A founder that will not compile has nothing to show.
+        previewMatch = null;
+      }
     }
     refresh();
+  };
+
+  /** What `previewMatch` was built from, so an edit that changes none of it does not build it again. */
+  let previewKey = '';
+  let previewTimer: ReturnType<typeof setTimeout> | null = null;
+  /** `refreshPreview` once the settings have stopped changing for `PREVIEW_DELAY_MS`, once for a burst of changes rather than once each. */
+  const schedulePreview = (): void => {
+    showFleetSettings();
+    if (previewTimer !== null) clearTimeout(previewTimer);
+    previewTimer = setTimeout(() => {
+      previewTimer = null;
+      refreshPreview();
+    }, PREVIEW_DELAY_MS);
   };
 
   const saveSetup = (): void => {
@@ -756,7 +795,7 @@ export function startEvolution(): void {
     } catch {
       // Storage being full or refused costs the settings, not the run.
     }
-    refreshPreview();
+    schedulePreview();
   };
 
   const loadSetup = (): Record<string, string> => {
@@ -952,6 +991,7 @@ export function startEvolution(): void {
         radiusSpread: Math.max(0, number(inputs.radiusSpread, DEFAULT_MATCH.radiusSpread)),
         closingSpread: Math.max(0, number(inputs.closingSpread, DEFAULT_MATCH.closingSpread)),
         crossingSpread: Math.max(0, number(inputs.crossingSpread, DEFAULT_MATCH.crossingSpread)),
+        quietLimit: Math.max(0, number(inputs.quietLimit, DEFAULT_MATCH.quietLimit)),
         goal:
           goalInput.value === 'none' || DEFAULT_MATCH.goal === null
             ? null
@@ -1063,6 +1103,7 @@ export function startEvolution(): void {
     inputs.radiusSpread.value = String(match.radiusSpread ?? DEFAULT_MATCH.radiusSpread);
     inputs.closingSpread.value = String(match.closingSpread ?? DEFAULT_MATCH.closingSpread);
     inputs.crossingSpread.value = String(match.crossingSpread ?? DEFAULT_MATCH.crossingSpread);
+    inputs.quietLimit.value = String(match.quietLimit ?? DEFAULT_MATCH.quietLimit);
     inputs.survivalWeight.value = String(match.weights.survival);
     inputs.functionalWeight.value = String(match.weights.functional);
     inputs.damageWeight.value = String(match.weights.damage);
@@ -1345,7 +1386,8 @@ export function startEvolution(): void {
     fillLegend(legend, chartSeries, 3, '');
     // Ships are read on the right-hand scale, and to more places: a mean of
     // whole ships is a fraction.
-    fillLegend(massChart.legend, massChart.series, massChart.digits, ' t', 2, '');
+    if (sizeMetric.value === 'fittings') fillLegend(massChart.legend, massChart.series, 1, '', 1, '');
+    else fillLegend(massChart.legend, massChart.series, massChart.digits, ' t', 2, '');
   }
 
   function fillLegend(
@@ -1559,7 +1601,9 @@ export function startEvolution(): void {
       who.append(from);
     }
 
-    score.textContent = row.id < 0 ? '' : row.matches > 0 ? row.fitness.toFixed(3) : '—';
+    tile.figure.textContent = row.id < 0 ? '' : row.matches > 0 ? row.fitness.toFixed(3) : '—';
+    const owed = run?.config.minMatches ?? 0;
+    tile.count.textContent = row.id >= 0 && row.matches < owed ? `${row.matches}/${owed}` : '';
     score.title = row.id < 0 ? '' : `${row.matches} match${row.matches === 1 ? '' : 'es'} fought`;
 
     for (const [i, part] of tile.parts.entries()) {
@@ -1634,6 +1678,21 @@ export function startEvolution(): void {
     made.append(kinds);
 
     const score = cell('score');
+    const figure = document.createElement('div');
+    figure.className = 'figure';
+    const count = document.createElement('div');
+    count.className = 'count';
+    const exportOne = document.createElement('button');
+    exportOne.className = 'export';
+    exportOne.textContent = 'export';
+    exportOne.title = `Save ${row.entrant.name} as a file`;
+    exportOne.addEventListener('click', (event) => {
+      // Not a pick of the row as well.
+      event.stopPropagation();
+      // Named for its id too: a child keeps its parent's name, so a lineage would export as its founder over and over.
+      exportEntrant(row.id < 0 ? row.entrant : { ...row.entrant, name: `${row.entrant.name} #${row.id}` });
+    });
+    score.append(figure, count, exportOne);
     const parts: HTMLElement[] = [];
     for (const stack of STACKED_COLUMNS) {
       const td = cell('part');
@@ -1659,6 +1718,8 @@ export function startEvolution(): void {
       tr,
       cells: { who, made, score, mass, done },
       parts,
+      figure,
+      count,
       canvases,
       formation,
       picture,
@@ -2016,7 +2077,7 @@ export function startEvolution(): void {
     chartSeries = series;
 
     // Mass on the left scale and, once a run fields more than one ship,
-    // ships on the right: a colour for each, the mean solid and the best
+    // ships on the right — or, as `sizeMetric` asks, weapons and engines: a colour for each, the mean solid and the best
     // dashed. In a co-evolution run each side takes its team's colours, its
     // hull colour for mass and its trim for ships.
     const sides: { label: string; size: GenerationSize[]; mass: string; ships: string }[] =
@@ -2048,10 +2109,16 @@ export function startEvolution(): void {
           },
         ];
       });
-    massChart.series = [
-      ...bestAndMean('mass', (side) => side.mass, (s) => [s.bestMass / 1000, s.meanMass / 1000], false),
-      ...(fleets ? bestAndMean('ships', (side) => side.ships, (s) => [s.bestShips, s.meanShips], true) : []),
-    ];
+    massChart.series =
+      sizeMetric.value === 'fittings'
+        ? [
+            ...bestAndMean('weapons', (side) => side.mass, (s) => [s.bestWeapons, s.meanWeapons], false),
+            ...bestAndMean('engines', (side) => side.ships, (s) => [s.bestEngines, s.meanEngines], true),
+          ]
+        : [
+            ...bestAndMean('mass', (side) => side.mass, (s) => [s.bestMass / 1000, s.meanMass / 1000], false),
+            ...(fleets ? bestAndMean('ships', (side) => side.ships, (s) => [s.bestShips, s.meanShips], true) : []),
+          ];
     paintChart();
     showLegend();
 
@@ -2097,6 +2164,7 @@ export function startEvolution(): void {
       return { entrant: { ...entrant, name: `${entrant.name}${side} g${top.generation + 1}` }, id: top.individual.id };
     });
 
+  sizeMetric.addEventListener('change', () => refresh());
   saveButton.addEventListener('click', () => {
     const best = champions();
     if (best.length === 0) return;
@@ -2112,12 +2180,7 @@ export function startEvolution(): void {
     championLine.textContent = savedAs.text;
   });
   exportButton.addEventListener('click', () => {
-    for (const { entrant } of champions()) {
-      download(
-        `${entrant.name.replace(/[^\w.-]+/g, '_')}.json`,
-        isFleet(entrant) ? fleetFileText(entrant) : toFileText(entrant),
-      );
-    }
+    for (const { entrant } of champions()) exportEntrant(entrant);
   });
   measureButton.addEventListener('click', () => {
     if (run === null || run.generations.length === 0) return;
@@ -2210,6 +2273,7 @@ export function startEvolution(): void {
         ? new Coevolution(founders, rivals, readSetup().config, coevolutionSettings())
         : new Run(founders, readSetup().config);
     previewMatch = null;
+    if (previewTimer !== null) clearTimeout(previewTimer);
     previewRows = [];
     savedAs = null;
     notice = '';

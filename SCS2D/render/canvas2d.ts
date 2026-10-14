@@ -1408,8 +1408,9 @@ export function draw(
 const SELECTED_GAP_PX = 6;
 
 /**
- * The ship the viewer has picked out: a ring round it in its side's trim, and
- * a broken line from it to whatever it is fighting, with a smaller ring there.
+ * The ship the viewer has picked out: a ring round it in its side's trim, a
+ * broken line from it to whatever it is fighting, with a smaller ring there,
+ * and a broken ring round whatever it is escorting.
  */
 function drawSelected(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: number, metresToPx: number): void {
   const ship = shipByBody(snapshot, body);
@@ -1447,6 +1448,16 @@ function drawSelected(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: n
     ctx.beginPath();
     ctx.arc(target.x, target.y, target.design.radius + gap, 0, Math.PI * 2);
     ctx.stroke();
+  }
+  // What it is escorting, ringed in a broken line: a ship it stays with, not one it shoots.
+  const consort = shipByBody(snapshot, ship.covering ?? -1);
+  if (consort !== null) {
+    ctx.globalAlpha = 0.6;
+    ctx.setLineDash([3 / metresToPx, 4 / metresToPx]);
+    ctx.beginPath();
+    ctx.arc(consort.x, consort.y, consort.design.radius + gap, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
   }
   ctx.restore();
 }
