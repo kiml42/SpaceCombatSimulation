@@ -64,6 +64,18 @@
       th { text-align: left; font-weight: 400; color: #7f93aa; padding: 0.1rem 0.6rem 0.1rem 0; vertical-align: top; }
       td { text-align: right; padding: 0.1rem 0; }
       #stats td { color: #e6edf5; }
+      #inFleetBudget td { color: #e6edf5; }
+      #inFleetBudget tr.over th, #inFleetBudget tr.over td { color: #e8796b; }
+      #backToFleet {
+        background: #2f5f9e;
+        color: #fff;
+        border: 1px solid #4f7cc0;
+        border-radius: 4px;
+        padding: 0.25rem 0.9rem;
+        font-weight: 600;
+        text-decoration: none;
+      }
+      #backToFleet:hover { background: #3a70b6; }
       /* A display rule of our own outranks the browser's for [hidden], so
          anything laid out here would stay on screen when hidden without this. */
       [hidden] { display: none !important; }
@@ -142,12 +154,18 @@
       <button id="undo">Undo</button>
       <button id="redo">Redo</button>
       <a id="battleLink" href="index.html" title="Try this in a custom battle">Battle</a>
+      <a id="backToFleet" href="fleet.html" title="Take this design back to its fleet" hidden>Back to fleet</a>
       <a href="fleet.html">Fleets</a>
       <a href="evolution.html">Evolution</a>
     </header>
     <main>
       <canvas id="view"></canvas>
       <aside id="panel">
+        <section id="inFleet" hidden>
+          <h2 id="inFleetTitle">In a fleet</h2>
+          <p id="inFleetNote" class="note"></p>
+          <table id="inFleetBudget"></table>
+        </section>
         <section>
           <h2 id="addHeading">Add a module</h2>
           <div class="addGroup">
