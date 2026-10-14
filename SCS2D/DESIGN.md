@@ -37,12 +37,12 @@ inside any one file is not contiguous.
   it — the target disarmed, stranded, both, or simply gone — so a plan can be
   given in advance and worked through as targets are put out of the fight. A Canvas2D
   viewer draws snapshots of all of it — ships, turret bearings, tracers and the wells
-  bending them — with pause, single-step, time scaling, and zoom and pan over an
+  bending them — with pause, single-step, a speed from a quarter to sixteen times, and zoom and pan over an
   auto-framing camera, by mouse or by touch (pinch to zoom). A ship clicked or tapped is picked out — ringed, a line to what it is fighting, the arcs drawn
   for it alone, and framed with its target — until Escape or a tap on empty space. Rounds and beams are drawn as light, or with C in the colours of the side that
   fired them, which the evolution page starts with. A ship's name — its side and which of that side's
-  ships it is, as "Red 5" — is written on each of its working cores once the core is big enough on screen to
-  carry it; a piece broken off keeps its ship's. A ship with more than one core numbers each by which core
+  ships it is, as "Red 5" — is written along each of its working cores, turning and growing with the hull as
+  paint on it would, once the core is big enough on screen to carry it; a piece broken off keeps its ship's. A ship with more than one core numbers each by which core
   of the design it set out as it is ("Red 5.1", "Red 5.2"), and cut between them, each ship it becomes is
   named for the core it is flown from, so a Catamaran's halves are "Red 5.1" and "Red 5.2", and once one
   has rebuilt the other's core, its own two are "Red 5.1.1" and "Red 5.1.2". **The camera carries itself along with what it is watching rather
@@ -1028,7 +1028,8 @@ Rules:
   ship in the weapons layer for the battle. A ship that evolves either one flies as an ordinary ship, its
   flag ignored. It commits when it rams, by its doctrine's decision or by a ram order. Any ship's doctrine
   can decide to ram: `approach.ramRadii` is how close its target's edge has to be, in the target's own
-  radii, and `approach.ramArmed` how little of its own armament it must have left. Uncommitted, it collides only with weapons-layer modules — other fighters, turrets and thick structure —
+  radii, and `approach.ramArmed` how little of its own armament it must have left; while that little is all it
+  has, `targeting.ramMass`, where set, is the size of target it goes after in place of `preferredMass`. Uncommitted, it collides only with weapons-layer modules — other fighters, turrets and thick structure —
   and hull-layer fire passes under it; its own hull weapons fire in the weapons layer until it commits, and in both after.
 
   **Occupancy is added, never swapped.** A committed craft does not leave the weapons layer, so

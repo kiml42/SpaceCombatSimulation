@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DINKY, GUNSHIP } from '../scenarios/blueprints.js';
-import { rivalSettings, runCoevolution } from '../evolution/coevolution.js';
+import { Coevolution, rivalSettings, runCoevolution } from '../evolution/coevolution.js';
 import { parseRunConfig, runConfigFileProblem, serialiseRunConfig } from '../evolution/configFile.js';
 import { DEFAULT_RUN, type GenerationRecord, type RunConfig, type RunRecord } from '../evolution/run.js';
 import { championGrid, GridMeasure } from '../evolution/yardstick.js';
@@ -65,6 +65,33 @@ describe('a co-evolution run', { timeout: 30_000 }, () => {
       }
       for (const individual of generation.individuals) expect(individual.matches).toBeGreaterThanOrEqual(4);
     }
+  });
+
+  it("fights both sides' hall matches in among each other, not all of A's first", () => {
+    const live = new Coevolution([DINKY], [GUNSHIP], SETTINGS, { hall: 2, hallShare: 0.5 });
+    // Which side each match was scored for, in the order fought, in the generation where both halls first exist.
+    let order: string[] = [];
+    let fought: string[] = [];
+    let a = 0;
+    let b = 0;
+    while (!live.done && live.generations.length < 2) {
+      live.advance(1);
+      if (live.played.length < a || live.rivalPlayed.length < b) {
+        fought = order;
+        order = [];
+        a = b = 0;
+      }
+      const moreA = live.played.length > a;
+      const moreB = live.rivalPlayed.length > b;
+      if (moreA || moreB) order.push(moreA && moreB ? 'both' : moreA ? 'A' : 'B');
+      a = live.played.length;
+      b = live.rivalPlayed.length;
+    }
+    // The second generation, just rolled over: the first has no hall to fight.
+    const hall = fought.filter((side) => side !== 'both');
+    expect(hall).toContain('A');
+    expect(hall).toContain('B');
+    expect(hall.indexOf('B')).toBeLessThan(hall.lastIndexOf('A'));
   });
 
   it("spends a share of every individual's matches on the other side's hall, once there is one", () => {

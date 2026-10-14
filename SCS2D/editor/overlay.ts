@@ -77,8 +77,9 @@ const ENVELOPE_FILL = 'rgba(91, 141, 214, 0.22)';
 const ENVELOPE_FREE = 'rgba(91, 141, 214, 0.55)';
 const ENVELOPE_LABEL = '#7f93aa';
 
-/** Radius of the envelope rosette on screen, pixels. */
+/** Radius of the envelope rosette on screen, pixels, and while the pointer is over it. */
 const ENVELOPE_RADIUS_PX = 54;
+const ENVELOPE_EXPANDED_PX = 160;
 const ENVELOPE_MARGIN_PX = 16;
 /** Room kept below the rosette for its two caption lines, pixels. */
 const ENVELOPE_CAPTION_PX = 32;
@@ -113,26 +114,43 @@ export interface OverlayView {
   envelope: Envelopes | null;
   /** A bearing on the envelope being pointed at, radians from the bow, or null. */
   envelopeBearing?: number | null;
+  /** Whether the pointer is over the rosette, which is drawn larger while it is. */
+  envelopeExpanded?: boolean;
 }
 
-/** Where the envelope rosette's centre is drawn, device pixels. */
-function envelopeCentre(widthPx: number, heightPx: number): { x: number; y: number } {
+/** The rosette's radius, device pixels: larger while pointed at, though never past the canvas. */
+function envelopeRadius(widthPx: number, heightPx: number, expanded: boolean): number {
+  if (!expanded) return ENVELOPE_RADIUS_PX;
+  const room = Math.min(widthPx - 2 * ENVELOPE_MARGIN_PX, heightPx - 2 * ENVELOPE_MARGIN_PX - ENVELOPE_CAPTION_PX) / 2;
+  return Math.max(ENVELOPE_RADIUS_PX, Math.min(ENVELOPE_EXPANDED_PX, room));
+}
+
+/** Where the envelope rosette's centre is drawn, device pixels: its corner stays put as it grows. */
+function envelopeCentre(widthPx: number, heightPx: number, radius: number): { x: number; y: number } {
   return {
-    x: widthPx - ENVELOPE_RADIUS_PX - ENVELOPE_MARGIN_PX,
-    y: heightPx - ENVELOPE_RADIUS_PX - ENVELOPE_MARGIN_PX - ENVELOPE_CAPTION_PX,
+    x: widthPx - radius - ENVELOPE_MARGIN_PX,
+    y: heightPx - radius - ENVELOPE_MARGIN_PX - ENVELOPE_CAPTION_PX,
   };
+}
+
+/** Whether a point is on the rosette, as drawn at that size. */
+export function overEnvelope(widthPx: number, heightPx: number, x: number, y: number, expanded = false): boolean {
+  const radius = envelopeRadius(widthPx, heightPx, expanded);
+  const centre = envelopeCentre(widthPx, heightPx, radius);
+  return Math.sqrt((x - centre.x) ** 2 + (centre.y - y) ** 2) <= radius;
 }
 
 /**
  * The bearing on the envelope rosette under a point, radians from the bow
  * anticlockwise in the ship's frame, or null when the point is off it.
  */
-export function envelopeBearingAt(widthPx: number, heightPx: number, x: number, y: number): number | null {
-  const centre = envelopeCentre(widthPx, heightPx);
+export function envelopeBearingAt(widthPx: number, heightPx: number, x: number, y: number, expanded = false): number | null {
+  const radius = envelopeRadius(widthPx, heightPx, expanded);
+  const centre = envelopeCentre(widthPx, heightPx, radius);
   const dx = x - centre.x;
   const dy = centre.y - y;
   const r = Math.sqrt(dx * dx + dy * dy);
-  if (r > ENVELOPE_RADIUS_PX || r < 2) return null;
+  if (r > radius || r < 2) return null;
   return Math.atan2(dy, dx);
 }
 
@@ -157,7 +175,9 @@ export function drawOverlay(
   // every label upside down.
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   drawGridCaption(ctx, camera, heightPx);
-  if (view.envelope !== null) drawEnvelope(ctx, view.envelope, widthPx, heightPx, view.envelopeBearing ?? null);
+  if (view.envelope !== null) {
+    drawEnvelope(ctx, view.envelope, widthPx, heightPx, view.envelopeBearing ?? null, view.envelopeExpanded === true);
+  }
 }
 
 /**
@@ -466,6 +486,7 @@ function drawEnvelope(
   widthPx: number,
   heightPx: number,
   bearing: number | null,
+  expanded: boolean,
 ): void {
   let peak = 0;
   let held = 0;
@@ -475,7 +496,8 @@ function drawEnvelope(
   }
   if (!(peak > 0)) return;
 
-  const { x: cx, y: cy } = envelopeCentre(widthPx, heightPx);
+  const radius = envelopeRadius(widthPx, heightPx, expanded);
+  const { x: cx, y: cy } = envelopeCentre(widthPx, heightPx, radius);
 
   /** Trace one curve, scaled against the larger of the two so the gap is to scale. */
   const trace = (values: Float64Array): void => {
@@ -485,7 +507,7 @@ function drawEnvelope(
       // grows downward where the world's grows up, so only y is negated —
       // which is the same flip `draw` applies to the deck plan.
       const angle = (TAU * i) / envelope.samples;
-      const r = (values[i]! / peak) * ENVELOPE_RADIUS_PX;
+      const r = (values[i]! / peak) * radius;
       const x = cx + cos(angle) * r;
       const y = cy - sin(angle) * r;
       if (i === 0) ctx.moveTo(x, y);
@@ -522,7 +544,7 @@ function drawEnvelope(
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(cx, cy);
-    ctx.lineTo(cx + cos(bearing) * ENVELOPE_RADIUS_PX, cy - sin(bearing) * ENVELOPE_RADIUS_PX);
+    ctx.lineTo(cx + cos(bearing) * radius, cy - sin(bearing) * radius);
     ctx.stroke();
   }
 
@@ -539,10 +561,10 @@ function drawEnvelope(
   ctx.font = '11px ui-monospace, monospace';
   ctx.textAlign = 'right';
   const right = widthPx - ENVELOPE_MARGIN_PX;
-  ctx.fillText(`${held.toFixed(1)} m/s² holding heading`, right, cy + ENVELOPE_RADIUS_PX + 14);
+  ctx.fillText(`${held.toFixed(1)} m/s² holding heading`, right, cy + radius + 14);
   const cost = headingCost(envelope);
   if (cost >= 0.005) {
-    ctx.fillText(`heading cost up to ${(cost * 100).toFixed(0)}%`, right, cy + ENVELOPE_RADIUS_PX + 28);
+    ctx.fillText(`heading cost up to ${(cost * 100).toFixed(0)}%`, right, cy + radius + 28);
   }
   ctx.textAlign = 'left';
 }

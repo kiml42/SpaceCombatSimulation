@@ -17,8 +17,12 @@ import { viewGestures } from './viewGestures.js';
  * flat out in a headless test, and come out identical.
  */
 
-/** Cap on steps per frame. A tab left in the background must not try to catch up. */
-const MAX_STEPS_PER_FRAME = 16;
+/**
+ * Cap on steps per frame. A tab left in the background must not try to catch
+ * up; twice what the fastest speed asks at 60 Hz, so a slow frame at 16x is
+ * made up rather than dropped.
+ */
+const MAX_STEPS_PER_FRAME = 32;
 
 export interface BattleView {
   /** Show this battle from its start, running or held. */
