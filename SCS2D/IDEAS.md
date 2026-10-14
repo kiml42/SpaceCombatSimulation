@@ -37,7 +37,6 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Add calibre multiplier to scale what the default maths gives.
 - For engines and hull weapons, make the module size specify the size of the machinery block with the barrel/nozzle extending out from there. The barrel/nozzle will still need ot be considered for overlapping. This should make it easier to adjust things in the editor, as you won't have the option to set a module length that doesn't work with a given barrel length.
 - Thrust efficiency diagram overlaying the thrust diagram, to show which directions are efficient, as well as which are high thrust.
-- Expand the thrust diagram on mouseover or click.
 
 ## Weapons
 - Maybe: Turrets fire a volley of one shot per barrel, and then reload. Can specify delay between shots to allow for firing all at once or staggered
