@@ -360,6 +360,8 @@ interface Tile {
   readonly parts: readonly HTMLElement[];
   /** The score itself, above the export button in the same cell. */
   readonly figure: HTMLElement;
+  /** Matches fought of those owed, while any are still owed. */
+  readonly count: HTMLElement;
   readonly canvases: readonly HTMLCanvasElement[];
   readonly formation: HTMLCanvasElement;
   readonly picture: Picture;
@@ -1559,6 +1561,8 @@ export function startEvolution(): void {
     }
 
     tile.figure.textContent = row.id < 0 ? '' : row.matches > 0 ? row.fitness.toFixed(3) : '—';
+    const owed = run?.config.minMatches ?? 0;
+    tile.count.textContent = row.id >= 0 && row.matches < owed ? `${row.matches}/${owed}` : '';
     score.title = row.id < 0 ? '' : `${row.matches} match${row.matches === 1 ? '' : 'es'} fought`;
 
     for (const [i, part] of tile.parts.entries()) {
@@ -1634,6 +1638,9 @@ export function startEvolution(): void {
 
     const score = cell('score');
     const figure = document.createElement('div');
+    figure.className = 'figure';
+    const count = document.createElement('div');
+    count.className = 'count';
     const exportOne = document.createElement('button');
     exportOne.className = 'export';
     exportOne.textContent = 'export';
@@ -1646,7 +1653,7 @@ export function startEvolution(): void {
         isFleet(row.entrant) ? fleetFileText(row.entrant) : toFileText(row.entrant),
       );
     });
-    score.append(figure, exportOne);
+    score.append(figure, count, exportOne);
     const parts: HTMLElement[] = [];
     for (const stack of STACKED_COLUMNS) {
       const td = cell('part');
@@ -1673,6 +1680,7 @@ export function startEvolution(): void {
       cells: { who, made, score, mass, done },
       parts,
       figure,
+      count,
       canvases,
       formation,
       picture,

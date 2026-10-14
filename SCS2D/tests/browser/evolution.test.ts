@@ -166,7 +166,7 @@ describe('the evolution page in a browser', () => {
     // Named for what it is made of, which for a ship founder is itself.
     expect(await page.textContent('#fleet tbody td.made .of')).toBe('Dinky');
     // Nothing has been scored yet, so the figures are dashes.
-    expect(await page.textContent('#fleet tbody td.score > div')).toBe('');
+    expect(await page.textContent('#fleet tbody td.score .figure')).toBe('');
     await page.selectOption('#mode', 'battle');
     await page.waitForFunction(() => /unmutated/.test(document.getElementById('watching')?.textContent ?? ''));
     // Polled: the label and the picture are drawn on different beats, so the label can come first.
@@ -207,7 +207,7 @@ describe('the evolution page in a browser', () => {
     expect(await page.locator('#fleet tbody tr.champion').count()).toBe(1);
     // Score, its five parts, and the tonnage, all on the row.
     const best = page.locator('#fleet tbody tr').first();
-    expect(await best.locator('td.score > div').textContent()).toMatch(/^\d\.\d{3}$/);
+    expect(await best.locator('td.score .figure').textContent()).toMatch(/^\d\.\d{3}$/);
     expect(await best.locator('td.part .hull, td.part .func, td.part .dmg, td.part .dis, td.part .grnd').count()).toBe(5);
     expect(await best.locator('td.mass').textContent()).toMatch(/^\d+\.\d$/);
     // And what was done to make it, which used to be a line in the sidebar.
@@ -790,6 +790,11 @@ describe('the evolution page in a browser', () => {
     await page.check('#rivalEvolves');
 
     await page.click('#start');
+    // Each combatant's matches so far, while it still owes some.
+    await page.selectOption('#mode', 'fleet');
+    await page.waitForFunction(() =>
+      [...document.querySelectorAll('#fleet td.score .count')].some((count) => /^\d+\/\d+$/.test(count.textContent ?? '')),
+    );
     await page.waitForFunction(
       () => document.getElementById('state')?.textContent === 'finished',
       undefined,
