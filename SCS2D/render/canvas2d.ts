@@ -1283,13 +1283,8 @@ function drawIcon(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
 
 /** Smallest a core is drawn, across, before its ship's name is written on it, pixels. */
 const NAME_MIN_CORE_PX = 18;
-/**
- * The smallest a name is worth writing, and the largest it is drawn, pixels:
- * past that it no longer grows with the zoom, as a font that size is slow to
- * draw and fills the screen anyway.
- */
+/** The smallest a name is worth writing, pixels. */
 const NAME_MIN_PX = 7;
-const NAME_MAX_PX = 240;
 
 /**
  * A ship's name — its side and which of that side's ships it is, as "Red 5" —
@@ -1334,7 +1329,7 @@ function drawLabel(ctx: CanvasRenderingContext2D, ship: ShipView, core: number, 
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, atX, atY);
   ctx.rotate(turn);
-  let size = Math.min(NAME_MAX_PX, across * 0.4);
+  let size = across * 0.4;
   ctx.font = `${size}px ui-monospace, monospace`;
   // No wider than the core is long, so it reads as written on the core.
   const width = ctx.measureText(text).width;
