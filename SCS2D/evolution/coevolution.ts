@@ -278,7 +278,10 @@ export class Coevolution {
       this.roll();
       return;
     }
-    const pairing = this.hallPairing(0) ?? this.hallPairing(1) ?? this.livePairing();
+    // Which side's hall matches go first is drawn each time, so both sides'
+    // scores fill in together rather than all of A's and then all of B's.
+    const first = this.rng.nextFloat() < 0.5 ? 0 : 1;
+    const pairing = this.hallPairing(first) ?? this.hallPairing(first === 0 ? 1 : 0) ?? this.livePairing();
     if (pairing === null) {
       this.roll();
       return;
