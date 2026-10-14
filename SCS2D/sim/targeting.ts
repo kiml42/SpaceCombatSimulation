@@ -85,10 +85,12 @@ export function score(
   own: number,
   loyalTo: number,
   focusOn = -1,
+  /** The size wanted, as a multiple of `own`; `preferredMass` unless the chooser would ram. */
+  wanted = doctrine.preferredMass,
 ): number {
   let total = 0;
   if (reach > 0) total += doctrine.proximityWeight * (1 - candidate.range / reach);
-  total += doctrine.massWeight * (1 - sizeMiss(doctrine, candidate.mass, own));
+  total += doctrine.massWeight * (1 - sizeMiss(wanted, candidate.mass, own));
   total += doctrine.closingWeight * (candidate.closing / CLOSING_SCALE);
   if (candidate.ship === loyalTo) total += doctrine.loyaltyWeight;
   if (candidate.ship === focusOn) total += doctrine.focusWeight;
@@ -146,9 +148,9 @@ function slack(range: number, station: number): number {
  * see targets far from its weight class goes after the nearest of them
  * rather than refusing to fight.
  */
-function sizeMiss(doctrine: Targeting, mass: number, own: number): number {
-  if (!(mass > 0) || !(own > 0) || !(doctrine.preferredMass > 0)) return 0;
-  return abs(log(mass / (own * doctrine.preferredMass)));
+function sizeMiss(wanted: number, mass: number, own: number): number {
+  if (!(mass > 0) || !(own > 0) || !(wanted > 0)) return 0;
+  return abs(log(mass / (own * wanted)));
 }
 
 /**

@@ -161,12 +161,16 @@ describe('the evolution page in a browser', () => {
 
   it('previews the founders, and the first match paused at its start, before a run', async () => {
     await page.selectOption('#mode', 'fleet');
-    await page.waitForFunction(() => document.querySelectorAll('#fleet tbody tr').length === 1);
-    expect(await page.textContent('#fleet tbody td.who b')).toBe('Dinky');
+    // Built once the settings have sat still a moment, not on every change.
+    await page.waitForFunction(
+      () =>
+        document.querySelectorAll('#fleet tbody tr').length === 1 &&
+        document.querySelector('#fleet tbody td.who b')?.textContent === 'Dinky',
+    );
     // Named for what it is made of, which for a ship founder is itself.
     expect(await page.textContent('#fleet tbody td.made .of')).toBe('Dinky');
     // Nothing has been scored yet, so the figures are dashes.
-    expect(await page.textContent('#fleet tbody td.score')).toBe('');
+    expect(await page.textContent('#fleet tbody td.score .figure')).toBe('');
     await page.selectOption('#mode', 'battle');
     await page.waitForFunction(() => /unmutated/.test(document.getElementById('watching')?.textContent ?? ''));
     // Polled: the label and the picture are drawn on different beats, so the label can come first.
@@ -197,6 +201,12 @@ describe('the evolution page in a browser', () => {
     expect(await distinctColours(page, 'chart')).toBeGreaterThan(4);
     // And what each generation weighed, under it.
     expect(await distinctColours(page, 'massChart')).toBeGreaterThan(2);
+    // Or what it was armed and driven with.
+    await page.selectOption('#sizeMetric', 'fittings');
+    expect(await page.textContent('#massLegend')).toMatch(/mean weapons.*mean engines/);
+    expect(await distinctColours(page, 'massChart')).toBeGreaterThan(2);
+    await page.selectOption('#sizeMetric', 'mass');
+    expect(await page.textContent('#massLegend')).toMatch(/mean mass/);
   });
 
   it('lists what it bred, and what each generation fought', async () => {
@@ -207,13 +217,27 @@ describe('the evolution page in a browser', () => {
     expect(await page.locator('#fleet tbody tr.champion').count()).toBe(1);
     // Score, its five parts, and the tonnage, all on the row.
     const best = page.locator('#fleet tbody tr').first();
-    expect(await best.locator('td.score').textContent()).toMatch(/^\d\.\d{3}$/);
+    expect(await best.locator('td.score .figure').textContent()).toMatch(/^\d\.\d{3}$/);
     expect(await best.locator('td.part .hull, td.part .func, td.part .dmg, td.part .dis, td.part .grnd').count()).toBe(5);
     expect(await best.locator('td.mass').textContent()).toMatch(/^\d+\.\d$/);
     // And what was done to make it, which used to be a line in the sidebar.
     expect((await best.locator('td.done').textContent())?.length).toBeGreaterThan(0);
     expect(await rows(page, 'matches')).toBeGreaterThan(0);
     expect(await page.textContent('#championLine')).toMatch(/best of generation \d/);
+    // A finished generation owes nothing, so no count of matches is shown.
+    expect(await page.locator('#fleet td.score .count:not(:empty)').count()).toBe(0);
+  });
+
+  it('exports any one combatant as a file, without picking its row', async () => {
+    const second = page.locator('#fleet tbody tr').nth(1);
+    const saving = page.waitForEvent('download');
+    await second.locator('td.score button.export').click();
+    const download = await saving;
+    const file = JSON.parse(await readFile(await download.path(), 'utf8')) as Record<string, unknown>;
+    expect(download.suggestedFilename()).toMatch(/\.json$/);
+    // Named for its id, so two of one lineage do not export as the same design.
+    expect(file['name']).toMatch(/ #\d+$/);
+    expect(await second.evaluate((tr) => tr.classList.contains('picked'))).toBe(false);
   });
 
   it('fights a recorded match again, and draws it', async () => {

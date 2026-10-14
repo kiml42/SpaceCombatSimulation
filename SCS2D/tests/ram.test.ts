@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { compileBlueprint, DEFAULT_DOCTRINE, type Blueprint, type Placement } from '../sim/index.js';
 import { OrderCancelCondition } from '../sim/ships.js';
 import { makeBattle } from '../scenarios/battle.js';
-import { CORVETTE } from '../scenarios/blueprints.js';
+import { CORVETTE, GUNSHIP } from '../scenarios/blueprints.js';
 
 /** A ram order (`Ships.pushRam`) overrides the rest of a ship's movement doctrine. */
 
@@ -45,18 +45,18 @@ describe('a ram order', () => {
 
 describe('an unarmed rammer', () => {
   const WEAPONS = new Set(['turret', 'beamTurret', 'hullGun', 'hullBeam']);
-  /** The corvette with every weapon taken off, ramming within `radii` of its target. */
-  function unarmed(radii: number): Blueprint {
+  /** The corvette, or `from`, with every weapon taken off, ramming within `radii` of its target. */
+  function unarmed(radii: number, from: Blueprint = CORVETTE): Blueprint {
     const strip = (modules: readonly Placement[]): Placement[] => modules.filter((m) => !('kind' in m && WEAPONS.has(m.kind)));
     const assemblies = Object.fromEntries(
-      Object.entries(CORVETTE.assemblies ?? {}).map(([name, a]) => [name, { ...a, modules: strip(a.modules) }]),
+      Object.entries(from.assemblies ?? {}).map(([name, a]) => [name, { ...a, modules: strip(a.modules) }]),
     );
-    const doctrine = CORVETTE.doctrine ?? DEFAULT_DOCTRINE;
+    const doctrine = from.doctrine ?? DEFAULT_DOCTRINE;
     return {
-      ...CORVETTE,
+      ...from,
       name: 'Ram',
       assemblies,
-      modules: strip(CORVETTE.modules),
+      modules: strip(from.modules),
       doctrine: { ...doctrine, approach: { ...doctrine.approach, ramRadii: radii, ramArmed: 0 } },
     };
   }
@@ -86,5 +86,37 @@ describe('an unarmed rammer', () => {
 
   it('picks nothing without a ram doctrine', () => {
     expect(hits(0)).toBe(false);
+  });
+
+  /** What the rammer picks between a corvette near it and a heavier gunship further off. */
+  function picks(ramMass: number, armed = false): 'near' | 'heavy' | 'none' {
+    const base = armed ? { ...CORVETTE, doctrine: unarmed(40).doctrine! } : unarmed(40);
+    const doctrine = base.doctrine!;
+    const rammer = compileBlueprint({ ...base, doctrine: { ...doctrine, targeting: { ...doctrine.targeting, preferredMass: 1, ramMass, massWeight: 400 } } });
+    const near = compileBlueprint(unarmed(0));
+    const heavy = compileBlueprint(unarmed(0, GUNSHIP));
+    expect(heavy.mass).toBeGreaterThan(near.mass * 2);
+    let ids = { rammer: -1, near: -1, heavy: -1 };
+    const battle = makeBattle({ seed: 4 }, (ships, world) => {
+      ids = {
+        near: ships.spawn(world, { design: near, x: 0, y: 200, team: 0 }),
+        heavy: ships.spawn(world, { design: heavy, x: 0, y: -400, team: 0 }),
+        rammer: ships.spawn(world, { design: rammer, x: 0, y: 0, team: 1 }),
+      };
+    });
+    // Its first pick, on its own schedule.
+    let fighting = -1;
+    for (let k = 0; k < 120 && fighting < 0; k++) {
+      battle.step();
+      fighting = battle.ships.fightingOf(ids.rammer);
+    }
+    return fighting === ids.near ? 'near' : fighting === ids.heavy ? 'heavy' : 'none';
+  }
+
+  it('goes after the size its ram doctrine wants once it would ram, and its usual size otherwise', () => {
+    expect(picks(0)).toBe('near');
+    expect(picks(8)).toBe('heavy');
+    // With its guns, it would not ram, so it wants what it always wants.
+    expect(picks(8, true)).toBe('near');
   });
 });

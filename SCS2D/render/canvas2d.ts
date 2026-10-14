@@ -1283,14 +1283,14 @@ function drawIcon(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
 
 /** Smallest a core is drawn, across, before its ship's name is written on it, pixels. */
 const NAME_MIN_CORE_PX = 18;
-/** The largest a name is written, and the smallest worth writing, pixels. */
-const NAME_MAX_PX = 14;
+/** The smallest a name is worth writing, pixels. */
 const NAME_MIN_PX = 7;
 
 /**
  * A ship's name — its side and which of that side's ships it is, as "Red 5" —
  * written on each of its working cores in its side's trim, once the core is
- * big enough on screen to carry it. Upright whichever way the ship is turned.
+ * big enough on screen to carry it. Written on the hull: along the core's
+ * long side, turning with the ship and growing with the zoom.
  * A ship with more than one core numbers each, as "Red 5.2", by which core of
  * the design it set out as it is, so the ships it becomes if it is cut between
  * them can be told apart, and told from where they came.
@@ -1307,21 +1307,29 @@ function drawName(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
   }
 }
 
-/** `text` written across module `core` of a ship, upright, if the core is big enough on screen. */
+/** `text` written along module `core` of a ship, as on its hull, if the core is big enough on screen. */
 function drawLabel(ctx: CanvasRenderingContext2D, ship: ShipView, core: number, text: string, metresToPx: number): void {
   const module = ship.design.modules[core]!;
   const across = Math.min(module.spec.length, module.spec.width) * metresToPx;
   if (across < NAME_MIN_CORE_PX) return;
   const c = Math.cos(ship.angle);
   const s = Math.sin(ship.angle);
-  const at = ctx.getTransform().transformPoint({
-    x: ship.x + module.x * c - module.y * s,
-    y: ship.y + module.x * s + module.y * c,
-  });
+  const view = ctx.getTransform();
+  const wx = ship.x + module.x * c - module.y * s;
+  const wy = ship.y + module.x * s + module.y * c;
+  const atX = view.a * wx + view.c * wy + view.e;
+  const atY = view.b * wx + view.d * wy + view.f;
   const along = Math.max(module.spec.length, module.spec.width) * metresToPx;
+  // Along the long side, and that direction as the screen has it, so a
+  // camera that flips an axis turns the name rather than mirroring it.
+  const own = ship.angle + module.angle + (module.spec.width > module.spec.length ? Math.PI / 2 : 0);
+  const dx = Math.cos(own);
+  const dy = Math.sin(own);
+  const turn = Math.atan2(view.b * dx + view.d * dy, view.a * dx + view.c * dy);
   ctx.save();
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  let size = Math.min(NAME_MAX_PX, across * 0.4);
+  ctx.setTransform(1, 0, 0, 1, atX, atY);
+  ctx.rotate(turn);
+  let size = across * 0.4;
   ctx.font = `${size}px ui-monospace, monospace`;
   // No wider than the core is long, so it reads as written on the core.
   const width = ctx.measureText(text).width;
@@ -1331,7 +1339,7 @@ function drawLabel(ctx: CanvasRenderingContext2D, ship: ShipView, core: number, 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = shipColours(ship.team).trim;
-    ctx.fillText(text, at.x, at.y);
+    ctx.fillText(text, 0, 0);
   }
   ctx.restore();
 }
@@ -1395,8 +1403,9 @@ export function draw(
 const SELECTED_GAP_PX = 6;
 
 /**
- * The ship the viewer has picked out: a ring round it in its side's trim, and
- * a broken line from it to whatever it is fighting, with a smaller ring there.
+ * The ship the viewer has picked out: a ring round it in its side's trim, a
+ * broken line from it to whatever it is fighting, with a smaller ring there,
+ * and a broken ring round whatever it is escorting.
  */
 function drawSelected(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: number, metresToPx: number): void {
   const ship = shipByBody(snapshot, body);
@@ -1434,6 +1443,16 @@ function drawSelected(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: n
     ctx.beginPath();
     ctx.arc(target.x, target.y, target.design.radius + gap, 0, Math.PI * 2);
     ctx.stroke();
+  }
+  // What it is escorting, ringed in a broken line: a ship it stays with, not one it shoots.
+  const consort = shipByBody(snapshot, ship.covering ?? -1);
+  if (consort !== null) {
+    ctx.globalAlpha = 0.6;
+    ctx.setLineDash([3 / metresToPx, 4 / metresToPx]);
+    ctx.beginPath();
+    ctx.arc(consort.x, consort.y, consort.design.radius + gap, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
   }
   ctx.restore();
 }

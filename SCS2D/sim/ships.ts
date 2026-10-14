@@ -1609,6 +1609,7 @@ export class Ships {
     const rammer = approach.ramRadii > 0;
     const reach = design.reach > 0 ? design.reach : rammer ? approach.approachSpeed * RAM_HORIZON : 0;
     if ((design.reach > 0 && !this.isDisarmed(i)) || (rammer && reach > 0)) {
+      const wanted = doctrine.ramMass > 0 && this.wouldRam(bodies, i, b) ? doctrine.ramMass : doctrine.preferredMass;
       this.choice.begin();
       for (let t = 0; t < this.alive.length; t++) {
         if (t === i || this.alive[t] === 0) continue;
@@ -1641,7 +1642,7 @@ export class Ships {
             : seen;
         this.choice.offer(
           candidate,
-          score(doctrine, candidate, reach, design.mass, loyalTo),
+          score(doctrine, candidate, reach, design.mass, loyalTo, -1, wanted),
         );
       }
       fighting = this.choice.ship;
@@ -2084,6 +2085,13 @@ export class Ships {
     if (b < 0 || tb < 0) return false;
     const gap = length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!) - bodies.radius[tb]!;
     if (gap > approach.ramRadii * bodies.radius[tb]!) return false;
+    return this.wouldRam(bodies, i, b);
+  }
+
+  /** Whether this ship's doctrine would have it ram whatever came near enough: its guns gone, and no stores to restock them. */
+  private wouldRam(bodies: Bodies, i: number, b: number): boolean {
+    const approach = this.doctrines[i]!.approach;
+    if (!(approach.ramRadii > 0)) return false;
     if (this.armedShare(i, b, true) > approach.ramArmed) return false;
     return this.armedShare(i, b, false) <= approach.ramArmed || !this.canRestock(bodies, i, b);
   }
@@ -2242,6 +2250,22 @@ export class Ships {
   /** What this ship is fighting: its order's target, else what its doctrine chose; `NO_TARGET` for nothing. */
   fightingOf(i: number): number {
     return this.focusOf(i);
+  }
+
+  /** What this ship is staying with as an escort, as `cover` flies it; `NO_TARGET` for nothing, or for a ship out of control. */
+  coveringOf(i: number): number {
+    const bodies = this.bodyStore;
+    if (bodies === null || this.alive[i] !== 1 || !this.hasControl(i)) return NO_TARGET;
+    return this.liveConsort(bodies, i, bodies.indexOf(this.bodyIds[i]!));
+  }
+
+  /** Ship `i`'s consort while it is one worth staying with: alive, not a hulk left to itself, and on a body of its own. */
+  private liveConsort(bodies: Bodies, i: number, b: number): number {
+    const consort = this.consort[i] ?? NO_TARGET;
+    if (consort === NO_TARGET || this.alive[consort] !== 1) return NO_TARGET;
+    if (this.hulk(consort) && !this.mending(bodies, consort)) return NO_TARGET;
+    const cb = bodies.indexOf(this.bodyIds[consort]!);
+    return cb < 0 || cb === b ? NO_TARGET : consort;
   }
 
   /**
@@ -3611,11 +3635,9 @@ export class Ships {
    * stringing out.
    */
   private cover(bodies: Bodies, i: number, b: number): number {
-    const consort = this.consort[i]!;
-    if (consort === NO_TARGET || this.alive[consort] !== 1) return NO_TARGET;
-    if (this.hulk(consort) && !this.mending(bodies, consort)) return NO_TARGET;
+    const consort = this.liveConsort(bodies, i, b);
+    if (consort === NO_TARGET) return NO_TARGET;
     const cb = bodies.indexOf(this.bodyIds[consort]!);
-    if (cb < 0 || cb === b) return NO_TARGET;
 
     const design = this.designs[i]!;
     const station = this.escortBand(i, design, consort);

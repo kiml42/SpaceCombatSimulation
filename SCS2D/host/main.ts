@@ -44,8 +44,7 @@ export function start(): void {
   const stepButton = el<HTMLButtonElement>('step');
   const resetButton = el<HTMLButtonElement>('reset');
   const sceneSelect = el<HTMLSelectElement>('scene');
-  const speedInput = el<HTMLInputElement>('speed');
-  const speedLabel = el<HTMLElement>('speedLabel');
+  const speedSelect = el<HTMLSelectElement>('speed');
   const fitButton = el<HTMLButtonElement>('fit');
   const scenes = [
     { name: 'Duel', create: () => duel(SEED) },
@@ -146,10 +145,9 @@ export function start(): void {
   el<HTMLButtonElement>('customBattle').addEventListener('click', openCustom);
   fitButton.addEventListener('click', () => view.fit());
 
-  speedInput.addEventListener('input', () => {
-    view.setSpeed(Number(speedInput.value));
-    speedLabel.textContent = `${speedInput.value}x`;
-  });
+  // Read once at the start too: a browser may restore the list's choice on reload.
+  view.setSpeed(Number(speedSelect.value));
+  speedSelect.addEventListener('change', () => view.setSpeed(Number(speedSelect.value)));
   // An editor's Battle link carries what it holds: open straight into a custom
   // battle with it as the first side, paused for the rest to be chosen.
   try {
