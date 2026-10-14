@@ -98,7 +98,7 @@ import {
 } from './library.js';
 import { battleHref, shipFleet } from './handoff.js';
 import { Demonstration } from './demonstrate.js';
-import { drawOverlay, envelopeBearingAt } from './overlay.js';
+import { drawOverlay, envelopeBearingAt, overEnvelope } from './overlay.js';
 import {
   assemblyKnob,
   facingTo,
@@ -495,9 +495,12 @@ export function startEditor(): void {
 
   /** The bearing on the envelope the pointer is over, radians from the bow, or null. */
   let thrustBearing: number | null = null;
+  /** Whether the pointer is over the thrust rosette, which is drawn larger while it is. */
+  let thrustExpanded = false;
   canvas.addEventListener('pointerleave', () => {
-    if (thrustBearing === null) return;
+    if (thrustBearing === null && !thrustExpanded) return;
     thrustBearing = null;
+    thrustExpanded = false;
     render();
   });
 
@@ -546,6 +549,7 @@ export function startEditor(): void {
         handles: currentHandles(),
         envelope,
         envelopeBearing: thrustBearing,
+        envelopeExpanded: thrustExpanded,
       },
       camera,
       canvas.width,
@@ -1858,6 +1862,16 @@ export function startEditor(): void {
     gesture = false;
     refresh();
   });
+  // Following a link away keeps the work, in case it was not saved. A reload
+  // does not: that is how changes are thrown away.
+  const keep = (): void => {
+    try {
+      library.saveIfChanged(doc.blueprint);
+    } catch {
+      // Storage full or refused: nothing more to be done on the way out.
+    }
+  };
+  for (const link of document.querySelectorAll('header a')) link.addEventListener('click', keep);
   saveButton.addEventListener('click', () => {
     library.save(doc.blueprint);
     refresh();
@@ -2207,14 +2221,14 @@ export function startEditor(): void {
     if (drag === null) {
       const rect = canvas.getBoundingClientRect();
       const ratio = canvas.width / rect.width;
-      const bearing = envelopeBearingAt(
-        canvas.width,
-        canvas.height,
-        (event.clientX - rect.left) * ratio,
-        (event.clientY - rect.top) * ratio,
-      );
-      if (bearing !== thrustBearing) {
+      const x = (event.clientX - rect.left) * ratio;
+      const y = (event.clientY - rect.top) * ratio;
+      // Grown while pointed at, and so kept until the pointer leaves it at the larger size.
+      const expanded = envelope !== null && overEnvelope(canvas.width, canvas.height, x, y, thrustExpanded);
+      const bearing = expanded ? envelopeBearingAt(canvas.width, canvas.height, x, y, true) : null;
+      if (bearing !== thrustBearing || expanded !== thrustExpanded) {
         thrustBearing = bearing;
+        thrustExpanded = expanded;
         render();
       }
       return;

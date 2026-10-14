@@ -124,6 +124,7 @@
         z-index: 1;
       }
       .subChart { width: 100%; height: 100px; display: block; border-radius: 4px; margin-top: 0.5rem; cursor: crosshair; }
+      .sizeMetric { display: block; margin-top: 0.5rem; font-size: 0.8rem; color: #8a9bb0; }
       #legend, .legend { display: flex; flex-wrap: wrap; gap: 0.8rem; margin: 0.35rem 0 0; color: #7f93aa; }
       #legend b, .legend b { color: #e6edf5; font-weight: 600; margin-left: 0.25rem; }
       #fighting { color: #7fd6a0; text-transform: none; letter-spacing: 0; }
@@ -211,6 +212,8 @@
       #fleet tr.champion td.score { color: #7fd6a0; }
       #fleet td.who .from { display: block; color: #5d6f85; }
       #fleet td.score { color: #dbe6f2; }
+      #fleet td.score .count { color: #5d6f85; font-size: 10px; }
+      #fleet td.score button.export { margin-top: 4px; padding: 0 4px; font-size: 10px; }
       /* What the combatant is made of: one picture per kind of ship rather
          than one of the whole fleet, so a hull stays big enough to recognise
          and the composition is read off the counts beside them. */
@@ -294,6 +297,7 @@
       <a href="index.html">Battle</a>
       <a href="editor.html">Ships</a>
       <a href="fleet.html">Fleets</a>
+      <a href="skirmish.html">Skirmish</a>
     </header>
     <main>
       <section id="setupScreen">
@@ -323,6 +327,7 @@
             <div class="field"><label for="scatter">scatter °</label><input id="scatter" type="number" min="0" max="180" step="15" /></div>
             <div class="field spread"><label for="closing">closing m/s</label><input id="closing" type="number" step="5" title="Each entrant's starting speed towards the middle" /><span>±</span><input id="closingSpread" type="number" min="0" step="5" title="How far either side each match's closing speed is drawn, evenly. Zero holds it." /></div>
             <div class="field spread"><label for="crossing">crossing m/s</label><input id="crossing" type="number" step="5" title="Each entrant's starting speed to its left, across the line to the middle" /><span>±</span><input id="crossingSpread" type="number" min="0" step="5" title="How far either side each match's crossing speed is drawn, evenly. Zero holds it." /></div>
+            <div class="field"><label for="quietLimit">quiet s</label><input id="quietLimit" type="number" min="0" step="5" title="A side that has not fired or rammed for this long loses, as in a skirmish. Zero leaves it to the clock." /></div>
             <div class="field soloOnly"><label for="goal">goal</label><select id="goal" title="Solid blocks shots and can be run into; a ghost is only somewhere to be">
             <option value="solid">solid</option>
             <option value="ghost">ghost</option>
@@ -451,6 +456,10 @@
             <span style="color: #5bd6d6">vs. yardstick</span>
           </p>
           <div class="runOnly">
+          <label class="sizeMetric">size by <select id="sizeMetric">
+            <option value="mass">mass and ships</option>
+            <option value="fittings">weapons and engines</option>
+          </select></label>
           <canvas id="massChart" class="subChart"></canvas>
           <p id="massLegend" class="legend"></p>
           </div>
@@ -465,11 +474,13 @@
               <button id="skip" title="Give up on this match and watch another (N)">Skip</button>
               <button id="fit" title="F">Fit</button>
               <label>speed <select id="speed">
+                <option value="0.25">0.25x</option>
                 <option value="0.5">0.5x</option>
                 <option value="1" selected>1x</option>
                 <option value="2">2x</option>
                 <option value="4">4x</option>
                 <option value="8">8x</option>
+                <option value="16">16x</option>
               </select></label>
             </span>
             <span id="watching" class="grow"></span>

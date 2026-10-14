@@ -459,4 +459,10 @@ describe('picking out a ship', () => {
     // Fighting nothing frames the ship alone.
     expect(selectionBounds(picked(), 9)).toEqual({ minX: -20, minY: 280, maxX: 20, maxY: 320 });
   });
+
+  it('takes in what the ship is escorting as well', () => {
+    const scene = picked();
+    scene.ships[0]!.covering = 9;
+    expect(selectionBounds(scene, 3)).toEqual({ minX: -20, minY: -20, maxX: 520, maxY: 320 });
+  });
 });

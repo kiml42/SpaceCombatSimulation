@@ -18,6 +18,7 @@ import { frame, snapStep, type Camera } from '../render/camera.js';
 import { snap } from './edit.js';
 import {
   addShip,
+  distinctDesign,
   deleteEntries,
   duplicateEntries,
   dissolveGroup,
@@ -33,7 +34,17 @@ import {
   updateEntry,
 } from './fleetEdit.js';
 import { battleHref } from './handoff.js';
+import {
+  billOfFleet,
+  canFight,
+  handedSkirmish,
+  serialiseSkirmish,
+  skirmishFragment,
+  SKIRMISH_STORAGE_KEY,
+  type Skirmish,
+} from '../scenarios/skirmish.js';
 import { buildTime } from './stats.js';
+import { budgetRows, kg } from './budget.js';
 import { centreOf, FleetDocument, toFrame, toFrameAngle, type EntryFrame } from './fleetDocument.js';
 import { drawFleetOverlay, knobFor, type FleetOverlayView } from './fleetOverlay.js';
 import { fleetSnapshot } from './fleetPreview.js';
@@ -79,9 +90,16 @@ export function startFleetEditor(): void {
     }
   };
 
+  // Opened from a skirmish, the fleet is the player's, held to the skirmish's budget.
+  let skirmish: Skirmish | null = null;
+  try {
+    skirmish = handedSkirmish(window.location.hash);
+  } catch (error) {
+    window.alert(`Could not read the skirmish handed over.\n\n${error instanceof Error ? error.message : error}`);
+  }
   const first = fleets.list()[0];
   const doc = new FleetDocument(
-    (first !== undefined ? read(first.name, first.stock) : null) ?? emptyFleet('New fleet'),
+    skirmish?.player ?? (first !== undefined ? read(first.name, first.stock) : null) ?? emptyFleet('New fleet'),
     lookup,
   );
   const camera: Camera = { x: 0, y: 0, scale: 1 };
@@ -227,9 +245,6 @@ export function startFleetEditor(): void {
       `<optgroup label="Stock">${options(others(all.filter((entry) => entry.stock)), null)}</optgroup>`;
   };
 
-  const kg = (mass: number): string =>
-    mass >= 1000 ? `${(mass / 1000).toLocaleString('en-GB', { maximumFractionDigits: 1 })} t` : `${Math.round(mass)} kg`;
-
   const renderStats = (): void => {
     const view = doc.view;
     const rows = [
@@ -316,7 +331,51 @@ export function startFleetEditor(): void {
     for (const input of [entryX, entryY, stepX, stepY]) input.step = step;
   };
 
+  const skirmishPanel = el<HTMLElement>('skirmish');
+  const backToSkirmish = el<HTMLAnchorElement>('backToSkirmish');
+  let keepTimer: ReturnType<typeof setTimeout> | undefined;
+  const renderSkirmish = (): void => {
+    if (skirmish === null) return;
+    const now: Skirmish = { ...skirmish, player: doc.fleet };
+    el<HTMLElement>('skirmishTitle').textContent = `Skirmish — round ${now.round}`;
+    el<HTMLElement>('skirmishBudget').innerHTML = budgetRows(billOfFleet(now.player), now.budget);
+    const fits = canFight(now);
+    el<HTMLElement>('skirmishNote').textContent = fits
+      ? `Against ${now.enemy.name}.`
+      : now.player.ships.length === 0
+        ? 'Add a ship to fight with.'
+        : 'Over budget: cut it down to fight.';
+    backToSkirmish.classList.toggle('blocked', !fits);
+    // Kept as it is edited, in the address and in storage, so a reload or the
+    // skirmish page picks up where this left off.
+    clearTimeout(keepTimer);
+    keepTimer = setTimeout(() => {
+      history.replaceState(null, '', skirmishFragment(now));
+      try {
+        window.localStorage.setItem(SKIRMISH_STORAGE_KEY, JSON.stringify(serialiseSkirmish(now)));
+      } catch {
+        // Storage full or refused: the address still has it.
+      }
+    }, 300);
+  };
+  if (skirmish !== null) {
+    skirmishPanel.hidden = false;
+    backToSkirmish.hidden = false;
+    // One way into a battle, and it is the skirmish's: a custom battle beside it reads as the same thing.
+    el<HTMLElement>('battleLink').hidden = true;
+    backToSkirmish.addEventListener('click', (event) => {
+      const now: Skirmish = { ...skirmish!, player: doc.fleet };
+      if (!canFight(now)) {
+        event.preventDefault();
+        window.alert(now.player.ships.length === 0 ? 'Add a ship to fight with first.' : 'The fleet is over budget: cut it down to fight.');
+        return;
+      }
+      (event.currentTarget as HTMLAnchorElement).href = `skirmish.html${skirmishFragment(now)}`;
+    });
+  }
+
   const refresh = (): void => {
+    renderSkirmish();
     if (document.activeElement !== fleetName) fleetName.value = doc.fleet.name;
     if (document.activeElement !== fleetNotes) fleetNotes.value = doc.fleet.notes ?? '';
     undoButton.disabled = !doc.canUndo;
@@ -370,7 +429,12 @@ export function startFleetEditor(): void {
     if (file === undefined) return;
     void file.text().then((text) => {
       try {
-        place(parseBlueprint(JSON.parse(text)));
+        const read = parseBlueprint(JSON.parse(text));
+        const blueprint = distinctDesign(doc.fleet, read);
+        if (blueprint.name !== read.name) {
+          window.alert(`The fleet already has a different ${read.name}, so this one is added as ${blueprint.name}.`);
+        }
+        place(blueprint);
       } catch (error) {
         window.alert(`Could not read that file.\n\n${error instanceof Error ? error.message : error}`);
       }
@@ -776,6 +840,17 @@ export function startFleetEditor(): void {
     resize();
     render();
   }).observe(canvas);
+
+  // Following a link away keeps the work, in case it was not saved. A reload
+  // does not: that is how changes are thrown away.
+  const keep = (): void => {
+    try {
+      fleets.saveIfChanged(doc.fleet);
+    } catch {
+      // Storage full or refused: nothing more to be done on the way out.
+    }
+  };
+  for (const link of document.querySelectorAll('header a')) link.addEventListener('click', keep);
 
   // The fleet as it stands, saved or not, goes with the link.
   el<HTMLAnchorElement>('battleLink').addEventListener('click', (event) => {

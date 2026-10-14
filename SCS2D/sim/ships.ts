@@ -942,6 +942,8 @@ export class Ships {
   private readonly chosen: number[] = [];
   /** The ship its doctrine has committed it to ramming, or `NO_TARGET`. Kept until that ship is out of the fight. */
   private readonly ramming: number[] = [];
+  /** The tick each ship last fired a gun or a beam, or -1. */
+  private readonly firedAt: number[] = [];
   /** What each ship has broken off to drink from with its claw, or `NO_TARGET`. */
   private readonly salvaging: number[] = [];
   /** The tick each ship next reconsiders whether, and where, to refuel. */
@@ -1458,6 +1460,7 @@ export class Ships {
     this.clawTried.push(-Infinity);
     this.chosen.push(NO_TARGET);
     this.ramming.push(NO_TARGET);
+    this.firedAt.push(-1);
     this.salvaging.push(NO_TARGET);
     this.forageAt.push(i);
     this.refuelling.push(0);
@@ -1632,6 +1635,7 @@ export class Ships {
     const rammer = approach.ramRadii > 0;
     const reach = design.reach > 0 ? design.reach : rammer ? approach.approachSpeed * RAM_HORIZON : 0;
     if ((design.reach > 0 && !this.isDisarmed(i)) || (rammer && reach > 0)) {
+      const wanted = doctrine.ramMass > 0 && this.wouldRam(bodies, i, b) ? doctrine.ramMass : doctrine.preferredMass;
       this.choice.begin();
       for (let t = 0; t < this.alive.length; t++) {
         if (t === i || this.alive[t] === 0) continue;
@@ -1664,7 +1668,7 @@ export class Ships {
             : seen;
         this.choice.offer(
           candidate,
-          score(doctrine, candidate, reach, design.mass, loyalTo),
+          score(doctrine, candidate, reach, design.mass, loyalTo, -1, wanted),
         );
       }
       fighting = this.choice.ship;
@@ -2107,6 +2111,13 @@ export class Ships {
     if (b < 0 || tb < 0) return false;
     const gap = length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!) - bodies.radius[tb]!;
     if (gap > approach.ramRadii * bodies.radius[tb]!) return false;
+    return this.wouldRam(bodies, i, b);
+  }
+
+  /** Whether this ship's doctrine would have it ram whatever came near enough: its guns gone, and no stores to restock them. */
+  private wouldRam(bodies: Bodies, i: number, b: number): boolean {
+    const approach = this.doctrines[i]!.approach;
+    if (!(approach.ramRadii > 0)) return false;
     if (this.armedShare(i, b, true) > approach.ramArmed) return false;
     return this.armedShare(i, b, false) <= approach.ramArmed || !this.canRestock(bodies, i, b);
   }
@@ -2198,6 +2209,16 @@ export class Ships {
     return true;
   }
 
+  /** The tick ship `i` last fired a gun or a beam, or -1 if it never has. */
+  lastFired(i: number): number {
+    return this.firedAt[i]!;
+  }
+
+  /** Whether ship `i`'s doctrine has committed it to ramming something. */
+  isRamming(i: number): boolean {
+    return this.ramming[i] !== NO_TARGET;
+  }
+
   /** Whether this fighter has dropped into the hull layer as well. */
   isCommitted(i: number): boolean {
     return this.committed[i] === 1;
@@ -2255,6 +2276,35 @@ export class Ships {
   /** What this ship is fighting: its order's target, else what its doctrine chose; `NO_TARGET` for nothing. */
   fightingOf(i: number): number {
     return this.focusOf(i);
+  }
+
+  /** What this ship is staying with as an escort, as `cover` flies it; `NO_TARGET` for nothing, or for a ship out of control. */
+  coveringOf(i: number): number {
+    const bodies = this.bodyStore;
+    if (bodies === null || this.alive[i] !== 1 || !this.hasControl(i)) return NO_TARGET;
+    return this.liveConsort(bodies, i, bodies.indexOf(this.bodyIds[i]!));
+  }
+
+  /** Ship `i`'s consort while it is one worth staying with: alive, not a hulk left to itself, and on a body of its own. */
+  private liveConsort(bodies: Bodies, i: number, b: number): number {
+    const consort = this.consort[i] ?? NO_TARGET;
+    if (consort === NO_TARGET || this.alive[consort] !== 1) return NO_TARGET;
+    if (this.hulk(consort) && !this.mending(bodies, consort)) return NO_TARGET;
+    const cb = bodies.indexOf(this.bodyIds[consort]!);
+    return cb < 0 || cb === b ? NO_TARGET : consort;
+  }
+
+  /**
+   * The order whose band of ranges ship `i` is holding against what it is
+   * fighting, or undefined: for nothing, or for an order that closes to touch
+   * — a ram, a grip, a landing or a dock — rather than to a range.
+   */
+  heldOrder(i: number): Readonly<Order> | undefined {
+    const standing = this.standing[i];
+    const order = this.getCurrentOrder(i) ?? (standing !== undefined && standing.target === this.chosenOf(i) ? standing : undefined);
+    if (order === undefined || order.target === NO_TARGET) return undefined;
+    if (order.ram || order.grapple || order.land || order.dock || !(order.maxRange > 0)) return undefined;
+    return order;
   }
 
   private focusOf(i: number): number {
@@ -2761,6 +2811,7 @@ export class Ships {
           turretStates[t] = TurretState.Reloading; // Projectile guns immediately reload after firing.
 
           projectilesFired++;  // increment for every shot fired
+          this.firedAt[i] = world.tick;
         } else {
           beams.fireFrom(
             bodyIdx,
@@ -2778,6 +2829,7 @@ export class Ships {
             design.turrets[t]!.module,
             this.mountLayers(i, design.turrets[t]!),
           );
+          this.firedAt[i] = world.tick;
           if (state == TurretState.Idle) {
             // was idle before, now committed on for beamOnTime
             state = turretStates[t] = TurretState.CommittedOn;
@@ -3609,11 +3661,9 @@ export class Ships {
    * stringing out.
    */
   private cover(bodies: Bodies, i: number, b: number): number {
-    const consort = this.consort[i]!;
-    if (consort === NO_TARGET || this.alive[consort] !== 1) return NO_TARGET;
-    if (this.hulk(consort) && !this.mending(bodies, consort)) return NO_TARGET;
+    const consort = this.liveConsort(bodies, i, b);
+    if (consort === NO_TARGET) return NO_TARGET;
     const cb = bodies.indexOf(this.bodyIds[consort]!);
-    if (cb < 0 || cb === b) return NO_TARGET;
 
     const design = this.designs[i]!;
     const station = this.escortBand(i, design, consort);

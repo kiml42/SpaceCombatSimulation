@@ -402,18 +402,21 @@ export function shipAt(snapshot: Snapshot, x: number, y: number, reach: number):
   return best;
 }
 
-/** The bounds of the picked-out ship and what it is fighting, to frame on; null when nothing is picked out. */
+/** The bounds of the picked-out ship, what it is fighting and what it is escorting, to frame on; null when nothing is picked out. */
 export function selectionBounds(snapshot: Snapshot, body: number): Bounds | null {
   if (body < 0) return null;
   const bounds = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity };
   let target = -1;
+  let consort = -1;
   for (let i = 0; i < snapshot.shipCount; i++) {
     const ship = snapshot.ships[i]!;
-    if (ship.body === body) target = ship.fighting ?? -1;
+    if (ship.body !== body) continue;
+    target = ship.fighting ?? -1;
+    consort = ship.covering ?? -1;
   }
   for (let i = 0; i < snapshot.shipCount; i++) {
     const ship = snapshot.ships[i]!;
-    if (ship.body !== body && ship.body !== target) continue;
+    if (ship.body !== body && ship.body !== target && ship.body !== consort) continue;
     const r = ship.design.radius;
     bounds.minX = Math.min(bounds.minX, ship.x - r);
     bounds.minY = Math.min(bounds.minY, ship.y - r);

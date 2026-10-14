@@ -1090,6 +1090,16 @@ describe('Library', () => {
     expect(library.load(CORVETTE.name)).toEqual(CORVETTE);
   });
 
+  it('saves on leaving only what differs from what its name opens', () => {
+    const library = new Library(fakeStore());
+    expect(library.saveIfChanged(CORVETTE)).toBe(false);
+    expect(library.savedNames()).toEqual([]);
+    const edited = { ...CORVETTE, notes: 'mine now' };
+    expect(library.saveIfChanged(edited)).toBe(true);
+    expect(library.saveIfChanged(edited)).toBe(false);
+    expect(library.load(CORVETTE.name)).toEqual(edited);
+  });
+
   it('lists a shadowed ship twice, so the shipped one stays openable', () => {
     // The whole point of shadowing rather than replacing: a ship saved over a
     // shipped name must not make the shipped hull unreachable, since that is
