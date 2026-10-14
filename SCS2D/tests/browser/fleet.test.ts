@@ -217,4 +217,20 @@ describe('the fleet editor in a browser', () => {
     expect(page.url()).not.toContain('#');
     expect(problems).toEqual([]);
   });
+
+  it('opens a ship of the fleet in the ship editor and brings the design back', async () => {
+    await page.goto(pathToFileURL(fleetPage).href);
+    await page.waitForFunction(() => (document.getElementById('stats')?.textContent ?? '').includes('mass at launch'));
+    const centre = await canvasCentre(page);
+    await page.mouse.click(centre.x, centre.y);
+    expect(await page.textContent('#selectionTitle')).toBe('Ship: Gunship');
+    await page.click('#editDesign');
+    await page.waitForURL(/editor\.html#design=/);
+    expect(await page.textContent('#inFleetTitle')).toBe('In Line of Battle');
+    expect(await page.inputValue('#shipName')).toBe('Gunship');
+    await page.click('#backToFleet');
+    await page.waitForURL(/fleet\.html#fleet=/);
+    expect(await page.inputValue('#fleetName')).toBe('Line of Battle');
+    expect(problems).toEqual([]);
+  });
 });

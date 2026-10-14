@@ -93,4 +93,26 @@ describe('the skirmish in a browser', () => {
     expect(await page.evaluate(() => window.localStorage.getItem('scs2d.fleet.Gunship') !== null)).toBe(true);
     expect(problems).toEqual([]);
   });
+
+  it('opens a ship of the fleet in the ship editor, and takes it back renamed', async () => {
+    await page.click('#editFleet');
+    await page.waitForURL(/fleet\.html#skirmish=/);
+    // The lone gunship stands at the fleet's origin, in the middle of the view.
+    const box = (await page.locator('#view').boundingBox())!;
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    expect(await page.textContent('#selectionTitle')).toBe('Ship: Gunship');
+    await page.click('#editDesign');
+    await page.waitForURL(/editor\.html#design=/);
+    expect(await page.isVisible('#backToFleet')).toBe(true);
+    expect(await page.isVisible('#battleLink')).toBe(false);
+    expect(await page.textContent('#inFleetTitle')).toBe('Skirmish — round 1');
+    expect(await page.textContent('#inFleetBudget')).toContain('metal');
+    await page.fill('#shipName', 'Gunship Mk II');
+    await page.click('#backToFleet');
+    await page.waitForURL(/fleet\.html#skirmish=/);
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    expect(await page.textContent('#selectionTitle')).toBe('Ship: Gunship Mk II');
+    expect(await page.isVisible('#skirmish')).toBe(true);
+    expect(problems).toEqual([]);
+  });
 });
