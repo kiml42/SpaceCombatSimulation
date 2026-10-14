@@ -16,7 +16,7 @@ no clone, no toolchain, and it works on a phone. The URL is on the repository's 
 
 ## Running it
 
-Needs Node 20 or newer; CI's typecheck row runs 24.
+Needs Node 22.12 or newer, as vitest does; CI tests on 22, 24 and 26.
 
 ```
 cd SCS2D
@@ -24,8 +24,9 @@ npm ci
 npm run build
 ```
 
-Then open `dist/index.html` in a browser. It is one self-contained file, so there is no server to run and
-nothing external to fetch — double-clicking it works.
+Then open `dist/index.html` in a browser. Each page — the viewer, the ship and fleet editors, the evolution
+page and the skirmish — is one self-contained file, so there is no server to run and nothing external to
+fetch: double-clicking it works.
 
 Space pauses, full stop single-steps, F re-fits the camera. Scroll to zoom, drag to pan.
 
@@ -48,7 +49,8 @@ Almost everything worth changing is in one of these:
 | How the pilot flies and fights | `sim/ships.ts` |
 | Colours, plumes, firing arcs | `render/canvas2d.ts` |
 | How the camera follows | `render/camera.ts` |
-| Controls and the clock | `host/main.ts` |
+| The clock, the camera and the keys | `host/battleView.ts` |
+| The viewer's controls | `host/main.ts` |
 
 **Expect the golden tests to fail the moment you change anything in `sim/` or `scenarios/`.** That is them
 working: they pin the simulation's behaviour bit-for-bit, and a change in what a battle does is exactly what
@@ -61,11 +63,13 @@ understanding it turns a regression into the new expected behaviour, permanently
 | Command | Does |
 | --- | --- |
 | `npm test` | Unit tests, determinism tests and the golden checksums. Runs from a cold checkout. |
-| `npm run typecheck` | All three TS projects — `sim/` has no ambient types, `render/` and `host/` have the DOM |
-| `npm run build` | Bundle to `dist/index.html` |
+| `npm run typecheck` | All three TS projects — `sim/` has no ambient types, `render/`, `editor/` and `host/` have the DOM |
+| `npm run build` | Bundle each page to `dist/`, one file each |
 | `npm run dev` | The same build, on every save; also keeps the stock fleets' designs in step with `scenarios/blueprints/` |
 | `npm run sync-fleets` | Copy each stock blueprint into the stock fleets that embed it |
 | `npm run golden` | Re-derive the golden checksums after a *deliberate* change |
+| `npm run evolve` | Fight a headless evolution run and write it to `runs/`; its flags are in CLAUDE.md |
+| `npm run yardstick` | Measure a finished run against a ship that does not evolve |
 | `npm run test:browser` | Drive the built page in Chromium — `npx playwright install chromium` once first |
 
 ## One thing that will change

@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "description": "Planar, physics-driven fleet-tactics game. See DESIGN.md.",
+  "engines": {
+    "node": ">=22.12"
+  },
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",

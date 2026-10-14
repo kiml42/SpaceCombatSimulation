@@ -141,6 +141,21 @@ export function refreshDesign(fleet: Fleet, blueprint: Blueprint): Fleet {
   return next;
 }
 
+/**
+ * The blueprint as it should go into this fleet: as it is, unless the fleet
+ * already carries a different design by that name, in which case renamed to
+ * the first name it has free, so `addShip` does not quietly fly the old one.
+ */
+export function distinctDesign(fleet: Fleet, blueprint: Blueprint): Blueprint {
+  const carried = fleet.designs[blueprint.name];
+  if (carried === undefined || !differs(carried, blueprint)) return blueprint;
+  for (let n = 2; ; n++) {
+    const name = `${blueprint.name} ${n}`;
+    const other = fleet.designs[name];
+    if (other === undefined || !differs(other, { ...blueprint, name })) return { ...blueprint, name };
+  }
+}
+
 /** Whether the embedded copy differs from another, by what a file would say. */
 export function differs(a: Blueprint, b: Blueprint): boolean {
   return JSON.stringify(serialiseBlueprint(a)) !== JSON.stringify(serialiseBlueprint(b));
