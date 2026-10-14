@@ -723,8 +723,11 @@ export function startEvolution(): void {
     }));
     // Building the opening breeds a whole first generation, which for big
     // fleets takes seconds: done again only when something it reads changed.
+    // How long the run goes on, and who breeds, are not among them.
     const config = readSetup().config;
-    const key = JSON.stringify([founders, rivals, config, co ? coevolutionSettings() : null]);
+    const coSettings = co ? coevolutionSettings() : null;
+    const opening = { ...config, generations: config.generations > 0, minMatches: 0, winners: 0 };
+    const key = JSON.stringify([founders, rivals, opening, coSettings]);
     if (key !== previewKey) {
       previewKey = key;
       try {
@@ -732,7 +735,7 @@ export function startEvolution(): void {
           founders.length === 0
             ? null
             : co
-              ? new Coevolution(founders, rivals, config, coevolutionSettings()).unmutatedOpening()
+              ? new Coevolution(founders, rivals, config, coSettings!).unmutatedOpening()
               : new Run(founders, config).unmutatedOpening();
       } catch {
         // A founder that will not compile has nothing to show.
@@ -745,7 +748,7 @@ export function startEvolution(): void {
   /** What `previewMatch` was built from, so an edit that changes none of it does not build it again. */
   let previewKey = '';
   let previewTimer: ReturnType<typeof setTimeout> | null = null;
-  /** `refreshPreview` once the settings have stopped changing for `PREVIEW_DELAY_MS`, rather than on every keystroke. */
+  /** `refreshPreview` once the settings have stopped changing for `PREVIEW_DELAY_MS`, once for a burst of changes rather than once each. */
   const schedulePreview = (): void => {
     showFleetSettings();
     if (previewTimer !== null) clearTimeout(previewTimer);
@@ -2230,7 +2233,7 @@ export function startEvolution(): void {
         ? new Coevolution(founders, rivals, readSetup().config, coevolutionSettings())
         : new Run(founders, readSetup().config);
     previewMatch = null;
-    previewKey = '';
+    if (previewTimer !== null) clearTimeout(previewTimer);
     previewRows = [];
     savedAs = null;
     notice = '';
