@@ -49,11 +49,11 @@ describe('Rng', () => {
     let hi = 0;
     for (let i = 0; i < 100_000; i++) {
       const v = r.nextFloat();
-      expect(v).toBeGreaterThanOrEqual(0);
-      expect(v).toBeLessThan(1);
       if (v < lo) lo = v;
       if (v > hi) hi = v;
     }
+    expect(lo).toBeGreaterThanOrEqual(0);
+    expect(hi).toBeLessThan(1);
     // Should cover most of the interval over 100k draws.
     expect(lo).toBeLessThan(0.001);
     expect(hi).toBeGreaterThan(0.999);
