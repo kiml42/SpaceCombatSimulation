@@ -78,5 +78,4 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Add a ship to a running battle, for quick testing. Dropdown in the corner to choose a ship to add to the battle. click and drag to chose position and velocity (position from first click, drag to N seconds worth of distance for the initial velocity.) Ship is instantly spawned when you let go.
 - A selected ship's framing could take in what it is escorting or keeping clear of, as well as its target.
   - Could also highlight them, possibly with a symbol to show what sort of attention the selected ship is paying to each
-- The ship name on cores should rotate and scale with the ship, as if it is literally written on the hull.
 - Show the range the selected ship is trying to get into with the target as a ring around the target (or possibly the selected ship, to be consistent with the editor)
