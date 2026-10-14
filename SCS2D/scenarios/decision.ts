@@ -28,7 +28,11 @@ export class Activity {
   private readonly standing: Uint8Array;
   private decision: Decision | null = null;
 
-  constructor(readonly sides: number) {
+  constructor(
+    readonly sides: number,
+    readonly quietTime = QUIET_TIME,
+    readonly timeCap = TIME_CAP,
+  ) {
     this.lastActive = new Float64Array(sides);
     this.standing = new Uint8Array(sides);
   }
@@ -51,14 +55,14 @@ export class Activity {
     let count = 0;
     for (let team = 0; team < this.sides; team++) {
       // A side with nothing left under control is out at once, not 30 s later.
-      if (this.standing[team] === 1 && now - this.lastActive[team]! < QUIET_TIME) {
+      if (this.standing[team] === 1 && now - this.lastActive[team]! < this.quietTime) {
         active = team;
         count++;
       }
     }
     if (count === 1 && this.sides > 1) this.decision = { winner: active, reason: 'quiet', time: now };
     else if (count === 0 && this.sides > 1 && !this.standing.includes(1)) this.decision = { winner: -1, reason: 'quiet', time: now };
-    else if (now >= TIME_CAP) this.decision = { winner: -1, reason: 'time', time: now };
+    else if (now >= this.timeCap) this.decision = { winner: -1, reason: 'time', time: now };
     return this.decision;
   }
 }

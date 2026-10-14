@@ -124,6 +124,7 @@ const MATCH_KEYS: readonly string[] = [
   'radiusSpread',
   'closingSpread',
   'crossingSpread',
+  'quietLimit',
   'goal',
   'weights',
 ];
@@ -167,6 +168,7 @@ export function serialiseRunConfig(setup: RunSetup): Record<string, unknown> {
       ...(match.radiusSpread > 0 ? { radiusSpread: match.radiusSpread } : {}),
       ...(match.closingSpread > 0 ? { closingSpread: match.closingSpread } : {}),
       ...(match.crossingSpread > 0 ? { crossingSpread: match.crossingSpread } : {}),
+      ...(match.quietLimit > 0 ? { quietLimit: match.quietLimit } : {}),
       goal: match.goal === null ? null : { ...match.goal },
       weights: { ...match.weights },
     },
@@ -361,6 +363,7 @@ export function parseRunConfig(value: unknown): RunSetup {
         radiusSpread: read(match['radiusSpread'], DEFAULT_MATCH.radiusSpread),
         closingSpread: read(match['closingSpread'], DEFAULT_MATCH.closingSpread),
         crossingSpread: read(match['crossingSpread'], DEFAULT_MATCH.crossingSpread),
+        quietLimit: read(match['quietLimit'], DEFAULT_MATCH.quietLimit),
         goal:
           match['goal'] === undefined
             ? DEFAULT_MATCH.goal
@@ -520,9 +523,10 @@ function matchProblem(value: unknown, warnings: string[]): string | null {
     numberProblem(value['crossingSpeed'], 'match.crossingSpeed') ??
     numberProblem(value['radiusSpread'], 'match.radiusSpread') ??
     numberProblem(value['closingSpread'], 'match.closingSpread') ??
-    numberProblem(value['crossingSpread'], 'match.crossingSpread');
+    numberProblem(value['crossingSpread'], 'match.crossingSpread') ??
+    numberProblem(value['quietLimit'], 'match.quietLimit');
   if (problem !== null) return problem;
-  for (const key of ['radiusSpread', 'closingSpread', 'crossingSpread']) {
+  for (const key of ['radiusSpread', 'closingSpread', 'crossingSpread', 'quietLimit']) {
     if (value[key] !== undefined && (value[key] as number) < 0) return `match.${key} must not be negative`;
   }
   if (value['duration'] !== undefined && (value['duration'] as number) <= 0) {
