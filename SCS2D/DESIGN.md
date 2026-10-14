@@ -1026,7 +1026,8 @@ Rules:
   ship in the weapons layer for the battle. A ship that evolves either one flies as an ordinary ship, its
   flag ignored. It commits when it rams, by its doctrine's decision or by a ram order. Any ship's doctrine
   can decide to ram: `approach.ramRadii` is how close its target's edge has to be, in the target's own
-  radii, and `approach.ramArmed` how little of its own armament it must have left. Uncommitted, it collides only with weapons-layer modules — other fighters, turrets and thick structure —
+  radii, and `approach.ramArmed` how little of its own armament it must have left; while that little is all it
+  has, `targeting.ramMass`, where set, is the size of target it goes after in place of `preferredMass`. Uncommitted, it collides only with weapons-layer modules — other fighters, turrets and thick structure —
   and hull-layer fire passes under it; its own hull weapons fire in the weapons layer until it commits, and in both after.
 
   **Occupancy is added, never swapped.** A committed craft does not leave the weapons layer, so
