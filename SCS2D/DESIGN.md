@@ -871,7 +871,7 @@ inside any one file is not contiguous.
   `rechargeBelow` goes to a pad for charge alone. A battery's room is what damage leaves it, so a pad never
   holds a fighter to fill cells that are broken. Evolution draws batteries and generators at a weight of
   one each, and a mutation does not turn either, since neither has a facing that matters.
-- **Next:** repair, construction and salvage, one mechanism, is built in all six stages (ROADMAP.md §8):
+- **Next:** repair, construction and salvage, one mechanism, is built in all six stages:
   damage shedding mass, pads mending landed fighters, robots mending their own hull, lost and built anew,
   lost modules rebuilt by robots and by pads, and robots taking wreckage apart into metal, with doctrine that
   sends a fighter in to be mended and a ship out to wrecks for their metal. What is left of it is a stock

@@ -84,69 +84,15 @@ lead, which waits for standing orders. Velocity stays out of the fleet file; the
 
 ### Not started — in order
 
-**Repair, construction and salvage are one mechanism, built in six stages.** It finished step 10 and is
-the base of steps 12 and 13. The shape, settled with the author (DECISIONS.md):
+Steps 12 and 13 build on repair, construction and salvage, which is one mechanism and built (DESIGN.md Status):
+robots and pads rebuilding what a ship launched with, and taking wreckage apart into metal.
 
-- **Damage sheds mass** (DESIGN.md §4): a little by the time a module stops working, more with damage past
-  that, never below half. Repairing a module means putting that metal back, and a little more (wastage,
-  below). The work also takes time and
-  power in proportion to the damage undone, so a module broken without losing much is cheap in metal but
-  not instant: for a module only partly damaged, time is the cost that matters most.
-- **Robots repair larger ships.** A robot is not a body: it is a place on its ship's hull, moving module to
-  module across shared faces at a set speed, and drawn there. It is lost with the module it is on, destroyed
-  or cut away, and never crosses to a severed piece. It carries a load of metal and a charge of power from
-  its bay, works until either runs out, and goes back to refill, so where a bay sits and how far the damage
-  is from it matter.
-- **A robot bay** is a new module. It holds robots, refills them with metal and power from its piece of hull,
-  and builds new ones from metal when any are lost.
-- **Pads repair landed fighters** the same way, without robots, from the carrier's metal and power.
-- **What comes first:** repair before rebuilding, and of each, what gives back the most function per
-  kilogram: cores, then engines and weapons, then structure. Work goes on in combat. Doctrine to wait until
-  clear, or to set priorities, comes later.
-- **Rebuilding** returns a ship to the design it launched with. A module the ship has lost is rebuilt only
-  against hull already there, so a ship regrows outwards. It costs the module's full mass in metal and its
-  wastage, and takes
-  that mass and its complexity over the robots' work rate.
-  The walls go up first, as a shell growing across the module from the face it is built against, and the
-  fittings go in after, while the module stands full size and does nothing — so damage to a module being
-  built is damage like any other. Pads do the same for fighters. This is the base of in-battle construction
-  (step 12).
-- **Disassembly** turns modules that are not the ship's own — wreckage welded on, a wreck in its claw — into
-  metal in its holds, at their current mass less wastage, as far as the holds have room. This is harvesting
-  wrecks (step 13). A ship never strips its own modules.
-- **Every step wastes a little.** Disassembling yields a little less metal than the module weighed, and
-  repairing or building takes a little more than ends up in the module, so stripping a sound module off a
-  hulk and building the same module again always costs something. The waste leaves the world, counted as
-  discarded matter is. It is a rate rather than a constant, so better technology could lower it, and it gives
-  an upgrade a place to go if technology is ever modelled.
-- Robots stay on their own ship, crossing a seam only onto wreckage to take it apart. Crossing a port seam
-  to work on a docked friend can come later.
-
-A PR a stage. All six are built: mass shed by damage with what repairing it would cost kept on the books,
-pads repairing landed fighters, the robot bay and robots repairing, robots lost and built anew, lost
-modules rebuilt by robots and by pads, and wreckage taken apart into metal.
-
-Steps 9 to 13 walk into the resource system one resource and one use at a time, fuel first (partly built,
-above): it is the scarcity every battle feels (§2), and some of §12 was parked until it existed — the dead
-zone on attitude hold, propellant-optimal allocation, and running cost. *Note: fuel is a re-balance, not an addition — tank mass moves the golden checksums, battles become
-about managing what a ship carries, and scenarios will need revisiting.*
-
-**The core carries a little of each resource as it arrives** — a built-in tank, store and generator, scaled
-with its size — so a bare core with one engine or one weapon can act, and a bigger core is worth its bulk.
-Today the best core is the smallest, most armoured one that can hide from a hit; this gives size a price in
-both directions.
-
-10. **Raw material** — a store of metal, spent as ammunition and on repair (built). It brings
-    in the other half of §2's scarcity.
-11. **Power** — a generator that beams draw on, refilling each mount's bank at what the plant can spare, and a
-    module to hit to silence them. Straight after raw material, because once guns spend ammunition and beams
-    spend nothing, beams win by default; a plant gives them a resource to run short of and a part to lose.
 12. **In-battle construction** — new modules made from raw material during a battle, and new ships budded off.
-    The largest of the steps: it needs build doctrine, and build time counted in a budget (§12).
-    Rebuilding what a ship was designed with (stage 5 above) is its base; what is left is building what the
+    The largest of the steps: it needs build doctrine.
+    Rebuilding what a ship was designed with is its base; what is left is building what the
     design did not have.
 13. **Harvesting wrecks** — metal regained from wreckage, with the grapple step 9 built. The natural bridge to
-    an economy: no map features needed, and income tied directly to combat. Stage 6 above takes apart what
+    an economy: no map features needed, and income tied directly to combat. Disassembly takes apart what
     a ship has hold of, and `scavengeMetalBelow` sends a pilot out for wrecks for their metal, as
     `scavengeFuelBelow` does for fuel; what is left is a stock salvager to fly it.
 14. **Mining** — metal and fuel from map features, so maps have economic character. By here both resources
@@ -605,6 +551,11 @@ Deliberately unresolved; decide when they block something.
   its weakest core and the share of its mass still sound, so a scratched hull weighs the same as a lost gun.
   Wanted: damage weighed by the function lost, so a fighter shrugs off some damaged modules but runs for a pad
   at once if it loses a gun. Only a fighter goes, and only to a pad.
+- **What robots and pads do first, and when.** Repair before rebuilding, and of each what gives back the
+  most function per kilogram, with work going on in combat. Doctrine to wait until clear, or to set
+  priorities, is not built.
+- **Robots working on a docked friend.** Robots cross a seam only onto wreckage to take it apart; crossing a
+  port seam to mend a friend is not built.
 - **The numbers for repair.** How much each step wastes (repair wastes a tenth, a first guess), and whether
   disassembly and building waste alike; time and power for a joule of damage undone (a pad mends 20 kJ/s a
   metre of its width, at 10 J of charge a joule, both first guesses); a robot's speed over a hull (2 m/s), the
