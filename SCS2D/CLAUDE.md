@@ -60,7 +60,8 @@ render/     the view; consumes snapshots, knows no game rules
 editor/     the blueprint and fleet editors; only page.ts, overlay.ts,
             fleetPage.ts and fleetOverlay.ts touch the DOM, so the edit
             models, the stats and the library are unit-tested
-ui/         React; UI state only
+ui/         React, UI state only (non-negotiable 5); not created until a
+            page uses React, as every page drives the DOM from host/ and editor/
 host/       window lifecycle, the wall clock, and the controls — one entry
             point and one page shell per page; the evolution page lives here
             too, since driving a run is a clock and a set of controls
