@@ -7,6 +7,7 @@ import { FLEET_FILES, Library, type KeyValueStore } from '../editor/library.js';
 import {
   addShip,
   deleteEntries,
+  distinctDesign,
   duplicateEntries,
   emptyFleet,
   entryAt,
@@ -68,6 +69,18 @@ describe('editing a fleet', () => {
     expect(Object.keys(two.designs)).toEqual(['Dinky']);
     expect(two.designs['Dinky']!.notes).toBe(DINKY.notes);
     expect(two.ships).toHaveLength(2);
+  });
+
+  it('renames a different design that comes in under a name the fleet already has', () => {
+    const fleet = addShip(emptyFleet('F'), DINKY, 0, 0);
+    expect(distinctDesign(fleet, DINKY)).toBe(DINKY);
+    const changed = { ...DINKY, notes: 'changed' };
+    const renamed = distinctDesign(fleet, changed);
+    expect(renamed.name).toBe('Dinky 2');
+    const both = addShip(fleet, renamed, 20, 0);
+    expect(both.designs['Dinky 2']!.notes).toBe('changed');
+    // The same file again reuses the renamed copy rather than making a third.
+    expect(distinctDesign(both, changed).name).toBe('Dinky 2');
   });
 
   it('drops a design nothing flies any more', () => {
