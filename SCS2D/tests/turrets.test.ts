@@ -388,6 +388,23 @@ describe('traverse arcs', () => {
     expect(turrets.commanded[t]! * (180 / PI)).toBeCloseTo(63.4, 1);
   });
 
+  it('holds at an end half a circle from rest, rather than going round through its block', () => {
+    // As the Survivor's corner turrets: free to half a circle one way, 0.36
+    // rad the other. Braking onto the end at half a circle, it overruns it by
+    // a hair, which read as nearly a full turn off it, and it went round
+    // again through the block to get back, over and over.
+    const { bodies, index } = ship();
+    const turrets = new Turrets();
+    const t = turrets.add({ owner: index, x: 0, y: 0, restBearing: 0, leftArc: PI, rightArc: 0.36, maxRate: 1, maxAccel: 0.5 });
+    for (let s = 0; s < 60 * 30; s++) {
+      turrets.commandWorldBearing(bodies, t, -1.79);
+      turrets.step(DT, bodies);
+      const at = turrets.bearing[t]!;
+      expect(at < -0.36 - 1e-6 && at > -PI + 0.01).toBe(false);
+    }
+    expect(Math.cos(turrets.bearing[t]!)).toBeCloseTo(-1, 4);
+  });
+
   it('clamps a command outside the arc and reports it blocked', () => {
     const { bodies, index } = ship();
     const turrets = new Turrets();
