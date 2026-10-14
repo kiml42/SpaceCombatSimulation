@@ -90,6 +90,14 @@ describe('the run config file', () => {
     expect(parseRunConfig({ match: { goal: ghost } }).config.match.goal).toEqual(ghost);
   });
 
+  it('keeps a quiet limit, and leaves one of nought out of the file', () => {
+    const quiet = { founders: [], config: { ...DEFAULT_RUN, match: { ...DEFAULT_MATCH, quietLimit: 30 } } };
+    expect(parseRunConfig(serialiseRunConfig(quiet)).config.match.quietLimit).toEqual(30);
+    const file = serialiseRunConfig({ founders: [], config: DEFAULT_RUN });
+    expect('quietLimit' in (file['match'] as object)).toBe(false);
+    expect(parseRunConfig(file).config.match.quietLimit).toEqual(0);
+  });
+
   it('refuses a file that is not one, and says why', () => {
     const problems: [unknown, RegExp][] = [
       [null, /must be an object/],
@@ -108,6 +116,7 @@ describe('the run config file', () => {
       [{ structural: 2 }, /between 0 and 1/],
       [{ name: 3 }, /name must be text/],
       [{ match: { duration: 0 } }, /more than nothing/],
+      [{ match: { quietLimit: -1 } }, /quietLimit must not be negative/],
       [{ match: { goal: { x: 0, y: 0, scale: 1 } } }, /missing size/],
       [{ match: { goal: { x: 0, y: 0, scale: 1, size: 1, solid: 'no' } } }, /solid must be true or false/],
       [{ match: { weights: { survival: 'lots' } } }, /weights.survival/],
