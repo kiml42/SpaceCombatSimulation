@@ -329,6 +329,17 @@ export interface Approach {
    */
   readonly scavengeFuelBelow: number;
   /**
+   * The share of a full load of metal at or below which a ship with a working
+   * claw and robots of its own breaks off to take wrecks apart for their
+   * metal, and keeps at it until its holds are full. Zero never does.
+   */
+  readonly scavengeMetalBelow: number;
+  /**
+   * How much fuel it will burn to fetch a kilogram of metal: what a wreck's
+   * metal is worth against the fuel the trip there costs, kg of fuel per kg.
+   */
+  readonly fuelPerMetal: number;
+  /**
    * How much an armed enemy near a source puts it off: each one within its
    * own reach of the source divides what the source is worth by one more of
    * this. Zero or less ignores them.
@@ -463,6 +474,8 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     burnWeight: 2,
     rangeHold: 1,
     scavengeFuelBelow: 0,
+    scavengeMetalBelow: 0,
+    fuelPerMetal: 1,
     scavengeDanger: 1,
     refuelBelow: 0.25,
     rechargeBelow: 0.25,
@@ -659,6 +672,8 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
   'burnWeight',
   'rangeHold',
   'scavengeFuelBelow',
+  'scavengeMetalBelow',
+  'fuelPerMetal',
   'scavengeDanger',
   'refuelBelow',
   'rechargeBelow',
@@ -671,7 +686,7 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
 ];
 
 /** Fields that mean nothing below zero, though zero itself is a setting. */
-export const NON_NEGATIVE_FIELDS: readonly string[] = ['tangentialMin', 'tangentialMax'];
+export const NON_NEGATIVE_FIELDS: readonly string[] = ['tangentialMin', 'tangentialMax', 'fuelPerMetal'];
 
 /** Pairs of approach fields that are the two ends of one band, the first no more than the second. */
 export const ORDERED_FIELDS: readonly (readonly [keyof Approach, keyof Approach])[] = [['tangentialMin', 'tangentialMax']];

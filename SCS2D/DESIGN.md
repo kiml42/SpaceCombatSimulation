@@ -652,7 +652,12 @@ inside any one file is not contiguous.
   reach of it. The trip is reckoned at what it can close at, `approachSpeed` less however fast the source is
   going away, and burns what matching the source's motion and then speeding up and stopping again costs at its
   engines' exhaust speed; a source going away faster than it can follow, or holding no more than that, is
-  not gone for. It points
+  not gone for. **It goes for metal too**, with robots of its own, once its claw's piece of hull is down to
+  `scavengeMetalBelow` of a full load of metal (zero, never, by default), until its holds are full: a wreck,
+  or a hulk nobody is mending, is then worth what its robots would bring home of it as well, its mass less
+  its fuel and `DISASSEMBLY_WASTE`, counted at `fuelPerMetal` kilograms of fuel a kilogram (one by default),
+  since whether a tonne of metal is worth a tonne of fuel depends on which is scarce. The time to take it
+  apart is reckoned at its robots' `ROBOT_REPAIR_RATE`. The claw grips it and holds on while its robots work. It points
   its claw at the source and comes in down a stopping curve that ends not at rest but at the middle of the
   claw's band, planned on the thrust it actually has astern; touching without taking hold, it backs off for
   `CLAW_RETRY` and comes again. A ship under control and larger than itself lying across its way — the friend
@@ -858,8 +863,9 @@ inside any one file is not contiguous.
   one each, and a mutation does not turn either, since neither has a facing that matters.
 - **Next:** repair, construction and salvage, one mechanism, is built in all six stages (ROADMAP.md §8):
   damage shedding mass, pads mending landed fighters, robots mending their own hull, lost and built anew,
-  lost modules rebuilt by robots and by pads, and robots taking wreckage apart into metal. What is left of
-  it is doctrine: a ship going out to find wrecks for their metal, and what sends a fighter in to be mended.
+  lost modules rebuilt by robots and by pads, and robots taking wreckage apart into metal, with doctrine that
+  sends a fighter in to be mended and a ship out to wrecks for their metal. What is left of it is a stock
+  salvager to fly it.
   Alongside it, the rest of §8 step 8 — pilots that know their fuel — and of step 5: a materials budget,
   and designed scenarios.
   See ROADMAP.md §8.
