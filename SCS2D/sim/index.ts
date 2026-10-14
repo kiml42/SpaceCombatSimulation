@@ -383,6 +383,7 @@ export {
   CLAW_SPEED_MAX,
   clawChance,
   PAD_SPEED,
+  onWeldablePart,
   type Order,
   type ShipSpec,
 } from './ships.js';

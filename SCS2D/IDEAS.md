@@ -4,7 +4,7 @@ Things that are obviously wrong.
 - Fuel tanks should stop supplying fuel when they are too damaged.
 - When setting up a co-evolution run between two very large fleets, the UI hangs for about 30 s (the Imperial Fleet against the Rebel Fleet) after each change to a setting the opening match reads, and on loading the page with such a setup saved: the preview breeds a whole first generation to draw it. A burst of changes now builds it once, and a setting it does not read (generations, matches, winners) does not rebuild it. Fixing it needs the build off the main thread, or a preview that does not breed, at the cost of its seed no longer being the run's.
 - In evolution, things end up connected to engine bells, which shouldn't be allowed as connection surfaces.
-- Welding in battles sometimes happens to the bounding box around the barrels for hull guns, which looks silly, so shouldn't be possible (they should be considered non-connectable surfaces).
+- A hull gun's barrel collides as the rectangle its module would be, not where the barrel is drawn. Nothing welds to a barrel (`onWeldablePart`), as a stop-gap until it collides where it is.
 
 -----------------------------------------------------------------------
 
