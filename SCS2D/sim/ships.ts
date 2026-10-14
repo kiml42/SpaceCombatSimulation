@@ -7362,8 +7362,8 @@ export class Ships {
       // What a claw will close on, and of the enemies only those that cannot shoot back.
       if (!this.drinkable(i, t) || (this.hasControl(t) && !this.isDisarmed(t))) continue;
       const tb = bodies.indexOf(this.bodyIds[t]!);
-      // A body is offered once, by the ship it is.
-      if (tb < 0 || tb === b || this.shipByBody[tb] !== t) continue;
+      // A body is offered once, by the ship it is, and only if the claw can touch it.
+      if (tb < 0 || tb === b || this.shipByBody[tb] !== t || !this.clawReaches(b, claw, tb)) continue;
       const fuel = this.fuel.left(tb);
       const take = fuel < room ? fuel : room;
       // What its robots would bring home of it, less what taking it apart wastes.
@@ -7396,6 +7396,20 @@ export class Ships {
       }
     }
     return best;
+  }
+
+  /**
+   * Whether the claw at module `claw` of body `b` shares a layer with any
+   * module of body `tb`: a thin claw cannot close on a fighter or a piece of
+   * one, which flies above the deck.
+   */
+  private clawReaches(b: number, claw: number, tb: number): boolean {
+    const mine = moduleLayers(this.hullDesign[b]!.modules[claw]!, this.layersOf(b));
+    const design = this.hullDesign[tb];
+    if (design === null || design === undefined) return false;
+    const theirs = this.layersOf(tb);
+    for (const module of design.modules) if ((moduleLayers(module, theirs) & mine) !== 0) return true;
+    return false;
   }
 
   /** Whether ship `t` is wreckage whole, as robots take it apart: nobody flies it, or nobody mends it. */

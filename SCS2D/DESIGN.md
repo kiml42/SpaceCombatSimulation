@@ -656,7 +656,7 @@ inside any one file is not contiguous.
   `scavengeMetalBelow` of a full load of metal (zero, never, by default), until its holds are full: a wreck,
   or a hulk nobody is mending, is then worth what its robots would bring home of it as well, its mass less
   its fuel and `DISASSEMBLY_WASTE`, counted at `fuelPerMetal` kilograms of fuel a kilogram (one by default),
-  since whether a tonne of metal is worth a tonne of fuel depends on which is scarce. The time to take it
+  since whether a tonne of metal is worth a tonne of fuel depends on which is scarce. A claw goes only for what it shares a layer with: a thin one never for a fighter or a piece of one, which flies above the deck. The time to take it
   apart is reckoned at its robots' `ROBOT_REPAIR_RATE`. The claw grips it and holds on while its robots work. It points
   its claw at the source and comes in down a stopping curve that ends not at rest but at the middle of the
   claw's band, planned on the thrust it actually has astern; touching without taking hold, it backs off for
