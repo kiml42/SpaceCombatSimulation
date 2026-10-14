@@ -63,15 +63,15 @@ function totals(world: World, ships: Ships): { mass: number; px: number; py: num
   return { mass, px, py, l };
 }
 
-/** Two hulls drifting together, nose to nose, at `closing` m/s between them. */
+/** Two hulls drifting together, stern to stern, at `closing` m/s between them. */
 function drift(
   closing: number,
   prepare: (ships: Ships, world: World, a: number, b: number) => void,
 ): ReturnType<typeof makeBattle<{ a: number; b: number }>> {
   return makeBattle({ seed: 1, pilots: false }, (ships, world) => {
     const gap = corvette.radius * 2 + 2;
-    const a = ships.spawn(world, { design: corvette, x: -gap / 2, y: 0, angle: 0, vx: closing / 2, angularVel: 0.01 });
-    const b = ships.spawn(world, { design: corvette, x: gap / 2, y: 3, angle: Math.PI, vx: -closing / 2, team: 1 });
+    const a = ships.spawn(world, { design: corvette, x: -gap / 2, y: 0, angle: Math.PI, vx: closing / 2, angularVel: 0.01 });
+    const b = ships.spawn(world, { design: corvette, x: gap / 2, y: 3, angle: 0, vx: -closing / 2, team: 1 });
     prepare(ships, world, a, b);
     return { a, b };
   });
@@ -131,10 +131,10 @@ describe('welding on a slow contact', () => {
   });
 
   describe('two ships', () => {
-    /** Two corvettes with their noses torn open, hooked together nose to nose. */
+    /** Two corvettes with their sterns torn open, hooked together stern to stern. */
     function hooked(): ReturnType<typeof drift> {
       const run = drift(1, (ships, world, a, b) => {
-        for (const ship of [a, b]) wear(ships, world, ship, nose, RAGGED_INTEGRITY * 0.5);
+        for (const ship of [a, b]) wear(ships, world, ship, stern, RAGGED_INTEGRITY * 0.5);
       });
       runUntilWelded(run);
       expect(run.totalWelded).toBe(1);
@@ -147,8 +147,8 @@ describe('welding on a slow contact', () => {
       expect(run.ships.body(0)).toBe(run.ships.body(1));
       return run;
     }
-    const front = Math.max(...corvette.modules.map((m) => m.x + m.spec.length / 2));
-    const nose = corvette.modules.findIndex((m) => m.x + m.spec.length / 2 === front);
+    const back = Math.min(...corvette.modules.map((m) => m.x - m.spec.length / 2));
+    const stern = corvette.modules.findIndex((m) => m.x - m.spec.length / 2 === back);
     const own = corvette.modules.length;
 
     it('both ride one body, each on its own side', () => {
@@ -267,8 +267,8 @@ describe('welding on a slow contact', () => {
     // step's recoil must be spent once rather than held and added to.
     const run = makeBattle({ seed: 1 }, (ships, world) => {
       const gap = corvette.radius * 2 + 2;
-      const a = ships.spawn(world, { design: corvette, x: -gap / 2, y: 0, angle: 0, vx: 0.5 });
-      const b = ships.spawn(world, { design: corvette, x: gap / 2, y: 3, angle: Math.PI, vx: -0.5, team: 1 });
+      const a = ships.spawn(world, { design: corvette, x: -gap / 2, y: 0, angle: Math.PI, vx: 0.5 });
+      const b = ships.spawn(world, { design: corvette, x: gap / 2, y: 3, angle: 0, vx: -0.5, team: 1 });
       for (const ship of [a, b]) {
         wreck(ships, world, ship);
         tear(ships, world, ship);

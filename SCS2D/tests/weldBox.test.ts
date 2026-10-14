@@ -2,10 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { compileBlueprint, isHullMount, moduleCentre, onWeldablePart, weldBox, type DesignModule } from '../sim/index.js';
 import { DINKY, GUNSHIP } from '../scenarios/blueprints.js';
 
-/**
- * A slow ragged contact welds only on the part of a module a layout could be
- * attached by: not an engine's bell or a hull mount's barrel.
- */
+/** A slow ragged contact welds anywhere but on a hull mount's barrel. */
 
 const POSE = { x: 40, y: -15, angle: 0.7 };
 
@@ -27,14 +24,14 @@ function weldable(module: DesignModule, along: number): boolean {
 
 describe('where a ragged contact may weld', () => {
   const modules = [...compileBlueprint(DINKY).modules, ...compileBlueprint(GUNSHIP).modules];
-  const mounted = modules.filter((m) => m.spec.kind === 'engine' || isHullMount(m.spec.kind));
+  const mounted = modules.filter((m) => isHullMount(m.spec.kind));
 
-  it('has engines and hull mounts to test', () => {
-    expect(mounted.some((m) => m.spec.kind === 'engine')).toBe(true);
-    expect(mounted.some((m) => isHullMount(m.spec.kind))).toBe(true);
+  it('has hull mounts and engines to test', () => {
+    expect(mounted.length).toBeGreaterThan(0);
+    expect(modules.some((m) => m.spec.kind === 'engine')).toBe(true);
   });
 
-  it('welds the block of an engine or hull mount, and not its bell or barrel', () => {
+  it("welds a hull mount's block, and not its barrel", () => {
     for (const module of mounted) {
       const half = module.spec.length / 2 - 0.01;
       // Which end the block is at, from where weldBox puts its middle.
@@ -48,7 +45,7 @@ describe('where a ragged contact may weld', () => {
     }
   });
 
-  it('welds anything else anywhere', () => {
+  it("welds anything else anywhere, an engine's bell included", () => {
     for (const module of modules.filter((m) => !mounted.includes(m))) {
       expect(weldable(module, module.spec.length / 2)).toBe(true);
       expect(weldable(module, -module.spec.length / 2)).toBe(true);

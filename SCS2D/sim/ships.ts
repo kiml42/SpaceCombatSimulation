@@ -367,13 +367,15 @@ export const WELD_SPEED = 2;
 const WELD_REACH = 0.05;
 
 /**
- * Whether world point `x`, `y` is on the part of `module` that may be welded
- * (`weldBox`), with its body at `bx`, `by` turned `angle`: not an engine's
- * bell, nor a hull mount's barrel, which a layout cannot be attached by either.
+ * Whether world point `x`, `y` is on the part of `module` that may be welded,
+ * with its body at `bx`, `by` turned `angle`: anywhere but a hull mount's
+ * barrel. A stop-gap until a barrel collides where it is drawn rather than as
+ * the rest of the module's rectangle. An engine's bell still welds, as debris
+ * can snag on one even though a layout is never attached by it.
  */
 export function onWeldablePart(module: DesignModule, bx: number, by: number, angle: number, x: number, y: number): boolean {
   const spec = module.spec;
-  if (spec.kind !== 'engine' && !isHullMount(spec.kind)) return true;
+  if (!isHullMount(spec.kind)) return true;
   const weld = weldBox(spec);
   const whole = moduleCentre(spec);
   const part = moduleCentre(weld);
