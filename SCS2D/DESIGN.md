@@ -876,8 +876,8 @@ inside any one file is not contiguous.
   lost modules rebuilt by robots and by pads, and robots taking wreckage apart into metal, with doctrine that
   sends a fighter in to be mended and a ship out to wrecks for their metal. What is left of it is a stock
   salvager to fly it.
-  Alongside it, the rest of §8 step 5: designed scenarios, and a skirmish allowance in the three currencies
-  evolution's budget already counts.
+  Alongside it, §8 step 5's skirmish: an endless loop against an enemy fleet that evolves to beat the
+  player's, planned in ROADMAP.md §8.
   See ROADMAP.md §8.
   §8 step 3 is done, withdrawal left open (ROADMAP.md §12), and step 7, two layers, is built. What a chooser is already facing (`facingWeight`) and whether anything is in the way
   (`sightWeight`) are weights, zero by default. Evolution is built and runs both headlessly and on a page
