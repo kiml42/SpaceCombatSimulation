@@ -881,8 +881,10 @@ inside any one file is not contiguous.
   `scenarios/skirmish.ts`): pick a stock enemy, whose bill is the budget; fight a fixed round, decided by
   `scenarios/decision.ts` once one side has fired or rammed in the last 30 s and the other has not; and go
   to the fleet editor, which shows the budget, and back between tries. A ship of a fleet opens in the ship
-  editor from the fleet editor's *Edit* and goes back to the fleet, skirmish and all. Next is the enemy
-  answering.
+  editor from the fleet editor's *Edit* and goes back to the fleet, skirmish and all. A round won, the
+  enemy evolves an answer in a worker (`evolution/answer.ts`), watched as each generation's best fights the
+  round, and the answer, confirmed on the seed the player won on, is the next round's enemy. Next is
+  tuning the numbers against real rounds.
   See ROADMAP.md §8.
   §8 step 3 is done, withdrawal left open (ROADMAP.md §12), and step 7, two layers, is built. What a chooser is already facing (`facingWeight`) and whether anything is in the way
   (`sightWeight`) are weights, zero by default. Evolution is built and runs both headlessly and on a page

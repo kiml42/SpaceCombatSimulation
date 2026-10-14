@@ -13,19 +13,23 @@ import {
   newSkirmish,
   nextRound,
   parseSkirmish,
+  roundBattle,
   roundSetup,
   serialiseSkirmish,
   skirmishFragment,
   SKIRMISH_STORAGE_KEY,
+  won,
   type Skirmish,
 } from '../scenarios/skirmish.js';
+import { startAnswer, type AnswerProgress } from './answer.js';
 import { battleView } from './battleView.js';
 import { el } from './dom.js';
 
 /**
  * The skirmish page: pick an enemy, fight it a round at a time, and go to the
- * fleet editor and back between tries (ROADMAP.md §8 step 5). The skirmish is
- * kept in browser storage and carried in the link to the editor and back.
+ * fleet editor and back between tries; win, and watch the enemy evolve an
+ * answer, then fight that (ROADMAP.md §8 step 5). The skirmish is kept in
+ * browser storage and carried in the link to the editor and back.
  */
 
 const EMPTY = 'empty:';
@@ -38,8 +42,9 @@ export function startSkirmish(): void {
   const roundPanel = el<HTMLElement>('round');
   const enemySelect = el<HTMLSelectElement>('enemy');
   const startSelect = el<HTMLSelectElement>('startFleet');
-  const nextPanel = el<HTMLElement>('next');
-  const nextSelect = el<HTMLSelectElement>('nextEnemy');
+  const answering = el<HTMLElement>('answering');
+  const answerProgress = el<HTMLElement>('answerProgress');
+  const watchButton = el<HTMLButtonElement>('watchAnswer');
   const playButton = el<HTMLButtonElement>('play');
   const outcome = el<HTMLElement>('outcome');
   const sidesBox = el<HTMLElement>('sides');
@@ -50,6 +55,14 @@ export function startSkirmish(): void {
   let battle: CustomBattle | null = null;
   let activity = new Activity(2);
   let decision: Decision | null = null;
+  /**
+   * What is on the screen: the round, to be won or lost; the best enemy so far
+   * fighting the round while the search goes on; or the answer it found.
+   */
+  let mode: 'round' | 'watching' | 'answer' = 'round';
+  let stopSearch: (() => void) | null = null;
+  let watching = true;
+  let latest: AnswerProgress | null = null;
 
   /** A fleet, or a single ship as a fleet of one, from a list value. */
   const read = (value: string): Fleet | null => {
@@ -95,7 +108,11 @@ export function startSkirmish(): void {
     (stepped) => {
       if (decision !== null || skirmish === null || stepped !== battle) return;
       decision = activity.observe(stepped);
-      if (decision !== null) decided(decision);
+      if (decision === null) return;
+      if (mode === 'round') decided(decision);
+      else if (mode === 'answer') outcome.textContent = `The enemy's answer beats your fleet at ${decision.time.toFixed(0)} s.`;
+      // Watching, a replay that is over gives way to the next best enemy.
+      else if (latest !== null) watch(latest);
     },
     (drawn) => {
       readout.textContent = skirmish === null ? '' : `round ${skirmish.round} · t ${drawn.time.toFixed(1)} s`;
@@ -149,7 +166,8 @@ export function startSkirmish(): void {
     if (skirmish === null) return;
     setupPanel.hidden = true;
     roundPanel.hidden = false;
-    nextPanel.hidden = true;
+    answering.hidden = true;
+    mode = 'round';
     outcome.textContent = '';
     outcome.className = '';
     decision = null;
@@ -167,6 +185,7 @@ export function startSkirmish(): void {
         : 'Your fleet is over budget: edit it to cut it down.';
     playButton.disabled = !fits;
     el<HTMLButtonElement>('retry').disabled = !fits;
+    editFleet.hidden = false;
     if (fits) {
       battle = customBattle(roundSetup(skirmish));
       view.show(battle, false);
@@ -180,10 +199,11 @@ export function startSkirmish(): void {
     if (skirmish === null) return;
     const at = `at ${result.time.toFixed(0)} s`;
     if (result.winner === 0) {
-      outcome.textContent = `Victory ${at}.`;
+      outcome.textContent = `Victory ${at}. The enemy evolves an answer.`;
       outcome.className = 'won';
-      fillChoices(nextSelect, false);
-      nextPanel.hidden = false;
+      skirmish = won(skirmish);
+      save();
+      answer();
     } else {
       outcome.textContent =
         result.winner < 0
@@ -204,15 +224,89 @@ export function startSkirmish(): void {
   editFleet.addEventListener('click', () => {
     if (skirmish !== null) editFleet.href = `fleet.html${skirmishFragment(skirmish)}`;
   });
+  // ---- the enemy's answer ---------------------------------------------------
+
+  /** Set the search going against the player's fleet, from the enemy as it stands. */
+  const answer = (): void => {
+    if (skirmish === null || skirmish.won === undefined) return;
+    answering.hidden = false;
+    el<HTMLElement>('answered').hidden = true;
+    el<HTMLButtonElement>('retry').disabled = true;
+    editFleet.hidden = true;
+    watchButton.hidden = false;
+    answerProgress.textContent = 'Fighting the first generation of mutants…';
+    latest = null;
+    stopSearch?.();
+    stopSearch = startAnswer(
+      { player: skirmish.player, enemy: skirmish.enemy, won: skirmish.won, seed: (skirmish.won ^ skirmish.round) >>> 0 },
+      progressed,
+    );
+  };
+
+  const progressed = (now: AnswerProgress): void => {
+    if (skirmish === null) return;
+    latest = now;
+    // Kept as it goes, so a reload carries on from the best so far.
+    skirmish = { ...skirmish, enemy: now.found ?? now.best };
+    save();
+    if (now.found !== null) {
+      stopSearch?.();
+      stopSearch = null;
+      found(now.found, now.generation);
+      return;
+    }
+    answerProgress.textContent =
+      `Generation ${now.generation}: the best enemy so far won ${now.wins} of its ${now.seeds} matches.`;
+    // The first best, or the last replay over: show the newest.
+    if (mode !== 'watching' || decision !== null) watch(now);
+  };
+
+  /** Show the best enemy so far fighting the round, if the player is watching. */
+  const watch = (now: AnswerProgress): void => {
+    if (skirmish === null || skirmish.won === undefined || !watching) return;
+    mode = 'watching';
+    decision = null;
+    activity = new Activity(2);
+    battle = customBattle(roundBattle(skirmish.player, now.best, skirmish.won));
+    outcome.textContent = `Generation ${now.generation}'s best enemy against your fleet.`;
+    outcome.className = '';
+    el<HTMLElement>('enemyName').textContent = `Against ${now.best.name}, evolving.`;
+    playButton.disabled = false;
+    view.show(battle, true);
+  };
+  watchButton.addEventListener('click', () => {
+    watching = !watching;
+    watchButton.textContent = watching ? 'Stop watching' : 'Watch';
+    if (watching && latest !== null) watch(latest);
+    else if (!watching) view.setRunning(false);
+  });
+
+  const found = (enemy: Fleet, generation: number): void => {
+    if (skirmish === null || skirmish.won === undefined) return;
+    mode = 'answer';
+    decision = null;
+    activity = new Activity(2);
+    answerProgress.textContent = `Found in generation ${generation}: ${enemy.name}, on the seed you won on.`;
+    watchButton.hidden = true;
+    el<HTMLElement>('answered').hidden = false;
+    battle = customBattle(roundBattle(skirmish.player, enemy, skirmish.won));
+    outcome.textContent = "The enemy's answer.";
+    outcome.className = 'lost';
+    el<HTMLElement>('enemyName').textContent = `Against ${enemy.name}, the answer.`;
+    playButton.disabled = false;
+    view.show(battle, true);
+  };
+
   el<HTMLButtonElement>('nextRound').addEventListener('click', () => {
-    const enemy = read(nextSelect.value);
-    if (skirmish === null || enemy === null) return;
-    skirmish = nextRound(skirmish, enemy);
+    if (skirmish === null) return;
+    skirmish = nextRound(skirmish, skirmish.enemy);
     save();
     showRound();
   });
   el<HTMLButtonElement>('abandon').addEventListener('click', () => {
     if (!window.confirm('Give up this skirmish and start another?')) return;
+    stopSearch?.();
+    stopSearch = null;
     try {
       window.localStorage.removeItem(SKIRMISH_STORAGE_KEY);
     } catch {
@@ -261,6 +355,8 @@ export function startSkirmish(): void {
   else {
     save();
     showRound();
+    // Left while the enemy was answering: carry on from the best so far.
+    if (skirmish.won !== undefined) answer();
   }
 }
 

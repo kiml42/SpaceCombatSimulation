@@ -99,7 +99,8 @@ editors so a ship is edited in place within its fleet comes later, as does an up
 Built in order, a PR or more each: the loop without an enemy that answers (beat the stock fleets) — built,
 `dist/skirmish.html`, a win offering another stock enemy until the enemy answers; opening a ship of the fleet in the ship editor
 and coming back to the fleet, a round trip like the fleet editor's — built, the selected ship's *Edit*; the enemy answering in
-a worker, watched; then the decision rule's numbers tuned against real rounds.
+a worker, watched — built, `evolution/answer.ts`, a win replaced by the answer the stock enemy's choosing
+stood in for; then the decision rule's numbers tuned against real rounds.
 
 Built: **the fleet file** (`sim/fleet.ts`, `sim/fleetFile.ts`), **a battle from fleets**
 (`scenarios/fleetBattle.ts`), proved by `standoff` flying a fleet file with its checksum unchanged, **the
@@ -330,10 +331,15 @@ Deliberately unresolved; decide when they block something.
 - **Whether the skirmish enemy should prefer the cheapest fleet that wins.** It stops at the first winner,
   so it grows only as it must, but it never shrinks, and drifts larger round by round. A preference for
   efficiency would let it get leaner as well as stronger.
-- **The skirmish's numbers.** How long without firing puts a side out of a battle (30 s, a first guess),
-  the time cap on a stalemate, how many random seeds the enemy evolves on, what
-  counts as ahead when an evolution match runs out of time, and how long a round's evolution
-  may take before something gives.
+- **How far one round lets the skirmish enemy grow.** With no budget, one mutation can add a whole ship, so
+  an answer can be the enemy doubled: found by the author, three corvettes that beat one gunship next faced
+  two. A step that large is a much harder round than the one just won. Wanted: some bound on how much an
+  answer may grow in one round — a share of the player's budget, say, or of what the enemy cost before.
+- **The skirmish's numbers.** How long without firing puts a side out of a battle (30 s), the time cap on a
+  stalemate (600 s), and the enemy's search: five mutants a generation, three seeds each, 180 s a match, and
+  ahead at the time limit meaning more of its starting mass still under control than the player has, all
+  first guesses. Nothing bounds how long a round's search may take: it shows its progress and goes on, and
+  an answer to a fleet much stronger than the enemy can take many generations of growing into it.
 
 - **Whether the editor needs a test flight of its own.** A throwaway sim inside the editor, flying the ship
   being edited without leaving the page. The Battle link already takes that ship into a custom battle, which
