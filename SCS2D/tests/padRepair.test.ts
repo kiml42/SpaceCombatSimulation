@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   compileBlueprint,
   DAMAGE_ENERGY_PER_KG,
+  DEFAULT_DOCTRINE,
   joints,
   PAD_REPAIR_PER_METRE,
   REPAIR_WASTE,
@@ -153,5 +154,37 @@ describe('a pad', () => {
     // Paid for from the carrier's hold.
     const engine = fighter.modules[LOST]!.stats;
     expect(before - metal()).toBeGreaterThanOrEqual((engine.structureMass + engine.fittingMass) * (1 + REPAIR_WASTE) - 1);
+  });
+});
+
+describe('a fighter hurt but wanting for nothing else', () => {
+  /** A Dinky full of fuel and metal, its core shot down to `integrity`. */
+  function hurt(integrity: number, repairBelow: number): Run {
+    const own = compileBlueprint({ ...DINKY, doctrine: { ...dinky.doctrine, approach: { ...dinky.doctrine.approach, repairBelow } } });
+    return makeBattle({ seed: 3 }, (ships, world) => {
+      const c = ships.spawn(world, { design: carrierOf(), x: 0, y: 0, angle: 0.3 });
+      const f = ships.spawn(world, { design: own, x: -300, y: 200, angle: 0 });
+      ships.damage.absorb(world.bodies.indexOf(ships.body(f)), CORE, capacity(CORE) * (1 - integrity));
+      return { c, f };
+    });
+  }
+
+  it('goes to a pad once it is no more whole than its repairBelow, and leaves it whole', () => {
+    const run = hurt(0.5, 0.6);
+    runUntil(run, () => aboard(run), 60);
+    expect(aboard(run)).toBe(true);
+    runUntil(run, () => !aboard(run), 60);
+    expect(aboard(run)).toBe(false);
+    expect(absorbed(run, CORE)).toBeCloseTo(0, 6);
+  });
+
+  it('stays out while it is more whole than that', () => {
+    const run = hurt(0.7, 0.6);
+    runUntil(run, () => aboard(run), 60);
+    expect(aboard(run)).toBe(false);
+  });
+
+  it('is sent by the default doctrine', () => {
+    expect(DEFAULT_DOCTRINE.approach.repairBelow).toBeGreaterThan(0);
   });
 });

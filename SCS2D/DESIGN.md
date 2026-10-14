@@ -825,6 +825,11 @@ inside any one file is not contiguous.
   alongside fuel, each at its rate, from what the carrier can spare above its own `rearmBelow`, and lets go
   once neither has more to give. A pad is scored by the fuel and metal it would hand over. The `rearm`
   scenario has three Dinkies fire themselves dry at a hulk and take turns on a Tender's two pads.
+  **A fighter goes to a pad to be mended.** Once it is no more whole than its doctrine's `repairBelow` —
+  the lower of its weakest core's integrity and the share of the mass it set out with that is still sound, a
+  module lost counting for none — it makes for a friend's pad as it would for fuel, and comes back for fuel,
+  metal and charge too. It goes only to a pad whose piece of hull has the charge and metal to mend with. The
+  default is 0.6, a little above where a core's control cuts out (0.4); zero never goes.
   **Power: generators and batteries.** A `generator` makes power by its interior
   (`GENERATOR_POWER_PER_VOLUME`) for as long as it works, needing nothing and giving off nothing. A
   `battery` holds charge by its interior (`BATTERY_ENERGY_PER_VOLUME`) and passes it in or out at a rate set

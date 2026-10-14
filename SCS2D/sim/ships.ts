@@ -6517,7 +6517,8 @@ export class Ships {
    * source is gone or dry. Without one, a fighter goes to a friend's pad, and
    * anything else with a port to a friend's port, once its fuel or charge is
    * down to `refuelBelow`; a fighter also goes once its metal is down to
-   * `rearmBelow`, and whichever sent it, it comes back for all of them.
+   * `rearmBelow`, or it is no more whole than `repairBelow`, and whichever
+   * sent it, it comes back for all of them.
    */
   private forage(world: World, bodies: Bodies, i: number): void {
     const b = bodies.indexOf(this.bodyIds[i]!);
@@ -6547,7 +6548,8 @@ export class Ships {
     // A fighter with no claw lands on a friend's pad instead, and anything
     // else with a port of its own docks with a friend's. Only a pad rearms.
     const rearms = free && claw < 0 && design.fighter && approach.rearmBelow >= 0;
-    const lands = (docks || rearms || recharges) && claw < 0 && design.fighter;
+    const repairs = free && claw < 0 && design.fighter && approach.repairBelow > 0;
+    const lands = (docks || rearms || recharges || repairs) && claw < 0 && design.fighter;
     const port = docks && !design.fighter ? this.workingPort(bodies, i, b) : -1;
     // A ship with a claw too docks only once it is down to `refuelBelow`, and
     // until it is full; otherwise it goes scavenging by `scavengeFuelBelow`.
@@ -6575,10 +6577,13 @@ export class Ships {
     // Only running flat sends it for charge, so it never lands for a sliver of it.
     const flat = chargeRoom > 0 && charge <= approach.rechargeBelow * (charge + chargeRoom);
     const recharging = chargeRoom > 0 && (flat || this.recharging[i] === 1);
+    // Mending only makes it more whole, so nothing need hold it to the trip.
+    const hurt = repairs && this.wholeness(b, i) <= approach.repairBelow;
     const going =
       thirsty ||
       empty ||
       recharging ||
+      hurt ||
       (this.refuelling[i] === 1 && room > 0) ||
       (this.rearming[i] === 1 && metalRoom > 0);
     this.refuelling[i] = going && room > 0 ? 1 : 0;
@@ -6610,7 +6615,7 @@ export class Ships {
     if (world.tick < this.forageAt[i]!) return;
     this.forageAt[i] = world.tick + this.rethinkTicks(world, design.mass);
     if (lands) {
-      this.pickPad(bodies, i, b, room, metalRoom, recharging ? chargeRoom : 0);
+      this.pickPad(bodies, i, b, room, metalRoom, recharging ? chargeRoom : 0, hurt);
     } else if (viaPort) {
       this.pickPort(bodies, i, b, port, room);
     } else {
@@ -6762,6 +6767,26 @@ export class Ships {
     return danger;
   }
 
+  /**
+   * How whole ship `i` on body `b` is, as `repairBelow` measures it: the lower
+   * of its weakest core's integrity and the share of the mass it set out with
+   * still sound, a module lost counting for none.
+   */
+  private wholeness(b: number, i: number): number {
+    const design = this.designs[i]!;
+    let weakest = 1;
+    let sound = 0;
+    for (let m = 0; m < design.modules.length; m++) {
+      if (!this.ownsAt(i, b, m)) continue;
+      const integrity = this.damage.integrity(b, m);
+      sound += integrity * design.modules[m]!.stats.mass;
+      if (design.modules[m]!.spec.kind === 'core' && integrity < weakest) weakest = integrity;
+    }
+    let full = 0;
+    for (const module of (this.launched[i] ?? design).modules) full += module.stats.mass;
+    return full > 0 ? min(weakest, sound / full) : weakest;
+  }
+
   /** Whether module `pad` of ship `t` is a pad still working, with nothing on it. */
   private padFree(bodies: Bodies, t: number, pad: number): boolean {
     const design = this.designs[t]!;
@@ -6778,7 +6803,7 @@ export class Ships {
    * filled, put off by armed enemies near it by its `dockDanger`, and by every
    * other fighter already making for it.
    */
-  private pickPad(bodies: Bodies, i: number, b: number, room: number, metalRoom: number, chargeRoom: number): void {
+  private pickPad(bodies: Bodies, i: number, b: number, room: number, metalRoom: number, chargeRoom: number, hurt: boolean): void {
     const approach = this.doctrines[i]!.approach;
     this.salvaging[i] = NO_TARGET;
     this.landingPad[i] = -1;
@@ -6805,7 +6830,9 @@ export class Ships {
         const spareCharge = this.power.pieceHeld(tb, pad) - this.chargeReserve(tb, pad);
         const chargeTake = max(0, min(spareCharge, chargeRoom));
         const cable = DOCK_POWER_PER_METRE * spec.width;
-        if (!(take > 0 || chargeTake > 0) || !(pump > 0)) continue;
+        // Mending is paid for in charge and metal, reserves and all.
+        const mends = hurt && this.power.pieceHeld(tb, pad) > 0 && this.metal.pieceHeld(tb, pad) > 0;
+        if (!(take > 0 || chargeTake > 0 || mends) || !(pump > 0)) continue;
         const gap = length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!);
         if (danger < 0) danger = approach.dockDanger > 0 ? this.dangerNear(bodies, i, tb) : 0;
         // A pad another fighter is already making for is a wait behind it.

@@ -76,6 +76,7 @@ const APPROACH_ROWS: readonly DoctrineRow[] = [
   { field: 'rangeHold', label: 'holds guns on', hint: 'How much it would rather keep its guns on target: all of it inside the band it holds, falling away the further out it is', step: 0.5 },
   { field: 'scavengeFuelBelow', label: 'scavenges below', hint: 'The share of a full load of fuel at or below which a ship with a claw breaks off to scavenge from a wreck or a disarmed enemy, going from one to the next until it is full: set high, it goes whenever it has room enough to be worth the trip. Being filled by a friend is refuels below. 0 never does', step: 0.05 },
   { field: 'rearmBelow', label: 'rearms below', hint: 'The share of a full load of metal at or below which a fighter breaks off to land on a friend’s pad and rearm, taking on fuel and charge as well. 0 waits until it cannot load another round; below 0 never does', step: 0.05 },
+  { field: 'repairBelow', label: 'repairs below', hint: 'How whole a fighter is at or below which it breaks off to land on a friend’s pad and be mended: the lower of its weakest core and the share of the mass it set out with still sound. The pad lets it go once it is whole. 0 never goes', step: 0.05 },
   { field: 'scavengeDanger', label: 'scavenges wary of', hint: 'How much an armed enemy within reach of a wreck puts it off: each one divides what the wreck is worth by one more of this. 0 ignores them', step: 0.5 },
   { field: 'refuelBelow', label: 'refuels below', hint: 'The share of a full load of fuel at or below which it goes to a friend to be refuelled: a fighter to a pad it fits on, anything else with a port to a port, a ship with a claw too, which docks only this low and otherwise scavenges. Also the fuel it keeps back when it fills a friend. 0 never goes, and keeps nothing back', step: 0.05 },
   { field: 'rechargeBelow', label: 'recharges below', hint: 'The share of its batteries at or below which a fighter goes to a friend’s pad to recharge, and the charge it keeps back when it charges a friend. 0 never goes', step: 0.05 },
@@ -311,10 +312,10 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
     ],
   },
   {
-    title: 'Refuelling and rearming',
+    title: 'Refuelling, rearming and repair',
     groups: [
       {
-        title: 'Refuelling and rearming',
+        title: 'Refuelling, rearming and repair',
         entries: [
           entry('approach', 'scavengeFuelBelow', {
             absolute: (v) =>
@@ -327,6 +328,9 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
                 : v.approach.rearmBelow > 0
                   ? `below ${Math.round(v.approach.rearmBelow * 100)}% full, on a pad`
                   : 'once it cannot load a round, on a pad',
+          }),
+          entry('approach', 'repairBelow', {
+            absolute: (v) => (v.approach.repairBelow > 0 ? `below ${Math.round(v.approach.repairBelow * 100)}% whole, on a pad` : 'never'),
           }),
           entry('approach', 'scavengeDanger', { shown: (v) => v.approach.scavengeFuelBelow > 0 }),
           entry('approach', 'refuelBelow', {
@@ -344,7 +348,7 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
                 : 'never',
           }),
           entry('approach', 'dockDanger', {
-            shown: (v) => v.approach.refuelBelow > 0 || v.approach.rechargeBelow > 0 || v.approach.rearmBelow >= 0,
+            shown: (v) => v.approach.refuelBelow > 0 || v.approach.rechargeBelow > 0 || v.approach.rearmBelow >= 0 || v.approach.repairBelow > 0,
           }),
         ],
       },
