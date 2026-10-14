@@ -85,7 +85,7 @@ const APPROACH_ROWS: readonly DoctrineRow[] = [
   { field: 'rechargeBelow', label: 'recharges below', hint: 'The share of its batteries at or below which a fighter goes to a friend’s pad to recharge, and the charge it keeps back when it charges a friend. 0 never goes', step: 0.05 },
   { field: 'deliverFuelAbove', label: 'delivers above', hint: 'The share of a full load of fuel above which a ship with a port takes what it holds over this to a friend with room, unasked: once it is full, or once it can find nothing left to scavenge. 0 never delivers', step: 0.05 },
   { field: 'dockDanger', label: 'docks wary of', hint: 'How much an armed enemy near a friend puts it off docking there: each one divides what the dock is worth by one more of this, and above 0 a dock lets go while one is in reach. 0 ignores them', step: 0.5 },
-  { field: 'sortieRange', label: 'sorties within', hint: 'How near an armed enemy must come to its carrier, in metres, before a fighter leaves a pad it has nothing more to take on from. An order sends it at once. 0 leaves as soon as it is done', step: 250 },
+  { field: 'sortieRange', label: 'sorties within', hint: 'How near the target a fighter has chosen must be, as a multiple of its reach, before it leaves a pad it has nothing more to take on from. With no target it stays aboard. An order sends it at once', step: 0.5 },
   { field: 'tangentialMin', label: 'passes at least', hint: 'The least sideways speed it keeps relative to what it is attacking, metres per second. Above 0 it comes in aiming to miss, at the inner edge of its band, and circles if its thrust can hold the turn or makes passes if it cannot. 0 for both comes to rest at its band', step: 5 },
   { field: 'tangentialMax', label: 'passes at most', hint: 'The most sideways speed it keeps relative to what it is attacking, metres per second; 0 for both comes to rest at its band', step: 5 },
   { field: 'ramArmed', label: 'rams armed', hint: 'The share of its own main guns still working at or below which it will ram: 0 only once it cannot shoot, 1 whenever it is close enough', step: 0.1 },
@@ -370,10 +370,7 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
             shown: (v) => v.approach.refuelBelow > 0 || v.approach.rechargeBelow > 0 || v.approach.rearmBelow >= 0 || v.approach.repairBelow > 0,
           }),
           entry('approach', 'sortieRange', {
-            absolute: (v) =>
-              v.approach.sortieRange > 0
-                ? `stays on a pad until an armed enemy is within ${metres(v.approach.sortieRange)} of it`
-                : 'leaves a pad once it is done',
+            absolute: (v, ship) => (ship.reach > 0 ? `leaves a pad for a target within ${metres(v.approach.sortieRange * ship.reach)}` : null),
           }),
         ],
       },

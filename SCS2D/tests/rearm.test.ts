@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { compileBlueprint, type Blueprint, type ShipDesign } from '../sim/index.js';
 import { makeBattle } from '../scenarios/battle.js';
 import { DINKY } from '../scenarios/blueprints.js';
+import { ANY_RANGE, QUARRY } from './fixtures/quarry.js';
 
 /** Fighters landing on a friend's pad to take on metal for their guns, and fuel with it. */
 
@@ -22,7 +23,7 @@ const CORE = 0;
 
 function fighterOf(rearmBelow: number, refuelBelow = 0.5): ShipDesign {
   const doctrine = compileBlueprint(DINKY).doctrine;
-  return compileBlueprint({ ...DINKY, doctrine: { ...doctrine, approach: { ...doctrine.approach, rearmBelow, refuelBelow } } });
+  return compileBlueprint({ ...DINKY, doctrine: { ...doctrine, approach: { ...doctrine.approach, rearmBelow, refuelBelow, sortieRange: ANY_RANGE } } });
 }
 
 interface Setup {
@@ -44,6 +45,7 @@ function scene(setup: Setup = {}) {
       ships.metal.drain(b, m, ships.metal.held(b, m) * (setup.fired ?? 1));
       ships.fuel.vent(b, m, ships.fuel.held(b, m) * (setup.burnt ?? 0));
     }
+    ships.spawn(world, { design: QUARRY, x: 0, y: 5000, team: 1 });
     return { c, f };
   });
 }

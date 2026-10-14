@@ -381,10 +381,9 @@ export interface Approach {
    */
   readonly dockDanger: number;
   /**
-   * How near an enemy that can fight must come to a fighter's carrier, metres
-   * between their skins, before the fighter leaves a pad it has nothing more
-   * to take on from; one whose guns reach the carrier sends it too, and so
-   * does an order. Zero leaves as soon as it is done. Not evolved.
+   * How near the target a fighter has chosen must be, as a multiple of its
+   * reach, before it leaves a pad it has nothing more to take on from. With
+   * no target it stays aboard. An order sends it at once.
    */
   readonly sortieRange: number;
   /**
@@ -497,7 +496,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     rechargeBelow: 0.25,
     deliverFuelAbove: 0,
     dockDanger: 0,
-    sortieRange: 0,
+    sortieRange: 4,
     tangentialMin: 0,
     tangentialMax: 0,
     rearmBelow: 0,
@@ -704,13 +703,6 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
   'tangentialMin',
   'tangentialMax',
 ];
-
-/**
- * Fields evolution leaves where the design put them. `sortieRange` steps up
- * from zero a few metres at a time, and a fighter told to wait for an enemy
- * a few metres off waits all battle: a draw that only ever does harm.
- */
-export const UNEVOLVED_FIELDS: readonly string[] = ['sortieRange'];
 
 /** Fields that mean nothing below zero, though zero itself is a setting. */
 export const NON_NEGATIVE_FIELDS: readonly string[] = ['tangentialMin', 'tangentialMax', 'fuelPerMetal', 'ramMass', 'sortieRange'];

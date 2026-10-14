@@ -11,6 +11,7 @@ import {
 } from '../sim/index.js';
 import { makeBattle } from '../scenarios/battle.js';
 import { DINKY } from '../scenarios/blueprints.js';
+import { ANY_RANGE, QUARRY } from './fixtures/quarry.js';
 
 /** A pad mending what lands on it (ROADMAP.md §8, repair stage 2). */
 
@@ -34,7 +35,7 @@ function carrierOf(rechargeBelow = 0): ShipDesign {
 const HOLD = 2;
 
 const dinky = compileBlueprint(DINKY);
-const fighter = compileBlueprint({ ...DINKY, doctrine: { ...dinky.doctrine, approach: { ...dinky.doctrine.approach, refuelBelow: 0.5 } } });
+const fighter = compileBlueprint({ ...DINKY, doctrine: { ...dinky.doctrine, approach: { ...dinky.doctrine.approach, refuelBelow: 0.5, sortieRange: ANY_RANGE } } });
 const CORE = fighter.cores[0]!;
 const GUN = fighter.modules.findIndex((m) => m.spec.kind === 'hullGun');
 const capacity = (m: number): number => fighter.modules[m]!.stats.hitPoints * DAMAGE_ENERGY_PER_KG;
@@ -48,6 +49,7 @@ function scene(carrier = carrierOf()): ReturnType<typeof makeBattle<{ c: number;
     for (let m = 0; m < fighter.modules.length; m++) ships.fuel.vent(b, m, ships.fuel.held(b, m) * 0.8);
     ships.damage.absorb(b, CORE, capacity(CORE) * 0.5);
     ships.damage.absorb(b, GUN, capacity(GUN) * 2);
+    ships.spawn(world, { design: QUARRY, x: 0, y: 5000, team: 1 });
     return { c, f };
   });
 }
@@ -131,6 +133,7 @@ describe('a pad', () => {
       for (let m = 0; m < fighter.modules.length; m++) ships.fuel.vent(b, m, ships.fuel.held(b, m) * 0.8);
       const k = all.findIndex((j) => j.a === LOST || j.b === LOST);
       ships.damage.cutWeld(b, k, all[k]!.width * 2);
+      ships.spawn(world, { design: QUARRY, x: 0, y: 5000, team: 1 });
       return { c, f };
     });
     run.step();
@@ -160,11 +163,12 @@ describe('a pad', () => {
 describe('a fighter hurt but wanting for nothing else', () => {
   /** A Dinky full of fuel and metal, its core shot down to `integrity`. */
   function hurt(integrity: number, repairBelow: number): Run {
-    const own = compileBlueprint({ ...DINKY, doctrine: { ...dinky.doctrine, approach: { ...dinky.doctrine.approach, repairBelow } } });
+    const own = compileBlueprint({ ...DINKY, doctrine: { ...dinky.doctrine, approach: { ...dinky.doctrine.approach, repairBelow, sortieRange: ANY_RANGE } } });
     return makeBattle({ seed: 3 }, (ships, world) => {
       const c = ships.spawn(world, { design: carrierOf(), x: 0, y: 0, angle: 0.3 });
       const f = ships.spawn(world, { design: own, x: -300, y: 200, angle: 0 });
       ships.damage.absorb(world.bodies.indexOf(ships.body(f)), CORE, capacity(CORE) * (1 - integrity));
+      ships.spawn(world, { design: QUARRY, x: 0, y: 5000, team: 1 });
       return { c, f };
     });
   }
