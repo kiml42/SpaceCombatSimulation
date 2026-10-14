@@ -880,7 +880,9 @@ inside any one file is not contiguous.
   player's, planned in ROADMAP.md §8. Evolution can end a match on the skirmish's rule too, where its `quietLimit` is set. Its loop is built without the evolving enemy (`dist/skirmish.html`,
   `scenarios/skirmish.ts`): pick a stock enemy, whose bill is the budget; fight a fixed round, decided by
   `scenarios/decision.ts` once one side has fired or rammed in the last 30 s and the other has not; and go
-  to the fleet editor, which shows the budget, and back between tries. Next is the enemy answering.
+  to the fleet editor, which shows the budget, and back between tries. A ship of a fleet opens in the ship
+  editor from the fleet editor's *Edit* and goes back to the fleet, skirmish and all. Next is the enemy
+  answering.
   See ROADMAP.md §8.
   §8 step 3 is done, withdrawal left open (ROADMAP.md §12), and step 7, two layers, is built. What a chooser is already facing (`facingWeight`) and whether anything is in the way
   (`sightWeight`) are weights, zero by default. Evolution is built and runs both headlessly and on a page

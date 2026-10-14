@@ -33,7 +33,7 @@ import {
   swapDesign,
   updateEntry,
 } from './fleetEdit.js';
-import { battleHref } from './handoff.js';
+import { battleHref, designHref, handedFleet } from './handoff.js';
 import {
   billOfFleet,
   canFight,
@@ -97,9 +97,16 @@ export function startFleetEditor(): void {
   } catch (error) {
     window.alert(`Could not read the skirmish handed over.\n\n${error instanceof Error ? error.message : error}`);
   }
+  // Back from the ship editor, the fleet comes with its design changed.
+  let handed: Fleet | null = null;
+  try {
+    handed = skirmish === null ? handedFleet(window.location.hash) : null;
+  } catch (error) {
+    window.alert(`Could not read the fleet handed over.\n\n${error instanceof Error ? error.message : error}`);
+  }
   const first = fleets.list()[0];
   const doc = new FleetDocument(
-    skirmish?.player ?? (first !== undefined ? read(first.name, first.stock) : null) ?? emptyFleet('New fleet'),
+    skirmish?.player ?? handed ?? (first !== undefined ? read(first.name, first.stock) : null) ?? emptyFleet('New fleet'),
     lookup,
   );
   const camera: Camera = { x: 0, y: 0, scale: 1 };
@@ -850,7 +857,21 @@ export function startFleetEditor(): void {
       // Storage full or refused: nothing more to be done on the way out.
     }
   };
-  for (const link of document.querySelectorAll('header a')) link.addEventListener('click', keep);
+  for (const link of document.querySelectorAll('a')) link.addEventListener('click', keep);
+
+  // The selected ship's design, to the ship editor and back.
+  el<HTMLAnchorElement>('editDesign').addEventListener('click', (event) => {
+    const entry = doc.selection.length === 1 ? entryAt(doc.fleet, doc.selection[0]!) : null;
+    if (entry === null || isGroupUse(entry)) {
+      event.preventDefault();
+      return;
+    }
+    (event.currentTarget as HTMLAnchorElement).href = designHref({
+      fleet: doc.fleet,
+      design: entry.design,
+      ...(skirmish === null ? {} : { skirmish: { ...skirmish, player: doc.fleet } }),
+    });
+  });
 
   // The fleet as it stands, saved or not, goes with the link.
   el<HTMLAnchorElement>('battleLink').addEventListener('click', (event) => {

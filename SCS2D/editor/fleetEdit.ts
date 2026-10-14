@@ -142,6 +142,31 @@ export function refreshDesign(fleet: Fleet, blueprint: Blueprint): Fleet {
 }
 
 /**
+ * The fleet with design `from` replaced by `blueprint`, as edited elsewhere.
+ * Renamed, every ship of the design follows it; a name another design of the
+ * fleet already has is not taken, and the old name kept.
+ */
+export function replaceDesign(fleet: Fleet, from: string, blueprint: Blueprint): Fleet {
+  const next = cloneFleet(fleet);
+  const to = replacedName(fleet, from, blueprint);
+  delete next.designs[from];
+  next.designs[to] = JSON.parse(JSON.stringify({ ...blueprint, name: to })) as Blueprint;
+  if (to !== from) {
+    const rename = (entries: FleetEntry[]): void => {
+      for (const entry of entries) if (!isGroupUse(entry) && entry.design === from) entry.design = to;
+    };
+    rename(next.ships);
+    for (const group of Object.values(next.groups ?? {})) rename(group.ships);
+  }
+  return next;
+}
+
+/** The name `replaceDesign` puts the design under. */
+export function replacedName(fleet: Fleet, from: string, blueprint: Blueprint): string {
+  return blueprint.name !== from && fleet.designs[blueprint.name] === undefined ? blueprint.name : from;
+}
+
+/**
  * The blueprint as it should go into this fleet: as it is, unless the fleet
  * already carries a different design by that name, in which case renamed to
  * the first name it has free, so `addShip` does not quietly fly the old one.
