@@ -1,5 +1,5 @@
 import type { Bodies } from './bodies.js';
-import type { ShipDesign } from './blueprint.js';
+import { originOf, type ShipDesign } from './blueprint.js';
 import type { WellSpec } from './gravity.js';
 import { NOT_INSIDE, type Projectiles } from './projectiles.js';
 import type { Beams } from './beams.js';
@@ -51,6 +51,10 @@ export interface ShipView {
   x: number;
   y: number;
   angle: number;
+  /** The way it points (`Ships.flownCore`), where that is not its body's `angle`. */
+  heading?: number;
+  /** Whether it rides a body another ship owns, as a fighter on a pad: that ship's icon stands for it. */
+  riding?: boolean;
   vx: number;
   vy: number;
   /** World bearing of each turret, in the design's turret order. */
@@ -397,6 +401,14 @@ export function capture(
     view.x = bodies.x[b]!;
     view.y = bodies.y[b]!;
     view.angle = bodies.angle[b]!;
+    const core = ships.flownCore(i);
+    if (core >= 0) {
+      const origin = originOf(design, core);
+      view.heading = view.angle + design.modules[core]!.angle - origin.design.modules[origin.module]!.angle;
+    } else {
+      view.heading = view.angle;
+    }
+    view.riding = !ships.ownsBody(i);
     view.vx = bodies.vx[b]!;
     view.vy = bodies.vy[b]!;
     view.hasControl = ships.hasControl(i);
