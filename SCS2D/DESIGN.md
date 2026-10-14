@@ -877,7 +877,10 @@ inside any one file is not contiguous.
   sends a fighter in to be mended and a ship out to wrecks for their metal. What is left of it is a stock
   salvager to fly it.
   Alongside it, §8 step 5's skirmish: an endless loop against an enemy fleet that evolves to beat the
-  player's, planned in ROADMAP.md §8.
+  player's, planned in ROADMAP.md §8. Evolution can end a match on the skirmish's rule too, where its `quietLimit` is set. Its loop is built without the evolving enemy (`dist/skirmish.html`,
+  `scenarios/skirmish.ts`): pick a stock enemy, whose bill is the budget; fight a fixed round, decided by
+  `scenarios/decision.ts` once one side has fired or rammed in the last 30 s and the other has not; and go
+  to the fleet editor, which shows the budget, and back between tries. Next is the enemy answering.
   See ROADMAP.md §8.
   §8 step 3 is done, withdrawal left open (ROADMAP.md §12), and step 7, two layers, is built. What a chooser is already facing (`facingWeight`) and whether anything is in the way
   (`sightWeight`) are weights, zero by default. Evolution is built and runs both headlessly and on a page

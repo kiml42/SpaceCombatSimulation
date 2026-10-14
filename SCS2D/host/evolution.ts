@@ -206,6 +206,7 @@ const FIELDS = [
   'closingSpread',
   'crossing',
   'crossingSpread',
+  'quietLimit',
   'survivalWeight',
   'functionalWeight',
   'damageWeight',
@@ -412,6 +413,9 @@ function exportEntrant(entrant: Entrant): void {
 }
 
 const NO_LAYOUT: ChartLayout = { x: 0, y: 0, width: 0, height: 0, count: 0 };
+
+/** How long the settings must sit still before the preview is built again, ms. */
+const PREVIEW_DELAY_MS = 300;
 
 /** One of the small charts under the score, and where it last drew itself. */
 interface SizeChart {
@@ -660,6 +664,7 @@ export function startEvolution(): void {
     radiusSpread: String(DEFAULT_MATCH.radiusSpread),
     closingSpread: String(DEFAULT_MATCH.closingSpread),
     crossingSpread: String(DEFAULT_MATCH.crossingSpread),
+    quietLimit: String(DEFAULT_MATCH.quietLimit),
     survivalWeight: String(DEFAULT_MATCH.weights.survival),
     functionalWeight: String(DEFAULT_MATCH.weights.functional),
     damageWeight: String(DEFAULT_MATCH.weights.damage),
@@ -729,18 +734,41 @@ export function startEvolution(): void {
       edits: [],
       entrant,
     }));
-    try {
-      previewMatch =
-        founders.length === 0
-          ? null
-          : co
-            ? new Coevolution(founders, rivals, readSetup().config, coevolutionSettings()).unmutatedOpening()
-            : new Run(founders, readSetup().config).unmutatedOpening();
-    } catch {
-      // A founder that will not compile has nothing to show.
-      previewMatch = null;
+    // Building the opening breeds a whole first generation, which for big
+    // fleets takes seconds: done again only when something it reads changed.
+    // How long the run goes on, and who breeds, are not among them.
+    const config = readSetup().config;
+    const coSettings = co ? coevolutionSettings() : null;
+    const opening = { ...config, generations: config.generations > 0, minMatches: 0, winners: 0 };
+    const key = JSON.stringify([founders, rivals, opening, coSettings]);
+    if (key !== previewKey) {
+      previewKey = key;
+      try {
+        previewMatch =
+          founders.length === 0
+            ? null
+            : co
+              ? new Coevolution(founders, rivals, config, coSettings!).unmutatedOpening()
+              : new Run(founders, config).unmutatedOpening();
+      } catch {
+        // A founder that will not compile has nothing to show.
+        previewMatch = null;
+      }
     }
     refresh();
+  };
+
+  /** What `previewMatch` was built from, so an edit that changes none of it does not build it again. */
+  let previewKey = '';
+  let previewTimer: ReturnType<typeof setTimeout> | null = null;
+  /** `refreshPreview` once the settings have stopped changing for `PREVIEW_DELAY_MS`, once for a burst of changes rather than once each. */
+  const schedulePreview = (): void => {
+    showFleetSettings();
+    if (previewTimer !== null) clearTimeout(previewTimer);
+    previewTimer = setTimeout(() => {
+      previewTimer = null;
+      refreshPreview();
+    }, PREVIEW_DELAY_MS);
   };
 
   const saveSetup = (): void => {
@@ -764,7 +792,7 @@ export function startEvolution(): void {
     } catch {
       // Storage being full or refused costs the settings, not the run.
     }
-    refreshPreview();
+    schedulePreview();
   };
 
   const loadSetup = (): Record<string, string> => {
@@ -960,6 +988,7 @@ export function startEvolution(): void {
         radiusSpread: Math.max(0, number(inputs.radiusSpread, DEFAULT_MATCH.radiusSpread)),
         closingSpread: Math.max(0, number(inputs.closingSpread, DEFAULT_MATCH.closingSpread)),
         crossingSpread: Math.max(0, number(inputs.crossingSpread, DEFAULT_MATCH.crossingSpread)),
+        quietLimit: Math.max(0, number(inputs.quietLimit, DEFAULT_MATCH.quietLimit)),
         goal:
           goalInput.value === 'none' || DEFAULT_MATCH.goal === null
             ? null
@@ -1071,6 +1100,7 @@ export function startEvolution(): void {
     inputs.radiusSpread.value = String(match.radiusSpread ?? DEFAULT_MATCH.radiusSpread);
     inputs.closingSpread.value = String(match.closingSpread ?? DEFAULT_MATCH.closingSpread);
     inputs.crossingSpread.value = String(match.crossingSpread ?? DEFAULT_MATCH.crossingSpread);
+    inputs.quietLimit.value = String(match.quietLimit ?? DEFAULT_MATCH.quietLimit);
     inputs.survivalWeight.value = String(match.weights.survival);
     inputs.functionalWeight.value = String(match.weights.functional);
     inputs.damageWeight.value = String(match.weights.damage);
@@ -2240,6 +2270,7 @@ export function startEvolution(): void {
         ? new Coevolution(founders, rivals, readSetup().config, coevolutionSettings())
         : new Run(founders, readSetup().config);
     previewMatch = null;
+    if (previewTimer !== null) clearTimeout(previewTimer);
     previewRows = [];
     savedAs = null;
     notice = '';

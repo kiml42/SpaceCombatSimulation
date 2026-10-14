@@ -161,8 +161,12 @@ describe('the evolution page in a browser', () => {
 
   it('previews the founders, and the first match paused at its start, before a run', async () => {
     await page.selectOption('#mode', 'fleet');
-    await page.waitForFunction(() => document.querySelectorAll('#fleet tbody tr').length === 1);
-    expect(await page.textContent('#fleet tbody td.who b')).toBe('Dinky');
+    // Built once the settings have sat still a moment, not on every change.
+    await page.waitForFunction(
+      () =>
+        document.querySelectorAll('#fleet tbody tr').length === 1 &&
+        document.querySelector('#fleet tbody td.who b')?.textContent === 'Dinky',
+    );
     // Named for what it is made of, which for a ship founder is itself.
     expect(await page.textContent('#fleet tbody td.made .of')).toBe('Dinky');
     // Nothing has been scored yet, so the figures are dashes.

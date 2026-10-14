@@ -407,22 +407,7 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
   // trigger wedges' tips can be read against it.
   const holdMax = ship.holdMax ?? 0;
   if (whole && arcs === 'trigger' && holdMax > 0) {
-    const holdMin = ship.holdMin ?? 0;
-    ctx.fillStyle = HOLD_BAND;
-    ctx.beginPath();
-    ctx.arc(0, 0, holdMax, 0, TAU);
-    if (holdMin > 0) ctx.arc(0, 0, holdMin, TAU, 0, true);
-    ctx.fill('evenodd');
-    ctx.strokeStyle = HOLD_EDGE;
-    ctx.lineWidth = 1 / metresToPx;
-    ctx.beginPath();
-    ctx.arc(0, 0, holdMax, 0, TAU);
-    ctx.stroke();
-    if (holdMin > 0) {
-      ctx.beginPath();
-      ctx.arc(0, 0, holdMin, 0, TAU);
-      ctx.stroke();
-    }
+    drawBand(ctx, 0, 0, ship.holdMin ?? 0, holdMax, metresToPx);
     ctx.strokeStyle = ATTACK_LINE;
     ctx.setLineDash([ATTACK_DASH_PX / metresToPx, ATTACK_DASH_PX / metresToPx]);
     for (const bearing of ship.attackBearings ?? []) {
@@ -1439,12 +1424,37 @@ function drawSelected(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: n
       ctx.stroke();
       ctx.setLineDash([]);
     }
+    // The band it is holding, round what it is holding it against, as the editor draws a ship's own.
+    if (ship.fightingMax !== undefined) {
+      ctx.save();
+      drawBand(ctx, target.x, target.y, ship.fightingMin ?? 0, ship.fightingMax, metresToPx);
+      ctx.restore();
+    }
     ctx.globalAlpha = 0.6;
     ctx.beginPath();
     ctx.arc(target.x, target.y, target.design.radius + gap, 0, Math.PI * 2);
     ctx.stroke();
   }
   ctx.restore();
+}
+
+/** A band of ranges about a point, filled faintly and edged: where a ship's doctrine closes to. */
+function drawBand(ctx: CanvasRenderingContext2D, x: number, y: number, min: number, max: number, metresToPx: number): void {
+  ctx.fillStyle = HOLD_BAND;
+  ctx.beginPath();
+  ctx.arc(x, y, max, 0, TAU);
+  if (min > 0) ctx.arc(x, y, min, TAU, 0, true);
+  ctx.fill('evenodd');
+  ctx.strokeStyle = HOLD_EDGE;
+  ctx.lineWidth = 1 / metresToPx;
+  ctx.beginPath();
+  ctx.arc(x, y, max, 0, TAU);
+  ctx.stroke();
+  if (min > 0) {
+    ctx.beginPath();
+    ctx.arc(x, y, min, 0, TAU);
+    ctx.stroke();
+  }
 }
 
 /** The ship a flash is riding, or null when nothing in the picture is it. */

@@ -1858,6 +1858,16 @@ export function startEditor(): void {
     gesture = false;
     refresh();
   });
+  // Following a link away keeps the work, in case it was not saved. A reload
+  // does not: that is how changes are thrown away.
+  const keep = (): void => {
+    try {
+      library.saveIfChanged(doc.blueprint);
+    } catch {
+      // Storage full or refused: nothing more to be done on the way out.
+    }
+  };
+  for (const link of document.querySelectorAll('header a')) link.addEventListener('click', keep);
   saveButton.addEventListener('click', () => {
     library.save(doc.blueprint);
     refresh();

@@ -60,7 +60,8 @@ render/     the view; consumes snapshots, knows no game rules
 editor/     the blueprint and fleet editors; only page.ts, overlay.ts,
             fleetPage.ts and fleetOverlay.ts touch the DOM, so the edit
             models, the stats and the library are unit-tested
-ui/         React; UI state only
+ui/         React, UI state only (non-negotiable 5); not created until a
+            page uses React, as every page drives the DOM from host/ and editor/
 host/       window lifecycle, the wall clock, and the controls — one entry
             point and one page shell per page; the evolution page lives here
             too, since driving a run is a clock and a set of controls
@@ -84,15 +85,15 @@ Keep these working — they are the cold-start re-entry path:
 - `npm run golden` — re-derive golden checksums after a *deliberate* behaviour change
 - `npm run evolve` — fight a headless evolution run and write it to `runs/`, rewritten after every generation; `--from <stock ships or blueprint files>`, `--fleet <stock fleet
   or fleet file>`, `--deploy <radius>`, `--ships <most>` (ship founders grow into fleets unless it is 1), `--generations`,
-  `--population`, `--group`, `--matches`, `--budget`, `--duration`, `--radius`, `--closing`, `--crossing` (each with a `-spread` either side, drawn per match), `--seed`, `--kinds`, `--doctrine`, `--build`, `--structural`,
+  `--population`, `--group`, `--matches`, `--budget`, `--duration`, `--radius`, `--closing`, `--crossing` (each with a `-spread` either side, drawn per match), `--quiet-limit` (the skirmish's end rule, seconds), `--seed`, `--kinds`, `--doctrine`, `--build`, `--structural`,
   `--versus <stock ships or blueprint files>` and `--versus-fleet` for co-evolution, with `--hall`, `--hall-share`,
   `--versus-group` (side B's entrants a match, where not `--group`) and `--versus-fixed` (side B does not evolve),
   `--out`, and `--config` / `--save-config` for the settings file the evolution page reads and writes
 - `npm run yardstick` — measure a finished run against a ship that does not evolve; `--run`, and
   `--against latest | founder | <stock ship> | <blueprint or fleet file>`; a co-evolution run is measured as
   a grid of each side's champions against the other's, `--samples` generations a side and `--seeds` matches a cell
-- `npm run build` — bundle each page to `dist/index.html`, `dist/editor.html`, `dist/fleet.html` and
-  `dist/evolution.html`, one file each with nothing external
+- `npm run build` — bundle each page to `dist/index.html`, `dist/editor.html`, `dist/fleet.html`,
+  `dist/evolution.html` and `dist/skirmish.html`, one file each with nothing external
 - `npm run dev` — the same build on every save, for tinkering; refresh the page to see it. Also runs `sync-fleets`
   on start and whenever a blueprint is saved
 - `npm run sync-fleets` — copy each stock blueprint into the stock fleets that embed a design of the same name

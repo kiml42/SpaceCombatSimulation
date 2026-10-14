@@ -916,6 +916,8 @@ export class Ships {
   private readonly chosen: number[] = [];
   /** The ship its doctrine has committed it to ramming, or `NO_TARGET`. Kept until that ship is out of the fight. */
   private readonly ramming: number[] = [];
+  /** The tick each ship last fired a gun or a beam, or -1. */
+  private readonly firedAt: number[] = [];
   /** What each ship has broken off to drink from with its claw, or `NO_TARGET`. */
   private readonly salvaging: number[] = [];
   /** The tick each ship next reconsiders whether, and where, to refuel. */
@@ -1432,6 +1434,7 @@ export class Ships {
     this.clawTried.push(-Infinity);
     this.chosen.push(NO_TARGET);
     this.ramming.push(NO_TARGET);
+    this.firedAt.push(-1);
     this.salvaging.push(NO_TARGET);
     this.forageAt.push(i);
     this.refuelling.push(0);
@@ -2172,6 +2175,16 @@ export class Ships {
     return true;
   }
 
+  /** The tick ship `i` last fired a gun or a beam, or -1 if it never has. */
+  lastFired(i: number): number {
+    return this.firedAt[i]!;
+  }
+
+  /** Whether ship `i`'s doctrine has committed it to ramming something. */
+  isRamming(i: number): boolean {
+    return this.ramming[i] !== NO_TARGET;
+  }
+
   /** Whether this fighter has dropped into the hull layer as well. */
   isCommitted(i: number): boolean {
     return this.committed[i] === 1;
@@ -2229,6 +2242,19 @@ export class Ships {
   /** What this ship is fighting: its order's target, else what its doctrine chose; `NO_TARGET` for nothing. */
   fightingOf(i: number): number {
     return this.focusOf(i);
+  }
+
+  /**
+   * The order whose band of ranges ship `i` is holding against what it is
+   * fighting, or undefined: for nothing, or for an order that closes to touch
+   * — a ram, a grip, a landing or a dock — rather than to a range.
+   */
+  heldOrder(i: number): Readonly<Order> | undefined {
+    const standing = this.standing[i];
+    const order = this.getCurrentOrder(i) ?? (standing !== undefined && standing.target === this.chosenOf(i) ? standing : undefined);
+    if (order === undefined || order.target === NO_TARGET) return undefined;
+    if (order.ram || order.grapple || order.land || order.dock || !(order.maxRange > 0)) return undefined;
+    return order;
   }
 
   private focusOf(i: number): number {
@@ -2735,6 +2761,7 @@ export class Ships {
           turretStates[t] = TurretState.Reloading; // Projectile guns immediately reload after firing.
 
           projectilesFired++;  // increment for every shot fired
+          this.firedAt[i] = world.tick;
         } else {
           beams.fireFrom(
             bodyIdx,
@@ -2752,6 +2779,7 @@ export class Ships {
             design.turrets[t]!.module,
             this.mountLayers(i, design.turrets[t]!),
           );
+          this.firedAt[i] = world.tick;
           if (state == TurretState.Idle) {
             // was idle before, now committed on for beamOnTime
             state = turretStates[t] = TurretState.CommittedOn;

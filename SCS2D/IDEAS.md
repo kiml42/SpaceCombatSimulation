@@ -2,8 +2,7 @@
 Things that are obviously wrong.
 
 - Fuel tanks should stop supplying fuel when they are too damaged.
-- When setting up a co-evolution run between two very large fleets, the UI hangs on every input. Setting up runs with fleets this big is probably a bad idea anyway, but the UI shouldn't hang making it difficult to change your mind.
-- If you add a ship to a fleet from a file that shares a name with an existing ship in the fleet, you get a copy of that ship, instead of the new ship. Should either rename the new ship, or replace the old ship. either way, it should alert you.
+- When setting up a co-evolution run between two very large fleets, the UI hangs for about 30 s (the Imperial Fleet against the Rebel Fleet) after each change to a setting the opening match reads, and on loading the page with such a setup saved: the preview breeds a whole first generation to draw it. A burst of changes now builds it once, and a setting it does not read (generations, matches, winners) does not rebuild it. Fixing it needs the build off the main thread, or a preview that does not breed, at the cost of its seed no longer being the run's.
 - In evolution, things end up connected to engine bells, which shouldn't be allowed as connection surfaces.
 - Welding in battles sometimes happens to the bounding box around the barrels for hull guns, which looks silly, so shouldn't be possible (they should be considered non-connectable surfaces).
 
@@ -77,4 +76,3 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
   - Could also highlight them, possibly with a symbol to show what sort of attention the selected ship is paying to each
 - The ship name on cores should rotate and scale with the ship, as if it is literally written on the hull.
 - Use time scale buttons instead of a slider (0.25, 0.5, 1, 2, 4, 8, 16) (or possibly a dropdown) (either way, it should be consistent with the evolution battle UI)
-- Show the range the selected ship is trying to get into with the target as a ring around the target (or possibly the selected ship, to be consistent with the editor)
