@@ -406,6 +406,11 @@ function download(name: string, text: string): void {
   URL.revokeObjectURL(url);
 }
 
+/** Save a ship or fleet as a file named for it. */
+function exportEntrant(entrant: Entrant): void {
+  download(`${entrant.name.replace(/[^\w.-]+/g, '_')}.json`, isFleet(entrant) ? fleetFileText(entrant) : toFileText(entrant));
+}
+
 const NO_LAYOUT: ChartLayout = { x: 0, y: 0, width: 0, height: 0, count: 0 };
 
 /** One of the small charts under the score, and where it last drew itself. */
@@ -1651,10 +1656,8 @@ export function startEvolution(): void {
     exportOne.addEventListener('click', (event) => {
       // Not a pick of the row as well.
       event.stopPropagation();
-      download(
-        `${row.entrant.name.replace(/[^\w.-]+/g, '_')}.json`,
-        isFleet(row.entrant) ? fleetFileText(row.entrant) : toFileText(row.entrant),
-      );
+      // Named for its id too: a child keeps its parent's name, so a lineage would export as its founder over and over.
+      exportEntrant(row.id < 0 ? row.entrant : { ...row.entrant, name: `${row.entrant.name} #${row.id}` });
     });
     score.append(figure, count, exportOne);
     const parts: HTMLElement[] = [];
@@ -2144,12 +2147,7 @@ export function startEvolution(): void {
     championLine.textContent = savedAs.text;
   });
   exportButton.addEventListener('click', () => {
-    for (const { entrant } of champions()) {
-      download(
-        `${entrant.name.replace(/[^\w.-]+/g, '_')}.json`,
-        isFleet(entrant) ? fleetFileText(entrant) : toFileText(entrant),
-      );
-    }
+    for (const { entrant } of champions()) exportEntrant(entrant);
   });
   measureButton.addEventListener('click', () => {
     if (run === null || run.generations.length === 0) return;

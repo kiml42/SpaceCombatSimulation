@@ -229,7 +229,8 @@ describe('the evolution page in a browser', () => {
     const download = await saving;
     const file = JSON.parse(await readFile(await download.path(), 'utf8')) as Record<string, unknown>;
     expect(download.suggestedFilename()).toMatch(/\.json$/);
-    expect(typeof file['name']).toBe('string');
+    // Named for its id, so two of one lineage do not export as the same design.
+    expect(file['name']).toMatch(/ #\d+$/);
     expect(await second.evaluate((tr) => tr.classList.contains('picked'))).toBe(false);
   });
 
