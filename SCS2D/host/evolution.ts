@@ -358,6 +358,8 @@ interface Tile {
   readonly cells: Record<'who' | 'made' | 'score' | 'mass' | 'done', HTMLTableCellElement>;
   /** One per part, in `SCORE_COLUMNS` order. */
   readonly parts: readonly HTMLElement[];
+  /** The score itself, above the export button in the same cell. */
+  readonly figure: HTMLElement;
   readonly canvases: readonly HTMLCanvasElement[];
   readonly formation: HTMLCanvasElement;
   readonly picture: Picture;
@@ -1556,7 +1558,7 @@ export function startEvolution(): void {
       who.append(from);
     }
 
-    score.textContent = row.id < 0 ? '' : row.matches > 0 ? row.fitness.toFixed(3) : '—';
+    tile.figure.textContent = row.id < 0 ? '' : row.matches > 0 ? row.fitness.toFixed(3) : '—';
     score.title = row.id < 0 ? '' : `${row.matches} match${row.matches === 1 ? '' : 'es'} fought`;
 
     for (const [i, part] of tile.parts.entries()) {
@@ -1631,6 +1633,20 @@ export function startEvolution(): void {
     made.append(kinds);
 
     const score = cell('score');
+    const figure = document.createElement('div');
+    const exportOne = document.createElement('button');
+    exportOne.className = 'export';
+    exportOne.textContent = 'export';
+    exportOne.title = `Save ${row.entrant.name} as a file`;
+    exportOne.addEventListener('click', (event) => {
+      // Not a pick of the row as well.
+      event.stopPropagation();
+      download(
+        `${row.entrant.name.replace(/[^\w.-]+/g, '_')}.json`,
+        isFleet(row.entrant) ? fleetFileText(row.entrant) : toFileText(row.entrant),
+      );
+    });
+    score.append(figure, exportOne);
     const parts: HTMLElement[] = [];
     for (const stack of STACKED_COLUMNS) {
       const td = cell('part');
@@ -1656,6 +1672,7 @@ export function startEvolution(): void {
       tr,
       cells: { who, made, score, mass, done },
       parts,
+      figure,
       canvases,
       formation,
       picture,

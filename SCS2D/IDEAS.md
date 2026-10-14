@@ -58,7 +58,6 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - We need a mechanism to let ships know what the goal is. This could be something like a "go close to that" order being given to all ships when the race goal is present. (At the moment we lean on the escort doctrine, but that just makes evolving a second ship mean they bunch up with each other instead of going for the goal)
 - Dropdown to choose what to graph (score, mass, ship count, weapon count, engine count, possibly even select anything from doctrines to see how those are evolving)
   - Might want to show the total change over the run in the dropdown, so it's easy to see what is generally changing and will likely have an interesting graph.
-- Add an export button to every fleet in the "the combatants" view, should fit under the score neatly.
 - Co-evolution mode fills up scores for all the As and then all the Bs, it would be better if the battles order was randomised, so they fill up together.
   - Also, we could show partial scores if we added a battle count section (probably beneath the score value) showing "X/Y", so you can see how many of its battles the ship has completed.
 - Whole ship scale mutation
