@@ -358,6 +358,7 @@ export {
   firstOverlap,
   fleetHulls,
   fleetMass,
+  fleetBill,
   fleetReach,
   hullsOverlap,
   placeModules,
@@ -429,3 +430,4 @@ export {
   checksumDamage,
   formatChecksum,
 } from './checksum.js';
+export { addBills, affords, billOf, isLimited, NO_BILL, NO_BUDGET, type Bill, type Budget } from './bill.js';

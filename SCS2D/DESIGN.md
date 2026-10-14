@@ -517,8 +517,18 @@ inside any one file is not contiguous.
   back as JSON, by the page and by `npm run evolve` alike, so an experiment can be kept beside its result,
   sent to somebody, or designed on the page and then fought overnight headlessly. A founder is a stock ship
   by name or a blueprint file by its path, since a ship saved on the page lives in a browser. Every field is optional
-  and anything left out is the default, angles are degrees as they are in a blueprint file, and no budget is
+  and anything left out is the default, angles are degrees as they are in a blueprint file, and no limit is
   `null` because JSON has no infinity.
+  **A budget is the three things a ship costs** (`sim/bill.ts`, §2): **metal**, its hull and fittings and the
+  metal in its holds, and **fuel**, both as it sets out, so what a tank or hold starts without is saved; and
+  **build time**, how long one robot would take to build every module at `ROBOT_REPAIR_RATE`, its mass and
+  complexity alike, travel aside. Charge is left out: batteries set out full and cost nothing. Each has a limit
+  of its own, none by default, so a run can make fuel scarce and metal plentiful; a mutant over any is refused.
+  A ship's bill is its own and its fighters', a fleet's every ship's. `--budget` sets each to that many times
+  the dearest founder's; a settings file's `budget` holds the three, and an older file's `massBudget` is read
+  as its metal. A run records each design's bill beside its mass. The editor shows a ship's bill as its Cost
+  and each module's build time, and the fleet editor a fleet's. Evolution nudges how full a tank, core or hold
+  starts, never a battery.
   **A weapon can be let into a hull rather than sat on top of it.** A hull gun and a hull beam are a
   block with a barrel or a lens out of the front, welded on by the block alone, training about the
   root of the barrel through whatever angle the opening leaves them — which is single figures for a
@@ -581,7 +591,7 @@ inside any one file is not contiguous.
   picture following every change, and started with Fight. It says how each side stands — ships still
   under control, how many armed and how many mobile, and the share of its mass lost — and names the winner once no
   more than one side can fight on, without stopping the battle.
-  **Fleet evolution** breeds fleets, scored as one entrant each, under a total mass budget, a deployment
+  **Fleet evolution** breeds fleets, scored as one entrant each, under a whole fleet's budget, a deployment
   radius and a ship count — headless with `npm run evolve -- --fleet`, and on the evolution page, whose
   founders are ships and fleets alike; a ship grows into a fleet unless the most ships allowed is one. Before a run the page shows the founders unmutated and the run's
   first match paused at its start. Entrants can start already moving, towards the middle and across it, at speeds the run
@@ -771,7 +781,7 @@ inside any one file is not contiguous.
   `hangar`, as a fleet carries its designs). It is spawned lying along the pad, centred on it, and welded as
   one that had landed, so it is topped up from the carrier and lifts off once full. A fighter too big for its
   pad, or one that is missing or not a fighter, is a blueprint problem, and a budget counts the carrier and
-  everything it sets out with (`budgetMass`).
+  everything it sets out with (`billOf`).
   **A port** (`port`) is a coupling on a hull's side, never thick, with a pump of `PORT_PUMP_PER_METRE` for
   every metre of its face. Anything but a fighter with a working port that is down to its
   `refuelBelow` picks a
@@ -866,8 +876,8 @@ inside any one file is not contiguous.
   lost modules rebuilt by robots and by pads, and robots taking wreckage apart into metal, with doctrine that
   sends a fighter in to be mended and a ship out to wrecks for their metal. What is left of it is a stock
   salvager to fly it.
-  Alongside it, the rest of §8 step 8 — pilots that know their fuel — and of step 5: a materials budget,
-  and designed scenarios.
+  Alongside it, the rest of §8 step 5: designed scenarios, and a skirmish allowance in the three currencies
+  evolution's budget already counts.
   See ROADMAP.md §8.
   §8 step 3 is done bar withdrawal, and step 7, two layers, is built. What a chooser is already facing (`facingWeight`) and whether anything is in the way
   (`sightWeight`) are weights, zero by default. Evolution is built and runs both headlessly and on a page
@@ -930,7 +940,7 @@ so decisions are never under time pressure.
 | Strike craft | Up to ~100. No hard distinction between fighter and guided torpedo — one has a gun, the other a warhead. |
 | Production | Edit a blueprint and *future* production uses it. Fleets transition gradually, so design changes are visible as a shifting mix rather than a step change. |
 | Doctrine | Editable per craft, with "propagate to all identical craft" as a tactical verb — flip a whole swarm from defensive to aggressive mid-battle. |
-| Cost | **There is no abstract cost value for anything.** A ship costs the materials that make up its dry mass, the time to build it (its mass and its modules' complexity, which repair and rebuilding already use, though no budget counts it yet), and the propellant and raw materials it consumes running. Those are the only currencies, and every budget — a skirmish allowance, an evolution fitness penalty, the price of a better material — is denominated in them. Points values are what a game reaches for when it has not decided what a thing really costs. |
+| Cost | **There is no abstract cost value for anything.** A ship costs the materials that make up its dry mass, the time to build it (its mass and its modules' complexity, which repair, rebuilding and evolution's budget all use), and the propellant and raw materials it consumes running. Those are the only currencies, and every budget — a skirmish allowance, an evolution fitness penalty, the price of a better material — is denominated in them. Points values are what a game reaches for when it has not decided what a thing really costs. |
 | Scarcity | Ammunition and propellant are limited. This is what makes engagement-range and manoeuvre doctrine matter rather than being sliders nobody touches. |
 | Orders | Every order is *(target object, allowed distance range, allowed approach-angle range)*, mostly defaulted from doctrine — so issuing one collapses to picking a target. Fixed points in space rarely make sense; orders are relative to objects. A ship holds a **queue** of them and works through it in the order given, each carrying the condition that finishes it. |
 | Scale rationale | Small numbers are a design requirement, not a technical limit: you must be able to attribute a battle outcome to a design change. |

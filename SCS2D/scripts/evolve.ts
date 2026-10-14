@@ -4,7 +4,9 @@ import {
   blueprintWarnings,
   compileBlueprint,
   fleetHulls,
-  fleetMass,
+  fleetBill,
+  billOf,
+  type Bill,
   fleetWarnings,
   parseBlueprint,
   parseFleet,
@@ -152,8 +154,9 @@ function parse(argv: readonly string[]): Options {
       case '--winners': config['winners'] = Number(value()); break;
       case '--group': config['group'] = Number(value()); break;
       case '--matches': config['minMatches'] = Number(value()); break;
-      // As a multiple of what the ships it started from weigh, so the one
-      // number means the same thing whatever a run is started from.
+      // A multiple of what the dearest ship it started from costs, in each of
+      // metal, fuel and build time, so the one number means the same thing
+      // whatever a run is started from.
       case '--budget': budget = Number(value()); break;
       case '--duration': match['duration'] = Number(value()); break;
       case '--radius': match['radius'] = Number(value()); break;
@@ -275,13 +278,14 @@ function parse(argv: readonly string[]): Options {
     };
   }
   if (budget > 0) {
-    let heaviest = 0;
-    for (const { blueprint } of from) heaviest = Math.max(heaviest, compileBlueprint(blueprint).mass);
-    for (const { fleet } of fleets) heaviest = Math.max(heaviest, fleetMass(fleetHulls(fleet)));
-    // Both sides of a co-evolution run, which share the budget unless side B sets its own.
-    for (const { blueprint } of versusFrom) heaviest = Math.max(heaviest, compileBlueprint(blueprint).mass);
-    for (const { fleet } of versusFleets) heaviest = Math.max(heaviest, fleetMass(fleetHulls(fleet)));
-    config['massBudget'] = heaviest * budget;
+    // Each of the three is that many times the dearest founder's, of either
+    // side of a co-evolution run, which share the budget unless side B sets its own.
+    const bills: Bill[] = [
+      ...[...from, ...versusFrom].map(({ blueprint }) => billOf(compileBlueprint(blueprint))),
+      ...[...fleets, ...versusFleets].map(({ fleet }) => fleetBill(fleetHulls(fleet))),
+    ];
+    const most = (key: keyof Bill): number => bills.reduce((top, bill) => Math.max(top, bill[key]), 0) * budget;
+    config['budget'] = { metal: most('metal'), fuel: most('fuel'), build: most('build') };
   }
   const coevolving = versusFrom.length + versusFleets.length > 0;
   const versus = coevolving ? { from: versusFrom, fleets: versusFleets, coevolution } : null;

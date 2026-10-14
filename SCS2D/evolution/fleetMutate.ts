@@ -2,7 +2,10 @@ import {
   blueprintProblem,
   firstOverlap,
   fleetHulls,
-  fleetMass,
+  fleetBill,
+  affords,
+  NO_BUDGET,
+  type Budget,
   fleetProblem,
   fleetReach,
   isGroupUse,
@@ -27,10 +30,10 @@ import { mutate, type MutationLimits } from './mutate.js';
  */
 
 export interface FleetMutationLimits {
-  /** How each design is mutated. Its mass budget is the fleet's, checked on the whole. */
+  /** How each design is mutated. Its budget is the fleet's, checked on the whole. */
   readonly ship: Partial<MutationLimits>;
-  /** Total dry mass the fleet may not exceed, kg. */
-  readonly massBudget: number;
+  /** What the whole fleet may not cost more than. */
+  readonly budget: Budget;
   /** How far from its origin any hull may reach, metres. */
   readonly radius: number;
   /** Most ships a fleet may field, which bounds what a match costs. */
@@ -50,7 +53,7 @@ export type FleetOperator = 'design' | 'move' | 'add' | 'remove' | 'fork' | 'mer
 /** Mostly the designs, as a ship's own numbers are what it mostly changes; the shape of the fleet less often. */
 export const DEFAULT_FLEET_LIMITS: FleetMutationLimits = {
   ship: {},
-  massBudget: Infinity,
+  budget: NO_BUDGET,
   radius: 500,
   maxShips: 24,
   grid: 5,
@@ -86,12 +89,12 @@ export function mutateFleet(parent: Fleet, rng: Rng, limits?: Partial<FleetMutat
  * Whether a candidate is a fleet worth fighting: every design a ship, within
  * the budget and the deployment radius, and no two hulls on top of each other.
  */
-export function fleetFits(fleet: Fleet, limits: Pick<FleetMutationLimits, 'massBudget' | 'radius' | 'maxShips'>): boolean {
+export function fleetFits(fleet: Fleet, limits: Pick<FleetMutationLimits, 'budget' | 'radius' | 'maxShips'>): boolean {
   if (fleetProblem(fleet) !== null) return false;
   for (const blueprint of Object.values(fleet.designs)) if (blueprintProblem(blueprint) !== null) return false;
   const hulls = fleetHulls(fleet);
   if (hulls.length === 0 || hulls.length > limits.maxShips) return false;
-  if (fleetMass(hulls) > limits.massBudget) return false;
+  if (!affords(limits.budget, fleetBill(hulls))) return false;
   if (fleetReach(hulls) > limits.radius) return false;
   return firstOverlap(hulls) === null;
 }
@@ -120,7 +123,7 @@ function mutateDesign(fleet: Fleet, rng: Rng, bounds: FleetMutationLimits): stri
   const names = usedDesigns(fleet);
   if (names.length === 0) return [];
   const name = names[rng.nextInt(names.length)]!;
-  const child = mutate(fleet.designs[name]!, rng, { ...bounds.ship, massBudget: bounds.massBudget });
+  const child = mutate(fleet.designs[name]!, rng, { ...bounds.ship, budget: bounds.budget });
   if (child.edits.length === 0) return [];
   fleet.designs[name] = { ...child.blueprint, name };
   return child.edits.map((edit) => `${name}: ${edit}`);

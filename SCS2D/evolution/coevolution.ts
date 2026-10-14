@@ -41,7 +41,7 @@ import {
  */
 
 /** What may differ between the sides; side B takes side A's where it says nothing. */
-export type SideSettings = Pick<RunConfig, 'population' | 'winners' | 'group' | 'massBudget' | 'mutation' | 'fleet'>;
+export type SideSettings = Pick<RunConfig, 'population' | 'winners' | 'group' | 'budget' | 'mutation' | 'fleet'>;
 
 export interface CoevolutionConfig {
   /** Side B's settings where they differ from side A's, which are the run's. */

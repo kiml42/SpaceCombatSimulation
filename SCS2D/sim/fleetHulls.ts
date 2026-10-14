@@ -1,3 +1,4 @@
+import { addBills, billOf, NO_BILL, type Bill } from './bill.js';
 import { budgetMass, compileBlueprint, expandBlueprint, modulesOverlap, type ShipDesign } from './blueprint.js';
 import { expandFleet, type Fleet, type PlacedShip } from './fleet.js';
 import { cos, sin, sqrt } from './math.js';
@@ -85,6 +86,13 @@ export function fleetMass(hulls: readonly FleetHull[]): number {
   let mass = 0;
   for (const hull of hulls) mass += budgetMass(hull.design);
   return mass;
+}
+
+/** What the fleet costs as it sets out: every ship's bill. */
+export function fleetBill(hulls: readonly FleetHull[]): Bill {
+  let bill = NO_BILL;
+  for (const hull of hulls) bill = addBills(bill, billOf(hull.design));
+  return bill;
 }
 
 /** How far from the fleet's origin its furthest hull reaches, metres. */

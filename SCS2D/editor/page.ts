@@ -142,7 +142,7 @@ import {
   type DoctrineValues,
 } from './doctrine.js';
 import { attackBearings, doctrineBand, landOnSelf, lightSelfBurning, previewSnapshot } from './preview.js';
-import { designStats, envelopes, assemblyMass, holdingThrottles, moduleReadout, roundsAboard, megawatts, megajoules, type Envelopes } from './stats.js';
+import { buildTime, designStats, envelopes, assemblyMass, holdingThrottles, moduleReadout, roundsAboard, megawatts, megajoules, type Envelopes } from './stats.js';
 
 /**
  * The blueprint editor's page: the canvas, the panels and the pointer.
@@ -608,6 +608,11 @@ export function startEditor(): void {
     const s = designStats(design, envelope);
     const rows = [
       ['Mass', `${numbers(s.mass / 1000, 2)} t, ${numbers(s.fuel / 1000, 2)} t of it fuel and ${numbers(s.metal / 1000, 2)} t metal`],
+      [
+        'Cost',
+        `${numbers(s.bill.metal / 1000, 2)} t of metal, ${numbers(s.bill.fuel / 1000, 2)} t of fuel and ${buildTime(s.bill.build)} for one robot to build` +
+          ((design.aboard?.length ?? 0) > 0 ? ', with the fighters it sets out with' : ''),
+      ],
       [
         'Endurance',
         Number.isFinite(s.endurance)

@@ -49,7 +49,7 @@ an entry is either still open or it is gone.
 | 5 | v1: skirmish | Partly built |
 | 6 | Editor restructuring | Built |
 | 7 | Two layers | Built |
-| 8 | Fuel | Partly built |
+| 8 | Fuel | Built |
 | 9 | Docking, fuel transfer and fuel harvesting | Built |
 | 10 | Raw material | Partly built |
 | 11 | Power | Built |
@@ -89,15 +89,6 @@ replaced the boss battle.
 
 Not planned: per-ship doctrine overrides in a fleet (fork the design instead), and a group's own doctrine or
 lead, which waits for standing orders. Velocity stays out of the fleet file; the battle setup holds it.
-
-**Step 8 — Fuel.** Tanks, burning and the editor's figures are built (DESIGN.md Status). What is left:
-
-- **Pilots that know their fuel.** Nothing flies differently for running low, so a ship spends its tanks
-  as freely as ever. Short-legged ships show it: the Dinky carries 68 kg (13 s flat out), the TIE and the
-  Torch little more for what they push, and in `swarm` every Dinky is dry before it reaches the gunships.
-  Bigger tanks or a pilot that husbands what it has; the second belongs with withdrawal (step 3).
-- **Fuel in the materials budget** (step 5). Fleet and evolution budgets count full tanks in a ship's mass,
-  and that is as far as it goes.
 
 **Step 10 — Raw material.** Metal, holds and guns loading from them are built (DESIGN.md Status). What is left:
 
@@ -269,8 +260,8 @@ that answers the question most likely to change the design.
 - **The editor's animation is not a start on test flight.** A selected engine burns and a selected gun fires
   at its own rate, but nothing integrates or collides, so it cannot grow into a test flight by accident.
 - **No cost line, now or ever.** Dry mass is not standing in for a cost; it *is* the materials a ship is made
-  of, one of the three real costs (§2). Build time has its measure now, in mass and complexity, and is
-  waiting on its readout (§12); running cost needs a fuel model.
+  of, one of the three real costs (§2), and fuel and build time are the other two: evolution's budget and
+  the editors' Cost readouts are all three (`sim/bill.ts`). Running cost needs a fuel model.
 - **Firing arcs are measured as sweeps**, how far a mount turns to reach each edge, not as signed bearings: an
   obstruction wholly to port has both edges at positive bearings, and one dead astern is reached by turning
   either way. Every consumer must agree which bound is which — the clamp and the renderer once had them
@@ -312,8 +303,9 @@ What is left of the step should follow the shape already there:
   needed it. It is wanted when a campaign needs to *query* runs.
 - **One match scores survival, damage and ground gained together**, so a design has to make the trade
   between fighting and running for the goal. Small free-for-all groups, drawn fewest-meetings-first.
-- **The mass budget is dry mass**, the only real cost that exists (§2). When materials arrive (§12) it will
-  want to become a budget of materials, which is step 5's currency too.
+- **The budget is three real costs** (§2): metal, fuel and build time, each limited on its own
+  (`sim/bill.ts`). When materials arrive (§12) metal will want to become a budget of materials, which is step
+  5's currency too.
 - What evolution has left open — selection pressure, draw noise, arena size, clever piloting — is in §12.
 
 ---
@@ -355,11 +347,12 @@ Deliberately unresolved; decide when they block something.
   holding it, which may be too eager while it could still be mended by someone else's. A full hold leaves a
   wreck half taken apart, its robots home with what they could not put away, until it is emptied.
 
-- **How build time should count against a design.** A module's mass and complexity (§2) set how long it
-  takes to make, which repair and rebuilding already use, but nothing counts it yet. Evolution wants a time
-  budget beside the mass one, so a design of many intricate small parts pays for them; and the editor wants
-  readouts to match — each module's complexity, and the ship's build time and the time to rebuild what it
-  is likeliest to lose, at a pad's or a robot's rate.
+- **Pilots that know their fuel.** Nothing flies differently for running low, so a ship spends its tanks as
+  freely as ever. Short-legged ships show it: the Dinky carries 68 kg (13 s flat out), the TIE and the Torch
+  little more for what they push, and in `swarm` every Dinky is dry before it reaches the gunships. A fighter
+  goes home to refuel at its `refuelBelow`, but a ship with no pad or port to go to burns to empty. The answer
+  may be bigger tanks, now that evolution can pay for fuel on its own budget, or a pilot that husbands what it
+  has, which belongs with withdrawal (§8 step 3).
 
 - **Whether targeting needs more pickers.** A ship-type picker, and hemisphere as a hard discard if
   `facingWeight`'s soft version — astern scores against — turns out not to be enough. Neither is clearly

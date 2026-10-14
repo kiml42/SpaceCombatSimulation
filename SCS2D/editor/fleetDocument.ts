@@ -1,6 +1,10 @@
 import {
   blueprintProblem,
+  addBills,
+  billOf,
   budgetMass,
+  NO_BILL,
+  type Bill,
   compileDraft,
   expandBlueprint,
   expandFleet,
@@ -52,6 +56,8 @@ export interface FleetView {
   /** Designs whose embedded copy differs from the library's of the same name. */
   stale: readonly string[];
   mass: number;
+  /** What the fleet costs: the budget evolution holds it to. */
+  bill: Bill;
   lines: readonly DesignLine[];
 }
 
@@ -73,6 +79,7 @@ function derive(fleet: Fleet, lookup: LibraryLookup): FleetView {
       faulty: [],
       stale: [],
       mass: 0,
+      bill: NO_BILL,
       lines: [],
     };
   }
@@ -117,10 +124,12 @@ function derive(fleet: Fleet, lookup: LibraryLookup): FleetView {
 
   const lines: DesignLine[] = [];
   let mass = 0;
+  let bill = NO_BILL;
   ships.forEach((ship, i) => {
     const design = designs[i];
     const each = design === null || design === undefined ? 0 : budgetMass(design);
     mass += each;
+    if (design !== null && design !== undefined) bill = addBills(bill, billOf(design));
     const line = lines.find((l) => l.name === ship.design);
     if (line === undefined) lines.push({ name: ship.design, count: 1, mass: each });
     else line.count++;
@@ -135,6 +144,7 @@ function derive(fleet: Fleet, lookup: LibraryLookup): FleetView {
     faulty: [...faulty].sort((a, b) => a - b),
     stale,
     mass,
+    bill,
     lines,
   };
 }

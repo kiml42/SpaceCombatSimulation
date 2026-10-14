@@ -14,6 +14,7 @@ import {
 import { DEFAULT_RUN, type RunConfig } from './run.js';
 import { DEFAULT_FLEET_LIMITS, type FleetOperator } from './fleetMutate.js';
 import { DEFAULT_COEVOLUTION, type CoevolutionConfig, type SideSettings } from './coevolution.js';
+import { NO_BUDGET, type Budget } from '../sim/bill.js';
 
 /**
  * The run-config file: what a set of evolution settings looks like written
@@ -34,9 +35,11 @@ import { DEFAULT_COEVOLUTION, type CoevolutionConfig, type SideSettings } from '
  *
  * - **Angles are degrees in the file**, as they are in a blueprint file, so
  *   what a person reads is `scatter: 180` rather than `3.141592653589793`.
- * - **No mass budget is `null`**, since JSON has no infinity and a file that
- *   said `massBudget: null` was going to be written by somebody sooner or
- *   later anyway.
+ * - **No limit on a budget is `null`**, since JSON has no infinity and a
+ *   file that said `metal: null` was going to be written by somebody sooner
+ *   or later anyway. The budget is three, `metal` and `fuel` in kg and
+ *   `build` in robot-seconds; an older file's `massBudget` is read as its
+ *   metal.
  *
  * Every field is optional: what a file leaves out is whatever the defaults
  * say, so "the defaults but with beam turrets shut out" is three lines rather
@@ -78,6 +81,7 @@ const FILE_KEYS: readonly string[] = [
   'winners',
   'group',
   'minMatches',
+  'budget',
   'massBudget',
   'structural',
   'kinds',
@@ -97,6 +101,7 @@ const VERSUS_KEYS: readonly string[] = [
   'population',
   'winners',
   'group',
+  'budget',
   'massBudget',
   'fleet',
   'structural',
@@ -107,6 +112,7 @@ const VERSUS_KEYS: readonly string[] = [
 ];
 
 const FLEET_KEYS: readonly string[] = ['radius', 'maxShips', 'operators'];
+const BUDGET_KEYS = ['metal', 'fuel', 'build'] as const;
 const OPERATOR_KEYS = Object.keys(DEFAULT_FLEET_LIMITS.operators) as FleetOperator[];
 
 const MATCH_KEYS: readonly string[] = [
@@ -140,7 +146,7 @@ export function serialiseRunConfig(setup: RunSetup): Record<string, unknown> {
     winners: config.winners,
     group: config.group,
     minMatches: config.minMatches,
-    massBudget: Number.isFinite(config.massBudget) ? config.massBudget : null,
+    budget: serialiseBudget(config.budget),
     structural: config.mutation.structural ?? DEFAULT_LIMITS.structural,
     kinds: { ...kinds },
     build: { ...DEFAULT_BUILD_WEIGHTS, ...config.mutation.build },
@@ -179,7 +185,7 @@ function serialiseVersus(versus: VersusSetup): Record<string, unknown> {
     ...(rival.population === undefined ? {} : { population: rival.population }),
     ...(rival.winners === undefined ? {} : { winners: rival.winners }),
     ...(rival.group === undefined ? {} : { group: rival.group }),
-    ...(rival.massBudget === undefined ? {} : { massBudget: Number.isFinite(rival.massBudget) ? rival.massBudget : null }),
+    ...(rival.budget === undefined ? {} : { budget: serialiseBudget(rival.budget) }),
     ...(rival.fleet === undefined ? {} : { fleet: { ...rival.fleet } }),
     ...(rival.mutation?.structural === undefined ? {} : { structural: rival.mutation.structural }),
     ...(rival.mutation?.kinds === undefined ? {} : { kinds: { ...rival.mutation.kinds } }),
@@ -228,7 +234,8 @@ export function runConfigFileProblem(value: unknown, warnings: string[] = []): s
     countProblem(value['group'], 'group') ??
     countProblem(value['minMatches'], 'minMatches') ??
     numberProblem(value['seed'], 'seed') ??
-    budgetProblem(value['massBudget']) ??
+    budgetProblem(value['budget'], 'budget', warnings) ??
+    limitProblem(value['massBudget'], 'massBudget') ??
     chanceProblem(value['structural'], 'structural') ??
     kindsProblem(value['kinds'], warnings) ??
     weightsOf(value['build'], 'build', BUILD_KEYS, warnings) ??
@@ -276,7 +283,8 @@ function versusProblem(versus: unknown, warnings: string[]): string | null {
     countProblem(versus['population'], 'versus.population') ??
     countProblem(versus['winners'], 'versus.winners') ??
     countProblem(versus['group'], 'versus.group') ??
-    (versus['massBudget'] === null ? null : budgetProblem(versus['massBudget'])) ??
+    budgetProblem(versus['budget'], 'versus.budget', warnings) ??
+    limitProblem(versus['massBudget'], 'versus.massBudget') ??
     fleetProblem(versus['fleet'], 'versus.fleet', warnings) ??
     chanceProblem(versus['structural'], 'versus.structural') ??
     kindsProblem(versus['kinds'], warnings, 'versus.kinds') ??
@@ -315,7 +323,6 @@ export function parseRunConfig(value: unknown): RunSetup {
   if (problem !== null) throw new Error(`Invalid run config — ${problem}`);
   const file = value as Record<string, unknown>;
   const match = isRecord(file['match']) ? file['match'] : {};
-  const budget = file['massBudget'];
 
   const fleet = isRecord(file['fleet']) ? file['fleet'] : {};
   return {
@@ -330,7 +337,7 @@ export function parseRunConfig(value: unknown): RunSetup {
       winners: read(file['winners'], DEFAULT_RUN.winners),
       group: read(file['group'], DEFAULT_RUN.group),
       minMatches: read(file['minMatches'], DEFAULT_RUN.minMatches),
-      massBudget: budget === undefined || budget === null ? Infinity : (budget as number),
+      budget: readBudget(file['budget'], file['massBudget']) ?? NO_BUDGET,
       mutation: {
         structural: read(file['structural'], DEFAULT_LIMITS.structural),
         kinds: { ...DEFAULT_KINDS, ...(file['kinds'] as Partial<KindWeights>) },
@@ -371,7 +378,8 @@ function parseVersus(versus: Record<string, unknown>): VersusSetup {
   if (typeof versus['population'] === 'number') rival.population = versus['population'];
   if (typeof versus['winners'] === 'number') rival.winners = versus['winners'];
   if (typeof versus['group'] === 'number') rival.group = versus['group'];
-  if (versus['massBudget'] !== undefined) rival.massBudget = versus['massBudget'] === null ? Infinity : (versus['massBudget'] as number);
+  const budget = readBudget(versus['budget'], versus['massBudget']);
+  if (budget !== null) rival.budget = budget;
   if (isRecord(versus['fleet'])) rival.fleet = { ...(versus['fleet'] as SideSettings['fleet']) };
   // Only what side B sets: the rest is side A's (`rivalSettings`).
   const mutation: { -readonly [K in keyof SideSettings['mutation']]?: SideSettings['mutation'][K] } = {};
@@ -425,11 +433,40 @@ function countProblem(value: unknown, what: string): string | null {
   return null;
 }
 
-function budgetProblem(value: unknown): string | null {
+/** A budget as the file holds it: each of the three a number, or null for no limit. */
+function serialiseBudget(budget: Budget): Record<string, number | null> {
+  const out: Record<string, number | null> = {};
+  for (const key of BUDGET_KEYS) out[key] = Number.isFinite(budget[key]) ? budget[key] : null;
+  return out;
+}
+
+/** A file's budget, from `budget` or an older file's `massBudget` as its metal; null for neither. */
+function readBudget(budget: unknown, legacy: unknown): Budget | null {
+  if (isRecord(budget)) {
+    const limit = (value: unknown): number => (typeof value === 'number' ? value : Infinity);
+    return { metal: limit(budget['metal']), fuel: limit(budget['fuel']), build: limit(budget['build']) };
+  }
+  if (legacy === undefined) return null;
+  return { ...NO_BUDGET, metal: typeof legacy === 'number' ? legacy : Infinity };
+}
+
+function budgetProblem(value: unknown, where: string, warnings: string[]): string | null {
   if (value === undefined || value === null) return null;
-  const problem = numberProblem(value, 'massBudget');
+  if (!isRecord(value)) return `${where} must be an object: metal and fuel in kg, build in robot-seconds, each null for no limit`;
+  unknownKeys(value, BUDGET_KEYS, where, warnings);
+  for (const key of BUDGET_KEYS) {
+    const problem = limitProblem(value[key], `${where}.${key}`);
+    if (problem !== null) return problem;
+  }
+  return null;
+}
+
+/** One limit: a number above nothing, or null for none. */
+function limitProblem(value: unknown, what: string): string | null {
+  if (value === undefined || value === null) return null;
+  const problem = numberProblem(value, what);
   if (problem !== null) return problem;
-  if ((value as number) <= 0) return `massBudget must be more than nothing, got ${JSON.stringify(value)}`;
+  if ((value as number) <= 0) return `${what} must be more than nothing, got ${JSON.stringify(value)}`;
   return null;
 }
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { compileBlueprint, fleetHulls, fleetMass, fleetReach, Rng, shipFleet, type Fleet } from '../sim/index.js';
+import { compileBlueprint, fleetBill, fleetHulls, fleetMass, fleetReach, NO_BUDGET, Rng, shipFleet, type Fleet } from '../sim/index.js';
 import { isFleet, Match, runMatch } from '../evolution/match.js';
 import { DEFAULT_FLEET_LIMITS, fleetFits, mutateFleet, type FleetOperator } from '../evolution/fleetMutate.js';
 import { entrantOf, generationSize, runEvolution, shipCount } from '../evolution/run.js';
@@ -121,7 +121,7 @@ describe('breeding a fleet', () => {
   });
 
   it('makes a change with every operator, each within the limits', () => {
-    const limits = { radius: 500, maxShips: 24, massBudget: Infinity };
+    const limits = { radius: 500, maxShips: 24, budget: NO_BUDGET };
     const parents: Record<FleetOperator, Fleet> = {
       design: LINE_OF_BATTLE,
       move: LINE_OF_BATTLE,
@@ -157,13 +157,16 @@ describe('breeding a fleet', () => {
   });
 
   it('refuses what breaks a limit, and returns the parent', () => {
-    const mass = fleetMass(fleetHulls(pair()));
+    const bill = fleetBill(fleetHulls(pair()));
     const parent = pair();
     const crowded = mutateFleet(parent, new Rng(3), { maxShips: 2, operators: only('add') });
     expect(crowded.edits).toEqual([]);
     expect(crowded.fleet).toBe(parent);
-    const heavy = mutateFleet(pair(), new Rng(3), { massBudget: mass * 1.2, operators: only('add') });
-    expect(heavy.edits).toEqual([]);
+    // Each of the three bounds the whole fleet on its own.
+    for (const key of ['metal', 'fuel', 'build'] as const) {
+      const dear = mutateFleet(pair(), new Rng(3), { budget: { ...NO_BUDGET, [key]: bill[key] * 1.2 }, operators: only('add') });
+      expect(dear.edits, key).toEqual([]);
+    }
     const lone = shipFleet(DINKY);
     const cramped = mutateFleet(lone, new Rng(3), { radius: fleetReach(fleetHulls(lone)) + 1, operators: only('add') });
     expect(cramped.edits).toEqual([]);
@@ -174,7 +177,7 @@ describe('breeding a fleet', () => {
     const rng = new Rng(5);
     for (let i = 0; i < 20; i++) fleet = mutateFleet(fleet, rng, { operators: only('remove') }).fleet;
     expect(fleet.ships).toHaveLength(1);
-    expect(fleetFits(fleet, { radius: 500, maxShips: 24, massBudget: Infinity })).toBe(true);
+    expect(fleetFits(fleet, { radius: 500, maxShips: 24, budget: NO_BUDGET })).toBe(true);
   });
 
   it('merges back what it forked', () => {
@@ -197,6 +200,7 @@ describe('a run of fleets', () => {
         expect(isFleet(fleet)).toBe(true);
         expect(individual.blueprint).toBeUndefined();
         expect(individual.mass).toBeCloseTo(fleetMass(fleetHulls(fleet as Fleet)));
+        expect(individual.bill).toEqual(fleetBill(fleetHulls(fleet as Fleet)));
       }
     }
     const bred = run.generations.flatMap((g) => g.individuals).filter((i) => i.parent >= 0);
