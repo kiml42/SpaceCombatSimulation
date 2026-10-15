@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { type Fleet } from '../sim/index.js';
-import { DINKY } from '../scenarios/blueprints.js';
+import { compileBlueprint, type Fleet } from '../sim/index.js';
+import { makeBattle } from '../scenarios/battle.js';
+import { DINKY, TANKER } from '../scenarios/blueprints.js';
+import { PICKET } from '../scenarios/tanker.js';
 import { LINE_OF_BATTLE } from '../scenarios/fleets.js';
 import {
   battleSetupProblem,
@@ -75,6 +77,27 @@ describe('a custom battle', () => {
   it('calls it for nobody when no side can fight on', () => {
     expect(winner([{ team: 0, ships: 1, mass: 1, armed: 0, mobile: 1 }, { team: 1, ships: 2, mass: 1, armed: 0, mobile: 0 }])).toBe(-1);
     expect(winner([{ team: 0, ships: 1, mass: 1, armed: 1, mobile: 1 }, { team: 1, ships: 2, mass: 1, armed: 1, mobile: 1 }])).toBeNull();
+  });
+});
+
+describe('a tally', () => {
+  it('counts a hull two friends fly together once', () => {
+    // A picket low on fuel docks with a tanker: one body, flown by both.
+    const run = makeBattle({ seed: 3 }, (ships, world) => {
+      const t = ships.spawn(world, { design: compileBlueprint(TANKER), x: 0, y: 0, angle: 0.4, team: 0 });
+      const p = ships.spawn(world, { design: compileBlueprint(PICKET), x: -200, y: 150, angle: 0, team: 0 });
+      const b = world.bodies.indexOf(ships.body(p));
+      for (let m = 0; m < ships.design(p).modules.length; m++) ships.fuel.vent(b, m, ships.fuel.held(b, m) * 0.8);
+      return { t, p };
+    });
+    for (let s = 0; s < 90 * 60 && run.ships.body(run.t) !== run.ships.body(run.p); s++) run.step();
+    expect(run.ships.body(run.t)).toBe(run.ships.body(run.p));
+
+    const docked = tally(run, 1)[0]!;
+    expect(docked.ships).toBe(2);
+    const b = run.world.bodies.indexOf(run.ships.body(run.t));
+    const hull = run.world.bodies.mass[b]! + run.ships.fuel.spentMass(b) + run.ships.metal.spentMass(b);
+    expect(docked.mass).toBeCloseTo(hull, 3);
   });
 });
 
