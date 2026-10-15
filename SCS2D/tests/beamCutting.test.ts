@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   BEAM_ABSORBED_SHARE,
-  BEAM_FLOOR_TRANSPARENCY,
+  FLOOR_TRANSPARENCY,
   SHED_AT_BREAK,
   SHED_FLOOR,
   BeamHits,
@@ -67,7 +67,7 @@ function burn(): Burn {
         world.bodies,
         grid,
         hits,
-        ships.beamHulls,
+        ships.holedHulls,
       );
       impacts.beams(ships.damage, beams, hits, 1 / 60, world.bodies, ships);
       ships.sever(world);
@@ -103,31 +103,31 @@ describe('a beam held on a hull', () => {
     // Burn it to its floor, as holed as it gets.
     const capacity = b.ships.damage.capacityLeft(b.body, outer) + b.ships.damage.absorbedAt(b.body, outer);
     b.ships.damage.absorb(b.body, outer, capacity * (SHED_FLOOR / SHED_AT_BREAK));
-    expect(b.ships.damage.beamTransparency(b.body, outer)).toBe(BEAM_FLOOR_TRANSPARENCY);
+    expect(b.ships.damage.transparency(b.body, outer)).toBe(FLOOR_TRANSPARENCY);
     const before = absorbed();
     b.fire(0);
     const gained = absorbed().map((j, k) => j - before[k]!);
     const step = (POWER * BEAM_ABSORBED_SHARE) / 60;
-    expect(gained[outer]).toBeCloseTo(step * (1 - BEAM_FLOOR_TRANSPARENCY), 3);
+    expect(gained[outer]).toBeCloseTo(step * (1 - FLOOR_TRANSPARENCY), 3);
     // What it let through is taken further in.
     const inner = gained.reduce((sum, g, k) => (k === outer ? sum : sum + g), 0);
     expect(inner).toBeGreaterThan(0);
-    expect(inner).toBeLessThanOrEqual(step * BEAM_FLOOR_TRANSPARENCY + 1e-6);
+    expect(inner).toBeLessThanOrEqual(step * FLOOR_TRANSPARENCY + 1e-6);
   });
 
   it('lets nothing through a module until it breaks, and more the more it sheds', () => {
     const b = burn();
     const damage = b.ships.damage;
     const capacity = damage.capacityLeft(b.body, 0);
-    expect(damage.beamTransparency(b.body, 0)).toBe(0);
+    expect(damage.transparency(b.body, 0)).toBe(0);
     damage.absorb(b.body, 0, capacity * 0.99);
-    expect(damage.beamTransparency(b.body, 0)).toBe(0);
+    expect(damage.transparency(b.body, 0)).toBe(0);
     damage.absorb(b.body, 0, capacity);
-    const holed = damage.beamTransparency(b.body, 0);
+    const holed = damage.transparency(b.body, 0);
     expect(holed).toBeGreaterThan(0);
-    expect(holed).toBeLessThan(BEAM_FLOOR_TRANSPARENCY);
+    expect(holed).toBeLessThan(FLOOR_TRANSPARENCY);
     damage.absorb(b.body, 0, capacity * 10);
-    expect(damage.beamTransparency(b.body, 0)).toBe(BEAM_FLOOR_TRANSPARENCY);
+    expect(damage.transparency(b.body, 0)).toBe(FLOOR_TRANSPARENCY);
   });
 
   it('cuts nothing until it has bored its way in', () => {
@@ -210,7 +210,7 @@ describe('a beam in the weapons layer', () => {
         world.bodies,
         grid,
         hits,
-        ships.beamHulls,
+        ships.holedHulls,
       );
       landed += hits.count;
       impacts.beams(ships.damage, beams, hits, 1 / 60, world.bodies, ships);

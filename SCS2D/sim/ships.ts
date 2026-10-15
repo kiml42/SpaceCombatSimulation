@@ -755,12 +755,13 @@ export class Ships {
   readonly hulls = new Hulls(this);
 
   /**
-   * The same, for beams, which bore through what they have already burnt
-   * holes in. A shell is stopped by matter whatever state it is in; a beam
-   * goes on through a module burnt past breaking at what its holes let by.
+   * The same, for beams and plumes, which get through what they have already
+   * burnt holes in. A shell is stopped by matter whatever state it is in; a
+   * beam or a flame goes on through a module burnt past breaking at what its
+   * holes let by.
    */
-  readonly beamHulls = new Hulls(this, {
-    transparency: (body, module) => this.damage.beamTransparency(body, module),
+  readonly holedHulls = new Hulls(this, {
+    transparency: (body, module) => this.damage.transparency(body, module),
   });
 
   /**
@@ -2831,7 +2832,7 @@ export class Ships {
             bodies,
             grid,
             beamHits,
-            this.beamHulls,
+            this.holedHulls,
             design.turrets[t]!.module,
             this.mountLayers(i, design.turrets[t]!),
           );
@@ -2891,7 +2892,7 @@ export class Ships {
       for (let t = 0; t < design.engines.length; t++) {
         const force = throttles[t]! * this.exhaustOf(i, design, bodyIdx, t);
         if (!(force > 0)) continue;
-        this.plumes.burn(design, t, force, this.damage, bodies, bodyIdx, grid, this.hulls, dt, landed, this.layersOf(bodyIdx));
+        this.plumes.burn(design, t, force, this.damage, bodies, bodyIdx, grid, this.holedHulls, dt, landed, this.layersOf(bodyIdx));
       }
     }
   }

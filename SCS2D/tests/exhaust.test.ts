@@ -8,6 +8,9 @@ import { BARE_CORE } from '../scenarios/blueprints.js';
 import { Bodies } from '../sim/bodies.js';
 import {
   Damage,
+  FLOOR_TRANSPARENCY,
+  SHED_AT_BREAK,
+  SHED_FLOOR,
   Hulls,
   DECK_HEIGHT,
   PLUME_CORE_WIDTHS,
@@ -526,10 +529,41 @@ describe('an engine firing at somebody else', () => {
 
     burn(w, firing, 0, 20);
 
-    // The near face takes it; the module behind it is shielded, spent or not.
+    // The near face takes it; the module behind it is shielded.
     expect(w.damage.integrity(1, 0)).toBeLessThan(1);
     expect(w.damage.integrity(1, 1)).toBe(1);
     for (let m = 0; m < firing.modules.length; m++) expect(w.damage.integrity(0, m)).toBe(1);
+  });
+
+  it('gets through the holes in a module burnt past breaking, and goes on burning it', () => {
+    const firing = design();
+    const victim = compileBlueprint({ name: 'Victim', modules: [hull(0, 4), hull(-4, 4)] });
+    const bodies = new Bodies();
+    bodies.create({ x: 0, y: 0, angle: 0, mass: firing.mass, inertia: firing.inertia, radius: firing.radius });
+    bodies.create({ x: -9, y: 0, angle: 0, mass: victim.mass, inertia: victim.inertia, radius: victim.radius });
+    const damage = new Damage();
+    damage.register(0, firing);
+    damage.register(1, victim);
+    const grid = new SpatialGrid(64);
+    grid.rebuild(bodies);
+    const designs = { designOf: (b: number) => [firing, victim][b] ?? null };
+    // The near face burnt to its floor, as holed as it gets.
+    const capacity = damage.capacityLeft(1, 0);
+    damage.absorb(1, 0, capacity * (SHED_FLOOR / SHED_AT_BREAK));
+    expect(damage.transparency(1, 0)).toBe(FLOOR_TRANSPARENCY);
+    const w = {
+      bodies,
+      damage,
+      grid,
+      plumes: new Plumes(),
+      hulls: new Hulls(designs, { transparency: (b, m) => damage.transparency(b, m) }),
+    };
+    const near = damage.absorbedAt(1, 0);
+    burn(w, firing, 0, 20);
+    expect(damage.absorbedAt(1, 0)).toBeGreaterThan(near);
+    expect(damage.integrity(1, 1)).toBeLessThan(1);
+    // The module behind gets no more than the face lets by.
+    expect(damage.absorbedAt(1, 1)).toBeLessThanOrEqual((damage.absorbedAt(1, 0) - near) * (FLOOR_TRANSPARENCY / (1 - FLOOR_TRANSPARENCY)) * (1 + 1e-9));
   });
 });
 
