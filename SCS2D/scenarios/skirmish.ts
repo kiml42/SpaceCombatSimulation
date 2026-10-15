@@ -75,6 +75,13 @@ export interface SkirmishSettings {
   /** Generations without an answer before the enemy may grow by `growth` again. */
   readonly stretchAfter: number;
   /**
+   * The most ships either side may field, unless the enemy already has more:
+   * a limit on the work a battle is, more than on the fleets.
+   */
+  readonly maxShips: number;
+  /** How far from its origin any of either side's hulls may reach, unless the enemy already reaches further, metres. */
+  readonly radius: number;
+  /**
    * How the enemy is bred: the mutation odds by the names the settings pages
    * give them (`evolution/mutationFields.ts`), each missing one its default.
    */
@@ -92,6 +99,8 @@ export const DEFAULT_SKIRMISH_SETTINGS: SkirmishSettings = {
   duration: 180,
   growth: 1.5,
   stretchAfter: 20,
+  maxShips: 20,
+  radius: 500,
   breeding: {},
 };
 
@@ -134,10 +143,31 @@ export function fleetFault(fleet: Fleet): string | null {
   return null;
 }
 
-/** Whether the player's fleet has a ship to fight with, every design flies, and it is within budget. */
+/**
+ * How the player's fleet breaks the skirmish's limit on ships or spread, or
+ * null if it does not. Each limit is at least what the enemy fields.
+ */
+export function overLimit(skirmish: Skirmish): string | null {
+  const settings = settingsOf(skirmish);
+  const enemy = fleetHulls(skirmish.enemy);
+  const maxShips = math.max(settings.maxShips, enemy.length);
+  const radius = math.max(settings.radius, math.ceil(fleetReach(enemy)));
+  const hulls = fleetHulls(skirmish.player);
+  if (hulls.length > maxShips) return `${hulls.length} ships, more than the ${maxShips} allowed`;
+  const reach = fleetReach(hulls);
+  if (reach > radius) return `reaches ${math.round(reach)} m from its origin, beyond the ${radius} m allowed`;
+  return null;
+}
+
+/** Whether the player's fleet has a ship to fight with, every design flies, and it is within budget and limits. */
 export function canFight(skirmish: Skirmish): boolean {
   const player = skirmish.player;
-  return player.ships.length > 0 && fleetFault(player) === null && affords(skirmish.budget, billOfFleet(player));
+  return (
+    player.ships.length > 0 &&
+    fleetFault(player) === null &&
+    overLimit(skirmish) === null &&
+    affords(skirmish.budget, billOfFleet(player))
+  );
 }
 
 /** The battle a round is: the player's fleet first, so it is blue. */
