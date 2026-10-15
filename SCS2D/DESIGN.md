@@ -101,7 +101,10 @@ inside any one file is not contiguous.
   every problem with the layout is listed rather than enforced — including a module
   that is attached to nothing, which a ship is checked for by tracing every module back
   to the first one through what it touches — and each module a problem names is drawn
-  in red on the ship, so the list says what is wrong and the picture says where. Undo and
+  in red on the ship, so the list says what is wrong and the picture says where. Listed, but not let out: a
+  design with a problem cannot go back to its fleet or into a battle, nor a fleet with one (ships overlapping,
+  or a design it carries that would not fly) into a battle, since a design no ship flies cannot be reached to be
+  fixed. Undo and
   redo run throughout. Ships are opened from the built-in library or from browser
   storage, saved back to it, and exported and imported as blueprint files.
   **Doctrine is edited there too, and is meant to be ignorable**: a section that stays shut, on a weapon for

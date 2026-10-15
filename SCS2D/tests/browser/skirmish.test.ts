@@ -127,6 +127,22 @@ describe('the skirmish in a browser', () => {
     await page.waitForSelector('#backToFleet:not([hidden])');
     expect(await page.textContent('#inFleetNote')).toBe('Priced once the fleet would fly.');
     expect(await page.textContent('#inFleetBudget')).toBe('');
+    // It cannot go back to the fleet, or into a battle, until it would fly.
+    expect(await page.getAttribute('#backToFleet', 'class')).toContain('blocked');
+    await page.click('#backToFleet');
+    expect(page.url()).toContain('editor.html#design=');
+    expect(problems).toEqual([]);
+  });
+
+  it('keeps a fleet with ships on top of each other out of battle', async () => {
+    const stacked = { ...shipFleet(GUNSHIP), ships: [{ design: 'Gunship', x: 0, y: 0 }, { design: 'Gunship', x: 0, y: 0 }] };
+    const skirmish = { ...newSkirmish(stacked, stacked, 3), player: stacked };
+    await page.goto(pathToFileURL(join(root, 'dist', 'fleet.html')).href + skirmishFragment(skirmish));
+    await page.waitForSelector('#backToSkirmish:not([hidden])');
+    expect(await page.textContent('#skirmishNote')).toBe('Fix the problems listed to fight.');
+    expect(await page.getAttribute('#backToSkirmish', 'class')).toContain('blocked');
+    await page.click('#backToSkirmish');
+    expect(page.url()).toContain('fleet.html#skirmish=');
     expect(problems).toEqual([]);
   });
 

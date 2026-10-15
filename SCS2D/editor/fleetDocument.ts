@@ -49,6 +49,8 @@ export interface FleetView {
   hulls: readonly (readonly ModuleSpec[])[];
   /** Everything wrong, listed rather than enforced. */
   problems: readonly string[];
+  /** The problems that stop it flying: all of them but a design differing from the library's. */
+  faults: readonly string[];
   /** Keys its file carried that nothing reads, kept and saved back (`fleetWarnings`). */
   warnings: readonly string[];
   /** Ships some problem names. */
@@ -75,6 +77,7 @@ function derive(fleet: Fleet, lookup: LibraryLookup): FleetView {
       designs: [],
       hulls: [],
       problems: [expansionProblem],
+      faults: [expansionProblem],
       warnings: fleetWarnings(fleet),
       faulty: [],
       stale: [],
@@ -120,6 +123,7 @@ function derive(fleet: Fleet, lookup: LibraryLookup): FleetView {
       faulty.add(k);
     }
   }
+  const faults = [...problems];
   for (const name of stale) problems.push(`${name} differs from the library's ${name}`);
 
   const lines: DesignLine[] = [];
@@ -140,6 +144,7 @@ function derive(fleet: Fleet, lookup: LibraryLookup): FleetView {
     designs,
     hulls,
     problems,
+    faults,
     warnings: fleetWarnings(fleet),
     faulty: [...faulty].sort((a, b) => a - b),
     stale,

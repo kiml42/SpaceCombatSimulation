@@ -1239,20 +1239,32 @@ export function startEditor(): void {
       history.replaceState(null, '', designHref({ ...inFleet, fleet, design }).slice('editor.html'.length));
     }, 300);
   };
+  // A design that would not fly stays here until it would, so a fleet never
+  // carries one it cannot be fixed from.
+  const exits = [el<HTMLAnchorElement>('backToFleet'), el<HTMLAnchorElement>('battleLink')];
+  const refuseBroken = (event: Event): boolean => {
+    const problem = doc.view.problems[0];
+    if (problem === undefined) return false;
+    event.preventDefault();
+    window.alert(`Fix the design first: ${problem}`);
+    return true;
+  };
   if (inFleet !== null) {
     el<HTMLElement>('inFleet').hidden = false;
     const back = el<HTMLAnchorElement>('backToFleet');
     back.hidden = false;
     // One way back into a battle when in a skirmish, and it is through the fleet.
     if (inFleet.skirmish !== undefined) el<HTMLElement>('battleLink').hidden = true;
-    back.addEventListener('click', () => {
-      if (inFleet === null) return;
+    back.addEventListener('click', (event) => {
+      if (inFleet === null || refuseBroken(event)) return;
       back.href = fleetHref(replaceDesign(inFleet.fleet, inFleet.design, doc.blueprint), inFleet.skirmish);
     });
   }
 
   const refresh = (): void => {
     renderInFleet();
+    const broken = doc.view.problems.length > 0;
+    for (const link of exits) link.classList.toggle('blocked', broken);
     const design = doc.view.design;
     envelope = design === null ? null : envelopes(design);
     if (document.activeElement !== shipName) shipName.value = doc.blueprint.name;
@@ -2396,6 +2408,7 @@ export function startEditor(): void {
 
   // The ship as it stands, as a fleet of one, goes with the link.
   el<HTMLAnchorElement>('battleLink').addEventListener('click', (event) => {
+    if (refuseBroken(event)) return;
     (event.currentTarget as HTMLAnchorElement).href = battleHref(shipFleet(doc.blueprint));
   });
 

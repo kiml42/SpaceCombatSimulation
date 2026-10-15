@@ -76,6 +76,7 @@
         text-decoration: none;
       }
       #backToFleet:hover { background: #3a70b6; }
+      #backToFleet.blocked, #battleLink.blocked { opacity: 0.5; cursor: not-allowed; }
       /* A display rule of our own outranks the browser's for [hidden], so
          anything laid out here would stay on screen when hidden without this. */
       [hidden] { display: none !important; }
