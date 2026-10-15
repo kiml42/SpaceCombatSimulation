@@ -1,7 +1,10 @@
 import {
   affords,
+  blueprintProblem,
+  expandFleet,
   fleetBill,
   fleetHulls,
+  fleetProblem,
   fleetReach,
   math,
   parseFleet,
@@ -54,9 +57,24 @@ export function newSkirmish(enemy: Fleet, player: Fleet, seed: number): Skirmish
   return { enemy, player, budget: billOfFleet(enemy), round: 1, tries: 0, seed: seed >>> 0 };
 }
 
-/** Whether the player's fleet is within budget and has a ship to fight with. */
+/**
+ * What stops a fleet being priced or fought, short of its cost: an entry it
+ * cannot place, or a design it flies that would not fly. Null if nothing.
+ */
+export function fleetFault(fleet: Fleet): string | null {
+  const problem = fleetProblem(fleet);
+  if (problem !== null) return problem;
+  for (const name of new Set(expandFleet(fleet).map((ship) => ship.design))) {
+    const design = blueprintProblem(fleet.designs[name]!);
+    if (design !== null) return design;
+  }
+  return null;
+}
+
+/** Whether the player's fleet has a ship to fight with, every design flies, and it is within budget. */
 export function canFight(skirmish: Skirmish): boolean {
-  return skirmish.player.ships.length > 0 && affords(skirmish.budget, billOfFleet(skirmish.player));
+  const player = skirmish.player;
+  return player.ships.length > 0 && fleetFault(player) === null && affords(skirmish.budget, billOfFleet(player));
 }
 
 /** The battle a round is: the player's fleet first, so it is blue. */

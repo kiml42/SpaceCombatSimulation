@@ -8,9 +8,10 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import type { Browser, Page } from 'playwright';
 import { launchChromium } from './launch.js';
-import { shipFleet } from '../../sim/index.js';
-import { CORVETTE } from '../../scenarios/blueprints.js';
+import { shipFleet, type Blueprint } from '../../sim/index.js';
+import { CORVETTE, GUNSHIP } from '../../scenarios/blueprints.js';
 import { newSkirmish, skirmishFragment, won } from '../../scenarios/skirmish.js';
+import { designHref } from '../../editor/handoff.js';
 
 /**
  * The skirmish loop in a real browser: choosing an enemy and a fleet, fighting,
@@ -116,6 +117,16 @@ describe('the skirmish in a browser', () => {
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
     expect(await page.textContent('#selectionTitle')).toBe('Ship: Gunship Mk II');
     expect(await page.isVisible('#skirmish')).toBe(true);
+    expect(problems).toEqual([]);
+  });
+
+  it('opens a design that would not fly in the ship editor without throwing', async () => {
+    const adrift: Blueprint = { ...GUNSHIP, name: 'Adrift', modules: [...GUNSHIP.modules, { kind: 'engine', x: 0, y: 200, length: 3, width: 3 }] };
+    const href = designHref({ fleet: shipFleet(adrift), design: 'Adrift', skirmish: newSkirmish(shipFleet(GUNSHIP), shipFleet(GUNSHIP), 3) });
+    await page.goto(pathToFileURL(join(root, 'dist', 'editor.html')).href + href.slice('editor.html'.length));
+    await page.waitForSelector('#backToFleet:not([hidden])');
+    expect(await page.textContent('#inFleetNote')).toBe('Priced once the fleet would fly.');
+    expect(await page.textContent('#inFleetBudget')).toBe('');
     expect(problems).toEqual([]);
   });
 

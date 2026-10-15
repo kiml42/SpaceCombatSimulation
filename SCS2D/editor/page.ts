@@ -99,7 +99,7 @@ import {
 import { battleHref, designHref, fleetHref, handedDesign, shipFleet, type DesignInFleet } from './handoff.js';
 import { replaceDesign, replacedName } from './fleetEdit.js';
 import { budgetRows } from './budget.js';
-import { billOfFleet, canFight } from '../scenarios/skirmish.js';
+import { billOfFleet, canFight, fleetFault } from '../scenarios/skirmish.js';
 import { Demonstration } from './demonstrate.js';
 import { drawOverlay, envelopeBearingAt, overEnvelope } from './overlay.js';
 import {
@@ -1219,11 +1219,16 @@ export function startEditor(): void {
     const fleet = replaceDesign(inFleet.fleet, inFleet.design, doc.blueprint);
     const skirmish = inFleet.skirmish;
     el<HTMLElement>('inFleetTitle').textContent = skirmish === undefined ? `In ${fleet.name}` : `Skirmish — round ${skirmish.round}`;
-    el<HTMLElement>('inFleetBudget').innerHTML = skirmish === undefined ? '' : budgetRows(billOfFleet(fleet), skirmish.budget);
+    // A design that would not fly cannot be priced, and is an ordinary state to be editing in.
+    const fault = skirmish === undefined ? null : fleetFault(fleet);
+    el<HTMLElement>('inFleetBudget').innerHTML =
+      skirmish === undefined || fault !== null ? '' : budgetRows(billOfFleet(fleet), skirmish.budget);
     el<HTMLElement>('inFleetNote').textContent =
       skirmish === undefined
         ? 'Back to fleet takes this design back to every ship of it in the fleet.'
-        : canFight({ ...skirmish, player: fleet })
+        : fault !== null
+          ? 'Priced once the fleet would fly.'
+          : canFight({ ...skirmish, player: fleet })
           ? `The fleet with this design, against ${skirmish.enemy.name}.`
           : 'The fleet with this design is over budget.';
     // Kept in the address as it is edited, so a reload picks up where this left off.

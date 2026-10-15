@@ -37,6 +37,7 @@ import { battleHref, designHref, handedFleet } from './handoff.js';
 import {
   billOfFleet,
   canFight,
+  fleetFault,
   handedSkirmish,
   serialiseSkirmish,
   skirmishFragment,
@@ -345,13 +346,16 @@ export function startFleetEditor(): void {
     if (skirmish === null) return;
     const now: Skirmish = { ...skirmish, player: doc.fleet };
     el<HTMLElement>('skirmishTitle').textContent = `Skirmish — round ${now.round}`;
-    el<HTMLElement>('skirmishBudget').innerHTML = budgetRows(billOfFleet(now.player), now.budget);
+    const fault = fleetFault(now.player);
+    el<HTMLElement>('skirmishBudget').innerHTML = fault !== null ? '' : budgetRows(billOfFleet(now.player), now.budget);
     const fits = canFight(now);
     el<HTMLElement>('skirmishNote').textContent = fits
       ? `Against ${now.enemy.name}.`
       : now.player.ships.length === 0
         ? 'Add a ship to fight with.'
-        : 'Over budget: cut it down to fight.';
+        : fault !== null
+          ? 'Priced once every design would fly.'
+          : 'Over budget: cut it down to fight.';
     backToSkirmish.classList.toggle('blocked', !fits);
     // Kept as it is edited, in the address and in storage, so a reload or the
     // skirmish page picks up where this left off.
@@ -374,7 +378,13 @@ export function startFleetEditor(): void {
       const now: Skirmish = { ...skirmish!, player: doc.fleet };
       if (!canFight(now)) {
         event.preventDefault();
-        window.alert(now.player.ships.length === 0 ? 'Add a ship to fight with first.' : 'The fleet is over budget: cut it down to fight.');
+        window.alert(
+          now.player.ships.length === 0
+            ? 'Add a ship to fight with first.'
+            : fleetFault(now.player) !== null
+              ? 'A design in the fleet would not fly: fix it to fight.'
+              : 'The fleet is over budget: cut it down to fight.',
+        );
         return;
       }
       (event.currentTarget as HTMLAnchorElement).href = `skirmish.html${skirmishFragment(now)}`;

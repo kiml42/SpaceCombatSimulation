@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fleetHulls, fleetReach, type Fleet } from '../sim/index.js';
+import { fleetHulls, fleetReach, type Blueprint, type Fleet } from '../sim/index.js';
 import { BARE_CORE, GUNSHIP } from '../scenarios/blueprints.js';
 import { LINE_OF_BATTLE } from '../scenarios/fleets.js';
 import { customBattle } from '../scenarios/customBattle.js';
@@ -7,6 +7,7 @@ import { Activity, QUIET_TIME, TIME_CAP, type Decision } from '../scenarios/deci
 import {
   billOfFleet,
   canFight,
+  fleetFault,
   handedSkirmish,
   lost,
   newSkirmish,
@@ -166,6 +167,19 @@ describe('the skirmish', () => {
   it('will not fight with nothing, or over budget', () => {
     expect(canFight(newSkirmish(gunship, empty, 5))).toBe(false);
     expect(canFight(newSkirmish(core, gunship, 5))).toBe(false);
+  });
+
+  it('names a design that would not fly, rather than throw pricing it', () => {
+    // A gunship with a module standing off on its own.
+    const adrift: Blueprint = { ...GUNSHIP, name: 'Adrift', modules: [...GUNSHIP.modules, { kind: 'engine', x: 0, y: 200, length: 3, width: 3 }] };
+    const broken = lone('Broken', adrift);
+    expect(fleetFault(broken)).toMatch(/Adrift: .*touches nothing/);
+    expect(canFight(newSkirmish(gunship, broken, 5))).toBe(false);
+    expect(fleetFault(gunship)).toBeNull();
+    // One it carries but does not fly is not its problem.
+    const carried: Fleet = { ...gunship, designs: { ...gunship.designs, Adrift: adrift } };
+    expect(fleetFault(carried)).toBeNull();
+    expect(billOfFleet(carried)).toEqual(billOfFleet(gunship));
   });
 
   it('starts the fleets far enough apart that their hulls are clear', () => {
