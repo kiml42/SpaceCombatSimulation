@@ -9,7 +9,6 @@ Things that are obviously wrong.
 -----------------------------------------------------------------------
 
 # Balance
-- Beams are overpowered at the moment, outperforming guns most of the time. Even after the addition of reactors. E.g. the reactor on the Beam Gunship is tiny, and it easily destroys the normal gunship very quickly. Beam weapons of this sort of size should require a much larger reactor for continuous fire (or could use batteries for continuous fire for a while, at lower mass and complexity)
 
 -----------------------------------------------------------------------
 
