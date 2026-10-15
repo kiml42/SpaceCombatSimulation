@@ -182,7 +182,7 @@ export interface SideTally {
   team: number;
   /** Ships still under control: a core that works. Pieces that come off are not counted. */
   ships: number;
-  /** Their mass, kg. */
+  /** Their mass, kg: a hull several of them fly together counted once. */
   mass: number;
   /** Of those, the ones with a gun or a weapon engine still working. */
   armed: number;
@@ -220,6 +220,8 @@ export function tally(battle: Battle, sides: number): SideTally[] {
   const out: SideTally[] = [];
   for (let team = 0; team < sides; team++) out.push({ team, ships: 0, mass: 0, armed: 0, mobile: 0 });
   const { ships, world } = battle;
+  // Ships welded together fly one body; each would otherwise count all of it.
+  const counted = out.map(() => new Set<number>());
   for (let i = 0; i < ships.highWater; i++) {
     if (!ships.isAlive(i) || !ships.hasControl(i)) continue;
     const team = ships.teamOf(i);
@@ -228,8 +230,10 @@ export function tally(battle: Battle, sides: number): SideTally[] {
     out[team]!.ships++;
     if (!ships.isDisarmed(i)) out[team]!.armed++;
     if (!ships.hasNoEngines(i)) out[team]!.mobile++;
+    if (body < 0 || counted[team]!.has(body)) continue;
+    counted[team]!.add(body);
     // Fuel burnt and rounds fired are not mass lost to the enemy.
-    out[team]!.mass += body >= 0 ? world.bodies.mass[body]! + ships.fuel.spentMass(body) + ships.metal.spentMass(body) : 0;
+    out[team]!.mass += world.bodies.mass[body]! + ships.fuel.spentMass(body) + ships.metal.spentMass(body);
   }
   return out;
 }
