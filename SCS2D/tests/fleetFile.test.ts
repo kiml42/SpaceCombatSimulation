@@ -32,6 +32,12 @@ describe('the fleet file format', () => {
     expect(serialiseFleet(parseFleet(lineOfBattleFile))).toEqual(lineOfBattleFile);
   });
 
+  it('round-trips a design nothing flies, without a warning', () => {
+    const raw = file({ ships: [{ design: 'Dinky', x: 0, y: 0 }] });
+    expect(serialiseFleet(parseFleet(raw))).toEqual(raw);
+    expect(fleetWarnings(parseFleet(raw))).toEqual([]);
+  });
+
   it('round-trips groups, mirrors and notes', () => {
     const raw = file({
       notes: 'n',

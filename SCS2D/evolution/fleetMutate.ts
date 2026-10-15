@@ -17,6 +17,7 @@ import {
   radiansToDegrees,
 } from '../sim/index.js';
 import { max, PI, round } from '../sim/math.js';
+import { BARE_CORE } from '../scenarios/blueprints.js';
 import { mutate, type MutationLimits } from './mutate.js';
 
 /**
@@ -42,6 +43,11 @@ export function settled(angle: number): number {
  * of the fleet's designs, which a second swap undoes. Only the fleet's own entries are
  * moved, added or removed — what is inside a group changes only through its
  * designs.
+ *
+ * A fleet may carry designs nothing flies. A ship removed leaves its design
+ * behind, and a ship added may be built to any design the fleet carries, or to
+ * a bare core, so a fleet can grow by one small ship rather than only by a copy
+ * of one it has. Those it does not fly are not mutated, since nothing selects them.
  */
 
 export interface FleetMutationLimits {
@@ -164,26 +170,38 @@ function move(fleet: Fleet, rng: Rng, bounds: FleetMutationLimits): string[] {
   }
 }
 
-/** Another copy of one of the fleet's entries, beside it. */
+/** Another ship or group beside one of the fleet's: anything it carries, or a bare core. */
 function add(fleet: Fleet, rng: Rng, bounds: FleetMutationLimits): string[] {
   if (fleet.ships.length === 0) return [];
-  const source = fleet.ships[rng.nextInt(fleet.ships.length)]!;
-  const copy = JSON.parse(JSON.stringify(source)) as FleetEntry;
+  const anchor = fleet.ships[rng.nextInt(fleet.ships.length)]!;
+  const groups = [...new Set(fleet.ships.filter(isGroupUse).map((entry) => entry.group))];
+  const designs = Object.keys(fleet.designs);
+  const core = designs.find((name) => sameAsCore(fleet.designs[name]!)) ?? null;
+  const choices = designs.length + groups.length + (core === null ? 1 : 0);
+  const choice = rng.nextInt(choices);
   // Somewhere near, on the grid; one that lands on a neighbour is refused whole.
   const distance = bounds.grid * (4 + rng.nextInt(12));
   const direction = rng.nextInt(4);
-  copy.x += direction === 0 ? distance : direction === 1 ? -distance : 0;
-  copy.y += direction === 2 ? distance : direction === 3 ? -distance : 0;
-  fleet.ships.push(copy);
-  return [`${describe(source)} copied, ${distance} m off`];
+  const x = anchor.x + (direction === 0 ? distance : direction === 1 ? -distance : 0);
+  const y = anchor.y + (direction === 2 ? distance : direction === 3 ? -distance : 0);
+  let entry: FleetEntry;
+  if (choice < designs.length) entry = { design: designs[choice]!, x, y };
+  else if (choice < designs.length + groups.length) entry = { group: groups[choice - designs.length]!, x, y };
+  else {
+    const name = fleet.designs[BARE_CORE.name] === undefined ? BARE_CORE.name : freeName(fleet, BARE_CORE.name);
+    fleet.designs[name] = { name, modules: JSON.parse(JSON.stringify(BARE_CORE.modules)) as Blueprint['modules'] };
+    entry = { design: name, x, y };
+  }
+  if (anchor.angle !== undefined) entry.angle = anchor.angle;
+  fleet.ships.push(entry);
+  return [`${describe(entry)} added, ${distance} m off`];
 }
 
-/** Take out one of the fleet's entries, and any design nothing flies any more. */
+/** Take out one of the fleet's entries. Its design stays, for an `add` to build again. */
 function remove(fleet: Fleet, rng: Rng): string[] {
   if (fleet.ships.length <= 1) return [];
   const index = rng.nextInt(fleet.ships.length);
   const [gone] = fleet.ships.splice(index, 1);
-  prune(fleet);
   return [`${describe(gone!)} removed`];
 }
 
@@ -233,7 +251,6 @@ function swap(fleet: Fleet, rng: Rng): string[] {
   const others = names.filter((name) => name !== entry.design);
   const from = entry.design;
   entry.design = others[rng.nextInt(others.length)]!;
-  prune(fleet);
   return [`a ${from} rebuilt as a ${entry.design}`];
 }
 
@@ -257,8 +274,8 @@ function uses(fleet: Fleet, name: string): number {
   return count;
 }
 
-function prune(fleet: Fleet): void {
-  for (const name of Object.keys(fleet.designs)) if (uses(fleet, name) === 0) delete fleet.designs[name];
+function sameAsCore(design: Blueprint): boolean {
+  return JSON.stringify(design.modules) === JSON.stringify(BARE_CORE.modules);
 }
 
 /** `name 2`, `name 3`, … — the first the fleet does not already carry. */

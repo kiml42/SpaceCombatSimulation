@@ -189,6 +189,50 @@ describe('breeding a fleet', () => {
   });
 });
 
+describe('designs a fleet carries but does not fly', () => {
+  const flown = (fleet: Fleet): string[] => [...new Set(fleet.ships.map((entry) => ('design' in entry ? entry.design : '')))];
+
+  it('keeps the design of a ship taken out', () => {
+    const fleet: Fleet = { ...pair(), designs: { Dinky: DINKY, Corvette: CORVETTE }, ships: [...pair().ships, { design: 'Corvette', x: 80, y: 0 }] };
+    for (let seed = 0; seed < 10; seed++) {
+      const child = mutateFleet(fleet, new Rng(seed), { operators: only('remove') }).fleet;
+      expect(Object.keys(child.designs)).toEqual(['Dinky', 'Corvette']);
+    }
+  });
+
+  it('adds a ship of a design it does not fly, or a bare core', () => {
+    const fleet: Fleet = { ...pair(), designs: { Dinky: DINKY, Gunship: GUNSHIP } };
+    const built = new Set<string>();
+    for (let seed = 0; seed < 40; seed++) {
+      const child = mutateFleet(fleet, new Rng(seed), { operators: only('add') }).fleet;
+      expect(child.ships).toHaveLength(3);
+      const added = child.ships[2]!;
+      built.add('design' in added ? added.design : '');
+      if (child.designs['Bare Core'] !== undefined) expect(child.designs['Bare Core'].modules).toEqual(BARE_CORE.modules);
+    }
+    expect([...built].sort()).toEqual(['Bare Core', 'Dinky', 'Gunship']);
+  });
+
+  it('adds a bare core it already carries without a second copy of the design', () => {
+    const fleet: Fleet = { ...pair(), designs: { Dinky: DINKY, Core: { ...BARE_CORE, name: 'Core' } } };
+    for (let seed = 0; seed < 20; seed++) {
+      expect(Object.keys(mutateFleet(fleet, new Rng(seed), { operators: only('add') }).fleet.designs)).toEqual(['Dinky', 'Core']);
+    }
+  });
+
+  it('never mutates a design it does not fly', () => {
+    const fleet: Fleet = { ...pair(), designs: { Dinky: DINKY, Gunship: GUNSHIP } };
+    const before = JSON.stringify(GUNSHIP);
+    let child = fleet;
+    const rng = new Rng(9);
+    for (let i = 0; i < 30; i++) {
+      child = mutateFleet(child, rng, { operators: { ...only('design'), fork: 1, merge: 1, swap: 1 } }).fleet;
+      expect(flown(child)).not.toContain('Gunship');
+    }
+    expect(JSON.stringify(child.designs.Gunship)).toEqual(before);
+  });
+});
+
 describe('a run of fleets', () => {
   const settings = { seed: 2, generations: 2, population: 4, winners: 2, group: 2, minMatches: 1, match: SHORT };
 
