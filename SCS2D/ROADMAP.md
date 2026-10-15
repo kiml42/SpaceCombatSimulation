@@ -46,7 +46,7 @@ an entry is either still open or it is gone.
 | 2 | Terminal ballistics and the damage model | Built |
 | 3 | Doctrine and orders | Built |
 | 4 | Headless evolution and analysis | Built |
-| 5 | v1: skirmish | Partly built |
+| 5 | v1: skirmish | Built |
 | 6 | Editor restructuring | Built |
 | 7 | Two layers | Built |
 | 8 | Fuel | Built |
@@ -60,65 +60,7 @@ an entry is either still open or it is gone.
 
 ### Partly built — what is left
 
-**Step 5 — v1: skirmish.** *The first thing worth giving people to play.* An endless loop against an enemy
-that evolves to beat you, settled with the author (DECISIONS.md):
-
-1. **Choose an enemy** from the stock fleets. Its bill sets the player's budget in metal, fuel and build
-   time, so the first round is even on cost.
-2. **Choose or build a fleet** within that budget. The fleet editor shows the budget against the fleet's
-   bill, and the fleet cannot be sent to fight while over it.
-3. **Watch the fight.** A round has a fixed setup — seed, range, closing and crossing speeds — so a retry
-   is the same battle, and what changes the result is the player's edit.
-4. **Lose, and edit.** *Edit fleet* goes to the fleet editor with the fleet; *Back to battle* reruns the
-   same round with it. Repeat until it wins.
-5. **Win, and the enemy answers.** The enemy evolves against the player's fleet, held fixed, on random
-   seeds, and must also beat it on the seed the player just won on. It starts from the last enemy and stops
-   at the first that wins; the player is shown that battle, and goes back to 4. The next round takes a new
-   seed. Its budget is unlimited: the search stops as soon as it wins, so it grows only as far as it must.
-
-**A battle is decided** when one side has fired or rammed in the last 30 s and the other has not. A ship too
-far off to shoot is out of it, and an unarmed ship never fires. A hit landing counts as firing, and a side
-left with nothing armed or ramming is out at once, so a slow round that wins after the last shot does not
-hand the battle to the ship it disables. A hard time cap ends a stalemate, and a
-draw is a loss for the player, who has to win.
-
-**The enemy evolves under evolution's own rules**: a match ends when one side is left fighting or at its
-time limit, and an enemy ahead at the limit is taken to win in the end. That is an assumption, so a winner
-is checked by fighting the round itself to the skirmish's decision before it is shown, and the search goes
-on if the player survives it. The skirmish's rule is also offered to evolution as an optional way to end a
-match.
-
-**The enemy's evolution runs in a worker**, at full speed, and the page replays each generation's best
-enemy against the player's fleet as it arrives — a replay is the two fleets and a seed — with a generation
-count and a way to skip to the result. This is DESIGN.md §7's adaptive enemy surfaced as it happens.
-
-**Pages stay separate**, handing fleets over in the link as the editors' Battle links already do; the
-skirmish's own state — both fleets, the budget, the round and its seed — is one saved slot. Merging the
-editors so a ship is edited in place within its fleet comes later, as does an upgrade card (§12).
-
-Built in order, a PR or more each: the loop without an enemy that answers (beat the stock fleets) — built,
-`dist/skirmish.html`, a win offering another stock enemy until the enemy answers; opening a ship of the fleet in the ship editor
-and coming back to the fleet, a round trip like the fleet editor's — built, the selected ship's *Edit*; the enemy answering in
-a worker, watched — built, `evolution/answer.ts`, a win replaced by the answer the stock enemy's choosing
-stood in for; then the decision rule's numbers tuned against real rounds.
-
-Built: **the fleet file** (`sim/fleet.ts`, `sim/fleetFile.ts`), **a battle from fleets**
-(`scenarios/fleetBattle.ts`), proved by `standoff` flying a fleet file with its checksum unchanged, **the
-fleet editor** (`dist/fleet.html`), and **a custom battle** on the viewer — fleets or single ships from the
-libraries, a file, or handed over by either editor's Battle link,
-range, closing and crossing speeds, a rotation and a seed, saved and loaded as a battle file (`scenarios/customBattle.ts`)
-and shared as a link that carries the file (`scenarios/battleLink.ts`),
-set up paused and live, and decided once no more than one side can still fight.
-**Fleet evolution** is built, headless (`evolution/fleetMutate.ts`, `npm run evolve -- --fleet`) and on the
-evolution page: a match
-takes fleets as entrants, a lone blueprint being a fleet of one, survival scored on the whole fleet's hull
-capacity left and ground gained by its nearest ship. Every operator has its inverse — mutate a design, fork and merge, add and remove, move and turn, and swap a ship onto another of the fleet's designs, which is its own —
-and a mutant over the total dry mass, the deployment radius or the ship count, or with hulls overlapping, is
-refused. Evolving against a fixed ship or fleet is co-evolution with a side B that does not evolve, which
-replaced the boss battle.
-
-Not planned: per-ship doctrine overrides in a fleet (fork the design instead), and a group's own doctrine or
-lead, which waits for standing orders. Velocity stays out of the fleet file; the battle setup holds it.
+Only step 13, whose remainder is its entry below.
 
 ### Not started — in order
 
@@ -162,6 +104,29 @@ DECISIONS.md.
 Newtonian combat feel good? do the scaling laws hold?) rather than the known ones, kept the sim boundary pure
 by construction, and put something on screen within days. The same test still picks the next step: the one
 that answers the question most likely to change the design.
+
+#### Skirmish (step 5)
+
+- **An endless loop against an enemy that evolves to beat the player.** The first enemy's bill is the
+  player's budget, and stays it; the enemy's grows a round at a time, to half as much again as it was —
+  metal, fuel, build time and ships, though always one ship more — and by as much again each time 20
+  generations go by without an answer (`evolution/answer.ts`).
+- **A round is one seed**, so a retry is the same battle and what changes it is the player's edit; a round
+  won is answered on that seed and the next round takes a new one.
+- **A battle is decided** once one side has fired, hit or rammed in the last 30 s and the other has not, a
+  side with nothing armed or ramming being out at once; a stalemate ends at 600 s, and a draw is the
+  player's loss (`scenarios/decision.ts`).
+- **The enemy evolves under evolution's rules**, an enemy ahead at a match's time limit taken to win, and a
+  winner is confirmed by fighting the round itself to the skirmish's decision before it is the answer
+  (`evolution/answer.ts`). It runs in a worker, and the page replays each generation's best.
+- **Pages stay separate**, the skirmish carried in the link between them and kept in browser storage, its
+  history beside it (`scenarios/history.ts`): every match, each fleet kept once, the oldest runs' fleets
+  let go when storage is full. Editing a ship in place within its fleet (IDEAS.md) would merge the editors.
+- **The fleet file and a battle from fleets** are what the skirmish fights with: fleets or single ships
+  from the libraries, a file, or an editor's link, as the custom battle on the viewer also takes them, and
+  bred by fleet evolution with every operator's inverse. Not planned: per-ship doctrine overrides in a
+  fleet (fork the design instead), and a group's own doctrine or lead, which waits for standing orders.
+  Velocity stays out of the fleet file; the battle setup holds it.
 
 #### Power (step 11)
 
@@ -331,12 +296,14 @@ Deliberately unresolved; decide when they block something.
 - **Whether the skirmish enemy should prefer the cheapest fleet that wins.** It stops at the first winner,
   so it grows only as it must, but it never shrinks, and drifts larger round by round. A preference for
   efficiency would let it get leaner as well as stronger.
-- **How far one round lets the skirmish enemy grow.** With no budget, one mutation can add a whole ship, so
-  an answer can be the enemy doubled: found by the author, three corvettes that beat one gunship next faced
-  two. A step that large is a much harder round than the one just won. Wanted: some bound on how much an
-  answer may grow in one round — a share of the player's budget, say, or of what the enemy cost before.
+- **How the skirmish enemy adds a ship.** A round may grow it by half as much again, but the one way to add
+  a ship copies one already there, so a lone Gunship can only grow by a ship much lighter than itself it does
+  not have. Planned with the author: a fleet carries designs it does not fly, latent and not mutated, a ship
+  removed leaving its design latent; *add* builds a latent design or a bare core, whatever fits. Ships that
+  carry their own parent designs, as fighters do, come later.
 - **The skirmish's numbers.** How long without firing puts a side out of a battle (30 s), the time cap on a
-  stalemate (600 s), and the enemy's search: five mutants a generation, three seeds each, 180 s a match, and
+  stalemate (600 s), and the enemy's search: five mutants a generation, three seeds each, 180 s a match, growth
+  of 1.5× a round and as much again every 20 generations without an answer, and
   ahead at the time limit meaning more of its starting mass still under control than the player has, all
   first guesses. Nothing bounds how long a round's search may take: it shows its progress and goes on, and
   an answer to a fleet much stronger than the enemy can take many generations of growing into it.

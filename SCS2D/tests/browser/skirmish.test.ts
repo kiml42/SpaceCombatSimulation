@@ -9,7 +9,7 @@ import { promisify } from 'node:util';
 import type { Browser, Page } from 'playwright';
 import { launchChromium } from './launch.js';
 import { shipFleet } from '../../sim/index.js';
-import { CORVETTE, GUNSHIP } from '../../scenarios/blueprints.js';
+import { CORVETTE } from '../../scenarios/blueprints.js';
 import { newSkirmish, skirmishFragment, won } from '../../scenarios/skirmish.js';
 
 /**
@@ -120,13 +120,22 @@ describe('the skirmish in a browser', () => {
   });
 
   it('watches the enemy evolve an answer to a round won, and goes on to the next round', async () => {
-    // A Gunship beats a Corvette on seed 7, and the search finds an answer in a generation or two.
-    const skirmish = won(newSkirmish(shipFleet(CORVETTE), shipFleet(GUNSHIP), 7));
+    // The player's Corvette beats the same Corvette on seed 25, and a mirror is answered in a generation or two.
+    const skirmish = won(newSkirmish(shipFleet(CORVETTE), shipFleet(CORVETTE), 25));
     await page.goto(pathToFileURL(skirmishPage).href + skirmishFragment(skirmish));
     await page.waitForSelector('#answering:not([hidden])');
     expect(await page.isVisible('#editFleet')).toBe(false);
     await page.waitForSelector('#answered:not([hidden])', { timeout: 90_000 });
     expect(await page.textContent('#answerProgress')).toMatch(/^Found in generation \d+/);
+    // The answer heads the timeline, the enemy's losses before it folded away.
+    const first = page.locator('#timeline > .match').first();
+    expect(await first.locator('.matchHead span').textContent()).toBe("Round 1 · the enemy's answer");
+    expect(await first.locator('.stamp').allTextContents()).toEqual(['BEATEN', 'WON']);
+    expect(await page.locator('#timeline canvas').count()).toBeGreaterThan(0);
+    await first.locator('.matchHead button').click();
+    expect(await page.isVisible('#replaying')).toBe(true);
+    await page.click('#backToRound');
+    expect(await page.isVisible('#replaying')).toBe(false);
     await page.click('#nextRound');
     expect(await page.textContent('#roundTitle')).toBe('Round 2');
     expect(await page.isVisible('#answering')).toBe(false);

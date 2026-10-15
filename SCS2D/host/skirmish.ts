@@ -1,6 +1,6 @@
-import type { Fleet } from '../sim/index.js';
+import { serialiseFleet, type Fleet } from '../sim/index.js';
 import { teamColour } from '../render/canvas2d.js';
-import { FLEET_FILES, Library } from '../editor/library.js';
+import { FLEET_FILES, Library, unusedName } from '../editor/library.js';
 import { shipFleet } from '../editor/handoff.js';
 import { billRows, budgetRows } from '../editor/budget.js';
 import { customBattle, DEFAULT_SETUP, tally, type CustomBattle } from '../scenarios/customBattle.js';
@@ -21,7 +21,17 @@ import {
   won,
   type Skirmish,
 } from '../scenarios/skirmish.js';
+import {
+  dropOldest,
+  EMPTY_HISTORY,
+  HISTORY_STORAGE_KEY,
+  parseHistory,
+  record,
+  type History,
+  type Played,
+} from '../scenarios/history.js';
 import { startAnswer, type AnswerProgress } from './answer.js';
+import { timeline } from './timeline.js';
 import { battleView } from './battleView.js';
 import { el } from './dom.js';
 
@@ -59,7 +69,9 @@ export function startSkirmish(): void {
    * What is on the screen: the round, to be won or lost; the best enemy so far
    * fighting the round while the search goes on; or the answer it found.
    */
-  let mode: 'round' | 'watching' | 'answer' = 'round';
+  let mode: 'round' | 'watching' | 'answer' | 'replay' = 'round';
+  /** Where *Back to the round* goes from a match being watched again. */
+  let resume: (() => void) | null = null;
   let stopSearch: (() => void) | null = null;
   let watching = true;
   let latest: AnswerProgress | null = null;
@@ -103,6 +115,51 @@ export function startSkirmish(): void {
     }
   };
 
+  // ---- the history ----------------------------------------------------------
+
+  let history: History = EMPTY_HISTORY;
+  try {
+    const kept = window.localStorage.getItem(HISTORY_STORAGE_KEY);
+    if (kept !== null) history = parseHistory(JSON.parse(kept));
+  } catch {
+    // Unreadable: start it again.
+  }
+  /** Kept in storage, letting go of the oldest runs' fleets until it fits. */
+  const keepHistory = (): void => {
+    for (;;) {
+      try {
+        window.localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history));
+        return;
+      } catch {
+        const smaller = dropOldest(history);
+        if (smaller === null) return;
+        history = smaller;
+      }
+    }
+  };
+  const recordMatch = (played: Played): void => {
+    history = record(history, played);
+    keepHistory();
+    line.show(history);
+  };
+  const line = timeline(el<HTMLElement>('timeline'), {
+    watch: (row, player, enemy) => replay(row.round, row.seed, player, enemy),
+    save: (fleet) => {
+      const name = unusedName(fleet.name, fleets.savedNames());
+      fleets.save({ ...fleet, name });
+      window.alert(`Saved to your fleets as ${name}.`);
+    },
+    exportFleet: (fleet) => {
+      const text = `${JSON.stringify(serialiseFleet(fleet), null, 2)}\n`;
+      const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${fleet.name}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+    },
+  });
+
   const view = battleView(
     el<HTMLCanvasElement>('view'),
     (stepped) => {
@@ -110,6 +167,7 @@ export function startSkirmish(): void {
       decision = activity.observe(stepped);
       if (decision === null) return;
       if (mode === 'round') decided(decision);
+      else if (mode === 'replay') outcome.textContent = replayOutcome(decision);
       else if (mode === 'answer') outcome.textContent = `The enemy's answer beats your fleet at ${decision.time.toFixed(0)} s.`;
       // Watching, a replay that is over gives way to the next best enemy.
       else if (latest !== null) watch(latest);
@@ -139,6 +197,7 @@ export function startSkirmish(): void {
     if (enemy !== null) view.show(enemyAlone(enemy), false);
   };
   const showSetup = (): void => {
+    el<HTMLElement>('history').hidden = true;
     setupPanel.hidden = false;
     roundPanel.hidden = true;
     playButton.disabled = true;
@@ -166,6 +225,9 @@ export function startSkirmish(): void {
     if (skirmish === null) return;
     setupPanel.hidden = true;
     roundPanel.hidden = false;
+    el<HTMLElement>('history').hidden = false;
+    el<HTMLElement>('replaying').hidden = true;
+    line.show(history);
     answering.hidden = true;
     mode = 'round';
     outcome.textContent = '';
@@ -197,6 +259,14 @@ export function startSkirmish(): void {
 
   const decided = (result: Decision): void => {
     if (skirmish === null) return;
+    recordMatch({
+      kind: 'try',
+      round: skirmish.round,
+      seed: skirmish.seed,
+      winner: result.winner,
+      player: skirmish.player,
+      enemy: skirmish.enemy,
+    });
     const at = `at ${result.time.toFixed(0)} s`;
     if (result.winner === 0) {
       outcome.textContent = `Victory ${at}. The enemy evolves an answer.`;
@@ -252,12 +322,28 @@ export function startSkirmish(): void {
     if (now.found !== null) {
       stopSearch?.();
       stopSearch = null;
+      recordMatch({ kind: 'answer', round: skirmish.round, seed: skirmish.won!, winner: 1, player: skirmish.player, enemy: now.found });
       found(now.found, now.generation);
       return;
     }
+    recordMatch({
+      kind: 'search',
+      round: skirmish.round,
+      seed: skirmish.won!,
+      winner: now.onRound ? 1 : 0,
+      player: skirmish.player,
+      enemy: now.best,
+      generation: now.generation,
+    });
+    // How big it may grow, as against what it was: 1.5×, then 2.25× once it has stretched.
+    const allowed = 1.5 ** now.stretch;
     answerProgress.textContent =
-      `Generation ${now.generation}: the best enemy so far won ${now.wins} of its ${now.seeds} matches.`;
-    // The first best, or the last replay over: show the newest.
+      `Generation ${now.generation}: the best enemy so far won ${now.wins} of its ${now.seeds} matches. ` +
+      (now.stretch > 1
+        ? `Finding no answer, it has stretched to ${allowed.toFixed(2)}× its size.`
+        : `It may grow to ${allowed}× its size.`);
+    // The first best, or the last replay over: show the newest. Not over a match watched again.
+    if (mode === 'replay') return;
     if (mode !== 'watching' || decision !== null) watch(now);
   };
 
@@ -283,12 +369,21 @@ export function startSkirmish(): void {
 
   const found = (enemy: Fleet, generation: number): void => {
     if (skirmish === null || skirmish.won === undefined) return;
-    mode = 'answer';
-    decision = null;
-    activity = new Activity(2);
     answerProgress.textContent = `Found in generation ${generation}: ${enemy.name}, on the seed you won on.`;
     watchButton.hidden = true;
     el<HTMLElement>('answered').hidden = false;
+    if (mode === 'replay') {
+      resume = () => showAnswer(enemy);
+      return;
+    }
+    showAnswer(enemy);
+  };
+
+  const showAnswer = (enemy: Fleet): void => {
+    if (skirmish === null || skirmish.won === undefined) return;
+    mode = 'answer';
+    decision = null;
+    activity = new Activity(2);
     battle = customBattle(roundBattle(skirmish.player, enemy, skirmish.won));
     outcome.textContent = "The enemy's answer.";
     outcome.className = 'lost';
@@ -296,6 +391,49 @@ export function startSkirmish(): void {
     playButton.disabled = false;
     view.show(battle, true);
   };
+
+  // ---- a match watched again -------------------------------------------------
+
+  const replaying = el<HTMLElement>('replaying');
+  /** Fight a match of the history again on the battle view, and come back to where things were. */
+  const replay = (round: number, seed: number, player: Fleet, enemy: Fleet): void => {
+    if (mode !== 'replay') {
+      const was = mode;
+      const latestThen = latest;
+      resume =
+        was === 'round'
+          ? showRound
+          : was === 'answer'
+            ? () => skirmish !== null && showAnswer(skirmish.enemy)
+            : () => {
+                mode = 'watching';
+                if (latest ?? latestThen) watch((latest ?? latestThen)!);
+              };
+    }
+    mode = 'replay';
+    decision = null;
+    activity = new Activity(2);
+    battle = customBattle(roundBattle(player, enemy, seed));
+    outcome.textContent = `Round ${round}, again.`;
+    outcome.className = '';
+    playButton.disabled = false;
+    replaying.hidden = false;
+    view.show(battle, true);
+  };
+  const replayOutcome = (result: Decision): string =>
+    result.winner === 0
+      ? `You won this one at ${result.time.toFixed(0)} s.`
+      : result.winner === 1
+        ? `The enemy won this one at ${result.time.toFixed(0)} s.`
+        : `A draw at ${result.time.toFixed(0)} s.`;
+  el<HTMLButtonElement>('backToRound').addEventListener('click', () => {
+    replaying.hidden = true;
+    const back = resume;
+    resume = null;
+    // Somewhere other than a replay, or the round anew.
+    mode = 'round';
+    (back ?? showRound)();
+  });
 
   el<HTMLButtonElement>('nextRound').addEventListener('click', () => {
     if (skirmish === null) return;
@@ -313,6 +451,12 @@ export function startSkirmish(): void {
       // Nothing kept to forget.
     }
     skirmish = null;
+    history = EMPTY_HISTORY;
+    try {
+      window.localStorage.removeItem(HISTORY_STORAGE_KEY);
+    } catch {
+      // Nothing kept to forget.
+    }
     showSetup();
   });
 
@@ -341,7 +485,7 @@ export function startSkirmish(): void {
   } catch (error) {
     window.alert(`Could not read the skirmish handed over.\n\n${error instanceof Error ? error.message : error}`);
   }
-  if (window.location.hash !== '') history.replaceState(null, '', window.location.pathname);
+  if (window.location.hash !== '') window.history.replaceState(null, '', window.location.pathname);
   if (skirmish === null) {
     try {
       const kept = window.localStorage.getItem(SKIRMISH_STORAGE_KEY);
