@@ -9,7 +9,6 @@ Things that are obviously wrong.
 -----------------------------------------------------------------------
 
 # Balance
-- Beams are overpowered at the moment, outperforming guns most of the time. Even after the addition of reactors. E.g. the reactor on the Beam Gunship is tiny, and it easily destroys the normal gunship very quickly. Beam weapons of this sort of size should require a much larger reactor for continuous fire (or could use batteries for continuous fire for a while, at lower mass and complexity)
 
 -----------------------------------------------------------------------
 
@@ -17,8 +16,7 @@ Things that are obviously wrong.
 Ideas that aren't planned to be implemented yet, they may or may not be good ideas.
 
 ## General
-- Engines should be able to do damage past destroyed modules like beams can
-- Consider width and length as interchangeable for calculating turret stats. They should be based on teh size of the turret on top (based on the smaller dimension) and the area within the volume of the box underneath.
+- Consider width and length as interchangeable for calculating turret stats. They should be based on the size of the turret on top (based on the smaller dimension) and the area within the volume of the box underneath.
 - Only the dome of turrets should be in the turret layer, the box should be wholly in the hull layer.
 - Hysteresis on decision to use attack or thrust orientation, to avoid flip-flopping.
 - Fighters should be able to dip into the hull layer (like they do for ramming) so they can fire beams and non-fragmenting projectiles at the hulls of ships. The balancing cost of this is that they can be hit by anything.
