@@ -127,6 +127,15 @@ describe('the skirmish in a browser', () => {
     expect(await page.isVisible('#editFleet')).toBe(false);
     await page.waitForSelector('#answered:not([hidden])', { timeout: 90_000 });
     expect(await page.textContent('#answerProgress')).toMatch(/^Found in generation \d+/);
+    // The answer heads the timeline, the enemy's losses before it folded away.
+    const first = page.locator('#timeline > .match').first();
+    expect(await first.locator('.matchHead span').textContent()).toBe("Round 1 · the enemy's answer");
+    expect(await first.locator('.stamp').allTextContents()).toEqual(['BEATEN', 'WON']);
+    expect(await page.locator('#timeline canvas').count()).toBeGreaterThan(0);
+    await first.locator('.matchHead button').click();
+    expect(await page.isVisible('#replaying')).toBe(true);
+    await page.click('#backToRound');
+    expect(await page.isVisible('#replaying')).toBe(false);
     await page.click('#nextRound');
     expect(await page.textContent('#roundTitle')).toBe('Round 2');
     expect(await page.isVisible('#answering')).toBe(false);

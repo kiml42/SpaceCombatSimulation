@@ -40,6 +40,8 @@ export interface Standing {
   readonly enemy: Fleet;
   /** Matches won. */
   wins: number;
+  /** Whether it won on the seed the round was won on: the match a timeline shows of it. */
+  onRound: boolean;
   /** Summed, of how far ahead it finished each in what is left of either side, and one more for a win outright or one less for a loss. */
   margin: number;
 }
@@ -83,7 +85,7 @@ export class EnemySearch {
     this.settings = { ...DEFAULT_ANSWER, ...settings };
     // Room to grow beyond where it stands, which a stock fleet may already be past the default of.
     this.radius = math.max(DEFAULT_FLEET_LIMITS.radius, 1.5 * fleetReach(fleetHulls(enemy)));
-    this.best = { enemy, wins: 0, margin: -Infinity };
+    this.best = { enemy, wins: 0, onRound: false, margin: -Infinity };
     this.begin();
   }
 
@@ -105,10 +107,10 @@ export class EnemySearch {
 
   private begin(): void {
     const parent = this.best.enemy;
-    this.standings = [{ enemy: parent, wins: 0, margin: 0 }];
+    this.standings = [{ enemy: parent, wins: 0, onRound: false, margin: 0 }];
     for (let i = 0; i < this.settings.mutants; i++) {
       const child = mutateFleet(parent, this.rng, { budget: NO_BUDGET, radius: this.radius }).fleet;
-      this.standings.push({ enemy: child, wins: 0, margin: 0 });
+      this.standings.push({ enemy: child, wins: 0, onRound: false, margin: 0 });
     }
     this.seeds = [this.wonSeed];
     while (this.seeds.length < this.settings.seeds) this.seeds.push(this.rng.nextUint32());
@@ -139,7 +141,10 @@ export class EnemySearch {
       const held = math.min(1, tick / limit);
       standing.margin += ahead + (decided === 1 ? 1 : decided !== null ? held - 1 : 0);
       // Ahead when time runs out is taken as a win to come.
-      if (decided === 1 || (decided === null && ahead > 0)) standing.wins++;
+      const win = decided === 1 || (decided === null && ahead > 0);
+      if (win) standing.wins++;
+      // The round's own seed is always the first an enemy fights.
+      if (this.next % seedCount === 0) standing.onRound = win;
       this.next++;
       this.battle = null;
       break;

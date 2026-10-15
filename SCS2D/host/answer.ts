@@ -20,6 +20,8 @@ export interface AnswerInput {
 export interface AnswerProgress {
   generation: number;
   wins: number;
+  /** Whether the best won on the seed the round was won on, under the search's rules. */
+  onRound: boolean;
   seeds: number;
   best: Fleet;
   found: Fleet | null;
@@ -29,6 +31,7 @@ export interface AnswerProgress {
 interface Wire {
   generation: number;
   wins: number;
+  onRound: boolean;
   seeds: number;
   best: unknown;
   found: unknown;
@@ -46,6 +49,7 @@ export function startAnswer(input: AnswerInput, progress: (now: AnswerProgress) 
     progress({
       generation: wire.generation,
       wins: wire.wins,
+      onRound: wire.onRound,
       seeds: wire.seeds,
       best: parseFleet(wire.best),
       found: wire.found === null ? null : parseFleet(wire.found),
@@ -96,6 +100,7 @@ export function searchLoop(
       post({
         generation: now.generation,
         wins: now.best.wins,
+        onRound: now.best.onRound,
         seeds: now.seeds,
         best: serialiseFleet(now.best.enemy),
         found: now.found === null ? null : serialiseFleet(now.found),
