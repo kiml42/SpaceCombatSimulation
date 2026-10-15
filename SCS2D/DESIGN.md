@@ -1022,8 +1022,10 @@ Rules:
   weapons can strip it, and a craft built entirely of modules under a deck across is out of turrets' reach
   altogether: the Dinky is. Thick structure is cover
   for the turrets behind it and pays in wall, in being within reach of turrets, and in the arcs of every
-  turret it stands in front of. A thick core is in turrets' reach. A thick hull weapon still fires at deck
-  height.
+  turret it stands in front of. A thick core is in turrets' reach. A thick hull gun still fires at deck
+  height; **a thick hull beam fires a beam in each layer, with half its power each**, as a thick engine's
+  flame burns in each: a thick module stands in both and takes all of it, while a deck-level module or a
+  fighter takes its half and the other half goes on past it.
 - **A barrel or nozzle is never wider than the module is deep.** A turret's tubes (and a beam's housing)
   are held to a deck, and a hull weapon's outlets to its depth, so a barrel is always a cylinder the hull
   can hold. A bell is square, as wide as it is deep, so a thin engine's is at most a deck across whatever

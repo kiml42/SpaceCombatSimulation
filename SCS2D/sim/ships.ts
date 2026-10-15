@@ -2241,7 +2241,9 @@ export class Ships {
   private mountLayers(i: number, mount: DesignTurret): number {
     const whole = this.shipLayers(i);
     if (whole !== OWN_LAYERS) return whole;
-    return mount.hullLayer ? HULL_LAYER : WEAPONS_LAYER;
+    if (!mount.hullLayer) return WEAPONS_LAYER;
+    // A thick hull beam stands in both, and fires a beam in each.
+    return mount.gun.type === GunType.Beam && this.designs[i]!.modules[mount.module]!.weaponsLayer ? BOTH_LAYERS : HULL_LAYER;
   }
 
   /** Whether this ship's mount fires shells, whose fragments fly in both layers. */
@@ -2820,22 +2822,31 @@ export class Ships {
           projectilesFired++;  // increment for every shot fired
           this.firedAt[i] = world.tick;
         } else {
-          beams.fireFrom(
-            bodyIdx,
-            this.solution.x,
-            this.solution.y,
-            this.solution.dirX,
-            this.solution.dirY,
-            gun.calibre,
-            gun.beamPower,
-            0,
-            bodies,
-            grid,
-            beamHits,
-            this.holedHulls,
-            design.turrets[t]!.module,
-            this.mountLayers(i, design.turrets[t]!),
-          );
+          // One beam a layer, each with its share of the power: a thick
+          // module takes both, and what is in one layer only takes its half
+          // and lets the other go on past it, as a thick engine's flame does.
+          const layers = this.mountLayers(i, design.turrets[t]!);
+          // A craft in both layers to ram or dock fires as it is, in both at once.
+          const split = layers === BOTH_LAYERS && this.shipLayers(i) === OWN_LAYERS;
+          for (let k = 0; k < (split ? 2 : 1); k++) {
+            const layer = split ? (k === 0 ? HULL_LAYER : WEAPONS_LAYER) : layers;
+            beams.fireFrom(
+              bodyIdx,
+              this.solution.x,
+              this.solution.y,
+              this.solution.dirX,
+              this.solution.dirY,
+              gun.calibre,
+              split ? gun.beamPower / 2 : gun.beamPower,
+              0,
+              bodies,
+              grid,
+              beamHits,
+              this.holedHulls,
+              design.turrets[t]!.module,
+              layer,
+            );
+          }
           this.firedAt[i] = world.tick;
           if (state == TurretState.Idle) {
             // was idle before, now committed on for beamOnTime
