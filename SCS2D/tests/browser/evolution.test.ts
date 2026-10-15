@@ -11,6 +11,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import type { Browser, Page } from 'playwright';
 import { launchChromium } from './launch.js';
+import { DEFAULT_KINDS } from '../../evolution/mutate.js';
+import { DEFAULT_RUN } from '../../evolution/run.js';
 
 /**
  * The evolution page, driven in a real browser.
@@ -855,4 +857,16 @@ describe('the evolution page in a browser', () => {
     expect(await page.isVisible('#legend')).toBe(true);
     expect(problems).toEqual([]);
   }, 180_000);
+
+  it('puts every setting back to its default, for both sides, keeping what was picked', async () => {
+    await set(page, 'kindTank', '7');
+    await set(page, 'generations', '3');
+    const founders = await page.$$eval('#founders option:checked', (options) => options.map((o) => (o as HTMLOptionElement).value));
+    await press(page, '#resetConfig');
+    expect(await page.inputValue('#kindTank')).toBe(String(DEFAULT_KINDS.tank));
+    expect(await page.inputValue('#b_kindTank')).toBe(String(DEFAULT_KINDS.tank));
+    expect(await page.inputValue('#generations')).toBe(String(DEFAULT_RUN.generations));
+    expect(await page.$$eval('#founders option:checked', (options) => options.map((o) => (o as HTMLOptionElement).value))).toEqual(founders);
+    expect(problems).toEqual([]);
+  });
 });

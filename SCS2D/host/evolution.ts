@@ -22,13 +22,14 @@ import { DEFAULT_MATCH, isFleet, Match, type Entrant, type MatchConfig } from '.
 import { DEFAULT_FLEET_LIMITS } from '../evolution/fleetMutate.js';
 import {
   DEFAULT_BUILD_WEIGHTS,
-  DEFAULT_DOCTRINE_WEIGHTS,
   DEFAULT_KINDS,
   DEFAULT_LIMITS,
   doctrineWeights,
   type KindWeights,
 } from '../evolution/mutate.js';
 import { parseRunConfig, runConfigWarnings, serialiseRunConfig, type RunSetup } from '../evolution/configFile.js';
+import { breeding, MUTATION_FIELDS } from '../evolution/mutationFields.js';
+import { fillFields } from './settingsFields.js';
 import { Coevolution, DEFAULT_COEVOLUTION, rivalSettings, type CoevolutionConfig, type SideSettings } from '../evolution/coevolution.js';
 import {
   GridMeasure,
@@ -481,6 +482,7 @@ export function startEvolution(): void {
   const watchYardstickButton = el<HTMLButtonElement>('watchYardstick');
   const yardstickLine = el<HTMLElement>('yardstickLine');
   const gridTable = el<HTMLTableElement>('grid');
+  fillFields(document, MUTATION_FIELDS);
   addRivalInputs();
   const inputs = Object.fromEntries(
     FIELDS.map((name) => [name, el<HTMLInputElement>(name)]),
@@ -616,6 +618,7 @@ export function startEvolution(): void {
   // ---- settings ----------------------------------------------------------
 
   const defaults: Record<(typeof FIELDS)[number], string> = {
+    ...(Object.fromEntries(MUTATION_FIELDS.map((f) => [f.name, String(f.value)])) as Record<SideField, string>),
     configName: '',
     generations: String(DEFAULT_RUN.generations),
     population: String(DEFAULT_RUN.population),
@@ -627,13 +630,6 @@ export function startEvolution(): void {
     buildBudget: '',
     fleetRadius: String(DEFAULT_FLEET_LIMITS.radius),
     fleetShips: String(DEFAULT_FLEET_LIMITS.maxShips),
-    opDesign: String(DEFAULT_FLEET_LIMITS.operators.design),
-    opMove: String(DEFAULT_FLEET_LIMITS.operators.move),
-    opAdd: String(DEFAULT_FLEET_LIMITS.operators.add),
-    opRemove: String(DEFAULT_FLEET_LIMITS.operators.remove),
-    opFork: String(DEFAULT_FLEET_LIMITS.operators.fork),
-    opMerge: String(DEFAULT_FLEET_LIMITS.operators.merge),
-    opSwap: String(DEFAULT_FLEET_LIMITS.operators.swap),
     seed: String(DEFAULT_RUN.seed),
     duration: String(DEFAULT_MATCH.duration),
     radius: String(DEFAULT_MATCH.radius),
@@ -649,34 +645,6 @@ export function startEvolution(): void {
     damageWeight: String(DEFAULT_MATCH.weights.damage),
     disablingWeight: String(DEFAULT_MATCH.weights.disabling),
     raceWeight: String(DEFAULT_MATCH.weights.race),
-    structural: String(DEFAULT_LIMITS.structural),
-    buildMove: String(DEFAULT_BUILD_WEIGHTS.move),
-    buildResize: String(DEFAULT_BUILD_WEIGHTS.resize),
-    buildRefit: String(DEFAULT_BUILD_WEIGHTS.refit),
-    buildFittings: String(DEFAULT_BUILD_WEIGHTS.fittings),
-    buildTuning: String(DEFAULT_BUILD_WEIGHTS.tuning),
-    buildFighter: String(DEFAULT_BUILD_WEIGHTS.fighter),
-    buildShape: String(DEFAULT_BUILD_WEIGHTS.shape),
-    kindEngine: String(DEFAULT_KINDS.engine),
-    kindStructure: String(DEFAULT_KINDS.structure),
-    kindTank: String(DEFAULT_KINDS.tank),
-    kindTurret: String(DEFAULT_KINDS.turret),
-    kindBeamTurret: String(DEFAULT_KINDS.beamTurret),
-    kindHullGun: String(DEFAULT_KINDS.hullGun),
-    kindHullBeam: String(DEFAULT_KINDS.hullBeam),
-    kindCore: String(DEFAULT_KINDS.core),
-    kindClaw: String(DEFAULT_KINDS.claw),
-    kindPad: String(DEFAULT_KINDS.pad),
-    kindPort: String(DEFAULT_KINDS.port),
-    kindHold: String(DEFAULT_KINDS.hold),
-    kindBattery: String(DEFAULT_KINDS.battery),
-    kindGenerator: String(DEFAULT_KINDS.generator),
-    kindRobotBay: String(DEFAULT_KINDS.robotBay),
-    doctrineTargeting: String(DEFAULT_DOCTRINE_WEIGHTS.targeting),
-    doctrineApproach: String(DEFAULT_DOCTRINE_WEIGHTS.approach),
-    doctrineEscort: String(DEFAULT_DOCTRINE_WEIGHTS.escort),
-    doctrineAvoidance: String(DEFAULT_DOCTRINE_WEIGHTS.avoidance),
-    doctrineGunnery: String(DEFAULT_DOCTRINE_WEIGHTS.gunnery),
     effort: '12',
     hall: String(DEFAULT_COEVOLUTION.hall),
     hallShare: String(DEFAULT_COEVOLUTION.hallShare),
@@ -880,6 +848,14 @@ export function startEvolution(): void {
       saveSetup();
     });
   }
+  el<HTMLButtonElement>('resetConfig').addEventListener('click', () => {
+    for (const name of FIELDS) if (name !== 'configName') inputs[name].value = defaults[name];
+    goalInput.value = 'solid';
+    rivalEvolvesInput.checked = true;
+    rivalOwn = false;
+    showFleetSettings();
+    saveSetup();
+  });
   el<HTMLButtonElement>('sameAsA').addEventListener('click', () => {
     rivalOwn = false;
     showFleetSettings();
@@ -890,6 +866,7 @@ export function startEvolution(): void {
 
   /** One side's own settings, read from its inputs: side A's, or with `get` reading side B's. */
   const sideSettings = (get: (name: SideField) => HTMLInputElement): SideSettings => {
+    const bred = breeding((name) => (get(name as SideField).value.trim() === '' ? undefined : Number(get(name as SideField).value)));
     // Blank or nothing is no limit.
     const limit = (name: SideField, scale: number): number => {
       const value = number(get(name), 0);
@@ -903,52 +880,9 @@ export function startEvolution(): void {
       fleet: {
         radius: Math.max(1, number(get('fleetRadius'), DEFAULT_FLEET_LIMITS.radius)),
         maxShips: Math.max(1, Math.round(number(get('fleetShips'), DEFAULT_FLEET_LIMITS.maxShips))),
-        operators: {
-          design: Math.max(0, number(get('opDesign'), DEFAULT_FLEET_LIMITS.operators.design)),
-          move: Math.max(0, number(get('opMove'), DEFAULT_FLEET_LIMITS.operators.move)),
-          add: Math.max(0, number(get('opAdd'), DEFAULT_FLEET_LIMITS.operators.add)),
-          remove: Math.max(0, number(get('opRemove'), DEFAULT_FLEET_LIMITS.operators.remove)),
-          fork: Math.max(0, number(get('opFork'), DEFAULT_FLEET_LIMITS.operators.fork)),
-          merge: Math.max(0, number(get('opMerge'), DEFAULT_FLEET_LIMITS.operators.merge)),
-          swap: Math.max(0, number(get('opSwap'), DEFAULT_FLEET_LIMITS.operators.swap)),
-        },
+        operators: bred.operators,
       },
-      mutation: {
-        structural: Math.min(1, Math.max(0, number(get('structural'), DEFAULT_LIMITS.structural))),
-        build: {
-          move: Math.max(0, number(get('buildMove'), DEFAULT_BUILD_WEIGHTS.move)),
-          resize: Math.max(0, number(get('buildResize'), DEFAULT_BUILD_WEIGHTS.resize)),
-          refit: Math.max(0, number(get('buildRefit'), DEFAULT_BUILD_WEIGHTS.refit)),
-          fittings: Math.max(0, number(get('buildFittings'), DEFAULT_BUILD_WEIGHTS.fittings)),
-          tuning: Math.max(0, number(get('buildTuning'), DEFAULT_BUILD_WEIGHTS.tuning)),
-          fighter: Math.max(0, number(get('buildFighter'), DEFAULT_BUILD_WEIGHTS.fighter)),
-          shape: Math.max(0, number(get('buildShape'), DEFAULT_BUILD_WEIGHTS.shape)),
-        },
-        kinds: {
-          engine: Math.max(0, number(get('kindEngine'), DEFAULT_KINDS.engine)),
-          structure: Math.max(0, number(get('kindStructure'), DEFAULT_KINDS.structure)),
-          tank: Math.max(0, number(get('kindTank'), DEFAULT_KINDS.tank)),
-          turret: Math.max(0, number(get('kindTurret'), DEFAULT_KINDS.turret)),
-          beamTurret: Math.max(0, number(get('kindBeamTurret'), DEFAULT_KINDS.beamTurret)),
-          hullGun: Math.max(0, number(get('kindHullGun'), DEFAULT_KINDS.hullGun)),
-          hullBeam: Math.max(0, number(get('kindHullBeam'), DEFAULT_KINDS.hullBeam)),
-          core: Math.max(0, number(get('kindCore'), DEFAULT_KINDS.core)),
-          claw: Math.max(0, number(get('kindClaw'), DEFAULT_KINDS.claw)),
-          pad: Math.max(0, number(get('kindPad'), DEFAULT_KINDS.pad)),
-          port: Math.max(0, number(get('kindPort'), DEFAULT_KINDS.port)),
-          hold: Math.max(0, number(get('kindHold'), DEFAULT_KINDS.hold)),
-          battery: Math.max(0, number(get('kindBattery'), DEFAULT_KINDS.battery)),
-          generator: Math.max(0, number(get('kindGenerator'), DEFAULT_KINDS.generator)),
-          robotBay: Math.max(0, number(get('kindRobotBay'), DEFAULT_KINDS.robotBay)),
-        },
-        doctrine: {
-          targeting: Math.max(0, number(get('doctrineTargeting'), DEFAULT_DOCTRINE_WEIGHTS.targeting)),
-          approach: Math.max(0, number(get('doctrineApproach'), DEFAULT_DOCTRINE_WEIGHTS.approach)),
-          escort: Math.max(0, number(get('doctrineEscort'), DEFAULT_DOCTRINE_WEIGHTS.escort)),
-          avoidance: Math.max(0, number(get('doctrineAvoidance'), DEFAULT_DOCTRINE_WEIGHTS.avoidance)),
-          gunnery: Math.max(0, number(get('doctrineGunnery'), DEFAULT_DOCTRINE_WEIGHTS.gunnery)),
-        },
-      },
+      mutation: bred.ship,
     };
   };
 

@@ -903,7 +903,13 @@ inside any one file is not contiguous.
   round, and the answer, confirmed on the seed the player won on, is the next round's enemy. A timeline
   lists every match, newest first, each side drawn as the evolution page draws a combatant and stamped
   won or beaten, runs one side lost folded away, and any match can be watched again or either fleet saved
-  or exported. Step 5 is built; what is left of it is tuning its numbers (ROADMAP.md §12).
+  or exported. **Its numbers are the player's to set**, on a setup screen like the evolution page's before
+  a skirmish starts: the round's quiet time, time cap, gap and starting speeds, the answer's mutants,
+  matches, match length and growth, and the ship, fleet and doctrine mutation odds the enemy is bred with,
+  remembered for the next skirmish, kept with this one so it is played out under those it started with,
+  and put back with *Reset to defaults*, which the evolution page has too. The mutation fields are written
+  once (`evolution/mutationFields.ts`) and both pages draw them. Step 5 is built; what is left of it is
+  tuning its numbers (ROADMAP.md §12).
   See ROADMAP.md §8.
   §8 step 3 is done, withdrawal left open (ROADMAP.md §12), and step 7, two layers, is built. What a chooser is already facing (`facingWeight`) and whether anything is in the way
   (`sightWeight`) are weights, zero by default. Evolution is built and runs both headlessly and on a page

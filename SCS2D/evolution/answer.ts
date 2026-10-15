@@ -1,7 +1,8 @@
 import { fleetBill, fleetHulls, fleetReach, math, Rng, type Budget, type Fleet } from '../sim/index.js';
 import { customBattle, tally, winner, type CustomBattle } from '../scenarios/customBattle.js';
 import { Activity, type Decision } from '../scenarios/decision.js';
-import { roundBattle } from '../scenarios/skirmish.js';
+import { DEFAULT_SKIRMISH_SETTINGS, roundBattle, type SkirmishSettings } from '../scenarios/skirmish.js';
+import { breeding, type Breeding } from './mutationFields.js';
 import { mutateFleet, DEFAULT_FLEET_LIMITS } from './fleetMutate.js';
 
 /**
@@ -25,23 +26,10 @@ import { mutateFleet, DEFAULT_FLEET_LIMITS } from './fleetMutate.js';
  * in between. Everything is decided by the seed it is given.
  */
 
-export interface AnswerSettings {
-  /** Mutants a generation, beside the best so far. */
-  readonly mutants: number;
-  /** Matches each enemy fights a generation, the seed the round was won on among them. */
-  readonly seeds: number;
-  /** How long a match may last before the side ahead is taken to win, s. */
-  readonly duration: number;
-  /**
-   * How much bigger an answer may be than the enemy it answers: its metal, fuel
-   * and build time, and its ships, though always one more ship than it had.
-   */
-  readonly growth: number;
-  /** Generations without an answer before the enemy may grow by `growth` again. */
-  readonly stretchAfter: number;
-}
+/** What the search is run under: the skirmish's settings, the round's rules and how the enemy is bred among them. */
+export type AnswerSettings = SkirmishSettings;
 
-export const DEFAULT_ANSWER: AnswerSettings = { mutants: 5, seeds: 3, duration: 180, growth: 1.5, stretchAfter: 20 };
+export const DEFAULT_ANSWER: AnswerSettings = DEFAULT_SKIRMISH_SETTINGS;
 
 /** How often a match looks to see whether it is over, steps. */
 const CHECK_EVERY = 30;
@@ -72,6 +60,8 @@ export interface Progress {
 export class EnemySearch {
   private readonly rng: Rng;
   private readonly settings: AnswerSettings;
+  /** How the enemy is bred, from the settings' mutation odds. */
+  private readonly bred: Breeding;
   private readonly radius: number;
   /** What the enemy cost and how many ships it had, which the answer may grow from. */
   private readonly startBill: Budget;
@@ -100,6 +90,8 @@ export class EnemySearch {
   ) {
     this.rng = new Rng(seed);
     this.settings = { ...DEFAULT_ANSWER, ...settings };
+    const odds = this.settings.breeding;
+    this.bred = breeding((name) => odds[name]);
     // Room to grow beyond where it stands, which a stock fleet may already be past the default of.
     this.radius = math.max(DEFAULT_FLEET_LIMITS.radius, 1.5 * fleetReach(fleetHulls(enemy)));
     const hulls = fleetHulls(enemy);
@@ -145,7 +137,7 @@ export class EnemySearch {
   private begin(): void {
     const parent = this.best.enemy;
     this.standings = [{ enemy: parent, wins: 0, onRound: false, margin: 0 }];
-    const limits = { ...this.limits, radius: this.radius };
+    const limits = { ...this.limits, radius: this.radius, ship: this.bred.ship, operators: this.bred.operators };
     for (let i = 0; i < this.settings.mutants; i++) {
       const child = mutateFleet(parent, this.rng, limits).fleet;
       this.standings.push({ enemy: child, wins: 0, onRound: false, margin: 0 });
@@ -160,7 +152,7 @@ export class EnemySearch {
   private fight(steps: number): number {
     const seedCount = this.seeds.length;
     const standing = this.standings[math.floor(this.next / seedCount)]!;
-    const battle = (this.battle ??= customBattle(roundBattle(this.player, standing.enemy, this.seeds[this.next % seedCount]!)));
+    const battle = (this.battle ??= customBattle(roundBattle(this.player, standing.enemy, this.seeds[this.next % seedCount]!, this.settings)));
     let taken = 0;
     const limit = math.round(this.settings.duration / battle.dt);
     while (taken < steps) {
@@ -204,7 +196,11 @@ export class EnemySearch {
   }
 
   private startCheck(enemy: Fleet): void {
-    this.checking = { enemy, battle: customBattle(roundBattle(this.player, enemy, this.wonSeed)), activity: new Activity(2) };
+    this.checking = {
+      enemy,
+      battle: customBattle(roundBattle(this.player, enemy, this.wonSeed, this.settings)),
+      activity: new Activity(2, this.settings.timeCap, this.settings.quietTime),
+    };
   }
 
   /** Fight the round to its decision for up to `steps`; how many it took. */
