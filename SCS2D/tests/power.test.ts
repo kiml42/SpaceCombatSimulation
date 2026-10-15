@@ -6,6 +6,7 @@ import {
   CORE_BATTERY_SHARE,
   CORE_COMPUTING_VOLUME,
   CORE_GENERATOR_SHARE,
+  CORE_GENERATOR_MAX_VOLUME,
   Projectiles,
   SpatialGrid,
   BATTERY_POWER_PER_AREA,
@@ -203,10 +204,22 @@ describe('a beam', () => {
 });
 
 describe('a core', () => {
+  it('caps its generator, however big it is, but not its battery', () => {
+    const big = moduleStats({ kind: 'core', x: 0, y: 0, length: 10, width: 10, thick: true });
+    const bigger = moduleStats({ kind: 'core', x: 0, y: 0, length: 20, width: 10, thick: true });
+    expect(big.generation).toBeCloseTo(CORE_GENERATOR_MAX_VOLUME * GENERATOR_POWER_PER_VOLUME, 6);
+    expect(bigger.generation).toBe(big.generation);
+    expect(bigger.charge).toBeGreaterThan(big.charge * 1.9);
+    // A small one is under the cap, and gets its whole share.
+    const small = moduleStats({ kind: 'core', x: 0, y: 0, length: 2, width: 2 });
+    expect(small.generation).toBeCloseTo((small.interior - CORE_COMPUTING_VOLUME) * CORE_GENERATOR_SHARE * GENERATOR_POWER_PER_VOLUME, 6);
+    expect(small.generation).toBeLessThan(big.generation);
+  });
+
   it('carries a generator and a battery in its room past its computing', () => {
     const core = moduleStats({ kind: 'core', x: 0, y: 0, length: 4, width: 6 });
     const spare = core.interior - CORE_COMPUTING_VOLUME;
-    expect(core.generation).toBeCloseTo(spare * CORE_GENERATOR_SHARE * GENERATOR_POWER_PER_VOLUME, 3);
+    expect(core.generation).toBeCloseTo(Math.min(spare * CORE_GENERATOR_SHARE, CORE_GENERATOR_MAX_VOLUME) * GENERATOR_POWER_PER_VOLUME, 3);
     expect(core.charge).toBeCloseTo(spare * CORE_BATTERY_SHARE * BATTERY_ENERGY_PER_VOLUME, 3);
     expect(core.chargeRate).toBeGreaterThan(0);
     // None in one no bigger than its computing.

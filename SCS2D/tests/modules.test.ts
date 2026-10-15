@@ -15,6 +15,7 @@ import {
   CORE_MASS_PER_AREA,
   CORE_COMPUTING_VOLUME,
   CORE_GENERATOR_SHARE,
+  CORE_GENERATOR_MAX_VOLUME,
   CORE_BATTERY_SHARE,
   GENERATOR_MASS_PER_VOLUME,
   BATTERY_MASS_PER_VOLUME,
@@ -537,12 +538,14 @@ describe('core scaling', () => {
     const small = moduleStats(box('core', 4, 4));
     const large = moduleStats(box('core', 8, 4));
     // Plus the generator and battery in its spare room, by volume.
-    const plant = (interior: number): number =>
-      (interior - CORE_COMPUTING_VOLUME) *
-      (CORE_GENERATOR_SHARE * GENERATOR_MASS_PER_VOLUME + CORE_BATTERY_SHARE * BATTERY_MASS_PER_VOLUME);
+    const plant = (interior: number): number => {
+      const spare = interior - CORE_COMPUTING_VOLUME;
+      const generator = Math.min(spare * CORE_GENERATOR_SHARE, CORE_GENERATOR_MAX_VOLUME);
+      return generator * GENERATOR_MASS_PER_VOLUME + spare * CORE_BATTERY_SHARE * BATTERY_MASS_PER_VOLUME;
+    };
     expect(small.fittingMass).toBeCloseTo(CORE_MASS_PER_AREA * small.capacity + plant(small.interior), 6);
     expect(large.fittingMass).toBeCloseTo(CORE_MASS_PER_AREA * large.capacity + plant(large.interior), 6);
-    expect(large.fittingMass).toBeGreaterThan(small.fittingMass * 1.9);
+    expect(large.fittingMass - plant(large.interior)).toBeGreaterThan((small.fittingMass - plant(small.interior)) * 1.9);
   });
 
   it('costs more than the same box of structure, and buys nothing else', () => {

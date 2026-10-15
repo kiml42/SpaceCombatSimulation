@@ -27,6 +27,11 @@ import {
   triangleOf,
   ROBOT_VIEW_STRIDE,
   ROBOT_BERTH_PITCH,
+  BATTERY_ENERGY_PER_VOLUME,
+  FUEL_DENSITY,
+  GENERATOR_POWER_PER_VOLUME,
+  METAL_DENSITY,
+  type ModuleStats,
   berthGrid,
 } from '../sim/index.js';
 import { gridStep, type Camera } from './camera.js';
@@ -194,8 +199,10 @@ const ROBOT_WING_GAP = 0.22;
 /** How round a tank's gauge is drawn at its ends, as a share of the tank's smaller side: enough to read as a tank. */
 const TANK_ROUNDING = 0.35;
 
-/** A core's two gauges, the ship's fuel and metal along its long sides: each this share of its smaller side. */
+/** A core's gauges, its own fuel, metal and charge in three of its corners: each this share of its smaller side thick. */
 const CORE_GAUGE = 0.18;
+/** The core's generator disc, in its fourth corner, is never wider than this many gauges. */
+const CORE_DISC_GAUGES = 1.5;
 /** How far in from the core's edge they sit, as a share of its smaller side. */
 const CORE_GAUGE_INSET = 0.08;
 
@@ -309,26 +316,14 @@ function roundedTriangle(ctx: CanvasRenderingContext2D, corners: readonly number
   ctx.closePath();
 }
 
-/**
- * How full the whole ship is of fuel and of metal, 0 to 1, or -1 for one that
- * carries none: what each module holds, weighted by what it holds when full.
- */
-function storeShares(ship: ShipView): { fuel: number; metal: number } {
-  let fuel = 0;
-  let fuelFull = 0;
-  let metal = 0;
-  let metalFull = 0;
-  const modules = ship.design.modules;
-  for (let m = 0; m < modules.length; m++) {
-    const { stats, spec } = modules[m]!;
-    // Only what this ship draws: a hull it shares with another counts once.
-    if (ship.drawn?.[m] === false) continue;
-    fuel += (ship.fuel?.[m] ?? fillOf(spec)) * stats.fuel;
-    fuelFull += stats.fuel;
-    metal += (ship.metal?.[m] ?? fillOf(spec)) * stats.metal;
-    metalFull += stats.metal;
-  }
-  return { fuel: fuelFull > 0 ? fuel / fuelFull : -1, metal: metalFull > 0 ? metal / metalFull : -1 };
+/** What a core's room past its computing holds, m³ each: its fuel, metal, battery and generator. */
+function coreRoom(stats: ModuleStats): { fuel: number; metal: number; charge: number; generator: number } {
+  return {
+    fuel: stats.fuel / FUEL_DENSITY,
+    metal: stats.metal / METAL_DENSITY,
+    charge: stats.charge / BATTERY_ENERGY_PER_VOLUME,
+    generator: stats.generation / GENERATOR_POWER_PER_VOLUME,
+  };
 }
 
 /**
@@ -422,7 +417,6 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     ctx.setLineDash([]);
   }
 
-  const stores = storeShares(ship);
   // Module boxes, in the body frame the design already put them in.
   for (let i = 0; i < design.modules.length; i++) {
     if (ship.drawn?.[i] === false || isFighterModule(design, i) !== fighters) continue;
@@ -642,7 +636,10 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
         ctx.fill();
       }
       if (spec.kind === 'core' && integrity > 0) {
-        // The whole ship's fuel and metal, a gauge along each long side.
+        // What the core holds, each in a corner and sized by the square root
+        // of its share of the room, so a small share is still seen: fuel and
+        // metal forward, charge and the generator aft, the middle left for
+        // the ship's name.
         ctx.globalAlpha = 1;
         const sideways = spec.width > spec.length;
         if (sideways) ctx.rotate(PI / 2);
@@ -651,20 +648,38 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
         const small = min(along, across);
         const bar = small * CORE_GAUGE;
         const inset = small * CORE_GAUGE_INSET;
-        const run = along - 2 * inset;
-        const gauge = (share: number, y: number, fill: string): void => {
+        const reach = along / 2 - 1.5 * inset;
+        const room = coreRoom(m.stats);
+        const most = max(room.fuel, room.metal, room.charge, room.generator);
+        const size = (volume: number): number => (most > 0 ? reach * sqrt(volume / most) : 0);
+        const gauge = (share: number, x: number, length: number, y: number, fill: string): void => {
+          if (!(length > 0)) return;
           ctx.save();
           ctx.beginPath();
-          ctx.roundRect(-along / 2 + inset, y, run, bar, bar / 2);
+          ctx.roundRect(x, y, length, bar, bar / 2);
           ctx.fillStyle = FUEL_TRACK;
           ctx.fill();
           ctx.clip();
           ctx.fillStyle = fill;
-          ctx.fillRect(-along / 2 + inset, y, run * share, bar);
+          ctx.fillRect(x, y, length * share, bar);
           ctx.restore();
         };
-        if (stores.fuel >= 0) gauge(stores.fuel, -across / 2 + inset, FUEL);
-        if (stores.metal >= 0) gauge(stores.metal, across / 2 - inset - bar, METAL);
+        const top = -across / 2 + inset;
+        const bottom = across / 2 - inset - bar;
+        const fore = along / 2 - inset;
+        const aft = -along / 2 + inset;
+        const fuel = size(room.fuel);
+        const metal = size(room.metal);
+        gauge(ship.fuel?.[i] ?? fillOf(spec), fore - fuel, fuel, top, FUEL);
+        gauge(ship.metal?.[i] ?? fillOf(spec), fore - metal, metal, bottom, METAL);
+        gauge(ship.charge?.[i] ?? fillOf(spec), aft, size(room.charge), top, CHARGE);
+        const disc = min(size(room.generator), bar * CORE_DISC_GAUGES);
+        if (disc > 0) {
+          ctx.fillStyle = CHARGE;
+          ctx.beginPath();
+          ctx.arc(aft + disc / 2, across / 2 - inset - disc / 2, disc / 2, 0, TAU);
+          ctx.fill();
+        }
       }
     }
     ctx.restore();
