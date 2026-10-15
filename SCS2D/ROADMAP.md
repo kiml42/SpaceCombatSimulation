@@ -263,6 +263,13 @@ Deliberately unresolved; decide when they block something.
   which trade fuel for power; and plasma beams, which would burn both fuel and power. Each is a call to
   `Charge.draw` where its load is; the open part is the balance, and whether a ship with no power left should
   be a hulk. Fuel for the generator and heat from everything are the step after.
+- **Whether a core should generate at all.** The author's preference: a core holds some of each store — fuel,
+  metal and charge — and makes nothing, so what it carries is one thing that scales with its size and is plain
+  to see, and power has to come from a generator that can be shot off. As it stands a core's generator is capped
+  at `CORE_GENERATOR_MAX_VOLUME` (2 m³, so 2 MW) as a step that way: uncapped, a big core was a power plant, and
+  an evolved fleet of Gunships ran eight hull beams on their cores alone. Dropping it would leave the stock
+  ships that run a beam on their core short (the Beam Corvette and the X-Wing among them), to be given a
+  generator or a battery of their own.
 - **Whether a claw should drain an enemy's batteries.** It drinks fuel from what it grips; draining charge is
   the natural extension, and a way to disarm a beam ship without shooting it.
 

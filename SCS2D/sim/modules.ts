@@ -1,6 +1,6 @@
 import type { UnreadKeys } from './unread.js';
 import type { Targeting } from './doctrine.js';
-import { abs, asin, atan2, cos, floor as roundDown, max, PI, round, sin, sqrt } from './math.js';
+import { abs, asin, atan2, cos, floor as roundDown, max, min, PI, round, sin, sqrt } from './math.js';
 import {
   canShape,
   insetTriangle,
@@ -211,6 +211,13 @@ export const CORE_METAL_SHARE = 0.05;
  */
 export const CORE_GENERATOR_SHARE = 0.1;
 export const CORE_BATTERY_SHARE = 0.1;
+
+/**
+ * The most a core's generator may fill, m³, the rest of its share going to
+ * fuel: enough to run a small beam, so a big core is not a power plant too.
+ * A step towards a core that generates nothing (ROADMAP.md §12).
+ */
+export const CORE_GENERATOR_MAX_VOLUME = 2;
 
 /** The volume inside a module's walls and any sealing lining, m³. */
 export function interiorVolume(stats: ModuleStats): number {
@@ -2412,13 +2419,17 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
     // carrying five of them.
     fittingMass = max(CORE_MINIMUM_FITTING_MASS, CORE_MASS_PER_AREA * capacity) + liningMass;
     const spare = max(0, interior - CORE_COMPUTING_VOLUME);
-    fuel = spare * (1 - CORE_METAL_SHARE - CORE_GENERATOR_SHARE - CORE_BATTERY_SHARE) * FUEL_DENSITY;
+    const generator = min(spare * CORE_GENERATOR_SHARE, CORE_GENERATOR_MAX_VOLUME);
+    // What the cap keeps from the generator is fuel, added apart so an uncapped core's is unchanged.
+    fuel =
+      spare * (1 - CORE_METAL_SHARE - CORE_GENERATOR_SHARE - CORE_BATTERY_SHARE) * FUEL_DENSITY +
+      (spare * CORE_GENERATOR_SHARE - generator) * FUEL_DENSITY;
     metal = spare * CORE_METAL_SHARE * METAL_DENSITY;
-    generation = spare * CORE_GENERATOR_SHARE * GENERATOR_POWER_PER_VOLUME;
+    generation = generator * GENERATOR_POWER_PER_VOLUME;
     charge = spare * CORE_BATTERY_SHARE * BATTERY_ENERGY_PER_VOLUME;
     chargeRate = spare > 0 ? CORE_BATTERY_SHARE * BATTERY_POWER_PER_AREA * 2 * (spec.length + spec.width) * height : 0;
     fittingMass +=
-      spare * (CORE_GENERATOR_SHARE * GENERATOR_MASS_PER_VOLUME + CORE_BATTERY_SHARE * BATTERY_MASS_PER_VOLUME);
+      generator * GENERATOR_MASS_PER_VOLUME + spare * CORE_BATTERY_SHARE * BATTERY_MASS_PER_VOLUME;
   } else if (spec.kind === 'port') {
     // A collar on its outward face and a coupling behind it.
     fittingMass = PORT_MASS_PER_AREA * capacity;

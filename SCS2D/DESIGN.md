@@ -840,7 +840,7 @@ inside any one file is not contiguous.
   no failure mode of its own. The editor has a Hold and shows a module's metal and a ship's, how many rounds
   a selected gun can load from what its piece of hull sets out with, and how many rounds of its main gun — the
   main battery's heaviest — the ship sets out with; the battle draws a hold's gauge as it draws a tank's, and
-  a gauge of the whole ship's fuel and another of its metal along a core's long sides; evolution draws holds at a weight of two. The Dinky and the TIE, whose
+  evolution draws holds at a weight of two. The Dinky and the TIE, whose
   cores are too small to carry any, each give a slice of a tank to a hold.
   **A fighter rearms on a pad.** Once its metal is down to its doctrine's `rearmBelow` of a full load — at
   zero, the default, once it cannot load another round; below zero, never — it makes for a friend's pad as
@@ -868,8 +868,12 @@ inside any one file is not contiguous.
   in charge**: over its reload it draws the energy its bank holds from its piece of hull, the main battery
   first, and reloads only as fast as that comes; with power to spare it reloads at its own gear's rate as
   before, and with none it fires once. **A core carries a generator and a battery** in a tenth of its spare
-  interior each (`CORE_GENERATOR_SHARE`, `CORE_BATTERY_SHARE`), taken from its fuel, so a big enough core
-  drives what is bolted to it; damage takes them as it takes a generator's and a battery's. The Laser
+  interior each (`CORE_GENERATOR_SHARE`, `CORE_BATTERY_SHARE`), taken from its fuel, the generator no bigger
+  than `CORE_GENERATOR_MAX_VOLUME` (2 m³) and the rest of its tenth left as fuel, so a core runs a small beam
+  but a big one is not a power plant; damage takes them as it takes a generator's and a battery's. **A core
+  draws what it holds**: its own fuel, charge and metal as gauges in three of its corners and its generator as
+  a disc in the fourth, each sized by the square root of its share of the room so that a small share still
+  shows, and the middle left for the ship's name. The Laser
   Frigate and the Beam Gunship, whose cores alone would run their beams at an eighth and a fifth of their
   rate, each give a slice of a tank or plating to a generator. The editor shows what a ship's beams draw
   firing flat out beside what it generates. Severed chunks take their own power: charge goes with its

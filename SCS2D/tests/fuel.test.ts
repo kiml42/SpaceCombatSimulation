@@ -4,6 +4,7 @@ import {
   CORE_COMPUTING_VOLUME,
   CORE_METAL_SHARE,
   CORE_GENERATOR_SHARE,
+  CORE_GENERATOR_MAX_VOLUME,
   CORE_BATTERY_SHARE,
   METAL_DENSITY,
   DECK_HEIGHT,
@@ -62,7 +63,8 @@ describe('a tank', () => {
   it('is the only kind but a core that carries any', () => {
     const core = moduleStats({ kind: 'core', x: 0, y: 0, length: 4, width: 4 });
     const spare = interior(4, 4, DECK_HEIGHT) - CORE_COMPUTING_VOLUME;
-    expect(core.fuel).toBeCloseTo(spare * (1 - CORE_METAL_SHARE - CORE_GENERATOR_SHARE - CORE_BATTERY_SHARE) * FUEL_DENSITY, 6);
+    const generator = Math.min(spare * CORE_GENERATOR_SHARE, CORE_GENERATOR_MAX_VOLUME);
+    expect(core.fuel).toBeCloseTo((spare * (1 - CORE_METAL_SHARE - CORE_BATTERY_SHARE) - generator) * FUEL_DENSITY, 3);
     expect(core.metal).toBeCloseTo(spare * CORE_METAL_SHARE * METAL_DENSITY, 6);
     // No fuel in a core with no room past its computing, and nothing else lost for it.
     const small = { kind: 'core' as const, x: 0, y: 0, length: 1, width: 1 };
