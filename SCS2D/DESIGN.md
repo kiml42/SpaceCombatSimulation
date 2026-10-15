@@ -134,7 +134,11 @@ inside any one file is not contiguous.
   off or comes out the far side — at its own speed, so crossing a long hull
   takes time; a beam pours its power into what it is burning
   through, a fifth of it taken in and the rest reflected or radiated away (`BEAM_ABSORBED_SHARE`, a stand-in
-  for heat), and bores deeper as it destroys. A module that has taken all it can
+  for heat), and bores deeper as it destroys: **a module burnt past breaking is holed**, and lets more of a
+  beam through the more of it has shed, up to half (`BEAM_FLOOR_TRANSPARENCY`) once it is down to its floor,
+  each module in turn taking its share of what is left and the next getting the rest. So a beam goes on
+  burning the plating it has broken until the welds behind it are cut and it falls away, rather than shining
+  straight through a wreck to what it was guarding. A module that has taken all it can
   stops working and goes on stopping shells, so a battered ship is sluggish and
   quiet rather than lighter, and a ship that can neither move nor shoot drifts
   as a hulk. **Damage sheds mass**: a module has lost a tenth of its structure and fittings by the time
@@ -829,7 +833,7 @@ inside any one file is not contiguous.
   reinforced and armed only with two light turrets, so its fighters do the fighting. In the
   `beamCarrier` scenario its tender, above the carrier's `refuelBelow` of a tenth, casts off at once to scavenge
   from two wrecks, and once full brings what it holds over three fifths back to the carrier; its fighters fight
-  a wave of TIEs on their batteries and come back to the pads, leaving with every store full.
+  a wave of four TIEs on their batteries and come back to the pads, leaving with every store full.
   **Metal.** A `hold` archetype whose interior is metal (`METAL_DENSITY`, steel racked about half solid), and
   a twentieth of every core's interior past its computing (`CORE_METAL_SHARE`), the rest of it still fuel, so
   a bare core with one gun can fire a few rounds. A gun loads each round whole from the holds and cores on its

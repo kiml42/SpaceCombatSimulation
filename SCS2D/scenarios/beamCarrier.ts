@@ -4,7 +4,7 @@ import { makeBattle } from './battle.js';
 import { BEAM_CARRIER, CORVETTE, TIE } from './blueprints.js';
 
 /** How many TIEs come at it. */
-const RAIDERS = 8;
+const RAIDERS = 4;
 
 /**
  * A Beam Carrier, short of fuel, against a wave of TIEs, with two wrecks behind it.

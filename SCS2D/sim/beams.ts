@@ -46,6 +46,9 @@ import { HULL_LAYER, WEAPONS_LAYER, type Hulls } from './hull.js';
  */
 export const MAX_BEAM_LENGTH = 60_000;
 
+/** The least share of a beam worth following further into a hull. */
+const MIN_BEAM_SHARE = 1e-3;
+
 /**
  * Longest beam the index can cast through a grid of this cell size, metres.
  *
@@ -107,6 +110,8 @@ export class BeamHits {
    * against a bounding circle and no module is known.
    */
   module: Int32Array;
+  /** The share of the beam's power that reaches this module: what the modules before it let through and this one stops. */
+  share: Float64Array;
   count = 0;
 
   constructor(capacity = 256) {
@@ -117,6 +122,7 @@ export class BeamHits {
     this.nx = new Float64Array(capacity);
     this.ny = new Float64Array(capacity);
     this.module = new Int32Array(capacity);
+    this.share = new Float64Array(capacity);
   }
 
   clear(): void {
@@ -142,6 +148,7 @@ export class BeamHits {
     this.nx = f64(this.nx);
     this.ny = f64(this.ny);
     this.module = i32(this.module);
+    this.share = f64(this.share);
   }
 
   /** Append an impact. Called as each beam is cast. */
@@ -153,6 +160,7 @@ export class BeamHits {
     nx: number,
     ny: number,
     module = -1,
+    share = 1,
   ): void {
     if (this.count === this.beam.length) this.grow();
     const i = this.count++;
@@ -163,6 +171,7 @@ export class BeamHits {
     this.nx[i] = nx;
     this.ny[i] = ny;
     this.module[i] = module;
+    this.share[i] = share;
   }
 }
 
@@ -375,7 +384,6 @@ export class Beams {
         nx = hulls.nx;
         ny = hulls.ny;
       }
-      hulls?.reset();
       if (nx === 0 && ny === 0) {
         const ox = hit.x - bodies.x[bi];
         const oy = hit.y - bodies.y[bi];
@@ -395,7 +403,21 @@ export class Beams {
       this.endY[i] = hit.y;
       this.pending[i] = 1;
       this.pendingCount++;
-      hits.push(i, bi, hit.x, hit.y, nx, ny, module);
+      hits.push(i, bi, hit.x, hit.y, nx, ny, module, module >= 0 && hulls !== undefined ? 1 - hulls.transparency(bi, module) : 1);
+
+      // A module burnt past breaking lets some of the beam on to the next one
+      // along, which takes its share of what is left, and so on in. What gets
+      // through the last of them is spent in the hull.
+      if (module >= 0 && hulls !== undefined) {
+        let through = hulls.transparency(bi, module);
+        for (let k = 1; k < hulls.crossings && through > MIN_BEAM_SHARE; k++) {
+          const along = hulls.select(k);
+          const clear = hulls.transparency(bi, hulls.module);
+          hits.push(i, bi, startX + dx * along, startY + dy * along, hulls.nx, hulls.ny, hulls.module, through * (1 - clear));
+          through *= clear;
+        }
+      }
+      hulls?.reset();
 
       // Reflection will make this a loop rather than a single cast, and the
       // trap waiting there is recorded in ROADMAP.md §12: a deflected beam
