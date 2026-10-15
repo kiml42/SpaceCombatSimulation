@@ -17,6 +17,7 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 
 ## General
 - Consider width and length as interchangeable for calculating turret stats. They should be based on the size of the turret on top (based on the smaller dimension) and the area within the volume of the box underneath.
+  - Barrel width should be a setting (possibly as a multiplier on what is calculated, so it can have a sensible default that scales)
 - Only the dome of turrets should be in the turret layer, the box should be wholly in the hull layer.
 - Hysteresis on decision to use attack or thrust orientation, to avoid flip-flopping.
 - Fighters should be able to dip into the hull layer (like they do for ramming) so they can fire beams and non-fragmenting projectiles at the hulls of ships. The balancing cost of this is that they can be hit by anything.
