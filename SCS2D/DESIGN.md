@@ -593,7 +593,10 @@ inside any one file is not contiguous.
   more than one side can fight on, without stopping the battle.
   **Fleet evolution** breeds fleets, scored as one entrant each, under a whole fleet's budget, a deployment
   radius and a ship count — headless with `npm run evolve -- --fleet`, and on the evolution page, whose
-  founders are ships and fleets alike; a ship grows into a fleet unless the most ships allowed is one. Before a run the page shows the founders unmutated and the run's
+  founders are ships and fleets alike; a ship grows into a fleet unless the most ships allowed is one. A fleet carries designs it does not fly: a
+  ship taken out leaves its design behind, and a ship added is built to any design the fleet carries or to a bare
+  core, so it can grow by one small ship rather than only by a copy of one it has. A design nothing flies is not
+  mutated, since nothing selects it. Before a run the page shows the founders unmutated and the run's
   first match paused at its start. Entrants can start already moving, towards the middle and across it, at speeds the run
   sets (`--closing`, `--crossing`), the same two a custom battle has.
   **Co-evolution**, headless (`evolution/coevolution.ts`, `npm run evolve -- --versus`): two lineages, side A
