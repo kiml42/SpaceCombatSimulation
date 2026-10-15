@@ -1,12 +1,8 @@
 import {
   capture,
-  compileBlueprint,
-  expandFleet,
   serialiseFleet,
-  shipFleet,
   Snapshot,
   type Fleet,
-  type ShipDesign,
 } from '../sim/index.js';
 import { Flashes } from '../render/flashes.js';
 import { ARCS_KEY, draw, nextArcs, TEAM_SHOTS_KEY, teamColour, type Arcs } from '../render/canvas2d.js';
@@ -20,9 +16,7 @@ import {
   type Camera,
 } from '../render/camera.js';
 import { BUILT_IN, FLEET_FILES, Library, toFileText } from '../editor/library.js';
-import { NO_TEAM } from '../editor/preview.js';
-import { fleetSnapshot } from '../editor/fleetPreview.js';
-import type { FleetView } from '../editor/fleetDocument.js';
+import { drawCentred, formationSnapshot, kindSnapshot, pictureOf as pictureOfFleet, type Picture, type ShipKind } from './fleetPicture.js';
 import { fitness, type Generation } from '../evolution/generation.js';
 import { DEFAULT_MATCH, isFleet, Match, type Entrant, type MatchConfig } from '../evolution/match.js';
 import { DEFAULT_FLEET_LIMITS } from '../evolution/fleetMutate.js';
@@ -336,24 +330,6 @@ function buildCombatantTable(host: HTMLElement): {
   table.append(head, body);
   host.append(table);
   return { table, body };
-}
-
-/** One kind of ship in a combatant, and how many of that kind it has. */
-interface ShipKind {
-  readonly name: string;
-  readonly design: ShipDesign;
-  readonly count: number;
-}
-
-/**
- * An individual laid out to draw — a ship as a fleet of one — what it weighs,
- * and what kinds of ship it is made of.
- */
-interface Picture {
-  readonly view: Pick<FleetView, 'ships' | 'designs'>;
-  readonly mass: number;
-  /** Largest first: a fleet is read by its heaviest ship before its escorts. */
-  readonly kinds: readonly ShipKind[];
 }
 
 /** A combatant's row in the table, and the scale its hulls were last drawn at. */
@@ -1523,7 +1499,7 @@ export function startEvolution(): void {
         const shot = oneShipSnapshot(kind);
         fleetTarget = Math.min(fleetTarget, fitScale(shot, TILE_WIDTH * ratio(), TILE_HEIGHT * ratio()));
       }
-      const whole = fleetSnapshot(picture.view, tileSnapshot, NO_TEAM);
+      const whole = formationSnapshot(picture, tileSnapshot);
       formationTarget = Math.min(
         formationTarget,
         fitScale(whole, FORMATION_WIDTH * ratio(), FORMATION_HEIGHT * ratio()),
@@ -1559,15 +1535,7 @@ export function startEvolution(): void {
   };
 
   /** One kind of ship alone at the origin, to draw or to measure. */
-  const oneShipSnapshot = (kind: ShipKind): Snapshot =>
-    fleetSnapshot(
-      {
-        ships: [{ design: kind.name, x: 0, y: 0, angle: 0, path: kind.name, entry: 0, trail: [] }],
-        designs: [kind.design],
-      },
-      tileSnapshot,
-      NO_TEAM,
-    );
+  const oneShipSnapshot = (kind: ShipKind): Snapshot => kindSnapshot(kind, tileSnapshot);
 
   /**
    * Fill in a combatant's row: who it is, what it is made of, what it scored,
@@ -1737,31 +1705,14 @@ export function startEvolution(): void {
    */
   const drawTile = (tile: Tile): void => {
     if (tile.formationDrawnAt !== formationScale) {
-      const wholeCtx = tile.formation.getContext('2d');
-      if (wholeCtx !== null) {
-        const shot = fleetSnapshot(tile.picture.view, tileSnapshot, NO_TEAM);
-        const eye: Camera = {
-          x: (shot.minX + shot.maxX) / 2,
-          y: (shot.minY + shot.maxY) / 2,
-          scale: formationScale,
-        };
-        draw(wholeCtx, shot, eye, tile.formation.width, tile.formation.height);
-        tile.formationDrawnAt = formationScale;
-      }
+      drawCentred(tile.formation, formationSnapshot(tile.picture, tileSnapshot), formationScale);
+      tile.formationDrawnAt = formationScale;
     }
 
     if (tile.drawnAt === fleetScale) return;
     for (const [i, canvas] of tile.canvases.entries()) {
       const kind = tile.picture.kinds[i];
-      const tileCtx = canvas.getContext('2d');
-      if (kind === undefined || tileCtx === null) continue;
-      const shot = oneShipSnapshot(kind);
-      const eye: Camera = {
-        x: (shot.minX + shot.maxX) / 2,
-        y: (shot.minY + shot.maxY) / 2,
-        scale: fleetScale,
-      };
-      draw(tileCtx, shot, eye, canvas.width, canvas.height);
+      if (kind !== undefined) drawCentred(canvas, oneShipSnapshot(kind), fleetScale);
     }
     tile.drawnAt = fleetScale;
   };
@@ -1822,35 +1773,7 @@ export function startEvolution(): void {
   const pictureOf = (id: number, entrant: Entrant): Picture => {
     const held = pictures.get(id);
     if (held !== undefined) return held;
-    const fleet = isFleet(entrant) ? entrant : shipFleet(entrant);
-    const compiled = new Map<string, ShipDesign>();
-    const ships = expandFleet(fleet);
-    const designs = ships.map((ship) => {
-      let design = compiled.get(ship.design);
-      if (design === undefined) {
-        design = compileBlueprint(fleet.designs[ship.design]!);
-        compiled.set(ship.design, design);
-      }
-      return design;
-    });
-    // One entry per kind of ship, heaviest first: what a fleet is made of,
-    // which is the thing a picture of the whole fleet cannot show at the size
-    // a row gives it.
-    const counted = new Map<string, { design: ShipDesign; count: number }>();
-    ships.forEach((ship, i) => {
-      const held = counted.get(ship.design);
-      if (held === undefined) counted.set(ship.design, { design: designs[i]!, count: 1 });
-      else held.count += 1;
-    });
-    const kinds: ShipKind[] = [...counted]
-      .map(([name, { design, count }]) => ({ name, design, count }))
-      .sort((a, b) => b.design.mass - a.design.mass || a.name.localeCompare(b.name));
-
-    const picture: Picture = {
-      view: { ships, designs },
-      mass: designs.reduce((sum, d) => sum + d.mass, 0),
-      kinds,
-    };
+    const picture = pictureOfFleet(entrant);
     pictures.set(id, picture);
     while (pictures.size > DESIGNS_KEPT) {
       const oldest = pictures.keys().next();

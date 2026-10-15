@@ -53,7 +53,7 @@
       main { flex: 1; display: flex; min-height: 0; }
       [hidden] { display: none !important; }
       #panel {
-        width: 20rem;
+        width: 26rem;
         max-width: 45vw;
         border-left: 1px solid #1c2533;
         overflow-y: auto;
@@ -93,6 +93,37 @@
       #outcome { font-size: 15px; margin: 0.8rem 0 0.3rem; }
       #outcome.won { color: #7fd18b; }
       #outcome.lost { color: #e8796b; }
+      .match { border: 1px solid #1c2533; border-radius: 4px; padding: 0.4rem; margin: 0.4rem 0; }
+      .match.playerWon { border-left: 3px solid #7fd18b; }
+      .match.enemyWon { border-left: 3px solid #e8796b; }
+      .matchHead { display: flex; justify-content: space-between; align-items: center; color: #8fa2b8; margin-bottom: 0.2rem; }
+      .matchHead button, .rowButtons button { padding: 0.05rem 0.5rem; font-size: 12px; }
+      .combatant { display: grid; grid-template-columns: 4.6rem 1fr; gap: 0.1rem 0.4rem; align-items: center; margin: 0.3rem 0; }
+      .combatant .pictures, .combatant .rowButtons, .combatant > .muted { grid-column: 2; }
+      .who { display: flex; align-items: center; gap: 0.3rem; flex-wrap: wrap; }
+      .stamp {
+        grid-row: span 3;
+        align-self: start;
+        text-align: center;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        border: 2px solid currentColor;
+        border-radius: 3px;
+        padding: 0.1rem 0.2rem;
+        transform: rotate(-6deg);
+      }
+      .stamp.won { color: #7fd18b; }
+      .stamp.beaten { color: #e8796b; }
+      .stamp.drew { color: #e9c05f; }
+      .pictures { display: flex; flex-wrap: wrap; gap: 0.2rem; align-items: center; }
+      .pictures canvas { background: #0f1520; border-radius: 2px; }
+      .kind { position: relative; display: inline-block; }
+      .kind .count { position: absolute; right: 2px; bottom: 0; font-size: 11px; color: #e6edf5; }
+      .rowButtons { display: flex; gap: 0.3rem; }
+      details.chain { margin: 0.4rem 0; }
+      details.chain summary { cursor: pointer; padding: 0.2rem 0.4rem; border-radius: 3px; background: #131b27; }
+      details.chain summary.playerLost { color: #e8796b; }
+      details.chain summary.enemyLost { color: #7fd18b; }
       @media (max-width: 800px) {
         main { flex-direction: column; }
         #panel { width: auto; max-width: none; border-left: none; border-top: 1px solid #1c2533; }
@@ -156,6 +187,11 @@
           <h2>Sides</h2>
           <div id="sides"></div>
           <div class="buttons"><button id="abandon" title="Give up this skirmish and start another">New skirmish</button></div>
+        </section>
+        <section id="history" hidden>
+          <h2>History</h2>
+          <div class="buttons" id="replaying" hidden><button id="backToRound" class="primary">Back to the round</button></div>
+          <div id="timeline"></div>
         </section>
       </aside>
     </main>
