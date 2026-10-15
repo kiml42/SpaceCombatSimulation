@@ -452,8 +452,10 @@ Deliberately unresolved; decide when they block something.
   part of the curve inside the engagement ranges this game means to reach. It is the number to revisit first
   when intensity acquires a consumer.
 - **What a beam turret's duty cycle should be.** `BEAM_DUTY_CYCLE` is a flat fraction standing in for a
-  system that does not exist. (Hull beams have moved off it to a fixed recovery time, `BEAM_RECHARGE_TIME`;
-  the turret entry above says why turrets have not.) Power is built: both are now the fastest the mount's own
+  system that does not exist. (Hull beams have moved off it to a fixed recovery time, `BEAM_RECHARGE_TIME`,
+  longer for a block whose bank burns for less than `BEAM_COOLING_BURN`; the turret entry above says why
+  turrets have not.) How much of a beam a hull takes in, `BEAM_ABSORBED_SHARE` (a fifth), is the same heat
+  question from the other side. Power is built: both are now the fastest the mount's own
   gear refills its bank, and a ship short of power refills slower. What is left is heat: the mount can keep firing until its heat sinks are full, which is a heat model and is properly a
   *cumulative* limit across an engagement rather than a per-shot one — a beam mount should warm up over minutes
   and eventually have to stop, not reload. Worth knowing how large that problem is: radiating 300 MW of waste

@@ -1267,6 +1267,13 @@ export class ImpactLog {
 /** Kinds of impact, as the log records them. */
 export const IMPACT_ROUND = 0;
 export const IMPACT_BEAM = 1;
+
+/**
+ * The share of a beam's power that what it hits takes in, the rest reflected
+ * or radiated back off a surface it has made glow. **A stop-gap until heat is
+ * modelled**, which would decide how much a hull sheds.
+ */
+export const BEAM_ABSORBED_SHARE = 0.2;
 /** Two hulls meeting. Drawn like a round's: a flash, not a glow. */
 export const IMPACT_COLLISION = 2;
 /** A shell bursting, in open space or not. */
@@ -1500,7 +1507,8 @@ export class Impacts {
   }
 
   /**
-   * Pour every beam's power into what it is burning through.
+   * Pour every beam's power, the share `BEAM_ABSORBED_SHARE` of it that is not
+   * reflected or radiated away, into what it is burning through.
    *
    * A beam is not a round: there is no perforation law for it, and no residual
    * to carry deeper. It deposits `power · dt` into the module it reached —
@@ -1517,7 +1525,7 @@ export class Impacts {
     credit?: Credit,
   ): void {
     for (let i = 0; i < hits.count; i++) {
-      const energy = beams.power[hits.beam[i]!]! * dt;
+      const energy = beams.power[hits.beam[i]!]! * BEAM_ABSORBED_SHARE * dt;
       damage.absorb(hits.body[i]!, hits.module[i]!, energy);
       this.log.push(hits.x[i]!, hits.y[i]!, energy, IMPACT_BEAM, bodies, hits.body[i]!);
       credit?.push(beams.owner[hits.beam[i]!]!, hits.body[i]!, energy, hits.module[i]!);

@@ -608,6 +608,15 @@ export const BEAM_DUTY_CYCLE = 0.25;
 export const BEAM_RECHARGE_TIME = 0.7;
 
 /**
+ * The shortest burn a hull beam's block can cool after in `BEAM_RECHARGE_TIME`,
+ * seconds. A block too small for its emitter burns for less, and recovers that
+ * much slower in proportion: a block that holds half this burn takes twice as
+ * long. **A stop-gap until heat is modelled**, when how much block an emitter
+ * has to shed its heat into should decide it.
+ */
+export const BEAM_COOLING_BURN = 0.5;
+
+/**
  * Depth of the emitter housing, in apertures.
  *
  * A laser has no barrel. What protrudes is the housing round the final optic,
@@ -2206,7 +2215,8 @@ export function hullBeamStats(spec: ModuleSpec): GunStats {
   // firing — where a flat duty cycle would have made a bigger bank buy a
   // longer shot and an exactly proportionally longer wait, which is no gain at
   // all on the only figure that matters over a battle.
-  const cycleTime = beamOnTime + BEAM_RECHARGE_TIME;
+  const recharge = beamOnTime > 0 && beamOnTime < BEAM_COOLING_BURN ? (BEAM_RECHARGE_TIME * BEAM_COOLING_BURN) / beamOnTime : BEAM_RECHARGE_TIME;
+  const cycleTime = beamOnTime + recharge;
 
   return {
     type: GunType.Beam,

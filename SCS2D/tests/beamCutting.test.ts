@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  BEAM_ABSORBED_SHARE,
   BeamHits,
   Beams,
   Impacts,
@@ -23,8 +24,11 @@ import { BEAM_CORVETTE, CORVETTE } from '../scenarios/blueprints.js';
 
 const corvette: ShipDesign = compileBlueprint(CORVETTE);
 const beamShip: ShipDesign = compileBlueprint(BEAM_CORVETTE);
-/** What a real emitter on a real ship puts out, so the rate means something. */
-const POWER = beamShip.turrets[0]!.gun.beamPower;
+/**
+ * Enough that a hull takes in what a real emitter on a real ship puts out, so
+ * the rate means something.
+ */
+const POWER = beamShip.turrets[0]!.gun.beamPower / BEAM_ABSORBED_SHARE;
 
 interface Burn {
   world: World;
@@ -79,6 +83,15 @@ function deepestCut(b: Burn): number {
 }
 
 describe('a beam held on a hull', () => {
+  it('leaves only the share of its power the hull takes in', () => {
+    const b = burn();
+    b.fire(0);
+    let taken = 0;
+    for (let m = 0; m < corvette.modules.length; m++) taken += b.ships.damage.absorbedAt(b.body, m);
+    expect(taken).toBeCloseTo((POWER * BEAM_ABSORBED_SHARE) / 60, 3);
+    expect(BEAM_ABSORBED_SHARE).toBeLessThan(1);
+  });
+
   it('cuts nothing until it has bored its way in', () => {
     // A beam stopped at the outer plating has crossed no seam: it is making a
     // hole in one module, and a hole in a module is not a cut through a weld.

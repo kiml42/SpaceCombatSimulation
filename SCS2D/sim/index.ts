@@ -413,6 +413,7 @@ export {
   Damage,
   DamageEffect,
   IMPACT_BEAM,
+  BEAM_ABSORBED_SHARE,
   IMPACT_BURST,
   IMPACT_COLLISION,
   IMPACT_MUZZLE,
