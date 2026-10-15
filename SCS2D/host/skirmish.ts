@@ -1,4 +1,4 @@
-import { serialiseFleet, type Fleet } from '../sim/index.js';
+import { serialiseFleet, type Budget, type Fleet } from '../sim/index.js';
 import { teamColour } from '../render/canvas2d.js';
 import { FLEET_FILES, Library, unusedName } from '../editor/library.js';
 import { shipFleet } from '../editor/handoff.js';
@@ -232,11 +232,38 @@ export function startSkirmish(): void {
 
   // ---- the setup ------------------------------------------------------------
 
-  /** The enemy alone, to look at while choosing. */
+  // The budget boxes in the units the evolution page uses: tonnes and minutes.
+  const BUDGET_UNITS: Record<keyof Budget, number> = { metal: 1000, fuel: 1000, build: 60 };
+  const budgetInput = (key: keyof Budget): HTMLInputElement => el<HTMLInputElement>(`${key}Budget`);
+  /** What the enemy cost, exactly, behind boxes showing it rounded. */
+  let enemyCost: Budget | null = null;
+  const matchEnemy = (): void => {
+    for (const key of Object.keys(BUDGET_UNITS) as (keyof Budget)[]) {
+      const input = budgetInput(key);
+      input.value = enemyCost === null ? '' : String(Math.round((enemyCost[key] / BUDGET_UNITS[key]) * 100) / 100);
+      input.dataset['shown'] = input.value;
+    }
+  };
+  /** The budget the boxes say: one left as the enemy's cost is that cost exactly, and one blank or unreadable too. */
+  const readBudget = (cost: Budget): Budget => {
+    const out = { ...cost };
+    for (const key of Object.keys(BUDGET_UNITS) as (keyof Budget)[]) {
+      const input = budgetInput(key);
+      const raw = input.value.trim();
+      const n = raw === '' ? NaN : Number(raw);
+      if (raw !== input.dataset['shown'] && Number.isFinite(n)) out[key] = Math.max(0, n) * BUDGET_UNITS[key];
+    }
+    return out;
+  };
+  el<HTMLButtonElement>('matchEnemy').addEventListener('click', matchEnemy);
+
+  /** The enemy alone, to look at while choosing, its cost the budget. */
   const preview = (): void => {
     const enemy = read(enemySelect.value);
     const flies = enemy !== null && fleetFault(enemy) === null;
-    el<HTMLElement>('enemyBill').innerHTML = flies ? billRows(billOfFleet(enemy)) : '';
+    enemyCost = flies ? billOfFleet(enemy) : null;
+    el<HTMLElement>('enemyBill').innerHTML = enemyCost !== null ? billRows(enemyCost) : '';
+    matchEnemy();
     battle = null;
     if (flies) view.show(enemyAlone(enemy), false);
   };
@@ -290,6 +317,7 @@ export function startSkirmish(): void {
   el<HTMLButtonElement>('resetSettings').addEventListener('click', () => {
     showSettings(DEFAULT_SKIRMISH_SETTINGS);
     keepSettings();
+    matchEnemy();
   });
   el<HTMLButtonElement>('start').addEventListener('click', () => {
     const enemy = read(enemySelect.value);
@@ -302,7 +330,7 @@ export function startSkirmish(): void {
     const player = startSelect.value === EMPTY ? { name: 'My fleet', designs: {}, ships: [] } : read(startSelect.value);
     if (player === null) return;
     // The page's own randomness, not the battle's: it only picks which battle.
-    skirmish = newSkirmish(enemy, player, Math.floor(Math.random() * 2 ** 32), readSettings());
+    skirmish = newSkirmish(enemy, player, Math.floor(Math.random() * 2 ** 32), readSettings(), readBudget(billOfFleet(enemy)));
     save();
     // Nothing to fight with yet: straight to the editor to build it.
     if (player.ships.length === 0) window.location.href = `fleet.html${skirmishFragment(skirmish)}`;
