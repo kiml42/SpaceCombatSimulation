@@ -296,11 +296,9 @@ Deliberately unresolved; decide when they block something.
 - **Whether the skirmish enemy should prefer the cheapest fleet that wins.** It stops at the first winner,
   so it grows only as it must, but it never shrinks, and drifts larger round by round. A preference for
   efficiency would let it get leaner as well as stronger.
-- **How the skirmish enemy adds a ship.** A round may grow it by half as much again, but the one way to add
-  a ship copies one already there, so a lone Gunship can only grow by a ship much lighter than itself it does
-  not have. Planned with the author: a fleet carries designs it does not fly, latent and not mutated, a ship
-  removed leaving its design latent; *add* builds a latent design or a bare core, whatever fits. Ships that
-  carry their own parent designs, as fighters do, come later.
+- **Adding a carrier with the designs of its craft.** A fleet adds a ship from the designs it carries, flown
+  or not, or a bare core. A ship that docks smaller ones, as a carrier docks fighters, does not yet
+  bring their designs with it.
 - **The skirmish's numbers.** How long without firing puts a side out of a battle (30 s), the time cap on a
   stalemate (600 s), and the enemy's search: five mutants a generation, three seeds each, 180 s a match, growth
   of 1.5× a round and as much again every 20 generations without an answer, and
