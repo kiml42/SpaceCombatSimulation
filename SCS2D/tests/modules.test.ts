@@ -10,6 +10,7 @@ import {
   BEAM_EMITTER_APERTURES,
   BEAM_MASS_PER_WATT,
   BEAM_RECHARGE_TIME,
+  BEAM_COOLING_BURN,
   BEAM_STORED_ENERGY_PER_VOLUME,
   CALIBRE_FRACTION,
   CORE_MASS_PER_AREA,
@@ -423,17 +424,31 @@ describe('hull mount scaling', () => {
     expect(thick.beamPower).toBeCloseTo(thin.beamPower, 6);
   });
 
-  it('takes the same time to recover however big the mount is', () => {
+  it('takes the same time to recover however big the mount is, once its block is big enough', () => {
     // A time rather than a rate, because the bank and the plant that refills
     // it are the same machinery: the volume cancels and what is left is the
     // technology. It is what stops depth being free.
     const beam = (length: number, width: number) =>
       moduleStats({ kind: 'hullBeam', x: 0, y: 0, length, width }).gun!;
-    const small = beam(4, 2);
-    const large = beam(32, 16);
-    expect(large.beamPower).toBeGreaterThan(small.beamPower * 50);
-    expect(large.cycleTime - large.beamOnTime).toBeCloseTo(small.cycleTime - small.beamOnTime, 9);
+    const mid = beam(24, 8);
+    const large = beam(48, 16);
+    expect(mid.beamOnTime).toBeGreaterThanOrEqual(BEAM_COOLING_BURN);
+    expect(large.beamPower).toBeGreaterThan(mid.beamPower * 3);
     expect(large.cycleTime - large.beamOnTime).toBeCloseTo(BEAM_RECHARGE_TIME, 9);
+    expect(mid.cycleTime - mid.beamOnTime).toBeCloseTo(BEAM_RECHARGE_TIME, 9);
+  });
+
+  it('recovers slower from a block too small for its emitter', () => {
+    // The same emitter on a shorter block: a smaller bank, burning for less,
+    // with less to shed its heat into.
+    const beam = (length: number) => moduleStats({ kind: 'hullBeam', x: 0, y: 0, length, width: 6 }).gun!;
+    const long = beam(12);
+    const short = beam(3);
+    expect(short.beamPower).toBeCloseTo(long.beamPower, 6);
+    expect(short.beamOnTime).toBeLessThan(BEAM_COOLING_BURN);
+    const recovery = short.cycleTime - short.beamOnTime;
+    expect(recovery).toBeCloseTo((BEAM_RECHARGE_TIME * BEAM_COOLING_BURN) / short.beamOnTime, 9);
+    expect(short.beamOnTime / short.cycleTime).toBeLessThan(long.beamOnTime / long.cycleTime);
   });
 
   it('leaves a single-lens beam at the mounting\'s limit', () => {

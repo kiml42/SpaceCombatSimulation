@@ -133,7 +133,8 @@ inside any one file is not contiguous.
   its path, each taking the energy its armour stopped, until it embeds, skids
   off or comes out the far side — at its own speed, so crossing a long hull
   takes time; a beam pours its power into what it is burning
-  through, and bores deeper as it destroys. A module that has taken all it can
+  through, a fifth of it taken in and the rest reflected or radiated away (`BEAM_ABSORBED_SHARE`, a stand-in
+  for heat), and bores deeper as it destroys. A module that has taken all it can
   stops working and goes on stopping shells, so a battered ship is sluggish and
   quiet rather than lighter, and a ship that can neither move nor shoot drifts
   as a hulk. **Damage sheds mass**: a module has lost a tenth of its structure and fittings by the time
@@ -1182,7 +1183,10 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   longer shot and an exactly proportionally longer wait, and so buy nothing. The lens housing earns
   the beam nothing, since the aperture comes from the mount's width, so it is not a knob: it is as deep
   as a turret's, and the block is the rest. What would make it one is the housing buying focus, which
-  ROADMAP.md §12 holds with the rest of the optics.
+  ROADMAP.md §12 holds with the rest of the optics. **A block too small for its emitter recovers slower**:
+  one whose bank burns for less than `BEAM_COOLING_BURN` (0.5 s) takes that much longer in proportion, so
+  a stub of block behind a full-width lens no longer fires as often as a deep one, standing in for the heat
+  it has less room to shed.
 - **A weapon carries the gear that trains it, and a layout may say how much arc to build for.** Until
   this a mount weighed its barrels and the machinery that loads them, as though it were pointed by hand.
   The `traverse` a layout asks for is a *limit* — the archetype's own arc and whatever the ship is in the

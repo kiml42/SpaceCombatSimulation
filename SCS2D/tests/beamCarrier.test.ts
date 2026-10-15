@@ -37,7 +37,7 @@ describe('the Beam Carrier', () => {
     const out = new Set(FIGHTERS.filter((f) => ships.body(f) !== ships.body(CARRIER)));
     expect(out.size).toBe(FIGHTERS.length);
     let landed = -1;
-    for (let s = 0; s < 120 * 60 && landed < 0; s++) {
+    for (let s = 0; s < 180 * 60 && landed < 0; s++) {
       step();
       landed = FIGHTERS.find((f) => ships.isAlive(f) && ships.body(f) === ships.body(CARRIER)) ?? -1;
     }
