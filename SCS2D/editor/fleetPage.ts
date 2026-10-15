@@ -37,6 +37,7 @@ import { battleHref, designHref, handedFleet } from './handoff.js';
 import {
   billOfFleet,
   canFight,
+  fleetFault,
   handedSkirmish,
   serialiseSkirmish,
   skirmishFragment,
@@ -338,6 +339,15 @@ export function startFleetEditor(): void {
     for (const input of [entryX, entryY, stepX, stepY]) input.step = step;
   };
 
+  // Ships overlapping, or a design that would not fly, keep the fleet here until fixed.
+  const refuseFaulty = (event: Event): boolean => {
+    const fault = doc.view.faults[0];
+    if (fault === undefined) return false;
+    event.preventDefault();
+    window.alert(`Fix the fleet first: ${fault}`);
+    return true;
+  };
+
   const skirmishPanel = el<HTMLElement>('skirmish');
   const backToSkirmish = el<HTMLAnchorElement>('backToSkirmish');
   let keepTimer: ReturnType<typeof setTimeout> | undefined;
@@ -345,13 +355,19 @@ export function startFleetEditor(): void {
     if (skirmish === null) return;
     const now: Skirmish = { ...skirmish, player: doc.fleet };
     el<HTMLElement>('skirmishTitle').textContent = `Skirmish — round ${now.round}`;
-    el<HTMLElement>('skirmishBudget').innerHTML = budgetRows(billOfFleet(now.player), now.budget);
-    const fits = canFight(now);
+    const fault = fleetFault(now.player);
+    el<HTMLElement>('skirmishBudget').innerHTML = fault !== null ? '' : budgetRows(billOfFleet(now.player), now.budget);
+    const flies = doc.view.faults.length === 0;
+    const fits = flies && canFight(now);
     el<HTMLElement>('skirmishNote').textContent = fits
       ? `Against ${now.enemy.name}.`
       : now.player.ships.length === 0
         ? 'Add a ship to fight with.'
-        : 'Over budget: cut it down to fight.';
+        : fault !== null
+          ? 'Priced once every design would fly.'
+          : !flies
+            ? 'Fix the problems listed to fight.'
+            : 'Over budget: cut it down to fight.';
     backToSkirmish.classList.toggle('blocked', !fits);
     // Kept as it is edited, in the address and in storage, so a reload or the
     // skirmish page picks up where this left off.
@@ -371,10 +387,15 @@ export function startFleetEditor(): void {
     // One way into a battle, and it is the skirmish's: a custom battle beside it reads as the same thing.
     el<HTMLElement>('battleLink').hidden = true;
     backToSkirmish.addEventListener('click', (event) => {
+      if (refuseFaulty(event)) return;
       const now: Skirmish = { ...skirmish!, player: doc.fleet };
       if (!canFight(now)) {
         event.preventDefault();
-        window.alert(now.player.ships.length === 0 ? 'Add a ship to fight with first.' : 'The fleet is over budget: cut it down to fight.');
+        window.alert(
+          now.player.ships.length === 0
+            ? 'Add a ship to fight with first.'
+            : 'The fleet is over budget: cut it down to fight.',
+        );
         return;
       }
       (event.currentTarget as HTMLAnchorElement).href = `skirmish.html${skirmishFragment(now)}`;
@@ -383,6 +404,7 @@ export function startFleetEditor(): void {
 
   const refresh = (): void => {
     renderSkirmish();
+    el<HTMLElement>('battleLink').classList.toggle('blocked', doc.view.faults.length > 0);
     if (document.activeElement !== fleetName) fleetName.value = doc.fleet.name;
     if (document.activeElement !== fleetNotes) fleetNotes.value = doc.fleet.notes ?? '';
     undoButton.disabled = !doc.canUndo;
@@ -875,6 +897,7 @@ export function startFleetEditor(): void {
 
   // The fleet as it stands, saved or not, goes with the link.
   el<HTMLAnchorElement>('battleLink').addEventListener('click', (event) => {
+    if (refuseFaulty(event)) return;
     (event.currentTarget as HTMLAnchorElement).href = battleHref(doc.fleet);
   });
 

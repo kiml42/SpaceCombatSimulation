@@ -99,7 +99,7 @@ import {
 import { battleHref, designHref, fleetHref, handedDesign, shipFleet, type DesignInFleet } from './handoff.js';
 import { replaceDesign, replacedName } from './fleetEdit.js';
 import { budgetRows } from './budget.js';
-import { billOfFleet, canFight } from '../scenarios/skirmish.js';
+import { billOfFleet, canFight, fleetFault } from '../scenarios/skirmish.js';
 import { Demonstration } from './demonstrate.js';
 import { drawOverlay, envelopeBearingAt, overEnvelope } from './overlay.js';
 import {
@@ -1219,11 +1219,16 @@ export function startEditor(): void {
     const fleet = replaceDesign(inFleet.fleet, inFleet.design, doc.blueprint);
     const skirmish = inFleet.skirmish;
     el<HTMLElement>('inFleetTitle').textContent = skirmish === undefined ? `In ${fleet.name}` : `Skirmish — round ${skirmish.round}`;
-    el<HTMLElement>('inFleetBudget').innerHTML = skirmish === undefined ? '' : budgetRows(billOfFleet(fleet), skirmish.budget);
+    // A design that would not fly cannot be priced, and is an ordinary state to be editing in.
+    const fault = skirmish === undefined ? null : fleetFault(fleet);
+    el<HTMLElement>('inFleetBudget').innerHTML =
+      skirmish === undefined || fault !== null ? '' : budgetRows(billOfFleet(fleet), skirmish.budget);
     el<HTMLElement>('inFleetNote').textContent =
       skirmish === undefined
         ? 'Back to fleet takes this design back to every ship of it in the fleet.'
-        : canFight({ ...skirmish, player: fleet })
+        : fault !== null
+          ? 'Priced once the fleet would fly.'
+          : canFight({ ...skirmish, player: fleet })
           ? `The fleet with this design, against ${skirmish.enemy.name}.`
           : 'The fleet with this design is over budget.';
     // Kept in the address as it is edited, so a reload picks up where this left off.
@@ -1234,20 +1239,32 @@ export function startEditor(): void {
       history.replaceState(null, '', designHref({ ...inFleet, fleet, design }).slice('editor.html'.length));
     }, 300);
   };
+  // A design that would not fly stays here until it would, so a fleet never
+  // carries one it cannot be fixed from.
+  const exits = [el<HTMLAnchorElement>('backToFleet'), el<HTMLAnchorElement>('battleLink')];
+  const refuseBroken = (event: Event): boolean => {
+    const problem = doc.view.problems[0];
+    if (problem === undefined) return false;
+    event.preventDefault();
+    window.alert(`Fix the design first: ${problem}`);
+    return true;
+  };
   if (inFleet !== null) {
     el<HTMLElement>('inFleet').hidden = false;
     const back = el<HTMLAnchorElement>('backToFleet');
     back.hidden = false;
     // One way back into a battle when in a skirmish, and it is through the fleet.
     if (inFleet.skirmish !== undefined) el<HTMLElement>('battleLink').hidden = true;
-    back.addEventListener('click', () => {
-      if (inFleet === null) return;
+    back.addEventListener('click', (event) => {
+      if (inFleet === null || refuseBroken(event)) return;
       back.href = fleetHref(replaceDesign(inFleet.fleet, inFleet.design, doc.blueprint), inFleet.skirmish);
     });
   }
 
   const refresh = (): void => {
     renderInFleet();
+    const broken = doc.view.problems.length > 0;
+    for (const link of exits) link.classList.toggle('blocked', broken);
     const design = doc.view.design;
     envelope = design === null ? null : envelopes(design);
     if (document.activeElement !== shipName) shipName.value = doc.blueprint.name;
@@ -2391,6 +2408,7 @@ export function startEditor(): void {
 
   // The ship as it stands, as a fleet of one, goes with the link.
   el<HTMLAnchorElement>('battleLink').addEventListener('click', (event) => {
+    if (refuseBroken(event)) return;
     (event.currentTarget as HTMLAnchorElement).href = battleHref(shipFleet(doc.blueprint));
   });
 

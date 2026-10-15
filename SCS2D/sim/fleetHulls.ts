@@ -17,15 +17,18 @@ export interface FleetHull {
   readonly modules: readonly ModuleSpec[];
 }
 
-/** Every ship of a fleet, compiled. Throws if any design is not a ship. */
+/** Every ship of a fleet, compiled. Throws if a design a ship flies is not a ship. */
 export function fleetHulls(fleet: Fleet): FleetHull[] {
+  // Only what is flown: a design the fleet carries but no ship flies is not compiled.
   const compiled = new Map<string, { design: ShipDesign; modules: ModuleSpec[] }>();
-  for (const [name, blueprint] of Object.entries(fleet.designs)) {
-    compiled.set(name, { design: compileBlueprint(blueprint), modules: expandBlueprint(blueprint) });
-  }
   return expandFleet(fleet).map((ship) => {
-    const { design, modules } = compiled.get(ship.design)!;
-    return { ship, design, modules: placeModules(modules, ship) };
+    let found = compiled.get(ship.design);
+    if (found === undefined) {
+      const blueprint = fleet.designs[ship.design]!;
+      found = { design: compileBlueprint(blueprint), modules: expandBlueprint(blueprint) };
+      compiled.set(ship.design, found);
+    }
+    return { ship, design: found.design, modules: placeModules(found.modules, ship) };
   });
 }
 

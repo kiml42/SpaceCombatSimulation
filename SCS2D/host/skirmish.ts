@@ -8,6 +8,7 @@ import { Activity, type Decision } from '../scenarios/decision.js';
 import {
   billOfFleet,
   canFight,
+  fleetFault,
   handedSkirmish,
   lost,
   newSkirmish,
@@ -192,9 +193,10 @@ export function startSkirmish(): void {
   /** The enemy alone, to look at while choosing. */
   const preview = (): void => {
     const enemy = read(enemySelect.value);
-    el<HTMLElement>('enemyBill').innerHTML = enemy === null ? '' : billRows(billOfFleet(enemy));
+    const flies = enemy !== null && fleetFault(enemy) === null;
+    el<HTMLElement>('enemyBill').innerHTML = flies ? billRows(billOfFleet(enemy)) : '';
     battle = null;
-    if (enemy !== null) view.show(enemyAlone(enemy), false);
+    if (flies) view.show(enemyAlone(enemy), false);
   };
   const showSetup = (): void => {
     el<HTMLElement>('history').hidden = true;
@@ -209,6 +211,11 @@ export function startSkirmish(): void {
   el<HTMLButtonElement>('start').addEventListener('click', () => {
     const enemy = read(enemySelect.value);
     if (enemy === null) return;
+    const enemyFault = fleetFault(enemy);
+    if (enemyFault !== null) {
+      window.alert(`That enemy would not fly: ${enemyFault}`);
+      return;
+    }
     const player = startSelect.value === EMPTY ? { name: 'My fleet', designs: {}, ships: [] } : read(startSelect.value);
     if (player === null) return;
     // The page's own randomness, not the battle's: it only picks which battle.
@@ -238,13 +245,16 @@ export function startSkirmish(): void {
       `Round ${skirmish.round}` + (skirmish.tries > 0 ? ` · try ${skirmish.tries + 1}` : '');
     el<HTMLElement>('enemyName').textContent = `Against ${skirmish.enemy.name}.`;
     el<HTMLElement>('playerName').textContent = skirmish.player.name;
-    el<HTMLElement>('budget').innerHTML = budgetRows(billOfFleet(skirmish.player), skirmish.budget);
+    const fault = fleetFault(skirmish.player);
+    el<HTMLElement>('budget').innerHTML = fault !== null ? '' : budgetRows(billOfFleet(skirmish.player), skirmish.budget);
     const fits = canFight(skirmish);
     el<HTMLElement>('fleetNote').textContent = fits
       ? ''
       : skirmish.player.ships.length === 0
         ? 'Your fleet has no ships: edit it to add some.'
-        : 'Your fleet is over budget: edit it to cut it down.';
+        : fault !== null
+          ? `Your fleet would not fly: ${fault}. Edit it to fix that.`
+          : 'Your fleet is over budget: edit it to cut it down.';
     playButton.disabled = !fits;
     el<HTMLButtonElement>('retry').disabled = !fits;
     editFleet.hidden = false;

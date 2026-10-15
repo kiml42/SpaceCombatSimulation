@@ -8,9 +8,10 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import type { Browser, Page } from 'playwright';
 import { launchChromium } from './launch.js';
-import { shipFleet } from '../../sim/index.js';
-import { CORVETTE } from '../../scenarios/blueprints.js';
+import { shipFleet, type Blueprint } from '../../sim/index.js';
+import { CORVETTE, GUNSHIP } from '../../scenarios/blueprints.js';
 import { newSkirmish, skirmishFragment, won } from '../../scenarios/skirmish.js';
+import { designHref } from '../../editor/handoff.js';
 
 /**
  * The skirmish loop in a real browser: choosing an enemy and a fleet, fighting,
@@ -116,6 +117,32 @@ describe('the skirmish in a browser', () => {
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
     expect(await page.textContent('#selectionTitle')).toBe('Ship: Gunship Mk II');
     expect(await page.isVisible('#skirmish')).toBe(true);
+    expect(problems).toEqual([]);
+  });
+
+  it('opens a design that would not fly in the ship editor without throwing', async () => {
+    const adrift: Blueprint = { ...GUNSHIP, name: 'Adrift', modules: [...GUNSHIP.modules, { kind: 'engine', x: 0, y: 200, length: 3, width: 3 }] };
+    const href = designHref({ fleet: shipFleet(adrift), design: 'Adrift', skirmish: newSkirmish(shipFleet(GUNSHIP), shipFleet(GUNSHIP), 3) });
+    await page.goto(pathToFileURL(join(root, 'dist', 'editor.html')).href + href.slice('editor.html'.length));
+    await page.waitForSelector('#backToFleet:not([hidden])');
+    expect(await page.textContent('#inFleetNote')).toBe('Priced once the fleet would fly.');
+    expect(await page.textContent('#inFleetBudget')).toBe('');
+    // It cannot go back to the fleet, or into a battle, until it would fly.
+    expect(await page.getAttribute('#backToFleet', 'class')).toContain('blocked');
+    await page.click('#backToFleet');
+    expect(page.url()).toContain('editor.html#design=');
+    expect(problems).toEqual([]);
+  });
+
+  it('keeps a fleet with ships on top of each other out of battle', async () => {
+    const stacked = { ...shipFleet(GUNSHIP), ships: [{ design: 'Gunship', x: 0, y: 0 }, { design: 'Gunship', x: 0, y: 0 }] };
+    const skirmish = { ...newSkirmish(stacked, stacked, 3), player: stacked };
+    await page.goto(pathToFileURL(join(root, 'dist', 'fleet.html')).href + skirmishFragment(skirmish));
+    await page.waitForSelector('#backToSkirmish:not([hidden])');
+    expect(await page.textContent('#skirmishNote')).toBe('Fix the problems listed to fight.');
+    expect(await page.getAttribute('#backToSkirmish', 'class')).toContain('blocked');
+    await page.click('#backToSkirmish');
+    expect(page.url()).toContain('fleet.html#skirmish=');
     expect(problems).toEqual([]);
   });
 
