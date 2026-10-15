@@ -124,14 +124,31 @@
       details.chain summary { cursor: pointer; padding: 0.2rem 0.4rem; border-radius: 3px; background: #131b27; }
       details.chain summary.playerLost { color: #e8796b; }
       details.chain summary.enemyLost { color: #7fd18b; }
+      /* Before a skirmish, its settings beside the enemy it would face; during one, the round's panel. */
+      #setupScreen { flex: 1.4; overflow-y: auto; padding: 0.7rem 0.9rem 2rem; border-right: 1px solid #1c2533; min-width: 0; }
+      body:not(.screenSetup) #setupScreen, body.screenSetup #panel { display: none !important; }
+      .cards { columns: 16rem; column-gap: 1.6rem; }
+      .cards > details { break-inside: avoid; padding-bottom: 0.6rem; }
+      #setupScreen h2 { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #7f93aa; margin: 0.8rem 0 0.4rem; }
+      #setupScreen select { width: 100%; margin-bottom: 0.3rem; }
+      summary { cursor: pointer; list-style: none; }
+      summary::-webkit-details-marker { display: none; }
+      summary h2 { display: inline-block; }
+      summary::before { content: '▸'; display: inline-block; width: 0.9rem; color: #5d6f85; }
+      details[open] > summary::before { content: '▾'; }
+      .field { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.25rem; }
+      .field label { flex: 1; color: #7f93aa; }
+      .field input { flex: 0 0 5.5rem; width: 5.5rem; min-width: 0; font: inherit; background: #0f1520; color: #e6edf5; border: 1px solid #2b3a50; border-radius: 3px; padding: 0.1rem 0.3rem; }
+      .note { color: #5d6f85; margin: 0.3rem 0 0; }
       @media (max-width: 800px) {
+        #setupScreen { border-right: none; border-bottom: 1px solid #1c2533; }
         main { flex-direction: column; }
         #panel { width: auto; max-width: none; border-left: none; border-top: 1px solid #1c2533; }
       }
       @media (max-width: 720px) { #readout { margin-left: 0; width: 100%; } }
     </style>
   </head>
-  <body>
+  <body class="screenSetup">
     <header>
       <h1>Skirmish</h1>
       <button id="play" disabled>Fight</button>
@@ -152,18 +169,53 @@
       <a href="evolution.html">Evolution</a>
     </header>
     <main>
+      <section id="setupScreen">
+        <div class="cards">
+          <details open data-key="skirmish">
+            <summary><h2>New skirmish</h2></summary>
+            <p class="muted">Pick an enemy. What it cost is your budget: build a fleet within it that beats it.</p>
+            <h2>Enemy</h2>
+            <select id="enemy"></select>
+            <table id="enemyBill"></table>
+            <h2>Your fleet</h2>
+            <select id="startFleet"></select>
+            <div class="buttons">
+              <button id="start" class="primary">Start</button>
+              <button id="resetSettings" title="Put every setting back to its default; the enemy and your fleet stay as chosen">Reset to defaults</button>
+            </div>
+            <p class="note">The settings are kept with the skirmish, so one already going is played out under those it started with.</p>
+          </details>
+          <details open data-key="round">
+            <summary><h2>The round</h2></summary>
+            <div data-fields="round"></div>
+            <p class="note">How a round is set out, and when a battle is over. A draw is a loss for you.</p>
+          </details>
+          <details open data-key="answer">
+            <summary><h2>The enemy's answer</h2></summary>
+            <div data-fields="answer"></div>
+            <p class="note">Win a round and the enemy is bred against your fleet until one of its mutants beats it, on the seed you won on and the others.</p>
+          </details>
+          <details open data-key="shipMutations">
+            <summary><h2>Ship mutations</h2></summary>
+            <div data-fields="build"></div>
+            <p class="note">How often each sort of number in a ship's build changes, against each other and the doctrine weights.</p>
+            <div data-fields="kinds"></div>
+            <p class="note">Relative odds of each kind, when a module is added or refitted into something else; hover one for what it is.</p>
+          </details>
+          <details open data-key="fleetMutations">
+            <summary><h2>Fleet mutations</h2></summary>
+            <div data-fields="fleet"></div>
+            <p class="note">Relative odds of each change to the enemy fleet; hover one for what it does.</p>
+          </details>
+          <details open data-key="doctrineMutations">
+            <summary><h2>Doctrine mutations</h2></summary>
+            <div data-fields="doctrine"></div>
+            <p class="note">How often each part of a ship's doctrine changes, against a number in its build at 1.</p>
+          </details>
+        </div>
+      </section>
       <canvas id="view"></canvas>
       <aside id="panel">
-        <section id="setup" hidden>
-          <h2>New skirmish</h2>
-          <p class="muted">Pick an enemy. What it cost is your budget: build a fleet within it that beats it.</p>
-          <h2>Enemy</h2>
-          <select id="enemy"></select>
-          <table id="enemyBill"></table>
-          <h2>Your fleet</h2>
-          <select id="startFleet"></select>
-          <div class="buttons"><button id="start" class="primary">Start</button></div>
-        </section>
         <section id="round" hidden>
           <h2 id="roundTitle">Round</h2>
           <p id="enemyName"></p>
@@ -195,6 +247,6 @@
         </section>
       </aside>
     </main>
-    <footer>Space to pause, F to re-fit, A to cycle the arcs drawn, C to colour shots by side. Scroll to zoom, drag to pan, click a ship to pick it out. You are blue. A side that has not fired, hit or rammed for 30 s, or has nothing left armed, is out of the battle.</footer>
+    <footer>Space to pause, F to re-fit, A to cycle the arcs drawn, C to colour shots by side. Scroll to zoom, drag to pan, click a ship to pick it out. You are blue. A side that has not fired, hit or rammed for the round's quiet time, or has nothing left armed, is out of the battle.</footer>
   </body>
 </html>

@@ -308,6 +308,7 @@
             <div class="buttons">
             <button id="exportConfig" title="Write these settings out as a file">Export</button>
             <button id="importConfig" title="Read settings back from a file">Import</button>
+            <button id="resetConfig" title="Put every setting back to its default, for both sides; the founders and versus stay as chosen">Reset to defaults</button>
             <input id="importConfigFile" type="file" accept="application/json,.json" hidden />
             </div>
             <p class="note">A run is decided by its seed and these numbers, so the file is the whole of what was tried.</p>
@@ -386,52 +387,21 @@
           <details open data-key="shipMutations">
             <summary><h2>Ship mutations</h2></summary>
             <div class="field heads coOnly"><span></span><b>A</b><b>B</b></div>
-            <div class="field" title="Chance each generation of also adding, removing or copying a module, regrouping modules into parts, or lengthening or shortening a repeated row. 0 keeps the ship's structure as it is."><label for="structural">structural chance</label><input id="structural" type="number" min="0" max="1" step="0.05" /></div>
-            <div class="field" title="How often a module or part is moved a grid step, turned, or mirrored."><label for="buildMove">move</label><input id="buildMove" type="number" min="0" step="0.5" /></div>
-            <div class="field" title="How often a module is made longer or wider, or the seam between two modules is shifted."><label for="buildResize">resize</label><input id="buildResize" type="number" min="0" step="0.5" /></div>
-            <div class="field" title="How often a module is refitted into another kind, keeping its place and size. Which kind is drawn from the odds below."><label for="buildRefit">refit</label><input id="buildRefit" type="number" min="0" step="0.5" /></div>
-            <div class="field" title="How often something that would take real work on the craft is changed: barrels and their length, nozzles, and thickness."><label for="buildFittings">fittings</label><input id="buildFittings" type="number" min="0" step="0.5" /></div>
-            <div class="field" title="How often its loadout is changed: reinforcement, sealing, drain priority, traverse, fuses, fragments, burst speed, and an engine used as a weapon."><label for="buildTuning">tuning</label><input id="buildTuning" type="number" min="0" step="0.5" /></div>
-            <div class="field" title="How often the ship switches between being a fighter and not, which changes how it flies and how others target it."><label for="buildFighter">fighter role</label><input id="buildFighter" type="number" min="0" step="0.5" /></div>
-            <div class="field" title="How often a piece of structure or a tank is shaped: born a wedge, a corner cut off, or a corner walked along an edge. 0 keeps every module a box, which is also the fastest a run can be — a hull with wedges in it takes about half as long again to compile."><label for="buildShape">triangles</label><input id="buildShape" type="number" min="0" step="0.5" /></div>
+            <div data-fields="build"></div>
             <p class="note">How often each sort of number in a ship's build changes, against each other and the doctrine weights below. To tune a ship without rebuilding it, zero the structural chance, move, resize, refit, fittings and fighter role.</p>
-            <div class="field" title="Odds that a new or refitted module is an engine: pushes the ship, and can be steered by firing on one side."><label for="kindEngine">engines</label><input id="kindEngine" type="number" min="0" step="1" /></div>
-            <div class="field" title="Odds that a new or refitted module is plain structure: holds the ship together and stops shells, as armour."><label for="kindStructure">structure</label><input id="kindStructure" type="number" min="0" step="1" /></div>
-            <div class="field" title="Odds that a new or refitted module is a fuel tank: reaction mass for the engines, beyond the little each core carries."><label for="kindTank">tanks</label><input id="kindTank" type="number" min="0" step="1" /></div>
-            <div class="field" title="Odds that a new or refitted module is a gun turret: turns to aim, firing shells."><label for="kindTurret">turrets</label><input id="kindTurret" type="number" min="0" step="1" /></div>
-            <div class="field" title="Odds that a new or refitted module is a beam turret: turns to aim, burning through what it holds on."><label for="kindBeamTurret">beam turrets</label><input id="kindBeamTurret" type="number" min="0" step="1" /></div>
-            <div class="field" title="Odds that a new or refitted module is a hull gun: fixed in the hull, firing shells, aimed by turning the whole ship."><label for="kindHullGun">hull guns</label><input id="kindHullGun" type="number" min="0" step="1" /></div>
-            <div class="field" title="Odds that a new or refitted module is a hull beam: fixed in the hull, firing a beam, aimed by turning the whole ship."><label for="kindHullBeam">hull beams</label><input id="kindHullBeam" type="number" min="0" step="1" /></div>
-            <div class="field" title="Odds that a new or refitted module is a core: what flies the ship. It is out of the fight once every core is."><label for="kindCore">cores</label><input id="kindCore" type="number" min="0" step="1" /></div>
-            <div class="field" title="Odds that a new or refitted module is a claw: jaws and a pump on the bow, which drink from wrecks for a doctrine that refuels."><label for="kindClaw">claws</label><input id="kindClaw" type="number" min="0" step="1" /></div>
-            <div class="field" title="Odds that a new or refitted module is a pad: a deck a friendly fighter can land on to take on fuel. It pays only in a fleet that carries fighters."><label for="kindPad">pads</label><input id="kindPad" type="number" min="0" step="1" /></div>
-            <div class="field" title="Odds that a new or refitted module is a docking port: a fixture on a hull's side that mates face to face with a friend's, to pass fuel. It pays only in a fleet with another port to meet."><label for="kindPort">ports</label><input id="kindPort" type="number" min="0" step="1" /></div>
-            <div class="field" title="Odds that a new or refitted module is a hold: a box of metal that guns load their rounds from."><label for="kindHold">holds</label><input id="kindHold" type="number" min="0" step="1" /></div>
-            <div class="field" title="Odds that a new or refitted module is a battery: a store of charge that a generator fills and beams draw on."><label for="kindBattery">batteries</label><input id="kindBattery" type="number" min="0" step="1" /></div>
-            <div class="field" title="Odds that a new or refitted module is a generator: a plant that makes power for as long as it works."><label for="kindGenerator">generators</label><input id="kindGenerator" type="number" min="0" step="1" /></div>
-            <div class="field" title="Odds that a new or refitted module is a robot bay: robots that crawl the hull mending what damage has done."><label for="kindRobotBay">robot bays</label><input id="kindRobotBay" type="number" min="0" step="1" /></div>
+            <div data-fields="kinds"></div>
             <p class="note">Relative odds of each kind, when a module is added or refitted into something else; hover one for what it is. Zero shuts a kind out altogether.</p>
           </details>
           <details open class="fleetOnly" data-key="fleetMutations">
             <summary><h2>Fleet mutations</h2></summary>
             <div class="field heads coOnly"><span></span><b>A</b><b>B</b></div>
-            <div class="field" title="Odds of mutating one of the fleet's designs, the way a single ship is mutated. Every ship built to that design changes with it."><label for="opDesign">design mutated</label><input id="opDesign" type="number" min="0" step="0.5" /></div>
-            <div class="field" title="Odds of moving one of the fleet's ships or groups a few metres, or turning it, where it starts the battle."><label for="opMove">ship moved/turned</label><input id="opMove" type="number" min="0" step="0.5" /></div>
-            <div class="field" title="Odds of adding a copy of one of the fleet's ships or groups, a little way off from it."><label for="opAdd">ship added</label><input id="opAdd" type="number" min="0" step="0.5" /></div>
-            <div class="field" title="Odds of taking out one of the fleet's ships or groups. The last one is never removed."><label for="opRemove">ship removed</label><input id="opRemove" type="number" min="0" step="0.5" /></div>
-            <div class="field" title="Odds of giving one ship its own copy of a design it shares, so it can go on changing separately. The opposite of a merge."><label for="opFork">design forked</label><input id="opFork" type="number" min="0" step="0.5" /></div>
-            <div class="field" title="Odds of building every ship of one design to another of the fleet's designs instead, dropping the first. The opposite of a fork."><label for="opMerge">designs merged</label><input id="opMerge" type="number" min="0" step="0.5" /></div>
-            <div class="field" title="Odds of building one of the fleet's own ships to another of its designs instead. Its own opposite."><label for="opSwap">ship swapped</label><input id="opSwap" type="number" min="0" step="0.5" /></div>
+            <div data-fields="fleet"></div>
             <p class="note">Relative odds of each change to a fleet; hover one for what it does. A design being mutated uses the odds above.</p>
           </details>
           <details open data-key="doctrineMutations">
             <summary><h2>Doctrine mutations</h2></summary>
             <div class="field heads coOnly"><span></span><b>A</b><b>B</b></div>
-            <div class="field" title="How often the ship's own targeting numbers are the ones changed — what it goes after: how big, how near, how armed or how fast a target it prefers. At 1, each is as likely to change as any number in the build; 0 leaves them as they are."><label for="doctrineTargeting">targeting</label><input id="doctrineTargeting" type="number" min="0" step="0.5" /></div>
-            <div class="field" title="How often the ship's approach numbers are the ones changed — how it flies to a fight: the range it holds off at, how hard it accelerates and brakes, and when it rams. At 1, each is as likely to change as any number in the build; 0 leaves them as they are."><label for="doctrineApproach">approach</label><input id="doctrineApproach" type="number" min="0" step="0.5" /></div>
-            <div class="field" title="How often the ship's escorting numbers are the ones changed: how much it would rather stay with a friend than fight, how close it keeps, and how small a friend it will cover. 0 leaves them as they are."><label for="doctrineEscort">escorting</label><input id="doctrineEscort" type="number" min="0" step="0.5" /></div>
-            <div class="field" title="How often the ship's avoidance numbers are the ones changed: how much it wants to keep out of everybody's way, and how close is too close. 0 leaves them as they are."><label for="doctrineAvoidance">avoidance</label><input id="doctrineAvoidance" type="number" min="0" step="0.5" /></div>
-            <div class="field" title="How often a weapon's own target preferences are the ones changed, so one mount can learn to pick targets differently from the rest of the ship. At 1, each weapon is as likely to change as any number in the build; 0 leaves them as they are."><label for="doctrineGunnery">weapon gunnery</label><input id="doctrineGunnery" type="number" min="0" step="0.5" /></div>
+            <div data-fields="doctrine"></div>
             <p class="note">How often each part of a ship's doctrine changes, against a number in its build at 1; hover one for what it covers.</p>
           </details>
           </div>
