@@ -755,12 +755,12 @@ export class Ships {
   readonly hulls = new Hulls(this);
 
   /**
-   * The same, for beams, which bore through what they have already destroyed.
-   * A shell is stopped by matter whatever state it is in; a beam is stopped
-   * only by matter it can still boil away.
+   * The same, for beams, which bore through what they have already burnt
+   * holes in. A shell is stopped by matter whatever state it is in; a beam
+   * goes on through a module burnt past breaking at what its holes let by.
    */
   readonly beamHulls = new Hulls(this, {
-    stops: (body, module) => !this.damage.spent(body, module),
+    transparency: (body, module) => this.damage.beamTransparency(body, module),
   });
 
   /**

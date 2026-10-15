@@ -609,9 +609,10 @@ Deliberately unresolved; decide when they block something.
   are dials rather than derivations. What makes them hard to set separately is that armour thickness decides
   the split: against today's 20 mm walls a heavy round overpenetrates and leaves most of its energy on the
   far side, so the figure that matters is what a hit *deposits*, not what it arrived with.
-- **A beam bores a tunnel and then shines through it.** A spent module no longer stops a beam, which is what
-  lets a beam ship kill anything; the consequence is that a beam holding on one spot eventually reaches
-  clear space beyond the hull and stops doing damage at all. Cutting takes some of the sting out of it — a
+- **A beam bores a tunnel and then shines through it.** A module burnt past breaking lets more of a beam
+  through as it sheds, up to half at its floor (`BEAM_FLOOR_TRANSPARENCY`), which is what lets a beam ship
+  kill anything; the consequence is that a beam holding on one spot loses what gets through the last module
+  it crosses, and once the plating in its way is cut free it reaches clear space beyond the hull. Cutting takes some of the sting out of it — a
   beam that has bored that far has been burning the seams along the way, and may well have cut the far part
   free before the tunnel opens — but not all of it. Two ways out, both wanted for their own sake: a
   **heat model**, where the beam heats the wreck it is burning and the heat conducts into what is still

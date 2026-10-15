@@ -410,15 +410,16 @@ export function moduleLayers(m: { readonly weaponsLayer: boolean }, bodyLayers: 
 }
 
 /**
- * Which modules still stop the thing being cast.
+ * How much of the thing being cast each module lets through.
  *
  * Shells are stopped by matter, so nothing implements this for them. A beam is
- * stopped by matter it can still boil away: once a module is spent, a beam
- * bores on through to what is behind it, which is how a beam ship kills
- * anything at all.
+ * stopped by matter it can still boil away: a module burnt past breaking is
+ * holed, and lets more of a beam on through to what is behind it the more of
+ * it has gone, which is how a beam ship kills anything at all.
  */
 export interface LiveModules {
-  stops(bodyIndex: number, module: number): boolean;
+  /** 0 stops all of it, 1 lets all of it through. */
+  transparency(bodyIndex: number, module: number): number;
 }
 
 /**
@@ -453,6 +454,10 @@ export class Hulls implements RayNarrowPhase {
   layers = BOTH_LAYERS;
   private skipBody = -1;
   private skipModule = -1;
+  // The last `describe`'s frame and length, for `select`.
+  private cosine = 1;
+  private sine = 0;
+  private length = 0;
 
   constructor(
     private readonly designs: HullDesigns,
@@ -517,30 +522,49 @@ export class Hulls implements RayNarrowPhase {
     if (this.cast(design, bodies, bodyIndex, x0, y0, dx, dy) < 0) return false;
 
     const angle = bodies.angle[bodyIndex]!;
-    const c = cos(angle);
-    const s = sin(angle);
-    const nx = this.path.nx[0]!;
-    const ny = this.path.ny[0]!;
-    this.module = this.path.module[0]!;
-    // Back out of the ship's frame. A segment that began inside a module
-    // entered by no face and carries a zero normal, which rotates to zero.
-    this.nx = nx * c - ny * s;
-    this.ny = nx * s + ny * c;
+    this.cosine = cos(angle);
+    this.sine = sin(angle);
+    this.select(0);
     return true;
   }
 
+  /** How many modules the last `describe` found along the cast, each counted once, in the order crossed. */
+  get crossings(): number {
+    return this.path.count;
+  }
+
   /**
-   * Drop the crossings at the front of the path that no longer stop anything,
+   * Make crossing `k` of the last `describe` the one `module`, `nx` and `ny`
+   * describe, and say how far along the cast it is entered, as a fraction.
+   */
+  select(k: number): number {
+    const nx = this.path.nx[k]!;
+    const ny = this.path.ny[k]!;
+    this.module = this.path.module[k]!;
+    // Back out of the ship's frame. A segment that began inside a module
+    // entered by no face and carries a zero normal, which rotates to zero.
+    this.nx = nx * this.cosine - ny * this.sine;
+    this.ny = nx * this.sine + ny * this.cosine;
+    return this.length > 0 ? this.path.entry[k]! / this.length : 0;
+  }
+
+  /** How much of the cast a module of a body lets through: none, where nothing says otherwise. */
+  transparency(bodyIndex: number, module: number): number {
+    return this.live?.transparency(bodyIndex, module) ?? 0;
+  }
+
+  /**
+   * Drop the crossings at the front of the path that let all of it through,
    * so that the first one left is what the cast actually meets.
    *
    * Only the leading ones: a spent module deeper in still shadows nothing, and
    * the list stays in the order the segment crosses it.
    */
-  private skipSpent(bodyIndex: number): void {
+  private skipTransparent(bodyIndex: number): void {
     const live = this.live;
     if (live === undefined) return;
     let first = 0;
-    while (first < this.path.count && !live.stops(bodyIndex, this.path.module[first]!)) first++;
+    while (first < this.path.count && live.transparency(bodyIndex, this.path.module[first]!) >= 1) first++;
     if (first === 0) return;
     for (let i = first; i < this.path.count; i++) {
       const to = i - first;
@@ -587,12 +611,13 @@ export class Hulls implements RayNarrowPhase {
       bodyIndex === this.skipBody ? this.skipModule : -1,
       this.designs.layersOf?.(bodyIndex) ?? OWN_LAYERS,
     );
-    if (this.live !== undefined) this.skipSpent(bodyIndex);
+    if (this.live !== undefined) this.skipTransparent(bodyIndex);
     if (this.path.count === 0) return -1;
 
     // `modulesAlong` reports metres along the segment and the cast wants a
     // fraction of it, since that is what the grid orders hits by.
     const length = sqrt(ldx * ldx + ldy * ldy);
+    this.length = length;
     if (!(length > 0)) return -1;
     return this.path.entry[0]! / length;
   }

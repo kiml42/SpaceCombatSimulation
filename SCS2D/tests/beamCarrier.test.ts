@@ -36,10 +36,12 @@ describe('the Beam Carrier', () => {
   it('brings its fighters back to recharge, and fills every store aboard', { timeout: 60_000 }, () => {
     const out = new Set(FIGHTERS.filter((f) => ships.body(f) !== ships.body(CARRIER)));
     expect(out.size).toBe(FIGHTERS.length);
+    // One home with its battery still aboard: a fighter can come back with it shot off.
+    const charged = (f: number): boolean => ships.design(f).modules.some((m, k) => m.spec.kind === 'battery' && ships.owns(f, k));
     let landed = -1;
     for (let s = 0; s < 180 * 60 && landed < 0; s++) {
       step();
-      landed = FIGHTERS.find((f) => ships.isAlive(f) && ships.body(f) === ships.body(CARRIER)) ?? -1;
+      landed = FIGHTERS.find((f) => ships.isAlive(f) && ships.body(f) === ships.body(CARRIER) && charged(f)) ?? -1;
     }
     expect(landed).toBeGreaterThanOrEqual(0);
     for (let s = 0; s < 30 * 60; s++) step();
