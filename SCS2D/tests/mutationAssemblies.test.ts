@@ -242,9 +242,10 @@ describe('growing a part that is placed more than once', () => {
 });
 
 describe('breeding the grouping', () => {
-  // Three lineages of four hundred generations; how big they grow, and so how
-  // long this takes, moves with every knob the mutation draws from.
-  it('reaches parts, repeats them, grows them and turns them over', { timeout: 60_000 }, () => {
+  // Four lineages of four hundred generations; how big they grow, and so how
+  // long this takes, moves with every knob the mutation draws from — over a
+  // minute when the suite runs in parallel.
+  it('reaches parts, repeats them, grows them and turns them over', { timeout: 240_000 }, () => {
     // Lineages from a bare core, which starts with no assemblies at all, so
     // every one of these is something the operators built rather than
     // something the founder was handed. Four rather than one, because a

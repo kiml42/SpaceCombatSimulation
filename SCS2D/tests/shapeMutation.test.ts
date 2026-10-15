@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_BUILD_WEIGHTS, mutate } from '../evolution/mutate.js';
+import { DEFAULT_BUILD_WEIGHTS, mutate, type MutationLimits } from '../evolution/mutate.js';
 import { Rng } from '../sim/rng.js';
 import {
   blueprintProblem,
@@ -57,14 +57,14 @@ const listsOf = (blueprint: Blueprint): ModuleSpec[][] => {
   return [take(blueprint.modules ?? []), ...Object.values(blueprint.assemblies ?? {}).map((a) => take(a.modules))];
 };
 
-function breedLine(parent: Blueprint, seed: number, generations: number): Step[] {
+function breedLine(parent: Blueprint, seed: number, generations: number, limits?: Partial<MutationLimits>): Step[] {
   const rng = new Rng(seed);
   const steps: Step[] = [];
   let held = parent;
   for (let i = 0; i < generations; i++) {
     const before = modulesOf(held);
     const beforeLists = listsOf(held);
-    const child = mutate(held, rng);
+    const child = mutate(held, rng, limits);
     steps.push({
       edits: child.edits,
       before,
@@ -148,14 +148,30 @@ describe('breeding a shape', () => {
     // two faces that go are the two nothing was attached to, so the legs of
     // what is left are the faces that were holding the module on.
     //
-    // A generation whose only change is a cut is rare, a couple in a thousand,
-    // so a second pair of lines is bred for this one question.
-    const more = [...breedLine(CORVETTE, 15, GENERATIONS), ...breedLine(CATAMARAN, 15, GENERATIONS)];
+    // Every number drifts in an ordinary generation, so these lines breed
+    // shape alone, and a generation whose whole change was a cut is common.
+    const off = Object.fromEntries(Object.keys(DEFAULT_BUILD_WEIGHTS).map((key) => [key, 0]));
+    const shapeOnly: Partial<MutationLimits> = {
+      structural: 0,
+      switches: 0.3,
+      build: { ...off, shape: 1 } as typeof DEFAULT_BUILD_WEIGHTS,
+      doctrine: { targeting: 0, approach: 0, escort: 0, avoidance: 0, gunnery: 0 },
+    };
+    // A block welded on two adjacent faces, so it has a corner to lose.
+    const elbow: Blueprint = {
+      name: 'Elbow',
+      modules: [
+        { kind: 'core', x: -3, y: 0, length: 4, width: 2 },
+        { kind: 'structure', x: 0, y: 0, length: 2, width: 2 },
+        { kind: 'structure', x: 0, y: -2, length: 2, width: 2 },
+      ],
+    };
+    const more = breedLine(elbow, 15, 40, shapeOnly);
     let cuts = 0;
-    for (const step of matching([...both, ...more], CUT)) {
+    for (const step of matching(more, CUT)) {
       // Only a generation whose *whole* change was the cut says anything about
       // the cut; anything else could have moved a weld on its own account.
-      if (step.edits.length !== 1 || step.before.length !== step.after.length) continue;
+      if (!step.edits.every((edit) => CUT.test(edit)) || step.before.length !== step.after.length) continue;
       cuts++;
       expect(weldCount(step.afterLists)).toBe(weldCount(step.beforeLists));
     }

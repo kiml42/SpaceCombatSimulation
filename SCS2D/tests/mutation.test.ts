@@ -18,7 +18,7 @@ import {
   type Blueprint,
   type ModuleSpec,
 } from '../sim/index.js';
-import { DEFAULT_BUILD_WEIGHTS, DEFAULT_KINDS, DEFAULT_LIMITS, mutate, type DoctrineWeights } from '../evolution/mutate.js';
+import { DEFAULT_BUILD_WEIGHTS, DEFAULT_KINDS, mutate, type DoctrineWeights } from '../evolution/mutate.js';
 import { CATAMARAN, CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
 
 /**
@@ -41,6 +41,10 @@ import { CATAMARAN, CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js'
  * quietly stops checking what it was written for.
  */
 const STRUCTURAL = /removed|added|copied|taken into|instance placed|instance dropped/;
+
+/** Every build and doctrine weight zero, for a test about one operator. */
+const FROZEN = { move: 0, resize: 0, refit: 0, fittings: 0, tuning: 0, fighter: 0, shape: 0 };
+const STILL = { targeting: 0, approach: 0, escort: 0, avoidance: 0, gunnery: 0 };
 
 const FLEET: readonly (readonly [string, Blueprint])[] = [
   ['corvette', CORVETTE],
@@ -123,11 +127,7 @@ describe('mutation', () => {
       const was = expandBlueprint(parent).length;
       for (let i = 0; i < 200; i++) {
         const child = mutate(parent, rng);
-        // At most one structural edit and `numbers` changes to numbers, which
-        // is the bounded edit distance DESIGN.md §7 asks for.
-        expect(child.edits.length, `${name} child ${i}`).toBeLessThanOrEqual(
-          DEFAULT_LIMITS.numbers + 1,
-        );
+        // At most one structural edit; everything else drifts.
         const structural = child.edits.filter((edit) => STRUCTURAL.test(edit));
         expect(structural.length, `${name} child ${i}: ${child.edits.join(' | ')}`).toBeLessThanOrEqual(1);
         // A module added inside an assembly arrives once per copy of it, so
@@ -330,13 +330,13 @@ describe('mutation', () => {
     // A kind nothing ever builds is a kind that is not in the game, and there
     // are four lists an archetype has to appear in before a run can have one.
     // Both routes matter: adding is how a lineage gets its first, and refitting
-    // is the only way it gets a *large* one without growing it from half a
-    // metre.
+    // is the only way it gets a *large* one without growing it from small.
+    // Bred until both are seen, since a lineage of hull guns grows and slows.
     const rng = new Rng(11);
     let held: Blueprint = CORVETTE;
     let added = 0;
     let refitted = 0;
-    for (let i = 0; i < 400; i++) {
+    for (let i = 0; i < 400 && (added === 0 || refitted === 0); i++) {
       const child = mutate(held, rng, {
         structural: 1,
         kinds: { engine: 0, structure: 0, tank: 0, turret: 0, beamTurret: 0, hullGun: 3, hullBeam: 1, core: 0, claw: 0, pad: 0, port: 0, hold: 0, battery: 0, generator: 0, robotBay: 0 },
@@ -363,7 +363,8 @@ describe('mutation', () => {
     const only = { engine: 1, structure: 0, tank: 0, turret: 0, beamTurret: 0, hullGun: 0, hullBeam: 0, core: 0, claw: 0, pad: 0, port: 0, hold: 0, battery: 0, generator: 0, robotBay: 0 };
     let seen = 0;
     for (let i = 0; i < 400 && seen < 3; i++) {
-      const child = mutate(casemate, rng, { structural: 0, kinds: only });
+      // Only refits, so a child whose one edit is the refit says what it did.
+      const child = mutate(casemate, rng, { structural: 0, kinds: only, switches: 0.5, build: { ...FROZEN, refit: 1 }, doctrine: STILL });
       if (child.edits.length !== 1 || !/hullGun refitted as engine/.test(child.edits[0]!)) continue;
       const engine = child.blueprint.modules[1] as ModuleSpec;
       expect(engine.angle).toBe(0);
@@ -450,14 +451,15 @@ describe('mutation', () => {
     // hold for a module *refitted* as well as one added — a run told to breed
     // engines that went on turning its engines into gun mounts half the time
     // would be answering a question nobody asked.
+    // Until a few of each have been seen, since the lineage grows and slows.
     const rng = new Rng(59);
     let held: Blueprint = CORVETTE;
     let added = 0;
     let refitted = 0;
-    for (let i = 0; i < 400; i++) {
+    for (let i = 0; i < 400 && (added < 5 || refitted < 5); i++) {
       const child = mutate(held, rng, {
         structural: 1,
-        // Refits weighted up, since at the default a few hundred draws see none at all on some seeds.
+        // Refits weighted up, so a few hundred draws are sure to see some.
         build: { ...DEFAULT_BUILD_WEIGHTS, refit: 10 },
         kinds: { engine: 1, structure: 0, tank: 0, turret: 0, beamTurret: 0, hullGun: 0, hullBeam: 0, core: 0, claw: 0, pad: 0, port: 0, hold: 0, battery: 0, generator: 0, robotBay: 0 },
       });
@@ -514,8 +516,8 @@ describe('mutation', () => {
     const rng = new Rng(7);
     let pushed = 0;
     for (let i = 0; i < 800; i++) {
-      const child = mutate(packed, rng, { structural: 0, numbers: 1 });
-      if (child.edits.some((edit) => /layout\[0\] core: length 4 → 4\.5, moving 1 alongside/.test(edit))) {
+      const child = mutate(packed, rng, { structural: 0 });
+      if (child.edits.some((edit) => /layout\[0\] core: length 4 → [\d.]+, moving 1 alongside/.test(edit))) {
         pushed++;
         expect(blueprintProblem(child.blueprint)).toBeNull();
       }
@@ -527,7 +529,7 @@ describe('mutation', () => {
     const rng = new Rng(11);
     let seams = 0;
     for (let i = 0; i < 300 && seams < 5; i++) {
-      const child = mutate(CORVETTE, rng, { structural: 0, numbers: 1 });
+      const child = mutate(CORVETTE, rng, { structural: 0 });
       if (!child.edits.some((edit) => /: seam with /.test(edit))) continue;
       seams++;
       expect(blueprintProblem(child.blueprint)).toBeNull();
@@ -572,7 +574,7 @@ describe('doctrine weights', () => {
   const edits = (doctrine: DoctrineWeights): string[] => {
     const out: string[] = [];
     const rng = new Rng(9);
-    for (let i = 0; i < 40; i++) out.push(...mutate(GUNSHIP, rng, { structural: 0, numbers: 1, doctrine }).edits);
+    for (let i = 0; i < 40; i++) out.push(...mutate(GUNSHIP, rng, { structural: 0, doctrine }).edits);
     return out;
   };
 
@@ -582,11 +584,19 @@ describe('doctrine weights', () => {
     expect(made.filter((edit) => edit.startsWith('doctrine.'))).toEqual([]);
   });
 
-  it('turns mostly the doctrine weighted heavily', () => {
-    const made = edits({ targeting: 1000, approach: 0, escort: 0, avoidance: 0, gunnery: 0 });
-    const targeting = made.filter((edit) => edit.startsWith('doctrine.targeting.'));
-    expect(targeting.length / made.length).toBeGreaterThan(0.8);
-    expect(made.some((edit) => edit.startsWith('doctrine.approach.'))).toBe(false);
+  it('drifts the doctrine weighted heavily further', () => {
+    // A weight is a width: how far a number moves, not how often.
+    const made = edits({ targeting: 4, approach: 1, escort: 0, avoidance: 0, gunnery: 0 });
+    const shift = (prefix: string): number => {
+      const moves = made
+        .filter((edit) => edit.startsWith(prefix))
+        .map((edit) => /([-\d.e]+) → ([-\d.e]+)$/.exec(edit)!)
+        .map((m) => Math.abs(Number(m[2]) - Number(m[1])) / Math.max(Math.abs(Number(m[1])), 1e-3));
+      expect(moves.length).toBeGreaterThan(0);
+      moves.sort((a, b) => a - b);
+      return moves[Math.floor(moves.length / 2)]!;
+    };
+    expect(shift('doctrine.targeting.')).toBeGreaterThan(2 * shift('doctrine.approach.'));
   });
 });
 
@@ -674,9 +684,12 @@ describe('scaling a whole ship', () => {
     const rng = new Rng(3);
     let seen = 0;
     for (let i = 0; i < 300 && seen < 3; i++) {
+      // Resizing as a switch only: a face moved as well would change the
+      // module it is compared by.
       const child = mutate(CATAMARAN, rng, {
         structural: 0,
-        numbers: 1,
+        geometry: 0,
+        switches: 0.5,
         build: { ...off, resize: 1 } as typeof DEFAULT_BUILD_WEIGHTS,
         doctrine: { targeting: 0, approach: 0, escort: 0, avoidance: 0, gunnery: 0 },
       });

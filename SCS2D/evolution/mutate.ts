@@ -2,6 +2,7 @@ import {
   blueprintProblem,
   compileDraft,
   contactWidth,
+  expandBlueprint,
   isInstance,
   MAX_REPEAT,
   modulesOverlap,
@@ -77,8 +78,9 @@ import { affords, billOf, isLimited, NO_BUDGET, type Budget } from '../sim/bill.
  * a ship is a tight packing of boxes, so a careless edit nearly always
  * detaches something or drives it through its neighbour. Two rules do most of
  * the work of keeping the rate usable — sizes change by moving *one face*, so
- * the opposite face stays against whatever it was attached to, and everything
- * moves in whole grid steps, so faces that were flush land flush again.
+ * the opposite face stays against whatever it was attached to, and an edit
+ * that breaks the ship is undone on its own rather than taking the rest of the
+ * child with it.
  */
 
 /** How far a child may be from its parent, and how hard to try. */
@@ -206,8 +208,8 @@ const AVOIDANCE_FIELDS: readonly string[] = ['separation', 'separationRadii', 'a
  * What the operator reaches for, unless a run says otherwise.
  *
  * **Weighted by what is worth having at the size a guess arrives in.** A new
- * module is half a metre square, and the kinds are nothing like equal at that
- * size: thrust follows the nozzle's area, so six small engines are six small
+ * module is small beside the ship it joins — half its median module — and the
+ * kinds are nothing like equal at that size: thrust follows the nozzle's area, so six small engines are six small
  * engines' worth of push and, being spread about the hull, are torque as well
  * — where six small guns are six peashooters that a single grown mount beats
  * outright, and six small plates of structure are ballast. A gun and a hull
@@ -229,8 +231,8 @@ export const DEFAULT_KINDS: KindWeights = {
   beamTurret: 1,
   // A weapon let into the hull is a weapon: it wants size for exactly the
   // reason a turret does, so it is reached for as often and no more. What it
-  // has over a turret — a far bigger bore for the width — is worth nothing at
-  // half a metre, and what it costs — almost nowhere to point — is a cost at
+  // has over a turret — a far bigger bore for the width — is worth little at
+  // the size it arrives, and what it costs — almost nowhere to point — is a cost at
   // any size, so a lineage that wants one has to grow it.
   hullGun: 2,
   hullBeam: 1,
@@ -406,9 +408,16 @@ function vary(draft: Draft, rng: Rng, bounds: MutationLimits, scale: Scale, edit
     if (edit !== null) edits.push(edit);
   }
 
-  // All at once, since a number nearly never breaks a ship and checking each
-  // would cost a layout check apiece; one at a time only if that failed.
-  const knobs = numbers(draft);
+  settle(draft, rng, bounds, numbers(draft), edits);
+}
+
+/**
+ * Drift numbers all at once, since one nearly never breaks a ship and a layout
+ * check apiece would be most of what breeding costs; if they do, each half
+ * again, so one bad draw costs a few checks rather than one per number.
+ */
+function settle(draft: Draft, rng: Rng, bounds: MutationLimits, knobs: readonly NumberKnob[], edits: string[]): void {
+  if (knobs.length === 0) return;
   const before = capture(draft);
   const drifted: string[] = [];
   for (const knob of knobs) {
@@ -421,10 +430,10 @@ function vary(draft: Draft, rng: Rng, bounds: MutationLimits, scale: Scale, edit
     return;
   }
   restore(draft, before);
-  for (const knob of knobs) {
-    const edit = attempt(draft, bounds, () => renumber(knob, draft, rng, bounds));
-    if (edit !== null) edits.push(edit);
-  }
+  if (knobs.length === 1) return;
+  const half = knobs.length >> 1;
+  settle(draft, rng, bounds, knobs.slice(0, half), edits);
+  settle(draft, rng, bounds, knobs.slice(half), edits);
 }
 
 /**
@@ -505,7 +514,7 @@ const SQRT_3 = sqrt(3);
  * A fixed step cannot be right at both ends of the fleet — half a metre is a
  * third of a Dinky and nothing at all to a Gunship's 33-metre gun — which is
  * the editor's own grid finding (DECISIONS.md, 2026-09-24) arrived at again.
- * The median rather than the mean, so one great spine does not decide it.
+ * A median rather than a mean, so one great spine does not decide it.
  */
 export interface Scale {
   /** The spread of a face moved, a slide or a seam, metres. */
@@ -521,16 +530,22 @@ export interface Scale {
 }
 
 export function shipScale(blueprint: Blueprint, size: number = DEFAULT_LIMITS.size): Scale {
-  const sides: number[] = [];
-  const walk = (placements: readonly Placement[]): void => {
-    for (const placement of placements) {
-      if (!isInstance(placement)) sides.push(sqrt(placement.length * placement.width));
-    }
-  };
-  walk(blueprint.modules);
-  for (const assembly of Object.values(blueprint.assemblies ?? {})) walk(assembly.modules);
-  sides.sort((a, b) => a - b);
-  const median = sides.length === 0 ? 1 : sides[floor(sides.length / 2)]!;
+  // By area: the module a point picked anywhere on the hull most likely lies
+  // in. A plain median would be pulled down by every small module added, and
+  // since new modules arrive at half of it, a lineage would shrink its own
+  // yardstick generation by generation.
+  const modules = expandBlueprint(blueprint)
+    .map((spec) => ({ side: sqrt(spec.length * spec.width), area: spec.length * spec.width }))
+    .sort((a, b) => a.side - b.side);
+  let total = 0;
+  for (const module of modules) total += module.area;
+  let median = 1;
+  let seen = 0;
+  for (const module of modules) {
+    seen += module.area;
+    median = module.side;
+    if (seen >= total / 2) break;
+  }
   const spread = max(1e-3, size * median);
   const quantum = ladder(spread / 10);
   return { spread, quantum, arrival: max(quantum, roundTo(spread, quantum)) };
@@ -1001,9 +1016,22 @@ function renumber(knob: NumberKnob, draft: Draft, rng: Rng, bounds: MutationLimi
   const width = bounds.magnitude * numberWeight(knob, bounds);
   if (!(width > 0)) return null;
   const jitter: Jitter = (scale) => drift(rng, bounds, width * scale);
+  if (knob.at === 'doctrine') return turnDoctrine(draft, knob.half, knob.field, jitter);
+  // A module's own number is checked against the module at once, which is
+  // cheap, so it is not left to fail the whole batch.
+  const spec = knob.site.spec;
+  const was = { ...spec };
+  const edit = renumberModule(knob, jitter);
+  if (edit !== null && moduleProblem(spec) !== null) {
+    for (const key of Object.keys(spec)) delete (spec as unknown as Record<string, unknown>)[key];
+    Object.assign(spec, was);
+    return null;
+  }
+  return edit;
+}
+
+function renumberModule(knob: Exclude<NumberKnob, { at: 'doctrine' }>, jitter: Jitter): string | null {
   switch (knob.at) {
-    case 'doctrine':
-      return turnDoctrine(draft, knob.half, knob.field, jitter);
     case 'gunnery':
       return retarget(knob.site, knob.field, jitter);
     case 'reinforcement':
@@ -1167,11 +1195,11 @@ function reinforce(site: ModuleSite, jitter: Jitter): string | null {
  * Change what a module is, keeping the space it occupies.
  *
  * **This is the only way a lineage gets a large module of a new kind.**
- * Everything new arrives at the smallest size the grid allows and has to be
- * grown, which is right for a guess and wrong as the only path there is: a
+ * Everything new arrives small and has to be grown, which is right for a
+ * guess and wrong as the only path there is: a
  * hull that has spent twenty generations growing a good gun mounting should
  * be able to discover that the same mounting makes a better beam mount,
- * without starting again from half a metre. A refit keeps the geometry — the
+ * without starting again from nothing. A refit keeps the geometry — the
  * position, the size, the facing, the armour — and changes only what it is
  * for.
  *
@@ -1185,7 +1213,7 @@ function reinforce(site: ModuleSite, jitter: Jitter): string | null {
  *
  * Neither is a nicety: without them a refit into an engine is refused every
  * time, so the one route to a *large* engine is closed and a lineage can only
- * ever have the half-metre ones it adds.
+ * ever have the small ones it adds.
  */
 function refit(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {
   const was = site.spec.kind;
@@ -1462,7 +1490,8 @@ function quarterTurn(site: ModuleSite, rng: Rng): string | null {
 }
 
 /**
- * Move one face of a module, growing or shrinking it by a grid step while the
+ * Move one face of a module, growing or shrinking it by a drift of the ship's
+ * spread while the
  * opposite face stays exactly where it was.
  *
  * This is the operator that makes geometry worth mutating at all. Scaling a
@@ -1639,7 +1668,8 @@ function cornerName(corner: number): string {
  * and the other half the candidate is thrown out by the layout rules, which is
  * the ordinary price of a draw.
  *
- * Towards the far end of that edge or away from it, a grid step at a time, and
+ * Towards the far end of that edge or away from it, by a drift of the ship's
+ * spread, and
  * never so far as to pass the far end: three corners in a line enclose
  * nothing, and a module shrunk out of existence is removal's business.
  */
@@ -1685,8 +1715,8 @@ function moveVertex(
 }
 
 /**
- * Move the face a module shares with a neighbour, one growing by a grid step
- * as the other shrinks by it.
+ * Move the face a module shares with a neighbour, one growing as the other
+ * shrinks by the same.
  *
  * It trades space between two modules — hull for engine, say — without the
  * ship getting any bigger, which otherwise takes a shrink and a grow, each of
@@ -2069,8 +2099,8 @@ function instantiate(draft: Draft, rng: Rng, _bounds: MutationLimits, scale: Sca
       };
     }
   } else {
-    // Clear of the original rather than a grid step from it. A part is nearly
-    // always wider than one step, so a copy nudged along lands inside the
+    // Clear of the original rather than a nudge from it. A part is nearly
+    // always wider than a nudge, so a copy nudged along lands inside the
     // thing it is a copy of and is refused every time — which is how "place
     // another one" came to be the operator that never delivered anything.
     const along = rng.chance(0.5);
@@ -2089,13 +2119,13 @@ function instantiate(draft: Draft, rng: Rng, _bounds: MutationLimits, scale: Sca
 
 /**
  * How far along an axis a copy has to sit to be clear of the original,
- * rounded up to the grid.
+ * rounded up to the ship's quantum.
  *
  * Measured against a circle round each module rather than its box, so the
  * answer holds whatever angle anything is at, and read off the assembly's own
  * frame — which is the frame the offset is applied in, so a turned instance
  * needs no second thought. An assembly with anything nested inside it gets a
- * grid step and the layout rules' opinion, since measuring that properly
+ * new module's width and the layout rules' opinion, since measuring that properly
  * means expanding it.
  */
 function clearance(
@@ -2343,7 +2373,7 @@ function addModule(
  *
  * Every berth keeps the module wholly on the face it is bolted to, so what
  * comes back is a real weld rather than a corner touch, and they are on the
- * grid like everything else the operator writes. Drawn in a random order and
+ * ship's quantum like everything else the operator writes. Drawn in a random order and
  * tried until one fits, so a face with a gap in the middle of it is found
  * rather than given up on.
  */
@@ -2405,13 +2435,12 @@ function against(
   const faceX = centre.x + nx * reach + ax * along;
   const faceY = centre.y + ny * reach + ay * along;
 
-  // **A copy keeps its original's proportions; anything new starts as small
-  // as the grid allows.** A new module is a guess, and a guess should be
-  // cheap: sized from the face it is going on, a first gun on a capital
-  // arrives weighing tonnes and has to justify all of it at once, where one
-  // that starts at half a metre costs almost nothing and is grown a face at a
-  // time by the operator that grows faces — which is the difference between
-  // a lineage that can afford to try something and one that cannot.
+  // **A copy keeps its original's proportions; anything new arrives a square
+  // half the ship's median module across**, no wider than the face it is on.
+  // A guess should be cheap, so it is not sized from the face — a first gun
+  // on a capital would arrive weighing tonnes — but nor so small that it is a
+  // dot on a big hull, cheap to carry and impossible for anything to hit, as
+  // a fixed half metre was on the Gunship.
   const across = copy ? (endOn ? anchor.width : anchor.length) : min(endOn ? anchor.width : anchor.length, scale.arrival);
   const out = copy ? (endOn ? anchor.length : anchor.width) : scale.arrival;
 

@@ -340,18 +340,25 @@ inside any one file is not contiguous.
   doctrine, and its shape — a module added, copied onto a free face, or taken off. An engine or hull weapon
   is copied as the same thing again beside it, the same way round, so a copy never sits in its flame or line
   of fire. What decides whether a
-  mutant is a ship is the layout rules themselves, which refuse a candidate rather than repair it, since a
-  repair rule would be a second opinion about what a ship is. Two things make that affordable on a hull
-  that is a tight packing of boxes: a size changes by moving *one* face, so the opposite face stays against
+  mutant is a ship is the layout rules themselves, which refuse an edit rather than repair it, since a
+  repair rule would be a second opinion about what a ship is — **edit by edit**, as someone moving things in
+  the editor presses undo whenever it goes red and carries on with the next part, so one bad edit costs
+  itself rather than the child. **Every number drifts every generation**, drawn from a bell a few percent
+  wide with a dead zone around nothing and a rare tail five times as wide; **each part's geometry changes
+  with a chance of its own**, so a ship with more parts has more of them change; and **switches** — a
+  kind, a flag, a count of barrels — flip rarely. Geometry is measured against the ship: a face, seam or
+  slide drifts by about half the median module, rounded to a tenth of that on the editor's 1-2-5 ladder,
+  and a new module arrives a square that size, so a guess is cheap beside the hull it joins without being a
+  dot on a large one. Turns are a quarter about a corner, so a module tucked into a corner can stay tucked,
+  or a small drift on a kind with a facing. Moving one face at a time keeps the opposite face against
   whatever it was attached to, and whatever sits against the face that moves goes with it, so a module can
   grow into a neighbour rather than be refused; two touching modules can also trade the face between them,
-  one growing into space the other gives up; and everything moves in whole grid steps, so faces that were
-  flush land flush. A module written inside an assembly is written once however many copies are placed, so mutating it
+  one growing into space the other gives up. A module written inside an assembly is written once however many copies are placed, so mutating it
   changes every copy and a wing that grows a gun grows it on both wings. Whether a generation is structural
   is settled before the retrying starts rather than inside it, which is what stops the rare, hard edit being
   crowded out by the common, easy one; and a child is written back to a file the editor opens. **What it reaches for is
-  weighted by kind, and the weights are a run's to set.** They are not equal things at the half-metre a
-  guess arrives in: thrust follows the nozzle's area, so six small engines are six small engines' worth of
+  weighted by kind, and the weights are a run's to set.** They are not equal things at the size a guess
+  arrives in: thrust follows the nozzle's area, so six small engines are six small engines' worth of
   push and, spread about the hull, torque as well — where six small guns are six peashooters that one grown
   mount beats outright, and six small plates are ballast. Guns and hulls want *size*, which the operator
   reaches by growing one module over many generations rather than by adding more, so engines are what it
@@ -1663,9 +1670,9 @@ sent at than on its configuration. Naive scoring selects for soft assignments.*
 expensive evaluation.
 
 **Campaign enemy: constrained search space, not free-form.** Legible axes only — standoff range,
-armour fraction, point-defence fraction, aggression, weapon-type mix — with **bounded edit
-distance** per generation (at most K parameters changed, each by at most X%, at most one module
-added or removed). Variants arrive **named**, using the existing species/subspecies taxonomy
+armour fraction, point-defence fraction, aggression, weapon-type mix — with **small steps** per
+generation: every number drifting a little rather than a few moving a lot, and at most one module
+added or removed, so a descendant reads as one. Variants arrive **named**, using the existing species/subspecies taxonomy
 generated from the module tree. The target is TIE-fighter-variant family resemblance: obviously the
 same lineage, obviously specialised differently.
 
