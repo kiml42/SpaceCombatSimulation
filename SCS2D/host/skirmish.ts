@@ -14,14 +14,20 @@ import {
   newSkirmish,
   nextRound,
   parseSkirmish,
+  parseSkirmishSettings,
   roundBattle,
   roundSetup,
   serialiseSkirmish,
+  settingsOf,
   skirmishFragment,
   SKIRMISH_STORAGE_KEY,
+  DEFAULT_SKIRMISH_SETTINGS,
   won,
   type Skirmish,
+  type SkirmishSettings,
 } from '../scenarios/skirmish.js';
+import { MUTATION_FIELDS } from '../evolution/mutationFields.js';
+import { fillFields, type SettingField } from './settingsFields.js';
 import {
   dropOldest,
   EMPTY_HISTORY,
@@ -45,11 +51,42 @@ import { el } from './dom.js';
 
 const EMPTY = 'empty:';
 
+/** The settings a new skirmish starts with, kept as last chosen. */
+const SETTINGS_KEY = 'scs2d.skirmish.settings';
+
+const D = DEFAULT_SKIRMISH_SETTINGS;
+/** The round's settings and the answer's, as the setup screen offers them. */
+const SKIRMISH_FIELDS: readonly SettingField[] = [
+  { name: 'quietTime', group: 'round', label: 'quiet s', step: 5, min: 1, value: D.quietTime,
+    title: 'A side that has not fired, hit or rammed for this long, while the other has, is out of the battle.' },
+  { name: 'timeCap', group: 'round', label: 'time cap s', step: 30, min: 1, value: D.timeCap,
+    title: 'A battle not decided by then is a draw, which is a loss for you.' },
+  { name: 'gap', group: 'round', label: 'gap m', step: 100, value: D.gap,
+    title: "Clear water between the two fleets' furthest hulls at the start." },
+  { name: 'closingSpeed', group: 'round', label: 'closing m/s', step: 5, min: null, value: D.closingSpeed,
+    title: 'Each fleet\'s starting speed towards the other.' },
+  { name: 'crossingSpeed', group: 'round', label: 'crossing m/s', step: 5, min: null, value: D.crossingSpeed,
+    title: 'Each fleet\'s starting speed across the line between them, to its left.' },
+  { name: 'mutants', group: 'answer', label: 'mutants', step: 1, min: 1, value: D.mutants,
+    title: 'Mutants of the enemy a generation, beside the best so far.' },
+  { name: 'seeds', group: 'answer', label: 'matches each', step: 1, min: 1, value: D.seeds,
+    title: 'Matches each enemy fights a generation, on different seeds, the seed you won on among them, so it cannot win by a fluke of one.' },
+  { name: 'duration', group: 'answer', label: 'match s', step: 30, min: 1, value: D.duration,
+    title: 'How long a match of the search lasts before the side ahead is taken to win.' },
+  { name: 'growth', group: 'answer', label: 'growth ×', step: 0.1, min: 1, value: D.growth,
+    title: 'How much bigger an answer may be than the enemy it answers, in metal, fuel, build time and ships — always one more ship than it had.' },
+  { name: 'stretchAfter', group: 'answer', label: 'grow again after', step: 1, min: 1, value: D.stretchAfter,
+    title: 'Generations without an answer before the enemy may grow by as much again.' },
+];
+/** Those that are counts, and so whole. */
+const WHOLE = new Set(['mutants', 'seeds', 'stretchAfter']);
+
 export function startSkirmish(): void {
   const fleets = new Library(window.localStorage, FLEET_FILES);
   const ships = new Library(window.localStorage);
 
-  const setupPanel = el<HTMLElement>('setup');
+  fillFields(document, [...SKIRMISH_FIELDS, ...MUTATION_FIELDS]);
+  const settingInputs = new Map([...SKIRMISH_FIELDS, ...MUTATION_FIELDS].map((f) => [f.name, el<HTMLInputElement>(f.name)]));
   const roundPanel = el<HTMLElement>('round');
   const enemySelect = el<HTMLSelectElement>('enemy');
   const startSelect = el<HTMLSelectElement>('startFleet');
@@ -66,6 +103,11 @@ export function startSkirmish(): void {
   let battle: CustomBattle | null = null;
   let activity = new Activity(2);
   let decision: Decision | null = null;
+  /** A fresh decision rule for a battle of the skirmish, under its settings. */
+  const newActivity = (): Activity => {
+    const settings = skirmish === null ? DEFAULT_SKIRMISH_SETTINGS : settingsOf(skirmish);
+    return new Activity(2, settings.timeCap, settings.quietTime);
+  };
   /**
    * What is on the screen: the round, to be won or lost; the best enemy so far
    * fighting the round while the search goes on; or the answer it found.
@@ -200,7 +242,7 @@ export function startSkirmish(): void {
   };
   const showSetup = (): void => {
     el<HTMLElement>('history').hidden = true;
-    setupPanel.hidden = false;
+    document.body.classList.add('screenSetup');
     roundPanel.hidden = true;
     playButton.disabled = true;
     fillChoices(enemySelect, false);
@@ -208,6 +250,47 @@ export function startSkirmish(): void {
     preview();
   };
   enemySelect.addEventListener('change', preview);
+
+  /** What the setup screen says, as settings: a box left blank or unreadable is its default. */
+  const readSettings = (): SkirmishSettings => {
+    const value = (name: string, fallback: number, least: number | null): number => {
+      const raw = settingInputs.get(name)!.value.trim();
+      const n = raw === '' ? NaN : Number(raw);
+      if (!Number.isFinite(n)) return fallback;
+      const whole = WHOLE.has(name) ? Math.round(n) : n;
+      return least !== null && whole < least ? least : whole;
+    };
+    const out: Record<string, unknown> = {};
+    for (const field of SKIRMISH_FIELDS) out[field.name] = value(field.name, field.value, field.min === undefined ? 0 : field.min);
+    const breeding: Record<string, number> = {};
+    for (const field of MUTATION_FIELDS) breeding[field.name] = value(field.name, field.value, 0);
+    return { ...DEFAULT_SKIRMISH_SETTINGS, ...out, breeding };
+  };
+  /** Fill the setup screen from settings. */
+  const showSettings = (settings: SkirmishSettings): void => {
+    for (const field of SKIRMISH_FIELDS) settingInputs.get(field.name)!.value = String(settings[field.name as keyof SkirmishSettings]);
+    for (const field of MUTATION_FIELDS) settingInputs.get(field.name)!.value = String(settings.breeding[field.name] ?? field.value);
+  };
+  const keepSettings = (): void => {
+    try {
+      window.localStorage.setItem(SETTINGS_KEY, JSON.stringify(readSettings()));
+    } catch {
+      // Storage full or refused: they last as long as the page.
+    }
+  };
+  let kept: SkirmishSettings = DEFAULT_SKIRMISH_SETTINGS;
+  try {
+    const raw = window.localStorage.getItem(SETTINGS_KEY);
+    if (raw !== null) kept = parseSkirmishSettings(JSON.parse(raw));
+  } catch {
+    // Unreadable: the defaults.
+  }
+  showSettings(kept);
+  for (const input of settingInputs.values()) input.addEventListener('change', keepSettings);
+  el<HTMLButtonElement>('resetSettings').addEventListener('click', () => {
+    showSettings(DEFAULT_SKIRMISH_SETTINGS);
+    keepSettings();
+  });
   el<HTMLButtonElement>('start').addEventListener('click', () => {
     const enemy = read(enemySelect.value);
     if (enemy === null) return;
@@ -219,7 +302,7 @@ export function startSkirmish(): void {
     const player = startSelect.value === EMPTY ? { name: 'My fleet', designs: {}, ships: [] } : read(startSelect.value);
     if (player === null) return;
     // The page's own randomness, not the battle's: it only picks which battle.
-    skirmish = newSkirmish(enemy, player, Math.floor(Math.random() * 2 ** 32));
+    skirmish = newSkirmish(enemy, player, Math.floor(Math.random() * 2 ** 32), readSettings());
     save();
     // Nothing to fight with yet: straight to the editor to build it.
     if (player.ships.length === 0) window.location.href = `fleet.html${skirmishFragment(skirmish)}`;
@@ -230,7 +313,7 @@ export function startSkirmish(): void {
 
   const showRound = (): void => {
     if (skirmish === null) return;
-    setupPanel.hidden = true;
+    document.body.classList.remove('screenSetup');
     roundPanel.hidden = false;
     el<HTMLElement>('history').hidden = false;
     el<HTMLElement>('replaying').hidden = true;
@@ -240,7 +323,7 @@ export function startSkirmish(): void {
     outcome.textContent = '';
     outcome.className = '';
     decision = null;
-    activity = new Activity(2);
+    activity = newActivity();
     el<HTMLElement>('roundTitle').textContent =
       `Round ${skirmish.round}` + (skirmish.tries > 0 ? ` · try ${skirmish.tries + 1}` : '');
     el<HTMLElement>('enemyName').textContent = `Against ${skirmish.enemy.name}.`;
@@ -318,7 +401,13 @@ export function startSkirmish(): void {
     latest = null;
     stopSearch?.();
     stopSearch = startAnswer(
-      { player: skirmish.player, enemy: skirmish.enemy, won: skirmish.won, seed: (skirmish.won ^ skirmish.round) >>> 0 },
+      {
+        player: skirmish.player,
+        enemy: skirmish.enemy,
+        won: skirmish.won,
+        seed: (skirmish.won ^ skirmish.round) >>> 0,
+        settings: settingsOf(skirmish),
+      },
       progressed,
     );
   };
@@ -346,7 +435,7 @@ export function startSkirmish(): void {
       generation: now.generation,
     });
     // How big it may grow, as against what it was: 1.5×, then 2.25× once it has stretched.
-    const allowed = 1.5 ** now.stretch;
+    const allowed = settingsOf(skirmish).growth ** now.stretch;
     answerProgress.textContent =
       `Generation ${now.generation}: the best enemy so far won ${now.wins} of its ${now.seeds} matches. ` +
       (now.stretch > 1
@@ -362,8 +451,8 @@ export function startSkirmish(): void {
     if (skirmish === null || skirmish.won === undefined || !watching) return;
     mode = 'watching';
     decision = null;
-    activity = new Activity(2);
-    battle = customBattle(roundBattle(skirmish.player, now.best, skirmish.won));
+    activity = newActivity();
+    battle = customBattle(roundBattle(skirmish.player, now.best, skirmish.won, settingsOf(skirmish)));
     outcome.textContent = `Generation ${now.generation}'s best enemy against your fleet.`;
     outcome.className = '';
     el<HTMLElement>('enemyName').textContent = `Against ${now.best.name}, evolving.`;
@@ -393,8 +482,8 @@ export function startSkirmish(): void {
     if (skirmish === null || skirmish.won === undefined) return;
     mode = 'answer';
     decision = null;
-    activity = new Activity(2);
-    battle = customBattle(roundBattle(skirmish.player, enemy, skirmish.won));
+    activity = newActivity();
+    battle = customBattle(roundBattle(skirmish.player, enemy, skirmish.won, settingsOf(skirmish)));
     outcome.textContent = "The enemy's answer.";
     outcome.className = 'lost';
     el<HTMLElement>('enemyName').textContent = `Against ${enemy.name}, the answer.`;
@@ -422,8 +511,8 @@ export function startSkirmish(): void {
     }
     mode = 'replay';
     decision = null;
-    activity = new Activity(2);
-    battle = customBattle(roundBattle(player, enemy, seed));
+    activity = newActivity();
+    battle = customBattle(roundBattle(player, enemy, seed, skirmish === null ? DEFAULT_SKIRMISH_SETTINGS : settingsOf(skirmish)));
     outcome.textContent = `Round ${round}, again.`;
     outcome.className = '';
     playButton.disabled = false;

@@ -15,6 +15,7 @@ import {
   type Fleet,
 } from '../sim/index.js';
 import type { BattleSetup } from './customBattle.js';
+import { QUIET_TIME, TIME_CAP } from './decision.js';
 
 /**
  * A skirmish: the player's fleet against an enemy, a round at a time
@@ -41,10 +42,64 @@ export interface Skirmish {
    * the enemy evolves an answer; cleared by the next round.
    */
   won?: number;
+  /** What it is played under; the defaults where it says nothing. */
+  settings?: SkirmishSettings;
 }
 
-/** Clear water between the two fleets' furthest hulls at the start, metres. */
-const GAP = 1500;
+/**
+ * What a skirmish is played under: how a round is set out and decided, and
+ * how the enemy evolves its answer. Chosen when it starts, and kept with it.
+ */
+export interface SkirmishSettings {
+  /** A side that has not fired, hit or rammed for this long is out, s. */
+  readonly quietTime: number;
+  /** A battle not decided by then is a draw, which is a loss for the player, s. */
+  readonly timeCap: number;
+  /** Clear water between the two fleets' furthest hulls at the start, metres. */
+  readonly gap: number;
+  /** Each fleet's starting speed towards the other, m/s. */
+  readonly closingSpeed: number;
+  /** Each fleet's starting speed across the line between them, to its left, m/s. */
+  readonly crossingSpeed: number;
+  /** Mutants a generation of the enemy's search, beside the best so far. */
+  readonly mutants: number;
+  /** Matches each enemy fights a generation, the seed the round was won on among them. */
+  readonly seeds: number;
+  /** How long a match of the search may last before the side ahead is taken to win, s. */
+  readonly duration: number;
+  /**
+   * How much bigger an answer may be than the enemy it answers: its metal, fuel
+   * and build time, and its ships, though always one more ship than it had.
+   */
+  readonly growth: number;
+  /** Generations without an answer before the enemy may grow by `growth` again. */
+  readonly stretchAfter: number;
+  /**
+   * How the enemy is bred: the mutation odds by the names the settings pages
+   * give them (`evolution/mutationFields.ts`), each missing one its default.
+   */
+  readonly breeding: Readonly<Record<string, number>>;
+}
+
+export const DEFAULT_SKIRMISH_SETTINGS: SkirmishSettings = {
+  quietTime: QUIET_TIME,
+  timeCap: TIME_CAP,
+  gap: 1500,
+  closingSpeed: 0,
+  crossingSpeed: 0,
+  mutants: 5,
+  seeds: 3,
+  duration: 180,
+  growth: 1.5,
+  stretchAfter: 20,
+  breeding: {},
+};
+
+/** What a skirmish is played under. */
+export function settingsOf(skirmish: Skirmish): SkirmishSettings {
+  return skirmish.settings ?? DEFAULT_SKIRMISH_SETTINGS;
+}
+
 /** The closest the fleets' origins start, metres: the custom battle's default range. */
 const MIN_RANGE = 2000;
 
@@ -53,8 +108,16 @@ export function billOfFleet(fleet: Fleet): Bill {
 }
 
 /** A skirmish against `enemy`, its cost the player's budget. */
-export function newSkirmish(enemy: Fleet, player: Fleet, seed: number): Skirmish {
-  return { enemy, player, budget: billOfFleet(enemy), round: 1, tries: 0, seed: seed >>> 0 };
+export function newSkirmish(enemy: Fleet, player: Fleet, seed: number, settings?: SkirmishSettings): Skirmish {
+  return {
+    enemy,
+    player,
+    budget: billOfFleet(enemy),
+    round: 1,
+    tries: 0,
+    seed: seed >>> 0,
+    ...(settings === undefined ? {} : { settings }),
+  };
 }
 
 /**
@@ -79,17 +142,22 @@ export function canFight(skirmish: Skirmish): boolean {
 
 /** The battle a round is: the player's fleet first, so it is blue. */
 export function roundSetup(skirmish: Skirmish): BattleSetup {
-  return roundBattle(skirmish.player, skirmish.enemy, skirmish.seed);
+  return roundBattle(skirmish.player, skirmish.enemy, skirmish.seed, settingsOf(skirmish));
 }
 
 /** Two fleets as a round sets them out, on this seed. */
-export function roundBattle(player: Fleet, enemy: Fleet, seed: number): BattleSetup {
+export function roundBattle(
+  player: Fleet,
+  enemy: Fleet,
+  seed: number,
+  settings: Pick<SkirmishSettings, 'gap' | 'closingSpeed' | 'crossingSpeed'> = DEFAULT_SKIRMISH_SETTINGS,
+): BattleSetup {
   const reach = fleetReach(fleetHulls(player)) + fleetReach(fleetHulls(enemy));
   return {
     fleets: [player, enemy],
-    range: math.max(MIN_RANGE, reach + GAP),
-    closingSpeed: 0,
-    crossingSpeed: 0,
+    range: math.max(MIN_RANGE, reach + settings.gap),
+    closingSpeed: settings.closingSpeed,
+    crossingSpeed: settings.crossingSpeed,
     rotation: 0,
     seed,
   };
@@ -124,7 +192,37 @@ export function serialiseSkirmish(skirmish: Skirmish): Record<string, unknown> {
     budget: { ...skirmish.budget },
     enemy: serialiseFleet(skirmish.enemy),
     player: serialiseFleet(skirmish.player),
+    ...(skirmish.settings === undefined ? {} : { settings: { ...skirmish.settings, breeding: { ...skirmish.settings.breeding } } }),
   };
+}
+
+/** Settings as a file holds them, every number checked; what it leaves out is the default. */
+export function parseSkirmishSettings(value: unknown): SkirmishSettings {
+  const fail = (problem: string): never => {
+    throw new Error(`Invalid skirmish settings — ${problem}`);
+  };
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) fail('they must be an object');
+  const file = value as Record<string, unknown>;
+  const out: Record<string, unknown> = {};
+  for (const key of Object.keys(DEFAULT_SKIRMISH_SETTINGS) as (keyof SkirmishSettings)[]) {
+    if (key === 'breeding') continue;
+    const n = file[key];
+    if (n === undefined) continue;
+    // Speeds may be negative; nothing else may.
+    const signed = key === 'closingSpeed' || key === 'crossingSpeed';
+    if (typeof n !== 'number' || !Number.isFinite(n) || (!signed && n < 0)) fail(`${key} must be a number${signed ? '' : ' of at least zero'}`);
+    out[key] = n;
+  }
+  const breeding: Record<string, number> = {};
+  const raw = file['breeding'];
+  if (raw !== undefined) {
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) fail('breeding must be an object');
+    for (const [name, n] of Object.entries(raw as Record<string, unknown>)) {
+      if (typeof n !== 'number' || !Number.isFinite(n) || n < 0) fail(`breeding.${name} must be a number of at least zero`);
+      breeding[name] = n as number;
+    }
+  }
+  return { ...DEFAULT_SKIRMISH_SETTINGS, ...out, breeding };
 }
 
 export function parseSkirmish(value: unknown): Skirmish {
@@ -169,7 +267,15 @@ export function parseSkirmish(value: unknown): Skirmish {
     budget: { metal: amount('metal'), fuel: amount('fuel'), build: amount('build') },
     enemy: fleet('enemy'),
     player: fleet('player'),
+    ...(file['settings'] === undefined ? {} : { settings: settingsIn(file['settings']) }),
   };
+  function settingsIn(raw: unknown): SkirmishSettings {
+    try {
+      return parseSkirmishSettings(raw);
+    } catch (error) {
+      return fail(`settings: ${(error as Error).message}`);
+    }
+  }
 }
 
 /** Where a page keeps the skirmish in progress, so it can be picked up again. */

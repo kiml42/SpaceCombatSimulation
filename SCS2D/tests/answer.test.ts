@@ -92,3 +92,15 @@ describe('how far an answer may grow', () => {
     expect(running.limits.maxShips).toBe(4);
   });
 });
+
+describe('how the enemy is bred', () => {
+  it('breeds by the mutation odds it is given', () => {
+    // Only moves: every mutant keeps the enemy's designs and its ships.
+    const only = { opDesign: 0, opAdd: 0, opRemove: 0, opFork: 0, opMerge: 0, opSwap: 0, opMove: 1 };
+    const search = new EnemySearch(gunship, corvette, MIRROR_WON, 4, { mutants: 3, seeds: 1, duration: 20, breeding: only });
+    while (search.progress.generation < 1 && !search.advance(2000));
+    const best = search.progress.best.enemy;
+    expect(best.designs).toEqual(corvette.designs);
+    expect(best.ships).toHaveLength(corvette.ships.length);
+  });
+});

@@ -1,5 +1,6 @@
 import { parseFleet, serialiseFleet, type Fleet } from '../sim/index.js';
 import { EnemySearch } from '../evolution/answer.js';
+import type { SkirmishSettings } from '../scenarios/skirmish.js';
 
 /**
  * The skirmish enemy's search, run off the page: in a worker where there is
@@ -15,6 +16,8 @@ export interface AnswerInput {
   /** The seed the player won the round on. */
   won: number;
   seed: number;
+  /** What the skirmish is played under. */
+  settings: SkirmishSettings;
 }
 
 export interface AnswerProgress {
@@ -63,6 +66,7 @@ export function startAnswer(input: AnswerInput, progress: (now: AnswerProgress) 
     enemy: serialiseFleet(input.enemy),
     won: input.won,
     seed: input.seed,
+    settings: input.settings,
   };
   try {
     const url = URL.createObjectURL(new Blob([__ANSWER_WORKER__], { type: 'text/javascript' }));
@@ -91,10 +95,10 @@ export function startAnswer(input: AnswerInput, progress: (now: AnswerProgress) 
  * it: each call does a slice and says whether there is more to do.
  */
 export function searchLoop(
-  input: { player: unknown; enemy: unknown; won: number; seed: number },
+  input: { player: unknown; enemy: unknown; won: number; seed: number; settings: SkirmishSettings },
   post: (wire: Wire) => void,
 ): () => boolean {
-  const search = new EnemySearch(parseFleet(input.player), parseFleet(input.enemy), input.won, input.seed);
+  const search = new EnemySearch(parseFleet(input.player), parseFleet(input.enemy), input.won, input.seed, input.settings);
   let seen = 0;
   return () => {
     const done = search.advance(SLICE);

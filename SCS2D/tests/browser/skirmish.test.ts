@@ -10,7 +10,8 @@ import type { Browser, Page } from 'playwright';
 import { launchChromium } from './launch.js';
 import { shipFleet, type Blueprint } from '../../sim/index.js';
 import { CORVETTE, GUNSHIP } from '../../scenarios/blueprints.js';
-import { newSkirmish, skirmishFragment, won } from '../../scenarios/skirmish.js';
+import { DEFAULT_SKIRMISH_SETTINGS, newSkirmish, skirmishFragment, won } from '../../scenarios/skirmish.js';
+import { DEFAULT_KINDS } from '../../evolution/mutate.js';
 import { designHref } from '../../editor/handoff.js';
 
 /**
@@ -51,7 +52,7 @@ afterAll(async () => {
 
 describe('the skirmish in a browser', () => {
   it('opens on choosing an enemy, without errors', async () => {
-    expect(await page.isVisible('#setup')).toBe(true);
+    expect(await page.isVisible('#setupScreen')).toBe(true);
     expect(await page.isVisible('#round')).toBe(false);
     expect(await page.textContent('#enemyBill')).toContain('metal');
     expect(problems).toEqual([]);
@@ -66,7 +67,32 @@ describe('the skirmish in a browser', () => {
     expect(await page.textContent('#fleetNote')).toContain('over budget');
     expect(await page.locator('#budget tr.over').count()).toBeGreaterThan(0);
     await page.click('#abandon');
-    expect(await page.isVisible('#setup')).toBe(true);
+    expect(await page.isVisible('#setupScreen')).toBe(true);
+  });
+
+  it('keeps the settings chosen with the skirmish, and puts them back to their defaults', async () => {
+    const set = async (id: string, value: string): Promise<void> => {
+      await page.fill(`#${id}`, value);
+      await page.dispatchEvent(`#${id}`, 'change');
+    };
+    await set('quietTime', '45');
+    await set('mutants', '2');
+    await set('kindTank', '7');
+    await page.selectOption('#enemy', 'ship:Gunship');
+    await page.selectOption('#startFleet', 'ship:Gunship');
+    await page.click('#start');
+    const kept = await page.evaluate(() => JSON.parse(window.localStorage.getItem('scs2d.skirmish')!));
+    expect(kept.settings.quietTime).toBe(45);
+    expect(kept.settings.mutants).toBe(2);
+    expect(kept.settings.breeding.kindTank).toBe(7);
+    // Remembered for the next one, until reset.
+    await page.click('#abandon');
+    expect(await page.inputValue('#quietTime')).toBe('45');
+    await page.click('#resetSettings');
+    expect(await page.inputValue('#quietTime')).toBe(String(DEFAULT_SKIRMISH_SETTINGS.quietTime));
+    expect(await page.inputValue('#mutants')).toBe(String(DEFAULT_SKIRMISH_SETTINGS.mutants));
+    expect(await page.inputValue('#kindTank')).toBe(String(DEFAULT_KINDS.tank));
+    expect(problems).toEqual([]);
   });
 
   it('fights a round with a fleet that fits', async () => {

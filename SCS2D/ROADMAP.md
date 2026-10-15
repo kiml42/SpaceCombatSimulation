@@ -310,7 +310,7 @@ Deliberately unresolved; decide when they block something.
   stalemate (600 s), and the enemy's search: five mutants a generation, three seeds each, 180 s a match, growth
   of 1.5× a round and as much again every 20 generations without an answer, and
   ahead at the time limit meaning more of its starting mass still under control than the player has, all
-  first guesses. Nothing bounds how long a round's search may take: it shows its progress and goes on, and
+  first guesses, and the defaults of what the player can now set before a skirmish starts. Nothing bounds how long a round's search may take: it shows its progress and goes on, and
   an answer to a fleet much stronger than the enemy can take many generations of growing into it.
 
 - **Whether the editor needs a test flight of its own.** A throwaway sim inside the editor, flying the ship

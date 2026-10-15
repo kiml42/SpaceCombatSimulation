@@ -7,6 +7,7 @@ import { Activity, QUIET_TIME, TIME_CAP, type Decision } from '../scenarios/deci
 import {
   billOfFleet,
   canFight,
+  DEFAULT_SKIRMISH_SETTINGS,
   fleetFault,
   handedSkirmish,
   lost,
@@ -15,6 +16,7 @@ import {
   parseSkirmish,
   roundSetup,
   serialiseSkirmish,
+  settingsOf,
   skirmishFragment,
   won,
 } from '../scenarios/skirmish.js';
@@ -216,6 +218,22 @@ describe('the skirmish', () => {
     const back = handedSkirmish(skirmishFragment(skirmish));
     expect(back && serialiseSkirmish(back)).toEqual(serialiseSkirmish(skirmish));
     expect(handedSkirmish('#fleet=x')).toBeNull();
+  });
+
+  it('keeps the settings it is played under, and reads one saved without them as the defaults', () => {
+    const settings = { ...DEFAULT_SKIRMISH_SETTINGS, quietTime: 45, gap: 4000, closingSpeed: -10, breeding: { kindTank: 7 } };
+    const skirmish = newSkirmish(gunship, gunship, 5, settings);
+    const back = handedSkirmish(skirmishFragment(skirmish))!;
+    expect(settingsOf(back)).toEqual(settings);
+    expect(settingsOf(newSkirmish(gunship, gunship, 5))).toEqual(DEFAULT_SKIRMISH_SETTINGS);
+    // The round is set out by them.
+    const near = roundSetup(back);
+    const nearer = roundSetup(newSkirmish(gunship, gunship, 5, { ...settings, gap: 3000 }));
+    expect(near.range - nearer.range).toBeCloseTo(1000, 6);
+    expect(near.closingSpeed).toBe(-10);
+    const file = serialiseSkirmish(skirmish);
+    expect(() => parseSkirmish({ ...file, settings: { quietTime: -1 } })).toThrow(/quietTime/);
+    expect(() => parseSkirmish({ ...file, settings: { breeding: { kindTank: 'lots' } } })).toThrow(/breeding\.kindTank/);
   });
 
   it('refuses a skirmish it cannot read', () => {
