@@ -22,6 +22,8 @@ export interface AnswerProgress {
   wins: number;
   /** Whether the best won on the seed the round was won on, under the search's rules. */
   onRound: boolean;
+  /** How many times the enemy has been let grow by half as much again. */
+  stretch: number;
   seeds: number;
   best: Fleet;
   found: Fleet | null;
@@ -32,6 +34,7 @@ interface Wire {
   generation: number;
   wins: number;
   onRound: boolean;
+  stretch: number;
   seeds: number;
   best: unknown;
   found: unknown;
@@ -50,6 +53,7 @@ export function startAnswer(input: AnswerInput, progress: (now: AnswerProgress) 
       generation: wire.generation,
       wins: wire.wins,
       onRound: wire.onRound,
+      stretch: wire.stretch,
       seeds: wire.seeds,
       best: parseFleet(wire.best),
       found: wire.found === null ? null : parseFleet(wire.found),
@@ -101,6 +105,7 @@ export function searchLoop(
         generation: now.generation,
         wins: now.best.wins,
         onRound: now.best.onRound,
+        stretch: now.stretch,
         seeds: now.seeds,
         best: serialiseFleet(now.best.enemy),
         found: now.found === null ? null : serialiseFleet(now.found),

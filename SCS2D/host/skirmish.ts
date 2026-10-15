@@ -335,8 +335,13 @@ export function startSkirmish(): void {
       enemy: now.best,
       generation: now.generation,
     });
+    // How big it may grow, as against what it was: 1.5×, then 2.25× once it has stretched.
+    const allowed = 1.5 ** now.stretch;
     answerProgress.textContent =
-      `Generation ${now.generation}: the best enemy so far won ${now.wins} of its ${now.seeds} matches.`;
+      `Generation ${now.generation}: the best enemy so far won ${now.wins} of its ${now.seeds} matches. ` +
+      (now.stretch > 1
+        ? `Finding no answer, it has stretched to ${allowed.toFixed(2)}× its size.`
+        : `It may grow to ${allowed}× its size.`);
     // The first best, or the last replay over: show the newest. Not over a match watched again.
     if (mode === 'replay') return;
     if (mode !== 'watching' || decision !== null) watch(now);

@@ -108,8 +108,9 @@ that answers the question most likely to change the design.
 #### Skirmish (step 5)
 
 - **An endless loop against an enemy that evolves to beat the player.** The first enemy's bill is the
-  player's budget, and stays it; the enemy's is unlimited, and it grows only as far as it must, since its
-  search stops at the first winner. How far one round may let it grow is open in §12.
+  player's budget, and stays it; the enemy's grows a round at a time, to half as much again as it was —
+  metal, fuel, build time and ships, though always one ship more — and by as much again each time 20
+  generations go by without an answer (`evolution/answer.ts`).
 - **A round is one seed**, so a retry is the same battle and what changes it is the player's edit; a round
   won is answered on that seed and the next round takes a new one.
 - **A battle is decided** once one side has fired, hit or rammed in the last 30 s and the other has not, a
@@ -295,12 +296,14 @@ Deliberately unresolved; decide when they block something.
 - **Whether the skirmish enemy should prefer the cheapest fleet that wins.** It stops at the first winner,
   so it grows only as it must, but it never shrinks, and drifts larger round by round. A preference for
   efficiency would let it get leaner as well as stronger.
-- **How far one round lets the skirmish enemy grow.** With no budget, one mutation can add a whole ship, so
-  an answer can be the enemy doubled: found by the author, three corvettes that beat one gunship next faced
-  two. A step that large is a much harder round than the one just won. Wanted: some bound on how much an
-  answer may grow in one round — a share of the player's budget, say, or of what the enemy cost before.
+- **How the skirmish enemy adds a ship.** A round may grow it by half as much again, but the one way to add
+  a ship copies one already there, so a lone Gunship can only grow by a ship much lighter than itself it does
+  not have. Planned with the author: a fleet carries designs it does not fly, latent and not mutated, a ship
+  removed leaving its design latent; *add* builds a latent design or a bare core, whatever fits. Ships that
+  carry their own parent designs, as fighters do, come later.
 - **The skirmish's numbers.** How long without firing puts a side out of a battle (30 s), the time cap on a
-  stalemate (600 s), and the enemy's search: five mutants a generation, three seeds each, 180 s a match, and
+  stalemate (600 s), and the enemy's search: five mutants a generation, three seeds each, 180 s a match, growth
+  of 1.5× a round and as much again every 20 generations without an answer, and
   ahead at the time limit meaning more of its starting mass still under control than the player has, all
   first guesses. Nothing bounds how long a round's search may take: it shows its progress and goes on, and
   an answer to a fleet much stronger than the enemy can take many generations of growing into it.
