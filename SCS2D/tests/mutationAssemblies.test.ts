@@ -247,10 +247,11 @@ describe('breeding the grouping', () => {
   it('reaches parts, repeats them, grows them and turns them over', { timeout: 60_000 }, () => {
     // Lineages from a bare core, which starts with no assemblies at all, so
     // every one of these is something the operators built rather than
-    // something the founder was handed. Three rather than one, because a
-    // single lineage can wander away from any one of them for good.
+    // something the founder was handed. Four rather than one, because a
+    // single lineage can wander away from any one of them for good, and which
+    // one does moves with every field the mutation draws from.
     const seen = { grouped: false, repeated: false, manyModules: false, mirrored: false };
-    for (const seed of [3, 4, 5]) {
+    for (const seed of [3, 4, 5, 6]) {
       const one = lineage(BARE_CORE, seed, 400).seen;
       for (const key of Object.keys(seen) as (keyof typeof seen)[]) seen[key] ||= one[key];
     }

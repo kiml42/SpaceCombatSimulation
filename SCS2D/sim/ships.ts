@@ -942,6 +942,8 @@ export class Ships {
    * obeyed, and a ship that has run out of orders is not left idle.
    */
   private readonly chosen: number[] = [];
+  /** A fighter's `fightReach` as it landed on a pad, before its design took in the carrier's. */
+  private readonly landedReach: number[] = [];
   /** The ship its doctrine has committed it to ramming, or `NO_TARGET`. Kept until that ship is out of the fight. */
   private readonly ramming: number[] = [];
   /** The tick each ship last fired a gun or a beam, or -1. */
@@ -1461,6 +1463,7 @@ export class Ships {
     this.partedAt.push(-Infinity);
     this.clawTried.push(-Infinity);
     this.chosen.push(NO_TARGET);
+    this.landedReach.push(0);
     this.ramming.push(NO_TARGET);
     this.firedAt.push(-1);
     this.salvaging.push(NO_TARGET);
@@ -1583,6 +1586,7 @@ export class Ships {
       team: spec.team ?? 0,
       ...(spec.invulnerable === true ? { invulnerable: true } : {}),
     });
+    this.landedReach[f] = this.fightReach(f);
     this.merge(world, i, f, pad, fighter.cores[0] ?? 0, { at: 'a', kind: 'pad' });
     this.home[f] = i;
   }
@@ -1635,7 +1639,7 @@ export class Ships {
     // nothing to shoot with at all.
     const approach = this.doctrines[i]!.approach;
     const rammer = approach.ramRadii > 0;
-    const reach = design.reach > 0 ? design.reach : rammer ? approach.approachSpeed * RAM_HORIZON : 0;
+    const reach = this.fightReach(i);
     if ((design.reach > 0 && !this.isDisarmed(i)) || (rammer && reach > 0)) {
       const wanted = doctrine.ramMass > 0 && this.wouldRam(bodies, i, b) ? doctrine.ramMass : doctrine.preferredMass;
       this.choice.begin();
@@ -4316,6 +4320,7 @@ export class Ships {
             let repairLeft = landed >= 0 && this.mend(bodies, b, landed, seam.a, mending);
             if (landed >= 0 && !repairLeft) repairLeft = this.padBuild(bodies, b, design, landed, seam.a, mending);
             const ordered = (this.orders[landed]?.length ?? 0) > 0;
+            if (!ordered && landed >= 0 && this.waitsAboard(bodies, landed, b)) continue;
             const fuelLeft = this.fuel.pieceRoom(b, seam.b) > 0 && this.fuel.pieceHeld(b, seam.a) > this.reserve(b, seam.a);
             const metalLeft = this.metal.pieceRoom(b, seam.b) > 0 && this.metal.pieceHeld(b, seam.a) > this.metalReserve(b, seam.a);
             const chargeLeft = this.power.pieceRoom(b, seam.b) > 0 && this.power.pieceHeld(b, seam.a) > this.chargeReserve(b, seam.a);
@@ -5443,6 +5448,29 @@ export class Ships {
       if (length(dx + rvx * when, dy + rvy * when) < mine + bodies.radius[ob]!) return true;
     }
     return false;
+  }
+
+  /** How far ship `i` fights from, metres: its guns' reach, or a ram's run if it has none. */
+  private fightReach(i: number): number {
+    const reach = this.designs[i]!.reach;
+    const approach = this.doctrines[i]!.approach;
+    return reach > 0 ? reach : approach.ramRadii > 0 ? approach.approachSpeed * RAM_HORIZON : 0;
+  }
+
+  /**
+   * Whether fighter `i`, aboard body `b`, waits: it has no target, or its
+   * target is further off than its `sortieRange` times its reach. A fighter
+   * with no way to fight never waits.
+   */
+  private waitsAboard(bodies: Bodies, i: number, b: number): boolean {
+    const reach = this.landedReach[i]!;
+    if (!(reach > 0)) return false;
+    const target = this.chosen[i]!;
+    if (target === NO_TARGET) return true;
+    const tb = bodies.indexOf(this.bodyIds[target]!);
+    if (tb < 0) return true;
+    const apart = length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!);
+    return apart > this.doctrines[i]!.approach.sortieRange * reach;
   }
 
   /**
@@ -7395,6 +7423,7 @@ export class Ships {
       const place = this.modulePlace(bodies, cb, host, pad);
       if (length(bodies.vx[b]! - place.vx, bodies.vy[b]! - place.vy) > PAD_SPEED) continue;
       if (!this.within(bodies, b, this.designs[i]!, place, host.modules[pad]!.spec)) continue;
+      this.landedReach[i] = this.fightReach(i);
       this.merge(world, c, i, pad, this.designs[i]!.cores[0] ?? 0, { at: 'a', kind: 'pad' });
       this.home[i] = c;
       landed++;

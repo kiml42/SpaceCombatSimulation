@@ -699,7 +699,9 @@ inside any one file is not contiguous.
   nothing is left to mend, **it builds back what the fighter has lost**, as robots do and at the same work
   for its rate: fittings first, then a shell's walls, then a module lost, against what is left of the
   fighter, cores first, paid for in the carrier's metal and charge. The pad lets it go when it is full,
-  mended and whole, when there is no more to spare, or at once when it is given an order. The `padRebuild`
+  mended and whole, when there is no more to spare, or at once when it is given an order — unless the
+  fighter has nothing to fight, or its target is further off than its `sortieRange` times its reach (4 by
+  default), when it stays aboard. A fighter that cannot fight never waits. The `padRebuild`
   scenario has two Dinkies, each short of an outrigger engine, land on a Workshop, a Tender with a hold, and
   lift off whole; the engine's complexity makes that the work of about four seconds. A fighter goes in
   to be mended at its `repairBelow` (below), and is mended while it is down for anything else. A merged design remembers which of its pieces

@@ -20,6 +20,7 @@ import { CORVETTE, DINKY } from '../scenarios/blueprints.js';
 import { OrderCancelCondition } from '../sim/ships.js';
 import { dockFighter } from '../editor/edit.js';
 import { capture, Snapshot, type ShipView } from '../sim/snapshot.js';
+import { ANY_RANGE, QUARRY } from './fixtures/quarry.js';
 
 /** Fighters landing on a friend's pad to be filled from it (ROADMAP.md §8 step 9). */
 
@@ -39,10 +40,12 @@ function carrierOf(pad = 20, refuelBelow = 0): ShipDesign {
 const PAD = 2;
 const TANK = 1;
 
+/** A Dinky that, once full, sorties for a target however far off. */
 function fighterOf(refuelBelow: number): ShipDesign {
   const doctrine = compileBlueprint(DINKY).doctrine;
-  return compileBlueprint({ ...DINKY, doctrine: { ...doctrine, approach: { ...doctrine.approach, refuelBelow } } });
+  return compileBlueprint({ ...DINKY, doctrine: { ...doctrine, approach: { ...doctrine.approach, refuelBelow, sortieRange: ANY_RANGE } } });
 }
+
 
 interface Setup {
   carrier?: ShipDesign;
@@ -53,6 +56,8 @@ interface Setup {
   spent?: number;
   /** A second fighter, as low. */
   pair?: boolean;
+  /** Leave out the far-off quarry, so there is nothing to fight. */
+  alone?: boolean;
 }
 
 function scene(setup: Setup = {}): ReturnType<typeof makeBattle<{ c: number; f: number; g: number }>> {
@@ -71,6 +76,7 @@ function scene(setup: Setup = {}): ReturnType<typeof makeBattle<{ c: number; f: 
       g = ships.spawn(world, { design: fighter, x: -300, y: -200, angle: 0 });
       lower(g);
     }
+    if (setup.alone !== true) ships.spawn(world, { design: QUARRY, x: 0, y: 5000, team: 1 });
     return { c, f, g };
   });
 }
@@ -152,6 +158,33 @@ describe('a fighter low on fuel', () => {
     run.ships.pushOrder(run.f, run.c, 200, 300, 20, OrderCancelCondition.None);
     for (let s = 0; s < 5; s++) run.step();
     expect(aboard(run, run.f)).toBe(false);
+  });
+
+  /** A fighter with a sortie range of 2, aboard and full with nobody about, and then an enemy Corvette `at` reaches off. */
+  function sortie(at: number): { run: ReturnType<typeof scene>; aboardWithNobody: boolean } {
+    const doctrine = compileBlueprint(DINKY).doctrine;
+    const fighter = compileBlueprint({ ...DINKY, doctrine: { ...doctrine, approach: { ...doctrine.approach, refuelBelow: 0.5, sortieRange: 2, dockDanger: 0 } } });
+    const run = scene({ fighter, alone: true });
+    runUntil(run, () => aboard(run, run.f), 60);
+    // Long after it is full, with nothing to fight, it is still aboard.
+    for (let s = 0; s < 60 * 60; s++) run.step();
+    const aboardWithNobody = aboard(run, run.f);
+    run.ships.spawn(run.world, { design: compileBlueprint(CORVETTE), x: at * fighter.reach, y: 0, team: 1 });
+    runUntil(run, () => !aboard(run, run.f), 5);
+    return { run, aboardWithNobody };
+  }
+
+  it('waits aboard with nothing to fight, and goes, full, for a target within its sortie range', () => {
+    const { run, aboardWithNobody } = sortie(1.5);
+    expect(aboardWithNobody).toBe(true);
+    expect(aboard(run, run.f)).toBe(false);
+    const b = run.world.bodies.indexOf(run.ships.body(run.f));
+    expect(run.ships.fuel.pieceRoom(b, run.ships.design(run.f).cores[0]!)).toBeCloseTo(0, 3);
+  });
+
+  it('stays aboard for a target further off than its sortie range', () => {
+    const { run } = sortie(3);
+    expect(aboard(run, run.f)).toBe(true);
   });
 
   it('does not land on a pad it does not fit inside', () => {
@@ -276,7 +309,11 @@ describe('a pad set out with a fighter docked on it', () => {
   });
 
   it('spawns it docked, and it lifts off full and a fighter, touching nothing', () => {
-    const run = makeBattle({ seed: 3 }, (ships, world) => ({ c: ships.spawn(world, { design: compileBlueprint(laden()), x: 0, y: 0, angle: 0.3, vx: 5 }) }));
+    const run = makeBattle({ seed: 3 }, (ships, world) => {
+      const c = ships.spawn(world, { design: compileBlueprint(laden()), x: 0, y: 0, angle: 0.3, vx: 5 });
+      ships.spawn(world, { design: QUARRY, x: 1000, y: 0, team: 1 });
+      return { c };
+    });
     const f = run.c + 1;
     expect(run.ships.body(f)).toBe(run.ships.body(run.c));
     for (let s = 0; s < 60 && run.ships.body(f) === run.ships.body(run.c); s++) run.step();
@@ -293,7 +330,11 @@ describe('a fighter launched from a pad turned across its carrier', () => {
       ...laden(),
       modules: laden().modules.map((m, i) => (i === PAD ? { ...m, angle: Math.PI / 2 } : m)),
     };
-    const run = makeBattle({ seed: 3 }, (ships, world) => ({ c: ships.spawn(world, { design: compileBlueprint(turned), x: 0, y: 0, angle: 0.3 }) }));
+    const run = makeBattle({ seed: 3 }, (ships, world) => {
+      const c = ships.spawn(world, { design: compileBlueprint(turned), x: 0, y: 0, angle: 0.3 });
+      ships.spawn(world, { design: QUARRY, x: 1000, y: 0, team: 1 });
+      return { c };
+    });
     const f = run.c + 1;
     const view = (): ShipView => {
       const snapshot = capture(new Snapshot(), run.world, run.ships, run.projectiles, run.beams);
@@ -325,7 +366,8 @@ describe('a pad passing charge', () => {
   it('is gone to for charge alone once a fighter\'s batteries are down to its refuelBelow', () => {
     // A Dinky with a battery where its hold was, setting out a tenth charged and full of fuel.
     const modules = DINKY.modules!.map((m) => ((m as { kind?: string }).kind === 'hold' ? { ...m, kind: 'battery' as const, fill: 0.1 } : m));
-    const sparky = compileBlueprint({ ...DINKY, modules });
+    const doctrine = compileBlueprint(DINKY).doctrine;
+    const sparky = compileBlueprint({ ...DINKY, modules, doctrine: { ...doctrine, approach: { ...doctrine.approach, sortieRange: ANY_RANGE } } });
     const battery = sparky.modules.findIndex((m) => m.spec.kind === 'battery');
     const run = scene({ fighter: sparky, spent: 0 });
     runUntil(run, () => aboard(run, run.f), 60);

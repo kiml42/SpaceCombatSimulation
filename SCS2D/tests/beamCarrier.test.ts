@@ -18,7 +18,6 @@ describe('the Beam Carrier', () => {
     gripped ||= ships.isAlive(TENDER) && [10, 11].some((w) => ships.body(w) === ships.body(TENDER));
   };
   const body = (i: number): number => run.world.bodies.indexOf(ships.body(i));
-  const battery = (i: number): number => ships.design(i).modules.findIndex((m) => m.spec.kind === 'battery');
 
   it('sets out with its tender docked and every pad laden', () => {
     expect(ships.body(TENDER)).toBe(ships.body(CARRIER));
@@ -34,7 +33,7 @@ describe('the Beam Carrier', () => {
     expect(tank()).toBeLessThanOrEqual(after);
   });
 
-  it('brings its fighters back to recharge, and sends them out with every store full', { timeout: 60_000 }, () => {
+  it('brings its fighters back to recharge, and fills every store aboard', { timeout: 60_000 }, () => {
     const out = new Set(FIGHTERS.filter((f) => ships.body(f) !== ships.body(CARRIER)));
     expect(out.size).toBe(FIGHTERS.length);
     let landed = -1;
@@ -43,15 +42,16 @@ describe('the Beam Carrier', () => {
       landed = FIGHTERS.find((f) => ships.isAlive(f) && ships.body(f) === ships.body(CARRIER)) ?? -1;
     }
     expect(landed).toBeGreaterThanOrEqual(0);
-    for (let s = 0; s < 30 * 60 && ships.body(landed) === ships.body(CARRIER); s++) step();
-    expect(ships.body(landed)).not.toBe(ships.body(CARRIER));
-    // Full as far as damage leaves it, which its first step on its own reckons.
-    step();
-    const m = battery(landed);
-    expect(ships.power.pieceRoom(body(landed), m)).toBeLessThan(0.05 * ships.design(landed).modules[m]!.stats.charge);
+    for (let s = 0; s < 30 * 60; s++) step();
+    // With the raid beaten, nothing is left to sortie for, so it is still aboard.
+    expect(ships.body(landed)).toBe(ships.body(CARRIER));
+    const design = ships.design(landed);
+    const own = (kind: string): number => design.modules.findIndex((m, k) => m.spec.kind === kind && ships.owns(landed, k));
+    const m = own('battery');
+    expect(ships.power.pieceRoom(body(landed), m)).toBeLessThan(0.05 * design.modules[m]!.stats.charge);
     expect(ships.power.held(body(landed), m)).toBeGreaterThan(0);
     // Its fuel topped up too, the carrier keeping back only a tenth.
-    expect(ships.fuel.pieceRoom(body(landed), ships.design(landed).cores[0]!)).toBeCloseTo(0, 0);
+    expect(ships.fuel.pieceRoom(body(landed), own('core'))).toBeCloseTo(0, 0);
   });
 
   it('has its tender drink from the wrecks instead', { timeout: 60_000 }, () => {
