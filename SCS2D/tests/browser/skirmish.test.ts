@@ -70,6 +70,22 @@ describe('the skirmish in a browser', () => {
     expect(await page.isVisible('#setupScreen')).toBe(true);
   });
 
+  it('fights over the enemy\'s cost with a budget raised to fit, and matches the enemy again', async () => {
+    await page.selectOption('#enemy', 'ship:Bare Core');
+    await page.selectOption('#startFleet', 'ship:Gunship');
+    const matched = await page.inputValue('#metalBudget');
+    for (const id of ['metalBudget', 'fuelBudget', 'buildBudget']) await page.fill(`#${id}`, '100000');
+    await page.click('#start');
+    expect(await page.isDisabled('#play')).toBe(false);
+    const kept = await page.evaluate(() => JSON.parse(window.localStorage.getItem('scs2d.skirmish')!));
+    expect(kept.budget.metal).toBe(100_000_000);
+    await page.click('#abandon');
+    await page.fill('#metalBudget', '1');
+    await page.click('#matchEnemy');
+    expect(await page.inputValue('#metalBudget')).toBe(matched);
+    expect(problems).toEqual([]);
+  });
+
   it('keeps the settings chosen with the skirmish, and puts them back to their defaults', async () => {
     const set = async (id: string, value: string): Promise<void> => {
       await page.fill(`#${id}`, value);

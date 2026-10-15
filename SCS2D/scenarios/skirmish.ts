@@ -107,12 +107,12 @@ export function billOfFleet(fleet: Fleet): Bill {
   return fleetBill(fleetHulls(fleet));
 }
 
-/** A skirmish against `enemy`, its cost the player's budget. */
-export function newSkirmish(enemy: Fleet, player: Fleet, seed: number, settings?: SkirmishSettings): Skirmish {
+/** A skirmish against `enemy`, the player's budget what it cost unless given. */
+export function newSkirmish(enemy: Fleet, player: Fleet, seed: number, settings?: SkirmishSettings, budget?: Budget): Skirmish {
   return {
     enemy,
     player,
-    budget: billOfFleet(enemy),
+    budget: budget === undefined ? billOfFleet(enemy) : { ...budget },
     round: 1,
     tries: 0,
     seed: seed >>> 0,

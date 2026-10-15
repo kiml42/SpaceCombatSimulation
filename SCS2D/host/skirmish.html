@@ -173,15 +173,20 @@
         <div class="cards">
           <details open data-key="skirmish">
             <summary><h2>New skirmish</h2></summary>
-            <p class="muted">Pick an enemy. What it cost is your budget: build a fleet within it that beats it.</p>
+            <p class="muted">Pick an enemy and a budget, then build a fleet within it that beats it.</p>
             <h2>Enemy</h2>
             <select id="enemy"></select>
             <table id="enemyBill"></table>
+            <h2>Your budget</h2>
+            <div class="field"><label for="metalBudget">metal t</label><input id="metalBudget" type="number" min="0" step="any" title="Hull, fittings and the metal in its holds" /></div>
+            <div class="field"><label for="fuelBudget">fuel t</label><input id="fuelBudget" type="number" min="0" step="any" title="The fuel in its tanks as it sets out" /></div>
+            <div class="field"><label for="buildBudget">build min</label><input id="buildBudget" type="number" min="0" step="any" title="How long one robot would take to build every module" /></div>
+            <div class="buttons"><button id="matchEnemy" title="Set the budget to what the enemy cost">Match the enemy</button></div>
             <h2>Your fleet</h2>
             <select id="startFleet"></select>
             <div class="buttons">
               <button id="start" class="primary">Start</button>
-              <button id="resetSettings" title="Put every setting back to its default; the enemy and your fleet stay as chosen">Reset to defaults</button>
+              <button id="resetSettings" title="Put every setting back to its default, and the budget to what the enemy cost; the enemy and your fleet stay as chosen">Reset to defaults</button>
             </div>
             <p class="note">The settings are kept with the skirmish, so one already going is played out under those it started with.</p>
           </details>

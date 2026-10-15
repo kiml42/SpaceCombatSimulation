@@ -895,7 +895,7 @@ inside any one file is not contiguous.
   salvager to fly it.
   Alongside it, §8 step 5's skirmish: an endless loop against an enemy fleet that evolves to beat the
   player's, planned in ROADMAP.md §8. Evolution can end a match on the skirmish's rule too, where its `quietLimit` is set. Its loop is built without the evolving enemy (`dist/skirmish.html`,
-  `scenarios/skirmish.ts`): pick a stock enemy, whose bill is the budget; fight a fixed round, decided by
+  `scenarios/skirmish.ts`): pick a stock enemy, whose bill is the budget unless the player sets their own; fight a fixed round, decided by
   `scenarios/decision.ts` once one side has fired or rammed in the last 30 s and the other has not; and go
   to the fleet editor, which shows the budget, and back between tries. A ship of a fleet opens in the ship
   editor from the fleet editor's *Edit* and goes back to the fleet, skirmish and all. A round won, the
