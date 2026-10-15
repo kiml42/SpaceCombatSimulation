@@ -49,11 +49,11 @@ export const SHED_AT_BREAK = 0.1;
 export const SHED_FLOOR = 0.5;
 
 /**
- * How much of a beam a module lets through once it has shed down to its floor:
- * from none when it breaks, rising as it sheds, to this. The rest it goes on
- * stopping until its welds are cut and it is gone.
+ * How much of a beam or a plume a module lets through once it has shed down to
+ * its floor: from none when it breaks, rising as it sheds, to this. The rest it
+ * goes on stopping until its welds are cut and it is gone.
  */
-export const BEAM_FLOOR_TRANSPARENCY = 0.5;
+export const FLOOR_TRANSPARENCY = 0.5;
 
 /**
  * The share more metal than it puts back that repairing a module takes: lost
@@ -568,10 +568,11 @@ export class Damage {
   }
 
   /**
-   * How much of a beam a module lets through, 0 to `BEAM_FLOOR_TRANSPARENCY`:
-   * none until it breaks, then more the more it has shed, as it is holed.
+   * How much of a beam or a plume a module lets through, 0 to
+   * `FLOOR_TRANSPARENCY`: none until it breaks, then more the more it has
+   * shed, as it is holed.
    */
-  beamTransparency(bodyIndex: number, module: number): number {
+  transparency(bodyIndex: number, module: number): number {
     const absorbed = this.absorbed[bodyIndex];
     const capacity = this.capacity[bodyIndex];
     if (!absorbed || !capacity) return 0;
@@ -581,7 +582,7 @@ export class Damage {
     if (!(past > 0)) return 0;
     // Shedding goes on past breaking at the same rate, until the floor.
     const toFloor = SHED_FLOOR / SHED_AT_BREAK - 1;
-    return BEAM_FLOOR_TRANSPARENCY * min(1, past / toFloor);
+    return FLOOR_TRANSPARENCY * min(1, past / toFloor);
   }
 
   /** Whether a module has taken everything it can. */

@@ -135,7 +135,7 @@ inside any one file is not contiguous.
   takes time; a beam pours its power into what it is burning
   through, a fifth of it taken in and the rest reflected or radiated away (`BEAM_ABSORBED_SHARE`, a stand-in
   for heat), and bores deeper as it destroys: **a module burnt past breaking is holed**, and lets more of a
-  beam through the more of it has shed, up to half (`BEAM_FLOOR_TRANSPARENCY`) once it is down to its floor,
+  beam through the more of it has shed, up to half (`FLOOR_TRANSPARENCY`) once it is down to its floor,
   each module in turn taking its share of what is left and the next getting the rest. So a beam goes on
   burning the plating it has broken until the welds behind it are cut and it falls away, rather than shining
   straight through a wreck to what it was guarding. A module that has taken all it can
@@ -1235,7 +1235,9 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
 - **An engine burns and shoves what it is pointed at.** A plume reaches back from each nozzle as far as the
   thrust being produced and the bell allows, and the first thing standing in it takes the engine's power —
   at full strength against the nozzle, falling off to nothing at the flame's end — and the exhaust's
-  momentum with it, so a plume on a hull's flank spins it as well as drives it away. Each flame is a
+  momentum with it, so a plume on a hull's flank spins it as well as drives it away. **A module burnt past
+  breaking lets some of a flame through its holes**, as it does a beam (`FLOOR_TRANSPARENCY`): each module
+  in turn takes its share and the next gets the rest, and only what is stopped pushes. Each flame is a
   triangle as wide as its own nozzle, reaching furthest down the axis and nowhere at the edges, so a plume
   is wide at the nozzle and a thin core further out. **What its own ship stands in is swept exactly across
   the nozzle**: wherever a module's outline starts or ends across the exit cuts it, and between two cuts

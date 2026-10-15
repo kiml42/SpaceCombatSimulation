@@ -610,7 +610,7 @@ Deliberately unresolved; decide when they block something.
   the split: against today's 20 mm walls a heavy round overpenetrates and leaves most of its energy on the
   far side, so the figure that matters is what a hit *deposits*, not what it arrived with.
 - **A beam bores a tunnel and then shines through it.** A module burnt past breaking lets more of a beam
-  through as it sheds, up to half at its floor (`BEAM_FLOOR_TRANSPARENCY`), which is what lets a beam ship
+  through as it sheds, up to half at its floor (`FLOOR_TRANSPARENCY`), which is what lets a beam ship
   kill anything; the consequence is that a beam holding on one spot loses what gets through the last module
   it crosses, and once the plating in its way is cut free it reaches clear space beyond the hull. Cutting takes some of the sting out of it — a
   beam that has bored that far has been burning the seams along the way, and may well have cut the far part

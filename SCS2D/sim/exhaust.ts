@@ -573,10 +573,11 @@ export class Plumes {
    * nothing, because its momentum has already been counted against the
    * engine's thrust (`EngineSpec.escaping`).
    *
-   * **The first thing in the way takes all of it and shields everything
-   * behind**, spent or not: a plume is gas, and a wrecked module is still a
-   * wall of metal to it. That is how a shell and a ram see a hull, and unlike
-   * a beam, which is stopped only by matter it can still boil away.
+   * **The first thing in the way takes it and shields what is behind**, and
+   * a wrecked module is still a wall of metal to it: only once a module is
+   * burnt past breaking does it let some of the flame through its holes to
+   * the next, as it does a beam (`Damage.transparency`), which `burn` follows
+   * on through the hull. Held here is only the first thing it meets.
    *
    * **A plume stays in its engine's layer**, as a beam does: a fighter's
    * flame passes over the deck it is flying above, and a capital's deck-level
@@ -723,17 +724,33 @@ export class Plumes {
         }
         if (!hit) continue;
         const carried = perRay * this.open * this.share;
-        damage.absorb(this.body, this.module, PLUME_POWER_PER_NEWTON * carried * dt);
         const victim = this.body === bodyIndex ? design : hulls.designOf(this.body);
-        if (victim !== null) heatSeams(damage, victim, this.body, this.module, PLUME_POWER_PER_NEWTON * carried * dt);
+        // A module burnt past breaking lets some of the flame on through its
+        // holes to the next one along, as it does a beam; what gets through
+        // the last of them goes on out and pushes nothing.
+        let through = 1;
+        for (let k = 0; through > MIN_PLUME_SHARE; k++) {
+          if (k > 0 && k >= hulls.crossings) break;
+          if (k > 0) hulls.select(k);
+          const module = k === 0 ? this.module : hulls.module;
+          const clear = module >= 0 ? hulls.transparency(this.body, module) : 0;
+          const joules = PLUME_POWER_PER_NEWTON * carried * through * (1 - clear) * dt;
+          damage.absorb(this.body, module, joules);
+          if (victim !== null) heatSeams(damage, victim, this.body, module, joules);
+          through *= clear;
+        }
         if (this.body === bodyIndex) continue;
-        shove(bodies, this.body, this.dirX * carried * dt, this.dirY * carried * dt, this.x, this.y);
+        const stopped = carried * (1 - through);
+        shove(bodies, this.body, this.dirX * stopped * dt, this.dirY * stopped * dt, this.x, this.y);
       }
     }
   }
 }
 
 const NO_SLICES: readonly PlumeSlice[] = [];
+
+/** The least share of a flame worth following further into a hull. */
+const MIN_PLUME_SHARE = 1e-3;
 
 /**
  * What is left of one ray's band of flame where it first meets its own ship,

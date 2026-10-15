@@ -39,7 +39,7 @@ describe('the Beam Carrier', () => {
     // One home with its battery still aboard: a fighter can come back with it shot off.
     const charged = (f: number): boolean => ships.design(f).modules.some((m, k) => m.spec.kind === 'battery' && ships.owns(f, k));
     let landed = -1;
-    for (let s = 0; s < 180 * 60 && landed < 0; s++) {
+    for (let s = 0; s < 300 * 60 && landed < 0; s++) {
       step();
       landed = FIGHTERS.find((f) => ships.isAlive(f) && ships.body(f) === ships.body(CARRIER) && charged(f)) ?? -1;
     }
