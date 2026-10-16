@@ -277,9 +277,12 @@ export function startSkirmish(): void {
   const budgetInput = (key: keyof Budget): HTMLInputElement => el<HTMLInputElement>(`${key}Budget`);
   /** What the enemy cost, exactly, behind boxes showing it rounded. */
   let enemyCost: Budget | null = null;
-  const matchEnemy = (): void => {
+  /** Set the boxes to the enemy's cost: every one, or only those the player has left following it. */
+  const matchEnemy = (all = true): void => {
     for (const key of Object.keys(BUDGET_UNITS) as (keyof Budget)[]) {
       const input = budgetInput(key);
+      const following = input.value.trim() === '' || input.value === input.dataset['shown'];
+      if (!all && !following) continue;
       input.value = enemyCost === null ? '' : String(Math.round((enemyCost[key] / BUDGET_UNITS[key]) * 100) / 100);
       input.dataset['shown'] = input.value;
     }
@@ -295,15 +298,16 @@ export function startSkirmish(): void {
     }
     return out;
   };
-  el<HTMLButtonElement>('matchEnemy').addEventListener('click', matchEnemy);
+  el<HTMLButtonElement>('matchEnemy').addEventListener('click', () => matchEnemy());
 
-  /** The enemy alone, to look at while choosing, its cost the budget. */
+  /** The enemy alone, to look at while choosing, its cost the budget where the player has not set one. */
   const preview = (): void => {
     const enemy = read(enemySelect.value);
     const flies = enemy !== null && fleetFault(enemy) === null;
     enemyCost = flies ? billOfFleet(enemy) : null;
     el<HTMLElement>('enemyBill').innerHTML = enemyCost !== null ? billRows(enemyCost) : '';
-    matchEnemy();
+    // A box the player has set stays as they set it.
+    matchEnemy(false);
     battle = null;
     if (flies) view.show(enemyAlone(enemy), false);
   };
