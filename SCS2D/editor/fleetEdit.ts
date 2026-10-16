@@ -1,4 +1,5 @@
 import { exactTurn, isGroupUse, serialiseBlueprint, type Blueprint, type Fleet, type FleetEntry } from '../sim/index.js';
+import { nextName, unusedName } from './library.js';
 
 /**
  * Edits to a fleet, as pure functions from one fleet to the next — the fleet
@@ -132,6 +133,19 @@ export function swapDesign(fleet: Fleet, paths: readonly EntryPath[], blueprint:
     next = updateEntry(next, path, (entry) => (isGroupUse(entry) ? entry : { ...entry, design: blueprint.name }));
   }
   return pruneDesigns(next);
+}
+
+/**
+ * Fly a copy of the ship's design under a new name, so it can be changed
+ * without changing the others of the design. Null for a group use.
+ */
+export function forkDesign(fleet: Fleet, path: EntryPath): { fleet: Fleet; name: string } | null {
+  const entry = entryAt(fleet, path);
+  if (entry === null || isGroupUse(entry)) return null;
+  const design = fleet.designs[entry.design];
+  if (design === undefined) return null;
+  const name = unusedName(nextName(design.name), Object.keys(fleet.designs));
+  return { fleet: swapDesign(fleet, [path], { ...design, name }), name };
 }
 
 /** Replace the embedded copy of a design with this one. */
