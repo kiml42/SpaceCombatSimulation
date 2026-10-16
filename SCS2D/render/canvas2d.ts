@@ -813,18 +813,15 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     const beamLenses = spec.kind === 'hullBeam';
 
     // The rotating part itself. A turret's is a disc at the mount, sized to the
-    // module it sits in so a heavy mount looks heavy. A hull gun's is a mantlet
-    // standing out of the block's face, the barrels all meeting it; each of a
-    // hull beam's lenses has a mount of its own on a stalk out of the face.
+    // module it sits in so a heavy mount looks heavy. Each of a hull beam's
+    // lenses has a mount of its own on a stalk out of the face. A hull gun's
+    // mantlet goes on after its barrels, below.
     ctx.fillStyle = colours.pivot;
     if (hull === null) {
       ctx.beginPath();
       ctx.arc(mx, my, face * 0.5, 0, TAU);
       ctx.fill();
-    } else if (!beamLenses) {
-      const row = ((count - 1) / 2) * spacing + hull.outletWidth;
-      mantlet(ctx, mx, my, min(spec.width * 0.5, row), rest);
-    } else {
+    } else if (beamLenses) {
       // Back from each lens's centre to the block's face, where its mount is:
       // a half disc the lens's back edge sits on, and a stalk out to the lens.
       const back = hull.trains - hull.pivot;
@@ -879,6 +876,13 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     }
     ctx.stroke();
     if (gun.braceLength > 0) drawBracing(ctx, gun, physicalWidth, mx, my, dirX, dirY);
+    if (hull !== null && !beamLenses) {
+      // Over the barrels' roots, standing out of the block's face, so a barrel
+      // trained hard over is seen to come out of it rather than the block.
+      ctx.fillStyle = colours.pivot;
+      const row = ((count - 1) / 2) * spacing + hull.outletWidth;
+      mantlet(ctx, mx, my, min(spec.width * 0.5, row), rest);
+    }
     drawLoad(ctx, ship, t, mx, my, bearing);
   }
 
