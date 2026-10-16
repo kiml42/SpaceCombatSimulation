@@ -192,19 +192,25 @@ function lineage(parent: Blueprint, seed: number, generations: number, until?: (
   return { held, seen };
 }
 
-/** Children drawn from one fixed parent, so nothing drifts between them. */
+/**
+ * Children drawn from one fixed parent, so nothing drifts between them, and
+ * changed only in their structure: the numbers and geometry every child also
+ * drifts are most of what one costs, and nothing here reads them.
+ */
 function children(parent: Blueprint, seed: number, count: number): string[] {
   const rng = new Rng(seed);
   const edits: string[] = [];
+  const build = { move: 0, resize: 0, refit: 0, fittings: 0, tuning: 0, fighter: 0, shape: 0 };
+  const doctrine = { targeting: 0, approach: 0, escort: 0, avoidance: 0, gunnery: 0 };
   for (let i = 0; i < count; i++) {
-    edits.push(...mutate(parent, rng, { structural: 1 }).edits);
+    edits.push(...mutate(parent, rng, { structural: 1, build, doctrine }).edits);
   }
   return edits;
 }
 
 describe('growing a part that is placed more than once', () => {
-  // Twelve hundred mutants, which is a second or two here and over five on a
-  // slow runner — the default timeout is for tests that are quick by nature.
+  // Twelve hundred mutants, which is seconds of work on a slow runner — the
+  // default timeout is for tests that are quick by nature.
   it('puts a new module on one, where absorbing never can', { timeout: 30_000 }, () => {
     // **The two ways of growing a part are not interchangeable.** Absorbing
     // moves a module that is already on the ship, so where it sits is where
