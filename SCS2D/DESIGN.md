@@ -728,7 +728,7 @@ inside any one file is not contiguous.
   to be mended at its `repairBelow` (below), and is mended while it is down for anything else. A merged design remembers which of its pieces
   were fighters (`fighterPieces`), so it lifts off a fighter, and every ship keeps the doctrine it set out with
   whatever hull it rides, so a fighter flies on its own and not its carrier's. The `carrier` scenario has three Dinkies take
-  turns on a two-pad Tender; evolution's weight for a pad is zero, since it pays only in a fleet with fighters.
+  turns on a two-pad Tender; evolution's weight for a pad is a small 0.5, since it pays only in a fleet with fighters.
   **A robot bay** (`robotBay`) berths as many robots as squares of `ROBOT_BERTH_PITCH` fit along its length
   and across its width (`berthGrid`), priced by their weight (`ROBOT_MASS`) and its racks, and builds and
   refills them faster the more of its interior there is behind each berth, at the rate in `ROBOT_BUILD_TIME`
@@ -756,7 +756,7 @@ inside any one file is not contiguous.
   hull, counted as discarded. A working bay short of robots builds one at a time, over `ROBOT_BUILD_TIME`
   and slower as it is damaged, from a robot's mass of metal and `REPAIR_WASTE` more off its piece of hull,
   waiting for the metal if it has none to spare; a new robot sets out only once its bay has filled it. The `mending` scenario has a battered Mender's four robots mend it whole in four
-  minutes; evolution's weight for a bay is zero until robots are tuned.
+  minutes; evolution's weight for a bay is a small 0.5, left to selection to keep where it pays.
   **Robots rebuild what their ship has lost**, once nothing is left to mend, back to the design it set out
   with: every module of a design remembers which module of a compiled design it is (`DesignModule.origin`),
   so a hull cut down or welded up still knows what is missing. A piece that flies off as a ship of its own

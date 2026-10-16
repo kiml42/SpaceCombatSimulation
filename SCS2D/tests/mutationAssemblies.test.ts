@@ -164,8 +164,8 @@ function uses(blueprint: Blueprint): Map<string, number> {
   return counts;
 }
 
-/** Breed a line, every generation structural, reporting what it ever reached. */
-function lineage(parent: Blueprint, seed: number, generations: number) {
+/** Breed a line, every generation structural, reporting what it ever reached; `until` stops it early. */
+function lineage(parent: Blueprint, seed: number, generations: number, until?: (seen: Record<string, boolean>) => boolean) {
   const rng = new Rng(seed);
   let held = parent;
   const seen = {
@@ -176,7 +176,7 @@ function lineage(parent: Blueprint, seed: number, generations: number) {
     shrank: false,
   };
   let most = Object.keys(parent.assemblies ?? {}).length;
-  for (let i = 0; i < generations; i++) {
+  for (let i = 0; i < generations && !(until?.(seen) ?? false); i++) {
     held = mutate(held, rng, { structural: 1 }).blueprint;
     expect(blueprintProblem(held), `generation ${i}`).toBeNull();
     const names = Object.keys(held.assemblies ?? {});
@@ -273,14 +273,15 @@ describe('breeding the grouping', () => {
       ['corvette', CORVETTE],
       ['dinky', DINKY],
     ] as const) {
-      const { seen } = lineage(founder, 7, 300);
+      const { seen } = lineage(founder, 7, 300, (so) => so.shrank === true);
       expect(seen.shrank, `${name} let a part go`).toBe(true);
     }
   });
 
-  // Breeds a long line of an already large ship, so it is slow by nature; the
-  // default timeout is for tests that are quick by nature.
-  it('keeps every generation a ship, and a file the parser accepts', { timeout: 60_000 }, () => {
+  // Breeds long lines of an already large ship, which grow as they go, so it
+  // is slow by nature — near a minute on a desktop, depending on how big the
+  // lines happen to grow.
+  it('keeps every generation a ship, and a file the parser accepts', { timeout: 240_000 }, () => {
     // The catamaran is the founder with assemblies already, so these operators
     // are working on a grouping somebody else wrote rather than their own.
     // Several seeds, since each reaches dissolving and absorbing triangles at

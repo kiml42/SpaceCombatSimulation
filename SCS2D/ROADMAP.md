@@ -574,7 +574,6 @@ Deliberately unresolved; decide when they block something.
 - **Whether a beam's boiling and a shell's shredding should shed differently.** Both shed by energy
   absorbed, a tenth of a module by the time it breaks and half at five times that (DESIGN.md §4), which
   are first guesses to tune. The floor can drop once a module can be drawn with holes in it.
-- **What a robot bay is worth to evolution.** Weighted zero, as a pad is, until robots are tuned.
 - **What sends a ship in to be mended.** A fighter goes at its `repairBelow`, one threshold on the lower of
   its weakest core and the share of its mass still sound, so a scratched hull weighs the same as a lost gun.
   Wanted: damage weighed by the function lost, so a fighter shrugs off some damaged modules but runs for a pad

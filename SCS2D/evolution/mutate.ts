@@ -241,17 +241,17 @@ export const DEFAULT_KINDS: KindWeights = {
   // lineage has to find as well.
   claw: 1,
   // A pad serves other ships, so it pays only in a fleet that carries
-  // fighters; a run of fleets can raise it.
-  pad: 0,
-  // A port is worth something only with another ship's to meet it.
-  port: 0,
+  // fighters, and a port only with another ship's to meet it: a small chance
+  // each, since selection throws out one that does not pay.
+  pad: 0.5,
+  port: 0.5,
   // Metal is what a gun is worth anything with, past what a core carries.
   hold: 2,
   // Power is what a beam is worth anything with, past what a core carries.
   battery: 1,
   generator: 1,
-  // Mends a ship rather than fighting with it; zero until what it is worth is tuned.
-  robotBay: 0,
+  // Mends a ship rather than fighting with it, which a long fight can pay for.
+  robotBay: 0.5,
 };
 
 /**
