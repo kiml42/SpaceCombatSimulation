@@ -82,7 +82,16 @@ describe('the skirmish in a browser', () => {
     const kept = await page.evaluate(() => JSON.parse(window.localStorage.getItem('scs2d.skirmish')!));
     expect(kept.budget.metal).toBe(100_000_000);
     await page.click('#abandon');
+    // A box set by hand stays when the enemy changes; one left alone follows it.
     await page.fill('#metalBudget', '1');
+    const fuel = await page.inputValue('#fuelBudget');
+    await page.fill('#fuelBudget', '');
+    await page.selectOption('#enemy', 'ship:Gunship');
+    expect(await page.inputValue('#metalBudget')).toBe('1');
+    expect(await page.inputValue('#fuelBudget')).not.toBe(fuel);
+    expect(await page.inputValue('#fuelBudget')).not.toBe('');
+    await page.selectOption('#enemy', 'ship:Bare Core');
+    expect(await page.inputValue('#metalBudget')).toBe('1');
     await page.click('#matchEnemy');
     expect(await page.inputValue('#metalBudget')).toBe(matched);
     expect(problems).toEqual([]);
