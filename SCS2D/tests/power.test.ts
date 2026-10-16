@@ -281,4 +281,24 @@ describe('a beam out of charge', () => {
     (ships as unknown as { cooldown: number[][] }).cooldown[ship]![0] = gun.cycleTime;
     expect(ships.isDisarmed(ship)).toBe(false);
   });
+
+  it('is armed while a generator too small to keep up recharges it', () => {
+    const design = compileBlueprint({
+      name: 'Slow lance',
+      modules: [
+        { kind: 'core', x: 0, y: 0, length: 2, width: 2 },
+        { kind: 'hullBeam', x: 6, y: 0, angle: 0, length: 10, width: 3 },
+      ],
+    });
+    const world = new World({ dt: 1 / 60, seed: 1 });
+    const ships = new Ships();
+    const ship = ships.spawn(world, { design, x: 0, y: 0, team: 0 });
+    world.step();
+    const b = world.bodies.indexOf(ships.body(ship));
+    const gun = design.turrets[0]!.gun;
+    expect(design.modules[0]!.stats.generation * gun.cycleTime).toBeLessThan(gun.beamPower * gun.beamOnTime);
+    ships.power.drain(b, 0, ships.power.held(b, 0));
+    (ships as unknown as { cooldown: number[][] }).cooldown[ship]![0] = gun.cycleTime;
+    expect(ships.isDisarmed(ship)).toBe(false);
+  });
 });
