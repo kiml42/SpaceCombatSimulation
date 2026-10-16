@@ -129,8 +129,14 @@ describe('the skirmish in a browser', () => {
     expect(await page.getAttribute('#fight', 'class')).toContain('primary');
     expect(await page.getAttribute('#editFleet', 'class')).not.toContain('primary');
     await page.click('#fight');
-    expect(await page.textContent('#fight')).toBe('Pause');
+    // It waits on the battle; pausing is the header's.
+    expect(await page.textContent('#fight')).toBe('Fighting…');
+    expect(await page.isDisabled('#fight')).toBe(true);
     expect(await page.textContent('#play')).toBe('Pause');
+    await page.click('#play');
+    expect(await page.textContent('#fight')).toBe('Resume');
+    expect(await page.isDisabled('#fight')).toBe(false);
+    await page.click('#fight');
     await page.waitForFunction(() => /t [1-9]/.test(document.getElementById('readout')?.textContent ?? ''));
     expect(await page.textContent('#sides')).toContain('You');
     expect(problems).toEqual([]);
@@ -210,7 +216,7 @@ describe('the skirmish in a browser', () => {
     await page.click('#fight');
     await page.waitForSelector('#outcome.lost', { timeout: 60_000 });
     expect(await page.getAttribute('#editFleet', 'class')).toContain('primary');
-    expect(await page.getAttribute('#fight', 'class')).not.toContain('primary');
+    expect(await page.isVisible('#fight')).toBe(false);
     expect(problems).toEqual([]);
     // Away, so the next skirmish handed over in an address loads afresh rather than as a change of hash.
     await page.goto('about:blank');

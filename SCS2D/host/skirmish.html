@@ -88,6 +88,11 @@
       button:disabled { opacity: 0.4; cursor: default; }
       .primary { border-color: #6a9be0; background: #2f5ea8; color: #fff; font-weight: 600; }
       .primary:hover, a.button.primary:hover { background-color: #3a6fc2; }
+      #fight { display: inline-flex; gap: 0.4rem; align-items: center; justify-content: center; }
+      #fight[hidden] { display: none; }
+      #fight.running { opacity: 0.85; }
+      #fight .spinner { margin-top: 0; width: 0.7rem; height: 0.7rem; }
+      #fight .spinner[hidden] { display: none; }
       .waiting { display: flex; gap: 0.5rem; align-items: flex-start; }
       .waiting p { margin: 0; }
       .spinner {
@@ -247,7 +252,7 @@
           <table id="budget"></table>
           <p id="fleetNote" class="muted"></p>
           <div class="buttons">
-            <button id="fight" class="primary" disabled title="Fight the round, or pause it">Fight</button>
+            <button id="fight" class="primary" disabled title="Fight the round"><span id="fightSpinner" class="spinner" hidden></span><span id="fightLabel">Fight</span></button>
             <a id="editFleet" class="button" href="fleet.html" title="Change your fleet in the fleet editor">Edit fleet</a>
             <button id="retry" title="Fight this round again from the start">Restart</button>
           </div>

@@ -116,9 +116,20 @@ export function startSkirmish(): void {
   const cta = (next: HTMLElement | null): void => {
     for (const button of [fightButton, editFleet, retryButton]) button.classList.toggle('primary', button === next);
   };
+  const fightLabel = el<HTMLElement>('fightLabel');
+  const fightSpinner = el<HTMLElement>('fightSpinner');
+  let canFightNow = false;
   const playable = (can: boolean): void => {
     playButton.disabled = !can;
-    fightButton.disabled = !can;
+    canFightNow = can;
+    showFight(false);
+  };
+  /** The round's Fight starts it and then waits on it; pausing is the header's. */
+  const showFight = (running: boolean): void => {
+    fightLabel.textContent = running ? 'Fighting…' : (battle?.world.tick ?? 0) > 0 ? 'Resume' : 'Fight';
+    fightSpinner.hidden = !running;
+    fightButton.classList.toggle('running', running);
+    fightButton.disabled = running || !canFightNow;
   };
 
   let skirmish: Skirmish | null = null;
@@ -243,7 +254,7 @@ export function startSkirmish(): void {
     },
     (running) => {
       playButton.textContent = running ? 'Pause' : decision !== null || (battle?.world.tick ?? 0) > 0 ? 'Resume' : 'Fight';
-      fightButton.textContent = playButton.textContent;
+      showFight(running);
     },
   );
   el<HTMLButtonElement>('fit').addEventListener('click', () => view.fit());
@@ -252,7 +263,7 @@ export function startSkirmish(): void {
   view.setSpeed(Number(speed.value));
   speed.addEventListener('change', () => view.setSpeed(Number(speed.value)));
   playButton.addEventListener('click', () => view.setRunning(!view.running));
-  fightButton.addEventListener('click', () => view.setRunning(!view.running));
+  fightButton.addEventListener('click', () => view.setRunning(true));
 
   // ---- the setup ------------------------------------------------------------
 
@@ -418,6 +429,8 @@ export function startSkirmish(): void {
       player: skirmish.player,
       enemy: skirmish.enemy,
     });
+    // The round is over: Restart fights it again.
+    fightButton.hidden = true;
     const at = `at ${result.time.toFixed(0)} s`;
     if (result.winner === 0) {
       outcome.textContent = `Victory ${at}. Wait while the enemy evolves an answer.`;
@@ -573,6 +586,7 @@ export function startSkirmish(): void {
               };
     }
     mode = 'replay';
+    fightButton.hidden = true;
     decision = null;
     activity = newActivity();
     battle = customBattle(roundBattle(player, enemy, seed, skirmish === null ? DEFAULT_SKIRMISH_SETTINGS : settingsOf(skirmish)));
