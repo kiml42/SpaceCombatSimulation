@@ -25,28 +25,34 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - docking fighters struggle to keep up with an accelerating carrier, even when they have plenty of spare thrust they could be using. They should probably account for the carrier's current acceleration and aim to match it's changing speed (and assume it will maintain its acceleration)
 - Shell fragments should be placed in a random layer when the shell detonates, instead of being considered to hit anything in either. Possibly there could be a bias towards keeping fragments in the turrets layer, to keep fragments good at hitting fighters. (probably dependent on the charge size)
 - Pads should hold the fighter that docks with them and move it to be centred and aligned (in any orthogonal direction in which it fits). This should be treated like each pad has a robot arm that can move the fighter into position (we might draw this arm later). This should let us realistically increase the speed at which a fighter can be captured, and it can be captured with very poor alignment because the (for now imaginary) arm will fix it.
+  - Actually draw the robot arm in if it's not too hard, it would look cool, but that does require an actual IK chain for it, instead of just applying forces.
 - beams reflect - for each hit, a proportion is absorbed as damage, a proportion is dissipated and a proportion is reflected as anew beam starting at the impact point (if below a threshold power the reflection is considered negligible and not calculated)
 
 ## Editor
-- Test button - switches to the game view, with the ship loaded into a default scene with one other stock ship, their doctrines will make them fight.
 - Allow dragging copies (when a module or assembly is set to be repeated) to set the offset (might get complicated with more than 2, so might need to restrict to the second one)
 - Category input for ships - ships grouped by category when selecting them anywhere. (e.g. "Star Wars.Imperial", "Stock")
 - Make it clearer how the range is controlled in the core's doctrine
 - Add calibre multiplier to scale what the default maths gives.
 - For engines and hull weapons, make the module size specify the size of the machinery block with the barrel/nozzle extending out from there. The barrel/nozzle will still need ot be considered for overlapping. This should make it easier to adjust things in the editor, as you won't have the option to set a module length that doesn't work with a given barrel length.
 - Thrust efficiency diagram overlaying the thrust diagram, to show which directions are efficient, as well as which are high thrust.
+- Option to select an opponent.
+  - All the doctrine readouts show what they'd calculate against that opponent at 0 relative velocity.
+  - Can drag a ghost of the target ship around to see how it affects the behaviour of the ship.
+  - Weapons and weapon engines animate as if it was in a battle at that position.
+
 
 ## Weapons
 - Maybe: Turrets fire a volley of one shot per barrel, and then reload. Can specify delay between shots to allow for firing all at once or staggered
   - Beam turrets should allow for multiple beams to be on at the same time.
   - Might need to allow for reloading one while firing another to have continuous firing, could possibly just have each barrel reload independently, and just stagger the triggers by the set amount.
-- Improve barrel spacing on hull guns
+- Hull weapons render a semi circle below the block and above the barrel to cover place the barrel meets the body, and make turning it look more natural.
+  - Beams may need their emitters stepped forwards so they'd be on the edge of the semi circle.
+- Improved allowed turning for hull guns
 - Bullet spread (inaccuracy. Could get worse as a gun gets damaged.)
 
 ## Manoeuvring
 - Ships need to have a max allowed rotational speed, or some other mechanism to stop them spinning up faster and faster when they have damaged engines.
 - Ships need to be able to know when they're already turning towards the target, so not push themselves to turn faster.
-- Ships should consider if their rotation will result in a collision. e.g. one side of the catamaran in split gets its front broken off because it turns in a way that moves it towards the other half while trying to get an engine lined up to move away.
 
 ## Evolution
 - Make damage and function taken start at 0 and go negative, so the graph scales nicely at the beginning when they're all useless, highlighting even minor improvements.
@@ -55,7 +61,6 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
   - Might want to show the total change over the run in the dropdown, so it's easy to see what is generally changing and will likely have an interesting graph.
 - Whole ship scale mutation
 - Assembly scale mutation - scales everything in all copies of the assembly up or down.
-- Make mutation settings for numbers define the maximum range and make all numbers always mutate a little (still rejecting invalid values) (could include positions and scales as well)
 - Duplicated parts or assemblies can be placed anywhere on the surface of the ship, not just close to the module they're a duplicate of (possibly with a higher chance of appearing nearby)
 
 ## Fleet Editor
@@ -71,3 +76,9 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - A selected ship's framing takes in and rings what it is escorting; it could do the same for what it is keeping clear of, possibly with a symbol to show what sort of attention the selected ship is paying to each
 
 ## Skirmish
+- When watching a match, show an overlay in the corner of the battle at the point it's decided saying the time it's decided, and the reason.
+- When the enemy are evolving, make the history fill the battle area.
+  - In this mode the player's fleet should be put on the left, and the enemy on the right.
+- If a single generation takes long enough, show the thumbnails for the leader in teh generation without a "Victory" or "Defeat" stamp to show the work in progress happening.
+- The history should be the only part that scrolls int eh sidebar if the screen is tall enough to show the whole sidebar, with more than 1 row's worth of history.
+- Rotate the enemy fleet in the history display so it matches the orientation it will be shown in in the battle (ships too)
