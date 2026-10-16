@@ -25,6 +25,7 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - docking fighters struggle to keep up with an accelerating carrier, even when they have plenty of spare thrust they could be using. They should probably account for the carrier's current acceleration and aim to match it's changing speed (and assume it will maintain its acceleration)
 - Shell fragments should be placed in a random layer when the shell detonates, instead of being considered to hit anything in either. Possibly there could be a bias towards keeping fragments in the turrets layer, to keep fragments good at hitting fighters. (probably dependent on the charge size)
 - Pads should hold the fighter that docks with them and move it to be centred and aligned (in any orthogonal direction in which it fits). This should be treated like each pad has a robot arm that can move the fighter into position (we might draw this arm later). This should let us realistically increase the speed at which a fighter can be captured, and it can be captured with very poor alignment because the (for now imaginary) arm will fix it.
+- beams reflect - for each hit, a proportion is absorbed as damage, a proportion is dissipated and a proportion is reflected as anew beam starting at the impact point (if below a threshold power the reflection is considered negligible and not calculated)
 
 ## Editor
 - Test button - switches to the game view, with the ship loaded into a default scene with one other stock ship, their doctrines will make them fight.
