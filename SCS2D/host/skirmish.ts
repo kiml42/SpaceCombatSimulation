@@ -64,7 +64,7 @@ const SKIRMISH_FIELDS: readonly SettingField[] = [
   { name: 'radius', group: 'limits', label: 'spawn radius m', step: 50, min: 1, value: D.radius,
     title: "How far from its origin any of either side's hulls may reach, unless the enemy already reaches further." },
   { name: 'quietTime', group: 'round', label: 'quiet s', step: 5, min: 1, value: D.quietTime,
-    title: 'A side that has not fired, hit or rammed for this long, while the other has, is out of the battle.' },
+    title: 'Once both sides have fired, a side that has not fired, hit or rammed for this long, while the other has, is out of the battle.' },
   { name: 'timeCap', group: 'round', label: 'time cap s', step: 30, min: 1, value: D.timeCap,
     title: 'A battle not decided by then is a draw, which is a loss for you.' },
   { name: 'gap', group: 'round', label: 'gap m', step: 100, value: D.gap,
@@ -82,7 +82,7 @@ const SKIRMISH_FIELDS: readonly SettingField[] = [
   { name: 'mutants', group: 'answer', label: 'mutants', step: 1, min: 1, value: D.mutants,
     title: 'Mutants of the enemy a generation, beside the best so far.' },
   { name: 'seeds', group: 'answer', label: 'matches each', step: 1, min: 1, value: D.seeds,
-    title: 'Matches each enemy fights a generation, on different seeds, the seed you won on among them, so it cannot win by a fluke of one.' },
+    title: "Matches each enemy fights a generation, on different seeds, the next round's among them, so it cannot win by a fluke of one." },
   { name: 'duration', group: 'answer', label: 'match s', step: 30, min: 1, value: D.duration,
     title: 'How long a match of the search lasts before the side ahead is taken to win.' },
   { name: 'budgetStep', group: 'answer', label: 'budget step', step: 0.05, value: D.budgetStep,
@@ -570,7 +570,7 @@ export function startSkirmish(): void {
 
   const found = (enemy: Fleet, generation: number): void => {
     if (skirmish === null || skirmish.won === undefined) return;
-    answerProgress.textContent = `Found in generation ${generation}: ${enemy.name}, on the seed you won on.`;
+    answerProgress.textContent = `Found in generation ${generation}: ${enemy.name}, which beats your fleet on the next round's seed.`;
     el<HTMLElement>('answerSpinner').hidden = true;
     watchButton.hidden = true;
     el<HTMLElement>('answered').hidden = false;

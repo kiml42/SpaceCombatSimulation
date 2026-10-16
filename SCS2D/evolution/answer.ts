@@ -11,12 +11,13 @@ import { mutateFleet } from './fleetMutate.js';
  * one beats it.
  *
  * A generation is the best enemy so far and a handful of its mutants, each
- * fought on the seed the player won on and on a few random ones, so it cannot
- * win by a fluke of one seed. A match is fought under evolution's rules — over
- * once one side alone is armed, or at a time limit, an enemy ahead then being
- * taken to win in the end — and the best of the generation breeds the next.
- * An enemy that wins all its matches is checked by fighting the round itself
- * to the skirmish's decision, and is the answer only if it wins that too.
+ * fought on the next round's seed and on a few random ones. A match is
+ * fought under evolution's rules — over once one side alone is armed, or at a
+ * time limit, an enemy ahead then being taken to win in the end — and the
+ * best of the generation, by all its matches, breeds the next. An enemy that
+ * wins on the next round's seed is checked by fighting that round to the
+ * skirmish's decision: the first that wins that is the answer, and one that
+ * does not is not counted as having won on it.
  *
  * An answer may cost the player's budget times a multiplier, and no less than
  * the enemy it answers already does; a search that goes long without one
@@ -39,7 +40,7 @@ export interface Standing {
   readonly enemy: Fleet;
   /** Matches won. */
   wins: number;
-  /** Whether it won on the seed the round was won on: the match a timeline shows of it. */
+  /** Whether it won on the next round's seed: the match a timeline shows of it. */
   onRound: boolean;
   /** Summed, of how far ahead it finished each in what is left of either side, and one more for a win outright or one less for a loss. */
   margin: number;
@@ -77,13 +78,15 @@ export class EnemySearch {
   private next = 0;
   private battle: CustomBattle | null = null;
   // The round being fought to its decision, by the enemy that won every match.
-  private checking: { enemy: Fleet; battle: CustomBattle; activity: Activity } | null = null;
-  private readonly unchecked: Fleet[] = [];
+  private checking: { standing: Standing; battle: CustomBattle; activity: Activity } | null = null;
+  private readonly unchecked: Standing[] = [];
+  // Every match of the generation fought, its winners on the round being checked before it counts as done.
+  private finishing = false;
 
   constructor(
     private readonly player: Fleet,
     enemy: Fleet,
-    /** The seed the player won the round on. */
+    /** The next round's seed, which the answer must win on. */
     private readonly wonSeed: number,
     seed: number,
     settings: Partial<AnswerSettings> = {},
@@ -140,6 +143,7 @@ export class EnemySearch {
     while (left > 0 && this.found === null) {
       if (this.checking !== null) left -= this.check(left);
       else if (this.unchecked.length > 0) this.startCheck(this.unchecked.shift()!);
+      else if (this.finishing) this.nextGeneration();
       else if (this.next < this.standings.length * this.seeds.length) left -= this.fight(left);
       else this.finishGeneration();
     }
@@ -194,14 +198,22 @@ export class EnemySearch {
     return taken;
   }
 
+  /** Every match fought: pick the best, and check each that won on the round, the better first. */
   private finishGeneration(): void {
-    this.generationCount++;
+    const better = (a: Standing, b: Standing): boolean => a.wins > b.wins || (a.wins === b.wins && a.margin > b.margin);
     let best = this.standings[0]!;
-    for (const standing of this.standings) {
-      if (standing.wins > best.wins || (standing.wins === best.wins && standing.margin > best.margin)) best = standing;
-    }
+    for (const standing of this.standings) if (better(standing, best)) best = standing;
     this.best = best;
-    for (const standing of this.standings) if (standing.wins === this.seeds.length) this.unchecked.push(standing.enemy);
+    const onRound = this.standings.filter((standing) => standing.onRound);
+    onRound.sort((a, b) => (better(a, b) ? -1 : better(b, a) ? 1 : 0));
+    this.unchecked.push(...onRound);
+    this.finishing = true;
+  }
+
+  /** The generation done and its winners checked: count it, and breed the next. */
+  private nextGeneration(): void {
+    this.finishing = false;
+    this.generationCount++;
     // Long without an answer: a bigger budget, for good.
     if (this.generationCount % this.settings.stretchAfter === 0) {
       this.multiplier = nextMultiplier(this.multiplier, this.settings.budgetStep);
@@ -209,10 +221,10 @@ export class EnemySearch {
     this.begin();
   }
 
-  private startCheck(enemy: Fleet): void {
+  private startCheck(standing: Standing): void {
     this.checking = {
-      enemy,
-      battle: customBattle(roundBattle(this.player, enemy, this.wonSeed, this.settings)),
+      standing,
+      battle: customBattle(roundBattle(this.player, standing.enemy, this.wonSeed, this.settings)),
       activity: new Activity(2, this.settings.timeCap, this.settings.quietTime),
     };
   }
@@ -229,7 +241,14 @@ export class EnemySearch {
     }
     if (decision !== null) {
       this.checking = null;
-      if (decision.winner === 1) this.found = checking.enemy;
+      // Its win on the round is the decision's, not the time limit's.
+      checking.standing.onRound = decision.winner === 1;
+      if (decision.winner === 1) {
+        this.found = checking.standing.enemy;
+        this.best = checking.standing;
+        this.unchecked.length = 0;
+        this.generationCount++;
+      }
     }
     return taken;
   }

@@ -2,7 +2,9 @@ import { NEUTRAL_TEAM, type Credit, type Ships } from '../sim/index.js';
 
 /**
  * When a skirmish battle is decided: once one side has fired or rammed in the
- * last `quietTime` (`QUIET_TIME` unless given) and no other has. A ship too far off to shoot is out of
+ * last `quietTime` (`QUIET_TIME` unless given) and no other has, counted only
+ * once every side has fired at least once, so slow ships closing from far off
+ * are not out before they are in range. A ship too far off to shoot is out of
  * it, and an unarmed ship never fires. A hit landing counts as firing, so a
  * slow round that wins after the last shot does not hand the battle to the
  * ship it disables, and a side left with nothing armed or ramming is out at
@@ -33,6 +35,8 @@ export interface Watched {
 export class Activity {
   /** When each side last fired or rammed, s; the start counts, so nobody is out before `quietTime`. */
   private readonly lastActive: Float64Array;
+  /** Whether each side has fired or rammed yet. */
+  private readonly fired: Uint8Array;
   /** Whether each side has a ship under control that is armed or ramming, this step. */
   private readonly able: Uint8Array;
   private decision: Decision | null = null;
@@ -43,6 +47,7 @@ export class Activity {
     private readonly quietTime = QUIET_TIME,
   ) {
     this.lastActive = new Float64Array(sides);
+    this.fired = new Uint8Array(sides);
     this.able = new Uint8Array(sides);
   }
 
@@ -59,7 +64,10 @@ export class Activity {
       if (team === NEUTRAL_TEAM || team >= this.sides) continue;
       const ramming = ships.hasControl(i) && ships.isRamming(i);
       if (ramming || !ships.isDisarmed(i)) this.able[team] = 1;
-      if (ships.lastFired(i) === tick || ramming) this.lastActive[team] = now;
+      if (ships.lastFired(i) === tick || ramming) {
+        this.lastActive[team] = now;
+        this.fired[team] = 1;
+      }
     }
     for (let h = 0; h < credit.count; h++) {
       const attacker = ships.pilotAt(credit.attacker[h]!, credit.attackerModule[h]!);
@@ -69,12 +77,15 @@ export class Activity {
       if (team === NEUTRAL_TEAM || team >= this.sides) continue;
       if (victim >= 0 && ships.teamOf(victim) === team) continue;
       this.lastActive[team] = now;
+      this.fired[team] = 1;
     }
+    // Going quiet only counts once every side has fired.
+    const quietCounts = !this.fired.includes(0);
     let active = -1;
     let count = 0;
     for (let team = 0; team < this.sides; team++) {
       // A side with nothing left to fight with is out at once, not `quietTime` later.
-      if (this.able[team] === 1 && now - this.lastActive[team]! < this.quietTime) {
+      if (this.able[team] === 1 && (!quietCounts || now - this.lastActive[team]! < this.quietTime)) {
         active = team;
         count++;
       }

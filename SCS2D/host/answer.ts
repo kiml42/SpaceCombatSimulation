@@ -13,7 +13,7 @@ declare const __ANSWER_WORKER__: string;
 export interface AnswerInput {
   player: Fleet;
   enemy: Fleet;
-  /** The seed the player won the round on. */
+  /** The next round's seed, which the answer must win on. */
   won: number;
   seed: number;
   /** What the skirmish is played under. */
@@ -26,7 +26,7 @@ export interface AnswerInput {
 export interface AnswerProgress {
   generation: number;
   wins: number;
-  /** Whether the best won on the seed the round was won on, under the search's rules. */
+  /** Whether the best won on the next round's seed. */
   onRound: boolean;
   /** The enemy's budget as a multiple of the player's. */
   multiplier: number;

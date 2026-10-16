@@ -55,6 +55,25 @@ describe("the skirmish enemy's answer", () => {
     expect(b.best.margin).toBe(a.best.margin);
   });
 
+  it('answers with the first enemy that truly wins the round, and counts no other as winning it', { timeout: 120_000 }, () => {
+    // Every enemy ahead on the round when its match ran out is checked to the decision before the
+    // generation is reported, so one reported as winning the round is the answer.
+    const running = new EnemySearch(gunship, corvette, WON, 5);
+    let seen = 0;
+    for (let slice = 0; slice < 100 && !running.advance(2000); slice++) {
+      const now = running.progress;
+      if (now.generation === seen) continue;
+      seen = now.generation;
+      expect(now.best.onRound).toBe(false);
+    }
+    const found = running.progress.found;
+    if (found !== null) {
+      expect(running.progress.best.enemy).toBe(found);
+      expect(running.progress.best.onRound).toBe(true);
+      expect(decide(gunship, found).winner).toBe(1);
+    }
+  });
+
   it('reports each generation as it finishes', () => {
     const running = new EnemySearch(gunship, corvette, WON, 5);
     expect(running.progress.generation).toBe(0);

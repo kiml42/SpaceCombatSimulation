@@ -38,8 +38,9 @@ export interface Skirmish {
   /** This round's seed. */
   seed: number;
   /**
-   * Set once the player has won the round, on the seed it was won on, while
-   * the enemy evolves an answer; cleared by the next round.
+   * Set once the player has won the round, while the enemy evolves an answer:
+   * the next round's seed, a new one, which the answer must win on. Cleared
+   * by the next round, which is fought on it.
    */
   won?: number;
   /** What it is played under; the defaults where it says nothing. */
@@ -72,7 +73,7 @@ export interface SkirmishSettings {
   readonly crossingSpread: number;
   /** Mutants a generation of the enemy's search, beside the best so far. */
   readonly mutants: number;
-  /** Matches each enemy fights a generation, the seed the round was won on among them. */
+  /** Matches each enemy fights a generation, the next round's seed among them. */
   readonly seeds: number;
   /** How long a match of the search may last before the side ahead is taken to win, s. */
   readonly duration: number;
@@ -238,9 +239,9 @@ export function enemyMultiplier(skirmish: Skirmish): number {
   return startingMultiplier(multiplierOf(skirmish), skirmish.budget, billOfFleet(skirmish.enemy));
 }
 
-/** The round won: the enemy is to answer it, on the seed it was won on. */
+/** The round won: the enemy is to answer it on a new seed, the next round's. */
 export function won(skirmish: Skirmish): Skirmish {
-  return { ...skirmish, won: skirmish.seed };
+  return { ...skirmish, won: new Rng(skirmish.seed).nextUint32() };
 }
 
 /** The same round, to be fought again. */
@@ -249,12 +250,13 @@ export function lost(skirmish: Skirmish): Skirmish {
 }
 
 /**
- * The next round, against the enemy's answer, on a new seed. The budget is
- * the player's and does not follow the enemy, whose is unlimited.
+ * The next round, against the enemy's answer, on the seed it won on: a new
+ * one each round, and one the player's fleet as it stands loses, so it must
+ * change to win. The budget is the player's and does not follow the enemy.
  */
 export function nextRound(skirmish: Skirmish, enemy: Fleet): Skirmish {
-  const { won: _, ...rest } = skirmish;
-  return { ...rest, enemy, round: skirmish.round + 1, tries: 0, seed: new Rng(skirmish.seed).nextUint32() };
+  const { won, ...rest } = skirmish;
+  return { ...rest, enemy, round: skirmish.round + 1, tries: 0, seed: won ?? skirmish.seed };
 }
 
 export function serialiseSkirmish(skirmish: Skirmish): Record<string, unknown> {
