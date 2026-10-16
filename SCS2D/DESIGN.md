@@ -1207,7 +1207,7 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   turns about its own centre, so the row stays side by side across the mount as it aims, every lens
   fires from where it stands, and the mount trains — its arc and its mask measured — about the middle
   of the row. A hull gun's barrels all meet one mantlet at their root, drawn as a half disc out of the
-  block's face, and each lens has a half disc of its own.
+  block's face over them, and each lens sits on a disc of its own, a stalk running back to the block.
 - **The block behind a hull gun's barrel is its loading gear, so how deep it is sets the rate of
   fire.** Depth is counted in calibres of the round the machinery has to move, so the same
   proportions mean the same rate whatever size the mount is drawn at, and a barrel that leaves the

@@ -626,8 +626,8 @@ export const BEAM_EMITTER_APERTURES = 1.5;
 
 /**
  * How far out of its block a hull beam's lens stands on its stalk, in lengths
- * of its housing: far enough that the lens, turning about its own centre,
- * sits on the edge of the half disc it is mounted from.
+ * of its housing: far enough that the lens, turning about its own centre on
+ * the disc it is mounted on, is clear of the block.
  */
 export const BEAM_STALK_SHARE = 0.5;
 

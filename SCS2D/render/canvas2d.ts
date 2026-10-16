@@ -822,21 +822,23 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
       ctx.arc(mx, my, face * 0.5, 0, TAU);
       ctx.fill();
     } else if (beamLenses) {
-      // Back from each lens's centre to the block's face, where its mount is:
-      // a half disc the lens's back edge sits on, and a stalk out to the lens.
+      // Each lens on a disc of its own that it turns on, as wide as the lens
+      // sweeps, and a stalk back from it to the block's face.
       const back = hull.trains - hull.pivot;
-      const stalk = hull.reach - hull.barrelLength;
+      const radius = 0.5 * sqrt(hull.barrelLength * hull.barrelLength + hull.outletWidth * hull.outletWidth);
       const restX = cos(rest);
       const restY = sin(rest);
       for (let k = 0; k < count; k++) {
         const lat = count > 1 ? (k - (count - 1) * 0.5) * spacing : 0;
-        const baseX = mx - restY * lat - restX * back;
-        const baseY = my + restX * lat - restY * back;
-        mantlet(ctx, baseX, baseY, stalk, rest);
+        const cx = mx - restY * lat;
+        const cy = my + restX * lat;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, TAU);
+        ctx.fill();
         ctx.save();
-        ctx.translate(baseX, baseY);
+        ctx.translate(cx, cy);
         ctx.rotate(rest);
-        ctx.fillRect(0, -hull.outletWidth * 0.3, back, hull.outletWidth * 0.6);
+        ctx.fillRect(-back, -hull.outletWidth * 0.3, back, hull.outletWidth * 0.6);
         ctx.restore();
       }
     }
