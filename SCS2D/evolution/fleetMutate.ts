@@ -1,6 +1,10 @@
 import {
   blueprintProblem,
+  compileBlueprint,
+  expandBlueprint,
+  expandFleet,
   firstOverlap,
+  placeModules,
   fleetHulls,
   fleetBill,
   affords,
@@ -12,13 +16,16 @@ import {
   type Blueprint,
   type Fleet,
   type FleetEntry,
+  type FleetHull,
+  type ModuleSpec,
+  type ShipDesign,
   type Rng,
   degreesToRadians,
   radiansToDegrees,
 } from '../sim/index.js';
-import { max, PI, round } from '../sim/math.js';
+import { cos, max, PI, round, sin, sqrt } from '../sim/math.js';
 import { BARE_CORE } from '../scenarios/blueprints.js';
-import { mutate, type MutationLimits } from './mutate.js';
+import { DEFAULT_LIMITS, drift, mutate, type MutationLimits } from './mutate.js';
 
 /**
  * An angle that a file, which holds degrees, reads back as exactly itself, so
@@ -59,10 +66,12 @@ export interface FleetMutationLimits {
   readonly radius: number;
   /** Most ships a fleet may field, which bounds what a match costs. */
   readonly maxShips: number;
-  /** What a position moves in, metres. */
-  readonly grid: number;
-  /** What a heading turns in, radians. */
+  /** How far a ship moves, as a share of its radius. */
+  readonly size: number;
+  /** How far a heading turns, radians: the spread of its drift. */
   readonly turn: number;
+  /** Chance each of the fleet's entries is moved, when the fleet's ships are what moves. */
+  readonly moves: number;
   /** Candidates drawn before giving up and returning the parent. */
   readonly attempts: number;
   /** Relative chance of each operator. */
@@ -77,8 +86,9 @@ export const DEFAULT_FLEET_LIMITS: FleetMutationLimits = {
   budget: NO_BUDGET,
   radius: 500,
   maxShips: 24,
-  grid: 5,
+  size: 0.25,
   turn: PI / 12,
+  moves: 0.25,
   attempts: 24,
   operators: { design: 6, move: 3, add: 1, remove: 1, fork: 0.5, merge: 0.5, swap: 0.5 },
 };
@@ -125,9 +135,9 @@ function apply(operator: FleetOperator, fleet: Fleet, rng: Rng, bounds: FleetMut
     case 'design':
       return mutateDesign(fleet, rng, bounds);
     case 'move':
-      return move(fleet, rng, bounds);
+      return move(fleet, rng, bounds, new Layout());
     case 'add':
-      return add(fleet, rng, bounds);
+      return add(fleet, rng, new Layout());
     case 'remove':
       return remove(fleet, rng);
     case 'fork':
@@ -150,28 +160,46 @@ function mutateDesign(fleet: Fleet, rng: Rng, bounds: FleetMutationLimits): stri
   return child.edits.map((edit) => `${name}: ${edit}`);
 }
 
-/** Move or turn one of the fleet's own entries. */
-function move(fleet: Fleet, rng: Rng, bounds: FleetMutationLimits): string[] {
+/**
+ * Move and turn some of the fleet's own entries, each with a chance of its
+ * own and at least one, so a big fleet has more of its ships move.
+ *
+ * Each by a drift of its own size, so a gunship moves as far beside its
+ * length as a fighter does beside its own, and each move that lands on a
+ * neighbour or past the deployment radius is undone on its own.
+ */
+function move(fleet: Fleet, rng: Rng, bounds: FleetMutationLimits, layout: Layout): string[] {
   if (fleet.ships.length === 0) return [];
-  const index = rng.nextInt(fleet.ships.length);
-  const entry = fleet.ships[index]!;
-  const steps = (1 + rng.nextInt(4)) * (rng.chance(0.5) ? 1 : -1);
-  const what = describe(entry);
-  switch (rng.nextInt(3)) {
-    case 0:
-      entry.x += steps * bounds.grid;
-      return [`${what} moved ${steps * bounds.grid} m along x`];
-    case 1:
-      entry.y += steps * bounds.grid;
-      return [`${what} moved ${steps * bounds.grid} m along y`];
-    default:
-      entry.angle = settled((entry.angle ?? 0) + steps * bounds.turn);
-      return [`${what} turned ${round((steps * bounds.turn * 180) / PI)}°`];
+  const chosen = fleet.ships.filter(() => rng.chance(bounds.moves));
+  if (chosen.length === 0) chosen.push(fleet.ships[rng.nextInt(fleet.ships.length)]!);
+  const drawn = { ...DEFAULT_LIMITS, ...bounds.ship };
+  const edits: string[] = [];
+  for (const entry of chosen) {
+    const spread = bounds.size * sizeOf(fleet, entry, layout);
+    const dx = round(drift(rng, drawn, spread) * 10) / 10;
+    const dy = round(drift(rng, drawn, spread) * 10) / 10;
+    const turn = drift(rng, drawn, bounds.turn);
+    if (dx === 0 && dy === 0 && turn === 0) continue;
+    const was = { x: entry.x, y: entry.y, angle: entry.angle };
+    entry.x = round((entry.x + dx) * 10) / 10;
+    entry.y = round((entry.y + dy) * 10) / 10;
+    if (turn !== 0) entry.angle = settled((entry.angle ?? 0) + turn);
+    if (!placed(fleet, bounds, layout)) {
+      entry.x = was.x;
+      entry.y = was.y;
+      if (was.angle === undefined) delete entry.angle;
+      else entry.angle = was.angle;
+      continue;
+    }
+    const moved = dx !== 0 || dy !== 0 ? ` moved ${round(sqrt(dx * dx + dy * dy) * 10) / 10} m` : '';
+    const turned = turn !== 0 ? ` turned ${round((turn * 180) / PI)}°` : '';
+    edits.push(`${describe(entry)}${moved}${moved && turned ? ' and' : ''}${turned}`);
   }
+  return edits;
 }
 
 /** Another ship or group beside one of the fleet's: anything it carries, or a bare core. */
-function add(fleet: Fleet, rng: Rng, bounds: FleetMutationLimits): string[] {
+function add(fleet: Fleet, rng: Rng, layout: Layout): string[] {
   if (fleet.ships.length === 0) return [];
   const anchor = fleet.ships[rng.nextInt(fleet.ships.length)]!;
   const groups = [...new Set(fleet.ships.filter(isGroupUse).map((entry) => entry.group))];
@@ -179,20 +207,24 @@ function add(fleet: Fleet, rng: Rng, bounds: FleetMutationLimits): string[] {
   const core = designs.find((name) => sameAsCore(fleet.designs[name]!)) ?? null;
   const choices = designs.length + groups.length + (core === null ? 1 : 0);
   const choice = rng.nextInt(choices);
-  // Somewhere near, on the grid; one that lands on a neighbour is refused whole.
-  const distance = bounds.grid * (4 + rng.nextInt(12));
-  const direction = rng.nextInt(4);
-  const x = anchor.x + (direction === 0 ? distance : direction === 1 ? -distance : 0);
-  const y = anchor.y + (direction === 2 ? distance : direction === 3 ? -distance : 0);
   let entry: FleetEntry;
-  if (choice < designs.length) entry = { design: designs[choice]!, x, y };
-  else if (choice < designs.length + groups.length) entry = { group: groups[choice - designs.length]!, x, y };
+  if (choice < designs.length) entry = { design: designs[choice]!, x: 0, y: 0 };
+  else if (choice < designs.length + groups.length) entry = { group: groups[choice - designs.length]!, x: 0, y: 0 };
   else {
     const name = fleet.designs[BARE_CORE.name] === undefined ? BARE_CORE.name : freeName(fleet, BARE_CORE.name);
     fleet.designs[name] = { name, modules: JSON.parse(JSON.stringify(BARE_CORE.modules)) as Blueprint['modules'] };
-    entry = { design: name, x, y };
+    entry = { design: name, x: 0, y: 0 };
   }
   if (anchor.angle !== undefined) entry.angle = anchor.angle;
+  // Clear of the ship it goes beside by a share of both their sizes, in any
+  // direction: a gunship beside a gunship stands a gunship or so off, where a
+  // fixed few metres had them mustered almost hull to hull. One that lands on
+  // another ship is refused whole.
+  const reach = sizeOf(fleet, entry, layout) + sizeOf(fleet, anchor, layout);
+  const distance = round(reach * (1.25 + rng.nextFloat()));
+  const heading = rng.nextFloat() * 2 * PI;
+  entry.x = round(anchor.x + cos(heading) * distance);
+  entry.y = round(anchor.y + sin(heading) * distance);
   fleet.ships.push(entry);
   return [`${describe(entry)} added, ${distance} m off`];
 }
@@ -252,6 +284,42 @@ function swap(fleet: Fleet, rng: Rng): string[] {
   const from = entry.design;
   entry.design = others[rng.nextInt(others.length)]!;
   return [`a ${from} rebuilt as a ${entry.design}`];
+}
+
+/**
+ * Each design compiled once for a candidate: moving ships changes where they
+ * stand and nothing about what they are.
+ */
+class Layout {
+  private readonly designs = new Map<string, { design: ShipDesign; modules: ModuleSpec[] }>();
+
+  hulls(fleet: Fleet): FleetHull[] {
+    return expandFleet(fleet).map((ship) => {
+      let found = this.designs.get(ship.design);
+      if (found === undefined) {
+        const blueprint = fleet.designs[ship.design]!;
+        found = { design: compileBlueprint(blueprint), modules: expandBlueprint(blueprint) };
+        this.designs.set(ship.design, found);
+      }
+      return { ship, design: found.design, modules: placeModules(found.modules, ship) };
+    });
+  }
+}
+
+/**
+ * How big the ships an entry places are: its largest hull's radius. Not how
+ * far the entry reaches, since a row of twenty fighters is still fighters.
+ */
+function sizeOf(fleet: Fleet, entry: FleetEntry, layout: Layout): number {
+  let size = 0;
+  for (const hull of layout.hulls({ ...fleet, ships: [entry] })) size = max(size, hull.design.radius);
+  return size;
+}
+
+/** Whether the fleet's ships stand clear of each other and inside the radius. */
+function placed(fleet: Fleet, bounds: Pick<FleetMutationLimits, 'radius'>, layout: Layout): boolean {
+  const hulls = layout.hulls(fleet);
+  return fleetReach(hulls) <= bounds.radius && firstOverlap(hulls) === null;
 }
 
 function describe(entry: FleetEntry): string {

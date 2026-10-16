@@ -494,7 +494,7 @@ function restore(draft: Draft, snapshot: Snapshot): void {
  * The bell is the sum of four uniform draws, which is close enough to a
  * normal for this and needs no logarithm, so it is the same on every engine.
  */
-function drift(rng: Rng, bounds: MutationLimits, width: number): number {
+export function drift(rng: Rng, bounds: Pick<MutationLimits, 'deadZone' | 'tail'>, width: number): number {
   if (!(width > 0)) return 0;
   let sum = 0;
   for (let i = 0; i < 4; i++) sum += rng.nextFloat();
@@ -1749,15 +1749,45 @@ function moveSeam(site: ModuleSite, rng: Rng, bounds: MutationLimits, scale: Sca
   return `${site.where} ${spec.kind}: seam with ${site.label}[${index}] ${other.kind}, ${was} → ${now}`;
 }
 
+/**
+ * Slide a module along one of its own axes, so one welded along a face slides
+ * along it — and stop it against whatever it would run into, as a drag in
+ * the editor stops against a neighbour, rather than drive it through and
+ * have the edit refused.
+ */
 function slide(site: ModuleSite, rng: Rng, bounds: MutationLimits, scale: Scale, weight: number): string | null {
   const by = stretch(rng, bounds, scale, weight);
   if (by === 0) return null;
-  // Along the module's own axes, so one welded along a face slides along it.
   const along = rng.chance(0.5);
   const angle = (site.spec.angle ?? 0) + (along ? 0 : HALF_PI);
-  site.spec.x = tidy(site.spec.x + cos(angle) * by, 6);
-  site.spec.y = tidy(site.spec.y + sin(angle) * by, 6);
-  return `${site.where} ${site.spec.kind}: slid ${by} m ${along ? 'along' : 'across'} itself`;
+  const spec = site.spec;
+  const from = { x: spec.x, y: spec.y };
+  const dx = cos(angle) * by;
+  const dy = sin(angle) * by;
+  const neighbours = site.list.filter((p): p is ModuleSpec => !isInstance(p) && p !== spec);
+  const clear = (t: number): boolean => {
+    const moved = { ...spec, x: from.x + dx * t, y: from.y + dy * t };
+    return !neighbours.some((neighbour) => modulesOverlap(moved, neighbour));
+  };
+  let t = 1;
+  if (!clear(1) && clear(0)) {
+    // The furthest it gets before touching, to well inside the tolerance on
+    // what counts as touching.
+    let lo = 0;
+    let hi = 1;
+    for (let i = 0; i < 40; i++) {
+      const mid = (lo + hi) / 2;
+      if (clear(mid)) lo = mid;
+      else hi = mid;
+    }
+    t = lo;
+  }
+  const moved = tidy(by * t, 6);
+  if (moved === 0) return null;
+  spec.x = tidy(from.x + dx * t, 6);
+  spec.y = tidy(from.y + dy * t, 6);
+  const stopped = t < 1 ? `, stopping against a neighbour` : '';
+  return `${site.where} ${spec.kind}: slid ${moved} m ${along ? 'along' : 'across'} itself${stopped}`;
 }
 
 function movePlacement(site: InstanceSite, rng: Rng, bounds: MutationLimits, scale: Scale): string | null {
