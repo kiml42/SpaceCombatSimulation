@@ -860,6 +860,12 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     // back below the floor and say nothing. Overlap is free: the barrel colours
     // are opaque, so a bar drawn twice looks like a bar.
     ctx.lineWidth = legibleWidth(physicalWidth, MIN_BARREL_PX, metresToPx);
+    const hidden = hull !== null && !beamLenses;
+    if (hidden) {
+      // Behind the block, so a barrel trained hard over never shows its breech.
+      const placed = design.modules[module]!;
+      blockClip(ctx, ship, placed.x, placed.y, placed.angle, spec.length, spec.width, hull.blockLength, reach + spec.length);
+    }
     ctx.beginPath();
     for (let k = 0; k < count; k++) {
       const lat = count > 1 ? (k - (count - 1) * 0.5) * spacing : 0;
@@ -878,6 +884,7 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     }
     ctx.stroke();
     if (gun.braceLength > 0) drawBracing(ctx, gun, physicalWidth, mx, my, dirX, dirY);
+    if (hidden) ctx.restore();
     if (hull !== null && !beamLenses) {
       // Over the barrels' roots, standing out of the block's face, so a barrel
       // trained hard over is seen to come out of it rather than the block.
@@ -895,6 +902,44 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
 }
 
 /** A ship's robots out on its hull: over every capital hull, under every fighter. */
+/**
+ * Clip what follows to outside a hull mount's block, out to `reach` from its
+ * middle; the caller restores. In world coordinates, from the module's place
+ * in its ship.
+ */
+function blockClip(
+  ctx: CanvasRenderingContext2D,
+  ship: ShipView,
+  x: number,
+  y: number,
+  angle: number,
+  length: number,
+  width: number,
+  block: number,
+  reach: number,
+): void {
+  const c = cos(ship.angle);
+  const s = sin(ship.angle);
+  const cx = ship.x + x * c - y * s;
+  const cy = ship.y + x * s + y * c;
+  const a = ship.angle + angle;
+  const ax = cos(a);
+  const ay = sin(a);
+  const back = -length / 2;
+  const half = width / 2;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(cx - reach, cy - reach, 2 * reach, 2 * reach);
+  for (const [along, across] of [[back, -half], [back + block, -half], [back + block, half], [back, half]] as const) {
+    const px = cx + ax * along - ay * across;
+    const py = cy + ay * along + ax * across;
+    if (along === back && across === -half) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.clip('evenodd');
+}
+
 /** A half disc on a face, its round side out along `facing`. */
 function mantlet(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, facing: number): void {
   ctx.beginPath();
