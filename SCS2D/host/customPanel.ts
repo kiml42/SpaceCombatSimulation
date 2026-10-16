@@ -231,7 +231,7 @@ export function customPanel(changed: () => void, fight: () => void): CustomPanel
     const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'battle.json';
+    link.download = 'custom.battle.json';
     link.click();
     URL.revokeObjectURL(url);
   });

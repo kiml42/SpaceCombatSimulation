@@ -389,7 +389,7 @@ function download(name: string, text: string): void {
 
 /** Save a ship or fleet as a file named for it. */
 function exportEntrant(entrant: Entrant): void {
-  download(`${entrant.name.replace(/[^\w.-]+/g, '_')}.json`, isFleet(entrant) ? fleetFileText(entrant) : toFileText(entrant));
+  download(`${entrant.name.replace(/[^\w.-]+/g, '_')}${isFleet(entrant) ? '.fleet.json' : '.ship.json'}`, isFleet(entrant) ? fleetFileText(entrant) : toFileText(entrant));
 }
 
 const NO_LAYOUT: ChartLayout = { x: 0, y: 0, width: 0, height: 0, count: 0 };
@@ -1050,7 +1050,7 @@ export function startEvolution(): void {
   el<HTMLButtonElement>('exportConfig').addEventListener('click', () => {
     const setup = readSetup();
     const file = setup.name === undefined ? 'evolution-config' : setup.name.replace(/[^\w.-]+/g, '_');
-    download(`${file}.json`, `${JSON.stringify(serialiseRunConfig(setup), null, 2)}\n`);
+    download(`${file}.evo.json`, `${JSON.stringify(serialiseRunConfig(setup), null, 2)}\n`);
   });
   const file = el<HTMLInputElement>('importConfigFile');
   el<HTMLButtonElement>('importConfig').addEventListener('click', () => file.click());
