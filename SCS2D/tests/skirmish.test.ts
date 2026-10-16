@@ -166,6 +166,13 @@ describe('the skirmish', () => {
     expect(canFight(skirmish)).toBe(true);
   });
 
+  it('takes a budget it is given instead', () => {
+    const budget = { metal: 1e9, fuel: 1e9, build: 1e9 };
+    const skirmish = newSkirmish(core, gunship, 5, undefined, budget);
+    expect(skirmish.budget).toEqual(budget);
+    expect(canFight(skirmish)).toBe(true);
+  });
+
   it('will not fight with nothing, or over budget', () => {
     expect(canFight(newSkirmish(gunship, empty, 5))).toBe(false);
     expect(canFight(newSkirmish(core, gunship, 5))).toBe(false);
