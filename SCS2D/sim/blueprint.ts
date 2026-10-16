@@ -581,6 +581,20 @@ function cornerMargin(pad: number, dx: number, dy: number): number {
  * widened by `pad` metres either side for barrels that are not a line — a
  * row of them swings as wide as its outer barrel (`barrelHalfWidth`).
  */
+/**
+ * Where a mount's barrels pivot, in the frame its spec is written in: what its
+ * arc and its trigger mask are measured about. A turret's is the middle of its
+ * box; a hull weapon's is the root of its barrel, since the block is welded
+ * into the ship and only the barrel moves.
+ */
+export function mountPoint(spec: ModuleSpec): { x: number; y: number } {
+  const centre = moduleCentre(spec);
+  if (!isHullMount(spec.kind)) return centre;
+  const pivot = hullMountGeometry(spec).pivot;
+  const angle = boxAngle(spec);
+  return { x: centre.x + cos(angle) * pivot, y: centre.y + sin(angle) * pivot };
+}
+
 export function firingArc(
   modules: readonly ModuleSpec[],
   index: number,
@@ -589,7 +603,7 @@ export function firingArc(
   pad = 0,
 ): { left: number; right: number } {
   const mount = modules[index]!;
-  const from = moduleCentre(mount);
+  const from = mountPoint(mount);
   const rest = normalizeAngle(mount.angle ?? 0);
 
   let left = 2 * PI;
@@ -670,7 +684,7 @@ export function triggerMask(
   pad = 0,
 ): number[] {
   const mount = modules[index]!;
-  const from = moduleCentre(mount);
+  const from = mountPoint(mount);
   const rest = normalizeAngle(mount.angle ?? 0);
   const sectors: { start: number; end: number }[] = [];
   const c: number[] = [];
