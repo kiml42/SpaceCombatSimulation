@@ -105,10 +105,21 @@ export function startSkirmish(): void {
   const answerProgress = el<HTMLElement>('answerProgress');
   const watchButton = el<HTMLButtonElement>('watchAnswer');
   const playButton = el<HTMLButtonElement>('play');
+  // The round's own Fight, where the rest of the round is; the header's stays for any battle shown.
+  const fightButton = el<HTMLButtonElement>('fight');
+  const retryButton = el<HTMLButtonElement>('retry');
   const outcome = el<HTMLElement>('outcome');
   const sidesBox = el<HTMLElement>('sides');
   const readout = el<HTMLElement>('readout');
   const editFleet = el<HTMLAnchorElement>('editFleet');
+  /** Mark the one thing to press next in the round's buttons, or none. */
+  const cta = (next: HTMLElement | null): void => {
+    for (const button of [fightButton, editFleet, retryButton]) button.classList.toggle('primary', button === next);
+  };
+  const playable = (can: boolean): void => {
+    playButton.disabled = !can;
+    fightButton.disabled = !can;
+  };
 
   let skirmish: Skirmish | null = null;
   let battle: CustomBattle | null = null;
@@ -232,6 +243,7 @@ export function startSkirmish(): void {
     },
     (running) => {
       playButton.textContent = running ? 'Pause' : decision !== null || (battle?.world.tick ?? 0) > 0 ? 'Resume' : 'Fight';
+      fightButton.textContent = playButton.textContent;
     },
   );
   el<HTMLButtonElement>('fit').addEventListener('click', () => view.fit());
@@ -240,6 +252,7 @@ export function startSkirmish(): void {
   view.setSpeed(Number(speed.value));
   speed.addEventListener('change', () => view.setSpeed(Number(speed.value)));
   playButton.addEventListener('click', () => view.setRunning(!view.running));
+  fightButton.addEventListener('click', () => view.setRunning(!view.running));
 
   // ---- the setup ------------------------------------------------------------
 
@@ -282,7 +295,7 @@ export function startSkirmish(): void {
     el<HTMLElement>('history').hidden = true;
     document.body.classList.add('screenSetup');
     roundPanel.hidden = true;
-    playButton.disabled = true;
+    playable(false);
     fillChoices(enemySelect, false);
     fillChoices(startSelect, true);
     preview();
@@ -380,9 +393,12 @@ export function startSkirmish(): void {
           : limit !== null
             ? `Your fleet has ${limit}: edit it to fit.`
             : 'Your fleet is over budget: edit it to cut it down.';
-    playButton.disabled = !fits;
-    el<HTMLButtonElement>('retry').disabled = !fits;
+    playable(fits);
+    retryButton.disabled = !fits;
+    retryButton.hidden = false;
     editFleet.hidden = false;
+    fightButton.hidden = false;
+    cta(fits ? fightButton : editFleet);
     if (fits) {
       battle = customBattle(roundSetup(skirmish));
       view.show(battle, false);
@@ -404,7 +420,7 @@ export function startSkirmish(): void {
     });
     const at = `at ${result.time.toFixed(0)} s`;
     if (result.winner === 0) {
-      outcome.textContent = `Victory ${at}. The enemy evolves an answer.`;
+      outcome.textContent = `Victory ${at}. Wait while the enemy evolves an answer.`;
       outcome.className = 'won';
       skirmish = won(skirmish);
       save();
@@ -419,10 +435,11 @@ export function startSkirmish(): void {
       outcome.className = 'lost';
       skirmish = lost(skirmish);
       save();
+      cta(editFleet);
     }
   };
 
-  el<HTMLButtonElement>('retry').addEventListener('click', () => {
+  retryButton.addEventListener('click', () => {
     showRound();
     view.setRunning(true);
   });
@@ -436,10 +453,13 @@ export function startSkirmish(): void {
     if (skirmish === null || skirmish.won === undefined) return;
     answering.hidden = false;
     el<HTMLElement>('answered').hidden = true;
-    el<HTMLButtonElement>('retry').disabled = true;
+    retryButton.hidden = true;
     editFleet.hidden = true;
+    fightButton.hidden = true;
+    cta(null);
+    el<HTMLElement>('answerSpinner').hidden = false;
     watchButton.hidden = false;
-    answerProgress.textContent = 'Fighting the first generation of mutants…';
+    answerProgress.textContent = 'Wait while the enemy evolves an answer: fighting the first generation of mutants…';
     latest = null;
     stopSearch?.();
     stopSearch = startAnswer(
@@ -498,7 +518,7 @@ export function startSkirmish(): void {
     outcome.textContent = `Generation ${now.generation}'s best enemy against your fleet.`;
     outcome.className = '';
     el<HTMLElement>('enemyName').textContent = `Against ${now.best.name}, evolving.`;
-    playButton.disabled = false;
+    playable(true);
     view.show(battle, true);
   };
   watchButton.addEventListener('click', () => {
@@ -511,6 +531,7 @@ export function startSkirmish(): void {
   const found = (enemy: Fleet, generation: number): void => {
     if (skirmish === null || skirmish.won === undefined) return;
     answerProgress.textContent = `Found in generation ${generation}: ${enemy.name}, on the seed you won on.`;
+    el<HTMLElement>('answerSpinner').hidden = true;
     watchButton.hidden = true;
     el<HTMLElement>('answered').hidden = false;
     if (mode === 'replay') {
@@ -529,7 +550,7 @@ export function startSkirmish(): void {
     outcome.textContent = "The enemy's answer.";
     outcome.className = 'lost';
     el<HTMLElement>('enemyName').textContent = `Against ${enemy.name}, the answer.`;
-    playButton.disabled = false;
+    playable(true);
     view.show(battle, true);
   };
 
@@ -557,7 +578,7 @@ export function startSkirmish(): void {
     battle = customBattle(roundBattle(player, enemy, seed, skirmish === null ? DEFAULT_SKIRMISH_SETTINGS : settingsOf(skirmish)));
     outcome.textContent = `Round ${round}, again.`;
     outcome.className = '';
-    playButton.disabled = false;
+    playable(true);
     replaying.hidden = false;
     view.show(battle, true);
   };
