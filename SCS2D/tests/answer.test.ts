@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { fleetBill, fleetHulls, serialiseFleet, shipFleet } from '../sim/index.js';
 import { fleetFits } from '../evolution/fleetMutate.js';
 import { CORVETTE, GUNSHIP } from '../scenarios/blueprints.js';
-import { customBattle } from '../scenarios/customBattle.js';
+import { customBattle, tally } from '../scenarios/customBattle.js';
 import { Activity, type Decision } from '../scenarios/decision.js';
-import { roundBattle } from '../scenarios/skirmish.js';
-import { EnemySearch } from '../evolution/answer.js';
+import { DEFAULT_SKIRMISH_SETTINGS, roundBattle } from '../scenarios/skirmish.js';
+import { drillBattle, EnemySearch } from '../evolution/answer.js';
 
 const gunship = shipFleet(GUNSHIP);
 const corvette = shipFleet(CORVETTE);
@@ -44,7 +44,7 @@ describe("the skirmish enemy's answer", () => {
     // A fixed amount of work rather than a whole search, so the test costs the same on any seed.
     const run = (): EnemySearch => {
       const going = new EnemySearch(gunship, corvette, WON, 3);
-      going.advance(15_000);
+      going.advance(40_000);
       return going;
     };
     const a = run().progress;
@@ -134,5 +134,35 @@ describe('how the enemy is bred', () => {
     const best = search.progress.best.enemy;
     expect(best.designs).toEqual(corvette.designs);
     expect(best.ships).toHaveLength(corvette.ships.length);
+  });
+});
+
+describe('the drills an enemy fights', () => {
+  const run = (battle: ReturnType<typeof drillBattle>, seconds: number): void => {
+    for (let t = 0; t < seconds / battle.dt; t++) battle.step();
+  };
+
+  it('makes the enemy invincible against the fully armed player', { timeout: 120_000 }, () => {
+    // The Gunship beats the Corvette on WON, so it hurts it there unless it cannot.
+    const battle = drillBattle({ kind: 'shielded', seed: WON }, gunship, corvette, DEFAULT_SKIRMISH_SETTINGS);
+    run(battle, 120);
+    const [player, enemy] = tally(battle, 2);
+    expect(enemy!.mass).toBe(battle.start[1]!.mass);
+    expect(enemy!.armed).toBe(battle.start[1]!.armed);
+    // While the Gunship, which wins there for real, is the one hurt.
+    expect(player!.mass).toBeLessThan(battle.start[0]!.mass);
+  });
+
+  it('sets the enemy against a bare core it can destroy', { timeout: 120_000 }, () => {
+    const battle = drillBattle({ kind: 'bareCore', seed: 3 }, corvette, gunship, DEFAULT_SKIRMISH_SETTINGS);
+    expect(battle.start[0]!.armed).toBe(0);
+    run(battle, 180);
+    expect(tally(battle, 2)[0]!.ships).toBe(0);
+  });
+
+  it('only adds to an enemy score, never to its wins', { timeout: 120_000 }, () => {
+    const going = new EnemySearch(gunship, corvette, WON, 4, { seeds: 1, bareCoreDrills: 1, shieldedDrills: 1 });
+    while (going.progress.generation === 0 && !going.advance(5000));
+    expect(going.progress.best.wins).toBeLessThanOrEqual(1);
   });
 });

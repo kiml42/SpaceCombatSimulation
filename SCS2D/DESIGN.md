@@ -914,7 +914,10 @@ inside any one file is not contiguous.
   enemy evolves an answer in a worker (`evolution/answer.ts`), watched as each generation's best fights the
   round, and the answer — the first mutant to beat the player's fleet on a new seed, picked as the round
   is won, to the round's own decision — is the next round's enemy, fought on that seed, so the fleet that
-  lost must change to win it. A timeline
+  lost must change to win it. Beside its real matches each enemy fights drills that only add to its score:
+  against a bare core, and against the player's fleet with itself made invincible (`Damage.protect`),
+  scored on how much it destroys and how soon, so an enemy that cannot yet hurt the player's fleet before
+  being stripped by it still has something to climb. A timeline
   lists every match, newest first, each side drawn as the evolution page draws a combatant, the player's
   side stamped victory, defeat or draw, runs one side lost folded away, and any match can be watched again or either fleet saved
   or exported. **Its numbers are the player's to set**, on a setup screen like the evolution page's before

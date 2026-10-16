@@ -85,13 +85,17 @@ const SKIRMISH_FIELDS: readonly SettingField[] = [
     title: "Matches each enemy fights a generation, on different seeds, the next round's among them, so it cannot win by a fluke of one." },
   { name: 'duration', group: 'answer', label: 'match s', step: 30, min: 1, value: D.duration,
     title: 'How long a match of the search lasts before the side ahead is taken to win.' },
+  { name: 'bareCoreDrills', group: 'answer', label: 'bare core drills', step: 1, value: D.bareCoreDrills,
+    title: 'Matches each enemy fights a generation against a bare core, scored on how much of it, and how soon, it destroys. They only add to its score: it learns to hit something.' },
+  { name: 'shieldedDrills', group: 'answer', label: 'invincible drills', step: 1, value: D.shieldedDrills,
+    title: 'Matches each enemy fights a generation against your fleet with itself made invincible, scored on how much of your fleet it destroys and how soon it leaves it nothing to fire. They only add to its score: it learns to hurt you before you strip it.' },
   { name: 'budgetStep', group: 'answer', label: 'budget step', step: 0.05, value: D.budgetStep,
     title: "What is added to the enemy's budget, as a multiple of yours, each time its search stalls. It starts at 1×, or what the enemy already costs if more, and never falls." },
   { name: 'stretchAfter', group: 'answer', label: 'step up after', step: 1, min: 1, value: D.stretchAfter,
     title: "Generations without an answer before the enemy's budget steps up again." },
 ];
 /** Those that are counts, and so whole. */
-const WHOLE = new Set(['mutants', 'seeds', 'stretchAfter', 'maxShips']);
+const WHOLE = new Set(['mutants', 'seeds', 'stretchAfter', 'maxShips', 'bareCoreDrills', 'shieldedDrills']);
 
 export function startSkirmish(): void {
   const fleets = new Library(window.localStorage, FLEET_FILES);
