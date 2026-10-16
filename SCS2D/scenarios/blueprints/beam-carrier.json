@@ -1,5 +1,5 @@
 {
-  "formatVersion": 1,
+  "formatVersion": 2,
   "name": "Beam Carrier",
   "notes": "A carrier for beam fighters: eight pads, each with a battery to recharge what lands on it, and a tender docked port to port amidships that casts off to scavenge fuel with its claw.",
   "doctrine": {
@@ -11,7 +11,7 @@
   },
   "hangar": {
     "Dinky Beam": {
-      "formatVersion": 1,
+      "formatVersion": 2,
       "name": "Dinky Beam",
       "notes": "A fighter. It cannot hope to destroy anything much larger than itself, so it puts engines above the guns everything else shoots at first: a capital it strands is a capital out of the battle, which is the most a craft this size can do to one.",
       "fighter": true,
@@ -30,9 +30,9 @@
           "ramRadii": 1000,
           "ramArmed": 0.5,
           "refuelBelow": 0.5,
+          "rechargeBelow": 0.5,
           "tangentialMin": 20,
-          "tangentialMax": 60,
-          "rechargeBelow": 0.5
+          "tangentialMax": 60
         }
       },
       "assemblies": {
@@ -43,28 +43,29 @@
               "x": 0.04999999999999999,
               "y": -0.04999999999999998,
               "angle": -90,
-              "length": 0.3,
+              "length": 0.2,
               "width": 0.5,
-              "nozzle": 0.333333
+              "nozzle": 0.2
             },
             {
               "kind": "engine",
               "x": -2.15,
               "y": -0.05000000000000002,
               "angle": -180,
-              "length": 0.75,
+              "length": 0.4,
               "width": 0.2,
               "barrels": 1,
-              "nozzle": 0.466667
+              "nozzle": 1.75
             },
             {
               "kind": "engine",
               "x": -2.35,
               "y": -0.15,
               "angle": -90,
-              "length": 0.25,
+              "length": 0.125,
               "width": 0.4,
-              "barrels": 1
+              "barrels": 1,
+              "nozzle": 0.3125
             }
           ]
         }
@@ -89,8 +90,9 @@
           "x": -0.4,
           "y": 0,
           "angle": 180,
-          "length": 1,
-          "width": 0.8
+          "length": 0.5,
+          "width": 0.8,
+          "nozzle": 0.625
         },
         {
           "kind": "core",
@@ -103,10 +105,10 @@
         },
         {
           "kind": "hullBeam",
-          "x": 2.05,
+          "x": 2.02,
           "y": 0,
           "angle": 0,
-          "length": 1.1,
+          "length": 1.04,
           "width": 0.4,
           "reinforcement": 1.5,
           "barrels": 1,
@@ -153,8 +155,9 @@
           "x": -0.9999999999999999,
           "y": 1.5,
           "angle": 90,
-          "length": 3,
-          "width": 3
+          "length": 1.5,
+          "width": 3,
+          "nozzle": 0.5
         }
       ]
     },
@@ -166,8 +169,8 @@
           "y": 0,
           "length": 8,
           "width": 4,
-          "docked": "Dinky Beam",
-          "reinforcement": 3
+          "reinforcement": 3,
+          "docked": "Dinky Beam"
         },
         {
           "kind": "battery",
@@ -186,9 +189,10 @@
           "x": 0,
           "y": 0,
           "angle": 90,
-          "length": 8,
+          "length": 4,
           "width": 3,
-          "reinforcement": 3
+          "reinforcement": 3,
+          "nozzle": 1.3333
         }
       ]
     },
@@ -199,10 +203,11 @@
           "x": -1.5,
           "y": 0,
           "angle": 180,
-          "length": 8,
+          "length": 4,
           "width": 8,
           "reinforcement": 3,
-          "barrels": 3
+          "barrels": 3,
+          "nozzle": 1.5
         },
         {
           "use": "engine",
@@ -224,8 +229,9 @@
           "x": 0,
           "y": 0,
           "angle": 90,
-          "length": 1,
-          "width": 3
+          "length": 0.5,
+          "width": 3,
+          "nozzle": 0.1667
         }
       ]
     },
@@ -254,16 +260,18 @@
           "x": -8.5,
           "y": -2.75,
           "angle": -180,
-          "length": 2,
-          "width": 2.5
+          "length": 1,
+          "width": 2.5,
+          "nozzle": 0.4
         },
         {
           "kind": "engine",
           "x": 8,
           "y": -2.75,
           "angle": 0,
-          "length": 3,
-          "width": 1.5
+          "length": 1.5,
+          "width": 1.5,
+          "nozzle": 1
         }
       ]
     }
@@ -275,8 +283,8 @@
       "y": 12.5,
       "length": 12,
       "width": 5,
-      "thick": true,
-      "reinforcement": 3
+      "reinforcement": 3,
+      "thick": true
     },
     {
       "kind": "tank",

@@ -1,5 +1,5 @@
 {
-  "formatVersion": 1,
+  "formatVersion": 2,
   "name": "Dinky",
   "notes": "A fighter. It cannot hope to destroy anything much larger than itself, so it puts engines above the guns everything else shoots at first: a capital it strands is a capital out of the battle, which is the most a craft this size can do to one.",
   "fighter": true,
@@ -30,28 +30,29 @@
           "x": -0.1,
           "y": -0.05,
           "angle": -90,
-          "length": 0.3,
+          "length": 0.2,
           "width": 0.2,
-          "nozzle": 0.333333
+          "nozzle": 0.5
         },
         {
           "kind": "engine",
           "x": -2.05,
           "y": -0.05,
           "angle": -180,
-          "length": 0.75,
+          "length": 0.4,
           "width": 0.2,
           "barrels": 1,
-          "nozzle": 0.466667
+          "nozzle": 1.75
         },
         {
           "kind": "engine",
           "x": -2.25,
           "y": -0.15,
           "angle": -90,
-          "length": 0.25,
+          "length": 0.125,
           "width": 0.4,
-          "barrels": 1
+          "barrels": 1,
+          "nozzle": 0.3125
         }
       ]
     }
@@ -76,8 +77,9 @@
       "x": -0.1,
       "y": 0,
       "angle": 180,
-      "length": 1,
-      "width": 0.8
+      "length": 0.5,
+      "width": 0.8,
+      "nozzle": 0.625
     },
     {
       "kind": "core",
@@ -90,10 +92,10 @@
     },
     {
       "kind": "hullGun",
-      "x": 2.4,
+      "x": 1.96,
       "y": 0,
       "angle": 0,
-      "length": 1.8,
+      "length": 0.92,
       "width": 0.4,
       "reinforcement": 1.5,
       "barrels": 1,

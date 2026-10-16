@@ -1,5 +1,5 @@
 {
-  "formatVersion": 1,
+  "formatVersion": 2,
   "name": "Catamaran",
   "notes": "Two hulls and a footbridge. Each hull is a whole ship — core, gun, engines — and what joins them is four sections of thin structure, so the pair is held together by welds a fraction of the width of the ones inside either hull. Built to be cut in half: what the two halves then do is what tells you whether a piece with a core of its own is a ship or wreckage. Each hull carries a robot bay, a hold and a generator, enough between them to rebuild the other half, so each half of a cut Catamaran can grow back into the whole ship.",
   "doctrine": {
@@ -34,8 +34,9 @@
           "x": 0,
           "y": -1,
           "angle": 90,
-          "length": 2,
-          "width": 3
+          "length": 1,
+          "width": 3,
+          "nozzle": 0.3333
         }
       ]
     },
@@ -46,8 +47,9 @@
           "x": -1,
           "y": 0,
           "angle": 0,
-          "length": 2,
-          "width": 3
+          "length": 1,
+          "width": 3,
+          "nozzle": 0.3333
         }
       ]
     },
@@ -96,8 +98,9 @@
           "x": -9,
           "y": 0,
           "angle": 180,
-          "length": 4,
+          "length": 2,
           "width": 6,
+          "nozzle": 0.3333,
           "thick": true
         },
         {
@@ -190,8 +193,9 @@
           "x": 0.26481792100000057,
           "y": -0.1598514619999989,
           "angle": -56.771244699,
-          "length": 1.6,
-          "width": 1.8
+          "length": 0.8,
+          "width": 1.8,
+          "nozzle": 0.4444
         }
       ]
     }

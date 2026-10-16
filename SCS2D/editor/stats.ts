@@ -19,6 +19,7 @@ import {
   bestAttackBearings,
   designArcs,
   boxAngle,
+  bodySpec,
   moduleCentre,
   moduleStats,
   layoutStats,
@@ -358,7 +359,9 @@ function exhaustEscaping(
 ): number {
   if (index < 0 || index >= layout.length) return 1;
   const stats = layoutStats(layout);
-  const modules = layout.map((spec, i) => {
+  const modules = layout.map((placed, i) => {
+    // Bodies, as a compiled design holds them: an exhaust hits a barrel too.
+    const spec = bodySpec(placed);
     const centre = moduleCentre(spec);
     return {
       spec,

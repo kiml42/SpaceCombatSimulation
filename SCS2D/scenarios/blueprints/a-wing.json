@@ -1,5 +1,5 @@
 {
-  "formatVersion": 1,
+  "formatVersion": 2,
   "name": "A Wing",
   "fighter": true,
   "doctrine": {
@@ -46,18 +46,18 @@
           "x": -1.0000000000000002,
           "y": -0.2999999999999998,
           "angle": 180,
-          "length": 2.9,
+          "length": 1,
           "width": 1.4,
           "reinforcement": 1.19,
           "barrels": 1,
-          "nozzle": 0.655172
+          "nozzle": 1.3571
         },
         {
           "kind": "hullGun",
-          "x": 1.45,
-          "y": 0.8000000000000003,
+          "x": -0.05,
+          "y": 0.8,
           "angle": 0,
-          "length": 5.7,
+          "length": 2.7,
           "width": 0.6,
           "reinforcement": 1.76,
           "barrels": 1,
@@ -81,18 +81,20 @@
           "x": 0,
           "y": 0.1,
           "angle": 0,
-          "length": 1.2,
+          "length": 0.6,
           "width": 0.6,
-          "barrels": 1
+          "barrels": 1,
+          "nozzle": 1
         },
         {
           "kind": "engine",
           "x": -1.6999999999999997,
           "y": 0.40000000000000013,
           "angle": 90,
-          "length": 0.5,
+          "length": 0.25,
           "width": 0.5,
-          "reinforcement": 1.07
+          "reinforcement": 1.07,
+          "nozzle": 0.5
         },
         {
           "kind": "structure",
@@ -122,10 +124,11 @@
           "x": 0.9000000000000005,
           "y": 1.1,
           "angle": 90,
-          "length": 0.2,
+          "length": 0.1,
           "width": 0.8,
           "reinforcement": 1.07,
-          "barrels": 2
+          "barrels": 2,
+          "nozzle": 0.25
         }
       ]
     }

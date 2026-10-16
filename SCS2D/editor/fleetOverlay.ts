@@ -1,4 +1,4 @@
-import { math, moduleCentre, moduleOutline, type ModuleSpec } from '../sim/index.js';
+import { bodySpec, math, moduleCentre, moduleOutline, type ModuleSpec } from '../sim/index.js';
 import { describeStep, snapStep, type Camera } from '../render/camera.js';
 import { HANDLE_RADIUS_PX, ROTATE_ARM_PX } from './handles.js';
 import { outline } from './overlay.js';
@@ -56,7 +56,8 @@ export function drawFleetOverlay(
   const px = 1 / camera.scale;
 
   for (const i of view.faulty) {
-    for (const spec of view.hulls[i] ?? []) {
+    for (const placed of view.hulls[i] ?? []) {
+      const spec = bodySpec(placed);
       if (!(spec.length > 0) || !(spec.width > 0)) continue;
       const mid = moduleCentre(spec);
       ctx.save();
@@ -76,7 +77,8 @@ export function drawFleetOverlay(
     ctx.strokeStyle = copy.primary ? SELECTION : SELECTION_LINKED;
     if (!copy.primary) ctx.setLineDash([line * 4, line * 3]);
     for (const i of copy.ships) {
-      for (const spec of view.hulls[i] ?? []) {
+      for (const placed of view.hulls[i] ?? []) {
+        const spec = bodySpec(placed);
         const mid = moduleCentre(spec);
         ctx.save();
         ctx.translate(mid.x, mid.y);

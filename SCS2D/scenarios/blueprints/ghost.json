@@ -1,5 +1,5 @@
 {
-  "formatVersion": 1,
+  "formatVersion": 2,
   "name": "Ghost",
   "notes": "A light freighter that fights whatever is nearest, whatever size it is: it takes no view on how big a target should be, and a great deal of view on how close. Guns first, then engines — it has neither the weight of fire nor the time to chew through a hull.",
   "doctrine": {
@@ -37,18 +37,19 @@
           "x": -3.5,
           "y": 4,
           "angle": 90,
-          "length": 2,
-          "width": 2
+          "length": 1,
+          "width": 2,
+          "nozzle": 0.5
         },
         {
           "kind": "engine",
           "x": 4.5,
           "y": 1.05,
           "angle": 180,
-          "length": 18.5,
+          "length": 14.8,
           "width": 5.9,
-          "thick": true,
-          "nozzle": 0.2
+          "nozzle": 0.6271,
+          "thick": true
         },
         {
           "kind": "structure",
@@ -69,15 +70,16 @@
           "x": 23,
           "y": 1.5,
           "angle": 90,
-          "length": 1,
-          "width": 1
+          "length": 0.5,
+          "width": 1,
+          "nozzle": 0.5
         },
         {
           "kind": "hullGun",
-          "x": 28.25,
+          "x": 27.425,
           "y": -0.5,
           "angle": 0,
-          "length": 5.5,
+          "length": 3.85,
           "width": 4,
           "barrels": 1,
           "barrelCalibres": 4.125
@@ -87,9 +89,10 @@
           "x": 17.5,
           "y": 5.25,
           "angle": 0,
-          "length": 1.5,
+          "length": 0.75,
           "width": 2.5,
-          "barrels": 2
+          "barrels": 2,
+          "nozzle": 0.6
         },
         {
           "kind": "structure",
@@ -101,9 +104,9 @@
         {
           "kind": "hullGun",
           "x": 12,
-          "y": 8.5,
+          "y": 7.75,
           "angle": 90,
-          "length": 3,
+          "length": 1.5,
           "width": 3,
           "barrels": 3,
           "barrelCalibres": 15
@@ -187,8 +190,8 @@
       "angle": 180,
       "length": 4,
       "width": 3,
-      "barrelCalibres": 66.667,
       "barrels": 2,
+      "barrelCalibres": 66.667,
       "targeting": {
         "structureWeight": 0
       }

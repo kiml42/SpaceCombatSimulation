@@ -30,7 +30,7 @@ import { canShape, isTriangle, TRIANGLE_CORNERS, triangleOf, wedge } from '../si
 import { degreesToRadians, radiansToDegrees } from '../sim/blueprintFile.js';
 import {
   barrelCalibres,
-  DEFAULT_NOZZLE_SHARE,
+  DEFAULT_NOZZLE_WIDTHS,
   MAX_BARREL_CALIBRES,
   readsBarrelCalibres,
   isWeaponMount,
@@ -48,6 +48,8 @@ import {
   mountTraverse,
   isHullMount,
   MODULE_KINDS,
+  blockCentre,
+  bodySpec,
   moduleCentre,
   refitModule,
   shapeModule,
@@ -1247,17 +1249,18 @@ function rebarrel(site: ModuleSite, rng: Rng): string | null {
   return `${site.where} ${site.spec.kind}: barrels ${was} → ${now}`;
 }
 
+/** Past a few exit widths a bell buys almost no more aim. */
+const MOST_NOZZLE_WIDTHS = 4;
+
 /**
  * Lengthen or shorten an engine's bell.
  *
- * A share rather than a length, so the knob means the same thing on a
- * fighter's engine and a capital's, and held off the far end: an engine that
- * is all bell has no block, and the layout rules would refuse it rather than
- * teach the search anything. No bell at all is a legal, bad engine.
+ * In exit widths, as the layout has it, so the knob means the same thing on a
+ * fighter's engine and a capital's. No bell at all is a legal, bad engine.
  */
 function rebell(site: ModuleSite, jitter: Jitter): string | null {
-  const was = site.spec.nozzle ?? DEFAULT_NOZZLE_SHARE;
-  const now = tidy(clamp(was + jitter(1), 0, 0.9), 3);
+  const was = site.spec.nozzle ?? DEFAULT_NOZZLE_WIDTHS;
+  const now = tidy(clamp(was + jitter(1), 0, MOST_NOZZLE_WIDTHS), 3);
   if (now === was) return null;
   site.spec.nozzle = now;
   return `${site.where} ${site.spec.kind}: nozzle ${was} → ${now}`;
@@ -1459,7 +1462,7 @@ function turnModule(site: ModuleSite, rng: Rng, bounds: MutationLimits, weight: 
 function quarterTurn(site: ModuleSite, rng: Rng): string | null {
   const spec = site.spec;
   if (spec.length === spec.width && !hasFacing(spec.kind)) return null;
-  const centre = moduleCentre(spec);
+  const centre = blockCentre(spec);
   const angle = spec.angle ?? 0;
   const c = cos(angle);
   const s = sin(angle);
@@ -1480,7 +1483,7 @@ function quarterTurn(site: ModuleSite, rng: Rng): string | null {
   }
   // From the middle back to the position the kind is written by, which for
   // an engine is the face it is bolted on by.
-  const offset = moduleCentre(turned);
+  const offset = blockCentre(turned);
   spec.x = tidy(middle.x - offset.x, 6);
   spec.y = tidy(middle.y - offset.y, 6);
   if (turned.angle !== undefined) spec.angle = turned.angle;
@@ -1581,14 +1584,14 @@ function moveFace(
 function openFaces(site: ModuleSite): boolean[] {
   const spec = site.spec;
   const open = [true, true, true, true];
-  const centre = moduleCentre(spec);
+  const centre = blockCentre(spec);
   const angle = spec.angle ?? 0;
   const c = cos(angle);
   const sn = sin(angle);
   for (const placement of site.list) {
     if (isInstance(placement) || placement === spec) continue;
     if (!(contactWidth(spec, placement) > 0)) continue;
-    const other = moduleCentre(placement);
+    const other = blockCentre(placement);
     const dx = other.x - centre.x;
     const dy = other.y - centre.y;
     // Into this module's own frame, where a face is an axis.
@@ -2168,7 +2171,7 @@ function clearance(
   if (assembly === undefined || assembly.modules.some(isInstance)) return scale.arrival;
   let far = 0;
   for (const placement of assembly.modules) {
-    const spec = placement as ModuleSpec;
+    const spec = bodySpec(placement as ModuleSpec);
     const centre = moduleCentre(spec);
     const reach = max(spec.length, spec.width) / 2;
     far = max(far, abs(along ? centre.x : centre.y) + reach);
@@ -2460,7 +2463,7 @@ function against(
   const ax = -ny;
   const ay = nx;
   const endOn = face % 2 === 0;
-  const centre = moduleCentre(anchor);
+  const centre = blockCentre(anchor);
   const reach = (endOn ? anchor.length : anchor.width) / 2;
   const faceX = centre.x + nx * reach + ax * along;
   const faceY = centre.y + ny * reach + ay * along;

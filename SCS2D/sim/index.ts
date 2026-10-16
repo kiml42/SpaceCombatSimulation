@@ -54,7 +54,7 @@ export {
 export {
   DECK_HEIGHT,
   BASE_WALL_THICKNESS,
-  DEFAULT_NOZZLE_SHARE,
+  DEFAULT_NOZZLE_WIDTHS,
   BARREL_CALIBRES,
   BARREL_OUTER_CALIBRES,
   DEFAULT_HULL_BARREL_CALIBRES,
@@ -132,6 +132,8 @@ export {
   CORE_COMPUTING_VOLUME,
   STANDARD_GRAVITY,
   engineMachinery,
+  bodySpec,
+  blockCentre,
   traverseAccel,
   mountAccel,
   moduleOutline,

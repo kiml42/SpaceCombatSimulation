@@ -1,5 +1,5 @@
 {
-  "formatVersion": 1,
+  "formatVersion": 2,
   "name": "Star Destroyer",
   "notes": "A capital. Its batteries go for the biggest thing on the board — nothing in the battle outweighs it, so a preference for its own mass is a preference for whatever is largest — and they shoot to disable rather than to destroy: guns, then engines, and never the hull while either is left.",
   "doctrine": {
@@ -109,20 +109,20 @@
           "x": -448.5,
           "y": 450,
           "angle": 90,
-          "length": 75,
+          "length": 66.6667,
           "width": 207,
           "barrels": 36,
-          "nozzle": 0.111111
+          "nozzle": 2.7778
         },
         {
           "kind": "engine",
           "x": -345,
           "y": 478.5,
           "angle": 0,
-          "length": 85,
+          "length": 78.4615,
           "width": 57,
           "barrels": 14,
-          "nozzle": 0.076923
+          "nozzle": 2.1795
         },
         {
           "use": "engine2",
@@ -158,9 +158,9 @@
           "x": -608,
           "y": 82.5,
           "angle": 180,
-          "length": 180,
+          "length": 130,
           "width": 26,
-          "nozzle": 0.277778,
+          "nozzle": 1.9231,
           "thick": true
         },
         {
@@ -220,9 +220,9 @@
           "x": -702,
           "y": 210,
           "angle": 90,
-          "length": 50,
+          "length": 36.1111,
           "width": 60,
-          "nozzle": 0.277778,
+          "nozzle": 0.2315,
           "thick": true
         },
         {
@@ -480,9 +480,9 @@
           "x": 0,
           "y": 0,
           "angle": 180,
-          "length": 315,
+          "length": 195.0001,
           "width": 100,
-          "nozzle": 0.380952,
+          "nozzle": 1.2,
           "main": false,
           "thick": true
         }
@@ -527,8 +527,8 @@
         },
         {
           "kind": "structure",
-          "x": -9.666666666000026,
-          "y": -17.333333333000002,
+          "x": -9.666666666,
+          "y": -17.333333333,
           "length": 125,
           "width": 60,
           "vertices": [
@@ -542,8 +542,8 @@
         },
         {
           "kind": "structure",
-          "x": -9.666222222000044,
-          "y": 2.666666667000001,
+          "x": -9.666222222,
+          "y": 2.666666667,
           "angle": 0,
           "length": 125.001333333,
           "width": 52,
@@ -585,11 +585,11 @@
           "x": 0,
           "y": 0,
           "angle": 68.713594886,
-          "length": 22,
+          "length": 20,
           "width": 160,
           "reinforcement": 5,
           "barrels": 49,
-          "nozzle": 0.090909
+          "nozzle": 0.6667
         }
       ]
     },

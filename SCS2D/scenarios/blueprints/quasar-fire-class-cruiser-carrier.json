@@ -1,5 +1,5 @@
 {
-  "formatVersion": 1,
+  "formatVersion": 2,
   "name": "Quasar Fire-class cruiser-carrier",
   "doctrine": {
     "approach": {
@@ -108,10 +108,10 @@
         },
         {
           "kind": "hullBeam",
-          "x": 285,
+          "x": 284.4,
           "y": 26.005,
           "angle": 0,
-          "length": 16,
+          "length": 14.8,
           "width": 8,
           "barrels": 1,
           "main": false
@@ -145,9 +145,10 @@
           "x": -22.999999999,
           "y": 165.050130878,
           "angle": 89.998500252,
-          "length": 26,
+          "length": 13,
           "width": 10,
-          "barrels": 3
+          "barrels": 3,
+          "nozzle": 4.3333
         },
         {
           "use": "engine2",
@@ -170,8 +171,9 @@
           "x": 0,
           "y": 0,
           "angle": 180,
-          "length": 35,
+          "length": 17.5,
           "width": 35,
+          "nozzle": 0.5,
           "thick": true
         }
       ]
@@ -183,10 +185,11 @@
           "x": -23.608065139,
           "y": -14.103519433999999,
           "angle": -59.145795494000005,
-          "length": 10,
+          "length": 5,
           "width": 135,
           "reinforcement": 4,
-          "barrels": 33
+          "barrels": 33,
+          "nozzle": 1.6667
         }
       ]
     }
@@ -214,8 +217,9 @@
       "x": -2,
       "y": 0,
       "angle": 180,
-      "length": 48,
+      "length": 24,
       "width": 48,
+      "nozzle": 0.5,
       "thick": true
     },
     {
@@ -241,11 +245,11 @@
       "kind": "engine",
       "x": 277,
       "y": 0,
-      "length": 18,
+      "length": 14,
       "width": 44,
       "reinforcement": 4,
       "barrels": 12,
-      "nozzle": 0.222222
+      "nozzle": 1.3333
     },
     {
       "kind": "structure",

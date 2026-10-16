@@ -1,4 +1,4 @@
-import { math, moduleCentre, triangleOf, type ModuleSpec, type ShipDesign } from '../sim/index.js';
+import { blockCentre, bodySpec, math, moduleCentre, triangleOf, type ModuleSpec, type ShipDesign } from '../sim/index.js';
 import { describeStep, snapStep, type Camera } from '../render/camera.js';
 import { headingCost, type Envelopes } from './stats.js';
 import type { AssemblyOutline } from './document.js';
@@ -207,8 +207,10 @@ function drawGridCaption(
 /** Tint every module a problem names, over the module's own shape. */
 function drawFaults(ctx: CanvasRenderingContext2D, view: OverlayView): void {
   for (const index of view.faulty) {
-    const spec = view.modules[index];
-    if (spec === undefined) continue;
+    const placed = view.modules[index];
+    if (placed === undefined) continue;
+    // The whole body, barrel and bell included, as it is in the way.
+    const spec = bodySpec(placed);
     // A module with no interior is one of the things complained about, and it
     // has no box to tint. It is named in the list instead.
     if (!(spec.length > 0) || !(spec.width > 0)) continue;
@@ -234,8 +236,9 @@ function drawFaults(ctx: CanvasRenderingContext2D, view: OverlayView): void {
 function drawSelection(ctx: CanvasRenderingContext2D, view: OverlayView, camera: Camera): void {
   const lineWidth = SELECTION_WIDTH_PX / camera.scale;
   for (let i = 0; i < view.selected.length; i++) {
-    const spec = view.modules[view.selected[i]!];
-    if (spec === undefined) continue;
+    const placed = view.modules[view.selected[i]!];
+    if (placed === undefined) continue;
+    const spec = bodySpec(placed);
     const mid = moduleCentre(spec);
     ctx.save();
     ctx.translate(mid.x, mid.y);
@@ -289,7 +292,7 @@ function drawHandles(ctx: CanvasRenderingContext2D, view: OverlayView, camera: C
       ? { x: knob.fromX, y: knob.fromY }
       : spec === undefined
         ? null
-        : moduleCentre(spec);
+        : blockCentre(spec);
   if (knob !== undefined && from !== null) {
     ctx.save();
     ctx.strokeStyle = SELECTION;
@@ -306,7 +309,7 @@ function drawHandles(ctx: CanvasRenderingContext2D, view: OverlayView, camera: C
     ctx.beginPath();
     // A seam is a bar along the face it moves; an edge changes one dimension,
     // so it is a square rather than a corner's dot.
-    if (handle.kind === 'seam' || handle.kind === 'split') {
+    if (handle.kind === 'seam' || handle.kind === 'tip') {
       ctx.translate(handle.x, handle.y);
       ctx.rotate(handle.angle ?? 0);
       ctx.rect(-radius * 2, -radius * 0.7, radius * 4, radius * 1.4);
@@ -349,8 +352,9 @@ function drawAssemblies(
     let maxX = -Infinity;
     let maxY = -Infinity;
     for (const index of assembly.modules) {
-      const spec = view.modules[index];
-      if (spec === undefined) continue;
+      const placed = view.modules[index];
+      if (placed === undefined) continue;
+      const spec = bodySpec(placed);
       const angle = spec.angle ?? 0;
       const c = Math.cos(angle);
       const s = Math.sin(angle);

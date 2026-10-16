@@ -1,11 +1,10 @@
 {
-  "formatVersion": 1,
+  "formatVersion": 2,
   "name": "Tanker",
   "notes": "Unarmed, a great tank behind its core and a docking port on either beam. A ship running low with a port of its own comes alongside, mates face to face and is filled from it; the Tanker keeps a quarter of a full load back for itself, and goes looking itself below that. Whichever of two docked ships is the smaller idles while the larger flies the pair.",
   "doctrine": {
     "approach": {
-      "approachSpeed": 20,
-      "refuelBelow": 0.25
+      "approachSpeed": 20
     }
   },
   "modules": [
@@ -46,40 +45,45 @@
       "x": -15,
       "y": 0,
       "angle": 180,
-      "length": 2,
-      "width": 3
+      "length": 1,
+      "width": 3,
+      "nozzle": 0.3333
     },
     {
       "kind": "engine",
       "x": 3,
       "y": 2,
       "angle": 0,
-      "length": 1,
-      "width": 1.5
+      "length": 0.5,
+      "width": 1.5,
+      "nozzle": 0.3333
     },
     {
       "kind": "engine",
       "x": 3,
       "y": -2,
       "angle": 0,
-      "length": 1,
-      "width": 1.5
+      "length": 0.5,
+      "width": 1.5,
+      "nozzle": 0.3333
     },
     {
       "kind": "engine",
       "x": -9,
       "y": 4,
       "angle": 90,
-      "length": 1,
-      "width": 2
+      "length": 0.5,
+      "width": 2,
+      "nozzle": 0.25
     },
     {
       "kind": "engine",
       "x": -9,
       "y": -4,
       "angle": -90,
-      "length": 1,
-      "width": 2
+      "length": 0.5,
+      "width": 2,
+      "nozzle": 0.25
     }
   ]
 }

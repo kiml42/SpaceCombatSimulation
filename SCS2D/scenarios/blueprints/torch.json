@@ -1,5 +1,5 @@
 {
-  "formatVersion": 1,
+  "formatVersion": 2,
   "name": "Torch",
   "notes": "A small craft whose weapon is an engine. The big engine on the bow faces forwards, so the same burn that scorches a target brakes the approach and then shoves the ship back out: it closes fast to stop against the hull, braking on the bow engine, burns, is pushed away, and comes round again.",
   "doctrine": {
@@ -55,11 +55,11 @@
           "x": -15.25,
           "y": 0,
           "angle": 0,
-          "length": 38,
+          "length": 19.2603,
           "width": 8,
           "reinforcement": 1.5,
           "barrels": 1,
-          "nozzle": 0.493151,
+          "nozzle": 2.3425,
           "weapon": true,
           "thick": true,
           "notes": "The weapon. Its thrust points aft, so firing it at a target is also braking, and holding it on is being pushed away."
@@ -84,9 +84,10 @@
           "x": -1.5,
           "y": 0,
           "angle": 90,
-          "length": 3,
+          "length": 1.5,
           "width": 8,
           "barrels": 1,
+          "nozzle": 0.1875,
           "weapon": true,
           "main": false,
           "thick": true

@@ -1,4 +1,4 @@
-import { PI, round } from './math.js';
+import { cos, PI, round, sin } from './math.js';
 import {
   isInstance,
   type Assembly,
@@ -14,6 +14,7 @@ import {
   isHullMount,
   isWeaponMount,
   MODULE_KINDS,
+  moduleThickness,
   readsBarrelCalibres,
   readsNozzle,
   readsSealing,
@@ -72,7 +73,17 @@ import { unreadOf, unreadWarning, writeUnread, type UnreadKeys } from './unread.
  * (ROADMAP.md §12). Different quantities: this one says how to read the file,
  * that one says which design the file describes.
  */
-export const BLUEPRINT_FORMAT_VERSION = 1;
+export const BLUEPRINT_FORMAT_VERSION = 2;
+
+/**
+ * Format 1 measured an engine or hull weapon's `length` over its bell or barrel
+ * too, and an engine's `nozzle` as the share of it that was bell. It is still
+ * read, and converted to the same body — see `blockFromWhole`.
+ */
+const WHOLE_LENGTH_FORMAT = 1;
+
+/** What format 1 assumed of an engine that did not say. */
+const WHOLE_LENGTH_NOZZLE_SHARE = 0.5;
 
 
 
@@ -190,6 +201,33 @@ function legacyBarrel(spec: ModuleSpec, raw: Record<string, unknown>): boolean {
     if (calibre > 0) spec.barrelCalibres = round((share * spec.length * 1000) / calibre) / 1000;
   }
   return true;
+}
+
+/** Rounded to a tenth of a millimetre, so a converted file reads cleanly. */
+function tidy(value: number): number {
+  return round(value * 10000) / 10000;
+}
+
+/**
+ * A format-1 engine or hull weapon resized to its block, with the bell or
+ * barrel it had reaching out of it: the same body, measured the current way.
+ */
+function blockFromWhole(spec: ModuleSpec): void {
+  if (spec.kind === 'engine') {
+    const bell = (spec.nozzle ?? WHOLE_LENGTH_NOZZLE_SHARE) * spec.length;
+    const exit = moduleThickness(spec);
+    spec.length = tidy(spec.length - bell);
+    if (exit > 0) spec.nozzle = tidy(bell / exit);
+    return;
+  }
+  if (!isHullMount(spec.kind)) return;
+  // A barrel's length is its calibres and bore, which the module's length
+  // does not enter into; the block is what is left behind it.
+  const barrel = hullMountGeometry(spec).barrelLength;
+  const angle = spec.angle ?? 0;
+  spec.length = tidy(spec.length - barrel);
+  spec.x = tidy(spec.x - cos(angle) * barrel * 0.5);
+  spec.y = tidy(spec.y - sin(angle) * barrel * 0.5);
 }
 
 function moduleShapeProblem(value: Record<string, unknown>, where: string): string | null {
@@ -371,8 +409,8 @@ export function blueprintFileProblem(value: unknown): string | null {
   if (!isObject(value)) return `a blueprint file must be an object, got ${JSON.stringify(value)}`;
 
   const version = value['formatVersion'];
-  if (version !== BLUEPRINT_FORMAT_VERSION) {
-    return `formatVersion must be ${BLUEPRINT_FORMAT_VERSION}, got ${JSON.stringify(version)}`;
+  if (version !== BLUEPRINT_FORMAT_VERSION && version !== WHOLE_LENGTH_FORMAT) {
+    return `formatVersion must be ${WHOLE_LENGTH_FORMAT} or ${BLUEPRINT_FORMAT_VERSION}, got ${JSON.stringify(version)}`;
   }
 
   const name = value['name'];
@@ -400,9 +438,11 @@ export function blueprintFileProblem(value: unknown): string | null {
 
 /** Assemble a blueprint from a file whose shape has already been checked. */
 function toBlueprint(file: Record<string, unknown>): Blueprint {
+  // Each file says its own format, a hangar's fighters included.
+  const whole = file['formatVersion'] === WHOLE_LENGTH_FORMAT;
   const blueprint: Blueprint = {
     name: file['name'] as string,
-    modules: toPlacements(file['modules'] as unknown[]),
+    modules: toPlacements(file['modules'] as unknown[], whole),
   };
   if (file['notes'] !== undefined) blueprint.notes = file['notes'] as string;
   if (file['fighter'] !== undefined) blueprint.fighter = file['fighter'] as boolean;
@@ -425,7 +465,7 @@ function toBlueprint(file: Record<string, unknown>): Blueprint {
   if (rawAssemblies !== undefined) {
     const assemblies: Record<string, Assembly> = {};
     for (const [name, raw] of Object.entries(rawAssemblies)) {
-      const assembly: Assembly = { modules: toPlacements(raw['modules'] as unknown[]) };
+      const assembly: Assembly = { modules: toPlacements(raw['modules'] as unknown[], whole) };
       if (raw['notes'] !== undefined) assembly.notes = raw['notes'] as string;
       const unreadAssembly = unreadOf(raw, ASSEMBLY_KEYS);
       if (unreadAssembly !== undefined) assembly.unread = unreadAssembly;
@@ -437,7 +477,7 @@ function toBlueprint(file: Record<string, unknown>): Blueprint {
   return blueprint;
 }
 
-function toPlacements(raws: unknown[]): Placement[] {
+function toPlacements(raws: unknown[], whole: boolean): Placement[] {
   return raws.map((value) => {
     const raw = value as Record<string, unknown>;
     // Assigned conditionally rather than written as `angle: raw.angle`,
@@ -500,6 +540,7 @@ function toPlacements(raws: unknown[]): Placement[] {
     if (raw['targeting'] !== undefined) spec.targeting = { ...(raw['targeting'] as Partial<Targeting>) };
     if (raw['notes'] !== undefined) spec.notes = raw['notes'] as string;
     const legacy = legacyBarrel(spec, raw);
+    if (whole) blockFromWhole(spec);
     const unread = unreadOf(raw, legacy ? [...reads, 'nozzle'] : reads);
     if (unread !== undefined) spec.unread = unread;
     if (read('vertices')) {

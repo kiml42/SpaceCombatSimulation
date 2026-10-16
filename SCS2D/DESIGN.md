@@ -76,8 +76,9 @@ inside any one file is not contiguous.
   or an edge with the opposite one held still, or with Shift held about its middle, so a module on the
   centre line stays on it — carrying whatever sits against the moving face along with it,
   unless Ctrl is held — and turned by dragging a knob beyond the bow, while two touching modules selected
-  together get a bar on their shared face that grows one as it shrinks the other, and an engine or hull weapon
-  gets the same bar where its bell, barrel or lens meets the block behind it; a tick box turns a piece of
+  together get a bar on their shared face that grows one as it shrinks the other, and an engine or hull gun
+  gets the same bar across the end of its bell or barrel, which sets how far that reaches without touching the
+  block; a tick box turns a piece of
   structure or a tank into a **triangle** — the wedge filling its own box to start with, each of whose three
   corners is then dragged on its own while the other two stay put, and which squares off again into the box
   its corners fitted. A drag lands on what is already drawn as readily as on the grid: a move, a resize or a
@@ -573,9 +574,9 @@ inside any one file is not contiguous.
   Gunship carry their bow guns as hull guns. Every gun sets its barrel in calibres; past fifty it is
   braced and drawn so, and a hundred is the cap (§4). A match is over when at most one side can
   still shoot or push, since most fleets can no longer destroy each other.
-  **An engine has a nozzle rather than being one.** An engine's length divides between a machinery block
-  and a bell, and the bell's share is the knob: a long one is lighter, keeps more of the thrust pointed
-  the right way and throws a longer flame, while the block is what has hit points and what the engine is
+  **An engine has a nozzle rather than being one.** An engine is a machinery block with a bell out of the
+  back, its length and width sizing the block and its bell measured in widths of its exit: a long bell keeps
+  more of the thrust pointed the right way and throws a longer flame, and is more engine to fit in, while the block is what has hit points and what the engine is
   welded on by — on any face but the exhaust. The exit may be divided between several nozzles, on the same
   field a gun counts barrels with, and the count buys expansion rather than power. It cost the shipped
   fleet thrust: their engines are wide and short, which is a bad bell, and a corvette lost 3% of its
@@ -1177,8 +1178,9 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
 - **A hull weapon is a block with a barrel out of the front of it**, which is an engine the other way
   round and answers the same questions the same way. The block is the breech and the loading gear, or
   the bank and the plant; it is what has walls, an interior and hit points, and it is the only part
-  the ship may be welded to. A gun's barrel is as many calibres as its layout says and the block is
-  whatever length that leaves, so the split is the archetype's one real knob: barrel length is what a
+  the ship may be welded to. **A layout sizes the block, and the barrel reaches out of it** as many
+  calibres as the layout says, so no length can leave a gun no room to load from — but the barrel is
+  still there, in the way of other modules and of shells like any other matter. Barrel length is what a
   charge accelerates a shell down, so a long barrel is a fast shell — and a long barrel sweeps further
   for the same angle, so it is also a weapon with almost no traverse left.
 - **Every gun says how long its barrel is, in calibres, and a long barrel has to be braced.** A turret's
@@ -1206,11 +1208,9 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   proportions mean the same rate whatever size the mount is drawn at, and a barrel that leaves the
   expected depth loads at exactly a turret's rate for that bore. Part of a cycle is fixed however
   much machinery stands behind it — the breech, the ram, the run-out — so the knob approaches a
-  ceiling of about four times that rate rather than running away with it. **That is what makes the
-  barrel/block split a real trade rather than a slider with one good end**: every metre given to the
-  barrel is muzzle velocity bought with rounds per minute, and traverse falls out on the velocity
-  side. Sustained throughput therefore peaks in the middle, at a little over half the module given to
-  the barrel. **A thick block holds more gear**: its depth counts in decks as well as length, so a
+  ceiling of about four times that rate rather than running away with it. So a metre of barrel buys
+  muzzle velocity and costs traverse, and a metre of block buys rounds per minute, and both cost
+  length on the hull and mass. **A thick block holds more gear**: its depth counts in decks as well as length, so a
   mount standing through two decks loads as one twice as long would — as a thick beam's bank holds more.
 - **A hull beam's block is its bank and its cooling, so depth buys duty rather than only burst.** The
   burn grows with the bank behind it and the recovery does not — the plant and heat sinks that refill
@@ -1240,7 +1240,7 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
 - **An engine is a machinery block with a bell on the back of it**, not a nozzle with a plume coming out.
   The block holds the chamber and the pumps, is what the engine is welded to the ship by, and is the part
   that has walls, an interior and hit points; the bell is sheet metal in the exhaust that can be bolted to
-  nothing. How the engine's length divides between them is the designer's, and it is the one knob on a
+  nothing. How long the bell is, in widths of its exit, is the designer's, and it is the one knob on an
   engine that is not simply "make it bigger". **Its length buys expansion**: gas leaving a bell of
   half-angle `a` keeps `(1 + cos a) / 2` of its momentum along the axis and throws the rest sideways, so a
   bare throat loses half of everything and length recovers it — steeply at first and then barely, which is
@@ -1250,13 +1250,11 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   share one chamber and divide one exit area, so the count is never free power — what a cluster buys is
   that a narrow bell collimates in a fraction of the length a wide one needs, which is how a stubby engine
   gets a good nozzle, and a flame combed into fingers rather than thrown as one sheet.
-- **How hard the nozzle is fed is the machinery's business, so the split has a best answer in the
-  middle.** Thrust is the exit face's area times what the chamber and pumps behind it can drive through
-  the throat, and that machinery is the block the bell was cut out of: a shallow bell leaves a deep
-  chamber and more flow, a deep bell leaves an engine with nothing behind it. A throat chokes rather than
-  passing whatever is pushed at it, which is what stops a long thin engine being unbounded thrust. So the
-  two halves of the knob pull opposite ways — flow gained is aim lost — and the best engine is neither
-  all bell nor all chamber. An engine whose nozzle has fallen off throws its gas sideways however hard it
+- **How hard the nozzle is fed is the machinery's business.** Thrust is the exit face's area times what
+  the chamber and pumps behind it can drive through the throat, and that machinery is the block: a deep
+  one feeds more flow. A throat chokes rather than passing whatever is pushed at it, which is what stops a
+  long thin engine being unbounded thrust. The bell is the other half — aim, and reach of flame — and
+  both are paid for in length and mass rather than in each other. An engine whose nozzle has fallen off throws its gas sideways however hard it
   is pumping.
 - **An engine is bolted on like any other module, by its block.** It carries the machinery it needs, so it
   may be held on by any face of its block, to anything, the same way a gun mount or a plate of hull is — the
