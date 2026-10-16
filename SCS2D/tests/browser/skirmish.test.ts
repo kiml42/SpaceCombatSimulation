@@ -3,6 +3,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
@@ -228,6 +229,22 @@ describe('the skirmish in a browser', () => {
     await page.waitForSelector('#outcome.lost', { timeout: 60_000 });
     expect(await page.getAttribute('#editFleet', 'class')).toContain('primary');
     expect(await page.isVisible('#fight')).toBe(false);
+
+    // Exported, the skirmish carries what it would take to ask why the round went as it did.
+    const saving = page.waitForEvent('download');
+    await page.click('#exportSkirmish');
+    const download = await saving;
+    expect(download.suggestedFilename()).toBe('skirmish-round-1.skirmish.json');
+    const file = JSON.parse(await readFile(await download.path(), 'utf8')) as {
+      setup: Record<string, unknown>;
+      skirmish: { round: number; enemy: unknown; player: unknown } | null;
+      history: { rows: unknown[] };
+    };
+    expect(file.skirmish?.round).toBe(1);
+    expect(file.skirmish?.enemy).toBeDefined();
+    expect(file.skirmish?.player).toBeDefined();
+    expect(file.history.rows.length).toBeGreaterThan(0);
+    expect(Object.keys(file.setup).length).toBeGreaterThan(0);
     expect(problems).toEqual([]);
     // Away, so the next skirmish handed over in an address loads afresh rather than as a change of hash.
     await page.goto('about:blank');

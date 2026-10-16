@@ -264,6 +264,24 @@ export function startSkirmish(): void {
     },
   );
   el<HTMLButtonElement>('fit').addEventListener('click', () => view.fit());
+  el<HTMLButtonElement>('exportSkirmish').addEventListener('click', () => {
+    const file = {
+      about:
+        'A skirmish exported from the Skirmish page: the settings on the setup screen, the skirmish under way ' +
+        '(round, budget, both fleets and the settings it started with) if there is one, and the history of every ' +
+        'match played, its fleets kept by id.',
+      setup: readSettings(),
+      skirmish: skirmish === null ? null : serialiseSkirmish(skirmish),
+      history,
+    };
+    const name = skirmish === null ? 'skirmish' : `skirmish-round-${skirmish.round}`;
+    const url = URL.createObjectURL(new Blob([`${JSON.stringify(file, null, 2)}\n`], { type: 'application/json' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${name}.skirmish.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  });
   const speed = el<HTMLSelectElement>('speed');
   view.keep('skirmish', speed);
   speed.addEventListener('change', () => view.setSpeed(Number(speed.value)));
