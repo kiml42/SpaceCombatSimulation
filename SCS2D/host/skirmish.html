@@ -139,6 +139,8 @@
       .field { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.25rem; }
       .field label { flex: 1; color: #7f93aa; }
       .field input { flex: 0 0 5.5rem; width: 5.5rem; min-width: 0; font: inherit; background: #0f1520; color: #e6edf5; border: 1px solid #2b3a50; border-radius: 3px; padding: 0.1rem 0.3rem; }
+      .field.spread input { flex: 0 0 3.6rem; width: 3.6rem; }
+      .field.spread span { color: #7f93aa; }
       .note { color: #5d6f85; margin: 0.3rem 0 0; }
       @media (max-width: 800px) {
         #setupScreen { border-right: none; border-bottom: 1px solid #1c2533; }
@@ -194,7 +196,7 @@
           <details open data-key="round">
             <summary><h2>The round</h2></summary>
             <div data-fields="round"></div>
-            <p class="note">How a round is set out, and when a battle is over. A draw is a loss for you.</p>
+            <p class="note">How a round is set out, and when a battle is over. A draw is a loss for you. A ± draws each round's figure afresh, the same for every try of it, so neither side can count on one opening.</p>
           </details>
           <details open data-key="answer">
             <summary><h2>The enemy's answer</h2></summary>

@@ -61,6 +61,10 @@ export interface SkirmishSettings {
   readonly closingSpeed: number;
   /** Each fleet's starting speed across the line between them, to its left, m/s. */
   readonly crossingSpeed: number;
+  /** How far either side of those three each round's are drawn, evenly; zero holds them. */
+  readonly gapSpread: number;
+  readonly closingSpread: number;
+  readonly crossingSpread: number;
   /** Mutants a generation of the enemy's search, beside the best so far. */
   readonly mutants: number;
   /** Matches each enemy fights a generation, the seed the round was won on among them. */
@@ -94,6 +98,9 @@ export const DEFAULT_SKIRMISH_SETTINGS: SkirmishSettings = {
   gap: 1500,
   closingSpeed: 0,
   crossingSpeed: 0,
+  gapSpread: 0,
+  closingSpread: 0,
+  crossingSpread: 0,
   mutants: 5,
   seeds: 3,
   duration: 180,
@@ -175,19 +182,24 @@ export function roundSetup(skirmish: Skirmish): BattleSetup {
   return roundBattle(skirmish.player, skirmish.enemy, skirmish.seed, settingsOf(skirmish));
 }
 
-/** Two fleets as a round sets them out, on this seed. */
-export function roundBattle(
-  player: Fleet,
-  enemy: Fleet,
-  seed: number,
-  settings: Pick<SkirmishSettings, 'gap' | 'closingSpeed' | 'crossingSpeed'> = DEFAULT_SKIRMISH_SETTINGS,
-): BattleSetup {
+type Opening = Pick<
+  SkirmishSettings,
+  'gap' | 'closingSpeed' | 'crossingSpeed' | 'gapSpread' | 'closingSpread' | 'crossingSpread'
+>;
+
+/** Two fleets as a round sets them out, on this seed, which also draws the gap and speeds from their spreads. */
+export function roundBattle(player: Fleet, enemy: Fleet, seed: number, settings: Opening = DEFAULT_SKIRMISH_SETTINGS): BattleSetup {
+  // Always all three, in this order, so that widening one spread does not move the others.
+  const draw = new Rng(seed ^ 0x5b4ead);
+  const gap = settings.gap + settings.gapSpread * draw.nextRange(-1, 1);
+  const closingSpeed = settings.closingSpeed + settings.closingSpread * draw.nextRange(-1, 1);
+  const crossingSpeed = settings.crossingSpeed + settings.crossingSpread * draw.nextRange(-1, 1);
   const reach = fleetReach(fleetHulls(player)) + fleetReach(fleetHulls(enemy));
   return {
     fleets: [player, enemy],
-    range: math.max(MIN_RANGE, reach + settings.gap),
-    closingSpeed: settings.closingSpeed,
-    crossingSpeed: settings.crossingSpeed,
+    range: math.max(MIN_RANGE, reach + math.max(0, gap)),
+    closingSpeed,
+    crossingSpeed,
     rotation: 0,
     seed,
   };
