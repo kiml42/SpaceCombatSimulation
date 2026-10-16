@@ -1223,8 +1223,9 @@ export class Ships {
 
   /**
    * Whether mount `t` is sound and can shoot once more: a gun with a round on
-   * its piece of hull to load, a beam with the rest of a shot's charge stored
-   * there, or made there within a cycle.
+   * its piece of hull to load, or a beam with the rest of a shot's charge
+   * stored there or made there within a cycle. A beam whose generators will
+   * get there in the end counts, however long they take.
    */
   private canFire(i: number, b: number, t: number): boolean {
     if (this.isTurretDisabled(i, t)) return false;
@@ -1238,7 +1239,9 @@ export class Ships {
     const rate = this.damage.remaining(b, mount.module, DamageEffect.FireRate);
     const need = (gun.beamPower * gun.beamOnTime * rate * timer) / gun.cycleTime;
     const made = this.power.pieceGeneration(b, mount.module, this.damage) * gun.cycleTime;
-    return this.power.pieceHeld(b, mount.module) + made >= need;
+    const held = this.power.pieceHeld(b, mount.module);
+    if (!(made > 0)) return held >= need;
+    return held + this.power.pieceRoom(b, mount.module) + made >= need;
   }
 
   /** Whether engine `t` is sound and has fuel on its piece of hull to burn. */
