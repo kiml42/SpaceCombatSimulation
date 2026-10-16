@@ -44,6 +44,11 @@ export interface Skirmish {
   won?: number;
   /** What it is played under; the defaults where it says nothing. */
   settings?: SkirmishSettings;
+  /**
+   * The enemy's budget as a multiple of the player's, 1 where not said. It
+   * steps up by `budgetStep` each time the enemy's search stalls, and never falls.
+   */
+  multiplier?: number;
 }
 
 /**
@@ -71,12 +76,9 @@ export interface SkirmishSettings {
   readonly seeds: number;
   /** How long a match of the search may last before the side ahead is taken to win, s. */
   readonly duration: number;
-  /**
-   * How much bigger an answer may be than the enemy it answers: its metal, fuel
-   * and build time, and its ships, though always one more ship than it had.
-   */
-  readonly growth: number;
-  /** Generations without an answer before the enemy may grow by `growth` again. */
+  /** What is added to the enemy's budget multiplier each time its search stalls, from the step below. */
+  readonly budgetStep: number;
+  /** Generations without an answer before the multiplier steps up again. */
   readonly stretchAfter: number;
   /**
    * The most ships either side may field, unless the enemy already has more:
@@ -104,8 +106,8 @@ export const DEFAULT_SKIRMISH_SETTINGS: SkirmishSettings = {
   mutants: 5,
   seeds: 3,
   duration: 180,
-  growth: 1.5,
-  stretchAfter: 20,
+  budgetStep: 0.1,
+  stretchAfter: 4,
   maxShips: 20,
   radius: 500,
   breeding: {},
@@ -205,6 +207,37 @@ export function roundBattle(player: Fleet, enemy: Fleet, seed: number, settings:
   };
 }
 
+/** The enemy's budget as a multiple of the player's, as kept. */
+export function multiplierOf(skirmish: Skirmish): number {
+  return skirmish.multiplier ?? 1;
+}
+
+/**
+ * A multiplier no less than the enemy needs to afford itself: an enemy that
+ * already costs 1.325 times the player's budget is a 1.325× enemy. A currency
+ * the player has none of does not count.
+ */
+export function startingMultiplier(multiplier: number, budget: Budget, enemyBill: Bill): number {
+  let m = multiplier;
+  for (const key of ['metal', 'fuel', 'build'] as const) {
+    if (budget[key] > 0) m = math.max(m, enemyBill[key] / budget[key]);
+  }
+  return m;
+}
+
+/** The next step up from `m`: onto the step's grid first, so 1.325 goes to 1.4, and up a step from there. */
+export function nextMultiplier(m: number, step: number): number {
+  if (!(step > 0)) return m;
+  // Rounded, so 1.1 + 0.1 is not 1.2000000000000002, and a value on the grid is taken as on it.
+  const steps = math.floor(math.round((m / step) * 1e6) / 1e6) + 1;
+  return math.round(steps * step * 1e9) / 1e9;
+}
+
+/** The size of enemy the player is facing: its budget as a multiple of theirs. */
+export function enemyMultiplier(skirmish: Skirmish): number {
+  return startingMultiplier(multiplierOf(skirmish), skirmish.budget, billOfFleet(skirmish.enemy));
+}
+
 /** The round won: the enemy is to answer it, on the seed it was won on. */
 export function won(skirmish: Skirmish): Skirmish {
   return { ...skirmish, won: skirmish.seed };
@@ -231,6 +264,7 @@ export function serialiseSkirmish(skirmish: Skirmish): Record<string, unknown> {
     tries: skirmish.tries,
     seed: skirmish.seed,
     ...(skirmish.won === undefined ? {} : { won: skirmish.won }),
+    ...(skirmish.multiplier === undefined ? {} : { multiplier: skirmish.multiplier }),
     budget: { ...skirmish.budget },
     enemy: serialiseFleet(skirmish.enemy),
     player: serialiseFleet(skirmish.player),
@@ -301,8 +335,13 @@ export function parseSkirmish(value: unknown): Skirmish {
     }
   };
   const wonSeed = file['won'] === undefined ? undefined : whole('won', 0);
+  const multiplier = file['multiplier'];
+  if (multiplier !== undefined && (typeof multiplier !== 'number' || !(multiplier > 0) || !Number.isFinite(multiplier))) {
+    fail('multiplier must be a number above zero');
+  }
   return {
     ...(wonSeed === undefined ? {} : { won: wonSeed }),
+    ...(multiplier === undefined ? {} : { multiplier: multiplier as number }),
     round: whole('round', 1),
     tries: whole('tries', 0),
     seed: whole('seed', 0),

@@ -911,14 +911,18 @@ inside any one file is not contiguous.
   editor from the fleet editor's *Edit* and goes back to the fleet, skirmish and all. A round won, the
   enemy evolves an answer in a worker (`evolution/answer.ts`), watched as each generation's best fights the
   round, and the answer, confirmed on the seed the player won on, is the next round's enemy. A timeline
-  lists every match, newest first, each side drawn as the evolution page draws a combatant and stamped
-  won or beaten, runs one side lost folded away, and any match can be watched again or either fleet saved
+  lists every match, newest first, each side drawn as the evolution page draws a combatant, the player's
+  side stamped victory, defeat or draw, runs one side lost folded away, and any match can be watched again or either fleet saved
   or exported. **Its numbers are the player's to set**, on a setup screen like the evolution page's before
   a skirmish starts: the round's quiet time, time cap, gap and starting speeds, the answer's mutants,
   matches, match length and growth, and the ship, fleet and doctrine mutation odds the enemy is bred with,
   remembered for the next skirmish, kept with this one so it is played out under those it started with,
   and put back with *Reset to defaults*, which the evolution page has too. The mutation fields are written
-  once (`evolution/mutationFields.ts`) and both pages draw them. Step 5 is built; what is left of it is
+  once (`evolution/mutationFields.ts`) and both pages draw them. **The enemy's budget is the player's times
+  a multiplier**, never less than what the enemy already costs: it starts at 1×, or what the enemy already
+  costs against the player's budget if more, steps up by 0.1 each time the search goes 4 generations
+  without an answer — onto a whole step first, so 1.325× goes to 1.4× — never falls, and is shown to the
+  player as the size of enemy they are holding off. Step 5 is built; what is left of it is
   tuning its numbers (ROADMAP.md §12).
   See ROADMAP.md §8.
   §8 step 3 is done, withdrawal left open (ROADMAP.md §12), and step 7, two layers, is built. What a chooser is already facing (`facingWeight`) and whether anything is in the way

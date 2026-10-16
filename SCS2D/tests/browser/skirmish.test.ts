@@ -133,6 +133,8 @@ describe('the skirmish in a browser', () => {
     expect(await page.textContent('#fight')).toBe('Fighting…');
     expect(await page.isDisabled('#fight')).toBe(true);
     expect(await page.textContent('#play')).toBe('Pause');
+    // Paused once it has moved, or there is nothing yet to resume.
+    await page.waitForFunction(() => /t [1-9]/.test(document.getElementById('readout')?.textContent ?? ''));
     await page.click('#play');
     expect(await page.textContent('#fight')).toBe('Resume');
     expect(await page.isDisabled('#fight')).toBe(false);
@@ -239,7 +241,8 @@ describe('the skirmish in a browser', () => {
     // The answer heads the timeline, the enemy's losses before it folded away.
     const first = page.locator('#timeline > .match').first();
     expect(await first.locator('.matchHead span').textContent()).toBe("Round 1 · the enemy's answer");
-    expect(await first.locator('.stamp').allTextContents()).toEqual(['BEATEN', 'WON']);
+    // Only the player's side is stamped.
+    expect(await first.locator('.stamp').allTextContents()).toEqual(['DEFEAT']);
     expect(await page.locator('#timeline canvas').count()).toBeGreaterThan(0);
     await first.locator('.matchHead button').click();
     expect(await page.isVisible('#replaying')).toBe(true);
@@ -247,6 +250,7 @@ describe('the skirmish in a browser', () => {
     expect(await page.isVisible('#replaying')).toBe(false);
     await page.click('#nextRound');
     expect(await page.textContent('#roundTitle')).toBe('Round 2');
+    expect(await page.textContent('#multiplier')).toMatch(/^Playing against a [\d.]+× enemy/);
     expect(await page.isVisible('#answering')).toBe(false);
     expect(await page.isVisible('#editFleet')).toBe(true);
     expect(await page.getAttribute('#fight', 'class')).toContain('primary');

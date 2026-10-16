@@ -12,6 +12,9 @@ import {
   handedSkirmish,
   lost,
   newSkirmish,
+  multiplierOf,
+  nextMultiplier,
+  startingMultiplier,
   roundBattle,
   overLimit,
   nextRound,
@@ -273,6 +276,35 @@ describe('the skirmish', () => {
     // No spread holds them.
     const held = [1, 2, 3].map((seed) => roundBattle(gunship, gunship, seed, { ...settings, gapSpread: 0 }).range);
     expect(new Set(held).size).toBe(1);
+  });
+
+  it("steps the enemy's budget multiplier onto a neat number first, then by whole steps", () => {
+    expect(nextMultiplier(1, 0.1)).toBe(1.1);
+    expect(nextMultiplier(1.325, 0.1)).toBe(1.4);
+    expect(nextMultiplier(1.4, 0.1)).toBe(1.5);
+    expect(nextMultiplier(1.1, 0.1)).toBe(1.2);
+    expect(nextMultiplier(2.9, 0.1)).toBe(3);
+    expect(nextMultiplier(1.3, 0.25)).toBe(1.5);
+    // No step, no growth.
+    expect(nextMultiplier(1.325, 0)).toBe(1.325);
+  });
+
+  it("counts an enemy that costs more than the player's budget as that much bigger", () => {
+    const budget = { metal: 100, fuel: 100, build: 100 };
+    expect(startingMultiplier(1, budget, { metal: 132.5, fuel: 50, build: 90 })).toBeCloseTo(1.325);
+    expect(startingMultiplier(2, budget, { metal: 132.5, fuel: 50, build: 90 })).toBe(2);
+    // A currency the player has none of is left out.
+    expect(startingMultiplier(1, { ...budget, fuel: 0 }, { metal: 50, fuel: 10, build: 50 })).toBe(1);
+  });
+
+  it("keeps the enemy's budget multiplier, 1 where not said, and refuses a nonsensical one", () => {
+    const skirmish = newSkirmish(gunship, gunship, 5);
+    expect(multiplierOf(skirmish)).toBe(1);
+    const grown = { ...skirmish, multiplier: 2.25 };
+    expect(multiplierOf(handedSkirmish(skirmishFragment(grown))!)).toBe(2.25);
+    // It carries on into the next round.
+    expect(multiplierOf(nextRound(grown, gunship))).toBe(2.25);
+    expect(() => parseSkirmish({ ...serialiseSkirmish(skirmish), multiplier: 0 })).toThrow(/multiplier/);
   });
 
   it('refuses a skirmish it cannot read', () => {

@@ -1,7 +1,7 @@
 import { fleetBill, fleetHulls, fleetReach, math, Rng, type Budget, type Fleet } from '../sim/index.js';
 import { customBattle, tally, winner, type CustomBattle } from '../scenarios/customBattle.js';
 import { Activity, type Decision } from '../scenarios/decision.js';
-import { DEFAULT_SKIRMISH_SETTINGS, roundBattle, type SkirmishSettings } from '../scenarios/skirmish.js';
+import { DEFAULT_SKIRMISH_SETTINGS, nextMultiplier, roundBattle, startingMultiplier, type SkirmishSettings } from '../scenarios/skirmish.js';
 import { breeding, type Breeding } from './mutationFields.js';
 import { mutateFleet } from './fleetMutate.js';
 
@@ -18,9 +18,9 @@ import { mutateFleet } from './fleetMutate.js';
  * An enemy that wins all its matches is checked by fighting the round itself
  * to the skirmish's decision, and is the answer only if it wins that too.
  *
- * An answer may cost half as much again as the enemy it answers, so a round
- * cannot double it; a search that goes long without one may grow by as much
- * again, and again.
+ * An answer may cost the player's budget times a multiplier, and no less than
+ * the enemy it answers already does; a search that goes long without one
+ * steps the multiplier up, again and again, and the skirmish keeps it.
  *
  * Worked a step at a time, so a page or a worker can do it in slices and look
  * in between. Everything is decided by the seed it is given.
@@ -53,8 +53,8 @@ export interface Progress {
   readonly seeds: number;
   /** The answer, once there is one. */
   readonly found: Fleet | null;
-  /** How many times the enemy has been let grow by `growth`: once to begin with, and once more each stretch. */
-  readonly stretch: number;
+  /** The enemy's budget as a multiple of the player's: where it began, up a `budgetStep` each time the search stalled. */
+  readonly multiplier: number;
 }
 
 export class EnemySearch {
@@ -63,10 +63,10 @@ export class EnemySearch {
   /** How the enemy is bred, from the settings' mutation odds. */
   private readonly bred: Breeding;
   private readonly radius: number;
-  /** What the enemy cost and how many ships it had, which the answer may grow from. */
+  /** What the enemy cost and how many ships it had: an answer may always have as much. */
   private readonly startBill: Budget;
   private readonly startShips: number;
-  private stretch = 1;
+  private multiplier: number;
   private generationCount = 0;
   private best: Standing;
   private found: Fleet | null = null;
@@ -87,7 +87,11 @@ export class EnemySearch {
     private readonly wonSeed: number,
     seed: number,
     settings: Partial<AnswerSettings> = {},
+    /** The player's budget, which the enemy's is a multiple of; what the enemy cost where not given. */
+    private readonly playerBudget?: Budget,
+    multiplier = 1,
   ) {
+    this.multiplier = multiplier;
     this.rng = new Rng(seed);
     this.settings = { ...DEFAULT_ANSWER, ...settings };
     const odds = this.settings.breeding;
@@ -96,6 +100,7 @@ export class EnemySearch {
     // The skirmish's limit, unless the enemy already reaches past it.
     this.radius = math.max(this.settings.radius, fleetReach(hulls));
     this.startBill = fleetBill(hulls);
+    this.multiplier = startingMultiplier(this.multiplier, playerBudget ?? this.startBill, this.startBill);
     this.startShips = hulls.length;
     this.best = { enemy, wins: 0, onRound: false, margin: -Infinity };
     this.begin();
@@ -107,21 +112,25 @@ export class EnemySearch {
       best: this.best,
       seeds: this.settings.seeds,
       found: this.found,
-      stretch: this.stretch,
+      multiplier: this.multiplier,
     };
   }
 
-  /** What an answer may cost and field, at the growth allowed so far. */
+  /**
+   * What an answer may cost and field: the player's budget times the
+   * multiplier, and the skirmish's ship limit, each never less than the enemy
+   * it answers already has.
+   */
   get limits(): { budget: Budget; maxShips: number } {
-    let factor = 1;
-    for (let i = 0; i < this.stretch; i++) factor *= this.settings.growth;
-    const { metal, fuel, build } = this.startBill;
+    const base = this.playerBudget ?? this.startBill;
+    const m = this.multiplier;
     return {
-      budget: { metal: metal * factor, fuel: fuel * factor, build: build * factor },
-      maxShips: math.max(
-        this.startShips,
-        math.min(this.settings.maxShips, math.max(math.ceil(this.startShips * factor), this.startShips + this.stretch)),
-      ),
+      budget: {
+        metal: math.max(this.startBill.metal, base.metal * m),
+        fuel: math.max(this.startBill.fuel, base.fuel * m),
+        build: math.max(this.startBill.build, base.build * m),
+      },
+      maxShips: math.max(this.startShips, this.settings.maxShips),
     };
   }
 
@@ -193,8 +202,10 @@ export class EnemySearch {
     }
     this.best = best;
     for (const standing of this.standings) if (standing.wins === this.seeds.length) this.unchecked.push(standing.enemy);
-    // Long without an answer: let it grow by as much again.
-    if (this.generationCount % this.settings.stretchAfter === 0) this.stretch++;
+    // Long without an answer: a bigger budget, for good.
+    if (this.generationCount % this.settings.stretchAfter === 0) {
+      this.multiplier = nextMultiplier(this.multiplier, this.settings.budgetStep);
+    }
     this.begin();
   }
 

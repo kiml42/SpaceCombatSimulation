@@ -300,6 +300,9 @@ Deliberately unresolved; decide when they block something.
 - **Upgrade cards in the skirmish.** A pick of one after a few losses in a row — more metal, fuel or build
   time, another ship, a wider deployment — as a way to ease a player who is stuck. Wanted, not settled:
   how many losses, which cards, and how many to choose from.
+- **Where the skirmish enemy's budget multiplier starts.** At 1× the player's budget, or more if the enemy
+  already costs more; a setting to start it
+  higher, or lower, so a player can give themselves or the enemy a head start, is wanted later.
 - **Whether the skirmish enemy should prefer the cheapest fleet that wins.** It stops at the first winner,
   so it grows only as it must, but it never shrinks, and drifts larger round by round. A preference for
   efficiency would let it get leaner as well as stronger.
@@ -307,8 +310,8 @@ Deliberately unresolved; decide when they block something.
   or not, or a bare core. A ship that docks smaller ones, as a carrier docks fighters, does not yet
   bring their designs with it.
 - **The skirmish's numbers.** How long without firing puts a side out of a battle (30 s), the time cap on a
-  stalemate (600 s), and the enemy's search: five mutants a generation, three seeds each, 180 s a match, growth
-  of 1.5× a round and as much again every 20 generations without an answer, and
+  stalemate (600 s), and the enemy's search: five mutants a generation, three seeds each, 180 s a match, a
+  budget a tenth of the player's larger every 4 generations without an answer, and
   ahead at the time limit meaning more of its starting mass still under control than the player has, all
   first guesses, and the defaults of what the player can now set before a skirmish starts. Nothing bounds how long a round's search may take: it shows its progress and goes on, and
   an answer to a fleet much stronger than the enemy can take many generations of growing into it.

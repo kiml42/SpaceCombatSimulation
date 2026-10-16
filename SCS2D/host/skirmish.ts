@@ -12,6 +12,7 @@ import {
   handedSkirmish,
   lost,
   newSkirmish,
+  enemyMultiplier,
   overLimit,
   nextRound,
   parseSkirmish,
@@ -84,10 +85,10 @@ const SKIRMISH_FIELDS: readonly SettingField[] = [
     title: 'Matches each enemy fights a generation, on different seeds, the seed you won on among them, so it cannot win by a fluke of one.' },
   { name: 'duration', group: 'answer', label: 'match s', step: 30, min: 1, value: D.duration,
     title: 'How long a match of the search lasts before the side ahead is taken to win.' },
-  { name: 'growth', group: 'answer', label: 'growth ×', step: 0.1, min: 1, value: D.growth,
-    title: 'How much bigger an answer may be than the enemy it answers, in metal, fuel, build time and ships — always one more ship than it had, up to the most ships allowed.' },
-  { name: 'stretchAfter', group: 'answer', label: 'grow again after', step: 1, min: 1, value: D.stretchAfter,
-    title: 'Generations without an answer before the enemy may grow by as much again.' },
+  { name: 'budgetStep', group: 'answer', label: 'budget step', step: 0.05, value: D.budgetStep,
+    title: "What is added to the enemy's budget, as a multiple of yours, each time its search stalls. It starts at 1×, or what the enemy already costs if more, and never falls." },
+  { name: 'stretchAfter', group: 'answer', label: 'step up after', step: 1, min: 1, value: D.stretchAfter,
+    title: "Generations without an answer before the enemy's budget steps up again." },
 ];
 /** Those that are counts, and so whole. */
 const WHOLE = new Set(['mutants', 'seeds', 'stretchAfter', 'maxShips']);
@@ -112,6 +113,11 @@ export function startSkirmish(): void {
   const sidesBox = el<HTMLElement>('sides');
   const readout = el<HTMLElement>('readout');
   const editFleet = el<HTMLAnchorElement>('editFleet');
+  const times = (m: number): string => `${Number(m.toFixed(3))}×`;
+  /** How big an enemy the player is holding off: its budget against theirs. */
+  const showMultiplier = (m: number): void => {
+    el<HTMLElement>('multiplier').textContent = `Playing against a ${times(m)} enemy: its budget is ${times(m)} yours.`;
+  };
   /** Mark the one thing to press next in the round's buttons, or none. */
   const cta = (next: HTMLElement | null): void => {
     for (const button of [fightButton, editFleet, retryButton]) button.classList.toggle('primary', button === next);
@@ -266,8 +272,8 @@ export function startSkirmish(): void {
 
   // ---- the setup ------------------------------------------------------------
 
-  // The budget boxes in the units the evolution page uses: tonnes and minutes.
-  const BUDGET_UNITS: Record<keyof Budget, number> = { metal: 1000, fuel: 1000, build: 60 };
+  // The budget boxes in tonnes and hours, as a big fleet's bill reads.
+  const BUDGET_UNITS: Record<keyof Budget, number> = { metal: 1000, fuel: 1000, build: 3600 };
   const budgetInput = (key: keyof Budget): HTMLInputElement => el<HTMLInputElement>(`${key}Budget`);
   /** What the enemy cost, exactly, behind boxes showing it rounded. */
   let enemyCost: Budget | null = null;
@@ -389,6 +395,7 @@ export function startSkirmish(): void {
     el<HTMLElement>('roundTitle').textContent =
       `Round ${skirmish.round}` + (skirmish.tries > 0 ? ` · try ${skirmish.tries + 1}` : '');
     el<HTMLElement>('enemyName').textContent = `Against ${skirmish.enemy.name}.`;
+    showMultiplier(enemyMultiplier(skirmish));
     el<HTMLElement>('playerName').textContent = skirmish.player.name;
     const fault = fleetFault(skirmish.player);
     el<HTMLElement>('budget').innerHTML = fault !== null ? '' : budgetRows(billOfFleet(skirmish.player), skirmish.budget);
@@ -481,6 +488,8 @@ export function startSkirmish(): void {
         won: skirmish.won,
         seed: (skirmish.won ^ skirmish.round) >>> 0,
         settings: settingsOf(skirmish),
+        budget: skirmish.budget,
+        multiplier: enemyMultiplier(skirmish),
       },
       progressed,
     );
@@ -489,8 +498,9 @@ export function startSkirmish(): void {
   const progressed = (now: AnswerProgress): void => {
     if (skirmish === null) return;
     latest = now;
-    // Kept as it goes, so a reload carries on from the best so far.
-    skirmish = { ...skirmish, enemy: now.found ?? now.best };
+    // Kept as it goes, so a reload carries on from the best so far, at the budget reached.
+    skirmish = { ...skirmish, enemy: now.found ?? now.best, multiplier: now.multiplier };
+    showMultiplier(now.multiplier);
     save();
     if (now.found !== null) {
       stopSearch?.();
@@ -508,13 +518,9 @@ export function startSkirmish(): void {
       enemy: now.best,
       generation: now.generation,
     });
-    // How big it may grow, as against what it was: 1.5×, then 2.25× once it has stretched.
-    const allowed = settingsOf(skirmish).growth ** now.stretch;
     answerProgress.textContent =
       `Generation ${now.generation}: the best enemy so far won ${now.wins} of its ${now.seeds} matches. ` +
-      (now.stretch > 1
-        ? `Finding no answer, it has stretched to ${allowed.toFixed(2)}× its size.`
-        : `It may grow to ${allowed}× its size.`);
+      `It may spend ${times(now.multiplier)} your budget.`;
     // The first best, or the last replay over: show the newest. Not over a match watched again.
     if (mode === 'replay') return;
     if (mode !== 'watching' || decision !== null) watch(now);

@@ -71,6 +71,3 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - A selected ship's framing takes in and rings what it is escorting; it could do the same for what it is keeping clear of, possibly with a symbol to show what sort of attention the selected ship is paying to each
 
 ## Skirmish
-- Enemy budget is own budget * multiplier (floored to make the current enemy legal). Multiplier increases when the enemy looses too often. Tell the user what ratio they're playing at, this could be the thing to brag about ("I'm still winning against a 3X enemy!")
-- Only show the stamp for the player's side in the history log, so it's just Defeat = bad, victory = good, and you don't need to check where the stamps are.
-- Build min limit should be build hours to match what it displays for the selected enemy

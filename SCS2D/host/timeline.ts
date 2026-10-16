@@ -6,9 +6,9 @@ import { drawCentred, formationSnapshot, kindSnapshot, pictureOf, type Picture }
 
 /**
  * The skirmish's timeline: every match, newest first, each side drawn as the
- * evolution page draws a combatant and stamped with how it did. A run of
- * matches the same side lost folds away to one line, but for the run still
- * being fought.
+ * evolution page draws a combatant, the player's side stamped with how it
+ * did. A run of matches the same side lost folds away to one line, but for
+ * the run still being fought.
  */
 
 /** One kind of ship, and a whole fleet, as drawn in a row, CSS pixels. */
@@ -56,14 +56,17 @@ export function timeline(box: HTMLElement, actions: TimelineActions): Timeline {
     return made;
   };
 
-  /** One side of a match: its stamp, its name and version, its pictures and what can be done with it. */
+  /** One side of a match: the player's stamp, its name and version, its pictures and what can be done with it. */
   const side = (row: MatchRow, which: 0 | 1, scales: { kind: number; formation: number }): HTMLElement => {
     const out = document.createElement('div');
     out.className = 'combatant';
-    const won = row.winner === which;
+    // Only the player's side is stamped, so a stamp reads as how the player did.
     const stamp = document.createElement('span');
-    stamp.className = `stamp ${won ? 'won' : row.winner < 0 ? 'drew' : 'beaten'}`;
-    stamp.textContent = won ? 'WON' : row.winner < 0 ? 'DRAW' : 'BEATEN';
+    if (which === 0) {
+      const won = row.winner === 0;
+      stamp.className = `stamp ${won ? 'won' : row.winner < 0 ? 'drew' : 'beaten'}`;
+      stamp.textContent = won ? 'VICTORY' : row.winner < 0 ? 'DRAW' : 'DEFEAT';
+    }
     const name = document.createElement('div');
     name.className = 'who';
     const swatch = document.createElement('span');

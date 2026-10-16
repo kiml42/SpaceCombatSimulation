@@ -65,17 +65,21 @@ describe("the skirmish enemy's answer", () => {
 });
 
 describe('how far an answer may grow', () => {
-  it('to half as much again as the enemy, and one ship more', () => {
-    const running = new EnemySearch(gunship, corvette, WON, 5);
-    const bill = fleetBill(fleetHulls(corvette));
-    expect(running.limits.budget.metal).toBeCloseTo(bill.metal * 1.5);
-    expect(running.limits.budget.build).toBeCloseTo(bill.build * 1.5);
-    expect(running.limits.maxShips).toBe(2);
+  it("to the player's budget times the multiplier, and the skirmish's ship limit", () => {
+    const budget = { metal: 1_000_000, fuel: 200_000, build: 50_000 };
+    const running = new EnemySearch(gunship, corvette, WON, 5, { maxShips: 7 }, budget, 2);
+    expect(running.limits.budget).toEqual({ metal: 2_000_000, fuel: 400_000, build: 100_000 });
+    expect(running.limits.maxShips).toBe(7);
+    expect(running.progress.multiplier).toBe(2);
   });
 
-  it('to no more ships than the skirmish allows, unless it had more', () => {
-    expect(new EnemySearch(gunship, corvette, WON, 5, { maxShips: 1 }).limits.maxShips).toBe(1);
-    expect(new EnemySearch(gunship, corvette, WON, 5, { maxShips: 0 }).limits.maxShips).toBe(1);
+  it('never to less than the enemy it answers already has', () => {
+    const bill = fleetBill(fleetHulls(corvette));
+    const running = new EnemySearch(gunship, corvette, WON, 5, { maxShips: 0 }, { metal: 1, fuel: 1, build: 1 });
+    for (const key of ['metal', 'fuel', 'build'] as const) expect(running.limits.budget[key]).toBeGreaterThanOrEqual(bill[key] * (1 - 1e-12));
+    expect(running.limits.maxShips).toBe(1);
+    // Without the player's budget, the enemy's own cost at 1×.
+    expect(new EnemySearch(gunship, corvette, WON, 5).limits.budget).toEqual(bill);
   });
 
   it('keeps every enemy it breeds within that', () => {
@@ -86,15 +90,19 @@ describe('how far an answer may grow', () => {
     }
   });
 
-  it('stretches by as much again after long enough without an answer', () => {
-    const running = new EnemySearch(gunship, corvette, WON, 5, { stretchAfter: 1 });
-    expect(running.progress.stretch).toBe(1);
+  it('steps its budget up after long enough without an answer, from where it is told', () => {
+    const budget = { metal: 1_000_000, fuel: 200_000, build: 50_000 };
+    const running = new EnemySearch(gunship, corvette, WON, 5, { stretchAfter: 1, budgetStep: 0.1 }, budget, 2);
     while (running.progress.generation < 2 && !running.advance(1000));
     if (running.progress.found !== null) return;
-    expect(running.progress.stretch).toBe(3);
+    expect(running.progress.multiplier).toBe(2.2);
+    expect(running.limits.budget.metal).toBeCloseTo(budget.metal * 2.2);
+  });
+
+  it('starts no lower than the enemy needs to afford itself', () => {
     const bill = fleetBill(fleetHulls(corvette));
-    expect(running.limits.budget.metal).toBeCloseTo(bill.metal * 1.5 * 1.5 * 1.5);
-    expect(running.limits.maxShips).toBe(4);
+    const budget = { metal: bill.metal / 1.325, fuel: bill.fuel, build: bill.build };
+    expect(new EnemySearch(gunship, corvette, WON, 5, {}, budget).progress.multiplier).toBeCloseTo(1.325);
   });
 });
 

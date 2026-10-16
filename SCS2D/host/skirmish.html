@@ -118,7 +118,7 @@
       .match.enemyWon { border-left: 3px solid #e8796b; }
       .matchHead { display: flex; justify-content: space-between; align-items: center; color: #8fa2b8; margin-bottom: 0.2rem; }
       .matchHead button, .rowButtons button { padding: 0.05rem 0.5rem; font-size: 12px; }
-      .combatant { display: grid; grid-template-columns: 4.6rem 1fr; gap: 0.1rem 0.4rem; align-items: center; margin: 0.3rem 0; }
+      .combatant { display: grid; grid-template-columns: 5.6rem 1fr; gap: 0.1rem 0.4rem; align-items: center; margin: 0.3rem 0; }
       .combatant .pictures, .combatant .rowButtons, .combatant > .muted { grid-column: 2; }
       .who { display: flex; align-items: center; gap: 0.3rem; flex-wrap: wrap; }
       .stamp {
@@ -202,7 +202,7 @@
             <h2>Your budget</h2>
             <div class="field"><label for="metalBudget">metal t</label><input id="metalBudget" type="number" min="0" step="any" title="Hull, fittings and the metal in its holds" /></div>
             <div class="field"><label for="fuelBudget">fuel t</label><input id="fuelBudget" type="number" min="0" step="any" title="The fuel in its tanks as it sets out" /></div>
-            <div class="field"><label for="buildBudget">build min</label><input id="buildBudget" type="number" min="0" step="any" title="How long one robot would take to build every module" /></div>
+            <div class="field"><label for="buildBudget">build h</label><input id="buildBudget" type="number" min="0" step="any" title="How long one robot would take to build every module" /></div>
             <div class="buttons"><button id="matchEnemy" title="Set the budget to what the enemy cost">Match the enemy</button></div>
             <div data-fields="limits"></div>
             <h2>Your fleet</h2>
@@ -247,6 +247,7 @@
         <section id="round" hidden>
           <h2 id="roundTitle">Round</h2>
           <p id="enemyName"></p>
+          <p id="multiplier" class="muted"></p>
           <h2>Your fleet</h2>
           <p id="playerName"></p>
           <table id="budget"></table>
