@@ -11,6 +11,8 @@ export interface SettingField {
   readonly max?: number;
   /** Its default. */
   readonly value: number;
+  /** The setting this is the ± of, drawn as a second box on that one's row. */
+  readonly spreadOf?: string;
 }
 
 /**
@@ -35,10 +37,25 @@ export function fieldRow(field: SettingField, id = field.name): HTMLDivElement {
   return row;
 }
 
+/** The ± box of a spread, added to the row of the setting it spreads. */
+function addSpread(row: HTMLDivElement, field: SettingField, id: string): void {
+  const plusMinus = document.createElement('span');
+  plusMinus.textContent = '±';
+  const input = fieldRow(field, id).querySelector('input')!;
+  input.title = field.title;
+  row.classList.add('spread');
+  row.append(plusMinus, input);
+}
+
 /** Put the rows for each field of a group in place of every `[data-fields=group]` under `root`. */
 export function fillFields(root: ParentNode, fields: readonly SettingField[], prefix = ''): void {
   for (const slot of root.querySelectorAll<HTMLElement>('[data-fields]')) {
     const group = slot.dataset['fields'];
-    slot.replaceWith(...fields.filter((f) => f.group === group).map((f) => fieldRow(f, prefix + f.name)));
+    const rows = new Map<string, HTMLDivElement>();
+    for (const field of fields.filter((f) => f.group === group)) {
+      if (field.spreadOf === undefined) rows.set(field.name, fieldRow(field, prefix + field.name));
+      else addSpread(rows.get(field.spreadOf)!, field, prefix + field.name);
+    }
+    slot.replaceWith(...rows.values());
   }
 }

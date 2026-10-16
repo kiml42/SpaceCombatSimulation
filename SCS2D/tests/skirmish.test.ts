@@ -12,6 +12,7 @@ import {
   handedSkirmish,
   lost,
   newSkirmish,
+  roundBattle,
   overLimit,
   nextRound,
   parseSkirmish,
@@ -257,6 +258,21 @@ describe('the skirmish', () => {
     const file = serialiseSkirmish(skirmish);
     expect(() => parseSkirmish({ ...file, settings: { quietTime: -1 } })).toThrow(/quietTime/);
     expect(() => parseSkirmish({ ...file, settings: { breeding: { kindTank: 'lots' } } })).toThrow(/breeding\.kindTank/);
+  });
+
+  it('draws each round\'s gap and speeds from their spreads, the same every time on the same seed', () => {
+    const settings = { ...DEFAULT_SKIRMISH_SETTINGS, gap: 3000, gapSpread: 2000, closingSpread: 20, crossingSpread: 20 };
+    const rounds = [1, 2, 3, 4, 5, 6, 7, 8].map((seed) => roundBattle(gunship, gunship, seed, settings));
+    const ranges = rounds.map((round) => round.range);
+    const reach = 2 * fleetReach(fleetHulls(gunship));
+    for (const range of ranges) expect(range - reach).toBeGreaterThanOrEqual(1000 - 1e-9);
+    for (const range of ranges) expect(range - reach).toBeLessThanOrEqual(5000 + 1e-9);
+    expect(Math.max(...ranges) - Math.min(...ranges)).toBeGreaterThan(1000);
+    expect(new Set(rounds.map((round) => round.closingSpeed)).size).toBe(8);
+    expect(roundBattle(gunship, gunship, 3, settings)).toEqual(rounds[2]);
+    // No spread holds them.
+    const held = [1, 2, 3].map((seed) => roundBattle(gunship, gunship, seed, { ...settings, gapSpread: 0 }).range);
+    expect(new Set(held).size).toBe(1);
   });
 
   it('refuses a skirmish it cannot read', () => {
