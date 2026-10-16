@@ -1,7 +1,7 @@
 import { fleetBill, fleetHulls, fleetReach, math, Rng, type Budget, type Fleet } from '../sim/index.js';
 import { customBattle, tally, winner, type CustomBattle } from '../scenarios/customBattle.js';
 import { Activity, type Decision } from '../scenarios/decision.js';
-import { DEFAULT_SKIRMISH_SETTINGS, roundBattle, type SkirmishSettings } from '../scenarios/skirmish.js';
+import { DEFAULT_SKIRMISH_SETTINGS, nextMultiplier, roundBattle, startingMultiplier, type SkirmishSettings } from '../scenarios/skirmish.js';
 import { breeding, type Breeding } from './mutationFields.js';
 import { mutateFleet } from './fleetMutate.js';
 
@@ -20,7 +20,7 @@ import { mutateFleet } from './fleetMutate.js';
  *
  * An answer may cost the player's budget times a multiplier, and no less than
  * the enemy it answers already does; a search that goes long without one
- * multiplies that by the growth, again and again, and the skirmish keeps it.
+ * steps the multiplier up, again and again, and the skirmish keeps it.
  *
  * Worked a step at a time, so a page or a worker can do it in slices and look
  * in between. Everything is decided by the seed it is given.
@@ -53,7 +53,7 @@ export interface Progress {
   readonly seeds: number;
   /** The answer, once there is one. */
   readonly found: Fleet | null;
-  /** The enemy's budget as a multiple of the player's: where it began, times `growth` each time the search stalled. */
+  /** The enemy's budget as a multiple of the player's: where it began, up a `budgetStep` each time the search stalled. */
   readonly multiplier: number;
 }
 
@@ -100,6 +100,7 @@ export class EnemySearch {
     // The skirmish's limit, unless the enemy already reaches past it.
     this.radius = math.max(this.settings.radius, fleetReach(hulls));
     this.startBill = fleetBill(hulls);
+    this.multiplier = startingMultiplier(this.multiplier, playerBudget ?? this.startBill, this.startBill);
     this.startShips = hulls.length;
     this.best = { enemy, wins: 0, onRound: false, margin: -Infinity };
     this.begin();
@@ -202,7 +203,9 @@ export class EnemySearch {
     this.best = best;
     for (const standing of this.standings) if (standing.wins === this.seeds.length) this.unchecked.push(standing.enemy);
     // Long without an answer: a bigger budget, for good.
-    if (this.generationCount % this.settings.stretchAfter === 0) this.multiplier *= this.settings.growth;
+    if (this.generationCount % this.settings.stretchAfter === 0) {
+      this.multiplier = nextMultiplier(this.multiplier, this.settings.budgetStep);
+    }
     this.begin();
   }
 

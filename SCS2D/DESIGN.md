@@ -919,9 +919,10 @@ inside any one file is not contiguous.
   remembered for the next skirmish, kept with this one so it is played out under those it started with,
   and put back with *Reset to defaults*, which the evolution page has too. The mutation fields are written
   once (`evolution/mutationFields.ts`) and both pages draw them. **The enemy's budget is the player's times
-  a multiplier**, never less than what the enemy already costs: it starts at 1×, grows by the growth each
-  time the search goes long without an answer, never falls, and is shown to the player as the size of
-  enemy they are holding off. Step 5 is built; what is left of it is
+  a multiplier**, never less than what the enemy already costs: it starts at 1×, or what the enemy already
+  costs against the player's budget if more, steps up by 0.1 each time the search goes 4 generations
+  without an answer — onto a whole step first, so 1.325× goes to 1.4× — never falls, and is shown to the
+  player as the size of enemy they are holding off. Step 5 is built; what is left of it is
   tuning its numbers (ROADMAP.md §12).
   See ROADMAP.md §8.
   §8 step 3 is done, withdrawal left open (ROADMAP.md §12), and step 7, two layers, is built. What a chooser is already facing (`facingWeight`) and whether anything is in the way

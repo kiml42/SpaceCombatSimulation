@@ -12,7 +12,7 @@ import {
   handedSkirmish,
   lost,
   newSkirmish,
-  multiplierOf,
+  enemyMultiplier,
   overLimit,
   nextRound,
   parseSkirmish,
@@ -85,10 +85,10 @@ const SKIRMISH_FIELDS: readonly SettingField[] = [
     title: 'Matches each enemy fights a generation, on different seeds, the seed you won on among them, so it cannot win by a fluke of one.' },
   { name: 'duration', group: 'answer', label: 'match s', step: 30, min: 1, value: D.duration,
     title: 'How long a match of the search lasts before the side ahead is taken to win.' },
-  { name: 'growth', group: 'answer', label: 'growth ×', step: 0.1, min: 1, value: D.growth,
-    title: "How much the enemy's budget grows, as a multiple of yours, each time its search stalls. It starts at 1× and never falls." },
-  { name: 'stretchAfter', group: 'answer', label: 'grow again after', step: 1, min: 1, value: D.stretchAfter,
-    title: "Generations without an answer before the enemy's budget grows by the growth again." },
+  { name: 'budgetStep', group: 'answer', label: 'budget step', step: 0.05, value: D.budgetStep,
+    title: "What is added to the enemy's budget, as a multiple of yours, each time its search stalls. It starts at 1×, or what the enemy already costs if more, and never falls." },
+  { name: 'stretchAfter', group: 'answer', label: 'step up after', step: 1, min: 1, value: D.stretchAfter,
+    title: "Generations without an answer before the enemy's budget steps up again." },
 ];
 /** Those that are counts, and so whole. */
 const WHOLE = new Set(['mutants', 'seeds', 'stretchAfter', 'maxShips']);
@@ -113,7 +113,7 @@ export function startSkirmish(): void {
   const sidesBox = el<HTMLElement>('sides');
   const readout = el<HTMLElement>('readout');
   const editFleet = el<HTMLAnchorElement>('editFleet');
-  const times = (m: number): string => `${Number(m.toFixed(2))}×`;
+  const times = (m: number): string => `${Number(m.toFixed(3))}×`;
   /** How big an enemy the player is holding off: its budget against theirs. */
   const showMultiplier = (m: number): void => {
     el<HTMLElement>('multiplier').textContent = `Playing against a ${times(m)} enemy: its budget is ${times(m)} yours.`;
@@ -396,7 +396,7 @@ export function startSkirmish(): void {
     el<HTMLElement>('roundTitle').textContent =
       `Round ${skirmish.round}` + (skirmish.tries > 0 ? ` · try ${skirmish.tries + 1}` : '');
     el<HTMLElement>('enemyName').textContent = `Against ${skirmish.enemy.name}.`;
-    showMultiplier(multiplierOf(skirmish));
+    showMultiplier(enemyMultiplier(skirmish));
     el<HTMLElement>('playerName').textContent = skirmish.player.name;
     const fault = fleetFault(skirmish.player);
     el<HTMLElement>('budget').innerHTML = fault !== null ? '' : budgetRows(billOfFleet(skirmish.player), skirmish.budget);
@@ -490,7 +490,7 @@ export function startSkirmish(): void {
         seed: (skirmish.won ^ skirmish.round) >>> 0,
         settings: settingsOf(skirmish),
         budget: skirmish.budget,
-        multiplier: multiplierOf(skirmish),
+        multiplier: enemyMultiplier(skirmish),
       },
       progressed,
     );
