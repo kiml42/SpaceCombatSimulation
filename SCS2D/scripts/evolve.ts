@@ -184,7 +184,7 @@ function parse(argv: readonly string[]): Options {
           kinds[kind as ModuleKind] = number;
         }
         break;
-      // How often doctrine numbers change, as `targeting=0,approach=2`.
+      // How far doctrine numbers drift, as `targeting=0,approach=2`.
       case '--doctrine':
         for (const pair of value().split(',')) {
           const [part, weight] = pair.split('=');
@@ -196,7 +196,7 @@ function parse(argv: readonly string[]): Options {
           doctrine[part] = number;
         }
         break;
-      // How often each sort of build number changes, as `move=0,tuning=2`.
+      // How far each sort of build number drifts, or how often it flips, as `move=0,tuning=2`.
       case '--build':
         for (const pair of value().split(',')) {
           const [part, weight] = pair.split('=');

@@ -2,6 +2,7 @@ import {
   blueprintProblem,
   compileDraft,
   contactWidth,
+  expandBlueprint,
   isInstance,
   MAX_REPEAT,
   modulesOverlap,
@@ -77,27 +78,43 @@ import { affords, billOf, isLimited, NO_BUDGET, type Budget } from '../sim/bill.
  * a ship is a tight packing of boxes, so a careless edit nearly always
  * detaches something or drives it through its neighbour. Two rules do most of
  * the work of keeping the rate usable — sizes change by moving *one face*, so
- * the opposite face stays against whatever it was attached to, and everything
- * moves in whole grid steps, so faces that were flush land flush again.
+ * the opposite face stays against whatever it was attached to, and an edit
+ * that breaks the ship is undone on its own rather than taking the rest of the
+ * child with it.
  */
 
 /** How far a child may be from its parent, and how hard to try. */
 export interface MutationLimits {
-  /** Most numbers changed in one generation. At least one is always attempted. */
-  readonly numbers: number;
-  /** Largest fractional change to a number that is not on the grid. */
+  /**
+   * How far a number drifts, as a share of its own scale: the spread of the
+   * bell every number is drawn from, every generation (`drift`).
+   */
   readonly magnitude: number;
+  /**
+   * Draws within this many spreads of zero change nothing, so a number is as
+   * often left alone as nudged, and a nudge is never too small to matter.
+   */
+  readonly deadZone: number;
+  /** Chance a draw comes from a bell `TAIL_WIDTH` times as wide: the rare large mutation. */
+  readonly tail: number;
+  /** Chance each placement has its geometry changed: a face, a seam, a slide or a turn. */
+  readonly geometry: number;
+  /** Chance each switch — a kind, a flag, a count of barrels — flips. */
+  readonly switches: number;
+  /**
+   * How far geometry moves, and how big a new module arrives, as a share of
+   * the ship's median module size (`shipScale`).
+   */
+  readonly size: number;
+  /** How far a module turns when it turns by less than a right angle, radians. */
+  readonly turn: number;
   /** Chance of also making one structural edit: a module added, removed or copied. */
   readonly structural: number;
   /** Chance of the child's name drifting a letter from its parent's (`driftName`). */
   readonly rename: number;
-  /** What positions and sizes move in, metres. */
-  readonly grid: number;
-  /** What angles turn in, radians. */
-  readonly turn: number;
   /** What a child may not cost more than, in metal, fuel or build time. */
   readonly budget: Budget;
-  /** Candidates drawn before giving up and returning the parent. */
+  /** Draws of a structural edit, or of a whole child, before giving up. */
   readonly attempts: number;
   /**
    * How likely each kind is to be what the operator reaches for, as relative
@@ -110,15 +127,15 @@ export interface MutationLimits {
    */
   readonly kinds: KindWeights;
   /**
-   * How often a doctrine number is the one changed, against a number in the
-   * build at one. Zero freezes that part of the doctrine.
+   * How far each part of the doctrine drifts, as a multiple of `magnitude`.
+   * Zero freezes it.
    */
   readonly doctrine: DoctrineWeights;
   /**
-   * How often each sort of number in the build is the one changed, against
-   * each other and the doctrine. Zero freezes it: a run with `move`, `resize`,
-   * `refit`, `fittings` and `fighter` at zero, and no structural edits, keeps
-   * how a ship is built and tunes everything else.
+   * How far each sort of number in the build drifts, and how often each sort
+   * of switch flips, as multiples of the defaults. Zero freezes it: a run with
+   * `move`, `resize`, `refit`, `fittings` and `fighter` at zero, and no
+   * structural edits, keeps how a ship is built and tunes everything else.
    */
   readonly build: BuildWeights;
 }
@@ -191,8 +208,8 @@ const AVOIDANCE_FIELDS: readonly string[] = ['separation', 'separationRadii', 'a
  * What the operator reaches for, unless a run says otherwise.
  *
  * **Weighted by what is worth having at the size a guess arrives in.** A new
- * module is half a metre square, and the kinds are nothing like equal at that
- * size: thrust follows the nozzle's area, so six small engines are six small
+ * module is small beside the ship it joins — half its median module — and the
+ * kinds are nothing like equal at that size: thrust follows the nozzle's area, so six small engines are six small
  * engines' worth of push and, being spread about the hull, are torque as well
  * — where six small guns are six peashooters that a single grown mount beats
  * outright, and six small plates of structure are ballast. A gun and a hull
@@ -214,8 +231,8 @@ export const DEFAULT_KINDS: KindWeights = {
   beamTurret: 1,
   // A weapon let into the hull is a weapon: it wants size for exactly the
   // reason a turret does, so it is reached for as often and no more. What it
-  // has over a turret — a far bigger bore for the width — is worth nothing at
-  // half a metre, and what it costs — almost nowhere to point — is a cost at
+  // has over a turret — a far bigger bore for the width — is worth little at
+  // the size it arrives, and what it costs — almost nowhere to point — is a cost at
   // any size, so a lineage that wants one has to grow it.
   hullGun: 2,
   hullBeam: 1,
@@ -238,20 +255,24 @@ export const DEFAULT_KINDS: KindWeights = {
 };
 
 /**
- * Bounded edit distance, as DESIGN.md §7 asks for: a handful of numbers, none
- * of them moved far, and at most one module added or removed. A descendant is
- * then recognisably one, which is what makes a lineage worth looking at.
+ * Every number drifts a little every generation, most of the geometry is left
+ * alone, and now and then something moves a long way.
  *
- * The grid is the editor's own, so a mutant is a layout a person could have
- * drawn and could sit down and carry on editing.
+ * Nudging everything a little rather than a few things a lot is what keeps
+ * pace with a ship that has more numbers on it: a fixed handful of edits is
+ * lost on a hull with a hundred knobs. The lineage stays recognisable because
+ * the nudges are small, and the tail is what gets it out of a local optimum.
  */
 export const DEFAULT_LIMITS: MutationLimits = {
-  numbers: 3,
-  magnitude: 0.25,
+  magnitude: 0.05,
+  deadZone: 0.5,
+  tail: 0.05,
+  geometry: 0.25,
+  switches: 0.02,
+  size: 0.5,
+  turn: PI / 12,
   structural: 0.3,
   rename: 0.1,
-  grid: 0.5,
-  turn: PI / 12,
   budget: NO_BUDGET,
   attempts: 24,
   kinds: DEFAULT_KINDS,
@@ -259,23 +280,33 @@ export const DEFAULT_LIMITS: MutationLimits = {
   build: DEFAULT_BUILD_WEIGHTS,
 };
 
+/** How much wider the tail's bell is than the ordinary one. */
+const TAIL_WIDTH = 5;
+
 /** A child, and what was done to its parent to get it. */
 export interface Mutant {
   readonly blueprint: Blueprint;
   /**
-   * One sentence per change, in the order they were made. Empty means every
-   * candidate was refused and the parent is being returned unchanged, which
-   * is the one outcome a caller has to notice.
+   * One sentence per change, in the order they were made. Empty means nothing
+   * could be changed and the parent is being returned, which is the one
+   * outcome a caller has to notice.
    */
   readonly edits: readonly string[];
-  /** Candidates drawn, the accepted one included. */
+  /** Draws of a whole child, and of a structural edit, the accepted one included. */
   readonly attempts: number;
 }
 
 /**
  * Breed one blueprint from another.
  *
- * The generator is drawn from on every attempt, accepted or not, so a run is
+ * **Each edit is kept only if the ship is still a ship**, as if someone were
+ * moving things about in the editor and pressing undo whenever it went red,
+ * then carrying on with the next part. A candidate is not thrown away whole
+ * for one bad edit, which is what lets a big ship take many at once: refused
+ * together, a dozen edits that each pass three times in four would deliver
+ * one child in thirty.
+ *
+ * The generator is drawn from on every edit, kept or not, so a run is
  * reproducible from its seed but the draws a child costs are not fixed.
  */
 export function mutate(parent: Blueprint, rng: Rng, limits?: Partial<MutationLimits>): Mutant {
@@ -288,32 +319,37 @@ export function mutate(parent: Blueprint, rng: Rng, limits?: Partial<MutationLim
     doctrine: doctrineWeights(limits?.doctrine),
     build: { ...DEFAULT_LIMITS.build, ...limits?.build },
   };
-
-  // Whether this is a structural generation is decided once, outside the
-  // retry, and every attempt then tries to deliver that kind of child.
-  //
-  // Deciding it per attempt looks equivalent and is not. A structural edit is
-  // refused far more often than a change to a number, and a candidate is
-  // accepted or refused whole — so bundling the two has the rare edit dragged
-  // down by its own difficulty *and* the common one carried through on the
-  // attempts the rare one lost. Measured on the shipped fleet, that put a
-  // module added or removed into one generation in twenty-five, against the
-  // three in ten asked for here.
   // Drawn from a generator of its own, seeded from where the run's stands, so
   // a name drifting never moves a draw the design depends on.
   const naming = new Rng(rng.clone().nextUint32() ^ 0x4e414d45);
+  const scale = shipScale(parent, bounds.size);
+
+  // A structural edit is drawn on a fresh copy until one is a ship, before
+  // anything else is changed, so the rare hard edit is not crowded out by the
+  // easy ones or blamed for their failures.
+  let draft: Draft | null = null;
+  const edits: string[] = [];
   let spent = 0;
   if (rng.chance(bounds.structural)) {
-    const child = breed(parent, rng, bounds, true);
-    if (child !== null) return renamed(child, naming, bounds.rename);
-    // Nowhere to put anything and nothing that can be spared: a dense little
-    // hull has generations where this is simply true. Breeding a child that
-    // differs in its numbers beats handing back a copy of its parent.
-    spent = bounds.attempts;
+    while (draft === null && spent < bounds.attempts) {
+      spent++;
+      const candidate = cloneBlueprint(parent);
+      const edit = restructure(candidate, rng, bounds, scale);
+      if (edit !== null && buildable(candidate.blueprint, bounds.budget)) {
+        draft = candidate;
+        edits.push(edit);
+      }
+    }
   }
+  draft ??= cloneBlueprint(parent);
 
-  const child = breed(parent, rng, bounds, false);
-  return child === null ? { blueprint: parent, edits: [], attempts: spent + bounds.attempts } : renamed(child, naming, bounds.rename);
+  for (let attempt = 1; attempt <= bounds.attempts; attempt++) {
+    vary(draft, rng, bounds, scale, edits);
+    if (edits.length > 0) {
+      return renamed({ blueprint: draft.blueprint, edits, attempts: spent + attempt }, naming, bounds.rename);
+    }
+  }
+  return { blueprint: parent, edits: [], attempts: spent + bounds.attempts };
 }
 
 /** The longest a name drifts to. */
@@ -354,107 +390,184 @@ export function driftName(name: string, rng: Rng): string {
   return name.slice(0, at) + letter(old) + name.slice(at + 1);
 }
 
-/** Draw candidates of one kind until one is a ship, or the budget runs out. */
-function breed(
-  parent: Blueprint,
-  rng: Rng,
-  bounds: MutationLimits,
-  structural: boolean,
-): Mutant | null {
-  for (let attempt = 1; attempt <= bounds.attempts; attempt++) {
-    const draft = cloneBlueprint(parent);
-    const edits: string[] = [];
-
-    if (structural) {
-      const edit = restructure(draft, rng, bounds);
-      if (edit !== null) edits.push(edit);
-    }
-
-    // Drawn without replacement, so a candidate cannot turn the same knob
-    // twice — which is not merely untidy: two draws on one number can cancel
-    // each other out exactly, and the child is then its parent with a
-    // changelog saying otherwise.
-    const available = knobs(draft);
-    const wanted = 1 + rng.nextInt(max(1, bounds.numbers));
-    for (let i = 0; i < wanted && available.length > 0; i++) {
-      const at = drawKnob(available, bounds, rng);
-      if (at < 0) break;
-      const edit = renumber(available.splice(at, 1)[0]!, draft, rng, bounds);
-      if (edit !== null) edits.push(edit);
-    }
-
-    if (edits.length === 0) continue;
-    if (buildable(draft.blueprint, bounds.budget)) {
-      return { blueprint: draft.blueprint, edits, attempts: attempt };
-    }
+/**
+ * Drift a draft: some of its geometry, now and then a switch, and every
+ * number. Each edit that breaks the ship is undone where it was made.
+ */
+function vary(draft: Draft, rng: Rng, bounds: MutationLimits, scale: Scale, edits: string[]): void {
+  for (const part of parts(draft)) {
+    if (!rng.chance(bounds.geometry)) continue;
+    const edit = attempt(draft, bounds, () => reshape(part, draft, rng, bounds, scale));
+    if (edit !== null) edits.push(edit);
   }
-  return null;
+
+  // A refit changes which numbers a module has, so the numbers come after.
+  for (const knob of switches(draft)) {
+    if (!rng.chance(min(1, bounds.switches * switchWeight(knob, bounds)))) continue;
+    const edit = attempt(draft, bounds, () => flip(knob, draft, rng, bounds));
+    if (edit !== null) edits.push(edit);
+  }
+
+  settle(draft, rng, bounds, numbers(draft), edits);
 }
 
 /**
- * Which knob to turn, by index, or -1 if every one left is weighted zero.
- * Evenly unless something is weighted, so a run at the defaults draws exactly
- * as it always has.
+ * Drift numbers all at once, since one nearly never breaks a ship and a layout
+ * check apiece would be most of what breeding costs; if they do, each half
+ * again, so one bad draw costs a few checks rather than one per number.
  */
-function drawKnob(available: readonly Knob[], bounds: MutationLimits, rng: Rng): number {
-  if (allOnes(bounds.doctrine) && allOnes(bounds.build)) return rng.nextInt(available.length);
+function settle(draft: Draft, rng: Rng, bounds: MutationLimits, knobs: readonly NumberKnob[], edits: string[]): void {
+  if (knobs.length === 0) return;
+  const before = capture(draft);
+  const drifted: string[] = [];
+  for (const knob of knobs) {
+    const edit = renumber(knob, draft, rng, bounds);
+    if (edit !== null) drifted.push(edit);
+  }
+  if (drifted.length === 0) return;
+  if (buildable(draft.blueprint, bounds.budget)) {
+    edits.push(...drifted);
+    return;
+  }
+  restore(draft, before);
+  if (knobs.length === 1) return;
+  const half = knobs.length >> 1;
+  settle(draft, rng, bounds, knobs.slice(0, half), edits);
+  settle(draft, rng, bounds, knobs.slice(half), edits);
+}
+
+/**
+ * Make one edit, and take it back if the ship is no longer one — or if the
+ * edit came to nothing, since an operator may have changed something before
+ * finding it could not finish.
+ */
+function attempt(draft: Draft, bounds: MutationLimits, apply: () => string | null): string | null {
+  const before = capture(draft);
+  const edit = apply();
+  if (edit !== null && buildable(draft.blueprint, bounds.budget)) return edit;
+  restore(draft, before);
+  return null;
+}
+
+/** Everything an edit that leaves the list of placements alone can change. */
+interface Snapshot {
+  readonly placements: Placement[][];
+  readonly targeting: Record<string, number>;
+  readonly approach: Record<string, number>;
+  readonly fighter: boolean;
+}
+
+/**
+ * Shallow copies are enough: nothing in here writes into a nested object
+ * (a step, a block of targeting, a list of corners), only replaces it.
+ */
+function capture(draft: Draft): Snapshot {
+  return {
+    placements: draft.lists.map((list) => list.placements.map((placement) => ({ ...placement }))),
+    targeting: { ...draft.doctrine.targeting },
+    approach: { ...draft.doctrine.approach },
+    fighter: draft.blueprint.fighter === true,
+  };
+}
+
+/** In place, because sites drawn for later edits hold the placements by reference. */
+function restore(draft: Draft, snapshot: Snapshot): void {
+  draft.lists.forEach((list, i) => {
+    list.placements.forEach((placement, j) => {
+      const was = snapshot.placements[i]![j]!;
+      for (const key of Object.keys(placement)) delete (placement as unknown as Record<string, unknown>)[key];
+      Object.assign(placement, was);
+    });
+  });
+  Object.assign(draft.doctrine.targeting, snapshot.targeting);
+  Object.assign(draft.doctrine.approach, snapshot.approach);
+  if (snapshot.fighter) draft.blueprint.fighter = true;
+  else delete draft.blueprint.fighter;
+}
+
+// -- Drawing ---------------------------------------------------------------
+
+/**
+ * A change drawn from a bell `width` wide: zero inside the dead zone, and now
+ * and then from the wider bell of the tail.
+ *
+ * The bell is the sum of four uniform draws, which is close enough to a
+ * normal for this and needs no logarithm, so it is the same on every engine.
+ */
+function drift(rng: Rng, bounds: MutationLimits, width: number): number {
+  if (!(width > 0)) return 0;
+  let sum = 0;
+  for (let i = 0; i < 4; i++) sum += rng.nextFloat();
+  // Four uniforms have a variance of a third; this makes it one.
+  const z = (sum - 2) * SQRT_3;
+  const wide = rng.chance(bounds.tail) ? TAIL_WIDTH : 1;
+  if (abs(z) < bounds.deadZone) return 0;
+  return z * width * wide;
+}
+
+const SQRT_3 = sqrt(3);
+
+/**
+ * The yardstick a ship's geometry moves by: half its median module, give or
+ * take `size`.
+ *
+ * A fixed step cannot be right at both ends of the fleet — half a metre is a
+ * third of a Dinky and nothing at all to a Gunship's 33-metre gun — which is
+ * the editor's own grid finding (DECISIONS.md, 2026-09-24) arrived at again.
+ * A median rather than a mean, so one great spine does not decide it.
+ */
+export interface Scale {
+  /** The spread of a face moved, a slide or a seam, metres. */
+  readonly spread: number;
+  /**
+   * What geometry is rounded to: a tenth of the spread, on the editor's ladder
+   * of 1, 2 and 5. Fine enough to read as continuous, coarse enough that two
+   * faces can land flush again by chance and a file stays legible.
+   */
+  readonly quantum: number;
+  /** The side of a new module. */
+  readonly arrival: number;
+}
+
+export function shipScale(blueprint: Blueprint, size: number = DEFAULT_LIMITS.size): Scale {
+  // By area: the module a point picked anywhere on the hull most likely lies
+  // in. A plain median would be pulled down by every small module added, and
+  // since new modules arrive at half of it, a lineage would shrink its own
+  // yardstick generation by generation.
+  const modules = expandBlueprint(blueprint)
+    .map((spec) => ({ side: sqrt(spec.length * spec.width), area: spec.length * spec.width }))
+    .sort((a, b) => a.side - b.side);
   let total = 0;
-  for (const knob of available) total += max(0, knobWeight(knob, bounds));
-  if (!(total > 0)) return -1;
-  let draw = rng.nextFloat() * total;
-  for (let i = 0; i < available.length; i++) {
-    draw -= max(0, knobWeight(available[i]!, bounds));
-    if (draw < 0) return i;
+  for (const module of modules) total += module.area;
+  let median = 1;
+  let seen = 0;
+  for (const module of modules) {
+    seen += module.area;
+    median = module.side;
+    if (seen >= total / 2) break;
   }
-  return available.length - 1;
+  const spread = max(1e-3, size * median);
+  const quantum = ladder(spread / 10);
+  return { spread, quantum, arrival: max(quantum, roundTo(spread, quantum)) };
 }
 
-function allOnes(weights: Readonly<Record<string, number>>): boolean {
-  return Object.values(weights).every((weight) => weight === 1);
+/** The largest of 1, 2 or 5 times a power of ten not above `value`. */
+function ladder(value: number): number {
+  let step = 1;
+  while (step > value && step > 1e-6) step /= 10;
+  while (step * 10 <= value) step *= 10;
+  if (step * 5 <= value) step *= 5;
+  else if (step * 2 <= value) step *= 2;
+  return tidy(step, 9);
 }
 
-function knobWeight(knob: Knob, { doctrine, build }: MutationLimits): number {
-  switch (knob.at) {
-    case 'doctrine':
-      if (ESCORT_FIELDS.includes(knob.field)) return doctrine.escort;
-      if (AVOIDANCE_FIELDS.includes(knob.field)) return doctrine.avoidance;
-      return doctrine[knob.half];
-    case 'gunnery':
-      return doctrine.gunnery;
-    case 'slide':
-    case 'angle':
-    case 'place':
-    case 'mirror':
-      return build.move;
-    case 'face':
-    case 'seam':
-      return build.resize;
-    case 'shape':
-    case 'vertex':
-      return build.shape;
-    case 'kind':
-      return build.refit;
-    case 'barrels':
-    case 'nozzle':
-    case 'barrelCalibres':
-    case 'thick':
-      return build.fittings;
-    case 'reinforcement':
-    case 'sealing':
-    case 'drainPriority':
-    case 'fill':
-    case 'traverse':
-    case 'fuse':
-    case 'fragments':
-    case 'burstSpeed':
-    case 'weapon':
-    case 'main':
-      return build.tuning;
-    case 'fighter':
-      return build.fighter;
-    case 'scale':
-      return build.resize;
-  }
+function roundTo(value: number, quantum: number): number {
+  return tidy(round(value / quantum) * quantum, 6);
+}
+
+/** A geometric change: a drift of the ship's spread, rounded to its quantum. */
+function stretch(rng: Rng, bounds: MutationLimits, scale: Scale, weight: number): number {
+  return roundTo(drift(rng, bounds, scale.spread * weight), scale.quantum);
 }
 
 /** Whether a candidate is a ship, and one the budget can afford. */
@@ -605,43 +718,41 @@ function spreadDoctrine(doctrine: Doctrine): MutableDoctrine {
   };
 }
 
-// -- Numbers ---------------------------------------------------------------
+// -- Knobs -----------------------------------------------------------------
 
-/**
- * One knob a number lives behind.
- *
- * A knob per *field* rather than per module means a ship with many modules
- * has its geometry mutated more often than its doctrine, which is right: it
- * has more geometry to get wrong.
- */
-type Knob =
+/** A number that drifts every generation, by a share of its own scale. */
+type NumberKnob =
   | { readonly at: 'doctrine'; readonly half: 'targeting' | 'approach'; readonly field: string }
+  | { readonly at: 'gunnery'; readonly site: ModuleSite; readonly field: string }
+  | {
+      readonly at:
+        | 'reinforcement'
+        | 'nozzle'
+        | 'barrelCalibres'
+        | 'traverse'
+        | 'fuse'
+        | 'fragments'
+        | 'burstSpeed'
+        | 'sealing'
+        | 'fill';
+      readonly site: ModuleSite;
+    };
+
+/** A decision rather than a quantity, flipped now and then. */
+type SwitchKnob =
   | { readonly at: 'fighter' }
   | { readonly at: 'scale' }
-  | { readonly at: 'reinforcement'; readonly site: ModuleSite }
-  | { readonly at: 'kind'; readonly site: ModuleSite }
-  | { readonly at: 'barrels'; readonly site: ModuleSite }
-  | { readonly at: 'nozzle'; readonly site: ModuleSite }
-  | { readonly at: 'barrelCalibres'; readonly site: ModuleSite }
-  | { readonly at: 'traverse'; readonly site: ModuleSite }
-  | { readonly at: 'fuse'; readonly site: ModuleSite }
-  | { readonly at: 'fragments'; readonly site: ModuleSite }
-  | { readonly at: 'burstSpeed'; readonly site: ModuleSite }
-  | { readonly at: 'gunnery'; readonly site: ModuleSite }
-  | { readonly at: 'weapon'; readonly site: ModuleSite }
-  | { readonly at: 'main'; readonly site: ModuleSite }
-  | { readonly at: 'thick'; readonly site: ModuleSite }
-  | { readonly at: 'sealing'; readonly site: ModuleSite }
-  | { readonly at: 'drainPriority'; readonly site: ModuleSite }
-  | { readonly at: 'fill'; readonly site: ModuleSite }
-  | { readonly at: 'angle'; readonly site: ModuleSite }
-  | { readonly at: 'face'; readonly site: ModuleSite }
-  | { readonly at: 'shape'; readonly site: ModuleSite }
-  | { readonly at: 'vertex'; readonly site: ModuleSite }
-  | { readonly at: 'seam'; readonly site: ModuleSite }
-  | { readonly at: 'slide'; readonly site: ModuleSite }
-  | { readonly at: 'place'; readonly site: InstanceSite }
+  | {
+      readonly at: 'kind' | 'barrels' | 'weapon' | 'main' | 'thick' | 'drainPriority' | 'shape' | 'solid';
+      readonly site: ModuleSite;
+    }
   | { readonly at: 'mirror'; readonly site: InstanceSite };
+
+/** One way a placement's geometry can change. */
+type Reshape = 'face' | 'seam' | 'slide' | 'quarter' | 'angle' | 'vertex';
+
+/** A placement whose geometry may change, as one unit. */
+type Part = { readonly module: ModuleSite } | { readonly instance: InstanceSite };
 
 interface ModuleSite {
   readonly spec: ModuleSpec;
@@ -656,105 +767,237 @@ interface InstanceSite {
   readonly where: string;
 }
 
-function knobs(draft: Draft): Knob[] {
-  const out: Knob[] = [];
-  // Only what a hull reads: a ship's aim weights choose a part of a target,
-  // and nothing but a mount does that — a knob on one would be a draw that
-  // cannot change the battle, and an edit accepted for changing nothing.
-  for (const field of SHIP_TARGETING_FIELDS) out.push({ at: 'doctrine', half: 'targeting', field });
-  for (const field of APPROACH_FIELDS) out.push({ at: 'doctrine', half: 'approach', field });
-  // Even while the layout rules it out: the flag is ignored until it does not.
-  out.push({ at: 'fighter' });
-  out.push({ at: 'scale' });
-
+/** Every placement written in the draft, once each however often it is placed. */
+function parts(draft: Draft): Part[] {
+  const out: Part[] = [];
   for (const list of draft.lists) {
     for (let i = 0; i < list.placements.length; i++) {
       const placement = list.placements[i]!;
       const where = `${list.label}[${i}]`;
-      if (isInstance(placement)) {
-        const site: InstanceSite = { instance: placement, where };
-        out.push({ at: 'place', site }, { at: 'mirror', site });
-        continue;
-      }
-      const site: ModuleSite = { spec: placement, where, list: list.placements, label: list.label };
-      out.push(
-        { at: 'reinforcement', site },
-        { at: 'face', site },
-        { at: 'seam', site },
-        { at: 'slide', site },
-        { at: 'kind', site },
-      );
-      if (
-        placement.kind !== 'structure' &&
-        placement.kind !== 'tank' &&
-        placement.kind !== 'hold' &&
-        placement.kind !== 'core' &&
-        placement.kind !== 'battery' &&
-        placement.kind !== 'generator' &&
-        placement.kind !== 'robotBay'
-      ) {
-        out.push({ at: 'angle', site });
-      }
-      // Shape, for the archetypes that may have corners: a box with two
-      // free faces can lose the corner between them, and a triangle can walk
-      // one of its corners along an edge.
-      if (canShape(placement.kind)) {
-        if (isTriangle(placement)) out.push({ at: 'vertex', site });
-        else out.push({ at: 'shape', site });
-      }
-      if (canThicken(placement)) out.push({ at: 'thick', site });
-      if (readsSealing(placement.kind)) out.push({ at: 'sealing', site });
-      if (readsDrainPriority(placement.kind)) out.push({ at: 'drainPriority', site });
-      // Batteries set out full: charge is not in the budget.
-      if (readsFill(placement.kind) && placement.kind !== 'battery') out.push({ at: 'fill', site });
-      if (placement.kind === 'turret' || placement.kind === 'beamTurret') {
-        out.push({ at: 'barrels', site });
-      }
-      if (isWeaponMount(placement.kind)) {
-        // How much arc a weapon is built for, which on a hull mount is mass
-        // as well as coverage — a fixed gun carries no training gear, and
-        // whether that trade is worth taking is exactly what a run is for.
-        out.push({ at: 'traverse', site }, { at: 'gunnery', site }, { at: 'main', site });
-      }
-      // What a gun fires: shells or solid shot, and for shells how they burst.
-      if (readsFuse(placement.kind)) out.push({ at: 'fragments', site });
-      if (firesShells(placement)) out.push({ at: 'fuse', site }, { at: 'burstSpeed', site });
-      // The outlet count divides a hull mount's opening between more of them.
-      if (isHullMount(placement.kind)) out.push({ at: 'barrels', site });
-      if (readsBarrelCalibres(placement.kind)) out.push({ at: 'barrelCalibres', site });
-      if (placement.kind === 'engine') {
-        // An engine's outlets are counted by the same field a gun's barrels
-        // are, so a cluster is something a line can find.
-        out.push({ at: 'weapon', site }, { at: 'barrels', site }, { at: 'nozzle', site });
-        // Main means nothing on an engine until it is a weapon.
-        if (placement.weapon === true) out.push({ at: 'main', site });
-      }
+      if (isInstance(placement)) out.push({ instance: { instance: placement, where } });
+      else out.push({ module: { spec: placement, where, list: list.placements, label: list.label } });
     }
   }
   return out;
 }
 
+function moduleSites(draft: Draft): ModuleSite[] {
+  const out: ModuleSite[] = [];
+  for (const part of parts(draft)) if ('module' in part) out.push(part.module);
+  return out;
+}
+
+/** Whether a kind has a facing that matters, so turning it is a change. */
+function hasFacing(kind: ModuleKind): boolean {
+  return (
+    kind !== 'structure' &&
+    kind !== 'tank' &&
+    kind !== 'hold' &&
+    kind !== 'core' &&
+    kind !== 'battery' &&
+    kind !== 'generator' &&
+    kind !== 'robotBay'
+  );
+}
+
+/** The ways a module's geometry can change. */
+function reshapes(spec: ModuleSpec): Reshape[] {
+  if (isTriangle(spec)) return ['seam', 'slide', 'vertex', ...(hasFacing(spec.kind) ? (['angle'] as const) : [])];
+  const out: Reshape[] = ['face', 'seam', 'slide', 'quarter'];
+  if (hasFacing(spec.kind)) out.push('angle');
+  return out;
+}
+
+function reshapeWeight(reshape: Reshape, { build }: MutationLimits): number {
+  switch (reshape) {
+    case 'face':
+    case 'seam':
+      return build.resize;
+    case 'slide':
+    case 'quarter':
+    case 'angle':
+      return build.move;
+    case 'vertex':
+      return build.shape;
+  }
+}
+
+/** Change one placement's geometry, by one of the ways open to it, drawn by weight. */
+function reshape(part: Part, draft: Draft, rng: Rng, bounds: MutationLimits, scale: Scale): string | null {
+  if ('instance' in part) {
+    return bounds.build.move > 0 ? movePlacement(part.instance, rng, bounds, scale) : null;
+  }
+  const site = part.module;
+  const open = reshapes(site.spec);
+  let total = 0;
+  for (const way of open) total += max(0, reshapeWeight(way, bounds));
+  if (!(total > 0)) return null;
+  let draw = rng.nextFloat() * total;
+  let way = open[open.length - 1]!;
+  for (const each of open) {
+    draw -= max(0, reshapeWeight(each, bounds));
+    if (draw < 0) {
+      way = each;
+      break;
+    }
+  }
+  const weight = reshapeWeight(way, bounds);
+  switch (way) {
+    case 'face':
+      return moveFace(site, draft, rng, bounds, scale, weight);
+    case 'seam':
+      return moveSeam(site, rng, bounds, scale, weight);
+    case 'slide':
+      return slide(site, rng, bounds, scale, weight);
+    case 'quarter':
+      return quarterTurn(site, rng);
+    case 'angle':
+      return turnModule(site, rng, bounds, weight);
+    case 'vertex':
+      return moveVertex(site, rng, bounds, scale, weight);
+  }
+}
+
+function switches(draft: Draft): SwitchKnob[] {
+  // Even while the layout rules it out: the flag is ignored until it does not.
+  const out: SwitchKnob[] = [{ at: 'fighter' }, { at: 'scale' }];
+  for (const part of parts(draft)) {
+    if ('instance' in part) {
+      out.push({ at: 'mirror', site: part.instance });
+      continue;
+    }
+    const site = part.module;
+    const spec = site.spec;
+    out.push({ at: 'kind', site });
+    // A box with two free faces can lose the corner between them.
+    if (canShape(spec.kind) && !isTriangle(spec)) out.push({ at: 'shape', site });
+    if (canThicken(spec)) out.push({ at: 'thick', site });
+    if (readsDrainPriority(spec.kind)) out.push({ at: 'drainPriority', site });
+    // The outlet count divides a hull mount's opening between more of them,
+    // and an engine's are counted by the same field a gun's barrels are.
+    if (spec.kind === 'turret' || spec.kind === 'beamTurret' || isHullMount(spec.kind) || spec.kind === 'engine') {
+      out.push({ at: 'barrels', site });
+    }
+    if (isWeaponMount(spec.kind)) out.push({ at: 'main', site });
+    if (spec.kind === 'engine') {
+      out.push({ at: 'weapon', site });
+      // Main means nothing on an engine until it is a weapon.
+      if (spec.weapon === true) out.push({ at: 'main', site });
+    }
+    if (readsFuse(spec.kind)) out.push({ at: 'solid', site });
+  }
+  return out;
+}
+
+function switchWeight(knob: SwitchKnob, { build }: MutationLimits): number {
+  switch (knob.at) {
+    case 'fighter':
+      return build.fighter;
+    case 'scale':
+      return build.resize;
+    case 'kind':
+      return build.refit;
+    case 'shape':
+      return build.shape;
+    case 'barrels':
+    case 'thick':
+      return build.fittings;
+    case 'weapon':
+    case 'main':
+    case 'drainPriority':
+    case 'solid':
+      return build.tuning;
+    case 'mirror':
+      return build.move;
+  }
+}
+
+function flip(knob: SwitchKnob, draft: Draft, rng: Rng, bounds: MutationLimits): string | null {
+  switch (knob.at) {
+    case 'fighter':
+      return enlist(draft.blueprint);
+    case 'scale':
+      return rescale(draft, rng, bounds);
+    case 'kind':
+      return refit(knob.site, rng, bounds);
+    case 'shape':
+      return cutCorner(knob.site);
+    case 'thick':
+      return thicken(knob.site);
+    case 'drainPriority':
+      return reprioritise(knob.site, rng);
+    case 'barrels':
+      return rebarrel(knob.site, rng);
+    case 'main':
+      return promote(knob.site);
+    case 'weapon':
+      return rearm(knob.site);
+    case 'solid':
+      return reload(knob.site);
+    case 'mirror':
+      return reflect(knob.site);
+  }
+}
+
+function numbers(draft: Draft): NumberKnob[] {
+  const out: NumberKnob[] = [];
+  // Only what a hull reads: a ship's aim weights choose a part of a target,
+  // and nothing but a mount does that — a knob on one would be a draw that
+  // cannot change the battle, and an edit accepted for changing nothing.
+  for (const field of SHIP_TARGETING_FIELDS) out.push({ at: 'doctrine', half: 'targeting', field });
+  for (const field of APPROACH_FIELDS) out.push({ at: 'doctrine', half: 'approach', field });
+  for (const site of moduleSites(draft)) {
+    const spec = site.spec;
+    out.push({ at: 'reinforcement', site });
+    if (readsSealing(spec.kind)) out.push({ at: 'sealing', site });
+    // Batteries set out full: charge is not in the budget.
+    if (readsFill(spec.kind) && spec.kind !== 'battery') out.push({ at: 'fill', site });
+    if (isWeaponMount(spec.kind)) {
+      // How much arc a weapon is built for, which on a hull mount is mass
+      // as well as coverage — a fixed gun carries no training gear, and
+      // whether that trade is worth taking is exactly what a run is for.
+      out.push({ at: 'traverse', site });
+      for (const field of MOUNT_TARGETING_FIELDS) out.push({ at: 'gunnery', site, field });
+    }
+    // What a gun fires: shells or solid shot, and for shells how they burst.
+    if (readsFuse(spec.kind) && (spec.fragments ?? DEFAULT_FRAGMENTS) > 1) out.push({ at: 'fragments', site });
+    if (firesShells(spec)) out.push({ at: 'fuse', site }, { at: 'burstSpeed', site });
+    if (readsBarrelCalibres(spec.kind)) out.push({ at: 'barrelCalibres', site });
+    if (spec.kind === 'engine') out.push({ at: 'nozzle', site });
+  }
+  return out;
+}
+
+function numberWeight(knob: NumberKnob, { doctrine, build }: MutationLimits): number {
+  switch (knob.at) {
+    case 'doctrine':
+      if (ESCORT_FIELDS.includes(knob.field)) return doctrine.escort;
+      if (AVOIDANCE_FIELDS.includes(knob.field)) return doctrine.avoidance;
+      return doctrine[knob.half];
+    case 'gunnery':
+      return doctrine.gunnery;
+    case 'nozzle':
+    case 'barrelCalibres':
+      return build.fittings;
+    default:
+      return build.tuning;
+  }
+}
+
 /**
  * Turn one of a mount's own targeting numbers.
- *
- * **One knob with the field drawn inside it, rather than a knob per field.**
- * Everywhere else in here a knob is a field, so that a ship with more
- * geometry has its geometry mutated more often — but a mount has twelve
- * numbers of its own, so a broadside of eight would have its gunnery turned
- * five times as often as everything about the hull put together.
  *
  * A value that lands back on what the archetype does is taken out rather than
  * written down, so a lineage that has wandered back to the default says so,
  * and the block a mount carries stays the list of things it actually wants
  * differently.
  */
-function retarget(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {
-  const field = MOUNT_TARGETING_FIELDS[rng.nextInt(MOUNT_TARGETING_FIELDS.length)]!;
+function retarget(site: ModuleSite, field: string, jitter: Jitter): string | null {
   const base = defaultTargeting(site.spec.kind) as unknown as Record<string, number>;
   const held = site.spec.targeting as Record<string, number> | undefined;
   const was = held?.[field] ?? base[field]!;
   const scale = max(abs(was), abs(base[field]!)) || TYPICAL.targeting;
-  let now = was + bounds.magnitude * scale * rng.nextRange(-1, 1);
+  let now = was + jitter(scale);
   if (POSITIVE_FIELDS.includes(field)) now = max(now, 0.01);
   const tidied = tidy(now, 3);
   if (tidied === was) return null;
@@ -766,62 +1009,49 @@ function retarget(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | 
   return `${site.where} ${site.spec.kind}: ${field} ${was} → ${tidied}`;
 }
 
-function renumber(knob: Knob, draft: Draft, rng: Rng, bounds: MutationLimits): string | null {
+/** A drift of a number by a share of the scale given. */
+type Jitter = (scale: number) => number;
+
+function renumber(knob: NumberKnob, draft: Draft, rng: Rng, bounds: MutationLimits): string | null {
+  const width = bounds.magnitude * numberWeight(knob, bounds);
+  if (!(width > 0)) return null;
+  const jitter: Jitter = (scale) => drift(rng, bounds, width * scale);
+  if (knob.at === 'doctrine') return turnDoctrine(draft, knob.half, knob.field, jitter);
+  // A module's own number is checked against the module at once, which is
+  // cheap, so it is not left to fail the whole batch.
+  const spec = knob.site.spec;
+  const was = { ...spec };
+  const edit = renumberModule(knob, jitter);
+  if (edit !== null && moduleProblem(spec) !== null) {
+    for (const key of Object.keys(spec)) delete (spec as unknown as Record<string, unknown>)[key];
+    Object.assign(spec, was);
+    return null;
+  }
+  return edit;
+}
+
+function renumberModule(knob: Exclude<NumberKnob, { at: 'doctrine' }>, jitter: Jitter): string | null {
   switch (knob.at) {
-    case 'doctrine':
-      return turnDoctrine(draft, knob.half, knob.field, rng, bounds);
-    case 'fighter':
-      return enlist(draft.blueprint);
-    case 'scale':
-      return rescale(draft, rng, bounds);
-    case 'reinforcement':
-      return reinforce(knob.site, rng, bounds);
-    case 'kind':
-      return refit(knob.site, rng, bounds);
-    case 'barrels':
-      return rebarrel(knob.site, rng);
-    case 'nozzle':
-      return rebell(knob.site, rng, bounds);
-    case 'barrelCalibres':
-      return relength(knob.site, rng, bounds);
     case 'gunnery':
-      return retarget(knob.site, rng, bounds);
+      return retarget(knob.site, knob.field, jitter);
+    case 'reinforcement':
+      return reinforce(knob.site, jitter);
+    case 'nozzle':
+      return rebell(knob.site, jitter);
+    case 'barrelCalibres':
+      return relength(knob.site, jitter);
     case 'traverse':
-      return retrain(knob.site, rng, bounds);
+      return retrain(knob.site, jitter);
     case 'fuse':
-      return refuse(knob.site, rng, bounds);
+      return refuse(knob.site, jitter);
     case 'fragments':
-      return refragment(knob.site, rng, bounds);
+      return refragment(knob.site, jitter);
     case 'burstSpeed':
-      return recharge(knob.site, rng, bounds);
-    case 'weapon':
-      return rearm(knob.site);
-    case 'main':
-      return promote(knob.site);
-    case 'thick':
-      return thicken(knob.site);
+      return recharge(knob.site, jitter);
     case 'sealing':
-      return reseal(knob.site, rng, bounds);
-    case 'drainPriority':
-      return reprioritise(knob.site, rng);
+      return reseal(knob.site, jitter);
     case 'fill':
-      return refill(knob.site, rng, bounds);
-    case 'angle':
-      return turnModule(knob.site, rng, bounds);
-    case 'face':
-      return moveFace(knob.site, draft, rng, bounds);
-    case 'shape':
-      return cutCorner(knob.site);
-    case 'vertex':
-      return moveVertex(knob.site, rng, bounds);
-    case 'seam':
-      return moveSeam(knob.site, rng, bounds);
-    case 'slide':
-      return slide(knob.site, rng, bounds);
-    case 'place':
-      return movePlacement(knob.site, rng, bounds);
-    case 'mirror':
-      return reflect(knob.site);
+      return refill(knob.site, jitter);
   }
 }
 
@@ -872,8 +1102,7 @@ function turnDoctrine(
   draft: Draft,
   half: 'targeting' | 'approach',
   field: string,
-  rng: Rng,
-  bounds: MutationLimits,
+  jitter: Jitter,
 ): string | null {
   const held = draft.doctrine[half];
   const reference = (
@@ -881,7 +1110,7 @@ function turnDoctrine(
   )[field]!;
   const scale = max(abs(held[field]!), abs(reference)) || TYPICAL[half];
   const was = held[field]!;
-  let now = was + bounds.magnitude * scale * rng.nextRange(-1, 1);
+  let now = was + jitter(scale);
   // Some fields are a size or a distance rather than a weight, and none of
   // those means anything at or below zero. Which they are is the doctrine's
   // own business, not this file's: a rule copied here would be a second
@@ -891,8 +1120,7 @@ function turnDoctrine(
   if (NON_NEGATIVE_FIELDS.includes(field)) now = max(now, 0);
   const tidied = tidy(now, 3);
   // A draw small enough to round away, or one clamped back onto the floor it
-  // was already sitting on. Neither is an edit, and counting it as one would
-  // let a candidate that changed nothing be accepted as a child.
+  // was already sitting on. Neither is an edit.
   if (tidied === was) return null;
   // Nor one that crosses the other end of its band.
   for (const [lower, upper] of ORDERED_FIELDS) {
@@ -918,7 +1146,7 @@ const SCALE_SHARE = 0.4;
  * their new sizes buy — and that is the question the draw asks.
  */
 function rescale(draft: Draft, rng: Rng, bounds: MutationLimits): string | null {
-  const factor = tidy(1 + bounds.magnitude * SCALE_SHARE * rng.nextRange(-1, 1), 3);
+  const factor = tidy(1 + drift(rng, { ...bounds, deadZone: 0 }, bounds.magnitude * SCALE_SHARE), 3);
   if (factor === 1 || !(factor > 0)) return null;
   const by = (value: number): number => tidy(value * factor, 4);
   for (const list of draft.lists) {
@@ -953,13 +1181,11 @@ function enlist(blueprint: Blueprint): string {
   return `fighter: ${was ? 'no longer' : 'now'}`;
 }
 
-function reinforce(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {
+function reinforce(site: ModuleSite, jitter: Jitter): string | null {
   const was = site.spec.reinforcement ?? 1;
-  const now = max(1, tidy(was * (1 + bounds.magnitude * rng.nextRange(-1, 1)), 2));
+  const now = max(1, tidy(was + jitter(was), 2));
   // Clamped against the floor, a draw downwards from bare walls changes
-  // nothing. Reporting that as an edit would fill a lineage with entries
-  // saying a number stayed where it was, and — worse — would let a candidate
-  // that did nothing at all be accepted.
+  // nothing, and is not an edit.
   if (now === was) return null;
   site.spec.reinforcement = now;
   return `${site.where} ${site.spec.kind}: reinforcement ${was} → ${now}`;
@@ -969,11 +1195,11 @@ function reinforce(site: ModuleSite, rng: Rng, bounds: MutationLimits): string |
  * Change what a module is, keeping the space it occupies.
  *
  * **This is the only way a lineage gets a large module of a new kind.**
- * Everything new arrives at the smallest size the grid allows and has to be
- * grown, which is right for a guess and wrong as the only path there is: a
+ * Everything new arrives small and has to be grown, which is right for a
+ * guess and wrong as the only path there is: a
  * hull that has spent twenty generations growing a good gun mounting should
  * be able to discover that the same mounting makes a better beam mount,
- * without starting again from half a metre. A refit keeps the geometry — the
+ * without starting again from nothing. A refit keeps the geometry — the
  * position, the size, the facing, the armour — and changes only what it is
  * for.
  *
@@ -987,7 +1213,7 @@ function reinforce(site: ModuleSite, rng: Rng, bounds: MutationLimits): string |
  *
  * Neither is a nicety: without them a refit into an engine is refused every
  * time, so the one route to a *large* engine is closed and a lineage can only
- * ever have the half-metre ones it adds.
+ * ever have the small ones it adds.
  */
 function refit(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {
   const was = site.spec.kind;
@@ -1029,9 +1255,9 @@ function rebarrel(site: ModuleSite, rng: Rng): string | null {
  * is all bell has no block, and the layout rules would refuse it rather than
  * teach the search anything. No bell at all is a legal, bad engine.
  */
-function rebell(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {
+function rebell(site: ModuleSite, jitter: Jitter): string | null {
   const was = site.spec.nozzle ?? DEFAULT_NOZZLE_SHARE;
-  const now = tidy(clamp(was + bounds.magnitude * rng.nextRange(-1, 1), 0, 0.9), 3);
+  const now = tidy(clamp(was + jitter(1), 0, 0.9), 3);
   if (now === was) return null;
   site.spec.nozzle = now;
   return `${site.where} ${site.spec.kind}: nozzle ${was} → ${now}`;
@@ -1044,10 +1270,9 @@ function rebell(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | nu
  * Whole calibres, held inside what any barrel may be; one too long for a hull
  * gun's own mount is refused by the layout rules like any other misfit.
  */
-function relength(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {
+function relength(site: ModuleSite, jitter: Jitter): string | null {
   const was = barrelCalibres(site.spec);
-  const step = max(2, was * bounds.magnitude) * rng.nextRange(-1, 1);
-  const now = clamp(round(was + step), 1, MAX_BARREL_CALIBRES);
+  const now = clamp(round(was + jitter(max(was, COUNT_SCALE))), 1, MAX_BARREL_CALIBRES);
   if (now === was) return null;
   site.spec.barrelCalibres = now;
   return `${site.where} ${site.spec.kind}: barrel ${was} → ${now} calibres`;
@@ -1062,10 +1287,9 @@ function relength(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | 
  * welded to the ship, carrying no training gear — and unbounded above, where
  * the mount's own archetype quietly takes over.
  */
-function retrain(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {
-  const step = bounds.turn * rng.nextRange(-1, 1);
+function retrain(site: ModuleSite, jitter: Jitter): string | null {
   const was = mountTraverse(site.spec);
-  const now = max(0, tidy(radiansToDegrees(was + step), 3));
+  const now = max(0, tidy(radiansToDegrees(was + jitter(max(was, HALF_PI))), 3));
   const asDegrees = tidy(radiansToDegrees(was), 3);
   if (now === asDegrees) return null;
   site.spec.traverse = degreesToRadians(now);
@@ -1079,8 +1303,11 @@ function retrain(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | n
  */
 const SHAPED_ARRIVAL_CHANCE = 0.15;
 
-/** How often a fragments knob swaps shells for solid shot, rather than recounting them. */
-const SOLID_SHOT_CHANCE = 0.2;
+/**
+ * The least a count drifts against, so a short barrel or a few fragments can
+ * still move by whole ones.
+ */
+const COUNT_SCALE = 20;
 
 /** The slowest burst a nudge leaves, m/s. */
 const MIN_BURST_SPEED = 1;
@@ -1092,10 +1319,9 @@ const SEALING_STEP = 0.01;
  * Thicken or thin a tank's sealing lining, proportionally, never below none and
  * never so thick it leaves no room inside.
  */
-function reseal(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {
+function reseal(site: ModuleSite, jitter: Jitter): string | null {
   const was = site.spec.sealing ?? 0;
-  const scale = max(was, SEALING_STEP);
-  const now = max(0, tidy(was + bounds.magnitude * scale * rng.nextRange(-1, 1), 4));
+  const now = max(0, tidy(was + jitter(max(was, SEALING_STEP)), 4));
   if (now === was || moduleProblem({ ...site.spec, sealing: now }) !== null) return null;
   site.spec.sealing = now;
   return `${site.where} ${site.spec.kind}: sealing ${was * 1000} mm → ${now * 1000} mm`;
@@ -1113,9 +1339,9 @@ function reprioritise(site: ModuleSite, rng: Rng): string | null {
  * Start a tank fuller or emptier, by up to `magnitude` of a full load, never
  * past either end. Full is left unsaid.
  */
-function refill(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {
+function refill(site: ModuleSite, jitter: Jitter): string | null {
   const was = site.spec.fill ?? 1;
-  const now = tidy(min(1, max(0, was + bounds.magnitude * rng.nextRange(-1, 1))), 3);
+  const now = tidy(min(1, max(0, was + jitter(1))), 3);
   if (now === was) return null;
   if (now < 1) site.spec.fill = now;
   else delete site.spec.fill;
@@ -1126,10 +1352,9 @@ function refill(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | nu
  * Retime a shell's fuse: a nudge scaled by the fuse itself, so a long one
  * moves as far in proportion as a short one. Zero is a fuse like any other.
  */
-function refuse(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {
+function refuse(site: ModuleSite, jitter: Jitter): string | null {
   const was = site.spec.fuse ?? DEFAULT_FUSE;
-  const scale = max(was, DEFAULT_FUSE);
-  const now = max(0, tidy(was + bounds.magnitude * scale * rng.nextRange(-1, 1), 3));
+  const now = max(0, tidy(was + jitter(max(was, DEFAULT_FUSE)), 3));
   if (now === was) return null;
   site.spec.fuse = now;
   return `${site.where} ${site.spec.kind}: fuse ${was} s → ${now} s`;
@@ -1140,28 +1365,31 @@ function refuse(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | nu
  * proportional nudge of at least one; sometimes a swap between shells and
  * solid shot, which is a decision rather than a quantity.
  */
-function refragment(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {
+function refragment(site: ModuleSite, jitter: Jitter): string | null {
   const was = site.spec.fragments ?? DEFAULT_FRAGMENTS;
-  if (was <= 1) {
-    delete site.spec.fragments;
-    return `${site.where} ${site.spec.kind}: shells again, ${DEFAULT_FRAGMENTS} fragments`;
-  }
-  if (rng.chance(SOLID_SHOT_CHANCE)) {
-    site.spec.fragments = 1;
-    return `${site.where} ${site.spec.kind}: solid shot`;
-  }
-  const step = bounds.magnitude * was * rng.nextRange(-1, 1);
-  const nudge = step >= 0 ? max(1, round(step)) : min(-1, round(step));
-  const now = min(MAX_FRAGMENTS, max(2, was + nudge));
+  const now = min(MAX_FRAGMENTS, max(2, round(was + jitter(max(was, COUNT_SCALE)))));
   if (now === was) return null;
   site.spec.fragments = now;
   return `${site.where} ${site.spec.kind}: fragments ${was} → ${now}`;
 }
 
+/**
+ * Swap shells for solid shot, or back: a decision rather than a quantity,
+ * so a switch rather than a drift.
+ */
+function reload(site: ModuleSite): string {
+  if ((site.spec.fragments ?? DEFAULT_FRAGMENTS) <= 1) {
+    delete site.spec.fragments;
+    return `${site.where} ${site.spec.kind}: shells again, ${DEFAULT_FRAGMENTS} fragments`;
+  }
+  site.spec.fragments = 1;
+  return `${site.where} ${site.spec.kind}: solid shot`;
+}
+
 /** Re-size a shell's charge by how fast it bursts, in proportion to that speed. */
-function recharge(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {
+function recharge(site: ModuleSite, jitter: Jitter): string | null {
   const was = site.spec.burstSpeed ?? DEFAULT_BURST_SPEED;
-  const now = max(MIN_BURST_SPEED, tidy(was + bounds.magnitude * was * rng.nextRange(-1, 1), 1));
+  const now = max(MIN_BURST_SPEED, tidy(was + jitter(was), 1));
   if (now === was) return null;
   site.spec.burstSpeed = now;
   return `${site.where} ${site.spec.kind}: burst ${was} m/s → ${now} m/s`;
@@ -1207,16 +1435,63 @@ function thicken(site: ModuleSite): string {
   return `${site.where} ${site.spec.kind}: made ${was ? 'thin' : 'thick'}`;
 }
 
-function turnModule(site: ModuleSite, rng: Rng, bounds: MutationLimits): string {
+function turnModule(site: ModuleSite, rng: Rng, bounds: MutationLimits, weight: number): string | null {
   const was = site.spec.angle ?? 0;
+  const by = drift(rng, bounds, bounds.turn * weight);
+  if (by === 0) return null;
   // Unrounded, for the reason `against` gives: a rounded right angle is a
   // module tilted a fraction of a micron into its neighbour.
-  site.spec.angle = was + (rng.chance(0.5) ? bounds.turn : -bounds.turn);
+  site.spec.angle = was + by;
   return `${site.where} ${site.spec.kind}: turned ${degrees(was)}° → ${degrees(site.spec.angle)}°`;
 }
 
 /**
- * Move one face of a module, growing or shrinking it by a grid step while the
+ * Turn a box a quarter about one of its corners, so it lies the other way in
+ * the same corner: the corner stays put, and so does as much of the two
+ * edges that meet there as the shorter side covers.
+ *
+ * Nearly every other turn takes a welded module apart, since a box tilted at
+ * all drives a corner into its neighbour. Kept in the corner, a module tucked
+ * between two others can still be tucked between them afterwards. On a kind
+ * with no facing it is the box's length and width swapping; on one with a
+ * facing it is a real quarter turn, either way, since both lie the same.
+ */
+function quarterTurn(site: ModuleSite, rng: Rng): string | null {
+  const spec = site.spec;
+  if (spec.length === spec.width && !hasFacing(spec.kind)) return null;
+  const centre = moduleCentre(spec);
+  const angle = spec.angle ?? 0;
+  const c = cos(angle);
+  const s = sin(angle);
+  const sx = rng.chance(0.5) ? 1 : -1;
+  const sy = rng.chance(0.5) ? 1 : -1;
+  // The kept corner, then the new middle back from it along the same two
+  // edges, with the box's extents along them swapped.
+  const lx = sx * (spec.length - spec.width) / 2;
+  const ly = sy * (spec.width - spec.length) / 2;
+  const middle = { x: centre.x + c * lx - s * ly, y: centre.y + s * lx + c * ly };
+
+  const turned: ModuleSpec = { ...spec, x: 0, y: 0 };
+  if (hasFacing(spec.kind)) {
+    turned.angle = angle + (rng.chance(0.5) ? HALF_PI : -HALF_PI);
+  } else {
+    turned.length = spec.width;
+    turned.width = spec.length;
+  }
+  // From the middle back to the position the kind is written by, which for
+  // an engine is the face it is bolted on by.
+  const offset = moduleCentre(turned);
+  spec.x = tidy(middle.x - offset.x, 6);
+  spec.y = tidy(middle.y - offset.y, 6);
+  if (turned.angle !== undefined) spec.angle = turned.angle;
+  spec.length = turned.length;
+  spec.width = turned.width;
+  return `${site.where} ${spec.kind}: a quarter turn about its ${cornerName(sx > 0 ? (sy > 0 ? 0 : 3) : sy > 0 ? 1 : 2)} corner`;
+}
+
+/**
+ * Move one face of a module, growing or shrinking it by a drift of the ship's
+ * spread while the
  * opposite face stays exactly where it was.
  *
  * This is the operator that makes geometry worth mutating at all. Scaling a
@@ -1229,7 +1504,14 @@ function turnModule(site: ModuleSite, rng: Rng, bounds: MutationLimits): string 
  * into a neighbour pushes it aside rather than being refused, and shrinking
  * away from one pulls it along rather than leaving it adrift.
  */
-function moveFace(site: ModuleSite, draft: Draft, rng: Rng, bounds: MutationLimits): string | null {
+function moveFace(
+  site: ModuleSite,
+  draft: Draft,
+  rng: Rng,
+  bounds: MutationLimits,
+  scale: Scale,
+  weight: number,
+): string | null {
   const spec = site.spec;
   // Nothing to move on a module that is not a box: its size is its corners,
   // and changing the length and width of the box they fit inside would report
@@ -1238,13 +1520,14 @@ function moveFace(site: ModuleSite, draft: Draft, rng: Rng, bounds: MutationLimi
   const before = { ...spec };
   const along = rng.chance(0.5);
   const side = rng.chance(0.5) ? 1 : -1;
-  const delta = rng.chance(0.5) ? bounds.grid : -bounds.grid;
+  const delta = stretch(rng, bounds, scale, weight);
+  if (delta === 0) return null;
 
   const was = along ? spec.length : spec.width;
   const now = tidy(was + delta, 6);
   // A module shrunk out of existence is not a module removed: removal is its
-  // own operator, and this one stops at the last grid step.
-  if (now <= 0) return null;
+  // own operator, and this one stops a quantum short of nothing.
+  if (now < scale.quantum) return null;
 
   // Where the module's *position* has to go for the other face to stay put.
   // An engine is held on by the face behind it, at -x, and its position is
@@ -1385,11 +1668,18 @@ function cornerName(corner: number): string {
  * and the other half the candidate is thrown out by the layout rules, which is
  * the ordinary price of a draw.
  *
- * Towards the far end of that edge or away from it, a grid step at a time, and
+ * Towards the far end of that edge or away from it, by a drift of the ship's
+ * spread, and
  * never so far as to pass the far end: three corners in a line enclose
  * nothing, and a module shrunk out of existence is removal's business.
  */
-function moveVertex(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {
+function moveVertex(
+  site: ModuleSite,
+  rng: Rng,
+  bounds: MutationLimits,
+  scale: Scale,
+  weight: number,
+): string | null {
   const spec = site.spec;
   const triangle = triangleOf(spec);
   if (triangle === null) return null;
@@ -1406,10 +1696,11 @@ function moveVertex(site: ModuleSite, rng: Rng, bounds: MutationLimits): string 
   const ey = py - ky;
   const span = sqrt(ex * ex + ey * ey);
   if (!(span > 0)) return null;
-  const step = rng.chance(0.5) ? bounds.grid : -bounds.grid;
+  const step = stretch(rng, bounds, scale, weight);
+  if (step === 0) return null;
   const now = span + step;
   // Past the far end the edge turns inside out; at it the triangle is a line.
-  if (now <= bounds.grid / 2) return null;
+  if (now <= scale.quantum) return null;
 
   const moved = [...triangle];
   moved[corner * 2] = kx + (ex / span) * now;
@@ -1424,15 +1715,15 @@ function moveVertex(site: ModuleSite, rng: Rng, bounds: MutationLimits): string 
 }
 
 /**
- * Move the face a module shares with a neighbour, one growing by a grid step
- * as the other shrinks by it.
+ * Move the face a module shares with a neighbour, one growing as the other
+ * shrinks by the same.
  *
  * It trades space between two modules — hull for engine, say — without the
  * ship getting any bigger, which otherwise takes a shrink and a grow, each of
  * which can be refused. The module that grows must have its whole face
  * against the other, so it only moves into space the other gives up.
  */
-function moveSeam(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | null {
+function moveSeam(site: ModuleSite, rng: Rng, bounds: MutationLimits, scale: Scale, weight: number): string | null {
   const spec = site.spec;
   const partners: { index: number; other: ModuleSpec; seam: SharedFace }[] = [];
   for (let j = 0; j < site.list.length; j++) {
@@ -1446,8 +1737,9 @@ function moveSeam(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | 
   // This module grows when its face is within the other's, the other when
   // its is; when both are, either.
   const grow = seam.aWithinB && (!seam.bWithinA || rng.chance(0.5));
-  const delta = grow ? bounds.grid : -bounds.grid;
-  const moved = shiftSeam(spec, other, seam, delta, bounds.grid);
+  const by = abs(stretch(rng, bounds, scale, weight));
+  if (by === 0) return null;
+  const moved = shiftSeam(spec, other, seam, grow ? by : -by, scale.quantum);
   if (moved.a.length === spec.length && moved.a.width === spec.width) return null;
 
   const was = seam.a.along !== 0 ? spec.length : spec.width;
@@ -1457,15 +1749,20 @@ function moveSeam(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | 
   return `${site.where} ${spec.kind}: seam with ${site.label}[${index}] ${other.kind}, ${was} → ${now}`;
 }
 
-function slide(site: ModuleSite, rng: Rng, bounds: MutationLimits): string {
-  const step = rng.chance(0.5) ? bounds.grid : -bounds.grid;
-  const axis = rng.chance(0.5) ? 'x' : 'y';
-  site.spec[axis] = tidy(site.spec[axis] + step, 6);
-  return `${site.where} ${site.spec.kind}: ${axis} ${step > 0 ? '+' : ''}${step}`;
+function slide(site: ModuleSite, rng: Rng, bounds: MutationLimits, scale: Scale, weight: number): string | null {
+  const by = stretch(rng, bounds, scale, weight);
+  if (by === 0) return null;
+  // Along the module's own axes, so one welded along a face slides along it.
+  const along = rng.chance(0.5);
+  const angle = (site.spec.angle ?? 0) + (along ? 0 : HALF_PI);
+  site.spec.x = tidy(site.spec.x + cos(angle) * by, 6);
+  site.spec.y = tidy(site.spec.y + sin(angle) * by, 6);
+  return `${site.where} ${site.spec.kind}: slid ${by} m ${along ? 'along' : 'across'} itself`;
 }
 
-function movePlacement(site: InstanceSite, rng: Rng, bounds: MutationLimits): string {
-  const step = rng.chance(0.5) ? bounds.grid : -bounds.grid;
+function movePlacement(site: InstanceSite, rng: Rng, bounds: MutationLimits, scale: Scale): string | null {
+  const step = stretch(rng, bounds, scale, bounds.build.move);
+  if (step === 0) return null;
   const axis = rng.chance(0.5) ? 'x' : 'y';
   site.instance[axis] = tidy(site.instance[axis] + step, 6);
   return `${site.where} ${site.instance.use}: ${axis} ${step > 0 ? '+' : ''}${step}`;
@@ -1777,7 +2074,7 @@ function outwardness(angle: number, face: number, outward: { x: number; y: numbe
  * is symmetric or it flies crabwise, and reaching a matching pair of wings by
  * drawing the same offsets twice is a thing a random walk does not do.
  */
-function instantiate(draft: Draft, rng: Rng, bounds: MutationLimits): string | null {
+function instantiate(draft: Draft, rng: Rng, _bounds: MutationLimits, scale: Scale): string | null {
   const sites = instanceSites(draft);
   if (sites.length === 0) return null;
 
@@ -1802,12 +2099,12 @@ function instantiate(draft: Draft, rng: Rng, bounds: MutationLimits): string | n
       };
     }
   } else {
-    // Clear of the original rather than a grid step from it. A part is nearly
-    // always wider than one step, so a copy nudged along lands inside the
+    // Clear of the original rather than a nudge from it. A part is nearly
+    // always wider than a nudge, so a copy nudged along lands inside the
     // thing it is a copy of and is refused every time — which is how "place
     // another one" came to be the operator that never delivered anything.
     const along = rng.chance(0.5);
-    const room = clearance(draft, instance, along, bounds);
+    const room = clearance(draft, instance, along, scale);
     const step = rng.chance(0.5) ? room : -room;
     if (along) copy.x = instance.x + step;
     else copy.y = instance.y + step;
@@ -1822,23 +2119,23 @@ function instantiate(draft: Draft, rng: Rng, bounds: MutationLimits): string | n
 
 /**
  * How far along an axis a copy has to sit to be clear of the original,
- * rounded up to the grid.
+ * rounded up to the ship's quantum.
  *
  * Measured against a circle round each module rather than its box, so the
  * answer holds whatever angle anything is at, and read off the assembly's own
  * frame — which is the frame the offset is applied in, so a turned instance
  * needs no second thought. An assembly with anything nested inside it gets a
- * grid step and the layout rules' opinion, since measuring that properly
+ * new module's width and the layout rules' opinion, since measuring that properly
  * means expanding it.
  */
 function clearance(
   draft: Draft,
   instance: AssemblyInstance,
   along: boolean,
-  bounds: MutationLimits,
+  scale: Scale,
 ): number {
   const assembly = draft.assemblies[instance.use];
-  if (assembly === undefined || assembly.modules.some(isInstance)) return bounds.grid;
+  if (assembly === undefined || assembly.modules.some(isInstance)) return scale.arrival;
   let far = 0;
   for (const placement of assembly.modules) {
     const spec = placement as ModuleSpec;
@@ -1847,7 +2144,7 @@ function clearance(
     far = max(far, abs(along ? centre.x : centre.y) + reach);
   }
   const wanted = 2 * far;
-  return max(bounds.grid, ceilTo(wanted, bounds.grid));
+  return max(scale.quantum, ceilTo(wanted, scale.quantum));
 }
 
 /** The next multiple of `step` at or above `value`. */
@@ -1876,8 +2173,8 @@ function ceilTo(value: number, step: number): number {
  * only way a module that has been *grown* — twenty generations of a good gun
  * mounting — joins a part. What it is not is the way to grow a pair.
  */
-function extend(draft: Draft, rng: Rng, bounds: MutationLimits): string | null {
-  return addModule(draft, rng, bounds, false, true);
+function extend(draft: Draft, rng: Rng, bounds: MutationLimits, scale: Scale): string | null {
+  return addModule(draft, rng, bounds, scale, false, true);
 }
 
 /**
@@ -1917,6 +2214,7 @@ const ASSEMBLY_OPERATORS: readonly ((
   draft: Draft,
   rng: Rng,
   bounds: MutationLimits,
+  scale: Scale,
 ) => string | null)[] = [group, ungroup, absorb, extend, instantiate, dropInstance, repeat];
 
 /**
@@ -1946,7 +2244,7 @@ function reflect(site: InstanceSite): string | null {
  * place, having caught the ratio drifting to two to one the moment a bug that
  * was refusing half of all additions was fixed.
  */
-function restructure(draft: Draft, rng: Rng, bounds: MutationLimits): string | null {
+function restructure(draft: Draft, rng: Rng, bounds: MutationLimits, scale: Scale): string | null {
   // A third of structural generations are about the *grouping* rather than
   // the modules. They are far more often impossible than a module edit — a
   // ship with no assemblies has five of the six unavailable — so one that
@@ -1954,13 +2252,13 @@ function restructure(draft: Draft, rng: Rng, bounds: MutationLimits): string | n
   // generation its structure.
   if (rng.nextInt(3) === 0) {
     const operator = ASSEMBLY_OPERATORS[rng.nextInt(ASSEMBLY_OPERATORS.length)]!;
-    const edit = operator(draft, rng, bounds);
+    const edit = operator(draft, rng, bounds, scale);
     if (edit !== null) return edit;
   }
 
   const draw = rng.nextInt(4);
   if (draw < 2) return removePlacement(draft, rng);
-  return addModule(draft, rng, bounds, draw === 2);
+  return addModule(draft, rng, bounds, scale, draw === 2);
 }
 
 /**
@@ -2011,6 +2309,7 @@ function addModule(
   draft: Draft,
   rng: Rng,
   bounds: MutationLimits,
+  scale: Scale,
   copy: boolean,
   onlyParts = false,
 ): string | null {
@@ -2044,8 +2343,8 @@ function addModule(
     const beside = copy && points(kind);
     for (const face of faces(anchor.spec, outward, rng)) {
       if (beside && face % 2 === 0) continue;
-      for (const along of berths(anchor.spec, face, copy, bounds, rng)) {
-        const added = against(anchor.spec, face, along, kind, copy, bounds, rng);
+      for (const along of berths(anchor.spec, face, copy, scale, rng)) {
+        const added = against(anchor.spec, face, along, kind, copy, bounds, scale, rng);
         if (neighbours.some((neighbour) => modulesOverlap(added, neighbour))) continue;
         anchor.list.placements.push(added);
         // Said out loud, because a wedge and a box are the same line of the
@@ -2074,7 +2373,7 @@ function addModule(
  *
  * Every berth keeps the module wholly on the face it is bolted to, so what
  * comes back is a real weld rather than a corner touch, and they are on the
- * grid like everything else the operator writes. Drawn in a random order and
+ * ship's quantum like everything else the operator writes. Drawn in a random order and
  * tried until one fits, so a face with a gap in the middle of it is found
  * rather than given up on.
  */
@@ -2082,18 +2381,18 @@ function berths(
   anchor: ModuleSpec,
   face: number,
   copy: boolean,
-  bounds: MutationLimits,
+  scale: Scale,
   rng: Rng,
 ): number[] {
   const endOn = face % 2 === 0;
   const span = endOn ? anchor.width : anchor.length;
-  const across = copy ? span : bounds.grid;
+  const across = copy ? span : min(span, scale.arrival);
   const room = span - across;
   if (!(room > 0)) return [0];
 
-  const steps = floor(room / bounds.grid);
+  const steps = floor(room / scale.quantum);
   const berth: number[] = [];
-  for (let i = 0; i <= steps; i++) berth.push(tidy(-room / 2 + i * bounds.grid, 6));
+  for (let i = 0; i <= steps; i++) berth.push(tidy(-room / 2 + i * scale.quantum, 6));
   // Drawn without replacement, so a crowded face is searched rather than
   // sampled: the same spot offered twice is a draw wasted.
   const order: number[] = [];
@@ -2119,6 +2418,7 @@ function against(
   kind: ModuleKind,
   copy: boolean,
   bounds: MutationLimits,
+  scale: Scale,
   rng: Rng,
 ): ModuleSpec {
   const angle = anchor.angle ?? 0;
@@ -2135,15 +2435,14 @@ function against(
   const faceX = centre.x + nx * reach + ax * along;
   const faceY = centre.y + ny * reach + ay * along;
 
-  // **A copy keeps its original's proportions; anything new starts as small
-  // as the grid allows.** A new module is a guess, and a guess should be
-  // cheap: sized from the face it is going on, a first gun on a capital
-  // arrives weighing tonnes and has to justify all of it at once, where one
-  // that starts at half a metre costs almost nothing and is grown a face at a
-  // time by the operator that grows faces — which is the difference between
-  // a lineage that can afford to try something and one that cannot.
-  const across = copy ? (endOn ? anchor.width : anchor.length) : bounds.grid;
-  const out = copy ? (endOn ? anchor.length : anchor.width) : bounds.grid;
+  // **A copy keeps its original's proportions; anything new arrives a square
+  // half the ship's median module across**, no wider than the face it is on.
+  // A guess should be cheap, so it is not sized from the face — a first gun
+  // on a capital would arrive weighing tonnes — but nor so small that it is a
+  // dot on a big hull, cheap to carry and impossible for anything to hit, as
+  // a fixed half metre was on the Gunship.
+  const across = copy ? (endOn ? anchor.width : anchor.length) : min(endOn ? anchor.width : anchor.length, scale.arrival);
+  const out = copy ? (endOn ? anchor.length : anchor.width) : scale.arrival;
 
   // **A copy of an engine or a hull weapon is the same thing again, beside
   // it**: the same way round, a width over, so two engines make a bank firing
