@@ -1964,7 +1964,7 @@ export function startEditor(): void {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${doc.blueprint.name.replace(/[^\w.-]+/g, '-').toLowerCase()}.json`;
+    link.download = `${doc.blueprint.name.replace(/[^\w.-]+/g, '-').toLowerCase()}.ship.json`;
     link.click();
     URL.revokeObjectURL(url);
   });

@@ -230,7 +230,7 @@ export function startSkirmish(): void {
       const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${fleet.name}.json`;
+      link.download = `${fleet.name}.fleet.json`;
       link.click();
       URL.revokeObjectURL(url);
     },
