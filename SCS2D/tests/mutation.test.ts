@@ -451,12 +451,13 @@ describe('mutation', () => {
     // hold for a module *refitted* as well as one added — a run told to breed
     // engines that went on turning its engines into gun mounts half the time
     // would be answering a question nobody asked.
-    // Until a few of each have been seen, since the lineage grows and slows.
+    // Until some of each have been seen: the hull fills with engines, which
+    // have nothing left to be refitted into, and the lineage grows and slows.
     const rng = new Rng(59);
     let held: Blueprint = CORVETTE;
     let added = 0;
     let refitted = 0;
-    for (let i = 0; i < 400 && (added < 5 || refitted < 5); i++) {
+    for (let i = 0; i < 400 && (added < 3 || refitted < 1); i++) {
       const child = mutate(held, rng, {
         structural: 1,
         // Refits weighted up, so a few hundred draws are sure to see some.
