@@ -146,10 +146,10 @@
     },
     {
       "kind": "hullBeam",
-      "x": 25.9364,
+      "x": 25.6364,
       "y": 0,
       "angle": 0,
-      "length": 48.8,
+      "length": 48.2,
       "width": 8,
       "barrels": 1,
       "traverse": 3,

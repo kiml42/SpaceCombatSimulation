@@ -117,6 +117,11 @@ export interface TurretSpec {
   /** Distance from mount to muzzle along the barrel, metres. */
   muzzleOffset?: number;
   /**
+   * Whether its outlets sit side by side across the rest bearing rather than
+   * across the barrel's: a hull beam's lenses, each turning on its own stalk.
+   */
+  outletsFixed?: boolean;
+  /**
    * Bearings it may point along but not fire along, as `triggerMask` compiles
    * them: pairs of radians from `restBearing`. Clear all round when unsaid.
    */
@@ -201,6 +206,7 @@ export class Turrets {
   inertia!: Float64Array;
   muzzleSpeed!: Float64Array;
   muzzleOffset!: Float64Array;
+  outletsFixed!: Uint8Array;
   /** Flight time to the point last aimed at, seconds, as `aimAt` returned it. */
   aimTime!: Float64Array;
 
@@ -317,6 +323,7 @@ export class Turrets {
     this.aimDy = f64(this.aimDy);
     this.commandedRate = f64(this.commandedRate);
     this.onTarget = u8(this.onTarget);
+    this.outletsFixed = u8(this.outletsFixed);
     this.tolerance = f64(this.tolerance);
     this.fireSlack = f64(this.fireSlack);
     this.fireOffset = f64(this.fireOffset);
@@ -351,6 +358,7 @@ export class Turrets {
     this.inertia[i] = spec.inertia ?? 0;
     this.muzzleSpeed[i] = spec.muzzleSpeed ?? 0;
     this.muzzleOffset[i] = spec.muzzleOffset ?? 0;
+    this.outletsFixed[i] = spec.outletsFixed === true ? 1 : 0;
     this.aimTime[i] = -1;
     this.bearing[i] = rest;
     this.rate[i] = 0;
@@ -799,8 +807,17 @@ export class Turrets {
     out.bearing = world;
     out.dirX = dirX;
     out.dirY = dirY;
-    out.x = mx + dirX * offset - dirY * lateralOffset;
-    out.y = my + dirY * offset + dirX * lateralOffset;
+    // Side by side across the barrel, or across the mount for outlets that
+    // each turn in their own place.
+    let acrossX = -dirY;
+    let acrossY = dirX;
+    if (this.outletsFixed[i] === 1 && lateralOffset !== 0) {
+      const rest = this.restBearing[i]! + angle;
+      acrossX = -sin(rest);
+      acrossY = cos(rest);
+    }
+    out.x = mx + dirX * offset + acrossX * lateralOffset;
+    out.y = my + dirY * offset + acrossY * lateralOffset;
 
     // The muzzle's own velocity, `ω × r` about the centre of mass. Leave this
     // out and a round from a yawing ship is launched with only the hull's

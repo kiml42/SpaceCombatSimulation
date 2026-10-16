@@ -732,6 +732,22 @@ describe('firing solution', () => {
     expect(solution.y).toBeCloseTo(10, 9);
     expect(solution.bearing).toBeCloseTo(PI / 2, 9);
   });
+  it('keeps outlets that turn in their own places side by side across the mount', () => {
+    // A row of lenses, each on its own stalk: turning moves where each lens
+    // points, not where it stands.
+    const { bodies, index } = ship();
+    const turrets = new Turrets();
+    const fixed = turrets.add({ owner: index, x: 10, y: 0, maxRate: 5, maxAccel: 50, muzzleOffset: 1, outletsFixed: true });
+    const swung = turrets.add({ owner: index, x: 10, y: 0, maxRate: 5, maxAccel: 50, muzzleOffset: 1 });
+    for (const t of [fixed, swung]) turrets.bearing[t] = PI / 2;
+    const solution = new FiringSolution();
+    turrets.firingSolution(bodies, fixed, solution, 2);
+    expect(solution.x).toBeCloseTo(10, 9);
+    expect(solution.y).toBeCloseTo(3, 9);
+    turrets.firingSolution(bodies, swung, solution, 2);
+    expect(solution.x).toBeCloseTo(8, 9);
+    expect(solution.y).toBeCloseTo(1, 9);
+  });
 });
 
 describe('store housekeeping', () => {

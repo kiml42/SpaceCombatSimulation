@@ -135,6 +135,16 @@ describe('blueprint validation', () => {
       expect(geometry.traverse).toBeLessThan(PI / 3);
     });
 
+    it('trains a beam about the middle of its lenses, out past the block', () => {
+      const beam: ModuleSpec = { kind: 'hullBeam', x: 6, y: 0, angle: 0, length: 2, width: 4, barrels: 2 };
+      const design = compileBlueprint({ name: 'Lenses', modules: [hull, beam] });
+      const mount = design.turrets[0]!.mount;
+      const geometry = hullMountGeometry(beam);
+      expect(mount.x).toBeCloseTo(design.modules[1]!.x + geometry.trains, 9);
+      expect(mount.muzzleOffset).toBeCloseTo(geometry.barrelLength / 2, 9);
+      expect(mount.outletsFixed).toBe(true);
+    });
+
     it('trains no further than the layout says, and pays less for the bed', () => {
       // A limit the layout asks for, narrower than the opening leaves: the
       // mount trains that far and carries the simpler machine that does it.

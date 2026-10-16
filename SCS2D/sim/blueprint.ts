@@ -584,17 +584,18 @@ function cornerMargin(pad: number, dx: number, dy: number): number {
  * row of them swings as wide as its outer barrel (`barrelHalfWidth`).
  */
 /**
- * Where a mount's barrels pivot, in the frame its spec is written in: what its
- * arc and its trigger mask are measured about. A turret's is the middle of its
- * box; a hull weapon's is the root of its barrel, since the block is welded
- * into the ship and only the barrel moves.
+ * Where a mount trains, in the frame its spec is written in: what its arc and
+ * its trigger mask are measured about. A turret's is the middle of its box; a
+ * hull gun's is the root of its barrel, since the block is welded into the
+ * ship and only the barrel moves; a hull beam's is the middle of its lenses,
+ * each of which turns about its own centre (`HullMountGeometry.trains`).
  */
 export function mountPoint(spec: ModuleSpec): { x: number; y: number } {
   const centre = moduleCentre(spec);
   if (!isHullMount(spec.kind)) return centre;
-  const pivot = hullMountGeometry(spec).pivot;
+  const trains = hullMountGeometry(spec).trains;
   const angle = boxAngle(spec);
-  return { x: centre.x + cos(angle) * pivot, y: centre.y + sin(angle) * pivot };
+  return { x: centre.x + cos(angle) * trains, y: centre.y + sin(angle) * trains };
 }
 
 export function firingArc(
@@ -2019,12 +2020,12 @@ function designFrom(
     } else if (isHullMount(spec.kind) && s.gun !== null) {
       const gun = s.gun;
       const mount = hullMountGeometry(spec);
-      // A hull weapon trains about the root of its barrel, not about the
-      // middle of the module — the block is welded into the ship and only the
-      // tube moves. Everything downstream measures from the mount point, so
+      // A hull weapon trains ahead of its block, not about the middle of the
+      // module — the block is welded into the ship and only the barrel or the
+      // lenses move. Everything downstream measures from the mount point, so
       // this is where the mount point goes.
-      const px = x + cos(angle) * mount.pivot;
-      const py = y + sin(angle) * mount.pivot;
+      const px = x + cos(angle) * mount.trains;
+      const py = y + sin(angle) * mount.trains;
       radius = max(radius, sqrt(px * px + py * py) + gun.barrelLength);
 
       // Three limits, and the narrowest wins. The barrel has to stay inside
@@ -2035,7 +2036,7 @@ function designFrom(
       //
       // In the hull layer, so every module is in its way — the barrel's, and
       // the round's all the way downrange.
-      const arc = firingArc(specs, i, gun.barrelLength);
+      const arc = firingArc(specs, i, mount.muzzle);
       const mask = triggerMask(specs, i, everyModule, shotSpread(gun));
       const limit = mountTraverse(spec);
       const accel = mountAccel(spec, s);
@@ -2052,7 +2053,8 @@ function designFrom(
           maxAccel: accel,
           inertia: s.swingInertia,
           muzzleSpeed: gun.muzzleSpeed,
-          muzzleOffset: gun.barrelLength,
+          muzzleOffset: mount.muzzle,
+          ...(spec.kind === 'hullBeam' ? { outletsFixed: true } : {}),
           mask,
         },
         gun,
