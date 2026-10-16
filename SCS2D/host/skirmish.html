@@ -86,7 +86,27 @@
       }
       a.button:hover { background: #223044; }
       button:disabled { opacity: 0.4; cursor: default; }
-      .primary { border-color: #4f7cc0; }
+      .primary { border-color: #6a9be0; background: #2f5ea8; color: #fff; font-weight: 600; }
+      .primary:hover, a.button.primary:hover { background-color: #3a6fc2; }
+      #fight { display: inline-flex; gap: 0.4rem; align-items: center; justify-content: center; }
+      #fight[hidden] { display: none; }
+      #fight.running { opacity: 0.85; }
+      #fight .spinner { margin-top: 0; width: 0.7rem; height: 0.7rem; }
+      #fight .spinner[hidden] { display: none; }
+      .waiting { display: flex; gap: 0.5rem; align-items: flex-start; }
+      .waiting p { margin: 0; }
+      .spinner {
+        flex: none;
+        width: 0.9rem;
+        height: 0.9rem;
+        margin-top: 0.15rem;
+        border: 2px solid #2b3a50;
+        border-top-color: #7fb0f0;
+        border-radius: 50%;
+        animation: spin 0.9s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } }
       .swatch { width: 0.8rem; height: 0.8rem; border-radius: 2px; flex: none; }
       .side { display: flex; align-items: center; gap: 0.4rem; color: #e6edf5; margin-top: 0.4rem; }
       .sideStats { color: #8fa2b8; padding-left: 1.2rem; }
@@ -232,13 +252,17 @@
           <table id="budget"></table>
           <p id="fleetNote" class="muted"></p>
           <div class="buttons">
+            <button id="fight" class="primary" disabled title="Fight the round"><span id="fightSpinner" class="spinner" hidden></span><span id="fightLabel">Fight</span></button>
             <a id="editFleet" class="button" href="fleet.html" title="Change your fleet in the fleet editor">Edit fleet</a>
             <button id="retry" title="Fight this round again from the start">Restart</button>
           </div>
           <p id="outcome"></p>
           <div id="answering" hidden>
             <h2>The enemy answers</h2>
-            <p id="answerProgress" class="muted"></p>
+            <div class="waiting">
+              <span id="answerSpinner" class="spinner" aria-hidden="true"></span>
+              <p id="answerProgress"></p>
+            </div>
             <div class="buttons">
               <button id="watchAnswer" title="Stop or start watching the best enemy so far fight your fleet">Stop watching</button>
             </div>

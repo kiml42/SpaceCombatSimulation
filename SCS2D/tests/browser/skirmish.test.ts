@@ -9,7 +9,7 @@ import { promisify } from 'node:util';
 import type { Browser, Page } from 'playwright';
 import { launchChromium } from './launch.js';
 import { shipFleet, type Blueprint } from '../../sim/index.js';
-import { CORVETTE, GUNSHIP } from '../../scenarios/blueprints.js';
+import { BARE_CORE, CORVETTE, GUNSHIP } from '../../scenarios/blueprints.js';
 import { DEFAULT_SKIRMISH_SETTINGS, newSkirmish, skirmishFragment, won } from '../../scenarios/skirmish.js';
 import { DEFAULT_KINDS } from '../../evolution/mutate.js';
 import { designHref } from '../../editor/handoff.js';
@@ -64,6 +64,8 @@ describe('the skirmish in a browser', () => {
     await page.click('#start');
     expect(await page.isVisible('#round')).toBe(true);
     expect(await page.isDisabled('#play')).toBe(true);
+    expect(await page.isDisabled('#fight')).toBe(true);
+    expect(await page.getAttribute('#editFleet', 'class')).toContain('primary');
     expect(await page.textContent('#fleetNote')).toContain('over budget');
     expect(await page.locator('#budget tr.over').count()).toBeGreaterThan(0);
     await page.click('#abandon');
@@ -124,7 +126,17 @@ describe('the skirmish in a browser', () => {
     await page.click('#start');
     expect(await page.isDisabled('#play')).toBe(false);
     expect(await page.textContent('#roundTitle')).toBe('Round 1');
+    expect(await page.getAttribute('#fight', 'class')).toContain('primary');
+    expect(await page.getAttribute('#editFleet', 'class')).not.toContain('primary');
+    await page.click('#fight');
+    // It waits on the battle; pausing is the header's.
+    expect(await page.textContent('#fight')).toBe('Fighting…');
+    expect(await page.isDisabled('#fight')).toBe(true);
+    expect(await page.textContent('#play')).toBe('Pause');
     await page.click('#play');
+    expect(await page.textContent('#fight')).toBe('Resume');
+    expect(await page.isDisabled('#fight')).toBe(false);
+    await page.click('#fight');
     await page.waitForFunction(() => /t [1-9]/.test(document.getElementById('readout')?.textContent ?? ''));
     expect(await page.textContent('#sides')).toContain('You');
     expect(problems).toEqual([]);
@@ -195,13 +207,34 @@ describe('the skirmish in a browser', () => {
     expect(problems).toEqual([]);
   });
 
+  it('makes editing the fleet the thing to do next once a round is lost', async () => {
+    // A bare core cannot fire back, so it is out once the quiet time has passed.
+    const skirmish = newSkirmish(shipFleet(GUNSHIP), shipFleet(BARE_CORE), 7, undefined, { metal: 1e9, fuel: 1e9, build: 1e9 });
+    await page.goto(pathToFileURL(skirmishPage).href + skirmishFragment(skirmish));
+    await page.waitForSelector('#round:not([hidden])');
+    await page.selectOption('#speed', '16');
+    await page.click('#fight');
+    await page.waitForSelector('#outcome.lost', { timeout: 60_000 });
+    expect(await page.getAttribute('#editFleet', 'class')).toContain('primary');
+    expect(await page.isVisible('#fight')).toBe(false);
+    expect(problems).toEqual([]);
+    // Away, so the next skirmish handed over in an address loads afresh rather than as a change of hash.
+    await page.goto('about:blank');
+  }, 90_000);
+
   it('watches the enemy evolve an answer to a round won, and goes on to the next round', async () => {
     // The player's Corvette beats the same Corvette on seed 25, and a mirror is answered in a generation or two.
     const skirmish = won(newSkirmish(shipFleet(CORVETTE), shipFleet(CORVETTE), 25));
     await page.goto(pathToFileURL(skirmishPage).href + skirmishFragment(skirmish));
     await page.waitForSelector('#answering:not([hidden])');
     expect(await page.isVisible('#editFleet')).toBe(false);
+    expect(await page.isVisible('#fight')).toBe(false);
+    // Spinning while it searches, and only then.
+    expect(
+      await page.evaluate(() => document.getElementById('answerSpinner')!.hidden === !document.getElementById('answered')!.hidden),
+    ).toBe(true);
     await page.waitForSelector('#answered:not([hidden])', { timeout: 90_000 });
+    expect(await page.isVisible('#answerSpinner')).toBe(false);
     expect(await page.textContent('#answerProgress')).toMatch(/^Found in generation \d+/);
     // The answer heads the timeline, the enemy's losses before it folded away.
     const first = page.locator('#timeline > .match').first();
@@ -216,6 +249,7 @@ describe('the skirmish in a browser', () => {
     expect(await page.textContent('#roundTitle')).toBe('Round 2');
     expect(await page.isVisible('#answering')).toBe(false);
     expect(await page.isVisible('#editFleet')).toBe(true);
+    expect(await page.getAttribute('#fight', 'class')).toContain('primary');
     expect(problems).toEqual([]);
   }, 120_000);
 });
