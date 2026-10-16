@@ -1065,6 +1065,12 @@ Rules:
   to use its face. So thick buys a hull weapon a wider bore and an engine a bigger exit, with machinery
   that keeps growing as the square of the width. A thin module's grows only
   linearly once it is past a deck wide. A beam's bank fills the block's volume, so it grows the same way.
+- **A turret is a dome on a box, and which way round the box is drawn does not matter.** What turns is
+  the circle inscribed in the footprint, its diameter the smaller of the two sides, and that dome sets
+  the gun: the bore budget is a twenty-fifth of it, split between the barrels, which spread across it —
+  small enough that the row and its bracing always fit on it. The rest of the box is loading gear, as a
+  hull gun's block is: a square turret loads at the turret law's rate for its bore, and area beyond the
+  dome's own square (and depth, when thick) loads it faster, towards the same four-times ceiling.
 - **A turret trains and fires over the deck.** What stops its barrel is weapons-layer modules within a barrel's
   length. What stops its trigger is weapons-layer modules at any range down the line of fire: its *trigger
   mask*, a set of sectors it may point through but not fire into. The mask is always wider than the
