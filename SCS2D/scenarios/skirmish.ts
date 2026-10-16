@@ -249,12 +249,13 @@ export function lost(skirmish: Skirmish): Skirmish {
 }
 
 /**
- * The next round, against the enemy's answer, on a new seed. The budget is
- * the player's and does not follow the enemy, whose is unlimited.
+ * The next round, against the enemy's answer, on the seed it won on: the
+ * player's fleet as it stands loses it, so it must change to win. The budget
+ * is the player's and does not follow the enemy.
  */
 export function nextRound(skirmish: Skirmish, enemy: Fleet): Skirmish {
-  const { won: _, ...rest } = skirmish;
-  return { ...rest, enemy, round: skirmish.round + 1, tries: 0, seed: new Rng(skirmish.seed).nextUint32() };
+  const { won, ...rest } = skirmish;
+  return { ...rest, enemy, round: skirmish.round + 1, tries: 0, seed: won ?? skirmish.seed };
 }
 
 export function serialiseSkirmish(skirmish: Skirmish): Record<string, unknown> {

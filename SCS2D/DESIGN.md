@@ -910,7 +910,9 @@ inside any one file is not contiguous.
   to the fleet editor, which shows the budget, and back between tries. A ship of a fleet opens in the ship
   editor from the fleet editor's *Edit* and goes back to the fleet, skirmish and all. A round won, the
   enemy evolves an answer in a worker (`evolution/answer.ts`), watched as each generation's best fights the
-  round, and the answer, confirmed on the seed the player won on, is the next round's enemy. A timeline
+  round, and the answer — the first mutant to beat the player's fleet on the seed it won on, to the round's
+  own decision — is the next round's enemy, fought on that same seed, so the fleet that lost must change
+  to win it. A timeline
   lists every match, newest first, each side drawn as the evolution page draws a combatant, the player's
   side stamped victory, defeat or draw, runs one side lost folded away, and any match can be watched again or either fleet saved
   or exported. **Its numbers are the player's to set**, on a setup screen like the evolution page's before

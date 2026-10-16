@@ -219,15 +219,15 @@ describe('the skirmish', () => {
     expect(setup.seed).toBe(5);
   });
 
-  it('fights a lost round again on the same seed, and the next on a new one', () => {
+  it('fights a lost round again on the same seed, and the next on the seed its answer won on', () => {
     const skirmish = newSkirmish(gunship, gunship, 5);
     const again = lost(skirmish);
     expect(again.seed).toBe(5);
     expect(again.tries).toBe(1);
-    const next = nextRound(again, LINE_OF_BATTLE);
+    const next = nextRound({ ...again, won: 9 }, LINE_OF_BATTLE);
     expect(next.round).toBe(2);
     expect(next.tries).toBe(0);
-    expect(next.seed).not.toBe(5);
+    expect(next.seed).toBe(9);
     // The budget is the player's: the enemy's answer is not held to it.
     expect(next.budget).toEqual(skirmish.budget);
     expect(next.enemy).toBe(LINE_OF_BATTLE);
