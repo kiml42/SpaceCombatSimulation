@@ -14,6 +14,7 @@ import {
   moveEntries,
   refreshDesign,
   swapDesign,
+  forkDesign,
   updateEntry,
 } from '../editor/fleetEdit.js';
 import { FleetDocument, toFrame, toFrameAngle } from '../editor/fleetDocument.js';
@@ -97,6 +98,18 @@ describe('editing a fleet', () => {
     const both = addShip(fleet, GUNSHIP, 100, 0);
     const changed = { ...DINKY, notes: 'changed' };
     expect(swapDesign(both, [[1]], changed).designs['Dinky']!.notes).toBe(DINKY.notes);
+  });
+
+  it('forks a ship onto a copy of its design under the next free name', () => {
+    const fleet = addShip(addShip(addShip(emptyFleet('F'), DINKY, 0, 0), DINKY, 100, 0), { ...DINKY, name: 'Dinky 2' }, 200, 0);
+    const forked = forkDesign(fleet, [1])!;
+    expect(forked.name).toBe('Dinky 3');
+    expect(forked.fleet.ships.map((ship) => ('design' in ship ? ship.design : ''))).toEqual(['Dinky', 'Dinky 3', 'Dinky 2']);
+    expect({ ...forked.fleet.designs['Dinky 3']!, name: 'Dinky' }).toEqual(fleet.designs['Dinky']);
+    // The only ship of a design takes its copy, and the original goes.
+    expect(Object.keys(forkDesign(addShip(emptyFleet('F'), GUNSHIP, 0, 0), [0])!.fleet.designs)).toEqual(['Gunship 2']);
+    const group = LINE_OF_BATTLE.ships.findIndex((entry) => 'group' in entry);
+    expect(forkDesign(LINE_OF_BATTLE, [group])).toBeNull();
   });
 
   it('leaves a group use alone when asked to swap it', () => {

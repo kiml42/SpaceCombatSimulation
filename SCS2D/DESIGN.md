@@ -592,7 +592,7 @@ inside any one file is not contiguous.
   list are made a group where they stand, a group use dissolved back into what it places — every copy,
   mirrored and turned as it was — and a group renamed in every use. A selected ship can be swapped
   for another design, from the fleet's own or the library, where it stands and facing the same way, as a
-  module's kind is swapped in the ship editor; a design nothing flies any more is dropped. It counts ships and dry mass by design, and lists
+  module's kind is swapped in the ship editor; a design nothing flies any more is dropped. Or forked: flown on a copy of its design under the next free name, to change it apart from the rest. It counts ships and dry mass by design, and lists
   rather than enforces what is wrong: hulls overlapping at the start, a design that would not fly, and an
   embedded design that has drifted from the library's copy of the same name, which one button brings up to
   date. Fleets are saved to browser storage and exported and imported as fleet files.

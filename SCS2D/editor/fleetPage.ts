@@ -31,6 +31,7 @@ import {
   type EntryPath,
   refreshDesign,
   swapDesign,
+  forkDesign,
   updateEntry,
 } from './fleetEdit.js';
 import { battleHref, designHref, handedFleet } from './handoff.js';
@@ -456,6 +457,14 @@ export function startFleetEditor(): void {
     if (path !== undefined && doc.selection.length === 1 && blueprint !== null) {
       doc.apply(swapDesign(doc.fleet, [path], blueprint));
     }
+    refresh();
+  });
+  el<HTMLButtonElement>('forkDesign').addEventListener('click', () => {
+    const path = doc.selection[0];
+    if (path === undefined || doc.selection.length !== 1) return;
+    const forked = forkDesign(doc.fleet, path);
+    if (forked === null) return;
+    doc.apply(forked.fleet);
     refresh();
   });
   const addShipFile = el<HTMLInputElement>('addShipFile');

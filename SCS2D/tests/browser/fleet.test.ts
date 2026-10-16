@@ -166,6 +166,15 @@ describe('the fleet editor in a browser', () => {
     expect(await page.isVisible('#designRow')).toBe(true);
   });
 
+  it('forks the selected ship onto a copy of its design, and undoes it', async () => {
+    await page.click('#forkDesign');
+    expect(await page.textContent('#selectionTitle')).toBe('Ship: Dinky 2');
+    expect(await page.textContent('#stats')).toMatch(/Dinky 2/);
+    await page.click('#undo');
+    expect(await page.textContent('#selectionTitle')).toBe('Ship: Dinky');
+    expect(problems).toEqual([]);
+  });
+
   it('repeats a ship as a setting that updates as it is typed', async () => {
     await page.fill('#entryX', '-300');
     await page.fill('#repeatCount', '4');
