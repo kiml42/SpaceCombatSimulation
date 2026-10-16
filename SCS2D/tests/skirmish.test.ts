@@ -12,6 +12,7 @@ import {
   handedSkirmish,
   lost,
   newSkirmish,
+  multiplierOf,
   roundBattle,
   overLimit,
   nextRound,
@@ -273,6 +274,16 @@ describe('the skirmish', () => {
     // No spread holds them.
     const held = [1, 2, 3].map((seed) => roundBattle(gunship, gunship, seed, { ...settings, gapSpread: 0 }).range);
     expect(new Set(held).size).toBe(1);
+  });
+
+  it("keeps the enemy's budget multiplier, 1 where not said, and refuses a nonsensical one", () => {
+    const skirmish = newSkirmish(gunship, gunship, 5);
+    expect(multiplierOf(skirmish)).toBe(1);
+    const grown = { ...skirmish, multiplier: 2.25 };
+    expect(multiplierOf(handedSkirmish(skirmishFragment(grown))!)).toBe(2.25);
+    // It carries on into the next round.
+    expect(multiplierOf(nextRound(grown, gunship))).toBe(2.25);
+    expect(() => parseSkirmish({ ...serialiseSkirmish(skirmish), multiplier: 0 })).toThrow(/multiplier/);
   });
 
   it('refuses a skirmish it cannot read', () => {

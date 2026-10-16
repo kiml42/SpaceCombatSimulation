@@ -44,6 +44,11 @@ export interface Skirmish {
   won?: number;
   /** What it is played under; the defaults where it says nothing. */
   settings?: SkirmishSettings;
+  /**
+   * The enemy's budget as a multiple of the player's, 1 where not said. It
+   * grows by `growth` each time the enemy's search stalls, and never falls.
+   */
+  multiplier?: number;
 }
 
 /**
@@ -71,12 +76,9 @@ export interface SkirmishSettings {
   readonly seeds: number;
   /** How long a match of the search may last before the side ahead is taken to win, s. */
   readonly duration: number;
-  /**
-   * How much bigger an answer may be than the enemy it answers: its metal, fuel
-   * and build time, and its ships, though always one more ship than it had.
-   */
+  /** What the enemy's budget multiplier is multiplied by each time its search stalls. */
   readonly growth: number;
-  /** Generations without an answer before the enemy may grow by `growth` again. */
+  /** Generations without an answer before the multiplier grows by `growth` again. */
   readonly stretchAfter: number;
   /**
    * The most ships either side may field, unless the enemy already has more:
@@ -205,6 +207,11 @@ export function roundBattle(player: Fleet, enemy: Fleet, seed: number, settings:
   };
 }
 
+/** The enemy's budget as a multiple of the player's. */
+export function multiplierOf(skirmish: Skirmish): number {
+  return skirmish.multiplier ?? 1;
+}
+
 /** The round won: the enemy is to answer it, on the seed it was won on. */
 export function won(skirmish: Skirmish): Skirmish {
   return { ...skirmish, won: skirmish.seed };
@@ -231,6 +238,7 @@ export function serialiseSkirmish(skirmish: Skirmish): Record<string, unknown> {
     tries: skirmish.tries,
     seed: skirmish.seed,
     ...(skirmish.won === undefined ? {} : { won: skirmish.won }),
+    ...(skirmish.multiplier === undefined ? {} : { multiplier: skirmish.multiplier }),
     budget: { ...skirmish.budget },
     enemy: serialiseFleet(skirmish.enemy),
     player: serialiseFleet(skirmish.player),
@@ -301,8 +309,13 @@ export function parseSkirmish(value: unknown): Skirmish {
     }
   };
   const wonSeed = file['won'] === undefined ? undefined : whole('won', 0);
+  const multiplier = file['multiplier'];
+  if (multiplier !== undefined && (typeof multiplier !== 'number' || !(multiplier > 0) || !Number.isFinite(multiplier))) {
+    fail('multiplier must be a number above zero');
+  }
   return {
     ...(wonSeed === undefined ? {} : { won: wonSeed }),
+    ...(multiplier === undefined ? {} : { multiplier: multiplier as number }),
     round: whole('round', 1),
     tries: whole('tries', 0),
     seed: whole('seed', 0),

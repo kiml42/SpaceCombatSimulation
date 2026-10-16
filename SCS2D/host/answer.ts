@@ -1,4 +1,4 @@
-import { parseFleet, serialiseFleet, type Fleet } from '../sim/index.js';
+import { parseFleet, serialiseFleet, type Budget, type Fleet } from '../sim/index.js';
 import { EnemySearch } from '../evolution/answer.js';
 import type { SkirmishSettings } from '../scenarios/skirmish.js';
 
@@ -18,6 +18,9 @@ export interface AnswerInput {
   seed: number;
   /** What the skirmish is played under. */
   settings: SkirmishSettings;
+  /** The player's budget, and the multiple of it the enemy's starts at. */
+  budget: Budget;
+  multiplier: number;
 }
 
 export interface AnswerProgress {
@@ -25,8 +28,8 @@ export interface AnswerProgress {
   wins: number;
   /** Whether the best won on the seed the round was won on, under the search's rules. */
   onRound: boolean;
-  /** How many times the enemy has been let grow by half as much again. */
-  stretch: number;
+  /** The enemy's budget as a multiple of the player's. */
+  multiplier: number;
   seeds: number;
   best: Fleet;
   found: Fleet | null;
@@ -37,7 +40,7 @@ interface Wire {
   generation: number;
   wins: number;
   onRound: boolean;
-  stretch: number;
+  multiplier: number;
   seeds: number;
   best: unknown;
   found: unknown;
@@ -56,7 +59,7 @@ export function startAnswer(input: AnswerInput, progress: (now: AnswerProgress) 
       generation: wire.generation,
       wins: wire.wins,
       onRound: wire.onRound,
-      stretch: wire.stretch,
+      multiplier: wire.multiplier,
       seeds: wire.seeds,
       best: parseFleet(wire.best),
       found: wire.found === null ? null : parseFleet(wire.found),
@@ -67,6 +70,8 @@ export function startAnswer(input: AnswerInput, progress: (now: AnswerProgress) 
     won: input.won,
     seed: input.seed,
     settings: input.settings,
+    budget: input.budget,
+    multiplier: input.multiplier,
   };
   try {
     const url = URL.createObjectURL(new Blob([__ANSWER_WORKER__], { type: 'text/javascript' }));
@@ -95,10 +100,26 @@ export function startAnswer(input: AnswerInput, progress: (now: AnswerProgress) 
  * it: each call does a slice and says whether there is more to do.
  */
 export function searchLoop(
-  input: { player: unknown; enemy: unknown; won: number; seed: number; settings: SkirmishSettings },
+  input: {
+    player: unknown;
+    enemy: unknown;
+    won: number;
+    seed: number;
+    settings: SkirmishSettings;
+    budget: Budget;
+    multiplier: number;
+  },
   post: (wire: Wire) => void,
 ): () => boolean {
-  const search = new EnemySearch(parseFleet(input.player), parseFleet(input.enemy), input.won, input.seed, input.settings);
+  const search = new EnemySearch(
+    parseFleet(input.player),
+    parseFleet(input.enemy),
+    input.won,
+    input.seed,
+    input.settings,
+    input.budget,
+    input.multiplier,
+  );
   let seen = 0;
   return () => {
     const done = search.advance(SLICE);
@@ -109,7 +130,7 @@ export function searchLoop(
         generation: now.generation,
         wins: now.best.wins,
         onRound: now.best.onRound,
-        stretch: now.stretch,
+        multiplier: now.multiplier,
         seeds: now.seeds,
         best: serialiseFleet(now.best.enemy),
         found: now.found === null ? null : serialiseFleet(now.found),
