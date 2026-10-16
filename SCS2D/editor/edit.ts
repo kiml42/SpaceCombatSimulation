@@ -1,5 +1,5 @@
 import {
-  expandBlueprint,
+  bodySpec,
   expandWithOrigins,
   foldAngle,
   isInstance,
@@ -523,7 +523,7 @@ function boxOf(
 ): ModuleSpec | null {
   if (!isInstance(placement)) return placement;
   if ((placement.repeat ?? 1) > 1) return null;
-  const drawn = expandBlueprint({ name: '', modules: [placement], assemblies: assemblies ?? {} });
+  const drawn = expandWithOrigins({ name: '', modules: [placement], assemblies: assemblies ?? {} }).modules;
   return drawn.length === 1 ? drawn[0]! : null;
 }
 
@@ -1003,7 +1003,8 @@ export function extentAlong(specs: readonly ModuleSpec[], rotation: number): num
   const ay = sin(rotation);
   let low = Infinity;
   let high = -Infinity;
-  for (const spec of specs) {
+  for (const placed of specs) {
+    const spec = bodySpec(placed);
     const angle = spec.angle ?? 0;
     const c = cos(angle);
     const s = sin(angle);

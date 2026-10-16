@@ -1,5 +1,5 @@
 {
-  "formatVersion": 1,
+  "formatVersion": 2,
   "name": "Gunship",
   "notes": "A heavy gunship: a bow gun firing a shell an order of magnitude heavier than the corvette's, and a broadside turret on each beam for anything that gets inside it. Twice the corvette's engines move four times its mass, so it is markedly more sluggish — which is the point of having two ships to compare.",
   "doctrine": {
@@ -68,8 +68,9 @@
           "x": 4,
           "y": -0.25,
           "angle": 180,
-          "length": 8,
+          "length": 4,
           "width": 4.5,
+          "nozzle": 0.8889,
           "thick": true
         }
       ]
@@ -82,9 +83,10 @@
           "x": 0,
           "y": -1,
           "angle": 90,
-          "length": 2,
+          "length": 1,
           "width": 5,
           "barrels": 2,
+          "nozzle": 0.4,
           "thick": true
         }
       ]
@@ -97,9 +99,10 @@
           "x": -1.5,
           "y": 0,
           "angle": 0,
-          "length": 3,
+          "length": 1.5,
           "width": 4,
           "barrels": 2,
+          "nozzle": 0.75,
           "thick": true
         }
       ]
@@ -156,16 +159,16 @@
     },
     {
       "kind": "hullGun",
-      "x": 26.5,
+      "x": 16.5,
       "y": 0,
       "angle": 0,
-      "length": 33,
+      "length": 13,
       "width": 8,
       "barrels": 2,
       "barrelCalibres": 50,
+      "fuse": 0.08,
       "fragments": 4,
       "burstSpeed": 300,
-      "fuse": 0.08,
       "thick": true,
       "targeting": {
         "loyaltyWeight": 30,

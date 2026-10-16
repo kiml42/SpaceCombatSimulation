@@ -1,4 +1,4 @@
-import { BARREL_CALIBRES, CALIBRE_FRACTION, type Blueprint } from '../sim/index.js';
+import { BARREL_CALIBRES, bodySpec, CALIBRE_FRACTION, type Blueprint, type ModuleSpec } from '../sim/index.js';
 import { CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
 
 /**
@@ -9,20 +9,21 @@ import { CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
 function withBowTurret(ship: Blueprint): Blueprint {
   return {
     ...ship,
-    modules: ship.modules.map((p) =>
-      'kind' in p && p.kind === 'hullGun'
-        ? {
-            kind: 'turret',
-            x: p.x,
-            y: p.y,
-            angle: p.angle ?? 0,
-            length: p.length,
-            width: p.width,
-            barrels: 1,
-            barrelCalibres: Math.min(BARREL_CALIBRES, p.length / (p.width * CALIBRE_FRACTION)),
-          }
-        : p,
-    ),
+    modules: ship.modules.map((p) => {
+      if (!('kind' in p) || p.kind !== 'hullGun') return p;
+      // In the space the whole gun took, barrel and all.
+      const body = bodySpec(p as ModuleSpec);
+      return {
+        kind: 'turret',
+        x: body.x,
+        y: body.y,
+        angle: body.angle ?? 0,
+        length: body.length,
+        width: body.width,
+        barrels: 1,
+        barrelCalibres: Math.min(BARREL_CALIBRES, body.length / (body.width * CALIBRE_FRACTION)),
+      };
+    }),
   };
 }
 

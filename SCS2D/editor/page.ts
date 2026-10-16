@@ -10,7 +10,7 @@ import {
   DEFAULT_FRAGMENTS,
   DEFAULT_FUSE,
   firesShells,
-  DEFAULT_NOZZLE_SHARE,
+  DEFAULT_NOZZLE_WIDTHS,
   degreesToRadians,
   isInstance,
   isHullMount,
@@ -105,7 +105,7 @@ import { drawOverlay, envelopeBearingAt, overEnvelope } from './overlay.js';
 import {
   assemblyKnob,
   facingTo,
-  shareTo,
+  nozzleTo,
   barrelCalibresTo,
   handleAt,
   handlesFor,
@@ -188,13 +188,11 @@ const DEFAULTS: Record<ModuleSpec['kind'], Omit<ModuleSpec, 'x' | 'y'>> = {
   robotBay: { kind: 'robotBay', length: 4, width: 4 },
   core: { kind: 'core', length: 3, width: 3 },
   // Facing aft along its bell, so it pushes the ship forward.
-  engine: { kind: 'engine', angle: math.PI, length: 3, width: 3 },
+  engine: { kind: 'engine', angle: math.PI, length: 1.5, width: 3 },
   turret: { kind: 'turret', angle: 0, length: 4, width: 3, barrels: 1 },
   beamTurret: { kind: 'beamTurret', angle: 0, length: 4, width: 3, barrels: 1 },
-  // Longer than they are wide: a hull mount's length is mostly barrel, and one
-  // drawn square would train through an angle worth nothing.
-  hullGun: { kind: 'hullGun', angle: 0, length: 8, width: 4, barrels: 1 },
-  hullBeam: { kind: 'hullBeam', angle: 0, length: 6, width: 4, barrels: 1 },
+  hullGun: { kind: 'hullGun', angle: 0, length: 4, width: 4, barrels: 1 },
+  hullBeam: { kind: 'hullBeam', angle: 0, length: 4, width: 4, barrels: 1 },
   claw: { kind: 'claw', angle: 0, length: 2, width: 2 },
   // Room for a fighter to sit on, wholly inside it.
   pad: { kind: 'pad', length: 12, width: 10 },
@@ -226,7 +224,7 @@ type ModuleNumberField =
 function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
   if (key === 'angle') return radiansToDegrees(spec.angle ?? 0);
   if (key === 'reinforcement') return spec.reinforcement ?? 1;
-  if (key === 'nozzle') return spec.nozzle ?? DEFAULT_NOZZLE_SHARE;
+  if (key === 'nozzle') return spec.nozzle ?? DEFAULT_NOZZLE_WIDTHS;
   if (key === 'barrelCalibres') return barrelCalibres(spec);
   // What the mount would do if the layout said nothing, so the box shows the
   // arc it actually has rather than a blank.
@@ -2057,7 +2055,7 @@ export function startEditor(): void {
          * module's own corners to move that corner alone, the knob to turn it,
          * the split to share its length between block and bell or barrel.
          */
-        kind: 'size' | 'vertex' | 'rotate' | 'split';
+        kind: 'size' | 'vertex' | 'rotate' | 'tip';
         from: Blueprint;
         /** The handle grabbed, which says which faces, or which corner, move. */
         handle: Handle;
@@ -2133,12 +2131,12 @@ export function startEditor(): void {
     if (path === null || origin === null) return;
     const world = worldAt(event);
     let next: Blueprint | null;
-    if (drag.kind === 'split') {
+    if (drag.kind === 'tip') {
       if (drag.spec.kind === 'hullGun') {
         const barrelCalibres = barrelCalibresTo(drag.spec, world.x, world.y, event.altKey);
         next = updatePlacement(drag.from, path, (p) => ({ ...p, barrelCalibres }));
       } else {
-        const nozzle = shareTo(drag.spec, world.x, world.y, event.altKey ? 0 : snapMetres());
+        const nozzle = nozzleTo(drag.spec, world.x, world.y, event.altKey ? 0 : snapMetres());
         next = updatePlacement(drag.from, path, (p) => ({ ...p, nozzle }));
       }
     } else if (drag.kind === 'vertex') {
@@ -2229,8 +2227,8 @@ export function startEditor(): void {
         kind:
           handles[grabbed]!.kind === 'rotate'
             ? 'rotate'
-            : handles[grabbed]!.kind === 'split'
-              ? 'split'
+            : handles[grabbed]!.kind === 'tip'
+              ? 'tip'
               : handles[grabbed]!.kind === 'vertex'
                 ? 'vertex'
                 : 'size',

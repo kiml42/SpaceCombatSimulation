@@ -3,7 +3,7 @@
   "name": "Imperial Fleet",
   "designs": {
     "Star Destroyer": {
-      "formatVersion": 1,
+      "formatVersion": 2,
       "name": "Star Destroyer",
       "notes": "A capital. Its batteries go for the biggest thing on the board — nothing in the battle outweighs it, so a preference for its own mass is a preference for whatever is largest — and they shoot to disable rather than to destroy: guns, then engines, and never the hull while either is left.",
       "doctrine": {
@@ -113,20 +113,20 @@
               "x": -448.5,
               "y": 450,
               "angle": 90,
-              "length": 75,
+              "length": 66.6667,
               "width": 207,
               "barrels": 36,
-              "nozzle": 0.111111
+              "nozzle": 2.7778
             },
             {
               "kind": "engine",
               "x": -345,
               "y": 478.5,
               "angle": 0,
-              "length": 85,
+              "length": 78.4615,
               "width": 57,
               "barrels": 14,
-              "nozzle": 0.076923
+              "nozzle": 2.1795
             },
             {
               "use": "engine2",
@@ -162,9 +162,9 @@
               "x": -608,
               "y": 82.5,
               "angle": 180,
-              "length": 180,
+              "length": 130,
               "width": 26,
-              "nozzle": 0.277778,
+              "nozzle": 1.9231,
               "thick": true
             },
             {
@@ -224,9 +224,9 @@
               "x": -702,
               "y": 210,
               "angle": 90,
-              "length": 50,
+              "length": 36.1111,
               "width": 60,
-              "nozzle": 0.277778,
+              "nozzle": 0.2315,
               "thick": true
             },
             {
@@ -484,9 +484,9 @@
               "x": 0,
               "y": 0,
               "angle": 180,
-              "length": 315,
+              "length": 195.0001,
               "width": 100,
-              "nozzle": 0.380952,
+              "nozzle": 1.2,
               "main": false,
               "thick": true
             }
@@ -589,11 +589,11 @@
               "x": 0,
               "y": 0,
               "angle": 68.713594886,
-              "length": 22,
+              "length": 20,
               "width": 160,
               "reinforcement": 5,
               "barrels": 49,
-              "nozzle": 0.090909
+              "nozzle": 0.6667
             }
           ]
         },
@@ -681,7 +681,7 @@
       ]
     },
     "TIE Fighter": {
-      "formatVersion": 1,
+      "formatVersion": 2,
       "name": "TIE Fighter",
       "notes": "A fighter, and a fighter's doctrine: other fighters first, by preferring a target about the size of an X-Wing, and guns and engines rather than hull. What is left over is a capital with its guns stripped, which is more than a TIE could have done to it by shooting at the hull. The ball is the whole ship: a spine of cockpit down the middle, a gun let into the hull either side of it, an engine outboard of each gun with its bell out the back, and plating filling the rest out to a circle. Nothing is bolted on to be shot off.",
       "fighter": true,
@@ -721,9 +721,9 @@
               "x": 0.5,
               "y": 0,
               "angle": -180,
-              "length": 1.8,
+              "length": 1.2,
               "width": 0.5,
-              "nozzle": 0.333333
+              "nozzle": 1.2
             },
             {
               "kind": "tank",
@@ -753,16 +753,16 @@
               "x": 1.05,
               "y": -0.5,
               "angle": 180,
-              "length": 3,
+              "length": 2,
               "width": 0.5,
-              "nozzle": 0.333333
+              "nozzle": 2
             },
             {
               "kind": "hullGun",
-              "x": 1.1,
+              "x": 0.05,
               "y": -1,
               "angle": 0,
-              "length": 4.4,
+              "length": 2.3,
               "width": 0.5,
               "reinforcement": 1.5,
               "barrels": 1,
@@ -788,21 +788,21 @@
               "x": 0,
               "y": 0,
               "angle": 180,
-              "length": 3.8,
+              "length": 3.65,
               "width": 0.3,
               "barrels": 1,
-              "nozzle": 0.039474
+              "nozzle": 0.5
             },
             {
               "kind": "engine",
               "x": -3.5000000000000004,
               "y": -0.1499999999999995,
               "angle": 270,
-              "length": 0.2,
+              "length": 0.1,
               "width": 0.3,
               "reinforcement": 1.34,
               "barrels": 1,
-              "nozzle": 0.5
+              "nozzle": 0.3333
             }
           ]
         }
@@ -842,9 +842,10 @@
           "x": -0.65,
           "y": 0,
           "angle": 180,
-          "length": 1.2,
+          "length": 0.6,
           "width": 0.5,
-          "reinforcement": 1.23
+          "reinforcement": 1.23,
+          "nozzle": 1.2
         },
         {
           "kind": "hold",

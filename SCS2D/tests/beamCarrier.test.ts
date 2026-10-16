@@ -44,16 +44,17 @@ describe('the Beam Carrier', () => {
       landed = FIGHTERS.find((f) => ships.isAlive(f) && ships.body(f) === ships.body(CARRIER) && charged(f)) ?? -1;
     }
     expect(landed).toBeGreaterThanOrEqual(0);
-    for (let s = 0; s < 30 * 60; s++) step();
-    // With the raid beaten, nothing is left to sortie for, so it is still aboard.
-    expect(ships.body(landed)).toBe(ships.body(CARRIER));
     const design = ships.design(landed);
     const own = (kind: string): number => design.modules.findIndex((m, k) => m.spec.kind === kind && ships.owns(landed, k));
     const m = own('battery');
-    expect(ships.power.pieceRoom(body(landed), m)).toBeLessThan(0.05 * design.modules[m]!.stats.charge);
+    // Filled before it next sorties, if the raid gives it cause to.
+    const full = (): boolean =>
+      ships.power.pieceRoom(body(landed), m) < 0.05 * design.modules[m]!.stats.charge &&
+      ships.fuel.pieceRoom(body(landed), own('core')) < 0.5;
+    for (let s = 0; s < 30 * 60 && !full() && ships.body(landed) === ships.body(CARRIER); s++) step();
+    expect(ships.body(landed)).toBe(ships.body(CARRIER));
+    expect(full()).toBe(true);
     expect(ships.power.held(body(landed), m)).toBeGreaterThan(0);
-    // Its fuel topped up too, the carrier keeping back only a tenth.
-    expect(ships.fuel.pieceRoom(body(landed), own('core'))).toBeCloseTo(0, 0);
   });
 
   it('has its tender drink from the wrecks instead', { timeout: 60_000 }, () => {

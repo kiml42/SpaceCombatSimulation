@@ -1,10 +1,10 @@
 import { abs, atan2, cos, HALF_PI, max, min, round, sin } from './math.js';
-import { boxAngle, moduleCentre, moduleOutline, type ModuleSpec } from './modules.js';
+import { blockCentre, boxAngle, moduleCentre, moduleOutline, weldBox, type ModuleSpec } from './modules.js';
 import { isTriangle, outlineAxes, projectOutline } from './shape.js';
 import {
   ATTACHMENT_TOLERANCE,
   contactWidth,
-  expandBlueprint,
+  expandWithOrigins,
   isInstance,
   type Assembly,
   type Placement,
@@ -80,7 +80,7 @@ function pushFace(
     j === index
       ? [resized]
       : isInstance(placement)
-        ? expandBlueprint({ name: '', modules: [placement], assemblies })
+        ? expandWithOrigins({ name: '', modules: [placement], assemblies }).modules
         : [placement],
   );
 
@@ -249,8 +249,10 @@ function movedFaces(before: ModuleSpec, after: ModuleSpec): Face[] {
   const angle = boxAngle(before);
   const ux = cos(angle);
   const uy = sin(angle);
-  const was = moduleCentre(before);
-  const now = moduleCentre(after);
+  // A layout's own boxes, so faces of the block: a barrel or bell reaching
+  // out of one carries nothing.
+  const was = blockCentre(before);
+  const now = blockCentre(after);
   const faces: Face[] = [];
   const add = (
     of: FaceOf,
@@ -276,7 +278,9 @@ function movedFaces(before: ModuleSpec, after: ModuleSpec): Face[] {
  * Whether a box sits against a face: its near side is at the face, and it
  * overlaps the face along its length rather than meeting it at a corner.
  */
-function against(box: ModuleSpec, face: Face): boolean {
+function against(placed: ModuleSpec, face: Face): boolean {
+  // What sits against a face sits against a block, however it was given.
+  const box = weldBox(placed);
   const centre = moduleCentre(box);
   const angle = boxAngle(box);
   const c = cos(angle);
@@ -345,6 +349,10 @@ export function sharedFace(a: ModuleSpec, b: ModuleSpec): SharedFace | null {
   const turn = ((((boxAngle(b)) - angleA) % HALF_PI) + HALF_PI) % HALF_PI;
   if (min(turn, HALF_PI - turn) > 1e-9) return null;
   if (contactWidth(a, b) <= 0) return null;
+  // The faces of the blocks, as the layout writes them; what is welded is a
+  // block, not a barrel.
+  a = weldBox(a);
+  b = weldBox(b);
 
   const ca = moduleCentre(a);
   const cb = moduleCentre(b);
@@ -422,8 +430,8 @@ export function withFaceMoved(spec: ModuleSpec, face: FaceOf, delta: number): Mo
   const s = sin(angle);
   const lx = (face.along * delta) / 2;
   const ly = (face.across * delta) / 2;
-  const was = moduleCentre(spec);
-  const offset = moduleCentre({ ...spec, x: 0, y: 0, length, width });
+  const was = blockCentre(spec);
+  const offset = blockCentre({ ...spec, x: 0, y: 0, length, width });
   return {
     ...spec,
     length,

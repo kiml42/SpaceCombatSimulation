@@ -1,5 +1,5 @@
 {
-  "formatVersion": 1,
+  "formatVersion": 2,
   "name": "Y Wing",
   "fighter": true,
   "doctrine": {
@@ -24,9 +24,9 @@
           "x": -1,
           "y": 1.3,
           "angle": 180,
-          "length": 12.2,
+          "length": 5.49,
           "width": 2.2,
-          "nozzle": 0.55
+          "nozzle": 3.05
         },
         {
           "kind": "tank",
@@ -40,26 +40,29 @@
           "x": -1,
           "y": 1.2999999999999998,
           "angle": 0,
-          "length": 1.5,
-          "width": 2
+          "length": 0.75,
+          "width": 2,
+          "nozzle": 0.375
         },
         {
           "kind": "engine",
           "x": 5.000000000000001,
           "y": -2.5,
           "angle": 90,
-          "length": 0.8,
+          "length": 0.4,
           "width": 1.8,
-          "barrels": 1
+          "barrels": 1,
+          "nozzle": 0.2222
         },
         {
           "kind": "engine",
           "x": -5.3500000000000005,
           "y": 2.4,
           "angle": 90,
-          "length": 0.8,
+          "length": 0.4,
           "width": 1.7,
-          "barrels": 1
+          "barrels": 1,
+          "nozzle": 0.2353
         }
       ]
     }
@@ -75,10 +78,10 @@
     },
     {
       "kind": "hullGun",
-      "x": 6.599999999999999,
+      "x": 4.08,
       "y": 0,
       "angle": 0,
-      "length": 8.2,
+      "length": 3.16,
       "width": 2.8,
       "reinforcement": 2,
       "barrels": 1,
@@ -95,10 +98,10 @@
     },
     {
       "kind": "hullGun",
-      "x": -5.550000000000001,
+      "x": -4.25,
       "y": 0,
       "angle": -180,
-      "length": 4.5,
+      "length": 1.9,
       "width": 2.6,
       "barrels": 2,
       "barrelCalibres": 20,

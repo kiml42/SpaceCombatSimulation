@@ -277,13 +277,11 @@ export function liningOf(spec: ModuleSpec): number {
 export const STANDARD_GRAVITY = 9.80665;
 
 /**
- * How much of an engine is bell when its layout does not say.
- *
- * Half and half, which is enough expansion to be worth having (`divergence`
- * lands near 0.91 on a squarish one) while leaving a machinery block big
- * enough to bolt to on three sides.
+ * How long an engine's bell is when its layout does not say, in widths of its
+ * exit: as long as it is wide, which collimates well (`divergence` near 0.99)
+ * without the bell being most of the engine.
  */
-export const DEFAULT_NOZZLE_SHARE = 0.5;
+export const DEFAULT_NOZZLE_WIDTHS = 1;
 
 /**
  * Bore as a fraction of the mount's width. A triple 16-inch turret is about
@@ -891,7 +889,11 @@ export interface ModuleSpec {
    * pushes the ship the opposite way.
    */
   angle?: number;
-  /** Extent along the facing, metres. */
+  /**
+   * Extent along the facing, metres. For an engine or a hull weapon this is
+   * the machinery block alone: the bell or barrel reaches out beyond it, and
+   * is in the way of other modules all the same (`bodySpec`).
+   */
   length: number;
   /** Extent across the facing, metres. */
   width: number;
@@ -919,6 +921,12 @@ export interface ModuleSpec {
    */
   vertices?: readonly number[];
   /**
+   * Set on a spec that is already the body it makes (`bodySpec`): an engine's
+   * or hull weapon's `length` then includes its bell or barrel. Never in a
+   * file; what a compiled design holds.
+   */
+  body?: true;
+  /**
    * Wall thickness multiplier, at least 1. Buying reinforcement buys armour
    * and structural strength, and pays for it in mass — which is the whole of
    * the armour trade-off.
@@ -939,12 +947,12 @@ export interface ModuleSpec {
   barrels?: number;
 
   /**
-   * How much of an engine's length is bell, as a fraction from 0 to 1. The
-   * rest is the chamber and pumps behind it, which is what the engine is
-   * welded to the ship by. `DEFAULT_NOZZLE_SHARE` when unsaid.
+   * How long an engine's bell is, in widths of its exit, reaching out beyond
+   * the machinery block `length` measures. `DEFAULT_NOZZLE_WIDTHS` when unsaid.
    *
-   * It cuts both ways, which is what makes it a knob rather than a slider:
-   * bell length is aim bought with flow. See `engineGeometry`.
+   * In exit widths because that is what decides how well a bell collimates, so
+   * the number means the same efficiency on any size of engine; a longer bell
+   * is more aim, and more length to fit in. See `engineGeometry`.
    *
    * Zero is legal and is a rocket whose bell has blown off: gas thrown in
    * every direction, about half the thrust, and a flame that goes nowhere.
@@ -1315,12 +1323,10 @@ export function moduleProblem(spec: ModuleSpec): string | null {
     }
   }
   if (spec.nozzle !== undefined) {
-    // A module that is all protrusion has no block: no chamber to burn in, no
-    // breech to load from, and nothing to bolt to the ship. Nothing of it is
-    // legal and continuous — the block running out of interior is what stops
-    // it well before this.
-    if (!(spec.nozzle >= 0) || !(spec.nozzle < 1)) {
-      return `${spec.kind}: nozzle must be from 0 to under 1, got ${spec.nozzle}`;
+    // No bell at all is legal, and a bad engine; a long one is held in check
+    // by what it runs into rather than by a rule of its own.
+    if (!(spec.nozzle >= 0) || !Number.isFinite(spec.nozzle)) {
+      return `${spec.kind}: nozzle must be at least 0 exit widths, got ${spec.nozzle}`;
     }
     // On a kind that does not read it the value is dormant — kept against a
     // refit back rather than refused, see `readsNozzle` — so only the range
@@ -1356,13 +1362,6 @@ export function moduleProblem(spec: ModuleSpec): string | null {
     return `${spec.kind}: burst speed must be more than 0, got ${spec.burstSpeed}`;
   }
   const thickness = BASE_WALL_THICKNESS * reinforcement;
-  if (isHullMount(spec.kind)) {
-    const { barrelLength } = hullMountGeometry(spec);
-    if (!(barrelLength < spec.length)) {
-      const what = spec.kind === 'hullGun' ? `a ${barrelCalibres(spec)}-calibre barrel` : 'the lens housing';
-      return `${spec.kind}: ${what} is ${barrelLength.toFixed(2)} m, leaving no block in a ${spec.length} m mount`;
-    }
-  }
   // For an engine it is the machinery block that has to be a box: the bell is
   // meant to be open at both ends. This is also what makes "all nozzle"
   // impossible by running out of block rather than by a rule of its own.
@@ -1418,12 +1417,69 @@ export function moduleProblem(spec: ModuleSpec): string | null {
  * than one held back over a rounding.
  */
 export function moduleRadius(spec: ModuleSpec): number {
+  spec = bodySpec(spec);
   const triangle = triangleOf(spec);
   // A triangle's furthest corner, which is exact rather than conservative:
   // the box round it is not centred on it, so the box's half-diagonal is
   // neither a bound nor a useful approximation of one.
   if (triangle !== null) return triangleRadius(triangle);
   return sqrt(spec.length * spec.length + spec.width * spec.width) / 2;
+}
+
+/** Whether a kind has something reaching out of its block: a bell or a barrel. */
+function protrudes(kind: ModuleKind): boolean {
+  return kind === 'engine' || isHullMount(kind);
+}
+
+/** How long an engine's bell is, metres: so many exit widths. */
+function bellLength(spec: ModuleSpec): number {
+  return (spec.nozzle ?? DEFAULT_NOZZLE_WIDTHS) * moduleThickness(spec);
+}
+
+/**
+ * A module as the body it makes: for an engine or a hull weapon, its block with
+ * the bell or barrel that reaches out of it, as one box.
+ *
+ * **A layout says how big the block is; everything that asks where the matter
+ * is asks this.** An author sizes the machinery, and the barrel or bell is
+ * whatever its own numbers make it — so no length can leave a gun no room to
+ * load from. But the barrel is still there: it is in the way of other modules,
+ * it stops shells and it reaches out to the hull's bounding circle, so
+ * outlines, centres and stats are all taken of the body.
+ *
+ * Marked, so a body is never extended twice, and every geometric question in
+ * this file asks it first: a layout's spec and a compiled one can be handed
+ * to any of them. Kinds with nothing protruding are their own body.
+ */
+export function bodySpec(spec: ModuleSpec): ModuleSpec {
+  if (spec.body === true || !protrudes(spec.kind)) return spec;
+  if (spec.kind === 'engine') {
+    // The bell goes on the end away from the face it is bolted on by, which is
+    // where the position already is.
+    return { ...spec, length: spec.length + bellLength(spec), body: true };
+  }
+  const barrel = hullBarrelLength(spec);
+  const angle = spec.angle ?? 0;
+  return {
+    ...spec,
+    length: spec.length + barrel,
+    x: spec.x + cos(angle) * barrel * 0.5,
+    y: spec.y + sin(angle) * barrel * 0.5,
+    body: true,
+  };
+}
+
+/**
+ * The middle of a module's block: what a layout's own box is drawn about, and
+ * so what the editor and the mutation operators move and resize. For anything
+ * with nothing protruding it is `moduleCentre`.
+ */
+export function blockCentre(spec: ModuleSpec): { x: number; y: number } {
+  const block = spec.body === true ? weldBox(spec) : spec;
+  if (block.kind !== 'engine') return { x: block.x, y: block.y };
+  const angle = boxAngle(block);
+  const back = block.length / 2;
+  return { x: block.x - cos(angle) * back, y: block.y - sin(angle) * back };
 }
 
 /**
@@ -1437,6 +1493,7 @@ export function moduleRadius(spec: ModuleSpec): number {
  * the middle, which for an engine is half its length out.
  */
 export function moduleCentre(spec: ModuleSpec): { x: number; y: number } {
+  spec = bodySpec(spec);
   if (spec.kind !== 'engine') return { x: spec.x, y: spec.y };
   // The box runs from the mounting face against the way it pushes.
   const angle = boxAngle(spec);
@@ -1477,6 +1534,7 @@ export function boxAngle(spec: ModuleSpec): number {
  * since a tolerance is never meant to be a size.
  */
 export function grownOutline(spec: ModuleSpec, margin: number, out: number[]): number {
+  spec = bodySpec(spec);
   const triangle = triangleOf(spec);
   if (triangle !== null) {
     const grown = insetTriangle(triangle, -margin);
@@ -1569,6 +1627,7 @@ export function shapeModule(spec: ModuleSpec, vertices: readonly number[] | null
  * one array across a loop allocates nothing (non-negotiable 4).
  */
 export function moduleOutline(spec: ModuleSpec, out: number[]): number {
+  spec = bodySpec(spec);
   const angle = boxAngle(spec);
   const c = cos(angle);
   const s = sin(angle);
@@ -1615,7 +1674,7 @@ export function moduleOutline(spec: ModuleSpec, out: number[]): number {
  * Fields the new kind does not read are kept, so swapping back restores them.
  */
 export function refitModule(spec: ModuleSpec, to: ModuleKind, turn = 0): ModuleSpec {
-  const centre = moduleCentre(spec);
+  const centre = blockCentre(spec);
   const next: ModuleSpec = { ...spec, kind: to };
   // Corners are the one field a refit cannot keep dormant: a kind with a bell
   // or a barrel coming out of a face has to have the face. The module becomes
@@ -1628,7 +1687,7 @@ export function refitModule(spec: ModuleSpec, to: ModuleKind, turn = 0): ModuleS
     while (angle <= -PI) angle += 2 * PI;
     next.angle = angle;
   }
-  const placed = moduleCentre({ ...next, x: 0, y: 0 });
+  const placed = blockCentre({ ...next, x: 0, y: 0 });
   next.x = tidy(centre.x - placed.x);
   next.y = tidy(centre.y - placed.y);
   return next;
@@ -1694,9 +1753,10 @@ export interface EngineGeometry {
 
 /** An engine's halves and its bell geometry. Engines only. */
 export function engineGeometry(spec: ModuleSpec): EngineGeometry {
+  spec = bodySpec(spec);
   const nozzles = spec.barrels ?? 1;
-  const share = spec.nozzle ?? DEFAULT_NOZZLE_SHARE;
-  const nozzleLength = spec.length * share;
+  const nozzleLength = bellLength(spec);
+  const share = nozzleLength / spec.length;
   const pitch = spec.width / nozzles;
   // Square: a thin engine's bell is held to a deck both ways.
   const exitWidth = moduleThickness(spec);
@@ -1748,6 +1808,7 @@ export function specificImpulse(exhaustVelocity: number): number {
  * a change of one field rather than a second geometry.
  */
 export function engineMachinery(spec: ModuleSpec): ModuleSpec {
+  spec = bodySpec(spec);
   return { ...spec, length: engineGeometry(spec).machineryLength };
 }
 
@@ -1859,8 +1920,14 @@ export interface HullMountGeometry {
   traverse: number;
 }
 
-/** A hull mount's halves, its outlets and the arc its own barrel leaves it. */
-export function hullMountGeometry(spec: ModuleSpec): HullMountGeometry {
+/** A hull mount's outlets and barrel, which its length does not enter into. */
+function hullOutlets(spec: ModuleSpec): {
+  outlets: number;
+  outletWidth: number;
+  outletSpacing: number;
+  barrelWidth: number;
+  barrelLength: number;
+} {
   const outlets = spec.barrels ?? 1;
   // What a single outlet would be, and each of several split the way a
   // turret splits it: tubes divide the bore, so each is `1/n` as wide; lenses
@@ -1886,6 +1953,18 @@ export function hullMountGeometry(spec: ModuleSpec): HullMountGeometry {
     spec.kind === 'hullBeam'
       ? outletWidth * BEAM_EMITTER_APERTURES
       : (barrelCalibres(spec) * outletWidth) / BARREL_OUTER_CALIBRES;
+  return { outlets, outletWidth, outletSpacing, barrelWidth, barrelLength };
+}
+
+/** How far a hull mount's barrel or lens housing reaches out of its block, metres. */
+function hullBarrelLength(spec: ModuleSpec): number {
+  return hullOutlets(spec).barrelLength;
+}
+
+/** A hull mount's halves, its outlets and the arc its own barrel leaves it. */
+export function hullMountGeometry(spec: ModuleSpec): HullMountGeometry {
+  spec = bodySpec(spec);
+  const { outlets, outletWidth, outletSpacing, barrelWidth, barrelLength } = hullOutlets(spec);
   const share = barrelLength / spec.length;
   const blockLength = spec.length - barrelLength;
 
@@ -2100,6 +2179,7 @@ function acrossOf(spec: ModuleSpec): number {
  * the ship together.
  */
 export function weldBox(spec: ModuleSpec): ModuleSpec {
+  spec = bodySpec(spec);
   if (spec.kind === 'engine') return engineMachinery(spec);
   if (!isHullMount(spec.kind)) return spec;
   const { blockLength, barrelLength } = hullMountGeometry(spec);
@@ -2344,6 +2424,7 @@ export function complexityOf(spec: ModuleSpec): number {
 }
 
 export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
+  spec = bodySpec(spec);
   const problem = moduleProblem(spec);
   if (problem !== null) throw new Error(`Invalid module — ${problem}`);
 

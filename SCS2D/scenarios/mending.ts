@@ -42,7 +42,7 @@ export const REBUILDER: Blueprint = {
   modules: [
     ...MENDER.modules,
     { kind: 'structure', x: 23.5, y: 6.5, length: 4, width: 3 },
-    { kind: 'engine', x: 25.5, y: 0, angle: 0, length: 2, width: 2 },
+    { kind: 'engine', x: 25.5, y: 0, angle: 0, length: 1, width: 2, nozzle: 0.5 },
   ],
 };
 

@@ -13,7 +13,7 @@ function salvager(scavengeMetalBelow: number, fuelPerMetal = 1): Blueprint {
     modules: [
       ...SALVAGER.modules,
       { kind: 'tank', x: -7.5, y: 0, length: 4, width: 4 },
-      { kind: 'engine', x: -9.5, y: 0, angle: Math.PI, length: 3, width: 4 },
+      { kind: 'engine', x: -9.5, y: 0, angle: Math.PI, length: 1.5, width: 4, nozzle: 0.5 },
     ],
   };
   const doctrine = compileBlueprint(blueprint).doctrine;

@@ -5,7 +5,9 @@ import {
   type SharedFace,
   math,
   BARREL_OUTER_CALIBRES,
-  DEFAULT_NOZZLE_SHARE,
+  blockCentre,
+  bodySpec,
+  engineGeometry,
   hullMountGeometry,
   MAX_BARREL_CALIBRES,
   moduleCentre,
@@ -44,10 +46,10 @@ export interface Handle {
    * A corner or edge, which sizes the module; one of a shaped module's own
    * corners, which moves that corner alone; the knob beyond the bow, which
    * turns it; the seam between two selected modules, which moves the face
-   * they share; or the split between an engine's machinery and its bell, or a
-   * hull weapon's block and its barrel, which sets how much is which.
+   * they share; or the end of an engine's bell or a hull gun's barrel, which
+   * sets how far it reaches.
    */
-  kind: 'size' | 'vertex' | 'rotate' | 'seam' | 'split';
+  kind: 'size' | 'vertex' | 'rotate' | 'seam' | 'tip';
   x: number;
   y: number;
   /**
@@ -134,7 +136,8 @@ export function handlesFor(spec: ModuleSpec, scale: number): Handle[] {
   const s = sin(angle);
   const hl = spec.length / 2;
   const hw = spec.width / 2;
-  const mid = moduleCentre(spec);
+  // The block, which is what the length and width measure.
+  const mid = blockCentre(spec);
   const triangle = triangleOf(spec);
   if (triangle !== null) {
     // A shaped module has no faces to size it by: each corner is grabbed on
@@ -162,8 +165,9 @@ export function handlesFor(spec: ModuleSpec, scale: number): Handle[] {
     along,
     across,
   });
-  const arm = hl + ROTATE_ARM_PX / scale;
-  const split = readsNozzle(spec.kind) || spec.kind === 'hullGun' ? [splitHandle(spec)] : [];
+  // Clear of the bell or barrel, which is on the side the module faces.
+  const arm = hl + protrusion(spec) + ROTATE_ARM_PX / scale;
+  const tip = readsNozzle(spec.kind) || spec.kind === 'hullGun' ? [tipHandle(spec)] : [];
   return [
     size(1, 1),
     size(1, -1),
@@ -180,32 +184,33 @@ export function handlesFor(spec: ModuleSpec, scale: number): Handle[] {
       along: 0,
       across: 0,
     },
-    ...split,
+    ...tip,
   ];
 }
 
-/**
- * The fraction of an engine or hull gun that sticks out: its bell or barrel,
- * at the far end of its facing.
- */
-function share(spec: ModuleSpec): number {
-  if (spec.kind === 'hullGun') return hullMountGeometry(spec).share;
-  return spec.nozzle ?? DEFAULT_NOZZLE_SHARE;
+/** How far an engine's bell or a hull weapon's barrel reaches past its block. */
+function protrusion(spec: ModuleSpec): number {
+  return bodySpec(spec).length - spec.length;
 }
 
-/** The most of a module that can be what sticks out, as the panel allows. */
-export const MAX_SHARE = 0.95;
+/** How far a point is beyond the face the bell or barrel comes out of. */
+function beyondBlock(spec: ModuleSpec, x: number, y: number): number {
+  const angle = spec.angle ?? 0;
+  const mid = blockCentre(spec);
+  return (x - mid.x) * cos(angle) + (y - mid.y) * sin(angle) - spec.length / 2;
+}
 
 /**
- * The bar across a module where what sticks out meets the block behind it,
- * drawn and dragged like the seam between two modules.
+ * The bar across the end of what sticks out of a module, drawn and dragged
+ * like the seam between two modules. Dragging it sets that length alone: the
+ * block stays as it is.
  */
-export function splitHandle(spec: ModuleSpec): Handle {
+export function tipHandle(spec: ModuleSpec): Handle {
   const angle = spec.angle ?? 0;
-  const mid = moduleCentre(spec);
-  const along = spec.length * (0.5 - share(spec));
+  const mid = blockCentre(spec);
+  const along = spec.length / 2 + protrusion(spec);
   return {
-    kind: 'split',
+    kind: 'tip',
     x: mid.x + along * cos(angle),
     y: mid.y + along * sin(angle),
     along: 0,
@@ -215,36 +220,24 @@ export function splitHandle(spec: ModuleSpec): Handle {
 }
 
 /**
- * The share of the module that sticks out when the split is dragged to a
- * point: the length from the far end to the pointer, snapped to the grid.
- *
- * An engine may have no bell at all; a hull weapon must keep some barrel,
- * so its floor is one grid step, or a twentieth of the module off the grid.
+ * An engine's bell in exit widths when its end is dragged to a point: the
+ * length from the block to the pointer, snapped to the grid. No bell at all
+ * is allowed.
  */
-export function shareTo(spec: ModuleSpec, x: number, y: number, step: number): number {
-  const angle = spec.angle ?? 0;
-  const mid = moduleCentre(spec);
-  const along = (x - mid.x) * cos(angle) + (y - mid.y) * sin(angle);
-  const out = snap(spec.length / 2 - along, step);
-  const floor = spec.kind === 'engine' ? 0 : max(step, spec.length * 0.05);
-  const most = spec.length * MAX_SHARE;
-  const length = out < floor ? floor : out > most ? most : out;
-  return round((length / spec.length) * 1e6) / 1e6;
+export function nozzleTo(spec: ModuleSpec, x: number, y: number, step: number): number {
+  const out = snap(beyondBlock(spec, x, y), step);
+  const exit = engineGeometry(spec).exitWidth;
+  return out > 0 && exit > 0 ? round((out / exit) * 1000) / 1000 : 0;
 }
 
 /**
- * A hull gun's barrel in calibres when the split is dragged to a point: whole
- * calibres unless `exact`, at least one, and leaving some block.
+ * A hull gun's barrel in calibres when its muzzle is dragged to a point: whole
+ * calibres unless `exact`, and at least one.
  */
 export function barrelCalibresTo(spec: ModuleSpec, x: number, y: number, exact: boolean): number {
-  const angle = spec.angle ?? 0;
-  const mid = moduleCentre(spec);
-  const along = (x - mid.x) * cos(angle) + (y - mid.y) * sin(angle);
   const calibre = hullMountGeometry(spec).outletWidth / BARREL_OUTER_CALIBRES;
-  const wanted = (spec.length / 2 - along) / calibre;
-  const fits = (spec.length * MAX_SHARE) / calibre;
-  const most = fits < MAX_BARREL_CALIBRES ? fits : MAX_BARREL_CALIBRES;
-  const held = wanted < 1 ? 1 : wanted > most ? most : wanted;
+  const wanted = beyondBlock(spec, x, y) / calibre;
+  const held = wanted < 1 ? 1 : wanted > MAX_BARREL_CALIBRES ? MAX_BARREL_CALIBRES : wanted;
   return exact ? round(held * 1000) / 1000 : max(1, Math.floor(held));
 }
 
@@ -297,7 +290,7 @@ export function resizedTo(
   const angle = spec.angle ?? 0;
   const c = cos(angle);
   const s = sin(angle);
-  const mid = moduleCentre(spec);
+  const mid = blockCentre(spec);
   // The pointer in the module's own frame, from its middle.
   const px = (x - mid.x) * c + (y - mid.y) * s;
   const py = -(x - mid.x) * s + (y - mid.y) * c;
@@ -322,7 +315,7 @@ export function resizedTo(
   // there — an engine's position is its mounting face rather than its middle.
   const centreX = mid.x + along.middle * c - across.middle * s;
   const centreY = mid.y + along.middle * s + across.middle * c;
-  const offset = moduleCentre({
+  const offset = blockCentre({
     ...spec,
     x: 0,
     y: 0,

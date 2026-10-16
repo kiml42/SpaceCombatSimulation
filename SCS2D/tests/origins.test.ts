@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   blueprintFaults,
+  bodySpec,
   blueprintProblem,
   blueprintProblems,
   compileBlueprint,
@@ -34,9 +35,9 @@ function ship(blueprint: Omit<Blueprint, 'name'>): Blueprint {
 }
 
 describe('expandWithOrigins', () => {
-  it('expands identically to expandBlueprint', () => {
+  it('expands to the layout expandBlueprint makes bodies of', () => {
     for (const blueprint of [CORVETTE, GUNSHIP]) {
-      expect(expandWithOrigins(blueprint).modules).toEqual(expandBlueprint(blueprint));
+      expect(expandWithOrigins(blueprint).modules.map(bodySpec)).toEqual(expandBlueprint(blueprint));
     }
   });
 

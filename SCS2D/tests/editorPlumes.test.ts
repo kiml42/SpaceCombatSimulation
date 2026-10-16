@@ -11,7 +11,7 @@ import { landOnSelf, previewSnapshot } from '../editor/preview.js';
 const BLOCKED: Blueprint = {
   name: 'Blocked',
   modules: [
-    { kind: 'engine', x: -5, y: 0, angle: Math.PI, length: 2, width: 4, thick: true },
+    { kind: 'engine', x: -5, y: 0, angle: Math.PI, length: 1, width: 4, nozzle: 0.25, thick: true },
     { kind: 'core', x: 0, y: 0, angle: 0, length: 10, width: 6 },
     { kind: 'structure', x: -20, y: 3.5, angle: 0, length: 50, width: 1 },
     { kind: 'structure', x: -9, y: 2, angle: 0, length: 2, width: 2 },

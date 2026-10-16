@@ -39,7 +39,7 @@ import {
   OPTIC_AREAL_DENSITY,
   OPTIC_INTENSITY_LIMIT,
   MECHANISM_MASS_PER_CALIBRE,
-  moduleCentre,
+  blockCentre,
   moduleProblem,
   moduleStats,
   mountAccel,
@@ -184,9 +184,9 @@ describe('engine scaling', () => {
   it('lets a cluster of small bells do in a stub what one wide bell cannot', () => {
     // A narrow nozzle collimates in a fraction of the length, so dividing the
     // face is how a short engine gets a good bell. The same exit area either
-    // way, so this is expansion and not extra power.
-    const one = moduleStats({ ...engine(6, 8, 0.2), thick: true });
-    const four = moduleStats(engine(6, 8, 0.2, 4));
+    // way, and the same 1.2 m of bell, so this is expansion and not extra power.
+    const one = moduleStats({ ...engine(4.8, 8, 0.15), thick: true });
+    const four = moduleStats(engine(4.8, 8, 0.6, 4));
     const area = (8 / 4) ** 2 * 4;
     expect(four.fittingMass).toBeCloseTo((one.fittingMass * area) / 64, 6);
     expect(four.thrust / area).toBeGreaterThan((one.thrust / 64) * 1.2);
@@ -194,9 +194,10 @@ describe('engine scaling', () => {
 
   it('makes a long-belled engine the lighter and the more fragile one', () => {
     // A bell is sheet in the exhaust rather than a walled box, so trading
-    // machinery for nozzle takes mass off — and takes the hit points with it.
-    const stubby = moduleStats(engine(6, 2, 0.1));
-    const belled = moduleStats(engine(6, 2, 0.8));
+    // machinery for nozzle in the same 6 m takes mass off — and takes the hit
+    // points with it.
+    const stubby = moduleStats(engine(5.4, 2, 0.3));
+    const belled = moduleStats(engine(1.2, 2, 2.4));
     expect(belled.mass).toBeLessThan(stubby.mass);
     expect(belled.hitPoints).toBeLessThan(stubby.hitPoints);
     expect(belled.capacity).toBeLessThan(stubby.capacity);
@@ -208,14 +209,15 @@ describe('engine scaling', () => {
     expect(narrow.mass).toBeGreaterThan(narrow.structureMass);
   });
 
-  it('refuses an engine that is all bell, and one whose nozzle is out of range', () => {
-    expect(moduleProblem(engine(6, 2, 0.999))).toMatch(/no interior/);
-    expect(moduleProblem({ ...box('engine', 6, 2), nozzle: 1 })).toMatch(/0 to under 1/);
-    expect(moduleProblem({ ...box('engine', 6, 2), nozzle: -0.1 })).toMatch(/0 to under 1/);
+  it('refuses an engine with no block to burn in, and one whose nozzle is out of range', () => {
+    expect(moduleProblem(engine(0.001, 2))).toMatch(/no interior/);
+    expect(moduleProblem(engine(6, 2, 40))).toBeNull();
+    expect(moduleProblem({ ...box('engine', 6, 2), nozzle: -0.1 })).toMatch(/at least 0 exit widths/);
+    expect(moduleProblem({ ...box('engine', 6, 2), nozzle: Infinity })).toMatch(/at least 0 exit widths/);
     // On a kind that does not read it the value is dormant rather than wrong:
     // mutation keeps it against a refit back, and only the range applies.
     expect(moduleProblem({ ...box('structure', 6, 2), nozzle: 0.5 })).toBeNull();
-    expect(moduleProblem({ ...box('structure', 6, 2), nozzle: 1.5 })).toMatch(/0 to under 1/);
+    expect(moduleProblem({ ...box('structure', 6, 2), nozzle: -1 })).toMatch(/at least 0 exit widths/);
   });
 
   it('gives a structure module no thrust and no gun', () => {
@@ -247,11 +249,11 @@ describe('hull mount scaling', () => {
     expect(hull.gun!.muzzleEnergy).toBeGreaterThan(turret.gun!.muzzleEnergy * 2);
   });
 
-  it('takes its barrel length from the calibres it was given, out of the module', () => {
+  it('takes its barrel length from the calibres it was given, out of the block', () => {
     // An 8x4 mount carries a 0.4 m bore.
     expect(moduleStats(gun(8, 4, { barrelCalibres: 5 })).gun!.barrelLength).toBeCloseTo(2, 9);
     expect(moduleStats(gun(8, 4, { barrelCalibres: 15 })).gun!.barrelLength).toBeCloseTo(6, 9);
-    expect(hullMountGeometry(gun(8, 4, { barrelCalibres: 15 })).blockLength).toBeCloseTo(2, 9);
+    expect(hullMountGeometry(gun(8, 4, { barrelCalibres: 15 })).blockLength).toBeCloseTo(8, 9);
     // And length is muzzle energy, since that is what the charge works over.
     expect(moduleStats(gun(8, 4, { barrelCalibres: 15 })).gun!.muzzleEnergy).toBeCloseTo(
       moduleStats(gun(8, 4, { barrelCalibres: 5 })).gun!.muzzleEnergy * 3,
@@ -259,21 +261,22 @@ describe('hull mount scaling', () => {
     );
   });
 
-  it('refuses a barrel that leaves no block to load it from', () => {
-    expect(moduleProblem(gun(8, 4, { barrelCalibres: 20 }))).toMatch(/leaving no block/);
-    expect(moduleProblem(gun(8, 4, { barrelCalibres: 18 }))).toBeNull();
+  it('takes a barrel longer than its block', () => {
+    expect(moduleProblem(gun(2, 4, { barrelCalibres: 50 }))).toBeNull();
   });
 
   it('loads faster the deeper the block behind the barrel', () => {
     // The block is the loading gear, so giving length to it buys rounds per
     // minute the same way giving length to the barrel buys muzzle velocity.
-    const stubby = moduleStats(gun(8, 4, { barrelCalibres: 2 })).gun!;
-    const middling = moduleStats(gun(8, 4, { barrelCalibres: 10 })).gun!;
-    const lanky = moduleStats(gun(8, 4, { barrelCalibres: 18 })).gun!;
-    expect(stubby.cycleTime).toBeLessThan(middling.cycleTime);
-    expect(middling.cycleTime).toBeLessThan(lanky.cycleTime);
-    // The bore is unchanged throughout, so this is the block and nothing else.
-    expect(stubby.calibre).toBeCloseTo(lanky.calibre, 9);
+    const deep = moduleStats(gun(8, 4)).gun!;
+    const middling = moduleStats(gun(4, 4)).gun!;
+    const stubby = moduleStats(gun(1, 4)).gun!;
+    expect(deep.cycleTime).toBeLessThan(middling.cycleTime);
+    expect(middling.cycleTime).toBeLessThan(stubby.cycleTime);
+    // The bore and the barrel are unchanged throughout, so this is the block
+    // and nothing else.
+    expect(stubby.calibre).toBeCloseTo(deep.calibre, 9);
+    expect(stubby.barrelLength).toBeCloseTo(deep.barrelLength, 9);
   });
 
   it('will not let a very large block fire faster than the floor allows', () => {
@@ -288,19 +291,19 @@ describe('hull mount scaling', () => {
   });
 
   it('loads faster when thick, since the block holds more loading gear', () => {
-    const thin = moduleStats(gun(14, 6)).gun!;
-    const thick = moduleStats(gun(14, 6, { thick: true })).gun!;
+    const thin = moduleStats(gun(8, 6)).gun!;
+    const thick = moduleStats(gun(8, 6, { thick: true })).gun!;
     expect(thick.cycleTime).toBeLessThan(thin.cycleTime * 0.7);
     expect(thick.calibre).toBeCloseTo(thin.calibre, 9);
     expect(thick.muzzleEnergy).toBeCloseTo(thin.muzzleEnergy, 3);
   });
 
   it('loads at a turret\'s rate for its bore when the block is what it expects', () => {
-    // The reference depth: half an 8x4 mount, which is what a layout that says
-    // nothing about its proportions gets. So the knob moves the rate either
-    // way from the turret law rather than up or down from it.
-    const mount = hullMountGeometry(gun(8, 4));
-    const stats = moduleStats(gun(8, 4)).gun!;
+    // The reference depth: a square block, which is what the editor starts
+    // one with. So the knob moves the rate either way from the turret law
+    // rather than up or down from it.
+    const mount = hullMountGeometry(gun(4, 4));
+    const stats = moduleStats(gun(4, 4)).gun!;
     expect(mount.blockLength / stats.calibre).toBeCloseTo(LOADING_BLOCK_CALIBRES, 9);
     expect(stats.cycleTime).toBeCloseTo(CYCLE_TIME_PER_CALIBRE * stats.calibre, 9);
   });
@@ -392,11 +395,11 @@ describe('hull mount scaling', () => {
     expect(stats.swingInertia).toBeLessThan(stats.inertia);
   });
 
-  it('gives a beam a housing as deep as a turret\'s and a bank in the rest', () => {
+  it('gives a beam a housing as deep as a turret\'s, out of a bank its length sizes', () => {
     // A shallower housing is better in every way, so there is no knob for it.
     const mount = hullMountGeometry({ kind: 'hullBeam', x: 0, y: 0, length: 6, width: 4 });
     expect(mount.barrelLength).toBeCloseTo(mount.outletWidth * BEAM_EMITTER_APERTURES, 9);
-    expect(mount.blockLength).toBeCloseTo(6 - mount.barrelLength, 9);
+    expect(mount.blockLength).toBeCloseTo(6, 9);
     // An old file's share is dormant on one, and changes nothing.
     expect(hullMountGeometry({ kind: 'hullBeam', x: 0, y: 0, length: 6, width: 4, nozzle: 0.9 })).toEqual(mount);
   });
@@ -1002,8 +1005,9 @@ describe('refitModule', () => {
     for (const to of ['engine', 'hullGun', 'structure', 'core'] as const) {
       const refitted = refitModule(turret, to);
       expect(refitted.kind).toBe(to);
-      expect(moduleCentre(refitted).x).toBeCloseTo(6, 9);
-      expect(moduleCentre(refitted).y).toBeCloseTo(2, 9);
+      // The block, which a bell or barrel then reaches out of.
+      expect(blockCentre(refitted).x).toBeCloseTo(6, 9);
+      expect(blockCentre(refitted).y).toBeCloseTo(2, 9);
       expect([refitted.length, refitted.width]).toEqual([4, 3]);
     }
   });

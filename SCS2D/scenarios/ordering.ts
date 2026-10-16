@@ -1,6 +1,6 @@
 import {
   compileBlueprint,
-  expandBlueprint,
+  expandWithOrigins,
   MODULE_KINDS,
   type Blueprint,
   type ModuleSpec,
@@ -42,7 +42,7 @@ export interface OrderingBattle extends Battle {
 
 /** The Gunship with its assemblies expanded away, its modules listed in `order`. */
 function flatGunship(order: (modules: ModuleSpec[]) => ModuleSpec[]): Blueprint {
-  const flat: Blueprint = { name: GUNSHIP.name, modules: order(expandBlueprint(GUNSHIP)) };
+  const flat: Blueprint = { name: GUNSHIP.name, modules: order(expandWithOrigins(GUNSHIP).modules) };
   if (GUNSHIP.doctrine !== undefined) flat.doctrine = GUNSHIP.doctrine;
   return flat;
 }

@@ -1,5 +1,5 @@
 {
-  "formatVersion": 1,
+  "formatVersion": 2,
   "name": "Laser Frigate",
   "doctrine": {
     "targeting": {
@@ -74,9 +74,10 @@
           "x": 0,
           "y": 0,
           "angle": 90,
-          "length": 4,
+          "length": 2,
           "width": 7,
-          "barrels": 2
+          "barrels": 2,
+          "nozzle": 0.6667
         }
       ]
     },
@@ -87,9 +88,10 @@
           "x": 0.5,
           "y": 0,
           "angle": 90,
-          "length": 4,
+          "length": 2,
           "width": 6,
-          "barrels": 2
+          "barrels": 2,
+          "nozzle": 0.6667
         },
         {
           "kind": "structure",
@@ -144,10 +146,10 @@
     },
     {
       "kind": "hullBeam",
-      "x": 26.536403974,
+      "x": 25.9364,
       "y": 0,
       "angle": 0,
-      "length": 50,
+      "length": 48.8,
       "width": 8,
       "barrels": 1,
       "traverse": 3,
@@ -177,9 +179,9 @@
       "x": -3.463596026,
       "y": 0,
       "angle": 180,
-      "length": 18,
+      "length": 9,
       "width": 11,
-      "nozzle": 0.5,
+      "nozzle": 0.8182,
       "thick": true
     },
     {

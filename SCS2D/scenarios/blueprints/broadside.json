@@ -1,5 +1,5 @@
 {
-  "formatVersion": 1,
+  "formatVersion": 2,
   "name": "Broadside",
   "notes": "A corvette's hull and engines with its guns turned to port: three hull guns that train only over the port beam, marked main. Its main engine still pushes it bow first, so to fight it has to turn its side to the enemy, and it closes along one axis and shoots along another.",
   "doctrine": {
@@ -34,8 +34,9 @@
           "x": 0,
           "y": -1,
           "angle": 90,
-          "length": 2,
-          "width": 3
+          "length": 1,
+          "width": 3,
+          "nozzle": 0.3333
         }
       ]
     },
@@ -75,9 +76,10 @@
           "x": 2,
           "y": 0,
           "angle": 0,
-          "length": 2,
+          "length": 1,
           "width": 3,
-          "reinforcement": 1.5
+          "reinforcement": 1.5,
+          "nozzle": 0.3333
         }
       ]
     },
@@ -86,9 +88,9 @@
         {
           "kind": "hullGun",
           "x": 0,
-          "y": 0,
+          "y": -3.75,
           "angle": 90,
-          "length": 9.5,
+          "length": 2,
           "width": 3,
           "reinforcement": 2,
           "barrels": 2,
@@ -145,8 +147,9 @@
       "x": -2,
       "y": 1.5,
       "angle": 180,
-      "length": 10,
+      "length": 5,
       "width": 6,
+      "nozzle": 0.8333,
       "thick": true
     },
     {

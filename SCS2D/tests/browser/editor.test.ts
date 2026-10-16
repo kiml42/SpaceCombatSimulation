@@ -1110,18 +1110,25 @@ describe('the editor in a browser', () => {
     expect(await page.inputValue('#assemblyAngle')).toBe('0');
   });
 
-  it('sets a hull gun\'s barrel in calibres by dragging the split between it and the block', async () => {
+  it('sets a hull gun\'s barrel in calibres by dragging its muzzle', async () => {
     await page.click('#newShip');
     await page.click('[data-add="hullGun"]');
     expect(Number(await page.inputValue('#propBarrelCalibres'))).toBe(10);
     expect(await page.textContent('#barrelMetres')).toBe('= 4.00 m');
-    // Half barrel, so the split is in the middle, where a new module is drawn.
-    const centre = await canvasCentre(page);
-    await page.mouse.move(centre.x, centre.y);
+    await page.keyboard.press('f');
+    const { at } = await framing(page, {
+      name: 'New ship',
+      modules: [{ kind: 'hullGun', x: 0, y: 0, angle: 0, length: 4, width: 4, barrels: 1 }],
+    });
+    // A 4 m block about the origin and 4 m of barrel out of its bow, so the
+    // muzzle is 6 m out; drawn a metre and a half in.
+    const muzzle = at(6, 0);
+    const dropped = at(4.5, 0.2);
+    await page.mouse.move(muzzle.x, muzzle.y);
     await page.mouse.down();
-    await page.mouse.move(centre.x + 40, centre.y + 30, { steps: 6 });
+    await page.mouse.move(dropped.x, dropped.y, { steps: 6 });
     await page.mouse.up();
-    // Towards the muzzle is less barrel, in whole calibres, and the gun has not moved.
+    // Less barrel, in whole calibres, and the gun has not moved.
     const shorter = Number(await page.inputValue('#propBarrelCalibres'));
     expect(shorter).toBeLessThan(10);
     expect(shorter).toBeGreaterThan(0);

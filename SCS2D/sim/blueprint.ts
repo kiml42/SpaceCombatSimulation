@@ -4,6 +4,7 @@ import {
   GunType,
   grownOutline,
   moduleCentre,
+  bodySpec,
   moduleOutline,
   moduleProblem,
   moduleStats,
@@ -528,6 +529,7 @@ const spanB = { lo: 0, hi: 0 };
 
 /** Distance from a point to the nearest point of a module's outline, metres. */
 function distanceToModule(m: ModuleSpec, px: number, py: number): number {
+  m = bodySpec(m);
   if (isTriangle(m)) {
     const c: number[] = [];
     return distanceToOutline(c, moduleOutline(m, c), px, py);
@@ -920,7 +922,9 @@ export function foldAngle(a: number): number {
 export function expandBlueprint(blueprint: Blueprint): ModuleSpec[] {
   const out: ModuleSpec[] = [];
   place(blueprint.modules, blueprint, 0, 0, 0, false, 0, out, null, [], null);
-  return out;
+  // As the bodies they make, barrels and bells and all: what the layout rules,
+  // the compiler and everything after them measure.
+  return out.map(bodySpec);
 }
 
 /**
