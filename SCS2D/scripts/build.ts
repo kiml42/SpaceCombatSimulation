@@ -46,29 +46,34 @@ type Page = (typeof PAGES)[number];
 
 /**
  * The skirmish enemy's search runs in a worker, which needs a script of its
- * own; it is bundled first and handed to every page as a string, so the page
- * stays one file. Under `--watch` it is bundled once, at the start.
+ * own; it is bundled separately and written into every page as a string, so
+ * the page stays one file. The pages are bundled with a placeholder in its
+ * place, so that under `--watch` a change to the worker's code rewrites the
+ * pages without rebundling them, and a change to a page's keeps the worker.
  */
-async function workerBundle(): Promise<string> {
-  const result = await build({
-    entryPoints: [join(root, 'host', 'answerWorker.ts')],
-    bundle: true,
-    format: 'iife',
-    target: 'es2022',
-    minify: true,
-    write: false,
-    legalComments: 'none',
-  });
-  const js = result.outputFiles[0]?.text;
+const WORKER_OPTIONS: BuildOptions = {
+  entryPoints: [join(root, 'host', 'answerWorker.ts')],
+  bundle: true,
+  format: 'iife',
+  target: 'es2022',
+  minify: true,
+  write: false,
+  legalComments: 'none',
+};
+
+const WORKER_SLOT = JSON.stringify('__ANSWER_WORKER__');
+
+function workerText(files: readonly OutputFile[] | undefined): string {
+  const js = files?.[0]?.text;
   if (js === undefined) throw new Error('esbuild produced no worker');
   return js;
 }
 
-const ANSWER_WORKER = await workerBundle();
+let answerWorker = workerText((await build(WORKER_OPTIONS)).outputFiles);
 
 function optionsFor(page: Page): BuildOptions {
   return {
-    define: { __ANSWER_WORKER__: JSON.stringify(ANSWER_WORKER) },
+    define: { __ANSWER_WORKER__: WORKER_SLOT },
     entryPoints: [join(root, 'host', page.entry)],
     bundle: true,
     format: 'iife',
@@ -81,8 +86,13 @@ function optionsFor(page: Page): BuildOptions {
 
 /** Wrap a bundle in its page shell and write it out. */
 async function emit(page: Page, files: readonly OutputFile[] | undefined): Promise<void> {
-  const js = files?.[0]?.text;
-  if (js === undefined) throw new Error('esbuild produced no output');
+  const bundled = files?.[0]?.text;
+  if (bundled === undefined) throw new Error('esbuild produced no output');
+  if (bundled.includes('__ANSWER_WORKER__') && !bundled.includes(WORKER_SLOT)) {
+    throw new Error("the worker's placeholder is in the bundle, but not as the string it is looked for as");
+  }
+  // A function replacement, for the reason given below.
+  const js = bundled.replace(WORKER_SLOT, () => JSON.stringify(answerWorker));
 
   // A script tag cannot contain `</script>`, and the bundle is going inside
   // one. Nothing puts that string in there today; a string literal one day
@@ -116,8 +126,10 @@ if (process.argv.includes('--watch')) {
   // Before the first build, so it bundles fleets already in step.
   await syncFleetsAndLog();
 
+  // Each page's last good bundle, to put a rebuilt worker into.
+  const bundles: (readonly OutputFile[] | undefined)[] = PAGES.map(() => undefined);
   const contexts = await Promise.all(
-    PAGES.map(async (page) =>
+    PAGES.map(async (page, i) =>
       context({
         ...optionsFor(page),
         plugins: [
@@ -127,7 +139,9 @@ if (process.argv.includes('--watch')) {
               builder.onEnd(async (result) => {
                 // esbuild reports its own errors and keeps watching, so a failed
                 // build leaves the last good page in place rather than deleting it.
-                if (result.errors.length === 0) await emit(page, result.outputFiles);
+                if (result.errors.length > 0) return;
+                bundles[i] = result.outputFiles;
+                await emit(page, result.outputFiles);
               });
             },
           },
@@ -135,7 +149,24 @@ if (process.argv.includes('--watch')) {
       }),
     ),
   );
-  await Promise.all(contexts.map((ctx) => ctx.watch()));
+  const worker = await context({
+    ...WORKER_OPTIONS,
+    plugins: [
+      {
+        name: 'emit-worker',
+        setup(builder) {
+          builder.onEnd(async (result) => {
+            if (result.errors.length > 0) return;
+            const js = workerText(result.outputFiles);
+            if (js === answerWorker) return;
+            answerWorker = js;
+            await Promise.all(PAGES.map((page, i) => (bundles[i] === undefined ? undefined : emit(page, bundles[i]))));
+          });
+        },
+      },
+    ],
+  });
+  await Promise.all([...contexts.map((ctx) => ctx.watch()), worker.watch()]);
 
   // esbuild watches what it bundles, which is the TypeScript. The page shells
   // are not inputs to any bundle, so they need watching separately or edits to
