@@ -164,8 +164,8 @@ describe('gripping a live enemy', () => {
 describe('what a claw will not take', () => {
   it('a ram', () => {
     const run = approach(CLAW_SPEED_MAX + 2);
-    runUntil(run, () => run.totalWelded > 0, 10);
-    expect(run.totalWelded).toBe(0);
+    runUntil(run, () => holding(run), 10);
+    expect(holding(run)).toBe(false);
     expect(run.totalContacts).toBeGreaterThan(0);
   });
 

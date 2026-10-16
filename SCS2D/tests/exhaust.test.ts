@@ -62,8 +62,9 @@ const engine = (x: number, pushing: number): ModuleSpec => ({
   x,
   y: 0,
   angle: pushing > 0 ? pushing - Math.PI : pushing + Math.PI,
-  length: 2,
+  length: 1,
   width: 4,
+  nozzle: 0.25,
   thick: true,
 });
 
@@ -169,7 +170,7 @@ describe('how far a plume reaches', () => {
     // A longer bell collimates the gas, so the flame holds together further
     // out — bought with length, since the machinery behind it is unchanged.
     const reach = (bell: number): number => {
-      const spec: ModuleSpec = { ...engine(-5, 0), length: 1 + bell, width: 2, nozzle: bell / (1 + bell) };
+      const spec: ModuleSpec = { ...engine(-5, 0), length: 1, width: 2, nozzle: bell / 2 };
       const d = compileBlueprint({ name: 'Engine', modules: [spec, hull(0, 10)] });
       const t = d.engines[0]!;
       return nozzleReach(engineGeometry(d.modules[t.module!]!.spec), t.maxThrust);
@@ -214,10 +215,12 @@ describe('how far a plume reaches', () => {
     // behind it can feed. Collimation counts for more in the flame than in the
     // thrust, so the flame peaks at a longer bell than the thrust does, but
     // still inside: a bell with no chamber behind it has nothing to throw.
-    const reach = (nozzle: number): number => {
+    // In the same 2 m each time, so what is given to the bell is taken from
+    // the block.
+    const reach = (share: number): number => {
       const d = compileBlueprint({
         name: 'Engine',
-        modules: [{ ...engine(-5, 0), nozzle }, hull(0, 10)],
+        modules: [{ ...engine(-5, 0), length: 2 * (1 - share), nozzle: (2 * share) / 4 }, hull(0, 10)],
       });
       const t = d.engines[0]!;
       return nozzleReach(engineGeometry(d.modules[t.module!]!.spec), t.maxThrust);
@@ -661,7 +664,7 @@ describe('what the editor says about a buried engine', () => {
 /** An engine on a hull, with a block `gap` metres behind its nozzle. */
 function tug(gap: number): ModuleSpec[] {
   return [
-    { kind: 'engine', x: -5, y: 0, angle: Math.PI, length: 2, width: 4 },
+    { kind: 'engine', x: -5, y: 0, angle: Math.PI, length: 1, width: 4, nozzle: 1 / 3 },
     { kind: 'core', x: 0, y: 0, angle: 0, length: 10, width: 6 },
     { kind: 'structure', x: -9 - gap, y: 0, angle: 0, length: 4, width: 6 },
   ];

@@ -87,16 +87,16 @@ describe('blueprint validation', () => {
   });
 
   describe('a hull weapon is held on by its block and not by its barrel', () => {
-    // The hull spans x -5..5 and y -2..2. The gun sits off its bow, block
-    // against the hull and barrel out into clear air, which is the only way
-    // round that holds it on.
+    // The hull spans x -5..5 and y -2..2. The gun sits off its bow, its 2 m
+    // block against the hull and a 4 m barrel out into clear air, which is the
+    // only way round that holds it on.
     const hull = core(0, 0, 10, 4);
     const gun = (over: Partial<ModuleSpec> = {}): ModuleSpec => ({
       kind: 'hullGun',
-      x: 8,
+      x: 6,
       y: 0,
       angle: 0,
-      length: 6,
+      length: 2,
       width: 4,
       ...over,
     });
@@ -109,7 +109,7 @@ describe('blueprint validation', () => {
       // Turned round, so what meets the hull is the muzzle. Nothing is
       // overlapping and the boxes touch exactly as before — what has changed
       // is which part of the module is doing the touching.
-      expect(blueprintProblem({ name: 'Backwards', modules: [hull, gun({ angle: PI })] })).toMatch(
+      expect(blueprintProblem({ name: 'Backwards', modules: [hull, gun({ angle: PI, x: 10 })] })).toMatch(
         /touches nothing/,
       );
     });
@@ -182,8 +182,9 @@ describe('blueprint validation', () => {
       x: -5,
       y: 0,
       angle: pushing > 0 ? pushing - Math.PI : pushing + Math.PI,
-      length: 2,
+      length: 1,
       width: 4,
+      nozzle: 1 / 3,
     });
 
     it('accepts one bolted on by the face it pushes from', () => {
@@ -192,7 +193,7 @@ describe('blueprint validation', () => {
 
     it('accepts one held on along its block, any way round', () => {
       // Beside the hull, pushing forward, welded by the side of its block.
-      const beside: ModuleSpec = { kind: 'engine', x: 0, y: -4, angle: Math.PI, length: 2, width: 4 };
+      const beside: ModuleSpec = { kind: 'engine', x: 0, y: -4, angle: Math.PI, length: 1, width: 4, nozzle: 1 / 3 };
       expect(blueprintProblem({ name: 'Beside', modules: [hull, beside] })).toBeNull();
     });
 
@@ -200,7 +201,7 @@ describe('blueprint validation', () => {
       // A bell is sheet metal in the exhaust: anything hung from it sits in
       // the flame, so it is not somewhere to hang a ship from.
       expect(blueprintProblem({ name: 'Backwards', modules: [hull, { ...engine(PI), x: -7 }] })).toMatch(/touches nothing/);
-      const bellFirst: ModuleSpec = { kind: 'engine', x: -9, y: 0, angle: 0, length: 4, width: 4 };
+      const bellFirst: ModuleSpec = { kind: 'engine', x: -9, y: 0, angle: 0, length: 2, width: 4, nozzle: 2 / 3 };
       expect(blueprintProblem({ name: 'Bell', modules: [hull, bellFirst] })).toMatch(/touches nothing/);
     });
 
@@ -210,7 +211,7 @@ describe('blueprint validation', () => {
     });
 
     it('still rejects one floating free of the ship', () => {
-      const adrift: ModuleSpec = { kind: 'engine', x: -20, y: 0, angle: Math.PI, length: 2, width: 4 };
+      const adrift: ModuleSpec = { kind: 'engine', x: -20, y: 0, angle: Math.PI, length: 1, width: 4, nozzle: 1 / 3 };
       expect(blueprintProblem({ name: 'Adrift', modules: [hull, adrift] })).toMatch(
         /touches nothing/,
       );
@@ -243,7 +244,7 @@ describe('where a module sits', () => {
   });
 
   it('hangs an engine back from its mounting face', () => {
-    const engine: ModuleSpec = { kind: 'engine', x: -5, y: 0, angle: Math.PI, length: 4, width: 4 };
+    const engine: ModuleSpec = { kind: 'engine', x: -5, y: 0, angle: Math.PI, length: 2, width: 4, nozzle: 2 / 3 };
     expect(moduleCentre(engine).x).toBeCloseTo(-7, 12);
     // Turned, it runs out along its own facing, bell last, rather than along the world's.
     expect(moduleCentre({ ...engine, angle: HALF_PI }).y).toBeCloseTo(2, 12);
@@ -252,7 +253,7 @@ describe('where a module sits', () => {
   it('measures overlap and attachment from the box, not from the mounting', () => {
     // Bolted flush to the hull's -x face: the position is *on* the hull and
     // the engine is entirely clear of it.
-    const engine: ModuleSpec = { kind: 'engine', x: -5, y: 0, angle: Math.PI, length: 4, width: 4 };
+    const engine: ModuleSpec = { kind: 'engine', x: -5, y: 0, angle: Math.PI, length: 2, width: 4, nozzle: 2 / 3 };
     expect(blueprintProblem({ name: 'Flush', modules: [hull, engine] })).toBeNull();
     expect(modulesOverlap(hull, engine)).toBe(false);
   });
@@ -263,7 +264,7 @@ describe('where a module sits', () => {
     // Growing an engine from its *mounting* would add the length astern, so
     // an engine would reach towards its own exhaust and a ship listed engine
     // first would look like two pieces.
-    const engine: ModuleSpec = { kind: 'engine', x: -5, y: 0, angle: Math.PI, length: 4, width: 4 };
+    const engine: ModuleSpec = { kind: 'engine', x: -5, y: 0, angle: Math.PI, length: 2, width: 4, nozzle: 2 / 3 };
     expect(blueprintProblem({ name: 'Hull first', modules: [hull, engine] })).toBeNull();
     expect(blueprintProblem({ name: 'Engine first', modules: [engine, hull] })).toBeNull();
   });
@@ -272,8 +273,8 @@ describe('where a module sits', () => {
     // The point of measuring an engine from its mounting face: making it
     // bigger is one number, and it stays bolted where it was rather than
     // growing half into the hull.
-    const engine: ModuleSpec = { kind: 'engine', x: -5, y: 0, angle: Math.PI, length: 4, width: 4 };
-    const longer: ModuleSpec = { ...engine, length: 9 };
+    const engine: ModuleSpec = { kind: 'engine', x: -5, y: 0, angle: Math.PI, length: 2, width: 4, nozzle: 2 / 3 };
+    const longer: ModuleSpec = { ...engine, length: 7 };
     expect(blueprintProblem({ name: 'Longer', modules: [hull, longer] })).toBeNull();
     expect(moduleCentre(longer).x).toBeCloseTo(-9.5, 12);
   });
@@ -403,7 +404,7 @@ describe('derived engines', () => {
       name: 'Pusher',
       modules: [
         core(0, 0, 10, 4),
-        { kind: 'engine', x: -5, y: 0, angle: Math.PI, length: 4, width: 4 },
+        { kind: 'engine', x: -5, y: 0, angle: Math.PI, length: 2, width: 4, nozzle: 2 / 3 },
       ],
     });
 

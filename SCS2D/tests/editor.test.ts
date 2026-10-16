@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   blueprintProblem,
+  blockCentre,
   bodySpec,
   hullMountGeometry,
   BARREL_OUTER_CALIBRES,
@@ -529,11 +530,11 @@ describe('sizing a module by a handle', () => {
   });
 
   it('keeps an engine’s middle from centre, moving its mounting face instead', () => {
-    // Facing aft, the box runs from the mounting face at x = 0 back to -4.
+    // Facing aft, the block runs from the mounting face at x = 0 back to -4.
     const engine: ModuleSpec = { kind: 'engine', x: 0, y: 0, angle: Math.PI, length: 4, width: 2 };
     const sized = resizedTo(engine, face(1, 0), -5, 0, 0.5, true);
     expect(sized).toEqual({ length: 6, width: 2, dx: 1, dy: 0 });
-    expect(moduleCentre({ ...engine, x: sized.dx, length: sized.length }).x).toBeCloseTo(-2, 12);
+    expect(blockCentre({ ...engine, x: sized.dx, length: sized.length }).x).toBeCloseTo(-2, 12);
   });
 
   it('pushes the neighbours on both sides when it sizes from centre', () => {
@@ -693,7 +694,7 @@ describe('sizing a drawn module through the frame it was written in', () => {
     const { modules } = expandWithOrigins(CORVETTE);
     const retros = modules
       .map((m, i) => ({ m, i }))
-      .filter(({ m }) => m.kind === 'engine' && m.angle === 0 && m.length === 2);
+      .filter(({ m }) => m.kind === 'engine' && m.angle === 0 && m.length === 1);
     expect(retros).toHaveLength(2);
     const port = retros.find(({ m }) => moduleCentre(m).y > 0)!.i;
     const starboard = retros.find(({ m }) => moduleCentre(m).y < 0)!.i;
@@ -767,7 +768,7 @@ describe('pushing through the corvette’s bow', () => {
     const bow = expandWithOrigins(CORVETTE).origins[0]!;
     const drawnBack = resizePlacement(CORVETTE, bow, 2.5, 6, -1, 0, true)!;
     const turret = (bp: Blueprint) => placementAt(bp, [{ index: 2, copy: 0 }]) as ModuleSpec;
-    expect(turret(drawnBack).x).toBe(11);
+    expect(turret(drawnBack).x).toBe(6);
 
     // Then its +y side pulled in, as a drag does: each step applied afresh to
     // the layout the drag started from. Each retro sits 2.5 m inboard of its
@@ -1250,7 +1251,7 @@ describe('the placement that carries a copy’s position', () => {
   it('is the instance when the module is the whole of its assembly', () => {
     const origins = expandWithOrigins(GUNSHIP).origins;
     const engine = expandWithOrigins(GUNSHIP).modules.findIndex(
-      (m) => m.length === 8 && m.width === 4.5,
+      (m) => m.length === 4 && m.width === 4.5,
     );
     const handle = positionHandle(GUNSHIP, origins[engine]!);
     expect(handle.perCopy).toBe(true);
@@ -1282,7 +1283,7 @@ describe('the placement that carries a copy’s position', () => {
 describe('taking a module out of its assembly', () => {
   it('leaves the ship bit-identical when the module was the whole assembly', () => {
     const before = expandBlueprint(GUNSHIP);
-    const engine = before.findIndex((m) => m.length === 8 && m.width === 4.5);
+    const engine = expandWithOrigins(GUNSHIP).modules.findIndex((m) => m.length === 4 && m.width === 4.5);
     const origins = expandWithOrigins(GUNSHIP).origins;
     expect(takeOutCount(GUNSHIP, origins[engine]!.path)).toBe(2);
 
@@ -1296,13 +1297,13 @@ describe('taking a module out of its assembly', () => {
   it('lets the copies be edited apart afterwards', () => {
     const origins = expandWithOrigins(GUNSHIP).origins;
     const engine = expandWithOrigins(GUNSHIP).modules.findIndex(
-      (m) => m.length === 8 && m.width === 4.5,
+      (m) => m.length === 4 && m.width === 4.5,
     );
     const doc = new EditorDocument(takeOutOfAssembly(GUNSHIP, origins[engine]!.path)!.blueprint);
     doc.selectModule(engine);
     expect(doc.selectedModules()).toHaveLength(1);
     doc.apply(updatePlacement(doc.blueprint, doc.selection!, (p) => ({ ...p, width: 5 }))!);
-    expect(doc.view.modules.filter((m) => m.length === 8 && m.width === 5)).toHaveLength(1);
+    expect(doc.view.modules.filter((m) => m.length === 4 && m.width === 5)).toHaveLength(1);
   });
 
   it('leaves a loose copy beside each copy of an assembly that holds more', () => {

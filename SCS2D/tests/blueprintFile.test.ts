@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   BLUEPRINT_FORMAT_VERSION,
+  bodySpec,
   blueprintFileProblem,
   blueprintProblem,
   blueprintWarnings,
@@ -252,8 +253,29 @@ describe('rejecting a file that arrived from somewhere else', () => {
   });
 
   it('refuses a format version it does not understand', () => {
-    expect(blueprintFileProblem(file({ formatVersion: 2 }))).toMatch(/formatVersion must be 1/);
-    expect(blueprintFileProblem(file({ formatVersion: undefined }))).toMatch(/formatVersion must be 1/);
+    expect(blueprintFileProblem(file({ formatVersion: 3 }))).toMatch(/formatVersion must be 1 or 2/);
+    expect(blueprintFileProblem(file({ formatVersion: undefined }))).toMatch(/formatVersion must be 1 or 2/);
+  });
+
+  it('reads format 1, where a length ran over the bell or barrel, as the same body', () => {
+    // An engine 4 m long, half of it bell, and a gun 13 m long, 10 of them barrel.
+    const old = parseBlueprint(
+      file({
+        formatVersion: 1,
+        modules: [
+          { kind: 'engine', x: -5, y: 0, angle: 180, length: 4, width: 4 },
+          { kind: 'hullGun', x: 13, y: 0, angle: 0, length: 13, width: 4, barrels: 2, barrelCalibres: 50 },
+        ],
+      }),
+    );
+    const [engine, gun] = old.modules as ModuleSpec[];
+    expect(engine).toMatchObject({ x: -5, length: 2, nozzle: 0.6667 });
+    expect(gun).toMatchObject({ x: 8, length: 3 });
+    expect(bodySpec(gun!).length).toBeCloseTo(13, 9);
+    expect(bodySpec(gun!).x).toBeCloseTo(13, 9);
+    expect(bodySpec(engine!).length).toBeCloseTo(4, 3);
+    // And it is written back in the current format.
+    expect(serialiseBlueprint(old)['formatVersion']).toBe(2);
   });
 
   it('opens a file with a key it does not recognise, says so, and keeps it', () => {

@@ -443,7 +443,7 @@ describe('mutation', () => {
     ).toBeUndefined();
 
     site.spec.kind = 'engine';
-    expect(engineGeometry(site.spec).share).toBe(0.37);
+    expect(engineGeometry(site.spec).nozzleLength).toBeCloseTo(0.37 * engineGeometry(site.spec).exitWidth, 12);
   });
 
   it('builds only the kinds it is told to', { timeout: 30_000 }, () => {
