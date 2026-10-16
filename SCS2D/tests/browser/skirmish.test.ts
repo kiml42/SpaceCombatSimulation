@@ -245,6 +245,16 @@ describe('the skirmish in a browser', () => {
     expect(file.skirmish?.player).toBeDefined();
     expect(file.history.rows.length).toBeGreaterThan(0);
     expect(Object.keys(file.setup).length).toBeGreaterThan(0);
+
+    // And read back after giving the skirmish up, it is the same round with the same history.
+    await page.click('#abandon');
+    await page.waitForSelector('#round', { state: 'hidden' });
+    await page.setInputFiles('#importSkirmishFile', await download.path());
+    await page.waitForSelector('#round:not([hidden])');
+    // The try the lost round counted comes back with it.
+    expect(await page.textContent('#roundTitle')).toBe('Round 1 · try 2');
+    const back = JSON.parse((await page.evaluate(() => localStorage.getItem('scs2d.skirmish.history')))!) as { rows: unknown[] };
+    expect(back.rows).toHaveLength(file.history.rows.length);
     expect(problems).toEqual([]);
     // Away, so the next skirmish handed over in an address loads afresh rather than as a change of hash.
     await page.goto('about:blank');
