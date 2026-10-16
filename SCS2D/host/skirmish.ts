@@ -667,6 +667,57 @@ export function startSkirmish(): void {
     showSetup();
   });
 
+  // An exported skirmish read back: its settings into the setup screen, and
+  // the skirmish and history it holds in place of these. Checked whole first,
+  // so a bad file changes nothing.
+  const importInput = el<HTMLInputElement>('importSkirmishFile');
+  el<HTMLButtonElement>('importSkirmish').addEventListener('click', () => importInput.click());
+  importInput.addEventListener('change', async () => {
+    const chosen = importInput.files?.[0];
+    importInput.value = '';
+    if (chosen === undefined) return;
+    let setup: SkirmishSettings | null;
+    let next: Skirmish | null;
+    let nextHistory: History;
+    try {
+      const file = JSON.parse(await chosen.text()) as Record<string, unknown>;
+      if (typeof file !== 'object' || file === null || !('skirmish' in file || 'setup' in file)) {
+        throw new Error('it is not a skirmish file');
+      }
+      setup = file['setup'] === undefined ? null : parseSkirmishSettings(file['setup']);
+      next = file['skirmish'] === undefined || file['skirmish'] === null ? null : parseSkirmish(file['skirmish']);
+      nextHistory = file['history'] === undefined ? EMPTY_HISTORY : parseHistory(file['history']);
+    } catch (error) {
+      window.alert(`Could not read ${chosen.name}.\n\n${error instanceof Error ? error.message : error}`);
+      return;
+    }
+    if (skirmish !== null && !window.confirm('Replace the skirmish under way, and its history, with the one in this file?')) return;
+    stopSearch?.();
+    stopSearch = null;
+    resume = null;
+    replaying.hidden = true;
+    mode = 'round';
+    if (setup !== null) {
+      showSettings(setup);
+      keepSettings();
+    }
+    history = nextHistory;
+    keepHistory();
+    skirmish = next;
+    if (skirmish === null) {
+      try {
+        window.localStorage.removeItem(SKIRMISH_STORAGE_KEY);
+      } catch {
+        // Nothing kept to forget.
+      }
+      showSetup();
+      return;
+    }
+    save();
+    showRound();
+    if (skirmish.won !== undefined) answer();
+  });
+
   let lastSides = -Infinity;
   const renderSides = (shown: CustomBattle, time: number): void => {
     // A table to read, not an animation: a few times a simulated second.
