@@ -803,24 +803,45 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
       }
     }
 
-    // The rotating part itself: a disc at the mount, sized to the module it
-    // sits in so a heavy mount looks heavy. A hull mount has none — what turns
-    // there is a barrel on trunnions, not a ring carrying a house, and a disc
-    // drawn at its root would say it was a turret let into the hull.
-    if (!isHullMount(spec.kind)) {
-      const pivot = face * 0.5;
-      ctx.fillStyle = colours.pivot;
-      ctx.beginPath();
-      ctx.arc(mx, my, pivot, 0, TAU);
-      ctx.fill();
-    }
-
     const bearing = ship.turretBearings[t] ?? 0;
     const dirX = cos(bearing);
     const dirY = sin(bearing);
     const gun = design.turrets[t]!.gun;
     const count = gun.barrelCount;
     const spacing = gun.barrelSpacing;
+    const hull = isHullMount(spec.kind) ? hullMountGeometry(spec) : null;
+    const beamLenses = spec.kind === 'hullBeam';
+
+    // The rotating part itself. A turret's is a disc at the mount, sized to the
+    // module it sits in so a heavy mount looks heavy. Each of a hull beam's
+    // lenses has a mount of its own on a stalk out of the face. A hull gun's
+    // mantlet goes on after its barrels, below.
+    ctx.fillStyle = colours.pivot;
+    if (hull === null) {
+      ctx.beginPath();
+      ctx.arc(mx, my, face * 0.5, 0, TAU);
+      ctx.fill();
+    } else if (beamLenses) {
+      // Each lens on a disc of its own that it turns on, as wide as the lens
+      // sweeps, and a stalk back from it to the block's face.
+      const back = hull.trains - hull.pivot;
+      const radius = 0.5 * sqrt(hull.barrelLength * hull.barrelLength + hull.outletWidth * hull.outletWidth);
+      const restX = cos(rest);
+      const restY = sin(rest);
+      for (let k = 0; k < count; k++) {
+        const lat = count > 1 ? (k - (count - 1) * 0.5) * spacing : 0;
+        const cx = mx - restY * lat;
+        const cy = my + restX * lat;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, TAU);
+        ctx.fill();
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(rest);
+        ctx.fillRect(-back, -hull.outletWidth * 0.3, back, hull.outletWidth * 0.6);
+        ctx.restore();
+      }
+    }
 
     ctx.strokeStyle = BARREL;
     // Twice the calibre: for a gun that is the barrel's outer diameter, the
@@ -831,7 +852,7 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     // as deep as it is wide where a barrel is fifty times.
     // A hull mount knows its outlets' width outright, and for a lens that is
     // the lens rather than twice it.
-    const physicalWidth = isHullMount(spec.kind) ? hullMountGeometry(spec).outletWidth : 2 * gun.calibre;
+    const physicalWidth = hull !== null ? hull.outletWidth : 2 * gun.calibre;
     // Barrels are allowed to overlap once the floor has widened them past their
     // own gaps, which happens only when the whole ship is a hundred-odd pixels
     // across. A row that closes into one solid bar still says where the turret
@@ -839,9 +860,23 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     // back below the floor and say nothing. Overlap is free: the barrel colours
     // are opaque, so a bar drawn twice looks like a bar.
     ctx.lineWidth = legibleWidth(physicalWidth, MIN_BARREL_PX, metresToPx);
+    const hidden = hull !== null && !beamLenses;
+    if (hidden) {
+      // Behind the block, so a barrel trained hard over never shows its breech.
+      const placed = design.modules[module]!;
+      blockClip(ctx, ship, placed.x, placed.y, placed.angle, spec.length, spec.width, hull.blockLength, reach + spec.length);
+    }
     ctx.beginPath();
     for (let k = 0; k < count; k++) {
       const lat = count > 1 ? (k - (count - 1) * 0.5) * spacing : 0;
+      if (beamLenses) {
+        // Each lens about its own centre, the row laid across the mount.
+        const cx = mx - sin(rest) * lat;
+        const cy = my + cos(rest) * lat;
+        ctx.moveTo(cx - dirX * reach, cy - dirY * reach);
+        ctx.lineTo(cx + dirX * reach, cy + dirY * reach);
+        continue;
+      }
       const bx = mx - dirY * lat;
       const by = my + dirX * lat;
       ctx.moveTo(bx, by);
@@ -849,6 +884,14 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     }
     ctx.stroke();
     if (gun.braceLength > 0) drawBracing(ctx, gun, physicalWidth, mx, my, dirX, dirY);
+    if (hidden) ctx.restore();
+    if (hull !== null && !beamLenses) {
+      // Over the barrels' roots, standing out of the block's face, so a barrel
+      // trained hard over is seen to come out of it rather than the block.
+      ctx.fillStyle = colours.pivot;
+      const row = ((count - 1) / 2) * spacing + hull.outletWidth;
+      mantlet(ctx, mx, my, min(spec.width * 0.5, row), rest);
+    }
     drawLoad(ctx, ship, t, mx, my, bearing);
   }
 
@@ -859,6 +902,52 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
 }
 
 /** A ship's robots out on its hull: over every capital hull, under every fighter. */
+/**
+ * Clip what follows to outside a hull mount's block, out to `reach` from its
+ * middle; the caller restores. In world coordinates, from the module's place
+ * in its ship.
+ */
+function blockClip(
+  ctx: CanvasRenderingContext2D,
+  ship: ShipView,
+  x: number,
+  y: number,
+  angle: number,
+  length: number,
+  width: number,
+  block: number,
+  reach: number,
+): void {
+  const c = cos(ship.angle);
+  const s = sin(ship.angle);
+  const cx = ship.x + x * c - y * s;
+  const cy = ship.y + x * s + y * c;
+  const a = ship.angle + angle;
+  const ax = cos(a);
+  const ay = sin(a);
+  const back = -length / 2;
+  const half = width / 2;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(cx - reach, cy - reach, 2 * reach, 2 * reach);
+  for (const [along, across] of [[back, -half], [back + block, -half], [back + block, half], [back, half]] as const) {
+    const px = cx + ax * along - ay * across;
+    const py = cy + ay * along + ax * across;
+    if (along === back && across === -half) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.clip('evenodd');
+}
+
+/** A half disc on a face, its round side out along `facing`. */
+function mantlet(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, facing: number): void {
+  ctx.beginPath();
+  ctx.arc(x, y, radius, facing - PI / 2, facing + PI / 2);
+  ctx.closePath();
+  ctx.fill();
+}
+
 function drawRobots(ctx: CanvasRenderingContext2D, ship: ShipView): void {
   const robots = ship.robots ?? [];
   if (robots.length === 0) return;

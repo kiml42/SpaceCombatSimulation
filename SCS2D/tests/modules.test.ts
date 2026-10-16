@@ -40,6 +40,8 @@ import {
   OPTIC_INTENSITY_LIMIT,
   MECHANISM_MASS_PER_CALIBRE,
   blockCentre,
+  bodySpec,
+  BEAM_STALK_SHARE,
   moduleProblem,
   moduleStats,
   mountAccel,
@@ -402,6 +404,21 @@ describe('hull mount scaling', () => {
     expect(mount.blockLength).toBeCloseTo(6, 9);
     // An old file's share is dormant on one, and changes nothing.
     expect(hullMountGeometry({ kind: 'hullBeam', x: 0, y: 0, length: 6, width: 4, nozzle: 0.9 })).toEqual(mount);
+  });
+
+  it('stands each lens out on a stalk, and trains them about their middle', () => {
+    const spec: ModuleSpec = { kind: 'hullBeam', x: 0, y: 0, length: 6, width: 4, barrels: 3 };
+    const mount = hullMountGeometry(spec);
+    const stalk = mount.barrelLength * BEAM_STALK_SHARE;
+    expect(mount.reach).toBeCloseTo(mount.barrelLength + stalk, 9);
+    expect(bodySpec(spec).length).toBeCloseTo(6 + mount.reach, 9);
+    // From the block's face, out along the stalk to the lens's centre.
+    expect(mount.trains - mount.pivot).toBeCloseTo(stalk + mount.barrelLength / 2, 9);
+    expect(mount.muzzle).toBeCloseTo(mount.barrelLength / 2, 9);
+    // A gun trains at the root of its barrels.
+    const gun = hullMountGeometry({ kind: 'hullGun', x: 0, y: 0, length: 4, width: 4 });
+    expect(gun.trains).toBe(gun.pivot);
+    expect(gun.reach).toBe(gun.barrelLength);
   });
 
   it('gives a deeper beam a better duty cycle, not only a longer burst', () => {

@@ -625,6 +625,13 @@ export const BEAM_COOLING_BURN = 0.5;
 export const BEAM_EMITTER_APERTURES = 1.5;
 
 /**
+ * How far out of its block a hull beam's lens stands on its stalk, in lengths
+ * of its housing: far enough that the lens, turning about its own centre on
+ * the disc it is mounted on, is clear of the block.
+ */
+export const BEAM_STALK_SHARE = 0.5;
+
+/**
  * Areal density of the final optic, kg/m².
  *
  * The JWST primary manages 26 kg/m² in beryllium, but it is never slewed hard
@@ -1908,14 +1915,27 @@ export interface HullMountGeometry {
   blockLength: number;
   /** Length of the barrel or lens housing, metres. */
   barrelLength: number;
+  /**
+   * How far it reaches out of the block, metres: a gun's barrel, or a beam's
+   * lenses out on their stalks (`BEAM_STALK_SHARE`).
+   */
+  reach: number;
   /** Width of one barrel or lens, metres, after `HULL_BARREL_WIDTH_CAP`. */
   outletWidth: number;
   /** Centre to centre, metres: the face in `outlets + 1` gaps, as a turret's barrels. Zero for one. */
   outletSpacing: number;
   /** Across the whole row, outer edge to outer edge, metres. What swings in the opening. */
   barrelWidth: number;
-  /** How far ahead of the module's centre the barrels pivot, metres. */
+  /** How far ahead of the module's centre the barrels pivot, metres: the block's front face. */
   pivot: number;
+  /**
+   * How far ahead of the module's centre the mount trains, metres: a gun's
+   * barrel root, where its barrels share one mantlet; for a beam, the middle of
+   * its lenses, each turning about its own centre out on a stalk.
+   */
+  trains: number;
+  /** From where it trains to where a shot leaves, metres. */
+  muzzle: number;
   /** Half-width of the traverse the opening leaves, radians. */
   traverse: number;
 }
@@ -1927,6 +1947,7 @@ function hullOutlets(spec: ModuleSpec): {
   outletSpacing: number;
   barrelWidth: number;
   barrelLength: number;
+  reach: number;
 } {
   const outlets = spec.barrels ?? 1;
   // What a single outlet would be, and each of several split the way a
@@ -1953,20 +1974,22 @@ function hullOutlets(spec: ModuleSpec): {
     spec.kind === 'hullBeam'
       ? outletWidth * BEAM_EMITTER_APERTURES
       : (barrelCalibres(spec) * outletWidth) / BARREL_OUTER_CALIBRES;
-  return { outlets, outletWidth, outletSpacing, barrelWidth, barrelLength };
+  const reach = spec.kind === 'hullBeam' ? barrelLength * (1 + BEAM_STALK_SHARE) : barrelLength;
+  return { outlets, outletWidth, outletSpacing, barrelWidth, barrelLength, reach };
 }
 
 /** How far a hull mount's barrel or lens housing reaches out of its block, metres. */
 function hullBarrelLength(spec: ModuleSpec): number {
-  return hullOutlets(spec).barrelLength;
+  return hullOutlets(spec).reach;
 }
 
 /** A hull mount's halves, its outlets and the arc its own barrel leaves it. */
 export function hullMountGeometry(spec: ModuleSpec): HullMountGeometry {
   spec = bodySpec(spec);
-  const { outlets, outletWidth, outletSpacing, barrelWidth, barrelLength } = hullOutlets(spec);
-  const share = barrelLength / spec.length;
-  const blockLength = spec.length - barrelLength;
+  const { outlets, outletWidth, outletSpacing, barrelWidth, barrelLength, reach: out } = hullOutlets(spec);
+  const share = out / spec.length;
+  const blockLength = spec.length - out;
+  const pivot = spec.length * 0.5 - out;
 
   // The corner of the swung barrel against the edge of the opening.
   const half = barrelWidth * 0.5;
@@ -1982,10 +2005,13 @@ export function hullMountGeometry(spec: ModuleSpec): HullMountGeometry {
     share,
     blockLength,
     barrelLength,
+    reach: out,
     outletWidth,
     outletSpacing,
     barrelWidth,
-    pivot: spec.length * 0.5 - barrelLength,
+    pivot,
+    trains: spec.kind === 'hullBeam' ? pivot + out - barrelLength * 0.5 : pivot,
+    muzzle: spec.kind === 'hullBeam' ? barrelLength * 0.5 : barrelLength,
     traverse: limit > 0 ? (limit < HULL_MAX_TRAVERSE ? limit : HULL_MAX_TRAVERSE) : 0,
   };
 }
@@ -2182,9 +2208,9 @@ export function weldBox(spec: ModuleSpec): ModuleSpec {
   spec = bodySpec(spec);
   if (spec.kind === 'engine') return engineMachinery(spec);
   if (!isHullMount(spec.kind)) return spec;
-  const { blockLength, barrelLength } = hullMountGeometry(spec);
+  const { blockLength, reach } = hullMountGeometry(spec);
   const angle = spec.angle ?? 0;
-  const back = barrelLength * 0.5;
+  const back = reach * 0.5;
   return {
     ...spec,
     length: blockLength,
@@ -2609,11 +2635,13 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
     const sweep = mount.traverse > 0 ? mountTraverse(spec) / mount.traverse : 0;
     traverseMass = fittingMass * TRAVERSE_GEAR_FRACTION * sweep;
     fittingMass += traverseMass;
-    const spin = (protrudingMass * gun.barrelLength * gun.barrelLength) / 3;
     const middle = (protrudingMass * gun.barrelLength * gun.barrelLength) / 12;
+    // A lens turns about its own centre, a barrel about its root.
+    const lens = spec.kind === 'hullBeam';
+    const spin = lens ? middle : (protrudingMass * gun.barrelLength * gun.barrelLength) / 3;
     const braceSpin = braceInertia(gun, braced);
     const braceMiddle = (braced * gun.braceLength * gun.braceLength) / 12;
-    const ahead = mount.pivot + gun.barrelLength * 0.5;
+    const ahead = lens ? mount.trains : mount.pivot + gun.barrelLength * 0.5;
     const braceAhead = mount.pivot + gun.braceLength * 0.5;
     const each = protrudingMass + braced;
     for (let barrel = 0; barrel < gun.barrelCount; barrel++) {
@@ -2691,7 +2719,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
         ? // The block sits half a barrel aft of the module's middle, and the
           // barrels have already been measured from there.
           (boxMass * (mount.blockLength * mount.blockLength + spec.width * spec.width)) / 12 +
-          boxMass * (mount.barrelLength * 0.5) * (mount.barrelLength * 0.5) +
+          boxMass * (mount.reach * 0.5) * (mount.reach * 0.5) +
           rodInertia
         : triangle !== null
           ? // The shape's own second moment, per unit of the floor it encloses.
