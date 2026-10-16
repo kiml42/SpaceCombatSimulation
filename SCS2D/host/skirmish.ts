@@ -12,6 +12,7 @@ import {
   handedSkirmish,
   lost,
   newSkirmish,
+  overLimit,
   nextRound,
   parseSkirmish,
   parseSkirmishSettings,
@@ -57,6 +58,10 @@ const SETTINGS_KEY = 'scs2d.skirmish.settings';
 const D = DEFAULT_SKIRMISH_SETTINGS;
 /** The round's settings and the answer's, as the setup screen offers them. */
 const SKIRMISH_FIELDS: readonly SettingField[] = [
+  { name: 'maxShips', group: 'limits', label: 'most ships', step: 1, min: 1, value: D.maxShips,
+    title: "The most ships either side may field, unless the enemy already has more: a limit on how hard a battle works the computer." },
+  { name: 'radius', group: 'limits', label: 'spawn radius m', step: 50, min: 1, value: D.radius,
+    title: "How far from its origin any of either side's hulls may reach, unless the enemy already reaches further." },
   { name: 'quietTime', group: 'round', label: 'quiet s', step: 5, min: 1, value: D.quietTime,
     title: 'A side that has not fired, hit or rammed for this long, while the other has, is out of the battle.' },
   { name: 'timeCap', group: 'round', label: 'time cap s', step: 30, min: 1, value: D.timeCap,
@@ -74,12 +79,12 @@ const SKIRMISH_FIELDS: readonly SettingField[] = [
   { name: 'duration', group: 'answer', label: 'match s', step: 30, min: 1, value: D.duration,
     title: 'How long a match of the search lasts before the side ahead is taken to win.' },
   { name: 'growth', group: 'answer', label: 'growth ×', step: 0.1, min: 1, value: D.growth,
-    title: 'How much bigger an answer may be than the enemy it answers, in metal, fuel, build time and ships — always one more ship than it had.' },
+    title: 'How much bigger an answer may be than the enemy it answers, in metal, fuel, build time and ships — always one more ship than it had, up to the most ships allowed.' },
   { name: 'stretchAfter', group: 'answer', label: 'grow again after', step: 1, min: 1, value: D.stretchAfter,
     title: 'Generations without an answer before the enemy may grow by as much again.' },
 ];
 /** Those that are counts, and so whole. */
-const WHOLE = new Set(['mutants', 'seeds', 'stretchAfter']);
+const WHOLE = new Set(['mutants', 'seeds', 'stretchAfter', 'maxShips']);
 
 export function startSkirmish(): void {
   const fleets = new Library(window.localStorage, FLEET_FILES);
@@ -359,13 +364,16 @@ export function startSkirmish(): void {
     const fault = fleetFault(skirmish.player);
     el<HTMLElement>('budget').innerHTML = fault !== null ? '' : budgetRows(billOfFleet(skirmish.player), skirmish.budget);
     const fits = canFight(skirmish);
+    const limit = fault === null ? overLimit(skirmish) : null;
     el<HTMLElement>('fleetNote').textContent = fits
       ? ''
       : skirmish.player.ships.length === 0
         ? 'Your fleet has no ships: edit it to add some.'
         : fault !== null
           ? `Your fleet would not fly: ${fault}. Edit it to fix that.`
-          : 'Your fleet is over budget: edit it to cut it down.';
+          : limit !== null
+            ? `Your fleet has ${limit}: edit it to fit.`
+            : 'Your fleet is over budget: edit it to cut it down.';
     playButton.disabled = !fits;
     el<HTMLButtonElement>('retry').disabled = !fits;
     editFleet.hidden = false;

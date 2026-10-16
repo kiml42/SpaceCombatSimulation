@@ -73,6 +73,11 @@ describe('how far an answer may grow', () => {
     expect(running.limits.maxShips).toBe(2);
   });
 
+  it('to no more ships than the skirmish allows, unless it had more', () => {
+    expect(new EnemySearch(gunship, corvette, WON, 5, { maxShips: 1 }).limits.maxShips).toBe(1);
+    expect(new EnemySearch(gunship, corvette, WON, 5, { maxShips: 0 }).limits.maxShips).toBe(1);
+  });
+
   it('keeps every enemy it breeds within that', () => {
     const running = new EnemySearch(gunship, corvette, WON, 5, { stretchAfter: 1000 });
     for (let i = 0; i < 3 && !running.advance(5_000); i++) {

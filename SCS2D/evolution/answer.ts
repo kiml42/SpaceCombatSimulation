@@ -3,7 +3,7 @@ import { customBattle, tally, winner, type CustomBattle } from '../scenarios/cus
 import { Activity, type Decision } from '../scenarios/decision.js';
 import { DEFAULT_SKIRMISH_SETTINGS, roundBattle, type SkirmishSettings } from '../scenarios/skirmish.js';
 import { breeding, type Breeding } from './mutationFields.js';
-import { mutateFleet, DEFAULT_FLEET_LIMITS } from './fleetMutate.js';
+import { mutateFleet } from './fleetMutate.js';
 
 /**
  * The skirmish enemy's answer to a fleet that beat it (ROADMAP.md §8 step 5):
@@ -92,9 +92,9 @@ export class EnemySearch {
     this.settings = { ...DEFAULT_ANSWER, ...settings };
     const odds = this.settings.breeding;
     this.bred = breeding((name) => odds[name]);
-    // Room to grow beyond where it stands, which a stock fleet may already be past the default of.
-    this.radius = math.max(DEFAULT_FLEET_LIMITS.radius, 1.5 * fleetReach(fleetHulls(enemy)));
     const hulls = fleetHulls(enemy);
+    // The skirmish's limit, unless the enemy already reaches past it.
+    this.radius = math.max(this.settings.radius, fleetReach(hulls));
     this.startBill = fleetBill(hulls);
     this.startShips = hulls.length;
     this.best = { enemy, wins: 0, onRound: false, margin: -Infinity };
@@ -118,7 +118,10 @@ export class EnemySearch {
     const { metal, fuel, build } = this.startBill;
     return {
       budget: { metal: metal * factor, fuel: fuel * factor, build: build * factor },
-      maxShips: math.max(math.ceil(this.startShips * factor), this.startShips + this.stretch),
+      maxShips: math.max(
+        this.startShips,
+        math.min(this.settings.maxShips, math.max(math.ceil(this.startShips * factor), this.startShips + this.stretch)),
+      ),
     };
   }
 

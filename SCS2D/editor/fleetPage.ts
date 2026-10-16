@@ -39,6 +39,7 @@ import {
   canFight,
   fleetFault,
   handedSkirmish,
+  overLimit,
   serialiseSkirmish,
   skirmishFragment,
   SKIRMISH_STORAGE_KEY,
@@ -359,6 +360,7 @@ export function startFleetEditor(): void {
     el<HTMLElement>('skirmishBudget').innerHTML = fault !== null ? '' : budgetRows(billOfFleet(now.player), now.budget);
     const flies = doc.view.faults.length === 0;
     const fits = flies && canFight(now);
+    const limit = fault === null ? overLimit(now) : null;
     el<HTMLElement>('skirmishNote').textContent = fits
       ? `Against ${now.enemy.name}.`
       : now.player.ships.length === 0
@@ -367,7 +369,9 @@ export function startFleetEditor(): void {
           ? 'Priced once every design would fly.'
           : !flies
             ? 'Fix the problems listed to fight.'
-            : 'Over budget: cut it down to fight.';
+            : limit !== null
+              ? `The fleet has ${limit}.`
+              : 'Over budget: cut it down to fight.';
     backToSkirmish.classList.toggle('blocked', !fits);
     // Kept as it is edited, in the address and in storage, so a reload or the
     // skirmish page picks up where this left off.
@@ -391,10 +395,13 @@ export function startFleetEditor(): void {
       const now: Skirmish = { ...skirmish!, player: doc.fleet };
       if (!canFight(now)) {
         event.preventDefault();
+        const limit = fleetFault(now.player) === null ? overLimit(now) : null;
         window.alert(
           now.player.ships.length === 0
             ? 'Add a ship to fight with first.'
-            : 'The fleet is over budget: cut it down to fight.',
+            : limit !== null
+              ? `The fleet has ${limit}.`
+              : 'The fleet is over budget: cut it down to fight.',
         );
         return;
       }

@@ -94,6 +94,7 @@ describe('the skirmish in a browser', () => {
     await set('quietTime', '45');
     await set('mutants', '2');
     await set('kindTank', '7');
+    await set('maxShips', '3');
     await page.selectOption('#enemy', 'ship:Gunship');
     await page.selectOption('#startFleet', 'ship:Gunship');
     await page.click('#start');
@@ -101,6 +102,7 @@ describe('the skirmish in a browser', () => {
     expect(kept.settings.quietTime).toBe(45);
     expect(kept.settings.mutants).toBe(2);
     expect(kept.settings.breeding.kindTank).toBe(7);
+    expect(kept.settings.maxShips).toBe(3);
     // Remembered for the next one, until reset.
     await page.click('#abandon');
     expect(await page.inputValue('#quietTime')).toBe('45');
@@ -108,6 +110,8 @@ describe('the skirmish in a browser', () => {
     expect(await page.inputValue('#quietTime')).toBe(String(DEFAULT_SKIRMISH_SETTINGS.quietTime));
     expect(await page.inputValue('#mutants')).toBe(String(DEFAULT_SKIRMISH_SETTINGS.mutants));
     expect(await page.inputValue('#kindTank')).toBe(String(DEFAULT_KINDS.tank));
+    expect(await page.inputValue('#maxShips')).toBe('20');
+    expect(await page.inputValue('#radius')).toBe('500');
     expect(problems).toEqual([]);
   });
 

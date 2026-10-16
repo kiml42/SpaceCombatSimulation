@@ -12,6 +12,7 @@ import {
   handedSkirmish,
   lost,
   newSkirmish,
+  overLimit,
   nextRound,
   parseSkirmish,
   roundSetup,
@@ -171,6 +172,21 @@ describe('the skirmish', () => {
     const skirmish = newSkirmish(core, gunship, 5, undefined, budget);
     expect(skirmish.budget).toEqual(budget);
     expect(canFight(skirmish)).toBe(true);
+  });
+
+  it('will not fight with more ships, or a wider spread, than its settings allow', () => {
+    const budget = { metal: 1e9, fuel: 1e9, build: 1e9 };
+    const pair: Fleet = { ...gunship, ships: [{ design: GUNSHIP.name, x: 0, y: -100 }, { design: GUNSHIP.name, x: 0, y: 100 }] };
+    const one = { ...DEFAULT_SKIRMISH_SETTINGS, maxShips: 1 };
+    expect(overLimit(newSkirmish(core, pair, 5, one, budget))).toMatch(/2 ships, more than the 1 allowed/);
+    expect(canFight(newSkirmish(core, pair, 5, one, budget))).toBe(false);
+    expect(canFight(newSkirmish(core, pair, 5, undefined, budget))).toBe(true);
+    const far: Fleet = { ...gunship, ships: [{ design: GUNSHIP.name, x: 1000, y: 0 }] };
+    expect(overLimit(newSkirmish(core, far, 5, undefined, budget))).toMatch(/beyond the 500 m allowed/);
+    expect(canFight(newSkirmish(core, far, 5, { ...DEFAULT_SKIRMISH_SETTINGS, radius: 2000 }, budget))).toBe(true);
+    // Never less than the enemy fields.
+    expect(overLimit(newSkirmish(pair, pair, 5, one, budget))).toBeNull();
+    expect(overLimit(newSkirmish(far, far, 5, undefined, budget))).toBeNull();
   });
 
   it('will not fight with nothing, or over budget', () => {
