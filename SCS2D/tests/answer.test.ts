@@ -5,7 +5,7 @@ import { CORVETTE, GUNSHIP } from '../scenarios/blueprints.js';
 import { customBattle, tally } from '../scenarios/customBattle.js';
 import { Activity, type Decision } from '../scenarios/decision.js';
 import { DEFAULT_SKIRMISH_SETTINGS, roundBattle } from '../scenarios/skirmish.js';
-import { drillBattle, EnemySearch } from '../evolution/answer.js';
+import { damageDealt, damageScale, drillBattle, EnemySearch } from '../evolution/answer.js';
 
 const gunship = shipFleet(GUNSHIP);
 const corvette = shipFleet(CORVETTE);
@@ -164,5 +164,50 @@ describe('the drills an enemy fights', () => {
     const going = new EnemySearch(gunship, corvette, WON, 4, { seeds: 1, bareCoreDrills: 1, shieldedDrills: 1 });
     while (going.progress.generation === 0 && !going.advance(5000));
     expect(going.progress.best.wins).toBeLessThanOrEqual(1);
+  });
+});
+
+describe('the damage an enemy does', () => {
+  // Bodies 0 and 1 are the player's and the enemy's ships; module 0 is structure, module 1 a gun.
+  const hits = (list: [attacker: number, victim: number, module: number, energy: number][]) =>
+    ({
+      ships: {
+        pilotAt: (body: number) => body,
+        teamOf: (ship: number) => ship,
+        damage: { kindAt: (_body: number, module: number) => (module === 0 ? 'structure' : 'hullGun') },
+      },
+      credit: {
+        count: list.length,
+        attacker: list.map((h) => h[0]),
+        victim: list.map((h) => h[1]),
+        module: list.map((h) => h[2]),
+        attackerModule: list.map(() => -1),
+        energy: list.map((h) => h[3]),
+      },
+    }) as never;
+
+  it("counts only the enemy's hits on the player, a working part three times bare structure", () => {
+    expect(damageDealt(hits([[1, 0, 0, 100]]))).toBe(100);
+    expect(damageDealt(hits([[1, 0, 1, 100]]))).toBe(300);
+    // The player's own hits, and the enemy's on itself, are not the enemy's damage.
+    expect(damageDealt(hits([[0, 1, 1, 100], [1, 1, 1, 100]]))).toBe(0);
+  });
+
+  it('scores on a log scale, so a few hits count and each tenfold more counts as much again', () => {
+    expect(damageScale(0)).toBe(0);
+    expect(damageScale(1)).toBeCloseTo(1, 12);
+    expect(damageScale(3e-7)).toBeGreaterThan(0.01);
+    const step = damageScale(1e-3) - damageScale(1e-4);
+    expect(damageScale(1e-2) - damageScale(1e-3)).toBeCloseTo(step, 2);
+  });
+
+  it('is done in a real fight the enemy loses', { timeout: 120_000 }, () => {
+    const battle = customBattle(roundBattle(gunship, corvette, WON));
+    let dealt = 0;
+    for (let t = 0; t < 120 / battle.dt; t++) {
+      battle.step();
+      dealt += damageDealt(battle);
+    }
+    expect(dealt).toBeGreaterThan(0);
   });
 });

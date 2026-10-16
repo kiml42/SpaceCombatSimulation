@@ -365,6 +365,11 @@ export class Damage {
     this.protectedBody[bodyIndex] = true;
   }
 
+  /** The kind of a body's module, or null if it has no such module. */
+  kindAt(bodyIndex: number, module: number): ModuleSpec['kind'] | null {
+    return this.kinds[bodyIndex]?.[module] ?? null;
+  }
+
   isProtected(bodyIndex: number): boolean {
     return this.protectedBody[bodyIndex] === true;
   }
