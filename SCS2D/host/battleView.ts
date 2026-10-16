@@ -4,6 +4,7 @@ import { ARCS_KEY, draw, nextArcs, TEAM_SHOTS_KEY, type Arcs } from '../render/c
 import { frame, moveWithVisibleShips, selectionBounds, shipAt, type Camera } from '../render/camera.js';
 import type { Battle } from '../scenarios/types.js';
 import { viewGestures } from './viewGestures.js';
+import { keepSpeed, loadView, saveView, type ViewSettings } from './viewSettings.js';
 
 /**
  * A battle drawn on a canvas and run on the wall clock: the camera, the
@@ -34,6 +35,11 @@ export interface BattleView {
   setSpeed(speed: number): void;
   /** Frame everything again, and keep it framed. */
   fit(): void;
+  /**
+   * Remember this page's arcs, shot colours and speed between visits, taking
+   * the speed from and to this list.
+   */
+  keep(page: string, speed: HTMLSelectElement): void;
   readonly camera: Readonly<Camera>;
 }
 
@@ -65,6 +71,14 @@ export function battleView(
   let lastSimTime = 0;
   let arcs: Arcs = 'none';
   let teamShots = false;
+  /** Where the view's settings are kept, once a page has asked for them to be. */
+  let kept: { page: string; settings: ViewSettings } | null = null;
+  const remember = (): void => {
+    if (kept === null) return;
+    kept.settings.arcs = arcs;
+    kept.settings.teamShots = teamShots;
+    saveView(kept.page, kept.settings);
+  };
 
   const resize = (): void => {
     const ratio = window.devicePixelRatio || 1;
@@ -118,8 +132,10 @@ export function battleView(
       autoFrame = true;
     } else if (event.key.toLowerCase() === ARCS_KEY && !event.ctrlKey && !event.metaKey) {
       arcs = nextArcs(arcs);
+      remember();
     } else if (event.key.toLowerCase() === TEAM_SHOTS_KEY && !event.ctrlKey && !event.metaKey) {
       teamShots = !teamShots;
+      remember();
     }
   });
 
@@ -202,6 +218,13 @@ export function battleView(
     },
     fit() {
       autoFrame = true;
+    },
+    keep(page, select) {
+      const settings = loadView(page, { arcs, teamShots, speed });
+      kept = { page, settings };
+      arcs = settings.arcs;
+      teamShots = settings.teamShots;
+      speed = keepSpeed(select, page, settings);
     },
     camera,
   };

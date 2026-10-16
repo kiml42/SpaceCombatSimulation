@@ -52,6 +52,7 @@ import {
 } from '../evolution/run.js';
 import { el } from './dom.js';
 import { viewGestures } from './viewGestures.js';
+import { keepSpeed, loadView, saveView } from './viewSettings.js';
 
 /**
  * The evolution page: set a run going, watch what it is doing, and fight any
@@ -389,7 +390,7 @@ function download(name: string, text: string): void {
 
 /** Save a ship or fleet as a file named for it. */
 function exportEntrant(entrant: Entrant): void {
-  download(`${entrant.name.replace(/[^\w.-]+/g, '_')}.json`, isFleet(entrant) ? fleetFileText(entrant) : toFileText(entrant));
+  download(`${entrant.name.replace(/[^\w.-]+/g, '_')}${isFleet(entrant) ? '.fleet.json' : '.ship.json'}`, isFleet(entrant) ? fleetFileText(entrant) : toFileText(entrant));
 }
 
 const NO_LAYOUT: ChartLayout = { x: 0, y: 0, width: 0, height: 0, count: 0 };
@@ -602,10 +603,12 @@ export function startEvolution(): void {
   const flashes = new Flashes();
   const camera: Camera = { x: 0, y: 0, scale: 0.1 };
   let autoFrame = true;
-  let arcs: Arcs = 'none';
-  // On here and off on the viewer: a run is watched to see who is doing what,
-  // a single battle as much to see it.
-  let teamShots = true;
+  // Team colours on here and off on the viewer: a run is watched to see who is
+  // doing what, a single battle as much to see it.
+  const kept = loadView('evolution', { arcs: 'none', teamShots: true, speed: 1 });
+  let arcs: Arcs = kept.arcs;
+  let teamShots = kept.teamShots;
+  keepSpeed(speedSelect, 'evolution', kept);
   let framed = false;
   let lastSimTime = 0;
   let accumulator = 0;
@@ -1050,7 +1053,7 @@ export function startEvolution(): void {
   el<HTMLButtonElement>('exportConfig').addEventListener('click', () => {
     const setup = readSetup();
     const file = setup.name === undefined ? 'evolution-config' : setup.name.replace(/[^\w.-]+/g, '_');
-    download(`${file}.json`, `${JSON.stringify(serialiseRunConfig(setup), null, 2)}\n`);
+    download(`${file}.evo.json`, `${JSON.stringify(serialiseRunConfig(setup), null, 2)}\n`);
   });
   const file = el<HTMLInputElement>('importConfigFile');
   el<HTMLButtonElement>('importConfig').addEventListener('click', () => file.click());
@@ -1180,8 +1183,12 @@ export function startEvolution(): void {
       if (!skipButton.disabled) skipMatch();
     } else if (event.key.toLowerCase() === ARCS_KEY) {
       arcs = nextArcs(arcs);
+      Object.assign(kept, { arcs, teamShots });
+      saveView('evolution', kept);
     } else if (event.key.toLowerCase() === TEAM_SHOTS_KEY) {
       teamShots = !teamShots;
+      Object.assign(kept, { arcs, teamShots });
+      saveView('evolution', kept);
     }
   });
 

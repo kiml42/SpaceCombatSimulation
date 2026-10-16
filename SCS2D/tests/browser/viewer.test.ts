@@ -375,6 +375,27 @@ describe('the viewer in a browser', () => {
     await touch.close();
   });
 
+  it('remembers the speed, the arcs and the shot colours for the next visit', async () => {
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await page.selectOption('#speed', '4');
+    await page.keyboard.press('a');
+    await page.keyboard.press('a');
+    await page.keyboard.press('c');
+    expect(JSON.parse((await page.evaluate(() => localStorage.getItem('scs2d.view.viewer')))!)).toEqual({
+      arcs: 'trigger',
+      teamShots: true,
+      speed: 4,
+    });
+
+    // Coming back to the page is what the last visit left.
+    await page.reload();
+    await page.waitForFunction(() => /step \d+/.test(document.getElementById('readout')?.textContent ?? ''));
+    expect(await page.inputValue('#speed')).toBe('4');
+    // Pressed once more, the arcs go on round from where they were left, to none.
+    await page.keyboard.press('a');
+    expect(JSON.parse((await page.evaluate(() => localStorage.getItem('scs2d.view.viewer')))!).arcs).toBe('none');
+  });
+
   it('reports no errors after all of that', () => {
     expect(problems).toEqual([]);
   });
