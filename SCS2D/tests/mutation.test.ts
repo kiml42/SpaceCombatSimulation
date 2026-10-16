@@ -525,6 +525,28 @@ describe('mutation', () => {
     expect(pushed).toBeGreaterThan(0);
   });
 
+  it('stops a slide against the module it would run into', () => {
+    // A block between two others along its length, so most slides along it hit one.
+    const packed = parseBlueprint({
+      formatVersion: 1,
+      name: 'Packed',
+      modules: [
+        { kind: 'core', x: 0, y: 0, length: 4, width: 2 },
+        { kind: 'structure', x: 3, y: 1, length: 2, width: 2 },
+        { kind: 'structure', x: 6, y: 0, length: 4, width: 2 },
+      ],
+    });
+    const rng = new Rng(13);
+    let stopped = 0;
+    for (let i = 0; i < 300 && stopped < 5; i++) {
+      const child = mutate(packed, rng, { structural: 0, switches: 0, geometry: 1, build: { ...FROZEN, move: 1 }, doctrine: STILL });
+      if (!child.edits.some((edit) => /stopping against a neighbour/.test(edit))) continue;
+      stopped++;
+      expect(blueprintProblem(child.blueprint)).toBeNull();
+    }
+    expect(stopped).toBeGreaterThan(0);
+  });
+
   it('trades a face between two touching modules', () => {
     const rng = new Rng(11);
     let seams = 0;

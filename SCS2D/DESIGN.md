@@ -610,8 +610,11 @@ inside any one file is not contiguous.
   radius and a ship count — headless with `npm run evolve -- --fleet`, and on the evolution page, whose
   founders are ships and fleets alike; a ship grows into a fleet unless the most ships allowed is one. A fleet carries designs it does not fly: a
   ship taken out leaves its design behind, and a ship added is built to any design the fleet carries or to a bare
-  core, so it can grow by one small ship rather than only by a copy of one it has. A design nothing flies is not
-  mutated, since nothing selects it. Before a run the page shows the founders unmutated and the run's
+  core, so it can grow by one small ship rather than only by a copy of one it has, and it goes in any direction from
+  the ship it is beside, clear of it by one and a quarter to two and a quarter times their two radii. When ships move,
+  each of the fleet's entries moves with a chance of its own, by a drift a quarter of its largest ship's radius and a
+  turn, each undone alone if it lands on a neighbour — so a row of fighters moves as far as a fighter. A design nothing
+  flies is not mutated, since nothing selects it. Before a run the page shows the founders unmutated and the run's
   first match paused at its start. Entrants can start already moving, towards the middle and across it, at speeds the run
   sets (`--closing`, `--crossing`), the same two a custom battle has.
   **Co-evolution**, headless (`evolution/coevolution.ts`, `npm run evolve -- --versus`): two lineages, side A

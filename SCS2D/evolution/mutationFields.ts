@@ -81,7 +81,7 @@ export const MUTATION_FIELDS: readonly MutationField[] = [
   { name: 'opDesign', group: 'fleet', label: 'design mutated', step: 0.5, value: DEFAULT_FLEET_LIMITS.operators.design,
     title: 'Odds of mutating one of the fleet\'s designs, the way a single ship is mutated. Every ship built to that design changes with it.' },
   { name: 'opMove', group: 'fleet', label: 'ship moved/turned', step: 0.5, value: DEFAULT_FLEET_LIMITS.operators.move,
-    title: 'Odds of moving one of the fleet\'s ships or groups a few metres, or turning it, where it starts the battle.' },
+    title: 'Odds of moving and turning some of the fleet\'s ships or groups where they start the battle, each by a share of its own size.' },
   { name: 'opAdd', group: 'fleet', label: 'ship added', step: 0.5, value: DEFAULT_FLEET_LIMITS.operators.add,
     title: 'Odds of adding a copy of one of the fleet\'s ships or groups, a little way off from it.' },
   { name: 'opRemove', group: 'fleet', label: 'ship removed', step: 0.5, value: DEFAULT_FLEET_LIMITS.operators.remove,

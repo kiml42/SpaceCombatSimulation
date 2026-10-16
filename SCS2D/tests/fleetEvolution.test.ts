@@ -189,6 +189,46 @@ describe('breeding a fleet', () => {
   });
 });
 
+describe("where a fleet's ships go", () => {
+  it('moves a ship by a share of its own size', () => {
+    // A Dinky and a Gunship well apart, so neither move is refused for the other.
+    const fleet: Fleet = {
+      name: 'Odd pair',
+      designs: { Dinky: DINKY, Gunship: GUNSHIP },
+      ships: [
+        { design: 'Dinky', x: 0, y: -150 },
+        { design: 'Gunship', x: 0, y: 150 },
+      ],
+    };
+    const moved = { Dinky: [] as number[], Gunship: [] as number[] };
+    for (let seed = 0; seed < 60; seed++) {
+      const child = mutateFleet(fleet, new Rng(seed), { operators: only('move'), moves: 1 }).fleet;
+      child.ships.forEach((entry, i) => {
+        const was = fleet.ships[i]!;
+        const by = Math.sqrt((entry.x - was.x) ** 2 + (entry.y - was.y) ** 2);
+        if (by > 0 && 'design' in entry) moved[entry.design as 'Dinky' | 'Gunship'].push(by);
+      });
+    }
+    const median = (values: number[]): number => [...values].sort((a, b) => a - b)[values.length >> 1]!;
+    const ratio = compileBlueprint(GUNSHIP).radius / compileBlueprint(DINKY).radius;
+    expect(median(moved.Gunship) / median(moved.Dinky)).toBeGreaterThan(ratio / 3);
+  });
+
+  it('adds a ship clear of the one beside it by both their sizes', () => {
+    const lone: Fleet = { name: 'Lone', designs: { Gunship: GUNSHIP }, ships: [{ design: 'Gunship', x: 0, y: 0 }] };
+    const radius = compileBlueprint(GUNSHIP).radius;
+    let seen = 0;
+    for (let seed = 0; seed < 30; seed++) {
+      const child = mutateFleet(lone, new Rng(seed), { operators: only('add') }).fleet;
+      const added = child.ships[1];
+      if (added === undefined || !('design' in added) || added.design !== 'Gunship') continue;
+      seen++;
+      expect(Math.sqrt(added.x ** 2 + added.y ** 2)).toBeGreaterThanOrEqual(2 * radius);
+    }
+    expect(seen).toBeGreaterThan(0);
+  });
+});
+
 describe('designs a fleet carries but does not fly', () => {
   const flown = (fleet: Fleet): string[] => [...new Set(fleet.ships.map((entry) => ('design' in entry ? entry.design : '')))];
 
