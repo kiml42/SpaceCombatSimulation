@@ -77,6 +77,10 @@ export interface SkirmishSettings {
   readonly seeds: number;
   /** How long a match of the search may last before the side ahead is taken to win, s. */
   readonly duration: number;
+  /** Drills each enemy fights a generation against a bare core, which only add to its score. */
+  readonly bareCoreDrills: number;
+  /** Drills each enemy fights a generation, invincible, against the player's fleet, which only add to its score. */
+  readonly shieldedDrills: number;
   /** What is added to the enemy's budget multiplier each time its search stalls, from the step below. */
   readonly budgetStep: number;
   /** Generations without an answer before the multiplier steps up again. */
@@ -107,6 +111,8 @@ export const DEFAULT_SKIRMISH_SETTINGS: SkirmishSettings = {
   mutants: 5,
   seeds: 3,
   duration: 180,
+  bareCoreDrills: 1,
+  shieldedDrills: 1,
   budgetStep: 0.1,
   stretchAfter: 4,
   maxShips: 20,

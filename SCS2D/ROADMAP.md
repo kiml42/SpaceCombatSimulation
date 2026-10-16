@@ -304,6 +304,12 @@ Deliberately unresolved; decide when they block something.
 - **Where the skirmish enemy's budget multiplier starts.** At 1× the player's budget, or more if the enemy
   already costs more; a setting to start it
   higher, or lower, so a player can give themselves or the enemy a head start, is wanted later.
+- **Whether closing on the enemy should count as staying in the fight.** A side is out once it has gone
+  `quietTime` without firing, hitting or ramming, which ramming generalises: a ship whose own velocity
+  takes it towards its nearest enemy is pressing an attack too. Measured by its own velocity, not the gap,
+  so an enemy making passes at it does not count for it. Any change of velocity would be more general
+  still, but would make running away a way to stay in. Raised by the author with the drills (DECISIONS.md
+  2026-10-16), not built.
 - **Whether the skirmish enemy should prefer the cheapest fleet that wins.** It stops at the first winner,
   so it grows only as it must, but it never shrinks, and drifts larger round by round. A preference for
   efficiency would let it get leaner as well as stronger.

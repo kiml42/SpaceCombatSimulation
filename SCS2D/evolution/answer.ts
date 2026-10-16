@@ -1,4 +1,5 @@
-import { fleetBill, fleetHulls, fleetReach, math, Rng, type Budget, type Fleet } from '../sim/index.js';
+import { fleetBill, fleetHulls, fleetReach, math, Rng, shipFleet, type Budget, type Fleet } from '../sim/index.js';
+import { BARE_CORE } from '../scenarios/blueprints.js';
 import { customBattle, tally, winner, type CustomBattle } from '../scenarios/customBattle.js';
 import { Activity, type Decision } from '../scenarios/decision.js';
 import { DEFAULT_SKIRMISH_SETTINGS, nextMultiplier, roundBattle, startingMultiplier, type SkirmishSettings } from '../scenarios/skirmish.js';
@@ -18,6 +19,13 @@ import { mutateFleet } from './fleetMutate.js';
  * wins on the next round's seed is checked by fighting that round to the
  * skirmish's decision: the first that wins that is the answer, and one that
  * does not is not counted as having won on it.
+ *
+ * Beside those, each enemy fights drills that only add to its score, never
+ * to its wins: against a bare core, to learn to hit something at all, and
+ * against the player's fleet with itself made invincible, to learn to hurt
+ * that fleet before it is stripped by it. Each is scored by how much of the
+ * other side it destroyed, and how soon it finished the job — the core
+ * destroyed, or the fleet left with nothing to fire.
  *
  * An answer may cost the player's budget times a multiplier, and no less than
  * the enemy it answers already does; a search that goes long without one
@@ -75,6 +83,7 @@ export class EnemySearch {
   // The generation being fought.
   private standings: Standing[] = [];
   private seeds: number[] = [];
+  private drills: Drill[] = [];
   private next = 0;
   private battle: CustomBattle | null = null;
   // The round being fought to its decision, by the enemy that won every match.
@@ -144,7 +153,7 @@ export class EnemySearch {
       if (this.checking !== null) left -= this.check(left);
       else if (this.unchecked.length > 0) this.startCheck(this.unchecked.shift()!);
       else if (this.finishing) this.nextGeneration();
-      else if (this.next < this.standings.length * this.seeds.length) left -= this.fight(left);
+      else if (this.next < this.standings.length * (this.seeds.length + this.drills.length)) left -= this.fight(left);
       else this.finishGeneration();
     }
     return this.found !== null;
@@ -160,6 +169,9 @@ export class EnemySearch {
     }
     this.seeds = [this.wonSeed];
     while (this.seeds.length < this.settings.seeds) this.seeds.push(this.rng.nextUint32());
+    this.drills = [];
+    for (let i = 0; i < this.settings.bareCoreDrills; i++) this.drills.push({ kind: 'bareCore', seed: this.rng.nextUint32() });
+    for (let i = 0; i < this.settings.shieldedDrills; i++) this.drills.push({ kind: 'shielded', seed: this.rng.nextUint32() });
     this.next = 0;
     this.battle = null;
   }
@@ -167,8 +179,11 @@ export class EnemySearch {
   /** Fight the current match for up to `steps`; how many it took. */
   private fight(steps: number): number {
     const seedCount = this.seeds.length;
-    const standing = this.standings[math.floor(this.next / seedCount)]!;
-    const battle = (this.battle ??= customBattle(roundBattle(this.player, standing.enemy, this.seeds[this.next % seedCount]!, this.settings)));
+    const each = seedCount + this.drills.length;
+    const standing = this.standings[math.floor(this.next / each)]!;
+    const match = this.next % each;
+    if (match >= seedCount) return this.drill(steps, standing, this.drills[match - seedCount]!);
+    const battle = (this.battle ??= customBattle(roundBattle(this.player, standing.enemy, this.seeds[match]!, this.settings)));
     let taken = 0;
     const limit = math.round(this.settings.duration / battle.dt);
     while (taken < steps) {
@@ -190,7 +205,34 @@ export class EnemySearch {
       const win = decided === 1 || (decided === null && ahead > 0);
       if (win) standing.wins++;
       // The round's own seed is always the first an enemy fights.
-      if (this.next % seedCount === 0) standing.onRound = win;
+      if (match === 0) standing.onRound = win;
+      this.next++;
+      this.battle = null;
+      break;
+    }
+    return taken;
+  }
+
+  /**
+   * Fight a drill for up to `steps`; how many it took. It adds to the enemy's
+   * score: the share of the other side it destroyed, and one more for
+   * finishing the job, less the share of the match that took.
+   */
+  private drill(steps: number, standing: Standing, drill: Drill): number {
+    const battle = (this.battle ??= drillBattle(drill, this.player, standing.enemy, this.settings));
+    let taken = 0;
+    const limit = math.round(this.settings.duration / battle.dt);
+    while (taken < steps) {
+      battle.step();
+      taken++;
+      const tick = battle.world.tick;
+      if (tick % CHECK_EVERY !== 0 && tick < limit) continue;
+      const target = tally(battle, 2)[0]!;
+      // A bare core is done with once it is gone; a fleet once it has nothing left to fire.
+      const done = drill.kind === 'bareCore' ? target.ships === 0 : target.armed === 0;
+      if (!done && tick < limit) continue;
+      const destroyed = 1 - share(target.mass, battle.start[0]!.mass);
+      standing.margin += destroyed + (done ? 1 - math.min(1, tick / limit) : 0);
       this.next++;
       this.battle = null;
       break;
@@ -252,6 +294,23 @@ export class EnemySearch {
     }
     return taken;
   }
+}
+
+/** A match that only adds to an enemy's score. */
+export interface Drill {
+  readonly kind: 'bareCore' | 'shielded';
+  readonly seed: number;
+}
+
+/** A drill's battle: the enemy against a bare core, or invincible against the player's fleet. */
+export function drillBattle(drill: Drill, player: Fleet, enemy: Fleet, settings: AnswerSettings): CustomBattle {
+  if (drill.kind === 'bareCore') return customBattle(roundBattle(shipFleet(BARE_CORE), enemy, drill.seed, settings));
+  const battle = customBattle(roundBattle(player, enemy, drill.seed, settings));
+  const { ships, world } = battle;
+  for (let i = 0; i < ships.highWater; i++) {
+    if (ships.isAlive(i) && ships.teamOf(i) === 1) ships.damage.protect(world.bodies.indexOf(ships.body(i)));
+  }
+  return battle;
 }
 
 function share(now: number, start: number): number {
