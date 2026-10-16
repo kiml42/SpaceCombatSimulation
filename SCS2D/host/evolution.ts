@@ -52,6 +52,7 @@ import {
 } from '../evolution/run.js';
 import { el } from './dom.js';
 import { viewGestures } from './viewGestures.js';
+import { keepSpeed, loadView, saveView } from './viewSettings.js';
 
 /**
  * The evolution page: set a run going, watch what it is doing, and fight any
@@ -602,10 +603,12 @@ export function startEvolution(): void {
   const flashes = new Flashes();
   const camera: Camera = { x: 0, y: 0, scale: 0.1 };
   let autoFrame = true;
-  let arcs: Arcs = 'none';
-  // On here and off on the viewer: a run is watched to see who is doing what,
-  // a single battle as much to see it.
-  let teamShots = true;
+  // Team colours on here and off on the viewer: a run is watched to see who is
+  // doing what, a single battle as much to see it.
+  const kept = loadView('evolution', { arcs: 'none', teamShots: true, speed: 1 });
+  let arcs: Arcs = kept.arcs;
+  let teamShots = kept.teamShots;
+  keepSpeed(speedSelect, 'evolution', kept);
   let framed = false;
   let lastSimTime = 0;
   let accumulator = 0;
@@ -1180,8 +1183,12 @@ export function startEvolution(): void {
       if (!skipButton.disabled) skipMatch();
     } else if (event.key.toLowerCase() === ARCS_KEY) {
       arcs = nextArcs(arcs);
+      Object.assign(kept, { arcs, teamShots });
+      saveView('evolution', kept);
     } else if (event.key.toLowerCase() === TEAM_SHOTS_KEY) {
       teamShots = !teamShots;
+      Object.assign(kept, { arcs, teamShots });
+      saveView('evolution', kept);
     }
   });
 
