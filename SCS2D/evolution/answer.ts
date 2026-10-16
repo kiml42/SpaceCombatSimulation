@@ -1,4 +1,4 @@
-import { fleetBill, fleetHulls, fleetReach, math, Rng, shipFleet, type Budget, type Fleet } from '../sim/index.js';
+import { DAMAGE_ENERGY_PER_KG, fleetBill, fleetHulls, fleetReach, math, Rng, shipFleet, type Budget, type Fleet } from '../sim/index.js';
 import { BARE_CORE } from '../scenarios/blueprints.js';
 import { customBattle, tally, winner, type CustomBattle } from '../scenarios/customBattle.js';
 import { Activity, type Decision } from '../scenarios/decision.js';
@@ -26,6 +26,11 @@ import { mutateFleet } from './fleetMutate.js';
  * that fleet before it is stripped by it. Each is scored by how much of the
  * other side it destroyed, and how soon it finished the job — the core
  * destroyed, or the fleet left with nothing to fire.
+ *
+ * Every match, real or drill, also scores the damage the enemy did, hits on
+ * what makes a ship work counting for more than hits on bare structure, so an
+ * enemy that hits without yet breaking anything off still has something to
+ * climb.
  *
  * An answer may cost the player's budget times a multiplier, and no less than
  * the enemy it answers already does; a search that goes long without one
@@ -86,6 +91,8 @@ export class EnemySearch {
   private drills: Drill[] = [];
   private next = 0;
   private battle: CustomBattle | null = null;
+  // The weighted damage the enemy has done in the match being fought, J.
+  private dealt = 0;
   // The round being fought to its decision, by the enemy that won every match.
   private checking: { standing: Standing; battle: CustomBattle; activity: Activity } | null = null;
   private readonly unchecked: Standing[] = [];
@@ -189,6 +196,7 @@ export class EnemySearch {
     while (taken < steps) {
       battle.step();
       taken++;
+      this.dealt += damageDealt(battle);
       const tick = battle.world.tick;
       if (tick % CHECK_EVERY !== 0 && tick < limit) continue;
       const now = tally(battle, 2);
@@ -200,7 +208,7 @@ export class EnemySearch {
       // A loss is worth more the longer it was held off, which is what lets a
       // search that loses every match still tell its enemies apart.
       const held = math.min(1, tick / limit);
-      standing.margin += ahead + (decided === 1 ? 1 : decided !== null ? held - 1 : 0);
+      standing.margin += ahead + (decided === 1 ? 1 : decided !== null ? held - 1 : 0) + this.damageScore(battle);
       // Ahead when time runs out is taken as a win to come.
       const win = decided === 1 || (decided === null && ahead > 0);
       if (win) standing.wins++;
@@ -225,6 +233,7 @@ export class EnemySearch {
     while (taken < steps) {
       battle.step();
       taken++;
+      this.dealt += damageDealt(battle);
       const tick = battle.world.tick;
       if (tick % CHECK_EVERY !== 0 && tick < limit) continue;
       const target = tally(battle, 2)[0]!;
@@ -232,12 +241,26 @@ export class EnemySearch {
       const done = drill.kind === 'bareCore' ? target.ships === 0 : target.armed === 0;
       if (!done && tick < limit) continue;
       const destroyed = 1 - share(target.mass, battle.start[0]!.mass);
-      standing.margin += destroyed + (done ? 1 - math.min(1, tick / limit) : 0);
+      standing.margin += destroyed + (done ? 1 - math.min(1, tick / limit) : 0) + this.damageScore(battle);
       this.next++;
       this.battle = null;
       break;
     }
     return taken;
+  }
+
+  /**
+   * The damage the enemy did in the match just ended, from 0 to 1: its share
+   * of what would wreck the player's side to its last kilogram were every hit
+   * on what makes it work, on a log scale, so the first few hits of an enemy
+   * that can barely hit count for something and each tenfold more for as much
+   * again. Clears it for the next match.
+   */
+  private damageScore(battle: CustomBattle): number {
+    const whole = FUNCTIONAL_WEIGHT * DAMAGE_ENERGY_PER_KG * battle.start[0]!.mass;
+    const share = whole > 0 ? math.min(1, this.dealt / whole) : 0;
+    this.dealt = 0;
+    return damageScale(share);
   }
 
   /** Every match fought: pick the best, and check each that won on the round, the better first. */
@@ -294,6 +317,32 @@ export class EnemySearch {
     }
     return taken;
   }
+}
+
+/** How much more a hit on anything but bare structure counts, as it is what makes a ship work. */
+const FUNCTIONAL_WEIGHT = 3;
+
+/** The smallest share of damage that scores, below which a hit is a rounding error: a millionth. */
+const LEAST_DAMAGE = 1e-6;
+
+/** A share of damage, 0 to 1, on a log scale from `LEAST_DAMAGE` to the whole. */
+export function damageScale(share: number): number {
+  if (!(share > 0)) return 0;
+  return math.log(1 + share / LEAST_DAMAGE) / math.log(1 + 1 / LEAST_DAMAGE);
+}
+
+/** The damage the enemy (side 1) did to the player's side (side 0) in the step just taken, weighted, J. */
+export function damageDealt(battle: CustomBattle): number {
+  const { ships, credit } = battle;
+  let dealt = 0;
+  for (let h = 0; h < credit.count; h++) {
+    const attacker = ships.pilotAt(credit.attacker[h]!, credit.attackerModule[h]!);
+    const victim = ships.pilotAt(credit.victim[h]!, credit.module[h]!);
+    if (attacker < 0 || victim < 0 || ships.teamOf(attacker) !== 1 || ships.teamOf(victim) !== 0) continue;
+    const kind = ships.damage.kindAt(credit.victim[h]!, credit.module[h]!);
+    dealt += credit.energy[h]! * (kind === 'structure' ? 1 : FUNCTIONAL_WEIGHT);
+  }
+  return dealt;
 }
 
 /** A match that only adds to an enemy's score. */
