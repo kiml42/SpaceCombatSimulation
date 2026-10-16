@@ -99,7 +99,7 @@ import {
 import { battleHref, designHref, fleetHref, handedDesign, shipFleet, type DesignInFleet } from './handoff.js';
 import { replaceDesign, replacedName } from './fleetEdit.js';
 import { budgetRows } from './budget.js';
-import { billOfFleet, canFight, fleetFault } from '../scenarios/skirmish.js';
+import { billOfFleet, canFight, fleetFault, overLimit } from '../scenarios/skirmish.js';
 import { Demonstration } from './demonstrate.js';
 import { drawOverlay, envelopeBearingAt, overEnvelope } from './overlay.js';
 import {
@@ -1221,6 +1221,7 @@ export function startEditor(): void {
     el<HTMLElement>('inFleetTitle').textContent = skirmish === undefined ? `In ${fleet.name}` : `Skirmish — round ${skirmish.round}`;
     // A design that would not fly cannot be priced, and is an ordinary state to be editing in.
     const fault = skirmish === undefined ? null : fleetFault(fleet);
+    const limit = skirmish === undefined || fault !== null ? null : overLimit({ ...skirmish, player: fleet });
     el<HTMLElement>('inFleetBudget').innerHTML =
       skirmish === undefined || fault !== null ? '' : budgetRows(billOfFleet(fleet), skirmish.budget);
     el<HTMLElement>('inFleetNote').textContent =
@@ -1230,7 +1231,9 @@ export function startEditor(): void {
           ? 'Priced once the fleet would fly.'
           : canFight({ ...skirmish, player: fleet })
           ? `The fleet with this design, against ${skirmish.enemy.name}.`
-          : 'The fleet with this design is over budget.';
+          : limit !== null
+            ? `The fleet with this design has ${limit}.`
+            : 'The fleet with this design is over budget.';
     // Kept in the address as it is edited, so a reload picks up where this left off.
     clearTimeout(keepTimer);
     keepTimer = setTimeout(() => {
