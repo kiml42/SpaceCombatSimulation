@@ -1370,7 +1370,11 @@ export function draw(
   arcs: Arcs = 'none',
   /** Rounds and beams in the colours of the side that fired them, rather than as light. */
   teamShots = false,
-  /** The body of a ship picked out by the viewer, or -1: marked, its target shown, and the arcs only its. */
+  /**
+   * The body of a ship picked out by the viewer, or -1: marked, its target
+   * shown, and drawn with every arc whatever `arcs` says, while no other ship
+   * is drawn with any.
+   */
   selected = -1,
 ): void {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -1391,12 +1395,12 @@ export function draw(
   // landed fighter may be painted over what is on top.
   for (let i = 0; i < snapshot.shipCount; i++) {
     const ship = snapshot.ships[i]!;
-    drawShip(ctx, ship, camera.scale, selected < 0 || ship.body === selected ? arcs : 'none', false);
+    drawShip(ctx, ship, camera.scale, arcsFor(ship.body, selected, arcs), false);
   }
   for (let i = 0; i < snapshot.shipCount; i++) drawRobots(ctx, snapshot.ships[i]!);
   for (let i = 0; i < snapshot.shipCount; i++) {
     const ship = snapshot.ships[i]!;
-    drawShip(ctx, ship, camera.scale, selected < 0 || ship.body === selected ? arcs : 'none', true);
+    drawShip(ctx, ship, camera.scale, arcsFor(ship.body, selected, arcs), true);
   }
 
   // Icons in a pass of their own, after every hull: an icon stands for the
@@ -1412,6 +1416,12 @@ export function draw(
   drawProjectiles(ctx, snapshot, camera, teamShots);
   drawBeams(ctx, snapshot, camera, teamShots);
   if (flashes !== undefined) drawFlashes(ctx, snapshot, flashes, camera);
+}
+
+/** A selected ship shows all its arcs and the rest none; with none selected, every ship shows `arcs`. */
+function arcsFor(body: number, selected: number, arcs: Arcs): Arcs {
+  if (selected < 0) return arcs;
+  return body === selected ? 'trigger' : 'none';
 }
 
 /** Pixels between the selected ship's hull circle and the ring drawn round it. */

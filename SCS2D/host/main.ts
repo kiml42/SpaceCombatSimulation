@@ -145,8 +145,7 @@ export function start(): void {
   el<HTMLButtonElement>('customBattle').addEventListener('click', openCustom);
   fitButton.addEventListener('click', () => view.fit());
 
-  // Read once at the start too: a browser may restore the list's choice on reload.
-  view.setSpeed(Number(speedSelect.value));
+  view.keep('viewer', speedSelect);
   speedSelect.addEventListener('change', () => view.setSpeed(Number(speedSelect.value)));
   // An editor's Battle link carries what it holds: open straight into a custom
   // battle with it as the first side, paused for the rest to be chosen.
