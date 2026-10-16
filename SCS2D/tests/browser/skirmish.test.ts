@@ -133,6 +133,8 @@ describe('the skirmish in a browser', () => {
     expect(await page.textContent('#fight')).toBe('Fighting…');
     expect(await page.isDisabled('#fight')).toBe(true);
     expect(await page.textContent('#play')).toBe('Pause');
+    // Paused once it has moved, or there is nothing yet to resume.
+    await page.waitForFunction(() => /t [1-9]/.test(document.getElementById('readout')?.textContent ?? ''));
     await page.click('#play');
     expect(await page.textContent('#fight')).toBe('Resume');
     expect(await page.isDisabled('#fight')).toBe(false);
