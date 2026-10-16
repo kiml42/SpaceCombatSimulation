@@ -113,7 +113,8 @@ that answers the question most likely to change the design.
   generations go by without an answer (`evolution/answer.ts`).
 - **A round is one seed**, so a retry is the same battle and what changes it is the player's edit; a round
   won is answered on that seed and the next round takes a new one.
-- **A battle is decided** once one side has fired, hit or rammed in the last 30 s and the other has not, a
+- **A battle is decided** once one side has fired, hit or rammed in the last 30 s and the other has not,
+  counted only once both sides have fired, a
   side with nothing armed or ramming being out at once; a stalemate ends at 600 s, and a draw is the
   player's loss (`scenarios/decision.ts`).
 - **The enemy evolves under evolution's rules**, an enemy ahead at a match's time limit taken to win, and a

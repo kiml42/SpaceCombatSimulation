@@ -120,9 +120,31 @@ describe('deciding a skirmish battle', () => {
     expect(decision).toEqual({ winner: -1, reason: 'time', time: expect.closeTo(40, 1) });
   });
 
+  it('does not put out a side that has not fired yet, when the other first fires after 30 s', () => {
+    // Slow ships, short range, far apart: the enemy is first in range, at 40 s.
+    const battle = staged();
+    battle.fired[1] = 40;
+    expect(battle.to(41)).toBeNull();
+    // Both have fired: now going quiet counts.
+    battle.fired[0] = 45;
+    expect(battle.to(46)).toBeNull();
+    for (let t = 47; t <= 45 + QUIET_TIME + 1; t++) {
+      battle.fired[1] = battle.tick() + 1;
+      const decision = battle.to(t);
+      if (decision !== null) {
+        expect(decision.winner).toBe(1);
+        expect(decision.time).toBeGreaterThanOrEqual(45 + QUIET_TIME);
+        return;
+      }
+    }
+    throw new Error('never decided');
+  });
+
   it('puts a side out once it has been quiet for 30 s while the other fires', () => {
     const battle = staged();
-    battle.fired[0] = 0;
+    // Both fire once at the start, then only side 1 keeps on.
+    battle.fired[0] = 1;
+    battle.fired[1] = 1;
     expect(battle.to(QUIET_TIME - 1)).toBeNull();
     for (let t = 1; t <= QUIET_TIME + 1; t++) {
       battle.fired[1] = battle.tick() + 1;
@@ -233,11 +255,14 @@ describe('the skirmish', () => {
     expect(next.enemy).toBe(LINE_OF_BATTLE);
   });
 
-  it('remembers the seed a round was won on until the next round', () => {
+  it('picks the next round a new seed once this one is won, and fights it on that', () => {
     const skirmish = won(newSkirmish(gunship, gunship, 5));
-    expect(skirmish.won).toBe(5);
-    expect(parseSkirmish(JSON.parse(JSON.stringify(serialiseSkirmish(skirmish)))).won).toBe(5);
-    expect(nextRound(skirmish, gunship).won).toBeUndefined();
+    expect(skirmish.won).toBeDefined();
+    expect(skirmish.won).not.toBe(5);
+    expect(parseSkirmish(JSON.parse(JSON.stringify(serialiseSkirmish(skirmish)))).won).toBe(skirmish.won);
+    const next = nextRound(skirmish, gunship);
+    expect(next.won).toBeUndefined();
+    expect(next.seed).toBe(skirmish.won);
   });
 
   it('round-trips, an empty fleet and all, through a link fragment', () => {

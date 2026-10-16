@@ -11,11 +11,11 @@ import { mutateFleet } from './fleetMutate.js';
  * one beats it.
  *
  * A generation is the best enemy so far and a handful of its mutants, each
- * fought on the seed the player won on and on a few random ones. A match is
+ * fought on the next round's seed and on a few random ones. A match is
  * fought under evolution's rules — over once one side alone is armed, or at a
  * time limit, an enemy ahead then being taken to win in the end — and the
  * best of the generation, by all its matches, breeds the next. An enemy that
- * wins on the player's seed is checked by fighting the round itself to the
+ * wins on the next round's seed is checked by fighting that round to the
  * skirmish's decision: the first that wins that is the answer, and one that
  * does not is not counted as having won on it.
  *
@@ -40,7 +40,7 @@ export interface Standing {
   readonly enemy: Fleet;
   /** Matches won. */
   wins: number;
-  /** Whether it won on the seed the round was won on: the match a timeline shows of it. */
+  /** Whether it won on the next round's seed: the match a timeline shows of it. */
   onRound: boolean;
   /** Summed, of how far ahead it finished each in what is left of either side, and one more for a win outright or one less for a loss. */
   margin: number;
@@ -86,7 +86,7 @@ export class EnemySearch {
   constructor(
     private readonly player: Fleet,
     enemy: Fleet,
-    /** The seed the player won the round on. */
+    /** The next round's seed, which the answer must win on. */
     private readonly wonSeed: number,
     seed: number,
     settings: Partial<AnswerSettings> = {},

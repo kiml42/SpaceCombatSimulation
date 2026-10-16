@@ -906,13 +906,15 @@ inside any one file is not contiguous.
   Alongside it, §8 step 5's skirmish: an endless loop against an enemy fleet that evolves to beat the
   player's, planned in ROADMAP.md §8. Evolution can end a match on the skirmish's rule too, where its `quietLimit` is set. Its loop is built without the evolving enemy (`dist/skirmish.html`,
   `scenarios/skirmish.ts`): pick a stock enemy, whose bill is the budget unless the player sets their own, under a limit on ships and spread (20 and 500 m unless set, or what the enemy fields if more), each round's gap and starting speeds drawn from optional ± spreads on its seed; fight a fixed round, decided by
-  `scenarios/decision.ts` once one side has fired or rammed in the last 30 s and the other has not; and go
+  `scenarios/decision.ts` once one side has fired or rammed in the last 30 s and the other has not, which
+  counts only once both have fired, so slow ships closing from far off are not out before they are in range;
+  and go
   to the fleet editor, which shows the budget, and back between tries. A ship of a fleet opens in the ship
   editor from the fleet editor's *Edit* and goes back to the fleet, skirmish and all. A round won, the
   enemy evolves an answer in a worker (`evolution/answer.ts`), watched as each generation's best fights the
-  round, and the answer — the first mutant to beat the player's fleet on the seed it won on, to the round's
-  own decision — is the next round's enemy, fought on that same seed, so the fleet that lost must change
-  to win it. A timeline
+  round, and the answer — the first mutant to beat the player's fleet on a new seed, picked as the round
+  is won, to the round's own decision — is the next round's enemy, fought on that seed, so the fleet that
+  lost must change to win it. A timeline
   lists every match, newest first, each side drawn as the evolution page draws a combatant, the player's
   side stamped victory, defeat or draw, runs one side lost folded away, and any match can be watched again or either fleet saved
   or exported. **Its numbers are the player's to set**, on a setup screen like the evolution page's before
