@@ -1,6 +1,7 @@
 import { compileBlueprint, exactTurn, expandFleet, math, type Fleet, type ShipDesign } from '../sim/index.js';
 import { type Battle } from './types.js';
 import { makeBattle, type BattleOptions } from './battle.js';
+import { withFleetFighters } from '../sim/fleetHangar.js';
 
 export interface FleetBattleOptions extends BattleOptions {
   /** Across the ring the fleets start on: for two, the distance between them. */
@@ -36,7 +37,7 @@ export function fleetBattle(
 
     const placed = fleets.map((fleet) => {
       const designs = new Map<string, ShipDesign>();
-      for (const [name, blueprint] of Object.entries(fleet.designs)) designs.set(name, compileBlueprint(blueprint));
+      for (const [name, blueprint] of Object.entries(fleet.designs)) designs.set(name, compileBlueprint(withFleetFighters(blueprint, fleet.designs)));
       return expandFleet(fleet).map((ship) => ({ ...ship, compiled: designs.get(ship.design)! }));
     });
 

@@ -1,0 +1,68 @@
+import { describe, expect, it } from 'vitest';
+import { NO_BUDGET, padFighterNames, Rng, type Fleet } from '../sim/index.js';
+import { mutate } from '../evolution/mutate.js';
+import { fleetFits, mutateFleet, type FleetOperator } from '../evolution/fleetMutate.js';
+import { DINKY } from '../scenarios/blueprints.js';
+import { FACTORY } from '../scenarios/carrier.js';
+import { addShip, emptyFleet } from '../editor/fleetEdit.js';
+
+/** Evolution breeding pads and the fighters they keep (ROADMAP.md §8 step 12, slice 1). */
+
+const LIMITS = { radius: 500, maxShips: 24, budget: NO_BUDGET };
+
+function only(operator: FleetOperator): Record<FleetOperator, number> {
+  const weights = { design: 0, move: 0, add: 0, remove: 0, fork: 0, merge: 0, swap: 0, pad: 0 };
+  weights[operator] = 1;
+  return weights;
+}
+
+/** A Factory alone: its Dinky is only kept by its pad, and flown by no ship. */
+function factoryFleet(): Fleet {
+  return addShip(emptyFleet('Factory'), FACTORY, 0, 0);
+}
+
+describe('a pad bred', () => {
+  it('has how many it keeps nudged, never below none', () => {
+    let nudged = 0;
+    for (let seed = 1; seed <= 300 && nudged === 0; seed++) {
+      const child = mutate(FACTORY, new Rng(seed));
+      if (!child.edits.some((edit) => /pad: keeps/.test(edit))) continue;
+      nudged++;
+      for (const m of child.blueprint.modules) if ('kind' in m && m.kind === 'pad') expect(m.keep ?? 0).toBeGreaterThanOrEqual(0);
+    }
+    expect(nudged).toBeGreaterThan(0);
+  });
+});
+
+describe('a fleet bred with a carrier in it', () => {
+  it('breeds a fighter only a pad keeps', () => {
+    let bred = false;
+    for (let seed = 1; seed <= 100 && !bred; seed++) {
+      const child = mutateFleet(factoryFleet(), new Rng(seed), { ...LIMITS, operators: only('design') });
+      bred = child.edits.some((edit) => edit.startsWith('Dinky:'));
+      expect(fleetFits(child.fleet, LIMITS)).toBe(true);
+    }
+    expect(bred).toBe(true);
+  });
+
+  it('points a pad at another fighter, a copy of its own, or a new bare core, each fit to fight', () => {
+    const seen = new Set<string>();
+    const fleet = addShip(factoryFleet(), { ...DINKY, name: 'Gnat' }, 60, 0);
+    for (let seed = 1; seed <= 60; seed++) {
+      const child = mutateFleet(fleet, new Rng(seed), { ...LIMITS, operators: only('pad') });
+      if (child.edits.length === 0) continue;
+      expect(fleetFits(child.fleet, LIMITS)).toBe(true);
+      const to = padFighterNames(child.fleet.designs['Factory']!)[0]!;
+      expect(child.fleet.designs[to]?.fighter).toBe(true);
+      seen.add(to === 'Gnat' ? 'other' : to.startsWith('Dinky') ? 'copy' : to.startsWith('Fighter') ? 'new' : to);
+    }
+    expect([...seen].sort()).toEqual(['copy', 'new', 'other']);
+  });
+
+  it('leaves a fleet with no pad as it would have bred it', () => {
+    const fleet: Fleet = { name: 'F', designs: { Dinky: DINKY }, ships: [{ design: 'Dinky', x: 0, y: 0 }] };
+    const plain = mutateFleet(fleet, new Rng(3));
+    const without = mutateFleet(fleet, new Rng(3), { operators: { ...only('design'), design: 6, move: 3, add: 1, remove: 1, fork: 0.5, merge: 0.5, swap: 0.5 } });
+    expect(JSON.stringify(plain)).toEqual(JSON.stringify(without));
+  });
+});

@@ -13,6 +13,7 @@ import {
   fleetProblem,
   fleetReach,
   isGroupUse,
+  isInstance,
   type Blueprint,
   type Fleet,
   type FleetEntry,
@@ -23,9 +24,10 @@ import {
   degreesToRadians,
   radiansToDegrees,
 } from '../sim/index.js';
-import { cos, max, PI, round, sin, sqrt } from '../sim/math.js';
+import { cos, max, min, PI, round, sin, sqrt } from '../sim/math.js';
 import { BARE_CORE } from '../scenarios/blueprints.js';
 import { DEFAULT_LIMITS, drift, mutate, type MutationLimits } from './mutate.js';
+import { fleetBlueprint, hangarClashes, padReached, renamePadFighter, withFleetFighters } from '../sim/fleetHangar.js';
 
 /**
  * An angle that a file, which holds degrees, reads back as exactly itself, so
@@ -54,7 +56,11 @@ export function settled(angle: number): number {
  * A fleet may carry designs nothing flies. A ship removed leaves its design
  * behind, and a ship added may be built to any design the fleet carries, or to
  * a bare core, so a fleet can grow by one small ship rather than only by a copy
- * of one it has. Those it does not fly are not mutated, since nothing selects them.
+ * of one it has. Those it does not fly are not mutated, since nothing selects
+ * them — unless a pad of one it flies keeps them, when they are bred as a
+ * ship it flies is. A pad can be pointed at another of the fleet's fighters,
+ * at a copy of its own to breed apart, or at a new bare core of a fighter,
+ * and back.
  */
 
 export interface FleetMutationLimits {
@@ -78,7 +84,7 @@ export interface FleetMutationLimits {
   readonly operators: Readonly<Record<FleetOperator, number>>;
 }
 
-export type FleetOperator = 'design' | 'move' | 'add' | 'remove' | 'fork' | 'merge' | 'swap';
+export type FleetOperator = 'design' | 'move' | 'add' | 'remove' | 'fork' | 'merge' | 'swap' | 'pad';
 
 /** Mostly the designs, as a ship's own numbers are what it mostly changes; the shape of the fleet less often. */
 export const DEFAULT_FLEET_LIMITS: FleetMutationLimits = {
@@ -90,7 +96,7 @@ export const DEFAULT_FLEET_LIMITS: FleetMutationLimits = {
   turn: PI / 12,
   moves: 0.25,
   attempts: 24,
-  operators: { design: 6, move: 3, add: 1, remove: 1, fork: 0.5, merge: 0.5, swap: 0.5 },
+  operators: { design: 6, move: 3, add: 1, remove: 1, fork: 0.5, merge: 0.5, swap: 0.5, pad: 0.5 },
 };
 
 export interface FleetMutant {
@@ -106,9 +112,11 @@ export function mutateFleet(parent: Fleet, rng: Rng, limits?: Partial<FleetMutat
     ...limits,
     operators: { ...DEFAULT_FLEET_LIMITS.operators, ...limits?.operators },
   };
+  // A fleet with no pad has nothing for `pad` to do: it draws as though there were no such operator.
+  const operators = hasPad(parent) ? bounds.operators : { ...bounds.operators, pad: 0 };
   for (let attempt = 1; attempt <= bounds.attempts; attempt++) {
     const draft = clone(parent);
-    const operator = pick(rng, bounds.operators);
+    const operator = pick(rng, operators);
     const edits = apply(operator, draft, rng, bounds);
     if (edits.length === 0) continue;
     if (fleetFits(draft, bounds)) return { fleet: draft, edits, attempts: attempt };
@@ -122,7 +130,8 @@ export function mutateFleet(parent: Fleet, rng: Rng, limits?: Partial<FleetMutat
  */
 export function fleetFits(fleet: Fleet, limits: Pick<FleetMutationLimits, 'budget' | 'radius' | 'maxShips'>): boolean {
   if (fleetProblem(fleet) !== null) return false;
-  for (const blueprint of Object.values(fleet.designs)) if (blueprintProblem(blueprint) !== null) return false;
+  if (hangarClashes(fleet).length > 0) return false;
+  for (const blueprint of Object.values(fleet.designs)) if (blueprintProblem(withFleetFighters(blueprint, fleet.designs)) !== null) return false;
   const hulls = fleetHulls(fleet);
   if (hulls.length === 0 || hulls.length > limits.maxShips) return false;
   if (!affords(limits.budget, fleetBill(hulls))) return false;
@@ -146,17 +155,21 @@ function apply(operator: FleetOperator, fleet: Fleet, rng: Rng, bounds: FleetMut
       return merge(fleet, rng);
     case 'swap':
       return swap(fleet, rng);
+    case 'pad':
+      return repad(fleet, rng);
   }
 }
 
 /** Mutate one design, which changes every ship built to it. */
 function mutateDesign(fleet: Fleet, rng: Rng, bounds: FleetMutationLimits): string[] {
-  const names = usedDesigns(fleet);
+  const names = bredDesigns(fleet);
   if (names.length === 0) return [];
   const name = names[rng.nextInt(names.length)]!;
-  const child = mutate(fleet.designs[name]!, rng, { ...bounds.ship, budget: bounds.budget });
+  // Bred as it flies here, its pads' fighters the fleet's; given back without them.
+  const child = mutate(fleetBlueprint(fleet, name), rng, { ...bounds.ship, budget: bounds.budget });
   if (child.edits.length === 0) return [];
-  fleet.designs[name] = { ...child.blueprint, name };
+  const { hangar: _, ...bred } = child.blueprint;
+  fleet.designs[name] = { ...bred, name };
   return child.edits.map((edit) => `${name}: ${edit}`);
 }
 
@@ -264,7 +277,43 @@ function merge(fleet: Fleet, rng: Rng): string[] {
   repoint(fleet.ships);
   for (const group of Object.values(fleet.groups ?? {})) repoint(group.ships);
   delete fleet.designs[gone];
+  for (const [name, design] of Object.entries(fleet.designs)) fleet.designs[name] = renamePadFighter(design, gone, into);
   return [`${gone} merged into ${into}`];
+}
+
+/**
+ * Point a pad of a design the fleet flies at another fighter: one the fleet
+ * carries, a copy of its own to be bred apart from the ships that share it,
+ * or a new bare core marked a fighter, sized to grow into one the pad holds.
+ * Each is undone by another: a copy or a new one pointed back.
+ */
+function repad(fleet: Fleet, rng: Rng): string[] {
+  const pads: { carrier: string; pad: ModuleSpec }[] = [];
+  for (const carrier of usedDesigns(fleet)) {
+    const blueprint = fleet.designs[carrier]!;
+    const lists = [blueprint.modules, ...Object.values(blueprint.assemblies ?? {}).map((a) => a.modules)];
+    for (const list of lists) for (const p of list) if (!isInstance(p) && p.kind === 'pad') pads.push({ carrier, pad: p });
+  }
+  if (pads.length === 0) return [];
+  const { carrier, pad } = pads[rng.nextInt(pads.length)]!;
+  const was = pad.fighter;
+  const others = Object.keys(fleet.designs).filter((name) => name !== was && name !== carrier && fleet.designs[name]!.fighter === true);
+  // Another of the fleet's, a copy of its own, or a new one, each as likely as the others.
+  const ways = others.length + (was === undefined ? 0 : 1) + 1;
+  const way = rng.nextInt(ways);
+  let to: string;
+  if (way < others.length) to = others[way]!;
+  else if (way === others.length && was !== undefined && fleet.designs[was] !== undefined) {
+    to = freeName(fleet, was);
+    fleet.designs[to] = { ...(JSON.parse(JSON.stringify(fleet.designs[was])) as Blueprint), name: to };
+  } else {
+    to = freeName(fleet, 'Fighter');
+    // A tenth of the pad across: room round it for a fighter the pad still holds.
+    const side = max(0.1, round(min(pad.length, pad.width)) / 10);
+    fleet.designs[to] = { name: to, fighter: true, modules: [{ kind: 'core', x: 0, y: 0, length: side, width: side }] };
+  }
+  pad.fighter = to;
+  return [`${carrier}: a pad's ${was ?? 'nothing'} → ${to}`];
 }
 
 /**
@@ -297,7 +346,7 @@ class Layout {
     return expandFleet(fleet).map((ship) => {
       let found = this.designs.get(ship.design);
       if (found === undefined) {
-        const blueprint = fleet.designs[ship.design]!;
+        const blueprint = fleetBlueprint(fleet, ship.design);
         found = { design: compileBlueprint(blueprint), modules: expandBlueprint(blueprint) };
         this.designs.set(ship.design, found);
       }
@@ -324,6 +373,19 @@ function placed(fleet: Fleet, bounds: Pick<FleetMutationLimits, 'radius'>, layou
 
 function describe(entry: FleetEntry): string {
   return isGroupUse(entry) ? `group ${entry.group}` : `a ${entry.design}`;
+}
+
+function hasPad(fleet: Fleet): boolean {
+  return Object.values(fleet.designs).some((blueprint) => {
+    const lists = [blueprint.modules, ...Object.values(blueprint.assemblies ?? {}).map((a) => a.modules)];
+    return lists.some((list) => list.some((p) => !isInstance(p) && p.kind === 'pad'));
+  });
+}
+
+/** Designs some entry flies, and those a pad of one keeps, in the order the fleet lists them. */
+function bredDesigns(fleet: Fleet): string[] {
+  const kept = padReached(fleet, usedDesigns(fleet));
+  return Object.keys(fleet.designs).filter((name) => kept.has(name));
 }
 
 /** Designs some entry flies, in the order the fleet lists them. */

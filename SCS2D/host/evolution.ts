@@ -129,6 +129,7 @@ const SIDE_FIELDS = [
   'opFork',
   'opMerge',
   'opSwap',
+  'opPad',
   'structural',
   'buildMove',
   'buildResize',
@@ -196,6 +197,7 @@ const FIELDS = [
   'opFork',
   'opMerge',
   'opSwap',
+  'opPad',
   'seed',
   'duration',
   'radius',
@@ -969,6 +971,7 @@ export function startEvolution(): void {
     get('opFork').value = String(operators.fork);
     get('opMerge').value = String(operators.merge);
     get('opSwap').value = String(operators.swap);
+    get('opPad').value = String(operators.pad);
     const build = { ...DEFAULT_BUILD_WEIGHTS, ...config.mutation.build };
     get('structural').value = String(config.mutation.structural ?? DEFAULT_LIMITS.structural);
     get('buildMove').value = String(build.move);

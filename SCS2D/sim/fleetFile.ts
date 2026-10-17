@@ -18,6 +18,7 @@ import {
   type FleetStep,
 } from './fleet.js';
 import { unreadOf, unreadWarning, writeUnread } from './unread.js';
+import { joinHangars } from './fleetHangar.js';
 
 /**
  * The fleet file format, modelled on the blueprint one: parse checks the
@@ -162,6 +163,10 @@ export function fleetFileProblem(value: unknown): string | null {
 }
 
 function toFleet(file: Record<string, unknown>): Fleet {
+  return joinHangars(readFleet(file));
+}
+
+function readFleet(file: Record<string, unknown>): Fleet {
   const designs: Record<string, Blueprint> = {};
   for (const [name, design] of Object.entries(file['designs'] as Record<string, unknown>)) {
     designs[name] = parseBlueprint(design);

@@ -16,6 +16,7 @@ import {
 } from '../sim/index.js';
 import type { BattleSetup } from './customBattle.js';
 import { QUIET_TIME, TIME_CAP } from './decision.js';
+import { fleetBlueprint, hangarClashes } from '../sim/fleetHangar.js';
 
 /**
  * A skirmish: the player's fleet against an enemy, a round at a time
@@ -150,10 +151,10 @@ export function newSkirmish(enemy: Fleet, player: Fleet, seed: number, settings?
  * cannot place, or a design it flies that would not fly. Null if nothing.
  */
 export function fleetFault(fleet: Fleet): string | null {
-  const problem = fleetProblem(fleet);
+  const problem = fleetProblem(fleet) ?? hangarClashes(fleet)[0] ?? null;
   if (problem !== null) return problem;
   for (const name of new Set(expandFleet(fleet).map((ship) => ship.design))) {
-    const design = blueprintProblem(fleet.designs[name]!);
+    const design = blueprintProblem(fleetBlueprint(fleet, name));
     if (design !== null) return design;
   }
   return null;

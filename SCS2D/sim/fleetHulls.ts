@@ -3,6 +3,7 @@ import { budgetMass, compileBlueprint, expandBlueprint, modulesOverlap, type Shi
 import { expandFleet, type Fleet, type PlacedShip } from './fleet.js';
 import { cos, sin, sqrt } from './math.js';
 import type { ModuleSpec } from './modules.js';
+import { fleetBlueprint } from './fleetHangar.js';
 
 /**
  * A fleet as the hulls it puts on the field: each ship's design, where its
@@ -24,7 +25,7 @@ export function fleetHulls(fleet: Fleet): FleetHull[] {
   return expandFleet(fleet).map((ship) => {
     let found = compiled.get(ship.design);
     if (found === undefined) {
-      const blueprint = fleet.designs[ship.design]!;
+      const blueprint = fleetBlueprint(fleet, ship.design);
       found = { design: compileBlueprint(blueprint), modules: expandBlueprint(blueprint) };
       compiled.set(ship.design, found);
     }
