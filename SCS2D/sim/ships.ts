@@ -1085,6 +1085,19 @@ export class Ships {
     return ship === undefined ? OWN_LAYERS : this.shipLayers(ship);
   }
 
+  /**
+   * The layers module `m` of ship `i`'s body is in for what it does: the
+   * body's, or, on a hull shared with a carrier, a fighter's own on a piece
+   * that came aboard a fighter, so it flies over the deck it is sat on.
+   */
+  private pieceLayers(i: number, b: number, design: ShipDesign, m: number): number {
+    const whole = this.layersOf(b);
+    if (whole !== OWN_LAYERS) return whole;
+    const piece = design.pieces?.[m];
+    if (piece === undefined || design.fighterPieces?.includes(piece) !== true) return OWN_LAYERS;
+    return this.committed[i] === 1 ? BOTH_LAYERS : WEAPONS_LAYER;
+  }
+
   /** Whether this ship is the first riding its body: the one a hull's own doings are told through. */
   ownsBody(i: number): boolean {
     const bodies = this.bodyStore;
@@ -2929,7 +2942,8 @@ export class Ships {
       for (let t = 0; t < design.engines.length; t++) {
         const force = throttles[t]! * this.exhaustOf(i, design, bodyIdx, t);
         if (!(force > 0)) continue;
-        this.plumes.burn(design, t, force, this.damage, bodies, bodyIdx, grid, this.holedHulls, dt, landed, this.layersOf(bodyIdx));
+        const layers = this.pieceLayers(i, bodyIdx, design, design.engines[t]!.module ?? -1);
+        this.plumes.burn(design, t, force, this.damage, bodies, bodyIdx, grid, this.holedHulls, dt, landed, layers);
       }
     }
   }

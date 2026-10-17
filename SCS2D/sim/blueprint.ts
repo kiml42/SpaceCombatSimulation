@@ -33,7 +33,7 @@ import {
 } from './doctrine.js';
 import { EngineLayout, type EngineSpec } from './engines.js';
 import { distanceToOutline, isTriangle, outlineAxes, projectOutline } from './shape.js';
-import { HullPath } from './hull.js';
+import { HullPath, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from './hull.js';
 import { exhaustObstruction, weaponPlumeReach, type PlumeSlice } from './exhaust.js';
 import type { TurretSpec } from './turrets.js';
 
@@ -2185,9 +2185,17 @@ function designFrom(
   // momentum straight back, so it is not thrust; structure beyond the flame's
   // own end meets nothing left to hand back, and does not count.
   const exhaust = new HullPath();
+  // A fighter aboard a carrier flies over its deck: a piece that came aboard a
+  // fighter is in the weapons layer alone, and a plume meets only what shares
+  // a layer with its engine.
+  const fighterPieces = joins?.fighterPieces;
+  const layersAt = (m: number): number =>
+    fighterPieces?.includes(joins!.pieces[m]!) === true ? WEAPONS_LAYER : moduleLayers(modules[m]!, OWN_LAYERS);
   for (const engine of engines) {
     const slices: PlumeSlice[] = [];
-    const escaping = exhaustObstruction({ modules }, engine.module!, engine.maxThrust, exhaust, slices);
+    const own = layersAt(engine.module!);
+    const meets = fighterPieces === undefined ? undefined : (m: number): boolean => (layersAt(m) & own) !== 0;
+    const escaping = exhaustObstruction({ modules }, engine.module!, engine.maxThrust, exhaust, slices, meets);
     engine.slices = slices;
     engine.escaping = escaping;
   }

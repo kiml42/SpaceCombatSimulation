@@ -202,3 +202,20 @@ describe('a Workshop', () => {
     expect(compileBlueprint(WORKSHOP).builds).toBeUndefined();
   });
 });
+
+describe('a fighter on a pad, its engines lit', () => {
+  it('burns over the deck it is sat on, not into it', () => {
+    const run = battle(factoryOf(1, true));
+    const [f] = fighters(run);
+    expect(run.ships.body(f!)).toBe(run.ships.body(run.c));
+    const b = run.world.bodies.indexOf(run.ships.body(run.c));
+    const modules = run.ships.design(run.c).modules;
+    const pad = modules.findIndex((m, k) => m.spec.kind === 'pad' && m.spec.fighter !== undefined && run.ships.owns(run.c, k));
+    const before = run.ships.damage.absorbedAt(b, pad);
+    // Full throttle on every engine, as if it had lit them where it sits.
+    (run.ships as unknown as { throttles: Float64Array[] }).throttles[f!]!.fill(1);
+    run.grid.rebuild(run.world.bodies);
+    for (let s = 0; s < 60; s++) run.ships.scorch(run.world, run.grid, run.dt);
+    expect(run.ships.damage.absorbedAt(b, pad)).toBe(before);
+  });
+});

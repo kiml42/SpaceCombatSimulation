@@ -815,7 +815,9 @@ inside any one file is not contiguous.
   has the metal; the rest the pad builds as it builds back what a landed fighter has lost, and it holds the
   fighter, whatever comes near and whatever it is told, until it is whole, then fills it and lets it go,
   or keeps it aboard while it has nothing in reach, as one that landed (`Ships.build`). Any fighter sat on
-  a pad idles, its engines off, however it came to be there. One pad builds one at a time. A shell with no whole module of its design to be laid out
+  a pad idles, its engines off, however it came to be there; lit, they would burn over the deck, since
+  a piece that came aboard a fighter is in the weapons layer alone, for the plumes of its own engines and
+  of its carrier's alike. One pad builds one at a time. A shell with no whole module of its design to be laid out
   by carries where it goes (`Shell.placed`). A pad's fighters are those it set out with or built, wherever
   they land: one being built on it, one under control and not mission killed, and one under control aboard
   a friend count; the dead and the rest are replaced. It starts no core while a fighter of its side is
