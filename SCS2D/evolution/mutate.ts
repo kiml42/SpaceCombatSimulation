@@ -6,6 +6,8 @@ import {
   isInstance,
   MAX_REPEAT,
   modulesOverlap,
+  settleIds,
+  topId,
   type Assembly,
   type AssemblyInstance,
   type Blueprint,
@@ -312,7 +314,10 @@ export interface Mutant {
  * The generator is drawn from on every edit, kept or not, so a run is
  * reproducible from its seed but the draws a child costs are not fixed.
  */
-export function mutate(parent: Blueprint, rng: Rng, limits?: Partial<MutationLimits>): Mutant {
+export function mutate(written: Blueprint, rng: Rng, limits?: Partial<MutationLimits>): Mutant {
+  // Bred from with an id on every placement, and giving one to every placement
+  // it adds or copies, so a child can be matched module by module to its parent.
+  const parent = settleIds(written);
   // Merged a key at a time, so naming one kind's weight does not silently
   // zero the four not mentioned.
   const bounds: MutationLimits = {
@@ -349,10 +354,10 @@ export function mutate(parent: Blueprint, rng: Rng, limits?: Partial<MutationLim
   for (let attempt = 1; attempt <= bounds.attempts; attempt++) {
     vary(draft, rng, bounds, scale, edits);
     if (edits.length > 0) {
-      return renamed({ blueprint: draft.blueprint, edits, attempts: spent + attempt }, naming, bounds.rename);
+      return renamed({ blueprint: settleIds(draft.blueprint, topId(parent)), edits, attempts: spent + attempt }, naming, bounds.rename);
     }
   }
-  return { blueprint: parent, edits: [], attempts: spent + bounds.attempts };
+  return { blueprint: written, edits: [], attempts: spent + bounds.attempts };
 }
 
 /** The longest a name drifts to. */

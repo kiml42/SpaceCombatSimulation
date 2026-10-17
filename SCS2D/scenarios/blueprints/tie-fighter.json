@@ -35,6 +35,7 @@
     "structure": {
       "modules": [
         {
+          "id": 7,
           "kind": "engine",
           "x": 0.5,
           "y": 0,
@@ -44,6 +45,7 @@
           "nozzle": 1.2
         },
         {
+          "id": 8,
           "kind": "tank",
           "x": 0,
           "y": 0.825,
@@ -52,6 +54,7 @@
           "reinforcement": 1.11
         },
         {
+          "id": 9,
           "kind": "tank",
           "x": 0,
           "y": 1.65,
@@ -61,12 +64,14 @@
           "sealing": 0.0034
         },
         {
+          "id": 10,
           "use": "engine2",
           "x": -4.440892098500626e-16,
           "y": 2.0500000000000003,
           "mirror": true
         },
         {
+          "id": 11,
           "kind": "engine",
           "x": 1.05,
           "y": -0.5,
@@ -76,6 +81,7 @@
           "nozzle": 2
         },
         {
+          "id": 12,
           "kind": "hullGun",
           "x": 0.05,
           "y": -1,
@@ -92,6 +98,7 @@
           }
         },
         {
+          "id": 13,
           "use": "engine2",
           "x": -4.440892098500626e-16,
           "y": 2.0500000000000003,
@@ -102,6 +109,7 @@
     "engine2": {
       "modules": [
         {
+          "id": 14,
           "kind": "engine",
           "x": 0,
           "y": 0,
@@ -112,6 +120,7 @@
           "nozzle": 0.5
         },
         {
+          "id": 15,
           "kind": "engine",
           "x": -3.5000000000000004,
           "y": -0.1499999999999995,
@@ -127,6 +136,7 @@
   },
   "modules": [
     {
+      "id": 1,
       "kind": "core",
       "x": 0,
       "y": 0,
@@ -136,17 +146,20 @@
       "notes": "A spine down the middle of the ball rather than the whole of it. The pilot sits amidships as a TIE's does, and what fills the rest of the circle is the guns, the engines and the plating between them — so a hit on the ball is usually a hit on a weapon rather than on the pilot."
     },
     {
+      "id": 2,
       "use": "structure",
       "x": 0,
       "y": 1.5
     },
     {
+      "id": 3,
       "use": "structure",
       "x": 0,
       "y": -1.5,
       "mirror": true
     },
     {
+      "id": 4,
       "kind": "tank",
       "x": 0.85,
       "y": 0,
@@ -156,6 +169,7 @@
       "sealing": 0.0024
     },
     {
+      "id": 5,
       "kind": "engine",
       "x": -0.65,
       "y": 0,
@@ -166,6 +180,7 @@
       "nozzle": 1.2
     },
     {
+      "id": 6,
       "kind": "hold",
       "x": 1.175,
       "y": 0,

@@ -1,6 +1,8 @@
 import {
   blueprintFaults,
   blueprintWarnings,
+  settleIds,
+  topId,
   compileDraft,
   expandWithOrigins,
   isInstance,
@@ -165,8 +167,10 @@ export class EditorDocument {
    */
   private grabbed = 0;
 
+  // Every version kept has an id on each placement (`settleIds`), so what is
+  // saved can be matched module by module to what it was edited from.
   constructor(blueprint: Blueprint) {
-    this.history = new History(cloneBlueprint(blueprint));
+    this.history = new History(settleIds(cloneBlueprint(blueprint)));
     this.derived = derive(this.history.current);
   }
 
@@ -191,7 +195,8 @@ export class EditorDocument {
   }
 
   /** Make a change, keeping the layout as it was on the undo stack. */
-  apply(next: Blueprint): void {
+  apply(edited: Blueprint): void {
+    const next = settleIds(edited, topId(this.current));
     this.history.apply(next);
     this.set(next);
   }
@@ -203,7 +208,8 @@ export class EditorDocument {
    * editor. Without this, undo walks back through the pointer's path a pixel
    * at a time — technically a faithful history, and useless.
    */
-  amend(next: Blueprint): void {
+  amend(edited: Blueprint): void {
+    const next = settleIds(edited, topId(this.current));
     this.history.amend(next);
     this.set(next);
   }
@@ -211,7 +217,7 @@ export class EditorDocument {
   /** Load a different ship. The history does not follow: it belonged to the old one. */
   replace(blueprint: Blueprint): void {
     this.selected = [];
-    this.history.replace(cloneBlueprint(blueprint));
+    this.history.replace(settleIds(cloneBlueprint(blueprint)));
     this.set(this.history.current);
   }
 

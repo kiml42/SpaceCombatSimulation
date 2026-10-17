@@ -49,6 +49,19 @@ function file(overrides: Record<string, unknown> = {}): Record<string, unknown> 
   };
 }
 
+/** A file as written, less the ids reading gives a placement that has none. */
+function sansIds(raw: Record<string, unknown>): Record<string, unknown> {
+  const strip = (list: unknown): unknown =>
+    (list as Record<string, unknown>[]).map(({ id: _, ...rest }) => rest);
+  const out: Record<string, unknown> = { ...raw, modules: strip(raw['modules']) };
+  if (raw['assemblies'] !== undefined) {
+    out['assemblies'] = Object.fromEntries(
+      Object.entries(raw['assemblies'] as Record<string, Record<string, unknown>>).map(([k, a]) => [k, { ...a, modules: strip(a['modules']) }]),
+    );
+  }
+  return out;
+}
+
 /**
  * A file with a key the format does not read: it opens, says so, and writes the
  * key back where it found it rather than losing it.
@@ -57,7 +70,7 @@ function keptAndWarned(raw: unknown, warning: RegExp): Record<string, unknown> {
   expect(blueprintFileProblem(raw)).toBeNull();
   const parsed = parseBlueprint(raw);
   expect(blueprintWarnings(parsed).join('\n')).toMatch(warning);
-  const back = serialiseBlueprint(parsed);
+  const back = sansIds(serialiseBlueprint(parsed));
   expect(back).toEqual(raw);
   return back;
 }
@@ -237,7 +250,7 @@ describe('rejecting a file that arrived from somewhere else', () => {
     expect(blueprintFileProblem(raw)).toBeNull();
     const back = parseBlueprint(raw);
     expect((back.modules[1] as ModuleSpec).traverse).toBeCloseTo(degreesToRadians(30), 12);
-    expect(serialiseBlueprint(back)).toEqual(raw);
+    expect(sansIds(serialiseBlueprint(back))).toEqual(raw);
     // And a girder that says how far it trains is a mistake here, as a bell on
     // a core is, though mutation may hold one in memory against a refit back.
     keptAndWarned(

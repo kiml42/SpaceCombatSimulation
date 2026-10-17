@@ -1,6 +1,7 @@
 import { cos, PI, round, sin } from './math.js';
 import {
   isInstance,
+  settleIds,
   type Assembly,
   type AssemblyInstance,
   type AssemblyStep,
@@ -89,6 +90,7 @@ const WHOLE_LENGTH_NOZZLE_SHARE = 0.5;
 
 /** Keys a module may carry. Anything else is kept but unread — see `UnreadKeys`. */
 const MODULE_KEYS: readonly string[] = [
+  'id',
   'kind',
   'x',
   'y',
@@ -119,6 +121,7 @@ const MODULE_KEYS: readonly string[] = [
 
 /** Keys an assembly instance may carry: where it goes, and nothing else. */
 const INSTANCE_KEYS: readonly string[] = [
+  'id',
   'use',
   'x',
   'y',
@@ -240,6 +243,7 @@ function moduleShapeProblem(value: Record<string, unknown>, where: string): stri
 
   const shaped = value['vertices'] !== undefined && canShape(kind as ModuleKind);
   return (
+    idProblem(value['id'], where) ??
     numberProblem(value['x'], `${where}: x`) ??
     verticesProblem(value['vertices'], kind as ModuleKind, `${where}: vertices`) ??
     numberProblem(value['y'], `${where}: y`) ??
@@ -324,7 +328,15 @@ function verticesProblem(value: unknown, kind: ModuleKind, where: string): strin
   return null;
 }
 
+/** What is wrong with a placement's `id`, or null: absent, or a whole number from one. */
+function idProblem(value: unknown, where: string): string | null {
+  if (value === undefined || (typeof value === 'number' && Number.isInteger(value) && value >= 1)) return null;
+  return `${where}: id must be a whole number from 1, got ${JSON.stringify(value)}`;
+}
+
 function instanceShapeProblem(value: Record<string, unknown>, where: string): string | null {
+  const id = idProblem(value['id'], where);
+  if (id !== null) return id;
   if (typeof value['use'] !== 'string' || value['use'] === '') {
     return `${where}: use must be the name of an assembly, got ${JSON.stringify(value['use'])}`;
   }
@@ -479,7 +491,8 @@ function toBlueprint(file: Record<string, unknown>): Blueprint {
     blueprint.assemblies = assemblies;
   }
 
-  return blueprint;
+  // A file from before placements had ids, or one edited by hand, is given them here.
+  return settleIds(blueprint);
 }
 
 function toPlacements(raws: unknown[], whole: boolean): Placement[] {
@@ -495,6 +508,7 @@ function toPlacements(raws: unknown[], whole: boolean): Placement[] {
         x: raw['x'] as number,
         y: raw['y'] as number,
       };
+      if (raw['id'] !== undefined) instance.id = raw['id'] as number;
       if (raw['angle'] !== undefined) instance.angle = degreesToRadians(raw['angle'] as number);
       if (raw['mirror'] !== undefined) instance.mirror = raw['mirror'] as boolean;
       if (raw['repeat'] !== undefined) instance.repeat = raw['repeat'] as number;
@@ -521,6 +535,7 @@ function toPlacements(raws: unknown[], whole: boolean): Placement[] {
       length: (raw['length'] as number | undefined) ?? 0,
       width: (raw['width'] as number | undefined) ?? 0,
     };
+    if (raw['id'] !== undefined) spec.id = raw['id'] as number;
     const angle = currentAngle(raw);
     if (angle !== undefined) spec.angle = degreesToRadians(angle);
     if (raw['reinforcement'] !== undefined) spec.reinforcement = raw['reinforcement'] as number;
@@ -684,7 +699,12 @@ function placementWarnings(placements: readonly Placement[], where: string, out:
 
 function serialisePlacement(placement: Placement): Record<string, unknown> {
   if (isInstance(placement)) {
-    const raw: Record<string, unknown> = { use: placement.use, x: placement.x, y: placement.y };
+    const raw: Record<string, unknown> = {
+      ...(placement.id === undefined ? {} : { id: placement.id }),
+      use: placement.use,
+      x: placement.x,
+      y: placement.y,
+    };
     if (placement.angle !== undefined) raw['angle'] = radiansToDegrees(placement.angle);
     if (placement.mirror !== undefined) raw['mirror'] = placement.mirror;
     if (placement.repeat !== undefined) raw['repeat'] = placement.repeat;
@@ -699,7 +719,12 @@ function serialisePlacement(placement: Placement): Record<string, unknown> {
     return raw;
   }
 
-  const raw: Record<string, unknown> = { kind: placement.kind, x: placement.x, y: placement.y };
+  const raw: Record<string, unknown> = {
+    ...(placement.id === undefined ? {} : { id: placement.id }),
+    kind: placement.kind,
+    x: placement.x,
+    y: placement.y,
+  };
   if (placement.angle !== undefined) raw['angle'] = radiansToDegrees(placement.angle);
   raw['length'] = placement.length;
   raw['width'] = placement.width;

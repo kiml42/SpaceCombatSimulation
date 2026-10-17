@@ -28,6 +28,7 @@
     "Side": {
       "modules": [
         {
+          "id": 7,
           "kind": "structure",
           "x": 0,
           "y": 0,
@@ -35,6 +36,7 @@
           "width": 1
         },
         {
+          "id": 8,
           "kind": "structure",
           "x": 0,
           "y": 4,
@@ -42,6 +44,7 @@
           "width": 4
         },
         {
+          "id": 9,
           "kind": "engine",
           "x": 1.65,
           "y": 1.25,
@@ -51,6 +54,7 @@
           "nozzle": 1.8667
         },
         {
+          "id": 10,
           "kind": "engine",
           "x": -0.55,
           "y": 6.5,
@@ -60,11 +64,13 @@
           "nozzle": 0.8
         },
         {
+          "id": 11,
           "use": "engine",
           "x": 1.65,
           "y": 1.25
         },
         {
+          "id": 12,
           "kind": "hullBeam",
           "x": 5.655,
           "y": 6.5,
@@ -81,6 +87,7 @@
           }
         },
         {
+          "id": 13,
           "kind": "engine",
           "x": 0.7000000000000002,
           "y": 6.000000000000001,
@@ -92,6 +99,7 @@
           "notes": "A retro on the nose of each engine spine, so the ship can slow down as well as run away."
         },
         {
+          "id": 14,
           "kind": "structure",
           "x": 5.6,
           "y": -0.7499999999999998,
@@ -99,6 +107,7 @@
           "width": 0.1
         },
         {
+          "id": 15,
           "kind": "structure",
           "x": 1.75,
           "y": -0.62,
@@ -110,6 +119,7 @@
     "structure2": {
       "modules": [
         {
+          "id": 16,
           "kind": "structure",
           "x": 0,
           "y": 0,
@@ -121,6 +131,7 @@
     "engine": {
       "modules": [
         {
+          "id": 17,
           "kind": "engine",
           "x": 0,
           "y": 0,
@@ -136,6 +147,7 @@
   },
   "modules": [
     {
+      "id": 1,
       "kind": "core",
       "x": 1.25,
       "y": 0,
@@ -144,17 +156,20 @@
       "notes": "Hard against the rear-facing gun, with the length of the fuselage in front of it: anything shooting at the pilot from ahead has the whole ship to get through first."
     },
     {
+      "id": 2,
       "use": "Side",
       "x": -0.5,
       "y": 1.5
     },
     {
+      "id": 3,
       "use": "Side",
       "x": -0.5,
       "y": -1.5,
       "mirror": true
     },
     {
+      "id": 4,
       "kind": "tank",
       "x": -1.5,
       "y": 0,
@@ -166,6 +181,7 @@
       }
     },
     {
+      "id": 5,
       "kind": "structure",
       "x": 3.1999999999999997,
       "y": 0,
@@ -173,6 +189,7 @@
       "width": 1.75
     },
     {
+      "id": 6,
       "kind": "hullGun",
       "x": 5.5091,
       "y": 0,

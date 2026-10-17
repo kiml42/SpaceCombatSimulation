@@ -22,6 +22,7 @@
       "notes": "The wings exist to hold the manoeuvring engines out where their moment arm is worth having. That they also foul the bow gun's traverse is the trade this layout makes, and it is visible in the arc the design compiles to.",
       "modules": [
         {
+          "id": 7,
           "kind": "structure",
           "x": 0,
           "y": 0,
@@ -34,6 +35,7 @@
     "lateral": {
       "modules": [
         {
+          "id": 8,
           "kind": "engine",
           "x": 0,
           "y": -1,
@@ -47,26 +49,31 @@
     "Side": {
       "modules": [
         {
+          "id": 9,
           "use": "wingBox",
           "x": 0,
           "y": -2.5
         },
         {
+          "id": 10,
           "use": "wingBox",
           "x": -8,
           "y": -2.5
         },
         {
+          "id": 11,
           "use": "lateral",
           "x": 0,
           "y": 0
         },
         {
+          "id": 12,
           "use": "lateral",
           "x": -8,
           "y": 0
         },
         {
+          "id": 13,
           "kind": "engine",
           "x": 2,
           "y": -2.5,
@@ -81,6 +88,7 @@
   },
   "modules": [
     {
+      "id": 1,
       "kind": "tank",
       "x": 4.25,
       "y": 0,
@@ -89,6 +97,7 @@
       "reinforcement": 1
     },
     {
+      "id": 2,
       "kind": "core",
       "x": 0,
       "y": 0,
@@ -97,6 +106,7 @@
       "notes": "Amidships, with a section of hull either side of it: the compartment the ship is flown from is the one thing worth putting the rest of the ship in front of."
     },
     {
+      "id": 3,
       "kind": "hullGun",
       "x": 8,
       "y": 0,
@@ -116,6 +126,7 @@
       }
     },
     {
+      "id": 4,
       "kind": "engine",
       "x": -2,
       "y": 0,
@@ -126,11 +137,13 @@
       "thick": true
     },
     {
+      "id": 5,
       "use": "Side",
       "x": 4,
       "y": 7
     },
     {
+      "id": 6,
       "use": "Side",
       "x": 4,
       "y": -7,

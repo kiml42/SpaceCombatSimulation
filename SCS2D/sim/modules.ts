@@ -876,6 +876,14 @@ export const MODULE_KINDS: readonly ModuleKind[] = [
 export interface ModuleSpec {
   kind: ModuleKind;
   /**
+   * Which placement this is, kept through every edit and every mutation, so
+   * one version of a design can be matched module by module to the next — the
+   * refit question (ROADMAP.md §8 step 12). Unique in its blueprint, an
+   * assembly's own included; one missing or repeated is given the next free
+   * one (`settleIds`).
+   */
+  id?: number;
+  /**
    * Where the module is bolted to the ship, metres — which is its centre for
    * every kind but an engine.
    *

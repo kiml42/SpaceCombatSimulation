@@ -130,6 +130,8 @@ export interface Assembly {
  * a quiet divergence.
  */
 export interface AssemblyInstance {
+  /** Which placement this is: see `ModuleSpec.id`. */
+  id?: number;
   /** Name of the assembly in the blueprint's own table. */
   use: string;
   /** Where the assembly's origin lands, in the frame doing the placing. */
@@ -184,6 +186,79 @@ export type Placement = ModuleSpec | AssemblyInstance;
 
 export function isInstance(placement: Placement): placement is AssemblyInstance {
   return 'use' in placement;
+}
+
+/**
+ * The blueprint with every placement an id of its own: one already unique is
+ * kept, and one missing, or repeating an id met earlier, takes the next above
+ * every id in it and above `above` — the highest of the version it was edited
+ * from, so a placement new to this one is never given the id of one that
+ * went. Walked through the layout and then each assembly in turn, so of a
+ * placement and its copy the original keeps its id. The same blueprint where
+ * nothing needs one.
+ */
+export function settleIds(blueprint: Blueprint, above = 0): Blueprint {
+  const lists = [blueprint.modules, ...Object.values(blueprint.assemblies ?? {}).map((a) => a.modules)];
+  const seen = new Set<number>();
+  let top = above;
+  let missing = false;
+  for (const list of lists) {
+    for (const p of list) {
+      const id = p.id;
+      if (id === undefined || !Number.isInteger(id) || id < 1 || seen.has(id)) missing = true;
+      else seen.add(id);
+      if (id !== undefined && Number.isInteger(id) && id > top) top = id;
+    }
+  }
+  if (!missing) return blueprint;
+  const kept = new Set<number>();
+  const settle = (list: readonly Placement[]): Placement[] =>
+    list.map((p) => {
+      const id = p.id;
+      if (id !== undefined && Number.isInteger(id) && id >= 1 && !kept.has(id)) {
+        kept.add(id);
+        return p;
+      }
+      return { ...p, id: ++top };
+    });
+  const modules = settle(blueprint.modules);
+  if (blueprint.assemblies === undefined) return { ...blueprint, modules };
+  const assemblies: Record<string, Assembly> = {};
+  for (const [name, assembly] of Object.entries(blueprint.assemblies)) assemblies[name] = { ...assembly, modules: settle(assembly.modules) };
+  return { ...blueprint, modules, assemblies };
+}
+
+/**
+ * Each module of the expanded layout's lasting name: the ids of the
+ * placements down its path, and which copy of each instance it came through,
+ * so the same module of two versions of a design has the same key, and the
+ * copies of one written module have keys of their own. In expansion order.
+ */
+/** The highest id any placement of a blueprint has; 0 for none. */
+export function topId(blueprint: Blueprint): number {
+  let top = 0;
+  for (const list of [blueprint.modules, ...Object.values(blueprint.assemblies ?? {}).map((a) => a.modules)]) {
+    for (const p of list) if (p.id !== undefined && p.id > top) top = p.id;
+  }
+  return top;
+}
+
+export function moduleKeys(written: Blueprint): string[] {
+  // A file with no ids reads as one given them in order, as its first edit would give them.
+  const blueprint = settleIds(written);
+  return expandWithOrigins(blueprint).origins.map((origin) => {
+    let list = blueprint.modules;
+    const parts: string[] = [];
+    for (const step of origin.path) {
+      const p = list[step.index]!;
+      const id = String(p.id);
+      if (isInstance(p)) {
+        parts.push(`${id}.${step.copy}`);
+        list = blueprint.assemblies![p.use]!.modules;
+      } else parts.push(id);
+    }
+    return parts.join('/');
+  });
 }
 
 /**

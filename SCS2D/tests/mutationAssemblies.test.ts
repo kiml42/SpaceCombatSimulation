@@ -12,6 +12,7 @@ import {
   type Blueprint,
   type ModuleSpec,
   type Placement,
+  settleIds,
 } from '../sim/index.js';
 import { intoInstanceFrame, mutate, outOfInstanceFrame } from '../evolution/mutate.js';
 import { BARE_CORE, CATAMARAN, CORVETTE, DINKY } from '../scenarios/blueprints.js';
@@ -125,7 +126,7 @@ describe('the frame a part is written in', () => {
       ],
     }).modules as ModuleSpec[];
     const steady = (blueprint: Blueprint): void => {
-      const file = serialiseBlueprint(blueprint);
+      const file = serialiseBlueprint(settleIds(blueprint));
       expect(serialiseBlueprint(parseBlueprint(file))).toEqual(file);
     };
     for (const instance of FRAMES) {

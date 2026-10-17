@@ -19,6 +19,7 @@
       "notes": "Holds a manoeuvring engine out where its moment arm is worth having. Outboard only: an engine on the inboard face would exhaust across the bridge and into the other hull.",
       "modules": [
         {
+          "id": 3,
           "kind": "tank",
           "x": -1,
           "y": 0,
@@ -30,6 +31,7 @@
     "lateral": {
       "modules": [
         {
+          "id": 4,
           "kind": "engine",
           "x": 0,
           "y": -1,
@@ -43,6 +45,7 @@
     "retro": {
       "modules": [
         {
+          "id": 5,
           "kind": "engine",
           "x": -1,
           "y": 0,
@@ -57,6 +60,7 @@
       "notes": "One of the pair, drawn as if it were the whole ship — which is what it becomes.",
       "modules": [
         {
+          "id": 6,
           "kind": "robotBay",
           "x": 5.75,
           "y": 0,
@@ -65,6 +69,7 @@
           "reinforcement": 2
         },
         {
+          "id": 7,
           "kind": "core",
           "x": 0,
           "y": 0,
@@ -74,6 +79,7 @@
           "notes": "One each, which is the point: a hull cut off from the other still has somebody aboard it."
         },
         {
+          "id": 8,
           "kind": "hold",
           "x": -5.5,
           "y": 0,
@@ -83,6 +89,7 @@
           "thick": true
         },
         {
+          "id": 9,
           "kind": "turret",
           "x": 12,
           "y": 0,
@@ -94,6 +101,7 @@
           "barrelCalibres": 31.25
         },
         {
+          "id": 10,
           "kind": "engine",
           "x": -9,
           "y": 0,
@@ -104,31 +112,37 @@
           "thick": true
         },
         {
+          "id": 11,
           "use": "wingBox",
           "x": 6,
           "y": 4.5
         },
         {
+          "id": 12,
           "use": "wingBox",
           "x": -4,
           "y": 4.5
         },
         {
+          "id": 13,
           "use": "lateral",
           "x": 13,
           "y": 3
         },
         {
+          "id": 14,
           "use": "lateral",
           "x": -9.5,
           "y": 4
         },
         {
+          "id": 15,
           "use": "retro",
           "x": 15.5,
           "y": 0
         },
         {
+          "id": 16,
           "kind": "generator",
           "x": 0,
           "y": 4.5,
@@ -136,6 +150,7 @@
           "width": 3
         },
         {
+          "id": 17,
           "use": "link",
           "x": 0,
           "y": -5.75,
@@ -146,11 +161,13 @@
           }
         },
         {
+          "id": 18,
           "use": "structure",
           "x": 10.008829191,
           "y": -2.333333332999999
         },
         {
+          "id": 19,
           "use": "structure",
           "x": -9.491170809,
           "y": -3.333333332999999,
@@ -163,6 +180,7 @@
       "notes": "A section of the bridge. A metre and a bit of face is all that welds one to the next, against the six that hold a hull together and the reinforcement those carry.",
       "modules": [
         {
+          "id": 20,
           "kind": "structure",
           "x": 0,
           "y": 0,
@@ -174,6 +192,7 @@
     "structure": {
       "modules": [
         {
+          "id": 21,
           "kind": "structure",
           "x": 0,
           "y": 0,
@@ -189,6 +208,7 @@
           ]
         },
         {
+          "id": 22,
           "kind": "engine",
           "x": 0.26481792100000057,
           "y": -0.1598514619999989,
@@ -202,11 +222,13 @@
   },
   "modules": [
     {
+      "id": 1,
       "use": "hull",
       "x": -3,
       "y": 19.5
     },
     {
+      "id": 2,
       "use": "hull",
       "x": -3,
       "y": -19.5,
