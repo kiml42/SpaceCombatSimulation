@@ -158,6 +158,8 @@ export function makeBattle<Extra extends object = Record<never, never>>(
       // done with it lets go; then fighters settled onto pads are taken aboard.
       ships.pump(world);
       ships.land(world);
+      // Free pads short of the fighters they keep lay down the next one's core.
+      ships.build(world);
       // Robots crawl out to what needs mending and mend it.
       ships.tend(world);
       grid.rebuild(world.bodies);

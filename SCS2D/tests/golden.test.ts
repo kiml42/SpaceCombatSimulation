@@ -48,6 +48,7 @@ const GOLDEN: Record<ScenarioName, string> = {
   scavenge: '8c2741e7',
   carrier: '2f7e8c50',
   padRebuild: '4d7483f3',
+  factory: '22ae3556',
   rearm: '2f7c9e4f',
   tanker: '0a3feac4',
   beamCarrier: '6c526f64',

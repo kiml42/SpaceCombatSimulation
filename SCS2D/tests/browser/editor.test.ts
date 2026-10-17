@@ -412,9 +412,18 @@ describe('the editor in a browser', () => {
     const label = async (name: string): Promise<string> =>
       (await page.textContent(`#propDocked option[value="${name}"]`)) ?? '';
     expect(await label('Dinky')).toBe('Dinky');
+    expect(await page.isVisible('#keepRow')).toBe(false);
     await page.selectOption('#propDocked', 'Dinky');
     expect(await page.inputValue('#propDocked')).toBe('Dinky');
     expect(await page.textContent('#problems')).not.toMatch(/too big/);
+    // Given a fighter, it sets out with it docked, and keeps none until told.
+    expect(await page.isChecked('#propPadDocked')).toBe(true);
+    expect(await page.inputValue('#propKeep')).toBe('0');
+    await page.fill('#propKeep', '3');
+    await page.dispatchEvent('#propKeep', 'change');
+    expect(await page.inputValue('#propKeep')).toBe('3');
+    await page.uncheck('#propPadDocked');
+    expect(await page.isChecked('#propPadDocked')).toBe(false);
     // Shrunk under it, the fighter no longer fits and the layout says so.
     await page.fill('#propLength', '2');
     await page.dispatchEvent('#propLength', 'change');

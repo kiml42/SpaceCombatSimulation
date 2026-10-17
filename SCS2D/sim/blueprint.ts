@@ -1,5 +1,5 @@
 import type { UnreadKeys } from './unread.js';
-import { abs, angleDelta, asin, atan2, cos, max, min, normalizeAngle, PI, sin, sqrt, TAU } from './math.js';
+import { abs, angleDelta, asin, atan2, cos, floor, max, min, normalizeAngle, PI, sin, sqrt, TAU } from './math.js';
 import {
   GunType,
   grownOutline,
@@ -281,9 +281,8 @@ export interface Blueprint {
    */
   fighter?: boolean;
   /**
-   * The fighters it sets out with docked on its pads, by name: copies, so the
-   * file stands alone, as a fleet carries its designs. Every pad's `docked`
-   * names one of these.
+   * The fighters its pads tend, by name: copies, so the file stands alone, as
+   * a fleet carries its designs. Every pad's `fighter` names one of these.
    */
   hangar?: Readonly<Record<string, Blueprint>>;
   /** Keys its file carried that nothing reads, kept to be written back (`UnreadKeys`). */
@@ -334,6 +333,12 @@ export interface Compiled {
 export interface Shell {
   readonly share: number;
   readonly face: number;
+  /**
+   * The whole module, laid out in this design's frame: what the walls grow
+   * into while nothing of its compiled design is whole to measure it from, as
+   * a fighter's core laid down on a pad.
+   */
+  readonly placed?: ModuleSpec;
 }
 
 /** What a module carries over from the design it was cut or welded from. */
@@ -454,6 +459,8 @@ export interface ShipDesign {
   readonly fighterPieces?: readonly number[];
   /** The fighters it sets out with docked on its pads. Absent for none. */
   readonly aboard?: readonly Aboard[];
+  /** The fighters its pads build, and how many of each they keep. Absent for none. */
+  readonly builds?: readonly PadBuild[];
 }
 
 /** The part a dock is made by: a claw gripping, a pad a fighter has landed on, or two ports mated. */
@@ -1117,7 +1124,9 @@ function place(
     if (placement.sealing !== undefined) spec.sealing = placement.sealing;
     if (placement.drainPriority !== undefined) spec.drainPriority = placement.drainPriority;
     if (placement.fill !== undefined) spec.fill = placement.fill;
+    if (placement.fighter !== undefined) spec.fighter = placement.fighter;
     if (placement.docked !== undefined) spec.docked = placement.docked;
+    if (placement.keep !== undefined) spec.keep = placement.keep;
     if (placement.targeting !== undefined) spec.targeting = placement.targeting;
     if (placement.notes !== undefined) spec.notes = placement.notes;
     out.push(spec);
@@ -1490,16 +1499,21 @@ export interface Aboard {
   readonly design: ShipDesign;
 }
 
+/** A fighter a pad builds, and how many of it the pad keeps in the fight (`ModuleSpec.keep`). */
+export interface PadBuild extends Aboard {
+  readonly keep: number;
+}
+
 /** Whether a fighter's footprint fits inside a pad, lying along the pad's facing. */
 export function padHolds(fighter: ShipDesign, pad: ModuleSpec): boolean {
   const box = footprintOf(fighter);
   return box.maxX - box.minX <= pad.length && box.maxY - box.minY <= pad.width;
 }
 
-/** The fighter a pad sets out with, compiled, or why it cannot. Null for an empty pad. */
-function dockedOn(blueprint: Blueprint, spec: ModuleSpec): ShipDesign | string | null {
-  if (spec.kind !== 'pad' || spec.docked === undefined) return null;
-  const name = spec.docked;
+/** The fighter a pad tends, compiled, or why it cannot. Null for a pad that names none. */
+function padFighter(blueprint: Blueprint, spec: ModuleSpec): ShipDesign | string | null {
+  if (spec.kind !== 'pad' || spec.fighter === undefined) return null;
+  const name = spec.fighter;
   const fighter = blueprint.hangar?.[name];
   if (fighter === undefined) return `no fighter named ${name} in the hangar`;
   const problem = blueprintProblem(fighter);
@@ -1596,9 +1610,9 @@ export function blueprintFaults(blueprint: Blueprint): BlueprintFault[] {
   }
 
   for (let i = 0; i < modules.length; i++) {
-    const docked = dockedOn(blueprint, modules[i]!);
-    if (typeof docked === 'string') {
-      faults.push({ message: `${blueprint.name}, module ${i} — pad: ${docked}`, modules: [i] });
+    const fighter = padFighter(blueprint, modules[i]!);
+    if (typeof fighter === 'string') {
+      faults.push({ message: `${blueprint.name}, module ${i} — pad: ${fighter}`, modules: [i] });
     }
   }
 
@@ -1706,11 +1720,17 @@ export function compileDraft(blueprint: Blueprint): ShipDesign {
     blueprint.fighter === true && fighterProblem(specs) === null,
   );
   const aboard: Aboard[] = [];
+  const builds: PadBuild[] = [];
   for (let m = 0; m < specs.length; m++) {
-    const docked = dockedOn(blueprint, specs[m]!);
-    if (docked !== null && typeof docked !== 'string') aboard.push({ pad: m, design: docked });
+    const spec = specs[m]!;
+    const fighter = padFighter(blueprint, spec);
+    if (fighter === null || typeof fighter === 'string') continue;
+    if (spec.docked === true) aboard.push({ pad: m, design: fighter });
+    const keep = floor(spec.keep ?? 0);
+    if (keep > 0) builds.push({ pad: m, design: fighter, keep });
   }
-  return aboard.length > 0 ? { ...design, aboard } : design;
+  if (aboard.length === 0 && builds.length === 0) return design;
+  return { ...design, ...(aboard.length > 0 ? { aboard } : {}), ...(builds.length > 0 ? { builds } : {}) };
 }
 
 /**
@@ -1840,15 +1860,19 @@ export function weldDesigns(
   const stats: ModuleStats[] = first.modules.map((module) => module.stats);
   const layoutIndex = first.modules.map((module) => module.index);
   const marks = first.modules.map((_, m) => markOf(first, m));
-  second.modules.forEach((_, m) => marks.push(markOf(second, m)));
+  const moved = (spec: ModuleSpec): ModuleSpec => ({
+    ...spec,
+    x: dx + spec.x * c - spec.y * s,
+    y: dy + spec.x * s + spec.y * c,
+    angle: (spec.angle ?? 0) + dangle,
+  });
+  second.modules.forEach((_, m) => {
+    const mark = markOf(second, m);
+    const placed = mark.shell?.placed;
+    marks.push(placed === undefined ? mark : { ...mark, shell: { ...mark.shell!, placed: moved(placed) } });
+  });
   for (const module of second.modules) {
-    const spec = module.spec;
-    specs.push({
-      ...spec,
-      x: dx + spec.x * c - spec.y * s,
-      y: dy + spec.x * s + spec.y * c,
-      angle: (spec.angle ?? 0) + dangle,
-    });
+    specs.push(moved(module.spec));
     stats.push(module.stats);
     layoutIndex.push(module.index);
   }

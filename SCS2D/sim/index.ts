@@ -303,6 +303,7 @@ export {
   padHolds,
   aboardPose,
   type Aboard,
+  type PadBuild,
   type Seam,
   type Assembly,
   type AssemblyInstance,
