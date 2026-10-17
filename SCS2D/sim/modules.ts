@@ -284,9 +284,10 @@ export const STANDARD_GRAVITY = 9.80665;
 export const DEFAULT_NOZZLE_WIDTHS = 1;
 
 /**
- * Bore as a fraction of the mount's width. A triple 16-inch turret is about
- * 10 m across the barbette for a 0.406 m bore, and a 5-inch mount about 4 m
- * for 0.127 m: both land near a twenty-fifth.
+ * Bore as a fraction of a turret's dome, the smaller of its two sides. A
+ * triple 16-inch turret is about 10 m across the barbette for a 0.406 m bore,
+ * and a 5-inch mount about 4 m for 0.127 m: both land near a twenty-fifth.
+ * Small enough that a row of barrels and their bracing always fits on it.
  */
 export const CALIBRE_FRACTION = 0.04;
 
@@ -510,7 +511,7 @@ export const CYCLE_TIME_PER_CALIBRE = 40;
  * Note what linearity does to a multi-barrel mount, because it is exact rather
  * than approximate. Splitting a mount's bore across `n` barrels divides the
  * calibre by `n`, so `n` mechanisms each linear in calibre come to
- * `MECHANISM_MASS_PER_CALIBRE * width * CALIBRE_FRACTION` however many barrels
+ * `MECHANISM_MASS_PER_CALIBRE * dome * CALIBRE_FRACTION` however many barrels
  * there are: the loading machinery is sized by the mount's bore *budget* and
  * not by how it is divided up. That is coherent, and it puts a floor under a
  * multi-barrel mount that the tubes alone do not — barrel steel falls away as
@@ -2261,6 +2262,16 @@ export function hullGunStats(spec: ModuleSpec): GunStats {
 }
 
 /**
+ * How many decks' worth of loading gear a turret's box holds over its area:
+ * one when held to a deck, and its depth over the dome's own when thick.
+ */
+function turretDecks(spec: ModuleSpec, height: number): number {
+  const dome = spec.length < spec.width ? spec.length : spec.width;
+  const thin = dome < DECK_HEIGHT ? dome : DECK_HEIGHT;
+  return height / thin;
+}
+
+/**
  * How many decks' worth of loading gear a hull gun's block holds per metre of
  * its length: one when it is held to a deck (or narrower than one), and its
  * depth over a deck's when it is thick. The gear fills the block, so standing
@@ -2656,7 +2667,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
     }
   } else if (spec.kind === 'turret' || spec.kind === 'beamTurret') {
     gun = spec.kind === 'turret'
-      ? loaded(gunStats(spec.length, spec.width, spec.barrels, barrelCalibres(spec)), spec)
+      ? loaded(gunStats(spec.length, spec.width, spec.barrels, barrelCalibres(spec), turretDecks(spec, height)), spec)
       : beamGunStats(spec.length, spec.width, spec.barrels);
 
     // What hangs off the front of the mount, per barrel or emitter. The two
@@ -2772,7 +2783,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
  * the cube of calibre, and muzzle velocity is whatever dividing one by the
  * other leaves.
  *
- * The trade this produces is the real one. Widening the mount buys a heavier
+ * The trade this produces is the real one. A bigger dome buys a heavier
  * shell that hits harder but flies slower and reloads less often; a longer
  * barrel buys velocity — flatter trajectory, shorter flight time, less lead to
  * misjudge — at the cost of steel that traverses more sluggishly, and past
@@ -2788,8 +2799,8 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
  * Two rules shape that row, and they are independent of each other. Saying so
  * is worth the space, because they look related and are not:
  *
- * - **How much bore.** A mount of a given width is allowed a fixed total bore,
- *   `width * CALIBRE_FRACTION`, and `n` barrels divide it — so calibre falls as
+ * - **How much bore.** A mount of a given dome is allowed a fixed total bore,
+ *   `dome * CALIBRE_FRACTION`, and `n` barrels divide it — so calibre falls as
  *   `1/n`. This is a *budget*, not a packing constraint: the barrels never come
  *   close to filling the face, and there would be room for far more of them.
  *   What it says is that a mount of a given size is worth the same weight of
@@ -2802,12 +2813,17 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
  *   is why there is no constant. It cannot overhang, either: the row spans
  *   `(n-1)/(n+1)` of the face and that is under 1 for every `n`.
  *
- * The face in question is the *smaller* of the mount's two dimensions, because
- * a turret traverses. At rest the row lies across the width; ninety degrees
- * round it lies along the length, and a mount wider than it is long would
- * otherwise sweep a row of barrels through whatever is beside it. Taking the
- * lesser makes the mount's footprint the circle inscribed in it, which is what
- * a barbette is.
+ * The face in question, and the bore's too, is the *dome*: the smaller of the
+ * mount's two dimensions, because a turret traverses. At rest the row lies
+ * across the width; ninety degrees round it lies along the length, and a
+ * mount wider than it is long would otherwise sweep a row of barrels through
+ * whatever is beside it. Taking the lesser makes what turns the circle
+ * inscribed in the footprint, which is what a barbette is.
+ *
+ * **The rest of the box is loading gear**, so which way round a box is drawn
+ * does not matter: the dome sets the gun, and the box's area — and depth, when
+ * thick — beyond the dome's own square loads it faster, by the law a hull
+ * gun's block does (`turretCycleTime`).
  *
  * Note what this does *not* model: the barrels fire parallel, never converged,
  * so a barrel `d` off the mount's centreline misses the aim point by `d` at
@@ -2820,8 +2836,10 @@ export function gunStats(
   mountWidth: number,
   barrelCount: number = 1,
   calibres: number = BARREL_CALIBRES,
+  decks: number = 1,
 ): GunStats {
-  const wide = (mountWidth * CALIBRE_FRACTION) / barrelCount;
+  const dome = mountWidth < mountLength ? mountWidth : mountLength;
+  const wide = (dome * CALIBRE_FRACTION) / barrelCount;
   const calibre = wide < MAX_TURRET_CALIBRE ? wide : MAX_TURRET_CALIBRE;
   const barrelLength = calibre * calibres;
 
@@ -2832,8 +2850,7 @@ export function gunStats(
   // One whole gap outboard of each end barrel, so `n` barrels make `n + 1`
   // gaps. Zero rather than a notional half-face for a single barrel, which has
   // nothing to be spaced from.
-  const mountFace = mountWidth < mountLength ? mountWidth : mountLength;
-  const barrelSpacing = barrelCount > 1 ? mountFace / (barrelCount + 1) : 0;
+  const barrelSpacing = barrelCount > 1 ? dome / (barrelCount + 1) : 0;
 
   return {
     type: GunType.Projectile,
@@ -2847,10 +2864,20 @@ export function gunStats(
     muzzleSpeed,
     muzzleEnergy,
     beamPower: 0,
-    cycleTime: (CYCLE_TIME_PER_CALIBRE * calibre) / barrelCount,
+    cycleTime: turretCycleTime(calibre, ((mountLength * mountWidth) / (dome * dome)) * decks) / barrelCount,
     beamOnTime: 0,
     burst: null
   };
+}
+
+/**
+ * How long one of a turret's barrels takes to load, seconds, given how many
+ * squares of its dome its box holds: the dome's own square loads at
+ * `CYCLE_TIME_PER_CALIBRE`, and more gear beyond it approaches `LOADING_FLOOR`
+ * of that, as a hull gun's deeper block does.
+ */
+function turretCycleTime(calibre: number, gear: number): number {
+  return CYCLE_TIME_PER_CALIBRE * calibre * (LOADING_FLOOR + (1 - LOADING_FLOOR) / gear);
 }
 
 /**
@@ -2869,8 +2896,8 @@ export function gunStats(
  * making it any stronger. The dwell that falls out is `L/W` — an aspect ratio
  * and not a size, so a mount cannot buy endurance simply by being huge.
  *
- * That is deliberately the opposite trade from a gun, where width buys weight
- * of shell and length buys muzzle velocity. The two archetypes want differently
+ * That is deliberately the opposite trade from a gun, where the dome buys
+ * weight of shell, the barrel muzzle velocity and the rest rate of fire. The two archetypes want differently
  * shaped mounts, which is most of what makes having both interesting.
  *
  * **What is not modelled here, and why it is worth knowing about.** A beam

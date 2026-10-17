@@ -44,9 +44,9 @@
         },
         {
           "kind": "structure",
-          "x": -136.5,
+          "x": -156.5,
           "y": 240,
-          "length": 771,
+          "length": 811,
           "width": 60
         },
         {
@@ -227,9 +227,9 @@
         },
         {
           "kind": "structure",
-          "x": -597,
+          "x": -617,
           "y": 240,
-          "length": 150,
+          "length": 110,
           "width": 60,
           "thick": true
         },
@@ -427,8 +427,8 @@
           "length": 60,
           "width": 140,
           "barrels": 4,
-          "barrelCalibres": 50,
-          "traverse": 120,
+          "barrelCalibres": 80,
+          "traverse": 58.00000000000001,
           "fuse": 0.1,
           "fragments": 20,
           "burstSpeed": 400,
@@ -452,8 +452,8 @@
           "length": 8,
           "width": 15,
           "barrels": 4,
-          "barrelCalibres": 37,
-          "traverse": 140,
+          "barrelCalibres": 70,
+          "traverse": 95,
           "fuse": 0.06,
           "fragments": 12,
           "burstSpeed": 300,

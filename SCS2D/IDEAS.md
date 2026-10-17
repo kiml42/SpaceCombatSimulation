@@ -16,8 +16,6 @@ Things that are obviously wrong.
 Ideas that aren't planned to be implemented yet, they may or may not be good ideas.
 
 ## General
-- Consider width and length as interchangeable for calculating turret stats. They should be based on the size of the turret on top (based on the smaller dimension) and the area within the volume of the box underneath.
-  - Barrel width should be a setting (possibly as a multiplier on what is calculated, so it can have a sensible default that scales)
 - Only the dome of turrets should be in the turret layer, the box should be wholly in the hull layer.
 - Hysteresis on decision to use attack or thrust orientation, to avoid flip-flopping.
 - Fighters should be able to dip into the hull layer (like they do for ramming) so they can fire beams and non-fragmenting projectiles at the hulls of ships. The balancing cost of this is that they can be hit by anything.
@@ -32,8 +30,7 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Allow dragging copies (when a module or assembly is set to be repeated) to set the offset (might get complicated with more than 2, so might need to restrict to the second one)
 - Category input for ships - ships grouped by category when selecting them anywhere. (e.g. "Star Wars.Imperial", "Stock")
 - Make it clearer how the range is controlled in the core's doctrine
-- Add calibre multiplier to scale what the default maths gives.
-- For engines and hull weapons, make the module size specify the size of the machinery block with the barrel/nozzle extending out from there. The barrel/nozzle will still need ot be considered for overlapping. This should make it easier to adjust things in the editor, as you won't have the option to set a module length that doesn't work with a given barrel length.
+- Add calibre multiplier to scale what the default maths gives (a turret's bore comes from its dome).
 - Thrust efficiency diagram overlaying the thrust diagram, to show which directions are efficient, as well as which are high thrust.
 - Option to select an opponent.
   - All the doctrine readouts show what they'd calculate against that opponent at 0 relative velocity.
@@ -45,8 +42,6 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Maybe: Turrets fire a volley of one shot per barrel, and then reload. Can specify delay between shots to allow for firing all at once or staggered
   - Beam turrets should allow for multiple beams to be on at the same time.
   - Might need to allow for reloading one while firing another to have continuous firing, could possibly just have each barrel reload independently, and just stagger the triggers by the set amount.
-- Hull weapons render a semi circle below the block and above the barrel to cover place the barrel meets the body, and make turning it look more natural.
-  - Beams may need their emitters stepped forwards so they'd be on the edge of the semi circle.
 - Improved allowed turning for hull guns
 - Bullet spread (inaccuracy. Could get worse as a gun gets damaged.)
 

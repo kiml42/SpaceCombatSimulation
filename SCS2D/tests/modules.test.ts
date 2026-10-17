@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   BARREL_CALIBRES,
+  BARREL_OUTER_CALIBRES,
   BRACE_CALIBRES,
   braceMass,
   MAX_BARREL_CALIBRES,
@@ -719,10 +720,33 @@ describe('gun scaling', () => {
     // fit inside.
     const wide = gunStats(3, 10, 8);
     expect((wide.barrelCount - 1) * wide.barrelSpacing).toBeLessThan(3);
-    // Square-on mounts are unaffected: every turret in the scenarios is longer
-    // than it is wide, so this is a guard and not a change to them.
     const normal = gunStats(12, 8, 8);
     expect(normal.barrelSpacing).toBeCloseTo(8 / 9, 12);
+  });
+
+  it('takes the bore from the dome, so a box is the same gun either way round', () => {
+    const across = gunStats(4, 10, 2, 60);
+    const along = gunStats(10, 4, 2, 60);
+    expect(across.calibre).toBeCloseTo((4 * CALIBRE_FRACTION) / 2, 12);
+    expect(across).toEqual(along);
+  });
+
+  it('fits its row of barrels, bracing and all, on its dome', () => {
+    for (const barrels of [1, 2, 3, 4, 8]) {
+      const gun = gunStats(3, 40, barrels, MAX_BARREL_CALIBRES);
+      const row = (barrels - 1) * gun.barrelSpacing + BARREL_OUTER_CALIBRES * gun.calibre + 2 * gun.braceWidth;
+      expect(row, `${barrels} barrels`).toBeLessThan(3);
+    }
+  });
+
+  it('loads from the rest of its box, a square one at the turret law\'s rate', () => {
+    const square = gunStats(4, 4);
+    expect(square.cycleTime).toBe(CYCLE_TIME_PER_CALIBRE * square.calibre);
+    const long = gunStats(8, 4);
+    expect(long.calibre).toBe(square.calibre);
+    expect(long.cycleTime).toBeCloseTo(square.cycleTime * (LOADING_FLOOR + (1 - LOADING_FLOOR) / 2), 12);
+    // Twice as deep through the ship is as much gear as twice as long.
+    expect(gunStats(4, 4, 1, BARREL_CALIBRES, 2).cycleTime).toBeCloseTo(long.cycleTime, 12);
   });
 
   it('leaves a single barrel unspaced', () => {
@@ -732,8 +756,8 @@ describe('gun scaling', () => {
   });
 
   it('carries loading machinery for every barrel, sized by the round it moves', () => {
-    const light = moduleStats(box('turret', 12, 4));
-    const heavy = moduleStats(box('turret', 12, 16));
+    const light = moduleStats(box('turret', 16, 4));
+    const heavy = moduleStats(box('turret', 16, 16));
     // The training gear is neither, so it comes off before the split.
     const barrelSteel = (s: ReturnType<typeof moduleStats>) =>
       s.fittingMass -

@@ -32,6 +32,43 @@ describe('the attack bearing', () => {
     expect(attackBearing(new AttackArcs(), deg(40), 0.5, 0)).toBe(0);
   });
 
+  it('counts a gun only where its own ship is not downrange', () => {
+    // Three turrets in a row, fore to aft, on the port beam, each able to
+    // train right round to the bow: the two behind the first have it in the
+    // way from 60° ahead of their beam onwards, so only the first fires there.
+    const a = new AttackArcs();
+    const ahead = [deg(-95), deg(-60)];
+    a.addMount(deg(90), deg(95), deg(95), 1000);
+    a.addMount(deg(90), deg(95), deg(95), 1000, ahead);
+    a.addMount(deg(90), deg(95), deg(95), 1000, ahead);
+    expect(a.total).toBe(3);
+    const best = bestAttackBearings(a, 0);
+    expect(best.every((b) => b.guns === 3)).toBe(true);
+    expect(best.every((b) => b.bearing > deg(30))).toBe(true);
+    // Where turning is too dear to leave the bow, the one in front is all that bears.
+    expect(choose(a, deg(10), 10, 0, new AttackRegion()).guns).toBe(1);
+  });
+
+  it('splits an arc right round only where its mask is, and counts it once', () => {
+    const a = new AttackArcs();
+    a.addMount(0, Math.PI, Math.PI, 1000, [deg(-20), deg(20), deg(170), deg(200)]);
+    expect(a.total).toBe(1);
+    expect(a.everywhere).toBe(0);
+    expect(a.count).toBe(2);
+    // Nothing bears dead ahead or astern, and the beams do.
+    const at = (bearing: number) => {
+      for (let k = 0; k < a.count; k++) {
+        const into = (((bearing - a.start[k]!) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+        if (into <= a.width[k]!) return true;
+      }
+      return false;
+    };
+    expect(at(0)).toBe(false);
+    expect(at(Math.PI)).toBe(false);
+    expect(at(deg(90))).toBe(true);
+    expect(at(deg(-90))).toBe(true);
+  });
+
   it('takes the nearer of two even batteries', () => {
     const a = arcs([90, 30], [-90, 30]);
     expect(attackBearing(a, deg(60), 0.5, 0)).toBeCloseTo(deg(90), 9);
