@@ -227,6 +227,10 @@ describe('the skirmish in a browser', () => {
     await page.selectOption('#speed', '16');
     await page.click('#fight');
     await page.waitForSelector('#outcome.lost', { timeout: 60_000 });
+    // The corner of the battle says when and why.
+    expect(await page.isVisible('#decided.lost')).toBe(true);
+    expect(await page.textContent('#decidedTitle')).toMatch(/^Defeat at \d+ s$/);
+    expect(await page.textContent('#decidedReason')).toBe('Your fleet has nothing left to fight with.');
     expect(await page.getAttribute('#editFleet', 'class')).toContain('primary');
     expect(await page.isVisible('#fight')).toBe(false);
 

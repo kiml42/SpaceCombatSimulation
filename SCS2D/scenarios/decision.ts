@@ -19,7 +19,8 @@ export const TIME_CAP = 600;
 export interface Decision {
   /** The side that won, or -1 for a draw. */
   readonly winner: number;
-  readonly reason: 'quiet' | 'time';
+  /** Why: the losers had nothing left to fight with, went quiet for `quietTime`, or time ran out. */
+  readonly reason: 'disarmed' | 'quiet' | 'time';
   /** Simulated time it was decided at, s. */
   readonly time: number;
 }
@@ -90,8 +91,10 @@ export class Activity {
         count++;
       }
     }
-    if (count === 1 && this.sides > 1) this.decision = { winner: active, reason: 'quiet', time: now };
-    else if (count === 0 && this.sides > 1 && !this.able.includes(1)) this.decision = { winner: -1, reason: 'quiet', time: now };
+    if (count === 1 && this.sides > 1) {
+      const disarmed = this.able.every((able, team) => team === active || able === 0);
+      this.decision = { winner: active, reason: disarmed ? 'disarmed' : 'quiet', time: now };
+    } else if (count === 0 && this.sides > 1 && !this.able.includes(1)) this.decision = { winner: -1, reason: 'disarmed', time: now };
     else if (now >= this.cap) this.decision = { winner: -1, reason: 'time', time: now };
     return this.decision;
   }

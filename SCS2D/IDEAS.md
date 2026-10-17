@@ -71,7 +71,6 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - A selected ship's framing takes in and rings what it is escorting; it could do the same for what it is keeping clear of, possibly with a symbol to show what sort of attention the selected ship is paying to each
 
 ## Skirmish
-- When watching a match, show an overlay in the corner of the battle at the point it's decided saying the time it's decided, and the reason.
 - When the enemy are evolving, make the history fill the battle area.
   - In this mode the player's fleet should be put on the left, and the enemy on the right.
 - If a single generation takes long enough, show the thumbnails for the leader in teh generation without a "Victory" or "Defeat" stamp to show the work in progress happening.

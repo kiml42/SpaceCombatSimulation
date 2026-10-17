@@ -146,6 +146,30 @@ export function startSkirmish(): void {
   let battle: CustomBattle | null = null;
   let activity = new Activity(2);
   let decision: Decision | null = null;
+  const decidedBox = el<HTMLElement>('decided');
+  /** Say in the corner of the battle when and why it was decided. */
+  const showDecision = (result: Decision): void => {
+    const settings = skirmish === null ? DEFAULT_SKIRMISH_SETTINGS : settingsOf(skirmish);
+    const at = `at ${result.time.toFixed(0)} s`;
+    el<HTMLElement>('decidedTitle').textContent =
+      result.winner === 0 ? `Victory ${at}` : result.winner === 1 ? `Defeat ${at}` : `Draw ${at}`;
+    const side = result.winner === 0 ? 'The enemy' : 'Your fleet';
+    el<HTMLElement>('decidedReason').textContent =
+      result.reason === 'time'
+        ? `Neither side won within the ${settings.timeCap} s limit.`
+        : result.reason === 'disarmed'
+          ? result.winner < 0
+            ? 'Neither side has anything left to fight with.'
+            : `${side} has nothing left to fight with.`
+          : `${side} went ${settings.quietTime} s without firing.`;
+    decidedBox.className = result.winner === 0 ? 'won' : 'lost';
+    decidedBox.hidden = false;
+  };
+  /** A new battle on the view: nothing decided yet. */
+  const undecided = (): void => {
+    decision = null;
+    decidedBox.hidden = true;
+  };
   /** A fresh decision rule for a battle of the skirmish, under its settings. */
   const newActivity = (): Activity => {
     const settings = skirmish === null ? DEFAULT_SKIRMISH_SETTINGS : settingsOf(skirmish);
@@ -252,6 +276,7 @@ export function startSkirmish(): void {
       if (decision !== null || skirmish === null || stepped !== battle) return;
       decision = activity.observe(stepped);
       if (decision === null) return;
+      showDecision(decision);
       if (mode === 'round') decided(decision);
       else if (mode === 'replay') outcome.textContent = replayOutcome(decision);
       else if (mode === 'answer') outcome.textContent = `The enemy's answer beats your fleet at ${decision.time.toFixed(0)} s.`;
@@ -334,6 +359,7 @@ export function startSkirmish(): void {
     if (flies) view.show(enemyAlone(enemy), false);
   };
   const showSetup = (): void => {
+    undecided();
     el<HTMLElement>('history').hidden = true;
     document.body.classList.add('screenSetup');
     roundPanel.hidden = true;
@@ -416,7 +442,7 @@ export function startSkirmish(): void {
     mode = 'round';
     outcome.textContent = '';
     outcome.className = '';
-    decision = null;
+    undecided();
     activity = newActivity();
     el<HTMLElement>('roundTitle').textContent =
       `Round ${skirmish.round}` + (skirmish.tries > 0 ? ` · try ${skirmish.tries + 1}` : '');
@@ -556,7 +582,7 @@ export function startSkirmish(): void {
   const watch = (now: AnswerProgress): void => {
     if (skirmish === null || skirmish.won === undefined || !watching) return;
     mode = 'watching';
-    decision = null;
+    undecided();
     activity = newActivity();
     battle = customBattle(roundBattle(skirmish.player, now.best, skirmish.won, settingsOf(skirmish)));
     outcome.textContent = `Generation ${now.generation}'s best enemy against your fleet.`;
@@ -588,7 +614,7 @@ export function startSkirmish(): void {
   const showAnswer = (enemy: Fleet): void => {
     if (skirmish === null || skirmish.won === undefined) return;
     mode = 'answer';
-    decision = null;
+    undecided();
     activity = newActivity();
     battle = customBattle(roundBattle(skirmish.player, enemy, skirmish.won, settingsOf(skirmish)));
     outcome.textContent = "The enemy's answer.";
@@ -618,7 +644,7 @@ export function startSkirmish(): void {
     }
     mode = 'replay';
     fightButton.hidden = true;
-    decision = null;
+    undecided();
     activity = newActivity();
     battle = customBattle(roundBattle(player, enemy, seed, skirmish === null ? DEFAULT_SKIRMISH_SETTINGS : settingsOf(skirmish)));
     outcome.textContent = `Round ${round}, again.`;
