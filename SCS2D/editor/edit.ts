@@ -161,21 +161,29 @@ export function updatePlacement(
 }
 
 /**
- * Set the fighter a pad sets out with, or clear it with null. The fighter is
- * copied into the hangar, and the hangar loses whatever no pad names any more.
+ * Set the fighter a pad tends, or clear it with null, which clears whether it
+ * sets out docked and how many it keeps too. A pad given its first fighter sets
+ * out with it docked. The fighter is copied into the hangar, and the hangar
+ * loses whatever no pad names any more.
  */
 export function dockFighter(blueprint: Blueprint, path: ModulePath, fighter: Blueprint | null): Blueprint | null {
   const next = updatePlacement(blueprint, path, (placement) => {
     if (isInstance(placement)) return placement;
-    const { docked: _, ...rest } = placement;
-    return fighter === null ? rest : { ...rest, docked: fighter.name };
+    const { fighter: was, docked, keep, ...rest } = placement;
+    if (fighter === null) return rest;
+    return {
+      ...rest,
+      fighter: fighter.name,
+      ...(was === undefined ? { docked: true } : docked === undefined ? {} : { docked }),
+      ...(keep === undefined ? {} : { keep }),
+    };
   });
   if (next === null) return null;
   const hangar: Record<string, Blueprint> = { ...next.hangar };
   if (fighter !== null) hangar[fighter.name] = cloneBlueprint(fighter);
   const named = new Set<string>();
   const walk = (list: readonly Placement[]): void => {
-    for (const p of list) if (!isInstance(p) && p.docked !== undefined) named.add(p.docked);
+    for (const p of list) if (!isInstance(p) && p.fighter !== undefined) named.add(p.fighter);
   };
   walk(next.modules);
   for (const assembly of Object.values(next.assemblies ?? {})) walk(assembly.modules);

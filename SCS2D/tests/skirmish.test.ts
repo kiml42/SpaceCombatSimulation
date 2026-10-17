@@ -65,6 +65,8 @@ function staged(dt = 1) {
     isDisarmed: (i: number) => disarmed[i]!,
     lastFired: (i: number) => fired[i]!,
     pilotAt: (body: number) => body,
+    canBuildArmed: () => false,
+    lastBuilt: () => -1,
   };
   const credit = {
     get count() {

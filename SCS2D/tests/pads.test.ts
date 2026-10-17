@@ -259,7 +259,7 @@ function laden(pad = 20, fighter: Blueprint = DINKY): Blueprint {
     modules: [
       { kind: 'core', x: 0, y: 0, length: 6, width: 6 },
       { kind: 'tank', x: -13, y: 0, length: 20, width: 10 },
-      { kind: 'pad', x: 3 + pad / 2, y: 0, length: pad, width: pad, docked: fighter.name },
+      { kind: 'pad', x: 3 + pad / 2, y: 0, length: pad, width: pad, fighter: fighter.name, docked: true },
     ],
     hangar: { [fighter.name]: fighter },
   };

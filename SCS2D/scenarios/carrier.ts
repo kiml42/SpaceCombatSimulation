@@ -1,7 +1,7 @@
 import { compileBlueprint, joints, type Blueprint } from '../sim/index.js';
 import type { Battle } from './types.js';
 import { makeBattle } from './battle.js';
-import { DINKY } from './blueprints.js';
+import { BARE_CORE, DINKY } from './blueprints.js';
 
 /** A core and a great tank between two pads, with no engine: a filling station. */
 export const TENDER: Blueprint = {
@@ -68,5 +68,28 @@ export function padRebuild(seed = 20261013): Battle {
         if (lost.includes(all[k]!.a) || lost.includes(all[k]!.b)) ships.damage.cutWeld(b, k, all[k]!.width * 2);
       }
     }
+  });
+}
+
+/** A Workshop whose bow pad keeps three Dinkies, setting out with none. */
+export const FACTORY: Blueprint = {
+  name: 'Factory',
+  modules: [
+    ...TENDER.modules.slice(0, 2),
+    { kind: 'pad', x: 13, y: 0, length: 20, width: 20, fighter: DINKY.name, keep: 3 },
+    ...WORKSHOP.modules.slice(3),
+  ],
+  hangar: { [DINKY.name]: DINKY },
+};
+
+/**
+ * A Factory and an unarmed hulk to shoot at. The Factory's bow pad lays down a
+ * Dinky's core and builds the rest round it, fills it and lets it go, three
+ * times over, one at a time (`Ships.build`).
+ */
+export function factory(seed = 20261017): Battle {
+  return makeBattle({ seed, projectiles: 64, beams: 16 }, (ships, world) => {
+    ships.spawn(world, { design: compileBlueprint(FACTORY), x: 0, y: 0, angle: 0.2 });
+    ships.spawn(world, { design: compileBlueprint(BARE_CORE), x: 600, y: 200, team: 1 });
   });
 }

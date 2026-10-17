@@ -218,7 +218,8 @@ type ModuleNumberField =
   | 'burstSpeed'
   | 'sealing'
   | 'drainPriority'
-  | 'fill';
+  | 'fill'
+  | 'keep';
 
 /** A module's own value for a field, with the default the parser would have applied. */
 function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
@@ -237,6 +238,7 @@ function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
   if (key === 'drainPriority') return spec.drainPriority ?? 0;
   // Per cent on the panel, a share in the layout.
   if (key === 'fill') return (spec.fill ?? 1) * 100;
+  if (key === 'keep') return spec.keep ?? 0;
   return spec.barrels ?? 1;
 }
 
@@ -377,6 +379,7 @@ export function startEditor(): void {
   const thickTitle = thickInput.title;
   const kindSelect = el<HTMLSelectElement>('propKind');
   const dockedSelect = el<HTMLSelectElement>('propDocked');
+  const padDockedInput = el<HTMLInputElement>('propPadDocked');
   const addHeading = el<HTMLElement>('addHeading');
   kindSelect.innerHTML = MODULE_KINDS.map(
     (kind) => `<option value="${kind}">${kindName(kind)}</option>`,
@@ -406,6 +409,7 @@ export function startEditor(): void {
     sealing: el<HTMLInputElement>('propSealing'),
     drainPriority: el<HTMLInputElement>('propDrainPriority'),
     fill: el<HTMLInputElement>('propFill'),
+    keep: el<HTMLInputElement>('propKeep'),
     notes: el<HTMLTextAreaElement>('propNotes'),
   };
 
@@ -942,6 +946,10 @@ export function startEditor(): void {
     el<HTMLElement>('fillRow').hidden = !readsFill(spec.kind);
     el<HTMLElement>('dockedRow').hidden = !readsDocked(spec.kind);
     if (readsDocked(spec.kind)) renderDocked(spec);
+    // Whether it sets out with one, and how many it keeps, mean nothing until it names one.
+    el<HTMLElement>('padDockedRow').hidden = !readsDocked(spec.kind) || spec.fighter === undefined;
+    el<HTMLElement>('keepRow').hidden = !readsDocked(spec.kind) || spec.fighter === undefined;
+    padDockedInput.checked = spec.docked === true;
     // One no more than a deck across is as deep as it is wide either way.
     thickInput.disabled = !canThicken(spec) || doc.blueprint.fighter === true;
     thickInput.checked = isThick(spec);
@@ -1334,14 +1342,14 @@ export function startEditor(): void {
     const options = ['<option value="">none</option>'];
     for (const [name, blueprint] of fighterChoices()) {
       // The copy aboard is what flies, so it is what is measured for the pad it is on.
-      const flown = name === spec.docked ? (doc.blueprint.hangar?.[name] ?? blueprint) : blueprint;
+      const flown = name === spec.fighter ? (doc.blueprint.hangar?.[name] ?? blueprint) : blueprint;
       const design = asFighter(flown);
       const fits = design !== null && padHolds(design, spec);
-      const chosen = name === spec.docked ? ' selected' : '';
+      const chosen = name === spec.fighter ? ' selected' : '';
       options.push(`<option value="${escapeHtml(name)}"${chosen}>${escapeHtml(name)}${fits ? '' : ' ✗ too big'}</option>`);
     }
-    if (spec.docked !== undefined && !options.some((o) => o.includes(' selected'))) {
-      options.push(`<option value="${escapeHtml(spec.docked)}" selected>${escapeHtml(spec.docked)} ✗ missing</option>`);
+    if (spec.fighter !== undefined && !options.some((o) => o.includes(' selected'))) {
+      options.push(`<option value="${escapeHtml(spec.fighter)}" selected>${escapeHtml(spec.fighter)} ✗ missing</option>`);
     }
     dockedSelect.innerHTML = options.join('');
     el<HTMLElement>('propDockedLabel').classList.toggle('warn', dockedSelect.selectedOptions[0]?.textContent?.includes('✗') === true);
@@ -1478,9 +1486,37 @@ export function startEditor(): void {
           true,
         );
       }
+      // None is what a pad keeps when nothing says otherwise, so it is left unsaid.
+      else if (key === 'keep') {
+        const path = doc.selection;
+        if (path === null) return;
+        const keep = Math.max(0, Math.floor(value));
+        change(
+          updatePlacement(doc.blueprint, path, (placement) => {
+            const { keep: _, ...rest } = placement as ModuleSpec;
+            return (keep > 0 ? { ...rest, keep } : rest) as Placement;
+          }),
+          true,
+        );
+      }
       else editSelected({ [key]: value } as Partial<ModuleSpec>, true);
     });
   }
+
+  padDockedInput.addEventListener('change', () => {
+    const path = doc.selection;
+    if (path === null) return;
+    const on = padDockedInput.checked;
+    change(
+      updatePlacement(doc.blueprint, path, (placement) => {
+        if (!('kind' in placement)) return placement;
+        const next = { ...placement };
+        if (on) next.docked = true;
+        else delete next.docked;
+        return next;
+      }),
+    );
+  });
 
   dockedSelect.addEventListener('change', () => {
     const path = doc.selection;
