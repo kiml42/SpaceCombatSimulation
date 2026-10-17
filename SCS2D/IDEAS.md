@@ -21,10 +21,8 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Fighters should be able to dip into the hull layer (like they do for ramming) so they can fire beams and non-fragmenting projectiles at the hulls of ships. The balancing cost of this is that they can be hit by anything.
 - Ships shouldn't fire engines that make them spin faster while trying to cancel out a spin. The pilot trying to hold orientation should generally win.
 - docking fighters struggle to keep up with an accelerating carrier, even when they have plenty of spare thrust they could be using. They should probably account for the carrier's current acceleration and aim to match it's changing speed (and assume it will maintain its acceleration)
-- Shell fragments should be placed in a random layer when the shell detonates, instead of being considered to hit anything in either. Possibly there could be a bias towards keeping fragments in the turrets layer, to keep fragments good at hitting fighters. (probably dependent on the charge size)
 - Pads should hold the fighter that docks with them and move it to be centred and aligned (in any orthogonal direction in which it fits). This should be treated like each pad has a robot arm that can move the fighter into position (we might draw this arm later). This should let us realistically increase the speed at which a fighter can be captured, and it can be captured with very poor alignment because the (for now imaginary) arm will fix it.
   - Actually draw the robot arm in if it's not too hard, it would look cool, but that does require an actual IK chain for it, instead of just applying forces.
-- beams reflect - for each hit, a proportion is absorbed as damage, a proportion is dissipated and a proportion is reflected as anew beam starting at the impact point (if below a threshold power the reflection is considered negligible and not calculated)
 
 ## Editor
 - Allow dragging copies (when a module or assembly is set to be repeated) to set the offset (might get complicated with more than 2, so might need to restrict to the second one)
@@ -44,6 +42,8 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
   - Might need to allow for reloading one while firing another to have continuous firing, could possibly just have each barrel reload independently, and just stagger the triggers by the set amount.
 - Improved allowed turning for hull guns
 - Bullet spread (inaccuracy. Could get worse as a gun gets damaged.)
+- Shell fragments should be placed in a random layer when the shell detonates, instead of being considered to hit anything in either. Possibly there could be a bias towards keeping fragments in the turrets layer, to keep fragments good at hitting fighters. (probably dependent on the charge size)
+- beams reflect - for each hit, a proportion is absorbed as damage, a proportion is dissipated and a proportion is reflected as anew beam starting at the impact point (if below a threshold power the reflection is considered negligible and not calculated)
 
 ## Manoeuvring
 - Ships need to have a max allowed rotational speed, or some other mechanism to stop them spinning up faster and faster when they have damaged engines.
