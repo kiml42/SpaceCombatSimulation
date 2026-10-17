@@ -232,3 +232,56 @@ describe('a beam in the weapons layer', () => {
     expect(deck(false)).toEqual({ cut: 0, hits: 0 });
   });
 });
+
+describe('a beam through a wreck', () => {
+  /** A block hull with another behind it, and a beam down the line of both. */
+  function line(holed: boolean): { front: number; back: number; endX: number } {
+    const block = compileBlueprint({
+      name: 'block',
+      modules: [
+        { kind: 'core', x: 0, y: 0, length: 4, width: 4 },
+        { kind: 'structure', x: 4, y: 0, length: 4, width: 4 },
+      ],
+    });
+    const world = new World({ dt: 1 / 60, seed: 5 });
+    const ships = new Ships();
+    const wreck = world.bodies.indexOf(ships.body(ships.spawn(world, { design: block, x: 0, y: 0, team: 1 })));
+    const behind = world.bodies.indexOf(ships.body(ships.spawn(world, { design: block, x: 40, y: 0, team: 1 })));
+    if (holed) {
+      for (let m = 0; m < block.modules.length; m++) {
+        const capacity = ships.damage.capacityLeft(wreck, m);
+        ships.damage.absorb(wreck, m, capacity * (SHED_FLOOR / SHED_AT_BREAK));
+      }
+    }
+    const grid = new SpatialGrid(64);
+    grid.rebuild(world.bodies);
+    const beams = new Beams(8);
+    const hits = new BeamHits();
+    const index = beams.shoot({ startX: -20, startY: 0, endX: 100, endY: 0, width: 0.2, power: POWER }, world.bodies, grid, hits, ships.holedHulls);
+    let front = 0;
+    let back = 0;
+    for (let i = 0; i < hits.count; i++) {
+      if (hits.body[i] === wreck) front += hits.share[i]!;
+      if (hits.body[i] === behind) back += hits.share[i]!;
+    }
+    return { front, back, endX: beams.endX[index]! };
+  }
+
+  it('stops at a hull that is still whole', () => {
+    const { front, back, endX } = line(false);
+    expect(front).toBeCloseTo(1, 9);
+    expect(back).toBe(0);
+    expect(endX).toBeLessThan(10);
+  });
+
+  it('carries on out of a holed hull, at what the hull let through, to the next', () => {
+    const { front, back, endX } = line(true);
+    // Two modules at their floor, each letting half on.
+    const through = FLOOR_TRANSPARENCY * FLOOR_TRANSPARENCY;
+    expect(front).toBeCloseTo(1 - through, 9);
+    expect(back).toBeCloseTo(through, 9);
+    // Drawn on to where it stops, in the hull behind.
+    expect(endX).toBeGreaterThan(30);
+    expect(endX).toBeLessThan(50);
+  });
+});

@@ -548,6 +548,11 @@ export class Hulls implements RayNarrowPhase {
     return this.length > 0 ? this.path.entry[k]! / this.length : 0;
   }
 
+  /** How far along the cast crossing `k` of the last `describe` is left, as a fraction. */
+  exitOf(k: number): number {
+    return this.length > 0 ? this.path.exit[k]! / this.length : 0;
+  }
+
   /** How much of the cast a module of a body lets through: none, where nothing says otherwise. */
   transparency(bodyIndex: number, module: number): number {
     return this.live?.transparency(bodyIndex, module) ?? 0;

@@ -659,8 +659,8 @@ Deliberately unresolved; decide when they block something.
   far side, so the figure that matters is what a hit *deposits*, not what it arrived with.
 - **A beam bores a tunnel and then shines through it.** A module burnt past breaking lets more of a beam
   through as it sheds, up to half at its floor (`FLOOR_TRANSPARENCY`), which is what lets a beam ship
-  kill anything; the consequence is that a beam holding on one spot loses what gets through the last module
-  it crosses, and once the plating in its way is cut free it reaches clear space beyond the hull. Cutting takes some of the sting out of it — a
+  kill anything; the consequence is that a beam holding on one spot shines on out of the hull with what gets
+  through the last module it crosses, to whatever is behind it, and wholly once the plating in its way is cut free. Cutting takes some of the sting out of it — a
   beam that has bored that far has been burning the seams along the way, and may well have cut the far part
   free before the tunnel opens — but not all of it. Two ways out, both wanted for their own sake: a
   **heat model**, where the beam heats the wreck it is burning and the heat conducts into what is still

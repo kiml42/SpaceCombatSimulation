@@ -367,19 +367,31 @@ export class Beams {
     // ship; one that does not passes through all of it.
     const from = this.fromModule[i]!;
     const owner = this.owner[i]!;
-    hulls?.castFrom(this.layers[i]!, owner, from);
-    const found = grid.raycast(bodies, startX, startY, endX, endY, hit, from >= 0 ? -1 : owner, hulls);
-    if (!found) hulls?.reset();
-    if (found) {
+    const ignore = from >= 0 ? -1 : owner;
+    // Where this cast starts, the share of the beam still going, and the hull
+    // it has just come out of.
+    let x0 = startX;
+    let y0 = startY;
+    let share = 1;
+    let passed = -1;
+    let struck = false;
+    let stopX = endX;
+    let stopY = endY;
+    while (share > MIN_BEAM_SHARE) {
+      hulls?.castFrom(this.layers[i]!, owner, from);
+      if (!grid.raycast(bodies, x0, y0, endX, endY, hit, ignore, hulls, passed)) {
+        hulls?.reset();
+        break;
+      }
       const bi = hit.bodyIndex;
-      const dx = endX - startX;
-      const dy = endY - startY;
+      const dx = endX - x0;
+      const dy = endY - y0;
       let module = -1;
       let nx = 0;
       let ny = 0;
       // The face of the module met, where there was a hull to meet. A body
       // with no design keeps the circle's own normal.
-      if (hulls !== undefined && hulls.describe(bodies, bi, startX, startY, dx, dy)) {
+      if (hulls !== undefined && hulls.describe(bodies, bi, x0, y0, dx, dy)) {
         module = hulls.module;
         nx = hulls.nx;
         ny = hulls.ny;
@@ -397,34 +409,54 @@ export class Beams {
         ny = olen > 0 ? oy * oinv : -dy * sinv;
       }
 
-      // Stop at the point of contact and wait to be resolved. The beam is
-      // deliberately left alive, for the damage model to read.
-      this.endX[i] = hit.x;
-      this.endY[i] = hit.y;
-      this.pending[i] = 1;
-      this.pendingCount++;
-      hits.push(i, bi, hit.x, hit.y, nx, ny, module, module >= 0 && hulls !== undefined ? 1 - hulls.transparency(bi, module) : 1);
+      // The first contact leaves the beam waiting to be resolved, deliberately
+      // alive for the damage model to read.
+      if (!struck) {
+        struck = true;
+        this.pending[i] = 1;
+        this.pendingCount++;
+      }
+      const clear = module >= 0 && hulls !== undefined ? hulls.transparency(bi, module) : 0;
+      hits.push(i, bi, hit.x, hit.y, nx, ny, module, share * (1 - clear));
+      stopX = hit.x;
+      stopY = hit.y;
 
       // A module burnt past breaking lets some of the beam on to the next one
-      // along, which takes its share of what is left, and so on in. What gets
-      // through the last of them is spent in the hull.
-      if (module >= 0 && hulls !== undefined) {
-        let through = hulls.transparency(bi, module);
-        for (let k = 1; k < hulls.crossings && through > MIN_BEAM_SHARE; k++) {
-          const along = hulls.select(k);
-          const clear = hulls.transparency(bi, hulls.module);
-          hits.push(i, bi, startX + dx * along, startY + dy * along, hulls.nx, hulls.ny, hulls.module, through * (1 - clear));
-          through *= clear;
-        }
+      // along, which takes its share of what is left, and so on in; what gets
+      // through the last of them goes on out of the hull to whatever is next.
+      if (module < 0 || hulls === undefined) {
+        // No hull to see through: it stops here.
+        hulls?.reset();
+        share = 0;
+        break;
       }
-      hulls?.reset();
-
-      // Reflection will make this a loop rather than a single cast, and the
-      // trap waiting there is recorded in ROADMAP.md §12: a deflected beam
-      // resumes *on* the surface it bounced off, so any new heading that does
-      // not lead away from that body's centre strikes it again at zero
-      // distance and the beam sticks.
+      let through = share * clear;
+      let out = hulls.exitOf(0);
+      for (let k = 1; k < hulls.crossings && through > MIN_BEAM_SHARE; k++) {
+        const along = hulls.select(k);
+        const next = hulls.transparency(bi, hulls.module);
+        stopX = x0 + dx * along;
+        stopY = y0 + dy * along;
+        hits.push(i, bi, stopX, stopY, hulls.nx, hulls.ny, hulls.module, through * (1 - next));
+        through *= next;
+        out = hulls.exitOf(k);
+      }
+      hulls.reset();
+      share = through;
+      x0 += dx * out;
+      y0 += dy * out;
+      passed = bi;
     }
+    // Drawn to where it is spent, or on out to its full length.
+    if (struck && !(share > MIN_BEAM_SHARE)) {
+      this.endX[i] = stopX;
+      this.endY[i] = stopY;
+    }
+
+    // Reflection would turn a cast as well as carry it on, and the trap waiting
+    // there is recorded in ROADMAP.md §12: a deflected beam resumes *on* the
+    // surface it bounced off, so any new heading that does not lead away from
+    // that body's centre strikes it again at zero distance and the beam sticks.
   }
 
   /**
