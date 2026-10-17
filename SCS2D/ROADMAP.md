@@ -67,10 +67,39 @@ Only step 13, whose remainder is its entry below.
 Steps 12 and 13 build on repair, construction and salvage, which is one mechanism and built (DESIGN.md Status):
 robots and pads rebuilding what a ship launched with, and taking wreckage apart into metal.
 
-12. **In-battle construction** — new modules made from raw material during a battle, and new ships budded off.
-    The largest of the steps: it needs build doctrine.
-    Rebuilding what a ship was designed with is its base; what is left is building what the
-    design did not have.
+12. **In-battle construction** — new ships built during a battle, and ships refitted from one design to
+    another. **A ship always aims at exactly one blueprint**: rebuilding is aiming at the design it set out
+    with, and a refit is changing which design that is, never growing past one. Three slices, in order, each
+    reusing the rebuilding robots and pads already do (DECISIONS.md, 2026-10-17):
+
+    1. **Pads build fighters.** A pad names one design (`fighter`), whether it sets out with one docked, and
+       a count it keeps (`keep`, default 0: build nothing, so every existing blueprint and golden is
+       unchanged). Short of its count, it lays the fighter's core as a shell against its own face where a
+       docked fighter would lie, and the pad's existing rebuild does the rest, fills it and launches it whole.
+       A pad owns what it set out with or built, wherever they land; one out of the fight stops counting.
+       It starts a shell only while no friendly fighter is making for it, and a shell holds the pad until
+       launch. In a fleet the design is the fleet's, shared with any ships flying it from the start, and
+       the hangar is the portable copy for a carrier on its own. Evolution nudges `keep`, points a pad at
+       another fighter of the fleet or at a new bare-core fighter, and breeds a fleet design no ship sets out
+       as. A side that can still build an armed fighter is armed, and a shell going up is activity, for the
+       battle's decision. Pads build only fighters: anything in the hull layer would land on its carrier.
+    2. **Refits.** Every blueprint module gets a stable id, kept by every edit and mutation. A command,
+       `refit(ship, design)`, sets the design a ship aims at: modules identical by id are kept, changed ones
+       taken apart and rebuilt, ones only in the old design taken apart, ones only in the new built, by the
+       rules robots already have, building before demolishing where nothing is in the way. The new design
+       must keep the core the ship is flown from. The editor shows the design a ship is refitting from and
+       marks what will be taken apart. The first thing to issue the command is the paused battle; the
+       campaign reuses it.
+    3. **Slipways.** A new hull module builds capital ships alongside the mothership, like a 3D printer:
+       the design's bow points away, and the front, at the slipway's face, slices through every module it
+       crosses at once, each growing as a shell from its far face, the part built pushed out as it grows
+       (a remade hull, since until it parts it is one body with the mothership), the stern last. Filled
+       through the seam, it parts and flies. A connected design stays connected all the way. It names a
+       design, a count and whether one sets out built, as a pad does. Blueprint problems: the slipway
+       must be in every layer the design is (one turret makes it thick), as wide as the design's beam, and
+       the strip it builds into clear of the mothership's own hull. Building moves metal from the holds
+       into the new hull, so the mass stays and the inertia grows, lopsided unless the slipway is on the
+       centre line; the part built does nothing until it parts, and can be shot.
 13. **Harvesting wrecks** — metal regained from wreckage, with the grapple step 9 built. The natural bridge to
     an economy: no map features needed, and income tied directly to combat. Disassembly takes apart what
     a ship has hold of, and `scavengeMetalBelow` sends a pilot out for wrecks for their metal, as
@@ -501,9 +530,9 @@ Deliberately unresolved; decide when they block something.
   keep flying the layout they were built to and only new production uses the revision. That makes a ship in
   the world reference an immutable *revision* rather than a mutable library entry, and the editor's Save
   becomes "publish a revision" rather than "overwrite". The file format leaves room for it — the schema
-  field is `formatVersion` precisely so `revision` stays free — but nothing else is decided: whether
-  revisions are a linear history or a tree, whether an old revision with no ships left is garbage, and
-  whether a refit is a distinct operation from building new.
+  field is `formatVersion` precisely so `revision` stays free. A refit is distinct from building new and
+  traces modules by stable id (step 12); nothing else is decided: whether revisions are a linear history or
+  a tree, and whether an old revision with no ships left is garbage.
   Entangled with it: **identity is a ship's name**, so renaming re-identifies. Once revisions are
   referenced by fleets, a rename has to be forbidden, propagated, or treated as a fork. Decide both
   together, at the campaign slice.
@@ -590,7 +619,13 @@ Deliberately unresolved; decide when they block something.
   at once if it loses a gun. Only a fighter goes, and only to a pad.
 - **What robots and pads do first, and when.** Repair before rebuilding, and of each what gives back the
   most function per kilogram, with work going on in combat. Doctrine to wait until clear, or to set
-  priorities, is not built.
+  priorities, is not built. Building ships on pads and slipways (§8 step 12) wants the same: hold builds,
+  build only when clear, a mothership holding still while a slipway works.
+- **Module ids muddled by an edit.** A refit keeps a module only by its id (§8 step 12), so a module
+  deleted and drawn again identically would be taken down and rebuilt. The cheap answer: pair an unmatched
+  module of the new design with an identical unmatched one of the old.
+- **Launching a fighter before it is whole.** A pad launches only a whole fighter. Once its core is up it is
+  already a ship, so launching early under doctrine is a rule, not a new mechanism.
 - **Robots working on a docked friend.** Robots cross a seam only onto wreckage to take it apart; crossing a
   port seam to mend a friend is not built.
 - **The numbers for repair.** How much each step wastes (repair wastes a tenth, a first guess), and whether
@@ -898,8 +933,8 @@ Deliberately unresolved; decide when they block something.
   stored. Open: how fast a mount makes rounds and what sets it, how many it keeps and what that costs in
   room and mass, whether a magazine can cook off when hit (with the failure modes above), and what becomes
   of a magazine cut off from its hold — or of rounds stored in a gun that is severed from the ship.
-- Whether the mothership's build priorities are a doctrine blob (so async PvP competes on them) or
-  a player-driven queue.
+- How a slipway chooses between several designs, once a mothership has a menu rather than one design and a
+  count (§8 step 12): a doctrine blob, so async PvP competes on it, or a player-driven queue.
 - Concrete values, now that the units are settled: budgets, engagement ranges, timestep, the weld
   dials (`WELD_SPEED`, `RAGGED_INTEGRITY`, `WELD_SETTLE`, `HOOK_SHARE`), the claw's (its speed band, `CLAW_GRIP_CHANCE`,
   `CLAW_BITE`, `CLAW_PUMP_PER_METRE`, `DOCK_HOLD`), edit-distance bounds, muzzle velocities, armour densities, and how hard a plume
