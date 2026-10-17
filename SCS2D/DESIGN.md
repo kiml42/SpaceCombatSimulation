@@ -803,11 +803,31 @@ inside any one file is not contiguous.
   could take apart, as it does on one with fuel it has room for, and holds on while its robots have the
   charge and the holds the room. The `scrapyard` scenario has two salvagers drift into a dead leech, gone in
   under five minutes, and a dead corvette, gone in about forty-two, by when the hold is nearly full.
-  **A pad may set out with a fighter docked on it** (`ModuleSpec.docked`, naming a copy in the blueprint's
-  `hangar`, as a fleet carries its designs). It is spawned lying along the pad, centred on it, and welded as
-  one that had landed, so it is topped up from the carrier and lifts off once full. A fighter too big for its
-  pad, or one that is missing or not a fighter, is a blueprint problem, and a budget counts the carrier and
-  everything it sets out with (`billOf`).
+  **A pad tends one fighter** (`ModuleSpec.fighter`, naming a copy in the blueprint's `hangar`, as a fleet
+  carries its designs), and **may set out with it docked** (`docked`). It is spawned lying along the pad,
+  centred on it, and welded as one that had landed, so it is topped up from the carrier and lifts off once
+  full. A fighter too big for its pad, or one that is missing or not a fighter, is a blueprint problem, and a
+  budget counts the carrier and everything it sets out with (`billOf`). An older file's `docked` naming the
+  fighter reads as that fighter, set out docked.
+  **A pad builds the fighters it keeps** (`keep`, none by default): short of them, counting the one it set
+  out with, it lays a fighter's core down where a docked one would lie, as a shell's first step from the
+  face nearest the carrier's middle, once it has put that step's walls' work in at its mending rate and
+  has the metal; the rest the pad builds as it builds back what a landed fighter has lost, and it holds the
+  fighter, whatever comes near and whatever it is told, until it is whole, then fills it and lets it go,
+  or keeps it aboard while it has nothing in reach, as one that landed (`Ships.build`). Any fighter sat on
+  a pad idles, its engines off, however it came to be there; lit, they would burn over the deck, since
+  a piece that came aboard a fighter is in the weapons layer alone, for the plumes of its own engines and
+  of its carrier's alike. One pad builds one at a time. A shell with no whole module of its design to be laid out
+  by carries where it goes (`Shell.placed`). A pad's fighters are those it set out with or built, wherever
+  they land: one being built on it, one under control and not mission killed, and one under control aboard
+  a friend count; the dead and the rest are replaced. It starts no core while a fighter of its side is
+  making for it, nor while its carrier is out of control, and the budget pays nothing for what it keeps:
+  the carrier's holds are the price, and the build time is paid in the battle. For a battle's decision, a
+  ship that could still build an armed fighter, its pad working and holding the metal for the fighter's
+  core, is armed, and a pad building is busy though not firing (`scenarios/decision.ts`). The editor sets
+  the fighter, whether it sets out docked and how many it keeps. The `factory` scenario has a Factory, a
+  Workshop whose bow pad keeps three Dinkies and sets out with none, build them one at a time, about a
+  minute each.
   **A port** (`port`) is a coupling on a hull's side, never thick, with a pump of `PORT_PUMP_PER_METRE` for
   every metre of its face. Anything but a fighter with a working port that is down to its
   `refuelBelow` picks a

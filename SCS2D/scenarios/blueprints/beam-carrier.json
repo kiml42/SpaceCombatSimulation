@@ -170,7 +170,8 @@
           "length": 8,
           "width": 4,
           "reinforcement": 3,
-          "docked": "Dinky Beam"
+          "fighter": "Dinky Beam",
+          "docked": true
         },
         {
           "kind": "battery",
