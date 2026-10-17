@@ -106,11 +106,12 @@ describe('deciding a skirmish battle', () => {
   it('gives it to the armed side at once against one with nothing to fight with', () => {
     const { decision } = fight(gunship, core, TIME_CAP);
     expect(decision?.winner).toBe(0);
+    expect(decision!.reason).toBe('disarmed');
     expect(decision!.time).toBeLessThan(1);
   });
 
   it('calls two unarmed sides a draw at once', () => {
-    expect(fight(core, core, 10).decision?.winner).toBe(-1);
+    expect(fight(core, core, 10).decision).toMatchObject({ winner: -1, reason: 'disarmed' });
   });
 
   it('decides nothing while both armed sides are quiet, until the time cap', () => {
@@ -151,6 +152,7 @@ describe('deciding a skirmish battle', () => {
       const decision = battle.to(t);
       if (decision !== null) {
         expect(decision.winner).toBe(1);
+        expect(decision.reason).toBe('quiet');
         return;
       }
     }
@@ -167,7 +169,7 @@ describe('deciding a skirmish battle', () => {
     expect(battle.to(24)).toBeNull();
     battle.hits.push([0, 1]);
     battle.disarmed[1] = true;
-    expect(battle.to(25)).toEqual({ winner: 0, reason: 'quiet', time: 25 });
+    expect(battle.to(25)).toEqual({ winner: 0, reason: 'disarmed', time: 25 });
   });
 
   it('counts a hit landing as firing', () => {

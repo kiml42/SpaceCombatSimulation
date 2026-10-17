@@ -49,6 +49,22 @@
       a { color: #7fa8e0; }
       #view { flex: 1; min-width: 0; min-height: 0; display: block; touch-action: none; cursor: grab; }
       #view:active { cursor: grabbing; }
+      #stage { flex: 1; display: flex; position: relative; min-width: 0; min-height: 0; }
+      #decided {
+        position: absolute;
+        top: 0.7rem;
+        left: 0.7rem;
+        max-width: 22rem;
+        padding: 0.45rem 0.7rem;
+        background: rgba(11, 15, 22, 0.85);
+        border: 1px solid #2b3a50;
+        border-radius: 4px;
+        pointer-events: none;
+      }
+      #decided strong { display: block; font-size: 15px; }
+      #decided.won strong { color: #7fd18b; }
+      #decided.lost strong { color: #e8796b; }
+      #decided span { color: #a9b8c9; }
       footer { padding: 0.4rem 0.9rem; color: #5d6f85; border-top: 1px solid #1c2533; }
       main { flex: 1; display: flex; min-height: 0; }
       [hidden] { display: none !important; }
@@ -245,7 +261,10 @@
           </details>
         </div>
       </section>
-      <canvas id="view"></canvas>
+      <div id="stage">
+        <canvas id="view"></canvas>
+        <div id="decided" hidden><strong id="decidedTitle"></strong><span id="decidedReason"></span></div>
+      </div>
       <aside id="panel">
         <section id="round" hidden>
           <h2 id="roundTitle">Round</h2>
