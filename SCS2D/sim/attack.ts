@@ -16,15 +16,20 @@ export const FLAME_ARC = (10 * PI) / 180;
 
 /**
  * The arcs to choose a bearing from, body frame: where each starts, going
- * anticlockwise, and how wide it is. Reused, so choosing allocates nothing
- * once it has grown to the ship with the most main guns.
+ * anticlockwise, and how wide it is. A weapon whose own ship is downrange of
+ * part of its arc is the pieces it may fire through, which never overlap, so
+ * no bearing counts it twice. Reused, so choosing allocates nothing once it
+ * has grown to the ship with the most main guns.
  */
 export class AttackArcs {
   start = new Float64Array(8);
   width = new Float64Array(8);
   /** One over each weapon's shot speed, s/m: zero for one that arrives at once. */
   slowness = new Float64Array(8);
+  /** Pieces of arc. */
   count = 0;
+  /** Weapons with any arc short of all the way round, however many pieces it is. */
+  guns = 0;
   /** Weapons that bear all the way round, and so on any bearing. */
   everywhere = 0;
   /** How many of those fire shot, and their `slowness` summed. */
@@ -33,6 +38,7 @@ export class AttackArcs {
 
   clear(): void {
     this.count = 0;
+    this.guns = 0;
     this.everywhere = 0;
     this.everywhereShot = 0;
     this.everywhereSlowness = 0;
@@ -52,6 +58,11 @@ export class AttackArcs {
       }
       return;
     }
+    this.guns++;
+    this.piece(from, width, slowness);
+  }
+
+  private piece(from: number, width: number, slowness: number): void {
     if (this.count === this.start.length) {
       const grow = (a: Float64Array<ArrayBuffer>): Float64Array<ArrayBuffer> => {
         const out = new Float64Array(this.count * 2);
@@ -68,13 +79,40 @@ export class AttackArcs {
     this.count++;
   }
 
-  /** A mount training `rightArc` clockwise and `leftArc` anticlockwise of `rest`. */
-  addMount(rest: number, leftArc: number, rightArc: number, speed: number): void {
-    this.add(rest - rightArc, leftArc + rightArc, speed);
+  /**
+   * A mount training `rightArc` clockwise and `leftArc` anticlockwise of
+   * `rest`, less the bearings in its trigger `mask` (pairs from `rest`, as
+   * `triggerMask` gives them), where it may point but not fire.
+   */
+  addMount(rest: number, leftArc: number, rightArc: number, speed: number, mask: readonly number[] = []): void {
+    if (mask.length === 0) {
+      this.add(rest - rightArc, leftArc + rightArc, speed);
+      return;
+    }
+    // A mount that goes right round starts where a sector ends, so no piece is
+    // cut in two at the wrap.
+    const full = leftArc + rightArc >= TAU;
+    const lo = full ? mask[1]! : -rightArc;
+    const hi = full ? mask[1]! + TAU : leftArc;
+    const slowness = speed > 0 ? 1 / speed : 0;
+    this.guns++;
+    let at = lo;
+    // The sectors a turn either side as well, in order of where they start.
+    for (let turn = -1; turn <= 1 && at < hi; turn++) {
+      for (let k = 0; k < mask.length && at < hi; k += 2) {
+        const from = mask[k]! + turn * TAU;
+        const to = mask[k + 1]! + turn * TAU;
+        if (to <= at) continue;
+        if (from >= hi) break;
+        if (from > at) this.piece(rest + at, from - at, slowness);
+        at = max(at, to);
+      }
+    }
+    if (at < hi) this.piece(rest + at, hi - at, slowness);
   }
 
   get total(): number {
-    return this.count + this.everywhere;
+    return this.guns + this.everywhere;
   }
 }
 
@@ -210,12 +248,12 @@ export function designArcs(design: ShipDesign, out: AttackArcs): AttackArcs {
   return out;
 }
 
-/** A mount's arc, as its spec gives it: right round when it gives none. */
+/** A mount's arc, as its spec gives it, less its trigger mask: right round when it gives none. */
 export function addTurret(
   out: AttackArcs,
-  mount: { restBearing?: number; leftArc?: number; rightArc?: number; muzzleSpeed?: number },
+  mount: { restBearing?: number; leftArc?: number; rightArc?: number; muzzleSpeed?: number; mask?: readonly number[] },
 ): void {
-  out.addMount(mount.restBearing ?? 0, mount.leftArc ?? PI, mount.rightArc ?? PI, mount.muzzleSpeed ?? 0);
+  out.addMount(mount.restBearing ?? 0, mount.leftArc ?? PI, mount.rightArc ?? PI, mount.muzzleSpeed ?? 0, mount.mask);
 }
 
 /** The `t`-th engine's flame, which points the way it does not push. */

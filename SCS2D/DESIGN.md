@@ -240,7 +240,9 @@ inside any one file is not contiguous.
   reason enough to ram, though: a fighter goes on counting empty guns as working while a friend has a pad
   it could rearm or recharge on.
   **Where the main guns bear is which way round it fights**:
-  of the bearings off its bow, the pilot holds its target on the one its working main guns bear on most,
+  of the bearings off its bow, the pilot holds its target on the one its working main guns bear on most —
+  a gun bearing only where it may fire, so a turret that can train to the bow past the one in front of it
+  does not count there —
   less doctrine's `turnBias` for every half turn it is from where the target already is, so a Star Destroyer
   fights on whichever beam is nearer and turns the other to the enemy only for enough more guns to pay for
   the turn. The battery is pointed where its shot will meet the target, led by the harmonic mean of its guns'
