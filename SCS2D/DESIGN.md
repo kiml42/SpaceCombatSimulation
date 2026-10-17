@@ -137,9 +137,9 @@ inside any one file is not contiguous.
   through, a fifth of it taken in and the rest reflected or radiated away (`BEAM_ABSORBED_SHARE`, a stand-in
   for heat), and bores deeper as it destroys: **a module burnt past breaking is holed**, and lets more of a
   beam through the more of it has shed, up to half (`FLOOR_TRANSPARENCY`) once it is down to its floor,
-  each module in turn taking its share of what is left and the next getting the rest. So a beam goes on
-  burning the plating it has broken until the welds behind it are cut and it falls away, rather than shining
-  straight through a wreck to what it was guarding. A module that has taken all it can
+  each module in turn taking its share of what is left and the next getting the rest. What gets through the
+  last module goes on out of the hull to whatever is behind it, in the same way, so a wreck screens what it
+  guards by halves rather than wholly, and a beam held on it goes on burning the plating it has broken. A module that has taken all it can
   stops working and goes on stopping shells, so a battered ship is sluggish and
   quiet rather than lighter, and a ship that can neither move nor shoot drifts
   as a hulk. **Damage sheds mass**: a module has lost a tenth of its structure and fittings by the time
