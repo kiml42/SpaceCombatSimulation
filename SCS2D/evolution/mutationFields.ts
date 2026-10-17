@@ -92,6 +92,8 @@ export const MUTATION_FIELDS: readonly MutationField[] = [
     title: 'Odds of building every ship of one design to another of the fleet\'s designs instead, dropping the first. The opposite of a fork.' },
   { name: 'opSwap', group: 'fleet', label: 'ship swapped', step: 0.5, value: DEFAULT_FLEET_LIMITS.operators.swap,
     title: 'Odds of building one of the fleet\'s own ships to another of its designs instead. Its own opposite.' },
+  { name: 'opPad', group: 'fleet', label: 'pad\'s fighter changed', step: 0.5, value: DEFAULT_FLEET_LIMITS.operators.pad,
+    title: 'Odds of pointing a carrier\'s pad at another fighter: one the fleet already has, a copy of its own to change separately, or a new bare core of a fighter. Only in a fleet with a pad.' },
   { name: 'doctrineTargeting', group: 'doctrine', label: 'targeting', step: 0.5, value: DEFAULT_DOCTRINE_WEIGHTS.targeting,
     title: 'How far the ship\'s own targeting numbers drift each generation — what it goes after: how big, how near, how armed or how fast a target it prefers. At 1, a few percent; 0 leaves them as they are.' },
   { name: 'doctrineApproach', group: 'doctrine', label: 'approach', step: 0.5, value: DEFAULT_DOCTRINE_WEIGHTS.approach,

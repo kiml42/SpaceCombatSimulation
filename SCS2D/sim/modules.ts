@@ -253,7 +253,7 @@ export function readsDrainPriority(kind: ModuleKind): boolean {
   return readsSealing(kind);
 }
 
-/** Whether `docked` means anything on this kind: a pad. */
+/** Whether `fighter`, `docked` and `keep` mean anything on this kind: a pad. */
 export function readsDocked(kind: ModuleKind): boolean {
   return kind === 'pad';
 }
@@ -1111,10 +1111,18 @@ export interface ModuleSpec {
   fill?: number;
 
   /**
-   * The fighter that sets out docked on this pad, by its name in the
-   * blueprint's `hangar`. A pad only.
+   * The fighter this pad tends, by its name in the blueprint's `hangar`: the
+   * one it sets out with (`docked`) and the one it builds (`keep`). A pad only.
    */
-  docked?: string;
+  fighter?: string;
+  /** Whether the pad sets out with its `fighter` docked on it. A pad only. */
+  docked?: boolean;
+  /**
+   * How many of its `fighter` the pad keeps in the fight, building one from a
+   * core whenever it has fewer, counting the one it set out with. A pad only;
+   * none for 0, the default.
+   */
+  keep?: number;
 
   /**
    * Why this module is here, in the author's own words. Carried through the

@@ -8,7 +8,10 @@ import { NEUTRAL_TEAM, type Credit, type Ships } from '../sim/index.js';
  * it, and an unarmed ship never fires. A hit landing counts as firing, so a
  * slow round that wins after the last shot does not hand the battle to the
  * ship it disables, and a side left with nothing armed or ramming is out at
- * once. A stalemate ends at `TIME_CAP`.
+ * once. A carrier that can still build an armed fighter is armed, and one
+ * building a fighter is busy, though it is not firing: otherwise a carrier
+ * with no gun of its own would be out before its first fighter was. A
+ * stalemate ends at `TIME_CAP`.
  */
 
 /** How long a side may go without firing or ramming before it is out of the battle, s. */
@@ -27,7 +30,7 @@ export interface Decision {
 
 /** What of a battle the rule reads. */
 export interface Watched {
-  readonly ships: Pick<Ships, 'highWater' | 'isAlive' | 'teamOf' | 'hasControl' | 'isRamming' | 'isDisarmed' | 'lastFired' | 'pilotAt'>;
+  readonly ships: Pick<Ships, 'highWater' | 'isAlive' | 'teamOf' | 'hasControl' | 'isRamming' | 'isDisarmed' | 'lastFired' | 'pilotAt' | 'canBuildArmed' | 'lastBuilt'>;
   readonly world: { readonly tick: number; readonly dt: number };
   readonly credit: Pick<Credit, 'count' | 'attacker' | 'attackerModule' | 'victim' | 'module'>;
 }
@@ -64,11 +67,13 @@ export class Activity {
       const team = ships.teamOf(i);
       if (team === NEUTRAL_TEAM || team >= this.sides) continue;
       const ramming = ships.hasControl(i) && ships.isRamming(i);
-      if (ramming || !ships.isDisarmed(i)) this.able[team] = 1;
+      if (ramming || !ships.isDisarmed(i) || ships.canBuildArmed(i)) this.able[team] = 1;
       if (ships.lastFired(i) === tick || ramming) {
         this.lastActive[team] = now;
         this.fired[team] = 1;
       }
+      // Busy, but not yet in it: building keeps a side from going quiet, and is not its first shot.
+      if (ships.lastBuilt(i) === tick) this.lastActive[team] = now;
     }
     for (let h = 0; h < credit.count; h++) {
       const attacker = ships.pilotAt(credit.attacker[h]!, credit.attackerModule[h]!);

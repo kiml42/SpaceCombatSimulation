@@ -110,7 +110,9 @@ const MODULE_KEYS: readonly string[] = [
   'sealing',
   'drainPriority',
   'fill',
+  'fighter',
   'docked',
+  'keep',
   'targeting',
   'notes',
 ];
@@ -264,7 +266,10 @@ function moduleShapeProblem(value: Record<string, unknown>, where: string): stri
     optionalNumberProblem(value['sealing'], `${where}: sealing`) ??
     optionalNumberProblem(value['drainPriority'], `${where}: drainPriority`) ??
     optionalNumberProblem(value['fill'], `${where}: fill`) ??
-    optionalStringProblem(value['docked'], `${where}: docked`) ??
+    optionalStringProblem(value['fighter'], `${where}: fighter`) ??
+    // A string is the older form: the fighter's name, set out docked.
+    (typeof value['docked'] === 'string' ? null : optionalBooleanProblem(value['docked'], `${where}: docked`)) ??
+    optionalNumberProblem(value['keep'], `${where}: keep`) ??
     targetingProblem(value['targeting'], `${where}: targeting`) ??
     optionalStringProblem(value['notes'], `${where}: notes`)
   );
@@ -292,7 +297,7 @@ function moduleReads(kind: ModuleKind): readonly string[] {
     if (key === 'sealing') return readsSealing(kind);
     if (key === 'drainPriority') return readsDrainPriority(kind);
     if (key === 'fill') return readsFill(kind);
-    if (key === 'docked') return readsDocked(kind);
+    if (key === 'fighter' || key === 'docked' || key === 'keep') return readsDocked(kind);
     if (key === 'vertices') return canShape(kind);
     return true;
   });
@@ -535,7 +540,13 @@ function toPlacements(raws: unknown[], whole: boolean): Placement[] {
     if (read('sealing')) spec.sealing = raw['sealing'] as number;
     if (read('drainPriority')) spec.drainPriority = raw['drainPriority'] as number;
     if (read('fill')) spec.fill = raw['fill'] as number;
-    if (read('docked')) spec.docked = raw['docked'] as string;
+    if (read('fighter')) spec.fighter = raw['fighter'] as string;
+    if (read('docked')) {
+      const docked = raw['docked'] as string | boolean;
+      if (typeof docked === 'string') spec.fighter = docked;
+      spec.docked = docked !== false;
+    }
+    if (read('keep')) spec.keep = raw['keep'] as number;
     // Copied whole, so a key the block does not know goes back out with it.
     if (raw['targeting'] !== undefined) spec.targeting = { ...(raw['targeting'] as Partial<Targeting>) };
     if (raw['notes'] !== undefined) spec.notes = raw['notes'] as string;
@@ -731,7 +742,11 @@ function serialisePlacement(placement: Placement): Record<string, unknown> {
     raw['drainPriority'] = placement.drainPriority;
   }
   if (placement.fill !== undefined && readsFill(placement.kind)) raw['fill'] = placement.fill;
-  if (placement.docked !== undefined && readsDocked(placement.kind)) raw['docked'] = placement.docked;
+  if (readsDocked(placement.kind)) {
+    if (placement.fighter !== undefined) raw['fighter'] = placement.fighter;
+    if (placement.docked !== undefined) raw['docked'] = placement.docked;
+    if (placement.keep !== undefined) raw['keep'] = placement.keep;
+  }
   // Written as authored: a mount's block is already only its differences from
   // the ship it is on, so there is nothing to subtract.
   if (placement.targeting !== undefined) raw['targeting'] = { ...placement.targeting };

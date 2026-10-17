@@ -307,6 +307,7 @@ export {
   padHolds,
   aboardPose,
   type Aboard,
+  type PadBuild,
   type Seam,
   type Assembly,
   type AssemblyInstance,
@@ -358,6 +359,16 @@ export {
   type PlacedShip,
   type TrailStep,
 } from './fleet.js';
+export {
+  fleetBlueprint,
+  hangarClashes,
+  joinHangars,
+  padFighterNames,
+  padReached,
+  renamePadFighter,
+  sameBlueprint,
+  withFleetFighters,
+} from './fleetHangar.js';
 export { FLEET_FORMAT_VERSION, fleetFileProblem, fleetWarnings, parseFleet, serialiseFleet } from './fleetFile.js';
 export type { UnreadKeys } from './unread.js';
 export {

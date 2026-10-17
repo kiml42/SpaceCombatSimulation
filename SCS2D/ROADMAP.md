@@ -53,14 +53,16 @@ an entry is either still open or it is gone.
 | 9 | Docking, fuel transfer and fuel harvesting | Built |
 | 10 | Raw material | Built |
 | 11 | Power | Built |
-| 12 | In-battle construction | Not started |
+| 12 | In-battle construction | Partly built |
 | 13 | Harvesting wrecks | Partly built |
 | 14 | Mining | Not started |
 | 15 | Campaign | Not started |
 
 ### Partly built — what is left
 
-Only step 13, whose remainder is its entry below.
+Step 13's remainder is its entry below. Of step 12, slice 1 is built (DESIGN.md Status): pads build the
+fighters they keep, in a fleet from the fleet's designs, and evolution breeds both. Slices 2 and 3 are left,
+as planned below.
 
 ### Not started — in order
 

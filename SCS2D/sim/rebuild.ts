@@ -50,6 +50,25 @@ export function faceToward(spec: ModuleSpec, against: ModuleSpec): number {
   return best;
 }
 
+/** The edge of a module's outline whose middle is nearest a point: the face to lay its walls from towards it. */
+export function faceNearest(spec: ModuleSpec, x: number, y: number): number {
+  const corners: number[] = [];
+  const count = moduleOutline(spec, corners);
+  let best = 0;
+  let bestDist = Infinity;
+  for (let e = 0; e < count; e++) {
+    const f = (e + 1) % count;
+    const dx = (corners[e * 2]! + corners[f * 2]!) * 0.5 - x;
+    const dy = (corners[e * 2 + 1]! + corners[f * 2 + 1]!) * 0.5 - y;
+    const d = dx * dx + dy * dy;
+    if (d < bestDist) {
+      bestDist = d;
+      best = e;
+    }
+  }
+  return best;
+}
+
 /**
  * The walls of a module, up across `share` of it from edge `face`: a strip of
  * a box, or a triangle of a triangle with its apex drawn in towards the face.

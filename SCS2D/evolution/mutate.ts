@@ -44,6 +44,7 @@ import {
   readsSealing,
   readsDrainPriority,
   readsFill,
+  readsDocked,
   moduleProblem,
   mountTraverse,
   isHullMount,
@@ -736,7 +737,8 @@ type NumberKnob =
         | 'fragments'
         | 'burstSpeed'
         | 'sealing'
-        | 'fill';
+        | 'fill'
+        | 'keep';
       readonly site: ModuleSite;
     };
 
@@ -954,6 +956,8 @@ function numbers(draft: Draft): NumberKnob[] {
     if (readsSealing(spec.kind)) out.push({ at: 'sealing', site });
     // Batteries set out full: charge is not in the budget.
     if (readsFill(spec.kind) && spec.kind !== 'battery') out.push({ at: 'fill', site });
+    // How many of its fighter a pad keeps: nothing to count without one.
+    if (readsDocked(spec.kind) && spec.fighter !== undefined) out.push({ at: 'keep', site });
     if (isWeaponMount(spec.kind)) {
       // How much arc a weapon is built for, which on a hull mount is mass
       // as well as coverage — a fixed gun carries no training gear, and
@@ -1054,6 +1058,8 @@ function renumberModule(knob: Exclude<NumberKnob, { at: 'doctrine' }>, jitter: J
       return reseal(knob.site, jitter);
     case 'fill':
       return refill(knob.site, jitter);
+    case 'keep':
+      return rekeep(knob.site, jitter);
   }
 }
 
@@ -1349,6 +1355,20 @@ function refill(site: ModuleSite, jitter: Jitter): string | null {
   if (now < 1) site.spec.fill = now;
   else delete site.spec.fill;
   return `${site.where} ${site.spec.kind}: starts ${round(was * 100)}% full → ${round(now * 100)}%`;
+}
+
+/**
+ * Change how many of its fighter a pad keeps: a nudge scaled by the count, of
+ * at least one either way, and never below none, which is left unsaid.
+ */
+function rekeep(site: ModuleSite, jitter: Jitter): string | null {
+  const was = site.spec.keep ?? 0;
+  const step = jitter(max(was, 1));
+  const now = max(0, was + (step >= 0 ? max(1, round(step)) : min(-1, round(step))));
+  if (now === was) return null;
+  if (now > 0) site.spec.keep = now;
+  else delete site.spec.keep;
+  return `${site.where} pad: keeps ${was} ${site.spec.fighter} → ${now}`;
 }
 
 /**

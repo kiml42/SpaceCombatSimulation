@@ -4,6 +4,7 @@ import type { Camera } from '../render/camera.js';
 import { NO_TEAM } from '../editor/preview.js';
 import { fleetSnapshot } from '../editor/fleetPreview.js';
 import type { FleetView } from '../editor/fleetDocument.js';
+import { fleetBlueprint } from '../sim/fleetHangar.js';
 
 /**
  * A fleet drawn small, two ways, as the evolution page and the skirmish's
@@ -33,7 +34,7 @@ export function pictureOf(entrant: Fleet | Blueprint): Picture {
   const designs = ships.map((ship) => {
     let design = compiled.get(ship.design);
     if (design === undefined) {
-      design = compileBlueprint(fleet.designs[ship.design]!);
+      design = compileBlueprint(fleetBlueprint(fleet, ship.design));
       compiled.set(ship.design, design);
     }
     return design;

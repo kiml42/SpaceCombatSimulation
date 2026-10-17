@@ -1,4 +1,14 @@
-import { exactTurn, isGroupUse, serialiseBlueprint, type Blueprint, type Fleet, type FleetEntry } from '../sim/index.js';
+import {
+  exactTurn,
+  isGroupUse,
+  joinHangars,
+  padReached,
+  renamePadFighter,
+  sameBlueprint,
+  type Blueprint,
+  type Fleet,
+  type FleetEntry,
+} from '../sim/index.js';
 import { nextName, unusedName } from './library.js';
 
 /**
@@ -18,7 +28,8 @@ export function emptyFleet(name: string): Fleet {
 /**
  * Place a ship of this design, embedding a copy of it if the fleet has none of
  * that name. One it already carries is used as it is: a library copy that has
- * moved on is offered as a refresh, not slipped in.
+ * moved on is offered as a refresh, not slipped in. A carrier embedded gives
+ * its hangar up to the fleet (`joinHangars`).
  */
 export function addShip(fleet: Fleet, blueprint: Blueprint, x: number, y: number): Fleet {
   const next = cloneFleet(fleet);
@@ -26,7 +37,7 @@ export function addShip(fleet: Fleet, blueprint: Blueprint, x: number, y: number
     next.designs[blueprint.name] = JSON.parse(JSON.stringify(blueprint)) as Blueprint;
   }
   next.ships.push({ design: blueprint.name, x, y });
-  return next;
+  return joinHangars(next);
 }
 
 /**
@@ -132,7 +143,7 @@ export function swapDesign(fleet: Fleet, paths: readonly EntryPath[], blueprint:
   for (const path of paths) {
     next = updateEntry(next, path, (entry) => (isGroupUse(entry) ? entry : { ...entry, design: blueprint.name }));
   }
-  return pruneDesigns(next);
+  return pruneDesigns(joinHangars(next));
 }
 
 /**
@@ -152,13 +163,15 @@ export function forkDesign(fleet: Fleet, path: EntryPath): { fleet: Fleet; name:
 export function refreshDesign(fleet: Fleet, blueprint: Blueprint): Fleet {
   const next = cloneFleet(fleet);
   next.designs[blueprint.name] = JSON.parse(JSON.stringify(blueprint)) as Blueprint;
-  return next;
+  return joinHangars(next);
 }
 
 /**
  * The fleet with design `from` replaced by `blueprint`, as edited elsewhere.
- * Renamed, every ship of the design follows it; a name another design of the
- * fleet already has is not taken, and the old name kept.
+ * Renamed, every ship of the design follows it, and every pad that keeps it;
+ * a name another design of the fleet already has is not taken, and the old
+ * name kept. Its hangar is given up to the fleet (`joinHangars`), so a fighter
+ * edited elsewhere comes back as itself, and one newly chosen joins the fleet.
  */
 export function replaceDesign(fleet: Fleet, from: string, blueprint: Blueprint): Fleet {
   const next = cloneFleet(fleet);
@@ -171,8 +184,9 @@ export function replaceDesign(fleet: Fleet, from: string, blueprint: Blueprint):
     };
     rename(next.ships);
     for (const group of Object.values(next.groups ?? {})) rename(group.ships);
+    for (const [name, design] of Object.entries(next.designs)) next.designs[name] = renamePadFighter(design, from, to);
   }
-  return next;
+  return joinHangars(next);
 }
 
 /** The name `replaceDesign` puts the design under. */
@@ -197,16 +211,18 @@ export function distinctDesign(fleet: Fleet, blueprint: Blueprint): Blueprint {
 
 /** Whether the embedded copy differs from another, by what a file would say. */
 export function differs(a: Blueprint, b: Blueprint): boolean {
-  return JSON.stringify(serialiseBlueprint(a)) !== JSON.stringify(serialiseBlueprint(b));
+  return !sameBlueprint(a, b);
 }
 
+/** Drop every design nothing flies, and no pad of anything flown keeps. */
 function pruneDesigns(fleet: Fleet): Fleet {
-  const used = new Set<string>();
+  const flown = new Set<string>();
   const visit = (entries: readonly FleetEntry[]): void => {
-    for (const entry of entries) if (!isGroupUse(entry)) used.add(entry.design);
+    for (const entry of entries) if (!isGroupUse(entry)) flown.add(entry.design);
   };
   visit(fleet.ships);
   for (const group of Object.values(fleet.groups ?? {})) visit(group.ships);
+  const used = padReached(fleet, flown);
   for (const name of Object.keys(fleet.designs)) if (!used.has(name)) delete fleet.designs[name];
   return fleet;
 }

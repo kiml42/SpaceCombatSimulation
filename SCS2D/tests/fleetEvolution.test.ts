@@ -7,15 +7,22 @@ import { parseRunConfig, runConfigFileProblem, runConfigWarnings, serialiseRunCo
 import { DEFAULT_RUN } from '../evolution/run.js';
 import { BARE_CORE, CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
 import { LINE_OF_BATTLE } from '../scenarios/fleets.js';
+import { FACTORY } from '../scenarios/carrier.js';
+import { addShip, emptyFleet } from '../editor/fleetEdit.js';
 
 /** Fleets as entrants, bred as fleets. */
 
 const SHORT = { duration: 20 };
 
 function only(operator: FleetOperator): Record<FleetOperator, number> {
-  const weights = { design: 0, move: 0, add: 0, remove: 0, fork: 0, merge: 0, swap: 0 };
+  const weights = { design: 0, move: 0, add: 0, remove: 0, fork: 0, merge: 0, swap: 0, pad: 0 };
   weights[operator] = 1;
   return weights;
+}
+
+/** A Factory, whose pad keeps a Dinky, and a Dinky beside it. */
+function carrierFleet(): Fleet {
+  return addShip(addShip(emptyFleet('Carrier'), FACTORY, 0, 0), DINKY, 60, 0);
 }
 
 function pair(): Fleet {
@@ -130,6 +137,7 @@ describe('breeding a fleet', () => {
       fork: pair(),
       merge: LINE_OF_BATTLE,
       swap: LINE_OF_BATTLE,
+      pad: carrierFleet(),
     };
     for (const [operator, parent] of Object.entries(parents) as [FleetOperator, Fleet][]) {
       const child = mutateFleet(parent, new Rng(11), { ...limits, operators: only(operator) });

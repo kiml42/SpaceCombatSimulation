@@ -410,8 +410,26 @@
             />
           </div>
           <div class="field" id="dockedRow">
-            <label for="propDocked" id="propDockedLabel">fighter aboard</label>
-            <select id="propDocked" title="A fighter that sets out docked on this pad, its tanks topped up from this ship's before it lifts off. Marked ✗ when too big to lie inside the pad."></select>
+            <label for="propDocked" id="propDockedLabel">fighter</label>
+            <select id="propDocked" title="The fighter this pad tends: the one it sets out with, and the one it builds. Marked ✗ when too big to lie inside the pad."></select>
+          </div>
+          <div class="field" id="padDockedRow">
+            <label for="propPadDocked">sets out docked</label>
+            <input
+              id="propPadDocked"
+              type="checkbox"
+              title="The pad sets out with its fighter docked on it, its tanks topped up from this ship's before it lifts off."
+            />
+          </div>
+          <div class="field" id="keepRow">
+            <label for="propKeep">keep</label>
+            <input
+              id="propKeep"
+              type="number"
+              step="1"
+              min="0"
+              title="How many of its fighter the pad keeps in the fight, counting the one it sets out with: short of that, it builds another from a core, paid for in this ship's metal and charge, one at a time. None by default."
+            />
           </div>
           <div class="field">
             <label for="propNotes">notes</label>

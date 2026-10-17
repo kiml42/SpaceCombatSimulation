@@ -331,6 +331,8 @@ export function exhaustObstruction(
   rating: number,
   path: HullPath,
   slices: PlumeSlice[],
+  /** Whether module `m` is in a layer the engine's exhaust is in; every module, unless told. */
+  meets: (m: number) => boolean = () => true,
 ): number {
   slices.length = 0;
 
@@ -362,7 +364,7 @@ export function exhaustObstruction(
     hit.at = Infinity;
     for (let k = 0; k < path.count; k++) {
       const m = path.module[k]!;
-      if (m === module || (only >= 0 && m !== only)) continue;
+      if (m === module || (only >= 0 && m !== only) || !meets(m)) continue;
       hit.module = m;
       hit.at = path.entry[k]!;
       return;
@@ -375,7 +377,7 @@ export function exhaustObstruction(
     corners.push((x - rootX) * -dirY + (y - rootY) * dirX);
   };
   for (let i = 0; i < boxes.modules.length; i++) {
-    if (i === module) continue;
+    if (i === module || !meets(i)) continue;
     const m = boxes.modules[i]!;
     const c = cos(m.angle);
     const s = sin(m.angle);
