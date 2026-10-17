@@ -25,6 +25,7 @@ import { type MutationLimits } from './mutate.js';
 import { DEFAULT_FLEET_LIMITS, type FleetMutationLimits } from './fleetMutate.js';
 import { blank, breed, fitness, Generation, offspring, type Individual } from './generation.js';
 import type { CoevolutionConfig } from './coevolution.js';
+import { withFleetFighters } from '../sim/fleetHangar.js';
 
 /**
  * A run: generations of designs, each fought in groups and bred from what
@@ -153,7 +154,7 @@ function fittingsOfRecord(
 ): Fittings {
   if (record.fleet !== undefined) {
     const fleet = parseFleet(record.fleet);
-    const each = new Map(Object.entries(fleet.designs).map(([name, blueprint]) => [name, count(blueprint)]));
+    const each = new Map(Object.entries(fleet.designs).map(([name, blueprint]) => [name, count(withFleetFighters(blueprint, fleet.designs))]));
     const ships = expandFleet(fleet);
     let weapons = 0;
     let engines = 0;

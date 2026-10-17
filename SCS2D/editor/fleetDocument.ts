@@ -23,6 +23,7 @@ import {
 import { cloneFleet, differs, entryAt, isWithin, samePath, type EntryPath } from './fleetEdit.js';
 import { History } from './history.js';
 import { moduleAt } from './edit.js';
+import { fleetBlueprint, hangarClashes, withFleetFighters } from '../sim/fleetHangar.js';
 
 export { centreOf };
 
@@ -90,7 +91,9 @@ function derive(fleet: Fleet, lookup: LibraryLookup): FleetView {
 
   const compiled = new Map<string, { design: ShipDesign | null; modules: ModuleSpec[] }>();
   const stale: string[] = [];
-  for (const [name, blueprint] of Object.entries(fleet.designs)) {
+  for (const [name, carried] of Object.entries(fleet.designs)) {
+    // As it flies in this fleet, its pads' fighters the fleet's own.
+    const blueprint = withFleetFighters(carried, fleet.designs);
     const problem = blueprintProblem(blueprint);
     if (problem !== null) problems.push(`${name} would not fly: ${problem}`);
     let design: ShipDesign | null = null;
@@ -103,14 +106,14 @@ function derive(fleet: Fleet, lookup: LibraryLookup): FleetView {
     }
     compiled.set(name, { design, modules });
     const library = lookup(name);
-    if (library !== null && differs(blueprint, library)) stale.push(name);
+    if (library !== null && differs(blueprint, withFleetFighters(library, fleet.designs))) stale.push(name);
   }
 
   const designs = ships.map((ship) => compiled.get(ship.design)?.design ?? null);
   const hulls = ships.map((ship) => placeModules(compiled.get(ship.design)?.modules ?? [], ship));
   ships.forEach((ship, i) => {
     if (designs[i] === null) faulty.add(i);
-    else if (blueprintProblem(fleet.designs[ship.design]!) !== null) faulty.add(i);
+    else if (blueprintProblem(fleetBlueprint(fleet, ship.design)) !== null) faulty.add(i);
   });
 
   for (let i = 0; i < ships.length; i++) {
@@ -123,6 +126,7 @@ function derive(fleet: Fleet, lookup: LibraryLookup): FleetView {
       faulty.add(k);
     }
   }
+  problems.push(...hangarClashes(fleet));
   const faults = [...problems];
   for (const name of stale) problems.push(`${name} differs from the library's ${name}`);
 

@@ -15,6 +15,7 @@ import { addCapability, EFFECTS, workingShare } from './capability.js';
 import { makeBattle } from '../scenarios/battle.js';
 import { Activity } from '../scenarios/decision.js';
 import type { Battle } from '../scenarios/types.js';
+import { withFleetFighters } from '../sim/fleetHangar.js';
 
 /**
  * One match: a handful of designs put in an arena together, and what each of
@@ -429,7 +430,7 @@ export class Match {
     const placed = entrants.map((entrant) => {
       if (!isFleet(entrant)) return [{ x: 0, y: 0, angle: 0, design: compileBlueprint(entrant) }];
       const compiled = new Map<string, ShipDesign>();
-      for (const [name, blueprint] of Object.entries(entrant.designs)) compiled.set(name, compileBlueprint(blueprint));
+      for (const [name, blueprint] of Object.entries(entrant.designs)) compiled.set(name, compileBlueprint(withFleetFighters(blueprint, entrant.designs)));
       return expandFleet(entrant).map((ship) => ({ x: ship.x, y: ship.y, angle: ship.angle, design: compiled.get(ship.design)! }));
     });
     this.capacities = placed.map((ships) => ships.reduce((sum, ship) => sum + hullCapacity(ship.design), 0));

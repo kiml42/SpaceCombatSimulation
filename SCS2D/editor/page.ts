@@ -41,6 +41,7 @@ import {
   refitModule,
   samePlacement,
   Snapshot,
+  withFleetFighters,
   type AssemblyInstance,
   type Blueprint,
   type ModuleKind,
@@ -284,7 +285,10 @@ export function startEditor(): void {
     window.alert(`Could not read the fleet's design handed over.\n\n${error instanceof Error ? error.message : error}`);
   }
   const doc = new EditorDocument(
-    (inFleet === null ? null : inFleet.fleet.designs[inFleet.design]) ?? read('Corvette') ?? emptyBlueprint('New ship'),
+    // As it flies in its fleet, carrying the fleet's fighters for its pads.
+    (inFleet === null ? null : withFleetFighters(inFleet.fleet.designs[inFleet.design]!, inFleet.fleet.designs)) ??
+      read('Corvette') ??
+      emptyBlueprint('New ship'),
   );
   const camera: Camera = { x: 0, y: 0, scale: 8 };
   /**
@@ -1322,6 +1326,10 @@ export function startEditor(): void {
   /** Every fighter a pad could set out with: the library's, and any the hangar carries that it has not. */
   const fighterChoices = (): Map<string, Blueprint> => {
     const choices = new Map<string, Blueprint>();
+    // In a fleet, its own fighters first: what a pad names there is the fleet's.
+    for (const [name, blueprint] of Object.entries(inFleet?.fleet.designs ?? {})) {
+      if (name !== inFleet?.design && asFighter(blueprint) !== null) choices.set(name, blueprint);
+    }
     for (const entry of library.list()) {
       if (choices.has(entry.name)) continue;
       let blueprint: Blueprint | null = null;
