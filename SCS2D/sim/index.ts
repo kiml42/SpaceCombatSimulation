@@ -42,6 +42,10 @@ export {
   BeamHits,
   castableBeamLength,
   MAX_BEAM_LENGTH,
+  BEAM_REFLECTANCE,
+  MAX_REFLECTIONS,
+  MIN_REFLECTED_POWER,
+  reflectance,
   type BeamSpec,
 } from './beams.js';
 export {

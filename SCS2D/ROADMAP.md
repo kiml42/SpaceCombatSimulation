@@ -506,25 +506,14 @@ Deliberately unresolved; decide when they block something.
   weak beam for a long time and then sits dead for longer. Nothing is wrong with the
   arithmetic; the sequencing is what a laser has no reason to inherit. Firing them together needs `Ships.fire`
   to emit a salvo rather than a shot, which is a change to the firing loop rather than to the scaling laws.
-- **Reflected beams, and the trap waiting at the surface.** A beam that is deflected rather than absorbed
-  resumes from the point it struck, which is now a point *on a module's face* rather than on the ship's
-  bounding circle — and makes the trap worse rather than better, since a module the beam is sitting on is met
-  again by any heading that leads back into it, and a concave hull has faces that look at each other. The
-  beam sticks: a grazing deflection — exactly the case reflection exists to model — is the worst one. The tie
-  has to be broken deliberately, by nudging the origin along the new heading or by carrying the struck body
-  as the resumed beam's owner, and the second is tidier because the store already has an owner field and
-  already skips it. Neither is free: the first invents a length scale, and the second stops a beam bouncing
-  between two faces of the same concave hull, which is a thing a real one would do.
-
-  Two further pieces belong with it. `Beams.detectHits` casts once per beam, so reflection makes it a loop
-  and needs a bound — reflections per beam, energy remaining, or both — or a pair of facing mirrors runs for
-  ever. And the store's `pending` flag exists precisely so a struck beam survives for something to decide
-  what happens to it; nothing does yet, so today every beam is cleared at the start of the next step and the
-  flag is carrying a contract that has no second party. Reflection is that second party.
-
-  What decides whether a beam reflects at all is the target's reflectivity and the angle of incidence, and
-  the hit already reports the surface normal for exactly that reason. Where reflectivity lives — a material
-  property, per module, per armour facing — is part of the materials question above rather than settled here.
+- **What reflection leaves out.** Beams reflect off the outer face of each hull they meet (DESIGN.md §4), by
+  one reflectance for every face. Three things are not modelled. **Reflectivity per module** — reflective
+  armour, a material property or a facing — is part of the materials question above, and is what would make
+  reflection a design choice rather than a constant. **A beam bouncing between two faces of the same concave
+  hull**: a reflection ignores the hull it came off until it has cleared it, which is what stops it sticking
+  on the face it started on, at the cost of that bounce. And **a reflection back onto the ship that fired
+  it**, which flat faces and perfect aim send straight back up the beam far more often than a real hull would;
+  it is left out rather than modelled until faces are rough enough to scatter.
 - **How a blueprint is versioned, once there is a campaign.** Editing a design must not silently re-equip
   ships already built to it: §2's Production rule is that a fleet transitions gradually, so existing ships
   keep flying the layout they were built to and only new production uses the revision. That makes a ship in

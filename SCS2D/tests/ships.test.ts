@@ -600,7 +600,8 @@ describe('beam gunnery', () => {
     expect(timeSpentReloading).toBeGreaterThanOrEqual(gun.cycleTime);
     expect(timeSpentReloading).toBeLessThan(gun.cycleTime + DT);
     expect(mostRecentFiredCount).toBe(1);
-    expect(r.beams.count).toBe(1);
+    // One from the mount; anything else is what it threw off what it hit.
+    expect(Array.from(r.beams.bounces.subarray(0, r.beams.highWater)).filter((b, i) => b === 0 && r.beams.alive[i] === 1)).toHaveLength(1);
 
     // Fire 2nd beam (barrel 1): should be at +0.5 * spacing in y
     const y1 = r.beams.startY[0]!;
