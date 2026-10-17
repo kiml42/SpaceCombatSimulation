@@ -87,7 +87,7 @@ describe('a pad that keeps fighters, in a file', () => {
 
 describe('a pad building the fighters it keeps', () => {
   it('lays down a core, builds the whole fighter round it, and lets it go full', () => {
-    const run = battle(factoryOf(1));
+    const run = battle(factoryOf(1), 600);
     const dinky = compileBlueprint(DINKY);
     runFor(run, 5);
     const [f] = fighters(run);
@@ -104,6 +104,20 @@ describe('a pad building the fighters it keeps', () => {
     // Only one was kept, and it is in the fight.
     runFor(run, 30);
     expect(fighters(run)).toEqual([f]);
+  });
+
+  it('keeps a whole fighter aboard, engines off, while nothing is in reach', () => {
+    const run = battle(factoryOf(1));
+    runFor(run, 5);
+    const [f] = fighters(run);
+    let burned = false;
+    for (let s = 0; s < 240 * 60; s++) {
+      run.step();
+      burned ||= run.ships.design(f!).engines.some((_, e) => run.ships.throttleOf(f!, e) > 0);
+    }
+    expect(run.ships.isUnfinished(f!)).toBe(false);
+    expect(run.ships.body(f!)).toBe(run.ships.body(run.c));
+    expect(burned).toBe(false);
   });
 
   it('counts the one it set out with, and builds none while that one is in the fight', () => {
@@ -130,7 +144,7 @@ describe('a pad building the fighters it keeps', () => {
   });
 
   it('builds them one at a time, until it keeps as many as it was told', () => {
-    const run = battle(factoryOf(2));
+    const run = battle(factoryOf(2), 600);
     runFor(run, 900, () => fighters(run).filter((f) => !run.ships.isUnfinished(f)).length >= 2);
     const done = fighters(run).filter((f) => !run.ships.isUnfinished(f));
     expect(done.length).toBe(2);

@@ -3037,6 +3037,13 @@ export class Ships {
       }
     }
 
+    // Sat on a pad, however it got there: the pad lets it go, and its engines
+    // would only push the carrier and burn the deck.
+    if (this.onPad(i, b)) {
+      this.idle(i);
+      return;
+    }
+
     // No order at all is the same problem as an order with no target: hold
     // what you are doing and wait to be told something.
     const order = this.effectiveOrder(i);
@@ -4310,7 +4317,13 @@ export class Ships {
             const joules = PAD_REPAIR_PER_METRE * design.modules[seam.a]!.spec.width * working * world.dt;
             const progress = this.mend(bodies, b, built, seam.a, joules) || this.padBuild(bodies, b, design, built, seam.a, joules);
             if (progress) this.builtAt[this.pilotAt(b, seam.a)] = world.tick;
-            if (this.finished(b, built, design)) this.unfinished[built] = 0;
+            if (this.finished(b, built, design)) {
+              this.unfinished[built] = 0;
+              // Its reach as the fighter it now is, for whether it waits aboard.
+              const whole = this.launched[built]!;
+              const approach = this.doctrines[built]!.approach;
+              this.landedReach[built] = whole.reach > 0 ? whole.reach : approach.ramRadii > 0 ? approach.approachSpeed * RAM_HORIZON : 0;
+            }
             continue;
           }
         }
@@ -7839,6 +7852,15 @@ export class Ships {
     const need = (gun.beamPower * gun.beamOnTime * rate * dt) / gun.cycleTime;
     if (!(need > 0)) return 1;
     return this.power.draw(b, mount.module, need) / need;
+  }
+
+  /** Whether ship `i` sits on a pad of body `b`, held by its dock. */
+  private onPad(i: number, b: number): boolean {
+    const design = this.hullDesign[b];
+    for (const seam of design?.seams ?? []) {
+      if (seam.dock === 'pad' && this.pilotAt(b, seam.b) === i) return true;
+    }
+    return false;
   }
 
   /** Engines off and nothing asked of them, while what it is holding is pumped aboard. */
