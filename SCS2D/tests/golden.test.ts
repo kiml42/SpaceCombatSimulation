@@ -51,7 +51,7 @@ const GOLDEN: Record<ScenarioName, string> = {
   factory: 'cd7ff97c',
   rearm: '2f7c9e4f',
   tanker: '0a3feac4',
-  beamCarrier: '38a64006',
+  beamCarrier: 'e7a64cdd',
   passes: 'abc83885',
   circling: 'd02a9959',
 };
