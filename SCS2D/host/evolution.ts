@@ -155,6 +155,7 @@ const SIDE_FIELDS = [
   'kindBattery',
   'kindGenerator',
   'kindRobotBay',
+  'kindSlipway',
   'doctrineTargeting',
   'doctrineApproach',
   'doctrineEscort',
@@ -240,6 +241,7 @@ const FIELDS = [
   'kindBattery',
   'kindGenerator',
   'kindRobotBay',
+  'kindSlipway',
   'doctrineTargeting',
   'doctrineApproach',
   'doctrineEscort',
@@ -1003,6 +1005,7 @@ export function startEvolution(): void {
     get('kindBattery').value = String(kinds.battery);
     get('kindGenerator').value = String(kinds.generator);
     get('kindRobotBay').value = String(kinds.robotBay);
+    get('kindSlipway').value = String(kinds.slipway);
     const doctrine = doctrineWeights(config.mutation.doctrine);
     get('doctrineTargeting').value = String(doctrine.targeting);
     get('doctrineApproach').value = String(doctrine.approach);

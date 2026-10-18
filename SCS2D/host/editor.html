@@ -44,7 +44,21 @@
       #ship { width: 11rem; }
       a { color: #7fa8e0; }
       main { flex: 1; display: flex; min-height: 0; }
+      #stage { flex: 1; display: flex; position: relative; min-width: 0; min-height: 0; }
       #view { flex: 1; display: block; touch-action: none; cursor: crosshair; min-width: 0; }
+      /* Over the view's corner: what the view draws, not what the ship is. */
+      #overlays {
+        position: absolute;
+        left: 0.6rem;
+        bottom: 0.6rem;
+        display: flex;
+        gap: 0.4rem;
+        padding: 0.35rem;
+        background: #0b0f16cc;
+        border: 1px solid #1c2533;
+        border-radius: 6px;
+      }
+      #overlays button[aria-pressed='true'] { border-color: #7fa8e0; color: #e6edf5; }
       #panel {
         width: 22rem;
         max-width: 45vw;
@@ -160,7 +174,13 @@
       <a href="evolution.html">Evolution</a>
     </header>
     <main>
-      <canvas id="view"></canvas>
+      <div id="stage">
+        <canvas id="view"></canvas>
+        <div id="overlays" role="toolbar" aria-label="What the view shows">
+          <button id="showRefit" aria-pressed="true" title="Show what refitting to the design this was opened from would build and take down">Refit</button>
+          <button id="cycleArcs" title="Cycle the firing arcs drawn: none, where each gun may point, and where each will fire (A)">Arcs: trigger</button>
+        </div>
+      </div>
       <aside id="panel">
         <section id="inFleet" hidden>
           <h2 id="inFleetTitle">In a fleet</h2>
@@ -198,6 +218,7 @@
             <button data-add="claw" title="Jaws and a pump on the bow, to drink from wrecks and disarmed enemies">Claw</button>
             <button data-add="pad" title="A deck a friendly fighter lands on, to be filled from this ship's tanks">Pad</button>
             <button data-add="port" title="A coupling on the hull's side, to dock face to face with a friend's port and share fuel">Port</button>
+            <button data-add="slipway" title="A shipyard in the hull, building the ship it names bow first out of its face, from this ship's metal and charge">Slipway</button>
           </div>
         </section>
         <section id="assemblySelection" hidden>
@@ -411,7 +432,7 @@
           </div>
           <div class="field" id="dockedRow">
             <label for="propDocked" id="propDockedLabel">fighter</label>
-            <select id="propDocked" title="The fighter this pad tends: the one it sets out with, and the one it builds. Marked ✗ when too big to lie inside the pad."></select>
+            <select id="propDocked" title="What this pad or slipway builds. A pad tends a fighter, the one it sets out with and the one it builds, marked ✗ when too big to lie inside it. A slipway builds any other ship bow first out of its face, marked ✗ when wider than it."></select>
           </div>
           <div class="field" id="padDockedRow">
             <label for="propPadDocked">sets out docked</label>
@@ -428,7 +449,7 @@
               type="number"
               step="1"
               min="0"
-              title="How many of its fighter the pad keeps in the fight, counting the one it sets out with: short of that, it builds another from a core, paid for in this ship's metal and charge, one at a time. None by default."
+              title="How many of what it builds it keeps in the fight, counting a fighter a pad sets out with: short of that, it builds another, paid for in this ship's metal and charge, one at a time. None by default."
             />
           </div>
           <div class="field">

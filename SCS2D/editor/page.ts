@@ -22,6 +22,8 @@ import {
   readsFill,
   readsDocked,
   padHolds,
+  readsCraft,
+  slipwayHolds,
   blueprintProblem,
   compileDraft,
   canShape,
@@ -199,6 +201,8 @@ const DEFAULTS: Record<ModuleSpec['kind'], Omit<ModuleSpec, 'x' | 'y'>> = {
   pad: { kind: 'pad', length: 12, width: 10 },
   // Facing out of the hull it is bolted to, its face the side that mates.
   port: { kind: 'port', angle: 0, length: 1, width: 2 },
+  // Facing out of the hull, the ship it builds coming out of its face.
+  slipway: { kind: 'slipway', angle: 0, length: 4, width: 12 },
 };
 
 function el<T extends HTMLElement>(id: string): T {
@@ -319,6 +323,10 @@ export function startEditor(): void {
   let fitPending = true;
   // The editor is where a mount's arcs are being decided, so it shows them all.
   let arcs: Arcs = 'trigger';
+  let showRefit = true;
+  const refitButton = el<HTMLButtonElement>('showRefit');
+  const arcsButton = el<HTMLButtonElement>('cycleArcs');
+  const ARC_LABELS: Record<Arcs, string> = { none: 'Arcs: off', firing: 'Arcs: firing', trigger: 'Arcs: trigger' };
   /**
    * Refit to a different ship by easing the scale from the one before, so
    * switching between two ships shows which is bigger. The first fit, and F,
@@ -564,8 +572,8 @@ export function startEditor(): void {
         selected: doc.selectedLoose(),
         assemblies: doc.selectedAssemblies(),
         faulty: view.faulty,
-        refitBuilt: doc.refit?.built ?? [],
-        refitDown: doc.refit?.takenDown ?? [],
+        refitBuilt: showRefit ? (doc.refit?.built ?? []) : [],
+        refitDown: showRefit ? (doc.refit?.takenDown ?? []) : [],
         handles: currentHandles(),
         envelope,
         envelopeBearing: thrustBearing,
@@ -704,6 +712,7 @@ export function startEditor(): void {
     // A ship already built to the design as it was opened would be refitted to this one.
     const refit = doc.refit;
     el<HTMLElement>('refitSection').hidden = refit === null;
+    refitButton.disabled = refit === null;
     if (refit !== null) {
       el<HTMLElement>('refit').innerHTML =
         `<p>A ship built as it was opened, refitted to this: ${refit.built.length} built (green), ` +
@@ -959,11 +968,12 @@ export function startEditor(): void {
     el<HTMLElement>('sealingRow').hidden = !readsSealing(spec.kind);
     el<HTMLElement>('drainPriorityRow').hidden = !readsDrainPriority(spec.kind);
     el<HTMLElement>('fillRow').hidden = !readsFill(spec.kind);
-    el<HTMLElement>('dockedRow').hidden = !readsDocked(spec.kind);
-    if (readsDocked(spec.kind)) renderDocked(spec);
+    el<HTMLElement>('dockedRow').hidden = !readsCraft(spec.kind);
+    el<HTMLElement>('propDockedLabel').textContent = spec.kind === 'pad' ? 'fighter' : 'builds';
+    if (readsCraft(spec.kind)) renderDocked(spec);
     // Whether it sets out with one, and how many it keeps, mean nothing until it names one.
-    el<HTMLElement>('padDockedRow').hidden = !readsDocked(spec.kind) || spec.fighter === undefined;
-    el<HTMLElement>('keepRow').hidden = !readsDocked(spec.kind) || spec.fighter === undefined;
+    el<HTMLElement>('padDockedRow').hidden = !readsDocked(spec.kind) || spec.craft === undefined;
+    el<HTMLElement>('keepRow').hidden = !readsCraft(spec.kind) || spec.craft === undefined;
     padDockedInput.checked = spec.docked === true;
     // One no more than a deck across is as deep as it is wide either way.
     thickInput.disabled = !canThicken(spec) || doc.blueprint.fighter === true;
@@ -1321,25 +1331,29 @@ export function startEditor(): void {
   /** Which placement the properties panel is currently showing. */
   let shownSelection: ModulePath | null = null;
 
-  /** Compiled fighters by their layout, so a pad's list does not recompile the library on every repaint. */
-  const fighterCache = new Map<string, ShipDesign | null>();
-  const asFighter = (blueprint: Blueprint): ShipDesign | null => {
-    if (blueprint.fighter !== true) return null;
+  /** Compiled designs by their layout, so a pad's or slipway's list does not recompile the library on every repaint. */
+  const craftCache = new Map<string, ShipDesign | null>();
+  const compiledCraft = (blueprint: Blueprint): ShipDesign | null => {
     const key = JSON.stringify(blueprint);
-    const known = fighterCache.get(key);
+    const known = craftCache.get(key);
     if (known !== undefined) return known;
-    const compiled = blueprintProblem(blueprint) === null ? compileDraft(blueprint) : null;
-    const design = compiled !== null && compiled.fighter ? compiled : null;
-    fighterCache.set(key, design);
+    const design = blueprintProblem(blueprint) === null ? compileDraft(blueprint) : null;
+    craftCache.set(key, design);
     return design;
   };
+  /** What a module of `kind` could build of `blueprint`: a fighter for a pad, any other ship for a slipway. */
+  const asCraft = (blueprint: Blueprint, kind: ModuleKind): ShipDesign | null => {
+    if ((blueprint.fighter === true) !== (kind === 'pad')) return null;
+    const design = compiledCraft(blueprint);
+    return design !== null && design.fighter === (kind === 'pad') ? design : null;
+  };
 
-  /** Every fighter a pad could set out with: the library's, and any the hangar carries that it has not. */
-  const fighterChoices = (): Map<string, Blueprint> => {
+  /** Everything a pad or slipway of `kind` could build: the library's, and any the hangar carries that it has not. */
+  const craftChoices = (kind: ModuleKind): Map<string, Blueprint> => {
     const choices = new Map<string, Blueprint>();
-    // In a fleet, its own fighters first: what a pad names there is the fleet's.
+    // In a fleet, its own designs first: what a pad names there is the fleet's.
     for (const [name, blueprint] of Object.entries(inFleet?.fleet.designs ?? {})) {
-      if (name !== inFleet?.design && asFighter(blueprint) !== null) choices.set(name, blueprint);
+      if (name !== inFleet?.design && asCraft(blueprint, kind) !== null) choices.set(name, blueprint);
     }
     for (const entry of library.list()) {
       if (choices.has(entry.name)) continue;
@@ -1349,7 +1363,7 @@ export function startEditor(): void {
       } catch {
         continue;
       }
-      if (blueprint !== null && asFighter(blueprint) !== null) choices.set(entry.name, blueprint);
+      if (blueprint !== null && entry.name !== doc.blueprint.name && asCraft(blueprint, kind) !== null) choices.set(entry.name, blueprint);
     }
     for (const [name, blueprint] of Object.entries(doc.blueprint.hangar ?? {})) {
       if (!choices.has(name)) choices.set(name, blueprint);
@@ -1359,16 +1373,17 @@ export function startEditor(): void {
 
   const renderDocked = (spec: ModuleSpec): void => {
     const options = ['<option value="">none</option>'];
-    for (const [name, blueprint] of fighterChoices()) {
+    for (const [name, blueprint] of craftChoices(spec.kind)) {
       // The copy aboard is what flies, so it is what is measured for the pad it is on.
-      const flown = name === spec.fighter ? (doc.blueprint.hangar?.[name] ?? blueprint) : blueprint;
-      const design = asFighter(flown);
-      const fits = design !== null && padHolds(design, spec);
-      const chosen = name === spec.fighter ? ' selected' : '';
-      options.push(`<option value="${escapeHtml(name)}"${chosen}>${escapeHtml(name)}${fits ? '' : ' ✗ too big'}</option>`);
+      const flown = name === spec.craft ? (doc.blueprint.hangar?.[name] ?? blueprint) : blueprint;
+      const design = asCraft(flown, spec.kind);
+      const fits = design !== null && (spec.kind === 'pad' ? padHolds(design, spec) : slipwayHolds(design, spec));
+      const chosen = name === spec.craft ? ' selected' : '';
+      const why = spec.kind === 'pad' ? ' ✗ too big' : ' ✗ too wide';
+      options.push(`<option value="${escapeHtml(name)}"${chosen}>${escapeHtml(name)}${fits ? '' : why}</option>`);
     }
-    if (spec.fighter !== undefined && !options.some((o) => o.includes(' selected'))) {
-      options.push(`<option value="${escapeHtml(spec.fighter)}" selected>${escapeHtml(spec.fighter)} ✗ missing</option>`);
+    if (spec.craft !== undefined && !options.some((o) => o.includes(' selected'))) {
+      options.push(`<option value="${escapeHtml(spec.craft)}" selected>${escapeHtml(spec.craft)} ✗ missing</option>`);
     }
     dockedSelect.innerHTML = options.join('');
     el<HTMLElement>('propDockedLabel').classList.toggle('warn', dockedSelect.selectedOptions[0]?.textContent?.includes('✗') === true);
@@ -1541,7 +1556,8 @@ export function startEditor(): void {
     const path = doc.selection;
     if (path === null) return;
     const name = dockedSelect.value;
-    change(dockFighter(doc.blueprint, path, name === '' ? null : (fighterChoices().get(name) ?? null)));
+    const kind = (placementAt(doc.blueprint, path) as ModuleSpec | null)?.kind ?? 'pad';
+    change(dockFighter(doc.blueprint, path, name === '' ? null : (craftChoices(kind).get(name) ?? null)));
   });
 
   // Every copy of a shared part is swapped, as any other edit to it is.
@@ -2444,8 +2460,7 @@ export function startEditor(): void {
       fitPending = true;
       refresh();
     } else if (event.key.toLowerCase() === ARCS_KEY && !event.ctrlKey && !event.metaKey) {
-      arcs = nextArcs(arcs);
-      refresh();
+      cycleArcs();
     } else if (event.key === 'Delete' || event.key === 'Backspace') {
       if (doc.selection === null) return;
       event.preventDefault();
@@ -2454,6 +2469,18 @@ export function startEditor(): void {
       doc.select(null);
       refresh();
     }
+  });
+
+  const cycleArcs = (): void => {
+    arcs = nextArcs(arcs);
+    arcsButton.textContent = ARC_LABELS[arcs];
+    refresh();
+  };
+  arcsButton.addEventListener('click', cycleArcs);
+  refitButton.addEventListener('click', () => {
+    showRefit = !showRefit;
+    refitButton.setAttribute('aria-pressed', String(showRefit));
+    refresh();
   });
 
   // The canvas, not the window: the header rewrapping resizes it too.

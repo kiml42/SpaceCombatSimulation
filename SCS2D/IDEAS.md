@@ -23,12 +23,13 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - docking fighters struggle to keep up with an accelerating carrier, even when they have plenty of spare thrust they could be using. They should probably account for the carrier's current acceleration and aim to match it's changing speed (and assume it will maintain its acceleration)
 - Pads should hold the fighter that docks with them and move it to be centred and aligned (in any orthogonal direction in which it fits). This should be treated like each pad has a robot arm that can move the fighter into position (we might draw this arm later). This should let us realistically increase the speed at which a fighter can be captured, and it can be captured with very poor alignment because the (for now imaginary) arm will fix it.
   - Actually draw the robot arm in if it's not too hard, it would look cool, but that does require an actual IK chain for it, instead of just applying forces.
+- Robot arms on Slipways to make them hold the ship they're creating (just cosmetic to explain how it's staying put)
 
 ## Editor
 - Allow dragging copies (when a module or assembly is set to be repeated) to set the offset (might get complicated with more than 2, so might need to restrict to the second one)
 - Category input for ships - ships grouped by category when selecting them anywhere. (e.g. "Star Wars.Imperial", "Stock")
 - Make it clearer how the range is controlled in the core's doctrine
-- Add calibre multiplier to scale what the default maths gives (a turret's bore comes from its dome).
+- Add calibre multiplier to scale what the default maths gives (a turret's bore comes from its dome) (max. calibre should be about 1/3 of the available width, so the barrel fits on the hull/turret without looking silly (with multiple barrels, the sum of calibre can be a higher than this limit because thre doesn't need to be as much space left to thickness reinforcement)).
 - Thrust efficiency diagram overlaying the thrust diagram, to show which directions are efficient, as well as which are high thrust.
 - Option to select an opponent.
   - All the doctrine readouts show what they'd calculate against that opponent at 0 relative velocity.
@@ -36,6 +37,7 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
   - Weapons and weapon engines animate as if it was in a battle at that position.
 - When refitting a ship, add a button to animate the refit (not using robots, just show the old things being disassembled and the new parts being assembled)
   - Similar button for assembling from a pad or slipway.
+- Allow mounting on the front of engines and hull weapons in the space beside the nozzle/barrel if there is any
 
 
 ## Weapons

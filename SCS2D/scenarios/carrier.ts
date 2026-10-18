@@ -76,7 +76,7 @@ export const FACTORY: Blueprint = {
   name: 'Factory',
   modules: [
     ...TENDER.modules.slice(0, 2),
-    { kind: 'pad', x: 13, y: 0, length: 20, width: 20, fighter: DINKY.name, keep: 3 },
+    { kind: 'pad', x: 13, y: 0, length: 20, width: 20, craft: DINKY.name, keep: 3 },
     ...WORKSHOP.modules.slice(3),
   ],
   hangar: { [DINKY.name]: DINKY },

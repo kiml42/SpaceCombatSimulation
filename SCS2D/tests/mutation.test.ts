@@ -339,7 +339,7 @@ describe('mutation', () => {
     for (let i = 0; i < 400 && (added === 0 || refitted === 0); i++) {
       const child = mutate(held, rng, {
         structural: 1,
-        kinds: { engine: 0, structure: 0, tank: 0, turret: 0, beamTurret: 0, hullGun: 3, hullBeam: 1, core: 0, claw: 0, pad: 0, port: 0, hold: 0, battery: 0, generator: 0, robotBay: 0 },
+        kinds: { engine: 0, structure: 0, tank: 0, turret: 0, beamTurret: 0, hullGun: 3, hullBeam: 1, core: 0, claw: 0, pad: 0, port: 0, hold: 0, battery: 0, generator: 0, robotBay: 0, slipway: 0 },
       });
       held = child.blueprint;
       for (const edit of child.edits) {
@@ -360,7 +360,7 @@ describe('mutation', () => {
       ],
     };
     const rng = new Rng(33);
-    const only = { engine: 1, structure: 0, tank: 0, turret: 0, beamTurret: 0, hullGun: 0, hullBeam: 0, core: 0, claw: 0, pad: 0, port: 0, hold: 0, battery: 0, generator: 0, robotBay: 0 };
+    const only = { engine: 1, structure: 0, tank: 0, turret: 0, beamTurret: 0, hullGun: 0, hullBeam: 0, core: 0, claw: 0, pad: 0, port: 0, hold: 0, battery: 0, generator: 0, robotBay: 0, slipway: 0 };
     let seen = 0;
     for (let i = 0; i < 400 && seen < 3; i++) {
       // Only refits, so a child whose one edit is the refit says what it did.
@@ -462,7 +462,7 @@ describe('mutation', () => {
         structural: 1,
         // Refits weighted up, so a few hundred draws are sure to see some.
         build: { ...DEFAULT_BUILD_WEIGHTS, refit: 10 },
-        kinds: { engine: 1, structure: 0, tank: 0, turret: 0, beamTurret: 0, hullGun: 0, hullBeam: 0, core: 0, claw: 0, pad: 0, port: 0, hold: 0, battery: 0, generator: 0, robotBay: 0 },
+        kinds: { engine: 1, structure: 0, tank: 0, turret: 0, beamTurret: 0, hullGun: 0, hullBeam: 0, core: 0, claw: 0, pad: 0, port: 0, hold: 0, battery: 0, generator: 0, robotBay: 0, slipway: 0 },
       });
       held = child.blueprint;
       for (const edit of child.edits) {
@@ -625,7 +625,7 @@ describe('mutation', () => {
     let held: Blueprint = CORVETTE;
     for (let i = 0; i < 50; i++) {
       const child = mutate(held, rng, {
-        kinds: { engine: 0, structure: 0, tank: 0, turret: 0, beamTurret: 0, hullGun: 0, hullBeam: 0, core: 0, claw: 0, pad: 0, port: 0, hold: 0, battery: 0, generator: 0, robotBay: 0 },
+        kinds: { engine: 0, structure: 0, tank: 0, turret: 0, beamTurret: 0, hullGun: 0, hullBeam: 0, core: 0, claw: 0, pad: 0, port: 0, hold: 0, battery: 0, generator: 0, robotBay: 0, slipway: 0 },
       });
       expect(child.edits.length, `child ${i}`).toBeGreaterThan(0);
       expect(child.edits.some((edit) => /added to/.test(edit))).toBe(false);

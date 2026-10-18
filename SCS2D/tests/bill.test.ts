@@ -61,7 +61,7 @@ describe('a bill', () => {
       name: 'Carrier',
       modules: [
         { kind: 'core', x: 0, y: 0, length: 6, width: 6 },
-        { kind: 'pad', x: 13, y: 0, length: 20, width: 20, fighter: 'Dinky', docked: true },
+        { kind: 'pad', x: 13, y: 0, length: 20, width: 20, craft: 'Dinky', docked: true },
       ],
       hangar: { Dinky: DINKY },
     };
