@@ -1,0 +1,305 @@
+{
+  "formatVersion": 1,
+  "name": "Cories",
+  "designs": {
+    "A": {
+      "formatVersion": 2,
+      "name": "A",
+      "notes": "Somewhere for a run to start from: the one module that makes a hull a ship, and nothing else. It cannot move, cannot shoot and cannot turn, so everything it ever has is something selection paid for — which is the point, since a seed with an engine on it has already been told which way a ship is meant to go. Two metres square because that is four berths a side on the mutation grid: small enough to be nothing, big enough that there is somewhere to put the first thing it grows.",
+      "fighter": true,
+      "doctrine": {
+        "approach": {
+          "standoffRadii": 900,
+          "standoff": 1,
+          "ramRadii": 60,
+          "burnWeight": 1,
+          "tangentialMin": 10,
+          "tangentialMax": 60
+        }
+      },
+      "assemblies": {
+        "engine": {
+          "modules": [
+            {
+              "id": 6,
+              "kind": "engine",
+              "x": 0.025,
+              "y": 3.061616997868383e-18,
+              "angle": -90,
+              "length": 0.5,
+              "width": 0.2,
+              "reinforcement": 2,
+              "nozzle": 0.5
+            }
+          ]
+        },
+        "Side": {
+          "modules": [
+            {
+              "id": 7,
+              "use": "engine",
+              "x": 9.330000000000002,
+              "y": 1.5,
+              "angle": -180
+            },
+            {
+              "id": 8,
+              "use": "engine",
+              "x": -2.9749999999999996,
+              "y": 0.10000000000000003,
+              "angle": -180
+            },
+            {
+              "id": 9,
+              "kind": "engine",
+              "x": 0.3,
+              "y": 1.4499999999999997,
+              "angle": 180,
+              "length": 1.3,
+              "width": 0.9,
+              "reinforcement": 2,
+              "nozzle": 0.5
+            },
+            {
+              "id": 10,
+              "kind": "engine",
+              "x": 0.6420499728519332,
+              "y": 1.86996186091504,
+              "angle": 14.999999999999984,
+              "length": 1.45,
+              "width": 0.9,
+              "reinforcement": 2,
+              "nozzle": 0.5
+            },
+            {
+              "id": 11,
+              "use": "engine",
+              "x": 9.790000000000001,
+              "y": 1.5,
+              "angle": -180
+            },
+            {
+              "id": 12,
+              "use": "engine",
+              "x": 9.55,
+              "y": 1.5,
+              "angle": -180
+            },
+            {
+              "id": 13,
+              "use": "engine",
+              "x": -2.775,
+              "y": 0.09999999999999987,
+              "angle": -180
+            },
+            {
+              "id": 14,
+              "use": "engine",
+              "x": -2.575,
+              "y": 0.09999999999999987,
+              "angle": -180
+            },
+            {
+              "id": 15,
+              "kind": "tank",
+              "x": 1.669883061,
+              "y": 1.58630758,
+              "length": 1.093633502,
+              "width": 0.258922741,
+              "vertices": [
+                0.406984726,
+                -0.08630758,
+                0.27966405,
+                0.172615161,
+                -0.686648776,
+                -0.08630758
+              ]
+            },
+            {
+              "id": 16,
+              "kind": "structure",
+              "x": 10.599999999999998,
+              "y": 1.7999999999999998,
+              "length": 1.3,
+              "width": 0.6,
+              "reinforcement": 4
+            },
+            {
+              "id": 17,
+              "kind": "structure",
+              "x": 11.55,
+              "y": 1.65,
+              "length": 0.6,
+              "width": 2,
+              "reinforcement": 5
+            },
+            {
+              "id": 18,
+              "kind": "structure",
+              "x": 11.441666667,
+              "y": 0.535141991,
+              "length": 0.625,
+              "width": 0.344574027,
+              "vertices": [
+                0.408333333,
+                0.114858009,
+                -0.191666667,
+                0.114858009,
+                -0.216666667,
+                -0.229716018
+              ],
+              "reinforcement": 2
+            },
+            {
+              "id": 19,
+              "kind": "core",
+              "x": 7.6,
+              "y": 2.2,
+              "length": 3,
+              "width": 1.4
+            },
+            {
+              "id": 20,
+              "kind": "battery",
+              "x": 5.2,
+              "y": 1.95,
+              "length": 1.8,
+              "width": 0.9
+            }
+          ]
+        }
+      },
+      "modules": [
+        {
+          "id": 1,
+          "kind": "core",
+          "x": -1.6,
+          "y": 0,
+          "length": 2,
+          "width": 2
+        },
+        {
+          "id": 2,
+          "kind": "hullBeam",
+          "x": 4.175,
+          "y": 0,
+          "angle": 0,
+          "length": 9.55,
+          "width": 3,
+          "barrels": 1,
+          "traverse": 10,
+          "targeting": {
+            "fireRange": 500
+          }
+        },
+        {
+          "id": 3,
+          "use": "Side",
+          "x": -1.6,
+          "y": 0
+        },
+        {
+          "id": 4,
+          "use": "Side",
+          "x": -1.6,
+          "y": 0,
+          "mirror": true
+        },
+        {
+          "id": 5,
+          "kind": "generator",
+          "x": -3.35,
+          "y": 0,
+          "length": 1.5,
+          "width": 1.23973674
+        }
+      ]
+    },
+    "Factory": {
+      "formatVersion": 2,
+      "name": "Factory",
+      "notes": "Somewhere for a run to start from: the one module that makes a hull a ship, and nothing else. It cannot move, cannot shoot and cannot turn, so everything it ever has is something selection paid for — which is the point, since a seed with an engine on it has already been told which way a ship is meant to go. Two metres square because that is four berths a side on the mutation grid: small enough to be nothing, big enough that there is somewhere to put the first thing it grows.",
+      "assemblies": {
+        "assembly": {
+          "modules": [
+            {
+              "id": 4,
+              "kind": "pad",
+              "x": 0,
+              "y": 0,
+              "length": 22,
+              "width": 15,
+              "reinforcement": 3,
+              "craft": "A",
+              "docked": true,
+              "keep": 4
+            },
+            {
+              "id": 5,
+              "kind": "hold",
+              "x": -12,
+              "y": 4.25,
+              "length": 2,
+              "width": 6.5
+            },
+            {
+              "id": 6,
+              "kind": "robotBay",
+              "x": -7,
+              "y": 9.5,
+              "length": 4,
+              "width": 4
+            },
+            {
+              "id": 7,
+              "kind": "generator",
+              "x": -7.000000000000002,
+              "y": -9.499999999999998,
+              "angle": 180,
+              "length": 4,
+              "width": 4
+            },
+            {
+              "id": 8,
+              "kind": "tank",
+              "x": -12,
+              "y": 10.25,
+              "length": 6,
+              "width": 5.5
+            }
+          ]
+        }
+      },
+      "modules": [
+        {
+          "id": 1,
+          "kind": "core",
+          "x": 0,
+          "y": 0,
+          "length": 2,
+          "width": 2
+        },
+        {
+          "id": 2,
+          "use": "assembly",
+          "x": 12,
+          "y": 0
+        },
+        {
+          "id": 3,
+          "use": "assembly",
+          "x": -12,
+          "y": 0,
+          "angle": -180
+        }
+      ]
+    }
+  },
+  "ships": [
+    {
+      "design": "Factory",
+      "x": 0,
+      "y": 0
+    }
+  ]
+}
