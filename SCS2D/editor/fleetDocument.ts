@@ -41,6 +41,15 @@ export interface DesignLine {
   mass: number;
 }
 
+/** One of the designs a fleet carries, flown or not. */
+export interface RosterLine {
+  name: string;
+  /** Ships of it at the start: placed, or docked aboard one that is. */
+  start: number;
+  /** How many of it the placed ships' pads and slipways build and keep in the fight. */
+  keep: number;
+}
+
 export interface FleetView {
   /** Every ship the fleet puts on the field, groups flattened. */
   ships: readonly PlacedShip[];
@@ -62,6 +71,8 @@ export interface FleetView {
   /** What the fleet costs: the budget evolution holds it to. */
   bill: Bill;
   lines: readonly DesignLine[];
+  /** Every design the fleet carries, by name, including those nothing flies. */
+  roster: readonly RosterLine[];
 }
 
 /** The library copy of a design, or null. What an out-of-sync warning compares with. */
@@ -85,6 +96,7 @@ function derive(fleet: Fleet, lookup: LibraryLookup): FleetView {
       mass: 0,
       bill: NO_BILL,
       lines: [],
+      roster: roster(fleet, [], []),
     };
   }
   const ships = expandFleet(fleet);
@@ -155,7 +167,34 @@ function derive(fleet: Fleet, lookup: LibraryLookup): FleetView {
     mass,
     bill,
     lines,
+    roster: roster(fleet, ships, designs),
   };
+}
+
+function roster(
+  fleet: Fleet,
+  ships: readonly PlacedShip[],
+  designs: readonly (ShipDesign | null | undefined)[],
+): RosterLine[] {
+  const lines = new Map<string, RosterLine>();
+  for (const name of Object.keys(fleet.designs).sort((a, b) => a.localeCompare(b))) {
+    lines.set(name, { name, start: 0, keep: 0 });
+  }
+  ships.forEach((ship, i) => {
+    const line = lines.get(ship.design);
+    if (line !== undefined) line.start++;
+    const design = designs[i];
+    if (design === null || design === undefined) return;
+    for (const docked of design.aboard ?? []) {
+      const fighter = lines.get(docked.design.name);
+      if (fighter !== undefined) fighter.start++;
+    }
+    for (const order of [...(design.builds ?? []), ...(design.yards ?? [])]) {
+      const built = lines.get(order.design.name);
+      if (built !== undefined) built.keep += order.keep;
+    }
+  });
+  return [...lines.values()];
 }
 
 /** The pose of one drawn copy of an entry, and the frame it is written in. */

@@ -120,7 +120,9 @@ export function startFleetEditor(): void {
   const fleetList = el<HTMLSelectElement>('fleet');
   const fleetName = el<HTMLInputElement>('fleetName');
   const fleetNotes = el<HTMLTextAreaElement>('fleetNotes');
-  const addDesign = el<HTMLSelectElement>('addDesign');
+  const addShipButton = el<HTMLButtonElement>('addShip');
+  const addMenu = el<HTMLElement>('addMenu');
+  const designList = el<HTMLTableElement>('designList');
   const selection = el<HTMLElement>('selection');
   const selectionTitle = el<HTMLElement>('selectionTitle');
   const single = el<HTMLElement>('single');
@@ -234,14 +236,8 @@ export function startFleetEditor(): void {
       );
     }
     deleteFleetButton.disabled = !fleets.savedNames().includes(name);
-    const keep = addDesign.value;
-    // The player's own ships first: they are the ones most often wanted.
     const all = ships.list();
     const saved = all.filter((entry) => !entry.stock);
-    addDesign.innerHTML =
-      (saved.length > 0 ? `<optgroup label="Saved">${options(saved, null)}</optgroup>` : '') +
-      `<optgroup label="Stock">${options(all.filter((entry) => entry.stock), null)}</optgroup>`;
-    if (keep !== '') addDesign.value = keep;
     // What a ship can become: the fleet's own copies first, then any other in the library.
     const carried = Object.keys(doc.fleet.designs).sort((a, b) => a.localeCompare(b));
     const others = (entries: readonly LibraryEntry[]): LibraryEntry[] =>
@@ -253,6 +249,23 @@ export function startFleetEditor(): void {
       `</optgroup>` +
       (savedOthers.length > 0 ? `<optgroup label="Saved">${options(savedOthers, null)}</optgroup>` : '') +
       `<optgroup label="Stock">${options(others(all.filter((entry) => entry.stock)), null)}</optgroup>`;
+  };
+
+  const renderDesigns = (): void => {
+    const roster = doc.view.roster;
+    designList.innerHTML =
+      roster.length === 0
+        ? '<tr><td class="none">None yet.</td></tr>'
+        : roster
+            .map(
+              (line) =>
+                `<tr><th>${escapeHtml(line.name)}</th>` +
+                `<td title="Ships of it at the start, and how many of it the fleet's pads and slipways build and keep in the fight">` +
+                `${line.start} at start${line.keep > 0 ? `, keeps ${line.keep}` : ''}</td>` +
+                `<td><a href="editor.html" data-design="${escapeHtml(line.name)}" ` +
+                `title="Open this design in the ship editor, and come back to the fleet with it changed">Edit</a></td></tr>`,
+            )
+            .join('');
   };
 
   const renderStats = (): void => {
@@ -418,6 +431,7 @@ export function startFleetEditor(): void {
     undoButton.disabled = !doc.canUndo;
     redoButton.disabled = !doc.canRedo;
     renderLibraries();
+    renderDesigns();
     renderStats();
     renderProblems();
     renderSelection();
@@ -444,9 +458,37 @@ export function startFleetEditor(): void {
       return null;
     }
   };
-  el<HTMLButtonElement>('addShip').addEventListener('click', () => {
-    const blueprint = fromLibrary(addDesign.value);
+  const showAddMenu = (open: boolean): void => {
+    addMenu.hidden = !open;
+    addShipButton.setAttribute('aria-expanded', String(open));
+    if (!open) return;
+    // The fleet's own designs first, flown or not, then the player's ships, then stock.
+    const item = (value: string, label: string): string =>
+      `<button role="menuitem" data-add="${escapeHtml(value)}">${escapeHtml(label)}</button>`;
+    const group = (title: string, items: string[]): string =>
+      items.length === 0 ? '' : `<h3>${title}</h3>${items.join('')}`;
+    const all = ships.list();
+    addMenu.innerHTML =
+      group('In this fleet', doc.view.roster.map((line) => item(CARRIED + line.name, line.name))) +
+      group('Saved', all.filter((entry) => !entry.stock).map((entry) => item(optionValue(entry), entry.name))) +
+      group(
+        'Stock',
+        all.filter((entry) => entry.stock).map((entry) => item(optionValue(entry), entry.name + (entry.saved ? ' (stock)' : ''))),
+      );
+    addMenu.querySelector<HTMLButtonElement>('button')?.focus();
+  };
+  addShipButton.addEventListener('click', () => showAddMenu(addMenu.hasAttribute('hidden')));
+  addMenu.addEventListener('click', (event) => {
+    const value = (event.target as HTMLElement).closest<HTMLButtonElement>('button[data-add]')?.dataset['add'];
+    if (value === undefined) return;
+    showAddMenu(false);
+    const blueprint = value.startsWith(CARRIED)
+      ? (doc.fleet.designs[value.slice(CARRIED.length)] ?? null)
+      : fromLibrary(value);
     if (blueprint !== null) place(blueprint);
+  });
+  document.addEventListener('pointerdown', (event) => {
+    if (!addMenu.hidden && !(event.target as HTMLElement).closest('#addMenu, #addShip')) showAddMenu(false);
   });
   entryDesign.addEventListener('change', () => {
     const path = doc.selection[0];
@@ -868,6 +910,9 @@ export function startFleetEditor(): void {
     } else if (event.key === 'Delete' || event.key === 'Backspace') {
       event.preventDefault();
       deleteSelected();
+    } else if (event.key === 'Escape' && !addMenu.hidden) {
+      showAddMenu(false);
+      addShipButton.focus();
     } else if (event.key === 'Escape') {
       doc.select([]);
       refresh();
@@ -911,6 +956,18 @@ export function startFleetEditor(): void {
     });
   });
 
+  // Any design the fleet carries, flown or not: a fighter only a pad builds is edited here.
+  designList.addEventListener('click', (event) => {
+    const link = (event.target as HTMLElement).closest<HTMLAnchorElement>('a[data-design]');
+    if (link === null) return;
+    keep();
+    link.href = designHref({
+      fleet: doc.fleet,
+      design: link.dataset['design']!,
+      ...(skirmish === null ? {} : { skirmish: { ...skirmish, player: doc.fleet } }),
+    });
+  });
+
   // The fleet as it stands, saved or not, goes with the link.
   el<HTMLAnchorElement>('battleLink').addEventListener('click', (event) => {
     if (refuseFaulty(event)) return;
@@ -918,7 +975,7 @@ export function startFleetEditor(): void {
   });
 
   el<HTMLElement>('hint').textContent =
-    'Add ships from the library; click to select, Shift-click for several, drag to move, drag the knob to turn. ' +
+    'Add ships with Add ship; click to select, Shift-click for several, drag to move, drag the knob to turn. ' +
     `Moves snap to a tenth of the grid and facings to ${ANGLE_SNAP_DEGREES}° — hold Alt to escape. ` +
     'Drag empty space to pan, scroll to zoom, F to fit, A to cycle the arcs drawn, Delete to remove, Ctrl+Z to undo.';
 
