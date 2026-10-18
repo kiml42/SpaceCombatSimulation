@@ -72,7 +72,7 @@ export const DEFAULT_RUN: RunConfig = {
   winners: 4,
   group: 4,
   minMatches: 3,
-  generations: 10,
+  generations: 200,
   budget: NO_BUDGET,
   mutation: {},
   fleet: {},
