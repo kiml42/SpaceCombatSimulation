@@ -44,7 +44,21 @@
       #ship { width: 11rem; }
       a { color: #7fa8e0; }
       main { flex: 1; display: flex; min-height: 0; }
+      #stage { flex: 1; display: flex; position: relative; min-width: 0; min-height: 0; }
       #view { flex: 1; display: block; touch-action: none; cursor: crosshair; min-width: 0; }
+      /* Over the view's corner: what the view draws, not what the ship is. */
+      #overlays {
+        position: absolute;
+        left: 0.6rem;
+        bottom: 0.6rem;
+        display: flex;
+        gap: 0.4rem;
+        padding: 0.35rem;
+        background: #0b0f16cc;
+        border: 1px solid #1c2533;
+        border-radius: 6px;
+      }
+      #overlays button[aria-pressed='true'] { border-color: #7fa8e0; color: #e6edf5; }
       #panel {
         width: 22rem;
         max-width: 45vw;
@@ -160,7 +174,13 @@
       <a href="evolution.html">Evolution</a>
     </header>
     <main>
-      <canvas id="view"></canvas>
+      <div id="stage">
+        <canvas id="view"></canvas>
+        <div id="overlays" role="toolbar" aria-label="What the view shows">
+          <button id="showRefit" aria-pressed="true" title="Show what refitting to the design this was opened from would build and take down">Refit</button>
+          <button id="cycleArcs" title="Cycle the firing arcs drawn: none, where each gun may point, and where each will fire (A)">Arcs: trigger</button>
+        </div>
+      </div>
       <aside id="panel">
         <section id="inFleet" hidden>
           <h2 id="inFleetTitle">In a fleet</h2>

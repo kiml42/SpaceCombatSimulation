@@ -319,6 +319,10 @@ export function startEditor(): void {
   let fitPending = true;
   // The editor is where a mount's arcs are being decided, so it shows them all.
   let arcs: Arcs = 'trigger';
+  let showRefit = true;
+  const refitButton = el<HTMLButtonElement>('showRefit');
+  const arcsButton = el<HTMLButtonElement>('cycleArcs');
+  const ARC_LABELS: Record<Arcs, string> = { none: 'Arcs: off', firing: 'Arcs: firing', trigger: 'Arcs: trigger' };
   /**
    * Refit to a different ship by easing the scale from the one before, so
    * switching between two ships shows which is bigger. The first fit, and F,
@@ -564,8 +568,8 @@ export function startEditor(): void {
         selected: doc.selectedLoose(),
         assemblies: doc.selectedAssemblies(),
         faulty: view.faulty,
-        refitBuilt: doc.refit?.built ?? [],
-        refitDown: doc.refit?.takenDown ?? [],
+        refitBuilt: showRefit ? (doc.refit?.built ?? []) : [],
+        refitDown: showRefit ? (doc.refit?.takenDown ?? []) : [],
         handles: currentHandles(),
         envelope,
         envelopeBearing: thrustBearing,
@@ -704,6 +708,7 @@ export function startEditor(): void {
     // A ship already built to the design as it was opened would be refitted to this one.
     const refit = doc.refit;
     el<HTMLElement>('refitSection').hidden = refit === null;
+    refitButton.disabled = refit === null;
     if (refit !== null) {
       el<HTMLElement>('refit').innerHTML =
         `<p>A ship built as it was opened, refitted to this: ${refit.built.length} built (green), ` +
@@ -2444,8 +2449,7 @@ export function startEditor(): void {
       fitPending = true;
       refresh();
     } else if (event.key.toLowerCase() === ARCS_KEY && !event.ctrlKey && !event.metaKey) {
-      arcs = nextArcs(arcs);
-      refresh();
+      cycleArcs();
     } else if (event.key === 'Delete' || event.key === 'Backspace') {
       if (doc.selection === null) return;
       event.preventDefault();
@@ -2454,6 +2458,18 @@ export function startEditor(): void {
       doc.select(null);
       refresh();
     }
+  });
+
+  const cycleArcs = (): void => {
+    arcs = nextArcs(arcs);
+    arcsButton.textContent = ARC_LABELS[arcs];
+    refresh();
+  };
+  arcsButton.addEventListener('click', cycleArcs);
+  refitButton.addEventListener('click', () => {
+    showRefit = !showRefit;
+    refitButton.setAttribute('aria-pressed', String(showRefit));
+    refresh();
   });
 
   // The canvas, not the window: the header rewrapping resizes it too.
