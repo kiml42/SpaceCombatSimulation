@@ -1418,11 +1418,14 @@ function drawName(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
   if (ship.serial <= 0 || ship.team < 0 || !ship.hasControl) return;
   const cores = ship.design.cores;
   const name = `${teamName(ship.team)} ${ship.name ?? ship.serial}`;
+  // Only its own: a hull shared with another ship carries the other's cores too.
+  let own = 0;
+  for (let k = 0; k < cores.length; k++) if ((ship.coreNumbers?.[k] ?? 0) >= 0) own++;
   for (let k = 0; k < cores.length; k++) {
     const core = cores[k]!;
-    if (!((ship.integrity[core] ?? 1) > 0)) continue;
     const number = ship.coreNumbers?.[k] ?? 0;
-    drawLabel(ctx, ship, core, cores.length > 1 && number > 0 ? `${name}.${number}` : name, metresToPx);
+    if (number < 0 || !((ship.integrity[core] ?? 1) > 0)) continue;
+    drawLabel(ctx, ship, core, own > 1 && number > 0 ? `${name}.${number}` : name, metresToPx);
   }
 }
 

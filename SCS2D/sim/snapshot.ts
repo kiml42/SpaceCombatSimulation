@@ -44,7 +44,10 @@ export interface ShipView {
   serial: number;
   /** Which ship it is after its side's name, as "1" or "1.2" (`Ships.nameOf`); absent for its serial. */
   name?: string;
-  /** Which core of the design it set out as each of its cores is, from one, in its design's core order. Optional. */
+  /**
+   * Which core of the design it set out as each of its cores is, from one, in
+   * its design's core order; -1 for one another ship on its hull works. Optional.
+   */
   coreNumbers?: number[];
   /** The body of what it is fighting, or -1 or absent for nothing. */
   fighting?: number;

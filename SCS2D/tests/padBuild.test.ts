@@ -226,3 +226,23 @@ describe('a fighter on a pad, its engines lit', () => {
     expect(run.ships.damage.absorbedAt(b, pad)).toBe(before);
   });
 });
+
+describe('ships sharing a hull', () => {
+  it('number only their own cores, so each writes its name on its own', () => {
+    // Set out docked, so both cores are whole from the start.
+    const run = battle(factoryOf(1, true));
+    run.step();
+    const [f] = fighters(run);
+    expect(run.ships.body(f!)).toEqual(run.ships.body(run.c));
+    for (const [i, other] of [[run.c, f!], [f!, run.c]] as const) {
+      const numbers: number[] = [];
+      run.ships.coreNumbers(i, numbers);
+      const cores = run.ships.design(i).cores;
+      // Every core is one ship's: this one numbers its own and marks the other's.
+      for (let k = 0; k < cores.length; k++) {
+        expect(numbers[k]! < 0, `ship ${i}, core ${cores[k]}`).toBe(run.ships.pilotAt(run.world.bodies.indexOf(run.ships.body(i)), cores[k]!) === other);
+      }
+      expect(numbers.filter((n) => n >= 0).length).toBe(1);
+    }
+  });
+});
