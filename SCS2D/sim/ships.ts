@@ -5239,6 +5239,8 @@ export class Ships {
       return this.refitting[i] === 1 && hull !== null && hull !== undefined && originOf(hull, m).design !== this.launched[i];
     }
     if (owner < 0 || this.alive[owner] === 0 || this.derelict[owner] === 1) return true;
+    // Being built on a pad or slipway, it has no working core or robots yet, and is not wreckage for that.
+    if (this.unfinished[owner] === 1) return false;
     return !this.hasControl(owner) && !this.hasRobots(b, owner);
   }
 
