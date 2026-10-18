@@ -109,6 +109,31 @@ describe('a slipway', () => {
     expect(built(run)).toEqual([s]);
   });
 
+  it('pushes a ship it lets go off, and the ship lights its engines only once they would miss its builder', () => {
+    const run = battle(yardOf());
+    let s = -1;
+    runFor(run, 400, () => {
+      s = built(run)[0] ?? -1;
+      return s >= 0 && run.ships.body(s) !== run.ships.body(run.y);
+    });
+    expect(s).toBeGreaterThanOrEqual(0);
+    const bodies = run.world.bodies;
+    const at = (i: number): number => bodies.indexOf(run.ships.body(i));
+    const apart = (): number => Math.hypot(bodies.x[at(s)]! - bodies.x[at(run.y)]!, bodies.y[at(s)]! - bodies.y[at(run.y)]!);
+    const parted = apart();
+    let firstLit = -1;
+    runFor(run, 30, () => {
+      if (run.ships.design(s).engines.some((_, t) => run.ships.throttleOf(s, t) > 0)) firstLit = apart();
+      return firstLit >= 0;
+    });
+    // Drifted clear on the push before it lit up, and never put its flame on the yard.
+    expect(firstLit).toBeGreaterThan(parted + 10);
+    const yard = at(run.y);
+    let burnt = 0;
+    for (let m = 0; m < run.ships.design(run.y).modules.length; m++) burnt += run.ships.damage.absorbedAt(yard, m);
+    expect(burnt).toBe(0);
+  });
+
   it('waits while something is in the way of the ship it pushes out', () => {
     const footprint = footprintOf(compileBlueprint(SCAVENGER));
     const run = battle(yardOf(), ({ ships, world }) => {

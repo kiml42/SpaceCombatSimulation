@@ -932,6 +932,9 @@ Deliberately unresolved; decide when they block something.
   of a magazine cut off from its hold — or of rounds stored in a gun that is severed from the ship.
 - How a slipway chooses between several designs, once a mothership has a menu rather than one design and a
   count (§8 step 12): a doctrine blob, so async PvP competes on it, or a player-driven queue.
+- Whether every ship should hold off an engine whose flame would play on a friend, not only a ship just off
+  a slipway on its builder (`Ships.wouldBurn`). It wants a cast for every engine's plume every step, and
+  thrust allocated without the engines held off, so it moves every battle; worth it once fleets fly close.
 - Concrete values, now that the units are settled: budgets, engagement ranges, timestep, the weld
   dials (`WELD_SPEED`, `RAGGED_INTEGRITY`, `WELD_SETTLE`, `HOOK_SHARE`), the claw's (its speed band, `CLAW_GRIP_CHANCE`,
   `CLAW_BITE`, `CLAW_PUMP_PER_METRE`, `DOCK_HOLD`), edit-distance bounds, muzzle velocities, armour densities, and how hard a plume

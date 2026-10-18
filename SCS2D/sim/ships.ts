@@ -94,6 +94,8 @@ import {
   FUEL_DENSITY,
   PAD_REPAIR_PER_METRE,
   SLIPWAY_BUILD_PER_METRE,
+  SLIPWAY_CLEAR_TIME,
+  SLIPWAY_PUSH,
   ROBOT_BUILD_TIME,
   berthRate,
   ROBOT_CHARGE,
@@ -1017,6 +1019,10 @@ export class Ships {
   private readonly yards: (Yard | null)[] = [];
   /** Whether each ship is still going up on a slipway, its walls not yet all built. */
   private readonly printing: number[] = [];
+  /** The ship that built each ship on a slipway, while the ship is still clearing it; -1 for none. */
+  private readonly clearing: number[] = [];
+  /** The tick each such ship was let go. */
+  private readonly clearingSince: number[] = [];
   /** Scratch for a module's outline, measured against a slipway's face. */
   private readonly faceCorners: number[] = [];
   /** The tick each carrier last put work into a fighter it is building; -1 for never. */
@@ -1548,6 +1554,8 @@ export class Ships {
     this.unfinished.push(0);
     this.yards.push(yardFor(design));
     this.printing.push(0);
+    this.clearing.push(-1);
+    this.clearingSince.push(0);
     this.builtAt.push(-1);
     this.refitting.push(0);
     this.dockPort.push(-1);
@@ -3097,6 +3105,18 @@ export class Ships {
       return;
     }
 
+    // Just off a slipway, drifting clear: its engines stay off while they would burn its builder.
+    const builder = this.clearing[i]!;
+    if (builder >= 0) {
+      const bb = this.alive[builder] === 1 ? bodies.indexOf(this.bodyIds[builder]!) : -1;
+      const waited = (this.now - this.clearingSince[i]!) * dt;
+      if (bb >= 0 && grid !== undefined && waited < SLIPWAY_CLEAR_TIME && this.wouldBurn(bodies, grid, i, bb)) {
+        this.idle(i);
+        return;
+      }
+      this.clearing[i] = -1;
+    }
+
     // No order at all is the same problem as an order with no target: hold
     // what you are doing and wait to be told something.
     const order = this.effectiveOrder(i);
@@ -4468,6 +4488,14 @@ export class Ships {
           }
         }
         // Done: the dock lets go, which `sever` reads as the seam cut through.
+        if (seam.dock === 'slipway') {
+          // What it built holds its engines until it is clear (`pushOff`).
+          const built = this.pilotAt(b, seam.b);
+          if (built >= 0) {
+            this.clearing[built] = this.pilotAt(b, seam.a);
+            this.clearingSince[built] = world.tick;
+          }
+        }
         const k = jointBetween(design, seam.a, seam.b);
         this.damage.cutWeld(b, k, seam.width);
         released++;
@@ -7725,8 +7753,9 @@ export class Ships {
     const slipway = at[order.slipway]!;
     if (slipway < 0 || !this.ownsAt(i, b, slipway)) return;
     let f = yard.building[k]!;
-    // Gone, or let go: the slipway is free for the next.
+    // Gone, or let go: the slipway is free for the next, and one let go is pushed off.
     if (f >= 0 && (this.alive[f] === 0 || bodies.indexOf(this.bodyIds[f]!) !== b)) {
+      if (this.alive[f] === 1) this.pushOff(bodies, i, b, f, slipway);
       yard.building[k] = -1;
       this.printing[f] = 0;
       f = -1;
@@ -7860,6 +7889,49 @@ export class Ships {
     this.settleMass(bodies, b);
     this.discardFrom(bodies, b, mass, inertia);
     return true;
+  }
+
+  /**
+   * Push ship `f`, just let go by slipway `slipway` of builder `i`'s body `b`,
+   * off along the slipway's facing at `SLIPWAY_PUSH` relative to its builder,
+   * each moving as its share of the mass says, as a stage separates. Its
+   * engines stay off, from when it is let go, until they would not burn the
+   * ship that built it (`flyOne`).
+   */
+  private pushOff(bodies: Bodies, i: number, b: number, f: number, slipway: number): void {
+    const fb = bodies.indexOf(this.bodyIds[f]!);
+    if (fb < 0) return;
+    const angle = bodies.angle[b]! + (this.designs[i]!.modules[slipway]!.spec.angle ?? 0);
+    const dx = cos(angle);
+    const dy = sin(angle);
+    const mb = bodies.mass[b]!;
+    const mf = bodies.mass[fb]!;
+    const impulse = (SLIPWAY_PUSH * mb * mf) / (mb + mf);
+    bodies.vx[fb] = bodies.vx[fb]! + (impulse / mf) * dx;
+    bodies.vy[fb] = bodies.vy[fb]! + (impulse / mf) * dy;
+    bodies.vx[b] = bodies.vx[b]! - (impulse / mb) * dx;
+    bodies.vy[b] = bodies.vy[b]! - (impulse / mb) * dy;
+  }
+
+  /** Whether any of ship `i`'s engines, at full throttle, would play on body `target`. */
+  private wouldBurn(bodies: Bodies, grid: SpatialGrid, i: number, target: number): boolean {
+    const design = this.designs[i]!;
+    const b = bodies.indexOf(this.bodyIds[i]!);
+    if (b < 0) return false;
+    for (let t = 0; t < design.engines.length; t++) {
+      const force = this.exhaustOf(i, design, b, t);
+      if (!(force > 0)) continue;
+      const engine = design.modules[design.engines[t]?.module ?? -1];
+      const rays = engine === undefined ? 0 : plumeRays(engineGeometry(engine.spec));
+      const layers = plumeLayers(design, t, this.layersOf(b));
+      for (let layer = HULL_LAYER; layer <= WEAPONS_LAYER; layer <<= 1) {
+        if ((layers & layer) === 0) continue;
+        for (let ray = 0; ray < rays; ray++) {
+          if (this.plumes.cast(design, t, ray, force, bodies, b, grid, this.hulls, layer) && this.plumes.body === target) return true;
+        }
+      }
+    }
+    return false;
   }
 
   /**
