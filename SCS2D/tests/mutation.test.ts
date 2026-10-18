@@ -500,9 +500,9 @@ describe('mutation', () => {
   });
 
   it('grows a module into its neighbour by pushing the neighbour along', () => {
-    // A hull with a block against each end, so neither length face can grow
-    // without moving something: every accepted length change must have moved
-    // the block alongside.
+    // A hull with a block against every face, so none is free and no length
+    // face can grow without moving something: every accepted length change
+    // must have moved the block alongside.
     const packed = parseBlueprint({
       formatVersion: 1,
       name: 'Packed',
@@ -510,6 +510,8 @@ describe('mutation', () => {
         { kind: 'core', x: 0, y: 0, length: 4, width: 2 },
         { kind: 'structure', x: 3, y: 0, length: 2, width: 2 },
         { kind: 'structure', x: -3, y: 0, length: 2, width: 2 },
+        { kind: 'structure', x: 0, y: 2, length: 4, width: 2 },
+        { kind: 'structure', x: 0, y: -2, length: 4, width: 2 },
       ],
     });
     // Every doctrine field is somewhere else a numeric edit can land, so this
@@ -524,6 +526,60 @@ describe('mutation', () => {
       }
     }
     expect(pushed).toBeGreaterThan(0);
+  });
+
+  it('moves a face nothing is welded to, and squares a sliver up far more often than not', () => {
+    // A turret a quarter as deep as it is wide, against the core's bow.
+    const sliver = parseBlueprint({
+      formatVersion: 1,
+      name: 'Sliver',
+      modules: [
+        { kind: 'core', x: 0, y: 0, length: 4, width: 2 },
+        { kind: 'turret', x: 2.25, y: 0, length: 0.5, width: 2 },
+      ],
+    });
+    const rng = new Rng(11);
+    let grew = 0;
+    let shrank = 0;
+    for (let i = 0; i < 1000; i++) {
+      const child = mutate(sliver, rng, { structural: 0, geometry: 1 });
+      for (const edit of child.edits) {
+        const m = /layout\[1\] turret: length ([\d.]+) → ([\d.]+)(.*)/.exec(edit);
+        if (m === null) continue;
+        // The free face moved, so the core it is welded to is never pushed.
+        expect(m[3]).toBe('');
+        if (Number(m[2]) > Number(m[1])) grew++;
+        else shrank++;
+      }
+    }
+    // Seven to one, from a quarter of square.
+    expect(grew).toBeGreaterThan(20);
+    expect(shrank).toBeLessThan(grew / 3);
+  });
+
+  it('grows and shrinks a square module about as often', () => {
+    const square = parseBlueprint({
+      formatVersion: 1,
+      name: 'Square',
+      modules: [
+        { kind: 'core', x: 0, y: 0, length: 2, width: 2 },
+        { kind: 'structure', x: 2, y: 0, length: 2, width: 2 },
+      ],
+    });
+    const rng = new Rng(5);
+    let grew = 0;
+    let shrank = 0;
+    for (let i = 0; i < 600; i++) {
+      for (const edit of mutate(square, rng, { structural: 0, geometry: 1 }).edits) {
+        const m = /layout\[1\] structure: (?:length|width) ([\d.]+) → ([\d.]+)/.exec(edit);
+        if (m === null) continue;
+        if (Number(m[2]) > Number(m[1])) grew++;
+        else shrank++;
+      }
+    }
+    expect(grew + shrank).toBeGreaterThan(40);
+    expect(grew / (grew + shrank)).toBeGreaterThan(0.3);
+    expect(grew / (grew + shrank)).toBeLessThan(0.7);
   });
 
   it('stops a slide against the module it would run into', () => {

@@ -34,6 +34,8 @@ export interface MutationField {
 export const MUTATION_FIELDS: readonly MutationField[] = [
   { name: 'structural', group: 'build', label: 'structural chance', step: 0.05, max: 1, value: DEFAULT_LIMITS.structural,
     title: 'Chance each generation of also adding, removing or copying a module, regrouping modules into parts, or lengthening or shortening a repeated row. 0 keeps the ship\'s structure as it is.' },
+  { name: 'geometry', group: 'build', label: 'geometry chance', step: 0.05, max: 1, value: DEFAULT_LIMITS.geometry,
+    title: 'Chance each module has its geometry changed when its design is mutated: a face or a seam moved, a slide, or a turn, chosen by the move and resize odds below. 0 leaves every module where and as big as it is.' },
   { name: 'buildMove', group: 'build', label: 'move', step: 0.5, value: DEFAULT_BUILD_WEIGHTS.move,
     title: 'How far a module or part slides or turns when its geometry changes, how often one turns a quarter about a corner, and how often a part is mirrored. 0 leaves where everything is as it is.' },
   { name: 'buildResize', group: 'build', label: 'resize', step: 0.5, value: DEFAULT_BUILD_WEIGHTS.resize,
@@ -111,7 +113,7 @@ export const MUTATION_DEFAULTS: Readonly<Record<string, number>> = Object.fromEn
 
 /** What the numbers make: how a ship is mutated, and the odds of each change to a fleet. */
 export interface Breeding {
-  readonly ship: Pick<MutationLimits, 'structural' | 'build' | 'kinds' | 'doctrine'>;
+  readonly ship: Pick<MutationLimits, 'structural' | 'geometry' | 'build' | 'kinds' | 'doctrine'>;
   readonly operators: Readonly<Record<FleetOperator, number>>;
 }
 
@@ -131,9 +133,14 @@ export function breeding(value: (name: string) => number | undefined): Breeding 
   const operators: Record<string, number> = {};
   const doctrine: Record<string, number> = {};
   let structural = DEFAULT_LIMITS.structural;
+  let geometry = DEFAULT_LIMITS.geometry;
   for (const field of MUTATION_FIELDS) {
     if (field.name === 'structural') {
       structural = read(field);
+      continue;
+    }
+    if (field.name === 'geometry') {
+      geometry = read(field);
       continue;
     }
     const into = field.group === 'build' ? build : field.group === 'kinds' ? kinds : field.group === 'fleet' ? operators : doctrine;
@@ -144,6 +151,7 @@ export function breeding(value: (name: string) => number | undefined): Breeding 
   return {
     ship: {
       structural,
+      geometry,
       build: build as unknown as BuildWeights,
       kinds: kinds as unknown as KindWeights,
       doctrine: doctrine as unknown as DoctrineWeights,

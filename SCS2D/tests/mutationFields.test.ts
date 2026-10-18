@@ -8,6 +8,7 @@ describe('the mutation settings a page offers', () => {
     const made = breeding(() => undefined);
     expect(made.ship).toEqual({
       structural: DEFAULT_LIMITS.structural,
+      geometry: DEFAULT_LIMITS.geometry,
       build: DEFAULT_BUILD_WEIGHTS,
       kinds: DEFAULT_KINDS,
       doctrine: DEFAULT_DOCTRINE_WEIGHTS,
@@ -18,7 +19,8 @@ describe('the mutation settings a page offers', () => {
   it('cover every number the defaults have, each once', () => {
     const names = MUTATION_FIELDS.map((f) => f.name);
     expect(new Set(names).size).toBe(names.length);
-    const count = 1 + [DEFAULT_BUILD_WEIGHTS, DEFAULT_KINDS, DEFAULT_DOCTRINE_WEIGHTS, DEFAULT_FLEET_LIMITS.operators]
+    // The structural and geometry chances, and the weights.
+    const count = 2 + [DEFAULT_BUILD_WEIGHTS, DEFAULT_KINDS, DEFAULT_DOCTRINE_WEIGHTS, DEFAULT_FLEET_LIMITS.operators]
       .map((o) => Object.keys(o).length)
       .reduce((a, b) => a + b, 0);
     expect(names).toHaveLength(count);

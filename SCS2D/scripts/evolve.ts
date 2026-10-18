@@ -121,6 +121,7 @@ function parse(argv: readonly string[]): Options {
   const doctrine: Record<string, number> = {};
   const build: Record<string, number> = {};
   let structural: number | undefined;
+  let geometry: number | undefined;
   let name: string | undefined;
   let out = 'runs/run.json';
   let saveConfig = '';
@@ -217,6 +218,15 @@ function parse(argv: readonly string[]): Options {
         }
         break;
       }
+      // Chance each module's geometry changes when its design is mutated, 0 to 1.
+      case '--geometry': {
+        const raw = value();
+        geometry = Number(raw);
+        if (!Number.isFinite(geometry) || geometry < 0 || geometry > 1) {
+          throw new Error(`--geometry wants a chance between 0 and 1, not ${raw}`);
+        }
+        break;
+      }
       // Settings written by the evolution page, or by `--save-config`.
       case '--config': {
         const path = value();
@@ -268,12 +278,14 @@ function parse(argv: readonly string[]): Options {
     Object.keys(kinds).length > 0 ||
     Object.keys(doctrine).length > 0 ||
     Object.keys(build).length > 0 ||
-    structural !== undefined
+    structural !== undefined ||
+    geometry !== undefined
   ) {
     const held = config['mutation'] as { kinds?: object; doctrine?: object; build?: object } | undefined;
     config['mutation'] = {
       ...held,
       ...(structural === undefined ? {} : { structural }),
+      ...(geometry === undefined ? {} : { geometry }),
       kinds: { ...held?.kinds, ...kinds },
       doctrine: { ...held?.doctrine, ...doctrine },
       build: { ...held?.build, ...build },

@@ -131,6 +131,7 @@ const SIDE_FIELDS = [
   'opSwap',
   'opPad',
   'structural',
+  'geometry',
   'buildMove',
   'buildResize',
   'buildRefit',
@@ -214,6 +215,7 @@ const FIELDS = [
   'disablingWeight',
   'raceWeight',
   'structural',
+  'geometry',
   'buildMove',
   'buildResize',
   'buildRefit',
@@ -974,6 +976,7 @@ export function startEvolution(): void {
     get('opPad').value = String(operators.pad);
     const build = { ...DEFAULT_BUILD_WEIGHTS, ...config.mutation.build };
     get('structural').value = String(config.mutation.structural ?? DEFAULT_LIMITS.structural);
+    get('geometry').value = String(config.mutation.geometry ?? DEFAULT_LIMITS.geometry);
     get('buildMove').value = String(build.move);
     get('buildResize').value = String(build.resize);
     get('buildRefit').value = String(build.refit);

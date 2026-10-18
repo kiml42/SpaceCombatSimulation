@@ -369,8 +369,11 @@ inside any one file is not contiguous.
   and a new module arrives a square that size, so a guess is cheap beside the hull it joins without being a
   dot on a large one. Turns are a quarter about a corner, so a module tucked into a corner can stay tucked,
   or a small drift on a kind with a facing. Moving one face at a time keeps the opposite face against
-  whatever it was attached to, and whatever sits against the face that moves goes with it, so a module can
-  grow into a neighbour rather than be refused; two touching modules can also trade the face between them,
+  whatever it was attached to; the face moved is one nothing is welded to where there is one, and it moves
+  towards squaring the module up more often than away, the more so the less square it is (`1 − r/2`, `r`
+  the short side over the long), so a sliver of a turret, whose bore its short side sets, grows across. A
+  module with no free face pushes whatever sits against the one that moves, so it can grow into a
+  neighbour rather than be refused; two touching modules can also trade the face between them,
   one growing into space the other gives up. A module written inside an assembly is written once however many copies are placed, so mutating it
   changes every copy and a wing that grows a gun grows it on both wings. Whether a generation is structural
   is settled before the retrying starts rather than inside it, which is what stops the rare, hard edit being
