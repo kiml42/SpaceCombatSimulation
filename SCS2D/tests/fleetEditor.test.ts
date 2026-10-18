@@ -168,9 +168,9 @@ describe('FleetDocument', () => {
     const fleet = addShip(emptyFleet('F'), keeping, 0, 0);
     const doc = new FleetDocument({ ...fleet, designs: { ...fleet.designs, Dinky: DINKY } }, noLibrary);
     expect(doc.view.roster).toEqual([
-      { name: 'Beam Carrier', start: 1, keep: 0 },
-      { name: 'Dinky', start: 0, keep: 0 },
-      { name: 'Dinky Beam', start: 8, keep: 16 },
+      { name: 'Beam Carrier', start: 1, builds: 0 },
+      { name: 'Dinky', start: 0, builds: 0 },
+      { name: 'Dinky Beam', start: 8, builds: 8 },
     ]);
   });
 

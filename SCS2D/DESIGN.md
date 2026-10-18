@@ -616,8 +616,8 @@ inside any one file is not contiguous.
   mirrored and turned as it was — and a group renamed in every use. A selected ship can be swapped
   for another design, from the fleet's own or the library, where it stands and facing the same way, as a
   module's kind is swapped in the ship editor; a design nothing flies any more is dropped.
-  Every design the fleet carries is listed, flown or not, with how many start and how many its pads
-  and slipways keep built, and opens from there in the ship editor; *Add ship* offers the same designs ahead of the
+  Every design the fleet carries is listed, flown or not, with how many start and how many more its pads
+  and slipways build, and opens from there in the ship editor; *Add ship* offers the same designs ahead of the
   library. Or forked: flown on a copy of its design under the next free name, to change it apart from the rest. It counts ships and dry mass by design, and lists
   rather than enforces what is wrong: hulls overlapping at the start, a design that would not fly, and an
   embedded design that has drifted from the library's copy of the same name, which one button brings up to

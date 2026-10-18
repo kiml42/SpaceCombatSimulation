@@ -260,8 +260,8 @@ export function startFleetEditor(): void {
             .map(
               (line) =>
                 `<tr><th>${escapeHtml(line.name)}</th>` +
-                `<td title="Ships of it at the start, and how many of it the fleet's pads and slipways build and keep in the fight">` +
-                `${line.start} at start${line.keep > 0 ? `, keeps ${line.keep}` : ''}</td>` +
+                `<td title="Ships of it at the start, and how many more of it the fleet's pads and slipways build">` +
+                `${line.start} at start${line.builds > 0 ? `, builds ${line.builds}` : ''}</td>` +
                 `<td><a href="editor.html" data-design="${escapeHtml(line.name)}" ` +
                 `title="Open this design in the ship editor, and come back to the fleet with it changed">Edit</a></td></tr>`,
             )

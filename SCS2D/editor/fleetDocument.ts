@@ -32,7 +32,7 @@ export { centreOf };
  * fleet editor's `EditorDocument`, and like it free of any canvas or panel.
  */
 
-const { cos, sin, sqrt } = math;
+const { cos, max, sin, sqrt } = math;
 
 export interface DesignLine {
   name: string;
@@ -46,8 +46,8 @@ export interface RosterLine {
   name: string;
   /** Ships of it at the start: placed, or docked aboard one that is. */
   start: number;
-  /** How many of it the placed ships' pads and slipways build and keep in the fight. */
-  keep: number;
+  /** How many of it the placed ships' pads and slipways build: their keep, less a fighter docked there at the start. */
+  builds: number;
 }
 
 export interface FleetView {
@@ -178,7 +178,7 @@ function roster(
 ): RosterLine[] {
   const lines = new Map<string, RosterLine>();
   for (const name of Object.keys(fleet.designs).sort((a, b) => a.localeCompare(b))) {
-    lines.set(name, { name, start: 0, keep: 0 });
+    lines.set(name, { name, start: 0, builds: 0 });
   }
   ships.forEach((ship, i) => {
     const line = lines.get(ship.design);
@@ -191,7 +191,8 @@ function roster(
     }
     for (const order of [...(design.builds ?? []), ...(design.yards ?? [])]) {
       const built = lines.get(order.design.name);
-      if (built !== undefined) built.keep += order.keep;
+      const docked = 'pad' in order && design.aboard?.some((a) => a.pad === order.pad) ? 1 : 0;
+      if (built !== undefined) built.builds += max(0, order.keep - docked);
     }
   });
   return [...lines.values()];
