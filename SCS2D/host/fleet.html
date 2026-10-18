@@ -87,6 +87,25 @@
       .pair { display: flex; gap: 0.4rem; }
       .buttons { display: flex; gap: 0.4rem; margin-top: 0.6rem; }
       .buttons button { flex: 1; padding-inline: 0.3rem; }
+      #adding { position: relative; }
+      #addMenu {
+        position: absolute;
+        left: 0;
+        right: 0;
+        z-index: 1;
+        max-height: 60vh;
+        overflow-y: auto;
+        background: #121a26;
+        border: 1px solid #2b3a50;
+        border-radius: 4px;
+        padding: 0.3rem 0;
+        margin-top: 0.2rem;
+      }
+      #addMenu h3 { font-size: 11px; font-weight: 400; color: #7f93aa; margin: 0.3rem 0.6rem 0.1rem; }
+      #addMenu button { display: block; width: 100%; text-align: left; background: none; border: none; border-radius: 0; }
+      #addMenu button:hover, #addMenu button:focus { background: #223044; }
+      #designList th { color: #e6edf5; word-break: break-word; }
+      #designList td { color: #7f93aa; white-space: nowrap; padding-left: 0.6rem; }
       #moduleStats, #groupStats { margin-top: 0.7rem; padding-top: 0.6rem; border-top: 1px solid #1c2533; }
       #moduleStats td, #groupStats td { color: #c8d3e0; }
       textarea { width: 100%; resize: vertical; min-height: 3.2rem; }
@@ -151,16 +170,19 @@
     <main>
       <canvas id="view"></canvas>
       <aside id="panel">
-        <section>
+        <section id="adding">
           <h2>Add a ship</h2>
           <div class="pair">
-            <select id="addDesign" title="A ship from the library; the fleet carries its own copy"></select>
-            <button id="addShip">Add</button>
+            <button id="addShip" class="grow" aria-haspopup="menu" aria-expanded="false"
+              title="One of this fleet's designs, or a ship from the library; the fleet carries its own copy">Add ship ▾</button>
+            <button id="addFromFile" class="grow" title="Add a ship from a blueprint file">Add from file…</button>
           </div>
-          <div class="buttons">
-            <button id="addFromFile" title="Add a ship from a blueprint file">Add from file…</button>
-          </div>
+          <div id="addMenu" role="menu" hidden></div>
           <input id="addShipFile" type="file" accept="application/json,.json" hidden />
+        </section>
+        <section>
+          <h2>Designs</h2>
+          <table id="designList"></table>
         </section>
         <section id="selection" hidden>
           <h2 id="selectionTitle">Selected</h2>

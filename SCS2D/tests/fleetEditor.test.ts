@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { math, type Blueprint, type Fleet } from '../sim/index.js';
-import { DINKY, GUNSHIP } from '../scenarios/blueprints.js';
+import { BEAM_CARRIER, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
 import { LINE_OF_BATTLE } from '../scenarios/fleets.js';
 import { FACTORY } from '../scenarios/carrier.js';
 import { History } from '../editor/history.js';
@@ -155,6 +155,24 @@ describe('FleetDocument', () => {
     expect(dinky.count).toBe(2);
     expect(doc.view.mass).toBeCloseTo(doc.view.lines.reduce((sum, l) => sum + l.count * l.mass, 0), 6);
     expect(doc.view.problems).toEqual([]);
+  });
+
+  it('lists every design it carries, with how many start and how many are built', () => {
+    const pad = BEAM_CARRIER.assemblies!['pad']!;
+    const keeping: Blueprint = {
+      ...BEAM_CARRIER,
+      assemblies: {
+        ...BEAM_CARRIER.assemblies,
+        pad: { ...pad, modules: pad.modules.map((m) => ('kind' in m && m.kind === 'pad' ? { ...m, keep: 2 } : m)) },
+      },
+    };
+    const fleet = addShip(emptyFleet('F'), keeping, 0, 0);
+    const doc = new FleetDocument({ ...fleet, designs: { ...fleet.designs, Dinky: DINKY } }, noLibrary);
+    expect(doc.view.roster).toEqual([
+      { name: 'Beam Carrier', start: 1, builds: 0 },
+      { name: 'Dinky', start: 0, builds: 0 },
+      { name: 'Dinky Beam', start: 8, builds: 8 },
+    ]);
   });
 
   it('lists hulls overlapping at the start, and draws them as faulty', () => {
