@@ -405,6 +405,14 @@ describe('the editor in a browser', () => {
     }
   });
 
+  it('says what a refit from the ship as it was opened would build, once it differs', async () => {
+    await page.click('#newShip');
+    expect(await page.isVisible('#refitSection')).toBe(false);
+    await page.click('[data-add="tank"]');
+    expect(await page.isVisible('#refitSection')).toBe(true);
+    expect(await page.textContent('#refit')).toMatch(/1 built/);
+  });
+
   it('sets a pad out with a fighter, marking those too big for it', async () => {
     await page.click('#newShip');
     await page.click('[data-add="pad"]');

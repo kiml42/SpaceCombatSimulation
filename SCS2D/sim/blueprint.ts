@@ -234,6 +234,56 @@ export function settleIds(blueprint: Blueprint, above = 0): Blueprint {
  * so the same module of two versions of a design has the same key, and the
  * copies of one written module have keys of their own. In expansion order.
  */
+/** What refitting a ship built to one design to another would do (`refitPlan`). */
+export interface RefitPlan {
+  /** Modules of the new design's expanded layout that would be built, by index. */
+  readonly built: readonly number[];
+  /** Modules of the old design's expanded layout that would be taken down, as laid out there. */
+  readonly takenDown: readonly ModuleSpec[];
+  /** Whether the new design keeps the old one's first core, which a ship refitted is flown from. */
+  readonly coreKept: boolean;
+}
+
+/**
+ * What a ship built to `from` would do refitted to `to`, as `Ships.refit`
+ * matches them: a module of the one with the same key in the other, laid out
+ * the same, is kept, the rest of `to` built, the rest of `from` taken down.
+ * Null where either cannot be laid out.
+ */
+export function refitPlan(from: Blueprint, to: Blueprint): RefitPlan | null {
+  let was: ModuleSpec[];
+  let now: ModuleSpec[];
+  let wasKeys: string[];
+  let nowKeys: string[];
+  try {
+    was = expandBlueprint(from);
+    now = expandBlueprint(to);
+    wasKeys = moduleKeys(from);
+    nowKeys = moduleKeys(to);
+  } catch {
+    return null;
+  }
+  const kept = new Set<number>();
+  const byKey = new Map<string, number>();
+  nowKeys.forEach((key, k) => byKey.set(key, k));
+  const takenDown: ModuleSpec[] = [];
+  let coreKept = false;
+  let core = true;
+  for (let m = 0; m < was.length; m++) {
+    const k = byKey.get(wasKeys[m]!);
+    const same = k !== undefined && JSON.stringify(was[m]) === JSON.stringify(now[k]);
+    if (same) kept.add(k);
+    else takenDown.push(was[m]!);
+    if (core && was[m]!.kind === 'core') {
+      coreKept = same;
+      core = false;
+    }
+  }
+  const built: number[] = [];
+  for (let k = 0; k < now.length; k++) if (!kept.has(k)) built.push(k);
+  return { built, takenDown, coreKept };
+}
+
 /** The highest id any placement of a blueprint has; 0 for none. */
 export function topId(blueprint: Blueprint): number {
   let top = 0;

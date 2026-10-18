@@ -296,6 +296,8 @@ export {
   settleIds,
   topId,
   moduleKeys,
+  refitPlan,
+  type RefitPlan,
   modulesOverlap,
   placementAt,
   samePlacement,

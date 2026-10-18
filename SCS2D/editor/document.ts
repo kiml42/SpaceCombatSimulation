@@ -3,6 +3,8 @@ import {
   blueprintWarnings,
   settleIds,
   topId,
+  refitPlan,
+  type RefitPlan,
   compileDraft,
   expandWithOrigins,
   isInstance,
@@ -169,9 +171,31 @@ export class EditorDocument {
 
   // Every version kept has an id on each placement (`settleIds`), so what is
   // saved can be matched module by module to what it was edited from.
+  /**
+   * The design as it was opened: what a ship already built to it would be
+   * refitted from (`refitPlan`), if the design were saved as it now stands.
+   */
+  private refitFrom: Blueprint;
+  private refitFor: Blueprint | null = null;
+  private refitShown: RefitPlan | null = null;
+
   constructor(blueprint: Blueprint) {
     this.history = new History(settleIds(cloneBlueprint(blueprint)));
     this.derived = derive(this.history.current);
+    this.refitFrom = this.history.current;
+  }
+
+  /**
+   * What refitting a ship built to the design as it was opened to the design
+   * as it stands would do, or null when that would do nothing.
+   */
+  get refit(): RefitPlan | null {
+    if (this.refitFor !== this.current) {
+      this.refitFor = this.current;
+      const plan = refitPlan(this.refitFrom, this.current);
+      this.refitShown = plan === null || (plan.built.length === 0 && plan.takenDown.length === 0) ? null : plan;
+    }
+    return this.refitShown;
   }
 
   get blueprint(): Blueprint {
@@ -218,6 +242,8 @@ export class EditorDocument {
   replace(blueprint: Blueprint): void {
     this.selected = [];
     this.history.replace(settleIds(cloneBlueprint(blueprint)));
+    this.refitFrom = this.history.current;
+    this.refitFor = null;
     this.set(this.history.current);
   }
 
