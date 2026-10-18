@@ -241,6 +241,24 @@ describe('the editor in a browser', () => {
     expect(seen[3]).toBe(seen[0]);
   });
 
+  it('cycles the arcs from the panel over the view too, naming each', async () => {
+    const picture = (): Promise<string> =>
+      page.evaluate(
+        () =>
+          new Promise<string>((done) =>
+            requestAnimationFrame(() => done((document.getElementById('view') as HTMLCanvasElement).toDataURL())),
+          ),
+      );
+    const before = await picture();
+    const labels: string[] = [];
+    for (let k = 0; k < 3; k++) {
+      await page.click('#cycleArcs');
+      labels.push((await page.textContent('#cycleArcs')) ?? '');
+    }
+    expect(labels).toEqual(['Arcs: off', 'Arcs: firing', 'Arcs: trigger']);
+    expect(await picture()).toBe(before);
+  });
+
   it('shows what the layout works out to, and that it would fly', async () => {
     const stats = (await page.textContent('#stats')) ?? '';
     expect(stats).toMatch(/Mass[\d.,]+ t, [\d.,]+ t of it fuel/);
@@ -411,6 +429,27 @@ describe('the editor in a browser', () => {
     await page.click('[data-add="tank"]');
     expect(await page.isVisible('#refitSection')).toBe(true);
     expect(await page.textContent('#refit')).toMatch(/1 built/);
+  });
+
+  it('hides and shows the refit from the panel over the view, which has nothing to toggle until there is one', async () => {
+    const picture = (): Promise<string> =>
+      page.evaluate(
+        () =>
+          new Promise<string>((done) =>
+            requestAnimationFrame(() => done((document.getElementById('view') as HTMLCanvasElement).toDataURL())),
+          ),
+      );
+    await page.click('#newShip');
+    expect(await page.isDisabled('#showRefit')).toBe(true);
+    await page.click('[data-add="tank"]');
+    expect(await page.isDisabled('#showRefit')).toBe(false);
+    const shown = await picture();
+    await page.click('#showRefit');
+    expect(await page.getAttribute('#showRefit', 'aria-pressed')).toBe('false');
+    const hidden = await picture();
+    expect(hidden).not.toBe(shown);
+    await page.click('#showRefit');
+    expect(await page.getAttribute('#showRefit', 'aria-pressed')).toBe('true');
   });
 
   it('sets a pad out with a fighter, marking those too big for it', async () => {

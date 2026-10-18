@@ -118,7 +118,9 @@ inside any one file is not contiguous.
   each drawn copy of a shared part has a key of its own. **The editor shows a refit**: once the design
   differs from what it was when opened, it tints green what a ship built to it as opened would have built
   if refitted to it, draws dashed where they stood what it would take down, and says how many of each, and
-  whether the core it is flown from would go (`refitPlan`, matched as `Ships.refit` matches).
+  whether the core it is flown from would go (`refitPlan`, matched as `Ships.refit` matches). A panel in the
+  view's bottom left says what the view draws over the ship: the refit, shown or hidden, and which firing
+  arcs, cycled as A cycles them.
   **Doctrine is edited there too, and is meant to be ignorable**: a section that stays shut, on a weapon for
   what it shoots at and on a core for what its ship does, saying while it is shut only whether this is the
   archetype's own doctrine or how many numbers have been changed. Every box is empty over a placeholder of
