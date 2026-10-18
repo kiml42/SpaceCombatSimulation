@@ -158,6 +158,28 @@ describe('breeding a fleet', () => {
     expect(before).toContain(changed[0]);
   });
 
+  it('moves ships apart more often than together, the closer they stand', () => {
+    // Two dinkies a little over a radius-sum apart.
+    const crowded: Fleet = {
+      name: 'Crowded',
+      designs: { Dinky: DINKY },
+      ships: [
+        { design: 'Dinky', x: 0, y: 0 },
+        { design: 'Dinky', x: compileBlueprint(DINKY).radius * 2.2, y: 0 },
+      ],
+    };
+    const gap = (f: Fleet): number => Math.hypot(f.ships[1]!.x - f.ships[0]!.x, f.ships[1]!.y - f.ships[0]!.y);
+    const rng = new Rng(9);
+    let apart = 0;
+    let together = 0;
+    for (let i = 0; i < 300; i++) {
+      const child = mutateFleet(crowded, rng, { operators: only('move') }).fleet;
+      if (gap(child) > gap(crowded) + 1e-9) apart++;
+      else if (gap(child) < gap(crowded) - 1e-9) together++;
+    }
+    expect(apart).toBeGreaterThan(together * 2);
+  });
+
   it('never leaves the parent changed', () => {
     const before = JSON.stringify(LINE_OF_BATTLE);
     for (let seed = 0; seed < 20; seed++) mutateFleet(LINE_OF_BATTLE, new Rng(seed));

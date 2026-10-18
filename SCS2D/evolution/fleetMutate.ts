@@ -179,7 +179,9 @@ function mutateDesign(fleet: Fleet, rng: Rng, bounds: FleetMutationLimits): stri
  *
  * Each by a drift of its own size, so a gunship moves as far beside its
  * length as a fighter does beside its own, and each move that lands on a
- * neighbour or past the deployment radius is undone on its own.
+ * neighbour or past the deployment radius is undone on its own. A move
+ * leans away from the nearest other entry, the more the closer it is, so a
+ * fleet spreads out and leaves its designs room to grow.
  */
 function move(fleet: Fleet, rng: Rng, bounds: FleetMutationLimits, layout: Layout): string[] {
   if (fleet.ships.length === 0) return [];
@@ -189,8 +191,20 @@ function move(fleet: Fleet, rng: Rng, bounds: FleetMutationLimits, layout: Layou
   const edits: string[] = [];
   for (const entry of chosen) {
     const spread = bounds.size * sizeOf(fleet, entry, layout);
-    const dx = round(drift(rng, drawn, spread) * 10) / 10;
-    const dy = round(drift(rng, drawn, spread) * 10) / 10;
+    let dx = drift(rng, drawn, spread);
+    let dy = drift(rng, drawn, spread);
+    // Towards the nearest, turned away with a chance of how crowded it is:
+    // all but always when their circles touch, an even chance far apart.
+    const near = nearest(fleet, entry, layout);
+    if (near !== null) {
+      const towards = dx * near.ux + dy * near.uy;
+      if (towards > 0 && rng.chance(near.crowding)) {
+        dx -= 2 * towards * near.ux;
+        dy -= 2 * towards * near.uy;
+      }
+    }
+    dx = round(dx * 10) / 10;
+    dy = round(dy * 10) / 10;
     const turn = drift(rng, drawn, bounds.turn);
     if (dx === 0 && dy === 0 && turn === 0) continue;
     const was = { x: entry.x, y: entry.y, angle: entry.angle };
@@ -363,6 +377,27 @@ function sizeOf(fleet: Fleet, entry: FleetEntry, layout: Layout): number {
   let size = 0;
   for (const hull of layout.hulls({ ...fleet, ships: [entry] })) size = max(size, hull.design.radius);
   return size;
+}
+
+/**
+ * The fleet's other entry nearest this one: which way it lies, as a unit
+ * vector, and how crowded the two are, from 0 far apart to 1 with their
+ * circles touching or closer.
+ */
+function nearest(fleet: Fleet, entry: FleetEntry, layout: Layout): { ux: number; uy: number; crowding: number } | null {
+  let best: { ux: number; uy: number; crowding: number } | null = null;
+  let closest = Infinity;
+  const own = sizeOf(fleet, entry, layout);
+  for (const other of fleet.ships) {
+    if (other === entry) continue;
+    const dx = other.x - entry.x;
+    const dy = other.y - entry.y;
+    const d = sqrt(dx * dx + dy * dy);
+    if (!(d > 0) || d >= closest) continue;
+    closest = d;
+    best = { ux: dx / d, uy: dy / d, crowding: min(1, (own + sizeOf(fleet, other, layout)) / d) };
+  }
+  return best;
 }
 
 /** Whether the fleet's ships stand clear of each other and inside the radius. */
