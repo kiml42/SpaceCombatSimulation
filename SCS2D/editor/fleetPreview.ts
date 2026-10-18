@@ -1,4 +1,4 @@
-import { Snapshot, type ShipDesign, type ShipView } from '../sim/index.js';
+import { aboardPose, Snapshot, type ShipDesign, type ShipView } from '../sim/index.js';
 import { centreOf, type FleetView } from './fleetDocument.js';
 import { restingTriggers } from './preview.js';
 
@@ -7,7 +7,8 @@ export const FLEET_TEAM = 0;
 
 /**
  * A fleet as a `Snapshot` the battle renderer can draw, at rest, with the
- * fleet's origin at the world origin. The fleet editor's `previewSnapshot`.
+ * fleet's origin at the world origin, each carrier with the fighters it sets
+ * out with on their pads. The fleet editor's `previewSnapshot`.
  */
 export function fleetSnapshot(
   view: Pick<FleetView, 'ships' | 'designs'>,
@@ -20,18 +21,15 @@ export function fleetSnapshot(
   let maxX = -Infinity;
   let maxY = -Infinity;
 
-  view.ships.forEach((ship, i) => {
-    const design = view.designs[i];
-    if (design == null) return;
-    const centre = centreOf(ship, design);
+  const place = (design: ShipDesign, x: number, y: number, angle: number): void => {
     const ships: ShipView[] = out.ships;
     const shipView = ships[count] ?? freshView(design);
     ships[count++] = shipView;
     shipView.design = design;
     shipView.team = team;
-    shipView.x = centre.x;
-    shipView.y = centre.y;
-    shipView.angle = ship.angle;
+    shipView.x = x;
+    shipView.y = y;
+    shipView.angle = angle;
     shipView.vx = 0;
     shipView.vy = 0;
     restingTriggers(shipView, design);
@@ -45,10 +43,23 @@ export function fleetSnapshot(
     shipView.turretDisabled.length = design.turrets.length;
     shipView.turretDisabled.fill(false);
 
-    minX = Math.min(minX, centre.x - design.radius);
-    minY = Math.min(minY, centre.y - design.radius);
-    maxX = Math.max(maxX, centre.x + design.radius);
-    maxY = Math.max(maxY, centre.y + design.radius);
+    minX = Math.min(minX, x - design.radius);
+    minY = Math.min(minY, y - design.radius);
+    maxX = Math.max(maxX, x + design.radius);
+    maxY = Math.max(maxY, y + design.radius);
+  };
+
+  view.ships.forEach((ship, i) => {
+    const design = view.designs[i];
+    if (design == null) return;
+    const centre = centreOf(ship, design);
+    place(design, centre.x, centre.y, ship.angle);
+    const c = Math.cos(ship.angle);
+    const s = Math.sin(ship.angle);
+    for (const aboard of design.aboard ?? []) {
+      const pose = aboardPose(design, aboard);
+      place(aboard.design, centre.x + pose.x * c - pose.y * s, centre.y + pose.x * s + pose.y * c, ship.angle + pose.angle);
+    }
   });
 
   out.shipCount = count;
