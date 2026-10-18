@@ -249,9 +249,9 @@ describe('growing a part that is placed more than once', () => {
 });
 
 describe('breeding the grouping', () => {
-  // Four lineages of four hundred generations; how big they grow, and so how
-  // long this takes, moves with every knob the mutation draws from — over a
-  // minute when the suite runs in parallel.
+  // Up to four lineages of four hundred generations; how big they grow, and so
+  // how long this takes, moves with every knob the mutation draws from — over
+  // a minute when the suite runs in parallel.
   it('reaches parts, repeats them, grows them and turns them over', { timeout: 240_000 }, () => {
     // Lineages from a bare core, which starts with no assemblies at all, so
     // every one of these is something the operators built rather than
@@ -259,9 +259,11 @@ describe('breeding the grouping', () => {
     // single lineage can wander away from any one of them for good, and which
     // one does moves with every field the mutation draws from.
     const seen = { grouped: false, repeated: false, manyModules: false, mirrored: false };
+    const keys = Object.keys(seen) as (keyof typeof seen)[];
     for (const seed of [3, 4, 5, 6]) {
-      const one = lineage(BARE_CORE, seed, 400).seen;
-      for (const key of Object.keys(seen) as (keyof typeof seen)[]) seen[key] ||= one[key];
+      // Each line stops once, with those before it, it has seen everything.
+      const one = lineage(BARE_CORE, seed, 400, (so) => keys.every((key) => seen[key] || so[key])).seen;
+      for (const key of keys) seen[key] ||= one[key];
     }
     expect(seen.grouped, 'made a part').toBe(true);
     expect(seen.repeated, 'placed a part more than once').toBe(true);

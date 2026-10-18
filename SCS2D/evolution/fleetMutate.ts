@@ -23,6 +23,7 @@ import {
   type Rng,
   degreesToRadians,
   radiansToDegrees,
+  readsCraft,
 } from '../sim/index.js';
 import { cos, max, min, PI, round, sin, sqrt } from '../sim/math.js';
 import { BARE_CORE } from '../scenarios/blueprints.js';
@@ -137,7 +138,7 @@ export function mutateFleet(parent: Fleet, rng: Rng, limits?: Partial<FleetMutat
     else draft.designs[name] = before;
   }
 
-  // A fleet with no pad has nothing for `pad` to do: it draws as though there were no such operator.
+  // A fleet with no pad or slipway has nothing for `pad` to do: it draws as though there were no such operator.
   const operators = hasPad(draft) ? bounds.operators : { ...bounds.operators, pad: 0 };
   if (rng.chance(bounds.change)) {
     for (let attempt = 1; attempt <= bounds.attempts; attempt++) {
@@ -321,22 +322,26 @@ function merge(fleet: Fleet, rng: Rng): string[] {
 }
 
 /**
- * Point a pad of a design the fleet flies at another fighter: one the fleet
- * carries, a copy of its own to be bred apart from the ships that share it,
- * or a new bare core marked a fighter, sized to grow into one the pad holds.
- * Each is undone by another: a copy or a new one pointed back.
+ * Point a pad or slipway of a design the fleet flies at another craft: one the
+ * fleet carries — a fighter for a pad, any other ship for a slipway — a copy
+ * of its own to be bred apart from the ships that share it, or a new bare
+ * core, sized to grow into one the pad holds or the slipway builds. Each is
+ * undone by another: a copy or a new one pointed back.
  */
 function repad(fleet: Fleet, rng: Rng): string[] {
   const pads: { carrier: string; pad: ModuleSpec }[] = [];
   for (const carrier of usedDesigns(fleet)) {
     const blueprint = fleet.designs[carrier]!;
     const lists = [blueprint.modules, ...Object.values(blueprint.assemblies ?? {}).map((a) => a.modules)];
-    for (const list of lists) for (const p of list) if (!isInstance(p) && p.kind === 'pad') pads.push({ carrier, pad: p });
+    for (const list of lists) for (const p of list) if (!isInstance(p) && readsCraft(p.kind)) pads.push({ carrier, pad: p });
   }
   if (pads.length === 0) return [];
   const { carrier, pad } = pads[rng.nextInt(pads.length)]!;
+  const fighter = pad.kind === 'pad';
   const was = pad.craft;
-  const others = Object.keys(fleet.designs).filter((name) => name !== was && name !== carrier && fleet.designs[name]!.fighter === true);
+  const others = Object.keys(fleet.designs).filter(
+    (name) => name !== was && name !== carrier && (fleet.designs[name]!.fighter === true) === fighter,
+  );
   // Another of the fleet's, a copy of its own, or a new one, each as likely as the others.
   const ways = others.length + (was === undefined ? 0 : 1) + 1;
   const way = rng.nextInt(ways);
@@ -345,14 +350,19 @@ function repad(fleet: Fleet, rng: Rng): string[] {
   else if (way === others.length && was !== undefined && fleet.designs[was] !== undefined) {
     to = freeName(fleet, was);
     fleet.designs[to] = { ...(JSON.parse(JSON.stringify(fleet.designs[was])) as Blueprint), name: to };
-  } else {
+  } else if (fighter) {
     to = freeName(fleet, 'Fighter');
     // A tenth of the pad across: room round it for a fighter the pad still holds.
     const side = max(0.1, round(min(pad.length, pad.width)) / 10);
     fleet.designs[to] = { name: to, fighter: true, modules: [{ kind: 'core', x: 0, y: 0, length: side, width: side }] };
+  } else {
+    to = freeName(fleet, 'Ship');
+    // Half the slipway across: room either side to grow into a beam it still builds.
+    const side = max(0.1, round(pad.width * 5) / 10);
+    fleet.designs[to] = { name: to, modules: [{ kind: 'core', x: 0, y: 0, length: side, width: side }] };
   }
   pad.craft = to;
-  return [`${carrier}: a pad's ${was ?? 'nothing'} → ${to}`];
+  return [`${carrier}: a ${pad.kind}'s ${was ?? 'nothing'} → ${to}`];
 }
 
 /**
@@ -438,7 +448,7 @@ function describe(entry: FleetEntry): string {
 function hasPad(fleet: Fleet): boolean {
   return Object.values(fleet.designs).some((blueprint) => {
     const lists = [blueprint.modules, ...Object.values(blueprint.assemblies ?? {}).map((a) => a.modules)];
-    return lists.some((list) => list.some((p) => !isInstance(p) && p.kind === 'pad'));
+    return lists.some((list) => list.some((p) => !isInstance(p) && readsCraft(p.kind)));
   });
 }
 

@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { NO_BUDGET, padFighterNames, Rng, type Fleet } from '../sim/index.js';
 import { mutate } from '../evolution/mutate.js';
 import { fleetFits, mutateFleet, type FleetMutationLimits, type FleetOperator } from '../evolution/fleetMutate.js';
-import { DINKY } from '../scenarios/blueprints.js';
+import { BARE_CORE, DINKY } from '../scenarios/blueprints.js';
+import { SHIPYARD } from '../scenarios/shipyard.js';
 import { FACTORY } from '../scenarios/carrier.js';
 import { addShip, emptyFleet } from '../editor/fleetEdit.js';
 
@@ -58,6 +59,20 @@ describe('a fleet bred with a carrier in it', () => {
       const to = padFighterNames(child.fleet.designs['Factory']!)[0]!;
       expect(child.fleet.designs[to]?.fighter).toBe(true);
       seen.add(to === 'Gnat' ? 'other' : to.startsWith('Dinky') ? 'copy' : to.startsWith('Fighter') ? 'new' : to);
+    }
+    expect([...seen].sort()).toEqual(['copy', 'new', 'other']);
+  });
+
+  it('points a slipway at another ship, a copy of its own, or a new bare core, each fit to fight', () => {
+    const seen = new Set<string>();
+    const fleet = addShip(addShip(emptyFleet('Yard'), SHIPYARD, 0, 0), BARE_CORE, 80, 0);
+    for (let seed = 1; seed <= 60; seed++) {
+      const child = mutateFleet(fleet, new Rng(seed), { ...LIMITS, ...only('pad') });
+      if (child.edits.length === 0) continue;
+      expect(fleetFits(child.fleet, LIMITS)).toBe(true);
+      const to = padFighterNames(child.fleet.designs['Shipyard']!)[0]!;
+      expect(child.fleet.designs[to]?.fighter).not.toBe(true);
+      seen.add(to === BARE_CORE.name ? 'other' : to.startsWith('Scavenger') ? 'copy' : to.startsWith('Ship') ? 'new' : to);
     }
     expect([...seen].sort()).toEqual(['copy', 'new', 'other']);
   });
