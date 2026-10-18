@@ -146,7 +146,11 @@ inside any one file is not contiguous.
   off or comes out the far side — at its own speed, so crossing a long hull
   takes time; a beam pours its power into what it is burning
   through, a fifth of it taken in and the rest reflected or radiated away (`BEAM_ABSORBED_SHARE`, a stand-in
-  for heat), and bores deeper as it destroys: **a module burnt past breaking is holed**, and lets more of a
+  for heat). **The outer face of each hull it meets reflects some of what it stops**, a tenth head on
+  (`BEAM_REFLECTANCE`) rising to all it does not take in at grazing, as a dimmer beam of its own that can
+  land on anything, the ship that fired it included, bounce again, and is not followed below `MIN_REFLECTED_POWER`
+  or past `MAX_REFLECTIONS`; the reflection comes out of what would have been radiated, so a hit does the
+  same damage either way. A beam bores deeper as it destroys: **a module burnt past breaking is holed**, and lets more of a
   beam through the more of it has shed, up to half (`FLOOR_TRANSPARENCY`) once it is down to its floor,
   each module in turn taking its share of what is left and the next getting the rest. What gets through the
   last module goes on out of the hull to whatever is behind it, in the same way, so a wreck screens what it

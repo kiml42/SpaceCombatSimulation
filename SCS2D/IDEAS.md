@@ -43,7 +43,6 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Improved allowed turning for hull guns
 - Bullet spread (inaccuracy. Could get worse as a gun gets damaged.)
 - Shell fragments should be placed in a random layer when the shell detonates, instead of being considered to hit anything in either. Possibly there could be a bias towards keeping fragments in the turrets layer, to keep fragments good at hitting fighters. (probably dependent on the charge size)
-- beams reflect - for each hit, a proportion is absorbed as damage, a proportion is dissipated and a proportion is reflected as anew beam starting at the impact point (if below a threshold power the reflection is considered negligible and not calculated)
 
 ## Manoeuvring
 - Ships need to have a max allowed rotational speed, or some other mechanism to stop them spinning up faster and faster when they have damaged engines.

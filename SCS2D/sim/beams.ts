@@ -3,6 +3,7 @@ import { sqrt } from './math.js';
 import { RayHit, type SpatialGrid, MAX_CELLS_PER_RAY } from './spatialGrid.js';
 import { NO_OWNER } from './projectiles.js';
 import { HULL_LAYER, WEAPONS_LAYER, type Hulls } from './hull.js';
+import { BEAM_ABSORBED_SHARE } from './damage.js';
 
 /**
  * Beams: lasers, particle beams, and anything else taken to go from its
@@ -48,6 +49,31 @@ export const MAX_BEAM_LENGTH = 60_000;
 
 /** The least share of a beam worth following further into a hull. */
 const MIN_BEAM_SHARE = 1e-3;
+
+/**
+ * How much of what a hull's face stops it reflects, head on. It rises towards
+ * a grazing beam, to all of what the face would otherwise radiate away, so a
+ * reflection never takes from what the hull is damaged by.
+ */
+export const BEAM_REFLECTANCE = 0.1;
+/** The most a face reflects, at grazing: everything it stops but takes in. */
+const MAX_REFLECTANCE = 1 - BEAM_ABSORBED_SHARE;
+/** The least power a reflection is worth following, W. */
+export const MIN_REFLECTED_POWER = 1e5;
+/** How many times one shot may be reflected, one bounce after another. */
+export const MAX_REFLECTIONS = 3;
+
+/**
+ * The share of a beam a face reflects, by how squarely it is met: `cosine` is
+ * of the angle between the beam and the face's normal. Schlick's
+ * approximation, which needs nothing but multiplication.
+ */
+export function reflectance(cosine: number): number {
+  const c = cosine < 0 ? 0 : cosine > 1 ? 1 : cosine;
+  const m = 1 - c;
+  const m2 = m * m;
+  return BEAM_REFLECTANCE + (MAX_REFLECTANCE - BEAM_REFLECTANCE) * m2 * m2 * m;
+}
 
 /**
  * Longest beam the index can cast through a grid of this cell size, metres.
@@ -187,6 +213,8 @@ export class Beams {
   /** The layers it is in, as a `HULL_LAYER` / `WEAPONS_LAYER` mask. */
   layers!: Uint8Array;
   kind!: Int32Array;
+  /** How many reflections deep it is: 0 for a beam fired from a mount. */
+  bounces!: Uint8Array;
   alive!: Uint8Array;
   /**
    * Set on impact. A struck beam is truncated at the point of contact and is
@@ -205,6 +233,18 @@ export class Beams {
 
   private free: number[] = [];
   private readonly hit = new RayHit();
+
+  // Reflections waiting to be cast: where from, which way, how strong, the
+  // beam they came off, the hull they came off and how many bounces deep.
+  private queueX: Float64Array = new Float64Array(16);
+  private queueY: Float64Array = new Float64Array(16);
+  private queueDx: Float64Array = new Float64Array(16);
+  private queueDy: Float64Array = new Float64Array(16);
+  private queuePower: Float64Array = new Float64Array(16);
+  private queueParent: Int32Array = new Int32Array(16);
+  private queueBody: Int32Array = new Int32Array(16);
+  private queueDepth: Int32Array = new Int32Array(16);
+  private queued = 0;
 
   constructor(initialCapacity = 1024) {
     this.grow(initialCapacity);
@@ -233,6 +273,9 @@ export class Beams {
     if (this.layers) layer.set(this.layers);
     this.layers = layer;
     this.kind = i32(this.kind);
+    const bounces = new Uint8Array(capacity);
+    if (this.bounces) bounces.set(this.bounces);
+    this.bounces = bounces;
 
     const alive = new Uint8Array(capacity);
     if (this.alive) alive.set(this.alive);
@@ -267,6 +310,44 @@ export class Beams {
     fromModule = -1,
     layers = HULL_LAYER,
   ): number {
+    const i = this.allocate(startX, startY, endX, endY, width, power, owner, kind, fromModule, layers);
+    this.detectHits(i, bodies, grid, hits, hulls, -1, 0);
+    // What it threw off, and what that threw off, each a beam of its own.
+    for (let q = 0; q < this.queued; q++) {
+      const parent = this.queueParent[q]!;
+      const x = this.queueX[q]!;
+      const y = this.queueY[q]!;
+      const child = this.allocate(
+        x,
+        y,
+        x + this.queueDx[q]! * MAX_BEAM_LENGTH,
+        y + this.queueDy[q]! * MAX_BEAM_LENGTH,
+        this.width[parent]!,
+        this.queuePower[q]!,
+        this.owner[parent]!,
+        this.kind[parent]!,
+        -1,
+        this.layers[parent]!,
+      );
+      this.bounces[child] = this.queueDepth[q]!;
+      this.detectHits(child, bodies, grid, hits, hulls, this.queueBody[q]!, this.queueDepth[q]!);
+    }
+    this.queued = 0;
+    return i;
+  }
+
+  private allocate(
+    startX: number,
+    startY: number,
+    endX: number,
+    endY: number,
+    width: number,
+    power: number,
+    owner: number,
+    kind: number,
+    fromModule: number,
+    layers: number,
+  ): number {
     let i: number;
     const reused = this.free.pop();
     if (reused !== undefined) {
@@ -286,13 +367,44 @@ export class Beams {
     this.fromModule[i] = fromModule;
     this.layers[i] = layers;
     this.kind[i] = kind;
+    this.bounces[i] = 0;
     this.alive[i] = 1;
     this.pending[i] = 0;
     this.count++;
-
-    this.detectHits(i, bodies, grid, hits, hulls)
-
     return i;
+  }
+
+  private queue(x: number, y: number, dx: number, dy: number, power: number, parent: number, body: number, depth: number): void {
+    if (this.queued >= this.queueX.length) {
+      const size = this.queueX.length * 2;
+      const f64 = (old: Float64Array): Float64Array => {
+        const next = new Float64Array(size);
+        next.set(old);
+        return next;
+      };
+      const i32 = (old: Int32Array): Int32Array => {
+        const next = new Int32Array(size);
+        next.set(old);
+        return next;
+      };
+      this.queueX = f64(this.queueX);
+      this.queueY = f64(this.queueY);
+      this.queueDx = f64(this.queueDx);
+      this.queueDy = f64(this.queueDy);
+      this.queuePower = f64(this.queuePower);
+      this.queueParent = i32(this.queueParent);
+      this.queueBody = i32(this.queueBody);
+      this.queueDepth = i32(this.queueDepth);
+    }
+    const q = this.queued++;
+    this.queueX[q] = x;
+    this.queueY[q] = y;
+    this.queueDx[q] = dx;
+    this.queueDy[q] = dy;
+    this.queuePower[q] = power;
+    this.queueParent[q] = parent;
+    this.queueBody[q] = body;
+    this.queueDepth[q] = depth;
   }
 
   /** `shootRaw` with named fields and defaults, for setup code and tests. */
@@ -353,7 +465,11 @@ export class Beams {
     bodies: Bodies,
     grid: SpatialGrid,
     hits: BeamHits,
-    hulls?: Hulls,
+    hulls: Hulls | undefined,
+    /** The hull it comes off, for a reflection, which it does not meet again at once. */
+    off: number,
+    /** How many reflections deep it is. */
+    depth: number,
   ): void {
     const hit = this.hit;
     if (this.alive[i] === 0 || this.pending[i] === 1) return;
@@ -364,16 +480,17 @@ export class Beams {
     const endY = this.endY[i];
 
     // A beam that knows which part fired it may land on the rest of its own
-    // ship; one that does not passes through all of it.
+    // ship; one that does not passes through all of it. A reflection may land
+    // anywhere, the ship that fired it included.
     const from = this.fromModule[i]!;
     const owner = this.owner[i]!;
-    const ignore = from >= 0 ? -1 : owner;
+    const ignore = from >= 0 || depth > 0 ? -1 : owner;
     // Where this cast starts, the share of the beam still going, and the hull
     // it has just come out of.
     let x0 = startX;
     let y0 = startY;
     let share = 1;
-    let passed = -1;
+    let passed = off;
     let struck = false;
     let stopX = endX;
     let stopY = endY;
@@ -418,6 +535,17 @@ export class Beams {
       }
       const clear = module >= 0 && hulls !== undefined ? hulls.transparency(bi, module) : 0;
       hits.push(i, bi, hit.x, hit.y, nx, ny, module, share * (1 - clear));
+      // The hull's face throws some of what it stops back off it.
+      if (module >= 0 && depth < MAX_REFLECTIONS) {
+        const length = sqrt(dx * dx + dy * dy);
+        const ux = length > 0 ? dx / length : 0;
+        const uy = length > 0 ? dy / length : 0;
+        const along = ux * nx + uy * ny;
+        const power = this.power[i]! * share * (1 - clear) * reflectance(-along);
+        if (along < 0 && power >= MIN_REFLECTED_POWER) {
+          this.queue(hit.x, hit.y, ux - 2 * along * nx, uy - 2 * along * ny, power, i, bi, depth + 1);
+        }
+      }
       stopX = hit.x;
       stopY = hit.y;
 
@@ -453,10 +581,10 @@ export class Beams {
       this.endY[i] = stopY;
     }
 
-    // Reflection would turn a cast as well as carry it on, and the trap waiting
-    // there is recorded in ROADMAP.md §12: a deflected beam resumes *on* the
-    // surface it bounced off, so any new heading that does not lead away from
-    // that body's centre strikes it again at zero distance and the beam sticks.
+    // A reflection starts on the face it came off, so it ignores that hull at
+    // first, or a heading back into it would meet it again at no distance and
+    // stick (ROADMAP.md §12). The cost is that it cannot bounce between two
+    // faces of the same concave hull.
   }
 
   /**
