@@ -2,9 +2,11 @@ import { Bodies, type BodyId } from './bodies.js';
 import {
   aboardPose,
   footprintOf,
+  modulesOverlap,
   originOf,
   reachAgainst,
   rebuiltDesign,
+  remarkedDesign,
   sameOrigin,
   shotSpread,
   subDesign,
@@ -987,6 +989,8 @@ export class Ships {
   private readonly unfinished: number[] = [];
   /** The tick each carrier last put work into a fighter it is building; -1 for never. */
   private readonly builtAt: number[] = [];
+  /** Whether each ship has been refitted to a design other than the one it set out as (`refit`). */
+  private readonly refitting: number[] = [];
   /** The port, by module of its ship's design, a ship is making for to refuel; -1 for none. */
   private readonly dockPort: number[] = [];
   /** Which of its own ports it means to mate with it; -1 for none. */
@@ -1511,6 +1515,7 @@ export class Ships {
     this.broods.push(builds.length === 0 ? null : { fighters: builds.map(() => []), work: new Float64Array(builds.length) });
     this.unfinished.push(0);
     this.builtAt.push(-1);
+    this.refitting.push(0);
     this.dockPort.push(-1);
     this.ownPort.push(-1);
     this.consort.push(NO_TARGET);
@@ -4662,6 +4667,11 @@ export class Ships {
         const put = this.metal.add(b, robot.bay, robot.cargo);
         robot.cargo = put < robot.cargo ? robot.cargo - put : 0;
         unloaded = put > 0;
+        // Taking its own hull down for a refit, what the holds have no room for is thrown away.
+        if (robot.cargo > 0 && this.refitting[owner] === 1) {
+          robot.cargo = 0;
+          unloaded = true;
+        }
       }
       if (working > 0) {
         if (robot.refill > 0) {
@@ -4899,6 +4909,8 @@ export class Ships {
           if (rebuild.at[l]! >= 0 || m < 0 || !Number.isFinite(dist[m]!) || !this.ownsAt(owner, b, m)) continue;
           if (this.wreckage(owner, b, m)) continue;
           if (design.modules[m]!.shell !== undefined || originOf(design, m).design !== compiled) continue;
+          // Refitted, what is in the way comes down before this goes up.
+          if (this.refitting[owner] === 1 && this.inTheWay(design, rebuild, launch, l)) continue;
           consider(m, l, repairTier(launch, l));
         }
       }
@@ -4907,6 +4919,19 @@ export class Ships {
     robot.target = best;
     robot.build = bestBuild;
     return true;
+  }
+
+  /** Whether anything of hull `design` stands where launch module `l` of `launch` would be built. */
+  private inTheWay(design: ShipDesign, rebuild: Rebuild, launch: ShipDesign, l: number): boolean {
+    const origin = originOf(launch, l);
+    const reference = originOf(design, rebuild.frame);
+    const placed = inFrame(
+      origin.design.modules[origin.module]!.spec,
+      reference.design.modules[reference.module]!.spec,
+      design.modules[rebuild.frame]!.spec,
+    );
+    for (const module of design.modules) if (modulesOverlap(module.spec, placed)) return true;
+    return false;
   }
 
   /**
@@ -4947,6 +4972,13 @@ export class Ships {
     } else {
       const part = shellOf(placed, whole.stats, face, share);
       next = rebuiltDesign(design, at, part.spec, part.stats, origin, { share, face, placed }, piece);
+    }
+
+    // Refitted, it waits for anything of its own hull in the way to come down.
+    if (this.refitting[i] === 1) {
+      for (let k = 0; k < next.modules.length; k++) {
+        if (k !== at && modulesOverlap(next.modules[k]!.spec, next.modules[at]!.spec)) return;
+      }
     }
 
     // Where the hull will be, and whether anything else is.
@@ -5105,10 +5137,14 @@ export class Ships {
   private wreckage(i: number, b: number, m: number): boolean {
     const owner = this.pilots[b]?.[m] ?? i;
     if (owner === i) {
-      const pieces = this.hullDesign[b]?.pieces;
-      if (pieces === undefined) return false;
-      const own = this.ownPiece(i, b);
-      return own >= 0 && pieces[m] !== own;
+      const hull = this.hullDesign[b];
+      const pieces = hull?.pieces;
+      if (pieces !== undefined) {
+        const own = this.ownPiece(i, b);
+        if (own >= 0 && pieces[m] !== own) return true;
+      }
+      // Refitted, what is no module of the design it is refitted to comes down.
+      return this.refitting[i] === 1 && hull !== null && hull !== undefined && originOf(hull, m).design !== this.launched[i];
     }
     if (owner < 0 || this.alive[owner] === 0 || this.derelict[owner] === 1) return true;
     return !this.hasControl(owner) && !this.hasRobots(b, owner);
@@ -5169,7 +5205,8 @@ export class Ships {
    * nearest of those. Says whether it found any.
    */
   private sendToStrip(b: number, design: ShipDesign, robots: Robot[], robot: Robot, owner: number, dist: Float64Array): boolean {
-    if (!(this.metal.pieceRoom(b, robot.bay) > ROBOT_SPENT) || !(robot.cargo < ROBOT_LOAD - ROBOT_SPENT)) return false;
+    const room = this.metal.pieceRoom(b, robot.bay) > ROBOT_SPENT || this.refitting[owner] === 1;
+    if (!room || !(robot.cargo < ROBOT_LOAD - ROBOT_SPENT)) return false;
     let best = -1;
     let bestCrowd = Infinity;
     let bestDist = Infinity;
@@ -5229,7 +5266,9 @@ export class Ships {
       return false;
     }
     const lift = (ROBOT_REPAIR_RATE / DAMAGE_ENERGY_PER_KG) * dt;
-    const loose = this.metal.pieceHeld(b, m);
+    // The metal on its own piece of hull is its ship's, which a refit does not throw away.
+    const own = (design.pieces?.[m] ?? 0) === (design.pieces === undefined ? 0 : this.ownPiece(owner, b));
+    const loose = own ? 0 : this.metal.pieceHeld(b, m);
     if (loose > ROBOT_SPENT) {
       robot.cargo += this.metal.drain(b, m, min(lift, room));
       return true;
@@ -7510,6 +7549,64 @@ export class Ships {
       landed++;
     }
     return landed;
+  }
+
+  /**
+   * Refit ship `i` to `to`, a design compiled from a blueprint: from now on it
+   * builds to that rather than to what it set out as. A module of its hull
+   * that is a module of `to` by key (`ShipDesign.keys`), laid out the same, is
+   * kept as that module; the rest of its own hull comes down, and what `to`
+   * has that it has not is built, as robots build back what a ship has lost,
+   * building before taking down, and a wall waiting while anything of its own
+   * hull is in the way. Refused, saying why, when `to` does not keep the core
+   * the ship is flown from, which it could not take down and still be flown.
+   */
+  refit(world: World, i: number, to: ShipDesign): string | null {
+    const bodies = world.bodies;
+    this.bodyStore = bodies;
+    if (this.alive[i] === 0) return 'the ship is gone';
+    const keys = to.keys;
+    if (keys === undefined) return `${to.name} was not compiled from a blueprint`;
+    const b = bodies.indexOf(this.bodyIds[i]!);
+    const p = b < 0 ? -1 : this.shipAt(bodies, b);
+    if (p < 0) return 'the ship is gone';
+    const design = this.designs[p]!;
+    const byKey = new Map<string, number>();
+    to.modules.forEach((module, k) => byKey.set(keys[module.index]!, k));
+    const core = this.flownCore(i);
+    let coreKept = false;
+    const origins = design.modules.map((_, m) => {
+      if (!this.ownsAt(i, b, m)) return null;
+      const from = originOf(design, m);
+      const was = from.design.modules[from.module]!;
+      const key = from.design.keys?.[was.index];
+      const k = key === undefined ? undefined : byKey.get(key);
+      if (k === undefined || JSON.stringify(was.spec) !== JSON.stringify(to.modules[k]!.spec)) return null;
+      if (m === core) coreKept = true;
+      return { design: to, module: k };
+    });
+    if (!coreKept) return `${to.name} does not keep the core this ship is flown from`;
+    this.adopt(p, b, remarkedDesign(design, origins), () => p, (m) => m, true, true);
+    for (const r of this.ridersOf(bodies, b)) if (r !== p) this.board(r, p);
+    this.launched[i] = to;
+    this.rebuilds[i] = null;
+    this.doctrines[i] = to.doctrine;
+    this.couldFight[i] = to.turrets.some((t) => t.main) || to.engines.length > 0 ? 1 : 0;
+    const builds = to.builds ?? [];
+    this.broods[i] = builds.length === 0 ? null : { fighters: builds.map(() => []), work: new Float64Array(builds.length) };
+    this.refitting[i] = 1;
+    return null;
+  }
+
+  /** Whether ship `i` is refitted and its hull is not yet what it was refitted to: something to come down, or to go up. */
+  isRefitting(i: number): boolean {
+    if (this.refitting[i] !== 1 || this.alive[i] === 0) return false;
+    const bodies = this.bodyStore!;
+    const b = bodies.indexOf(this.bodyIds[i]!);
+    if (b < 0) return false;
+    const design = this.hullDesign[b]!;
+    for (let m = 0; m < design.modules.length; m++) if (this.ownsAt(i, b, m) && this.wreckage(i, b, m)) return true;
+    return !this.finished(b, i, design);
   }
 
   /**

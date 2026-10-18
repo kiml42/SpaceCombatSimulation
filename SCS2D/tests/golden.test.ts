@@ -45,6 +45,7 @@ const GOLDEN: Record<ScenarioName, string> = {
   scrapyard: '07368ab2',
   mending: '4ec98f7f',
   rebuilding: '8c08e28f',
+  refitting: 'c89fc3a1',
   scavenge: '8c2741e7',
   carrier: '2f7e8c50',
   padRebuild: '4d7483f3',

@@ -789,6 +789,16 @@ inside any one file is not contiguous.
   scenario has a turning Rebuilder lose its fin and its engine and build both back, each once what came off
   has drifted clear. Each hull of the Catamaran carries a bay, a hold and a generator enough to rebuild the
   other, so either half of one cut in two grows back into the whole ship, in about half an hour.
+  **A ship can be refitted to another design** (`Ships.refit`, a command), and from then on builds to it:
+  a module of its hull that is a module of the new design by key (`ShipDesign.keys`) and laid out the same
+  is kept, as that module; what the new design has that the hull has not, its robots build, as they build
+  back what is lost; and the rest of its own hull is wreckage to them, taken down as a wreck is, a module
+  at a time from the far end inwards. Building comes first, as it does before taking a wreck apart, but not
+  where anything of the hull is in the way: that comes down first, and a wall waits while anything is. The
+  metal of its own hull stays its own, and what its holds have no room for is thrown away. A refit that
+  would take down the core the ship is flown from is refused. The `refitting` scenario has a Rebuilder
+  refitted as it sets out to the same ship with its fin a tank, its engine gone and a new fin the other
+  side, done in five minutes.
   **Every module has a complexity** (`complexityOf`), work over and above its mass that making or mending it
   takes, the same whatever its size, at `COMPLEXITY_WORK` a unit: structure, tanks and holds 1, a battery 2,
   claws, pads and ports 3, engines and hull weapons 4, turrets 7, generators and robot bays 6, cores 16, with

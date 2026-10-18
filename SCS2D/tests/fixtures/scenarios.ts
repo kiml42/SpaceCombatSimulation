@@ -19,7 +19,7 @@ import { soloOrdering } from '../../scenarios/ordering.js';
 import { ram } from '../../scenarios/ram.js';
 import { hooked } from '../../scenarios/hooked.js';
 import { salvage, scrapyard } from '../../scenarios/salvage.js';
-import { mending, rebuilding } from '../../scenarios/mending.js';
+import { mending, rebuilding, refitting } from '../../scenarios/mending.js';
 import { scavenge } from '../../scenarios/scavenge.js';
 import { carrier, factory, padRebuild } from '../../scenarios/carrier.js';
 import { rearm } from '../../scenarios/rearm.js';
@@ -501,6 +501,19 @@ export function mendingScenario(seed = 20261013): ScenarioRun {
   };
 }
 
+export function refittingScenario(seed = 20261018): ScenarioRun {
+  const run = refitting(seed);
+  return {
+    step: () => run.step(),
+    checksum: () =>
+      checksumDamage(
+        run.ships.damage,
+        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
+      ),
+    describe: () => describeBattle(run),
+  };
+}
+
 export function rebuildingScenario(seed = 20261013): ScenarioRun {
   const run = rebuilding(seed);
   return {
@@ -699,6 +712,8 @@ export const SCENARIOS = {
   // Long enough for the robots to mend everything and come home.
   mending: { steps: 15_600, build: () => mendingScenario() },
   rebuilding: { steps: 10_800, build: () => rebuildingScenario() },
+  // Long enough for the new fin to go up, the old fin and the engine to come down, and the tank to go up.
+  refitting: { steps: 21_600, build: () => refittingScenario() },
   // Long enough for both scavengers to drink their fill, one from three wrecks.
   scavenge: { steps: 18_000, build: () => scavengeScenario() },
   // Long enough for all three fighters to land, fill and lift off.

@@ -536,6 +536,12 @@ export interface ShipDesign {
   readonly aboard?: readonly Aboard[];
   /** The fighters its pads build, and how many of each they keep. Absent for none. */
   readonly builds?: readonly PadBuild[];
+  /**
+   * Each module of the expanded layout's lasting name (`moduleKeys`), by
+   * `DesignModule.index`: what a refit matches one version of a design to the
+   * next by. Only on a design compiled from a blueprint.
+   */
+  readonly keys?: readonly string[];
 }
 
 /** The part a dock is made by: a claw gripping, a pad a fighter has landed on, or two ports mated. */
@@ -1804,8 +1810,12 @@ export function compileDraft(blueprint: Blueprint): ShipDesign {
     const keep = floor(spec.keep ?? 0);
     if (keep > 0) builds.push({ pad: m, design: fighter, keep });
   }
-  if (aboard.length === 0 && builds.length === 0) return design;
-  return { ...design, ...(aboard.length > 0 ? { aboard } : {}), ...(builds.length > 0 ? { builds } : {}) };
+  return {
+    ...design,
+    keys: moduleKeys(blueprint),
+    ...(aboard.length > 0 ? { aboard } : {}),
+    ...(builds.length > 0 ? { builds } : {}),
+  };
 }
 
 /**
@@ -2002,6 +2012,33 @@ export function rebuiltDesign(
     joins = { pieces, seams: design.seams ?? [], ...(design.fighterPieces === undefined ? {} : { fighterPieces: design.fighterPieces }) };
   }
   return designFrom(design.name, specs, all, layoutIndex, design.doctrine, joins, design.fighter, marks);
+}
+
+/**
+ * A design with the modules `origins` names said to be those modules of
+ * another compiled design instead, and every other as it was: the same hull,
+ * matched to a new version of what it is built to (a refit). Shells stay shells.
+ */
+export function remarkedDesign(design: ShipDesign, origins: readonly (Compiled | null)[]): ShipDesign {
+  const marks = design.modules.map((_, m) => {
+    const mark = markOf(design, m);
+    const origin = origins[m];
+    return origin === null || origin === undefined ? mark : { ...mark, origin };
+  });
+  const joins: Joins | undefined =
+    design.pieces === undefined
+      ? undefined
+      : { pieces: design.pieces, seams: design.seams ?? [], ...(design.fighterPieces === undefined ? {} : { fighterPieces: design.fighterPieces }) };
+  return designFrom(
+    design.name,
+    design.modules.map((module) => module.spec),
+    design.modules.map((module) => module.stats),
+    design.modules.map((module) => module.index),
+    design.doctrine,
+    joins,
+    design.fighter,
+    marks,
+  );
 }
 
 /**
