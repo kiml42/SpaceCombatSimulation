@@ -34,6 +34,8 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
   - All the doctrine readouts show what they'd calculate against that opponent at 0 relative velocity.
   - Can drag a ghost of the target ship around to see how it affects the behaviour of the ship.
   - Weapons and weapon engines animate as if it was in a battle at that position.
+- When refitting a ship, add a button to animate the refit (not using robots, just show the old things being disassembled and the new parts being assembled)
+  - Similar button for assembling from a pad or slipway.
 
 
 ## Weapons
