@@ -270,3 +270,34 @@ describe('robots aboard a carrier building a fighter', () => {
     for (const f of building) expect(run.ships.isAlive(f), `fighter ${f}`).toBe(true);
   });
 });
+
+describe('a pad waiting on a fighter coming in', () => {
+  it('waits for one that can get there, and not for one with no engine left', () => {
+    const run = makeBattle({ seed: 5 }, (ships, world) => {
+      const c = ships.spawn(world, { design: compileBlueprint(factoryOf(1)), x: 0, y: 0, angle: 0.2 });
+      const base = compileBlueprint(DINKY);
+      // Low on fuel, so it makes for the pad.
+      const d = ships.spawn(world, { design: base, x: 300, y: 150, angle: 0 });
+      const b = world.bodies.indexOf(ships.body(d));
+      for (let m = 0; m < base.modules.length; m++) ships.fuel.vent(b, m, ships.fuel.held(b, m) * 0.9);
+      ships.spawn(world, { design: compileBlueprint(BARE_CORE), x: 5000, y: 0, team: 1 });
+      return { c, d };
+    });
+    const internals = run.ships as unknown as { landingPad: number[] };
+    const building = (): boolean => {
+      for (let i = 0; i < run.ships.highWater; i++) if (run.ships.isAlive(i) && run.ships.isUnfinished(i)) return true;
+      return false;
+    };
+    runFor(run, 10, () => internals.landingPad[run.d]! >= 0);
+    expect(internals.landingPad[run.d]).toBeGreaterThanOrEqual(0);
+    runFor(run, 2);
+    expect(building()).toBe(false);
+    // Every engine shot out on the way in: it can make for the pad no longer.
+    const b = run.world.bodies.indexOf(run.ships.body(run.d));
+    const design = run.ships.design(run.d);
+    for (const engine of design.engines) run.ships.damage.absorb(b, engine.module!, run.ships.damage.capacityLeft(b, engine.module!));
+    expect(run.ships.hasNoEngines(run.d)).toBe(true);
+    runFor(run, 20, building);
+    expect(building()).toBe(true);
+  });
+});

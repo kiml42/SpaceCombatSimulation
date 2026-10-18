@@ -867,8 +867,8 @@ inside any one file is not contiguous.
   of its carrier's alike. One pad builds one at a time. A shell with no whole module of its design to be laid out
   by carries where it goes (`Shell.placed`). A pad's fighters are those it set out with or built, wherever
   they land: one being built on it, one under control and not mission killed, and one under control aboard
-  a friend count; the dead and the rest are replaced. It starts no core while a fighter of its side is
-  making for it, nor while its carrier is out of control, and the budget pays nothing for what it keeps:
+  a friend count; the dead and the rest are replaced. It starts no core while a fighter of its side that could
+  still get there, under control and with an engine working, is making for it, nor while its carrier is out of control, and the budget pays nothing for what it keeps:
   the carrier's holds are the price, and the build time is paid in the battle. For a battle's decision, a
   ship that could still build an armed fighter, its pad working and holding the metal for the fighter's
   core, is armed, and a pad building is busy though not firing (`scenarios/decision.ts`). The editor sets

@@ -8091,10 +8091,15 @@ export class Ships {
     return count;
   }
 
-  /** Whether a fighter of ship `i`'s side is making for its pad `pad`. */
+  /**
+   * Whether a fighter of ship `i`'s side is making for its pad `pad` and can
+   * still get there: under control, and with an engine that works.
+   */
   private awaited(i: number, pad: number): boolean {
     for (let o = 0; o < this.alive.length; o++) {
-      if (this.alive[o] === 1 && this.salvaging[o] === i && this.landingPad[o] === pad) return true;
+      if (this.alive[o] === 0 || this.salvaging[o] !== i || this.landingPad[o] !== pad) continue;
+      if (this.derelict[o] === 1 || !this.hasControl(o) || this.hasNoEngines(o)) continue;
+      return true;
     }
     return false;
   }
