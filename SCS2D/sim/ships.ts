@@ -38,7 +38,7 @@ import { printedCraft, printFrame, printLength, SLIPWAY_STEP, type Print } from 
 import { Fuel, LEAK_HOLE_CALIBRES, leakChance, leakRate, leakSpeed, type Leak } from './fuel.js';
 import { Charge } from './charge.js';
 import { Metal } from './metal.js';
-import { isHullMount, moduleCentre, SEAL_REACH, SEAL_SPEED, weldBox } from './modules.js';
+import { isHullMount, moduleCentre, moduleOutline, SEAL_REACH, SEAL_SPEED, weldBox } from './modules.js';
 import type { Rng } from './rng.js';
 import {
   landedIndex,
@@ -1017,6 +1017,8 @@ export class Ships {
   private readonly yards: (Yard | null)[] = [];
   /** Whether each ship is still going up on a slipway, its walls not yet all built. */
   private readonly printing: number[] = [];
+  /** Scratch for a module's outline, measured against a slipway's face. */
+  private readonly faceCorners: number[] = [];
   /** The tick each carrier last put work into a fighter it is building; -1 for never. */
   private readonly builtAt: number[] = [];
   /** Whether each ship has been refitted to a design other than the one it set out as (`refit`). */
@@ -4368,8 +4370,8 @@ export class Ships {
           if (built >= 0 && this.printing[built] === 1) continue;
           if (built >= 0 && this.unfinished[built] === 1) {
             const joules = SLIPWAY_BUILD_PER_METRE * design.modules[seam.a]!.spec.width * working * world.dt;
-            if (this.padBuild(bodies, b, design, built, seam.a, joules)) this.builtAt[this.pilotAt(b, seam.a)] = world.tick;
-            if (this.finished(b, built, design)) this.unfinished[built] = 0;
+            if (this.tendAtFace(bodies, b, built, seam.a, joules)) this.builtAt[this.pilotAt(b, seam.a)] = world.tick;
+            else if (!this.atFace(b, built, seam.a)) this.unfinished[built] = 0;
             continue;
           }
           if (built >= 0) {
@@ -7751,6 +7753,12 @@ export class Ships {
     });
     const working = this.damage.remaining(b, slipway, DamageEffect.Grip);
     const width = this.designs[i]!.modules[slipway]!.spec.width;
+    // What is at the face is finished before the next slice pushes it out of reach.
+    if (f >= 0) {
+      const busy = this.tendAtFace(bodies, b, f, slipway, SLIPWAY_BUILD_PER_METRE * width * working * world.dt);
+      if (busy) this.builtAt[i] = world.tick;
+      if (busy || this.atFace(b, f, slipway)) return;
+    }
     const put = min(min(SLIPWAY_BUILD_PER_METRE * width * working * world.dt, joules - yard.work[k]!), this.power.pieceHeld(b, slipway) / REPAIR_ENERGY_PER_JOULE);
     if (put > 0) {
       yard.work[k] = yard.work[k]! + put;
@@ -7775,6 +7783,83 @@ export class Ships {
     this.settleMass(bodies, b);
     // What it wasted left at the hull's speed.
     this.discardFrom(bodies, b, mass, inertia);
+  }
+
+  /**
+   * The module of ship `f`, being built on slipway `slipway` of body `b`, that
+   * the slipway can reach and is not yet whole, fittings and all; -1 for none.
+   * It reaches only what lies within a step of its face: what the slice just
+   * built finished, and what the next pushes out. Cores first.
+   */
+  private atFaceIndex(b: number, f: number, slipway: number): number {
+    const design = this.hullDesign[b]!;
+    const spec = design.modules[slipway]!.spec;
+    const angle = spec.angle ?? 0;
+    const c = cos(angle);
+    const s = sin(angle);
+    const face = spec.length / 2 + SLIPWAY_STEP + 1e-6;
+    const corners = this.faceCorners;
+    let best = -1;
+    let bestTier = 3;
+    for (let m = 0; m < design.modules.length; m++) {
+      if (this.pilotAt(b, m) !== f) continue;
+      if (!(this.damage.unbuiltAt(b, m) > 0) && !(this.damage.absorbedAt(b, m) > 0)) continue;
+      const count = moduleOutline(design.modules[m]!.spec, corners);
+      let near = Infinity;
+      for (let v = 0; v < count; v++) near = min(near, (corners[v * 2]! - spec.x) * c + (corners[v * 2 + 1]! - spec.y) * s);
+      if (near > face) continue;
+      const tier = repairTier(design, m);
+      if (tier < bestTier) {
+        best = m;
+        bestTier = tier;
+      }
+    }
+    return best;
+  }
+
+  /** Whether the slipway has anything of ship `f` at its face still to fit or mend. */
+  private atFace(b: number, f: number, slipway: number): boolean {
+    return this.atFaceIndex(b, f, slipway) >= 0;
+  }
+
+  /**
+   * Put up to `joules` of slipway `slipway`'s work into what of ship `f` is at
+   * its face and not yet whole: its fittings, then its damage, from the metal
+   * and charge on the slipway's piece of hull at robots' prices. Says whether
+   * it did any.
+   */
+  private tendAtFace(bodies: Bodies, b: number, f: number, slipway: number, joules: number): boolean {
+    const m = this.atFaceIndex(b, f, slipway);
+    if (m < 0 || !(joules > 0)) return false;
+    const stats = this.hullDesign[b]!.modules[m]!.stats;
+    const mass = bodies.mass[b]!;
+    const inertia = bodies.inertia[b]!;
+    const waste = 1 + REPAIR_WASTE;
+    if (this.damage.unbuiltAt(b, m) > 0) {
+      const work = buildWork(stats);
+      const perKg = work * REPAIR_ENERGY_PER_JOULE;
+      const kg = min(min(joules / work, this.power.pieceHeld(b, slipway) / perKg), this.metal.pieceHeld(b, slipway) / waste);
+      const put = this.damage.fit(b, m, kg);
+      if (!(put > 0)) return false;
+      this.metal.drain(b, slipway, put * waste);
+      this.power.drain(b, slipway, put * perKg);
+    } else {
+      this.settleShed(bodies);
+      const work = repairWork(stats);
+      let undo = min(joules / work, this.power.pieceHeld(b, slipway) / (work * REPAIR_ENERGY_PER_JOULE));
+      const kg = this.damage.repairMetal(b, m, undo) * waste;
+      const metal = this.metal.pieceHeld(b, slipway);
+      if (kg > metal) undo *= metal / kg;
+      const cost = this.damage.repairMetal(b, m, undo) * waste;
+      const undone = this.damage.repair(b, m, undo);
+      if (!(undone > 0)) return false;
+      this.fuel.seal(b, m);
+      if (cost > 0) this.metal.drain(b, slipway, cost);
+      this.power.drain(b, slipway, undone * work * REPAIR_ENERGY_PER_JOULE);
+    }
+    this.settleMass(bodies, b);
+    this.discardFrom(bodies, b, mass, inertia);
+    return true;
   }
 
   /**

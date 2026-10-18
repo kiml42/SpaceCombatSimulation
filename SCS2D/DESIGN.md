@@ -884,12 +884,15 @@ inside any one file is not contiguous.
   the builder, held by a slipway dock on each piece it is in, since a design that joins up only further aft
   is in pieces until it does. A step's work is `SLIPWAY_BUILD_PER_METRE` of the slipway's width, its walls
   paid for in metal and charge from the slipway's piece of hull at robots' prices, and it waits while
-  anything is where the part built would go. With its walls all up the slipway fits it out, cores first,
-  fills it from what the builder can spare as a pad does, and lets it go. Until then it is held doing
-  nothing, its engines off and its guns silent. A builder that could still build an armed ship is armed,
-  and a slipway building is busy, for a battle's decision, as a pad is. The `shipyard` scenario has a
-  Shipyard build a Scavenger in about two and a half minutes, fit it out and fill it, and let it go at
-  about four and a half.
+  anything is where the part built would go. **A slipway reaches only what is within a step of its face**,
+  and finishes it before the next step pushes it out of reach: before every step it fits out, and mends,
+  each module of the ship there that is not whole, cores first, at the same rate and price (`tendAtFace`),
+  so a module comes away from the face whole and none is left to fit at the end but the stern's. With its
+  walls all up and its stern whole it fills it from what the builder can spare as a pad does, and lets it
+  go. Until then it is held doing nothing, its engines off and its guns silent. A builder that could still
+  build an armed ship is armed, and a slipway building is busy, for a battle's decision, as a pad is. The
+  `shipyard` scenario has a Shipyard build and fit out a Scavenger in a little over three minutes, fill it,
+  and let it go at about four and a half.
   **A port** (`port`) is a coupling on a hull's side, never thick, with a pump of `PORT_PUMP_PER_METRE` for
   every metre of its face. Anything but a fighter with a working port that is down to its
   `refuelBelow` picks a

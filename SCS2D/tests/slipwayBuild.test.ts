@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { blueprintProblems, compileBlueprint, footprintOf, printedCraft, printLength, type Blueprint, type ModuleSpec } from '../sim/index.js';
+import { fittingOf } from '../sim/rebuild.js';
 import { makeBattle } from '../scenarios/battle.js';
 import type { Battle } from '../scenarios/types.js';
 import { BARE_CORE, SCAVENGER } from '../scenarios/blueprints.js';
@@ -89,9 +90,15 @@ describe('a slipway', () => {
       return !run.ships.isPrinting(s!);
     });
     expect(run.ships.isPrinting(s!)).toBe(false);
+    // Fitted out as it went, at the face, rather than all at the end: what is
+    // left is no more than the stern's.
+    const fittings = craft.modules.reduce((sum, m) => sum + fittingOf(m.stats), 0);
+    const yardBody = run.world.bodies.indexOf(run.ships.body(run.y));
+    expect(run.ships.damage.unbuiltMass(yardBody)).toBeLessThan(fittings / 2);
     runFor(run, 300, () => run.ships.body(s!) !== run.ships.body(run.y));
     expect(run.ships.body(s!)).not.toEqual(run.ships.body(run.y));
     expect(run.ships.isUnfinished(s!)).toBe(false);
+    expect(run.ships.damage.unbuiltMass(run.world.bodies.indexOf(run.ships.body(s!)))).toBe(0);
     expect(run.ships.hasControl(s!)).toBe(true);
     expect(run.ships.design(s!).modules.length).toBe(craft.modules.length);
     // The Scavenger's bow is ahead of the yard: built out along the slipway's facing.
