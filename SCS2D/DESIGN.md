@@ -873,7 +873,20 @@ inside any one file is not contiguous.
   a thick slipway), or for anything of the builder to lie in the strip it builds into. A slipway's fittings
   are `SLIPWAY_MASS_PER_AREA` of its floor, and it pumps `SLIPWAY_PUMP_PER_METRE` for every metre of its
   width. The editor sets the ship and how many it keeps, and evolution nudges the count but never adds a
-  slipway. Nothing is built on one yet (ROADMAP.md §8 step 12, slice 3).
+  slipway. **A slipway builds like a printer** (`Ships.build`, `sim/slipway.ts`): short of the ships it
+  keeps, counted as a pad counts its fighters, it builds `SLIPWAY_STEP` (a metre) of the ship at a time
+  from the bow, every module the cut crosses a shell from its foremost face as far as the cut and every
+  module wholly ahead of it whole but for its fittings (`printedCraft`). Each step is a remade hull: the
+  part built is taken out and put back pushed out by a step, its cut at the slipway's face, one body with
+  the builder, held by a slipway dock on each piece it is in, since a design that joins up only further aft
+  is in pieces until it does. A step's work is `SLIPWAY_BUILD_PER_METRE` of the slipway's width, its walls
+  paid for in metal and charge from the slipway's piece of hull at robots' prices, and it waits while
+  anything is where the part built would go. With its walls all up the slipway fits it out, cores first,
+  fills it from what the builder can spare as a pad does, and lets it go. Until then it is held doing
+  nothing, its engines off and its guns silent. A builder that could still build an armed ship is armed,
+  and a slipway building is busy, for a battle's decision, as a pad is. The `shipyard` scenario has a
+  Shipyard build a Scavenger in about two and a half minutes, fit it out and fill it, and let it go at
+  about four and a half.
   **A port** (`port`) is a coupling on a hull's side, never thick, with a pump of `PORT_PUMP_PER_METRE` for
   every metre of its face. Anything but a fighter with a working port that is down to its
   `refuelBelow` picks a

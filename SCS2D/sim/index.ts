@@ -152,6 +152,7 @@ export {
   PAD_REPAIR_PER_METRE,
   SLIPWAY_MASS_PER_AREA,
   SLIPWAY_PUMP_PER_METRE,
+  SLIPWAY_BUILD_PER_METRE,
   COMPLEXITY_WORK,
   complexityOf,
   ROBOT_BERTH_VOLUME,
@@ -315,6 +316,8 @@ export {
   padHolds,
   slipwayHolds,
   slipwayStrip,
+  partsDesign,
+  type PartOf,
   type SlipwayBuild,
   aboardPose,
   type Aboard,
@@ -463,3 +466,4 @@ export {
   formatChecksum,
 } from './checksum.js';
 export { addBills, affords, billOf, isLimited, NO_BILL, NO_BUDGET, type Bill, type Budget } from './bill.js';
+export { printedCraft, printFrame, printLength, SLIPWAY_STEP, type Print } from './slipway.js';
