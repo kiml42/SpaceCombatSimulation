@@ -261,6 +261,8 @@ describe('a beam through a wreck', () => {
     let front = 0;
     let back = 0;
     for (let i = 0; i < hits.count; i++) {
+      // Only the beam fired, not what it reflects.
+      if (hits.beam[i] !== index) continue;
       if (hits.body[i] === wreck) front += hits.share[i]!;
       if (hits.body[i] === behind) back += hits.share[i]!;
     }
