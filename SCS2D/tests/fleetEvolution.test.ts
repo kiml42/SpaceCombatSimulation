@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { compileBlueprint, fleetBill, fleetHulls, fleetMass, fleetReach, NO_BUDGET, Rng, shipFleet, type Fleet } from '../sim/index.js';
 import { isFleet, Match, runMatch } from '../evolution/match.js';
-import { DEFAULT_FLEET_LIMITS, fleetFits, mutateFleet, type FleetOperator } from '../evolution/fleetMutate.js';
+import { DEFAULT_FLEET_LIMITS, fleetFits, mutateFleet, type FleetMutationLimits, type FleetOperator } from '../evolution/fleetMutate.js';
 import { entrantOf, generationSize, runEvolution, shipCount } from '../evolution/run.js';
 import { parseRunConfig, runConfigFileProblem, runConfigWarnings, serialiseRunConfig } from '../evolution/configFile.js';
 import { DEFAULT_RUN } from '../evolution/run.js';
@@ -14,10 +14,13 @@ import { addShip, emptyFleet } from '../editor/fleetEdit.js';
 
 const SHORT = { duration: 20 };
 
-function only(operator: FleetOperator): Record<FleetOperator, number> {
-  const weights = { design: 0, move: 0, add: 0, remove: 0, fork: 0, merge: 0, swap: 0, pad: 0 };
-  weights[operator] = 1;
-  return weights;
+/** Limits that make only the one change: a design, every ship's move, or one change to what the fleet is made of. */
+function only(change: FleetOperator | 'design' | 'move'): Partial<FleetMutationLimits> {
+  const operators = { add: 0, remove: 0, fork: 0, merge: 0, swap: 0, pad: 0 };
+  if (change === 'design') return { design: 1, move: 0, change: 0, operators };
+  if (change === 'move') return { design: 0, move: 1, change: 0, operators };
+  operators[change] = 1;
+  return { design: 0, move: 0, change: 1, operators };
 }
 
 /** A Factory, whose pad keeps a Dinky, and a Dinky beside it. */
@@ -129,7 +132,7 @@ describe('breeding a fleet', () => {
 
   it('makes a change with every operator, each within the limits', () => {
     const limits = { radius: 500, maxShips: 24, budget: NO_BUDGET };
-    const parents: Record<FleetOperator, Fleet> = {
+    const parents: Record<FleetOperator | 'design' | 'move', Fleet> = {
       design: LINE_OF_BATTLE,
       move: LINE_OF_BATTLE,
       add: pair(),
@@ -139,8 +142,8 @@ describe('breeding a fleet', () => {
       swap: LINE_OF_BATTLE,
       pad: carrierFleet(),
     };
-    for (const [operator, parent] of Object.entries(parents) as [FleetOperator, Fleet][]) {
-      const child = mutateFleet(parent, new Rng(11), { ...limits, operators: only(operator) });
+    for (const [operator, parent] of Object.entries(parents) as [FleetOperator | 'design' | 'move', Fleet][]) {
+      const child = mutateFleet(parent, new Rng(11), { ...limits, ...only(operator) });
       expect(child.edits.length, operator).toBeGreaterThan(0);
       expect(fleetFits(child.fleet, limits), operator).toBe(true);
     }
@@ -149,7 +152,7 @@ describe('breeding a fleet', () => {
   it('swaps a ship onto another of its fleet\'s designs, keeping the count', () => {
     const designs = (fleet: Fleet): string[] => fleet.ships.map((entry) => ('design' in entry ? entry.design : `group ${entry.group}`));
     const before = designs(LINE_OF_BATTLE);
-    const child = mutateFleet(LINE_OF_BATTLE, new Rng(5), { operators: only('swap') });
+    const child = mutateFleet(LINE_OF_BATTLE, new Rng(5), { ...only('swap') });
     expect(child.edits[0]).toMatch(/rebuilt as a/);
     const after = designs(child.fleet);
     expect(after).toHaveLength(before.length);
@@ -173,11 +176,49 @@ describe('breeding a fleet', () => {
     let apart = 0;
     let together = 0;
     for (let i = 0; i < 300; i++) {
-      const child = mutateFleet(crowded, rng, { operators: only('move') }).fleet;
+      const child = mutateFleet(crowded, rng, { ...only('move') }).fleet;
       if (gap(child) > gap(crowded) + 1e-9) apart++;
       else if (gap(child) < gap(crowded) - 1e-9) together++;
     }
     expect(apart).toBeGreaterThan(together * 2);
+  });
+
+  it('mutates each design with a chance of its own, however many designs there are', () => {
+    const share = (fleet: Fleet): number => {
+      const rng = new Rng(4);
+      let changed = 0;
+      const tries = 200;
+      for (let i = 0; i < tries; i++) {
+        const child = mutateFleet(fleet, rng, { design: 0.5, move: 0, change: 0 });
+        if (JSON.stringify(child.fleet.designs.Dinky) !== JSON.stringify(fleet.designs.Dinky)) changed++;
+      }
+      return changed / tries;
+    };
+    const many: Fleet = {
+      name: 'Many',
+      designs: { Dinky: DINKY, Corvette: CORVETTE, Gunship: GUNSHIP, Core: BARE_CORE },
+      ships: [
+        { design: 'Dinky', x: 0, y: 0 },
+        { design: 'Corvette', x: 300, y: 0 },
+        { design: 'Gunship', x: 0, y: 300 },
+        { design: 'Core', x: -300, y: 0 },
+      ],
+    };
+    const alone = share(pair());
+    expect(alone).toBeGreaterThan(0.35);
+    expect(alone).toBeLessThan(0.65);
+    expect(Math.abs(share(many) - alone)).toBeLessThan(0.15);
+  });
+
+  it('moves every ship in every child', () => {
+    const rng = new Rng(2);
+    for (let i = 0; i < 20; i++) {
+      const child = mutateFleet(pair(), rng, { ...only('move') }).fleet;
+      child.ships.forEach((entry, k) => {
+        const was = pair().ships[k]!;
+        expect(entry.x !== was.x || entry.y !== was.y).toBe(true);
+      });
+    }
   });
 
   it('never leaves the parent changed', () => {
@@ -189,31 +230,31 @@ describe('breeding a fleet', () => {
   it('refuses what breaks a limit, and returns the parent', () => {
     const bill = fleetBill(fleetHulls(pair()));
     const parent = pair();
-    const crowded = mutateFleet(parent, new Rng(3), { maxShips: 2, operators: only('add') });
+    const crowded = mutateFleet(parent, new Rng(3), { maxShips: 2, ...only('add') });
     expect(crowded.edits).toEqual([]);
     expect(crowded.fleet).toBe(parent);
     // Each of the three bounds the whole fleet on its own.
     for (const key of ['metal', 'fuel', 'build'] as const) {
-      const dear = mutateFleet(pair(), new Rng(3), { budget: { ...NO_BUDGET, [key]: bill[key] * 1.2 }, operators: only('add') });
+      const dear = mutateFleet(pair(), new Rng(3), { budget: { ...NO_BUDGET, [key]: bill[key] * 1.2 }, ...only('add') });
       expect(dear.edits, key).toEqual([]);
     }
     const lone = shipFleet(DINKY);
-    const cramped = mutateFleet(lone, new Rng(3), { radius: fleetReach(fleetHulls(lone)) + 1, operators: only('add') });
+    const cramped = mutateFleet(lone, new Rng(3), { radius: fleetReach(fleetHulls(lone)) + 1, ...only('add') });
     expect(cramped.edits).toEqual([]);
   });
 
   it('keeps one entry, however often entries are taken out', () => {
     let fleet = LINE_OF_BATTLE;
     const rng = new Rng(5);
-    for (let i = 0; i < 20; i++) fleet = mutateFleet(fleet, rng, { operators: only('remove') }).fleet;
+    for (let i = 0; i < 20; i++) fleet = mutateFleet(fleet, rng, { ...only('remove') }).fleet;
     expect(fleet.ships).toHaveLength(1);
     expect(fleetFits(fleet, { radius: 500, maxShips: 24, budget: NO_BUDGET })).toBe(true);
   });
 
   it('merges back what it forked', () => {
-    const forked = mutateFleet(pair(), new Rng(1), { operators: only('fork') }).fleet;
+    const forked = mutateFleet(pair(), new Rng(1), { ...only('fork') }).fleet;
     expect(Object.keys(forked.designs)).toEqual(['Dinky', 'Dinky 2']);
-    const merged = mutateFleet(forked, new Rng(1), { operators: only('merge') }).fleet;
+    const merged = mutateFleet(forked, new Rng(1), { ...only('merge') }).fleet;
     expect(Object.keys(merged.designs)).toHaveLength(1);
     expect(fleetHulls(merged)).toHaveLength(2);
   });
@@ -232,7 +273,7 @@ describe("where a fleet's ships go", () => {
     };
     const moved = { Dinky: [] as number[], Gunship: [] as number[] };
     for (let seed = 0; seed < 60; seed++) {
-      const child = mutateFleet(fleet, new Rng(seed), { operators: only('move'), moves: 1 }).fleet;
+      const child = mutateFleet(fleet, new Rng(seed), { ...only('move') }).fleet;
       child.ships.forEach((entry, i) => {
         const was = fleet.ships[i]!;
         const by = Math.sqrt((entry.x - was.x) ** 2 + (entry.y - was.y) ** 2);
@@ -249,7 +290,7 @@ describe("where a fleet's ships go", () => {
     const radius = compileBlueprint(GUNSHIP).radius;
     let seen = 0;
     for (let seed = 0; seed < 30; seed++) {
-      const child = mutateFleet(lone, new Rng(seed), { operators: only('add') }).fleet;
+      const child = mutateFleet(lone, new Rng(seed), { ...only('add') }).fleet;
       const added = child.ships[1];
       if (added === undefined || !('design' in added) || added.design !== 'Gunship') continue;
       seen++;
@@ -265,7 +306,7 @@ describe('designs a fleet carries but does not fly', () => {
   it('keeps the design of a ship taken out', () => {
     const fleet: Fleet = { ...pair(), designs: { Dinky: DINKY, Corvette: CORVETTE }, ships: [...pair().ships, { design: 'Corvette', x: 80, y: 0 }] };
     for (let seed = 0; seed < 10; seed++) {
-      const child = mutateFleet(fleet, new Rng(seed), { operators: only('remove') }).fleet;
+      const child = mutateFleet(fleet, new Rng(seed), { ...only('remove') }).fleet;
       expect(Object.keys(child.designs)).toEqual(['Dinky', 'Corvette']);
     }
   });
@@ -274,7 +315,7 @@ describe('designs a fleet carries but does not fly', () => {
     const fleet: Fleet = { ...pair(), designs: { Dinky: DINKY, Gunship: GUNSHIP } };
     const built = new Set<string>();
     for (let seed = 0; seed < 40; seed++) {
-      const child = mutateFleet(fleet, new Rng(seed), { operators: only('add') }).fleet;
+      const child = mutateFleet(fleet, new Rng(seed), { ...only('add') }).fleet;
       expect(child.ships).toHaveLength(3);
       const added = child.ships[2]!;
       built.add('design' in added ? added.design : '');
@@ -286,7 +327,7 @@ describe('designs a fleet carries but does not fly', () => {
   it('adds a bare core it already carries without a second copy of the design', () => {
     const fleet: Fleet = { ...pair(), designs: { Dinky: DINKY, Core: { ...BARE_CORE, name: 'Core' } } };
     for (let seed = 0; seed < 20; seed++) {
-      expect(Object.keys(mutateFleet(fleet, new Rng(seed), { operators: only('add') }).fleet.designs)).toEqual(['Dinky', 'Core']);
+      expect(Object.keys(mutateFleet(fleet, new Rng(seed), { ...only('add') }).fleet.designs)).toEqual(['Dinky', 'Core']);
     }
   });
 
@@ -296,7 +337,7 @@ describe('designs a fleet carries but does not fly', () => {
     let child = fleet;
     const rng = new Rng(9);
     for (let i = 0; i < 30; i++) {
-      child = mutateFleet(child, rng, { operators: { ...only('design'), fork: 1, merge: 1, swap: 1 } }).fleet;
+      child = mutateFleet(child, rng, { operators: { add: 0, remove: 0, fork: 1, merge: 1, swap: 1, pad: 0 }, design: 1, change: 1 }).fleet;
       expect(flown(child)).not.toContain('Gunship');
     }
     expect(JSON.stringify(child.designs.Gunship)).toEqual(before);
@@ -364,7 +405,10 @@ describe('a run-config file with fleets', () => {
     const setup = {
       founders: ['Corvette'],
       fleets: ['Line of Battle'],
-      config: { ...DEFAULT_RUN, fleet: { radius: 300, maxShips: 8, operators: { ...DEFAULT_FLEET_LIMITS.operators, add: 3 } } },
+      config: {
+        ...DEFAULT_RUN,
+        fleet: { radius: 300, maxShips: 8, design: 0.8, move: 1.5, change: 0.2, operators: { ...DEFAULT_FLEET_LIMITS.operators, add: 3 } },
+      },
     };
     const read = parseRunConfig(JSON.parse(JSON.stringify(serialiseRunConfig(setup))));
     expect(read.fleets).toEqual(['Line of Battle']);

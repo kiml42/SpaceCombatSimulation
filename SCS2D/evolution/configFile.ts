@@ -113,7 +113,7 @@ const VERSUS_KEYS: readonly string[] = [
   'evolves',
 ];
 
-const FLEET_KEYS: readonly string[] = ['radius', 'maxShips', 'operators'];
+const FLEET_KEYS: readonly string[] = ['radius', 'maxShips', 'design', 'move', 'change', 'operators'];
 const BUDGET_KEYS = ['metal', 'fuel', 'build'] as const;
 const OPERATOR_KEYS = Object.keys(DEFAULT_FLEET_LIMITS.operators) as FleetOperator[];
 
@@ -159,6 +159,9 @@ export function serialiseRunConfig(setup: RunSetup): Record<string, unknown> {
     fleet: {
       radius: config.fleet.radius ?? DEFAULT_FLEET_LIMITS.radius,
       maxShips: config.fleet.maxShips ?? DEFAULT_FLEET_LIMITS.maxShips,
+      design: config.fleet.design ?? DEFAULT_FLEET_LIMITS.design,
+      move: config.fleet.move ?? DEFAULT_FLEET_LIMITS.move,
+      change: config.fleet.change ?? DEFAULT_FLEET_LIMITS.change,
       operators: { ...DEFAULT_FLEET_LIMITS.operators, ...config.fleet.operators },
     },
     match: {
@@ -255,9 +258,15 @@ function fleetProblem(fleet: unknown, where: string, warnings: string[]): string
   if (fleet === undefined) return null;
   if (!isRecord(fleet)) return `${where} must be an object`;
   unknownKeys(fleet, FLEET_KEYS, where, warnings);
-  const problem = numberProblem(fleet['radius'], `${where}.radius`) ?? countProblem(fleet['maxShips'], `${where}.maxShips`);
+  const problem =
+    numberProblem(fleet['radius'], `${where}.radius`) ??
+    countProblem(fleet['maxShips'], `${where}.maxShips`) ??
+    chanceProblem(fleet['design'], `${where}.design`) ??
+    chanceProblem(fleet['change'], `${where}.change`) ??
+    numberProblem(fleet['move'], `${where}.move`);
   if (problem !== null) return problem;
   if (fleet['radius'] !== undefined && (fleet['radius'] as number) <= 0) return `${where}.radius must be more than nothing`;
+  if (fleet['move'] !== undefined && (fleet['move'] as number) < 0) return `${where}.move must be zero or more`;
   const operators = fleet['operators'];
   if (operators !== undefined) {
     if (!isRecord(operators)) return `${where}.operators must be an object of weights, one per change`;
@@ -356,6 +365,9 @@ export function parseRunConfig(value: unknown): RunSetup {
       fleet: {
         radius: read(fleet['radius'], DEFAULT_FLEET_LIMITS.radius),
         maxShips: read(fleet['maxShips'], DEFAULT_FLEET_LIMITS.maxShips),
+        design: read(fleet['design'], DEFAULT_FLEET_LIMITS.design),
+        move: read(fleet['move'], DEFAULT_FLEET_LIMITS.move),
+        change: read(fleet['change'], DEFAULT_FLEET_LIMITS.change),
         operators: {
           ...DEFAULT_FLEET_LIMITS.operators,
           ...(isRecord(fleet['operators']) ? (fleet['operators'] as Partial<Record<FleetOperator, number>>) : {}),

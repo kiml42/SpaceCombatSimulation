@@ -44,7 +44,7 @@ describe("the skirmish enemy's answer", () => {
     // A fixed amount of work rather than a whole search, so the test costs the same on any seed.
     const run = (): EnemySearch => {
       const going = new EnemySearch(gunship, corvette, WON, 3);
-      going.advance(40_000);
+      going.advance(80_000);
       return going;
     };
     const a = run().progress;
@@ -128,7 +128,7 @@ describe('how far an answer may grow', () => {
 describe('how the enemy is bred', () => {
   it('breeds by the mutation odds it is given', () => {
     // Only moves: every mutant keeps the enemy's designs and its ships.
-    const only = { opDesign: 0, opAdd: 0, opRemove: 0, opFork: 0, opMerge: 0, opSwap: 0, opPad: 0, opMove: 1 };
+    const only = { fleetDesign: 0, fleetChange: 0, fleetMove: 1 };
     const search = new EnemySearch(gunship, corvette, MIRROR_WON, 4, { mutants: 3, seeds: 1, duration: 20, breeding: only });
     while (search.progress.generation < 1 && !search.advance(2000));
     const best = search.progress.best.enemy;

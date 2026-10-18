@@ -632,9 +632,13 @@ inside any one file is not contiguous.
   founders are ships and fleets alike; a ship grows into a fleet unless the most ships allowed is one. A fleet carries designs it does not fly: a
   ship taken out leaves its design behind, and a ship added is built to any design the fleet carries or to a bare
   core, so it can grow by one small ship rather than only by a copy of one it has, and it goes in any direction from
-  the ship it is beside, clear of it by one and a quarter to two and a quarter times their two radii. When ships move,
-  each of the fleet's entries moves with a chance of its own, by a drift a quarter of its largest ship's radius and a
-  turn, each undone alone if it lands on a neighbour — so a row of fighters moves as far as a fighter. A design nothing
+  the ship it is beside, clear of it by one and a quarter to two and a quarter times their two radii. **Each child
+  mutates each design with a chance of its own** (`design`, 0.9), so a fleet of four designs breeds each as often as
+  a fleet of one does; **moves every one of its entries** by a drift with no dead zone of a quarter of its largest
+  ship's radius and 15°, times `move` (1), leaning away from its nearest neighbour the more the closer it is, so a row
+  of fighters moves as far as a fighter and a fleet spreads; and **now and then changes what it is made of**
+  (`change`, 0.3: a ship added or removed, a design forked or merged, a ship swapped or a pad repointed, by their
+  weights). Each design's mutation, the change and each entry's move is undone alone if it leaves the fleet unfit. A design nothing
   flies is not mutated, since nothing selects it — unless a pad of a design it flies keeps it, when it is bred as
   a flown one is. A pad is pointed now and then at another fighter (`pad`, 0.5, only in a fleet with a pad):
   another the fleet has, a copy of its own to breed apart, or a new bare core marked a fighter, a tenth of the

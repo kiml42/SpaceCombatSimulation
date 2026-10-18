@@ -19,8 +19,9 @@ describe('the mutation settings a page offers', () => {
   it('cover every number the defaults have, each once', () => {
     const names = MUTATION_FIELDS.map((f) => f.name);
     expect(new Set(names).size).toBe(names.length);
-    // The structural and geometry chances, and the weights.
-    const count = 2 + [DEFAULT_BUILD_WEIGHTS, DEFAULT_KINDS, DEFAULT_DOCTRINE_WEIGHTS, DEFAULT_FLEET_LIMITS.operators]
+    // The structural and geometry chances, the fleet's design chance, ship moves
+    // and change chance, and the weights.
+    const count = 5 + [DEFAULT_BUILD_WEIGHTS, DEFAULT_KINDS, DEFAULT_DOCTRINE_WEIGHTS, DEFAULT_FLEET_LIMITS.operators]
       .map((o) => Object.keys(o).length)
       .reduce((a, b) => a + b, 0);
     expect(names).toHaveLength(count);
