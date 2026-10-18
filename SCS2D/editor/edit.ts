@@ -11,6 +11,7 @@ import {
   math,
   placementAt,
   pushNeighbours,
+  readsDocked,
   type Assembly,
   type AssemblyInstance,
   type Frame,
@@ -161,10 +162,10 @@ export function updatePlacement(
 }
 
 /**
- * Set the fighter a pad tends, or clear it with null, which clears whether it
- * sets out docked and how many it keeps too. A pad given its first fighter sets
- * out with it docked. The fighter is copied into the hangar, and the hangar
- * loses whatever no pad names any more.
+ * Set the craft a pad or slipway builds, or clear it with null, which clears
+ * whether it sets out docked and how many it keeps too. A pad given its first
+ * fighter sets out with it docked. The craft is copied into the hangar, and
+ * the hangar loses whatever nothing names any more.
  */
 export function dockFighter(blueprint: Blueprint, path: ModulePath, fighter: Blueprint | null): Blueprint | null {
   const next = updatePlacement(blueprint, path, (placement) => {
@@ -174,7 +175,7 @@ export function dockFighter(blueprint: Blueprint, path: ModulePath, fighter: Blu
     return {
       ...rest,
       craft: fighter.name,
-      ...(was === undefined ? { docked: true } : docked === undefined ? {} : { docked }),
+      ...(!readsDocked(rest.kind) ? {} : was === undefined ? { docked: true } : docked === undefined ? {} : { docked }),
       ...(keep === undefined ? {} : { keep }),
     };
   });

@@ -201,6 +201,8 @@ export const DAMAGE_RESPONSES: Readonly<Record<ModuleSpec['kind'], readonly Dama
   // A pad's clamps and fuel line, the same.
   pad: [{ effect: DamageEffect.Grip, remaining: fadesOutAt(THRUST_CUTOUT) }],
   port: [{ effect: DamageEffect.Grip, remaining: fadesOutAt(THRUST_CUTOUT) }],
+  // A slipway's cradle and feed lines, the same.
+  slipway: [{ effect: DamageEffect.Grip, remaining: fadesOutAt(THRUST_CUTOUT) }],
   hold: [],
   // Racks and chargers are machinery too.
   robotBay: [{ effect: DamageEffect.Tending, remaining: fadesOutAt(THRUST_CUTOUT) }],

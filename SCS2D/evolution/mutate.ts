@@ -46,7 +46,7 @@ import {
   readsSealing,
   readsDrainPriority,
   readsFill,
-  readsDocked,
+  readsCraft,
   moduleProblem,
   mountTraverse,
   isHullMount,
@@ -257,6 +257,8 @@ export const DEFAULT_KINDS: KindWeights = {
   generator: 1,
   // Mends a ship rather than fighting with it, which a long fight can pay for.
   robotBay: 0.5,
+  // Never reached for: a slipway builds only the craft it names, which a run has to give it.
+  slipway: 0,
 };
 
 /**
@@ -961,8 +963,8 @@ function numbers(draft: Draft): NumberKnob[] {
     if (readsSealing(spec.kind)) out.push({ at: 'sealing', site });
     // Batteries set out full: charge is not in the budget.
     if (readsFill(spec.kind) && spec.kind !== 'battery') out.push({ at: 'fill', site });
-    // How many of its fighter a pad keeps: nothing to count without one.
-    if (readsDocked(spec.kind) && spec.craft !== undefined) out.push({ at: 'keep', site });
+    // How many of its craft a pad or slipway keeps: nothing to count without one.
+    if (readsCraft(spec.kind) && spec.craft !== undefined) out.push({ at: 'keep', site });
     if (isWeaponMount(spec.kind)) {
       // How much arc a weapon is built for, which on a hull mount is mass
       // as well as coverage — a fixed gun carries no training gear, and
@@ -1373,7 +1375,7 @@ function rekeep(site: ModuleSite, jitter: Jitter): string | null {
   if (now === was) return null;
   if (now > 0) site.spec.keep = now;
   else delete site.spec.keep;
-  return `${site.where} pad: keeps ${was} ${site.spec.craft} → ${now}`;
+  return `${site.where} ${site.spec.kind}: keeps ${was} ${site.spec.craft} → ${now}`;
 }
 
 /**

@@ -78,6 +78,8 @@ export const MUTATION_FIELDS: readonly MutationField[] = [
     title: 'Odds that a new or refitted module is a generator: a plant that makes power for as long as it works.' },
   { name: 'kindRobotBay', group: 'kinds', label: 'robot bays', step: 0.5, value: DEFAULT_KINDS.robotBay,
     title: 'Odds that a new or refitted module is a robot bay: robots that crawl the hull mending what damage has done.' },
+  { name: 'kindSlipway', group: 'kinds', label: 'slipways', step: 0.5, value: DEFAULT_KINDS.slipway,
+    title: 'Odds that a new or refitted module is a slipway: a shipyard that builds the ship it names. It builds nothing until given one, which no run does yet, so none by default.' },
   { name: 'opDesign', group: 'fleet', label: 'design mutated', step: 0.5, value: DEFAULT_FLEET_LIMITS.operators.design,
     title: 'Odds of mutating one of the fleet\'s designs, the way a single ship is mutated. Every ship built to that design changes with it.' },
   { name: 'opMove', group: 'fleet', label: 'ship moved/turned', step: 0.5, value: DEFAULT_FLEET_LIMITS.operators.move,

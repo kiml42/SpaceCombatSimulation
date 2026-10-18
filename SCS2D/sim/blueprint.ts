@@ -586,6 +586,8 @@ export interface ShipDesign {
   readonly aboard?: readonly Aboard[];
   /** The fighters its pads build, and how many of each they keep. Absent for none. */
   readonly builds?: readonly PadBuild[];
+  /** The ships its slipways build, and how many of each they keep. Absent for none. */
+  readonly yards?: readonly SlipwayBuild[];
   /**
    * Each module of the expanded layout's lasting name (`moduleKeys`), by
    * `DesignModule.index`: what a refit matches one version of a design to the
@@ -1635,6 +1637,66 @@ export interface PadBuild extends Aboard {
   readonly keep: number;
 }
 
+/** A ship a slipway builds, and how many of it the slipway keeps in the fight (`ModuleSpec.keep`). */
+export interface SlipwayBuild {
+  /** The slipway, as an index into the builder's modules. */
+  readonly slipway: number;
+  readonly design: ShipDesign;
+  readonly keep: number;
+}
+
+/**
+ * The strip a slipway builds its craft into, in the frame its spec is laid out
+ * in: out from its face along its facing, as long as the craft and as wide as
+ * its beam, on the slipway's centre line. The craft's bow points away, and it
+ * is finished when its stern reaches the face.
+ */
+export function slipwayStrip(slipway: ModuleSpec, craft: ShipDesign): ModuleSpec {
+  const box = footprintOf(craft);
+  const length = box.maxX - box.minX;
+  const angle = slipway.angle ?? 0;
+  const out = slipway.length / 2 + length / 2;
+  return {
+    kind: 'structure',
+    x: slipway.x + out * cos(angle),
+    y: slipway.y + out * sin(angle),
+    angle,
+    length,
+    width: box.maxY - box.minY,
+  };
+}
+
+/** Whether a ship's beam is no wider than a slipway, which builds it bow first along its facing. */
+export function slipwayHolds(craft: ShipDesign, slipway: ModuleSpec): boolean {
+  const box = footprintOf(craft);
+  return box.maxY - box.minY <= slipway.width + 1e-9;
+}
+
+/** The ship a slipway builds, compiled, or why it cannot be. Null for a slipway that names none. */
+function slipwayCraft(blueprint: Blueprint, spec: ModuleSpec, layout: readonly ModuleSpec[]): ShipDesign | string | null {
+  if (spec.kind !== 'slipway' || spec.craft === undefined) return null;
+  const name = spec.craft;
+  const craft = blueprint.hangar?.[name];
+  if (craft === undefined) return `no ship named ${name} in the hangar`;
+  const problem = blueprintProblem(craft);
+  if (problem !== null) return `${name} cannot be built: ${problem}`;
+  const design = compileDraft(craft);
+  if (design.fighter) return `${name} is a fighter, which a pad builds`;
+  if ((design.aboard?.length ?? 0) > 0) return `${name} sets out with fighters docked, which a ship built in battle cannot`;
+  if (!slipwayHolds(design, spec)) {
+    const box = footprintOf(design);
+    return `${name} is ${(box.maxY - box.minY).toFixed(1)} m across the beam, wider than this slipway (${spec.width.toFixed(1)} m)`;
+  }
+  if (!inWeaponsLayer(spec) && design.modules.some((m) => m.weaponsLayer)) {
+    return `${name} stands in the weapons layer, so this slipway must be thick to build it`;
+  }
+  const strip = slipwayStrip(spec, design);
+  if (layout.some((other) => other !== spec && modulesOverlap(other, strip))) {
+    return `the ${strip.length.toFixed(1)} m it builds ${name} out into is not clear of this ship's hull`;
+  }
+  return design;
+}
+
 /** Whether a fighter's footprint fits inside a pad, lying along the pad's facing. */
 export function padHolds(fighter: ShipDesign, pad: ModuleSpec): boolean {
   const box = footprintOf(fighter);
@@ -1745,6 +1807,10 @@ export function blueprintFaults(blueprint: Blueprint): BlueprintFault[] {
     if (typeof fighter === 'string') {
       faults.push({ message: `${blueprint.name}, module ${i} — pad: ${fighter}`, modules: [i] });
     }
+    const craft = slipwayCraft(blueprint, modules[i]!, modules);
+    if (typeof craft === 'string') {
+      faults.push({ message: `${blueprint.name}, module ${i} — slipway: ${craft}`, modules: [i] });
+    }
   }
 
   // A ship is flown from a core, so a layout without one is a hull and not a
@@ -1852,12 +1918,15 @@ export function compileDraft(blueprint: Blueprint): ShipDesign {
   );
   const aboard: Aboard[] = [];
   const builds: PadBuild[] = [];
+  const yards: SlipwayBuild[] = [];
   for (let m = 0; m < specs.length; m++) {
     const spec = specs[m]!;
+    const keep = floor(spec.keep ?? 0);
+    const craft = slipwayCraft(blueprint, spec, specs);
+    if (craft !== null && typeof craft !== 'string' && keep > 0) yards.push({ slipway: m, design: craft, keep });
     const fighter = padFighter(blueprint, spec);
     if (fighter === null || typeof fighter === 'string') continue;
     if (spec.docked === true) aboard.push({ pad: m, design: fighter });
-    const keep = floor(spec.keep ?? 0);
     if (keep > 0) builds.push({ pad: m, design: fighter, keep });
   }
   return {
@@ -1865,6 +1934,7 @@ export function compileDraft(blueprint: Blueprint): ShipDesign {
     keys: moduleKeys(blueprint),
     ...(aboard.length > 0 ? { aboard } : {}),
     ...(builds.length > 0 ? { builds } : {}),
+    ...(yards.length > 0 ? { yards } : {}),
   };
 }
 

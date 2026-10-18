@@ -209,6 +209,10 @@ const CORE_GAUGE_INSET = 0.08;
 /** How much of a claw's width each of its two jaws is drawn across. */
 const CLAW_JAW_SHARE = 0.3;
 
+/** How much of a slipway's width each side rail takes, and of its length the feed block aft. */
+const SLIPWAY_RAIL_SHARE = 0.12;
+const SLIPWAY_FEED_SHARE = 0.25;
+
 /** How far in from a pad's edge its landing square is drawn, as a share of its smaller side. */
 const PAD_MARK_INSET = 0.1;
 
@@ -508,6 +512,17 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
       const collar = spec.length * PORT_COLLAR_SHARE;
       ctx.fillRect(-halfLength, -halfWidth, spec.length - collar, spec.width);
       ctx.fillRect(halfLength - collar, -halfWidth * 0.7, collar, spec.width * 0.7);
+    } else if (spec.kind === 'slipway') {
+      // A cradle in the hull's colour, open at the face a ship comes out of,
+      // between rails along its sides and the feed block aft.
+      const rail = spec.width * SLIPWAY_RAIL_SHARE;
+      const feed = spec.length * SLIPWAY_FEED_SHARE;
+      ctx.fillStyle = integrity <= 0 ? WRECKAGE : colours.hull;
+      ctx.fillRect(-halfLength, -halfWidth, spec.length, spec.width);
+      ctx.fillStyle = integrity <= 0 ? WRECKAGE : colours.trim;
+      ctx.fillRect(-halfLength, -halfWidth, feed, spec.width);
+      ctx.fillRect(-halfLength, -halfWidth, spec.length, rail);
+      ctx.fillRect(-halfLength, halfWidth - rail, spec.length, rail);
     } else if (spec.kind === 'claw') {
       // The pump aft, and two jaws reaching out of the bow face it grips with.
       const jaw = spec.width * CLAW_JAW_SHARE;
