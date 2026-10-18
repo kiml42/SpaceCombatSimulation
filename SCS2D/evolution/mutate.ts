@@ -1522,7 +1522,9 @@ function quarterTurn(site: ModuleSite, rng: Rng): string | null {
 /**
  * Move one face of a module, growing or shrinking it by a drift of the ship's
  * spread while the
- * opposite face stays exactly where it was.
+ * opposite face stays exactly where it was. The face is one with nothing welded
+ * to it where there is one, and it moves towards making the module square more
+ * often than not, the more so the less square it is.
  *
  * This is the operator that makes geometry worth mutating at all. Scaling a
  * module about its centre moves both its faces, so it comes away from the
@@ -1548,12 +1550,24 @@ function moveFace(
   // a change the ship has not got.
   if (isTriangle(spec)) return null;
   const before = { ...spec };
-  const along = rng.chance(0.5);
-  const side = rng.chance(0.5) ? 1 : -1;
-  const delta = stretch(rng, bounds, scale, weight);
-  if (delta === 0) return null;
+  // A face nothing is welded to, where there is one, so growing needs nothing pushed.
+  const open = openFaces(site);
+  let free = 0;
+  for (const each of open) if (each) free++;
+  let face = rng.nextInt(free > 0 ? free : 4);
+  if (free > 0) for (let f = 0; f <= face; f++) if (!open[f]) face++;
+  const along = face % 2 === 0;
+  const side = face < 2 ? 1 : -1;
+  const size = abs(stretch(rng, bounds, scale, weight));
+  if (size === 0) return null;
 
+  // Towards square, the likelier the further from it: a sliver of a turret,
+  // whose bore its short side sets, all but always grows across.
   const was = along ? spec.length : spec.width;
+  const other = along ? spec.width : spec.length;
+  const towards = was < other ? 1 : -1;
+  const square = was < other ? was / other : other / was;
+  const delta = rng.chance(1 - square / 2) ? towards * size : -towards * size;
   const now = tidy(was + delta, 6);
   // A module shrunk out of existence is not a module removed: removal is its
   // own operator, and this one stops a quantum short of nothing.

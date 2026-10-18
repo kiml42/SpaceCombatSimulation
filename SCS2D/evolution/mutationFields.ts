@@ -1,4 +1,4 @@
-import { DEFAULT_FLEET_LIMITS, type FleetOperator } from './fleetMutate.js';
+import { DEFAULT_FLEET_LIMITS, type FleetMutationLimits, type FleetOperator } from './fleetMutate.js';
 import {
   DEFAULT_BUILD_WEIGHTS,
   DEFAULT_DOCTRINE_WEIGHTS,
@@ -34,6 +34,8 @@ export interface MutationField {
 export const MUTATION_FIELDS: readonly MutationField[] = [
   { name: 'structural', group: 'build', label: 'structural chance', step: 0.05, max: 1, value: DEFAULT_LIMITS.structural,
     title: 'Chance each generation of also adding, removing or copying a module, regrouping modules into parts, or lengthening or shortening a repeated row. 0 keeps the ship\'s structure as it is.' },
+  { name: 'geometry', group: 'build', label: 'geometry chance', step: 0.05, max: 1, value: DEFAULT_LIMITS.geometry,
+    title: 'Chance each module has its geometry changed when its design is mutated: a face or a seam moved, a slide, or a turn, chosen by the move and resize odds below. 0 leaves every module where and as big as it is.' },
   { name: 'buildMove', group: 'build', label: 'move', step: 0.5, value: DEFAULT_BUILD_WEIGHTS.move,
     title: 'How far a module or part slides or turns when its geometry changes, how often one turns a quarter about a corner, and how often a part is mirrored. 0 leaves where everything is as it is.' },
   { name: 'buildResize', group: 'build', label: 'resize', step: 0.5, value: DEFAULT_BUILD_WEIGHTS.resize,
@@ -80,10 +82,12 @@ export const MUTATION_FIELDS: readonly MutationField[] = [
     title: 'Odds that a new or refitted module is a robot bay: robots that crawl the hull mending what damage has done.' },
   { name: 'kindSlipway', group: 'kinds', label: 'slipways', step: 0.5, value: DEFAULT_KINDS.slipway,
     title: 'Odds that a new or refitted module is a slipway: a shipyard that builds the ship it names. It builds nothing until given one, which no run does yet, so none by default.' },
-  { name: 'opDesign', group: 'fleet', label: 'design mutated', step: 0.5, value: DEFAULT_FLEET_LIMITS.operators.design,
-    title: 'Odds of mutating one of the fleet\'s designs, the way a single ship is mutated. Every ship built to that design changes with it.' },
-  { name: 'opMove', group: 'fleet', label: 'ship moved/turned', step: 0.5, value: DEFAULT_FLEET_LIMITS.operators.move,
-    title: 'Odds of moving and turning some of the fleet\'s ships or groups where they start the battle, each by a share of its own size.' },
+  { name: 'fleetDesign', group: 'fleet', label: 'design chance', step: 0.05, max: 1, value: DEFAULT_FLEET_LIMITS.design,
+    title: 'Chance each of the fleet\'s designs is mutated each generation, the way a single ship is, however many designs there are. Every ship built to a design changes with it.' },
+  { name: 'fleetMove', group: 'fleet', label: 'ship moves', step: 0.25, value: DEFAULT_FLEET_LIMITS.move,
+    title: 'How far every ship or group moves and turns where it starts the battle, each generation: at 1, a spread of a quarter of its own size and 15°, leaning away from its nearest neighbour. 0 holds them still.' },
+  { name: 'fleetChange', group: 'fleet', label: 'fleet change chance', step: 0.05, max: 1, value: DEFAULT_FLEET_LIMITS.change,
+    title: 'Chance each generation of also changing what the fleet is made of: a ship added or removed, a design forked or merged, a ship swapped, or a pad\'s fighter changed, by the odds below.' },
   { name: 'opAdd', group: 'fleet', label: 'ship added', step: 0.5, value: DEFAULT_FLEET_LIMITS.operators.add,
     title: 'Odds of adding a copy of one of the fleet\'s ships or groups, a little way off from it.' },
   { name: 'opRemove', group: 'fleet', label: 'ship removed', step: 0.5, value: DEFAULT_FLEET_LIMITS.operators.remove,
@@ -113,8 +117,9 @@ export const MUTATION_DEFAULTS: Readonly<Record<string, number>> = Object.fromEn
 
 /** What the numbers make: how a ship is mutated, and the odds of each change to a fleet. */
 export interface Breeding {
-  readonly ship: Pick<MutationLimits, 'structural' | 'build' | 'kinds' | 'doctrine'>;
+  readonly ship: Pick<MutationLimits, 'structural' | 'geometry' | 'build' | 'kinds' | 'doctrine'>;
   readonly operators: Readonly<Record<FleetOperator, number>>;
+  readonly fleet: Pick<FleetMutationLimits, 'design' | 'move' | 'change'>;
 }
 
 /**
@@ -133,9 +138,19 @@ export function breeding(value: (name: string) => number | undefined): Breeding 
   const operators: Record<string, number> = {};
   const doctrine: Record<string, number> = {};
   let structural = DEFAULT_LIMITS.structural;
+  let geometry = DEFAULT_LIMITS.geometry;
+  const fleet = { design: DEFAULT_FLEET_LIMITS.design, move: DEFAULT_FLEET_LIMITS.move, change: DEFAULT_FLEET_LIMITS.change };
   for (const field of MUTATION_FIELDS) {
+    if (field.name === 'fleetDesign' || field.name === 'fleetMove' || field.name === 'fleetChange') {
+      fleet[field.name === 'fleetDesign' ? 'design' : field.name === 'fleetMove' ? 'move' : 'change'] = read(field);
+      continue;
+    }
     if (field.name === 'structural') {
       structural = read(field);
+      continue;
+    }
+    if (field.name === 'geometry') {
+      geometry = read(field);
       continue;
     }
     const into = field.group === 'build' ? build : field.group === 'kinds' ? kinds : field.group === 'fleet' ? operators : doctrine;
@@ -146,10 +161,12 @@ export function breeding(value: (name: string) => number | undefined): Breeding 
   return {
     ship: {
       structural,
+      geometry,
       build: build as unknown as BuildWeights,
       kinds: kinds as unknown as KindWeights,
       doctrine: doctrine as unknown as DoctrineWeights,
     },
     operators: operators as Record<FleetOperator, number>,
+    fleet,
   };
 }
