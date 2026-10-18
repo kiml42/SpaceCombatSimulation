@@ -5266,8 +5266,11 @@ export class Ships {
       return false;
     }
     const lift = (ROBOT_REPAIR_RATE / DAMAGE_ENERGY_PER_KG) * dt;
-    // The metal on its own piece of hull is its ship's, which a refit does not throw away.
+    // On its own piece of hull, what the module holds is its ship's: poured
+    // into the rest of its stores before any of it comes down, and the rest
+    // of the piece's metal left where it is.
     const own = (design.pieces?.[m] ?? 0) === (design.pieces === undefined ? 0 : this.ownPiece(owner, b));
+    if (own && this.fuel.spill(b, m) + this.metal.spill(b, m) + this.power.spill(b, m) > 0) return true;
     const loose = own ? 0 : this.metal.pieceHeld(b, m);
     if (loose > ROBOT_SPENT) {
       robot.cargo += this.metal.drain(b, m, min(lift, room));

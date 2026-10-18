@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { compileBlueprint, settleIds, subDesign, type Blueprint } from '../sim/index.js';
 import { makeBattle } from '../scenarios/battle.js';
-import { REBUILDER, REFITTED, refitting } from '../scenarios/mending.js';
+import { MENDER, REBUILDER, REFITTED, refitting } from '../scenarios/mending.js';
 
 /** Refitting a ship from one design to another (ROADMAP.md §8 step 12, slice 2). */
 
@@ -51,5 +51,33 @@ describe('a refit', () => {
     expect(run.ships.refit(run.world, run.a, compileBlueprint({ ...FROM, name: 'Same' }))).toBeNull();
     expect(run.ships.isRefitting(run.a)).toBe(false);
     expect(run.ships.design(run.a).modules.map((m) => m.spec)).toEqual(before.modules.map((m) => m.spec));
+  });
+});
+
+describe('a refit taking a tank down', () => {
+  it('pours what it holds into the rest of the ship first', () => {
+    // A Mender with an empty tank and a full one beside it, refitted without the full one.
+    const tanked: Blueprint = settleIds({
+      ...MENDER,
+      name: 'Tanked',
+      modules: [
+        ...MENDER.modules,
+        { kind: 'tank', x: 9, y: 3.5, length: 5, width: 4, fill: 0 },
+        { kind: 'tank', x: 14, y: 3.5, length: 5, width: 4 },
+      ],
+    });
+    const lighter: Blueprint = { ...tanked, name: 'Lighter', modules: tanked.modules.slice(0, -1) };
+    const run = makeBattle({ seed: 1, pilots: false }, (ships, world) => {
+      const a = ships.spawn(world, { design: compileBlueprint(tanked), x: 0, y: 0 });
+      return { a };
+    });
+    const b = (): number => run.world.bodies.indexOf(run.ships.body(run.a));
+    const before = run.ships.fuel.left(b());
+    expect(before).toBeGreaterThan(0);
+    expect(run.ships.refit(run.world, run.a, compileBlueprint(lighter))).toBeNull();
+    for (let s = 0; s < 600 * 60 && run.ships.isRefitting(run.a); s++) run.step();
+    expect(run.ships.isRefitting(run.a)).toBe(false);
+    expect(run.ships.design(run.a).modules.filter((m) => m.spec.kind === 'tank').length).toBe(1);
+    expect(run.ships.fuel.left(b())).toBeCloseTo(before, 6);
   });
 });
