@@ -11,6 +11,7 @@ import {
   math,
   placementAt,
   pushNeighbours,
+  readsDocked,
   type Assembly,
   type AssemblyInstance,
   type Frame,
@@ -161,20 +162,20 @@ export function updatePlacement(
 }
 
 /**
- * Set the fighter a pad tends, or clear it with null, which clears whether it
- * sets out docked and how many it keeps too. A pad given its first fighter sets
- * out with it docked. The fighter is copied into the hangar, and the hangar
- * loses whatever no pad names any more.
+ * Set the craft a pad or slipway builds, or clear it with null, which clears
+ * whether it sets out docked and how many it keeps too. A pad given its first
+ * fighter sets out with it docked. The craft is copied into the hangar, and
+ * the hangar loses whatever nothing names any more.
  */
 export function dockFighter(blueprint: Blueprint, path: ModulePath, fighter: Blueprint | null): Blueprint | null {
   const next = updatePlacement(blueprint, path, (placement) => {
     if (isInstance(placement)) return placement;
-    const { fighter: was, docked, keep, ...rest } = placement;
+    const { craft: was, docked, keep, ...rest } = placement;
     if (fighter === null) return rest;
     return {
       ...rest,
-      fighter: fighter.name,
-      ...(was === undefined ? { docked: true } : docked === undefined ? {} : { docked }),
+      craft: fighter.name,
+      ...(!readsDocked(rest.kind) ? {} : was === undefined ? { docked: true } : docked === undefined ? {} : { docked }),
       ...(keep === undefined ? {} : { keep }),
     };
   });
@@ -183,7 +184,7 @@ export function dockFighter(blueprint: Blueprint, path: ModulePath, fighter: Blu
   if (fighter !== null) hangar[fighter.name] = cloneBlueprint(fighter);
   const named = new Set<string>();
   const walk = (list: readonly Placement[]): void => {
-    for (const p of list) if (!isInstance(p) && p.fighter !== undefined) named.add(p.fighter);
+    for (const p of list) if (!isInstance(p) && p.craft !== undefined) named.add(p.craft);
   };
   walk(next.modules);
   for (const assembly of Object.values(next.assemblies ?? {})) walk(assembly.modules);

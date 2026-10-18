@@ -76,7 +76,7 @@ robots and pads rebuilding what a ship launched with, and taking wreckage apart 
     with, and a refit is changing which design that is, never growing past one. Three slices, in order, each
     reusing the rebuilding robots and pads already do (DECISIONS.md, 2026-10-17):
 
-    1. **Pads build fighters.** A pad names one design (`fighter`), whether it sets out with one docked, and
+    1. **Pads build fighters.** A pad names one design (`craft`), whether it sets out with one docked, and
        a count it keeps (`keep`, default 0: build nothing, so every existing blueprint and golden is
        unchanged). Short of its count, it lays the fighter's core as a shell against its own face where a
        docked fighter would lie, and the pad's existing rebuild does the rest, fills it and launches it whole.
@@ -99,7 +99,9 @@ robots and pads rebuilding what a ship launched with, and taking wreckage apart 
        crosses at once, each growing as a shell from its far face, the part built pushed out as it grows
        (a remade hull, since until it parts it is one body with the mothership), the stern last. Filled
        through the seam, it parts and flies. A connected design stays connected all the way. It names a
-       design, a count and whether one sets out built, as a pad does. Blueprint problems: the slipway
+       design and a count, as a pad does, but never sets out with one: it is a shipyard, not somewhere
+       ships are kept. **Built so far:** the module, its fields, its blueprint problems and the editor's
+       controls; not the building (DESIGN.md Status). Blueprint problems: the slipway
        must be in every layer the design is (one turret makes it thick), as wide as the design's beam, and
        the strip it builds into clear of the mothership's own hull. Building moves metal from the holds
        into the new hull, so the mass stays and the inertia grows, lopsided unless the slipway is on the

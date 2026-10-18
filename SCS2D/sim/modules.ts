@@ -253,7 +253,12 @@ export function readsDrainPriority(kind: ModuleKind): boolean {
   return readsSealing(kind);
 }
 
-/** Whether `fighter`, `docked` and `keep` mean anything on this kind: a pad. */
+/** Whether `craft` and `keep` mean anything on this kind: what builds ships. */
+export function readsCraft(kind: ModuleKind): boolean {
+  return kind === 'pad' || kind === 'slipway';
+}
+
+/** Whether `docked` means anything on this kind: a pad, which holds what it sets out with. */
 export function readsDocked(kind: ModuleKind): boolean {
   return kind === 'pad';
 }
@@ -688,6 +693,16 @@ export const PAD_PUMP_PER_METRE = 50;
 export const PAD_REPAIR_PER_METRE = 2e4;
 
 /**
+ * A slipway's fittings per square metre of its floor, kg/m²: a cradle that
+ * holds a ship being built, and the feed lines into it. Heavier than a pad,
+ * whose deck only takes a fighter landing.
+ */
+export const SLIPWAY_MASS_PER_AREA = 150;
+
+/** What a slipway pumps per metre of its width, kg/s, into the ship it is building. */
+export const SLIPWAY_PUMP_PER_METRE = 50;
+
+/**
  * The square of a bay's deck a robot's berth takes, metres a side: a bay has
  * as many as fit across its length and its width, in a grid.
  */
@@ -835,7 +850,8 @@ export type ModuleKind =
   | 'hold'
   | 'battery'
   | 'generator'
-  | 'robotBay';
+  | 'robotBay'
+  | 'slipway';
 
 /**
  * Every archetype there is, in one order.
@@ -865,6 +881,7 @@ export const MODULE_KINDS: readonly ModuleKind[] = [
   'battery',
   'generator',
   'robotBay',
+  'slipway',
 ];
 
 /**
@@ -1119,10 +1136,10 @@ export interface ModuleSpec {
   fill?: number;
 
   /**
-   * The fighter this pad tends, by its name in the blueprint's `hangar`: the
-   * one it sets out with (`docked`) and the one it builds (`keep`). A pad only.
+   * What this pad or slipway builds, by its name in the blueprint's `hangar`:
+   * for a pad the fighter it sets out with (`docked`) and builds (`keep`).
    */
-  fighter?: string;
+  craft?: string;
   /** Whether the pad sets out with its `fighter` docked on it. A pad only. */
   docked?: boolean;
   /**
@@ -2449,6 +2466,7 @@ const KIND_COMPLEXITY: Record<ModuleKind, number> = {
   claw: 3,
   pad: 3,
   port: 3,
+  slipway: 3,
   engine: 4,
   hullGun: 4,
   hullBeam: 4,
@@ -2579,6 +2597,8 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
     fittingMass = PORT_MASS_PER_AREA * capacity;
   } else if (spec.kind === 'pad') {
     fittingMass = PAD_MASS_PER_AREA * capacity;
+  } else if (spec.kind === 'slipway') {
+    fittingMass = SLIPWAY_MASS_PER_AREA * capacity;
   } else if (spec.kind === 'claw') {
     // Jaws on the bow face and a pump behind them, priced by the floor they fill.
     fittingMass = CLAW_MASS_PER_AREA * capacity;
@@ -2781,7 +2801,9 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
           ? PAD_PUMP_PER_METRE * width
           : spec.kind === 'port'
             ? PORT_PUMP_PER_METRE * width
-            : 0,
+            : spec.kind === 'slipway'
+              ? SLIPWAY_PUMP_PER_METRE * width
+              : 0,
     charge,
     chargeRate,
     generation,

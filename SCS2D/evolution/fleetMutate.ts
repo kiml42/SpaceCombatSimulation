@@ -296,7 +296,7 @@ function repad(fleet: Fleet, rng: Rng): string[] {
   }
   if (pads.length === 0) return [];
   const { carrier, pad } = pads[rng.nextInt(pads.length)]!;
-  const was = pad.fighter;
+  const was = pad.craft;
   const others = Object.keys(fleet.designs).filter((name) => name !== was && name !== carrier && fleet.designs[name]!.fighter === true);
   // Another of the fleet's, a copy of its own, or a new one, each as likely as the others.
   const ways = others.length + (was === undefined ? 0 : 1) + 1;
@@ -312,7 +312,7 @@ function repad(fleet: Fleet, rng: Rng): string[] {
     const side = max(0.1, round(min(pad.length, pad.width)) / 10);
     fleet.designs[to] = { name: to, fighter: true, modules: [{ kind: 'core', x: 0, y: 0, length: side, width: side }] };
   }
-  pad.fighter = to;
+  pad.craft = to;
   return [`${carrier}: a pad's ${was ?? 'nothing'} → ${to}`];
 }
 

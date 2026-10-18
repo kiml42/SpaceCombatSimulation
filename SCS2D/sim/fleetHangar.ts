@@ -15,7 +15,7 @@ import type { Fleet } from './fleet.js';
 export function padFighterNames(blueprint: Blueprint): string[] {
   const names = new Set<string>();
   const walk = (list: readonly Placement[]): void => {
-    for (const p of list) if (!isInstance(p) && p.fighter !== undefined) names.add(p.fighter);
+    for (const p of list) if (!isInstance(p) && p.craft !== undefined) names.add(p.craft);
   };
   walk(blueprint.modules);
   for (const assembly of Object.values(blueprint.assemblies ?? {})) walk(assembly.modules);
@@ -103,7 +103,7 @@ export function padReached(fleet: Fleet, from: Iterable<string>): Set<string> {
 export function renamePadFighter(blueprint: Blueprint, from: string, to: string): Blueprint {
   if (!padFighterNames(blueprint).includes(from)) return blueprint;
   const swap = (list: readonly Placement[]): Placement[] =>
-    list.map((p) => (!isInstance(p) && p.fighter === from ? { ...p, fighter: to } : p));
+    list.map((p) => (!isInstance(p) && p.craft === from ? { ...p, craft: to } : p));
   const assemblies = blueprint.assemblies === undefined
     ? undefined
     : Object.fromEntries(Object.entries(blueprint.assemblies).map(([k, a]) => [k, { ...a, modules: swap(a.modules) }]));

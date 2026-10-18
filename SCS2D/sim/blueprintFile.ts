@@ -21,6 +21,7 @@ import {
   readsSealing,
   readsDrainPriority,
   readsFill,
+  readsCraft,
   readsDocked,
   readsThick,
   readsFuse,
@@ -112,6 +113,7 @@ const MODULE_KEYS: readonly string[] = [
   'sealing',
   'drainPriority',
   'fill',
+  'craft',
   'fighter',
   'docked',
   'keep',
@@ -270,8 +272,9 @@ function moduleShapeProblem(value: Record<string, unknown>, where: string): stri
     optionalNumberProblem(value['sealing'], `${where}: sealing`) ??
     optionalNumberProblem(value['drainPriority'], `${where}: drainPriority`) ??
     optionalNumberProblem(value['fill'], `${where}: fill`) ??
+    optionalStringProblem(value['craft'], `${where}: craft`) ??
+    // The older forms: `fighter` for `craft`, and a string the fighter's name, set out docked.
     optionalStringProblem(value['fighter'], `${where}: fighter`) ??
-    // A string is the older form: the fighter's name, set out docked.
     (typeof value['docked'] === 'string' ? null : optionalBooleanProblem(value['docked'], `${where}: docked`)) ??
     optionalNumberProblem(value['keep'], `${where}: keep`) ??
     targetingProblem(value['targeting'], `${where}: targeting`) ??
@@ -301,7 +304,8 @@ function moduleReads(kind: ModuleKind): readonly string[] {
     if (key === 'sealing') return readsSealing(kind);
     if (key === 'drainPriority') return readsDrainPriority(kind);
     if (key === 'fill') return readsFill(kind);
-    if (key === 'fighter' || key === 'docked' || key === 'keep') return readsDocked(kind);
+    if (key === 'craft' || key === 'fighter' || key === 'keep') return readsCraft(kind);
+    if (key === 'docked') return readsDocked(kind);
     if (key === 'vertices') return canShape(kind);
     return true;
   });
@@ -555,10 +559,11 @@ function toPlacements(raws: unknown[], whole: boolean): Placement[] {
     if (read('sealing')) spec.sealing = raw['sealing'] as number;
     if (read('drainPriority')) spec.drainPriority = raw['drainPriority'] as number;
     if (read('fill')) spec.fill = raw['fill'] as number;
-    if (read('fighter')) spec.fighter = raw['fighter'] as string;
+    if (read('fighter')) spec.craft = raw['fighter'] as string;
+    if (read('craft')) spec.craft = raw['craft'] as string;
     if (read('docked')) {
       const docked = raw['docked'] as string | boolean;
-      if (typeof docked === 'string') spec.fighter = docked;
+      if (typeof docked === 'string') spec.craft = docked;
       spec.docked = docked !== false;
     }
     if (read('keep')) spec.keep = raw['keep'] as number;
@@ -767,9 +772,9 @@ function serialisePlacement(placement: Placement): Record<string, unknown> {
     raw['drainPriority'] = placement.drainPriority;
   }
   if (placement.fill !== undefined && readsFill(placement.kind)) raw['fill'] = placement.fill;
-  if (readsDocked(placement.kind)) {
-    if (placement.fighter !== undefined) raw['fighter'] = placement.fighter;
-    if (placement.docked !== undefined) raw['docked'] = placement.docked;
+  if (readsCraft(placement.kind)) {
+    if (placement.craft !== undefined) raw['craft'] = placement.craft;
+    if (placement.docked !== undefined && readsDocked(placement.kind)) raw['docked'] = placement.docked;
     if (placement.keep !== undefined) raw['keep'] = placement.keep;
   }
   // Written as authored: a mount's block is already only its differences from

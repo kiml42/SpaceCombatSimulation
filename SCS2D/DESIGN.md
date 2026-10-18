@@ -833,8 +833,8 @@ inside any one file is not contiguous.
   could take apart, as it does on one with fuel it has room for, and holds on while its robots have the
   charge and the holds the room. The `scrapyard` scenario has two salvagers drift into a dead leech, gone in
   under five minutes, and a dead corvette, gone in about forty-two, by when the hold is nearly full.
-  **A pad tends one fighter** (`ModuleSpec.fighter`, naming a copy in the blueprint's `hangar`, as a fleet
-  carries its designs), and **may set out with it docked** (`docked`). It is spawned lying along the pad,
+  **A pad tends one fighter** (`ModuleSpec.craft`, naming a copy in the blueprint's `hangar`, as a fleet
+  carries its designs; an older file's `fighter` reads as `craft`), and **may set out with it docked** (`docked`). It is spawned lying along the pad,
   centred on it, and welded as one that had landed, so it is topped up from the carrier and lifts off once
   full. A fighter too big for its pad, or one that is missing or not a fighter, is a blueprint problem, and a
   budget counts the carrier and everything it sets out with (`billOf`). An older file's `docked` naming the
@@ -864,6 +864,16 @@ inside any one file is not contiguous.
   the fighter, whether it sets out docked and how many it keeps. The `factory` scenario has a Factory, a
   Workshop whose bow pad keeps three Dinkies and sets out with none, build them one at a time, about a
   minute each.
+  **A slipway** (`slipway`) is a shipyard in the hull: it names a ship that is not a fighter (`craft`, from
+  the `hangar` as a pad's fighter is, and the fleet's design of that name in a fleet) and how many of it to
+  keep (`keep`), and never sets out with one, since it is a place ships are built rather than one they are
+  kept. The ship is built bow first out of its face along its facing, on its centre line, finished when its
+  stern reaches the face (`slipwayStrip`). It is a blueprint problem for the ship to be wider across the
+  beam than the slipway, to stand in the weapons layer when the slipway does not (one turret makes it want
+  a thick slipway), or for anything of the builder to lie in the strip it builds into. A slipway's fittings
+  are `SLIPWAY_MASS_PER_AREA` of its floor, and it pumps `SLIPWAY_PUMP_PER_METRE` for every metre of its
+  width. The editor sets the ship and how many it keeps, and evolution nudges the count but never adds a
+  slipway. Nothing is built on one yet (ROADMAP.md §8 step 12, slice 3).
   **A port** (`port`) is a coupling on a hull's side, never thick, with a pump of `PORT_PUMP_PER_METRE` for
   every metre of its face. Anything but a fighter with a working port that is down to its
   `refuelBelow` picks a
