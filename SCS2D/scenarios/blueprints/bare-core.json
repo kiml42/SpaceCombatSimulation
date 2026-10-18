@@ -4,6 +4,7 @@
   "notes": "Somewhere for a run to start from: the one module that makes a hull a ship, and nothing else. It cannot move, cannot shoot and cannot turn, so everything it ever has is something selection paid for — which is the point, since a seed with an engine on it has already been told which way a ship is meant to go. Two metres square because that is four berths a side on the mutation grid: small enough to be nothing, big enough that there is somewhere to put the first thing it grows.",
   "modules": [
     {
+      "id": 1,
       "kind": "core",
       "x": 0,
       "y": 0,

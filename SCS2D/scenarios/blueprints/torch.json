@@ -29,11 +29,13 @@
     "Side": {
       "modules": [
         {
+          "id": 4,
           "use": "engine",
           "x": 24.5,
           "y": 0.5000000000000001
         },
         {
+          "id": 5,
           "kind": "structure",
           "x": 9.55,
           "y": 0.25,
@@ -42,6 +44,7 @@
           "reinforcement": 2
         },
         {
+          "id": 6,
           "use": "engine",
           "x": -10.45,
           "y": 9.430705902947948e-17
@@ -51,6 +54,7 @@
     "assembly": {
       "modules": [
         {
+          "id": 7,
           "kind": "engine",
           "x": -15.25,
           "y": 0,
@@ -65,11 +69,13 @@
           "notes": "The weapon. Its thrust points aft, so firing it at a target is also braking, and holding it on is being pushed away."
         },
         {
+          "id": 8,
           "use": "Side",
           "x": -2.6,
           "y": 4
         },
         {
+          "id": 9,
           "use": "Side",
           "x": -2.5,
           "y": -4,
@@ -80,6 +86,7 @@
     "engine": {
       "modules": [
         {
+          "id": 10,
           "kind": "engine",
           "x": -1.5,
           "y": 0,
@@ -97,6 +104,7 @@
   },
   "modules": [
     {
+      "id": 1,
       "kind": "core",
       "x": 0.05,
       "y": 0,
@@ -106,12 +114,14 @@
       "notes": "Armoured, because the bow is always pointed at something with guns."
     },
     {
+      "id": 2,
       "use": "assembly",
       "x": -15.95,
       "y": 0,
       "angle": -180
     },
     {
+      "id": 3,
       "kind": "tank",
       "x": 3.8,
       "y": 0,

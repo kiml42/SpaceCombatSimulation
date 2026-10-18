@@ -23,6 +23,7 @@
       "notes": "An outrigger, holding a small fast-firing multi-barrelled gun clear of the spine. A gun flat against the hull has almost no traverse worth the mass it costs.",
       "modules": [
         {
+          "id": 13,
           "kind": "structure",
           "x": 0,
           "y": -1,
@@ -31,6 +32,7 @@
           "thick": true
         },
         {
+          "id": 14,
           "kind": "turret",
           "x": 0,
           "y": 5,
@@ -64,6 +66,7 @@
       "notes": "One of the pair that drives the ship forward.",
       "modules": [
         {
+          "id": 15,
           "kind": "engine",
           "x": 4,
           "y": -0.25,
@@ -79,6 +82,7 @@
       "notes": "A manoeuvring engine pushing inboard, so its exhaust leaves into clear air rather than into the stub it is bolted to.",
       "modules": [
         {
+          "id": 16,
           "kind": "engine",
           "x": 0,
           "y": -1,
@@ -95,6 +99,7 @@
       "notes": "Braking thrust, pushing aft.",
       "modules": [
         {
+          "id": 17,
           "kind": "engine",
           "x": -1.5,
           "y": 0,
@@ -110,6 +115,7 @@
     "Engine Node": {
       "modules": [
         {
+          "id": 18,
           "kind": "tank",
           "x": -4.5,
           "y": 0,
@@ -117,12 +123,14 @@
           "width": 4
         },
         {
+          "id": 19,
           "use": "lateral",
           "x": -4.5,
           "y": -3,
           "mirror": true
         },
         {
+          "id": 20,
           "use": "retro",
           "x": 0,
           "y": 0
@@ -132,6 +140,7 @@
   },
   "modules": [
     {
+      "id": 1,
       "kind": "structure",
       "x": 6,
       "y": 0,
@@ -140,6 +149,7 @@
       "thick": true
     },
     {
+      "id": 2,
       "kind": "core",
       "x": 0,
       "y": 0,
@@ -150,6 +160,7 @@
       "notes": "A bay amidships, where the spine is thickest and everything else is in the way. Cutting the spine here is what would part the ship, so it is also the last place a shell reaches."
     },
     {
+      "id": 3,
       "kind": "structure",
       "x": -8.75,
       "y": 0,
@@ -158,6 +169,7 @@
       "thick": true
     },
     {
+      "id": 4,
       "kind": "hullGun",
       "x": 16.5,
       "y": 0,
@@ -180,39 +192,46 @@
       }
     },
     {
+      "id": 5,
       "use": "outrigger",
       "x": 0,
       "y": 9
     },
     {
+      "id": 6,
       "use": "outrigger",
       "x": 0,
       "y": -9,
       "mirror": true
     },
     {
+      "id": 7,
       "use": "mainEngine",
       "x": -19.5,
       "y": 3
     },
     {
+      "id": 8,
       "use": "mainEngine",
       "x": -19.5,
       "y": -3,
       "mirror": true
     },
     {
+      "id": 9,
       "use": "Engine Node",
       "x": 17.5,
       "y": 6,
       "mirror": true
     },
     {
+      "id": 10,
       "use": "Engine Node",
       "x": 17.5,
       "y": -6
     },
     {
+      "id": 11,
       "use": "Engine Node",
       "x": -16.5,
       "y": -7,
@@ -220,6 +239,7 @@
       "mirror": true
     },
     {
+      "id": 12,
       "use": "Engine Node",
       "x": -16.5,
       "y": 7,

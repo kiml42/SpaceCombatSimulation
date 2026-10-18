@@ -24,6 +24,7 @@ import {
   type ModuleSpec,
   type Placement,
   type ShipDesign,
+  settleIds,
 } from '../sim/index.js';
 import { CORVETTE, GUNSHIP, TORCH } from '../scenarios/blueprints.js';
 import { EditorDocument } from '../editor/document.js';
@@ -1159,7 +1160,8 @@ describe('Library', () => {
       ],
     };
     library.save(adrift);
-    expect(library.load('Adrift')).toEqual(adrift);
+    // Read back with an id on each placement, as every file is.
+    expect(library.load('Adrift')).toEqual(settleIds(adrift));
     expect(blueprintProblem(adrift)).toMatch(/touches nothing/);
   });
 

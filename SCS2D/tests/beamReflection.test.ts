@@ -127,15 +127,19 @@ describe('a beam reflected', () => {
     expect(reflections(beams)).toHaveLength(0);
   });
 
-  it('never lands on the ship that fired it', () => {
+  it('lands on the ship that fired it, thrown straight back up the beam', () => {
     const r = range([
       { design: block, x: 0, y: 0 },
       { design: block, x: -40, y: 0 },
     ]);
     const shooter = r.body(1);
     const { beams, hits } = r.fire(-34, 0, 100, 0, POWER, shooter);
-    expect(reflections(beams)).toHaveLength(1);
-    for (let i = 0; i < hits.count; i++) expect(hits.body[i]).not.toBe(shooter);
+    // The first bounce comes back to it, and bounces off it in turn.
+    const back = reflections(beams).filter((b) => beams.bounces[b] === 1);
+    expect(back).toHaveLength(1);
+    const own = Array.from({ length: hits.count }, (_v, i) => i).filter((i) => hits.body[i] === shooter);
+    expect(own.map((i) => hits.beam[i])).toContain(back[0]);
+    expect(beams.power[back[0]!]).toBeCloseTo(POWER * BEAM_REFLECTANCE, 3);
   });
 
   it('bounces no more than MAX_REFLECTIONS times', () => {

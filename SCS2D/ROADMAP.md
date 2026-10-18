@@ -61,8 +61,9 @@ an entry is either still open or it is gone.
 ### Partly built — what is left
 
 Step 13's remainder is its entry below. Of step 12, slice 1 is built (DESIGN.md Status): pads build the
-fighters they keep, in a fleet from the fleet's designs, and evolution breeds both. Slices 2 and 3 are left,
-as planned below.
+fighters they keep, in a fleet from the fleet's designs, and evolution breeds both. Of slice 2, every
+placement has a stable id; what is left of it is the `refit` command, the editor showing what a refit takes
+down, and the paused battle issuing one. Slice 3 is left as planned below.
 
 ### Not started — in order
 
@@ -509,13 +510,12 @@ Deliberately unresolved; decide when they block something.
   arithmetic; the sequencing is what a laser has no reason to inherit. Firing them together needs `Ships.fire`
   to emit a salvo rather than a shot, which is a change to the firing loop rather than to the scaling laws.
 - **What reflection leaves out.** Beams reflect off the outer face of each hull they meet (DESIGN.md §4), by
-  one reflectance for every face. Three things are not modelled. **Reflectivity per module** — reflective
+  one reflectance for every face. Two things are not modelled. **Reflectivity per module** — reflective
   armour, a material property or a facing — is part of the materials question above, and is what would make
-  reflection a design choice rather than a constant. **A beam bouncing between two faces of the same concave
+  reflection a design choice rather than a constant: a retroreflector, sending a beam back up itself into the
+  ship that fired it, is the strategy it would open. **A beam bouncing between two faces of the same concave
   hull**: a reflection ignores the hull it came off until it has cleared it, which is what stops it sticking
-  on the face it started on, at the cost of that bounce. And **a reflection back onto the ship that fired
-  it**, which flat faces and perfect aim send straight back up the beam far more often than a real hull would;
-  it is left out rather than modelled until faces are rough enough to scatter.
+  on the face it started on, at the cost of that bounce.
 - **How a blueprint is versioned, once there is a campaign.** Editing a design must not silently re-equip
   ships already built to it: §2's Production rule is that a fleet transitions gradually, so existing ships
   keep flying the layout they were built to and only new production uses the revision. That makes a ship in
@@ -614,7 +614,9 @@ Deliberately unresolved; decide when they block something.
   build only when clear, a mothership holding still while a slipway works.
 - **Module ids muddled by an edit.** A refit keeps a module only by its id (§8 step 12), so a module
   deleted and drawn again identically would be taken down and rebuilt. The cheap answer: pair an unmatched
-  module of the new design with an identical unmatched one of the old.
+  module of the new design with an identical unmatched one of the old. The reverse, an id handed again to a
+  new module after a save and reload since the one that had it was deleted, is harmless: a module is kept
+  only when it is also identical, so a different one under an old id is rebuilt, as it should be.
 - **Launching a fighter before it is whole.** A pad launches only a whole fighter. Once its core is up it is
   already a ship, so launching early under doctrine is a rule, not a new mechanism.
 - **Robots working on a docked friend.** Robots cross a seam only onto wreckage to take it apart; crossing a

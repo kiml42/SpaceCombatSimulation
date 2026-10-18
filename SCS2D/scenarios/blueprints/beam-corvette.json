@@ -18,6 +18,7 @@
       "notes": "The wings exist to hold the manoeuvring engines out where their moment arm is worth having. That they also foul the bow gun's traverse is the trade this layout makes, and it is visible in the arc the design compiles to.",
       "modules": [
         {
+          "id": 7,
           "kind": "tank",
           "x": 0,
           "y": 0,
@@ -30,6 +31,7 @@
     "lateral": {
       "modules": [
         {
+          "id": 8,
           "kind": "engine",
           "x": 0,
           "y": -1,
@@ -43,26 +45,31 @@
     "Side": {
       "modules": [
         {
+          "id": 9,
           "use": "wingBox",
           "x": -7.25,
           "y": 2.3499999999999996
         },
         {
+          "id": 10,
           "use": "lateral",
           "x": 0.75,
           "y": 4.35
         },
         {
+          "id": 11,
           "use": "lateral",
           "x": -7.25,
           "y": 4.85
         },
         {
+          "id": 12,
           "use": "engine",
           "x": 1.75,
           "y": 1.85
         },
         {
+          "id": 13,
           "kind": "structure",
           "x": 0.5,
           "y": -0.25,
@@ -70,6 +77,7 @@
           "width": 1.2
         },
         {
+          "id": 14,
           "kind": "structure",
           "x": 0.25,
           "y": 1.85,
@@ -78,6 +86,7 @@
           "reinforcement": 1.5
         },
         {
+          "id": 15,
           "use": "engine",
           "x": -9.25,
           "y": 2.3499999999999996,
@@ -88,6 +97,7 @@
     "engine": {
       "modules": [
         {
+          "id": 16,
           "kind": "engine",
           "x": 0,
           "y": 0,
@@ -102,6 +112,7 @@
   },
   "modules": [
     {
+      "id": 1,
       "kind": "core",
       "x": 0,
       "y": 0,
@@ -111,6 +122,7 @@
       "notes": "Amidships, with a section of hull either side of it: the compartment the ship is flown from is the one thing worth putting the rest of the ship in front of."
     },
     {
+      "id": 2,
       "kind": "engine",
       "x": -2,
       "y": 0,
@@ -121,6 +133,7 @@
       "nozzle": 1.6667
     },
     {
+      "id": 3,
       "kind": "beamTurret",
       "x": 3.75,
       "y": 0,
@@ -141,6 +154,7 @@
       }
     },
     {
+      "id": 4,
       "kind": "hullBeam",
       "x": 7.875,
       "y": 0,
@@ -158,11 +172,13 @@
       }
     },
     {
+      "id": 5,
       "use": "Side",
       "x": 3.25,
       "y": 2.15
     },
     {
+      "id": 6,
       "use": "Side",
       "x": 3.25,
       "y": -2.15,

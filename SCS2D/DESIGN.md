@@ -108,6 +108,14 @@ inside any one file is not contiguous.
   fixed. Undo and
   redo run throughout. Ships are opened from the built-in library or from browser
   storage, saved back to it, and exported and imported as blueprint files.
+  **Every placement has an id** (`ModuleSpec.id`, `AssemblyInstance.id`), unique in its blueprint and kept
+  through every edit and every mutation, so one version of a design can be matched module by module to the
+  next, for refits (§8 step 12). Nothing hands them out one site at a time: a blueprint read from a file, and
+  every version the editor keeps and evolution breeds, is settled (`settleIds`), every id already unique
+  kept, and one missing, or repeating one met earlier in the layout and then each assembly, given the next
+  above any in it and in the version it came from — so a copy is new and its original keeps its id. A
+  module's key (`moduleKeys`) is the ids down its path through the assemblies and which copy of each, so
+  each drawn copy of a shared part has a key of its own.
   **Doctrine is edited there too, and is meant to be ignorable**: a section that stays shut, on a weapon for
   what it shoots at and on a core for what its ship does, saying while it is shut only whether this is the
   archetype's own doctrine or how many numbers have been changed. Every box is empty over a placeholder of
@@ -137,7 +145,7 @@ inside any one file is not contiguous.
   through, a fifth of it taken in and the rest reflected or radiated away (`BEAM_ABSORBED_SHARE`, a stand-in
   for heat). **The outer face of each hull it meets reflects some of what it stops**, a tenth head on
   (`BEAM_REFLECTANCE`) rising to all it does not take in at grazing, as a dimmer beam of its own that can
-  land on anything but the ship that fired it, bounce again, and is not followed below `MIN_REFLECTED_POWER`
+  land on anything, the ship that fired it included, bounce again, and is not followed below `MIN_REFLECTED_POWER`
   or past `MAX_REFLECTIONS`; the reflection comes out of what would have been radiated, so a hit does the
   same damage either way. A beam bores deeper as it destroys: **a module burnt past breaking is holed**, and lets more of a
   beam through the more of it has shed, up to half (`FLOOR_TRANSPARENCY`) once it is down to its floor,

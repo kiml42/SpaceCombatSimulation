@@ -1,4 +1,4 @@
-import { isInstance, type Blueprint, type Placement } from './blueprint.js';
+import { isInstance, settleIds, type Blueprint, type Placement } from './blueprint.js';
 import { serialiseBlueprint } from './blueprintFile.js';
 import type { Fleet } from './fleet.js';
 
@@ -42,7 +42,8 @@ export function sameBlueprint(a: Blueprint, b: Blueprint): boolean {
 }
 
 function canonical(blueprint: Blueprint): string {
-  const raw = serialiseBlueprint(blueprint);
+  // Ids settled first: a copy written before placements had them is the same design given them.
+  const raw = serialiseBlueprint(settleIds(blueprint));
   const hangar = raw['hangar'] as Record<string, unknown> | undefined;
   if (hangar !== undefined) raw['hangar'] = Object.fromEntries(Object.keys(hangar).sort().map((k) => [k, hangar[k]]));
   return JSON.stringify(raw);

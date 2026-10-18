@@ -480,13 +480,11 @@ export class Beams {
     const endY = this.endY[i];
 
     // A beam that knows which part fired it may land on the rest of its own
-    // ship; one that does not passes through all of it. A reflection never
-    // lands on the ship that fired it: a face met square on throws it straight
-    // back up the beam, which flat faces and perfect aim make far likelier
-    // than any real hull would.
+    // ship; one that does not passes through all of it. A reflection may land
+    // anywhere, the ship that fired it included.
     const from = this.fromModule[i]!;
     const owner = this.owner[i]!;
-    const ignore = from >= 0 && depth === 0 ? -1 : owner;
+    const ignore = from >= 0 || depth > 0 ? -1 : owner;
     // Where this cast starts, the share of the beam still going, and the hull
     // it has just come out of.
     let x0 = startX;
