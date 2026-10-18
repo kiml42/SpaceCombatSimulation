@@ -703,6 +703,23 @@ export const SLIPWAY_MASS_PER_AREA = 150;
 export const SLIPWAY_PUMP_PER_METRE = 50;
 
 /**
+ * The work a slipway puts into the ship it is building per metre of its
+ * width, J/s: a kilogram a second takes about a thousand. Set so a Scavenger
+ * comes off a slipway as wide as it in about three minutes, given the metal
+ * and the charge.
+ */
+export const SLIPWAY_BUILD_PER_METRE = 5e4;
+
+/**
+ * How fast a slipway pushes a ship it lets go off, relative to its builder,
+ * m/s: a stage separating, so it drifts clear before it lights its engines.
+ */
+export const SLIPWAY_PUSH = 2;
+
+/** The longest a ship off a slipway keeps its engines off for fear of burning its builder, s. */
+export const SLIPWAY_CLEAR_TIME = 30;
+
+/**
  * The square of a bay's deck a robot's berth takes, metres a side: a bay has
  * as many as fit across its length and its width, in a grid.
  */

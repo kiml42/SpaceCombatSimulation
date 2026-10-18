@@ -100,8 +100,9 @@ robots and pads rebuilding what a ship launched with, and taking wreckage apart 
        (a remade hull, since until it parts it is one body with the mothership), the stern last. Filled
        through the seam, it parts and flies. A connected design stays connected all the way. It names a
        design and a count, as a pad does, but never sets out with one: it is a shipyard, not somewhere
-       ships are kept. **Built so far:** the module, its fields, its blueprint problems and the editor's
-       controls; not the building (DESIGN.md Status). Blueprint problems: the slipway
+       ships are kept. **Built:** the module, its fields, its blueprint problems, the editor's
+       controls, the building, and evolution adding one and pointing it at a ship (DESIGN.md Status).
+       Blueprint problems: the slipway
        must be in every layer the design is (one turret makes it thick), as wide as the design's beam, and
        the strip it builds into clear of the mothership's own hull. Building moves metal from the holds
        into the new hull, so the mass stays and the inertia grows, lopsided unless the slipway is on the
@@ -931,6 +932,9 @@ Deliberately unresolved; decide when they block something.
   of a magazine cut off from its hold — or of rounds stored in a gun that is severed from the ship.
 - How a slipway chooses between several designs, once a mothership has a menu rather than one design and a
   count (§8 step 12): a doctrine blob, so async PvP competes on it, or a player-driven queue.
+- Whether every ship should hold off an engine whose flame would play on a friend, not only a ship just off
+  a slipway on its builder (`Ships.wouldBurn`). It wants a cast for every engine's plume every step, and
+  thrust allocated without the engines held off, so it moves every battle; worth it once fleets fly close.
 - Concrete values, now that the units are settled: budgets, engagement ranges, timestep, the weld
   dials (`WELD_SPEED`, `RAGGED_INTEGRITY`, `WELD_SETTLE`, `HOOK_SHARE`), the claw's (its speed band, `CLAW_GRIP_CHANCE`,
   `CLAW_BITE`, `CLAW_PUMP_PER_METRE`, `DOCK_HOLD`), edit-distance bounds, muzzle velocities, armour densities, and how hard a plume

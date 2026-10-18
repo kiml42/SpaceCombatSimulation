@@ -642,9 +642,10 @@ inside any one file is not contiguous.
   (`change`, 0.3: a ship added or removed, a design forked or merged, a ship swapped or a pad repointed, by their
   weights). Each design's mutation, the change and each entry's move is undone alone if it leaves the fleet unfit. A design nothing
   flies is not mutated, since nothing selects it — unless a pad of a design it flies keeps it, when it is bred as
-  a flown one is. A pad is pointed now and then at another fighter (`pad`, 0.5, only in a fleet with a pad):
-  another the fleet has, a copy of its own to breed apart, or a new bare core marked a fighter, a tenth of the
-  pad across, and how many a pad keeps drifts by at least one under tuning, in a ship bred alone too. Before a run the page shows the founders unmutated and the run's
+  a flown one is. A pad is pointed now and then at another fighter, and a slipway at another ship (`pad`, 0.5,
+  only in a fleet with either): another the fleet has, a copy of its own to breed apart, or a new bare core —
+  for a pad marked a fighter, a tenth of the pad across, and for a slipway half its width — and how many a
+  pad or slipway keeps drifts by at least one under tuning, in a ship bred alone too. Before a run the page shows the founders unmutated and the run's
   first match paused at its start. Entrants can start already moving, towards the middle and across it, at speeds the run
   sets (`--closing`, `--crossing`), the same two a custom battle has.
   **Co-evolution**, headless (`evolution/coevolution.ts`, `npm run evolve -- --versus`): two lineages, side A
@@ -881,8 +882,25 @@ inside any one file is not contiguous.
   beam than the slipway, to stand in the weapons layer when the slipway does not (one turret makes it want
   a thick slipway), or for anything of the builder to lie in the strip it builds into. A slipway's fittings
   are `SLIPWAY_MASS_PER_AREA` of its floor, and it pumps `SLIPWAY_PUMP_PER_METRE` for every metre of its
-  width. The editor sets the ship and how many it keeps, and evolution nudges the count but never adds a
-  slipway. Nothing is built on one yet (ROADMAP.md §8 step 12, slice 3).
+  width. The editor sets the ship and how many it keeps. Evolution adds one as rarely as a pad (0.5) and
+  nudges the count, and in a fleet points it at a ship as it points a pad at a fighter. **A slipway builds like a printer** (`Ships.build`, `sim/slipway.ts`): short of the ships it
+  keeps, counted as a pad counts its fighters, it builds `SLIPWAY_STEP` (a metre) of the ship at a time
+  from the bow, every module the cut crosses a shell from its foremost face as far as the cut and every
+  module wholly ahead of it whole but for its fittings (`printedCraft`). Each step is a remade hull: the
+  part built is taken out and put back pushed out by a step, its cut at the slipway's face, one body with
+  the builder, held by a slipway dock on each piece it is in, since a design that joins up only further aft
+  is in pieces until it does. A step's work is `SLIPWAY_BUILD_PER_METRE` of the slipway's width, its walls
+  paid for in metal and charge from the slipway's piece of hull at robots' prices, and it waits while
+  anything is where the part built would go. **A slipway reaches only what is within a step of its face**,
+  and finishes it before the next step pushes it out of reach: before every step it fits out, and mends,
+  each module of the ship there that is not whole, cores first, at the same rate and price (`tendAtFace`),
+  so a module comes away from the face whole and none is left to fit at the end but the stern's. With its
+  walls all up and its stern whole it fills it from what the builder can spare as a pad does, and lets it
+  go, pushing the two apart at `SLIPWAY_PUSH` (2 m/s) as a stage separates; the ship it built keeps its
+  engines off while any of their flames would play on its builder, for up to `SLIPWAY_CLEAR_TIME`. Until then it is held doing nothing, its engines off and its guns silent. A builder that could still
+  build an armed ship is armed, and a slipway building is busy, for a battle's decision, as a pad is. The
+  `shipyard` scenario has a Shipyard build and fit out a Scavenger in a little over three minutes, fill it,
+  and let it go at about four and a half.
   **A port** (`port`) is a coupling on a hull's side, never thick, with a pump of `PORT_PUMP_PER_METRE` for
   every metre of its face. Anything but a fighter with a working port that is down to its
   `refuelBelow` picks a

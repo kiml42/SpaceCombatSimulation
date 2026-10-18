@@ -257,8 +257,9 @@ export const DEFAULT_KINDS: KindWeights = {
   generator: 1,
   // Mends a ship rather than fighting with it, which a long fight can pay for.
   robotBay: 0.5,
-  // Never reached for: a slipway builds only the craft it names, which a run has to give it.
-  slipway: 0,
+  // A slipway builds only once a fleet points it at a ship, and pays only if
+  // that ship earns its build time back in the battle: as rare as a pad.
+  slipway: 0.5,
 };
 
 /**

@@ -596,8 +596,8 @@ export interface ShipDesign {
   readonly keys?: readonly string[];
 }
 
-/** The part a dock is made by: a claw gripping, a pad a fighter has landed on, or two ports mated. */
-export type DockKind = 'claw' | 'pad' | 'port';
+/** The part a dock is made by: a claw gripping, a pad a fighter has landed on, two ports mated, or a slipway building. */
+export type DockKind = 'claw' | 'pad' | 'port' | 'slipway';
 
 /** Which of two welded hulls, if either, holds the other, and by what. */
 export interface DockAt {
@@ -2132,6 +2132,48 @@ export function rebuiltDesign(
     joins = { pieces, seams: design.seams ?? [], ...(design.fighterPieces === undefined ? {} : { fighterPieces: design.fighterPieces }) };
   }
   return designFrom(design.name, specs, all, layoutIndex, design.doctrine, joins, design.fighter, marks);
+}
+
+/** A module of a compiled design, whole or as a shell, laid out in a new design's frame. */
+export interface PartOf {
+  readonly spec: ModuleSpec;
+  readonly stats: ModuleStats;
+  readonly origin: Compiled;
+  readonly shell: Shell | null;
+}
+
+/** One hull of `parts`, each a module of another compiled design: part of a ship being built. */
+export function partsDesign(name: string, doctrine: Doctrine, parts: readonly PartOf[]): ShipDesign {
+  return designFrom(
+    name,
+    parts.map((p) => p.spec),
+    parts.map((p) => p.stats),
+    parts.map((p) => p.origin.design.modules[p.origin.module]!.index),
+    doctrine,
+    undefined,
+    false,
+    parts.map((p) => (p.shell === null ? { origin: p.origin } : { origin: p.origin, shell: p.shell })),
+  );
+}
+
+/** A welded hull with `more` seams than it has: further holds between its pieces. */
+export function seamedDesign(design: ShipDesign, more: readonly Seam[]): ShipDesign {
+  if (more.length === 0 || design.pieces === undefined) return design;
+  const joins: Joins = {
+    pieces: design.pieces,
+    seams: [...(design.seams ?? []), ...more],
+    ...(design.fighterPieces === undefined ? {} : { fighterPieces: design.fighterPieces }),
+  };
+  return designFrom(
+    design.name,
+    design.modules.map((module) => module.spec),
+    design.modules.map((module) => module.stats),
+    design.modules.map((module) => module.index),
+    design.doctrine,
+    joins,
+    design.fighter,
+    design.modules.map((_, m) => markOf(design, m)),
+  );
 }
 
 /**

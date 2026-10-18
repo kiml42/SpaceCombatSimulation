@@ -22,6 +22,7 @@ import { salvage, scrapyard } from '../../scenarios/salvage.js';
 import { mending, rebuilding, refitting } from '../../scenarios/mending.js';
 import { scavenge } from '../../scenarios/scavenge.js';
 import { carrier, factory, padRebuild } from '../../scenarios/carrier.js';
+import { shipyard } from '../../scenarios/shipyard.js';
 import { rearm } from '../../scenarios/rearm.js';
 import { beamCarrier } from '../../scenarios/beamCarrier.js';
 import { circling, passes } from '../../scenarios/passes.js';
@@ -633,6 +634,19 @@ export function factoryScenario(seed = 20261017): ScenarioRun {
   };
 }
 
+export function shipyardScenario(seed = 20261018): ScenarioRun {
+  const run = shipyard(seed);
+  return {
+    step: () => run.step(),
+    checksum: () =>
+      checksumDamage(
+        run.ships.damage,
+        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
+      ),
+    describe: () => describeBattle(run),
+  };
+}
+
 export function rearmScenario(seed = 20261010): ScenarioRun {
   const run = rearm(seed);
   return {
@@ -721,6 +735,8 @@ export const SCENARIOS = {
   padRebuild: { steps: 4_800, build: () => padRebuildScenario() },
   // Long enough for the first fighter to be laid down, built, filled and let go.
   factory: { steps: 6_000, build: () => factoryScenario() },
+  // Long enough for the Scavenger to be built, fitted out, filled and let go.
+  shipyard: { steps: 18_000, build: () => shipyardScenario() },
   // Long enough for all three fighters to fire themselves dry and rearm.
   rearm: { steps: 3_000, build: () => rearmScenario() },
   // Long enough for both pickets to dock, fill and part.
