@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { compileBlueprint, settleIds, subDesign, type Blueprint } from '../sim/index.js';
+import { compileBlueprint, expandBlueprint, refitPlan, settleIds, subDesign, type Blueprint } from '../sim/index.js';
+import { EditorDocument } from '../editor/document.js';
 import { makeBattle } from '../scenarios/battle.js';
 import { MENDER, REBUILDER, REFITTED, refitting } from '../scenarios/mending.js';
 
@@ -51,6 +52,32 @@ describe('a refit', () => {
     expect(run.ships.refit(run.world, run.a, compileBlueprint({ ...FROM, name: 'Same' }))).toBeNull();
     expect(run.ships.isRefitting(run.a)).toBe(false);
     expect(run.ships.design(run.a).modules.map((m) => m.spec)).toEqual(before.modules.map((m) => m.spec));
+  });
+});
+
+describe('a refit planned in the editor', () => {
+  it('says what would be built and what taken down, matched as a refit matches', () => {
+    const plan = refitPlan(FROM, REFITTED)!;
+    const now = expandBlueprint(REFITTED);
+    expect(plan.built.map((k) => now[k]!.kind).sort()).toEqual(['structure', 'tank']);
+    expect(plan.takenDown.map((m) => m.kind).sort()).toEqual(['engine', 'structure']);
+    expect(plan.coreKept).toBe(true);
+  });
+
+  it('is nothing between a design and itself, and says when the core would go', () => {
+    expect(refitPlan(FROM, FROM)).toMatchObject({ built: [], takenDown: [], coreKept: true });
+    const coreless: Blueprint = { ...FROM, modules: FROM.modules.map((m) => ('kind' in m && m.kind === 'core' ? { ...m, x: 0.5 } : m)) };
+    expect(refitPlan(FROM, coreless)!.coreKept).toBe(false);
+  });
+
+  it('is shown against the design as it was opened, once it differs', () => {
+    const doc = new EditorDocument(FROM);
+    expect(doc.refit).toBeNull();
+    doc.apply(REFITTED);
+    expect(doc.refit?.built.length).toBe(2);
+    expect(doc.refit?.takenDown.length).toBe(2);
+    doc.undo();
+    expect(doc.refit).toBeNull();
   });
 });
 

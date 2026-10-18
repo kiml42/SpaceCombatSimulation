@@ -62,8 +62,9 @@ an entry is either still open or it is gone.
 
 Step 13's remainder is its entry below. Of step 12, slice 1 is built (DESIGN.md Status): pads build the
 fighters they keep, in a fleet from the fleet's designs, and evolution breeds both. Of slice 2, every
-placement has a stable id and a ship can be refitted (`Ships.refit`); what is left of it is the editor
-showing what a refit takes down, and the paused battle issuing one. Slice 3 is left as planned below.
+placement has a stable id, a ship can be refitted (`Ships.refit`), and the editor shows what a refit
+from the design as opened would build and take down; what is left of it is the paused battle issuing one.
+Slice 3 is left as planned below.
 
 ### Not started — in order
 

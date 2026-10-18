@@ -564,6 +564,8 @@ export function startEditor(): void {
         selected: doc.selectedLoose(),
         assemblies: doc.selectedAssemblies(),
         faulty: view.faulty,
+        refitBuilt: doc.refit?.built ?? [],
+        refitDown: doc.refit?.takenDown ?? [],
         handles: currentHandles(),
         envelope,
         envelopeBearing: thrustBearing,
@@ -699,6 +701,15 @@ export function startEditor(): void {
         : `<p class="warn">${problems.length} problem${problems.length > 1 ? 's' : ''}</p><ul>` +
           problems.map((p) => `<li>${escapeHtml(p)}</li>`).join('') +
           '</ul>') + unreadNote(doc.view.warnings);
+    // A ship already built to the design as it was opened would be refitted to this one.
+    const refit = doc.refit;
+    el<HTMLElement>('refitSection').hidden = refit === null;
+    if (refit !== null) {
+      el<HTMLElement>('refit').innerHTML =
+        `<p>A ship built as it was opened, refitted to this: ${refit.built.length} built (green), ` +
+        `${refit.takenDown.length} taken down (dashed).</p>` +
+        (refit.coreKept ? '' : '<p class="warn">It would lose the core it is flown from, so could not be refitted.</p>');
+    }
   };
 
   /** Where the selected copy's position is written, and in what frame. */

@@ -62,6 +62,16 @@ const GROUP_BOX_MARGIN_PX = 7;
  * metres and so wrong at every zoom but one.
  */
 const FAULT_FILL = 'rgba(255, 107, 94, 0.32)';
+/**
+ * A refit from the design as it was opened (`refitPlan`): what would be built
+ * tinted green over its own shape, and what would be taken down drawn where
+ * it stood, a dashed outline with no module of the new design under it.
+ */
+const REFIT_BUILT_FILL = 'rgba(127, 214, 160, 0.28)';
+const REFIT_DOWN = '#e9915f';
+const REFIT_DOWN_FILL = 'rgba(233, 145, 95, 0.14)';
+/** Dash and gap of the outline of a module a refit takes down, pixels. */
+const REFIT_DASH_PX = 5;
 /** The grab points on the selected module, in the selection's own colour. */
 const HANDLE_FILL = '#e9c05f';
 const HANDLE_EDGE = '#1b1f27';
@@ -96,6 +106,10 @@ export interface OverlayView {
   assemblies: readonly AssemblyOutline[];
   /** Indices of the drawn modules a problem names: overlapping, adrift, or unbuildable. */
   faulty: readonly number[];
+  /** Indices of the drawn modules a refit from the design as opened would build. */
+  refitBuilt?: readonly number[];
+  /** The modules of the design as opened a refit would take down, where they stood. */
+  refitDown?: readonly ModuleSpec[];
   /**
    * The grab points on the selected module — corners that size it and a knob
    * that turns it — or empty when the selection is not one module.
@@ -165,6 +179,7 @@ export function drawOverlay(
   widthPx: number,
   heightPx: number,
 ): void {
+  drawRefit(ctx, view, camera);
   drawFaults(ctx, view);
   drawSelection(ctx, view, camera);
   drawHandles(ctx, view, camera);
@@ -202,6 +217,39 @@ function drawGridCaption(
     ENVELOPE_MARGIN_PX,
     heightPx - ENVELOPE_MARGIN_PX,
   );
+}
+
+/** What a refit from the design as opened would build, tinted, and what it would take down, outlined. */
+function drawRefit(ctx: CanvasRenderingContext2D, view: OverlayView, camera: Camera): void {
+  const shape = (placed: ModuleSpec, paint: () => void): void => {
+    const spec = bodySpec(placed);
+    if (!(spec.length > 0) || !(spec.width > 0)) return;
+    const mid = moduleCentre(spec);
+    ctx.save();
+    ctx.translate(mid.x, mid.y);
+    ctx.rotate(spec.angle ?? 0);
+    outline(ctx, spec);
+    paint();
+    ctx.restore();
+  };
+  for (const index of view.refitBuilt ?? []) {
+    const placed = view.modules[index];
+    if (placed === undefined) continue;
+    shape(placed, () => {
+      ctx.fillStyle = REFIT_BUILT_FILL;
+      ctx.fill();
+    });
+  }
+  for (const placed of view.refitDown ?? []) {
+    shape(placed, () => {
+      ctx.fillStyle = REFIT_DOWN_FILL;
+      ctx.fill();
+      ctx.strokeStyle = REFIT_DOWN;
+      ctx.lineWidth = SELECTION_WIDTH_PX / camera.scale;
+      ctx.setLineDash([REFIT_DASH_PX / camera.scale, REFIT_DASH_PX / camera.scale]);
+      ctx.stroke();
+    });
+  }
 }
 
 /** Tint every module a problem names, over the module's own shape. */
