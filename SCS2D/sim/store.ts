@@ -136,6 +136,41 @@ export class Store {
     return this.put(bodyIndex, sink, kg < room ? kg : room);
   }
 
+  /**
+   * Move what module `module` holds into the other stores on its piece of
+   * hull, lowest tier first, as far as they have room, and say how much went:
+   * emptying it before it is taken down. What has no room stays in it.
+   */
+  spill(bodyIndex: number, module: number): number {
+    const pieceOf = this.pieceOf[bodyIndex];
+    if (pieceOf === null || pieceOf === undefined) return 0;
+    const contents = this.contents[bodyIndex]!;
+    const held = contents[module] ?? 0;
+    const stores = this.stores[bodyIndex]![pieceOf[module] ?? 0];
+    if (!(held > 0) || stores === undefined) return 0;
+    const ends = this.tierEnds[bodyIndex]![pieceOf[module] ?? 0]!;
+    const ceiling = this.ceiling(bodyIndex);
+    const spin = this.spin[bodyIndex]!;
+    let left = held;
+    for (let tier = ends.length - 1; tier >= 0 && left > 0; tier--) {
+      const start = tier > 0 ? ends[tier - 1]! : 0;
+      for (let k = start; k < ends[tier]! && left > 0; k++) {
+        const m = stores[k]!;
+        if (m === module) continue;
+        const space = ceiling[m]! - contents[m]!;
+        if (!(space > 0)) continue;
+        const give = space < left ? space : left;
+        contents[m] = contents[m]! + give;
+        this.spentSpin[bodyIndex] = this.spentSpin[bodyIndex]! - give * spin[m]!;
+        left -= give;
+      }
+    }
+    const moved = held - left;
+    contents[module] = left;
+    this.spentSpin[bodyIndex] = this.spentSpin[bodyIndex]! + moved * spin[module]!;
+    return moved;
+  }
+
   /** Which piece of hull a module is on, or -1 for a body with no record. */
   pieceAt(bodyIndex: number, module: number): number {
     return this.pieceOf[bodyIndex]?.[module] ?? -1;
