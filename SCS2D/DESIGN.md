@@ -635,9 +635,10 @@ inside any one file is not contiguous.
   each of the fleet's entries moves with a chance of its own, by a drift a quarter of its largest ship's radius and a
   turn, each undone alone if it lands on a neighbour — so a row of fighters moves as far as a fighter. A design nothing
   flies is not mutated, since nothing selects it — unless a pad of a design it flies keeps it, when it is bred as
-  a flown one is. A pad is pointed now and then at another fighter (`pad`, 0.5, only in a fleet with a pad):
-  another the fleet has, a copy of its own to breed apart, or a new bare core marked a fighter, a tenth of the
-  pad across, and how many a pad keeps drifts by at least one under tuning, in a ship bred alone too. Before a run the page shows the founders unmutated and the run's
+  a flown one is. A pad is pointed now and then at another fighter, and a slipway at another ship (`pad`, 0.5,
+  only in a fleet with either): another the fleet has, a copy of its own to breed apart, or a new bare core —
+  for a pad marked a fighter, a tenth of the pad across, and for a slipway half its width — and how many a
+  pad or slipway keeps drifts by at least one under tuning, in a ship bred alone too. Before a run the page shows the founders unmutated and the run's
   first match paused at its start. Entrants can start already moving, towards the middle and across it, at speeds the run
   sets (`--closing`, `--crossing`), the same two a custom battle has.
   **Co-evolution**, headless (`evolution/coevolution.ts`, `npm run evolve -- --versus`): two lineages, side A
@@ -874,8 +875,8 @@ inside any one file is not contiguous.
   beam than the slipway, to stand in the weapons layer when the slipway does not (one turret makes it want
   a thick slipway), or for anything of the builder to lie in the strip it builds into. A slipway's fittings
   are `SLIPWAY_MASS_PER_AREA` of its floor, and it pumps `SLIPWAY_PUMP_PER_METRE` for every metre of its
-  width. The editor sets the ship and how many it keeps, and evolution nudges the count but never adds a
-  slipway. **A slipway builds like a printer** (`Ships.build`, `sim/slipway.ts`): short of the ships it
+  width. The editor sets the ship and how many it keeps. Evolution adds one as rarely as a pad (0.5) and
+  nudges the count, and in a fleet points it at a ship as it points a pad at a fighter. **A slipway builds like a printer** (`Ships.build`, `sim/slipway.ts`): short of the ships it
   keeps, counted as a pad counts its fighters, it builds `SLIPWAY_STEP` (a metre) of the ship at a time
   from the bow, every module the cut crosses a shell from its foremost face as far as the cut and every
   module wholly ahead of it whole but for its fittings (`printedCraft`). Each step is a remade hull: the

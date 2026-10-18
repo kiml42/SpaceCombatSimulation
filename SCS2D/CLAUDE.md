@@ -121,6 +121,9 @@ inherited it.
 
 ## Conventions
 
+- **Every new part is open to evolution.** A new module kind gets a mutation weight above zero, and whatever
+  it names or counts gets a knob or an operator, so a run can reach it. If it is no use, selection drops it;
+  leaving it out means nobody ever finds out.
 - **Never write about the *current* branch, anywhere — including DESIGN.md.** "X was implemented on branch Y"
   is fine: a historical fact that stays true. "The work is on branch Y" is wrong the moment it merges, and the
   Status block is the one place most likely to be believed. Describe *what exists*, not where it lives.

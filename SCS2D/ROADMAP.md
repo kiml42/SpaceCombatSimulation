@@ -101,8 +101,8 @@ robots and pads rebuilding what a ship launched with, and taking wreckage apart 
        through the seam, it parts and flies. A connected design stays connected all the way. It names a
        design and a count, as a pad does, but never sets out with one: it is a shipyard, not somewhere
        ships are kept. **Built:** the module, its fields, its blueprint problems, the editor's
-       controls, and the building (DESIGN.md Status). Still open: evolution adding a slipway and pointing
-       one at another design, as it does a pad. Blueprint problems: the slipway
+       controls, the building, and evolution adding one and pointing it at a ship (DESIGN.md Status).
+       Blueprint problems: the slipway
        must be in every layer the design is (one turret makes it thick), as wide as the design's beam, and
        the strip it builds into clear of the mothership's own hull. Building moves metal from the holds
        into the new hull, so the mass stays and the inertia grows, lopsided unless the slipway is on the
