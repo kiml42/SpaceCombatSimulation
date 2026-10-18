@@ -51,17 +51,24 @@ function runFor(run: Battle, seconds: number, until: () => boolean = () => false
 describe('a pad that keeps fighters, in a file', () => {
   it('reads the older form, a fighter named as docked, as that fighter set out docked', () => {
     const raw = serialiseBlueprint(factoryOf(0)) as { modules: Record<string, unknown>[] };
-    const { fighter: _, keep: __, ...pad } = raw.modules[PAD]!;
+    const { craft: _, keep: __, ...pad } = raw.modules[PAD]!;
     raw.modules[PAD] = { ...pad, docked: DINKY.name };
-    const spec = parseBlueprint(raw).modules[PAD] as { fighter?: string; docked?: boolean };
-    expect(spec.fighter).toBe(DINKY.name);
+    const spec = parseBlueprint(raw).modules[PAD] as { craft?: string; docked?: boolean };
+    expect(spec.craft).toBe(DINKY.name);
     expect(spec.docked).toBe(true);
     expect(compileBlueprint(parseBlueprint(raw)).aboard?.length).toBe(1);
   });
 
+  it('reads `fighter`, the older name for `craft`', () => {
+    const raw = serialiseBlueprint(factoryOf(3)) as { modules: Record<string, unknown>[] };
+    const { craft, ...pad } = raw.modules[PAD]!;
+    raw.modules[PAD] = { ...pad, fighter: craft };
+    expect(parseBlueprint(raw).modules[PAD]).toMatchObject({ craft: DINKY.name, keep: 3 });
+  });
+
   it('keeps its fighter, whether it sets out docked, and how many it keeps', () => {
     const back = parseBlueprint(JSON.parse(JSON.stringify(serialiseBlueprint(factoryOf(3, true)))));
-    expect(back.modules[PAD]).toMatchObject({ fighter: DINKY.name, docked: true, keep: 3 });
+    expect(back.modules[PAD]).toMatchObject({ craft: DINKY.name, docked: true, keep: 3 });
   });
 
   it('builds only what it keeps, and sets out only with what is docked', () => {
@@ -168,7 +175,7 @@ describe('a pad building the fighters it keeps', () => {
     // Its pad shot half away: still building, and still holding on.
     const b = run.world.bodies.indexOf(run.ships.body(run.c));
     const modules = run.ships.design(run.c).modules;
-    const pad = modules.findIndex((m, k) => m.spec.kind === 'pad' && m.spec.fighter !== undefined && run.ships.owns(run.c, k));
+    const pad = modules.findIndex((m, k) => m.spec.kind === 'pad' && m.spec.craft !== undefined && run.ships.owns(run.c, k));
     run.ships.damage.absorb(b, pad, run.ships.damage.capacityLeft(b, pad) * 0.3);
     expect(run.ships.damage.remaining(b, pad, DamageEffect.Grip)).toBeGreaterThan(0);
     runFor(run, 30);
@@ -210,7 +217,7 @@ describe('a fighter on a pad, its engines lit', () => {
     expect(run.ships.body(f!)).toBe(run.ships.body(run.c));
     const b = run.world.bodies.indexOf(run.ships.body(run.c));
     const modules = run.ships.design(run.c).modules;
-    const pad = modules.findIndex((m, k) => m.spec.kind === 'pad' && m.spec.fighter !== undefined && run.ships.owns(run.c, k));
+    const pad = modules.findIndex((m, k) => m.spec.kind === 'pad' && m.spec.craft !== undefined && run.ships.owns(run.c, k));
     const before = run.ships.damage.absorbedAt(b, pad);
     // Full throttle on every engine, as if it had lit them where it sits.
     (run.ships as unknown as { throttles: Float64Array[] }).throttles[f!]!.fill(1);

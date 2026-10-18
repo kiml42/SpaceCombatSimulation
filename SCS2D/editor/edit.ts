@@ -169,11 +169,11 @@ export function updatePlacement(
 export function dockFighter(blueprint: Blueprint, path: ModulePath, fighter: Blueprint | null): Blueprint | null {
   const next = updatePlacement(blueprint, path, (placement) => {
     if (isInstance(placement)) return placement;
-    const { fighter: was, docked, keep, ...rest } = placement;
+    const { craft: was, docked, keep, ...rest } = placement;
     if (fighter === null) return rest;
     return {
       ...rest,
-      fighter: fighter.name,
+      craft: fighter.name,
       ...(was === undefined ? { docked: true } : docked === undefined ? {} : { docked }),
       ...(keep === undefined ? {} : { keep }),
     };
@@ -183,7 +183,7 @@ export function dockFighter(blueprint: Blueprint, path: ModulePath, fighter: Blu
   if (fighter !== null) hangar[fighter.name] = cloneBlueprint(fighter);
   const named = new Set<string>();
   const walk = (list: readonly Placement[]): void => {
-    for (const p of list) if (!isInstance(p) && p.fighter !== undefined) named.add(p.fighter);
+    for (const p of list) if (!isInstance(p) && p.craft !== undefined) named.add(p.craft);
   };
   walk(next.modules);
   for (const assembly of Object.values(next.assemblies ?? {})) walk(assembly.modules);

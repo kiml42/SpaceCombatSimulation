@@ -962,7 +962,7 @@ function numbers(draft: Draft): NumberKnob[] {
     // Batteries set out full: charge is not in the budget.
     if (readsFill(spec.kind) && spec.kind !== 'battery') out.push({ at: 'fill', site });
     // How many of its fighter a pad keeps: nothing to count without one.
-    if (readsDocked(spec.kind) && spec.fighter !== undefined) out.push({ at: 'keep', site });
+    if (readsDocked(spec.kind) && spec.craft !== undefined) out.push({ at: 'keep', site });
     if (isWeaponMount(spec.kind)) {
       // How much arc a weapon is built for, which on a hull mount is mass
       // as well as coverage — a fixed gun carries no training gear, and
@@ -1373,7 +1373,7 @@ function rekeep(site: ModuleSite, jitter: Jitter): string | null {
   if (now === was) return null;
   if (now > 0) site.spec.keep = now;
   else delete site.spec.keep;
-  return `${site.where} pad: keeps ${was} ${site.spec.fighter} → ${now}`;
+  return `${site.where} pad: keeps ${was} ${site.spec.craft} → ${now}`;
 }
 
 /**

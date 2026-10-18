@@ -962,8 +962,8 @@ export function startEditor(): void {
     el<HTMLElement>('dockedRow').hidden = !readsDocked(spec.kind);
     if (readsDocked(spec.kind)) renderDocked(spec);
     // Whether it sets out with one, and how many it keeps, mean nothing until it names one.
-    el<HTMLElement>('padDockedRow').hidden = !readsDocked(spec.kind) || spec.fighter === undefined;
-    el<HTMLElement>('keepRow').hidden = !readsDocked(spec.kind) || spec.fighter === undefined;
+    el<HTMLElement>('padDockedRow').hidden = !readsDocked(spec.kind) || spec.craft === undefined;
+    el<HTMLElement>('keepRow').hidden = !readsDocked(spec.kind) || spec.craft === undefined;
     padDockedInput.checked = spec.docked === true;
     // One no more than a deck across is as deep as it is wide either way.
     thickInput.disabled = !canThicken(spec) || doc.blueprint.fighter === true;
@@ -1361,14 +1361,14 @@ export function startEditor(): void {
     const options = ['<option value="">none</option>'];
     for (const [name, blueprint] of fighterChoices()) {
       // The copy aboard is what flies, so it is what is measured for the pad it is on.
-      const flown = name === spec.fighter ? (doc.blueprint.hangar?.[name] ?? blueprint) : blueprint;
+      const flown = name === spec.craft ? (doc.blueprint.hangar?.[name] ?? blueprint) : blueprint;
       const design = asFighter(flown);
       const fits = design !== null && padHolds(design, spec);
-      const chosen = name === spec.fighter ? ' selected' : '';
+      const chosen = name === spec.craft ? ' selected' : '';
       options.push(`<option value="${escapeHtml(name)}"${chosen}>${escapeHtml(name)}${fits ? '' : ' ✗ too big'}</option>`);
     }
-    if (spec.fighter !== undefined && !options.some((o) => o.includes(' selected'))) {
-      options.push(`<option value="${escapeHtml(spec.fighter)}" selected>${escapeHtml(spec.fighter)} ✗ missing</option>`);
+    if (spec.craft !== undefined && !options.some((o) => o.includes(' selected'))) {
+      options.push(`<option value="${escapeHtml(spec.craft)}" selected>${escapeHtml(spec.craft)} ✗ missing</option>`);
     }
     dockedSelect.innerHTML = options.join('');
     el<HTMLElement>('propDockedLabel').classList.toggle('warn', dockedSelect.selectedOptions[0]?.textContent?.includes('✗') === true);

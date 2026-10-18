@@ -1255,7 +1255,7 @@ function place(
     if (placement.sealing !== undefined) spec.sealing = placement.sealing;
     if (placement.drainPriority !== undefined) spec.drainPriority = placement.drainPriority;
     if (placement.fill !== undefined) spec.fill = placement.fill;
-    if (placement.fighter !== undefined) spec.fighter = placement.fighter;
+    if (placement.craft !== undefined) spec.craft = placement.craft;
     if (placement.docked !== undefined) spec.docked = placement.docked;
     if (placement.keep !== undefined) spec.keep = placement.keep;
     if (placement.targeting !== undefined) spec.targeting = placement.targeting;
@@ -1643,8 +1643,8 @@ export function padHolds(fighter: ShipDesign, pad: ModuleSpec): boolean {
 
 /** The fighter a pad tends, compiled, or why it cannot. Null for a pad that names none. */
 function padFighter(blueprint: Blueprint, spec: ModuleSpec): ShipDesign | string | null {
-  if (spec.kind !== 'pad' || spec.fighter === undefined) return null;
-  const name = spec.fighter;
+  if (spec.kind !== 'pad' || spec.craft === undefined) return null;
+  const name = spec.craft;
   const fighter = blueprint.hangar?.[name];
   if (fighter === undefined) return `no fighter named ${name} in the hangar`;
   const problem = blueprintProblem(fighter);

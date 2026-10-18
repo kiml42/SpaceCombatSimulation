@@ -183,7 +183,7 @@
           "length": 8,
           "width": 4,
           "reinforcement": 3,
-          "fighter": "Dinky Beam",
+          "craft": "Dinky Beam",
           "docked": true
         },
         {

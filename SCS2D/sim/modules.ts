@@ -253,7 +253,12 @@ export function readsDrainPriority(kind: ModuleKind): boolean {
   return readsSealing(kind);
 }
 
-/** Whether `fighter`, `docked` and `keep` mean anything on this kind: a pad. */
+/** Whether `craft` and `keep` mean anything on this kind: what builds ships. */
+export function readsCraft(kind: ModuleKind): boolean {
+  return kind === 'pad';
+}
+
+/** Whether `docked` means anything on this kind: a pad, which holds what it sets out with. */
 export function readsDocked(kind: ModuleKind): boolean {
   return kind === 'pad';
 }
@@ -1119,10 +1124,10 @@ export interface ModuleSpec {
   fill?: number;
 
   /**
-   * The fighter this pad tends, by its name in the blueprint's `hangar`: the
-   * one it sets out with (`docked`) and the one it builds (`keep`). A pad only.
+   * What this pad or slipway builds, by its name in the blueprint's `hangar`:
+   * for a pad the fighter it sets out with (`docked`) and builds (`keep`).
    */
-  fighter?: string;
+  craft?: string;
   /** Whether the pad sets out with its `fighter` docked on it. A pad only. */
   docked?: boolean;
   /**

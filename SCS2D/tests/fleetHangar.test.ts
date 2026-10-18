@@ -76,7 +76,7 @@ describe('a pad in a fleet', () => {
     expect(Object.keys(fleet.designs).sort()).toEqual(['Dinky', 'Laden']);
     fleet = replaceDesign(fleet, 'Dinky', { ...DINKY, name: 'Gnat' });
     expect(Object.keys(fleet.designs).sort()).toEqual(['Gnat', 'Laden']);
-    expect(fleet.designs['Laden']!.modules[PAD]).toMatchObject({ fighter: 'Gnat' });
+    expect(fleet.designs['Laden']!.modules[PAD]).toMatchObject({ craft: 'Gnat' });
     expect(compileBlueprint(fleetBlueprint(fleet, 'Laden')).builds?.length).toBe(1);
   });
 

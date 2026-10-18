@@ -129,6 +129,7 @@ export {
   readsSealing,
   readsDrainPriority,
   readsFill,
+  readsCraft,
   readsDocked,
   fillOf,
   liningOf,
