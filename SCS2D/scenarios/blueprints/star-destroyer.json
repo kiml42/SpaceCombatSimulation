@@ -22,6 +22,7 @@
     "structure": {
       "modules": [
         {
+          "id": 8,
           "kind": "structure",
           "x": 601.9,
           "y": 60,
@@ -29,6 +30,7 @@
           "width": 60
         },
         {
+          "id": 9,
           "kind": "structure",
           "x": 429.4,
           "y": 120,
@@ -36,6 +38,7 @@
           "width": 60
         },
         {
+          "id": 10,
           "kind": "structure",
           "x": 275.4,
           "y": 180,
@@ -43,6 +46,7 @@
           "width": 60
         },
         {
+          "id": 11,
           "kind": "structure",
           "x": -156.5,
           "y": 240,
@@ -50,6 +54,7 @@
           "width": 60
         },
         {
+          "id": 12,
           "use": "turret",
           "x": -507,
           "y": 130,
@@ -60,6 +65,7 @@
           }
         },
         {
+          "id": 13,
           "kind": "structure",
           "x": -237.5,
           "y": 300,
@@ -67,6 +73,7 @@
           "width": 60
         },
         {
+          "id": 14,
           "kind": "structure",
           "x": -397.5,
           "y": 420,
@@ -74,6 +81,7 @@
           "width": 60
         },
         {
+          "id": 15,
           "use": "pad",
           "x": -582,
           "y": 360,
@@ -84,27 +92,32 @@
           }
         },
         {
+          "id": 16,
           "use": "beamTurret",
           "x": 315,
           "y": 82.5
         },
         {
+          "id": 17,
           "use": "beamTurret",
           "x": 485.5,
           "y": 16,
           "angle": -90
         },
         {
+          "id": 18,
           "use": "beamTurret",
           "x": 161,
           "y": 142.5
         },
         {
+          "id": 19,
           "use": "beamTurret",
           "x": -586,
           "y": 270.5
         },
         {
+          "id": 20,
           "kind": "engine",
           "x": -448.5,
           "y": 450,
@@ -115,6 +128,7 @@
           "nozzle": 2.7778
         },
         {
+          "id": 21,
           "kind": "engine",
           "x": -345,
           "y": 478.5,
@@ -125,11 +139,13 @@
           "nozzle": 2.1795
         },
         {
+          "id": 22,
           "use": "engine2",
           "x": -537,
           "y": 160
         },
         {
+          "id": 23,
           "kind": "hold",
           "x": -437,
           "y": 60,
@@ -138,6 +154,7 @@
           "thick": true
         },
         {
+          "id": 24,
           "kind": "structure",
           "x": -196,
           "y": 120,
@@ -146,6 +163,7 @@
           "thick": true
         },
         {
+          "id": 25,
           "kind": "structure",
           "x": 315,
           "y": 56,
@@ -154,6 +172,7 @@
           "thick": true
         },
         {
+          "id": 26,
           "kind": "engine",
           "x": -608,
           "y": 82.5,
@@ -164,6 +183,7 @@
           "thick": true
         },
         {
+          "id": 27,
           "kind": "structure",
           "x": -670.5,
           "y": 102.75,
@@ -172,6 +192,7 @@
           "thick": true
         },
         {
+          "id": 28,
           "kind": "battery",
           "x": -577.5,
           "y": 80,
@@ -180,6 +201,7 @@
           "thick": true
         },
         {
+          "id": 29,
           "kind": "structure",
           "x": -673,
           "y": 59.75,
@@ -188,6 +210,7 @@
           "thick": true
         },
         {
+          "id": 30,
           "kind": "structure",
           "x": -542,
           "y": 100,
@@ -196,6 +219,7 @@
           "thick": true
         },
         {
+          "id": 31,
           "kind": "structure",
           "x": 161,
           "y": 116,
@@ -204,6 +228,7 @@
           "thick": true
         },
         {
+          "id": 32,
           "kind": "structure",
           "x": 489,
           "y": 52.5,
@@ -211,11 +236,13 @@
           "width": 75
         },
         {
+          "id": 33,
           "use": "engine",
           "x": 809.633767755,
           "y": 51.493337239
         },
         {
+          "id": 34,
           "kind": "engine",
           "x": -702,
           "y": 210,
@@ -226,6 +253,7 @@
           "thick": true
         },
         {
+          "id": 35,
           "kind": "structure",
           "x": -617,
           "y": 240,
@@ -234,6 +262,7 @@
           "thick": true
         },
         {
+          "id": 36,
           "kind": "structure",
           "x": -622,
           "y": 300,
@@ -241,6 +270,7 @@
           "width": 60
         },
         {
+          "id": 37,
           "kind": "structure",
           "x": -586,
           "y": 304,
@@ -248,54 +278,63 @@
           "width": 52
         },
         {
+          "id": 38,
           "use": "structure2",
           "x": 454.466666667,
           "y": 170,
           "mirror": true
         },
         {
+          "id": 39,
           "use": "structure2",
           "x": 300.666666667,
           "y": 230,
           "mirror": true
         },
         {
+          "id": 40,
           "use": "structure2",
           "x": 146.66666666700002,
           "y": 290,
           "mirror": true
         },
         {
+          "id": 41,
           "use": "structure2",
           "x": -7.333333332999985,
           "y": 350,
           "mirror": true
         },
         {
+          "id": 42,
           "use": "structure2",
           "x": -161.33333333299998,
           "y": 410,
           "mirror": true
         },
         {
+          "id": 43,
           "use": "structure3",
           "x": 382.33333333300004,
           "y": 50,
           "mirror": true
         },
         {
+          "id": 44,
           "use": "structure3",
           "x": 228.33333333300004,
           "y": 110,
           "mirror": true
         },
         {
+          "id": 45,
           "use": "structure3",
           "x": 74.33333333300004,
           "y": 170,
           "mirror": true
         },
         {
+          "id": 46,
           "kind": "structure",
           "x": 470.5,
           "y": 60,
@@ -303,42 +342,49 @@
           "width": 60
         },
         {
+          "id": 47,
           "use": "structure4",
           "x": -650.0000000000001,
           "y": 290.00000000000006,
           "mirror": true
         },
         {
+          "id": 48,
           "use": "structure4",
           "x": -620.0000000000001,
           "y": 350.00000000000006,
           "mirror": true
         },
         {
+          "id": 49,
           "use": "structure4",
           "x": -590.0000000000001,
           "y": 410.00000000000006,
           "mirror": true
         },
         {
+          "id": 50,
           "use": "structure4",
           "x": -560.0000000000001,
           "y": 470.00000000000006,
           "mirror": true
         },
         {
+          "id": 51,
           "use": "structure2",
           "x": 608.466666667,
           "y": 110,
           "mirror": true
         },
         {
+          "id": 52,
           "use": "structure2",
           "x": 762.466666667,
           "y": 50,
           "mirror": true
         },
         {
+          "id": 53,
           "kind": "structure",
           "x": 890.466410146,
           "y": 10.000812608,
@@ -354,36 +400,43 @@
           ]
         },
         {
+          "id": 54,
           "use": "engine",
           "x": 659.106604188,
           "y": 110.14028408200001
         },
         {
+          "id": 55,
           "use": "engine",
           "x": 508.960847462,
           "y": 168.638630859
         },
         {
+          "id": 56,
           "use": "engine",
           "x": 358.460042073,
           "y": 227.353230361
         },
         {
+          "id": 57,
           "use": "engine",
           "x": 207.932878506,
           "y": 286.000177205
         },
         {
+          "id": 58,
           "use": "engine",
           "x": 57.40571493899999,
           "y": 344.647124049
         },
         {
+          "id": 59,
           "use": "engine",
           "x": -93.12144862800001,
           "y": 403.294070894
         },
         {
+          "id": 60,
           "kind": "structure",
           "x": -61,
           "y": 360,
@@ -391,6 +444,7 @@
           "width": 60
         },
         {
+          "id": 61,
           "kind": "structure",
           "x": -14,
           "y": 60,
@@ -399,16 +453,19 @@
           "thick": true
         },
         {
+          "id": 62,
           "use": "structure5",
           "x": 307.5,
           "y": 86
         },
         {
+          "id": 63,
           "use": "structure5",
           "x": 153.5,
           "y": 146
         },
         {
+          "id": 64,
           "kind": "structure",
           "x": -593.5,
           "y": 274,
@@ -420,6 +477,7 @@
     "turret": {
       "modules": [
         {
+          "id": 65,
           "kind": "turret",
           "x": 40,
           "y": 50,
@@ -445,6 +503,7 @@
     "beamTurret": {
       "modules": [
         {
+          "id": 66,
           "kind": "turret",
           "x": 8.5,
           "y": 3.4999999999999996,
@@ -476,6 +535,7 @@
     "engine2": {
       "modules": [
         {
+          "id": 67,
           "kind": "engine",
           "x": 0,
           "y": 0,
@@ -491,6 +551,7 @@
     "structure2": {
       "modules": [
         {
+          "id": 68,
           "kind": "structure",
           "x": -0.333333334,
           "y": 0,
@@ -510,6 +571,7 @@
     "structure3": {
       "modules": [
         {
+          "id": 69,
           "kind": "structure",
           "x": 32.000888889,
           "y": -20,
@@ -526,6 +588,7 @@
           ]
         },
         {
+          "id": 70,
           "kind": "structure",
           "x": -9.666666666,
           "y": -17.333333333,
@@ -541,6 +604,7 @@
           ]
         },
         {
+          "id": 71,
           "kind": "structure",
           "x": -9.666222222,
           "y": 2.666666667,
@@ -562,6 +626,7 @@
     "structure4": {
       "modules": [
         {
+          "id": 72,
           "kind": "structure",
           "x": -2,
           "y": 0,
@@ -581,6 +646,7 @@
     "engine": {
       "modules": [
         {
+          "id": 73,
           "kind": "engine",
           "x": 0,
           "y": 0,
@@ -596,6 +662,7 @@
     "pad": {
       "modules": [
         {
+          "id": 74,
           "kind": "pad",
           "x": 0,
           "y": 0,
@@ -603,6 +670,7 @@
           "width": 60
         },
         {
+          "id": 75,
           "kind": "structure",
           "x": 30.5,
           "y": 0,
@@ -614,6 +682,7 @@
     "structure5": {
       "modules": [
         {
+          "id": 76,
           "kind": "structure",
           "x": 0,
           "y": 0,
@@ -626,6 +695,7 @@
   },
   "modules": [
     {
+      "id": 1,
       "kind": "structure",
       "x": 695.9,
       "y": 0,
@@ -633,6 +703,7 @@
       "width": 60
     },
     {
+      "id": 2,
       "kind": "core",
       "x": -330,
       "y": 0,
@@ -643,17 +714,20 @@
       "notes": "The bridge, aft above the engines, where a Star Destroyer's is — and where every shot at it has to cross the length of the ship first."
     },
     {
+      "id": 3,
       "use": "structure",
       "x": 17,
       "y": 0,
       "mirror": true
     },
     {
+      "id": 4,
       "use": "engine2",
       "x": -530,
       "y": 0
     },
     {
+      "id": 5,
       "kind": "generator",
       "x": -440,
       "y": 0,
@@ -662,6 +736,7 @@
       "thick": true
     },
     {
+      "id": 6,
       "kind": "tank",
       "x": 96,
       "y": 0,
@@ -670,6 +745,7 @@
       "thick": true
     },
     {
+      "id": 7,
       "use": "structure",
       "x": 17,
       "y": 0

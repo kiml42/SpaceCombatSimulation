@@ -10,6 +10,7 @@
   },
   "modules": [
     {
+      "id": 1,
       "kind": "core",
       "x": 0,
       "y": 0,
@@ -17,6 +18,7 @@
       "width": 3
     },
     {
+      "id": 2,
       "kind": "tank",
       "x": -3.5,
       "y": 0,
@@ -26,6 +28,7 @@
       "notes": "Sent out a fifth full: fuel it can drink from a wreck is fuel it does not have to be built with, so it costs less of a budget."
     },
     {
+      "id": 3,
       "kind": "claw",
       "x": 2.5,
       "y": 0,
@@ -35,6 +38,7 @@
       "notes": "Its jaws are the bow, so pointing the ship at a wreck is pointing the claw."
     },
     {
+      "id": 4,
       "kind": "engine",
       "x": -5.5,
       "y": 0,
@@ -44,6 +48,7 @@
       "nozzle": 0.5
     },
     {
+      "id": 5,
       "kind": "engine",
       "x": -3.5,
       "y": 1.5,
@@ -53,6 +58,7 @@
       "nozzle": 0.5
     },
     {
+      "id": 6,
       "kind": "engine",
       "x": -3.5,
       "y": -1.5,
@@ -62,6 +68,7 @@
       "nozzle": 0.5
     },
     {
+      "id": 7,
       "kind": "engine",
       "x": 0,
       "y": 1.5,
@@ -71,6 +78,7 @@
       "nozzle": 0.5
     },
     {
+      "id": 8,
       "kind": "engine",
       "x": 0,
       "y": -1.5,
@@ -80,6 +88,7 @@
       "nozzle": 0.5
     },
     {
+      "id": 9,
       "kind": "engine",
       "x": 1.5,
       "y": 1.25,
@@ -89,6 +98,7 @@
       "nozzle": 1
     },
     {
+      "id": 10,
       "kind": "engine",
       "x": 1.5,
       "y": -1.25,

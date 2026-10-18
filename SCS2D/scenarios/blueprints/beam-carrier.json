@@ -39,6 +39,7 @@
         "Side": {
           "modules": [
             {
+              "id": 8,
               "kind": "engine",
               "x": 0.04999999999999999,
               "y": -0.04999999999999998,
@@ -48,6 +49,7 @@
               "nozzle": 0.2
             },
             {
+              "id": 9,
               "kind": "engine",
               "x": -2.15,
               "y": -0.05000000000000002,
@@ -58,6 +60,7 @@
               "nozzle": 1.75
             },
             {
+              "id": 10,
               "kind": "engine",
               "x": -2.35,
               "y": -0.15,
@@ -72,6 +75,7 @@
       },
       "modules": [
         {
+          "id": 1,
           "kind": "tank",
           "x": 0.675,
           "y": 0,
@@ -80,12 +84,14 @@
           "reinforcement": 1
         },
         {
+          "id": 2,
           "use": "Side",
           "x": -0.1,
           "y": 0.25,
           "angle": 180
         },
         {
+          "id": 3,
           "kind": "engine",
           "x": -0.4,
           "y": 0,
@@ -95,6 +101,7 @@
           "nozzle": 0.625
         },
         {
+          "id": 4,
           "kind": "core",
           "x": -0.15,
           "y": 0,
@@ -104,6 +111,7 @@
           "notes": "A tiny simple fighter with just enough engines to fly"
         },
         {
+          "id": 5,
           "kind": "hullBeam",
           "x": 2.02,
           "y": 0,
@@ -120,6 +128,7 @@
           }
         },
         {
+          "id": 6,
           "use": "Side",
           "x": -0.1,
           "y": -0.25,
@@ -127,6 +136,7 @@
           "mirror": true
         },
         {
+          "id": 7,
           "kind": "battery",
           "x": 1.375,
           "y": 0,
@@ -141,6 +151,7 @@
     "turret": {
       "modules": [
         {
+          "id": 17,
           "kind": "beamTurret",
           "x": 0,
           "y": 0,
@@ -151,6 +162,7 @@
           "main": false
         },
         {
+          "id": 18,
           "kind": "engine",
           "x": -0.9999999999999999,
           "y": 1.5,
@@ -164,6 +176,7 @@
     "pad": {
       "modules": [
         {
+          "id": 19,
           "kind": "pad",
           "x": 0,
           "y": 0,
@@ -174,6 +187,7 @@
           "docked": true
         },
         {
+          "id": 20,
           "kind": "battery",
           "x": 6,
           "y": 0,
@@ -186,6 +200,7 @@
     "engine": {
       "modules": [
         {
+          "id": 21,
           "kind": "engine",
           "x": 0,
           "y": 0,
@@ -200,6 +215,7 @@
     "Engine Block": {
       "modules": [
         {
+          "id": 22,
           "kind": "engine",
           "x": -1.5,
           "y": 0,
@@ -211,12 +227,14 @@
           "nozzle": 1.5
         },
         {
+          "id": 23,
           "use": "engine",
           "x": 0,
           "y": 0,
           "angle": -180
         },
         {
+          "id": 24,
           "use": "engine",
           "x": 0,
           "y": 0
@@ -226,6 +244,7 @@
     "engine2": {
       "modules": [
         {
+          "id": 25,
           "kind": "engine",
           "x": 0,
           "y": 0,
@@ -239,6 +258,7 @@
     "assembly": {
       "modules": [
         {
+          "id": 26,
           "kind": "port",
           "x": 0,
           "y": -1,
@@ -247,16 +267,19 @@
           "width": 7
         },
         {
+          "id": 27,
           "use": "engine2",
           "x": -7,
           "y": -2
         },
         {
+          "id": 28,
           "use": "engine2",
           "x": 8,
           "y": -2
         },
         {
+          "id": 29,
           "kind": "engine",
           "x": -8.5,
           "y": -2.75,
@@ -266,6 +289,7 @@
           "nozzle": 0.4
         },
         {
+          "id": 30,
           "kind": "engine",
           "x": 8,
           "y": -2.75,
@@ -279,6 +303,7 @@
   },
   "modules": [
     {
+      "id": 1,
       "kind": "core",
       "x": -43.5,
       "y": 12.5,
@@ -288,6 +313,7 @@
       "thick": true
     },
     {
+      "id": 2,
       "kind": "tank",
       "x": -19,
       "y": 4,
@@ -298,12 +324,14 @@
       "fill": 0.45
     },
     {
+      "id": 3,
       "use": "turret",
       "x": -36,
       "y": 12.5,
       "angle": -90
     },
     {
+      "id": 4,
       "use": "turret",
       "x": -51,
       "y": 12.5,
@@ -311,6 +339,7 @@
       "mirror": true
     },
     {
+      "id": 5,
       "use": "pad",
       "x": -64.5,
       "y": -4,
@@ -321,6 +350,7 @@
       }
     },
     {
+      "id": 6,
       "kind": "battery",
       "x": -70.5,
       "y": -4,
@@ -329,17 +359,20 @@
       "reinforcement": 3
     },
     {
+      "id": 7,
       "use": "Engine Block",
       "x": -74,
       "y": 2
     },
     {
+      "id": 8,
       "use": "Engine Block",
       "x": 29,
       "y": 2,
       "angle": 180
     },
     {
+      "id": 9,
       "kind": "port",
       "x": -21.5,
       "y": -7.5,
@@ -349,6 +382,7 @@
       "reinforcement": 3
     },
     {
+      "id": 10,
       "kind": "generator",
       "x": -69,
       "y": 4,
@@ -357,6 +391,7 @@
       "reinforcement": 3
     },
     {
+      "id": 11,
       "kind": "tank",
       "x": -20.75,
       "y": -14.5,
@@ -365,17 +400,20 @@
       "fill": 0.3
     },
     {
+      "id": 12,
       "use": "assembly",
       "x": -21.5,
       "y": -9
     },
     {
+      "id": 13,
       "use": "assembly",
       "x": -21.5,
       "y": -20,
       "mirror": true
     },
     {
+      "id": 14,
       "kind": "claw",
       "x": -11.25,
       "y": -14.5,
@@ -384,6 +422,7 @@
       "width": 4
     },
     {
+      "id": 15,
       "kind": "core",
       "x": -29,
       "y": -14.5,
@@ -391,6 +430,7 @@
       "width": 7
     },
     {
+      "id": 16,
       "kind": "beamTurret",
       "x": -31,
       "y": -14.5,

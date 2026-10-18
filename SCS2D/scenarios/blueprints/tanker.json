@@ -9,6 +9,7 @@
   },
   "modules": [
     {
+      "id": 1,
       "kind": "core",
       "x": 0,
       "y": 0,
@@ -16,6 +17,7 @@
       "width": 6
     },
     {
+      "id": 2,
       "kind": "tank",
       "x": -9,
       "y": 0,
@@ -24,6 +26,7 @@
       "notes": "Most of the ship: what it is for is carrying this to somebody else."
     },
     {
+      "id": 3,
       "kind": "port",
       "x": 0,
       "y": 3.5,
@@ -33,6 +36,7 @@
       "notes": "One on each beam, so two ships can drink at once."
     },
     {
+      "id": 4,
       "kind": "port",
       "x": 0,
       "y": -3.5,
@@ -41,6 +45,7 @@
       "width": 3
     },
     {
+      "id": 5,
       "kind": "engine",
       "x": -15,
       "y": 0,
@@ -50,6 +55,7 @@
       "nozzle": 0.3333
     },
     {
+      "id": 6,
       "kind": "engine",
       "x": 3,
       "y": 2,
@@ -59,6 +65,7 @@
       "nozzle": 0.3333
     },
     {
+      "id": 7,
       "kind": "engine",
       "x": 3,
       "y": -2,
@@ -68,6 +75,7 @@
       "nozzle": 0.3333
     },
     {
+      "id": 8,
       "kind": "engine",
       "x": -9,
       "y": 4,
@@ -77,6 +85,7 @@
       "nozzle": 0.25
     },
     {
+      "id": 9,
       "kind": "engine",
       "x": -9,
       "y": -4,

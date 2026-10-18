@@ -17,6 +17,7 @@
     "engine2": {
       "modules": [
         {
+          "id": 9,
           "kind": "engine",
           "x": -0.05,
           "y": 0,
@@ -30,6 +31,7 @@
   },
   "modules": [
     {
+      "id": 1,
       "kind": "tank",
       "x": 0.85,
       "y": 0,
@@ -38,6 +40,7 @@
       "reinforcement": 1.5
     },
     {
+      "id": 2,
       "use": "engine2",
       "x": -0.74,
       "y": 0.3,
@@ -45,23 +48,27 @@
       "mirror": true
     },
     {
+      "id": 3,
       "use": "engine2",
       "x": -0.74,
       "y": -0.3,
       "angle": 180
     },
     {
+      "id": 4,
       "use": "engine2",
       "x": 2.35,
       "y": 0.15
     },
     {
+      "id": 5,
       "use": "engine2",
       "x": 2.35,
       "y": -0.15,
       "mirror": true
     },
     {
+      "id": 6,
       "kind": "core",
       "x": 0,
       "y": 0,
@@ -70,6 +77,7 @@
       "notes": "Half a metre square of computing is a whole control centre, which is the only reason a fighter this size can be flown at all."
     },
     {
+      "id": 7,
       "kind": "structure",
       "x": 2,
       "y": 0,
@@ -79,6 +87,7 @@
       "notes": "The warhead, such as it is: armour for the ram to land on."
     },
     {
+      "id": 8,
       "kind": "engine",
       "x": -0.10000000000000009,
       "y": 0,

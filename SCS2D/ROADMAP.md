@@ -61,8 +61,9 @@ an entry is either still open or it is gone.
 ### Partly built — what is left
 
 Step 13's remainder is its entry below. Of step 12, slice 1 is built (DESIGN.md Status): pads build the
-fighters they keep, in a fleet from the fleet's designs, and evolution breeds both. Slices 2 and 3 are left,
-as planned below.
+fighters they keep, in a fleet from the fleet's designs, and evolution breeds both. Of slice 2, every
+placement has a stable id; what is left of it is the `refit` command, the editor showing what a refit takes
+down, and the paused battle issuing one. Slice 3 is left as planned below.
 
 ### Not started — in order
 
@@ -625,7 +626,9 @@ Deliberately unresolved; decide when they block something.
   build only when clear, a mothership holding still while a slipway works.
 - **Module ids muddled by an edit.** A refit keeps a module only by its id (§8 step 12), so a module
   deleted and drawn again identically would be taken down and rebuilt. The cheap answer: pair an unmatched
-  module of the new design with an identical unmatched one of the old.
+  module of the new design with an identical unmatched one of the old. The reverse, an id handed again to a
+  new module after a save and reload since the one that had it was deleted, is harmless: a module is kept
+  only when it is also identical, so a different one under an old id is rebuilt, as it should be.
 - **Launching a fighter before it is whole.** A pad launches only a whole fighter. Once its core is up it is
   already a ship, so launching early under doctrine is a rule, not a new mechanism.
 - **Robots working on a docked friend.** Robots cross a seam only onto wreckage to take it apart; crossing a
