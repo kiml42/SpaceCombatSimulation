@@ -228,7 +228,7 @@ const AVOIDANCE_FIELDS: readonly string[] = ['separation', 'separationRadii', 'a
  * being cut in half, so the chance is not zero.
  */
 export const DEFAULT_KINDS: KindWeights = {
-  engine: 5,
+  engine: 10,
   structure: 4,
   // Fuel is what an engine is worth anything with, past what a core carries.
   tank: 2,
