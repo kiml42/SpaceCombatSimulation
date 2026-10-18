@@ -5,6 +5,7 @@ import {
   compileBlueprint,
   DamageEffect,
   parseBlueprint,
+  parseFleet,
   serialiseBlueprint,
   type Blueprint,
 } from '../sim/index.js';
@@ -13,6 +14,8 @@ import type { Battle } from '../scenarios/types.js';
 import { BARE_CORE, DINKY } from '../scenarios/blueprints.js';
 import { FACTORY, WORKSHOP } from '../scenarios/carrier.js';
 import { Activity } from '../scenarios/decision.js';
+import { fleetBattle } from '../scenarios/fleetBattle.js';
+import coriesFile from './fixtures/cories-fleet.json' with { type: 'json' };
 
 /** Pads building fighters from a core (ROADMAP.md §8 step 12, slice 1). */
 
@@ -244,5 +247,26 @@ describe('ships sharing a hull', () => {
       }
       expect(numbers.filter((n) => n >= 0).length).toBe(1);
     }
+  });
+});
+
+
+describe('robots aboard a carrier building a fighter', () => {
+  it('leave the fighter being built alone, though it has no working core yet', () => {
+    // The author's fleet that found it: a Factory with a robot bay, keeping four of a big fighter.
+    const fleet = parseFleet(coriesFile);
+    const foe = { name: 'Foe', designs: { [BARE_CORE.name]: BARE_CORE }, ships: [{ design: BARE_CORE.name, x: 0, y: 0 }] };
+    const run = fleetBattle([fleet, foe], { seed: 1, range: 5000 });
+    const ours = (): number[] => {
+      const out: number[] = [];
+      for (let i = 0; i < run.ships.highWater; i++) if (run.ships.isAlive(i) && run.ships.teamOf(i) === 0 && run.ships.isUnfinished(i)) out.push(i);
+      return out;
+    };
+    for (let s = 0; s < 30 * 60 && ours().length === 0; s++) run.step();
+    const building = ours();
+    expect(building.length).toBeGreaterThan(0);
+    // Long enough that, taken apart, they were gone and laid again more than once.
+    for (let s = 0; s < 90 * 60; s++) run.step();
+    for (const f of building) expect(run.ships.isAlive(f), `fighter ${f}`).toBe(true);
   });
 });

@@ -831,7 +831,8 @@ inside any one file is not contiguous.
   repairs slowing much: it adds 7% to the `mending` scenario.
   **Robots take apart what is not their ship's own**, once nothing is left to mend or rebuild: hull on the
   same body that nobody flies, that a ship with no control flies and no robots of its own are mending, or a
-  piece their own ship hooked on rather than set out with — never a ship under control, friend or foe. It is
+  piece their own ship hooked on rather than set out with — never a ship under control, friend or foe, nor
+  one being built on a pad or slipway, which has no working core or robots of its own yet either. It is
   wreckage welded on or a hulk in the claw, reached across the seam it hangs by. **Taking it apart is building
   run backwards**: the robot loads any metal the wreck holds as it is, then takes a module's fittings out,
   leaving it standing full size and doing nothing, and then its walls down a step at a time, a shell
