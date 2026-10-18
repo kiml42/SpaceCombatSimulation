@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { NO_BUDGET, padFighterNames, Rng, type Fleet } from '../sim/index.js';
 import { mutate } from '../evolution/mutate.js';
-import { fleetFits, mutateFleet, type FleetOperator } from '../evolution/fleetMutate.js';
+import { fleetFits, mutateFleet, type FleetMutationLimits, type FleetOperator } from '../evolution/fleetMutate.js';
 import { BARE_CORE, DINKY } from '../scenarios/blueprints.js';
 import { SHIPYARD } from '../scenarios/shipyard.js';
 import { FACTORY } from '../scenarios/carrier.js';
@@ -11,10 +11,13 @@ import { addShip, emptyFleet } from '../editor/fleetEdit.js';
 
 const LIMITS = { radius: 500, maxShips: 24, budget: NO_BUDGET };
 
-function only(operator: FleetOperator): Record<FleetOperator, number> {
-  const weights = { design: 0, move: 0, add: 0, remove: 0, fork: 0, merge: 0, swap: 0, pad: 0 };
-  weights[operator] = 1;
-  return weights;
+/** Limits that make only the one change: a design, every ship's move, or one change to what the fleet is made of. */
+function only(change: FleetOperator | 'design' | 'move'): Partial<FleetMutationLimits> {
+  const operators = { add: 0, remove: 0, fork: 0, merge: 0, swap: 0, pad: 0 };
+  if (change === 'design') return { design: 1, move: 0, change: 0, operators };
+  if (change === 'move') return { design: 0, move: 1, change: 0, operators };
+  operators[change] = 1;
+  return { design: 0, move: 0, change: 1, operators };
 }
 
 /** A Factory alone: its Dinky is only kept by its pad, and flown by no ship. */
@@ -39,7 +42,7 @@ describe('a fleet bred with a carrier in it', () => {
   it('breeds a fighter only a pad keeps', () => {
     let bred = false;
     for (let seed = 1; seed <= 100 && !bred; seed++) {
-      const child = mutateFleet(factoryFleet(), new Rng(seed), { ...LIMITS, operators: only('design') });
+      const child = mutateFleet(factoryFleet(), new Rng(seed), { ...LIMITS, ...only('design') });
       bred = child.edits.some((edit) => edit.startsWith('Dinky:'));
       expect(fleetFits(child.fleet, LIMITS)).toBe(true);
     }
@@ -50,7 +53,7 @@ describe('a fleet bred with a carrier in it', () => {
     const seen = new Set<string>();
     const fleet = addShip(factoryFleet(), { ...DINKY, name: 'Gnat' }, 60, 0);
     for (let seed = 1; seed <= 60; seed++) {
-      const child = mutateFleet(fleet, new Rng(seed), { ...LIMITS, operators: only('pad') });
+      const child = mutateFleet(fleet, new Rng(seed), { ...LIMITS, ...only('pad') });
       if (child.edits.length === 0) continue;
       expect(fleetFits(child.fleet, LIMITS)).toBe(true);
       const to = padFighterNames(child.fleet.designs['Factory']!)[0]!;
@@ -64,7 +67,7 @@ describe('a fleet bred with a carrier in it', () => {
     const seen = new Set<string>();
     const fleet = addShip(addShip(emptyFleet('Yard'), SHIPYARD, 0, 0), BARE_CORE, 80, 0);
     for (let seed = 1; seed <= 60; seed++) {
-      const child = mutateFleet(fleet, new Rng(seed), { ...LIMITS, operators: only('pad') });
+      const child = mutateFleet(fleet, new Rng(seed), { ...LIMITS, ...only('pad') });
       if (child.edits.length === 0) continue;
       expect(fleetFits(child.fleet, LIMITS)).toBe(true);
       const to = padFighterNames(child.fleet.designs['Shipyard']!)[0]!;
@@ -77,7 +80,7 @@ describe('a fleet bred with a carrier in it', () => {
   it('leaves a fleet with no pad as it would have bred it', () => {
     const fleet: Fleet = { name: 'F', designs: { Dinky: DINKY }, ships: [{ design: 'Dinky', x: 0, y: 0 }] };
     const plain = mutateFleet(fleet, new Rng(3));
-    const without = mutateFleet(fleet, new Rng(3), { operators: { ...only('design'), design: 6, move: 3, add: 1, remove: 1, fork: 0.5, merge: 0.5, swap: 0.5 } });
+    const without = mutateFleet(fleet, new Rng(3), { operators: { add: 1, remove: 1, fork: 0.5, merge: 0.5, swap: 0.5, pad: 0 } });
     expect(JSON.stringify(plain)).toEqual(JSON.stringify(without));
   });
 });

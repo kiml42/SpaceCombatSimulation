@@ -47,7 +47,7 @@ export function settled(angle: number): number {
  * Breeding a fleet from a fleet.
  *
  * Every operator has its inverse, so no change is a one-way door: a design is
- * mutated in every copy of it at once; a copy can be forked into a design of
+ * mutated in every copy of it at once, each design with a chance of its own; a copy can be forked into a design of
  * its own and two designs merged back into one; a ship or a group can be added
  * and removed; one can be moved or turned; and one can be swapped onto another
  * of the fleet's designs, which a second swap undoes. Only the fleet's own entries are
@@ -73,21 +73,25 @@ export interface FleetMutationLimits {
   readonly radius: number;
   /** Most ships a fleet may field, which bounds what a match costs. */
   readonly maxShips: number;
-  /** How far a ship moves, as a share of its radius. */
+  /** How far a ship moves, as a share of its radius: the spread of its drift. */
   readonly size: number;
   /** How far a heading turns, radians: the spread of its drift. */
   readonly turn: number;
-  /** Chance each of the fleet's entries is moved, when the fleet's ships are what moves. */
-  readonly moves: number;
-  /** Candidates drawn before giving up and returning the parent. */
+  /** A multiple of `size` and `turn`: how far every ship moves and turns in every child. Zero holds them still. */
+  readonly move: number;
+  /** Chance each of the fleet's designs is mutated in a child, whatever the number of them. */
+  readonly design: number;
+  /** Chance a child also has one change to what the fleet is made of, drawn by `operators`. */
+  readonly change: number;
+  /** Candidates drawn for that change before going without it. */
   readonly attempts: number;
-  /** Relative chance of each operator. */
+  /** Relative chance of each change to what the fleet is made of. */
   readonly operators: Readonly<Record<FleetOperator, number>>;
 }
 
-export type FleetOperator = 'design' | 'move' | 'add' | 'remove' | 'fork' | 'merge' | 'swap' | 'pad';
+export type FleetOperator = 'add' | 'remove' | 'fork' | 'merge' | 'swap' | 'pad';
 
-/** Mostly the designs, as a ship's own numbers are what it mostly changes; the shape of the fleet less often. */
+/** Nearly every design and every ship each child; what the fleet is made of less often. */
 export const DEFAULT_FLEET_LIMITS: FleetMutationLimits = {
   ship: {},
   budget: NO_BUDGET,
@@ -95,9 +99,11 @@ export const DEFAULT_FLEET_LIMITS: FleetMutationLimits = {
   maxShips: 24,
   size: 0.25,
   turn: PI / 12,
-  moves: 0.25,
+  move: 1,
+  design: 0.9,
+  change: 0.3,
   attempts: 24,
-  operators: { design: 6, move: 3, add: 1, remove: 1, fork: 0.5, merge: 0.5, swap: 0.5, pad: 0.5 },
+  operators: { add: 1, remove: 1, fork: 0.5, merge: 0.5, swap: 0.5, pad: 0.5 },
 };
 
 export interface FleetMutant {
@@ -107,22 +113,50 @@ export interface FleetMutant {
   readonly attempts: number;
 }
 
+/**
+ * Breed a child: each design mutated with a chance of its own, now and then a
+ * change to what the fleet is made of, and every ship moved and turned. Each
+ * step that leaves the fleet unfit is undone on its own, as an edit to a
+ * design is, so one bad draw does not cost the rest.
+ */
 export function mutateFleet(parent: Fleet, rng: Rng, limits?: Partial<FleetMutationLimits>): FleetMutant {
   const bounds: FleetMutationLimits = {
     ...DEFAULT_FLEET_LIMITS,
     ...limits,
     operators: { ...DEFAULT_FLEET_LIMITS.operators, ...limits?.operators },
   };
-  // A fleet with no pad or slipway has nothing for `pad` to do: it draws as though there were no such operator.
-  const operators = hasPad(parent) ? bounds.operators : { ...bounds.operators, pad: 0 };
-  for (let attempt = 1; attempt <= bounds.attempts; attempt++) {
-    const draft = clone(parent);
-    const operator = pick(rng, operators);
-    const edits = apply(operator, draft, rng, bounds);
-    if (edits.length === 0) continue;
-    if (fleetFits(draft, bounds)) return { fleet: draft, edits, attempts: attempt };
+  const draft = clone(parent);
+  const edits: string[] = [];
+  let attempts = 0;
+
+  for (const name of bredDesigns(draft)) {
+    if (!rng.chance(bounds.design)) continue;
+    const before = draft.designs[name]!;
+    const changed = mutateDesign(draft, name, rng, bounds);
+    if (changed.length === 0) continue;
+    if (fleetFits(draft, bounds)) edits.push(...changed);
+    else draft.designs[name] = before;
   }
-  return { fleet: parent, edits: [], attempts: bounds.attempts };
+
+  // A fleet with no pad or slipway has nothing for `pad` to do: it draws as though there were no such operator.
+  const operators = hasPad(draft) ? bounds.operators : { ...bounds.operators, pad: 0 };
+  if (rng.chance(bounds.change)) {
+    for (let attempt = 1; attempt <= bounds.attempts; attempt++) {
+      attempts = attempt;
+      const candidate = clone(draft);
+      const changed = apply(pick(rng, operators), candidate, rng);
+      if (changed.length === 0 || !fleetFits(candidate, bounds)) continue;
+      draft.designs = candidate.designs;
+      draft.ships = candidate.ships;
+      edits.push(...changed);
+      break;
+    }
+  }
+
+  // After a ship is added, so it is spread with the rest.
+  edits.push(...move(draft, rng, bounds, new Layout()));
+  if (edits.length === 0) return { fleet: parent, edits: [], attempts };
+  return { fleet: draft, edits, attempts };
 }
 
 /**
@@ -140,12 +174,8 @@ export function fleetFits(fleet: Fleet, limits: Pick<FleetMutationLimits, 'budge
   return firstOverlap(hulls) === null;
 }
 
-function apply(operator: FleetOperator, fleet: Fleet, rng: Rng, bounds: FleetMutationLimits): string[] {
+function apply(operator: FleetOperator, fleet: Fleet, rng: Rng): string[] {
   switch (operator) {
-    case 'design':
-      return mutateDesign(fleet, rng, bounds);
-    case 'move':
-      return move(fleet, rng, bounds, new Layout());
     case 'add':
       return add(fleet, rng, new Layout());
     case 'remove':
@@ -162,10 +192,7 @@ function apply(operator: FleetOperator, fleet: Fleet, rng: Rng, bounds: FleetMut
 }
 
 /** Mutate one design, which changes every ship built to it. */
-function mutateDesign(fleet: Fleet, rng: Rng, bounds: FleetMutationLimits): string[] {
-  const names = bredDesigns(fleet);
-  if (names.length === 0) return [];
-  const name = names[rng.nextInt(names.length)]!;
+function mutateDesign(fleet: Fleet, name: string, rng: Rng, bounds: FleetMutationLimits): string[] {
   // Bred as it flies here, its pads' fighters the fleet's; given back without them.
   const child = mutate(fleetBlueprint(fleet, name), rng, { ...bounds.ship, budget: bounds.budget });
   if (child.edits.length === 0) return [];
@@ -175,24 +202,36 @@ function mutateDesign(fleet: Fleet, rng: Rng, bounds: FleetMutationLimits): stri
 }
 
 /**
- * Move and turn some of the fleet's own entries, each with a chance of its
- * own and at least one, so a big fleet has more of its ships move.
+ * Move and turn every one of the fleet's own entries, by a drift with no dead
+ * zone whose spread is `move` times `size` of its own radius and `turn`.
  *
- * Each by a drift of its own size, so a gunship moves as far beside its
- * length as a fighter does beside its own, and each move that lands on a
- * neighbour or past the deployment radius is undone on its own.
+ * Each by its own size, so a gunship moves as far beside its length as a
+ * fighter does beside its own, and each move that lands on a neighbour or
+ * past the deployment radius is undone on its own. A move leans away from the
+ * nearest other entry, the more the closer it is, so a fleet spreads out and
+ * leaves its designs room to grow.
  */
 function move(fleet: Fleet, rng: Rng, bounds: FleetMutationLimits, layout: Layout): string[] {
-  if (fleet.ships.length === 0) return [];
-  const chosen = fleet.ships.filter(() => rng.chance(bounds.moves));
-  if (chosen.length === 0) chosen.push(fleet.ships[rng.nextInt(fleet.ships.length)]!);
-  const drawn = { ...DEFAULT_LIMITS, ...bounds.ship };
+  if (!(bounds.move > 0)) return [];
+  const drawn = { ...DEFAULT_LIMITS, ...bounds.ship, deadZone: 0 };
   const edits: string[] = [];
-  for (const entry of chosen) {
-    const spread = bounds.size * sizeOf(fleet, entry, layout);
-    const dx = round(drift(rng, drawn, spread) * 10) / 10;
-    const dy = round(drift(rng, drawn, spread) * 10) / 10;
-    const turn = drift(rng, drawn, bounds.turn);
+  for (const entry of fleet.ships) {
+    const spread = bounds.move * bounds.size * sizeOf(fleet, entry, layout);
+    let dx = drift(rng, drawn, spread);
+    let dy = drift(rng, drawn, spread);
+    // Towards the nearest, turned away with a chance of how crowded it is:
+    // all but always when their circles touch, an even chance far apart.
+    const near = nearest(fleet, entry, layout);
+    if (near !== null) {
+      const towards = dx * near.ux + dy * near.uy;
+      if (towards > 0 && rng.chance(near.crowding)) {
+        dx -= 2 * towards * near.ux;
+        dy -= 2 * towards * near.uy;
+      }
+    }
+    dx = round(dx * 10) / 10;
+    dy = round(dy * 10) / 10;
+    const turn = drift(rng, drawn, bounds.move * bounds.turn);
     if (dx === 0 && dy === 0 && turn === 0) continue;
     const was = { x: entry.x, y: entry.y, angle: entry.angle };
     entry.x = round((entry.x + dx) * 10) / 10;
@@ -375,6 +414,27 @@ function sizeOf(fleet: Fleet, entry: FleetEntry, layout: Layout): number {
   return size;
 }
 
+/**
+ * The fleet's other entry nearest this one: which way it lies, as a unit
+ * vector, and how crowded the two are, from 0 far apart to 1 with their
+ * circles touching or closer.
+ */
+function nearest(fleet: Fleet, entry: FleetEntry, layout: Layout): { ux: number; uy: number; crowding: number } | null {
+  let best: { ux: number; uy: number; crowding: number } | null = null;
+  let closest = Infinity;
+  const own = sizeOf(fleet, entry, layout);
+  for (const other of fleet.ships) {
+    if (other === entry) continue;
+    const dx = other.x - entry.x;
+    const dy = other.y - entry.y;
+    const d = sqrt(dx * dx + dy * dy);
+    if (!(d > 0) || d >= closest) continue;
+    closest = d;
+    best = { ux: dx / d, uy: dy / d, crowding: min(1, (own + sizeOf(fleet, other, layout)) / d) };
+  }
+  return best;
+}
+
 /** Whether the fleet's ships stand clear of each other and inside the radius. */
 function placed(fleet: Fleet, bounds: Pick<FleetMutationLimits, 'radius'>, layout: Layout): boolean {
   const hulls = layout.hulls(fleet);
@@ -436,7 +496,7 @@ function pick(rng: Rng, weights: Readonly<Record<FleetOperator, number>>): Fleet
     draw -= max(0, weight);
     if (draw < 0) return operator;
   }
-  return 'design';
+  return entries[entries.length - 1]![0];
 }
 
 function clone(fleet: Fleet): Fleet {

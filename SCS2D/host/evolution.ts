@@ -122,8 +122,9 @@ const SIDE_FIELDS = [
   'buildBudget',
   'fleetRadius',
   'fleetShips',
-  'opDesign',
-  'opMove',
+  'fleetDesign',
+  'fleetMove',
+  'fleetChange',
   'opAdd',
   'opRemove',
   'opFork',
@@ -131,6 +132,7 @@ const SIDE_FIELDS = [
   'opSwap',
   'opPad',
   'structural',
+  'geometry',
   'buildMove',
   'buildResize',
   'buildRefit',
@@ -191,8 +193,9 @@ const FIELDS = [
   'buildBudget',
   'fleetRadius',
   'fleetShips',
-  'opDesign',
-  'opMove',
+  'fleetDesign',
+  'fleetMove',
+  'fleetChange',
   'opAdd',
   'opRemove',
   'opFork',
@@ -215,6 +218,7 @@ const FIELDS = [
   'disablingWeight',
   'raceWeight',
   'structural',
+  'geometry',
   'buildMove',
   'buildResize',
   'buildRefit',
@@ -888,6 +892,7 @@ export function startEvolution(): void {
         radius: Math.max(1, number(get('fleetRadius'), DEFAULT_FLEET_LIMITS.radius)),
         maxShips: Math.max(1, Math.round(number(get('fleetShips'), DEFAULT_FLEET_LIMITS.maxShips))),
         operators: bred.operators,
+        ...bred.fleet,
       },
       mutation: bred.ship,
     };
@@ -966,8 +971,9 @@ export function startEvolution(): void {
     get('fleetRadius').value = String(config.fleet.radius ?? DEFAULT_FLEET_LIMITS.radius);
     get('fleetShips').value = String(config.fleet.maxShips ?? DEFAULT_FLEET_LIMITS.maxShips);
     const operators = { ...DEFAULT_FLEET_LIMITS.operators, ...config.fleet.operators };
-    get('opDesign').value = String(operators.design);
-    get('opMove').value = String(operators.move);
+    get('fleetDesign').value = String(config.fleet.design ?? DEFAULT_FLEET_LIMITS.design);
+    get('fleetMove').value = String(config.fleet.move ?? DEFAULT_FLEET_LIMITS.move);
+    get('fleetChange').value = String(config.fleet.change ?? DEFAULT_FLEET_LIMITS.change);
     get('opAdd').value = String(operators.add);
     get('opRemove').value = String(operators.remove);
     get('opFork').value = String(operators.fork);
@@ -976,6 +982,7 @@ export function startEvolution(): void {
     get('opPad').value = String(operators.pad);
     const build = { ...DEFAULT_BUILD_WEIGHTS, ...config.mutation.build };
     get('structural').value = String(config.mutation.structural ?? DEFAULT_LIMITS.structural);
+    get('geometry').value = String(config.mutation.geometry ?? DEFAULT_LIMITS.geometry);
     get('buildMove').value = String(build.move);
     get('buildResize').value = String(build.resize);
     get('buildRefit').value = String(build.refit);
