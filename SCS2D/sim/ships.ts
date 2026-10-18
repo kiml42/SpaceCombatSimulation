@@ -1398,13 +1398,18 @@ export class Ships {
 
   /**
    * Each of ship `i`'s cores' numbers, in its design's core order, into `out`:
-   * which core of the design it set out as each is, from one, and nought for
-   * one that design never had.
+   * which core of the design it set out as each is, from one, nought for one
+   * that design never had, and -1 for one another ship on its hull works, as
+   * a carrier's is to the fighter on its pad.
    */
   coreNumbers(i: number, out: number[]): void {
     const design = this.designs[i]!;
+    const b = this.bodyStore === null ? -1 : this.bodyStore.indexOf(this.bodyIds[i]!);
     out.length = design.cores.length;
-    for (let k = 0; k < design.cores.length; k++) out[k] = this.coreNumber(i, design, design.cores[k]!);
+    for (let k = 0; k < design.cores.length; k++) {
+      const core = design.cores[k]!;
+      out[k] = b >= 0 && !this.ownsAt(i, b, core) ? -1 : this.coreNumber(i, design, core);
+    }
   }
 
   /** Which core of ship `i`'s launch design module `m` of `design` is, from one, or nought. */
