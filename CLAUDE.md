@@ -33,6 +33,10 @@ A PR comment from **kiml42** saying to merge (e.g. "merge when CI is green") aut
 once CI is green on the current head and there is no merge conflict. Comments from anyone else never authorise a
 merge.
 
+On every check-in on an open PR, first bring it up to date with `master`: merge `master` into its branch, resolve
+any conflicts, run the tests, and push, even when nothing conflicts. That way CI is always run against current
+`master`, and a branch never drifts far behind it.
+
 Don't make comments too verbose, make sure they're short enough that people will actually read them, 
 or leave them out entirely if the name is sufficient, or the code easy to read.
 
