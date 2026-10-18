@@ -797,8 +797,10 @@ inside any one file is not contiguous.
   is kept, as that module; what the new design has that the hull has not, its robots build, as they build
   back what is lost; and the rest of its own hull is wreckage to them, taken down as a wreck is, a module
   at a time from the far end inwards. Building comes first, as it does before taking a wreck apart, but not
-  where anything of the hull is in the way: that comes down first, and a wall waits while anything is. The
-  metal of its own hull stays its own, and what its holds have no room for is thrown away. A refit that
+  where anything of the hull is in the way: that comes down first, and a wall waits while anything is. A
+  module coming down first pours what it holds — fuel, metal and charge — into the rest of the stores on its
+  piece of hull, as far as they have room (`Store.spill`), and what its robots bring home that the holds
+  have no room for is thrown away. A refit that
   would take down the core the ship is flown from is refused. The `refitting` scenario has a Rebuilder
   refitted as it sets out to the same ship with its fin a tank, its engine gone and a new fin the other
   side, done in five minutes.
