@@ -610,12 +610,16 @@ inside any one file is not contiguous.
   the `standoff` scenario is one fleet file flown by both sides, and its checksum did not move.
   **A fleet editor on a page of its own** places ships from the ship library — each design embedded once —
   and drags, turns, duplicates and repeats them in rows and arcs on the same snapping grid and through the
-  same renderer as the ship editor, with undo throughout. A group is clicked as one thing and clicked again
+  same renderer as the ship editor, with undo throughout, a carrier drawn with the fighters it sets out with
+  on their pads. A group is clicked as one thing and clicked again
   to step into it, and a member moved there moves in every use of the group. Ships and groups selected in one
   list are made a group where they stand, a group use dissolved back into what it places — every copy,
   mirrored and turned as it was — and a group renamed in every use. A selected ship can be swapped
   for another design, from the fleet's own or the library, where it stands and facing the same way, as a
-  module's kind is swapped in the ship editor; a design nothing flies any more is dropped. Or forked: flown on a copy of its design under the next free name, to change it apart from the rest. It counts ships and dry mass by design, and lists
+  module's kind is swapped in the ship editor; a design nothing flies any more is dropped.
+  Every design the fleet carries is listed, flown or not, with how many start and how many more its pads
+  and slipways build, and opens from there in the ship editor; *Add ship* offers the same designs ahead of the
+  library. Or forked: flown on a copy of its design under the next free name, to change it apart from the rest. It counts ships and dry mass by design, and lists
   rather than enforces what is wrong: hulls overlapping at the start, a design that would not fly, and an
   embedded design that has drifted from the library's copy of the same name, which one button brings up to
   date. Fleets are saved to browser storage and exported and imported as fleet files.

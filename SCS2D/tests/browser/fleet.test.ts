@@ -144,9 +144,20 @@ describe('the fleet editor in a browser', () => {
   });
 
   it('adds a ship from the library and lists it overlapping', async () => {
-    await page.selectOption('#addDesign', { label: 'Dinky' });
+    expect(await page.textContent('#designList')).toMatch(/Dinky2 at start/);
     await page.click('#addShip');
+    // The fleet's own designs first, then the library.
+    expect(await page.locator('#addMenu h3').allTextContents()).toEqual(['In this fleet', 'Stock']);
+    expect((await page.locator('#addMenu button').allTextContents()).slice(0, 4)).toEqual([
+      'Beam Corvette',
+      'Corvette',
+      'Dinky',
+      'Gunship',
+    ]);
+    await page.click('#addMenu button:text-is("Dinky")');
+    expect(await page.isVisible('#addMenu')).toBe(false);
     expect(await shipCount(page)).toBe('ships6');
+    expect(await page.textContent('#designList')).toMatch(/Dinky3 at start/);
     expect(await page.textContent('#problems')).toMatch(/Gunship#1 and Dinky#\d overlap at the start/);
   });
 
@@ -240,6 +251,16 @@ describe('the fleet editor in a browser', () => {
     await page.click('#backToFleet');
     await page.waitForURL(/fleet\.html#fleet=/);
     expect(await page.inputValue('#fleetName')).toBe('Line of Battle');
+    expect(problems).toEqual([]);
+  });
+
+  it('opens any design the fleet carries from its list of designs', async () => {
+    await page.click('#designList a[data-design="Corvette"]');
+    await page.waitForURL(/editor\.html#design=/);
+    expect(await page.textContent('#inFleetTitle')).toBe('In Line of Battle');
+    expect(await page.inputValue('#shipName')).toBe('Corvette');
+    await page.click('#backToFleet');
+    await page.waitForURL(/fleet\.html#fleet=/);
     expect(problems).toEqual([]);
   });
 });

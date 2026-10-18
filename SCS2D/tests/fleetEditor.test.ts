@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { math, type Blueprint, type Fleet } from '../sim/index.js';
-import { DINKY, GUNSHIP } from '../scenarios/blueprints.js';
+import { BEAM_CARRIER, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
 import { LINE_OF_BATTLE } from '../scenarios/fleets.js';
+import { FACTORY } from '../scenarios/carrier.js';
 import { History } from '../editor/history.js';
 import { FLEET_FILES, Library, type KeyValueStore } from '../editor/library.js';
 import {
@@ -156,6 +157,24 @@ describe('FleetDocument', () => {
     expect(doc.view.problems).toEqual([]);
   });
 
+  it('lists every design it carries, with how many start and how many are built', () => {
+    const pad = BEAM_CARRIER.assemblies!['pad']!;
+    const keeping: Blueprint = {
+      ...BEAM_CARRIER,
+      assemblies: {
+        ...BEAM_CARRIER.assemblies,
+        pad: { ...pad, modules: pad.modules.map((m) => ('kind' in m && m.kind === 'pad' ? { ...m, keep: 2 } : m)) },
+      },
+    };
+    const fleet = addShip(emptyFleet('F'), keeping, 0, 0);
+    const doc = new FleetDocument({ ...fleet, designs: { ...fleet.designs, Dinky: DINKY } }, noLibrary);
+    expect(doc.view.roster).toEqual([
+      { name: 'Beam Carrier', start: 1, builds: 0 },
+      { name: 'Dinky', start: 0, builds: 0 },
+      { name: 'Dinky Beam', start: 8, builds: 8 },
+    ]);
+  });
+
   it('lists hulls overlapping at the start, and draws them as faulty', () => {
     const doc = new FleetDocument(addShip(addShip(emptyFleet('F'), GUNSHIP, 0, 0), DINKY, 0, 0), noLibrary);
     expect(doc.view.problems).toEqual(['Gunship#1 and Dinky#1 overlap at the start']);
@@ -237,5 +256,28 @@ describe('fleetSnapshot', () => {
     expect(snapshot.ships[0]!.x).toBeCloseTo(100 - design.centreOfMassY, 9);
     expect(snapshot.ships[0]!.y).toBeCloseTo(50 + design.centreOfMassX, 9);
     expect(snapshot.maxX - snapshot.minX).toBeCloseTo(design.radius * 2, 9);
+  });
+
+  it('draws the fighters a carrier sets out with, on their pads', () => {
+    const laden: Blueprint = {
+      ...FACTORY,
+      modules: FACTORY.modules.map((m) => ('kind' in m && m.kind === 'pad' ? { ...m, docked: true } : m)),
+    };
+    const fleet: Fleet = { name: 'F', designs: { Factory: laden, Dinky: DINKY }, ships: [{ design: 'Factory', x: 0, y: 0, angle: 0.3 }] };
+    const doc = new FleetDocument(fleet, noLibrary);
+    const carrier = doc.view.designs[0]!;
+    expect(carrier.aboard?.length).toBe(1);
+    const snapshot = fleetSnapshot(doc.view);
+    expect(snapshot.shipCount).toBe(2);
+    const [ship, fighter] = snapshot.ships;
+    expect(fighter!.design.fighter).toBe(true);
+    // On the pad, turned with the carrier.
+    const pad = carrier.modules[carrier.aboard![0]!.pad]!;
+    const c = Math.cos(ship!.angle);
+    const s = Math.sin(ship!.angle);
+    const padX = ship!.x + pad.x * c - pad.y * s;
+    const padY = ship!.y + pad.x * s + pad.y * c;
+    expect(Math.hypot(fighter!.x - padX, fighter!.y - padY)).toBeLessThan(Math.min(pad.spec.length, pad.spec.width) / 2);
+    expect(fighter!.angle).toBeCloseTo(ship!.angle + pad.angle, 9);
   });
 });
