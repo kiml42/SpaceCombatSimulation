@@ -85,6 +85,7 @@ const FILE_KEYS: readonly string[] = [
   'massBudget',
   'structural',
   'geometry',
+  'thrusters',
   'kinds',
   'build',
   'doctrine',
@@ -107,6 +108,7 @@ const VERSUS_KEYS: readonly string[] = [
   'fleet',
   'structural',
   'geometry',
+  'thrusters',
   'kinds',
   'build',
   'doctrine',
@@ -152,6 +154,7 @@ export function serialiseRunConfig(setup: RunSetup): Record<string, unknown> {
     budget: serialiseBudget(config.budget),
     structural: config.mutation.structural ?? DEFAULT_LIMITS.structural,
     geometry: config.mutation.geometry ?? DEFAULT_LIMITS.geometry,
+    thrusters: config.mutation.thrusters ?? DEFAULT_LIMITS.thrusters,
     kinds: { ...kinds },
     build: { ...DEFAULT_BUILD_WEIGHTS, ...config.mutation.build },
     doctrine: doctrineWeights(config.mutation.doctrine),
@@ -197,6 +200,7 @@ function serialiseVersus(versus: VersusSetup): Record<string, unknown> {
     ...(rival.fleet === undefined ? {} : { fleet: { ...rival.fleet } }),
     ...(rival.mutation?.structural === undefined ? {} : { structural: rival.mutation.structural }),
     ...(rival.mutation?.geometry === undefined ? {} : { geometry: rival.mutation.geometry }),
+    ...(rival.mutation?.thrusters === undefined ? {} : { thrusters: rival.mutation.thrusters }),
     ...(rival.mutation?.kinds === undefined ? {} : { kinds: { ...rival.mutation.kinds } }),
     ...(rival.mutation?.build === undefined ? {} : { build: { ...rival.mutation.build } }),
     ...(rival.mutation?.doctrine === undefined ? {} : { doctrine: { ...rival.mutation.doctrine } }),
@@ -247,6 +251,7 @@ export function runConfigFileProblem(value: unknown, warnings: string[] = []): s
     limitProblem(value['massBudget'], 'massBudget') ??
     chanceProblem(value['structural'], 'structural') ??
     chanceProblem(value['geometry'], 'geometry') ??
+    chanceProblem(value['thrusters'], 'thrusters') ??
     kindsProblem(value['kinds'], warnings) ??
     weightsOf(value['build'], 'build', BUILD_KEYS, warnings) ??
     weightsOf(value['doctrine'], 'doctrine', DOCTRINE_KEYS, warnings) ??
@@ -304,6 +309,7 @@ function versusProblem(versus: unknown, warnings: string[]): string | null {
     fleetProblem(versus['fleet'], 'versus.fleet', warnings) ??
     chanceProblem(versus['structural'], 'versus.structural') ??
     chanceProblem(versus['geometry'], 'versus.geometry') ??
+    chanceProblem(versus['thrusters'], 'versus.thrusters') ??
     kindsProblem(versus['kinds'], warnings, 'versus.kinds') ??
     weightsOf(versus['build'], 'versus.build', BUILD_KEYS, warnings) ??
     weightsOf(versus['doctrine'], 'versus.doctrine', DOCTRINE_KEYS, warnings);
@@ -358,6 +364,7 @@ export function parseRunConfig(value: unknown): RunSetup {
       mutation: {
         structural: read(file['structural'], DEFAULT_LIMITS.structural),
         geometry: read(file['geometry'], DEFAULT_LIMITS.geometry),
+        thrusters: read(file['thrusters'], DEFAULT_LIMITS.thrusters),
         kinds: { ...DEFAULT_KINDS, ...(file['kinds'] as Partial<KindWeights>) },
         build: { ...DEFAULT_BUILD_WEIGHTS, ...(file['build'] as Partial<BuildWeights>) },
         doctrine: doctrineWeights(isRecord(file['doctrine']) ? (file['doctrine'] as Partial<DoctrineWeights>) : {}),
@@ -407,6 +414,7 @@ function parseVersus(versus: Record<string, unknown>): VersusSetup {
   const mutation: { -readonly [K in keyof SideSettings['mutation']]?: SideSettings['mutation'][K] } = {};
   if (typeof versus['structural'] === 'number') mutation.structural = versus['structural'];
   if (typeof versus['geometry'] === 'number') mutation.geometry = versus['geometry'];
+  if (typeof versus['thrusters'] === 'number') mutation.thrusters = versus['thrusters'];
   if (isRecord(versus['kinds'])) mutation.kinds = { ...(versus['kinds'] as KindWeights) };
   if (isRecord(versus['build'])) mutation.build = { ...(versus['build'] as BuildWeights) };
   if (isRecord(versus['doctrine'])) mutation.doctrine = { ...(versus['doctrine'] as DoctrineWeights) };

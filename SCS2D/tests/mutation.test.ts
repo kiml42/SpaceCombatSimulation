@@ -18,7 +18,7 @@ import {
   type Blueprint,
   type ModuleSpec,
 } from '../sim/index.js';
-import { DEFAULT_BUILD_WEIGHTS, DEFAULT_KINDS, mutate, type DoctrineWeights } from '../evolution/mutate.js';
+import { DEFAULT_BUILD_WEIGHTS, DEFAULT_KINDS, mutate, shipScale, type DoctrineWeights } from '../evolution/mutate.js';
 import { CATAMARAN, CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
 
 /**
@@ -199,7 +199,8 @@ describe('mutation', () => {
       const rng = new Rng(seed);
       let held: Blueprint = GUNSHIP;
       for (let i = 0; i < 800; i++) {
-        const child = mutate(held, rng, { budget: { ...NO_BUDGET, metal: budget } });
+        // Without thrusters, which only ever add, and on purpose (`addThrusters`).
+        const child = mutate(held, rng, { budget: { ...NO_BUDGET, metal: budget }, thrusters: 0 });
         held = child.blueprint;
         for (const edit of child.edits) {
           if (/removed/.test(edit)) removed++;
@@ -786,5 +787,42 @@ describe('scaling a whole ship', () => {
       expect(child.blueprint.modules![0]!.y).toBeCloseTo(CATAMARAN.modules![0]!.y * factor, 3);
     }
     expect(seen).toBeGreaterThan(0);
+  });
+});
+
+describe('thrusters', () => {
+  const only = { structural: 0, geometry: 0, switches: 0, build: FROZEN, doctrine: STILL };
+  const engines = (blueprint: Blueprint): ModuleSpec[] => expandBlueprint(blueprint).filter((m) => m.kind === 'engine');
+
+  it('bolts several small engines on at once, each leaving a ship', () => {
+    const rng = new Rng(3);
+    let most = 0;
+    for (let i = 0; i < 20; i++) {
+      const child = mutate(GUNSHIP, rng, { ...only, thrusters: 0.9 });
+      const added = child.edits.filter((e) => e.includes('thruster')).length;
+      expect(blueprintProblem(child.blueprint)).toBeNull();
+      expect(engines(child.blueprint).length).toBeGreaterThanOrEqual(engines(GUNSHIP).length + added);
+      most = Math.max(most, added);
+    }
+    expect(most).toBeGreaterThan(1);
+  });
+
+  it('makes them smaller than a module added the usual way', () => {
+    const before = new Set(engines(GUNSHIP).map((e) => `${e.x},${e.y}`));
+    const child = mutate(GUNSHIP, new Rng(5), { ...only, thrusters: 0.9 });
+    const fresh = engines(child.blueprint).filter((e) => !before.has(`${e.x},${e.y}`));
+    expect(fresh.length).toBeGreaterThan(0);
+    const { arrival } = shipScale(GUNSHIP);
+    for (const engine of fresh) expect(Math.max(engine.length, engine.width)).toBeLessThan(arrival);
+  });
+
+  it('adds none at a chance of zero, or when engines are weighted out', () => {
+    const rng = new Rng(9);
+    for (let i = 0; i < 10; i++) {
+      expect(mutate(GUNSHIP, rng, { thrusters: 0 }).edits.some((e) => e.includes('thruster'))).toBe(false);
+      expect(
+        mutate(GUNSHIP, rng, { thrusters: 0.9, kinds: { ...DEFAULT_KINDS, engine: 0 } }).edits.some((e) => e.includes('thruster')),
+      ).toBe(false);
+    }
   });
 });
