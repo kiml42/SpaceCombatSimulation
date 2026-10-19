@@ -85,6 +85,48 @@ Nothing: every step up to 13 is built.
     fuel and repairs, but only on its own judgement, never by order; `Ships.refit` remodels a ship; a pad's
     or slipway's `craft` and `keep` say what it builds. Running away has no form yet (withdrawal, §12).
     Comes before mining because managing an income is giving orders; the campaign reuses all of it.
+
+    Built in slices, each landing on its own:
+
+    0. **Rewind**, with no orders in it — a scrub bar that re-simulates from the seed (§12). Several of the
+       decisions below are about rewinding, so it is built and settled first.
+    1. **Attack, defend and ram**, with the log, selection and order bar they need (below).
+    2. **Change doctrine, refuel or repair, remodel, build a fighter, build a ship.** Not yet designed: its
+       own grilling once slice 1 is playable.
+    3. **Run away**, once withdrawal (§12) is designed; outside step 14 until then.
+
+    **Slice 1, as settled:**
+
+    - **Where.** Every viewer scenario and the custom battle; one given no orders plays exactly as now. The
+      skirmish later, once breeding can allow for a fleet that is being steered. Never on the evolution page.
+    - **Who.** Any ship on any side, for now. Next, a drop-down naming one side as yours.
+    - **When.** At any time, paused or not. Nothing in the UI is on a timer.
+    - **Orders are commands.** Each is logged as `{step, ships, order}` and applied at the top of its step;
+      the UI never touches sim state. The log travels with the battle link. Giving an order after rewinding
+      truncates the log after that step; rewinding alone keeps it.
+    - **Selecting.** Click picks one ship; Shift-click adds or removes; Shift-drag boxes (a plain drag still
+      pans); double-click takes every ship of that design on its side; a key takes a whole side. A selection
+      is one side only — the first ship's for Shift-click, ignoring other sides; the majority in a box, a
+      tie going to the side of the ship nearest the drag's start. Neutrals cannot be selected for orders.
+      A selection is a set of ships, not a group. Touch is not covered yet.
+    - **Giving.** Right-click an enemy to attack it, a friend to defend it; on empty space, nothing. The
+      rest is an order bar of buttons with hotkeys, which puts the next click into picking a target; Escape
+      cancels. A new order replaces the queue; Shift appends. A group gets the same order, one command
+      for all of it; a ship told to defend itself is skipped.
+    - **Attack** takes its band and approach speed from doctrine and ends on `CompleteDisable`, as one
+      doctrine chose would; the order bar offers the other cancel conditions. A per-order menu to override
+      band and speed comes later.
+    - **Defend** holds doctrine's escort band, adds a picking weight towards enemies attacking the friend,
+      and once in band turns its best guns onto the attacker. It never leaves the band, and ends when the
+      friend is gone.
+    - **Ram** (R on the order bar, never right-click) can be given to any ship, and ends when the target is
+      gone.
+    - **Seeing and taking back.** A selected ship draws a numbered line through its queue, coloured by verb.
+      For one ship, the order bar lists the queue with a ✕ each, and Stop (S) hands it back to doctrine;
+      both are logged commands, and the log is never edited. The overlay shows everything a ship is acting
+      on at once — defending this, attacking that, evading something else — of which only the head of the
+      queue is an order for now. An escorting ship, ordered or not, has its escort band drawn, and its
+      charge is kept in frame.
 15. **Mining** — metal and fuel from map features, so maps have economic character. By here both resources
     exist, so this step is the map and the income, not the resources. *It replaces "did I spend 500 points
     well?" with "did I manage income well?"*
@@ -786,7 +828,8 @@ Deliberately unresolved; decide when they block something.
   900 m/s carries 81 kN·s and a 177-tonne corvette merely drifting at 3 m/s carries 530, so any weld weak
   enough to fail to a shell comes apart when two ships nudge each other. That is why a gun's way through a
   weld is to cut it rather than to shove it, and it is worth remembering before anyone tries to tune it.
-- **How time travel in the viewer works — and it needs no stored state.** Determinism pays for this one
+- **How time travel in the viewer works — and it needs no stored state.** Settled, and scheduled as slice 0 of
+  step 14; the order log is slice 1's. Determinism pays for this one
   outright: rewinding to any earlier step is *re-simulating* from the seed, not restoring a snapshot. At the
   measured cost of roughly 15 µs per step, winding a 3,000-step battle back to its start is about 50 ms, which
   is interactive, and a ten-minute battle is under a second. So a scrub bar wants no ring buffer of world
