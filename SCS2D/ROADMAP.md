@@ -844,6 +844,12 @@ Deliberately unresolved; decide when they block something.
   non-negotiable 6 turning out to be load-bearing for something other than what it was written for, and it
   is also exactly what a replay file needs (§8's async fleet-vs-fleet), so the two features want the same
   mechanism built once.
+- **Saving a battle part way through.** Possibly not needed: if battles stay short, saving between them is
+  often enough. If it is wanted, the cheap form is what the battle link already carries — the setup and seed
+  — plus the step reached and the order log, re-simulated on load with checkpoints taken on the way (a 3,000-
+  step Star Wars is about 45 s, so it wants a progress bar). Writing out a checkpoint itself would load at
+  once, but ties the save format to every field of the sim's internal state; worth it only if load times
+  turn out to matter. Either kind of save plays differently, or not at all, once the sim changes.
 - **Whether a plume carries heat.** How finely it is sampled is settled: what its own ship stands in is
   swept exactly, since an evolved fleet learnt to hide turrets between three rays, and what leaves the
   ship is three bands a nozzle. Heat was part of the answer when a plume's bite was first settled in
