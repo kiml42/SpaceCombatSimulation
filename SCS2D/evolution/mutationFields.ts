@@ -37,7 +37,7 @@ export const MUTATION_FIELDS: readonly MutationField[] = [
   { name: 'geometry', group: 'build', label: 'geometry chance', step: 0.05, max: 1, value: DEFAULT_LIMITS.geometry,
     title: 'Chance each module has its geometry changed when its design is mutated: a face or a seam moved, a slide, or a turn, chosen by the move and resize odds below. 0 leaves every module where and as big as it is.' },
   { name: 'thrusters', group: 'build', label: 'thruster chance', step: 0.05, max: 1, value: DEFAULT_LIMITS.thrusters,
-    title: 'Chance each generation of a small engine bolted to the hull, facing out, rolled again after each one added — so several can arrive at once to turn the ship as well as push it. 0 adds none this way.' },
+    title: 'Chance each generation of a small engine bolted to the hull, facing out, rolled again after each one added — so several can arrive at once to turn the ship as well as push it. Halved for every four engines the ship already has. 0 adds none this way.' },
   { name: 'buildMove', group: 'build', label: 'move', step: 0.5, value: DEFAULT_BUILD_WEIGHTS.move,
     title: 'How far a module or part slides or turns when its geometry changes, how often one turns a quarter about a corner, and how often a part is mirrored. 0 leaves where everything is as it is.' },
   { name: 'buildResize', group: 'build', label: 'resize', step: 0.5, value: DEFAULT_BUILD_WEIGHTS.resize,

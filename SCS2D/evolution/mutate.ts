@@ -27,7 +27,7 @@ import {
   type Doctrine,
   type Targeting,
 } from '../sim/doctrine.js';
-import { abs, clamp, cos, floor, HALF_PI, max, min, PI, round, sin, sqrt } from '../sim/math.js';
+import { abs, clamp, cos, floor, HALF_PI, max, min, PI, pow, round, sin, sqrt } from '../sim/math.js';
 import { canShape, isTriangle, TRIANGLE_CORNERS, triangleOf, wedge } from '../sim/shape.js';
 import { degreesToRadians, radiansToDegrees } from '../sim/blueprintFile.js';
 import {
@@ -117,7 +117,8 @@ export interface MutationLimits {
   readonly structural: number;
   /**
    * Chance of a small engine bolted to the hull, rolled again after each one
-   * added, so two come a chance squared as often as one (`addThrusters`).
+   * added and halved for every few engines the ship already has
+   * (`addThrusters`).
    */
   readonly thrusters: number;
   /** Chance of the child's name drifting a letter from its parent's (`driftName`). */
@@ -285,7 +286,7 @@ export const DEFAULT_LIMITS: MutationLimits = {
   size: 0.5,
   turn: PI / 12,
   structural: 0.3,
-  thrusters: 0.3,
+  thrusters: 0.5,
   rename: 0.1,
   budget: NO_BUDGET,
   attempts: 24,
@@ -2465,7 +2466,7 @@ function addThrusters(draft: Draft, rng: Rng, bounds: MutationLimits, scale: Sca
   if (!(bounds.kinds.engine > 0)) return;
   const side = max(scale.quantum, roundTo(scale.arrival * THRUSTER_SHARE, scale.quantum));
   const small: Scale = { ...scale, arrival: side };
-  for (let n = 0; n < MOST_THRUSTERS && rng.chance(bounds.thrusters); n++) {
+  for (let n = 0; n < MOST_THRUSTERS && rng.chance(thrusterChance(draft, bounds)); n++) {
     for (let tries = 0; tries < THRUSTER_TRIES; tries++) {
       const edit = addThruster(draft, rng, bounds, small);
       // Every thruster costs the same, so one the budget refuses anywhere it refuses everywhere.
@@ -2479,6 +2480,21 @@ function addThrusters(draft: Draft, rng: Rng, bounds: MutationLimits, scale: Sca
 }
 
 const UNAFFORDABLE = Symbol('unaffordable');
+
+/** Engines already on a ship that halve the chance of a thruster. */
+const ENGINES_PER_HALVING = 4;
+
+/**
+ * The chance of the next thruster, halved for every `ENGINES_PER_HALVING`
+ * engines the ship already flies, every drawn copy counted. A ship with few
+ * engines is the one that needs them, and since each one added makes the
+ * next less likely, a line's engines grow with the logarithm of its age
+ * rather than with its age.
+ */
+function thrusterChance(draft: Draft, bounds: MutationLimits): number {
+  const engines = expandBlueprint(draft.blueprint).filter((spec) => spec.kind === 'engine').length;
+  return bounds.thrusters * pow(0.5, engines / ENGINES_PER_HALVING);
+}
 
 /** One thruster on a random box, or null if that box will not take it. */
 function addThruster(draft: Draft, rng: Rng, bounds: MutationLimits, scale: Scale): string | null | typeof UNAFFORDABLE {

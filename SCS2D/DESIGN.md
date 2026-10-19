@@ -361,7 +361,8 @@ inside any one file is not contiguous.
   is copied as the same thing again beside it, the same way round, so a copy never sits in its flame or line
   of fire. **Thrusters arrive in groups**: with a chance of their own, rolled again after each, small engines
   are bolted facing out onto free faces (`addThrusters`), since one engine alone mostly spins a ship and so
-  is rarely kept long enough for a second to join it. What decides whether a
+  is rarely kept long enough for a second to join it. The chance halves for every four engines the ship
+  already has, so a ship short of them gains several and a line's engines grow only with its age's logarithm. What decides whether a
   mutant is a ship is the layout rules themselves, which refuse an edit rather than repair it, since a
   repair rule would be a second opinion about what a ship is — **edit by edit**, as someone moving things in
   the editor presses undo whenever it goes red and carries on with the next part, so one bad edit costs
