@@ -13,7 +13,7 @@ import {
 } from '../sim/index.js';
 import { addCapability, EFFECTS, workingShare } from './capability.js';
 import { makeBattle } from '../scenarios/battle.js';
-import { Activity } from '../scenarios/decision.js';
+import { Activity, QUIET_TIME } from '../scenarios/decision.js';
 import type { Battle } from '../scenarios/types.js';
 import { withFleetFighters } from '../sim/fleetHangar.js';
 
@@ -199,9 +199,9 @@ export interface MatchConfig {
   readonly closingSpread: number;
   readonly crossingSpread: number;
   /**
-   * Seconds a side may go without firing or ramming before the match is
-   * decided against it, the skirmish's rule (`scenarios/decision.ts`); zero
-   * leaves a match to be decided only by one side being left under command.
+   * Seconds a side may go without firing, landing a hit, building or closing
+   * on an enemy before it counts as quiet; once every side is, the match is
+   * over. Zero means `QUIET_TIME`.
    */
   readonly quietLimit: number;
 }
@@ -281,8 +281,8 @@ export interface Score {
   readonly taken: number;
 }
 
-/** Why a match stopped. */
-export type Ending = 'decided' | 'annihilated' | 'timeout';
+/** Why a match stopped: won, nobody left, every side quiet with nobody having won, or the clock. */
+export type Ending = 'decided' | 'annihilated' | 'quiet' | 'timeout';
 
 export interface MatchResult {
   readonly seed: number;
@@ -376,7 +376,7 @@ export class Match {
   private readonly count: number;
   /** Each entrant's side, or null when each is its own. */
   private readonly teams: readonly number[] | null;
-  /** How many sides there are: once only one is left fighting, it is decided. */
+  /** How many sides there are. */
   private readonly sideCount: number;
   private readonly fightingSide: Uint8Array;
   private readonly survival: Float64Array;
@@ -405,16 +405,20 @@ export class Match {
   private readonly disabled: Float64Array[];
   /** Which entrants still have a ship under command this step. */
   private readonly fightingNow: Uint8Array;
+  /** Which sides still have a ship under control this step, whether or not it can fight. */
+  private readonly commandedSide: Uint8Array;
   private readonly entrantOf = new Map<number, number>();
   private readonly total: number;
   private measured = false;
   private step = 0;
   private ending: Ending = 'timeout';
   private winners: number[] = [];
-  /** Whether the skirmish's rule decided it, which nothing after undoes. */
-  private quietDecided = false;
-  /** The skirmish's rule, where `quietLimit` asks for it. */
+  /** Whether it is over, which nothing after undoes, though it may play on for the goal. */
+  private settled = false;
+  /** Who is still at it, with more than one side. */
   private readonly activity: Activity | null;
+  /** The side last active on its own, or -1. */
+  private alone = -1;
 
   /**
    * `teams` gives each entrant its side, numbered from zero; left out, every
@@ -455,7 +459,9 @@ export class Match {
     this.total = math.round(settings.duration / settings.dt);
     // Its time cap is the match's own clock, and with one side it can never decide.
     const sides = sided === null ? count : this.fightingSide.length;
-    this.activity = settings.quietLimit > 0 && this.sideCount > 1 ? new Activity(sides, Infinity, settings.quietLimit) : null;
+    this.commandedSide = new Uint8Array(sides);
+    const quiet = settings.quietLimit > 0 ? settings.quietLimit : QUIET_TIME;
+    this.activity = this.sideCount > 1 ? new Activity(sides, Infinity, quiet, true) : null;
 
     this.battle = makeBattle(
       {
@@ -588,14 +594,14 @@ export class Match {
   }
 
   /**
-   * Whether the match is over: by the clock, by nobody being left, or by one
-   * being left — unless getting to the goal still counts, since a survivor
-   * still has the goal to fly, and scoring it as though it stopped where the
-   * last kill left it pays for where it happened to be at that moment.
+   * Whether the match is over: by the clock, by nobody being left, or by every
+   * side going quiet — unless getting to the goal still counts, since a
+   * survivor still has the goal to fly, and scoring it as though it stopped
+   * where the fighting left it pays for where it happened to be at that moment.
    */
   get done(): boolean {
     if (this.step >= this.total || this.ending === 'annihilated') return true;
-    return this.ending === 'decided' && !(this.measured && this.settings.weights.race !== 0);
+    return this.settled && !(this.measured && this.settings.weights.race !== 0);
   }
 
   /** How far through it is, from nothing to one. */
@@ -613,6 +619,7 @@ export class Match {
     this.entrantOf.clear();
     const fightingNow = this.fightingNow;
     fightingNow.fill(0);
+    this.commandedSide.fill(0);
     const best = this.best;
     best.fill(0);
     this.capability.fill(0);
@@ -629,6 +636,7 @@ export class Match {
       this.lost[i]! += math.max(0, this.hull[k]! - hull);
       this.hull[k] = hull;
       if (!ships.hasControl(ship)) continue;
+      this.commandedSide[this.teams === null ? i : this.teams[i]!] = 1;
 
       // Nobody is flying a hull whose cores have gone (DESIGN.md §4), and it
       // scores nothing more for being wreckage that has not been finished off.
@@ -651,14 +659,10 @@ export class Match {
       }
     }
     let fighting = 0;
-    let sidesFighting = 0;
     this.fightingSide.fill(0);
     for (let i = 0; i < this.count; i++) {
       fighting += fightingNow[i]!;
-      if (this.teams !== null && fightingNow[i] === 1 && this.fightingSide[this.teams[i]!] === 0) {
-        this.fightingSide[this.teams[i]!] = 1;
-        sidesFighting++;
-      }
+      if (this.teams !== null && fightingNow[i] === 1) this.fightingSide[this.teams[i]!] = 1;
       // By its nearest ship: more ships help only by covering the one that gets there.
       if (fightingNow[i] === 1 && this.measured) this.race[i]! += best[i]! - this.start[i]!;
     }
@@ -697,29 +701,54 @@ export class Match {
     }
 
     this.step++;
-    if (this.teams === null) sidesFighting = fighting;
-    // Decided on quiet stays decided, for a match played on for the goal.
-    if (this.quietDecided) return;
+    if (this.settled) return;
     if (fighting === 0) {
       this.ending = 'annihilated';
       this.winners = [];
-    } else if (this.sideCount > 1 && sidesFighting === 1) {
-      this.ending = 'decided';
-      this.winners = [];
-      for (let i = 0; i < this.count; i++) if (fightingNow[i] === 1) this.winners.push(i);
-    } else if (this.activity !== null && this.ending === 'timeout') {
-      const side = this.activity.observe(this.battle)?.winner ?? -1;
-      const winners: number[] = [];
-      for (let i = 0; i < this.count; i++) {
-        if (fightingNow[i] === 1 && (this.teams === null ? i : this.teams[i]!) === side) winners.push(i);
-      }
-      // A side kept in by a round landing after its last ship lost control has nobody to win.
-      if (winners.length > 0) {
-        this.ending = 'decided';
-        this.winners = winners;
-        this.quietDecided = true;
+      return;
+    }
+    const activity = this.activity;
+    if (activity === null) return;
+    // Played on past a side being beaten, so a winner goes on scoring for what
+    // it does to the beaten: a match stopped there pays nothing for a gun.
+    activity.track(this.battle);
+    let active = -1;
+    let actives = 0;
+    let commanded = 0;
+    for (let side = 0; side < this.commandedSide.length; side++) {
+      commanded += this.commandedSide[side]!;
+      if (this.sideFights(side) && !activity.quiet(side)) {
+        active = side;
+        actives++;
       }
     }
+    if (actives === 1) this.alone = active;
+    else if (actives > 1) this.alone = -1;
+    // Over once nobody is at it, or nobody is left to be fought.
+    if (actives === 0 || commanded <= 1) this.settle('quiet');
+    else if (this.step >= this.total) this.settle('timeout');
+  }
+
+  /** Whether any of `side`'s entrants still has a ship under command that can fight. */
+  private sideFights(side: number): boolean {
+    return (this.teams === null ? this.fightingNow[side] : this.fightingSide[side]) === 1;
+  }
+
+  /**
+   * End it: the side last at it on its own wins, if it has landed a hit on
+   * somebody — going on firing at nothing, or chasing what it never touches,
+   * wins nothing.
+   */
+  private settle(otherwise: Ending): void {
+    this.settled = true;
+    const side = this.alone;
+    this.winners = [];
+    if (side >= 0 && this.activity!.hasStruck(side)) {
+      for (let i = 0; i < this.count; i++) {
+        if (this.fightingNow[i] === 1 && (this.teams === null ? i : this.teams[i]!) === side) this.winners.push(i);
+      }
+    }
+    this.ending = this.winners.length > 0 ? 'decided' : otherwise;
   }
 
   /**

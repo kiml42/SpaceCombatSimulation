@@ -450,9 +450,13 @@ inside any one file is not contiguous.
   armour into an enemy's guns or engines costs both hulls alike but takes function from only one. Who did it is the one thing a fitness function cannot get from what a
   hull has taken. Damage is capped per victim, since a gun must not be paid for firing into something it has already killed. What is left of
   a match that ends early is credited to whoever is still standing: without it, winning outright scores less
-  than failing to land a shot for the full two minutes. **A match ends early only when nothing more can be
-  scored**: with nobody left, or with one left and the goal not counting. While the goal counts, a survivor
-  still has it to fly, and is scored on flying it rather than frozen where the last kill left it. One ship to
+  than failing to land a shot for the full two minutes. **A match plays on until every side has gone quiet** —
+  `quietLimit` (30 s unless set) without firing, landing a hit, building, or closing on an enemy closer than
+  it has been — or nobody is left to fight, and only then is a winner declared: the side last at it on its
+  own, if it has landed a hit on somebody. Stopped the moment a side was out, as it was, a ship that grew
+  a gun beat one with none before firing it and scored nothing for it, so weapons drifted away; and a drill
+  against a bare core ended on its first step. While the goal counts, a match plays its full length, since a
+  survivor still has the goal to fly and is scored on flying it rather than frozen where the fighting left it. One ship to
   a match is allowed, and is a test of piloting alone. A four-ship match runs in a quarter of a second,
   about three hundred times faster than the battle it simulates.
   **The objective is an object, and a ship goes to it because its doctrine says to.** The goal is a marker
@@ -656,10 +660,10 @@ inside any one file is not contiguous.
   first match paused at its start. Entrants can start already moving, towards the middle and across it, at speeds the run
   sets (`--closing`, `--crossing`), the same two a custom battle has.
   **Co-evolution**, headless (`evolution/coevolution.ts`, `npm run evolve -- --versus`): two lineages, side A
-  and side B, each bred only from its own winners, every match some of A against some of B with no goal —
+  and side B, each bred only from its own winners, every match some of A against some of B, with the goal if the settings give one —
   each side's own number a match, allies of each other, clustered on its own side of the ring (A left, B
-  right, spread over 45°), scored only for what they do to the other side, and decided once one side is
-  left fighting. **One side is bred at a time**, as the skirmish's enemy answers the player: side A against
+  right, spread over 45°), scored for what they do to the other side and, where there is a goal, for
+  closing on it. **One side is bred at a time**, as the skirmish's enemy answers the player: side A against
   side B's hall of fame until A's best wins `phaseWin` (0.6) of its matches, or for `phaseCap` (10)
   generations, then A's best joins A's hall and side B is bred against that — each turn a round. Bred
   together, each side was scored against a target that moved every generation, and a side that fell behind
@@ -1024,10 +1028,12 @@ inside any one file is not contiguous.
   In-battle construction (§8 step 12) and harvesting wrecks (step 13) are built on it. What comes next is
   orders (step 14): telling ships what to do mid-battle, from the paused battle.
   Alongside it, §8 step 5's skirmish: an endless loop against an enemy fleet that evolves to beat the
-  player's, planned in ROADMAP.md §8. Evolution can end a match on the skirmish's rule too, where its `quietLimit` is set. Its loop is built without the evolving enemy (`dist/skirmish.html`,
+  player's, planned in ROADMAP.md §8. Evolution keeps the skirmish's sense of quiet, though it plays a match on until every side is quiet before naming a winner. Its loop is built without the evolving enemy (`dist/skirmish.html`,
   `scenarios/skirmish.ts`): pick a stock enemy, whose bill is the budget unless the player sets their own, under a limit on ships and spread (20 and 500 m unless set, or what the enemy fields if more), each round's gap and starting speeds drawn from optional ± spreads on its seed; fight a fixed round, decided by
   `scenarios/decision.ts` once one side has fired or rammed in the last 30 s and the other has not, which
   counts only once both have fired, so slow ships closing from far off are not out before they are in range;
+  ramming counts as firing only while the rammer gets closer to its target than it has been, so one that
+  circles goes quiet, its mark following it out after the start or a hit it lands until it turns back;
   and go
   to the fleet editor, which shows the budget, and back between tries. A ship of a fleet opens in the ship
   editor from the fleet editor's *Edit* and goes back to the fleet, skirmish and all. A round won, the

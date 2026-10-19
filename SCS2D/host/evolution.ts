@@ -1969,8 +1969,7 @@ export function startEvolution(): void {
     }
     // One is enough: a match of one ship is a run's test of its piloting.
     if (entrants.length === 0 || run === null) return;
-    // As the run fought it: a co-evolution match has no goal, and has sides.
-    const match = run instanceof Coevolution ? { ...run.config.match, goal: null } : run.config.match;
+    const match = run.config.match;
     const teams = record.teams !== undefined && record.teams.length === entrants.length ? record.teams : null;
     watchReplay(
       new Match(entrants, { ...match, seed: record.seed }, teams, record.invulnerable ?? []),
