@@ -45,6 +45,7 @@
       label { display: flex; align-items: center; gap: 0.4rem; color: #8fa2b8; }
       input[type='range'] { width: 90px; }
       #readout { margin-left: auto; color: #7f93aa; }
+      #scrub { flex: 1 1 8rem; min-width: 6rem; max-width: 24rem; }
       #scene { max-width: 9rem; }
       a { color: #7fa8e0; }
       #view { flex: 1; min-width: 0; min-height: 0; display: block; touch-action: none; cursor: grab; }
@@ -111,6 +112,7 @@
       <select id="scene" title="Scenario"></select>
       <button id="customBattle" title="Set up a battle between fleets">Custom</button>
       <button id="fit">Fit</button>
+      <input id="scrub" type="range" min="0" max="0" value="0" title="Wind the battle back or on (, steps back)">
       <label>speed <select id="speed" title="How fast the battle runs">
         <option value="0.25">0.25x</option>
         <option value="0.5">0.5x</option>

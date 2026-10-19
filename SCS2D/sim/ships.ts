@@ -84,7 +84,7 @@ import { Allocation, EngineLayout } from './engines.js';
 import { addFlame, addTurret, attackBearing, AttackArcs, AttackRegion } from './attack.js';
 import { FiringSolution, interceptTime, Turrets, TurretState } from './turrets.js';
 import { holdBand, type Doctrine, type Targeting } from './doctrine.js';
-import type { World } from './world.js';
+import type { ForceProvider, World } from './world.js';
 import type { BeamHits, Beams, SpatialGrid } from './index.js';
 import { MAX_BEAM_LENGTH } from './beams.js';
 import { RayHit } from './spatialGrid.js';
@@ -798,9 +798,7 @@ export class Ships {
    * beam or a flame goes on through a module burnt past breaking at what its
    * holes let by.
    */
-  readonly holedHulls = new Hulls(this, {
-    transparency: (body, module) => this.damage.transparency(body, module),
-  });
+  readonly holedHulls = new Hulls(this, this.damage);
 
   /**
    * Per-ship engine layouts, and the damage version each was built at.
@@ -2655,19 +2653,21 @@ export class Ships {
    * values rather than computing new ones, so the double evaluation on a
    * primed step costs nothing but a repeat of the same sum.
    */
-  forceProvider(): (world: World) => void {
-    return (world: World) => {
-      const bodies = world.bodies;
-      for (let i = 0; i < this.alive.length; i++) {
-        if (this.alive[i] === 0) continue;
-        bodies.applyLocalWrench(
-          this.bodyIds[i]!,
-          this.demandFx[i]! + this.leakFx[i]!,
-          this.demandFy[i]! + this.leakFy[i]!,
-          this.demandTorque[i]! + this.recoil[i]! + this.leakTorque[i]!,
-        );
-      }
-    };
+  forceProvider(): ForceProvider {
+    return this;
+  }
+
+  applyForces(world: World): void {
+    const bodies = world.bodies;
+    for (let i = 0; i < this.alive.length; i++) {
+      if (this.alive[i] === 0) continue;
+      bodies.applyLocalWrench(
+        this.bodyIds[i]!,
+        this.demandFx[i]! + this.leakFx[i]!,
+        this.demandFy[i]! + this.leakFy[i]!,
+        this.demandTorque[i]! + this.recoil[i]! + this.leakTorque[i]!,
+      );
+    }
   }
 
   /**
@@ -4699,7 +4699,7 @@ export class Ships {
       const design = this.hullDesign[b];
       if (robots === null || design === null || design === undefined || bodies.alive[b] === 0) continue;
       // What was shed is settled before any of it comes back.
-      this.damage.takeUnsettledAt(b, this.settleShedOf);
+      this.damage.takeUnsettledAt(b, this);
       const mass = bodies.mass[b]!;
       const inertia = bodies.inertia[b]!;
       let mended = false;
@@ -6805,16 +6805,17 @@ export class Ships {
    */
   private settleShed(bodies: Bodies): void {
     this.bodyStore = bodies;
-    this.damage.takeUnsettled(this.settleShedOf);
+    this.damage.takeUnsettled(this);
   }
 
-  private readonly settleShedOf = (b: number): void => {
+  /** Damage's call back, for `settleShed`. */
+  settleShedOf(b: number): void {
     const bodies = this.bodyStore!;
     const mass = bodies.mass[b]!;
     const inertia = bodies.inertia[b]!;
     this.settleMass(bodies, b);
     this.discardFrom(bodies, b, mass, inertia);
-  };
+  }
 
   /**
    * Count as discarded what body `b` lost since it weighed `mass` and turned
