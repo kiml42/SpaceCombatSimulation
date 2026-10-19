@@ -1,7 +1,8 @@
 import { Rng } from '../sim/index.js';
-import { max, min, round } from '../sim/math.js';
-import { Match, type Entrant } from './match.js';
-import { blank, breed, fitness, Generation } from './generation.js';
+import { max, min } from '../sim/math.js';
+import { BARE_CORE } from '../scenarios/blueprints.js';
+import { DEFAULT_MATCH, Match, type Entrant, type Score } from './match.js';
+import { breed, fitness, type Generation, type Individual } from './generation.js';
 import {
   DEFAULT_RUN,
   describe,
@@ -15,26 +16,35 @@ import {
 } from './run.js';
 
 /**
- * Co-evolution: two lineages bred against each other.
+ * Co-evolution: two lineages bred against each other, a side at a time.
  *
- * A run is given two sets of founders, side A and side B, and every match is
- * some of A against some of B — each side's `group` of them, allies of each
- * other — so each lineage is selected for beating the other as the other is
- * now. A side B that does not evolve is a fixed opponent, and one of it
- * against several of side A is what a boss battle was.
+ * A run is given two sets of founders, side A and side B. **One side evolves
+ * while the other holds still**, as the skirmish's enemy answers the player:
+ * side A is bred against side B's hall until A's best usually wins, then A's
+ * best joins its own hall and side B is bred against that, and so on. Each
+ * turn is a round.
  *
- * **Each side is bred only from its own winners**, and both close and breed
- * together, once every individual on both sides has had its matches. There is
- * no goal: a race would let a lineage score without fighting.
+ * Bred together instead, each side is scored against a target that moves every
+ * generation, and a side that falls behind is beaten so quickly and so evenly
+ * that its scores stop telling its designs apart while the leader has nothing
+ * left to improve on: the two disengage. Held still, the side being bred is
+ * scored against the same opponents all round, and the round ends once it has
+ * caught up rather than after a fixed count.
  *
- * **A hall of fame keeps the two from going round in circles.** Each side
- * keeps the champions of its last few generations, and a share of every
- * individual's matches is against the *other* side's hall rather than its
- * current population. Without it A beats B, B adapts, A adapts back, and
- * neither gets better at anything but the opponent of the moment; with it, a
- * design has to go on beating what came before. It also gives a side that is
- * losing everything weaker opponents to score against, so its selection still
- * has something to go on.
+ * **A hall of fame keeps a side from beating only the latest of the other.**
+ * Each side keeps the champions of its last few rounds, its founders until it
+ * has any, and every match is against a group of them, so an answer has to
+ * beat what came before as well. Each match is on its own seed.
+ *
+ * **Drills give a side that is outclassed something to climb.** Besides its
+ * matches, each design fights some with its own ships made invincible, so it
+ * can learn to hurt the other side before it learns to survive it, and some
+ * against bare cores, which cannot fight back at all. A drill scores only the
+ * damage done and function taken, and is never a win.
+ *
+ * A side B that does not evolve is its founders throughout: side A is bred
+ * against them, a round that never ends, and one of them against several of
+ * side A is what a boss battle was.
  *
  * Everything comes off one generator seeded from the run's seed, as a run of
  * one does, so a co-evolution run is a config and a number too.
@@ -46,21 +56,27 @@ export type SideSettings = Pick<RunConfig, 'population' | 'winners' | 'group' | 
 export interface CoevolutionConfig {
   /** Side B's settings where they differ from side A's, which are the run's. */
   readonly rival: Partial<SideSettings>;
-  /** Champions each side keeps, one per generation, the latest. None turns the hall off. */
+  /** Champions each side keeps, one per round, the latest; its founders until it has one. */
   readonly hall: number;
-  /** The share of each individual's matches fought against the other side's hall, once it has one. */
-  readonly hallShare: number;
-  /**
-   * Whether side B evolves. Not, and it is its founders and nothing else, every
-   * generation: a fixed opponent side A is bred against.
-   */
+  /** The share of its matches a round's best must win for the round to end. */
+  readonly phaseWin: number;
+  /** The most generations a round may take before the other side's turn comes anyway. */
+  readonly phaseCap: number;
+  /** Matches each design fights a generation with its own ships invincible. */
+  readonly shieldedDrills: number;
+  /** Matches each design fights a generation against bare cores. */
+  readonly bareCoreDrills: number;
+  /** Whether side B evolves. Not, and it is its founders throughout: a fixed opponent side A is bred against. */
   readonly rivalEvolves: boolean;
 }
 
 export const DEFAULT_COEVOLUTION: CoevolutionConfig = {
   rival: {},
   hall: 5,
-  hallShare: 0.25,
+  phaseWin: 0.6,
+  phaseCap: 10,
+  shieldedDrills: 1,
+  bareCoreDrills: 1,
   rivalEvolves: true,
 };
 
@@ -92,8 +108,8 @@ export function rivalSettings(a: RunConfig, rival: Partial<SideSettings>): RunCo
   };
 }
 
-/** Told as each pair of generations closes. */
-export type OnCoGeneration = (a: GenerationRecord, b: GenerationRecord) => void;
+/** Told as each generation closes, with the side it was. */
+export type OnCoGeneration = (record: GenerationRecord, side: 0 | 1) => void;
 
 /** A past champion: who it was, and what it fought as. */
 interface Champion {
@@ -101,28 +117,31 @@ interface Champion {
   readonly entrant: Entrant;
 }
 
-/** One side's lineage in progress. */
+/** One side's lineage. */
 interface Side {
   readonly config: RunConfig;
+  /** Its generation under test on its turn, and the last it bred from otherwise. */
   generation: Generation;
   readonly generations: GenerationRecord[];
   matches: MatchRecord[];
-  /** The latest champions, oldest first. */
+  /** The latest champions, oldest first: its founders until it has any. */
   readonly hall: Champion[];
-  /** Whether it breeds; one that does not is its founders every generation. */
-  readonly evolves: boolean;
-  /** Matches each individual has fought against the other side's hall, by index. */
-  hallPlayed: number[];
+  /** Whether its generation has been fought, so its next turn breeds from it. */
+  fought: boolean;
 }
 
-/**
- * What is in the match being fought: indices into each side's generation, or
- * past champions standing in for one side, which are not scored.
- */
+/** What a design owes a generation, by kind. */
+type Kind = 'match' | 'shielded' | 'bareCore';
+
+/** What is in the match being fought: the side being bred's picks, and what they face. */
 interface Pairing {
-  readonly picked: readonly [readonly number[], readonly number[]];
-  readonly champions: { readonly side: 0 | 1; readonly list: readonly Champion[] } | null;
+  readonly kind: Kind;
+  readonly picked: readonly number[];
+  readonly against: readonly Champion[];
 }
+
+/** A bare core stands for a design no lineage has. */
+const BARE: Champion = { id: -1, entrant: BARE_CORE };
 
 /**
  * A co-evolution run in progress: stepped as `Run` is, so a page can drive the
@@ -134,14 +153,19 @@ export class Coevolution {
   private readonly sides: readonly [Side, Side];
   private readonly onGeneration: OnCoGeneration | undefined;
   private readonly rng: Rng;
-  /** A cap on a generation's matches, so one that could never settle still ends. */
-  private readonly limit: number;
   private nextId: number;
   private match: Match | null = null;
   private pairing: Pairing | null = null;
   private seed = 0;
-  private fought = 0;
   private over = false;
+  /** The side being bred, and how many rounds and generations there have been. */
+  private side: 0 | 1 = 0;
+  private roundCount = 0;
+  private roundGenerations = 0;
+  private generationCount = 0;
+  /** Per design of the side being bred, by kind: matches fought, and matches won. */
+  private owed = new Map<Kind, number[]>();
+  private wins: number[] = [];
 
   constructor(
     founders: readonly Entrant[],
@@ -157,12 +181,19 @@ export class Coevolution {
     this.rng = new Rng(settings.seed);
     const rival = rivalSettings(settings, this.coevolution.rival);
     const a = seedPopulation(founders, this.rng, settings);
-    const evolves = this.coevolution.rivalEvolves;
-    // A side that does not evolve is its founders, with no mutants of them.
-    const b = seedPopulation(rivals, this.rng, evolves ? rival : { ...rival, population: rivals.length }, a.individuals.length);
+    const b = seedPopulation(rivals, this.rng, rival, a.individuals.length);
     this.nextId = a.individuals.length + b.individuals.length;
-    this.sides = [side(settings, a, true), side(rival, b, evolves)];
-    this.limit = (settings.population + rival.population) * settings.minMatches * 4 + 16;
+    // A fixed side B fields all its founders; one that evolves, as many as its hall holds.
+    const hallOf = (generation: Generation, all: boolean): Champion[] =>
+      generation.individuals
+        .filter((individual) => individual.parent < 0)
+        .slice(0, all ? undefined : max(1, this.coevolution.hall))
+        .map((individual) => ({ id: individual.id, entrant: individual.entrant }));
+    this.sides = [
+      { config: settings, generation: a, generations: [], matches: [], hall: hallOf(a, false), fought: false },
+      { config: rival, generation: b, generations: [], matches: [], hall: hallOf(b, !this.coevolution.rivalEvolves), fought: false },
+    ];
+    this.reset();
     if (settings.generations <= 0 || founders.length === 0 || rivals.length === 0) this.over = true;
   }
 
@@ -175,6 +206,21 @@ export class Coevolution {
     return this.match;
   }
 
+  /** The side being bred. */
+  get turn(): 0 | 1 {
+    return this.side;
+  }
+
+  /** Rounds finished: each a side's answer to the other. */
+  get round(): number {
+    return this.roundCount;
+  }
+
+  /** Whether both sides evolve, so the run goes in rounds. */
+  get alternates(): boolean {
+    return this.coevolution.rivalEvolves;
+  }
+
   /** Side A's closed generations, as `Run.generations`. */
   get generations(): readonly GenerationRecord[] {
     return this.sides[0].generations;
@@ -185,57 +231,53 @@ export class Coevolution {
     return this.sides[1].generations;
   }
 
-  /** Side A's generation under test, as `Run.living`. */
+  /** The generation being bred, of the side whose turn it is. */
   get living(): Generation {
-    return this.sides[0].generation;
+    return this.sides[this.side].generation;
   }
 
-  /** Side B's generation under test. */
-  get rivalLiving(): Generation {
-    return this.sides[1].generation;
-  }
-
-  /** Matches side A has been scored for in the generation under test, as `Run.played`. */
+  /** Matches the side being bred has fought in its generation under test. */
   get played(): readonly MatchRecord[] {
-    return this.sides[0].matches;
+    return this.sides[this.side].matches;
   }
 
-  /** Matches side B has been scored for in the generation under test. */
-  get rivalPlayed(): readonly MatchRecord[] {
-    return this.sides[1].matches;
+  /** A side's hall: the designs the other side is bred against. */
+  hall(side: 0 | 1): readonly { id: number; entrant: Entrant }[] {
+    return this.sides[side].hall;
   }
 
   /**
    * The run's first match, fought by the founders themselves: the first
-   * pairing's seed, with each side's individual swapped for the founder it
-   * was bred from. Draws the match, so it is for a run that will not be fought.
+   * pairing's seed, with each individual swapped for the founder it was bred
+   * from. Draws the match, so it is for a run that will not be fought.
    */
   unmutatedOpening(): Match | null {
     if (this.match === null && !this.over) this.open();
     const pairing = this.pairing;
     if (this.match === null || pairing === null) return null;
-    const founderOf = (s: Side, index: number): Entrant => {
-      const individuals = s.generation.individuals;
+    const individuals = this.living.individuals;
+    const founderOf = (index: number): Entrant => {
       const individual = individuals[index]!;
       if (individual.parent < 0) return individual.entrant;
       return individuals.find((each) => each.id === individual.parent)?.entrant ?? individual.entrant;
     };
     const { entrants, teams } = this.lineUp(pairing, founderOf);
-    return new Match(entrants, { ...this.config.match, goal: null, seed: this.seed }, teams);
+    return new Match(entrants, this.matchConfig(), teams);
   }
 
   /** How far through the whole run, from nothing to one. */
   get progress(): number {
     if (this.over) return 1;
-    const wanted = this.config.minMatches;
+    const individuals = this.living.individuals;
     let heard = 0;
     let total = 0;
-    for (const s of this.sides) {
-      for (const individual of s.generation.individuals) heard += min(individual.matches, wanted);
-      total += s.generation.individuals.length * wanted;
+    for (const [kind, played] of this.owed) {
+      const wanted = this.quota(kind);
+      for (let i = 0; i < individuals.length; i++) heard += min(played[i]!, wanted);
+      total += individuals.length * wanted;
     }
     const within = total > 0 ? heard / total : 1;
-    return (this.sides[0].generations.length + within) / this.config.generations;
+    return (this.generationCount + within) / this.config.generations;
   }
 
   /** Fight up to `budget` simulation steps of it, as `Run.advance` does. */
@@ -270,113 +312,67 @@ export class Coevolution {
     };
   }
 
-  /** Draw the next match, or close the generations if both have had enough. */
+  private matchConfig(): Partial<RunConfig['match']> {
+    return { ...this.config.match, goal: null, seed: this.seed };
+  }
+
+  /** How many of a kind each design fights a generation. */
+  private quota(kind: Kind): number {
+    if (kind === 'match') return max(1, this.config.minMatches);
+    return max(0, kind === 'shielded' ? this.coevolution.shieldedDrills : this.coevolution.bareCoreDrills);
+  }
+
+  /** Nothing fought yet, for the generation now under test. */
+  private reset(): void {
+    const n = this.living.individuals.length;
+    this.owed = new Map((['match', 'shielded', 'bareCore'] as const).map((kind) => [kind, new Array<number>(n).fill(0)]));
+    this.wins = new Array<number>(n).fill(0);
+  }
+
+  /** Draw the next match, or close the generation if every design has had all it is owed. */
   private open(): void {
-    const wanted = this.config.minMatches;
-    const settled = this.sides.every((s) => s.generation.settled(wanted));
-    if (settled || this.fought >= this.limit) {
+    const kind = (['match', 'shielded', 'bareCore'] as const).find((k) => this.owed.get(k)!.some((played) => played < this.quota(k)));
+    if (kind === undefined) {
       this.roll();
       return;
     }
-    // Which side's hall matches go first is drawn each time, so both sides'
-    // scores fill in together rather than all of A's and then all of B's.
-    // Only while both have a hall, so a run without one draws what it always did.
-    const both = this.sides[0].hall.length > 0 && this.sides[1].hall.length > 0;
-    const first = both && this.rng.nextFloat() >= 0.5 ? 1 : 0;
-    const pairing = this.hallPairing(first) ?? this.hallPairing(first === 0 ? 1 : 0) ?? this.livePairing();
-    if (pairing === null) {
-      this.roll();
-      return;
-    }
-    this.pairing = pairing;
-    this.seed = this.rng.nextUint32();
-    const { entrants, teams } = this.lineUp(pairing, (s, index) => s.generation.individuals[index]!.entrant);
-    this.match = new Match(entrants, { ...this.config.match, goal: null, seed: this.seed }, teams);
-  }
-
-  /**
-   * A match for side `s` against the other side's hall, if any of `s` is still
-   * owed one: the one owed most and those owed next most, against the
-   * champions they have met least.
-   */
-  private hallPairing(s: 0 | 1): Pairing | null {
-    const own = this.sides[s];
-    const other = this.sides[s === 0 ? 1 : 0];
-    // A side that does not evolve has nothing to learn from the other's past.
-    if (other.hall.length === 0 || !own.evolves) return null;
-    const owed = this.hallQuota();
-    if (own.hallPlayed.every((played) => played >= owed)) return null;
+    const own = this.sides[this.side];
+    const other = this.sides[this.side === 0 ? 1 : 0];
+    const played = this.owed.get(kind)!;
     const individuals = own.generation.individuals;
-    const picked = this.pick(own, groupOf(own), (i) => [own.hallPlayed[i]!, individuals[i]!.matches]);
-    const met = (champion: Champion): number => {
-      let sum = 0;
-      for (const i of picked) sum += individuals[i]!.met.get(champion.id) ?? 0;
-      return sum;
-    };
-    // Stable, so the oldest of those met equally goes first; round again if the hall is short.
-    const order = [...other.hall].sort((x, y) => met(x) - met(y));
-    const list = Array.from({ length: groupOf(other) }, (_, k) => order[k % order.length]!);
-    const champions = { side: (s === 0 ? 1 : 0) as 0 | 1, list };
-    return { picked: s === 0 ? [picked, []] : [[], picked], champions };
-  }
-
-  /** Matches each individual owes the other side's hall. */
-  private hallQuota(): number {
-    const { hall, hallShare } = this.coevolution;
-    if (hall <= 0 || !(hallShare > 0)) return 0;
-    return min(this.config.minMatches, max(1, round(this.config.minMatches * hallShare)));
-  }
-
-  /**
-   * Some of A against some of B: whoever of either side has played least,
-   * those of its own side who have played least beside it, then those of the
-   * other side they have met least, then have played least.
-   */
-  private livePairing(): Pairing | null {
-    let first: { side: 0 | 1; index: number } | null = null;
-    let firstMatches = 0;
-    let firstDraw = 0;
-    for (const s of [0, 1] as const) {
-      this.sides[s].generation.individuals.forEach((individual, i) => {
-        const draw = this.rng.nextFloat();
-        if (first !== null && (individual.matches > firstMatches || (individual.matches === firstMatches && draw <= firstDraw))) {
-          return;
-        }
-        first = { side: s, index: i };
-        firstMatches = individual.matches;
-        firstDraw = draw;
-      });
+    const picked = this.pick(individuals.length, groupOf(own), (i) => [played[i]!, individuals[i]!.matches]);
+    const size = groupOf(other);
+    let against: Champion[];
+    if (kind === 'bareCore') against = Array.from({ length: size }, () => BARE);
+    else {
+      const met = (champion: Champion): number => {
+        let sum = 0;
+        for (const i of picked) sum += individuals[i]!.met.get(champion.id) ?? 0;
+        return sum;
+      };
+      // Stable, so the oldest of those met equally goes first; round again if the hall is short.
+      const order = [...other.hall].sort((x, y) => met(x) - met(y));
+      against = Array.from({ length: size }, (_, k) => order[k % order.length]!);
     }
-    if (first === null) return null;
-    const chosen: { side: 0 | 1; index: number } = first;
-    const mine = this.sides[chosen.side];
-    const theirs = this.sides[chosen.side === 0 ? 1 : 0];
-    const ours = mine.generation.individuals;
-    const allies = this.pick(mine, groupOf(mine) - 1, (i) => [ours[i]!.matches], [chosen.index]);
-    const group = [chosen.index, ...allies];
-    const others = theirs.generation.individuals;
-    const opponents = this.pick(theirs, groupOf(theirs), (i) => {
-      let met = 0;
-      for (const j of group) met += ours[j]!.met.get(others[i]!.id) ?? 0;
-      return [met, others[i]!.matches];
-    });
-    if (opponents.length === 0) return null;
-    return { picked: chosen.side === 0 ? [group, opponents] : [opponents, group], champions: null };
+    this.pairing = { kind, picked, against };
+    this.seed = this.rng.nextUint32();
+    const { entrants, teams } = this.lineUp(this.pairing, (index) => individuals[index]!.entrant);
+    const shielded = kind === 'shielded' ? teams.flatMap((team, e) => (team === this.side ? [e] : [])) : [];
+    this.match = new Match(entrants, this.matchConfig(), teams, shielded);
   }
 
   /**
-   * `count` of a side's individuals, one at a time, each the least by `key`
-   * compared entry by entry, ties broken by a draw. `taken` are left out.
+   * `count` of the side's designs, one at a time, each the least by `key`
+   * compared entry by entry, ties broken by a draw.
    */
-  private pick(s: Side, count: number, key: (index: number) => number[], taken: readonly number[] = []): number[] {
+  private pick(n: number, count: number, key: (index: number) => number[]): number[] {
     const picked: number[] = [];
-    const n = s.generation.individuals.length;
     while (picked.length < count) {
       let best = -1;
       let bestKey: number[] = [];
       let bestDraw = 0;
       for (let i = 0; i < n; i++) {
-        if (picked.includes(i) || taken.includes(i)) continue;
+        if (picked.includes(i)) continue;
         const draw = this.rng.nextFloat();
         const k = key(i);
         if (best >= 0) {
@@ -395,27 +391,24 @@ export class Coevolution {
   }
 
   /** The match's entrants, side A's then side B's, with each one's side and id. */
-  private lineUp(
-    pairing: Pairing,
-    entrantOf: (s: Side, index: number) => Entrant,
-  ): { entrants: Entrant[]; teams: number[]; ids: number[] } {
+  private lineUp(pairing: Pairing, entrantOf: (index: number) => Entrant): { entrants: Entrant[]; teams: number[]; ids: number[] } {
     const entrants: Entrant[] = [];
     const teams: number[] = [];
     const ids: number[] = [];
+    const individuals = this.living.individuals;
     for (const k of [0, 1] as const) {
-      const s = this.sides[k];
-      if (pairing.champions?.side === k) {
-        for (const champion of pairing.champions.list) {
+      if (k === this.side) {
+        for (const index of pairing.picked) {
+          entrants.push(entrantOf(index));
+          ids.push(individuals[index]!.id);
+          teams.push(k);
+        }
+      } else {
+        for (const champion of pairing.against) {
           entrants.push(champion.entrant);
           ids.push(champion.id);
           teams.push(k);
         }
-        continue;
-      }
-      for (const index of pairing.picked[k]) {
-        entrants.push(entrantOf(s, index));
-        ids.push(s.generation.individuals[index]!.id);
-        teams.push(k);
       }
     }
     return { entrants, teams, ids };
@@ -424,8 +417,9 @@ export class Coevolution {
   private close(): void {
     const result = this.match!.result();
     const pairing = this.pairing!;
-    const { teams, ids } = this.lineUp(pairing, (s, index) => s.generation.individuals[index]!.entrant);
-    const record: MatchRecord = {
+    const own = this.sides[this.side];
+    const { teams, ids } = this.lineUp(pairing, (index) => own.generation.individuals[index]!.entrant);
+    own.matches.push({
       seed: this.seed,
       competitors: ids,
       teams,
@@ -433,98 +427,104 @@ export class Coevolution {
       winners: result.winners,
       elapsed: result.elapsed,
       scores: result.scores,
-    };
-    const againstHall = pairing.champions !== null;
-    let at = 0;
-    for (const k of [0, 1] as const) {
-      const s = this.sides[k];
-      const opponents = ids.filter((_, e) => teams[e] !== k);
-      const fielded = teams.filter((team) => team === k).length;
-      // Champions are not scored: only the living are credited.
-      if (pairing.champions?.side !== k) {
-        pairing.picked[k].forEach((index, e) => {
-          s.generation.credit(index, result.scores[at + e]!, opponents);
-          if (againstHall) s.hallPlayed[index] = s.hallPlayed[index]! + 1;
-        });
-        s.matches.push(record);
-      }
-      at += fielded;
-    }
-    this.fought++;
+      ...(pairing.kind === 'match' ? {} : { drill: pairing.kind }),
+    });
+    const at = teams.indexOf(this.side);
+    const opponents = ids.filter((_, e) => teams[e] !== this.side && ids[e]! >= 0);
+    const won = result.ending === 'decided' && result.winners.some((e) => teams[e] === this.side);
+    const weights = { ...DEFAULT_MATCH.weights, ...this.config.match.weights };
+    const played = this.owed.get(pairing.kind)!;
+    pairing.picked.forEach((index, e) => {
+      const score = result.scores[at + e]!;
+      own.generation.credit(index, pairing.kind === 'match' ? score : drillScore(score, weights), opponents);
+      played[index] = played[index]! + 1;
+      if (pairing.kind === 'match' && won) this.wins[index] = this.wins[index]! + 1;
+    });
     this.match = null;
     this.pairing = null;
   }
 
-  /** Close both generations, keep their champions, and breed both. */
+  /** Close the generation; then breed it, or end the round and breed the other side. */
   private roll(): void {
-    const [a, b] = this.sides;
-    const records = this.sides.map((s) => describe(s.generation, s.matches)) as [GenerationRecord, GenerationRecord];
-    this.sides.forEach((s, k) => {
-      s.generations.push(records[k]!);
-      s.matches = [];
-      this.enshrine(s);
+    const own = this.sides[this.side];
+    const individuals = own.generation.individuals;
+    let best: Individual | null = null;
+    let bestAt = -1;
+    individuals.forEach((individual, i) => {
+      if (individual.matches > 0 && (best === null || fitness(individual) > fitness(best))) {
+        best = individual;
+        bestAt = i;
+      }
     });
-    this.onGeneration?.(records[0], records[1]);
-    this.fought = 0;
-    if (a.generations.length >= this.config.generations) {
+    const matches = this.owed.get('match')!;
+    const won = bestAt >= 0 && matches[bestAt]! > 0 ? this.wins[bestAt]! / matches[bestAt]! : 0;
+    const record: GenerationRecord = {
+      ...describe(own.generation, own.matches),
+      ...(this.alternates ? { round: this.roundCount } : {}),
+      won,
+    };
+    own.generations.push(record);
+    own.matches = [];
+    own.fought = true;
+    this.onGeneration?.(record, this.side);
+    this.generationCount++;
+    this.roundGenerations++;
+    if (this.generationCount >= this.config.generations) {
       this.over = true;
       return;
     }
-    for (const s of [a, b]) {
-      if (!s.evolves) {
-        // The same designs again, under the same ids, with nothing recorded against them.
-        s.generation = new Generation(
-          s.generation.index + 1,
-          s.generation.individuals.map((each) => blank(each.id, each.entrant, each.parent, each.edits)),
-        );
-        s.hallPlayed = s.generation.individuals.map(() => 0);
-        continue;
-      }
-      s.generation = breed(
-        s.generation,
-        this.rng,
-        {
-          population: s.config.population,
-          winners: s.config.winners,
-          limits: mutationLimits(s.config),
-          fleetLimits: fleetLimits(s.config),
-        },
-        () => this.nextId++,
-      );
-      s.hallPlayed = s.generation.individuals.map(() => 0);
+    const ends = this.alternates && (won >= this.coevolution.phaseWin || this.roundGenerations >= this.coevolution.phaseCap);
+    if (ends && best !== null) {
+      this.enshrine(own, best);
+      this.side = this.side === 0 ? 1 : 0;
+      this.roundCount++;
+      this.roundGenerations = 0;
+      const next = this.sides[this.side];
+      // A side's first turn fights the population it was founded with.
+      if (next.fought) next.generation = this.bred(next);
+    } else {
+      own.generation = this.bred(own);
     }
+    this.reset();
   }
 
-  /** Put a side's best of the generation in its hall, keeping only the latest. */
-  private enshrine(s: Side): void {
-    const size = this.coevolution.hall;
-    if (size <= 0 || !s.evolves) return;
-    let best = null as (typeof s.generation.individuals)[number] | null;
-    for (const individual of s.generation.individuals) {
-      if (individual.matches === 0) continue;
-      if (best === null || fitness(individual) > fitness(best)) best = individual;
-    }
-    if (best === null) return;
-    s.hall.push({ id: best.id, entrant: best.entrant });
-    while (s.hall.length > size) s.hall.shift();
+  private bred(s: Side): Generation {
+    return breed(
+      s.generation,
+      this.rng,
+      { population: s.config.population, winners: s.config.winners, limits: mutationLimits(s.config), fleetLimits: fleetLimits(s.config) },
+      () => this.nextId++,
+    );
   }
+
+  /**
+   * Put a round's best in its side's hall, keeping only the latest. Its
+   * founders go oldest first, and until then are the weaker opponents a side
+   * that is outclassed can still score against.
+   */
+  private enshrine(s: Side, best: Individual): void {
+    // A design carried over unchanged keeps its id, and is moved up rather than kept twice.
+    const already = s.hall.findIndex((champion) => champion.id === best.id);
+    if (already >= 0) s.hall.splice(already, 1);
+    s.hall.push({ id: best.id, entrant: best.entrant });
+    while (s.hall.length > max(1, this.coevolution.hall)) s.hall.shift();
+  }
+}
+
+/** A drill's score: only what was done to the other side, since its own ships could not be hurt or there was nothing to hurt them. */
+function drillScore(score: Score, weights: typeof DEFAULT_MATCH.weights): Score {
+  return {
+    ...score,
+    survival: 0,
+    functional: 0,
+    race: 0,
+    total: weights.damage * score.damage + weights.disabling * score.disabling,
+  };
 }
 
 /** How many of a side each match fields: its `group`, or all of it if it is smaller. */
 function groupOf(s: Side): number {
   return max(1, min(s.config.group, s.generation.individuals.length));
-}
-
-function side(config: RunConfig, generation: Generation, evolves: boolean): Side {
-  return {
-    config,
-    evolves,
-    generation,
-    generations: [],
-    matches: [],
-    hall: [],
-    hallPlayed: generation.individuals.map(() => 0),
-  };
 }
 
 /** Fight a whole co-evolution run and record it. */

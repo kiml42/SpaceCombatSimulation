@@ -236,6 +236,11 @@ export interface MatchRecord {
   readonly winners?: readonly number[];
   readonly elapsed: number;
   readonly scores: MatchResult['scores'];
+  /**
+   * In a co-evolution run, a match that only taught: fought with the bred
+   * side's own ships invincible, or against bare cores, a competitor of id -1.
+   */
+  readonly drill?: 'shielded' | 'bareCore';
 }
 
 export interface GenerationRecord {
@@ -257,6 +262,41 @@ export interface GenerationRecord {
    */
   readonly mean: ScoreParts;
   readonly best: ScoreParts;
+  /** In a co-evolution run, the round it was bred in: one side's turn to answer the other. */
+  readonly round?: number;
+  /** In a co-evolution run, the share of its matches against the other side its champion won. */
+  readonly won?: number;
+}
+
+/**
+ * How far apart a generation's scores are: how hard selection can tell its
+ * designs apart, and so how much it is pushing. A narrow spread, or many
+ * scores tied, is a generation that could be bred from at random.
+ */
+export interface Spread {
+  readonly lowest: number;
+  readonly lowerQuartile: number;
+  readonly median: number;
+  readonly upperQuartile: number;
+  readonly highest: number;
+  /** How many designs scored the same as another. */
+  readonly tied: number;
+}
+
+export function spreadOf(record: GenerationRecord): Spread {
+  const scores = record.individuals.map((individual) => individual.fitness).sort((a, b) => a - b);
+  const at = (q: number): number => {
+    if (scores.length === 0) return 0;
+    const i = q * (scores.length - 1);
+    const below = Math.floor(i);
+    const above = Math.min(scores.length - 1, below + 1);
+    return scores[below]! + (scores[above]! - scores[below]!) * (i - below);
+  };
+  let tied = 0;
+  for (let i = 0; i < scores.length; i++) {
+    if ((i > 0 && scores[i] === scores[i - 1]) || (i + 1 < scores.length && scores[i] === scores[i + 1])) tied++;
+  }
+  return { lowest: at(0), lowerQuartile: at(0.25), median: at(0.5), upperQuartile: at(0.75), highest: at(1), tied };
 }
 
 /** The sources of score, apart. */
