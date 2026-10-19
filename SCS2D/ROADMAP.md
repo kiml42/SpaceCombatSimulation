@@ -94,6 +94,8 @@ Nothing: every step up to 13 is built.
        - **The camera across a jump.** Fitted, a seek or a step back should land exactly framed rather than
          ease there in real time. Not fitted, it stands still across a seek or a step back, yet follows the
          ships on a step forward; it should move with them across any jump, either way.
+       - **A copy in one frame** is a hitch of tens of milliseconds in a big battle; spread over several
+         frames, it would not be.
        - **Muzzle flashes and shell bursts** freeze near the end of their animation on a seek back, a
          muzzle flash stuck to its gun, until the round comes back and the animation runs in reverse; a
          step forward then finishes one that should have ended frames before.
@@ -840,8 +842,10 @@ Deliberately unresolved; decide when they block something.
   cost 0.25 ms in the duel and 15–18 ms in Star Wars and Super Swarm — barely faster than they play — so
   rewinding a big battle would have frozen the page for most of its length. So `Rewind` keeps checkpoints:
   an in-memory copy of the whole battle (`cloneBattle`) at least 30 steps apart, spaced so copying takes no
-  more than 5% of stepping, and thinned to every other one, the spacing doubling, past 128 of them or about
-  100 MB. A seek copies the one before and steps on. A copy is 1–90 ms and up to about 5 MB; at a fixed
+  more than 2% of stepping, and thinned with age: one goes when the gap it leaves is no wider than a tenth of
+  how far back it is, so the last few seconds stay precise and ten minutes back is good to half a minute —
+  "what just happened" wants the first, a macro decision the second. Past 128 of them or about 50 MB they are
+  spread further. A seek copies the one before and steps on. A copy is 1–90 ms and up to about 5 MB; at a fixed
   30 steps apart, Super Swarm stuttered twice a second and its heap passed 600 MB. It
   works because a battle is still deterministic, and it costs one rule: nothing in a battle may be a closure
   over state that changes, since a copy would go on reaching into the original. Designs, and the caches

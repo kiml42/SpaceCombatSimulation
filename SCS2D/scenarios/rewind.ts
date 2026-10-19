@@ -5,10 +5,15 @@ import type { Battle } from './types.js';
 /** Fewest steps between checkpoints. */
 const EVERY = 30;
 /** The share of stepping time copying may take, when there is a clock to tell. */
-const COPY_SHARE = 0.05;
-/** Most checkpoints kept, and roughly the most memory they hold, before every other one is dropped. */
+const COPY_SHARE = 0.02;
+/**
+ * How far apart checkpoints may be, as a share of how far back they are, so
+ * the last few seconds stay precise and a minute back is good to a few.
+ */
+const SPREAD = 0.1;
+/** Most checkpoints kept, and roughly the most memory they hold, before they are spread further. */
 const KEPT = 128;
-const BYTES = 100e6;
+const BYTES = 50e6;
 
 /**
  * A battle that can be wound back. It keeps a copy of itself every so often,
@@ -18,10 +23,10 @@ const BYTES = 100e6;
  * battle steps barely faster than it plays.
  *
  * Given a clock, checkpoints are spaced so copying costs a small share of
- * stepping, since a big battle is slow to copy. When they hold too much,
- * every other one goes and the spacing doubles, so memory stays bounded and
- * a long battle costs more to wind back than a short one. Where they fall
- * changes nothing but how long a seek takes.
+ * stepping, since a big battle is slow to copy. Older ones are thinned out,
+ * so they grow sparser with age, and more so when they hold too much. Where
+ * they fall changes nothing but where a scrub bar can land and how long a
+ * step back takes.
  */
 export class Rewind {
   battle: Battle;
@@ -34,6 +39,7 @@ export class Rewind {
   private readonly checkpoints = new Map<number, { battle: Battle; bytes: number }>();
   private bytes = 0;
   private last = 0;
+  private spread = SPREAD;
   /** Milliseconds a step takes, smoothed; NaN until timed. */
   private stepCost = Number.NaN;
 
@@ -102,15 +108,34 @@ export class Rewind {
     this.checkpoints.set(this.at, kept);
     this.bytes += kept.bytes;
     this.last = this.at;
-    if (this.checkpoints.size <= KEPT && this.bytes <= BYTES) return;
-    // Every other one, keeping the first, so what is left is still spread over the whole battle.
-    let i = 0;
-    for (const [step, checkpoint] of this.checkpoints) {
-      if (i++ % 2 === 1) {
-        this.checkpoints.delete(step);
-        this.bytes -= checkpoint.bytes;
-      }
+    this.thin();
+    while (this.checkpoints.size > KEPT || this.bytes > BYTES) {
+      const size = this.checkpoints.size;
+      this.spread *= 1.5;
+      this.thin();
+      if (this.checkpoints.size === size && size <= 2) break;
     }
-    this.every *= 2;
+  }
+
+  /**
+   * Drop each checkpoint whose going leaves a gap no wider than `spread` of
+   * its age, keeping the first and the latest.
+   */
+  private thin(): void {
+    const steps = [...this.checkpoints.keys()];
+    const latest = steps[steps.length - 1]!;
+    let newer = latest;
+    for (let i = steps.length - 2; i > 0; i--) {
+      const step = steps[i]!;
+      if (newer - steps[i - 1]! <= this.spread * (latest - step)) {
+        this.bytes -= this.checkpoints.get(step)!.bytes;
+        this.checkpoints.delete(step);
+      } else newer = step;
+    }
+  }
+
+  /** The steps a checkpoint is held at, oldest first. */
+  get kept(): readonly number[] {
+    return [...this.checkpoints.keys()];
   }
 }

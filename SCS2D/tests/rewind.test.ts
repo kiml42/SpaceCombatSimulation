@@ -45,6 +45,21 @@ describe('rewind', () => {
     expect(rewind.snap(97)).toBe(100);
   });
 
+  it('keeps the recent past dense and the distant past sparse', () => {
+    const rewind = new Rewind(duel());
+    rewind.seek(6000);
+    const kept = rewind.kept;
+    const gap = (back: number): number => {
+      const i = kept.findIndex((step) => step >= 6000 - back);
+      return kept[i]! - kept[i - 1]!;
+    };
+    expect(gap(120)).toBe(30);
+    expect(gap(3000)).toBeGreaterThanOrEqual(120);
+    expect(gap(3000)).toBeLessThanOrEqual(300);
+    expect(kept[0]).toBe(0);
+    expect(kept.length).toBeLessThan(60);
+  }, 60_000);
+
   it('goes forward without rebuilding, and back to the furthest step reached', () => {
     const rewind = new Rewind(duel());
     rewind.seek(50);
