@@ -1,7 +1,16 @@
 import { capture, Snapshot } from '../sim/index.js';
 import { Flashes } from '../render/flashes.js';
 import { ARCS_KEY, draw, nextArcs, TEAM_SHOTS_KEY, type Arcs } from '../render/canvas2d.js';
-import { frame, moveWithVisibleShips, selectionBounds, shipAt, type Camera } from '../render/camera.js';
+import {
+  frame,
+  jumpAnchors,
+  moveAcrossJump,
+  moveWithVisibleShips,
+  selectionBounds,
+  shipAt,
+  type Camera,
+  type JumpAnchor,
+} from '../render/camera.js';
 import type { Battle } from '../scenarios/types.js';
 import { Rewind } from '../scenarios/rewind.js';
 import { viewGestures } from './viewGestures.js';
@@ -165,7 +174,10 @@ export function battleView(
 
     // A seek is a jump, not time passing: nothing follows the ships across it, and no flash fades over it.
     let jumped = false;
+    let anchors: JumpAnchor[] | null = null;
     if (seeking >= 0 && rewind !== null) {
+      // The ships being followed, from the picture last drawn, before it is replaced.
+      if (!autoFrame) anchors = jumpAnchors(camera, snapshot, canvas.width, canvas.height);
       if (rewind.seek(seeking)) {
         battle = rewind.battle;
         rewound(battle);
@@ -193,12 +205,14 @@ export function battleView(
     lastSimTime = view.time;
 
     moveWithVisibleShips(camera, view, simDt, canvas.width, canvas.height);
+    if (anchors !== null) moveAcrossJump(camera, anchors, view);
     if (autoFrame) {
       if (!framed) {
         frame(camera, view, canvas.width, canvas.height, 1);
         framed = true;
       }
-      frame(camera, selectionBounds(view, selected) ?? view, canvas.width, canvas.height);
+      // Framed exactly across a jump, rather than eased there in real time.
+      frame(camera, selectionBounds(view, selected) ?? view, canvas.width, canvas.height, jumped ? 1 : undefined);
     }
 
     // Flashes fade on the battle's clock, so a paused battle holds them.
