@@ -19,7 +19,7 @@ import {
   serialiseFleet,
   shipFleet,
 } from '../sim/index.js';
-import { max, min } from '../sim/math.js';
+import { floor, max, min } from '../sim/math.js';
 import { isFleet, Match, SCORE_PARTS, type Entrant, type MatchConfig, type MatchResult } from './match.js';
 import { type MutationLimits } from './mutate.js';
 import { DEFAULT_FLEET_LIMITS, type FleetMutationLimits } from './fleetMutate.js';
@@ -290,8 +290,8 @@ export function spreadOf(record: GenerationRecord): Spread {
   const at = (q: number): number => {
     if (scores.length === 0) return 0;
     const i = q * (scores.length - 1);
-    const below = Math.floor(i);
-    const above = Math.min(scores.length - 1, below + 1);
+    const below = floor(i);
+    const above = min(scores.length - 1, below + 1);
     return scores[below]! + (scores[above]! - scores[below]!) * (i - below);
   };
   let tied = 0;
