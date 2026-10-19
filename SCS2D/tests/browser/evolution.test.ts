@@ -207,6 +207,10 @@ describe('the evolution page in a browser', () => {
     await page.selectOption('#sizeMetric', 'fittings');
     expect(await page.textContent('#massLegend')).toMatch(/mean weapons.*mean engines/);
     expect(await distinctColours(page, 'massChart')).toBeGreaterThan(2);
+    // Or how far apart its scores were.
+    await page.selectOption('#sizeMetric', 'spread');
+    expect(await page.textContent('#massLegend')).toMatch(/middle half.*best to worst.*tied/);
+    expect(await distinctColours(page, 'massChart')).toBeGreaterThan(2);
     await page.selectOption('#sizeMetric', 'mass');
     expect(await page.textContent('#massLegend')).toMatch(/mean mass/);
   });
@@ -832,11 +836,15 @@ describe('the evolution page in a browser', () => {
     if (await page.isEnabled('#stop')) await page.click('#stop');
     await choose(page, '#founders', ['Dinky']);
     await set(page, 'fleetShips', '1');
-    await set(page, 'generations', '2');
+    await set(page, 'generations', '4');
     await set(page, 'population', '4');
     await set(page, 'minMatches', '2');
     await set(page, 'group', '2');
     await choose(page, '#versus', ['Dinky']);
+    // A generation a round, so each side takes two turns.
+    await set(page, 'phaseCap', '1');
+    await set(page, 'shieldedDrills', '0');
+    await set(page, 'bareCoreDrills', '0');
     // No goal, scored against a moving opponent: what does not apply goes.
     expect(await page.isVisible('#goal')).toBe(false);
     // Side B has a column of settings of its own, starting as a copy of side A's.
@@ -871,7 +879,13 @@ describe('the evolution page in a browser', () => {
     expect(await page.isVisible('#setupScreen')).toBe(false);
     expect(await page.isVisible('#chart')).toBe(false);
     expect(await page.isVisible('#legend')).toBe(false);
+    // How far apart each side's scores are, in rounds.
+    await page.selectOption('#sizeMetric', 'spread');
+    expect(await page.textContent('#massLegend')).toMatch(/A middle half.*B middle half/);
+    await page.selectOption('#sizeMetric', 'mass');
     await page.selectOption('#mode', 'fleet');
+    // The last of four rounds, A then B in turn, was side B's.
+    await page.waitForFunction(() => /round 4 · side B evolving$/.test(document.getElementById('watching')?.textContent ?? ''));
     const sides = await page.$$eval('#fleet tbody td.who .side', (tags) => tags.map((tag) => tag.textContent?.trim()));
     expect(sides.filter((side) => side === 'A')).toHaveLength(4);
     expect(sides.filter((side) => side === 'B')).toHaveLength(6);

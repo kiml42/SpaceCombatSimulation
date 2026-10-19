@@ -15,7 +15,7 @@ import {
 } from '../sim/index.js';
 import { BLUEPRINTS } from '../scenarios/blueprints.js';
 import { FLEETS } from '../scenarios/fleets.js';
-import { finalist, matchCount, Run, DEFAULT_RUN, type GenerationRecord, type RunConfig, type RunRecord } from '../evolution/run.js';
+import { finalist, matchCount, Run, DEFAULT_RUN, spreadOf, type GenerationRecord, type RunConfig, type RunRecord } from '../evolution/run.js';
 import { Coevolution, DEFAULT_COEVOLUTION, type CoevolutionConfig } from '../evolution/coevolution.js';
 import type { Entrant } from '../evolution/match.js';
 import { DEFAULT_BUILD_WEIGHTS, DEFAULT_DOCTRINE_WEIGHTS, DEFAULT_KINDS } from '../evolution/mutate.js';
@@ -264,9 +264,14 @@ function parse(argv: readonly string[]): Options {
         versusFleets.push({ name: fleet.name, fleet });
         break;
       }
-      // Champions each side keeps, and the share of matches fought against the other side's.
+      // Champions each side keeps, one a round: what the other side is bred against.
       case '--hall': coevolution = { ...coevolution, hall: Number(value()) }; break;
-      case '--hall-share': coevolution = { ...coevolution, hallShare: Number(value()) }; break;
+      // The share of its matches a round's best must win for the other side's turn to come, and the most generations a round takes.
+      case '--phase-win': coevolution = { ...coevolution, phaseWin: Number(value()) }; break;
+      case '--phase-cap': coevolution = { ...coevolution, phaseCap: Number(value()) }; break;
+      // Matches each design fights a generation invincible, and against bare cores.
+      case '--shielded-drills': coevolution = { ...coevolution, shieldedDrills: Number(value()) }; break;
+      case '--bare-core-drills': coevolution = { ...coevolution, bareCoreDrills: Number(value()) }; break;
       // Side B as it is, every generation: side A bred against a fixed opponent.
       case '--versus-fixed': coevolution = { ...coevolution, rivalEvolves: false }; break;
       // Side B's entrants a match, where they differ from side A's `--group`.
@@ -375,10 +380,15 @@ const writeRun = (): void => {
   writeFileSync(`${options.out}.part`, `${JSON.stringify(runner.record(), null, 2)}\n`);
   renameSync(`${options.out}.part`, options.out);
 };
+const spread = (generation: GenerationRecord): string => {
+  const s = spreadOf(generation);
+  return `spread ${(s.upperQuartile - s.lowerQuartile).toFixed(3)} (${s.lowest.toFixed(3)}–${s.highest.toFixed(3)}, ${s.tied} tied)  `;
+};
 const line = (generation: GenerationRecord, label = 'gen'): string =>
   `${label} ${String(generation.index).padStart(3)}  ` +
   `${String(generation.matches.length).padStart(3)} matches  ` +
   `mean ${generation.meanFitness.toFixed(3)}  best ${generation.bestFitness.toFixed(3)}  ` +
+  spread(generation) +
   `| hull ${generation.mean.survival.toFixed(2)}  function ${generation.mean.functional.toFixed(2)}  ` +
   `damage ${generation.mean.damage.toFixed(3)}  disabling ${generation.mean.disabling.toFixed(3)}  ` +
   `race ${generation.mean.race.toFixed(2)}`;
@@ -388,9 +398,12 @@ const runner: { record(): RunRecord; finish(): RunRecord } =
         writeRun();
         if (!options.quiet) console.log(line(generation));
       })
-    : new Coevolution(founders, rivals, options.config, versus.coevolution, (a, b) => {
+    : new Coevolution(founders, rivals, options.config, versus.coevolution, (generation, side) => {
         writeRun();
-        if (!options.quiet) console.log(`${line(a, 'A')}\n${line(b, 'B')}`);
+        if (!options.quiet) {
+          const round = generation.round === undefined ? '' : `round ${generation.round + 1} `;
+          console.log(`${round}${line(generation, side === 0 ? 'A' : 'B')}  won ${((generation.won ?? 0) * 100).toFixed(0)}%`);
+        }
       });
 const run = runner.finish();
 const spent = (Date.now() - started) / 1000;
