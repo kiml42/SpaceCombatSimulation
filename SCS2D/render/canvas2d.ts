@@ -35,7 +35,7 @@ import {
   berthGrid,
 } from '../sim/index.js';
 import { gridStep, type Camera } from './camera.js';
-import { insetsFor, type Inset, type InsetShip } from './inset.js';
+import { describeRange, insetAt, insetsFor, type Inset, type InsetShip } from './inset.js';
 import { fighterColours, NEUTRAL, shipColours, teamName } from './teams.js';
 
 export { teamColour } from './teams.js';
@@ -1586,9 +1586,31 @@ export function closeUps(snapshot: Snapshot, camera: Camera, widthPx: number, he
 }
 
 /**
+ * The ship whose close-up is under a world point the main view was tapped at,
+ * or -1: picking it from there frames it, wherever it is.
+ */
+export function closeUpTapped(
+  snapshot: Snapshot,
+  camera: Camera,
+  widthPx: number,
+  heightPx: number,
+  selected: number,
+  ratio: number,
+  x: number,
+  y: number,
+): number {
+  const insets = closeUps(snapshot, camera, widthPx, heightPx, selected, ratio);
+  return insetAt(insets, widthPx / 2 + (x - camera.x) * camera.scale, heightPx / 2 - (y - camera.y) * camera.scale);
+}
+
+/** Size of the range written in the target's close-up, CSS pixels. */
+const CLOSE_UP_LABEL_PX = 11;
+
+/**
  * Draw the close-ups `closeUps` asks for over a view already drawn: each the
  * battle again through a camera of its own, framed in its ship's colours,
- * with a pointer towards its ship when that is off screen.
+ * with a pointer towards its ship when that is off screen, and the target's
+ * with how far it is from the picked ship.
  */
 export function drawCloseUps(
   ctx: CanvasRenderingContext2D,
@@ -1620,6 +1642,19 @@ export function drawCloseUps(
     if (inset.body !== selected) ctx.setLineDash([5 * ratio, 4 * ratio]);
     ctx.strokeRect(inset.x, inset.y, inset.size, inset.size);
     ctx.setLineDash([]);
+    const picked = shipByBody(snapshot, selected);
+    if (inset.body !== selected && picked !== null) {
+      const label = describeRange(Math.hypot(ship.x - picked.x, ship.y - picked.y));
+      const px = CLOSE_UP_LABEL_PX * ratio;
+      ctx.font = `${px}px ui-monospace, monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      const width = ctx.measureText(label).width;
+      ctx.fillStyle = BACKGROUND;
+      ctx.fillRect(inset.x + inset.size / 2 - width / 2 - 3 * ratio, inset.y + inset.size - px - 5 * ratio, width + 6 * ratio, px + 3 * ratio);
+      ctx.fillStyle = colour;
+      ctx.fillText(label, inset.x + inset.size / 2, inset.y + inset.size - 3 * ratio);
+    }
     if (inset.toward !== null) {
       // From the frame's centre along the bearing, out to the frame, a wedge beyond it.
       const half = inset.size / 2;

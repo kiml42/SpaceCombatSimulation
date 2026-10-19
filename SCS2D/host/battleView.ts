@@ -1,6 +1,6 @@
 import { capture, Snapshot } from '../sim/index.js';
 import { Flashes } from '../render/flashes.js';
-import { ARCS_KEY, draw, drawCloseUps, nextArcs, TEAM_SHOTS_KEY, type Arcs } from '../render/canvas2d.js';
+import { ARCS_KEY, closeUpTapped, draw, drawCloseUps, nextArcs, TEAM_SHOTS_KEY, type Arcs } from '../render/canvas2d.js';
 import { frame, moveWithVisibleShips, selectionBounds, shipAt, type Camera } from '../render/camera.js';
 import type { Battle } from '../scenarios/types.js';
 import { viewGestures } from './viewGestures.js';
@@ -111,7 +111,9 @@ export function battleView(
       autoFrame = false;
     },
     (x, y, reach) => {
-      selected = shipAt(snapshot, x, y, reach);
+      // A close-up first: it is drawn over whatever is under it.
+      const shown = closeUpTapped(snapshot, camera, canvas.width, canvas.height, selected, window.devicePixelRatio || 1, x, y);
+      selected = shown >= 0 ? shown : shipAt(snapshot, x, y, reach);
       if (selected >= 0) autoFrame = true;
     },
   );

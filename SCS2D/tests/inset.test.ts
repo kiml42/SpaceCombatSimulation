@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { insetFor, insetsFor, separate, type InsetShip } from '../render/inset.js';
+import { describeRange, insetAt, insetFor, insetsFor, separate, type InsetShip } from '../render/inset.js';
 
 const W = 1000;
 const H = 600;
@@ -79,5 +79,20 @@ describe('two close-up windows', () => {
   it('are only made for the ships that need one', () => {
     const insets = insetsFor([ship(0, 0, 20, 1), ship(3000, 0, 20, 2)], CAMERA, W, H, SETTINGS);
     expect(insets.map((inset) => inset.body)).toEqual([2]);
+  });
+});
+
+describe('reading a close-up', () => {
+  it('finds the window under a point, the last placed on top', () => {
+    const insets = insetsFor([ship(2000, 0, 50, 1), ship(-2000, 0, 50, 2)], CAMERA, W, H, SETTINGS);
+    const right = insets.find((inset) => inset.body === 1)!;
+    expect(insetAt(insets, right.x + 5, right.y + 5)).toBe(1);
+    expect(insetAt(insets, W / 2, H / 2)).toBe(-1);
+  });
+
+  it('gives a range in metres, then kilometres', () => {
+    expect(describeRange(640.4)).toBe('640 m');
+    expect(describeRange(1234)).toBe('1.23 km');
+    expect(describeRange(45678)).toBe('45.7 km');
   });
 });
