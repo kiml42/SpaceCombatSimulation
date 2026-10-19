@@ -716,6 +716,63 @@ describe('the evolution page in a browser', () => {
     expect(problems).toEqual([]);
   }, 60_000);
 
+  it('picks a ship out with a click, as the viewer does, and lets it go with Escape', async () => {
+    if (await page.isEnabled('#stop')) await page.click('#stop');
+    await choose(page, '#founders', ['Dinky']);
+    await set(page, 'generations', '1');
+    await page.click('#start');
+    await page.waitForFunction(() => document.querySelectorAll('#matches tr:not(.pad)').length > 0);
+    await page.selectOption('#mode', 'battle');
+    await page.click('#matches tr');
+    await page.waitForFunction(() => /%/.test(document.getElementById('watching')?.textContent ?? ''));
+    if ((await page.textContent('#play')) === 'Pause') await page.click('#play');
+    // Held, the camera still eases to where it is framing; a picture once it is still.
+    const picture = (): Promise<string> =>
+      page.evaluate(() => (document.getElementById('view') as HTMLCanvasElement).toDataURL());
+    const settled = async (): Promise<string> => {
+      let was = await picture();
+      for (;;) {
+        await page.waitForTimeout(250);
+        const now = await picture();
+        if (now === was) return now;
+        was = now;
+      }
+    };
+    const before = await settled();
+
+    // The leftmost thing drawn, and what is drawn within a few pixels of it, is one ship.
+    const shipAt = await page.evaluate(() => {
+      const canvas = document.getElementById('view') as HTMLCanvasElement;
+      const { data, width, height } = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height);
+      const lit = (i: number): boolean => data[i]! + data[i + 1]! + data[i + 2]! > 150;
+      let left = Infinity;
+      for (let i = 0; i < data.length; i += 4) if (lit(i)) left = Math.min(left, (i / 4) % width);
+      let x = 0;
+      let y = 0;
+      let n = 0;
+      for (let row = 0; row < height; row++) {
+        for (let col = left; col < left + 30 && col < width; col++) {
+          if (!lit((row * width + col) * 4)) continue;
+          x += col;
+          y += row;
+          n++;
+        }
+      }
+      const ratio = canvas.width / canvas.getBoundingClientRect().width;
+      return { x: x / n / ratio, y: y / n / ratio };
+    });
+
+    // A click on empty space picks nothing; on the ship, it is ringed and framed with its target.
+    await page.locator('#view').click({ position: { x: 2, y: 2 } });
+    expect(await settled()).toBe(before);
+    await page.locator('#view').click({ position: shipAt });
+    const picked = await settled();
+    expect(picked).not.toBe(before);
+    await page.keyboard.press('Escape');
+    expect(await settled()).not.toBe(picked);
+    expect(problems).toEqual([]);
+  }, 60_000);
+
   it('replays a match of one ship', async () => {
     if (await page.isEnabled('#stop')) await page.click('#stop');
     await choose(page, '#founders', ['Dinky']);

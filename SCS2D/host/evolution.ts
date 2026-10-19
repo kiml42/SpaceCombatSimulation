@@ -13,6 +13,8 @@ import {
   fitScale,
   frame,
   moveWithVisibleShips,
+  selectionBounds,
+  shipAt,
   type Camera,
 } from '../render/camera.js';
 import { BUILT_IN, FLEET_FILES, Library, toFileText } from '../editor/library.js';
@@ -613,6 +615,8 @@ export function startEvolution(): void {
   const flashes = new Flashes();
   const camera: Camera = { x: 0, y: 0, scale: 0.1 };
   let autoFrame = true;
+  /** The ship picked out by a click, by body, or -1. */
+  let selected = -1;
   // Team colours on here and off on the viewer: a run is watched to see who is
   // doing what, a single battle as much to see it.
   const kept = loadView('evolution', { arcs: 'none', teamShots: true, speed: 1 });
@@ -1114,6 +1118,7 @@ export function startEvolution(): void {
   const watch = (match: Match | null): void => {
     if (match === watchedMatch) return;
     watchedMatch = match;
+    selected = -1;
     flashes.clear();
     framed = false;
     autoFrame = true;
@@ -1195,6 +1200,8 @@ export function startEvolution(): void {
       stepOnce();
     } else if (event.key === 'f' || event.key === 'F') {
       autoFrame = true;
+    } else if (event.key === 'Escape') {
+      selected = -1;
     } else if (event.key === 'n' || event.key === 'N') {
       if (!skipButton.disabled) skipMatch();
     } else if (event.key.toLowerCase() === ARCS_KEY) {
@@ -1208,9 +1215,17 @@ export function startEvolution(): void {
     }
   });
 
-  viewGestures(view, camera, () => {
-    autoFrame = false;
-  });
+  viewGestures(
+    view,
+    camera,
+    () => {
+      autoFrame = false;
+    },
+    (x, y, reach) => {
+      selected = shipAt(snapshot, x, y, reach);
+      if (selected >= 0) autoFrame = true;
+    },
+  );
 
   function paint(): void {
     const match = watchedMatch;
@@ -1239,7 +1254,7 @@ export function startEvolution(): void {
         frame(camera, shot, view.width, view.height, 1);
         framed = true;
       }
-      frame(camera, shot, view.width, view.height);
+      frame(camera, selectionBounds(shot, selected) ?? shot, view.width, view.height);
     }
     // Aged before this step's are added, which are born now.
     flashes.step(simDt);
@@ -1259,7 +1274,7 @@ export function startEvolution(): void {
         shot.impactDirY[i]!,
       );
     }
-    draw(ctx, shot, camera, view.width, view.height, flashes, arcs, teamShots);
+    draw(ctx, shot, camera, view.width, view.height, flashes, arcs, teamShots, selected);
   }
 
   // ---- the chart ---------------------------------------------------------
