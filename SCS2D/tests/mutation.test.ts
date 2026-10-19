@@ -19,7 +19,7 @@ import {
   type ModuleSpec,
 } from '../sim/index.js';
 import { DEFAULT_BUILD_WEIGHTS, DEFAULT_KINDS, mutate, shipScale, type DoctrineWeights } from '../evolution/mutate.js';
-import { CATAMARAN, CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
+import { BARE_CORE, CATAMARAN, CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
 
 /**
  * How one blueprint becomes another.
@@ -795,14 +795,14 @@ describe('thrusters', () => {
   const only = { structural: 0, geometry: 0, switches: 0, build: FROZEN, doctrine: STILL };
   const engines = (blueprint: Blueprint): ModuleSpec[] => expandBlueprint(blueprint).filter((m) => m.kind === 'engine');
 
-  it('bolts several small engines on at once, each leaving a ship', () => {
+  it('bolts several small engines onto a ship with none, each leaving a ship', () => {
     const rng = new Rng(3);
     let most = 0;
     for (let i = 0; i < 20; i++) {
-      const child = mutate(GUNSHIP, rng, { ...only, thrusters: 0.9 });
+      const child = mutate(BARE_CORE, rng, { ...only, thrusters: 0.9 });
       const added = child.edits.filter((e) => e.includes('thruster')).length;
       expect(blueprintProblem(child.blueprint)).toBeNull();
-      expect(engines(child.blueprint).length).toBeGreaterThanOrEqual(engines(GUNSHIP).length + added);
+      expect(engines(child.blueprint)).toHaveLength(added);
       most = Math.max(most, added);
     }
     expect(most).toBeGreaterThan(1);
@@ -822,6 +822,16 @@ describe('thrusters', () => {
       expect(engine.kind).toBe('engine');
       expect(Math.max(engine.length, engine.width)).toBeLessThan(arrival);
     }
+  });
+
+  it('adds fewer the more engines a ship already has', () => {
+    const count = (parent: Blueprint): number => {
+      const rng = new Rng(13);
+      let added = 0;
+      for (let i = 0; i < 40; i++) added += mutate(parent, rng, { ...only, thrusters: 0.9 }).edits.filter((e) => e.includes('thruster')).length;
+      return added;
+    };
+    expect(count(BARE_CORE)).toBeGreaterThan(2 * count(GUNSHIP));
   });
 
   it('adds none at a chance of zero, or when engines are weighted out', () => {
