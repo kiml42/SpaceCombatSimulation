@@ -60,6 +60,7 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Whole ship scale mutation
 - Assembly scale mutation - scales everything in all copies of the assembly up or down.
 - Duplicated parts or assemblies can be placed anywhere on the surface of the ship, not just close to the module they're a duplicate of (possibly with a higher chance of appearing nearby)
+- The quiet end condition might lead to ships evolving specifically to not have weapons, so they don't get counted out when a weapon is destroyed.
 
 ## Fleet Editor
 - Make duplicate consistent with the ship editor (which creates a one module subassembly)
