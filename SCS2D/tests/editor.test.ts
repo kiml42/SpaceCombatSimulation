@@ -573,8 +573,8 @@ describe('sizing a module by a handle', () => {
   });
 
   it('will not go below the smallest a module may be, nor turn inside out', () => {
-    // Dragged past the anchored corner, the box stops at the minimum against it.
-    expect(resizedTo(box, face(1, 1), -5, -9, 0.5)).toEqual({
+    // Dragged past the anchored corner with Alt held, the box stops at the minimum against it.
+    expect(resizedTo(box, face(1, 1), -5, -9, 0)).toEqual({
       length: MIN_SIZE,
       width: MIN_SIZE,
       dx: -4 + MIN_SIZE / 2,
