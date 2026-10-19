@@ -15,7 +15,6 @@ import { duel } from '../../scenarios/duel.js';
 import type { Battle } from '../../scenarios/types.js';
 import { beamDuel } from '../../scenarios/beamDuel.js';
 import { soloOrdering } from '../../scenarios/ordering.js';
-import { ram } from '../../scenarios/ram.js';
 import { hooked } from '../../scenarios/hooked.js';
 import { salvageRun } from '../../scenarios/salvage.js';
 import { mending, refitting } from '../../scenarios/mending.js';
@@ -24,7 +23,7 @@ import { factory, padRebuild } from '../../scenarios/carrier.js';
 import { shipyard } from '../../scenarios/shipyard.js';
 import { rearm } from '../../scenarios/rearm.js';
 import { beamCarrier } from '../../scenarios/beamCarrier.js';
-import { circling, passes } from '../../scenarios/passes.js';
+import { onTheMove } from '../../scenarios/onTheMove.js';
 import { tanker } from '../../scenarios/tanker.js';
 import { standoff } from '../../scenarios/standoff.js';
 import { torchRun } from '../../scenarios/torchRun.js';
@@ -33,7 +32,6 @@ import { column } from '../../scenarios/column.js';
 import { split } from '../../scenarios/split.js';
 import { swarm } from '../../scenarios/swarm.js';
 import { torpedoes } from '../../scenarios/torpedoes.js';
-import { fractal } from '../../scenarios/fractal.js';
 
 /**
  * Scenarios shared by the determinism tests, the integrator tests and the
@@ -371,19 +369,6 @@ export function swarmScenario(seed = 20260905, corvetteCount = 20): ScenarioRun 
   };
 }
 
-export function fractalScenario(seed = 20260905): ScenarioRun {
-  const run = fractal(seed);
-  return {
-    step: () => run.step(),
-    checksum: () =>
-      checksumDamage(
-        run.ships.damage,
-        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
-      ),
-    describe: () => describeBattle(run),
-  };
-}
-
 export function standoffScenario(seed = 20260905): ScenarioRun {
   const run = standoff(seed);
   return {
@@ -438,19 +423,6 @@ export function splitScenario(seed = 20260905): ScenarioRun {
 
 export function columnScenario(seed = 20260905): ScenarioRun {
   const run = column(seed);
-  return {
-    step: () => run.step(),
-    checksum: () =>
-      checksumDamage(
-        run.ships.damage,
-        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
-      ),
-    describe: () => describeBattle(run),
-  };
-}
-
-export function ramScenario(seed = 20260905): ScenarioRun {
-  const run = ram(seed);
   return {
     step: () => run.step(),
     checksum: () =>
@@ -540,7 +512,8 @@ export function padRebuildScenario(seed = 20261013): ScenarioRun {
   };
 }
 
-function onTheMoveScenario(run: ReturnType<typeof passes>): ScenarioRun {
+export function onTheMoveScenario(seed = 20261012): ScenarioRun {
+  const run = onTheMove(seed);
   return {
     step: () => run.step(),
     checksum: () =>
@@ -551,9 +524,6 @@ function onTheMoveScenario(run: ReturnType<typeof passes>): ScenarioRun {
     describe: () => describeBattle(run),
   };
 }
-
-export const passesScenario = (seed = 20261012): ScenarioRun => onTheMoveScenario(passes(seed));
-export const circlingScenario = (seed = 20261012): ScenarioRun => onTheMoveScenario(circling(seed));
 
 export function beamCarrierScenario(seed = 20261011): ScenarioRun {
   const run = beamCarrier(seed);
@@ -656,10 +626,9 @@ export const SCENARIOS = {
   duel: { steps: 3_000, build: () => duelScenario() },
   beamDuel: { steps: 3_000, build: () => beamDuelScenario() },
   swarm: { steps: 3_000, build: () => swarmScenario() },
+  superSwarm: { steps: 3_000, build: () => swarmScenario(undefined, 300) },
   torpedoes: { steps: 3_000, build: () => torpedoesScenario() },
-  fractal: { steps: 3_000, build: () => fractalScenario() },
   ordering: { steps: 3_000, build: () => orderingScenario() },
-  ram: { steps: 3_000, build: () => ramScenario() },
   standoff: { steps: 3_000, build: () => standoffScenario() },
   column: { steps: 3_000, build: () => columnScenario() },
   split: { steps: 3_000, build: () => splitScenario() },
@@ -686,8 +655,7 @@ export const SCENARIOS = {
   // Long enough for the tender to cast off and grip a wreck, and the first fighters to come back to recharge.
   beamCarrier: { steps: 7_200, build: () => beamCarrierScenario() },
   // Long enough for the Dinky to make three passes, and the Y-wing to settle into its circle.
-  passes: { steps: 6_000, build: () => passesScenario() },
-  circling: { steps: 6_000, build: () => circlingScenario() },
+  onTheMove: { steps: 6_000, build: () => onTheMoveScenario() },
 } satisfies Record<string, Scenario>;
 
 export type ScenarioName = keyof typeof SCENARIOS;

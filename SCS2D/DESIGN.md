@@ -285,8 +285,8 @@ inside any one file is not contiguous.
   the speed and its thrust can hold the turn (v²/r) at it, and otherwise carries on through on a pass or heads
   out; out past the band, the same line points it back, and on that run its guns wait for its mains
   (`rangeHold` does not count), so it turns and burns for another pass. Whether it circles or makes passes
-  comes from its build and its speed, not a setting: the `circling` scenario has a Y-wing circle a Corvette
-  and `passes` a fast-set Dinky make passes at one. Only an attack: a ram, a dock and an escort still close
+  comes from its build and its speed, not a setting: the `onTheMove` scenario has a Y-wing circle a Corvette
+  and a fast-set Dinky make passes at another. Only an attack: a ram, a dock and an escort still close
   to rest. The stock fighters attack at 20–60 m/s. So a ship with an enemy on each beam fights both, and a gun that cannot reach what its ship is
   fighting fights what it can instead of sitting pinned against the edge of its arc. A further preference, for what the ship as a whole
   is fighting, is what keeps a broadside concentrated without tying it together; an order given is still

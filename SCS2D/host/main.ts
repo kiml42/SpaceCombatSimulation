@@ -1,12 +1,10 @@
 import { math } from '../sim/index.js';
 import { duel } from '../scenarios/duel.js';
 import { beamDuel } from '../scenarios/beamDuel.js';
-import { fractal } from '../scenarios/fractal.js';
 import type { Battle } from '../scenarios/types.js';
 import { swarm } from '../scenarios/swarm.js';
 import { torpedoes } from '../scenarios/torpedoes.js';
 import { starWars } from '../scenarios/starWars.js';
-import { ram } from '../scenarios/ram.js';
 import { standoff } from '../scenarios/standoff.js';
 import { column } from '../scenarios/column.js';
 import { split } from '../scenarios/split.js';
@@ -19,7 +17,7 @@ import { scavenge } from '../scenarios/scavenge.js';
 import { factory, padRebuild } from '../scenarios/carrier.js';
 import { shipyard } from '../scenarios/shipyard.js';
 import { beamCarrier } from '../scenarios/beamCarrier.js';
-import { circling, passes } from '../scenarios/passes.js';
+import { onTheMove } from '../scenarios/onTheMove.js';
 import { rearm } from '../scenarios/rearm.js';
 import { tanker } from '../scenarios/tanker.js';
 import { customBattle, type CustomBattle } from '../scenarios/customBattle.js';
@@ -51,9 +49,8 @@ export function start(): void {
     { name: 'Beam Duel', create: () => beamDuel(SEED) },
     { name: 'Star Wars', create: () => starWars(SEED) },
     { name: 'Swarm', create: () => swarm(SEED) },
-    { name: 'Fractal', create: () => fractal(SEED) },
+    { name: 'Super Swarm', create: () => swarm(SEED, 300) },
     { name: 'Torpedoes', create: () => torpedoes(SEED) },
-    { name: 'Ram', create: () => ram(SEED) },
     { name: 'Standoff', create: () => standoff(SEED) },
     { name: 'Line Ahead', create: () => column(SEED) },
     { name: 'Split', create: () => split(SEED) },
@@ -70,8 +67,7 @@ export function start(): void {
     { name: 'Rearm', create: () => rearm(SEED) },
     { name: 'Tanker', create: () => tanker(SEED) },
     { name: 'Beam Carrier', create: () => beamCarrier(SEED) },
-    { name: 'Passes', create: () => passes(SEED) },
-    { name: 'Circling', create: () => circling(SEED) },
+    { name: 'On the Move', create: () => onTheMove(SEED) },
     // Last, and built from the panel's setup rather than from code.
     { name: 'Custom battle', create: (): Battle => customBattle(panel.setup()) },
   ];
