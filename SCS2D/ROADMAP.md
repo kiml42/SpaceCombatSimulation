@@ -90,6 +90,13 @@ Nothing: every step up to 13 is built.
 
     0. **Rewind** — built: a scrub bar on the viewer, and `,` to step back, restoring from checkpoints
        (§12). Built first, since several of the decisions below are about rewinding.
+       Left to fix, from trying it:
+       - **The camera across a jump.** Fitted, a seek or a step back should land exactly framed rather than
+         ease there in real time. Not fitted, it stands still across a seek or a step back, yet follows the
+         ships on a step forward; it should move with them across any jump, either way.
+       - **Muzzle flashes and shell bursts** freeze near the end of their animation on a seek back, a
+         muzzle flash stuck to its gun, until the round comes back and the animation runs in reverse; a
+         step forward then finishes one that should have ended frames before.
     1. **Attack, defend and ram**, with the log, selection and order bar they need (below).
     2. **Change doctrine, refuel or repair, remodel, build a fighter, build a ship.** Not yet designed: its
        own grilling once slice 1 is playable.
