@@ -1389,7 +1389,7 @@ export function startEvolution(): void {
     hoverAt = at;
     chartTip.hidden = at === null;
     if (at !== null) {
-      chartTip.textContent = `${unit()} ${at + 1}`;
+      chartTip.textContent = pointLabel(at);
       chartTip.style.left = `${xOf(chartLayout, at)}px`;
     }
     paintChart();
@@ -1771,6 +1771,17 @@ export function startEvolution(): void {
   const inRounds = (): boolean => run instanceof Coevolution && run.alternates;
   /** What a point along the run is called: a round, or a generation. */
   const unit = (): string => (inRounds() ? 'round' : 'generation');
+
+  /** Which side was bred at a point along the run, as "side A evolving", in a co-evolution run; else empty. */
+  const evolving = (at: number): string => {
+    if (!(run instanceof Coevolution)) return '';
+    if (!run.alternates) return 'side A evolving';
+    // Past the closed points is the round being fought.
+    const side = timeline()[at]?.side ?? run.turn;
+    return `side ${side === 0 ? 'A' : 'B'} evolving`;
+  };
+  /** A point's name, with the side bred in it where there are sides. */
+  const pointLabel = (at: number): string => [`${unit()} ${at + 1}`, evolving(at)].filter((part) => part !== '').join(' · ');
 
   /**
    * The run's points so far, closed ones only: a generation each, or in a run
@@ -2590,7 +2601,7 @@ export function startEvolution(): void {
           `${fought} matches fought · ${(run.progress * 100).toFixed(0)}%`;
     if (modeSelect.value !== 'battle') {
       const shown = showing();
-      watchingLabel.textContent = `${shown.rows.length} combatants of ${unit()} ${shown.index + 1}`;
+      watchingLabel.textContent = `${shown.rows.length} combatants of ${pointLabel(shown.index)}`;
     } else if (skipping) {
       watchingLabel.textContent = 'skipped · waiting for the next match';
     } else if (replay !== null) {

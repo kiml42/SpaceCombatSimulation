@@ -690,7 +690,8 @@ inside any one file is not contiguous.
   apart. The size chart —
   mass on its left scale and, for fleets, ship count on its right, the mean solid and the best dashed —
   carries its lines in each side's colours and is what a point is picked from, and the combatants are
-  tagged A or B and ranked within their own side; a side not bred yet shows its hall.
+  tagged A or B and ranked within their own side; a side not bred yet shows its hall. The point on show, and the
+  one under the pointer on the chart, name the side that was evolving in it.
   **Fuel.** A `tank` archetype whose interior is reaction mass, and every core's interior past the cubic
   metre its computing needs (`CORE_COMPUTING_VOLUME`), so a bare core with one engine can move; a core no
   bigger than that holds none. Each engine has an exhaust velocity:
