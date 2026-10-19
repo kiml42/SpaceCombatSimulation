@@ -5,7 +5,23 @@ import {
   type Fleet,
 } from '../sim/index.js';
 import { Flashes } from '../render/flashes.js';
-import { ARCS_KEY, closeUpTapped, draw, drawCloseUps, nextArcs, TEAM_SHOTS_KEY, teamColour, type Arcs } from '../render/canvas2d.js';
+import {
+  ARCS_KEY,
+  closeUps,
+  draw,
+  drawCloseUps,
+  drawFleetStrips,
+  fleetStrips,
+  nextArcs,
+  overlayAt,
+  STRIPS_KEY,
+  stripsWidth,
+  TEAM_SHOTS_KEY,
+  teamColour,
+  type Arcs,
+} from '../render/canvas2d.js';
+import type { Strips } from '../render/fleetStrip.js';
+import type { Inset } from '../render/inset.js';
 import { shipColours } from '../render/teams.js';
 import { drawChart, indexAt, xOf, type ChartLayout, type Series } from '../render/chart.js';
 import {
@@ -639,9 +655,13 @@ export function startEvolution(): void {
   let selected = -1;
   // Team colours on here and off on the viewer: a run is watched to see who is
   // doing what, a single battle as much to see it.
-  const kept = loadView('evolution', { arcs: 'none', teamShots: true, speed: 1 });
+  const kept = loadView('evolution', { arcs: 'none', teamShots: true, strips: true, speed: 1 });
   let arcs: Arcs = kept.arcs;
   let teamShots = kept.teamShots;
+  let strips = kept.strips;
+  /** What was last drawn over the battle, for a tap to find. */
+  let shownStrips: Strips | null = null;
+  let shownInsets: Inset[] = [];
   keepSpeed(speedSelect, 'evolution', kept);
   let framed = false;
   let lastSimTime = 0;
@@ -1238,6 +1258,10 @@ export function startEvolution(): void {
       teamShots = !teamShots;
       Object.assign(kept, { arcs, teamShots });
       saveView('evolution', kept);
+    } else if (event.key.toLowerCase() === STRIPS_KEY) {
+      strips = !strips;
+      Object.assign(kept, { strips });
+      saveView('evolution', kept);
     }
   });
 
@@ -1248,8 +1272,8 @@ export function startEvolution(): void {
       autoFrame = false;
     },
     (x, y, reach) => {
-      // A close-up first: it is drawn over whatever is under it.
-      const shown = closeUpTapped(snapshot, camera, view.width, view.height, selected, window.devicePixelRatio || 1, x, y);
+      // A tile or close-up first: it is drawn over whatever is under it.
+      const shown = overlayAt(shownStrips, shownInsets, camera, view.width, view.height, x, y);
       selected = shown >= 0 ? shown : shipAt(snapshot, x, y, reach);
       if (selected >= 0) autoFrame = true;
     },
@@ -1276,13 +1300,17 @@ export function startEvolution(): void {
     const simDt = shot.time > lastSimTime ? shot.time - lastSimTime : 0;
     lastSimTime = shot.time;
 
+    const ratio = window.devicePixelRatio || 1;
+    const tiles = strips ? fleetStrips(shot, view.width, view.height, ratio) : null;
+    // Framed between the strips, which cover the view's edges.
+    const framedWidth = view.width - 2 * stripsWidth(tiles);
     moveWithVisibleShips(camera, shot, simDt, view.width, view.height);
     if (autoFrame) {
       if (!framed) {
-        frame(camera, shot, view.width, view.height, 1);
+        frame(camera, shot, framedWidth, view.height, 1);
         framed = true;
       }
-      frame(camera, selectionBounds(shot, selected) ?? shot, view.width, view.height);
+      frame(camera, selectionBounds(shot, selected) ?? shot, framedWidth, view.height);
     }
     // Aged before this step's are added, which are born now.
     flashes.step(simDt);
@@ -1303,7 +1331,11 @@ export function startEvolution(): void {
       );
     }
     draw(ctx, shot, camera, view.width, view.height, flashes, arcs, teamShots, selected);
-    drawCloseUps(ctx, shot, camera, view.width, view.height, selected, window.devicePixelRatio || 1, flashes, arcs, teamShots);
+    if (tiles !== null) drawFleetStrips(ctx, shot, tiles, selected, ratio, flashes, arcs, teamShots);
+    const insets = closeUps(shot, camera, view.width, view.height, selected, ratio, tiles);
+    drawCloseUps(ctx, shot, insets, selected, ratio, flashes, arcs, teamShots);
+    shownStrips = tiles;
+    shownInsets = insets;
   }
 
   // ---- the chart ---------------------------------------------------------

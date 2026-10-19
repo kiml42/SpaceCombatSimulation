@@ -26,6 +26,14 @@ export interface Inset extends InsetRect {
   readonly toward: number | null;
 }
 
+/** The part of the view windows are kept to, canvas pixels: all of it unless something covers its edges. */
+export interface InsetArea {
+  readonly left: number;
+  readonly top: number;
+  readonly right: number;
+  readonly bottom: number;
+}
+
 /** What placing a window needs of the ship it shows. */
 export interface InsetShip {
   readonly body: number;
@@ -59,8 +67,8 @@ function clamp(value: number, low: number, high: number): number {
 }
 
 /**
- * The window for one ship, or null if the view shows it well enough: on
- * screen, and at least `smallest` across.
+ * The window for one ship, or null if the view shows it well enough: within
+ * `area`, and at least `smallest` across.
  */
 export function insetFor(
   ship: InsetShip,
@@ -68,14 +76,15 @@ export function insetFor(
   widthPx: number,
   heightPx: number,
   settings: InsetSettings,
+  area: InsetArea = { left: 0, top: 0, right: widthPx, bottom: heightPx },
 ): Inset | null {
   const { size, margin, smallest } = settings;
   const at = onScreen(camera, widthPx, heightPx, ship.x, ship.y);
-  const off = at.x < 0 || at.x > widthPx || at.y < 0 || at.y > heightPx;
+  const off = at.x < area.left || at.x > area.right || at.y < area.top || at.y > area.bottom;
   if (!off && 2 * ship.radius * camera.scale >= smallest) return null;
   const half = size / 2;
-  const cx = clamp(at.x, margin + half, widthPx - margin - half);
-  const cy = clamp(at.y, margin + half, heightPx - margin - half);
+  const cx = clamp(at.x, area.left + margin + half, area.right - margin - half);
+  const cy = clamp(at.y, area.top + margin + half, area.bottom - margin - half);
   return {
     body: ship.body,
     x: cx - half,
@@ -96,16 +105,23 @@ function overlap(a: InsetRect, b: InsetRect, margin: number): boolean {
  * shorter, staying inside the view; the other way along that axis if the
  * shorter way would leave it.
  */
-export function separate(fixed: InsetRect, moving: InsetRect, widthPx: number, heightPx: number, margin: number): void {
+export function separate(
+  fixed: InsetRect,
+  moving: InsetRect,
+  widthPx: number,
+  heightPx: number,
+  margin: number,
+  area: InsetArea = { left: 0, top: 0, right: widthPx, bottom: heightPx },
+): void {
   if (!overlap(fixed, moving, margin)) return;
   const gap = moving.size + margin;
   const options = [
-    { axis: 'x' as const, to: fixed.x - gap, limit: widthPx },
-    { axis: 'x' as const, to: fixed.x + fixed.size + margin, limit: widthPx },
-    { axis: 'y' as const, to: fixed.y - gap, limit: heightPx },
-    { axis: 'y' as const, to: fixed.y + fixed.size + margin, limit: heightPx },
+    { axis: 'x' as const, to: fixed.x - gap, low: area.left, high: area.right },
+    { axis: 'x' as const, to: fixed.x + fixed.size + margin, low: area.left, high: area.right },
+    { axis: 'y' as const, to: fixed.y - gap, low: area.top, high: area.bottom },
+    { axis: 'y' as const, to: fixed.y + fixed.size + margin, low: area.top, high: area.bottom },
   ]
-    .filter((option) => option.to >= margin && option.to + moving.size <= option.limit - margin)
+    .filter((option) => option.to >= option.low + margin && option.to + moving.size <= option.high - margin)
     .sort((a, b) => Math.abs(a.to - moving[a.axis]) - Math.abs(b.to - moving[b.axis]));
   const best = options[0];
   if (best !== undefined) moving[best.axis] = best.to;
@@ -121,12 +137,13 @@ export function insetsFor(
   widthPx: number,
   heightPx: number,
   settings: InsetSettings,
+  area: InsetArea = { left: 0, top: 0, right: widthPx, bottom: heightPx },
 ): Inset[] {
   const insets: Inset[] = [];
   for (const ship of ships) {
-    const inset = insetFor(ship, camera, widthPx, heightPx, settings);
+    const inset = insetFor(ship, camera, widthPx, heightPx, settings, area);
     if (inset === null) continue;
-    for (const placed of insets) separate(placed, inset, widthPx, heightPx, settings.margin);
+    for (const placed of insets) separate(placed, inset, widthPx, heightPx, settings.margin, area);
     insets.push(inset);
   }
   return insets;

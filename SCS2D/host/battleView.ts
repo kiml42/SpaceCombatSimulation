@@ -1,6 +1,21 @@
 import { capture, Snapshot } from '../sim/index.js';
 import { Flashes } from '../render/flashes.js';
-import { ARCS_KEY, closeUpTapped, draw, drawCloseUps, nextArcs, TEAM_SHOTS_KEY, type Arcs } from '../render/canvas2d.js';
+import {
+  ARCS_KEY,
+  closeUps,
+  draw,
+  drawCloseUps,
+  drawFleetStrips,
+  fleetStrips,
+  nextArcs,
+  overlayAt,
+  STRIPS_KEY,
+  stripsWidth,
+  TEAM_SHOTS_KEY,
+  type Arcs,
+} from '../render/canvas2d.js';
+import type { Strips } from '../render/fleetStrip.js';
+import type { Inset } from '../render/inset.js';
 import { frame, moveWithVisibleShips, selectionBounds, shipAt, type Camera } from '../render/camera.js';
 import type { Battle } from '../scenarios/types.js';
 import { viewGestures } from './viewGestures.js';
@@ -71,12 +86,17 @@ export function battleView(
   let lastSimTime = 0;
   let arcs: Arcs = 'none';
   let teamShots = false;
+  let strips = true;
+  /** What was last drawn over the view, for a tap to find. */
+  let shownStrips: Strips | null = null;
+  let shownInsets: Inset[] = [];
   /** Where the view's settings are kept, once a page has asked for them to be. */
   let kept: { page: string; settings: ViewSettings } | null = null;
   const remember = (): void => {
     if (kept === null) return;
     kept.settings.arcs = arcs;
     kept.settings.teamShots = teamShots;
+    kept.settings.strips = strips;
     saveView(kept.page, kept.settings);
   };
 
@@ -111,8 +131,8 @@ export function battleView(
       autoFrame = false;
     },
     (x, y, reach) => {
-      // A close-up first: it is drawn over whatever is under it.
-      const shown = closeUpTapped(snapshot, camera, canvas.width, canvas.height, selected, window.devicePixelRatio || 1, x, y);
+      // A tile or close-up first: it is drawn over whatever is under it.
+      const shown = overlayAt(shownStrips, shownInsets, camera, canvas.width, canvas.height, x, y);
       selected = shown >= 0 ? shown : shipAt(snapshot, x, y, reach);
       if (selected >= 0) autoFrame = true;
     },
@@ -137,6 +157,9 @@ export function battleView(
       remember();
     } else if (event.key.toLowerCase() === TEAM_SHOTS_KEY && !event.ctrlKey && !event.metaKey) {
       teamShots = !teamShots;
+      remember();
+    } else if (event.key.toLowerCase() === STRIPS_KEY && !event.ctrlKey && !event.metaKey) {
+      strips = !strips;
       remember();
     }
   });
@@ -164,13 +187,17 @@ export function battleView(
     const simDt = view.time > lastSimTime ? view.time - lastSimTime : 0;
     lastSimTime = view.time;
 
+    const ratio = window.devicePixelRatio || 1;
+    const tiles = strips ? fleetStrips(view, canvas.width, canvas.height, ratio) : null;
+    // Framed between the strips, which cover the view's edges.
+    const framedWidth = canvas.width - 2 * stripsWidth(tiles);
     moveWithVisibleShips(camera, view, simDt, canvas.width, canvas.height);
     if (autoFrame) {
       if (!framed) {
-        frame(camera, view, canvas.width, canvas.height, 1);
+        frame(camera, view, framedWidth, canvas.height, 1);
         framed = true;
       }
-      frame(camera, selectionBounds(view, selected) ?? view, canvas.width, canvas.height);
+      frame(camera, selectionBounds(view, selected) ?? view, framedWidth, canvas.height);
     }
 
     // Flashes fade on the battle's clock, so a paused battle holds them.
@@ -192,7 +219,11 @@ export function battleView(
       );
     }
     draw(ctx, view, camera, canvas.width, canvas.height, flashes, arcs, teamShots, selected);
-    drawCloseUps(ctx, view, camera, canvas.width, canvas.height, selected, window.devicePixelRatio || 1, flashes, arcs, teamShots);
+    if (tiles !== null) drawFleetStrips(ctx, view, tiles, selected, ratio, flashes, arcs, teamShots);
+    const insets = closeUps(view, camera, canvas.width, canvas.height, selected, ratio, tiles);
+    drawCloseUps(ctx, view, insets, selected, ratio, flashes, arcs, teamShots);
+    shownStrips = tiles;
+    shownInsets = insets;
     drawn(view);
   };
   window.requestAnimationFrame(tick);
@@ -223,10 +254,11 @@ export function battleView(
       autoFrame = true;
     },
     keep(page, select) {
-      const settings = loadView(page, { arcs, teamShots, speed });
+      const settings = loadView(page, { arcs, teamShots, strips, speed });
       kept = { page, settings };
       arcs = settings.arcs;
       teamShots = settings.teamShots;
+      strips = settings.strips;
       speed = keepSpeed(select, page, settings);
     },
     camera,

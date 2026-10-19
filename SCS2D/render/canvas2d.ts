@@ -35,7 +35,8 @@ import {
   berthGrid,
 } from '../sim/index.js';
 import { gridStep, type Camera } from './camera.js';
-import { describeRange, insetAt, insetsFor, type Inset, type InsetShip } from './inset.js';
+import { describeRange, insetAt, insetsFor, type Inset, type InsetArea, type InsetShip } from './inset.js';
+import { stripsFor, stripTileAt, type StripColumn, type Strips } from './fleetStrip.js';
 import { fighterColours, NEUTRAL, shipColours, teamName } from './teams.js';
 
 export { teamColour } from './teams.js';
@@ -126,6 +127,9 @@ export const ARCS_KEY = 'a';
 
 /** The key that toggles rounds and beams between light and their side's colours. */
 export const TEAM_SHOTS_KEY = 'c';
+
+/** The key that shows and hides each side's ships down the view's edges. */
+export const STRIPS_KEY = 't';
 
 const BEAM = '#3df72c';
 const BEAM_GLOW = '#a8f132';
@@ -1491,6 +1495,9 @@ export function draw(
 /** Pixels round a ship within which it is still drawn when its hull is just out of view: its icon and name. */
 const CULL_PAD_PX = 48;
 
+/** The world box the scene being drawn shows, padded, for skipping rounds and beams nowhere near it. */
+const shownBox = { x: 0, y: 0, halfW: Infinity, halfH: Infinity };
+
 /** `draw`, into the `widthPx` by `heightPx` box whose top left is at `left`, `top`. */
 function drawScene(
   ctx: CanvasRenderingContext2D,
@@ -1521,6 +1528,10 @@ function drawScene(
   // battle again for one ship. One with its arcs showing is, since they reach.
   const halfW = (widthPx / 2 + CULL_PAD_PX) / camera.scale;
   const halfH = (heightPx / 2 + CULL_PAD_PX) / camera.scale;
+  shownBox.x = camera.x;
+  shownBox.y = camera.y;
+  shownBox.halfW = halfW;
+  shownBox.halfH = halfH;
   const shown = (ship: ShipView): boolean =>
     arcsFor(ship.body, selected, arcs) !== 'none' ||
     (Math.abs(ship.x - camera.x) - ship.design.radius <= halfW && Math.abs(ship.y - camera.y) - ship.design.radius <= halfH);
@@ -1553,6 +1564,18 @@ function drawScene(
   drawProjectiles(ctx, snapshot, camera, teamShots);
   drawBeams(ctx, snapshot, camera, teamShots);
   if (flashes !== undefined) drawFlashes(ctx, snapshot, flashes, camera);
+  shownBox.halfW = Infinity;
+  shownBox.halfH = Infinity;
+}
+
+/** Whether a segment's box reaches the box being drawn. */
+function nearShown(x0: number, y0: number, x1: number, y1: number): boolean {
+  return (
+    Math.max(x0, x1) >= shownBox.x - shownBox.halfW &&
+    Math.min(x0, x1) <= shownBox.x + shownBox.halfW &&
+    Math.max(y0, y1) >= shownBox.y - shownBox.halfH &&
+    Math.min(y0, y1) <= shownBox.y + shownBox.halfH
+  );
 }
 
 /** A close-up's side as a share of the view's shorter side, and its bounds in CSS pixels. */
@@ -1571,36 +1594,43 @@ const CLOSE_UP_POINTER_PX = 9;
  * the view shows it off screen or too small to read. `ratio` is canvas pixels
  * per CSS pixel.
  */
-export function closeUps(snapshot: Snapshot, camera: Camera, widthPx: number, heightPx: number, selected: number, ratio = 1): Inset[] {
+export function closeUps(
+  snapshot: Snapshot,
+  camera: Camera,
+  widthPx: number,
+  heightPx: number,
+  selected: number,
+  ratio = 1,
+  strips: Strips | null = null,
+): Inset[] {
   const ship = shipByBody(snapshot, selected);
   if (ship === null) return [];
   const ships: InsetShip[] = [ship, shipByBody(snapshot, ship.fighting ?? -1)]
     .filter((s): s is ShipView => s !== null)
     .map((s) => ({ body: s.body, x: s.x, y: s.y, vx: s.vx, vy: s.vy, radius: s.design.radius }));
   const size = Math.round(Math.min(CLOSE_UP_MAX_PX * ratio, Math.max(CLOSE_UP_MIN_PX * ratio, Math.min(widthPx, heightPx) * CLOSE_UP_SHARE)));
-  return insetsFor(ships, camera, widthPx, heightPx, {
-    size,
-    margin: CLOSE_UP_MARGIN_PX * ratio,
-    smallest: CLOSE_UP_SMALLEST_PX * ratio,
-  });
+  const area: InsetArea = { left: strips?.left.width ?? 0, top: 0, right: widthPx - (strips?.right.width ?? 0), bottom: heightPx };
+  return insetsFor(
+    ships,
+    camera,
+    widthPx,
+    heightPx,
+    { size, margin: CLOSE_UP_MARGIN_PX * ratio, smallest: CLOSE_UP_SMALLEST_PX * ratio },
+    area,
+  );
 }
 
 /**
- * The ship whose close-up is under a world point the main view was tapped at,
- * or -1: picking it from there frames it, wherever it is.
+ * The ship whose tile or close-up is under a world point the main view was
+ * tapped at, or -1: picking it from there frames it, wherever it is. They are
+ * drawn over the view, so a tap on one is a tap on it.
  */
-export function closeUpTapped(
-  snapshot: Snapshot,
-  camera: Camera,
-  widthPx: number,
-  heightPx: number,
-  selected: number,
-  ratio: number,
-  x: number,
-  y: number,
-): number {
-  const insets = closeUps(snapshot, camera, widthPx, heightPx, selected, ratio);
-  return insetAt(insets, widthPx / 2 + (x - camera.x) * camera.scale, heightPx / 2 - (y - camera.y) * camera.scale);
+export function overlayAt(strips: Strips | null, insets: readonly Inset[], camera: Camera, widthPx: number, heightPx: number, x: number, y: number): number {
+  const px = widthPx / 2 + (x - camera.x) * camera.scale;
+  const py = heightPx / 2 - (y - camera.y) * camera.scale;
+  const inset = insetAt(insets, px, py);
+  if (inset >= 0) return inset;
+  return strips === null ? -1 : stripTileAt(strips, px, py);
 }
 
 /** Size of the range written in the target's close-up, CSS pixels. */
@@ -1615,16 +1645,14 @@ const CLOSE_UP_LABEL_PX = 11;
 export function drawCloseUps(
   ctx: CanvasRenderingContext2D,
   snapshot: Snapshot,
-  camera: Camera,
-  widthPx: number,
-  heightPx: number,
+  insets: readonly Inset[],
   selected: number,
   ratio = 1,
   flashes?: Flashes,
   arcs: Arcs = 'none',
   teamShots = false,
 ): void {
-  for (const inset of closeUps(snapshot, camera, widthPx, heightPx, selected, ratio)) {
+  for (const inset of insets) {
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.beginPath();
@@ -1676,6 +1704,85 @@ export function drawCloseUps(
     }
     ctx.restore();
   }
+}
+
+/** A tile's side as a share of the view's width, and its bounds in CSS pixels. */
+const STRIP_SHARE = 0.09;
+const STRIP_MAX_PX = 88;
+const STRIP_MIN_PX = 34;
+const STRIP_MARGIN_PX = 6;
+const STRIP_GAP_PX = 4;
+
+/**
+ * Each side's ships as live tiles down the view's edges: every ship anyone
+ * controls but fighters, which come and go in numbers. `ratio` is canvas
+ * pixels per CSS pixel.
+ */
+export function fleetStrips(snapshot: Snapshot, widthPx: number, heightPx: number, ratio = 1): Strips {
+  const ships = [];
+  for (let i = 0; i < snapshot.shipCount; i++) {
+    const ship = snapshot.ships[i]!;
+    if (ship.team < 0 || ship.design.fighter || !ship.hasControl) continue;
+    ships.push({ body: ship.body, team: ship.team, x: ship.x, y: ship.y, vx: ship.vx, vy: ship.vy, radius: ship.design.radius });
+  }
+  return stripsFor(ships, widthPx, heightPx, {
+    largest: Math.min(STRIP_MAX_PX * ratio, widthPx * STRIP_SHARE),
+    smallest: STRIP_MIN_PX * ratio,
+    margin: STRIP_MARGIN_PX * ratio,
+    gap: STRIP_GAP_PX * ratio,
+  });
+}
+
+/** How much of the view's width the strips take from each edge, the wider of the two, canvas pixels. */
+export function stripsWidth(strips: Strips | null): number {
+  return strips === null ? 0 : Math.max(strips.left.width, strips.right.width);
+}
+
+/** Draw the strips over a view already drawn: each tile its ship live, framed in its side's colours, the picked one brightest. */
+export function drawFleetStrips(
+  ctx: CanvasRenderingContext2D,
+  snapshot: Snapshot,
+  strips: Strips,
+  selected: number,
+  ratio = 1,
+  flashes?: Flashes,
+  arcs: Arcs = 'none',
+  teamShots = false,
+): void {
+  const drawColumn = (column: StripColumn): void => {
+    for (const tile of column.tiles) {
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.beginPath();
+      ctx.rect(tile.x, tile.y, tile.size, tile.size);
+      ctx.clip();
+      drawScene(ctx, snapshot, tile.camera, tile.x, tile.y, tile.size, tile.size, flashes, arcs, teamShots, selected);
+      ctx.restore();
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      const picked = tile.body === selected;
+      ctx.strokeStyle = shipColours(tile.team).trim;
+      ctx.globalAlpha = picked ? 1 : 0.55;
+      ctx.lineWidth = (picked ? 2 : 1) * ratio;
+      ctx.strokeRect(tile.x, tile.y, tile.size, tile.size);
+      ctx.restore();
+    }
+    if (column.more !== null) {
+      const box = column.more;
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.fillStyle = BACKGROUND;
+      ctx.fillRect(box.x, box.y, box.size, box.size * 0.5);
+      ctx.fillStyle = shipColours(column.tiles[0]?.team ?? 0).trim;
+      ctx.font = `${11 * ratio}px ui-monospace, monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`+${column.hidden}`, box.x + box.size / 2, box.y + box.size * 0.25);
+      ctx.restore();
+    }
+  };
+  drawColumn(strips.left);
+  drawColumn(strips.right);
 }
 
 /** A selected ship shows all its arcs and the rest none; with none selected, every ship shows `arcs`. */
@@ -2019,6 +2126,8 @@ function drawProjectiles(ctx: CanvasRenderingContext2D, snapshot: Snapshot, came
       const y = snapshot.projectileY[i]!;
       const vx = snapshot.projectileVx[i]!;
       const vy = snapshot.projectileVy[i]!;
+      // Its streak is the last step's travel relative to the camera, so no further than that from it.
+      if (!nearShown(x - 2 * (vx - cvx) * dt, y - 2 * (vy - cvy) * dt, x + 2 * (vx - cvx) * dt, y + 2 * (vy - cvy) * dt)) continue;
       const sx = snapshot.projectileStartX[i];
       const sy = snapshot.projectileStartY[i];
       const open = exposureEnds(x, y, vx, vy, cvx, cvy, dt);
@@ -2048,6 +2157,7 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
   ctx.lineCap = 'butt';
   const team = (i: number): number => (teamShots ? snapshot.beamTeam[i]! : -1);
   for (let i = 0; i < snapshot.beamCount; i++) {
+    if (!nearShown(snapshot.beamStartX[i]!, snapshot.beamStartY[i]!, snapshot.beamEndX[i]!, snapshot.beamEndY[i]!)) continue;
     ctx.strokeStyle = team(i) < 0 ? BEAM_GLOW : shipColours(team(i)).hull;
     const calibre = snapshot.beamWidth[i]!;
     const halo = BEAM_GLOW_WIDTHS * calibre;
@@ -2066,6 +2176,7 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
   // Cheap at the beam counts a battle reaches; if that ever stops being true,
   // bucket by width rather than reaching for a single average.
   for (let i = 0; i < snapshot.beamCount; i++) {
+    if (!nearShown(snapshot.beamStartX[i]!, snapshot.beamStartY[i]!, snapshot.beamEndX[i]!, snapshot.beamEndY[i]!)) continue;
     ctx.strokeStyle = team(i) < 0 ? BEAM : shipColours(team(i)).trim;
     const calibre = snapshot.beamWidth[i]!;
     ctx.globalAlpha =
