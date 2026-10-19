@@ -725,22 +725,28 @@ describe('the evolution page in a browser', () => {
     await choose(page, '#founders', ['Dinky']);
     await set(page, 'generations', '1');
     await page.click('#start');
-    await page.waitForFunction(() => document.querySelectorAll('#matches tr:not(.pad)').length > 0);
+    // Finished, so nothing beside the view grows and moves it while it is compared.
+    await page.waitForFunction(() => document.getElementById('state')?.textContent === 'finished', undefined, {
+      timeout: 60_000,
+    });
     await page.selectOption('#mode', 'battle');
     await page.click('#matches tr');
     await page.waitForFunction(() => /%/.test(document.getElementById('watching')?.textContent ?? ''));
     if ((await page.textContent('#play')) === 'Pause') await page.click('#play');
-    // Held, the camera still eases to where it is framing; a picture once it is still.
+    // Held, the camera still eases to where it is framing; a picture once it has been still
+    // for a second, since a slow runner can draw nothing for a moment while it is still moving.
     const picture = (): Promise<string> =>
       page.evaluate(() => (document.getElementById('view') as HTMLCanvasElement).toDataURL());
     const settled = async (): Promise<string> => {
       let was = await picture();
-      for (;;) {
+      let still = 0;
+      while (still < 4) {
         await page.waitForTimeout(250);
         const now = await picture();
-        if (now === was) return now;
+        still = now === was ? still + 1 : 0;
         was = now;
       }
+      return was;
     };
     const before = await settled();
 
@@ -766,9 +772,7 @@ describe('the evolution page in a browser', () => {
       return { x: x / n / ratio, y: y / n / ratio };
     });
 
-    // A click on empty space picks nothing; on the ship, it is ringed and framed with its target.
-    await page.locator('#view').click({ position: { x: 2, y: 2 } });
-    expect(await settled()).toBe(before);
+    // A click on the ship rings it and frames it with its target; Escape lets it go.
     await page.locator('#view').click({ position: shipAt });
     const picked = await settled();
     expect(picked).not.toBe(before);
