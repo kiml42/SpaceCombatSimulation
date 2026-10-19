@@ -710,7 +710,7 @@ inside any one file is not contiguous.
   seam across the claw's whole jaw that holds `DOCK_HOLD` times a hook's. While the claw works it pumps
   what the other piece holds into its own (`Ships.pump`), and once its piece is full or the other dry it lets
   go, cutting the seam. Gripping a live enemy makes the two ride one body, pulling against each other. A
-  claw grips only for fuel it has room for. The `salvage` scenario drifts two leeches into wrecks.
+  claw grips only for fuel it has room for.
   **A pilot takes its claw to wrecks** once its claw's piece of hull is down to its doctrine's
   `scavengeFuelBelow` of a full load (zero, never, by default), and goes from source to source until it is full.
   It picks the wreck, or the enemy with no main guns left, that pays the most fuel, less what the trip burns,
@@ -765,7 +765,7 @@ inside any one file is not contiguous.
   lift off whole; the engine's complexity makes that the work of about four seconds. A fighter goes in
   to be mended at its `repairBelow` (below), and is mended while it is down for anything else. A merged design remembers which of its pieces
   were fighters (`fighterPieces`), so it lifts off a fighter, and every ship keeps the doctrine it set out with
-  whatever hull it rides, so a fighter flies on its own and not its carrier's. The `carrier` scenario has three Dinkies take
+  whatever hull it rides, so a fighter flies on its own and not its carrier's. The `rearm` scenario has three Dinkies take
   turns on a two-pad Tender; evolution's weight for a pad is a small 0.5, since it pays only in a fleet with fighters.
   **A robot bay** (`robotBay`) berths as many robots as squares of `ROBOT_BERTH_PITCH` fit along its length
   and across its width (`berthGrid`), priced by their weight (`ROBOT_MASS`) and its racks, and builds and
@@ -809,9 +809,7 @@ inside any one file is not contiguous.
   is in the way of it, wreckage included. **At the last step it is the module itself, whole but for its
   fittings**, which the robots then put in at the same rate and price; until they are all in, the module
   does nothing (`Damage.unbuiltAt`) and is drawn as broken as it is. A shell or a module being fitted that
-  is hit is mended before any more is built, and one cut away again is lost again. The `rebuilding`
-  scenario has a turning Rebuilder lose its fin and its engine and build both back, each once what came off
-  has drifted clear. Each hull of the Catamaran carries a bay, a hold and a generator enough to rebuild the
+  is hit is mended before any more is built, and one cut away again is lost again. Each hull of the Catamaran carries a bay, a hold and a generator enough to rebuild the
   other, so either half of one cut in two grows back into the whole ship, in about half an hour.
   **A ship can be refitted to another design** (`Ships.refit`, a command), and from then on builds to it:
   a module of its hull that is a module of the new design by key (`ShipDesign.keys`) and laid out the same
@@ -849,8 +847,7 @@ inside any one file is not contiguous.
   is the hull's mass until then. The waste, and anything else a module held, are discarded. A ship with
   nothing left of it is gone, and the body passes to one that has some. A claw closes on a wreck its robots
   could take apart, as it does on one with fuel it has room for, and holds on while its robots have the
-  charge and the holds the room. The `scrapyard` scenario has two salvagers drift into a dead leech, gone in
-  under five minutes, and a dead corvette, gone in about forty-two, by when the hold is nearly full.
+  charge and the holds the room.
   **A pad tends one fighter** (`ModuleSpec.craft`, naming a copy in the blueprint's `hangar`, as a fleet
   carries its designs; an older file's `fighter` reads as `craft`), and **may set out with it docked** (`docked`). It is spawned lying along the pad,
   centred on it, and welded as one that had landed, so it is topped up from the carrier and lifts off once

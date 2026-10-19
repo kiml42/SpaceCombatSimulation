@@ -1,4 +1,4 @@
-import { compileBlueprint, DAMAGE_ENERGY_PER_KG, joints, settleIds, topId, type Blueprint } from '../sim/index.js';
+import { compileBlueprint, DAMAGE_ENERGY_PER_KG, settleIds, topId, type Blueprint } from '../sim/index.js';
 import type { Battle } from './types.js';
 import { makeBattle } from './battle.js';
 
@@ -45,27 +45,6 @@ export const REBUILDER: Blueprint = {
     { kind: 'engine', x: 25.5, y: 0, angle: 0, length: 1, width: 2, nozzle: 0.5 },
   ],
 };
-
-/**
- * A Rebuilder turning slowly, its fin and its engine cut away at the start, while its robots build them back: each waits until what came
- * off has drifted out of its way, puts its walls up a step at a time against
- * the hull, and then its fittings.
- */
-export function rebuilding(seed = 20261013): Battle {
-  return makeBattle({ seed, pilots: false }, (ships, world) => {
-    const design = compileBlueprint(REBUILDER);
-    const a = ships.spawn(world, { design, x: 0, y: 0, angle: 0, angularVel: 0.05 });
-    const body = world.bodies.indexOf(ships.body(a));
-    const all = joints(design);
-    const kind = (m: number): string => design.modules[m]!.spec.kind;
-    // Taken apart rather than shot off, so nothing else is hurt.
-    for (let k = 0; k < all.length; k++) {
-      const { a: ma, b: mb, width } = all[k]!;
-      const lost = [ma, mb].some((m) => kind(m) === 'engine' || m === design.modules.length - 2);
-      if (lost) ships.damage.cutWeld(body, k, width * 2);
-    }
-  });
-}
 
 /** The Rebuilder, ids and all, as a refit starts from it. */
 const REFIT_FROM: Blueprint = settleIds(REBUILDER);
