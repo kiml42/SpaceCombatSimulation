@@ -132,13 +132,18 @@ export function start(): void {
   }
   sceneSelect.selectedIndex = sceneIndex;
 
-  // Held while dragged, so the frame does not pull the thumb back to where the battle is.
+  // Paused while held, and the thumb left where it is dragged rather than pulled back to the battle.
   let scrubbing = false;
+  let resume = false;
   scrub.addEventListener('pointerdown', () => {
     scrubbing = true;
+    resume = view.running;
+    view.setRunning(false);
   });
   window.addEventListener('pointerup', () => {
+    if (!scrubbing) return;
     scrubbing = false;
+    if (resume) view.setRunning(true);
   });
   scrub.addEventListener('input', () => view.seek(Number(scrub.value)));
 

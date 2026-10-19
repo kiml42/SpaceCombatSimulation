@@ -163,13 +163,15 @@ export function battleView(
     last = now;
     if (battle === null) return;
 
+    // A seek is a jump, not time passing: nothing follows the ships across it, and no flash fades over it.
+    let jumped = false;
     if (seeking >= 0 && rewind !== null) {
       if (rewind.seek(seeking)) {
         battle = rewind.battle;
-        flashes.clear();
-        lastSimTime = 0;
         rewound(battle);
       } else battle = rewind.battle;
+      flashes.clear();
+      jumped = true;
       seeking = -1;
       accumulator = 0;
     }
@@ -187,7 +189,7 @@ export function battleView(
     }
 
     const view = capture(snapshot, battle.world, battle.ships, battle.projectiles, battle.beams, battle.wells, battle.impacts.log);
-    const simDt = view.time > lastSimTime ? view.time - lastSimTime : 0;
+    const simDt = !jumped && view.time > lastSimTime ? view.time - lastSimTime : 0;
     lastSimTime = view.time;
 
     moveWithVisibleShips(camera, view, simDt, canvas.width, canvas.height);

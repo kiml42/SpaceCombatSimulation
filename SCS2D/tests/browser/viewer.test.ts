@@ -234,6 +234,21 @@ describe('the viewer in a browser', () => {
     await page.click('#play');
   });
 
+  it('holds the battle while the scrub bar is held, and resumes on letting go', async () => {
+    await advanced(page, 30);
+    const box = (await page.locator('#scrub').boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    expect(await page.textContent('#play')).toBe('Play');
+    await painted(page);
+    const held = await step(page);
+    await page.waitForTimeout(200);
+    expect(await step(page)).toBe(held);
+    await page.mouse.up();
+    expect(await page.textContent('#play')).toBe('Pause');
+    expect(await advanced(page, held)).toBeGreaterThan(held);
+  });
+
   it('lists every scene by name, and plays the one that is picked', async () => {
     // A dropdown rather than a button that cycles: the list is long enough
     // that finding a scene by pressing "next" repeatedly is a poor way in.
