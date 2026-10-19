@@ -19,7 +19,18 @@ import type { Battle } from './types.js';
  * A copy that drifts from its original fails `tests/clone.test.ts`.
  */
 export function cloneBattle<T extends Battle>(battle: T): T {
-  return clone(battle, new Map()) as T;
+  return sizedClone(battle).copy;
+}
+
+/** The same, with roughly how many bytes the copy holds: what a checkpoint costs to keep. */
+export function sizedClone<T extends Battle>(battle: T): { copy: T; bytes: number } {
+  const into: Into = { copies: new Map(), bytes: 0 };
+  return { copy: clone(battle, into) as T, bytes: into.bytes };
+}
+
+interface Into {
+  copies: Map<object, unknown>;
+  bytes: number;
 }
 
 /** Designs met so far, and everything reachable from them: never copied. */
@@ -49,20 +60,22 @@ function share(value: unknown): void {
   }
 }
 
-function clone(value: unknown, copies: Map<object, unknown>): unknown {
+function clone(value: unknown, into: Into): unknown {
   if (typeof value !== 'object' || value === null) return value;
   if (shared.has(value)) return value;
+  const copies = into.copies;
   const known = copies.get(value);
   if (known !== undefined) return known;
 
   if (value instanceof ArrayBuffer) {
     const copy = value.slice(0);
     copies.set(value, copy);
+    into.bytes += value.byteLength;
     return copy;
   }
   if (ArrayBuffer.isView(value)) {
     // Through the buffer, so views onto one buffer stay onto one buffer.
-    const buffer = clone(value.buffer, copies) as ArrayBuffer;
+    const buffer = clone(value.buffer, into) as ArrayBuffer;
     const View = value.constructor as new (buffer: ArrayBuffer, offset: number, length: number) => ArrayBufferView;
     const length = value instanceof DataView ? value.byteLength : (value as unknown as { length: number }).length;
     const copy = new View(buffer, value.byteOffset, length);
@@ -73,13 +86,13 @@ function clone(value: unknown, copies: Map<object, unknown>): unknown {
   if (value instanceof Map) {
     const copy = new Map();
     copies.set(value, copy);
-    for (const [k, v] of value) copy.set(clone(k, copies), clone(v, copies));
+    for (const [k, v] of value) copy.set(clone(k, into), clone(v, into));
     return copy;
   }
   if (value instanceof Set) {
     const copy = new Set();
     copies.set(value, copy);
-    for (const v of value) copy.add(clone(v, copies));
+    for (const v of value) copy.add(clone(v, into));
     return copy;
   }
   if (isDesign(value)) {
@@ -93,14 +106,17 @@ function clone(value: unknown, copies: Map<object, unknown>): unknown {
   }
   const copy = Array.isArray(value) ? new Array<unknown>(value.length) : Object.create(prototype);
   copies.set(value, copy);
-  for (const key of Reflect.ownKeys(value)) {
+  const keys = Reflect.ownKeys(value);
+  // A slot a key, and a little for the object itself: a guess, but in proportion.
+  into.bytes += 16 + 8 * keys.length;
+  for (const key of keys) {
     const property = Object.getOwnPropertyDescriptor(value, key)!;
     if (!('value' in property)) {
       Object.defineProperty(copy, key, property);
     } else if (property.writable && property.enumerable && property.configurable) {
-      (copy as Record<PropertyKey, unknown>)[key] = clone(property.value, copies);
+      (copy as Record<PropertyKey, unknown>)[key] = clone(property.value, into);
     } else {
-      Object.defineProperty(copy, key, { ...property, value: clone(property.value, copies) });
+      Object.defineProperty(copy, key, { ...property, value: clone(property.value, into) });
     }
   }
   return copy;

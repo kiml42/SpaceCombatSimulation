@@ -28,6 +28,15 @@ describe('rewind', () => {
     expect(checksumWorld(rewind.battle.world)).toBe(stepped(1234));
   }, 60_000);
 
+  it('winds back exactly when a clock spaces its checkpoints unevenly', () => {
+    const rewind = new Rewind(duel(), () => performance.now());
+    rewind.seek(900);
+    for (const to of [777, 31, 650, 899]) {
+      rewind.seek(to);
+      expect(checksumWorld(rewind.battle.world)).toBe(stepped(to));
+    }
+  }, 60_000);
+
   it('goes forward without rebuilding, and back to the furthest step reached', () => {
     const rewind = new Rewind(duel());
     rewind.seek(50);

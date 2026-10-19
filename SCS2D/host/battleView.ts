@@ -227,7 +227,7 @@ export function battleView(
   return {
     show(next, run, rewindable = false) {
       battle = next;
-      rewind = rewindable ? new Rewind(next) : null;
+      rewind = rewindable ? new Rewind(next, () => performance.now()) : null;
       seeking = -1;
       selected = -1;
       flashes.clear();

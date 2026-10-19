@@ -832,8 +832,10 @@ Deliberately unresolved; decide when they block something.
   re-simulation from the seed was the plan, at an estimated 15 µs a step, but by the time it was built a step
   cost 0.25 ms in the duel and 15–18 ms in Star Wars and Super Swarm — barely faster than they play — so
   rewinding a big battle would have frozen the page for most of its length. So `Rewind` keeps checkpoints:
-  an in-memory copy of the whole battle (`cloneBattle`) every 30 steps, the spacing doubling whenever more
-  than 128 pile up, and a seek copies the one before and steps on. A copy is 1–28 ms and 0.4–2.3 MB. It
+  an in-memory copy of the whole battle (`cloneBattle`) at least 30 steps apart, spaced so copying takes no
+  more than 5% of stepping, and thinned to every other one, the spacing doubling, past 128 of them or about
+  100 MB. A seek copies the one before and steps on. A copy is 1–90 ms and up to about 5 MB; at a fixed
+  30 steps apart, Super Swarm stuttered twice a second and its heap passed 600 MB. It
   works because a battle is still deterministic, and it costs one rule: nothing in a battle may be a closure
   over state that changes, since a copy would go on reaching into the original. Designs, and the caches
   keyed on them, are shared rather than copied, being never changed once made. Nothing is serialised.
