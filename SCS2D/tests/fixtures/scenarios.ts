@@ -12,16 +12,14 @@ import {
   type WellSpec,
 } from '../../sim/index.js';
 import { duel } from '../../scenarios/duel.js';
-import { beamVGun } from '../../scenarios/beamVGun.js';
 import type { Battle } from '../../scenarios/types.js';
 import { beamDuel } from '../../scenarios/beamDuel.js';
 import { soloOrdering } from '../../scenarios/ordering.js';
-import { ram } from '../../scenarios/ram.js';
 import { hooked } from '../../scenarios/hooked.js';
-import { salvage, salvageRun, scrapyard } from '../../scenarios/salvage.js';
-import { mending, rebuilding, refitting } from '../../scenarios/mending.js';
+import { salvageRun } from '../../scenarios/salvage.js';
+import { mending, refitting } from '../../scenarios/mending.js';
 import { scavenge } from '../../scenarios/scavenge.js';
-import { carrier, factory, padRebuild } from '../../scenarios/carrier.js';
+import { factory, padRebuild } from '../../scenarios/carrier.js';
 import { shipyard } from '../../scenarios/shipyard.js';
 import { rearm } from '../../scenarios/rearm.js';
 import { beamCarrier } from '../../scenarios/beamCarrier.js';
@@ -34,7 +32,6 @@ import { column } from '../../scenarios/column.js';
 import { split } from '../../scenarios/split.js';
 import { swarm } from '../../scenarios/swarm.js';
 import { torpedoes } from '../../scenarios/torpedoes.js';
-import { fractal } from '../../scenarios/fractal.js';
 
 /**
  * Scenarios shared by the determinism tests, the integrator tests and the
@@ -303,7 +300,7 @@ export function gunneryScenario(seed = 777): GunneryRun {
  */
 /**
  * One report line for every battle, because any of them may carry either kind
- * of weapon and `beamVGun` carries both — a scenario-specific line drops
+ * of weapon and some carry both — a scenario-specific line drops
  * whichever half its author was not thinking about.
  *
  * The two hit counts are not in the same units and must not be added: a
@@ -346,19 +343,6 @@ export function beamDuelScenario(seed = 20260905): ScenarioRun {
   };
 }
 
-export function beamVGunScenario(seed = 20260905): ScenarioRun {
-  const run = beamVGun(seed);
-  return {
-    step: () => run.step(),
-    checksum: () =>
-      checksumDamage(
-        run.ships.damage,
-        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
-      ),
-    describe: () => describeBattle(run),
-  };
-}
-
 export function torpedoesScenario(seed = 20260905): ScenarioRun {
   const run = torpedoes(seed);
   return {
@@ -374,19 +358,6 @@ export function torpedoesScenario(seed = 20260905): ScenarioRun {
 
 export function swarmScenario(seed = 20260905, corvetteCount = 20): ScenarioRun {
   const run = swarm(seed, corvetteCount);
-  return {
-    step: () => run.step(),
-    checksum: () =>
-      checksumDamage(
-        run.ships.damage,
-        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
-      ),
-    describe: () => describeBattle(run),
-  };
-}
-
-export function fractalScenario(seed = 20260905): ScenarioRun {
-  const run = fractal(seed);
   return {
     step: () => run.step(),
     checksum: () =>
@@ -463,19 +434,6 @@ export function columnScenario(seed = 20260905): ScenarioRun {
   };
 }
 
-export function ramScenario(seed = 20260905): ScenarioRun {
-  const run = ram(seed);
-  return {
-    step: () => run.step(),
-    checksum: () =>
-      checksumDamage(
-        run.ships.damage,
-        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
-      ),
-    describe: () => describeBattle(run),
-  };
-}
-
 export function hookedScenario(seed = 20260929): ScenarioRun {
   const run = hooked(seed);
   return {
@@ -515,32 +473,6 @@ export function refittingScenario(seed = 20261018): ScenarioRun {
   };
 }
 
-export function rebuildingScenario(seed = 20261013): ScenarioRun {
-  const run = rebuilding(seed);
-  return {
-    step: () => run.step(),
-    checksum: () =>
-      checksumDamage(
-        run.ships.damage,
-        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
-      ),
-    describe: () => describeBattle(run),
-  };
-}
-
-export function salvageScenario(seed = 20261008): ScenarioRun {
-  const run = salvage(seed);
-  return {
-    step: () => run.step(),
-    checksum: () =>
-      checksumDamage(
-        run.ships.damage,
-        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
-      ),
-    describe: () => describeBattle(run),
-  };
-}
-
 export function salvageRunScenario(seed = 20261019): ScenarioRun {
   const run = salvageRun(seed);
   return {
@@ -554,34 +486,8 @@ export function salvageRunScenario(seed = 20261019): ScenarioRun {
   };
 }
 
-export function scrapyardScenario(seed = 20261013): ScenarioRun {
-  const run = scrapyard(seed);
-  return {
-    step: () => run.step(),
-    checksum: () =>
-      checksumDamage(
-        run.ships.damage,
-        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
-      ),
-    describe: () => describeBattle(run),
-  };
-}
-
 export function scavengeScenario(seed = 20261008): ScenarioRun {
   const run = scavenge(seed);
-  return {
-    step: () => run.step(),
-    checksum: () =>
-      checksumDamage(
-        run.ships.damage,
-        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
-      ),
-    describe: () => describeBattle(run),
-  };
-}
-
-export function carrierScenario(seed = 20261008): ScenarioRun {
-  const run = carrier(seed);
   return {
     step: () => run.step(),
     checksum: () =>
@@ -721,32 +627,24 @@ export const SCENARIOS = {
   gunnery: { steps: 3_000, build: () => gunneryScenario() },
   duel: { steps: 3_000, build: () => duelScenario() },
   beamDuel: { steps: 3_000, build: () => beamDuelScenario() },
-  beamVGun: { steps: 3_000, build: () => beamVGunScenario() },
   swarm: { steps: 3_000, build: () => swarmScenario() },
   superSwarm: { steps: 3_000, build: () => swarmScenario(undefined, 300) },
   torpedoes: { steps: 3_000, build: () => torpedoesScenario() },
-  fractal: { steps: 3_000, build: () => fractalScenario() },
   ordering: { steps: 3_000, build: () => orderingScenario() },
-  ram: { steps: 3_000, build: () => ramScenario() },
   standoff: { steps: 3_000, build: () => standoffScenario() },
   column: { steps: 3_000, build: () => columnScenario() },
   split: { steps: 3_000, build: () => splitScenario() },
   torchRun: { steps: 3_000, build: () => torchRunScenario() },
   hooked: { steps: 3_000, build: () => hookedScenario() },
   broadside: { steps: 3_000, build: () => broadsideScenario() },
-  salvage: { steps: 3_000, build: () => salvageScenario() },
-  scrapyard: { steps: 18_000, build: () => scrapyardScenario() },
   // Long enough for the Salvager to fly out, grip the corvette, drink and start taking it apart.
   salvageRun: { steps: 14_400, build: () => salvageRunScenario() },
   // Long enough for the robots to mend everything and come home.
   mending: { steps: 15_600, build: () => mendingScenario() },
-  rebuilding: { steps: 10_800, build: () => rebuildingScenario() },
   // Long enough for the new fin to go up, the old fin and the engine to come down, and the tank to go up.
   refitting: { steps: 21_600, build: () => refittingScenario() },
   // Long enough for both scavengers to drink their fill, one from three wrecks.
   scavenge: { steps: 18_000, build: () => scavengeScenario() },
-  // Long enough for all three fighters to land, fill and lift off.
-  carrier: { steps: 3_000, build: () => carrierScenario() },
   padRebuild: { steps: 4_800, build: () => padRebuildScenario() },
   // Long enough for the first fighter to be laid down, built, filled and let go.
   factory: { steps: 6_000, build: () => factoryScenario() },
