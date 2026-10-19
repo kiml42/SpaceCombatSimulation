@@ -27,7 +27,7 @@ import {
   type Doctrine,
   type Targeting,
 } from '../sim/doctrine.js';
-import { abs, clamp, cos, floor, HALF_PI, max, min, PI, round, sin, sqrt } from '../sim/math.js';
+import { abs, clamp, cos, floor, HALF_PI, max, min, PI, pow, round, sin, sqrt } from '../sim/math.js';
 import { canShape, isTriangle, TRIANGLE_CORNERS, triangleOf, wedge } from '../sim/shape.js';
 import { degreesToRadians, radiansToDegrees } from '../sim/blueprintFile.js';
 import {
@@ -115,6 +115,12 @@ export interface MutationLimits {
   readonly turn: number;
   /** Chance of also making one structural edit: a module added, removed or copied. */
   readonly structural: number;
+  /**
+   * Chance of a small engine bolted to the hull, rolled again after each one
+   * added and halved for every few engines the ship already has
+   * (`addThrusters`).
+   */
+  readonly thrusters: number;
   /** Chance of the child's name drifting a letter from its parent's (`driftName`). */
   readonly rename: number;
   /** What a child may not cost more than, in metal, fuel or build time. */
@@ -280,6 +286,7 @@ export const DEFAULT_LIMITS: MutationLimits = {
   size: 0.5,
   turn: PI / 12,
   structural: 0.3,
+  thrusters: 0.5,
   rename: 0.1,
   budget: NO_BUDGET,
   attempts: 24,
@@ -353,6 +360,7 @@ export function mutate(written: Blueprint, rng: Rng, limits?: Partial<MutationLi
     }
   }
   draft ??= cloneBlueprint(parent);
+  addThrusters(draft, rng, bounds, scale, edits);
 
   for (let attempt = 1; attempt <= bounds.attempts; attempt++) {
     vary(draft, rng, bounds, scale, edits);
@@ -2430,6 +2438,91 @@ function addModule(
           `${copy ? `copied onto` : `a ${kind} added${shaped} to`} its ${faceName(face)} face`
         );
       }
+    }
+  }
+  return null;
+}
+
+/** The most thrusters one child gets, however the rolls go. */
+const MOST_THRUSTERS = 8;
+/** Places tried for each thruster before it is given up on. */
+const THRUSTER_TRIES = 8;
+/** A thruster's side, as a share of a new module's. */
+const THRUSTER_SHARE = 0.5;
+
+/**
+ * Bolt small engines onto the hull, facing out, as many as the rolls say.
+ *
+ * **A ship turns by firing engines on one side, so it needs several.** One
+ * engine at a time, added or refitted, has to be worth keeping alone before a
+ * second can join it, and alone it mostly spins the ship and spoils its
+ * gunnery. Arriving several at once and small, they can turn a ship as well as
+ * push it, leaving the main drive to the engines `addModule` brings.
+ *
+ * A place that would not be a ship is skipped and another tried, and a
+ * thruster with nowhere to go is skipped without ending the rolls.
+ */
+function addThrusters(draft: Draft, rng: Rng, bounds: MutationLimits, scale: Scale, edits: string[]): void {
+  if (!(bounds.kinds.engine > 0)) return;
+  const side = max(scale.quantum, roundTo(scale.arrival * THRUSTER_SHARE, scale.quantum));
+  const small: Scale = { ...scale, arrival: side };
+  for (let n = 0; n < MOST_THRUSTERS && rng.chance(thrusterChance(draft, bounds)); n++) {
+    for (let tries = 0; tries < THRUSTER_TRIES; tries++) {
+      const edit = addThruster(draft, rng, bounds, small);
+      // Every thruster costs the same, so one the budget refuses anywhere it refuses everywhere.
+      if (edit === UNAFFORDABLE) return;
+      if (edit !== null) {
+        edits.push(edit);
+        break;
+      }
+    }
+  }
+}
+
+const UNAFFORDABLE = Symbol('unaffordable');
+
+/** Engines already on a ship that halve the chance of a thruster. */
+const ENGINES_PER_HALVING = 4;
+
+/**
+ * The chance of the next thruster, halved for every `ENGINES_PER_HALVING`
+ * engines the ship already flies, every drawn copy counted. A ship with few
+ * engines is the one that needs them, and since each one added makes the
+ * next less likely, a line's engines grow with the logarithm of its age
+ * rather than with its age.
+ */
+function thrusterChance(draft: Draft, bounds: MutationLimits): number {
+  const engines = expandBlueprint(draft.blueprint).filter((spec) => spec.kind === 'engine').length;
+  return bounds.thrusters * pow(0.5, engines / ENGINES_PER_HALVING);
+}
+
+/** One thruster on a random box, or null if that box will not take it. */
+function addThruster(draft: Draft, rng: Rng, bounds: MutationLimits, scale: Scale): string | null | typeof UNAFFORDABLE {
+  const anchors: { list: PlacementList; spec: ModuleSpec; index: number }[] = [];
+  for (const list of draft.lists) {
+    for (let i = 0; i < list.placements.length; i++) {
+      const placement = list.placements[i]!;
+      if (!isInstance(placement) && !isTriangle(placement)) anchors.push({ list, spec: placement, index: i });
+    }
+  }
+  if (anchors.length === 0) return null;
+  const anchor = anchors[rng.nextInt(anchors.length)]!;
+  const placements = anchor.list.placements;
+  // The first free spot on the anchor's faces, since a face with a neighbour
+  // flush against it is inside the hull rather than on it.
+  for (const face of faces(anchor.spec, outwardOf(draft, anchor.list), rng)) {
+    // Never in an engine's flame or a gun's line of fire.
+    if (face === 0 && points(anchor.spec.kind)) continue;
+    for (const along of berths(anchor.spec, face, false, scale, rng)) {
+      const added = against(anchor.spec, face, along, 'engine', false, bounds, scale, rng);
+      if (placements.some((other) => !isInstance(other) && modulesOverlap(added, other))) continue;
+      placements.push(added);
+      const ship = blueprintProblem(draft.blueprint) === null;
+      if (ship && (!isLimited(bounds.budget) || affords(bounds.budget, billOf(compileDraft(draft.blueprint))))) {
+        return `${anchor.list.label}[${anchor.index}] ${anchor.spec.kind}: an engine added as a thruster to its ${faceName(face)} face`;
+      }
+      placements.pop();
+      return ship ? UNAFFORDABLE : null;
     }
   }
   return null;

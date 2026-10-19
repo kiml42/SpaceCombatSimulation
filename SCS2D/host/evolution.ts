@@ -133,6 +133,7 @@ const SIDE_FIELDS = [
   'opPad',
   'structural',
   'geometry',
+  'thrusters',
   'buildMove',
   'buildResize',
   'buildRefit',
@@ -219,6 +220,7 @@ const FIELDS = [
   'raceWeight',
   'structural',
   'geometry',
+  'thrusters',
   'buildMove',
   'buildResize',
   'buildRefit',
@@ -983,6 +985,7 @@ export function startEvolution(): void {
     const build = { ...DEFAULT_BUILD_WEIGHTS, ...config.mutation.build };
     get('structural').value = String(config.mutation.structural ?? DEFAULT_LIMITS.structural);
     get('geometry').value = String(config.mutation.geometry ?? DEFAULT_LIMITS.geometry);
+    get('thrusters').value = String(config.mutation.thrusters ?? DEFAULT_LIMITS.thrusters);
     get('buildMove').value = String(build.move);
     get('buildResize').value = String(build.resize);
     get('buildRefit').value = String(build.refit);
