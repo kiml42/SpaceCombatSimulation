@@ -222,14 +222,16 @@ describe('the viewer in a browser', () => {
       await painted(page);
     };
 
+    // The bar lands on a checkpoint; the comma then steps back exactly.
     await scrubTo(20);
-    expect(await step(page)).toBe(20);
+    const landed = await step(page);
+    expect(landed).toBeLessThan(reached);
     expect(Number(await page.getAttribute('#scrub', 'max'))).toBe(reached);
-    await page.keyboard.press(',');
-    await painted(page);
-    expect(await step(page)).toBe(19);
     await scrubTo(reached);
     expect(await step(page)).toBe(reached);
+    await page.keyboard.press(',');
+    await painted(page);
+    expect(await step(page)).toBe(reached - 1);
 
     await page.click('#play');
   });

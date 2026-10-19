@@ -88,8 +88,8 @@ Nothing: every step up to 13 is built.
 
     Built in slices, each landing on its own:
 
-    0. **Rewind** — built: a scrub bar on the viewer, and `,` to step back, restoring from checkpoints
-       (§12). Built first, since several of the decisions below are about rewinding.
+    0. **Rewind** — built: a scrub bar on the viewer, which snaps to checkpoints and so never re-simulates,
+       and `,` to step back exactly (§12). Built first, since several of the decisions below are about rewinding.
        Left to fix, from trying it:
        - **The camera across a jump.** Fitted, a seek or a step back should land exactly framed rather than
          ease there in real time. Not fitted, it stands still across a seek or a step back, yet follows the

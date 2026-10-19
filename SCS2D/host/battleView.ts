@@ -34,7 +34,7 @@ export interface BattleView {
   /** Steps taken, and the furthest reached. */
   readonly at: number;
   readonly reached: number;
-  /** Go to a step no further than the furthest reached, if the battle can be wound back. */
+  /** Go to the checkpoint nearest a step, or the furthest reached, if the battle can be wound back. */
   seek(step: number): void;
   setRunning(running: boolean): void;
   readonly running: boolean;
@@ -247,7 +247,7 @@ export function battleView(
       return rewind?.reached ?? battle?.world.tick ?? 0;
     },
     seek(target) {
-      if (rewind !== null) seeking = Math.min(Math.max(0, target), rewind.reached);
+      if (rewind !== null) seeking = rewind.snap(target);
     },
     setRunning,
     step() {

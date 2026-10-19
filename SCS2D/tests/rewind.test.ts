@@ -37,6 +37,14 @@ describe('rewind', () => {
     }
   }, 60_000);
 
+  it('snaps to a checkpoint or the furthest step reached', () => {
+    const rewind = new Rewind(duel());
+    rewind.seek(100);
+    expect(rewind.snap(40)).toBe(30);
+    expect(rewind.snap(50)).toBe(60);
+    expect(rewind.snap(97)).toBe(100);
+  });
+
   it('goes forward without rebuilding, and back to the furthest step reached', () => {
     const rewind = new Rewind(duel());
     rewind.seek(50);

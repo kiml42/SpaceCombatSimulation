@@ -1,4 +1,4 @@
-import { ceil, floor, max } from '../sim/math.js';
+import { abs, ceil, floor, max } from '../sim/math.js';
 import { sizedClone } from './clone.js';
 import type { Battle } from './types.js';
 
@@ -56,6 +56,17 @@ export class Rewind {
     this.at++;
     if (this.at > this.reached) this.reached = this.at;
     if (this.at - this.last >= this.every && this.at > this.lastKept()) this.keep();
+  }
+
+  /**
+   * The step a scrub bar lands on for `target`: the nearest checkpoint, or the
+   * furthest step reached, so that dragging restores copies and does not
+   * re-simulate (more than the way from the last checkpoint to the end).
+   */
+  snap(target: number): number {
+    let best = this.reached;
+    for (const step of this.checkpoints.keys()) if (abs(step - target) < abs(best - target)) best = step;
+    return best;
   }
 
   /** Go to step `target`; true if it left the battle it had for a copy. */
