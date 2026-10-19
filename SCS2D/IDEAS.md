@@ -3,7 +3,6 @@ Things that are obviously wrong.
 
 - Fuel tanks should stop supplying fuel when they are too damaged.
 - When setting up a co-evolution run between two very large fleets, the UI hangs for about 30 s (the Imperial Fleet against the Rebel Fleet) after each change to a setting the opening match reads, and on loading the page with such a setup saved: the preview breeds a whole first generation to draw it. A burst of changes now builds it once, and a setting it does not read (generations, matches, winners) does not rebuild it. Fixing it needs the build off the main thread, or a preview that does not breed, at the cost of its seed no longer being the run's.
-- In evolution, things end up connected to engine bells, which shouldn't be allowed as connection surfaces.
 - A hull gun's barrel collides as the rectangle its module would be, not where the barrel is drawn. Nothing welds to a barrel (`onWeldablePart`), as a stop-gap until it collides where it is.
 
 -----------------------------------------------------------------------
@@ -26,10 +25,10 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Robot arms on Slipways to make them hold the ship they're creating (just cosmetic to explain how it's staying put)
 
 ## Editor
-- Allow dragging copies (when a module or assembly is set to be repeated) to set the offset (might get complicated with more than 2, so might need to restrict to the second one)
+- (maybe) Allow dragging copies (when a module or assembly is set to be repeated) to set the offset (might get complicated with more than 2, so might need to restrict to the second one)
 - Category input for ships - ships grouped by category when selecting them anywhere. (e.g. "Star Wars.Imperial", "Stock")
 - Make it clearer how the range is controlled in the core's doctrine
-- Add calibre multiplier to scale what the default maths gives (a turret's bore comes from its dome) (max. calibre should be about 1/3 of the available width, so the barrel fits on the hull/turret without looking silly (with multiple barrels, the sum of calibre can be a higher than this limit because thre doesn't need to be as much space left to thickness reinforcement)).
+- Add calibre multiplier to scale what the default maths gives (a turret's bore comes from its dome) (max. calibre should be about 1/3 of the available width, so the barrel fits on the hull/turret without looking silly (with multiple barrels, the sum of calibre can be a higher than this limit because there doesn't need to be as much space left to thickness reinforcement)).
 - Thrust efficiency diagram overlaying the thrust diagram, to show which directions are efficient, as well as which are high thrust.
 - Option to select an opponent.
   - All the doctrine readouts show what they'd calculate against that opponent at 0 relative velocity.
@@ -44,7 +43,7 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Maybe: Turrets fire a volley of one shot per barrel, and then reload. Can specify delay between shots to allow for firing all at once or staggered
   - Beam turrets should allow for multiple beams to be on at the same time.
   - Might need to allow for reloading one while firing another to have continuous firing, could possibly just have each barrel reload independently, and just stagger the triggers by the set amount.
-- Improved allowed turning for hull guns
+- Improved allowed turning for hull guns (they should have wider arcs)
 - Bullet spread (inaccuracy. Could get worse as a gun gets damaged.)
 - Shell fragments should be placed in a random layer when the shell detonates, instead of being considered to hit anything in either. Possibly there could be a bias towards keeping fragments in the turrets layer, to keep fragments good at hitting fighters. (probably dependent on the charge size)
 
@@ -60,7 +59,7 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Whole ship scale mutation
 - Assembly scale mutation - scales everything in all copies of the assembly up or down.
 - Duplicated parts or assemblies can be placed anywhere on the surface of the ship, not just close to the module they're a duplicate of (possibly with a higher chance of appearing nearby)
-- The quiet end condition might lead to ships evolving specifically to not have weapons, so they don't get counted out when a weapon is destroyed.
+- Check: The quiet end condition might lead to ships evolving specifically to not have weapons, so they don't get counted out when a weapon is destroyed.
 
 ## Fleet Editor
 - Make duplicate consistent with the ship editor (which creates a one module subassembly)
@@ -79,11 +78,11 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
   - The windows should be placed close to the ship they show
     - Possibly covering it if it's too small, but on screen
     - against the edge (with a small margin) if the ship is off screen
-- Include the view options bar from teh editor in the battle UI and Fleet editor
+- Include the view options bar from the editor in the battle UI and Fleet editor
 
 ## Skirmish
 - When the enemy are evolving, make the history fill the battle area.
   - In this mode the player's fleet should be put on the left, and the enemy on the right.
-- If a single generation takes long enough, show the thumbnails for the leader in teh generation without a "Victory" or "Defeat" stamp to show the work in progress happening.
-- The history should be the only part that scrolls int eh sidebar if the screen is tall enough to show the whole sidebar, with more than 1 row's worth of history.
+- If a single generation takes long enough, show the thumbnails for the leader in the generation without a "Victory" or "Defeat" stamp to show the work in progress happening.
+- The history should be the only part that scrolls in the sidebar if the screen is tall enough to show the whole sidebar, with more than 1 row's worth of history.
 - Rotate the enemy fleet in the history display so it matches the orientation it will be shown in in the battle (ships too)
