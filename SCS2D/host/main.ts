@@ -44,6 +44,7 @@ export function start(): void {
   const sceneSelect = el<HTMLSelectElement>('scene');
   const speedSelect = el<HTMLSelectElement>('speed');
   const fitButton = el<HTMLButtonElement>('fit');
+  const scrub = el<HTMLInputElement>('scrub');
   const scenes = [
     { name: 'Duel', create: () => duel(SEED) },
     { name: 'Beam Duel', create: () => beamDuel(SEED) },
@@ -77,7 +78,7 @@ export function start(): void {
   const restart = (run = view.running): void => {
     state = scenes[sceneIndex]!.create();
     panel.reset();
-    view.show(state, run);
+    view.show(state, run, true);
   };
   // A custom battle is set up paused at its first step, so the opening
   // positions can be seen as they are chosen, and started with Fight.
@@ -103,6 +104,8 @@ export function start(): void {
       const range =
         first !== undefined && second !== undefined ? math.distance(first.x, first.y, second.x, second.y) : 0;
       readout.textContent = `t ${shown.time.toFixed(1)} s · step ${shown.tick} · grid ${gridStep(view.camera.scale)} m`;
+      scrub.max = String(view.reached);
+      if (!scrubbing) scrub.value = String(view.at);
       // Not shown: kept for the browser tests and anyone inspecting the page.
       metrics.textContent =
         `range ${range.toFixed(range < 10 ? 3 : 0)} m · in flight ${shown.projectileCount} · ` +
@@ -113,8 +116,12 @@ export function start(): void {
     (running) => {
       playButton.textContent = running ? 'Pause' : 'Play';
     },
+    (rewound) => {
+      state = rewound;
+      panel.reset();
+    },
   );
-  view.show(state, true);
+  view.show(state, true, true);
 
   // Named rather than numbered, and the list is the scenes array itself, so a
   // scenario added there appears here without being mentioned twice.
@@ -124,6 +131,16 @@ export function start(): void {
     sceneSelect.append(option);
   }
   sceneSelect.selectedIndex = sceneIndex;
+
+  // Held while dragged, so the frame does not pull the thumb back to where the battle is.
+  let scrubbing = false;
+  scrub.addEventListener('pointerdown', () => {
+    scrubbing = true;
+  });
+  window.addEventListener('pointerup', () => {
+    scrubbing = false;
+  });
+  scrub.addEventListener('input', () => view.seek(Number(scrub.value)));
 
   playButton.addEventListener('click', () => view.setRunning(!view.running));
   stepButton.addEventListener('click', () => view.step());

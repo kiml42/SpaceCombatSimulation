@@ -205,6 +205,35 @@ describe('the viewer in a browser', () => {
     expect(await step(page)).toBeLessThan(10);
   });
 
+  it('winds back and on along the scrub bar, and a step back with the comma', async () => {
+    await advanced(page, 60);
+    await page.click('#play');
+    await painted(page);
+    const reached = await step(page);
+    const scrubTo = async (value: number): Promise<void> => {
+      await page.$eval(
+        '#scrub',
+        (input, v) => {
+          (input as HTMLInputElement).value = String(v);
+          input.dispatchEvent(new Event('input'));
+        },
+        value,
+      );
+      await painted(page);
+    };
+
+    await scrubTo(20);
+    expect(await step(page)).toBe(20);
+    expect(Number(await page.getAttribute('#scrub', 'max'))).toBe(reached);
+    await page.keyboard.press(',');
+    await painted(page);
+    expect(await step(page)).toBe(19);
+    await scrubTo(reached);
+    expect(await step(page)).toBe(reached);
+
+    await page.click('#play');
+  });
+
   it('lists every scene by name, and plays the one that is picked', async () => {
     // A dropdown rather than a button that cycles: the list is long enough
     // that finding a scene by pressing "next" repeatedly is a poor way in.
