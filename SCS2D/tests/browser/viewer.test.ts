@@ -396,6 +396,51 @@ describe('the viewer in a browser', () => {
     expect(JSON.parse((await page.evaluate(() => localStorage.getItem('scs2d.view.viewer')))!).arcs).toBe('none');
   });
 
+  it('shows a picked ship and its target close up when they are too small to read', async () => {
+    await page.click('#reset');
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    if ((await page.textContent('#play')) !== 'Play') await page.keyboard.press('Space');
+    await painted(page);
+    const box = (await page.locator('#view').boundingBox())!;
+    // The brightest pixel is on a ship.
+    const at = await page.evaluate(() => {
+      const canvas = document.getElementById('view') as HTMLCanvasElement;
+      const { data, width } = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height);
+      let best = -1;
+      let index = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        const v = data[i]! + data[i + 1]! + data[i + 2]!;
+        if (v > best) {
+          best = v;
+          index = i / 4;
+        }
+      }
+      const ratio = canvas.width / canvas.getBoundingClientRect().width;
+      return { x: (index % width) / ratio, y: Math.floor(index / width) / ratio };
+    });
+    await page.mouse.click(box.x + at.x, box.y + at.y);
+    // Far enough out that both ships are specks.
+    for (let i = 0; i < 12; i++) {
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await page.mouse.wheel(0, 400);
+    }
+    const lit = (): Promise<number> =>
+      page.evaluate(() => {
+        const canvas = document.getElementById('view') as HTMLCanvasElement;
+        const { data } = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height);
+        let count = 0;
+        for (let i = 0; i < data.length; i += 4) if (data[i]! + data[i + 1]! + data[i + 2]! > 200) count++;
+        return count;
+      });
+    await painted(page);
+    const picked = await lit();
+    await page.keyboard.press('Escape');
+    await painted(page);
+    const dropped = await lit();
+    // Two windows of hull, frame and rings, against two specks.
+    expect(picked).toBeGreaterThan(dropped * 4 + 500);
+  });
+
   it('reports no errors after all of that', () => {
     expect(problems).toEqual([]);
   });

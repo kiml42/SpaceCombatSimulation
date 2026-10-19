@@ -1,6 +1,6 @@
 import { capture, Snapshot } from '../sim/index.js';
 import { Flashes } from '../render/flashes.js';
-import { ARCS_KEY, draw, nextArcs, TEAM_SHOTS_KEY, type Arcs } from '../render/canvas2d.js';
+import { ARCS_KEY, draw, drawCloseUps, nextArcs, TEAM_SHOTS_KEY, type Arcs } from '../render/canvas2d.js';
 import { frame, moveWithVisibleShips, selectionBounds, shipAt, type Camera } from '../render/camera.js';
 import type { Battle } from '../scenarios/types.js';
 import { viewGestures } from './viewGestures.js';
@@ -190,6 +190,7 @@ export function battleView(
       );
     }
     draw(ctx, view, camera, canvas.width, canvas.height, flashes, arcs, teamShots, selected);
+    drawCloseUps(ctx, view, camera, canvas.width, canvas.height, selected, window.devicePixelRatio || 1, flashes, arcs, teamShots);
     drawn(view);
   };
   window.requestAnimationFrame(tick);

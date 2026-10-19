@@ -35,6 +35,7 @@ import {
   berthGrid,
 } from '../sim/index.js';
 import { gridStep, type Camera } from './camera.js';
+import { insetsFor, type Inset, type InsetShip } from './inset.js';
 import { fighterColours, NEUTRAL, shipColours, teamName } from './teams.js';
 
 export { teamColour } from './teams.js';
@@ -1484,7 +1485,27 @@ export function draw(
    */
   selected = -1,
 ): void {
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  drawScene(ctx, snapshot, camera, 0, 0, widthPx, heightPx, flashes, arcs, teamShots, selected);
+}
+
+/** Pixels round a ship within which it is still drawn when its hull is just out of view: its icon and name. */
+const CULL_PAD_PX = 48;
+
+/** `draw`, into the `widthPx` by `heightPx` box whose top left is at `left`, `top`. */
+function drawScene(
+  ctx: CanvasRenderingContext2D,
+  snapshot: Snapshot,
+  camera: Camera,
+  left: number,
+  top: number,
+  widthPx: number,
+  heightPx: number,
+  flashes: Flashes | undefined,
+  arcs: Arcs,
+  teamShots: boolean,
+  selected: number,
+): void {
+  ctx.setTransform(1, 0, 0, 1, left, top);
   ctx.fillStyle = BACKGROUND;
   ctx.fillRect(0, 0, widthPx, heightPx);
 
@@ -1496,24 +1517,33 @@ export function draw(
   drawGrid(ctx, camera, widthPx, heightPx);
   drawWells(ctx, snapshot, camera);
 
+  // A ship nowhere near the view is not drawn: a close-up draws the whole
+  // battle again for one ship. One with its arcs showing is, since they reach.
+  const halfW = (widthPx / 2 + CULL_PAD_PX) / camera.scale;
+  const halfH = (heightPx / 2 + CULL_PAD_PX) / camera.scale;
+  const shown = (ship: ShipView): boolean =>
+    arcsFor(ship.body, selected, arcs) !== 'none' ||
+    (Math.abs(ship.x - camera.x) - ship.design.radius <= halfW && Math.abs(ship.y - camera.y) - ship.design.radius <= halfH);
+
   // Every capital hull, then the robots crawling over them, then every
   // fighter, aboard a carrier or not: robots work on the deck, and a fighter
   // sits above it, so neither a capital spawned later nor a robot under a
   // landed fighter may be painted over what is on top.
   for (let i = 0; i < snapshot.shipCount; i++) {
     const ship = snapshot.ships[i]!;
-    drawShip(ctx, ship, camera.scale, arcsFor(ship.body, selected, arcs), false);
+    if (shown(ship)) drawShip(ctx, ship, camera.scale, arcsFor(ship.body, selected, arcs), false);
   }
-  for (let i = 0; i < snapshot.shipCount; i++) drawRobots(ctx, snapshot.ships[i]!);
+  for (let i = 0; i < snapshot.shipCount; i++) if (shown(snapshot.ships[i]!)) drawRobots(ctx, snapshot.ships[i]!);
   for (let i = 0; i < snapshot.shipCount; i++) {
     const ship = snapshot.ships[i]!;
-    drawShip(ctx, ship, camera.scale, arcsFor(ship.body, selected, arcs), true);
+    if (shown(ship)) drawShip(ctx, ship, camera.scale, arcsFor(ship.body, selected, arcs), true);
   }
 
   // Icons in a pass of their own, after every hull: an icon stands for the
   // ship as a whole, so it belongs over its neighbours rather than under
   // whichever of them happens to be drawn next.
   for (let i = 0; i < snapshot.shipCount; i++) {
+    if (!shown(snapshot.ships[i]!)) continue;
     drawIcon(ctx, snapshot.ships[i]!, camera.scale);
     drawName(ctx, snapshot.ships[i]!, camera.scale);
   }
@@ -1523,6 +1553,94 @@ export function draw(
   drawProjectiles(ctx, snapshot, camera, teamShots);
   drawBeams(ctx, snapshot, camera, teamShots);
   if (flashes !== undefined) drawFlashes(ctx, snapshot, flashes, camera);
+}
+
+/** A close-up's side as a share of the view's shorter side, and its bounds in CSS pixels. */
+const CLOSE_UP_SHARE = 0.26;
+const CLOSE_UP_MIN_PX = 110;
+const CLOSE_UP_MAX_PX = 240;
+/** Gap kept from the view's edge and between close-ups, CSS pixels. */
+const CLOSE_UP_MARGIN_PX = 10;
+/** A ship drawn smaller across than this, CSS pixels, gets a close-up. */
+const CLOSE_UP_SMALLEST_PX = 24;
+/** The pointer on a close-up's frame towards a ship off screen, CSS pixels. */
+const CLOSE_UP_POINTER_PX = 9;
+
+/**
+ * Where the selected ship and what it is fighting get close-ups: each where
+ * the view shows it off screen or too small to read. `ratio` is canvas pixels
+ * per CSS pixel.
+ */
+export function closeUps(snapshot: Snapshot, camera: Camera, widthPx: number, heightPx: number, selected: number, ratio = 1): Inset[] {
+  const ship = shipByBody(snapshot, selected);
+  if (ship === null) return [];
+  const ships: InsetShip[] = [ship, shipByBody(snapshot, ship.fighting ?? -1)]
+    .filter((s): s is ShipView => s !== null)
+    .map((s) => ({ body: s.body, x: s.x, y: s.y, vx: s.vx, vy: s.vy, radius: s.design.radius }));
+  const size = Math.round(Math.min(CLOSE_UP_MAX_PX * ratio, Math.max(CLOSE_UP_MIN_PX * ratio, Math.min(widthPx, heightPx) * CLOSE_UP_SHARE)));
+  return insetsFor(ships, camera, widthPx, heightPx, {
+    size,
+    margin: CLOSE_UP_MARGIN_PX * ratio,
+    smallest: CLOSE_UP_SMALLEST_PX * ratio,
+  });
+}
+
+/**
+ * Draw the close-ups `closeUps` asks for over a view already drawn: each the
+ * battle again through a camera of its own, framed in its ship's colours,
+ * with a pointer towards its ship when that is off screen.
+ */
+export function drawCloseUps(
+  ctx: CanvasRenderingContext2D,
+  snapshot: Snapshot,
+  camera: Camera,
+  widthPx: number,
+  heightPx: number,
+  selected: number,
+  ratio = 1,
+  flashes?: Flashes,
+  arcs: Arcs = 'none',
+  teamShots = false,
+): void {
+  for (const inset of closeUps(snapshot, camera, widthPx, heightPx, selected, ratio)) {
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.beginPath();
+    ctx.rect(inset.x, inset.y, inset.size, inset.size);
+    ctx.clip();
+    drawScene(ctx, snapshot, inset.camera, inset.x, inset.y, inset.size, inset.size, flashes, arcs, teamShots, selected);
+    ctx.restore();
+
+    const ship = shipByBody(snapshot, inset.body)!;
+    const colour = (ship.hasControl && !ship.isMissionKilled ? shipColours(ship.team) : NEUTRAL).trim;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.strokeStyle = colour;
+    ctx.lineWidth = (inset.body === selected ? 2 : 1.5) * ratio;
+    if (inset.body !== selected) ctx.setLineDash([5 * ratio, 4 * ratio]);
+    ctx.strokeRect(inset.x, inset.y, inset.size, inset.size);
+    ctx.setLineDash([]);
+    if (inset.toward !== null) {
+      // From the frame's centre along the bearing, out to the frame, a wedge beyond it.
+      const half = inset.size / 2;
+      const cx = inset.x + half;
+      const cy = inset.y + half;
+      const dx = Math.cos(inset.toward);
+      const dy = Math.sin(inset.toward);
+      const reach = half / Math.max(Math.abs(dx), Math.abs(dy));
+      const tip = CLOSE_UP_POINTER_PX * ratio;
+      const bx = cx + dx * reach;
+      const by = cy + dy * reach;
+      ctx.fillStyle = colour;
+      ctx.beginPath();
+      ctx.moveTo(bx + dx * tip, by + dy * tip);
+      ctx.lineTo(bx - dy * tip * 0.6, by + dx * tip * 0.6);
+      ctx.lineTo(bx + dy * tip * 0.6, by - dx * tip * 0.6);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+  }
 }
 
 /** A selected ship shows all its arcs and the rest none; with none selected, every ship shows `arcs`. */
