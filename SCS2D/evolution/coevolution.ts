@@ -316,6 +316,12 @@ export class Coevolution {
     return { ...this.config.match, goal: null, seed: this.seed };
   }
 
+  /** The entrants made invincible: the side being bred's, in a shielded drill. */
+  private shielded(teams: readonly number[]): number[] {
+    if (this.pairing?.kind !== 'shielded') return [];
+    return teams.flatMap((team, e) => (team === this.side ? [e] : []));
+  }
+
   /** How many of a kind each design fights a generation. */
   private quota(kind: Kind): number {
     if (kind === 'match') return max(1, this.config.minMatches);
@@ -357,8 +363,7 @@ export class Coevolution {
     this.pairing = { kind, picked, against };
     this.seed = this.rng.nextUint32();
     const { entrants, teams } = this.lineUp(this.pairing, (index) => individuals[index]!.entrant);
-    const shielded = kind === 'shielded' ? teams.flatMap((team, e) => (team === this.side ? [e] : [])) : [];
-    this.match = new Match(entrants, this.matchConfig(), teams, shielded);
+    this.match = new Match(entrants, this.matchConfig(), teams, this.shielded(teams));
   }
 
   /**
@@ -428,6 +433,7 @@ export class Coevolution {
       elapsed: result.elapsed,
       scores: result.scores,
       ...(pairing.kind === 'match' ? {} : { drill: pairing.kind }),
+      ...(pairing.kind === 'shielded' ? { invulnerable: this.shielded(teams) } : {}),
     });
     const at = teams.indexOf(this.side);
     const opponents = ids.filter((_, e) => teams[e] !== this.side && ids[e]! >= 0);

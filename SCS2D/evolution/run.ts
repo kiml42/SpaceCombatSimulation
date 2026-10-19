@@ -241,6 +241,8 @@ export interface MatchRecord {
    * side's own ships invincible, or against bare cores, a competitor of id -1.
    */
   readonly drill?: 'shielded' | 'bareCore';
+  /** Which competitors, by index, nothing could hurt: the bred side's, in a shielded drill. */
+  readonly invulnerable?: readonly number[];
 }
 
 export interface GenerationRecord {

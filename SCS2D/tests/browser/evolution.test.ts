@@ -775,11 +775,15 @@ describe('the evolution page in a browser', () => {
     if (await page.isEnabled('#stop')) await page.click('#stop');
     await choose(page, '#founders', ['Dinky']);
     await set(page, 'fleetShips', '1');
-    await set(page, 'generations', '2');
+    await set(page, 'generations', '4');
     await set(page, 'population', '4');
     await set(page, 'minMatches', '2');
     await set(page, 'group', '2');
     await choose(page, '#versus', ['Dinky']);
+    // A generation a round, so each side takes two turns.
+    await set(page, 'phaseCap', '1');
+    await set(page, 'shieldedDrills', '0');
+    await set(page, 'bareCoreDrills', '0');
     // No goal, scored against a moving opponent: what does not apply goes.
     expect(await page.isVisible('#goal')).toBe(false);
     // Side B has a column of settings of its own, starting as a copy of side A's.
@@ -814,6 +818,8 @@ describe('the evolution page in a browser', () => {
     expect(await page.isVisible('#setupScreen')).toBe(false);
     expect(await page.isVisible('#chart')).toBe(false);
     expect(await page.isVisible('#legend')).toBe(false);
+    // How far apart each side's scores are, in rounds.
+    expect(await distinctColours(page, 'spreadChart')).toBeGreaterThan(2);
     await page.selectOption('#mode', 'fleet');
     const sides = await page.$$eval('#fleet tbody td.who .side', (tags) => tags.map((tag) => tag.textContent?.trim()));
     expect(sides.filter((side) => side === 'A')).toHaveLength(4);

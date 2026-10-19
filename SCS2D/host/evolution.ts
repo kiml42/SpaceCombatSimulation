@@ -36,9 +36,11 @@ import {
   latest,
   Yardstick,
   yardstickMatch,
+  gridLabel,
   type ChampionGrid,
   type YardstickReport,
 } from '../evolution/yardstick.js';
+import { BARE_CORE } from '../scenarios/blueprints.js';
 import {
   finalist,
   DEFAULT_RUN,
@@ -46,6 +48,7 @@ import {
   type GenerationRecord,
   entrantOf,
   generationSize,
+  spreadOf,
   type GenerationSize,
   type MatchRecord,
   type RunConfig,
@@ -251,8 +254,22 @@ const FIELDS = [
   'doctrineGunnery',
   'effort',
   'hall',
-  'hallShare',
+  'phaseWin',
+  'phaseCap',
+  'shieldedDrills',
+  'bareCoreDrills',
 ] as const;
+
+/**
+ * One point along a run: a generation, or a round in a co-evolution run
+ * whose sides take turns. Which generation of each side it shows, by index,
+ * -1 for none, and the side that was bred.
+ */
+interface Point {
+  readonly a: number;
+  readonly b: number;
+  readonly side: 0 | 1;
+}
 
 /** One line of the results table, from a finished generation or a live one. */
 interface Row {
@@ -439,9 +456,11 @@ export function startEvolution(): void {
     return { canvas: at, ctx: context(at), legend: el<HTMLElement>(key), digits, series: [], layout: NO_LAYOUT };
   };
   const massChart = sizeChart('massChart', 'massLegend', 1);
+  /** How far apart each generation's scores are: how much selection is pushing. */
+  const spreadChart = sizeChart('spreadChart', 'spreadLegend', 3);
   /** What the chart under the score shows: mass and ships, or weapons and engines. */
   const sizeMetric = el<HTMLSelectElement>('sizeMetric');
-  const sizeCharts = [massChart];
+  const sizeCharts = [spreadChart, massChart];
   /** Worked out once per generation: counting what each individual fields means compiling it. */
   const sizes = new WeakMap<GenerationRecord, GenerationSize>();
   const sizeOf = (generation: GenerationRecord): GenerationSize => {
@@ -540,8 +559,11 @@ export function startEvolution(): void {
   const coevolutionSettings = (): CoevolutionConfig => ({
     // Nothing set apart while side B follows side A, so a file says only what differs.
     rival: rivalOwn ? sideSettings((name) => rivalInputs[name]) : {},
-    hall: Math.max(0, Math.round(number(inputs.hall, DEFAULT_COEVOLUTION.hall))),
-    hallShare: Math.min(1, Math.max(0, number(inputs.hallShare, DEFAULT_COEVOLUTION.hallShare))),
+    hall: Math.max(1, Math.round(number(inputs.hall, DEFAULT_COEVOLUTION.hall))),
+    phaseWin: Math.min(1, Math.max(0, number(inputs.phaseWin, DEFAULT_COEVOLUTION.phaseWin))),
+    phaseCap: Math.max(1, Math.round(number(inputs.phaseCap, DEFAULT_COEVOLUTION.phaseCap))),
+    shieldedDrills: Math.max(0, Math.round(number(inputs.shieldedDrills, DEFAULT_COEVOLUTION.shieldedDrills))),
+    bareCoreDrills: Math.max(0, Math.round(number(inputs.bareCoreDrills, DEFAULT_COEVOLUTION.bareCoreDrills))),
     rivalEvolves: rivalEvolvesInput.checked,
   });
   const coRun = (): boolean => versusSelect.selectedOptions.length > 0;
@@ -660,7 +682,10 @@ export function startEvolution(): void {
     raceWeight: String(DEFAULT_MATCH.weights.race),
     effort: '12',
     hall: String(DEFAULT_COEVOLUTION.hall),
-    hallShare: String(DEFAULT_COEVOLUTION.hallShare),
+    phaseWin: String(DEFAULT_COEVOLUTION.phaseWin),
+    phaseCap: String(DEFAULT_COEVOLUTION.phaseCap),
+    shieldedDrills: String(DEFAULT_COEVOLUTION.shieldedDrills),
+    bareCoreDrills: String(DEFAULT_COEVOLUTION.bareCoreDrills),
   };
 
   /**
@@ -1055,7 +1080,10 @@ export function startEvolution(): void {
     writeSide((name) => rivalInputs[name], rivalSettings({ ...DEFAULT_RUN, ...config }, coevolution.rival));
     inputs.hall.value = String(coevolution.hall);
     rivalEvolvesInput.checked = coevolution.rivalEvolves;
-    inputs.hallShare.value = String(coevolution.hallShare);
+    inputs.phaseWin.value = String(coevolution.phaseWin);
+    inputs.phaseCap.value = String(coevolution.phaseCap);
+    inputs.shieldedDrills.value = String(coevolution.shieldedDrills);
+    inputs.bareCoreDrills.value = String(coevolution.bareCoreDrills);
     const rivals = new Set([
       ...(versus?.founders ?? []).map((name) => valueOf('ship', name)),
       ...(versus?.fleets ?? []).map((name) => valueOf('fleet', name)),
@@ -1102,7 +1130,7 @@ export function startEvolution(): void {
 
   const resize = (): void => {
     const ratio = window.devicePixelRatio || 1;
-    for (const canvas of [view, chart, massChart.canvas]) {
+    for (const canvas of [view, chart, massChart.canvas, spreadChart.canvas]) {
       const rect = canvas.getBoundingClientRect();
       canvas.width = Math.round(rect.width * ratio);
       canvas.height = Math.round(rect.height * ratio);
@@ -1301,7 +1329,7 @@ export function startEvolution(): void {
    */
   function markedGeneration(): number | undefined {
     if (run === null) return undefined;
-    const closed = run.generations.length;
+    const closed = timeline().length;
     const newest = run.done ? closed - 1 : closed;
     const index = shown < 0 ? newest : Math.min(shown, newest);
     return index >= 0 && index < closed ? index : undefined;
@@ -1321,6 +1349,7 @@ export function startEvolution(): void {
     // whole ships is a fraction.
     if (sizeMetric.value === 'fittings') fillLegend(massChart.legend, massChart.series, 1, '', 1, '');
     else fillLegend(massChart.legend, massChart.series, massChart.digits, ' t', 2, '');
+    fillLegend(spreadChart.legend, spreadChart.series, spreadChart.digits, '', 0, '');
   }
 
   function fillLegend(
@@ -1362,7 +1391,7 @@ export function startEvolution(): void {
     hoverAt = at;
     chartTip.hidden = at === null;
     if (at !== null) {
-      chartTip.textContent = `generation ${at + 1}`;
+      chartTip.textContent = `${unit()} ${at + 1}`;
       chartTip.style.left = `${xOf(chartLayout, at)}px`;
     }
     paintChart();
@@ -1740,30 +1769,91 @@ export function startEvolution(): void {
     return picture;
   };
 
-  /** Which generation the panel is showing, and the rows and matches in it. */
+  /** Whether the run is a co-evolution run whose sides take turns, so it goes in rounds. */
+  const inRounds = (): boolean => run instanceof Coevolution && run.alternates;
+  /** What a point along the run is called: a round, or a generation. */
+  const unit = (): string => (inRounds() ? 'round' : 'generation');
+
+  /**
+   * The run's points so far, closed ones only: a generation each, or in a run
+   * whose sides take turns a round each, with the generation of each side on
+   * show at the end of it (-1 for a side with none yet) and the side bred.
+   */
+  const timeline = (): Point[] => {
+    if (run === null) return [];
+    if (!(run instanceof Coevolution) || !run.alternates) return run.generations.map((_, g) => ({ a: g, b: -1, side: 0 }));
+    const points: Point[] = [];
+    const a = run.generations;
+    const b = run.rivalGenerations;
+    let ai = -1;
+    let bi = -1;
+    // Merged by round: each side's generations come in its own rounds, in order.
+    while (ai + 1 < a.length || bi + 1 < b.length) {
+      const nextA = a[ai + 1]?.round ?? Infinity;
+      const nextB = b[bi + 1]?.round ?? Infinity;
+      const side: 0 | 1 = nextA <= nextB ? 0 : 1;
+      const list = side === 0 ? a : b;
+      let at = side === 0 ? ai : bi;
+      const round = list[at + 1]!.round;
+      while (list[at + 1]?.round === round) at++;
+      if (side === 0) ai = at;
+      else bi = at;
+      // A round still being fought has no point yet.
+      if (!run.done && round === run.round) break;
+      points.push({ a: ai, b: bi, side });
+    }
+    return points;
+  };
+
+  /** Which point the panel is showing, and the rows and matches in it. */
   const showing = (
     wanted = shown,
   ): { index: number; rows: Row[]; matches: readonly MatchRecord[] } => {
     const empty = { index: 0, rows: [], matches: [] };
     if (run === null) return { ...empty, rows: previewRows };
-    const closed = run.generations.length;
-    // The newest generation is the one being fought while there is one, and
+    const points = timeline();
+    const closed = points.length;
+    // The newest point is the one being fought while there is one, and
     // the last one closed once there is not — a finished run must go on
     // showing what it finished with rather than an empty panel.
     const newest = run.done ? closed - 1 : closed;
     const index = wanted < 0 ? newest : Math.min(wanted, newest);
     if (index < 0) return empty;
     if (run instanceof Coevolution) {
+      const co = run;
+      // A side not bred yet shows its hall, its founders, which is what the other side is fighting.
+      const sideRows = (k: 0 | 1, at: number): Row[] => {
+        const list = k === 0 ? co.generations : co.rivalGenerations;
+        if (at >= 0 && list[at] !== undefined) return recordRows(list[at]!, k);
+        return co.hall(k).map((champion) => ({
+          id: champion.id,
+          side: k,
+          parent: -1,
+          matches: 0,
+          fitness: 0,
+          survival: 0,
+          functional: 0,
+          damage: 0,
+          disabling: 0,
+          race: 0,
+          mass: pictureOf(champion.id, champion.entrant).mass,
+          edits: [],
+          entrant: champion.entrant,
+        }));
+      };
       if (index >= closed) {
-        return {
-          index,
-          rows: [...liveRows(run.living, 0), ...liveRows(run.rivalLiving, 1)],
-          matches: bothSides(run.played, run.rivalPlayed),
-        };
+        // The side being bred live, the other as it last was.
+        const turn = run.turn;
+        const last = points[closed - 1];
+        const other: 0 | 1 = turn === 0 ? 1 : 0;
+        const otherAt = other === 0 ? (last?.a ?? -1) : (last?.b ?? run.rivalGenerations.length - 1);
+        const live = liveRows(run.living, turn);
+        const frozen = sideRows(other, otherAt);
+        return { index, rows: turn === 0 ? [...live, ...frozen] : [...frozen, ...live], matches: run.played };
       }
-      const a = run.generations[index]!;
-      const b = run.rivalGenerations[index]!;
-      return { index, rows: [...recordRows(a, 0), ...recordRows(b, 1)], matches: bothSides(a.matches, b.matches) };
+      const point = points[index]!;
+      const bred = point.side === 0 ? run.generations[point.a]! : run.rivalGenerations[point.b]!;
+      return { index, rows: [...sideRows(0, point.a), ...sideRows(1, point.b)], matches: bred.matches };
     }
     if (index >= closed) return { index, rows: liveRows(run.living), matches: run.played };
     const record = run.generations[index]!;
@@ -1806,18 +1896,16 @@ export function startEvolution(): void {
       entrant: entrantOf(individual),
     }));
 
-  /**
-   * Both sides' matches, each once and in the order fought: a match between
-   * the sides is in both lists, one against a champion only in the scored side's.
-   */
-  const bothSides = (a: readonly MatchRecord[], b: readonly MatchRecord[]): MatchRecord[] => {
-    const seen = new Set(a.map((match) => match.seed));
-    return [...a, ...b.filter((match) => !seen.has(match.seed))];
-  };
-
   /** A design anywhere in the run, by id: a champion from a past generation is fought, but not on show. */
   const entrantById = (id: number): Entrant | null => {
     if (run === null) return null;
+    if (id < 0) return BARE_CORE;
+    if (run instanceof Coevolution) {
+      for (const side of [0, 1] as const) {
+        const champion = run.hall(side).find((each) => each.id === id);
+        if (champion !== undefined) return champion.entrant;
+      }
+    }
     const lists = run instanceof Coevolution ? [run.generations, run.rivalGenerations] : [run.generations];
     for (const generations of lists) {
       for (let g = generations.length - 1; g >= 0; g--) {
@@ -1861,7 +1949,7 @@ export function startEvolution(): void {
     const match = run instanceof Coevolution ? { ...run.config.match, goal: null } : run.config.match;
     const teams = record.teams !== undefined && record.teams.length === entrants.length ? record.teams : null;
     watchReplay(
-      new Match(entrants, { ...match, seed: record.seed }, teams),
+      new Match(entrants, { ...match, seed: record.seed }, teams, record.invulnerable ?? []),
       record,
       record.competitors,
       null,
@@ -1894,7 +1982,7 @@ export function startEvolution(): void {
     shownGeneration.textContent = run === null ? '—' : String(index + 1);
     // Whether what is on show is the generation still being fought, which is
     // the one that changes while it is looked at.
-    const live = run !== null && !run.done && index >= run.generations.length;
+    const live = run !== null && !run.done && index >= timeline().length;
     fightingLabel.textContent = live ? ' · fighting' : '';
     latestButton.disabled = run === null || shown < 0;
     // Nothing to skip to once a run is over and the generation on show
@@ -1960,14 +2048,27 @@ export function startEvolution(): void {
     // ships on the right — or, as `sizeMetric` asks, weapons and engines: a colour for each, the mean solid and the best
     // dashed. In a co-evolution run each side takes its team's colours, its
     // hull colour for mass and its trim for ships.
-    const sides: { label: string; size: GenerationSize[]; mass: string; ships: string }[] =
+    // A value a point, each side at the generation it shows there: in a run
+    // whose sides take turns, the one not bred in a round holds where it was.
+    const along = timeline();
+    const atPoints = (k: 0 | 1): (GenerationRecord | undefined)[] => {
+      if (run === null) return [];
+      const list = k === 0 ? run.generations : run instanceof Coevolution ? run.rivalGenerations : [];
+      return along.map((point) => list[k === 0 ? point.a : point.b]);
+    };
+    const each = <T>(records: (GenerationRecord | undefined)[], read: (g: GenerationRecord) => T): (T | undefined)[] =>
+      records.map((g) => (g === undefined ? undefined : read(g)));
+    const sides: { label: string; records: (GenerationRecord | undefined)[]; size: (GenerationSize | undefined)[]; mass: string; ships: string }[] = (
       run instanceof Coevolution
         ? [
-            { label: 'A ', size: closed.map(sizeOf), mass: teamColour(0), ships: shipColours(0).trim },
-            { label: 'B ', size: run.rivalGenerations.map(sizeOf), mass: teamColour(1), ships: shipColours(1).trim },
+            { label: 'A ', records: atPoints(0), mass: teamColour(0), ships: shipColours(0).trim },
+            { label: 'B ', records: atPoints(1), mass: teamColour(1), ships: shipColours(1).trim },
           ]
-        : [{ label: '', size: closed.map(sizeOf), mass: '#7fa8e0', ships: '#e9a35f' }];
-    const fleets = sides.some((side) => side.size.some((s) => s.meanShips !== 1));
+        : [{ label: '', records: atPoints(0), mass: '#7fa8e0', ships: '#e9a35f' }]
+    )
+      .filter((side) => side.records.some((g) => g !== undefined))
+      .map((side) => ({ ...side, size: each(side.records, sizeOf) }));
+    const fleets = sides.some((side) => side.size.some((s) => s !== undefined && s.meanShips !== 1));
     type Side = (typeof sides)[number];
     const bestAndMean = (
       what: string,
@@ -1979,16 +2080,28 @@ export function startEvolution(): void {
         if (side.size.length === 0) return [];
         const scale = right ? { right } : {};
         return [
-          { name: `${side.label}mean ${what}`, colour: colour(side), values: side.size.map((s) => read(s)[1]), ...scale },
+          { name: `${side.label}mean ${what}`, colour: colour(side), values: side.size.map((s) => (s === undefined ? NaN : read(s)[1])), ...scale },
           {
             name: `${side.label}best's ${what}`,
             colour: colour(side),
-            values: side.size.map((s) => read(s)[0]),
+            values: side.size.map((s) => (s === undefined ? NaN : read(s)[0])),
             dashed: true,
             ...scale,
           },
         ];
       });
+    // How far apart each side's scores are: the middle half's width solid, the
+    // whole field's dashed, and how many tied on the right. Narrow, or many
+    // tied, and selection can hardly tell its designs apart.
+    spreadChart.series = sides.flatMap((side) => {
+      const spreads = each(side.records, spreadOf);
+      const of = (read: (s: ReturnType<typeof spreadOf>) => number): number[] => spreads.map((s) => (s === undefined ? NaN : read(s)));
+      return [
+        { name: `${side.label}middle half`, colour: side.mass, values: of((s) => s.upperQuartile - s.lowerQuartile) },
+        { name: `${side.label}best to worst`, colour: side.mass, values: of((s) => s.highest - s.lowest), dashed: true },
+        { name: `${side.label}tied`, colour: side.ships, values: of((s) => s.tied), right: true },
+      ];
+    });
     massChart.series =
       sizeMetric.value === 'fittings'
         ? [
@@ -2004,7 +2117,8 @@ export function startEvolution(): void {
 
     const tops = finalists();
     const top = tops[0] ?? null;
-    const co = run instanceof Coevolution;
+    // A run whose sides both evolve is measured by its grid; one against a fixed side B, against a yardstick as a run of one is.
+    const co = inRounds();
     saveButton.disabled = top === null;
     exportButton.disabled = top === null;
     // A co-evolution run is measured as a grid of champions rather than
@@ -2065,7 +2179,7 @@ export function startEvolution(): void {
   measureButton.addEventListener('click', () => {
     if (run === null || run.generations.length === 0) return;
     const record = run.record();
-    if (run instanceof Coevolution) {
+    if (inRounds()) {
       grid = new GridMeasure(record);
       gridResult = null;
       measureButton.disabled = true;
@@ -2351,26 +2465,29 @@ export function startEvolution(): void {
     const corner = document.createElement('th');
     corner.textContent = 'A↓ B→';
     head.append(corner);
-    for (const g of shown.generations) {
+    const short = (point: (typeof shown.rows)[number]): string => String((point.round ?? point.generation) + 1);
+    for (const point of shown.columns) {
       const th = document.createElement('th');
-      th.textContent = String(g + 1);
+      th.textContent = short(point);
+      th.title = gridLabel(point);
       th.style.color = teamColour(1);
       head.append(th);
     }
     const rows = [head];
-    shown.generations.forEach((g, r) => {
+    shown.rows.forEach((point, r) => {
       const tr = document.createElement('tr');
       const th = document.createElement('th');
-      th.textContent = String(g + 1);
+      th.textContent = short(point);
+      th.title = gridLabel(point);
       th.style.color = teamColour(0);
       tr.append(th);
-      for (let c = 0; c < shown.generations.length; c++) {
+      for (let c = 0; c < shown.columns.length; c++) {
         const td = document.createElement('td');
         const cell = shown.cells[r]?.[c];
         if (cell !== undefined) {
           td.textContent = `${cell.wins}/${shown.seeds}`;
           td.title =
-            `A's champion of generation ${g + 1} against B's of generation ${shown.generations[c]! + 1}: ` +
+            `A's champion of ${gridLabel(point)} against B's of ${gridLabel(shown.columns[c]!)}: ` +
             `won ${cell.wins} of ${shown.seeds}, by ${cell.margin >= 0 ? '+' : ''}${cell.margin.toFixed(3)} on average`;
           const share = most > 0 ? Math.round((Math.abs(cell.margin) / most) * 60) : 0;
           td.style.background = `color-mix(in srgb, ${teamColour(cell.margin >= 0 ? 0 : 1)} ${share}%, transparent)`;
@@ -2454,29 +2571,25 @@ export function startEvolution(): void {
           : `${previewRows.length} founders, unmutated`;
       return;
     }
-    const done = run.generations.length;
+    const done = run.generations.length + (run instanceof Coevolution ? run.rivalGenerations.length : 0);
     const total = run.config.generations;
     stateLabel.textContent = run.done ? 'finished' : paused ? 'paused' : 'running';
     pauseButton.disabled = run.done;
     barFill.style.width = `${(run.progress * 100).toFixed(1)}%`;
     let fought = 0;
-    if (run instanceof Coevolution) {
-      for (let g = 0; g < run.generations.length; g++) {
-        fought += bothSides(run.generations[g]!.matches, run.rivalGenerations[g]?.matches ?? []).length;
-      }
-      fought += run.done ? 0 : bothSides(run.played, run.rivalPlayed).length;
-    } else {
-      for (const generation of run.generations) fought += generation.matches.length;
-      fought += run.done ? 0 : run.played.length;
-    }
+    for (const generation of run.generations) fought += generation.matches.length;
+    if (run instanceof Coevolution) for (const generation of run.rivalGenerations) fought += generation.matches.length;
+    fought += run.done ? 0 : run.played.length;
+    // Whose turn it is, in a run whose sides take turns.
+    const turn = run instanceof Coevolution && run.alternates && !run.done ? `round ${run.round + 1}, side ${run.turn === 0 ? 'A' : 'B'} · ` : '';
     readout.textContent =
       notice !== ''
         ? notice
-        : `generation ${Math.min(done + 1, total)} of ${total} · ` +
+        : `${turn}generation ${Math.min(done + 1, total)} of ${total} · ` +
           `${fought} matches fought · ${(run.progress * 100).toFixed(0)}%`;
     if (modeSelect.value !== 'battle') {
       const shown = showing();
-      watchingLabel.textContent = `${shown.rows.length} combatants of generation ${shown.index + 1}`;
+      watchingLabel.textContent = `${shown.rows.length} combatants of ${unit()} ${shown.index + 1}`;
     } else if (skipping) {
       watchingLabel.textContent = 'skipped · waiting for the next match';
     } else if (replay !== null) {
