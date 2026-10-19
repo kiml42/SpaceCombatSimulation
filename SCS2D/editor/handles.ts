@@ -116,7 +116,7 @@ export const ROTATE_ARM_PX = 26;
  * one step of the grid it is snapping to — so this only bites when the zoom is
  * fine enough that the grid has stopped being the binding constraint.
  */
-export const MIN_SIZE = 0.5;
+export const MIN_SIZE = 0.01;
 
 /**
  * The handles for a module, in the blueprint's frame.
