@@ -2495,13 +2495,15 @@ function addThruster(draft: Draft, rng: Rng, bounds: MutationLimits, scale: Scal
   // The first free spot on the anchor's faces, since a face with a neighbour
   // flush against it is inside the hull rather than on it.
   for (const face of faces(anchor.spec, outwardOf(draft, anchor.list), rng)) {
+    // Never in an engine's flame or a gun's line of fire.
+    if (face === 0 && points(anchor.spec.kind)) continue;
     for (const along of berths(anchor.spec, face, false, scale, rng)) {
       const added = against(anchor.spec, face, along, 'engine', false, bounds, scale, rng);
       if (placements.some((other) => !isInstance(other) && modulesOverlap(added, other))) continue;
       placements.push(added);
       const ship = blueprintProblem(draft.blueprint) === null;
       if (ship && (!isLimited(bounds.budget) || affords(bounds.budget, billOf(compileDraft(draft.blueprint))))) {
-        return `${anchor.list.label}[${anchor.index}] ${anchor.spec.kind}: a thruster added to its ${faceName(face)} face`;
+        return `${anchor.list.label}[${anchor.index}] ${anchor.spec.kind}: an engine added as a thruster to its ${faceName(face)} face`;
       }
       placements.pop();
       return ship ? UNAFFORDABLE : null;
