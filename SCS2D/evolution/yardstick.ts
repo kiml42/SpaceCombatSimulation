@@ -300,10 +300,22 @@ export interface GridCell {
   readonly wins: number;
 }
 
+/** A champion sampled for the grid: the generation it was best of, and the round, in a run that has them. */
+export interface GridPoint {
+  readonly generation: number;
+  readonly round?: number;
+}
+
+/** What a grid row or column is called: its round where the run has them, its generation otherwise. */
+export function gridLabel(point: GridPoint): string {
+  return point.round === undefined ? `generation ${point.generation + 1}` : `round ${point.round + 1}`;
+}
+
 export interface ChampionGrid {
-  /** The generations sampled, the same on both sides: the rows for A and the columns for B. */
-  readonly generations: readonly number[];
-  /** `cells[row][column]`: A's champion of `generations[row]` against B's of `generations[column]`. */
+  /** Side A's champions sampled, the rows, and side B's, the columns. */
+  readonly rows: readonly GridPoint[];
+  readonly columns: readonly GridPoint[];
+  /** `cells[row][column]`: A's champion of `rows[row]` against B's of `columns[column]`. */
   readonly cells: readonly (readonly GridCell[])[];
   readonly seeds: number;
   readonly matches: number;
@@ -341,7 +353,8 @@ export function championGrid(run: RunRecord, config?: Partial<GridConfig>): Cham
  * from the top.
  */
 export class GridMeasure {
-  readonly generations: readonly number[];
+  readonly rows: readonly GridPoint[];
+  readonly columns: readonly GridPoint[];
   /** The cells fought so far, row by row. */
   readonly cells: GridCell[][] = [];
   matches = 0;
@@ -359,25 +372,29 @@ export class GridMeasure {
   constructor(run: RunRecord, config?: Partial<GridConfig>) {
     const settings = { ...DEFAULT_GRID, ...config };
     const rival = run.rival?.generations ?? [];
-    const count = min(run.generations.length, rival.length);
-    this.generations = sampled(count, settings.samples);
+    const points = (generations: readonly GenerationRecord[]): GridPoint[] => {
+      const all = roundEnds(generations);
+      return sampled(all.length, settings.samples).map((k) => all[k]!);
+    };
+    this.rows = points(run.generations);
+    this.columns = points(rival);
     const draw = new Rng(settings.seed);
     this.seeds = Array.from({ length: settings.seeds }, () => draw.nextUint32());
     this.match = { ...run.config.match, goal: null, ...settings.match };
-    this.championsA = this.generations.map((g) => entrantOf(champion(run.generations[g]!)));
-    this.championsB = this.generations.map((g) => entrantOf(champion(rival[g]!)));
+    this.championsA = this.rows.map((p) => entrantOf(champion(run.generations[p.generation]!)));
+    this.championsB = this.columns.map((p) => entrantOf(champion(rival[p.generation]!)));
   }
 
   get done(): boolean {
-    return this.row >= this.generations.length;
+    return this.row >= this.rows.length || this.columns.length === 0;
   }
 
   /** How far through, from nothing to one. */
   get progress(): number {
-    const side = this.generations.length;
-    const total = side * side * this.seeds.length;
+    const across = this.columns.length;
+    const total = this.rows.length * across * this.seeds.length;
     if (total === 0 || this.done) return 1;
-    return ((this.row * side + this.column) * this.seeds.length + this.seed) / total;
+    return ((this.row * across + this.column) * this.seeds.length + this.seed) / total;
   }
 
   /** Fight up to `budget` simulation steps of it. */
@@ -410,7 +427,7 @@ export class GridMeasure {
   }
 
   report(): ChampionGrid {
-    return { generations: this.generations, cells: this.cells, seeds: this.seeds.length, matches: this.matches };
+    return { rows: this.rows, columns: this.columns, cells: this.cells, seeds: this.seeds.length, matches: this.matches };
   }
 
   private close(): void {
@@ -432,14 +449,28 @@ export class GridMeasure {
     this.wins = 0;
     this.seed = 0;
     this.column++;
-    if (this.column >= this.generations.length) {
+    if (this.column >= this.columns.length) {
       this.column = 0;
       this.row++;
     }
   }
 }
 
-/** `samples` generation indices out of `count`, evenly spread, first and last included. */
+/**
+ * The champions worth sampling from a side: the last generation of each round
+ * it was bred in, in a run that goes in rounds, and every generation otherwise.
+ */
+function roundEnds(generations: readonly GenerationRecord[]): GridPoint[] {
+  const out: GridPoint[] = [];
+  generations.forEach((generation, g) => {
+    const round = generation.round;
+    if (round === undefined) out.push({ generation: g });
+    else if (generations[g + 1]?.round !== round) out.push({ generation: g, round });
+  });
+  return out;
+}
+
+/** `samples` indices out of `count`, evenly spread, first and last included. */
 function sampled(count: number, samples: number): number[] {
   if (count <= 0) return [];
   const wanted = max(1, min(count, floor(samples)));

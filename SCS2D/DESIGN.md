@@ -659,24 +659,39 @@ inside any one file is not contiguous.
   and side B, each bred only from its own winners, every match some of A against some of B with no goal —
   each side's own number a match, allies of each other, clustered on its own side of the ring (A left, B
   right, spread over 45°), scored only for what they do to the other side, and decided once one side is
-  left fighting. A side B that does not evolve, one a match against several of side A, is what a boss
-  battle was, and there is no separate one.
-  Each side keeps a hall of its last few champions, and a share of every individual's matches is against
-  the other side's hall, so neither can win by beating only the opponent of the moment. Side B may have its
+  left fighting. **One side is bred at a time**, as the skirmish's enemy answers the player: side A against
+  side B's hall of fame until A's best wins `phaseWin` (0.6) of its matches, or for `phaseCap` (10)
+  generations, then A's best joins A's hall and side B is bred against that — each turn a round. Bred
+  together, each side was scored against a target that moved every generation, and a side that fell behind
+  was beaten so quickly and so evenly that selection could no longer tell its designs apart. A side's hall
+  is its latest few round champions, its founders until it has them, and every match is against a group of
+  them on its own seed, so an answer has to beat what came before as well. Each design also fights
+  **drills**, scored only for the damage it does and the function it takes: with its own ships invincible
+  against the hall (`shieldedDrills`, 1), so it can learn to hurt them before it can survive them, and
+  against bare cores (`bareCoreDrills`, 1), which cannot fight back. A side B that does not evolve is its
+  founders throughout, side A bred against them in one unending round; one of it a match against several of
+  side A is what a boss battle was, and there is no separate one. Side B may have its
   own population, winners, entrants a match, budget, fleet limits and mutation weights. Its generations are written beside side A's
-  (`rival` in the run file), and `npm run yardstick` or the page's Measure button measures such a run as a
-  grid of each side's champions against the other's, since fitness against a moving opponent cannot say
-  whether either is improving.
+  (`rival` in the run file), each with its round, and `npm run yardstick` or the page's Measure button
+  measures a run whose sides take turns as a grid of each side's round champions against the other's,
+  since fitness against a moving opponent cannot say whether either is improving.
   **The evolution page is two screens**: setting a run up, with every setting laid out across the width
   beside the founders it would start from, and watching it, with the charts, the combatants and the matches;
   Start moves from the first to the second, and the header goes between them. **Side A is on the left and
   side B on the right throughout**: the shared settings above, then each side's founders, then every
   per-side setting written once as a row with A's box and B's beside it. Picking side B's founders makes a
   run co-evolve, and side B's boxes follow side A's until one of them is changed; unticking "side B evolves"
-  makes side B its founders every generation, a fixed opponent to be bred against. The score chart goes (every score there is against a side that is improving too), the
-  size chart — mass on its left scale and, for fleets, ship count on its right, the mean solid and the best
-  dashed — carries its lines in each side's colours and is what a generation is picked from, and the
-  combatants are tagged A or B and ranked within their own side.
+  makes side B its founders throughout, a fixed opponent to be bred against. Where both sides evolve the
+  charts go by round rather than generation, each side holding where it was through the other's round, and
+  the score chart goes (every score there is against a side that is improving too); against a fixed side B
+  they go by generation and the score chart stays. The chart under it, in every run, can show **how far apart
+  the scores are** in place of size — the middle half and best to worst on the left, how many tied on the
+  right — which says how hard selection is pushing: narrow, or many tied, and it can hardly tell the designs
+  apart. The size chart —
+  mass on its left scale and, for fleets, ship count on its right, the mean solid and the best dashed —
+  carries its lines in each side's colours and is what a point is picked from, and the combatants are
+  tagged A or B and ranked within their own side; a side not bred yet shows its hall. The point on show, and the
+  one under the pointer on the chart, name the side that was evolving in it.
   **Fuel.** A `tank` archetype whose interior is reaction mass, and every core's interior past the cubic
   metre its computing needs (`CORE_COMPUTING_VOLUME`), so a bare core with one engine can move; a core no
   bigger than that holds none. Each engine has an exhaust velocity:

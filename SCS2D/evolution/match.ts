@@ -418,9 +418,15 @@ export class Match {
 
   /**
    * `teams` gives each entrant its side, numbered from zero; left out, every
-   * entrant is its own.
+   * entrant is its own. `invulnerable` lists entrants whose ships nothing can
+   * hurt, for a drill.
    */
-  constructor(entrants: readonly Entrant[], config?: Partial<MatchConfig>, teams?: readonly number[] | null) {
+  constructor(
+    entrants: readonly Entrant[],
+    config?: Partial<MatchConfig>,
+    teams?: readonly number[] | null,
+    invulnerable: readonly number[] = [],
+  ) {
     const settings: MatchConfig = drawnMatch({ ...DEFAULT_MATCH, ...config });
     this.settings = settings;
     const sided = teams === undefined || teams === null ? null : teams;
@@ -515,6 +521,7 @@ export class Match {
                 y: alone ? oy : oy + ship.x * s + ship.y * c,
                 angle: ship.angle === 0 ? heading : heading + ship.angle,
                 team: sided === null ? i : sided[i]!,
+                ...(invulnerable.includes(i) ? { invulnerable: true } : {}),
                 ...(vx !== 0 || vy !== 0 ? { vx, vy } : {}),
               }),
             );

@@ -97,6 +97,8 @@
 
       /* What a co-evolution run does not use: every match is one against one, with no goal. */
       body.coRun .soloOnly { display: none !important; }
+      /* Scored against a side that moves too, the score says nothing over time; against a fixed one, it does. */
+      body.coRun:not(.rivalFixed) .scoreChart { display: none !important; }
       #bar {
         height: 4px;
         background: #16202e;
@@ -346,9 +348,12 @@
           </details>
           <details open class="coOnly" data-key="coevolution">
             <summary><h2>Co-evolution</h2></summary>
-            <div class="field" title="Champions each side keeps, one per generation, the latest. Every individual fights some of the other side's, so neither can win by beating only the opponent of the moment. 0 keeps none."><label for="hall">hall of fame</label><input id="hall" type="number" min="0" step="1" /></div>
-            <div class="field" title="The share of each individual's matches fought against the other side's hall of fame, once it has one."><label for="hallShare">against the hall</label><input id="hallShare" type="number" min="0" max="1" step="0.05" /></div>
-            <p class="note">Each side keeps its latest champions, and spends a share of its matches against the other side's: neither can win by beating only the opponent of the moment.</p>
+            <div class="field" title="Champions each side keeps, one a round, the latest: what the other side is bred against. Its founders until it has any."><label for="hall">hall of fame</label><input id="hall" type="number" min="1" step="1" /></div>
+            <div class="field" title="The share of its matches against the other side's hall a round's best must win for the other side's turn to come."><label for="phaseWin">wins to end a round</label><input id="phaseWin" type="number" min="0" max="1" step="0.05" /></div>
+            <div class="field" title="The most generations a round may take before the other side's turn comes anyway."><label for="phaseCap">most generations a round</label><input id="phaseCap" type="number" min="1" step="1" /></div>
+            <div class="field" title="Matches each design fights a generation with its own ships invincible, against the other side's hall: it learns to hurt them before it has to survive them. Scored only for what it does to them."><label for="shieldedDrills">invincible drills</label><input id="shieldedDrills" type="number" min="0" step="1" /></div>
+            <div class="field" title="Matches each design fights a generation against bare cores, which cannot fight back: something to hit while it cannot yet hit anything else. Scored only for what it does to them."><label for="bareCoreDrills">bare-core drills</label><input id="bareCoreDrills" type="number" min="0" step="1" /></div>
+            <p class="note">One side is bred at a time, against the other's hall of fame, until its best usually wins; then the other side's turn comes. Each turn is a round.</p>
           </details>
         </div>
         <div id="sides">
@@ -411,11 +416,11 @@
         <div style="padding: 0.7rem 0.9rem 0">
           <div id="bar" class="runOnly"><div id="barFill"></div></div>
           <p id="readout">Pick founders and press Start.</p>
-          <div id="chartWrap" class="soloOnly runOnly">
+          <div id="chartWrap" class="scoreChart runOnly">
             <canvas id="chart"></canvas>
             <span id="chartTip" hidden></span>
           </div>
-          <p id="legend" class="soloOnly runOnly">
+          <p id="legend" class="scoreChart runOnly">
             <span style="color: #e6edf5">best</span>
             <span style="color: #7fa8e0">mean</span>
             <span style="color: #7fd6a0">hull kept</span>
@@ -426,9 +431,10 @@
             <span style="color: #5bd6d6">vs. yardstick</span>
           </p>
           <div class="runOnly">
-          <label class="sizeMetric">size by <select id="sizeMetric">
-            <option value="mass">mass and ships</option>
-            <option value="fittings">weapons and engines</option>
+          <label class="sizeMetric">chart <select id="sizeMetric" title="How far apart the scores are: the middle half and best to worst on the left, how many tied on the right. Narrow, or many tied, and selection can hardly tell the designs apart.">
+            <option value="mass">size: mass and ships</option>
+            <option value="fittings">size: weapons and engines</option>
+            <option value="spread">how far apart the scores are</option>
           </select></label>
           <canvas id="massChart" class="subChart"></canvas>
           <p id="massLegend" class="legend"></p>

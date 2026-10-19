@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { parseBlueprint, parseFleet } from '../sim/index.js';
 import type { Entrant } from '../evolution/match.js';
 import { BLUEPRINTS } from '../scenarios/blueprints.js';
-import { championGrid, latest, measure, trend } from '../evolution/yardstick.js';
+import { championGrid, latest, measure, trend, type GridPoint } from '../evolution/yardstick.js';
 import { entrantOf, type RunRecord } from '../evolution/run.js';
 
 /**
@@ -57,11 +57,10 @@ if (record.rival !== undefined && options.against === null) {
     `side A's champions (rows) against side B's (columns), ${grid.seeds} seeds a cell — ${grid.matches} matches\n` +
       `each cell is A's score less B's: above nought, A came off better\n`,
   );
-  console.log(`  A \\ B ${grid.generations.map((g) => String(g).padStart(7)).join('')}`);
+  const label = (p: GridPoint): string => (p.round === undefined ? `g${p.generation + 1}` : `r${p.round + 1}`);
+  console.log(`  A \\ B ${grid.columns.map((p) => label(p).padStart(7)).join('')}`);
   grid.cells.forEach((row, r) => {
-    console.log(
-      `  ${String(grid.generations[r]).padStart(5)} ${row.map((cell) => cell.margin.toFixed(2).padStart(7)).join('')}`,
-    );
+    console.log(`  ${label(grid.rows[r]!).padStart(5)} ${row.map((cell) => cell.margin.toFixed(2).padStart(7)).join('')}`);
   });
   console.log(
     `\nAn arms race reads as rows rising down the grid (A's later champions beating B's) and columns falling\n` +

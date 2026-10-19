@@ -99,7 +99,10 @@ const VERSUS_KEYS: readonly string[] = [
   'founders',
   'fleets',
   'hall',
-  'hallShare',
+  'phaseWin',
+  'phaseCap',
+  'shieldedDrills',
+  'bareCoreDrills',
   'population',
   'winners',
   'group',
@@ -186,13 +189,16 @@ export function serialiseRunConfig(setup: RunSetup): Record<string, unknown> {
 }
 
 function serialiseVersus(versus: VersusSetup): Record<string, unknown> {
-  const { hall, hallShare, rival, rivalEvolves } = versus.coevolution;
+  const { hall, phaseWin, phaseCap, shieldedDrills, bareCoreDrills, rival, rivalEvolves } = versus.coevolution;
   return {
     founders: [...versus.founders],
     ...(versus.fleets.length > 0 ? { fleets: [...versus.fleets] } : {}),
     ...(rivalEvolves ? {} : { evolves: false }),
     hall,
-    hallShare,
+    phaseWin,
+    phaseCap,
+    shieldedDrills,
+    bareCoreDrills,
     ...(rival.population === undefined ? {} : { population: rival.population }),
     ...(rival.winners === undefined ? {} : { winners: rival.winners }),
     ...(rival.group === undefined ? {} : { group: rival.group }),
@@ -300,7 +306,10 @@ function versusProblem(versus: unknown, warnings: string[]): string | null {
     namesProblem(versus['founders'], 'versus.founders') ??
     namesProblem(versus['fleets'], 'versus.fleets') ??
     numberProblem(versus['hall'], 'versus.hall') ??
-    chanceProblem(versus['hallShare'], 'versus.hallShare') ??
+    chanceProblem(versus['phaseWin'], 'versus.phaseWin') ??
+    countProblem(versus['phaseCap'], 'versus.phaseCap') ??
+    wholeProblem(versus['shieldedDrills'], 'versus.shieldedDrills') ??
+    wholeProblem(versus['bareCoreDrills'], 'versus.bareCoreDrills') ??
     countProblem(versus['population'], 'versus.population') ??
     countProblem(versus['winners'], 'versus.winners') ??
     countProblem(versus['group'], 'versus.group') ??
@@ -425,7 +434,10 @@ function parseVersus(versus: Record<string, unknown>): VersusSetup {
     coevolution: {
       rival,
       hall: read(versus['hall'], DEFAULT_COEVOLUTION.hall),
-      hallShare: read(versus['hallShare'], DEFAULT_COEVOLUTION.hallShare),
+      phaseWin: read(versus['phaseWin'], DEFAULT_COEVOLUTION.phaseWin),
+      phaseCap: read(versus['phaseCap'], DEFAULT_COEVOLUTION.phaseCap),
+      shieldedDrills: read(versus['shieldedDrills'], DEFAULT_COEVOLUTION.shieldedDrills),
+      bareCoreDrills: read(versus['bareCoreDrills'], DEFAULT_COEVOLUTION.bareCoreDrills),
       rivalEvolves: versus['evolves'] !== false,
     },
   };
@@ -455,6 +467,16 @@ function numberProblem(value: unknown, what: string): string | null {
 }
 
 /** A whole number of things, of which there has to be at least one. */
+/** A whole number, none allowed. */
+function wholeProblem(value: unknown, what: string): string | null {
+  const problem = numberProblem(value, what);
+  if (problem !== null) return problem;
+  if (value !== undefined && (!Number.isInteger(value) || (value as number) < 0)) {
+    return `${what} must be a whole number, got ${JSON.stringify(value)}`;
+  }
+  return null;
+}
+
 function countProblem(value: unknown, what: string): string | null {
   const problem = numberProblem(value, what);
   if (problem !== null) return problem;
