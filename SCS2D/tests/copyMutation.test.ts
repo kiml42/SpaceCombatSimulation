@@ -20,8 +20,10 @@ describe('copying an engine', () => {
         const rng = new Rng(seed * 7919 + name.length);
         let held: Blueprint = BLUEPRINTS[name];
         for (let g = 0; g < 300; g++) {
-          // Structure alone, so a copy is a child's only edit.
+          // Structure alone, so a copy is a child's only edit; no thrusters,
+          // whose flames a copy beside its original does not look out for.
           const child = mutate(held, rng, {
+            thrusters: 0,
             build: { move: 0, resize: 0, refit: 0, fittings: 0, tuning: 0, fighter: 0, shape: 0 },
             doctrine: { targeting: 0, approach: 0, escort: 0, avoidance: 0, gunnery: 0 },
           });
