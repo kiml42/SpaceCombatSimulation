@@ -1,17 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { compileBlueprint, DAMAGE_ENERGY_PER_KG, type Blueprint } from '../sim/index.js';
 import { makeBattle } from '../scenarios/battle.js';
-import { CORVETTE } from '../scenarios/blueprints.js';
-import { SALVAGER } from '../scenarios/salvage.js';
+import { CORVETTE, SALVAGER } from '../scenarios/blueprints.js';
+import { BREAKER } from '../scenarios/salvage.js';
 
 /** A ship going out to take wrecks apart for their metal, by `scavengeMetalBelow`. */
 
 /** The scrapyard's salvager with an engine and a tank, so it can go to a wreck. */
 function salvager(scavengeMetalBelow: number, fuelPerMetal = 1): Blueprint {
   const blueprint: Blueprint = {
-    ...SALVAGER,
+    ...BREAKER,
     modules: [
-      ...SALVAGER.modules,
+      ...BREAKER.modules,
       { kind: 'tank', x: -7.5, y: 0, length: 4, width: 4 },
       { kind: 'engine', x: -9.5, y: 0, angle: Math.PI, length: 1.5, width: 4, nozzle: 0.5 },
     ],
@@ -46,6 +46,15 @@ describe('scavenging for metal', () => {
   it('goes to a hulk, grips it, and takes it apart into its hold', { timeout: 60_000 }, () => {
     const run = scene(salvager(0.5));
     expect(run.ships.hasControl(run.w)).toBe(false);
+    const before = hold(run);
+    runFor(run, 200, () => run.ships.body(run.s) === run.ships.body(run.w));
+    expect(run.ships.body(run.s)).toBe(run.ships.body(run.w));
+    runFor(run, 120);
+    expect(hold(run) - before).toBeGreaterThan(1000);
+  });
+
+  it('is what the stock Salvager does, as it comes', { timeout: 60_000 }, () => {
+    const run = scene(SALVAGER);
     const before = hold(run);
     runFor(run, 200, () => run.ships.body(run.s) === run.ships.body(run.w));
     expect(run.ships.body(run.s)).toBe(run.ships.body(run.w));

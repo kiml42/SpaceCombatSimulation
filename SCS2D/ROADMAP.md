@@ -53,68 +53,42 @@ an entry is either still open or it is gone.
 | 9 | Docking, fuel transfer and fuel harvesting | Built |
 | 10 | Raw material | Built |
 | 11 | Power | Built |
-| 12 | In-battle construction | Partly built |
-| 13 | Harvesting wrecks | Partly built |
-| 14 | Mining | Not started |
-| 15 | Campaign | Not started |
+| 12 | In-battle construction | Built |
+| 13 | Harvesting wrecks | Built |
+| 14 | Orders | Not started |
+| 15 | Mining | Not started |
+| 16 | Campaign | Not started |
 
 ### Partly built — what is left
 
-Step 13's remainder is its entry below. Of step 12, slice 1 is built (DESIGN.md Status): pads build the
-fighters they keep, in a fleet from the fleet's designs, and evolution breeds both. Of slice 2, every
-placement has a stable id, a ship can be refitted (`Ships.refit`), and the editor shows what a refit
-from the design as opened would build and take down; what is left of it is the paused battle issuing one.
-Slice 3 is left as planned below.
+Nothing: every step up to 13 is built.
 
 ### Not started — in order
 
-Steps 12 and 13 build on repair, construction and salvage, which is one mechanism and built (DESIGN.md Status):
-robots and pads rebuilding what a ship launched with, and taking wreckage apart into metal.
+14. **Orders** — telling ships what to do in the middle of a battle, from the paused battle. A big change,
+    and mostly careful UI: picking a ship or a group, choosing what to tell it, seeing what it has been told
+    and taking it back, all without the screen turning into a form. It needs to cover telling ships to:
 
-12. **In-battle construction** — new ships built during a battle, and ships refitted from one design to
-    another. **A ship always aims at exactly one blueprint**: rebuilding is aiming at the design it set out
-    with, and a refit is changing which design that is, never growing past one. Three slices, in order, each
-    reusing the rebuilding robots and pads already do (DECISIONS.md, 2026-10-17):
+    - change doctrine;
+    - attack something;
+    - defend something;
+    - run away;
+    - ram;
+    - go for refuelling or repairs;
+    - remodel to a new design;
+    - build a fighter;
+    - build a ship.
 
-    1. **Pads build fighters.** A pad names one design (`craft`), whether it sets out with one docked, and
-       a count it keeps (`keep`, default 0: build nothing, so every existing blueprint and golden is
-       unchanged). Short of its count, it lays the fighter's core as a shell against its own face where a
-       docked fighter would lie, and the pad's existing rebuild does the rest, fills it and launches it whole.
-       A pad owns what it set out with or built, wherever they land; one out of the fight stops counting.
-       It starts a shell only while no friendly fighter is making for it, and a shell holds the pad until
-       launch. In a fleet the design is the fleet's, shared with any ships flying it from the start, and
-       the hangar is the portable copy for a carrier on its own. Evolution nudges `keep`, points a pad at
-       another fighter of the fleet or at a new bare-core fighter, and breeds a fleet design no ship sets out
-       as. A side that can still build an armed fighter is armed, and a shell going up is activity, for the
-       battle's decision. Pads build only fighters: anything in the hull layer would land on its carrier.
-    2. **Refits.** Every blueprint module gets a stable id, kept by every edit and mutation. A command,
-       `refit(ship, design)`, sets the design a ship aims at: modules identical by id are kept, changed ones
-       taken apart and rebuilt, ones only in the old design taken apart, ones only in the new built, by the
-       rules robots already have, building before demolishing where nothing is in the way. The new design
-       must keep the core the ship is flown from. The editor shows the design a ship is refitting from and
-       marks what will be taken apart. The first thing to issue the command is the paused battle; the
-       campaign reuses it.
-    3. **Slipways.** A new hull module builds capital ships alongside the mothership, like a 3D printer:
-       the design's bow points away, and the front, at the slipway's face, slices through every module it
-       crosses at once, each growing as a shell from its far face, the part built pushed out as it grows
-       (a remade hull, since until it parts it is one body with the mothership), the stern last. Filled
-       through the seam, it parts and flies. A connected design stays connected all the way. It names a
-       design and a count, as a pad does, but never sets out with one: it is a shipyard, not somewhere
-       ships are kept. **Built:** the module, its fields, its blueprint problems, the editor's
-       controls, the building, and evolution adding one and pointing it at a ship (DESIGN.md Status).
-       Blueprint problems: the slipway
-       must be in every layer the design is (one turret makes it thick), as wide as the design's beam, and
-       the strip it builds into clear of the mothership's own hull. Building moves metal from the holds
-       into the new hull, so the mass stays and the inertia grows, lopsided unless the slipway is on the
-       centre line; the part built does nothing until it parts, and can be shot.
-13. **Harvesting wrecks** — metal regained from wreckage, with the grapple step 9 built. The natural bridge to
-    an economy: no map features needed, and income tied directly to combat. Disassembly takes apart what
-    a ship has hold of, and `scavengeMetalBelow` sends a pilot out for wrecks for their metal, as
-    `scavengeFuelBelow` does for fuel; what is left is a stock salvager to fly it.
-14. **Mining** — metal and fuel from map features, so maps have economic character. By here both resources
+    Much of it already has a form in the sim, and what is missing is the way to give it: a ship holds a
+    queue of orders, each a target and a range band to hold, or a target to ram; doctrine is a block a ship
+    can be handed whole; its doctrine already sends it to escort, to land on a pad and to dock at a port for
+    fuel and repairs, but only on its own judgement, never by order; `Ships.refit` remodels a ship; a pad's
+    or slipway's `craft` and `keep` say what it builds. Running away has no form yet (withdrawal, §12).
+    Comes before mining because managing an income is giving orders; the campaign reuses all of it.
+15. **Mining** — metal and fuel from map features, so maps have economic character. By here both resources
     exist, so this step is the map and the income, not the resources. *It replaces "did I spend 500 points
     well?" with "did I manage income well?"*
-15. **Campaign** — Homeworld-shaped, with the adaptive enemy. Last, because it's mostly *authoring* (scripted
+16. **Campaign** — Homeworld-shaped, with the adaptive enemy. Last, because it's mostly *authoring* (scripted
     missions, pacing, narrative), which is the largest volume of work in the least-proven discipline.
 
 **Scenario packs** are the cheapest way to make it a game with goals rather than a sandbox, and they teach the
@@ -165,6 +139,16 @@ that answers the question most likely to change the design.
   fleet (fork the design instead), and a group's own doctrine or lead, which waits for standing orders.
   Velocity stays out of the fleet file; the battle setup holds it.
 
+#### In-battle construction (step 12)
+
+- **A ship always aims at exactly one blueprint.** Rebuilding aims at the design it set out with; a refit
+  changes which design that is. An order to remodel is `Ships.refit` and nothing else: never a ship growing
+  past its design.
+- **A refit matches modules by stable id**, so anything that makes or edits a design an order points a ship
+  at has to keep ids (`settleIds`), as the editor and evolution do.
+- **Pads and slipways keep a count, not a queue.** An order to build a fighter or a ship sets a `craft` and a
+  `keep`; a menu of designs is open (§12).
+
 #### Power (step 11)
 
 - **Docks pass charge as they pass fuel**: a pad from its carrier to what has landed, a port into whichever ship
@@ -190,8 +174,6 @@ that answers the question most likely to change the design.
 
 - **Every join is a weld made by a part, and the seam names it** (`Seam.dock`: claw, pad or port). A new kind
   of dock is a kind there, a part, and a branch in `Ships.pump` saying which way fuel goes and when it lets go.
-- **The claw is the grapple step 13 reuses.** What it pumps is fuel, through `Fuel.transfer`; metal will want
-  a store and a transfer of its own, and the same seam to carry it.
 - **The smaller of two docked ships idles.** Whether the larger should fly the smaller's engines is in §12.
 - **A tanker has nowhere to be.** Unarmed, it picks no fight and holds where it is; keeping it clear of one is
   withdrawal (§12), not anything of step 9's.

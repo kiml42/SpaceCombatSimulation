@@ -722,7 +722,10 @@ inside any one file is not contiguous.
   `scavengeMetalBelow` of a full load of metal (zero, never, by default), until its holds are full: a wreck,
   or a hulk nobody is mending, is then worth what its robots would bring home of it as well, its mass less
   its fuel and `DISASSEMBLY_WASTE`, counted at `fuelPerMetal` kilograms of fuel a kilogram (one by default),
-  since whether a tonne of metal is worth a tonne of fuel depends on which is scarce. A claw goes only for what it shares a layer with: a thin one never for a fighter or a piece of one, which flies above the deck. The time to take it
+  since whether a tonne of metal is worth a tonne of fuel depends on which is scarce. The stock **Salvager**
+  flies it: a claw on the bow, a robot bay, and two holds sent out empty, going for metal below nine tenths
+  of a full hold and for fuel below half a tank; the `salvageRun` scenario has it fly out to a dead corvette,
+  grip it, drink it and take it apart. A claw goes only for what it shares a layer with: a thin one never for a fighter or a piece of one, which flies above the deck. The time to take it
   apart is reckoned at its robots' `ROBOT_REPAIR_RATE`. The claw grips it and holds on while its robots work. It points
   its claw at the source and comes in down a stopping curve that ends not at rest but at the middle of the
   claw's band, planned on the thrust it actually has astern; touching without taking hold, it backs off for
@@ -1002,8 +1005,9 @@ inside any one file is not contiguous.
 - **Next:** repair, construction and salvage, one mechanism, is built in all six stages:
   damage shedding mass, pads mending landed fighters, robots mending their own hull, lost and built anew,
   lost modules rebuilt by robots and by pads, and robots taking wreckage apart into metal, with doctrine that
-  sends a fighter in to be mended and a ship out to wrecks for their metal. What is left of it is a stock
-  salvager to fly it.
+  sends a fighter in to be mended and a ship out to wrecks for their metal, flown by the stock Salvager.
+  In-battle construction (§8 step 12) and harvesting wrecks (step 13) are built on it. What comes next is
+  orders (step 14): telling ships what to do mid-battle, from the paused battle.
   Alongside it, §8 step 5's skirmish: an endless loop against an enemy fleet that evolves to beat the
   player's, planned in ROADMAP.md §8. Evolution can end a match on the skirmish's rule too, where its `quietLimit` is set. Its loop is built without the evolving enemy (`dist/skirmish.html`,
   `scenarios/skirmish.ts`): pick a stock enemy, whose bill is the budget unless the player sets their own, under a limit on ships and spread (20 and 500 m unless set, or what the enemy fields if more), each round's gap and starting speeds drawn from optional ± spreads on its seed; fight a fixed round, decided by

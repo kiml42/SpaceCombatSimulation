@@ -12,6 +12,7 @@ import laserFrigateFile from './blueprints/laser-frigate.json' with { type: 'jso
 import broadsideFile from './blueprints/broadside.json' with { type: 'json' };
 import torpedoFile from './blueprints/torpedo.json' with { type: 'json' };
 import scavengerFile from './blueprints/scavenger.json' with { type: 'json' };
+import salvagerFile from './blueprints/salvager.json' with { type: 'json' };
 import tankerFile from './blueprints/tanker.json' with { type: 'json' };
 import beamCarrierFile from './blueprints/beam-carrier.json' with { type: 'json' };
 
@@ -59,6 +60,7 @@ export const LASER_FRIGATE: Blueprint = parseBlueprint(laserFrigateFile);
 export const TORPEDO: Blueprint = parseBlueprint(torpedoFile);
 export const BROADSIDE: Blueprint = parseBlueprint(broadsideFile);
 export const SCAVENGER: Blueprint = parseBlueprint(scavengerFile);
+export const SALVAGER: Blueprint = parseBlueprint(salvagerFile);
 export const TANKER: Blueprint = parseBlueprint(tankerFile);
 export const BEAM_CARRIER: Blueprint = parseBlueprint(beamCarrierFile);
 
@@ -84,6 +86,7 @@ export const BLUEPRINTS = {
     torpedo: TORPEDO,
     broadside: BROADSIDE,
     scavenger: SCAVENGER,
+    salvager: SALVAGER,
     tanker: TANKER,
     beamCarrier: BEAM_CARRIER,
 

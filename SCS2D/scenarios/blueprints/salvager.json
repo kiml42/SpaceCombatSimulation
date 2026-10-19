@@ -1,0 +1,155 @@
+{
+  "formatVersion": 2,
+  "name": "Salvager",
+  "notes": "Unarmed, with a claw on the bow, robots behind the core and an empty hold, so everything it brings home is metal off a wreck. Below nine tenths of a full hold it goes for the wreck, or the hulk nobody is mending, that pays most for the time it takes, avoiding any an armed enemy is near; it grips it and holds on while its robots take it apart into the hold, then moves on to the next until the hold is full. It drinks fuel too, below half a tank, from what it grips.",
+  "doctrine": {
+    "approach": {
+      "approachSpeed": 30,
+      "scavengeFuelBelow": 0.5,
+      "scavengeMetalBelow": 0.9
+    }
+  },
+  "modules": [
+    {
+      "id": 1,
+      "kind": "core",
+      "x": 0,
+      "y": 0,
+      "length": 3,
+      "width": 3
+    },
+    {
+      "id": 2,
+      "kind": "claw",
+      "x": 2.5,
+      "y": 0,
+      "angle": 0,
+      "length": 2,
+      "width": 2,
+      "notes": "Its jaws are the bow, so pointing the ship at a wreck is pointing the claw."
+    },
+    {
+      "id": 3,
+      "kind": "generator",
+      "x": -3,
+      "y": 0,
+      "length": 3,
+      "width": 3,
+      "notes": "Keeps the robots charged: taking a wreck apart is work, and work is charge."
+    },
+    {
+      "id": 4,
+      "kind": "robotBay",
+      "x": -6.5,
+      "y": 0,
+      "length": 4,
+      "width": 4,
+      "notes": "Berths for the robots that cross onto what the claw grips and take it apart."
+    },
+    {
+      "id": 5,
+      "kind": "hold",
+      "x": -6.5,
+      "y": 3.5,
+      "length": 4,
+      "width": 3,
+      "fill": 0,
+      "notes": "Sent out empty, as is its twin: what they are for is filling them."
+    },
+    {
+      "id": 6,
+      "kind": "hold",
+      "x": -6.5,
+      "y": -3.5,
+      "length": 4,
+      "width": 3,
+      "fill": 0
+    },
+    {
+      "id": 7,
+      "kind": "tank",
+      "x": -3,
+      "y": 3,
+      "length": 3,
+      "width": 3
+    },
+    {
+      "id": 8,
+      "kind": "tank",
+      "x": -3,
+      "y": -3,
+      "length": 3,
+      "width": 3
+    },
+    {
+      "id": 9,
+      "kind": "engine",
+      "x": -8.5,
+      "y": 0,
+      "angle": 180,
+      "length": 1,
+      "width": 2,
+      "nozzle": 0.5
+    },
+    {
+      "id": 10,
+      "kind": "engine",
+      "x": -6.5,
+      "y": 5,
+      "angle": 90,
+      "length": 0.5,
+      "width": 1,
+      "nozzle": 0.5
+    },
+    {
+      "id": 11,
+      "kind": "engine",
+      "x": -6.5,
+      "y": -5,
+      "angle": -90,
+      "length": 0.5,
+      "width": 1,
+      "nozzle": 0.5
+    },
+    {
+      "id": 12,
+      "kind": "engine",
+      "x": 0,
+      "y": 1.5,
+      "angle": 90,
+      "length": 0.5,
+      "width": 1,
+      "nozzle": 0.5
+    },
+    {
+      "id": 13,
+      "kind": "engine",
+      "x": 0,
+      "y": -1.5,
+      "angle": -90,
+      "length": 0.5,
+      "width": 1,
+      "nozzle": 0.5
+    },
+    {
+      "id": 14,
+      "kind": "engine",
+      "x": 1.5,
+      "y": 1.25,
+      "angle": 0,
+      "length": 0.5,
+      "width": 0.5,
+      "nozzle": 1
+    },
+    {
+      "id": 15,
+      "kind": "engine",
+      "x": 1.5,
+      "y": -1.25,
+      "angle": 0,
+      "length": 0.5,
+      "width": 0.5,
+      "nozzle": 1
+    }
+  ]
+}

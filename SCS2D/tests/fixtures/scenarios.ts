@@ -18,7 +18,7 @@ import { beamDuel } from '../../scenarios/beamDuel.js';
 import { soloOrdering } from '../../scenarios/ordering.js';
 import { ram } from '../../scenarios/ram.js';
 import { hooked } from '../../scenarios/hooked.js';
-import { salvage, scrapyard } from '../../scenarios/salvage.js';
+import { salvage, salvageRun, scrapyard } from '../../scenarios/salvage.js';
 import { mending, rebuilding, refitting } from '../../scenarios/mending.js';
 import { scavenge } from '../../scenarios/scavenge.js';
 import { carrier, factory, padRebuild } from '../../scenarios/carrier.js';
@@ -541,6 +541,19 @@ export function salvageScenario(seed = 20261008): ScenarioRun {
   };
 }
 
+export function salvageRunScenario(seed = 20261019): ScenarioRun {
+  const run = salvageRun(seed);
+  return {
+    step: () => run.step(),
+    checksum: () =>
+      checksumDamage(
+        run.ships.damage,
+        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
+      ),
+    describe: () => describeBattle(run),
+  };
+}
+
 export function scrapyardScenario(seed = 20261013): ScenarioRun {
   const run = scrapyard(seed);
   return {
@@ -723,6 +736,8 @@ export const SCENARIOS = {
   broadside: { steps: 3_000, build: () => broadsideScenario() },
   salvage: { steps: 3_000, build: () => salvageScenario() },
   scrapyard: { steps: 18_000, build: () => scrapyardScenario() },
+  // Long enough for the Salvager to fly out, grip the corvette, drink and start taking it apart.
+  salvageRun: { steps: 14_400, build: () => salvageRunScenario() },
   // Long enough for the robots to mend everything and come home.
   mending: { steps: 15_600, build: () => mendingScenario() },
   rebuilding: { steps: 10_800, build: () => rebuildingScenario() },
