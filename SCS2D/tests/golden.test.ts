@@ -43,6 +43,7 @@ const GOLDEN: Record<ScenarioName, string> = {
   broadside: '3af6d849',
   salvage: '4b6e4a3f',
   scrapyard: '07368ab2',
+  salvageRun: '8a833239',
   mending: '4ec98f7f',
   rebuilding: '8c08e28f',
   refitting: 'c89fc3a1',

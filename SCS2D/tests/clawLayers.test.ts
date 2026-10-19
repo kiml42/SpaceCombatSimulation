@@ -2,16 +2,16 @@ import { describe, expect, it } from 'vitest';
 import { compileBlueprint, DAMAGE_ENERGY_PER_KG, type Blueprint, type ShipDesign } from '../sim/index.js';
 import { makeBattle } from '../scenarios/battle.js';
 import { CORVETTE, DINKY } from '../scenarios/blueprints.js';
-import { SALVAGER } from '../scenarios/salvage.js';
+import { BREAKER } from '../scenarios/salvage.js';
 
 /** A claw goes only for what it could close on: a thin one never for a fighter, which flies above the deck. */
 
 /** The scrapyard's salvager with an engine and a tank, thirsty for fuel and metal alike. */
 function salvager(): ShipDesign {
   const blueprint: Blueprint = {
-    ...SALVAGER,
+    ...BREAKER,
     modules: [
-      ...SALVAGER.modules,
+      ...BREAKER.modules,
       { kind: 'tank', x: -7.5, y: 0, length: 4, width: 4, fill: 0.1 },
       { kind: 'engine', x: -9.5, y: 0, angle: Math.PI, length: 3, width: 4 },
     ],

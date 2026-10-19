@@ -3,11 +3,11 @@ import { compileBlueprint, DAMAGE_ENERGY_PER_KG, ROBOT_LOAD, type ShipDesign } f
 import type { Robot } from '../sim/robots.js';
 import { makeBattle } from '../scenarios/battle.js';
 import { CORVETTE } from '../scenarios/blueprints.js';
-import { LEECH, SALVAGER } from '../scenarios/salvage.js';
+import { LEECH, BREAKER } from '../scenarios/salvage.js';
 
-const OWN = SALVAGER.modules.length;
+const OWN = BREAKER.modules.length;
 
-const salvager = compileBlueprint(SALVAGER);
+const salvager = compileBlueprint(BREAKER);
 
 interface Setup {
   /** The other hull's cores are left sound, so it is still flown. */

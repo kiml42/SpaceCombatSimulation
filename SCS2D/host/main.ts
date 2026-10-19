@@ -14,7 +14,7 @@ import { split } from '../scenarios/split.js';
 import { torchRun } from '../scenarios/torchRun.js';
 import { broadside } from '../scenarios/broadside.js';
 import { hooked } from '../scenarios/hooked.js';
-import { salvage, scrapyard } from '../scenarios/salvage.js';
+import { salvage, salvageRun, scrapyard } from '../scenarios/salvage.js';
 import { mending, rebuilding, refitting } from '../scenarios/mending.js';
 import { scavenge } from '../scenarios/scavenge.js';
 import { carrier, factory, padRebuild } from '../scenarios/carrier.js';
@@ -65,6 +65,7 @@ export function start(): void {
     { name: 'Broadside', create: () => broadside(SEED) },
     { name: 'Salvage', create: () => salvage(SEED) },
     { name: 'Scrapyard', create: () => scrapyard(SEED) },
+    { name: 'Salvage Run', create: () => salvageRun(SEED) },
     { name: 'Mending', create: () => mending(SEED) },
     { name: 'Rebuilding', create: () => rebuilding(SEED) },
     { name: 'Refitting', create: () => refitting(SEED) },
