@@ -258,6 +258,26 @@ describe('tracking', () => {
 });
 
 describe('traverse arcs', () => {
+  it('stops at the end of its arc, however hard the hull spins under it', () => {
+    // Counter-rotating to hold a world bearing, a mount reaches an end of its
+    // arc too fast to brake there. The end is a stop, not a suggestion: past
+    // it, the barrel used to coast on into the gap and out the other side,
+    // holding its bearing while the ship spun round beneath it.
+    const { bodies, index } = ship();
+    const turrets = new Turrets();
+    const arc = 2.6;
+    const t = turrets.add({ owner: index, x: 0, y: 0, leftArc: arc, rightArc: arc, maxRate: 2, maxAccel: 4 });
+    let worst = 0;
+    for (let step = 0; step < 3000; step++) {
+      bodies.angularVel[index] = 1;
+      turrets.commandWorldBearing(bodies, t, 1);
+      turrets.step(DT, bodies);
+      bodies.angle[index] = bodies.angle[index]! + DT;
+      worst = Math.max(worst, Math.abs(angleDelta(0, turrets.bearing[t]!)));
+    }
+    expect(worst).toBeLessThanOrEqual(arc + 1e-12);
+  });
+
   it('bounds the port sweep with the left arc and the starboard sweep with the right', () => {
     // The one thing a symmetric arc cannot test, and the reason to test it: a
     // mount fouled to port must still train freely to starboard. With the two

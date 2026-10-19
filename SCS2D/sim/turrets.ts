@@ -726,8 +726,21 @@ export class Turrets {
       if (desired - previousRate > maxChange) next = previousRate + maxChange;
       else if (desired - previousRate < -maxChange) next = previousRate - maxChange;
 
+      // The arc's ends are stops: a mount carried past one by its own momentum,
+      // as when counter-rotating against a spinning hull, halts against it.
+      let bearing = normalizeAngle(this.bearing[i]! + next * dt);
+      const left = this.leftArc[i]!;
+      const right = this.rightArc[i]!;
+      if (left + right < TAU) {
+        const rest = this.restBearing[i]!;
+        const offset = this.arcOffset(rest, this.bearing[i]!, left, right) + next * dt;
+        if (offset > left || offset < -right) {
+          bearing = normalizeAngle(rest + (offset > left ? left : -right));
+          next = 0;
+        }
+      }
+
       // A lit beam stops at the edge of its own ship rather than cross it.
-      const bearing = normalizeAngle(this.bearing[i]! + next * dt);
       const intoShip =
         this.lit[i] === 1 &&
         !this.fouled(i) &&

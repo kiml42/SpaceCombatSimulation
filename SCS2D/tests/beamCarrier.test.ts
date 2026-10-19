@@ -47,14 +47,26 @@ describe('the Beam Carrier', () => {
     const design = ships.design(landed);
     const own = (kind: string): number => design.modules.findIndex((m, k) => m.spec.kind === kind && ships.owns(landed, k));
     const m = own('battery');
-    // Filled before it next sorties, if the raid gives it cause to.
+    const docked = (): boolean => ships.body(landed) === ships.body(CARRIER);
+    const fuelRoom = (): number => ships.fuel.pieceRoom(body(landed), own('core'));
+    // Filled before it next sorties, if the raid gives it cause to. It may sortie
+    // the step it fills, which the stores can no longer be read through the
+    // carrier to see: then the last reading aboard must be short of full by no
+    // more than that step's flow.
     const full = (): boolean =>
-      ships.power.pieceRoom(body(landed), m) < 0.05 * design.modules[m]!.stats.charge &&
-      ships.fuel.pieceRoom(body(landed), own('core')) < 0.5;
-    for (let s = 0; s < 30 * 60 && !full() && ships.body(landed) === ships.body(CARRIER); s++) step();
-    expect(ships.body(landed)).toBe(ships.body(CARRIER));
-    expect(full()).toBe(true);
-    expect(ships.power.held(body(landed), m)).toBeGreaterThan(0);
+      ships.power.pieceRoom(body(landed), m) < 0.05 * design.modules[m]!.stats.charge && fuelRoom() < 0.5;
+    let room = fuelRoom();
+    let flow = Infinity;
+    let topped = false;
+    for (let s = 0; s < 30 * 60 && docked() && !full(); s++) {
+      step();
+      if (!docked()) break;
+      flow = room - fuelRoom();
+      room = fuelRoom();
+      topped = ships.power.held(body(landed), m) > 0 && ships.power.pieceRoom(body(landed), m) < 0.05 * design.modules[m]!.stats.charge;
+    }
+    expect(topped).toBe(true);
+    expect(docked() ? full() : room <= flow + 0.5).toBe(true);
   });
 
   it('has its tender drink from the wrecks instead', { timeout: 60_000 }, () => {

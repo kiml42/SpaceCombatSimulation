@@ -1488,6 +1488,11 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   - Firing needs **both** `onTarget` and not `blocked`: a turret whose target lies outside its traverse
     arc slews as close as it can and sits there, on target with respect to its command but not aimed at
     anything.
+  - **The ends of a traverse arc are stops.** A mount counter-rotating against a spinning hull reaches an
+    end faster than it can brake there; it halts against the end, its rate zeroed and the hull taking the
+    reaction, rather than coasting on into the gap. Past the gap's middle the nearer end used to be the
+    far one, so a barrel that overran far enough carried on round, holding its world bearing through the
+    arc its traverse forbids while the ship spun beneath it.
   - **Both limits come from one drive.** The mount ring delivers torque proportional to the turret's
     mass, so acceleration is `torque / inertia`, and the rate limit is simply what that acceleration
     reaches in a fixed spin-up time. They are one mechanism described twice, not two numbers to balance:
