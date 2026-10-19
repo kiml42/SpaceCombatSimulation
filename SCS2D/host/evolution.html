@@ -431,12 +431,10 @@
             <span style="color: #5bd6d6">vs. yardstick</span>
           </p>
           <div class="runOnly">
-          <span class="sizeMetric">how far apart the scores are</span>
-          <canvas id="spreadChart" class="subChart" title="How far apart each generation's scores are: the middle half and best to worst on the left, how many tied on the right. Narrow, or many tied, and selection can hardly tell the designs apart."></canvas>
-          <p id="spreadLegend" class="legend"></p>
-          <label class="sizeMetric">size by <select id="sizeMetric">
-            <option value="mass">mass and ships</option>
-            <option value="fittings">weapons and engines</option>
+          <label class="sizeMetric">chart <select id="sizeMetric" title="How far apart the scores are: the middle half and best to worst on the left, how many tied on the right. Narrow, or many tied, and selection can hardly tell the designs apart.">
+            <option value="mass">size: mass and ships</option>
+            <option value="fittings">size: weapons and engines</option>
+            <option value="spread">how far apart the scores are</option>
           </select></label>
           <canvas id="massChart" class="subChart"></canvas>
           <p id="massLegend" class="legend"></p>

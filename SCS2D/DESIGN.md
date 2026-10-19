@@ -684,9 +684,10 @@ inside any one file is not contiguous.
   makes side B its founders throughout, a fixed opponent to be bred against. Where both sides evolve the
   charts go by round rather than generation, each side holding where it was through the other's round, and
   the score chart goes (every score there is against a side that is improving too); against a fixed side B
-  they go by generation and the score chart stays. Under it, in every run, a chart of **how far apart the
-  scores are** — the middle half and best to worst on the left, how many tied on the right — says how hard
-  selection is pushing: narrow, or many tied, and it can hardly tell the designs apart. The size chart —
+  they go by generation and the score chart stays. The chart under it, in every run, can show **how far apart
+  the scores are** in place of size — the middle half and best to worst on the left, how many tied on the
+  right — which says how hard selection is pushing: narrow, or many tied, and it can hardly tell the designs
+  apart. The size chart —
   mass on its left scale and, for fleets, ship count on its right, the mean solid and the best dashed —
   carries its lines in each side's colours and is what a point is picked from, and the combatants are
   tagged A or B and ranked within their own side; a side not bred yet shows its hall.

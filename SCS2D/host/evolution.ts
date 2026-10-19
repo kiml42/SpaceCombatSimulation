@@ -456,11 +456,9 @@ export function startEvolution(): void {
     return { canvas: at, ctx: context(at), legend: el<HTMLElement>(key), digits, series: [], layout: NO_LAYOUT };
   };
   const massChart = sizeChart('massChart', 'massLegend', 1);
-  /** How far apart each generation's scores are: how much selection is pushing. */
-  const spreadChart = sizeChart('spreadChart', 'spreadLegend', 3);
   /** What the chart under the score shows: mass and ships, or weapons and engines. */
   const sizeMetric = el<HTMLSelectElement>('sizeMetric');
-  const sizeCharts = [spreadChart, massChart];
+  const sizeCharts = [massChart];
   /** Worked out once per generation: counting what each individual fields means compiling it. */
   const sizes = new WeakMap<GenerationRecord, GenerationSize>();
   const sizeOf = (generation: GenerationRecord): GenerationSize => {
@@ -1130,7 +1128,7 @@ export function startEvolution(): void {
 
   const resize = (): void => {
     const ratio = window.devicePixelRatio || 1;
-    for (const canvas of [view, chart, massChart.canvas, spreadChart.canvas]) {
+    for (const canvas of [view, chart, massChart.canvas]) {
       const rect = canvas.getBoundingClientRect();
       canvas.width = Math.round(rect.width * ratio);
       canvas.height = Math.round(rect.height * ratio);
@@ -1348,8 +1346,8 @@ export function startEvolution(): void {
     // Ships are read on the right-hand scale, and to more places: a mean of
     // whole ships is a fraction.
     if (sizeMetric.value === 'fittings') fillLegend(massChart.legend, massChart.series, 1, '', 1, '');
+    else if (sizeMetric.value === 'spread') fillLegend(massChart.legend, massChart.series, 3, '', 0, '');
     else fillLegend(massChart.legend, massChart.series, massChart.digits, ' t', 2, '');
-    fillLegend(spreadChart.legend, spreadChart.series, spreadChart.digits, '', 0, '');
   }
 
   function fillLegend(
@@ -2093,17 +2091,20 @@ export function startEvolution(): void {
     // How far apart each side's scores are: the middle half's width solid, the
     // whole field's dashed, and how many tied on the right. Narrow, or many
     // tied, and selection can hardly tell its designs apart.
-    spreadChart.series = sides.flatMap((side) => {
-      const spreads = each(side.records, spreadOf);
-      const of = (read: (s: ReturnType<typeof spreadOf>) => number): number[] => spreads.map((s) => (s === undefined ? NaN : read(s)));
-      return [
-        { name: `${side.label}middle half`, colour: side.mass, values: of((s) => s.upperQuartile - s.lowerQuartile) },
-        { name: `${side.label}best to worst`, colour: side.mass, values: of((s) => s.highest - s.lowest), dashed: true },
-        { name: `${side.label}tied`, colour: side.ships, values: of((s) => s.tied), right: true },
-      ];
-    });
+    const spread = (): Series[] =>
+      sides.flatMap((side) => {
+        const spreads = each(side.records, spreadOf);
+        const of = (read: (s: ReturnType<typeof spreadOf>) => number): number[] => spreads.map((s) => (s === undefined ? NaN : read(s)));
+        return [
+          { name: `${side.label}middle half`, colour: side.mass, values: of((s) => s.upperQuartile - s.lowerQuartile) },
+          { name: `${side.label}best to worst`, colour: side.mass, values: of((s) => s.highest - s.lowest), dashed: true },
+          { name: `${side.label}tied`, colour: side.ships, values: of((s) => s.tied), right: true },
+        ];
+      });
     massChart.series =
-      sizeMetric.value === 'fittings'
+      sizeMetric.value === 'spread'
+        ? spread()
+        : sizeMetric.value === 'fittings'
         ? [
             ...bestAndMean('weapons', (side) => side.mass, (s) => [s.bestWeapons, s.meanWeapons], false),
             ...bestAndMean('engines', (side) => side.ships, (s) => [s.bestEngines, s.meanEngines], true),

@@ -207,6 +207,10 @@ describe('the evolution page in a browser', () => {
     await page.selectOption('#sizeMetric', 'fittings');
     expect(await page.textContent('#massLegend')).toMatch(/mean weapons.*mean engines/);
     expect(await distinctColours(page, 'massChart')).toBeGreaterThan(2);
+    // Or how far apart its scores were.
+    await page.selectOption('#sizeMetric', 'spread');
+    expect(await page.textContent('#massLegend')).toMatch(/middle half.*best to worst.*tied/);
+    expect(await distinctColours(page, 'massChart')).toBeGreaterThan(2);
     await page.selectOption('#sizeMetric', 'mass');
     expect(await page.textContent('#massLegend')).toMatch(/mean mass/);
   });
@@ -819,7 +823,9 @@ describe('the evolution page in a browser', () => {
     expect(await page.isVisible('#chart')).toBe(false);
     expect(await page.isVisible('#legend')).toBe(false);
     // How far apart each side's scores are, in rounds.
-    expect(await distinctColours(page, 'spreadChart')).toBeGreaterThan(2);
+    await page.selectOption('#sizeMetric', 'spread');
+    expect(await page.textContent('#massLegend')).toMatch(/A middle half.*B middle half/);
+    await page.selectOption('#sizeMetric', 'mass');
     await page.selectOption('#mode', 'fleet');
     const sides = await page.$$eval('#fleet tbody td.who .side', (tags) => tags.map((tag) => tag.textContent?.trim()));
     expect(sides.filter((side) => side === 'A')).toHaveLength(4);
