@@ -60,6 +60,30 @@ describe('rewind', () => {
     expect(kept.length).toBeLessThan(60);
   }, 60_000);
 
+  it('hands over a copy with nothing left over to draw, and each step it takes on', () => {
+    const rewind = new Rewind(duel());
+    rewind.battle.impacts.log.watched = true;
+    rewind.seek(200);
+    // Watched and never drained, the log has held every hit since the start.
+    expect(rewind.battle.impacts.log.count).toBeGreaterThan(0);
+    let restored = 0;
+    let leftOver = -1;
+    const steps: number[] = [];
+    const seen = rewind.seek(
+      100,
+      () => {
+        restored++;
+        leftOver = rewind.battle.impacts.log.count;
+      },
+      () => steps.push(rewind.at),
+    );
+    expect(seen).toBe(true);
+    expect(restored).toBe(1);
+    expect(leftOver).toBe(0);
+    expect(steps).toEqual([91, 92, 93, 94, 95, 96, 97, 98, 99, 100]);
+    expect(rewind.kept).toContain(90);
+  });
+
   it('goes forward without rebuilding, and back to the furthest step reached', () => {
     const rewind = new Rewind(duel());
     rewind.seek(50);

@@ -94,9 +94,9 @@ Nothing: every step up to 13 is built.
        Left to fix, from trying it:
        - **A copy in one frame** is a hitch of tens of milliseconds in a big battle; spread over several
          frames, it would not be.
-       - **Muzzle flashes and shell bursts** freeze near the end of their animation on a seek back, a
-         muzzle flash stuck to its gun, until the round comes back and the animation runs in reverse; a
-         step forward then finishes one that should have ended frames before.
+       - **Flashes on landing at a checkpoint.** Across steps re-simulated, flashes are rebuilt as they
+         would have been drawn; landing on a checkpoint re-simulates nothing, so it shows none until the
+         next step.
     1. **Attack, defend and ram**, with the log, selection and order bar they need (below).
     2. **Change doctrine, refuel or repair, remodel, build a fighter, build a ship.** Not yet designed: its
        own grilling once slice 1 is playable.
