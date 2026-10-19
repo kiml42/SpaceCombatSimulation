@@ -1,23 +1,20 @@
 import { math } from '../sim/index.js';
 import { duel } from '../scenarios/duel.js';
 import { beamDuel } from '../scenarios/beamDuel.js';
-import { beamVGun } from '../scenarios/beamVGun.js';
-import { fractal } from '../scenarios/fractal.js';
 import type { Battle } from '../scenarios/types.js';
 import { swarm } from '../scenarios/swarm.js';
 import { torpedoes } from '../scenarios/torpedoes.js';
 import { starWars } from '../scenarios/starWars.js';
-import { ram } from '../scenarios/ram.js';
 import { standoff } from '../scenarios/standoff.js';
 import { column } from '../scenarios/column.js';
 import { split } from '../scenarios/split.js';
 import { torchRun } from '../scenarios/torchRun.js';
 import { broadside } from '../scenarios/broadside.js';
 import { hooked } from '../scenarios/hooked.js';
-import { salvage, salvageRun, scrapyard } from '../scenarios/salvage.js';
-import { mending, rebuilding, refitting } from '../scenarios/mending.js';
+import { salvageRun } from '../scenarios/salvage.js';
+import { mending, refitting } from '../scenarios/mending.js';
 import { scavenge } from '../scenarios/scavenge.js';
-import { carrier, factory, padRebuild } from '../scenarios/carrier.js';
+import { factory, padRebuild } from '../scenarios/carrier.js';
 import { shipyard } from '../scenarios/shipyard.js';
 import { beamCarrier } from '../scenarios/beamCarrier.js';
 import { circling, passes } from '../scenarios/passes.js';
@@ -51,26 +48,19 @@ export function start(): void {
     { name: 'Duel', create: () => duel(SEED) },
     { name: 'Beam Duel', create: () => beamDuel(SEED) },
     { name: 'Star Wars', create: () => starWars(SEED) },
-    { name: 'Beam Vs Gun', create: () => beamVGun(SEED) },
     { name: 'Swarm', create: () => swarm(SEED) },
-    { name: 'Fractal', create: () => fractal(SEED) },
     { name: 'Super Swarm', create: () => swarm(SEED, 300) },
     { name: 'Torpedoes', create: () => torpedoes(SEED) },
-    { name: 'Ram', create: () => ram(SEED) },
     { name: 'Standoff', create: () => standoff(SEED) },
     { name: 'Line Ahead', create: () => column(SEED) },
     { name: 'Split', create: () => split(SEED) },
     { name: 'Torch Run', create: () => torchRun(SEED) },
     { name: 'Hooked', create: () => hooked(SEED) },
     { name: 'Broadside', create: () => broadside(SEED) },
-    { name: 'Salvage', create: () => salvage(SEED) },
-    { name: 'Scrapyard', create: () => scrapyard(SEED) },
     { name: 'Salvage Run', create: () => salvageRun(SEED) },
     { name: 'Mending', create: () => mending(SEED) },
-    { name: 'Rebuilding', create: () => rebuilding(SEED) },
     { name: 'Refitting', create: () => refitting(SEED) },
     { name: 'Scavenge', create: () => scavenge(SEED) },
-    { name: 'Carrier', create: () => carrier(SEED) },
     { name: 'Pad Rebuild', create: () => padRebuild(SEED) },
     { name: 'Factory', create: () => factory(SEED) },
     { name: 'Shipyard', create: () => shipyard(SEED) },
