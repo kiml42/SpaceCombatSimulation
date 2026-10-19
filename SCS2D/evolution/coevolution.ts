@@ -313,7 +313,7 @@ export class Coevolution {
   }
 
   private matchConfig(): Partial<RunConfig['match']> {
-    return { ...this.config.match, goal: null, seed: this.seed };
+    return { ...this.config.match, seed: this.seed };
   }
 
   /** The entrants made invincible: the side being bred's, in a shielded drill. */

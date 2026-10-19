@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { compileBlueprint } from '../sim/index.js';
 import { DEFAULT_MATCH, hullCapacity, Match, runMatch } from '../evolution/match.js';
-import { BEAM_CORVETTE, CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
+import { BEAM_CORVETTE, CORVETTE, DINKY, GUNSHIP, TANKER } from '../scenarios/blueprints.js';
 import { TURRET_DINKY } from './fixtures.js';
 import type { Blueprint } from '../sim/index.js';
 
@@ -89,23 +89,32 @@ describe('match', () => {
     expect(result.elapsed / DEFAULT_MATCH.duration).toBeLessThan(0.9);
   });
 
-  it('ends a match on the skirmish rule when asked to', () => {
+  it('plays on past a side that cannot fight back, so a gun scores against it', () => {
+    // Stopped once the tanker was out of the fight, the gunship had scored
+    // nothing for its guns: a match ended before the first shot.
     const weights = { survival: 1, functional: 1, damage: 1, disabling: 1, race: 0 };
-    const own = runMatch([GUNSHIP, CORVETTE], { seed: 1, weights });
-    // A limit shorter than any reload: the first to fire is the last in the fight.
-    const quiet = runMatch([GUNSHIP, CORVETTE], { seed: 1, weights, quietLimit: 0.05 });
-    expect(quiet.ending).toEqual('decided');
-    expect(quiet.winners).toHaveLength(1);
-    expect(quiet.elapsed).toBeLessThan(own.elapsed);
+    const result = runMatch([GUNSHIP, TANKER], { seed: 1, weights });
+    expect(result.ending).toEqual('decided');
+    expect(result.winners).toEqual([0]);
+    expect(result.scores[0]!.damage).toBeGreaterThan(0.1);
+    expect(result.elapsed).toBeLessThan(DEFAULT_MATCH.duration);
   });
 
-  it('gives a quiet win to one side, every winner on it', () => {
+  it('ends once every side has gone quiet, and nobody wins who never hit anything', () => {
+    const weights = { survival: 1, functional: 1, damage: 1, disabling: 1, race: 0 };
+    const result = runMatch([TANKER, TANKER], { seed: 1, weights, quietLimit: 20 });
+    expect(result.ending).toEqual('quiet');
+    expect(result.winners).toEqual([]);
+    expect(result.elapsed).toBeCloseTo(20, 1);
+  });
+
+  it('gives the win to one side, every winner on it', () => {
     const weights = { survival: 1, functional: 1, damage: 1, disabling: 1, race: 0 };
     const teams = [0, 1, 1];
-    const quiet = runMatch([GUNSHIP, CORVETTE, DINKY], { seed: 1, weights, quietLimit: 0.05 }, teams);
-    expect(quiet.ending).toEqual('decided');
-    expect(quiet.winners.length).toBeGreaterThan(0);
-    expect(new Set(quiet.winners.map((i) => teams[i]))).toHaveProperty('size', 1);
+    const result = runMatch([GUNSHIP, CORVETTE, DINKY], { seed: 1, weights }, teams);
+    expect(result.ending).toEqual('decided');
+    expect(result.winners.length).toBeGreaterThan(0);
+    expect(new Set(result.winners.map((i) => teams[i]))).toHaveProperty('size', 1);
   });
 
   it('plays on after the last kill while the goal still counts', () => {

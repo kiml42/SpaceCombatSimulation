@@ -15,7 +15,7 @@ const SETTINGS: Partial<RunConfig> = {
   group: 1,
   minMatches: 2,
   fleet: { maxShips: 1 },
-  match: { duration: 8 },
+  match: { duration: 8, goal: null },
 };
 const ROUNDS = { hall: 2, phaseCap: 2 };
 
@@ -70,6 +70,23 @@ describe('a co-evolution run', { timeout: 60_000 }, () => {
       expect(generations.length === ROUNDS.phaseCap || end.won! >= DEFAULT_COEVOLUTION.phaseWin).toBe(true);
       for (const early of generations.slice(0, -1)) expect(early.won!).toBeLessThan(DEFAULT_COEVOLUTION.phaseWin);
     }
+  });
+
+  it('races for the goal when the settings give one', () => {
+    const racing = runCoevolution([DINKY], [GUNSHIP], { ...SETTINGS, generations: 1, match: { duration: 8 } }, ROUNDS);
+    const raced = racing.generations[0]!.matches.filter((match) => match.drill === undefined).flatMap((match) => match.scores);
+    expect(raced.some((score) => score.race !== 0)).toBe(true);
+  });
+
+  it('scores a bare-core drill for what it does to the core', () => {
+    const drilled = runCoevolution([GUNSHIP], [DINKY], { ...SETTINGS, generations: 1, population: 2, match: { duration: 60, goal: null } }, {
+      ...ROUNDS,
+      shieldedDrills: 0,
+      bareCoreDrills: 1,
+    });
+    const drills = drilled.generations[0]!.matches.filter((match) => match.drill === 'bareCore');
+    expect(drills.length).toBeGreaterThan(0);
+    for (const drill of drills) expect(drill.scores[drill.teams!.indexOf(0)]!.damage).toBeGreaterThan(0);
   });
 
   it("fights the other side's hall, its founders until it has champions, and drills, with nothing to race to", () => {

@@ -2317,6 +2317,32 @@ export class Ships {
     return this.ramming[i] !== NO_TARGET;
   }
 
+  /** The ship ship `i` is ramming, or `NO_TARGET`. */
+  ramTarget(i: number): number {
+    return this.ramming[i] ?? NO_TARGET;
+  }
+
+  /** Centre to centre between two ships, m; infinite if either has no body. */
+  distanceBetween(i: number, j: number): number {
+    const bodies = this.bodyStore;
+    if (bodies === null) return Infinity;
+    const a = bodies.indexOf(this.bodyIds[i]!);
+    const b = bodies.indexOf(this.bodyIds[j]!);
+    if (a < 0 || b < 0) return Infinity;
+    return length(bodies.x[b]! - bodies.x[a]!, bodies.y[b]! - bodies.y[a]!);
+  }
+
+  /** Centre to centre from ship `i` to the nearest hostile ship anyone controls, m; infinite if there is none. */
+  nearestEnemy(i: number): number {
+    let nearest = Infinity;
+    for (let e = 0; e < this.alive.length; e++) {
+      if (e === i || this.alive[e] === 0 || this.derelict[e] === 1 || !this.hostile(i, e) || !this.hasControl(e)) continue;
+      const d = this.distanceBetween(i, e);
+      if (d < nearest) nearest = d;
+    }
+    return nearest;
+  }
+
   /** Whether this fighter has dropped into the hull layer as well. */
   isCommitted(i: number): boolean {
     return this.committed[i] === 1;

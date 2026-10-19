@@ -849,8 +849,10 @@ describe('the evolution page in a browser', () => {
     await set(page, 'phaseCap', '1');
     await set(page, 'shieldedDrills', '0');
     await set(page, 'bareCoreDrills', '0');
-    // No goal, scored against a moving opponent: what does not apply goes.
-    expect(await page.isVisible('#goal')).toBe(false);
+    // A goal is still there to set, as something to close on for its own sake.
+    expect(await page.isVisible('#goal')).toBe(true);
+    // None here, so its matches stop when the fighting does rather than playing on for the race.
+    await page.selectOption('#goal', 'none');
     // Side B has a column of settings of its own, starting as a copy of side A's.
     expect(await page.isVisible('#b_population')).toBe(true);
     expect(await page.inputValue('#b_population')).toBe('4');
@@ -919,9 +921,9 @@ describe('the evolution page in a browser', () => {
 
     await page.selectOption('#mode', 'battle');
     // Two of A against one of B, each side by its letter, and who won it if it was decided.
-    expect(await page.textContent('#matches tr')).toMatch(/^1A \d+ \d+ v B \d+(decided|A won|B won|annihilated|timeout)/);
+    expect(await page.textContent('#matches tr')).toMatch(/^1A \d+ \d+ v B \d+(decided|A won|B won|annihilated|quiet|timeout)/);
     const endings = await page.$$eval('#matches tr td:nth-child(3)', (cells) => cells.map((td) => td.textContent));
-    expect(endings.every((text) => text === 'A won' || text === 'B won' || text === 'annihilated' || text === 'timeout')).toBe(true);
+    expect(endings.every((text) => text === 'A won' || text === 'B won' || text === 'annihilated' || text === 'quiet' || text === 'timeout')).toBe(true);
     await page.click('#matches tr');
     await page.waitForFunction(() => /%/.test(document.getElementById('watching')?.textContent ?? ''));
 
