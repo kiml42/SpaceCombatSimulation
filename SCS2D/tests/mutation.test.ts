@@ -18,8 +18,8 @@ import {
   type Blueprint,
   type ModuleSpec,
 } from '../sim/index.js';
-import { DEFAULT_BUILD_WEIGHTS, DEFAULT_KINDS, mutate, type DoctrineWeights } from '../evolution/mutate.js';
-import { CATAMARAN, CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
+import { DEFAULT_BUILD_WEIGHTS, DEFAULT_KINDS, mutate, shipScale, type DoctrineWeights } from '../evolution/mutate.js';
+import { BARE_CORE, CATAMARAN, CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
 
 /**
  * How one blueprint becomes another.
@@ -126,7 +126,8 @@ describe('mutation', () => {
     for (const [name, parent] of FLEET) {
       const was = expandBlueprint(parent).length;
       for (let i = 0; i < 200; i++) {
-        const child = mutate(parent, rng);
+        // Thrusters are a phase of their own, tested below.
+        const child = mutate(parent, rng, { thrusters: 0 });
         // At most one structural edit; everything else drifts.
         const structural = child.edits.filter((edit) => STRUCTURAL.test(edit));
         expect(structural.length, `${name} child ${i}: ${child.edits.join(' | ')}`).toBeLessThanOrEqual(1);
@@ -199,7 +200,8 @@ describe('mutation', () => {
       const rng = new Rng(seed);
       let held: Blueprint = GUNSHIP;
       for (let i = 0; i < 800; i++) {
-        const child = mutate(held, rng, { budget: { ...NO_BUDGET, metal: budget } });
+        // Without thrusters, which only ever add, and on purpose (`addThrusters`).
+        const child = mutate(held, rng, { budget: { ...NO_BUDGET, metal: budget }, thrusters: 0 });
         held = child.blueprint;
         for (const edit of child.edits) {
           if (/removed/.test(edit)) removed++;
@@ -233,7 +235,7 @@ describe('mutation', () => {
       const rng = new Rng(seed);
       let held: Blueprint = CORVETTE;
       for (let i = 0; i < 200; i++) {
-        const child = mutate(held, rng, { structural: 1, budget: { ...NO_BUDGET, metal: budget } });
+        const child = mutate(held, rng, { structural: 1, thrusters: 0, budget: { ...NO_BUDGET, metal: budget } });
         held = child.blueprint;
         generations++;
         if (child.edits.some((edit) => /removed|added|copied/.test(edit))) structural++;
@@ -492,7 +494,7 @@ describe('mutation', () => {
     let held: Blueprint = CORVETTE;
     let engines = 0;
     for (let i = 0; i < 400 && engines < 5; i++) {
-      const child = mutate(held, rng, { structural: 0, kinds: DEFAULT_KINDS });
+      const child = mutate(held, rng, { structural: 0, thrusters: 0, kinds: DEFAULT_KINDS });
       held = child.blueprint;
       if (child.edits.some((edit) => /refitted as engine/.test(edit))) engines++;
     }
@@ -608,7 +610,7 @@ describe('mutation', () => {
     const rng = new Rng(11);
     let seams = 0;
     for (let i = 0; i < 300 && seams < 5; i++) {
-      const child = mutate(CORVETTE, rng, { structural: 0 });
+      const child = mutate(CORVETTE, rng, { structural: 0, thrusters: 0 });
       if (!child.edits.some((edit) => /: seam with /.test(edit))) continue;
       seams++;
       expect(blueprintProblem(child.blueprint)).toBeNull();
@@ -692,7 +694,7 @@ describe('build weights', () => {
     let held: Blueprint = GUNSHIP;
     let changed = 0;
     for (let i = 0; i < 60; i++) {
-      const child = mutate(held, rng, { structural: 0, build });
+      const child = mutate(held, rng, { structural: 0, thrusters: 0, build });
       changed += child.edits.length;
       held = child.blueprint;
     }
@@ -751,7 +753,7 @@ describe('build weights', () => {
     const build = { move: 0, resize: 0, refit: 0, fittings: 0, tuning: 0, fighter: 0, shape: 0 };
     const doctrine = { targeting: 0, approach: 0, escort: 1, avoidance: 0, gunnery: 0 };
     const made: string[] = [];
-    for (let i = 0; i < 40; i++) made.push(...mutate(GUNSHIP, rng, { structural: 0, build, doctrine }).edits);
+    for (let i = 0; i < 40; i++) made.push(...mutate(GUNSHIP, rng, { structural: 0, thrusters: 0, build, doctrine }).edits);
     expect(made.length).toBeGreaterThan(0);
     for (const edit of made) expect(edit).toMatch(/doctrine\.(targeting\.escortWeight|approach\.escort)/);
   });
@@ -786,5 +788,59 @@ describe('scaling a whole ship', () => {
       expect(child.blueprint.modules![0]!.y).toBeCloseTo(CATAMARAN.modules![0]!.y * factor, 3);
     }
     expect(seen).toBeGreaterThan(0);
+  });
+});
+
+describe('thrusters', () => {
+  const only = { structural: 0, geometry: 0, switches: 0, build: FROZEN, doctrine: STILL };
+  const engines = (blueprint: Blueprint): ModuleSpec[] => expandBlueprint(blueprint).filter((m) => m.kind === 'engine');
+
+  it('bolts several small engines onto a ship with none, each leaving a ship', () => {
+    const rng = new Rng(3);
+    let most = 0;
+    for (let i = 0; i < 20; i++) {
+      const child = mutate(BARE_CORE, rng, { ...only, thrusters: 0.9 });
+      const added = child.edits.filter((e) => e.includes('thruster')).length;
+      expect(blueprintProblem(child.blueprint)).toBeNull();
+      expect(engines(child.blueprint)).toHaveLength(added);
+      most = Math.max(most, added);
+    }
+    expect(most).toBeGreaterThan(1);
+  });
+
+  it('makes them smaller than a module added the usual way', () => {
+    const placed = (blueprint: Blueprint): ModuleSpec[] =>
+      [...blueprint.modules, ...Object.values(blueprint.assemblies ?? {}).flatMap((a) => a.modules)].filter(
+        (m): m is ModuleSpec => 'kind' in m,
+      );
+    const ids = new Set(placed(GUNSHIP).map((m) => m.id));
+    const child = mutate(GUNSHIP, new Rng(5), { ...only, thrusters: 0.9 });
+    const fresh = placed(child.blueprint).filter((m) => !ids.has(m.id));
+    expect(fresh.length).toBeGreaterThan(0);
+    const { arrival } = shipScale(GUNSHIP);
+    for (const engine of fresh) {
+      expect(engine.kind).toBe('engine');
+      expect(Math.max(engine.length, engine.width)).toBeLessThan(arrival);
+    }
+  });
+
+  it('adds fewer the more engines a ship already has', () => {
+    const count = (parent: Blueprint): number => {
+      const rng = new Rng(13);
+      let added = 0;
+      for (let i = 0; i < 40; i++) added += mutate(parent, rng, { ...only, thrusters: 0.9 }).edits.filter((e) => e.includes('thruster')).length;
+      return added;
+    };
+    expect(count(BARE_CORE)).toBeGreaterThan(2 * count(GUNSHIP));
+  });
+
+  it('adds none at a chance of zero, or when engines are weighted out', () => {
+    const rng = new Rng(9);
+    for (let i = 0; i < 10; i++) {
+      expect(mutate(GUNSHIP, rng, { thrusters: 0 }).edits.some((e) => e.includes('thruster'))).toBe(false);
+      expect(
+        mutate(GUNSHIP, rng, { thrusters: 0.9, kinds: { ...DEFAULT_KINDS, engine: 0 } }).edits.some((e) => e.includes('thruster')),
+      ).toBe(false);
+    }
   });
 });

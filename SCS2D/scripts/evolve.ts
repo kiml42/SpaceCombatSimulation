@@ -122,6 +122,7 @@ function parse(argv: readonly string[]): Options {
   const build: Record<string, number> = {};
   let structural: number | undefined;
   let geometry: number | undefined;
+  let thrusters: number | undefined;
   let name: string | undefined;
   let out = 'runs/run.json';
   let saveConfig = '';
@@ -227,6 +228,15 @@ function parse(argv: readonly string[]): Options {
         }
         break;
       }
+      // Chance of a small engine bolted to the hull, rolled again after each, 0 to 1.
+      case '--thrusters': {
+        const raw = value();
+        thrusters = Number(raw);
+        if (!Number.isFinite(thrusters) || thrusters < 0 || thrusters > 1) {
+          throw new Error(`--thrusters wants a chance between 0 and 1, not ${raw}`);
+        }
+        break;
+      }
       // Settings written by the evolution page, or by `--save-config`.
       case '--config': {
         const path = value();
@@ -279,13 +289,15 @@ function parse(argv: readonly string[]): Options {
     Object.keys(doctrine).length > 0 ||
     Object.keys(build).length > 0 ||
     structural !== undefined ||
-    geometry !== undefined
+    geometry !== undefined ||
+    thrusters !== undefined
   ) {
     const held = config['mutation'] as { kinds?: object; doctrine?: object; build?: object } | undefined;
     config['mutation'] = {
       ...held,
       ...(structural === undefined ? {} : { structural }),
       ...(geometry === undefined ? {} : { geometry }),
+      ...(thrusters === undefined ? {} : { thrusters }),
       kinds: { ...held?.kinds, ...kinds },
       doctrine: { ...held?.doctrine, ...doctrine },
       build: { ...held?.build, ...build },

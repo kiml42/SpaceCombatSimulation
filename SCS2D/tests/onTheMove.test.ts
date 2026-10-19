@@ -96,7 +96,7 @@ describe('the doctrine for it', () => {
     const rng = new Rng(17);
     let held: Blueprint = { ...DINKY, doctrine: { ...DINKY.doctrine!, approach: { ...DINKY.doctrine!.approach, tangentialMin: 30, tangentialMax: 30 } } };
     for (let i = 0; i < 400; i++) {
-      held = mutate(held, rng).blueprint;
+      held = mutate(held, rng, { thrusters: 0 }).blueprint;
       expect(doctrineProblem(held.doctrine)).toBeNull();
     }
   });
