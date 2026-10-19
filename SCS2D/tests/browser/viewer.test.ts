@@ -442,6 +442,59 @@ describe('the viewer in a browser', () => {
     expect(JSON.parse((await page.evaluate(() => localStorage.getItem('scs2d.view.viewer')))!).arcs).toBe('none');
   });
 
+  it('gives orders: picked out, right-clicked, armed, queued, taken back and stopped', async () => {
+    await page.selectOption('#scene', { label: 'Duel' });
+    if ((await page.textContent('#play')) === 'Pause') await page.click('#play');
+    await painted(page);
+    const canvas = (await page.locator('#view').boundingBox())!;
+    // In the duel, ships 0 and 1 are a side and ship 2 the other.
+    const at = async (ship: number): Promise<{ x: number; y: number }> => {
+      const p = await page.evaluate((i) => (window as unknown as { viewer: { screenOf(i: number): { x: number; y: number } } }).viewer.screenOf(i), ship);
+      return { x: canvas.x + p.x, y: canvas.y + p.y };
+    };
+    const orders = (): Promise<unknown[]> => page.evaluate(() => (window as unknown as { viewer: { orders: unknown[] } }).viewer.orders);
+    const click = async (ship: number, options: { shift?: boolean; right?: boolean } = {}): Promise<void> => {
+      const p = await at(ship);
+      if (options.shift) await page.keyboard.down('Shift');
+      await page.mouse.click(p.x, p.y, { button: options.right ? 'right' : 'left' });
+      if (options.shift) await page.keyboard.up('Shift');
+      // Past the double-click interval, so two clicks are never read as one.
+      await page.waitForTimeout(400);
+      await painted(page);
+    };
+
+    expect(await page.isHidden('#orderBar')).toBe(true);
+    await click(0);
+    expect(await page.isVisible('#orderBar')).toBe(true);
+    await click(1, { shift: true });
+    await click(2, { right: true });
+    expect(await orders()).toHaveLength(1);
+    expect(JSON.stringify(await orders())).toContain('"ships":[0,1]');
+    // The future is gone with it: the bar runs to here.
+    expect(Number(await page.getAttribute('#scrub', 'max'))).toBe(await step(page));
+
+    await click(0);
+    expect(await page.locator('#queue li').count()).toBe(1);
+    expect(await page.textContent('#queue')).toContain('attack');
+    await page.keyboard.press('r');
+    await click(2, { shift: true });
+    expect(await page.locator('#queue li').count()).toBe(2);
+    expect(await page.textContent('#queue li:nth-child(2)')).toContain('ram');
+    await page.locator('#queue li').first().locator('button').click();
+    await painted(page);
+    expect(await page.locator('#queue li').count()).toBe(1);
+    await page.keyboard.press('s');
+    await painted(page);
+    expect(await page.locator('#queue li').count()).toBe(0);
+
+    await click(1);
+    await click(0, { right: true });
+    expect(JSON.stringify((await orders()).at(-1))).toContain('"defend"');
+    await page.keyboard.press('Escape');
+    await painted(page);
+    expect(await page.isHidden('#orderBar')).toBe(true);
+  }, 60_000);
+
   it('reports no errors after all of that', () => {
     expect(problems).toEqual([]);
   });

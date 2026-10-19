@@ -1,4 +1,5 @@
-import { capture, Snapshot, type ImpactLog } from '../sim/index.js';
+import { capture, NEUTRAL_TEAM, Snapshot, type ImpactLog, type ShipView } from '../sim/index.js';
+import { OrderCancelCondition } from '../sim/ships.js';
 import { Flashes } from '../render/flashes.js';
 import { ARCS_KEY, draw, nextArcs, TEAM_SHOTS_KEY, type Arcs } from '../render/canvas2d.js';
 import {
@@ -7,10 +8,12 @@ import {
   moveAcrossJump,
   moveWithVisibleShips,
   selectionBounds,
-  shipAt,
+  type Bounds,
   type Camera,
   type JumpAnchor,
 } from '../render/camera.js';
+import { boxed, clicked, sameDesign, shipViewAt, sideOf, stillThere, viewOf, wholeSide } from '../render/picking.js';
+import type { Command, Logged, Order } from '../scenarios/commands.js';
 import type { Battle } from '../scenarios/types.js';
 import { Rewind } from '../scenarios/rewind.js';
 import { viewGestures } from './viewGestures.js';
@@ -35,9 +38,36 @@ import { keepSpeed, loadView, saveView, type ViewSettings } from './viewSettings
  */
 const MAX_STEPS_PER_FRAME = 32;
 
+/** The keys that arm a verb, and the one that stops. */
+const VERB_KEYS: Readonly<Record<string, Verb>> = { t: 'attack', d: 'defend', r: 'ram' };
+const STOP_KEY = 's';
+const BOX_COLOUR = '#9fb4cc';
+
+/** What framing a selection takes in: each picked ship, and what each is fighting and escorting. */
+function pickedBounds(view: Snapshot, picked: readonly number[]): Bounds | null {
+  let out: Bounds | null = null;
+  for (const ship of picked) {
+    const bounds = selectionBounds(view, viewOf(view, ship)?.body ?? -1);
+    if (bounds === null) continue;
+    out =
+      out === null
+        ? { ...bounds }
+        : {
+            minX: Math.min(out.minX, bounds.minX),
+            minY: Math.min(out.minY, bounds.minY),
+            maxX: Math.max(out.maxX, bounds.maxX),
+            maxY: Math.max(out.maxY, bounds.maxY),
+          };
+  }
+  return out;
+}
+
 export interface BattleView {
-  /** Show this battle from its start, running or held, and if `rewindable`, able to be wound back. */
-  show(battle: Battle, running: boolean, rewindable?: boolean): void;
+  /**
+   * Show this battle from its start, running or held, and if `rewindable`,
+   * able to be wound back and given `orders`, as a link carries them.
+   */
+  show(battle: Battle, running: boolean, rewindable?: boolean, orders?: readonly Logged[]): void;
   /** The battle on show, which winding back replaces. */
   readonly battle: Battle | null;
   /** Steps taken, and the furthest reached. */
@@ -58,7 +88,28 @@ export interface BattleView {
    */
   keep(page: string, speed: HTMLSelectElement): void;
   readonly camera: Readonly<Camera>;
+  /**
+   * Let the viewer give orders: right-click, a verb armed from the keys or
+   * `arm`, Shift to add to the queue, Stop. Only on a battle that can be
+   * wound back, since orders are logged where rewinds are kept.
+   */
+  allowOrders(): void;
+  /** The ships picked out, by the simulation's index, the first leading. */
+  readonly picked: readonly number[];
+  /** The verb the next click on a ship gives, or null. */
+  readonly armed: Verb | null;
+  /** Arm a verb, or with null, disarm; an attack finishing on `cancelOn`. */
+  arm(verb: Verb | null, cancelOn?: OrderCancelCondition): void;
+  /** Give a command to the battle now, logged. */
+  issue(command: Command): void;
+  /** Every command given, for a link to carry. */
+  readonly orders: readonly Logged[];
+  /** Where a ship was last drawn, CSS pixels from the canvas's top left, or null. */
+  screenOf(ship: number): { x: number; y: number } | null;
 }
+
+/** What a click on a ship can be armed to tell the selection. */
+export type Verb = 'attack' | 'defend' | 'ram';
 
 /**
  * `stepped` is told after every step, for whatever is judging the battle;
@@ -83,7 +134,14 @@ export function battleView(
   const snapshot = new Snapshot();
   const flashes = new Flashes();
   const camera: Camera = { x: 0, y: 0, scale: 0.1 };
+  /** The leading picked ship's body, as the renderer marks it, worked out each frame. */
   let selected = -1;
+  let picked: number[] = [];
+  let ordersAllowed = false;
+  let armed: Verb | null = null;
+  let armedCancel = OrderCancelCondition.CompleteDisable;
+  /** A box being dragged out, canvas pixels. */
+  let box: { x0: number; y0: number; x1: number; y1: number } | null = null;
   let autoFrame = true;
   let framed = false;
   let running = false;
@@ -133,11 +191,60 @@ export function battleView(
     () => {
       autoFrame = false;
     },
-    (x, y, reach) => {
-      selected = shipAt(snapshot, x, y, reach);
-      if (selected >= 0) autoFrame = true;
+    (x, y, reach, shift) => {
+      const ship = shipViewAt(snapshot, x, y, reach);
+      if (armed !== null && ship !== null) {
+        order(armed, ship, shift, armedCancel);
+        armed = null;
+        return;
+      }
+      picked = clicked(snapshot, picked, ship, shift);
+      if (picked.length > 0) autoFrame = true;
+    },
+    {
+      commanded(x, y, reach, shift) {
+        const ship = shipViewAt(snapshot, x, y, reach);
+        const side = sideOf(snapshot, picked);
+        if (ship === null || side === null || ship.team === NEUTRAL_TEAM) return;
+        order(ship.team === side ? 'defend' : 'attack', ship, shift, OrderCancelCondition.CompleteDisable);
+      },
+      doubled(x, y, reach) {
+        if (!ordersAllowed) return;
+        picked = sameDesign(snapshot, shipViewAt(snapshot, x, y, reach));
+      },
+      boxed(x0, y0, x1, y1) {
+        if (!ordersAllowed) return;
+        picked = boxed(snapshot, picked, x0, y0, x1, y1);
+        if (picked.length > 0) autoFrame = true;
+      },
+      boxing(next) {
+        box = ordersAllowed ? next : null;
+      },
     },
   );
+
+  /** The picked ships told `verb` against `target`, if that makes sense for them. */
+  const order = (verb: Verb, target: ShipView, append: boolean, cancelOn: OrderCancelCondition): void => {
+    const side = sideOf(snapshot, picked);
+    if (!ordersAllowed || side === null || target.ship === undefined || target.team === NEUTRAL_TEAM) return;
+    // A friend is defended and an enemy attacked or rammed.
+    if ((verb === 'defend') !== (target.team === side)) return;
+    const ships = picked.filter((i) => i !== target.ship);
+    if (ships.length === 0) return;
+    const given: Order =
+      verb === 'attack'
+        ? { kind: 'attack', target: target.ship, cancelOn }
+        : { kind: verb, target: target.ship };
+    issue({ kind: 'order', ships, order: given, append });
+  };
+
+  const issue = (command: Command): void => {
+    if (!ordersAllowed || rewind === null) return;
+    // Given where the battle is now, not where a pending seek would have taken it.
+    seeking = -1;
+    rewind.issue(command);
+    battle = rewind.battle;
+  };
 
   window.addEventListener('keydown', (event) => {
     // Typing in a field is not a command; a list or a slider still answers to Space.
@@ -153,7 +260,17 @@ export function battleView(
       setRunning(false);
       seeking = Math.max(0, (seeking >= 0 ? seeking : rewind.at) - 1);
     } else if (event.key === 'Escape') {
-      selected = -1;
+      if (armed !== null) armed = null;
+      else picked = [];
+    } else if (ordersAllowed && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a') {
+      event.preventDefault();
+      const side = sideOf(snapshot, picked) ?? 0;
+      picked = wholeSide(snapshot, side);
+    } else if (ordersAllowed && !event.ctrlKey && !event.metaKey && picked.length > 0 && VERB_KEYS[event.key.toLowerCase()] !== undefined) {
+      armed = VERB_KEYS[event.key.toLowerCase()]!;
+      armedCancel = OrderCancelCondition.CompleteDisable;
+    } else if (ordersAllowed && !event.ctrlKey && !event.metaKey && event.key.toLowerCase() === STOP_KEY && picked.length > 0) {
+      if (sideOf(snapshot, picked) !== null) issue({ kind: 'stop', ships: picked });
     } else if (event.key === 'f' || event.key === 'F') {
       autoFrame = true;
     } else if (event.key.toLowerCase() === ARCS_KEY && !event.ctrlKey && !event.metaKey) {
@@ -235,7 +352,7 @@ export function battleView(
         framed = true;
       }
       // Framed exactly across a jump, rather than eased there in real time.
-      frame(camera, selectionBounds(view, selected) ?? view, canvas.width, canvas.height, jumped ? 1 : undefined);
+      frame(camera, pickedBounds(view, picked) ?? view, canvas.width, canvas.height, jumped ? 1 : undefined);
     }
 
     // Flashes fade on the battle's clock, so a paused battle holds them.
@@ -256,17 +373,27 @@ export function battleView(
         view.impactDirY[i]!,
       );
     }
-    draw(ctx, view, camera, canvas.width, canvas.height, flashes, arcs, teamShots, selected);
+    picked = stillThere(view, picked);
+    selected = viewOf(view, picked[0])?.body ?? -1;
+    const also = picked.slice(1).map((i) => viewOf(view, i)?.body ?? -1);
+    draw(ctx, view, camera, canvas.width, canvas.height, flashes, arcs, teamShots, selected, also);
+    if (box !== null) {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.strokeStyle = BOX_COLOUR;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(box.x0, box.y0, box.x1 - box.x0, box.y1 - box.y0);
+    }
     drawn(view);
   };
   window.requestAnimationFrame(tick);
 
   return {
-    show(next, run, rewindable = false) {
+    show(next, run, rewindable = false, orders = []) {
       battle = next;
-      rewind = rewindable ? new Rewind(next, () => performance.now()) : null;
+      picked = [];
+      armed = null;
+      rewind = rewindable ? new Rewind(next, () => performance.now(), orders) : null;
       seeking = -1;
-      selected = -1;
       flashes.clear();
       framed = false;
       autoFrame = true;
@@ -285,6 +412,32 @@ export function battleView(
     },
     seek(target) {
       if (rewind !== null) seeking = rewind.snap(target);
+    },
+    allowOrders() {
+      ordersAllowed = true;
+    },
+    get picked() {
+      return picked;
+    },
+    get armed() {
+      return armed;
+    },
+    arm(verb, cancelOn = OrderCancelCondition.CompleteDisable) {
+      armed = ordersAllowed && picked.length > 0 ? verb : null;
+      armedCancel = cancelOn;
+    },
+    issue,
+    get orders() {
+      return rewind?.orders ?? [];
+    },
+    screenOf(ship) {
+      const seen = viewOf(snapshot, ship);
+      if (seen === null) return null;
+      const r = canvas.getBoundingClientRect().width / canvas.width;
+      return {
+        x: ((seen.x - camera.x) * camera.scale + canvas.width / 2) * r,
+        y: (-(seen.y - camera.y) * camera.scale + canvas.height / 2) * r,
+      };
     },
     setRunning,
     step() {

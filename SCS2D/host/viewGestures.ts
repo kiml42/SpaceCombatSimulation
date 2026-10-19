@@ -10,14 +10,16 @@ const TOUCH_SLOP_PX = 10;
  * pointer, and two fingers pan as they pinch.
  *
  * `moved` is told whenever the camera is moved by hand. `tapped`, if given, is
- * told of a click or tap that did not pan, with the world point under it and
- * how far off that point a ship may be and still count as tapped, metres.
+ * told of a click or tap that did not pan, with the world point under it, how
+ * far off that point a ship may be and still count as tapped, metres, and
+ * whether Shift was held. `picking` adds what a page that gives orders wants.
  */
 export function viewGestures(
   canvas: HTMLCanvasElement,
   camera: Camera,
   moved: () => void,
-  tapped?: (x: number, y: number, reach: number) => void,
+  tapped?: (x: number, y: number, reach: number, shift: boolean) => void,
+  picking?: Picking,
 ): void {
   /** Canvas pixels per CSS pixel. */
   const ratio = (): number => canvas.width / canvas.getBoundingClientRect().width;
@@ -52,7 +54,38 @@ export function viewGestures(
     return { x, y, size };
   };
 
+  /** World point under a client point. */
+  const world = (clientX: number, clientY: number): { x: number; y: number } => {
+    const at = offset(clientX, clientY);
+    return { x: camera.x + at.x / camera.scale, y: camera.y - at.y / camera.scale };
+  };
+  const reachOf = (event: PointerEvent | MouseEvent): number =>
+    (('pointerType' in event && event.pointerType === 'touch' ? TOUCH_PICK_PX : PICK_PX) * ratio()) / camera.scale;
+
+  /** A Shift-drag drawing a box, from where it started, in client pixels. */
+  let box: { x: number; y: number } | null = null;
+
+  if (picking !== undefined) {
+    canvas.addEventListener('contextmenu', (event) => {
+      event.preventDefault();
+      const at = world(event.clientX, event.clientY);
+      picking.commanded(at.x, at.y, reachOf(event), event.shiftKey);
+    });
+    canvas.addEventListener('dblclick', (event) => {
+      const at = world(event.clientX, event.clientY);
+      picking.doubled(at.x, at.y, reachOf(event));
+    });
+  }
+
   canvas.addEventListener('pointerdown', (event) => {
+    // Only the main button pans or picks: the other is for orders.
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    if (picking !== undefined && event.shiftKey && event.pointerType === 'mouse') {
+      canvas.setPointerCapture(event.pointerId);
+      box = { x: event.clientX, y: event.clientY };
+      press = { x: event.clientX, y: event.clientY, slop: CLICK_SLOP_PX, panned: false };
+      return;
+    }
     canvas.setPointerCapture(event.pointerId);
     pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
     press =
@@ -66,6 +99,19 @@ export function viewGestures(
         : null;
   });
   canvas.addEventListener('pointermove', (event) => {
+    if (box !== null && press !== null) {
+      if (!press.panned && Math.hypot(event.clientX - press.x, event.clientY - press.y) <= press.slop) return;
+      press.panned = true;
+      const r = ratio();
+      const rect = canvas.getBoundingClientRect();
+      picking!.boxing({
+        x0: (box.x - rect.left) * r,
+        y0: (box.y - rect.top) * r,
+        x1: (event.clientX - rect.left) * r,
+        y1: (event.clientY - rect.top) * r,
+      });
+      return;
+    }
     const pointer = pointers.get(event.pointerId);
     if (pointer === undefined) return;
     if (press !== null && !press.panned) {
@@ -88,10 +134,20 @@ export function viewGestures(
     moved();
   });
   canvas.addEventListener('pointerup', (event) => {
+    if (box !== null) {
+      const from = world(box.x, box.y);
+      const to = world(event.clientX, event.clientY);
+      const dragged = press?.panned === true;
+      box = null;
+      press = null;
+      picking!.boxing(null);
+      if (dragged) picking!.boxed(from.x, from.y, to.x, to.y);
+      else tapped?.(to.x, to.y, reachOf(event), true);
+      return;
+    }
     if (press !== null && !press.panned && tapped !== undefined) {
-      const at = offset(event.clientX, event.clientY);
-      const reach = (event.pointerType === 'touch' ? TOUCH_PICK_PX : PICK_PX) * ratio();
-      tapped(camera.x + at.x / camera.scale, camera.y - at.y / camera.scale, reach / camera.scale);
+      const at = world(event.clientX, event.clientY);
+      tapped(at.x, at.y, reachOf(event), event.shiftKey);
     }
     pointers.delete(event.pointerId);
     press = null;
@@ -99,5 +155,21 @@ export function viewGestures(
   canvas.addEventListener('pointercancel', (event) => {
     pointers.delete(event.pointerId);
     press = null;
+    if (box !== null) {
+      box = null;
+      picking!.boxing(null);
+    }
   });
+}
+
+/** What a battle view that gives orders needs from the mouse, beyond panning and picking. */
+export interface Picking {
+  /** A right-click: an order at the ship under it. */
+  commanded(x: number, y: number, reach: number, shift: boolean): void;
+  /** A double-click: every ship of the design under it. */
+  doubled(x: number, y: number, reach: number): void;
+  /** A Shift-drag let go, corner to corner, world metres. */
+  boxed(x0: number, y0: number, x1: number, y1: number): void;
+  /** The box being dragged, canvas pixels, to draw; null once it is let go. */
+  boxing(box: { x0: number; y0: number; x1: number; y1: number } | null): void;
 }

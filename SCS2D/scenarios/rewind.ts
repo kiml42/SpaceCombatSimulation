@@ -1,5 +1,6 @@
 import { abs, ceil, floor, max } from '../sim/math.js';
 import { sizedClone } from './clone.js';
+import { give, type Command, type Logged } from './commands.js';
 import type { Battle } from './types.js';
 
 /** Fewest steps between checkpoints. */
@@ -22,6 +23,11 @@ const BYTES = 50e6;
  * deterministic. Re-simulating from the start alone was too slow: a big
  * battle steps barely faster than it plays.
  *
+ * Orders are commands logged at the step they were given, and given again
+ * there whenever it is stepped through, so a rewind replays them; a new one
+ * after a rewind throws away everything logged after it, and the battle's
+ * future with it. A checkpoint holds what was given at its own step.
+ *
  * Given a clock, checkpoints are spaced so copying costs a small share of
  * stepping, since a big battle is slow to copy. Older ones are thinned out,
  * so they grow sparser with age, and more so when they hold too much. Where
@@ -42,14 +48,63 @@ export class Rewind {
   private spread = SPREAD;
   /** Milliseconds a step takes, smoothed; NaN until timed. */
   private stepCost = Number.NaN;
+  /** Commands by the step they were given at, in the order given. */
+  private readonly log = new Map<number, Command[]>();
 
-  /** `battle` at its first step; `now` a clock in milliseconds, if checkpoints are to be paced by cost. */
+  /**
+   * `battle` at its first step; `now` a clock in milliseconds, if checkpoints
+   * are to be paced by cost; `log` the orders it was given, from a link.
+   */
   constructor(
     battle: Battle,
     private readonly now?: () => number,
+    log: readonly Logged[] = [],
   ) {
     this.battle = battle;
+    for (const { step, command } of log) this.record(step, command);
+    this.giveAt(0);
     this.keep();
+  }
+
+  /** Give a command now. Everything logged after now, and the future reached, is thrown away. */
+  issue(command: Command): void {
+    for (const step of [...this.log.keys()]) if (step > this.at) this.log.delete(step);
+    for (const [step, checkpoint] of [...this.checkpoints]) {
+      if (step <= this.at) continue;
+      this.checkpoints.delete(step);
+      this.bytes -= checkpoint.bytes;
+    }
+    this.reached = this.at;
+    this.record(this.at, command);
+    give(this.battle, command);
+    // A checkpoint here holds what was given here.
+    const here = this.checkpoints.get(this.at);
+    if (here !== undefined) {
+      const { copy, bytes } = sizedClone(this.battle);
+      this.bytes += bytes - here.bytes;
+      this.checkpoints.set(this.at, { battle: copy, bytes });
+    }
+    this.last = this.lastKept();
+  }
+
+  /** Every command given, in the order given. */
+  get orders(): Logged[] {
+    const out: Logged[] = [];
+    for (const step of [...this.log.keys()].sort((a, b) => a - b)) {
+      for (const command of this.log.get(step)!) out.push({ step, command });
+    }
+    return out;
+  }
+
+  private record(step: number, command: Command): void {
+    const at = this.log.get(step);
+    if (at === undefined) this.log.set(step, [command]);
+    else at.push(command);
+  }
+
+  private giveAt(step: number): void {
+    const commands = this.log.get(step);
+    if (commands !== undefined) for (const command of commands) give(this.battle, command);
   }
 
   step(): void {
@@ -60,6 +115,7 @@ export class Rewind {
       this.stepCost = this.stepCost !== this.stepCost ? took : this.stepCost + (took - this.stepCost) * 0.05;
     }
     this.at++;
+    this.giveAt(this.at);
     if (this.at > this.reached) this.reached = this.at;
     if (this.at - this.last >= this.every && this.at > this.lastKept()) this.keep();
   }

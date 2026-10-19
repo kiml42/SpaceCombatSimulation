@@ -667,6 +667,11 @@ export interface Order {
   land: boolean;
   /** Bring its own port onto a friend's, face to face, to be filled through it. Doctrine's, never an order's. */
   dock: boolean;
+  /**
+   * Cover the target, a friend: hold the escort band on it, and fight what is
+   * attacking it from there. Never leaves the band to give chase.
+   */
+  defend?: boolean;
 }
 
 /**
@@ -1690,7 +1695,9 @@ export class Ships {
    * also spreads the cost of looking at every enemy across the steps between.
    */
   private decide(world: World, bodies: Bodies, i: number): void {
-    if (this.orders[i]!.length > 0) {
+    // Told to defend, it still picks its own fight, from among the friend's attackers.
+    const defending = this.defendingOf(i);
+    if (this.orders[i]!.length > 0 && defending === NO_TARGET) {
       // Being told what to do clears what it had decided for itself, so
       // running out of orders is a fresh look rather than a stale one.
       this.chosen[i] = NO_TARGET;
@@ -1698,6 +1705,10 @@ export class Ships {
       this.ramming[i] = NO_TARGET;
       this.salvaging[i] = NO_TARGET;
       return;
+    }
+    if (defending !== NO_TARGET) {
+      this.ramming[i] = NO_TARGET;
+      this.salvaging[i] = NO_TARGET;
     }
     // A ram, once decided, is seen through: no second look at the target, and
     // no consort to break off for.
@@ -1732,9 +1743,17 @@ export class Ships {
     const reach = this.fightReach(i);
     if ((design.reach > 0 && !this.isDisarmed(i)) || (rammer && reach > 0)) {
       const wanted = doctrine.ramMass > 0 && this.wouldRam(bodies, i, b) ? doctrine.ramMass : doctrine.preferredMass;
+      // Defending, only what is attacking its charge, while anything is.
+      let attackers = false;
+      if (defending !== NO_TARGET) {
+        for (let t = 0; t < this.alive.length && !attackers; t++) {
+          attackers = this.alive[t] === 1 && this.hostile(i, t) && this.focusOf(t) === defending;
+        }
+      }
       this.choice.begin();
       for (let t = 0; t < this.alive.length; t++) {
         if (t === i || this.alive[t] === 0) continue;
+        if (attackers && this.focusOf(t) !== defending) continue;
         // Wreckage is matter, not an enemy, nor is anything not hostile, and
         // a hulk offers nothing worth closing on: nothing controls it, and no
         // shot fired at it will ever remove it from the battle, so scoring it
@@ -1775,8 +1794,8 @@ export class Ships {
     // enemy on proximity alone — which would have every fleet in the game
     // huddling rather than fighting.
     this.chosen[i] = fighting;
-    this.consort[i] = NO_TARGET;
-    if (!(doctrine.escortWeight > 0)) return;
+    this.consort[i] = defending;
+    if (defending !== NO_TARGET || !(doctrine.escortWeight > 0)) return;
 
     this.choice.begin();
     for (let t = 0; t < this.alive.length; t++) {
@@ -2409,6 +2428,11 @@ export class Ships {
     return this.liveConsort(bodies, i, bodies.indexOf(this.bodyIds[i]!));
   }
 
+  /** How far from `consort` ship `i` stays as its escort, centre to centre, metres. */
+  coverBandOf(i: number, consort: number): number {
+    return this.escortBand(i, this.designs[i]!, consort);
+  }
+
   /** Ship `i`'s consort while it is one worth staying with: alive, not a hulk left to itself, and on a body of its own. */
   private liveConsort(bodies: Bodies, i: number, b: number): number {
     const consort = this.consort[i] ?? NO_TARGET;
@@ -2427,14 +2451,20 @@ export class Ships {
     const standing = this.standing[i];
     const order = this.getCurrentOrder(i) ?? (standing !== undefined && standing.target === this.chosenOf(i) ? standing : undefined);
     if (order === undefined || order.target === NO_TARGET) return undefined;
-    if (order.ram || order.grapple || order.land || order.dock || !(order.maxRange > 0)) return undefined;
+    if (order.ram || order.grapple || order.land || order.dock || order.defend === true || !(order.maxRange > 0)) return undefined;
     return order;
   }
 
   private focusOf(i: number): number {
     const given = this.getCurrentOrder(i);
-    if (given !== undefined) return given.target;
+    if (given !== undefined && given.defend !== true) return given.target;
     return this.chosenOf(i);
+  }
+
+  /** The friend this ship is ordered to defend, or `NO_TARGET`. */
+  private defendingOf(i: number): number {
+    const given = this.getCurrentOrder(i);
+    return given !== undefined && given.defend === true ? given.target : NO_TARGET;
   }
 
   /** What this ship's doctrine chose to fight, orders aside; `NO_TARGET` for nothing. */
@@ -2453,7 +2483,9 @@ export class Ships {
    * hit the ship. Otherwise this is whatever the mount picked for itself.
    */
   private turretAim(bodies: Bodies, i: number, t: number): number {
-    const given = this.designs[i]!.turrets[t]!.main ? this.getCurrentOrder(i) : undefined;
+    const current = this.designs[i]!.turrets[t]!.main ? this.getCurrentOrder(i) : undefined;
+    // A friend to defend is not a target.
+    const given = current?.defend === true ? undefined : current;
     let tracksGiven = false;
     if (given !== undefined && given.target !== NO_TARGET && this.alive[given.target] === 1) {
       const tb = bodies.indexOf(this.bodyIds[given.target]!);
@@ -2562,6 +2594,8 @@ export class Ships {
    */
   private effectiveOrder(i: number): Order | undefined {
     const given = this.getCurrentOrder(i);
+    // Defending is covering, which the pilot flies as a consort rather than as a station.
+    if (given?.defend === true) return undefined;
     if (given !== undefined) return given;
 
     const design = this.designs[i]!;
@@ -2636,14 +2670,54 @@ export class Ships {
     this.orders[i]!.push(order);
   }
 
-  /** Add an order to ram `target`, closing at `approachSpeed`, to the end of this ship's queue. */
-  pushRam(i: number, target: number, approachSpeed: number, cancelOn: OrderCancelCondition = OrderCancelCondition.CompleteDisable): void {
-    this.orders[i]!.push({ target, minRange: 0, maxRange: 0, approachSpeed, cancelOn, ram: true, grapple: false, land: false, dock: false });
+  /** Add an order to ram `target`, closing at `approachSpeed` (its doctrine's, if not given), to the end of this ship's queue. */
+  pushRam(i: number, target: number, approachSpeed?: number, cancelOn: OrderCancelCondition = OrderCancelCondition.CompleteDisable): void {
+    const speed = approachSpeed ?? this.doctrines[i]!.approach.approachSpeed;
+    this.orders[i]!.push({ target, minRange: 0, maxRange: 0, approachSpeed: speed, cancelOn, ram: true, grapple: false, land: false, dock: false });
   }
 
   /** Drop every order this ship has. It holds its heading and its fire. */
   clearOrder(i: number): void {
     this.orders[i] = [];
+  }
+
+  /**
+   * Add an order to attack `target`, fought as this ship's doctrine would fight
+   * one it chose: its standoff band and approach speed.
+   */
+  pushAttack(i: number, target: number, cancelOn: OrderCancelCondition = OrderCancelCondition.CompleteDisable): void {
+    const approach = this.doctrines[i]!.approach;
+    const band = holdBand(approach, this.designs[i]!.reach, this.designs[target]!.radius);
+    this.pushOrder(i, target, band.min, band.max, approach.approachSpeed, cancelOn);
+  }
+
+  /** Add an order to defend `friend` until it is gone. */
+  pushDefend(i: number, friend: number): void {
+    const approach = this.doctrines[i]!.approach;
+    this.orders[i]!.push({
+      target: friend,
+      minRange: 0,
+      maxRange: 0,
+      approachSpeed: approach.approachSpeed,
+      cancelOn: OrderCancelCondition.CompletelyDead,
+      ram: false,
+      grapple: false,
+      land: false,
+      dock: false,
+      defend: true,
+    });
+    // A fresh look at who is attacking it, rather than at the next rethink.
+    this.rethinkAt[i] = 0;
+  }
+
+  /** Drop the order at `n` in this ship's queue, the current one being 0. */
+  dropOrder(i: number, n: number): void {
+    this.orders[i]?.splice(n, 1);
+  }
+
+  /** This ship's orders, the current one first. */
+  ordersOf(i: number): readonly Readonly<Order>[] {
+    return this.orders[i] ?? [];
   }
 
   /**
@@ -3199,6 +3273,15 @@ export class Ships {
       if (target === NO_TARGET && covering >= 0) {
         const cb = bodies.indexOf(this.bodyIds[covering]!);
         if (cb >= 0) wantAngle = atan2(bodies.y[cb]! - bodies.y[b]!, bodies.x[cb]! - bodies.x[b]!);
+        // Defending and on station, it turns its main battery on the attacker.
+        const attacker = covering === this.defendingOf(i) ? this.chosenOf(i) : NO_TARGET;
+        const ab = attacker === NO_TARGET ? -1 : bodies.indexOf(this.bodyIds[attacker]!);
+        if (cb >= 0 && ab >= 0 && ab !== b) {
+          const gap = length(bodies.x[cb]! - bodies.x[b]!, bodies.y[cb]! - bodies.y[b]!);
+          if (gap <= this.escortBand(i, this.designs[i]!, covering)) {
+            wantAngle = this.attackHeading(i, b, ab, bodies, atan2(bodies.y[ab]! - bodies.y[b]!, bodies.x[ab]! - bodies.x[b]!));
+          }
+        }
       }
       // Clear of what it is covering, as of anything else: a charge is
       // stationed on, never flown into.
@@ -3823,7 +3906,8 @@ export class Ships {
     const design = this.designs[i]!;
     const station = this.escortBand(i, design, consort);
     const gap = length(bodies.x[cb]! - bodies.x[b]!, bodies.y[cb]! - bodies.y[b]!);
-    const weight = cohesionUrge(this.doctrines[i]!.targeting, gap, station);
+    // Told to, it holds the band as firmly as it would a station.
+    const weight = this.defendingOf(i) === consort ? URGE_REFERENCE : cohesionUrge(this.doctrines[i]!.targeting, gap, station);
     const approach = this.doctrines[i]!.approach;
     this.hold(bodies, i, b, cb, 0, station, approach.approachSpeed, weight);
     return consort;

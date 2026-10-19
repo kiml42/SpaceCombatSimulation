@@ -1026,7 +1026,9 @@ inside any one file is not contiguous.
   lost modules rebuilt by robots and by pads, and robots taking wreckage apart into metal, with doctrine that
   sends a fighter in to be mended and a ship out to wrecks for their metal, flown by the stock Salvager.
   In-battle construction (§8 step 12) and harvesting wrecks (step 13) are built on it. What comes next is
-  orders (step 14): telling ships what to do mid-battle, from the paused battle.
+  orders (step 14): telling ships what to do mid-battle, from the paused battle. Its first slices are built:
+  rewinding the viewer's battle from checkpoints, and attack, defend and ram given to picked-out ships by
+  right-click or an order bar, logged so a rewind or a link replays them (ROADMAP.md step 14).
   Alongside it, §8 step 5's skirmish: an endless loop against an enemy fleet that evolves to beat the
   player's, planned in ROADMAP.md §8. Evolution keeps the skirmish's sense of quiet, though it plays a match on until every side is quiet before naming a winner. Its loop is built without the evolving enemy (`dist/skirmish.html`,
   `scenarios/skirmish.ts`): pick a stock enemy, whose bill is the budget unless the player sets their own, under a limit on ships and spread (20 and 500 m unless set, or what the enemy fields if more), each round's gap and starting speeds drawn from optional ± spreads on its seed; fight a fixed round, decided by

@@ -98,7 +98,16 @@ Nothing: every step up to 13 is built.
        - **Flashes on landing at a checkpoint.** Across steps re-simulated, flashes are rebuilt as they
          would have been drawn; landing on a checkpoint re-simulates nothing, so it shows none until the
          next step.
-    1. **Attack, defend and ram**, with the log, selection and order bar they need (below).
+    1. **Attack, defend and ram** — built, as settled below. Building it chose:
+       - **Keys:** T, D and R arm attack, defend and ram, and S stops, since A already cycles the arcs.
+         Ctrl or Cmd+A takes the whole side.
+       - **The attacker preference is a filter:** defending, a ship picks only among the friend's
+         attackers while there are any. The friend becomes its consort, held as firmly as a station.
+       - **Neutrals:** a right-click on one gives nothing. Neither is an order to defend a ship on
+         another side, or to attack or ram one's own, whatever a link says.
+       - **The order bar floats over the battle**, so picking a ship never resizes the view under the
+         pointer.
+       - **Commands name ships by the simulation's index**, which a deterministic battle keeps.
     2. **Change doctrine, refuel or repair, remodel, build a fighter, build a ship.** Not yet designed: its
        own grilling once slice 1 is playable.
     3. **Run away**, once withdrawal (§12) is designed; outside step 14 until then.
