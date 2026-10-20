@@ -36,7 +36,7 @@ import {
 } from '../sim/index.js';
 import { gridStep, type Camera } from './camera.js';
 import { describeRange, insetAt, insetsFor, labelAlong, labelBeside, type Inset, type InsetArea, type InsetShip, type LabelAt } from './inset.js';
-import { stripsFor, stripTileAt, type StripColumn, type StripShip, type Strips } from './fleetStrip.js';
+import { stripsFor, stripTileAt, stripTileUnder, type StripColumn, type StripShip, type Strips, type StripTile } from './fleetStrip.js';
 import { fighterColours, NEUTRAL, shipColours, teamName } from './teams.js';
 
 export { teamColour } from './teams.js';
@@ -1642,6 +1642,14 @@ export function overlayAt(strips: Strips | null, insets: readonly Inset[], camer
   const inset = insetAt(insets, px, py);
   if (inset >= 0) return inset;
   return strips === null ? -1 : stripTileAt(strips, px, py);
+}
+
+/** The tile under a world point the main view was tapped at, unless a close-up is over it; null for none. */
+export function overlayTileAt(strips: Strips | null, insets: readonly Inset[], camera: Camera, widthPx: number, heightPx: number, x: number, y: number): StripTile | null {
+  const px = widthPx / 2 + (x - camera.x) * camera.scale;
+  const py = heightPx / 2 - (y - camera.y) * camera.scale;
+  if (strips === null || insetAt(insets, px, py) >= 0) return null;
+  return stripTileUnder(strips, px, py);
 }
 
 /**

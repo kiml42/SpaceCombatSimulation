@@ -142,8 +142,13 @@ export function stripsFor(ships: readonly StripShip[], widthPx: number, heightPx
 
 /** The body whose tile holds a canvas point, or -1. */
 export function stripTileAt(strips: Strips, x: number, y: number): number {
+  return stripTileUnder(strips, x, y)?.body ?? -1;
+}
+
+/** The tile under canvas pixel (x, y), or null. */
+export function stripTileUnder(strips: Strips, x: number, y: number): StripTile | null {
   for (const tile of [...strips.left.tiles, ...strips.right.tiles]) {
-    if (x >= tile.x && x <= tile.x + tile.size && y >= tile.y && y <= tile.y + tile.size) return tile.body;
+    if (x >= tile.x && x <= tile.x + tile.size && y >= tile.y && y <= tile.y + tile.size) return tile;
   }
-  return -1;
+  return null;
 }
