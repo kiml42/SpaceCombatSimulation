@@ -54,13 +54,24 @@ import {
   type ModuleSpec,
   type ModuleStats,
 } from './modules.js';
-import { abs, atan2, angleDelta, PI, brakingRate, clamp, cos, exp, length, max, min, round, sin, sqrt } from './math.js';
+import { abs, atan2, angleDelta, PI, brakingRate, clamp, cos, exp, floor, length, max, min, round, sin, sqrt } from './math.js';
 import { Projectiles } from './projectiles.js';
 import { legLength, neighbourOf, pathTo, RobotMode, Robots, staysWhole, walk, type Robot } from './robots.js';
 import { Allocation, EngineLayout } from './engines.js';
 import { addFlame, addTurret, attackBearing, AttackArcs, AttackRegion } from './attack.js';
 import { FiringSolution, interceptTime, Turrets, TurretState } from './turrets.js';
-import { holdBand, type Doctrine, type Targeting } from './doctrine.js';
+import {
+  holdBand,
+  overriddenDoctrine,
+  overriddenMount,
+  placementOf,
+  withOverride,
+  withoutPart,
+  type Doctrine,
+  type DoctrineOverride,
+  type DoctrinePart,
+  type Targeting,
+} from './doctrine.js';
 import type { ForceProvider, World } from './world.js';
 import type { BeamHits, Beams, SpatialGrid } from './index.js';
 import { MAX_BEAM_LENGTH } from './beams.js';
@@ -688,6 +699,11 @@ export enum OrderCancelCondition {
  */
 export const NEUTRAL_TEAM = -1;
 
+/** A pad's or slipway's lasting name in `design`, for telling it what to keep: its module's key, or its place. */
+export function slotKey(design: ShipDesign, module: number): string {
+  return design.keys?.[design.modules[module]?.index ?? -1] ?? `#${module}`;
+}
+
 export interface ShipSpec {
   design: ShipDesign;
   x?: number;
@@ -986,6 +1002,14 @@ export class Ships {
   private readonly rearming: number[] = [];
   /** Whether each ship has been docked under the errand it is on, which then ends when the dock lets go. */
   private readonly errandDocked: number[] = [];
+  /** Each ship's doctrine as its design has it, before anything it has been told over it. */
+  private readonly ownDoctrines: Doctrine[] = [];
+  /** What each ship has been told over its doctrine, or undefined for nothing. */
+  private readonly overrides: (DoctrineOverride | undefined)[] = [];
+  /** Each ship's mounts' doctrines with its override, by mount, for the design they were worked out for. */
+  private readonly mountDoctrines: ({ design: ShipDesign; byMount: Map<DesignTurret, Targeting> } | null)[] = [];
+  /** How many each pad and slipway is told to keep, by its module's lasting key, over its design's count. */
+  private readonly keeps: (Readonly<Record<string, number>> | undefined)[] = [];
   /** For each design, each pad's clear side as an angle in the design's frame; NaN not yet worked out. */
   private readonly padSides = new WeakMap<ShipDesign, Float64Array>();
   /** The carrier each fighter last set out from or landed on, or -1. */
@@ -1554,6 +1578,10 @@ export class Ships {
     this.delivering.push(0);
     this.rearming.push(0);
     this.errandDocked.push(0);
+    this.ownDoctrines.push(design.doctrine);
+    this.overrides.push(undefined);
+    this.mountDoctrines.push(null);
+    this.keeps.push(undefined);
     this.recharging.push(0);
     this.home.push(-1);
     this.touchedSource.push(-Infinity);
@@ -1894,7 +1922,7 @@ export class Ships {
       }
 
       const ti = indices[t]!;
-      const doctrine = mount.targeting;
+      const doctrine = this.aimDoctrine(i, mount);
 
       // Everything is measured from the gun rather than from the hull it is
       // bolted to. Metres, against gunnery range — but enough to order two
@@ -1924,12 +1952,12 @@ export class Ships {
         let tx = bodies.x[tb]!;
         let ty = bodies.y[tb]!;
         if (hooked) {
-          const part = this.aimModule(bodies, mount, layers, e, gunX, gunY, true);
+          const part = this.aimModule(bodies, i, mount, layers, e, gunX, gunY, true);
           if (part < 0) continue;
           this.partPoint(bodies, tb, this.designs[e]!, part);
           tx = this.partAt.x;
           ty = this.partAt.y;
-        } else if (!this.canAimAt(mount, hurts, e, tb)) {
+        } else if (!this.canAimAt(i, mount, hurts, e, tb)) {
           // A ship with nothing left this mount will shoot at is not a target
           // for it, however good it looks by every other measure.
           continue;
@@ -1970,6 +1998,7 @@ export class Ships {
         // fighter. A doctrine that minds what it hits fires only on the part
         // it picked, so its reach is against that part.
         const against = this.reachOn(
+          i,
           mount,
           e,
           refusesAnything(doctrine) ? this.aimFor(bodies, i, mount, layers, e, gunX, gunY, hooked) : WHOLE_SHIP,
@@ -2022,11 +2051,11 @@ export class Ships {
     const tb = bodies.indexOf(this.bodyIds[target]!);
     const hooked = tb === b;
     const part = this.aimFor(bodies, i, mount, layers, target, gunX, gunY, hooked);
-    if (part < 0 || hooked || refusesAnything(mount.targeting)) return part;
+    if (part < 0 || hooked || refusesAnything(this.aimDoctrine(i, mount))) return part;
     const design = this.designs[target]!;
     this.partPoint(bodies, tb, design, part);
     const range = length(this.partAt.x - gunX, this.partAt.y - gunY);
-    if (range <= this.reachFor(mount, moduleRadius(design.modules[part]!.spec))) return part;
+    if (range <= this.reachFor(i, mount, moduleRadius(design.modules[part]!.spec))) return part;
     if (this.meetsWhole(shells ? layers | HULL_LAYER : layers, target)) return WHOLE_SHIP;
     let middle = part;
     let nearest = Infinity;
@@ -2047,15 +2076,15 @@ export class Ships {
    * the size of what it will fire on, which is the whole ship unless its
    * doctrine minds what it hits, and as far out as its doctrine says.
    */
-  private reachOn(mount: DesignTurret, target: number, part: number): number {
+  private reachOn(i: number, mount: DesignTurret, target: number, part: number): number {
     const design = this.designs[target]!;
-    const selective = refusesAnything(mount.targeting) && part >= 0 && part < design.modules.length;
-    return this.reachFor(mount, selective ? moduleRadius(design.modules[part]!.spec) : design.radius);
+    const selective = refusesAnything(this.aimDoctrine(i, mount)) && part >= 0 && part < design.modules.length;
+    return this.reachFor(i, mount, selective ? moduleRadius(design.modules[part]!.spec) : design.radius);
   }
 
   /** How far a mount will fire at something of this radius, metres. */
-  private reachFor(mount: DesignTurret, radius: number): number {
-    return reachAgainst(mount.gun, radius) * mount.targeting.fireRange;
+  private reachFor(i: number, mount: DesignTurret, radius: number): number {
+    return reachAgainst(mount.gun, radius) * this.aimDoctrine(i, mount).fireRange;
   }
 
   /**
@@ -2086,6 +2115,7 @@ export class Ships {
    */
   private aimModule(
     bodies: Bodies,
+    i: number,
     mount: DesignTurret,
     layers: number,
     target: number,
@@ -2093,7 +2123,7 @@ export class Ships {
     fromY: number,
     hooked = false,
   ): number {
-    const doctrine = mount.targeting;
+    const doctrine = this.aimDoctrine(i, mount);
     // A mount in the hull layer with no opinion about parts shoots at the
     // hull. One in the weapons layer cannot: amidships is usually deck, which
     // its rounds pass over, so it always picks something in the weapons layer. Nor can one
@@ -2147,9 +2177,9 @@ export class Ships {
     fromY: number,
     hooked: boolean,
   ): number {
-    const part = this.aimModule(bodies, mount, layers, target, fromX, fromY, hooked);
+    const part = this.aimModule(bodies, i, mount, layers, target, fromX, fromY, hooked);
     if (part !== NOTHING_AIMABLE || !this.firesShellsFrom(i, mount)) return part;
-    return this.aimModule(bodies, mount, BOTH_LAYERS, target, fromX, fromY, hooked);
+    return this.aimModule(bodies, i, mount, BOTH_LAYERS, target, fromX, fromY, hooked);
   }
 
   /** Where module `part` of a body is in the world, into `partAt`. */
@@ -2363,8 +2393,8 @@ export class Ships {
    * A mount that scored it anyway would pick it, train on it and hold its
    * fire, which is a gun taken out of the battle by its own doctrine.
    */
-  private canAimAt(mount: DesignTurret, layers: number, target: number, tb: number): boolean {
-    const doctrine = mount.targeting;
+  private canAimAt(i: number, mount: DesignTurret, layers: number, target: number, tb: number): boolean {
+    const doctrine = this.aimDoctrine(i, mount);
     const anyPart = !picksParts(doctrine);
     if (anyPart && this.meetsWhole(layers, target)) return true;
     const design = this.designs[target]!;
@@ -2451,6 +2481,84 @@ export class Ships {
     const given = this.getCurrentOrder(i);
     if (given !== undefined && given.defend !== true && given.errand === undefined) return given.target;
     return this.chosenOf(i);
+  }
+
+  /** A mount's doctrine on ship `i`, with what the ship has been told over it. */
+  private aimDoctrine(i: number, mount: DesignTurret): Targeting {
+    const override = this.overrides[i];
+    if (override === undefined) return mount.targeting;
+    const design = this.designs[i]!;
+    let cached = this.mountDoctrines[i];
+    if (cached === null || cached === undefined || cached.design !== design) {
+      cached = { design, byMount: new Map() };
+      this.mountDoctrines[i] = cached;
+    }
+    let resolved = cached.byMount.get(mount);
+    if (resolved === undefined) {
+      const placement = placementOf(design.keys?.[design.modules[mount.module]?.index ?? -1]);
+      resolved = overriddenMount(mount.targeting, mount.main, placement, override);
+      cached.byMount.set(mount, resolved);
+    }
+    return resolved;
+  }
+
+  /** The doctrine mount `t` of ship `i` goes by, with what the ship has been told over it. */
+  mountDoctrineOf(i: number, t: number): Targeting {
+    return this.aimDoctrine(i, this.designs[i]!.turrets[t]!);
+  }
+
+  /** What ship `i` has been told over its doctrine, or undefined for nothing. */
+  overrideOf(i: number): DoctrineOverride | undefined {
+    return this.overrides[i];
+  }
+
+  /** Ship `i`'s doctrine, with what it has been told over it. */
+  doctrineOf(i: number): Doctrine {
+    return this.doctrines[i]!;
+  }
+
+  /** Tell one field of one part of ship `i`'s doctrine, or with `null` take it back to its design's. */
+  setDoctrine(i: number, part: DoctrinePart, field: string, value: number | null): void {
+    this.override(i, withOverride(this.overrides[i], part, field, value));
+  }
+
+  /** Take one part of ship `i`'s doctrine, or with `undefined` all of it, back to its design's. */
+  resetDoctrine(i: number, part: DoctrinePart | undefined): void {
+    this.override(i, withoutPart(this.overrides[i], part));
+  }
+
+  private override(i: number, next: DoctrineOverride | undefined): void {
+    if (this.alive[i] !== 1) return;
+    this.overrides[i] = next;
+    this.doctrines[i] = overriddenDoctrine(this.ownDoctrines[i]!, next);
+    this.mountDoctrines[i] = null;
+    // A fresh look with what it now goes by, rather than at its next rethink.
+    this.rethinkAt[i] = 0;
+  }
+
+  /**
+   * Tell the pad or slipway of ship `i` with lasting key `slot` (`slotKey`) how
+   * many of what it builds to keep in the fight, or with `null` go back to its
+   * design's count.
+   */
+  setKeep(i: number, slot: string, keep: number | null): void {
+    if (this.alive[i] !== 1) return;
+    const next: Record<string, number> = { ...this.keeps[i] };
+    if (keep === null) delete next[slot];
+    else next[slot] = max(0, floor(keep));
+    this.keeps[i] = Object.keys(next).length === 0 ? undefined : next;
+  }
+
+  /** How many ship `i`'s pad or slipway `module`, of the design it was launched as, keeps: told, or its design's `keep`. */
+  private keepFor(i: number, module: number, keep: number): number {
+    const told = this.keeps[i];
+    if (told === undefined) return keep;
+    return told[slotKey(this.launched[i]!, module)] ?? keep;
+  }
+
+  /** What ship `i`'s pads and slipways have been told to keep, by `slotKey`. */
+  keepsOf(i: number): Readonly<Record<string, number>> | undefined {
+    return this.keeps[i];
   }
 
   /** The errand this ship is ordered on, if its current order is one. */
@@ -4199,15 +4307,23 @@ export class Ships {
         sweepVy += spin * rx;
       }
       this.turrets.aimAt(bodies, ti, x, y, bodies.vx[tb]!, bodies.vy[tb]!, sweepVx, sweepVy);
-      const slack = this.firingSlack(mounts[t]!.targeting, target, part, this.turrets.aimDx[ti]!, this.turrets.aimDy[ti]!, rx, ry);
+      const slack = this.firingSlack(
+        this.aimDoctrine(i, mounts[t]!),
+        target,
+        part,
+        this.turrets.aimDx[ti]!,
+        this.turrets.aimDy[ti]!,
+        rx,
+        ry,
+      );
       // In reach of what it will fire on: the part it picked if it minds what
       // it hits, and otherwise the ship, from its middle.
-      const selective = refusesAnything(mounts[t]!.targeting) && part !== WHOLE_SHIP;
+      const selective = refusesAnything(this.aimDoctrine(i, mounts[t]!)) && part !== WHOLE_SHIP;
       this.turrets.allowSlack(
         ti,
         slack,
         this.slackOffset,
-        this.reachOn(mounts[t]!, target, part),
+        this.reachOn(i, mounts[t]!, target, part),
         selective ? length(x - this.gunPoint.x, y - this.gunPoint.y) : length(x - rx - this.gunPoint.x, y - ry - this.gunPoint.y),
       );
     }
@@ -4278,7 +4394,7 @@ export class Ships {
    */
   private aimPart(bodies: Bodies, i: number, t: number, target: number, targetBody: number): number {
     const mount = this.designs[i]!.turrets[t]!;
-    const doctrine = mount.targeting;
+    const doctrine = this.aimDoctrine(i, mount);
     const part = this.turretAimModule[i]![t]!;
     // The ship as a whole, chosen for this target: too far out for a part.
     if (part === WHOLE_SHIP && this.turretTarget[i]![t] === target) return WHOLE_SHIP;
@@ -6638,6 +6754,10 @@ export class Ships {
     this.couldFight[j] = this.couldFight[side]!;
     if (flies) {
       this.orders[j] = this.orders[side]!.map((order) => ({ ...order }));
+      // And what it was told of how to fight.
+      this.overrides[j] = this.overrides[side];
+      this.keeps[j] = this.keeps[side];
+      this.doctrines[j] = overriddenDoctrine(this.ownDoctrines[j]!, this.overrides[j]);
       // Still that ship, so it rebuilds to the design that ship set out as: a
       // hull cut in two can grow back into two. Wreckage sets out as itself.
       this.launched[j] = this.launched[side]!;
@@ -8083,7 +8203,9 @@ export class Ships {
     for (const r of this.ridersOf(bodies, b)) if (r !== p) this.board(r, p);
     this.launched[i] = to;
     this.rebuilds[i] = null;
-    this.doctrines[i] = to.doctrine;
+    this.ownDoctrines[i] = to.doctrine;
+    this.doctrines[i] = overriddenDoctrine(to.doctrine, this.overrides[i]);
+    this.mountDoctrines[i] = null;
     this.couldFight[i] = to.turrets.some((t) => t.main) || to.engines.length > 0 ? 1 : 0;
     const builds = to.builds ?? [];
     this.broods[i] = builds.length === 0 ? null : { fighters: builds.map(() => []), work: new Float64Array(builds.length) };
@@ -8133,7 +8255,7 @@ export class Ships {
         const order = builds[k]!;
         const pad = rebuild.at[order.pad]!;
         if (pad < 0 || !this.ownsAt(i, b, pad)) continue;
-        if (this.fielded(bodies, i, brood.fighters[k]!) >= order.keep) continue;
+        if (this.fielded(bodies, i, brood.fighters[k]!) >= this.keepFor(i, order.pad, order.keep)) continue;
         if (!this.padFree(bodies, i, pad) || this.awaited(i, pad)) continue;
         this.layDown(world, i, b, design, pad, k, order.design);
       }
@@ -8163,7 +8285,7 @@ export class Ships {
       this.printing[f] = 0;
       f = -1;
     }
-    if (f < 0 && this.fielded(bodies, i, yard.ships[k]!) >= order.keep) return;
+    if (f < 0 && this.fielded(bodies, i, yard.ships[k]!) >= this.keepFor(i, order.slipway, order.keep)) return;
     const craft = order.design;
     const length = printLength(craft);
     const depth = f < 0 ? 0 : yard.depth[k]!;

@@ -1,3 +1,4 @@
+import { isDoctrinePart, type DoctrinePart } from '../sim/doctrine.js';
 import { NO_TARGET, OrderCancelCondition } from '../sim/ships.js';
 import type { Battle } from './types.js';
 
@@ -26,7 +27,19 @@ export type Command =
   /** Take back one order, by its place in the ship's queue. */
   | { readonly kind: 'drop'; readonly ship: number; readonly index: number }
   /** Clear each ship's queue, handing it back to its doctrine. */
-  | { readonly kind: 'stop'; readonly ships: readonly number[] };
+  | { readonly kind: 'stop'; readonly ships: readonly number[] }
+  /** Tell each ship one field of one part of its doctrine, or with `null` take it back to its design's. */
+  | {
+      readonly kind: 'doctrine';
+      readonly ships: readonly number[];
+      readonly part: DoctrinePart;
+      readonly field: string;
+      readonly value: number | null;
+    }
+  /** Take one part of each ship's doctrine, or with no part all of it, back to its design's. */
+  | { readonly kind: 'resetDoctrine'; readonly ships: readonly number[]; readonly part?: DoctrinePart }
+  /** Tell a pad or slipway of each ship, by `slotKey`, how many to keep, or with `null` go back to its design's. */
+  | { readonly kind: 'keep'; readonly ships: readonly number[]; readonly slot: string; readonly keep: number | null };
 
 export interface Logged {
   readonly step: number;
@@ -47,6 +60,18 @@ export function give(battle: Battle, command: Command): void {
   }
   if (command.kind === 'stop') {
     for (const i of command.ships) if (ships.isAlive(i)) ships.clearOrder(i);
+    return;
+  }
+  if (command.kind === 'doctrine') {
+    for (const i of command.ships) if (ships.isAlive(i)) ships.setDoctrine(i, command.part, command.field, command.value);
+    return;
+  }
+  if (command.kind === 'resetDoctrine') {
+    for (const i of command.ships) if (ships.isAlive(i)) ships.resetDoctrine(i, command.part);
+    return;
+  }
+  if (command.kind === 'keep') {
+    for (const i of command.ships) if (ships.isAlive(i)) ships.setKeep(i, command.slot, command.keep);
     return;
   }
   const order = command.order;
@@ -95,6 +120,19 @@ export function parseLog(value: unknown): Logged[] {
       if (!whole(command['ship']) || !whole(command['index'])) fail('a drop wants a ship and an index');
     } else if (command['kind'] === 'stop') {
       if (!shipList(command['ships'])) fail('a stop wants ships');
+    } else if (command['kind'] === 'doctrine') {
+      const value = command['value'];
+      if (!shipList(command['ships']) || !isDoctrinePart(command['part']) || typeof command['field'] !== 'string') {
+        fail('a doctrine change wants ships, a part and a field');
+      }
+      if (value !== null && (typeof value !== 'number' || !Number.isFinite(value))) fail('a doctrine change wants a number or null');
+    } else if (command['kind'] === 'resetDoctrine') {
+      if (!shipList(command['ships']) || (command['part'] !== undefined && !isDoctrinePart(command['part']))) fail('a reset wants ships');
+    } else if (command['kind'] === 'keep') {
+      const keep = command['keep'];
+      if (!shipList(command['ships']) || typeof command['slot'] !== 'string' || !(keep === null || whole(keep))) {
+        fail('a keep wants ships, a slot and a count');
+      }
     } else if (command['kind'] === 'order') {
       const order = command['order'] as Record<string, unknown> | undefined;
       if (!shipList(command['ships']) || typeof command['append'] !== 'boolean') fail('an order wants ships and append');

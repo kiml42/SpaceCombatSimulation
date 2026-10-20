@@ -697,6 +697,53 @@ describe('the viewer in a browser', () => {
     expect(await page.isHidden('#orderBar')).toBe(true);
   }, 60_000);
 
+  it('docks anywhere with Enter, and tells doctrine from a panel beside the orders', async () => {
+    await page.selectOption('#scene', { label: 'Duel' });
+    if ((await page.textContent('#play')) === 'Play') await page.click('#play');
+    await advanced(page, 60);
+    await page.click('#play');
+    await painted(page);
+    const canvas = (await page.locator('#view').boundingBox())!;
+    const p = await page.evaluate(() =>
+      (window as unknown as { viewer: { screenOf(i: number): { x: number; y: number } } }).viewer.screenOf(0),
+    );
+    await page.mouse.click(canvas.x + p.x, canvas.y + p.y);
+    await page.waitForTimeout(1000);
+    await painted(page);
+    const last = async (): Promise<string> =>
+      JSON.stringify(await page.evaluate(() => (window as unknown as { viewer: { orders: unknown[] } }).viewer.orders.at(-1)));
+
+    await page.keyboard.press('h');
+    await painted(page);
+    expect(await page.isVisible('#nearest')).toBe(true);
+    await page.keyboard.press('Enter');
+    await painted(page);
+    expect(await last()).toContain('"kind":"dock","target":-1');
+    expect(await page.isHidden('#nearest')).toBe(true);
+
+    expect(await page.isHidden('#doctrinePanel')).toBe(true);
+    await page.keyboard.press('p');
+    await painted(page);
+    expect(await page.isVisible('#doctrinePanel')).toBe(true);
+    const speed = page.locator('#doctrinePanel input[data-field="approachSpeed"]');
+    await speed.fill('7');
+    await speed.press('Tab');
+    await painted(page);
+    expect(await last()).toContain('"kind":"doctrine"');
+    expect(await last()).toContain('"value":7');
+    // Shown as told at once, with nothing else moving.
+    expect(await page.locator('#doctrinePanel label.told').count()).toBe(1);
+    await page.locator('#doctrinePanel .tabs button', { hasText: 'Main weapons' }).click();
+    await painted(page);
+    expect(await page.textContent('#doctrinePanel .tabs button.armed')).toBe('Main weapons');
+    expect(await page.locator('#doctrinePanel input').count()).toBeGreaterThan(0);
+    expect(await page.isVisible('#doctrinePanel button:has-text("Revert all")')).toBe(true);
+    await page.keyboard.press('p');
+    await painted(page);
+    expect(await page.isHidden('#doctrinePanel')).toBe(true);
+    await page.keyboard.press('Escape');
+  }, 60_000);
+
   it('reports no errors after all of that', () => {
     expect(problems).toEqual([]);
   });
