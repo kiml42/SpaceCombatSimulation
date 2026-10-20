@@ -1673,7 +1673,7 @@ Mass from wall volume, capacity from interior area, strength from thickness and 
   and a Gunship's 24 m. A long ship carries a second core, or gives one more of its interior to
   computing. A core past its control cutout reaches nothing, and what only it reached goes dark — drawn
   faint in a battle — while the rest of the ship fights on. The editor draws each core's reach as a
-  dashed circle, tints what is out of every one, and works out the ship's figures without it
+  dashed circle, tints what is out of every one and lists each as a warning, and works out the ship's figures without it
   (`inReachDesign`). A core's computing share is a knob a run mutates.
 - **Hull and tanks may be triangles; every other archetype is a box.** A module is a box because
   nearly every archetype has something coming out of one face of it — a bell, a barrel, a ring — and

@@ -714,7 +714,9 @@ export function startEditor(): void {
         ? '<p class="ok">No problems — this layout would fly.</p>'
         : `<p class="warn">${problems.length} problem${problems.length > 1 ? 's' : ''}</p><ul>` +
           problems.map((p) => `<li>${escapeHtml(p)}</li>`).join('') +
-          '</ul>') + unreadNote(doc.view.warnings);
+          '</ul>') +
+      reachNote(doc.view.design) +
+      unreadNote(doc.view.warnings);
     // A ship already built to the design as it was opened would be refitted to this one.
     const refit = doc.refit;
     el<HTMLElement>('refitSection').hidden = refit === null;
@@ -2470,6 +2472,22 @@ export function startEditor(): void {
 /** A name not already in the library, so a new ship does not shadow a saved one. */
 function isModuleSpec(placement: Placement): boolean {
   return !('use' in placement);
+}
+
+/** Each module out of every core's reach, as a warning: it flies, but that module does nothing. */
+function reachNote(design: ShipDesign | null): string {
+  const out: string[] = [];
+  design?.coveredBy?.forEach((cores, m) => {
+    if (cores === null || cores.length > 0) return;
+    const module = design.modules[m]!;
+    out.push(`module ${module.index} (${module.spec.kind}) is out of every core's reach, so it will not work`);
+  });
+  if (out.length === 0) return '';
+  return (
+    `<p class="note">${out.length} warning${out.length > 1 ? 's' : ''}</p><ul class="note">` +
+    out.map((w) => `<li>${escapeHtml(w)}</li>`).join('') +
+    '</ul>'
+  );
 }
 
 /**

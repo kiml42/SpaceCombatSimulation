@@ -1294,6 +1294,16 @@ describe('the editor in a browser', () => {
     expect(await page.textContent('#problems')).toMatch(/would fly/);
   });
 
+  it("warns of each module out of every core's reach, and flies the ship anyway", async () => {
+    await openShip(page, 'Star Destroyer');
+    const panel = (await page.textContent('#problems')) ?? '';
+    expect(panel).toMatch(/would fly/);
+    expect(panel).toMatch(/\d+ warnings/);
+    expect(panel).toMatch(/out of every core's reach/);
+    await openShip(page, 'Torch');
+    expect(await page.textContent('#problems')).not.toMatch(/warning/);
+  });
+
   it('pushes a neighbour with an edge, and moves the face two modules share', async () => {
     // Two equal blocks side by side, so the fit centres the canvas on the face
     // between them at x = 0.
