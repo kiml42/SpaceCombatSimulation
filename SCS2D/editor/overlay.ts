@@ -30,8 +30,8 @@ const SELECTION = '#e9c05f';
 /** How far a core reaches, and what is beyond every core's reach. */
 const CONTROL_REACH_LINE = '#5fb3e9aa';
 const CONTROL_DASH_PX = 6;
-const OUT_OF_REACH = '#ff8a3d';
-const OUT_OF_REACH_FILL = '#ff8a3d40';
+const OUT_OF_REACH = '#b48cff';
+const OUT_OF_REACH_FILL = '#b48cff40';
 const SELECTION_LINKED = '#e9c05fcc';
 /**
  * An assembly is outlined in a different colour from a module, and once around
