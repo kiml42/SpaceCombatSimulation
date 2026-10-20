@@ -88,8 +88,15 @@ Nothing: every step up to 13 is built.
 
     Built in slices, each landing on its own:
 
-    0. **Rewind**, with no orders in it — a scrub bar that re-simulates from the seed (§12). Several of the
-       decisions below are about rewinding, so it is built and settled first.
+    0. **Rewind** — built: a scrub bar on the viewer, which snaps to checkpoints and so never re-simulates,
+       and `,` to step back exactly (§12). Across a jump the camera lands exactly framed, or, not framing,
+       moves as far as the ships it was following did. Built first, since several of the decisions below are about rewinding.
+       Left to fix, from trying it:
+       - **A copy in one frame** is a hitch of tens of milliseconds in a big battle; spread over several
+         frames, it would not be.
+       - **Flashes on landing at a checkpoint.** Across steps re-simulated, flashes are rebuilt as they
+         would have been drawn; landing on a checkpoint re-simulates nothing, so it shows none until the
+         next step.
     1. **Attack, defend and ram**, with the log, selection and order bar they need (below).
     2. **Change doctrine, refuel or repair, remodel, build a fighter, build a ship.** Not yet designed: its
        own grilling once slice 1 is playable.
@@ -828,15 +835,19 @@ Deliberately unresolved; decide when they block something.
   900 m/s carries 81 kN·s and a 177-tonne corvette merely drifting at 3 m/s carries 530, so any weld weak
   enough to fail to a shell comes apart when two ships nudge each other. That is why a gun's way through a
   weld is to cut it rather than to shove it, and it is worth remembering before anyone tries to tune it.
-- **How time travel in the viewer works — and it needs no stored state.** Settled, and scheduled as slice 0 of
-  step 14; the order log is slice 1's. Determinism pays for this one
-  outright: rewinding to any earlier step is *re-simulating* from the seed, not restoring a snapshot. At the
-  measured cost of roughly 15 µs per step, winding a 3,000-step battle back to its start is about 50 ms, which
-  is interactive, and a ten-minute battle is under a second. So a scrub bar wants no ring buffer of world
-  states, and nothing needs to be serialisable for time travel to work. Worth recording because the obvious
-  implementation — keep the last N states — is the one that shapes the architecture badly and would be hard to
-  undo. If re-simulation ever does become slow, occasional checkpoints are a later optimisation rather than a
-  starting design.
+- **How time travel in the viewer works.** Built, as step 14's slice 0; the order log is slice 1's. Pure
+  re-simulation from the seed was the plan, at an estimated 15 µs a step, but by the time it was built a step
+  cost 0.25 ms in the duel and 15–18 ms in Star Wars and Super Swarm — barely faster than they play — so
+  rewinding a big battle would have frozen the page for most of its length. So `Rewind` keeps checkpoints:
+  an in-memory copy of the whole battle (`cloneBattle`) at least 30 steps apart, spaced so copying takes no
+  more than 2% of stepping, and thinned with age: one goes when the gap it leaves is no wider than a tenth of
+  how far back it is, so the last few seconds stay precise and ten minutes back is good to half a minute —
+  "what just happened" wants the first, a macro decision the second. Past 128 of them or about 50 MB they are
+  spread further. A seek copies the one before and steps on. A copy is 1–90 ms and up to about 5 MB; at a fixed
+  30 steps apart, Super Swarm stuttered twice a second and its heap passed 600 MB. It
+  works because a battle is still deterministic, and it costs one rule: nothing in a battle may be a closure
+  over state that changes, since a copy would go on reaching into the original. Designs, and the caches
+  keyed on them, are shared rather than copied, being never changed once made. Nothing is serialised.
   The real consequence is on the other half of the contract. Re-simulation reproduces a battle only if the
   battle is a pure function of its seed and its opening conditions — which stops being true the moment a player
   issues an order mid-fight. So **the command intake has to be recorded as a timestamped log**, and replay
@@ -844,6 +855,12 @@ Deliberately unresolved; decide when they block something.
   non-negotiable 6 turning out to be load-bearing for something other than what it was written for, and it
   is also exactly what a replay file needs (§8's async fleet-vs-fleet), so the two features want the same
   mechanism built once.
+- **Saving a battle part way through.** Possibly not needed: if battles stay short, saving between them is
+  often enough. If it is wanted, the cheap form is what the battle link already carries — the setup and seed
+  — plus the step reached and the order log, re-simulated on load with checkpoints taken on the way (a 3,000-
+  step Star Wars is about 45 s, so it wants a progress bar). Writing out a checkpoint itself would load at
+  once, but ties the save format to every field of the sim's internal state; worth it only if load times
+  turn out to matter. Either kind of save plays differently, or not at all, once the sim changes.
 - **Whether a plume carries heat.** How finely it is sampled is settled: what its own ship stands in is
   swept exactly, since an evolved fleet learnt to hide turrets between three rays, and what leaves the
   ship is three bands a nozzle. Heat was part of the answer when a plume's bite was first settled in

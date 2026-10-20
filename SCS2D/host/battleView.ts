@@ -1,8 +1,18 @@
-import { capture, Snapshot } from '../sim/index.js';
+import { capture, Snapshot, type ImpactLog } from '../sim/index.js';
 import { Flashes } from '../render/flashes.js';
 import { ARCS_KEY, closeUpTapped, draw, drawCloseUps, nextArcs, TEAM_SHOTS_KEY, type Arcs } from '../render/canvas2d.js';
-import { frame, moveWithVisibleShips, selectionBounds, shipAt, type Camera } from '../render/camera.js';
+import {
+  frame,
+  jumpAnchors,
+  moveAcrossJump,
+  moveWithVisibleShips,
+  selectionBounds,
+  shipAt,
+  type Camera,
+  type JumpAnchor,
+} from '../render/camera.js';
 import type { Battle } from '../scenarios/types.js';
+import { Rewind } from '../scenarios/rewind.js';
 import { viewGestures } from './viewGestures.js';
 import { keepSpeed, loadView, saveView, type ViewSettings } from './viewSettings.js';
 
@@ -26,8 +36,15 @@ import { keepSpeed, loadView, saveView, type ViewSettings } from './viewSettings
 const MAX_STEPS_PER_FRAME = 32;
 
 export interface BattleView {
-  /** Show this battle from its start, running or held. */
-  show(battle: Battle, running: boolean): void;
+  /** Show this battle from its start, running or held, and if `rewindable`, able to be wound back. */
+  show(battle: Battle, running: boolean, rewindable?: boolean): void;
+  /** The battle on show, which winding back replaces. */
+  readonly battle: Battle | null;
+  /** Steps taken, and the furthest reached. */
+  readonly at: number;
+  readonly reached: number;
+  /** Go to the checkpoint nearest a step, or the furthest reached, if the battle can be wound back. */
+  seek(step: number): void;
   setRunning(running: boolean): void;
   readonly running: boolean;
   /** Hold the battle and take one step. */
@@ -46,18 +63,23 @@ export interface BattleView {
 /**
  * `stepped` is told after every step, for whatever is judging the battle;
  * `drawn` after every frame, with what was drawn; `runningChanged` whenever
- * it starts or stops.
+ * it starts or stops; `rewound` when it is wound back, with the copy of the
+ * battle it goes on with, whose steps up to there `stepped` is not told of.
  */
 export function battleView(
   canvas: HTMLCanvasElement,
   stepped: (battle: Battle) => void,
   drawn: (view: Snapshot) => void,
   runningChanged: (running: boolean) => void,
+  rewound: (battle: Battle) => void = () => {},
 ): BattleView {
   const ctx = canvas.getContext('2d');
   if (ctx === null) throw new Error('no 2d context');
 
   let battle: Battle | null = null;
+  let rewind: Rewind | null = null;
+  /** A step to go to, taken at the next frame, so dragging a scrub bar re-simulates once a frame at most. */
+  let seeking = -1;
   const snapshot = new Snapshot();
   const flashes = new Flashes();
   const camera: Camera = { x: 0, y: 0, scale: 0.1 };
@@ -100,7 +122,8 @@ export function battleView(
   };
   const step = (): void => {
     if (battle === null) return;
-    battle.step();
+    if (rewind === null) battle.step();
+    else rewind.step();
     stepped(battle);
   };
 
@@ -128,6 +151,9 @@ export function battleView(
     } else if (event.key === '.') {
       setRunning(false);
       step();
+    } else if (event.key === ',' && rewind !== null) {
+      setRunning(false);
+      seeking = Math.max(0, (seeking >= 0 ? seeking : rewind.at) - 1);
     } else if (event.key === 'Escape') {
       selected = -1;
     } else if (event.key === 'f' || event.key === 'F') {
@@ -141,12 +167,51 @@ export function battleView(
     }
   });
 
+  /** What a step hit, into the flashes, as `capture` hands it over. */
+  const drain = (log: ImpactLog): void => {
+    for (let i = 0; i < log.count; i++) {
+      flashes.add(
+        log.x[i]!,
+        log.y[i]!,
+        log.energy[i]!,
+        log.kind[i]!,
+        log.body[i]!,
+        log.localX[i]!,
+        log.localY[i]!,
+        log.vx[i]!,
+        log.vy[i]!,
+        log.growth[i]!,
+        log.dirX[i]!,
+        log.dirY[i]!,
+      );
+    }
+    log.clear();
+  };
+
   const tick = (now: number): void => {
     window.requestAnimationFrame(tick);
     if (last === 0) last = now;
     const elapsed = Math.min((now - last) / 1000, 0.25);
     last = now;
     if (battle === null) return;
+
+    // A seek is a jump, not time passing: the camera is carried across it, not run on over it.
+    let jumped = false;
+    let anchors: JumpAnchor[] | null = null;
+    if (seeking >= 0 && rewind !== null) {
+      // The ships being followed, from the picture last drawn, before it is replaced.
+      if (!autoFrame) anchors = jumpAnchors(camera, snapshot, canvas.width, canvas.height);
+      // Flashes are rebuilt across the steps re-simulated, aged as they would have been drawn.
+      const restored = rewind.seek(seeking, () => flashes.clear(), (on) => {
+        flashes.step(on.dt);
+        drain(on.impacts.log);
+      });
+      battle = rewind.battle;
+      if (restored) rewound(battle);
+      jumped = true;
+      seeking = -1;
+      accumulator = 0;
+    }
 
     if (running) {
       accumulator += elapsed * speed;
@@ -161,16 +226,18 @@ export function battleView(
     }
 
     const view = capture(snapshot, battle.world, battle.ships, battle.projectiles, battle.beams, battle.wells, battle.impacts.log);
-    const simDt = view.time > lastSimTime ? view.time - lastSimTime : 0;
+    const simDt = !jumped && view.time > lastSimTime ? view.time - lastSimTime : 0;
     lastSimTime = view.time;
 
     moveWithVisibleShips(camera, view, simDt, canvas.width, canvas.height);
+    if (anchors !== null) moveAcrossJump(camera, anchors, view);
     if (autoFrame) {
       if (!framed) {
         frame(camera, view, canvas.width, canvas.height, 1);
         framed = true;
       }
-      frame(camera, selectionBounds(view, selected) ?? view, canvas.width, canvas.height);
+      // Framed exactly across a jump, rather than eased there in real time.
+      frame(camera, selectionBounds(view, selected) ?? view, canvas.width, canvas.height, jumped ? 1 : undefined);
     }
 
     // Flashes fade on the battle's clock, so a paused battle holds them.
@@ -198,8 +265,10 @@ export function battleView(
   window.requestAnimationFrame(tick);
 
   return {
-    show(next, run) {
+    show(next, run, rewindable = false) {
       battle = next;
+      rewind = rewindable ? new Rewind(next, () => performance.now()) : null;
+      seeking = -1;
       selected = -1;
       flashes.clear();
       framed = false;
@@ -207,6 +276,18 @@ export function battleView(
       accumulator = 0;
       lastSimTime = 0;
       setRunning(run);
+    },
+    get battle() {
+      return battle;
+    },
+    get at() {
+      return rewind?.at ?? battle?.world.tick ?? 0;
+    },
+    get reached() {
+      return rewind?.reached ?? battle?.world.tick ?? 0;
+    },
+    seek(target) {
+      if (rewind !== null) seeking = rewind.snap(target);
     },
     setRunning,
     step() {
