@@ -41,7 +41,7 @@ const GOLDEN: Record<ScenarioName, string> = {
   salvageRun: 'c738de30',
   mending: '213c104d',
   refitting: '05f02d5c',
-  scavenge: '456d84d1',
+  scavenge: '2862c84c',
   padRebuild: '4177b121',
   factory: '18c01bdf',
   shipyard: '4b069157',
