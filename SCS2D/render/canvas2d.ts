@@ -1686,6 +1686,28 @@ function arcsFor(body: number, selected: number, arcs: Arcs): Arcs {
   return body === selected ? 'trigger' : 'none';
 }
 
+/** Size of the range written on the line to a picked ship's target, canvas pixels. */
+const RANGE_LABEL_PX = 12;
+
+/** `text` centred on a world point, upright and a fixed size whatever the zoom, on a backing so lines under it do not cross it. */
+function drawRangeLabel(ctx: CanvasRenderingContext2D, x: number, y: number, text: string, colour: string): void {
+  const m = ctx.getTransform();
+  const sx = m.a * x + m.c * y + m.e;
+  const sy = m.b * x + m.d * y + m.f;
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.font = `${RANGE_LABEL_PX}px ui-monospace, monospace`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const width = ctx.measureText(text).width;
+  ctx.fillStyle = BACKGROUND;
+  ctx.fillRect(sx - width / 2 - 3, sy - RANGE_LABEL_PX / 2 - 2, width + 6, RANGE_LABEL_PX + 4);
+  ctx.fillStyle = colour;
+  ctx.fillText(text, sx, sy);
+  ctx.restore();
+}
+
 /** Pixels between the selected ship's hull circle and the ring drawn round it. */
 const SELECTED_GAP_PX = 6;
 
@@ -1720,6 +1742,9 @@ function drawSelected(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: n
       ctx.stroke();
       ctx.setLineDash([]);
     }
+    // How far apart they are, halfway along the line between their hulls.
+    const mid = to > from ? (from + to) / 2 : length / 2;
+    drawRangeLabel(ctx, ship.x + (dx / length) * mid, ship.y + (dy / length) * mid, describeRange(length), colour);
     // The band it is holding, round what it is holding it against, as the editor draws a ship's own.
     if (ship.fightingMax !== undefined) {
       ctx.save();

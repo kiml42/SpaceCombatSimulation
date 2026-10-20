@@ -505,6 +505,51 @@ describe('the viewer in a browser', () => {
     expect(picked).toBeGreaterThan(dropped * 4 + 500);
   });
 
+  it("writes the range to a picked ship's target on the line between them", async () => {
+    await page.click('#reset');
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    // Run long enough for the ships to have picked their targets, then hold.
+    if ((await page.textContent('#play')) === 'Play') await page.keyboard.press('Space');
+    await advanced(page, 60);
+    await page.keyboard.press('Space');
+    await painted(page);
+    // Everything the view writes, from here on.
+    await page.evaluate(() => {
+      const written: string[] = [];
+      (window as unknown as { written: string[] }).written = written;
+      const fill = CanvasRenderingContext2D.prototype.fillText;
+      CanvasRenderingContext2D.prototype.fillText = function (this: CanvasRenderingContext2D, text: string, x: number, y: number) {
+        written.push(`${this.font}|${text}`);
+        fill.call(this, text, x, y);
+      };
+    });
+    // At the line's size, 12 px: a close-up writes the range too, smaller, under its target.
+    const ranges = (): Promise<string[]> =>
+      page.evaluate(() => (window as unknown as { written: string[] }).written.filter((text) => /^12px .*\|[\d.]+ k?m$/.test(text)));
+    await painted(page);
+    expect(await ranges()).toEqual([]);
+    const box = (await page.locator('#view').boundingBox())!;
+    const at = await page.evaluate(() => {
+      const canvas = document.getElementById('view') as HTMLCanvasElement;
+      const { data, width } = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height);
+      let best = -1;
+      let index = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        const v = data[i]! + data[i + 1]! + data[i + 2]!;
+        if (v > best) {
+          best = v;
+          index = i / 4;
+        }
+      }
+      const ratio = canvas.width / canvas.getBoundingClientRect().width;
+      return { x: (index % width) / ratio, y: Math.floor(index / width) / ratio };
+    });
+    await page.mouse.click(box.x + at.x, box.y + at.y);
+    await painted(page);
+    expect((await ranges()).length).toBeGreaterThan(0);
+    await page.keyboard.press('Escape');
+  });
+
   it('reports no errors after all of that', () => {
     expect(problems).toEqual([]);
   });
