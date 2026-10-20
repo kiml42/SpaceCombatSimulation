@@ -11,14 +11,14 @@ const TOUCH_SLOP_PX = 10;
  *
  * `moved` is told whenever the camera is moved by hand. `tapped`, if given, is
  * told of a click or tap that did not pan, with the world point under it, how
- * far off that point a ship may be and still count as tapped, metres, and
- * whether Shift was held. `picking` adds what a page that gives orders wants.
+ * far off that point a ship may be and still count as tapped, metres,
+ * whether Shift was held, and whether an order given by it is to be queued. `picking` adds what a page that gives orders wants.
  */
 export function viewGestures(
   canvas: HTMLCanvasElement,
   camera: Camera,
   moved: () => void,
-  tapped?: (x: number, y: number, reach: number, shift: boolean) => void,
+  tapped?: (x: number, y: number, reach: number, shift: boolean, queue: boolean) => void,
   picking?: Picking,
 ): void {
   /** Canvas pixels per CSS pixel. */
@@ -54,6 +54,11 @@ export function viewGestures(
     return { x, y, size };
   };
 
+  /**
+   * Whether an order is to go after a ship's others: Ctrl or Cmd, or Shift where
+   * the browser lets a page see it with a right-click.
+   */
+  const queued = (event: MouseEvent): boolean => event.ctrlKey || event.metaKey || event.shiftKey;
   /** World point under a client point. */
   const world = (clientX: number, clientY: number): { x: number; y: number } => {
     const at = offset(clientX, clientY);
@@ -69,7 +74,7 @@ export function viewGestures(
     canvas.addEventListener('contextmenu', (event) => {
       event.preventDefault();
       const at = world(event.clientX, event.clientY);
-      picking.commanded(at.x, at.y, reachOf(event), event.shiftKey);
+      picking.commanded(at.x, at.y, reachOf(event), queued(event));
     });
     canvas.addEventListener('dblclick', (event) => {
       const at = world(event.clientX, event.clientY);
@@ -142,12 +147,12 @@ export function viewGestures(
       press = null;
       picking!.boxing(null);
       if (dragged) picking!.boxed(from.x, from.y, to.x, to.y);
-      else tapped?.(to.x, to.y, reachOf(event), true);
+      else tapped?.(to.x, to.y, reachOf(event), true, true);
       return;
     }
     if (press !== null && !press.panned && tapped !== undefined) {
       const at = world(event.clientX, event.clientY);
-      tapped(at.x, at.y, reachOf(event), event.shiftKey);
+      tapped(at.x, at.y, reachOf(event), event.shiftKey, queued(event));
     }
     pointers.delete(event.pointerId);
     press = null;
@@ -164,8 +169,8 @@ export function viewGestures(
 
 /** What a battle view that gives orders needs from the mouse, beyond panning and picking. */
 export interface Picking {
-  /** A right-click: an order at the ship under it. */
-  commanded(x: number, y: number, reach: number, shift: boolean): void;
+  /** A right-click: an order at the ship under it, queued if `queue`. */
+  commanded(x: number, y: number, reach: number, queue: boolean): void;
   /** A double-click: every ship of the design under it. */
   doubled(x: number, y: number, reach: number): void;
   /** A Shift-drag let go, corner to corner, world metres. */

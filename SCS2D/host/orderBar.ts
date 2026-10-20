@@ -33,7 +33,7 @@ export function orderBar(view: BattleView): { update(shown: Snapshot): void } {
       const side = sideOf(shown, view.picked);
       bar.hidden = side === null;
       if (side === null) return;
-      hint.textContent = view.armed === null ? '' : `click a ship to ${view.armed} · Shift to queue · Esc`;
+      hint.textContent = view.armed === null ? '' : `click a ship to ${view.armed} · Ctrl to queue · Esc`;
       for (const button of bar.querySelectorAll<HTMLButtonElement>('button[data-verb]')) {
         button.classList.toggle('armed', button.dataset['verb'] === view.armed);
       }

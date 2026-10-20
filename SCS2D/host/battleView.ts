@@ -220,13 +220,13 @@ export function battleView(
     () => {
       autoFrame = false;
     },
-    (x, y, reach, shift) => {
+    (x, y, reach, shift, queue) => {
       // A tile or close-up first: it is drawn over whatever is under it. Not
       // with Shift, which adds the ship under the pointer in the battle itself.
       const shown = shift ? -1 : overlayAt(shownStrips, shownInsets, camera, canvas.width, canvas.height, x, y);
       const ship = shown >= 0 ? viewByBody(snapshot, shown) : shipViewAt(snapshot, x, y, reach);
       if (armed !== null && ship !== null) {
-        order(armed, ship, shift, armedCancel);
+        order(armed, ship, queue, armedCancel);
         armed = null;
         return;
       }
@@ -234,11 +234,17 @@ export function battleView(
       if (picked.length > 0) autoFrame = true;
     },
     {
-      commanded(x, y, reach, shift) {
+      commanded(x, y, reach, queue) {
         const ship = shipViewAt(snapshot, x, y, reach);
         const side = sideOf(snapshot, picked);
         if (ship === null || side === null || ship.team === NEUTRAL_TEAM) return;
-        order(ship.team === side ? 'defend' : 'attack', ship, shift, OrderCancelCondition.CompleteDisable);
+        // An armed verb first: on a Mac, Ctrl and a click arrive as a right-click.
+        if (armed !== null) {
+          order(armed, ship, queue, armedCancel);
+          armed = null;
+          return;
+        }
+        order(ship.team === side ? 'defend' : 'attack', ship, queue, OrderCancelCondition.CompleteDisable);
       },
       doubled(x, y, reach) {
         if (!ordersAllowed) return;

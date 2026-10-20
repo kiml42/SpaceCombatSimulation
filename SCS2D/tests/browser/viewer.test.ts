@@ -624,11 +624,12 @@ describe('the viewer in a browser', () => {
       return { x: canvas.x + p.x, y: canvas.y + p.y };
     };
     const orders = (): Promise<unknown[]> => page.evaluate(() => (window as unknown as { viewer: { orders: unknown[] } }).viewer.orders);
-    const click = async (ship: number, options: { shift?: boolean; right?: boolean } = {}): Promise<void> => {
+    const click = async (ship: number, options: { shift?: boolean; ctrl?: boolean; right?: boolean } = {}): Promise<void> => {
       const p = await at(ship);
-      if (options.shift) await page.keyboard.down('Shift');
+      const held = options.shift ? 'Shift' : options.ctrl ? 'Control' : null;
+      if (held !== null) await page.keyboard.down(held);
       await page.mouse.click(p.x, p.y, { button: options.right ? 'right' : 'left' });
-      if (options.shift) await page.keyboard.up('Shift');
+      if (held !== null) await page.keyboard.up(held);
       // Past the double-click interval, so two clicks are never read as one, and
       // long enough for the camera to settle on what was picked.
       await page.waitForTimeout(1000);
@@ -650,8 +651,15 @@ describe('the viewer in a browser', () => {
     await click(0);
     expect(await page.locator('#queue li').count()).toBe(1);
     expect(await page.textContent('#queue')).toContain('attack');
+    // Ctrl queues, by a right-click or an armed verb's click.
+    await click(2, { ctrl: true, right: true });
+    expect(await page.locator('#queue li').count()).toBe(2);
+    await page.keyboard.press('Escape');
+    await click(0);
+    await page.locator('#queue li').nth(1).locator('button').click();
+    await painted(page);
     await page.keyboard.press('r');
-    await click(2, { shift: true });
+    await click(2, { ctrl: true });
     expect(await page.locator('#queue li').count()).toBe(2);
     expect(await page.textContent('#queue li:nth-child(2)')).toContain('ram');
     await page.locator('#queue li').first().locator('button').click();

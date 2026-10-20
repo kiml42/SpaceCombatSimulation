@@ -130,7 +130,7 @@ Nothing: every step up to 13 is built.
       until selection can hold more than one ship, it picks only the fighter shown.
     - **Giving.** Right-click an enemy to attack it, a friend to defend it; on empty space, nothing. The
       rest is an order bar of buttons with hotkeys, which puts the next click into picking a target; Escape
-      cancels. A new order replaces the queue; Shift appends. A group gets the same order, one command
+      cancels. A new order replaces the queue; Ctrl (or Cmd) appends, since browsers keep Shift-right-click for their own menu; Shift still does where it reaches the page. A group gets the same order, one command
       for all of it; a ship told to defend itself is skipped.
     - **Attack** takes its band and approach speed from doctrine and ends on `CompleteDisable`, as one
       doctrine chose would; the order bar offers the other cancel conditions. A per-order menu to override
