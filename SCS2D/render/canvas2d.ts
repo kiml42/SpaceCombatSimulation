@@ -1555,14 +1555,15 @@ function drawScene(
   if (flashes !== undefined) drawFlashes(ctx, snapshot, flashes, camera);
 }
 
-/** A close-up's side as a share of the view's shorter side, and its bounds in CSS pixels. */
-const CLOSE_UP_SHARE = 0.26;
-const CLOSE_UP_MIN_PX = 110;
+/** CSS pixels a metre in a close-up, where its size is not held to a bound: a Gunship's is about 150 px. */
+const CLOSE_UP_ZOOM = 1.35;
+/** A close-up's smallest and largest side, CSS pixels. */
+const CLOSE_UP_MIN_PX = 64;
 const CLOSE_UP_MAX_PX = 240;
 /** Gap kept from the view's edge and between close-ups, CSS pixels. */
 const CLOSE_UP_MARGIN_PX = 10;
 /** A ship drawn smaller across than this, CSS pixels, gets a close-up. */
-const CLOSE_UP_SMALLEST_PX = 24;
+const CLOSE_UP_SMALLEST_PX = 16;
 /** The pointer on a close-up's frame towards a ship off screen, CSS pixels. */
 const CLOSE_UP_POINTER_PX = 9;
 
@@ -1577,9 +1578,10 @@ export function closeUps(snapshot: Snapshot, camera: Camera, widthPx: number, he
   const ships: InsetShip[] = [ship, shipByBody(snapshot, ship.fighting ?? -1)]
     .filter((s): s is ShipView => s !== null)
     .map((s) => ({ body: s.body, x: s.x, y: s.y, vx: s.vx, vy: s.vy, radius: s.design.radius }));
-  const size = Math.round(Math.min(CLOSE_UP_MAX_PX * ratio, Math.max(CLOSE_UP_MIN_PX * ratio, Math.min(widthPx, heightPx) * CLOSE_UP_SHARE)));
   return insetsFor(ships, camera, widthPx, heightPx, {
-    size,
+    zoom: CLOSE_UP_ZOOM * ratio,
+    least: CLOSE_UP_MIN_PX * ratio,
+    most: CLOSE_UP_MAX_PX * ratio,
     margin: CLOSE_UP_MARGIN_PX * ratio,
     smallest: CLOSE_UP_SMALLEST_PX * ratio,
   });

@@ -3,7 +3,8 @@ import { describeRange, insetAt, insetFor, insetsFor, separate, type InsetShip }
 
 const W = 1000;
 const H = 600;
-const SETTINGS = { size: 160, margin: 10, smallest: 24 };
+/** A metre a pixel, so a window is 2.86 times its ship's radius across within its bounds. */
+const SETTINGS = { zoom: 1, least: 60, most: 200, margin: 10, smallest: 24 };
 /** A view centred on the origin at 1 px a metre. */
 const CAMERA = { x: 0, y: 0, scale: 1 };
 
@@ -42,14 +43,24 @@ describe('a close-up window', () => {
     expect(inset.y + inset.size).toBeCloseTo(H - SETTINGS.margin);
   });
 
-  it('is drawn with a camera on its ship, zoomed to the ship', () => {
-    const big = insetFor(ship(2000, 0, 50), CAMERA, W, H, SETTINGS)!;
-    const small = insetFor(ship(2000, 0, 5), CAMERA, W, H, SETTINGS)!;
-    expect(big.camera).toMatchObject({ x: 2000, y: 0 });
-    expect(small.camera.scale).toBeCloseTo(big.camera.scale * 10);
+  it('is sized by its ship, at one zoom for all, so two ships shown are to scale', () => {
+    const gunship = insetFor(ship(2000, 0, 50), CAMERA, W, H, SETTINGS)!;
+    const corvette = insetFor(ship(2000, 0, 25), CAMERA, W, H, SETTINGS)!;
+    expect(gunship.camera).toMatchObject({ x: 2000, y: 0, scale: SETTINGS.zoom });
+    expect(corvette.camera.scale).toBe(SETTINGS.zoom);
+    expect(corvette.size).toBeCloseTo(gunship.size / 2);
     // The hull fills most of the window but not all of it.
-    expect(2 * 50 * big.camera.scale).toBeLessThan(SETTINGS.size);
-    expect(2 * 50 * big.camera.scale).toBeGreaterThan(SETTINGS.size / 2);
+    expect(2 * 50 * gunship.camera.scale).toBeLessThan(gunship.size);
+    expect(2 * 50 * gunship.camera.scale).toBeGreaterThan(gunship.size / 2);
+  });
+
+  it('is held to its bounds, zoomed to fit a ship too small or too big for them', () => {
+    const speck = insetFor(ship(2000, 0, 2), CAMERA, W, H, SETTINGS)!;
+    const capital = insetFor(ship(2000, 0, 500), CAMERA, W, H, SETTINGS)!;
+    expect(speck.size).toBe(SETTINGS.least);
+    expect(speck.camera.scale).toBeGreaterThan(SETTINGS.zoom);
+    expect(capital.size).toBe(SETTINGS.most);
+    expect(capital.camera.scale).toBeLessThan(SETTINGS.zoom);
   });
 });
 
