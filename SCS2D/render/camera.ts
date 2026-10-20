@@ -258,7 +258,85 @@ function keepPaceWith(
   let vy = 0;
   // Unattenuated on purpose: see the note on pace above.
   let weight = 0;
+  weighInShot(camera, snapshot, halfWidth, halfHeight, worthFollowing, (ship, pace, r) => {
+    vx += ship.vx * r * pace;
+    vy += ship.vy * r * pace;
+    weight += r;
+  });
+  if (!(weight > 0)) return false;
+  camera.vx = vx / weight;
+  camera.vy = vy / weight;
+  return true;
+}
 
+/** A ship the camera was following when the battle jumped, and how much it counted. */
+export interface JumpAnchor {
+  team: number;
+  serial: number;
+  x: number;
+  y: number;
+  /** Its share of the pace, and its unattenuated weight. */
+  pace: number;
+  weight: number;
+}
+
+/**
+ * The ships to carry the camera with across a jump in time — a seek, or a
+ * step back — as `moveWithVisibleShips` would pick them, taken before it.
+ */
+export function jumpAnchors(camera: Camera, snapshot: Snapshot, widthPx: number, heightPx: number): JumpAnchor[] {
+  const anchors: JumpAnchor[] = [];
+  if (!(camera.scale > 0) || !(widthPx > 0) || !(heightPx > 0)) return anchors;
+  const halfWidth = widthPx / (2 * camera.scale);
+  const halfHeight = heightPx / (2 * camera.scale);
+  for (const worthFollowing of FOLLOW_ORDER) {
+    weighInShot(camera, snapshot, halfWidth, halfHeight, worthFollowing, (ship, pace, weight) => {
+      anchors.push({ team: ship.team, serial: ship.serial, x: ship.x, y: ship.y, pace, weight });
+    });
+    if (anchors.length > 0) break;
+  }
+  return anchors;
+}
+
+/**
+ * Carry the camera across a jump as it would have followed the ships over
+ * it: by how far those it was following have moved, weighed as their pace
+ * is. A ship gone by the far side of the jump is left out.
+ */
+export function moveAcrossJump(camera: Camera, anchors: readonly JumpAnchor[], after: Snapshot): void {
+  const now = new Map<string, ShipView>();
+  for (let i = 0; i < after.shipCount; i++) {
+    const ship = after.ships[i]!;
+    const key = `${ship.team}:${ship.serial}`;
+    if (!now.has(key)) now.set(key, ship);
+  }
+  let dx = 0;
+  let dy = 0;
+  let weight = 0;
+  for (const anchor of anchors) {
+    const ship = now.get(`${anchor.team}:${anchor.serial}`);
+    if (ship === undefined) continue;
+    dx += (ship.x - anchor.x) * anchor.weight * anchor.pace;
+    dy += (ship.y - anchor.y) * anchor.weight * anchor.pace;
+    weight += anchor.weight;
+  }
+  if (!(weight > 0)) return;
+  camera.x += dx / weight;
+  camera.y += dy / weight;
+}
+
+/**
+ * Each ship in shot that `worthFollowing` accepts, with the share of its pace
+ * the camera keeps and its weight.
+ */
+function weighInShot(
+  camera: Camera,
+  snapshot: Snapshot,
+  halfWidth: number,
+  halfHeight: number,
+  worthFollowing: (ship: ShipView) => boolean,
+  visit: (ship: ShipView, pace: number, weight: number) => void,
+): void {
   for (let i = 0; i < snapshot.shipCount; i++) {
     const ship = snapshot.ships[i]!;
     if (!worthFollowing(ship)) continue;
@@ -288,16 +366,8 @@ function keepPaceWith(
       1,
       max(max(0, outX - r) / halfWidth, max(0, outY - r) / halfHeight),
     );
-    const pace = matchedPace(out);
-    vx += ship.vx * r * pace;
-    vy += ship.vy * r * pace;
-    weight += r;
+    visit(ship, matchedPace(out), r);
   }
-
-  if (!(weight > 0)) return false;
-  camera.vx = vx / weight;
-  camera.vy = vy / weight;
-  return true;
 }
 
 /**

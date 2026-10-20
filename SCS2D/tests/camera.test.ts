@@ -6,6 +6,8 @@ import {
   fitScale,
   frame,
   gridStep,
+  jumpAnchors,
+  moveAcrossJump,
   moveWithVisibleShips,
   selectionBounds,
   shipAt,
@@ -464,5 +466,25 @@ describe('picking out a ship', () => {
     const scene = picked();
     scene.ships[0]!.covering = 9;
     expect(selectionBounds(scene, 3)).toEqual({ minX: -20, minY: -20, maxX: 520, maxY: 320 });
+  });
+});
+
+describe('the camera across a jump in time', () => {
+  const at = (x: number, y: number, serial: number): ShipView => ({ ...ship(x, y), serial });
+
+  it('moves as far as the ship it is following did, either way', () => {
+    const camera: Camera = { x: 0, y: 0, scale: 0.1 };
+    const anchors = jumpAnchors(camera, snapshotOf([at(0, 0, 1)]), WIDTH, HEIGHT);
+    moveAcrossJump(camera, anchors, snapshotOf([at(-300, 40, 1)]));
+    expect(camera.x).toBeCloseTo(-300, 9);
+    expect(camera.y).toBeCloseTo(40, 9);
+  });
+
+  it('goes by the ships it was looking at, not one off screen or gone', () => {
+    const camera: Camera = { x: 0, y: 0, scale: 0.1 };
+    const anchors = jumpAnchors(camera, snapshotOf([at(0, 0, 1), at(90_000, 0, 2), at(10, 0, 3)]), WIDTH, HEIGHT);
+    moveAcrossJump(camera, anchors, snapshotOf([at(100, 0, 1), at(0, 0, 2)]));
+    // Ship 2 was out of shot and ship 3 is gone, so ship 1 alone carries it.
+    expect(camera.x).toBeCloseTo(100, 9);
   });
 });

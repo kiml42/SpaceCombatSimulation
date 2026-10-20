@@ -89,11 +89,9 @@ Nothing: every step up to 13 is built.
     Built in slices, each landing on its own:
 
     0. **Rewind** — built: a scrub bar on the viewer, which snaps to checkpoints and so never re-simulates,
-       and `,` to step back exactly (§12). Built first, since several of the decisions below are about rewinding.
+       and `,` to step back exactly (§12). Across a jump the camera lands exactly framed, or, not framing,
+       moves as far as the ships it was following did. Built first, since several of the decisions below are about rewinding.
        Left to fix, from trying it:
-       - **The camera across a jump.** Fitted, a seek or a step back should land exactly framed rather than
-         ease there in real time. Not fitted, it stands still across a seek or a step back, yet follows the
-         ships on a step forward; it should move with them across any jump, either way.
        - **A copy in one frame** is a hitch of tens of milliseconds in a big battle; spread over several
          frames, it would not be.
        - **Muzzle flashes and shell bursts** freeze near the end of their animation on a seek back, a
