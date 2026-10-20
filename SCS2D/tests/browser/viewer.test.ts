@@ -753,14 +753,13 @@ describe('the viewer in a browser', () => {
     await page.selectOption('#scene', { label: 'Refitting' });
     if ((await page.textContent('#play')) === 'Pause') await page.click('#play');
     await painted(page);
-    const canvas = (await page.locator('#view').boundingBox())!;
+    // The scenario's one ship, by its side rather than by where it is drawn.
     const pick = async (): Promise<void> => {
-      const p = await page.evaluate(() =>
-        (window as unknown as { viewer: { screenOf(i: number): { x: number; y: number } } }).viewer.screenOf(0),
-      );
-      await page.mouse.click(canvas.x + p.x, canvas.y + p.y);
-      await page.waitForTimeout(1000);
+      // Not into the drop-down, whose letters pick its options.
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await page.keyboard.press('a');
       await painted(page);
+      expect(await page.evaluate(() => (window as unknown as { viewer: { picked: number[] } }).viewer.picked)).toEqual([0]);
     };
     const orders = (): Promise<number> =>
       page.evaluate(() => (window as unknown as { viewer: { orders: unknown[] } }).viewer.orders.length);
