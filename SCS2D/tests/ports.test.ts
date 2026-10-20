@@ -11,7 +11,9 @@ function picketOf(refuelBelow = 0.5, tank = 4): ShipDesign {
   const modules = PICKET.modules!.map((m, i) => (i === 1 ? { ...m, length: tank } : m));
   // A longer tank pushes the stern back with it.
   const shifted = modules.map((m, i) => (i === 1 ? { ...m, x: -2 - tank / 2 } : i === 3 ? { ...m, x: -2 - tank } : m));
-  const blueprint: Blueprint = { ...PICKET, modules: shifted };
+  // A long one carries a second core astern, as the bow core cannot reach the stern engine.
+  const stern = tank > 10 ? [{ kind: 'core' as const, x: -tank, y: 3, length: 2, width: 2 }] : [];
+  const blueprint: Blueprint = { ...PICKET, modules: [...shifted, ...stern] };
   return compileBlueprint({ ...blueprint, doctrine: { ...PICKET.doctrine!, approach: { ...PICKET.doctrine!.approach, refuelBelow } } });
 }
 
