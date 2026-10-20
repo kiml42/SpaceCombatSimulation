@@ -11,6 +11,7 @@ import {
   fleetStrips,
   nextArcs,
   overlayAt,
+  overlayTileAt,
   STRIPS_KEY,
   stripsWidth,
   TEAM_SHOTS_KEY,
@@ -28,7 +29,7 @@ import {
   type Camera,
   type JumpAnchor,
 } from '../render/camera.js';
-import { boxed, clicked, sameDesign, shipViewAt, sideOf, stillThere, viewOf, wholeSide } from '../render/picking.js';
+import { boxed, clicked, fighterGroup, sameDesign, shipViewAt, sideOf, stillThere, viewOf, wholeSide } from '../render/picking.js';
 import type { Command, Logged, Order } from '../scenarios/commands.js';
 import type { Battle } from '../scenarios/types.js';
 import { Rewind } from '../scenarios/rewind.js';
@@ -230,7 +231,9 @@ export function battleView(
         armed = null;
         return;
       }
-      picked = clicked(snapshot, picked, ship, shift);
+      // A tile standing for a side's fighters of one design picks them all.
+      const tile = shift ? null : overlayTileAt(shownStrips, shownInsets, camera, canvas.width, canvas.height, x, y);
+      picked = tile !== null && tile.count > 1 ? fighterGroup(snapshot, ship) : clicked(snapshot, picked, ship, shift);
       if (picked.length > 0) autoFrame = true;
     },
     {

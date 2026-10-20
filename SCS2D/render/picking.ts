@@ -90,6 +90,21 @@ export function sameDesign(snapshot: Snapshot, ship: ShipView | null): number[] 
   return out;
 }
 
+/**
+ * Every fighter a fleet strip's tile stands for along with `ship`: its side's
+ * fighters of its design still under control, as the strips group them.
+ */
+export function fighterGroup(snapshot: Snapshot, ship: ShipView | null): number[] {
+  if (ship?.ship === undefined) return [];
+  if (!ship.design.fighter || ship.team === NEUTRAL_TEAM) return [ship.ship];
+  const out: number[] = [];
+  for (let i = 0; i < snapshot.shipCount; i++) {
+    const other = snapshot.ships[i]!;
+    if (other.ship !== undefined && other.team === ship.team && other.design === ship.design && other.hasControl) out.push(other.ship);
+  }
+  return out;
+}
+
 /** Every ship on a side that can still be told anything. */
 export function wholeSide(snapshot: Snapshot, team: number): number[] {
   const out: number[] = [];

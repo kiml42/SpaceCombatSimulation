@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { NEUTRAL_TEAM, Snapshot, type ShipView } from '../sim/index.js';
-import { boxed, clicked, sameDesign, shipViewAt, sideOf, stillThere, wholeSide } from '../render/picking.js';
+import { boxed, clicked, fighterGroup, sameDesign, shipViewAt, sideOf, stillThere, wholeSide } from '../render/picking.js';
 
 function ship(index: number, team: number, x: number, y = 0, design = 'Corvette'): ShipView {
   return {
@@ -82,5 +82,30 @@ describe('picking ships out', () => {
 
   it('lets go of ships no longer there', () => {
     expect(stillThere(snapshotOf(ships.slice(1)), [0, 1])).toEqual([1]);
+  });
+});
+
+describe('a fleet strip tile of fighters', () => {
+  const fighter = { radius: 5, name: 'TIE', fighter: true } as unknown as ShipView['design'];
+  const other = { radius: 5, name: 'TIE', fighter: true } as unknown as ShipView['design'];
+  const craft = (index: number, team: number, design: ShipView['design'], hasControl = true): ShipView =>
+    ({ ...ship(index, team, index * 10), design, hasControl }) as ShipView;
+  const swarm = [
+    craft(0, 0, fighter),
+    craft(1, 0, fighter),
+    craft(2, 0, fighter, false),
+    craft(3, 0, other),
+    craft(4, 1, fighter),
+    ship(5, 0, 300),
+  ];
+  const picture = snapshotOf(swarm);
+
+  it('picks every fighter of its design on its side still under control, as the tile counts them', () => {
+    expect(fighterGroup(picture, swarm[1]!)).toEqual([0, 1]);
+  });
+
+  it('picks only the ship itself for anything but a fighter', () => {
+    expect(fighterGroup(picture, swarm[5]!)).toEqual([5]);
+    expect(fighterGroup(picture, null)).toEqual([]);
   });
 });

@@ -126,8 +126,7 @@ Nothing: every step up to 13 is built.
       is one side only — the first ship's for Shift-click, ignoring other sides; the majority in a box, a
       tie going to the side of the ship nearest the drag's start. Neutrals cannot be selected for orders.
       A selection is a set of ships, not a group. Touch is not covered yet. A fighter tile in the fleet
-      strips stands for every fighter of its design on its side, so clicking it should select them all;
-      until selection can hold more than one ship, it picks only the fighter shown.
+      strips stands for every fighter of its design on its side, and clicking it picks them all.
     - **Giving.** Right-click an enemy to attack it, a friend to defend it; on empty space, nothing. The
       rest is an order bar of buttons with hotkeys, which puts the next click into picking a target; Escape
       cancels. A new order replaces the queue; Ctrl (or Cmd) appends, since browsers keep Shift-right-click for their own menu; Shift still does where it reaches the page. A group gets the same order, one command
