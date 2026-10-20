@@ -1923,7 +1923,7 @@ export class Ships {
       const hurts = this.firesShellsFrom(i, mount) ? BOTH_LAYERS : layers;
       schedule[t] = world.tick + this.turretRethinkTicks(world, t, design);
 
-      if (!(this.damage.remaining(b, mount.module, DamageEffect.FireRate) > 0)) {
+      if (!(this.left(i, b, mount.module, DamageEffect.FireRate) > 0)) {
         targets[t] = NO_TARGET;
         aims[t] = WHOLE_SHIP;
         continue;
@@ -3166,7 +3166,7 @@ export class Ships {
         // stops where it is: it does not finish the shot it was committed to,
         // because there is no longer a gun to finish it with.
         if (!this.ownsAt(i, bodyIdx, design.turrets[t]!.module)) continue;
-        const rate = this.damage.remaining(bodyIdx, design.turrets[t]!.module, DamageEffect.FireRate);
+        const rate = this.left(i, bodyIdx, design.turrets[t]!.module, DamageEffect.FireRate);
         if (!(rate > 0)) {
           turretStates[t] = TurretState.Idle;
           timers[t] = 0;
@@ -5138,7 +5138,8 @@ export class Ships {
         builds[m] = 0;
         continue;
       }
-      const working = this.damage.remaining(b, m, DamageEffect.Tending);
+      const owner = this.pilotAt(b, m);
+      const working = owner < 0 ? 0 : this.left(owner, b, m, DamageEffect.Tending);
       if (!(working > 0)) continue;
       builds[m] = min(ROBOT_BUILD_TIME, builds[m]! + dt * working * berthRate(design.modules[m]!.stats));
       if (builds[m]! < ROBOT_BUILD_TIME) continue;
@@ -5157,7 +5158,7 @@ export class Ships {
     if (robot.mode === RobotMode.Berthed) {
       // A working bay refills it, and tops its charge up from its piece of
       // hull, reserves and all, each step it waits.
-      const working = this.damage.remaining(b, robot.bay, DamageEffect.Tending) * berthRate(design.modules[robot.bay]!.stats);
+      const working = this.left(owner, b, robot.bay, DamageEffect.Tending) * berthRate(design.modules[robot.bay]!.stats);
       // What it brought home goes into the holds, as far as they have room.
       let unloaded = false;
       if (robot.cargo > 0) {
@@ -6367,9 +6368,25 @@ export class Ships {
     return pilots === null || pilots === undefined || pilots[m] === i;
   }
 
-  /** What damage has left of a module's effect, for the ship working it: none for anyone else. */
+  /**
+   * What damage has left of a module's effect, for the ship working it: none
+   * for anyone else, and none while no working core reaches it (`inReach`).
+   */
   private left(i: number, b: number, module: number, effect: DamageEffect): number {
-    return this.ownsAt(i, b, module) ? this.damage.remaining(b, module, effect) : 0;
+    if (!this.ownsAt(i, b, module)) return 0;
+    if (effect !== DamageEffect.Control && !this.inReach(i, b, module)) return 0;
+    return this.damage.remaining(b, module, effect);
+  }
+
+  /** Whether one of ship `i`'s working cores reaches module `m` of body index `b` (`ShipDesign.coveredBy`). */
+  inReach(i: number, b: number, m: number): boolean {
+    const cores = this.designs[i]?.coveredBy?.[m];
+    if (cores === null || cores === undefined) return true;
+    for (let k = 0; k < cores.length; k++) {
+      const core = cores[k]!;
+      if (this.ownsAt(i, b, core) && this.damage.remaining(b, core, DamageEffect.Control) > 0) return true;
+    }
+    return false;
   }
 
   /** Whether ship `i` works module `m` of the body it rides. */
@@ -8379,7 +8396,7 @@ export class Ships {
       kg += more;
       joules += more * buildWork(craft.modules[m]!.stats);
     });
-    const working = this.damage.remaining(b, slipway, DamageEffect.Grip);
+    const working = this.left(i, b, slipway, DamageEffect.Grip);
     const width = this.designs[i]!.modules[slipway]!.spec.width;
     // What is at the face is finished before the next slice pushes it out of reach.
     if (f >= 0) {
@@ -8718,7 +8735,7 @@ export class Ships {
     const brood = this.broods[i]!;
     const work = buildWork(whole.stats);
     const perKg = work * REPAIR_ENERGY_PER_JOULE;
-    const working = this.damage.remaining(b, pad, DamageEffect.Grip);
+    const working = this.left(i, b, pad, DamageEffect.Grip);
     const joules = PAD_REPAIR_PER_METRE * design.modules[pad]!.spec.width * working * world.dt;
     const kg = min(min(joules / work, this.power.pieceHeld(b, pad) / perKg), wall - brood.work[k]!);
     if (kg > 0) {

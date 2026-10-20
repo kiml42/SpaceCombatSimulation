@@ -5,6 +5,7 @@ import {
   BATTERY_ENERGY_PER_VOLUME,
   CORE_BATTERY_SHARE,
   CORE_COMPUTING_VOLUME,
+  coreComputing,
   CORE_GENERATOR_SHARE,
   CORE_GENERATOR_MAX_VOLUME,
   Projectiles,
@@ -217,8 +218,9 @@ describe('a core', () => {
   });
 
   it('carries a generator and a battery in its room past its computing', () => {
-    const core = moduleStats({ kind: 'core', x: 0, y: 0, length: 4, width: 6 });
-    const spare = core.interior - CORE_COMPUTING_VOLUME;
+    const spec = { kind: 'core' as const, x: 0, y: 0, length: 4, width: 6 };
+    const core = moduleStats(spec);
+    const spare = core.interior - coreComputing(spec, core.interior);
     expect(core.generation).toBeCloseTo(Math.min(spare * CORE_GENERATOR_SHARE, CORE_GENERATOR_MAX_VOLUME) * GENERATOR_POWER_PER_VOLUME, 3);
     expect(core.charge).toBeCloseTo(spare * CORE_BATTERY_SHARE * BATTERY_ENERGY_PER_VOLUME, 3);
     expect(core.chargeRate).toBeGreaterThan(0);
