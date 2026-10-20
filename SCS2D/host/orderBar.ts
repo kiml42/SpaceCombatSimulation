@@ -23,8 +23,11 @@ export function orderBar(view: BattleView): { update(shown: Snapshot): void } {
   const remodel = el<HTMLButtonElement>('remodel');
   let offered: Remodel[] = [];
   let remodelKey = '';
+  const remodelWarning = el<HTMLElement>('remodelWarning');
   remodelTo.addEventListener('change', () => {
     remodel.disabled = remodelTo.value === '';
+    const fit = offered[Number(remodelTo.value)];
+    remodelWarning.hidden = remodelTo.value === '' || fit === undefined || fit.bay;
   });
   remodel.addEventListener('click', () => {
     const fit = offered[Number(remodelTo.value)];
@@ -59,10 +62,10 @@ export function orderBar(view: BattleView): { update(shown: Snapshot): void } {
     const current = document.createElement('option');
     current.value = '';
     current.textContent = names.every((n) => n === names[0]) ? (names[0] ?? '') : 'mixed designs';
-    const options = offered.map(({ choice, kept, of }, n) => {
+    const options = offered.map(({ choice, kept, of, bay }, n) => {
       const option = document.createElement('option');
       option.value = String(n);
-      option.textContent = `${choice.label} · keeps ${Math.round((100 * kept) / Math.max(1, of))}%`;
+      option.textContent = `${choice.label} · keeps ${Math.round((100 * kept) / Math.max(1, of))}%${bay ? '' : ' · ⚠ no robot bay'}`;
       return option;
     });
     remodelTo.replaceChildren(current, ...options);
@@ -70,6 +73,7 @@ export function orderBar(view: BattleView): { update(shown: Snapshot): void } {
     remodelTo.disabled = offered.length === 0;
     remodel.disabled = true;
     remodel.hidden = !crewed;
+    remodelWarning.hidden = true;
   };
 
   return {

@@ -235,8 +235,10 @@ export interface RefitPlan {
   readonly built: readonly number[];
   /** Modules of the old design's expanded layout that would be taken down, as laid out there. */
   readonly takenDown: readonly ModuleSpec[];
-  /** Whether the new design keeps the old one's first core, which a ship refitted is flown from. */
-  readonly coreKept: boolean;
+  /** Why a ship could not be refitted to it at all (`Ships.refit`), or null. */
+  readonly refused: string | null;
+  /** Whether the new design has a robot bay, without which a refit to it is never finished. */
+  readonly bay: boolean;
 }
 
 /**
@@ -262,45 +264,41 @@ export function refitPlan(from: Blueprint, to: Blueprint): RefitPlan | null {
   const byKey = new Map<string, number>();
   nowKeys.forEach((key, k) => byKey.set(key, k));
   const takenDown: ModuleSpec[] = [];
-  let coreKept = false;
-  let core = true;
   for (let m = 0; m < was.length; m++) {
     const k = byKey.get(wasKeys[m]!);
     const same = k !== undefined && JSON.stringify(was[m]) === JSON.stringify(now[k]);
     if (same) kept.add(k);
     else takenDown.push(was[m]!);
-    if (core && was[m]!.kind === 'core') {
-      coreKept = same;
-      core = false;
-    }
   }
   const built: number[] = [];
   for (let k = 0; k < now.length; k++) if (!kept.has(k)) built.push(k);
-  return { built, takenDown, coreKept };
+  const refused = !now.some((m) => m.kind === 'core')
+    ? 'it has no core to be flown from'
+    : kept.size === 0
+      ? 'it keeps nothing of the ship to build the rest against'
+      : null;
+  return { built, takenDown, refused, bay: now.some((m) => m.kind === 'robotBay') };
 }
 
 /**
  * How much of a ship built to `from` a refit to `to` would keep, as
- * `Ships.refit` matches compiled designs: the modules kept, of how many.
- * Null where it would refuse: either design without keys, or `to` not
- * keeping the first core, which a ship is flown from.
+ * `Ships.refit` matches compiled designs: the modules kept, of how many, and
+ * whether `to` has a robot bay, without which nothing would build the rest.
+ * Null where it would refuse: either design without keys, or nothing of
+ * `from` kept to build against.
  */
-export function refitShare(from: ShipDesign, to: ShipDesign): { kept: number; of: number } | null {
+export function refitShare(from: ShipDesign, to: ShipDesign): { kept: number; of: number; bay: boolean } | null {
   const wasKeys = from.keys;
   const nowKeys = to.keys;
   if (wasKeys === undefined || nowKeys === undefined) return null;
   const byKey = new Map<string, DesignModule>();
   for (const module of to.modules) byKey.set(nowKeys[module.index]!, module);
-  const core = from.cores[0];
   let kept = 0;
-  let coreKept = false;
-  from.modules.forEach((module, m) => {
+  for (const module of from.modules) {
     const now = byKey.get(wasKeys[module.index]!);
-    if (now === undefined || JSON.stringify(now.spec) !== JSON.stringify(module.spec)) return;
-    kept++;
-    if (m === core) coreKept = true;
-  });
-  return coreKept ? { kept, of: from.modules.length } : null;
+    if (now !== undefined && JSON.stringify(now.spec) === JSON.stringify(module.spec)) kept++;
+  }
+  return kept === 0 ? null : { kept, of: from.modules.length, bay: to.modules.some((m) => m.spec.kind === 'robotBay') };
 }
 
 /** The highest id any placement of a blueprint has; 0 for none. */

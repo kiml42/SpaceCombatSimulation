@@ -38,6 +38,8 @@ export interface Remodel {
   readonly choice: Choice;
   readonly kept: number;
   readonly of: number;
+  /** Whether it has a robot bay: without one, nothing would build the rest, and the refit is never finished. */
+  readonly bay: boolean;
 }
 
 /** Every design in `library` a refit of each of `ships` would take, other than what they are built to now. */
@@ -45,16 +47,18 @@ export function remodels(ships: readonly ShipView[], library: readonly Choice[])
   return library.flatMap((choice) => {
     let kept = 0;
     let of = 0;
+    let bay = true;
     for (const ship of ships) {
       const share = refitShare(ship.blueprint ?? ship.currentStructure, choice.design);
       if (share === null) return [];
       kept += share.kept;
       of += share.of;
+      bay = share.bay;
     }
     // Not a remodel at all.
     if (kept === of && ships.every((ship) => (ship.blueprint ?? ship.currentStructure).modules.length === choice.design.modules.length)) {
       return [];
     }
-    return [{ choice, kept, of }];
+    return [{ choice, kept, of, bay }];
   });
 }

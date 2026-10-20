@@ -60,7 +60,7 @@
       }
       #orderBar button.armed { background: #3a4f6e; border-color: #7fa8e0; }
       #orderBar select { max-width: 12rem; }
-      #armedHint { color: #e9c05f; }
+      #armedHint, #orderBar .warn { color: #e9c05f; }
       #queue { display: flex; flex-wrap: wrap; gap: 0.3rem 0.9rem; margin: 0; padding: 0; list-style-position: inside; }
       #queue button { padding: 0 0.3rem; }
       #doctrinePanel {
@@ -177,6 +177,7 @@
           <button id="doctrine" title="How they fight, over what their blueprints say (P)">Doctrine</button>
           <select id="remodelTo" title="What they are built to; choose another and Remodel to refit them, their robots building it as they fight on"></select>
           <button id="remodel" title="Refit them to the design chosen">Remodel</button>
+          <span id="remodelWarning" class="warn" hidden>⚠ It has no robot bay: the old bays stay until the end, so the remodel can never be finished.</span>
           <span id="armedHint"></span>
           <button id="nearest" hidden title="Without a target: wherever its doctrine would choose (Enter); Ctrl to queue">Nearest (Enter)</button>
           <ol id="queue"></ol>
