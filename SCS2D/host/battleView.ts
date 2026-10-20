@@ -1,5 +1,5 @@
 import { capture, NEUTRAL_TEAM, Snapshot, type ImpactLog, type ShipView } from '../sim/index.js';
-import { OrderCancelCondition } from '../sim/ships.js';
+import { NO_TARGET, OrderCancelCondition } from '../sim/ships.js';
 import { Flashes } from '../render/flashes.js';
 import {
   ARCS_KEY,
@@ -56,7 +56,7 @@ import { keepSpeed, loadView, saveView, type ViewSettings } from './viewSettings
 const MAX_STEPS_PER_FRAME = 32;
 
 /** The keys that arm a verb, and the one that stops. */
-const VERB_KEYS: Readonly<Record<string, Verb>> = { k: 'attack', d: 'defend', r: 'ram' };
+const VERB_KEYS: Readonly<Record<string, Verb>> = { k: 'attack', d: 'defend', r: 'ram', h: 'dock' };
 const STOP_KEY = 's';
 /** Picks the whole side of the selection, or the first side. */
 const SIDE_KEY = 'a';
@@ -125,6 +125,8 @@ export interface BattleView {
   readonly armed: Verb | null;
   /** Arm a verb, or with null, disarm; an attack finishing on `cancelOn`. */
   arm(verb: Verb | null, cancelOn?: OrderCancelCondition): void;
+  /** Give the armed verb, if its target is optional, with none: for doctrine to choose where. */
+  nearest(append: boolean): void;
   /** Give a command to the battle now, logged. */
   issue(command: Command): void;
   /** Every command given, for a link to carry. */
@@ -134,7 +136,12 @@ export interface BattleView {
 }
 
 /** What a click on a ship can be armed to tell the selection. */
-export type Verb = 'attack' | 'defend' | 'ram';
+export type Verb = 'attack' | 'defend' | 'ram' | 'dock';
+
+/** Verbs given to a friend rather than against an enemy. */
+const FRIENDLY: ReadonlySet<Verb> = new Set(['defend', 'dock']);
+/** Verbs that can be given with no target, for doctrine to choose one. */
+export const ANYWHERE: ReadonlySet<Verb> = new Set(['dock']);
 
 /**
  * `stepped` is told after every step, for whatever is judging the battle;
@@ -268,12 +275,18 @@ export function battleView(
   const order = (verb: Verb, target: ShipView, append: boolean, cancelOn: OrderCancelCondition): void => {
     const side = sideOf(snapshot, picked);
     if (!ordersAllowed || side === null || target.ship === undefined || target.team === NEUTRAL_TEAM) return;
-    // A friend is defended and an enemy attacked or rammed.
-    if ((verb === 'defend') !== (target.team === side)) return;
+    // A friend is defended or docked with, and an enemy attacked or rammed.
+    if (FRIENDLY.has(verb) !== (target.team === side)) return;
     const ships = picked.filter((i) => i !== target.ship);
     if (ships.length === 0) return;
     const given: Order = verb === 'attack' ? { kind: 'attack', target: target.ship, cancelOn } : { kind: verb, target: target.ship };
     issue({ kind: 'order', ships, order: given, append });
+  };
+
+  const nearest = (append: boolean): void => {
+    if (armed === null || !ANYWHERE.has(armed) || sideOf(snapshot, picked) === null) return;
+    issue({ kind: 'order', ships: picked, order: { kind: armed as 'dock', target: NO_TARGET }, append });
+    armed = null;
   };
 
   const issue = (command: Command): void => {
@@ -297,6 +310,9 @@ export function battleView(
     } else if (event.key === ',' && rewind !== null) {
       setRunning(false);
       seeking = Math.max(0, (seeking >= 0 ? seeking : rewind.at) - 1);
+    } else if (event.key === 'Enter' && armed !== null && ANYWHERE.has(armed)) {
+      event.preventDefault();
+      nearest(event.ctrlKey || event.metaKey || event.shiftKey);
     } else if (event.key === 'Escape') {
       if (armed !== null) armed = null;
       else picked = [];
@@ -482,6 +498,7 @@ export function battleView(
       armed = ordersAllowed && picked.length > 0 ? verb : null;
       armedCancel = cancelOn;
     },
+    nearest,
     issue,
     get orders() {
       return rewind?.orders ?? [];

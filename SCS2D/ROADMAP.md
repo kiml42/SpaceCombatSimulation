@@ -106,7 +106,8 @@ an entry is either still open or it is gone.
        - **Commands name ships by the simulation's index**, which a deterministic battle keeps.
     2. **Dock, scavenge, deliver, doctrine, build and remodel** — designed, as settled below, in four
        pieces that each land on their own:
-       - **2a. Dock**, with ports passing metal and the machinery for an order whose target is optional.
+       - **2a. Dock** — built, with ports passing metal and the machinery for an order whose target is
+         optional. No golden checksum moved: none of those battles docks at a port.
        - **2b. Scavenge and deliver**, on the same machinery.
        - **2c. The doctrine panel**: the ship's, its main and secondary weapons', a single mount's, and
          its build counts.
