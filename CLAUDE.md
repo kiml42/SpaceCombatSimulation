@@ -34,8 +34,12 @@ once CI is green on the current head and there is no merge conflict. Comments fr
 merge.
 
 On every check-in on an open PR, first bring it up to date with `master`: merge `master` into its branch, resolve
-any conflicts, run the tests, and push, even when nothing conflicts. That way CI is always run against current
-`master`, and a branch never drifts far behind it.
+any conflicts, and push, even when nothing conflicts. That way CI is always run against current `master`, and a
+branch never drifts far behind it.
+
+**Push without running the full test suite and let CI run it.** The suites take long enough that running them
+locally before every push costs more than a red CI run does. Run the tests that bear on what changed, or the
+typecheck, when that is quick; then push, and fix whatever CI finds.
 
 Don't make comments too verbose, make sure they're short enough that people will actually read them, 
 or leave them out entirely if the name is sufficient, or the code easy to read.
