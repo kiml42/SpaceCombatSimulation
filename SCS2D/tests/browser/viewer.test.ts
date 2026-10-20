@@ -442,9 +442,75 @@ describe('the viewer in a browser', () => {
     expect(JSON.parse((await page.evaluate(() => localStorage.getItem('scs2d.view.viewer')))!).arcs).toBe('none');
   });
 
+  it('shows a picked ship and its target close up when they are too small to read', async () => {
+    await page.click('#reset');
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    if ((await page.textContent('#play')) !== 'Play') await page.keyboard.press('Space');
+    await painted(page);
+    const box = (await page.locator('#view').boundingBox())!;
+    // The brightest pixel is on a ship.
+    const at = await page.evaluate(() => {
+      const canvas = document.getElementById('view') as HTMLCanvasElement;
+      const { data, width } = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height);
+      let best = -1;
+      let index = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        const v = data[i]! + data[i + 1]! + data[i + 2]!;
+        if (v > best) {
+          best = v;
+          index = i / 4;
+        }
+      }
+      const ratio = canvas.width / canvas.getBoundingClientRect().width;
+      return { x: (index % width) / ratio, y: Math.floor(index / width) / ratio };
+    });
+    await page.mouse.click(box.x + at.x, box.y + at.y);
+    // Far enough out that both ships are specks.
+    for (let i = 0; i < 12; i++) {
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await page.mouse.wheel(0, 400);
+    }
+    const lit = (): Promise<number> =>
+      page.evaluate(() => {
+        const canvas = document.getElementById('view') as HTMLCanvasElement;
+        const { data } = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height);
+        let count = 0;
+        for (let i = 0; i < data.length; i += 4) if (data[i]! + data[i + 1]! + data[i + 2]! > 200) count++;
+        return count;
+      });
+    await painted(page);
+    const picked = await lit();
+    // Clicking a window frames its ship again: the view zooms back in on the pair.
+    const grid = async (): Promise<number> => Number(/grid ([\d.]+) m/.exec((await page.textContent('#readout')) ?? '')?.[1] ?? NaN);
+    const far = await grid();
+    const window = await page.evaluate(() => {
+      const canvas = document.getElementById('view') as HTMLCanvasElement;
+      const { data, width } = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height);
+      // The first lit pixel, reading down, is the top of the upper window's frame: just inside its corner.
+      let first = 0;
+      while (first < data.length / 4 && data[first * 4]! + data[first * 4 + 1]! + data[first * 4 + 2]! <= 200) first++;
+      const ratio = canvas.width / canvas.getBoundingClientRect().width;
+      return { x: (first % width) / ratio + 20, y: Math.floor(first / width) / ratio + 20 };
+    });
+    await page.mouse.click(box.x + window.x, box.y + window.y);
+    await page.waitForFunction((was) => Number(/grid ([\d.]+) m/.exec(document.getElementById('readout')?.textContent ?? '')?.[1] ?? NaN) < was / 100, far);
+    await page.keyboard.press('Escape');
+    for (let i = 0; i < 12; i++) {
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await page.mouse.wheel(0, 400);
+    }
+    await painted(page);
+    const dropped = await lit();
+    // Two windows of hull, frame and rings, against two specks.
+    expect(picked).toBeGreaterThan(dropped * 4 + 500);
+  });
+
   it('gives orders: picked out, right-clicked, armed, queued, taken back and stopped', async () => {
     await page.selectOption('#scene', { label: 'Duel' });
-    if ((await page.textContent('#play')) === 'Pause') await page.click('#play');
+    // Far enough in that each ship has picked a fight, so framing a pick takes in all three.
+    if ((await page.textContent('#play')) === 'Play') await page.click('#play');
+    await advanced(page, 60);
+    await page.click('#play');
     await painted(page);
     const canvas = (await page.locator('#view').boundingBox())!;
     // In the duel, ships 0 and 1 are a side and ship 2 the other.
@@ -458,8 +524,9 @@ describe('the viewer in a browser', () => {
       if (options.shift) await page.keyboard.down('Shift');
       await page.mouse.click(p.x, p.y, { button: options.right ? 'right' : 'left' });
       if (options.shift) await page.keyboard.up('Shift');
-      // Past the double-click interval, so two clicks are never read as one.
-      await page.waitForTimeout(400);
+      // Past the double-click interval, so two clicks are never read as one, and
+      // long enough for the camera to settle on what was picked.
+      await page.waitForTimeout(1000);
       await painted(page);
     };
 
@@ -473,6 +540,8 @@ describe('the viewer in a browser', () => {
     // The future is gone with it: the bar runs to here.
     expect(Number(await page.getAttribute('#scrub', 'max'))).toBe(await step(page));
 
+    // Let go first each time, so no close-up of a picked ship is in the way.
+    await page.keyboard.press('Escape');
     await click(0);
     expect(await page.locator('#queue li').count()).toBe(1);
     expect(await page.textContent('#queue')).toContain('attack');
@@ -487,6 +556,7 @@ describe('the viewer in a browser', () => {
     await painted(page);
     expect(await page.locator('#queue li').count()).toBe(0);
 
+    await page.keyboard.press('Escape');
     await click(1);
     await click(0, { right: true });
     expect(JSON.stringify((await orders()).at(-1))).toContain('"defend"');

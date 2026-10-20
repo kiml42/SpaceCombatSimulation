@@ -5,7 +5,7 @@ import {
   type Fleet,
 } from '../sim/index.js';
 import { Flashes } from '../render/flashes.js';
-import { ARCS_KEY, draw, nextArcs, TEAM_SHOTS_KEY, teamColour, type Arcs } from '../render/canvas2d.js';
+import { ARCS_KEY, closeUpTapped, draw, drawCloseUps, nextArcs, TEAM_SHOTS_KEY, teamColour, type Arcs } from '../render/canvas2d.js';
 import { shipColours } from '../render/teams.js';
 import { drawChart, indexAt, xOf, type ChartLayout, type Series } from '../render/chart.js';
 import {
@@ -1248,7 +1248,9 @@ export function startEvolution(): void {
       autoFrame = false;
     },
     (x, y, reach) => {
-      selected = shipAt(snapshot, x, y, reach);
+      // A close-up first: it is drawn over whatever is under it.
+      const shown = closeUpTapped(snapshot, camera, view.width, view.height, selected, window.devicePixelRatio || 1, x, y);
+      selected = shown >= 0 ? shown : shipAt(snapshot, x, y, reach);
       if (selected >= 0) autoFrame = true;
     },
   );
@@ -1301,6 +1303,7 @@ export function startEvolution(): void {
       );
     }
     draw(ctx, shot, camera, view.width, view.height, flashes, arcs, teamShots, selected);
+    drawCloseUps(ctx, shot, camera, view.width, view.height, selected, window.devicePixelRatio || 1, flashes, arcs, teamShots);
   }
 
   // ---- the chart ---------------------------------------------------------

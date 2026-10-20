@@ -1,7 +1,7 @@
 import { capture, NEUTRAL_TEAM, Snapshot, type ImpactLog, type ShipView } from '../sim/index.js';
 import { OrderCancelCondition } from '../sim/ships.js';
 import { Flashes } from '../render/flashes.js';
-import { ARCS_KEY, draw, nextArcs, TEAM_SHOTS_KEY, type Arcs } from '../render/canvas2d.js';
+import { ARCS_KEY, closeUpTapped, draw, drawCloseUps, nextArcs, TEAM_SHOTS_KEY, type Arcs } from '../render/canvas2d.js';
 import {
   frame,
   jumpAnchors,
@@ -42,6 +42,12 @@ const MAX_STEPS_PER_FRAME = 32;
 const VERB_KEYS: Readonly<Record<string, Verb>> = { t: 'attack', d: 'defend', r: 'ram' };
 const STOP_KEY = 's';
 const BOX_COLOUR = '#9fb4cc';
+
+/** The ship drawn as a body, or null. */
+function viewByBody(view: Snapshot, body: number): ShipView | null {
+  for (let i = 0; i < view.shipCount; i++) if (view.ships[i]!.body === body) return view.ships[i]!;
+  return null;
+}
 
 /** What framing a selection takes in: each picked ship, and what each is fighting and escorting. */
 function pickedBounds(view: Snapshot, picked: readonly number[]): Bounds | null {
@@ -192,7 +198,10 @@ export function battleView(
       autoFrame = false;
     },
     (x, y, reach, shift) => {
-      const ship = shipViewAt(snapshot, x, y, reach);
+      // A close-up first: it is drawn over whatever is under it. Not with
+      // Shift, which adds the ship under the pointer in the battle itself.
+      const shown = shift ? -1 : closeUpTapped(snapshot, camera, canvas.width, canvas.height, selected, window.devicePixelRatio || 1, x, y);
+      const ship = shown >= 0 ? viewByBody(snapshot, shown) : shipViewAt(snapshot, x, y, reach);
       if (armed !== null && ship !== null) {
         order(armed, ship, shift, armedCancel);
         armed = null;
@@ -377,6 +386,7 @@ export function battleView(
     selected = viewOf(view, picked[0])?.body ?? -1;
     const also = picked.slice(1).map((i) => viewOf(view, i)?.body ?? -1);
     draw(ctx, view, camera, canvas.width, canvas.height, flashes, arcs, teamShots, selected, also);
+    drawCloseUps(ctx, view, camera, canvas.width, canvas.height, selected, window.devicePixelRatio || 1, flashes, arcs, teamShots);
     if (box !== null) {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.strokeStyle = BOX_COLOUR;
