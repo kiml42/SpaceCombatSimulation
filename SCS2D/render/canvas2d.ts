@@ -1924,8 +1924,10 @@ function drawSelected(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: n
   ctx.beginPath();
   ctx.arc(ship.x, ship.y, ship.currentStructure.radius + gap, 0, Math.PI * 2);
   ctx.stroke();
-  const target = shipByBody(snapshot, ship.fighting ?? -1);
+  // What it is doing, in the colour an order to do it is drawn in, told or not.
+  const target = shipByBody(snapshot, ship.doingTo ?? ship.fighting ?? -1);
   if (target !== null) {
+    if (ship.doing !== undefined) ctx.strokeStyle = ORDER_COLOURS[ship.doing];
     const dx = target.x - ship.x;
     const dy = target.y - ship.y;
     const length = Math.sqrt(dx * dx + dy * dy);
@@ -1940,7 +1942,7 @@ function drawSelected(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: n
       ctx.setLineDash([]);
     }
     // The band it is holding, round what it is holding it against, as the editor draws a ship's own.
-    if (ship.fightingMax !== undefined) {
+    if (ship.fightingMax !== undefined && target.body === ship.fighting) {
       ctx.save();
       drawBand(ctx, target.x, target.y, ship.fightingMin ?? 0, ship.fightingMax, metresToPx);
       ctx.restore();
@@ -1949,6 +1951,7 @@ function drawSelected(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: n
     ctx.beginPath();
     ctx.arc(target.x, target.y, target.currentStructure.radius + gap, 0, Math.PI * 2);
     ctx.stroke();
+    ctx.strokeStyle = colour;
   }
   // What it is escorting, ringed in a broken line: a ship it stays with, not one it shoots.
   const consort = shipByBody(snapshot, ship.covering ?? -1);
@@ -1983,7 +1986,14 @@ function drawRing(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: numbe
 }
 
 /** Each order's colour, by what it says to do. */
-const ORDER_COLOURS = { attack: '#ff7a6b', defend: '#6fb6ff', ram: '#ffb347', dock: '#7ee07a' } as const;
+const ORDER_COLOURS = {
+  attack: '#ff7a6b',
+  defend: '#6fb6ff',
+  ram: '#ffb347',
+  dock: '#7ee07a',
+  scavenge: '#d7a6ff',
+  deliver: '#5fd6c8',
+} as const;
 
 /**
  * The orders of every picked-out ship: a line from it through each target in

@@ -14,7 +14,11 @@ export type Order =
   | { readonly kind: 'defend'; readonly target: number }
   | { readonly kind: 'ram'; readonly target: number }
   /** Take on all a friend's dock can give: at `target`, or wherever doctrine chooses for `NO_TARGET`. */
-  | { readonly kind: 'dock'; readonly target: number };
+  | { readonly kind: 'dock'; readonly target: number }
+  /** Fill its claw from `target`, or for `NO_TARGET` from source after source. */
+  | { readonly kind: 'scavenge'; readonly target: number }
+  /** Give all it can spare to `target`, a friend, or for `NO_TARGET` to friend after friend. */
+  | { readonly kind: 'deliver'; readonly target: number };
 
 export type Command =
   /** The same order to each ship, replacing its queue, or after it if `append`. */
@@ -31,8 +35,9 @@ export interface Logged {
 
 /**
  * Carry out a command. Ships and targets gone by then are passed over, as is
- * a ship told to defend itself or an enemy, to attack or ram a friend, or to
- * dock with an enemy or a friend it has no dock to mate with.
+ * a ship told to defend itself or an enemy, to attack or ram a friend, to
+ * dock with or deliver to an enemy or a friend it has no dock to mate with,
+ * or to scavenge with no claw.
  */
 export function give(battle: Battle, command: Command): void {
   const ships = battle.ships;
@@ -45,14 +50,18 @@ export function give(battle: Battle, command: Command): void {
     return;
   }
   const order = command.order;
-  const anywhere = order.kind === 'dock' && order.target === NO_TARGET;
+  const errand = order.kind === 'dock' || order.kind === 'scavenge' || order.kind === 'deliver';
+  const anywhere = errand && order.target === NO_TARGET;
   if (!anywhere && !ships.isAlive(order.target)) return;
   for (const i of command.ships) {
     if (!ships.isAlive(i) || i === order.target) continue;
-    if (order.kind === 'dock') {
-      if (!anywhere && ships.teamOf(i) !== ships.teamOf(order.target)) continue;
+    if (errand) {
+      // A dock or delivery is to a friend; a claw can take from anyone.
+      if (!anywhere && order.kind !== 'scavenge' && ships.teamOf(i) !== ships.teamOf(order.target)) continue;
       if (!command.append) ships.clearOrder(i);
-      ships.pushDock(i, order.target);
+      if (order.kind === 'dock') ships.pushDock(i, order.target);
+      else if (order.kind === 'scavenge') ships.pushScavenge(i, order.target);
+      else ships.pushDeliver(i, order.target);
       continue;
     }
     // A friend is defended and an enemy attacked, whatever a hand-written log says.
@@ -65,7 +74,9 @@ export function give(battle: Battle, command: Command): void {
   }
 }
 
-const KINDS = new Set(['attack', 'defend', 'ram', 'dock']);
+const KINDS = new Set(['attack', 'defend', 'ram', 'dock', 'scavenge', 'deliver']);
+/** Orders whose target may be `NO_TARGET`. */
+const ANYWHERE = new Set(['dock', 'scavenge', 'deliver']);
 const CANCELS = new Set(Object.values(OrderCancelCondition).filter((v) => typeof v === 'number'));
 
 /** A log read back from a file or a link. Throws on one it cannot read. */
@@ -88,7 +99,7 @@ export function parseLog(value: unknown): Logged[] {
       const order = command['order'] as Record<string, unknown> | undefined;
       if (!shipList(command['ships']) || typeof command['append'] !== 'boolean') fail('an order wants ships and append');
       const target = order?.['target'];
-      const nowhere = order?.['kind'] === 'dock' && target === NO_TARGET;
+      const nowhere = ANYWHERE.has(order?.['kind'] as string) && target === NO_TARGET;
       if (order === undefined || !KINDS.has(order['kind'] as string) || !(whole(target) || nowhere)) fail('not an order');
       if (order!['kind'] === 'attack' && !CANCELS.has(order!['cancelOn'] as number)) fail('an attack wants cancelOn');
     } else fail(`unknown command ${String(command['kind'])}`);
