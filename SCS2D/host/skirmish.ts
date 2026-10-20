@@ -31,15 +31,7 @@ import {
 } from '../scenarios/skirmish.js';
 import { MUTATION_FIELDS } from '../evolution/mutationFields.js';
 import { fillFields, type SettingField } from './settingsFields.js';
-import {
-  dropOldest,
-  EMPTY_HISTORY,
-  HISTORY_STORAGE_KEY,
-  parseHistory,
-  record,
-  type History,
-  type Played,
-} from '../scenarios/history.js';
+import { dropOldest, EMPTY_HISTORY, HISTORY_STORAGE_KEY, parseHistory, record, type History, type Played } from '../scenarios/history.js';
 import { startAnswer, type AnswerProgress } from './answer.js';
 import { timeline } from './timeline.js';
 import { battleView } from './battleView.js';
@@ -60,40 +52,158 @@ const SETTINGS_KEY = 'scs2d.skirmish.settings';
 const D = DEFAULT_SKIRMISH_SETTINGS;
 /** The round's settings and the answer's, as the setup screen offers them. */
 const SKIRMISH_FIELDS: readonly SettingField[] = [
-  { name: 'maxShips', group: 'limits', label: 'most ships', step: 1, min: 1, value: D.maxShips,
-    title: "The most ships either side may field, unless the enemy already has more: a limit on how hard a battle works the computer." },
-  { name: 'radius', group: 'limits', label: 'spawn radius m', step: 50, min: 1, value: D.radius,
-    title: "How far from its origin any of either side's hulls may reach, unless the enemy already reaches further." },
-  { name: 'quietTime', group: 'round', label: 'quiet s', step: 5, min: 1, value: D.quietTime,
-    title: 'Once both sides have fired, a side that has not fired, hit or rammed for this long, while the other has, is out of the battle.' },
-  { name: 'timeCap', group: 'round', label: 'time cap s', step: 30, min: 1, value: D.timeCap,
-    title: 'A battle not decided by then is a draw, which is a loss for you.' },
-  { name: 'gap', group: 'round', label: 'gap m', step: 100, value: D.gap,
-    title: "Clear water between the two fleets' furthest hulls at the start." },
-  { name: 'closingSpeed', group: 'round', label: 'closing m/s', step: 5, min: null, value: D.closingSpeed,
-    title: 'Each fleet\'s starting speed towards the other.' },
-  { name: 'crossingSpeed', group: 'round', label: 'crossing m/s', step: 5, min: null, value: D.crossingSpeed,
-    title: 'Each fleet\'s starting speed across the line between them, to its left.' },
-  { name: 'gapSpread', group: 'round', spreadOf: 'gap', label: '', step: 100, value: D.gapSpread,
-    title: "How far either side each round's gap is drawn, evenly. Zero holds it." },
-  { name: 'closingSpread', group: 'round', spreadOf: 'closingSpeed', label: '', step: 5, value: D.closingSpread,
-    title: "How far either side each round's closing speed is drawn, evenly. Zero holds it." },
-  { name: 'crossingSpread', group: 'round', spreadOf: 'crossingSpeed', label: '', step: 5, value: D.crossingSpread,
-    title: "How far either side each round's crossing speed is drawn, evenly. Zero holds it." },
-  { name: 'mutants', group: 'answer', label: 'mutants', step: 1, min: 1, value: D.mutants,
-    title: 'Mutants of the enemy a generation, beside the best so far.' },
-  { name: 'seeds', group: 'answer', label: 'matches each', step: 1, min: 1, value: D.seeds,
-    title: "Matches each enemy fights a generation, on different seeds, the next round's among them, so it cannot win by a fluke of one." },
-  { name: 'duration', group: 'answer', label: 'match s', step: 30, min: 1, value: D.duration,
-    title: 'How long a match of the search lasts before the side ahead is taken to win.' },
-  { name: 'bareCoreDrills', group: 'answer', label: 'bare core drills', step: 1, value: D.bareCoreDrills,
-    title: 'Matches each enemy fights a generation against a bare core, scored on how much of it, and how soon, it destroys. They only add to its score: it learns to hit something.' },
-  { name: 'shieldedDrills', group: 'answer', label: 'invincible drills', step: 1, value: D.shieldedDrills,
-    title: 'Matches each enemy fights a generation against your fleet with itself made invincible, scored on how much of your fleet it destroys and how soon it leaves it nothing to fire. They only add to its score: it learns to hurt you before you strip it.' },
-  { name: 'budgetStep', group: 'answer', label: 'budget step', step: 0.05, value: D.budgetStep,
-    title: "What is added to the enemy's budget, as a multiple of yours, each time its search stalls. It starts at 1×, or what the enemy already costs if more, and never falls." },
-  { name: 'stretchAfter', group: 'answer', label: 'step up after', step: 1, min: 1, value: D.stretchAfter,
-    title: "Generations without an answer before the enemy's budget steps up again." },
+  {
+    name: 'maxShips',
+    group: 'limits',
+    label: 'most ships',
+    step: 1,
+    min: 1,
+    value: D.maxShips,
+    title: 'The most ships either side may field, unless the enemy already has more: a limit on how hard a battle works the computer.',
+  },
+  {
+    name: 'radius',
+    group: 'limits',
+    label: 'spawn radius m',
+    step: 50,
+    min: 1,
+    value: D.radius,
+    title: "How far from its origin any of either side's hulls may reach, unless the enemy already reaches further.",
+  },
+  {
+    name: 'quietTime',
+    group: 'round',
+    label: 'quiet s',
+    step: 5,
+    min: 1,
+    value: D.quietTime,
+    title: 'Once both sides have fired, a side that has not fired, hit or rammed for this long, while the other has, is out of the battle.',
+  },
+  {
+    name: 'timeCap',
+    group: 'round',
+    label: 'time cap s',
+    step: 30,
+    min: 1,
+    value: D.timeCap,
+    title: 'A battle not decided by then is a draw, which is a loss for you.',
+  },
+  {
+    name: 'gap',
+    group: 'round',
+    label: 'gap m',
+    step: 100,
+    value: D.gap,
+    title: "Clear water between the two fleets' furthest hulls at the start.",
+  },
+  {
+    name: 'closingSpeed',
+    group: 'round',
+    label: 'closing m/s',
+    step: 5,
+    min: null,
+    value: D.closingSpeed,
+    title: "Each fleet's starting speed towards the other.",
+  },
+  {
+    name: 'crossingSpeed',
+    group: 'round',
+    label: 'crossing m/s',
+    step: 5,
+    min: null,
+    value: D.crossingSpeed,
+    title: "Each fleet's starting speed across the line between them, to its left.",
+  },
+  {
+    name: 'gapSpread',
+    group: 'round',
+    spreadOf: 'gap',
+    label: '',
+    step: 100,
+    value: D.gapSpread,
+    title: "How far either side each round's gap is drawn, evenly. Zero holds it.",
+  },
+  {
+    name: 'closingSpread',
+    group: 'round',
+    spreadOf: 'closingSpeed',
+    label: '',
+    step: 5,
+    value: D.closingSpread,
+    title: "How far either side each round's closing speed is drawn, evenly. Zero holds it.",
+  },
+  {
+    name: 'crossingSpread',
+    group: 'round',
+    spreadOf: 'crossingSpeed',
+    label: '',
+    step: 5,
+    value: D.crossingSpread,
+    title: "How far either side each round's crossing speed is drawn, evenly. Zero holds it.",
+  },
+  {
+    name: 'mutants',
+    group: 'answer',
+    label: 'mutants',
+    step: 1,
+    min: 1,
+    value: D.mutants,
+    title: 'Mutants of the enemy a generation, beside the best so far.',
+  },
+  {
+    name: 'seeds',
+    group: 'answer',
+    label: 'matches each',
+    step: 1,
+    min: 1,
+    value: D.seeds,
+    title: "Matches each enemy fights a generation, on different seeds, the next round's among them, so it cannot win by a fluke of one.",
+  },
+  {
+    name: 'duration',
+    group: 'answer',
+    label: 'match s',
+    step: 30,
+    min: 1,
+    value: D.duration,
+    title: 'How long a match of the search lasts before the side ahead is taken to win.',
+  },
+  {
+    name: 'bareCoreDrills',
+    group: 'answer',
+    label: 'bare core drills',
+    step: 1,
+    value: D.bareCoreDrills,
+    title:
+      'Matches each enemy fights a generation against a bare core, scored on how much of it, and how soon, it destroys. They only add to its score: it learns to hit something.',
+  },
+  {
+    name: 'shieldedDrills',
+    group: 'answer',
+    label: 'invincible drills',
+    step: 1,
+    value: D.shieldedDrills,
+    title:
+      'Matches each enemy fights a generation against your fleet with itself made invincible, scored on how much of your fleet it destroys and how soon it leaves it nothing to fire. They only add to its score: it learns to hurt you before you strip it.',
+  },
+  {
+    name: 'budgetStep',
+    group: 'answer',
+    label: 'budget step',
+    step: 0.05,
+    value: D.budgetStep,
+    title:
+      "What is added to the enemy's budget, as a multiple of yours, each time its search stalls. It starts at 1×, or what the enemy already costs if more, and never falls.",
+  },
+  {
+    name: 'stretchAfter',
+    group: 'answer',
+    label: 'step up after',
+    step: 1,
+    min: 1,
+    value: D.stretchAfter,
+    title: "Generations without an answer before the enemy's budget steps up again.",
+  },
 ];
 /** Those that are counts, and so whole. */
 const WHOLE = new Set(['mutants', 'seeds', 'stretchAfter', 'maxShips', 'bareCoreDrills', 'shieldedDrills']);
@@ -449,8 +559,7 @@ export function startSkirmish(): void {
     outcome.className = '';
     undecided();
     activity = newActivity();
-    el<HTMLElement>('roundTitle').textContent =
-      `Round ${skirmish.round}` + (skirmish.tries > 0 ? ` · try ${skirmish.tries + 1}` : '');
+    el<HTMLElement>('roundTitle').textContent = `Round ${skirmish.round}` + (skirmish.tries > 0 ? ` · try ${skirmish.tries + 1}` : '');
     el<HTMLElement>('enemyName').textContent = `Against ${skirmish.enemy.name}.`;
     showMultiplier(enemyMultiplier(skirmish));
     el<HTMLElement>('playerName').textContent = skirmish.player.name;

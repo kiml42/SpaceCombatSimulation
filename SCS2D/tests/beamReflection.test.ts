@@ -116,7 +116,9 @@ describe('a beam reflected', () => {
     const { beams, hits } = r.fire(-40, -20, 60, 30);
     const back = reflections(beams);
     expect(back.length).toBeGreaterThan(0);
-    const landed = Array.from({ length: hits.count }, (_v, i) => i).filter((i) => back.includes(hits.beam[i]!) && hits.body[i] === r.body(1));
+    const landed = Array.from({ length: hits.count }, (_v, i) => i).filter(
+      (i) => back.includes(hits.beam[i]!) && hits.body[i] === r.body(1),
+    );
     expect(landed.length).toBeGreaterThan(0);
     expect(beams.power[back[0]!]!).toBeGreaterThan(POWER * BEAM_REFLECTANCE);
   });

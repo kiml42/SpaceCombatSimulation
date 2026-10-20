@@ -28,48 +28,54 @@ function setup(gap = 0) {
 }
 
 describe('robots through a weld', () => {
-  it.each([0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30])('carry on where they were when something welds onto their hull, %i m off', { timeout: 60_000 }, (gap) => {
-    const run = setup(gap);
-    const robotsOf = (): Robot[] =>
-      (run.ships as unknown as { robots: { on(b: number): Robot[] | null } }).robots.on(run.world.bodies.indexOf(run.ships.body(run.a))) ?? [];
-    /** Where a robot is in the world, as the view draws it. */
-    const where = (robot: Robot): [number, number] => {
-      const design = run.ships.design(run.a);
-      const b = run.world.bodies.indexOf(run.ships.body(run.a));
-      const here = design.modules[robot.at]!;
-      let x = here.x;
-      let y = here.y;
-      if (robot.path !== null && robot.leg < robot.path.length - 1) {
-        const there = design.modules[robot.path[robot.leg + 1]!]!;
-        const leg = Math.hypot(there.x - here.x, there.y - here.y);
-        const t = leg > 0 ? robot.along / leg : 0;
-        x += (there.x - here.x) * t;
-        y += (there.y - here.y) * t;
+  it.each([0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30])(
+    'carry on where they were when something welds onto their hull, %i m off',
+    { timeout: 60_000 },
+    (gap) => {
+      const run = setup(gap);
+      const robotsOf = (): Robot[] =>
+        (run.ships as unknown as { robots: { on(b: number): Robot[] | null } }).robots.on(
+          run.world.bodies.indexOf(run.ships.body(run.a)),
+        ) ?? [];
+      /** Where a robot is in the world, as the view draws it. */
+      const where = (robot: Robot): [number, number] => {
+        const design = run.ships.design(run.a);
+        const b = run.world.bodies.indexOf(run.ships.body(run.a));
+        const here = design.modules[robot.at]!;
+        let x = here.x;
+        let y = here.y;
+        if (robot.path !== null && robot.leg < robot.path.length - 1) {
+          const there = design.modules[robot.path[robot.leg + 1]!]!;
+          const leg = Math.hypot(there.x - here.x, there.y - here.y);
+          const t = leg > 0 ? robot.along / leg : 0;
+          x += (there.x - here.x) * t;
+          y += (there.y - here.y) * t;
+        }
+        const c = Math.cos(run.world.bodies.angle[b]!);
+        const s = Math.sin(run.world.bodies.angle[b]!);
+        return [run.world.bodies.x[b]! + x * c - y * s, run.world.bodies.y[b]! + x * s + y * c];
+      };
+      const modules = (): number => run.ships.design(run.a).modules.length;
+      const before = modules();
+      let welded = false;
+      for (let s = 0; s < 120 * 60 && !welded; s++) {
+        const out = robotsOf().filter((r) => r.mode !== 0);
+        const was = out.map(where);
+        const doing = out.map((r) => [r.mode, r.target]);
+        run.step();
+        if (modules() === before) continue;
+        welded = true;
+        expect(out.length).toBeGreaterThan(0);
+        out.forEach((robot, k) => {
+          const [x, y] = where(robot);
+          const moved = Math.hypot(x - was[k]![0], y - was[k]![1]);
+          // No further than it crawls in a step, and the hull drifts.
+          expect(moved).toBeLessThan(ROBOT_SPEED / 60 + 0.1);
+          // And still about what it was about, rather than sent home.
+          expect([robot.mode, robot.target]).toEqual(doing[k]);
+        });
       }
-      const c = Math.cos(run.world.bodies.angle[b]!);
-      const s = Math.sin(run.world.bodies.angle[b]!);
-      return [run.world.bodies.x[b]! + x * c - y * s, run.world.bodies.y[b]! + x * s + y * c];
-    };
-    const modules = (): number => run.ships.design(run.a).modules.length;
-    const before = modules();
-    let welded = false;
-    for (let s = 0; s < 120 * 60 && !welded; s++) {
-      const out = robotsOf().filter((r) => r.mode !== 0);
-      const was = out.map(where);
-      const doing = out.map((r) => [r.mode, r.target]);
-      run.step();
-      if (modules() === before) continue;
-      welded = true;
-      expect(out.length).toBeGreaterThan(0);
-      out.forEach((robot, k) => {
-        const [x, y] = where(robot);
-        const moved = Math.hypot(x - was[k]![0], y - was[k]![1]);
-        // No further than it crawls in a step, and the hull drifts.
-        expect(moved).toBeLessThan(ROBOT_SPEED / 60 + 0.1);
-        // And still about what it was about, rather than sent home.
-        expect([robot.mode, robot.target]).toEqual(doing[k]);
-      });
-    }
-    expect(welded).toBe(true);
-  });
+      expect(welded).toBe(true);
+    },
+  );
 });

@@ -1,11 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  iconAlpha,
-  ICON_FADE_FULL_PX,
-  ICON_FADE_START_PX,
-  ICON_MAX_ALPHA,
-  ICON_OUTLINE,
-} from '../render/icons.js';
+import { iconAlpha, ICON_FADE_FULL_PX, ICON_FADE_START_PX, ICON_MAX_ALPHA, ICON_OUTLINE } from '../render/icons.js';
 
 /**
  * The ship icon's fade and shape.
@@ -69,7 +63,9 @@ describe('the arrowhead', () => {
   it('is notched at the tail, which is what makes the nose unambiguous', () => {
     // The point on the centreline behind the nose sits forward of the barbs,
     // so the trailing edge is concave rather than a straight base.
-    const tail = ICON_OUTLINE.filter(([, y]) => y === 0).map(([x]) => x).sort((a, b) => a - b)[0]!;
+    const tail = ICON_OUTLINE.filter(([, y]) => y === 0)
+      .map(([x]) => x)
+      .sort((a, b) => a - b)[0]!;
     const barb = Math.min(...ICON_OUTLINE.map(([x]) => x));
     expect(tail).toBeGreaterThan(barb);
   });

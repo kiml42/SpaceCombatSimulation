@@ -25,9 +25,7 @@ export function unreadWarning(where: string, keys: UnreadKeys | undefined, out: 
   if (keys === undefined) return;
   const names = Object.keys(keys);
   if (names.length === 0) return;
-  out.push(
-    `${where} has ${names.length > 1 ? 'keys' : 'a key'} the game does not read, kept as written: ${names.join(', ')}`,
-  );
+  out.push(`${where} has ${names.length > 1 ? 'keys' : 'a key'} the game does not read, kept as written: ${names.join(', ')}`);
 }
 
 /** Write unread keys back beside what was read, without overwriting any of it. */

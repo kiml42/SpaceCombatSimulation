@@ -228,10 +228,7 @@ export function restingTriggers(view: ShipView, design: ShipDesign): void {
   for (let t = 0; t < design.engines.length; t++) {
     const engine = design.engines[t]!;
     const module = design.modules[engine.module ?? -1];
-    engineReach[t] =
-      engine.weapon === true && module !== undefined
-        ? weaponPlumeReach(engineGeometry(module.spec), engine.maxThrust)
-        : 0;
+    engineReach[t] = engine.weapon === true && module !== undefined ? weaponPlumeReach(engineGeometry(module.spec), engine.maxThrust) : 0;
     engineFiring[t] = true;
   }
 }

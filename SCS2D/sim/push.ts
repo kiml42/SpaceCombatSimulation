@@ -1,14 +1,7 @@
 import { abs, atan2, cos, HALF_PI, max, min, round, sin } from './math.js';
 import { blockCentre, boxAngle, moduleCentre, moduleOutline, weldBox, type ModuleSpec } from './modules.js';
 import { isTriangle, outlineAxes, projectOutline } from './shape.js';
-import {
-  ATTACHMENT_TOLERANCE,
-  contactWidth,
-  expandWithOrigins,
-  isInstance,
-  type Assembly,
-  type Placement,
-} from './blueprint.js';
+import { ATTACHMENT_TOLERANCE, contactWidth, expandWithOrigins, isInstance, type Assembly, type Placement } from './blueprint.js';
 
 /**
  * Moving a module's face carries its neighbours with it.
@@ -114,9 +107,7 @@ function pushFace(
   if (moves.size === 0) return list;
 
   const welded = boxes.map((mine, j) =>
-    boxes.flatMap((theirs, k) =>
-      k !== j && mine.some((a) => theirs.some((b) => contactWidth(a, b) > 0)) ? [k] : [],
-    ),
+    boxes.flatMap((theirs, k) => (k !== j && mine.some((a) => theirs.some((b) => contactWidth(a, b) > 0)) ? [k] : [])),
   );
   const joined = reachable(welded, index, new Set());
 
@@ -168,13 +159,7 @@ function reachable(welded: readonly number[][], from: number, avoid: ReadonlySet
  * way to overlapping by more than `ATTACHMENT_TOLERANCE`: a box side by side,
  * or meeting at a corner, is never met.
  */
-function firstContact(
-  movers: readonly ModuleSpec[],
-  others: readonly ModuleSpec[],
-  dx: number,
-  dy: number,
-  limit: number,
-): number | null {
+function firstContact(movers: readonly ModuleSpec[], others: readonly ModuleSpec[], dx: number, dy: number, limit: number): number | null {
   let first: number | null = null;
   for (const a of movers) {
     for (const b of others) {
@@ -254,14 +239,7 @@ function movedFaces(before: ModuleSpec, after: ModuleSpec): Face[] {
   const was = blockCentre(before);
   const now = blockCentre(after);
   const faces: Face[] = [];
-  const add = (
-    of: FaceOf,
-    nx: number,
-    ny: number,
-    halfBefore: number,
-    halfAfter: number,
-    span: number,
-  ) => {
+  const add = (of: FaceOf, nx: number, ny: number, halfBefore: number, halfAfter: number, span: number) => {
     const at = was.x * nx + was.y * ny + halfBefore;
     const moved = now.x * nx + now.y * ny + halfAfter;
     if (abs(moved - at) < 1e-6) return;
@@ -293,8 +271,7 @@ function against(placed: ModuleSpec, face: Face): boolean {
   if (along <= face.at) return false;
   if (near < face.at - ATTACHMENT_TOLERANCE) return false;
   if (near > face.at + ATTACHMENT_TOLERANCE) return false;
-  const overlap =
-    min(across + beside, face.middle + face.half) - max(across - beside, face.middle - face.half);
+  const overlap = min(across + beside, face.middle + face.half) - max(across - beside, face.middle - face.half);
   return overlap > ATTACHMENT_TOLERANCE;
 }
 
@@ -346,7 +323,7 @@ export interface SharedFace {
 export function sharedFace(a: ModuleSpec, b: ModuleSpec): SharedFace | null {
   if (isTriangle(a) || isTriangle(b)) return null;
   const angleA = boxAngle(a);
-  const turn = ((((boxAngle(b)) - angleA) % HALF_PI) + HALF_PI) % HALF_PI;
+  const turn = (((boxAngle(b) - angleA) % HALF_PI) + HALF_PI) % HALF_PI;
   if (min(turn, HALF_PI - turn) > 1e-9) return null;
   if (contactWidth(a, b) <= 0) return null;
   // The faces of the blocks, as the layout writes them; what is welded is a
@@ -391,12 +368,8 @@ export function sharedFace(a: ModuleSpec, b: ModuleSpec): SharedFace | null {
       angle: atan2(ty, tx),
       a: { along, across },
       b: { along: unit(bx), across: unit(by) },
-      aWithinB:
-        midA - halfA >= midB - halfB - ATTACHMENT_TOLERANCE &&
-        midA + halfA <= midB + halfB + ATTACHMENT_TOLERANCE,
-      bWithinA:
-        midB - halfB >= midA - halfA - ATTACHMENT_TOLERANCE &&
-        midB + halfB <= midA + halfA + ATTACHMENT_TOLERANCE,
+      aWithinB: midA - halfA >= midB - halfB - ATTACHMENT_TOLERANCE && midA + halfA <= midB + halfB + ATTACHMENT_TOLERANCE,
+      bWithinA: midB - halfB >= midA - halfA - ATTACHMENT_TOLERANCE && midB + halfB <= midA + halfA + ATTACHMENT_TOLERANCE,
     };
   }
   return null;

@@ -46,14 +46,7 @@ export function clicked(snapshot: Snapshot, picked: readonly number[], ship: Shi
  * has the most ships in it, a tie going to the side of the ship nearest
  * where the drag started.
  */
-export function boxed(
-  snapshot: Snapshot,
-  picked: readonly number[],
-  x0: number,
-  y0: number,
-  x1: number,
-  y1: number,
-): number[] {
+export function boxed(snapshot: Snapshot, picked: readonly number[], x0: number, y0: number, x1: number, y1: number): number[] {
   const inside: ShipView[] = [];
   for (let i = 0; i < snapshot.shipCount; i++) {
     const ship = snapshot.ships[i]!;

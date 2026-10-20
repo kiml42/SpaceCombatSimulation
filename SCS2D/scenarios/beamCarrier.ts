@@ -20,7 +20,10 @@ export function beamCarrier(seed = 20261011, raiders = RAIDERS): Battle {
     ships.spawn(world, { design: compileBlueprint(BEAM_CARRIER), x: 0, y: 0, angle: 0, team: 0 });
     // Wrecks: Corvettes whose cores are shot out, drifting behind the carrier.
     const corvette = compileBlueprint(CORVETTE);
-    for (const [x, y] of [[-700, -300], [-850, 150]] as const) {
+    for (const [x, y] of [
+      [-700, -300],
+      [-850, 150],
+    ] as const) {
       const w = ships.spawn(world, { design: corvette, x, y, angle: 1, team: 1 });
       const b = world.bodies.indexOf(ships.body(w));
       for (const core of corvette.cores) ships.damage.absorb(b, core, corvette.modules[core]!.stats.hitPoints * DAMAGE_ENERGY_PER_KG * 0.7);

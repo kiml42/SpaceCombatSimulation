@@ -58,10 +58,7 @@ describe('match', () => {
         expect(score.race, where).toBeLessThanOrEqual(1);
         expect(score.taken, where).toBeGreaterThanOrEqual(0);
         expect(score.taken, where).toBeLessThanOrEqual(1);
-        expect(score.total, where).toBeCloseTo(
-          score.survival + score.functional + score.damage + score.disabling + score.race,
-          10,
-        );
+        expect(score.total, where).toBeCloseTo(score.survival + score.functional + score.damage + score.disabling + score.race, 10);
       }
     }
   });
@@ -164,7 +161,6 @@ describe('match', () => {
       expect(b.vx[i]! * inX + b.vy[i]! * inY).toBeCloseTo(20, 9);
       expect(-b.vx[i]! * inY + b.vy[i]! * inX).toBeCloseTo(5, 9);
     }
-
   });
 
   it('flies a lone ship to the clock, as a test of piloting alone', () => {
@@ -254,9 +250,7 @@ describe('match', () => {
   it('measures a hull by what it can absorb', () => {
     // Damage is a fraction of this rather than a count of joules, which is
     // what makes one weight mean the same thing to a fighter and a capital.
-    expect(hullCapacity(compileBlueprint(GUNSHIP))).toBeGreaterThan(
-      hullCapacity(compileBlueprint(DINKY)) * 10,
-    );
+    expect(hullCapacity(compileBlueprint(GUNSHIP))).toBeGreaterThan(hullCapacity(compileBlueprint(DINKY)) * 10);
   });
 
   it('runs a match far faster than the battle it simulates', () => {

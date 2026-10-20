@@ -184,13 +184,7 @@ const scratch = new AttackRegion();
  * more guns than the turn costs it. The thrust axis when nothing is to
  * choose: no main guns, or every one of them trains right round.
  */
-export function attackBearing(
-  arcs: AttackArcs,
-  current: number,
-  bias: number,
-  rest: number,
-  out: AttackRegion,
-): AttackRegion {
+export function attackBearing(arcs: AttackArcs, current: number, bias: number, rest: number, out: AttackRegion): AttackRegion {
   const total = arcs.total;
   let best = -Infinity;
   out.from = rest;

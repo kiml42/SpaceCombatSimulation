@@ -15,7 +15,16 @@ import {
 } from '../sim/index.js';
 import { BLUEPRINTS } from '../scenarios/blueprints.js';
 import { FLEETS } from '../scenarios/fleets.js';
-import { finalist, matchCount, Run, DEFAULT_RUN, spreadOf, type GenerationRecord, type RunConfig, type RunRecord } from '../evolution/run.js';
+import {
+  finalist,
+  matchCount,
+  Run,
+  DEFAULT_RUN,
+  spreadOf,
+  type GenerationRecord,
+  type RunConfig,
+  type RunRecord,
+} from '../evolution/run.js';
 import { Coevolution, DEFAULT_COEVOLUTION, type CoevolutionConfig } from '../evolution/coevolution.js';
 import type { Entrant } from '../evolution/match.js';
 import { DEFAULT_BUILD_WEIGHTS, DEFAULT_DOCTRINE_WEIGHTS, DEFAULT_KINDS } from '../evolution/mutate.js';
@@ -147,30 +156,66 @@ function parse(argv: readonly string[]): Options {
         break;
       }
       // How far from its origin a fleet may spread, and how many ships it may field.
-      case '--deploy': fleet['radius'] = Number(value()); break;
-      case '--ships': fleet['maxShips'] = Number(value()); break;
-      case '--out': out = value(); break;
-      case '--seed': config['seed'] = Number(value()); break;
-      case '--generations': config['generations'] = Number(value()); break;
-      case '--population': config['population'] = Number(value()); break;
-      case '--winners': config['winners'] = Number(value()); break;
-      case '--group': config['group'] = Number(value()); break;
-      case '--matches': config['minMatches'] = Number(value()); break;
+      case '--deploy':
+        fleet['radius'] = Number(value());
+        break;
+      case '--ships':
+        fleet['maxShips'] = Number(value());
+        break;
+      case '--out':
+        out = value();
+        break;
+      case '--seed':
+        config['seed'] = Number(value());
+        break;
+      case '--generations':
+        config['generations'] = Number(value());
+        break;
+      case '--population':
+        config['population'] = Number(value());
+        break;
+      case '--winners':
+        config['winners'] = Number(value());
+        break;
+      case '--group':
+        config['group'] = Number(value());
+        break;
+      case '--matches':
+        config['minMatches'] = Number(value());
+        break;
       // A multiple of what the dearest ship it started from costs, in each of
       // metal, fuel and build time, so the one number means the same thing
       // whatever a run is started from.
-      case '--budget': budget = Number(value()); break;
-      case '--duration': match['duration'] = Number(value()); break;
-      case '--radius': match['radius'] = Number(value()); break;
+      case '--budget':
+        budget = Number(value());
+        break;
+      case '--duration':
+        match['duration'] = Number(value());
+        break;
+      case '--radius':
+        match['radius'] = Number(value());
+        break;
       // Each entrant's starting speed towards the middle, and to its left, m/s.
-      case '--closing': match['closingSpeed'] = Number(value()); break;
-      case '--crossing': match['crossingSpeed'] = Number(value()); break;
+      case '--closing':
+        match['closingSpeed'] = Number(value());
+        break;
+      case '--crossing':
+        match['crossingSpeed'] = Number(value());
+        break;
       // How far either side of those each match's are drawn.
-      case '--radius-spread': match['radiusSpread'] = Number(value()); break;
-      case '--closing-spread': match['closingSpread'] = Number(value()); break;
-      case '--crossing-spread': match['crossingSpread'] = Number(value()); break;
+      case '--radius-spread':
+        match['radiusSpread'] = Number(value());
+        break;
+      case '--closing-spread':
+        match['closingSpread'] = Number(value());
+        break;
+      case '--crossing-spread':
+        match['crossingSpread'] = Number(value());
+        break;
       // Seconds a side may go without firing or ramming before it loses.
-      case '--quiet-limit': match['quietLimit'] = Number(value()); break;
+      case '--quiet-limit':
+        match['quietLimit'] = Number(value());
+        break;
       // A weight per module kind, as `engine=5,turret=0` — only the kinds
       // named are changed, the rest keeping their defaults.
       case '--kinds':
@@ -254,7 +299,9 @@ function parse(argv: readonly string[]): Options {
         }
         break;
       }
-      case '--save-config': saveConfig = value(); break;
+      case '--save-config':
+        saveConfig = value();
+        break;
       // Side B of a co-evolution run: stock ships or blueprint files, as `--from` takes.
       case '--versus':
         for (const name of value().split(',')) versusFrom.push(shipFrom(name));
@@ -265,18 +312,34 @@ function parse(argv: readonly string[]): Options {
         break;
       }
       // Champions each side keeps, one a round: what the other side is bred against.
-      case '--hall': coevolution = { ...coevolution, hall: Number(value()) }; break;
+      case '--hall':
+        coevolution = { ...coevolution, hall: Number(value()) };
+        break;
       // The share of its matches a round's best must win for the other side's turn to come, and the most generations a round takes.
-      case '--phase-win': coevolution = { ...coevolution, phaseWin: Number(value()) }; break;
-      case '--phase-cap': coevolution = { ...coevolution, phaseCap: Number(value()) }; break;
+      case '--phase-win':
+        coevolution = { ...coevolution, phaseWin: Number(value()) };
+        break;
+      case '--phase-cap':
+        coevolution = { ...coevolution, phaseCap: Number(value()) };
+        break;
       // Matches each design fights a generation invincible, and against bare cores.
-      case '--shielded-drills': coevolution = { ...coevolution, shieldedDrills: Number(value()) }; break;
-      case '--bare-core-drills': coevolution = { ...coevolution, bareCoreDrills: Number(value()) }; break;
+      case '--shielded-drills':
+        coevolution = { ...coevolution, shieldedDrills: Number(value()) };
+        break;
+      case '--bare-core-drills':
+        coevolution = { ...coevolution, bareCoreDrills: Number(value()) };
+        break;
       // Side B as it is, every generation: side A bred against a fixed opponent.
-      case '--versus-fixed': coevolution = { ...coevolution, rivalEvolves: false }; break;
+      case '--versus-fixed':
+        coevolution = { ...coevolution, rivalEvolves: false };
+        break;
       // Side B's entrants a match, where they differ from side A's `--group`.
-      case '--versus-group': coevolution = { ...coevolution, rival: { ...coevolution.rival, group: Number(value()) } }; break;
-      case '--quiet': quiet = true; break;
+      case '--versus-group':
+        coevolution = { ...coevolution, rival: { ...coevolution.rival, group: Number(value()) } };
+        break;
+      case '--quiet':
+        quiet = true;
+        break;
       default:
         throw new Error(`unknown argument ${arg}`);
     }
@@ -324,10 +387,7 @@ function parse(argv: readonly string[]): Options {
 }
 
 const options = parse(process.argv.slice(2));
-const founders: Entrant[] = [
-  ...options.from.map(({ blueprint }) => blueprint),
-  ...options.fleets.map(({ fleet }) => fleet),
-];
+const founders: Entrant[] = [...options.from.map(({ blueprint }) => blueprint), ...options.fleets.map(({ fleet }) => fleet)];
 const settings: RunConfig = { ...DEFAULT_RUN, ...options.config };
 const versus = options.versus;
 const rivals: Entrant[] =

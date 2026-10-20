@@ -34,8 +34,7 @@ interface Slot {
   source: { kind: 'fleet' | 'ship'; name: string } | { kind: 'other'; label: string };
 }
 
-const valueOf = (source: Slot['source']): string =>
-  source.kind === 'other' ? 'other:' : `${source.kind}:${source.name}`;
+const valueOf = (source: Slot['source']): string => (source.kind === 'other' ? 'other:' : `${source.kind}:${source.name}`);
 
 export interface CustomPanel {
   show(visible: boolean): void;

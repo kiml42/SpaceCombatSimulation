@@ -739,12 +739,7 @@ export const DOCTRINE_FIELDS: readonly string[] = [
 ];
 
 /** Whatever is wrong with one half of a doctrine block, or null. */
-function halfProblem(
-  value: unknown,
-  where: string,
-  fields: readonly string[],
-  positive: readonly string[],
-): string | null {
+function halfProblem(value: unknown, where: string, fields: readonly string[], positive: readonly string[]): string | null {
   if (value === undefined) return null;
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     return `${where} must be an object, got ${JSON.stringify(value)}`;
@@ -784,15 +779,8 @@ export function resolveTargeting(value: unknown, ship: Targeting): Targeting {
 }
 
 /** Only what a mount says differently from its ship's doctrine, for saving. */
-export function serialiseTargeting(
-  held: Targeting,
-  ship: Targeting,
-): Record<string, number> | undefined {
-  return serialiseHalf(
-    held as unknown as Record<string, number>,
-    ship as unknown as Record<string, number>,
-    TARGETING_FIELDS,
-  );
+export function serialiseTargeting(held: Targeting, ship: Targeting): Record<string, number> | undefined {
+  return serialiseHalf(held as unknown as Record<string, number>, ship as unknown as Record<string, number>, TARGETING_FIELDS);
 }
 
 /** Whatever is wrong with a doctrine block, or null. */

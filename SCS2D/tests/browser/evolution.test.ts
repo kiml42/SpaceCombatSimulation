@@ -189,11 +189,7 @@ describe('the evolution page in a browser', () => {
     // The frame loop is what advances the run, so a page that blocked would
     // fail here rather than merely being slow: `waitForFunction` is polled
     // through the same event loop the run is being sliced into.
-    await page.waitForFunction(
-      () => document.getElementById('state')?.textContent === 'finished',
-      undefined,
-      { timeout: 120_000 },
-    );
+    await page.waitForFunction(() => document.getElementById('state')?.textContent === 'finished', undefined, { timeout: 120_000 });
     expect(problems).toEqual([]);
     expect(await page.textContent('#readout')).toMatch(/matches fought/);
     await page.waitForFunction(() => /\d+%|over/.test(document.getElementById('watching')?.textContent ?? ''));
@@ -295,9 +291,9 @@ describe('the evolution page in a browser', () => {
     await page.waitForFunction(() => document.getElementById('readout')?.textContent?.includes('read from a file') === true);
     expect(await page.inputValue('#seed')).toEqual('4242');
     expect(await page.inputValue('#kindTurret')).toEqual('0');
-    expect(await page.evaluate(() =>
-      [...(document.getElementById('founders') as HTMLSelectElement).selectedOptions].map((o) => o.value),
-    )).toEqual(['ship:Dinky']);
+    expect(
+      await page.evaluate(() => [...(document.getElementById('founders') as HTMLSelectElement).selectedOptions].map((o) => o.value)),
+    ).toEqual(['ship:Dinky']);
     expect(problems).toEqual([]);
   }, 60_000);
 
@@ -476,12 +472,8 @@ describe('the evolution page in a browser', () => {
     // The list names a match's competitors by id, and the label joins them with "v".
     const clicked = ((await page.textContent('#matches tr td:nth-child(2)')) ?? '').split(' ').join(' v ');
     await page.click('#matches tr');
-    const who = async (): Promise<string> =>
-      ((await page.textContent('#watching')) ?? '').split(' · ')[0] ?? '';
-    await page.waitForFunction(
-      (name) => (document.getElementById('watching')?.textContent ?? '').startsWith(name),
-      clicked,
-    );
+    const who = async (): Promise<string> => ((await page.textContent('#watching')) ?? '').split(' · ')[0] ?? '';
+    await page.waitForFunction((name) => (document.getElementById('watching')?.textContent ?? '').startsWith(name), clicked);
     const first = await who();
     // Generation one's match plays out, and the run's newest follows it.
     await page.waitForFunction(
@@ -495,11 +487,7 @@ describe('the evolution page in a browser', () => {
     const newest = await who();
     // Which, once it is over, is watched to its end and left there: nothing
     // newer has finished, and replaying the same one again shows nothing new.
-    await page.waitForFunction(
-      () => /over/.test(document.getElementById('watching')?.textContent ?? ''),
-      undefined,
-      { timeout: 90_000 },
-    );
+    await page.waitForFunction(() => /over/.test(document.getElementById('watching')?.textContent ?? ''), undefined, { timeout: 90_000 });
     await page.waitForTimeout(500);
     expect(await who()).toBe(newest);
     expect(await page.textContent('#watching')).toMatch(/over/);
@@ -563,9 +551,7 @@ describe('the evolution page in a browser', () => {
   it('hands the best of it to the editor', async () => {
     await page.click('#saveChampion');
     expect(await page.textContent('#championLine')).toMatch(/saved as/);
-    const saved = await page.evaluate(() =>
-      Object.keys(window.localStorage).filter((key) => key.startsWith('scs2d.blueprint.')),
-    );
+    const saved = await page.evaluate(() => Object.keys(window.localStorage).filter((key) => key.startsWith('scs2d.blueprint.')));
     expect(saved.length).toBeGreaterThan(0);
   });
   it('draws every ship in a generation at one scale, so sizes compare', async () => {
@@ -625,8 +611,7 @@ describe('the evolution page in a browser', () => {
         const bg = [data[0], data[1], data[2]];
         let lit = 0;
         for (let i = 0; i < data.length; i += 4) {
-          const d =
-            Math.abs(data[i]! - bg[0]!) + Math.abs(data[i + 1]! - bg[1]!) + Math.abs(data[i + 2]! - bg[2]!);
+          const d = Math.abs(data[i]! - bg[0]!) + Math.abs(data[i + 1]! - bg[1]!) + Math.abs(data[i + 2]! - bg[2]!);
           if (d > 60) lit++;
         }
         return lit;
@@ -656,17 +641,14 @@ describe('the evolution page in a browser', () => {
     await page.waitForFunction(() => document.querySelectorAll('#matches tr:not(.pad)').length > 1);
     await page.selectOption('#mode', 'battle');
     await page.click('#matches tr');
-    const who = async (): Promise<string> =>
-      ((await page.textContent('#watching')) ?? '').split(' \u00b7 ')[0] ?? '';
+    const who = async (): Promise<string> => ((await page.textContent('#watching')) ?? '').split(' \u00b7 ')[0] ?? '';
     await page.waitForFunction(() => /%/.test(document.getElementById('watching')?.textContent ?? ''));
     const first = await who();
 
     await page.click('#skip');
-    await page.waitForFunction(
-      (was) => (document.getElementById('watching')?.textContent ?? '').split(' \u00b7 ')[0] !== was,
-      first,
-      { timeout: 30_000 },
-    );
+    await page.waitForFunction((was) => (document.getElementById('watching')?.textContent ?? '').split(' \u00b7 ')[0] !== was, first, {
+      timeout: 30_000,
+    });
     expect(await who()).not.toBe(first);
     await set(page, 'group', '4');
     await set(page, 'minMatches', '1');
@@ -706,8 +688,7 @@ describe('the evolution page in a browser', () => {
 
     // A full stop advances it one step, which is a step of simulation
     // rather than a frame — so it is read off the progress the label gives.
-    const progress = async (): Promise<number> =>
-      Number(/(\d+)%/.exec((await page.textContent('#watching')) ?? '')?.[1] ?? '-1');
+    const progress = async (): Promise<number> => Number(/(\d+)%/.exec((await page.textContent('#watching')) ?? '')?.[1] ?? '-1');
     const before = await progress();
     for (let i = 0; i < 200; i++) await page.keyboard.press('.');
     await page.waitForTimeout(300);
@@ -738,8 +719,7 @@ describe('the evolution page in a browser', () => {
     await page.keyboard.press('t');
     // Held, the camera still eases to where it is framing; a picture once it has been still
     // for a second, since a slow runner can draw nothing for a moment while it is still moving.
-    const picture = (): Promise<string> =>
-      page.evaluate(() => (document.getElementById('view') as HTMLCanvasElement).toDataURL());
+    const picture = (): Promise<string> => page.evaluate(() => (document.getElementById('view') as HTMLCanvasElement).toDataURL());
     const settled = async (): Promise<string> => {
       let was = await picture();
       let still = 0;
@@ -830,8 +810,8 @@ describe('the evolution page in a browser', () => {
     await page.selectOption('#mode', 'fleet');
     // The composition, which is what a fleet run is shown by: several kinds
     // of ship on one row, rather than one picture of the whole fleet.
-    await page.waitForFunction(
-      () => [...document.querySelectorAll('#fleet tbody tr')].some((tr) => tr.querySelectorAll('.kind').length > 1),
+    await page.waitForFunction(() =>
+      [...document.querySelectorAll('#fleet tbody tr')].some((tr) => tr.querySelectorAll('.kind').length > 1),
     );
     await page.waitForFunction(() => document.querySelectorAll('#matches tr:not(.pad)').length > 0, undefined, { timeout: 60_000 });
     await page.selectOption('#mode', 'battle');
@@ -880,11 +860,7 @@ describe('the evolution page in a browser', () => {
     await page.check('#rivalEvolves');
 
     await page.click('#start');
-    await page.waitForFunction(
-      () => document.getElementById('state')?.textContent === 'finished',
-      undefined,
-      { timeout: 120_000 },
-    );
+    await page.waitForFunction(() => document.getElementById('state')?.textContent === 'finished', undefined, { timeout: 120_000 });
     // On the run screen: the score chart is not drawn for a run scored against a moving opponent.
     expect(await page.isVisible('#setupScreen')).toBe(false);
     expect(await page.isVisible('#chart')).toBe(false);
@@ -927,7 +903,9 @@ describe('the evolution page in a browser', () => {
     // Two of A against one of B, each side by its letter, and who won it if it was decided.
     expect(await page.textContent('#matches tr')).toMatch(/^1A \d+ \d+ v B \d+(decided|A won|B won|annihilated|quiet|timeout)/);
     const endings = await page.$$eval('#matches tr td:nth-child(3)', (cells) => cells.map((td) => td.textContent));
-    expect(endings.every((text) => text === 'A won' || text === 'B won' || text === 'annihilated' || text === 'quiet' || text === 'timeout')).toBe(true);
+    expect(
+      endings.every((text) => text === 'A won' || text === 'B won' || text === 'annihilated' || text === 'quiet' || text === 'timeout'),
+    ).toBe(true);
     await page.click('#matches tr');
     await page.waitForFunction(() => /%/.test(document.getElementById('watching')?.textContent ?? ''));
 
@@ -947,7 +925,9 @@ describe('the evolution page in a browser', () => {
     expect(await page.inputValue('#kindTank')).toBe(String(DEFAULT_KINDS.tank));
     expect(await page.inputValue('#b_kindTank')).toBe(String(DEFAULT_KINDS.tank));
     expect(await page.inputValue('#generations')).toBe(String(DEFAULT_RUN.generations));
-    expect(await page.$$eval('#founders option:checked', (options) => options.map((o) => (o as HTMLOptionElement).value))).toEqual(founders);
+    expect(await page.$$eval('#founders option:checked', (options) => options.map((o) => (o as HTMLOptionElement).value))).toEqual(
+      founders,
+    );
     expect(problems).toEqual([]);
   });
 });

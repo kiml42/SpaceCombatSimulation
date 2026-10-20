@@ -1,13 +1,4 @@
-import {
-  degreesToRadians,
-  math,
-  NEUTRAL_TEAM,
-  parseFleet,
-  radiansToDegrees,
-  Rng,
-  serialiseFleet,
-  type Fleet,
-} from '../sim/index.js';
+import { degreesToRadians, math, NEUTRAL_TEAM, parseFleet, radiansToDegrees, Rng, serialiseFleet, type Fleet } from '../sim/index.js';
 import { fleetBattle } from './fleetBattle.js';
 import type { Battle } from './types.js';
 

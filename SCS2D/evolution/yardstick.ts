@@ -44,7 +44,7 @@ export interface YardstickConfig {
 
 export const DEFAULT_YARDSTICK: YardstickConfig = {
   match: {},
-  seed: 0x5EED,
+  seed: 0x5eed,
 };
 
 /** How one generation did against the fixed opponent. */
@@ -247,11 +247,7 @@ export function yardstickMatch(
  * given is the same for all of them; with the seeds paired as well, two
  * generations differ by their designs alone.
  */
-export function measure(
-  run: RunRecord,
-  benchmark: Entrant,
-  config?: Partial<YardstickConfig>,
-): YardstickReport {
+export function measure(run: RunRecord, benchmark: Entrant, config?: Partial<YardstickConfig>): YardstickReport {
   return new Yardstick(run, benchmark, config).finish();
 }
 
@@ -330,7 +326,7 @@ export interface GridConfig {
   readonly match: Partial<MatchConfig>;
 }
 
-export const DEFAULT_GRID: GridConfig = { samples: 8, seeds: 3, seed: 0x5EED, match: {} };
+export const DEFAULT_GRID: GridConfig = { samples: 8, seeds: 3, seed: 0x5eed, match: {} };
 
 /**
  * Measure a co-evolution run: each side's champion of a generation against

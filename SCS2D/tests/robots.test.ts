@@ -67,7 +67,11 @@ describe('a robot bay', () => {
     expect(bay(7.5, 6).robots).toBe(9);
     expect(bay(5, 3).robots).toBe(2);
     expect(bay(1.5, 4).robots).toBe(0);
-    for (const [length, width] of [[4, 4], [7.5, 6], [5, 3]] as const) {
+    for (const [length, width] of [
+      [4, 4],
+      [7.5, 6],
+      [5, 3],
+    ] as const) {
       const { across, down } = berthGrid({ kind: 'robotBay', x: 0, y: 0, length, width });
       expect(across).toBe(Math.floor(length / ROBOT_BERTH_PITCH));
       expect(down).toBe(Math.floor(width / ROBOT_BERTH_PITCH));

@@ -148,13 +148,12 @@ export function fittingsOf(record: IndividualRecord): Fittings {
   }
 }
 
-function fittingsOfRecord(
-  record: IndividualRecord,
-  count: (blueprint: Blueprint) => { weapons: number; engines: number },
-): Fittings {
+function fittingsOfRecord(record: IndividualRecord, count: (blueprint: Blueprint) => { weapons: number; engines: number }): Fittings {
   if (record.fleet !== undefined) {
     const fleet = parseFleet(record.fleet);
-    const each = new Map(Object.entries(fleet.designs).map(([name, blueprint]) => [name, count(withFleetFighters(blueprint, fleet.designs))]));
+    const each = new Map(
+      Object.entries(fleet.designs).map(([name, blueprint]) => [name, count(withFleetFighters(blueprint, fleet.designs))]),
+    );
     const ships = expandFleet(fleet);
     let weapons = 0;
     let engines = 0;
@@ -332,12 +331,7 @@ export type OnGeneration = (record: GenerationRecord) => void;
  * spread around it, and one started from several begins with the comparison
  * already in it.
  */
-export function seedPopulation(
-  founders: readonly Entrant[],
-  rng: Rng,
-  config: RunConfig,
-  firstId = 0,
-): Generation {
+export function seedPopulation(founders: readonly Entrant[], rng: Rng, config: RunConfig, firstId = 0): Generation {
   const fleets = isFleetRun(founders, config);
   const entrants = fleets ? founders.map((founder) => (isFleet(founder) ? founder : shipFleet(founder))) : founders;
   const individuals: Individual[] = [];
@@ -401,11 +395,7 @@ export class Run {
   private seed = 0;
   private over = false;
 
-  constructor(
-    founders: readonly Entrant[],
-    config?: Partial<RunConfig>,
-    onGeneration?: OnGeneration,
-  ) {
+  constructor(founders: readonly Entrant[], config?: Partial<RunConfig>, onGeneration?: OnGeneration) {
     const settings: RunConfig = { ...DEFAULT_RUN, ...config };
     this.config = settings;
     this.onGeneration = onGeneration;
@@ -577,11 +567,7 @@ export class Run {
  * `minMatches` mean what it says on a population that does not divide by the
  * group size.
  */
-export function runEvolution(
-  founders: readonly Entrant[],
-  config?: Partial<RunConfig>,
-  onGeneration?: OnGeneration,
-): RunRecord {
+export function runEvolution(founders: readonly Entrant[], config?: Partial<RunConfig>, onGeneration?: OnGeneration): RunRecord {
   return new Run(founders, config, onGeneration).finish();
 }
 
@@ -595,7 +581,11 @@ export function describe(generation: Generation, matches: readonly MatchRecord[]
     fitness: fitness(individual),
     ...perMatch(individual),
     ...(isFleet(individual.entrant)
-      ? { mass: fleetMass(fleetHulls(individual.entrant)), bill: fleetBill(fleetHulls(individual.entrant)), fleet: serialiseFleet(individual.entrant) }
+      ? {
+          mass: fleetMass(fleetHulls(individual.entrant)),
+          bill: fleetBill(fleetHulls(individual.entrant)),
+          fleet: serialiseFleet(individual.entrant),
+        }
       : {
           mass: budgetMass(compileBlueprint(individual.entrant)),
           bill: billOf(compileBlueprint(individual.entrant)),

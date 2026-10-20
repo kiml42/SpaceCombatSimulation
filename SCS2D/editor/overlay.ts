@@ -172,13 +172,7 @@ export function envelopeBearingAt(widthPx: number, heightPx: number, x: number, 
  * Draw the editor's own marks. Call it straight after `draw`, which leaves the
  * world-to-screen transform in place.
  */
-export function drawOverlay(
-  ctx: CanvasRenderingContext2D,
-  view: OverlayView,
-  camera: Camera,
-  widthPx: number,
-  heightPx: number,
-): void {
+export function drawOverlay(ctx: CanvasRenderingContext2D, view: OverlayView, camera: Camera, widthPx: number, heightPx: number): void {
   drawRefit(ctx, view, camera);
   drawFaults(ctx, view);
   drawSelection(ctx, view, camera);
@@ -204,19 +198,11 @@ export function drawOverlay(
  * footer cannot hold it: text that changes length there rewraps and resizes
  * the canvas under the ship.
  */
-function drawGridCaption(
-  ctx: CanvasRenderingContext2D,
-  camera: Camera,
-  heightPx: number,
-): void {
+function drawGridCaption(ctx: CanvasRenderingContext2D, camera: Camera, heightPx: number): void {
   ctx.fillStyle = ENVELOPE_LABEL;
   ctx.font = '11px ui-monospace, monospace';
   ctx.textAlign = 'left';
-  ctx.fillText(
-    `snaps to ${describeStep(snapStep(camera.scale))}`,
-    ENVELOPE_MARGIN_PX,
-    heightPx - ENVELOPE_MARGIN_PX,
-  );
+  ctx.fillText(`snaps to ${describeStep(snapStep(camera.scale))}`, ENVELOPE_MARGIN_PX, heightPx - ENVELOPE_MARGIN_PX);
 }
 
 /** What a refit from the design as opened would build, tinted, and what it would take down, outlined. */
@@ -388,12 +374,7 @@ function drawHandles(ctx: CanvasRenderingContext2D, view: OverlayView, camera: C
  * rotation, so an assembly of turned parts is boxed by what it actually covers
  * rather than by a rectangle its contents stick out of.
  */
-function drawAssemblies(
-  ctx: CanvasRenderingContext2D,
-  view: OverlayView,
-  lineWidth: number,
-  margin: number,
-): void {
+function drawAssemblies(ctx: CanvasRenderingContext2D, view: OverlayView, lineWidth: number, margin: number): void {
   for (const assembly of view.assemblies) {
     let minX = Infinity;
     let minY = Infinity;
@@ -428,21 +409,12 @@ function drawAssemblies(
     if (!(maxX > minX) && !(maxY > minY)) continue;
 
     ctx.save();
-    ctx.strokeStyle = assembly.context
-      ? GROUP_CONTEXT
-      : assembly.primary
-        ? GROUP_SELECTION
-        : GROUP_LINKED;
+    ctx.strokeStyle = assembly.context ? GROUP_CONTEXT : assembly.primary ? GROUP_SELECTION : GROUP_LINKED;
     ctx.lineWidth = lineWidth;
     // Dashed for everything that is not the copy being edited, so the one a
     // drag would move reads as solid the way a grabbed module does.
     if (!assembly.primary) ctx.setLineDash([lineWidth * 4, lineWidth * 3]);
-    ctx.strokeRect(
-      minX - margin,
-      minY - margin,
-      maxX - minX + margin * 2,
-      maxY - minY + margin * 2,
-    );
+    ctx.strokeRect(minX - margin, minY - margin, maxX - minX + margin * 2, maxY - minY + margin * 2);
     ctx.setLineDash([]);
     ctx.restore();
   }
@@ -458,13 +430,7 @@ function drawAssemblies(
  * cheapest way to say so. Symmetric about both axes, so it reads the same
  * through the renderer's y flip as it does in screen space.
  */
-function crosshair(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  r: number,
-  lineWidth: number,
-): void {
+function crosshair(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, lineWidth: number): void {
   ctx.strokeStyle = CENTRE_OF_MASS;
   ctx.lineWidth = lineWidth;
   ctx.beginPath();
@@ -484,18 +450,8 @@ function crosshair(
  * handling is largely a statement about where this mark sits relative to the
  * engines, and nothing else on the canvas says where it is.
  */
-function drawCentreOfMass(
-  ctx: CanvasRenderingContext2D,
-  design: ShipDesign,
-  camera: Camera,
-): void {
-  crosshair(
-    ctx,
-    design.centreOfMassX,
-    design.centreOfMassY,
-    CENTRE_OF_MASS_RADIUS_PX / camera.scale,
-    SELECTION_WIDTH_PX / camera.scale,
-  );
+function drawCentreOfMass(ctx: CanvasRenderingContext2D, design: ShipDesign, camera: Camera): void {
+  crosshair(ctx, design.centreOfMassX, design.centreOfMassY, CENTRE_OF_MASS_RADIUS_PX / camera.scale, SELECTION_WIDTH_PX / camera.scale);
 }
 
 /**

@@ -24,7 +24,10 @@ function onTheMove(seed: number, fighter: Blueprint): Battle {
 /** A Dinky set to attack faster than its thrust can hold a turn at, so it makes passes. */
 export function passes(seed = 20261012): Battle {
   const doctrine = compileBlueprint(DINKY).doctrine;
-  return onTheMove(seed, { ...DINKY, doctrine: { ...doctrine, approach: { ...doctrine.approach, tangentialMin: PASS_MIN, tangentialMax: PASS_MAX } } });
+  return onTheMove(seed, {
+    ...DINKY,
+    doctrine: { ...doctrine, approach: { ...doctrine.approach, tangentialMin: PASS_MIN, tangentialMax: PASS_MAX } },
+  });
 }
 
 /** The pass speeds the `passes` Dinky is set to, m/s. */

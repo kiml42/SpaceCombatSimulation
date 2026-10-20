@@ -191,7 +191,6 @@ export class Demonstration {
       rounds.age[i] = rounds.age[last]!;
     }
 
-
     const beams = this.beams;
     for (let i = beams.count - 1; i >= 0; i--) {
       beams.remaining[i] = beams.remaining[i]! - dt;
@@ -288,7 +287,6 @@ export class Demonstration {
     const gun = turret.gun;
     if (gun.type === GunType.Projectile && rounds.count >= MAX_ROUNDS) return;
 
-
     const mount = turret.mount;
 
     // Resting, since nothing here is aiming at anything. The design places its
@@ -300,8 +298,7 @@ export class Demonstration {
 
     const barrel = this.barrels[t]!;
     this.barrels[t] = (barrel + 1) % gun.barrelCount;
-    const lateral =
-      gun.barrelCount > 1 ? (barrel - (gun.barrelCount - 1) * 0.5) * gun.barrelSpacing : 0;
+    const lateral = gun.barrelCount > 1 ? (barrel - (gun.barrelCount - 1) * 0.5) * gun.barrelSpacing : 0;
 
     if (gun.type === GunType.Projectile) {
       const i = rounds.count++;

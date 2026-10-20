@@ -1181,7 +1181,7 @@ export interface ModuleSpec {
 
 export enum GunType {
   'Projectile' = 0,
-  'Beam' = 1
+  'Beam' = 1,
 }
 
 /**
@@ -1423,19 +1423,17 @@ export function moduleProblem(spec: ModuleSpec): string | null {
   // For an engine it is the machinery block that has to be a box: the bell is
   // meant to be open at both ends. This is also what makes "all nozzle"
   // impossible by running out of block rather than by a rule of its own.
-  const boxLength = spec.kind === 'engine'
-    ? engineGeometry(spec).machineryLength
-    : isHullMount(spec.kind)
-      ? hullMountGeometry(spec).blockLength
-      : spec.length;
+  const boxLength =
+    spec.kind === 'engine'
+      ? engineGeometry(spec).machineryLength
+      : isHullMount(spec.kind)
+        ? hullMountGeometry(spec).blockLength
+        : spec.length;
   const smallest = boxLength < spec.width ? boxLength : spec.width;
   const thick = moduleThickness(spec);
   const limiting = smallest < thick ? smallest : thick;
   if (2 * thickness >= limiting) {
-    return (
-      `${spec.kind}: walls ${thickness.toFixed(3)} m thick leave no interior in a ` +
-      `${boxLength}x${spec.width} m module`
-    );
+    return `${spec.kind}: walls ${thickness.toFixed(3)} m thick leave no interior in a ` + `${boxLength}x${spec.width} m module`;
   }
   if (2 * (thickness + liningOf(spec)) >= limiting) {
     return `${spec.kind}: a ${(liningOf(spec) * 1000).toFixed(0)} mm sealing lining leaves no room inside`;
@@ -1899,7 +1897,6 @@ function nozzleSkinVolume(geometry: EngineGeometry, wallThickness: number): numb
   return area * wallThickness * NOZZLE_SKIN_FRACTION * nozzles;
 }
 
-
 /**
  * An engine's moment about its own centre, kg·m².
  *
@@ -1909,28 +1906,20 @@ function nozzleSkinVolume(geometry: EngineGeometry, wallThickness: number): numb
  * were packed as densely as the block. A cluster of bells is spread across the
  * face as well, which the single-box formula cannot see at all.
  */
-function engineInertia(
-  spec: ModuleSpec,
-  geometry: EngineGeometry,
-  blockMass: number,
-  skinMass: number,
-): number {
+function engineInertia(spec: ModuleSpec, geometry: EngineGeometry, blockMass: number, skinMass: number): number {
   const { machineryLength, nozzleLength, nozzles, exitWidth } = geometry;
   // Both pieces are measured from the middle of the whole engine, which is
   // half a bell ahead of the block's middle and half a block behind the
   // bells'.
   const blockOffset = nozzleLength * 0.5;
   const bellOffset = machineryLength * 0.5;
-  let inertia =
-    (blockMass * (machineryLength * machineryLength + spec.width * spec.width)) / 12 +
-    blockMass * blockOffset * blockOffset;
+  let inertia = (blockMass * (machineryLength * machineryLength + spec.width * spec.width)) / 12 + blockMass * blockOffset * blockOffset;
 
   const perBell = skinMass / nozzles;
   for (let i = 0; i < nozzles; i++) {
     const across = nozzleOffset(geometry, i);
     inertia +=
-      (perBell * (nozzleLength * nozzleLength + exitWidth * exitWidth)) / 12 +
-      perBell * (bellOffset * bellOffset + across * across);
+      (perBell * (nozzleLength * nozzleLength + exitWidth * exitWidth)) / 12 + perBell * (bellOffset * bellOffset + across * across);
   }
   return inertia;
 }
@@ -2005,9 +1994,7 @@ function hullOutlets(spec: ModuleSpec): {
   // turret splits it: tubes divide the bore, so each is `1/n` as wide; lenses
   // divide the optic's area, so each is `1/√n` as wide.
   const single =
-    spec.kind === 'hullBeam'
-      ? HULL_APERTURE_FRACTION * spec.width
-      : BARREL_OUTER_CALIBRES * HULL_CALIBRE_FRACTION * spec.width;
+    spec.kind === 'hullBeam' ? HULL_APERTURE_FRACTION * spec.width : BARREL_OUTER_CALIBRES * HULL_CALIBRE_FRACTION * spec.width;
   const each = spec.kind === 'hullBeam' ? single / sqrt(outlets) : single / outlets;
   // Spread across the face as a turret's barrels are, one gap outboard of
   // each end, so neighbours stand apart rather than touching.
@@ -2022,9 +2009,7 @@ function hullOutlets(spec: ModuleSpec): {
   // A gun's barrel is as many calibres as it says; a lens housing is as deep
   // as a turret's, since a shallower one is better in every way.
   const barrelLength =
-    spec.kind === 'hullBeam'
-      ? outletWidth * BEAM_EMITTER_APERTURES
-      : (barrelCalibres(spec) * outletWidth) / BARREL_OUTER_CALIBRES;
+    spec.kind === 'hullBeam' ? outletWidth * BEAM_EMITTER_APERTURES : (barrelCalibres(spec) * outletWidth) / BARREL_OUTER_CALIBRES;
   const reach = spec.kind === 'hullBeam' ? barrelLength * (1 + BEAM_STALK_SHARE) : barrelLength;
   return { outlets, outletWidth, outletSpacing, barrelWidth, barrelLength, reach };
 }
@@ -2382,7 +2367,8 @@ export function hullBeamStats(spec: ModuleSpec): GunStats {
   // firing — where a flat duty cycle would have made a bigger bank buy a
   // longer shot and an exactly proportionally longer wait, which is no gain at
   // all on the only figure that matters over a battle.
-  const recharge = beamOnTime > 0 && beamOnTime < BEAM_COOLING_BURN ? (BEAM_RECHARGE_TIME * BEAM_COOLING_BURN) / beamOnTime : BEAM_RECHARGE_TIME;
+  const recharge =
+    beamOnTime > 0 && beamOnTime < BEAM_COOLING_BURN ? (BEAM_RECHARGE_TIME * BEAM_COOLING_BURN) / beamOnTime : BEAM_RECHARGE_TIME;
   const cycleTime = beamOnTime + recharge;
 
   return {
@@ -2454,8 +2440,8 @@ function loaded(gun: GunStats, spec: ModuleSpec): GunStats {
       fragments,
       // The casing's metal shared out, widths summing in area as `burst` does it.
       fragmentWidth: gun.calibre * sqrt((1 - share) / fragments),
-      radius: burstSpeed * (spec.fuse ?? DEFAULT_FUSE)
-    }
+      radius: burstSpeed * (spec.fuse ?? DEFAULT_FUSE),
+    },
   };
 }
 
@@ -2523,8 +2509,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
   // only the box part is walled. Every other archetype is the box it declares.
   const engine = spec.kind === 'engine' ? engineGeometry(spec) : null;
   const mount = isHullMount(spec.kind) ? hullMountGeometry(spec) : null;
-  const boxLength =
-    engine !== null ? engine.machineryLength : mount !== null ? mount.blockLength : spec.length;
+  const boxLength = engine !== null ? engine.machineryLength : mount !== null ? mount.blockLength : spec.length;
 
   // The walls are what is left of the box once the interior is hollowed out of
   // it, on all six faces — so a long thin module carries proportionally more
@@ -2607,8 +2592,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
     generation = generator * GENERATOR_POWER_PER_VOLUME;
     charge = spare * CORE_BATTERY_SHARE * BATTERY_ENERGY_PER_VOLUME;
     chargeRate = spare > 0 ? CORE_BATTERY_SHARE * BATTERY_POWER_PER_AREA * 2 * (spec.length + spec.width) * height : 0;
-    fittingMass +=
-      generator * GENERATOR_MASS_PER_VOLUME + spare * CORE_BATTERY_SHARE * BATTERY_MASS_PER_VOLUME;
+    fittingMass += generator * GENERATOR_MASS_PER_VOLUME + spare * CORE_BATTERY_SHARE * BATTERY_MASS_PER_VOLUME;
   } else if (spec.kind === 'port') {
     // A collar on its outward face and a coupling behind it.
     fittingMass = PORT_MASS_PER_AREA * capacity;
@@ -2672,8 +2656,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
       const outer = BARREL_OUTER_CALIBRES * gun.calibre;
       const section = PI * 0.25 * (outer * outer - gun.calibre * gun.calibre);
       protrudingMass = section * gun.barrelLength * HULL_DENSITY;
-      fittingMass =
-        (protrudingMass + MECHANISM_MASS_PER_CALIBRE * gun.calibre) * gun.barrelCount + braceMass(gun);
+      fittingMass = (protrudingMass + MECHANISM_MASS_PER_CALIBRE * gun.calibre) * gun.barrelCount + braceMass(gun);
     } else {
       protrudingMass = OPTIC_AREAL_DENSITY * PI * 0.25 * gun.calibre * gun.calibre;
       fittingMass = (protrudingMass + BEAM_MASS_PER_WATT * gun.beamPower) * gun.barrelCount;
@@ -2713,15 +2696,13 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
       swing += spin + braceSpin + each * offset * offset;
       // The module's own moment wants them about its centre instead, which is
       // the rod's own moment plus where its centre of mass actually sits.
-      rodInertia +=
-        middle + protrudingMass * ahead * ahead +
-        braceMiddle + braced * braceAhead * braceAhead +
-        each * offset * offset;
+      rodInertia += middle + protrudingMass * ahead * ahead + braceMiddle + braced * braceAhead * braceAhead + each * offset * offset;
     }
   } else if (spec.kind === 'turret' || spec.kind === 'beamTurret') {
-    gun = spec.kind === 'turret'
-      ? loaded(gunStats(spec.length, spec.width, spec.barrels, barrelCalibres(spec), turretDecks(spec, height)), spec)
-      : beamGunStats(spec.length, spec.width, spec.barrels);
+    gun =
+      spec.kind === 'turret'
+        ? loaded(gunStats(spec.length, spec.width, spec.barrels, barrelCalibres(spec), turretDecks(spec, height)), spec)
+        : beamGunStats(spec.length, spec.width, spec.barrels);
 
     // What hangs off the front of the mount, per barrel or emitter. The two
     // archetypes differ in what that is and in almost nothing else: both are a
@@ -2731,8 +2712,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
       // A barrel is a thick-walled tube, taken as steel filling the annulus
       // between the bore and an outside diameter of twice the calibre.
       const outerDiameter = 2 * gun.calibre;
-      const barrelSection =
-        PI * 0.25 * (outerDiameter * outerDiameter - gun.calibre * gun.calibre);
+      const barrelSection = PI * 0.25 * (outerDiameter * outerDiameter - gun.calibre * gun.calibre);
       protrudingMass = barrelSection * gun.barrelLength * HULL_DENSITY;
       // Plus the machinery behind each barrel, which every barrel needs its own
       // of and which does not scale down as steeply as the tube does.
@@ -2777,8 +2757,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
   const boxMass = mass - rodMass;
   const inertia =
     engine !== null
-      ? engineInertia(spec, engine, structureMass - skinVolume * HULL_DENSITY + fittingMass,
-          skinVolume * HULL_DENSITY)
+      ? engineInertia(spec, engine, structureMass - skinVolume * HULL_DENSITY + fittingMass, skinVolume * HULL_DENSITY)
       : mount !== null
         ? // The block sits half a barrel aft of the module's middle, and the
           // barrels have already been measured from there.
@@ -2921,7 +2900,7 @@ export function gunStats(
     beamPower: 0,
     cycleTime: turretCycleTime(calibre, ((mountLength * mountWidth) / (dome * dome)) * decks) / barrelCount,
     beamOnTime: 0,
-    burst: null
+    burst: null,
   };
 }
 

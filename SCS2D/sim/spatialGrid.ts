@@ -75,14 +75,7 @@ export interface RayNarrowPhase {
    * Where the segment from (`x0`, `y0`) along (`dx`, `dy`) really meets this
    * body, as a t in [0, 1] — or -1 if it misses it after all.
    */
-  confirm(
-    bodies: Bodies,
-    bodyIndex: number,
-    x0: number,
-    y0: number,
-    dx: number,
-    dy: number,
-  ): number;
+  confirm(bodies: Bodies, bodyIndex: number, x0: number, y0: number, dx: number, dy: number): number;
 }
 
 /** The result of a `raycast`, filled in place so casting allocates nothing. */
@@ -409,15 +402,7 @@ export class SpatialGrid {
  *
  * Exported for the tests' brute-force reference implementation.
  */
-export function segmentCircleT(
-  x0: number,
-  y0: number,
-  dx: number,
-  dy: number,
-  cx: number,
-  cy: number,
-  r: number,
-): number {
+export function segmentCircleT(x0: number, y0: number, dx: number, dy: number, cx: number, cy: number, r: number): number {
   const fx = x0 - cx;
   const fy = y0 - cy;
   const c = fx * fx + fy * fy - r * r;

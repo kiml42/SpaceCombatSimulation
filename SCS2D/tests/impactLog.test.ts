@@ -26,8 +26,7 @@ describe('the impact log', () => {
     const battle = duel();
     const log = battle.impacts.log;
     const snapshot = new Snapshot();
-    const take = () =>
-      capture(snapshot, battle.world, battle.ships, battle.projectiles, battle.beams, battle.wells, log);
+    const take = () => capture(snapshot, battle.world, battle.ships, battle.projectiles, battle.beams, battle.wells, log);
     take();
     stepUntilLogged(battle, () => log.count);
     const logged = log.count;

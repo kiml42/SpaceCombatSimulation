@@ -44,13 +44,7 @@ function ship(angle = 0): { bodies: Bodies; damage: Damage; path: HullPath } {
 }
 
 /** Fire one round along +x into the ship's nose, from the impact point. */
-function shoot(
-  r: ReturnType<typeof ship>,
-  mass = 90,
-  calibre = 0.16,
-  speed = 560,
-  y = 0,
-) {
+function shoot(r: ReturnType<typeof ship>, mass = 90, calibre = 0.16, speed = 560, y = 0) {
   // Where a round travelling +x meets the hull: the narrow phase would find
   // this, and starting outside the ship gets the same answer.
   return resolveRound(corvette, r.damage, r.bodies, 0, r.path, -corvette.radius * 2, y, 1, 0, mass, calibre, speed);
@@ -116,10 +110,7 @@ describe('spending a round on a ship', () => {
     const straight = ship();
     const turned = ship(Math.PI / 2);
     const a = shoot(straight);
-    const b = resolveRound(
-      corvette, turned.damage, turned.bodies, 0, turned.path,
-      0, -corvette.radius * 2, 0, 1, 90, 0.16, 560,
-    );
+    const b = resolveRound(corvette, turned.damage, turned.bodies, 0, turned.path, 0, -corvette.radius * 2, 0, 1, 90, 0.16, 560);
     expect(b.crossed).toBe(a.crossed);
     expect(b.energy).toBeCloseTo(a.energy, 6);
   });
@@ -217,8 +208,7 @@ describe('a damaged ship flies and shoots worse', () => {
       hurt.world.step();
     }
 
-    const moved = (f: ReturnType<typeof fleet>): number =>
-      Math.hypot(f.world.bodies.vx[f.body]!, f.world.bodies.vy[f.body]!);
+    const moved = (f: ReturnType<typeof fleet>): number => Math.hypot(f.world.bodies.vx[f.body]!, f.world.bodies.vy[f.body]!);
     expect(moved(healthy)).toBeGreaterThan(0);
     // Not merely slower: with every engine gone it has nothing to push with.
     expect(moved(hurt)).toBe(0);
@@ -241,11 +231,7 @@ describe('a damaged ship flies and shoots worse', () => {
     const hurt = fleet();
     const turret = corvette.modules.findIndex((m) => m.spec.kind === 'turret');
     // Half spent: past the point where the response starts biting.
-    hurt.ships.damage.absorb(
-      hurt.body,
-      turret,
-      corvette.modules[turret]!.stats.hitPoints * DAMAGE_ENERGY_PER_KG * 0.5,
-    );
+    hurt.ships.damage.absorb(hurt.body, turret, corvette.modules[turret]!.stats.hitPoints * DAMAGE_ENERGY_PER_KG * 0.5);
 
     const salvo = (f: ReturnType<typeof fleet>): number => {
       const projectiles = new Projectiles(64);
@@ -442,9 +428,7 @@ describe('a round taking time to cross a hull', () => {
       maxX = Math.max(maxX, m.x + m.spec.length / 2);
     }
     const front = bodies.indexOf(ships.body(ships.spawn(world, { design: corvette, x: 0, y: 0, team: 0 })));
-    const behind = bodies.indexOf(
-      ships.body(ships.spawn(world, { design: core, x: maxX + core.radius + 0.5, y: 0, team: 0 })),
-    );
+    const behind = bodies.indexOf(ships.body(ships.spawn(world, { design: core, x: maxX + core.radius + 0.5, y: 0, team: 0 })));
     const grid = new SpatialGrid(64);
     grid.rebuild(bodies);
     const projectiles = new Projectiles(8);
@@ -517,7 +501,6 @@ describe('what the picture is told about damage', () => {
     ships.damage.absorb(body, core, bare.modules[core]!.stats.hitPoints * DAMAGE_ENERGY_PER_KG);
     expect(capture(new Snapshot(), world, ships, new Projectiles(4), new Beams(4)).ships[0]!.hasControl).toBe(false);
   });
-
 
   it('reports a wrecked mount as one that cannot shoot', () => {
     // The renderer draws a firing arc as a promise that a gun may shoot there,

@@ -251,13 +251,7 @@ export class Bodies {
    * the reason it exists as one call: doing it from outside would need either
    * an allocated vector or two rotations of the same angle.
    */
-  applyLocalForceAtLocalPoint(
-    id: BodyId,
-    localFx: number,
-    localFy: number,
-    localPx: number,
-    localPy: number,
-  ): void {
+  applyLocalForceAtLocalPoint(id: BodyId, localFx: number, localFy: number, localPx: number, localPy: number): void {
     const i = this.indexOf(id);
     if (i < 0) return;
     const c = cos(this.angle[i]);

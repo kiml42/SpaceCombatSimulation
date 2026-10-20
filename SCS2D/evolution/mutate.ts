@@ -161,9 +161,7 @@ export type KindWeights = Readonly<Record<ModuleKind, number>>;
  * - `avoidance`: how far it keeps out of everybody's way.
  * - `gunnery`: each weapon's own target preferences.
  */
-export type DoctrineWeights = Readonly<
-  Record<'targeting' | 'approach' | 'escort' | 'avoidance' | 'gunnery', number>
->;
+export type DoctrineWeights = Readonly<Record<'targeting' | 'approach' | 'escort' | 'avoidance' | 'gunnery', number>>;
 
 /**
  * - `move`: where a module or part sits, which way it faces, and mirroring.
@@ -183,9 +181,7 @@ export type DoctrineWeights = Readonly<
  *
  * How many times a row repeats is a structural edit, not a number.
  */
-export type BuildWeights = Readonly<
-  Record<'move' | 'resize' | 'refit' | 'fittings' | 'tuning' | 'fighter' | 'shape', number>
->;
+export type BuildWeights = Readonly<Record<'move' | 'resize' | 'refit' | 'fittings' | 'tuning' | 'fighter' | 'shape', number>>;
 
 /** Every number as likely as every other, doctrine or build. */
 export const DEFAULT_DOCTRINE_WEIGHTS: DoctrineWeights = {
@@ -645,8 +641,7 @@ function cloneBlueprint(parent: Blueprint): Draft {
   const assemblies: Record<string, Assembly> = {};
   for (const [name, assembly] of Object.entries(parent.assemblies ?? {})) {
     const modules = clonePlacements(assembly.modules, name, lists);
-    assemblies[name] =
-      assembly.notes === undefined ? { modules } : { modules, notes: assembly.notes };
+    assemblies[name] = assembly.notes === undefined ? { modules } : { modules, notes: assembly.notes };
   }
 
   const blueprint: Blueprint = {
@@ -711,11 +706,7 @@ function refresh(draft: Draft): void {
   else delete writable.assemblies;
 }
 
-function clonePlacements(
-  placements: readonly Placement[],
-  label: string,
-  lists: PlacementList[],
-): Placement[] {
+function clonePlacements(placements: readonly Placement[], label: string, lists: PlacementList[]): Placement[] {
   const copies: Placement[] = [];
   lists.push({ label, placements: copies });
   for (const placement of placements) {
@@ -1122,16 +1113,9 @@ const TYPICAL = { targeting: typical('targeting'), approach: typical('approach')
  * this entirely" is a setting a lineage should be able to change its mind
  * about.
  */
-function turnDoctrine(
-  draft: Draft,
-  half: 'targeting' | 'approach',
-  field: string,
-  jitter: Jitter,
-): string | null {
+function turnDoctrine(draft: Draft, half: 'targeting' | 'approach', field: string, jitter: Jitter): string | null {
   const held = draft.doctrine[half];
-  const reference = (
-    DEFAULT_DOCTRINE[half] as unknown as Record<string, number>
-  )[field]!;
+  const reference = (DEFAULT_DOCTRINE[half] as unknown as Record<string, number>)[field]!;
   const scale = max(abs(held[field]!), abs(reference)) || TYPICAL[half];
   const was = held[field]!;
   let now = was + jitter(scale);
@@ -1185,7 +1169,10 @@ function rescale(draft: Draft, rng: Rng, bounds: MutationLimits): string | null 
         // A triangle's box is derived from its corners, and its corners kept
         // centred on it, so it goes back through the shaping rather than being
         // scaled field by field.
-        const shaped = shapeModule(placement, placement.vertices.map((v) => v * factor));
+        const shaped = shapeModule(
+          placement,
+          placement.vertices.map((v) => v * factor),
+        );
         if (shaped === null) return null;
         Object.assign(placement, shaped);
         continue;
@@ -1253,7 +1240,6 @@ function refit(site: ModuleSite, rng: Rng, bounds: MutationLimits): string | nul
   // it out — so a saved ship still says exactly what it is.
   return `${site.where}: ${was} refitted as ${to}`;
 }
-
 
 /**
  * Add or remove a barrel.
@@ -1506,8 +1492,8 @@ function quarterTurn(site: ModuleSite, rng: Rng): string | null {
   const sy = rng.chance(0.5) ? 1 : -1;
   // The kept corner, then the new middle back from it along the same two
   // edges, with the box's extents along them swapped.
-  const lx = sx * (spec.length - spec.width) / 2;
-  const ly = sy * (spec.width - spec.length) / 2;
+  const lx = (sx * (spec.length - spec.width)) / 2;
+  const ly = (sy * (spec.width - spec.length)) / 2;
   const middle = { x: centre.x + c * lx - s * ly, y: centre.y + s * lx + c * ly };
 
   const turned: ModuleSpec = { ...spec, x: 0, y: 0 };
@@ -1545,14 +1531,7 @@ function quarterTurn(site: ModuleSite, rng: Rng): string | null {
  * into a neighbour pushes it aside rather than being refused, and shrinking
  * away from one pulls it along rather than leaving it adrift.
  */
-function moveFace(
-  site: ModuleSite,
-  draft: Draft,
-  rng: Rng,
-  bounds: MutationLimits,
-  scale: Scale,
-  weight: number,
-): string | null {
+function moveFace(site: ModuleSite, draft: Draft, rng: Rng, bounds: MutationLimits, scale: Scale, weight: number): string | null {
   const spec = site.spec;
   // Nothing to move on a module that is not a box: its size is its corners,
   // and changing the length and width of the box they fit inside would report
@@ -1694,7 +1673,7 @@ function cutCorner(site: ModuleSite): string | null {
   const sy = (f: number): number => (f === 1 ? 1 : f === 3 ? -1 : 0);
   const cx = sx(a) + sx(b);
   const cy = sy(a) + sy(b);
-  const cut = corners.findIndex(([x, y]) => (x > 0) === (cx > 0) && (y > 0) === (cy > 0));
+  const cut = corners.findIndex(([x, y]) => x > 0 === cx > 0 && y > 0 === cy > 0);
   if (cut < 0) return null;
 
   const kept = corners.filter((_, i) => i !== cut).flatMap(([x, y]) => [x, y]);
@@ -1726,13 +1705,7 @@ function cornerName(corner: number): string {
  * never so far as to pass the far end: three corners in a line enclose
  * nothing, and a module shrunk out of existence is removal's business.
  */
-function moveVertex(
-  site: ModuleSite,
-  rng: Rng,
-  bounds: MutationLimits,
-  scale: Scale,
-  weight: number,
-): string | null {
+function moveVertex(site: ModuleSite, rng: Rng, bounds: MutationLimits, scale: Scale, weight: number): string | null {
   const spec = site.spec;
   const triangle = triangleOf(spec);
   if (triangle === null) return null;
@@ -1762,8 +1735,7 @@ function moveVertex(
   if (shaped === null) return null;
   Object.assign(spec, shaped);
   return (
-    `${site.where} ${spec.kind}: corner ${corner + 1} walked ` +
-    `${step > 0 ? 'out along' : 'back along'} its edge to corner ${keep + 1}`
+    `${site.where} ${spec.kind}: corner ${corner + 1} walked ` + `${step > 0 ? 'out along' : 'back along'} its edge to corner ${keep + 1}`
   );
 }
 
@@ -2025,9 +1997,7 @@ function ungroup(draft: Draft, rng: Rng): string | null {
 
   const chosen = sites[rng.nextInt(sites.length)]!;
   const assembly = draft.assemblies[chosen.instance.use]!;
-  const loosened = assembly.modules.map((placement) =>
-    outOfInstanceFrame({ ...(placement as ModuleSpec) }, chosen.instance),
-  );
+  const loosened = assembly.modules.map((placement) => outOfInstanceFrame({ ...(placement as ModuleSpec) }, chosen.instance));
   const name = chosen.instance.use;
   chosen.list.placements.splice(chosen.index, 1, ...loosened);
   refresh(draft);
@@ -2073,9 +2043,7 @@ function absorb(draft: Draft, rng: Rng): string | null {
   const assembly = draft.assemblies[name]!;
   const inner = intoInstanceFrame(chosen.spec, chosen.instance);
   const modules = [...assembly.modules, inner];
-  draft.assemblies[name] = assembly.notes === undefined
-    ? { modules }
-    : { modules, notes: assembly.notes };
+  draft.assemblies[name] = assembly.notes === undefined ? { modules } : { modules, notes: assembly.notes };
   chosen.list.placements.splice(chosen.index, 1);
   refresh(draft);
   return `${chosen.list.label}[${chosen.index}] ${chosen.spec.kind}: taken into ${name}`;
@@ -2195,9 +2163,7 @@ function instantiate(draft: Draft, rng: Rng, _bounds: MutationLimits, scale: Sca
 
   chosen.list.placements.push(copy);
   refresh(draft);
-  return `${chosen.list.label}[${chosen.index}] ${instance.use}: ${
-    reflected ? 'a reflected instance' : 'another instance'
-  } placed`;
+  return `${chosen.list.label}[${chosen.index}] ${instance.use}: ${reflected ? 'a reflected instance' : 'another instance'} placed`;
 }
 
 /**
@@ -2211,12 +2177,7 @@ function instantiate(draft: Draft, rng: Rng, _bounds: MutationLimits, scale: Sca
  * new module's width and the layout rules' opinion, since measuring that properly
  * means expanding it.
  */
-function clearance(
-  draft: Draft,
-  instance: AssemblyInstance,
-  along: boolean,
-  scale: Scale,
-): number {
+function clearance(draft: Draft, instance: AssemblyInstance, along: boolean, scale: Scale): number {
   const assembly = draft.assemblies[instance.use];
   if (assembly === undefined || assembly.modules.some(isInstance)) return scale.arrival;
   let far = 0;
@@ -2293,12 +2254,15 @@ function dropInstance(draft: Draft, rng: Rng): string | null {
  * taken off by the ordinary removal, which works through an assembly's list
  * like any other.
  */
-const ASSEMBLY_OPERATORS: readonly ((
-  draft: Draft,
-  rng: Rng,
-  bounds: MutationLimits,
-  scale: Scale,
-) => string | null)[] = [group, ungroup, absorb, extend, instantiate, dropInstance, repeat];
+const ASSEMBLY_OPERATORS: readonly ((draft: Draft, rng: Rng, bounds: MutationLimits, scale: Scale) => string | null)[] = [
+  group,
+  ungroup,
+  absorb,
+  extend,
+  instantiate,
+  dropInstance,
+  repeat,
+];
 
 /**
  * Turn an instance over where it stands.
@@ -2388,14 +2352,7 @@ function removePlacement(draft: Draft, rng: Rng): string | null {
  * is a filter over the obviously hopeless, and without it most of what this
  * operator draws is a module inside its own neighbour.
  */
-function addModule(
-  draft: Draft,
-  rng: Rng,
-  bounds: MutationLimits,
-  scale: Scale,
-  copy: boolean,
-  onlyParts = false,
-): string | null {
+function addModule(draft: Draft, rng: Rng, bounds: MutationLimits, scale: Scale, copy: boolean, onlyParts = false): string | null {
   const anchors: { list: PlacementList; spec: ModuleSpec; index: number }[] = [];
   for (const list of draft.lists) {
     if (onlyParts && draft.assemblies[list.label] === undefined) continue;
@@ -2545,13 +2502,7 @@ function addThruster(draft: Draft, rng: Rng, bounds: MutationLimits, scale: Scal
  * tried until one fits, so a face with a gap in the middle of it is found
  * rather than given up on.
  */
-function berths(
-  anchor: ModuleSpec,
-  face: number,
-  copy: boolean,
-  scale: Scale,
-  rng: Rng,
-): number[] {
+function berths(anchor: ModuleSpec, face: number, copy: boolean, scale: Scale, rng: Rng): number[] {
   const endOn = face % 2 === 0;
   const span = endOn ? anchor.width : anchor.length;
   const across = copy ? span : min(span, scale.arrival);

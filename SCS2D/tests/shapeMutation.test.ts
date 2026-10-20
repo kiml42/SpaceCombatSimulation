@@ -1,15 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BUILD_WEIGHTS, mutate, type MutationLimits } from '../evolution/mutate.js';
 import { Rng } from '../sim/rng.js';
-import {
-  blueprintProblem,
-  contactWidth,
-  isTriangle,
-  triangleOf,
-  type Blueprint,
-  type ModuleSpec,
-  type Placement,
-} from '../sim/index.js';
+import { blueprintProblem, contactWidth, isTriangle, triangleOf, type Blueprint, type ModuleSpec, type Placement } from '../sim/index.js';
 import { CATAMARAN, CORVETTE } from '../scenarios/blueprints.js';
 
 /**
@@ -85,8 +77,7 @@ const corvette = breedLine(CORVETTE, 11, GENERATIONS);
 const catamaran = breedLine(CATAMARAN, 11, GENERATIONS);
 const both = [...corvette, ...catamaran];
 
-const matching = (steps: readonly Step[], what: RegExp): Step[] =>
-  steps.filter((step) => step.edits.some((edit) => what.test(edit)));
+const matching = (steps: readonly Step[], what: RegExp): Step[] => steps.filter((step) => step.edits.some((edit) => what.test(edit)));
 
 const ARRIVED = /added as a wedge/;
 const CUT = /cut the .* corner off/;

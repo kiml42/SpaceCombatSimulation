@@ -190,7 +190,17 @@ function reach(ux: number, uy: number, w: number, h: number): number {
  * but never past the middle of a line `length` long, so it stays with the
  * ship it belongs to. `ux`, `uy` is the line's direction on screen.
  */
-export function labelAlong(x: number, y: number, ux: number, uy: number, start: number, length: number, w: number, h: number, gap: number): LabelAt {
+export function labelAlong(
+  x: number,
+  y: number,
+  ux: number,
+  uy: number,
+  start: number,
+  length: number,
+  w: number,
+  h: number,
+  gap: number,
+): LabelAt {
   const out = Math.min(start + gap + reach(ux, uy, w, h), length / 2);
   return { x: x + ux * out, y: y + uy * out };
 }

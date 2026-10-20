@@ -1,11 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  compileBlueprint,
-  DAMAGE_ENERGY_PER_KG,
-  type ModuleSpec,
-  type ShipDesign,
-  type Ships,
-} from '../sim/index.js';
+import { compileBlueprint, DAMAGE_ENERGY_PER_KG, type ModuleSpec, type ShipDesign, type Ships } from '../sim/index.js';
 import { makeBattle } from '../scenarios/battle.js';
 import { CORVETTE, GUNSHIP, SCAVENGER } from '../scenarios/blueprints.js';
 import type { World } from '../sim/world.js';
@@ -26,7 +20,11 @@ function scavenger(scavengeFuelBelow: number, scavengeDanger = 1): ShipDesign {
     const { fill: _, ...full } = m as ModuleSpec;
     return full;
   });
-  return compileBlueprint({ ...SCAVENGER, modules, doctrine: { ...doctrine, approach: { ...doctrine.approach, scavengeFuelBelow, scavengeDanger } } });
+  return compileBlueprint({
+    ...SCAVENGER,
+    modules,
+    doctrine: { ...doctrine, approach: { ...doctrine.approach, scavengeFuelBelow, scavengeDanger } },
+  });
 }
 
 /** Shoot out a hull's cores, leaving a wreck with its tanks full. */
@@ -69,8 +67,7 @@ function scene(
 }
 
 const holding = (run: ReturnType<typeof scene>, w: number): boolean => run.ships.body(run.a) === run.ships.body(w);
-const ownFuel = (run: ReturnType<typeof scene>): number =>
-  run.ships.fuel.pieceHeld(run.world.bodies.indexOf(run.ships.body(run.a)), CLAW);
+const ownFuel = (run: ReturnType<typeof scene>): number => run.ships.fuel.pieceHeld(run.world.bodies.indexOf(run.ships.body(run.a)), CLAW);
 
 function runUntil(run: ReturnType<typeof scene>, done: () => boolean, seconds: number): void {
   for (let s = 0; s < seconds * 60 && !done(); s++) run.step();
@@ -114,7 +111,10 @@ describe('a pilot with a claw', () => {
 
   it('goes round a friend in the way of its wreck, rather than through it', () => {
     // A friendly gunship, under control and keeping still, square across the line.
-    const still = compileBlueprint({ ...GUNSHIP, doctrine: { ...gunship.doctrine, approach: { ...gunship.doctrine.approach, separation: 0 } } });
+    const still = compileBlueprint({
+      ...GUNSHIP,
+      doctrine: { ...gunship.doctrine, approach: { ...gunship.doctrine.approach, separation: 0 } },
+    });
     const friend = (ships: Ships, world: World): void => {
       ships.spawn(world, { design: still, x: -300, y: 0, angle: PI / 2, team: 0 });
     };
@@ -128,8 +128,15 @@ describe('a pilot with a claw', () => {
     // Looking far enough ahead to get clear on its own engines, which are
     // slow; and a second wreck, far off until the first is in its claw.
     const design = scavenger(0.5);
-    const watchful = compileBlueprint({ ...SCAVENGER, modules: design.modules.map((m) => m.spec), doctrine: { ...design.doctrine, approach: { ...design.doctrine.approach, avoidHorizon: 20 } } });
-    const run = scene(watchful, 15_000, [[0, 0], [0, 5000]]);
+    const watchful = compileBlueprint({
+      ...SCAVENGER,
+      modules: design.modules.map((m) => m.spec),
+      doctrine: { ...design.doctrine, approach: { ...design.doctrine.approach, avoidHorizon: 20 } },
+    });
+    const run = scene(watchful, 15_000, [
+      [0, 0],
+      [0, 5000],
+    ]);
     runUntil(run, () => holding(run, run.wrecks[0]!), 90);
     expect(holding(run, run.wrecks[0]!)).toBe(true);
     const bodies = run.world.bodies;
@@ -152,7 +159,10 @@ describe('a pilot with a claw', () => {
   });
 
   it('goes for the nearer of two wrecks alike', () => {
-    const run = scene(scavenger(0.5), 15_000, [[600, 0], [0, 0]]);
+    const run = scene(scavenger(0.5), 15_000, [
+      [600, 0],
+      [0, 0],
+    ]);
     for (let s = 0; s < 120; s++) run.step();
     expect(salvaging(run.ships, run.a)).toBe(run.wrecks[1]);
   });
@@ -162,7 +172,15 @@ describe('a pilot with a claw', () => {
     const fleeing = (ships: Ships, world: World): void => {
       world.bodies.vx[world.bodies.indexOf(ships.body(1))] = 40;
     };
-    const run = scene(scavenger(0.5), 15_000, [[0, 0], [0, -4000]], fleeing);
+    const run = scene(
+      scavenger(0.5),
+      15_000,
+      [
+        [0, 0],
+        [0, -4000],
+      ],
+      fleeing,
+    );
     for (let s = 0; s < 120; s++) run.step();
     expect(salvaging(run.ships, run.a)).toBe(run.wrecks[1]);
   });
@@ -171,11 +189,27 @@ describe('a pilot with a claw', () => {
     const guard = (ships: Ships, world: World): void => {
       ships.spawn(world, { design: gunship, x: 0, y: 300, angle: 0, team: 1 });
     };
-    const wary = scene(scavenger(0.5, 4), 15_000, [[0, 0], [0, -4000]], guard);
+    const wary = scene(
+      scavenger(0.5, 4),
+      15_000,
+      [
+        [0, 0],
+        [0, -4000],
+      ],
+      guard,
+    );
     for (let s = 0; s < 120; s++) wary.step();
     expect(salvaging(wary.ships, wary.a)).toBe(wary.wrecks[1]);
     // Without the weight the nearer one wins.
-    const bold = scene(scavenger(0.5, 0), 15_000, [[0, 0], [0, -4000]], guard);
+    const bold = scene(
+      scavenger(0.5, 0),
+      15_000,
+      [
+        [0, 0],
+        [0, -4000],
+      ],
+      guard,
+    );
     for (let s = 0; s < 120; s++) bold.step();
     expect(salvaging(bold.ships, bold.a)).toBe(bold.wrecks[0]);
   });

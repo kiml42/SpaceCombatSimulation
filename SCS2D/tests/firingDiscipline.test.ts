@@ -158,9 +158,7 @@ describe('a gun with somebody in the way', () => {
     // The premise: a shot really does pass through the chunk, so this is a
     // ship firing *despite* wreckage rather than one with a clear line.
     const hit = new RayHit();
-    expect(
-      grid.raycast(world.bodies, 0, 0, 300, 0, hit, world.bodies.indexOf(ships.body(mine)), ships.hulls),
-    ).toBe(true);
+    expect(grid.raycast(world.bodies, 0, 0, 300, 0, hit, world.bodies.indexOf(ships.body(mine)), ships.hulls)).toBe(true);
     expect(hit.bodyIndex).toBe(chunkBody);
     expect(rounds).toBeGreaterThan(0);
   });

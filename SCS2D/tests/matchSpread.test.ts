@@ -8,7 +8,15 @@ import { DINKY } from '../scenarios/blueprints.js';
  * breed against a spread of them rather than one.
  */
 describe('a spread on the arena and the starting speeds', () => {
-  const spread = { ...DEFAULT_MATCH, radius: 500, closingSpeed: 20, crossingSpeed: 0, radiusSpread: 200, closingSpread: 10, crossingSpread: 5 };
+  const spread = {
+    ...DEFAULT_MATCH,
+    radius: 500,
+    closingSpeed: 20,
+    crossingSpeed: 0,
+    radiusSpread: 200,
+    closingSpread: 10,
+    crossingSpread: 5,
+  };
 
   it('is nothing at all where none is set', () => {
     expect(drawnMatch(DEFAULT_MATCH)).toBe(DEFAULT_MATCH);

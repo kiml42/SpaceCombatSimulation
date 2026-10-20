@@ -1,12 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  compileBlueprint,
-  joints,
-  math,
-  NEUTRAL_TEAM,
-  type Blueprint,
-  type Doctrine,
-} from '../sim/index.js';
+import { compileBlueprint, joints, math, NEUTRAL_TEAM, type Blueprint, type Doctrine } from '../sim/index.js';
 import { makeBattle } from '../scenarios/battle.js';
 import { CATAMARAN, CORVETTE, GUNSHIP } from '../scenarios/blueprints.js';
 

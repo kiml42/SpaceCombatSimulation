@@ -147,13 +147,11 @@ export function fleetOf(history: History, id: string | null): Fleet | null {
  */
 export function dropOldest(history: History): History | null {
   const all = chains(history.rows);
-  const target = all.slice(0, -1).find((chain) =>
-    history.rows.slice(chain.start, chain.end).some((row) => row.player !== null || row.enemy !== null),
-  );
+  const target = all
+    .slice(0, -1)
+    .find((chain) => history.rows.slice(chain.start, chain.end).some((row) => row.player !== null || row.enemy !== null));
   if (target === undefined) return null;
-  const rows = history.rows.map((row, i) =>
-    i >= target.start && i < target.end ? { ...row, player: null, enemy: null } : row,
-  );
+  const rows = history.rows.map((row, i) => (i >= target.start && i < target.end ? { ...row, player: null, enemy: null } : row));
   const used = new Set<string>();
   for (const row of rows) {
     if (row.player !== null) used.add(row.player);

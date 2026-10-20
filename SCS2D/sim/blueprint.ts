@@ -24,13 +24,7 @@ import {
   type ModuleSpec,
   type ModuleStats,
 } from './modules.js';
-import {
-  DEFAULT_DOCTRINE,
-  defaultTargeting,
-  resolveTargeting,
-  type Doctrine,
-  type Targeting,
-} from './doctrine.js';
+import { DEFAULT_DOCTRINE, defaultTargeting, resolveTargeting, type Doctrine, type Targeting } from './doctrine.js';
 import { EngineLayout, type EngineSpec } from './engines.js';
 import { distanceToOutline, isTriangle, outlineAxes, projectOutline } from './shape.js';
 import { HullPath, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from './hull.js';
@@ -224,7 +218,8 @@ export function settleIds(blueprint: Blueprint, above = 0): Blueprint {
   const modules = settle(blueprint.modules);
   if (blueprint.assemblies === undefined) return { ...blueprint, modules };
   const assemblies: Record<string, Assembly> = {};
-  for (const [name, assembly] of Object.entries(blueprint.assemblies)) assemblies[name] = { ...assembly, modules: settle(assembly.modules) };
+  for (const [name, assembly] of Object.entries(blueprint.assemblies))
+    assemblies[name] = { ...assembly, modules: settle(assembly.modules) };
   return { ...blueprint, modules, assemblies };
 }
 
@@ -629,7 +624,6 @@ interface Joins {
   readonly fighterPieces?: readonly number[];
 }
 
-
 /**
  * Whether two oriented boxes overlap, by the separating-axis test.
  *
@@ -799,13 +793,13 @@ export function firingArc(
     right = min(right, dLo <= 0 ? -dLo : TAU - dLo, dHi <= 0 ? -dHi : TAU - dHi);
   }
 
-  if(left > PI && right > PI) {
+  if (left > PI && right > PI) {
     // There is nothing preventing the turret from rotating freely,
     // call that a half in each direction instead of a whole turn in each.
     return { left: PI, right: PI };
   }
 
-  return {left, right};
+  return { left, right };
 }
 
 /**
@@ -1237,9 +1231,12 @@ function place(
       // swapped back to keep every outline anticlockwise.
       spec.vertices = mirrored
         ? [
-            placement.vertices[0]!, -placement.vertices[1]!,
-            placement.vertices[4]!, -placement.vertices[5]!,
-            placement.vertices[2]!, -placement.vertices[3]!,
+            placement.vertices[0]!,
+            -placement.vertices[1]!,
+            placement.vertices[4]!,
+            -placement.vertices[5]!,
+            placement.vertices[2]!,
+            -placement.vertices[3]!,
           ]
         : placement.vertices;
     }
@@ -1267,9 +1264,7 @@ function place(
       origins.push({ path: [...trail, { index, copy: 0 }], rotation, mirrored, instanceFrame });
     }
     if (out.length > MAX_EXPANDED_MODULES) {
-      throw new Error(
-        `${blueprint.name}: expands to more than ${MAX_EXPANDED_MODULES} modules`,
-      );
+      throw new Error(`${blueprint.name}: expands to more than ${MAX_EXPANDED_MODULES} modules`);
     }
   }
 }
@@ -1399,9 +1394,18 @@ export function contactWidth(spec: ModuleSpec, other: ModuleSpec): number {
     const py = axes[k + 1]!;
     const overlap = boxes
       ? boxShare(
-          a.length * 0.5 + half, a.width * 0.5 + half, aux, auy,
-          b.length * 0.5 + half, b.width * 0.5 + half, bux, buy,
-          dx, dy, px, py,
+          a.length * 0.5 + half,
+          a.width * 0.5 + half,
+          aux,
+          auy,
+          b.length * 0.5 + half,
+          b.width * 0.5 + half,
+          bux,
+          buy,
+          dx,
+          dy,
+          px,
+          py,
         )
       : share(grownA, countA, grownB, countB, px, py);
     if (overlap <= 0) return 0;
@@ -1454,14 +1458,7 @@ function weldWidth(width: number): number {
  * of their centres, which is the same figure — and the only one of the two a
  * shape that is not symmetric about its own middle can give.
  */
-function share(
-  ca: readonly number[],
-  countA: number,
-  cb: readonly number[],
-  countB: number,
-  px: number,
-  py: number,
-): number {
+function share(ca: readonly number[], countA: number, cb: readonly number[], countB: number, px: number, py: number): number {
   projectOutline(ca, countA, px, py, spanA);
   projectOutline(cb, countB, px, py, spanB);
   return min(spanA.hi, spanB.hi) - max(spanA.lo, spanB.lo);
@@ -1482,22 +1479,11 @@ function boxShare(
   px: number,
   py: number,
 ): number {
-  return (
-    boxExtent(ahl, ahw, aux, auy, px, py) +
-    boxExtent(bhl, bhw, bux, buy, px, py) -
-    abs(dx * px + dy * py)
-  );
+  return boxExtent(ahl, ahw, aux, auy, px, py) + boxExtent(bhl, bhw, bux, buy, px, py) - abs(dx * px + dy * py);
 }
 
 /** A box's extent along `(nx, ny)` from its own centre, metres. */
-function boxExtent(
-  hl: number,
-  hw: number,
-  ux: number,
-  uy: number,
-  nx: number,
-  ny: number,
-): number {
+function boxExtent(hl: number, hw: number, ux: number, uy: number, nx: number, ny: number): number {
   // The width axis is the length axis turned a quarter turn, so its dot with
   // the probe is the cross product of the two.
   return hl * abs(ux * nx + uy * ny) + hw * abs(-uy * nx + ux * ny);
@@ -1818,10 +1804,7 @@ export function blueprintFaults(blueprint: Blueprint): BlueprintFault[] {
   // together is stated against, which is why it is checked before them. A
   // layout with nothing in it at all is one mistake and is already one
   // complaint, so it does not earn this one as well.
-  if (
-    modules.length > 0 &&
-    !modules.some((spec) => spec.kind === 'core' && moduleProblem(spec) === null)
-  ) {
+  if (modules.length > 0 && !modules.some((spec) => spec.kind === 'core' && moduleProblem(spec) === null)) {
     faults.push({
       message:
         `${blueprint.name}: no core — a ship needs at least one core module to be flown from, ` +
@@ -1841,8 +1824,7 @@ export function blueprintFaults(blueprint: Blueprint): BlueprintFault[] {
         group.length === 1
           ? `${blueprint.name}: module ${which} touches nothing — every module must be attached ` +
             `to the ship's core, through its neighbours or directly`
-          : `${blueprint.name}: modules ${which} are a separate piece, attached to each other but ` +
-            `not to the rest of the ship`,
+          : `${blueprint.name}: modules ${which} are a separate piece, attached to each other but ` + `not to the rest of the ship`,
       modules: group,
     });
   }
@@ -2190,7 +2172,11 @@ export function remarkedDesign(design: ShipDesign, origins: readonly (Compiled |
   const joins: Joins | undefined =
     design.pieces === undefined
       ? undefined
-      : { pieces: design.pieces, seams: design.seams ?? [], ...(design.fighterPieces === undefined ? {} : { fighterPieces: design.fighterPieces }) };
+      : {
+          pieces: design.pieces,
+          seams: design.seams ?? [],
+          ...(design.fighterPieces === undefined ? {} : { fighterPieces: design.fighterPieces }),
+        };
   return designFrom(
     design.name,
     design.modules.map((module) => module.spec),
@@ -2254,8 +2240,7 @@ function designFrom(
   // Which modules stand up into the weapons layer, by index: read from the
   // depth each was measured at rather than from its spec, so a plate that
   // borrowed its height from the module it covers is in the way of a turret.
-  const raised = (_spec: ModuleSpec, i: number): boolean =>
-    inWeaponsLayer(specs[i]!, stats[i]!.thickness);
+  const raised = (_spec: ModuleSpec, i: number): boolean => inWeaponsLayer(specs[i]!, stats[i]!.thickness);
 
   const modules: DesignModule[] = [];
   const engines: EngineSpec[] = [];

@@ -300,7 +300,7 @@ function namesProblem(value: unknown, what: string): string | null {
 
 function versusProblem(versus: unknown, warnings: string[]): string | null {
   if (versus === undefined || versus === null) return null;
-  if (!isRecord(versus)) return 'versus must be an object: side B\'s founders, and what it sets apart';
+  if (!isRecord(versus)) return "versus must be an object: side B's founders, and what it sets apart";
   unknownKeys(versus, VERSUS_KEYS, 'versus', warnings);
   const problem =
     namesProblem(versus['founders'], 'versus.founders') ??

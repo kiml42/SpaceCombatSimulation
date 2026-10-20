@@ -1,12 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  DE_MARRE_K,
-  RICOCHET_ANGLE,
-  Terminal,
-  deflected,
-  incidenceAngle,
-  strike,
-} from '../sim/ballistics.js';
+import { DE_MARRE_K, RICOCHET_ANGLE, Terminal, deflected, incidenceAngle, strike } from '../sim/ballistics.js';
 import { math } from '../sim/index.js';
 
 /**
@@ -26,8 +19,7 @@ function limitThickness(mass: number, calibre: number, speed: number): number {
 
 /** The corvette's main gun: a 160 mm round of 90 kg at 560 m/s. */
 const ROUND = { mass: 90, calibre: 0.16, speed: 560 } as const;
-const hit = (thickness: number, incidence = 0, round = ROUND) =>
-  strike(round.mass, round.calibre, round.speed, thickness, incidence);
+const hit = (thickness: number, incidence = 0, round = ROUND) => strike(round.mass, round.calibre, round.speed, thickness, incidence);
 
 describe('terminal ballistics', () => {
   it('perforates under the limit thickness and embeds over it', () => {

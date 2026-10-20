@@ -1,17 +1,5 @@
 import type { Bodies } from './bodies.js';
-import {
-  abs,
-  angleDelta,
-  atan2,
-  brakingRate,
-  clamp,
-  cos,
-  normalizeAngle,
-  PI,
-  sin,
-  sqrt,
-  TAU,
-} from './math.js';
+import { abs, angleDelta, atan2, brakingRate, clamp, cos, normalizeAngle, PI, sin, sqrt, TAU } from './math.js';
 
 /**
  * Turrets: mounts that slew to a bearing and report when they are on target.
@@ -95,13 +83,13 @@ export interface TurretSpec {
   /** Bearing it points to when idle, body frame. */
   restBearing?: number;
   /**
-   * Half-width of the traverse arc to the left of `restBearing`, radians. 
+   * Half-width of the traverse arc to the left of `restBearing`, radians.
    * Blocked by the ships superstructure (DESIGN.md §3).
    * if leftArc + rightArc > 2π, the turret can traverse the full circle.
    */
   leftArc?: number;
   /**
-   * Half-width of the traverse arc to the right of `restBearing`, radians. 
+   * Half-width of the traverse arc to the right of `restBearing`, radians.
    * Blocked by the ships superstructure (DESIGN.md §3).
    * if leftArc + rightArc > 2π, the turret can traverse the full circle.
    */
@@ -158,13 +146,7 @@ export class FiringSolution {
  * `dx, dy` is target minus shooter; `dvx, dvy` is target velocity minus
  * shooter's, so a shot inherits the firing ship's motion.
  */
-export function interceptTime(
-  dx: number,
-  dy: number,
-  dvx: number,
-  dvy: number,
-  speed: number,
-): number {
+export function interceptTime(dx: number, dy: number, dvx: number, dvy: number, speed: number): number {
   const a = dvx * dvx + dvy * dvy - speed * speed;
   const b = 2 * (dx * dvx + dy * dvy);
   const c = dx * dx + dy * dy;
@@ -431,7 +413,7 @@ export class Turrets {
     const allowed = this.arcOffset(rest, this.commanded[i]!, left, right) - this.arcOffset(rest, this.bearing[i]!, left, right);
     // The same turn, where the short way is the allowed way: kept as the short
     // way's own figure, which rounds differently.
-    return (allowed >= 0) === (short >= 0) ? short : allowed;
+    return allowed >= 0 === short >= 0 ? short : allowed;
   }
 
   /**
@@ -484,9 +466,7 @@ export class Turrets {
     // what blocks it, which is both the truth and what it looks like.
     const leftEnd = normalizeAngle(rest + left);
     const rightEnd = normalizeAngle(rest - right);
-    return abs(angleDelta(bodyBearing, leftEnd)) < abs(angleDelta(bodyBearing, rightEnd))
-      ? leftEnd
-      : rightEnd;
+    return abs(angleDelta(bodyBearing, leftEnd)) < abs(angleDelta(bodyBearing, rightEnd)) ? leftEnd : rightEnd;
   }
 
   /**
@@ -510,12 +490,7 @@ export class Turrets {
    * The hull's own rotation is subtracted here, so a turret holding a fixed
    * world bearing on a turning ship counter-rotates without being told to.
    */
-  commandWorldBearing(
-    bodies: Bodies,
-    i: number,
-    worldBearing: number,
-    worldBearingRate = 0,
-  ): void {
+  commandWorldBearing(bodies: Bodies, i: number, worldBearing: number, worldBearingRate = 0): void {
     const b = this.owner[i];
     const wanted = normalizeAngle(worldBearing - bodies.angle[b]!);
     const allowed = this.clampToArc(i, wanted);
@@ -714,11 +689,7 @@ export class Turrets {
       // has them — `brakingRate` in math.ts carries the derivation, and a
       // pilot holding a heading uses the same law.
       const correction = brakingRate(error, accel, dt);
-      const desired = clamp(
-        this.commandedRate[i]! + (error >= 0 ? correction : -correction),
-        -rateLimit,
-        rateLimit,
-      );
+      const desired = clamp(this.commandedRate[i]! + (error >= 0 ? correction : -correction), -rateLimit, rateLimit);
 
       const previousRate = this.rate[i]!;
       const maxChange = accel * dt;
@@ -741,15 +712,11 @@ export class Turrets {
       }
 
       // A lit beam stops at the edge of its own ship rather than cross it.
-      const intoShip =
-        this.lit[i] === 1 &&
-        !this.fouled(i) &&
-        masked(this.mask[i]!, angleDelta(this.restBearing[i]!, bearing));
+      const intoShip = this.lit[i] === 1 && !this.fouled(i) && masked(this.mask[i]!, angleDelta(this.restBearing[i]!, bearing));
       if (intoShip) next = 0;
       else this.bearing[i] = bearing;
       this.rate[i] = next;
-      this.onTarget[i] =
-        abs(angleDelta(this.bearing[i]!, this.commanded[i]!)) <= tolerance ? 1 : 0;
+      this.onTarget[i] = abs(angleDelta(this.bearing[i]!, this.commanded[i]!)) <= tolerance ? 1 : 0;
 
       // Reaction on the hull: the internal torque pair, −I·β̈. A heavy turret
       // slewing hard yaws a light ship, which is the point.

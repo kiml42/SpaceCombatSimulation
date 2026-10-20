@@ -30,12 +30,16 @@ export function viewGestures(
     return { x: (clientX - rect.left) * r - canvas.width / 2, y: (clientY - rect.top) * r - canvas.height / 2 };
   };
 
-  canvas.addEventListener('wheel', (event) => {
-    event.preventDefault();
-    const at = offset(event.clientX, event.clientY);
-    zoomAt(camera, at.x, at.y, Math.exp(-event.deltaY * 0.0015));
-    moved();
-  }, { passive: false });
+  canvas.addEventListener(
+    'wheel',
+    (event) => {
+      event.preventDefault();
+      const at = offset(event.clientX, event.clientY);
+      zoomAt(camera, at.x, at.y, Math.exp(-event.deltaY * 0.0015));
+      moved();
+    },
+    { passive: false },
+  );
 
   const pointers = new Map<number, { x: number; y: number }>();
   /** A lone press that may yet be a tap; null once it pans or a second finger lands. */

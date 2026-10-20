@@ -35,7 +35,10 @@ function carrierOf(rechargeBelow = 0): ShipDesign {
 const HOLD = 2;
 
 const dinky = compileBlueprint(DINKY);
-const fighter = compileBlueprint({ ...DINKY, doctrine: { ...dinky.doctrine, approach: { ...dinky.doctrine.approach, refuelBelow: 0.5, sortieRange: ANY_RANGE } } });
+const fighter = compileBlueprint({
+  ...DINKY,
+  doctrine: { ...dinky.doctrine, approach: { ...dinky.doctrine.approach, refuelBelow: 0.5, sortieRange: ANY_RANGE } },
+});
 const CORE = fighter.cores[0]!;
 const GUN = fighter.modules.findIndex((m) => m.spec.kind === 'hullGun');
 const capacity = (m: number): number => fighter.modules[m]!.stats.hitPoints * DAMAGE_ENERGY_PER_KG;
@@ -123,9 +126,7 @@ describe('a pad', () => {
     const carrier = carrierOf();
     // An engine at the end of an outrigger, so nothing else comes away with it.
     const all = joints(fighter);
-    const LOST = fighter.modules.findIndex(
-      (m, k) => m.spec.kind === 'engine' && all.filter((j) => j.a === k || j.b === k).length === 1,
-    );
+    const LOST = fighter.modules.findIndex((m, k) => m.spec.kind === 'engine' && all.filter((j) => j.a === k || j.b === k).length === 1);
     const run = makeBattle({ seed: 3 }, (ships, world) => {
       const c = ships.spawn(world, { design: carrier, x: 0, y: 0, angle: 0.3 });
       const f = ships.spawn(world, { design: fighter, x: -300, y: 200, angle: 0 });
@@ -163,7 +164,10 @@ describe('a pad', () => {
 describe('a fighter hurt but wanting for nothing else', () => {
   /** A Dinky full of fuel and metal, its core shot down to `integrity`. */
   function hurt(integrity: number, repairBelow: number): Run {
-    const own = compileBlueprint({ ...DINKY, doctrine: { ...dinky.doctrine, approach: { ...dinky.doctrine.approach, repairBelow, sortieRange: ANY_RANGE } } });
+    const own = compileBlueprint({
+      ...DINKY,
+      doctrine: { ...dinky.doctrine, approach: { ...dinky.doctrine.approach, repairBelow, sortieRange: ANY_RANGE } },
+    });
     return makeBattle({ seed: 3 }, (ships, world) => {
       const c = ships.spawn(world, { design: carrierOf(), x: 0, y: 0, angle: 0.3 });
       const f = ships.spawn(world, { design: own, x: -300, y: 200, angle: 0 });

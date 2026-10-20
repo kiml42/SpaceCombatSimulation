@@ -129,10 +129,7 @@ describe('a gun firing', () => {
     // Every gun on the corvette is the same bore, so every round weighs the same.
     for (const t of corvette.turrets) if (t.gun.roundMass > 0) expect(t.gun.roundMass).toBe(roundMass);
     expect(s.ships.metal.spentMass(s.body)).toBeCloseTo(s.rounds * roundMass, 6);
-    expect(s.world.bodies.mass[s.body]).toBeCloseTo(
-      corvette.mass - s.ships.fuel.spentMass(s.body) - s.ships.metal.spentMass(s.body),
-      6,
-    );
+    expect(s.world.bodies.mass[s.body]).toBeCloseTo(corvette.mass - s.ships.fuel.spentMass(s.body) - s.ships.metal.spentMass(s.body), 6);
   });
 
   it('keeps the momentum of the hull and its rounds', () => {

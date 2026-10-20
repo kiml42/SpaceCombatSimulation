@@ -87,8 +87,6 @@ const WHOLE_LENGTH_FORMAT = 1;
 /** What format 1 assumed of an engine that did not say. */
 const WHOLE_LENGTH_NOZZLE_SHARE = 0.5;
 
-
-
 /** Keys a module may carry. Anything else is kept but unread — see `UnreadKeys`. */
 const MODULE_KEYS: readonly string[] = [
   'id',
@@ -122,17 +120,7 @@ const MODULE_KEYS: readonly string[] = [
 ];
 
 /** Keys an assembly instance may carry: where it goes, and nothing else. */
-const INSTANCE_KEYS: readonly string[] = [
-  'id',
-  'use',
-  'x',
-  'y',
-  'angle',
-  'mirror',
-  'repeat',
-  'step',
-  'notes',
-];
+const INSTANCE_KEYS: readonly string[] = ['id', 'use', 'x', 'y', 'angle', 'mirror', 'repeat', 'step', 'notes'];
 
 const STEP_KEYS: readonly string[] = ['x', 'y', 'angle'];
 
@@ -253,10 +241,7 @@ function moduleShapeProblem(value: Record<string, unknown>, where: string): stri
     // keys are still written back, since every other reader of a layout —
     // a mutation, a refit, the editor's number boxes — asks a module how big
     // it is before it asks what shape.
-    (shaped
-      ? null
-      : (numberProblem(value['length'], `${where}: length`) ??
-        numberProblem(value['width'], `${where}: width`))) ??
+    (shaped ? null : (numberProblem(value['length'], `${where}: length`) ?? numberProblem(value['width'], `${where}: width`))) ??
     optionalNumberProblem(value['angle'], `${where}: angle`) ??
     optionalNumberProblem(value['reinforcement'], `${where}: reinforcement`) ??
     optionalNumberProblem(value['barrels'], `${where}: barrels`) ??
@@ -376,9 +361,7 @@ function instanceShapeProblem(value: Record<string, unknown>, where: string): st
  */
 function placementShapeProblem(value: unknown, where: string): string | null {
   if (!isObject(value)) return `${where} must be an object, got ${JSON.stringify(value)}`;
-  return 'use' in value
-    ? instanceShapeProblem(value, where)
-    : moduleShapeProblem(value, where);
+  return 'use' in value ? instanceShapeProblem(value, where) : moduleShapeProblem(value, where);
 }
 
 function placementsShapeProblem(value: unknown, where: string): string | null {
@@ -648,10 +631,7 @@ export function serialiseBlueprint(blueprint: Blueprint): Record<string, unknown
 }
 
 /** A block as serialised, with its unread keys merged back in, one level into objects. */
-function mergeUnread(
-  block: Record<string, unknown> | undefined,
-  unread: UnreadKeys | undefined,
-): Record<string, unknown> | undefined {
+function mergeUnread(block: Record<string, unknown> | undefined, unread: UnreadKeys | undefined): Record<string, unknown> | undefined {
   if (unread === undefined) return block;
   const out: Record<string, unknown> = { ...block };
   for (const [key, value] of Object.entries(unread)) {
@@ -693,11 +673,7 @@ function placementWarnings(placements: readonly Placement[], where: string, out:
       return;
     }
     if (placement.targeting !== undefined) {
-      unreadWarning(
-        `${at}: targeting`,
-        unreadOf(placement.targeting as Record<string, unknown>, TARGETING_FIELDS),
-        out,
-      );
+      unreadWarning(`${at}: targeting`, unreadOf(placement.targeting as Record<string, unknown>, TARGETING_FIELDS), out);
     }
   });
 }

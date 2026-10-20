@@ -58,7 +58,11 @@ describe('the fleets down the edges', () => {
   });
 
   it("shows a side's fighters of a design in one tile, the best armed of them, with how many there are", () => {
-    const fighter = (body: number, team: number, weapons: number, design = 0): StripShip => ({ ...ship(body, team, 5), fighter: design, weapons });
+    const fighter = (body: number, team: number, weapons: number, design = 0): StripShip => ({
+      ...ship(body, team, 5),
+      fighter: design,
+      weapons,
+    });
     const strips = stripsFor(
       [fighter(5, 0, 1), ship(1, 0), fighter(6, 0, 2), fighter(7, 0, 2), fighter(8, 0, 1, 1), fighter(9, 2, 3), fighter(10, 1, 0)],
       W,

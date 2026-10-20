@@ -10,11 +10,7 @@ export const FLEET_TEAM = 0;
  * fleet's origin at the world origin, each carrier with the fighters it sets
  * out with on their pads. The fleet editor's `previewSnapshot`.
  */
-export function fleetSnapshot(
-  view: Pick<FleetView, 'ships' | 'designs'>,
-  out: Snapshot = new Snapshot(),
-  team = FLEET_TEAM,
-): Snapshot {
+export function fleetSnapshot(view: Pick<FleetView, 'ships' | 'designs'>, out: Snapshot = new Snapshot(), team = FLEET_TEAM): Snapshot {
   let count = 0;
   let minX = Infinity;
   let minY = Infinity;

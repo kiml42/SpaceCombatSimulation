@@ -102,10 +102,7 @@ export function joints(design: ShipDesign): readonly Joint[] {
       if (width <= 0) continue;
       // The thinner wall is what gives way, so it is what the section is cut
       // from: welding a light plate to a heavy one makes a light joint.
-      const thickness = min(
-        design.modules[i]!.stats.wallThickness,
-        design.modules[j]!.stats.wallThickness,
-      );
+      const thickness = min(design.modules[i]!.stats.wallThickness, design.modules[j]!.stats.wallThickness);
       // Between the two modules it joins, which is close enough to the weld
       // for measuring how far a shock had to travel to reach it.
       const x = (design.modules[i]!.x + design.modules[j]!.x) * 0.5;

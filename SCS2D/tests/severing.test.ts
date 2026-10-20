@@ -1,15 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { GUNSHIP } from '../scenarios/blueprints.js';
-import {
-  Contacts,
-  Ships,
-  World,
-  compileBlueprint,
-  joints,
-  type Blueprint,
-  type ModuleSpec,
-  type ShipDesign,
-} from '../sim/index.js';
+import { Contacts, Ships, World, compileBlueprint, joints, type Blueprint, type ModuleSpec, type ShipDesign } from '../sim/index.js';
 
 /**
  * Hulls coming apart.
@@ -35,11 +26,7 @@ function structure(x: number, y: number, length: number, width: number): ModuleS
  */
 const CHAIN: Blueprint = {
   name: 'Chain',
-  modules: [
-    structure(0, 0, 10, 4),
-    { kind: 'core', x: -10, y: 0, length: 10, width: 4 },
-    structure(9.5, 0, 9, 2),
-  ],
+  modules: [structure(0, 0, 10, 4), { kind: 'core', x: -10, y: 0, length: 10, width: 4 }, structure(9.5, 0, 9, 2)],
 };
 
 const design: ShipDesign = compileBlueprint(CHAIN);

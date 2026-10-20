@@ -119,9 +119,7 @@ describe('wreckage that has drifted out of the fight', () => {
 
     const light = broken();
     const heavy = broken(corvette, [0]);
-    expect(light.ships.design(light.piece).mass).toBeLessThan(
-      heavy.ships.design(heavy.piece).mass,
-    );
+    expect(light.ships.design(light.piece).mass).toBeLessThan(heavy.ships.design(heavy.piece).mass);
 
     driftTo(light, light.piece, out);
     driftTo(heavy, heavy.piece, out);

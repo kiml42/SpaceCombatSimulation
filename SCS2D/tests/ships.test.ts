@@ -214,10 +214,7 @@ describe('the pilot', () => {
 
     const bodies = r.world.bodies;
     const b = bodyOf(r, ship);
-    const wanted = math.atan2(
-      bodies.y[bodyOf(r, enemy)]! - bodies.y[b]!,
-      bodies.x[bodyOf(r, enemy)]! - bodies.x[b]!,
-    );
+    const wanted = math.atan2(bodies.y[bodyOf(r, enemy)]! - bodies.y[b]!, bodies.x[bodyOf(r, enemy)]! - bodies.x[b]!);
     expect(math.abs(math.angleDelta(bodies.angle[b]!, wanted))).toBeLessThan(0.05);
   });
 
@@ -402,9 +399,7 @@ describe('gunnery', () => {
       // Every gun on this design shares a calibre-derived muzzle speed only
       // per mount, so check against the mount that matches.
       const speeds = salvoGunship.turrets.map((t) => t.gun.muzzleSpeed);
-      const nearest = speeds.reduce((a, c) =>
-        math.abs(c - speed) < math.abs(a - speed) ? c : a,
-      );
+      const nearest = speeds.reduce((a, c) => (math.abs(c - speed) < math.abs(a - speed) ? c : a));
       expect(speed).toBeCloseTo(nearest, 6);
 
       // And that leftover points along a barrel. Note that it is the *barrel*
@@ -417,8 +412,7 @@ describe('gunnery', () => {
         return bodies.angle[b]! + r.ships.turrets.bearing[ti]!;
       });
       const alongness = bearings.reduce(
-        (best, bearing) =>
-          math.max(best, (restX / speed) * math.cos(bearing) + (restY / speed) * math.sin(bearing)),
+        (best, bearing) => math.max(best, (restX / speed) * math.cos(bearing) + (restY / speed) * math.sin(bearing)),
         -1,
       );
       expect(alongness).toBeCloseTo(1, 9);
@@ -592,8 +586,7 @@ describe('beam gunnery', () => {
       expect(r.beams.count).toBe(0);
       mostRecentFiredCount = r.ships.fire(r.world, r.projectiles, r.beams, r.grid, r.beamHits).beamsFired;
       timeSpentReloading += DT;
-    }
-    while (mostRecentFiredCount == 0 && timeSpentReloading < 100 * gun.cycleTime)
+    } while (mostRecentFiredCount == 0 && timeSpentReloading < 100 * gun.cycleTime);
 
     // The same one-step resolution, and the same guard against a second one.
     expect(timeSpentReloading).toBeGreaterThanOrEqual(gun.cycleTime);
@@ -634,10 +627,10 @@ describe('beam gunnery', () => {
     expect(r.ships.fire(r.world, r.projectiles, r.beams, r.grid, r.beamHits).beamsFired).toBe(1);
 
     // Now the ship's started firing, delete the target
-    const enemyBody = r.ships.body(enemy);  // grab the BodyId before removing
-    r.ships.remove(enemy);                  // the ship
-    r.world.destroy(enemyBody);             // the body itself
-    r.ships.clearOrder(ship);               // also cancel the order
+    const enemyBody = r.ships.body(enemy); // grab the BodyId before removing
+    r.ships.remove(enemy); // the ship
+    r.world.destroy(enemyBody); // the body itself
+    r.ships.clearOrder(ship); // also cancel the order
 
     const gun = ship1.turrets[0]!.gun;
 
@@ -690,9 +683,7 @@ describe('a queue of orders', () => {
     const body = r.world.bodies.indexOf(r.ships.body(ship));
     for (let m = 0; m < design.modules.length; m++) {
       const module = design.modules[m]!;
-      const hit = what === 'engine'
-        ? module.spec.kind === 'engine'
-        : isWeaponMount(module.spec.kind);
+      const hit = what === 'engine' ? module.spec.kind === 'engine' : isWeaponMount(module.spec.kind);
       if (!hit) continue;
       r.ships.damage.absorb(body, m, module.stats.hitPoints * DAMAGE_ENERGY_PER_KG);
     }
@@ -767,10 +758,7 @@ describe('a queue of orders', () => {
   it('drops an order whose target died while it waited its turn', () => {
     // Somebody else got there first. Leaving it in the queue would send this
     // ship off to fight a wreck once it finished with the target in front.
-    const { r, ship, a, b } = squadron(
-      OrderCancelCondition.CompleteDisable,
-      OrderCancelCondition.CompleteDisable,
-    );
+    const { r, ship, a, b } = squadron(OrderCancelCondition.CompleteDisable, OrderCancelCondition.CompleteDisable);
     expect(r.ships.orderCount(ship)).toBe(2);
 
     r.ships.remove(b);

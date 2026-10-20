@@ -94,12 +94,7 @@ export function moveEntries(fleet: Fleet, moves: readonly { path: EntryPath; dx:
 }
 
 /** A copy of each entry beside it in its own list, offset in that list's frame. Returns the copies' paths too. */
-export function duplicateEntries(
-  fleet: Fleet,
-  paths: readonly EntryPath[],
-  dx: number,
-  dy: number,
-): { fleet: Fleet; paths: EntryPath[] } {
+export function duplicateEntries(fleet: Fleet, paths: readonly EntryPath[], dx: number, dy: number): { fleet: Fleet; paths: EntryPath[] } {
   const next = cloneFleet(fleet);
   const out: EntryPath[] = [];
   for (const path of paths) {

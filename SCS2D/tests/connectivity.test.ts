@@ -56,10 +56,7 @@ describe('deriving the joints', () => {
   });
 
   it('prices a weld by its section, so the narrow join is the weak one', () => {
-    const thinner = Math.min(
-      design.modules[0]!.stats.wallThickness,
-      design.modules[2]!.stats.wallThickness,
-    );
+    const thinner = Math.min(design.modules[0]!.stats.wallThickness, design.modules[2]!.stats.wallThickness);
     expect(found[1]!.strength).toBeCloseTo(2 * thinner * JOINT_IMPULSE_PER_AREA, 6);
     expect(found[1]!.strength).toBeLessThan(found[0]!.strength);
   });
@@ -121,12 +118,7 @@ describe('the pieces a hull is in', () => {
     // Four boxes round a square: every part of it has two ways home.
     const ring: Blueprint = {
       name: 'Ring',
-      modules: [
-        core(-5, 0, 2, 12),
-        structure(5, 0, 2, 12),
-        structure(0, -5, 8, 2),
-        structure(0, 5, 8, 2),
-      ],
+      modules: [core(-5, 0, 2, 12), structure(5, 0, 2, 12), structure(0, -5, 8, 2), structure(0, 5, 8, 2)],
     };
     const hull = compileBlueprint(ring);
     expect(joints(hull)).toHaveLength(4);
@@ -143,9 +135,7 @@ describe('the design a piece makes on its own', () => {
     const mass = design.modules[0]!.stats.mass + design.modules[2]!.stats.mass;
     expect(piece.mass).toBeCloseTo(mass, 9);
 
-    const moment =
-      design.modules[0]!.stats.mass * design.modules[0]!.spec.x +
-      design.modules[2]!.stats.mass * design.modules[2]!.spec.x;
+    const moment = design.modules[0]!.stats.mass * design.modules[0]!.spec.x + design.modules[2]!.stats.mass * design.modules[2]!.spec.x;
     expect(piece.centreOfMassX).toBeCloseTo(moment / mass, 9);
     expect(piece.centreOfMassY).toBeCloseTo(0, 9);
 
@@ -156,10 +146,7 @@ describe('the design a piece makes on its own', () => {
 
   it('keeps each module pointing back at the layout it came from', () => {
     const piece = subDesign(design, [1, 2]);
-    expect(piece.modules.map((m) => m.index)).toEqual([
-      design.modules[1]!.index,
-      design.modules[2]!.index,
-    ]);
+    expect(piece.modules.map((m) => m.index)).toEqual([design.modules[1]!.index, design.modules[2]!.index]);
   });
 
   it('works the arcs out against what is left, so a lost obstruction frees a gun', () => {
@@ -169,16 +156,10 @@ describe('the design a piece makes on its own', () => {
       gunship,
       gunship.modules
         .map((_, i) => i)
-        .filter(
-          (i) =>
-            i === whole.module ||
-            gunship.modules[i]!.spec.kind === 'structure' ||
-            gunship.modules[i]!.spec.kind === 'core',
-        ),
+        .filter((i) => i === whole.module || gunship.modules[i]!.spec.kind === 'structure' || gunship.modules[i]!.spec.kind === 'core'),
     );
     const freed = alone.turrets[0]!;
-    const span = (turret: typeof whole): number =>
-      (turret.mount.leftArc ?? 0) + (turret.mount.rightArc ?? 0);
+    const span = (turret: typeof whole): number => (turret.mount.leftArc ?? 0) + (turret.mount.rightArc ?? 0);
     expect(span(freed)).toBeGreaterThanOrEqual(span(whole));
   });
 });

@@ -37,7 +37,8 @@ export function fleetBattle(
 
     const placed = fleets.map((fleet) => {
       const designs = new Map<string, ShipDesign>();
-      for (const [name, blueprint] of Object.entries(fleet.designs)) designs.set(name, compileBlueprint(withFleetFighters(blueprint, fleet.designs)));
+      for (const [name, blueprint] of Object.entries(fleet.designs))
+        designs.set(name, compileBlueprint(withFleetFighters(blueprint, fleet.designs)));
       return expandFleet(fleet).map((ship) => ({ ...ship, compiled: designs.get(ship.design)! }));
     });
 

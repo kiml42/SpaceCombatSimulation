@@ -15,13 +15,7 @@ import {
 } from './hull.js';
 import { cos, sin, sqrt } from './math.js';
 import { triangleOf } from './shape.js';
-import {
-  DECK_HEIGHT,
-  nozzleOffset,
-  THRUST_PER_EXIT_AREA,
-  engineGeometry,
-  type EngineGeometry,
-} from './modules.js';
+import { DECK_HEIGHT, nozzleOffset, THRUST_PER_EXIT_AREA, engineGeometry, type EngineGeometry } from './modules.js';
 import { RayHit, type SpatialGrid } from './spatialGrid.js';
 
 /**
@@ -390,7 +384,12 @@ export function exhaustObstruction(
     }
     const hl = m.spec.length * 0.5;
     const hw = m.spec.width * 0.5;
-    for (const [lx, ly] of [[hl, hw], [hl, -hw], [-hl, hw], [-hl, -hw]] as const) {
+    for (const [lx, ly] of [
+      [hl, hw],
+      [hl, -hw],
+      [-hl, hw],
+      [-hl, -hw],
+    ] as const) {
       corner(m.x + lx * c - ly * s, m.y + lx * s + ly * c);
     }
   }
@@ -813,14 +812,7 @@ function heatSeams(damage: Damage, design: ShipDesign, body: number, module: num
  * rather than through the force providers because this happens after the world
  * has stepped.
  */
-function shove(
-  bodies: Bodies,
-  body: number,
-  jx: number,
-  jy: number,
-  px: number,
-  py: number,
-): void {
+function shove(bodies: Bodies, body: number, jx: number, jy: number, px: number, py: number): void {
   const mass = bodies.mass[body]!;
   if (!(mass > 0)) return;
   bodies.vx[body] = bodies.vx[body]! + jx / mass;

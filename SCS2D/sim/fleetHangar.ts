@@ -45,7 +45,12 @@ function canonical(blueprint: Blueprint): string {
   // Ids settled first: a copy written before placements had them is the same design given them.
   const raw = serialiseBlueprint(settleIds(blueprint));
   const hangar = raw['hangar'] as Record<string, unknown> | undefined;
-  if (hangar !== undefined) raw['hangar'] = Object.fromEntries(Object.keys(hangar).sort().map((k) => [k, hangar[k]]));
+  if (hangar !== undefined)
+    raw['hangar'] = Object.fromEntries(
+      Object.keys(hangar)
+        .sort()
+        .map((k) => [k, hangar[k]]),
+    );
   return JSON.stringify(raw);
 }
 
@@ -102,10 +107,10 @@ export function padReached(fleet: Fleet, from: Iterable<string>): Set<string> {
 /** A blueprint with every pad naming fighter `from` naming `to` instead. Unchanged where none does. */
 export function renamePadFighter(blueprint: Blueprint, from: string, to: string): Blueprint {
   if (!padFighterNames(blueprint).includes(from)) return blueprint;
-  const swap = (list: readonly Placement[]): Placement[] =>
-    list.map((p) => (!isInstance(p) && p.craft === from ? { ...p, craft: to } : p));
-  const assemblies = blueprint.assemblies === undefined
-    ? undefined
-    : Object.fromEntries(Object.entries(blueprint.assemblies).map(([k, a]) => [k, { ...a, modules: swap(a.modules) }]));
+  const swap = (list: readonly Placement[]): Placement[] => list.map((p) => (!isInstance(p) && p.craft === from ? { ...p, craft: to } : p));
+  const assemblies =
+    blueprint.assemblies === undefined
+      ? undefined
+      : Object.fromEntries(Object.entries(blueprint.assemblies).map(([k, a]) => [k, { ...a, modules: swap(a.modules) }]));
   return { ...blueprint, modules: swap(blueprint.modules), ...(assemblies === undefined ? {} : { assemblies }) };
 }
