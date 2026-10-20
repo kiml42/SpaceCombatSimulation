@@ -33,7 +33,7 @@ import { fittingOf } from './rebuild.js';
 
 /** An order as drawn: what it is, and the body of what it is given against. */
 export interface OrderView {
-  kind: 'attack' | 'defend' | 'ram' | 'dock';
+  kind: 'attack' | 'defend' | 'ram' | 'dock' | 'scavenge' | 'deliver';
   /** The body it is against or making for, or -1 for none yet. */
   target: number;
 }
@@ -59,6 +59,9 @@ export interface ShipView {
   coreNumbers?: number[];
   /** The body of what it is fighting, or -1 or absent for nothing. */
   fighting?: number;
+  /** What it is doing, told or of its own accord, and the body it is doing it to; absent for nothing. */
+  doing?: OrderView['kind'];
+  doingTo?: number;
   /**
    * The band of ranges it is holding against what it is fighting, centre to
    * centre, metres; absent when it holds none, as for a ram.
@@ -436,6 +439,14 @@ export function capture(
     } else {
       view.fightingMin = held.minRange;
       view.fightingMax = held.maxRange;
+    }
+    const doing = ships.doingOf(i);
+    if (doing === null) {
+      delete view.doing;
+      delete view.doingTo;
+    } else {
+      view.doing = doing.kind;
+      view.doingTo = bodies.indexOf(ships.body(doing.target));
     }
     const covering = ships.coveringOf(i);
     view.covering = covering >= 0 ? bodies.indexOf(ships.body(covering)) : -1;
