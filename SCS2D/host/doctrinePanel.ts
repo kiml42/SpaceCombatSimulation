@@ -14,7 +14,7 @@ import {
   type ShipView,
   type Snapshot,
 } from '../sim/index.js';
-import { MOUNT_SECTIONS, SHIP_SECTIONS, sectionEntries, type DoctrineEntry } from '../editor/doctrine.js';
+import { MOUNT_SECTIONS, SHIP_SECTIONS, type DoctrineEntry } from '../editor/doctrine.js';
 import { Library } from '../editor/library.js';
 import { mountAt, sideOf, viewOf } from '../render/picking.js';
 import type { BattleView } from './battleView.js';
@@ -28,8 +28,11 @@ import { el } from './dom.js';
  * over their blueprints, and clearing a box takes it back to theirs.
  */
 
-const SHIP_ROWS = sectionEntries(SHIP_SECTIONS);
-const MOUNT_ROWS = sectionEntries(MOUNT_SECTIONS);
+function heading(level: 'h3' | 'h4', text: string): HTMLElement {
+  const out = document.createElement(level);
+  out.textContent = text;
+  return out;
+}
 const PART_KEY = 'p';
 
 /** One box's value across the picked ships, or undefined where they differ; null where none has it. */
@@ -200,41 +203,53 @@ export function doctrinePanel(view: BattleView): { update(shown: Snapshot): void
     force = true;
   };
 
+  /** The boxes, under the editor's headings; a heading with nothing under it is left out. */
   const rows = (ships: readonly ShipView[]): HTMLElement[] => {
     const out: HTMLElement[] = [];
-    for (const row of part === 'ship' ? SHIP_ROWS : MOUNT_ROWS) {
-      const values = ships.flatMap((ship) => valuesOf(ship, part, row));
-      const value = shared(values);
-      if (value === null) continue;
-      const label = document.createElement('label');
-      label.title = row.hint;
-      const name = document.createElement('span');
-      name.textContent = row.label;
-      const input = document.createElement('input');
-      input.type = 'number';
-      input.step = String(row.step);
-      input.dataset['field'] = row.field;
-      input.value = value === undefined ? '' : String(value);
-      input.placeholder = value === undefined ? 'mixed' : '';
-      const says = ships.some((ship) => told(ship.override, part, row));
-      label.classList.toggle('told', says);
-      input.addEventListener('change', () => {
-        const typed = input.value.trim();
-        issue(row.field, typed === '' ? null : Number(typed));
-      });
-      label.append(name);
-      // Left of the box, so the box and its arrows stay put as it comes and goes.
-      if (says) {
-        const back = document.createElement('button');
-        back.textContent = '↺';
-        back.title = 'Back to its design';
-        back.addEventListener('click', () => issue(row.field, null));
-        label.append(back);
+    for (const section of part === 'ship' ? SHIP_SECTIONS : MOUNT_SECTIONS) {
+      const under: HTMLElement[] = [];
+      for (const group of section.groups) {
+        const boxes = group.entries.flatMap((row) => box(ships, row) ?? []);
+        // A section of one group says it once.
+        if (boxes.length > 0 && group.title !== section.title) under.push(heading('h4', group.title));
+        under.push(...boxes);
       }
-      label.append(input);
-      out.push(label);
+      if (under.length > 0) out.push(heading('h3', section.title), ...under);
     }
     return out;
+  };
+
+  const box = (ships: readonly ShipView[], row: DoctrineEntry): HTMLElement | null => {
+    const values = ships.flatMap((ship) => valuesOf(ship, part, row));
+    const value = shared(values);
+    if (value === null) return null;
+    const label = document.createElement('label');
+    label.title = row.hint;
+    const name = document.createElement('span');
+    name.textContent = row.label;
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.step = String(row.step);
+    input.dataset['field'] = row.field;
+    input.value = value === undefined ? '' : String(value);
+    input.placeholder = value === undefined ? 'mixed' : '';
+    const says = ships.some((ship) => told(ship.override, part, row));
+    label.classList.toggle('told', says);
+    input.addEventListener('change', () => {
+      const typed = input.value.trim();
+      issue(row.field, typed === '' ? null : Number(typed));
+    });
+    label.append(name);
+    // Left of the box, so the box and its arrows stay put as it comes and goes.
+    if (says) {
+      const back = document.createElement('button');
+      back.textContent = '↺';
+      back.title = 'Back to its design';
+      back.addEventListener('click', () => issue(row.field, null));
+      label.append(back);
+    }
+    label.append(input);
+    return label;
   };
 
   const slots = (ships: readonly ShipView[], library: readonly Choice[]): HTMLElement[] =>
@@ -374,7 +389,9 @@ export function doctrinePanel(view: BattleView): { update(shown: Snapshot): void
     body.append(...rows(ships));
     if (part === 'ship') {
       const library = choices();
-      body.append(remodel(ships, library), ...slots(ships, library));
+      const built = slots(ships, library);
+      body.append(heading('h3', 'Remodelling'), remodel(ships, library));
+      if (built.length > 0) body.append(heading('h3', 'Building'), ...built);
     }
     if (body.childElementCount === 0) body.textContent = part === 'ship' ? '' : 'No such weapons';
     const reset = document.createElement('button');

@@ -726,6 +726,8 @@ describe('the viewer in a browser', () => {
     await painted(page);
     expect(await page.isVisible('#doctrinePanel')).toBe(true);
     expect(await page.textContent('#doctrinePanel')).toContain('Remodel to');
+    // Under the editor's headings.
+    expect(await page.textContent('#doctrinePanel h3')).toBe('Picking a fight and closing on it');
     const speed = page.locator('#doctrinePanel input[data-field="approachSpeed"]');
     await speed.fill('7');
     await speed.press('Tab');
