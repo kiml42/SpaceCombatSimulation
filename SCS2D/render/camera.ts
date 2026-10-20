@@ -328,7 +328,7 @@ function weighInShot(
   for (let i = 0; i < snapshot.shipCount; i++) {
     const ship = snapshot.ships[i]!;
     if (!worthFollowing(ship)) continue;
-    const r = ship.design.radius;
+    const r = ship.currentStructure.radius;
     const outX = abs(ship.x - camera.x);
     if (outX > halfWidth + r) continue;
     const outY = abs(ship.y - camera.y);
@@ -445,7 +445,7 @@ export function shipAt(snapshot: Snapshot, x: number, y: number, reach: number):
   for (let i = 0; i < snapshot.shipCount; i++) {
     const ship = snapshot.ships[i]!;
     const d = Math.hypot(ship.x - x, ship.y - y);
-    if (d > Math.max(ship.design.radius, reach) || d >= nearest) continue;
+    if (d > Math.max(ship.currentStructure.radius, reach) || d >= nearest) continue;
     nearest = d;
     best = ship.body;
   }
@@ -467,7 +467,7 @@ export function selectionBounds(snapshot: Snapshot, body: number): Bounds | null
   for (let i = 0; i < snapshot.shipCount; i++) {
     const ship = snapshot.ships[i]!;
     if (ship.body !== body && ship.body !== target && ship.body !== consort) continue;
-    const r = ship.design.radius;
+    const r = ship.currentStructure.radius;
     bounds.minX = Math.min(bounds.minX, ship.x - r);
     bounds.minY = Math.min(bounds.minY, ship.y - r);
     bounds.maxX = Math.max(bounds.maxX, ship.x + r);

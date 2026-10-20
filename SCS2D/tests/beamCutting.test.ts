@@ -77,7 +77,7 @@ function burn(): Burn {
 
 /** How far through its worst-cut weld a hull is, 0 untouched and 1 cut free. */
 function deepestCut(b: Burn): number {
-  const design = b.ships.design(b.target);
+  const design = b.ships.currentStructure(b.target);
   let worst = 0;
   joints(design).forEach((joint, k) => {
     worst = Math.max(worst, b.ships.damage.cutAt(b.body, k) / joint.width);
@@ -136,7 +136,7 @@ describe('a beam held on a hull', () => {
     const b = burn();
     for (let i = 0; i < 60; i++) b.fire(0);
     expect(deepestCut(b)).toBe(0);
-    expect(b.ships.design(b.target).modules).toHaveLength(corvette.modules.length);
+    expect(b.ships.currentStructure(b.target).modules).toHaveLength(corvette.modules.length);
   });
 
   it('burns along every seam its tunnel crosses', () => {
@@ -154,11 +154,11 @@ describe('a beam held on a hull', () => {
 
   it('cuts a piece off, given long enough', () => {
     const b = burn();
-    const before = b.ships.design(b.target).modules.length;
+    const before = b.ships.currentStructure(b.target).modules.length;
     let cutFree = 0;
     for (let step = 1; step <= 60 * 150 && cutFree === 0; step++) {
       b.fire(0);
-      if (b.ships.design(b.target).modules.length < before) cutFree = step;
+      if (b.ships.currentStructure(b.target).modules.length < before) cutFree = step;
     }
     // A minute or two of held fire, the burnt-out plating in front soaking up
     // much of it, and not the first touch.
@@ -216,7 +216,7 @@ describe('a beam in the weapons layer', () => {
       impacts.beams(ships.damage, beams, hits, 1 / 60, world.bodies, ships);
     }
     let cut = 0;
-    joints(ships.design(target)).forEach((_joint, k) => {
+    joints(ships.currentStructure(target)).forEach((_joint, k) => {
       cut = Math.max(cut, ships.damage.cutAt(body, k));
     });
     return { cut, hits: landed };

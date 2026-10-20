@@ -528,6 +528,6 @@ describe('what the picture is told about damage', () => {
     // The module is still drawn, and still stops shells: it is wreckage, not
     // an absence (§4).
     expect(after.ships[0]!.integrity[module]).toBe(0);
-    expect(after.ships[0]!.design.modules[module]).toBeDefined();
+    expect(after.ships[0]!.currentStructure.modules[module]).toBeDefined();
   });
 });

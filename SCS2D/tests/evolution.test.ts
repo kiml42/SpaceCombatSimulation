@@ -141,7 +141,7 @@ describe('a run', { timeout: 30_000 }, () => {
     const designs = (founders: readonly Blueprint[], group: number): string[] => {
       const opening = new Run(founders, { ...settings, group }).unmutatedOpening()!;
       const { ships, slots } = opening.battle;
-      return slots.map((slot) => ships.design(slot).name);
+      return slots.map((slot) => ships.currentStructure(slot).name);
     };
     expect(designs([CORVETTE, DINKY], 2).sort()).toEqual([CORVETTE.name, DINKY.name].sort());
     const four = designs([CORVETTE, DINKY], 4);

@@ -266,7 +266,7 @@ describe('robots', () => {
     const total = (): number => {
       const b = run.world.bodies.indexOf(ships.body(0));
       let sum = 0;
-      for (let m = 0; m < ships.design(0).modules.length; m++) sum += ships.damage.absorbedAt(b, m);
+      for (let m = 0; m < ships.currentStructure(0).modules.length; m++) sum += ships.damage.absorbedAt(b, m);
       return sum;
     };
     const places: number[] = [];

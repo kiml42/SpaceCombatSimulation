@@ -34,24 +34,24 @@ describe('a refit', () => {
   it('builds what is new before it takes down what is gone, and ends as the design it was refitted to', () => {
     const run = refitting();
     const to = compileBlueprint(REFITTED);
-    const engines = (): number => run.ships.design(0).modules.filter((m) => m.spec.kind === 'engine').length;
+    const engines = (): number => run.ships.currentStructure(0).modules.filter((m) => m.spec.kind === 'engine').length;
     expect(run.ships.isRefitting(0)).toBe(true);
     // The new fin first, the engine still aboard.
-    for (let s = 0; s < 120 * 60 && run.ships.design(0).modules.length < 11; s++) run.step();
-    expect(run.ships.design(0).modules.length).toBe(11);
+    for (let s = 0; s < 120 * 60 && run.ships.currentStructure(0).modules.length < 11; s++) run.step();
+    expect(run.ships.currentStructure(0).modules.length).toBe(11);
     expect(engines()).toBe(1);
     for (let s = 0; s < 600 * 60 && run.ships.isRefitting(0); s++) run.step();
     expect(run.ships.isRefitting(0)).toBe(false);
-    expect(kinds(run.ships.design(0).modules)).toEqual(kinds(to.modules));
+    expect(kinds(run.ships.currentStructure(0).modules)).toEqual(kinds(to.modules));
     expect(engines()).toBe(0);
   });
 
   it('keeps what it shares with the design it is refitted to, as it was', () => {
     const run = alone();
-    const before = run.ships.design(run.a);
+    const before = run.ships.currentStructure(run.a);
     expect(run.ships.refit(run.world, run.a, compileBlueprint({ ...FROM, name: 'Same' }))).toBeNull();
     expect(run.ships.isRefitting(run.a)).toBe(false);
-    expect(run.ships.design(run.a).modules.map((m) => m.spec)).toEqual(before.modules.map((m) => m.spec));
+    expect(run.ships.currentStructure(run.a).modules.map((m) => m.spec)).toEqual(before.modules.map((m) => m.spec));
   });
 });
 
@@ -104,7 +104,7 @@ describe('a refit taking a tank down', () => {
     expect(run.ships.refit(run.world, run.a, compileBlueprint(lighter))).toBeNull();
     for (let s = 0; s < 600 * 60 && run.ships.isRefitting(run.a); s++) run.step();
     expect(run.ships.isRefitting(run.a)).toBe(false);
-    expect(run.ships.design(run.a).modules.filter((m) => m.spec.kind === 'tank').length).toBe(1);
+    expect(run.ships.currentStructure(run.a).modules.filter((m) => m.spec.kind === 'tank').length).toBe(1);
     expect(run.ships.fuel.left(b())).toBeCloseTo(before, 6);
   });
 });

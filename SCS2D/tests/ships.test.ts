@@ -679,7 +679,7 @@ describe('a queue of orders', () => {
    * name would quietly disarm nothing at all.
    */
   function wreck(r: Rig, ship: number, what: 'engine' | 'guns'): void {
-    const design = r.ships.design(ship);
+    const design = r.ships.currentStructure(ship);
     const body = r.world.bodies.indexOf(r.ships.body(ship));
     for (let m = 0; m < design.modules.length; m++) {
       const module = design.modules[m]!;

@@ -315,7 +315,7 @@ describe('a gun and the target it was trained on', () => {
         if (shooter < 0) continue;
         const own = bodies.indexOf(run.ships.body(shooter));
         if (own < 0) continue;
-        const design = run.ships.design(shooter);
+        const design = run.ships.currentStructure(shooter);
         const heading = Math.atan2(projectiles.vy[k]!, projectiles.vx[k]!);
         // Against the nearest of what the ship's mounts are aiming at: which
         // mount fired is not recorded on the round, and a round that lines up

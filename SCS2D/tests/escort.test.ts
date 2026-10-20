@@ -107,7 +107,7 @@ describe('escort and neutrals', () => {
       for (let h = 0; h < battle.credit.count; h++) {
         if (battle.credit.victim[h] === body) struck++;
       }
-      if (battle.ships.design(battle.neutral).modules.length === marker.modules.length) {
+      if (battle.ships.currentStructure(battle.neutral).modules.length === marker.modules.length) {
         worn = Math.min(worn, battle.ships.damage.integrity(body, 0));
       }
     }

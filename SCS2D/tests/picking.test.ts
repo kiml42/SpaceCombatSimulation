@@ -4,7 +4,7 @@ import { boxed, clicked, fighterGroup, sameDesign, shipViewAt, sideOf, stillTher
 
 function ship(index: number, team: number, x: number, y = 0, design = 'Corvette'): ShipView {
   return {
-    design: { radius: 20, name: design } as ShipView['design'],
+    currentStructure: { radius: 20, name: design } as ShipView['currentStructure'],
     body: 100 + index,
     ship: index,
     team,
@@ -86,10 +86,10 @@ describe('picking ships out', () => {
 });
 
 describe('a fleet strip tile of fighters', () => {
-  const fighter = { radius: 5, name: 'TIE', fighter: true } as unknown as ShipView['design'];
-  const other = { radius: 5, name: 'TIE', fighter: true } as unknown as ShipView['design'];
-  const craft = (index: number, team: number, design: ShipView['design'], hasControl = true): ShipView =>
-    ({ ...ship(index, team, index * 10), design, hasControl }) as ShipView;
+  const fighter = { radius: 5, name: 'TIE', fighter: true } as unknown as ShipView['currentStructure'];
+  const other = { radius: 5, name: 'TIE', fighter: true } as unknown as ShipView['currentStructure'];
+  const craft = (index: number, team: number, design: ShipView['currentStructure'], hasControl = true): ShipView =>
+    ({ ...ship(index, team, index * 10), currentStructure: design, hasControl }) as ShipView;
   const swarm = [
     craft(0, 0, fighter),
     craft(1, 0, fighter),
@@ -105,7 +105,7 @@ describe('a fleet strip tile of fighters', () => {
   });
 
   it('groups fighters by the design they are built to, not what damage has made of them', () => {
-    const knocked = { radius: 5, name: 'TIE', fighter: true } as unknown as ShipView['design'];
+    const knocked = { radius: 5, name: 'TIE', fighter: true } as unknown as ShipView['currentStructure'];
     const hurt = { ...craft(6, 0, knocked), blueprint: fighter } as ShipView;
     const whole = { ...craft(7, 0, fighter), blueprint: fighter } as ShipView;
     expect(fighterGroup(snapshotOf([whole, hurt]), whole)).toEqual([7, 6]);

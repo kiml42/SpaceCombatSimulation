@@ -236,7 +236,7 @@ describe('where a gun aims on a ship', () => {
     const a = aim(sniper);
     const bodies = a.world.bodies;
     const b = bodies.indexOf(a.ships.body(a.mark));
-    const design = a.ships.design(a.mark);
+    const design = a.ships.currentStructure(a.mark);
     for (let k = 0; k < design.modules.length; k++) {
       if (design.modules[k]!.spec.kind !== 'engine') continue;
       a.ships.damage.absorb(b, k, a.ships.damage.capacityLeft(b, k));

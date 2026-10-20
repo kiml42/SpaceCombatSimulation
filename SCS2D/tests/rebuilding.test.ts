@@ -45,7 +45,7 @@ function scene(vx = 0, angularVel = 0): Run {
   }));
 }
 const body = (run: Run): number => run.world.bodies.indexOf(run.ships.body(run.a));
-const hull = (run: Run): ShipDesign => run.ships.design(run.a);
+const hull = (run: Run): ShipDesign => run.ships.currentStructure(run.a);
 /** The module of the hull that is module `m` of the design it set out as, or -1. */
 const find = (run: Run, m: number): number =>
   hull(run).modules.findIndex((module, k) => (module.origin?.design ?? hull(run)) === builder && (module.origin?.module ?? k) === m);
@@ -214,7 +214,7 @@ describe('robots rebuilding', () => {
     const b = (): number => run.world.bodies.indexOf(run.ships.body(run.a));
     for (const robot of run.ships.robots.on(b())!) robot.charge = 0;
     lose(run, FIN, HOLD);
-    const hull2 = (): ShipDesign => run.ships.design(run.a);
+    const hull2 = (): ShipDesign => run.ships.currentStructure(run.a);
     const rebuilt = (): boolean =>
       hull2().modules.some((m) => m.origin?.design === hoarder && m.origin.module === FIN && m.shell === undefined);
     runUntil(run, rebuilt, 600);
@@ -272,7 +272,7 @@ describe('robots rebuilding', () => {
     const other = run.world.bodies.indexOf(run.ships.body(1));
     run.world.bodies.y[other] = run.world.bodies.y[other]! - 200;
     const whole = (i: number): boolean => {
-      const hull = run.ships.design(i);
+      const hull = run.ships.currentStructure(i);
       const b = run.world.bodies.indexOf(run.ships.body(i));
       return (
         hull.modules.length === catamaran.modules.length &&
@@ -282,7 +282,7 @@ describe('robots rebuilding', () => {
     runUntil(run, () => whole(0) && whole(1), 6000);
     expect(whole(0)).toBe(true);
     expect(whole(1)).toBe(true);
-    expect(run.ships.design(0).cores.length).toBe(2);
+    expect(run.ships.currentStructure(0).cores.length).toBe(2);
     // Each named for the core it kept, its cores numbered as the ship it came of numbered them.
     expect([run.ships.nameOf(0), run.ships.nameOf(1)].sort()).toEqual(['1.1', '1.2']);
     for (const i of [0, 1]) {

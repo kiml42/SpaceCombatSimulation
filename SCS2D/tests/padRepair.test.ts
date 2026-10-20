@@ -65,7 +65,7 @@ function runUntil(run: Run, done: () => boolean, seconds: number): void {
 /** What fighter module `m` has absorbed, wherever the fighter is. */
 function absorbed(run: Run, m: number): number {
   const b = run.world.bodies.indexOf(run.ships.body(run.f));
-  return run.ships.damage.absorbedAt(b, aboard(run) ? run.ships.design(run.c).modules.length - fighter.modules.length + m : m);
+  return run.ships.damage.absorbedAt(b, aboard(run) ? run.ships.currentStructure(run.c).modules.length - fighter.modules.length + m : m);
 }
 
 describe('a pad', () => {
@@ -114,7 +114,7 @@ describe('a pad', () => {
     // Not a kilogram left aboard the carrier.
     const empty = (): boolean => {
       const b = run.world.bodies.indexOf(run.ships.body(run.c));
-      for (let m = 0; m < run.ships.design(run.c).modules.length; m++) run.ships.metal.drain(b, m, run.ships.metal.held(b, m));
+      for (let m = 0; m < run.ships.currentStructure(run.c).modules.length; m++) run.ships.metal.drain(b, m, run.ships.metal.held(b, m));
       return !aboard(run);
     };
     runUntil(run, empty, 30);
@@ -143,14 +143,14 @@ describe('a pad', () => {
     for (let j = 0; j < run.world.bodies.highWater; j++) {
       if (run.world.bodies.alive[j] === 1 && !kept.includes(j)) run.world.bodies.y[j] = run.world.bodies.y[j]! + 5000;
     }
-    expect(run.ships.design(run.f).modules.length).toBe(fighter.modules.length - 1);
+    expect(run.ships.currentStructure(run.f).modules.length).toBe(fighter.modules.length - 1);
     const metal = (): number => run.ships.metal.pieceHeld(run.world.bodies.indexOf(run.ships.body(run.c)), HOLD);
     runUntil(run, () => aboard(run), 60);
     expect(aboard(run)).toBe(true);
     const before = metal();
     runUntil(run, () => !aboard(run), 300);
     expect(aboard(run)).toBe(false);
-    const flown = run.ships.design(run.f);
+    const flown = run.ships.currentStructure(run.f);
     const b = run.world.bodies.indexOf(run.ships.body(run.f));
     expect(flown.modules.length).toBe(fighter.modules.length);
     expect(flown.modules.every((m, k) => m.shell === undefined && !(run.ships.damage.unbuiltAt(b, k) > 0))).toBe(true);

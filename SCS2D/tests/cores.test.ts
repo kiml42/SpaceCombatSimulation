@@ -57,7 +57,7 @@ function scene(design: ShipDesign, spin = 0.2): Scene {
 
 /** Cut the weld between two modules clean through, which parts them with no blow. */
 function cutBetween(s: Scene, a: number, b: number): void {
-  const all = joints(s.ships.design(s.ship));
+  const all = joints(s.ships.currentStructure(s.ship));
   const index = all.findIndex((joint) => joint.a === a && joint.b === b);
   s.ships.damage.cutWeld(s.body, index, all[index]!.width);
 }
@@ -124,7 +124,7 @@ describe('a ship with its core shot out', () => {
     s.ships.damage.absorb(s.body, 0, 1e12);
     expect(s.ships.hasControl(s.ship)).toBe(false);
     // Nothing is wrong with either of them but what would tell them what to do.
-    expect(s.ships.design(s.ship).turrets).toHaveLength(1);
+    expect(s.ships.currentStructure(s.ship).turrets).toHaveLength(1);
     expect(s.ships.isTurretDisabled(s.ship, 0)).toBe(true);
     expect(s.ships.isDisarmed(s.ship)).toBe(true);
     expect(s.ships.hasNoEngines(s.ship)).toBe(true);
@@ -201,8 +201,8 @@ describe('a hull cut between its cores', () => {
     expect(s.ships.sever(s.world)).toBe(1);
 
     const other = s.ship + 1;
-    expect(s.ships.design(s.ship).modules).toHaveLength(1);
-    expect(s.ships.design(other).modules).toHaveLength(2);
+    expect(s.ships.currentStructure(s.ship).modules).toHaveLength(1);
+    expect(s.ships.currentStructure(other).modules).toHaveLength(2);
     for (const i of [s.ship, other]) {
       expect(s.ships.isDerelict(i)).toBe(false);
       expect(s.ships.hasControl(i)).toBe(true);
@@ -219,7 +219,7 @@ describe('a hull cut between its cores', () => {
     cutBetween(s, 0, 1);
     s.ships.sever(s.world);
     expect(s.ships.body(s.ship)).toBe(id);
-    expect(s.ships.design(s.ship).cores).toEqual([0]);
+    expect(s.ships.currentStructure(s.ship).cores).toEqual([0]);
   });
 
   it('hands the ship to the piece that can still be flown', () => {
@@ -232,11 +232,11 @@ describe('a hull cut between its cores', () => {
     expect(s.ships.sever(s.world)).toBe(1);
 
     expect(s.ships.body(s.ship)).toBe(id);
-    expect(s.ships.design(s.ship).modules).toHaveLength(2);
+    expect(s.ships.currentStructure(s.ship).modules).toHaveLength(2);
     expect(s.ships.hasControl(s.ship)).toBe(true);
 
     const gone = s.ship + 1;
-    expect(s.ships.design(gone).modules).toHaveLength(1);
+    expect(s.ships.currentStructure(gone).modules).toHaveLength(1);
     expect(s.ships.isDerelict(gone)).toBe(true);
   });
 

@@ -111,7 +111,7 @@ describe('a match of fleets', () => {
     const { ships, world, owners, slots } = match.battle;
     const at = slots.map((slot) => {
       const body = world.bodies.indexOf(ships.body(slot));
-      return { x: world.bodies.x[body]!, y: world.bodies.y[body]!, r: ships.design(slot).radius };
+      return { x: world.bodies.x[body]!, y: world.bodies.y[body]!, r: ships.currentStructure(slot).radius };
     });
     for (let i = 0; i < at.length; i++) {
       for (let k = i + 1; k < at.length; k++) {

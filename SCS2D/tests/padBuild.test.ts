@@ -107,8 +107,8 @@ describe('a pad building the fighters it keeps', () => {
     runFor(run, 600, () => run.ships.body(f!) !== run.ships.body(run.c));
     expect(run.ships.body(f!)).not.toBe(run.ships.body(run.c));
     expect(run.ships.isUnfinished(f!)).toBe(false);
-    expect(run.ships.design(f!).modules.length).toBe(dinky.modules.length);
-    expect(run.ships.design(f!).fighter).toBe(true);
+    expect(run.ships.currentStructure(f!).modules.length).toBe(dinky.modules.length);
+    expect(run.ships.currentStructure(f!).fighter).toBe(true);
     expect(run.ships.hasControl(f!)).toBe(true);
     expect(run.ships.isDisarmed(f!)).toBe(false);
     // Only one was kept, and it is in the fight.
@@ -123,7 +123,7 @@ describe('a pad building the fighters it keeps', () => {
     let burned = false;
     for (let s = 0; s < 240 * 60; s++) {
       run.step();
-      burned ||= run.ships.design(f!).engines.some((_, e) => run.ships.throttleOf(f!, e) > 0);
+      burned ||= run.ships.currentStructure(f!).engines.some((_, e) => run.ships.throttleOf(f!, e) > 0);
     }
     expect(run.ships.isUnfinished(f!)).toBe(false);
     expect(run.ships.body(f!)).toBe(run.ships.body(run.c));
@@ -144,7 +144,7 @@ describe('a pad building the fighters it keeps', () => {
     expect(run.ships.body(f!)).not.toBe(run.ships.body(run.c));
     // Its core shot out: a hulk, and no longer one of those kept.
     const b = run.world.bodies.indexOf(run.ships.body(f!));
-    const core = run.ships.design(f!).cores[0]!;
+    const core = run.ships.currentStructure(f!).cores[0]!;
     run.ships.damage.absorb(b, core, run.ships.damage.capacityLeft(b, core) * 2);
     expect(run.ships.hasControl(f!)).toBe(false);
     runFor(run, 5);
@@ -177,7 +177,7 @@ describe('a pad building the fighters it keeps', () => {
     expect(run.ships.isUnfinished(f!)).toBe(true);
     // Its pad shot half away: still building, and still holding on.
     const b = run.world.bodies.indexOf(run.ships.body(run.c));
-    const modules = run.ships.design(run.c).modules;
+    const modules = run.ships.currentStructure(run.c).modules;
     const pad = modules.findIndex((m, k) => m.spec.kind === 'pad' && m.spec.craft !== undefined && run.ships.owns(run.c, k));
     run.ships.damage.absorb(b, pad, run.ships.damage.capacityLeft(b, pad) * 0.3);
     expect(run.ships.damage.remaining(b, pad, DamageEffect.Grip)).toBeGreaterThan(0);
@@ -222,7 +222,7 @@ describe('a fighter on a pad, its engines lit', () => {
     const [f] = fighters(run);
     expect(run.ships.body(f!)).toBe(run.ships.body(run.c));
     const b = run.world.bodies.indexOf(run.ships.body(run.c));
-    const modules = run.ships.design(run.c).modules;
+    const modules = run.ships.currentStructure(run.c).modules;
     const pad = modules.findIndex((m, k) => m.spec.kind === 'pad' && m.spec.craft !== undefined && run.ships.owns(run.c, k));
     const before = run.ships.damage.absorbedAt(b, pad);
     // Full throttle on every engine, as if it had lit them where it sits.
@@ -246,7 +246,7 @@ describe('ships sharing a hull', () => {
     ] as const) {
       const numbers: number[] = [];
       run.ships.coreNumbers(i, numbers);
-      const cores = run.ships.design(i).cores;
+      const cores = run.ships.currentStructure(i).cores;
       // Every core is one ship's: this one numbers its own and marks the other's.
       for (let k = 0; k < cores.length; k++) {
         expect(numbers[k]! < 0, `ship ${i}, core ${cores[k]}`).toBe(
@@ -302,7 +302,7 @@ describe('a pad waiting on a fighter coming in', () => {
     expect(building()).toBe(false);
     // Every engine shot out on the way in: it can make for the pad no longer.
     const b = run.world.bodies.indexOf(run.ships.body(run.d));
-    const design = run.ships.design(run.d);
+    const design = run.ships.currentStructure(run.d);
     for (const engine of design.engines) run.ships.damage.absorb(b, engine.module!, run.ships.damage.capacityLeft(b, engine.module!));
     expect(run.ships.hasNoEngines(run.d)).toBe(true);
     runFor(run, 20, building);

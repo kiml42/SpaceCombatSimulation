@@ -97,7 +97,7 @@ describe('a tally', () => {
       const t = ships.spawn(world, { design: compileBlueprint(TANKER), x: 0, y: 0, angle: 0.4, team: 0 });
       const p = ships.spawn(world, { design: compileBlueprint(PICKET), x: -200, y: 150, angle: 0, team: 0 });
       const b = world.bodies.indexOf(ships.body(p));
-      for (let m = 0; m < ships.design(p).modules.length; m++) ships.fuel.vent(b, m, ships.fuel.held(b, m) * 0.8);
+      for (let m = 0; m < ships.currentStructure(p).modules.length; m++) ships.fuel.vent(b, m, ships.fuel.held(b, m) * 0.8);
       return { t, p };
     });
     for (let s = 0; s < 90 * 60 && run.ships.body(run.t) !== run.ships.body(run.p); s++) run.step();

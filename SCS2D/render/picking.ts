@@ -16,7 +16,7 @@ export function shipViewAt(snapshot: Snapshot, x: number, y: number, reach: numb
   for (let i = 0; i < snapshot.shipCount; i++) {
     const ship = snapshot.ships[i]!;
     const d = Math.hypot(ship.x - x, ship.y - y);
-    if (d > Math.max(ship.design.radius, reach) || d >= nearest) continue;
+    if (d > Math.max(ship.currentStructure.radius, reach) || d >= nearest) continue;
     nearest = d;
     best = ship;
   }
@@ -107,8 +107,8 @@ export function fighterGroup(snapshot: Snapshot, ship: ShipView | null): number[
 }
 
 /** The design a ship is built to, damage aside. */
-function blueprintOf(ship: ShipView): ShipView['design'] {
-  return ship.blueprint ?? ship.design;
+function blueprintOf(ship: ShipView): ShipView['currentStructure'] {
+  return ship.blueprint ?? ship.currentStructure;
 }
 
 /** Every ship on a side that can still be told anything. */

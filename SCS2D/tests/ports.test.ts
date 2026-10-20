@@ -60,12 +60,12 @@ describe('a ship low on fuel with a port', () => {
     const run = scene();
     runUntil(run, () => docked(run), 90);
     expect(docked(run)).toBe(true);
-    const seam = run.ships.design(run.p).seams!.find((s) => s.dock === 'port')!;
+    const seam = run.ships.currentStructure(run.p).seams!.find((s) => s.dock === 'port')!;
     expect(seam).toBeDefined();
     runUntil(run, () => !docked(run), 400);
     expect(docked(run)).toBe(false);
     const b = run.world.bodies.indexOf(run.ships.body(run.p));
-    expect(run.ships.fuel.pieceRoom(b, run.ships.design(run.p).cores[0]!)).toBeCloseTo(0, 3);
+    expect(run.ships.fuel.pieceRoom(b, run.ships.currentStructure(run.p).cores[0]!)).toBeCloseTo(0, 3);
     expect(run.totalContacts).toBeLessThan(10);
   });
 
@@ -97,7 +97,7 @@ describe('a ship low on fuel with a port', () => {
     const run = makeBattle({ seed: 3 }, (ships, world) => {
       const t = ships.spawn(world, { design: tankerOf(), x: 0, y: 0, angle: 0.4 });
       const tb = world.bodies.indexOf(ships.body(t));
-      const tanker = ships.design(t);
+      const tanker = ships.currentStructure(t);
       // Half empty, but above its own threshold, so it is not asking.
       for (let m = 0; m < tanker.modules.length; m++) ships.fuel.vent(tb, m, ships.fuel.held(tb, m) * 0.5);
       const p = ships.spawn(world, { design: giver, x: -200, y: 150, angle: 0 });
@@ -112,7 +112,7 @@ describe('a ship low on fuel with a port', () => {
     expect(tankerFuel()).toBeGreaterThan(before);
     // It kept its own half.
     const pb = run.world.bodies.indexOf(run.ships.body(run.p));
-    const core = run.ships.design(run.p).cores[0]!;
+    const core = run.ships.currentStructure(run.p).cores[0]!;
     const held = run.ships.fuel.pieceHeld(pb, core);
     expect(held / (held + run.ships.fuel.pieceRoom(pb, core))).toBeGreaterThan(0.45);
   });
@@ -131,7 +131,7 @@ describe('a ship low on fuel with a port', () => {
         angle: 0,
       });
       const b = world.bodies.indexOf(ships.body(p));
-      for (let m = 0; m < ships.design(p).modules.length; m++) ships.fuel.vent(b, m, ships.fuel.held(b, m) * 0.8);
+      for (let m = 0; m < ships.currentStructure(p).modules.length; m++) ships.fuel.vent(b, m, ships.fuel.held(b, m) * 0.8);
       return { t, p };
     });
     runUntil(run, () => docked(run), 120);

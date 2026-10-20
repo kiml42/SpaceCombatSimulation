@@ -30,7 +30,7 @@ function scavenger(scavengeFuelBelow: number, scavengeDanger = 1): ShipDesign {
 /** Shoot out a hull's cores, leaving a wreck with its tanks full. */
 function wreck(ships: Ships, world: World, ship: number): void {
   const body = world.bodies.indexOf(ships.body(ship));
-  const design = ships.design(ship);
+  const design = ships.currentStructure(ship);
   for (const core of design.cores) ships.damage.absorb(body, core, design.modules[core]!.stats.hitPoints * DAMAGE_ENERGY_PER_KG * 0.7);
 }
 

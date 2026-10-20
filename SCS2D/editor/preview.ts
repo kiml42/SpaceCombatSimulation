@@ -58,7 +58,7 @@ export const NO_TEAM = -1;
  */
 export function previewSnapshot(design: ShipDesign, out: Snapshot = new Snapshot()): Snapshot {
   const view = out.ships[0] ?? {
-    design,
+    currentStructure: design,
     body: -1,
     team: NO_TEAM,
     serial: 0,
@@ -76,7 +76,7 @@ export function previewSnapshot(design: ShipDesign, out: Snapshot = new Snapshot
   out.ships[0] = view;
   out.shipCount = 1;
 
-  view.design = design;
+  view.currentStructure = design;
   view.team = NO_TEAM;
   // The design expressed its modules about the centre of mass, so putting the
   // body there puts every module back at the coordinates it was written at.
@@ -115,7 +115,7 @@ export function previewSnapshot(design: ShipDesign, out: Snapshot = new Snapshot
     const fighter = aboard.design;
     const rider = out.ships[out.shipCount] ?? restingView(fighter);
     out.ships[out.shipCount++] = rider;
-    rider.design = fighter;
+    rider.currentStructure = fighter;
     rider.team = NO_TEAM;
     rider.x = design.centreOfMassX + pose.x;
     rider.y = design.centreOfMassY + pose.y;
@@ -135,7 +135,7 @@ export function previewSnapshot(design: ShipDesign, out: Snapshot = new Snapshot
 
 function restingView(design: ShipDesign): ShipView {
   return {
-    design,
+    currentStructure: design,
     body: -1,
     team: NO_TEAM,
     serial: 0,
@@ -158,7 +158,7 @@ function restingView(design: ShipDesign): ShipView {
 
 /** Light, at full throttle, every engine whose flame meets its own hull. */
 export function lightSelfBurning(view: ShipView): void {
-  const engines = view.design.engines;
+  const engines = view.currentStructure.engines;
   for (let t = 0; t < engines.length; t++) if ((engines[t]!.escaping ?? 1) < 1) view.throttles[t] = 1;
 }
 
@@ -168,7 +168,7 @@ export function lightSelfBurning(view: ShipView): void {
  * draws the burn glow from. Call again whenever the throttles shown change.
  */
 export function landOnSelf(view: ShipView): void {
-  const design = view.design;
+  const design = view.currentStructure;
   view.landed.length = landedLength(design);
   view.landed.fill(0);
   for (let t = 0; t < design.engines.length; t++) {
