@@ -170,7 +170,8 @@ export function doctrinePanel(view: BattleView): { update(shown: Snapshot): void
         const typed = input.value.trim();
         issue(row.field, typed === '' ? null : Number(typed));
       });
-      label.append(name, input);
+      label.append(name);
+      // Left of the box, so the box and its arrows stay put as it comes and goes.
       if (says) {
         const back = document.createElement('button');
         back.textContent = '↺';
@@ -178,6 +179,7 @@ export function doctrinePanel(view: BattleView): { update(shown: Snapshot): void
         back.addEventListener('click', () => issue(row.field, null));
         label.append(back);
       }
+      label.append(input);
       out.push(label);
     }
     return out;
