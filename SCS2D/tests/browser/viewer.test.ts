@@ -732,9 +732,13 @@ describe('the viewer in a browser', () => {
     await painted(page);
     expect(await last()).toContain('"kind":"doctrine"');
     expect(await last()).toContain('"value":7');
+    // Shown as told at once, with nothing else moving.
+    expect(await page.locator('#doctrinePanel label.told').count()).toBe(1);
     await page.locator('#doctrinePanel .tabs button', { hasText: 'Main weapons' }).click();
     await painted(page);
+    expect(await page.textContent('#doctrinePanel .tabs button.armed')).toBe('Main weapons');
     expect(await page.locator('#doctrinePanel input').count()).toBeGreaterThan(0);
+    expect(await page.isVisible('#doctrinePanel button:has-text("Revert all")')).toBe(true);
     await page.keyboard.press('p');
     await painted(page);
     expect(await page.isHidden('#doctrinePanel')).toBe(true);

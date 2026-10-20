@@ -160,6 +160,8 @@ export function doctrinePanel(view: BattleView): { update(shown: Snapshot): void
   let open = false;
   let part: DoctrinePart = 'ship';
   let shownKey = '';
+  /** Rebuild at the next frame whatever has focus: after an edit, so it shows what it now holds. */
+  let force = false;
   let last: Snapshot | null = null;
 
   const setOpen = (next: boolean): void => {
@@ -170,6 +172,7 @@ export function doctrinePanel(view: BattleView): { update(shown: Snapshot): void
       view.mark(null);
     }
     shownKey = '';
+    force = true;
   };
   toggle.addEventListener('click', () => setOpen(!open));
   window.addEventListener('keydown', (event) => {
@@ -187,12 +190,14 @@ export function doctrinePanel(view: BattleView): { update(shown: Snapshot): void
     if (placement === undefined) return false;
     part = `placement:${placement}`;
     shownKey = '';
+    force = true;
     return true;
   });
 
   const issue = (field: string, value: number | null): void => {
     view.issue({ kind: 'doctrine', ships: view.picked, part, field, value });
     shownKey = '';
+    force = true;
   };
 
   const rows = (ships: readonly ShipView[]): HTMLElement[] => {
@@ -274,6 +279,7 @@ export function doctrinePanel(view: BattleView): { update(shown: Snapshot): void
           keep: typed === '' ? null : Math.max(0, Math.floor(Number(typed))),
         });
         shownKey = '';
+        force = true;
       });
       label.append(name, craft, input);
       if (ships.some((ship) => ship.crafts?.[slot.key] !== undefined)) {
@@ -351,6 +357,7 @@ export function doctrinePanel(view: BattleView): { update(shown: Snapshot): void
       tab.addEventListener('click', () => {
         part = p;
         shownKey = '';
+        force = true;
         if (last !== null) update(last);
       });
       tabs.append(tab);
@@ -364,11 +371,12 @@ export function doctrinePanel(view: BattleView): { update(shown: Snapshot): void
     }
     if (body.childElementCount === 0) body.textContent = part === 'ship' ? '' : 'No such weapons';
     const reset = document.createElement('button');
-    reset.textContent = 'Back to design';
+    reset.textContent = 'Revert all';
     reset.title = 'Take all of this back to what the blueprint says';
     reset.addEventListener('click', () => {
       view.issue({ kind: 'resetDoctrine', ships: view.picked, part });
       shownKey = '';
+      force = true;
     });
     const hint = document.createElement('p');
     hint.textContent = view.picked.length === 1 ? 'Click a mount to tell it, and every copy of it, alone.' : '';
@@ -406,9 +414,17 @@ export function doctrinePanel(view: BattleView): { update(shown: Snapshot): void
         s.blueprint?.name ?? '',
       ]),
     ]);
-    if (key === shownKey || panel.contains(document.activeElement)) return;
+    // Never rebuilt under a box being typed in, unless that box has just been told.
+    const focus = document.activeElement;
+    const typing = panel.contains(focus) && (focus instanceof HTMLInputElement || focus instanceof HTMLSelectElement);
+    if (key === shownKey || (typing && !force)) return;
+    const fields = [...panel.querySelectorAll('input, select')];
+    const at = typing ? fields.indexOf(focus) : -1;
     shownKey = key;
+    force = false;
     render(ships);
+    // Back where it was, so a Tab after an edit goes on to the next box.
+    if (at >= 0) (panel.querySelectorAll('input, select')[at] as HTMLElement | undefined)?.focus();
   };
   return { update };
 }
