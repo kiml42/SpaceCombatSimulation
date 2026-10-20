@@ -41,6 +41,8 @@ const MAX_STEPS_PER_FRAME = 32;
 /** The keys that arm a verb, and the one that stops. */
 const VERB_KEYS: Readonly<Record<string, Verb>> = { t: 'attack', d: 'defend', r: 'ram' };
 const STOP_KEY = 's';
+/** Picks the whole side of the selection, or the first side. */
+const SIDE_KEY = 'a';
 const BOX_COLOUR = '#9fb4cc';
 
 /** The ship drawn as a body, or null. */
@@ -271,8 +273,12 @@ export function battleView(
     } else if (event.key === 'Escape') {
       if (armed !== null) armed = null;
       else picked = [];
-    } else if (ordersAllowed && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a') {
+    } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === ARCS_KEY) {
+      // Not the browser's select-all.
       event.preventDefault();
+      arcs = nextArcs(arcs);
+      remember();
+    } else if (ordersAllowed && !event.altKey && event.key.toLowerCase() === SIDE_KEY) {
       const side = sideOf(snapshot, picked) ?? 0;
       picked = wholeSide(snapshot, side);
     } else if (ordersAllowed && !event.ctrlKey && !event.metaKey && picked.length > 0 && VERB_KEYS[event.key.toLowerCase()] !== undefined) {
@@ -282,9 +288,6 @@ export function battleView(
       if (sideOf(snapshot, picked) !== null) issue({ kind: 'stop', ships: picked });
     } else if (event.key === 'f' || event.key === 'F') {
       autoFrame = true;
-    } else if (event.key.toLowerCase() === ARCS_KEY && !event.ctrlKey && !event.metaKey) {
-      arcs = nextArcs(arcs);
-      remember();
     } else if (event.key.toLowerCase() === TEAM_SHOTS_KEY && !event.ctrlKey && !event.metaKey) {
       teamShots = !teamShots;
       remember();

@@ -121,7 +121,7 @@ export function nextArcs(arcs: Arcs): Arcs {
   return arcs === 'none' ? 'firing' : arcs === 'firing' ? 'trigger' : 'none';
 }
 
-/** The key that cycles `Arcs` on every page that draws ships. */
+/** The key that cycles `Arcs`: alone in the editors, with Ctrl or Cmd on a battle, where alone it picks a side. */
 export const ARCS_KEY = 'a';
 
 /** The key that toggles rounds and beams between light and their side's colours. */

@@ -424,8 +424,8 @@ describe('the viewer in a browser', () => {
   it('remembers the speed, the arcs and the shot colours for the next visit', async () => {
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
     await page.selectOption('#speed', '4');
-    await page.keyboard.press('a');
-    await page.keyboard.press('a');
+    await page.keyboard.press('Control+a');
+    await page.keyboard.press('Control+a');
     await page.keyboard.press('c');
     expect(JSON.parse((await page.evaluate(() => localStorage.getItem('scs2d.view.viewer')))!)).toEqual({
       arcs: 'trigger',
@@ -438,7 +438,7 @@ describe('the viewer in a browser', () => {
     await page.waitForFunction(() => /step \d+/.test(document.getElementById('readout')?.textContent ?? ''));
     expect(await page.inputValue('#speed')).toBe('4');
     // Pressed once more, the arcs go on round from where they were left, to none.
-    await page.keyboard.press('a');
+    await page.keyboard.press('Control+a');
     expect(JSON.parse((await page.evaluate(() => localStorage.getItem('scs2d.view.viewer')))!).arcs).toBe('none');
   });
 
@@ -560,6 +560,9 @@ describe('the viewer in a browser', () => {
     await click(1);
     await click(0, { right: true });
     expect(JSON.stringify((await orders()).at(-1))).toContain('"defend"');
+    // A alone takes the picked ship's whole side.
+    await page.keyboard.press('a');
+    expect(await page.evaluate(() => (window as unknown as { viewer: { picked: number[] } }).viewer.picked)).toEqual([0, 1]);
     await page.keyboard.press('Escape');
     await painted(page);
     expect(await page.isHidden('#orderBar')).toBe(true);
