@@ -17,14 +17,7 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 
 ## General
 - Only the dome of turrets should be in the turret layer, the box should be wholly in the hull layer.
-- Control radius for cores - the thing that makes bigger ships need a bigger core!
-  - Any component even touching the circle will have control
-  - Show the radius in the editor
-  - Highlight active modules that wouldn't have control
-  - When the core is smaller than the normal computer share the radius is reduced - aim for making Dinky just about work
-  - When the core gets its full computer share the radius should be at a maximum.
-  - Large ships will need multiple cores.
-  - Possibly allow scaling the computing up beyond the default share to increases command radius.
+- Control radius for cores: written up in ROADMAP.md §12, "A control radius for cores".
 - Hysteresis on decision to use attack or thrust orientation, to avoid flip-flopping.
 - Fighters should be able to dip into the hull layer (like they do for ramming) so they can fire beams and non-fragmenting projectiles at the hulls of ships. The balancing cost of this is that they can be hit by anything.
 - Ships shouldn't fire engines that make them spin faster while trying to cancel out a spin. The pilot trying to hold orientation should generally win.
