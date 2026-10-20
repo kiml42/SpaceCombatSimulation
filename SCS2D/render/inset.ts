@@ -38,8 +38,15 @@ export interface InsetShip {
 }
 
 export interface InsetSettings {
-  /** Side of a window, canvas pixels. */
-  readonly size: number;
+  /**
+   * Canvas pixels a metre in every window between `least` and `most`, so two
+   * ships shown close up are shown to scale. A window is as big as that makes
+   * its ship, within those bounds; one held to a bound is zoomed to fit it.
+   */
+  readonly zoom: number;
+  /** Smallest and largest side of a window, canvas pixels. */
+  readonly least: number;
+  readonly most: number;
   /** Gap kept from the view's edge and between windows, canvas pixels. */
   readonly margin: number;
   /** A ship drawn smaller across than this, canvas pixels, is too small to read. */
@@ -69,10 +76,12 @@ export function insetFor(
   heightPx: number,
   settings: InsetSettings,
 ): Inset | null {
-  const { size, margin, smallest } = settings;
+  const { zoom, least, most, margin, smallest } = settings;
   const at = onScreen(camera, widthPx, heightPx, ship.x, ship.y);
   const off = at.x < 0 || at.x > widthPx || at.y < 0 || at.y > heightPx;
   if (!off && 2 * ship.radius * camera.scale >= smallest) return null;
+  const radius = Math.max(ship.radius, 0.1);
+  const size = clamp((2 * radius * zoom) / FILL, least, most);
   const half = size / 2;
   const cx = clamp(at.x, margin + half, widthPx - margin - half);
   const cy = clamp(at.y, margin + half, heightPx - margin - half);
@@ -81,7 +90,7 @@ export function insetFor(
     x: cx - half,
     y: cy - half,
     size,
-    camera: { x: ship.x, y: ship.y, scale: (half * FILL) / Math.max(ship.radius, 0.1), vx: ship.vx, vy: ship.vy },
+    camera: { x: ship.x, y: ship.y, scale: (half * FILL) / radius, vx: ship.vx, vy: ship.vy },
     toward: off ? Math.atan2(at.y - cy, at.x - cx) : null,
   };
 }
