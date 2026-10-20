@@ -725,7 +725,9 @@ describe('the viewer in a browser', () => {
     await page.keyboard.press('p');
     await painted(page);
     expect(await page.isVisible('#doctrinePanel')).toBe(true);
-    expect(await page.textContent('#doctrinePanel')).toContain('Remodel to');
+    // What it is built to, on the order bar.
+    expect(await page.isVisible('#remodelTo')).toBe(true);
+    expect(((await page.locator('#remodelTo option:checked').textContent()) ?? '').length).toBeGreaterThan(0);
     // Under the editor's headings.
     expect(await page.textContent('#doctrinePanel h3')).toBe('Picking a fight and closing on it');
     const speed = page.locator('#doctrinePanel input[data-field="approachSpeed"]');
@@ -744,6 +746,42 @@ describe('the viewer in a browser', () => {
     await page.keyboard.press('p');
     await painted(page);
     expect(await page.isHidden('#doctrinePanel')).toBe(true);
+    await page.keyboard.press('Escape');
+  }, 60_000);
+
+  it('shows what a ship is built to, and remodels it only on Remodel', async () => {
+    await page.selectOption('#scene', { label: 'Refitting' });
+    if ((await page.textContent('#play')) === 'Pause') await page.click('#play');
+    await painted(page);
+    const canvas = (await page.locator('#view').boundingBox())!;
+    const pick = async (): Promise<void> => {
+      const p = await page.evaluate(() =>
+        (window as unknown as { viewer: { screenOf(i: number): { x: number; y: number } } }).viewer.screenOf(0),
+      );
+      await page.mouse.click(canvas.x + p.x, canvas.y + p.y);
+      await page.waitForTimeout(1000);
+      await painted(page);
+    };
+    const orders = (): Promise<number> =>
+      page.evaluate(() => (window as unknown as { viewer: { orders: unknown[] } }).viewer.orders.length);
+    await pick();
+    expect(await page.isEnabled('#remodelTo')).toBe(true);
+    const built = await page.locator('#remodelTo option:checked').textContent();
+    expect(await page.isEnabled('#remodel')).toBe(false);
+    await page.selectOption('#remodelTo', { index: 1 });
+    expect(await page.isEnabled('#remodel')).toBe(true);
+    // Chosen but not given: let go and picked again, it shows what it is built to.
+    const before = await orders();
+    await page.keyboard.press('Escape');
+    await painted(page);
+    await pick();
+    expect(await page.locator('#remodelTo option:checked').textContent()).toBe(built);
+    expect(await orders()).toBe(before);
+    await page.selectOption('#remodelTo', { index: 1 });
+    await page.click('#remodel');
+    await painted(page);
+    expect(await orders()).toBe(before + 1);
+    expect(await page.locator('#remodelTo option:checked').textContent()).not.toBe(built);
     await page.keyboard.press('Escape');
   }, 60_000);
 

@@ -164,7 +164,9 @@ an entry is either still open or it is gone.
     - **Build counts** are settings in the same panel: each pad's or slipway's design and how many to keep,
       a standing count as now (0 stops it), not a queue.
     - **Remodel** is a setting too: the ship fights on while its robots rebuild it to the new design, as
-      `Ships.refit` does now.
+      `Ships.refit` does now. It sits on the order bar, showing what the ship is built to: choose another
+      and press Remodel, in two steps, and a choice not given goes back when the picking changes. A ship
+      with no robots has it shown but not offered.
     - **One design picker** for remodelling and for a build slot's design. It lists the side's designs in
       the battle, blueprints and craft, and the blueprint library, stock and saved, filtered to what would
       work: for a remodel, what `refit` accepts for every picked ship, with how much it would rebuild; for a
