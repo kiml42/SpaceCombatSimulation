@@ -75,20 +75,30 @@ export class Rewind {
     return best;
   }
 
-  /** Go to step `target`; true if it left the battle it had for a copy. */
-  seek(target: number): boolean {
+  /**
+   * Go to step `target`; true if it left the battle it had for a copy.
+   * `restored` is told when it does, before stepping on; `stepped` after each
+   * step on, for what a viewer would have drawn of it.
+   */
+  seek(target: number, restored?: () => void, stepped?: (battle: Battle) => void): boolean {
     const to = max(0, floor(target));
     let from = 0;
     for (const step of this.checkpoints.keys()) if (step <= to) from = step;
     // Stepping on from where it is beats copying a checkpoint no nearer.
-    const restored = to < this.at || from > this.at;
-    if (restored) {
+    const copied = to < this.at || from > this.at;
+    if (copied) {
       this.battle = sizedClone(this.checkpoints.get(from)!.battle).copy;
+      // What the original had not yet drawn when the copy was taken is long gone.
+      this.battle.impacts.log.clear();
       this.at = from;
       this.last = from;
+      restored?.();
     }
-    while (this.at < to) this.step();
-    return restored;
+    while (this.at < to) {
+      this.step();
+      stepped?.(this.battle);
+    }
+    return copied;
   }
 
   private lastKept(): number {

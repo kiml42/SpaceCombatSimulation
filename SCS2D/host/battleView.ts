@@ -1,4 +1,4 @@
-import { capture, Snapshot } from '../sim/index.js';
+import { capture, Snapshot, type ImpactLog } from '../sim/index.js';
 import { Flashes } from '../render/flashes.js';
 import { ARCS_KEY, draw, nextArcs, TEAM_SHOTS_KEY, type Arcs } from '../render/canvas2d.js';
 import {
@@ -165,6 +165,27 @@ export function battleView(
     }
   });
 
+  /** What a step hit, into the flashes, as `capture` hands it over. */
+  const drain = (log: ImpactLog): void => {
+    for (let i = 0; i < log.count; i++) {
+      flashes.add(
+        log.x[i]!,
+        log.y[i]!,
+        log.energy[i]!,
+        log.kind[i]!,
+        log.body[i]!,
+        log.localX[i]!,
+        log.localY[i]!,
+        log.vx[i]!,
+        log.vy[i]!,
+        log.growth[i]!,
+        log.dirX[i]!,
+        log.dirY[i]!,
+      );
+    }
+    log.clear();
+  };
+
   const tick = (now: number): void => {
     window.requestAnimationFrame(tick);
     if (last === 0) last = now;
@@ -172,17 +193,19 @@ export function battleView(
     last = now;
     if (battle === null) return;
 
-    // A seek is a jump, not time passing: nothing follows the ships across it, and no flash fades over it.
+    // A seek is a jump, not time passing: the camera is carried across it, not run on over it.
     let jumped = false;
     let anchors: JumpAnchor[] | null = null;
     if (seeking >= 0 && rewind !== null) {
       // The ships being followed, from the picture last drawn, before it is replaced.
       if (!autoFrame) anchors = jumpAnchors(camera, snapshot, canvas.width, canvas.height);
-      if (rewind.seek(seeking)) {
-        battle = rewind.battle;
-        rewound(battle);
-      } else battle = rewind.battle;
-      flashes.clear();
+      // Flashes are rebuilt across the steps re-simulated, aged as they would have been drawn.
+      const restored = rewind.seek(seeking, () => flashes.clear(), (on) => {
+        flashes.step(on.dt);
+        drain(on.impacts.log);
+      });
+      battle = rewind.battle;
+      if (restored) rewound(battle);
       jumped = true;
       seeking = -1;
       accumulator = 0;
