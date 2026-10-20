@@ -141,6 +141,8 @@ export function makeBattle<Extra extends object = Record<never, never>>(
     totalCulled: 0,
 
     step(): void {
+      // What changes is read through `this`, so a copy of the battle steps its own (`clone.ts`).
+      const { credit, impacts, ships, world, collisions, grid, beams, beamHits, projectiles, hits } = this;
       // Filled by this step's collisions and hits, for whatever is scoring the battle.
       credit.clear();
       if (!impacts.log.watched) impacts.log.clear();
@@ -149,11 +151,11 @@ export function makeBattle<Extra extends object = Record<never, never>>(
       // Hulls are solid: what the world's step drove into each other is pushed
       // back apart before anything asks where anything is.
       collisions.step(world.bodies, ships);
-      run.totalContacts += collisions.contacts.count;
+      this.totalContacts += collisions.contacts.count;
       impacts.collisions(ships, ships.damage, world.bodies, collisions.contacts, credit);
       // A slow contact onto torn metal hooks the two into one, once the crush
       // has decided what is torn.
-      run.totalWelded += ships.weld(world, collisions.contacts);
+      this.totalWelded += ships.weld(world, collisions.contacts);
       // What claws hold is pumped aboard, what pads hold is filled, and a dock
       // done with it lets go; then fighters settled onto pads are taken aboard.
       ships.pump(world);
@@ -166,23 +168,23 @@ export function makeBattle<Extra extends object = Record<never, never>>(
       beams.clear();
       beamHits.clear();
       const fireReport = ships.fire(world, projectiles, beams, grid, beamHits, impacts.log);
-      run.totalProjectilesFired += fireReport.projectilesFired;
-      run.totalBeamsFired += fireReport.beamsFired;
+      this.totalProjectilesFired += fireReport.projectilesFired;
+      this.totalBeamsFired += fireReport.beamsFired;
       // Exhaust burns whatever it is playing on, which is as much a weapon as
       // a gun and answers to the same rebuilt index.
       ships.scorch(world, grid, dt);
       projectiles.step(dt, world.bodies, grid, hits, wells, ships.hulls, world.rng);
       impacts.bursts(projectiles);
-      run.totalBeamHits += beamHits.count;
+      this.totalBeamHits += beamHits.count;
       // What the hits did. Rounds walk the modules along their path, a step's
       // travel at a time, and are killed or sent on their way; beams pour their power into what they are
       // burning through.
       impacts.rounds(ships, ships.damage, world.bodies, projectiles, hits, ships, credit, dt, grid, ships.hulls, world.rng);
       // After, so that a round going on from one hull into the next counts.
-      run.totalProjectileHits += hits.count;
+      this.totalProjectileHits += hits.count;
       impacts.beams(ships.damage, beams, beamHits, dt, world.bodies, ships, credit);
-      run.totalSevered += ships.sever(world, collisions.contacts);
-      run.totalCulled += ships.cull(world);
+      this.totalSevered += ships.sever(world, collisions.contacts);
+      this.totalCulled += ships.cull(world);
     },
   };
 

@@ -232,6 +232,11 @@ function commandLinks(design: ShipDesign): readonly (readonly number[])[] {
   return links;
 }
 
+/** What settles a hull's shed mass. An object, not a callback, so a copied battle's calls reach its own copy. */
+export interface ShedVisitor {
+  settleShedOf(bodyIndex: number, kg: number): void;
+}
+
 /**
  * What every ship in the world has taken, by body index and module.
  *
@@ -488,24 +493,24 @@ export class Damage {
   }
 
   /** The same for one body alone, if it has shed anything since. */
-  takeUnsettledAt(bodyIndex: number, visit: (bodyIndex: number, kg: number) => void): void {
+  takeUnsettledAt(bodyIndex: number, visit: ShedVisitor): void {
     const kg = this.unsettled[bodyIndex] ?? 0;
     if (!(kg > 0)) return;
     this.unsettled[bodyIndex] = 0;
-    visit(bodyIndex, kg);
+    visit.settleShedOf(bodyIndex, kg);
   }
 
   /**
    * Every body that has shed mass since this was last asked, with how much,
    * for its mass to be settled and what it lost counted; each is then settled.
    */
-  takeUnsettled(visit: (bodyIndex: number, kg: number) => void): void {
+  takeUnsettled(visit: ShedVisitor): void {
     const bodies = this.unsettledBodies;
     for (let k = 0; k < bodies.length; k++) {
       const b = bodies[k]!;
       const kg = this.unsettled[b]!;
       this.unsettled[b] = 0;
-      if (kg > 0) visit(b, kg);
+      if (kg > 0) visit.settleShedOf(b, kg);
     }
     bodies.length = 0;
   }

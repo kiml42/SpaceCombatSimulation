@@ -205,6 +205,52 @@ describe('the viewer in a browser', () => {
     expect(await step(page)).toBeLessThan(10);
   });
 
+  it('winds back and on along the scrub bar, and a step back with the comma', async () => {
+    await advanced(page, 60);
+    await page.click('#play');
+    await painted(page);
+    const reached = await step(page);
+    const scrubTo = async (value: number): Promise<void> => {
+      await page.$eval(
+        '#scrub',
+        (input, v) => {
+          (input as HTMLInputElement).value = String(v);
+          input.dispatchEvent(new Event('input'));
+        },
+        value,
+      );
+      await painted(page);
+    };
+
+    // The bar lands on a checkpoint; the comma then steps back exactly.
+    await scrubTo(20);
+    const landed = await step(page);
+    expect(landed).toBeLessThan(reached);
+    expect(Number(await page.getAttribute('#scrub', 'max'))).toBe(reached);
+    await scrubTo(reached);
+    expect(await step(page)).toBe(reached);
+    await page.keyboard.press(',');
+    await painted(page);
+    expect(await step(page)).toBe(reached - 1);
+
+    await page.click('#play');
+  });
+
+  it('holds the battle while the scrub bar is held, and resumes on letting go', async () => {
+    await advanced(page, 30);
+    const box = (await page.locator('#scrub').boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    expect(await page.textContent('#play')).toBe('Play');
+    await painted(page);
+    const held = await step(page);
+    await page.waitForTimeout(200);
+    expect(await step(page)).toBe(held);
+    await page.mouse.up();
+    expect(await page.textContent('#play')).toBe('Pause');
+    expect(await advanced(page, held)).toBeGreaterThan(held);
+  });
+
   it('lists every scene by name, and plays the one that is picked', async () => {
     // A dropdown rather than a button that cycles: the list is long enough
     // that finding a scene by pressing "next" repeatedly is a poor way in.

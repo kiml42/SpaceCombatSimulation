@@ -37,7 +37,7 @@ inside any one file is not contiguous.
   it — the target disarmed, stranded, both, or simply gone — so a plan can be
   given in advance and worked through as targets are put out of the fight. A Canvas2D
   viewer draws snapshots of all of it — ships, turret bearings, tracers and the wells
-  bending them — with pause, single-step, a speed from a quarter to sixteen times, and zoom and pan over an
+  bending them — with pause, single-step, a scrub bar to wind it back and on, a speed from a quarter to sixteen times, and zoom and pan over an
   auto-framing camera, by mouse or by touch (pinch to zoom). A ship clicked or tapped is picked out — ringed, a line to what it is fighting, every arc and
   where its guns will fire drawn for it alone, whatever A is set to, and framed with its target — until Escape or a tap on empty space; on the evolution page's battles too. Where it or its target is off screen, or under 24 px across, it is shown close up in a window of its own over the view: over the ship if it is on screen, against the edge it is beyond if not, with a pointer towards it, the picked ship's window framed solid and its target's dashed. Ships well out of a view are not drawn, so a window costs little. Rounds and beams are drawn as light, or with C in the colours of the side that
   fired them, which the evolution page starts with. A, C and the speed are remembered by each page between visits. A ship's name — its side and which of that side's
