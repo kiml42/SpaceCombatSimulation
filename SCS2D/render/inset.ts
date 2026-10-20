@@ -26,6 +26,14 @@ export interface Inset extends InsetRect {
   readonly toward: number | null;
 }
 
+/** The part of the view windows are kept to, canvas pixels: all of it unless something covers its edges. */
+export interface InsetArea {
+  readonly left: number;
+  readonly top: number;
+  readonly right: number;
+  readonly bottom: number;
+}
+
 /** What placing a window needs of the ship it shows. */
 export interface InsetShip {
   readonly body: number;
@@ -66,8 +74,8 @@ function clamp(value: number, low: number, high: number): number {
 }
 
 /**
- * The window for one ship, or null if the view shows it well enough: on
- * screen, and at least `smallest` across.
+ * The window for one ship, or null if the view shows it well enough: within
+ * `area`, and at least `smallest` across.
  */
 export function insetFor(
   ship: InsetShip,
@@ -75,16 +83,17 @@ export function insetFor(
   widthPx: number,
   heightPx: number,
   settings: InsetSettings,
+  area: InsetArea = { left: 0, top: 0, right: widthPx, bottom: heightPx },
 ): Inset | null {
   const { zoom, least, most, margin, smallest } = settings;
   const at = onScreen(camera, widthPx, heightPx, ship.x, ship.y);
-  const off = at.x < 0 || at.x > widthPx || at.y < 0 || at.y > heightPx;
+  const off = at.x < area.left || at.x > area.right || at.y < area.top || at.y > area.bottom;
   if (!off && 2 * ship.radius * camera.scale >= smallest) return null;
   const radius = Math.max(ship.radius, 0.1);
   const size = clamp((2 * radius * zoom) / FILL, least, most);
   const half = size / 2;
-  const cx = clamp(at.x, margin + half, widthPx - margin - half);
-  const cy = clamp(at.y, margin + half, heightPx - margin - half);
+  const cx = clamp(at.x, area.left + margin + half, area.right - margin - half);
+  const cy = clamp(at.y, area.top + margin + half, area.bottom - margin - half);
   return {
     body: ship.body,
     x: cx - half,
@@ -105,16 +114,23 @@ function overlap(a: InsetRect, b: InsetRect, margin: number): boolean {
  * shorter, staying inside the view; the other way along that axis if the
  * shorter way would leave it.
  */
-export function separate(fixed: InsetRect, moving: InsetRect, widthPx: number, heightPx: number, margin: number): void {
+export function separate(
+  fixed: InsetRect,
+  moving: InsetRect,
+  widthPx: number,
+  heightPx: number,
+  margin: number,
+  area: InsetArea = { left: 0, top: 0, right: widthPx, bottom: heightPx },
+): void {
   if (!overlap(fixed, moving, margin)) return;
   const gap = moving.size + margin;
   const options = [
-    { axis: 'x' as const, to: fixed.x - gap, limit: widthPx },
-    { axis: 'x' as const, to: fixed.x + fixed.size + margin, limit: widthPx },
-    { axis: 'y' as const, to: fixed.y - gap, limit: heightPx },
-    { axis: 'y' as const, to: fixed.y + fixed.size + margin, limit: heightPx },
+    { axis: 'x' as const, to: fixed.x - gap, low: area.left, high: area.right },
+    { axis: 'x' as const, to: fixed.x + fixed.size + margin, low: area.left, high: area.right },
+    { axis: 'y' as const, to: fixed.y - gap, low: area.top, high: area.bottom },
+    { axis: 'y' as const, to: fixed.y + fixed.size + margin, low: area.top, high: area.bottom },
   ]
-    .filter((option) => option.to >= margin && option.to + moving.size <= option.limit - margin)
+    .filter((option) => option.to >= option.low + margin && option.to + moving.size <= option.high - margin)
     .sort((a, b) => Math.abs(a.to - moving[a.axis]) - Math.abs(b.to - moving[b.axis]));
   const best = options[0];
   if (best !== undefined) moving[best.axis] = best.to;
@@ -130,12 +146,13 @@ export function insetsFor(
   widthPx: number,
   heightPx: number,
   settings: InsetSettings,
+  area: InsetArea = { left: 0, top: 0, right: widthPx, bottom: heightPx },
 ): Inset[] {
   const insets: Inset[] = [];
   for (const ship of ships) {
-    const inset = insetFor(ship, camera, widthPx, heightPx, settings);
+    const inset = insetFor(ship, camera, widthPx, heightPx, settings, area);
     if (inset === null) continue;
-    for (const placed of insets) separate(placed, inset, widthPx, heightPx, settings.margin);
+    for (const placed of insets) separate(placed, inset, widthPx, heightPx, settings.margin, area);
     insets.push(inset);
   }
   return insets;
@@ -154,4 +171,70 @@ export function insetAt(insets: readonly Inset[], x: number, y: number): number 
 export function describeRange(metres: number): string {
   if (metres < 1000) return `${Math.round(metres)} m`;
   return `${Number((metres / 1000).toPrecision(3))} km`;
+}
+
+/** A label's centre, canvas pixels. */
+export interface LabelAt {
+  x: number;
+  y: number;
+}
+
+/** How far a `w` by `h` box reaches from its centre along the unit direction `ux`, `uy`. */
+function reach(ux: number, uy: number, w: number, h: number): number {
+  return (Math.abs(ux) * w) / 2 + (Math.abs(uy) * h) / 2;
+}
+
+/**
+ * A `w` by `h` label on the line from a ship towards its target, just past
+ * the ship: `start` canvas pixels out from the ship's centre and `gap` more,
+ * but never past the middle of a line `length` long, so it stays with the
+ * ship it belongs to. `ux`, `uy` is the line's direction on screen.
+ */
+export function labelAlong(x: number, y: number, ux: number, uy: number, start: number, length: number, w: number, h: number, gap: number): LabelAt {
+  const out = Math.min(start + gap + reach(ux, uy, w, h), length / 2);
+  return { x: x + ux * out, y: y + uy * out };
+}
+
+/**
+ * A `w` by `h` label just outside a window, on the side facing `toward` (a
+ * screen bearing, y down), `gap` clear of it — where a line from the window
+ * to what it points at would leave it. Kept in the view; where that would
+ * cover the window or one of `others`, the next side round towards `toward`.
+ */
+export function labelBeside(
+  box: InsetRect,
+  toward: number,
+  w: number,
+  h: number,
+  gap: number,
+  widthPx: number,
+  heightPx: number,
+  others: readonly InsetRect[] = [],
+): LabelAt {
+  const half = box.size / 2;
+  const cx = box.x + half;
+  const cy = box.y + half;
+  const keep = (at: LabelAt): LabelAt => ({
+    x: clamp(at.x, w / 2, widthPx - w / 2),
+    y: clamp(at.y, h / 2, heightPx - h / 2),
+  });
+  const covers = (at: LabelAt, r: InsetRect): boolean =>
+    at.x + w / 2 > r.x && at.x - w / 2 < r.x + r.size && at.y + h / 2 > r.y && at.y - h / 2 < r.y + r.size;
+  const clear = (at: LabelAt): boolean => !covers(at, box) && others.every((other) => !covers(at, other));
+  const beside = (bearing: number): LabelAt => {
+    const ux = Math.cos(bearing);
+    const uy = Math.sin(bearing);
+    const out = half / Math.max(Math.abs(ux), Math.abs(uy)) + gap + reach(ux, uy, w, h);
+    return keep({ x: cx + ux * out, y: cy + uy * out });
+  };
+  const facing = beside(toward);
+  if (clear(facing)) return facing;
+  // The four sides, nearest to facing first.
+  const turn = (a: number): number => Math.abs(Math.atan2(Math.sin(a - toward), Math.cos(a - toward)));
+  const sides = [0, Math.PI / 2, Math.PI, -Math.PI / 2].sort((a, b) => turn(a) - turn(b));
+  for (const side of sides) {
+    const at = beside(side);
+    if (clear(at)) return at;
+  }
+  return facing;
 }

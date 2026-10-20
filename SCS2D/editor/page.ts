@@ -1,3 +1,4 @@
+import { keyHelp } from '../host/keyHelp.js';
 import {
   DEFAULT_BURST_SPEED,
   barrelCalibres,
@@ -2498,14 +2499,23 @@ export function startEditor(): void {
   // Fixed text, although the position snap is not: the footer's height is part
   // of the canvas's, so a line that grows and shrinks resizes the view under
   // the ship. The live figure is drawn in the canvas corner instead.
-  hint.textContent =
-    'Click a module to select it, drag to move, drag a corner or edge to size it ' +
-    '(pushing its neighbours; Ctrl alone; Shift about its middle) or the knob to turn it; ' +
-    'select two touching modules to drag the face between them; ' +
-    'Shift-click to pick several and Create assembly, or Add them to the last assembly picked; ' +
-    'with an assembly selected, a new module goes into it. Positions snap to a tenth of the grid on ' +
-    `screen and facings to ${ANGLE_SNAP_DEGREES}° — hold Alt to escape. ` +
-    'Drag empty space to pan, scroll to zoom, F to fit, A to cycle the arcs drawn, Delete to remove, Ctrl+Z to undo.';
+  keyHelp(hint, [
+    { keys: 'Click a module', does: 'Select it' },
+    { keys: 'Drag a module', does: 'Move it' },
+    { keys: 'Drag a corner or edge', does: 'Size it, pushing its neighbours; with Ctrl, alone; with Shift, about its middle' },
+    { keys: 'Drag the knob', does: 'Turn it' },
+    { keys: 'Two touching selected', does: 'Drag the face between them' },
+    { keys: 'Shift-click', does: 'Pick several, to Create assembly or Add them to the last assembly picked' },
+    { keys: 'Assembly selected', does: 'A new module goes into it' },
+    { keys: 'Alt', does: `Hold to escape the snaps: positions to a tenth of the grid on screen, facings to ${ANGLE_SNAP_DEGREES}°` },
+    { keys: 'Drag empty space', does: 'Pan' },
+    { keys: 'Scroll', does: 'Zoom' },
+    { keys: 'F', does: 'Fit the ship in view' },
+    { keys: 'A', does: 'Cycle the arcs drawn' },
+    { keys: 'Delete or Backspace', does: 'Remove what is selected' },
+    { keys: 'Escape', does: 'Select nothing' },
+    { keys: 'Ctrl+Z, Ctrl+Shift+Z', does: 'Undo, redo' },
+  ]);
 
   resize();
   refresh();

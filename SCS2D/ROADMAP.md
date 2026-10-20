@@ -99,7 +99,7 @@ Nothing: every step up to 13 is built.
          would have been drawn; landing on a checkpoint re-simulates nothing, so it shows none until the
          next step.
     1. **Attack, defend and ram** — built, as settled below. Building it chose:
-       - **Keys:** T, D and R arm attack, defend and ram, and S stops. A takes the whole side, and the
+       - **Keys:** K, D and R arm attack, defend and ram (T being the fleet strips), and S stops. A takes the whole side, and the
          arcs moved to Ctrl or Cmd+A on every battle page; the editors keep A for them.
        - **The attacker preference is a filter:** defending, a ship picks only among the friend's
          attackers while there are any. The friend becomes its consort, held as firmly as a station.

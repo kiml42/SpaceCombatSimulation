@@ -1,7 +1,23 @@
 import { capture, NEUTRAL_TEAM, Snapshot, type ImpactLog, type ShipView } from '../sim/index.js';
 import { OrderCancelCondition } from '../sim/ships.js';
 import { Flashes } from '../render/flashes.js';
-import { ARCS_KEY, closeUpTapped, draw, drawCloseUps, nextArcs, TEAM_SHOTS_KEY, type Arcs } from '../render/canvas2d.js';
+import {
+  ARCS_KEY,
+  closeUps,
+  draw,
+  drawCloseUps,
+  drawFleetStrips,
+  drawTargetRange,
+  fleetStrips,
+  nextArcs,
+  overlayAt,
+  STRIPS_KEY,
+  stripsWidth,
+  TEAM_SHOTS_KEY,
+  type Arcs,
+} from '../render/canvas2d.js';
+import type { Strips } from '../render/fleetStrip.js';
+import type { Inset } from '../render/inset.js';
 import {
   frame,
   jumpAnchors,
@@ -39,7 +55,7 @@ import { keepSpeed, loadView, saveView, type ViewSettings } from './viewSettings
 const MAX_STEPS_PER_FRAME = 32;
 
 /** The keys that arm a verb, and the one that stops. */
-const VERB_KEYS: Readonly<Record<string, Verb>> = { t: 'attack', d: 'defend', r: 'ram' };
+const VERB_KEYS: Readonly<Record<string, Verb>> = { k: 'attack', d: 'defend', r: 'ram' };
 const STOP_KEY = 's';
 /** Picks the whole side of the selection, or the first side. */
 const SIDE_KEY = 'a';
@@ -159,12 +175,17 @@ export function battleView(
   let lastSimTime = 0;
   let arcs: Arcs = 'none';
   let teamShots = false;
+  let strips = true;
+  /** What was last drawn over the view, for a tap to find. */
+  let shownStrips: Strips | null = null;
+  let shownInsets: Inset[] = [];
   /** Where the view's settings are kept, once a page has asked for them to be. */
   let kept: { page: string; settings: ViewSettings } | null = null;
   const remember = (): void => {
     if (kept === null) return;
     kept.settings.arcs = arcs;
     kept.settings.teamShots = teamShots;
+    kept.settings.strips = strips;
     saveView(kept.page, kept.settings);
   };
 
@@ -200,9 +221,9 @@ export function battleView(
       autoFrame = false;
     },
     (x, y, reach, shift) => {
-      // A close-up first: it is drawn over whatever is under it. Not with
-      // Shift, which adds the ship under the pointer in the battle itself.
-      const shown = shift ? -1 : closeUpTapped(snapshot, camera, canvas.width, canvas.height, selected, window.devicePixelRatio || 1, x, y);
+      // A tile or close-up first: it is drawn over whatever is under it. Not
+      // with Shift, which adds the ship under the pointer in the battle itself.
+      const shown = shift ? -1 : overlayAt(shownStrips, shownInsets, camera, canvas.width, canvas.height, x, y);
       const ship = shown >= 0 ? viewByBody(snapshot, shown) : shipViewAt(snapshot, x, y, reach);
       if (armed !== null && ship !== null) {
         order(armed, ship, shift, armedCancel);
@@ -291,6 +312,9 @@ export function battleView(
     } else if (event.key.toLowerCase() === TEAM_SHOTS_KEY && !event.ctrlKey && !event.metaKey) {
       teamShots = !teamShots;
       remember();
+    } else if (event.key.toLowerCase() === STRIPS_KEY && !event.ctrlKey && !event.metaKey) {
+      strips = !strips;
+      remember();
     }
   });
 
@@ -356,15 +380,19 @@ export function battleView(
     const simDt = !jumped && view.time > lastSimTime ? view.time - lastSimTime : 0;
     lastSimTime = view.time;
 
+    const ratio = window.devicePixelRatio || 1;
+    const tiles = strips ? fleetStrips(view, canvas.width, canvas.height, ratio) : null;
+    // Framed between the strips, which cover the view's edges.
+    const framedWidth = canvas.width - 2 * stripsWidth(tiles);
     moveWithVisibleShips(camera, view, simDt, canvas.width, canvas.height);
     if (anchors !== null) moveAcrossJump(camera, anchors, view);
     if (autoFrame) {
       if (!framed) {
-        frame(camera, view, canvas.width, canvas.height, 1);
+        frame(camera, view, framedWidth, canvas.height, 1);
         framed = true;
       }
       // Framed exactly across a jump, rather than eased there in real time.
-      frame(camera, pickedBounds(view, picked) ?? view, canvas.width, canvas.height, jumped ? 1 : undefined);
+      frame(camera, pickedBounds(view, picked) ?? view, framedWidth, canvas.height, jumped ? 1 : undefined);
     }
 
     // Flashes fade on the battle's clock, so a paused battle holds them.
@@ -389,7 +417,12 @@ export function battleView(
     selected = viewOf(view, picked[0])?.body ?? -1;
     const also = picked.slice(1).map((i) => viewOf(view, i)?.body ?? -1);
     draw(ctx, view, camera, canvas.width, canvas.height, flashes, arcs, teamShots, selected, also);
-    drawCloseUps(ctx, view, camera, canvas.width, canvas.height, selected, window.devicePixelRatio || 1, flashes, arcs, teamShots);
+    if (tiles !== null) drawFleetStrips(ctx, view, tiles, selected, ratio, flashes, arcs, teamShots);
+    const insets = closeUps(view, camera, canvas.width, canvas.height, selected, ratio, tiles);
+    drawCloseUps(ctx, view, insets, selected, ratio, flashes, arcs, teamShots);
+    drawTargetRange(ctx, view, camera, canvas.width, canvas.height, selected, insets, ratio);
+    shownStrips = tiles;
+    shownInsets = insets;
     if (box !== null) {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.strokeStyle = BOX_COLOUR;
@@ -467,10 +500,11 @@ export function battleView(
       autoFrame = true;
     },
     keep(page, select) {
-      const settings = loadView(page, { arcs, teamShots, speed });
+      const settings = loadView(page, { arcs, teamShots, strips, speed });
       kept = { page, settings };
       arcs = settings.arcs;
       teamShots = settings.teamShots;
+      strips = settings.strips;
       speed = keepSpeed(select, page, settings);
     },
     camera,

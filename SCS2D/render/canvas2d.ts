@@ -35,7 +35,8 @@ import {
   berthGrid,
 } from '../sim/index.js';
 import { gridStep, type Camera } from './camera.js';
-import { describeRange, insetAt, insetsFor, type Inset, type InsetShip } from './inset.js';
+import { describeRange, insetAt, insetsFor, labelAlong, labelBeside, type Inset, type InsetArea, type InsetShip, type LabelAt } from './inset.js';
+import { stripsFor, stripTileAt, type StripColumn, type Strips } from './fleetStrip.js';
 import { fighterColours, NEUTRAL, shipColours, teamName } from './teams.js';
 
 export { teamColour } from './teams.js';
@@ -126,6 +127,9 @@ export const ARCS_KEY = 'a';
 
 /** The key that toggles rounds and beams between light and their side's colours. */
 export const TEAM_SHOTS_KEY = 'c';
+
+/** The key that shows and hides each side's ships down the view's edges. */
+export const STRIPS_KEY = 't';
 
 const BEAM = '#3df72c';
 const BEAM_GLOW = '#a8f132';
@@ -1493,6 +1497,9 @@ export function draw(
 /** Pixels round a ship within which it is still drawn when its hull is just out of view: its icon and name. */
 const CULL_PAD_PX = 48;
 
+/** The world box the scene being drawn shows, padded, for skipping rounds and beams nowhere near it. */
+const shownBox = { x: 0, y: 0, halfW: Infinity, halfH: Infinity };
+
 /** `draw`, into the `widthPx` by `heightPx` box whose top left is at `left`, `top`. */
 function drawScene(
   ctx: CanvasRenderingContext2D,
@@ -1524,6 +1531,10 @@ function drawScene(
   // battle again for one ship. One with its arcs showing is, since they reach.
   const halfW = (widthPx / 2 + CULL_PAD_PX) / camera.scale;
   const halfH = (heightPx / 2 + CULL_PAD_PX) / camera.scale;
+  shownBox.x = camera.x;
+  shownBox.y = camera.y;
+  shownBox.halfW = halfW;
+  shownBox.halfH = halfH;
   const shown = (ship: ShipView): boolean =>
     arcsFor(ship.body, selected, arcs) !== 'none' ||
     (Math.abs(ship.x - camera.x) - ship.design.radius <= halfW && Math.abs(ship.y - camera.y) - ship.design.radius <= halfH);
@@ -1558,6 +1569,18 @@ function drawScene(
   drawProjectiles(ctx, snapshot, camera, teamShots);
   drawBeams(ctx, snapshot, camera, teamShots);
   if (flashes !== undefined) drawFlashes(ctx, snapshot, flashes, camera);
+  shownBox.halfW = Infinity;
+  shownBox.halfH = Infinity;
+}
+
+/** Whether a segment's box reaches the box being drawn. */
+function nearShown(x0: number, y0: number, x1: number, y1: number): boolean {
+  return (
+    Math.max(x0, x1) >= shownBox.x - shownBox.halfW &&
+    Math.min(x0, x1) <= shownBox.x + shownBox.halfW &&
+    Math.max(y0, y1) >= shownBox.y - shownBox.halfH &&
+    Math.min(y0, y1) <= shownBox.y + shownBox.halfH
+  );
 }
 
 /** CSS pixels a metre in a close-up, where its size is not held to a bound: a Gunship's is about 150 px. */
@@ -1577,61 +1600,66 @@ const CLOSE_UP_POINTER_PX = 9;
  * the view shows it off screen or too small to read. `ratio` is canvas pixels
  * per CSS pixel.
  */
-export function closeUps(snapshot: Snapshot, camera: Camera, widthPx: number, heightPx: number, selected: number, ratio = 1): Inset[] {
-  const ship = shipByBody(snapshot, selected);
-  if (ship === null) return [];
-  const ships: InsetShip[] = [ship, shipByBody(snapshot, ship.fighting ?? -1)]
-    .filter((s): s is ShipView => s !== null)
-    .map((s) => ({ body: s.body, x: s.x, y: s.y, vx: s.vx, vy: s.vy, radius: s.design.radius }));
-  return insetsFor(ships, camera, widthPx, heightPx, {
-    zoom: CLOSE_UP_ZOOM * ratio,
-    least: CLOSE_UP_MIN_PX * ratio,
-    most: CLOSE_UP_MAX_PX * ratio,
-    margin: CLOSE_UP_MARGIN_PX * ratio,
-    smallest: CLOSE_UP_SMALLEST_PX * ratio,
-  });
-}
-
-/**
- * The ship whose close-up is under a world point the main view was tapped at,
- * or -1: picking it from there frames it, wherever it is.
- */
-export function closeUpTapped(
-  snapshot: Snapshot,
-  camera: Camera,
-  widthPx: number,
-  heightPx: number,
-  selected: number,
-  ratio: number,
-  x: number,
-  y: number,
-): number {
-  const insets = closeUps(snapshot, camera, widthPx, heightPx, selected, ratio);
-  return insetAt(insets, widthPx / 2 + (x - camera.x) * camera.scale, heightPx / 2 - (y - camera.y) * camera.scale);
-}
-
-/** Size of the range written in the target's close-up, CSS pixels. */
-const CLOSE_UP_LABEL_PX = 11;
-
-/**
- * Draw the close-ups `closeUps` asks for over a view already drawn: each the
- * battle again through a camera of its own, framed in its ship's colours,
- * with a pointer towards its ship when that is off screen, and the target's
- * with how far it is from the picked ship.
- */
-export function drawCloseUps(
-  ctx: CanvasRenderingContext2D,
+export function closeUps(
   snapshot: Snapshot,
   camera: Camera,
   widthPx: number,
   heightPx: number,
   selected: number,
   ratio = 1,
+  strips: Strips | null = null,
+): Inset[] {
+  const ship = shipByBody(snapshot, selected);
+  if (ship === null) return [];
+  const ships: InsetShip[] = [ship, shipByBody(snapshot, ship.fighting ?? -1)]
+    .filter((s): s is ShipView => s !== null)
+    .map((s) => ({ body: s.body, x: s.x, y: s.y, vx: s.vx, vy: s.vy, radius: s.design.radius }));
+  const area: InsetArea = { left: strips?.left.width ?? 0, top: 0, right: widthPx - (strips?.right.width ?? 0), bottom: heightPx };
+  return insetsFor(
+    ships,
+    camera,
+    widthPx,
+    heightPx,
+    {
+      zoom: CLOSE_UP_ZOOM * ratio,
+      least: CLOSE_UP_MIN_PX * ratio,
+      most: CLOSE_UP_MAX_PX * ratio,
+      margin: CLOSE_UP_MARGIN_PX * ratio,
+      smallest: CLOSE_UP_SMALLEST_PX * ratio,
+    },
+    area,
+  );
+}
+
+/**
+ * The ship whose tile or close-up is under a world point the main view was
+ * tapped at, or -1: picking it from there frames it, wherever it is. They are
+ * drawn over the view, so a tap on one is a tap on it.
+ */
+export function overlayAt(strips: Strips | null, insets: readonly Inset[], camera: Camera, widthPx: number, heightPx: number, x: number, y: number): number {
+  const px = widthPx / 2 + (x - camera.x) * camera.scale;
+  const py = heightPx / 2 - (y - camera.y) * camera.scale;
+  const inset = insetAt(insets, px, py);
+  if (inset >= 0) return inset;
+  return strips === null ? -1 : stripTileAt(strips, px, py);
+}
+
+/**
+ * Draw the close-ups `closeUps` asks for over a view already drawn: each the
+ * battle again through a camera of its own, framed in its ship's colours,
+ * with a pointer towards its ship when that is off screen.
+ */
+export function drawCloseUps(
+  ctx: CanvasRenderingContext2D,
+  snapshot: Snapshot,
+  insets: readonly Inset[],
+  selected: number,
+  ratio = 1,
   flashes?: Flashes,
   arcs: Arcs = 'none',
   teamShots = false,
 ): void {
-  for (const inset of closeUps(snapshot, camera, widthPx, heightPx, selected, ratio)) {
+  for (const inset of insets) {
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.beginPath();
@@ -1649,19 +1677,6 @@ export function drawCloseUps(
     if (inset.body !== selected) ctx.setLineDash([5 * ratio, 4 * ratio]);
     ctx.strokeRect(inset.x, inset.y, inset.size, inset.size);
     ctx.setLineDash([]);
-    const picked = shipByBody(snapshot, selected);
-    if (inset.body !== selected && picked !== null) {
-      const label = describeRange(Math.hypot(ship.x - picked.x, ship.y - picked.y));
-      const px = CLOSE_UP_LABEL_PX * ratio;
-      ctx.font = `${px}px ui-monospace, monospace`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'bottom';
-      const width = ctx.measureText(label).width;
-      ctx.fillStyle = BACKGROUND;
-      ctx.fillRect(inset.x + inset.size / 2 - width / 2 - 3 * ratio, inset.y + inset.size - px - 5 * ratio, width + 6 * ratio, px + 3 * ratio);
-      ctx.fillStyle = colour;
-      ctx.fillText(label, inset.x + inset.size / 2, inset.y + inset.size - 3 * ratio);
-    }
     if (inset.toward !== null) {
       // From the frame's centre along the bearing, out to the frame, a wedge beyond it.
       const half = inset.size / 2;
@@ -1683,6 +1698,150 @@ export function drawCloseUps(
     }
     ctx.restore();
   }
+}
+
+/** Size of the range to a picked ship's target, CSS pixels, and its clearances. */
+const RANGE_LABEL_PX = 12;
+const RANGE_PAD_PX = 3;
+const RANGE_GAP_PX = 6;
+
+/**
+ * How far the picked ship is from what it is fighting, upright, by the
+ * picked ship: on the line to its target just past its ring, so it stays in
+ * frame while the ship is and the eye finds it where it left it; or, when the
+ * ship is shown in a window, just outside the window on the side facing the
+ * target.
+ */
+export function drawTargetRange(
+  ctx: CanvasRenderingContext2D,
+  snapshot: Snapshot,
+  camera: Camera,
+  widthPx: number,
+  heightPx: number,
+  selected: number,
+  insets: readonly Inset[],
+  ratio: number,
+): void {
+  const ship = shipByBody(snapshot, selected);
+  const target = shipByBody(snapshot, ship?.fighting ?? -1);
+  if (ship === null || target === null) return;
+  const text = describeRange(Math.hypot(target.x - ship.x, target.y - ship.y));
+  const colour = (ship.hasControl && !ship.isMissionKilled ? shipColours(ship.team) : NEUTRAL).trim;
+  const size = RANGE_LABEL_PX * ratio;
+  const pad = RANGE_PAD_PX * ratio;
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.font = `${size}px ui-monospace, monospace`;
+  const w = ctx.measureText(text).width + 2 * pad;
+  const h = size + 2 * pad;
+  const screen = (x: number, y: number): LabelAt => ({
+    x: widthPx / 2 + (x - camera.x) * camera.scale,
+    y: heightPx / 2 - (y - camera.y) * camera.scale,
+  });
+  const from = screen(ship.x, ship.y);
+  const to = screen(target.x, target.y);
+  const box = insets.find((inset) => inset.body === selected);
+  let at: LabelAt;
+  if (box !== undefined) {
+    const cx = box.x + box.size / 2;
+    const cy = box.y + box.size / 2;
+    const others = insets.filter((inset) => inset !== box);
+    at = labelBeside(box, Math.atan2(to.y - cy, to.x - cx), w, h, RANGE_GAP_PX * ratio, widthPx, heightPx, others);
+  } else {
+    const length = Math.hypot(to.x - from.x, to.y - from.y);
+    if (!(length > 0)) {
+      ctx.restore();
+      return;
+    }
+    const ring = (ship.design.radius + SELECTED_GAP_PX / camera.scale) * camera.scale;
+    at = labelAlong(from.x, from.y, (to.x - from.x) / length, (to.y - from.y) / length, ring, length, w, h, RANGE_GAP_PX * ratio);
+  }
+  ctx.fillStyle = BACKGROUND;
+  ctx.fillRect(at.x - w / 2, at.y - h / 2, w, h);
+  ctx.fillStyle = colour;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, at.x, at.y);
+  ctx.restore();
+}
+
+/** A tile's side as a share of the view's width, and its bounds in CSS pixels. */
+const STRIP_SHARE = 0.09;
+const STRIP_MAX_PX = 88;
+const STRIP_MIN_PX = 34;
+const STRIP_MARGIN_PX = 6;
+const STRIP_GAP_PX = 4;
+
+/**
+ * Each side's ships as live tiles down the view's edges: every ship anyone
+ * controls but fighters, which come and go in numbers. `ratio` is canvas
+ * pixels per CSS pixel.
+ */
+export function fleetStrips(snapshot: Snapshot, widthPx: number, heightPx: number, ratio = 1): Strips {
+  const ships = [];
+  for (let i = 0; i < snapshot.shipCount; i++) {
+    const ship = snapshot.ships[i]!;
+    if (ship.team < 0 || ship.design.fighter || !ship.hasControl) continue;
+    ships.push({ body: ship.body, team: ship.team, x: ship.x, y: ship.y, vx: ship.vx, vy: ship.vy, radius: ship.design.radius });
+  }
+  return stripsFor(ships, widthPx, heightPx, {
+    largest: Math.min(STRIP_MAX_PX * ratio, widthPx * STRIP_SHARE),
+    smallest: STRIP_MIN_PX * ratio,
+    margin: STRIP_MARGIN_PX * ratio,
+    gap: STRIP_GAP_PX * ratio,
+  });
+}
+
+/** How much of the view's width the strips take from each edge, the wider of the two, canvas pixels. */
+export function stripsWidth(strips: Strips | null): number {
+  return strips === null ? 0 : Math.max(strips.left.width, strips.right.width);
+}
+
+/** Draw the strips over a view already drawn: each tile its ship live, framed in its side's colours, the picked one brightest. */
+export function drawFleetStrips(
+  ctx: CanvasRenderingContext2D,
+  snapshot: Snapshot,
+  strips: Strips,
+  selected: number,
+  ratio = 1,
+  flashes?: Flashes,
+  arcs: Arcs = 'none',
+  teamShots = false,
+): void {
+  const drawColumn = (column: StripColumn): void => {
+    for (const tile of column.tiles) {
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.beginPath();
+      ctx.rect(tile.x, tile.y, tile.size, tile.size);
+      ctx.clip();
+      drawScene(ctx, snapshot, tile.camera, tile.x, tile.y, tile.size, tile.size, flashes, arcs, teamShots, selected);
+      ctx.restore();
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      const picked = tile.body === selected;
+      ctx.strokeStyle = shipColours(tile.team).trim;
+      ctx.globalAlpha = picked ? 1 : 0.55;
+      ctx.lineWidth = (picked ? 2 : 1) * ratio;
+      ctx.strokeRect(tile.x, tile.y, tile.size, tile.size);
+      ctx.restore();
+    }
+    if (column.more !== null) {
+      const box = column.more;
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.fillStyle = BACKGROUND;
+      ctx.fillRect(box.x, box.y, box.size, box.size * 0.5);
+      ctx.fillStyle = shipColours(column.tiles[0]?.team ?? 0).trim;
+      ctx.font = `${11 * ratio}px ui-monospace, monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`+${column.hidden}`, box.x + box.size / 2, box.y + box.size * 0.25);
+      ctx.restore();
+    }
+  };
+  drawColumn(strips.left);
+  drawColumn(strips.right);
 }
 
 /** A selected ship shows all its arcs and the rest none; with none selected, every ship shows `arcs`. */
@@ -2106,6 +2265,8 @@ function drawProjectiles(ctx: CanvasRenderingContext2D, snapshot: Snapshot, came
       const y = snapshot.projectileY[i]!;
       const vx = snapshot.projectileVx[i]!;
       const vy = snapshot.projectileVy[i]!;
+      // Its streak is the last step's travel relative to the camera, so no further than that from it.
+      if (!nearShown(x - 2 * (vx - cvx) * dt, y - 2 * (vy - cvy) * dt, x + 2 * (vx - cvx) * dt, y + 2 * (vy - cvy) * dt)) continue;
       const sx = snapshot.projectileStartX[i];
       const sy = snapshot.projectileStartY[i];
       const open = exposureEnds(x, y, vx, vy, cvx, cvy, dt);
@@ -2135,6 +2296,7 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
   ctx.lineCap = 'butt';
   const team = (i: number): number => (teamShots ? snapshot.beamTeam[i]! : -1);
   for (let i = 0; i < snapshot.beamCount; i++) {
+    if (!nearShown(snapshot.beamStartX[i]!, snapshot.beamStartY[i]!, snapshot.beamEndX[i]!, snapshot.beamEndY[i]!)) continue;
     ctx.strokeStyle = team(i) < 0 ? BEAM_GLOW : shipColours(team(i)).hull;
     const calibre = snapshot.beamWidth[i]!;
     const halo = BEAM_GLOW_WIDTHS * calibre;
@@ -2153,6 +2315,7 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
   // Cheap at the beam counts a battle reaches; if that ever stops being true,
   // bucket by width rather than reaching for a single average.
   for (let i = 0; i < snapshot.beamCount; i++) {
+    if (!nearShown(snapshot.beamStartX[i]!, snapshot.beamStartY[i]!, snapshot.beamEndX[i]!, snapshot.beamEndY[i]!)) continue;
     ctx.strokeStyle = team(i) < 0 ? BEAM : shipColours(team(i)).trim;
     const calibre = snapshot.beamWidth[i]!;
     ctx.globalAlpha =

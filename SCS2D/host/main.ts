@@ -1,3 +1,4 @@
+import { BATTLE_KEYS, keyHelp, ORDER_KEYS } from './keyHelp.js';
 import { math } from '../sim/index.js';
 import { duel } from '../scenarios/duel.js';
 import { beamDuel } from '../scenarios/beamDuel.js';
@@ -38,6 +39,10 @@ import { el } from './dom.js';
 const SEED = 20260905;
 
 export function start(): void {
+  keyHelp(el<HTMLElement>('hint'), [...BATTLE_KEYS, ...ORDER_KEYS], [
+    'Blue, red, green and magenta are the sides; grey is a side beyond the fourth, or a hulk.',
+    'The ring marks where the gravity well pulls at 1 m/s².',
+  ]);
   const readout = el<HTMLElement>('readout');
   const metrics = el<HTMLElement>('metrics');
   const playButton = el<HTMLButtonElement>('play');
