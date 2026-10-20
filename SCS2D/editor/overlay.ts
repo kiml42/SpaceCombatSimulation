@@ -27,6 +27,11 @@ const { cos, sin, max, TAU } = math;
  */
 
 const SELECTION = '#e9c05f';
+/** How far a core reaches, and what is beyond every core's reach. */
+const CONTROL_REACH_LINE = '#5fb3e9aa';
+const CONTROL_DASH_PX = 6;
+const OUT_OF_REACH = '#b48cff';
+const OUT_OF_REACH_FILL = '#b48cff40';
 const SELECTION_LINKED = '#e9c05fcc';
 /**
  * An assembly is outlined in a different colour from a module, and once around
@@ -175,6 +180,7 @@ export function envelopeBearingAt(widthPx: number, heightPx: number, x: number, 
 export function drawOverlay(ctx: CanvasRenderingContext2D, view: OverlayView, camera: Camera, widthPx: number, heightPx: number): void {
   drawRefit(ctx, view, camera);
   drawFaults(ctx, view);
+  if (view.design !== null) drawControl(ctx, view.design, camera);
   drawSelection(ctx, view, camera);
   drawHandles(ctx, view, camera);
   if (view.design !== null) drawCentreOfMass(ctx, view.design, camera);
@@ -257,6 +263,42 @@ function drawFaults(ctx: CanvasRenderingContext2D, view: OverlayView): void {
     ctx.fill();
     ctx.restore();
   }
+}
+
+/**
+ * How far each core reaches, as a dashed circle, and every module that needs
+ * a core and is out of reach of all of them, tinted and outlined: it will not
+ * work in a battle (`ShipDesign.coveredBy`).
+ */
+function drawControl(ctx: CanvasRenderingContext2D, design: ShipDesign, camera: Camera): void {
+  const lineWidth = SELECTION_WIDTH_PX / camera.scale;
+  ctx.save();
+  ctx.strokeStyle = CONTROL_REACH_LINE;
+  ctx.lineWidth = lineWidth;
+  ctx.setLineDash([CONTROL_DASH_PX / camera.scale, CONTROL_DASH_PX / camera.scale]);
+  for (const core of design.cores) {
+    const module = design.modules[core]!;
+    const at = blockCentre(module.spec);
+    ctx.beginPath();
+    ctx.arc(at.x, at.y, module.stats.controlRadius, 0, TAU);
+    ctx.stroke();
+  }
+  ctx.restore();
+  design.coveredBy?.forEach((cores, m) => {
+    if (cores === null || cores.length > 0) return;
+    const spec = design.modules[m]!.spec;
+    const mid = moduleCentre(spec);
+    ctx.save();
+    ctx.translate(mid.x, mid.y);
+    ctx.rotate(spec.angle ?? 0);
+    outline(ctx, spec);
+    ctx.fillStyle = OUT_OF_REACH_FILL;
+    ctx.fill();
+    ctx.strokeStyle = OUT_OF_REACH;
+    ctx.lineWidth = lineWidth;
+    ctx.stroke();
+    ctx.restore();
+  });
 }
 
 /**

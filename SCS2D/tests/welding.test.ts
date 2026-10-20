@@ -171,9 +171,11 @@ describe('welding on a slow contact', () => {
 
     it('pull against each other, each with its own engines', () => {
       const { ships, world, a, b } = hooked();
-      // An enemy for each, off in opposite directions.
-      ships.spawn(world, { design: corvette, x: -20000, y: 0, team: 1 });
-      ships.spawn(world, { design: corvette, x: 20000, y: 0, team: 0 });
+      // An enemy for each, off in opposite directions abeam: dead ahead, what
+      // a ship's own engines can push without turning the pair hangs on the
+      // angle they hooked at.
+      ships.spawn(world, { design: corvette, x: 0, y: 20000, team: 1 });
+      ships.spawn(world, { design: corvette, x: 0, y: -20000, team: 0 });
       for (let s = 0; s < 30; s++) ships.command(world.dt, world);
       const engines = ships.currentStructure(a).engines;
       const burning = (ship: number, side: (m: number) => boolean): number =>
@@ -472,7 +474,7 @@ describe('enemies hooked together', () => {
     // A seed on which wreckage welds onto the pair within the 25 s run. A ship
     // left on the old design is drawn, aimed and fired from a layout its body
     // no longer has.
-    const run = hookedScenario(20260941);
+    const run = hookedScenario(20260900);
     const { ships, world } = run;
     for (let s = 0; s < 1500; s++) {
       run.step();

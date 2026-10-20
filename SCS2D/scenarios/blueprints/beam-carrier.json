@@ -153,8 +153,8 @@
         {
           "id": 17,
           "kind": "beamTurret",
-          "x": 0,
-          "y": 0,
+          "x": -1,
+          "y": 6.123233995736766e-17,
           "angle": 90,
           "length": 3,
           "width": 3,
@@ -306,18 +306,19 @@
       "id": 1,
       "kind": "core",
       "x": -43.5,
-      "y": 12.5,
+      "y": 13,
       "length": 12,
-      "width": 5,
+      "width": 6,
       "reinforcement": 3,
-      "thick": true
+      "thick": true,
+      "computing": 0.15
     },
     {
       "id": 2,
       "kind": "tank",
-      "x": -19,
+      "x": -20.5,
       "y": 4,
-      "length": 93,
+      "length": 90,
       "width": 12,
       "reinforcement": 6,
       "sealing": 0.002,
@@ -427,7 +428,8 @@
       "x": -29,
       "y": -14.5,
       "length": 2,
-      "width": 7
+      "width": 7,
+      "computing": 0.2
     },
     {
       "id": 16,
@@ -439,6 +441,14 @@
       "width": 3,
       "barrels": 1,
       "main": false
+    },
+    {
+      "id": 31,
+      "kind": "core",
+      "x": 26,
+      "y": 4,
+      "length": 3,
+      "width": 12
     }
   ]
 }

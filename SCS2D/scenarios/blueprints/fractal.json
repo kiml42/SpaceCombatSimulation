@@ -117,7 +117,8 @@
       "x": 0,
       "y": 0,
       "length": 3,
-      "width": 6
+      "width": 6,
+      "computing": 0.35
     },
     {
       "id": 3,

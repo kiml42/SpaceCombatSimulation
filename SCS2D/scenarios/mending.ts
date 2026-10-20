@@ -2,11 +2,11 @@ import { compileBlueprint, DAMAGE_ENERGY_PER_KG, settleIds, topId, type Blueprin
 import type { Battle } from './types.js';
 import { makeBattle } from './battle.js';
 
-/** A core at the bow, a spine of structure, and a robot bay at the stern with a hold and a battery beside it. */
+/** A core at the bow, reaching the stern, a spine of structure, and a robot bay at the stern with a hold and a battery beside it. */
 export const MENDER: Blueprint = {
   name: 'Mender',
   modules: [
-    { kind: 'core', x: 0, y: 0, length: 3, width: 3 },
+    { kind: 'core', x: 0, y: 0, length: 3, width: 3, computing: 0.35 },
     { kind: 'structure', x: 4, y: 0, length: 5, width: 3 },
     { kind: 'structure', x: 9, y: 0, length: 5, width: 3 },
     { kind: 'structure', x: 14, y: 0, length: 5, width: 3 },
