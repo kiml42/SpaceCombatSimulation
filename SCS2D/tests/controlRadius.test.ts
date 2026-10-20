@@ -38,9 +38,10 @@ function longShip(length: number, extra: ModuleSpec[] = []): Blueprint {
 const TURRET = 2;
 
 describe('how far a core reaches', () => {
-  it('grows as the cube root of its computing', () => {
+  it('grows with its computing, but ever more slowly', () => {
     expect(controlRadius(1)).toBeCloseTo(CONTROL_REACH);
-    expect(controlRadius(8)).toBeCloseTo(2 * CONTROL_REACH);
+    // Ten times the computing, about twice the reach.
+    expect(controlRadius(10)).toBeCloseTo(2 * CONTROL_REACH, 0);
     expect(controlRadius(0)).toBe(0);
   });
 

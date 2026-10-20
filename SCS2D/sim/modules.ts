@@ -289,10 +289,10 @@ export function coreComputing(spec: ModuleSpec, interior: number): number {
 
 /**
  * How far from its centre a core with this much computing controls modules,
- * metres. Diminishing returns: eight times the computing reaches twice as far.
+ * metres. Diminishing returns: ten times the computing reaches twice as far.
  */
 export function controlRadius(computing: number): number {
-  return computing > 0 ? CONTROL_REACH * pow(computing, 1 / 3) : 0;
+  return computing > 0 ? CONTROL_REACH * pow(computing, CONTROL_EXPONENT) : 0;
 }
 
 /** How full a module starts, 0 to 1. */
@@ -864,9 +864,10 @@ export const CORE_COMPUTING_SHARE = 0.1;
 
 /**
  * How far a core with `CORE_COMPUTING_VOLUME` of computing reaches, metres.
- * The reach grows as the cube root of computing (`controlRadius`).
+ * The reach grows as computing to the power `CONTROL_EXPONENT` (`controlRadius`).
  */
-export const CONTROL_REACH = 10;
+export const CONTROL_REACH = 15;
+export const CONTROL_EXPONENT = 0.3;
 
 /**
  * Traverse torque the mount ring can deliver per kilogram of turret, N·m/kg.

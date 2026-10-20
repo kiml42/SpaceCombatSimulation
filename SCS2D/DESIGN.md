@@ -1665,12 +1665,12 @@ Mass from wall volume, capacity from interior area, strength from thickness and 
 - **A core reaches only so far.** An active module (an engine, a gun, a claw, a pad, a port, a slipway or
   a robot bay) works only while the block of it, without its barrel or bell, touches the circle of a
   working core of its own ship (`ShipDesign.coveredBy`); structure, tanks, holds, batteries and
-  generators need none. The circle's radius is `CONTROL_REACH` (10 m) times the cube root of the core's
-  computing in m³ (`controlRadius`), so eight times the computing reaches twice as far. A core of 1 m³
+  generators need none. The circle's radius is `CONTROL_REACH` (15 m) times the core's computing in m³ to
+  the power 0.3 (`controlRadius`), so ten times the computing reaches about twice as far. A core of 1 m³
   or less is all computing; a bigger one computes with a share of its interior, `computing` on the
   layout and 10% by default (`CORE_COMPUTING_SHARE`), never less than 1 m³, and the rest is stores. The
-  Dinky's 0.6 m core reaches 2.2 m, just enough; a fighter's core of a cubic metre or so reaches 10 m,
-  and a Gunship's 24 m. A long ship carries a second core, or gives one more of its interior to
+  Dinky's 0.6 m core reaches 3.8 m; a fighter's core of a cubic metre or so reaches 15 m, a Gunship's
+  33 m, and a 60 × 380 m core 211 m. A long ship carries a second core, or gives one more of its interior to
   computing. A core past its control cutout reaches nothing, and what only it reached goes dark — drawn
   faint in a battle — while the rest of the ship fights on. The editor draws each core's reach as a
   dashed circle, tints what is out of every one and lists each as a warning, and works out the ship's figures without it

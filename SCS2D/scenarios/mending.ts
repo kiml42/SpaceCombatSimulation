@@ -6,7 +6,7 @@ import { makeBattle } from './battle.js';
 export const MENDER: Blueprint = {
   name: 'Mender',
   modules: [
-    { kind: 'core', x: 0, y: 0, length: 3, width: 3, computing: 0.8 },
+    { kind: 'core', x: 0, y: 0, length: 3, width: 3, computing: 0.35 },
     { kind: 'structure', x: 4, y: 0, length: 5, width: 3 },
     { kind: 'structure', x: 9, y: 0, length: 5, width: 3 },
     { kind: 'structure', x: 14, y: 0, length: 5, width: 3 },

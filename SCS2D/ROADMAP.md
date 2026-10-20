@@ -397,8 +397,9 @@ Deliberately unresolved; decide when they block something.
   ships that run a beam on their core short (the Beam Corvette and the X-Wing among them), to be given a
   generator or a battery of their own.
 - **A control radius for cores: what is left.** Built (DESIGN.md §4, DECISIONS.md); still open:
-  - **The curve.** `CONTROL_REACH` (10 m at 1 m³ of computing), the cube root and the 10% default share
-    are first guesses, picked so the Dinky just works and the Gunship works on one core. Tune them by feel.
+  - **The curve.** `CONTROL_REACH` (15 m at 1 m³ of computing), `CONTROL_EXPONENT` (0.3) and the 10%
+    default share are still being tuned by feel. A circle from the core's centre means a long thin core
+    spends most of its reach on itself; measuring from its edge instead is the alternative.
   - **Damage.** A core covers nothing once past its `Control` cutout and everything until then. A shrunken
     radius, or one module losing control, as a damage effect with a chance of happening is the step after.
   - **The Star Destroyer and the Quasar Fire.** Most of their modules are out of reach (52 of 59 and 13 of
