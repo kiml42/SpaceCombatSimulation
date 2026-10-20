@@ -395,6 +395,34 @@ Deliberately unresolved; decide when they block something.
   an evolved fleet of Gunships ran eight hull beams on their cores alone. Dropping it would leave the stock
   ships that run a beam on their core short (the Beam Corvette and the X-Wing among them), to be given a
   generator or a battery of their own.
+- **A control radius for cores.** Wanted, and largely agreed with the author; the curve is what is open. Today
+  a core buys no capability, so one small core flies a capital ship. A radius would give core size and
+  placement a job, and make large ships need more than one.
+  - **Coverage.** An active module works only while its rectangular block touches the circle of a working
+    core in its own piece. Barrels, nozzles and triangles do not count. Passive modules (structure, tanks,
+    holds) need no coverage. On a welded body, each ship's cores cover only its own modules. Touching rather
+    than containing is deliberately generous to large modules, as long as the editor shows it.
+  - **Partial control.** A module joined to the ship but outside every circle is out of the fight while its
+    neighbours work. Every system reading control has to respect that: an uncovered engine counts as gone for
+    the pilot's thrust allocation, and uncovered guns, robot bays, slipways and pads do nothing. The editor
+    shows each core's radius and highlights active modules outside all of them, with thrust and gun figures
+    from `compileDraft` leaving those modules out.
+  - **Radius from computing.** A core's computing becomes a share of its interior, a knob open to
+    evolution, in place of the fixed `CORE_COMPUTING_VOLUME`. Below some size the whole core is computing,
+    since a tank, hold and battery that small would be waste; that leaves a flat stretch where a bigger
+    core reaches no further, which is acceptable. The radius grows with computing volume with diminishing
+    returns. The bounds: the Dinky (0.6 m core) just about works, and the Gunship still works on one core.
+    The exact curve wants tuning once most of this is built.
+  - **Damage.** For a first pass, a core past its `Control` cutout (40%) stops covering anything, and
+    coverage is recalculated then, and when a core is lost or cut off. Later, a shrunken radius or one module
+    losing control could be a damage effect with a chance of happening, so it comes in a few large steps
+    rather than shrinking smoothly.
+  - **Stock ships.** The Star Destroyer, Quasar Fire, beam carrier and any others that outgrow one core get
+    extra cores. The Star Wars ships are showpieces with no goldens on them, so they can be redrawn freely.
+    Every stock founder has to be valid before this lands, or a run seeded from it starts with dead mass.
+  - **Targeting.** A secondary core becomes worth killing for what it switches off. Doctrine wants a way to
+    weight a core by how many modules it covers, and more generally to prefer bigger modules, so fire goes
+    where it disables most.
 - **Whether a claw should drain an enemy's batteries.** It drinks fuel from what it grips; draining charge is
   the natural extension, and a way to disarm a beam ship without shooting it.
 
