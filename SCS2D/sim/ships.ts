@@ -5257,6 +5257,12 @@ export class Ships {
     const fitting = robot.build < 0 && design.modules[m]!.shell === undefined;
     const rebuild = fitting ? null : this.rebuildFor(owner, design);
     const l = rebuild === null ? -1 : robot.build >= 0 ? robot.build : rebuild.at.indexOf(m);
+    // Begun for a design it has since been refitted from: nothing to build there now.
+    if (rebuild !== null && l < 0) {
+      robot.build = -1;
+      this.sendOut(b, design, robots, robot, owner);
+      return false;
+    }
     const origin = rebuild === null ? null : originOf(this.launched[owner]!, l);
     const whole = origin === null ? design.modules[m]!.stats : origin.design.modules[origin.module]!.stats;
     const work = buildWork(whole);
@@ -8251,6 +8257,8 @@ export class Ships {
     for (const r of this.ridersOf(bodies, b)) if (r !== p) this.board(r, p);
     this.launched[i] = to;
     this.rebuilds[i] = null;
+    // What its robots were building is numbered by the design it no longer has.
+    for (const robot of this.robots.on(b) ?? []) if (this.pilotAt(b, robot.bay) === i) robot.build = -1;
     this.ownDoctrines[i] = to.doctrine;
     this.doctrines[i] = overriddenDoctrine(to.doctrine, this.overrides[i]);
     this.mountDoctrines[i] = null;

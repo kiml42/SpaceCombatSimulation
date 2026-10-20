@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { compileBlueprint, refitShare, slotKey, type Blueprint } from '../sim/index.js';
 import { makeBattle } from '../scenarios/battle.js';
-import { DINKY, GUNSHIP } from '../scenarios/blueprints.js';
+import { DINKY, GUNSHIP, SALVAGER } from '../scenarios/blueprints.js';
+import { refitting } from '../scenarios/mending.js';
 import { factory } from '../scenarios/carrier.js';
 import { give, readLog, writeLog, type Logged } from '../scenarios/commands.js';
 
@@ -26,6 +27,16 @@ describe('a remodel', () => {
     const run = makeBattle({ seed: 3 }, (ships, world) => ({ a: ships.spawn(world, { design: compileBlueprint(GUNSHIP), x: 0, y: 0 }) }));
     give(run, { kind: 'remodel', ships: [run.a], blueprint: STRIPPED });
     expect(run.ships.blueprint(run.a).name).toBe('Stripped Gunship');
+  });
+});
+
+describe('a remodel part way through a refit', () => {
+  it('sets the robots to the new design, rather than to modules of the old one half built', () => {
+    const run = refitting();
+    for (let s = 0; s < 600; s++) run.step();
+    give(run, { kind: 'remodel', ships: [0], blueprint: SALVAGER });
+    expect(run.ships.blueprint(0).name).toBe(SALVAGER.name);
+    for (let s = 0; s < 3000; s++) run.step();
   });
 });
 
