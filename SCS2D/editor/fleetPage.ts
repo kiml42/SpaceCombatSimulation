@@ -1,3 +1,4 @@
+import { keyHelp } from '../host/keyHelp.js';
 import {
   degreesToRadians,
   isGroupUse,
@@ -974,10 +975,21 @@ export function startFleetEditor(): void {
     (event.currentTarget as HTMLAnchorElement).href = battleHref(doc.fleet);
   });
 
-  el<HTMLElement>('hint').textContent =
-    'Add ships with Add ship; click to select, Shift-click for several, drag to move, drag the knob to turn. ' +
-    `Moves snap to a tenth of the grid and facings to ${ANGLE_SNAP_DEGREES}° — hold Alt to escape. ` +
-    'Drag empty space to pan, scroll to zoom, F to fit, A to cycle the arcs drawn, Delete to remove, Ctrl+Z to undo.';
+  keyHelp(el<HTMLElement>('hint'), [
+    { keys: 'Add ship', does: 'Add a ship to the fleet' },
+    { keys: 'Click a ship', does: 'Select it' },
+    { keys: 'Shift-click', does: 'Select several' },
+    { keys: 'Drag a ship', does: 'Move it' },
+    { keys: 'Drag the knob', does: 'Turn it' },
+    { keys: 'Alt', does: `Hold to escape the snaps: moves to a tenth of the grid, facings to ${ANGLE_SNAP_DEGREES}°` },
+    { keys: 'Drag empty space', does: 'Pan' },
+    { keys: 'Scroll', does: 'Zoom' },
+    { keys: 'F', does: 'Fit the fleet in view' },
+    { keys: 'A', does: 'Cycle the arcs drawn' },
+    { keys: 'Delete or Backspace', does: 'Remove what is selected' },
+    { keys: 'Escape', does: 'Close the Add ship menu, or select nothing' },
+    { keys: 'Ctrl+Z, Ctrl+Shift+Z', does: 'Undo, redo' },
+  ]);
 
   resize();
   refresh();

@@ -430,6 +430,7 @@ describe('the viewer in a browser', () => {
     expect(JSON.parse((await page.evaluate(() => localStorage.getItem('scs2d.view.viewer')))!)).toEqual({
       arcs: 'trigger',
       teamShots: true,
+      strips: true,
       speed: 4,
     });
 
@@ -446,6 +447,8 @@ describe('the viewer in a browser', () => {
     await page.click('#reset');
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
     if ((await page.textContent('#play')) !== 'Play') await page.keyboard.press('Space');
+    // Without the fleets down the edges, which are lit pixels of their own.
+    await page.keyboard.press('t');
     await painted(page);
     const box = (await page.locator('#view').boundingBox())!;
     // The brightest pixel is on a ship.
@@ -503,6 +506,63 @@ describe('the viewer in a browser', () => {
     const dropped = await lit();
     // Two windows of hull, frame and rings, against two specks.
     expect(picked).toBeGreaterThan(dropped * 4 + 500);
+    await page.keyboard.press('t');
+  });
+
+  it('shows each side down the edges, hides them with T, and picks a ship from its tile', async () => {
+    await page.selectOption('#scene', { label: 'Duel' });
+    await page.click('#reset');
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    if ((await page.textContent('#play')) !== 'Play') await page.keyboard.press('Space');
+    await painted(page);
+    /** How bright a box of the view is, CSS pixels from its top left. */
+    const brightness = (x: number, y: number, w: number, h: number): Promise<number> =>
+      page.evaluate(
+        ([x, y, w, h]) => {
+          const canvas = document.getElementById('view') as HTMLCanvasElement;
+          const ratio = canvas.width / canvas.getBoundingClientRect().width;
+          const { data } = canvas.getContext('2d')!.getImageData(Math.round(x! * ratio), Math.round(y! * ratio), Math.max(1, Math.round(w! * ratio)), Math.max(1, Math.round(h! * ratio)));
+          let sum = 0;
+          for (let i = 0; i < data.length; i += 4) sum += data[i]! + data[i + 1]! + data[i + 2]!;
+          return sum;
+        },
+        [x, y, w, h],
+      );
+    // The first tile of the left column: its frame down its left side.
+    const frame = (): Promise<number> => brightness(5, 10, 3, 60);
+    const shown = await frame();
+    await page.keyboard.press('t');
+    await painted(page);
+    expect(await frame()).toBeLessThan(shown / 2);
+    expect(JSON.parse((await page.evaluate(() => localStorage.getItem('scs2d.view.viewer')))!).strips).toBe(false);
+    await page.keyboard.press('t');
+    await painted(page);
+    // Picked from its tile, the ship's frame is drawn brighter.
+    const box = (await page.locator('#view').boundingBox())!;
+    const before = await frame();
+    await page.mouse.click(box.x + 40, box.y + 40);
+    await painted(page);
+    expect(await frame()).toBeGreaterThan(before * 1.2);
+    await page.keyboard.press('Escape');
+  });
+
+  it('lists its keys in a table behind a button, which keeps them from the battle while open', async () => {
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    expect(await page.textContent('footer')).toBe('Keys');
+    await page.click('#keysButton');
+    expect(await page.isVisible('#keyHelp')).toBe(true);
+    const rows = await page.$$eval('#keyHelp tr', (trs) => trs.map((tr) => [...tr.querySelectorAll('td')].map((td) => td.textContent)));
+    expect(rows).toEqual(expect.arrayContaining([['Space', 'Pause, or play'], ['T', "Hide or show each side's ships down the edges"]]));
+    // Space goes to the table, not the battle under it.
+    const playing = await page.textContent('#play');
+    await page.keyboard.press('Space');
+    expect(await page.textContent('#play')).toBe(playing);
+    await page.keyboard.press('Escape');
+    expect(await page.isVisible('#keyHelp')).toBe(false);
+    // And ? opens it again.
+    await page.keyboard.press('?');
+    expect(await page.isVisible('#keyHelp')).toBe(true);
+    await page.keyboard.press('Escape');
   });
 
   it("writes the range to a picked ship's target on the line between them", async () => {

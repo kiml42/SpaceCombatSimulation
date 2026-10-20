@@ -1,3 +1,4 @@
+import { BATTLE_KEYS, keyHelp } from './keyHelp.js';
 import { serialiseFleet, type Budget, type Fleet } from '../sim/index.js';
 import { teamColour } from '../render/canvas2d.js';
 import { FLEET_FILES, Library, unusedName } from '../editor/library.js';
@@ -98,6 +99,10 @@ const SKIRMISH_FIELDS: readonly SettingField[] = [
 const WHOLE = new Set(['mutants', 'seeds', 'stretchAfter', 'maxShips', 'bareCoreDrills', 'shieldedDrills']);
 
 export function startSkirmish(): void {
+  keyHelp(el<HTMLElement>('hint'), BATTLE_KEYS, [
+    'You are blue.',
+    "Once both sides have fired, a side that has not fired, hit or closed in to ram for the round's quiet time is out of the battle; one with nothing left armed is out at once.",
+  ]);
   const fleets = new Library(window.localStorage, FLEET_FILES);
   const ships = new Library(window.localStorage);
 

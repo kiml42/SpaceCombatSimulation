@@ -1135,16 +1135,18 @@ describe('the editor in a browser', () => {
       const canvas = document.getElementById('view') as HTMLCanvasElement;
       const { data, width, height } = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height);
       let far = { x: -1, y: -1 };
+      // The arm is a thin line, smoothed across rows, so paler than the knob: gold enough is enough.
       const gold: { x: number; y: number }[] = [];
       for (let py = 0; py < height; py++) {
         for (let px = 0; px < width; px++) {
           const k = (py * width + px) * 4;
-          if (Math.abs(data[k]! - 233) + Math.abs(data[k + 1]! - 192) + Math.abs(data[k + 2]! - 95) > 30) continue;
-          gold.push({ x: px, y: py });
+          const [r, g, b] = [data[k]!, data[k + 1]!, data[k + 2]!];
+          if (r > 120 && g > 90 && r > b + 50 && g > b + 30) gold.push({ x: px, y: py });
+          if (Math.abs(r - 233) + Math.abs(g - 192) + Math.abs(b - 95) > 30) continue;
           if (px > far.x) far = { x: px, y: py };
         }
       }
-      const row = gold.filter((p) => Math.abs(p.y - far.y) <= 1);
+      const row = gold.filter((p) => Math.abs(p.y - far.y) <= 2);
       const near = Math.min(...row.map((p) => p.x));
       const rect = canvas.getBoundingClientRect();
       const toCss = rect.width / canvas.width;
