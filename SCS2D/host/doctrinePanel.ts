@@ -265,6 +265,7 @@ export function doctrinePanel(view: BattleView): { update(shown: Snapshot): void
         if (craft.value === '' || choice === undefined) return;
         view.issue({ kind: 'craft', ships: view.picked, slot: slot.key, blueprint: choice.blueprint });
         shownKey = '';
+        force = true;
       });
       const input = document.createElement('input');
       input.type = 'number';
@@ -283,7 +284,8 @@ export function doctrinePanel(view: BattleView): { update(shown: Snapshot): void
         shownKey = '';
         force = true;
       });
-      label.append(name, craft, input);
+      label.append(name);
+      // Left of the boxes, so they stay put as it comes and goes.
       if (ships.some((ship) => ship.crafts?.[slot.key] !== undefined)) {
         const back = document.createElement('button');
         back.textContent = '↺';
@@ -291,9 +293,11 @@ export function doctrinePanel(view: BattleView): { update(shown: Snapshot): void
         back.addEventListener('click', () => {
           view.issue({ kind: 'craft', ships: view.picked, slot: slot.key, blueprint: null });
           shownKey = '';
+          force = true;
         });
         label.append(back);
       }
+      label.append(craft, input);
       return label;
     });
 
@@ -338,6 +342,7 @@ export function doctrinePanel(view: BattleView): { update(shown: Snapshot): void
       if (pick.value === '' || fit === undefined) return;
       view.issue({ kind: 'remodel', ships: view.picked, blueprint: fit.choice.blueprint });
       shownKey = '';
+      force = true;
     });
     row.append(name, pick, go);
     return row;
