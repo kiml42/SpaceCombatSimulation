@@ -480,7 +480,25 @@ describe('the viewer in a browser', () => {
       });
     await painted(page);
     const picked = await lit();
+    // Clicking a window frames its ship again: the view zooms back in on the pair.
+    const grid = async (): Promise<number> => Number(/grid ([\d.]+) m/.exec((await page.textContent('#readout')) ?? '')?.[1] ?? NaN);
+    const far = await grid();
+    const window = await page.evaluate(() => {
+      const canvas = document.getElementById('view') as HTMLCanvasElement;
+      const { data, width } = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height);
+      // The first lit pixel, reading down, is the top of the upper window's frame: just inside its corner.
+      let first = 0;
+      while (first < data.length / 4 && data[first * 4]! + data[first * 4 + 1]! + data[first * 4 + 2]! <= 200) first++;
+      const ratio = canvas.width / canvas.getBoundingClientRect().width;
+      return { x: (first % width) / ratio + 20, y: Math.floor(first / width) / ratio + 20 };
+    });
+    await page.mouse.click(box.x + window.x, box.y + window.y);
+    await page.waitForFunction((was) => Number(/grid ([\d.]+) m/.exec(document.getElementById('readout')?.textContent ?? '')?.[1] ?? NaN) < was / 100, far);
     await page.keyboard.press('Escape');
+    for (let i = 0; i < 12; i++) {
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await page.mouse.wheel(0, 400);
+    }
     await painted(page);
     const dropped = await lit();
     // Two windows of hull, frame and rings, against two specks.

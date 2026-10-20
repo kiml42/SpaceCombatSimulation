@@ -140,3 +140,18 @@ export function insetsFor(
   }
   return insets;
 }
+
+/** The body whose window holds a canvas point, or -1; the window placed last is on top. */
+export function insetAt(insets: readonly Inset[], x: number, y: number): number {
+  for (let i = insets.length - 1; i >= 0; i--) {
+    const inset = insets[i]!;
+    if (x >= inset.x && x <= inset.x + inset.size && y >= inset.y && y <= inset.y + inset.size) return inset.body;
+  }
+  return -1;
+}
+
+/** A range for a window's label: metres to a kilometre, then kilometres to three figures. */
+export function describeRange(metres: number): string {
+  if (metres < 1000) return `${Math.round(metres)} m`;
+  return `${Number((metres / 1000).toPrecision(3))} km`;
+}
