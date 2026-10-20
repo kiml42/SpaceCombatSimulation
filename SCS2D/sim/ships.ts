@@ -1389,6 +1389,11 @@ export class Ships {
     return this.derelict[i] === 1;
   }
 
+  /** The design ship `i` is built to, whatever damage has made of it: what it set out as, or was refitted to. */
+  blueprint(i: number): ShipDesign {
+    return this.launched[i] ?? this.design(i);
+  }
+
   design(i: number): ShipDesign {
     const d = this.designs[i];
     if (d === null || d === undefined) throw new Error(`Ships: no ship at ${i}`);

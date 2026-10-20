@@ -85,7 +85,7 @@ export function sameDesign(snapshot: Snapshot, ship: ShipView | null): number[] 
   const out: number[] = [];
   for (let i = 0; i < snapshot.shipCount; i++) {
     const other = snapshot.ships[i]!;
-    if (other.ship !== undefined && other.team === ship.team && other.design.name === ship.design.name) out.push(other.ship);
+    if (other.ship !== undefined && other.team === ship.team && blueprintOf(other).name === blueprintOf(ship).name) out.push(other.ship);
   }
   return out;
 }
@@ -96,13 +96,19 @@ export function sameDesign(snapshot: Snapshot, ship: ShipView | null): number[] 
  */
 export function fighterGroup(snapshot: Snapshot, ship: ShipView | null): number[] {
   if (ship?.ship === undefined) return [];
-  if (!ship.design.fighter || ship.team === NEUTRAL_TEAM) return [ship.ship];
+  if (!blueprintOf(ship).fighter || ship.team === NEUTRAL_TEAM) return [ship.ship];
   const out: number[] = [];
   for (let i = 0; i < snapshot.shipCount; i++) {
     const other = snapshot.ships[i]!;
-    if (other.ship !== undefined && other.team === ship.team && other.design === ship.design && other.hasControl) out.push(other.ship);
+    if (other.ship !== undefined && other.team === ship.team && blueprintOf(other) === blueprintOf(ship) && other.hasControl)
+      out.push(other.ship);
   }
   return out;
+}
+
+/** The design a ship is built to, damage aside. */
+function blueprintOf(ship: ShipView): ShipView['design'] {
+  return ship.blueprint ?? ship.design;
 }
 
 /** Every ship on a side that can still be told anything. */

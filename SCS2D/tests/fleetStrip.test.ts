@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { stripsFor, stripTileAt, type StripShip } from '../render/fleetStrip.js';
+import { Snapshot, type ShipView } from '../sim/index.js';
+import { fleetStrips } from '../render/canvas2d.js';
 
 const W = 1000;
 const H = 600;
@@ -84,5 +86,44 @@ describe('the fleets down the edges', () => {
     const fighters = Array.from({ length: 5 }, (_, k): StripShip => ({ ...ship(100 + k, 0, 5), fighter: 0, weapons: 1 }));
     const column = stripsFor([...many, ...fighters], W, H, SETTINGS).left;
     expect(column.tiles.length + column.hidden).toBe(45);
+  });
+});
+
+describe('the fleet strips of a battle', () => {
+  it('give a side one tile for its fighters of a design, however damaged each is', () => {
+    const tie = {
+      radius: 5,
+      name: 'TIE',
+      fighter: true,
+      modules: [],
+      turrets: [],
+      engines: [],
+      weaponEngines: [],
+      mainWeaponEngines: [],
+    } as unknown as ShipView['design'];
+    const knocked = { ...tie } as ShipView['design'];
+    const fighter = (body: number, design: ShipView['design']): ShipView =>
+      ({
+        design,
+        blueprint: tie,
+        body,
+        ship: body,
+        team: 0,
+        serial: body,
+        x: body * 20,
+        y: 0,
+        angle: 0,
+        vx: 0,
+        vy: 0,
+        hasControl: true,
+        integrity: [],
+        turretBearings: [],
+        turretReady: [],
+      }) as unknown as ShipView;
+    const picture = new Snapshot();
+    picture.ships = [fighter(0, tie), fighter(1, knocked), fighter(2, knocked)];
+    picture.shipCount = 3;
+    const strips = fleetStrips(picture, 1000, 600);
+    expect(strips.left.tiles.map((tile) => tile.count)).toEqual([3]);
   });
 });
