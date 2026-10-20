@@ -3028,6 +3028,22 @@ export class Ships {
    * second of it. Without one, no engine fires on its own account and every
    * ship flies exactly as it would have.
    */
+  /**
+   * What every body's generators make this step, banked, with no pilot to
+   * draw on it: a battle whose ships are not flown still charges robots.
+   */
+  generate(dt: number, world: World): void {
+    const bodies = world.bodies;
+    this.bodyStore = bodies;
+    for (let i = 0; i < this.alive.length; i++) {
+      if (this.alive[i] === 0) continue;
+      const b = bodies.indexOf(this.bodyIds[i]!);
+      if (b < 0 || this.shipByBody[b] !== i) continue;
+      this.power.open(b, dt, this.damage);
+      this.power.close(b);
+    }
+  }
+
   command(dt: number, world: World, grid?: SpatialGrid): void {
     const bodies = world.bodies;
     this.bodyStore = bodies;
