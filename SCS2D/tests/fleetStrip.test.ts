@@ -105,7 +105,7 @@ describe('the fleet strips of a battle', () => {
     const fighter = (body: number, design: ShipView['design']): ShipView =>
       ({
         design,
-        built: tie,
+        blueprint: tie,
         body,
         ship: body,
         team: 0,

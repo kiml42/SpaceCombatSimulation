@@ -106,8 +106,8 @@ describe('a fleet strip tile of fighters', () => {
 
   it('groups fighters by the design they are built to, not what damage has made of them', () => {
     const knocked = { radius: 5, name: 'TIE', fighter: true } as unknown as ShipView['design'];
-    const hurt = { ...craft(6, 0, knocked), built: fighter } as ShipView;
-    const whole = { ...craft(7, 0, fighter), built: fighter } as ShipView;
+    const hurt = { ...craft(6, 0, knocked), blueprint: fighter } as ShipView;
+    const whole = { ...craft(7, 0, fighter), blueprint: fighter } as ShipView;
     expect(fighterGroup(snapshotOf([whole, hurt]), whole)).toEqual([7, 6]);
   });
 

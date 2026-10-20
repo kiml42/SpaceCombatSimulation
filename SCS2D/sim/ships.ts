@@ -1390,7 +1390,7 @@ export class Ships {
   }
 
   /** The design ship `i` is built to, whatever damage has made of it: what it set out as, or was refitted to. */
-  launchDesign(i: number): ShipDesign {
+  blueprint(i: number): ShipDesign {
     return this.launched[i] ?? this.design(i);
   }
 
