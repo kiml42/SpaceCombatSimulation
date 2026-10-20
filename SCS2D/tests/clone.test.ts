@@ -71,3 +71,21 @@ describe('a copied battle', () => {
     }, 120_000);
   }
 });
+
+describe('what a copy keeps', () => {
+  it('keeps views onto one buffer onto one buffer, and an object met twice one object', () => {
+    const battle = duel(SEED);
+    const whole = new Float64Array(4);
+    const part = whole.subarray(1, 3);
+    const thing = { n: 1 };
+    const held = { whole, part, list: [thing, thing, 2], also: thing };
+    const copy = cloneBattle(Object.assign(battle, { held }));
+    const kept = (copy as typeof battle & { held: typeof held }).held;
+    kept.whole[1] = 7;
+    expect(kept.part[0]).toBe(7);
+    expect(whole[1]).toBe(0);
+    expect(kept.list[0]).toBe(kept.also);
+    expect(kept.list[0]).not.toBe(thing);
+    expect(kept.list[2]).toBe(2);
+  });
+});
