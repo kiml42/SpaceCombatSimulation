@@ -1981,7 +1981,14 @@ function drawRing(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: numbe
 }
 
 /** Each order's colour, by what it says to do. */
-const ORDER_COLOURS = { attack: '#ff7a6b', defend: '#6fb6ff', ram: '#ffb347', dock: '#7ee07a' } as const;
+const ORDER_COLOURS = {
+  attack: '#ff7a6b',
+  defend: '#6fb6ff',
+  ram: '#ffb347',
+  dock: '#7ee07a',
+  scavenge: '#d7a6ff',
+  deliver: '#5fd6c8',
+} as const;
 
 /**
  * The orders of every picked-out ship: a line from it through each target in

@@ -56,7 +56,7 @@ import { keepSpeed, loadView, saveView, type ViewSettings } from './viewSettings
 const MAX_STEPS_PER_FRAME = 32;
 
 /** The keys that arm a verb, and the one that stops. */
-const VERB_KEYS: Readonly<Record<string, Verb>> = { k: 'attack', d: 'defend', r: 'ram', h: 'dock' };
+const VERB_KEYS: Readonly<Record<string, Verb>> = { k: 'attack', d: 'defend', r: 'ram', h: 'dock', g: 'scavenge', u: 'deliver' };
 const STOP_KEY = 's';
 /** Picks the whole side of the selection, or the first side. */
 const SIDE_KEY = 'a';
@@ -136,12 +136,14 @@ export interface BattleView {
 }
 
 /** What a click on a ship can be armed to tell the selection. */
-export type Verb = 'attack' | 'defend' | 'ram' | 'dock';
+export type Verb = 'attack' | 'defend' | 'ram' | 'dock' | 'scavenge' | 'deliver';
 
 /** Verbs given to a friend rather than against an enemy. */
-const FRIENDLY: ReadonlySet<Verb> = new Set(['defend', 'dock']);
+const FRIENDLY: ReadonlySet<Verb> = new Set(['defend', 'dock', 'deliver']);
+/** Verbs given to a ship of either side. */
+const EITHER: ReadonlySet<Verb> = new Set(['scavenge']);
 /** Verbs that can be given with no target, for doctrine to choose one. */
-export const ANYWHERE: ReadonlySet<Verb> = new Set(['dock']);
+export const ANYWHERE: ReadonlySet<Verb> = new Set(['dock', 'scavenge', 'deliver']);
 
 /**
  * `stepped` is told after every step, for whatever is judging the battle;
@@ -276,7 +278,7 @@ export function battleView(
     const side = sideOf(snapshot, picked);
     if (!ordersAllowed || side === null || target.ship === undefined || target.team === NEUTRAL_TEAM) return;
     // A friend is defended or docked with, and an enemy attacked or rammed.
-    if (FRIENDLY.has(verb) !== (target.team === side)) return;
+    if (!EITHER.has(verb) && FRIENDLY.has(verb) !== (target.team === side)) return;
     const ships = picked.filter((i) => i !== target.ship);
     if (ships.length === 0) return;
     const given: Order = verb === 'attack' ? { kind: 'attack', target: target.ship, cancelOn } : { kind: verb, target: target.ship };
@@ -285,7 +287,7 @@ export function battleView(
 
   const nearest = (append: boolean): void => {
     if (armed === null || !ANYWHERE.has(armed) || sideOf(snapshot, picked) === null) return;
-    issue({ kind: 'order', ships: picked, order: { kind: armed as 'dock', target: NO_TARGET }, append });
+    issue({ kind: 'order', ships: picked, order: { kind: armed as 'dock' | 'scavenge' | 'deliver', target: NO_TARGET }, append });
     armed = null;
   };
 

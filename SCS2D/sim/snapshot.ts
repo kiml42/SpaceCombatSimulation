@@ -33,7 +33,7 @@ import { fittingOf } from './rebuild.js';
 
 /** An order as drawn: what it is, and the body of what it is given against. */
 export interface OrderView {
-  kind: 'attack' | 'defend' | 'ram' | 'dock';
+  kind: 'attack' | 'defend' | 'ram' | 'dock' | 'scavenge' | 'deliver';
   /** The body it is against or making for, or -1 for none yet. */
   target: number;
 }

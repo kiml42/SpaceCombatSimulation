@@ -643,16 +643,18 @@ export interface Order {
    */
   defend?: boolean;
   /**
-   * Something to fetch rather than a target to fight: `dock` takes on all a
-   * friend's pad or port can give it. `target` is the friend, or `NO_TARGET`
-   * for its doctrine to choose. Ends once a dock has let it go, or there was
-   * nothing to take.
+   * Something to fetch or give rather than a target to fight: `dock` takes on
+   * all a friend's pad or port can give it, `scavenge` fills its claw from
+   * what it grips, and `deliver` gives a friend all it can spare through its
+   * port. `target` is the ship, or `NO_TARGET` for its doctrine to choose, one
+   * after another until it is full or has nothing left to give. Ends once a
+   * dock or claw named has let go, or there was nothing to take or give.
    */
   errand?: Errand;
 }
 
 /** What an order sends a ship to fetch, rather than to fight. */
-export type Errand = 'dock';
+export type Errand = 'dock' | 'scavenge' | 'deliver';
 
 /**
  * When a ship is finished with an order and moves on to the next.
@@ -2731,8 +2733,41 @@ export class Ships {
    */
   pushDock(i: number, friend: number): boolean {
     if (friend !== NO_TARGET && !this.couldDockAt(i, friend)) return false;
+    return this.pushErrand(i, 'dock', friend);
+  }
+
+  /**
+   * Add an order to fill its claw: from `source` (a wreck, an enemy, a friend
+   * out of control, or one still flying, which gives only fuel above its own
+   * reserve), or with `NO_TARGET` from source after source as its doctrine
+   * would choose, until it is full. False, and nothing added, for a ship with
+   * no claw, or a source on no side.
+   */
+  pushScavenge(i: number, source: number): boolean {
+    if (!this.designs[i]!.modules.some((m) => m.spec.kind === 'claw')) return false;
+    if (source !== NO_TARGET && (source === i || this.alive[source] !== 1 || this.team[source] === NEUTRAL_TEAM)) return false;
+    return this.pushErrand(i, 'scavenge', source);
+  }
+
+  /**
+   * Add an order to give all it can spare through its port: to `friend`, or
+   * with `NO_TARGET` to friend after friend as its doctrine would choose,
+   * until it has nothing left to spare. False, and nothing added, for a ship
+   * with no port, or a friend without one.
+   */
+  pushDeliver(i: number, friend: number): boolean {
+    const design = this.designs[i]!;
+    if (design.fighter || !design.modules.some((m) => m.spec.kind === 'port')) return false;
+    if (friend !== NO_TARGET) {
+      if (friend === i || this.alive[friend] !== 1 || this.team[friend] !== this.team[i]) return false;
+      if (!this.designs[friend]!.modules.some((m) => m.spec.kind === 'port')) return false;
+    }
+    return this.pushErrand(i, 'deliver', friend);
+  }
+
+  private pushErrand(i: number, errand: Errand, target: number): boolean {
     this.orders[i]!.push({
-      target: friend,
+      target,
       minRange: 0,
       maxRange: 0,
       approachSpeed: this.doctrines[i]!.approach.approachSpeed,
@@ -2741,7 +2776,7 @@ export class Ships {
       grapple: false,
       land: false,
       dock: false,
-      errand: 'dock',
+      errand,
     });
     if (this.orders[i]!.length === 1) this.startErrand(i);
     return true;
@@ -4504,14 +4539,16 @@ export class Ships {
     const holder = this.pilotAt(b, m);
     const held = this.pilotAt(o, mo);
     if (holder < 0 || held < 0 || holder === held) return false;
-    if (!this.drinkable(holder, held)) return false;
-    const drinks = this.fuel.pieceRoom(b, m) > 0 && this.fuel.pieceHeld(o, mo) > 0;
+    const friend = !this.drinkable(holder, held);
+    if (friend && !this.sentToDrink(holder, held)) return false;
+    // A friend still flying gives only what it holds above its own reserve.
+    const drinks = this.fuel.pieceRoom(b, m) > 0 && this.fuel.pieceHeld(o, mo) > (friend ? this.reserve(o, mo) : 0);
     const strips =
       this.metal.pieceRoom(b, m) > 0 &&
       (this.derelict[held] === 1 || (!this.hasControl(held) && !this.hasRobots(o, held))) &&
       this.canStrip(b, holder, m, world.dt);
     if (!drinks && !strips) return false;
-    if (this.threatened(bodies, holder, o, false)) return false;
+    if (!this.sentTo(holder) && this.threatened(bodies, holder, o, false)) return false;
     if (world.tick - this.clawTried[holder]! < CLAW_RETRY / world.dt) return false;
     this.clawTried[holder] = world.tick;
     if (world.rng.nextFloat() >= clawChance(closing, this.damage.integrity(o, mo))) return false;
@@ -4591,9 +4628,13 @@ export class Ships {
         if (seam.dock !== 'slipway' && !this.threatenedAt(bodies, b, seam)) {
           if (seam.dock === 'claw') {
             // A claw drinks what it holds, and holds on while its robots can take it apart.
-            if (this.fuel.transfer(b, seam.b, seam.a, rate) > 0) moved = true;
-            if (this.fuel.pieceRoom(b, seam.a) > 0 && this.fuel.pieceHeld(b, seam.b) > 0) continue;
             const holder = this.pilotAt(b, seam.a);
+            const source = this.pilotAt(b, seam.b);
+            // A friend still flying, which it was sent to, gives what it holds above its reserve.
+            const kept = holder >= 0 && source >= 0 && !this.drinkable(holder, source) ? this.reserve(b, seam.b) : 0;
+            const offered = this.fuel.pieceHeld(b, seam.b) - kept;
+            if (offered > 0 && this.fuel.transfer(b, seam.b, seam.a, rate < offered ? rate : offered) > 0) moved = true;
+            if (this.fuel.pieceRoom(b, seam.a) > 0 && this.fuel.pieceHeld(b, seam.b) > kept) continue;
             if (holder >= 0 && this.canStrip(b, holder, seam.a, world.dt) && this.strippable(holder, b, design, seam.a)) continue;
           } else if (seam.dock === 'port') {
             // Two ports pass fuel, metal and charge into whichever ship is
@@ -7058,26 +7099,43 @@ export class Ships {
     const b = bodies.indexOf(this.bodyIds[i]!);
     const held = this.salvaging[i]!;
     const hb = held !== NO_TARGET && this.alive[held] === 1 ? bodies.indexOf(this.bodyIds[held]!) : -1;
-    // Told to dock, it takes on all it can whatever its doctrine's thresholds.
-    const ordered = this.errandOf(i) === 'dock';
+    // On an errand, it takes on or gives all it can whatever its doctrine's thresholds.
+    const errand = this.errandOf(i);
+    const ordered = errand === 'dock';
+    const scavengeOrder = errand === 'scavenge';
+    const deliverOrder = errand === 'deliver';
+    const only = errand !== undefined ? this.getCurrentOrder(i)!.target : NO_TARGET;
     // Drinking: its claw or its pad lets go when it is done. First, since it
     // now rides the other's body under a design that is both of theirs.
-    if (b >= 0 && hb === b && (this.orders[i]!.length === 0 || ordered)) {
-      if (ordered) this.errandDocked[i] = 1;
+    if (b >= 0 && hb === b && (this.orders[i]!.length === 0 || errand !== undefined)) {
+      if (errand !== undefined) this.errandDocked[i] = 1;
       return;
     }
-    if (ordered && this.errandDocked[i] === 1) {
-      // Let go: it has had all that dock would give it.
-      this.finishErrand(i);
-      return;
+    if (errand !== undefined && this.errandDocked[i] === 1) {
+      // Let go: it has had all that dock or source would give, or given all it
+      // could. Sent nowhere in particular, it scavenges or delivers on.
+      if (ordered || only !== NO_TARGET) {
+        this.finishErrand(i);
+        return;
+      }
+      this.errandDocked[i] = 0;
+      this.stopForaging(i);
     }
     const design = this.designs[i]!;
     const approach = this.doctrines[i]!.approach;
     // An order given outranks it, as it outranks the rest of doctrine.
-    const free = b >= 0 && (this.orders[i]!.length === 0 || ordered);
-    if (ordered && this.delivering[i] === 1) this.stopForaging(i);
+    const free = b >= 0 && (this.orders[i]!.length === 0 || errand !== undefined);
+    // Doctrine's own errands, when it is on none of an order's.
+    const own = free && errand === undefined;
+    if (errand !== undefined && errand !== 'deliver' && this.delivering[i] === 1) this.stopForaging(i);
     // Taking fuel to a friend, it keeps at it while it has fuel to give.
-    const giverPort = free && !ordered && !design.fighter && approach.deliverFuelAbove > 0 ? this.workingPort(bodies, i, b) : -1;
+    const giverPort =
+      (own && !design.fighter && approach.deliverFuelAbove > 0) || (free && deliverOrder) ? this.workingPort(bodies, i, b) : -1;
+    if (deliverOrder) {
+      if (giverPort >= 0 && this.hasToSpare(b, giverPort)) this.deliver(world, bodies, i, b, giverPort, only);
+      if (this.salvaging[i] === NO_TARGET) this.finishErrand(i);
+      return;
+    }
     const deliverable = giverPort >= 0 && this.canDeliver(b, giverPort, approach.deliverFuelAbove);
     if (this.delivering[i] === 1) {
       if (deliverable) {
@@ -7086,14 +7144,18 @@ export class Ships {
       }
       this.stopForaging(i);
     }
-    const forages = free && !ordered && (approach.scavengeFuelBelow > 0 || approach.scavengeMetalBelow > 0);
-    const docks = free && (ordered || approach.refuelBelow > 0);
-    const recharges = free && (ordered || approach.rechargeBelow > 0);
-    const claw = forages ? this.workingClaw(i, b) : -1;
+    const forages = scavengeOrder || (own && (approach.scavengeFuelBelow > 0 || approach.scavengeMetalBelow > 0));
+    const docks = ordered || (own && approach.refuelBelow > 0);
+    const recharges = ordered || (own && approach.rechargeBelow > 0);
+    const claw = forages && b >= 0 ? this.workingClaw(i, b) : -1;
+    if (scavengeOrder && claw < 0) {
+      this.finishErrand(i);
+      return;
+    }
     // A fighter with no claw lands on a friend's pad instead, and anything
     // else with a port of its own docks with a friend's. Only a pad mends.
-    const rearms = free && claw < 0 && design.fighter && (ordered || approach.rearmBelow >= 0);
-    const repairs = free && claw < 0 && design.fighter && (ordered || approach.repairBelow > 0);
+    const rearms = claw < 0 && design.fighter && (ordered || (own && approach.rearmBelow >= 0));
+    const repairs = claw < 0 && design.fighter && (ordered || (own && approach.repairBelow > 0));
     const lands = (docks || rearms || recharges || repairs) && claw < 0 && design.fighter;
     const port = docks && !design.fighter ? this.workingPort(bodies, i, b) : -1;
     // A ship with a claw too docks only once it is down to `refuelBelow`, and
@@ -7106,24 +7168,24 @@ export class Ships {
     }
     const scavenges = claw >= 0 && !viaPort;
     // Metal from a wreck comes by its robots taking it apart.
-    const strips = scavenges && approach.scavengeMetalBelow > 0 && this.hasRobots(b, i);
-    const own = scavenges ? claw : lands ? (design.cores[0] ?? 0) : viaPort ? port : -1;
-    if (own < 0) {
+    const strips = scavenges && (scavengeOrder || approach.scavengeMetalBelow > 0) && this.hasRobots(b, i);
+    const into = scavenges ? claw : lands ? (design.cores[0] ?? 0) : viaPort ? port : -1;
+    if (into < 0) {
       if (ordered) this.finishErrand(i);
       else this.stopForaging(i);
       return;
     }
     const below = scavenges ? approach.scavengeFuelBelow : approach.refuelBelow;
-    const ownHeld = this.fuel.pieceHeld(b, own);
-    const wantsFuel = scavenges ? approach.scavengeFuelBelow > 0 : docks;
-    const room = wantsFuel ? this.fuel.pieceRoom(b, own) : 0;
+    const ownHeld = this.fuel.pieceHeld(b, into);
+    const wantsFuel = scavenges ? scavengeOrder || approach.scavengeFuelBelow > 0 : docks;
+    const room = wantsFuel ? this.fuel.pieceRoom(b, into) : 0;
     const full = ownHeld + room;
-    const metalRoom = rearms || strips || (ordered && viaPort) ? this.metal.pieceRoom(b, own) : 0;
-    const chargeRoom = (lands || (ordered && viaPort)) && recharges ? this.power.pieceRoom(b, own) : 0;
-    const charge = chargeRoom > 0 ? this.power.pieceHeld(b, own) : 0;
+    const metalRoom = rearms || strips || (ordered && viaPort) ? this.metal.pieceRoom(b, into) : 0;
+    const chargeRoom = (lands || (ordered && viaPort)) && recharges ? this.power.pieceRoom(b, into) : 0;
+    const charge = chargeRoom > 0 ? this.power.pieceHeld(b, into) : 0;
     const thirsty = full > 0 && room > 0 && ownHeld <= below * full;
-    const empty = rearms && metalRoom > 0 && this.outOfRounds(i, b, own, approach.rearmBelow);
-    const metalHeld = strips ? this.metal.pieceHeld(b, own) : 0;
+    const empty = rearms && metalRoom > 0 && this.outOfRounds(i, b, into, approach.rearmBelow);
+    const metalHeld = strips ? this.metal.pieceHeld(b, into) : 0;
     const hungry = strips && metalRoom > 0 && metalHeld <= approach.scavengeMetalBelow * (metalHeld + metalRoom);
     // Only running flat sends it for charge, so it never lands for a sliver of it.
     const flat = chargeRoom > 0 && charge <= approach.rechargeBelow * (charge + chargeRoom);
@@ -7132,19 +7194,21 @@ export class Ships {
     const hurt = repairs && (ordered ? this.wholeness(b, i) < 1 : this.wholeness(b, i) <= approach.repairBelow);
     const going = ordered
       ? room > 0 || metalRoom > 0 || recharging || hurt
-      : thirsty ||
-        empty ||
-        hungry ||
-        recharging ||
-        hurt ||
-        (this.refuelling[i] === 1 && room > 0) ||
-        (this.rearming[i] === 1 && metalRoom > 0);
+      : scavengeOrder
+        ? room > 0 || metalRoom > 0
+        : thirsty ||
+          empty ||
+          hungry ||
+          recharging ||
+          hurt ||
+          (this.refuelling[i] === 1 && room > 0) ||
+          (this.rearming[i] === 1 && metalRoom > 0);
     this.refuelling[i] = going && room > 0 ? 1 : 0;
     this.docking[i] = going && viaPort && (room > 0 || ordered) ? 1 : 0;
     this.rearming[i] = going && metalRoom > 0 ? 1 : 0;
     this.recharging[i] = recharging ? 1 : 0;
-    if (!going && ordered) {
-      // Nothing it could take on: done before it set out.
+    if (!going && errand !== undefined) {
+      // Nothing it could take on: done, or done before it set out.
       this.finishErrand(i);
       return;
     }
@@ -7165,7 +7229,12 @@ export class Ships {
             this.landingPad[i]! >= 0 ||
             this.dockPort[i]! >= 0 ||
             this.shipByBody[hb] !== held ||
-            !((room > 0 && this.fuel.left(hb) > 0) || (metalRoom > 0 && this.strippableWreck(held)));
+            !((room > 0 && this.fuelOffered(i, held, hb)) || (metalRoom > 0 && this.strippableWreck(held)));
+      if (lost && scavengeOrder && only !== NO_TARGET) {
+        // Gone, or with nothing more to give: what it was sent to is done with.
+        this.finishErrand(i);
+        return;
+      }
       if (lost) {
         this.salvaging[i] = NO_TARGET;
         this.landingPad[i] = -1;
@@ -7176,15 +7245,27 @@ export class Ships {
     }
     if (world.tick < this.forageAt[i]!) return;
     this.forageAt[i] = world.tick + this.rethinkTicks(world, design.mass);
-    const only = ordered ? this.getCurrentOrder(i)!.target : NO_TARGET;
     if (lands) {
       this.pickPad(bodies, i, b, room, metalRoom, recharging ? chargeRoom : 0, hurt, only);
     } else if (viaPort) {
       this.pickPort(bodies, i, b, port, room, ordered ? metalRoom : 0, ordered ? chargeRoom : 0, only);
+    } else if (only !== NO_TARGET) {
+      if (!this.clawCanTake(bodies, i, b, claw, only)) {
+        this.finishErrand(i);
+        return;
+      }
+      this.salvaging[i] = only;
+      this.landingPad[i] = -1;
+      this.dockPort[i] = -1;
     } else {
       this.salvaging[i] = this.pickSource(bodies, i, b, claw, room, strips ? metalRoom : 0);
       this.landingPad[i] = -1;
       this.dockPort[i] = -1;
+      if (scavengeOrder && this.salvaging[i] === NO_TARGET) {
+        // Nothing left anywhere worth the trip.
+        this.finishErrand(i);
+        return;
+      }
       // Nothing left to scavenge: what it has goes to a friend instead.
       if (this.salvaging[i] === NO_TARGET && deliverable) this.deliver(world, bodies, i, b, giverPort);
     }
@@ -7195,6 +7276,39 @@ export class Ships {
    * more than `above` of a full load on that port's piece of hull, and more
    * than it keeps back for itself.
    */
+  /** Whether the ship working port `port` of body `b` holds fuel or metal above what it keeps back for itself. */
+  private hasToSpare(b: number, port: number): boolean {
+    return this.fuel.pieceHeld(b, port) > this.reserve(b, port) || this.metal.pieceHeld(b, port) > this.metalReserve(b, port);
+  }
+
+  /**
+   * Whether ship `i`'s claw on body `b` could ever take anything from ship
+   * `t`: what doctrine would drink from, or a friend still flying, which it
+   * may when it is sent to.
+   */
+  private clawCanTake(bodies: Bodies, i: number, b: number, claw: number, t: number): boolean {
+    if (t === i || this.alive[t] !== 1 || this.team[t] === NEUTRAL_TEAM) return false;
+    const tb = bodies.indexOf(this.bodyIds[t]!);
+    if (tb < 0 || tb === b || !this.clawReaches(b, claw, tb)) return false;
+    return this.drinkable(i, t) || this.team[t] === this.team[i];
+  }
+
+  /** Whether ship `t` on body `tb` has fuel for ship `i`'s claw: any at all, or from a friend still flying, any above its reserve. */
+  private fuelOffered(i: number, t: number, tb: number): boolean {
+    if (this.drinkable(i, t)) return this.fuel.left(tb) > 0;
+    const modules = this.designs[t]!.modules;
+    for (let m = 0; m < modules.length; m++) {
+      if (this.ownsAt(t, tb, m) && this.fuel.pieceHeld(tb, m) > this.reserve(tb, m)) return true;
+    }
+    return false;
+  }
+
+  /** Whether ship `i` was sent to scavenge from `t`, a friend still flying, which doctrine never drinks from. */
+  private sentToDrink(i: number, t: number): boolean {
+    const given = this.getCurrentOrder(i);
+    return given?.errand === 'scavenge' && given.target === t;
+  }
+
   private canDeliver(b: number, port: number, above: number): boolean {
     const held = this.fuel.pieceHeld(b, port);
     const full = held + this.fuel.pieceRoom(b, port);
@@ -7210,7 +7324,7 @@ export class Ships {
   private keepsBack(b: number, m: number): number {
     const owner = this.pilotAt(b, m);
     const kept = this.reserve(b, m);
-    if (owner < 0 || this.delivering[owner] !== 1) return kept;
+    if (owner < 0 || this.delivering[owner] !== 1 || this.errandOf(owner) === 'deliver') return kept;
     const above = this.doctrines[owner]!.approach.deliverFuelAbove;
     return max(kept, above * (this.fuel.pieceHeld(b, m) + this.fuel.pieceRoom(b, m)));
   }
@@ -7219,7 +7333,7 @@ export class Ships {
    * Take fuel to a friend: keep to the friend's port it is making for until it
    * is gone, taken or full, or it is time to look again, then pick afresh.
    */
-  private deliver(world: World, bodies: Bodies, i: number, b: number, port: number): void {
+  private deliver(world: World, bodies: Bodies, i: number, b: number, port: number, only = NO_TARGET): void {
     this.refuelling[i] = 0;
     this.docking[i] = 0;
     this.rearming[i] = 0;
@@ -7233,10 +7347,11 @@ export class Ships {
       this.dockPort[i]! >= 0 &&
       this.ownPort[i] === port &&
       this.portFree(bodies, held, this.dockPort[i]!) &&
-      this.fuel.pieceRoom(hb, this.dockPort[i]!) > 0;
+      (this.fuel.pieceRoom(hb, this.dockPort[i]!) > 0 ||
+        (this.errandOf(i) === 'deliver' && this.metal.pieceRoom(hb, this.dockPort[i]!) > 0));
     if (keep && world.tick < this.forageAt[i]!) return;
     this.forageAt[i] = world.tick + this.rethinkTicks(world, this.designs[i]!.mass);
-    this.pickDelivery(bodies, i, b, port);
+    this.pickDelivery(bodies, i, b, port, only);
     this.delivering[i] = this.salvaging[i] !== NO_TARGET ? 1 : 0;
   }
 
@@ -7246,31 +7361,38 @@ export class Ships {
    * get there and pump it through the slower of the two ports, put off by armed
    * enemies near it and by every other ship already making for it.
    */
-  private pickDelivery(bodies: Bodies, i: number, b: number, own: number): void {
+  private pickDelivery(bodies: Bodies, i: number, b: number, own: number, only = NO_TARGET): void {
     const design = this.designs[i]!;
     const approach = this.doctrines[i]!.approach;
     this.salvaging[i] = NO_TARGET;
     this.dockPort[i] = -1;
     this.ownPort[i] = -1;
     if (!(approach.approachSpeed > 0)) return;
+    // Ordered, it gives all it can spare, metal too, whatever `deliverFuelAbove` says.
+    const ordered = this.errandOf(i) === 'deliver';
     const held = this.fuel.pieceHeld(b, own);
-    const spare = held - max(this.reserve(b, own), approach.deliverFuelAbove * (held + this.fuel.pieceRoom(b, own)));
-    if (!(spare > 0)) return;
+    const above = ordered ? 0 : approach.deliverFuelAbove * (held + this.fuel.pieceRoom(b, own));
+    const spare = held - max(this.reserve(b, own), above);
+    const spareMetal = ordered ? this.metal.pieceHeld(b, own) - this.metalReserve(b, own) : 0;
+    if (!(spare > 0) && !(spareMetal > 0)) return;
     const ownPump = design.modules[own]!.stats.pumpRate;
     let bestScore = 0;
     for (let t = 0; t < this.alive.length; t++) {
       if (t === i || this.alive[t] === 0 || this.derelict[t] === 1 || this.delivering[t] === 1) continue;
+      if (only !== NO_TARGET && t !== only) continue;
       if (this.team[t] !== this.team[i] || this.hostile(i, t) || !this.hasControl(t)) continue;
       const tb = bodies.indexOf(this.bodyIds[t]!);
       if (tb < 0 || tb === b) continue;
       const host = this.designs[t]!;
-      let danger = -1;
+      // Sent to it, it goes whatever is near.
+      let danger = only !== NO_TARGET ? 0 : -1;
       for (let p = 0; p < host.modules.length; p++) {
         if (host.modules[p]!.spec.kind !== 'port' || !this.ownsAt(t, tb, p) || !this.portFree(bodies, t, p)) continue;
         const room = this.fuel.pieceRoom(tb, p);
+        const metalRoom = spareMetal > 0 ? this.metal.pieceRoom(tb, p) : 0;
         const pump = min(ownPump, host.modules[p]!.stats.pumpRate);
-        if (!(room > 0) || !(pump > 0)) continue;
-        const take = spare < room ? spare : room;
+        if (!((room > 0 && spare > 0) || metalRoom > 0) || !(pump > 0)) continue;
+        const take = max(0, spare < room ? spare : room) + (spareMetal < metalRoom ? spareMetal : metalRoom);
         const gap = length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!);
         if (danger < 0) danger = approach.dockDanger > 0 ? this.dangerNear(bodies, i, tb) : 0;
         let queue = 0;
