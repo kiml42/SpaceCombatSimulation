@@ -2390,6 +2390,28 @@ export class Ships {
     return this.focusOf(i);
   }
 
+  /**
+   * What ship `i` is doing, told or of its own accord, and to which ship: an
+   * errand or a trip doctrine sent it on, a ram, a fight on a friend's behalf,
+   * or an attack. Null for nothing.
+   */
+  doingOf(i: number): { kind: 'attack' | 'defend' | 'ram' | Errand; target: number } | null {
+    const given = this.getCurrentOrder(i);
+    if (given?.errand !== undefined) {
+      const target = this.errandTarget(i);
+      return target === NO_TARGET ? null : { kind: given.errand, target };
+    }
+    const source = this.salvaging[i]!;
+    if (given === undefined && source !== NO_TARGET && this.alive[source] === 1) {
+      const kind = this.delivering[i] === 1 ? 'deliver' : this.landingPad[i]! >= 0 || this.dockPort[i]! >= 0 ? 'dock' : 'scavenge';
+      return { kind, target: source };
+    }
+    const target = this.focusOf(i);
+    if (target === NO_TARGET || this.alive[target] !== 1) return null;
+    if (given?.ram === true || (given === undefined && this.ramming[i] === target)) return { kind: 'ram', target };
+    return { kind: this.defendingOf(i) !== NO_TARGET ? 'defend' : 'attack', target };
+  }
+
   /** What this ship is staying with as an escort, as `cover` flies it; `NO_TARGET` for nothing, or for a ship out of control. */
   coveringOf(i: number): number {
     const bodies = this.bodyStore;

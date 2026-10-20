@@ -56,6 +56,25 @@ describe('a ship told to scavenge', () => {
     expect(fuelOf(run, run.other)).toBeCloseTo(untouched, 3);
   });
 
+  it('says what it is doing, told or of its own accord, for the view to draw', () => {
+    const run = wreckScene();
+    give(run, { kind: 'order', ships: [run.s], order: { kind: 'scavenge', target: run.w }, append: false });
+    expect(run.ships.doingOf(run.s)).toEqual({ kind: 'scavenge', target: run.w });
+    // Doctrine's own trips read the same.
+    const own = makeBattle({ seed: 3 }, (ships, world) => {
+      const s = ships.spawn(world, { design: compileBlueprint(SCAVENGER), x: -300, y: 0, angle: 0 });
+      const w = ships.spawn(world, { design: compileBlueprint(CORVETTE), x: 0, y: 150, angle: 1, team: 1 });
+      const body = world.bodies.indexOf(ships.body(w));
+      const corvette = ships.currentStructure(w);
+      for (const core of corvette.cores) {
+        ships.damage.absorb(body, core, corvette.modules[core]!.stats.hitPoints * DAMAGE_ENERGY_PER_KG * 0.7);
+      }
+      return { s, w };
+    });
+    runUntil(own, () => own.ships.doingOf(own.s) !== null, 5);
+    expect(own.ships.doingOf(own.s)).toEqual({ kind: 'scavenge', target: own.w });
+  });
+
   it('with no target, goes to a source its doctrine would choose', () => {
     const run = wreckScene();
     give(run, { kind: 'order', ships: [run.s], order: { kind: 'scavenge', target: NO_TARGET }, append: false });
