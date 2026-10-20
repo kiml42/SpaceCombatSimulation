@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   BASE_WALL_THICKNESS,
   CORE_COMPUTING_VOLUME,
+  coreComputing,
   CORE_METAL_SHARE,
   CORE_GENERATOR_SHARE,
   CORE_GENERATOR_MAX_VOLUME,
@@ -61,8 +62,9 @@ describe('a tank', () => {
   });
 
   it('is the only kind but a core that carries any', () => {
-    const core = moduleStats({ kind: 'core', x: 0, y: 0, length: 4, width: 4 });
-    const spare = interior(4, 4, DECK_HEIGHT) - CORE_COMPUTING_VOLUME;
+    const spec = { kind: 'core' as const, x: 0, y: 0, length: 4, width: 4 };
+    const core = moduleStats(spec);
+    const spare = interior(4, 4, DECK_HEIGHT) - coreComputing(spec, interior(4, 4, DECK_HEIGHT));
     const generator = Math.min(spare * CORE_GENERATOR_SHARE, CORE_GENERATOR_MAX_VOLUME);
     expect(core.fuel).toBeCloseTo((spare * (1 - CORE_METAL_SHARE - CORE_BATTERY_SHARE) - generator) * FUEL_DENSITY, 3);
     expect(core.metal).toBeCloseTo(spare * CORE_METAL_SHARE * METAL_DENSITY, 6);

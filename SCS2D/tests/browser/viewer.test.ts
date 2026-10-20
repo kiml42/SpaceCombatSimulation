@@ -14,6 +14,7 @@ import type { Browser, Page } from 'playwright';
 import { launchChromium } from './launch.js';
 import { serialiseBlueprint } from '../../sim/index.js';
 import { DINKY } from '../../scenarios/blueprints.js';
+import { REFITTED } from '../../scenarios/mending.js';
 
 /**
  * The viewer, driven in a real browser.
@@ -750,6 +751,12 @@ describe('the viewer in a browser', () => {
   }, 60_000);
 
   it('shows what a ship is built to, and remodels it only on Remodel', async () => {
+    // Something in the library its refit would take, whatever the stock ships are: itself less its last module.
+    const variant = { ...REFITTED, name: 'Refitted Rebuilder, trimmed', modules: REFITTED.modules.slice(0, -1) };
+    await page.evaluate(
+      ([key, text]) => window.localStorage.setItem(key!, text!),
+      [`scs2d.blueprint.${variant.name}`, JSON.stringify(serialiseBlueprint(variant))],
+    );
     await page.selectOption('#scene', { label: 'Refitting' });
     if ((await page.textContent('#play')) === 'Pause') await page.click('#play');
     await painted(page);
@@ -782,6 +789,7 @@ describe('the viewer in a browser', () => {
     expect(await orders()).toBe(before + 1);
     expect(await page.locator('#remodelTo option:checked').textContent()).not.toBe(built);
     await page.keyboard.press('Escape');
+    await page.evaluate((key) => window.localStorage.removeItem(key), `scs2d.blueprint.${variant.name}`);
   }, 60_000);
 
   it('reports no errors after all of that', () => {

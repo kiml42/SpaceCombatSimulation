@@ -430,6 +430,17 @@
               title="How full it starts, per cent. A ship sent out part full weighs less, so it costs less of a budget, and has to find the rest from a wreck or a carrier. 100 by default."
             />
           </div>
+          <div class="field" id="computingRow">
+            <label for="propComputing">computing %</label>
+            <input
+              id="propComputing"
+              type="number"
+              step="5"
+              min="0"
+              max="100"
+              title="How much of the core computes rather than holding fuel, metal and charge, per cent. More reaches modules further away; the circle it reaches is drawn round it. A core of 1 m³ or less is all computing. 10 by default."
+            />
+          </div>
           <div class="field" id="dockedRow">
             <label for="propDocked" id="propDockedLabel">fighter</label>
             <select id="propDocked" title="What this pad or slipway builds. A pad tends a fighter, the one it sets out with and the one it builds, marked ✗ when too big to lie inside it. A slipway builds any other ship bow first out of its face, marked ✗ when wider than it."></select>

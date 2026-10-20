@@ -105,7 +105,7 @@ export const MUTATION_FIELDS: readonly MutationField[] = [
     step: 0.5,
     value: DEFAULT_BUILD_WEIGHTS.tuning,
     title:
-      'How far its loadout drifts each generation — reinforcement, sealing, fill, traverse, fuses, fragments, burst speed — and how often a drain priority, shells or solid shot, or an engine used as a weapon is switched.',
+      'How far its loadout drifts each generation — reinforcement, sealing, fill, computing, traverse, fuses, fragments, burst speed — and how often a drain priority, shells or solid shot, or an engine used as a weapon is switched.',
   },
   {
     name: 'buildFighter',

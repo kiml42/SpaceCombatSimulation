@@ -697,9 +697,9 @@ inside any one file is not contiguous.
   carries its lines in each side's colours and is what a point is picked from, and the combatants are
   tagged A or B and ranked within their own side; a side not bred yet shows its hall. The point on show, and the
   one under the pointer on the chart, name the side that was evolving in it.
-  **Fuel.** A `tank` archetype whose interior is reaction mass, and every core's interior past the cubic
-  metre its computing needs (`CORE_COMPUTING_VOLUME`), so a bare core with one engine can move; a core no
-  bigger than that holds none. Each engine has an exhaust velocity:
+  **Fuel.** A `tank` archetype whose interior is reaction mass, and every core's interior past its
+  computing (see the control radius in §4), so a bare core with one engine can move; a core no bigger
+  than a cubic metre (`CORE_COMPUTING_VOLUME`) is all computing and holds none. Each engine has an exhaust velocity:
   `EXHAUST_VELOCITY`, less what its bell throws sideways (`divergence`) and what a small throat loses to its
   walls — about 1,900 s of specific impulse on a capital's main engine and 1,650 s on a fighter's, and
   never under 700 s. It burns the gas it throws over that, throttle by throttle, from the tanks on its own
@@ -1668,6 +1668,19 @@ Mass from wall volume, capacity from interior area, strength from thickness and 
   mounts, which is what makes a hit amidships worth more than stripping a battery one mount at a time;
   the floor on a core's machinery is low enough that half a metre square is a working one, since every
   craft here is computer-flown.
+- **A core reaches only so far.** An active module (an engine, a gun, a claw, a pad, a port, a slipway or
+  a robot bay) works only while the block of it, without its barrel or bell, touches the circle of a
+  working core of its own ship (`ShipDesign.coveredBy`); structure, tanks, holds, batteries and
+  generators need none. The circle's radius is `CONTROL_REACH` (15 m) times the core's computing in m³ to
+  the power 0.3 (`controlRadius`), so ten times the computing reaches about twice as far. A core of 1 m³
+  or less is all computing; a bigger one computes with a share of its interior, `computing` on the
+  layout and 10% by default (`CORE_COMPUTING_SHARE`), never less than 1 m³, and the rest is stores. The
+  Dinky's 0.6 m core reaches 3.8 m; a fighter's core of a cubic metre or so reaches 15 m, a Gunship's
+  33 m, and a 60 × 380 m core 211 m. A long ship carries a second core, or gives one more of its interior to
+  computing. A core past its control cutout reaches nothing, and what only it reached goes dark — drawn
+  faint in a battle — while the rest of the ship fights on. The editor draws each core's reach as a
+  dashed circle, tints what is out of every one and lists each as a warning, and works out the ship's figures without it
+  (`inReachDesign`). A core's computing share is a knob a run mutates.
 - **Hull and tanks may be triangles; every other archetype is a box.** A module is a box because
   nearly every archetype has something coming out of one face of it — a bell, a barrel, a ring — and
   a box is what those are measured against. Structure and a tank have nothing protruding, so they may

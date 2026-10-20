@@ -20,6 +20,8 @@ import {
   mountAccel,
   traverseRate,
   fillOf,
+  blockCentre,
+  needsControl,
   type GunStats,
   type ModuleSpec,
   type ModuleStats,
@@ -568,6 +570,13 @@ export interface ShipDesign {
    * built with two cores survives being cut between them as two ships.
    */
   readonly cores: readonly number[];
+  /**
+   * For each module, the cores whose reach (`ModuleStats.controlRadius`) its
+   * block touches, as indices into `modules`; null for a module that needs no
+   * core (`needsControl`). A module works while one of them does. Absent on a
+   * design built by hand, where every module is in reach.
+   */
+  readonly coveredBy?: readonly (readonly number[] | null)[];
   /**
    * How far out this ship's main guns are worth using, metres.
    *
@@ -1276,6 +1285,7 @@ function place(
     if (placement.sealing !== undefined) spec.sealing = placement.sealing;
     if (placement.drainPriority !== undefined) spec.drainPriority = placement.drainPriority;
     if (placement.fill !== undefined) spec.fill = placement.fill;
+    if (placement.computing !== undefined) spec.computing = placement.computing;
     if (placement.craft !== undefined) spec.craft = placement.craft;
     if (placement.docked !== undefined) spec.docked = placement.docked;
     if (placement.keep !== undefined) spec.keep = placement.keep;
@@ -1998,6 +2008,30 @@ export function fighterProblem(specs: readonly ModuleSpec[]): string | null {
 }
 
 /**
+ * Which cores reach each module (`ShipDesign.coveredBy`): those whose circle
+ * touches its block, leaving out a barrel or a bell.
+ */
+function coverage(specs: readonly ModuleSpec[], stats: readonly ModuleStats[], cores: readonly number[]): (number[] | null)[] {
+  return specs.map((spec) => {
+    if (!needsControl(spec.kind)) return null;
+    const block = spec.body === true ? weldBox(spec) : spec;
+    const centre = blockCentre(spec);
+    const angle = boxAngle(block);
+    const c = cos(angle);
+    const s = sin(angle);
+    return cores.filter((core) => {
+      const at = blockCentre(specs[core]!);
+      const dx = at.x - centre.x;
+      const dy = at.y - centre.y;
+      const out = max(0, abs(dx * c + dy * s) - block.length / 2);
+      const across = max(0, abs(dy * c - dx * s) - block.width / 2);
+      const reach = stats[core]!.controlRadius;
+      return out * out + across * across <= reach * reach;
+    });
+  });
+}
+
+/**
  * The design that part of a ship makes on its own, once the rest has come off.
  *
  * Everything is derived again from the modules that are left — mass, the
@@ -2043,6 +2077,36 @@ export function subDesign(design: ShipDesign, keep: readonly number[]): ShipDesi
   const fighters = joins?.fighterPieces;
   const fighter = design.fighter || (fighters !== undefined && joins!.pieces.every((piece) => fighters.includes(piece)));
   return designFrom(design.name, specs, stats, layoutIndex, design.doctrine, joins, fighter, marks);
+}
+
+/**
+ * The design as it flies: every module out of all its cores' reach
+ * (`ShipDesign.coveredBy`) pushing nothing and carrying no gun, so the figures
+ * worked out from it are the ones a battle would see. The same design when
+ * everything is in reach.
+ */
+export function inReachDesign(design: ShipDesign): ShipDesign {
+  const out = design.coveredBy?.some((cores) => cores !== null && cores.length === 0) === true;
+  if (!out) return design;
+  const modules = design.modules.map((module, m) =>
+    design.coveredBy![m]?.length === 0 ? { ...module, stats: { ...module.stats, thrust: 0, gun: null } } : module,
+  );
+  const flying = subDesign(
+    { ...design, modules },
+    modules.map((_, m) => m),
+  );
+  // What a hangar and the rest of the layout say is unchanged.
+  return {
+    ...design,
+    modules: flying.modules,
+    engines: flying.engines,
+    turrets: flying.turrets,
+    engineLayout: flying.engineLayout,
+    thrustBearing: flying.thrustBearing,
+    weaponEngines: flying.weaponEngines,
+    mainWeaponEngines: flying.mainWeaponEngines,
+    reach: flying.reach,
+  };
 }
 
 /**
@@ -2501,6 +2565,7 @@ function designFrom(
     thrustBearing: thrustBearing(engines, layout),
     turrets,
     cores,
+    coveredBy: coverage(specs, stats, cores),
     ...(joins === undefined ? {} : { pieces: joins.pieces, seams: joins.seams }),
     ...(joins?.fighterPieces === undefined ? {} : { fighterPieces: joins.fighterPieces }),
   };

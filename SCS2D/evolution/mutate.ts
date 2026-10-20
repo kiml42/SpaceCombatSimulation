@@ -46,6 +46,8 @@ import {
   readsSealing,
   readsDrainPriority,
   readsFill,
+  readsComputing,
+  CORE_COMPUTING_SHARE,
   readsCraft,
   moduleProblem,
   mountTraverse,
@@ -745,6 +747,7 @@ type NumberKnob =
         | 'burstSpeed'
         | 'sealing'
         | 'fill'
+        | 'computing'
         | 'keep';
       readonly site: ModuleSite;
     };
@@ -963,6 +966,7 @@ function numbers(draft: Draft): NumberKnob[] {
     if (readsSealing(spec.kind)) out.push({ at: 'sealing', site });
     // Batteries set out full: charge is not in the budget.
     if (readsFill(spec.kind) && spec.kind !== 'battery') out.push({ at: 'fill', site });
+    if (readsComputing(spec.kind)) out.push({ at: 'computing', site });
     // How many of its craft a pad or slipway keeps: nothing to count without one.
     if (readsCraft(spec.kind) && spec.craft !== undefined) out.push({ at: 'keep', site });
     if (isWeaponMount(spec.kind)) {
@@ -1065,6 +1069,8 @@ function renumberModule(knob: Exclude<NumberKnob, { at: 'doctrine' }>, jitter: J
       return reseal(knob.site, jitter);
     case 'fill':
       return refill(knob.site, jitter);
+    case 'computing':
+      return recompute(knob.site, jitter);
     case 'keep':
       return rekeep(knob.site, jitter);
   }
@@ -1357,6 +1363,19 @@ function refill(site: ModuleSite, jitter: Jitter): string | null {
   if (now < 1) site.spec.fill = now;
   else delete site.spec.fill;
   return `${site.where} ${site.spec.kind}: starts ${round(was * 100)}% full → ${round(now * 100)}%`;
+}
+
+/**
+ * Give a core more of its interior to computing, reaching further, or less,
+ * keeping more stores: by up to `magnitude` of the whole, never past either end.
+ */
+function recompute(site: ModuleSite, jitter: Jitter): string | null {
+  const was = site.spec.computing ?? CORE_COMPUTING_SHARE;
+  const now = tidy(min(1, max(0, was + jitter(1))), 3);
+  if (now === was) return null;
+  if (now !== CORE_COMPUTING_SHARE) site.spec.computing = now;
+  else delete site.spec.computing;
+  return `${site.where} core: ${round(was * 100)}% computing → ${round(now * 100)}%`;
 }
 
 /**

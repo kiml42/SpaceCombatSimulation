@@ -596,7 +596,8 @@ describe('mutation', () => {
     let grew = 0;
     let shrank = 0;
     for (let i = 0; i < 1000; i++) {
-      const child = mutate(sliver, rng, { structural: 0, geometry: 1 });
+      // No thrusters, which would weld something to the free face.
+      const child = mutate(sliver, rng, { structural: 0, geometry: 1, thrusters: 0 });
       for (const edit of child.edits) {
         const m = /layout\[1\] turret: length ([\d.]+) → ([\d.]+)(.*)/.exec(edit);
         if (m === null) continue;
