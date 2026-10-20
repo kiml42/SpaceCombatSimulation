@@ -733,6 +733,9 @@ describe('the evolution page in a browser', () => {
     await page.click('#matches tr');
     await page.waitForFunction(() => /%/.test(document.getElementById('watching')?.textContent ?? ''));
     if ((await page.textContent('#play')) === 'Pause') await page.click('#play');
+    // Without the fleets down the edges, so the leftmost thing drawn is a ship in the battle.
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await page.keyboard.press('t');
     // Held, the camera still eases to where it is framing; a picture once it has been still
     // for a second, since a slow runner can draw nothing for a moment while it is still moving.
     const picture = (): Promise<string> =>
@@ -778,6 +781,7 @@ describe('the evolution page in a browser', () => {
     expect(picked).not.toBe(before);
     await page.keyboard.press('Escape');
     expect(await settled()).not.toBe(picked);
+    await page.keyboard.press('t');
     expect(problems).toEqual([]);
   }, 60_000);
 

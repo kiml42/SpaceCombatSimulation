@@ -2,7 +2,8 @@ import type { Arcs } from '../render/canvas2d.js';
 
 /**
  * How a page shows a battle, kept between visits: which arcs are drawn (`A`),
- * whether shots are in their side's colours (`C`), and the speed.
+ * whether shots are in their side's colours (`C`), whether each side's ships
+ * are shown down the edges (`T`), and the speed.
  *
  * Per page, since their defaults differ. Kept in the browser only, and read
  * and written inside a try, since storage can be missing or refused: a page
@@ -11,6 +12,7 @@ import type { Arcs } from '../render/canvas2d.js';
 export interface ViewSettings {
   arcs: Arcs;
   teamShots: boolean;
+  strips: boolean;
   speed: number;
 }
 
@@ -24,6 +26,7 @@ export function loadView(page: string, defaults: ViewSettings): ViewSettings {
     return {
       arcs: ARCS.includes(kept.arcs as Arcs) ? (kept.arcs as Arcs) : defaults.arcs,
       teamShots: typeof kept.teamShots === 'boolean' ? kept.teamShots : defaults.teamShots,
+      strips: typeof kept.strips === 'boolean' ? kept.strips : defaults.strips,
       speed: typeof kept.speed === 'number' && kept.speed > 0 ? kept.speed : defaults.speed,
     };
   } catch {
