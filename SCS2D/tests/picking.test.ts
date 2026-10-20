@@ -104,6 +104,13 @@ describe('a fleet strip tile of fighters', () => {
     expect(fighterGroup(picture, swarm[1]!)).toEqual([0, 1]);
   });
 
+  it('groups fighters by the design they are built to, not what damage has made of them', () => {
+    const knocked = { radius: 5, name: 'TIE', fighter: true } as unknown as ShipView['design'];
+    const hurt = { ...craft(6, 0, knocked), built: fighter } as ShipView;
+    const whole = { ...craft(7, 0, fighter), built: fighter } as ShipView;
+    expect(fighterGroup(snapshotOf([whole, hurt]), whole)).toEqual([7, 6]);
+  });
+
   it('picks only the ship itself for anything but a fighter', () => {
     expect(fighterGroup(picture, swarm[5]!)).toEqual([5]);
     expect(fighterGroup(picture, null)).toEqual([]);

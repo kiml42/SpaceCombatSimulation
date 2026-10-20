@@ -67,6 +67,11 @@ export interface ShipView {
   covering?: number;
   /** How far from that it stays, centre to centre, metres. */
   coverBand?: number;
+  /**
+   * The design it is built to, whatever damage has made of `design`: what it is
+   * of, for grouping it with others. Absent where it is `design`, as in an editor.
+   */
+  built?: ShipDesign;
   /** Which ship it is in the simulation, as commands name it; absent where there is none, as in an editor. */
   ship?: number;
   /** The orders it has been given, the current one first; absent for none. */
@@ -414,6 +419,7 @@ export function capture(
     const design = ships.design(i);
     const view = shipView(out, n++);
     view.design = design;
+    view.built = ships.launchDesign(i);
     view.body = b;
     view.team = ships.teamOf(i);
     view.serial = ships.serialOf(i);
