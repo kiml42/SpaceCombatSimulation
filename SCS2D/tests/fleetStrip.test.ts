@@ -56,4 +56,29 @@ describe('the fleets down the edges', () => {
     expect(stripTileAt(strips, W - SETTINGS.margin - 5, SETTINGS.margin + 5)).toBe(2);
     expect(stripTileAt(strips, W / 2, H / 2)).toBe(-1);
   });
+
+  it("shows a side's fighters of a design in one tile, the best armed of them, with how many there are", () => {
+    const fighter = (body: number, team: number, weapons: number, design = 0): StripShip => ({ ...ship(body, team, 5), fighter: design, weapons });
+    const strips = stripsFor(
+      [fighter(5, 0, 1), ship(1, 0), fighter(6, 0, 2), fighter(7, 0, 2), fighter(8, 0, 1, 1), fighter(9, 2, 3), fighter(10, 1, 0)],
+      W,
+      H,
+      SETTINGS,
+    );
+    // Other ships first, then one tile a design and side; of equals, the lowest body.
+    expect(strips.left.tiles.map((tile) => [tile.body, tile.count])).toEqual([
+      [1, 1],
+      [6, 3],
+      [8, 1],
+      [9, 1],
+    ]);
+    expect(strips.right.tiles.map((tile) => [tile.body, tile.count])).toEqual([[10, 1]]);
+  });
+
+  it('counts the fighters in a tile that did not fit among those left out', () => {
+    const many = Array.from({ length: 40 }, (_, k) => ship(k, 0));
+    const fighters = Array.from({ length: 5 }, (_, k): StripShip => ({ ...ship(100 + k, 0, 5), fighter: 0, weapons: 1 }));
+    const column = stripsFor([...many, ...fighters], W, H, SETTINGS).left;
+    expect(column.tiles.length + column.hidden).toBe(45);
+  });
 });
