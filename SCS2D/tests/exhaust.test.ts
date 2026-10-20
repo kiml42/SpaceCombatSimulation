@@ -349,10 +349,10 @@ describe('an engine firing into its own ship', () => {
       ships.pushOrder(mine, them, 100, 200, 150, OrderCancelCondition.None);
       return { mine, them };
     });
-    expect(run.ships.design(run.mine).engines[0]!.escaping).toBeLessThan(0.5);
+    expect(run.ships.currentStructure(run.mine).engines[0]!.escaping).toBeLessThan(0.5);
     for (let step = 0; step < 45 * 60; step++) run.step();
-    expect(run.ships.design(run.mine).engines[0]!.escaping).toBe(1);
-    expect(run.ships.design(run.mine).modules.length).toBe(3);
+    expect(run.ships.currentStructure(run.mine).engines[0]!.escaping).toBe(1);
+    expect(run.ships.currentStructure(run.mine).modules.length).toBe(3);
   }, 60_000);
 
   it('burns harder the nearer the obstruction is to the nozzle', () => {

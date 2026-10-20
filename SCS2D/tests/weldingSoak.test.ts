@@ -32,7 +32,7 @@ function soak(seed: number, pilots: boolean) {
         ];
         for (const ship of pair) {
           const body = world.bodies.indexOf(ships.body(ship));
-          ships.design(ship).modules.forEach((module, m) => {
+          ships.currentStructure(ship).modules.forEach((module, m) => {
             if (rand() < 0.6) {
               ships.damage.absorb(body, m, module.stats.hitPoints * DAMAGE_ENERGY_PER_KG * (1 - RAGGED_INTEGRITY * rand()));
             }
@@ -75,7 +75,7 @@ describe('hulls hooking and parting at length', () => {
         if (s % 200 === 100) {
           for (let i = 0; i < ships.highWater; i++) {
             if (!ships.isAlive(i)) continue;
-            const all = joints(ships.design(i));
+            const all = joints(ships.currentStructure(i));
             const k = all.findIndex((joint) => joint.seam === true);
             if (k >= 0 && rand() < 0.3) ships.damage.cutWeld(world.bodies.indexOf(ships.body(i)), k, all[k]!.width * 2);
           }
@@ -86,7 +86,7 @@ describe('hulls hooking and parting at length', () => {
         const drawn = new Map<number, number[]>();
         for (let v = 0; v < snapshot.shipCount; v++) {
           const view = snapshot.ships[v]!;
-          const counts = drawn.get(view.body) ?? new Array<number>(view.design.modules.length).fill(0);
+          const counts = drawn.get(view.body) ?? new Array<number>(view.currentStructure.modules.length).fill(0);
           view.drawn!.forEach((d, m) => (counts[m]! += d ? 1 : 0));
           drawn.set(view.body, counts);
         }
@@ -102,7 +102,7 @@ describe('hulls hooking and parting at length', () => {
             continue;
           }
           bodies.add(b);
-          mounts += ships.design(i).turrets.length;
+          mounts += ships.currentStructure(i).turrets.length;
         }
         expect(ships.turrets.count).toBe(mounts);
       }

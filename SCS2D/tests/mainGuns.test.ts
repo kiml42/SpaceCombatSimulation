@@ -27,7 +27,7 @@ function twoGuns(bigMain: boolean, smallMain: boolean): Blueprint {
 /** Shoot out the `t`-th mount of a ship. */
 function knockOut(ships: Ships, world: World, ship: number, t: number): void {
   const b = world.bodies.indexOf(ships.body(ship));
-  const module = ships.design(ship).turrets[t]!.module;
+  const module = ships.currentStructure(ship).turrets[t]!.module;
   ships.damage.absorb(b, module, ships.damage.capacityLeft(b, module));
 }
 

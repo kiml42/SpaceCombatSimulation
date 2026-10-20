@@ -28,18 +28,18 @@ const dinky = compileBlueprint(DINKY);
 /** Bring a module down to this integrity, 1 whole and 0 spent. */
 function wear(ships: Ships, world: World, ship: number, module: number, integrity: number): void {
   const body = world.bodies.indexOf(ships.body(ship));
-  const capacity = ships.design(ship).modules[module]!.stats.hitPoints * DAMAGE_ENERGY_PER_KG;
+  const capacity = ships.currentStructure(ship).modules[module]!.stats.hitPoints * DAMAGE_ENERGY_PER_KG;
   ships.damage.absorb(body, module, capacity * (1 - integrity) - ships.damage.absorbedAt(body, module));
 }
 
 /** Knock out every core, leaving the hull a wreck. */
 function wreck(ships: Ships, world: World, ship: number): void {
-  for (const core of ships.design(ship).cores) wear(ships, world, ship, core, 0.3);
+  for (const core of ships.currentStructure(ship).cores) wear(ships, world, ship, core, 0.3);
 }
 
 /** Tear every module open, so wherever the contact lands it lands on ragged metal. */
 function tear(ships: Ships, world: World, ship: number): void {
-  const design = ships.design(ship);
+  const design = ships.currentStructure(ship);
   for (let m = 0; m < design.modules.length; m++) {
     if (design.modules[m]!.spec.kind === 'core') continue;
     wear(ships, world, ship, m, RAGGED_INTEGRITY * 0.5);
@@ -101,7 +101,7 @@ describe('welding on a slow contact', () => {
     expect(after.px).toBeCloseTo(before.px, 3);
     expect(after.py).toBeCloseTo(before.py, 3);
     expect(after.l).toBeCloseTo(before.l, 0);
-    const design = run.ships.design(run.a);
+    const design = run.ships.currentStructure(run.a);
     expect(design.modules.length).toBe(corvette.modules.length * 2);
     expect(joints(design).filter((joint) => joint.seam === true)).toHaveLength(1);
   });
@@ -158,7 +158,7 @@ describe('welding on a slow contact', () => {
       expect(ships.hasControl(a)).toBe(true);
       expect(ships.hasControl(b)).toBe(true);
       expect(ships.teamOf(b)).toBe(1);
-      const design = ships.design(a);
+      const design = ships.currentStructure(a);
       for (let m = 0; m < design.modules.length; m++) {
         expect(ships.owns(a, m)).toBe(m < own);
         expect(ships.owns(b, m)).toBe(m >= own);
@@ -175,7 +175,7 @@ describe('welding on a slow contact', () => {
       ships.spawn(world, { design: corvette, x: -20000, y: 0, team: 1 });
       ships.spawn(world, { design: corvette, x: 20000, y: 0, team: 0 });
       for (let s = 0; s < 30; s++) ships.command(world.dt, world);
-      const engines = ships.design(a).engines;
+      const engines = ships.currentStructure(a).engines;
       const burning = (ship: number, side: (m: number) => boolean): number =>
         engines.reduce((sum, e, k) => sum + (side(e.module!) ? ships.throttleOf(ship, k) : 0), 0);
       expect(burning(a, (m) => m < own)).toBeGreaterThan(0);
@@ -188,7 +188,7 @@ describe('welding on a slow contact', () => {
       const run = hookedUnderFire();
       const { ships, world } = run;
       const body = world.bodies.indexOf(ships.body(0));
-      const design = ships.design(0);
+      const design = ships.currentStructure(0);
       for (const core of design.cores) {
         if (ships.owns(0, core)) ships.damage.absorb(body, core, design.modules[core]!.stats.hitPoints * DAMAGE_ENERGY_PER_KG);
       }
@@ -208,7 +208,7 @@ describe('welding on a slow contact', () => {
       // since the core is deck and no turret here can reach it.
       const run = hookedUnderFire();
       const body = run.world.bodies.indexOf(run.ships.body(0));
-      const design = run.ships.design(0);
+      const design = run.ships.currentStructure(0);
       joints(design).forEach((joint, k) => {
         const blue = design.cores.find((core) => run.ships.owns(0, core));
         if (joint.a === blue || joint.b === blue) run.ships.damage.cutWeld(body, k, joint.width);
@@ -232,7 +232,7 @@ describe('welding on a slow contact', () => {
       const snapshot = capture(new Snapshot(), run.world, run.ships, run.projectiles, run.beams);
       const views = snapshot.ships.slice(0, snapshot.shipCount);
       expect(views).toHaveLength(2);
-      const drawn = new Array<number>(views[0]!.design.modules.length).fill(0);
+      const drawn = new Array<number>(views[0]!.currentStructure.modules.length).fill(0);
       for (const view of views) view.drawn!.forEach((d, m) => (drawn[m]! += d ? 1 : 0));
       expect(drawn.every((n) => n === 1)).toBe(true);
     });
@@ -241,7 +241,7 @@ describe('welding on a slow contact', () => {
       const run = hooked();
       const { ships, world, a, b } = run;
       const body = world.bodies.indexOf(ships.body(a));
-      const all = joints(ships.design(a));
+      const all = joints(ships.currentStructure(a));
       const seam = all.findIndex((joint) => joint.seam === true);
       run.step();
       const before = totals(world, ships);
@@ -249,7 +249,7 @@ describe('welding on a slow contact', () => {
       run.step();
       expect(ships.body(a)).not.toBe(ships.body(b));
       for (const ship of [a, b]) {
-        expect(ships.design(ship).modules.length).toBe(own);
+        expect(ships.currentStructure(ship).modules.length).toBe(own);
         expect(ships.hasControl(ship)).toBe(true);
         for (let m = 0; m < own; m++) expect(ships.owns(ship, m)).toBe(true);
       }
@@ -293,7 +293,7 @@ describe('welding on a slow contact', () => {
     const { ships, world } = run;
     expect(ships.hasControl(run.a)).toBe(true);
     const body = world.bodies.indexOf(ships.body(run.a));
-    const design = ships.design(run.a);
+    const design = ships.currentStructure(run.a);
     const own = corvette.modules.length;
     design.engines.forEach((engine) => {
       const module = engine.module!;
@@ -400,7 +400,7 @@ describe('mounts remade by a weld', () => {
     // Each mount's bearing and commanded bearing in the world, by ship and mount.
     const inWorld = (ship: number): { bearing: number; commanded: number }[] => {
       const angle = world.bodies.angle[world.bodies.indexOf(ships.body(ship))]!;
-      return ships.design(ship).turrets.map((_, t) => {
+      return ships.currentStructure(ship).turrets.map((_, t) => {
         const ti = ships.turretIndexOf(ship, t);
         return { bearing: angle + turrets.bearing[ti]!, commanded: angle + turrets.commanded[ti]! };
       });
@@ -412,12 +412,12 @@ describe('mounts remade by a weld', () => {
     }
     expect(run.totalWelded).toBe(1);
 
-    const kept = pair.findIndex((ship) => ships.isAlive(ship) && ships.design(ship).modules.length > corvette.modules.length);
+    const kept = pair.findIndex((ship) => ships.isAlive(ship) && ships.currentStructure(ship).modules.length > corvette.modules.length);
     expect(kept).toBeGreaterThanOrEqual(0);
     const n = corvette.modules.length;
     const after = inWorld(pair[kept]!);
     const off = (a: number, b: number): number => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
-    ships.design(pair[kept]!).turrets.forEach((mount, t) => {
+    ships.currentStructure(pair[kept]!).turrets.forEach((mount, t) => {
       const from = mount.module < n ? kept : 1 - kept;
       const k = corvette.turrets.findIndex((m) => m.module === mount.module % n);
       // Within a step's slew, rather than reset to rest or half a circle round.
@@ -482,7 +482,7 @@ describe('enemies hooked together', () => {
         const b = world.bodies.indexOf(ships.body(i));
         const first = owners.get(b);
         if (first === undefined) owners.set(b, i);
-        else expect(ships.design(i)).toBe(ships.design(first));
+        else expect(ships.currentStructure(i)).toBe(ships.currentStructure(first));
       }
     }
     // The pair's own weld, and at least one more.

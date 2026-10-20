@@ -39,7 +39,7 @@ type Run = ReturnType<typeof approach>;
 
 const body = (run: Run): number => run.world.bodies.indexOf(run.ships.body(run.a));
 const held = (run: Run): number => run.ships.metal.pieceHeld(body(run), 0);
-const modules = (run: Run): number => run.ships.design(run.a).modules.length;
+const modules = (run: Run): number => run.ships.currentStructure(run.a).modules.length;
 
 /** Every body's mass and everything thrown away: what nothing can create or destroy. */
 function matter(run: Run): number {
@@ -64,7 +64,7 @@ describe('taking wreckage apart', () => {
     runFor(run, 600);
     // Wreckage has come off, and none of its own hull.
     expect(modules(run)).toBeLessThan(whole - 3);
-    const design = run.ships.design(run.a);
+    const design = run.ships.currentStructure(run.a);
     for (let m = 0; m < OWN; m++) expect(design.modules[m]!.spec.kind).toBe(salvager.modules[m]!.spec.kind);
     expect(held(run)).toBeGreaterThan(before + 20_000);
     // Still one hull: nothing came away loose.
@@ -102,7 +102,7 @@ describe('taking wreckage apart', () => {
     const run = approach(leech);
     runFor(run, 10, () => modules(run) > OWN);
     const tank = (): { share: number; unbuilt: number } | null => {
-      const design = run.ships.design(run.a);
+      const design = run.ships.currentStructure(run.a);
       for (let m = OWN; m < design.modules.length; m++) {
         if (design.modules[m]!.index !== 1) continue;
         return { share: design.modules[m]!.shell?.share ?? 1, unbuilt: run.ships.damage.unbuiltAt(body(run), m) };
@@ -131,11 +131,11 @@ describe('taking wreckage apart', () => {
       runFor(run, 10, () => modules(run) > OWN);
       expect(modules(run)).toBe(OWN + leech.modules.length);
       // Gripped by the claw for its metal alone, with no room for fuel, and held while it comes apart.
-      expect(run.ships.design(run.a).seams?.[0]?.dock).toBe('claw');
+      expect(run.ships.currentStructure(run.a).seams?.[0]?.dock).toBe('claw');
       runFor(run, 600, () => modules(run) === OWN);
       expect(modules(run)).toBe(OWN);
       expect(run.ships.count).toBe(1);
-      expect(run.ships.design(run.a).modules.map((m) => m.spec.kind)).toEqual(salvager.modules.map((m) => m.spec.kind));
+      expect(run.ships.currentStructure(run.a).modules.map((m) => m.spec.kind)).toEqual(salvager.modules.map((m) => m.spec.kind));
     }
   });
 

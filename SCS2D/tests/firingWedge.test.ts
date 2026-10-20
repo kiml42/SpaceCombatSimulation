@@ -43,7 +43,7 @@ describe('an engine’s firing wedge in battle', () => {
       capture(snapshot, battle.world, battle.ships, battle.projectiles, battle.beams, battle.wells);
       for (let s = 0; s < snapshot.shipCount; s++) {
         const view = snapshot.ships[s]!;
-        const engines = view.design.engines;
+        const engines = view.currentStructure.engines;
         for (let t = 0; t < engines.length; t++) {
           const reach = view.engineTriggerReach![t]!;
           if (engines[t]!.weapon !== true) {
@@ -51,7 +51,7 @@ describe('an engine’s firing wedge in battle', () => {
             expect(view.engineFiring![t]).toBe(false);
             continue;
           }
-          const spec = view.design.modules[engines[t]!.module!]!.spec;
+          const spec = view.currentStructure.modules[engines[t]!.module!]!.spec;
           expect(reach).toBeLessThanOrEqual(weaponPlumeReach(engineGeometry(spec), engines[t]!.maxThrust) + 1e-9);
           if (!view.engineFiring![t]) continue;
           firing++;

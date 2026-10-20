@@ -30,7 +30,7 @@ const DT = 1 / 60;
 function ship(x: number, y: number, vx = 0, vy = 0, hasControl = true, isDerelict = false, isMissionKilled = false): ShipView {
   return {
     // The camera reads position, velocity and radius; the rest is for drawing.
-    design: { radius: 20 } as ShipView['design'],
+    currentStructure: { radius: 20 } as ShipView['currentStructure'],
     team: 0,
     serial: 0,
     x,
@@ -308,7 +308,7 @@ describe('the pace the camera keeps', () => {
     // slide down the hull towards the middle of the ship while the viewer was
     // trying to watch the engines.
     const capital = ship(0, 0, 300, 0);
-    capital.design = { radius: 1086 } as ShipView['design'];
+    capital.currentStructure = { radius: 1086 } as ShipView['currentStructure'];
     // A 300 m view, a kilometre off the ship's middle and well inside its hull.
     const camera: Camera = { x: -900, y: 0, scale: WIDTH / 300 };
     moveWithVisibleShips(camera, snapshotOf([capital]), 1, WIDTH, HEIGHT);
@@ -339,7 +339,7 @@ describe('the pace the camera keeps', () => {
   it('is steered by the capital rather than by whoever brought most fighters', () => {
     // Same frame, opposite courses, and the big ship wins by its radius.
     const capital = ship(0, 0, 200, 0);
-    capital.design = { radius: 300 } as ShipView['design'];
+    capital.currentStructure = { radius: 300 } as ShipView['currentStructure'];
     const fighters = [ship(50, 0, -200, 0), ship(-50, 0, -200, 0), ship(0, 50, -200, 0)];
     const camera: Camera = { x: 0, y: 0, scale: 0.05 };
     moveWithVisibleShips(camera, snapshotOf([capital, ...fighters]), 1, WIDTH, HEIGHT);

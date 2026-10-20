@@ -406,7 +406,7 @@ function drawRobot(
  * as a whole is drawn with whichever of the two it is.
  */
 function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number, arcs: Arcs, fighters: boolean): void {
-  const design = ship.design;
+  const design = ship.currentStructure;
   const whole = design.fighter === fighters;
   if (!whole && (!fighters || design.fighterPieces === undefined)) return;
 
@@ -1072,7 +1072,7 @@ function drawLoad(ctx: CanvasRenderingContext2D, ship: ShipView, t: number, mx: 
   // A view built by hand says nothing of loading, so its guns are ready. A
   // disabled gun is empty, so it never shows a ready light.
   const load = ship.turretDisabled?.[t] === true ? 0 : (ship.turretLoad?.[t] ?? 1);
-  const module = ship.design.modules[ship.design.turrets[t]!.module]!;
+  const module = ship.currentStructure.modules[ship.currentStructure.turrets[t]!.module]!;
   const spec = module.spec;
   const colour = ship.turretReloading?.[t] === true ? LOAD_RELOADING : LOAD_READY;
   if (isHullMount(spec.kind)) {
@@ -1121,7 +1121,7 @@ function drawLoad(ctx: CanvasRenderingContext2D, ship: ShipView, t: number, mx: 
 function drawEngineTriggers(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number): void {
   const reaches = ship.engineTriggerReach;
   if (reaches === undefined) return;
-  const design = ship.design;
+  const design = ship.currentStructure;
   ctx.save();
   ctx.translate(ship.x, ship.y);
   ctx.rotate(ship.angle);
@@ -1302,7 +1302,7 @@ function eachNozzle(
   ship: ShipView,
   visit: (engine: Engine, force: number, reach: number, across: number, landed: readonly number[], split: number) => void,
 ): void {
-  const design = ship.design;
+  const design = ship.currentStructure;
   // Engines are counted as they are met, because a design lists its
   // engines in the order its modules appear.
   let engine = 0;
@@ -1376,9 +1376,9 @@ function fade(ctx: CanvasRenderingContext2D, root: number, length: number, rgb: 
  */
 function drawIcon(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number): void {
   if (ship.isDerelict || ship.riding === true) return;
-  const alpha = iconAlpha(ship.design.radius * 2 * metresToPx);
+  const alpha = iconAlpha(ship.currentStructure.radius * 2 * metresToPx);
   if (alpha <= 0) return;
-  const palette = ship.design.fighter ? fighterColours : shipColours;
+  const palette = ship.currentStructure.fighter ? fighterColours : shipColours;
   const colours = palette(ship.hasControl && !ship.isMissionKilled ? ship.team : -1);
   const size = ICON_PX / metresToPx;
 
@@ -1419,7 +1419,7 @@ const NAME_MIN_PX = 7;
  */
 function drawName(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number): void {
   if (ship.serial <= 0 || ship.team < 0 || !ship.hasControl) return;
-  const cores = ship.design.cores;
+  const cores = ship.currentStructure.cores;
   const name = `${teamName(ship.team)} ${ship.name ?? ship.serial}`;
   // Only its own: a hull shared with another ship carries the other's cores too.
   let own = 0;
@@ -1434,7 +1434,7 @@ function drawName(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
 
 /** `text` written along module `core` of a ship, as on its hull, if the core is big enough on screen. */
 function drawLabel(ctx: CanvasRenderingContext2D, ship: ShipView, core: number, text: string, metresToPx: number): void {
-  const module = ship.design.modules[core]!;
+  const module = ship.currentStructure.modules[core]!;
   const across = Math.min(module.spec.length, module.spec.width) * metresToPx;
   if (across < NAME_MIN_CORE_PX) return;
   const c = Math.cos(ship.angle);
@@ -1535,7 +1535,8 @@ function drawScene(
   shownBox.halfH = halfH;
   const shown = (ship: ShipView): boolean =>
     arcsFor(ship.body, selected, arcs) !== 'none' ||
-    (Math.abs(ship.x - camera.x) - ship.design.radius <= halfW && Math.abs(ship.y - camera.y) - ship.design.radius <= halfH);
+    (Math.abs(ship.x - camera.x) - ship.currentStructure.radius <= halfW &&
+      Math.abs(ship.y - camera.y) - ship.currentStructure.radius <= halfH);
 
   // Every capital hull, then the robots crawling over them, then every
   // fighter, aboard a carrier or not: robots work on the deck, and a fighter
@@ -1611,7 +1612,7 @@ export function closeUps(
   if (ship === null) return [];
   const ships: InsetShip[] = [ship, shipByBody(snapshot, ship.fighting ?? -1)]
     .filter((s): s is ShipView => s !== null)
-    .map((s) => ({ body: s.body, x: s.x, y: s.y, vx: s.vx, vy: s.vy, radius: s.design.radius }));
+    .map((s) => ({ body: s.body, x: s.x, y: s.y, vx: s.vx, vy: s.vy, radius: s.currentStructure.radius }));
   const area: InsetArea = { left: strips?.left.width ?? 0, top: 0, right: widthPx - (strips?.right.width ?? 0), bottom: heightPx };
   return insetsFor(
     ships,
@@ -1775,7 +1776,7 @@ export function drawTargetRange(
       ctx.restore();
       return;
     }
-    const ring = (ship.design.radius + SELECTED_GAP_PX / camera.scale) * camera.scale;
+    const ring = (ship.currentStructure.radius + SELECTED_GAP_PX / camera.scale) * camera.scale;
     at = labelAlong(from.x, from.y, (to.x - from.x) / length, (to.y - from.y) / length, ring, length, w, h, RANGE_GAP_PX * ratio);
   }
   ctx.fillStyle = BACKGROUND;
@@ -1796,7 +1797,7 @@ const STRIP_GAP_PX = 4;
 
 /** Main guns and weapon engines a ship still has. */
 function weaponsLeft(ship: ShipView): number {
-  const design = ship.design;
+  const design = ship.currentStructure;
   let count = 0;
   for (let t = 0; t < design.turrets.length; t++) if (design.turrets[t]!.main && ship.turretDisabled[t] !== true) count++;
   for (const t of design.mainWeaponEngines) {
@@ -1817,9 +1818,9 @@ export function fleetStrips(snapshot: Snapshot, widthPx: number, heightPx: numbe
   for (let i = 0; i < snapshot.shipCount; i++) {
     const ship = snapshot.ships[i]!;
     if (ship.team < 0 || !ship.hasControl) continue;
-    const at = { body: ship.body, team: ship.team, x: ship.x, y: ship.y, vx: ship.vx, vy: ship.vy, radius: ship.design.radius };
+    const at = { body: ship.body, team: ship.team, x: ship.x, y: ship.y, vx: ship.vx, vy: ship.vy, radius: ship.currentStructure.radius };
     // Grouped by what each is built to, so a fighter knocked about stays with its kind.
-    const blueprint = ship.blueprint ?? ship.design;
+    const blueprint = ship.blueprint ?? ship.currentStructure;
     if (!blueprint.fighter) {
       ships.push(at);
       continue;
@@ -1919,15 +1920,15 @@ function drawSelected(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: n
   ctx.strokeStyle = colour;
   ctx.lineWidth = 1.5 / metresToPx;
   ctx.beginPath();
-  ctx.arc(ship.x, ship.y, ship.design.radius + gap, 0, Math.PI * 2);
+  ctx.arc(ship.x, ship.y, ship.currentStructure.radius + gap, 0, Math.PI * 2);
   ctx.stroke();
   const target = shipByBody(snapshot, ship.fighting ?? -1);
   if (target !== null) {
     const dx = target.x - ship.x;
     const dy = target.y - ship.y;
     const length = Math.sqrt(dx * dx + dy * dy);
-    const from = ship.design.radius + gap;
-    const to = length - target.design.radius - gap;
+    const from = ship.currentStructure.radius + gap;
+    const to = length - target.currentStructure.radius - gap;
     if (to > from) {
       ctx.setLineDash([6 / metresToPx, 6 / metresToPx]);
       ctx.beginPath();
@@ -1944,7 +1945,7 @@ function drawSelected(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: n
     }
     ctx.globalAlpha = 0.6;
     ctx.beginPath();
-    ctx.arc(target.x, target.y, target.design.radius + gap, 0, Math.PI * 2);
+    ctx.arc(target.x, target.y, target.currentStructure.radius + gap, 0, Math.PI * 2);
     ctx.stroke();
   }
   // What it is escorting, ringed in a broken line: a ship it stays with, not one it shoots.
@@ -1959,7 +1960,7 @@ function drawSelected(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: n
     ctx.globalAlpha = 0.6;
     ctx.setLineDash([3 / metresToPx, 4 / metresToPx]);
     ctx.beginPath();
-    ctx.arc(consort.x, consort.y, consort.design.radius + gap, 0, Math.PI * 2);
+    ctx.arc(consort.x, consort.y, consort.currentStructure.radius + gap, 0, Math.PI * 2);
     ctx.stroke();
     ctx.setLineDash([]);
   }
@@ -1974,7 +1975,7 @@ function drawRing(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: numbe
   ctx.strokeStyle = (ship.hasControl && !ship.isMissionKilled ? shipColours(ship.team) : NEUTRAL).trim;
   ctx.lineWidth = 1.5 / metresToPx;
   ctx.beginPath();
-  ctx.arc(ship.x, ship.y, ship.design.radius + SELECTED_GAP_PX / metresToPx, 0, TAU);
+  ctx.arc(ship.x, ship.y, ship.currentStructure.radius + SELECTED_GAP_PX / metresToPx, 0, TAU);
   ctx.stroke();
   ctx.restore();
 }
@@ -2020,7 +2021,7 @@ function drawOrders(
       fromY = target.y;
     });
     for (const place of places.values()) {
-      drawScreenText(ctx, place.text, place.ship.x, place.ship.y + place.ship.design.radius, place.colour);
+      drawScreenText(ctx, place.text, place.ship.x, place.ship.y + place.ship.currentStructure.radius, place.colour);
     }
   }
   ctx.restore();

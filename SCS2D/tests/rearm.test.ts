@@ -43,7 +43,7 @@ function scene(setup: Setup = {}) {
     const c = ships.spawn(world, { design: setup.carrier ?? carrierOf(), x: 0, y: 0, angle: 0.3, team: 0 });
     const f = ships.spawn(world, { design: setup.fighter ?? fighterOf(0), x: -300, y: 200, angle: 0 });
     const b = world.bodies.indexOf(ships.body(f));
-    const design = ships.design(f);
+    const design = ships.currentStructure(f);
     for (let m = 0; m < design.modules.length; m++) {
       ships.metal.drain(b, m, ships.metal.held(b, m) * (setup.fired ?? 1));
       ships.fuel.vent(b, m, ships.fuel.held(b, m) * (setup.burnt ?? 0));
@@ -56,7 +56,7 @@ function scene(setup: Setup = {}) {
 type Run = ReturnType<typeof scene>;
 const aboard = (run: Run): boolean => run.ships.body(run.c) === run.ships.body(run.f);
 const bodyOf = (run: Run, i: number): number => run.world.bodies.indexOf(run.ships.body(i));
-const ownCore = (run: Run): number => run.ships.design(run.f).cores[0]!;
+const ownCore = (run: Run): number => run.ships.currentStructure(run.f).cores[0]!;
 function runUntil(run: Run, done: () => boolean, seconds: number): void {
   for (let s = 0; s < seconds * 60 && !done(); s++) run.step();
 }
@@ -72,7 +72,7 @@ describe('a fighter out of rounds', () => {
     expect(aboard(run)).toBe(false);
     expect(run.ships.metal.pieceRoom(bodyOf(run, run.f), ownCore(run))).toBeCloseTo(0, 3);
     expect(carrierMetal()).toBeLessThan(before);
-    expect(run.ships.design(run.f).fighter).toBe(true);
+    expect(run.ships.currentStructure(run.f).fighter).toBe(true);
   });
 
   it('tops up its fuel while it is there, though it came for metal', () => {

@@ -28,7 +28,7 @@ describe('the Beam Carrier', () => {
     const tank = (): number =>
       ships.fuel.pieceHeld(
         body(TENDER),
-        ships.design(TENDER).modules.findIndex((m) => m.spec.kind === 'claw'),
+        ships.currentStructure(TENDER).modules.findIndex((m) => m.spec.kind === 'claw'),
       );
     for (let s = 0; s < 5 * 60; s++) step();
     expect(ships.body(TENDER)).not.toBe(ships.body(CARRIER));
@@ -41,14 +41,14 @@ describe('the Beam Carrier', () => {
     const out = new Set(FIGHTERS.filter((f) => ships.body(f) !== ships.body(CARRIER)));
     expect(out.size).toBe(FIGHTERS.length);
     // One home with its battery still aboard: a fighter can come back with it shot off.
-    const charged = (f: number): boolean => ships.design(f).modules.some((m, k) => m.spec.kind === 'battery' && ships.owns(f, k));
+    const charged = (f: number): boolean => ships.currentStructure(f).modules.some((m, k) => m.spec.kind === 'battery' && ships.owns(f, k));
     let landed = -1;
     for (let s = 0; s < 300 * 60 && landed < 0; s++) {
       step();
       landed = FIGHTERS.find((f) => ships.isAlive(f) && ships.body(f) === ships.body(CARRIER) && charged(f)) ?? -1;
     }
     expect(landed).toBeGreaterThanOrEqual(0);
-    const design = ships.design(landed);
+    const design = ships.currentStructure(landed);
     const own = (kind: string): number => design.modules.findIndex((m, k) => m.spec.kind === kind && ships.owns(landed, k));
     const m = own('battery');
     const docked = (): boolean => ships.body(landed) === ships.body(CARRIER);

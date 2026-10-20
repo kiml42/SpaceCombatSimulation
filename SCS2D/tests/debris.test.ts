@@ -52,7 +52,7 @@ function scene(design: ShipDesign = dinky): Scene {
  * the piece rather than how many pieces a blow makes.
  */
 function breakOff(s: Scene, welds: readonly number[]): number {
-  const all = joints(s.ships.design(s.ship));
+  const all = joints(s.ships.currentStructure(s.ship));
   for (const joint of welds) s.ships.damage.cutWeld(s.body, joint, all[joint]!.width);
   return s.ships.sever(s.world);
 }
@@ -69,7 +69,7 @@ describe('scrap, which is never created', () => {
     const s = scene();
     expect(breakOff(s, SHARD_JOINTS)).toBe(0);
     // The ship has still lost it: this is scrap, not a miss.
-    expect(s.ships.design(s.ship).modules.length).toBeLessThan(dinky.modules.length);
+    expect(s.ships.currentStructure(s.ship).modules.length).toBeLessThan(dinky.modules.length);
     expect(s.ships.count).toBe(1);
   });
 
@@ -119,7 +119,7 @@ describe('wreckage that has drifted out of the fight', () => {
 
     const light = broken();
     const heavy = broken(corvette, [0]);
-    expect(light.ships.design(light.piece).mass).toBeLessThan(heavy.ships.design(heavy.piece).mass);
+    expect(light.ships.currentStructure(light.piece).mass).toBeLessThan(heavy.ships.currentStructure(heavy.piece).mass);
 
     driftTo(light, light.piece, out);
     driftTo(heavy, heavy.piece, out);

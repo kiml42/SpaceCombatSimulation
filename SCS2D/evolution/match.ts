@@ -563,7 +563,7 @@ export class Match {
     this.hull = new Float64Array(fielded);
     this.hullAtStart = new Float64Array(fielded);
     for (let k = 0; k < fielded; k++) {
-      const design = this.battle.ships.design(this.battle.slots[k]!);
+      const design = this.battle.ships.currentStructure(this.battle.slots[k]!);
       addCapability(this.startCapability, this.battle.owners[k]! * EFFECTS, design, null, -1);
       this.hull[k] = hullCapacity(design);
       this.hullAtStart[k] = this.hull[k]!;
@@ -631,7 +631,7 @@ export class Match {
       if (!ships.isAlive(ship)) continue;
       const body = world.bodies.indexOf(ships.body(ship));
       this.entrantOf.set(ship, i);
-      const design = ships.design(ship);
+      const design = ships.currentStructure(ship);
       // Never more than it started with: a wreck hooked on is carried, not owned.
       const hull = math.min(hullLeft(ships, ship, design, body), this.hullAtStart[k]!);
       this.lost[i]! += math.max(0, this.hull[k]! - hull);
@@ -785,7 +785,8 @@ export class Match {
         const i = this.battle.owners[k]!;
         if (!ships.isAlive(ship) || !ships.hasControl(ship)) continue;
         const body = world.bodies.indexOf(ships.body(ship));
-        survival[i]! += (math.min(hullLeft(ships, ship, ships.design(ship), body), this.hullAtStart[k]!) / this.capacities[i]!) * left;
+        survival[i]! +=
+          (math.min(hullLeft(ships, ship, ships.currentStructure(ship), body), this.hullAtStart[k]!) / this.capacities[i]!) * left;
         best[i] = math.max(best[i]!, this.nearness[k]!);
         fighting[i] = 1;
       }

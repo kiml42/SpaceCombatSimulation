@@ -38,7 +38,7 @@ const hold = (run: Run): number => {
   const b = run.world.bodies.indexOf(run.ships.body(run.s));
   return run.ships.metal.pieceHeld(
     b,
-    run.ships.design(run.s).modules.findIndex((m) => m.spec.kind === 'hold'),
+    run.ships.currentStructure(run.s).modules.findIndex((m) => m.spec.kind === 'hold'),
   );
 };
 function runFor(run: Run, seconds: number, done: () => boolean = () => false): void {

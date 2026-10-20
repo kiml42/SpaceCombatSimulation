@@ -85,7 +85,7 @@ function scene(design: ShipDesign, enemies: { design: ShipDesign; x: number; y: 
 function strip(s: Scene, ship: number): void {
   const bodies = s.world.bodies;
   const b = bodies.indexOf(s.ships.body(ship));
-  const design = s.ships.design(ship);
+  const design = s.ships.currentStructure(ship);
   for (let k = 0; k < design.modules.length; k++) {
     const kind = design.modules[k]!.spec.kind;
     if (kind === 'structure') continue;

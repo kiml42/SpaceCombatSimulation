@@ -21,7 +21,7 @@ export function fleetSnapshot(view: Pick<FleetView, 'ships' | 'designs'>, out: S
     const ships: ShipView[] = out.ships;
     const shipView = ships[count] ?? freshView(design);
     ships[count++] = shipView;
-    shipView.design = design;
+    shipView.currentStructure = design;
     shipView.team = team;
     shipView.x = x;
     shipView.y = y;
@@ -74,7 +74,7 @@ export function fleetSnapshot(view: Pick<FleetView, 'ships' | 'designs'>, out: S
 
 function freshView(design: ShipDesign): ShipView {
   return {
-    design,
+    currentStructure: design,
     body: -1,
     team: FLEET_TEAM,
     serial: 0,

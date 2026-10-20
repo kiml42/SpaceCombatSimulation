@@ -95,7 +95,7 @@ describe('a slipway', () => {
     expect(run.ships.body(s!)).toEqual(body);
     let modules = 0;
     runFor(run, 240, () => {
-      const now = run.ships.design(run.y).modules.length;
+      const now = run.ships.currentStructure(run.y).modules.length;
       if (now < modules) throw new Error('lost a slice');
       modules = now;
       return !run.ships.isPrinting(s!);
@@ -111,7 +111,7 @@ describe('a slipway', () => {
     expect(run.ships.isUnfinished(s!)).toBe(false);
     expect(run.ships.damage.unbuiltMass(run.world.bodies.indexOf(run.ships.body(s!)))).toBe(0);
     expect(run.ships.hasControl(s!)).toBe(true);
-    expect(run.ships.design(s!).modules.length).toBe(craft.modules.length);
+    expect(run.ships.currentStructure(s!).modules.length).toBe(craft.modules.length);
     // The Scavenger's bow is ahead of the yard: built out along the slipway's facing.
     const bodies = run.world.bodies;
     expect(bodies.x[bodies.indexOf(run.ships.body(s!))]!).toBeGreaterThan(bodies.x[bodies.indexOf(run.ships.body(run.y))]!);
@@ -134,14 +134,14 @@ describe('a slipway', () => {
     const parted = apart();
     let firstLit = -1;
     runFor(run, 30, () => {
-      if (run.ships.design(s).engines.some((_, t) => run.ships.throttleOf(s, t) > 0)) firstLit = apart();
+      if (run.ships.currentStructure(s).engines.some((_, t) => run.ships.throttleOf(s, t) > 0)) firstLit = apart();
       return firstLit >= 0;
     });
     // Drifted clear on the push before it lit up, and never put its flame on the yard.
     expect(firstLit).toBeGreaterThan(parted + 10);
     const yard = at(run.y);
     let burnt = 0;
-    for (let m = 0; m < run.ships.design(run.y).modules.length; m++) burnt += run.ships.damage.absorbedAt(yard, m);
+    for (let m = 0; m < run.ships.currentStructure(run.y).modules.length; m++) burnt += run.ships.damage.absorbedAt(yard, m);
     expect(burnt).toBe(0);
   });
 

@@ -347,7 +347,7 @@ describe('a round', () => {
     const body = world.bodies.indexOf(ships.body(0));
     const projectiles = new Projectiles(4);
     const hits = new ProjectileHits();
-    const design = ships.design(0);
+    const design = ships.currentStructure(0);
     const left = design.modules.findIndex((m) => m.x < -1);
     const right = design.modules.findIndex((m) => m.x > 1);
     // Fired from inside the left block, along the ship to the right one.

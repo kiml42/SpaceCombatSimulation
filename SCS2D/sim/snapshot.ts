@@ -39,7 +39,8 @@ export interface OrderView {
 
 /** One ship: which design to draw, where it is, and how its turrets are trained. */
 export interface ShipView {
-  design: ShipDesign;
+  /** What the ship is now, damage and all; what it is built to is its `blueprint`. */
+  currentStructure: ShipDesign;
   /**
    * Which body it is — how a flash finds the hull it went off against a frame
    * or two later, when the ships have moved and the list may have changed.
@@ -349,7 +350,7 @@ function shipView(snapshot: Snapshot, i: number): ShipView {
   const existing = snapshot.ships[i];
   if (existing !== undefined) return existing;
   const created: ShipView = {
-    design: null as unknown as ShipDesign,
+    currentStructure: null as unknown as ShipDesign,
     body: -1,
     team: 0,
     serial: 0,
@@ -416,9 +417,9 @@ export function capture(
     if (b < 0) continue;
     if (bodyTeam[b] === -1) bodyTeam[b] = ships.teamOf(i);
 
-    const design = ships.design(i);
+    const design = ships.currentStructure(i);
     const view = shipView(out, n++);
-    view.design = design;
+    view.currentStructure = design;
     view.blueprint = ships.blueprint(i);
     view.body = b;
     view.team = ships.teamOf(i);
@@ -583,7 +584,7 @@ export function capture(
   if (n > 0 && minX === Infinity) {
     for (let i = 0; i < n; i++) {
       const view = out.ships[i]!;
-      const r = view.design.radius;
+      const r = view.currentStructure.radius;
       if (view.x - r < minX) minX = view.x - r;
       if (view.y - r < minY) minY = view.y - r;
       if (view.x + r > maxX) maxX = view.x + r;

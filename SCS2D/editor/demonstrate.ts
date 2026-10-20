@@ -216,8 +216,8 @@ export class Demonstration {
       for (let t = 0; t < view.throttles.length; t++) view.throttles[t] = this.throttles[t] ?? 0;
       const load = (view.turretLoad ??= []);
       const reloading = (view.turretReloading ??= []);
-      load.length = reloading.length = view.design.turrets.length;
-      for (let t = 0; t < load.length; t++) this.loadOf(view.design, t, load, reloading);
+      load.length = reloading.length = view.currentStructure.turrets.length;
+      for (let t = 0; t < load.length; t++) this.loadOf(view.currentStructure, t, load, reloading);
     }
     const rounds = this.rounds;
     snapshot.projectileX = rounds.x;

@@ -39,13 +39,13 @@ const corvette = compileBlueprint(CORVETTE);
 /** Bring a module down to this integrity, 1 whole and 0 spent. */
 function wear(ships: Ships, world: World, ship: number, module: number, integrity: number): void {
   const body = world.bodies.indexOf(ships.body(ship));
-  const capacity = ships.design(ship).modules[module]!.stats.hitPoints * DAMAGE_ENERGY_PER_KG;
+  const capacity = ships.currentStructure(ship).modules[module]!.stats.hitPoints * DAMAGE_ENERGY_PER_KG;
   ships.damage.absorb(body, module, capacity * (1 - integrity) - ships.damage.absorbedAt(body, module));
 }
 
 /** Knock out every core and spend everything else, so whatever the claw meets it takes. */
 function wreck(ships: Ships, world: World, ship: number, cores = 0.3): void {
-  const design = ships.design(ship);
+  const design = ships.currentStructure(ship);
   for (let m = 0; m < design.modules.length; m++) wear(ships, world, ship, m, design.modules[m]!.spec.kind === 'core' ? cores : 0);
 }
 
@@ -110,7 +110,7 @@ describe('gripping a wreck', () => {
     runUntil(run, () => run.totalWelded > 0);
     expect(run.totalWelded).toBe(1);
     expect(run.ships.body(run.a)).toBe(run.ships.body(run.b));
-    const design = run.ships.design(run.a);
+    const design = run.ships.currentStructure(run.a);
     const seam = design.seams!.find((s) => s.dock === 'claw')!;
     expect(design.modules[seam.a]!.spec.kind).toBe('claw');
     const joint = joints(design).find((j) => j.dock === true)!;
@@ -147,7 +147,7 @@ describe('gripping a wreck', () => {
     for (let m = 0; m < corvette.modules.length; m++) before.set(m, sound.ships.damage.absorbedAt(wreckBody, m));
     runUntil(sound, () => sound.totalWelded > 0);
     const merged = sound.world.bodies.indexOf(sound.ships.body(sound.a));
-    const seam = sound.ships.design(sound.a).seams!.find((s) => s.dock === 'claw')!;
+    const seam = sound.ships.currentStructure(sound.a).seams!.find((s) => s.dock === 'claw')!;
     const offset = leech.modules.length;
     expect(sound.ships.damage.absorbedAt(merged, seam.b)).toBeGreaterThan(before.get(seam.b - offset)!);
   });
@@ -155,7 +155,7 @@ describe('gripping a wreck', () => {
 
 /** Whether the leech's claw holds anything: torn metal may still hook on a slow bounce. */
 function holding(run: ReturnType<typeof approach>): boolean {
-  return run.ships.design(run.a).seams?.some((seam) => seam.dock === 'claw') === true;
+  return run.ships.currentStructure(run.a).seams?.some((seam) => seam.dock === 'claw') === true;
 }
 
 describe('gripping a live enemy', () => {

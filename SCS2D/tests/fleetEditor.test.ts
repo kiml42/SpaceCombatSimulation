@@ -276,7 +276,7 @@ describe('fleetSnapshot', () => {
     const snapshot = fleetSnapshot(doc.view);
     expect(snapshot.shipCount).toBe(2);
     const [ship, fighter] = snapshot.ships;
-    expect(fighter!.design.fighter).toBe(true);
+    expect(fighter!.currentStructure.fighter).toBe(true);
     // On the pad, turned with the carrier.
     const pad = carrier.modules[carrier.aboard![0]!.pad]!;
     const c = Math.cos(ship!.angle);

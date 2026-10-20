@@ -55,7 +55,7 @@ describe('a ship cut in half', () => {
   }
 
   const halves = (run: ReturnType<typeof split>, live: readonly number[]): number[] =>
-    live.filter((s) => run.ships.design(s).name === catamaran.name);
+    live.filter((s) => run.ships.currentStructure(s).name === catamaran.name);
 
   it('is one ship before the ram and two after it', () => {
     const before = at(2);
@@ -72,7 +72,7 @@ describe('a ship cut in half', () => {
     // Both are ships rather than wreckage, and each is a hull's worth of one:
     // a core to fly it, a gun to fight it, and engines to move it.
     for (const piece of pieces) {
-      const design = after.run.ships.design(piece);
+      const design = after.run.ships.currentStructure(piece);
       expect(design.cores.length).toBe(1);
       expect(design.turrets.length).toBe(1);
       expect(design.engines.length).toBeGreaterThan(0);
@@ -105,10 +105,10 @@ describe('a ship cut in half', () => {
     const { run, live } = at(25);
     expect(halves(run, live).length).toBe(2);
     // A half the corvette has already disarmed has nothing to lock on with.
-    const pieces = halves(run, live).filter((s) => run.ships.design(s).turrets.length > 0);
+    const pieces = halves(run, live).filter((s) => run.ships.currentStructure(s).turrets.length > 0);
     expect(pieces.length).toBeGreaterThan(0);
 
-    const corvette = live.find((s) => run.ships.design(s).name === 'Corvette')!;
+    const corvette = live.find((s) => run.ships.currentStructure(s).name === 'Corvette')!;
     const lockedOn = new Set<number>();
     let onTheLiveOne = 0;
     let onAnything = 0;
@@ -119,12 +119,12 @@ describe('a ship cut in half', () => {
       if (run.ships.isDisabled(corvette)) break;
       for (const piece of pieces) {
         // A half can lose its gun to the corvette while this runs.
-        if (run.ships.design(piece).turrets.length === 0) continue;
+        if (run.ships.currentStructure(piece).turrets.length === 0) continue;
         const target = run.ships.targetOfTurret(run.world.bodies, piece, 0);
         if (target < 0) continue;
         // Never a hulk: nothing controls one and there is nothing to finish.
         expect(run.ships.hasControl(target)).toBe(true);
-        expect(run.ships.design(target).name).toBe('Corvette');
+        expect(run.ships.currentStructure(target).name).toBe('Corvette');
         onAnything++;
         if (!run.ships.isDisabled(target)) {
           onTheLiveOne++;

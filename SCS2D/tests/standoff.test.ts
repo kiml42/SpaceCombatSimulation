@@ -20,7 +20,7 @@ describe('a standoff nobody gives an order in', () => {
     const first = bodies.indexOf(run.ships.body(0));
     const second = bodies.indexOf(run.ships.body(1));
     const apart = Math.hypot(bodies.x[first]! - bodies.x[second]!, bodies.y[first]! - bodies.y[second]!);
-    const fastest = Math.max(...run.ships.design(0).turrets.map((t) => t.gun.muzzleSpeed));
+    const fastest = Math.max(...run.ships.currentStructure(0).turrets.map((t) => t.gun.muzzleSpeed));
     expect(apart).toBeLessThan(fastest * 2);
     expect(apart).toBeGreaterThan(0);
   });
@@ -72,7 +72,7 @@ describe('a standoff nobody gives an order in', () => {
     for (let i = 0; i < run.ships.highWater; i++) {
       if (!run.ships.isAlive(i)) continue;
       const b = bodies.indexOf(run.ships.body(i));
-      const design = run.ships.design(i);
+      const design = run.ships.currentStructure(i);
       for (let m = 0; m < design.modules.length; m++) {
         if (run.ships.damage.spent(b, m)) wrecked++;
       }

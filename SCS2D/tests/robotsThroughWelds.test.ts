@@ -39,7 +39,7 @@ describe('robots through a weld', () => {
         ) ?? [];
       /** Where a robot is in the world, as the view draws it. */
       const where = (robot: Robot): [number, number] => {
-        const design = run.ships.design(run.a);
+        const design = run.ships.currentStructure(run.a);
         const b = run.world.bodies.indexOf(run.ships.body(run.a));
         const here = design.modules[robot.at]!;
         let x = here.x;
@@ -55,7 +55,7 @@ describe('robots through a weld', () => {
         const s = Math.sin(run.world.bodies.angle[b]!);
         return [run.world.bodies.x[b]! + x * c - y * s, run.world.bodies.y[b]! + x * s + y * c];
       };
-      const modules = (): number => run.ships.design(run.a).modules.length;
+      const modules = (): number => run.ships.currentStructure(run.a).modules.length;
       const before = modules();
       let welded = false;
       for (let s = 0; s < 120 * 60 && !welded; s++) {

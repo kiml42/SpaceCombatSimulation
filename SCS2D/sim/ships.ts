@@ -1391,10 +1391,11 @@ export class Ships {
 
   /** The design ship `i` is built to, whatever damage has made of it: what it set out as, or was refitted to. */
   blueprint(i: number): ShipDesign {
-    return this.launched[i] ?? this.design(i);
+    return this.launched[i] ?? this.currentStructure(i);
   }
 
-  design(i: number): ShipDesign {
+  /** What ship `i` is now, damage and all; what it is built to is its `blueprint`. */
+  currentStructure(i: number): ShipDesign {
     const d = this.designs[i];
     if (d === null || d === undefined) throw new Error(`Ships: no ship at ${i}`);
     return d;

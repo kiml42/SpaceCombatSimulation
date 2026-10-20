@@ -100,11 +100,11 @@ describe('the fleet strips of a battle', () => {
       engines: [],
       weaponEngines: [],
       mainWeaponEngines: [],
-    } as unknown as ShipView['design'];
-    const knocked = { ...tie } as ShipView['design'];
-    const fighter = (body: number, design: ShipView['design']): ShipView =>
+    } as unknown as ShipView['currentStructure'];
+    const knocked = { ...tie } as ShipView['currentStructure'];
+    const fighter = (body: number, design: ShipView['currentStructure']): ShipView =>
       ({
-        design,
+        currentStructure: design,
         blueprint: tie,
         body,
         ship: body,

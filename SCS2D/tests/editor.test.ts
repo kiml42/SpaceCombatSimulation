@@ -867,7 +867,7 @@ describe('previewSnapshot', () => {
     const view = snapshot.ships[0]!;
     // Module positions are stored about the centre of mass, so placing the
     // body at the centre of mass puts them back where they were written.
-    const drawn = view.design.modules.map((m) => [m.x + view.x, m.y + view.y]);
+    const drawn = view.currentStructure.modules.map((m) => [m.x + view.x, m.y + view.y]);
     expect(drawn[0]![0]).toBeCloseTo(doc.view.modules[0]!.x, 9);
     expect(drawn[0]![1]).toBeCloseTo(doc.view.modules[0]!.y, 9);
   });

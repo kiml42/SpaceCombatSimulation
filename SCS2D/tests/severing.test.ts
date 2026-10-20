@@ -53,7 +53,7 @@ function scene(vx = 30, vy = -10, spin = 0.4): Scene {
 function moduleAt(scene: Scene, ship: number, module: number): { x: number; y: number } {
   const b = scene.world.bodies;
   const i = b.indexOf(scene.ships.body(ship));
-  const m = scene.ships.design(ship).modules[module]!;
+  const m = scene.ships.currentStructure(ship).modules[module]!;
   const c = Math.cos(b.angle[i]!);
   const s = Math.sin(b.angle[i]!);
   return { x: b.x[i]! + m.x * c - m.y * s, y: b.y[i]! + m.x * s + m.y * c };
@@ -101,15 +101,15 @@ describe('what parts a hull', () => {
     const s = scene();
     s.ships.damage.absorb(s.body, 0, 1e12);
     expect(s.ships.sever(s.world)).toBe(0);
-    expect(s.ships.design(s.ship).modules).toHaveLength(3);
+    expect(s.ships.currentStructure(s.ship).modules).toHaveLength(3);
   });
 
   it('takes a piece off when something hits it hard enough', () => {
     const s = scene();
     hit(s, TIP, HARD);
     expect(s.ships.sever(s.world)).toBe(1);
-    expect(s.ships.design(s.ship).modules).toHaveLength(2);
-    expect(s.ships.design(s.ship + 1).modules).toHaveLength(1);
+    expect(s.ships.currentStructure(s.ship).modules).toHaveLength(2);
+    expect(s.ships.currentStructure(s.ship + 1).modules).toHaveLength(1);
   });
 
   it('shrugs off a knock', () => {
@@ -152,7 +152,7 @@ describe('what parts a hull', () => {
     const middle = scene();
     hit(middle, 0, size);
     expect(middle.ships.sever(middle.world)).toBe(0);
-    expect(middle.ships.design(middle.ship).modules).toHaveLength(3);
+    expect(middle.ships.currentStructure(middle.ship).modules).toHaveLength(3);
   });
 
   it('breaks the weld the blow loaded, not every weld at once', () => {
@@ -160,7 +160,7 @@ describe('what parts a hull', () => {
     hit(s, TIP, HARD);
     s.ships.sever(s.world);
     // The tail is joined by twice the weld and is nowhere near the impact.
-    expect(s.ships.design(s.ship).modules).toHaveLength(2);
+    expect(s.ships.currentStructure(s.ship).modules).toHaveLength(2);
     expect(s.ships.count).toBe(2);
   });
 
@@ -181,7 +181,7 @@ describe('cutting a weld through', () => {
     const s = scene();
     s.ships.damage.cutWeld(s.body, TIP_INDEX, TIP_JOINT.width);
     expect(s.ships.sever(s.world)).toBe(1);
-    expect(s.ships.design(s.ship).modules).toHaveLength(2);
+    expect(s.ships.currentStructure(s.ship).modules).toHaveLength(2);
   });
 
   it('holds while there is any of the weld left', () => {
@@ -210,7 +210,7 @@ describe('cutting a weld through', () => {
     hit(s, TIP, TIP_JOINT.strength * 4);
     s.ships.sever(s.world);
 
-    const left = s.ships.design(s.ship);
+    const left = s.ships.currentStructure(s.ship);
     expect(left.modules).toHaveLength(2);
     const kept = joints(left)[0]!;
     expect(joints(left)).toHaveLength(1);
@@ -281,7 +281,7 @@ describe('what a hull that has come apart looks like', () => {
 
     for (let i = 0; i < ships.highWater; i++) {
       if (!ships.isAlive(i) || !ships.isDerelict(i)) continue;
-      const piece = ships.design(i);
+      const piece = ships.currentStructure(i);
       for (let t = 0; t < piece.turrets.length; t++) {
         expect(ships.isTurretDisabled(i, t)).toBe(true);
       }
@@ -320,7 +320,7 @@ describe('what a hull that has come apart looks like', () => {
   it('re-measures the ship that is left', () => {
     const s = broken();
     const b = s.world.bodies;
-    const left = s.ships.design(s.ship);
+    const left = s.ships.currentStructure(s.ship);
     expect(b.mass[s.body]).toBeCloseTo(left.mass, 9);
     expect(b.inertia[s.body]).toBeCloseTo(left.inertia, 9);
     expect(b.radius[s.body]).toBeCloseTo(left.radius, 9);
