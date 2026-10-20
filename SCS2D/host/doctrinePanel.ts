@@ -378,7 +378,7 @@ export function doctrinePanel(view: BattleView): { update(shown: Snapshot): void
     }
     if (body.childElementCount === 0) body.textContent = part === 'ship' ? '' : 'No such weapons';
     const reset = document.createElement('button');
-    reset.textContent = 'Revert all';
+    reset.textContent = '↺ Revert all';
     reset.title = 'Take all of this back to what the blueprint says';
     reset.addEventListener('click', () => {
       view.issue({ kind: 'resetDoctrine', ships: view.picked, part });
