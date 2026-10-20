@@ -1,10 +1,5 @@
 import { BATTLE_KEYS, keyHelp } from './keyHelp.js';
-import {
-  capture,
-  serialiseFleet,
-  Snapshot,
-  type Fleet,
-} from '../sim/index.js';
+import { capture, serialiseFleet, Snapshot, type Fleet } from '../sim/index.js';
 import { Flashes } from '../render/flashes.js';
 import {
   ARCS_KEY,
@@ -26,27 +21,13 @@ import type { Strips } from '../render/fleetStrip.js';
 import type { Inset } from '../render/inset.js';
 import { shipColours } from '../render/teams.js';
 import { drawChart, indexAt, xOf, type ChartLayout, type Series } from '../render/chart.js';
-import {
-  easeScale,
-  fitScale,
-  frame,
-  moveWithVisibleShips,
-  selectionBounds,
-  shipAt,
-  type Camera,
-} from '../render/camera.js';
+import { easeScale, fitScale, frame, moveWithVisibleShips, selectionBounds, shipAt, type Camera } from '../render/camera.js';
 import { BUILT_IN, FLEET_FILES, Library, toFileText } from '../editor/library.js';
 import { drawCentred, formationSnapshot, kindSnapshot, pictureOf as pictureOfFleet, type Picture, type ShipKind } from './fleetPicture.js';
 import { fitness, type Generation } from '../evolution/generation.js';
 import { DEFAULT_MATCH, isFleet, Match, type Entrant, type MatchConfig } from '../evolution/match.js';
 import { DEFAULT_FLEET_LIMITS } from '../evolution/fleetMutate.js';
-import {
-  DEFAULT_BUILD_WEIGHTS,
-  DEFAULT_KINDS,
-  DEFAULT_LIMITS,
-  doctrineWeights,
-  type KindWeights,
-} from '../evolution/mutate.js';
+import { DEFAULT_BUILD_WEIGHTS, DEFAULT_KINDS, DEFAULT_LIMITS, doctrineWeights, type KindWeights } from '../evolution/mutate.js';
 import { parseRunConfig, runConfigWarnings, serialiseRunConfig, type RunSetup } from '../evolution/configFile.js';
 import { breeding, MUTATION_FIELDS } from '../evolution/mutationFields.js';
 import { fillFields } from './settingsFields.js';
@@ -437,7 +418,10 @@ function download(name: string, text: string): void {
 
 /** Save a ship or fleet as a file named for it. */
 function exportEntrant(entrant: Entrant): void {
-  download(`${entrant.name.replace(/[^\w.-]+/g, '_')}${isFleet(entrant) ? '.fleet.json' : '.ship.json'}`, isFleet(entrant) ? fleetFileText(entrant) : toFileText(entrant));
+  download(
+    `${entrant.name.replace(/[^\w.-]+/g, '_')}${isFleet(entrant) ? '.fleet.json' : '.ship.json'}`,
+    isFleet(entrant) ? fleetFileText(entrant) : toFileText(entrant),
+  );
 }
 
 const NO_LAYOUT: ChartLayout = { x: 0, y: 0, width: 0, height: 0, count: 0 };
@@ -457,9 +441,13 @@ interface SizeChart {
 }
 
 export function startEvolution(): void {
-  keyHelp(el<HTMLElement>('hint'), [...BATTLE_KEYS, { keys: 'N', does: 'Put another match on' }], [
-    'A run is decided entirely by its seed: the same settings give the same run, and any match in it can be fought again from the record.',
-  ]);
+  keyHelp(
+    el<HTMLElement>('hint'),
+    [...BATTLE_KEYS, { keys: 'N', does: 'Put another match on' }],
+    [
+      'A run is decided entirely by its seed: the same settings give the same run, and any match in it can be fought again from the record.',
+    ],
+  );
   const view = el<HTMLCanvasElement>('view');
   const chart = el<HTMLCanvasElement>('chart');
   // Typed rather than narrowed: `paint` is hoisted, and a hoisted function
@@ -535,14 +523,16 @@ export function startEvolution(): void {
   const gridTable = el<HTMLTableElement>('grid');
   fillFields(document, MUTATION_FIELDS);
   addRivalInputs();
-  const inputs = Object.fromEntries(
-    FIELDS.map((name) => [name, el<HTMLInputElement>(name)]),
-  ) as Record<(typeof FIELDS)[number], HTMLInputElement>;
+  const inputs = Object.fromEntries(FIELDS.map((name) => [name, el<HTMLInputElement>(name)])) as Record<
+    (typeof FIELDS)[number],
+    HTMLInputElement
+  >;
   const rivalFollowing = el<HTMLElement>('rivalFollowing');
   const rivalEvolvesInput = el<HTMLInputElement>('rivalEvolves');
-  const rivalInputs = Object.fromEntries(
-    SIDE_FIELDS.map((name) => [name, el<HTMLInputElement>(RIVAL + name)]),
-  ) as Record<SideField, HTMLInputElement>;
+  const rivalInputs = Object.fromEntries(SIDE_FIELDS.map((name) => [name, el<HTMLInputElement>(RIVAL + name)])) as Record<
+    SideField,
+    HTMLInputElement
+  >;
 
   const library = new Library(window.localStorage);
   const fleetLibrary = new Library(window.localStorage, FLEET_FILES);
@@ -848,10 +838,12 @@ export function startEvolution(): void {
   const heldGoal = held['goal'] === '' ? 'none' : held['goal'] === '1' ? 'solid' : held['goal'];
   goalInput.value = heldGoal === 'ghost' || heldGoal === 'none' ? heldGoal : 'solid';
 
-  const wanted = new Set((held['founders'] ?? 'Corvette').split('\n').map((value) => {
-    const { kind, name } = pickOf(value);
-    return valueOf(kind, name);
-  }));
+  const wanted = new Set(
+    (held['founders'] ?? 'Corvette').split('\n').map((value) => {
+      const { kind, name } = pickOf(value);
+      return valueOf(kind, name);
+    }),
+  );
   // Chosen by name, and a name opens one layout: the player's copy where there
   // is one. The editors list a shadowed shipped one beside it because that is
   // something to open; a founder picked by name is not.
@@ -881,7 +873,6 @@ export function startEvolution(): void {
   fillList(versusSelect, (stock, name) => (stock ? name : `${name} (saved)`));
   const wantedVersus = new Set((held['versus'] ?? '').split('\n').filter((value) => value !== ''));
   for (const option of versusSelect.options) option.selected = wantedVersus.has(option.value);
-
 
   const OWN_FINAL = '';
   benchmarkSelect.append(new Option('its own final design', OWN_FINAL));
@@ -969,9 +960,7 @@ export function startEvolution(): void {
         crossingSpread: Math.max(0, number(inputs.crossingSpread, DEFAULT_MATCH.crossingSpread)),
         quietLimit: Math.max(0, number(inputs.quietLimit, DEFAULT_MATCH.quietLimit)),
         goal:
-          goalInput.value === 'none' || DEFAULT_MATCH.goal === null
-            ? null
-            : { ...DEFAULT_MATCH.goal, solid: goalInput.value !== 'ghost' },
+          goalInput.value === 'none' || DEFAULT_MATCH.goal === null ? null : { ...DEFAULT_MATCH.goal, solid: goalInput.value !== 'ghost' },
         weights: {
           survival: number(inputs.survivalWeight, 1),
           functional: number(inputs.functionalWeight, 1),
@@ -1094,10 +1083,7 @@ export function startEvolution(): void {
     goalInput.value = match.goal === null ? 'none' : match.goal.solid === false ? 'ghost' : 'solid';
     const fleets = setup.fleets ?? [];
     if (setup.founders.length + fleets.length > 0) {
-      const named = new Set([
-        ...setup.founders.map((name) => valueOf('ship', name)),
-        ...fleets.map((name) => valueOf('fleet', name)),
-      ]);
+      const named = new Set([...setup.founders.map((name) => valueOf('ship', name)), ...fleets.map((name) => valueOf('fleet', name))]);
       for (const option of foundersSelect.options) option.selected = named.has(option.value);
     }
     const versus = setup.versus ?? null;
@@ -1144,8 +1130,7 @@ export function startEvolution(): void {
       // Read anyway: a key nothing reads is said, not refused.
       readout.className = warnings.length > 0 ? 'warn' : '';
       notice =
-        'Settings read from a file. Press Start when you are ready.' +
-        (warnings.length > 0 ? ` Not read: ${warnings.join('; ')}.` : '');
+        'Settings read from a file. Press Start when you are ready.' + (warnings.length > 0 ? ` Not read: ${warnings.join('; ')}.` : '');
       readout.textContent = notice;
     });
     // Cleared so that choosing the same file twice is two imports rather
@@ -1234,11 +1219,7 @@ export function startEvolution(): void {
   window.addEventListener('keydown', (event) => {
     if (modeSelect.value !== 'battle') return;
     const active = document.activeElement;
-    if (
-      active instanceof HTMLInputElement ||
-      active instanceof HTMLTextAreaElement ||
-      active instanceof HTMLSelectElement
-    ) {
+    if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement || active instanceof HTMLSelectElement) {
       return;
     }
     if (event.ctrlKey || event.metaKey || event.altKey) return;
@@ -1293,15 +1274,7 @@ export function startEvolution(): void {
       return;
     }
     const battle = match.battle;
-    const shot = capture(
-      snapshot,
-      battle.world,
-      battle.ships,
-      battle.projectiles,
-      battle.beams,
-      battle.wells,
-      battle.impacts.log,
-    );
+    const shot = capture(snapshot, battle.world, battle.ships, battle.projectiles, battle.beams, battle.wells, battle.impacts.log);
     const simDt = shot.time > lastSimTime ? shot.time - lastSimTime : 0;
     lastSimTime = shot.time;
 
@@ -1354,23 +1327,15 @@ export function startEvolution(): void {
    * a fifth of a second reads as the chart being broken.
    */
   function paintChart(): void {
-    chartLayout = drawChart(
-      chartCtx,
-      chartSeries,
-      chart.width,
-      chart.height,
-      window.devicePixelRatio || 1,
-      { hover: hoverAt ?? undefined, picked: markedGeneration() },
-    );
+    chartLayout = drawChart(chartCtx, chartSeries, chart.width, chart.height, window.devicePixelRatio || 1, {
+      hover: hoverAt ?? undefined,
+      picked: markedGeneration(),
+    });
     for (const sub of sizeCharts) {
-      sub.layout = drawChart(
-        sub.ctx,
-        sub.series,
-        sub.canvas.width,
-        sub.canvas.height,
-        window.devicePixelRatio || 1,
-        { hover: hoverAt ?? undefined, picked: markedGeneration() },
-      );
+      sub.layout = drawChart(sub.ctx, sub.series, sub.canvas.width, sub.canvas.height, window.devicePixelRatio || 1, {
+        hover: hoverAt ?? undefined,
+        picked: markedGeneration(),
+      });
     }
   }
 
@@ -1430,12 +1395,7 @@ export function startEvolution(): void {
   }
 
   /** Which generation the pointer is over, as an index, or null. */
-  const chartPointAt = (
-    canvas: HTMLCanvasElement,
-    layout: ChartLayout,
-    event: PointerEvent | MouseEvent,
-    clamp = false,
-  ): number | null => {
+  const chartPointAt = (canvas: HTMLCanvasElement, layout: ChartLayout, event: PointerEvent | MouseEvent, clamp = false): number | null => {
     const rect = canvas.getBoundingClientRect();
     return indexAt(layout, event.clientX - rect.left, clamp);
   };
@@ -1540,10 +1500,7 @@ export function startEvolution(): void {
         fleetTarget = Math.min(fleetTarget, fitScale(shot, TILE_WIDTH * ratio(), TILE_HEIGHT * ratio()));
       }
       const whole = formationSnapshot(picture, tileSnapshot);
-      formationTarget = Math.min(
-        formationTarget,
-        fitScale(whole, FORMATION_WIDTH * ratio(), FORMATION_HEIGHT * ratio()),
-      );
+      formationTarget = Math.min(formationTarget, fitScale(whole, FORMATION_WIDTH * ratio(), FORMATION_HEIGHT * ratio()));
     }
     if (fleetScale === 0) fleetScale = fleetTarget;
     if (formationScale === 0) formationScale = formationTarget;
@@ -1618,14 +1575,12 @@ export function startEvolution(): void {
       // A dash rather than a row of zeroes for a design that has not fought:
       // its parts are as unknown as the score beside them, and a generation
       // still being fought is mostly made of those.
-      part.textContent =
-        row.id < 0 || row.matches === 0 ? '—' : SCORE_COLUMNS[i]!.of(row).toFixed(2);
+      part.textContent = row.id < 0 || row.matches === 0 ? '—' : SCORE_COLUMNS[i]!.of(row).toFixed(2);
     }
 
     // The unit is in the column head, so it is not repeated down the column.
     mass.textContent = (row.mass / 1000).toFixed(1);
-    done.firstElementChild!.textContent =
-      row.edits.length > 0 ? row.edits.join('; ') : row.id < 0 ? '' : '—';
+    done.firstElementChild!.textContent = row.edits.length > 0 ? row.edits.join('; ') : row.id < 0 ? '' : '—';
   };
 
   /**
@@ -1871,9 +1826,7 @@ export function startEvolution(): void {
   };
 
   /** Which point the panel is showing, and the rows and matches in it. */
-  const showing = (
-    wanted = shown,
-  ): { index: number; rows: Row[]; matches: readonly MatchRecord[] } => {
+  const showing = (wanted = shown): { index: number; rows: Row[]; matches: readonly MatchRecord[] } => {
     const empty = { index: 0, rows: [], matches: [] };
     if (run === null) return { ...empty, rows: previewRows };
     const points = timeline();
@@ -2012,20 +1965,10 @@ export function startEvolution(): void {
     if (entrants.length === 0 || run === null) return;
     const match = run.config.match;
     const teams = record.teams !== undefined && record.teams.length === entrants.length ? record.teams : null;
-    watchReplay(
-      new Match(entrants, { ...match, seed: record.seed }, teams, record.invulnerable ?? []),
-      record,
-      record.competitors,
-      null,
-    );
+    watchReplay(new Match(entrants, { ...match, seed: record.seed }, teams, record.invulnerable ?? []), record, record.competitors, null);
   };
 
-  const watchReplay = (
-    match: Match,
-    record: MatchRecord | null,
-    ids: readonly number[],
-    vs: string | null,
-  ): void => {
+  const watchReplay = (match: Match, record: MatchRecord | null, ids: readonly number[], vs: string | null): void => {
     replay = match;
     replayOf = record;
     replayIds = ids;
@@ -2057,12 +2000,7 @@ export function startEvolution(): void {
     for (const [i, record] of matches.entries()) {
       const tr = document.createElement('tr');
       if (record === replayOf) tr.className = 'watched';
-      for (const cell of [
-        String(i + 1),
-        competitorsText(record),
-        endingText(record),
-        record.elapsed.toFixed(0),
-      ]) {
+      for (const cell of [String(i + 1), competitorsText(record), endingText(record), record.elapsed.toFixed(0)]) {
         const td = document.createElement('td');
         td.textContent = cell;
         tr.append(td);
@@ -2122,7 +2060,13 @@ export function startEvolution(): void {
     };
     const each = <T>(records: (GenerationRecord | undefined)[], read: (g: GenerationRecord) => T): (T | undefined)[] =>
       records.map((g) => (g === undefined ? undefined : read(g)));
-    const sides: { label: string; records: (GenerationRecord | undefined)[]; size: (GenerationSize | undefined)[]; mass: string; ships: string }[] = (
+    const sides: {
+      label: string;
+      records: (GenerationRecord | undefined)[];
+      size: (GenerationSize | undefined)[];
+      mass: string;
+      ships: string;
+    }[] = (
       run instanceof Coevolution
         ? [
             { label: 'A ', records: atPoints(0), mass: teamColour(0), ships: shipColours(0).trim },
@@ -2144,7 +2088,12 @@ export function startEvolution(): void {
         if (side.size.length === 0) return [];
         const scale = right ? { right } : {};
         return [
-          { name: `${side.label}mean ${what}`, colour: colour(side), values: side.size.map((s) => (s === undefined ? NaN : read(s)[1])), ...scale },
+          {
+            name: `${side.label}mean ${what}`,
+            colour: colour(side),
+            values: side.size.map((s) => (s === undefined ? NaN : read(s)[1])),
+            ...scale,
+          },
           {
             name: `${side.label}best's ${what}`,
             colour: colour(side),
@@ -2171,14 +2120,36 @@ export function startEvolution(): void {
       sizeMetric.value === 'spread'
         ? spread()
         : sizeMetric.value === 'fittings'
-        ? [
-            ...bestAndMean('weapons', (side) => side.mass, (s) => [s.bestWeapons, s.meanWeapons], false),
-            ...bestAndMean('engines', (side) => side.ships, (s) => [s.bestEngines, s.meanEngines], true),
-          ]
-        : [
-            ...bestAndMean('mass', (side) => side.mass, (s) => [s.bestMass / 1000, s.meanMass / 1000], false),
-            ...(fleets ? bestAndMean('ships', (side) => side.ships, (s) => [s.bestShips, s.meanShips], true) : []),
-          ];
+          ? [
+              ...bestAndMean(
+                'weapons',
+                (side) => side.mass,
+                (s) => [s.bestWeapons, s.meanWeapons],
+                false,
+              ),
+              ...bestAndMean(
+                'engines',
+                (side) => side.ships,
+                (s) => [s.bestEngines, s.meanEngines],
+                true,
+              ),
+            ]
+          : [
+              ...bestAndMean(
+                'mass',
+                (side) => side.mass,
+                (s) => [s.bestMass / 1000, s.meanMass / 1000],
+                false,
+              ),
+              ...(fleets
+                ? bestAndMean(
+                    'ships',
+                    (side) => side.ships,
+                    (s) => [s.bestShips, s.meanShips],
+                    true,
+                  )
+                : []),
+            ];
     paintChart();
     showLegend();
 
@@ -2197,8 +2168,7 @@ export function startEvolution(): void {
       `${each.label}#${each.individual.id}, best of generation ${each.generation + 1}: ` +
       `${each.individual.fitness.toFixed(3)} over ${each.individual.matches} matches, ` +
       `${(each.individual.mass / 1000).toFixed(1)} t`;
-    championLine.textContent =
-      top === null ? '—' : savedAs?.id === top.individual.id ? savedAs.text : tops.map(describeTop).join(' · ');
+    championLine.textContent = top === null ? '—' : savedAs?.id === top.individual.id ? savedAs.text : tops.map(describeTop).join(' · ');
   };
 
   /** The run's best: one, or one a side in a co-evolution run, each labelled with its side. */
@@ -2475,8 +2445,7 @@ export function startEvolution(): void {
 
     if (
       !fleetBox.hidden &&
-      ((fleetScale !== fleetTarget && fleetTarget > 0) ||
-        (formationScale !== formationTarget && formationTarget > 0))
+      ((fleetScale !== fleetTarget && fleetTarget > 0) || (formationScale !== formationTarget && formationTarget > 0))
     ) {
       if (fleetTarget > 0) fleetScale = easeScale(fleetScale, fleetTarget, FLEET_EASE);
       if (formationTarget > 0) {
@@ -2590,8 +2559,7 @@ export function startEvolution(): void {
     const match = modeSelect.value === 'battle' ? watchedMatch : null;
     battleScores.hidden = match === null;
     if (match === null) return;
-    const names =
-      match === replay ? [...replayIds.map((id) => `#${id}`), ...(replayVs === null ? [] : [replayVs])] : [];
+    const names = match === replay ? [...replayIds.map((id) => `#${id}`), ...(replayVs === null ? [] : [replayVs])] : [];
     const { slots, owners, ships } = match.battle;
     const table = document.createElement('table');
     const head = document.createElement('tr');
@@ -2648,7 +2616,8 @@ export function startEvolution(): void {
     if (run instanceof Coevolution) for (const generation of run.rivalGenerations) fought += generation.matches.length;
     fought += run.done ? 0 : run.played.length;
     // Whose turn it is, in a run whose sides take turns.
-    const turn = run instanceof Coevolution && run.alternates && !run.done ? `round ${run.round + 1}, side ${run.turn === 0 ? 'A' : 'B'} · ` : '';
+    const turn =
+      run instanceof Coevolution && run.alternates && !run.done ? `round ${run.round + 1}, side ${run.turn === 0 ? 'A' : 'B'} · ` : '';
     readout.textContent =
       notice !== ''
         ? notice

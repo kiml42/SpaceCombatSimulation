@@ -440,7 +440,8 @@ export class Match {
     const placed = entrants.map((entrant) => {
       if (!isFleet(entrant)) return [{ x: 0, y: 0, angle: 0, design: compileBlueprint(entrant) }];
       const compiled = new Map<string, ShipDesign>();
-      for (const [name, blueprint] of Object.entries(entrant.designs)) compiled.set(name, compileBlueprint(withFleetFighters(blueprint, entrant.designs)));
+      for (const [name, blueprint] of Object.entries(entrant.designs))
+        compiled.set(name, compileBlueprint(withFleetFighters(blueprint, entrant.designs)));
       return expandFleet(entrant).map((ship) => ({ x: ship.x, y: ship.y, angle: ship.angle, design: compiled.get(ship.design)! }));
     });
     this.capacities = placed.map((ships) => ships.reduce((sum, ship) => sum + hullCapacity(ship.design), 0));
@@ -483,7 +484,7 @@ export class Match {
         // laid out so that every entrant is the same distance from every other
         // and from the goal — turning them all by one angle keeps that, and
         // turning them each by their own throws it away.
-        const scatter = new Rng(settings.seed ^ 0x5CA77E4);
+        const scatter = new Rng(settings.seed ^ 0x5ca77e4);
         const turned = scatter.nextRange(-settings.scatter, settings.scatter);
         const slots: number[] = [];
         const owners: number[] = [];
@@ -851,11 +852,7 @@ export class Match {
  * the same result, which is what makes a match replayable from a run's record
  * rather than needing one recorded frame by frame.
  */
-export function runMatch(
-  entrants: readonly Entrant[],
-  config?: Partial<MatchConfig>,
-  teams?: readonly number[] | null,
-): MatchResult {
+export function runMatch(entrants: readonly Entrant[], config?: Partial<MatchConfig>, teams?: readonly number[] | null): MatchResult {
   const match = new Match(entrants, config, teams);
   while (!match.done) match.advance();
   return match.result();

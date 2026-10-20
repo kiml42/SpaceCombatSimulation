@@ -35,7 +35,17 @@ import {
   berthGrid,
 } from '../sim/index.js';
 import { gridStep, type Camera } from './camera.js';
-import { describeRange, insetAt, insetsFor, labelAlong, labelBeside, type Inset, type InsetArea, type InsetShip, type LabelAt } from './inset.js';
+import {
+  describeRange,
+  insetAt,
+  insetsFor,
+  labelAlong,
+  labelBeside,
+  type Inset,
+  type InsetArea,
+  type InsetShip,
+  type LabelAt,
+} from './inset.js';
 import { stripsFor, stripTileAt, type StripColumn, type Strips } from './fleetStrip.js';
 import { fighterColours, NEUTRAL, shipColours, teamName } from './teams.js';
 
@@ -133,7 +143,6 @@ export const STRIPS_KEY = 't';
 
 const BEAM = '#3df72c';
 const BEAM_GLOW = '#a8f132';
-
 
 /**
  * Width of the tracer's halo, in calibres, for a round at full opacity
@@ -297,8 +306,6 @@ const PLUME_CORE = '255, 244, 224';
 /** A burn on a hull: the flame's colour, hotter at the middle. */
 const BURN = '255, 170, 90';
 const BURN_CORE = '255, 236, 200';
-
-
 
 /**
  * Trace a triangle with its corners rounded by up to `radius`. A sharp corner
@@ -479,12 +486,7 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
       // the throat fraction it tapers from is the number the thrust is worked
       // out from, so what the bell looks like is what it does.
       const engine = engineGeometry(spec);
-      ctx.fillRect(
-        halfLength - engine.machineryLength,
-        -halfWidth,
-        engine.machineryLength,
-        spec.width,
-      );
+      ctx.fillRect(halfLength - engine.machineryLength, -halfWidth, engine.machineryLength, spec.width);
       const throat = engine.throatWidth / 2;
       const exit = engine.exitWidth / 2;
       const mouth = halfLength - engine.machineryLength;
@@ -554,8 +556,7 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
         // strength however torn the store, since a wreck's load is still there
         // for a claw to take.
         const inset = min(spec.length, spec.width) * TANK_INSET;
-        const share =
-          (spec.kind === 'tank' ? ship.fuel?.[i] : spec.kind === 'hold' ? ship.metal?.[i] : ship.charge?.[i]) ?? fillOf(spec);
+        const share = (spec.kind === 'tank' ? ship.fuel?.[i] : spec.kind === 'hold' ? ship.metal?.[i] : ship.charge?.[i]) ?? fillOf(spec);
         const content = spec.kind === 'tank' ? FUEL : spec.kind === 'hold' ? METAL : CHARGE;
         ctx.globalAlpha = 1;
         if (triangle !== null) {
@@ -586,7 +587,13 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
           const across = spec.width - 2 * inset;
           ctx.save();
           ctx.beginPath();
-          ctx.roundRect(-halfLength + inset, -halfWidth + inset, inner, across, max(0, min(spec.length, spec.width) * TANK_ROUNDING - inset));
+          ctx.roundRect(
+            -halfLength + inset,
+            -halfWidth + inset,
+            inner,
+            across,
+            max(0, min(spec.length, spec.width) * TANK_ROUNDING - inset),
+          );
           ctx.fillStyle = FUEL_TRACK;
           ctx.fill();
           ctx.clip();
@@ -742,12 +749,7 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     // stays, because it is still there.
     if (arcs !== 'none' && ship.turretDisabled?.[t] !== true) {
       const scaled = face * ARC_RADIUS_SCALE;
-      const span =
-        scaled < ARC_MIN_RADIUS
-          ? ARC_MIN_RADIUS
-          : scaled > ARC_MAX_RADIUS
-            ? ARC_MAX_RADIUS
-            : scaled;
+      const span = scaled < ARC_MIN_RADIUS ? ARC_MIN_RADIUS : scaled > ARC_MAX_RADIUS ? ARC_MAX_RADIUS : scaled;
       ctx.fillStyle = SWEEP;
       ctx.strokeStyle = SWEEP_EDGE;
       ctx.lineWidth = lineWidth * 0.8;
@@ -794,8 +796,7 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     const half = ship.turretTrigger?.[t] ?? 0;
     if (arcs === 'trigger' && triggerReach > 0 && ship.turretDisabled?.[t] !== true) {
       const aim = ship.turretAim?.[t] ?? rest;
-      const tint =
-        ship.turretFouled?.[t] === true ? TRIGGER_FOULED : ship.turretReady[t] === true ? TRIGGER_ON : TRIGGER_OFF;
+      const tint = ship.turretFouled?.[t] === true ? TRIGGER_FOULED : ship.turretReady[t] === true ? TRIGGER_ON : TRIGGER_OFF;
       ctx.fillStyle = tint;
       ctx.beginPath();
       ctx.moveTo(mx, my);
@@ -950,7 +951,12 @@ function blockClip(
   ctx.save();
   ctx.beginPath();
   ctx.rect(cx - reach, cy - reach, 2 * reach, 2 * reach);
-  for (const [along, across] of [[back, -half], [back + block, -half], [back + block, half], [back, half]] as const) {
+  for (const [along, across] of [
+    [back, -half],
+    [back + block, -half],
+    [back + block, half],
+    [back, half],
+  ] as const) {
     const px = cx + ax * along - ay * across;
     const py = cy + ay * along + ax * across;
     if (along === back && across === -half) ctx.moveTo(px, py);
@@ -1062,14 +1068,7 @@ function drawBracing(
  * A gun's load, as a display on the mount: an arc round the back of a
  * turret's ring, or a bar down the starboard side of a hull mount's block.
  */
-function drawLoad(
-  ctx: CanvasRenderingContext2D,
-  ship: ShipView,
-  t: number,
-  mx: number,
-  my: number,
-  bearing: number,
-): void {
+function drawLoad(ctx: CanvasRenderingContext2D, ship: ShipView, t: number, mx: number, my: number, bearing: number): void {
   // A view built by hand says nothing of loading, so its guns are ready. A
   // disabled gun is empty, so it never shows a ready light.
   const load = ship.turretDisabled?.[t] === true ? 0 : (ship.turretLoad?.[t] ?? 1);
@@ -1132,8 +1131,7 @@ function drawEngineTriggers(ctx: CanvasRenderingContext2D, ship: ShipView, metre
     const engine = design.engines[t]!;
     const module = design.modules[engine.module ?? -1];
     if (!(reach > 0) || module === undefined) continue;
-    const tint =
-      (engine.escaping ?? 1) <= 0 ? TRIGGER_FOULED : ship.engineFiring?.[t] === true ? TRIGGER_ON : TRIGGER_OFF;
+    const tint = (engine.escaping ?? 1) <= 0 ? TRIGGER_FOULED : ship.engineFiring?.[t] === true ? TRIGGER_ON : TRIGGER_OFF;
     const geometry = engineGeometry(module.spec);
     const root = -module.spec.length / 2;
     const half = geometry.exitWidth / 2;
@@ -1201,7 +1199,13 @@ function drawPlumes(ctx: CanvasRenderingContext2D, ship: ShipView): void {
     ctx.fill();
     // A brighter core, a third the width, so a hard burn reads as hotter
     // rather than merely longer.
-    ctx.fillStyle = fade(ctx, root, reach * 0.55, PLUME_CORE, layerAlpha(min(1, plumeAlpha(plumeIntensity(engine.geometry, force)) * 1.4), split));
+    ctx.fillStyle = fade(
+      ctx,
+      root,
+      reach * 0.55,
+      PLUME_CORE,
+      layerAlpha(min(1, plumeAlpha(plumeIntensity(engine.geometry, force)) * 1.4), split),
+    );
     ctx.beginPath();
     ctx.moveTo(root, across - half / 3);
     ctx.lineTo(root, across + half / 3);
@@ -1336,13 +1340,7 @@ function eachNozzle(
 }
 
 /** A flame's fill: `alpha` at the nozzle, fading to nothing `length` aft of it. */
-function fade(
-  ctx: CanvasRenderingContext2D,
-  root: number,
-  length: number,
-  rgb: string,
-  alpha: number,
-): CanvasGradient {
+function fade(ctx: CanvasRenderingContext2D, root: number, length: number, rgb: string, alpha: number): CanvasGradient {
   const gradient = ctx.createLinearGradient(root, 0, root - length, 0);
   gradient.addColorStop(0, `rgba(${rgb}, ${alpha})`);
   gradient.addColorStop(1, `rgba(${rgb}, 0)`);
@@ -1631,7 +1629,15 @@ export function closeUps(
  * tapped at, or -1: picking it from there frames it, wherever it is. They are
  * drawn over the view, so a tap on one is a tap on it.
  */
-export function overlayAt(strips: Strips | null, insets: readonly Inset[], camera: Camera, widthPx: number, heightPx: number, x: number, y: number): number {
+export function overlayAt(
+  strips: Strips | null,
+  insets: readonly Inset[],
+  camera: Camera,
+  widthPx: number,
+  heightPx: number,
+  x: number,
+  y: number,
+): number {
   const px = widthPx / 2 + (x - camera.x) * camera.scale;
   const py = heightPx / 2 - (y - camera.y) * camera.scale;
   const inset = insetAt(insets, px, py);
@@ -1939,12 +1945,7 @@ function shipByBody(snapshot: Snapshot, body: number): ShipView | null {
  * hit on a hull brightens the hull rather than covering it, and two hits in
  * the same place are brighter than one.
  */
-function drawFlashes(
-  ctx: CanvasRenderingContext2D,
-  snapshot: Snapshot,
-  flashes: Flashes,
-  camera: Camera,
-): void {
+function drawFlashes(ctx: CanvasRenderingContext2D, snapshot: Snapshot, flashes: Flashes, camera: Camera): void {
   // Exposed for the last step, as a camera would photograph it: drawn at
   // moments through the step, each at the size and brightness it had then and
   // where it was then relative to the camera, weighted by how open the shutter
@@ -1980,10 +1981,7 @@ function drawFlashes(
     // and moving with it. A ship that has gone leaves its flashes where they
     // happened, and a burst drifts on at its shell's velocity.
     const anchor = shipByBody(snapshot, flashes.body[i]!);
-    const at =
-      anchor === null
-        ? { x: flashes.x[i]!, y: flashes.y[i]! }
-        : flashPosition(flashes.localX[i]!, flashes.localY[i]!, anchor);
+    const at = anchor === null ? { x: flashes.x[i]!, y: flashes.y[i]! } : flashPosition(flashes.localX[i]!, flashes.localY[i]!, anchor);
     const rvx = (anchor === null ? flashes.vx[i]! : anchor.vx) - cvx;
     const rvy = (anchor === null ? flashes.vy[i]! : anchor.vy) - cvy;
     // The way it points, turned with the hull it rides.
@@ -2215,10 +2213,7 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
     ctx.strokeStyle = team(i) < 0 ? BEAM_GLOW : shipColours(team(i)).hull;
     const calibre = snapshot.beamWidth[i]!;
     const halo = BEAM_GLOW_WIDTHS * calibre;
-    ctx.globalAlpha =
-      beamAlpha(snapshot.beamPower[i]!) *
-      BEAM_GLOW_ALPHA *
-      flooredFade(halo, MIN_BEAM_GLOW_PX, camera.scale);
+    ctx.globalAlpha = beamAlpha(snapshot.beamPower[i]!) * BEAM_GLOW_ALPHA * flooredFade(halo, MIN_BEAM_GLOW_PX, camera.scale);
     ctx.lineWidth = legibleWidth(halo, MIN_BEAM_GLOW_PX, camera.scale);
     ctx.beginPath();
     ctx.moveTo(snapshot.beamStartX[i]!, snapshot.beamStartY[i]!);
@@ -2233,8 +2228,7 @@ function drawBeams(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
     if (!nearShown(snapshot.beamStartX[i]!, snapshot.beamStartY[i]!, snapshot.beamEndX[i]!, snapshot.beamEndY[i]!)) continue;
     ctx.strokeStyle = team(i) < 0 ? BEAM : shipColours(team(i)).trim;
     const calibre = snapshot.beamWidth[i]!;
-    ctx.globalAlpha =
-      beamAlpha(snapshot.beamPower[i]!) * flooredFade(calibre, MIN_TRACER_PX, camera.scale);
+    ctx.globalAlpha = beamAlpha(snapshot.beamPower[i]!) * flooredFade(calibre, MIN_TRACER_PX, camera.scale);
     // The beam *is* its calibre wide. Twice the calibre is the barrel's outer
     // diameter — right for the tube, wrong for what comes out of it.
     ctx.lineWidth = legibleWidth(calibre, MIN_TRACER_PX, camera.scale);
@@ -2287,12 +2281,7 @@ function drawWells(ctx: CanvasRenderingContext2D, snapshot: Snapshot, camera: Ca
  * nothing to judge scale or motion against — two ships closing on a black
  * field look like two ships sitting still.
  */
-function drawGrid(
-  ctx: CanvasRenderingContext2D,
-  camera: Camera,
-  widthPx: number,
-  heightPx: number,
-): void {
+function drawGrid(ctx: CanvasRenderingContext2D, camera: Camera, widthPx: number, heightPx: number): void {
   const step = gridStep(camera.scale);
 
   const halfW = widthPx / 2 / camera.scale;

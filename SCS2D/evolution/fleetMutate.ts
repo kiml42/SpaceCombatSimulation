@@ -166,7 +166,8 @@ export function mutateFleet(parent: Fleet, rng: Rng, limits?: Partial<FleetMutat
 export function fleetFits(fleet: Fleet, limits: Pick<FleetMutationLimits, 'budget' | 'radius' | 'maxShips'>): boolean {
   if (fleetProblem(fleet) !== null) return false;
   if (hangarClashes(fleet).length > 0) return false;
-  for (const blueprint of Object.values(fleet.designs)) if (blueprintProblem(withFleetFighters(blueprint, fleet.designs)) !== null) return false;
+  for (const blueprint of Object.values(fleet.designs))
+    if (blueprintProblem(withFleetFighters(blueprint, fleet.designs)) !== null) return false;
   const hulls = fleetHulls(fleet);
   if (hulls.length === 0 || hulls.length > limits.maxShips) return false;
   if (!affords(limits.budget, fleetBill(hulls))) return false;

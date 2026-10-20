@@ -1,13 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  compileBlueprint,
-  parseBlueprint,
-  serialiseBlueprint,
-  subDesign,
-  World,
-  type Blueprint,
-  type ModuleSpec,
-} from '../sim/index.js';
+import { compileBlueprint, parseBlueprint, serialiseBlueprint, subDesign, World, type Blueprint, type ModuleSpec } from '../sim/index.js';
 import { Ships } from '../sim/ships.js';
 import { GUNSHIP, STAR_DESTROYER } from '../scenarios/blueprints.js';
 

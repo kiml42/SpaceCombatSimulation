@@ -178,16 +178,7 @@ export class BeamHits {
   }
 
   /** Append an impact. Called as each beam is cast. */
-  push(
-    beam: number,
-    body: number,
-    x: number,
-    y: number,
-    nx: number,
-    ny: number,
-    module = -1,
-    share = 1,
-  ): void {
+  push(beam: number, body: number, x: number, y: number, nx: number, ny: number, module = -1, share = 1): void {
     if (this.count === this.beam.length) this.grow();
     const i = this.count++;
     this.beam[i] = beam;
@@ -408,13 +399,7 @@ export class Beams {
   }
 
   /** `shootRaw` with named fields and defaults, for setup code and tests. */
-  shoot(
-    spec: BeamSpec,
-    bodies: Bodies,
-    grid: SpatialGrid,
-    hits: BeamHits,
-    hulls?: Hulls,
-  ): number {
+  shoot(spec: BeamSpec, bodies: Bodies, grid: SpatialGrid, hits: BeamHits, hulls?: Hulls): number {
     return this.shootRaw(
       spec.startX,
       spec.startY,

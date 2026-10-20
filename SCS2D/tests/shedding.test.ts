@@ -30,7 +30,10 @@ describe('a hull taking damage', () => {
     run.step();
     return run;
   }
-  const largest = corvette.modules.reduce((best, m, k) => (m.stats.structureMass > corvette.modules[best]!.stats.structureMass ? k : best), 0);
+  const largest = corvette.modules.reduce(
+    (best, m, k) => (m.stats.structureMass > corvette.modules[best]!.stats.structureMass ? k : best),
+    0,
+  );
   const dry = corvette.modules[largest]!.stats.structureMass + corvette.modules[largest]!.stats.fittingMass;
 
   it('loses the share of the module it shed, counted as discarded', () => {

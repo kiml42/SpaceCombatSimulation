@@ -1,15 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { radiansToDegrees as toDegrees, shapeModule, type ModuleSpec } from '../sim/index.js';
-import {
-  alignment,
-  cornersOf,
-  drawnAngles,
-  offsetBy,
-  landing,
-  landOrGrid,
-  snapBearing,
-  snapField,
-} from '../editor/snapping.js';
+import { alignment, cornersOf, drawnAngles, offsetBy, landing, landOrGrid, snapBearing, snapField } from '../editor/snapping.js';
 import { facingTo, resizedTo, vertexTo } from '../editor/handles.js';
 
 /**

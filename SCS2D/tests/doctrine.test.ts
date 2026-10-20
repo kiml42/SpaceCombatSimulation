@@ -196,9 +196,7 @@ describe('what a ship is worth shooting at', () => {
     // — a preference rather than an instruction, so a gun on the wrong side
     // is still free to fight what it can reach.
     const evens = candidate({ ship: 7 });
-    expect(score(doctrine, evens, REACH, 100_000, -1, 7)).toBeGreaterThan(
-      score(doctrine, evens, REACH, 100_000, -1, 3),
-    );
+    expect(score(doctrine, evens, REACH, 100_000, -1, 7)).toBeGreaterThan(score(doctrine, evens, REACH, 100_000, -1, 3));
   });
 
   it('prefers what can still shoot back, and what can still get away', () => {

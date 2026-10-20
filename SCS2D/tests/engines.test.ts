@@ -1,13 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Bodies } from '../sim/bodies.js';
 import { Rng } from '../sim/rng.js';
-import {
-  Allocation,
-  applyAllocation,
-  shortfall,
-  EngineLayout,
-  type EngineSpec,
-} from '../sim/engines.js';
+import { Allocation, applyAllocation, shortfall, EngineLayout, type EngineSpec } from '../sim/engines.js';
 
 /**
  * A wrong allocator does not crash; it produces ships that fly slightly
@@ -77,9 +71,7 @@ function producedWrench(layout: EngineLayout, throttles: Float64Array) {
 
 describe('layout construction', () => {
   it('normalises thrust directions', () => {
-    const layout = new EngineLayout([
-      { x: 0, y: 0, dirX: 3, dirY: 4, maxThrust: 100 },
-    ]);
+    const layout = new EngineLayout([{ x: 0, y: 0, dirX: 3, dirY: 4, maxThrust: 100 }]);
     expect(layout.dirX[0]).toBeCloseTo(0.6, 12);
     expect(layout.dirY[0]).toBeCloseTo(0.8, 12);
     // The column is the full-throttle wrench, so it carries the thrust.
@@ -89,9 +81,7 @@ describe('layout construction', () => {
 
   it('computes torque as r cross F', () => {
     // Mounted 10 above the centre, pushing along +x: turns the ship clockwise.
-    const layout = new EngineLayout([
-      { x: 0, y: 10, dirX: 1, dirY: 0, maxThrust: 100 },
-    ]);
+    const layout = new EngineLayout([{ x: 0, y: 10, dirX: 1, dirY: 0, maxThrust: 100 }]);
     expect(layout.wt[0]).toBeCloseTo(-1000, 9);
   });
 
@@ -174,13 +164,7 @@ describe('allocation', () => {
 
       // Demands ranging from trivial to far beyond anything achievable.
       const scale = trial % 3 === 0 ? 1e6 : 1e4;
-      layout.allocate(
-        rng.nextRange(-scale, scale),
-        rng.nextRange(-scale, scale),
-        rng.nextRange(-scale * 10, scale * 10),
-        throttles,
-        out,
-      );
+      layout.allocate(rng.nextRange(-scale, scale), rng.nextRange(-scale, scale), rng.nextRange(-scale * 10, scale * 10), throttles, out);
 
       for (let i = 0; i < n; i++) {
         expect(throttles[i]!).toBeGreaterThanOrEqual(0);
@@ -199,13 +183,7 @@ describe('allocation', () => {
       const layout = randomLayout(rng, n);
       const throttles = new Float64Array(n);
 
-      layout.allocate(
-        rng.nextRange(-5000, 5000),
-        rng.nextRange(-5000, 5000),
-        rng.nextRange(-50000, 50000),
-        throttles,
-        out,
-      );
+      layout.allocate(rng.nextRange(-5000, 5000), rng.nextRange(-5000, 5000), rng.nextRange(-50000, 50000), throttles, out);
 
       const actual = producedWrench(layout, throttles);
       expect(out.fx).toBeCloseTo(actual.fx, 9);
@@ -250,7 +228,7 @@ describe('allocation', () => {
     // randomised — near-adversarial — geometry. Thresholds sit above those with
     // headroom, so this catches a regression rather than tracking noise.
     expect(total / checked).toBeLessThan(0.002);
-    expect(worst).toBeLessThan(0.10);
+    expect(worst).toBeLessThan(0.1);
   });
 
   it('saturates gracefully rather than exploding', () => {
@@ -272,13 +250,7 @@ describe('allocation', () => {
     for (let trial = 0; trial < 200; trial++) {
       const n = 3 + (trial % 9);
       const layout = randomLayout(rng, n);
-      layout.allocate(
-        rng.nextRange(-1e5, 1e5),
-        rng.nextRange(-1e5, 1e5),
-        rng.nextRange(-1e6, 1e6),
-        new Float64Array(n),
-        out,
-      );
+      layout.allocate(rng.nextRange(-1e5, 1e5), rng.nextRange(-1e5, 1e5), rng.nextRange(-1e6, 1e6), new Float64Array(n), out);
       expect(out.passes).toBeLessThanOrEqual(n + 1);
     }
   });
@@ -345,13 +317,7 @@ describe('engines that undo each other', () => {
 
     let worst = 0;
     for (let i = 0; i < 4000; i++) {
-      layout.allocate(
-        rng.nextRange(-force, force),
-        rng.nextRange(-force, force),
-        rng.nextRange(-torque, torque),
-        throttles,
-        out,
-      );
+      layout.allocate(rng.nextRange(-force, force), rng.nextRange(-force, force), rng.nextRange(-torque, torque), throttles, out);
       // The bow pair. Whichever is doing less is doing nothing but cancel.
       worst = Math.max(worst, Math.min(throttles[0]!, throttles[1]!));
     }
@@ -571,9 +537,7 @@ describe('capability envelope', () => {
 
   it('support is zero in a direction nothing can serve', () => {
     // One engine pushing +x only.
-    const layout = new EngineLayout([
-      { x: 0, y: 0, dirX: 1, dirY: 0, maxThrust: 100 },
-    ]);
+    const layout = new EngineLayout([{ x: 0, y: 0, dirX: 1, dirY: 0, maxThrust: 100 }]);
     expect(layout.support(1, 0, 0)).toBeCloseTo(100, 9);
     expect(layout.support(-1, 0, 0)).toBe(0);
   });

@@ -18,25 +18,12 @@ export { Charge } from './charge.js';
 export { ROBOT_VIEW_STRIDE } from './robots.js';
 export { Store } from './store.js';
 export { Rng, type RngState } from './rng.js';
-export {
-  Bodies,
-  NO_BODY,
-  bodyIndex,
-  bodyGeneration,
-  type BodyId,
-  type BodySpec,
-} from './bodies.js';
+export { Bodies, NO_BODY, bodyIndex, bodyGeneration, type BodyId, type BodySpec } from './bodies.js';
 export { World, type ForceProvider, type WorldOptions } from './world.js';
 export { AttackArcs, AttackRegion, attackBearing, bestAttackBearings, designArcs } from './attack.js';
 export { gravityWell, wellPull, wellPotentialEnergy, type WellSpec } from './gravity.js';
 export { SpatialGrid, IndexBuffer, RayHit, segmentCircleT, type RayNarrowPhase } from './spatialGrid.js';
-export {
-  Projectiles,
-  ProjectileHits,
-  NO_OWNER,
-  NOT_INSIDE,
-  type ProjectileSpec,
-} from './projectiles.js';
+export { Projectiles, ProjectileHits, NO_OWNER, NOT_INSIDE, type ProjectileSpec } from './projectiles.js';
 export {
   Beams,
   BeamHits,
@@ -48,13 +35,7 @@ export {
   reflectance,
   type BeamSpec,
 } from './beams.js';
-export {
-  EngineLayout,
-  Allocation,
-  applyAllocation,
-  shortfall,
-  type EngineSpec,
-} from './engines.js';
+export { EngineLayout, Allocation, applyAllocation, shortfall, type EngineSpec } from './engines.js';
 export {
   DECK_HEIGHT,
   BASE_WALL_THICKNESS,
@@ -256,30 +237,9 @@ export {
   type Doctrine,
   type Targeting,
 } from './doctrine.js';
-export {
-  Choice,
-  cohesionUrge,
-  inSight,
-  look,
-  score,
-  type Candidate,
-} from './targeting.js';
-export {
-  JOINT_IMPULSE_PER_AREA,
-  DOCK_HOLD,
-  cuts,
-  components,
-  joints,
-  type Cut,
-  type Joint,
-} from './connectivity.js';
-export {
-  Collisions,
-  Contacts,
-  RESTITUTION,
-  findContacts,
-  resolveContacts,
-} from './collision.js';
+export { Choice, cohesionUrge, inSight, look, score, type Candidate } from './targeting.js';
+export { JOINT_IMPULSE_PER_AREA, DOCK_HOLD, cuts, components, joints, type Cut, type Joint } from './connectivity.js';
+export { Collisions, Contacts, RESTITUTION, findContacts, resolveContacts } from './collision.js';
 export {
   ATTACHMENT_TOLERANCE,
   contactWidth,
@@ -340,14 +300,7 @@ export {
   type DesignTurret,
   type ShipDesign,
 } from './blueprint.js';
-export {
-  pushNeighbours,
-  sharedFace,
-  shiftSeam,
-  withFaceMoved,
-  type FaceOf,
-  type SharedFace,
-} from './push.js';
+export { pushNeighbours, sharedFace, shiftSeam, withFaceMoved, type FaceOf, type SharedFace } from './push.js';
 export {
   BLUEPRINT_FORMAT_VERSION,
   blueprintFileProblem,
@@ -398,13 +351,7 @@ export {
   placeModules,
   type FleetHull,
 } from './fleetHulls.js';
-export {
-  Turrets,
-  FiringSolution,
-  interceptTime,
-  masked,
-  type TurretSpec,
-} from './turrets.js';
+export { Turrets, FiringSolution, interceptTime, masked, type TurretSpec } from './turrets.js';
 export {
   Ships,
   NEUTRAL_TEAM,
@@ -422,15 +369,7 @@ export {
   type ShipSpec,
 } from './ships.js';
 export { capture, Snapshot, type ShipView } from './snapshot.js';
-export {
-  DE_MARRE_K,
-  RICOCHET_ANGLE,
-  Terminal,
-  deflected,
-  incidenceAngle,
-  strike,
-  type Strike,
-} from './ballistics.js';
+export { DE_MARRE_K, RICOCHET_ANGLE, Terminal, deflected, incidenceAngle, strike, type Strike } from './ballistics.js';
 export {
   Credit,
   DAMAGE_ENERGY_PER_KG,
@@ -460,12 +399,6 @@ export {
   type RoundOutcome,
   type Shocked,
 } from './damage.js';
-export {
-  checksumWorld,
-  checksumProjectiles,
-  checksumBeams,
-  checksumDamage,
-  formatChecksum,
-} from './checksum.js';
+export { checksumWorld, checksumProjectiles, checksumBeams, checksumDamage, formatChecksum } from './checksum.js';
 export { addBills, affords, billOf, isLimited, NO_BILL, NO_BUDGET, type Bill, type Budget } from './bill.js';
 export { printedCraft, printFrame, printLength, SLIPWAY_STEP, type Print } from './slipway.js';

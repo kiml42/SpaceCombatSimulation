@@ -131,7 +131,10 @@ describe('editing a fleet', () => {
     const moved = moveEntries(LINE_OF_BATTLE, [{ path: [group, 1], dx: 10, dy: 0 }]);
     expect(entryAt(moved, [group, 1])).toMatchObject({ x: 10, y: -120 });
     expect(moved.groups!['Fighter Pair']!.ships[1]).toMatchObject({ x: 10 });
-    const fewer = deleteEntries(LINE_OF_BATTLE, [[group, 0], [group, 1]]);
+    const fewer = deleteEntries(LINE_OF_BATTLE, [
+      [group, 0],
+      [group, 1],
+    ]);
     expect(fewer.groups!['Fighter Pair']!.ships).toEqual([]);
     expect(fewer.designs['Dinky']).toBeUndefined();
   });
@@ -153,7 +156,10 @@ describe('FleetDocument', () => {
     expect(doc.view.ships).toHaveLength(5);
     const dinky = doc.view.lines.find((line) => line.name === 'Dinky')!;
     expect(dinky.count).toBe(2);
-    expect(doc.view.mass).toBeCloseTo(doc.view.lines.reduce((sum, l) => sum + l.count * l.mass, 0), 6);
+    expect(doc.view.mass).toBeCloseTo(
+      doc.view.lines.reduce((sum, l) => sum + l.count * l.mass, 0),
+      6,
+    );
     expect(doc.view.problems).toEqual([]);
   });
 

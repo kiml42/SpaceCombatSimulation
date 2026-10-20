@@ -86,9 +86,7 @@ describe('mutation', () => {
   it('breeds the same children from the same seed', () => {
     const one = lineage(GUNSHIP, 5, 20, NO_BUDGET);
     const two = lineage(GUNSHIP, 5, 20, NO_BUDGET);
-    expect(one.map((bp) => JSON.stringify(serialiseBlueprint(bp)))).toEqual(
-      two.map((bp) => JSON.stringify(serialiseBlueprint(bp))),
-    );
+    expect(one.map((bp) => JSON.stringify(serialiseBlueprint(bp)))).toEqual(two.map((bp) => JSON.stringify(serialiseBlueprint(bp))));
   });
 
   it('breeds different children from different seeds', () => {
@@ -277,9 +275,7 @@ describe('mutation', () => {
     let found = false;
     for (let i = 0; i < 400 && !found; i++) {
       held = mutate(held, rng).blueprint;
-      found = expandBlueprint(held).some(
-        (spec) => isWeaponMount(spec.kind) && spec.targeting !== undefined,
-      );
+      found = expandBlueprint(held).some((spec) => isWeaponMount(spec.kind) && spec.targeting !== undefined);
     }
     expect(found).toBe(true);
   });
@@ -288,7 +284,7 @@ describe('mutation', () => {
   // edits, which is the same budget its siblings above take for the same
   // reason: a default five seconds is what one assertion costs, not what
   // breeding a population does.
-  it('lengthens and shortens a gun\'s barrel, in whole calibres', { timeout: 30_000 }, () => {
+  it("lengthens and shortens a gun's barrel, in whole calibres", { timeout: 30_000 }, () => {
     // The Catamaran's turrets and the Corvette's hull gun both read it.
     for (const parent of [CATAMARAN, CORVETTE]) {
       const rng = new Rng(57);
@@ -341,7 +337,24 @@ describe('mutation', () => {
     for (let i = 0; i < 400 && (added === 0 || refitted === 0); i++) {
       const child = mutate(held, rng, {
         structural: 1,
-        kinds: { engine: 0, structure: 0, tank: 0, turret: 0, beamTurret: 0, hullGun: 3, hullBeam: 1, core: 0, claw: 0, pad: 0, port: 0, hold: 0, battery: 0, generator: 0, robotBay: 0, slipway: 0 },
+        kinds: {
+          engine: 0,
+          structure: 0,
+          tank: 0,
+          turret: 0,
+          beamTurret: 0,
+          hullGun: 3,
+          hullBeam: 1,
+          core: 0,
+          claw: 0,
+          pad: 0,
+          port: 0,
+          hold: 0,
+          battery: 0,
+          generator: 0,
+          robotBay: 0,
+          slipway: 0,
+        },
       });
       held = child.blueprint;
       for (const edit of child.edits) {
@@ -353,7 +366,7 @@ describe('mutation', () => {
     expect(refitted).toBeGreaterThan(0);
   });
 
-  it('keeps a weapon\'s facing when it is refitted as an engine, so its bell faces outboard', () => {
+  it("keeps a weapon's facing when it is refitted as an engine, so its bell faces outboard", () => {
     const casemate: Blueprint = {
       name: 'Casemate',
       modules: [
@@ -362,7 +375,24 @@ describe('mutation', () => {
       ],
     };
     const rng = new Rng(33);
-    const only = { engine: 1, structure: 0, tank: 0, turret: 0, beamTurret: 0, hullGun: 0, hullBeam: 0, core: 0, claw: 0, pad: 0, port: 0, hold: 0, battery: 0, generator: 0, robotBay: 0, slipway: 0 };
+    const only = {
+      engine: 1,
+      structure: 0,
+      tank: 0,
+      turret: 0,
+      beamTurret: 0,
+      hullGun: 0,
+      hullBeam: 0,
+      core: 0,
+      claw: 0,
+      pad: 0,
+      port: 0,
+      hold: 0,
+      battery: 0,
+      generator: 0,
+      robotBay: 0,
+      slipway: 0,
+    };
     let seen = 0;
     for (let i = 0; i < 400 && seen < 3; i++) {
       // Only refits, so a child whose one edit is the refit says what it did.
@@ -375,7 +405,7 @@ describe('mutation', () => {
     expect(seen).toBeGreaterThan(0);
   });
 
-  it('keeps a hull weapon\'s fields when it stops being one, without refusing it', () => {
+  it("keeps a hull weapon's fields when it stops being one, without refusing it", () => {
     // A refit keeps the geometry and changes what it is for, and what the new
     // kind does not read stays put: it is what this module was, and a refit
     // back should get it rather than the default. The candidate is a ship all
@@ -401,7 +431,7 @@ describe('mutation', () => {
     expect(seen).toBeGreaterThan(0);
   });
 
-  it('keeps an engine\'s bell through a spell as something else', () => {
+  it("keeps an engine's bell through a spell as something else", () => {
     // The point of keeping it: a lineage that has spent generations tuning a
     // bell and then refits the module into a gun mount has not lost the bell,
     // and a refit back wakes it with the value it had.
@@ -428,7 +458,13 @@ describe('mutation', () => {
     // aggregate: a bell nobody would have picked, a spell as a turret, and
     // the same bell on the way back.
     const tuned: ModuleSpec = {
-      kind: 'engine', x: -5, y: 0, angle: Math.PI, length: 4, width: 4, nozzle: 0.37,
+      kind: 'engine',
+      x: -5,
+      y: 0,
+      angle: Math.PI,
+      length: 4,
+      width: 4,
+      nozzle: 0.37,
     };
     const site = { spec: { ...tuned }, where: 'module 1' };
     // Refitted by hand, since what is being tested is what a refit leaves
@@ -440,8 +476,7 @@ describe('mutation', () => {
     expect(moduleStats(site.spec).thrust).toBe(0);
     // And a file never carries it, so a ship saved as a turret is a turret.
     expect(
-      (serialiseBlueprint({ name: 'Saved', modules: [site.spec] })['modules'] as
-        Record<string, unknown>[])[0]!['nozzle'],
+      (serialiseBlueprint({ name: 'Saved', modules: [site.spec] })['modules'] as Record<string, unknown>[])[0]!['nozzle'],
     ).toBeUndefined();
 
     site.spec.kind = 'engine';
@@ -464,7 +499,24 @@ describe('mutation', () => {
         structural: 1,
         // Refits weighted up, so a few hundred draws are sure to see some.
         build: { ...DEFAULT_BUILD_WEIGHTS, refit: 10 },
-        kinds: { engine: 1, structure: 0, tank: 0, turret: 0, beamTurret: 0, hullGun: 0, hullBeam: 0, core: 0, claw: 0, pad: 0, port: 0, hold: 0, battery: 0, generator: 0, robotBay: 0, slipway: 0 },
+        kinds: {
+          engine: 1,
+          structure: 0,
+          tank: 0,
+          turret: 0,
+          beamTurret: 0,
+          hullGun: 0,
+          hullBeam: 0,
+          core: 0,
+          claw: 0,
+          pad: 0,
+          port: 0,
+          hold: 0,
+          battery: 0,
+          generator: 0,
+          robotBay: 0,
+          slipway: 0,
+        },
       });
       held = child.blueprint;
       for (const edit of child.edits) {
@@ -627,7 +679,24 @@ describe('mutation', () => {
     let held: Blueprint = CORVETTE;
     for (let i = 0; i < 50; i++) {
       const child = mutate(held, rng, {
-        kinds: { engine: 0, structure: 0, tank: 0, turret: 0, beamTurret: 0, hullGun: 0, hullBeam: 0, core: 0, claw: 0, pad: 0, port: 0, hold: 0, battery: 0, generator: 0, robotBay: 0, slipway: 0 },
+        kinds: {
+          engine: 0,
+          structure: 0,
+          tank: 0,
+          turret: 0,
+          beamTurret: 0,
+          hullGun: 0,
+          hullBeam: 0,
+          core: 0,
+          claw: 0,
+          pad: 0,
+          port: 0,
+          hold: 0,
+          battery: 0,
+          generator: 0,
+          robotBay: 0,
+          slipway: 0,
+        },
       });
       expect(child.edits.length, `child ${i}`).toBeGreaterThan(0);
       expect(child.edits.some((edit) => /added to/.test(edit))).toBe(false);
@@ -684,9 +753,7 @@ describe('doctrine weights', () => {
 describe('build weights', () => {
   /** Every module's kind, place and size, which is what a ship looks like. */
   const looks = (blueprint: Blueprint): string =>
-    JSON.stringify(
-      expandBlueprint(blueprint).map((m) => [m.kind, m.x, m.y, m.length, m.width, m.angle ?? 0, m.barrels ?? 1]),
-    );
+    JSON.stringify(expandBlueprint(blueprint).map((m) => [m.kind, m.x, m.y, m.length, m.width, m.angle ?? 0, m.barrels ?? 1]));
 
   it('keeps how a ship is built when only tuning and doctrine may change', () => {
     const rng = new Rng(5);
@@ -717,7 +784,11 @@ describe('build weights', () => {
     const filled = new Set<string>();
     let held = depot;
     for (let i = 0; i < 200; i++) {
-      const child = mutate(held, rng, { structural: 0, build, doctrine: { targeting: 0, approach: 0, escort: 0, avoidance: 0, gunnery: 0 } });
+      const child = mutate(held, rng, {
+        structural: 0,
+        build,
+        doctrine: { targeting: 0, approach: 0, escort: 0, avoidance: 0, gunnery: 0 },
+      });
       for (const edit of child.edits) {
         const m = / (\w+): starts \d+% full/.exec(edit);
         if (m !== null) filled.add(m[1]!);
@@ -828,7 +899,8 @@ describe('thrusters', () => {
     const count = (parent: Blueprint): number => {
       const rng = new Rng(13);
       let added = 0;
-      for (let i = 0; i < 40; i++) added += mutate(parent, rng, { ...only, thrusters: 0.9 }).edits.filter((e) => e.includes('thruster')).length;
+      for (let i = 0; i < 40; i++)
+        added += mutate(parent, rng, { ...only, thrusters: 0.9 }).edits.filter((e) => e.includes('thruster')).length;
       return added;
     };
     expect(count(BARE_CORE)).toBeGreaterThan(2 * count(GUNSHIP));

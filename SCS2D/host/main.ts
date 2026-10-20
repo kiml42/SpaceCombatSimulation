@@ -106,8 +106,7 @@ export function start(): void {
       // there are two. A single survivor has nothing to measure against.
       const first = shown.ships[0];
       const second = shown.ships[1];
-      const range =
-        first !== undefined && second !== undefined ? math.distance(first.x, first.y, second.x, second.y) : 0;
+      const range = first !== undefined && second !== undefined ? math.distance(first.x, first.y, second.x, second.y) : 0;
       readout.textContent = `t ${shown.time.toFixed(1)} s · step ${shown.tick} · grid ${gridStep(view.camera.scale)} m`;
       scrub.max = String(view.reached);
       if (!scrubbing) scrub.value = String(view.at);
@@ -192,5 +191,4 @@ export function start(): void {
       window.alert(`Could not read the battle in the link.\n\n${error instanceof Error ? error.message : error}`);
     });
   if (hash !== '') history.replaceState(null, '', window.location.pathname);
-
 }

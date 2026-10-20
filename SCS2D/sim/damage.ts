@@ -937,10 +937,7 @@ function walkRound(
     let k = crossing;
     if (k < 0) {
       k = 0;
-      while (
-        k < path.count &&
-        (path.entry[k]! - reach < -ARRIVAL_SLACK || path.module[k] === within)
-      ) {
+      while (k < path.count && (path.entry[k]! - reach < -ARRIVAL_SLACK || path.module[k] === within)) {
         k++;
       }
     }
@@ -992,7 +989,8 @@ function walkRound(
           fuel.holed(bodyIndex, module, before, ox + ux * at, oy + uy * at, nx, ny, calibre, rng);
         }
       }
-      if (hit.outcome === Terminal.Perforate) carried = throughFuel(fuel, damage, bodyIndex, module, path.exit[k]! - path.entry[k]!, mass, calibre, carried, out);
+      if (hit.outcome === Terminal.Perforate)
+        carried = throughFuel(fuel, damage, bodyIndex, module, path.exit[k]! - path.entry[k]!, mass, calibre, carried, out);
       out.speed = carried;
 
       if (hit.outcome === Terminal.Embed) {
@@ -1552,15 +1550,7 @@ export class Impacts {
    * which, because a spent module no longer stops a beam, walks inward through
    * a hull as it destroys it.
    */
-  beams(
-    damage: Damage,
-    beams: Beams,
-    hits: BeamHits,
-    dt: number,
-    bodies?: Bodies,
-    designs?: HullDesigns,
-    credit?: Credit,
-  ): void {
+  beams(damage: Damage, beams: Beams, hits: BeamHits, dt: number, bodies?: Bodies, designs?: HullDesigns, credit?: Credit): void {
     for (let i = 0; i < hits.count; i++) {
       const energy = beams.power[hits.beam[i]!]! * hits.share[i]! * BEAM_ABSORBED_SHARE * dt;
       damage.absorb(hits.body[i]!, hits.module[i]!, energy);
@@ -1658,15 +1648,7 @@ export class Impacts {
     return true;
   }
 
-  private burnSeams(
-    damage: Damage,
-    designs: HullDesigns,
-    bodies: Bodies,
-    beams: Beams,
-    hits: BeamHits,
-    i: number,
-    energy: number,
-  ): void {
+  private burnSeams(damage: Damage, designs: HullDesigns, bodies: Bodies, beams: Beams, hits: BeamHits, i: number, energy: number): void {
     const body = hits.body[i]!;
     const design = designs.designOf(body);
     if (design === null) return;
@@ -1702,10 +1684,7 @@ export class Impacts {
         // The seam's own thickness is what has to be boiled through, and it is
         // the thinner of the two walls meeting there — the same section the
         // weld is rated by.
-        const thickness = min(
-          design.modules[from]!.stats.wallThickness,
-          design.modules[into]!.stats.wallThickness,
-        );
+        const thickness = min(design.modules[from]!.stats.wallThickness, design.modules[into]!.stats.wallThickness);
         if (thickness > 0) {
           damage.cutWeld(body, joint, energy / (thickness * SEAM_CUT_ENERGY_PER_AREA));
         }

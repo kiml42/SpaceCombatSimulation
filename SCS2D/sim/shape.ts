@@ -105,9 +105,7 @@ export function polygonArea(vertices: readonly number[]): number {
  * reports the shift as well: a vertex drag keeps the other two corners still
  * by moving the module by `dx`, `dy` in its own frame.
  */
-export function normalizeShape(
-  vertices: readonly number[],
-): { vertices: number[]; dx: number; dy: number } | null {
+export function normalizeShape(vertices: readonly number[]): { vertices: number[]; dx: number; dy: number } | null {
   if (vertices.length !== TRIANGLE_CORNERS * 2) return null;
   if (polygonArea(vertices) < MIN_TRIANGLE_AREA) return null;
 
@@ -155,9 +153,7 @@ function tidy(value: number): number {
  * middle is reported with it, in the module's own frame, which is what squaring
  * a triangle off again has to move the module by.
  */
-export function triangleBounds(
-  vertices: readonly number[],
-): { length: number; width: number; x: number; y: number } {
+export function triangleBounds(vertices: readonly number[]): { length: number; width: number; x: number; y: number } {
   let loX = Infinity;
   let hiX = -Infinity;
   let loY = Infinity;
@@ -244,12 +240,7 @@ export function insetTriangle(vertices: readonly number[], inset: number): numbe
 }
 
 /** The edge from corner `i` to corner `j`, moved `inset` towards the interior. */
-function inwardLine(
-  vertices: readonly number[],
-  i: number,
-  j: number,
-  inset: number,
-): [number, number, number] {
+function inwardLine(vertices: readonly number[], i: number, j: number, inset: number): [number, number, number] {
   const ex = vertices[j]! - vertices[i]!;
   const ey = vertices[j + 1]! - vertices[i + 1]!;
   const span = sqrt(ex * ex + ey * ey);
@@ -261,10 +252,7 @@ function inwardLine(
 }
 
 /** Where two lines given as `n·p = c` cross, or null if they are parallel. */
-function meet(
-  a: readonly [number, number, number],
-  b: readonly [number, number, number],
-): [number, number] | null {
+function meet(a: readonly [number, number, number], b: readonly [number, number, number]): [number, number] | null {
   const det = a[0] * b[1] - a[1] * b[0];
   if (abs(det) < 1e-12) return null;
   return [(a[2] * b[1] - a[1] * b[2]) / det, (a[0] * b[2] - a[2] * b[0]) / det];
@@ -336,13 +324,7 @@ export function outlineAxes(corners: readonly number[], count: number, out: numb
 }
 
 /** How far an outline reaches along an axis: `[lo, hi]` written into `out`. */
-export function projectOutline(
-  corners: readonly number[],
-  count: number,
-  ax: number,
-  ay: number,
-  out: { lo: number; hi: number },
-): void {
+export function projectOutline(corners: readonly number[], count: number, ax: number, ay: number, out: { lo: number; hi: number }): void {
   let lo = Infinity;
   let hi = -Infinity;
   for (let i = 0; i < count * 2; i += 2) {
@@ -355,12 +337,7 @@ export function projectOutline(
 }
 
 /** Whether a point is inside an outline, its edges counting as inside. */
-export function insideOutline(
-  corners: readonly number[],
-  count: number,
-  x: number,
-  y: number,
-): boolean {
+export function insideOutline(corners: readonly number[], count: number, x: number, y: number): boolean {
   for (let i = 0; i < count * 2; i += 2) {
     const j = (i + 2) % (count * 2);
     const ex = corners[j]! - corners[i]!;
@@ -372,12 +349,7 @@ export function insideOutline(
 }
 
 /** Distance from a point to the nearest point of an outline, metres. */
-export function distanceToOutline(
-  corners: readonly number[],
-  count: number,
-  x: number,
-  y: number,
-): number {
+export function distanceToOutline(corners: readonly number[], count: number, x: number, y: number): number {
   if (insideOutline(corners, count, x, y)) return 0;
   let nearest = Infinity;
   for (let i = 0; i < count * 2; i += 2) {

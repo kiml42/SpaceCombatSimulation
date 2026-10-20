@@ -90,7 +90,10 @@ describe('a ship low on fuel with a port', () => {
 
   it('with deliverFuelAbove, takes what it holds over that to a friend with room, unasked, and parts once given', () => {
     const base = picketOf();
-    const giver = compileBlueprint({ ...PICKET, doctrine: { ...base.doctrine, approach: { ...base.doctrine.approach, deliverFuelAbove: 0.5 } } });
+    const giver = compileBlueprint({
+      ...PICKET,
+      doctrine: { ...base.doctrine, approach: { ...base.doctrine.approach, deliverFuelAbove: 0.5 } },
+    });
     const run = makeBattle({ seed: 3 }, (ships, world) => {
       const t = ships.spawn(world, { design: tankerOf(), x: 0, y: 0, angle: 0.4 });
       const tb = world.bodies.indexOf(ships.body(t));
@@ -121,7 +124,12 @@ describe('a ship low on fuel with a port', () => {
     const run = makeBattle({ seed: 3 }, (ships, world) => {
       const t = ships.spawn(world, { design: tanker, x: 0, y: 0, angle: 0 });
       // Straight behind the hull from its port.
-      const p = ships.spawn(world, { design: picketOf(), x: port.x - 200 * Math.cos(facing), y: port.y - 200 * Math.sin(facing), angle: 0 });
+      const p = ships.spawn(world, {
+        design: picketOf(),
+        x: port.x - 200 * Math.cos(facing),
+        y: port.y - 200 * Math.sin(facing),
+        angle: 0,
+      });
       const b = world.bodies.indexOf(ships.body(p));
       for (let m = 0; m < ships.design(p).modules.length; m++) ships.fuel.vent(b, m, ships.fuel.held(b, m) * 0.8);
       return { t, p };

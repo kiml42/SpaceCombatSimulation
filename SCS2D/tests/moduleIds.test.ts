@@ -65,7 +65,10 @@ describe('settling ids', () => {
     for (const blueprint of Object.values(BLUEPRINTS)) {
       const all = allIds(blueprint);
       expect(new Set(all).size, blueprint.name).toBe(all.length);
-      expect(all.every((id) => Number.isInteger(id) && id >= 1), blueprint.name).toBe(true);
+      expect(
+        all.every((id) => Number.isInteger(id) && id >= 1),
+        blueprint.name,
+      ).toBe(true);
     }
   });
 });
@@ -99,9 +102,15 @@ describe('editing keeps ids', () => {
 
   it('keeps every member’s id when parts are made an assembly', () => {
     const doc = new EditorDocument(PLAIN);
-    const paths = expandWithOrigins(doc.blueprint).origins.slice(1).map((o) => o.path);
+    const paths = expandWithOrigins(doc.blueprint)
+      .origins.slice(1)
+      .map((o) => o.path);
     doc.apply(createAssembly(doc.blueprint, paths)!.blueprint);
-    expect(Object.values(doc.blueprint.assemblies ?? {})[0]!.modules.map((p) => p.id).sort()).toEqual([2, 3]);
+    expect(
+      Object.values(doc.blueprint.assemblies ?? {})[0]!
+        .modules.map((p) => p.id)
+        .sort(),
+    ).toEqual([2, 3]);
   });
 
   it('does not give a module added in the same edit the id of one deleted', () => {

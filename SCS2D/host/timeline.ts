@@ -168,10 +168,7 @@ export function timeline(box: HTMLElement, actions: TimelineActions): Timeline {
         for (const k of drawn.kinds) {
           kind = Math.min(kind, fitScale(kindSnapshot(k, scratch), KIND_WIDTH * ratio(), KIND_HEIGHT * ratio()));
         }
-        formation = Math.min(
-          formation,
-          fitScale(formationSnapshot(drawn, scratch), FORMATION_WIDTH * ratio(), FORMATION_HEIGHT * ratio()),
-        );
+        formation = Math.min(formation, fitScale(formationSnapshot(drawn, scratch), FORMATION_WIDTH * ratio(), FORMATION_HEIGHT * ratio()));
       }
     }
     return { kind: Number.isFinite(kind) ? kind : 1, formation: Number.isFinite(formation) ? formation : 1 };
@@ -220,9 +217,7 @@ export function timeline(box: HTMLElement, actions: TimelineActions): Timeline {
       const all = chains(rows);
       const current = all[all.length - 1]!;
       // Every row on show at one scale: the run still being fought, and the runs of one.
-      const shown = rows.filter(
-        (_, i) => i >= current.start || all.some((chain) => chain.start === i && chain.end - chain.start === 1),
-      );
+      const shown = rows.filter((_, i) => i >= current.start || all.some((chain) => chain.start === i && chain.end - chain.start === 1));
       const scales = scalesFor(shown);
       // Newest first: the run still being fought, then the rest folded.
       for (let i = current.end - 1; i >= current.start; i--) box.append(matchRow(rows[i]!, scales));

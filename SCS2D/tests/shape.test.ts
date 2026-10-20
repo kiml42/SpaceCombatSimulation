@@ -73,9 +73,7 @@ describe('a module given corners', () => {
 
   it('refuses a kind with something sticking out of a face', () => {
     expect(shapeModule(plate({ kind: 'engine' }), wedge())).toBeNull();
-    expect(moduleProblem(plate({ kind: 'turret', vertices: wedge() }))).toContain(
-      'only structure, tanks and holds',
-    );
+    expect(moduleProblem(plate({ kind: 'turret', vertices: wedge() }))).toContain('only structure, tanks and holds');
   });
 
   it('refuses corners that do not average to the module’s own position', () => {
@@ -239,9 +237,7 @@ describe('a triangle through the file and the layout', () => {
     const starboard = drawn[2]!.vertices!;
     // The same corners across the x-axis, and still wound anticlockwise.
     expect(drawn[2]!.y).toBeCloseTo(-drawn[1]!.y, 9);
-    expect([...starboard].map((v, i) => (i % 2 === 1 ? -v : v)).sort()).toEqual(
-      [...port].sort(),
-    );
+    expect([...starboard].map((v, i) => (i % 2 === 1 ? -v : v)).sort()).toEqual([...port].sort());
     expect(polygonArea(starboard)).toBeCloseTo(polygonArea(port), 9);
   });
 });

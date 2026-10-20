@@ -577,7 +577,7 @@ export function capture(
   }
   out.projectileCount = p;
 
-  growBeams(out, beams.count)
+  growBeams(out, beams.count);
   let b = 0;
   for (let i = 0; i < beams.highWater; i++) {
     if (beams.alive[i] === 0) continue;

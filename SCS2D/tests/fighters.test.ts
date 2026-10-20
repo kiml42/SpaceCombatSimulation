@@ -57,10 +57,18 @@ describe('a fighter flag', () => {
   });
 
   it('is ignored on a ship that carries a turret or anything thick', () => {
-    const turret: Blueprint = { ...HULK, fighter: true, modules: [...HULK.modules, { kind: 'turret', x: -3.5, y: 0, length: 3, width: 3 }] };
+    const turret: Blueprint = {
+      ...HULK,
+      fighter: true,
+      modules: [...HULK.modules, { kind: 'turret', x: -3.5, y: 0, length: 3, width: 3 }],
+    };
     expect(compileBlueprint(turret).fighter).toBe(false);
     expect(fighterProblem(compileBlueprint(turret).modules.map((m) => m.spec))).toMatch(/no turrets/);
-    const thick: Blueprint = { ...HULK, fighter: true, modules: [HULK.modules[0]!, { kind: 'structure', x: 6, y: 0, length: 8, width: 8, thick: true }] };
+    const thick: Blueprint = {
+      ...HULK,
+      fighter: true,
+      modules: [HULK.modules[0]!, { kind: 'structure', x: 6, y: 0, length: 8, width: 8, thick: true }],
+    };
     expect(compileBlueprint(thick).fighter).toBe(false);
   });
 
@@ -121,7 +129,13 @@ describe('a fighter in battle', () => {
     const world = new World({ dt: DT, seed: 2 });
     const ships = new Ships();
     world.addForceProvider(ships.forceProvider());
-    const long: Blueprint = { name: 'Long', modules: [{ kind: 'core', x: 0, y: 0, length: 4, width: 4 }, { kind: 'structure', x: 32, y: 0, length: 60, width: 4 }] };
+    const long: Blueprint = {
+      name: 'Long',
+      modules: [
+        { kind: 'core', x: 0, y: 0, length: 4, width: 4 },
+        { kind: 'structure', x: 32, y: 0, length: 60, width: 4 },
+      ],
+    };
     const hulk = ships.spawn(world, { design: compileBlueprint(long), x: 0, y: 0, team: 1 });
     const craft = ships.spawn(world, { design: compileBlueprint(fighter()), x: 30, y: 14, team: 0 });
     const bodies = world.bodies;
@@ -232,8 +246,11 @@ describe('a fighter in battle', () => {
     // A fighter's guns are in the weapons layer and a hull gun's in the hull
     // layer, so neither could reach the other with a solid shot. Each fires
     // shells, whose fragments fly in both, so each still takes the other on.
-    const fleet = (blueprint: Blueprint) =>
-      ({ name: blueprint.name, designs: { Dinky: blueprint }, ships: [{ design: 'Dinky', x: 0, y: 0 }] });
+    const fleet = (blueprint: Blueprint) => ({
+      name: blueprint.name,
+      designs: { Dinky: blueprint },
+      ships: [{ design: 'Dinky', x: 0, y: 0 }],
+    });
     const battle = customBattle({ ...DEFAULT_SETUP, range: 600, fleets: [fleet(fighter()), fleet(UNFLAGGED)] });
     const firstShot = [-1, -1];
     for (let step = 0; step < 60 * 30 && firstShot.includes(-1); step++) {

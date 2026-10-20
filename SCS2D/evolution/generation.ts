@@ -85,9 +85,7 @@ export class Generation {
         if (
           best >= 0 &&
           (met > bestMet ||
-            (met === bestMet &&
-              (individual.matches > bestMatches ||
-                (individual.matches === bestMatches && draw <= bestDraw))))
+            (met === bestMet && (individual.matches > bestMatches || (individual.matches === bestMatches && draw <= bestDraw))))
         ) {
           continue;
         }
@@ -215,12 +213,7 @@ export function offspring(
  * against, so the best designs stay in the population and go on being measured
  * — which also means a design that won on a lucky draw has to win again.
  */
-export function breed(
-  generation: Generation,
-  rng: Rng,
-  config: BreedingConfig,
-  nextId: () => number,
-): Generation {
+export function breed(generation: Generation, rng: Rng, config: BreedingConfig, nextId: () => number): Generation {
   const winners = generation.winners(rng, min(config.winners, config.population));
   const individuals: Individual[] = winners.map((winner) => blank(winner.id, winner.entrant, winner.parent, winner.edits));
 
@@ -236,12 +229,7 @@ export function breed(
 }
 
 /** An individual with nothing recorded against it yet. */
-export function blank(
-  id: number,
-  entrant: Entrant,
-  parent: number,
-  edits: readonly string[],
-): Individual {
+export function blank(id: number, entrant: Entrant, parent: number, edits: readonly string[]): Individual {
   return {
     id,
     entrant,

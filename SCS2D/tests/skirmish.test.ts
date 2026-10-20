@@ -206,7 +206,13 @@ describe('the skirmish', () => {
 
   it('will not fight with more ships, or a wider spread, than its settings allow', () => {
     const budget = { metal: 1e9, fuel: 1e9, build: 1e9 };
-    const pair: Fleet = { ...gunship, ships: [{ design: GUNSHIP.name, x: 0, y: -100 }, { design: GUNSHIP.name, x: 0, y: 100 }] };
+    const pair: Fleet = {
+      ...gunship,
+      ships: [
+        { design: GUNSHIP.name, x: 0, y: -100 },
+        { design: GUNSHIP.name, x: 0, y: 100 },
+      ],
+    };
     const one = { ...DEFAULT_SKIRMISH_SETTINGS, maxShips: 1 };
     expect(overLimit(newSkirmish(core, pair, 5, one, budget))).toMatch(/2 ships, more than the 1 allowed/);
     expect(canFight(newSkirmish(core, pair, 5, one, budget))).toBe(false);
@@ -226,7 +232,11 @@ describe('the skirmish', () => {
 
   it('names a design that would not fly, rather than throw pricing it', () => {
     // A gunship with a module standing off on its own.
-    const adrift: Blueprint = { ...GUNSHIP, name: 'Adrift', modules: [...GUNSHIP.modules, { kind: 'engine', x: 0, y: 200, length: 3, width: 3 }] };
+    const adrift: Blueprint = {
+      ...GUNSHIP,
+      name: 'Adrift',
+      modules: [...GUNSHIP.modules, { kind: 'engine', x: 0, y: 200, length: 3, width: 3 }],
+    };
     const broken = lone('Broken', adrift);
     expect(fleetFault(broken)).toMatch(/Adrift: .*touches nothing/);
     expect(canFight(newSkirmish(gunship, broken, 5))).toBe(false);
@@ -292,7 +302,7 @@ describe('the skirmish', () => {
     expect(() => parseSkirmish({ ...file, settings: { breeding: { kindTank: 'lots' } } })).toThrow(/breeding\.kindTank/);
   });
 
-  it('draws each round\'s gap and speeds from their spreads, the same every time on the same seed', () => {
+  it("draws each round's gap and speeds from their spreads, the same every time on the same seed", () => {
     const settings = { ...DEFAULT_SKIRMISH_SETTINGS, gap: 3000, gapSpread: 2000, closingSpread: 20, crossingSpread: 20 };
     const rounds = [1, 2, 3, 4, 5, 6, 7, 8].map((seed) => roundBattle(gunship, gunship, seed, settings));
     const ranges = rounds.map((round) => round.range);

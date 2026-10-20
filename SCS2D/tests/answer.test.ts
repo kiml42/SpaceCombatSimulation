@@ -95,7 +95,8 @@ describe('how far an answer may grow', () => {
   it('never to less than the enemy it answers already has', () => {
     const bill = fleetBill(fleetHulls(corvette));
     const running = new EnemySearch(gunship, corvette, WON, 5, { maxShips: 0 }, { metal: 1, fuel: 1, build: 1 });
-    for (const key of ['metal', 'fuel', 'build'] as const) expect(running.limits.budget[key]).toBeGreaterThanOrEqual(bill[key] * (1 - 1e-12));
+    for (const key of ['metal', 'fuel', 'build'] as const)
+      expect(running.limits.budget[key]).toBeGreaterThanOrEqual(bill[key] * (1 - 1e-12));
     expect(running.limits.maxShips).toBe(1);
     // Without the player's budget, the enemy's own cost at 1×.
     expect(new EnemySearch(gunship, corvette, WON, 5).limits.budget).toEqual(bill);
@@ -190,7 +191,14 @@ describe('the damage an enemy does', () => {
     expect(damageDealt(hits([[1, 0, 0, 100]]))).toBe(100);
     expect(damageDealt(hits([[1, 0, 1, 100]]))).toBe(300);
     // The player's own hits, and the enemy's on itself, are not the enemy's damage.
-    expect(damageDealt(hits([[0, 1, 1, 100], [1, 1, 1, 100]]))).toBe(0);
+    expect(
+      damageDealt(
+        hits([
+          [0, 1, 1, 100],
+          [1, 1, 1, 100],
+        ]),
+      ),
+    ).toBe(0);
   });
 
   it('scores on a log scale, so a few hits count and each tenfold more counts as much again', () => {

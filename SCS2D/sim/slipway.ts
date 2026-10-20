@@ -78,9 +78,7 @@ export function printedCraft(craft: ShipDesign, depth: number): Print | null {
   }
   if (parts.length === 0) return null;
   const design = partsDesign(craft.name, craft.doctrine, parts);
-  const held = components(design, () => false).map((piece) =>
-    piece.reduce((best, m) => (near[m]! < near[best]! ? m : best), piece[0]!),
-  );
+  const held = components(design, () => false).map((piece) => piece.reduce((best, m) => (near[m]! < near[best]! ? m : best), piece[0]!));
   return { design, modules, held };
 }
 

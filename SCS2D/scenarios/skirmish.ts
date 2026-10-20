@@ -180,10 +180,7 @@ export function overLimit(skirmish: Skirmish): string | null {
 export function canFight(skirmish: Skirmish): boolean {
   const player = skirmish.player;
   return (
-    player.ships.length > 0 &&
-    fleetFault(player) === null &&
-    overLimit(skirmish) === null &&
-    affords(skirmish.budget, billOfFleet(player))
+    player.ships.length > 0 && fleetFault(player) === null && overLimit(skirmish) === null && affords(skirmish.budget, billOfFleet(player))
   );
 }
 
@@ -192,10 +189,7 @@ export function roundSetup(skirmish: Skirmish): BattleSetup {
   return roundBattle(skirmish.player, skirmish.enemy, skirmish.seed, settingsOf(skirmish));
 }
 
-type Opening = Pick<
-  SkirmishSettings,
-  'gap' | 'closingSpeed' | 'crossingSpeed' | 'gapSpread' | 'closingSpread' | 'crossingSpread'
->;
+type Opening = Pick<SkirmishSettings, 'gap' | 'closingSpeed' | 'crossingSpeed' | 'gapSpread' | 'closingSpread' | 'crossingSpread'>;
 
 /** Two fleets as a round sets them out, on this seed, which also draws the gap and speeds from their spreads. */
 export function roundBattle(player: Fleet, enemy: Fleet, seed: number, settings: Opening = DEFAULT_SKIRMISH_SETTINGS): BattleSetup {
@@ -295,7 +289,8 @@ export function parseSkirmishSettings(value: unknown): SkirmishSettings {
     if (n === undefined) continue;
     // Speeds may be negative; nothing else may.
     const signed = key === 'closingSpeed' || key === 'crossingSpeed';
-    if (typeof n !== 'number' || !Number.isFinite(n) || (!signed && n < 0)) fail(`${key} must be a number${signed ? '' : ' of at least zero'}`);
+    if (typeof n !== 'number' || !Number.isFinite(n) || (!signed && n < 0))
+      fail(`${key} must be a number${signed ? '' : ' of at least zero'}`);
     out[key] = n;
   }
   const breeding: Record<string, number> = {};

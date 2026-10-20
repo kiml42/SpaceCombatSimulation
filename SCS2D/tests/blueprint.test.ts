@@ -9,14 +9,7 @@ import {
   type Blueprint,
 } from '../sim/blueprint.js';
 import { HALF_PI, PI } from '../sim/math.js';
-import {
-  GunType,
-  hullMountGeometry,
-  isWeaponMount,
-  moduleCentre,
-  moduleStats,
-  type ModuleSpec,
-} from '../sim/modules.js';
+import { GunType, hullMountGeometry, isWeaponMount, moduleCentre, moduleStats, type ModuleSpec } from '../sim/modules.js';
 import { BEAM_CARRIER, BLUEPRINTS, BROADSIDE, type BlueprintName } from '../scenarios/blueprints.js';
 
 /**
@@ -109,9 +102,7 @@ describe('blueprint validation', () => {
       // Turned round, so what meets the hull is the muzzle. Nothing is
       // overlapping and the boxes touch exactly as before — what has changed
       // is which part of the module is doing the touching.
-      expect(blueprintProblem({ name: 'Backwards', modules: [hull, gun({ angle: PI, x: 10 })] })).toMatch(
-        /touches nothing/,
-      );
+      expect(blueprintProblem({ name: 'Backwards', modules: [hull, gun({ angle: PI, x: 10 })] })).toMatch(/touches nothing/);
     });
 
     it('trains about the root of its barrel, through the narrower of its two limits', () => {
@@ -153,9 +144,7 @@ describe('blueprint validation', () => {
       const mount = design.turrets[0]!.mount;
       expect(mount.leftArc).toBeCloseTo(5 * (PI / 180), 9);
       expect(mount.rightArc).toBeCloseTo(5 * (PI / 180), 9);
-      expect(design.modules[1]!.stats.mass).toBeLessThan(
-        compileBlueprint({ name: 'Free', modules: [hull, gun()] }).modules[1]!.stats.mass,
-      );
+      expect(design.modules[1]!.stats.mass).toBeLessThan(compileBlueprint({ name: 'Free', modules: [hull, gun()] }).modules[1]!.stats.mass);
     });
 
     it('loses what the ship is in the way of, on top of its own opening', () => {
@@ -175,9 +164,7 @@ describe('blueprint validation', () => {
       // A gun is not a girder. The far module is flush against the muzzle and
       // against nothing else, so the ship is in two pieces.
       const hanger = structure(14, 0, 4, 4);
-      expect(
-        blueprintProblem({ name: 'Hung', modules: [hull, gun(), hanger] }),
-      ).toMatch(/separate piece|touches nothing/);
+      expect(blueprintProblem({ name: 'Hung', modules: [hull, gun(), hanger] })).toMatch(/separate piece|touches nothing/);
     });
   });
 
@@ -222,17 +209,13 @@ describe('blueprint validation', () => {
 
     it('still rejects one floating free of the ship', () => {
       const adrift: ModuleSpec = { kind: 'engine', x: -20, y: 0, angle: Math.PI, length: 1, width: 4, nozzle: 1 / 3 };
-      expect(blueprintProblem({ name: 'Adrift', modules: [hull, adrift] })).toMatch(
-        /touches nothing/,
-      );
+      expect(blueprintProblem({ name: 'Adrift', modules: [hull, adrift] })).toMatch(/touches nothing/);
     });
   });
 
   it('rejects an empty ship and reports which module is impossible', () => {
     expect(blueprintProblem({ name: 'Nothing', modules: [] })).toMatch(/at least one module/);
-    expect(
-      blueprintProblem({ name: 'Bad', modules: [structure(0, 0, 10, 4), structure(20, 0, 0, 4)] }),
-    ).toMatch(/module 1/);
+    expect(blueprintProblem({ name: 'Bad', modules: [structure(0, 0, 10, 4), structure(20, 0, 0, 4)] })).toMatch(/module 1/);
   });
 });
 
@@ -412,10 +395,7 @@ describe('derived engines', () => {
   it('gives the layout each engine where it sits and facing where it pushes', () => {
     const design = compileBlueprint({
       name: 'Pusher',
-      modules: [
-        core(0, 0, 10, 4),
-        { kind: 'engine', x: -5, y: 0, angle: Math.PI, length: 2, width: 4, nozzle: 2 / 3 },
-      ],
+      modules: [core(0, 0, 10, 4), { kind: 'engine', x: -5, y: 0, angle: Math.PI, length: 2, width: 4, nozzle: 2 / 3 }],
     });
 
     expect(design.engines).toHaveLength(1);
@@ -528,16 +508,7 @@ const FLEET: readonly BlueprintName[] = [
  * group or the other on purpose — see the test below that checks the two
  * cover every ship exactly once.
  */
-const SHOWCASE: readonly BlueprintName[] = [
-  'xWing',
-  'ghost',
-  'tie',
-  'starDestroyer',
-  'aWing',
-  'yWing',
-  'beamCarrier',
-  'quasar'
-];
+const SHOWCASE: readonly BlueprintName[] = ['xWing', 'ghost', 'tie', 'starDestroyer', 'aWing', 'yWing', 'beamCarrier', 'quasar'];
 
 /**
  * Seeds: layouts that are somewhere for evolution to start rather than ships.
@@ -603,9 +574,7 @@ describe('the authored blueprints', () => {
         // trains on nothing — the Ghost's dorsal turret is exactly that, and
         // says so in its own notes — because what fixes it is masking by what
         // a turret can shoot *over* (ROADMAP.md §12) rather than a redraw.
-        const canTrain = design.turrets.filter(
-          (t) => t.mount.leftArc! > 0 && t.mount.rightArc! > 0,
-        );
+        const canTrain = design.turrets.filter((t) => t.mount.leftArc! > 0 && t.mount.rightArc! > 0);
         expect(canTrain.length).toBeGreaterThan(0);
         if (inFleet(name)) expect(canTrain.length).toBe(design.turrets.length);
 
@@ -713,13 +682,11 @@ describe('the authored blueprints', () => {
             const s = Math.sin(-other.angle);
             const localX = px * c - py * s;
             const localY = px * s + py * c;
-            const inside =
-              Math.abs(localX) <= other.spec.length / 2 &&
-              Math.abs(localY) <= other.spec.width / 2;
+            const inside = Math.abs(localX) <= other.spec.length / 2 && Math.abs(localY) <= other.spec.width / 2;
             expect(
               inside,
               `${blueprint.name}: engine at (${t.spec.x}, ${t.spec.y}) exhausts into ` +
-              `${other.spec.kind} at (${other.spec.x}, ${other.spec.y})`,
+                `${other.spec.kind} at (${other.spec.x}, ${other.spec.y})`,
             ).toBe(false);
           }
         }
@@ -757,11 +724,9 @@ describe('the authored blueprints', () => {
     const corvette = compileBlueprint(BLUEPRINTS.corvette);
     const gunship = compileBlueprint(BLUEPRINTS.gunship);
 
-    const accel = (d: typeof corvette): number =>
-      d.engineLayout.maxThrustAlong(1, 0) / d.mass;
+    const accel = (d: typeof corvette): number => d.engineLayout.maxThrustAlong(1, 0) / d.mass;
     const angularAccel = (d: typeof corvette): number => d.engineLayout.maxTorque(1) / d.inertia;
-    const heaviestShell = (d: typeof corvette): number =>
-      d.turrets.reduce((m, t) => Math.max(m, t.gun.roundMass), 0);
+    const heaviestShell = (d: typeof corvette): number => d.turrets.reduce((m, t) => Math.max(m, t.gun.roundMass), 0);
 
     expect(gunship.mass).toBeGreaterThan(2 * corvette.mass);
     expect(accel(corvette)).toBeGreaterThan(accel(gunship));

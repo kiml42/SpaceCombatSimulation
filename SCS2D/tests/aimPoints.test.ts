@@ -1,14 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  compileBlueprint,
-  DEFAULT_DOCTRINE,
-  isWeaponMount,
-  math,
-  Ships,
-  World,
-  type ShipDesign,
-  type Targeting,
-} from '../sim/index.js';
+import { compileBlueprint, DEFAULT_DOCTRINE, isWeaponMount, math, Ships, World, type ShipDesign, type Targeting } from '../sim/index.js';
 import { CORVETTE } from '../scenarios/blueprints.js';
 import { TURRET_GUNSHIP } from './fixtures.js';
 
@@ -103,8 +94,7 @@ function aim(design: ShipDesign, seconds = 20): Aim {
     for (const module of gunship.modules) {
       const kind = module.spec.kind;
       const isGun = kind === 'turret' || kind === 'beamTurret';
-      const wantedHere =
-        wanted === 'engine' ? kind === 'engine' : wanted === 'core' ? kind === 'core' : isGun;
+      const wantedHere = wanted === 'engine' ? kind === 'engine' : wanted === 'core' ? kind === 'core' : isGun;
       if (!wantedHere) continue;
       const x = bodies.x[b]! + module.x * Math.cos(angle) - module.y * Math.sin(angle);
       const y = bodies.y[b]! + module.x * Math.sin(angle) + module.y * Math.cos(angle);

@@ -73,7 +73,7 @@ describe('the skirmish in a browser', () => {
     expect(await page.isVisible('#setupScreen')).toBe(true);
   });
 
-  it('fights over the enemy\'s cost with a budget raised to fit, and matches the enemy again', async () => {
+  it("fights over the enemy's cost with a budget raised to fit, and matches the enemy again", async () => {
     await page.selectOption('#enemy', 'ship:Bare Core');
     await page.selectOption('#startFleet', 'ship:Gunship');
     const matched = await page.inputValue('#metalBudget');
@@ -194,8 +194,16 @@ describe('the skirmish in a browser', () => {
   });
 
   it('opens a design that would not fly in the ship editor without throwing', async () => {
-    const adrift: Blueprint = { ...GUNSHIP, name: 'Adrift', modules: [...GUNSHIP.modules, { kind: 'engine', x: 0, y: 200, length: 3, width: 3 }] };
-    const href = designHref({ fleet: shipFleet(adrift), design: 'Adrift', skirmish: newSkirmish(shipFleet(GUNSHIP), shipFleet(GUNSHIP), 3) });
+    const adrift: Blueprint = {
+      ...GUNSHIP,
+      name: 'Adrift',
+      modules: [...GUNSHIP.modules, { kind: 'engine', x: 0, y: 200, length: 3, width: 3 }],
+    };
+    const href = designHref({
+      fleet: shipFleet(adrift),
+      design: 'Adrift',
+      skirmish: newSkirmish(shipFleet(GUNSHIP), shipFleet(GUNSHIP), 3),
+    });
     await page.goto(pathToFileURL(join(root, 'dist', 'editor.html')).href + href.slice('editor.html'.length));
     await page.waitForSelector('#backToFleet:not([hidden])');
     expect(await page.textContent('#inFleetNote')).toBe('Priced once the fleet would fly.');
@@ -208,7 +216,13 @@ describe('the skirmish in a browser', () => {
   });
 
   it('keeps a fleet with ships on top of each other out of battle', async () => {
-    const stacked = { ...shipFleet(GUNSHIP), ships: [{ design: 'Gunship', x: 0, y: 0 }, { design: 'Gunship', x: 0, y: 0 }] };
+    const stacked = {
+      ...shipFleet(GUNSHIP),
+      ships: [
+        { design: 'Gunship', x: 0, y: 0 },
+        { design: 'Gunship', x: 0, y: 0 },
+      ],
+    };
     const skirmish = { ...newSkirmish(stacked, stacked, 3), player: stacked };
     await page.goto(pathToFileURL(join(root, 'dist', 'fleet.html')).href + skirmishFragment(skirmish));
     await page.waitForSelector('#backToSkirmish:not([hidden])');

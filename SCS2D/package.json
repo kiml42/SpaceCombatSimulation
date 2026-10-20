@@ -12,6 +12,8 @@
     "test:watch": "vitest",
     "test:browser": "vitest run --config vitest.browser.config.ts",
     "typecheck": "tsc -p sim && tsc -p . && tsc -p tsconfig.web.json",
+    "format": "prettier --write \"**/*.ts\"",
+    "format:check": "prettier --check \"**/*.ts\"",
     "golden": "tsx scripts/golden.ts",
     "evolve": "tsx scripts/evolve.ts",
     "yardstick": "tsx scripts/yardstick.ts",
@@ -22,6 +24,7 @@
   "devDependencies": {
     "@types/node": "^26.6.5",
     "playwright": "^1.64.1",
+    "prettier": "3.8.1",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vitest": "^5.0.4"

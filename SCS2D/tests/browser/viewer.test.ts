@@ -340,9 +340,7 @@ describe('the viewer in a browser', () => {
     await page.waitForFunction(() => /range 1000 m/.test(document.getElementById('metrics')?.textContent ?? ''));
     expect(await step(page)).toBe(0);
     expect(await page.textContent('#play')).toBe('Play');
-    await page.waitForFunction(() =>
-      /Lone.*1\/1 ships · 1 armed · 1 mobile/.test(document.getElementById('sides')?.textContent ?? ''),
-    );
+    await page.waitForFunction(() => /Lone.*1\/1 ships · 1 armed · 1 mobile/.test(document.getElementById('sides')?.textContent ?? ''));
 
     await page.click('#fight');
     await page.selectOption('#speed', '8');
@@ -363,7 +361,7 @@ describe('the viewer in a browser', () => {
     // The clipboard is stood in for, so the test reads what would have been copied.
     await page.evaluate(() => {
       Object.defineProperty(navigator, 'clipboard', {
-        value: { writeText: (text: string) => ((window as unknown as { copied: string }).copied = text, Promise.resolve()) },
+        value: { writeText: (text: string) => (((window as unknown as { copied: string }).copied = text), Promise.resolve()) },
         configurable: true,
       });
     });
@@ -496,7 +494,10 @@ describe('the viewer in a browser', () => {
       return { x: (first % width) / ratio + 20, y: Math.floor(first / width) / ratio + 20 };
     });
     await page.mouse.click(box.x + window.x, box.y + window.y);
-    await page.waitForFunction((was) => Number(/grid ([\d.]+) m/.exec(document.getElementById('readout')?.textContent ?? '')?.[1] ?? NaN) < was / 100, far);
+    await page.waitForFunction(
+      (was) => Number(/grid ([\d.]+) m/.exec(document.getElementById('readout')?.textContent ?? '')?.[1] ?? NaN) < was / 100,
+      far,
+    );
     await page.keyboard.press('Escape');
     for (let i = 0; i < 12; i++) {
       await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
@@ -521,7 +522,14 @@ describe('the viewer in a browser', () => {
         ([x, y, w, h]) => {
           const canvas = document.getElementById('view') as HTMLCanvasElement;
           const ratio = canvas.width / canvas.getBoundingClientRect().width;
-          const { data } = canvas.getContext('2d')!.getImageData(Math.round(x! * ratio), Math.round(y! * ratio), Math.max(1, Math.round(w! * ratio)), Math.max(1, Math.round(h! * ratio)));
+          const { data } = canvas
+            .getContext('2d')!
+            .getImageData(
+              Math.round(x! * ratio),
+              Math.round(y! * ratio),
+              Math.max(1, Math.round(w! * ratio)),
+              Math.max(1, Math.round(h! * ratio)),
+            );
           let sum = 0;
           for (let i = 0; i < data.length; i += 4) sum += data[i]! + data[i + 1]! + data[i + 2]!;
           return sum;
@@ -552,7 +560,12 @@ describe('the viewer in a browser', () => {
     await page.click('#keysButton');
     expect(await page.isVisible('#keyHelp')).toBe(true);
     const rows = await page.$$eval('#keyHelp tr', (trs) => trs.map((tr) => [...tr.querySelectorAll('td')].map((td) => td.textContent)));
-    expect(rows).toEqual(expect.arrayContaining([['Space', 'Pause, or play'], ['T', "Hide or show each side's ships down the edges"]]));
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        ['Space', 'Pause, or play'],
+        ['T', "Hide or show each side's ships down the edges"],
+      ]),
+    );
     // Space goes to the table, not the battle under it.
     const playing = await page.textContent('#play');
     await page.keyboard.press('Space');

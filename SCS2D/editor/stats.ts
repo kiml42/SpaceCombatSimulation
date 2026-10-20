@@ -256,7 +256,10 @@ export function designStats(design: ShipDesign, envelope: Envelopes): DesignStat
     discharge,
     beamDraw: design.turrets.reduce(
       (sum, turret) =>
-        sum + (turret.gun.type === GunType.Beam && turret.gun.cycleTime > 0 ? (turret.gun.beamPower * turret.gun.beamOnTime) / turret.gun.cycleTime : 0),
+        sum +
+        (turret.gun.type === GunType.Beam && turret.gun.cycleTime > 0
+          ? (turret.gun.beamPower * turret.gun.beamOnTime) / turret.gun.cycleTime
+          : 0),
       0,
     ),
     endurance: flow > 0 ? fuel / flow : Infinity,
@@ -352,11 +355,7 @@ export interface ModuleReadout {
  * the blueprint's own frame rather than about the centre of mass, and the
  * question is entirely relative, so the answer is the same.
  */
-function exhaustEscaping(
-  layout: readonly ModuleSpec[],
-  index: number,
-  rating: number,
-): number {
+function exhaustEscaping(layout: readonly ModuleSpec[], index: number, rating: number): number {
   if (index < 0 || index >= layout.length) return 1;
   const stats = layoutStats(layout);
   const modules = layout.map((placed, i) => {
@@ -399,12 +398,7 @@ export function assemblyMass(layout: readonly ModuleSpec[], picked: readonly num
  * layout index onto a design that may have dropped modules it could not
  * measure.
  */
-export function moduleReadout(
-  spec: ModuleSpec,
-  layout: readonly ModuleSpec[] = [],
-  index = -1,
-  shipRadius = 0,
-): ModuleReadout {
+export function moduleReadout(spec: ModuleSpec, layout: readonly ModuleSpec[] = [], index = -1, shipRadius = 0): ModuleReadout {
   // In the layout where there is one, since a thick plate's depth is its
   // neighbours' business; on its own otherwise.
   const stats = layout[index] === spec ? statsInLayout(layout, index) : moduleStats(spec);
@@ -515,9 +509,7 @@ export function moduleReadout(
       'Trains',
       `${radiansToDegrees(mountTraverse(spec)).toLocaleString('en-GB', { maximumFractionDigits: 1 })}° ` +
         `either way, on ${
-          gear > 0
-            ? `${(gear / 1000).toLocaleString('en-GB', { maximumFractionDigits: 2 })} t of gear`
-            : 'no gear at all'
+          gear > 0 ? `${(gear / 1000).toLocaleString('en-GB', { maximumFractionDigits: 2 })} t of gear` : 'no gear at all'
         }`,
     ]);
   }
@@ -575,12 +567,7 @@ function fireRangeOf(spec: ModuleSpec, gun: GunStats, shipRadius: number): numbe
 }
 
 /** How far a mount may train either way, in degrees, given what is around it. */
-function arcOf(
-  layout: readonly ModuleSpec[],
-  index: number,
-  reach: number,
-  width: number,
-): { arcLeft: number; arcRight: number } {
+function arcOf(layout: readonly ModuleSpec[], index: number, reach: number, width: number): { arcLeft: number; arcRight: number } {
   if (index < 0 || layout[index] === undefined) return { arcLeft: 0, arcRight: 0 };
   // The compiler's rule: a hull mount's barrel is fouled by anything, a
   // turret's only by what is in the weapons layer.
@@ -588,8 +575,7 @@ function arcOf(
   // Measured in the layout, so a plate that is thick by borrowing the depth of
   // the module it covers is in a turret's way here as it is in a battle.
   const depths = hull ? [] : layoutStats(layout);
-  const raised = (spec: ModuleSpec, i: number): boolean =>
-    inWeaponsLayer(spec, depths[i]!.thickness);
+  const raised = (spec: ModuleSpec, i: number): boolean => inWeaponsLayer(spec, depths[i]!.thickness);
   const arc = firingArc(layout, index, reach, hull ? undefined : raised, hull ? 0 : width);
   // A hull mount is held to its own opening as well as to what the ship
   // leaves it, and the panel has to say the number the ship will actually

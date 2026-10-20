@@ -165,12 +165,9 @@ export function drawChart(
   const rightFloor = Math.floor(rightBottom / rightStep) * rightStep;
   const rightTop = rightFloor + rows * rightStep;
 
-  const atX = (i: number): number =>
-    plot.x + (count > 1 ? (i / (count - 1)) * plot.width : plot.width / 2);
-  const atLeft = (value: number): number =>
-    plot.y + plot.height - ((value - low) / (high - low)) * plot.height;
-  const atRight = (value: number): number =>
-    plot.y + plot.height - ((value - rightFloor) / (rightTop - rightFloor)) * plot.height;
+  const atX = (i: number): number => plot.x + (count > 1 ? (i / (count - 1)) * plot.width : plot.width / 2);
+  const atLeft = (value: number): number => plot.y + plot.height - ((value - low) / (high - low)) * plot.height;
+  const atRight = (value: number): number => plot.y + plot.height - ((value - rightFloor) / (rightTop - rightFloor)) * plot.height;
   const atY = atLeft;
 
   ctx.textAlign = 'right';

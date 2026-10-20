@@ -38,10 +38,7 @@ export const EMPTY_FIELD: SnapField = { points: [], edges: [] };
  * the rest of an assembly, the other copies of a shared part — would drag its
  * own targets along underneath the pointer.
  */
-export function snapField(
-  modules: readonly ModuleSpec[],
-  moving: (index: number) => boolean = () => false,
-): SnapField {
+export function snapField(modules: readonly ModuleSpec[], moving: (index: number) => boolean = () => false): SnapField {
   const points: number[] = [];
   const edges: number[] = [];
   const outline: number[] = [];
@@ -100,13 +97,7 @@ export function landing(field: SnapField, x: number, y: number, within: number):
  * the grid-snapped point, so being near an edge is a fact about the drag and
  * not about which way the grid happened to round it.
  */
-export function landOrGrid(
-  field: SnapField,
-  x: number,
-  y: number,
-  within: number,
-  step: number,
-): { x: number; y: number } {
+export function landOrGrid(field: SnapField, x: number, y: number, within: number, step: number): { x: number; y: number } {
   return landing(field, x, y, within) ?? { x: snap(x, step), y: snap(y, step) };
 }
 
@@ -119,11 +110,7 @@ export function landOrGrid(
  * was started. The least correction wins, so the corner that is nearly there
  * is the one that goes there and the others follow.
  */
-export function alignment(
-  field: SnapField,
-  corners: readonly number[],
-  within: number,
-): { dx: number; dy: number } {
+export function alignment(field: SnapField, corners: readonly number[], within: number): { dx: number; dy: number } {
   let dx = 0;
   let dy = 0;
   let closest = within;

@@ -47,12 +47,7 @@ export function knobFor(x: number, y: number, angle: number, reach: number, scal
   return { x: x + arm * cos(angle), y: y + arm * sin(angle) };
 }
 
-export function drawFleetOverlay(
-  ctx: CanvasRenderingContext2D,
-  view: FleetOverlayView,
-  camera: Camera,
-  heightPx: number,
-): void {
+export function drawFleetOverlay(ctx: CanvasRenderingContext2D, view: FleetOverlayView, camera: Camera, heightPx: number): void {
   const px = 1 / camera.scale;
 
   for (const i of view.faulty) {

@@ -17,7 +17,10 @@ function salvager(): ShipDesign {
     ],
   };
   const doctrine = compileBlueprint(blueprint).doctrine;
-  return compileBlueprint({ ...blueprint, doctrine: { ...doctrine, approach: { ...doctrine.approach, scavengeFuelBelow: 1, scavengeMetalBelow: 1 } } });
+  return compileBlueprint({
+    ...blueprint,
+    doctrine: { ...doctrine, approach: { ...doctrine.approach, scavengeFuelBelow: 1, scavengeMetalBelow: 1 } },
+  });
 }
 
 /** The salvager, and a hulk of `wreck` with its cores shot out 100 m off. */

@@ -226,10 +226,14 @@ export function battleView(
       // The ships being followed, from the picture last drawn, before it is replaced.
       if (!autoFrame) anchors = jumpAnchors(camera, snapshot, canvas.width, canvas.height);
       // Flashes are rebuilt across the steps re-simulated, aged as they would have been drawn.
-      const restored = rewind.seek(seeking, () => flashes.clear(), (on) => {
-        flashes.step(on.dt);
-        drain(on.impacts.log);
-      });
+      const restored = rewind.seek(
+        seeking,
+        () => flashes.clear(),
+        (on) => {
+          flashes.step(on.dt);
+          drain(on.impacts.log);
+        },
+      );
       battle = rewind.battle;
       if (restored) rewound(battle);
       jumped = true;

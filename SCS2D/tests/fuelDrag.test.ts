@@ -21,22 +21,7 @@ function through(fill: number, mass: number, calibre: number, speed = 1200): { s
   ships.fuel.drain(0, 0, full * (1 - fill) + tanker.modules[0]!.stats.fuel);
   // In at the far end of the tank, aft along its axis, and stop at the core.
   const tip = 20.5 - tanker.centreOfMassX + 1;
-  const out = resolveRound(
-    tanker,
-    ships.damage,
-    world.bodies,
-    0,
-    new HullPath(),
-    tip,
-    0,
-    -1,
-    0,
-    mass,
-    calibre,
-    speed,
-    undefined,
-    ships,
-  );
+  const out = resolveRound(tanker, ships.damage, world.bodies, 0, new HullPath(), tip, 0, -1, 0, mass, calibre, speed, undefined, ships);
   return { speed: out.speed, taken: ships.damage.absorbedAt(0, TANK) };
 }
 

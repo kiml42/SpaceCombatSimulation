@@ -213,15 +213,7 @@ export function inSight(bodies: Bodies, fromX: number, fromY: number, from: numb
 }
 
 /** Fill in what the pickers need to know about a target, from the bodies. */
-export function look(
-  bodies: Bodies,
-  from: number,
-  to: number,
-  ship: number,
-  mass: number,
-  armed: boolean,
-  mobile: boolean,
-): Candidate {
+export function look(bodies: Bodies, from: number, to: number, ship: number, mass: number, armed: boolean, mobile: boolean): Candidate {
   const angle = bodies.angle[from]!;
   return lookFrom(
     bodies,

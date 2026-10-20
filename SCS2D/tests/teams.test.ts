@@ -21,7 +21,8 @@ describe('side colours', () => {
 
   it('draws a fighter a shade darker than its side, in the same hue', () => {
     const luma = (hex: string): number => parseInt(hex.slice(1, 3), 16) + parseInt(hex.slice(3, 5), 16) + parseInt(hex.slice(5, 7), 16);
-    const strongest = (hex: string): number => [1, 3, 5].reduce((best, k) => (parseInt(hex.slice(k, k + 2), 16) > parseInt(hex.slice(best, best + 2), 16) ? k : best), 1);
+    const strongest = (hex: string): number =>
+      [1, 3, 5].reduce((best, k) => (parseInt(hex.slice(k, k + 2), 16) > parseInt(hex.slice(best, best + 2), 16) ? k : best), 1);
     for (const team of [NEUTRAL_TEAM, 0, 1, 2, 3]) {
       const ship = shipColours(team);
       const fighter = fighterColours(team);

@@ -38,12 +38,7 @@ type Rig = ReturnType<typeof range>;
 
 /** A beam along +x from the origin, since most of these only vary the target. */
 function eastward(r: Rig, reach: number, over: Record<string, number> = {}) {
-  return r.beams.shoot(
-    { startX: 0, startY: 0, endX: reach, endY: 0, width: 0.5, power: 1000, ...over },
-    r.bodies,
-    r.grid,
-    r.hits,
-  );
+  return r.beams.shoot({ startX: 0, startY: 0, endX: reach, endY: 0, width: 0.5, power: 1000, ...over }, r.bodies, r.grid, r.hits);
 }
 
 describe('what a beam reaches', () => {
@@ -179,12 +174,7 @@ describe('the normal a hit reports', () => {
     // both down and to the left. Entry works out at about (174, -43).
     const r = range({ x: 200, y: 0, radius: 50 });
 
-    r.beams.shoot(
-      { startX: 120, startY: -70, endX: 600, endY: 170, width: 0.5, power: 1000 },
-      r.bodies,
-      r.grid,
-      r.hits,
-    );
+    r.beams.shoot({ startX: 120, startY: -70, endX: 600, endY: 170, width: 0.5, power: 1000 }, r.bodies, r.grid, r.hits);
 
     expect(r.hits.count).toBe(1);
     const nx = r.hits.nx[0]!;
@@ -203,12 +193,7 @@ describe('the normal a hit reports', () => {
       const fromX = 300 + Math.cos(angle) * 900;
       const fromY = Math.sin(angle) * 900;
 
-      r.beams.shoot(
-        { startX: fromX, startY: fromY, endX: 300, endY: 0, width: 0.5, power: 1000 },
-        r.bodies,
-        r.grid,
-        r.hits,
-      );
+      r.beams.shoot({ startX: fromX, startY: fromY, endX: 300, endY: 0, width: 0.5, power: 1000 }, r.bodies, r.grid, r.hits);
 
       expect(r.hits.count, `${angle} rad`).toBe(1);
       const nx = r.hits.nx[0]!;
@@ -224,12 +209,7 @@ describe('the normal a hit reports', () => {
     // defensible answer is to face the way the beam came.
     const r = range({ x: 0, y: 0, radius: 40 });
 
-    r.beams.shoot(
-      { startX: 0, startY: 0, endX: 0, endY: 600, width: 0.5, power: 1000, owner: NO_OWNER },
-      r.bodies,
-      r.grid,
-      r.hits,
-    );
+    r.beams.shoot({ startX: 0, startY: 0, endX: 0, endY: 600, width: 0.5, power: 1000, owner: NO_OWNER }, r.bodies, r.grid, r.hits);
 
     expect(r.hits.count).toBe(1);
     expect(r.hits.nx[0]).toBeCloseTo(0, 9);
@@ -266,12 +246,7 @@ describe('reporting hits', () => {
     const r = range({ x: 200, y: 0, radius: 20 }, { x: 200, y: 300, radius: 20 });
 
     const a = eastward(r, 600);
-    const b = r.beams.shoot(
-      { startX: 0, startY: 300, endX: 600, endY: 300, width: 0.5, power: 1000 },
-      r.bodies,
-      r.grid,
-      r.hits,
-    );
+    const b = r.beams.shoot({ startX: 0, startY: 300, endX: 600, endY: 300, width: 0.5, power: 1000 }, r.bodies, r.grid, r.hits);
 
     expect(r.hits.count).toBe(2);
     expect(r.hits.beam[0]).toBe(a);
@@ -304,12 +279,7 @@ describe('reporting hits', () => {
     const hits = new BeamHits(4);
 
     for (let i = 0; i < 40; i++) {
-      beams.shoot(
-        { startX: 0, startY: i * 100, endX: 600, endY: i * 100, width: 0.5, power: 1000 },
-        bodies,
-        grid,
-        hits,
-      );
+      beams.shoot({ startX: 0, startY: i * 100, endX: 600, endY: i * 100, width: 0.5, power: 1000 }, bodies, grid, hits);
     }
 
     expect(hits.count).toBe(40);
@@ -352,12 +322,7 @@ describe('the store', () => {
     const r = range({ x: 200, y: 0, radius: 20 });
     eastward(r, 600);
     for (let i = 0; i < 9; i++) {
-      r.beams.shoot(
-        { startX: i, startY: 900, endX: i, endY: 1500, width: 0.5, power: 1000 },
-        r.bodies,
-        r.grid,
-        r.hits,
-      );
+      r.beams.shoot({ startX: i, startY: 900, endX: i, endY: 1500, width: 0.5, power: 1000 }, r.bodies, r.grid, r.hits);
     }
     expect(r.beams.pendingCount).toBe(1);
 
@@ -377,12 +342,7 @@ describe('the store', () => {
       r.beams.clear();
       r.hits.clear();
       for (let b = 0; b < 4; b++) {
-        r.beams.shoot(
-          { startX: 0, startY: b, endX: 600, endY: b, width: 0.5, power: 1000 },
-          r.bodies,
-          r.grid,
-          r.hits,
-        );
+        r.beams.shoot({ startX: 0, startY: b, endX: 600, endY: b, width: 0.5, power: 1000 }, r.bodies, r.grid, r.hits);
       }
     }
 

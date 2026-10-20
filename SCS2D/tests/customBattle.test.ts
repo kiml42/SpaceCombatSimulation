@@ -75,8 +75,18 @@ describe('a custom battle', () => {
   });
 
   it('calls it for nobody when no side can fight on', () => {
-    expect(winner([{ team: 0, ships: 1, mass: 1, armed: 0, mobile: 1 }, { team: 1, ships: 2, mass: 1, armed: 0, mobile: 0 }])).toBe(-1);
-    expect(winner([{ team: 0, ships: 1, mass: 1, armed: 1, mobile: 1 }, { team: 1, ships: 2, mass: 1, armed: 1, mobile: 1 }])).toBeNull();
+    expect(
+      winner([
+        { team: 0, ships: 1, mass: 1, armed: 0, mobile: 1 },
+        { team: 1, ships: 2, mass: 1, armed: 0, mobile: 0 },
+      ]),
+    ).toBe(-1);
+    expect(
+      winner([
+        { team: 0, ships: 1, mass: 1, armed: 1, mobile: 1 },
+        { team: 1, ships: 2, mass: 1, armed: 1, mobile: 1 },
+      ]),
+    ).toBeNull();
   });
 });
 

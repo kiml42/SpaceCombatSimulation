@@ -113,11 +113,7 @@ describe('expandWithOrigins', () => {
 describe('blueprintProblems', () => {
   it('reports every problem, not only the first', () => {
     const bp = ship({
-      modules: [
-        hull,
-        { kind: 'structure', x: 1, y: 0, length: 20, width: 6 },
-        { kind: 'structure', x: 2, y: 0, length: 20, width: 6 },
-      ],
+      modules: [hull, { kind: 'structure', x: 1, y: 0, length: 20, width: 6 }, { kind: 'structure', x: 2, y: 0, length: 20, width: 6 }],
     });
     // Three mutually overlapping hulls is three complaints, not one.
     expect(blueprintProblems(bp)).toHaveLength(3);
@@ -145,15 +141,11 @@ describe('blueprintFaults', () => {
     const bp = ship({
       modules: [hull, { kind: 'structure', x: 8, y: 0, length: 20, width: 6 }],
     });
-    expect(blueprintFaults(bp)).toEqual([
-      { message: expect.stringMatching(/modules 0 and 1 overlap/), modules: [0, 1] },
-    ]);
+    expect(blueprintFaults(bp)).toEqual([{ message: expect.stringMatching(/modules 0 and 1 overlap/), modules: [0, 1] }]);
   });
 
   it('names none for a complaint about the layout as a whole', () => {
-    expect(blueprintFaults(ship({ modules: [] }))).toEqual([
-      { message: expect.stringMatching(/at least one module/), modules: [] },
-    ]);
+    expect(blueprintFaults(ship({ modules: [] }))).toEqual([{ message: expect.stringMatching(/at least one module/), modules: [] }]);
   });
 
   it('says the same things blueprintProblems does', () => {
@@ -206,8 +198,6 @@ describe('compileDraft', () => {
 
   it('refuses a layout with nothing left to measure', () => {
     expect(() => compileDraft(ship({ modules: [] }))).toThrow(/at least one module/);
-    expect(() =>
-      compileDraft(ship({ modules: [{ kind: 'structure', x: 0, y: 0, length: 0, width: 4 }] })),
-    ).toThrow(/can be measured/);
+    expect(() => compileDraft(ship({ modules: [{ kind: 'structure', x: 0, y: 0, length: 0, width: 4 }] }))).toThrow(/can be measured/);
   });
 });

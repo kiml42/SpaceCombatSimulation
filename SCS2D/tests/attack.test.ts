@@ -83,7 +83,7 @@ describe('the attack bearing', () => {
     expect(attackBearing(a, deg(-90), 2, 0)).toBeCloseTo(deg(-90), 9);
   });
 
-  it('leads by the harmonic mean of its shot guns\' speeds, and not at all for beams', () => {
+  it("leads by the harmonic mean of its shot guns' speeds, and not at all for beams", () => {
     // Two guns at 500 and 1000 m/s fly a metre in 1.5 ms between them, as 667 m/s does.
     expect(choose(arcs([90, 30, 500], [90, 30, 1000]), deg(90), 0.5, 0, new AttackRegion()).speed).toBeCloseTo(2000 / 3, 9);
     expect(choose(arcs([90, 30, 500], [90, 30, -1]), deg(90), 0.5, 0, new AttackRegion()).speed).toBe(500);

@@ -142,10 +142,7 @@ const SNAPPING: Blueprint = parseBlueprint(SNAPPING_FILE);
  * Where a blueprint's own coordinates land on screen once the page has framed
  * it, and how many pixels a metre is worth there.
  */
-async function framing(
-  p: Page,
-  blueprint: Blueprint,
-): Promise<{ at: (x: number, y: number) => { x: number; y: number }; scale: number }> {
+async function framing(p: Page, blueprint: Blueprint): Promise<{ at: (x: number, y: number) => { x: number; y: number }; scale: number }> {
   const box = await p.locator('#view').boundingBox();
   const size = await p.evaluate(() => {
     const canvas = document.getElementById('view') as HTMLCanvasElement;
@@ -456,8 +453,7 @@ describe('the editor in a browser', () => {
     await page.click('#newShip');
     await page.click('[data-add="pad"]');
     expect(await page.isVisible('#dockedRow')).toBe(true);
-    const label = async (name: string): Promise<string> =>
-      (await page.textContent(`#propDocked option[value="${name}"]`)) ?? '';
+    const label = async (name: string): Promise<string> => (await page.textContent(`#propDocked option[value="${name}"]`)) ?? '';
     expect(await label('Dinky')).toBe('Dinky');
     expect(await page.isVisible('#keepRow')).toBe(false);
     await page.selectOption('#propDocked', 'Dinky');
@@ -855,8 +851,7 @@ describe('the editor in a browser', () => {
       await page.selectOption('#ship', ship);
       const centre = await canvasCentre(page);
       await page.mouse.click(centre.x, centre.y);
-      const step = async (): Promise<number> =>
-        Number(await page.getAttribute('#propLength', 'step'));
+      const step = async (): Promise<number> => Number(await page.getAttribute('#propLength', 'step'));
       let settled = await step();
       let unchanged = 0;
       for (let i = 0; i < 100 && unchanged < 20; i++) {
@@ -1168,7 +1163,7 @@ describe('the editor in a browser', () => {
     expect(await page.inputValue('#assemblyAngle')).toBe('0');
   });
 
-  it('sets a hull gun\'s barrel in calibres by dragging its muzzle', async () => {
+  it("sets a hull gun's barrel in calibres by dragging its muzzle", async () => {
     await page.click('#newShip');
     await page.click('[data-add="hullGun"]');
     expect(Number(await page.inputValue('#propBarrelCalibres'))).toBe(10);
@@ -1373,9 +1368,12 @@ describe('the editor in a browser', () => {
 
   it('shapes a module into a wedge, and drags one corner of it', async () => {
     // One block on its own, so the fit centres the canvas on its middle.
-    await page.evaluate((written) => {
-      window.localStorage.setItem('scs2d.blueprint.Plate', written);
-    }, JSON.stringify({ formatVersion: 1, ...PLATE }));
+    await page.evaluate(
+      (written) => {
+        window.localStorage.setItem('scs2d.blueprint.Plate', written);
+      },
+      JSON.stringify({ formatVersion: 1, ...PLATE }),
+    );
     await page.reload();
     await openShip(page, 'Plate');
     await page.keyboard.press('f');
@@ -1558,9 +1556,7 @@ describe('the editor in a browser', () => {
     await openShip(page, 'Corvette');
     await page.click('#battleLink');
     await page.waitForFunction(() => document.getElementById('custom')?.hidden === false);
-    expect(await page.locator('#fleetSlots select option:checked').first().textContent()).toBe(
-      'Corvette (from the editor)',
-    );
+    expect(await page.locator('#fleetSlots select option:checked').first().textContent()).toBe('Corvette (from the editor)');
     await page.waitForFunction(() => /Corvette.*1\/1 ships/.test(document.getElementById('sides')?.textContent ?? ''));
     await page.goBack();
   });

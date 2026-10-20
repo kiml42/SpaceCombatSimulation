@@ -33,8 +33,16 @@ const SETUP = {
     mutation: {
       structural: 0,
       build: { move: 0, resize: 0, refit: 0, fittings: 0, tuning: 2, fighter: 0.5, shape: 1 },
-      kinds: { ...DEFAULT_KINDS, turret: 0 }, doctrine: { targeting: 0, approach: 2, escort: 0, avoidance: 3, gunnery: 1 } },
-    match: { duration: 45, radius: 900, closingSpeed: 30, crossingSpeed: -10, weights: { survival: 0, functional: 0.5, damage: 0, disabling: 2, race: 1 } },
+      kinds: { ...DEFAULT_KINDS, turret: 0 },
+      doctrine: { targeting: 0, approach: 2, escort: 0, avoidance: 3, gunnery: 1 },
+    },
+    match: {
+      duration: 45,
+      radius: 900,
+      closingSpeed: 30,
+      crossingSpeed: -10,
+      weights: { survival: 0, functional: 0.5, damage: 0, disabling: 2, race: 1 },
+    },
   },
 };
 
@@ -66,7 +74,7 @@ describe('the run config file', () => {
     expect(parseRunConfig(file).config.budget).toEqual(NO_BUDGET);
   });
 
-  it('reads an older file\'s massBudget as its metal', () => {
+  it("reads an older file's massBudget as its metal", () => {
     expect(parseRunConfig({ massBudget: 5_000 }).config.budget).toEqual({ ...NO_BUDGET, metal: 5_000 });
     expect(parseRunConfig({ budget: { fuel: 400 } }).config.budget).toEqual({ ...NO_BUDGET, fuel: 400 });
   });

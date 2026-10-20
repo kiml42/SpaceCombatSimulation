@@ -149,7 +149,7 @@ describe('breeding a fleet', () => {
     }
   });
 
-  it('swaps a ship onto another of its fleet\'s designs, keeping the count', () => {
+  it("swaps a ship onto another of its fleet's designs, keeping the count", () => {
     const designs = (fleet: Fleet): string[] => fleet.ships.map((entry) => ('design' in entry ? entry.design : `group ${entry.group}`));
     const before = designs(LINE_OF_BATTLE);
     const child = mutateFleet(LINE_OF_BATTLE, new Rng(5), { ...only('swap') });
@@ -304,7 +304,11 @@ describe('designs a fleet carries but does not fly', () => {
   const flown = (fleet: Fleet): string[] => [...new Set(fleet.ships.map((entry) => ('design' in entry ? entry.design : '')))];
 
   it('keeps the design of a ship taken out', () => {
-    const fleet: Fleet = { ...pair(), designs: { Dinky: DINKY, Corvette: CORVETTE }, ships: [...pair().ships, { design: 'Corvette', x: 80, y: 0 }] };
+    const fleet: Fleet = {
+      ...pair(),
+      designs: { Dinky: DINKY, Corvette: CORVETTE },
+      ships: [...pair().ships, { design: 'Corvette', x: 80, y: 0 }],
+    };
     for (let seed = 0; seed < 10; seed++) {
       const child = mutateFleet(fleet, new Rng(seed), { ...only('remove') }).fleet;
       expect(Object.keys(child.designs)).toEqual(['Dinky', 'Corvette']);

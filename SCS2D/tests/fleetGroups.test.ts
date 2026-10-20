@@ -27,8 +27,18 @@ const awkward: Fleet = {
   name: 'Awkward',
   designs: { Dinky: DINKY },
   groups: {
-    Pair: { ships: [{ design: 'Dinky', x: 10, y: 5, angle: 0.3 }, { design: 'Dinky', x: -10, y: 5, repeat: 3, step: { x: 4, y: 2, angle: 0.2 } }] },
-    Wing: { ships: [{ group: 'Pair', x: 0, y: 20, angle: 0.5, mirror: true }, { design: 'Dinky', x: 30, y: -8, angle: -1 }] },
+    Pair: {
+      ships: [
+        { design: 'Dinky', x: 10, y: 5, angle: 0.3 },
+        { design: 'Dinky', x: -10, y: 5, repeat: 3, step: { x: 4, y: 2, angle: 0.2 } },
+      ],
+    },
+    Wing: {
+      ships: [
+        { group: 'Pair', x: 0, y: 20, angle: 0.5, mirror: true },
+        { design: 'Dinky', x: 30, y: -8, angle: -1 },
+      ],
+    },
   },
   ships: [
     { group: 'Wing', x: 100, y: 40, angle: 1.1, mirror: true, repeat: 2, step: { x: 80, y: 10, angle: 0.4 } },
@@ -52,7 +62,7 @@ describe('grouping a fleet in the editor', () => {
     expectSameShips(awkward, fleet);
   });
 
-  it('dissolves every stock fleet\'s groups without moving a ship', () => {
+  it("dissolves every stock fleet's groups without moving a ship", () => {
     for (const stock of Object.values(FLEETS)) {
       let fleet = stock;
       for (let i = fleet.ships.length - 1; i >= 0; i--) {

@@ -40,15 +40,7 @@ import { Charge } from './charge.js';
 import { Metal } from './metal.js';
 import { isHullMount, moduleCentre, moduleOutline, SEAL_REACH, SEAL_SPEED, weldBox } from './modules.js';
 import type { Rng } from './rng.js';
-import {
-  landedIndex,
-  landedLength,
-  plumeLayers,
-  plumeRays,
-  Plumes,
-  WEAPON_PLUME_SHARE,
-  weaponPlumeReach,
-} from './exhaust.js';
+import { landedIndex, landedLength, plumeLayers, plumeRays, Plumes, WEAPON_PLUME_SHARE, weaponPlumeReach } from './exhaust.js';
 import { Choice, cohesionUrge, inSight, look, lookFrom, score } from './targeting.js';
 import {
   casingMass,
@@ -62,22 +54,7 @@ import {
   type ModuleSpec,
   type ModuleStats,
 } from './modules.js';
-import {
-  abs,
-  atan2,
-  angleDelta,
-  PI,
-  brakingRate,
-  clamp,
-  cos,
-  exp,
-  length,
-  max,
-  min,
-  round,
-  sin,
-  sqrt,
-} from './math.js';
+import { abs, atan2, angleDelta, PI, brakingRate, clamp, cos, exp, length, max, min, round, sin, sqrt } from './math.js';
 import { Projectiles } from './projectiles.js';
 import { legLength, neighbourOf, pathTo, RobotMode, Robots, staysWhole, walk, type Robot } from './robots.js';
 import { Allocation, EngineLayout } from './engines.js';
@@ -104,7 +81,11 @@ import {
   ROBOT_REFILL_TIME,
   ROBOT_REPAIR_RATE,
   ROBOT_SPEED,
-  GunType, interiorVolume, type GunStats, type ModuleKind } from './modules.js';
+  GunType,
+  interiorVolume,
+  type GunStats,
+  type ModuleKind,
+} from './modules.js';
 
 /**
  * Ships: a compiled design bound to a body, flying itself and shooting.
@@ -258,7 +239,6 @@ const TORQUE_NEGLIGIBLE = 1e-6;
 const TURN_SHARE = 0.1;
 
 const TIMER_SETTLE = 1e-9;
-
 
 /** No order, or an order whose target has gone. */
 /**
@@ -616,22 +596,12 @@ function partWeight(doctrine: Targeting, kind: ModuleKind): number {
  * firing at anything on the hull.
  */
 function refusesAnything(doctrine: Targeting): boolean {
-  return (
-    doctrine.coreWeight < 0 ||
-    doctrine.engineWeight < 0 ||
-    doctrine.gunWeight < 0 ||
-    doctrine.structureWeight < 0
-  );
+  return doctrine.coreWeight < 0 || doctrine.engineWeight < 0 || doctrine.gunWeight < 0 || doctrine.structureWeight < 0;
 }
 
 /** Whether a doctrine has any opinion about which part of a ship to hit. */
 function picksParts(doctrine: Targeting): boolean {
-  return (
-    doctrine.coreWeight !== 0 ||
-    doctrine.engineWeight !== 0 ||
-    doctrine.gunWeight !== 0 ||
-    doctrine.structureWeight !== 0
-  );
+  return doctrine.coreWeight !== 0 || doctrine.engineWeight !== 0 || doctrine.gunWeight !== 0 || doctrine.structureWeight !== 0;
 }
 
 /**
@@ -1157,7 +1127,17 @@ export class Ships {
     return -1;
   }
 
-  holed(bodyIndex: number, module: number, integrity: number, x: number, y: number, nx: number, ny: number, calibre: number, rng: Rng): void {
+  holed(
+    bodyIndex: number,
+    module: number,
+    integrity: number,
+    x: number,
+    y: number,
+    nx: number,
+    ny: number,
+    calibre: number,
+    rng: Rng,
+  ): void {
     const m = this.designOf(bodyIndex)?.modules[module];
     if (m === undefined || !(this.fuel.held(bodyIndex, module) > 0)) return;
     if (rng.nextFloat() >= leakChance(integrity)) return;
@@ -1749,23 +1729,10 @@ export class Ships {
         if (this.derelict[t] === 1 || !this.hostile(i, t) || !this.hasControl(t)) continue;
         const tb = bodies.indexOf(this.bodyIds[t]!);
         if (tb < 0 || tb === b) continue;
-        const seen = look(
-          bodies,
-          b,
-          tb,
-          t,
-          this.designs[t]!.mass,
-          !this.isDisarmed(t),
-          !this.hasNoEngines(t),
-        );
+        const seen = look(bodies, b, tb, t, this.designs[t]!.mass, !this.isDisarmed(t), !this.hasNoEngines(t));
         const candidate =
-          doctrine.sightWeight !== 0 && !inSight(bodies, bodies.x[b]!, bodies.y[b]!, b, tb)
-            ? { ...seen, clear: false }
-            : seen;
-        this.choice.offer(
-          candidate,
-          score(doctrine, candidate, reach, design.mass, loyalTo, -1, wanted),
-        );
+          doctrine.sightWeight !== 0 && !inSight(bodies, bodies.x[b]!, bodies.y[b]!, b, tb) ? { ...seen, clear: false } : seen;
+        this.choice.offer(candidate, score(doctrine, candidate, reach, design.mass, loyalTo, -1, wanted));
       }
       fighting = this.choice.ship;
     }
@@ -1789,23 +1756,12 @@ export class Ships {
       // Nor is a friend too small for it to bother covering. A neutral is an
       // objective rather than a ship to look after, and is gone to whatever
       // its size: a goal is a marker far smaller than anything racing to it.
-      if (
-        this.team[t] === this.team[i] &&
-        this.designs[t]!.radius < approach.escortMinRadii * design.radius
-      ) {
+      if (this.team[t] === this.team[i] && this.designs[t]!.radius < approach.escortMinRadii * design.radius) {
         continue;
       }
       const tb = bodies.indexOf(this.bodyIds[t]!);
       if (tb < 0 || tb === b) continue;
-      const candidate = look(
-        bodies,
-        b,
-        tb,
-        t,
-        this.designs[t]!.mass,
-        !this.isDisarmed(t),
-        !this.hasNoEngines(t),
-      );
+      const candidate = look(bodies, b, tb, t, this.designs[t]!.mass, !this.isDisarmed(t), !this.hasNoEngines(t));
       // Which consort is the ordinary stack's question — proximity dominating,
       // nearly always the nearest. How hard it pulls is the pilot's, and is
       // asked every step rather than on this schedule.
@@ -1879,10 +1835,7 @@ export class Ships {
       // whatever its schedule says: a mount tracking a wreck, or a hulk, is
       // worse than a mount at rest, because it goes on shooting at it.
       const held = targets[t]!;
-      if (
-        held !== NO_TARGET &&
-        (this.alive[held] !== 1 || this.derelict[held] === 1 || !this.hasControl(held))
-      ) {
+      if (held !== NO_TARGET && (this.alive[held] !== 1 || this.derelict[held] === 1 || !this.hasControl(held))) {
         targets[t] = NO_TARGET;
         aims[t] = WHOLE_SHIP;
       }
@@ -1983,9 +1936,7 @@ export class Ships {
         );
         // A hooked target is alongside, with nothing between to look past.
         const judged =
-          !hooked && doctrine.sightWeight !== 0 && !inSight(bodies, gunX, gunY, b, tb)
-            ? { ...candidate, clear: false }
-            : candidate;
+          !hooked && doctrine.sightWeight !== 0 && !inSight(bodies, gunX, gunY, b, tb) ? { ...candidate, clear: false } : candidate;
         (candidate.range > against ? this.farChoice : clear ? this.choice : this.maskedChoice).offer(
           judged,
           score(doctrine, candidate, against, design.mass, targets[t]!, mount.main ? focus : ownFocus),
@@ -1999,10 +1950,7 @@ export class Ships {
           : this.maskedChoice.ship !== NO_TARGET
             ? this.maskedChoice.ship
             : this.farChoice.ship;
-      aims[t] =
-        targets[t] === NO_TARGET
-          ? WHOLE_SHIP
-          : this.choosePart(bodies, b, i, mount, layers, targets[t]!, gunX, gunY);
+      aims[t] = targets[t] === NO_TARGET ? WHOLE_SHIP : this.choosePart(bodies, b, i, mount, layers, targets[t]!, gunX, gunY);
       // Holding something it cannot fire on yet, it looks again soon: what it
       // can fire on may turn up long before its own reconsidering would.
       if (this.choice.ship === NO_TARGET && targets[t] !== NO_TARGET) {
@@ -2513,8 +2461,7 @@ export class Ships {
     // is willing to shoot at is not in the way of anything, and a cast that
     // looked past it would hold fire for a ship in no danger — as well as
     // walking grid cells to learn nothing.
-    const lookahead =
-      gun.type === GunType.Beam ? MAX_BEAM_LENGTH : gun.muzzleSpeed * FRIENDLY_LOOKAHEAD;
+    const lookahead = gun.type === GunType.Beam ? MAX_BEAM_LENGTH : gun.muzzleSpeed * FRIENDLY_LOOKAHEAD;
     const range = lookahead < reach ? lookahead : reach;
     if (!(range > 0)) return false;
     const hit = this.lineOfFire;
@@ -2621,7 +2568,14 @@ export class Ships {
    * Orders are carried out in the order they were given: the ship works on the
    * first one until `cancelOn` says it is finished, then takes up the next.
    */
-  pushOrder(i: number, target: number, minRange: number, maxRange: number, approachSpeed: number, cancelOn: OrderCancelCondition = OrderCancelCondition.CompleteDisable): void {
+  pushOrder(
+    i: number,
+    target: number,
+    minRange: number,
+    maxRange: number,
+    approachSpeed: number,
+    cancelOn: OrderCancelCondition = OrderCancelCondition.CompleteDisable,
+  ): void {
     const order = {
       target: target,
       minRange: minRange,
@@ -2638,7 +2592,17 @@ export class Ships {
 
   /** Add an order to ram `target`, closing at `approachSpeed`, to the end of this ship's queue. */
   pushRam(i: number, target: number, approachSpeed: number, cancelOn: OrderCancelCondition = OrderCancelCondition.CompleteDisable): void {
-    this.orders[i]!.push({ target, minRange: 0, maxRange: 0, approachSpeed, cancelOn, ram: true, grapple: false, land: false, dock: false });
+    this.orders[i]!.push({
+      target,
+      minRange: 0,
+      maxRange: 0,
+      approachSpeed,
+      cancelOn,
+      ram: true,
+      grapple: false,
+      land: false,
+      dock: false,
+    });
   }
 
   /** Drop every order this ship has. It holds its heading and its fire. */
@@ -2754,20 +2718,12 @@ export class Ships {
     }
   }
 
-
   /**
    * Fire every gun that is loaded, on target and clear to shoot. Call after
    * the world has stepped and the index has been rebuilt. Given `log`, each
    * round fired is recorded at its muzzle, for a flash.
    */
-  fire(
-    world: World,
-    projectiles: Projectiles,
-    beams: Beams,
-    grid: SpatialGrid,
-    beamHits: BeamHits,
-    log?: ImpactLog,
-  ): FireReport {
+  fire(world: World, projectiles: Projectiles, beams: Beams, grid: SpatialGrid, beamHits: BeamHits, log?: ImpactLog): FireReport {
     const bodies = world.bodies;
     this.bodyStore = bodies;
     let projectilesFired = 0;
@@ -2834,7 +2790,6 @@ export class Ships {
         this.turrets.lit[ti] = state == TurretState.CommittedOn ? 1 : 0;
         if (state == TurretState.Reloading) continue; // Can't fire while reloading.
 
-
         // What this gun was trained on, rather than what it would pick now:
         // the hull has turned since, and a target chosen after the barrel
         // stopped moving is one the barrel is not pointing at.
@@ -2843,10 +2798,7 @@ export class Ships {
         // skip if it's not ready to fire, and it's not committed to being on.
         if ((target === NO_TARGET || !this.turrets.readyToFire(ti)) && state != TurretState.CommittedOn) continue;
 
-        const lateralOffset =
-          gun.barrelCount > 1
-            ? (barrel - (gun.barrelCount - 1) * 0.5) * gun.barrelSpacing
-            : 0;
+        const lateralOffset = gun.barrelCount > 1 ? (barrel - (gun.barrelCount - 1) * 0.5) * gun.barrelSpacing : 0;
 
         this.turrets.firingSolution(bodies, ti, this.solution, lateralOffset);
 
@@ -2926,9 +2878,7 @@ export class Ships {
           const jy = -this.solution.dirY * impulse;
           impulseX += jx;
           impulseY += jy;
-          angularImpulse +=
-            (this.solution.x - bodies.x[bodyIdx]!) * jy -
-            (this.solution.y - bodies.y[bodyIdx]!) * jx;
+          angularImpulse += (this.solution.x - bodies.x[bodyIdx]!) * jy - (this.solution.y - bodies.y[bodyIdx]!) * jx;
 
           // A battered mount loads slower, which is the whole of what damage
           // does to a gun for now.
@@ -2936,7 +2886,7 @@ export class Ships {
 
           turretStates[t] = TurretState.Reloading; // Projectile guns immediately reload after firing.
 
-          projectilesFired++;  // increment for every shot fired
+          projectilesFired++; // increment for every shot fired
           this.firedAt[i] = world.tick;
         } else {
           // One beam a layer, each with its share of the power: a thick
@@ -2971,7 +2921,7 @@ export class Ships {
             timers[t] = gun.beamOnTime;
             this.turrets.lit[ti] = 1;
 
-            beamsFired++;  // only increment when going from idle to on.
+            beamsFired++; // only increment when going from idle to on.
           }
         }
       }
@@ -3257,8 +3207,7 @@ export class Ships {
     // under way is stopped.
     const touching = order !== undefined && (order.ram || order.grapple || order.land || order.dock) ? target : NO_TARGET;
     if (wantRate !== 0 && this.turnBlocked(bodies, i, b, layout, wantRate > 0 ? 1 : -1, touching)) wantRate = 0;
-    const localTorque =
-      dt > 0 ? (inertia * (wantRate - bodies.angularVel[b]!)) / dt : 0;
+    const localTorque = dt > 0 ? (inertia * (wantRate - bodies.angularVel[b]!)) / dt : 0;
 
     // Engines the designer meant as weapons, lit because something worth
     // burning is behind them. Decided before the allocation and taken off the
@@ -3509,12 +3458,7 @@ export class Ships {
    * at: not its own hull, not a friend, not wreckage, and not a hulk, which
    * can never be finished off and is not worth being shoved about for.
    */
-  private aimEngines(
-    bodies: Bodies,
-    grid: SpatialGrid | undefined,
-    i: number,
-    layout: EngineLayout,
-  ): number {
+  private aimEngines(bodies: Bodies, grid: SpatialGrid | undefined, i: number, layout: EngineLayout): number {
     const design = this.designs[i]!;
     const armed = design.weaponEngines;
     const lit = this.lit[i]!;
@@ -3638,8 +3582,7 @@ export class Ships {
     let vy = bodies.vy[other]!;
     if (range > 0) {
       // How far outside the band, signed: positive means too far away.
-      const outside =
-        range > maxRange ? range - maxRange : range < minRange ? range - minRange : 0;
+      const outside = range > maxRange ? range - maxRange : range < minRange ? range - minRange : 0;
       if (outside !== 0) {
         // The way the band lies, and how fast this craft is already heading
         // that way relative to the other.
@@ -3674,8 +3617,7 @@ export class Ships {
           const turned = mains > brake ? stoppingSpeed(mains, gap, response + turn) : 0;
           const sooner =
             turned > stopping &&
-            arrivalTime(mains, gap, approachSpeed, response + turn) + turn <
-              arrivalTime(brake, gap, approachSpeed, response);
+            arrivalTime(mains, gap, approachSpeed, response + turn) + turn < arrivalTime(brake, gap, approachSpeed, response);
           if (sooner) stopping = turned;
           // Already turned onto them: planned on them, with no turn to allow for.
           if (wasOnMains && mains > 0) stopping = max(stopping, stoppingSpeed(mains, gap, response));
@@ -4058,15 +4000,7 @@ export class Ships {
    * approximates — which of a target's *neighbouring* parts a stray shot
    * would land on, rather than whether any of them might be refused.
    */
-  private firingSlack(
-    doctrine: Targeting,
-    target: number,
-    part: number,
-    aimX: number,
-    aimY: number,
-    partX: number,
-    partY: number,
-  ): number {
+  private firingSlack(doctrine: Targeting, target: number, part: number, aimX: number, aimY: number, partX: number, partY: number): number {
     this.slackOffset = 0;
     const design = this.designs[target]!;
     const range = length(aimX, aimY);
@@ -4190,7 +4124,15 @@ export class Ships {
     let pieces = 0;
     pieces += this.partCutWelds(world);
     for (let k = 0; k < this.blows; k++) {
-      pieces += this.answer(world, this.blowBody[k]!, this.blowModule[k]!, this.blowJx[k]!, this.blowJy[k]!, this.blowX[k]!, this.blowY[k]!);
+      pieces += this.answer(
+        world,
+        this.blowBody[k]!,
+        this.blowModule[k]!,
+        this.blowJx[k]!,
+        this.blowJy[k]!,
+        this.blowX[k]!,
+        this.blowY[k]!,
+      );
     }
     this.blows = 0;
     return pieces;
@@ -4486,7 +4428,11 @@ export class Ships {
               const flow = narrower * min(working, bothWorking) * world.dt;
               if (spare > 0 && this.fuel.transfer(b, from, to, flow < spare ? flow : spare) > 0) moved = true;
               // Charge alongside, through the narrower coupling's cabling.
-              const cable = DOCK_POWER_PER_METRE * min(design.modules[seam.a]!.spec.width, design.modules[seam.b]!.spec.width) * min(working, bothWorking) * world.dt;
+              const cable =
+                DOCK_POWER_PER_METRE *
+                min(design.modules[seam.a]!.spec.width, design.modules[seam.b]!.spec.width) *
+                min(working, bothWorking) *
+                world.dt;
               const spareCharge = this.power.pieceHeld(b, from) - this.chargeReserve(b, from);
               if (spareCharge > 0) this.power.transfer(b, from, to, cable < spareCharge ? cable : spareCharge);
               const fuelLeft = this.fuel.pieceRoom(b, to) > 0 && this.fuel.pieceHeld(b, from) > this.keepsBack(b, from);
@@ -4800,7 +4746,7 @@ export class Ships {
           }
         }
         // Charged as it is filled, as fast as there is charge to give.
-        const want = min(ROBOT_CHARGE - robot.charge, ((ROBOT_CHARGE / ROBOT_REFILL_TIME) * dt * working));
+        const want = min(ROBOT_CHARGE - robot.charge, (ROBOT_CHARGE / ROBOT_REFILL_TIME) * dt * working);
         const spare = this.power.pieceHeld(b, robot.bay);
         if (want > 0 && spare > 0) robot.charge += this.power.drain(b, robot.bay, want < spare ? want : spare);
         // Waits to be full while its piece of hull has the charge to fill it.
@@ -5162,7 +5108,15 @@ export class Ships {
       more[at] = builder;
       this.pilots[b] = more;
     }
-    this.adopt(p, b, next, () => p, (m) => (m < n ? m : -1), true, true);
+    this.adopt(
+      p,
+      b,
+      next,
+      () => p,
+      (m) => (m < n ? m : -1),
+      true,
+      true,
+    );
     for (const r of this.ridersOf(bodies, b)) if (r !== p) this.board(r, p);
   }
 
@@ -5186,10 +5140,7 @@ export class Ships {
       const tier = repairTier(design, m);
       let crowd = 0;
       for (let k = 0; k < robots.length; k++) if (robots[k] !== robot && robots[k]!.target === m) crowd++;
-      if (
-        tier < bestTier ||
-        (tier === bestTier && (crowd < bestCrowd || (crowd === bestCrowd && dist[m]! < bestDist)))
-      ) {
+      if (tier < bestTier || (tier === bestTier && (crowd < bestCrowd || (crowd === bestCrowd && dist[m]! < bestDist)))) {
         best = m;
         bestTier = tier;
         bestCrowd = crowd;
@@ -5519,7 +5470,15 @@ export class Ships {
     bodies.radius[b] = next.radius;
     const pilots = this.pilots[b];
     if (pilots !== null && pilots !== undefined) this.pilots[b] = Int32Array.from(keep, (k) => pilots[k]!);
-    this.adopt(p, b, next, () => p, (k) => keep[k]!, true, true);
+    this.adopt(
+      p,
+      b,
+      next,
+      () => p,
+      (k) => keep[k]!,
+      true,
+      true,
+    );
     for (const r of riders) if (r !== p) this.board(r, p);
     this.renumber(bodies, b, riders, m);
     // A ship riding here with none of its hull left is gone, and the body
@@ -5823,7 +5782,13 @@ export class Ships {
       for (let m = n; m < pilots.length; m++) pilots[m] = !flown ? -1 : wasO === null ? other : wasO[m - n]!;
     }
 
-    this.adopt(keep, bk, design, (m) => (m < n ? keep : other), (m) => (m < n ? m : m - n));
+    this.adopt(
+      keep,
+      bk,
+      design,
+      (m) => (m < n ? keep : other),
+      (m) => (m < n ? m : m - n),
+    );
     this.pilots[bk] = pilots;
     // Spun up against the inertia the fuel left aboard gives it.
     bodies.angularVel[bk] = angular / bodies.inertia[bk]!;
@@ -5884,8 +5849,7 @@ export class Ships {
       this.discarded += mass;
       this.discardedPx += mass * bodies.vx[b]!;
       this.discardedPy += mass * bodies.vy[b]!;
-      this.discardedL +=
-        bodies.inertia[b]! * bodies.angularVel[b]! + mass * (bodies.x[b]! * bodies.vy[b]! - bodies.y[b]! * bodies.vx[b]!);
+      this.discardedL += bodies.inertia[b]! * bodies.angularVel[b]! + mass * (bodies.x[b]! * bodies.vy[b]! - bodies.y[b]! * bodies.vx[b]!);
       this.damage.forget(b);
       this.fuel.forget(b);
       this.metal.forget(b);
@@ -6058,15 +6022,7 @@ export class Ships {
    * off one thing or nothing. Answering every overloaded weld at once is what
    * makes a ship shatter rather than break.
    */
-  private answer(
-    world: World,
-    bodyIndex: number,
-    module: number,
-    jx: number,
-    jy: number,
-    px: number,
-    py: number,
-  ): number {
+  private answer(world: World, bodyIndex: number, module: number, jx: number, jy: number, px: number, py: number): number {
     const bodies = world.bodies;
     const i = this.shipAt(bodies, bodyIndex);
     if (i < 0) return 0;
@@ -6090,8 +6046,8 @@ export class Ships {
     // Where the blow landed, in the hull's frame, to measure outward from.
     const hitX = rcx * c + rcy * s;
     const hitY = -rcx * s + rcy * c;
-    const dvx = (jx * invMass) * c + (jy * invMass) * s;
-    const dvy = -(jx * invMass) * s + (jy * invMass) * c;
+    const dvx = jx * invMass * c + jy * invMass * s;
+    const dvy = -(jx * invMass) * s + jy * invMass * c;
 
     const failed = new Set<Joint>();
     // What the blow has left to give. Every load is linear in it, so spending
@@ -6158,7 +6114,8 @@ export class Ships {
     // each piece that flew off is the ship flown from its own.
     if (this.parted[i] === 1) {
       const kept = this.designs[i]!;
-      const core = kept.cores.find((c) => this.damage.remaining(bodies.indexOf(this.bodyIds[i]!), c, DamageEffect.Control) > 0) ?? kept.cores[0];
+      const core =
+        kept.cores.find((c) => this.damage.remaining(bodies.indexOf(this.bodyIds[i]!), c, DamageEffect.Control) > 0) ?? kept.cores[0];
       const number = core === undefined ? 0 : this.coreNumber(i, kept, core);
       if (number > 0) this.names[i] = `${this.names[i]}.${number}`;
       this.parted[i] = 0;
@@ -6222,9 +6179,7 @@ export class Ships {
         continue;
       }
       // A second core of somebody's, flying on for that ship's side.
-      const core = design.cores.find(
-        (c) => partOf[c] === p && this.damage.remaining(b, c, DamageEffect.Control) > 0,
-      );
+      const core = design.cores.find((c) => partOf[c] === p && this.damage.remaining(b, c, DamageEffect.Control) > 0);
       const owner = core === undefined ? -1 : pilots[core]!;
       if (this.detach(world, i, design, parts[p]!, owner >= 0 && this.alive[owner] === 1 ? owner : i)) pieces++;
     }
@@ -6271,7 +6226,14 @@ export class Ships {
    * leaving as a rigid split does (`detach`) and taking its own orders and
    * mount state with it.
    */
-  private rehome(world: World, from: number, aboard: readonly number[], was: ShipDesign, keep: readonly number[], pilots: Int32Array): void {
+  private rehome(
+    world: World,
+    from: number,
+    aboard: readonly number[],
+    was: ShipDesign,
+    keep: readonly number[],
+    pilots: Int32Array,
+  ): void {
     const bodies = world.bodies;
     const b = bodies.indexOf(this.bodyIds[from]!);
     const chunk = subDesign(was, keep);
@@ -6293,7 +6255,14 @@ export class Ships {
     this.hullBody[nb] = id;
     // Read from `from`, which still holds the old body and its mounts; those are
     // released when it is reshaped.
-    this.adopt(p, nb, chunk, () => from, (m) => keep[m]!, false);
+    this.adopt(
+      p,
+      nb,
+      chunk,
+      () => from,
+      (m) => keep[m]!,
+      false,
+    );
     this.bodyIds[p] = id;
     this.shipByBody[nb] = p;
     for (const r of aboard) this.partedAt[r] = world.tick;
@@ -6346,10 +6315,7 @@ export class Ships {
    * this model exists to avoid.
    */
   private weldStrength(bodyIndex: number, joint: Joint, index: number): number {
-    const metal = min(
-      this.damage.integrity(bodyIndex, joint.a),
-      this.damage.integrity(bodyIndex, joint.b),
-    );
+    const metal = min(this.damage.integrity(bodyIndex, joint.a), this.damage.integrity(bodyIndex, joint.b));
     // What is left of the section, which no amount of sound metal at its ends
     // can make up for: a weld cut through is not a weak weld but an absent one.
     const section = this.damage.weldIntegrity(bodyIndex, index, joint.width);
@@ -6379,9 +6345,7 @@ export class Ships {
     const spin = bodies.angularVel[b]!;
     // Asked of the hull it is still part of, since that is where the damage
     // to these modules is recorded.
-    const flies = chunk.cores.some(
-      (core) => this.damage.remaining(b, keep[core]!, DamageEffect.Control) > 0,
-    );
+    const flies = chunk.cores.some((core) => this.damage.remaining(b, keep[core]!, DamageEffect.Control) > 0);
     // Scrap never reaches the world, so nothing the eye was following ever
     // vanishes: a piece this small is not created rather than removed. A piece
     // that still flies is not scrap at whatever mass — it is a ship, and the
@@ -6401,8 +6365,7 @@ export class Ships {
       this.discardedPy += mass * vy;
       // Its inertia taken as its full design's, scaled to what it weighs.
       this.discardedL +=
-        ((chunk.inertia * mass) / chunk.mass) * spin +
-        mass * ((bodies.x[b]! + offset.x) * vy - (bodies.y[b]! + offset.y) * vx);
+        ((chunk.inertia * mass) / chunk.mass) * spin + mass * ((bodies.x[b]! + offset.x) * vy - (bodies.y[b]! + offset.y) * vx);
       return false;
     }
 
@@ -6459,12 +6422,25 @@ export class Ships {
       keep.map((m) => this.fuel.held(b, m)),
       this.leaksInto(keep.length, (m) => ({ body: b, module: keep[m]! })),
     );
-    this.metal.register(chunkBody, chunk, keep.map((m) => this.metal.held(b, m)));
-    this.power.register(chunkBody, chunk, keep.map((m) => this.power.held(b, m)));
+    this.metal.register(
+      chunkBody,
+      chunk,
+      keep.map((m) => this.metal.held(b, m)),
+    );
+    this.power.register(
+      chunkBody,
+      chunk,
+      keep.map((m) => this.power.held(b, m)),
+    );
     const kept = new Int32Array(design.modules.length).fill(-1);
     for (let k = 0; k < keep.length; k++) kept[keep[k]!] = k;
     const madeBefore = this.robots.buildsOn(b);
-    this.robots.register(chunkBody, chunk, this.robots.take(b, (m) => kept[m] ?? -1), (m) => madeBefore?.[keep[m]!] ?? 0);
+    this.robots.register(
+      chunkBody,
+      chunk,
+      this.robots.take(b, (m) => kept[m] ?? -1),
+      (m) => madeBefore?.[keep[m]!] ?? 0,
+    );
     this.settleMass(bodies, chunkBody);
     this.shipByBody[chunkBody] = j;
     this.sides[chunkBody] = this.sidesOf((m) => this.sideAt(b, keep[m]!), keep.length, this.team[j]!);
@@ -6499,7 +6475,13 @@ export class Ships {
     bodies.radius[b] = design.radius;
 
     this.partedAt[i] = world.tick;
-    this.adopt(i, b, design, () => i, (m) => keep[m]!);
+    this.adopt(
+      i,
+      b,
+      design,
+      () => i,
+      (m) => keep[m]!,
+    );
   }
 
   /**
@@ -6843,12 +6825,7 @@ export class Ships {
    * What has already been cut out of each weld the piece keeps, in the new
    * design's joint order — a weld half sawn through stays half sawn through.
    */
-  private weldScarsOf(
-    bodyIndex: number,
-    was: ShipDesign,
-    piece: ShipDesign,
-    keep: readonly number[],
-  ): number[] {
+  private weldScarsOf(bodyIndex: number, was: ShipDesign, piece: ShipDesign, keep: readonly number[]): number[] {
     const scars: number[] = [];
     for (const joint of joints(piece)) {
       scars.push(this.damage.cutAt(bodyIndex, jointBetween(was, keep[joint.a]!, keep[joint.b]!)));
@@ -6860,12 +6837,7 @@ export class Ships {
    * Where a piece's centre of mass sits relative to the whole hull's, world
    * frame — the arm its share of the spin acts through.
    */
-  private offsetOf(
-    bodies: Bodies,
-    b: number,
-    was: ShipDesign,
-    piece: ShipDesign,
-  ): { x: number; y: number } {
+  private offsetOf(bodies: Bodies, b: number, was: ShipDesign, piece: ShipDesign): { x: number; y: number } {
     // Both centres are measured in the blueprint's frame, which is the body's
     // frame shifted rather than turned, so the difference needs only the
     // hull's angle to reach the world.
@@ -7238,7 +7210,12 @@ export class Ships {
    * Where module `m` of body `tb` is and how it is moving, world frame, and
    * which way it faces.
    */
-  private modulePlace(bodies: Bodies, tb: number, design: ShipDesign, m: number): { x: number; y: number; vx: number; vy: number; angle: number } {
+  private modulePlace(
+    bodies: Bodies,
+    tb: number,
+    design: ShipDesign,
+    m: number,
+  ): { x: number; y: number; vx: number; vy: number; angle: number } {
     const module = design.modules[m]!;
     const angle = bodies.angle[tb]!;
     const c = cos(angle);
@@ -7305,8 +7282,7 @@ export class Ships {
         // rather than overshooting and turning back.
         radial = min(PAD_SPEED, range / approach.responseTime);
       } else {
-        const mains =
-          this.layoutOf(i).maxThrustAlong(cos(design.thrustBearing), sin(design.thrustBearing)) / bodies.mass[b]!;
+        const mains = this.layoutOf(i).maxThrustAlong(cos(design.thrustBearing), sin(design.thrustBearing)) / bodies.mass[b]!;
         const delay = approach.responseTime + this.halfTurnTime(bodies, i, b);
         radial = min(approach.approachSpeed, stoppingSpeed(approach.brake * mains, left, delay));
       }
@@ -7436,7 +7412,8 @@ export class Ships {
       const depth = (k % 2 === 0 ? module.spec.length : module.spec.width) / 2;
       const across = (k % 2 === 0 ? module.spec.width : module.spec.length) / 2;
       const cap = 2 * design.radius;
-      const run = this.clearRun(design, pad, ux, uy, depth, across, cap, true) * cap + this.clearRun(design, pad, ux, uy, depth, across, cap, false);
+      const run =
+        this.clearRun(design, pad, ux, uy, depth, across, cap, true) * cap + this.clearRun(design, pad, ux, uy, depth, across, cap, false);
       if (run > longest) {
         longest = run;
         best = a;
@@ -7450,7 +7427,16 @@ export class Ships {
    * How far out from pad `pad`'s side along `ux`, `uy` is clear, metres, up to
    * `cap`: of anything in the weapons layer, or of anything at all.
    */
-  private clearRun(design: ShipDesign, pad: number, ux: number, uy: number, depth: number, across: number, cap: number, weaponsOnly: boolean): number {
+  private clearRun(
+    design: ShipDesign,
+    pad: number,
+    ux: number,
+    uy: number,
+    depth: number,
+    across: number,
+    cap: number,
+    weaponsOnly: boolean,
+  ): number {
     const module = design.modules[pad]!;
     let run = 0;
     for (; run < cap; run += 1) {
@@ -7710,7 +7696,15 @@ export class Ships {
       return { design: to, module: k };
     });
     if (!coreKept) return `${to.name} does not keep the core this ship is flown from`;
-    this.adopt(p, b, remarkedDesign(design, origins), () => p, (m) => m, true, true);
+    this.adopt(
+      p,
+      b,
+      remarkedDesign(design, origins),
+      () => p,
+      (m) => m,
+      true,
+      true,
+    );
     for (const r of this.ridersOf(bodies, b)) if (r !== p) this.board(r, p);
     this.launched[i] = to;
     this.rebuilds[i] = null;
@@ -7822,7 +7816,10 @@ export class Ships {
       if (busy) this.builtAt[i] = world.tick;
       if (busy || this.atFace(b, f, slipway)) return;
     }
-    const put = min(min(SLIPWAY_BUILD_PER_METRE * width * working * world.dt, joules - yard.work[k]!), this.power.pieceHeld(b, slipway) / REPAIR_ENERGY_PER_JOULE);
+    const put = min(
+      min(SLIPWAY_BUILD_PER_METRE * width * working * world.dt, joules - yard.work[k]!),
+      this.power.pieceHeld(b, slipway) / REPAIR_ENERGY_PER_JOULE,
+    );
     if (put > 0) {
       yard.work[k] = yard.work[k]! + put;
       this.power.drain(b, slipway, put * REPAIR_ENERGY_PER_JOULE);
@@ -8041,7 +8038,10 @@ export class Ships {
     const frame = printFrame(was.modules[slipway]!.spec, craft, depth);
     const width = was.modules[slipway]!.spec.width;
     const held = print.held.map((h) => ({ a: at, b: n + h, width, dock: 'slipway' as const }));
-    const welded = weldDesigns(subDesign(was, keep), print.design, frame.dx, frame.dy, frame.angle, at, print.held[0]!, width, { at: 'a', kind: 'slipway' });
+    const welded = weldDesigns(subDesign(was, keep), print.design, frame.dx, frame.dy, frame.angle, at, print.held[0]!, width, {
+      at: 'a',
+      kind: 'slipway',
+    });
     const next = seamedDesign(welded, held.slice(1));
     const moduleOf = (m: number): number => (m < n ? keep[m]! : (old.get(print.modules[m - n]!) ?? -1));
 

@@ -62,7 +62,6 @@ export const NO_OWNER = -1;
 /** A projectile in open flight rather than passing through a hull. */
 export const NOT_INSIDE = -1;
 
-
 export interface ProjectileSpec {
   x: number;
   y: number;
@@ -177,16 +176,7 @@ export class ProjectileHits {
   }
 
   /** Append an impact. Called by `Projectiles.step`. */
-  push(
-    projectile: number,
-    body: number,
-    t: number,
-    x: number,
-    y: number,
-    nx: number,
-    ny: number,
-    module = -1,
-  ): void {
+  push(projectile: number, body: number, t: number, x: number, y: number, nx: number, ny: number, module = -1): void {
     if (this.count === this.projectile.length) this.grow();
     const i = this.count++;
     this.projectile[i] = projectile;
@@ -508,15 +498,7 @@ export class Projectiles {
    * for seconds rather than orbits, so a first-order scheme is ample here. The
    * scheme that has to behave over thousands of steps is the one in `world.ts`.
    */
-  step(
-    dt: number,
-    bodies: Bodies,
-    grid: SpatialGrid,
-    hits: ProjectileHits,
-    wells?: readonly WellSpec[],
-    hulls?: Hulls,
-    rng?: Rng,
-  ): void {
+  step(dt: number, bodies: Bodies, grid: SpatialGrid, hits: ProjectileHits, wells?: readonly WellSpec[], hulls?: Hulls, rng?: Rng): void {
     hits.clear();
     const bursting = this.bursting;
     bursting.length = 0;
@@ -615,16 +597,7 @@ export class Projectiles {
    * which nothing further along its line belongs to. Returns whether it hit
    * something.
    */
-  flyOn(
-    i: number,
-    left: number,
-    t: number,
-    dt: number,
-    bodies: Bodies,
-    grid: SpatialGrid,
-    hits: ProjectileHits,
-    hulls?: Hulls,
-  ): boolean {
+  flyOn(i: number, left: number, t: number, dt: number, bodies: Bodies, grid: SpatialGrid, hits: ProjectileHits, hulls?: Hulls): boolean {
     const time = (1 - t) * dt;
     return this.cast(i, this.vx[i]! * time, this.vy[i]! * time, t, 1 - t, bodies, grid, hits, hulls, left);
   }

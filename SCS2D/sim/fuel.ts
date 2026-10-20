@@ -73,7 +73,10 @@ export class Fuel extends Store {
   private readonly leaks: (Leak[] | null)[] = [];
 
   constructor() {
-    super((stats) => stats.fuel, (spec) => spec.drainPriority ?? 0);
+    super(
+      (stats) => stats.fuel,
+      (spec) => spec.drainPriority ?? 0,
+    );
   }
 
   override register(bodyIndex: number, design: ShipDesign, carried?: readonly number[], leaks?: readonly Leak[]): void {

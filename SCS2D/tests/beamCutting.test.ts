@@ -257,7 +257,13 @@ describe('a beam through a wreck', () => {
     grid.rebuild(world.bodies);
     const beams = new Beams(8);
     const hits = new BeamHits();
-    const index = beams.shoot({ startX: -20, startY: 0, endX: 100, endY: 0, width: 0.2, power: POWER }, world.bodies, grid, hits, ships.holedHulls);
+    const index = beams.shoot(
+      { startX: -20, startY: 0, endX: 100, endY: 0, width: 0.2, power: POWER },
+      world.bodies,
+      grid,
+      hits,
+      ships.holedHulls,
+    );
     let front = 0;
     let back = 0;
     for (let i = 0; i < hits.count; i++) {

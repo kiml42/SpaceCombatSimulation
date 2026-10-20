@@ -208,7 +208,9 @@ describe('robots rebuilding', () => {
       ...BUILDER,
       doctrine: { ...builder.doctrine, approach: { ...builder.doctrine.approach, rearmBelow: 1, rechargeBelow: 1 } },
     });
-    const run = makeBattle({ seed: 1, pilots: false }, (ships, world) => ({ a: ships.spawn(world, { design: hoarder, x: 0, y: 0, angle: 0 }) }));
+    const run = makeBattle({ seed: 1, pilots: false }, (ships, world) => ({
+      a: ships.spawn(world, { design: hoarder, x: 0, y: 0, angle: 0 }),
+    }));
     const b = (): number => run.world.bodies.indexOf(run.ships.body(run.a));
     for (const robot of run.ships.robots.on(b())!) robot.charge = 0;
     lose(run, FIN, HOLD);
@@ -257,7 +259,10 @@ describe('robots rebuilding', () => {
   it('grow both halves of a catamaran cut in two back into the whole ship', { timeout: 120_000 }, () => {
     // Flown, for the power its generators make, but not escorting: the halves
     // burn their fuel keeping station long before they are whole.
-    const catamaran = compileBlueprint({ ...CATAMARAN, doctrine: { ...CATAMARAN.doctrine!, targeting: { ...CATAMARAN.doctrine!.targeting, escortWeight: 0 } } });
+    const catamaran = compileBlueprint({
+      ...CATAMARAN,
+      doctrine: { ...CATAMARAN.doctrine!, targeting: { ...CATAMARAN.doctrine!.targeting, escortWeight: 0 } },
+    });
     const run = makeBattle({ seed: 1 }, (ships, world) => ({ a: ships.spawn(world, { design: catamaran, x: 0, y: 0, angle: 0 }) }));
     const all = joints(catamaran);
     const mid = all.findIndex((j) => Math.abs(catamaran.modules[j.a]!.spec.y) < 3 && Math.abs(catamaran.modules[j.b]!.spec.y) < 3);

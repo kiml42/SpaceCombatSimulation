@@ -58,7 +58,13 @@ function ram(distance: (time: number) => number, until: number): Decision | null
     distanceBetween: () => distance(world.tick * dt),
     nearestEnemy: () => distance(world.tick * dt),
   };
-  const credit = { count: 0, attacker: new Int32Array(0), attackerModule: new Int32Array(0), victim: new Int32Array(0), module: new Int32Array(0) };
+  const credit = {
+    count: 0,
+    attacker: new Int32Array(0),
+    attackerModule: new Int32Array(0),
+    victim: new Int32Array(0),
+    module: new Int32Array(0),
+  };
   const activity = new Activity(2);
   let decision: Decision | null = null;
   while (world.tick * dt < until && decision === null) {

@@ -110,13 +110,7 @@ export interface Strike {
  * absolute: which side of the normal a round arrives from decides where it
  * goes next, which is the caller's arithmetic, not the plate's.
  */
-export function strike(
-  mass: number,
-  calibre: number,
-  speed: number,
-  thickness: number,
-  incidence: number,
-): Strike {
+export function strike(mass: number, calibre: number, speed: number, thickness: number, incidence: number): Strike {
   const energy = 0.5 * mass * speed * speed;
   // A plate with no thickness stops nothing, which is the ordinary case for a
   // shot leaving a hole it has already made.
@@ -175,12 +169,7 @@ export function strike(
  * `dx, dy` is the round's direction and `nx, ny` the outward unit normal of
  * the surface it struck. The result is a unit direction.
  */
-export function deflected(
-  dx: number,
-  dy: number,
-  nx: number,
-  ny: number,
-): { x: number; y: number } {
+export function deflected(dx: number, dy: number, nx: number, ny: number): { x: number; y: number } {
   const dot = dx * nx + dy * ny;
   const rx = dx - 2 * dot * nx;
   const ry = dy - 2 * dot * ny;

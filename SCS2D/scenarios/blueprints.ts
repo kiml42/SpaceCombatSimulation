@@ -25,7 +25,6 @@ import quasarFile from './blueprints/quasar-fire-class-cruiser-carrier.json' wit
 import tieFile from './blueprints/tie-fighter.json' with { type: 'json' };
 import starDestroyerFile from './blueprints/star-destroyer.json' with { type: 'json' };
 
-
 /**
  * The ship layouts that ship with the game, loaded from the same files the
  * editor writes.
@@ -73,30 +72,30 @@ export const TIE: Blueprint = parseBlueprint(tieFile);
 export const STAR_DESTROYER: Blueprint = parseBlueprint(starDestroyerFile);
 
 export const BLUEPRINTS = {
-    corvette: CORVETTE,
-    beamCorvette: BEAM_CORVETTE,
-    gunship: GUNSHIP,
-    beamGunship: BEAM_GUNSHIP,
-    fractal: FRACTAL,
-    dinky: DINKY,
-    catamaran: CATAMARAN,
-    bareCore: BARE_CORE,
-    torch: TORCH,
-    laserFrigate: LASER_FRIGATE,
-    torpedo: TORPEDO,
-    broadside: BROADSIDE,
-    scavenger: SCAVENGER,
-    salvager: SALVAGER,
-    tanker: TANKER,
-    beamCarrier: BEAM_CARRIER,
+  corvette: CORVETTE,
+  beamCorvette: BEAM_CORVETTE,
+  gunship: GUNSHIP,
+  beamGunship: BEAM_GUNSHIP,
+  fractal: FRACTAL,
+  dinky: DINKY,
+  catamaran: CATAMARAN,
+  bareCore: BARE_CORE,
+  torch: TORCH,
+  laserFrigate: LASER_FRIGATE,
+  torpedo: TORPEDO,
+  broadside: BROADSIDE,
+  scavenger: SCAVENGER,
+  salvager: SALVAGER,
+  tanker: TANKER,
+  beamCarrier: BEAM_CARRIER,
 
-    xWing: X_WING,
-    aWing: A_WING,
-    yWing: Y_WING,
-    ghost: GHOST,
-    quasar: QUASAR,
-    tie: TIE,
-    starDestroyer: STAR_DESTROYER,
+  xWing: X_WING,
+  aWing: A_WING,
+  yWing: Y_WING,
+  ghost: GHOST,
+  quasar: QUASAR,
+  tie: TIE,
+  starDestroyer: STAR_DESTROYER,
 } as const;
 
 export type BlueprintName = keyof typeof BLUEPRINTS;

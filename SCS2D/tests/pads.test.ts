@@ -46,7 +46,6 @@ function fighterOf(refuelBelow: number): ShipDesign {
   return compileBlueprint({ ...DINKY, doctrine: { ...doctrine, approach: { ...doctrine.approach, refuelBelow, sortieRange: ANY_RANGE } } });
 }
 
-
 interface Setup {
   carrier?: ShipDesign;
   fighter?: ShipDesign;
@@ -106,7 +105,12 @@ describe('a pad', () => {
     const n = carrier.modules.length;
     const own = dinky.modules.map((_, m) => n + m);
     expect(subDesign(docked, own).fighter).toBe(true);
-    expect(subDesign(docked, carrier.modules.map((_, m) => m)).fighter).toBe(false);
+    expect(
+      subDesign(
+        docked,
+        carrier.modules.map((_, m) => m),
+      ).fighter,
+    ).toBe(false);
   });
 });
 
@@ -163,7 +167,10 @@ describe('a fighter low on fuel', () => {
   /** A fighter with a sortie range of 2, aboard and full with nobody about, and then an enemy Corvette `at` reaches off. */
   function sortie(at: number): { run: ReturnType<typeof scene>; aboardWithNobody: boolean } {
     const doctrine = compileBlueprint(DINKY).doctrine;
-    const fighter = compileBlueprint({ ...DINKY, doctrine: { ...doctrine, approach: { ...doctrine.approach, refuelBelow: 0.5, sortieRange: 2, dockDanger: 0 } } });
+    const fighter = compileBlueprint({
+      ...DINKY,
+      doctrine: { ...doctrine, approach: { ...doctrine.approach, refuelBelow: 0.5, sortieRange: 2, dockDanger: 0 } },
+    });
     const run = scene({ fighter, alone: true });
     runUntil(run, () => aboard(run, run.f), 60);
     // Long after it is full, with nothing to fight, it is still aboard.
@@ -363,11 +370,17 @@ describe('a pad passing charge', () => {
     ],
   };
 
-  it('is gone to for charge alone once a fighter\'s batteries are down to its refuelBelow', () => {
+  it("is gone to for charge alone once a fighter's batteries are down to its refuelBelow", () => {
     // A Dinky with a battery where its hold was, setting out a tenth charged and full of fuel.
-    const modules = DINKY.modules!.map((m) => ((m as { kind?: string }).kind === 'hold' ? { ...m, kind: 'battery' as const, fill: 0.1 } : m));
+    const modules = DINKY.modules!.map((m) =>
+      (m as { kind?: string }).kind === 'hold' ? { ...m, kind: 'battery' as const, fill: 0.1 } : m,
+    );
     const doctrine = compileBlueprint(DINKY).doctrine;
-    const sparky = compileBlueprint({ ...DINKY, modules, doctrine: { ...doctrine, approach: { ...doctrine.approach, sortieRange: ANY_RANGE } } });
+    const sparky = compileBlueprint({
+      ...DINKY,
+      modules,
+      doctrine: { ...doctrine, approach: { ...doctrine.approach, sortieRange: ANY_RANGE } },
+    });
     const battery = sparky.modules.findIndex((m) => m.spec.kind === 'battery');
     const run = scene({ fighter: sparky, spent: 0 });
     runUntil(run, () => aboard(run, run.f), 60);
@@ -378,7 +391,9 @@ describe('a pad passing charge', () => {
   });
 
   it('fills a fighter aboard from its carrier, and lets it go once full', () => {
-    const run = makeBattle({ seed: 3 }, (ships, world) => ({ c: ships.spawn(world, { design: compileBlueprint(laden(20, SPARK)), x: 0, y: 0 }) }));
+    const run = makeBattle({ seed: 3 }, (ships, world) => ({
+      c: ships.spawn(world, { design: compileBlueprint(laden(20, SPARK)), x: 0, y: 0 }),
+    }));
     const f = run.c + 1;
     const battery = compileBlueprint(SPARK).modules[1]!.stats.charge;
     expect(battery).toBeGreaterThan(0);

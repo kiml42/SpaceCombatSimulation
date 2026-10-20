@@ -1,14 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  HullPath,
-  Ships,
-  World,
-  compileBlueprint,
-  joints,
-  resolveRound,
-  type Blueprint,
-  type Rng,
-} from '../sim/index.js';
+import { HullPath, Ships, World, compileBlueprint, joints, resolveRound, type Blueprint, type Rng } from '../sim/index.js';
 import { LEAK_CHANCE, leakChance, leakRate, leakSpeed, type Leak } from '../sim/fuel.js';
 
 /** A core and a tank ahead of it, and nothing to fly with: what moves it is the leak. */

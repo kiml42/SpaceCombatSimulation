@@ -36,7 +36,10 @@ type Run = ReturnType<typeof scene>;
 /** The metal on the salvager's hull. */
 const hold = (run: Run): number => {
   const b = run.world.bodies.indexOf(run.ships.body(run.s));
-  return run.ships.metal.pieceHeld(b, run.ships.design(run.s).modules.findIndex((m) => m.spec.kind === 'hold'));
+  return run.ships.metal.pieceHeld(
+    b,
+    run.ships.design(run.s).modules.findIndex((m) => m.spec.kind === 'hold'),
+  );
 };
 function runFor(run: Run, seconds: number, done: () => boolean = () => false): void {
   for (let s = 0; s < seconds * 60 && !done(); s++) run.step();
