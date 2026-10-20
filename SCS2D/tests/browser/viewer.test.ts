@@ -424,8 +424,8 @@ describe('the viewer in a browser', () => {
   it('remembers the speed, the arcs and the shot colours for the next visit', async () => {
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
     await page.selectOption('#speed', '4');
-    await page.keyboard.press('a');
-    await page.keyboard.press('a');
+    await page.keyboard.press('Control+a');
+    await page.keyboard.press('Control+a');
     await page.keyboard.press('c');
     expect(JSON.parse((await page.evaluate(() => localStorage.getItem('scs2d.view.viewer')))!)).toEqual({
       arcs: 'trigger',
@@ -439,7 +439,7 @@ describe('the viewer in a browser', () => {
     await page.waitForFunction(() => /step \d+/.test(document.getElementById('readout')?.textContent ?? ''));
     expect(await page.inputValue('#speed')).toBe('4');
     // Pressed once more, the arcs go on round from where they were left, to none.
-    await page.keyboard.press('a');
+    await page.keyboard.press('Control+a');
     expect(JSON.parse((await page.evaluate(() => localStorage.getItem('scs2d.view.viewer')))!).arcs).toBe('none');
   });
 
@@ -609,6 +609,77 @@ describe('the viewer in a browser', () => {
     expect((await ranges()).length).toBeGreaterThan(0);
     await page.keyboard.press('Escape');
   });
+
+  it('gives orders: picked out, right-clicked, armed, queued, taken back and stopped', async () => {
+    await page.selectOption('#scene', { label: 'Duel' });
+    // Far enough in that each ship has picked a fight, so framing a pick takes in all three.
+    if ((await page.textContent('#play')) === 'Play') await page.click('#play');
+    await advanced(page, 60);
+    await page.click('#play');
+    await painted(page);
+    const canvas = (await page.locator('#view').boundingBox())!;
+    // In the duel, ships 0 and 1 are a side and ship 2 the other.
+    const at = async (ship: number): Promise<{ x: number; y: number }> => {
+      const p = await page.evaluate((i) => (window as unknown as { viewer: { screenOf(i: number): { x: number; y: number } } }).viewer.screenOf(i), ship);
+      return { x: canvas.x + p.x, y: canvas.y + p.y };
+    };
+    const orders = (): Promise<unknown[]> => page.evaluate(() => (window as unknown as { viewer: { orders: unknown[] } }).viewer.orders);
+    const click = async (ship: number, options: { shift?: boolean; ctrl?: boolean; right?: boolean } = {}): Promise<void> => {
+      const p = await at(ship);
+      const held = options.shift ? 'Shift' : options.ctrl ? 'Control' : null;
+      if (held !== null) await page.keyboard.down(held);
+      await page.mouse.click(p.x, p.y, { button: options.right ? 'right' : 'left' });
+      if (held !== null) await page.keyboard.up(held);
+      // Past the double-click interval, so two clicks are never read as one, and
+      // long enough for the camera to settle on what was picked.
+      await page.waitForTimeout(1000);
+      await painted(page);
+    };
+
+    expect(await page.isHidden('#orderBar')).toBe(true);
+    await click(0);
+    expect(await page.isVisible('#orderBar')).toBe(true);
+    await click(1, { shift: true });
+    await click(2, { right: true });
+    expect(await orders()).toHaveLength(1);
+    expect(JSON.stringify(await orders())).toContain('"ships":[0,1]');
+    // The future is gone with it: the bar runs to here.
+    expect(Number(await page.getAttribute('#scrub', 'max'))).toBe(await step(page));
+
+    // Let go first each time, so no close-up of a picked ship is in the way.
+    await page.keyboard.press('Escape');
+    await click(0);
+    expect(await page.locator('#queue li').count()).toBe(1);
+    expect(await page.textContent('#queue')).toContain('attack');
+    // Ctrl queues, by a right-click or an armed verb's click.
+    await click(2, { ctrl: true, right: true });
+    expect(await page.locator('#queue li').count()).toBe(2);
+    await page.keyboard.press('Escape');
+    await click(0);
+    await page.locator('#queue li').nth(1).locator('button').click();
+    await painted(page);
+    await page.keyboard.press('r');
+    await click(2, { ctrl: true });
+    expect(await page.locator('#queue li').count()).toBe(2);
+    expect(await page.textContent('#queue li:nth-child(2)')).toContain('ram');
+    await page.locator('#queue li').first().locator('button').click();
+    await painted(page);
+    expect(await page.locator('#queue li').count()).toBe(1);
+    await page.keyboard.press('s');
+    await painted(page);
+    expect(await page.locator('#queue li').count()).toBe(0);
+
+    await page.keyboard.press('Escape');
+    await click(1);
+    await click(0, { right: true });
+    expect(JSON.stringify((await orders()).at(-1))).toContain('"defend"');
+    // A alone takes the picked ship's whole side.
+    await page.keyboard.press('a');
+    expect(await page.evaluate(() => (window as unknown as { viewer: { picked: number[] } }).viewer.picked)).toEqual([0, 1]);
+    await page.keyboard.press('Escape');
+    await painted(page);
+    expect(await page.isHidden('#orderBar')).toBe(true);
+  }, 60_000);
 
   it('reports no errors after all of that', () => {
     expect(problems).toEqual([]);

@@ -421,7 +421,7 @@ export {
   type Order,
   type ShipSpec,
 } from './ships.js';
-export { capture, Snapshot, type ShipView } from './snapshot.js';
+export { capture, Snapshot, type OrderView, type ShipView } from './snapshot.js';
 export {
   DE_MARRE_K,
   RICOCHET_ANGLE,

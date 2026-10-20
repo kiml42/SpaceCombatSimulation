@@ -31,6 +31,12 @@ import { fittingOf } from './rebuild.js';
  * layout every frame would be copying a constant.
  */
 
+/** An order as drawn: what it is, and the body of what it is given against. */
+export interface OrderView {
+  kind: 'attack' | 'defend' | 'ram';
+  target: number;
+}
+
 /** One ship: which design to draw, where it is, and how its turrets are trained. */
 export interface ShipView {
   design: ShipDesign;
@@ -59,6 +65,12 @@ export interface ShipView {
   fightingMax?: number;
   /** The body of what it is escorting, or -1 or absent for nothing. */
   covering?: number;
+  /** How far from that it stays, centre to centre, metres. */
+  coverBand?: number;
+  /** Which ship it is in the simulation, as commands name it; absent where there is none, as in an editor. */
+  ship?: number;
+  /** The orders it has been given, the current one first; absent for none. */
+  orders?: OrderView[];
   x: number;
   y: number;
   angle: number;
@@ -419,6 +431,19 @@ export function capture(
     }
     const covering = ships.coveringOf(i);
     view.covering = covering >= 0 ? bodies.indexOf(ships.body(covering)) : -1;
+    if (covering >= 0) view.coverBand = ships.coverBandOf(i, covering);
+    else delete view.coverBand;
+    view.ship = i;
+    const given = ships.ordersOf(i);
+    if (given.length === 0) delete view.orders;
+    else {
+      const orders = (view.orders ??= []);
+      orders.length = 0;
+      for (const order of given) {
+        const kind = order.defend === true ? 'defend' : order.ram ? 'ram' : 'attack';
+        orders.push({ kind, target: ships.isAlive(order.target) ? bodies.indexOf(ships.body(order.target)) : -1 });
+      }
+    }
     view.x = bodies.x[b]!;
     view.y = bodies.y[b]!;
     view.angle = bodies.angle[b]!;

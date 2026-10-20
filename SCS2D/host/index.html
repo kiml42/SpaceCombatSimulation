@@ -51,6 +51,18 @@
       #view { flex: 1; min-width: 0; min-height: 0; display: block; touch-action: none; cursor: grab; }
       #view:active { cursor: grabbing; }
       footer { padding: 0.4rem 0.9rem; color: #5d6f85; border-top: 1px solid #1c2533; }
+      #stage { flex: 1; display: flex; position: relative; min-width: 0; min-height: 0; }
+      /* Over the battle rather than beside it, so picking a ship out never resizes the view under the pointer. */
+      #orderBar {
+        position: absolute; left: 0; right: 0; bottom: 0;
+        display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;
+        padding: 0.4rem 0.9rem; background: #0b0f16d9; border-top: 1px solid #1c2533;
+      }
+      #orderBar button.armed { background: #3a4f6e; border-color: #7fa8e0; }
+      #orderBar select { max-width: 12rem; }
+      #armedHint { color: #e9c05f; }
+      #queue { display: flex; flex-wrap: wrap; gap: 0.3rem 0.9rem; margin: 0; padding: 0; list-style-position: inside; }
+      #queue button { padding: 0 0.3rem; }
       main { flex: 1; display: flex; min-height: 0; }
       [hidden] { display: none !important; }
       #custom {
@@ -130,7 +142,24 @@
       <a href="evolution.html">Evolution</a>
     </header>
     <main>
-      <canvas id="view"></canvas>
+      <div id="stage">
+        <canvas id="view"></canvas>
+        <div id="orderBar" hidden>
+          <button data-verb="attack" title="Attack the next ship clicked (K); Ctrl to add to its orders">Attack</button>
+          <select id="cancelOn" title="What finishes an attack given with the button">
+            <option value="5" selected>until disabled</option>
+            <option value="1">until destroyed</option>
+            <option value="2">until disarmed</option>
+            <option value="3">until its engines are out</option>
+            <option value="4">until disarmed or engines out</option>
+          </select>
+          <button data-verb="defend" title="Defend the next friend clicked (D)">Defend</button>
+          <button data-verb="ram" title="Ram the next ship clicked (R)">Ram</button>
+          <button id="stop" title="Clear their orders, back to doctrine (S)">Stop</button>
+          <span id="armedHint"></span>
+          <ol id="queue"></ol>
+        </div>
+      </div>
       <aside id="custom" hidden>
         <h2>Fleets</h2>
         <div id="fleetSlots"></div>

@@ -88,12 +88,23 @@ export function keyHelp(footer: HTMLElement, rows: readonly KeyRow[], notes: rea
   return button;
 }
 
+/** What the scenarios page adds, where a battle can be wound back and given orders. */
+export const ORDER_KEYS: readonly KeyRow[] = [
+  { keys: ', (comma)', does: 'Step back once, paused' },
+  { keys: 'Shift-click, Shift-drag', does: 'Pick more ships of the same side, or take one back' },
+  { keys: 'Double-click a ship', does: 'Pick every ship of its design on its side' },
+  { keys: 'A', does: "Pick the picked ship's whole side" },
+  { keys: 'Right-click a ship', does: 'Order the picked ships to attack it, if an enemy, or defend it, if a friend; Ctrl to add to their orders' },
+  { keys: 'K, D, R', does: 'Attack, defend or ram the next ship clicked; Ctrl to add to their orders' },
+  { keys: 'S', does: "Stop: clear the picked ships' orders, back to doctrine" },
+];
+
 /** The keys and mouse every battle view answers to, from `battleView` and the evolution page alike. */
 export const BATTLE_KEYS: readonly KeyRow[] = [
   { keys: 'Space', does: 'Pause, or play' },
   { keys: '. (full stop)', does: 'Step once, paused' },
   { keys: 'F', does: 'Frame everything again, or the picked ship and its target' },
-  { keys: 'A', does: 'Cycle the arcs drawn: none, where each gun can point, where it will fire (amber when on target)' },
+  { keys: 'Ctrl+A', does: 'Cycle the arcs drawn: none, where each gun can point, where it will fire (amber when on target)' },
   { keys: 'C', does: 'Colour rounds and beams by the side that fired them, or draw them as light' },
   { keys: 'T', does: "Hide or show each side's ships down the edges" },
   { keys: 'Escape', does: 'Let the picked ship go' },
