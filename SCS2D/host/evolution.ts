@@ -1236,7 +1236,9 @@ export function startEvolution(): void {
       selected = -1;
     } else if (event.key === 'n' || event.key === 'N') {
       if (!skipButton.disabled) skipMatch();
-    } else if (event.key.toLowerCase() === ARCS_KEY) {
+    } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === ARCS_KEY) {
+      // Not the browser's select-all; as on every battle, where A alone picks a side.
+      event.preventDefault();
       arcs = nextArcs(arcs);
       Object.assign(kept, { arcs, teamShots });
       saveView('evolution', kept);

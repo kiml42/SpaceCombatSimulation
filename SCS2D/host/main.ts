@@ -1,4 +1,4 @@
-import { BATTLE_KEYS, keyHelp } from './keyHelp.js';
+import { BATTLE_KEYS, keyHelp, ORDER_KEYS } from './keyHelp.js';
 import { math } from '../sim/index.js';
 import { duel } from '../scenarios/duel.js';
 import { beamDuel } from '../scenarios/beamDuel.js';
@@ -27,6 +27,8 @@ import { linkedBattle } from '../scenarios/battleLink.js';
 import { handedFleet } from '../editor/handoff.js';
 import { gridStep } from '../render/camera.js';
 import { battleView } from './battleView.js';
+import { orderBar } from './orderBar.js';
+import type { Logged } from '../scenarios/commands.js';
 import { el } from './dom.js';
 
 /**
@@ -37,10 +39,14 @@ import { el } from './dom.js';
 const SEED = 20260905;
 
 export function start(): void {
-  keyHelp(el<HTMLElement>('hint'), BATTLE_KEYS, [
-    'Blue, red, green and magenta are the sides; grey is a side beyond the fourth, or a hulk.',
-    'The ring marks where the gravity well pulls at 1 m/s².',
-  ]);
+  keyHelp(
+    el<HTMLElement>('hint'),
+    [...BATTLE_KEYS, ...ORDER_KEYS],
+    [
+      'Blue, red, green and magenta are the sides; grey is a side beyond the fourth, or a hulk.',
+      'The ring marks where the gravity well pulls at 1 m/s².',
+    ],
+  );
   const readout = el<HTMLElement>('readout');
   const metrics = el<HTMLElement>('metrics');
   const playButton = el<HTMLButtonElement>('play');
@@ -79,11 +85,14 @@ export function start(): void {
     { name: 'Custom battle', create: (): Battle => customBattle(panel.setup()) },
   ];
   const CUSTOM = scenes.length - 1;
+  /** The orders a link carried, for the battle it opens and no other. */
+  let linkedOrders: readonly Logged[] = [];
   /** Build the current scene afresh, running or held at its first step: by default, whichever it was. */
   const restart = (run = view.running): void => {
     state = scenes[sceneIndex]!.create();
     panel.reset();
-    view.show(state, run, true);
+    view.show(state, run, true, linkedOrders);
+    linkedOrders = [];
   };
   // A custom battle is set up paused at its first step, so the opening
   // positions can be seen as they are chosen, and started with Fight.
@@ -93,7 +102,11 @@ export function start(): void {
     panel.show(true);
     restart(false);
   };
-  const panel = customPanel(openCustom, () => restart(true));
+  const panel = customPanel(
+    openCustom,
+    () => restart(true),
+    () => view.orders,
+  );
   let sceneIndex = 0;
   let state: Battle = scenes[sceneIndex]!.create();
 
@@ -101,6 +114,7 @@ export function start(): void {
     el<HTMLCanvasElement>('view'),
     () => {},
     (shown) => {
+      bar.update(shown);
       if (sceneIndex === CUSTOM) panel.update(state as CustomBattle, shown.time);
       // Between the first two ships, whatever the scenario holds — but only if
       // there are two. A single survivor has nothing to measure against.
@@ -125,6 +139,10 @@ export function start(): void {
       panel.reset();
     },
   );
+  const bar = orderBar(view);
+  view.allowOrders();
+  // For the browser tests and anyone inspecting the page.
+  Reflect.set(window, 'viewer', view);
   view.show(state, true, true);
 
   // Named rather than numbered, and the list is the scenes array itself, so a
@@ -184,7 +202,8 @@ export function start(): void {
   void linkedBattle(hash)
     .then((linked) => {
       if (linked === null) return;
-      panel.use(linked, 'link');
+      panel.use(linked.setup, 'link');
+      linkedOrders = linked.orders;
       openCustom();
     })
     .catch((error: unknown) => {

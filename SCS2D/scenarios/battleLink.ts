@@ -1,4 +1,5 @@
 import { parseBattleSetup, serialiseBattleSetup, type BattleSetup } from './customBattle.js';
+import { parseLog, type Logged } from './commands.js';
 
 /**
  * A custom battle carried whole in a link: the battle file, deflated and
@@ -7,22 +8,27 @@ import { parseBattleSetup, serialiseBattleSetup, type BattleSetup } from './cust
  *
  * Deflated because a fleet file is mostly the same few keys over and over: a
  * Star Destroyer's battle is a few kilobytes of link rather than tens.
+ *
+ * The orders given in it ride along beside the battle file, as `orders`, so
+ * the battle plays as it was fought.
  */
 
 const KEY = '#battle=';
 
 /** The fragment that carries a battle, `#battle=` and all. */
-export async function battleFragment(setup: BattleSetup): Promise<string> {
-  const text = JSON.stringify(serialiseBattleSetup(setup));
+export async function battleFragment(setup: BattleSetup, orders: readonly Logged[] = []): Promise<string> {
+  const file = serialiseBattleSetup(setup);
+  const text = JSON.stringify(orders.length > 0 ? { ...file, orders } : file);
   const packed = await pipe(new TextEncoder().encode(text), new CompressionStream('deflate-raw'));
   return KEY + toBase64Url(packed);
 }
 
-/** The battle a fragment carries, or null if it carries none. Throws on one it carries but cannot read. */
-export async function linkedBattle(hash: string): Promise<BattleSetup | null> {
+/** The battle a fragment carries, and its orders, or null if it carries none. Throws on one it carries but cannot read. */
+export async function linkedBattle(hash: string): Promise<{ setup: BattleSetup; orders: Logged[] } | null> {
   if (!hash.startsWith(KEY)) return null;
   const unpacked = await pipe(fromBase64Url(hash.slice(KEY.length)), new DecompressionStream('deflate-raw'));
-  return parseBattleSetup(JSON.parse(new TextDecoder().decode(unpacked)));
+  const { orders, ...file } = JSON.parse(new TextDecoder().decode(unpacked)) as Record<string, unknown>;
+  return { setup: parseBattleSetup(file), orders: orders === undefined ? [] : parseLog(orders) };
 }
 
 async function pipe(bytes: Uint8Array, through: CompressionStream | DecompressionStream): Promise<Uint8Array> {

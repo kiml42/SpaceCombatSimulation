@@ -12,6 +12,7 @@ import {
   type CustomBattle,
 } from '../scenarios/customBattle.js';
 import { battleFragment } from '../scenarios/battleLink.js';
+import type { Logged } from '../scenarios/commands.js';
 import { el } from './dom.js';
 import { max } from '../sim/math.js';
 
@@ -52,7 +53,7 @@ export interface CustomPanel {
  * `changed` is called whenever the setup changes, so the viewer can show it
  * paused at its first step; `fight` when the battle should start.
  */
-export function customPanel(changed: () => void, fight: () => void): CustomPanel {
+export function customPanel(changed: () => void, fight: () => void, orders: () => readonly Logged[] = () => []): CustomPanel {
   const panel = el<HTMLElement>('custom');
   const slotsBox = el<HTMLElement>('fleetSlots');
   const sidesBox = el<HTMLElement>('sides');
@@ -246,7 +247,7 @@ export function customPanel(changed: () => void, fight: () => void): CustomPanel
   // The whole battle in the address, for whoever it is sent to.
   const linkButton = el<HTMLButtonElement>('linkBattle');
   linkButton.addEventListener('click', () => {
-    void battleFragment(setup()).then(async (fragment) => {
+    void battleFragment(setup(), orders()).then(async (fragment) => {
       const href = `${window.location.href.split('#')[0]}${fragment}`;
       try {
         await navigator.clipboard.writeText(href);

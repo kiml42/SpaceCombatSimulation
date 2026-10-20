@@ -98,7 +98,16 @@ Nothing: every step up to 13 is built.
        - **Flashes on landing at a checkpoint.** Across steps re-simulated, flashes are rebuilt as they
          would have been drawn; landing on a checkpoint re-simulates nothing, so it shows none until the
          next step.
-    1. **Attack, defend and ram**, with the log, selection and order bar they need (below).
+    1. **Attack, defend and ram** — built, as settled below. Building it chose:
+       - **Keys:** K, D and R arm attack, defend and ram (T being the fleet strips), and S stops. A takes the whole side, and the
+         arcs moved to Ctrl or Cmd+A on every battle page; the editors keep A for them.
+       - **The attacker preference is a filter:** defending, a ship picks only among the friend's
+         attackers while there are any. The friend becomes its consort, held as firmly as a station.
+       - **Neutrals:** a right-click on one gives nothing. Neither is an order to defend a ship on
+         another side, or to attack or ram one's own, whatever a link says.
+       - **The order bar floats over the battle**, so picking a ship never resizes the view under the
+         pointer.
+       - **Commands name ships by the simulation's index**, which a deterministic battle keeps.
     2. **Change doctrine, refuel or repair, remodel, build a fighter, build a ship.** Not yet designed: its
        own grilling once slice 1 is playable.
     3. **Run away**, once withdrawal (§12) is designed; outside step 14 until then.
@@ -121,7 +130,7 @@ Nothing: every step up to 13 is built.
       until selection can hold more than one ship, it picks only the fighter shown.
     - **Giving.** Right-click an enemy to attack it, a friend to defend it; on empty space, nothing. The
       rest is an order bar of buttons with hotkeys, which puts the next click into picking a target; Escape
-      cancels. A new order replaces the queue; Shift appends. A group gets the same order, one command
+      cancels. A new order replaces the queue; Ctrl (or Cmd) appends, since browsers keep Shift-right-click for their own menu; Shift still does where it reaches the page. A group gets the same order, one command
       for all of it; a ship told to defend itself is skipped.
     - **Attack** takes its band and approach speed from doctrine and ends on `CompleteDisable`, as one
       doctrine chose would; the order bar offers the other cancel conditions. A per-order menu to override

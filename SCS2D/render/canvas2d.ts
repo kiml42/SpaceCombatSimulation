@@ -132,7 +132,7 @@ export function nextArcs(arcs: Arcs): Arcs {
   return arcs === 'none' ? 'firing' : arcs === 'firing' ? 'trigger' : 'none';
 }
 
-/** The key that cycles `Arcs` on every page that draws ships. */
+/** The key that cycles `Arcs`: alone in the editors, with Ctrl or Cmd on a battle, where alone it picks a side. */
 export const ARCS_KEY = 'a';
 
 /** The key that toggles rounds and beams between light and their side's colours. */
@@ -1486,8 +1486,10 @@ export function draw(
    * is drawn with any.
    */
   selected = -1,
+  /** Bodies of more ships picked out with it, for orders: ringed, and their orders drawn. */
+  alsoSelected: readonly number[] = [],
 ): void {
-  drawScene(ctx, snapshot, camera, 0, 0, widthPx, heightPx, flashes, arcs, teamShots, selected);
+  drawScene(ctx, snapshot, camera, 0, 0, widthPx, heightPx, flashes, arcs, teamShots, selected, alsoSelected);
 }
 
 /** Pixels round a ship within which it is still drawn when its hull is just out of view: its icon and name. */
@@ -1509,6 +1511,7 @@ function drawScene(
   arcs: Arcs,
   teamShots: boolean,
   selected: number,
+  alsoSelected: readonly number[] = [],
 ): void {
   ctx.setTransform(1, 0, 0, 1, left, top);
   ctx.fillStyle = BACKGROUND;
@@ -1557,7 +1560,9 @@ function drawScene(
     drawName(ctx, snapshot.ships[i]!, camera.scale);
   }
 
+  for (const body of alsoSelected) if (body !== selected) drawRing(ctx, snapshot, body, camera.scale);
   if (selected >= 0) drawSelected(ctx, snapshot, selected, camera.scale);
+  drawOrders(ctx, snapshot, selected, alsoSelected, camera.scale);
   drawBurns(ctx, snapshot);
   drawProjectiles(ctx, snapshot, camera, teamShots);
   drawBeams(ctx, snapshot, camera, teamShots);
@@ -1926,6 +1931,12 @@ function drawSelected(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: n
   }
   // What it is escorting, ringed in a broken line: a ship it stays with, not one it shoots.
   const consort = shipByBody(snapshot, ship.covering ?? -1);
+  if (consort !== null && ship.coverBand !== undefined) {
+    // And the band it stays inside, round it.
+    ctx.save();
+    drawBand(ctx, consort.x, consort.y, 0, ship.coverBand, metresToPx);
+    ctx.restore();
+  }
   if (consort !== null) {
     ctx.globalAlpha = 0.6;
     ctx.setLineDash([3 / metresToPx, 4 / metresToPx]);
@@ -1934,6 +1945,80 @@ function drawSelected(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: n
     ctx.stroke();
     ctx.setLineDash([]);
   }
+  ctx.restore();
+}
+
+/** A picked-out ship's ring, without the lines to what it is fighting. */
+function drawRing(ctx: CanvasRenderingContext2D, snapshot: Snapshot, body: number, metresToPx: number): void {
+  const ship = shipByBody(snapshot, body);
+  if (ship === null) return;
+  ctx.save();
+  ctx.strokeStyle = (ship.hasControl && !ship.isMissionKilled ? shipColours(ship.team) : NEUTRAL).trim;
+  ctx.lineWidth = 1.5 / metresToPx;
+  ctx.beginPath();
+  ctx.arc(ship.x, ship.y, ship.design.radius + SELECTED_GAP_PX / metresToPx, 0, TAU);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** Each order's colour, by what it says to do. */
+const ORDER_COLOURS = { attack: '#ff7a6b', defend: '#6fb6ff', ram: '#ffb347' } as const;
+
+/**
+ * The orders of every picked-out ship: a line from it through each target in
+ * turn, in the colour of the order, and the order's place in the queue by
+ * each target.
+ */
+function drawOrders(
+  ctx: CanvasRenderingContext2D,
+  snapshot: Snapshot,
+  selected: number,
+  also: readonly number[],
+  metresToPx: number,
+): void {
+  const bodies = also.includes(selected) || selected < 0 ? also : [selected, ...also];
+  ctx.save();
+  ctx.lineWidth = 1.5 / metresToPx;
+  for (const body of bodies) {
+    const ship = shipByBody(snapshot, body);
+    if (ship?.orders === undefined) continue;
+    let fromX = ship.x;
+    let fromY = ship.y;
+    // Places in the queue by target, so two orders against one ship read "1, 2" rather than one over the other.
+    const places = new Map<number, { ship: ShipView; text: string; colour: string }>();
+    ship.orders.forEach((order, n) => {
+      const target = shipByBody(snapshot, order.target);
+      if (target === null) return;
+      ctx.strokeStyle = ORDER_COLOURS[order.kind];
+      ctx.globalAlpha = n === 0 ? 0.9 : 0.5;
+      ctx.beginPath();
+      ctx.moveTo(fromX, fromY);
+      ctx.lineTo(target.x, target.y);
+      ctx.stroke();
+      const place = places.get(target.body);
+      if (place === undefined) places.set(target.body, { ship: target, text: `${n + 1}`, colour: ORDER_COLOURS[order.kind] });
+      else place.text += `, ${n + 1}`;
+      fromX = target.x;
+      fromY = target.y;
+    });
+    for (const place of places.values()) {
+      drawScreenText(ctx, place.text, place.ship.x, place.ship.y + place.ship.design.radius, place.colour);
+    }
+  }
+  ctx.restore();
+}
+
+/** Text at a world point, upright and at a fixed size on screen, just above it. */
+function drawScreenText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, colour: string): void {
+  const view = ctx.getTransform();
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, view.a * x + view.c * y + view.e, view.b * x + view.d * y + view.f);
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = colour;
+  ctx.font = '12px ui-monospace, monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText(text, 0, -4);
   ctx.restore();
 }
 
