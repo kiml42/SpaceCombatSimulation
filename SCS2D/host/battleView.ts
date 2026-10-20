@@ -6,6 +6,7 @@ import {
   draw,
   drawCloseUps,
   drawFleetStrips,
+  drawTargetRange,
   fleetStrips,
   nextArcs,
   overlayAt,
@@ -289,6 +290,7 @@ export function battleView(
     if (tiles !== null) drawFleetStrips(ctx, view, tiles, selected, ratio, flashes, arcs, teamShots);
     const insets = closeUps(view, camera, canvas.width, canvas.height, selected, ratio, tiles);
     drawCloseUps(ctx, view, insets, selected, ratio, flashes, arcs, teamShots);
+    drawTargetRange(ctx, view, camera, canvas.width, canvas.height, selected, insets, ratio);
     shownStrips = tiles;
     shownInsets = insets;
     drawn(view);

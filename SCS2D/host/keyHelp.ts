@@ -101,7 +101,7 @@ export const BATTLE_KEYS: readonly KeyRow[] = [
   { keys: 'Scroll or pinch', does: 'Zoom' },
   {
     keys: 'Click or tap a ship',
-    does: 'Pick it out: its target marked, only its arcs drawn, and it or its target shown close up in a window when off screen or too small',
+    does: 'Pick it out: its target marked with the range to it, only its arcs drawn, and it or its target shown close up in a window when off screen or too small',
   },
   { keys: 'Click a window or tile', does: 'Pick its ship and frame it' },
 ];

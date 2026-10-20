@@ -35,7 +35,7 @@ import {
   berthGrid,
 } from '../sim/index.js';
 import { gridStep, type Camera } from './camera.js';
-import { describeRange, insetAt, insetsFor, type Inset, type InsetArea, type InsetShip } from './inset.js';
+import { describeRange, insetAt, insetsFor, labelAlong, labelBeside, type Inset, type InsetArea, type InsetShip, type LabelAt } from './inset.js';
 import { stripsFor, stripTileAt, type StripColumn, type Strips } from './fleetStrip.js';
 import { fighterColours, NEUTRAL, shipColours, teamName } from './teams.js';
 
@@ -1639,14 +1639,10 @@ export function overlayAt(strips: Strips | null, insets: readonly Inset[], camer
   return strips === null ? -1 : stripTileAt(strips, px, py);
 }
 
-/** Size of the range written in the target's close-up, CSS pixels. */
-const CLOSE_UP_LABEL_PX = 11;
-
 /**
  * Draw the close-ups `closeUps` asks for over a view already drawn: each the
  * battle again through a camera of its own, framed in its ship's colours,
- * with a pointer towards its ship when that is off screen, and the target's
- * with how far it is from the picked ship.
+ * with a pointer towards its ship when that is off screen.
  */
 export function drawCloseUps(
   ctx: CanvasRenderingContext2D,
@@ -1676,19 +1672,6 @@ export function drawCloseUps(
     if (inset.body !== selected) ctx.setLineDash([5 * ratio, 4 * ratio]);
     ctx.strokeRect(inset.x, inset.y, inset.size, inset.size);
     ctx.setLineDash([]);
-    const picked = shipByBody(snapshot, selected);
-    if (inset.body !== selected && picked !== null) {
-      const label = describeRange(Math.hypot(ship.x - picked.x, ship.y - picked.y));
-      const px = CLOSE_UP_LABEL_PX * ratio;
-      ctx.font = `${px}px ui-monospace, monospace`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'bottom';
-      const width = ctx.measureText(label).width;
-      ctx.fillStyle = BACKGROUND;
-      ctx.fillRect(inset.x + inset.size / 2 - width / 2 - 3 * ratio, inset.y + inset.size - px - 5 * ratio, width + 6 * ratio, px + 3 * ratio);
-      ctx.fillStyle = colour;
-      ctx.fillText(label, inset.x + inset.size / 2, inset.y + inset.size - 3 * ratio);
-    }
     if (inset.toward !== null) {
       // From the frame's centre along the bearing, out to the frame, a wedge beyond it.
       const half = inset.size / 2;
@@ -1710,6 +1693,71 @@ export function drawCloseUps(
     }
     ctx.restore();
   }
+}
+
+/** Size of the range to a picked ship's target, CSS pixels, and its clearances. */
+const RANGE_LABEL_PX = 12;
+const RANGE_PAD_PX = 3;
+const RANGE_GAP_PX = 6;
+
+/**
+ * How far the picked ship is from what it is fighting, upright, by the
+ * picked ship: on the line to its target just past its ring, so it stays in
+ * frame while the ship is and the eye finds it where it left it; or, when the
+ * ship is shown in a window, just outside the window on the side facing the
+ * target.
+ */
+export function drawTargetRange(
+  ctx: CanvasRenderingContext2D,
+  snapshot: Snapshot,
+  camera: Camera,
+  widthPx: number,
+  heightPx: number,
+  selected: number,
+  insets: readonly Inset[],
+  ratio: number,
+): void {
+  const ship = shipByBody(snapshot, selected);
+  const target = shipByBody(snapshot, ship?.fighting ?? -1);
+  if (ship === null || target === null) return;
+  const text = describeRange(Math.hypot(target.x - ship.x, target.y - ship.y));
+  const colour = (ship.hasControl && !ship.isMissionKilled ? shipColours(ship.team) : NEUTRAL).trim;
+  const size = RANGE_LABEL_PX * ratio;
+  const pad = RANGE_PAD_PX * ratio;
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.font = `${size}px ui-monospace, monospace`;
+  const w = ctx.measureText(text).width + 2 * pad;
+  const h = size + 2 * pad;
+  const screen = (x: number, y: number): LabelAt => ({
+    x: widthPx / 2 + (x - camera.x) * camera.scale,
+    y: heightPx / 2 - (y - camera.y) * camera.scale,
+  });
+  const from = screen(ship.x, ship.y);
+  const to = screen(target.x, target.y);
+  const box = insets.find((inset) => inset.body === selected);
+  let at: LabelAt;
+  if (box !== undefined) {
+    const cx = box.x + box.size / 2;
+    const cy = box.y + box.size / 2;
+    const others = insets.filter((inset) => inset !== box);
+    at = labelBeside(box, Math.atan2(to.y - cy, to.x - cx), w, h, RANGE_GAP_PX * ratio, widthPx, heightPx, others);
+  } else {
+    const length = Math.hypot(to.x - from.x, to.y - from.y);
+    if (!(length > 0)) {
+      ctx.restore();
+      return;
+    }
+    const ring = (ship.design.radius + SELECTED_GAP_PX / camera.scale) * camera.scale;
+    at = labelAlong(from.x, from.y, (to.x - from.x) / length, (to.y - from.y) / length, ring, length, w, h, RANGE_GAP_PX * ratio);
+  }
+  ctx.fillStyle = BACKGROUND;
+  ctx.fillRect(at.x - w / 2, at.y - h / 2, w, h);
+  ctx.fillStyle = colour;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, at.x, at.y);
+  ctx.restore();
 }
 
 /** A tile's side as a share of the view's width, and its bounds in CSS pixels. */

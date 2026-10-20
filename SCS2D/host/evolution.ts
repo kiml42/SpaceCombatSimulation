@@ -12,6 +12,7 @@ import {
   draw,
   drawCloseUps,
   drawFleetStrips,
+  drawTargetRange,
   fleetStrips,
   nextArcs,
   overlayAt,
@@ -1338,6 +1339,7 @@ export function startEvolution(): void {
     if (tiles !== null) drawFleetStrips(ctx, shot, tiles, selected, ratio, flashes, arcs, teamShots);
     const insets = closeUps(shot, camera, view.width, view.height, selected, ratio, tiles);
     drawCloseUps(ctx, shot, insets, selected, ratio, flashes, arcs, teamShots);
+    drawTargetRange(ctx, shot, camera, view.width, view.height, selected, insets, ratio);
     shownStrips = tiles;
     shownInsets = insets;
   }
