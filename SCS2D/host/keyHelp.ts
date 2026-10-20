@@ -98,7 +98,8 @@ export const ORDER_KEYS: readonly KeyRow[] = [
     keys: 'Right-click a ship',
     does: 'Order the picked ships to attack it, if an enemy, or defend it, if a friend; Ctrl to add to their orders',
   },
-  { keys: 'K, D, R', does: 'Attack, defend or ram the next ship clicked; Ctrl to add to their orders' },
+  { keys: 'K, D, R, H', does: 'Attack, defend, ram or dock with the next ship clicked; Ctrl to add to their orders' },
+  { keys: 'Enter', does: 'Dock without a target: wherever their doctrine would go' },
   { keys: 'S', does: "Stop: clear the picked ships' orders, back to doctrine" },
 ];
 

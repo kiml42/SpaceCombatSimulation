@@ -1,4 +1,4 @@
-import { OrderCancelCondition } from '../sim/ships.js';
+import { NO_TARGET, OrderCancelCondition } from '../sim/ships.js';
 import type { Battle } from './types.js';
 
 /**
@@ -12,7 +12,9 @@ import type { Battle } from './types.js';
 export type Order =
   | { readonly kind: 'attack'; readonly target: number; readonly cancelOn: OrderCancelCondition }
   | { readonly kind: 'defend'; readonly target: number }
-  | { readonly kind: 'ram'; readonly target: number };
+  | { readonly kind: 'ram'; readonly target: number }
+  /** Take on all a friend's dock can give: at `target`, or wherever doctrine chooses for `NO_TARGET`. */
+  | { readonly kind: 'dock'; readonly target: number };
 
 export type Command =
   /** The same order to each ship, replacing its queue, or after it if `append`. */
@@ -29,7 +31,8 @@ export interface Logged {
 
 /**
  * Carry out a command. Ships and targets gone by then are passed over, as is
- * a ship told to defend itself or an enemy, or to attack or ram a friend.
+ * a ship told to defend itself or an enemy, to attack or ram a friend, or to
+ * dock with an enemy or a friend it has no dock to mate with.
  */
 export function give(battle: Battle, command: Command): void {
   const ships = battle.ships;
@@ -42,9 +45,16 @@ export function give(battle: Battle, command: Command): void {
     return;
   }
   const order = command.order;
-  if (!ships.isAlive(order.target)) return;
+  const anywhere = order.kind === 'dock' && order.target === NO_TARGET;
+  if (!anywhere && !ships.isAlive(order.target)) return;
   for (const i of command.ships) {
     if (!ships.isAlive(i) || i === order.target) continue;
+    if (order.kind === 'dock') {
+      if (!anywhere && ships.teamOf(i) !== ships.teamOf(order.target)) continue;
+      if (!command.append) ships.clearOrder(i);
+      ships.pushDock(i, order.target);
+      continue;
+    }
     // A friend is defended and an enemy attacked, whatever a hand-written log says.
     const friend = ships.teamOf(i) === ships.teamOf(order.target);
     if (friend !== (order.kind === 'defend')) continue;
@@ -55,7 +65,7 @@ export function give(battle: Battle, command: Command): void {
   }
 }
 
-const KINDS = new Set(['attack', 'defend', 'ram']);
+const KINDS = new Set(['attack', 'defend', 'ram', 'dock']);
 const CANCELS = new Set(Object.values(OrderCancelCondition).filter((v) => typeof v === 'number'));
 
 /** A log read back from a file or a link. Throws on one it cannot read. */
@@ -77,7 +87,9 @@ export function parseLog(value: unknown): Logged[] {
     } else if (command['kind'] === 'order') {
       const order = command['order'] as Record<string, unknown> | undefined;
       if (!shipList(command['ships']) || typeof command['append'] !== 'boolean') fail('an order wants ships and append');
-      if (order === undefined || !KINDS.has(order['kind'] as string) || !whole(order['target'])) fail('not an order');
+      const target = order?.['target'];
+      const nowhere = order?.['kind'] === 'dock' && target === NO_TARGET;
+      if (order === undefined || !KINDS.has(order['kind'] as string) || !(whole(target) || nowhere)) fail('not an order');
       if (order!['kind'] === 'attack' && !CANCELS.has(order!['cancelOn'] as number)) fail('an attack wants cancelOn');
     } else fail(`unknown command ${String(command['kind'])}`);
     return { step: step as number, command: command as unknown as Command };
