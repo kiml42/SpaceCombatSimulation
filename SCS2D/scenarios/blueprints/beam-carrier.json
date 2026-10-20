@@ -310,7 +310,8 @@
       "length": 12,
       "width": 5,
       "reinforcement": 3,
-      "thick": true
+      "thick": true,
+      "computing": 0.15
     },
     {
       "id": 2,
@@ -427,7 +428,8 @@
       "x": -29,
       "y": -14.5,
       "length": 2,
-      "width": 7
+      "width": 7,
+      "computing": 0.2
     },
     {
       "id": 16,
@@ -439,6 +441,15 @@
       "width": 3,
       "barrels": 1,
       "main": false
+    },
+    {
+      "id": 31,
+      "kind": "core",
+      "x": 12,
+      "y": 12.5,
+      "length": 8,
+      "width": 5,
+      "notes": "Flies the forward pads and engines, out of the aft core's reach."
     }
   ]
 }

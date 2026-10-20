@@ -1,6 +1,6 @@
 import type { UnreadKeys } from './unread.js';
 import type { Targeting } from './doctrine.js';
-import { abs, asin, atan2, cos, floor as roundDown, max, min, PI, round, sin, sqrt } from './math.js';
+import { abs, asin, atan2, cos, floor as roundDown, max, min, PI, pow, round, sin, sqrt } from './math.js';
 import {
   canShape,
   insetTriangle,
@@ -266,6 +266,33 @@ export function readsDocked(kind: ModuleKind): boolean {
 /** Whether `fill` means anything on this kind: what holds fuel, metal or charge. */
 export function readsFill(kind: ModuleKind): boolean {
   return readsSealing(kind) || kind === 'hold' || kind === 'battery';
+}
+
+/** Whether `computing` means anything on this kind. */
+export function readsComputing(kind: ModuleKind): boolean {
+  return kind === 'core';
+}
+
+/**
+ * Whether a module only works within a core's reach (`ShipDesign.coveredBy`):
+ * everything but hull and what only holds or makes something.
+ */
+export function needsControl(kind: ModuleKind): boolean {
+  return !(kind === 'structure' || kind === 'tank' || kind === 'hold' || kind === 'core' || kind === 'battery' || kind === 'generator');
+}
+
+/** How much of an `interior` m³ core computes, m³. */
+export function coreComputing(spec: ModuleSpec, interior: number): number {
+  if (interior <= CORE_COMPUTING_VOLUME) return interior;
+  return max(CORE_COMPUTING_VOLUME, (spec.computing ?? CORE_COMPUTING_SHARE) * interior);
+}
+
+/**
+ * How far from its centre a core with this much computing controls modules,
+ * metres. Diminishing returns: eight times the computing reaches twice as far.
+ */
+export function controlRadius(computing: number): number {
+  return computing > 0 ? CONTROL_REACH * pow(computing, 1 / 3) : 0;
 }
 
 /** How full a module starts, 0 to 1. */
@@ -825,11 +852,21 @@ export const GENERATOR_MASS_PER_VOLUME = 1500;
 export const CORE_MINIMUM_FITTING_MASS = 25;
 
 /**
- * Interior a core needs for itself, m³; whatever it has beyond this is fuel
- * tank, so a bare core with one engine can move (ROADMAP.md §8). A core no
- * bigger than this holds no fuel and pays nothing else for it.
+ * Interior a core needs for itself, m³: one this size or smaller is all
+ * computing, since stores that small would be waste. A bigger one computes with
+ * `computing` of its interior but never less than this; the rest is stores, so
+ * a bare core with one engine can move (ROADMAP.md §8).
  */
 export const CORE_COMPUTING_VOLUME = 1;
+
+/** The share of a core's interior that computes when its layout does not say (`ModuleSpec.computing`). */
+export const CORE_COMPUTING_SHARE = 0.1;
+
+/**
+ * How far a core with `CORE_COMPUTING_VOLUME` of computing reaches, metres.
+ * The reach grows as the cube root of computing (`controlRadius`).
+ */
+export const CONTROL_REACH = 10;
 
 /**
  * Traverse torque the mount ring can deliver per kilogram of turret, N·m/kg.
@@ -1153,6 +1190,14 @@ export interface ModuleSpec {
   fill?: number;
 
   /**
+   * The share of a core's interior that computes, 0 to 1, rather than holding
+   * stores: more reaches further (`controlRadius`). `CORE_COMPUTING_SHARE`
+   * when absent. A core only, and moot on one no bigger than
+   * `CORE_COMPUTING_VOLUME`, which is all computing.
+   */
+  computing?: number;
+
+  /**
    * What this pad or slipway builds, by its name in the blueprint's `hangar`:
    * for a pad the fighter it sets out with (`docked`) and builds (`keep`).
    */
@@ -1317,6 +1362,8 @@ export interface ModuleStats {
   robots: number;
   /** How intricate it is to make or mend (`complexityOf`), in units of `COMPLEXITY_WORK`. */
   complexity: number;
+  /** How far a core controls modules from its centre, metres (`controlRadius`); zero for anything else. */
+  controlRadius: number;
 }
 
 /**
@@ -1412,6 +1459,9 @@ export function moduleProblem(spec: ModuleSpec): string | null {
   }
   if (spec.fill !== undefined && !(spec.fill >= 0 && spec.fill <= 1)) {
     return `${spec.kind}: fill must be from 0 to 1, got ${spec.fill}`;
+  }
+  if (spec.computing !== undefined && !(spec.computing >= 0 && spec.computing <= 1)) {
+    return `${spec.kind}: computing must be from 0 to 1, got ${spec.computing}`;
   }
   if (spec.drainPriority !== undefined && !Number.isInteger(spec.drainPriority)) {
     return `${spec.kind}: drain priority must be a whole number, got ${spec.drainPriority}`;
@@ -2564,6 +2614,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
   let chargeRate = 0;
   let generation = 0;
   let robots = 0;
+  let computing = 0;
   let gun: GunStats | null = null;
   // Mass that hangs off the pivot as a rod rather than filling the box, and
   // the inertia it accounts for. Barrels, and nothing else so far.
@@ -2582,7 +2633,8 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
     // and the fragility of a small one are the whole of what stops a ship
     // carrying five of them.
     fittingMass = max(CORE_MINIMUM_FITTING_MASS, CORE_MASS_PER_AREA * capacity) + liningMass;
-    const spare = max(0, interior - CORE_COMPUTING_VOLUME);
+    computing = coreComputing(spec, interior);
+    const spare = max(0, interior - computing);
     const generator = min(spare * CORE_GENERATOR_SHARE, CORE_GENERATOR_MAX_VOLUME);
     // What the cap keeps from the generator is fuel, added apart so an uncapped core's is unchanged.
     fuel =
@@ -2805,6 +2857,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
     generation,
     robots,
     complexity: complexityOf(spec),
+    controlRadius: controlRadius(computing),
   };
 }
 

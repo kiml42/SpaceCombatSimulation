@@ -153,6 +153,7 @@ export function shellOf(spec: ModuleSpec, stats: ModuleStats, face: number, shar
       generation: 0,
       robots: 0,
       complexity: stats.complexity * share,
+      controlRadius: 0,
     },
   };
 }

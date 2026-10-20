@@ -129,6 +129,23 @@
       "width": 8,
       "reinforcement": 3,
       "sealing": 0.0005
+    },
+    {
+      "id": 11,
+      "kind": "core",
+      "x": -30.5,
+      "y": 5.5,
+      "length": 2,
+      "width": 2,
+      "notes": "One of a pair on the struts, flying the side engines, which are out of the bow core's reach."
+    },
+    {
+      "id": 12,
+      "kind": "core",
+      "x": -30.5,
+      "y": -5.5,
+      "length": 2,
+      "width": 2
     }
   ]
 }

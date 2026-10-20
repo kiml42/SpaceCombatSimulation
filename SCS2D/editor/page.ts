@@ -21,6 +21,9 @@ import {
   readsSealing,
   readsDrainPriority,
   readsFill,
+  readsComputing,
+  CORE_COMPUTING_SHARE,
+  inReachDesign,
   readsDocked,
   padHolds,
   readsCraft,
@@ -229,6 +232,7 @@ type ModuleNumberField =
   | 'sealing'
   | 'drainPriority'
   | 'fill'
+  | 'computing'
   | 'keep';
 
 /** A module's own value for a field, with the default the parser would have applied. */
@@ -248,8 +252,17 @@ function moduleField(spec: ModuleSpec, key: ModuleNumberField): number {
   if (key === 'drainPriority') return spec.drainPriority ?? 0;
   // Per cent on the panel, a share in the layout.
   if (key === 'fill') return (spec.fill ?? 1) * 100;
+  if (key === 'computing') return (spec.computing ?? CORE_COMPUTING_SHARE) * 100;
   if (key === 'keep') return spec.keep ?? 0;
   return spec.barrels ?? 1;
+}
+
+/** How far each core reaches, and how many modules none of them does. */
+function controlReadout(design: ShipDesign): string {
+  const reaches = design.cores.map((core) => `${design.modules[core]!.stats.controlRadius.toFixed(1)} m`);
+  const out = design.coveredBy?.filter((cores) => cores !== null && cores.length === 0).length ?? 0;
+  const cores = reaches.length === 1 ? `its core reaches ${reaches[0]}` : `its cores reach ${reaches.join(', ')}`;
+  return out === 0 ? cores : `${cores}; ${out} module${out === 1 ? '' : 's'} out of reach will not work`;
 }
 
 /** A gun's barrel in metres, and how much of it is braced. */
@@ -421,6 +434,7 @@ export function startEditor(): void {
     sealing: el<HTMLInputElement>('propSealing'),
     drainPriority: el<HTMLInputElement>('propDrainPriority'),
     fill: el<HTMLInputElement>('propFill'),
+    computing: el<HTMLInputElement>('propComputing'),
     keep: el<HTMLInputElement>('propKeep'),
     notes: el<HTMLTextAreaElement>('propNotes'),
   };
@@ -637,7 +651,7 @@ export function startEditor(): void {
       statsPanel.innerHTML = `<p class="none">${doc.view.underivable ?? 'Nothing to measure yet.'}</p>`;
       return;
     }
-    const s = designStats(design, envelope);
+    const s = designStats(inReachDesign(design), envelope);
     const rows = [
       ['Mass', `${numbers(s.mass / 1000, 2)} t, ${numbers(s.fuel / 1000, 2)} t of it fuel and ${numbers(s.metal / 1000, 2)} t metal`],
       [
@@ -666,6 +680,7 @@ export function startEditor(): void {
       ],
       ['Inertia', `${numbers(s.inertia / 1000, 0)} t·m²`],
       ['Modules', `${s.moduleCount} (${s.engineCount} engines)`],
+      ['Control', controlReadout(design)],
       ['Radius', `${numbers(s.radius)} m`],
       ['Accel fore / aft', `${numbers(s.accelFore, 2)} / ${numbers(s.accelAft, 2)} m/s²`],
       ['Accel port / stbd', `${numbers(s.accelPort, 2)} / ${numbers(s.accelStarboard, 2)} m/s²`],
@@ -939,6 +954,7 @@ export function startEditor(): void {
     el<HTMLElement>('sealingRow').hidden = !readsSealing(spec.kind);
     el<HTMLElement>('drainPriorityRow').hidden = !readsDrainPriority(spec.kind);
     el<HTMLElement>('fillRow').hidden = !readsFill(spec.kind);
+    el<HTMLElement>('computingRow').hidden = !readsComputing(spec.kind);
     el<HTMLElement>('dockedRow').hidden = !readsCraft(spec.kind);
     el<HTMLElement>('propDockedLabel').textContent = spec.kind === 'pad' ? 'fighter' : 'builds';
     if (readsCraft(spec.kind)) renderDocked(spec);
@@ -1040,7 +1056,7 @@ export function startEditor(): void {
   const doctrineContext = (fireRange: number | null = null): DoctrineContext | null => {
     const design = doc.view.design;
     if (design === null || envelope === null) return null;
-    const stats = designStats(design, envelope);
+    const stats = designStats(inReachDesign(design), envelope);
     return {
       mass: design.mass,
       radius: design.radius,
@@ -1256,7 +1272,7 @@ export function startEditor(): void {
     const broken = doc.view.problems.length > 0;
     for (const link of exits) link.classList.toggle('blocked', broken);
     const design = doc.view.design;
-    envelope = design === null ? null : envelopes(design);
+    envelope = design === null ? null : envelopes(inReachDesign(design));
     if (document.activeElement !== shipName) shipName.value = doc.blueprint.name;
     renderFighter(design);
     if (document.activeElement !== shipNotes) shipNotes.value = doc.blueprint.notes ?? '';
@@ -1471,6 +1487,17 @@ export function startEditor(): void {
           updatePlacement(doc.blueprint, path, (placement) => {
             const { fill: _, ...rest } = placement as ModuleSpec;
             return (share < 1 ? { ...rest, fill: share } : rest) as Placement;
+          }),
+          true,
+        );
+      } else if (key === 'computing') {
+        const path = doc.selection;
+        if (path === null) return;
+        const share = Math.min(Math.max(value, 0), 100) / 100;
+        change(
+          updatePlacement(doc.blueprint, path, (placement) => {
+            const { computing: _, ...rest } = placement as ModuleSpec;
+            return (share !== CORE_COMPUTING_SHARE ? { ...rest, computing: share } : rest) as Placement;
           }),
           true,
         );

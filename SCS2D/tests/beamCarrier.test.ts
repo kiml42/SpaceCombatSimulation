@@ -10,12 +10,17 @@ const FIGHTERS = [2, 3, 4, 5, 6, 7, 8, 9];
 describe('the Beam Carrier', () => {
   const run = beamCarrier();
   const ships = run.ships;
-  // Gripping a wreck rides it, so the tender's body is no longer its own. Watched
-  // from the start, since when it does so turns on how the raid goes.
+  // Gripping a wreck rides it, so the tender's body is no longer its own: it
+  // shares one with a wrecked Corvette, or grows by a piece of wreckage nobody
+  // flies. Watched from the start, since when and which turns on how the raid goes.
   let gripped = false;
+  let own = -1;
   const step = (): void => {
     run.step();
-    gripped ||= ships.isAlive(TENDER) && [10, 11].some((w) => ships.body(w) === ships.body(TENDER));
+    if (!ships.isAlive(TENDER) || ships.body(TENDER) === ships.body(CARRIER)) return;
+    const modules = ships.currentStructure(TENDER).modules.length;
+    if (own < 0) own = modules;
+    gripped ||= modules > own || [10, 11].some((w) => ships.body(w) === ships.body(TENDER));
   };
   const body = (i: number): number => run.world.bodies.indexOf(ships.body(i));
 

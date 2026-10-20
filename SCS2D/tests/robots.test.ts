@@ -22,11 +22,11 @@ import { mending } from '../scenarios/mending.js';
 
 /** Robots crawling a hull from their bay to mend it (ROADMAP.md §8, repair stage 3). */
 
-/** A core at the bow, three blocks of structure, and a bay at the stern with a hold and a battery beside it. */
+/** A core at the bow, reaching the stern, three blocks of structure, and a bay at the stern with a hold and a battery beside it. */
 const LINE: Blueprint = {
   name: 'Line',
   modules: [
-    { kind: 'core', x: 0, y: 0, length: 3, width: 3 },
+    { kind: 'core', x: 0, y: 0, length: 3, width: 3, computing: 0.2 },
     { kind: 'structure', x: 4, y: 0, length: 5, width: 3 },
     { kind: 'structure', x: 9, y: 0, length: 5, width: 3 },
     { kind: 'structure', x: 14, y: 0, length: 5, width: 3 },

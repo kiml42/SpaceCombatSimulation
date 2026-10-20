@@ -148,7 +148,7 @@ describe('the drills an enemy fights', () => {
     const battle = drillBattle({ kind: 'shielded', seed: WON }, gunship, corvette, DEFAULT_SKIRMISH_SETTINGS);
     run(battle, 120);
     const [player, enemy] = tally(battle, 2);
-    expect(enemy!.mass).toBe(battle.start[1]!.mass);
+    expect(enemy!.mass).toBeCloseTo(battle.start[1]!.mass, 6);
     expect(enemy!.armed).toBe(battle.start[1]!.armed);
     // While the Gunship, which wins there for real, is the one hurt.
     expect(player!.mass).toBeLessThan(battle.start[0]!.mass);

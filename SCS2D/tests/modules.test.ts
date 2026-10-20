@@ -15,7 +15,7 @@ import {
   BEAM_STORED_ENERGY_PER_VOLUME,
   CALIBRE_FRACTION,
   CORE_MASS_PER_AREA,
-  CORE_COMPUTING_VOLUME,
+  coreComputing,
   CORE_GENERATOR_SHARE,
   CORE_GENERATOR_MAX_VOLUME,
   CORE_BATTERY_SHARE,
@@ -568,7 +568,7 @@ describe('core scaling', () => {
     const large = moduleStats(box('core', 8, 4));
     // Plus the generator and battery in its spare room, by volume.
     const plant = (interior: number): number => {
-      const spare = interior - CORE_COMPUTING_VOLUME;
+      const spare = interior - coreComputing(box('core', 4, 4), interior);
       const generator = Math.min(spare * CORE_GENERATOR_SHARE, CORE_GENERATOR_MAX_VOLUME);
       return generator * GENERATOR_MASS_PER_VOLUME + spare * CORE_BATTERY_SHARE * BATTERY_MASS_PER_VOLUME;
     };

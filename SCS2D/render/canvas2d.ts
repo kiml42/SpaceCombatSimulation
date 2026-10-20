@@ -235,6 +235,8 @@ const PORT_COLLAR_SHARE = 0.3;
 
 /** A module that has taken everything it can: still there, no longer anything. */
 const WRECKAGE = '#3c4048';
+/** How faint a module no working core reaches is drawn, so a ship that lost one shows what went dark. */
+const OUT_OF_REACH_ALPHA = 0.35;
 
 /** An impact: the white-hot moment, and the warmer flare around it. */
 const FLASH_CORE = '#fff6e2';
@@ -471,7 +473,7 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
               ? // A deck, as a pad is, for its berth pads to stand out on.
                 colours.hull
               : colours.trim;
-    ctx.globalAlpha = integrity <= 0 ? 1 : 0.45 + 0.55 * integrity;
+    ctx.globalAlpha = integrity <= 0 ? 1 : (0.45 + 0.55 * integrity) * (ship.outOfReach?.[i] === true ? OUT_OF_REACH_ALPHA : 1);
     const halfLength = spec.length / 2;
     const halfWidth = spec.width / 2;
     if (spec.kind === 'engine') {

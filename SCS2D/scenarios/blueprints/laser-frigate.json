@@ -227,6 +227,23 @@
       "y": -5.5,
       "angle": 0,
       "mirror": true
+    },
+    {
+      "id": 22,
+      "kind": "core",
+      "x": 36,
+      "y": 7,
+      "length": 3,
+      "width": 3,
+      "notes": "One of two outboard of the struts, flying the beam turrets and the forward engines."
+    },
+    {
+      "id": 23,
+      "kind": "core",
+      "x": 36,
+      "y": -7,
+      "length": 3,
+      "width": 3
     }
   ]
 }
