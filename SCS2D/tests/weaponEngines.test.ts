@@ -45,9 +45,9 @@ function tug(weapon: boolean): Blueprint {
     // them, so a hull parked a metre off another one's stern has a reason to
     // fire quite apart from the flag — and this is a test about the flag.
     doctrine: {
-    targeting: { ...DEFAULT_DOCTRINE.targeting },
-    approach: { ...DEFAULT_DOCTRINE.approach, separation: 0 },
-  },
+      targeting: { ...DEFAULT_DOCTRINE.targeting },
+      approach: { ...DEFAULT_DOCTRINE.approach, separation: 0 },
+    },
     modules: [
       weapon ? { ...engine, weapon: true } : engine,
       { kind: 'core', x: 0, y: 0, angle: 0, length: 10, width: 6 },
@@ -225,9 +225,7 @@ describe('the flag itself', () => {
     // said so.
     const gun: ModuleSpec = { kind: 'turret', x: 0, y: 0, length: 4, width: 3, weapon: true };
     expect(moduleProblem(gun)).toBeNull();
-    expect(
-      moduleProblem({ kind: 'engine', angle: Math.PI, x: 0, y: 0, length: 2, width: 2, weapon: true }),
-    ).toBeNull();
+    expect(moduleProblem({ kind: 'engine', angle: Math.PI, x: 0, y: 0, length: 2, width: 2, weapon: true })).toBeNull();
 
     const saved = serialiseBlueprint({ name: 'Dormant', modules: [gun] });
     expect((saved['modules'] as Record<string, unknown>[])[0]!['weapon']).toBeUndefined();

@@ -37,7 +37,10 @@ export function tanker(seed = 20261009): Battle {
   return makeBattle({ seed, projectiles: 16, beams: 16 }, (ships, world) => {
     ships.spawn(world, { design: compileBlueprint(TANKER), x: 0, y: 0, angle: 0.4 });
     const picket = compileBlueprint(PICKET);
-    for (const [x, y] of [[-200, 150], [150, -250]] as const) {
+    for (const [x, y] of [
+      [-200, 150],
+      [150, -250],
+    ] as const) {
       const p = ships.spawn(world, { design: picket, x, y, angle: 0 });
       const b = world.bodies.indexOf(ships.body(p));
       for (let m = 0; m < picket.modules.length; m++) ships.fuel.vent(b, m, ships.fuel.held(b, m) * SPENT);

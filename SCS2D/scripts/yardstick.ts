@@ -100,6 +100,5 @@ for (const point of report.points) {
 }
 const moved = trend(report);
 console.log(
-  `\nfirst ${moved.first.toFixed(3)} → last ${moved.last.toFixed(3)} ` +
-    `(${moved.gain >= 0 ? '+' : ''}${moved.gain.toFixed(3)})`,
+  `\nfirst ${moved.first.toFixed(3)} → last ${moved.last.toFixed(3)} ` + `(${moved.gain >= 0 ? '+' : ''}${moved.gain.toFixed(3)})`,
 );

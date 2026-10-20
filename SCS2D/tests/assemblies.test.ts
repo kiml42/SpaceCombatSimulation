@@ -114,7 +114,12 @@ describe('nesting', () => {
     const bp = ship({
       assemblies: {
         boss: { modules: [{ kind: 'structure', x: 1, y: 0, length: 2, width: 2 }] },
-        wing: { modules: [{ use: 'boss', x: 0, y: 1 }, { kind: 'structure', x: 0, y: 3, length: 2, width: 2 }] },
+        wing: {
+          modules: [
+            { use: 'boss', x: 0, y: 1 },
+            { kind: 'structure', x: 0, y: 3, length: 2, width: 2 },
+          ],
+        },
       },
       modules: [hull, { use: 'wing', x: 10, y: 10 }],
     });
@@ -221,8 +226,7 @@ describe('repeating an instance', () => {
   });
 
   it('refuses a count that is not a whole number of copies', () => {
-    const bp = (repeat: number) =>
-      ship({ assemblies: { seg }, modules: [hull, { use: 'seg', x: 0, y: 5, repeat, step: { x: 0, y: 4 } }] });
+    const bp = (repeat: number) => ship({ assemblies: { seg }, modules: [hull, { use: 'seg', x: 0, y: 5, repeat, step: { x: 0, y: 4 } }] });
     expect(assemblyProblem(bp(0))).toMatch(/whole number of at least 1/);
     expect(assemblyProblem(bp(2.5))).toMatch(/whole number of at least 1/);
     expect(assemblyProblem(bp(-3))).toMatch(/whole number of at least 1/);
@@ -251,9 +255,7 @@ describe('repeating an instance', () => {
       modules: [{ use: 'd', x: 0, y: 0, repeat: 8, step: { x: 0, y: 40 } }],
     });
     // 8^4 = 4096 modules asked for, and it refuses rather than building them.
-    expect(() => expandBlueprint(bp)).toThrow(
-      new RegExp(`more than ${MAX_EXPANDED_MODULES} modules`),
-    );
+    expect(() => expandBlueprint(bp)).toThrow(new RegExp(`more than ${MAX_EXPANDED_MODULES} modules`));
   });
 });
 
@@ -297,11 +299,13 @@ describe('rejecting a layout that cannot be resolved', () => {
     // stated once, about the ship that gets built.
     const bp = ship({
       assemblies: { box: { modules: [{ kind: 'structure', x: 0, y: 0, length: 4, width: 4 }] } },
-      modules: [{ use: 'box', x: 0, y: 0 }, { use: 'box', x: 1, y: 0 }],
+      modules: [
+        { use: 'box', x: 0, y: 0 },
+        { use: 'box', x: 1, y: 0 },
+      ],
     });
     expect(blueprintProblem(bp)).toMatch(/overlap/);
   });
-
 });
 
 describe('the ships that ship with the game', () => {

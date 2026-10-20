@@ -17,7 +17,15 @@ describe('a battle carried in a link', () => {
 
   it('carries the orders given in it', async () => {
     const orders: Logged[] = [
-      { step: 0, command: { kind: 'order', ships: [0, 1], order: { kind: 'attack', target: 5, cancelOn: OrderCancelCondition.CompleteDisable }, append: false } },
+      {
+        step: 0,
+        command: {
+          kind: 'order',
+          ships: [0, 1],
+          order: { kind: 'attack', target: 5, cancelOn: OrderCancelCondition.CompleteDisable },
+          append: false,
+        },
+      },
       { step: 120, command: { kind: 'stop', ships: [1] } },
     ];
     const back = await linkedBattle(await battleFragment(setup, orders));

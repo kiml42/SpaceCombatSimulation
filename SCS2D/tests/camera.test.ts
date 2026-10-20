@@ -27,15 +27,7 @@ const WIDTH = 1000;
 const HEIGHT = 600;
 const DT = 1 / 60;
 
-function ship(
-  x: number,
-  y: number,
-  vx = 0,
-  vy = 0,
-  hasControl = true,
-  isDerelict = false,
-  isMissionKilled = false,
-): ShipView {
+function ship(x: number, y: number, vx = 0, vy = 0, hasControl = true, isDerelict = false, isMissionKilled = false): ShipView {
   return {
     // The camera reads position, velocity and radius; the rest is for drawing.
     design: { radius: 20 } as ShipView['design'],

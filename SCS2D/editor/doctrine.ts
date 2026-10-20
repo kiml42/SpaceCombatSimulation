@@ -38,62 +38,230 @@ export interface DoctrineRow {
 
 const TARGETING_ROWS: readonly DoctrineRow[] = [
   { field: 'proximityWeight', label: 'near', hint: 'Prefer what is close, measured against its own reach', step: 10 },
-  { field: 'preferredMass', label: 'size wanted', hint: 'What size to go after, as a multiple of its own mass: 1 is something my own size', step: 0.1 },
-  { field: 'ramMass', label: 'size to ram', hint: 'What size to go after once it would ram, its guns gone, as size wanted is: 0 for the same', step: 0.5 },
+  {
+    field: 'preferredMass',
+    label: 'size wanted',
+    hint: 'What size to go after, as a multiple of its own mass: 1 is something my own size',
+    step: 0.1,
+  },
+  {
+    field: 'ramMass',
+    label: 'size to ram',
+    hint: 'What size to go after once it would ram, its guns gone, as size wanted is: 0 for the same',
+    step: 0.5,
+  },
   { field: 'massWeight', label: 'size', hint: 'How much going after the right size of thing is worth', step: 10 },
   { field: 'closingWeight', label: 'closing', hint: 'Prefer what is coming at it, per hundred metres per second', step: 5 },
   { field: 'loyaltyWeight', label: 'sticks with it', hint: 'Prefer what it is already fighting, so it stops swapping targets', step: 5 },
   { field: 'armedWeight', label: 'still armed', hint: 'Prefer what can still shoot back', step: 10 },
   { field: 'mobileWeight', label: 'still mobile', hint: 'Prefer what can still get away', step: 10 },
-  { field: 'focusWeight', label: "ship's fight", hint: 'Prefer what the ship as a whole is fighting: large, and the ship concentrates', step: 10 },
-  { field: 'sightWeight', label: 'clear shot', hint: 'Prefer what nothing else is in the way of: a friend, a wreck, or another enemy', step: 10 },
-  { field: 'facingWeight', label: 'ahead', hint: 'Prefer what it is already pointed at: full weight dead ahead, nothing abeam, against astern', step: 10 },
-  { field: 'escortWeight', label: 'escort', hint: 'How much it would rather stay with a consort than go to the best fight it can find', step: 20 },
-  { field: 'coreWeight', label: 'aim: core', hint: 'How much it would rather hit the core it is flown from. Below zero is never', step: 10 },
+  {
+    field: 'focusWeight',
+    label: "ship's fight",
+    hint: 'Prefer what the ship as a whole is fighting: large, and the ship concentrates',
+    step: 10,
+  },
+  {
+    field: 'sightWeight',
+    label: 'clear shot',
+    hint: 'Prefer what nothing else is in the way of: a friend, a wreck, or another enemy',
+    step: 10,
+  },
+  {
+    field: 'facingWeight',
+    label: 'ahead',
+    hint: 'Prefer what it is already pointed at: full weight dead ahead, nothing abeam, against astern',
+    step: 10,
+  },
+  {
+    field: 'escortWeight',
+    label: 'escort',
+    hint: 'How much it would rather stay with a consort than go to the best fight it can find',
+    step: 20,
+  },
+  {
+    field: 'coreWeight',
+    label: 'aim: core',
+    hint: 'How much it would rather hit the core it is flown from. Below zero is never',
+    step: 10,
+  },
   { field: 'engineWeight', label: 'aim: engines', hint: 'How much it would rather hit an engine. Below zero is never', step: 10 },
   { field: 'gunWeight', label: 'aim: guns', hint: 'How much it would rather hit a gun. Below zero is never', step: 10 },
-  { field: 'fireRange', label: 'fires within', hint: 'How far out it fires, as a multiple of how far its shot is worth taking: above 1 spends shells on long odds, below 1 saves them for a sure thing', step: 0.1 },
-  { field: 'structureWeight', label: 'aim: structure', hint: 'How much it would rather hit plating. All four at zero shoots at the ship rather than a part of it; zero is leave it alone — never aimed at, and a ship with nothing else left stops being a target — and below zero adds care at the trigger, holding fire until the part it aims at is under the muzzle rather than firing at anything on the hull', step: 10 },
+  {
+    field: 'fireRange',
+    label: 'fires within',
+    hint: 'How far out it fires, as a multiple of how far its shot is worth taking: above 1 spends shells on long odds, below 1 saves them for a sure thing',
+    step: 0.1,
+  },
+  {
+    field: 'structureWeight',
+    label: 'aim: structure',
+    hint: 'How much it would rather hit plating. All four at zero shoots at the ship rather than a part of it; zero is leave it alone — never aimed at, and a ship with nothing else left stops being a target — and below zero adds care at the trigger, holding fire until the part it aims at is under the muzzle rather than firing at anything on the hull',
+    step: 10,
+  },
 ];
 
 const APPROACH_ROWS: readonly DoctrineRow[] = [
   { field: 'standoffRadii', label: 'standoff', hint: "How close to get, in multiples of the target's own radius", step: 5 },
   { field: 'standoff', label: 'range cap', hint: 'The furthest it will hold, as a fraction of its own reach', step: 0.05 },
-  { field: 'escortRadii', label: 'escort range', hint: 'How close to sit to what it is covering, in multiples of that ship’s radius', step: 1 },
-  { field: 'escortMinRadii', label: 'smallest covered', hint: 'The smallest friend it will cover, in multiples of its own radius: 1 only what is at least its own size, 0 anything. A neutral objective is gone to whatever its size', step: 0.1 },
-  { field: 'escort', label: 'escort cap', hint: 'The furthest it will stray from what it is covering, as a fraction of its own reach', step: 0.05 },
+  {
+    field: 'escortRadii',
+    label: 'escort range',
+    hint: 'How close to sit to what it is covering, in multiples of that ship’s radius',
+    step: 1,
+  },
+  {
+    field: 'escortMinRadii',
+    label: 'smallest covered',
+    hint: 'The smallest friend it will cover, in multiples of its own radius: 1 only what is at least its own size, 0 anything. A neutral objective is gone to whatever its size',
+    step: 0.1,
+  },
+  {
+    field: 'escort',
+    label: 'escort cap',
+    hint: 'The furthest it will stray from what it is covering, as a fraction of its own reach',
+    step: 0.05,
+  },
   { field: 'separation', label: 'keeps clear', hint: 'How much it wants to stay out of everybody’s way', step: 25 },
-  { field: 'separationRadii', label: 'clearance', hint: 'How close is too close, in multiples of the gap between two hulls’ skins', step: 0.5 },
+  {
+    field: 'separationRadii',
+    label: 'clearance',
+    hint: 'How close is too close, in multiples of the gap between two hulls’ skins',
+    step: 0.5,
+  },
   { field: 'avoidHorizon', label: 'looks ahead', hint: 'How far ahead it looks for something it is about to run into, seconds', step: 1 },
   { field: 'dodgeSpeed', label: 'dodges at', hint: 'The sideways speed it asks for to get out of the way, metres per second', step: 10 },
-  { field: 'responseTime', label: 'responds in', hint: 'How quickly it corrects its velocity, seconds: smaller asks its engines for more, and turns to burn more readily', step: 0.25 },
+  {
+    field: 'responseTime',
+    label: 'responds in',
+    hint: 'How quickly it corrects its velocity, seconds: smaller asks its engines for more, and turns to burn more readily',
+    step: 0.25,
+  },
   { field: 'tolerance', label: 'slack', hint: 'How much closer or further than that is close enough, as a fraction', step: 0.05 },
   { field: 'approachSpeed', label: 'closing speed', hint: 'The fastest it will close the difference, metres per second', step: 10 },
-  { field: 'accelerate', label: 'speeds up on', hint: 'How much of its thrust towards the band to speed up with: 1 is all of it', step: 0.05 },
-  { field: 'brake', label: 'brakes on', hint: 'How much of its thrust the other way to plan on stopping with: under 1 keeps a margin', step: 0.05 },
-  { field: 'ramRadii', label: 'rams within', hint: "How close its target's edge has to be before it will ram, in the target's radii. 0 never rams. A fighter that rams drops into the hull layer too", step: 0.5 },
-  { field: 'turnBias', label: 'turn cost', hint: 'What a half turn costs in choosing which way round to fight, as a share of its main guns: at 0.5 a half turn has to bring half its main guns more to bear', step: 0.1 },
-  { field: 'burnWeight', label: 'turns to burn', hint: 'How much it would rather turn its main engines along the way it wants to go than keep its guns on target, for each share of the change it wants the turn would make sooner, turn included. Never turns when its guns-on thrust is enough, or to dodge what it cannot turn in time for. 0 never turns from its guns', step: 0.5 },
-  { field: 'rangeHold', label: 'holds guns on', hint: 'How much it would rather keep its guns on target: all of it inside the band it holds, falling away the further out it is', step: 0.5 },
-  { field: 'scavengeFuelBelow', label: 'scavenges below', hint: 'The share of a full load of fuel at or below which a ship with a claw breaks off to scavenge from a wreck or a disarmed enemy, going from one to the next until it is full: set high, it goes whenever it has room enough to be worth the trip. Being filled by a friend is refuels below. 0 never does', step: 0.05 },
-  { field: 'scavengeMetalBelow', label: 'strips wrecks below', hint: 'The share of a full load of metal at or below which a ship with a claw and robots breaks off to grip a wreck and take it apart for its metal, going from one to the next until its holds are full. 0 never does', step: 0.05 },
-  { field: 'fuelPerMetal', label: 'fuel per metal', hint: 'How much fuel it will burn to fetch a kilogram of metal from a wreck: what the metal is worth against the trip there', step: 0.25 },
-  { field: 'rearmBelow', label: 'rearms below', hint: 'The share of a full load of metal at or below which a fighter breaks off to land on a friend’s pad and rearm, taking on fuel and charge as well. 0 waits until it cannot load another round; below 0 never does', step: 0.05 },
-  { field: 'repairBelow', label: 'repairs below', hint: 'How whole a fighter is at or below which it breaks off to land on a friend’s pad and be mended: the lower of its weakest core and the share of the mass it set out with still sound. The pad lets it go once it is whole. 0 never goes', step: 0.05 },
-  { field: 'scavengeDanger', label: 'scavenges wary of', hint: 'How much an armed enemy within reach of a wreck puts it off: each one divides what the wreck is worth by one more of this. 0 ignores them', step: 0.5 },
-  { field: 'refuelBelow', label: 'refuels below', hint: 'The share of a full load of fuel at or below which it goes to a friend to be refuelled: a fighter to a pad it fits on, anything else with a port to a port, a ship with a claw too, which docks only this low and otherwise scavenges. Also the fuel it keeps back when it fills a friend. 0 never goes, and keeps nothing back', step: 0.05 },
-  { field: 'rechargeBelow', label: 'recharges below', hint: 'The share of its batteries at or below which a fighter goes to a friend’s pad to recharge, and the charge it keeps back when it charges a friend. 0 never goes', step: 0.05 },
-  { field: 'deliverFuelAbove', label: 'delivers above', hint: 'The share of a full load of fuel above which a ship with a port takes what it holds over this to a friend with room, unasked: once it is full, or once it can find nothing left to scavenge. 0 never delivers', step: 0.05 },
-  { field: 'dockDanger', label: 'docks wary of', hint: 'How much an armed enemy near a friend puts it off docking there: each one divides what the dock is worth by one more of this, and above 0 a dock lets go while one is in reach. 0 ignores them', step: 0.5 },
-  { field: 'sortieRange', label: 'sorties within', hint: 'How near the target a fighter has chosen must be, as a multiple of its reach, before it leaves a pad it has nothing more to take on from. With no target it stays aboard. An order sends it at once', step: 0.5 },
-  { field: 'tangentialMin', label: 'passes at least', hint: 'The least sideways speed it keeps relative to what it is attacking, metres per second. Above 0 it comes in aiming to miss, at the inner edge of its band, and circles if its thrust can hold the turn or makes passes if it cannot. 0 for both comes to rest at its band', step: 5 },
-  { field: 'tangentialMax', label: 'passes at most', hint: 'The most sideways speed it keeps relative to what it is attacking, metres per second; 0 for both comes to rest at its band', step: 5 },
-  { field: 'ramArmed', label: 'rams armed', hint: 'The share of its own main guns still working at or below which it will ram: 0 only once it cannot shoot, 1 whenever it is close enough', step: 0.1 },
+  {
+    field: 'accelerate',
+    label: 'speeds up on',
+    hint: 'How much of its thrust towards the band to speed up with: 1 is all of it',
+    step: 0.05,
+  },
+  {
+    field: 'brake',
+    label: 'brakes on',
+    hint: 'How much of its thrust the other way to plan on stopping with: under 1 keeps a margin',
+    step: 0.05,
+  },
+  {
+    field: 'ramRadii',
+    label: 'rams within',
+    hint: "How close its target's edge has to be before it will ram, in the target's radii. 0 never rams. A fighter that rams drops into the hull layer too",
+    step: 0.5,
+  },
+  {
+    field: 'turnBias',
+    label: 'turn cost',
+    hint: 'What a half turn costs in choosing which way round to fight, as a share of its main guns: at 0.5 a half turn has to bring half its main guns more to bear',
+    step: 0.1,
+  },
+  {
+    field: 'burnWeight',
+    label: 'turns to burn',
+    hint: 'How much it would rather turn its main engines along the way it wants to go than keep its guns on target, for each share of the change it wants the turn would make sooner, turn included. Never turns when its guns-on thrust is enough, or to dodge what it cannot turn in time for. 0 never turns from its guns',
+    step: 0.5,
+  },
+  {
+    field: 'rangeHold',
+    label: 'holds guns on',
+    hint: 'How much it would rather keep its guns on target: all of it inside the band it holds, falling away the further out it is',
+    step: 0.5,
+  },
+  {
+    field: 'scavengeFuelBelow',
+    label: 'scavenges below',
+    hint: 'The share of a full load of fuel at or below which a ship with a claw breaks off to scavenge from a wreck or a disarmed enemy, going from one to the next until it is full: set high, it goes whenever it has room enough to be worth the trip. Being filled by a friend is refuels below. 0 never does',
+    step: 0.05,
+  },
+  {
+    field: 'scavengeMetalBelow',
+    label: 'strips wrecks below',
+    hint: 'The share of a full load of metal at or below which a ship with a claw and robots breaks off to grip a wreck and take it apart for its metal, going from one to the next until its holds are full. 0 never does',
+    step: 0.05,
+  },
+  {
+    field: 'fuelPerMetal',
+    label: 'fuel per metal',
+    hint: 'How much fuel it will burn to fetch a kilogram of metal from a wreck: what the metal is worth against the trip there',
+    step: 0.25,
+  },
+  {
+    field: 'rearmBelow',
+    label: 'rearms below',
+    hint: 'The share of a full load of metal at or below which a fighter breaks off to land on a friend’s pad and rearm, taking on fuel and charge as well. 0 waits until it cannot load another round; below 0 never does',
+    step: 0.05,
+  },
+  {
+    field: 'repairBelow',
+    label: 'repairs below',
+    hint: 'How whole a fighter is at or below which it breaks off to land on a friend’s pad and be mended: the lower of its weakest core and the share of the mass it set out with still sound. The pad lets it go once it is whole. 0 never goes',
+    step: 0.05,
+  },
+  {
+    field: 'scavengeDanger',
+    label: 'scavenges wary of',
+    hint: 'How much an armed enemy within reach of a wreck puts it off: each one divides what the wreck is worth by one more of this. 0 ignores them',
+    step: 0.5,
+  },
+  {
+    field: 'refuelBelow',
+    label: 'refuels below',
+    hint: 'The share of a full load of fuel at or below which it goes to a friend to be refuelled: a fighter to a pad it fits on, anything else with a port to a port, a ship with a claw too, which docks only this low and otherwise scavenges. Also the fuel it keeps back when it fills a friend. 0 never goes, and keeps nothing back',
+    step: 0.05,
+  },
+  {
+    field: 'rechargeBelow',
+    label: 'recharges below',
+    hint: 'The share of its batteries at or below which a fighter goes to a friend’s pad to recharge, and the charge it keeps back when it charges a friend. 0 never goes',
+    step: 0.05,
+  },
+  {
+    field: 'deliverFuelAbove',
+    label: 'delivers above',
+    hint: 'The share of a full load of fuel above which a ship with a port takes what it holds over this to a friend with room, unasked: once it is full, or once it can find nothing left to scavenge. 0 never delivers',
+    step: 0.05,
+  },
+  {
+    field: 'dockDanger',
+    label: 'docks wary of',
+    hint: 'How much an armed enemy near a friend puts it off docking there: each one divides what the dock is worth by one more of this, and above 0 a dock lets go while one is in reach. 0 ignores them',
+    step: 0.5,
+  },
+  {
+    field: 'sortieRange',
+    label: 'sorties within',
+    hint: 'How near the target a fighter has chosen must be, as a multiple of its reach, before it leaves a pad it has nothing more to take on from. With no target it stays aboard. An order sends it at once',
+    step: 0.5,
+  },
+  {
+    field: 'tangentialMin',
+    label: 'passes at least',
+    hint: 'The least sideways speed it keeps relative to what it is attacking, metres per second. Above 0 it comes in aiming to miss, at the inner edge of its band, and circles if its thrust can hold the turn or makes passes if it cannot. 0 for both comes to rest at its band',
+    step: 5,
+  },
+  {
+    field: 'tangentialMax',
+    label: 'passes at most',
+    hint: 'The most sideways speed it keeps relative to what it is attacking, metres per second; 0 for both comes to rest at its band',
+    step: 5,
+  },
+  {
+    field: 'ramArmed',
+    label: 'rams armed',
+    hint: 'The share of its own main guns still working at or below which it will ram: 0 only once it cannot shoot, 1 whenever it is close enough',
+    step: 0.1,
+  },
 ];
 
-const ROW_OF = new Map<string, DoctrineRow>(
-  [...TARGETING_ROWS, ...APPROACH_ROWS].map((row) => [row.field, row]),
-);
+const ROW_OF = new Map<string, DoctrineRow>([...TARGETING_ROWS, ...APPROACH_ROWS].map((row) => [row.field, row]));
 
 /**
  * The doctrine a panel is showing, with every field resolved: what is stated,
@@ -156,11 +324,7 @@ function enemyRadius(values: DoctrineValues, ship: DoctrineContext): number {
   return ship.radius * Math.sqrt(preferred > 0 ? preferred : 1);
 }
 
-function entry(
-  half: DoctrineEntry['half'],
-  field: string,
-  extra: Pick<DoctrineEntry, 'shown' | 'absolute'> = {},
-): DoctrineEntry {
+function entry(half: DoctrineEntry['half'], field: string, extra: Pick<DoctrineEntry, 'shown' | 'absolute'> = {}): DoctrineEntry {
   const row = ROW_OF.get(field);
   if (row === undefined) throw new Error(`no editor row for doctrine field ${field}`);
   return { ...row, half, ...extra };
@@ -170,12 +334,10 @@ const sizeWanted = (half: DoctrineEntry['half']): DoctrineEntry =>
   entry(half, 'preferredMass', {
     // How much size is worth comes first: at zero, which size is moot.
     shown: (v) => v.targeting.massWeight !== 0,
-    absolute: (v, ship) =>
-      `≈ ${(ship.mass * v.targeting.preferredMass / 1000).toLocaleString('en-GB', { maximumFractionDigits: 1 })} t`,
+    absolute: (v, ship) => `≈ ${((ship.mass * v.targeting.preferredMass) / 1000).toLocaleString('en-GB', { maximumFractionDigits: 1 })} t`,
   });
 
-const preferences = (half: DoctrineEntry['half'], fields: readonly string[]): DoctrineEntry[] =>
-  fields.map((field) => entry(half, field));
+const preferences = (half: DoctrineEntry['half'], fields: readonly string[]): DoctrineEntry[] => fields.map((field) => entry(half, field));
 
 /**
  * A ship's doctrine as the panel lays it out: by what each decision is about,
@@ -202,8 +364,7 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
         title: 'How close it holds',
         entries: [
           entry('approach', 'standoffRadii', {
-            absolute: (v, ship) =>
-              `${metres(v.approach.standoffRadii * enemyRadius(v, ship))} off the skin of the size it wants`,
+            absolute: (v, ship) => `${metres(v.approach.standoffRadii * enemyRadius(v, ship))} off the skin of the size it wants`,
           }),
           entry('approach', 'standoff', {
             absolute: (v, ship) => (ship.reach > 0 ? `no further than ${metres(v.approach.standoff * ship.reach)}` : null),
@@ -224,7 +385,7 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
               if (!(v.approach.tangentialMax > 0)) return 'comes to rest at its band';
               const band = holdBand(v.approach, ship.reach, enemyRadius(v, ship));
               const middle = (band.min + band.max) / 2;
-              const rate = (speed: number): string => ((speed / middle) * 180 / Math.PI).toFixed(1);
+              const rate = (speed: number): string => (((speed / middle) * 180) / Math.PI).toFixed(1);
               return `${rate(v.approach.tangentialMin)}–${rate(v.approach.tangentialMax)}°/s round the size it wants, mid-band`;
             },
           }),
@@ -301,21 +462,18 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
           }),
           entry('approach', 'ramArmed', {
             shown: (v) => v.approach.ramRadii > 0,
-            absolute: (v, ship) =>
-{
+            absolute: (v, ship) => {
               if (ship.guns === 0) return 'it has no guns';
               const working = Math.floor(v.approach.ramArmed * ship.guns + 1e-9);
               const guns = ship.guns === 1 ? '1 gun' : `${ship.guns} guns`;
-              return working === 0
-                ? `only once none of its ${guns} works`
-                : `with ${working} of ${guns} working, or fewer`;
+              return working === 0 ? `only once none of its ${guns} works` : `with ${working} of ${guns} working, or fewer`;
             },
           }),
           entry('targeting', 'ramMass', {
             shown: (v) => v.approach.ramRadii > 0,
             absolute: (v, ship) =>
               v.targeting.ramMass > 0
-                ? `≈ ${(ship.mass * v.targeting.ramMass / 1000).toLocaleString('en-GB', { maximumFractionDigits: 1 })} t`
+                ? `≈ ${((ship.mass * v.targeting.ramMass) / 1000).toLocaleString('en-GB', { maximumFractionDigits: 1 })} t`
                 : 'the size it always wants',
           }),
         ],
@@ -334,7 +492,9 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
           }),
           entry('approach', 'scavengeMetalBelow', {
             absolute: (v) =>
-              v.approach.scavengeMetalBelow > 0 ? `below ${Math.round(v.approach.scavengeMetalBelow * 100)}% full, with a claw and robots` : 'never',
+              v.approach.scavengeMetalBelow > 0
+                ? `below ${Math.round(v.approach.scavengeMetalBelow * 100)}% full, with a claw and robots`
+                : 'never',
           }),
           entry('approach', 'fuelPerMetal', {
             shown: (v) => v.approach.scavengeMetalBelow > 0,
@@ -367,10 +527,12 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
                 : 'never',
           }),
           entry('approach', 'dockDanger', {
-            shown: (v) => v.approach.refuelBelow > 0 || v.approach.rechargeBelow > 0 || v.approach.rearmBelow >= 0 || v.approach.repairBelow > 0,
+            shown: (v) =>
+              v.approach.refuelBelow > 0 || v.approach.rechargeBelow > 0 || v.approach.rearmBelow >= 0 || v.approach.repairBelow > 0,
           }),
           entry('approach', 'sortieRange', {
-            absolute: (v, ship) => (ship.reach > 0 ? `leaves a pad for a target within ${metres(v.approach.sortieRange * ship.reach)}` : null),
+            absolute: (v, ship) =>
+              ship.reach > 0 ? `leaves a pad for a target within ${metres(v.approach.sortieRange * ship.reach)}` : null,
           }),
         ],
       },
@@ -385,8 +547,7 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
           entry('approach', 'separation'),
           entry('approach', 'separationRadii', {
             shown: (v) => v.approach.separation > 0,
-            absolute: (v, ship) =>
-              `${metres(2 * ship.radius * v.approach.separationRadii)} between centres, beside its own size`,
+            absolute: (v, ship) => `${metres(2 * ship.radius * v.approach.separationRadii)} between centres, beside its own size`,
           }),
           entry('approach', 'avoidHorizon', { shown: (v) => v.approach.separation > 0 }),
           entry('approach', 'dodgeSpeed', { shown: (v) => v.approach.separation > 0 }),
@@ -433,8 +594,7 @@ export const MOUNT_SECTIONS: readonly DoctrineSection[] = [
         title: 'How far out it fires',
         entries: [
           entry('mount', 'fireRange', {
-            absolute: (_v, ship) =>
-              ship.fireRange == null ? null : `fires within ${metres(ship.fireRange)} of the size it wants`,
+            absolute: (_v, ship) => (ship.fireRange == null ? null : `fires within ${metres(ship.fireRange)} of the size it wants`),
           }),
         ],
       },
@@ -448,12 +608,7 @@ export function sectionEntries(sections: readonly DoctrineSection[]): DoctrineEn
 }
 
 function isAimField(field: string): boolean {
-  return (
-    field === 'coreWeight' ||
-    field === 'engineWeight' ||
-    field === 'gunWeight' ||
-    field === 'structureWeight'
-  );
+  return field === 'coreWeight' || field === 'engineWeight' || field === 'gunWeight' || field === 'structureWeight';
 }
 
 /** What to call an archetype where a person is reading it rather than a file. */
@@ -517,11 +672,7 @@ export function shipSummary(doctrine: Doctrine | undefined): string {
  * mount that has been set back to its archetype writes no `targeting` at all
  * and reads like one that never had any.
  */
-export function withMountField(
-  held: Partial<Targeting> | undefined,
-  field: string,
-  value: number | null,
-): Partial<Targeting> | undefined {
+export function withMountField(held: Partial<Targeting> | undefined, field: string, value: number | null): Partial<Targeting> | undefined {
   const next = { ...held } as Record<string, number>;
   if (value === null) delete next[field];
   else next[field] = value;

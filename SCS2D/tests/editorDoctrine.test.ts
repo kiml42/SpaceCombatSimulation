@@ -61,12 +61,7 @@ describe('which numbers the panel offers', () => {
 
   it('keeps what goes together together: escorting and ramming have sections of their own', () => {
     const section = (title: string) => SHIP_SECTIONS.find((s) => s.title === title)!;
-    expect(sectionEntries([section('Escorting')]).map((e) => e.field)).toEqual([
-      'escortWeight',
-      'escortMinRadii',
-      'escortRadii',
-      'escort',
-    ]);
+    expect(sectionEntries([section('Escorting')]).map((e) => e.field)).toEqual(['escortWeight', 'escortMinRadii', 'escortRadii', 'escort']);
     expect(sectionEntries([section('Ramming')]).map((e) => e.field)).toEqual(['ramRadii', 'ramArmed', 'ramMass']);
   });
 
@@ -116,9 +111,13 @@ describe('what the panel shows of a ship’s doctrine', () => {
     expect(said('standoff')).toBe('no further than 1,000 m');
     expect(said('preferredMass')).toBe('≈ 800 t');
     // The enemy it wants is four times its mass, so twice its radius.
-    expect(said('standoffRadii')).toBe(`${(DEFAULT_DOCTRINE.approach.standoffRadii * 60).toLocaleString('en-GB')} m off the skin of the size it wants`);
+    expect(said('standoffRadii')).toBe(
+      `${(DEFAULT_DOCTRINE.approach.standoffRadii * 60).toLocaleString('en-GB')} m off the skin of the size it wants`,
+    );
     const band = holdBand(v.approach, ship.reach, 60);
-    expect(said('tolerance')).toBe(`holds ${Math.round(band.min).toLocaleString('en-GB')} m–${Math.round(band.max).toLocaleString('en-GB')} m, centre to centre`);
+    expect(said('tolerance')).toBe(
+      `holds ${Math.round(band.min).toLocaleString('en-GB')} m–${Math.round(band.max).toLocaleString('en-GB')} m, centre to centre`,
+    );
     expect(said('escortMinRadii')).toBe('covers friends of 30 m radius or more');
     expect(said('ramRadii')).toBe('within 120 m of the skin of the size it wants');
     expect(said('ramArmed')).toBe('with 2 of 4 guns working, or fewer');
@@ -139,17 +138,11 @@ describe('what the panel shows of a ship’s doctrine', () => {
 
 describe('what a box shows when it is empty', () => {
   it('is the archetype, which differs by archetype', () => {
-    expect(mountDefault('hullGun', 'focusWeight')).toBe(
-      defaultTargeting('hullGun').focusWeight,
-    );
+    expect(mountDefault('hullGun', 'focusWeight')).toBe(defaultTargeting('hullGun').focusWeight);
     // The point of the table: a hull gun is aimed by its ship and a beam
     // turret is not, so the two do not start from the same place.
-    expect(mountDefault('hullGun', 'focusWeight')).toBeGreaterThan(
-      mountDefault('beamTurret', 'focusWeight'),
-    );
-    expect(mountDefault('beamTurret', 'preferredMass')).toBeLessThan(
-      mountDefault('turret', 'preferredMass'),
-    );
+    expect(mountDefault('hullGun', 'focusWeight')).toBeGreaterThan(mountDefault('beamTurret', 'focusWeight'));
+    expect(mountDefault('beamTurret', 'preferredMass')).toBeLessThan(mountDefault('turret', 'preferredMass'));
   });
 });
 
@@ -213,15 +206,9 @@ describe('what the shipped fleet says now', () => {
   it('keeps the Dinky shooting at engines, from its gun rather than its hull', () => {
     // The preference for engines is the gun's, not the ship's: §3's mission
     // kill, since a fighter that cannot destroy a capital can still strand one.
-    expect((DINKY.doctrine ?? DEFAULT_DOCTRINE).targeting.engineWeight).toBe(
-      DEFAULT_DOCTRINE.targeting.engineWeight,
-    );
+    expect((DINKY.doctrine ?? DEFAULT_DOCTRINE).targeting.engineWeight).toBe(DEFAULT_DOCTRINE.targeting.engineWeight);
     const design = compileBlueprint(DINKY);
-    expect(design.turrets[0]!.targeting.engineWeight).toBeGreaterThan(
-      defaultTargeting('hullGun').engineWeight,
-    );
-    expect(design.turrets[0]!.targeting.engineWeight).toBeGreaterThan(
-      design.turrets[0]!.targeting.gunWeight,
-    );
+    expect(design.turrets[0]!.targeting.engineWeight).toBeGreaterThan(defaultTargeting('hullGun').engineWeight);
+    expect(design.turrets[0]!.targeting.engineWeight).toBeGreaterThan(design.turrets[0]!.targeting.gunWeight);
   });
 });

@@ -171,11 +171,7 @@ function derive(fleet: Fleet, lookup: LibraryLookup): FleetView {
   };
 }
 
-function roster(
-  fleet: Fleet,
-  ships: readonly PlacedShip[],
-  designs: readonly (ShipDesign | null | undefined)[],
-): RosterLine[] {
+function roster(fleet: Fleet, ships: readonly PlacedShip[], designs: readonly (ShipDesign | null | undefined)[]): RosterLine[] {
   const lines = new Map<string, RosterLine>();
   for (const name of Object.keys(fleet.designs).sort((a, b) => a.localeCompare(b))) {
     lines.set(name, { name, start: 0, builds: 0 });

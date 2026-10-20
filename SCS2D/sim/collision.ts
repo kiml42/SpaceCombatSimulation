@@ -73,17 +73,7 @@ export class Contacts {
     this.count = 0;
   }
 
-  push(
-    a: number,
-    b: number,
-    x: number,
-    y: number,
-    nx: number,
-    ny: number,
-    depth: number,
-    moduleA: number,
-    moduleB: number,
-  ): void {
+  push(a: number, b: number, x: number, y: number, nx: number, ny: number, depth: number, moduleA: number, moduleB: number): void {
     if (this.count === this.a.length) this.grow();
     const i = this.count++;
     this.a[i] = a;
@@ -202,18 +192,19 @@ function boxOf(design: ShipDesign, module: number, bx: number, by: number, angle
  * cost two of our own sines apiece, and a thirteen-module ship against another
  * is a hundred and sixty-nine pairs that would otherwise rebuild them.
  */
-function boxesOf(
-  design: ShipDesign,
-  bx: number,
-  by: number,
-  angle: number,
-  out: Box[],
-): void {
+function boxesOf(design: ShipDesign, bx: number, by: number, angle: number, out: Box[]): void {
   for (let m = 0; m < design.modules.length; m++) {
     if (out.length <= m) {
       out.push({
-        x: 0, y: 0, ux: 1, uy: 0, halfLength: 0, halfWidth: 0, radius: 0,
-        corners: new Float64Array(MAX_CORNERS * 2), count: 0,
+        x: 0,
+        y: 0,
+        ux: 1,
+        uy: 0,
+        halfLength: 0,
+        halfWidth: 0,
+        radius: 0,
+        corners: new Float64Array(MAX_CORNERS * 2),
+        count: 0,
       });
     }
     boxOf(design, m, bx, by, angle, out[m]!);
@@ -223,10 +214,7 @@ function boxesOf(
 /** How far a box reaches along an axis from its centre. */
 function reach(box: Box, ax: number, ay: number): number {
   // The across axis is the along axis turned a quarter turn: (-uy, ux).
-  return (
-    abs(box.halfLength * (box.ux * ax + box.uy * ay)) +
-    abs(box.halfWidth * (-box.uy * ax + box.ux * ay))
-  );
+  return abs(box.halfLength * (box.ux * ax + box.uy * ay)) + abs(box.halfWidth * (-box.uy * ax + box.ux * ay));
 }
 
 /**
@@ -555,10 +543,7 @@ export function resolveContacts(bodies: Bodies, contacts: Contacts): void {
     const crossA = rax * ny - ray * nx;
     const crossB = rbx * ny - rby * nx;
     const invMassSum =
-      bodies.invMass[a]! +
-      bodies.invMass[b]! +
-      crossA * crossA * bodies.invInertia[a]! +
-      crossB * crossB * bodies.invInertia[b]!;
+      bodies.invMass[a]! + bodies.invMass[b]! + crossA * crossA * bodies.invInertia[a]! + crossB * crossB * bodies.invInertia[b]!;
     // Two immovable objects. Neither can give, so nothing happens to either.
     if (!(invMassSum > 0)) continue;
 

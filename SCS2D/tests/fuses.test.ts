@@ -39,13 +39,34 @@ import { mutate } from '../evolution/mutate.js';
 
 const DT = 1 / 60;
 
-function burstOne(fuse: number, spread = 50, fragments = 8, metal = 1): { rounds: Projectiles; before: { mass: number; px: number; py: number } } {
+function burstOne(
+  fuse: number,
+  spread = 50,
+  fragments = 8,
+  metal = 1,
+): { rounds: Projectiles; before: { mass: number; px: number; py: number } } {
   const rounds = new Projectiles(64);
   const bodies = new Bodies();
   const grid = new SpatialGrid(64);
   grid.rebuild(bodies);
   // Eight kilograms, six of them casing: the charge goes to gas.
-  rounds.spawn({ x: 0, y: 0, vx: 600, vy: 40, width: 0.4, ttl: 30, mass: 8, casing: 6, damage: 1e6, weaponsLayer: true, fuse, spread, fragmentLife: 1, fragments, metal });
+  rounds.spawn({
+    x: 0,
+    y: 0,
+    vx: 600,
+    vy: 40,
+    width: 0.4,
+    ttl: 30,
+    mass: 8,
+    casing: 6,
+    damage: 1e6,
+    weaponsLayer: true,
+    fuse,
+    spread,
+    fragmentLife: 1,
+    fragments,
+    metal,
+  });
   const before = { mass: 6, px: 6 * 600, py: 6 * 40 };
   const rng = new Rng(3);
   for (let t = 0; t < fuse + DT; t += DT) rounds.step(DT, bodies, grid, new ProjectileHits(), undefined, undefined, rng);
@@ -61,20 +82,20 @@ function live(rounds: Projectiles): number[] {
 describe('a fused round', () => {
   it('bursts into fragments that share its casing and keep its momentum', () => {
     for (const n of [8, 5]) {
-    const { rounds, before } = burstOne(0.5, 50, n);
-    const fragments = live(rounds);
-    expect(fragments).toHaveLength(n);
-    let mass = 0;
-    let px = 0;
-    let py = 0;
-    for (const i of fragments) {
-      mass += rounds.mass[i]!;
-      px += rounds.mass[i]! * rounds.vx[i]!;
-      py += rounds.mass[i]! * rounds.vy[i]!;
-    }
-    expect(mass).toBeCloseTo(before.mass, 9);
-    expect(px).toBeCloseTo(before.px, 6);
-    expect(py).toBeCloseTo(before.py, 6);
+      const { rounds, before } = burstOne(0.5, 50, n);
+      const fragments = live(rounds);
+      expect(fragments).toHaveLength(n);
+      let mass = 0;
+      let px = 0;
+      let py = 0;
+      for (const i of fragments) {
+        mass += rounds.mass[i]!;
+        px += rounds.mass[i]! * rounds.vx[i]!;
+        py += rounds.mass[i]! * rounds.vy[i]!;
+      }
+      expect(mass).toBeCloseTo(before.mass, 9);
+      expect(px).toBeCloseTo(before.px, 6);
+      expect(py).toBeCloseTo(before.py, 6);
     }
   });
 
@@ -90,7 +111,20 @@ describe('a fused round', () => {
     const bodies = new Bodies();
     const grid = new SpatialGrid(64);
     grid.rebuild(bodies);
-    rounds.spawn({ x: 0, y: 0, vx: 600, vy: 0, width: 0.4, ttl: 30, mass: 8, casing: 6, fuse: 0.1, spread: 50, fragmentLife: 1, fragments: 8 });
+    rounds.spawn({
+      x: 0,
+      y: 0,
+      vx: 600,
+      vy: 0,
+      width: 0.4,
+      ttl: 30,
+      mass: 8,
+      casing: 6,
+      fuse: 0.1,
+      spread: 50,
+      fragmentLife: 1,
+      fragments: 8,
+    });
     const impacts = new Impacts();
     const rng = new Rng(3);
     for (let t = 0; t < 0.1 + 2 * DT; t += DT) {
@@ -240,7 +274,6 @@ describe('a fuse in a file', () => {
     expect(() => compileBlueprint(parseBlueprint(ship(-1)))).toThrow(/fuse must be at least 0/);
   });
 });
-
 
 /**
  * What a burst does to how far the gun is worth firing: a shell may miss by as

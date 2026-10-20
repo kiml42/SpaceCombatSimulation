@@ -70,9 +70,7 @@ function entryProblem(value: unknown, where: string): string | null {
   const isUse = 'group' in value;
   if (isUse && 'design' in value) return `${where} names both a design and a group`;
 
-  const shape = isUse
-    ? nameProblem(value['group'], `${where}: group`)
-    : nameProblem(value['design'], `${where}: design`);
+  const shape = isUse ? nameProblem(value['group'], `${where}: group`) : nameProblem(value['design'], `${where}: design`);
   if (shape !== null) return shape;
 
   if (isUse && value['mirror'] !== undefined && typeof value['mirror'] !== 'boolean') {
@@ -125,9 +123,7 @@ function groupsProblem(value: unknown): string | null {
   if (!isObject(value)) return `groups must be an object, got ${JSON.stringify(value)}`;
   for (const [name, group] of Object.entries(value)) {
     if (!isObject(group)) return `group ${name} must be an object`;
-    const problem =
-      optionalStringProblem(group['notes'], `group ${name}: notes`) ??
-      entriesProblem(group['ships'], `group ${name}: ships`);
+    const problem = optionalStringProblem(group['notes'], `group ${name}: notes`) ?? entriesProblem(group['ships'], `group ${name}: ships`);
     if (problem !== null) return problem;
   }
   return null;

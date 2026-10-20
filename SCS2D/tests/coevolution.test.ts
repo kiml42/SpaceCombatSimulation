@@ -79,11 +79,16 @@ describe('a co-evolution run', { timeout: 60_000 }, () => {
   });
 
   it('scores a bare-core drill for what it does to the core', () => {
-    const drilled = runCoevolution([GUNSHIP], [DINKY], { ...SETTINGS, generations: 1, population: 2, match: { duration: 60, goal: null } }, {
-      ...ROUNDS,
-      shieldedDrills: 0,
-      bareCoreDrills: 1,
-    });
+    const drilled = runCoevolution(
+      [GUNSHIP],
+      [DINKY],
+      { ...SETTINGS, generations: 1, population: 2, match: { duration: 60, goal: null } },
+      {
+        ...ROUNDS,
+        shieldedDrills: 0,
+        bareCoreDrills: 1,
+      },
+    );
     const drills = drilled.generations[0]!.matches.filter((match) => match.drill === 'bareCore');
     expect(drills.length).toBeGreaterThan(0);
     for (const drill of drills) expect(drill.scores[drill.teams!.indexOf(0)]!.damage).toBeGreaterThan(0);
@@ -130,7 +135,12 @@ describe('a co-evolution run', { timeout: 60_000 }, () => {
   });
 
   it('gives side B its own settings where it has them', () => {
-    const uneven = runCoevolution([DINKY], [DINKY], { ...SETTINGS, generations: 2 }, { ...ROUNDS, phaseCap: 1, rival: { population: 6, winners: 3 } });
+    const uneven = runCoevolution(
+      [DINKY],
+      [DINKY],
+      { ...SETTINGS, generations: 2 },
+      { ...ROUNDS, phaseCap: 1, rival: { population: 6, winners: 3 } },
+    );
     expect(uneven.generations.map((g) => g.individuals.length)).toEqual([4]);
     expect(uneven.rival!.generations.map((g) => g.individuals.length)).toEqual([6]);
   });
@@ -172,7 +182,12 @@ describe('a co-evolution run', { timeout: 60_000 }, () => {
 
   it("fields each side's own number of entrants a match, as allies", () => {
     // Several of side A against one side B that does not evolve: a boss battle.
-    const fixed = runCoevolution([DINKY], [GUNSHIP], { ...SETTINGS, group: 3, generations: 1 }, { rivalEvolves: false, rival: { group: 1 } });
+    const fixed = runCoevolution(
+      [DINKY],
+      [GUNSHIP],
+      { ...SETTINGS, group: 3, generations: 1 },
+      { rivalEvolves: false, rival: { group: 1 } },
+    );
     for (const match of fixed.generations[0]!.matches) expect(match.teams).toEqual([0, 0, 0, 1]);
     // Two a side, from a hall of one: the champion fields twice.
     const even = runCoevolution([DINKY], [GUNSHIP], { ...SETTINGS, group: 2, generations: 1 }, ROUNDS);
@@ -297,7 +312,5 @@ function oneLetterFrom(name: string, from: string): boolean {
   let i = 0;
   while (i < name.length && i < from.length && name[i] === from[i]) i++;
   // The rest must match once the one letter that differs is stepped over on whichever side has it.
-  return (
-    name.slice(i + 1) === from.slice(i + 1) || name.slice(i + 1) === from.slice(i) || name.slice(i) === from.slice(i + 1)
-  );
+  return name.slice(i + 1) === from.slice(i + 1) || name.slice(i + 1) === from.slice(i) || name.slice(i) === from.slice(i + 1);
 }

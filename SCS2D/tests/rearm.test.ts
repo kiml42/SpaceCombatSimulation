@@ -23,7 +23,10 @@ const CORE = 0;
 
 function fighterOf(rearmBelow: number, refuelBelow = 0.5): ShipDesign {
   const doctrine = compileBlueprint(DINKY).doctrine;
-  return compileBlueprint({ ...DINKY, doctrine: { ...doctrine, approach: { ...doctrine.approach, rearmBelow, refuelBelow, sortieRange: ANY_RANGE } } });
+  return compileBlueprint({
+    ...DINKY,
+    doctrine: { ...doctrine, approach: { ...doctrine.approach, rearmBelow, refuelBelow, sortieRange: ANY_RANGE } },
+  });
 }
 
 interface Setup {
@@ -126,7 +129,10 @@ describe('a fighter out of rounds with a ram doctrine', () => {
   /** Whether a dry fighter beside an enemy would ram it, with a friend's pad to go to or not. */
   function rams(withCarrier: boolean): boolean {
     const doctrine = compileBlueprint(DINKY).doctrine;
-    const fighter = compileBlueprint({ ...DINKY, doctrine: { ...doctrine, approach: { ...doctrine.approach, ramRadii: 50, ramArmed: 0 } } });
+    const fighter = compileBlueprint({
+      ...DINKY,
+      doctrine: { ...doctrine, approach: { ...doctrine.approach, ramRadii: 50, ramArmed: 0 } },
+    });
     const run = makeBattle({ seed: 3 }, (ships, world) => {
       if (withCarrier) ships.spawn(world, { design: carrierOf(), x: 0, y: 0, team: 0 });
       const f = ships.spawn(world, { design: fighter, x: -300, y: 200, team: 0 });

@@ -352,13 +352,7 @@ function shapedModuleAlong(
   // The face entered by, back in the ship's frame. A segment that began inside
   // entered by no face at all, and says so with a zero normal.
   const faced = entered && near > 0;
-  out.push(
-    index,
-    entry,
-    exit,
-    faced ? nlx * c - nly * s : 0,
-    faced ? nlx * s + nly * c : 0,
-  );
+  out.push(index, entry, exit, faced ? nlx * c - nly * s : 0, faced ? nlx * s + nly * c : 0);
 }
 
 /**
@@ -392,7 +386,17 @@ export interface HullDesigns {
    * module's integrity was `integrity` before the round reached it, and `rng`
    * is what decides whether the hole is left open.
    */
-  holed?(bodyIndex: number, module: number, integrity: number, x: number, y: number, nx: number, ny: number, calibre: number, rng: Rng): void;
+  holed?(
+    bodyIndex: number,
+    module: number,
+    integrity: number,
+    x: number,
+    y: number,
+    nx: number,
+    ny: number,
+    calibre: number,
+    rng: Rng,
+  ): void;
 }
 
 /** The deck and below. */
@@ -482,14 +486,7 @@ export class Hulls implements RayNarrowPhase {
     this.skipModule = -1;
   }
 
-  confirm(
-    bodies: Bodies,
-    bodyIndex: number,
-    x0: number,
-    y0: number,
-    dx: number,
-    dy: number,
-  ): number {
+  confirm(bodies: Bodies, bodyIndex: number, x0: number, y0: number, dx: number, dy: number): number {
     const design = this.designs.designOf(bodyIndex);
     // No hull to meet: the circle was the answer all along.
     if (design === null) return segmentCircleT(x0, y0, dx, dy, bodies.x[bodyIndex]!, bodies.y[bodyIndex]!, bodies.radius[bodyIndex]!);
@@ -506,14 +503,7 @@ export class Hulls implements RayNarrowPhase {
    * candidate and only one of them wins, so keeping each answer would cost
    * more bookkeeping than one repeat of a dozen multiplications per module.
    */
-  describe(
-    bodies: Bodies,
-    bodyIndex: number,
-    x0: number,
-    y0: number,
-    dx: number,
-    dy: number,
-  ): boolean {
+  describe(bodies: Bodies, bodyIndex: number, x0: number, y0: number, dx: number, dy: number): boolean {
     this.module = -1;
     this.nx = 0;
     this.ny = 0;
@@ -583,15 +573,7 @@ export class Hulls implements RayNarrowPhase {
   }
 
   /** The segment in the ship's frame, and the first module it crosses. */
-  private cast(
-    design: ShipDesign,
-    bodies: Bodies,
-    bodyIndex: number,
-    x0: number,
-    y0: number,
-    dx: number,
-    dy: number,
-  ): number {
+  private cast(design: ShipDesign, bodies: Bodies, bodyIndex: number, x0: number, y0: number, dx: number, dy: number): number {
     const bx = bodies.x[bodyIndex]!;
     const by = bodies.y[bodyIndex]!;
     const angle = bodies.angle[bodyIndex]!;

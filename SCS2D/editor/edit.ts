@@ -101,10 +101,7 @@ export function positionHandle(blueprint: Blueprint, origin: ModuleOrigin): Posi
       // a path ending in that hop would describe the assembly's contents
       // rather than the instance, and would compare equal across every
       // instance of it.
-      path: [
-        ...origin.path.slice(0, entered.at),
-        { index: entered.step.index, copy: entered.step.copy },
-      ],
+      path: [...origin.path.slice(0, entered.at), { index: entered.step.index, copy: entered.step.copy }],
       rotation: frame.rotation,
       mirrored: frame.mirrored,
       instanceFrame: null,
@@ -126,10 +123,7 @@ export function cloneBlueprint(blueprint: Blueprint): Blueprint {
 }
 
 /** The list a path's last step indexes into, within a blueprint being edited. */
-function containing(
-  blueprint: MutableBlueprint,
-  path: ModulePath,
-): { list: Placement[]; index: number } | null {
+function containing(blueprint: MutableBlueprint, path: ModulePath): { list: Placement[]; index: number } | null {
   let list: Placement[] = blueprint.modules;
   for (let i = 0; i < path.length; i++) {
     const step = path[i]!;
@@ -149,11 +143,7 @@ function containing(
  * or null if the path no longer leads anywhere, which is what a selection held
  * across an edit that removed something looks like.
  */
-export function updatePlacement(
-  blueprint: Blueprint,
-  path: ModulePath,
-  change: (placement: Placement) => Placement,
-): Blueprint | null {
+export function updatePlacement(blueprint: Blueprint, path: ModulePath, change: (placement: Placement) => Placement): Blueprint | null {
   const copy = cloneBlueprint(blueprint) as unknown as MutableBlueprint;
   const found = containing(copy, path);
   if (found === null) return null;
@@ -300,10 +290,7 @@ export function arrivingModule(spec: ModuleSpec, view: InView, step: number): Mo
  * after it behaves. Appending is the one placement that leaves the existing
  * ship alone.
  */
-export function addModule(
-  blueprint: Blueprint,
-  spec: ModuleSpec,
-): { blueprint: Blueprint; path: ModulePath } {
+export function addModule(blueprint: Blueprint, spec: ModuleSpec): { blueprint: Blueprint; path: ModulePath } {
   const copy = cloneBlueprint(blueprint) as unknown as MutableBlueprint;
   const index = copy.modules.length;
   copy.modules.push(spec);
@@ -332,11 +319,7 @@ export function addModuleTo(
   const last = instance[instance.length - 1]!;
   return {
     blueprint: copy as unknown as Blueprint,
-    path: [
-      ...instance.slice(0, -1),
-      { index: last.index, copy: last.copy, into: 'assembly', assembly: placed.use },
-      { index, copy: 0 },
-    ],
+    path: [...instance.slice(0, -1), { index: last.index, copy: last.copy, into: 'assembly', assembly: placed.use }, { index, copy: 0 }],
   };
 }
 
@@ -360,11 +343,7 @@ export interface InstancePose {
  * turning, reflection and repeats are all exactly as the ship has them.
  * `near` is a drawn module's path in the copy wanted; without it, the first.
  */
-export function instancePose(
-  blueprint: Blueprint,
-  instance: ModulePath,
-  near: ModulePath | null = null,
-): InstancePose | null {
+export function instancePose(blueprint: Blueprint, instance: ModulePath, near: ModulePath | null = null): InstancePose | null {
   const probe: ModuleSpec = { kind: 'structure', x: 0, y: 0, length: 0, width: 0 };
   const added = addModuleTo(blueprint, instance, probe);
   if (added === null) return null;
@@ -376,11 +355,8 @@ export function instancePose(
   }
   const depth = instance.length;
   const sameCopy = (path: ModulePath): boolean =>
-    near === null ||
-    path.slice(0, depth).every((step, k) => step.index === near[k]?.index && step.copy === near[k]?.copy);
-  const at = expansion.origins.findIndex(
-    (origin) => samePlacement(origin.path, added.path) && sameCopy(origin.path),
-  );
+    near === null || path.slice(0, depth).every((step, k) => step.index === near[k]?.index && step.copy === near[k]?.copy);
+  const at = expansion.origins.findIndex((origin) => samePlacement(origin.path, added.path) && sameCopy(origin.path));
   if (at < 0) return null;
   const drawn = expansion.modules[at]!;
   const origin = expansion.origins[at]!;
@@ -403,11 +379,7 @@ export function instancePose(
  * first: an assembly is built in its own frame, and that frame is what gets
  * turned and placed.
  */
-export function toPlacementFrame(
-  origin: ModuleOrigin,
-  dx: number,
-  dy: number,
-): { dx: number; dy: number } {
+export function toPlacementFrame(origin: ModuleOrigin, dx: number, dy: number): { dx: number; dy: number } {
   const c = cos(-origin.rotation);
   const s = sin(-origin.rotation);
   const localX = dx * c - dy * s;
@@ -437,12 +409,7 @@ export function toPlacementAngle(origin: ModuleOrigin, angle: number): number {
  * twice cannot have one copy dragged off the ship — and an editor owes the
  * player a warning that it is about to happen, not a different answer.
  */
-export function movePlacement(
-  blueprint: Blueprint,
-  origin: ModuleOrigin,
-  dx: number,
-  dy: number,
-): Blueprint | null {
+export function movePlacement(blueprint: Blueprint, origin: ModuleOrigin, dx: number, dy: number): Blueprint | null {
   const local = toPlacementFrame(origin, dx, dy);
   return updatePlacement(blueprint, origin.path, (placement) => ({
     ...placement,
@@ -526,10 +493,7 @@ export function reshapePlacement(
 }
 
 /** A placement as the one box it draws in its list's frame, or null if it is not one. */
-function boxOf(
-  placement: Placement,
-  assemblies: Readonly<Record<string, Assembly>> | undefined,
-): ModuleSpec | null {
+function boxOf(placement: Placement, assemblies: Readonly<Record<string, Assembly>> | undefined): ModuleSpec | null {
   if (!isInstance(placement)) return placement;
   if ((placement.repeat ?? 1) > 1) return null;
   const drawn = expandWithOrigins({ name: '', modules: [placement], assemblies: assemblies ?? {} }).modules;
@@ -557,10 +521,7 @@ function boxOf(
  * pressing the button twice would nest a part inside a copy of itself and
  * quietly produce four.
  */
-export function duplicatePlacement(
-  blueprint: Blueprint,
-  origin: ModuleOrigin,
-): { blueprint: Blueprint; path: ModulePath } | null {
+export function duplicatePlacement(blueprint: Blueprint, origin: ModuleOrigin): { blueprint: Blueprint; path: ModulePath } | null {
   const spec = placementAt(blueprint, origin.path);
   if (spec === null || isInstance(spec)) return null;
 
@@ -587,11 +548,7 @@ export function duplicatePlacement(
 
   return {
     blueprint: copy as unknown as Blueprint,
-    path: [
-      ...origin.path.slice(0, -1),
-      { index: found.index, copy: 0, into: 'assembly', assembly: name },
-      { index: 0, copy: 0 },
-    ],
+    path: [...origin.path.slice(0, -1), { index: found.index, copy: 0, into: 'assembly', assembly: name }, { index: 0, copy: 0 }],
   };
 }
 
@@ -621,10 +578,7 @@ function siblingOf(path: ModulePath, index: number): ModulePath {
  * new one, which is how assemblies nest. The first path is the one the
  * assembly will be built around, so pass them in the order they were picked.
  */
-export function createAssemblyProblem(
-  blueprint: Blueprint,
-  paths: readonly ModulePath[],
-): string | null {
+export function createAssemblyProblem(blueprint: Blueprint, paths: readonly ModulePath[]): string | null {
   if (paths.length < 2) return 'Select two or more things to make an assembly of them';
 
   const first = writtenIn(paths[0]!);
@@ -670,10 +624,7 @@ export function createAssemblyProblem(
  * order-sensitive will fly slightly differently afterwards. Nothing about its
  * geometry moves.
  */
-export function createAssembly(
-  blueprint: Blueprint,
-  paths: readonly ModulePath[],
-): { blueprint: Blueprint; path: ModulePath } | null {
+export function createAssembly(blueprint: Blueprint, paths: readonly ModulePath[]): { blueprint: Blueprint; path: ModulePath } | null {
   if (createAssemblyProblem(blueprint, paths) !== null) return null;
 
   const copy = cloneBlueprint(blueprint) as unknown as MutableBlueprint;
@@ -742,10 +693,7 @@ function assemblySpan(blueprint: Blueprint, name: string): number {
  * drift apart, and setting `mirror` on the second is what makes it the other
  * side rather than the same side again.
  */
-export function duplicateInstance(
-  blueprint: Blueprint,
-  path: ModulePath,
-): { blueprint: Blueprint; path: ModulePath } | null {
+export function duplicateInstance(blueprint: Blueprint, path: ModulePath): { blueprint: Blueprint; path: ModulePath } | null {
   const placement = placementAt(blueprint, path);
   if (placement === null || !isInstance(placement)) return null;
 
@@ -786,10 +734,7 @@ export function instanceChain(path: ModulePath): ModulePath[] {
  * such module and gets null — it cannot be dragged, which is honest rather
  * than approximate.
  */
-export function instanceHandle(
-  origins: readonly ModuleOrigin[],
-  path: ModulePath,
-): ModuleOrigin | null {
+export function instanceHandle(origins: readonly ModuleOrigin[], path: ModulePath): ModuleOrigin | null {
   for (const origin of origins) {
     const inner = instanceOf(origin);
     if (inner === null || !samePlacement(inner, path)) continue;
@@ -815,11 +760,7 @@ function places(blueprint: Blueprint, outer: string, inner: string, seen = new S
  * An assembly may go into another, but never into itself, however deep: a
  * definition that places itself has no end.
  */
-export function addToAssemblyProblem(
-  blueprint: Blueprint,
-  instance: ModulePath,
-  paths: readonly ModulePath[],
-): string | null {
+export function addToAssemblyProblem(blueprint: Blueprint, instance: ModulePath, paths: readonly ModulePath[]): string | null {
   const placed = placementAt(blueprint, instance);
   if (placed === null || !isInstance(placed)) return 'Pick an assembly to add to';
   if (blueprint.assemblies?.[placed.use] === undefined) return 'That assembly has no definition';
@@ -920,10 +861,7 @@ export function addToAssembly(
   // keeps selecting whatever slid into the old slot.
   const ahead = indices.filter((index) => index < found.index).length;
   const last = instance[instance.length - 1]!;
-  const path: ModulePath = [
-    ...instance.slice(0, -1),
-    { ...last, index: found.index - ahead },
-  ];
+  const path: ModulePath = [...instance.slice(0, -1), { ...last, index: found.index - ahead }];
   return { blueprint: copy as unknown as Blueprint, path };
 }
 
@@ -944,11 +882,7 @@ export function instanceOf(origin: ModuleOrigin): ModulePath | null {
 }
 
 /** Reflect an instance, or stop reflecting it. */
-export function setMirror(
-  blueprint: Blueprint,
-  path: ModulePath,
-  mirror: boolean,
-): Blueprint | null {
+export function setMirror(blueprint: Blueprint, path: ModulePath, mirror: boolean): Blueprint | null {
   const placement = placementAt(blueprint, path);
   if (placement === null || !isInstance(placement)) return null;
   return updatePlacement(blueprint, path, (current) => {
@@ -1067,10 +1001,7 @@ export function takeOutCount(blueprint: Blueprint, path: ModulePath): number {
  * by what came out of them. Returns the path of the loose copy left by the copy
  * `path` came through, so what was picked can stay picked.
  */
-export function takeOutOfAssembly(
-  blueprint: Blueprint,
-  path: ModulePath,
-): { blueprint: Blueprint; path: ModulePath } | null {
+export function takeOutOfAssembly(blueprint: Blueprint, path: ModulePath): { blueprint: Blueprint; path: ModulePath } | null {
   const entered = enteredAssembly(path);
   if (entered === null || path.length - entered.at !== 2) return null;
   const name = entered.step.assembly ?? '';
@@ -1183,10 +1114,7 @@ function loosen(placed: AssemblyInstance, members: readonly Placement[]): Placem
  * is exact up to round-off from composing the frames. The definition goes if
  * nothing else places it. Returns the new placements' paths, first to last.
  */
-export function dissolveInstance(
-  blueprint: Blueprint,
-  path: ModulePath,
-): { blueprint: Blueprint; paths: ModulePath[] } | null {
+export function dissolveInstance(blueprint: Blueprint, path: ModulePath): { blueprint: Blueprint; paths: ModulePath[] } | null {
   const copy = cloneBlueprint(blueprint) as unknown as MutableBlueprint;
   const found = containing(copy, path);
   if (found === null) return null;
@@ -1262,11 +1190,7 @@ export function renameProblem(blueprint: Blueprint, path: ModulePath, name: stri
  * nothing at all. The table keeps its order, so the file's diff is the name
  * and not a reshuffle.
  */
-export function renameAssembly(
-  blueprint: Blueprint,
-  path: ModulePath,
-  name: string,
-): Blueprint | null {
+export function renameAssembly(blueprint: Blueprint, path: ModulePath, name: string): Blueprint | null {
   if (renameProblem(blueprint, path, name) !== null) return null;
   const placed = placementAt(blueprint, path) as AssemblyInstance;
   const wanted = name.trim();

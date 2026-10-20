@@ -65,7 +65,9 @@ describe('a bill', () => {
       ],
       hangar: { Dinky: DINKY },
     };
-    const bare = billOf(compileBlueprint({ ...blueprint, modules: blueprint.modules.map((m) => ({ ...m, docked: undefined })) as Blueprint['modules'] }));
+    const bare = billOf(
+      compileBlueprint({ ...blueprint, modules: blueprint.modules.map((m) => ({ ...m, docked: undefined })) as Blueprint['modules'] }),
+    );
     const dinky = billOf(compileBlueprint(DINKY));
     const laden = billOf(compileBlueprint(blueprint));
     expect(laden.metal).toBeCloseTo(bare.metal + dinky.metal, 6);

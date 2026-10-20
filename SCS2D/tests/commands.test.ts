@@ -83,7 +83,12 @@ describe('orders as logged commands', () => {
     give(battle, { kind: 'order', ships: [0, 1, 2], order: { kind: 'defend', target: 0 }, append: false });
     // Ship 0 cannot defend itself, and ship 2 will not defend an enemy.
     expect([0, 1, 2].map((i) => battle.ships.orderCount(i))).toEqual([0, 1, 0]);
-    give(battle, { kind: 'order', ships: [1], order: { kind: 'attack', target: 0, cancelOn: OrderCancelCondition.CompletelyDead }, append: false });
+    give(battle, {
+      kind: 'order',
+      ships: [1],
+      order: { kind: 'attack', target: 0, cancelOn: OrderCancelCondition.CompletelyDead },
+      append: false,
+    });
     expect(battle.ships.orderCount(1)).toBe(1);
     give(battle, ATTACK);
     give(battle, { ...ATTACK, append: true } as Command);

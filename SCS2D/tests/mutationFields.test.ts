@@ -22,9 +22,11 @@ describe('the mutation settings a page offers', () => {
     expect(new Set(names).size).toBe(names.length);
     // The structural, geometry and thruster chances, the fleet's design chance,
     // ship moves and change chance, and the weights.
-    const count = 6 + [DEFAULT_BUILD_WEIGHTS, DEFAULT_KINDS, DEFAULT_DOCTRINE_WEIGHTS, DEFAULT_FLEET_LIMITS.operators]
-      .map((o) => Object.keys(o).length)
-      .reduce((a, b) => a + b, 0);
+    const count =
+      6 +
+      [DEFAULT_BUILD_WEIGHTS, DEFAULT_KINDS, DEFAULT_DOCTRINE_WEIGHTS, DEFAULT_FLEET_LIMITS.operators]
+        .map((o) => Object.keys(o).length)
+        .reduce((a, b) => a + b, 0);
     expect(names).toHaveLength(count);
   });
 

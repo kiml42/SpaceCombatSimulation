@@ -85,8 +85,7 @@ describe('which layer a module is in', () => {
 });
 
 describe('how thick a module is', () => {
-  const box = (length: number, width: number, thick = false): ModuleSpec =>
-    ({ kind: 'structure', x: 0, y: 0, length, width, thick });
+  const box = (length: number, width: number, thick = false): ModuleSpec => ({ kind: 'structure', x: 0, y: 0, length, width, thick });
 
   it('is as deep as it is across, up to a deck', () => {
     expect(moduleThickness(box(1, 2))).toBe(1);
@@ -146,8 +145,7 @@ describe('how thick a module is', () => {
 
 describe('thick structure takes its depth from what it is welded to', () => {
   /** A plate narrower than a deck, which has no depth of its own worth having. */
-  const plate = (y: number, thick = true): ModuleSpec =>
-    ({ kind: 'structure', x: 0, y, length: 8, width: 2, thick });
+  const plate = (y: number, thick = true): ModuleSpec => ({ kind: 'structure', x: 0, y, length: 8, width: 2, thick });
 
   /** What it covers: a citadel eight metres across, standing well clear of the deck. */
   const citadel: ModuleSpec = { kind: 'structure', x: 0, y: 0, length: 8, width: 8, thick: true };

@@ -452,9 +452,7 @@ export class EditorDocument {
     let depth = 0;
     for (let i = 0; i < chain.length; i++) {
       const level = chain[i]!;
-      const inside = this.selected.some(
-        (path) => samePlacement(path, level) || this.under(path, level),
-      );
+      const inside = this.selected.some((path) => samePlacement(path, level) || this.under(path, level));
       if (inside) depth = i + 1;
     }
     return chain[depth < chain.length ? depth : chain.length - 1] ?? null;

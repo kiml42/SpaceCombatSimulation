@@ -69,7 +69,11 @@ describe('two close-up windows', () => {
     const [a, b] = insetsFor([ship(2000, 0, 50, 1), ship(2000, 20, 50, 2)], CAMERA, W, H, SETTINGS);
     expect(a!.body).toBe(1);
     expect(b!.body).toBe(2);
-    const apart = a!.y + a!.size + SETTINGS.margin <= b!.y || b!.y + b!.size + SETTINGS.margin <= a!.y || a!.x + a!.size + SETTINGS.margin <= b!.x || b!.x + b!.size + SETTINGS.margin <= a!.x;
+    const apart =
+      a!.y + a!.size + SETTINGS.margin <= b!.y ||
+      b!.y + b!.size + SETTINGS.margin <= a!.y ||
+      a!.x + a!.size + SETTINGS.margin <= b!.x ||
+      b!.x + b!.size + SETTINGS.margin <= a!.x;
     expect(apart).toBe(true);
     // Both still on screen.
     for (const inset of [a!, b!]) {

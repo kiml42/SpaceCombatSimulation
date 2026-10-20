@@ -72,9 +72,7 @@ describe('crushing a hull', () => {
     const aft = hull();
     resolveCollision(corvette, aft.damage, aft.bodies, 0, aft.path, -corvette.radius, 0, 1, 0, 2e6);
 
-    const hitBoth = corvette.modules.some(
-      (_m, i) => fore.damage.integrity(0, i) < 1 && aft.damage.integrity(0, i) < 1,
-    );
+    const hitBoth = corvette.modules.some((_m, i) => fore.damage.integrity(0, i) < 1 && aft.damage.integrity(0, i) < 1);
     expect(marked(fore)).toBeGreaterThan(0);
     expect(marked(aft)).toBeGreaterThan(0);
     expect(hitBoth).toBe(false);
@@ -109,17 +107,7 @@ describe('a contact, end to end', () => {
     const light = ships.spawn(world, { design: dinky, x: corvette.radius + dinky.radius, y: 0, team: 1 });
     const impacts = new Impacts();
     const contacts = new Contacts();
-    contacts.push(
-      world.bodies.indexOf(ships.body(heavy)),
-      world.bodies.indexOf(ships.body(light)),
-      corvette.radius,
-      0,
-      1,
-      0,
-      0.1,
-      2,
-      5,
-    );
+    contacts.push(world.bodies.indexOf(ships.body(heavy)), world.bodies.indexOf(ships.body(light)), corvette.radius, 0, 1, 0, 0.1, 2, 5);
     contacts.impulse[0] = impulse;
     contacts.closing[0] = closing;
     const credit = new Credit();

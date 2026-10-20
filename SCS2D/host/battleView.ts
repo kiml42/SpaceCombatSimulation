@@ -272,10 +272,7 @@ export function battleView(
     if ((verb === 'defend') !== (target.team === side)) return;
     const ships = picked.filter((i) => i !== target.ship);
     if (ships.length === 0) return;
-    const given: Order =
-      verb === 'attack'
-        ? { kind: 'attack', target: target.ship, cancelOn }
-        : { kind: verb, target: target.ship };
+    const given: Order = verb === 'attack' ? { kind: 'attack', target: target.ship, cancelOn } : { kind: verb, target: target.ship };
     issue({ kind: 'order', ships, order: given, append });
   };
 
@@ -362,10 +359,14 @@ export function battleView(
       // The ships being followed, from the picture last drawn, before it is replaced.
       if (!autoFrame) anchors = jumpAnchors(camera, snapshot, canvas.width, canvas.height);
       // Flashes are rebuilt across the steps re-simulated, aged as they would have been drawn.
-      const restored = rewind.seek(seeking, () => flashes.clear(), (on) => {
-        flashes.step(on.dt);
-        drain(on.impacts.log);
-      });
+      const restored = rewind.seek(
+        seeking,
+        () => flashes.clear(),
+        (on) => {
+          flashes.step(on.dt);
+          drain(on.impacts.log);
+        },
+      );
       battle = rewind.battle;
       if (restored) rewound(battle);
       jumped = true;

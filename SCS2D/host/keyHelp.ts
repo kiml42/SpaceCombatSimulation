@@ -94,7 +94,10 @@ export const ORDER_KEYS: readonly KeyRow[] = [
   { keys: 'Shift-click, Shift-drag', does: 'Pick more ships of the same side, or take one back' },
   { keys: 'Double-click a ship', does: 'Pick every ship of its design on its side' },
   { keys: 'A', does: "Pick the picked ship's whole side" },
-  { keys: 'Right-click a ship', does: 'Order the picked ships to attack it, if an enemy, or defend it, if a friend; Ctrl to add to their orders' },
+  {
+    keys: 'Right-click a ship',
+    does: 'Order the picked ships to attack it, if an enemy, or defend it, if a friend; Ctrl to add to their orders',
+  },
   { keys: 'K, D, R', does: 'Attack, defend or ram the next ship clicked; Ctrl to add to their orders' },
   { keys: 'S', does: "Stop: clear the picked ships' orders, back to doctrine" },
 ];

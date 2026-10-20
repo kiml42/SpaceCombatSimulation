@@ -19,10 +19,7 @@ describe('a standoff nobody gives an order in', () => {
     const bodies = run.world.bodies;
     const first = bodies.indexOf(run.ships.body(0));
     const second = bodies.indexOf(run.ships.body(1));
-    const apart = Math.hypot(
-      bodies.x[first]! - bodies.x[second]!,
-      bodies.y[first]! - bodies.y[second]!,
-    );
+    const apart = Math.hypot(bodies.x[first]! - bodies.x[second]!, bodies.y[first]! - bodies.y[second]!);
     const fastest = Math.max(...run.ships.design(0).turrets.map((t) => t.gun.muzzleSpeed));
     expect(apart).toBeLessThan(fastest * 2);
     expect(apart).toBeGreaterThan(0);

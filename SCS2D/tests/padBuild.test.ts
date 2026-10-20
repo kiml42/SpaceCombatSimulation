@@ -189,7 +189,10 @@ describe('a pad building the fighters it keeps', () => {
 describe('the decision, for a carrier with no gun of its own', () => {
   it('is armed while it can still build an armed fighter, and not with none to build', () => {
     // Against an unarmed hulk: armed, it has won; unarmed, nobody has.
-    for (const [keep, winner] of [[1, 0], [0, -1]] as const) {
+    for (const [keep, winner] of [
+      [1, 0],
+      [0, -1],
+    ] as const) {
       const run = battle(factoryOf(keep));
       run.step();
       expect(new Activity(2).observe(run)).toMatchObject({ winner, reason: 'disarmed' });
@@ -237,19 +240,23 @@ describe('ships sharing a hull', () => {
     run.step();
     const [f] = fighters(run);
     expect(run.ships.body(f!)).toEqual(run.ships.body(run.c));
-    for (const [i, other] of [[run.c, f!], [f!, run.c]] as const) {
+    for (const [i, other] of [
+      [run.c, f!],
+      [f!, run.c],
+    ] as const) {
       const numbers: number[] = [];
       run.ships.coreNumbers(i, numbers);
       const cores = run.ships.design(i).cores;
       // Every core is one ship's: this one numbers its own and marks the other's.
       for (let k = 0; k < cores.length; k++) {
-        expect(numbers[k]! < 0, `ship ${i}, core ${cores[k]}`).toBe(run.ships.pilotAt(run.world.bodies.indexOf(run.ships.body(i)), cores[k]!) === other);
+        expect(numbers[k]! < 0, `ship ${i}, core ${cores[k]}`).toBe(
+          run.ships.pilotAt(run.world.bodies.indexOf(run.ships.body(i)), cores[k]!) === other,
+        );
       }
       expect(numbers.filter((n) => n >= 0).length).toBe(1);
     }
   });
 });
-
 
 describe('robots aboard a carrier building a fighter', () => {
   it('leave the fighter being built alone, though it has no working core yet', () => {
@@ -259,7 +266,8 @@ describe('robots aboard a carrier building a fighter', () => {
     const run = fleetBattle([fleet, foe], { seed: 1, range: 5000 });
     const ours = (): number[] => {
       const out: number[] = [];
-      for (let i = 0; i < run.ships.highWater; i++) if (run.ships.isAlive(i) && run.ships.teamOf(i) === 0 && run.ships.isUnfinished(i)) out.push(i);
+      for (let i = 0; i < run.ships.highWater; i++)
+        if (run.ships.isAlive(i) && run.ships.teamOf(i) === 0 && run.ships.isUnfinished(i)) out.push(i);
       return out;
     };
     for (let s = 0; s < 30 * 60 && ours().length === 0; s++) run.step();

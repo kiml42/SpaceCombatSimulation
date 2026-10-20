@@ -220,7 +220,7 @@ export function asin(x: number): number {
  * double precision, so `x - k·ln2` stays accurate when the subtraction
  * cancels. The classic fdlibm constants.
  */
-const LN2_HI = 6.93147180369123816490e-1;
+const LN2_HI = 6.9314718036912381649e-1;
 const LN2_LO = 1.90821492927058770002e-10;
 
 /** log(m) for m in [1/√2, √2), by the atanh series in s = (m−1)/(m+1).

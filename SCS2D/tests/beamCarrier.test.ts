@@ -24,8 +24,12 @@ describe('the Beam Carrier', () => {
     for (const f of FIGHTERS) expect(ships.body(f)).toBe(ships.body(CARRIER));
   });
 
-  it('casts its tender off at once, the tender being above its refuelBelow, without taking the carrier\'s fuel', () => {
-    const tank = (): number => ships.fuel.pieceHeld(body(TENDER), ships.design(TENDER).modules.findIndex((m) => m.spec.kind === 'claw'));
+  it("casts its tender off at once, the tender being above its refuelBelow, without taking the carrier's fuel", () => {
+    const tank = (): number =>
+      ships.fuel.pieceHeld(
+        body(TENDER),
+        ships.design(TENDER).modules.findIndex((m) => m.spec.kind === 'claw'),
+      );
     for (let s = 0; s < 5 * 60; s++) step();
     expect(ships.body(TENDER)).not.toBe(ships.body(CARRIER));
     const after = tank();
@@ -53,8 +57,7 @@ describe('the Beam Carrier', () => {
     // the step it fills, which the stores can no longer be read through the
     // carrier to see: then the last reading aboard must be short of full by no
     // more than that step's flow.
-    const full = (): boolean =>
-      ships.power.pieceRoom(body(landed), m) < 0.05 * design.modules[m]!.stats.charge && fuelRoom() < 0.5;
+    const full = (): boolean => ships.power.pieceRoom(body(landed), m) < 0.05 * design.modules[m]!.stats.charge && fuelRoom() < 0.5;
     let room = fuelRoom();
     let flow = Infinity;
     let topped = false;

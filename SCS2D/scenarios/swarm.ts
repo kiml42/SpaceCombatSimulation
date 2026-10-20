@@ -21,7 +21,7 @@ export function swarm(seed = 20260905, fighterCount = 20): Battle {
       angle: CROSSING.east.angle,
       vx: CROSSING.east.vx,
       vy: CROSSING.east.vy,
-      team: 1
+      team: 1,
     });
 
     const rng = new Rng(seed);

@@ -82,6 +82,8 @@ Keep these working — they are the cold-start re-entry path:
 - `npm test` — unit tests, determinism tests and the golden scenario checksums
 - `npm run typecheck` — all three TS projects (`sim/` has no ambient types; `render/`, `editor/` and
   `host/` have the DOM)
+- `npm run format` — format the TypeScript with Prettier (`.prettierrc.json`); CI fails on anything
+  `npm run format:check` finds, so run it before pushing
 - `npm run golden` — re-derive golden checksums after a *deliberate* behaviour change
 - `npm run evolve` — fight a headless evolution run and write it to `runs/`, rewritten after every generation; `--from <stock ships or blueprint files>`, `--fleet <stock fleet
   or fleet file>`, `--deploy <radius>`, `--ships <most>` (ship founders grow into fleets unless it is 1), `--generations`,

@@ -1,12 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  math,
-  pushNeighbours,
-  sharedFace,
-  shiftSeam,
-  type ModuleSpec,
-  type Placement,
-} from '../sim/index.js';
+import { math, pushNeighbours, sharedFace, shiftSeam, type ModuleSpec, type Placement } from '../sim/index.js';
 
 /**
  * A resize carrying its neighbours: what sits against a face that moved goes

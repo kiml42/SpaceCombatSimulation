@@ -2,7 +2,13 @@ import { DAMAGE_ENERGY_PER_KG, fleetBill, fleetHulls, fleetReach, math, Rng, shi
 import { BARE_CORE } from '../scenarios/blueprints.js';
 import { customBattle, tally, winner, type CustomBattle } from '../scenarios/customBattle.js';
 import { Activity, type Decision } from '../scenarios/decision.js';
-import { DEFAULT_SKIRMISH_SETTINGS, nextMultiplier, roundBattle, startingMultiplier, type SkirmishSettings } from '../scenarios/skirmish.js';
+import {
+  DEFAULT_SKIRMISH_SETTINGS,
+  nextMultiplier,
+  roundBattle,
+  startingMultiplier,
+  type SkirmishSettings,
+} from '../scenarios/skirmish.js';
 import { breeding, type Breeding } from './mutationFields.js';
 import { mutateFleet } from './fleetMutate.js';
 

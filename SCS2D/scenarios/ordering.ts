@@ -1,10 +1,4 @@
-import {
-  compileBlueprint,
-  expandWithOrigins,
-  MODULE_KINDS,
-  type Blueprint,
-  type ModuleSpec,
-} from '../sim/index.js';
+import { compileBlueprint, expandWithOrigins, MODULE_KINDS, type Blueprint, type ModuleSpec } from '../sim/index.js';
 import { NO_TARGET, OrderCancelCondition } from '../sim/ships.js';
 import type { Battle } from './types.js';
 import { CROSSING, SIDE_WELL, makeBattle } from './battle.js';
@@ -48,8 +42,7 @@ function flatGunship(order: (modules: ModuleSpec[]) => ModuleSpec[]): Blueprint 
 }
 
 /** Every module of one kind together, kinds in `MODULE_KINDS` order; stable within a kind. */
-const byKind = (modules: ModuleSpec[]): ModuleSpec[] =>
-  modules.sort((a, b) => MODULE_KINDS.indexOf(a.kind) - MODULE_KINDS.indexOf(b.kind));
+const byKind = (modules: ModuleSpec[]): ModuleSpec[] => modules.sort((a, b) => MODULE_KINDS.indexOf(a.kind) - MODULE_KINDS.indexOf(b.kind));
 
 /**
  * The layouts under test, in the order the contenders are reported: the

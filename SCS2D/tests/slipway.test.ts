@@ -47,7 +47,9 @@ describe('a slipway', () => {
 
   it('refuses a fighter, a ship wider than it, and one that stands higher than it', () => {
     expect(blueprintProblems(yard(DINKY)).join()).toMatch(/Dinky is a fighter, which a pad builds/);
-    expect(blueprintProblems(yard(SCAVENGER, 1, { width: 4 })).join()).toMatch(/5\.0 m across the beam, wider than this slipway \(4\.0 m\)/);
+    expect(blueprintProblems(yard(SCAVENGER, 1, { width: 4 })).join()).toMatch(
+      /5\.0 m across the beam, wider than this slipway \(4\.0 m\)/,
+    );
     const corvette = yard(CORVETTE, 1, { width: 16, x: 6, length: 8 });
     expect(blueprintProblems(corvette).join()).toMatch(/stands in the weapons layer, so this slipway must be thick/);
     const thick = yard(CORVETTE, 1, { width: 16, x: 6, length: 8, thick: true });
@@ -67,7 +69,10 @@ describe('a slipway', () => {
   });
 
   it('keeps its craft and count in a file, and never sets out with one docked', () => {
-    const raw = serialiseBlueprint({ ...yard(SCAVENGER, 2), modules: yard(SCAVENGER, 2).modules.map((m, i) => (i === SLIPWAY ? { ...m, docked: true } : m)) });
+    const raw = serialiseBlueprint({
+      ...yard(SCAVENGER, 2),
+      modules: yard(SCAVENGER, 2).modules.map((m, i) => (i === SLIPWAY ? { ...m, docked: true } : m)),
+    });
     const written = (raw as { modules: Record<string, unknown>[] }).modules[SLIPWAY]!;
     expect(written).toMatchObject({ craft: SCAVENGER.name, keep: 2 });
     expect(written['docked']).toBeUndefined();
@@ -77,7 +82,11 @@ describe('a slipway', () => {
   it('is given its craft by the editor without being docked', () => {
     const bare = yard();
     const { craft: _, keep: __, ...slipway } = bare.modules[SLIPWAY] as ModuleSpec;
-    const given = dockFighter({ ...bare, modules: [...bare.modules.slice(0, 2), slipway], hangar: {} }, [{ index: SLIPWAY, copy: 0 }], SCAVENGER)!;
+    const given = dockFighter(
+      { ...bare, modules: [...bare.modules.slice(0, 2), slipway], hangar: {} },
+      [{ index: SLIPWAY, copy: 0 }],
+      SCAVENGER,
+    )!;
     expect(given.modules[SLIPWAY]).toMatchObject({ craft: SCAVENGER.name });
     expect((given.modules[SLIPWAY] as ModuleSpec).docked).toBeUndefined();
     expect(Object.keys(given.hangar ?? {})).toEqual([SCAVENGER.name]);

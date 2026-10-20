@@ -92,14 +92,7 @@ import {
   updatePlacement,
   dockFighter,
 } from './edit.js';
-import {
-  emptyBlueprint,
-  Library,
-  nextName,
-  toFileText,
-  unusedName,
-  type LibraryEntry,
-} from './library.js';
+import { emptyBlueprint, Library, nextName, toFileText, unusedName, type LibraryEntry } from './library.js';
 import { battleHref, designHref, fleetHref, handedDesign, shipFleet, type DesignInFleet } from './handoff.js';
 import { replaceDesign, replacedName } from './fleetEdit.js';
 import { budgetRows } from './budget.js';
@@ -149,7 +142,18 @@ import {
   type DoctrineValues,
 } from './doctrine.js';
 import { attackBearings, doctrineBand, landOnSelf, lightSelfBurning, previewSnapshot } from './preview.js';
-import { buildTime, designStats, envelopes, assemblyMass, holdingThrottles, moduleReadout, roundsAboard, megawatts, megajoules, type Envelopes } from './stats.js';
+import {
+  buildTime,
+  designStats,
+  envelopes,
+  assemblyMass,
+  holdingThrottles,
+  moduleReadout,
+  roundsAboard,
+  megawatts,
+  megajoules,
+  type Envelopes,
+} from './stats.js';
 
 /**
  * The blueprint editor's page: the canvas, the panels and the pointer.
@@ -276,9 +280,7 @@ export function startEditor(): void {
     try {
       return library.load(name);
     } catch (error) {
-      window.alert(
-        `Could not read the saved ${name}.\n\n${error instanceof Error ? error.message : error}`,
-      );
+      window.alert(`Could not read the saved ${name}.\n\n${error instanceof Error ? error.message : error}`);
       return null;
     }
   };
@@ -308,8 +310,7 @@ export function startEditor(): void {
    * than a distance on the ship, whatever the zoom. Alt passes 0, which is no
    * snapping at all.
    */
-  const snapWithin = (event: { altKey: boolean }): number =>
-    event.altKey ? 0 : SNAP_WITHIN_PIXELS / camera.scale;
+  const snapWithin = (event: { altKey: boolean }): number => (event.altKey ? 0 : SNAP_WITHIN_PIXELS / camera.scale);
   /**
    * What the drag may land on: everything the selection is not carrying.
    *
@@ -394,9 +395,7 @@ export function startEditor(): void {
   const dockedSelect = el<HTMLSelectElement>('propDocked');
   const padDockedInput = el<HTMLInputElement>('propPadDocked');
   const addHeading = el<HTMLElement>('addHeading');
-  kindSelect.innerHTML = MODULE_KINDS.map(
-    (kind) => `<option value="${kind}">${kindName(kind)}</option>`,
-  ).join('');
+  kindSelect.innerHTML = MODULE_KINDS.map((kind) => `<option value="${kind}">${kindName(kind)}</option>`).join('');
 
   const mountDoctrine = el<HTMLDetailsElement>('mountDoctrine');
   const mountDoctrineSummary = el<HTMLElement>('mountDoctrineSummary');
@@ -648,9 +647,7 @@ export function startEditor(): void {
       ],
       [
         'Endurance',
-        Number.isFinite(s.endurance)
-          ? `${numbers(s.endurance, 0)} s flat out, ${numbers(s.deltaV, 0)} m/s of Δv`
-          : 'no engines',
+        Number.isFinite(s.endurance) ? `${numbers(s.endurance, 0)} s flat out, ${numbers(s.deltaV, 0)} m/s of Δv` : 'no engines',
       ],
       [
         'Power',
@@ -672,18 +669,12 @@ export function startEditor(): void {
       ['Radius', `${numbers(s.radius)} m`],
       ['Accel fore / aft', `${numbers(s.accelFore, 2)} / ${numbers(s.accelAft, 2)} m/s²`],
       ['Accel port / stbd', `${numbers(s.accelPort, 2)} / ${numbers(s.accelStarboard, 2)} m/s²`],
-      [
-        'Turn left / right',
-        `${numbers(radiansToDegrees(s.turnLeft), 2)} / ${numbers(radiansToDegrees(s.turnRight), 2)} °/s²`,
-      ],
+      ['Turn left / right', `${numbers(radiansToDegrees(s.turnLeft), 2)} / ${numbers(radiansToDegrees(s.turnRight), 2)} °/s²`],
       ['Authority', s.fullAuthority ? 'full' : 'incomplete — cannot hold a heading'],
       // What a layout pays for its thrust not being balanced about its centre
       // of mass: the acceleration it gives up to avoid spinning. The envelope
       // shows which directions it is paid in.
-      [
-        'Heading cost',
-        s.headingCost < 0.005 ? 'none — thrust is balanced' : `up to ${numbers(s.headingCost * 100)}%`,
-      ],
+      ['Heading cost', s.headingCost < 0.005 ? 'none — thrust is balanced' : `up to ${numbers(s.headingCost * 100)}%`],
     ];
     // No turret rows: a gun's figures belong to the gun, and selecting it
     // shows them. Repeating them here made the ship's own totals hard to find
@@ -698,8 +689,7 @@ export function startEditor(): void {
       .map((r) => `${numbers(radiansToDegrees(r.bearing), 0)}° (${r.guns} of ${r.total} main guns)`)
       .join(', ');
     rows.push(['Fights with target at', fights]);
-    statsPanel.innerHTML =
-      `<table>${rows.map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join('')}</table>`;
+    statsPanel.innerHTML = `<table>${rows.map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join('')}</table>`;
   };
 
   const renderProblems = (): void => {
@@ -766,8 +756,7 @@ export function startEditor(): void {
       ...(modules > 0 || nested === 0 ? [counted(modules, 'module', 'modules')] : []),
       ...(nested > 0 ? [counted(nested, 'assembly', 'assemblies')] : []),
     ];
-    assemblyOf.textContent =
-      parts.join(' and ') + (drawn > members.length ? `, and this copy draws ${drawn}` : '');
+    assemblyOf.textContent = parts.join(' and ') + (drawn > members.length ? `, and this copy draws ${drawn}` : '');
     if (document.activeElement !== assemblyName) assemblyName.value = instance.use;
     offerTakeOut(assemblyTakeOut, path, 'assembly');
     renderAssemblyStats();
@@ -821,14 +810,9 @@ export function startEditor(): void {
     const rows = [['Mass', `${numbers(mass / 1000, 2)} t`]];
     if (outlines.length > 1) {
       const all = outlines.flatMap((assembly) => assembly.modules);
-      rows.push([
-        `All ${outlines.length} copies`,
-        `${numbers(assemblyMass(doc.view.modules, all) / 1000, 2)} t`,
-      ]);
+      rows.push([`All ${outlines.length} copies`, `${numbers(assemblyMass(doc.view.modules, all) / 1000, 2)} t`]);
     }
-    assemblyStats.innerHTML = `<table>${rows
-      .map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`)
-      .join('')}</table>`;
+    assemblyStats.innerHTML = `<table>${rows.map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join('')}</table>`;
   };
 
   /**
@@ -852,16 +836,11 @@ export function startEditor(): void {
     addToAssemblyButton.textContent = name === null ? 'Add to assembly' : `Add to ${name}`;
     addToAssemblyButton.title = addWhy ?? `Move the rest of the selection into ${name}`;
 
-    const lines = [
-      why === null
-        ? `${picked} picked. Create assembly makes them one part, built around the first one picked.`
-        : why,
-    ];
+    const lines = [why === null ? `${picked} picked. Create assembly makes them one part, built around the first one picked.` : why];
     if (adding !== null && addWhy === null && name !== null) {
       // Said out loud because it is the bargain rather than a surprise: what
       // goes in joins every copy of the assembly, so the ship gains it per copy.
-      const spread =
-        countInstances(doc.blueprint, name) > 1 ? ' It is placed more than once, and every copy gains them.' : '';
+      const spread = countInstances(doc.blueprint, name) > 1 ? ' It is placed more than once, and every copy gains them.' : '';
       lines.push(`Add to ${name} moves the other ${adding.members.length} into it.${spread}`);
     }
     assemblyCount.textContent = lines.join(' ');
@@ -871,9 +850,7 @@ export function startEditor(): void {
     const into = doc.selectedAssemblyPath();
     const target = into === null ? null : placementAt(doc.blueprint, into);
     addHeading.textContent =
-      target !== null && !isModuleSpec(target)
-        ? `Add a module to ${(target as AssemblyInstance).use}`
-        : 'Add a module';
+      target !== null && !isModuleSpec(target) ? `Add a module to ${(target as AssemblyInstance).use}` : 'Add a module';
     const placement = doc.selectedPlacement;
     const copies = doc.selectedModules().length;
 
@@ -904,8 +881,7 @@ export function startEditor(): void {
     // time. Compared by placement rather than by identity, because a path
     // object is rebuilt on every edit even when the selection has not moved.
     const path = doc.selection;
-    const sameModule =
-      shownSelection !== null && path !== null && samePlacement(shownSelection, path);
+    const sameModule = shownSelection !== null && path !== null && samePlacement(shownSelection, path);
     shownSelection = path;
     kindSelect.value = spec.kind;
     for (const [key, input] of Object.entries(propInputs)) {
@@ -923,8 +899,7 @@ export function startEditor(): void {
         // every copy as being at (0, 0).
         const at = positioned;
         input.value = String(at === null ? 0 : key === 'x' ? at.x : at.y);
-      }
-      else if (key === 'length' || key === 'width') input.value = String(spec[key]);
+      } else if (key === 'length' || key === 'width') input.value = String(spec[key]);
       else input.value = String(moduleField(spec, key as ModuleNumberField));
     }
     // Offered on a beam mount as well as a gun, and on an engine. More of
@@ -941,13 +916,8 @@ export function startEditor(): void {
     // renaming a field in the format would cost every file ever saved.
     const nozzles = spec.kind === 'engine';
     const hullMount = isHullMount(spec.kind);
-    el<HTMLElement>('barrelsRow').hidden =
-      !nozzles && !hullMount && spec.kind !== 'turret' && spec.kind !== 'beamTurret';
-    el<HTMLElement>('barrelsLabel').textContent = nozzles
-      ? 'nozzles'
-      : spec.kind === 'beamTurret'
-        ? 'emitters'
-        : 'barrels';
+    el<HTMLElement>('barrelsRow').hidden = !nozzles && !hullMount && spec.kind !== 'turret' && spec.kind !== 'beamTurret';
+    el<HTMLElement>('barrelsLabel').textContent = nozzles ? 'nozzles' : spec.kind === 'beamTurret' ? 'emitters' : 'barrels';
     el<HTMLElement>('traverseRow').hidden = !isWeaponMount(spec.kind);
     el<HTMLElement>('shellRow').hidden = !readsFuse(spec.kind);
     // Solid shot has no burst to time or to size.
@@ -983,8 +953,8 @@ export function startEditor(): void {
       ? doc.blueprint.fighter === true && canThicken(spec)
         ? 'A fighter has nothing thick.'
         : spec.kind === 'engine'
-        ? 'Too narrow to be thick: each nozzle is no more than a deck wide, so already as deep as it is wide.'
-        : 'Too narrow to be thick: no more than a deck across, so already as deep as it is wide.'
+          ? 'Too narrow to be thick: each nozzle is no more than a deck wide, so already as deep as it is wide.'
+          : 'Too narrow to be thick: no more than a deck across, so already as deep as it is wide.'
       : thickTitle;
 
     const origin = doc.selectedOrigin();
@@ -999,10 +969,7 @@ export function startEditor(): void {
 
     linked.hidden = copies < 2;
     linked.textContent =
-      copies < 2
-        ? ''
-        : `Shared: drawn ${copies} times. Size, facing and notes change every copy; ` +
-          `position moves this one.`;
+      copies < 2 ? '' : `Shared: drawn ${copies} times. Size, facing and notes change every copy; ` + `position moves this one.`;
 
     renderDoctrine(spec, sameModule);
     renderModuleStats(spec, doc.selectedModules()[0] ?? -1);
@@ -1061,11 +1028,7 @@ export function startEditor(): void {
   buildDoctrine(el<HTMLElement>('shipDoctrineFields'), SHIP_SECTIONS);
 
   /** Hide what a higher setting has made moot, and say what the rest comes to. */
-  const showDoctrineRows = (
-    entries: readonly DoctrineEntry[],
-    values: DoctrineValues,
-    ship: DoctrineContext | null,
-  ): void => {
+  const showDoctrineRows = (entries: readonly DoctrineEntry[], values: DoctrineValues, ship: DoctrineContext | null): void => {
     for (const row of entries) {
       const shown = doctrineRows.get(`${row.half}.${row.field}`)!;
       shown.field.hidden = row.shown !== undefined && !row.shown(values);
@@ -1099,12 +1062,7 @@ export function startEditor(): void {
    * the panel optional, so the placeholder is not decoration — it is the box
    * saying what it will do if left alone.
    */
-  const showDoctrineValue = (
-    input: HTMLInputElement,
-    held: number | undefined,
-    fallback: number,
-    sameThing: boolean,
-  ): void => {
+  const showDoctrineValue = (input: HTMLInputElement, held: number | undefined, fallback: number, sameThing: boolean): void => {
     input.placeholder = String(fallback);
     if (sameThing && document.activeElement === input) return;
     input.value = held === undefined || held === fallback ? '' : String(held);
@@ -1135,8 +1093,7 @@ export function startEditor(): void {
         showDoctrineValue(input, held[row.field], mountDefault(spec.kind, row.field), sameThing);
       }
       const index = doc.selectedModules()[0] ?? -1;
-      const fireRange =
-        moduleReadout(spec, doc.view.modules, index, doc.view.design?.radius ?? 0).gun?.triggerRange ?? null;
+      const fireRange = moduleReadout(spec, doc.view.modules, index, doc.view.design?.radius ?? 0).gun?.triggerRange ?? null;
       showDoctrineRows(
         entries,
         {
@@ -1196,8 +1153,7 @@ export function startEditor(): void {
    * nobody has and would open the wrong ship rather than break the page.
    */
   const STOCK = 'stock:';
-  const optionValue = (entry: LibraryEntry): string =>
-    entry.stock && entry.saved ? STOCK + entry.name : entry.name;
+  const optionValue = (entry: LibraryEntry): string => (entry.stock && entry.saved ? STOCK + entry.name : entry.name);
 
   const renderLibrary = (): void => {
     const entries = library.list();
@@ -1209,8 +1165,7 @@ export function startEditor(): void {
         const chosen = entry.name === selected && !(entry.stock && entry.saved);
         const label = entry.stock ? (entry.saved ? ' (stock)' : '') : ' •';
         return (
-          `<option value="${escapeHtml(optionValue(entry))}"${chosen ? ' selected' : ''}>` +
-          `${escapeHtml(entry.name)}${label}</option>`
+          `<option value="${escapeHtml(optionValue(entry))}"${chosen ? ' selected' : ''}>` + `${escapeHtml(entry.name)}${label}</option>`
         );
       })
       .join('');
@@ -1262,10 +1217,10 @@ export function startEditor(): void {
         : fault !== null
           ? 'Priced once the fleet would fly.'
           : canFight({ ...skirmish, player: fleet })
-          ? `The fleet with this design, against ${skirmish.enemy.name}.`
-          : limit !== null
-            ? `The fleet with this design has ${limit}.`
-            : 'The fleet with this design is over budget.';
+            ? `The fleet with this design, against ${skirmish.enemy.name}.`
+            : limit !== null
+              ? `The fleet with this design has ${limit}.`
+              : 'The fleet with this design is over budget.';
     // Kept in the address as it is edited, so a reload picks up where this left off.
     clearTimeout(keepTimer);
     keepTimer = setTimeout(() => {
@@ -1506,8 +1461,7 @@ export function startEditor(): void {
       }
       if (key === 'angle' || key === 'traverse') {
         editSelected({ [key]: degreesToRadians(value) } as Partial<ModuleSpec>, true);
-      }
-      else if (key === 'sealing') editSelected({ sealing: value / 1000 }, true);
+      } else if (key === 'sealing') editSelected({ sealing: value / 1000 }, true);
       // Full is what a tank is when nothing says otherwise, so it is left unsaid.
       else if (key === 'fill') {
         const path = doc.selection;
@@ -1533,8 +1487,7 @@ export function startEditor(): void {
           }),
           true,
         );
-      }
-      else editSelected({ [key]: value } as Partial<ModuleSpec>, true);
+      } else editSelected({ [key]: value } as Partial<ModuleSpec>, true);
     });
   }
 
@@ -1567,9 +1520,7 @@ export function startEditor(): void {
     if (path === null) return;
     const to = kindSelect.value as ModuleKind;
     change(
-      updatePlacement(doc.blueprint, path, (placement) =>
-        isModuleSpec(placement) ? refitModule(placement as ModuleSpec, to) : placement,
-      ),
+      updatePlacement(doc.blueprint, path, (placement) => (isModuleSpec(placement) ? refitModule(placement as ModuleSpec, to) : placement)),
     );
   });
 
@@ -1623,22 +1574,12 @@ export function startEditor(): void {
     const origin = doc.selectedOrigin();
     const spec = doc.view.modules[doc.selectedLoose()[0] ?? -1];
     if (origin === null || spec === undefined) return;
-    const shaped = shapeInput.checked
-      ? shapeModule(spec, wedge(spec))
-      : shapeModule(spec, null);
+    const shaped = shapeInput.checked ? shapeModule(spec, wedge(spec)) : shapeModule(spec, null);
     if (shaped === null) {
       shapeInput.checked = isTriangle(spec);
       return;
     }
-    change(
-      reshapePlacement(
-        doc.blueprint,
-        origin,
-        shaped.vertices ?? null,
-        shaped.x - spec.x,
-        shaped.y - spec.y,
-      ),
-    );
+    change(reshapePlacement(doc.blueprint, origin, shaped.vertices ?? null, shaped.x - spec.x, shaped.y - spec.y));
   });
 
   thickInput.addEventListener('change', () => {
@@ -2057,8 +1998,7 @@ export function startEditor(): void {
       // a name match — which "Corvette" guarantees. So ask.
       if (library.savedNames().includes(blueprint.name)) {
         const answer = window.prompt(
-          `You already have a saved ship called ${blueprint.name}. ` +
-            `Give this one a different name, or keep the name to replace yours.`,
+          `You already have a saved ship called ${blueprint.name}. ` + `Give this one a different name, or keep the name to replace yours.`,
           blueprint.name,
         );
         if (answer === null) return;
@@ -2215,13 +2155,7 @@ export function startEditor(): void {
       // One corner to wherever the pointer is, the other two left alone. No
       // neighbour is pushed: a corner moves two edges at once and neither of
       // them squarely, so there is no face to carry one by.
-      const point = landOrGrid(
-        fieldNow(),
-        world.x,
-        world.y,
-        snapWithin(event),
-        event.altKey ? 0 : snapMetres(),
-      );
+      const point = landOrGrid(fieldNow(), world.x, world.y, snapWithin(event), event.altKey ? 0 : snapMetres());
       const moved = vertexTo(drag.spec, drag.handle.vertex ?? -1, point.x, point.y, 0);
       // A corner dragged onto the line between the other two is no module at
       // all, so the drag simply stops there rather than refusing the shape.
@@ -2234,22 +2168,12 @@ export function startEditor(): void {
       const landed = landing(fieldNow(), world.x, world.y, snapWithin(event));
       const point = landed ?? world;
       // Shift sizes about the middle, keeping it where it was.
-      const { length, width, dx, dy } = resizedTo(
-        drag.spec,
-        drag.handle,
-        point.x,
-        point.y,
-        landed === null ? step : 0,
-        event.shiftKey,
-      );
+      const { length, width, dx, dy } = resizedTo(drag.spec, drag.handle, point.x, point.y, landed === null ? step : 0, event.shiftKey);
       // Neighbours move with the face unless Ctrl (⌘) asks for this module alone.
       const push = !(event.ctrlKey || event.metaKey);
       next = resizePlacement(drag.from, origin, length, width, dx, dy, push);
     } else {
-      const angle = toPlacementAngle(
-        origin,
-        facingTo(drag.spec, world.x, world.y, event.altKey ? 0 : ANGLE_SNAP_DEGREES, anglesNow()),
-      );
+      const angle = toPlacementAngle(origin, facingTo(drag.spec, world.x, world.y, event.altKey ? 0 : ANGLE_SNAP_DEGREES, anglesNow()));
       next = updatePlacement(drag.from, path, (p) => ({ ...p, angle }));
     }
     if (next === null) return;
@@ -2259,12 +2183,7 @@ export function startEditor(): void {
     refresh();
   };
 
-  const sizes = (r: ReturnType<typeof resizedTo>): [number, number, number, number] => [
-    r.length,
-    r.width,
-    r.dx,
-    r.dy,
-  ];
+  const sizes = (r: ReturnType<typeof resizedTo>): [number, number, number, number] => [r.length, r.width, r.dx, r.dy];
 
   canvas.addEventListener('pointerdown', (event) => {
     // A canvas is not focusable, so clicking it does not move focus off a

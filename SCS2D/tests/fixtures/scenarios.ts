@@ -322,10 +322,7 @@ export function duelScenario(seed = 20260905): ScenarioRun {
   return {
     step: () => run.step(),
     checksum: () =>
-      checksumDamage(
-        run.ships.damage,
-        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
-      ),
+      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
     describe: () => describeBattle(run),
   };
 }
@@ -335,10 +332,7 @@ export function beamDuelScenario(seed = 20260905): ScenarioRun {
   return {
     step: () => run.step(),
     checksum: () =>
-      checksumDamage(
-        run.ships.damage,
-        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
-      ),
+      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
     describe: () => describeBattle(run),
   };
 }
@@ -348,10 +342,7 @@ export function torpedoesScenario(seed = 20260905): ScenarioRun {
   return {
     step: () => run.step(),
     checksum: () =>
-      checksumDamage(
-        run.ships.damage,
-        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
-      ),
+      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
     describe: () => describeBattle(run),
   };
 }
@@ -361,10 +352,7 @@ export function swarmScenario(seed = 20260905, corvetteCount = 20): ScenarioRun 
   return {
     step: () => run.step(),
     checksum: () =>
-      checksumDamage(
-        run.ships.damage,
-        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
-      ),
+      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
     describe: () => describeBattle(run),
   };
 }
@@ -374,10 +362,7 @@ export function standoffScenario(seed = 20260905): ScenarioRun {
   return {
     step: () => run.step(),
     checksum: () =>
-      checksumDamage(
-        run.ships.damage,
-        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
-      ),
+      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
     describe: () => describeBattle(run),
   };
 }
@@ -387,10 +372,7 @@ export function torchRunScenario(seed = 20260905): ScenarioRun {
   return {
     step: () => run.step(),
     checksum: () =>
-      checksumDamage(
-        run.ships.damage,
-        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
-      ),
+      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
     describe: () => describeBattle(run),
   };
 }
@@ -400,10 +382,7 @@ export function broadsideScenario(seed = 20260905): ScenarioRun {
   return {
     step: () => run.step(),
     checksum: () =>
-      checksumDamage(
-        run.ships.damage,
-        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
-      ),
+      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
     describe: () => describeBattle(run),
   };
 }
@@ -413,10 +392,7 @@ export function splitScenario(seed = 20260905): ScenarioRun {
   return {
     step: () => run.step(),
     checksum: () =>
-      checksumDamage(
-        run.ships.damage,
-        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
-      ),
+      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
     describe: () => describeBattle(run),
   };
 }
@@ -426,10 +402,7 @@ export function columnScenario(seed = 20260905): ScenarioRun {
   return {
     step: () => run.step(),
     checksum: () =>
-      checksumDamage(
-        run.ships.damage,
-        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
-      ),
+      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
     describe: () => describeBattle(run),
   };
 }
@@ -439,10 +412,7 @@ export function hookedScenario(seed = 20260929): ScenarioRun {
   return {
     step: () => run.step(),
     checksum: () =>
-      checksumDamage(
-        run.ships.damage,
-        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
-      ),
+      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
     describe: () => describeBattle(run),
   };
 }
@@ -452,10 +422,7 @@ export function mendingScenario(seed = 20261013): ScenarioRun {
   return {
     step: () => run.step(),
     checksum: () =>
-      checksumDamage(
-        run.ships.damage,
-        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
-      ),
+      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
     describe: () => describeBattle(run),
   };
 }
@@ -465,10 +432,7 @@ export function refittingScenario(seed = 20261018): ScenarioRun {
   return {
     step: () => run.step(),
     checksum: () =>
-      checksumDamage(
-        run.ships.damage,
-        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
-      ),
+      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
     describe: () => describeBattle(run),
   };
 }
@@ -478,10 +442,7 @@ export function salvageRunScenario(seed = 20261019): ScenarioRun {
   return {
     step: () => run.step(),
     checksum: () =>
-      checksumDamage(
-        run.ships.damage,
-        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
-      ),
+      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
     describe: () => describeBattle(run),
   };
 }
@@ -491,10 +452,7 @@ export function scavengeScenario(seed = 20261008): ScenarioRun {
   return {
     step: () => run.step(),
     checksum: () =>
-      checksumDamage(
-        run.ships.damage,
-        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
-      ),
+      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
     describe: () => describeBattle(run),
   };
 }
@@ -504,10 +462,7 @@ export function padRebuildScenario(seed = 20261013): ScenarioRun {
   return {
     step: () => run.step(),
     checksum: () =>
-      checksumDamage(
-        run.ships.damage,
-        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
-      ),
+      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
     describe: () => describeBattle(run),
   };
 }
@@ -516,10 +471,7 @@ function onTheMoveScenario(run: ReturnType<typeof passes>): ScenarioRun {
   return {
     step: () => run.step(),
     checksum: () =>
-      checksumDamage(
-        run.ships.damage,
-        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
-      ),
+      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
     describe: () => describeBattle(run),
   };
 }
@@ -532,10 +484,7 @@ export function beamCarrierScenario(seed = 20261011): ScenarioRun {
   return {
     step: () => run.step(),
     checksum: () =>
-      checksumDamage(
-        run.ships.damage,
-        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
-      ),
+      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
     describe: () => describeBattle(run),
   };
 }
@@ -545,10 +494,7 @@ export function factoryScenario(seed = 20261017): ScenarioRun {
   return {
     step: () => run.step(),
     checksum: () =>
-      checksumDamage(
-        run.ships.damage,
-        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
-      ),
+      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
     describe: () => describeBattle(run),
   };
 }
@@ -558,10 +504,7 @@ export function shipyardScenario(seed = 20261018): ScenarioRun {
   return {
     step: () => run.step(),
     checksum: () =>
-      checksumDamage(
-        run.ships.damage,
-        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
-      ),
+      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
     describe: () => describeBattle(run),
   };
 }
@@ -571,10 +514,7 @@ export function rearmScenario(seed = 20261010): ScenarioRun {
   return {
     step: () => run.step(),
     checksum: () =>
-      checksumDamage(
-        run.ships.damage,
-        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
-      ),
+      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
     describe: () => describeBattle(run),
   };
 }
@@ -584,10 +524,7 @@ export function tankerScenario(seed = 20261009): ScenarioRun {
   return {
     step: () => run.step(),
     checksum: () =>
-      checksumDamage(
-        run.ships.damage,
-        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
-      ),
+      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
     describe: () => describeBattle(run),
   };
 }
@@ -597,10 +534,7 @@ export function orderingScenario(seed = 20260905): ScenarioRun {
   return {
     step: () => run.step(),
     checksum: () =>
-      checksumDamage(
-        run.ships.damage,
-        checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world))),
-      ),
+      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
     describe: () => describeBattle(run),
   };
 }

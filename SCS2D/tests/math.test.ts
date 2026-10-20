@@ -1,21 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  angleDelta,
-  approach,
-  atan,
-  atan2,
-  clamp,
-  cos,
-  exp,
-  length,
-  log,
-  normalizeAngle,
-  PI,
-  pow,
-  sin,
-  tan,
-  TAU,
-} from '../sim/math.js';
+import { angleDelta, approach, atan, atan2, clamp, cos, exp, length, log, normalizeAngle, PI, pow, sin, tan, TAU } from '../sim/math.js';
 
 /**
  * These compare our implementations against `Math.*`.

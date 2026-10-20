@@ -29,7 +29,10 @@ export class Charge extends Store {
   private readonly makes: (Float64Array | null)[] = [];
 
   constructor() {
-    super((stats) => stats.charge, () => 0);
+    super(
+      (stats) => stats.charge,
+      () => 0,
+    );
   }
 
   override register(bodyIndex: number, design: ShipDesign, carried?: readonly number[]): void {

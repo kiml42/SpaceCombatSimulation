@@ -26,14 +26,7 @@ function bruteCircle(bodies: Bodies, x: number, y: number, r: number): number[] 
   return found;
 }
 
-function bruteRay(
-  bodies: Bodies,
-  x0: number,
-  y0: number,
-  x1: number,
-  y1: number,
-  ignoreBody = -1,
-): { bodyIndex: number; t: number } {
+function bruteRay(bodies: Bodies, x0: number, y0: number, x1: number, y1: number, ignoreBody = -1): { bodyIndex: number; t: number } {
   const dx = x1 - x0;
   const dy = y1 - y0;
   let bestT = Infinity;

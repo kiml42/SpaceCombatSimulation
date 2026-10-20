@@ -104,10 +104,7 @@ describe('finding contacts', () => {
   it('finds one contact where two hulls really do overlap', () => {
     // Half a metre of overlap, nose to tail: the shallow meeting a real
     // collision is, rather than one hull buried in another.
-    const w = world(
-      { design: corvette, x: 0, y: 0 },
-      { design: corvette, x: NOSE_TO_TAIL - 0.5, y: 0 },
-    );
+    const w = world({ design: corvette, x: 0, y: 0 }, { design: corvette, x: NOSE_TO_TAIL - 0.5, y: 0 });
     findContacts(w.bodies, w.hulls, w.contacts);
 
     expect(w.contacts.count).toBe(1);
@@ -155,10 +152,7 @@ describe('resolving a collision', () => {
     // the two impulses are equal and opposite at one point, so neither total
     // can move.
     // A fighter crashing into a corvette's flank, both already turning.
-    const w = world(
-      { design: corvette, x: 0, y: 0, vx: 120, spin: 0.2 },
-      { design: dinky, x: 7.3, y: 4.5, vx: -40, spin: -0.1 },
-    );
+    const w = world({ design: corvette, x: 0, y: 0, vx: 120, spin: 0.2 }, { design: dinky, x: 7.3, y: 4.5, vx: -40, spin: -0.1 });
     const p = momentum(w.bodies);
     const l = angularMomentum(w.bodies);
 
@@ -173,10 +167,7 @@ describe('resolving a collision', () => {
   });
 
   it('leaves two hulls coming apart rather than closing', () => {
-    const w = world(
-      { design: corvette, x: 0, y: 0, vx: 200 },
-      { design: corvette, x: NOSE_TO_TAIL - 0.5, y: 0, vx: -200 },
-    );
+    const w = world({ design: corvette, x: 0, y: 0, vx: 200 }, { design: corvette, x: NOSE_TO_TAIL - 0.5, y: 0, vx: -200 });
     findContacts(w.bodies, w.hulls, w.contacts);
     resolveContacts(w.bodies, w.contacts);
 
@@ -186,10 +177,7 @@ describe('resolving a collision', () => {
   });
 
   it('gives back only what it is told to, so a ram is not a bounce', () => {
-    const w = world(
-      { design: corvette, x: 0, y: 0, vx: 100 },
-      { design: corvette, x: NOSE_TO_TAIL - 0.5, y: 0, vx: -100 },
-    );
+    const w = world({ design: corvette, x: 0, y: 0, vx: 100 }, { design: corvette, x: NOSE_TO_TAIL - 0.5, y: 0, vx: -100 });
     findContacts(w.bodies, w.hulls, w.contacts);
     resolveContacts(w.bodies, w.contacts);
 
@@ -202,10 +190,7 @@ describe('resolving a collision', () => {
   it('turns an off-centre hit into a spin', () => {
     // Struck well off the centre line: the arm from the centre of mass is what
     // makes a glancing blow tumble a ship rather than only shove it.
-    const w = world(
-      { design: corvette, x: 0, y: 0, vx: 150 },
-      { design: dinky, x: 7.3, y: 4.5, vx: -150 },
-    );
+    const w = world({ design: corvette, x: 0, y: 0, vx: 150 }, { design: dinky, x: 7.3, y: 4.5, vx: -150 });
     findContacts(w.bodies, w.hulls, w.contacts);
     expect(w.contacts.count).toBe(1);
     resolveContacts(w.bodies, w.contacts);
@@ -215,10 +200,7 @@ describe('resolving a collision', () => {
   });
 
   it('bounces off something immovable without moving it', () => {
-    const w = world(
-      { design: corvette, x: 0, y: 0, vx: 150 },
-      { design: corvette, x: NOSE_TO_TAIL - 0.5, y: 0, fixed: true },
-    );
+    const w = world({ design: corvette, x: 0, y: 0, vx: 150 }, { design: corvette, x: NOSE_TO_TAIL - 0.5, y: 0, fixed: true });
     findContacts(w.bodies, w.hulls, w.contacts);
     resolveContacts(w.bodies, w.contacts);
 
@@ -243,10 +225,7 @@ describe('resolving a collision', () => {
   it('leaves alone two hulls that are already separating', () => {
     // They met last step and are on their way out: hitting them again would
     // add energy the collision never had.
-    const w = world(
-      { design: corvette, x: 0, y: 0, vx: -50 },
-      { design: corvette, x: NOSE_TO_TAIL - 0.5, y: 0, vx: 50 },
-    );
+    const w = world({ design: corvette, x: 0, y: 0, vx: -50 }, { design: corvette, x: NOSE_TO_TAIL - 0.5, y: 0, vx: 50 });
     const collisions = new Collisions();
     collisions.step(w.bodies, w.hulls);
     expect(collisions.contacts.count).toBe(1);

@@ -51,12 +51,14 @@ function file(overrides: Record<string, unknown> = {}): Record<string, unknown> 
 
 /** A file as written, less the ids reading gives a placement that has none. */
 function sansIds(raw: Record<string, unknown>): Record<string, unknown> {
-  const strip = (list: unknown): unknown =>
-    (list as Record<string, unknown>[]).map(({ id: _, ...rest }) => rest);
+  const strip = (list: unknown): unknown => (list as Record<string, unknown>[]).map(({ id: _, ...rest }) => rest);
   const out: Record<string, unknown> = { ...raw, modules: strip(raw['modules']) };
   if (raw['assemblies'] !== undefined) {
     out['assemblies'] = Object.fromEntries(
-      Object.entries(raw['assemblies'] as Record<string, Record<string, unknown>>).map(([k, a]) => [k, { ...a, modules: strip(a['modules']) }]),
+      Object.entries(raw['assemblies'] as Record<string, Record<string, unknown>>).map(([k, a]) => [
+        k,
+        { ...a, modules: strip(a['modules']) },
+      ]),
     );
   }
   return out;
@@ -162,7 +164,7 @@ describe('rejecting a file that arrived from somewhere else', () => {
     expect(blueprintFileProblem(file({ notes: 7 }))).toMatch(/notes must be a string/);
   });
 
-  it('carries an engine\'s bell and its nozzle count out and back', () => {
+  it("carries an engine's bell and its nozzle count out and back", () => {
     // Both are an engine's own geometry rather than something derived, so
     // they have to survive the file: a ship saved and loaded with a different
     // nozzle is a different ship.
@@ -189,12 +191,18 @@ describe('rejecting a file that arrived from somewhere else', () => {
       /modules\[0\] has a key the game does not read, kept as written: nozzle/,
     );
     expect(
-      (parseBlueprint(file({ modules: [{ kind: 'core', x: 0, y: 0, length: 10, width: 4, nozzle: 0.3 }] }))
-        .modules[0] as ModuleSpec).nozzle,
+      (parseBlueprint(file({ modules: [{ kind: 'core', x: 0, y: 0, length: 10, width: 4, nozzle: 0.3 }] })).modules[0] as ModuleSpec)
+        .nozzle,
     ).toBeUndefined();
-    expect(blueprintProblem(parseBlueprint(file({
-      modules: [{ kind: 'core', x: 0, y: 0, length: 10, width: 4 }],
-    })))).toBeNull();
+    expect(
+      blueprintProblem(
+        parseBlueprint(
+          file({
+            modules: [{ kind: 'core', x: 0, y: 0, length: 10, width: 4 }],
+          }),
+        ),
+      ),
+    ).toBeNull();
     expect(
       serialiseBlueprint({
         name: 'Dormant',
@@ -203,7 +211,7 @@ describe('rejecting a file that arrived from somewhere else', () => {
     ).toEqual([{ kind: 'core', x: 0, y: 0, length: 10, width: 4 }]);
   });
 
-  it('carries a gun\'s barrel length out and back, in calibres', () => {
+  it("carries a gun's barrel length out and back, in calibres", () => {
     const raw = file({
       modules: [
         { kind: 'core', x: 0, y: 0, length: 10, width: 4 },
@@ -222,23 +230,21 @@ describe('rejecting a file that arrived from somewhere else', () => {
     );
   });
 
-  it('reads a hull mount\'s barrel share from an older file', () => {
+  it("reads a hull mount's barrel share from an older file", () => {
     // An 8x4 hull gun's bore is 0.4 m, so half of it is ten calibres.
-    const gun = parseBlueprint(
-      file({ modules: [{ kind: 'hullGun', x: 0, y: 0, length: 8, width: 4, nozzle: 0.75 }] }),
-    ).modules[0] as ModuleSpec;
+    const gun = parseBlueprint(file({ modules: [{ kind: 'hullGun', x: 0, y: 0, length: 8, width: 4, nozzle: 0.75 }] }))
+      .modules[0] as ModuleSpec;
     expect(gun.barrelCalibres).toBe(15);
     expect(gun.nozzle).toBeUndefined();
     expect(gun.unread).toBeUndefined();
     // A lens housing has one depth now, so its share is simply dropped.
-    const beam = parseBlueprint(
-      file({ modules: [{ kind: 'hullBeam', x: 0, y: 0, length: 8, width: 4, nozzle: 0.2 }] }),
-    ).modules[0] as ModuleSpec;
+    const beam = parseBlueprint(file({ modules: [{ kind: 'hullBeam', x: 0, y: 0, length: 8, width: 4, nozzle: 0.2 }] }))
+      .modules[0] as ModuleSpec;
     expect(beam.nozzle).toBeUndefined();
     expect(beam.unread).toBeUndefined();
   });
 
-  it('carries a weapon\'s traverse limit out and back, in degrees', () => {
+  it("carries a weapon's traverse limit out and back, in degrees", () => {
     // Degrees in the file and radians in the simulation, as every other angle
     // — a layout is written by a person and read by arithmetic.
     const raw = file({
@@ -253,10 +259,7 @@ describe('rejecting a file that arrived from somewhere else', () => {
     expect(sansIds(serialiseBlueprint(back))).toEqual(raw);
     // And a girder that says how far it trains is a mistake here, as a bell on
     // a core is, though mutation may hold one in memory against a refit back.
-    keptAndWarned(
-      file({ modules: [{ kind: 'structure', x: 0, y: 0, length: 10, width: 4, traverse: 30 }] }),
-      /traverse/,
-    );
+    keptAndWarned(file({ modules: [{ kind: 'structure', x: 0, y: 0, length: 10, width: 4, traverse: 30 }] }), /traverse/);
     expect(
       serialiseBlueprint({
         name: 'Dormant',
@@ -314,17 +317,19 @@ describe('rejecting a file that arrived from somewhere else', () => {
   });
 
   it('refuses numbers that are not numbers, including the ones JSON allows', () => {
-    expect(blueprintFileProblem(file({ modules: [{ kind: 'structure', x: '0', y: 0, length: 10, width: 4 }] })))
-      .toMatch(/x must be a finite number/);
-    expect(blueprintFileProblem(file({ modules: [{ kind: 'structure', x: 0, y: 0, length: null, width: 4 }] })))
-      .toMatch(/length must be a finite number/);
-    expect(blueprintFileProblem(file({ modules: [{ kind: 'structure', x: 0, y: 0, length: 1e400, width: 4 }] })))
-      .toMatch(/length must be a finite number/);
+    expect(blueprintFileProblem(file({ modules: [{ kind: 'structure', x: '0', y: 0, length: 10, width: 4 }] }))).toMatch(
+      /x must be a finite number/,
+    );
+    expect(blueprintFileProblem(file({ modules: [{ kind: 'structure', x: 0, y: 0, length: null, width: 4 }] }))).toMatch(
+      /length must be a finite number/,
+    );
+    expect(blueprintFileProblem(file({ modules: [{ kind: 'structure', x: 0, y: 0, length: 1e400, width: 4 }] }))).toMatch(
+      /length must be a finite number/,
+    );
   });
 
   it('refuses a module kind that does not exist', () => {
-    expect(blueprintFileProblem(file({ modules: [{ kind: 'laser', x: 0, y: 0, length: 10, width: 4 }] })))
-      .toMatch(/kind must be one of/);
+    expect(blueprintFileProblem(file({ modules: [{ kind: 'laser', x: 0, y: 0, length: 10, width: 4 }] }))).toMatch(/kind must be one of/);
   });
 
   it('reads a file whose layout breaks the design rules, and leaves them to be reported', () => {
@@ -356,7 +361,10 @@ describe('rejecting a file that arrived from somewhere else', () => {
     const instance = (over: Record<string, unknown>) =>
       file({
         assemblies: { seg: { modules: [{ kind: 'structure', x: 0, y: 0, length: 4, width: 4 }] } },
-        modules: [{ kind: 'structure', x: 0, y: 0, length: 10, width: 4 }, { use: 'seg', x: 0, y: 5, ...over }],
+        modules: [
+          { kind: 'structure', x: 0, y: 0, length: 10, width: 4 },
+          { use: 'seg', x: 0, y: 5, ...over },
+        ],
       });
     expect(blueprintFileProblem(instance({ repeat: 'four' }))).toMatch(/repeat must be a finite number/);
     expect(blueprintFileProblem(instance({ repeat: 3, step: 8 }))).toMatch(/step must be an object/);

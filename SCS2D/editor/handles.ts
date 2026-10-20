@@ -72,11 +72,7 @@ export interface Handle {
  * the way its own +x points, on an arm from its origin — the point it turns
  * about, which is the module it was built around.
  */
-export function assemblyKnob(
-  pose: { x: number; y: number; rotation: number },
-  modules: readonly ModuleSpec[],
-  scale: number,
-): Handle {
+export function assemblyKnob(pose: { x: number; y: number; rotation: number }, modules: readonly ModuleSpec[], scale: number): Handle {
   let reach = 0;
   for (const spec of modules) {
     const mid = moduleCentre(spec);
@@ -242,12 +238,7 @@ export function barrelCalibresTo(spec: ModuleSpec, x: number, y: number, exact: 
 }
 
 /** Which handle a point is within reach of — the nearest of them — or -1. */
-export function handleAt(
-  handles: readonly Handle[],
-  x: number,
-  y: number,
-  scale: number,
-): number {
+export function handleAt(handles: readonly Handle[], x: number, y: number, scale: number): number {
   let found = -1;
   let nearest = HANDLE_GRAB_PX / scale;
   for (let i = 0; i < handles.length; i++) {
@@ -441,13 +432,7 @@ function tidy(value: number): number {
  * a facing lands on as readily as on an increment: a ship with a wedge in it
  * has a diagonal that nothing on a 15° grid can be laid along.
  */
-export function facingTo(
-  spec: ModuleSpec,
-  x: number,
-  y: number,
-  stepDegrees: number,
-  drawn: readonly number[] = [],
-): number {
+export function facingTo(spec: ModuleSpec, x: number, y: number, stepDegrees: number, drawn: readonly number[] = []): number {
   const bearing = radiansToDegrees(atan2(y - spec.y, x - spec.x));
   return degreesToRadians(snapBearing(bearing, stepDegrees, drawn));
 }

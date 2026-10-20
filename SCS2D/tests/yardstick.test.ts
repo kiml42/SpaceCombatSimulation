@@ -114,8 +114,7 @@ describe('the yardstick', { timeout: BUDGET }, () => {
     const run = runEvolution([CORVETTE], settings);
     const easy = measure(run, TIE, { match: { duration: 30 } });
     const hard = measure(run, GUNSHIP, { match: { duration: 30 } });
-    const wins = (report: typeof easy): number =>
-      report.points.reduce((total, point) => total + point.wins, 0);
+    const wins = (report: typeof easy): number => report.points.reduce((total, point) => total + point.wins, 0);
     expect(wins(easy)).toBeGreaterThan(wins(hard));
   });
 
@@ -154,5 +153,4 @@ describe('the yardstick', { timeout: BUDGET }, () => {
     expect(slices).toBeGreaterThan(5);
     expect(JSON.stringify(stepped.report())).toEqual(JSON.stringify(whole));
   });
-
 });

@@ -39,10 +39,14 @@ import { el } from './dom.js';
 const SEED = 20260905;
 
 export function start(): void {
-  keyHelp(el<HTMLElement>('hint'), [...BATTLE_KEYS, ...ORDER_KEYS], [
-    'Blue, red, green and magenta are the sides; grey is a side beyond the fourth, or a hulk.',
-    'The ring marks where the gravity well pulls at 1 m/s².',
-  ]);
+  keyHelp(
+    el<HTMLElement>('hint'),
+    [...BATTLE_KEYS, ...ORDER_KEYS],
+    [
+      'Blue, red, green and magenta are the sides; grey is a side beyond the fourth, or a hulk.',
+      'The ring marks where the gravity well pulls at 1 m/s².',
+    ],
+  );
   const readout = el<HTMLElement>('readout');
   const metrics = el<HTMLElement>('metrics');
   const playButton = el<HTMLButtonElement>('play');
@@ -98,7 +102,11 @@ export function start(): void {
     panel.show(true);
     restart(false);
   };
-  const panel = customPanel(openCustom, () => restart(true), () => view.orders);
+  const panel = customPanel(
+    openCustom,
+    () => restart(true),
+    () => view.orders,
+  );
   let sceneIndex = 0;
   let state: Battle = scenes[sceneIndex]!.create();
 
@@ -112,8 +120,7 @@ export function start(): void {
       // there are two. A single survivor has nothing to measure against.
       const first = shown.ships[0];
       const second = shown.ships[1];
-      const range =
-        first !== undefined && second !== undefined ? math.distance(first.x, first.y, second.x, second.y) : 0;
+      const range = first !== undefined && second !== undefined ? math.distance(first.x, first.y, second.x, second.y) : 0;
       readout.textContent = `t ${shown.time.toFixed(1)} s · step ${shown.tick} · grid ${gridStep(view.camera.scale)} m`;
       scrub.max = String(view.reached);
       if (!scrubbing) scrub.value = String(view.at);
@@ -203,5 +210,4 @@ export function start(): void {
       window.alert(`Could not read the battle in the link.\n\n${error instanceof Error ? error.message : error}`);
     });
   if (hash !== '') history.replaceState(null, '', window.location.pathname);
-
 }

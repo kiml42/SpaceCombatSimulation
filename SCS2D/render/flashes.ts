@@ -164,11 +164,7 @@ export interface FlashAnchor {
  * The offset was taken in the body's frame at the moment of the hit, so this
  * is the same transform the hull's own modules are drawn through.
  */
-export function flashPosition(
-  localX: number,
-  localY: number,
-  anchor: FlashAnchor,
-): { x: number; y: number } {
+export function flashPosition(localX: number, localY: number, anchor: FlashAnchor): { x: number; y: number } {
   const c = Math.cos(anchor.angle);
   const s = Math.sin(anchor.angle);
   return { x: anchor.x + localX * c - localY * s, y: anchor.y + localX * s + localY * c };

@@ -234,10 +234,7 @@ describe('how far a plume reaches', () => {
     const d = design();
     const t = d.engines[0]!;
     const width = d.modules[t.module!]!.spec.width;
-    expect(plumeReach(t.maxThrust * 0.25, width)).toBeCloseTo(
-      plumeReach(t.maxThrust, width) * 0.25,
-      9,
-    );
+    expect(plumeReach(t.maxThrust * 0.25, width)).toBeCloseTo(plumeReach(t.maxThrust, width) * 0.25, 9);
   });
 
   it('is nothing for an engine that is not burning', () => {
@@ -384,7 +381,7 @@ describe('an engine firing into its own ship', () => {
 });
 
 describe('the three rays a plume is sampled by', () => {
-  it('reach the flame\'s edge at their own offset, so the core reaches furthest', () => {
+  it("reach the flame's edge at their own offset, so the core reaches furthest", () => {
     // Derived from the drawn plume rather than chosen: the flame is a triangle
     // narrowing to a point, so a ray a third of the width off the axis ends a
     // third of the way out.
@@ -408,9 +405,7 @@ describe('the three rays a plume is sampled by', () => {
     // fire. Two nozzles across six metres are three metres each, centred a
     // metre and a half either side.
     const two = engineGeometry({ ...engine(0, 0), width: 6, barrels: 2 });
-    expect([0, 1, 2, 3, 4, 5].map((ray) => rayOffset(ray, two))).toEqual([
-      -2.5, -1.5, -0.5, 0.5, 1.5, 2.5,
-    ]);
+    expect([0, 1, 2, 3, 4, 5].map((ray) => rayOffset(ray, two))).toEqual([-2.5, -1.5, -0.5, 0.5, 1.5, 2.5]);
   });
 
   it('catch a hull beside the axis that a single ray down the middle misses', () => {
@@ -442,9 +437,7 @@ describe('the three rays a plume is sampled by', () => {
 
     const thrust = firing.engines[0]!.maxThrust;
     expect(plumes.cast(firing, 0, 1, thrust, bodies, 0, grid, hulls)).toBe(false);
-    const outer =
-      plumes.cast(firing, 0, 0, thrust, bodies, 0, grid, hulls) ||
-      plumes.cast(firing, 0, 2, thrust, bodies, 0, grid, hulls);
+    const outer = plumes.cast(firing, 0, 0, thrust, bodies, 0, grid, hulls) || plumes.cast(firing, 0, 2, thrust, bodies, 0, grid, hulls);
     expect(outer).toBe(true);
     expect(plumes.body).toBe(1);
   });
@@ -566,7 +559,9 @@ describe('an engine firing at somebody else', () => {
     expect(damage.absorbedAt(1, 0)).toBeGreaterThan(near);
     expect(damage.integrity(1, 1)).toBeLessThan(1);
     // The module behind gets no more than the face lets by.
-    expect(damage.absorbedAt(1, 1)).toBeLessThanOrEqual((damage.absorbedAt(1, 0) - near) * (FLOOR_TRANSPARENCY / (1 - FLOOR_TRANSPARENCY)) * (1 + 1e-9));
+    expect(damage.absorbedAt(1, 1)).toBeLessThanOrEqual(
+      (damage.absorbedAt(1, 0) - near) * (FLOOR_TRANSPARENCY / (1 - FLOOR_TRANSPARENCY)) * (1 + 1e-9),
+    );
   });
 });
 

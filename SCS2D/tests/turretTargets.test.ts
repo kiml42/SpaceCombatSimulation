@@ -263,9 +263,7 @@ describe('a mount with a doctrine of its own', () => {
     // its ship, which is the change: the gunship's nose gun holds the fleet
     // together through `focusWeight` rather than by inheriting the hull.
     expect(design.turrets[NOSE]!.targeting).toEqual(defaultTargeting('turret'));
-    expect(design.turrets[NOSE]!.targeting.focusWeight).toBeGreaterThan(
-      design.doctrine.targeting.focusWeight,
-    );
+    expect(design.turrets[NOSE]!.targeting.focusWeight).toBeGreaterThan(design.doctrine.targeting.focusWeight);
   });
 
   it('reaches every copy of a shared mount', () => {

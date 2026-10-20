@@ -8,7 +8,10 @@ import { Store } from './store.js';
  */
 export class Metal extends Store {
   constructor() {
-    super((stats) => stats.metal, () => 0);
+    super(
+      (stats) => stats.metal,
+      () => 0,
+    );
   }
 
   /**

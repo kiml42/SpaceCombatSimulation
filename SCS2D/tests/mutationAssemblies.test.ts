@@ -226,9 +226,7 @@ describe('growing a part that is placed more than once', () => {
       ['catamaran', CATAMARAN],
       ['corvette', CORVETTE],
     ] as const) {
-      const shared = new Set(
-        [...uses(parent)].filter(([, count]) => count > 1).map(([used]) => used),
-      );
+      const shared = new Set([...uses(parent)].filter(([, count]) => count > 1).map(([used]) => used));
       expect(shared.size, `${name} places a part more than once`).toBeGreaterThan(0);
 
       let added = 0;

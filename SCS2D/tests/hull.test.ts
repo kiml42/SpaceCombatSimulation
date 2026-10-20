@@ -30,11 +30,7 @@ const ROW: Blueprint = {
 function rows(path: HullPath): [number, number, number][] {
   const out: [number, number, number][] = [];
   for (let i = 0; i < path.count; i++) {
-    out.push([
-      path.module[i]!,
-      Math.round(path.entry[i]! * 1000) / 1000,
-      Math.round(path.exit[i]! * 1000) / 1000,
-    ]);
+    out.push([path.module[i]!, Math.round(path.entry[i]! * 1000) / 1000, Math.round(path.exit[i]! * 1000) / 1000]);
   }
   return out;
 }

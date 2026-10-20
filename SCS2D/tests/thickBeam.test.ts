@@ -48,7 +48,8 @@ function firstShot(thick: boolean): { layers: number; power: number }[] {
     hits.clear();
     ships.fire(world, new Projectiles(16), beams, grid, hits);
     const lit: { layers: number; power: number }[] = [];
-    for (let i = 0; i < beams.highWater; i++) if (beams.alive[i] === 1 && beams.bounces[i] === 0) lit.push({ layers: beams.layers[i]!, power: beams.power[i]! });
+    for (let i = 0; i < beams.highWater; i++)
+      if (beams.alive[i] === 1 && beams.bounces[i] === 0) lit.push({ layers: beams.layers[i]!, power: beams.power[i]! });
     if (lit.length > 0) return lit;
   }
   return [];

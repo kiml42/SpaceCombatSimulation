@@ -1,4 +1,16 @@
-import type { World, WellSpec, Ships, Projectiles, Beams, SpatialGrid, ProjectileHits, BeamHits, Impacts, Collisions, Credit } from '../sim/index.js';
+import type {
+  World,
+  WellSpec,
+  Ships,
+  Projectiles,
+  Beams,
+  SpatialGrid,
+  ProjectileHits,
+  BeamHits,
+  Impacts,
+  Collisions,
+  Credit,
+} from '../sim/index.js';
 
 /**
  * The shapes every scenario in this directory implements. No scenario of its

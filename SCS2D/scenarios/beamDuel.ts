@@ -29,6 +29,6 @@ export function beamDuel(seed = 20260905): Battle {
       vy: 90,
       team: 0,
     });
-   ships.spawn(world, { design: gunship, ...CROSSING.east, team: 1 });
+    ships.spawn(world, { design: gunship, ...CROSSING.east, team: 1 });
   });
 }

@@ -54,17 +54,12 @@ function mount(): { bodies: Bodies; index: number } {
  * written — a mount inside an assembly is still a mount. `hull` lets its
  * guns into the hull, so they can reach a hull-layer mark.
  */
-function armed(
-  targeting: Partial<Targeting>,
-  hull: boolean | 'turret' = false,
-  extra: Partial<Placement> = {},
-): ShipDesign {
+function armed(targeting: Partial<Targeting>, hull: boolean | 'turret' = false, extra: Partial<Placement> = {}): ShipDesign {
   const rewrite = (placements: readonly Placement[]): Placement[] =>
     placements.map((placement) => {
       if (!('kind' in placement)) return placement;
       if (!isWeaponMount(placement.kind)) return placement;
-      const gun =
-        hull === true ? refitModule(placement, 'hullGun') : hull === 'turret' ? refitModule(placement, 'turret') : placement;
+      const gun = hull === true ? refitModule(placement, 'hullGun') : hull === 'turret' ? refitModule(placement, 'turret') : placement;
       return { ...placement, ...gun, targeting, ...extra } as Placement;
     });
   const assemblies: Record<string, { modules: Placement[] }> = {};
@@ -374,10 +369,7 @@ describe('a part a doctrine refuses', () => {
     // A doctrine that will shoot at nothing but engines, against a ship that
     // has none. Shooting at the hull instead would be shooting at exactly the
     // modules it just refused, so there is nothing here for it.
-    const refused = facing(
-      { coreWeight: -1, gunWeight: -1, structureWeight: -1, engineWeight: 100 },
-      [{ design: bareCore, x: 100, y: 0 }],
-    );
+    const refused = facing({ coreWeight: -1, gunWeight: -1, structureWeight: -1, engineWeight: 100 }, [{ design: bareCore, x: 100, y: 0 }]);
     expect(refused.target).toBe(NO_TARGET);
     expect(refused.resting).toBe(true);
 

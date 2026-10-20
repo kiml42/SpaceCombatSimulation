@@ -72,9 +72,17 @@ describe('the fleet file format', () => {
 
   it.each([
     ['an unknown key', file({ colour: 'red' }), /the file has a key[^\n]*colour/],
-    ['a step with an unknown key', file({ ships: [{ design: 'Dinky', x: 0, y: 0, step: { x: 0, y: 1, z: 2 } }] }), /ships\[0\]: step has a key[^\n]*z/],
+    [
+      'a step with an unknown key',
+      file({ ships: [{ design: 'Dinky', x: 0, y: 0, step: { x: 0, y: 1, z: 2 } }] }),
+      /ships\[0\]: step has a key[^\n]*z/,
+    ],
     ['a mirrored single ship', file({ ships: [{ design: 'Dinky', x: 0, y: 0, mirror: true }] }), /ships\[0\] has a key[^\n]*mirror/],
-    ['a design with an unknown key', file({ designs: { ...designs, Dinky: { ...designs.Dinky, colour: 'red' } } }), /design Dinky: the file has a key[^\n]*colour/],
+    [
+      'a design with an unknown key',
+      file({ designs: { ...designs, Dinky: { ...designs.Dinky, colour: 'red' } } }),
+      /design Dinky: the file has a key[^\n]*colour/,
+    ],
   ])('opens %s, warns of it, and writes it back', (_what, raw, warning) => {
     // A typo in a hand-edited file is a thing to be told about, not a reason
     // to refuse the whole fleet.
@@ -100,9 +108,7 @@ describe('the fleet file format', () => {
         expect(blueprintProblem(design), `${fleet.name}: ${name}`).toBeNull();
         const ship = library.get(name);
         expect(ship, `${fleet.name}: ${name} not found in library`).toBeDefined();
-        expect(serialiseBlueprint(design), `${fleet.name}: ${name} out of sync`).toEqual(
-          serialiseBlueprint(ship!),
-        );
+        expect(serialiseBlueprint(design), `${fleet.name}: ${name} out of sync`).toEqual(serialiseBlueprint(ship!));
       }
     }
   });
@@ -111,7 +117,15 @@ describe('the fleet file format', () => {
 describe('flattening a fleet', () => {
   const fleet: Fleet = parseFleet(
     file({
-      groups: { Wing: wing, Squadron: { ships: [{ group: 'Wing', x: 0, y: 0 }, { group: 'Wing', x: 0, y: 40 }] } },
+      groups: {
+        Wing: wing,
+        Squadron: {
+          ships: [
+            { group: 'Wing', x: 0, y: 0 },
+            { group: 'Wing', x: 0, y: 40 },
+          ],
+        },
+      },
       ships: [
         { design: 'Gunship', x: 0, y: 0 },
         { group: 'Wing', x: 60, y: 80, angle: 90 },
@@ -155,9 +169,7 @@ describe('flattening a fleet', () => {
   });
 
   it('steps each copy of a repeat from the one before, in its own frame', () => {
-    const arc = expandFleet(
-      parseFleet(file({ ships: [{ design: 'Dinky', x: 0, y: 0, repeat: 3, step: { x: 10, y: 0, angle: 90 } }] })),
-    );
+    const arc = expandFleet(parseFleet(file({ ships: [{ design: 'Dinky', x: 0, y: 0, repeat: 3, step: { x: 10, y: 0, angle: 90 } }] })));
     expect(arc.map((s) => s.path)).toEqual(['Dinky#1', 'Dinky#2', 'Dinky#3']);
     expect(arc[1]).toMatchObject({ x: 10, y: 0 });
     expect(arc[2]!.x).toBeCloseTo(10, 9);

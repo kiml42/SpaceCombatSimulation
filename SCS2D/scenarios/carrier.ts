@@ -35,7 +35,10 @@ export function padRebuild(seed = 20261013): Battle {
     // The engines at the ends of its outriggers, which nothing else hangs from.
     const outriggers = dinky.modules.map((m, k) => (m.spec.kind === 'engine' && ends(k) === 1 ? k : -1)).filter((k) => k >= 0);
     ships.spawn(world, { design: workshop, x: 0, y: 0, angle: 0.2 });
-    for (const [x, y, lost] of [[-400, 250, outriggers.slice(0, 1)], [300, 350, outriggers.slice(1, 2)]] as const) {
+    for (const [x, y, lost] of [
+      [-400, 250, outriggers.slice(0, 1)],
+      [300, 350, outriggers.slice(1, 2)],
+    ] as const) {
       const f = ships.spawn(world, { design: dinky, x, y, angle: 0 });
       const b = world.bodies.indexOf(ships.body(f));
       for (let m = 0; m < dinky.modules.length; m++) ships.fuel.vent(b, m, ships.fuel.held(b, m) * 0.6);

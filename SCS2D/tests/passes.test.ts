@@ -79,7 +79,10 @@ describe('the doctrine for it', () => {
   it('is never bred out of order', () => {
     // Both ends at one speed, so a draw on either that is not refused crosses the other.
     const rng = new Rng(17);
-    let held: Blueprint = { ...DINKY, doctrine: { ...DINKY.doctrine!, approach: { ...DINKY.doctrine!.approach, tangentialMin: 30, tangentialMax: 30 } } };
+    let held: Blueprint = {
+      ...DINKY,
+      doctrine: { ...DINKY.doctrine!, approach: { ...DINKY.doctrine!.approach, tangentialMin: 30, tangentialMax: 30 } },
+    };
     for (let i = 0; i < 400; i++) {
       held = mutate(held, rng, { thrusters: 0 }).blueprint;
       expect(doctrineProblem(held.doctrine)).toBeNull();

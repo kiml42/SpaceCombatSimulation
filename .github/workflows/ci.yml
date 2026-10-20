@@ -50,6 +50,9 @@ jobs:
       # and the root (tests and scripts, which may use Node).
       - run: npm run typecheck
 
+      # TypeScript in Prettier's style; `npm run format` fixes it.
+      - run: npm run format:check
+
   test:
     name: Test (${{ matrix.os }}, Node ${{ matrix.node }})
     runs-on: ${{ matrix.os }}

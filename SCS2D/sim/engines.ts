@@ -178,7 +178,6 @@ const OPPOSED_TOLERANCE = 1e-3;
  */
 const USEFUL_ARM_FRACTION = 0.01;
 
-
 export class EngineLayout {
   readonly count: number;
 
@@ -299,9 +298,7 @@ export class EngineLayout {
     // one pushing opposite ways are *not* opposites, they are a couple, which
     // is how a ship turns without going anywhere.
     for (let i = 0; i < n; i++) {
-      this.size[i] = sqrt(
-        this.wfx[i]! * this.wfx[i]! + this.wfy[i]! * this.wfy[i]! + this.wts[i]! * this.wts[i]!,
-      );
+      this.size[i] = sqrt(this.wfx[i]! * this.wfx[i]! + this.wfy[i]! * this.wfy[i]! + this.wts[i]! * this.wts[i]!);
     }
     for (let i = 0; i < n; i++) {
       if (this.size[i]! <= 0) continue;
@@ -310,8 +307,7 @@ export class EngineLayout {
       for (let k = 0; k < n; k++) {
         if (k === i || this.size[k]! <= 0) continue;
         const dot =
-          (this.wfx[i]! * this.wfx[k]! + this.wfy[i]! * this.wfy[k]! + this.wts[i]! * this.wts[k]!) /
-          (this.size[i]! * this.size[k]!);
+          (this.wfx[i]! * this.wfx[k]! + this.wfy[i]! * this.wfy[k]! + this.wts[i]! * this.wts[k]!) / (this.size[i]! * this.size[k]!);
         if (dot < closest) {
           closest = dot;
           best = k;
@@ -426,13 +422,7 @@ export class EngineLayout {
    * unpinning the same engine until the pass budget runs out, which took the
    * worst case from 5% to 234%. Recorded in §12.
    */
-  allocate(
-    demandFx: number,
-    demandFy: number,
-    demandTorque: number,
-    throttles: Float64Array,
-    out: Allocation,
-  ): void {
+  allocate(demandFx: number, demandFy: number, demandTorque: number, throttles: Float64Array, out: Allocation): void {
     const n = this.count;
     out.saturated = false;
     out.passes = 0;
@@ -629,13 +619,7 @@ export class EngineLayout {
    * Least squares over one or two free engines: minimise ‖A u − r‖² rather
    * than ‖u‖². Returns true if any throttle had to be pinned at a bound.
    */
-  private solveOverdetermined(
-    k: number,
-    rx: number,
-    ry: number,
-    rt: number,
-    throttles: Float64Array,
-  ): boolean {
+  private solveOverdetermined(k: number, rx: number, ry: number, rt: number, throttles: Float64Array): boolean {
     const i0 = this.freeIdx[0]!;
     const a0x = this.wfx[i0];
     const a0y = this.wfy[i0];
@@ -779,19 +763,12 @@ export function applyAllocation(bodies: Bodies, id: BodyId, allocation: Allocati
  * demand's size. Zero when the demand was met. Useful to a pilot deciding
  * whether to ask for less, and to the editor when reporting a weak layout.
  */
-export function shortfall(
-  demandFx: number,
-  demandFy: number,
-  demandTorque: number,
-  out: Allocation,
-): number {
+export function shortfall(demandFx: number, demandFy: number, demandTorque: number, out: Allocation): number {
   const dx = demandFx - out.fx;
   const dy = demandFy - out.fy;
   const dt = demandTorque - out.torque;
   const errorSize = sqrt(dx * dx + dy * dy + dt * dt);
-  const demandSize = sqrt(
-    demandFx * demandFx + demandFy * demandFy + demandTorque * demandTorque,
-  );
+  const demandSize = sqrt(demandFx * demandFx + demandFy * demandFy + demandTorque * demandTorque);
   if (demandSize === 0) return errorSize > 0 ? 1 : 0;
   return errorSize / demandSize;
 }

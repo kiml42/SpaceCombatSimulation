@@ -182,12 +182,7 @@ describe('tracking', () => {
       let worst = 0;
       for (let step = 0; step < 900; step++) {
         const rangeSq = 300 * 300 + ty * ty;
-        turrets.commandWorldBearing(
-          bodies,
-          t,
-          Math.atan2(ty, 300),
-          feedForward ? (300 * 200) / rangeSq : 0,
-        );
+        turrets.commandWorldBearing(bodies, t, Math.atan2(ty, 300), feedForward ? (300 * 200) / rangeSq : 0);
         ty += 200 * DT;
         turrets.step(DT, bodies);
         if (step > 300) {
@@ -243,9 +238,7 @@ describe('tracking', () => {
     // It should hold the arc limit, not keep driving into it.
     expect(turrets.commandedRate[t]).toBe(0);
     settle(turrets, bodies, t);
-    expect(Math.abs(angleDelta(turrets.bearing[t]!, 0.4))).toBeLessThanOrEqual(
-      turrets.tolerance[t]!,
-    );
+    expect(Math.abs(angleDelta(turrets.bearing[t]!, 0.4))).toBeLessThanOrEqual(turrets.tolerance[t]!);
   });
 
   it('clamps a feed-forward rate to the traverse limit', () => {

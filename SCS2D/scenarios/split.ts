@@ -33,7 +33,7 @@ export function split(seed = 20260905): Battle {
       x: 0,
       y: 0,
       angle: math.PI,
-      team: 0
+      team: 0,
     });
 
     // Down the centreline at the bridge rather than at either hull, close enough

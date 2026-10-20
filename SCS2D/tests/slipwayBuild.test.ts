@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { blueprintProblems, compileBlueprint, footprintOf, printedCraft, printLength, type Blueprint, type ModuleSpec } from '../sim/index.js';
+import {
+  blueprintProblems,
+  compileBlueprint,
+  footprintOf,
+  printedCraft,
+  printLength,
+  type Blueprint,
+  type ModuleSpec,
+} from '../sim/index.js';
 import { fittingOf } from '../sim/rebuild.js';
 import { makeBattle } from '../scenarios/battle.js';
 import type { Battle } from '../scenarios/types.js';
@@ -20,7 +28,10 @@ function yardOf(keep = 1, craft: Blueprint = SCAVENGER, slipway: Partial<ModuleS
 }
 
 /** A shipyard and an unarmed hulk far off, and anything else `more` adds. */
-function battle(yard: Blueprint, more: (run: { ships: Battle['ships']; world: Battle['world'] }) => void = () => {}): Battle & { y: number } {
+function battle(
+  yard: Blueprint,
+  more: (run: { ships: Battle['ships']; world: Battle['world'] }) => void = () => {},
+): Battle & { y: number } {
   return makeBattle({ seed: 7 }, (ships, world) => {
     const y = ships.spawn(world, { design: compileBlueprint(yard), x: 0, y: 0, angle: 0 });
     ships.spawn(world, { design: compileBlueprint(BARE_CORE), x: 5000, y: 0, team: 1 });

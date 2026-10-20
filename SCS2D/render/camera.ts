@@ -71,13 +71,7 @@ export type Bounds = Pick<Snapshot, 'minX' | 'minY' | 'maxX' | 'maxY'>;
  * wants. An impact flash is the opposite case and ages on the battle's clock,
  * because a flash *is* a thing in the world (`render/flashes.ts`).
  */
-export function frame(
-  camera: Camera,
-  snapshot: Bounds,
-  widthPx: number,
-  heightPx: number,
-  ease = 0.08,
-): void {
+export function frame(camera: Camera, snapshot: Bounds, widthPx: number, heightPx: number, ease = 0.08): void {
   const wantScale = fitScale(snapshot, widthPx, heightPx);
   const wantX = (snapshot.minX + snapshot.maxX) * 0.5;
   const wantY = (snapshot.minY + snapshot.maxY) * 0.5;
@@ -212,13 +206,7 @@ const FOLLOW_ORDER: readonly ((ship: ShipView) => boolean)[] = [
  * The pace is left in `camera.vx`/`vy` even when `dt` is zero, so a paused
  * picture is drawn as if it were still moving.
  */
-export function moveWithVisibleShips(
-  camera: Camera,
-  snapshot: Snapshot,
-  dt: number,
-  widthPx: number,
-  heightPx: number,
-): void {
+export function moveWithVisibleShips(camera: Camera, snapshot: Snapshot, dt: number, widthPx: number, heightPx: number): void {
   camera.vx = 0;
   camera.vy = 0;
   if (snapshot.shipCount === 0) return;
@@ -362,10 +350,7 @@ function weighInShot(
     //
     // The bounding radius is generous for a long thin hull, so this errs
     // towards holding a big ship still, which is the forgiving direction.
-    const out = min(
-      1,
-      max(max(0, outX - r) / halfWidth, max(0, outY - r) / halfHeight),
-    );
+    const out = min(1, max(max(0, outX - r) / halfWidth, max(0, outY - r) / halfHeight));
     visit(ship, matchedPace(out), r);
   }
 }
@@ -374,12 +359,7 @@ function weighInShot(
  * Nudge the centre until the bounds fit inside the view. A no-op once the
  * camera has caught up, which is most of the time.
  */
-function contain(
-  camera: Camera,
-  snapshot: Bounds,
-  widthPx: number,
-  heightPx: number,
-): void {
+function contain(camera: Camera, snapshot: Bounds, widthPx: number, heightPx: number): void {
   const halfW = widthPx / 2 / camera.scale;
   const halfH = heightPx / 2 / camera.scale;
 

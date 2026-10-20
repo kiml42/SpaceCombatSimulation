@@ -212,16 +212,14 @@ export function startFleetEditor(): void {
     );
   };
 
-  const optionValue = (entry: LibraryEntry): string =>
-    entry.stock && entry.saved ? STOCK + entry.name : entry.name;
+  const optionValue = (entry: LibraryEntry): string => (entry.stock && entry.saved ? STOCK + entry.name : entry.name);
   const options = (entries: readonly LibraryEntry[], selected: string | null): string =>
     entries
       .map((entry) => {
         const chosen = entry.name === selected && !(entry.stock && entry.saved);
         const label = entry.stock ? (entry.saved ? ' (stock)' : '') : ' •';
         return (
-          `<option value="${escapeHtml(optionValue(entry))}"${chosen ? ' selected' : ''}>` +
-          `${escapeHtml(entry.name)}${label}</option>`
+          `<option value="${escapeHtml(optionValue(entry))}"${chosen ? ' selected' : ''}>` + `${escapeHtml(entry.name)}${label}</option>`
         );
       })
       .join('');
@@ -231,18 +229,14 @@ export function startFleetEditor(): void {
     const name = doc.fleet.name;
     fleetList.innerHTML = options(entries, name);
     if (!entries.some((entry) => entry.name === name)) {
-      fleetList.insertAdjacentHTML(
-        'afterbegin',
-        `<option value="${escapeHtml(name)}" selected>${escapeHtml(name)} (unsaved)</option>`,
-      );
+      fleetList.insertAdjacentHTML('afterbegin', `<option value="${escapeHtml(name)}" selected>${escapeHtml(name)} (unsaved)</option>`);
     }
     deleteFleetButton.disabled = !fleets.savedNames().includes(name);
     const all = ships.list();
     const saved = all.filter((entry) => !entry.stock);
     // What a ship can become: the fleet's own copies first, then any other in the library.
     const carried = Object.keys(doc.fleet.designs).sort((a, b) => a.localeCompare(b));
-    const others = (entries: readonly LibraryEntry[]): LibraryEntry[] =>
-      entries.filter((entry) => !carried.includes(entry.name));
+    const others = (entries: readonly LibraryEntry[]): LibraryEntry[] => entries.filter((entry) => !carried.includes(entry.name));
     const savedOthers = others(saved);
     entryDesign.innerHTML =
       `<optgroup label="In this fleet">` +
@@ -275,9 +269,7 @@ export function startFleetEditor(): void {
       `<tr><th>ships</th><td>${view.ships.length}</td></tr>`,
       `<tr><th>mass at launch</th><td>${kg(view.mass)}</td></tr>`,
       `<tr><th>cost</th><td>${kg(view.bill.metal)} metal, ${kg(view.bill.fuel)} fuel, ${buildTime(view.bill.build)} to build</td></tr>`,
-      ...view.lines.map(
-        (line) => `<tr><th>${escapeHtml(line.name)}</th><td>${line.count} × ${kg(line.mass)}</td></tr>`,
-      ),
+      ...view.lines.map((line) => `<tr><th>${escapeHtml(line.name)}</th><td>${line.count} × ${kg(line.mass)}</td></tr>`),
     ];
     statsPanel.innerHTML = `<table>${rows.join('')}</table>`;
   };
@@ -466,12 +458,17 @@ export function startFleetEditor(): void {
     // The fleet's own designs first, flown or not, then the player's ships, then stock.
     const item = (value: string, label: string): string =>
       `<button role="menuitem" data-add="${escapeHtml(value)}">${escapeHtml(label)}</button>`;
-    const group = (title: string, items: string[]): string =>
-      items.length === 0 ? '' : `<h3>${title}</h3>${items.join('')}`;
+    const group = (title: string, items: string[]): string => (items.length === 0 ? '' : `<h3>${title}</h3>${items.join('')}`);
     const all = ships.list();
     addMenu.innerHTML =
-      group('In this fleet', doc.view.roster.map((line) => item(CARRIED + line.name, line.name))) +
-      group('Saved', all.filter((entry) => !entry.stock).map((entry) => item(optionValue(entry), entry.name))) +
+      group(
+        'In this fleet',
+        doc.view.roster.map((line) => item(CARRIED + line.name, line.name)),
+      ) +
+      group(
+        'Saved',
+        all.filter((entry) => !entry.stock).map((entry) => item(optionValue(entry), entry.name)),
+      ) +
       group(
         'Stock',
         all.filter((entry) => entry.stock).map((entry) => item(optionValue(entry), entry.name + (entry.saved ? ' (stock)' : ''))),
@@ -483,9 +480,7 @@ export function startFleetEditor(): void {
     const value = (event.target as HTMLElement).closest<HTMLButtonElement>('button[data-add]')?.dataset['add'];
     if (value === undefined) return;
     showAddMenu(false);
-    const blueprint = value.startsWith(CARRIED)
-      ? (doc.fleet.designs[value.slice(CARRIED.length)] ?? null)
-      : fromLibrary(value);
+    const blueprint = value.startsWith(CARRIED) ? (doc.fleet.designs[value.slice(CARRIED.length)] ?? null) : fromLibrary(value);
     if (blueprint !== null) place(blueprint);
   });
   document.addEventListener('pointerdown', (event) => {
@@ -494,9 +489,7 @@ export function startFleetEditor(): void {
   entryDesign.addEventListener('change', () => {
     const path = doc.selection[0];
     const value = entryDesign.value;
-    const blueprint = value.startsWith(CARRIED)
-      ? (doc.fleet.designs[value.slice(CARRIED.length)] ?? null)
-      : fromLibrary(value);
+    const blueprint = value.startsWith(CARRIED) ? (doc.fleet.designs[value.slice(CARRIED.length)] ?? null) : fromLibrary(value);
     if (path !== undefined && doc.selection.length === 1 && blueprint !== null) {
       doc.apply(swapDesign(doc.fleet, [path], blueprint));
     }
@@ -738,8 +731,7 @@ export function startFleetEditor(): void {
       }
       if (fleets.savedNames().includes(fleet.name)) {
         const answer = window.prompt(
-          `You already have a saved fleet called ${fleet.name}. ` +
-            `Give this one a different name, or keep the name to replace yours.`,
+          `You already have a saved fleet called ${fleet.name}. ` + `Give this one a different name, or keep the name to replace yours.`,
           fleet.name,
         );
         if (answer === null) return;
@@ -891,9 +883,7 @@ export function startFleetEditor(): void {
   );
 
   window.addEventListener('keydown', (event) => {
-    const typing =
-      document.activeElement instanceof HTMLInputElement ||
-      document.activeElement instanceof HTMLTextAreaElement;
+    const typing = document.activeElement instanceof HTMLInputElement || document.activeElement instanceof HTMLTextAreaElement;
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
       event.preventDefault();
       if (event.shiftKey) doc.redo();

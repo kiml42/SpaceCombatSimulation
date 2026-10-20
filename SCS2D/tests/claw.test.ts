@@ -63,7 +63,14 @@ function approach(closing: number, setup: Setup = {}): ReturnType<typeof makeBat
   return makeBattle({ seed: 1, pilots: false }, (ships, world) => {
     const gap = leech.radius + corvette.radius + 1;
     const a = ships.spawn(world, { design: leech, x: -gap / 2, y: 0, angle: setup.astern === true ? Math.PI : 0, vx: closing / 2 });
-    const b = ships.spawn(world, { design: corvette, x: gap / 2, y: 0, angle: Math.PI, vx: -closing / 2, team: setup.friend === true ? 0 : 1 });
+    const b = ships.spawn(world, {
+      design: corvette,
+      x: gap / 2,
+      y: 0,
+      angle: Math.PI,
+      vx: -closing / 2,
+      team: setup.friend === true ? 0 : 1,
+    });
     // Room for a few seconds' pumping.
     const body = world.bodies.indexOf(ships.body(a));
     ships.fuel.vent(body, TANK, ROOM);
@@ -127,7 +134,10 @@ describe('gripping a wreck', () => {
     runUntil(run, () => run.ships.body(run.a) !== run.ships.body(run.b));
     expect(run.ships.body(run.a)).not.toBe(run.ships.body(run.b));
     // Let go full.
-    expect(run.ships.fuel.left(body())).toBeCloseTo(leech.modules.reduce((sum, m) => sum + m.stats.fuel, 0), 3);
+    expect(run.ships.fuel.left(body())).toBeCloseTo(
+      leech.modules.reduce((sum, m) => sum + m.stats.fuel, 0),
+      3,
+    );
   });
 
   it('bites what it closes on', () => {

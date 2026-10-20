@@ -27,8 +27,7 @@ describe('the Catamaran', () => {
       const a = catamaran.modules[j.a]!;
       const b = catamaran.modules[j.b]!;
       // The bridge runs core to core; a hull's other structure mounts its engines.
-      const link = (m: typeof a): boolean =>
-        m.spec.kind === 'structure' && Math.abs(m.x - catamaran.modules[catamaran.cores[0]!]!.x) < 0.5;
+      const link = (m: typeof a): boolean => m.spec.kind === 'structure' && Math.abs(m.x - catamaran.modules[catamaran.cores[0]!]!.x) < 0.5;
       return link(a) || link(b);
     });
     expect(bridge.length).toBeGreaterThan(3);
@@ -37,9 +36,7 @@ describe('the Catamaran', () => {
     // path beside it, as an engine welded along its block to a girder and by
     // its back to a tank, parts nothing by letting go.
     const holding = cuts(catamaran);
-    const weakestHull = Math.min(
-      ...welds.filter((j, k) => !bridge.includes(j) && holding[k] !== null).map((j) => j.strength),
-    );
+    const weakestHull = Math.min(...welds.filter((j, k) => !bridge.includes(j) && holding[k] !== null).map((j) => j.strength));
     const strongestBridge = Math.max(...bridge.map((j) => j.strength));
     expect(strongestBridge).toBeLessThan(weakestHull);
   });

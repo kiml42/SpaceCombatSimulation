@@ -92,7 +92,10 @@ describe('an unarmed rammer', () => {
   function picks(ramMass: number, armed = false): 'near' | 'heavy' | 'none' {
     const base = armed ? { ...CORVETTE, doctrine: unarmed(40).doctrine! } : unarmed(40);
     const doctrine = base.doctrine!;
-    const rammer = compileBlueprint({ ...base, doctrine: { ...doctrine, targeting: { ...doctrine.targeting, preferredMass: 1, ramMass, massWeight: 400 } } });
+    const rammer = compileBlueprint({
+      ...base,
+      doctrine: { ...doctrine, targeting: { ...doctrine.targeting, preferredMass: 1, ramMass, massWeight: 400 } },
+    });
     const near = compileBlueprint(unarmed(0));
     const heavy = compileBlueprint(unarmed(0, GUNSHIP));
     expect(heavy.mass).toBeGreaterThan(near.mass * 2);

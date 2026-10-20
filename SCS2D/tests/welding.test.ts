@@ -202,7 +202,7 @@ describe('welding on a slow contact', () => {
       }
     });
 
-    it('keeps a side\'s colours on what it leaves hooked to the other', () => {
+    it("keeps a side's colours on what it leaves hooked to the other", () => {
       // The blue ship's core is cut out of the pair, leaving the rest of its
       // hull on the red one: red's now, and still drawn blue. Cut by hand,
       // since the core is deck and no turret here can reach it.
@@ -316,7 +316,10 @@ describe('welding on a slow contact', () => {
     const pair: number[] = [];
     const run = makeBattle({ seed: 1, projectiles: 256, beams: 64 }, (ships, world) => {
       const gap = -2 * tail + 0.5;
-      for (const [x, angle, vx] of [[-gap / 2, Math.PI, 0.5], [gap / 2, 0, -0.5]] as const) {
+      for (const [x, angle, vx] of [
+        [-gap / 2, Math.PI, 0.5],
+        [gap / 2, 0, -0.5],
+      ] as const) {
         const ship = ships.spawn(world, { design: corvette, x, y: 0, angle, vx });
         wear(ships, world, ship, stern, RAGGED_INTEGRITY * 0.5);
         pair.push(ship);
@@ -352,7 +355,10 @@ describe('welding on a slow contact', () => {
     const stern = corvette.modules.findIndex((m) => m.x - m.spec.length / 2 === tail);
     const run = makeBattle({ seed: 1, projectiles: 256, beams: 64 }, (ships, world) => {
       const gap = -2 * tail + 0.5;
-      for (const [x, angle, vx] of [[-gap / 2, Math.PI, 0.5], [gap / 2, 0, -0.5]] as const) {
+      for (const [x, angle, vx] of [
+        [-gap / 2, Math.PI, 0.5],
+        [gap / 2, 0, -0.5],
+      ] as const) {
         const ship = ships.spawn(world, { design: corvette, x, y: 0, angle, vx });
         wear(ships, world, ship, stern, RAGGED_INTEGRITY * 0.5);
       }
@@ -379,7 +385,10 @@ describe('mounts remade by a weld', () => {
     const pair: number[] = [];
     const run = makeBattle({ seed: 1, projectiles: 256, beams: 64 }, (ships, world) => {
       const gap = -2 * tail + 0.5;
-      for (const [x, angle, vx] of [[-gap / 2, Math.PI, 0.5], [gap / 2, 0, -0.5]] as const) {
+      for (const [x, angle, vx] of [
+        [-gap / 2, Math.PI, 0.5],
+        [gap / 2, 0, -0.5],
+      ] as const) {
         const ship = ships.spawn(world, { design: corvette, x, y: 0, angle, vx });
         wear(ships, world, ship, stern, RAGGED_INTEGRITY * 0.5);
         pair.push(ship);
@@ -435,9 +444,11 @@ describe('a mount that breaks off', () => {
     ships.turrets.rate[ti] = 0.4;
     const angle = world.bodies.angle[world.bodies.indexOf(ships.body(ship))]!;
 
-    const detach = (ships as unknown as {
-      detach(world: unknown, i: number, design: unknown, keep: readonly number[]): boolean;
-    }).detach.bind(ships);
+    const detach = (
+      ships as unknown as {
+        detach(world: unknown, i: number, design: unknown, keep: readonly number[]): boolean;
+      }
+    ).detach.bind(ships);
     expect(detach(world, ship, gunship, [module])).toBe(true);
     let piece = -1;
     for (let i = 0; i < ships.highWater; i++) if (ships.isAlive(i) && i !== ship) piece = i;
@@ -523,7 +534,11 @@ describe('command', () => {
     damage.register(0, design);
     for (const m of torn) damage.absorb(0, m, design.modules[m]!.stats.hitPoints * DAMAGE_ENERGY_PER_KG * 0.9);
     return design.modules.map((_, m) =>
-      design.modules[m]!.spec.kind === 'core' ? true : damage.remaining(0, m, DamageEffect.Thrust) > 0 || damage.remaining(0, m, DamageEffect.FireRate) > 0 || design.modules[m]!.spec.kind === 'structure',
+      design.modules[m]!.spec.kind === 'core'
+        ? true
+        : damage.remaining(0, m, DamageEffect.Thrust) > 0 ||
+          damage.remaining(0, m, DamageEffect.FireRate) > 0 ||
+          design.modules[m]!.spec.kind === 'structure',
     );
   }
 
