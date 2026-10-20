@@ -5,8 +5,10 @@ import { Rng } from './rng.js';
 /**
  * A source of forces, run once per step after positions have been advanced.
  * Gravity wells, engines, drag zones and tractor beams are all providers.
+ * One with state of its own is an object rather than a closure over it, so a
+ * copied battle's world calls its own copy (`scenarios/clone.ts`).
  */
-export type ForceProvider = (world: World) => void;
+export type ForceProvider = ((world: World) => void) | { applyForces(world: World): void };
 
 export interface WorldOptions {
   /**
@@ -88,7 +90,9 @@ export class World {
   private evaluateForces(): void {
     this.bodies.clearForces();
     for (let i = 0; i < this.providers.length; i++) {
-      this.providers[i]!(this);
+      const provider = this.providers[i]!;
+      if (typeof provider === 'function') provider(this);
+      else provider.applyForces(this);
     }
   }
 

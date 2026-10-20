@@ -161,22 +161,21 @@ describe('the force provider', () => {
     const bodies = r.world.bodies;
     const b = bodyOf(r, a);
 
-    const provider = r.ships.forceProvider();
     bodies.clearForces();
-    provider(r.world);
+    r.ships.applyForces(r.world);
     const onceX = bodies.fx[b]!;
     const onceY = bodies.fy[b]!;
 
     bodies.clearForces();
-    provider(r.world);
-    provider(r.world);
+    r.ships.applyForces(r.world);
+    r.ships.applyForces(r.world);
     // Twice through a cleared buffer is exactly twice: what makes the double
     // evaluation safe is that the world clears first, not that the provider
     // refuses to add again.
     expect(bodies.fx[b]).toBeCloseTo(onceX * 2, 6);
 
     bodies.clearForces();
-    provider(r.world);
+    r.ships.applyForces(r.world);
     expect(bodies.fx[b]).toBeCloseTo(onceX, 12);
     expect(bodies.fy[b]).toBeCloseTo(onceY, 12);
   });
