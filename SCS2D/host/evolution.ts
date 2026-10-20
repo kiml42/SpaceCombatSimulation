@@ -1,3 +1,4 @@
+import { BATTLE_KEYS, keyHelp } from './keyHelp.js';
 import {
   capture,
   serialiseFleet,
@@ -455,6 +456,9 @@ interface SizeChart {
 }
 
 export function startEvolution(): void {
+  keyHelp(el<HTMLElement>('hint'), [...BATTLE_KEYS, { keys: 'N', does: 'Put another match on' }], [
+    'A run is decided entirely by its seed: the same settings give the same run, and any match in it can be fought again from the record.',
+  ]);
   const view = el<HTMLCanvasElement>('view');
   const chart = el<HTMLCanvasElement>('chart');
   // Typed rather than narrowed: `paint` is hoisted, and a hoisted function

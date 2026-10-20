@@ -546,6 +546,25 @@ describe('the viewer in a browser', () => {
     await page.keyboard.press('Escape');
   });
 
+  it('lists its keys in a table behind a button, which keeps them from the battle while open', async () => {
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    expect(await page.textContent('footer')).toBe('Keys');
+    await page.click('#keysButton');
+    expect(await page.isVisible('#keyHelp')).toBe(true);
+    const rows = await page.$$eval('#keyHelp tr', (trs) => trs.map((tr) => [...tr.querySelectorAll('td')].map((td) => td.textContent)));
+    expect(rows).toEqual(expect.arrayContaining([['Space', 'Pause, or play'], ['T', "Hide or show each side's ships down the edges"]]));
+    // Space goes to the table, not the battle under it.
+    const playing = await page.textContent('#play');
+    await page.keyboard.press('Space');
+    expect(await page.textContent('#play')).toBe(playing);
+    await page.keyboard.press('Escape');
+    expect(await page.isVisible('#keyHelp')).toBe(false);
+    // And ? opens it again.
+    await page.keyboard.press('?');
+    expect(await page.isVisible('#keyHelp')).toBe(true);
+    await page.keyboard.press('Escape');
+  });
+
   it('reports no errors after all of that', () => {
     expect(problems).toEqual([]);
   });
