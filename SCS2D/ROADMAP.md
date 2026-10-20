@@ -109,8 +109,8 @@ an entry is either still open or it is gone.
        - **2a. Dock** — built, with ports passing metal and the machinery for an order whose target is
          optional. No golden checksum moved: none of those battles docks at a port.
        - **2b. Scavenge and deliver** — built, on the same machinery.
-       - **2c. The doctrine panel**: the ship's, its main and secondary weapons', a single mount's, and
-         its build counts.
+       - **2c. The doctrine panel** — built: the ship's, its main and secondary weapons', a single
+         mount's, and its build counts. Choosing a slot's design waits for 2d's picker.
        - **2d. Remodel and the design picker**, which carries blueprints in the log.
     3. **Run away** — outlined below, after slice 2's machinery, which it reuses: an order whose target is
        optional, and doctrine as settings.

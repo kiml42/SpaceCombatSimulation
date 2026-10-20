@@ -132,3 +132,28 @@ export function viewOf(snapshot: Snapshot, ship: number | undefined): ShipView |
   for (let i = 0; i < snapshot.shipCount; i++) if (snapshot.ships[i]!.ship === ship) return snapshot.ships[i]!;
   return null;
 }
+
+/** World metres a click may miss a mount by and still pick it. */
+const MOUNT_SLOP = 0.5;
+
+/**
+ * The module of the mount of `ship` under a world point, or -1: what a click
+ * picks to tell one placement's mounts their doctrine.
+ */
+export function mountAt(ship: ShipView, x: number, y: number): number {
+  const design = ship.currentStructure;
+  const c = Math.cos(-ship.angle);
+  const s = Math.sin(-ship.angle);
+  const bx = (x - ship.x) * c - (y - ship.y) * s;
+  const by = (x - ship.x) * s + (y - ship.y) * c;
+  for (const mount of design.turrets) {
+    const m = design.modules[mount.module];
+    if (m === undefined) continue;
+    const mc = Math.cos(-m.angle);
+    const ms = Math.sin(-m.angle);
+    const lx = (bx - m.x) * mc - (by - m.y) * ms;
+    const ly = (bx - m.x) * ms + (by - m.y) * mc;
+    if (Math.abs(lx) <= m.spec.length / 2 + MOUNT_SLOP && Math.abs(ly) <= m.spec.width / 2 + MOUNT_SLOP) return mount.module;
+  }
+  return -1;
+}

@@ -228,6 +228,10 @@ export {
   defaultTargeting,
   doctrineUnread,
   holdBand,
+  isDoctrinePart,
+  overriddenMount,
+  partHasField,
+  placementOf,
   resolveTargeting,
   serialiseDoctrine,
   serialiseTargeting,
@@ -235,6 +239,8 @@ export {
   toDoctrine,
   type Approach,
   type Doctrine,
+  type DoctrineOverride,
+  type DoctrinePart,
   type Targeting,
 } from './doctrine.js';
 export { Choice, cohesionUrge, inSight, look, score, type Candidate } from './targeting.js';
@@ -355,6 +361,7 @@ export { Turrets, FiringSolution, interceptTime, masked, type TurretSpec } from 
 export {
   Ships,
   NEUTRAL_TEAM,
+  slotKey,
   NO_TARGET,
   CLAW_BITE,
   CLAW_GRIP_CHANCE,

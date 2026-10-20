@@ -27,6 +27,7 @@ import { linkedBattle } from '../scenarios/battleLink.js';
 import { handedFleet } from '../editor/handoff.js';
 import { gridStep } from '../render/camera.js';
 import { battleView } from './battleView.js';
+import { doctrinePanel } from './doctrinePanel.js';
 import { orderBar } from './orderBar.js';
 import type { Logged } from '../scenarios/commands.js';
 import { el } from './dom.js';
@@ -115,6 +116,7 @@ export function start(): void {
     () => {},
     (shown) => {
       bar.update(shown);
+      doctrine.update(shown);
       if (sceneIndex === CUSTOM) panel.update(state as CustomBattle, shown.time);
       // Between the first two ships, whatever the scenario holds — but only if
       // there are two. A single survivor has nothing to measure against.
@@ -140,6 +142,7 @@ export function start(): void {
     },
   );
   const bar = orderBar(view);
+  const doctrine = doctrinePanel(view);
   view.allowOrders();
   // For the browser tests and anyone inspecting the page.
   Reflect.set(window, 'viewer', view);

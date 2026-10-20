@@ -1,6 +1,7 @@
 import type { Bodies } from './bodies.js';
 import { originOf, type ShipDesign } from './blueprint.js';
 import type { WellSpec } from './gravity.js';
+import type { Doctrine, DoctrineOverride } from './doctrine.js';
 import { NOT_INSIDE, type Projectiles } from './projectiles.js';
 import type { Beams } from './beams.js';
 import type { ImpactLog } from './damage.js';
@@ -78,6 +79,12 @@ export interface ShipView {
   ship?: number;
   /** The orders it has been given, the current one first; absent for none. */
   orders?: OrderView[];
+  /** Its doctrine, with what it has been told over it; absent where there is none, as in an editor. */
+  doctrine?: Doctrine;
+  /** What it has been told over its doctrine; absent for nothing. */
+  override?: DoctrineOverride;
+  /** What its pads and slipways have been told to keep, by `slotKey`; absent for nothing. */
+  keeps?: Readonly<Record<string, number>>;
   x: number;
   y: number;
   angle: number;
@@ -442,6 +449,13 @@ export function capture(
     if (covering >= 0) view.coverBand = ships.coverBandOf(i, covering);
     else delete view.coverBand;
     view.ship = i;
+    view.doctrine = ships.doctrineOf(i);
+    const override = ships.overrideOf(i);
+    if (override === undefined) delete view.override;
+    else view.override = override;
+    const keeps = ships.keepsOf(i);
+    if (keeps === undefined) delete view.keeps;
+    else view.keeps = keeps;
     const given = ships.ordersOf(i);
     if (given.length === 0) delete view.orders;
     else {

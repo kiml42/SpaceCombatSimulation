@@ -15,6 +15,7 @@ import {
   STRIPS_KEY,
   stripsWidth,
   TEAM_SHOTS_KEY,
+  viewPoint,
   type Arcs,
 } from '../render/canvas2d.js';
 import type { Strips } from '../render/fleetStrip.js';
@@ -129,6 +130,14 @@ export interface BattleView {
   nearest(append: boolean): void;
   /** Give a command to the battle now, logged. */
   issue(command: Command): void;
+  /**
+   * Have a click on a ship asked first whether it picks part of it, at the
+   * world point it fell, through a close-up if it was in one; true takes the
+   * click. Null to stop.
+   */
+  pickPart(handler: ((ship: ShipView, x: number, y: number) => boolean) | null): void;
+  /** Outline these modules of this ship, by the simulation's index for it, or with null nothing. */
+  mark(marked: { readonly ship: number; readonly modules: readonly number[] } | null): void;
   /** Every command given, for a link to carry. */
   readonly orders: readonly Logged[];
   /** Where a ship was last drawn, CSS pixels from the canvas's top left, or null. */
@@ -172,6 +181,8 @@ export function battleView(
   let selected = -1;
   let picked: number[] = [];
   let ordersAllowed = false;
+  let partPicker: ((ship: ShipView, x: number, y: number) => boolean) | null = null;
+  let markedModules: { readonly ship: number; readonly modules: readonly number[] } | null = null;
   let armed: Verb | null = null;
   let armedCancel = OrderCancelCondition.CompleteDisable;
   /** A box being dragged out, canvas pixels. */
@@ -239,6 +250,10 @@ export function battleView(
         order(armed, ship, queue, armedCancel);
         armed = null;
         return;
+      }
+      if (partPicker !== null && ship !== null && !shift) {
+        const at = viewPoint(shownInsets, camera, canvas.width, canvas.height, x, y);
+        if (partPicker(ship, at.x, at.y)) return;
       }
       // A tile standing for a side's fighters of one design picks them all.
       const tile = shift ? null : overlayTileAt(shownStrips, shownInsets, camera, canvas.width, canvas.height, x, y);
@@ -444,10 +459,12 @@ export function battleView(
     picked = stillThere(view, picked);
     selected = viewOf(view, picked[0])?.body ?? -1;
     const also = picked.slice(1).map((i) => viewOf(view, i)?.body ?? -1);
-    draw(ctx, view, camera, canvas.width, canvas.height, flashes, arcs, teamShots, selected, also);
+    const markedBody = markedModules === null ? -1 : (viewOf(view, markedModules.ship)?.body ?? -1);
+    const marked = markedBody < 0 ? null : { body: markedBody, modules: markedModules!.modules };
+    draw(ctx, view, camera, canvas.width, canvas.height, flashes, arcs, teamShots, selected, also, marked);
     if (tiles !== null) drawFleetStrips(ctx, view, tiles, selected, ratio, flashes, arcs, teamShots);
     const insets = closeUps(view, camera, canvas.width, canvas.height, selected, ratio, tiles);
-    drawCloseUps(ctx, view, insets, selected, ratio, flashes, arcs, teamShots);
+    drawCloseUps(ctx, view, insets, selected, ratio, flashes, arcs, teamShots, marked);
     drawTargetRange(ctx, view, camera, canvas.width, canvas.height, selected, insets, ratio);
     shownStrips = tiles;
     shownInsets = insets;
@@ -502,6 +519,12 @@ export function battleView(
     },
     nearest,
     issue,
+    pickPart(handler) {
+      partPicker = handler;
+    },
+    mark(next) {
+      markedModules = next;
+    },
     get orders() {
       return rewind?.orders ?? [];
     },

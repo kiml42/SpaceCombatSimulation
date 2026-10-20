@@ -880,3 +880,127 @@ export function serialiseDoctrine(doctrine: Doctrine): Record<string, unknown> |
   if (approach !== undefined) raw['approach'] = approach;
   return raw;
 }
+
+/**
+ * What a player has told one ship's doctrine mid-battle, over what its
+ * blueprint says (ROADMAP.md §8 step 14): the ship's own, the cores' it is
+ * flown by; its main and its secondary weapons'; and single mounts', by the
+ * id of the placement each was drawn from, so every copy of a placement,
+ * repeated or in a reused assembly, shares one. A field left out is the
+ * blueprint's.
+ */
+export interface DoctrineOverride {
+  readonly approach?: Readonly<Partial<Approach>>;
+  readonly targeting?: Readonly<Partial<Targeting>>;
+  readonly main?: Readonly<Partial<Targeting>>;
+  readonly secondary?: Readonly<Partial<Targeting>>;
+  readonly placements?: Readonly<Record<string, Readonly<Partial<Targeting>>>>;
+}
+
+/** Which part of a ship an override is for: the ship, its main or secondary weapons, or one placement's mounts. */
+export type DoctrinePart = 'ship' | 'main' | 'secondary' | `placement:${string}`;
+
+/** Whether `part` names something an override can hold. */
+export function isDoctrinePart(part: unknown): part is DoctrinePart {
+  return part === 'ship' || part === 'main' || part === 'secondary' || (typeof part === 'string' && /^placement:\d+$/.test(part));
+}
+
+/** The placement a module was drawn from, by its lasting key (`ShipDesign.keys`): the last id down its path. */
+export function placementOf(key: string | undefined): string | undefined {
+  if (key === undefined) return undefined;
+  const last = key.slice(key.lastIndexOf('/') + 1);
+  const dot = last.indexOf('.');
+  return dot < 0 ? last : last.slice(0, dot);
+}
+
+/** A ship's doctrine with what it has been told over it. */
+export function overriddenDoctrine(base: Doctrine, override: DoctrineOverride | undefined): Doctrine {
+  if (override?.approach === undefined && override?.targeting === undefined) return base;
+  return {
+    targeting: { ...base.targeting, ...override.targeting },
+    approach: { ...base.approach, ...override.approach },
+  };
+}
+
+/** A mount's doctrine with what it has been told over it: its battery's, then its own placement's. */
+export function overriddenMount(
+  base: Targeting,
+  main: boolean,
+  placement: string | undefined,
+  override: DoctrineOverride | undefined,
+): Targeting {
+  if (override === undefined) return base;
+  const battery = main ? override.main : override.secondary;
+  const own = placement === undefined ? undefined : override.placements?.[placement];
+  if (battery === undefined && own === undefined) return base;
+  return { ...base, ...battery, ...own };
+}
+
+const APPROACH_SET: ReadonlySet<string> = new Set(APPROACH_FIELDS);
+const TARGETING_SET: ReadonlySet<string> = new Set(TARGETING_FIELDS);
+
+/** Whether `field` is one `part` has: a ship has both halves, a mount only targeting. */
+export function partHasField(part: DoctrinePart, field: string): boolean {
+  return TARGETING_SET.has(field) || (part === 'ship' && APPROACH_SET.has(field));
+}
+
+function withField<T>(held: Readonly<Partial<T>> | undefined, field: string, value: number | null): Partial<T> | undefined {
+  const next = { ...held } as Record<string, number>;
+  if (value === null) delete next[field];
+  else next[field] = value;
+  return Object.keys(next).length === 0 ? undefined : (next as Partial<T>);
+}
+
+/**
+ * An override with one field of one part told, or with `null` taken back to
+ * the blueprint's; `undefined` once it says nothing. A field the part has not
+ * leaves it as it was.
+ */
+export function withOverride(
+  override: DoctrineOverride | undefined,
+  part: DoctrinePart,
+  field: string,
+  value: number | null,
+): DoctrineOverride | undefined {
+  if (!partHasField(part, field)) return override;
+  const next: Draft = { ...override };
+  if (part === 'ship') {
+    if (APPROACH_SET.has(field)) next.approach = withField<Approach>(override?.approach, field, value);
+    else next.targeting = withField<Targeting>(override?.targeting, field, value);
+  } else if (part === 'main' || part === 'secondary') {
+    next[part] = withField<Targeting>(override?.[part], field, value);
+  } else {
+    const id = part.slice('placement:'.length);
+    const placements = { ...override?.placements };
+    const held = withField<Targeting>(placements[id], field, value);
+    if (held === undefined) delete placements[id];
+    else placements[id] = held;
+    next.placements = Object.keys(placements).length === 0 ? undefined : placements;
+  }
+  return tidy(next);
+}
+
+type Draft = { -readonly [K in keyof DoctrineOverride]?: DoctrineOverride[K] | undefined };
+
+/** A draft with nothing it says nothing with; `undefined` for one that says nothing at all. */
+function tidy(next: Draft): DoctrineOverride | undefined {
+  for (const key of Object.keys(next) as (keyof DoctrineOverride)[]) if (next[key] === undefined) delete next[key];
+  return Object.keys(next).length === 0 ? undefined : (next as DoctrineOverride);
+}
+
+/** An override with all of one part, or with `undefined` all of it, taken back to the blueprint's. */
+export function withoutPart(override: DoctrineOverride | undefined, part: DoctrinePart | undefined): DoctrineOverride | undefined {
+  if (override === undefined || part === undefined) return undefined;
+  const next: Draft = { ...override };
+  if (part === 'ship') {
+    delete next.approach;
+    delete next.targeting;
+  } else if (part === 'main' || part === 'secondary') {
+    delete next[part];
+  } else {
+    const placements = { ...override.placements };
+    delete placements[part.slice('placement:'.length)];
+    next.placements = Object.keys(placements).length === 0 ? undefined : placements;
+  }
+  return tidy(next);
+}

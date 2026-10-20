@@ -1488,8 +1488,62 @@ export function draw(
   selected = -1,
   /** Bodies of more ships picked out with it, for orders: ringed, and their orders drawn. */
   alsoSelected: readonly number[] = [],
+  marked: Marked | null = null,
 ): void {
-  drawScene(ctx, snapshot, camera, 0, 0, widthPx, heightPx, flashes, arcs, teamShots, selected, alsoSelected);
+  drawScene(ctx, snapshot, camera, 0, 0, widthPx, heightPx, flashes, arcs, teamShots, selected, alsoSelected, marked);
+}
+
+/** Modules of one ship to outline: the mounts a doctrine is being told to. */
+export interface Marked {
+  readonly body: number;
+  readonly modules: readonly number[];
+}
+
+const MARK_COLOUR = '#e9c05f';
+
+function drawMarked(ctx: CanvasRenderingContext2D, snapshot: Snapshot, marked: Marked, metresToPx: number): void {
+  const ship = shipByBody(snapshot, marked.body);
+  if (ship === null) return;
+  ctx.save();
+  ctx.translate(ship.x, ship.y);
+  ctx.rotate(ship.angle);
+  ctx.strokeStyle = MARK_COLOUR;
+  ctx.lineWidth = 2 / metresToPx;
+  for (const i of marked.modules) {
+    const m = ship.currentStructure.modules[i];
+    if (m === undefined) continue;
+    ctx.save();
+    ctx.translate(m.x, m.y);
+    ctx.rotate(m.angle);
+    ctx.strokeRect(-m.spec.length / 2, -m.spec.width / 2, m.spec.length, m.spec.width);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+/**
+ * The world point under a canvas pixel of the main view, through the close-up
+ * drawn over it if there is one: where a click inside a close-up lands in the
+ * battle it shows.
+ */
+export function viewPoint(
+  insets: readonly Inset[],
+  camera: Camera,
+  widthPx: number,
+  heightPx: number,
+  x: number,
+  y: number,
+): { x: number; y: number } {
+  const px = widthPx / 2 + (x - camera.x) * camera.scale;
+  const py = heightPx / 2 - (y - camera.y) * camera.scale;
+  const body = insetAt(insets, px, py);
+  const inset = body < 0 ? undefined : [...insets].reverse().find((i) => i.body === body);
+  if (inset === undefined) return { x, y };
+  const half = inset.size / 2;
+  return {
+    x: inset.camera.x + (px - inset.x - half) / inset.camera.scale,
+    y: inset.camera.y - (py - inset.y - half) / inset.camera.scale,
+  };
 }
 
 /** Pixels round a ship within which it is still drawn when its hull is just out of view: its icon and name. */
@@ -1512,6 +1566,7 @@ function drawScene(
   teamShots: boolean,
   selected: number,
   alsoSelected: readonly number[] = [],
+  marked: Marked | null = null,
 ): void {
   ctx.setTransform(1, 0, 0, 1, left, top);
   ctx.fillStyle = BACKGROUND;
@@ -1563,6 +1618,7 @@ function drawScene(
 
   for (const body of alsoSelected) if (body !== selected) drawRing(ctx, snapshot, body, camera.scale);
   if (selected >= 0) drawSelected(ctx, snapshot, selected, camera.scale);
+  if (marked !== null) drawMarked(ctx, snapshot, marked, camera.scale);
   drawOrders(ctx, snapshot, selected, alsoSelected, camera.scale);
   drawBurns(ctx, snapshot);
   drawProjectiles(ctx, snapshot, camera, teamShots);
@@ -1681,6 +1737,7 @@ export function drawCloseUps(
   flashes?: Flashes,
   arcs: Arcs = 'none',
   teamShots = false,
+  marked: Marked | null = null,
 ): void {
   for (const inset of insets) {
     ctx.save();
@@ -1688,7 +1745,7 @@ export function drawCloseUps(
     ctx.beginPath();
     ctx.rect(inset.x, inset.y, inset.size, inset.size);
     ctx.clip();
-    drawScene(ctx, snapshot, inset.camera, inset.x, inset.y, inset.size, inset.size, flashes, arcs, teamShots, selected);
+    drawScene(ctx, snapshot, inset.camera, inset.x, inset.y, inset.size, inset.size, flashes, arcs, teamShots, selected, [], marked);
     ctx.restore();
 
     const ship = shipByBody(snapshot, inset.body)!;
