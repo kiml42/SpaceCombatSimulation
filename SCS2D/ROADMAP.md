@@ -98,7 +98,7 @@ Nothing: every step up to 13 is built.
        - **Flashes on landing at a checkpoint.** Across steps re-simulated, flashes are rebuilt as they
          would have been drawn; landing on a checkpoint re-simulates nothing, so it shows none until the
          next step.
-    1. **Attack, defend and ram** — built, as settled below. Building it chose:
+    1. **Attack, defend and ram** — built; the keys table on each battle page says how to give them. Building it chose:
        - **Keys:** K, D and R arm attack, defend and ram (T being the fleet strips), and S stops. A takes the whole side, and the
          arcs moved to Ctrl or Cmd+A on every battle page; the editors keep A for them.
        - **The attacker preference is a filter:** defending, a ship picks only among the friend's
@@ -116,40 +116,6 @@ Nothing: every step up to 13 is built.
          its build counts.
        - **2d. Remodel and the design picker**, which carries blueprints in the log.
     3. **Run away**, once withdrawal (§12) is designed; outside step 14 until then.
-
-    **Slice 1, as settled:**
-
-    - **Where.** Every viewer scenario and the custom battle; one given no orders plays exactly as now. The
-      skirmish later, once breeding can allow for a fleet that is being steered. Never on the evolution page.
-    - **Who.** Any ship on any side, for now. Next, a drop-down naming one side as yours.
-    - **When.** At any time, paused or not. Nothing in the UI is on a timer.
-    - **Orders are commands.** Each is logged as `{step, ships, order}` and applied at the top of its step;
-      the UI never touches sim state. The log travels with the battle link. Giving an order after rewinding
-      truncates the log after that step; rewinding alone keeps it.
-    - **Selecting.** Click picks one ship; Shift-click adds or removes; Shift-drag boxes (a plain drag still
-      pans); double-click takes every ship of that design on its side; a key takes a whole side. A selection
-      is one side only — the first ship's for Shift-click, ignoring other sides; the majority in a box, a
-      tie going to the side of the ship nearest the drag's start. Neutrals cannot be selected for orders.
-      A selection is a set of ships, not a group. Touch is not covered yet. A fighter tile in the fleet
-      strips stands for every fighter of its design on its side, and clicking it picks them all.
-    - **Giving.** Right-click an enemy to attack it, a friend to defend it; on empty space, nothing. The
-      rest is an order bar of buttons with hotkeys, which puts the next click into picking a target; Escape
-      cancels. A new order replaces the queue; Ctrl (or Cmd) appends, since browsers keep Shift-right-click for their own menu; Shift still does where it reaches the page. A group gets the same order, one command
-      for all of it; a ship told to defend itself is skipped.
-    - **Attack** takes its band and approach speed from doctrine and ends on `CompleteDisable`, as one
-      doctrine chose would; the order bar offers the other cancel conditions. A per-order menu to override
-      band and speed comes later.
-    - **Defend** holds doctrine's escort band, adds a picking weight towards enemies attacking the friend,
-      and once in band turns its best guns onto the attacker. It never leaves the band, and ends when the
-      friend is gone.
-    - **Ram** (R on the order bar, never right-click) can be given to any ship, and ends when the target is
-      gone.
-    - **Seeing and taking back.** A selected ship draws a numbered line through its queue, coloured by verb.
-      For one ship, the order bar lists the queue with a ✕ each, and Stop (S) hands it back to doctrine;
-      both are logged commands, and the log is never edited. The overlay shows everything a ship is acting
-      on at once — defending this, attacking that, evading something else — of which only the head of the
-      queue is an order for now. An escorting ship, ordered or not, has its escort band drawn, and its
-      charge is kept in frame.
 
     **Slice 2, as settled:**
 
@@ -741,6 +707,8 @@ Deliberately unresolved; decide when they block something.
   - **Editing a ship's blueprint from the battle**: opening the editor on it and bringing the result back
     as a remodel, a round trip between pages that are separate.
   - **The keys**, rethought once the set is fuller.
+  - **Left from slice 1:** a drop-down naming one side as yours; orders in the skirmish, once breeding can
+    allow for a fleet being steered; a per-order menu overriding an attack's band and speed; touch.
 - **The numbers for repair.** How much each step wastes (repair wastes a tenth, a first guess), and whether
   disassembly and building waste alike; time and power for a joule of damage undone (a pad mends 20 kJ/s a
   metre of its width, at 10 J of charge a joule, both first guesses); a robot's speed over a hull (2 m/s), the
