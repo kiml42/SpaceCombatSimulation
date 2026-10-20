@@ -155,3 +155,69 @@ export function describeRange(metres: number): string {
   if (metres < 1000) return `${Math.round(metres)} m`;
   return `${Number((metres / 1000).toPrecision(3))} km`;
 }
+
+/** A label's centre, canvas pixels. */
+export interface LabelAt {
+  x: number;
+  y: number;
+}
+
+/** How far a `w` by `h` box reaches from its centre along the unit direction `ux`, `uy`. */
+function reach(ux: number, uy: number, w: number, h: number): number {
+  return (Math.abs(ux) * w) / 2 + (Math.abs(uy) * h) / 2;
+}
+
+/**
+ * A `w` by `h` label on the line from a ship towards its target, just past
+ * the ship: `start` canvas pixels out from the ship's centre and `gap` more,
+ * but never past the middle of a line `length` long, so it stays with the
+ * ship it belongs to. `ux`, `uy` is the line's direction on screen.
+ */
+export function labelAlong(x: number, y: number, ux: number, uy: number, start: number, length: number, w: number, h: number, gap: number): LabelAt {
+  const out = Math.min(start + gap + reach(ux, uy, w, h), length / 2);
+  return { x: x + ux * out, y: y + uy * out };
+}
+
+/**
+ * A `w` by `h` label just outside a window, on the side facing `toward` (a
+ * screen bearing, y down), `gap` clear of it — where a line from the window
+ * to what it points at would leave it. Kept in the view; where that would
+ * cover the window or one of `others`, the next side round towards `toward`.
+ */
+export function labelBeside(
+  box: InsetRect,
+  toward: number,
+  w: number,
+  h: number,
+  gap: number,
+  widthPx: number,
+  heightPx: number,
+  others: readonly InsetRect[] = [],
+): LabelAt {
+  const half = box.size / 2;
+  const cx = box.x + half;
+  const cy = box.y + half;
+  const keep = (at: LabelAt): LabelAt => ({
+    x: clamp(at.x, w / 2, widthPx - w / 2),
+    y: clamp(at.y, h / 2, heightPx - h / 2),
+  });
+  const covers = (at: LabelAt, r: InsetRect): boolean =>
+    at.x + w / 2 > r.x && at.x - w / 2 < r.x + r.size && at.y + h / 2 > r.y && at.y - h / 2 < r.y + r.size;
+  const clear = (at: LabelAt): boolean => !covers(at, box) && others.every((other) => !covers(at, other));
+  const beside = (bearing: number): LabelAt => {
+    const ux = Math.cos(bearing);
+    const uy = Math.sin(bearing);
+    const out = half / Math.max(Math.abs(ux), Math.abs(uy)) + gap + reach(ux, uy, w, h);
+    return keep({ x: cx + ux * out, y: cy + uy * out });
+  };
+  const facing = beside(toward);
+  if (clear(facing)) return facing;
+  // The four sides, nearest to facing first.
+  const turn = (a: number): number => Math.abs(Math.atan2(Math.sin(a - toward), Math.cos(a - toward)));
+  const sides = [0, Math.PI / 2, Math.PI, -Math.PI / 2].sort((a, b) => turn(a) - turn(b));
+  for (const side of sides) {
+    const at = beside(side);
+    if (clear(at)) return at;
+  }
+  return facing;
+}

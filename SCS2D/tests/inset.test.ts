@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { describeRange, insetAt, insetFor, insetsFor, separate, type InsetShip } from '../render/inset.js';
+import { describeRange, insetAt, insetFor, insetsFor, labelAlong, labelBeside, separate, type InsetShip } from '../render/inset.js';
 
 const W = 1000;
 const H = 600;
@@ -105,5 +105,46 @@ describe('reading a close-up', () => {
     expect(describeRange(640.4)).toBe('640 m');
     expect(describeRange(1234)).toBe('1.23 km');
     expect(describeRange(45678)).toBe('45.7 km');
+  });
+});
+
+describe('placing a range label', () => {
+  it('goes on the line just past the ship, not out at the middle', () => {
+    const at = labelAlong(100, 100, 1, 0, 20, 1000, 40, 14, 6);
+    // 20 px out, 6 more, and half the label's width.
+    expect(at).toEqual({ x: 146, y: 100 });
+  });
+
+  it('stops at the middle of a short line', () => {
+    expect(labelAlong(100, 100, 0, 1, 20, 40, 40, 14, 6)).toEqual({ x: 100, y: 120 });
+  });
+
+  it('goes just outside a window, on the side facing what it points at', () => {
+    const box = { x: 400, y: 200, size: 100 };
+    const right = labelBeside(box, 0, 40, 14, 4, W, H);
+    expect(right.x - 20).toBeCloseTo(504);
+    expect(right.y).toBeCloseTo(250);
+    const up = labelBeside(box, -Math.PI / 2, 40, 14, 4, W, H);
+    expect(up.y + 7).toBeCloseTo(196);
+    expect(up.x).toBeCloseTo(450);
+  });
+
+  it('goes round to the next side rather than over another window', () => {
+    const box = { x: 400, y: 200, size: 100 };
+    // The target's window right under this one, as when both are specks.
+    const target = { x: 420, y: 310, size: 60 };
+    const at = labelBeside(box, Math.PI / 2 - 0.3, 40, 14, 4, W, H, [target]);
+    const clear = (r: { x: number; y: number; size: number }): boolean =>
+      at.x + 20 <= r.x || at.x - 20 >= r.x + r.size || at.y + 7 <= r.y || at.y - 7 >= r.y + r.size;
+    expect(clear(target)).toBe(true);
+    expect(clear(box)).toBe(true);
+  });
+
+  it('stays in the view, under the window, when the facing side is off it', () => {
+    // A window against the right edge, pointing further right.
+    const box = { x: W - 110, y: 200, size: 100 };
+    const at = labelBeside(box, 0, 40, 14, 4, W, H);
+    expect(at.x + 20).toBeLessThanOrEqual(W);
+    expect(at.y - 7).toBeGreaterThanOrEqual(box.y + box.size);
   });
 });
