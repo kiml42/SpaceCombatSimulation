@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { compileBlueprint, refitShare, slotKey, type Blueprint } from '../sim/index.js';
+import { compileBlueprint, refitShare, settleIds, slotKey, type Blueprint } from '../sim/index.js';
 import { makeBattle } from '../scenarios/battle.js';
-import { DINKY, GUNSHIP, SALVAGER } from '../scenarios/blueprints.js';
-import { mending, refitting } from '../scenarios/mending.js';
+import { DINKY, GUNSHIP } from '../scenarios/blueprints.js';
+import { mending, REBUILDER, refitting } from '../scenarios/mending.js';
 import { factory } from '../scenarios/carrier.js';
 import { give, readLog, writeLog, type Logged } from '../scenarios/commands.js';
 
@@ -34,8 +34,10 @@ describe('a remodel part way through a refit', () => {
   it('sets the robots to the new design, rather than to modules of the old one half built', () => {
     const run = refitting();
     for (let s = 0; s < 600; s++) run.step();
-    give(run, { kind: 'remodel', ships: [0], blueprint: SALVAGER });
-    expect(run.ships.blueprint(0).name).toBe(SALVAGER.name);
+    // Back to what it set out as, which has none of what was half built.
+    const back = settleIds(REBUILDER);
+    give(run, { kind: 'remodel', ships: [0], blueprint: back });
+    expect(run.ships.blueprint(0).name).toBe(REBUILDER.name);
     for (let s = 0; s < 3000; s++) run.step();
   });
 });
