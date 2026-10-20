@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { compileBlueprint, refitShare, slotKey, type Blueprint } from '../sim/index.js';
 import { makeBattle } from '../scenarios/battle.js';
 import { DINKY, GUNSHIP, SALVAGER } from '../scenarios/blueprints.js';
-import { refitting } from '../scenarios/mending.js';
+import { mending, refitting } from '../scenarios/mending.js';
 import { factory } from '../scenarios/carrier.js';
 import { give, readLog, writeLog, type Logged } from '../scenarios/commands.js';
 
@@ -37,6 +37,25 @@ describe('a remodel part way through a refit', () => {
     give(run, { kind: 'remodel', ships: [0], blueprint: SALVAGER });
     expect(run.ships.blueprint(0).name).toBe(SALVAGER.name);
     for (let s = 0; s < 3000; s++) run.step();
+  });
+});
+
+describe('a battle whose ships are not flown', () => {
+  it('still charges robots from what its generators make, with the batteries flat', () => {
+    const run = mending();
+    const b = run.world.bodies.indexOf(run.ships.body(0));
+    const design = run.ships.currentStructure(0);
+    for (let m = 0; m < design.modules.length; m++) run.ships.power.drain(b, m, run.ships.power.held(b, m));
+    for (const robot of run.ships.robots.on(b) ?? []) robot.charge = 0;
+    const charge = (): number => {
+      let total = 0;
+      for (let m = 0; m < design.modules.length; m++) total += run.ships.power.held(b, m);
+      for (const robot of run.ships.robots.on(b) ?? []) total += robot.charge;
+      return total;
+    };
+    const before = charge();
+    for (let s = 0; s < 60 * 30; s++) run.step();
+    expect(charge()).toBeGreaterThan(before);
   });
 });
 
