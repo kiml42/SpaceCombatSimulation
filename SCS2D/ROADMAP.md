@@ -108,8 +108,13 @@ Nothing: every step up to 13 is built.
        - **The order bar floats over the battle**, so picking a ship never resizes the view under the
          pointer.
        - **Commands name ships by the simulation's index**, which a deterministic battle keeps.
-    2. **Change doctrine, refuel or repair, remodel, build a fighter, build a ship.** Not yet designed: its
-       own grilling once slice 1 is playable.
+    2. **Dock, scavenge, deliver, doctrine, build and remodel** — designed, as settled below, in four
+       pieces that each land on their own:
+       - **2a. Dock**, with ports passing metal and the machinery for an order whose target is optional.
+       - **2b. Scavenge and deliver**, on the same machinery.
+       - **2c. The doctrine panel**: the ship's, its main and secondary weapons', a single mount's, and
+         its build counts.
+       - **2d. Remodel and the design picker**, which carries blueprints in the log.
     3. **Run away**, once withdrawal (§12) is designed; outside step 14 until then.
 
     **Slice 1, as settled:**
@@ -145,6 +150,65 @@ Nothing: every step up to 13 is built.
       on at once — defending this, attacking that, evading something else — of which only the head of the
       queue is an order for now. An escorting ship, ordered or not, has its escort band drawn, and its
       charge is kept in frame.
+
+    **Slice 2, as settled:**
+
+    - **Two kinds of thing to tell a ship.** *Orders* go in its queue and are worked through: dock,
+      scavenge and deliver join attack, defend and ram, so "dock, then attack that" is two orders. *Settings*
+      change how it does whatever it is doing, at once and beside the queue: doctrine, build counts and
+      remodelling. "Hold at long range" and "attack that" are given together, not one after the other. Both
+      are logged commands.
+    - **An optional target.** Dock, scavenge and deliver arm like the other verbs, and a click on a ship
+      gives one with that target. The armed hint also offers **Nearest** (Enter), which gives it without one,
+      for doctrine to choose where, weighing danger as it does on its own. Ctrl queues either. Any later
+      order whose target is optional works the same way.
+    - **Dock** (H) takes on everything a dock can give: at a friend's pad if it fits one, otherwise
+      port to port. It goes however full the ship is, and stays until the dock has nothing more to give it.
+      With a target it ignores `dockDanger`, both going and holding on. It ends only then, or on Stop or ✕,
+      or when the friend is gone. The friend is told nothing and carries on; the ship comes to it. A friend
+      that cannot take it, with no pad it fits and no free port, passes the order over.
+    - **Ports pass metal**, as a pad does, from what the giver can spare above its reserve, so a dock
+      refuels, rearms and recharges any ship. Only a pad mends (robots on a docked friend, §12). This moves
+      battles where ships already dock at ports, so their golden checksums are re-recorded deliberately.
+    - **Scavenge** (G), on the order bar only, since right-clicking a friend defends it, own wrecks
+      included. A target is any wreck, any enemy (armed too: boarding by claw), a friend that has lost
+      control, or an active friend, from which it takes only fuel, down to that friend's `refuelBelow`.
+      With a target it ignores `scavengeDanger`, and holds on until its claw is full or the target has
+      nothing left to give. Nearest goes source after source until full. Full means fuel and, with robots
+      aboard, metal, whatever `scavengeFuelBelow` and `scavengeMetalBelow` say. A ship with no working claw
+      is skipped; a target its claw cannot take from passes the order over.
+    - **Deliver** (U), the giver's side of a dock: port to port, giving fuel, metal and charge above its own
+      reserves, whatever `deliverFuelAbove` says, and ignoring `dockDanger` with a target. It ends when the
+      friend is full, the giver has nothing to spare, the friend is gone, or on Stop or ✕. Nearest gives to
+      the friend with most room, then the next, until it has nothing to spare. The friend is told nothing. A
+      giver with no port is skipped; a friend with no free port or no room passes the order over.
+    - **Queue lines** are coloured by verb as slice 1's are: dock green, scavenge amber, deliver blue.
+    - **The doctrine panel** (P) sits beside the order bar and edits the selection's doctrine as a
+      per-ship override, the blueprint untouched, so the fleet strips still group a ship with its sisters.
+      It reuses the editor's rows (`editor/doctrine.ts`), so the battle and the editor describe doctrine in
+      the same words. A command carries only the fields changed, applied to every picked ship; where they
+      differ, the box is blank, and typing sets them all. A field, or the whole, can be reset to its design.
+    - **Parts.** The panel opens on the ship's doctrine, the cores'. Beside it are **main** and
+      **secondary weapons**, rather than one entry for each kind of mount, since one kind can be used
+      differently in different parts of a ship. Clicking a mount in a close-up edits that one mount's
+      *placement*: every copy of it, by repeated instances or a reused assembly, shares its doctrine, so all
+      are highlighted and an edit applies to them all, as in the editor.
+    - **Build counts** are settings in the same panel: each pad's or slipway's design and how many to keep,
+      a standing count as now (0 stops it), not a queue.
+    - **Remodel** is a setting too: the ship fights on while its robots rebuild it to the new design, as
+      `Ships.refit` does now.
+    - **One design picker** for remodelling and for a build slot's design. It lists the side's designs in
+      the battle, blueprints and craft, and the blueprint library, stock and saved, filtered to what would
+      work: for a remodel, what `refit` accepts for every picked ship, with how much it would rebuild; for a
+      pad, fighters that fit it; for a slipway, nothing wider. The command carries the blueprint, kept once
+      in the log by its content, so a link replays wherever it is opened.
+    - **What an override follows.** A remodel keeps the ship's override and its main and secondary weapons',
+      and a single mount's while the refit keeps that placement. A build slot the refit keeps keeps its
+      count; a new one starts from the new blueprint's. Half of a split ship that flies on copies its
+      overrides, as it copies its orders. What a ship builds flies by its own blueprint's doctrine; to change
+      it, pick those ships (a fleet strip's tile picks a design's fighters).
+    - **Keys** are provisional, to be rethought once the set is fuller. Inside the panel it is mouse only,
+      so keys do not fight the number boxes.
 15. **Mining** — metal and fuel from map features, so maps have economic character. By here both resources
     exist, so this step is the map and the income, not the resources. *It replaces "did I spend 500 points
     well?" with "did I manage income well?"*
@@ -666,7 +730,17 @@ Deliberately unresolved; decide when they block something.
 - **Launching a fighter before it is whole.** A pad launches only a whole fighter. Once its core is up it is
   already a ship, so launching early under doctrine is a rule, not a new mechanism.
 - **Robots working on a docked friend.** Robots cross a seam only onto wreckage to take it apart; crossing a
-  port seam to mend a friend is not built.
+  port seam to mend a friend is not built. So a Dock order (§8 step 14, slice 2) mends only a fighter, on a
+  pad: a port passes fuel, metal and charge and nothing more.
+- **More for step 14 to tell ships**, left out of slice 2:
+  - **Stay docked**, so doctrine cannot take a ship off a dock the player wants it on.
+  - **Scrap**, given to the ship to be taken apart: scrappers may then come and strip it, while it follows
+    its doctrine and fights on until they do. Scavenging a friend takes only fuel until then.
+  - **A build queue**, in place of or on top of each pad's and slipway's standing count.
+  - **Doctrine presets**: a whole doctrine chosen by name, as a shortcut on the panel.
+  - **Editing a ship's blueprint from the battle**: opening the editor on it and bringing the result back
+    as a remodel, a round trip between pages that are separate.
+  - **The keys**, rethought once the set is fuller.
 - **The numbers for repair.** How much each step wastes (repair wastes a tenth, a first guess), and whether
   disassembly and building waste alike; time and power for a joule of damage undone (a pad mends 20 kJ/s a
   metre of its width, at 10 J of charge a joule, both first guesses); a robot's speed over a hull (2 m/s), the
