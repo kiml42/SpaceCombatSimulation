@@ -46,7 +46,7 @@ import {
   type InsetShip,
   type LabelAt,
 } from './inset.js';
-import { stripsFor, stripTileAt, type StripColumn, type Strips } from './fleetStrip.js';
+import { stripsFor, stripTileAt, type StripColumn, type StripShip, type Strips } from './fleetStrip.js';
 import { fighterColours, NEUTRAL, shipColours, teamName } from './teams.js';
 
 export { teamColour } from './teams.js';
@@ -1773,17 +1773,37 @@ const STRIP_MIN_PX = 34;
 const STRIP_MARGIN_PX = 6;
 const STRIP_GAP_PX = 4;
 
+/** Main guns and weapon engines a ship still has. */
+function weaponsLeft(ship: ShipView): number {
+  const design = ship.design;
+  let count = 0;
+  for (let t = 0; t < design.turrets.length; t++) if (design.turrets[t]!.main && ship.turretDisabled[t] !== true) count++;
+  for (const t of design.mainWeaponEngines) {
+    const module = design.engines[t]!.module;
+    if (module !== undefined && (ship.integrity[module] ?? 1) > 0) count++;
+  }
+  return count;
+}
+
 /**
  * Each side's ships as live tiles down the view's edges: every ship anyone
- * controls but fighters, which come and go in numbers. `ratio` is canvas
- * pixels per CSS pixel.
+ * controls, a side's fighters of one design sharing a tile, as they come and
+ * go in numbers. `ratio` is canvas pixels per CSS pixel.
  */
 export function fleetStrips(snapshot: Snapshot, widthPx: number, heightPx: number, ratio = 1): Strips {
-  const ships = [];
+  const ships: StripShip[] = [];
+  const fighterDesigns = new Map<ShipDesign, number>();
   for (let i = 0; i < snapshot.shipCount; i++) {
     const ship = snapshot.ships[i]!;
-    if (ship.team < 0 || ship.design.fighter || !ship.hasControl) continue;
-    ships.push({ body: ship.body, team: ship.team, x: ship.x, y: ship.y, vx: ship.vx, vy: ship.vy, radius: ship.design.radius });
+    if (ship.team < 0 || !ship.hasControl) continue;
+    const at = { body: ship.body, team: ship.team, x: ship.x, y: ship.y, vx: ship.vx, vy: ship.vy, radius: ship.design.radius };
+    if (!ship.design.fighter) {
+      ships.push(at);
+      continue;
+    }
+    let fighter = fighterDesigns.get(ship.design);
+    if (fighter === undefined) fighterDesigns.set(ship.design, (fighter = fighterDesigns.size));
+    ships.push({ ...at, fighter, weapons: weaponsLeft(ship) });
   }
   return stripsFor(ships, widthPx, heightPx, {
     largest: Math.min(STRIP_MAX_PX * ratio, widthPx * STRIP_SHARE),
@@ -1825,6 +1845,14 @@ export function drawFleetStrips(
       ctx.globalAlpha = picked ? 1 : 0.55;
       ctx.lineWidth = (picked ? 2 : 1) * ratio;
       ctx.strokeRect(tile.x, tile.y, tile.size, tile.size);
+      if (tile.count > 1) {
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = ctx.strokeStyle;
+        ctx.font = `${11 * ratio}px ui-monospace, monospace`;
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(`×${tile.count}`, tile.x + tile.size - 3 * ratio, tile.y + tile.size - 2 * ratio);
+      }
       ctx.restore();
     }
     if (column.more !== null) {
