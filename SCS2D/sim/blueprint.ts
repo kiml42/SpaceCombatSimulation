@@ -279,6 +279,30 @@ export function refitPlan(from: Blueprint, to: Blueprint): RefitPlan | null {
   return { built, takenDown, coreKept };
 }
 
+/**
+ * How much of a ship built to `from` a refit to `to` would keep, as
+ * `Ships.refit` matches compiled designs: the modules kept, of how many.
+ * Null where it would refuse: either design without keys, or `to` not
+ * keeping the first core, which a ship is flown from.
+ */
+export function refitShare(from: ShipDesign, to: ShipDesign): { kept: number; of: number } | null {
+  const wasKeys = from.keys;
+  const nowKeys = to.keys;
+  if (wasKeys === undefined || nowKeys === undefined) return null;
+  const byKey = new Map<string, DesignModule>();
+  for (const module of to.modules) byKey.set(nowKeys[module.index]!, module);
+  const core = from.cores[0];
+  let kept = 0;
+  let coreKept = false;
+  from.modules.forEach((module, m) => {
+    const now = byKey.get(wasKeys[module.index]!);
+    if (now === undefined || JSON.stringify(now.spec) !== JSON.stringify(module.spec)) return;
+    kept++;
+    if (m === core) coreKept = true;
+  });
+  return coreKept ? { kept, of: from.modules.length } : null;
+}
+
 /** The highest id any placement of a blueprint has; 0 for none. */
 export function topId(blueprint: Blueprint): number {
   let top = 0;

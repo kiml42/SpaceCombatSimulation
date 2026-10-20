@@ -1,5 +1,5 @@
 import { parseBattleSetup, serialiseBattleSetup, type BattleSetup } from './customBattle.js';
-import { parseLog, type Logged } from './commands.js';
+import { readLog, writeLog, type Logged } from './commands.js';
 
 /**
  * A custom battle carried whole in a link: the battle file, deflated and
@@ -18,7 +18,7 @@ const KEY = '#battle=';
 /** The fragment that carries a battle, `#battle=` and all. */
 export async function battleFragment(setup: BattleSetup, orders: readonly Logged[] = []): Promise<string> {
   const file = serialiseBattleSetup(setup);
-  const text = JSON.stringify(orders.length > 0 ? { ...file, orders } : file);
+  const text = JSON.stringify(orders.length > 0 ? { ...file, ...writeLog(orders) } : file);
   const packed = await pipe(new TextEncoder().encode(text), new CompressionStream('deflate-raw'));
   return KEY + toBase64Url(packed);
 }
@@ -27,8 +27,8 @@ export async function battleFragment(setup: BattleSetup, orders: readonly Logged
 export async function linkedBattle(hash: string): Promise<{ setup: BattleSetup; orders: Logged[] } | null> {
   if (!hash.startsWith(KEY)) return null;
   const unpacked = await pipe(fromBase64Url(hash.slice(KEY.length)), new DecompressionStream('deflate-raw'));
-  const { orders, ...file } = JSON.parse(new TextDecoder().decode(unpacked)) as Record<string, unknown>;
-  return { setup: parseBattleSetup(file), orders: orders === undefined ? [] : parseLog(orders) };
+  const { orders, designs, ...file } = JSON.parse(new TextDecoder().decode(unpacked)) as Record<string, unknown>;
+  return { setup: parseBattleSetup(file), orders: orders === undefined ? [] : readLog(orders, designs) };
 }
 
 async function pipe(bytes: Uint8Array, through: CompressionStream | DecompressionStream): Promise<Uint8Array> {

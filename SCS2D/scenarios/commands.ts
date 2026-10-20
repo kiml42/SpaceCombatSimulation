@@ -1,3 +1,5 @@
+import { compileBlueprint, type Blueprint, type ShipDesign } from '../sim/blueprint.js';
+import { parseBlueprint, serialiseBlueprint } from '../sim/blueprintFile.js';
 import { isDoctrinePart, type DoctrinePart } from '../sim/doctrine.js';
 import { NO_TARGET, OrderCancelCondition } from '../sim/ships.js';
 import type { Battle } from './types.js';
@@ -39,7 +41,11 @@ export type Command =
   /** Take one part of each ship's doctrine, or with no part all of it, back to its design's. */
   | { readonly kind: 'resetDoctrine'; readonly ships: readonly number[]; readonly part?: DoctrinePart }
   /** Tell a pad or slipway of each ship, by `slotKey`, how many to keep, or with `null` go back to its design's. */
-  | { readonly kind: 'keep'; readonly ships: readonly number[]; readonly slot: string; readonly keep: number | null };
+  | { readonly kind: 'keep'; readonly ships: readonly number[]; readonly slot: string; readonly keep: number | null }
+  /** Refit each ship to `blueprint` (`Ships.refit`), which it rebuilds itself to as it fights on. */
+  | { readonly kind: 'remodel'; readonly ships: readonly number[]; readonly blueprint: Blueprint }
+  /** Tell a pad or slipway of each ship, by `slotKey`, to build `blueprint`, or with `null` its design's craft. */
+  | { readonly kind: 'craft'; readonly ships: readonly number[]; readonly slot: string; readonly blueprint: Blueprint | null };
 
 export interface Logged {
   readonly step: number;
@@ -74,6 +80,16 @@ export function give(battle: Battle, command: Command): void {
     for (const i of command.ships) if (ships.isAlive(i)) ships.setKeep(i, command.slot, command.keep);
     return;
   }
+  if (command.kind === 'remodel') {
+    const to = compiled(command.blueprint);
+    for (const i of command.ships) if (ships.isAlive(i)) ships.refit(battle.world, i, to);
+    return;
+  }
+  if (command.kind === 'craft') {
+    const craft = command.blueprint === null ? null : compiled(command.blueprint);
+    for (const i of command.ships) if (ships.isAlive(i)) ships.setCraft(i, command.slot, craft);
+    return;
+  }
   const order = command.order;
   const errand = order.kind === 'dock' || order.kind === 'scavenge' || order.kind === 'deliver';
   const anywhere = errand && order.target === NO_TARGET;
@@ -97,6 +113,17 @@ export function give(battle: Battle, command: Command): void {
     else if (order.kind === 'defend') ships.pushDefend(i, order.target);
     else ships.pushRam(i, order.target, undefined, OrderCancelCondition.CompletelyDead);
   }
+}
+
+/** Each blueprint a command names, compiled once, however often it is given again. */
+const designs = new WeakMap<Blueprint, ShipDesign>();
+function compiled(blueprint: Blueprint): ShipDesign {
+  let design = designs.get(blueprint);
+  if (design === undefined) {
+    design = compileBlueprint(blueprint);
+    designs.set(blueprint, design);
+  }
+  return design;
 }
 
 const KINDS = new Set(['attack', 'defend', 'ram', 'dock', 'scavenge', 'deliver']);
@@ -128,6 +155,17 @@ export function parseLog(value: unknown): Logged[] {
       if (value !== null && (typeof value !== 'number' || !Number.isFinite(value))) fail('a doctrine change wants a number or null');
     } else if (command['kind'] === 'resetDoctrine') {
       if (!shipList(command['ships']) || (command['part'] !== undefined && !isDoctrinePart(command['part']))) fail('a reset wants ships');
+    } else if (command['kind'] === 'remodel' || command['kind'] === 'craft') {
+      if (!shipList(command['ships'])) fail(`a ${command['kind']} wants ships`);
+      if (command['kind'] === 'craft' && typeof command['slot'] !== 'string') fail('a craft wants a slot');
+      const raw = command['blueprint'];
+      if (!(command['kind'] === 'craft' && raw === null)) {
+        try {
+          return { step: step as number, command: { ...command, blueprint: parseBlueprint(raw) } as unknown as Command };
+        } catch (error) {
+          return fail(`its blueprint: ${error instanceof Error ? error.message : String(error)}`);
+        }
+      }
     } else if (command['kind'] === 'keep') {
       const keep = command['keep'];
       if (!shipList(command['ships']) || typeof command['slot'] !== 'string' || !(keep === null || whole(keep))) {
@@ -143,4 +181,33 @@ export function parseLog(value: unknown): Logged[] {
     } else fail(`unknown command ${String(command['kind'])}`);
     return { step: step as number, command: command as unknown as Command };
   });
+}
+
+/**
+ * A log as a file or a link writes it: each blueprint a command carries
+ * written once, in `designs`, and named by its place there.
+ */
+export function writeLog(log: readonly Logged[]): { orders: unknown[]; designs?: unknown[] } {
+  const designs: string[] = [];
+  const orders = log.map(({ step, command }) => {
+    if ((command.kind !== 'remodel' && command.kind !== 'craft') || command.blueprint === null) return { step, command };
+    const text = JSON.stringify(serialiseBlueprint(command.blueprint));
+    let at = designs.indexOf(text);
+    if (at < 0) at = designs.push(text) - 1;
+    return { step, command: { ...command, blueprint: at } };
+  });
+  return designs.length === 0 ? { orders } : { orders, designs: designs.map((text) => JSON.parse(text) as unknown) };
+}
+
+/** A log `writeLog` wrote, read back. Throws on one it cannot read. */
+export function readLog(orders: unknown, designs: unknown = []): Logged[] {
+  if (!Array.isArray(orders) || !Array.isArray(designs)) throw new Error('orders: not a list');
+  const resolved = orders.map((entry: unknown) => {
+    const command = (entry as { command?: Record<string, unknown> } | null)?.command;
+    const at = command?.['blueprint'];
+    if (typeof at !== 'number') return entry;
+    if (!Number.isInteger(at) || designs[at] === undefined) throw new Error(`orders: no design ${at}`);
+    return { ...(entry as object), command: { ...command, blueprint: designs[at] } };
+  });
+  return parseLog(resolved);
 }

@@ -110,8 +110,10 @@ an entry is either still open or it is gone.
          optional. No golden checksum moved: none of those battles docks at a port.
        - **2b. Scavenge and deliver** — built, on the same machinery.
        - **2c. The doctrine panel** — built: the ship's, its main and secondary weapons', a single
-         mount's, and its build counts. Choosing a slot's design waits for 2d's picker.
-       - **2d. Remodel and the design picker**, which carries blueprints in the log.
+         mount's, and its build counts.
+       - **2d. Remodel and the design picker** — built, carrying blueprints in the log. The picker
+         offers the blueprint library, stock and saved; a design only in the battle, such as an evolved
+         fleet's, is not yet among them.
     3. **Run away** — outlined below, after slice 2's machinery, which it reuses: an order whose target is
        optional, and doctrine as settings.
     4. **A per-order band and speed** for attack and defend, overriding doctrine's for that one order.

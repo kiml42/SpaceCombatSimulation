@@ -1,7 +1,13 @@
 import {
+  compileBlueprint,
   overriddenMount,
+  padHolds,
   placementOf,
+  refitShare,
+  slipwayHolds,
   slotKey,
+  type Blueprint,
+  type ModuleSpec,
   type DoctrineOverride,
   type DoctrinePart,
   type ShipDesign,
@@ -9,6 +15,7 @@ import {
   type Snapshot,
 } from '../sim/index.js';
 import { MOUNT_SECTIONS, SHIP_SECTIONS, sectionEntries, type DoctrineEntry } from '../editor/doctrine.js';
+import { Library } from '../editor/library.js';
 import { mountAt, sideOf, viewOf } from '../render/picking.js';
 import type { BattleView } from './battleView.js';
 import { el } from './dom.js';
@@ -84,22 +91,67 @@ interface Slot {
   readonly key: string;
   readonly label: string;
   readonly keep: number | undefined;
+  readonly pad: boolean;
+  readonly spec: ModuleSpec;
+  /** The name of what it is told to build, or of what it builds by design; undefined where they differ. */
+  readonly craft: string | undefined;
 }
 
+/** A design that can be chosen to remodel to or to build: the blueprint, compiled, and where it is from. */
+interface Choice {
+  readonly blueprint: Blueprint;
+  readonly design: ShipDesign;
+  readonly label: string;
+}
+
+/** The blueprint library, stock and saved, each compiled once; one that does not compile is left out. */
+function choices(): Choice[] {
+  const library = new Library(window.localStorage);
+  const out: Choice[] = [];
+  for (const entry of library.list()) {
+    try {
+      const blueprint = entry.stock ? library.loadStock(entry.name) : library.load(entry.name);
+      if (blueprint === null) continue;
+      const cacheKey = `${entry.stock ? 'stock' : 'saved'}:${entry.name}`;
+      let design = compiledChoices.get(cacheKey);
+      if (design === undefined || design.blueprint !== blueprint) {
+        design = { blueprint, design: compileBlueprint(blueprint) };
+        compiledChoices.set(cacheKey, design);
+      }
+      out.push({ ...design, label: entry.stock && entry.saved ? `${entry.name} (stock)` : entry.name });
+    } catch {
+      // A saved ship that no longer reads or flies is for the editor to put right.
+    }
+  }
+  return out;
+}
+const compiledChoices = new Map<string, { blueprint: Blueprint; design: ShipDesign }>();
+
 function slotsOf(ships: readonly ShipView[]): Slot[] {
-  const found = new Map<string, { label: string; keeps: number[] }>();
+  const found = new Map<string, { pad: boolean; spec: ModuleSpec; keeps: number[]; crafts: string[] }>();
   for (const ship of ships) {
     const design = ship.blueprint ?? ship.currentStructure;
-    const add = (module: number, kind: string, craft: ShipDesign, keep: number): void => {
+    const add = (module: number, pad: boolean, craft: ShipDesign, keep: number): void => {
       const key = slotKey(design, module);
-      const keeps = found.get(key)?.keeps ?? [];
-      keeps.push(ship.keeps?.[key] ?? keep);
-      found.set(key, { label: `${kind} · ${craft.name}`, keeps });
+      const slot = found.get(key) ?? { pad, spec: design.modules[module]!.spec, keeps: [], crafts: [] };
+      slot.keeps.push(ship.keeps?.[key] ?? keep);
+      slot.crafts.push((ship.crafts?.[key] ?? craft).name);
+      found.set(key, slot);
     };
-    for (const order of design.builds ?? []) add(order.pad, 'Pad', order.design, order.keep);
-    for (const order of design.yards ?? []) add(order.slipway, 'Slipway', order.design, order.keep);
+    for (const order of design.builds ?? []) add(order.pad, true, order.design, order.keep);
+    for (const order of design.yards ?? []) add(order.slipway, false, order.design, order.keep);
   }
-  return [...found].map(([key, { label, keeps }]) => ({ key, label, keep: shared(keeps) ?? undefined }));
+  return [...found].map(([key, slot]) => {
+    const craft = slot.crafts.every((c) => c === slot.crafts[0]) ? slot.crafts[0] : undefined;
+    return {
+      key,
+      label: slot.pad ? 'Pad' : 'Slipway',
+      keep: shared(slot.keeps) ?? undefined,
+      pad: slot.pad,
+      spec: slot.spec,
+      craft,
+    };
+  });
 }
 
 export function doctrinePanel(view: BattleView): { update(shown: Snapshot): void } {
@@ -178,12 +230,35 @@ export function doctrinePanel(view: BattleView): { update(shown: Snapshot): void
     return out;
   };
 
-  const slots = (ships: readonly ShipView[]): HTMLElement[] =>
+  const slots = (ships: readonly ShipView[], library: readonly Choice[]): HTMLElement[] =>
     slotsOf(ships).map((slot) => {
       const label = document.createElement('label');
-      label.title = 'How many of these it keeps in the fight';
+      label.title = 'What it builds, and how many of them it keeps in the fight';
       const name = document.createElement('span');
       name.textContent = slot.label;
+      // What it builds: as designed, or anything in the library it could build.
+      const craft = document.createElement('select');
+      const designed = document.createElement('option');
+      designed.value = '';
+      designed.textContent = slot.craft ?? 'mixed';
+      craft.append(designed);
+      const buildable = library.filter((choice) =>
+        slot.pad
+          ? choice.design.fighter && padHolds(choice.design, slot.spec)
+          : !choice.design.fighter && slipwayHolds(choice.design, slot.spec),
+      );
+      buildable.forEach((choice, n) => {
+        const option = document.createElement('option');
+        option.value = String(n);
+        option.textContent = choice.label;
+        craft.append(option);
+      });
+      craft.addEventListener('change', () => {
+        const choice = buildable[Number(craft.value)];
+        if (craft.value === '' || choice === undefined) return;
+        view.issue({ kind: 'craft', ships: view.picked, slot: slot.key, blueprint: choice.blueprint });
+        shownKey = '';
+      });
       const input = document.createElement('input');
       input.type = 'number';
       input.min = '0';
@@ -200,9 +275,65 @@ export function doctrinePanel(view: BattleView): { update(shown: Snapshot): void
         });
         shownKey = '';
       });
-      label.append(name, input);
+      label.append(name, craft, input);
+      if (ships.some((ship) => ship.crafts?.[slot.key] !== undefined)) {
+        const back = document.createElement('button');
+        back.textContent = '↺';
+        back.title = 'Back to what its design builds';
+        back.addEventListener('click', () => {
+          view.issue({ kind: 'craft', ships: view.picked, slot: slot.key, blueprint: null });
+          shownKey = '';
+        });
+        label.append(back);
+      }
       return label;
     });
+
+  /** A remodel: to any design in the library that a refit of every picked ship would take, and how much it keeps. */
+  const remodel = (ships: readonly ShipView[], library: readonly Choice[]): HTMLElement => {
+    const row = document.createElement('label');
+    row.title = 'Refit them to another design, which their robots build as they fight on';
+    const name = document.createElement('span');
+    name.textContent = 'Remodel to';
+    const pick = document.createElement('select');
+    const none = document.createElement('option');
+    none.value = '';
+    none.textContent = '—';
+    pick.append(none);
+    const fits = library.flatMap((choice) => {
+      let kept = 0;
+      let of = 0;
+      for (const ship of ships) {
+        const share = refitShare(ship.blueprint ?? ship.currentStructure, choice.design);
+        if (share === null) return [];
+        kept += share.kept;
+        of += share.of;
+      }
+      // Not a remodel at all.
+      if (kept === of && ships.every((ship) => (ship.blueprint ?? ship.currentStructure).modules.length === choice.design.modules.length)) {
+        return [];
+      }
+      return [{ choice, kept, of }];
+    });
+    fits.forEach(({ choice, kept, of }, n) => {
+      const option = document.createElement('option');
+      option.value = String(n);
+      option.textContent = `${choice.label} · keeps ${Math.round((100 * kept) / Math.max(1, of))}%`;
+      pick.append(option);
+    });
+    pick.disabled = fits.length === 0;
+    if (fits.length === 0) none.textContent = 'nothing it could refit to';
+    const go = document.createElement('button');
+    go.textContent = 'Remodel';
+    go.addEventListener('click', () => {
+      const fit = fits[Number(pick.value)];
+      if (pick.value === '' || fit === undefined) return;
+      view.issue({ kind: 'remodel', ships: view.picked, blueprint: fit.choice.blueprint });
+      shownKey = '';
+    });
+    row.append(name, pick, go);
+    return row;
+  };
 
   const render = (ships: readonly ShipView[]): void => {
     const tabs = document.createElement('div');
@@ -227,7 +358,10 @@ export function doctrinePanel(view: BattleView): { update(shown: Snapshot): void
     const body = document.createElement('div');
     body.className = 'rows';
     body.append(...rows(ships));
-    if (part === 'ship') body.append(...slots(ships));
+    if (part === 'ship') {
+      const library = choices();
+      body.append(remodel(ships, library), ...slots(ships, library));
+    }
     if (body.childElementCount === 0) body.textContent = part === 'ship' ? '' : 'No such weapons';
     const reset = document.createElement('button');
     reset.textContent = 'Back to design';
@@ -264,7 +398,13 @@ export function doctrinePanel(view: BattleView): { update(shown: Snapshot): void
     const key = JSON.stringify([
       view.picked,
       part,
-      ships.map((s) => [s.override ?? null, s.keeps ?? null, s.currentStructure.turrets.length, s.blueprint?.name ?? '']),
+      ships.map((s) => [
+        s.override ?? null,
+        s.keeps ?? null,
+        Object.entries(s.crafts ?? {}).map(([slot, craft]) => [slot, craft.name]),
+        s.currentStructure.turrets.length,
+        s.blueprint?.name ?? '',
+      ]),
     ]);
     if (key === shownKey || panel.contains(document.activeElement)) return;
     shownKey = key;
