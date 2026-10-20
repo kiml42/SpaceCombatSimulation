@@ -92,8 +92,9 @@ Nothing: every step up to 13 is built.
        and `,` to step back exactly (§12). Across a jump the camera lands exactly framed, or, not framing,
        moves as far as the ships it was following did. Built first, since several of the decisions below are about rewinding.
        Left to fix, from trying it:
-       - **A copy in one frame** is a hitch of tens of milliseconds in a big battle; spread over several
-         frames, it would not be.
+       - **A copy in one frame** is about 10 ms in Super Swarm, most of it some 14,000 small typed arrays.
+         Spreading one over frames would mean holding the battle still while it is copied, so the way on is
+         a cheaper copy: fewer, larger arrays in the sim, or copying only what changed.
        - **Flashes on landing at a checkpoint.** Across steps re-simulated, flashes are rebuilt as they
          would have been drawn; landing on a checkpoint re-simulates nothing, so it shows none until the
          next step.
