@@ -134,8 +134,18 @@ export function degreesToRadians(degrees: number): number {
   return (degrees / 180) * PI;
 }
 
+/**
+ * Settled on degrees that read back to themselves, so a file written from
+ * what was read is the same file: a turn there and back can move the last digit.
+ */
 export function radiansToDegrees(radians: number): number {
-  return (radians / PI) * 180;
+  let degrees = (radians / PI) * 180;
+  for (let k = 0; k < 4; k++) {
+    const back = (degreesToRadians(degrees) / PI) * 180;
+    if (back === degrees) break;
+    degrees = back;
+  }
+  return degrees;
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
