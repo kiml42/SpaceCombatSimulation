@@ -402,8 +402,8 @@ Deliberately unresolved; decide when they block something.
     spends most of its reach on itself; measuring from its edge instead is the alternative.
   - **Damage.** A core covers nothing once past its `Control` cutout and everything until then. A shrunken
     radius, or one module losing control, as a damage effect with a chance of happening is the step after.
-  - **The Star Destroyer and the Quasar Fire.** Most of their modules are out of reach (52 of 59 and 13 of
-    20). They are showpieces with no goldens on them, left to be redrawn with more cores by hand.
+  - **The Star Destroyer and the Quasar Fire.** Most of their active modules are out of reach (50 of 59 and
+    11 of 20). They are showpieces with no goldens on them, left to be redrawn with more cores by hand.
   - **Targeting.** Doctrine wants a way to weight a core by how many modules it reaches, and to prefer
     bigger modules generally, so fire goes where it disables most.
 - **Whether a claw should drain an enemy's batteries.** It drinks fuel from what it grips; draining charge is

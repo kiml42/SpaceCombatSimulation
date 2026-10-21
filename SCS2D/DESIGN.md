@@ -352,7 +352,9 @@ inside any one file is not contiguous.
   **A ship is flown from a core** (§4), and one whose cores have been shot out is a hulk with sound
   engines and sound guns, all of which fail safe: its engines cut out and its turrets brake to a stop, and
   it drifts — so a mission kill is a place on the hull rather than a tally of mounts, and a
-  ship worth its mass carries a second core, because a hull cut between two of them is two ships. The
+  ship worth its mass carries a second core, because a hull cut between two of them is two ships. A core
+  reaches only so far (§4): an engine, gun or other active module beyond every working core's reach does
+  nothing, so a long ship needs more than one core to fly all of itself. The
   `split` scenario is that sentence made visible: the Catamaran is two hulls joined by a footbridge of thin
   structure with a core in each, a corvette is sent through the bridge at sixty metres a second, and the
   two halves pick up the enemy across the field on their own doctrine without being told anything.
@@ -1670,11 +1672,11 @@ Mass from wall volume, capacity from interior area, strength from thickness and 
   or less is all computing; a bigger one computes with a share of its interior, `computing` on the
   layout and 10% by default (`CORE_COMPUTING_SHARE`), never less than 1 m³, and the rest is stores. The
   Dinky's 0.6 m core reaches 3.8 m; a fighter's core of a cubic metre or so reaches 15 m, a Gunship's
-  33 m, and a 60 × 380 m core 211 m. A long ship carries a second core, or gives one more of its interior to
-  computing. A core past its control cutout reaches nothing, and what only it reached goes dark — drawn
-  faint in a battle — while the rest of the ship fights on. The editor draws each core's reach as a
-  dashed circle, tints what is out of every one and lists each as a warning, and works out the ship's figures without it
-  (`inReachDesign`). A core's computing share is a knob a run mutates.
+  33 m, and a 60 × 380 m core 211 m. A long ship carries a second core, or gives one more of its
+  interior to computing. A core past its control cutout reaches nothing, and what only it reached goes
+  dark — drawn faint in a battle — while the rest of the ship fights on. The editor draws each core's
+  reach as a dashed circle, tints what is out of every one and lists each as a warning, and works out
+  the ship's figures without it (`inReachDesign`). A core's computing share is a knob a run mutates.
 - **Hull and tanks may be triangles; every other archetype is a box.** A module is a box because
   nearly every archetype has something coming out of one face of it — a bell, a barrel, a ring — and
   a box is what those are measured against. Structure and a tank have nothing protruding, so they may
