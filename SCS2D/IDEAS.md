@@ -77,4 +77,3 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 ## Skirmish
 - When the enemy are evolving, make the history fill the battle area.
   - In this mode the player's fleet should be put on the left, and the enemy on the right.
-- If a single generation takes long enough, show the thumbnails for the leader in the generation without a "Victory" or "Defeat" stamp to show the work in progress happening.
