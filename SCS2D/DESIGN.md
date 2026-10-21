@@ -563,8 +563,9 @@ inside any one file is not contiguous.
   same opponent again carries on from what was measured, fighting only generations closed since. **Settings are a file.** A run is decided entirely by its seed and its
   configuration, so those few numbers are the whole record of what was tried: they are written out and read
   back as JSON, by the page and by `npm run evolve` alike, so an experiment can be kept beside its result,
-  sent to somebody, or designed on the page and then fought overnight headlessly. A founder is a stock ship
-  by name or a blueprint file by its path, since a ship saved on the page lives in a browser. Every field is optional
+  sent to somebody, or designed on the page and then fought overnight headlessly. Founders are embedded whole, a
+  blueprint or fleet file each, so the file is the whole experiment wherever it is opened; importing one on the
+  page saves any founder the library lacks, beside a different design of the same name rather than over it. Every field is optional
   and anything left out is the default, angles are degrees as they are in a blueprint file, and no limit is
   `null` because JSON has no infinity.
   **A budget is the three things a ship costs** (`sim/bill.ts`, §2): **metal**, its hull and fittings and the

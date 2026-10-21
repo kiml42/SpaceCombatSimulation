@@ -15,6 +15,18 @@ import { DEFAULT_RUN, type RunConfig } from './run.js';
 import { DEFAULT_FLEET_LIMITS, type FleetOperator } from './fleetMutate.js';
 import { DEFAULT_COEVOLUTION, type CoevolutionConfig, type SideSettings } from './coevolution.js';
 import { NO_BUDGET, type Budget } from '../sim/bill.js';
+import {
+  blueprintFileProblem,
+  blueprintWarnings,
+  fleetFileProblem,
+  fleetWarnings,
+  parseBlueprint,
+  parseFleet,
+  serialiseBlueprint,
+  serialiseFleet,
+  type Blueprint,
+  type Fleet,
+} from '../sim/index.js';
 
 /**
  * The run-config file: what a set of evolution settings looks like written
@@ -44,17 +56,21 @@ import { NO_BUDGET, type Budget } from '../sim/bill.js';
  * Every field is optional: what a file leaves out is whatever the defaults
  * say, so "the defaults but with beam turrets shut out" is three lines rather
  * than thirty.
+ *
+ * **Founders are embedded whole**, as a blueprint or fleet file each, so a
+ * file is the whole experiment: it can be fought headlessly, or sent to
+ * somebody, without the ships it names having to be found again.
  */
 
 export const RUN_CONFIG_FORMAT_VERSION = 1;
 
-/** A run's settings, and the ships and fleets it starts from, by name. */
+/** A run's settings, and the ships and fleets it starts from. */
 export interface RunSetup {
   /** What the settings are for, which an exported file is named after. */
   readonly name?: string;
-  readonly founders: readonly string[];
+  readonly founders: readonly Blueprint[];
   /** Fleets among the founders, which make it a run of fleets. */
-  readonly fleets?: readonly string[];
+  readonly fleets?: readonly Fleet[];
   /** Side B of a co-evolution run, or null for a run of one. */
   readonly versus?: VersusSetup | null;
   readonly config: RunConfig;
@@ -66,8 +82,8 @@ export interface RunSetup {
  * weights are side A's.
  */
 export interface VersusSetup {
-  readonly founders: readonly string[];
-  readonly fleets: readonly string[];
+  readonly founders: readonly Blueprint[];
+  readonly fleets: readonly Fleet[];
   readonly coevolution: CoevolutionConfig;
 }
 
@@ -147,7 +163,7 @@ export function serialiseRunConfig(setup: RunSetup): Record<string, unknown> {
   return {
     formatVersion: RUN_CONFIG_FORMAT_VERSION,
     ...(setup.name ? { name: setup.name } : {}),
-    founders: [...setup.founders],
+    founders: setup.founders.map(serialiseBlueprint),
     seed: config.seed,
     generations: config.generations,
     population: config.population,
@@ -161,7 +177,7 @@ export function serialiseRunConfig(setup: RunSetup): Record<string, unknown> {
     kinds: { ...kinds },
     build: { ...DEFAULT_BUILD_WEIGHTS, ...config.mutation.build },
     doctrine: doctrineWeights(config.mutation.doctrine),
-    ...((setup.fleets ?? []).length > 0 ? { fleets: [...setup.fleets!] } : {}),
+    ...((setup.fleets ?? []).length > 0 ? { fleets: setup.fleets!.map(serialiseFleet) } : {}),
     fleet: {
       radius: config.fleet.radius ?? DEFAULT_FLEET_LIMITS.radius,
       maxShips: config.fleet.maxShips ?? DEFAULT_FLEET_LIMITS.maxShips,
@@ -191,8 +207,8 @@ export function serialiseRunConfig(setup: RunSetup): Record<string, unknown> {
 function serialiseVersus(versus: VersusSetup): Record<string, unknown> {
   const { hall, phaseWin, phaseCap, shieldedDrills, bareCoreDrills, rival, rivalEvolves } = versus.coevolution;
   return {
-    founders: [...versus.founders],
-    ...(versus.fleets.length > 0 ? { fleets: [...versus.fleets] } : {}),
+    founders: versus.founders.map(serialiseBlueprint),
+    ...(versus.fleets.length > 0 ? { fleets: versus.fleets.map(serialiseFleet) } : {}),
     ...(rivalEvolves ? {} : { evolves: false }),
     hall,
     phaseWin,
@@ -229,18 +245,8 @@ export function runConfigFileProblem(value: unknown, warnings: string[] = []): s
   }
 
   if (value['name'] !== undefined && typeof value['name'] !== 'string') return 'name must be text';
-  const founders = value['founders'];
-  if (founders !== undefined) {
-    if (!Array.isArray(founders) || founders.some((name) => typeof name !== 'string')) {
-      return 'founders must be a list of ship names';
-    }
-  }
-  const fleets = value['fleets'];
-  if (fleets !== undefined) {
-    if (!Array.isArray(fleets) || fleets.some((name) => typeof name !== 'string')) {
-      return 'fleets must be a list of fleet names';
-    }
-  }
+  const designsBad = shipsProblem(value['founders'], 'founders', warnings) ?? fleetsProblem(value['fleets'], 'fleets', warnings);
+  if (designsBad !== null) return designsBad;
   const fleetBad = fleetProblem(value['fleet'], 'fleet', warnings);
   if (fleetBad !== null) return fleetBad;
   const versusBad = versusProblem(value['versus'], warnings);
@@ -292,10 +298,34 @@ function fleetProblem(fleet: unknown, where: string, warnings: string[]): string
   return null;
 }
 
-function namesProblem(value: unknown, what: string): string | null {
+/** A list of blueprint files, each said by its place and name when something is wrong with it. */
+function shipsProblem(value: unknown, what: string, warnings: string[]): string | null {
   if (value === undefined) return null;
-  if (!Array.isArray(value) || value.some((name) => typeof name !== 'string')) return `${what} must be a list of names`;
+  if (!Array.isArray(value)) return `${what} must be a list of blueprints`;
+  for (const [i, ship] of value.entries()) {
+    const where = `${what}[${i}]${nameOf(ship)}`;
+    const problem = blueprintFileProblem(ship);
+    if (problem !== null) return `${where}: ${problem}`;
+    for (const warning of blueprintWarnings(parseBlueprint(ship))) warnings.push(`${where}: ${warning}`);
+  }
   return null;
+}
+
+/** A list of fleet files, as `shipsProblem`. */
+function fleetsProblem(value: unknown, what: string, warnings: string[]): string | null {
+  if (value === undefined) return null;
+  if (!Array.isArray(value)) return `${what} must be a list of fleets`;
+  for (const [i, fleet] of value.entries()) {
+    const where = `${what}[${i}]${nameOf(fleet)}`;
+    const problem = fleetFileProblem(fleet);
+    if (problem !== null) return `${where}: ${problem}`;
+    for (const warning of fleetWarnings(parseFleet(fleet))) warnings.push(`${where}: ${warning}`);
+  }
+  return null;
+}
+
+function nameOf(value: unknown): string {
+  return isRecord(value) && typeof value['name'] === 'string' ? ` (${value['name']})` : '';
 }
 
 function versusProblem(versus: unknown, warnings: string[]): string | null {
@@ -303,8 +333,8 @@ function versusProblem(versus: unknown, warnings: string[]): string | null {
   if (!isRecord(versus)) return "versus must be an object: side B's founders, and what it sets apart";
   unknownKeys(versus, VERSUS_KEYS, 'versus', warnings);
   const problem =
-    namesProblem(versus['founders'], 'versus.founders') ??
-    namesProblem(versus['fleets'], 'versus.fleets') ??
+    shipsProblem(versus['founders'], 'versus.founders', warnings) ??
+    fleetsProblem(versus['fleets'], 'versus.fleets', warnings) ??
     numberProblem(versus['hall'], 'versus.hall') ??
     chanceProblem(versus['phaseWin'], 'versus.phaseWin') ??
     countProblem(versus['phaseCap'], 'versus.phaseCap') ??
@@ -359,8 +389,8 @@ export function parseRunConfig(value: unknown): RunSetup {
   const fleet = isRecord(file['fleet']) ? file['fleet'] : {};
   return {
     ...(typeof file['name'] === 'string' && file['name'] !== '' ? { name: file['name'] } : {}),
-    founders: (file['founders'] as string[] | undefined) ?? [],
-    fleets: (file['fleets'] as string[] | undefined) ?? [],
+    founders: ((file['founders'] as unknown[] | undefined) ?? []).map(parseBlueprint),
+    fleets: ((file['fleets'] as unknown[] | undefined) ?? []).map(parseFleet),
     versus: isRecord(file['versus']) ? parseVersus(file['versus']) : null,
     config: {
       seed: read(file['seed'], DEFAULT_RUN.seed),
@@ -429,8 +459,8 @@ function parseVersus(versus: Record<string, unknown>): VersusSetup {
   if (isRecord(versus['doctrine'])) mutation.doctrine = { ...(versus['doctrine'] as DoctrineWeights) };
   if (Object.keys(mutation).length > 0) rival.mutation = mutation;
   return {
-    founders: (versus['founders'] as string[] | undefined) ?? [],
-    fleets: (versus['fleets'] as string[] | undefined) ?? [],
+    founders: ((versus['founders'] as unknown[] | undefined) ?? []).map(parseBlueprint),
+    fleets: ((versus['fleets'] as unknown[] | undefined) ?? []).map(parseFleet),
     coevolution: {
       rival,
       hall: read(versus['hall'], DEFAULT_COEVOLUTION.hall),
