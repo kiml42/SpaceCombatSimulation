@@ -105,6 +105,11 @@ function fleetFrom(name: string): Fleet {
   }
 }
 
+/** Where a run from a settings file is written unless `--out` says: beside it, `x.evo.json` → `x.run.json`. */
+function runBeside(configPath: string): string {
+  return `${configPath.replace(/(\.evo)?\.json$/i, '')}.run.json`;
+}
+
 function parse(argv: readonly string[]): Options {
   const from: { name: string; blueprint: Blueprint }[] = [];
   const fleets: { name: string; fleet: Fleet }[] = [];
@@ -125,7 +130,8 @@ function parse(argv: readonly string[]): Options {
   let geometry: number | undefined;
   let thrusters: number | undefined;
   let name: string | undefined;
-  let out = 'runs/run.json';
+  let out: string | undefined;
+  let configPath: string | undefined;
   let saveConfig = '';
   let quiet = false;
   let budget = 0;
@@ -277,6 +283,7 @@ function parse(argv: readonly string[]): Options {
       // Settings written by the evolution page, or by `--save-config`.
       case '--config': {
         const path = value();
+        configPath = path;
         const raw: unknown = JSON.parse(readFileSync(path, 'utf8'));
         const setup = parseRunConfig(raw);
         name = setup.name;
@@ -375,6 +382,7 @@ function parse(argv: readonly string[]): Options {
   }
   const coevolving = versusFrom.length + versusFleets.length > 0;
   const versus = coevolving ? { from: versusFrom, fleets: versusFleets, coevolution } : null;
+  out ??= configPath === undefined ? 'runs/run.json' : runBeside(configPath);
   return { from, fleets, versus, out, saveConfig, name, config, quiet };
 }
 
