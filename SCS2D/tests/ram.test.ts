@@ -3,6 +3,7 @@ import { compileBlueprint, DEFAULT_DOCTRINE, type Blueprint, type Placement } fr
 import { OrderCancelCondition } from '../sim/ships.js';
 import { makeBattle } from '../scenarios/battle.js';
 import { CORVETTE, GUNSHIP } from '../scenarios/blueprints.js';
+import { QUARRY } from './fixtures/quarry.js';
 
 /** A ram order (`Ships.pushRam`) overrides the rest of a ship's movement doctrine. */
 
@@ -67,8 +68,9 @@ describe('an unarmed rammer', () => {
     expect(design.reach).toBe(0);
     const battle = makeBattle({ seed: 4 }, (ships, world) => {
       // A target that neither rams back nor shoots, since a corvette's shells
-      // knock pieces off the rammer that touch it.
-      ships.spawn(world, { design: compileBlueprint(unarmed(0)), x: 0, y: 0, team: 0 });
+      // knock pieces off the rammer that touch it, nor runs, as an unarmed
+      // ship with engines would from a rammer.
+      ships.spawn(world, { design: QUARRY, x: 0, y: 0, team: 0 });
       ships.spawn(world, { design, x: 400, y: 0, angle: Math.PI, team: 1 });
     });
     for (let i = 0; i < 60 * 40; i++) {

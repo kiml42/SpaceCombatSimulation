@@ -79,8 +79,8 @@ an entry is either still open or it is gone.
     queue of orders, each a target and a range band to hold, or a target to ram; doctrine is a block a ship
     can be handed whole; its doctrine already sends it to escort, to land on a pad and to dock at a port for
     fuel and repairs, but only on its own judgement, never by order; `Ships.refit` remodels a ship; a pad's
-    or slipway's `craft` and `keep` say what it builds. Running away is the Flee order; under doctrine it has
-    no form yet (slice 3 below).
+    or slipway's `craft` and `keep` say what it builds. Running away is the Flee order, and doctrine's
+    `fleeArmed`, `hideRange` and `hideSize` (slice 3 below).
     Comes before mining because managing an income is giving orders; the campaign reuses all of it.
 
     Built in slices, each landing on its own:
@@ -120,7 +120,11 @@ an entry is either still open or it is gone.
        - **3a. The Flee order** — built: W arms it, Enter gives no target. Fleeing eases off at
          `FLEE_EASE`, 3 m/s², a first guess. Building it found fleet breeding dropping a merge's changes to
          groups, which left a group naming a design merged away; it is fixed.
-       - **3b. Withdrawing under doctrine** — when a ship flees or hides without being told.
+       - **3b. Withdrawing under doctrine** — built, judged at each rethink rather than every step. Building
+         it settled three things the grilling had not: a reach of a ship's own that is not a gun's, a Torch's
+         plume, counts as something to fight with; a ship withdraws only while an armed enemy is anywhere
+         about, or a Tanker in a scene with none would hide behind the ship come to fill from it; and a
+         carrier with only secondary guns, as the Beam Carrier, keeps clear while its fighters fight.
     4. **A per-order band and speed** for attack and defend, overriding doctrine's for that one order.
     5. **Orders in the skirmish**, once breeding can allow for a fleet that is being steered.
 
@@ -205,7 +209,7 @@ an entry is either still open or it is gone.
     - **Hiding** sits on the side of its cover opposite the nearest armed enemies, weighted as fleeing
       weighs them, as close as its own obstacle avoidance holds it off anything, and moving with it. A
       cover that is destroyed is hidden behind as a wreck, so hiding goes on.
-    - **Under doctrine**, judged afresh every step, so a ship mended back above its threshold returns:
+    - **Under doctrine**, judged afresh at each rethink, so a ship mended back above its threshold returns:
       - **What it fights or works with:** its guns; its claws while its doctrine wants to scavenge (below
         its threshold, with a source it has picked); its ports while there is a friend it would fuel. A
         tool counts while wanted whether or not it works, so a broken claw is a broken tool, not a missing
