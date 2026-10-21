@@ -1036,6 +1036,10 @@ export class Ships {
   private readonly docking: number[] = [];
   /** Whether each ship is taking fuel to a friend: from setting out until it has given what it can spare. */
   private readonly delivering: number[] = [];
+  /** Whether each ship's doctrine has it withdrawing, to hide or flee (`decide`). */
+  private readonly withdrawing: number[] = [];
+  /** What each withdrawing ship hides behind, or `NO_TARGET` to flee. */
+  private readonly hiding: number[] = [];
   /** Whether each fighter is rearming: from running low on metal until it is full. */
   private readonly rearming: number[] = [];
   /** Whether each ship has been docked under the errand it is on, which then ends when the dock lets go. */
@@ -1104,6 +1108,8 @@ export class Ships {
   /** Where the threats a fleeing craft weighs lie, as a weighted sum of directions to them (`threats`). */
   private threatX = 0;
   private threatY = 0;
+  /** How many things the last `armedShare` counted. */
+  private tools = 0;
   private readonly rethinkAt: number[] = [];
   /**
    * The order doctrine makes up, one per ship and rewritten in place, so that
@@ -1619,6 +1625,8 @@ export class Ships {
     this.refuelling.push(0);
     this.docking.push(0);
     this.delivering.push(0);
+    this.withdrawing.push(0);
+    this.hiding.push(NO_TARGET);
     this.rearming.push(0);
     this.errandDocked.push(0);
     this.ownDoctrines.push(design.doctrine);
@@ -1777,6 +1785,7 @@ export class Ships {
       this.consort[i] = NO_TARGET;
       this.ramming[i] = NO_TARGET;
       this.salvaging[i] = NO_TARGET;
+      this.withdrawing[i] = 0;
       return;
     }
     if (defending !== NO_TARGET) {
@@ -1855,6 +1864,15 @@ export class Ships {
     // huddling rather than fighting.
     this.chosen[i] = fighting;
     this.consort[i] = defending;
+    if (defending === NO_TARGET && this.withdraws(bodies, i, b, fighting)) {
+      this.chosen[i] = NO_TARGET;
+      this.consort[i] = NO_TARGET;
+      this.withdrawing[i] = 1;
+      this.hiding[i] = this.coverFor(bodies, i, b);
+      return;
+    }
+    this.withdrawing[i] = 0;
+    this.hiding[i] = NO_TARGET;
     if (defending !== NO_TARGET || !(doctrine.escortWeight > 0)) return;
 
     this.choice.begin();
@@ -2281,11 +2299,66 @@ export class Ships {
   }
 
   /**
-   * The share of this ship's main mounts that can still fire, none for a ship
-   * with none; with `stores`, only those with a shot to fire.
+   * Whether this ship's doctrine would have it withdraw rather than fight
+   * `fighting`: nothing to fight or work with, though a reach of its own, a
+   * plume's or a ram's, is something; or no more of it working than
+   * `fleeArmed`. Not while it would ram what it is fighting, close enough by
+   * `ramRadii`, nor with no armed enemy anywhere to keep clear of.
+   */
+  private withdraws(bodies: Bodies, i: number, b: number, fighting: number): boolean {
+    const approach = this.doctrines[i]!.approach;
+    const share = this.armedShare(i, b, false);
+    const leaving = this.tools === 0 ? !(this.fightReach(i) > 0) : share <= approach.fleeArmed;
+    if (!leaving) return false;
+    if (fighting !== NO_TARGET && this.rams(i, fighting)) return false;
+    for (let e = 0; e < this.alive.length; e++) if (this.hostile(i, e) && this.armed(e)) return true;
+    return false;
+  }
+
+  /**
+   * Cover for withdrawing ship `i` to hide behind: what it hides behind
+   * already while that still serves, or the nearest friend or body on no
+   * side, a wreck included, within `hideRange` of its radii, at least
+   * `hideSize` of its radius, and no armed enemy's reach on it. `NO_TARGET`
+   * for none, to flee instead.
+   */
+  private coverFor(bodies: Bodies, i: number, b: number): number {
+    const approach = this.doctrines[i]!.approach;
+    const mine = this.designs[i]!.radius;
+    const range = approach.hideRange * mine;
+    if (!(range > 0)) return NO_TARGET;
+    const serves = (t: number): number => {
+      if (t === i || this.alive[t] !== 1 || (this.derelict[t] === 0 && this.hostile(i, t))) return -1;
+      const tb = bodies.indexOf(this.bodyIds[t]!);
+      if (tb < 0 || tb === b || bodies.ghost[tb] === 1 || bodies.radius[tb]! < approach.hideSize * mine) return -1;
+      const d = length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!);
+      if (d > range || this.dangerNear(bodies, i, tb) > 0) return -1;
+      return d;
+    };
+    const held = this.hiding[i]!;
+    if (held !== NO_TARGET && serves(held) >= 0) return held;
+    let best = NO_TARGET;
+    let nearest = Infinity;
+    for (let t = 0; t < this.alive.length; t++) {
+      const d = serves(t);
+      if (d >= 0 && d < nearest) {
+        nearest = d;
+        best = t;
+      }
+    }
+    return best;
+  }
+
+  /**
+   * The share of what this ship fights or works with that still works, none
+   * for a ship with nothing: its main mounts, with `stores` only those with a
+   * shot to fire; its claws while doctrine has it out scavenging, and its
+   * ports while delivering, wanted whether or not they work. How many there
+   * are is left in `tools`.
    */
   private armedShare(i: number, b: number, stores: boolean): number {
-    const turrets = this.designs[i]!.turrets;
+    const design = this.designs[i]!;
+    const turrets = design.turrets;
     let mounts = 0;
     let working = 0;
     for (let t = 0; t < turrets.length; t++) {
@@ -2293,6 +2366,16 @@ export class Ships {
       mounts++;
       if (stores ? this.canFire(i, b, t) : !this.isTurretDisabled(i, t)) working++;
     }
+    const trip = this.orders[i]!.length === 0 && this.salvaging[i] !== NO_TARGET;
+    const wanted = !trip ? '' : this.delivering[i] === 1 ? 'port' : this.landingPad[i]! < 0 && this.dockPort[i]! < 0 ? 'claw' : '';
+    if (wanted !== '') {
+      for (let m = 0; m < design.modules.length; m++) {
+        if (design.modules[m]!.spec.kind !== wanted || !this.ownsAt(i, b, m)) continue;
+        mounts++;
+        if (this.left(i, b, m, DamageEffect.Grip) > 0) working++;
+      }
+    }
+    this.tools = mounts;
     return mounts === 0 ? 0 : working / mounts;
   }
 
@@ -2484,6 +2567,10 @@ export class Ships {
       const kind = this.delivering[i] === 1 ? 'deliver' : this.landingPad[i]! >= 0 || this.dockPort[i]! >= 0 ? 'dock' : 'scavenge';
       return { kind, target: source };
     }
+    if (given === undefined && this.withdrawing[i] === 1) {
+      const cover = this.hiding[i]!;
+      return cover !== NO_TARGET && this.alive[cover] === 1 ? { kind: 'hide', target: cover } : null;
+    }
     const target = this.focusOf(i);
     if (target === NO_TARGET || this.alive[target] !== 1) return null;
     if (given?.ram === true || (given === undefined && this.ramming[i] === target)) return { kind: 'ram', target };
@@ -2656,6 +2743,11 @@ export class Ships {
   /** What ship `i`'s pads and slipways have been told to keep, by `slotKey`. */
   keepsOf(i: number): Readonly<Record<string, number>> | undefined {
     return this.keeps[i];
+  }
+
+  /** Whether this ship's doctrine has it withdrawing, to hide or flee, rather than fighting. */
+  isWithdrawing(i: number): boolean {
+    return this.withdrawing[i] === 1 && this.orders[i]!.length === 0 && this.salvaging[i] === NO_TARGET;
   }
 
   /** The errand this ship is ordered on, if its current order is one. */
@@ -2833,12 +2925,28 @@ export class Ships {
       standing.grapple = this.landingPad[i]! < 0 && this.dockPort[i]! < 0;
       standing.land = this.landingPad[i]! >= 0;
       standing.dock = this.dockPort[i]! >= 0;
+      standing.flee = false;
+      standing.hide = false;
       standing.approachSpeed = approach.approachSpeed;
       return standing;
     }
     standing.grapple = false;
     standing.land = false;
     standing.dock = false;
+    standing.flee = false;
+    standing.hide = false;
+
+    if (this.withdrawing[i] === 1) {
+      const cover = this.hiding[i]!;
+      standing.target = cover !== NO_TARGET && this.alive[cover] === 1 ? cover : NO_TARGET;
+      standing.flee = true;
+      standing.hide = standing.target !== NO_TARGET;
+      standing.minRange = 0;
+      standing.maxRange = 0;
+      standing.ram = false;
+      standing.approachSpeed = approach.approachSpeed;
+      return standing;
+    }
 
     const target = this.chosen[i]!;
     if (target === NO_TARGET || this.alive[target] !== 1 || !this.hasControl(target)) {

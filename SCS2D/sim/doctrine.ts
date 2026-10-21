@@ -394,6 +394,17 @@ export interface Approach {
   /** How much more an enemy with a gun aimed at it counts, in fleeing or hiding, than one without. */
   readonly aimedWeight: number;
   /**
+   * The share of what it fights or works with still working at or below
+   * which it withdraws, to hide or flee: its main guns, its claws while out
+   * scavenging and its ports while delivering. Below zero never; with nothing
+   * to fight or work with at all it withdraws whatever this says.
+   */
+  readonly fleeArmed: number;
+  /** How far off cover can be for a withdrawing ship to hide behind it, in its own radii. Zero never hides. */
+  readonly hideRange: number;
+  /** How big cover must be to hide behind, as a multiple of its own radius. */
+  readonly hideSize: number;
+  /**
    * The share of a full load of metal at or below which a fighter breaks off to
    * land on a friend's pad and rearm. Zero waits until it cannot load another
    * round; below zero never does. This, `refuelBelow` or `rechargeBelow`
@@ -506,6 +517,9 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     sortieRange: 4,
     fleeMargin: 1.5,
     aimedWeight: 2,
+    fleeArmed: -1,
+    hideRange: 20,
+    hideSize: 1.5,
     tangentialMin: 0,
     tangentialMax: 0,
     rearmBelow: 0,
@@ -709,6 +723,9 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
   'sortieRange',
   'fleeMargin',
   'aimedWeight',
+  'fleeArmed',
+  'hideRange',
+  'hideSize',
   'rearmBelow',
   'repairBelow',
   'tangentialMin',
@@ -723,6 +740,8 @@ export const NON_NEGATIVE_FIELDS: readonly string[] = [
   'ramMass',
   'sortieRange',
   'aimedWeight',
+  'hideRange',
+  'hideSize',
 ];
 
 /** Pairs of approach fields that are the two ends of one band, the first no more than the second. */
