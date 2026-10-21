@@ -1015,19 +1015,20 @@
         {
           "id": 1,
           "kind": "core",
-          "x": 7,
+          "x": 10,
           "y": 0,
-          "length": 18,
+          "length": 24,
           "width": 48,
           "reinforcement": 6,
-          "thick": true
+          "thick": true,
+          "computing": 0.3
         },
         {
           "id": 2,
           "kind": "tank",
-          "x": 174.5,
+          "x": 182,
           "y": -0.000001715,
-          "length": 205,
+          "length": 170,
           "width": 60.003955601,
           "reinforcement": 3
         },
@@ -1076,14 +1077,21 @@
           "nozzle": 1.3333
         },
         {
-          "id": 8,
-          "kind": "structure",
-          "x": 19,
+          "id": 29,
+          "kind": "core",
+          "x": 272,
+          "y": -0.0024999999999995026,
+          "length": 10,
+          "width": 60.005,
+          "computing": 0.25
+        },
+        {
+          "id": 30,
+          "kind": "robotBay",
+          "x": 84.5,
           "y": 0,
-          "length": 6,
-          "width": 48,
-          "reinforcement": 10,
-          "thick": true
+          "length": 25,
+          "width": 60
         }
       ]
     }

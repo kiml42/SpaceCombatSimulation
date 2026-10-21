@@ -48,9 +48,9 @@
         {
           "id": 11,
           "kind": "structure",
-          "x": -156.5,
+          "x": -133,
           "y": 240,
-          "length": 811,
+          "length": 764,
           "width": 60
         },
         {
@@ -471,6 +471,14 @@
           "y": 274,
           "length": 17,
           "width": 8
+        },
+        {
+          "id": 78,
+          "kind": "robotBay",
+          "x": -538.5,
+          "y": 240,
+          "length": 47,
+          "width": 60
         }
       ]
     },
@@ -705,12 +713,13 @@
     {
       "id": 2,
       "kind": "core",
-      "x": -330,
+      "x": -260,
       "y": 0,
-      "length": 40,
+      "length": 260,
       "width": 60,
       "reinforcement": 15,
       "thick": true,
+      "computing": 0.2,
       "notes": "The bridge, aft above the engines, where a Star Destroyer's is — and where every shot at it has to cross the length of the ship first."
     },
     {
@@ -729,18 +738,18 @@
     {
       "id": 5,
       "kind": "generator",
-      "x": -440,
+      "x": -460,
       "y": 0,
-      "length": 180,
+      "length": 140,
       "width": 60,
       "thick": true
     },
     {
       "id": 6,
       "kind": "tank",
-      "x": 96,
+      "x": 167.5,
       "y": 0,
-      "length": 812,
+      "length": 595,
       "width": 60,
       "thick": true
     },
@@ -749,6 +758,16 @@
       "use": "structure",
       "x": 17,
       "y": 0
+    },
+    {
+      "id": 77,
+      "kind": "core",
+      "x": 483.5,
+      "y": 0,
+      "length": 37,
+      "width": 60,
+      "thick": true,
+      "computing": 0.4
     }
   ]
 }
