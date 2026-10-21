@@ -118,7 +118,8 @@ inside any one file is not contiguous.
   each drawn copy of a shared part has a key of its own. **The editor shows a refit**: once the design
   differs from what it was when opened, it tints green what a ship built to it as opened would have built
   if refitted to it, draws dashed where they stood what it would take down, and says how many of each, and
-  whether the core it is flown from would go (`refitPlan`, matched as `Ships.refit` matches). A panel in the
+  whether it could be refitted at all, or never finished for want of a robot bay (`refitPlan`, matched as
+  `Ships.refit` matches). A panel in the
   view's bottom left says what the view draws over the ship: the refit, shown or hidden, and which firing
   arcs, cycled as A cycles them.
   **Doctrine is edited there too, and is meant to be ignorable**: a section that stays shut, on a weapon for
@@ -843,8 +844,13 @@ inside any one file is not contiguous.
   where anything of the hull is in the way: that comes down first, and a wall waits while anything is. A
   module coming down first pours what it holds — fuel, metal and charge — into the rest of the stores on its
   piece of hull, as far as they have room (`Store.spill`), and what its robots bring home that the holds
-  have no room for is thrown away. A refit that
-  would take down the core the ship is flown from is refused. The `refitting` scenario has a Rebuilder
+  have no room for is thrown away. A refit may move or replace its cores and robot bays: they and its
+  generators go up first and come down last, only once nothing else of the old hull is left to take down,
+  and never the last core or bay, so it is flown and worked on throughout; a core goes only once another is
+  fitted out and working, and a bay once another is and has robots of its own, its own robots home first
+  and taken apart for their metal. One to a design with no robot bay never finishes, keeping its last old
+  bay, and the order bar warns of it. One that keeps nothing of the ship to build against is refused. The
+  `refitting` scenario has a Rebuilder
   refitted as it sets out to the same ship with its fin a tank, its engine gone and a new fin the other
   side, done in five minutes.
   **Every module has a complexity** (`complexityOf`), work over and above its mass that making or mending it

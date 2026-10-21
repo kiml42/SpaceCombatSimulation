@@ -725,7 +725,11 @@ export function startEditor(): void {
       el<HTMLElement>('refit').innerHTML =
         `<p>A ship built as it was opened, refitted to this: ${refit.built.length} built (green), ` +
         `${refit.takenDown.length} taken down (dashed).</p>` +
-        (refit.coreKept ? '' : '<p class="warn">It would lose the core it is flown from, so could not be refitted.</p>');
+        (refit.refused !== null
+          ? `<p class="warn">It could not be refitted: ${escapeHtml(refit.refused)}.</p>`
+          : refit.bay
+            ? ''
+            : '<p class="warn">It has no robot bay, so a refit to it could never be finished.</p>');
     }
   };
 
