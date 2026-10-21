@@ -1039,11 +1039,12 @@ inside any one file is not contiguous.
   lost modules rebuilt by robots and by pads, and robots taking wreckage apart into metal, with doctrine that
   sends a fighter in to be mended and a ship out to wrecks for their metal, flown by the stock Salvager.
   In-battle construction (§8 step 12) and harvesting wrecks (step 13) are built on it. What comes next is
-  orders (step 14): telling ships what to do mid-battle, from the paused battle. Its first slices are built:
-  rewinding the viewer's battle from checkpoints, and attack, defend and ram given to picked-out ships by
-  right-click or an order bar, logged so a rewind or a link replays them (ROADMAP.md step 14). Its next
-  slice is designed: docking, scavenging and delivering as orders, and doctrine, build counts and remodelling
-  as settings beside them.
+  orders (step 14): telling ships what to do mid-battle, from the paused battle. Its first three slices are
+  built: rewinding the viewer's battle from checkpoints; attack, defend and ram given to picked-out ships by
+  right-click or an order bar, logged so a rewind or a link replays them; and docking, scavenging and
+  delivering as orders, with doctrine, build counts and remodelling as settings beside them, from a doctrine
+  panel and a design picker. Its next slice, running away, is outlined and waits to be grilled before it is
+  built (ROADMAP.md step 14).
   Alongside it, §8 step 5's skirmish: an endless loop against an enemy fleet that evolves to beat the
   player's, planned in ROADMAP.md §8. Evolution keeps the skirmish's sense of quiet, though it plays a match on until every side is quiet before naming a winner. Its loop is built without the evolving enemy (`dist/skirmish.html`,
   `scenarios/skirmish.ts`): pick a stock enemy, whose bill is the budget unless the player sets their own, under a limit on ships and spread (20 and 500 m unless set, or what the enemy fields if more), each round's gap and starting speeds drawn from optional ± spreads on its seed; fight a fixed round, decided by
@@ -1108,7 +1109,7 @@ inside any one file is not contiguous.
   and hits scored are identical too. Measured by `scenarios/ordering.ts`, which
   flies three gunships of one geometry both stacked in one battle and one to a
   battle each.
-- **Last updated:** 2026-10-12
+- **Last updated:** 2026-10-21
 
 ---
 
@@ -1894,7 +1895,7 @@ Seven things, and deliberately nothing more:
    Without it you'll be afraid to touch the physics, which is where the interesting work is.
 2. **This document, kept current**, with the Status section at the top actually updated.
 3. **CI running tests on push**, so the repo reports its own state without an environment setup.
-   `.github/workflows/ci.yml` runs the suite on **Linux across Node 20, 22 and 24, plus Windows and macOS on
+   `.github/workflows/ci.yml` runs the suite on **Linux across Node 22, 24 and 26, plus Windows and macOS on
    Node 24**.
    The Node axis is not redundancy: the golden tests pin exact checksums, so passing them on three V8 versions is
    what actually verifies the hand-written transcendentals are doing their job. A row that passes on one Node and
