@@ -387,6 +387,13 @@ export interface Approach {
    */
   readonly sortieRange: number;
   /**
+   * How far out of an armed enemy's reach a fleeing ship counts itself clear,
+   * as a multiple of that reach: inside it runs, beyond it eases off.
+   */
+  readonly fleeMargin: number;
+  /** How much more an enemy with a gun aimed at it counts, in fleeing or hiding, than one without. */
+  readonly aimedWeight: number;
+  /**
    * The share of a full load of metal at or below which a fighter breaks off to
    * land on a friend's pad and rearm. Zero waits until it cannot load another
    * round; below zero never does. This, `refuelBelow` or `rechargeBelow`
@@ -497,6 +504,8 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     deliverFuelAbove: 0,
     dockDanger: 0,
     sortieRange: 4,
+    fleeMargin: 1.5,
+    aimedWeight: 2,
     tangentialMin: 0,
     tangentialMax: 0,
     rearmBelow: 0,
@@ -698,6 +707,8 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
   'deliverFuelAbove',
   'dockDanger',
   'sortieRange',
+  'fleeMargin',
+  'aimedWeight',
   'rearmBelow',
   'repairBelow',
   'tangentialMin',
@@ -705,14 +716,21 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
 ];
 
 /** Fields that mean nothing below zero, though zero itself is a setting. */
-export const NON_NEGATIVE_FIELDS: readonly string[] = ['tangentialMin', 'tangentialMax', 'fuelPerMetal', 'ramMass', 'sortieRange'];
+export const NON_NEGATIVE_FIELDS: readonly string[] = [
+  'tangentialMin',
+  'tangentialMax',
+  'fuelPerMetal',
+  'ramMass',
+  'sortieRange',
+  'aimedWeight',
+];
 
 /** Pairs of approach fields that are the two ends of one band, the first no more than the second. */
 export const ORDERED_FIELDS: readonly (readonly [keyof Approach, keyof Approach])[] = [['tangentialMin', 'tangentialMax']];
 
 /**
  * The fields that mean nothing at or below zero: a size, a range, three
- * distances, two times, a speed and two shares of thrust.
+ * distances, two times, a speed, two shares of thrust and a margin.
  *
  * Stated once and read by everything that writes a doctrine rather than being
  * repeated wherever one is made up — the parser that refuses a bad file and
@@ -730,6 +748,7 @@ export const POSITIVE_FIELDS: readonly string[] = [
   'responseTime',
   'accelerate',
   'brake',
+  'fleeMargin',
 ];
 
 /** Every number in a doctrine, named by its path, in a fixed order. */
