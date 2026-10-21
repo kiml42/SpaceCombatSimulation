@@ -90,7 +90,7 @@ Keep these working — they are the cold-start re-entry path:
   `--population`, `--group`, `--matches`, `--budget`, `--duration`, `--radius`, `--closing`, `--crossing` (each with a `-spread` either side, drawn per match), `--quiet-limit` (seconds every side must go without fighting or closing in before a match ends; 30 unless set), `--seed`, `--kinds`, `--doctrine`, `--build`, `--structural`, `--geometry`, `--thrusters`,
   `--versus <stock ships or blueprint files>` and `--versus-fleet` for co-evolution, with `--hall`, `--phase-win`,
   `--phase-cap`, `--shielded-drills`, `--bare-core-drills`, `--versus-group` (side B's entrants a match, where not `--group`) and `--versus-fixed` (side B does not evolve),
-  `--out` (beside the `--config` file if there is one, `x.evo.json` → `x.run.json`, else `runs/run.json`), and `--config` / `--save-config` for the settings file the evolution page reads and writes
+  `--out` (beside the `--config` file if there is one, `x.evo.json` → `x.run.json`, else `runs/run.json`), and `--config` / `--save-config` for the settings file the evolution page reads and writes, which carries its founders whole
 - `npm run yardstick` — measure a finished run against a ship that does not evolve; `--run`, and
   `--against latest | founder | <stock ship> | <blueprint or fleet file>`; a co-evolution run is measured as
   a grid of each side's round champions against the other's, `--samples` a side and `--seeds` matches a cell

@@ -1,5 +1,5 @@
 import { BATTLE_KEYS, keyHelp } from './keyHelp.js';
-import { capture, serialiseFleet, Snapshot, type Fleet } from '../sim/index.js';
+import { capture, serialiseBlueprint, serialiseFleet, Snapshot, type Blueprint, type Fleet } from '../sim/index.js';
 import { Flashes } from '../render/flashes.js';
 import {
   ARCS_KEY,
@@ -22,7 +22,7 @@ import type { Inset } from '../render/inset.js';
 import { shipColours } from '../render/teams.js';
 import { drawChart, indexAt, xOf, type ChartLayout, type Series } from '../render/chart.js';
 import { easeScale, fitScale, frame, moveWithVisibleShips, selectionBounds, shipAt, type Camera } from '../render/camera.js';
-import { BUILT_IN, FLEET_FILES, Library, toFileText } from '../editor/library.js';
+import { BUILT_IN, FLEET_FILES, Library, nextName, toFileText } from '../editor/library.js';
 import { drawCentred, formationSnapshot, kindSnapshot, pictureOf as pictureOfFleet, type Picture, type ShipKind } from './fleetPicture.js';
 import { fitness, type Generation } from '../evolution/generation.js';
 import { DEFAULT_MATCH, isFleet, Match, type Entrant, type MatchConfig } from '../evolution/match.js';
@@ -906,6 +906,20 @@ export function startEvolution(): void {
   benchmarkSelect.append(new Option('its own final design', OWN_FINAL));
   fillList(benchmarkSelect, (_, name) => name);
 
+  /** The lists again, from the library as it now is, keeping what was chosen. */
+  const refillLists = (): void => {
+    for (const [select, label] of [
+      [foundersSelect, (stock: boolean, name: string) => (stock ? name : `${name} (saved)`)],
+      [versusSelect, (stock: boolean, name: string) => (stock ? name : `${name} (saved)`)],
+      [benchmarkSelect, (_: boolean, name: string) => name],
+    ] as const) {
+      const chosen = new Set([...select.selectedOptions].map((option) => option.value));
+      for (const group of [...select.querySelectorAll('optgroup')]) group.remove();
+      fillList(select, label);
+      for (const option of select.options) option.selected = chosen.has(option.value);
+    }
+  };
+
   /** Whether a fleet is among the founders, which makes it a run of fleets. */
   const fleetRun = (): boolean =>
     [...foundersSelect.selectedOptions, ...versusSelect.selectedOptions].some((o) => pickOf(o.value).kind === 'fleet') ||
@@ -1002,33 +1016,21 @@ export function startEvolution(): void {
 
   /** Everything the form says, as a run's settings. */
   const readSetup = (): RunSetup => {
-    const picked = [...foundersSelect.selectedOptions].map((option) => pickOf(option.value));
     const name = inputs.configName.value.trim();
     return {
       ...(name === '' ? {} : { name }),
-      founders: picked.filter((p) => p.kind === 'ship').map((p) => p.name),
-      fleets: picked.filter((p) => p.kind === 'fleet').map((p) => p.name),
-      versus: coRun() ? { ...versusNames(), coevolution: coevolutionSettings() } : null,
+      ...designsOf(chosenFounders()),
+      versus: coRun() ? { ...designsOf(chosenVersus()), coevolution: coevolutionSettings() } : null,
       config: { ...DEFAULT_RUN, ...configure() },
     };
   };
 
-  /** Side B's founders, by name, as a config file holds them. */
-  const versusNames = (): { founders: string[]; fleets: string[] } => {
-    const picked = [...versusSelect.selectedOptions].map((option) => pickOf(option.value));
-    return {
-      founders: picked.filter((p) => p.kind === 'ship').map((p) => p.name),
-      fleets: picked.filter((p) => p.kind === 'fleet').map((p) => p.name),
-    };
-  };
+  /** One side's founders, split as a config file holds them. */
+  const designsOf = (entrants: readonly Entrant[]): { founders: Blueprint[]; fleets: Fleet[] } => ({
+    founders: entrants.filter((entrant): entrant is Blueprint => !isFleet(entrant)),
+    fleets: entrants.filter(isFleet),
+  });
 
-  /**
-   * Put a setup into the form.
-   *
-   * A ship the library does not have is dropped rather than refused: a config
-   * is worth reading for its numbers even when it names somebody else's ship,
-   * and what is missing is visible in the founders list.
-   */
   /** Put one side's own settings into its inputs: side A's, or with `get` side B's. */
   const writeSide = (get: (name: SideField) => HTMLInputElement, config: RunConfig): void => {
     const kinds: KindWeights = { ...DEFAULT_KINDS, ...config.mutation.kinds };
@@ -1086,8 +1088,46 @@ export function startEvolution(): void {
     get('doctrineGunnery').value = String(doctrine.gunnery);
   };
 
-  const applySetup = (setup: RunSetup): void => {
+  /**
+   * A founder from a settings file, as the library holds it: the copy under its
+   * name if that is the same design, else saved, under the next free name if
+   * its own holds a different one. Its option's value; a renaming is said in
+   * `renamed`.
+   */
+  const adopt = (entrant: Entrant, renamed: string[]): string => {
+    const fleet = isFleet(entrant);
+    const shelf: Library<Blueprint> | Library<Fleet> = fleet ? fleetLibrary : library;
+    const text = (e: Entrant): string => JSON.stringify(isFleet(e) ? serialiseFleet(e) : serialiseBlueprint(e));
+    let name = entrant.name;
+    for (;;) {
+      let kept: Entrant | null | undefined;
+      try {
+        kept = shelf.load(name);
+      } catch {
+        // Unreadable: taken, and not to be saved over.
+        kept = undefined;
+      }
+      const named = { ...entrant, name };
+      if (kept === null) {
+        if (isFleet(named)) fleetLibrary.save(named);
+        else library.save(named);
+        break;
+      }
+      if (kept !== undefined && text(kept) === text(named)) break;
+      name = nextName(name);
+    }
+    if (name !== entrant.name) renamed.push(`"${entrant.name}" as "${name}"`);
+    return valueOf(fleet ? 'fleet' : 'ship', name);
+  };
+
+  /** Put a setup into the form, its founders into the library. What was saved under another name. */
+  const applySetup = (setup: RunSetup): string[] => {
     const config = setup.config;
+    const renamed: string[] = [];
+    const founders = [...setup.founders, ...(setup.fleets ?? [])].map((entrant) => adopt(entrant, renamed));
+    const versus = setup.versus ?? null;
+    const rivals = new Set([...(versus?.founders ?? []), ...(versus?.fleets ?? [])].map((entrant) => adopt(entrant, renamed)));
+    refillLists();
     const match: MatchConfig = { ...DEFAULT_MATCH, ...config.match };
     inputs.configName.value = setup.name ?? '';
     inputs.seed.value = String(config.seed);
@@ -1109,12 +1149,10 @@ export function startEvolution(): void {
     inputs.raceWeight.value = String(match.weights.race);
     writeSide((name) => inputs[name], config);
     goalInput.value = match.goal === null ? 'none' : match.goal.solid === false ? 'ghost' : 'solid';
-    const fleets = setup.fleets ?? [];
-    if (setup.founders.length + fleets.length > 0) {
-      const named = new Set([...setup.founders.map((name) => valueOf('ship', name)), ...fleets.map((name) => valueOf('fleet', name))]);
+    if (founders.length > 0) {
+      const named = new Set(founders);
       for (const option of foundersSelect.options) option.selected = named.has(option.value);
     }
-    const versus = setup.versus ?? null;
     const coevolution = versus?.coevolution ?? DEFAULT_COEVOLUTION;
     // Side B's column in full: side A's settings, with whatever the file set apart for it.
     rivalOwn = Object.keys(coevolution.rival).length > 0;
@@ -1125,14 +1163,11 @@ export function startEvolution(): void {
     inputs.phaseCap.value = String(coevolution.phaseCap);
     inputs.shieldedDrills.value = String(coevolution.shieldedDrills);
     inputs.bareCoreDrills.value = String(coevolution.bareCoreDrills);
-    const rivals = new Set([
-      ...(versus?.founders ?? []).map((name) => valueOf('ship', name)),
-      ...(versus?.fleets ?? []).map((name) => valueOf('fleet', name)),
-    ]);
     // Side B as the file has it, which for a run of one is nobody.
     for (const option of versusSelect.options) option.selected = rivals.has(option.value);
     showFleetSettings();
     saveSetup();
+    return renamed;
   };
 
   el<HTMLButtonElement>('exportConfig').addEventListener('click', () => {
@@ -1147,9 +1182,10 @@ export function startEvolution(): void {
     if (chosen === undefined) return;
     void chosen.text().then((text) => {
       let warnings: string[];
+      let renamed: string[];
       try {
         const value: unknown = JSON.parse(text);
-        applySetup(parseRunConfig(value));
+        renamed = applySetup(parseRunConfig(value));
         warnings = runConfigWarnings(value);
       } catch (error) {
         window.alert(`Could not read those settings.\n\n${error instanceof Error ? error.message : error}`);
@@ -1158,7 +1194,11 @@ export function startEvolution(): void {
       // Read anyway: a key nothing reads is said, not refused.
       readout.className = warnings.length > 0 ? 'warn' : '';
       notice =
-        'Settings read from a file. Press Start when you are ready.' + (warnings.length > 0 ? ` Not read: ${warnings.join('; ')}.` : '');
+        'Settings read from a file. Press Start when you are ready.' +
+        (renamed.length > 0
+          ? ` Founders that differ from the ones of the same name here are kept under other names: ${renamed.join(', ')}.`
+          : '') +
+        (warnings.length > 0 ? ` Not read: ${warnings.join('; ')}.` : '');
       readout.textContent = notice;
     });
     // Cleared so that choosing the same file twice is two imports rather

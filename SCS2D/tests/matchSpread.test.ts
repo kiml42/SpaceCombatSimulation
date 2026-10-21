@@ -49,7 +49,7 @@ describe('a spread on the arena and the starting speeds', () => {
   });
 
   it('is kept by the config file, and left out of it where unset', () => {
-    const setup = parseRunConfig({ founders: ['Dinky'], match: { radiusSpread: 150, closingSpread: 5 } });
+    const setup = parseRunConfig({ match: { radiusSpread: 150, closingSpread: 5 } });
     expect(setup.config.match.radiusSpread).toBe(150);
     expect(setup.config.match.crossingSpread).toBe(0);
     const file = serialiseRunConfig(setup) as { match: Record<string, unknown> };

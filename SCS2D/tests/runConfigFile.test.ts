@@ -10,6 +10,9 @@ import { DEFAULT_KINDS } from '../evolution/mutate.js';
 import { DEFAULT_RUN } from '../evolution/run.js';
 import { DEFAULT_MATCH } from '../evolution/match.js';
 import { NO_BUDGET } from '../sim/bill.js';
+import { serialiseBlueprint, serialiseFleet } from '../sim/index.js';
+import { CORVETTE, DINKY } from '../scenarios/blueprints.js';
+import { LINE_OF_BATTLE } from '../scenarios/fleets.js';
 
 /**
  * Settings, written down and read back.
@@ -24,7 +27,7 @@ import { NO_BUDGET } from '../sim/bill.js';
 
 const SETUP = {
   name: 'Star Wars tuning',
-  founders: ['Corvette', 'Dinky'],
+  founders: [CORVETTE, DINKY],
   config: {
     ...DEFAULT_RUN,
     seed: 42,
@@ -50,7 +53,7 @@ describe('the run config file', () => {
   it('round-trips a setup without changing it', () => {
     const back = parseRunConfig(serialiseRunConfig(SETUP));
     expect(back.name).toEqual('Star Wars tuning');
-    expect(back.founders).toEqual(SETUP.founders);
+    expect(back.founders.map(serialiseBlueprint)).toEqual(SETUP.founders.map(serialiseBlueprint));
     expect(back.config.mutation.structural).toEqual(0);
     expect(back.config.mutation.build).toEqual({ move: 0, resize: 0, refit: 0, fittings: 0, tuning: 2, fighter: 0.5, shape: 1 });
     expect(back.config.seed).toEqual(42);
@@ -117,7 +120,10 @@ describe('the run config file', () => {
       [{ massBudget: -1 }, /more than nothing/],
       [{ budget: { build: 0 } }, /budget.build must be more than nothing/],
       [{ budget: 5 }, /budget must be an object/],
-      [{ founders: 'Corvette' }, /list of ship names/],
+      [{ founders: 'Corvette' }, /list of blueprints/],
+      [{ founders: ['Corvette'] }, /founders\[0\]/],
+      [{ founders: [{ name: 'Holey', modules: 'none' }] }, /founders\[0\] \(Holey\)/],
+      [{ fleets: [{ name: 'Empty' }] }, /fleets\[0\] \(Empty\)/],
       [{ kinds: { engine: -1 } }, /zero or more/],
       [{ build: { move: -1 } }, /build.move must be zero or more/],
       [{ doctrine: { escort: 'x' } }, /doctrine.escort/],
@@ -144,6 +150,7 @@ describe('the run config file', () => {
       [{ build: { scale: 1 } }, /build has a key[^\n]*scale/],
       [{ match: { durations: 10 } }, /match has a key[^\n]*durations/],
       [{ fleet: { operators: { split: 1 } } }, /fleet\.operators has a key[^\n]*split/],
+      [{ founders: [{ ...serialiseBlueprint(DINKY), paint: 'red' }] }, /founders\[0\] \(Dinky\)[^\n]*paint/],
     ];
     for (const [value, expected] of cases) {
       expect(runConfigFileProblem(value), JSON.stringify(value)).toBeNull();
@@ -151,6 +158,13 @@ describe('the run config file', () => {
       expect(() => parseRunConfig(value)).not.toThrow();
     }
     expect(runConfigWarnings(serialiseRunConfig(SETUP))).toEqual([]);
+  });
+
+  it('carries its founders whole, so it needs no library to be run from', () => {
+    const file = JSON.parse(JSON.stringify(serialiseRunConfig({ ...SETUP, fleets: [LINE_OF_BATTLE] })));
+    expect(file.founders).toEqual([serialiseBlueprint(CORVETTE), serialiseBlueprint(DINKY)]);
+    expect(file.fleets).toEqual([serialiseFleet(LINE_OF_BATTLE)]);
+    expect(parseRunConfig(file).fleets!.map(serialiseFleet)).toEqual([serialiseFleet(LINE_OF_BATTLE)]);
   });
 
   it('accepts what it writes, including the version it stamps', () => {

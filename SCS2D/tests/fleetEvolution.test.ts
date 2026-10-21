@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { compileBlueprint, fleetBill, fleetHulls, fleetMass, fleetReach, NO_BUDGET, Rng, shipFleet, type Fleet } from '../sim/index.js';
+import {
+  compileBlueprint,
+  fleetBill,
+  fleetHulls,
+  fleetMass,
+  fleetReach,
+  NO_BUDGET,
+  Rng,
+  serialiseFleet,
+  shipFleet,
+  type Fleet,
+} from '../sim/index.js';
 import { isFleet, Match, runMatch } from '../evolution/match.js';
 import { DEFAULT_FLEET_LIMITS, fleetFits, mutateFleet, type FleetMutationLimits, type FleetOperator } from '../evolution/fleetMutate.js';
 import { entrantOf, generationSize, runEvolution, shipCount } from '../evolution/run.js';
@@ -407,15 +418,15 @@ describe('a run of fleets', () => {
 describe('a run-config file with fleets', () => {
   it('round-trips the fleets and their limits', () => {
     const setup = {
-      founders: ['Corvette'],
-      fleets: ['Line of Battle'],
+      founders: [CORVETTE],
+      fleets: [LINE_OF_BATTLE],
       config: {
         ...DEFAULT_RUN,
         fleet: { radius: 300, maxShips: 8, design: 0.8, move: 1.5, change: 0.2, operators: { ...DEFAULT_FLEET_LIMITS.operators, add: 3 } },
       },
     };
     const read = parseRunConfig(JSON.parse(JSON.stringify(serialiseRunConfig(setup))));
-    expect(read.fleets).toEqual(['Line of Battle']);
+    expect(read.fleets!.map(serialiseFleet)).toEqual([serialiseFleet(LINE_OF_BATTLE)]);
     expect(read.config.fleet).toEqual(setup.config.fleet);
   });
 
@@ -426,7 +437,7 @@ describe('a run-config file with fleets', () => {
   });
 
   it('writes the fleet limits for a run of ships, which may grow into fleets', () => {
-    const file = serialiseRunConfig({ founders: ['Corvette'], config: DEFAULT_RUN });
+    const file = serialiseRunConfig({ founders: [CORVETTE], config: DEFAULT_RUN });
     expect(file['fleets']).toBeUndefined();
     expect(file['fleet']).toMatchObject({ maxShips: DEFAULT_FLEET_LIMITS.maxShips });
   });
