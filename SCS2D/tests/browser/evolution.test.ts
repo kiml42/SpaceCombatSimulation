@@ -207,6 +207,11 @@ describe('the evolution page in a browser', () => {
     await page.selectOption('#sizeMetric', 'spread');
     expect(await page.textContent('#massLegend')).toMatch(/middle half.*best to worst.*tied/);
     expect(await distinctColours(page, 'massChart')).toBeGreaterThan(2);
+    // Or how a doctrine number moved, each option labelled with how far its mean went over the run.
+    await page.selectOption('#sizeMetric', 'doctrine:approach.standoff');
+    expect(await page.textContent('#massLegend')).toMatch(/mean approach\.standoff.*best's approach\.standoff/);
+    expect(await distinctColours(page, 'massChart')).toBeGreaterThan(2);
+    expect(await page.textContent('#sizeMetric option[value="doctrine:approach.standoff"]')).toMatch(/^approach\.standoff \([+-]/);
     await page.selectOption('#sizeMetric', 'mass');
     expect(await page.textContent('#massLegend')).toMatch(/mean mass/);
   });
