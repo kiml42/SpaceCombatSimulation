@@ -1606,8 +1606,33 @@ function detachedGroups(modules: readonly ModuleSpec[]): number[][] {
 
   const anchor = live.find((index) => modules[index]!.kind === 'core');
   if (anchor === undefined) return [];
+  // Each weld box, and the bounds of it grown by the tolerance, worked out
+  // once: two whose grown bounds are apart cannot be touching.
   const boxes: ModuleSpec[] = [];
-  for (const index of live) boxes[index] = weldBox(modules[index]!);
+  const bounds: number[][] = [];
+  for (const index of live) {
+    const box = weldBox(modules[index]!);
+    boxes[index] = box;
+    const corners: number[] = [];
+    const count = grownOutline(box, ATTACHMENT_TOLERANCE * 0.5, corners);
+    let lx = Infinity;
+    let ly = Infinity;
+    let hx = -Infinity;
+    let hy = -Infinity;
+    for (let c = 0; c < count * 2; c += 2) {
+      lx = min(lx, corners[c]!);
+      hx = max(hx, corners[c]!);
+      ly = min(ly, corners[c + 1]!);
+      hy = max(hy, corners[c + 1]!);
+    }
+    bounds[index] = [lx, ly, hx, hy];
+  }
+  const attachedTo = (a: number, b: number): boolean => {
+    const p = bounds[a]!;
+    const q = bounds[b]!;
+    if (p[0]! > q[2]! || q[0]! > p[2]! || p[1]! > q[3]! || q[1]! > p[3]!) return false;
+    return boxesAttached(boxes[a]!, boxes[b]!);
+  };
 
   const attached = new Set<number>([anchor]);
   const frontier = [anchor];
@@ -1616,7 +1641,7 @@ function detachedGroups(modules: readonly ModuleSpec[]): number[][] {
     const at = frontier.pop()!;
     for (const other of live) {
       if (attached.has(other)) continue;
-      if (!boxesAttached(boxes[at]!, boxes[other]!)) continue;
+      if (!attachedTo(at, other)) continue;
       attached.add(other);
       frontier.push(other);
     }
@@ -1633,7 +1658,7 @@ function detachedGroups(modules: readonly ModuleSpec[]): number[][] {
     for (let k = 0; k < group.length; k++) {
       for (const other of live) {
         if (attached.has(other) || placed.has(other)) continue;
-        if (!boxesAttached(boxes[group[k]!]!, boxes[other]!)) continue;
+        if (!attachedTo(group[k]!, other)) continue;
         placed.add(other);
         group.push(other);
       }
