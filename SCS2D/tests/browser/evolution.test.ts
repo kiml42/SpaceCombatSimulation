@@ -876,7 +876,9 @@ describe('the evolution page in a browser', () => {
     await page.selectOption('#sizeMetric', 'mass');
     await page.selectOption('#mode', 'fleet');
     // The last of four rounds, A then B in turn, was side B's.
-    await page.waitForFunction(() => /round 4 · side B evolving$/.test(document.getElementById('watching')?.textContent ?? ''));
+    await page.waitForFunction(() =>
+      /generation 4 · round 4, side B evolving$/.test(document.getElementById('watching')?.textContent ?? ''),
+    );
     const sides = await page.$$eval('#fleet tbody td.who .side', (tags) => tags.map((tag) => tag.textContent?.trim()));
     expect(sides.filter((side) => side === 'A')).toHaveLength(4);
     expect(sides.filter((side) => side === 'B')).toHaveLength(6);

@@ -689,7 +689,8 @@ inside any one file is not contiguous.
   per-side setting written once as a row with A's box and B's beside it. Picking side B's founders makes a
   run co-evolve, and side B's boxes follow side A's until one of them is changed; unticking "side B evolves"
   makes side B its founders throughout, a fixed opponent to be bred against. Where both sides evolve the
-  charts go by round rather than generation, each side holding where it was through the other's round, and
+  charts go by generation of whichever side is being bred, each side holding where it was through the other's
+  round, so a long round shows as it is fought and which side is evolving is the one whose lines move; and
   the score chart goes (every score there is against a side that is improving too); against a fixed side B
   they go by generation and the score chart stays. The chart under it, in every run, can show **how far apart
   the scores are** in place of size — the middle half and best to worst on the left, how many tied on the

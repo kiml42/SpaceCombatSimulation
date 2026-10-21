@@ -265,14 +265,15 @@ const FIELDS = [
 ] as const;
 
 /**
- * One point along a run: a generation, or a round in a co-evolution run
- * whose sides take turns. Which generation of each side it shows, by index,
- * -1 for none, and the side that was bred.
+ * One point along a run: a generation of whichever side was bred. Which
+ * generation of each side it shows, by index, -1 for none, the side that was
+ * bred, and the round, in a co-evolution run whose sides take turns.
  */
 interface Point {
   readonly a: number;
   readonly b: number;
   readonly side: 0 | 1;
+  readonly round?: number;
 }
 
 /** One line of the results table, from a finished generation or a live one. */
@@ -1811,24 +1812,23 @@ export function startEvolution(): void {
 
   /** Whether the run is a co-evolution run whose sides take turns, so it goes in rounds. */
   const inRounds = (): boolean => run instanceof Coevolution && run.alternates;
-  /** What a point along the run is called: a round, or a generation. */
-  const unit = (): string => (inRounds() ? 'round' : 'generation');
 
-  /** Which side was bred at a point along the run, as "side A evolving", in a co-evolution run; else empty. */
+  /** Which side was bred at a point along the run, as "round 2, side B evolving", in a co-evolution run; else empty. */
   const evolving = (at: number): string => {
     if (!(run instanceof Coevolution)) return '';
     if (!run.alternates) return 'side A evolving';
-    // Past the closed points is the round being fought.
-    const side = timeline()[at]?.side ?? run.turn;
-    return `side ${side === 0 ? 'A' : 'B'} evolving`;
+    // Past the closed points is the generation being fought.
+    const point = timeline()[at];
+    const side = point?.side ?? run.turn;
+    return `round ${(point?.round ?? run.round) + 1}, side ${side === 0 ? 'A' : 'B'} evolving`;
   };
   /** A point's name, with the side bred in it where there are sides. */
-  const pointLabel = (at: number): string => [`${unit()} ${at + 1}`, evolving(at)].filter((part) => part !== '').join(' · ');
+  const pointLabel = (at: number): string => [`generation ${at + 1}`, evolving(at)].filter((part) => part !== '').join(' · ');
 
   /**
-   * The run's points so far, closed ones only: a generation each, or in a run
-   * whose sides take turns a round each, with the generation of each side on
-   * show at the end of it (-1 for a side with none yet) and the side bred.
+   * The run's closed generations so far, a point each: in a run whose sides
+   * take turns, both sides' in the order they were bred, each with the
+   * generation of the other side on show then (-1 for a side with none yet).
    */
   const timeline = (): Point[] => {
     if (run === null) return [];
@@ -1843,15 +1843,9 @@ export function startEvolution(): void {
       const nextA = a[ai + 1]?.round ?? Infinity;
       const nextB = b[bi + 1]?.round ?? Infinity;
       const side: 0 | 1 = nextA <= nextB ? 0 : 1;
-      const list = side === 0 ? a : b;
-      let at = side === 0 ? ai : bi;
-      const round = list[at + 1]!.round;
-      while (list[at + 1]?.round === round) at++;
-      if (side === 0) ai = at;
-      else bi = at;
-      // A round still being fought has no point yet.
-      if (!run.done && round === run.round) break;
-      points.push({ a: ai, b: bi, side });
+      if (side === 0) ai++;
+      else bi++;
+      points.push({ a: ai, b: bi, side, round: side === 0 ? nextA : nextB });
     }
     return points;
   };
@@ -2082,7 +2076,7 @@ export function startEvolution(): void {
     // dashed. In a co-evolution run each side takes its team's colours, its
     // hull colour for mass and its trim for ships.
     // A value a point, each side at the generation it shows there: in a run
-    // whose sides take turns, the one not bred in a round holds where it was.
+    // whose sides take turns, the one not being bred holds where it was.
     const along = timeline();
     const atPoints = (k: 0 | 1): (GenerationRecord | undefined)[] => {
       if (run === null) return [];
