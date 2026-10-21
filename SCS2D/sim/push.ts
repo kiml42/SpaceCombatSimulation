@@ -111,7 +111,7 @@ function pushFace(
   );
   const joined = reachable(welded, index, new Set());
 
-  for (let grew = true; grew; ) {
+  for (let grew = true; grew;) {
     grew = false;
     for (const [m, by] of [...moves]) {
       for (let j = 0; j < list.length; j++) {
