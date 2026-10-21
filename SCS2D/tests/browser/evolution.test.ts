@@ -826,7 +826,7 @@ describe('the evolution page in a browser', () => {
     const saving = page.waitForEvent('download');
     await press(page, '#exportConfig');
     const file = JSON.parse(await readFile(await (await saving).path(), 'utf8')) as Record<string, unknown>;
-    expect(file['fleets']).toEqual(['Line of Battle']);
+    expect((file['fleets'] as { name: string }[]).map((fleet) => fleet.name)).toEqual(['Line of Battle']);
     expect(file['fleet']).toMatchObject({ radius: 400, maxShips: 8, operators: { add: 3 } });
 
     await page.click('#start');
