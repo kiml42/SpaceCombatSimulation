@@ -1412,27 +1412,34 @@ export function contactWidth(spec: ModuleSpec, other: ModuleSpec): number {
   const a = weldBox(spec);
   const b = weldBox(other);
   const half = ATTACHMENT_TOLERANCE * 0.5;
-  // Each grown by half the tolerance on its own faces, which is what "within
-  // a hundredth of touching counts as touching" means geometrically — and
-  // leaves a triangle's corners sharp rather than rounding them into
-  // something a layout could then be welded by.
-  const grownA: number[] = [];
-  const grownB: number[] = [];
-  const countA = grownOutline(a, half, grownA);
-  const countB = grownOutline(b, half, grownB);
   // Two boxes are measured as extents either side of their centres, which is
   // the same figure the spans give and the one a box has always been measured
   // by. A shape that is not symmetric about its own middle has no such extent,
   // so a pair with a triangle in it goes by the spans.
   const boxes = !isTriangle(a) && !isTriangle(b);
-  const aux = cos(boxAngle(a));
-  const auy = sin(boxAngle(a));
-  const bux = cos(boxAngle(b));
-  const buy = sin(boxAngle(b));
   const ac = moduleCentre(a);
   const bc = moduleCentre(b);
   const dx = bc.x - ac.x;
   const dy = bc.y - ac.y;
+  if (boxes) {
+    // Plainly out of reach of each other, by more than rounding could close:
+    // most pairs in a big layout, and far cheaper to rule out than to measure.
+    const reach = (sqrt(a.length * a.length + a.width * a.width) + sqrt(b.length * b.length + b.width * b.width)) * 0.5 + 2 * half;
+    if (dx * dx + dy * dy > reach * reach * 1.0001 + 1e-6) return 0;
+  }
+  // Each grown by half the tolerance on its own faces, which is what "within
+  // a hundredth of touching counts as touching" means geometrically — and
+  // leaves a triangle's corners sharp rather than rounding them into
+  // something a layout could then be welded by. Boxes are measured from
+  // their extents instead, so need no outlines.
+  const grownA: number[] = [];
+  const grownB: number[] = [];
+  const countA = boxes ? 0 : grownOutline(a, half, grownA);
+  const countB = boxes ? 0 : grownOutline(b, half, grownB);
+  const aux = cos(boxAngle(a));
+  const auy = sin(boxAngle(a));
+  const bux = cos(boxAngle(b));
+  const buy = sin(boxAngle(b));
   const axes: number[] = [];
   let count: number;
   if (boxes) {
@@ -1485,17 +1492,17 @@ export function contactWidth(spec: ModuleSpec, other: ModuleSpec): number {
   // and not for how much steel is in it.
   const px = -ny;
   const py = nx;
+  if (boxes) {
+    const ea = boxExtent(a.length * 0.5, a.width * 0.5, aux, auy, px, py);
+    const eb = boxExtent(b.length * 0.5, b.width * 0.5, bux, buy, px, py);
+    return weldWidth(min(ea + eb - abs(dx * px + dy * py), min(ea, eb) * 2));
+  }
   const ca: number[] = [];
   const cb: number[] = [];
   const realA = moduleOutline(a, ca);
   const realB = moduleOutline(b, cb);
   projectOutline(ca, realA, px, py, spanA);
   projectOutline(cb, realB, px, py, spanB);
-  if (boxes) {
-    const ea = boxExtent(a.length * 0.5, a.width * 0.5, aux, auy, px, py);
-    const eb = boxExtent(b.length * 0.5, b.width * 0.5, bux, buy, px, py);
-    return weldWidth(min(ea + eb - abs(dx * px + dy * py), min(ea, eb) * 2));
-  }
   const narrower = min(spanA.hi - spanA.lo, spanB.hi - spanB.lo);
   return weldWidth(min(share(ca, realA, cb, realB, px, py), narrower));
 }
