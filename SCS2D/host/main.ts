@@ -31,6 +31,8 @@ import { doctrinePanel } from './doctrinePanel.js';
 import { orderBar } from './orderBar.js';
 import type { Logged } from '../scenarios/commands.js';
 import { el } from './dom.js';
+import { choices } from './designChoices.js';
+import { teamName } from '../render/teams.js';
 
 /**
  * The scenarios page: a battle picked from the list, or set up as a custom
@@ -187,6 +189,26 @@ export function start(): void {
   });
   el<HTMLButtonElement>('customBattle').addEventListener('click', openCustom);
   fitButton.addEventListener('click', () => view.fit());
+
+  // Adding a ship: the library's designs, read again on coming back to the page, and a side to add it to.
+  const addShip = el<HTMLSelectElement>('addShip');
+  const addSide = el<HTMLSelectElement>('addSide');
+  let library = choices();
+  const listDesigns = (): void => {
+    library = choices();
+    addShip.replaceChildren(addShip.options[0]!);
+    library.forEach((choice, k) => addShip.add(new Option(choice.label, String(k))));
+  };
+  listDesigns();
+  window.addEventListener('focus', listDesigns);
+  for (let team = 0; team < 4; team++) addSide.add(new Option(teamName(team), String(team)));
+  addShip.addEventListener('change', () => {
+    const choice = addShip.value === '' ? undefined : library[Number(addShip.value)];
+    addShip.value = '';
+    addShip.blur();
+    if (choice === undefined) return;
+    view.place({ blueprint: choice.blueprint, team: Number(addSide.value) });
+  });
 
   view.keep('viewer', speedSelect);
   speedSelect.addEventListener('change', () => view.setSpeed(Number(speedSelect.value)));

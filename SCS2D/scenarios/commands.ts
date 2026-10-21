@@ -45,7 +45,18 @@ export type Command =
   /** Refit each ship to `blueprint` (`Ships.refit`), which it rebuilds itself to as it fights on. */
   | { readonly kind: 'remodel'; readonly ships: readonly number[]; readonly blueprint: Blueprint }
   /** Tell a pad or slipway of each ship, by `slotKey`, to build `blueprint`, or with `null` its design's craft. */
-  | { readonly kind: 'craft'; readonly ships: readonly number[]; readonly slot: string; readonly blueprint: Blueprint | null };
+  | { readonly kind: 'craft'; readonly ships: readonly number[]; readonly slot: string; readonly blueprint: Blueprint | null }
+  /** Put a new ship built to `blueprint` into the battle for `team`, where and as fast as it says: for trying things out. */
+  | {
+      readonly kind: 'spawn';
+      readonly blueprint: Blueprint;
+      readonly team: number;
+      readonly x: number;
+      readonly y: number;
+      readonly vx: number;
+      readonly vy: number;
+      readonly angle: number;
+    };
 
 export interface Logged {
   readonly step: number;
@@ -83,6 +94,11 @@ export function give(battle: Battle, command: Command): void {
   if (command.kind === 'remodel') {
     const to = compiled(command.blueprint);
     for (const i of command.ships) if (ships.isAlive(i)) ships.refit(battle.world, i, to);
+    return;
+  }
+  if (command.kind === 'spawn') {
+    const { blueprint, team, x, y, vx, vy, angle } = command;
+    ships.spawn(battle.world, { design: compiled(blueprint), team, x, y, vx, vy, angle });
     return;
   }
   if (command.kind === 'craft') {
@@ -166,6 +182,16 @@ export function parseLog(value: unknown): Logged[] {
           return fail(`its blueprint: ${error instanceof Error ? error.message : String(error)}`);
         }
       }
+    } else if (command['kind'] === 'spawn') {
+      const number = (v: unknown): boolean => typeof v === 'number' && Number.isFinite(v);
+      if (!Number.isInteger(command['team']) || !['x', 'y', 'vx', 'vy', 'angle'].every((k) => number(command[k]))) {
+        fail('a spawn wants a team, a place, a velocity and a heading');
+      }
+      try {
+        return { step: step as number, command: { ...command, blueprint: parseBlueprint(command['blueprint']) } as unknown as Command };
+      } catch (error) {
+        return fail(`its blueprint: ${error instanceof Error ? error.message : String(error)}`);
+      }
     } else if (command['kind'] === 'keep') {
       const keep = command['keep'];
       if (!shipList(command['ships']) || typeof command['slot'] !== 'string' || !(keep === null || whole(keep))) {
@@ -190,7 +216,8 @@ export function parseLog(value: unknown): Logged[] {
 export function writeLog(log: readonly Logged[]): { orders: unknown[]; designs?: unknown[] } {
   const designs: string[] = [];
   const orders = log.map(({ step, command }) => {
-    if ((command.kind !== 'remodel' && command.kind !== 'craft') || command.blueprint === null) return { step, command };
+    if ((command.kind !== 'remodel' && command.kind !== 'craft' && command.kind !== 'spawn') || command.blueprint === null)
+      return { step, command };
     const text = JSON.stringify(serialiseBlueprint(command.blueprint));
     let at = designs.indexOf(text);
     if (at < 0) at = designs.push(text) - 1;

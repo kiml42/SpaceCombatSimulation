@@ -1043,7 +1043,9 @@ inside any one file is not contiguous.
   built: rewinding the viewer's battle from checkpoints; attack, defend and ram given to picked-out ships by
   right-click or an order bar, logged so a rewind or a link replays them; and docking, scavenging and
   delivering as orders, with doctrine, build counts and remodelling as settings beside them, from a doctrine
-  panel and a design picker. Its next slice, running away, is outlined and waits to be grilled before it is
+  panel and a design picker. For trying things out, the viewer can also add a ship from the library to any
+  side mid-battle (Add ship: press where it goes, drag for how fast), logged as a command as orders are. Its
+  next slice, running away, is outlined and waits to be grilled before it is
   built (ROADMAP.md step 14).
   Alongside it, §8 step 5's skirmish: an endless loop against an enemy fleet that evolves to beat the
   player's, planned in ROADMAP.md §8. Evolution keeps the skirmish's sense of quiet, though it plays a match on until every side is quiet before naming a winner. Its loop is built without the evolving enemy (`dist/skirmish.html`,

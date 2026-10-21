@@ -1,4 +1,4 @@
-import { capture, NEUTRAL_TEAM, Snapshot, type ImpactLog, type ShipView } from '../sim/index.js';
+import { capture, compileBlueprint, NEUTRAL_TEAM, Snapshot, type Blueprint, type ImpactLog, type ShipView } from '../sim/index.js';
 import { NO_TARGET, OrderCancelCondition } from '../sim/ships.js';
 import { Flashes } from '../render/flashes.js';
 import {
@@ -142,7 +142,21 @@ export interface BattleView {
   readonly orders: readonly Logged[];
   /** Where a ship was last drawn, CSS pixels from the canvas's top left, or null. */
   screenOf(ship: number): { x: number; y: number } | null;
+  /**
+   * Make the next press on the view put a new ship built to `blueprint` into
+   * the battle for `team`: where it is pressed, moving as far in `PLACE_SECONDS`
+   * as it is dragged, and facing that way. Escape or null gives it up. Only on
+   * a battle that can take orders, as it is logged as one.
+   */
+  place(placing: { blueprint: Blueprint; team: number } | null): void;
+  readonly placing: boolean;
 }
+
+/** The ring and line a ship being placed is drawn as. */
+const PLACE_COLOUR = '#e9c05f';
+
+/** How many seconds of travel a drag placing a new ship gives it. */
+export const PLACE_SECONDS = 10;
 
 /** What a click on a ship can be armed to tell the selection. */
 export type Verb = 'attack' | 'defend' | 'ram' | 'dock' | 'scavenge' | 'deliver';
@@ -306,6 +320,66 @@ export function battleView(
     armed = null;
   };
 
+  /** A ship being placed: what and whose, and once pressed, where from and where the drag has got to, world metres. */
+  let placing: {
+    blueprint: Blueprint;
+    team: number;
+    radius: number;
+    from: { x: number; y: number } | null;
+    to: { x: number; y: number };
+  } | null = null;
+  const worldAt = (event: PointerEvent): { x: number; y: number } => {
+    const rect = canvas.getBoundingClientRect();
+    const ratio = canvas.width / rect.width;
+    const px = (event.clientX - rect.left) * ratio - canvas.width / 2;
+    const py = (event.clientY - rect.top) * ratio - canvas.height / 2;
+    return { x: camera.x + px / camera.scale, y: camera.y - py / camera.scale };
+  };
+  // Ahead of panning and picking, which a press placing a ship is neither.
+  canvas.addEventListener(
+    'pointerdown',
+    (event) => {
+      if (placing === null || event.button !== 0) return;
+      event.stopImmediatePropagation();
+      canvas.setPointerCapture(event.pointerId);
+      placing.from = worldAt(event);
+      placing.to = placing.from;
+    },
+    { capture: true },
+  );
+  canvas.addEventListener(
+    'pointermove',
+    (event) => {
+      if (placing === null) return;
+      event.stopImmediatePropagation();
+      placing.to = worldAt(event);
+    },
+    { capture: true },
+  );
+  canvas.addEventListener(
+    'pointerup',
+    (event) => {
+      if (placing?.from == null) return;
+      event.stopImmediatePropagation();
+      const { blueprint, team, from } = placing;
+      const to = worldAt(event);
+      placing = null;
+      const dx = to.x - from.x;
+      const dy = to.y - from.y;
+      issue({
+        kind: 'spawn',
+        blueprint,
+        team,
+        x: from.x,
+        y: from.y,
+        vx: dx / PLACE_SECONDS,
+        vy: dy / PLACE_SECONDS,
+        angle: dx === 0 && dy === 0 ? 0 : Math.atan2(dy, dx),
+      });
+    },
+    { capture: true },
+  );
+
   const issue = (command: Command): void => {
     if (!ordersAllowed || rewind === null) return;
     // Given where the battle is now, not where a pending seek would have taken it.
@@ -331,7 +405,8 @@ export function battleView(
       event.preventDefault();
       nearest(event.ctrlKey || event.metaKey || event.shiftKey);
     } else if (event.key === 'Escape') {
-      if (armed !== null) armed = null;
+      if (placing !== null) placing = null;
+      else if (armed !== null) armed = null;
       else picked = [];
     } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === ARCS_KEY) {
       // Not the browser's select-all.
@@ -474,6 +549,23 @@ export function battleView(
       ctx.lineWidth = 1;
       ctx.strokeRect(box.x0, box.y0, box.x1 - box.x0, box.y1 - box.y0);
     }
+    if (placing?.from != null) {
+      // The new ship's hull as a ring where it will be put, and the line it will travel in `PLACE_SECONDS`.
+      const toCanvas = (p: { x: number; y: number }): [number, number] => [
+        (p.x - camera.x) * camera.scale + canvas.width / 2,
+        (camera.y - p.y) * camera.scale + canvas.height / 2,
+      ];
+      const [fx, fy] = toCanvas(placing.from);
+      const [tx, ty] = toCanvas(placing.to);
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.strokeStyle = PLACE_COLOUR;
+      ctx.lineWidth = ratio;
+      ctx.beginPath();
+      ctx.arc(fx, fy, Math.max(placing.radius * camera.scale, 4 * ratio), 0, Math.PI * 2);
+      ctx.moveTo(fx, fy);
+      ctx.lineTo(tx, ty);
+      ctx.stroke();
+    }
     drawn(view);
   };
   window.requestAnimationFrame(tick);
@@ -527,6 +619,15 @@ export function battleView(
     },
     get orders() {
       return rewind?.orders ?? [];
+    },
+    place(next) {
+      placing =
+        next === null || !ordersAllowed
+          ? null
+          : { ...next, radius: compileBlueprint(next.blueprint).radius, from: null, to: { x: 0, y: 0 } };
+    },
+    get placing() {
+      return placing !== null;
     },
     screenOf(ship) {
       const seen = viewOf(snapshot, ship);

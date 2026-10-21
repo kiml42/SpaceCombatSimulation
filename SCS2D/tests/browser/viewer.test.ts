@@ -792,6 +792,39 @@ describe('the viewer in a browser', () => {
     await page.evaluate((key) => window.localStorage.removeItem(key), `scs2d.blueprint.${variant.name}`);
   }, 60_000);
 
+  it('adds a chosen ship for a chosen side where it is pressed, as fast as it is dragged', async () => {
+    await page.selectOption('#scene', { label: 'Duel' });
+    if ((await page.textContent('#play')) === 'Pause') await page.click('#play');
+    await painted(page);
+    const viewer = (): Promise<{ count: number; placing: boolean; last: unknown }> =>
+      page.evaluate(() => {
+        const v = (
+          window as unknown as { viewer: { battle: { ships: { count: number } }; placing: boolean; orders: { command: unknown }[] } }
+        ).viewer;
+        return { count: v.battle.ships.count, placing: v.placing, last: v.orders.at(-1)?.command };
+      });
+    const before = await viewer();
+    await page.selectOption('#addSide', '1');
+    await page.selectOption('#addShip', { label: 'Corvette' });
+    expect((await viewer()).placing).toBe(true);
+    const box = (await page.locator('#view').boundingBox())!;
+    await page.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.5);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width * 0.4, box.y + box.height * 0.5, { steps: 4 });
+    await page.mouse.up();
+    await painted(page);
+    const after = await viewer();
+    expect(after.count).toBe(before.count + 1);
+    expect(after.placing).toBe(false);
+    // Dragged to the right, which is east in the battle: moving that way and facing it.
+    expect(after.last).toMatchObject({ kind: 'spawn', team: 1, vy: 0, angle: 0 });
+    expect((after.last as { vx: number }).vx).toBeGreaterThan(0);
+    // Escape gives up a ship chosen but not yet placed.
+    await page.selectOption('#addShip', { label: 'Corvette' });
+    await page.keyboard.press('Escape');
+    expect((await viewer()).placing).toBe(false);
+  });
+
   it('reports no errors after all of that', () => {
     expect(problems).toEqual([]);
   });
