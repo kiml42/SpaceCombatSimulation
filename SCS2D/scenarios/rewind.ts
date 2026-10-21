@@ -33,8 +33,11 @@ const BYTES = 50e6;
  * so they grow sparser with age, and more so when they hold too much. Where
  * they fall changes nothing but where a scrub bar can land and how long a
  * step back takes.
+ *
+ * A viewer can keep something of its own with each checkpoint, such as the
+ * flashes on screen there, which no amount of stepping on from it rebuilds.
  */
-export class Rewind {
+export class Rewind<Kept = undefined> {
   battle: Battle;
   /** Steps taken since the start. */
   at = 0;
@@ -42,7 +45,7 @@ export class Rewind {
   reached = 0;
   private every = EVERY;
   /** Copies never stepped, by the step each was taken at, in order. */
-  private readonly checkpoints = new Map<number, { battle: Battle; bytes: number }>();
+  private readonly checkpoints = new Map<number, { battle: Battle; bytes: number; kept: Kept | undefined }>();
   private bytes = 0;
   private last = 0;
   private spread = SPREAD;
@@ -53,12 +56,14 @@ export class Rewind {
 
   /**
    * `battle` at its first step; `now` a clock in milliseconds, if checkpoints
-   * are to be paced by cost; `log` the orders it was given, from a link.
+   * are to be paced by cost; `log` the orders it was given, from a link;
+   * `keepAlso` what the viewer holds with each checkpoint, as it is taken.
    */
   constructor(
     battle: Battle,
     private readonly now?: () => number,
     log: readonly Logged[] = [],
+    private readonly keepAlso?: (battle: Battle) => Kept,
   ) {
     this.battle = battle;
     for (const { step, command } of log) this.record(step, command);
@@ -82,7 +87,7 @@ export class Rewind {
     if (here !== undefined) {
       const { copy, bytes } = sizedClone(this.battle);
       this.bytes += bytes - here.bytes;
-      this.checkpoints.set(this.at, { battle: copy, bytes });
+      this.checkpoints.set(this.at, { battle: copy, bytes, kept: here.kept });
     }
     this.last = this.lastKept();
   }
@@ -133,22 +138,23 @@ export class Rewind {
 
   /**
    * Go to step `target`; true if it left the battle it had for a copy.
-   * `restored` is told when it does, before stepping on; `stepped` after each
-   * step on, for what a viewer would have drawn of it.
+   * `restored` is told when it does, before stepping on, with what the viewer
+   * kept there; `stepped` after each step on, for what it would have drawn of it.
    */
-  seek(target: number, restored?: () => void, stepped?: (battle: Battle) => void): boolean {
+  seek(target: number, restored?: (kept: Kept | undefined) => void, stepped?: (battle: Battle) => void): boolean {
     const to = max(0, floor(target));
     let from = 0;
     for (const step of this.checkpoints.keys()) if (step <= to) from = step;
     // Stepping on from where it is beats copying a checkpoint no nearer.
     const copied = to < this.at || from > this.at;
     if (copied) {
-      this.battle = sizedClone(this.checkpoints.get(from)!.battle).copy;
+      const checkpoint = this.checkpoints.get(from)!;
+      this.battle = sizedClone(checkpoint.battle).copy;
       // What the original had not yet drawn when the copy was taken is long gone.
       this.battle.impacts.log.clear();
       this.at = from;
       this.last = from;
-      restored?.();
+      restored?.(checkpoint.kept);
     }
     while (this.at < to) {
       this.step();
@@ -166,7 +172,7 @@ export class Rewind {
   private keep(): void {
     const start = this.now?.();
     const { copy, bytes } = sizedClone(this.battle);
-    const kept = { battle: copy, bytes };
+    const kept = { battle: copy, bytes, kept: this.keepAlso?.(this.battle) };
     if (start !== undefined && this.stepCost > 0) {
       const spacing = ceil((this.now!() - start) / (COPY_SHARE * this.stepCost));
       if (spacing > this.every) this.every = spacing;
