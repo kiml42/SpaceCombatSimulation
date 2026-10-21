@@ -1,4 +1,5 @@
 import type { ShipDesign } from './blueprint.js';
+import { fixed } from './fixed.js';
 import { fillOf, type ModuleSpec, type ModuleStats } from './modules.js';
 
 /**
@@ -80,16 +81,16 @@ export class Store {
       for (let k = 1; k <= own.length; k++) {
         if (k === own.length || priority(own[k]!) !== priority(own[k - 1]!)) ends.push(k);
       }
-      stores.push(Int32Array.from(own));
-      tierEnds.push(Int32Array.from(ends));
+      stores.push(fixed(Int32Array.from(own)));
+      tierEnds.push(fixed(Int32Array.from(ends)));
     }
 
     this.contents[bodyIndex] = contents;
-    this.full[bodyIndex] = full;
-    this.spin[bodyIndex] = spin;
-    this.pieceOf[bodyIndex] = pieceOf;
-    this.stores[bodyIndex] = stores;
-    this.tierEnds[bodyIndex] = tierEnds;
+    this.full[bodyIndex] = fixed(full);
+    this.spin[bodyIndex] = fixed(spin);
+    this.pieceOf[bodyIndex] = fixed(pieceOf);
+    this.stores[bodyIndex] = fixed(stores);
+    this.tierEnds[bodyIndex] = fixed(tierEnds);
     this.spent[bodyIndex] = spent;
     this.spentSpin[bodyIndex] = spentSpin;
   }

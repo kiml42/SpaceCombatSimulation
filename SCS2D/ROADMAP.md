@@ -89,8 +89,11 @@ an entry is either still open or it is gone.
        moves as far as the ships it was following did. Built first, since several of the decisions below are about rewinding.
        Left to fix, from trying it:
        - **A copy in one frame** is about 10 ms in Super Swarm, most of it some 14,000 small typed arrays.
+         Arrays only ever replaced whole, never written into, are marked `fixed` (`sim/fixed.ts`) and
+         shared rather than copied, which took about 30% off the time and a quarter off the memory; some
+         8,000 are still copied, a body's changing state and its engine layout's solver arrays among them.
          Spreading one over frames would mean holding the battle still while it is copied, so the way on is
-         a cheaper copy: fewer, larger arrays in the sim, or copying only what changed.
+         a cheaper copy still: fewer, larger arrays in the sim, or copying only what changed.
     1. **Attack, defend and ram** — built; the keys table on each battle page says how to give them. Building it chose:
        - **Keys:** K, D and R arm attack, defend and ram (T being the fleet strips), and S stops. A takes the whole side, and the
          arcs moved to Ctrl or Cmd+A on every battle page; the editors keep A for them.
