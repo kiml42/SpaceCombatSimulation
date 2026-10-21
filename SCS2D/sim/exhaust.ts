@@ -1,5 +1,5 @@
 import type { Bodies } from './bodies.js';
-import type { ShipDesign } from './blueprint.js';
+import type { DesignModule, ShipDesign } from './blueprint.js';
 import { SEAM_CUT_ENERGY_PER_AREA, type Damage } from './damage.js';
 import { joints, jointsOf } from './connectivity.js';
 import {
@@ -267,6 +267,9 @@ export interface PlumeSlice {
 /** Narrower than this, a stretch of nozzle is not worth a slice, metres. */
 const SLICE_MIN = 1e-9;
 
+/** How far past a module's corners a cast may still be tested against it, metres: far more than rounding, far less than any module. */
+const CULL_MARGIN = 1e-6;
+
 /** How far out a flame reaches at `across` metres from its nozzle's axis, given its reach on the axis. */
 function reachAcross(axisReach: number, across: number, exitWidth: number): number {
   const edge = 1 - (2 * (across < 0 ? -across : across)) / exitWidth;
@@ -348,29 +351,20 @@ export function exhaustObstruction(
   }
   far = sqrt(far) * 2 + 1;
 
-  /** Where the exhaust down `across` first meets a module, into `hit`. */
-  const hit = { module: -1, at: Infinity };
-  const castAt = (across: number, only = -1): void => {
-    const x = rootX - dirY * across;
-    const y = rootY + dirX * across;
-    modulesAlong(boxes, x, y, x - dirX * far, y - dirY * far, path);
-    hit.module = -1;
-    hit.at = Infinity;
-    for (let k = 0; k < path.count; k++) {
-      const m = path.module[k]!;
-      if (m === module || (only >= 0 && m !== only) || !meets(m)) continue;
-      hit.module = m;
-      hit.at = path.entry[k]!;
-      return;
-    }
-  };
-
-  // Every corner of every other module, as metres across the exit face.
+  // Every corner of every other module, as metres across the exit face, and
+  // the stretch across it each module covers.
   const corners: number[] = [];
-  const corner = (x: number, y: number): void => {
-    corners.push((x - rootX) * -dirY + (y - rootY) * dirX);
+  const lows: number[] = [];
+  const highs: number[] = [];
+  const corner = (i: number, x: number, y: number): void => {
+    const at = (x - rootX) * -dirY + (y - rootY) * dirX;
+    corners.push(at);
+    if (at < lows[i]!) lows[i] = at;
+    if (at > highs[i]!) highs[i] = at;
   };
   for (let i = 0; i < boxes.modules.length; i++) {
+    lows[i] = Infinity;
+    highs[i] = -Infinity;
     if (i === module || !meets(i)) continue;
     const m = boxes.modules[i]!;
     const c = cos(m.angle);
@@ -378,7 +372,7 @@ export function exhaustObstruction(
     const triangle = triangleOf(m.spec);
     if (triangle !== null) {
       for (let v = 0; v < triangle.length; v += 2) {
-        corner(m.x + triangle[v]! * c - triangle[v + 1]! * s, m.y + triangle[v]! * s + triangle[v + 1]! * c);
+        corner(i, m.x + triangle[v]! * c - triangle[v + 1]! * s, m.y + triangle[v]! * s + triangle[v + 1]! * c);
       }
       continue;
     }
@@ -390,9 +384,32 @@ export function exhaustObstruction(
       [-hl, hw],
       [-hl, -hw],
     ] as const) {
-      corner(m.x + lx * c - ly * s, m.y + lx * s + ly * c);
+      corner(i, m.x + lx * c - ly * s, m.y + lx * s + ly * c);
     }
   }
+
+  /** Where the exhaust down `across` first meets a module, into `hit`. */
+  const hit = { module: -1, at: Infinity };
+  // Only a module covering `across` can be met down it, so the cast is against
+  // those alone, kept in the design's order so that ties fall as against all.
+  const nearby: DesignModule[] = [];
+  const indices: number[] = [];
+  const subset: Boxes = { modules: nearby };
+  const castAt = (across: number, only = -1): void => {
+    nearby.length = 0;
+    indices.length = 0;
+    for (let i = 0; i < boxes.modules.length; i++) {
+      if (only >= 0 && i !== only) continue;
+      if (!(across >= lows[i]! - CULL_MARGIN && across <= highs[i]! + CULL_MARGIN)) continue;
+      nearby.push(boxes.modules[i]!);
+      indices.push(i);
+    }
+    const x = rootX - dirY * across;
+    const y = rootY + dirX * across;
+    modulesAlong(subset, x, y, x - dirX * far, y - dirY * far, path);
+    hit.module = path.count > 0 ? indices[path.module[0]!]! : -1;
+    hit.at = path.count > 0 ? path.entry[0]! : Infinity;
+  };
 
   const axisReach = nozzleReach(geometry, rating);
   let blocked = 0;

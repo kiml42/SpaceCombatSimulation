@@ -142,6 +142,21 @@ export class EnemySearch {
   }
 
   /**
+   * The best enemy so far of the generation being fought, of those that have
+   * fought every match of it, or null before one has: what a long generation
+   * shows while it is fought.
+   */
+  get leader(): Standing | null {
+    const done = math.floor(this.next / (this.seeds.length + this.drills.length));
+    let leader: Standing | null = null;
+    for (let i = 0; i < done && i < this.standings.length; i++) {
+      const standing = this.standings[i]!;
+      if (leader === null || better(standing, leader)) leader = standing;
+    }
+    return leader;
+  }
+
+  /**
    * What an answer may cost and field: the player's budget times the
    * multiplier, and the skirmish's ship limit, each never less than the enemy
    * it answers already has.
@@ -271,7 +286,6 @@ export class EnemySearch {
 
   /** Every match fought: pick the best, and check each that won on the round, the better first. */
   private finishGeneration(): void {
-    const better = (a: Standing, b: Standing): boolean => a.wins > b.wins || (a.wins === b.wins && a.margin > b.margin);
     let best = this.standings[0]!;
     for (const standing of this.standings) if (better(standing, best)) best = standing;
     this.best = best;
@@ -323,6 +337,11 @@ export class EnemySearch {
     }
     return taken;
   }
+}
+
+/** Whether one enemy did better than another: more wins, then the wider margin. */
+function better(a: Standing, b: Standing): boolean {
+  return a.wins > b.wins || (a.wins === b.wins && a.margin > b.margin);
 }
 
 /** How much more a hit on anything but bare structure counts, as it is what makes a ship work. */

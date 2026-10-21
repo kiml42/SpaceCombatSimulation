@@ -84,6 +84,22 @@ describe('rewind', () => {
     expect(rewind.kept).toContain(90);
   });
 
+  it('hands back what the viewer kept with the checkpoint it restores', () => {
+    let taken = 0;
+    const rewind = new Rewind(duel(), undefined, [], (battle) => ({ step: battle.world.tick, taken: ++taken }));
+    rewind.seek(100);
+    let kept: { step: number; taken: number } | undefined;
+    rewind.seek(65, (k) => (kept = k));
+    expect(kept).toEqual({ step: 60, taken: 3 });
+    // An order at a checkpoint replaces its copy, not what was kept with it.
+    rewind.seek(90);
+    rewind.issue({ kind: 'stop', ships: [0] });
+    rewind.seek(95);
+    rewind.seek(90, (k) => (kept = k));
+    expect(kept).toEqual({ step: 90, taken: 4 });
+    expect(taken).toBe(4);
+  });
+
   it('goes forward without rebuilding, and back to the furthest step reached', () => {
     const rewind = new Rewind(duel());
     rewind.seek(50);

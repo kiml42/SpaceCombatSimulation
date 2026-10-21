@@ -3,7 +3,7 @@ Things that are obviously wrong.
 
 - When a dinky gets welded to a gunship the other gunship will fire at the combined ship even though most of it is actually its ally.
 - Fuel tanks should stop supplying fuel when they are too damaged.
-- When setting up a co-evolution run between two very large fleets, the UI hangs for about 30 s (the Imperial Fleet against the Rebel Fleet) after each change to a setting the opening match reads, and on loading the page with such a setup saved: the preview breeds a whole first generation to draw it. A burst of changes now builds it once, and a setting it does not read (generations, matches, winners) does not rebuild it. Fixing it needs the build off the main thread, or a preview that does not breed, at the cost of its seed no longer being the run's.
+- When setting up a co-evolution run between two very large fleets, the UI hangs for about 8 s (the Imperial Fleet against the Rebel Fleet; it was 30 s before the layout checks were sped up) after each change to a setting the opening match reads, and on loading the page with such a setup saved: the preview breeds a whole first generation to draw it. A burst of changes now builds it once, and a setting it does not read (generations, matches, winners) does not rebuild it. Fixing it needs the build off the main thread, or a preview that does not breed, at the cost of its seed no longer being the run's.
 - A hull gun's barrel collides as the rectangle its module would be, not where the barrel is drawn. Nothing welds to a barrel (`onWeldablePart`), as a stop-gap until it collides where it is.
 
 -----------------------------------------------------------------------
@@ -75,5 +75,3 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 ## Skirmish
 - When the enemy are evolving, make the history fill the battle area.
   - In this mode the player's fleet should be put on the left, and the enemy on the right.
-- If a single generation takes long enough, show the thumbnails for the leader in the generation without a "Victory" or "Defeat" stamp to show the work in progress happening.
-- The history should be the only part that scrolls in the sidebar if the screen is tall enough to show the whole sidebar, with more than 1 row's worth of history.
