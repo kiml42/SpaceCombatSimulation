@@ -21,7 +21,13 @@ export type Order =
   /** Fill its claw from `target`, or for `NO_TARGET` from source after source. */
   | { readonly kind: 'scavenge'; readonly target: number }
   /** Give all it can spare to `target`, a friend, or for `NO_TARGET` to friend after friend. */
-  | { readonly kind: 'deliver'; readonly target: number };
+  | { readonly kind: 'deliver'; readonly target: number }
+  /**
+   * Run away, replacing the queue whatever `append` says: from every armed
+   * enemy for `NO_TARGET`, from `target` if an enemy, or hiding behind it if a
+   * friend or a wreck. Ends only when told.
+   */
+  | { readonly kind: 'flee'; readonly target: number };
 
 export type Command =
   /** The same order to each ship, replacing its queue, or after it if `append`. */
@@ -67,7 +73,7 @@ export interface Logged {
  * Carry out a command. Ships and targets gone by then are passed over, as is
  * a ship told to defend itself or an enemy, to attack or ram a friend, to
  * dock with or deliver to an enemy or a friend it has no dock to mate with,
- * or to scavenge with no claw.
+ * to scavenge with no claw, or to flee an enemy that cannot hurt it.
  */
 export function give(battle: Battle, command: Command): void {
   const ships = battle.ships;
@@ -107,6 +113,11 @@ export function give(battle: Battle, command: Command): void {
     return;
   }
   const order = command.order;
+  if (order.kind === 'flee') {
+    if (order.target !== NO_TARGET && !ships.isAlive(order.target)) return;
+    for (const i of command.ships) if (ships.isAlive(i)) ships.pushFlee(i, order.target);
+    return;
+  }
   const errand = order.kind === 'dock' || order.kind === 'scavenge' || order.kind === 'deliver';
   const anywhere = errand && order.target === NO_TARGET;
   if (!anywhere && !ships.isAlive(order.target)) return;
@@ -142,9 +153,9 @@ function compiled(blueprint: Blueprint): ShipDesign {
   return design;
 }
 
-const KINDS = new Set(['attack', 'defend', 'ram', 'dock', 'scavenge', 'deliver']);
+const KINDS = new Set(['attack', 'defend', 'ram', 'dock', 'scavenge', 'deliver', 'flee']);
 /** Orders whose target may be `NO_TARGET`. */
-const ANYWHERE = new Set(['dock', 'scavenge', 'deliver']);
+const ANYWHERE = new Set(['dock', 'scavenge', 'deliver', 'flee']);
 const CANCELS = new Set(Object.values(OrderCancelCondition).filter((v) => typeof v === 'number'));
 
 /** A log read back from a file or a link. Throws on one it cannot read. */

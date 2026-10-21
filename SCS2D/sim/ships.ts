@@ -236,6 +236,8 @@ const RAM_HORIZON = 60;
 
 /** Below this much velocity still to gain, m/s, a ram points its nose at the target rather than its thrust. */
 const RAM_AIM_SPEED = 5;
+/** How hard a fleeing ship eases off once clear of every enemy's reach, m/s². */
+const FLEE_EASE = 3;
 
 /** How many times a pilot may halve its ask for force to keep the torque to turn with. */
 const FORCE_HALVINGS = 6;
@@ -690,6 +692,14 @@ export interface Order {
    * dock or claw named has let go, or there was nothing to take or give.
    */
   errand?: Errand;
+  /**
+   * Run away rather than fight: from every armed enemy for `NO_TARGET`, from
+   * `target` if it is an enemy, or round behind `target` if it is a friend or
+   * on no side. Never ends of its own accord (`Ships.flee`).
+   */
+  flee?: boolean;
+  /** Fleeing, `target` is cover to hide behind rather than an enemy to run from: decided when told. */
+  hide?: boolean;
 }
 
 /** What an order sends a ship to fetch, rather than to fight. */
@@ -1091,6 +1101,9 @@ export class Ships {
   /** The heaviest dodge in the blend: how much it is wanted, and seconds until the near miss. */
   private dodgeWeight = 0;
   private dodgeWhen = 0;
+  /** Where the threats a fleeing craft weighs lie, as a weighted sum of directions to them (`threats`). */
+  private threatX = 0;
+  private threatY = 0;
   private readonly rethinkAt: number[] = [];
   /**
    * The order doctrine makes up, one per ship and rewritten in place, so that
@@ -2456,8 +2469,12 @@ export class Ships {
    * errand or a trip doctrine sent it on, a ram, a fight on a friend's behalf,
    * or an attack. Null for nothing.
    */
-  doingOf(i: number): { kind: 'attack' | 'defend' | 'ram' | Errand; target: number } | null {
+  doingOf(i: number): { kind: 'attack' | 'defend' | 'ram' | 'flee' | 'hide' | Errand; target: number } | null {
     const given = this.getCurrentOrder(i);
+    if (given?.flee === true) {
+      const from = this.fleeTarget(given);
+      return from === NO_TARGET ? null : { kind: given.hide === true ? 'hide' : 'flee', target: from };
+    }
     if (given?.errand !== undefined) {
       const target = this.errandTarget(i);
       return target === NO_TARGET ? null : { kind: given.errand, target };
@@ -2503,14 +2520,24 @@ export class Ships {
     const standing = this.standing[i];
     const order = this.getCurrentOrder(i) ?? (standing !== undefined && standing.target === this.chosenOf(i) ? standing : undefined);
     if (order === undefined || order.target === NO_TARGET) return undefined;
-    if (order.ram || order.grapple || order.land || order.dock || order.defend === true || order.errand !== undefined) return undefined;
+    if (
+      order.ram ||
+      order.grapple ||
+      order.land ||
+      order.dock ||
+      order.defend === true ||
+      order.errand !== undefined ||
+      order.flee === true
+    ) {
+      return undefined;
+    }
     if (!(order.maxRange > 0)) return undefined;
     return order;
   }
 
   private focusOf(i: number): number {
     const given = this.getCurrentOrder(i);
-    if (given !== undefined && given.defend !== true && given.errand === undefined) return given.target;
+    if (given !== undefined && given.defend !== true && given.errand === undefined && given.flee !== true) return given.target;
     return this.chosenOf(i);
   }
 
@@ -2680,8 +2707,8 @@ export class Ships {
    */
   private turretAim(bodies: Bodies, i: number, t: number): number {
     const current = this.designs[i]!.turrets[t]!.main ? this.getCurrentOrder(i) : undefined;
-    // A friend to defend, or to fetch from, is not a target.
-    const given = current?.defend === true || current?.errand !== undefined ? undefined : current;
+    // A friend to defend, fetch from or hide behind is not a target.
+    const given = current?.defend === true || current?.errand !== undefined || current?.flee === true ? undefined : current;
     let tracksGiven = false;
     if (given !== undefined && given.target !== NO_TARGET && this.alive[given.target] === 1) {
       const tb = bodies.indexOf(this.bodyIds[given.target]!);
@@ -2963,6 +2990,36 @@ export class Ships {
       if (!this.designs[friend]!.modules.some((m) => m.spec.kind === 'port')) return false;
     }
     return this.pushErrand(i, 'deliver', friend);
+  }
+
+  /**
+   * Replace this ship's orders with running away: from every armed enemy for
+   * `NO_TARGET`, from `target` if it is an armed enemy, or hiding behind it if
+   * it is a friend or on no side, a wreck included. False, and nothing
+   * changed, for itself or an enemy with nothing to run from.
+   */
+  pushFlee(i: number, target: number): boolean {
+    let hide = false;
+    if (target !== NO_TARGET) {
+      if (target === i || this.alive[target] !== 1) return false;
+      hide = this.derelict[target] === 1 || !this.hostile(i, target);
+      if (!hide && !this.armed(target)) return false;
+    }
+    this.clearOrder(i);
+    this.orders[i]!.push({
+      target,
+      minRange: 0,
+      maxRange: 0,
+      approachSpeed: this.doctrines[i]!.approach.approachSpeed,
+      cancelOn: OrderCancelCondition.None,
+      ram: false,
+      grapple: false,
+      land: false,
+      dock: false,
+      flee: true,
+      hide,
+    });
+    return true;
   }
 
   private pushErrand(i: number, errand: Errand, target: number): boolean {
@@ -3531,7 +3588,13 @@ export class Ships {
     // what you are doing and wait to be told something.
     const order = this.effectiveOrder(i);
     const target = order?.target ?? NO_TARGET;
-    if (order !== undefined && target !== NO_TARGET && this.alive[target] === 1) {
+    const fleeing = order?.flee === true;
+    // Running, it points its mains the way it wants to go, as a ram does.
+    let running = false;
+    if (fleeing) {
+      running = this.flee(bodies, i, b, order!);
+      this.avoid(bodies, i, b, NO_TARGET, NO_TARGET);
+    } else if (order !== undefined && target !== NO_TARGET && this.alive[target] === 1) {
       const tb = bodies.indexOf(this.bodyIds[target]!);
       // Holding it in its claw, or sat on its pad: nothing to fly for while it drinks.
       if ((order.grapple || order.land) && tb === b) {
@@ -3573,7 +3636,7 @@ export class Ships {
     // and so does closing on a source, which means touching it, but for a hulk
     // coming through, which keeps clear of nothing.
     if (order?.grapple === true) this.avoid(bodies, i, b, target, NO_TARGET, true);
-    if (order === undefined || !(order.ram || order.grapple || order.land || order.dock)) {
+    if (!fleeing && (order === undefined || !(order.ram || order.grapple || order.land || order.dock))) {
       const covering = this.cover(bodies, i, b);
       if (target === NO_TARGET && covering >= 0) {
         const cb = bodies.indexOf(this.bodyIds[covering]!);
@@ -3604,7 +3667,7 @@ export class Ships {
 
     // A ram is a race to the target, so it points its main thrust along the
     // change of velocity it needs rather than its nose at the target.
-    if (order?.ram === true) {
+    if (order?.ram === true || running) {
       const dvx = wantVx - bodies.vx[b]!;
       const dvy = wantVy - bodies.vy[b]!;
       if (dvx * dvx + dvy * dvy > RAM_AIM_SPEED * RAM_AIM_SPEED) wantAngle = atan2(dvy, dvx);
@@ -4235,6 +4298,153 @@ export class Ships {
    * keeping clear is a whisper at the edge of the look-ahead and the loudest
    * thing in the blend just before a collision.
    */
+  /** Whether ship `e` can hurt anything: a main gun that can fire, or a ram doctrine and the control to fly it. */
+  private armed(e: number): boolean {
+    if (this.alive[e] !== 1 || this.derelict[e] === 1) return false;
+    return !this.isDisarmed(e) || (this.doctrines[e]!.approach.ramRadii > 0 && this.hasControl(e));
+  }
+
+  /**
+   * What a flee order runs from or hides behind now: its target, or
+   * `NO_TARGET` for every armed enemy, which is also what it falls back on
+   * once an enemy it was running from can no longer hurt it, or cover it was
+   * hiding behind is gone altogether. Cover destroyed is still hidden behind,
+   * as a wreck.
+   */
+  private fleeTarget(order: Readonly<Order>): number {
+    const t = order.target;
+    if (t === NO_TARGET || this.alive[t] !== 1) return NO_TARGET;
+    return order.hide === true || this.armed(t) ? t : NO_TARGET;
+  }
+
+  /**
+   * Weigh the armed enemies of ship `i` whose reach, times its `fleeMargin`,
+   * point (`x`, `y`) is inside: `only` alone, or all of them for `NO_TARGET`.
+   * Each by how deep inside it is, and one with a gun on ship `i` by its
+   * `aimedWeight` more. Leaves the weighted sum of directions to them in
+   * `threatX` and `threatY`, and says how much they weigh in all.
+   */
+  private threats(bodies: Bodies, i: number, b: number, x: number, y: number, only: number): number {
+    const approach = this.doctrines[i]!.approach;
+    const mine = this.designs[i]!.radius;
+    let tx = 0;
+    let ty = 0;
+    let total = 0;
+    for (let e = 0; e < this.alive.length; e++) {
+      if ((only !== NO_TARGET && e !== only) || !this.hostile(i, e) || !this.armed(e)) continue;
+      const eb = bodies.indexOf(this.bodyIds[e]!);
+      if (eb < 0 || eb === b) continue;
+      const clear = (this.fightReach(e) + mine) * approach.fleeMargin;
+      const dx = bodies.x[eb]! - x;
+      const dy = bodies.y[eb]! - y;
+      const d = length(dx, dy);
+      if (!(d < clear) || !(d > 0)) continue;
+      const weight = (1 - d / clear) * (this.aimsAt(e, i) ? approach.aimedWeight : 1);
+      tx += (weight * dx) / d;
+      ty += (weight * dy) / d;
+      total += weight;
+    }
+    this.threatX = tx;
+    this.threatY = ty;
+    return total;
+  }
+
+  /** Whether any of ship `e`'s mounts is aimed at ship `i`. */
+  private aimsAt(e: number, i: number): boolean {
+    const aiming = this.turretAiming[e]!;
+    for (let t = 0; t < aiming.length; t++) if (aiming[t] === i) return true;
+    return false;
+  }
+
+  /**
+   * Fly a flee order. Running from what is within reach of it, straight away
+   * at its approach speed; clear of them all, easing off at `FLEE_EASE`, so it
+   * neither leaves its friends behind nor has to brake hard to run again.
+   * Hiding, round to its cover's side away from the threats to it, as close as
+   * its keeping clear of anything holds it, and moving with it there. Says
+   * whether it is running, to point its mains that way.
+   */
+  private flee(bodies: Bodies, i: number, b: number, order: Readonly<Order>): boolean {
+    const approach = this.doctrines[i]!.approach;
+    const from = this.fleeTarget(order);
+    const vx = bodies.vx[b]!;
+    const vy = bodies.vy[b]!;
+    const cb = from !== NO_TARGET && order.hide === true ? bodies.indexOf(this.bodyIds[from]!) : -1;
+    if (cb >= 0 && cb !== b) return this.hide(bodies, i, b, cb);
+
+    const weight = this.threats(bodies, i, b, bodies.x[b]!, bodies.y[b]!, from);
+    if (weight > 0) {
+      const away = length(this.threatX, this.threatY);
+      if (away > 0) {
+        this.urge(URGE_REFERENCE, (-this.threatX / away) * approach.approachSpeed, (-this.threatY / away) * approach.approachSpeed);
+        return true;
+      }
+    }
+    const speed = length(vx, vy);
+    const keep = speed > 0 ? max(0, 1 - (FLEE_EASE * approach.responseTime) / speed) : 0;
+    this.urge(URGE_REFERENCE, vx * keep, vy * keep);
+    return false;
+  }
+
+  /** Fly round behind cover `cb`, from the threats to it, or the nearest armed enemy when none is in reach of it. */
+  private hide(bodies: Bodies, i: number, b: number, cb: number): boolean {
+    const approach = this.doctrines[i]!.approach;
+    const cx = bodies.x[cb]!;
+    const cy = bodies.y[cb]!;
+    let tx = 0;
+    let ty = 0;
+    if (this.threats(bodies, i, b, cx, cy, NO_TARGET) > 0) {
+      tx = this.threatX;
+      ty = this.threatY;
+    } else {
+      let nearest = Infinity;
+      for (let e = 0; e < this.alive.length; e++) {
+        if (!this.hostile(i, e) || !this.armed(e)) continue;
+        const eb = bodies.indexOf(this.bodyIds[e]!);
+        if (eb < 0 || eb === b || eb === cb) continue;
+        const d = length(bodies.x[eb]! - cx, bodies.y[eb]! - cy);
+        if (d < nearest && d > 0) {
+          nearest = d;
+          tx = (bodies.x[eb]! - cx) / d;
+          ty = (bodies.y[eb]! - cy) / d;
+        }
+      }
+    }
+    // With nothing to hide from, it stays on whichever side it is.
+    let sx = cx - bodies.x[b]!;
+    let sy = cy - bodies.y[b]!;
+    const toward = length(tx, ty);
+    if (toward > 0) {
+      sx = tx / toward;
+      sy = ty / toward;
+    } else {
+      const d = length(sx, sy);
+      if (d > 0) {
+        sx /= d;
+        sy /= d;
+      }
+    }
+    const touching = this.designs[i]!.radius + bodies.radius[cb]!;
+    const off = touching * (1 + max(0, approach.separationRadii));
+    // The spot, and the way to it.
+    const dx = cx - sx * off - bodies.x[b]!;
+    const dy = cy - sy * off - bodies.y[b]!;
+    const gap = length(dx, dy);
+    let wx = bodies.vx[cb]!;
+    let wy = bodies.vy[cb]!;
+    if (gap > 0) {
+      const ux = dx / gap;
+      const uy = dy / gap;
+      const push = this.accelerationAlong(bodies, i, b, ux, uy, bodies.angle[b]!);
+      const brake = approach.brake * max(this.accelerationAlong(bodies, i, b, -ux, -uy, bodies.angle[b]!), BRAKE_FLOOR * push);
+      const speed = min(approach.approachSpeed, stoppingSpeed(brake, gap, approach.responseTime));
+      wx += ux * speed;
+      wy += uy * speed;
+    }
+    this.urge(URGE_REFERENCE, wx, wy);
+    return gap > touching;
+  }
+
   private avoid(bodies: Bodies, i: number, b: number, flying: number, covering: number, hulksOnly = false): void {
     const approach = this.doctrines[i]!.approach;
     if (!(approach.separation > 0) || !(approach.separationRadii > 0)) return;
