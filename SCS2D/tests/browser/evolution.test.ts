@@ -5,7 +5,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
@@ -285,7 +285,9 @@ describe('the evolution page in a browser', () => {
     const file = JSON.parse(await readFile(written, 'utf8')) as Record<string, unknown>;
     expect(file['seed']).toEqual(4242);
     expect((file['kinds'] as Record<string, number>)['turret']).toEqual(0);
-    expect(file['founders']).toEqual(['Dinky']);
+    // Whole, so the file can be fought headlessly or on another browser.
+    expect((file['founders'] as { name: string; modules: unknown[] }[]).map((ship) => ship.name)).toEqual(['Dinky']);
+    expect((file['founders'] as { modules: unknown[] }[])[0]!.modules.length).toBeGreaterThan(0);
 
     // Changed underneath, then read back: the import has to put every one of
     // these back rather than only the boxes somebody remembered to wire up.
@@ -299,6 +301,22 @@ describe('the evolution page in a browser', () => {
     expect(
       await page.evaluate(() => [...(document.getElementById('founders') as HTMLSelectElement).selectedOptions].map((o) => o.value)),
     ).toEqual(['ship:Dinky']);
+
+    // A founder this browser holds a different design under is saved beside
+    // it rather than over it, and chosen.
+    const altered = { ...file, founders: [{ ...(file['founders'] as object[])[0], notes: 'not the stock one' }] };
+    const elsewhere = `${written}.altered.json`;
+    await writeFile(elsewhere, JSON.stringify(altered));
+    await page.setInputFiles('#importConfigFile', elsewhere);
+    await page.waitForFunction(() => document.getElementById('readout')?.textContent?.includes('"Dinky" as "Dinky 2"') === true);
+    expect(
+      await page.evaluate(() => [...(document.getElementById('founders') as HTMLSelectElement).selectedOptions].map((o) => o.value)),
+    ).toEqual(['ship:Dinky 2']);
+    // Read again, it is the copy already saved rather than another.
+    await page.evaluate(() => (document.getElementById('readout')!.textContent = ''));
+    await page.setInputFiles('#importConfigFile', elsewhere);
+    await page.waitForFunction(() => document.getElementById('readout')?.textContent?.includes('read from a file') === true);
+    expect(await page.$$eval('#founders option', (options) => options.filter((o) => o.textContent?.startsWith('Dinky')).length)).toBe(2);
     expect(problems).toEqual([]);
   }, 60_000);
 
@@ -808,7 +826,7 @@ describe('the evolution page in a browser', () => {
     const saving = page.waitForEvent('download');
     await press(page, '#exportConfig');
     const file = JSON.parse(await readFile(await (await saving).path(), 'utf8')) as Record<string, unknown>;
-    expect(file['fleets']).toEqual(['Line of Battle']);
+    expect((file['fleets'] as { name: string }[]).map((fleet) => fleet.name)).toEqual(['Line of Battle']);
     expect(file['fleet']).toMatchObject({ radius: 400, maxShips: 8, operators: { add: 3 } });
 
     await page.click('#start');
@@ -853,7 +871,7 @@ describe('the evolution page in a browser', () => {
     const saving = page.waitForEvent('download');
     await press(page, '#exportConfig');
     const file = JSON.parse(await readFile(await (await saving).path(), 'utf8')) as Record<string, unknown>;
-    expect(file['versus']).toMatchObject({ founders: ['Dinky'], population: 6, group: 1 });
+    expect(file['versus']).toMatchObject({ founders: [{ name: 'Dinky' }], population: 6, group: 1 });
 
     // Side B fixed is side A bred against an opponent that does not change.
     await toSetup(page);

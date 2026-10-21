@@ -5,6 +5,7 @@ import { parseRunConfig, runConfigFileProblem, serialiseRunConfig } from '../evo
 import { DEFAULT_RUN, type GenerationRecord, type RunConfig, type RunRecord } from '../evolution/run.js';
 import { championGrid, GridMeasure } from '../evolution/yardstick.js';
 import { NO_BUDGET } from '../sim/bill.js';
+import { serialiseBlueprint } from '../sim/index.js';
 
 /** Small and short: what is under test is who fights whom and who breeds, not the fighting. */
 const SETTINGS: Partial<RunConfig> = {
@@ -208,9 +209,9 @@ describe('a co-evolution run', { timeout: 60_000 }, () => {
 
 describe('a run-config file with versus', () => {
   const setup = {
-    founders: ['Dinky'],
+    founders: [DINKY],
     versus: {
-      founders: ['Gunship'],
+      founders: [GUNSHIP],
       fleets: [],
       coevolution: {
         rival: { population: 6, group: 1, budget: NO_BUDGET },
@@ -228,7 +229,7 @@ describe('a run-config file with versus', () => {
   it('round-trips side B, its hall and its own settings', () => {
     const file = JSON.parse(JSON.stringify(serialiseRunConfig(setup)));
     expect(file.versus).toEqual({
-      founders: ['Gunship'],
+      founders: [serialiseBlueprint(GUNSHIP)],
       hall: 3,
       phaseWin: 0.75,
       phaseCap: 4,
@@ -238,8 +239,10 @@ describe('a run-config file with versus', () => {
       group: 1,
       budget: { metal: null, fuel: null, build: null },
     });
-    expect(parseRunConfig(file).versus).toEqual(setup.versus);
-    expect(parseRunConfig({ founders: ['Dinky'] }).versus).toBeNull();
+    const versus = parseRunConfig(file).versus!;
+    expect(versus.coevolution).toEqual(setup.versus.coevolution);
+    expect(versus.founders.map(serialiseBlueprint)).toEqual([serialiseBlueprint(GUNSHIP)]);
+    expect(parseRunConfig({}).versus).toBeNull();
   });
 
   it("keeps side B's own mutation weights, and only those it sets", () => {
@@ -258,20 +261,24 @@ describe('a run-config file with versus', () => {
     expect(file.versus.build).toBeUndefined();
     expect(parseRunConfig(file).versus!.coevolution.rival.mutation).toEqual(own.versus.coevolution.rival.mutation);
     expect(file.versus.evolves).toBeUndefined();
-    const fixed = parseRunConfig({ versus: { founders: ['Gunship'], evolves: false } });
+    const fixed = parseRunConfig({ versus: { founders: [serialiseBlueprint(GUNSHIP)], evolves: false } });
     expect(fixed.versus!.coevolution.rivalEvolves).toBe(false);
     expect(serialiseRunConfig(fixed).versus).toMatchObject({ evolves: false });
-    expect(runConfigFileProblem({ versus: { founders: ['Gunship'], kinds: { turret: -1 } } })).toMatch(/versus\.kinds\.turret/);
+    expect(runConfigFileProblem({ versus: { founders: [serialiseBlueprint(GUNSHIP)], kinds: { turret: -1 } } })).toMatch(
+      /versus\.kinds\.turret/,
+    );
+    expect(runConfigFileProblem({ versus: { founders: ['Gunship'] } })).toMatch(/versus\.founders\[0\]/);
   });
 
   it('refuses a side B with nothing to found it, or a hall or round that is not a count', () => {
+    const gunship = serialiseBlueprint(GUNSHIP);
     expect(runConfigFileProblem({ versus: {} })).toMatch(/at least one founder/);
-    expect(runConfigFileProblem({ versus: { founders: ['Gunship'], group: 0 } })).toMatch(/versus\.group/);
-    expect(runConfigFileProblem({ versus: { founders: ['Gunship'], hall: 1.5 } })).toMatch(/hall must be a whole number/);
-    expect(runConfigFileProblem({ versus: { founders: ['Gunship'], phaseWin: 2 } })).toMatch(/phaseWin/);
-    expect(runConfigFileProblem({ versus: { founders: ['Gunship'], phaseCap: 0 } })).toMatch(/phaseCap/);
-    expect(runConfigFileProblem({ versus: { founders: ['Gunship'], shieldedDrills: -1 } })).toMatch(/shieldedDrills/);
-    expect(runConfigFileProblem({ versus: { founders: ['Gunship'], bareCoreDrills: 0 } })).toBeNull();
+    expect(runConfigFileProblem({ versus: { founders: [gunship], group: 0 } })).toMatch(/versus\.group/);
+    expect(runConfigFileProblem({ versus: { founders: [gunship], hall: 1.5 } })).toMatch(/hall must be a whole number/);
+    expect(runConfigFileProblem({ versus: { founders: [gunship], phaseWin: 2 } })).toMatch(/phaseWin/);
+    expect(runConfigFileProblem({ versus: { founders: [gunship], phaseCap: 0 } })).toMatch(/phaseCap/);
+    expect(runConfigFileProblem({ versus: { founders: [gunship], shieldedDrills: -1 } })).toMatch(/shieldedDrills/);
+    expect(runConfigFileProblem({ versus: { founders: [gunship], bareCoreDrills: 0 } })).toBeNull();
   });
 });
 
