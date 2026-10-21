@@ -3,6 +3,7 @@ import {
   aboardPose,
   footprintOf,
   modulesOverlap,
+  padHolds,
   originOf,
   reachAgainst,
   rebuiltDesign,
@@ -10,6 +11,7 @@ import {
   sameOrigin,
   seamedDesign,
   shotSpread,
+  slipwayHolds,
   subDesign,
   triggerMask,
   weldDesigns,
@@ -485,6 +487,8 @@ interface Yard {
   readonly building: Int32Array;
   /** How far from its bow that ship is built, metres. */
   readonly depth: Float64Array;
+  /** The design of the ship each slipway is building, which a change of craft waits for. */
+  readonly craft: (ShipDesign | null)[];
 }
 
 function yardFor(design: ShipDesign): Yard | null {
@@ -495,6 +499,7 @@ function yardFor(design: ShipDesign): Yard | null {
     work: new Float64Array(n),
     building: new Int32Array(n).fill(-1),
     depth: new Float64Array(n),
+    craft: design.yards!.map(() => null),
   };
 }
 
@@ -1010,6 +1015,8 @@ export class Ships {
   private readonly mountDoctrines: ({ design: ShipDesign; byMount: Map<DesignTurret, Targeting> } | null)[] = [];
   /** How many each pad and slipway is told to keep, by its module's lasting key, over its design's count. */
   private readonly keeps: (Readonly<Record<string, number>> | undefined)[] = [];
+  /** What each pad and slipway is told to build, by its module's lasting key, over its design's craft. */
+  private readonly crafts: (Readonly<Record<string, ShipDesign>> | undefined)[] = [];
   /** For each design, each pad's clear side as an angle in the design's frame; NaN not yet worked out. */
   private readonly padSides = new WeakMap<ShipDesign, Float64Array>();
   /** The carrier each fighter last set out from or landed on, or -1. */
@@ -1582,6 +1589,7 @@ export class Ships {
     this.overrides.push(undefined);
     this.mountDoctrines.push(null);
     this.keeps.push(undefined);
+    this.crafts.push(undefined);
     this.recharging.push(0);
     this.home.push(-1);
     this.touchedSource.push(-Infinity);
@@ -2556,6 +2564,45 @@ export class Ships {
     return told[slotKey(this.launched[i]!, module)] ?? keep;
   }
 
+  /**
+   * Tell the pad or slipway of ship `i` with lasting key `slot` to build
+   * `craft` from now on, or with `null` its design's craft. False, and nothing
+   * changed, for no such slot or a craft it could not build: a pad builds a
+   * fighter that fits on it, a slipway a ship no wider than it is.
+   */
+  setCraft(i: number, slot: string, craft: ShipDesign | null): boolean {
+    const launched = this.launched[i];
+    if (this.alive[i] !== 1 || launched === undefined) return false;
+    const pad = launched.builds?.find((order) => slotKey(launched, order.pad) === slot);
+    const yard = launched.yards?.find((order) => slotKey(launched, order.slipway) === slot);
+    if (pad === undefined && yard === undefined) return false;
+    if (craft !== null) {
+      const at = launched.modules[pad?.pad ?? yard!.slipway]!.spec;
+      const fits =
+        pad !== undefined
+          ? craft.fighter && padHolds(craft, at)
+          : !craft.fighter && (craft.aboard?.length ?? 0) === 0 && slipwayHolds(craft, at);
+      if (!fits) return false;
+    }
+    const next: Record<string, ShipDesign> = { ...this.crafts[i] };
+    if (craft === null) delete next[slot];
+    else next[slot] = craft;
+    this.crafts[i] = Object.keys(next).length === 0 ? undefined : next;
+    return true;
+  }
+
+  /** What ship `i`'s pad or slipway `module`, of the design it was launched as, builds: told, or its design's. */
+  private craftFor(i: number, module: number, craft: ShipDesign): ShipDesign {
+    const told = this.crafts[i];
+    if (told === undefined) return craft;
+    return told[slotKey(this.launched[i]!, module)] ?? craft;
+  }
+
+  /** What ship `i`'s pads and slipways have been told to build, by `slotKey`. */
+  craftsOf(i: number): Readonly<Record<string, ShipDesign>> | undefined {
+    return this.crafts[i];
+  }
+
   /** What ship `i`'s pads and slipways have been told to keep, by `slotKey`. */
   keepsOf(i: number): Readonly<Record<string, number>> | undefined {
     return this.keeps[i];
@@ -2981,6 +3028,22 @@ export class Ships {
    * second of it. Without one, no engine fires on its own account and every
    * ship flies exactly as it would have.
    */
+  /**
+   * What every body's generators make this step, banked, with no pilot to
+   * draw on it: a battle whose ships are not flown still charges robots.
+   */
+  generate(dt: number, world: World): void {
+    const bodies = world.bodies;
+    this.bodyStore = bodies;
+    for (let i = 0; i < this.alive.length; i++) {
+      if (this.alive[i] === 0) continue;
+      const b = bodies.indexOf(this.bodyIds[i]!);
+      if (b < 0 || this.shipByBody[b] !== i) continue;
+      this.power.open(b, dt, this.damage);
+      this.power.close(b);
+    }
+  }
+
   command(dt: number, world: World, grid?: SpatialGrid): void {
     const bodies = world.bodies;
     this.bodyStore = bodies;
@@ -5211,6 +5274,12 @@ export class Ships {
     const fitting = robot.build < 0 && design.modules[m]!.shell === undefined;
     const rebuild = fitting ? null : this.rebuildFor(owner, design);
     const l = rebuild === null ? -1 : robot.build >= 0 ? robot.build : rebuild.at.indexOf(m);
+    // Begun for a design it has since been refitted from: nothing to build there now.
+    if (rebuild !== null && l < 0) {
+      robot.build = -1;
+      this.sendOut(b, design, robots, robot, owner);
+      return false;
+    }
     const origin = rebuild === null ? null : originOf(this.launched[owner]!, l);
     const whole = origin === null ? design.modules[m]!.stats : origin.design.modules[origin.module]!.stats;
     const work = buildWork(whole);
@@ -6774,6 +6843,7 @@ export class Ships {
       // And what it was told of how to fight.
       this.overrides[j] = this.overrides[side];
       this.keeps[j] = this.keeps[side];
+      this.crafts[j] = this.crafts[side];
       this.doctrines[j] = overriddenDoctrine(this.ownDoctrines[j]!, this.overrides[j]);
       // Still that ship, so it rebuilds to the design that ship set out as: a
       // hull cut in two can grow back into two. Wreckage sets out as itself.
@@ -8220,6 +8290,8 @@ export class Ships {
     for (const r of this.ridersOf(bodies, b)) if (r !== p) this.board(r, p);
     this.launched[i] = to;
     this.rebuilds[i] = null;
+    // What its robots were building is numbered by the design it no longer has.
+    for (const robot of this.robots.on(b) ?? []) if (this.pilotAt(b, robot.bay) === i) robot.build = -1;
     this.ownDoctrines[i] = to.doctrine;
     this.doctrines[i] = overriddenDoctrine(to.doctrine, this.overrides[i]);
     this.mountDoctrines[i] = null;
@@ -8274,7 +8346,7 @@ export class Ships {
         if (pad < 0 || !this.ownsAt(i, b, pad)) continue;
         if (this.fielded(bodies, i, brood.fighters[k]!) >= this.keepFor(i, order.pad, order.keep)) continue;
         if (!this.padFree(bodies, i, pad) || this.awaited(i, pad)) continue;
-        this.layDown(world, i, b, design, pad, k, order.design);
+        this.layDown(world, i, b, design, pad, k, this.craftFor(i, order.pad, order.design));
       }
     }
   }
@@ -8303,7 +8375,9 @@ export class Ships {
       f = -1;
     }
     if (f < 0 && this.fielded(bodies, i, yard.ships[k]!) >= this.keepFor(i, order.slipway, order.keep)) return;
-    const craft = order.design;
+    // One already on the slipway is finished as it was begun.
+    if (f < 0) yard.craft[k] = this.craftFor(i, order.slipway, order.design);
+    const craft = yard.craft[k] ?? order.design;
     const length = printLength(craft);
     const depth = f < 0 ? 0 : yard.depth[k]!;
     if (f >= 0 && this.printing[f] !== 1) return;
@@ -8745,7 +8819,7 @@ export class Ships {
     const design = this.designs[i]!;
     const rebuild = this.rebuildFor(i, design);
     for (const order of yards) {
-      const craft = order.design;
+      const craft = this.craftFor(i, order.slipway, order.design);
       if (!(craft.turrets.some((t) => t.main) || craft.mainWeaponEngines.length > 0)) continue;
       const slipway = rebuild.at[order.slipway]!;
       if (slipway < 0 || !(this.left(i, b, slipway, DamageEffect.Grip) > 0)) continue;
@@ -8756,7 +8830,7 @@ export class Ships {
       if (this.metal.pieceHeld(b, slipway) >= kg * (1 + REPAIR_WASTE)) return true;
     }
     for (const order of builds) {
-      const fighter = order.design;
+      const fighter = this.craftFor(i, order.pad, order.design);
       const core = fighter.cores[0];
       if (core === undefined || !(fighter.turrets.some((t) => t.main) || fighter.mainWeaponEngines.length > 0)) continue;
       const pad = rebuild.at[order.pad]!;
