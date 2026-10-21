@@ -94,9 +94,6 @@ an entry is either still open or it is gone.
          8,000 are still copied, a body's changing state and its engine layout's solver arrays among them.
          Spreading one over frames would mean holding the battle still while it is copied, so the way on is
          a cheaper copy still: fewer, larger arrays in the sim, or copying only what changed.
-       - **Flashes on landing at a checkpoint.** Across steps re-simulated, flashes are rebuilt as they
-         would have been drawn; landing on a checkpoint re-simulates nothing, so it shows none until the
-         next step.
     1. **Attack, defend and ram** — built; the keys table on each battle page says how to give them. Building it chose:
        - **Keys:** K, D and R arm attack, defend and ram (T being the fleet strips), and S stops. A takes the whole side, and the
          arcs moved to Ctrl or Cmd+A on every battle page; the editors keep A for them.

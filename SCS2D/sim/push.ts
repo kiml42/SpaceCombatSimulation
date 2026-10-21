@@ -1,7 +1,15 @@
 import { abs, atan2, cos, HALF_PI, max, min, round, sin } from './math.js';
 import { blockCentre, boxAngle, moduleCentre, moduleOutline, weldBox, type ModuleSpec } from './modules.js';
 import { isTriangle, outlineAxes, projectOutline } from './shape.js';
-import { ATTACHMENT_TOLERANCE, contactWidth, expandWithOrigins, isInstance, type Assembly, type Placement } from './blueprint.js';
+import {
+  ATTACHMENT_TOLERANCE,
+  contactWidth,
+  expandWithOrigins,
+  isInstance,
+  weldedWidth,
+  type Assembly,
+  type Placement,
+} from './blueprint.js';
 
 /**
  * Moving a module's face carries its neighbours with it.
@@ -77,6 +85,10 @@ function pushFace(
         : [placement],
   );
 
+  // Each box's outline and weld box worked out once, rather than for every pair they are tested in.
+  const shapes = boxes.map((mine) => mine.map(outlineOf));
+  const welds = boxes.map((mine) => mine.map(weldBox));
+
   const dx = shift > 0 ? face.nx : -face.nx;
   const dy = shift > 0 ? face.ny : -face.ny;
   const distance = abs(shift);
@@ -100,14 +112,14 @@ function pushFace(
     } else if (shift > 0) {
       // Growing into it, which takes in a module turned so that its corner
       // hangs below the face.
-      const meets = firstContact([resized], mine, dx, dy, distance);
+      const meets = firstContact(shapes[index]!, shapes[j]!, dx, dy, distance);
       if (meets !== null) raise(j, distance - meets);
     }
   }
   if (moves.size === 0) return list;
 
-  const welded = boxes.map((mine, j) =>
-    boxes.flatMap((theirs, k) => (k !== j && mine.some((a) => theirs.some((b) => contactWidth(a, b) > 0)) ? [k] : [])),
+  const welded = welds.map((mine, j) =>
+    welds.flatMap((theirs, k) => (k !== j && mine.some((a) => theirs.some((b) => weldedWidth(a, b) > 0)) ? [k] : [])),
   );
   const joined = reachable(welded, index, new Set());
 
@@ -116,7 +128,7 @@ function pushFace(
     for (const [m, by] of [...moves]) {
       for (let j = 0; j < list.length; j++) {
         if (j === index || j === m) continue;
-        const meets = firstContact(boxes[m]!, boxes[j]!, dx, dy, by);
+        const meets = firstContact(shapes[m]!, shapes[j]!, dx, dy, by);
         if (meets !== null && raise(j, by - meets)) grew = true;
       }
     }
@@ -159,7 +171,7 @@ function reachable(welded: readonly number[][], from: number, avoid: ReadonlySet
  * way to overlapping by more than `ATTACHMENT_TOLERANCE`: a box side by side,
  * or meeting at a corner, is never met.
  */
-function firstContact(movers: readonly ModuleSpec[], others: readonly ModuleSpec[], dx: number, dy: number, limit: number): number | null {
+function firstContact(movers: readonly Shape[], others: readonly Shape[], dx: number, dy: number, limit: number): number | null {
   let first: number | null = null;
   for (const a of movers) {
     for (const b of others) {
@@ -170,12 +182,40 @@ function firstContact(movers: readonly ModuleSpec[], others: readonly ModuleSpec
   return first;
 }
 
+/** A module's outline, and the box round it. */
+interface Shape {
+  readonly corners: number[];
+  readonly count: number;
+  readonly lx: number;
+  readonly ly: number;
+  readonly hx: number;
+  readonly hy: number;
+}
+
+function outlineOf(spec: ModuleSpec): Shape {
+  const corners: number[] = [];
+  const count = moduleOutline(spec, corners);
+  let lx = Infinity;
+  let ly = Infinity;
+  let hx = -Infinity;
+  let hy = -Infinity;
+  for (let c = 0; c < count * 2; c += 2) {
+    lx = min(lx, corners[c]!);
+    hx = max(hx, corners[c]!);
+    ly = min(ly, corners[c + 1]!);
+    hy = max(hy, corners[c + 1]!);
+  }
+  return { corners, count, lx, ly, hx, hy };
+}
+
 /** `firstContact` for one pair, by the separating-axis test swept along the motion. */
-function contact(a: ModuleSpec, b: ModuleSpec, dx: number, dy: number, limit: number): number | null {
-  const ca: number[] = [];
-  const cb: number[] = [];
-  const countA = moduleOutline(a, ca);
-  const countB = moduleOutline(b, cb);
+function contact(a: Shape, b: Shape, dx: number, dy: number, limit: number): number | null {
+  // Never met if the box `a` sweeps through misses `b`'s.
+  const sx = dx * limit;
+  const sy = dy * limit;
+  if (a.lx + min(0, sx) > b.hx || a.hx + max(0, sx) < b.lx || a.ly + min(0, sy) > b.hy || a.hy + max(0, sy) < b.ly) return null;
+  const { corners: ca, count: countA } = a;
+  const { corners: cb, count: countB } = b;
   // The two outlines' edge normals, and the normal to the motion: enough to
   // separate a pair of convex shapes sweeping past each other.
   const axes: number[] = [];
