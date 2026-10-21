@@ -263,15 +263,12 @@ export function refitPlan(from: Blueprint, to: Blueprint): RefitPlan | null {
     return null;
   }
   const kept = new Set<number>();
-  const byKey = new Map<string, number>();
-  nowKeys.forEach((key, k) => byKey.set(key, k));
   const takenDown: ModuleSpec[] = [];
-  for (let m = 0; m < was.length; m++) {
-    const k = byKey.get(wasKeys[m]!);
-    const same = k !== undefined && JSON.stringify(was[m]) === JSON.stringify(now[k]);
-    if (same) kept.add(k);
-    else takenDown.push(was[m]!);
-  }
+  const as = keptAs(
+    was.map((spec, m) => ({ key: wasKeys[m], spec })),
+    now.map((spec, k) => ({ key: nowKeys[k], spec })),
+  );
+  as.forEach((k, m) => (k >= 0 ? kept.add(k) : takenDown.push(was[m]!)));
   const built: number[] = [];
   for (let k = 0; k < now.length; k++) if (!kept.has(k)) built.push(k);
   const refused = !now.some((m) => m.kind === 'core')
@@ -293,14 +290,47 @@ export function refitShare(from: ShipDesign, to: ShipDesign): { kept: number; of
   const wasKeys = from.keys;
   const nowKeys = to.keys;
   if (wasKeys === undefined || nowKeys === undefined) return null;
-  const byKey = new Map<string, DesignModule>();
-  for (const module of to.modules) byKey.set(nowKeys[module.index]!, module);
-  let kept = 0;
-  for (const module of from.modules) {
-    const now = byKey.get(wasKeys[module.index]!);
-    if (now !== undefined && JSON.stringify(now.spec) === JSON.stringify(module.spec)) kept++;
-  }
+  const as = keptAs(
+    from.modules.map((module) => ({ key: wasKeys[module.index], spec: module.spec })),
+    to.modules.map((module) => ({ key: nowKeys[module.index], spec: module.spec })),
+  );
+  const kept = as.filter((k) => k >= 0).length;
   return kept === 0 ? null : { kept, of: from.modules.length, bay: to.modules.some((m) => m.spec.kind === 'robotBay') };
+}
+
+/**
+ * Which module of `now` each of `was` is kept as by a refit, or -1: the one
+ * with its key, laid out the same, and failing that any left laid out the
+ * same, as when a placement is moved out of an assembly. A null in `was` is
+ * kept as nothing.
+ */
+export function keptAs(
+  was: readonly ({ key: string | undefined; spec: ModuleSpec } | null)[],
+  now: readonly { key: string | undefined; spec: ModuleSpec }[],
+): number[] {
+  const byKey = new Map<string, number>();
+  now.forEach((module, k) => module.key !== undefined && byKey.set(module.key, k));
+  const taken = new Uint8Array(now.length);
+  const as = was.map((module) => {
+    const k = module?.key === undefined ? undefined : byKey.get(module.key);
+    if (k === undefined || JSON.stringify(module!.spec) !== JSON.stringify(now[k]!.spec)) return -1;
+    taken[k] = 1;
+    return k;
+  });
+  const bySpec = new Map<string, number[]>();
+  now.forEach((module, k) => {
+    if (taken[k] === 1) return;
+    const spec = JSON.stringify(module.spec);
+    const list = bySpec.get(spec);
+    if (list === undefined) bySpec.set(spec, [k]);
+    else list.push(k);
+  });
+  was.forEach((module, m) => {
+    if (module === null || as[m]! >= 0) return;
+    const k = bySpec.get(JSON.stringify(module.spec))?.shift();
+    if (k !== undefined) as[m] = k;
+  });
+  return as;
 }
 
 /** The highest id any placement of a blueprint has; 0 for none. */

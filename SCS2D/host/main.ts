@@ -13,7 +13,7 @@ import { torchRun } from '../scenarios/torchRun.js';
 import { broadside } from '../scenarios/broadside.js';
 import { hooked } from '../scenarios/hooked.js';
 import { salvageRun } from '../scenarios/salvage.js';
-import { mending, refitting } from '../scenarios/mending.js';
+import { catamaranRefits, mending, refitting } from '../scenarios/mending.js';
 import { scavenge } from '../scenarios/scavenge.js';
 import { factory, padRebuild } from '../scenarios/carrier.js';
 import { shipyard } from '../scenarios/shipyard.js';
@@ -73,6 +73,7 @@ export function start(): void {
     { name: 'Salvage Run', create: () => salvageRun(SEED) },
     { name: 'Mending', create: () => mending(SEED) },
     { name: 'Refitting', create: () => refitting(SEED) },
+    { name: 'Catamaran Refits', create: () => catamaranRefits(SEED) },
     { name: 'Scavenge', create: () => scavenge(SEED) },
     { name: 'Pad Rebuild', create: () => padRebuild(SEED) },
     { name: 'Factory', create: () => factory(SEED) },

@@ -17,7 +17,7 @@ import { beamDuel } from '../../scenarios/beamDuel.js';
 import { soloOrdering } from '../../scenarios/ordering.js';
 import { hooked } from '../../scenarios/hooked.js';
 import { salvageRun } from '../../scenarios/salvage.js';
-import { mending, refitting } from '../../scenarios/mending.js';
+import { catamaranRefits, mending, refitting } from '../../scenarios/mending.js';
 import { scavenge } from '../../scenarios/scavenge.js';
 import { factory, padRebuild } from '../../scenarios/carrier.js';
 import { shipyard } from '../../scenarios/shipyard.js';
@@ -437,6 +437,16 @@ export function refittingScenario(seed = 20261018): ScenarioRun {
   };
 }
 
+export function catamaranRefitsScenario(seed = 20261021): ScenarioRun {
+  const run = catamaranRefits(seed);
+  return {
+    step: () => run.step(),
+    checksum: () =>
+      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
+    describe: () => describeBattle(run),
+  };
+}
+
 export function salvageRunScenario(seed = 20261019): ScenarioRun {
   const run = salvageRun(seed);
   return {
@@ -575,8 +585,10 @@ export const SCENARIOS = {
   salvageRun: { steps: 14_400, build: () => salvageRunScenario() },
   // Long enough for the robots to mend everything and come home.
   mending: { steps: 15_600, build: () => mendingScenario() },
-  // Long enough for the new fin to go up, the old fin and the engine to come down, and the tank to go up.
+  // Long enough for the new fin to go up, the engine to come down, and the old fin to be refitted as the tank.
   refitting: { steps: 21_600, build: () => refittingScenario() },
+  // Long enough for both Catamarans to finish, their turrets refitted in place.
+  catamaranRefits: { steps: 30_000, build: () => catamaranRefitsScenario() },
   // Long enough for both scavengers to drink their fill, one from three wrecks.
   scavenge: { steps: 18_000, build: () => scavengeScenario() },
   padRebuild: { steps: 4_800, build: () => padRebuildScenario() },
