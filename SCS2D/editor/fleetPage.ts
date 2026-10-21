@@ -1,4 +1,5 @@
 import { keyHelp } from '../host/keyHelp.js';
+import { viewOptions } from '../host/viewOptions.js';
 import {
   degreesToRadians,
   isGroupUse,
@@ -14,7 +15,7 @@ import {
   type FleetEntry,
   type FleetStep,
 } from '../sim/index.js';
-import { ARCS_KEY, draw, nextArcs, type Arcs } from '../render/canvas2d.js';
+import { ARC_LABELS, ARCS_KEY, draw, nextArcs, type Arcs } from '../render/canvas2d.js';
 import { frame, snapStep, type Camera } from '../render/camera.js';
 import { snap } from './edit.js';
 import {
@@ -117,6 +118,16 @@ export function startFleetEditor(): void {
   const snapshot = new Snapshot();
   let fitPending = true;
   let arcs: Arcs = 'none';
+  const viewBar = viewOptions(canvas.parentElement ?? document.body, [
+    {
+      label: () => ARC_LABELS[arcs],
+      title: 'Cycle the firing arcs drawn: none, where each gun may point, and where each will fire (A)',
+      press: () => {
+        arcs = nextArcs(arcs);
+        render();
+      },
+    },
+  ]);
 
   const fleetList = el<HTMLSelectElement>('fleet');
   const fleetName = el<HTMLInputElement>('fleetName');
@@ -897,6 +908,7 @@ export function startFleetEditor(): void {
       render();
     } else if (event.key.toLowerCase() === ARCS_KEY && !event.ctrlKey && !event.metaKey) {
       arcs = nextArcs(arcs);
+      viewBar.refresh();
       render();
     } else if (event.key === 'Delete' || event.key === 'Backspace') {
       event.preventDefault();

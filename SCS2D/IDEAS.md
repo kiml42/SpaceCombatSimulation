@@ -73,7 +73,6 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Add a ship to a running battle, for quick testing. Dropdown in the corner to choose a ship to add to the battle. click and drag to chose position and velocity (position from first click, drag to N seconds worth of distance for the initial velocity.) Ship is instantly spawned when you let go.
 - A selected ship's framing takes in and rings what it is escorting; it could do the same for what it is keeping clear of, possibly with a symbol to show what sort of attention the selected ship is paying to each
 - All tanks, holds and batteries should animate emptying along their longer axis so the interface moves faster, and is clearer to read.
-- Include the view options bar from the editor in the battle UI and Fleet editor
 
 ## Skirmish
 - When the enemy are evolving, make the history fill the battle area.
