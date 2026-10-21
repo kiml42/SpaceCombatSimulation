@@ -1,6 +1,7 @@
 import type { ShipDesign } from './blueprint.js';
 import { DamageEffect, type Damage } from './damage.js';
 import { Store } from './store.js';
+import { fixed } from './fixed.js';
 
 /**
  * What every body's batteries hold, joules, and what its generators make.
@@ -44,8 +45,8 @@ export class Charge extends Store {
       rate[m] = design.modules[m]!.stats.chargeRate;
       makes[m] = design.modules[m]!.stats.generation;
     }
-    this.rate[bodyIndex] = rate;
-    this.makes[bodyIndex] = makes;
+    this.rate[bodyIndex] = fixed(rate);
+    this.makes[bodyIndex] = fixed(makes);
     this.supply[bodyIndex] = new Float64Array(this.stores[bodyIndex]!.length);
     this.outflow[bodyIndex] = new Float64Array(n);
     this.inflow[bodyIndex] = new Float64Array(n);

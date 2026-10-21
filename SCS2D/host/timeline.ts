@@ -26,7 +26,8 @@ export interface TimelineActions {
 }
 
 export interface Timeline {
-  show(history: History): void;
+  /** Show a history; `leading` if its newest row is only the enemy leading a generation still being fought. */
+  show(history: History, leading?: boolean): void;
 }
 
 export function timeline(box: HTMLElement, actions: TimelineActions): Timeline {
@@ -35,6 +36,8 @@ export function timeline(box: HTMLElement, actions: TimelineActions): Timeline {
   /** Folded runs opened, by where they start, so a redraw keeps them open. */
   const opened = new Set<number>();
   let history: History | null = null;
+  /** The row of the enemy leading a generation still being fought, drawn without a stamp. */
+  let leadingRow: MatchRow | null = null;
 
   const picture = (id: string, fleet: Fleet): Picture => {
     let held = pictures.get(id);
@@ -62,7 +65,7 @@ export function timeline(box: HTMLElement, actions: TimelineActions): Timeline {
     out.className = 'combatant';
     // Only the player's side is stamped, so a stamp reads as how the player did.
     const stamp = document.createElement('span');
-    if (which === 0) {
+    if (which === 0 && row !== leadingRow) {
       const won = row.winner === 0;
       stamp.className = `stamp ${won ? 'won' : row.winner < 0 ? 'drew' : 'beaten'}`;
       stamp.textContent = won ? 'VICTORY' : row.winner < 0 ? 'DRAW' : 'DEFEAT';
@@ -96,14 +99,16 @@ export function timeline(box: HTMLElement, actions: TimelineActions): Timeline {
     pictures.className = 'pictures';
     const whole = canvas(FORMATION_WIDTH, FORMATION_HEIGHT);
     whole.title = 'how it is arranged';
-    drawCentred(whole, formationSnapshot(drawn, scratch), scales.formation);
+    // The enemy as it sets out in the battle, facing the player's fleet.
+    const turned = which === 1;
+    drawCentred(whole, formationSnapshot(drawn, scratch, turned), scales.formation);
     pictures.append(whole);
     for (const kind of drawn.kinds) {
       const tile = document.createElement('span');
       tile.className = 'kind';
       const hull = canvas(KIND_WIDTH, KIND_HEIGHT);
       hull.title = kind.name;
-      drawCentred(hull, kindSnapshot(kind, scratch), scales.kind);
+      drawCentred(hull, kindSnapshot(kind, scratch, turned), scales.kind);
       tile.append(hull);
       if (kind.count > 1) {
         const count = document.createElement('span');
@@ -130,13 +135,14 @@ export function timeline(box: HTMLElement, actions: TimelineActions): Timeline {
 
   const what = (row: MatchRow): string => {
     if (row.kind === 'try') return `Round ${row.round}`;
+    if (row === leadingRow) return `Round ${row.round} · evolving, generation ${row.generation ?? '?'}, leading so far`;
     if (row.kind === 'search') return `Round ${row.round} · evolving, generation ${row.generation ?? '?'}`;
     return `Round ${row.round} · the enemy's answer`;
   };
 
   const matchRow = (row: MatchRow, scales: { kind: number; formation: number }): HTMLElement => {
     const out = document.createElement('div');
-    out.className = `match ${row.winner === 0 ? 'playerWon' : 'enemyWon'}`;
+    out.className = row === leadingRow ? 'match leading' : `match ${row.winner === 0 ? 'playerWon' : 'enemyWon'}`;
     const head = document.createElement('div');
     head.className = 'matchHead';
     const label = document.createElement('span');
@@ -203,8 +209,9 @@ export function timeline(box: HTMLElement, actions: TimelineActions): Timeline {
   };
 
   return {
-    show(next) {
+    show(next, leading = false) {
       history = next;
+      leadingRow = leading ? (next.rows[next.rows.length - 1] ?? null) : null;
       box.replaceChildren();
       const rows = next.rows;
       if (rows.length === 0) {

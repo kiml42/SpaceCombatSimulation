@@ -1,7 +1,8 @@
-import { capture, NEUTRAL_TEAM, Snapshot, type ImpactLog, type ShipView } from '../sim/index.js';
+import { capture, compileBlueprint, NEUTRAL_TEAM, Snapshot, type Blueprint, type ImpactLog, type ShipView } from '../sim/index.js';
 import { NO_TARGET, OrderCancelCondition } from '../sim/ships.js';
 import { Flashes } from '../render/flashes.js';
 import {
+  ARC_LABELS,
   ARCS_KEY,
   closeUps,
   draw,
@@ -19,6 +20,7 @@ import {
   type Arcs,
 } from '../render/canvas2d.js';
 import type { Strips } from '../render/fleetStrip.js';
+import { viewOptions } from './viewOptions.js';
 import type { Inset } from '../render/inset.js';
 import {
   frame,
@@ -142,7 +144,23 @@ export interface BattleView {
   readonly orders: readonly Logged[];
   /** Where a ship was last drawn, CSS pixels from the canvas's top left, or null. */
   screenOf(ship: number): { x: number; y: number } | null;
+  /**
+   * Make the next press on the view put a new ship built to `blueprint` into
+   * the battle for `team`, asked as it is let go: where it is pressed, moving
+   * as far in `PLACE_SECONDS` as it is dragged, and facing that way. Escape or
+   * null gives it up. `ended` is told once it is placed or given up, not when
+   * another takes its place. Only on a battle that can take orders, as it is
+   * logged as one.
+   */
+  place(placing: { blueprint: Blueprint; team: () => number; ended?: () => void } | null): void;
+  readonly placing: boolean;
 }
+
+/** The ring and line a ship being placed is drawn as. */
+const PLACE_COLOUR = '#e9c05f';
+
+/** How many seconds of travel a drag placing a new ship gives it. */
+export const PLACE_SECONDS = 10;
 
 /** What a click on a ship can be armed to tell the selection. */
 export type Verb = 'attack' | 'defend' | 'ram' | 'dock' | 'scavenge' | 'deliver';
@@ -171,7 +189,7 @@ export function battleView(
   if (ctx === null) throw new Error('no 2d context');
 
   let battle: Battle | null = null;
-  let rewind: Rewind | null = null;
+  let rewind: Rewind<Flashes> | null = null;
   /** A step to go to, taken at the next frame, so dragging a scrub bar re-simulates once a frame at most. */
   let seeking = -1;
   const snapshot = new Snapshot();
@@ -194,6 +212,8 @@ export function battleView(
   let accumulator = 0;
   let last = 0;
   let lastSimTime = 0;
+  /** The battle's time the flashes are aged to. */
+  let flashesAt = 0;
   let arcs: Arcs = 'none';
   let teamShots = false;
   let strips = true;
@@ -202,7 +222,34 @@ export function battleView(
   let shownInsets: Inset[] = [];
   /** Where the view's settings are kept, once a page has asked for them to be. */
   let kept: { page: string; settings: ViewSettings } | null = null;
+  const options = viewOptions(canvas.parentElement ?? document.body, [
+    {
+      label: () => ARC_LABELS[arcs],
+      title: 'Cycle the firing arcs drawn (Ctrl+A)',
+      press: () => {
+        arcs = nextArcs(arcs);
+        remember();
+      },
+    },
+    {
+      label: () => (teamShots ? 'Shots: sides' : 'Shots: light'),
+      title: "Draw rounds and beams as light, or in their side's colours (C)",
+      press: () => {
+        teamShots = !teamShots;
+        remember();
+      },
+    },
+    {
+      label: () => (strips ? 'Fleets: shown' : 'Fleets: hidden'),
+      title: "Show or hide each side's ships down the view's edges (T)",
+      press: () => {
+        strips = !strips;
+        remember();
+      },
+    },
+  ]);
   const remember = (): void => {
+    options.refresh();
     if (kept === null) return;
     kept.settings.arcs = arcs;
     kept.settings.teamShots = teamShots;
@@ -306,6 +353,68 @@ export function battleView(
     armed = null;
   };
 
+  /** A ship being placed: what and whose, and once pressed, where from and where the drag has got to, world metres. */
+  let placing: {
+    blueprint: Blueprint;
+    team: () => number;
+    ended?: () => void;
+    radius: number;
+    from: { x: number; y: number } | null;
+    to: { x: number; y: number };
+  } | null = null;
+  const worldAt = (event: PointerEvent): { x: number; y: number } => {
+    const rect = canvas.getBoundingClientRect();
+    const ratio = canvas.width / rect.width;
+    const px = (event.clientX - rect.left) * ratio - canvas.width / 2;
+    const py = (event.clientY - rect.top) * ratio - canvas.height / 2;
+    return { x: camera.x + px / camera.scale, y: camera.y - py / camera.scale };
+  };
+  // Ahead of panning and picking, which a press placing a ship is neither.
+  canvas.addEventListener(
+    'pointerdown',
+    (event) => {
+      if (placing === null || event.button !== 0) return;
+      event.stopImmediatePropagation();
+      canvas.setPointerCapture(event.pointerId);
+      placing.from = worldAt(event);
+      placing.to = placing.from;
+    },
+    { capture: true },
+  );
+  canvas.addEventListener(
+    'pointermove',
+    (event) => {
+      if (placing === null) return;
+      event.stopImmediatePropagation();
+      placing.to = worldAt(event);
+    },
+    { capture: true },
+  );
+  canvas.addEventListener(
+    'pointerup',
+    (event) => {
+      if (placing?.from == null) return;
+      event.stopImmediatePropagation();
+      const { blueprint, team, from, ended } = placing;
+      const to = worldAt(event);
+      placing = null;
+      ended?.();
+      const dx = to.x - from.x;
+      const dy = to.y - from.y;
+      issue({
+        kind: 'spawn',
+        blueprint,
+        team: team(),
+        x: from.x,
+        y: from.y,
+        vx: dx / PLACE_SECONDS,
+        vy: dy / PLACE_SECONDS,
+        angle: dx === 0 && dy === 0 ? 0 : Math.atan2(dy, dx),
+      });
+    },
+    { capture: true },
+  );
+
   const issue = (command: Command): void => {
     if (!ordersAllowed || rewind === null) return;
     // Given where the battle is now, not where a pending seek would have taken it.
@@ -331,7 +440,11 @@ export function battleView(
       event.preventDefault();
       nearest(event.ctrlKey || event.metaKey || event.shiftKey);
     } else if (event.key === 'Escape') {
-      if (armed !== null) armed = null;
+      if (placing !== null) {
+        const ended = placing.ended;
+        placing = null;
+        ended?.();
+      } else if (armed !== null) armed = null;
       else picked = [];
     } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === ARCS_KEY) {
       // Not the browser's select-all.
@@ -359,23 +472,17 @@ export function battleView(
 
   /** What a step hit, into the flashes, as `capture` hands it over. */
   const drain = (log: ImpactLog): void => {
-    for (let i = 0; i < log.count; i++) {
-      flashes.add(
-        log.x[i]!,
-        log.y[i]!,
-        log.energy[i]!,
-        log.kind[i]!,
-        log.body[i]!,
-        log.localX[i]!,
-        log.localY[i]!,
-        log.vx[i]!,
-        log.vy[i]!,
-        log.growth[i]!,
-        log.dirX[i]!,
-        log.dirY[i]!,
-      );
-    }
+    addHits(flashes, log);
     log.clear();
+  };
+
+  /** The flashes a frame drawn now would show: those on screen, aged to now, and what was hit since. */
+  const flashesNow = (on: Battle): Flashes => {
+    const out = flashes.copy();
+    const time = on.world.tick * on.world.dt;
+    if (time > flashesAt) out.step(time - flashesAt);
+    addHits(out, on.impacts.log);
+    return out;
   };
 
   const tick = (now: number): void => {
@@ -391,13 +498,18 @@ export function battleView(
     if (seeking >= 0 && rewind !== null) {
       // The ships being followed, from the picture last drawn, before it is replaced.
       if (!autoFrame) anchors = jumpAnchors(camera, snapshot, canvas.width, canvas.height);
-      // Flashes are rebuilt across the steps re-simulated, aged as they would have been drawn.
+      // Flashes are those kept with the checkpoint, then rebuilt across the steps re-simulated.
       const restored = rewind.seek(
         seeking,
-        () => flashes.clear(),
+        (kept) => {
+          if (kept === undefined) flashes.clear();
+          else flashes.set(kept);
+          flashesAt = rewind!.battle.world.tick * rewind!.battle.dt;
+        },
         (on) => {
           flashes.step(on.dt);
           drain(on.impacts.log);
+          flashesAt = on.world.tick * on.dt;
         },
       );
       battle = rewind.battle;
@@ -440,6 +552,7 @@ export function battleView(
 
     // Flashes fade on the battle's clock, so a paused battle holds them.
     flashes.step(simDt);
+    flashesAt = view.time;
     for (let i = 0; i < view.impactCount; i++) {
       flashes.add(
         view.impactX[i]!,
@@ -474,6 +587,23 @@ export function battleView(
       ctx.lineWidth = 1;
       ctx.strokeRect(box.x0, box.y0, box.x1 - box.x0, box.y1 - box.y0);
     }
+    if (placing?.from != null) {
+      // The new ship's hull as a ring where it will be put, and the line it will travel in `PLACE_SECONDS`.
+      const toCanvas = (p: { x: number; y: number }): [number, number] => [
+        (p.x - camera.x) * camera.scale + canvas.width / 2,
+        (camera.y - p.y) * camera.scale + canvas.height / 2,
+      ];
+      const [fx, fy] = toCanvas(placing.from);
+      const [tx, ty] = toCanvas(placing.to);
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.strokeStyle = PLACE_COLOUR;
+      ctx.lineWidth = ratio;
+      ctx.beginPath();
+      ctx.arc(fx, fy, Math.max(placing.radius * camera.scale, 4 * ratio), 0, Math.PI * 2);
+      ctx.moveTo(fx, fy);
+      ctx.lineTo(tx, ty);
+      ctx.stroke();
+    }
     drawn(view);
   };
   window.requestAnimationFrame(tick);
@@ -483,9 +613,11 @@ export function battleView(
       battle = next;
       picked = [];
       armed = null;
-      rewind = rewindable ? new Rewind(next, () => performance.now(), orders) : null;
-      seeking = -1;
+      // Cleared first, so the first checkpoint keeps none of the last battle's.
       flashes.clear();
+      flashesAt = 0;
+      rewind = rewindable ? new Rewind(next, () => performance.now(), orders, flashesNow) : null;
+      seeking = -1;
       framed = false;
       autoFrame = true;
       accumulator = 0;
@@ -528,6 +660,17 @@ export function battleView(
     get orders() {
       return rewind?.orders ?? [];
     },
+    place(next) {
+      const was = placing;
+      placing =
+        next === null || !ordersAllowed
+          ? null
+          : { ...next, radius: compileBlueprint(next.blueprint).radius, from: null, to: { x: 0, y: 0 } };
+      if (placing === null) was?.ended?.();
+    },
+    get placing() {
+      return placing !== null;
+    },
     screenOf(ship) {
       const seen = viewOf(snapshot, ship);
       if (seen === null) return null;
@@ -558,7 +701,28 @@ export function battleView(
       teamShots = settings.teamShots;
       strips = settings.strips;
       speed = keepSpeed(select, page, settings);
+      options.refresh();
     },
     camera,
   };
+}
+
+/** What a log of hits holds, as flashes. */
+function addHits(flashes: Flashes, log: ImpactLog): void {
+  for (let i = 0; i < log.count; i++) {
+    flashes.add(
+      log.x[i]!,
+      log.y[i]!,
+      log.energy[i]!,
+      log.kind[i]!,
+      log.body[i]!,
+      log.localX[i]!,
+      log.localY[i]!,
+      log.vx[i]!,
+      log.vy[i]!,
+      log.growth[i]!,
+      log.dirX[i]!,
+      log.dirY[i]!,
+    );
+  }
 }

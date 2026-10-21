@@ -6,6 +6,7 @@ import beamGunshipFile from './blueprints/beam-gunship.json' with { type: 'json'
 import fractalFile from './blueprints/fractal.json' with { type: 'json' };
 import dinkyFile from './blueprints/dinky.json' with { type: 'json' };
 import catamaranFile from './blueprints/catamaran.json' with { type: 'json' };
+import beamCatamaranFile from './blueprints/beam-catamaran.json' with { type: 'json' };
 import bareCoreFile from './blueprints/bare-core.json' with { type: 'json' };
 import torchFile from './blueprints/torch.json' with { type: 'json' };
 import laserFrigateFile from './blueprints/laser-frigate.json' with { type: 'json' };
@@ -53,6 +54,7 @@ export const BEAM_GUNSHIP: Blueprint = parseBlueprint(beamGunshipFile);
 export const FRACTAL: Blueprint = parseBlueprint(fractalFile);
 export const DINKY: Blueprint = parseBlueprint(dinkyFile);
 export const CATAMARAN: Blueprint = parseBlueprint(catamaranFile);
+export const BEAM_CATAMARAN: Blueprint = parseBlueprint(beamCatamaranFile);
 export const BARE_CORE: Blueprint = parseBlueprint(bareCoreFile);
 export const TORCH: Blueprint = parseBlueprint(torchFile);
 export const LASER_FRIGATE: Blueprint = parseBlueprint(laserFrigateFile);
@@ -79,6 +81,7 @@ export const BLUEPRINTS = {
   fractal: FRACTAL,
   dinky: DINKY,
   catamaran: CATAMARAN,
+  beamCatamaran: BEAM_CATAMARAN,
   bareCore: BARE_CORE,
   torch: TORCH,
   laserFrigate: LASER_FRIGATE,

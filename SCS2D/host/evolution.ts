@@ -49,7 +49,10 @@ import {
   type GenerationRecord,
   entrantOf,
   generationSize,
+  generationDoctrine,
+  DOCTRINE_NUMBERS,
   spreadOf,
+  type GenerationDoctrine,
   type GenerationSize,
   type MatchRecord,
   type RunConfig,
@@ -479,6 +482,31 @@ export function startEvolution(): void {
       sizes.set(generation, size);
     }
     return size;
+  };
+  /** The same for doctrine, which means reading every individual's. */
+  const doctrines = new WeakMap<GenerationRecord, GenerationDoctrine>();
+  const doctrineOf = (generation: GenerationRecord): GenerationDoctrine => {
+    let doctrine = doctrines.get(generation);
+    if (doctrine === undefined) {
+      doctrine = generationDoctrine(generation);
+      doctrines.set(generation, doctrine);
+    }
+    return doctrine;
+  };
+  /** A chart of each doctrine number, labelled with how far the mean has moved over the run, so the ones worth a look stand out. */
+  const doctrineOptions = DOCTRINE_NUMBERS.map((key) => {
+    const option = new Option(key, `doctrine:${key}`);
+    el<HTMLElement>('doctrineMetrics').append(option);
+    return option;
+  });
+  const labelDoctrine = (records: readonly GenerationRecord[]): void => {
+    const first = records[0];
+    const last = records[records.length - 1];
+    doctrineOptions.forEach((option, k) => {
+      const key = DOCTRINE_NUMBERS[k]!;
+      const moved = first === undefined || last === first ? NaN : doctrineOf(last!).mean[key]! - doctrineOf(first).mean[key]!;
+      option.textContent = Number.isFinite(moved) ? `${key} (${moved >= 0 ? '+' : ''}${moved.toPrecision(2)})` : key;
+    });
   };
 
   const startButton = el<HTMLButtonElement>('start');
@@ -1370,6 +1398,7 @@ export function startEvolution(): void {
     // whole ships is a fraction.
     if (sizeMetric.value === 'fittings') fillLegend(massChart.legend, massChart.series, 1, '', 1, '');
     else if (sizeMetric.value === 'spread') fillLegend(massChart.legend, massChart.series, 3, '', 0, '');
+    else if (sizeMetric.value.startsWith('doctrine:')) fillLegend(massChart.legend, massChart.series, 3, '');
     else fillLegend(massChart.legend, massChart.series, massChart.digits, ' t', 2, '');
   }
 
@@ -2118,40 +2147,55 @@ export function startEvolution(): void {
           { name: `${side.label}tied`, colour: side.ships, values: of((s) => s.tied), right: true },
         ];
       });
+    const doctrineKey = sizeMetric.value.startsWith('doctrine:') ? sizeMetric.value.slice('doctrine:'.length) : null;
+    if (run !== null) labelDoctrine(run.generations);
     massChart.series =
-      sizeMetric.value === 'spread'
-        ? spread()
-        : sizeMetric.value === 'fittings'
-          ? [
-              ...bestAndMean(
-                'weapons',
-                (side) => side.mass,
-                (s) => [s.bestWeapons, s.meanWeapons],
-                false,
-              ),
-              ...bestAndMean(
-                'engines',
-                (side) => side.ships,
-                (s) => [s.bestEngines, s.meanEngines],
-                true,
-              ),
-            ]
-          : [
-              ...bestAndMean(
-                'mass',
-                (side) => side.mass,
-                (s) => [s.bestMass / 1000, s.meanMass / 1000],
-                false,
-              ),
-              ...(fleets
-                ? bestAndMean(
-                    'ships',
-                    (side) => side.ships,
-                    (s) => [s.bestShips, s.meanShips],
-                    true,
-                  )
-                : []),
+      doctrineKey !== null
+        ? sides.flatMap((side) => {
+            const values = each(side.records, doctrineOf);
+            return [
+              { name: `${side.label}mean ${doctrineKey}`, colour: side.mass, values: values.map((d) => d?.mean[doctrineKey] ?? NaN) },
+              {
+                name: `${side.label}best's ${doctrineKey}`,
+                colour: side.mass,
+                values: values.map((d) => d?.best[doctrineKey] ?? NaN),
+                dashed: true,
+              },
             ];
+          })
+        : sizeMetric.value === 'spread'
+          ? spread()
+          : sizeMetric.value === 'fittings'
+            ? [
+                ...bestAndMean(
+                  'weapons',
+                  (side) => side.mass,
+                  (s) => [s.bestWeapons, s.meanWeapons],
+                  false,
+                ),
+                ...bestAndMean(
+                  'engines',
+                  (side) => side.ships,
+                  (s) => [s.bestEngines, s.meanEngines],
+                  true,
+                ),
+              ]
+            : [
+                ...bestAndMean(
+                  'mass',
+                  (side) => side.mass,
+                  (s) => [s.bestMass / 1000, s.meanMass / 1000],
+                  false,
+                ),
+                ...(fleets
+                  ? bestAndMean(
+                      'ships',
+                      (side) => side.ships,
+                      (s) => [s.bestShips, s.meanShips],
+                      true,
+                    )
+                  : []),
+              ];
     paintChart();
     showLegend();
 

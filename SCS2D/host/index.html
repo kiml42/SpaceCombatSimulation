@@ -47,6 +47,7 @@
       #readout { margin-left: auto; color: #7f93aa; }
       #scrub { flex: 1 1 8rem; min-width: 6rem; max-width: 24rem; }
       #scene { max-width: 9rem; }
+      #addShip { max-width: 9rem; }
       a { color: #7fa8e0; }
       #view { flex: 1; min-width: 0; min-height: 0; display: block; touch-action: none; cursor: grab; }
       #view:active { cursor: grabbing; }
@@ -60,7 +61,7 @@
       }
       #orderBar button.armed { background: #3a4f6e; border-color: #7fa8e0; }
       #orderBar select { max-width: 12rem; }
-      #armedHint { color: #e9c05f; }
+      #armedHint, #orderBar .warn { color: #e9c05f; }
       #queue { display: flex; flex-wrap: wrap; gap: 0.3rem 0.9rem; margin: 0; padding: 0; list-style-position: inside; }
       #queue button { padding: 0 0.3rem; }
       #doctrinePanel {
@@ -138,6 +139,8 @@
       <select id="scene" title="Scenario"></select>
       <button id="customBattle" title="Set up a battle between fleets">Custom</button>
       <button id="fit">Fit</button>
+      <select id="addShip" title="Add a ship to the battle: choose it, then press where it goes and drag for how fast (Esc gives it up)"><option value="">Add ship…</option></select>
+      <select id="addSide" title="The side a ship added joins"></select>
       <input id="scrub" type="range" min="0" max="0" value="0" title="Wind the battle back or on (, steps back)">
       <label>speed <select id="speed" title="How fast the battle runs">
         <option value="0.25">0.25x</option>
@@ -177,6 +180,7 @@
           <button id="doctrine" title="How they fight, over what their blueprints say (P)">Doctrine</button>
           <select id="remodelTo" title="What they are built to; choose another and Remodel to refit them, their robots building it as they fight on"></select>
           <button id="remodel" title="Refit them to the design chosen">Remodel</button>
+          <span id="remodelWarning" class="warn" hidden>⚠ It has no robot bay: the old bays stay until the end, so the remodel can never be finished.</span>
           <span id="armedHint"></span>
           <button id="nearest" hidden title="Without a target: wherever its doctrine would choose (Enter); Ctrl to queue">Nearest (Enter)</button>
           <ol id="queue"></ol>

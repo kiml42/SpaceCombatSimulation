@@ -118,7 +118,8 @@ inside any one file is not contiguous.
   each drawn copy of a shared part has a key of its own. **The editor shows a refit**: once the design
   differs from what it was when opened, it tints green what a ship built to it as opened would have built
   if refitted to it, draws dashed where they stood what it would take down, and says how many of each, and
-  whether the core it is flown from would go (`refitPlan`, matched as `Ships.refit` matches). A panel in the
+  whether it could be refitted at all, or never finished for want of a robot bay (`refitPlan`, matched as
+  `Ships.refit` matches). A panel in the
   view's bottom left says what the view draws over the ship: the refit, shown or hidden, and which firing
   arcs, cycled as A cycles them.
   **Doctrine is edited there too, and is meant to be ignorable**: a section that stays shut, on a weapon for
@@ -837,16 +838,26 @@ inside any one file is not contiguous.
   other, so either half of one cut in two grows back into the whole ship, in about half an hour.
   **A ship can be refitted to another design** (`Ships.refit`, a command), and from then on builds to it:
   a module of its hull that is a module of the new design by key (`ShipDesign.keys`) and laid out the same
-  is kept, as that module; what the new design has that the hull has not, its robots build, as they build
+  is kept, as that module, and failing a key, one laid out the same that nothing else is kept as, so a
+  module moved out of an assembly is kept too; what the new design has that the hull has not, its robots build, as they build
   back what is lost; and the rest of its own hull is wreckage to them, taken down as a wreck is, a module
   at a time from the far end inwards. Building comes first, as it does before taking a wreck apart, but not
   where anything of the hull is in the way: that comes down first, and a wall waits while anything is. A
   module coming down first pours what it holds — fuel, metal and charge — into the rest of the stores on its
   piece of hull, as far as they have room (`Store.spill`), and what its robots bring home that the holds
-  have no room for is thrown away. A refit that
-  would take down the core the ship is flown from is refused. The `refitting` scenario has a Rebuilder
+  have no room for is thrown away. A module whose walls, shape, place and mass, are those of one the new
+  design builds there is refitted in place instead: its fittings come out and the new ones go in, so a
+  turret that could not come down without cutting loose what is built on beyond it becomes a beam turret.
+  A refit may move or replace its cores and robot bays: they and its
+  generators go up first and come down last, only once nothing else of the old hull is left to take down,
+  and never the last core or bay, so it is flown and worked on throughout; a core goes only once another is
+  fitted out and working, and a bay once another is and has robots of its own, its own robots home first
+  and taken apart for their metal. One to a design with no robot bay never finishes, keeping its last old
+  bay, and the order bar warns of it. One that keeps nothing of the ship to build against is refused. The
+  `refitting` scenario has a Rebuilder
   refitted as it sets out to the same ship with its fin a tank, its engine gone and a new fin the other
-  side, done in five minutes.
+  side, done in two minutes; `catamaranRefits` has a Catamaran and a Beam Catamaran each refitted to the
+  other.
   **Every module has a complexity** (`complexityOf`), work over and above its mass that making or mending it
   takes, the same whatever its size, at `COMPLEXITY_WORK` a unit: structure, tanks and holds 1, a battery 2,
   claws, pads and ports 3, engines and hull weapons 4, turrets 7, generators and robot bays 6, cores 16, with
@@ -1028,11 +1039,14 @@ inside any one file is not contiguous.
   lost modules rebuilt by robots and by pads, and robots taking wreckage apart into metal, with doctrine that
   sends a fighter in to be mended and a ship out to wrecks for their metal, flown by the stock Salvager.
   In-battle construction (§8 step 12) and harvesting wrecks (step 13) are built on it. What comes next is
-  orders (step 14): telling ships what to do mid-battle, from the paused battle. Its first slices are built:
-  rewinding the viewer's battle from checkpoints, and attack, defend and ram given to picked-out ships by
-  right-click or an order bar, logged so a rewind or a link replays them (ROADMAP.md step 14). Its next
-  slice is designed: docking, scavenging and delivering as orders, and doctrine, build counts and remodelling
-  as settings beside them.
+  orders (step 14): telling ships what to do mid-battle, from the paused battle. Its first three slices are
+  built: rewinding the viewer's battle from checkpoints; attack, defend and ram given to picked-out ships by
+  right-click or an order bar, logged so a rewind or a link replays them; and docking, scavenging and
+  delivering as orders, with doctrine, build counts and remodelling as settings beside them, from a doctrine
+  panel and a design picker. For trying things out, the viewer can also add a ship from the library to any
+  side mid-battle (Add ship: press where it goes, drag for how fast), logged as a command as orders are. Its
+  next slice, running away, is outlined and waits to be grilled before it is
+  built (ROADMAP.md step 14).
   Alongside it, §8 step 5's skirmish: an endless loop against an enemy fleet that evolves to beat the
   player's, planned in ROADMAP.md §8. Evolution keeps the skirmish's sense of quiet, though it plays a match on until every side is quiet before naming a winner. Its loop is built without the evolving enemy (`dist/skirmish.html`,
   `scenarios/skirmish.ts`): pick a stock enemy, whose bill is the budget unless the player sets their own, under a limit on ships and spread (20 and 500 m unless set, or what the enemy fields if more), each round's gap and starting speeds drawn from optional ± spreads on its seed; fight a fixed round, decided by
@@ -1097,7 +1111,7 @@ inside any one file is not contiguous.
   and hits scored are identical too. Measured by `scenarios/ordering.ts`, which
   flies three gunships of one geometry both stacked in one battle and one to a
   battle each.
-- **Last updated:** 2026-10-12
+- **Last updated:** 2026-10-21
 
 ---
 
@@ -1883,7 +1897,7 @@ Seven things, and deliberately nothing more:
    Without it you'll be afraid to touch the physics, which is where the interesting work is.
 2. **This document, kept current**, with the Status section at the top actually updated.
 3. **CI running tests on push**, so the repo reports its own state without an environment setup.
-   `.github/workflows/ci.yml` runs the suite on **Linux across Node 20, 22 and 24, plus Windows and macOS on
+   `.github/workflows/ci.yml` runs the suite on **Linux across Node 22, 24 and 26, plus Windows and macOS on
    Node 24**.
    The Node axis is not redundancy: the golden tests pin exact checksums, so passing them on three V8 versions is
    what actually verifies the hand-written transcendentals are doing their job. A row that passes on one Node and

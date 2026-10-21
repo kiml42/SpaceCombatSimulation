@@ -1,5 +1,6 @@
 import { addBills, billOf, NO_BILL, type Bill } from './bill.js';
-import { budgetMass, compileBlueprint, expandBlueprint, modulesOverlap, type ShipDesign } from './blueprint.js';
+import { budgetMass, compileBlueprint, expandBlueprint, modulesOverlap, type Blueprint, type ShipDesign } from './blueprint.js';
+import { byContent } from './byContent.js';
 import { expandFleet, type Fleet, type PlacedShip } from './fleet.js';
 import { cos, sin, sqrt } from './math.js';
 import type { ModuleSpec } from './modules.js';
@@ -18,15 +19,20 @@ export interface FleetHull {
   readonly modules: readonly ModuleSpec[];
 }
 
+/** A blueprint compiled and its modules laid out, the same for the same blueprint however often it is asked. */
+const compiledHull = byContent(32, (blueprint: Blueprint) => ({
+  design: compileBlueprint(blueprint),
+  modules: expandBlueprint(blueprint),
+}));
+
 /** Every ship of a fleet, compiled. Throws if a design a ship flies is not a ship. */
 export function fleetHulls(fleet: Fleet): FleetHull[] {
   // Only what is flown: a design the fleet carries but no ship flies is not compiled.
-  const compiled = new Map<string, { design: ShipDesign; modules: ModuleSpec[] }>();
+  const compiled = new Map<string, { design: ShipDesign; modules: readonly ModuleSpec[] }>();
   return expandFleet(fleet).map((ship) => {
     let found = compiled.get(ship.design);
     if (found === undefined) {
-      const blueprint = fleetBlueprint(fleet, ship.design);
-      found = { design: compileBlueprint(blueprint), modules: expandBlueprint(blueprint) };
+      found = compiledHull(fleetBlueprint(fleet, ship.design));
       compiled.set(ship.design, found);
     }
     return { ship, design: found.design, modules: placeModules(found.modules, ship) };

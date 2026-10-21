@@ -13,7 +13,7 @@ import { torchRun } from '../scenarios/torchRun.js';
 import { broadside } from '../scenarios/broadside.js';
 import { hooked } from '../scenarios/hooked.js';
 import { salvageRun } from '../scenarios/salvage.js';
-import { mending, refitting } from '../scenarios/mending.js';
+import { catamaranRefits, mending, refitting } from '../scenarios/mending.js';
 import { scavenge } from '../scenarios/scavenge.js';
 import { factory, padRebuild } from '../scenarios/carrier.js';
 import { shipyard } from '../scenarios/shipyard.js';
@@ -31,6 +31,8 @@ import { doctrinePanel } from './doctrinePanel.js';
 import { orderBar } from './orderBar.js';
 import type { Logged } from '../scenarios/commands.js';
 import { el } from './dom.js';
+import { choices } from './designChoices.js';
+import { teamName } from '../render/teams.js';
 
 /**
  * The scenarios page: a battle picked from the list, or set up as a custom
@@ -73,6 +75,7 @@ export function start(): void {
     { name: 'Salvage Run', create: () => salvageRun(SEED) },
     { name: 'Mending', create: () => mending(SEED) },
     { name: 'Refitting', create: () => refitting(SEED) },
+    { name: 'Catamaran Refits', create: () => catamaranRefits(SEED) },
     { name: 'Scavenge', create: () => scavenge(SEED) },
     { name: 'Pad Rebuild', create: () => padRebuild(SEED) },
     { name: 'Factory', create: () => factory(SEED) },
@@ -186,6 +189,29 @@ export function start(): void {
   });
   el<HTMLButtonElement>('customBattle').addEventListener('click', openCustom);
   fitButton.addEventListener('click', () => view.fit());
+
+  // Adding a ship: the library's designs, read again on coming back to the page, and a side to add it to.
+  const addShip = el<HTMLSelectElement>('addShip');
+  const addSide = el<HTMLSelectElement>('addSide');
+  let library = choices();
+  const listDesigns = (): void => {
+    // Not while one is being placed: the list shows which.
+    if (view.placing) return;
+    library = choices();
+    addShip.replaceChildren(addShip.options[0]!);
+    library.forEach((choice, k) => addShip.add(new Option(choice.label, String(k))));
+  };
+  listDesigns();
+  window.addEventListener('focus', listDesigns);
+  for (let team = 0; team < 4; team++) addSide.add(new Option(teamName(team), String(team)));
+  addShip.addEventListener('change', () => {
+    const choice = addShip.value === '' ? undefined : library[Number(addShip.value)];
+    addShip.blur();
+    // The list shows what is being placed until it is placed or given up, and the side is the one chosen by then.
+    view.place(
+      choice === undefined ? null : { blueprint: choice.blueprint, team: () => Number(addSide.value), ended: () => (addShip.value = '') },
+    );
+  });
 
   view.keep('viewer', speedSelect);
   speedSelect.addEventListener('change', () => view.setSpeed(Number(speedSelect.value)));

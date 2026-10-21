@@ -7,6 +7,7 @@ import {
   originOf,
   reachAgainst,
   rebuiltDesign,
+  keptAs,
   remarkedDesign,
   sameOrigin,
   seamedDesign,
@@ -78,6 +79,7 @@ import type { ForceProvider, World } from './world.js';
 import type { BeamHits, Beams, SpatialGrid } from './index.js';
 import { MAX_BEAM_LENGTH } from './beams.js';
 import { RayHit } from './spatialGrid.js';
+import { fixed } from './fixed.js';
 import { hullsOverlap, moduleOverlapsHull, type Contacts } from './collision.js';
 import {
   DOCK_POWER_PER_METRE,
@@ -512,6 +514,18 @@ interface Rebuild {
   readonly frame: number;
   /** Walls each launch module's next shell step has had, kg: kept while the hull is remade. */
   readonly work: Float64Array;
+  /** Each hull module's launch module a refit fits out in its walls (`swapFor`), or -1; worked out when first asked. */
+  swaps: Int32Array | null;
+}
+
+/** Whether two modules stand in the same place with walls of the same shape, whatever they are. */
+function sameWalls(a: ModuleSpec, b: ModuleSpec): boolean {
+  const near = (u: number, v: number): boolean => abs(u - v) <= 1e-6 * (1 + abs(u));
+  if (!near(a.x, b.x) || !near(a.y, b.y) || !near(a.length, b.length) || !near(a.width, b.width)) return false;
+  if (!(abs(angleDelta(a.angle ?? 0, b.angle ?? 0)) <= 1e-6)) return false;
+  const va = a.vertices ?? [];
+  const vb = b.vertices ?? [];
+  return va.length === vb.length && va.every((v, k) => near(v, vb[k]!));
 }
 
 /** The module of its compiled design a hull module is, for what tier rebuilding it falls in. */
@@ -531,6 +545,15 @@ function repairTier(design: ShipDesign, m: number): number {
   if (kind === 'engine') return 1;
   for (let t = 0; t < design.turrets.length; t++) if (design.turrets[t]!.module === m) return 1;
   return 2;
+}
+
+/**
+ * What a ship is flown and worked on with: cores, robot bays and the
+ * generators that charge its robots, which a refit puts up first and takes
+ * down last, so as much of the work goes on as can.
+ */
+function workforce(kind: string): boolean {
+  return kind === 'core' || kind === 'robotBay' || kind === 'generator';
 }
 
 /** A design's engines' exhaust speed, m/s, weighted by their thrust; 0 for one with none. */
@@ -1543,7 +1566,7 @@ export class Ships {
     this.throttles.push(new Float64Array(design.engines.length));
     this.lit.push(new Uint8Array(design.engines.length));
     this.landed.push(new Float64Array(landedLength(design)));
-    this.turretIndex.push(indices);
+    this.turretIndex.push(fixed(indices));
     this.cooldown.push(new Float64Array(mounts.length));
     this.turretStates.push(new Uint8Array(mounts.length));
     this.nextBarrelToFire.push(new Int32Array(mounts.length));
@@ -5096,6 +5119,13 @@ export class Ships {
         robot.stood = left;
         const owner = this.pilotAt(b, robot.bay);
         if (owner < 0) continue;
+        // Home to a bay a refit is about to take down: taken apart, its metal to the holds.
+        if (robot.mode === RobotMode.Berthed && this.due(owner, b, design, robot.bay)) {
+          this.metal.add(b, robot.bay, ROBOT_MASS + robot.cargo);
+          this.robots.lose(b, r--);
+          mended = true;
+          continue;
+        }
         if (this.tendOne(b, design, robots, robot, owner, dt)) mended = true;
       }
       if (this.buildRobots(b, design, robots, dt)) mended = true;
@@ -5131,15 +5161,17 @@ export class Ships {
     let built = false;
     for (let m = 0; m < design.modules.length; m++) {
       const berths = design.modules[m]!.stats.robots;
-      if (!(berths > 0) || this.pilotAt(b, m) < 0) continue;
+      const owner = this.pilotAt(b, m);
+      if (!(berths > 0) || owner < 0) continue;
+      // One a refit is taking down builds no more.
+      if (this.refitting[owner] === 1 && this.wreckage(owner, b, m)) continue;
       let home = 0;
       for (let r = 0; r < robots.length; r++) if (robots[r]!.bay === m) home++;
       if (home >= berths) {
         builds[m] = 0;
         continue;
       }
-      const owner = this.pilotAt(b, m);
-      const working = owner < 0 ? 0 : this.left(owner, b, m, DamageEffect.Tending);
+      const working = this.left(owner, b, m, DamageEffect.Tending);
       if (!(working > 0)) continue;
       builds[m] = min(ROBOT_BUILD_TIME, builds[m]! + dt * working * berthRate(design.modules[m]!.stats));
       if (builds[m]! < ROBOT_BUILD_TIME) continue;
@@ -5358,7 +5390,7 @@ export class Ships {
     for (let m = 0; m < design.modules.length && frame < 0; m++) {
       if (design.modules[m]!.shell === undefined && originOf(design, m).design === compiled) frame = m;
     }
-    const rebuild = { design, at, frame, work: known?.work ?? new Float64Array(launch.modules.length) };
+    const rebuild = { design, at, frame, work: known?.work ?? new Float64Array(launch.modules.length), swaps: null };
     this.rebuilds[i] = rebuild;
     return rebuild;
   }
@@ -5384,10 +5416,14 @@ export class Ships {
     };
     let best = -1;
     let bestBuild = -1;
-    let bestTier = 3;
+    let bestTier = 4;
     let bestCrowd = Infinity;
     let bestDist = Infinity;
-    const consider = (m: number, l: number, tier: number): void => {
+    // Refitted, what flies and works on the ship goes up first, to get more of the work going sooner.
+    const refit = this.refitting[owner] === 1;
+    const consider = (m: number, l: number, kept: number): void => {
+      const kind = l >= 0 ? launch.modules[l]!.spec.kind : originOf(design, m).design.modules[originOf(design, m).module]!.spec.kind;
+      const tier = refit ? (workforce(kind) ? 0 : kept + 1) : kept;
       const crowd = crowdOf(m, l);
       if (tier < bestTier || (tier === bestTier && (crowd < bestCrowd || (crowd === bestCrowd && dist[m]! < bestDist)))) {
         best = m;
@@ -5689,10 +5725,123 @@ export class Ships {
     return any && (this.power.pieceHeld(b, from) >= step || this.power.pieceGeneration(b, from, this.damage) > 0);
   }
 
+  /** Whether module `m` of body `b` is a core, bay or generator of ship `owner`'s own that a refit is taking down. */
+  private ownWorkforce(owner: number, b: number, design: ShipDesign, m: number): boolean {
+    return (
+      this.refitting[owner] === 1 && this.pilotAt(b, m) === owner && workforce(design.modules[m]!.spec.kind) && this.wreckage(owner, b, m)
+    );
+  }
+
+  /** Whether ship `owner` has anything of its own hull but cores, bays and generators left for its refit to take down. */
+  private anyPlainWreckage(owner: number, b: number, design: ShipDesign): boolean {
+    if (this.refitting[owner] !== 1) return false;
+    for (let m = 0; m < design.modules.length; m++) {
+      if (this.pilotAt(b, m) !== owner || workforce(design.modules[m]!.spec.kind)) continue;
+      if (this.wreckage(owner, b, m) && this.comesOff(owner, b, design, m)) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Whether ship `owner`'s refit is ready to take down core, bay or generator
+   * `m`: nothing else of its own left to come down first, and for a core or a
+   * bay, another of its kind built, fitted out and working, a bay with robots
+   * of its own, so it is flown and worked on to the end.
+   */
+  private due(owner: number, b: number, design: ShipDesign, m: number): boolean {
+    if (!this.ownWorkforce(owner, b, design, m) || this.anyPlainWreckage(owner, b, design)) return false;
+    const kind = design.modules[m]!.spec.kind;
+    if (kind === 'generator') return true;
+    const effect = kind === 'core' ? DamageEffect.Control : DamageEffect.Tending;
+    for (let k = 0; k < design.modules.length; k++) {
+      if (k === m || design.modules[k]!.spec.kind !== kind || design.modules[k]!.shell !== undefined) continue;
+      if (this.pilotAt(b, k) !== owner || this.damage.unbuiltAt(b, k) > 0 || !(this.left(owner, b, k, effect) > 0)) continue;
+      if (kind === 'robotBay' && !(this.robots.on(b) ?? []).some((robot) => robot.bay === k)) continue;
+      return true;
+    }
+    return false;
+  }
+
   /** Whether ship `s` has robots of its own on body `b`. */
   private hasRobots(b: number, s: number): boolean {
     for (const robot of this.robots.on(b) ?? []) if (this.pilotAt(b, robot.bay) === s) return true;
     return false;
+  }
+
+  /** Whether module `m`, wreckage to ship `owner`, can come off: without cutting the rest loose, or refitted in place. */
+  private comesOff(owner: number, b: number, design: ShipDesign, m: number): boolean {
+    return staysWhole(design, m) || this.swapFor(owner, b, design, m) >= 0;
+  }
+
+  /**
+   * The module of its refit's design ship `owner` fits out in the walls of
+   * module `m` of its hull, or -1: one not yet built, where `m` stands, with
+   * walls of the same shape and mass. `m` is then refitted in place, its
+   * fittings out and the new ones in, rather than taken down and built again.
+   */
+  private swapFor(owner: number, b: number, design: ShipDesign, m: number): number {
+    if (this.refitting[owner] !== 1 || this.pilotAt(b, m) !== owner) return -1;
+    const rebuild = this.rebuildFor(owner, design);
+    if (rebuild.swaps === null) {
+      const swaps = new Int32Array(design.modules.length).fill(-1);
+      rebuild.swaps = swaps;
+      if (rebuild.frame >= 0) {
+        const launch = this.launched[owner]!;
+        const reference = originOf(design, rebuild.frame);
+        const taken = new Uint8Array(launch.modules.length);
+        for (let k = 0; k < design.modules.length; k++) {
+          const module = design.modules[k]!;
+          if (module.shell !== undefined || this.pilotAt(b, k) !== owner || !this.wreckage(owner, b, k)) continue;
+          for (let l = 0; l < launch.modules.length; l++) {
+            if (rebuild.at[l]! >= 0 || taken[l] === 1) continue;
+            const origin = originOf(launch, l);
+            const whole = origin.design.modules[origin.module]!;
+            const placed = inFrame(whole.spec, reference.design.modules[reference.module]!.spec, design.modules[rebuild.frame]!.spec);
+            if (
+              !sameWalls(module.spec, placed) ||
+              !(abs(module.stats.structureMass - whole.stats.structureMass) <= 1e-6 * whole.stats.structureMass)
+            )
+              continue;
+            swaps[k] = l;
+            taken[l] = 1;
+            break;
+          }
+        }
+      }
+    }
+    return rebuild.swaps[m] ?? -1;
+  }
+
+  /**
+   * Make module `m` of body `b`, its fittings out, launch module `l` of ship
+   * `i`'s refit: the same walls, its fittings still to go in.
+   */
+  private refitInPlace(world: World, b: number, m: number, i: number, l: number): void {
+    const bodies = world.bodies;
+    const p = this.shipAt(bodies, b);
+    if (p < 0) return;
+    const design = this.designs[p]!;
+    const rebuild = this.rebuildFor(i, design);
+    const origin = originOf(this.launched[i]!, l);
+    const whole = origin.design.modules[origin.module]!;
+    const reference = originOf(design, rebuild.frame);
+    const placed = inFrame(whole.spec, reference.design.modules[reference.module]!.spec, design.modules[rebuild.frame]!.spec);
+    const next = rebuiltDesign(design, m, placed, whole.stats, origin, null, design.pieces?.[m] ?? 0);
+    const out = this.damage.unbuiltAt(b, m);
+
+    this.momentum(bodies);
+    const beforeX = this.momentumX;
+    const beforeY = this.momentumY;
+    const mass = bodies.mass[b]!;
+    const inertia = bodies.inertia[b]!;
+    this.regrow(world, p, b, design, next, m, i);
+    this.damage.fit(b, m, out);
+    this.damage.unfit(b, m, fittingOf(whole.stats));
+    this.settleMass(bodies, b);
+    this.discardFrom(bodies, b, mass, inertia);
+    this.momentum(bodies);
+    bodies.vx[b] = bodies.vx[b]! + (beforeX - this.momentumX) / bodies.mass[b]!;
+    bodies.vy[b] = bodies.vy[b]! + (beforeY - this.momentumY) / bodies.mass[b]!;
   }
 
   /**
@@ -5703,7 +5852,7 @@ export class Ships {
   private strippable(owner: number, b: number, design: ShipDesign, into: number): boolean {
     if (!(this.metal.pieceRoom(b, into) > ROBOT_SPENT)) return false;
     for (let m = 0; m < design.modules.length; m++) {
-      if (this.wreckage(owner, b, m) && staysWhole(design, m)) return true;
+      if (this.wreckage(owner, b, m) && this.comesOff(owner, b, design, m)) return true;
     }
     return false;
   }
@@ -5722,7 +5871,17 @@ export class Ships {
     let bestCrowd = Infinity;
     let bestDist = Infinity;
     for (let m = 0; m < design.modules.length; m++) {
-      if (!Number.isFinite(dist[m]!) || !this.wreckage(owner, b, m) || !staysWhole(design, m)) continue;
+      if (!Number.isFinite(dist[m]!) || !this.wreckage(owner, b, m) || !this.comesOff(owner, b, design, m)) continue;
+      // Its own hull's cores, bays and generators come down last of all, and only when due.
+      if (this.ownWorkforce(owner, b, design, m) && !this.due(owner, b, design, m)) continue;
+      // A bay comes down once its robots are home and taken apart; its own go home for that.
+      if (design.modules[m]!.spec.kind === 'robotBay' && this.ownWorkforce(owner, b, design, m)) {
+        if (robot.bay === m) {
+          this.sendHome(b, design, robot, owner, m);
+          return true;
+        }
+        if (robots.some((other) => other.bay === m)) continue;
+      }
       let crowd = 0;
       for (let k = 0; k < robots.length; k++) if (robots[k] !== robot && robots[k]!.target === m) crowd++;
       if (crowd < bestCrowd || (crowd === bestCrowd && dist[m]! < bestDist)) {
@@ -5767,7 +5926,7 @@ export class Ships {
    */
   private stripOne(b: number, design: ShipDesign, robots: Robot[], robot: Robot, owner: number, dt: number): boolean {
     const m = robot.target;
-    if (m < 0 || m >= design.modules.length || !this.wreckage(owner, b, m) || !staysWhole(design, m)) {
+    if (m < 0 || m >= design.modules.length || !this.wreckage(owner, b, m) || !this.comesOff(owner, b, design, m)) {
       this.sendOut(b, design, robots, robot, owner);
       return false;
     }
@@ -5788,6 +5947,9 @@ export class Ships {
       return true;
     }
     const step = this.stripStep(b, design, m);
+    // Refitted in place, only its fittings come out.
+    if (this.swapFor(owner, b, design, m) >= 0)
+      step.kg = fittingOf(step.stats) * (1 - this.damage.shedAt(b, m) / (step.stats.structureMass + step.stats.fittingMass));
     const work = buildWork(step.stats);
     const per = work * REPAIR_ENERGY_PER_JOULE;
     const done = this.damage.unbuiltAt(b, m);
@@ -5816,7 +5978,14 @@ export class Ships {
     const p = this.shipAt(bodies, b);
     if (p < 0) return;
     const design = this.designs[p]!;
-    if (m >= design.modules.length || !staysWhole(design, m)) return;
+    if (m >= design.modules.length) return;
+    const owner = this.pilotAt(b, m);
+    const l = owner < 0 ? -1 : this.swapFor(owner, b, design, m);
+    if (l >= 0) {
+      this.refitInPlace(world, b, m, owner, l);
+      return;
+    }
+    if (!staysWhole(design, m)) return;
     const step = this.stripStep(b, design, m);
     const share = step.share - 1 / SHELL_STEPS;
     if (!(share > 1e-9)) {
@@ -7050,7 +7219,7 @@ export class Ships {
     this.designs[i] = design;
     this.hullDesign[b] = design;
     this.sides[b] = sides;
-    this.turretIndex[i] = indices;
+    this.turretIndex[i] = fixed(indices);
     this.cooldown[i] = cooldown;
     this.turretStates[i] = states;
     this.nextBarrelToFire[i] = barrels;
@@ -8250,8 +8419,10 @@ export class Ships {
    * kept as that module; the rest of its own hull comes down, and what `to`
    * has that it has not is built, as robots build back what a ship has lost,
    * building before taking down, and a wall waiting while anything of its own
-   * hull is in the way. Refused, saying why, when `to` does not keep the core
-   * the ship is flown from, which it could not take down and still be flown.
+   * hull is in the way. Its cores, robot bays and generators come down last
+   * and go up first, and never the last of its cores or bays, so it is flown
+   * and worked on throughout. Refused, saying why, when `to` keeps nothing of
+   * the ship to build the rest against.
    */
   refit(world: World, i: number, to: ShipDesign): string | null {
     const bodies = world.bodies;
@@ -8263,21 +8434,22 @@ export class Ships {
     const p = b < 0 ? -1 : this.shipAt(bodies, b);
     if (p < 0) return 'the ship is gone';
     const design = this.designs[p]!;
-    const byKey = new Map<string, number>();
-    to.modules.forEach((module, k) => byKey.set(keys[module.index]!, k));
-    const core = this.flownCore(i);
-    let coreKept = false;
-    const origins = design.modules.map((_, m) => {
-      if (!this.ownsAt(i, b, m)) return null;
-      const from = originOf(design, m);
-      const was = from.design.modules[from.module]!;
-      const key = from.design.keys?.[was.index];
-      const k = key === undefined ? undefined : byKey.get(key);
-      if (k === undefined || JSON.stringify(was.spec) !== JSON.stringify(to.modules[k]!.spec)) return null;
-      if (m === core) coreKept = true;
+    const as = keptAs(
+      design.modules.map((_, m) => {
+        if (!this.ownsAt(i, b, m)) return null;
+        const from = originOf(design, m);
+        const was = from.design.modules[from.module]!;
+        return { key: from.design.keys?.[was.index], spec: was.spec };
+      }),
+      to.modules.map((module) => ({ key: keys[module.index], spec: module.spec })),
+    );
+    let kept = 0;
+    const origins = as.map((k) => {
+      if (k < 0) return null;
+      kept++;
       return { design: to, module: k };
     });
-    if (!coreKept) return `${to.name} does not keep the core this ship is flown from`;
+    if (kept === 0) return `${to.name} keeps nothing of this ship to build the rest against`;
     this.adopt(
       p,
       b,

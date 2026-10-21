@@ -57,7 +57,7 @@ import {
   type ShipDesign,
   type Placement,
 } from '../sim/index.js';
-import { ARCS_KEY, draw, nextArcs, type Arcs } from '../render/canvas2d.js';
+import { ARC_LABELS, ARCS_KEY, draw, nextArcs, type Arcs } from '../render/canvas2d.js';
 import { easeScale, fitScale, frame, snapStep, type Camera } from '../render/camera.js';
 import { EditorDocument } from './document.js';
 import {
@@ -341,7 +341,6 @@ export function startEditor(): void {
   let showRefit = true;
   const refitButton = el<HTMLButtonElement>('showRefit');
   const arcsButton = el<HTMLButtonElement>('cycleArcs');
-  const ARC_LABELS: Record<Arcs, string> = { none: 'Arcs: off', firing: 'Arcs: firing', trigger: 'Arcs: trigger' };
   /**
    * Refit to a different ship by easing the scale from the one before, so
    * switching between two ships shows which is bigger. The first fit, and F,
@@ -725,7 +724,11 @@ export function startEditor(): void {
       el<HTMLElement>('refit').innerHTML =
         `<p>A ship built as it was opened, refitted to this: ${refit.built.length} built (green), ` +
         `${refit.takenDown.length} taken down (dashed).</p>` +
-        (refit.coreKept ? '' : '<p class="warn">It would lose the core it is flown from, so could not be refitted.</p>');
+        (refit.refused !== null
+          ? `<p class="warn">It could not be refitted: ${escapeHtml(refit.refused)}.</p>`
+          : refit.bay
+            ? ''
+            : '<p class="warn">It has no robot bay, so a refit to it could never be finished.</p>');
     }
   };
 

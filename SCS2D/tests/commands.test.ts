@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { checksumWorld } from '../sim/checksum.js';
 import { OrderCancelCondition } from '../sim/ships.js';
 import { duel } from '../scenarios/duel.js';
-import { give, parseLog, type Command } from '../scenarios/commands.js';
+import { give, parseLog, readLog, writeLog, type Command } from '../scenarios/commands.js';
+import { CORVETTE } from '../scenarios/blueprints.js';
 import { Rewind } from '../scenarios/rewind.js';
 
 /** In the duel, ships 0 and 1 are one side and ship 2 the other. */
@@ -97,5 +98,32 @@ describe('orders as logged commands', () => {
     expect(battle.ships.orderCount(2)).toBe(1);
     give(battle, { kind: 'stop', ships: [2] });
     expect(battle.ships.orderCount(2)).toBe(0);
+  });
+});
+
+describe('a ship added to a battle', () => {
+  const SPAWN: Command = { kind: 'spawn', blueprint: CORVETTE, team: 1, x: 400, y: -300, vx: -20, vy: 5, angle: 1 };
+
+  it('joins the battle where and as fast as it was put, and a rewind puts it there again', () => {
+    const rewind = new Rewind(duel());
+    rewind.seek(50);
+    const before = rewind.battle.ships.count;
+    const added = rewind.battle.ships.highWater;
+    rewind.issue(SPAWN);
+    expect(rewind.battle.ships.count).toBe(before + 1);
+    expect(rewind.battle.ships.teamOf(added)).toBe(1);
+    rewind.seek(120);
+    const there = checksumWorld(rewind.battle.world);
+    rewind.seek(10);
+    expect(rewind.battle.ships.count).toBe(before);
+    rewind.seek(120);
+    expect(checksumWorld(rewind.battle.world)).toBe(there);
+    expect(fought(120, [{ step: 50, command: SPAWN }])).toBe(there);
+  });
+
+  it('carries its blueprint through a written log', () => {
+    const log = readLog(...(Object.values(writeLog([{ step: 3, command: SPAWN }])) as [unknown, unknown]));
+    expect(log[0]!.command).toMatchObject({ kind: 'spawn', team: 1, x: 400, vy: 5 });
+    expect(() => parseLog([{ step: 0, command: { ...SPAWN, x: 'here' } }])).toThrow(/spawn/);
   });
 });

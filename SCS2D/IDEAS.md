@@ -1,10 +1,9 @@
 # Bugs
 Things that are obviously wrong.
 
-- The ISD and rebel carrier are both broken, they need more cores.
 - When a dinky gets welded to a gunship the other gunship will fire at the combined ship even though most of it is actually its ally.
 - Fuel tanks should stop supplying fuel when they are too damaged.
-- When setting up a co-evolution run between two very large fleets, the UI hangs for about 30 s (the Imperial Fleet against the Rebel Fleet) after each change to a setting the opening match reads, and on loading the page with such a setup saved: the preview breeds a whole first generation to draw it. A burst of changes now builds it once, and a setting it does not read (generations, matches, winners) does not rebuild it. Fixing it needs the build off the main thread, or a preview that does not breed, at the cost of its seed no longer being the run's.
+- When setting up a co-evolution run between two very large fleets, the UI hangs for about 8 s (the Imperial Fleet against the Rebel Fleet; it was 30 s before the layout checks were sped up) after each change to a setting the opening match reads, and on loading the page with such a setup saved: the preview breeds a whole first generation to draw it. A burst of changes now builds it once, and a setting it does not read (generations, matches, winners) does not rebuild it. Fixing it needs the build off the main thread, or a preview that does not breed, at the cost of its seed no longer being the run's.
 - A hull gun's barrel collides as the rectangle its module would be, not where the barrel is drawn. Nothing welds to a barrel (`onWeldablePart`), as a stop-gap until it collides where it is.
 
 -----------------------------------------------------------------------
@@ -57,8 +56,6 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 ## Evolution
 - Make damage and function taken start at 0 and go negative, so the graph scales nicely at the beginning when they're all useless, highlighting even minor improvements.
 - We need a mechanism to let ships know what the goal is. This could be something like a "go close to that" order being given to all ships when the race goal is present. (At the moment we lean on the escort doctrine, but that just makes evolving a second ship mean they bunch up with each other instead of going for the goal)
-- Dropdown to choose what to graph: the chart under the score offers mass and ships, or weapons and engines. Still to add: anything from doctrines, to see how those are evolving
-  - Might want to show the total change over the run in the dropdown, so it's easy to see what is generally changing and will likely have an interesting graph.
 - Whole ship scale mutation
 - Assembly scale mutation - scales everything in all copies of the assembly up or down.
 - Duplicated parts or assemblies can be placed anywhere on the surface of the ship, not just close to the module they're a duplicate of (possibly with a higher chance of appearing nearby)
@@ -71,14 +68,8 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 ## Battle UI
 - Fleet status tiles could turn with their ship, so it always points the same way in its tile.
 - Cap projectile rendering at the point they hit, so a streak does not overlap the target it struck. (The muzzle end is capped.)
-- Add a ship to a running battle, for quick testing. Dropdown in the corner to choose a ship to add to the battle. click and drag to chose position and velocity (position from first click, drag to N seconds worth of distance for the initial velocity.) Ship is instantly spawned when you let go.
 - A selected ship's framing takes in and rings what it is escorting; it could do the same for what it is keeping clear of, possibly with a symbol to show what sort of attention the selected ship is paying to each
-- All tanks, holds and batteries should animate emptying along their longer axis so the interface moves faster, and is clearer to read.
-- Include the view options bar from the editor in the battle UI and Fleet editor
 
 ## Skirmish
 - When the enemy are evolving, make the history fill the battle area.
   - In this mode the player's fleet should be put on the left, and the enemy on the right.
-- If a single generation takes long enough, show the thumbnails for the leader in the generation without a "Victory" or "Defeat" stamp to show the work in progress happening.
-- The history should be the only part that scrolls in the sidebar if the screen is tall enough to show the whole sidebar, with more than 1 row's worth of history.
-- Rotate the enemy fleet in the history display so it matches the orientation it will be shown in in the battle (ships too)

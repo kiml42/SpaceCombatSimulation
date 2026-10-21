@@ -89,11 +89,11 @@ an entry is either still open or it is gone.
        moves as far as the ships it was following did. Built first, since several of the decisions below are about rewinding.
        Left to fix, from trying it:
        - **A copy in one frame** is about 10 ms in Super Swarm, most of it some 14,000 small typed arrays.
+         Arrays only ever replaced whole, never written into, are marked `fixed` (`sim/fixed.ts`) and
+         shared rather than copied, which took about 30% off the time and a quarter off the memory; some
+         8,000 are still copied, a body's changing state and its engine layout's solver arrays among them.
          Spreading one over frames would mean holding the battle still while it is copied, so the way on is
-         a cheaper copy: fewer, larger arrays in the sim, or copying only what changed.
-       - **Flashes on landing at a checkpoint.** Across steps re-simulated, flashes are rebuilt as they
-         would have been drawn; landing on a checkpoint re-simulates nothing, so it shows none until the
-         next step.
+         a cheaper copy still: fewer, larger arrays in the sim, or copying only what changed.
     1. **Attack, defend and ram** — built; the keys table on each battle page says how to give them. Building it chose:
        - **Keys:** K, D and R arm attack, defend and ram (T being the fleet strips), and S stops. A takes the whole side, and the
          arcs moved to Ctrl or Cmd+A on every battle page; the editors keep A for them.
@@ -406,8 +406,6 @@ Deliberately unresolved; decide when they block something.
     spends most of its reach on itself; measuring from its edge instead is the alternative.
   - **Damage.** A core covers nothing once past its `Control` cutout and everything until then. A shrunken
     radius, or one module losing control, as a damage effect with a chance of happening is the step after.
-  - **The Star Destroyer and the Quasar Fire.** Most of their active modules are out of reach (50 of 59 and
-    11 of 20). They are showpieces with no goldens on them, left to be redrawn with more cores by hand.
   - **Targeting.** Doctrine wants a way to weight a core by how many modules it reaches, and to prefer
     bigger modules generally, so fire goes where it disables most.
 - **Whether a claw should drain an enemy's batteries.** It drinks fuel from what it grips; draining charge is
