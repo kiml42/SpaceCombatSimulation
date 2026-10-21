@@ -173,7 +173,7 @@ export function battleView(
   if (ctx === null) throw new Error('no 2d context');
 
   let battle: Battle | null = null;
-  let rewind: Rewind | null = null;
+  let rewind: Rewind<Flashes> | null = null;
   /** A step to go to, taken at the next frame, so dragging a scrub bar re-simulates once a frame at most. */
   let seeking = -1;
   const snapshot = new Snapshot();
@@ -196,6 +196,8 @@ export function battleView(
   let accumulator = 0;
   let last = 0;
   let lastSimTime = 0;
+  /** The battle's time the flashes are aged to. */
+  let flashesAt = 0;
   let arcs: Arcs = 'none';
   let teamShots = false;
   let strips = true;
@@ -388,23 +390,17 @@ export function battleView(
 
   /** What a step hit, into the flashes, as `capture` hands it over. */
   const drain = (log: ImpactLog): void => {
-    for (let i = 0; i < log.count; i++) {
-      flashes.add(
-        log.x[i]!,
-        log.y[i]!,
-        log.energy[i]!,
-        log.kind[i]!,
-        log.body[i]!,
-        log.localX[i]!,
-        log.localY[i]!,
-        log.vx[i]!,
-        log.vy[i]!,
-        log.growth[i]!,
-        log.dirX[i]!,
-        log.dirY[i]!,
-      );
-    }
+    addHits(flashes, log);
     log.clear();
+  };
+
+  /** The flashes a frame drawn now would show: those on screen, aged to now, and what was hit since. */
+  const flashesNow = (on: Battle): Flashes => {
+    const out = flashes.copy();
+    const time = on.world.tick * on.world.dt;
+    if (time > flashesAt) out.step(time - flashesAt);
+    addHits(out, on.impacts.log);
+    return out;
   };
 
   const tick = (now: number): void => {
@@ -420,13 +416,18 @@ export function battleView(
     if (seeking >= 0 && rewind !== null) {
       // The ships being followed, from the picture last drawn, before it is replaced.
       if (!autoFrame) anchors = jumpAnchors(camera, snapshot, canvas.width, canvas.height);
-      // Flashes are rebuilt across the steps re-simulated, aged as they would have been drawn.
+      // Flashes are those kept with the checkpoint, then rebuilt across the steps re-simulated.
       const restored = rewind.seek(
         seeking,
-        () => flashes.clear(),
+        (kept) => {
+          if (kept === undefined) flashes.clear();
+          else flashes.set(kept);
+          flashesAt = rewind!.battle.world.tick * rewind!.battle.dt;
+        },
         (on) => {
           flashes.step(on.dt);
           drain(on.impacts.log);
+          flashesAt = on.world.tick * on.dt;
         },
       );
       battle = rewind.battle;
@@ -469,6 +470,7 @@ export function battleView(
 
     // Flashes fade on the battle's clock, so a paused battle holds them.
     flashes.step(simDt);
+    flashesAt = view.time;
     for (let i = 0; i < view.impactCount; i++) {
       flashes.add(
         view.impactX[i]!,
@@ -512,9 +514,11 @@ export function battleView(
       battle = next;
       picked = [];
       armed = null;
-      rewind = rewindable ? new Rewind(next, () => performance.now(), orders) : null;
-      seeking = -1;
+      // Cleared first, so the first checkpoint keeps none of the last battle's.
       flashes.clear();
+      flashesAt = 0;
+      rewind = rewindable ? new Rewind(next, () => performance.now(), orders, flashesNow) : null;
+      seeking = -1;
       framed = false;
       autoFrame = true;
       accumulator = 0;
@@ -591,4 +595,24 @@ export function battleView(
     },
     camera,
   };
+}
+
+/** What a log of hits holds, as flashes. */
+function addHits(flashes: Flashes, log: ImpactLog): void {
+  for (let i = 0; i < log.count; i++) {
+    flashes.add(
+      log.x[i]!,
+      log.y[i]!,
+      log.energy[i]!,
+      log.kind[i]!,
+      log.body[i]!,
+      log.localX[i]!,
+      log.localY[i]!,
+      log.vx[i]!,
+      log.vy[i]!,
+      log.growth[i]!,
+      log.dirX[i]!,
+      log.dirY[i]!,
+    );
+  }
 }

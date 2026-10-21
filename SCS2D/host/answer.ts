@@ -1,5 +1,5 @@
 import { parseFleet, serialiseFleet, type Budget, type Fleet } from '../sim/index.js';
-import { EnemySearch } from '../evolution/answer.js';
+import { EnemySearch, type Standing } from '../evolution/answer.js';
 import type { SkirmishSettings } from '../scenarios/skirmish.js';
 
 /**
@@ -25,6 +25,11 @@ export interface AnswerInput {
 
 export interface AnswerProgress {
   generation: number;
+  /**
+   * Whether `best` is only leading the generation still being fought, rather
+   * than the best of one finished: shown, but not kept.
+   */
+  leading: boolean;
   wins: number;
   /** Whether the best won on the next round's seed. */
   onRound: boolean;
@@ -38,6 +43,7 @@ export interface AnswerProgress {
 /** What crosses to and from the worker: fleets as files. */
 interface Wire {
   generation: number;
+  leading: boolean;
   wins: number;
   onRound: boolean;
   multiplier: number;
@@ -48,15 +54,19 @@ interface Wire {
 
 /** Battle steps of work between looks. */
 const SLICE = 2000;
+/** How long a generation runs, ms, before the enemy leading it is shown. */
+const LEAD_AFTER = 5000;
 
 /**
- * Run a search, telling `progress` after every generation and once more when
- * it is found. Returns a way to stop it.
+ * Run a search, telling `progress` after every generation, whenever a new
+ * enemy leads one that has run long, and once more when it is found. Returns
+ * a way to stop it.
  */
 export function startAnswer(input: AnswerInput, progress: (now: AnswerProgress) => void): () => void {
   const received = (wire: Wire): void =>
     progress({
       generation: wire.generation,
+      leading: wire.leading,
       wins: wire.wins,
       onRound: wire.onRound,
       multiplier: wire.multiplier,
@@ -121,13 +131,18 @@ export function searchLoop(
     input.multiplier,
   );
   let seen = 0;
+  let started = performance.now();
+  let led: Standing | null = null;
   return () => {
     const done = search.advance(SLICE);
     const now = search.progress;
     if (now.generation !== seen || done) {
       seen = now.generation;
+      started = performance.now();
+      led = null;
       post({
         generation: now.generation,
+        leading: false,
         wins: now.best.wins,
         onRound: now.best.onRound,
         multiplier: now.multiplier,
@@ -135,6 +150,21 @@ export function searchLoop(
         best: serialiseFleet(now.best.enemy),
         found: now.found === null ? null : serialiseFleet(now.found),
       });
+    } else if (performance.now() - started >= LEAD_AFTER) {
+      const leader = search.leader;
+      if (leader !== null && leader !== led) {
+        led = leader;
+        post({
+          generation: now.generation + 1,
+          leading: true,
+          wins: leader.wins,
+          onRound: leader.onRound,
+          multiplier: now.multiplier,
+          seeds: now.seeds,
+          best: serialiseFleet(leader.enemy),
+          found: null,
+        });
+      }
     }
     return !done;
   };

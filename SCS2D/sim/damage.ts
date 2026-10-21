@@ -4,6 +4,7 @@ import { Terminal, deflected, incidenceAngle, strike } from './ballistics.js';
 import { BOTH_LAYERS, HullPath, modulesAlong, OWN_LAYERS, type HullDesigns, type Hulls } from './hull.js';
 import type { SpatialGrid } from './spatialGrid.js';
 import { jointBetween, joints } from './connectivity.js';
+import { fixed } from './fixed.js';
 import { NOT_INSIDE, type ProjectileHits, type Projectiles } from './projectiles.js';
 import type { BeamHits, Beams } from './beams.js';
 import type { Rng } from './rng.js';
@@ -339,8 +340,8 @@ export class Damage {
     this.unbuilt[bodyIndex] = unbuilt;
     this.unbuiltTotal[bodyIndex] = unbuiltTotal;
     this.unbuiltSpin[bodyIndex] = unbuiltSpin;
-    this.dry[bodyIndex] = dry;
-    this.spin[bodyIndex] = spin;
+    this.dry[bodyIndex] = fixed(dry);
+    this.spin[bodyIndex] = fixed(spin);
     this.shed[bodyIndex] = shed;
     this.shedSpin[bodyIndex] = shedSpin;
     this.unsettled[bodyIndex] = 0;
@@ -351,7 +352,7 @@ export class Damage {
     }
     this.cut[bodyIndex] = cut;
     this.cutVersions[bodyIndex] = (this.cutVersions[bodyIndex] ?? 0) + 1;
-    this.capacity[bodyIndex] = capacity;
+    this.capacity[bodyIndex] = fixed(capacity);
     this.kinds[bodyIndex] = kinds;
     this.versions[bodyIndex] = (this.versions[bodyIndex] ?? 0) + 1;
     this.designs[bodyIndex] = design;

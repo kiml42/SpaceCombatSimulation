@@ -26,6 +26,7 @@ import {
   readsCraft,
 } from '../sim/index.js';
 import { cos, max, min, PI, round, sin, sqrt } from '../sim/math.js';
+import { byContent } from '../sim/byContent.js';
 import { BARE_CORE } from '../scenarios/blueprints.js';
 import { DEFAULT_LIMITS, drift, mutate, type MutationLimits } from './mutate.js';
 import { fleetBlueprint, hangarClashes, padReached, renamePadFighter, withFleetFighters } from '../sim/fleetHangar.js';
@@ -163,11 +164,14 @@ export function mutateFleet(parent: Fleet, rng: Rng, limits?: Partial<FleetMutat
  * Whether a candidate is a fleet worth fighting: every design a ship, within
  * the budget and the deployment radius, and no two hulls on top of each other.
  */
+/** `blueprintProblem`, asked once of each design however many candidates carry it unchanged. */
+const designProblem = byContent(64, blueprintProblem);
+
 export function fleetFits(fleet: Fleet, limits: Pick<FleetMutationLimits, 'budget' | 'radius' | 'maxShips'>): boolean {
   if (fleetProblem(fleet) !== null) return false;
   if (hangarClashes(fleet).length > 0) return false;
   for (const blueprint of Object.values(fleet.designs))
-    if (blueprintProblem(withFleetFighters(blueprint, fleet.designs)) !== null) return false;
+    if (designProblem(withFleetFighters(blueprint, fleet.designs)) !== null) return false;
   const hulls = fleetHulls(fleet);
   if (hulls.length === 0 || hulls.length > limits.maxShips) return false;
   if (!affords(limits.budget, fleetBill(hulls))) return false;

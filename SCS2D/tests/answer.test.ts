@@ -74,6 +74,29 @@ describe("the skirmish enemy's answer", () => {
     }
   });
 
+  it(
+    'names the enemy leading a generation once it has fought all its matches, and the best once the generation is done',
+    { timeout: 120_000 },
+    () => {
+      const running = new EnemySearch(gunship, corvette, WON, 5);
+      expect(running.leader).toBeNull();
+      let led = null;
+      // A step at a time, so every match's end is seen before what follows it.
+      while (!running.advance(1) && running.progress.generation === 0) {
+        const leader = running.leader;
+        // Never one part-way through its matches: who leads only changes for a better one.
+        if (led !== null) expect(leader).not.toBeNull();
+        if (led !== null && leader !== led) expect(leader!.wins * 1e9 + leader!.margin).toBeGreaterThan(led.wins * 1e9 + led.margin);
+        led = leader ?? led;
+      }
+      expect(led).not.toBeNull();
+      // The leader at the generation's end was its best.
+      expect(led!.enemy).toBe(running.progress.best.enemy);
+      // A new generation has fought nothing yet.
+      if (running.progress.found === null) expect(running.leader).toBeNull();
+    },
+  );
+
   it('reports each generation as it finishes', () => {
     const running = new EnemySearch(gunship, corvette, WON, 5);
     expect(running.progress.generation).toBe(0);
