@@ -114,8 +114,10 @@ an entry is either still open or it is gone.
        - **2d. Remodel and the design picker** — built, carrying blueprints in the log. The picker
          offers the blueprint library, stock and saved; a design only in the battle, such as an evolved
          fleet's, is not yet among them.
-    3. **Run away** — outlined below, after slice 2's machinery, which it reuses: an order whose target is
-       optional, and doctrine as settings.
+    3. **Run away** — settled below, on slice 2's machinery: an order whose target is optional, and
+       doctrine as settings. Built in two pieces:
+       - **3a. The Flee order** — fleeing all armed enemies, one, or hiding behind a friend or wreck.
+       - **3b. Withdrawing under doctrine** — when a ship flees or hides without being told.
     4. **A per-order band and speed** for attack and defend, overriding doctrine's for that one order.
     5. **Orders in the skirmish**, once breeding can allow for a fleet that is being steered.
 
@@ -180,19 +182,46 @@ an entry is either still open or it is gone.
     - **Keys** are provisional, to be rethought once the set is fuller. Inside the panel it is mouse only,
       so keys do not fight the number boxes.
 
-    **Slice 3, in outline** (from the author; to be grilled before it is built):
+    **Slice 3, as settled:**
 
-    - **Run away** (an order, with an optional target, as slice 2's are):
-      - **No target:** away from enemies generally, stopping once the ship judges itself out of their reach.
-      - **An enemy:** away from that one.
-      - **A friend:** hide behind it. Go near it, and circle round to its side furthest from the nearest
-        enemies.
-    - **As doctrine too**, so a ship keeps clear without being told: fleeing picks the closest enemy, or
-      perhaps the closest with guns aimed at it; hiding has a distance within which to look for friends to
-      hide behind, and a mass or radius they must have to count. This is the "keeping clear" a tanker wants
-      (§12, withdrawal).
-    - **Open:** what sends a ship off under doctrine (unarmed, too hurt, short of fuel or rounds), what "out
-      of reach" is, how "guns aimed at it" is judged, and what ends hiding.
+    - **One Flee verb, its target deciding what it does** (F; Nearest and Enter give no target):
+      - **No target:** away from every armed enemy whose reach it is inside.
+      - **An enemy:** away from that one only.
+      - **A friend or a neutral body, a wreck included:** hide behind it. Hiding behind an unarmed enemy
+        would make sense too, but is not offered, as it would be hard to make clear.
+      - Each draws its target line in a colour of its own, flee and hide told apart.
+    - **Out of reach** is an armed enemy's reach (`fightReach`: its guns', or a ram's run) times the
+      fleeing ship's `fleeMargin`. An enemy's speed is not allowed for. "Armed" means guns or a ram.
+    - **Fleeing never ends of its own accord.** Out of reach it eases off gently rather than braking hard:
+      coasting away would spend least fuel, but a ship that is to be any use again has to come back, or be
+      come to; easing off keeps it ready to run again if the enemy comes on, and stops it leaving its friends
+      behind. Only Stop or a new order ends it, and as nothing queued after it would run, a Flee replaces
+      the queue.
+    - **Fleeing all of them** weighs each armed enemy it is inside the reach of by how deep inside it is,
+      and one with a gun aimed at it, a mount whose pick is this ship, by `aimedWeight` more.
+    - **Hiding** sits on the side of its cover opposite the nearest armed enemies, weighted as fleeing
+      weighs them, as close as its own obstacle avoidance holds it off anything, and moving with it. A
+      cover that is destroyed is hidden behind as a wreck, so hiding goes on.
+    - **Under doctrine**, judged afresh every step, so a ship mended back above its threshold returns:
+      - **What it fights or works with:** its guns; its claws while its doctrine wants to scavenge (below
+        its threshold, with a source it has picked); its ports while there is a friend it would fuel. A
+        tool counts while wanted whether or not it works, so a broken claw is a broken tool, not a missing
+        one. The share of these still working is what `fleeArmed` and `ramArmed` read.
+      - **It withdraws** at or below `fleeArmed` of that share (below zero, the default, never), and
+        always when it has nothing at all to fight or work with: a Tanker with no one to fuel, or a
+        Scavenger with nothing to scavenge, keeps clear rather than idling near the fight.
+      - **Precedence:** an order over everything; then docking and doctrine's errands, which back off by
+        their own `dockDanger` and `scavengeDanger`; then withdrawing; then fighting. Ramming overrules
+        withdrawing when the ship is at or below `ramArmed` and an enemy is within its ram radius, so with
+        `ramArmed` below `fleeArmed` a ship flees, and rams only if it loses its guns faster than it gets
+        away. `ramArmed` above `fleeArmed` is allowed, if of little use.
+      - **Hide or flee:** it hides behind the nearest friend or neutral body within `hideRange` of its own
+        radii and at least `hideSize` times its radius, not itself inside an armed enemy's reach, keeping
+        that cover while it qualifies; with none, it flees all armed enemies.
+    - **New doctrine, each evolvable:** `fleeMargin`, `aimedWeight`, `fleeArmed`, `hideRange` and
+      `hideSize`.
+    - **Left open:** cover is sized by radius alone, though fire can go through it, and a more massive
+      cover stops more of it.
 
 ### Not started — in order
 
@@ -416,7 +445,7 @@ Deliberately unresolved; decide when they block something.
   holding it, which may be too eager while it could still be mended by someone else's. A full hold leaves a
   wreck half taken apart, its robots home with what they could not put away, until it is emptied.
 
-- **Withdrawal: a craft breaking off.** Outlined as step 14's slice 3 (§8): running away, from enemies
+- **Withdrawal: a craft breaking off.** Settled as step 14's slice 3 (§8): running away, from enemies
   generally or one, or hiding behind a friend, by order or by doctrine. What follows is what it answers. A
   fighter already breaks off for a pad at its `refuelBelow`, `rearmBelow`, `rechargeBelow` and `repairBelow`; nothing breaks off for anything else, and
   nothing without a pad to go to breaks off at all. **And keeping clear in the first place**: an unarmed
