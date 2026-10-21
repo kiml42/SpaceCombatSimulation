@@ -1,3 +1,4 @@
+import { isFixed } from '../sim/fixed.js';
 import type { Battle } from './types.js';
 
 /**
@@ -10,6 +11,8 @@ import type { Battle } from './types.js';
  * - **Designs**, and all they reach, which are never changed once made: a
  *   ship rebuilt or refitted gets a new design. Sharing them keeps the caches
  *   keyed on them (the module-level and `Ships`' `WeakMap`s) working.
+ * - **Arrays marked `fixed`**, which are only ever replaced, never written
+ *   into: most of what a body's record holds that follows from its design.
  * - **`WeakMap`s and `WeakSet`s**, which cannot be walked. Those in the sim are
  *   caches whose entries follow from their key, so sharing them is safe.
  * - **Functions**, which cannot be copied. One closing over what changes would
@@ -62,7 +65,7 @@ function share(value: unknown): void {
 
 function clone(value: unknown, into: Into): unknown {
   if (typeof value !== 'object' || value === null) return value;
-  if (shared.has(value)) return value;
+  if (shared.has(value) || isFixed(value)) return value;
   const copies = into.copies;
   const known = copies.get(value);
   if (known !== undefined) return known;

@@ -228,3 +228,19 @@ describe('a muzzle flash', () => {
     expect(flashes.dirY[1]).toBe(1);
   });
 });
+
+describe('copying flashes', () => {
+  it('gives a copy that ages apart from the original, and can be taken back on', () => {
+    const flashes = new Flashes();
+    for (let i = 0; i < 100; i++) flashes.add(i, 0, FLASH_REFERENCE_ENERGY, IMPACT_ROUND);
+    const copy = flashes.copy();
+    flashes.step(ROUND_FLASH_LIFETIME);
+    expect(flashes.count).toBe(0);
+    expect(copy.count).toBe(100);
+    expect(copy.x[99]).toBe(99);
+    flashes.set(copy);
+    copy.clear();
+    expect(flashes.count).toBe(100);
+    expect(flashes.age[0]).toBe(0);
+  });
+});

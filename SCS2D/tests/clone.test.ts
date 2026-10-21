@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { checksumWorld } from '../sim/checksum.js';
 import type { Battle } from '../scenarios/types.js';
 import { cloneBattle } from '../scenarios/clone.js';
+import { isFixed } from '../sim/fixed.js';
 import { duel } from '../scenarios/duel.js';
 import { beamDuel } from '../scenarios/beamDuel.js';
 import { starWars } from '../scenarios/starWars.js';
@@ -54,6 +55,32 @@ const SCENES: Record<string, () => Battle> = {
 const BEFORE = 240;
 const AFTER = 240;
 
+/** A copy of every array marked `fixed` that a battle reaches, by the array. */
+const fixedIn = (battle: Battle): Map<object, unknown[]> => {
+  const found = new Map<object, unknown[]>();
+  const seen = new Set<object>();
+  const walk = (value: unknown): void => {
+    if (typeof value !== 'object' || value === null || seen.has(value)) return;
+    seen.add(value);
+    if (isFixed(value)) {
+      found.set(value, ArrayBuffer.isView(value) ? Array.from(value as Float64Array) : [...(value as unknown[])]);
+    }
+    if (ArrayBuffer.isView(value) || value instanceof WeakMap || value instanceof WeakSet) return;
+    if (value instanceof Map) {
+      for (const [k, v] of value) {
+        walk(k);
+        walk(v);
+      }
+    } else if (value instanceof Set) {
+      for (const v of value) walk(v);
+    } else {
+      for (const key of Object.keys(value)) walk((value as Record<string, unknown>)[key]);
+    }
+  };
+  walk(battle);
+  return found;
+};
+
 const run = (battle: Battle, steps: number): Battle => {
   for (let i = 0; i < steps; i++) battle.step();
   return battle;
@@ -64,10 +91,16 @@ describe('a copied battle', () => {
     it(`${name} steps on exactly as its original, and leaves it alone`, () => {
       const expected = checksumWorld(run(create(), BEFORE + AFTER).world);
       const original = run(create(), BEFORE);
+      const fixed = fixedIn(original);
+      expect(fixed.size).toBeGreaterThan(0);
       const copy = run(cloneBattle(original), AFTER);
       expect(checksumWorld(copy.world)).toBe(expected);
       // The copy having gone on, the original still goes on from where it was.
       expect(checksumWorld(run(original, AFTER).world)).toBe(expected);
+      // Shared between the two, so neither may have written into them.
+      for (const [array, was] of fixed) {
+        expect(ArrayBuffer.isView(array) ? Array.from(array as Float64Array) : [...(array as unknown[])]).toEqual(was);
+      }
     }, 120_000);
   }
 });

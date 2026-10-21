@@ -262,6 +262,46 @@ export class Flashes {
     this.count = 0;
   }
 
+  copy(): Flashes {
+    const out = new Flashes();
+    out.x = this.x.slice();
+    out.y = this.y.slice();
+    out.body = this.body.slice();
+    out.localX = this.localX.slice();
+    out.localY = this.localY.slice();
+    out.radius = this.radius.slice();
+    out.age = this.age.slice();
+    out.lifetime = this.lifetime.slice();
+    out.kind = this.kind.slice();
+    out.vx = this.vx.slice();
+    out.vy = this.vy.slice();
+    out.growth = this.growth.slice();
+    out.dirX = this.dirX.slice();
+    out.dirY = this.dirY.slice();
+    out.count = this.count;
+    return out;
+  }
+
+  /** Take on another's flashes, as they are. */
+  set(from: Flashes): void {
+    const copy = from.copy();
+    this.x = copy.x;
+    this.y = copy.y;
+    this.body = copy.body;
+    this.localX = copy.localX;
+    this.localY = copy.localY;
+    this.radius = copy.radius;
+    this.age = copy.age;
+    this.lifetime = copy.lifetime;
+    this.kind = copy.kind;
+    this.vx = copy.vx;
+    this.vy = copy.vy;
+    this.growth = copy.growth;
+    this.dirX = copy.dirX;
+    this.dirY = copy.dirY;
+    this.count = copy.count;
+  }
+
   private grow(): void {
     const size = this.x.length * 2;
     const x = new Float64Array(size);
