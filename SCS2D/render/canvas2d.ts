@@ -557,7 +557,8 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
       }
       if (spec.kind === 'tank' || spec.kind === 'hold' || spec.kind === 'battery') {
         // A gauge, like a gun's load: the whole capacity as a track inside the
-        // walls, and what is left in it filling from the aft end. Drawn at full
+        // walls, and what is left in it filling along its longer side, so it
+        // moves as far as it can: from the aft end, or the -y one. Drawn at full
         // strength however torn the store, since a wreck's load is still there
         // for a claw to take.
         const inset = min(spec.length, spec.width) * TANK_INSET;
@@ -566,15 +567,19 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
         ctx.globalAlpha = 1;
         if (triangle !== null) {
           // The same band of the tank, kept inside the shape rather than drawn
-          // as the box the corners fit in. Measured from the aftmost corner,
-          // so a triangular tank empties the way a rectangular one does.
+          // as the box the corners fit in. Measured from the corner furthest
+          // back along it, so a triangular tank empties the way a rectangular one does.
           const lining = insetTriangle(triangle, inset);
           if (lining !== null) {
             let aft = Infinity;
             let fore = -Infinity;
+            let low = Infinity;
+            let high = -Infinity;
             for (let v = 0; v < lining.length; v += 2) {
               aft = min(aft, lining[v]!);
               fore = max(fore, lining[v]!);
+              low = min(low, lining[v + 1]!);
+              high = max(high, lining[v + 1]!);
             }
             ctx.save();
             ctx.beginPath();
@@ -583,7 +588,8 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
             ctx.fill();
             ctx.clip();
             ctx.fillStyle = content;
-            ctx.fillRect(aft, -halfWidth, (fore - aft) * share, spec.width);
+            if (fore - aft >= high - low) ctx.fillRect(aft, -halfWidth, (fore - aft) * share, spec.width);
+            else ctx.fillRect(-halfLength, low, spec.length, (high - low) * share);
             ctx.restore();
           }
         } else {
@@ -603,7 +609,8 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
           ctx.fill();
           ctx.clip();
           ctx.fillStyle = content;
-          ctx.fillRect(-halfLength + inset, -halfWidth + inset, inner * share, across);
+          if (inner >= across) ctx.fillRect(-halfLength + inset, -halfWidth + inset, inner * share, across);
+          else ctx.fillRect(-halfLength + inset, -halfWidth + inset, inner, across * share);
           ctx.restore();
         }
       }

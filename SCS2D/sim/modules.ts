@@ -1226,8 +1226,8 @@ export interface ModuleSpec {
 }
 
 export enum GunType {
-  'Projectile' = 0,
-  'Beam' = 1,
+  Projectile = 0,
+  Beam = 1,
 }
 
 /**
