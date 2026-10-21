@@ -794,13 +794,12 @@
           "modules": [
             {
               "id": 7,
-              "kind": "engine",
-              "x": 0.5,
-              "y": 0,
+              "kind": "tank",
+              "x": -0.05,
+              "y": 0.1,
               "angle": -180,
-              "length": 1.2,
-              "width": 0.5,
-              "nozzle": 1.2
+              "length": 1.3,
+              "width": 0.3
             },
             {
               "id": 8,
@@ -832,20 +831,20 @@
               "id": 11,
               "kind": "engine",
               "x": 1.05,
-              "y": -0.5,
+              "y": -0.45,
               "angle": 180,
               "length": 2,
-              "width": 0.5,
+              "width": 0.8,
               "nozzle": 2
             },
             {
               "id": 12,
               "kind": "hullGun",
               "x": 0.05,
-              "y": -1,
+              "y": -1.05,
               "angle": 0,
               "length": 2.3,
-              "width": 0.5,
+              "width": 0.4,
               "reinforcement": 1.5,
               "barrels": 1,
               "barrelCalibres": 42,
@@ -917,32 +916,21 @@
           "mirror": true
         },
         {
-          "id": 4,
-          "kind": "tank",
-          "x": 0.85,
-          "y": 0,
-          "length": 0.4,
-          "width": 0.5,
-          "reinforcement": 1.5,
-          "sealing": 0.0024
-        },
-        {
           "id": 5,
-          "kind": "engine",
-          "x": -0.65,
+          "kind": "hold",
+          "x": -0.95,
           "y": 0,
           "angle": 180,
           "length": 0.6,
           "width": 0.5,
-          "reinforcement": 1.23,
-          "nozzle": 1.2
+          "reinforcement": 1.23
         },
         {
           "id": 6,
-          "kind": "hold",
-          "x": 1.175,
+          "kind": "tank",
+          "x": 0.975,
           "y": 0,
-          "length": 0.25,
+          "length": 0.65,
           "width": 0.5,
           "reinforcement": 1.5
         }
