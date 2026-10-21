@@ -79,6 +79,7 @@ import type { ForceProvider, World } from './world.js';
 import type { BeamHits, Beams, SpatialGrid } from './index.js';
 import { MAX_BEAM_LENGTH } from './beams.js';
 import { RayHit } from './spatialGrid.js';
+import { fixed } from './fixed.js';
 import { hullsOverlap, moduleOverlapsHull, type Contacts } from './collision.js';
 import {
   DOCK_POWER_PER_METRE,
@@ -1565,7 +1566,7 @@ export class Ships {
     this.throttles.push(new Float64Array(design.engines.length));
     this.lit.push(new Uint8Array(design.engines.length));
     this.landed.push(new Float64Array(landedLength(design)));
-    this.turretIndex.push(indices);
+    this.turretIndex.push(fixed(indices));
     this.cooldown.push(new Float64Array(mounts.length));
     this.turretStates.push(new Uint8Array(mounts.length));
     this.nextBarrelToFire.push(new Int32Array(mounts.length));
@@ -7218,7 +7219,7 @@ export class Ships {
     this.designs[i] = design;
     this.hullDesign[b] = design;
     this.sides[b] = sides;
-    this.turretIndex[i] = indices;
+    this.turretIndex[i] = fixed(indices);
     this.cooldown[i] = cooldown;
     this.turretStates[i] = states;
     this.nextBarrelToFire[i] = barrels;
