@@ -694,9 +694,11 @@ interface Joins {
 export function modulesOverlap(a: ModuleSpec, b: ModuleSpec): boolean {
   const ca: number[] = [];
   const cb: number[] = [];
-  const countA = moduleOutline(a, ca);
-  const countB = moduleOutline(b, cb);
+  return outlinesOverlap(ca, moduleOutline(a, ca), cb, moduleOutline(b, cb));
+}
 
+/** `modulesOverlap` on outlines already drawn, for a check that asks it of every pair. */
+function outlinesOverlap(ca: readonly number[], countA: number, cb: readonly number[], countB: number): boolean {
   // The candidate axes are the two shapes' edge normals, which in the plane is
   // all of them. A box contributes two, since its four edges are two pairs of
   // opposites; a triangle contributes three.
@@ -1409,8 +1411,11 @@ export function contactWidth(spec: ModuleSpec, other: ModuleSpec): number {
   // Only the part of each that may be welded at all, which is the whole of
   // most modules and a hull weapon's block: a barrel out in the open is not
   // somewhere to hang a ship from.
-  const a = weldBox(spec);
-  const b = weldBox(other);
+  return weldedWidth(weldBox(spec), weldBox(other));
+}
+
+/** `contactWidth` between two modules' weld boxes (`weldBox`), for a check that asks it of every pair. */
+export function weldedWidth(a: ModuleSpec, b: ModuleSpec): number {
   const half = ATTACHMENT_TOLERANCE * 0.5;
   // Two boxes are measured as extents either side of their centres, which is
   // the same figure the spans give and the one a box has always been measured
@@ -1559,11 +1564,11 @@ function boxExtent(hl: number, hw: number, ux: number, uy: number, nx: number, n
 }
 
 /**
- * Whether two modules are bolted together: their faces touching, or within
- * the attachment tolerance of touching.
+ * Whether two modules, by their weld boxes, are bolted together: their faces
+ * touching, or within the attachment tolerance of touching.
  */
-function modulesAttached(a: ModuleSpec, b: ModuleSpec): boolean {
-  return contactWidth(a, b) > 0;
+function boxesAttached(a: ModuleSpec, b: ModuleSpec): boolean {
+  return weldedWidth(a, b) > 0;
 }
 
 /**
@@ -1601,6 +1606,8 @@ function detachedGroups(modules: readonly ModuleSpec[]): number[][] {
 
   const anchor = live.find((index) => modules[index]!.kind === 'core');
   if (anchor === undefined) return [];
+  const boxes: ModuleSpec[] = [];
+  for (const index of live) boxes[index] = weldBox(modules[index]!);
 
   const attached = new Set<number>([anchor]);
   const frontier = [anchor];
@@ -1609,7 +1616,7 @@ function detachedGroups(modules: readonly ModuleSpec[]): number[][] {
     const at = frontier.pop()!;
     for (const other of live) {
       if (attached.has(other)) continue;
-      if (!modulesAttached(modules[at]!, modules[other]!)) continue;
+      if (!boxesAttached(boxes[at]!, boxes[other]!)) continue;
       attached.add(other);
       frontier.push(other);
     }
@@ -1626,7 +1633,7 @@ function detachedGroups(modules: readonly ModuleSpec[]): number[][] {
     for (let k = 0; k < group.length; k++) {
       for (const other of live) {
         if (attached.has(other) || placed.has(other)) continue;
-        if (!modulesAttached(modules[group[k]!]!, modules[other]!)) continue;
+        if (!boxesAttached(boxes[group[k]!]!, boxes[other]!)) continue;
         placed.add(other);
         group.push(other);
       }
@@ -1849,9 +1856,29 @@ export function blueprintFaults(blueprint: Blueprint): BlueprintFault[] {
     }
   }
 
+  // Each outline drawn once, and a pair whose bounds are apart never tested:
+  // apart, they cannot overlap.
+  const outlines = modules.map((module) => {
+    const corners: number[] = [];
+    const count = moduleOutline(module, corners);
+    let lx = Infinity;
+    let ly = Infinity;
+    let hx = -Infinity;
+    let hy = -Infinity;
+    for (let c = 0; c < count * 2; c += 2) {
+      lx = min(lx, corners[c]!);
+      hx = max(hx, corners[c]!);
+      ly = min(ly, corners[c + 1]!);
+      hy = max(hy, corners[c + 1]!);
+    }
+    return { corners, count, lx, ly, hx, hy };
+  });
   for (let i = 0; i < modules.length; i++) {
+    const a = outlines[i]!;
     for (let k = i + 1; k < modules.length; k++) {
-      if (modulesOverlap(modules[i]!, modules[k]!)) {
+      const b = outlines[k]!;
+      if (a.lx > b.hx || b.lx > a.hx || a.ly > b.hy || b.ly > a.hy) continue;
+      if (outlinesOverlap(a.corners, a.count, b.corners, b.count)) {
         faults.push({ message: `${blueprint.name}: modules ${i} and ${k} overlap`, modules: [i, k] });
       }
     }
