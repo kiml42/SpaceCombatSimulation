@@ -2227,7 +2227,11 @@ describe('adding modules to an assembly', () => {
     // transform wrong moves the ship — and only on a posed assembly, which is
     // exactly the kind that gets built once and trusted.
     const { doc, assembly } = wingAndSpare();
-    const posed = setMirror(updatePlacement(doc.blueprint, assembly, (p) => ({ ...p, angle: Math.PI / 2 }) as Placement)!, assembly, true)!;
+    const posed = setMirror(
+      updatePlacement(doc.blueprint, assembly, (p) => ({ ...p, angle: Math.PI / 2 }) as Placement)!,
+      assembly,
+      true,
+    )!;
     const withSpare = new EditorDocument(posed);
     const spare = withSpare.view.origins.findIndex((_, i) => withSpare.view.modules[i]!.kind === 'engine');
     const before = positions(posed).sort();
