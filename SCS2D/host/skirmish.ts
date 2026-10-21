@@ -663,6 +663,20 @@ export function startSkirmish(): void {
 
   const progressed = (now: AnswerProgress): void => {
     if (skirmish === null) return;
+    if (now.leading) {
+      // Shown at the head of the timeline until the generation is done, and never kept.
+      const played: Played = {
+        kind: 'search',
+        round: skirmish.round,
+        seed: skirmish.won!,
+        winner: now.onRound ? 1 : 0,
+        player: skirmish.player,
+        enemy: now.best,
+        generation: now.generation,
+      };
+      line.show(record(history, played), true);
+      return;
+    }
     latest = now;
     // Kept as it goes, so a reload carries on from the best so far, at the budget reached.
     skirmish = { ...skirmish, enemy: now.found ?? now.best, multiplier: now.multiplier };
