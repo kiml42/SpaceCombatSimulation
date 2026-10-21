@@ -1295,11 +1295,20 @@ describe('the editor in a browser', () => {
   });
 
   it("warns of each module out of every core's reach, and flies the ship anyway", async () => {
-    await openShip(page, 'Star Destroyer');
+    // A gun 30 m down a spine from a core that reaches 15 m.
+    await openWritten(page, 'Far Gun', {
+      formatVersion: 2,
+      name: 'Far Gun',
+      modules: [
+        { kind: 'core', x: 0, y: 0, length: 2, width: 2 },
+        { kind: 'structure', x: -16, y: 0, length: 30, width: 2 },
+        { kind: 'turret', x: -30, y: 2, length: 2, width: 2 },
+      ],
+    });
     const panel = (await page.textContent('#problems')) ?? '';
     expect(panel).toMatch(/would fly/);
-    expect(panel).toMatch(/\d+ warnings/);
-    expect(panel).toMatch(/out of every core's reach/);
+    expect(panel).toMatch(/1 warning/);
+    expect(panel).toMatch(/module 2 \(turret\) is out of every core's reach/);
     await openShip(page, 'Torch');
     expect(await page.textContent('#problems')).not.toMatch(/warning/);
   });
