@@ -77,4 +77,3 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 ## Skirmish
 - When the enemy are evolving, make the history fill the battle area.
   - In this mode the player's fleet should be put on the left, and the enemy on the right.
-- The history should be the only part that scrolls in the sidebar if the screen is tall enough to show the whole sidebar, with more than 1 row's worth of history.
