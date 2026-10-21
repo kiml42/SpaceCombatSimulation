@@ -57,7 +57,7 @@ import {
   type ShipDesign,
   type Placement,
 } from '../sim/index.js';
-import { ARCS_KEY, draw, nextArcs, type Arcs } from '../render/canvas2d.js';
+import { ARC_LABELS, ARCS_KEY, draw, nextArcs, type Arcs } from '../render/canvas2d.js';
 import { easeScale, fitScale, frame, snapStep, type Camera } from '../render/camera.js';
 import { EditorDocument } from './document.js';
 import {
@@ -341,7 +341,6 @@ export function startEditor(): void {
   let showRefit = true;
   const refitButton = el<HTMLButtonElement>('showRefit');
   const arcsButton = el<HTMLButtonElement>('cycleArcs');
-  const ARC_LABELS: Record<Arcs, string> = { none: 'Arcs: off', firing: 'Arcs: firing', trigger: 'Arcs: trigger' };
   /**
    * Refit to a different ship by easing the scale from the one before, so
    * switching between two ships shows which is bigger. The first fit, and F,

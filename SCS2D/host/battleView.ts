@@ -2,6 +2,7 @@ import { capture, NEUTRAL_TEAM, Snapshot, type ImpactLog, type ShipView } from '
 import { NO_TARGET, OrderCancelCondition } from '../sim/ships.js';
 import { Flashes } from '../render/flashes.js';
 import {
+  ARC_LABELS,
   ARCS_KEY,
   closeUps,
   draw,
@@ -19,6 +20,7 @@ import {
   type Arcs,
 } from '../render/canvas2d.js';
 import type { Strips } from '../render/fleetStrip.js';
+import { viewOptions } from './viewOptions.js';
 import type { Inset } from '../render/inset.js';
 import {
   frame,
@@ -204,7 +206,34 @@ export function battleView(
   let shownInsets: Inset[] = [];
   /** Where the view's settings are kept, once a page has asked for them to be. */
   let kept: { page: string; settings: ViewSettings } | null = null;
+  const options = viewOptions(canvas.parentElement ?? document.body, [
+    {
+      label: () => ARC_LABELS[arcs],
+      title: 'Cycle the firing arcs drawn (Ctrl+A)',
+      press: () => {
+        arcs = nextArcs(arcs);
+        remember();
+      },
+    },
+    {
+      label: () => (teamShots ? 'Shots: sides' : 'Shots: light'),
+      title: "Draw rounds and beams as light, or in their side's colours (C)",
+      press: () => {
+        teamShots = !teamShots;
+        remember();
+      },
+    },
+    {
+      label: () => (strips ? 'Fleets: shown' : 'Fleets: hidden'),
+      title: "Show or hide each side's ships down the view's edges (T)",
+      press: () => {
+        strips = !strips;
+        remember();
+      },
+    },
+  ]);
   const remember = (): void => {
+    options.refresh();
     if (kept === null) return;
     kept.settings.arcs = arcs;
     kept.settings.teamShots = teamShots;
@@ -562,6 +591,7 @@ export function battleView(
       teamShots = settings.teamShots;
       strips = settings.strips;
       speed = keepSpeed(select, page, settings);
+      options.refresh();
     },
     camera,
   };

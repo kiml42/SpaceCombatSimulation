@@ -132,6 +132,9 @@ export function nextArcs(arcs: Arcs): Arcs {
   return arcs === 'none' ? 'firing' : arcs === 'firing' ? 'trigger' : 'none';
 }
 
+/** What a button cycling `Arcs` reads. */
+export const ARC_LABELS: Record<Arcs, string> = { none: 'Arcs: off', firing: 'Arcs: firing', trigger: 'Arcs: trigger' };
+
 /** The key that cycles `Arcs`: alone in the editors, with Ctrl or Cmd on a battle, where alone it picks a side. */
 export const ARCS_KEY = 'a';
 
