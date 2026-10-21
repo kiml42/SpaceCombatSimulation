@@ -79,5 +79,4 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - When the enemy are evolving, make the history fill the battle area.
   - In this mode the player's fleet should be put on the left, and the enemy on the right.
 - If a single generation takes long enough, show the thumbnails for the leader in the generation without a "Victory" or "Defeat" stamp to show the work in progress happening.
-- The history should be the only part that scrolls in the sidebar if the screen is tall enough to show the whole sidebar, with more than 1 row's worth of history.
 - Rotate the enemy fleet in the history display so it matches the orientation it will be shown in in the battle (ships too)
