@@ -149,6 +149,8 @@ export function mutateFleet(parent: Fleet, rng: Rng, limits?: Partial<FleetMutat
       if (changed.length === 0 || !fleetFits(candidate, bounds)) continue;
       draft.designs = candidate.designs;
       draft.ships = candidate.ships;
+      // A merge repoints groups' entries too.
+      if (candidate.groups !== undefined) draft.groups = candidate.groups;
       edits.push(...changed);
       break;
     }

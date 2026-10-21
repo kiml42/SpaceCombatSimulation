@@ -79,7 +79,8 @@ an entry is either still open or it is gone.
     queue of orders, each a target and a range band to hold, or a target to ram; doctrine is a block a ship
     can be handed whole; its doctrine already sends it to escort, to land on a pad and to dock at a port for
     fuel and repairs, but only on its own judgement, never by order; `Ships.refit` remodels a ship; a pad's
-    or slipway's `craft` and `keep` say what it builds. Running away has no form yet (slice 3 below).
+    or slipway's `craft` and `keep` say what it builds. Running away is the Flee order; under doctrine it has
+    no form yet (slice 3 below).
     Comes before mining because managing an income is giving orders; the campaign reuses all of it.
 
     Built in slices, each landing on its own:
@@ -116,7 +117,9 @@ an entry is either still open or it is gone.
          fleet's, is not yet among them.
     3. **Run away** — settled below, on slice 2's machinery: an order whose target is optional, and
        doctrine as settings. Built in two pieces:
-       - **3a. The Flee order** — fleeing all armed enemies, one, or hiding behind a friend or wreck.
+       - **3a. The Flee order** — built: W arms it, Enter gives no target. Fleeing eases off at
+         `FLEE_EASE`, 3 m/s², a first guess. Building it found fleet breeding dropping a merge's changes to
+         groups, which left a group naming a design merged away; it is fixed.
        - **3b. Withdrawing under doctrine** — when a ship flees or hides without being told.
     4. **A per-order band and speed** for attack and defend, overriding doctrine's for that one order.
     5. **Orders in the skirmish**, once breeding can allow for a fleet that is being steered.

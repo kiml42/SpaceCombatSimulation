@@ -34,7 +34,7 @@ import { fittingOf } from './rebuild.js';
 
 /** An order as drawn: what it is, and the body of what it is given against. */
 export interface OrderView {
-  kind: 'attack' | 'defend' | 'ram' | 'dock' | 'scavenge' | 'deliver';
+  kind: 'attack' | 'defend' | 'ram' | 'dock' | 'scavenge' | 'deliver' | 'flee' | 'hide';
   /** The body it is against or making for, or -1 for none yet. */
   target: number;
 }
@@ -480,7 +480,9 @@ export function capture(
       const orders = (view.orders ??= []);
       orders.length = 0;
       for (const order of given) {
-        const kind = order.errand ?? (order.defend === true ? 'defend' : order.ram ? 'ram' : 'attack');
+        const kind =
+          order.errand ??
+          (order.flee === true ? (order.hide === true ? 'hide' : 'flee') : order.defend === true ? 'defend' : order.ram ? 'ram' : 'attack');
         // Docking anywhere, where doctrine has chosen to go.
         const target = order.errand !== undefined && order.target < 0 && order === given[0] ? ships.errandTarget(i) : order.target;
         orders.push({ kind, target: ships.isAlive(target) ? bodies.indexOf(ships.body(target)) : -1 });
