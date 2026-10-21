@@ -195,6 +195,8 @@ export function start(): void {
   const addSide = el<HTMLSelectElement>('addSide');
   let library = choices();
   const listDesigns = (): void => {
+    // Not while one is being placed: the list shows which.
+    if (view.placing) return;
     library = choices();
     addShip.replaceChildren(addShip.options[0]!);
     library.forEach((choice, k) => addShip.add(new Option(choice.label, String(k))));
@@ -204,10 +206,11 @@ export function start(): void {
   for (let team = 0; team < 4; team++) addSide.add(new Option(teamName(team), String(team)));
   addShip.addEventListener('change', () => {
     const choice = addShip.value === '' ? undefined : library[Number(addShip.value)];
-    addShip.value = '';
     addShip.blur();
-    if (choice === undefined) return;
-    view.place({ blueprint: choice.blueprint, team: Number(addSide.value) });
+    // The list shows what is being placed until it is placed or given up, and the side is the one chosen by then.
+    view.place(
+      choice === undefined ? null : { blueprint: choice.blueprint, team: () => Number(addSide.value), ended: () => (addShip.value = '') },
+    );
   });
 
   view.keep('viewer', speedSelect);

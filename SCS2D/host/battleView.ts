@@ -144,11 +144,13 @@ export interface BattleView {
   screenOf(ship: number): { x: number; y: number } | null;
   /**
    * Make the next press on the view put a new ship built to `blueprint` into
-   * the battle for `team`: where it is pressed, moving as far in `PLACE_SECONDS`
-   * as it is dragged, and facing that way. Escape or null gives it up. Only on
-   * a battle that can take orders, as it is logged as one.
+   * the battle for `team`, asked as it is let go: where it is pressed, moving
+   * as far in `PLACE_SECONDS` as it is dragged, and facing that way. Escape or
+   * null gives it up. `ended` is told once it is placed or given up, not when
+   * another takes its place. Only on a battle that can take orders, as it is
+   * logged as one.
    */
-  place(placing: { blueprint: Blueprint; team: number } | null): void;
+  place(placing: { blueprint: Blueprint; team: () => number; ended?: () => void } | null): void;
   readonly placing: boolean;
 }
 
@@ -325,7 +327,8 @@ export function battleView(
   /** A ship being placed: what and whose, and once pressed, where from and where the drag has got to, world metres. */
   let placing: {
     blueprint: Blueprint;
-    team: number;
+    team: () => number;
+    ended?: () => void;
     radius: number;
     from: { x: number; y: number } | null;
     to: { x: number; y: number };
@@ -363,15 +366,16 @@ export function battleView(
     (event) => {
       if (placing?.from == null) return;
       event.stopImmediatePropagation();
-      const { blueprint, team, from } = placing;
+      const { blueprint, team, from, ended } = placing;
       const to = worldAt(event);
       placing = null;
+      ended?.();
       const dx = to.x - from.x;
       const dy = to.y - from.y;
       issue({
         kind: 'spawn',
         blueprint,
-        team,
+        team: team(),
         x: from.x,
         y: from.y,
         vx: dx / PLACE_SECONDS,
@@ -407,8 +411,11 @@ export function battleView(
       event.preventDefault();
       nearest(event.ctrlKey || event.metaKey || event.shiftKey);
     } else if (event.key === 'Escape') {
-      if (placing !== null) placing = null;
-      else if (armed !== null) armed = null;
+      if (placing !== null) {
+        const ended = placing.ended;
+        placing = null;
+        ended?.();
+      } else if (armed !== null) armed = null;
       else picked = [];
     } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === ARCS_KEY) {
       // Not the browser's select-all.
@@ -625,10 +632,12 @@ export function battleView(
       return rewind?.orders ?? [];
     },
     place(next) {
+      const was = placing;
       placing =
         next === null || !ordersAllowed
           ? null
           : { ...next, radius: compileBlueprint(next.blueprint).radius, from: null, to: { x: 0, y: 0 } };
+      if (placing === null) was?.ended?.();
     },
     get placing() {
       return placing !== null;

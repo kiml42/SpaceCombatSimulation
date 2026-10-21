@@ -804,9 +804,13 @@ describe('the viewer in a browser', () => {
         return { count: v.battle.ships.count, placing: v.placing, last: v.orders.at(-1)?.command };
       });
     const before = await viewer();
-    await page.selectOption('#addSide', '1');
+    // The ship first and the side after: the side is the one chosen by the time it is placed.
+    await page.selectOption('#addSide', '0');
     await page.selectOption('#addShip', { label: 'Corvette' });
     expect((await viewer()).placing).toBe(true);
+    await page.selectOption('#addSide', '1');
+    // The list goes on showing what is being placed.
+    expect(await page.locator('#addShip option:checked').textContent()).toBe('Corvette');
     const box = (await page.locator('#view').boundingBox())!;
     await page.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.5);
     await page.mouse.down();
@@ -816,6 +820,7 @@ describe('the viewer in a browser', () => {
     const after = await viewer();
     expect(after.count).toBe(before.count + 1);
     expect(after.placing).toBe(false);
+    expect(await page.inputValue('#addShip')).toBe('');
     // Dragged to the right, which is east in the battle: moving that way and facing it.
     expect(after.last).toMatchObject({ kind: 'spawn', team: 1, vy: 0, angle: 0 });
     expect((after.last as { vx: number }).vx).toBeGreaterThan(0);
@@ -823,6 +828,7 @@ describe('the viewer in a browser', () => {
     await page.selectOption('#addShip', { label: 'Corvette' });
     await page.keyboard.press('Escape');
     expect((await viewer()).placing).toBe(false);
+    expect(await page.inputValue('#addShip')).toBe('');
   });
 
   it('reports no errors after all of that', () => {
