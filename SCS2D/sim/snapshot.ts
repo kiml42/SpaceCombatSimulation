@@ -88,6 +88,8 @@ export interface ShipView {
   override?: DoctrineOverride;
   /** What its pads and slipways have been told to keep, by `slotKey`; absent for nothing. */
   keeps?: Readonly<Record<string, number>>;
+  /** What its pads and slipways have been told to build, by `slotKey`; absent for nothing. */
+  crafts?: Readonly<Record<string, ShipDesign>>;
   x: number;
   y: number;
   angle: number;
@@ -469,6 +471,9 @@ export function capture(
     const keeps = ships.keepsOf(i);
     if (keeps === undefined) delete view.keeps;
     else view.keeps = keeps;
+    const crafts = ships.craftsOf(i);
+    if (crafts === undefined) delete view.crafts;
+    else view.crafts = crafts;
     const given = ships.ordersOf(i);
     if (given.length === 0) delete view.orders;
     else {

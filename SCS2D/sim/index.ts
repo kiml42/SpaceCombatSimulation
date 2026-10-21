@@ -280,6 +280,7 @@ export {
   topId,
   moduleKeys,
   refitPlan,
+  refitShare,
   type RefitPlan,
   modulesOverlap,
   placementAt,

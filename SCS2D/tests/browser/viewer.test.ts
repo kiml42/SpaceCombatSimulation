@@ -14,6 +14,7 @@ import type { Browser, Page } from 'playwright';
 import { launchChromium } from './launch.js';
 import { serialiseBlueprint } from '../../sim/index.js';
 import { DINKY } from '../../scenarios/blueprints.js';
+import { REFITTED } from '../../scenarios/mending.js';
 
 /**
  * The viewer, driven in a real browser.
@@ -725,6 +726,9 @@ describe('the viewer in a browser', () => {
     await page.keyboard.press('p');
     await painted(page);
     expect(await page.isVisible('#doctrinePanel')).toBe(true);
+    // What it is built to, on the order bar.
+    expect(await page.isVisible('#remodelTo')).toBe(true);
+    expect(((await page.locator('#remodelTo option:checked').textContent()) ?? '').length).toBeGreaterThan(0);
     const speed = page.locator('#doctrinePanel input[data-field="approachSpeed"]');
     await speed.fill('7');
     await speed.press('Tab');
@@ -742,6 +746,48 @@ describe('the viewer in a browser', () => {
     await painted(page);
     expect(await page.isHidden('#doctrinePanel')).toBe(true);
     await page.keyboard.press('Escape');
+  }, 60_000);
+
+  it('shows what a ship is built to, and remodels it only on Remodel', async () => {
+    // Something in the library its refit would take, whatever the stock ships are: itself less its last module.
+    const variant = { ...REFITTED, name: 'Refitted Rebuilder, trimmed', modules: REFITTED.modules.slice(0, -1) };
+    await page.evaluate(
+      ([key, text]) => window.localStorage.setItem(key!, text!),
+      [`scs2d.blueprint.${variant.name}`, JSON.stringify(serialiseBlueprint(variant))],
+    );
+    await page.selectOption('#scene', { label: 'Refitting' });
+    if ((await page.textContent('#play')) === 'Pause') await page.click('#play');
+    await painted(page);
+    // The scenario's one ship, by its side rather than by where it is drawn.
+    const pick = async (): Promise<void> => {
+      // Not into the drop-down, whose letters pick its options.
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await page.keyboard.press('a');
+      await painted(page);
+      expect(await page.evaluate(() => (window as unknown as { viewer: { picked: number[] } }).viewer.picked)).toEqual([0]);
+    };
+    const orders = (): Promise<number> =>
+      page.evaluate(() => (window as unknown as { viewer: { orders: unknown[] } }).viewer.orders.length);
+    await pick();
+    expect(await page.isEnabled('#remodelTo')).toBe(true);
+    const built = await page.locator('#remodelTo option:checked').textContent();
+    expect(await page.isEnabled('#remodel')).toBe(false);
+    await page.selectOption('#remodelTo', { index: 1 });
+    expect(await page.isEnabled('#remodel')).toBe(true);
+    // Chosen but not given: let go and picked again, it shows what it is built to.
+    const before = await orders();
+    await page.keyboard.press('Escape');
+    await painted(page);
+    await pick();
+    expect(await page.locator('#remodelTo option:checked').textContent()).toBe(built);
+    expect(await orders()).toBe(before);
+    await page.selectOption('#remodelTo', { index: 1 });
+    await page.click('#remodel');
+    await painted(page);
+    expect(await orders()).toBe(before + 1);
+    expect(await page.locator('#remodelTo option:checked').textContent()).not.toBe(built);
+    await page.keyboard.press('Escape');
+    await page.evaluate((key) => window.localStorage.removeItem(key), `scs2d.blueprint.${variant.name}`);
   }, 60_000);
 
   it('reports no errors after all of that', () => {

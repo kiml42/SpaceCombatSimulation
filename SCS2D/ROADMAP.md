@@ -110,8 +110,10 @@ an entry is either still open or it is gone.
          optional. No golden checksum moved: none of those battles docks at a port.
        - **2b. Scavenge and deliver** — built, on the same machinery.
        - **2c. The doctrine panel** — built: the ship's, its main and secondary weapons', a single
-         mount's, and its build counts. Choosing a slot's design waits for 2d's picker.
-       - **2d. Remodel and the design picker**, which carries blueprints in the log.
+         mount's, and its build counts.
+       - **2d. Remodel and the design picker** — built, carrying blueprints in the log. The picker
+         offers the blueprint library, stock and saved; a design only in the battle, such as an evolved
+         fleet's, is not yet among them.
     3. **Run away** — outlined below, after slice 2's machinery, which it reuses: an order whose target is
        optional, and doctrine as settings.
     4. **A per-order band and speed** for attack and defend, overriding doctrine's for that one order.
@@ -162,7 +164,9 @@ an entry is either still open or it is gone.
     - **Build counts** are settings in the same panel: each pad's or slipway's design and how many to keep,
       a standing count as now (0 stops it), not a queue.
     - **Remodel** is a setting too: the ship fights on while its robots rebuild it to the new design, as
-      `Ships.refit` does now.
+      `Ships.refit` does now. It sits on the order bar, showing what the ship is built to: choose another
+      and press Remodel, in two steps, and a choice not given goes back when the picking changes. A ship
+      with no robots has it shown but not offered.
     - **One design picker** for remodelling and for a build slot's design. It lists the side's designs in
       the battle, blueprints and craft, and the blueprint library, stock and saved, filtered to what would
       work: for a remodel, what `refit` accepts for every picked ship, with how much it would rebuild; for a
