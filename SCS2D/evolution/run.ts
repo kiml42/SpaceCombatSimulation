@@ -18,6 +18,7 @@ import {
   serialiseBlueprint,
   serialiseFleet,
   shipFleet,
+  DEFAULT_DOCTRINE,
 } from '../sim/index.js';
 import { floor, max, min } from '../sim/math.js';
 import { isFleet, Match, SCORE_PARTS, type Entrant, type MatchConfig, type MatchResult } from './match.js';
@@ -222,6 +223,68 @@ export function generationSize(record: GenerationRecord): GenerationSize {
     meanEngines: engines / n,
     bestEngines: bestFittings.engines,
   };
+}
+
+/** Every number a doctrine holds, as `part.field`: what a chart of how doctrine is evolving can show. */
+export const DOCTRINE_NUMBERS: readonly string[] = (['targeting', 'approach'] as const).flatMap((part) =>
+  Object.entries(DEFAULT_DOCTRINE[part])
+    .filter(([, value]) => typeof value === 'number')
+    .map(([field]) => `${part}.${field}`),
+);
+
+/** Each of `DOCTRINE_NUMBERS`, averaged over a generation's individuals and for the fittest, as `generationSize` is. */
+export interface GenerationDoctrine {
+  readonly mean: Readonly<Record<string, number>>;
+  readonly best: Readonly<Record<string, number>>;
+}
+
+export function generationDoctrine(record: GenerationRecord): GenerationDoctrine {
+  const mean: Record<string, number> = {};
+  const best: Record<string, number> = {};
+  let fittest: IndividualRecord | undefined;
+  let counted = 0;
+  for (const individual of record.individuals) {
+    const values = doctrineNumbers(individual);
+    if (values === null) continue;
+    counted++;
+    for (const key of DOCTRINE_NUMBERS) mean[key] = (mean[key] ?? 0) + values[key]!;
+    if (fittest === undefined || individual.fitness > fittest.fitness) {
+      fittest = individual;
+      Object.assign(best, values);
+    }
+  }
+  for (const key of DOCTRINE_NUMBERS) mean[key] = counted > 0 ? mean[key]! / counted : NaN;
+  return { mean, best };
+}
+
+/** One individual's doctrine numbers, a fleet's averaged over its ships; null for a record that no longer reads. */
+function doctrineNumbers(record: IndividualRecord): Record<string, number> | null {
+  const of = (blueprint: Blueprint): Record<string, number> => {
+    const doctrine = blueprint.doctrine ?? DEFAULT_DOCTRINE;
+    const out: Record<string, number> = {};
+    for (const key of DOCTRINE_NUMBERS) {
+      const [part, field] = key.split('.') as ['targeting' | 'approach', string];
+      const value = (doctrine[part] as unknown as Record<string, unknown>)[field];
+      out[key] = typeof value === 'number' ? value : ((DEFAULT_DOCTRINE[part] as unknown as Record<string, number>)[field] ?? NaN);
+    }
+    return out;
+  };
+  try {
+    if (record.fleet !== undefined) {
+      const fleet = parseFleet(record.fleet);
+      const ships = expandFleet(fleet);
+      if (ships.length === 0) return null;
+      const out: Record<string, number> = {};
+      for (const ship of ships) {
+        const values = of(fleet.designs[ship.design]!);
+        for (const key of DOCTRINE_NUMBERS) out[key] = (out[key] ?? 0) + values[key]! / ships.length;
+      }
+      return out;
+    }
+    return record.blueprint === undefined ? null : of(parseBlueprint(record.blueprint));
+  } catch {
+    return null;
+  }
 }
 
 /** One match, and enough to fight it again. */
