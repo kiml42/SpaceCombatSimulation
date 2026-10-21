@@ -1864,7 +1864,7 @@ export class Ships {
     // huddling rather than fighting.
     this.chosen[i] = fighting;
     this.consort[i] = defending;
-    if (defending === NO_TARGET && this.withdraws(bodies, i, b, fighting)) {
+    if (defending === NO_TARGET && this.withdraws(i, b, fighting)) {
       this.chosen[i] = NO_TARGET;
       this.consort[i] = NO_TARGET;
       this.withdrawing[i] = 1;
@@ -2305,7 +2305,7 @@ export class Ships {
    * `fleeArmed`. Not while it would ram what it is fighting, close enough by
    * `ramRadii`, nor with no armed enemy anywhere to keep clear of.
    */
-  private withdraws(bodies: Bodies, i: number, b: number, fighting: number): boolean {
+  private withdraws(i: number, b: number, fighting: number): boolean {
     const approach = this.doctrines[i]!.approach;
     const share = this.armedShare(i, b, false);
     const leaving = this.tools === 0 ? !(this.fightReach(i) > 0) : share <= approach.fleeArmed;
