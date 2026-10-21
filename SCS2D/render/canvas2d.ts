@@ -2060,6 +2060,8 @@ const ORDER_COLOURS = {
   dock: '#7ee07a',
   scavenge: '#d7a6ff',
   deliver: '#5fd6c8',
+  flee: '#f2e35b',
+  hide: '#b8c4cf',
 } as const;
 
 /**

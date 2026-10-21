@@ -95,7 +95,12 @@ export function orderBar(view: BattleView): { update(shown: Snapshot): void } {
       const ship = view.picked.length === 1 ? viewOf(shown, view.picked[0]) : null;
       const orders = (ship?.orders ?? []).map((order) => {
         // Docking anywhere, before doctrine has chosen where.
-        let named = order.kind === 'dock' || order.kind === 'scavenge' || order.kind === 'deliver' ? 'nearest' : 'gone';
+        let named =
+          order.kind === 'flee'
+            ? 'every enemy'
+            : order.kind === 'dock' || order.kind === 'scavenge' || order.kind === 'deliver'
+              ? 'nearest'
+              : 'gone';
         for (let i = 0; i < shown.shipCount; i++) {
           const target = shown.ships[i]!;
           if (target.body === order.target) named = `${teamName(target.team)} ${target.name ?? target.serial}`;

@@ -242,6 +242,18 @@ const APPROACH_ROWS: readonly DoctrineRow[] = [
     step: 0.5,
   },
   {
+    field: 'fleeMargin',
+    label: 'clear at',
+    hint: "How far out of an armed enemy's reach a fleeing ship counts itself clear, as a multiple of that reach: inside it runs, beyond it eases off",
+    step: 0.1,
+  },
+  {
+    field: 'aimedWeight',
+    label: 'runs more from aim',
+    hint: 'How much more an enemy with a gun aimed at it counts in fleeing or hiding than one without. 1 ignores aim',
+    step: 0.5,
+  },
+  {
     field: 'tangentialMin',
     label: 'passes at least',
     hint: 'The least sideways speed it keeps relative to what it is attacking, metres per second. Above 0 it comes in aiming to miss, at the inner edge of its band, and circles if its thrust can hold the turn or makes passes if it cannot. 0 for both comes to rest at its band',
@@ -476,6 +488,18 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
                 ? `≈ ${((ship.mass * v.targeting.ramMass) / 1000).toLocaleString('en-GB', { maximumFractionDigits: 1 })} t`
                 : 'the size it always wants',
           }),
+        ],
+      },
+    ],
+  },
+  {
+    title: 'Running away',
+    groups: [
+      {
+        title: 'Running away',
+        entries: [
+          entry('approach', 'fleeMargin', { absolute: (v) => `clear at ${v.approach.fleeMargin} times an enemy's reach` }),
+          entry('approach', 'aimedWeight'),
         ],
       },
     ],
