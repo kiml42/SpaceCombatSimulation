@@ -1,7 +1,10 @@
 import {
   overriddenMount,
+  padHolds,
   placementOf,
+  slipwayHolds,
   slotKey,
+  type ModuleSpec,
   type DoctrineOverride,
   type DoctrinePart,
   type ShipDesign,
@@ -9,6 +12,7 @@ import {
   type Snapshot,
 } from '../sim/index.js';
 import { MOUNT_SECTIONS, SHIP_SECTIONS, sectionEntries, type DoctrineEntry } from '../editor/doctrine.js';
+import { choices, type Choice } from './designChoices.js';
 import { mountAt, sideOf, viewOf } from '../render/picking.js';
 import type { BattleView } from './battleView.js';
 import { el } from './dom.js';
@@ -84,22 +88,37 @@ interface Slot {
   readonly key: string;
   readonly label: string;
   readonly keep: number | undefined;
+  readonly pad: boolean;
+  readonly spec: ModuleSpec;
+  /** The name of what it is told to build, or of what it builds by design; undefined where they differ. */
+  readonly craft: string | undefined;
 }
 
 function slotsOf(ships: readonly ShipView[]): Slot[] {
-  const found = new Map<string, { label: string; keeps: number[] }>();
+  const found = new Map<string, { pad: boolean; spec: ModuleSpec; keeps: number[]; crafts: string[] }>();
   for (const ship of ships) {
     const design = ship.blueprint ?? ship.currentStructure;
-    const add = (module: number, kind: string, craft: ShipDesign, keep: number): void => {
+    const add = (module: number, pad: boolean, craft: ShipDesign, keep: number): void => {
       const key = slotKey(design, module);
-      const keeps = found.get(key)?.keeps ?? [];
-      keeps.push(ship.keeps?.[key] ?? keep);
-      found.set(key, { label: `${kind} · ${craft.name}`, keeps });
+      const slot = found.get(key) ?? { pad, spec: design.modules[module]!.spec, keeps: [], crafts: [] };
+      slot.keeps.push(ship.keeps?.[key] ?? keep);
+      slot.crafts.push((ship.crafts?.[key] ?? craft).name);
+      found.set(key, slot);
     };
-    for (const order of design.builds ?? []) add(order.pad, 'Pad', order.design, order.keep);
-    for (const order of design.yards ?? []) add(order.slipway, 'Slipway', order.design, order.keep);
+    for (const order of design.builds ?? []) add(order.pad, true, order.design, order.keep);
+    for (const order of design.yards ?? []) add(order.slipway, false, order.design, order.keep);
   }
-  return [...found].map(([key, { label, keeps }]) => ({ key, label, keep: shared(keeps) ?? undefined }));
+  return [...found].map(([key, slot]) => {
+    const craft = slot.crafts.every((c) => c === slot.crafts[0]) ? slot.crafts[0] : undefined;
+    return {
+      key,
+      label: slot.pad ? 'Pad' : 'Slipway',
+      keep: shared(slot.keeps) ?? undefined,
+      pad: slot.pad,
+      spec: slot.spec,
+      craft,
+    };
+  });
 }
 
 export function doctrinePanel(view: BattleView): { update(shown: Snapshot): void } {
@@ -185,12 +204,36 @@ export function doctrinePanel(view: BattleView): { update(shown: Snapshot): void
     return out;
   };
 
-  const slots = (ships: readonly ShipView[]): HTMLElement[] =>
+  const slots = (ships: readonly ShipView[], library: readonly Choice[]): HTMLElement[] =>
     slotsOf(ships).map((slot) => {
       const label = document.createElement('label');
-      label.title = 'How many of these it keeps in the fight';
+      label.title = 'What it builds, and how many of them it keeps in the fight';
       const name = document.createElement('span');
       name.textContent = slot.label;
+      // What it builds: as designed, or anything in the library it could build.
+      const craft = document.createElement('select');
+      const designed = document.createElement('option');
+      designed.value = '';
+      designed.textContent = slot.craft ?? 'mixed';
+      craft.append(designed);
+      const buildable = library.filter((choice) =>
+        slot.pad
+          ? choice.design.fighter && padHolds(choice.design, slot.spec)
+          : !choice.design.fighter && slipwayHolds(choice.design, slot.spec),
+      );
+      buildable.forEach((choice, n) => {
+        const option = document.createElement('option');
+        option.value = String(n);
+        option.textContent = choice.label;
+        craft.append(option);
+      });
+      craft.addEventListener('change', () => {
+        const choice = buildable[Number(craft.value)];
+        if (craft.value === '' || choice === undefined) return;
+        view.issue({ kind: 'craft', ships: view.picked, slot: slot.key, blueprint: choice.blueprint });
+        shownKey = '';
+        force = true;
+      });
       const input = document.createElement('input');
       input.type = 'number';
       input.min = '0';
@@ -208,7 +251,20 @@ export function doctrinePanel(view: BattleView): { update(shown: Snapshot): void
         shownKey = '';
         force = true;
       });
-      label.append(name, input);
+      label.append(name);
+      // Left of the boxes, so they stay put as it comes and goes.
+      if (ships.some((ship) => ship.crafts?.[slot.key] !== undefined)) {
+        const back = document.createElement('button');
+        back.textContent = '↺';
+        back.title = 'Back to what its design builds';
+        back.addEventListener('click', () => {
+          view.issue({ kind: 'craft', ships: view.picked, slot: slot.key, blueprint: null });
+          shownKey = '';
+          force = true;
+        });
+        label.append(back);
+      }
+      label.append(craft, input);
       return label;
     });
 
@@ -236,7 +292,10 @@ export function doctrinePanel(view: BattleView): { update(shown: Snapshot): void
     const body = document.createElement('div');
     body.className = 'rows';
     body.append(...rows(ships));
-    if (part === 'ship') body.append(...slots(ships));
+    if (part === 'ship') {
+      const library = choices();
+      body.append(...slots(ships, library));
+    }
     if (body.childElementCount === 0) body.textContent = part === 'ship' ? '' : 'No such weapons';
     const reset = document.createElement('button');
     reset.textContent = '↺ Revert all';
@@ -274,7 +333,13 @@ export function doctrinePanel(view: BattleView): { update(shown: Snapshot): void
     const key = JSON.stringify([
       view.picked,
       part,
-      ships.map((s) => [s.override ?? null, s.keeps ?? null, s.currentStructure.turrets.length, s.blueprint?.name ?? '']),
+      ships.map((s) => [
+        s.override ?? null,
+        s.keeps ?? null,
+        Object.entries(s.crafts ?? {}).map(([slot, craft]) => [slot, craft.name]),
+        s.currentStructure.turrets.length,
+        s.blueprint?.name ?? '',
+      ]),
     ]);
     // Never rebuilt under a box being typed in, unless that box has just been told.
     const focus = document.activeElement;
