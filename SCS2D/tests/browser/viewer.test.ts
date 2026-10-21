@@ -729,6 +729,8 @@ describe('the viewer in a browser', () => {
     // What it is built to, on the order bar.
     expect(await page.isVisible('#remodelTo')).toBe(true);
     expect(((await page.locator('#remodelTo option:checked').textContent()) ?? '').length).toBeGreaterThan(0);
+    // Under the editor's headings.
+    expect(await page.textContent('#doctrinePanel h3')).toBe('Picking a fight and closing on it');
     const speed = page.locator('#doctrinePanel input[data-field="approachSpeed"]');
     await speed.fill('7');
     await speed.press('Tab');
