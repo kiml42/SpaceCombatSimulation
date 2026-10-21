@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { compileBlueprint, expandBlueprint, refitPlan, settleIds, subDesign, type Blueprint } from '../sim/index.js';
 import { EditorDocument } from '../editor/document.js';
 import { makeBattle } from '../scenarios/battle.js';
-import { MENDER, REBUILDER, REFITTED, refitting } from '../scenarios/mending.js';
+import { catamaranRefits, MENDER, REBUILDER, REFITTED, refitting } from '../scenarios/mending.js';
+import { BEAM_CATAMARAN, CATAMARAN } from '../scenarios/blueprints.js';
 
 /** Refitting a ship from one design to another (ROADMAP.md §8 step 12, slice 2). */
 
@@ -175,5 +176,30 @@ describe('a refit taking a tank down', () => {
     expect(run.ships.isRefitting(run.a)).toBe(false);
     expect(run.ships.currentStructure(run.a).modules.filter((m) => m.spec.kind === 'tank').length).toBe(1);
     expect(run.ships.fuel.left(b())).toBeCloseTo(before, 6);
+  });
+});
+
+describe('a refit between the Catamaran and the Beam Catamaran', () => {
+  it('keeps a module laid out the same though it has moved out of an assembly', () => {
+    const plan = refitPlan(CATAMARAN, BEAM_CATAMARAN)!;
+    const built = expandBlueprint(BEAM_CATAMARAN).filter((_, k) => plan.built.includes(k));
+    expect(built.map((m) => m.kind).sort()).toEqual(['battery', 'battery', 'beamTurret', 'beamTurret']);
+  });
+
+  it('refits each turret in place, which could not come down without cutting its retro engine loose', { timeout: 60_000 }, () => {
+    const run = catamaranRefits();
+    const b = (i: number): number => run.world.bodies.indexOf(run.ships.body(i));
+    const tanks = (i: number) => run.ships.currentStructure(i).modules.flatMap((m, k) => (m.spec.kind === 'tank' ? [k] : []));
+    // The Catamaran's tanks that the Beam Catamaran has no room for, by what they hold as it starts.
+    const dropped = tanks(0)
+      .filter((k) => run.ships.currentStructure(0).modules[k]!.spec.x > 0)
+      .reduce((sum, k) => sum + run.ships.fuel.held(b(0), k), 0);
+    const before = run.ships.fuel.left(b(0));
+    for (let s = 0; s < 20 * 60 * 60 && (run.ships.isRefitting(0) || run.ships.isRefitting(1)); s++) run.step();
+    expect(run.ships.isRefitting(0)).toBe(false);
+    expect(run.ships.isRefitting(1)).toBe(false);
+    expect(kinds(run.ships.currentStructure(0).modules).filter((k) => /urret/.test(k))).toEqual(['beamTurret', 'beamTurret']);
+    expect(kinds(run.ships.currentStructure(1).modules).filter((k) => /urret/.test(k))).toEqual(['turret', 'turret']);
+    expect(run.ships.fuel.left(b(0))).toBeGreaterThanOrEqual(before - dropped - 1e-6);
   });
 });

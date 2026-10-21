@@ -7,6 +7,7 @@ import {
   originOf,
   reachAgainst,
   rebuiltDesign,
+  keptAs,
   remarkedDesign,
   sameOrigin,
   seamedDesign,
@@ -512,6 +513,18 @@ interface Rebuild {
   readonly frame: number;
   /** Walls each launch module's next shell step has had, kg: kept while the hull is remade. */
   readonly work: Float64Array;
+  /** Each hull module's launch module a refit fits out in its walls (`swapFor`), or -1; worked out when first asked. */
+  swaps: Int32Array | null;
+}
+
+/** Whether two modules stand in the same place with walls of the same shape, whatever they are. */
+function sameWalls(a: ModuleSpec, b: ModuleSpec): boolean {
+  const near = (u: number, v: number): boolean => abs(u - v) <= 1e-6 * (1 + abs(u));
+  if (!near(a.x, b.x) || !near(a.y, b.y) || !near(a.length, b.length) || !near(a.width, b.width)) return false;
+  if (!(abs(angleDelta(a.angle ?? 0, b.angle ?? 0)) <= 1e-6)) return false;
+  const va = a.vertices ?? [];
+  const vb = b.vertices ?? [];
+  return va.length === vb.length && va.every((v, k) => near(v, vb[k]!));
 }
 
 /** The module of its compiled design a hull module is, for what tier rebuilding it falls in. */
@@ -5376,7 +5389,7 @@ export class Ships {
     for (let m = 0; m < design.modules.length && frame < 0; m++) {
       if (design.modules[m]!.shell === undefined && originOf(design, m).design === compiled) frame = m;
     }
-    const rebuild = { design, at, frame, work: known?.work ?? new Float64Array(launch.modules.length) };
+    const rebuild = { design, at, frame, work: known?.work ?? new Float64Array(launch.modules.length), swaps: null };
     this.rebuilds[i] = rebuild;
     return rebuild;
   }
@@ -5723,7 +5736,7 @@ export class Ships {
     if (this.refitting[owner] !== 1) return false;
     for (let m = 0; m < design.modules.length; m++) {
       if (this.pilotAt(b, m) !== owner || workforce(design.modules[m]!.spec.kind)) continue;
-      if (this.wreckage(owner, b, m) && staysWhole(design, m)) return true;
+      if (this.wreckage(owner, b, m) && this.comesOff(owner, b, design, m)) return true;
     }
     return false;
   }
@@ -5754,6 +5767,82 @@ export class Ships {
     return false;
   }
 
+  /** Whether module `m`, wreckage to ship `owner`, can come off: without cutting the rest loose, or refitted in place. */
+  private comesOff(owner: number, b: number, design: ShipDesign, m: number): boolean {
+    return staysWhole(design, m) || this.swapFor(owner, b, design, m) >= 0;
+  }
+
+  /**
+   * The module of its refit's design ship `owner` fits out in the walls of
+   * module `m` of its hull, or -1: one not yet built, where `m` stands, with
+   * walls of the same shape and mass. `m` is then refitted in place, its
+   * fittings out and the new ones in, rather than taken down and built again.
+   */
+  private swapFor(owner: number, b: number, design: ShipDesign, m: number): number {
+    if (this.refitting[owner] !== 1 || this.pilotAt(b, m) !== owner) return -1;
+    const rebuild = this.rebuildFor(owner, design);
+    if (rebuild.swaps === null) {
+      const swaps = new Int32Array(design.modules.length).fill(-1);
+      rebuild.swaps = swaps;
+      if (rebuild.frame >= 0) {
+        const launch = this.launched[owner]!;
+        const reference = originOf(design, rebuild.frame);
+        const taken = new Uint8Array(launch.modules.length);
+        for (let k = 0; k < design.modules.length; k++) {
+          const module = design.modules[k]!;
+          if (module.shell !== undefined || this.pilotAt(b, k) !== owner || !this.wreckage(owner, b, k)) continue;
+          for (let l = 0; l < launch.modules.length; l++) {
+            if (rebuild.at[l]! >= 0 || taken[l] === 1) continue;
+            const origin = originOf(launch, l);
+            const whole = origin.design.modules[origin.module]!;
+            const placed = inFrame(whole.spec, reference.design.modules[reference.module]!.spec, design.modules[rebuild.frame]!.spec);
+            if (
+              !sameWalls(module.spec, placed) ||
+              !(abs(module.stats.structureMass - whole.stats.structureMass) <= 1e-6 * whole.stats.structureMass)
+            )
+              continue;
+            swaps[k] = l;
+            taken[l] = 1;
+            break;
+          }
+        }
+      }
+    }
+    return rebuild.swaps[m] ?? -1;
+  }
+
+  /**
+   * Make module `m` of body `b`, its fittings out, launch module `l` of ship
+   * `i`'s refit: the same walls, its fittings still to go in.
+   */
+  private refitInPlace(world: World, b: number, m: number, i: number, l: number): void {
+    const bodies = world.bodies;
+    const p = this.shipAt(bodies, b);
+    if (p < 0) return;
+    const design = this.designs[p]!;
+    const rebuild = this.rebuildFor(i, design);
+    const origin = originOf(this.launched[i]!, l);
+    const whole = origin.design.modules[origin.module]!;
+    const reference = originOf(design, rebuild.frame);
+    const placed = inFrame(whole.spec, reference.design.modules[reference.module]!.spec, design.modules[rebuild.frame]!.spec);
+    const next = rebuiltDesign(design, m, placed, whole.stats, origin, null, design.pieces?.[m] ?? 0);
+    const out = this.damage.unbuiltAt(b, m);
+
+    this.momentum(bodies);
+    const beforeX = this.momentumX;
+    const beforeY = this.momentumY;
+    const mass = bodies.mass[b]!;
+    const inertia = bodies.inertia[b]!;
+    this.regrow(world, p, b, design, next, m, i);
+    this.damage.fit(b, m, out);
+    this.damage.unfit(b, m, fittingOf(whole.stats));
+    this.settleMass(bodies, b);
+    this.discardFrom(bodies, b, mass, inertia);
+    this.momentum(bodies);
+    bodies.vx[b] = bodies.vx[b]! + (beforeX - this.momentumX) / bodies.mass[b]!;
+    bodies.vy[b] = bodies.vy[b]! + (beforeY - this.momentumY) / bodies.mass[b]!;
+  }
+
   /**
    * Whether ship `owner` has wreckage on body `b` its robots could take apart,
    * one that can come off without cutting the rest loose (`staysWhole`), and
@@ -5762,7 +5851,7 @@ export class Ships {
   private strippable(owner: number, b: number, design: ShipDesign, into: number): boolean {
     if (!(this.metal.pieceRoom(b, into) > ROBOT_SPENT)) return false;
     for (let m = 0; m < design.modules.length; m++) {
-      if (this.wreckage(owner, b, m) && staysWhole(design, m)) return true;
+      if (this.wreckage(owner, b, m) && this.comesOff(owner, b, design, m)) return true;
     }
     return false;
   }
@@ -5781,7 +5870,7 @@ export class Ships {
     let bestCrowd = Infinity;
     let bestDist = Infinity;
     for (let m = 0; m < design.modules.length; m++) {
-      if (!Number.isFinite(dist[m]!) || !this.wreckage(owner, b, m) || !staysWhole(design, m)) continue;
+      if (!Number.isFinite(dist[m]!) || !this.wreckage(owner, b, m) || !this.comesOff(owner, b, design, m)) continue;
       // Its own hull's cores, bays and generators come down last of all, and only when due.
       if (this.ownWorkforce(owner, b, design, m) && !this.due(owner, b, design, m)) continue;
       // A bay comes down once its robots are home and taken apart; its own go home for that.
@@ -5836,7 +5925,7 @@ export class Ships {
    */
   private stripOne(b: number, design: ShipDesign, robots: Robot[], robot: Robot, owner: number, dt: number): boolean {
     const m = robot.target;
-    if (m < 0 || m >= design.modules.length || !this.wreckage(owner, b, m) || !staysWhole(design, m)) {
+    if (m < 0 || m >= design.modules.length || !this.wreckage(owner, b, m) || !this.comesOff(owner, b, design, m)) {
       this.sendOut(b, design, robots, robot, owner);
       return false;
     }
@@ -5857,6 +5946,9 @@ export class Ships {
       return true;
     }
     const step = this.stripStep(b, design, m);
+    // Refitted in place, only its fittings come out.
+    if (this.swapFor(owner, b, design, m) >= 0)
+      step.kg = fittingOf(step.stats) * (1 - this.damage.shedAt(b, m) / (step.stats.structureMass + step.stats.fittingMass));
     const work = buildWork(step.stats);
     const per = work * REPAIR_ENERGY_PER_JOULE;
     const done = this.damage.unbuiltAt(b, m);
@@ -5885,7 +5977,14 @@ export class Ships {
     const p = this.shipAt(bodies, b);
     if (p < 0) return;
     const design = this.designs[p]!;
-    if (m >= design.modules.length || !staysWhole(design, m)) return;
+    if (m >= design.modules.length) return;
+    const owner = this.pilotAt(b, m);
+    const l = owner < 0 ? -1 : this.swapFor(owner, b, design, m);
+    if (l >= 0) {
+      this.refitInPlace(world, b, m, owner, l);
+      return;
+    }
+    if (!staysWhole(design, m)) return;
     const step = this.stripStep(b, design, m);
     const share = step.share - 1 / SHELL_STEPS;
     if (!(share > 1e-9)) {
@@ -8334,16 +8433,18 @@ export class Ships {
     const p = b < 0 ? -1 : this.shipAt(bodies, b);
     if (p < 0) return 'the ship is gone';
     const design = this.designs[p]!;
-    const byKey = new Map<string, number>();
-    to.modules.forEach((module, k) => byKey.set(keys[module.index]!, k));
+    const as = keptAs(
+      design.modules.map((_, m) => {
+        if (!this.ownsAt(i, b, m)) return null;
+        const from = originOf(design, m);
+        const was = from.design.modules[from.module]!;
+        return { key: from.design.keys?.[was.index], spec: was.spec };
+      }),
+      to.modules.map((module) => ({ key: keys[module.index], spec: module.spec })),
+    );
     let kept = 0;
-    const origins = design.modules.map((_, m) => {
-      if (!this.ownsAt(i, b, m)) return null;
-      const from = originOf(design, m);
-      const was = from.design.modules[from.module]!;
-      const key = from.design.keys?.[was.index];
-      const k = key === undefined ? undefined : byKey.get(key);
-      if (k === undefined || JSON.stringify(was.spec) !== JSON.stringify(to.modules[k]!.spec)) return null;
+    const origins = as.map((k) => {
+      if (k < 0) return null;
       kept++;
       return { design: to, module: k };
     });

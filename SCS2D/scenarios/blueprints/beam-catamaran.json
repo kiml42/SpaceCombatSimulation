@@ -1,0 +1,236 @@
+{
+  "formatVersion": 2,
+  "name": "Beam Catamaran",
+  "notes": "Two hulls and a footbridge. Each hull is a whole ship — core, gun, engines — and what joins them is four sections of thin structure, so the pair is held together by welds a fraction of the width of the ones inside either hull. Built to be cut in half: what the two halves then do is what tells you whether a piece with a core of its own is a ship or wreckage. Each hull carries a robot bay, a hold and a generator, enough between them to rebuild the other half, so each half of a cut Catamaran can grow back into the whole ship.",
+  "doctrine": {
+    "targeting": {
+      "escortWeight": 400
+    },
+    "approach": {
+      "escortRadii": 4,
+      "escortMinRadii": 0.5,
+      "separation": 600,
+      "separationRadii": 2,
+      "avoidHorizon": 12
+    }
+  },
+  "assemblies": {
+    "lateral": {
+      "modules": [
+        {
+          "id": 4,
+          "kind": "engine",
+          "x": 0,
+          "y": -1,
+          "angle": 90,
+          "length": 1,
+          "width": 3,
+          "nozzle": 0.3333
+        }
+      ]
+    },
+    "retro": {
+      "modules": [
+        {
+          "id": 5,
+          "kind": "engine",
+          "x": -1,
+          "y": 0,
+          "angle": 0,
+          "length": 1,
+          "width": 3,
+          "nozzle": 0.3333
+        }
+      ]
+    },
+    "hull": {
+      "notes": "One of the pair, drawn as if it were the whole ship — which is what it becomes.",
+      "modules": [
+        {
+          "id": 6,
+          "kind": "robotBay",
+          "x": 5.75,
+          "y": 0,
+          "length": 7.5,
+          "width": 6,
+          "reinforcement": 2
+        },
+        {
+          "id": 7,
+          "kind": "core",
+          "x": 0,
+          "y": 0,
+          "length": 4,
+          "width": 6,
+          "reinforcement": 6,
+          "notes": "One each, which is the point: a hull cut off from the other still has somebody aboard it."
+        },
+        {
+          "id": 8,
+          "kind": "hold",
+          "x": -5.5,
+          "y": 0,
+          "length": 7,
+          "width": 6,
+          "reinforcement": 2,
+          "thick": true
+        },
+        {
+          "id": 9,
+          "kind": "beamTurret",
+          "x": 12,
+          "y": 0,
+          "angle": 0,
+          "length": 5,
+          "width": 4,
+          "reinforcement": 2,
+          "barrels": 1
+        },
+        {
+          "id": 10,
+          "kind": "engine",
+          "x": -9,
+          "y": 0,
+          "angle": 180,
+          "length": 2,
+          "width": 6,
+          "nozzle": 0.3333,
+          "thick": true
+        },
+        {
+          "id": 25,
+          "kind": "tank",
+          "x": -5,
+          "y": 4.5,
+          "length": 6,
+          "width": 3
+        },
+        {
+          "id": 13,
+          "use": "lateral",
+          "x": 13,
+          "y": 3
+        },
+        {
+          "id": 14,
+          "use": "lateral",
+          "x": -9.5,
+          "y": 4
+        },
+        {
+          "id": 15,
+          "use": "retro",
+          "x": 15.5,
+          "y": 0
+        },
+        {
+          "id": 16,
+          "kind": "generator",
+          "x": 0,
+          "y": 4.5,
+          "length": 4,
+          "width": 3
+        },
+        {
+          "id": 17,
+          "use": "link",
+          "x": 0,
+          "y": -5.75,
+          "repeat": 3,
+          "step": {
+            "x": 0,
+            "y": -5.5
+          }
+        },
+        {
+          "id": 18,
+          "use": "structure",
+          "x": 10.008829191,
+          "y": -2.333333332999999
+        },
+        {
+          "id": 19,
+          "use": "structure",
+          "x": -9.491170809,
+          "y": -3.333333332999999,
+          "angle": -180,
+          "mirror": true
+        }
+      ]
+    },
+    "link": {
+      "notes": "A section of the bridge. A metre and a bit of face is all that welds one to the next, against the six that hold a hull together and the reinforcement those carry.",
+      "modules": [
+        {
+          "id": 20,
+          "kind": "structure",
+          "x": 0,
+          "y": 0,
+          "length": 1.2,
+          "width": 5.5
+        }
+      ]
+    },
+    "structure": {
+      "modules": [
+        {
+          "id": 21,
+          "kind": "structure",
+          "x": 0,
+          "y": 0,
+          "length": 1.526487572,
+          "width": 1,
+          "vertices": [
+            1.017658381,
+            0.333333333,
+            -0.508829191,
+            0.333333333,
+            -0.508829191,
+            -0.666666667
+          ]
+        },
+        {
+          "id": 22,
+          "kind": "engine",
+          "x": 0.26481792100000057,
+          "y": -0.1598514619999989,
+          "angle": -56.771244699,
+          "length": 0.8,
+          "width": 1.8,
+          "nozzle": 0.4444
+        }
+      ]
+    }
+  },
+  "modules": [
+    {
+      "id": 1,
+      "use": "hull",
+      "x": -3,
+      "y": 19.5
+    },
+    {
+      "id": 3,
+      "kind": "battery",
+      "x": 2,
+      "y": 24,
+      "length": 6,
+      "width": 3
+    },
+    {
+      "id": 2,
+      "use": "hull",
+      "x": -3,
+      "y": -19.5,
+      "mirror": true
+    },
+    {
+      "id": 24,
+      "kind": "battery",
+      "x": 2,
+      "y": -24,
+      "length": 6,
+      "width": 3
+    }
+  ]
+}

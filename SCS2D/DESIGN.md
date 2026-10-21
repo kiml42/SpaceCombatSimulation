@@ -836,13 +836,17 @@ inside any one file is not contiguous.
   other, so either half of one cut in two grows back into the whole ship, in about half an hour.
   **A ship can be refitted to another design** (`Ships.refit`, a command), and from then on builds to it:
   a module of its hull that is a module of the new design by key (`ShipDesign.keys`) and laid out the same
-  is kept, as that module; what the new design has that the hull has not, its robots build, as they build
+  is kept, as that module, and failing a key, one laid out the same that nothing else is kept as, so a
+  module moved out of an assembly is kept too; what the new design has that the hull has not, its robots build, as they build
   back what is lost; and the rest of its own hull is wreckage to them, taken down as a wreck is, a module
   at a time from the far end inwards. Building comes first, as it does before taking a wreck apart, but not
   where anything of the hull is in the way: that comes down first, and a wall waits while anything is. A
   module coming down first pours what it holds — fuel, metal and charge — into the rest of the stores on its
   piece of hull, as far as they have room (`Store.spill`), and what its robots bring home that the holds
-  have no room for is thrown away. A refit may move or replace its cores and robot bays: they and its
+  have no room for is thrown away. A module whose walls, shape, place and mass, are those of one the new
+  design builds there is refitted in place instead: its fittings come out and the new ones go in, so a
+  turret that could not come down without cutting loose what is built on beyond it becomes a beam turret.
+  A refit may move or replace its cores and robot bays: they and its
   generators go up first and come down last, only once nothing else of the old hull is left to take down,
   and never the last core or bay, so it is flown and worked on throughout; a core goes only once another is
   fitted out and working, and a bay once another is and has robots of its own, its own robots home first
@@ -850,7 +854,8 @@ inside any one file is not contiguous.
   bay, and the order bar warns of it. One that keeps nothing of the ship to build against is refused. The
   `refitting` scenario has a Rebuilder
   refitted as it sets out to the same ship with its fin a tank, its engine gone and a new fin the other
-  side, done in five minutes.
+  side, done in two minutes; `catamaranRefits` has a Catamaran and a Beam Catamaran each refitted to the
+  other.
   **Every module has a complexity** (`complexityOf`), work over and above its mass that making or mending it
   takes, the same whatever its size, at `COMPLEXITY_WORK` a unit: structure, tanks and holds 1, a battery 2,
   claws, pads and ports 3, engines and hull weapons 4, turrets 7, generators and robot bays 6, cores 16, with
