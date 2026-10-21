@@ -53,11 +53,14 @@ export function pictureOf(entrant: Fleet | Blueprint): Picture {
   return { view: { ships, designs }, mass: designs.reduce((sum, d) => sum + d.mass, 0), kinds };
 }
 
-/** One kind of ship alone at the origin, to draw or to measure. */
-export function kindSnapshot(kind: ShipKind, into: Snapshot): Snapshot {
+/**
+ * One kind of ship alone at the origin, to draw or to measure; `turned`
+ * half round, as the second side of a battle sets out.
+ */
+export function kindSnapshot(kind: ShipKind, into: Snapshot, turned = false): Snapshot {
   return fleetSnapshot(
     {
-      ships: [{ design: kind.name, x: 0, y: 0, angle: 0, path: kind.name, entry: 0, trail: [] }],
+      ships: [{ design: kind.name, x: 0, y: 0, angle: turned ? Math.PI : 0, path: kind.name, entry: 0, trail: [] }],
       designs: [kind.design],
     },
     into,
@@ -65,9 +68,11 @@ export function kindSnapshot(kind: ShipKind, into: Snapshot): Snapshot {
   );
 }
 
-/** The whole fleet as it stands, to draw or to measure. */
-export function formationSnapshot(picture: Picture, into: Snapshot): Snapshot {
-  return fleetSnapshot(picture.view, into, NO_TEAM);
+/** The whole fleet as it stands, to draw or to measure; `turned` half round, as for `kindSnapshot`. */
+export function formationSnapshot(picture: Picture, into: Snapshot, turned = false): Snapshot {
+  if (!turned) return fleetSnapshot(picture.view, into, NO_TEAM);
+  const ships = picture.view.ships.map((ship) => ({ ...ship, x: -ship.x, y: -ship.y, angle: ship.angle + Math.PI }));
+  return fleetSnapshot({ ...picture.view, ships }, into, NO_TEAM);
 }
 
 /** Draw a snapshot centred on a canvas at a scale, pixels a metre. */
