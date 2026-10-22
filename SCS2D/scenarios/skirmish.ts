@@ -87,6 +87,11 @@ export interface SkirmishSettings {
   /** Generations without an answer before the multiplier steps up again. */
   readonly stretchAfter: number;
   /**
+   * How far ahead an answer must finish the round, its share of its own
+   * starting mass still sound less the player's: room for what orders win back.
+   */
+  readonly answerMargin: number;
+  /**
    * The most ships either side may field, unless the enemy already has more:
    * a limit on the work a battle is, more than on the fleets.
    */
@@ -116,6 +121,7 @@ export const DEFAULT_SKIRMISH_SETTINGS: SkirmishSettings = {
   shieldedDrills: 1,
   budgetStep: 0.1,
   stretchAfter: 4,
+  answerMargin: 0.2,
   maxShips: 20,
   radius: 500,
   breeding: {},
@@ -356,7 +362,9 @@ export function parseSkirmish(value: unknown): Skirmish {
   };
   function settingsIn(raw: unknown): SkirmishSettings {
     try {
-      return parseSkirmishSettings(raw);
+      // Settings saved before answers had a margin go on without one.
+      const settings = parseSkirmishSettings(raw);
+      return (raw as Record<string, unknown>)['answerMargin'] === undefined ? { ...settings, answerMargin: 0 } : settings;
     } catch (error) {
       return fail(`settings: ${(error as Error).message}`);
     }

@@ -95,6 +95,15 @@ export class Closing {
     if (i < this.subject.length) this.subject[i] = UNSET;
   }
 
+  /** Another, as this one is now. */
+  copy(): Closing {
+    const out = new Closing();
+    out.best = this.best.slice();
+    out.subject = this.subject.slice();
+    out.outbound = this.outbound.slice();
+    return out;
+  }
+
   private grow(size: number): void {
     const n = math.max(size, this.best.length * 2, 16);
     const best = new Float64Array(n);
@@ -124,7 +133,7 @@ export class Activity {
   private readonly able: Uint8Array;
   /** Whether each side has landed a hit on another side's ship. */
   private readonly struck: Uint8Array;
-  private readonly closing = new Closing();
+  private closing = new Closing();
   /** Per ship this step: whether it landed a hit, which starts its approach again. */
   private landed = new Uint8Array(0);
   private now = 0;
@@ -140,6 +149,25 @@ export class Activity {
     this.fired = new Uint8Array(sides);
     this.able = new Uint8Array(sides);
     this.struck = new Uint8Array(sides);
+  }
+
+  /** The decision, once there is one. */
+  get decided(): Decision | null {
+    return this.decision;
+  }
+
+  /** Another, as this one is now, to go back to: a battle wound back takes its watcher with it. */
+  copy(): Activity {
+    const out = new Activity(this.sides, this.cap, this.quietTime, this.approach);
+    out.lastActive.set(this.lastActive);
+    out.fired.set(this.fired);
+    out.able.set(this.able);
+    out.struck.set(this.struck);
+    out.closing = this.closing.copy();
+    out.landed = this.landed.slice();
+    out.now = this.now;
+    out.decision = this.decision;
+    return out;
   }
 
   /** Look at the battle after a step. Returns the decision, once there is one, and the same one after. */

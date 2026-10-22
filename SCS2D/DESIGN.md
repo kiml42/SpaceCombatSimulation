@@ -1055,7 +1055,9 @@ inside any one file is not contiguous.
   enemy, from one, or hiding behind a friend or wreck until told otherwise; and withdrawing under doctrine,
   at `fleeArmed` of what it fights or works with, or with nothing to fight or work with while an armed enemy
   is about, hiding within `hideRange` or fleeing. An attack, defence or ram can be told how far off to hold
-  and how fast to close, over doctrine's, from the order bar (ROADMAP.md step 14).
+  and how fast to close, over doctrine's, from the order bar. The skirmish's rounds take orders too, for the
+  player's ships, and can be wound back; its enemy still answers the fleet as doctrine flies it, by a margin
+  (ROADMAP.md step 14). What is left of orders is in ROADMAP.md §12.
   Alongside it, §8 step 5's skirmish: an endless loop against an enemy fleet that evolves to beat the
   player's, planned in ROADMAP.md §8. Evolution keeps the skirmish's sense of quiet, though it plays a match on until every side is quiet before naming a winner. Its loop is built without the evolving enemy (`dist/skirmish.html`,
   `scenarios/skirmish.ts`): pick a stock enemy, whose bill is the budget unless the player sets their own, under a limit on ships and spread (20 and 500 m unless set, or what the enemy fields if more), each round's gap and starting speeds drawn from optional ± spreads on its seed; fight a fixed round, decided by
@@ -1079,7 +1081,7 @@ inside any one file is not contiguous.
   side stamped victory, defeat or draw, runs one side lost folded away, and any match can be watched again or either fleet saved
   or exported. **Its numbers are the player's to set**, on a setup screen like the evolution page's before
   a skirmish starts: the round's quiet time, time cap, gap and starting speeds, the answer's mutants,
-  matches, match length and growth, and the ship, fleet and doctrine mutation odds the enemy is bred with,
+  matches, match length, growth and the margin it must win by, and the ship, fleet and doctrine mutation odds the enemy is bred with,
   remembered for the next skirmish, kept with this one so it is played out under those it started with,
   and put back with *Reset to defaults*, which the evolution page has too. The mutation fields are written
   once (`evolution/mutationFields.ts`) and both pages draw them. *Export* saves the setup, the skirmish under way and its whole

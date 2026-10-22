@@ -40,6 +40,22 @@ describe("the skirmish enemy's answer", () => {
     expect(decide(corvette, found!, MIRROR_WON).winner).toBe(1);
   });
 
+  it('wins the round by its margin, or is no answer', { timeout: 120_000 }, () => {
+    // Finishing more than all of itself ahead of the player cannot be done.
+    const answering = new EnemySearch(corvette, corvette, MIRROR_WON, 11, { answerMargin: 1.01 });
+    for (let slice = 0; slice < 40 && !answering.advance(5000); slice++);
+    expect(answering.progress.found).toBeNull();
+    // The answer found by default finishes the round at least that far ahead.
+    const found = new EnemySearch(corvette, corvette, MIRROR_WON, 11);
+    for (let slice = 0; slice < 200 && !found.advance(5000); slice++);
+    const battle = customBattle(roundBattle(corvette, found.progress.found!, MIRROR_WON));
+    const activity = new Activity(2);
+    while (activity.observe(battle) === null) battle.step();
+    const now = tally(battle, 2);
+    const share = (side: 0 | 1): number => now[side]!.mass / battle.start[side]!.mass;
+    expect(share(1) - share(0)).toBeGreaterThanOrEqual(DEFAULT_SKIRMISH_SETTINGS.answerMargin);
+  });
+
   it('is decided by its seed', { timeout: 120_000 }, () => {
     // A fixed amount of work rather than a whole search, so the test costs the same on any seed.
     const run = (): EnemySearch => {

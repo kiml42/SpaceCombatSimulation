@@ -137,7 +137,22 @@ an entry is either still open or it is gone.
          band used to be fixed when given.
        - **Set before giving,** greyed for a verb that does not take them, kept between orders. One ship's
          queue shows what each was told. Editing an order already given, in its queue, may come later.
-    5. **Orders in the skirmish**, once breeding can allow for a fleet that is being steered.
+    5. **Orders in the skirmish** — built. Settled with the author:
+       - **The answer breeds against your fleet on its doctrine alone,** untold, which keeps it quick
+         and meaningful: orders are the player's edge over it. Replaying a player's orders against bred
+         enemies was set aside, as most name an enemy ship the bred fleet does not have.
+       - **And must win the round by a margin,** `answerMargin`: its share of its own fleet left less
+         the player's, 20 points by default, so an answer has room to spare even against a player who
+         gives no orders. Set on the setup screen; a skirmish saved before it goes on with none.
+       - **Your round alone takes orders, for your ships alone,** and can be wound back: the order bar,
+         the doctrine panel and Remodel, as on the viewer, but never Add ship, which is a sandbox tool
+         and belongs in no game mode. The decision rule is kept with each checkpoint, so a rewind
+         decides as the battle would have. Once the round is decided it stands: it can be watched back,
+         but told nothing more until Restart. Un-deciding it would mean taking the match back out of
+         the history and stopping the answer's search.
+       - **A round won with orders says so,** and its history keeps the orders, which a replay plays
+         back without taking more. The order bar and panel are built once for every page that gives
+         orders (`host/battleControls.ts`).
 
     **Slice 2, as settled:**
 
@@ -770,7 +785,11 @@ Deliberately unresolved; decide when they block something.
 - **Robots working on a docked friend.** Robots cross a seam only onto wreckage to take it apart; crossing a
   port seam to mend a friend is not built. So a Dock order (§8 step 14, slice 2) mends only a fighter, on a
   pad: a port passes fuel, metal and charge and nothing more.
-- **More for step 14 to tell ships**, left out of slice 2:
+- **Gaming the skirmish's answer.** It breeds against the player's fleet on its own doctrine, so a fleet
+  given a doctrine that is useless untold makes the answer easy, and orders then win the round. A fix:
+  the answer must also beat the fleet on the default doctrine, at twice the search's cost. Left open
+  until it is seen to matter; a player who does it spoils only their own game.
+- **More for step 14 to tell ships**, left out of its slices:
   - **Stay docked**, so doctrine cannot take a ship off a dock the player wants it on.
   - **Scrap**, given to the ship to be taken apart: scrappers may then come and strip it, while it follows
     its doctrine and fights on until they do. Scavenging a friend takes only fuel until then.
@@ -779,7 +798,8 @@ Deliberately unresolved; decide when they block something.
   - **Editing a ship's blueprint from the battle**: opening the editor on it and bringing the result back
     as a remodel, a round trip between pages that are separate.
   - **The keys**, rethought once the set is fuller.
-  - **Left from slice 1:** a drop-down naming one side as yours, and touch.
+  - **Left from slice 1:** a drop-down naming one side as yours on the viewer, as the skirmish names it,
+    and touch.
 - **The numbers for repair.** How much each step wastes (repair wastes a tenth, a first guess), and whether
   disassembly and building waste alike; time and power for a joule of damage undone (a pad mends 20 kJ/s a
   metre of its width, at 10 J of charge a joule, both first guesses); a robot's speed over a hull (2 m/s), the
