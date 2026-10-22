@@ -15,7 +15,6 @@ import { duel } from '../../scenarios/duel.js';
 import { binary } from '../../scenarios/binary.js';
 import { kernels } from '../../scenarios/kernels.js';
 import { asteroidField } from '../../scenarios/asteroidField.js';
-import { mining } from '../../scenarios/mining.js';
 import type { Battle } from '../../scenarios/types.js';
 import { beamDuel } from '../../scenarios/beamDuel.js';
 import { soloOrdering } from '../../scenarios/ordering.js';
@@ -364,16 +363,6 @@ export function asteroidFieldScenario(seed = 20260905): ScenarioRun {
   };
 }
 
-/** Two salvagers mining the asteroids round a major: what pins robots mining rock. */
-export function miningScenario(seed = 20260905): ScenarioRun {
-  const run = mining(seed);
-  return {
-    step: () => run.step(),
-    checksum: () => checksumDamage(run.ships.damage, checksumWorld(run.world)),
-    describe: () => describeBattle(run),
-  };
-}
-
 export function beamDuelScenario(seed = 20260905): ScenarioRun {
   const run = beamDuel(seed);
   return {
@@ -621,8 +610,6 @@ export const SCENARIOS = {
   binary: { steps: 3_000, build: () => binaryScenario() },
   kernels: { steps: 6_000, build: () => kernelsScenario() },
   asteroidField: { steps: 6_000, build: () => asteroidFieldScenario() },
-  // Long enough for both salvagers to grip a minor and their robots to bring ore home.
-  mining: { steps: 18_000, build: () => miningScenario() },
   swarm: { steps: 3_000, build: () => swarmScenario() },
   superSwarm: { steps: 3_000, build: () => swarmScenario(undefined, 300) },
   torpedoes: { steps: 3_000, build: () => torpedoesScenario() },

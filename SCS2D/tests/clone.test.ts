@@ -7,7 +7,6 @@ import { duel } from '../scenarios/duel.js';
 import { binary } from '../scenarios/binary.js';
 import { kernels } from '../scenarios/kernels.js';
 import { asteroidField } from '../scenarios/asteroidField.js';
-import { mining } from '../scenarios/mining.js';
 import { beamDuel } from '../scenarios/beamDuel.js';
 import { starWars } from '../scenarios/starWars.js';
 import { swarm } from '../scenarios/swarm.js';
@@ -35,7 +34,6 @@ const SCENES: Record<string, () => Battle> = {
   binary: () => binary(SEED),
   kernels: () => kernels(SEED),
   asteroidField: () => asteroidField(SEED),
-  mining: () => mining(SEED),
   beamDuel: () => beamDuel(SEED),
   starWars: () => starWars(SEED),
   swarm: () => swarm(SEED),

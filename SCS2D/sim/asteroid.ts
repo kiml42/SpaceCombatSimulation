@@ -138,8 +138,9 @@ export function asteroidBlueprint(name: string, shape: AsteroidShape, rng: Rng):
     let ore = share(shape.ore, oreBearing, bearing);
     let ice = share(shape.ice, iceBearing, bearing);
     if (ore + ice > 1) {
-      ore /= ore + ice;
-      ice = 1 - ore;
+      const scale = 1 / (ore + ice);
+      ore *= scale;
+      ice *= scale;
     }
     return rockModule(anticlockwise(vertices), ore, ice, thick);
   };

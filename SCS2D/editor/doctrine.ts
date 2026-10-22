@@ -212,12 +212,6 @@ const APPROACH_ROWS: readonly DoctrineRow[] = [
     step: 0.5,
   },
   {
-    field: 'rockWeight',
-    label: 'mines rock at',
-    hint: 'What a kilogram of an asteroid’s rock is worth against a kilogram of wreckage, choosing where to scavenge: above 1 it would sooner mine, below 1 pick over a wreck. 0 never mines',
-    step: 0.25,
-  },
-  {
     field: 'refuelBelow',
     label: 'refuels below',
     hint: 'The share of a full load of fuel at or below which it goes to a friend to be refuelled: a fighter to a pad it fits on, anything else with a port to a port, a ship with a claw too, which docks only this low and otherwise scavenges. Also the fuel it keeps back when it fills a friend. 0 never goes, and keeps nothing back',
@@ -577,7 +571,6 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
             absolute: (v) => (v.approach.repairBelow > 0 ? `below ${Math.round(v.approach.repairBelow * 100)}% whole, on a pad` : 'never'),
           }),
           entry('approach', 'scavengeDanger', { shown: (v) => v.approach.scavengeFuelBelow > 0 || v.approach.scavengeMetalBelow > 0 }),
-          entry('approach', 'rockWeight', { shown: (v) => v.approach.scavengeFuelBelow > 0 || v.approach.scavengeMetalBelow > 0 }),
           entry('approach', 'refuelBelow', {
             absolute: (v) =>
               v.approach.refuelBelow > 0 ? `below ${Math.round(v.approach.refuelBelow * 100)}% full, at a friend’s pad or port` : 'never',

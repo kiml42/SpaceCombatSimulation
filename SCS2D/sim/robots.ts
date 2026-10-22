@@ -42,11 +42,6 @@ export interface Robot {
   strip: boolean;
   /** Metal it has taken off wreckage and is carrying home to its bay's holds, kg. */
   cargo: number;
-  /**
-   * Fuel it has melted out of rock and is carrying home to its bay's tanks, kg:
-   * in the same hold as `cargo`, the two together no more than `ROBOT_LOAD`.
-   */
-  cargoFuel: number;
   /** Modules it will cross, from `at`, and how far along the leg from `path[leg]` to the next it is, m. */
   path: Int32Array | null;
   leg: number;
@@ -285,7 +280,7 @@ export class Robots {
   /** Metal a body's robots are carrying home, kg: the body's until it is put in its holds. */
   cargoMass(bodyIndex: number): number {
     let kg = 0;
-    for (const robot of this.of[bodyIndex] ?? []) kg += robot.cargo + robot.cargoFuel;
+    for (const robot of this.of[bodyIndex] ?? []) kg += robot.cargo;
     return kg;
   }
 
@@ -389,7 +384,6 @@ function stocked(bay: number): Robot {
     build: -1,
     strip: false,
     cargo: 0,
-    cargoFuel: 0,
     path: null,
     leg: 0,
     along: 0,

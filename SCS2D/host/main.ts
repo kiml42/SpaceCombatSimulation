@@ -13,7 +13,6 @@ import { torchRun } from '../scenarios/torchRun.js';
 import { binary } from '../scenarios/binary.js';
 import { kernels } from '../scenarios/kernels.js';
 import { asteroidField } from '../scenarios/asteroidField.js';
-import { mining } from '../scenarios/mining.js';
 import { broadside } from '../scenarios/broadside.js';
 import { hooked } from '../scenarios/hooked.js';
 import { salvageRun } from '../scenarios/salvage.js';
@@ -78,7 +77,6 @@ export function start(): void {
     { name: 'Binary', create: () => binary(SEED) },
     { name: 'Kernels', create: () => kernels(SEED) },
     { name: 'Asteroid Field', create: () => asteroidField(SEED) },
-    { name: 'Mining', create: () => mining(SEED) },
     { name: 'Hooked', create: () => hooked(SEED) },
     { name: 'Broadside', create: () => broadside(SEED) },
     { name: 'Salvage Run', create: () => salvageRun(SEED) },
