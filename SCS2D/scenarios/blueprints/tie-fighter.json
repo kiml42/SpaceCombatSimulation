@@ -21,7 +21,7 @@
       "standoffRadii": 28.463,
       "standoff": 0.794,
       "escortRadii": 5.107,
-      "escort": 0.166,
+      "escort": 5,
       "escortMinRadii": 1.867,
       "separation": 324.416,
       "separationRadii": 2.251,
