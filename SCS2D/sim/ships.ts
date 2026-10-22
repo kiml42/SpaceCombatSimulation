@@ -2525,7 +2525,7 @@ export class Ships {
     const own = this.designOf(b);
     if (own === null) return true;
     for (let j = 0; j < bodies.highWater; j++) {
-      if (j === b || bodies.alive[j] === 0 || bodies.ghost[j] === 1 || this.isParkedBody(j)) continue;
+      if (j === b || bodies.alive[j] === 0 || bodies.ghost[j] === 1 || !this.meets(b, j)) continue;
       const other = this.designOf(j);
       if (other !== null && hullsOverlap(bodies, b, own, j, other)) return false;
     }
@@ -4162,7 +4162,7 @@ export class Ships {
     for (let t = 0; t < this.alive.length; t++) {
       if (t === i || t === touching || this.alive[t] === 0) continue;
       const ob = bodies.indexOf(this.bodyIds[t]!);
-      if (ob < 0 || ob === b || bodies.ghost[ob] === 1 || this.isParkedBody(ob)) continue;
+      if (ob < 0 || ob === b || bodies.ghost[ob] === 1 || !this.meets(b, ob)) continue;
       // A body walked once, however many ships ride it.
       if (this.shipByBody[ob] !== t) continue;
       const theirs = this.designs[t]!;
@@ -4720,7 +4720,7 @@ export class Ships {
       if (hulksOnly && this.hasControl(t)) continue;
       const ob = bodies.indexOf(this.bodyIds[t]!);
       // Nothing to keep clear of in something that cannot be hit.
-      if (ob < 0 || ob === b || bodies.ghost[ob] === 1 || this.isParkedBody(ob)) continue;
+      if (ob < 0 || ob === b || bodies.ghost[ob] === 1 || !this.meets(b, ob)) continue;
 
       const touching = mine + this.designs[t]!.radius;
       let room = touching * approach.separationRadii;
@@ -5129,8 +5129,8 @@ export class Ships {
       if (i < 0 || j < 0 || joined?.has(i) === true || joined?.has(j) === true) continue;
       if (this.partedAt[i]! > settled || this.partedAt[j]! > settled) continue;
       if (this.damage.isProtected(a) || this.damage.isProtected(b)) continue;
-      // Nothing joins a pinned hull: it would take the pin with it, or lose it.
-      if (bodies.pinned[a] === 1 || bodies.pinned[b] === 1) continue;
+      // Nothing joins a pinned hull, or one parked on a pad: it would take the pin with it, or lose it.
+      if (bodies.pinned[a] === 1 || bodies.pinned[b] === 1 || this.isParkedBody(a) || this.isParkedBody(b)) continue;
       const ma = contacts.moduleA[k]!;
       const mb = contacts.moduleB[k]!;
       // A claw closes on what its bow meets, ragged or not.
@@ -6034,8 +6034,8 @@ export class Ships {
     const x = bodies.x[b]! + offset.x;
     const y = bodies.y[b]! + offset.y;
     for (let j = 0; j < bodies.highWater; j++) {
-      // Nor is a fighter on a pad in the way of anything, or its carrier of it.
-      if (j === b || j === payB || bodies.alive[j] === 0 || bodies.ghost[j] === 1 || this.isParkedBody(j)) continue;
+      // A fighter on a pad is in nothing's way on its own carrier.
+      if (j === b || bodies.alive[j] === 0 || bodies.ghost[j] === 1 || !this.meets(b, j)) continue;
       const other = this.designOf(j);
       if (other !== null && moduleOverlapsHull(next, at, x, y, bodies.angle[b]!, bodies, j, other)) return;
     }
@@ -6770,7 +6770,7 @@ export class Ships {
     for (let t = 0; t < this.alive.length; t++) {
       if (this.alive[t] === 0 || this.hasControl(t)) continue;
       const ob = bodies.indexOf(this.bodyIds[t]!);
-      if (ob < 0 || ob === b || bodies.ghost[ob] === 1 || this.isParkedBody(ob)) continue;
+      if (ob < 0 || ob === b || bodies.ghost[ob] === 1 || !this.meets(b, ob)) continue;
       const dx = bodies.x[ob]! - bodies.x[b]!;
       const dy = bodies.y[ob]! - bodies.y[b]!;
       const rvx = bodies.vx[ob]! - bodies.vx[b]!;
@@ -8520,6 +8520,19 @@ export class Ships {
     return ship !== undefined && ship >= 0 && this.parkedOn[ship]! >= 0;
   }
 
+  /** The body of the carrier the fighter on body `b` is parked on, which moves for it; -1 for one not parked. */
+  carrierOf(b: number): number {
+    const ship = this.shipByBody[b];
+    return ship === undefined || ship < 0 || this.bodyStore === null ? -1 : this.carrierBodyOf(this.bodyStore, ship);
+  }
+
+  /** Whether bodies `b` and `j` can meet: never a fighter parked on a pad and its carrier, nor two parked on one. */
+  private meets(b: number, j: number): boolean {
+    const cb = this.carrierOf(b);
+    const cj = this.carrierOf(j);
+    return cb !== j && cj !== b && (cb < 0 || cb !== cj);
+  }
+
   /** Whether ship `i` is parked on a pad. */
   isParked(i: number): boolean {
     return this.parkedOn[i]! >= 0;
@@ -8796,7 +8809,7 @@ export class Ships {
       if (t === i || this.alive[t] === 0 || this.derelict[t] === 1 || this.salvaging[t] === source) continue;
       if (!this.hasControl(t)) continue;
       const ob = bodies.indexOf(this.bodyIds[t]!);
-      if (ob < 0 || ob === b || ob === tb || bodies.ghost[ob] === 1 || this.isParkedBody(ob) || !(bodies.radius[ob]! > bodies.radius[b]!))
+      if (ob < 0 || ob === b || ob === tb || bodies.ghost[ob] === 1 || !this.meets(b, ob) || !(bodies.radius[ob]! > bodies.radius[b]!))
         continue;
       const cx = bodies.x[ob]! - x;
       const cy = bodies.y[ob]! - y;
@@ -9447,7 +9460,7 @@ export class Ships {
     const x = bodies.x[b]! + hx * ca - hy * sa;
     const y = bodies.y[b]! + hx * sa + hy * ca;
     for (let j = 0; j < bodies.highWater; j++) {
-      if (j === b || bodies.alive[j] === 0 || bodies.ghost[j] === 1 || this.isParkedBody(j)) continue;
+      if (j === b || bodies.alive[j] === 0 || bodies.ghost[j] === 1 || !this.meets(b, j)) continue;
       const other = this.designOf(j);
       if (other === null) continue;
       for (let m = 0; m < seed.modules.length; m++) {
@@ -9514,7 +9527,7 @@ export class Ships {
     const x = bodies.x[b]! + offset.x;
     const y = bodies.y[b]! + offset.y;
     for (let j = 0; j < bodies.highWater; j++) {
-      if (j === b || bodies.alive[j] === 0 || bodies.ghost[j] === 1 || this.isParkedBody(j)) continue;
+      if (j === b || bodies.alive[j] === 0 || bodies.ghost[j] === 1 || !this.meets(b, j)) continue;
       const other = this.designOf(j);
       if (other === null) continue;
       for (let m = n; m < next.modules.length; m++) {

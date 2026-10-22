@@ -105,3 +105,30 @@ describe('a pad building a fighter', () => {
     expect(run.ships.currentStructure(f).modules.length).toBe(compileBlueprint(DINKY).modules.length);
   });
 });
+
+describe('a fighter parked on a pad, met', () => {
+  /** The laden carrier at rest, and a Dinky drifting in at `speed` along its bow, nobody flying either. */
+  function drift(speed: number): Battle & { c: number; f: number; g: number } {
+    return makeBattle({ seed: 3, pilots: false }, (ships, world) => {
+      const c = ships.spawn(world, { design: compileBlueprint(LADEN), x: 0, y: 0, angle: 0 });
+      const g = ships.spawn(world, { design: compileBlueprint(DINKY), x: 40, y: 0, angle: 0, vx: -speed });
+      return { c, f: c + 1, g };
+    });
+  }
+
+  it('meets a fighter drifting into it, and its carrier takes the blow', () => {
+    const run = drift(3);
+    const bodies = run.world.bodies;
+    for (let s = 0; s < 20 * 60 && run.totalContacts === 0; s++) run.step();
+    expect(run.totalContacts).toBeGreaterThan(0);
+    const contacts = run.collisions.contacts;
+    const met = [contacts.a[0], contacts.b[0]];
+    expect(met).toContain(index(run, run.f));
+    expect(met).toContain(index(run, run.g));
+    run.step();
+    // Pushed back along the line it came in on, still pinned to its pad.
+    expect(bodies.vx[index(run, run.c)]).toBeLessThan(0);
+    expect(run.ships.parkedCarrier(run.f)).toBe(run.c);
+    expect(bodies.vx[index(run, run.g)]).toBeGreaterThan(-3);
+  });
+});
