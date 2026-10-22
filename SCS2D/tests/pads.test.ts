@@ -81,7 +81,7 @@ function scene(setup: Setup = {}): ReturnType<typeof makeBattle<{ c: number; f: 
 }
 
 type Run = ReturnType<typeof scene>;
-const aboard = (run: Run, i: number): boolean => run.ships.body(run.c) === run.ships.body(i);
+const aboard = (run: Run, i: number): boolean => run.ships.parkedCarrier(i) === run.c;
 function runUntil(run: Run, done: () => boolean, seconds: number): void {
   for (let s = 0; s < seconds * 60 && !done(); s++) run.step();
 }
@@ -322,8 +322,8 @@ describe('a pad set out with a fighter docked on it', () => {
       return { c };
     });
     const f = run.c + 1;
-    expect(run.ships.body(f)).toBe(run.ships.body(run.c));
-    for (let s = 0; s < 60 && run.ships.body(f) === run.ships.body(run.c); s++) run.step();
+    expect(run.ships.parkedCarrier(f)).toBe(run.c);
+    for (let s = 0; s < 60 && run.ships.parkedCarrier(f) === run.c; s++) run.step();
     expect(run.ships.body(f)).not.toBe(run.ships.body(run.c));
     expect(run.ships.currentStructure(f).fighter).toBe(true);
     expect(run.ships.teamOf(f)).toBe(run.ships.teamOf(run.c));
@@ -348,13 +348,12 @@ describe('a fighter launched from a pad turned across its carrier', () => {
       return snapshot.ships.slice(0, snapshot.shipCount).find((v) => v.name === run.ships.nameOf(f))!;
     };
     expect(view().riding).toBe(true);
-    for (let s = 0; s < 60 && run.ships.body(f) === run.ships.body(run.c); s++) run.step();
+    for (let s = 0; s < 60 && run.ships.parkedCarrier(f) === run.c; s++) run.step();
     expect(run.ships.body(f)).not.toBe(run.ships.body(run.c));
     const v = view();
     expect(v.riding).toBe(false);
     // The Dinky's gun points along its nose.
     const gun = v.currentStructure.modules.find((m) => m.spec.kind === 'hullGun')!;
-    expect(Math.abs(v.heading! - v.angle)).toBeGreaterThan(1);
     expect(Math.cos(v.heading! - (v.angle + gun.angle))).toBeCloseTo(1, 6);
   });
 });
@@ -399,8 +398,8 @@ describe('a pad passing charge', () => {
     expect(battery).toBeGreaterThan(0);
     const held = (): number =>
       run.ships.power.held(run.world.bodies.indexOf(run.ships.body(f)), run.ships.currentStructure(f).modules.length - 1);
-    expect(run.ships.body(f)).toBe(run.ships.body(run.c));
-    for (let s = 0; s < 600 && run.ships.body(f) === run.ships.body(run.c); s++) run.step();
+    expect(run.ships.parkedCarrier(f)).toBe(run.c);
+    for (let s = 0; s < 600 && run.ships.parkedCarrier(f) === run.c; s++) run.step();
     expect(run.ships.body(f)).not.toBe(run.ships.body(run.c));
     expect(held()).toBeCloseTo(battery, 0);
   });

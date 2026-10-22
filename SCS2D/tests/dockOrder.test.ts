@@ -132,7 +132,7 @@ describe('a fighter told to dock', () => {
       return { c, f };
     });
     give(run, { kind: 'order', ships: [run.f], order: { kind: 'dock', target: run.c }, append: false });
-    const aboard = (): boolean => run.ships.body(run.c) === run.ships.body(run.f);
+    const aboard = (): boolean => run.ships.parkedCarrier(run.f) === run.c;
     for (let s = 0; s < 60 * 60 && !aboard(); s++) run.step();
     expect(aboard()).toBe(true);
     for (let s = 0; s < 30 * 60 && aboard(); s++) run.step();

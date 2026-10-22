@@ -382,7 +382,7 @@ export function findContacts(bodies: Bodies, hulls: HullDesigns, out: Contacts):
   solidDesigns.length = 0;
   solidLayers.length = 0;
   for (let i = 0; i < bodies.highWater; i++) {
-    if (bodies.alive[i] === 0 || bodies.ghost[i] === 1) continue;
+    if (bodies.alive[i] === 0 || bodies.ghost[i] === 1 || hulls.isParkedBody?.(i) === true) continue;
     const design = hulls.designOf(i);
     if (design === null) continue;
     solid.push(i);
