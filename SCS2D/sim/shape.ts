@@ -13,8 +13,8 @@ import type { ModuleKind, ModuleSpec } from './modules.js';
  *
  * So `structure` and `tank` may be **triangles**, given as three corners the
  * author places one at a time (`ModuleSpec.vertices`), an asteroid's `kernel`
- * is a convex polygon of five to twelve, and every other archetype is the box
- * it declares. This file is the one place that knows
+ * is a convex polygon of five to twelve, a wedge of `rock` three or four, and
+ * every other archetype is the box it declares. This file is the one place that knows
  * which: everything geometric — mass, the corners a shot crosses, what two
  * modules share a face along, what a turret cannot see past, what the renderer
  * draws — asks `moduleOutline` (which `modules.ts` owns, since which end of a
@@ -34,10 +34,7 @@ export const TRIANGLE_CORNERS = 3;
 /** The most corners any ship module's outline has, which is a box's four. */
 export const MAX_CORNERS = 4;
 
-/**
- * The fewest and most corners a kernel has. At least five, so that a four-cornered
- * outline is always a box (`outlineAxes`).
- */
+/** The fewest and most corners a kernel has. */
 export const KERNEL_MIN_CORNERS = 5;
 export const KERNEL_MAX_CORNERS = 12;
 
@@ -65,12 +62,15 @@ export const MIN_TRIANGLE_AREA = 1e-6;
  * width, and a triangle has neither. A kernel is never a box.
  */
 export function canShape(kind: ModuleKind): boolean {
-  return kind === 'structure' || kind === 'tank' || kind === 'hold' || kind === 'kernel';
+  return kind === 'structure' || kind === 'tank' || kind === 'hold' || kind === 'kernel' || kind === 'rock';
 }
 
 /** How many corners a module of this kind may be given, as [fewest, most]. */
 export function cornersAllowed(kind: ModuleKind): readonly [number, number] {
-  return kind === 'kernel' ? [KERNEL_MIN_CORNERS, KERNEL_MAX_CORNERS] : [TRIANGLE_CORNERS, TRIANGLE_CORNERS];
+  if (kind === 'kernel') return [KERNEL_MIN_CORNERS, KERNEL_MAX_CORNERS];
+  // A wedge of rock: a triangle, or the quadrilateral between two rings.
+  if (kind === 'rock') return [TRIANGLE_CORNERS, MAX_CORNERS];
+  return [TRIANGLE_CORNERS, TRIANGLE_CORNERS];
 }
 
 /** The module's corners in its own frame, or null if it is the box it declares. */
@@ -231,6 +231,7 @@ export function triangleBounds(vertices: readonly number[]): { length: number; w
  * a thin module however far it reaches.
  */
 export function triangleAcross(vertices: readonly number[]): number {
+  if (vertices.length > TRIANGLE_CORNERS * 2) return convexAcross(vertices);
   const area2 = abs(signedArea2(vertices));
   let longest = 0;
   for (let i = 0; i < vertices.length; i += 2) {
@@ -240,6 +241,24 @@ export function triangleAcross(vertices: readonly number[]): number {
     longest = max(longest, sqrt(ex * ex + ey * ey));
   }
   return longest > 0 ? area2 / longest : 0;
+}
+
+/** The narrowest a convex outline is: of every edge, the furthest a corner stands off it, least. */
+function convexAcross(vertices: readonly number[]): number {
+  let least = Infinity;
+  for (let i = 0; i < vertices.length; i += 2) {
+    const j = (i + 2) % vertices.length;
+    const ex = vertices[j]! - vertices[i]!;
+    const ey = vertices[j + 1]! - vertices[i + 1]!;
+    const span = sqrt(ex * ex + ey * ey);
+    if (!(span > 0)) continue;
+    let furthest = 0;
+    for (let k = 0; k < vertices.length; k += 2) {
+      furthest = max(furthest, abs((vertices[k]! - vertices[i]!) * ey - (vertices[k + 1]! - vertices[i + 1]!) * ex) / span);
+    }
+    least = min(least, furthest);
+  }
+  return least === Infinity ? 0 : least;
 }
 
 /** How far the furthest corner is from the module's centre, metres. */
@@ -354,10 +373,10 @@ export function polygonMomentOfArea(vertices: readonly number[]): number {
  *
  * A box has four edges and two distinct normals, and giving both of each pair
  * would only test the same axis twice, so a box reports two. A triangle
- * reports three, none of them parallel.
+ * reports three, none of them parallel; any other outline, every edge's.
  */
 export function outlineAxes(corners: readonly number[], count: number, out: number[]): number {
-  const axes = count === MAX_CORNERS ? 2 : count;
+  const axes = count === MAX_CORNERS && isParallelogram(corners) ? 2 : count;
   for (let i = 0; i < axes; i++) {
     const a = i * 2;
     const b = ((i + 1) % count) * 2;
@@ -370,6 +389,16 @@ export function outlineAxes(corners: readonly number[], count: number, out: numb
   }
   out.length = axes * 2;
   return axes;
+}
+
+/** Whether four corners' opposite sides run the same way, as a box's do. */
+function isParallelogram(corners: readonly number[]): boolean {
+  const ex = corners[2]! - corners[0]!;
+  const ey = corners[3]! - corners[1]!;
+  const fx = corners[4]! - corners[6]!;
+  const fy = corners[5]! - corners[7]!;
+  const cross = ex * fy - ey * fx;
+  return abs(cross) <= 1e-9 * (ex * ex + ey * ey + fx * fx + fy * fy);
 }
 
 /** How far an outline reaches along an axis: `[lo, hi]` written into `out`. */

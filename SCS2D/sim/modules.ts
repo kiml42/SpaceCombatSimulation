@@ -287,7 +287,8 @@ export function needsControl(kind: ModuleKind): boolean {
     kind === 'core' ||
     kind === 'battery' ||
     kind === 'generator' ||
-    kind === 'kernel'
+    kind === 'kernel' ||
+    kind === 'rock'
   );
 }
 
@@ -922,10 +923,25 @@ export type ModuleKind =
    * side, that carries a well and rides its rail. Not something a ship is
    * built of, so not among `MODULE_KINDS`.
    */
-  | 'kernel';
+  | 'kernel'
+  /**
+   * An asteroid's body: solid rock, a share of it ore and a share ice and the
+   * rest worth nothing, wedged round a kernel or making up a minor asteroid.
+   */
+  | 'rock';
 
-/** The kinds a ship may be built of: every kind but an asteroid's kernel. */
-export type ShipModuleKind = Exclude<ModuleKind, 'kernel'>;
+/** The kinds a ship may be built of: none of an asteroid's. */
+export type ShipModuleKind = Exclude<ModuleKind, 'kernel' | 'rock'>;
+
+/** Density of an asteroid's rock, kg/m³. */
+export const ROCK_DENSITY = 2500;
+
+/**
+ * How thick a seam between two pieces of rock is, as a weld goes, metres: a
+ * hull plate's, so that rubble, loosely bound, comes apart no harder than a
+ * hull does, however deep the rock. A first guess.
+ */
+export const ROCK_SEAM_THICKNESS = BASE_WALL_THICKNESS;
 
 /**
  * Every archetype there is, in one order.
@@ -1027,6 +1043,9 @@ export interface ModuleSpec {
    * may read them.
    */
   vertices?: readonly number[];
+  /** A rock's share of ore and of ice, 0 to 1 each and no more than 1 together; the rest is worthless. */
+  ore?: number;
+  ice?: number;
   /**
    * Set on a spec that is already the body it makes (`bodySpec`): an engine's
    * or hull weapon's `length` then includes its bell or barrel. Never in a
@@ -1428,7 +1447,7 @@ export function moduleProblem(spec: ModuleSpec): string | null {
     if (polygonArea(spec.vertices) <= 0) {
       return `${spec.kind}: corners in a line enclose nothing`;
     }
-    if (spec.kind === 'kernel' && !isConvexAnticlockwise(spec.vertices)) {
+    if ((spec.kind === 'kernel' || spec.kind === 'rock') && !isConvexAnticlockwise(spec.vertices)) {
       return `${spec.kind}: corners must make a convex outline, wound anticlockwise`;
     }
     // The centroid is the module's position, which is what keeps `x`/`y`
@@ -1438,6 +1457,11 @@ export function moduleProblem(spec: ModuleSpec): string | null {
     if (abs(centroid.x) > CENTROID_TOLERANCE || abs(centroid.y) > CENTROID_TOLERANCE) {
       return `${spec.kind}: corners must be centred on the module's own middle`;
     }
+  }
+  const ore = spec.ore ?? 0;
+  const ice = spec.ice ?? 0;
+  if (!(ore >= 0) || !(ice >= 0) || !(ore + ice <= 1)) {
+    return `${spec.kind}: ore and ice are shares, at least 0 and together no more than 1, got ${ore} and ${ice}`;
   }
   const reinforcement = spec.reinforcement ?? 1;
   if (!(reinforcement >= 1)) {
@@ -2255,6 +2279,8 @@ export function inWeaponsLayer(spec: ModuleSpec, touching = 0): boolean {
 
 /** Whether a module is marked thick, on a kind and a size where that means anything. */
 export function isThick(spec: ModuleSpec): boolean {
+  // An asteroid stands as tall as it is wide, in both layers.
+  if (spec.kind === 'kernel' || spec.kind === 'rock') return true;
   return spec.thick === true && canThicken(spec);
 }
 
@@ -2548,6 +2574,7 @@ const KIND_COMPLEXITY: Record<ModuleKind, number> = {
   slipway: 3,
   // Never mended or built, so never worked at all.
   kernel: 0,
+  rock: 0,
   engine: 4,
   hullGun: 4,
   hullBeam: 4,
@@ -2581,9 +2608,10 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
   if (problem !== null) throw new Error(`Invalid module — ${problem}`);
 
   const reinforcement = spec.reinforcement ?? 1;
-  // A kernel is solid: its walls are as thick as it is, so nothing hollows it
-  // and no round gets through it.
-  const wallThickness = spec.kind === 'kernel' ? acrossOf(spec) : BASE_WALL_THICKNESS * reinforcement;
+  // An asteroid is solid: its walls are as thick as it is, so nothing hollows
+  // it and no round gets through it.
+  const solid = spec.kind === 'kernel' || spec.kind === 'rock';
+  const wallThickness = solid ? acrossOf(spec) : BASE_WALL_THICKNESS * reinforcement;
 
   // An engine is a box with a bell on the back of it rather than one box, and
   // only the box part is walled. Every other archetype is the box it declares.
@@ -2626,7 +2654,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
   // roof and floor over the taper, with nothing enclosed and both ends open.
   const skinVolume = engine === null ? 0 : nozzleSkinVolume(engine, wallThickness);
   const wallVolume = outer - inner + skinVolume;
-  const structureMass = wallVolume * HULL_DENSITY;
+  const structureMass = wallVolume * (spec.kind === 'rock' ? ROCK_DENSITY : HULL_DENSITY);
 
   const capacity = walled.floor;
   // A sealing lining is a second skin inside the first, and what it fills is

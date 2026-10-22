@@ -14,6 +14,7 @@ import {
 import { duel } from '../../scenarios/duel.js';
 import { binary } from '../../scenarios/binary.js';
 import { kernels } from '../../scenarios/kernels.js';
+import { asteroidField } from '../../scenarios/asteroidField.js';
 import type { Battle } from '../../scenarios/types.js';
 import { beamDuel } from '../../scenarios/beamDuel.js';
 import { soloOrdering } from '../../scenarios/ordering.js';
@@ -351,6 +352,17 @@ export function kernelsScenario(seed = 20260905): ScenarioRun {
   };
 }
 
+/** The same in a field of asteroids drawn from the seed: what pins the map generator and rock. */
+export function asteroidFieldScenario(seed = 20260905): ScenarioRun {
+  const run = asteroidField(seed);
+  return {
+    step: () => run.step(),
+    checksum: () =>
+      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
+    describe: () => describeBattle(run),
+  };
+}
+
 export function beamDuelScenario(seed = 20260905): ScenarioRun {
   const run = beamDuel(seed);
   return {
@@ -597,6 +609,7 @@ export const SCENARIOS = {
   beamDuel: { steps: 3_000, build: () => beamDuelScenario() },
   binary: { steps: 3_000, build: () => binaryScenario() },
   kernels: { steps: 6_000, build: () => kernelsScenario() },
+  asteroidField: { steps: 6_000, build: () => asteroidFieldScenario() },
   swarm: { steps: 3_000, build: () => swarmScenario() },
   superSwarm: { steps: 3_000, build: () => swarmScenario(undefined, 300) },
   torpedoes: { steps: 3_000, build: () => torpedoesScenario() },
