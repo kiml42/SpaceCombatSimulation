@@ -4,6 +4,7 @@ import {
   footprintOf,
   modulesOverlap,
   padHolds,
+  approachTurn,
   originOf,
   reachAgainst,
   rebuiltDesign,
@@ -59,6 +60,7 @@ import {
 } from './modules.js';
 import { abs, atan2, angleDelta, PI, brakingRate, clamp, cos, exp, floor, length, max, min, round, sin, sqrt } from './math.js';
 import { Projectiles } from './projectiles.js';
+import { padApproaches, type PadApproach } from './padApproach.js';
 import type { Store } from './store.js';
 import { legLength, neighbourOf, pathTo, RobotMode, Robots, staysWhole, walk, type Robot } from './robots.js';
 import { Allocation, EngineLayout } from './engines.js';
@@ -427,6 +429,13 @@ const CLAW_APPROACH = (CLAW_SPEED_LOW + CLAW_SPEED_HIGH) / 2;
 /** The most a fighter may be moving against a pad and still land on it, m/s: settling, not arriving. */
 export const PAD_SPEED = 1;
 
+/**
+ * How long, seconds, a docking ship takes to trust a change in how what it is
+ * docking with is accelerating: long enough that a knock does not throw it,
+ * short enough to follow a carrier opening its throttle.
+ */
+const DOCK_ACCEL_SETTLE = 0.25;
+
 /** The most two ports may be closing at and still mate, m/s: a nudge, not a bump. */
 export const PORT_SPEED = 1;
 
@@ -454,6 +463,13 @@ const PAD_ALIGN_RADII = 4;
  * than flying through what stands between it and where it is going.
  */
 const HULL_ORBIT_STEP = 0.5;
+
+/**
+ * How much shorter a trip round a carrier, radians, another way in to a pad
+ * has to be before a fighter gives up the one it is taking, so one coming in
+ * dead astern does not swing between the two corners either side.
+ */
+const WAY_STICK = 0.3;
 
 /** How far apart, radians, and how far out, metres, robots on one module are drawn. */
 const ROBOT_SPREAD = 2.4;
@@ -1082,8 +1098,6 @@ export class Ships {
   private readonly keeps: (Readonly<Record<string, number>> | undefined)[] = [];
   /** What each pad and slipway is told to build, by its module's lasting key, over its design's craft. */
   private readonly crafts: (Readonly<Record<string, ShipDesign>> | undefined)[] = [];
-  /** For each design, each pad's clear side as an angle in the design's frame; NaN not yet worked out. */
-  private readonly padSides = new WeakMap<ShipDesign, Float64Array>();
   /** The carrier each fighter last set out from or landed on, or -1. */
   private readonly home: number[] = [];
   /** Whether each fighter is recharging: from running its batteries down until they are full. */
@@ -1135,6 +1149,14 @@ export class Ships {
   /** Where `aroundHull` last said to steer for, world metres. */
   private wayX = 0;
   private wayY = 0;
+  /** The way in `wayIn` last chose, world radians, and where it leaves the carrier's circle, world metres. */
+  private wayAngle = 0;
+  private entryX = 0;
+  private entryY = 0;
+  /** The way in to its pad each fighter is taking, in its carrier's frame, and the pad and body it is for; NaN for none. */
+  private readonly landingWay: number[] = [];
+  private readonly landingWayPad: number[] = [];
+  private readonly landingWayBody: number[] = [];
   /**
    * What each ship is covering, which is never what it is fighting: a consort
    * is by definition something it will not shoot at. Chosen on the same
@@ -1142,10 +1164,22 @@ export class Ships {
    * relative to its charge changes far faster than which charge it wants.
    */
   private readonly consort: number[] = [];
-  /** The blend of steering urges being accumulated for one craft. */
+  /** The blend of steering urges being accumulated for one craft, and the acceleration each wants matched. */
   private urgeVx = 0;
   private urgeVy = 0;
+  private urgeAx = 0;
+  private urgeAy = 0;
   private urgeWeight = 0;
+  /**
+   * What each ship docking last saw of the point it is docking with: its
+   * velocity, the tick it was seen, and its acceleration as worked out from
+   * them, settled over `DOCK_ACCEL_SETTLE`.
+   */
+  private readonly dockSeenVx: number[] = [];
+  private readonly dockSeenVy: number[] = [];
+  private readonly dockSeenAt: number[] = [];
+  private readonly dockAx: number[] = [];
+  private readonly dockAy: number[] = [];
   /** The heaviest dodge in the blend: how much it is wanted, and seconds until the near miss. */
   private dodgeWeight = 0;
   private dodgeWhen = 0;
@@ -1712,6 +1746,14 @@ export class Ships {
     this.home.push(-1);
     this.touchedSource.push(-Infinity);
     this.landingPad.push(-1);
+    this.dockSeenVx.push(0);
+    this.dockSeenVy.push(0);
+    this.dockSeenAt.push(-Infinity);
+    this.dockAx.push(0);
+    this.dockAy.push(0);
+    this.landingWay.push(NaN);
+    this.landingWayPad.push(-1);
+    this.landingWayBody.push(-1);
     this.parkedOn.push(-1);
     this.parkedPad.push(-1);
     this.parkedX.push(0);
@@ -3797,6 +3839,8 @@ export class Ships {
     // flies its orders as it always did.
     this.urgeVx = 0;
     this.urgeVy = 0;
+    this.urgeAx = 0;
+    this.urgeAy = 0;
     this.urgeWeight = 0;
     this.dodgeWeight = 0;
     let wantAngle = bodies.angle[b]!;
@@ -3855,9 +3899,9 @@ export class Ships {
       const claw = order.grapple ? this.workingClaw(i, b) : -1;
       if (order.dock) {
         // Docked and the larger, it flies the pair, wanting nothing but to hold still.
-        if (tb >= 0 && tb !== b) wantAngle = this.dockOn(bodies, i, b, tb, this.dockPort[i]!, this.ownPort[i]!);
+        if (tb >= 0 && tb !== b) wantAngle = this.dockOn(dt, bodies, i, b, tb, this.dockPort[i]!, this.ownPort[i]!);
       } else if (order.land && tb >= 0) {
-        wantAngle = this.landOn(bodies, i, b, tb, this.landingPad[i]!);
+        wantAngle = this.landOn(dt, bodies, i, b, tb, this.landingPad[i]!);
       } else if (order.grapple && claw < 0) {
         this.salvaging[i] = NO_TARGET;
       } else if (claw >= 0 && tb >= 0) {
@@ -3911,6 +3955,8 @@ export class Ships {
     // and nothing in its way kills its drift and waits.
     const wantVx = this.urgeWeight > 0 ? this.urgeVx / this.urgeWeight : 0;
     const wantVy = this.urgeWeight > 0 ? this.urgeVy / this.urgeWeight : 0;
+    const leadAx = this.urgeWeight > 0 ? this.urgeAx / this.urgeWeight : 0;
+    const leadAy = this.urgeWeight > 0 ? this.urgeAy / this.urgeWeight : 0;
 
     if (fighting < 0) this.brakingOnMains[i] = 0;
     if (fighting >= 0) wantAngle = this.burnOrFight(i, b, fighting, bodies, wantAngle, wantVx, wantVy, holdOut);
@@ -3932,8 +3978,8 @@ export class Ships {
     // force asked for falls away with how far off its heading still is.
     const aligned = order?.ram === true ? max(0, cos(angleDelta(angle, wantAngle))) : 1;
     const response = this.doctrines[i]!.approach.responseTime;
-    const worldFx = (aligned * mass * (wantVx - bodies.vx[b]!)) / response;
-    const worldFy = (aligned * mass * (wantVy - bodies.vy[b]!)) / response;
+    const worldFx = aligned * mass * ((wantVx - bodies.vx[b]!) / response + leadAx);
+    const worldFy = aligned * mass * ((wantVy - bodies.vy[b]!) / response + leadAy);
     const c = cos(angle);
     const s = sin(angle);
     const localFx = worldFx * c + worldFy * s;
@@ -4262,12 +4308,38 @@ export class Ships {
     return firing;
   }
 
-  /** Add one want to the blend: a velocity, and how much it is wanted. */
-  private urge(weight: number, vx: number, vy: number): void {
+  /**
+   * Add one want to the blend: a velocity, how much it is wanted, and the
+   * acceleration of whatever that velocity is following, which is matched as
+   * well as closed on: a velocity alone is always a step behind a target that
+   * is speeding up.
+   */
+  private urge(weight: number, vx: number, vy: number, ax = 0, ay = 0): void {
     if (!(weight > 0)) return;
     this.urgeVx += weight * vx;
     this.urgeVy += weight * vy;
+    this.urgeAx += weight * ax;
+    this.urgeAy += weight * ay;
     this.urgeWeight += weight;
+  }
+
+  /**
+   * How ship `i`, docking, sees the point it is docking with accelerating, from
+   * that point's velocity now and when it last looked, into `dockAx`, `dockAy`.
+   * A look that is not the step after the last starts afresh.
+   */
+  private dockingAccel(i: number, vx: number, vy: number, dt: number): void {
+    if (this.dockSeenAt[i] === this.now - 1 && dt > 0) {
+      const settle = min(1, dt / DOCK_ACCEL_SETTLE);
+      this.dockAx[i] = this.dockAx[i]! + ((vx - this.dockSeenVx[i]!) / dt - this.dockAx[i]!) * settle;
+      this.dockAy[i] = this.dockAy[i]! + ((vy - this.dockSeenVy[i]!) / dt - this.dockAy[i]!) * settle;
+    } else {
+      this.dockAx[i] = 0;
+      this.dockAy[i] = 0;
+    }
+    this.dockSeenVx[i] = vx;
+    this.dockSeenVy[i] = vy;
+    this.dockSeenAt[i] = this.now;
   }
 
   /**
@@ -8700,31 +8772,38 @@ export class Ships {
    * lines up with the pad, unless it would fit inside it at any heading.
    * Returns the heading to hold.
    */
-  private landOn(bodies: Bodies, i: number, b: number, tb: number, pad: number): number {
+  private landOn(dt: number, bodies: Bodies, i: number, b: number, tb: number, pad: number): number {
     const host = this.designOf(tb);
     if (host === null || host.modules[pad] === undefined) return bodies.angle[b]!;
     const design = this.designs[i]!;
     const approach = this.doctrines[i]!.approach;
     const place = this.modulePlace(bodies, tb, host, pad);
+    // Matching how the pad is speeding up as well as how it is moving, as if it keeps on.
+    this.dockingAccel(i, place.vx, place.vy, dt);
+    const ax = this.dockAx[i]!;
+    const ay = this.dockAy[i]!;
     const mine = bodies.radius[b]!;
     const range = length(place.x - bodies.x[b]!, place.y - bodies.y[b]!);
     const near = range <= PAD_ALIGN_RADII * mine;
-    // Come in over the pad's clear side, from outside the hull: one beyond the
-    // carrier's radius off the pad that way, circling round to it first if
-    // the hull is in the way.
-    const out = bodies.angle[tb]! + this.padSide(host, pad);
-    const nx = cos(out);
-    const ny = sin(out);
+    // Come in by one of the pad's ways in, from where it leaves the hull's
+    // circle, circling round to there first if the hull is in the way.
+    this.wayIn(bodies, i, b, tb, host, pad, place.x, place.y);
+    const nx = cos(this.wayAngle);
+    const ny = sin(this.wayAngle);
     const rx = bodies.x[b]! - place.x;
     const ry = bodies.y[b]! - place.y;
     const ahead = rx * nx + ry * ny;
-    const lined = ahead > 0 && abs(ry * nx - rx * ny) <= ahead;
+    let lined = ahead > 0 && abs(ry * nx - rx * ny) <= ahead;
+    // Over the hull, only if nothing in its layer stands between it and the pad.
+    if (lined && length(bodies.x[b]! - bodies.x[tb]!, bodies.y[b]! - bodies.y[tb]!) < bodies.radius[tb]! + 2 * mine) {
+      lined = !this.crossesCarrier(bodies, b, tb, bodies.x[b]!, bodies.y[b]!, -rx, -ry);
+    }
     let gx = place.x;
     let gy = place.y;
     let left = range;
     if (!near && !lined) {
-      const reach = bodies.radius[tb]!;
-      left = this.aroundHull(bodies, b, tb, place.x + nx * reach, place.y + ny * reach) + reach;
+      const entry = length(this.entryX - place.x, this.entryY - place.y);
+      left = this.aroundHull(bodies, b, tb, this.entryX, this.entryY) + entry;
       gx = this.wayX;
       gy = this.wayY;
     }
@@ -8742,14 +8821,16 @@ export class Ships {
         // rather than overshooting and turning back.
         radial = min(PAD_SPEED, range / approach.responseTime);
       } else {
+        // Braking on what is left once it is keeping up.
         const mains = this.layoutOf(i).maxThrustAlong(cos(design.thrustBearing), sin(design.thrustBearing)) / bodies.mass[b]!;
+        const spare = max(0, mains - length(ax, ay));
         const delay = approach.responseTime + this.halfTurnTime(bodies, i, b);
-        radial = min(approach.approachSpeed, stoppingSpeed(approach.brake * mains, left, delay));
+        radial = min(approach.approachSpeed, stoppingSpeed(approach.brake * spare, left, delay));
       }
       vx += ux * radial;
       vy += uy * radial;
     }
-    this.urge(URGE_REFERENCE, vx, vy);
+    this.urge(URGE_REFERENCE, vx, vy, ax, ay);
 
     const box = footprintOf(design);
     const spec = host.modules[pad]!.spec;
@@ -8760,8 +8841,8 @@ export class Ships {
       const along = angleDelta(bodies.angle[b]!, place.angle);
       return abs(along) <= PI / 2 ? place.angle : place.angle + PI;
     }
-    const dvx = vx - bodies.vx[b]!;
-    const dvy = vy - bodies.vy[b]!;
+    const dvx = vx - bodies.vx[b]! + ax * approach.responseTime;
+    const dvy = vy - bodies.vy[b]! + ay * approach.responseTime;
     return length(dvx, dvy) > PAD_SPEED / 2 ? atan2(dvy, dvx) - design.thrustBearing : bodies.angle[b]!;
   }
 
@@ -8848,81 +8929,115 @@ export class Ships {
   }
 
   /**
-   * Which way off pad `pad` of `design` is clear for a fighter to come in by,
-   * as an angle in the design's frame: of the pad's four sides, the one with
-   * the longest run before anything in the weapons layer, and of those, the
-   * longest before anything at all, so it comes in from open space rather
-   * than along the decks.
+   * Which of pad `pad`'s ways in (`PadApproach`) fighter `i` on body `b` takes
+   * to it, into `wayAngle`, and where that way leaves the circle round carrier
+   * body `tb` it keeps outside, into `entryX`, `entryY`: the one reached
+   * soonest going round the carrier, unless the one it is already taking is
+   * nearly as soon, or it is already inside that circle on one. The ways were worked out once, for the carrier as it was
+   * compiled, and turn with the pad into whatever hull it is now.
    */
-  private padSide(design: ShipDesign, pad: number): number {
-    let sides = this.padSides.get(design);
-    if (sides === undefined) {
-      sides = new Float64Array(design.modules.length).fill(NaN);
-      this.padSides.set(design, sides);
+  private wayIn(bodies: Bodies, i: number, b: number, tb: number, host: ShipDesign, pad: number, px: number, py: number): void {
+    const origin = originOf(host, pad);
+    const turn = bodies.angle[tb]! + approachTurn(host, pad);
+    const same = this.landingWayPad[i] === pad && this.landingWayBody[i] === tb;
+    const was = same ? this.landingWay[i]! : NaN;
+    const compiled: readonly PadApproach[] = origin.design.approaches ?? [];
+    let best = NaN;
+    let soonest = Infinity;
+    // Inside the circle, round the carrier means nothing: it keeps the way it is on.
+    const ring = bodies.radius[tb]! + 2 * bodies.radius[b]!;
+    const inside = length(bodies.x[b]! - bodies.x[tb]!, bodies.y[b]! - bodies.y[tb]!) < ring;
+    if (inside && !Number.isNaN(was)) {
+      soonest = -Infinity;
+      best = was + bodies.angle[tb]!;
     }
-    const known = sides[pad]!;
-    if (!Number.isNaN(known)) return known;
-    const module = design.modules[pad]!;
-    const facing = module.spec.angle ?? 0;
-    let best = facing;
-    let longest = -1;
-    for (let k = 0; k < 4; k++) {
-      const a = facing + (k * PI) / 2;
-      const ux = cos(a);
-      const uy = sin(a);
-      const depth = (k % 2 === 0 ? module.spec.length : module.spec.width) / 2;
-      const across = (k % 2 === 0 ? module.spec.width : module.spec.length) / 2;
-      const cap = 2 * design.radius;
-      const run =
-        this.clearRun(design, pad, ux, uy, depth, across, cap, true) * cap + this.clearRun(design, pad, ux, uy, depth, across, cap, false);
-      if (run > longest) {
-        longest = run;
-        best = a;
+    // A way something is in now, a fighter on the next pad say, is passed over while another is clear.
+    let fallback = NaN;
+    for (let k = 0; k < compiled.length; k++) {
+      if (compiled[k]!.pad !== origin.module) continue;
+      const cost = this.wayCost(bodies, b, tb, px, py, compiled[k]!.angle + turn, was);
+      if (!(cost < soonest)) continue;
+      if (this.wayBlocked(bodies, b, tb, px, py)) {
+        if (Number.isNaN(fallback)) fallback = compiled[k]!.angle + turn;
+        continue;
+      }
+      soonest = cost;
+      best = compiled[k]!.angle + turn;
+    }
+    if (Number.isNaN(best)) best = fallback;
+    // Compiled with none: worked out for the hull as it is.
+    if (Number.isNaN(best)) {
+      for (const way of padApproaches(host, pad)) {
+        const cost = this.wayCost(bodies, b, tb, px, py, way.angle + bodies.angle[tb]!, was);
+        if (cost < soonest) {
+          soonest = cost;
+          best = way.angle + bodies.angle[tb]!;
+        }
       }
     }
-    sides[pad] = best;
-    return best;
+    this.landingWay[i] = best - bodies.angle[tb]!;
+    this.landingWayPad[i] = pad;
+    this.landingWayBody[i] = tb;
+    this.wayAngle = best;
+    this.wayCost(bodies, b, tb, px, py, best, NaN);
   }
 
   /**
-   * How far out from pad `pad`'s side along `ux`, `uy` is clear, metres, up to
-   * `cap`: of anything in the weapons layer, or of anything at all.
+   * Whether anything in the weapons layer of carrier body `tb` stands between
+   * where the way `wayCost` last worked out leaves its circle and the pad at
+   * `px`, `py`, across body `b`'s width.
    */
-  private clearRun(
-    design: ShipDesign,
-    pad: number,
-    ux: number,
-    uy: number,
-    depth: number,
-    across: number,
-    cap: number,
-    weaponsOnly: boolean,
-  ): number {
-    const module = design.modules[pad]!;
-    let run = 0;
-    for (; run < cap; run += 1) {
-      for (let side = -1; side <= 1; side++) {
-        const px = module.x + ux * (depth + run + 0.5) - uy * side * across;
-        const py = module.y + uy * (depth + run + 0.5) + ux * side * across;
-        if (this.inModule(design, pad, px, py, weaponsOnly)) return run;
-      }
-    }
-    return run;
+  private wayBlocked(bodies: Bodies, b: number, tb: number, px: number, py: number): boolean {
+    const dx = px - this.entryX;
+    const dy = py - this.entryY;
+    const span = length(dx, dy);
+    if (!(span > 0)) return false;
+    const side = bodies.radius[b]!;
+    const ox = (-dy / span) * side;
+    const oy = (dx / span) * side;
+    let blocked = false;
+    for (let k = -1; k <= 1 && !blocked; k++)
+      blocked = this.crossesCarrier(bodies, b, tb, this.entryX + k * ox, this.entryY + k * oy, dx, dy);
+    return blocked;
   }
 
-  /** Whether a point in `design`'s frame lies inside any of its modules but `except`, or any in the weapons layer. */
-  private inModule(design: ShipDesign, except: number, x: number, y: number, weaponsOnly: boolean): boolean {
-    for (let m = 0; m < design.modules.length; m++) {
-      const module = design.modules[m]!;
-      if (m === except || (weaponsOnly && !module.weaponsLayer)) continue;
-      const a = module.spec.angle ?? 0;
-      const c = cos(a);
-      const s = sin(a);
-      const dx = x - module.x;
-      const dy = y - module.y;
-      if (abs(dx * c + dy * s) <= module.spec.length / 2 && abs(dy * c - dx * s) <= module.spec.width / 2) return true;
+  /**
+   * Whether the line from `x0`, `y0` along `dx`, `dy` crosses anything in the
+   * weapons layer of carrier body `tb`, or any fighter parked on it but body `b`.
+   */
+  private crossesCarrier(bodies: Bodies, b: number, tb: number, x0: number, y0: number, dx: number, dy: number): boolean {
+    this.hulls.castFrom(WEAPONS_LAYER, -1, -1);
+    let crosses = this.hulls.confirm(bodies, tb, x0, y0, dx, dy) >= 0;
+    for (let k = 0; k < this.parkedShips.length && !crosses; k++) {
+      const f = this.parkedShips[k]!;
+      const fb = bodies.indexOf(this.bodyIds[f]!);
+      if (fb >= 0 && fb !== b && this.carrierBodyOf(bodies, f) === tb) crosses = this.hulls.confirm(bodies, fb, x0, y0, dx, dy) >= 0;
     }
-    return false;
+    this.hulls.reset();
+    return crosses;
+  }
+
+  /**
+   * How far round carrier body `tb` body `b` is from where the way in at
+   * `angle` off the pad at `px`, `py` leaves the circle it keeps outside,
+   * radians, less `WAY_STICK` for the way it was taking, `was` in the
+   * carrier's frame. Leaves that point in `entryX`, `entryY`.
+   */
+  private wayCost(bodies: Bodies, b: number, tb: number, px: number, py: number, angle: number, was: number): number {
+    const cx = bodies.x[tb]!;
+    const cy = bodies.y[tb]!;
+    const nx = cos(angle);
+    const ny = sin(angle);
+    const ring = bodies.radius[tb]! + 2 * bodies.radius[b]!;
+    // How far out along it the circle is crossed.
+    const along = (px - cx) * nx + (py - cy) * ny;
+    const disc = along * along - ((px - cx) * (px - cx) + (py - cy) * (py - cy)) + ring * ring;
+    const out = disc > 0 ? max(0, -along + sqrt(disc)) : 0;
+    this.entryX = px + nx * out;
+    this.entryY = py + ny * out;
+    const round = abs(angleDelta(atan2(bodies.y[b]! - cy, bodies.x[b]! - cx), atan2(this.entryY - cy, this.entryX - cx)));
+    const kept = !Number.isNaN(was) && abs(angleDelta(angle - bodies.angle[tb]!, was)) < 1e-6;
+    return kept ? round - WAY_STICK : round;
   }
 
   /** The first of this ship's ports still working and not already mated, or -1. */
@@ -9004,12 +9119,15 @@ export class Ships {
    * axis, it closes the last stretch at `PORT_APPROACH`, slow enough to mate.
    * Returns the heading to hold.
    */
-  private dockOn(bodies: Bodies, i: number, b: number, tb: number, theirs: number, own: number): number {
+  private dockOn(dt: number, bodies: Bodies, i: number, b: number, tb: number, theirs: number, own: number): number {
     const host = this.designOf(tb);
     const design = this.designs[i]!;
     if (host === null || host.modules[theirs] === undefined || design.modules[own] === undefined) return bodies.angle[b]!;
     const approach = this.doctrines[i]!.approach;
     const place = this.modulePlace(bodies, tb, host, theirs);
+    this.dockingAccel(i, place.vx, place.vy, dt);
+    const ax = this.dockAx[i]!;
+    const ay = this.dockAy[i]!;
     const nx = cos(place.angle);
     const ny = sin(place.angle);
     const face = host.modules[theirs]!.spec.length / 2;
@@ -9055,16 +9173,18 @@ export class Ships {
       if (lined) {
         radial = PORT_APPROACH;
       } else {
+        // Braking on what is left once it is keeping up.
         const mains = this.layoutOf(i).maxThrustAlong(cos(design.thrustBearing), sin(design.thrustBearing)) / bodies.mass[b]!;
+        const spare = max(0, mains - length(ax, ay));
         const delay = approach.responseTime + this.halfTurnTime(bodies, i, b);
-        radial = min(approach.approachSpeed, stoppingSpeed(approach.brake * mains, left, delay));
+        radial = min(approach.approachSpeed, stoppingSpeed(approach.brake * spare, left, delay));
       }
       vx += (dx / range) * radial;
       vy += (dy / range) * radial;
     }
-    this.urge(URGE_REFERENCE, vx, vy);
-    const dvx = vx - bodies.vx[b]!;
-    const dvy = vy - bodies.vy[b]!;
+    this.urge(URGE_REFERENCE, vx, vy, ax, ay);
+    const dvx = vx - bodies.vx[b]! + ax * approach.responseTime;
+    const dvy = vy - bodies.vy[b]! + ay * approach.responseTime;
     const far = left > PAD_ALIGN_RADII * bodies.radius[b]!;
     if (far && length(dvx, dvy) > PORT_SPEED) return atan2(dvy, dvx) - design.thrustBearing;
     return heading;

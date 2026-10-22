@@ -777,9 +777,20 @@ inside any one file is not contiguous.
   makes for the free pad, of those it
   fits on, that pays it most for the time, divided by one more `dockDanger` (zero, so no matter, by default)
   for every armed enemy near it and by one more for every other fighter already making for that pad. It flies
-  there as a ram does, mains along the change of velocity it needs, braking on them with a half turn allowed
-  for. It comes in over the pad's clear side — of its four sides, the one with the longest run before
-  anything in the weapons layer, and of those the one opening onto empty space — and from the wrong side it
+  there as a ram does, mains along the change of velocity it needs, matching how the pad is speeding up as
+  well as how it is moving, as if it keeps on (`DOCK_ACCEL_SETTLE`), so a fighter keeps up with a carrier under
+  thrust; it plans its braking on what thrust that leaves it, and docking at a port does the same. It brakes with a half turn allowed
+  for. It comes in by one of the pad's **ways in**: each of its four sides and four corners that is clear of
+  the weapons layer all the way out of the carrier, or, a pad with none, the one direction with the longest run
+  before anything in the weapons layer and of those the one opening onto empty space — worked out once as the
+  carrier is compiled (`ShipDesign.approaches`) and turned with the pad into whatever hull it is part of. Of
+  them it takes the one whose end, where the way leaves a circle of the carrier's radius and two of its own,
+  is soonest reached round the carrier, keeping the one it is on unless another is `WAY_STICK` sooner, and
+  keeping it outright once inside that circle; a way something in the weapons layer now stands in, a fighter
+  on the next pad say, is passed over while another is clear. Inside the circle it heads straight for the pad
+  only once nothing in the weapons layer stands between. With arcs shown, every way in is drawn on the pad as a
+  small arrow pointing in from the middle of its side or from its corner, along the way, in amber for a pad's
+  one longest run, so the editor shows how easy a pad is to reach — and from the wrong side it
   first circles the carrier outside its radius, `HULL_ORBIT_STEP` at a time, rather than fly through what is in
   the way. Within `PAD_ALIGN_RADII` of its own radii it eases in at no more than `PAD_SPEED`, slowing as it
   closes, lined up with the pad if it would not fit at any heading. It lands — never committing, the pad and the fighter meeting at the boundary
