@@ -122,8 +122,6 @@ an entry is either still open or it is gone.
          run draws a new map every match; a skirmish round's is drawn from its seed, each setting from its
          ±, and every match the enemy is bred in for it is fought on that round's map whatever its own seed
          (`BattleSetup.mapSeed`).
-       - **Left for slice 4:** the camera frames asteroids as it does ships, so a big one pulls the shot
-         away from the fight.
     3. **Mining**, in two PRs:
        - **3a. Asteroids as discs** — built: thick rock and kernels are 10 m deep (`ASTEROID_DEPTH`), and
          an asteroid's outermost ring is thin rubble, a deck deep, that fighters fly over and mining clears
@@ -141,10 +139,13 @@ an entry is either still open or it is gone.
            with much the same thrust every way so that it can.
          - **Matching an orbit before turning the jaws on** is asteroids' alone; whether every claw
            approach should do it, wrecks drifting too, is open, and would move the claw goldens.
-    4. **Viewer and demo** — asteroid picking and its readout; ordering picked ships to mine a particular
-       asteroid, Scavenge taking one as its target and a right-click on one giving it to ships with claws
-       (the sim and the command log take it already, the viewer drops clicks on anything on no side); and a
-       golden scenario of two rival mining outposts on a pair of eccentric majors.
+    4. **Viewer and demo**, in two PRs:
+       - **4a. Picking and mining an asteroid** — built: an asteroid picked out alone is framed, and a card
+         over the battle says how much rock, ore and ice is left in it (`ShipView.rock`). Scavenge takes an
+         asteroid as its target, and a right-click on one tells the picked ships with claws to mine it; the
+         rest keep what they were doing. The camera already leaves asteroids out of shot, as it does
+         anything nobody flies, unless nothing else is left.
+       - **4b. The demo** — a golden scenario of two rival mining outposts on a pair of eccentric majors.
     5. **Grabbing an asteroid survivably** — Salvagers often wreck themselves closing on rock: adding another
        to the Mining scene usually ends with it crashing. Either the approach must be gentler (slower closing,
        a better orbit match, backing off when it goes wrong) or the contact more forgiving (claws or rock that

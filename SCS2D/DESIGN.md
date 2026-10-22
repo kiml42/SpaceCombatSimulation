@@ -1082,7 +1082,9 @@ inside any one file is not contiguous.
   are rings of rock wedges, each a share ore and ice, drawn with minors from a seed into a battle's map,
   clear of the ships (the Asteroid Field scene), and offered by the custom battle, evolution and the
   skirmish. Robots mine rock into one hold, ore as metal and ice as fuel, and a claw alone melts ice;
-  scavenging goes for asteroids by what they hold (the Mining scene). What is left is in ROADMAP.md §8.
+  scavenging goes for asteroids by what they hold (the Mining scene). An asteroid picked out in the
+  viewer shows what is left in it, and a right-click on one sends the picked ships with claws to mine it.
+  What is left is in ROADMAP.md §8.
   Alongside it, §8 step 5's skirmish: an endless loop against an enemy fleet that evolves to beat the
   player's, planned in ROADMAP.md §8. Evolution keeps the skirmish's sense of quiet, though it plays a match on until every side is quiet before naming a winner. Its loop is built without the evolving enemy (`dist/skirmish.html`,
   `scenarios/skirmish.ts`): pick a stock enemy, whose bill is the budget unless the player sets their own, under a limit on ships and spread (20 and 500 m unless set, or what the enemy fields if more), each round's gap and starting speeds drawn from optional ± spreads on its seed; fight a fixed round, decided by

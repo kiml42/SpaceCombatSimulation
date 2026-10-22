@@ -9922,9 +9922,26 @@ export class Ships {
    * for.
    */
   /** Whether a hull is an asteroid: rock, or a kernel, and nobody's. */
-  private isAsteroid(t: number): boolean {
+  isAsteroid(t: number): boolean {
     if (this.team[t] !== NEUTRAL_TEAM) return false;
     return this.designs[t]!.modules.some((module) => module.spec.kind === 'rock' || module.spec.kind === 'kernel');
+  }
+
+  /** The rock left on ship `t`'s hull, and the ore and ice in it, kg, into `out`. */
+  rockLeft(t: number, out: { rock: number; ore: number; ice: number }): void {
+    out.rock = out.ore = out.ice = 0;
+    const bodies = this.bodyStore;
+    const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[t]!);
+    if (b < 0) return;
+    for (let m = 0; m < this.designs[t]!.modules.length; m++) {
+      const module = this.designs[t]!.modules[m]!;
+      if (module.spec.kind !== 'rock') continue;
+      const left = module.stats.structureMass + module.stats.fittingMass - this.damage.shedAt(b, m) - this.damage.unbuiltAt(b, m);
+      if (!(left > 0)) continue;
+      out.rock += left;
+      out.ore += left * (module.spec.ore ?? 0);
+      out.ice += left * (module.spec.ice ?? 0);
+    }
   }
 
   /**
