@@ -65,9 +65,56 @@ Nothing: every step begun is built. What is left of them is in §12.
 
 ### Not started — in order
 
-15. **Mining** — metal and fuel from map features, so maps have economic character. By here both resources
+15. **Mining** — metal and fuel from asteroids, so maps have economic character. By here both resources
     exist, so this step is the map and the income, not the resources. *It replaces "did I spend 500 points
-    well?" with "did I manage income well?"*
+    well?" with "did I manage income well?"* Mining is too slow to matter with an enemy there from the start;
+    the campaign will add lulls to set up a mine in. Here it is only a way to get resources mid-battle, and
+    everything that spends them stays as it is.
+
+    **As settled:**
+
+    - **Majors and minors.** A major has a **kernel**: a module kind of its own, not a ship's core. It is
+      indestructible, unminable, on no side and never a ship. Its outline is a convex polygon of up to about
+      12 corners, in an outline store of its own so ship modules keep `MAX_CORNERS` at 4. A minor is rock
+      alone, an ordinary free body.
+    - **A kernel carries a well and a rail.** Its GM is set from a surface gravity, not from its mass, which
+      only sets how it spins. It is pinned to its rail and free to rotate. A rail is a Kepler ellipse, a
+      function of the step count, in a hierarchy of two-body pairs: three or more majors are laid out so
+      pairs can be treated as one body orbiting another. The generator keeps closest approaches clear.
+      Wells move with their kernels, so a `WellSpec` stops being constant.
+    - **Rock** is one module kind with ore, ice and worthless fractions, varied across an asteroid. Its
+      colour shows the mix: white for ice, grey for ore, brown for the rest. It is cut in rings of wedges
+      round the kernel (or a minor's centre), bounded per asteroid. It is damaged like structure, what is
+      shed is lost, and its seams are hull strength or weaker, like a rubble pile, so a chunk knocked off is
+      a free minor. Rock strips completely; the kernel stays.
+    - **Waste is the worthless fraction**, plus the existing conversion loss. No hidden refining loss.
+    - **Robots mine both**, metal and fuel, into one 1,000 kg hold with a movable partition, and the bay
+      takes it aboard. It costs more power than stripping scrap. The claw is only an anchor, so how far the
+      robots walk is what makes a miner move.
+    - **A claw with no robots heats rock** with power and drinks the melt: fuel only, slower and dearer
+      than robots. The module stays until stripped.
+    - **An anchored miner rides the pinned body**: it cannot be pushed and follows the rail. It breaks free
+      when the wedge's seam does (§12, what a ship welded to something bigger is).
+    - **Scavenging covers rock.** No new verb; an evolvable doctrine weight sets rock against wrecks.
+    - **Maps are generated from the seed, in every mode, defaulting to none**, so no golden moves. Settings:
+      major count and size, minor count and size (a radius with a spread), eccentricity (a most, drawn per
+      pair), surface gravity, and richness in metal and in fuel separately. Sides are placed as now and the
+      generator keeps clear of them. A plain evolution run draws a new map every match; the skirmish has
+      one map per round, from its seed, the enemy bred on it, and each round's settings drawn from ranges
+      the player sets.
+    - **In the viewer** an asteroid is never framed automatically and gets no arrowhead or tile. Picking
+      one frames it and shows the metal, fuel and worthless rock left; with Scavenge armed a click gives
+      the order. The kernel is drawn distinctly.
+
+    **Slices**, a PR each:
+
+    1. **Kernels and rails** — the kernel and its outline store, Kepler rails, moving wells, pinned bodies
+       driven by their rail. Tested with a placed kernel and ships orbiting it.
+    2. **Rock and the generator** — the rock module and its colour, the wedge rings, the settings, and the
+       generator in the custom battle, evolution and the skirmish.
+    3. **Mining** — robots' shared hold, claw heating, scavenging rock and its doctrine weight.
+    4. **Viewer and demo** — asteroid picking and its readout, and a golden scenario of two rival mining
+       outposts on a pair of eccentric majors.
 16. **Campaign** — Homeworld-shaped, with the adaptive enemy. Last, because it's mostly *authoring* (scripted
     missions, pacing, narrative), which is the largest volume of work in the least-proven discipline.
 
@@ -326,6 +373,12 @@ Deliberately unresolved; decide when they block something.
 - **Whether the skirmish enemy should prefer the cheapest fleet that wins.** It stops at the first winner,
   so it grows only as it must, but it never shrinks, and drifts larger round by round. A preference for
   efficiency would let it get leaner as well as stronger.
+- **What a ship is when it is welded to something much bigger.** A body is one thing, so a miner anchored
+  to an asteroid (step 15), or a fighter landed on a carrier, is treated as the whole body: guns aim at any
+  part of it, the selection ring goes round all of it, and the side's tile shows the bigger thing — already
+  seen with fighters on carriers. Revisit once step 15 is built.
+- **Mining's numbers.** Surface gravity, rock seam strength, the power a kilogram of rock costs robots
+  against scrap, and a claw's heating rate: first guesses once step 15 sets them.
 - **Adding a carrier with the designs of its craft.** A fleet adds a ship from the designs it carries, flown
   or not, or a bare core. A ship that docks smaller ones, as a carrier docks fighters, does not yet
   bring their designs with it.
