@@ -9,7 +9,7 @@ import { el } from './dom.js';
 /**
  * The bar of orders under a battle, shown while ships are picked out: a
  * button a verb, each arming the next click on a ship, the conditions an
- * attack may finish on, Stop, and for one ship, what it has been told, each
+ * attack may finish on, how far off and how fast to hold, Stop, and for one ship, what it has been told, each
  * order with a ✕ to take it back.
  */
 export function orderBar(view: BattleView): { update(shown: Snapshot): void } {
@@ -24,6 +24,20 @@ export function orderBar(view: BattleView): { update(shown: Snapshot): void } {
   let offered: Remodel[] = [];
   let remodelKey = '';
   const remodelWarning = el<HTMLElement>('remodelWarning');
+  const holdDistance = el<HTMLInputElement>('holdDistance');
+  const holdSpeed = el<HTMLInputElement>('holdSpeed');
+  /** What a box says, if it says something that may be told: empty or out of range is doctrine's. */
+  const told = (input: HTMLInputElement, positive: boolean): number | undefined => {
+    const value = input.value.trim() === '' ? NaN : Number(input.value);
+    return Number.isFinite(value) && (positive ? value > 0 : value >= 0) ? value : undefined;
+  };
+  const hold = (): void => {
+    const distance = told(holdDistance, false);
+    const speed = told(holdSpeed, true);
+    view.held = { ...(distance === undefined ? {} : { distance }), ...(speed === undefined ? {} : { speed }) };
+  };
+  holdDistance.addEventListener('input', hold);
+  holdSpeed.addEventListener('input', hold);
   remodelTo.addEventListener('change', () => {
     remodel.disabled = remodelTo.value === '';
     const fit = offered[Number(remodelTo.value)];
@@ -85,6 +99,12 @@ export function orderBar(view: BattleView): { update(shown: Snapshot): void } {
         return;
       }
       showRemodel(shown);
+      // Only an attack or defence holds a distance, and a ram a speed too.
+      const armed = view.armed;
+      holdDistance.disabled = armed !== null && armed !== 'attack' && armed !== 'defend';
+      holdSpeed.disabled = armed !== null && armed !== 'attack' && armed !== 'defend' && armed !== 'ram';
+      const speeds = view.picked.map((i) => viewOf(shown, i)?.doctrine?.approach.approachSpeed);
+      holdSpeed.placeholder = speeds.length > 0 && speeds.every((v) => v !== undefined && v === speeds[0]) ? `${speeds[0]}` : 'doctrine';
       const optional = view.armed !== null && ANYWHERE.has(view.armed);
       hint.textContent = view.armed === null ? '' : `click a ship to ${view.armed} · Ctrl to queue · Esc${optional ? ' · or' : ''}`;
       anywhere.hidden = !optional;
@@ -105,7 +125,9 @@ export function orderBar(view: BattleView): { update(shown: Snapshot): void } {
           const target = shown.ships[i]!;
           if (target.body === order.target) named = `${teamName(target.team)} ${target.name ?? target.serial}`;
         }
-        return `${order.kind} ${named}`;
+        const distance = order.distance === undefined ? '' : ` · ${order.distance} m`;
+        const speed = order.speed === undefined ? '' : ` · ${order.speed} m/s`;
+        return `${order.kind} ${named}${distance}${speed}`;
       });
       const key = `${ship?.ship ?? -1}|${orders.join('|')}`;
       if (key === listed) return;

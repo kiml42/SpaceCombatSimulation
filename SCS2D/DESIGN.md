@@ -1050,7 +1050,8 @@ inside any one file is not contiguous.
   next slice, running away, is built: the Flee order (W, or Enter for every enemy), running from every armed
   enemy, from one, or hiding behind a friend or wreck until told otherwise; and withdrawing under doctrine,
   at `fleeArmed` of what it fights or works with, or with nothing to fight or work with while an armed enemy
-  is about, hiding within `hideRange` or fleeing (ROADMAP.md step 14).
+  is about, hiding within `hideRange` or fleeing. An attack, defence or ram can be told how far off to hold
+  and how fast to close, over doctrine's, from the order bar (ROADMAP.md step 14).
   Alongside it, §8 step 5's skirmish: an endless loop against an enemy fleet that evolves to beat the
   player's, planned in ROADMAP.md §8. Evolution keeps the skirmish's sense of quiet, though it plays a match on until every side is quiet before naming a winner. Its loop is built without the evolving enemy (`dist/skirmish.html`,
   `scenarios/skirmish.ts`): pick a stock enemy, whose bill is the budget unless the player sets their own, under a limit on ships and spread (20 and 500 m unless set, or what the enemy fields if more), each round's gap and starting speeds drawn from optional ± spreads on its seed; fight a fixed round, decided by

@@ -12,10 +12,20 @@ import type { Battle } from './types.js';
  * battle gives the same ship every time.
  */
 
+/**
+ * How far off to hold, metres from the target's skin, and how fast to close,
+ * m/s, over doctrine's, for an attack, defence or ram. Either left out follows
+ * doctrine as it changes.
+ */
+export interface Held {
+  readonly distance?: number;
+  readonly speed?: number;
+}
+
 export type Order =
-  | { readonly kind: 'attack'; readonly target: number; readonly cancelOn: OrderCancelCondition }
-  | { readonly kind: 'defend'; readonly target: number }
-  | { readonly kind: 'ram'; readonly target: number }
+  | ({ readonly kind: 'attack'; readonly target: number; readonly cancelOn: OrderCancelCondition } & Held)
+  | ({ readonly kind: 'defend'; readonly target: number } & Held)
+  | ({ readonly kind: 'ram'; readonly target: number } & Pick<Held, 'speed'>)
   /** Take on all a friend's dock can give: at `target`, or wherever doctrine chooses for `NO_TARGET`. */
   | { readonly kind: 'dock'; readonly target: number }
   /** Fill its claw from `target`, or for `NO_TARGET` from source after source. */
@@ -136,9 +146,9 @@ export function give(battle: Battle, command: Command): void {
     const friend = ships.teamOf(i) === ships.teamOf(order.target);
     if (friend !== (order.kind === 'defend')) continue;
     if (!command.append) ships.clearOrder(i);
-    if (order.kind === 'attack') ships.pushAttack(i, order.target, order.cancelOn);
-    else if (order.kind === 'defend') ships.pushDefend(i, order.target);
-    else ships.pushRam(i, order.target, undefined, OrderCancelCondition.CompletelyDead);
+    if (order.kind === 'attack') ships.pushAttack(i, order.target, order.cancelOn, order.distance, order.speed);
+    else if (order.kind === 'defend') ships.pushDefend(i, order.target, order.distance, order.speed);
+    else ships.pushRam(i, order.target, order.speed, OrderCancelCondition.CompletelyDead);
   }
 }
 
@@ -215,6 +225,14 @@ export function parseLog(value: unknown): Logged[] {
       const nowhere = ANYWHERE.has(order?.['kind'] as string) && target === NO_TARGET;
       if (order === undefined || !KINDS.has(order['kind'] as string) || !(whole(target) || nowhere)) fail('not an order');
       if (order!['kind'] === 'attack' && !CANCELS.has(order!['cancelOn'] as number)) fail('an attack wants cancelOn');
+      const distance = order!['distance'];
+      const speed = order!['speed'];
+      const held = order!['kind'] === 'attack' || order!['kind'] === 'defend';
+      if (distance !== undefined && !(held && typeof distance === 'number' && distance >= 0))
+        fail('a distance wants an attack or defence, and 0 or more');
+      if (speed !== undefined && !((held || order!['kind'] === 'ram') && typeof speed === 'number' && speed > 0)) {
+        fail('a speed wants an attack, defence or ram, and more than 0');
+      }
     } else fail(`unknown command ${String(command['kind'])}`);
     return { step: step as number, command: command as unknown as Command };
   });
