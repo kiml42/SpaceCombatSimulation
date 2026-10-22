@@ -56,14 +56,10 @@ an entry is either still open or it is gone.
 | 12 | In-battle construction | Built |
 | 13 | Harvesting wrecks | Built |
 | 14 | Orders | Built |
-| 15 | Mining | Not started |
+| 15 | Mining | Partly built |
 | 16 | Campaign | Not started |
 
 ### Partly built — what is left
-
-Nothing: every step begun is built. What is left of them is in §12.
-
-### Not started — in order
 
 15. **Mining** — metal and fuel from asteroids, so maps have economic character. By here both resources
     exist, so this step is the map and the income, not the resources. *It replaces "did I spend 500 points
@@ -108,13 +104,19 @@ Nothing: every step begun is built. What is left of them is in §12.
 
     **Slices**, a PR each:
 
-    1. **Kernels and rails** — the kernel and its outline store, Kepler rails, moving wells, pinned bodies
-       driven by their rail. Tested with a placed kernel and ships orbiting it.
+    1. **Kernels and rails**, in two PRs:
+       - **1a. Rails** — built: wells moved by `Railway` (`sim/rails.ts`), the first force provider, so
+         ships and rounds feel them where they are; the Binary scene and its golden.
+       - **1b. Kernels** — the kernel and its outline store, and pinned bodies driven by their rail, their
+         well exempting them. Tested with a placed kernel and ships orbiting it.
     2. **Rock and the generator** — the rock module and its colour, the wedge rings, the settings, and the
        generator in the custom battle, evolution and the skirmish.
     3. **Mining** — robots' shared hold, claw heating, scavenging rock and its doctrine weight.
     4. **Viewer and demo** — asteroid picking and its readout, and a golden scenario of two rival mining
        outposts on a pair of eccentric majors.
+
+### Not started — in order
+
 16. **Campaign** — Homeworld-shaped, with the adaptive enemy. Last, because it's mostly *authoring* (scripted
     missions, pacing, narrative), which is the largest volume of work in the least-proven discipline.
 
@@ -373,6 +375,10 @@ Deliberately unresolved; decide when they block something.
 - **Whether the skirmish enemy should prefer the cheapest fleet that wins.** It stops at the first winner,
   so it grows only as it must, but it never shrinks, and drifts larger round by round. A preference for
   efficiency would let it get leaner as well as stronger.
+- **Idle ships in a well should orbit, not stop.** A ship with nothing to do brakes to a halt, and under
+  gravity that means burning against the well for as long as it waits, and settling only at the well's
+  centre. Holding an orbit instead, about whichever well pulls hardest, would cost nothing. Matters more
+  once wells move (step 15). Raised by the author, not built.
 - **What a ship is when it is welded to something much bigger.** A body is one thing, so a miner anchored
   to an asteroid (step 15), or a fighter landed on a carrier, is treated as the whole body: guns aim at any
   part of it, the selection ring goes round all of it, and the side's tile shows the bigger thing — already

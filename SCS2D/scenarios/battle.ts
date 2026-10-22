@@ -13,6 +13,8 @@ import {
   Ships,
   SpatialGrid,
   World,
+  Railway,
+  type Rails,
   type WellSpec,
 } from '../sim/index.js';
 import type { Battle } from './types.js';
@@ -76,6 +78,8 @@ export interface BattleOptions {
   readonly seed: number;
   readonly dt?: number;
   readonly wells?: readonly WellSpec[];
+  /** How the wells move, by their index in `wells`; without it they stay put. */
+  readonly rails?: Rails;
   /** Rounds and beams in flight at once. */
   readonly projectiles?: number;
   readonly beams?: number;
@@ -99,7 +103,10 @@ export function makeBattle<Extra extends object = Record<never, never>>(
   const dt = options.dt ?? 1 / 60;
   const world = new World({ dt, seed: options.seed });
 
-  const wells = options.wells ?? [];
+  // Copied, since rails move them and a scenario's wells may be shared constants.
+  const wells = (options.wells ?? []).map((well) => ({ ...well }));
+  // First, so every other provider finds the wells where they are.
+  if (options.rails !== undefined) world.addForceProvider(new Railway(options.rails, wells));
   for (const well of wells) world.addForceProvider(gravityWell(well));
 
   const ships = new Ships();

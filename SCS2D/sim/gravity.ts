@@ -53,16 +53,26 @@ export function wellPull(well: WellSpec, x: number, y: number): number {
 }
 
 /**
- * A force provider for a well at a fixed point. Fixed rather than attached to
- * a body because a planet is not meaningfully perturbed by a frigate, and
- * pinning it keeps the well's own motion out of the reproducibility surface.
+ * A force provider for a well. Read where it is each step, so a well on rails
+ * (`rails.ts`) pulls from where it has moved to; not attached to a body, because
+ * a planet is not meaningfully perturbed by a frigate, and a well no ship can
+ * move keeps its own motion out of the reproducibility surface. An object
+ * rather than a closure, so a copied battle's provider reads its own well.
  */
 export function gravityWell(spec: WellSpec): ForceProvider {
-  const { x: wx, y: wy, gm } = spec;
-  const soft2 = (spec.softening ?? 0) * (spec.softening ?? 0);
-  const exempt = spec.exempt;
+  return new GravityWell(spec);
+}
 
-  return (world: World): void => {
+class GravityWell {
+  constructor(readonly spec: WellSpec) {}
+
+  applyForces(world: World): void {
+    const spec = this.spec;
+    const wx = spec.x;
+    const wy = spec.y;
+    const gm = spec.gm;
+    const soft2 = (spec.softening ?? 0) * (spec.softening ?? 0);
+    const exempt = spec.exempt;
     const b = world.bodies;
     const exemptIndex = exempt === undefined ? -1 : b.indexOf(exempt);
     for (let i = 0; i < b.highWater; i++) {
@@ -81,7 +91,7 @@ export function gravityWell(spec: WellSpec): ForceProvider {
       b.fx[i] += dx * scale;
       b.fy[i] += dy * scale;
     }
-  };
+  }
 }
 
 /**

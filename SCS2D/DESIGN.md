@@ -25,7 +25,7 @@ inside any one file is not contiguous.
 
 - **Built and tested:** deterministic maths (own transcendentals), seeded RNG,
   structure-of-arrays body store with generational handles, kick-drift-kick leapfrog
-  integrator, gravity wells, state checksums, a uniform-grid spatial index with segment
+  integrator, gravity wells — fixed, or moved on rails as a hierarchy of two-body Kepler orbits (`sim/rails.ts`, the Binary scene) — state checksums, a uniform-grid spatial index with segment
   and circle queries, swept-segment projectiles with impact reporting, per-blueprint
   engine allocation, kinematic turrets with lead and traverse arcs, parametric modules
   with their scaling laws, blueprint compilation — mass properties, engine layout
@@ -1056,7 +1056,8 @@ inside any one file is not contiguous.
   too, for the player's ships, and can be wound back; its enemy still answers the fleet as doctrine flies
   it, by a margin. For trying things out, the viewer can also add a ship from the library to any side
   mid-battle (Add ship: press where it goes, drag for how fast), a sandbox tool no game mode offers. What
-  is left of orders is in ROADMAP.md §12; what comes next is mining (step 15).
+  is left of orders is in ROADMAP.md §12. Mining (step 15) is begun: wells move on rails; the kernels
+  that will carry them, and the rest, are in ROADMAP.md §8.
   Alongside it, §8 step 5's skirmish: an endless loop against an enemy fleet that evolves to beat the
   player's, planned in ROADMAP.md §8. Evolution keeps the skirmish's sense of quiet, though it plays a match on until every side is quiet before naming a winner. Its loop is built without the evolving enemy (`dist/skirmish.html`,
   `scenarios/skirmish.ts`): pick a stock enemy, whose bill is the budget unless the player sets their own, under a limit on ships and spread (20 and 500 m unless set, or what the enemy fields if more), each round's gap and starting speeds drawn from optional ± spreads on its seed; fight a fixed round, decided by
