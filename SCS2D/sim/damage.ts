@@ -182,6 +182,8 @@ export const RAGGED_INTEGRITY = 0.25;
 
 export const DAMAGE_RESPONSES: Readonly<Record<ModuleSpec['kind'], readonly DamageResponse[]>> = {
   structure: [],
+  // Takes no damage at all (`Damage.absorb`).
+  kernel: [],
   // Holds its fuel however badly it is hit, until leaks are built (ROADMAP.md §8 step 8).
   tank: [],
   // Its plant and cells go as a generator's and a battery's do.
@@ -384,6 +386,8 @@ export class Damage {
 
   absorb(bodyIndex: number, module: number, joules: number): void {
     if (this.protectedBody[bodyIndex] === true) return;
+    // An asteroid's kernel outlasts everything thrown at it.
+    if (this.kinds[bodyIndex]?.[module] === 'kernel') return;
     const absorbed = this.absorbed[bodyIndex];
     if (absorbed === null || absorbed === undefined) return;
     if (module < 0 || module >= absorbed.length) return;

@@ -98,15 +98,12 @@ export function orbitState(orbit: Orbit, gm: number, t: number, out: Float64Arra
  * battle copied mid-flight moves its own wells to the same places.
  */
 export class Railway implements Exclude<ForceProvider, (world: World) => void> {
-  /** Each well's velocity, m/s, as x, y pairs: what a body riding one needs. */
-  readonly velocity: Float64Array;
   private readonly scratch = new Float64Array(4);
 
   constructor(
     readonly rails: Rails,
     readonly wells: readonly WellSpec[],
   ) {
-    this.velocity = new Float64Array(wells.length * 2);
     this.at(0);
   }
 
@@ -124,8 +121,8 @@ export class Railway implements Exclude<ForceProvider, (world: World) => void> {
       const well = this.wells[system.well]!;
       well.x = x;
       well.y = y;
-      this.velocity[system.well * 2] = vx;
-      this.velocity[system.well * 2 + 1] = vy;
+      well.vx = vx;
+      well.vy = vy;
       return;
     }
     const [first, second] = system.pair;

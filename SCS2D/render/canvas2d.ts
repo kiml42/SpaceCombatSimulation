@@ -25,7 +25,7 @@ import {
   type Snapshot,
   insetTriangle,
   fillOf,
-  triangleOf,
+  shapeOf,
   ROBOT_VIEW_STRIDE,
   ROBOT_BERTH_PITCH,
   BATTERY_ENERGY_PER_VOLUME,
@@ -241,6 +241,8 @@ const PORT_COLLAR_SHARE = 0.3;
 
 /** A module that has taken everything it can: still there, no longer anything. */
 const WRECKAGE = '#3c4048';
+/** An asteroid's kernel: darker than any rock, so what will be left once the rock is mined is plain. */
+const KERNEL = '#3a3530';
 /** How faint a module no working core reaches is drawn, so a ship that lost one shows what went dark. */
 const OUT_OF_REACH_ALPHA = 0.35;
 
@@ -462,23 +464,25 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     // the ship is flown from is worth being able to find at a glance, since
     // shooting it out is what leaves a hulk.
     ctx.fillStyle =
-      integrity <= 0
-        ? WRECKAGE
-        : spec.kind === 'structure' || spec.kind === 'tank' || spec.kind === 'hold' || spec.kind === 'battery'
-          ? // Thick structure is drawn in the colour of the mounts and engines,
-            // since it is what stands with them in the weapons layer. Read from
-            // the compiled flag rather than the spec, since a plate that is
-            // thick by borrowing its neighbour's depth is only as high as what
-            // it covers.
-            m.weaponsLayer
-            ? colours.trim
-            : colours.hull
-          : spec.kind === 'core'
-            ? colours.pivot
-            : spec.kind === 'robotBay'
-              ? // A deck, as a pad is, for its berth pads to stand out on.
-                colours.hull
-              : colours.trim;
+      spec.kind === 'kernel'
+        ? KERNEL
+        : integrity <= 0
+          ? WRECKAGE
+          : spec.kind === 'structure' || spec.kind === 'tank' || spec.kind === 'hold' || spec.kind === 'battery'
+            ? // Thick structure is drawn in the colour of the mounts and engines,
+              // since it is what stands with them in the weapons layer. Read from
+              // the compiled flag rather than the spec, since a plate that is
+              // thick by borrowing its neighbour's depth is only as high as what
+              // it covers.
+              m.weaponsLayer
+              ? colours.trim
+              : colours.hull
+            : spec.kind === 'core'
+              ? colours.pivot
+              : spec.kind === 'robotBay'
+                ? // A deck, as a pad is, for its berth pads to stand out on.
+                  colours.hull
+                : colours.trim;
     ctx.globalAlpha = integrity <= 0 ? 1 : (0.45 + 0.55 * integrity) * (ship.outOfReach?.[i] === true ? OUT_OF_REACH_ALPHA : 1);
     const halfLength = spec.length / 2;
     const halfWidth = spec.width / 2;
@@ -545,7 +549,7 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
       ctx.fillRect(0, -halfWidth, halfLength, jaw);
       ctx.fillRect(0, halfWidth - jaw, halfLength, jaw);
     } else {
-      const triangle = triangleOf(spec);
+      const triangle = shapeOf(spec);
       if (triangle !== null) {
         // The corners as they are authored, which is what the simulation
         // weighs, shoots at and welds — the module's own frame is already the

@@ -1,4 +1,4 @@
-import { blockCentre, bodySpec, math, moduleCentre, triangleOf, type ModuleSpec, type ShipDesign } from '../sim/index.js';
+import { blockCentre, bodySpec, math, moduleCentre, shapeOf, type ModuleSpec, type ShipDesign } from '../sim/index.js';
 import { describeStep, snapStep, type Camera } from '../render/camera.js';
 import { headingCost, type Envelopes } from './stats.js';
 import type { AssemblyOutline } from './document.js';
@@ -336,7 +336,7 @@ function drawSelection(ctx: CanvasRenderingContext2D, view: OverlayView, camera:
  * corners it is drawn by. Left on the context to be filled or stroked.
  */
 export function outline(ctx: CanvasRenderingContext2D, spec: ModuleSpec): void {
-  const triangle = triangleOf(spec);
+  const triangle = shapeOf(spec);
   ctx.beginPath();
   if (triangle === null) {
     ctx.rect(-spec.length / 2, -spec.width / 2, spec.length, spec.width);
@@ -431,7 +431,7 @@ function drawAssemblies(ctx: CanvasRenderingContext2D, view: OverlayView, lineWi
       const s = Math.sin(angle);
       const halfL = spec.length / 2;
       const halfW = spec.width / 2;
-      const triangle = triangleOf(spec);
+      const triangle = shapeOf(spec);
       const mid = moduleCentre(spec);
       const points: (readonly [number, number])[] = [];
       if (triangle === null) {

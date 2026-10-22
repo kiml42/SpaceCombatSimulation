@@ -28,7 +28,7 @@ import {
   type Targeting,
 } from '../sim/doctrine.js';
 import { abs, clamp, cos, floor, HALF_PI, max, min, PI, pow, round, sin, sqrt } from '../sim/math.js';
-import { canShape, isTriangle, TRIANGLE_CORNERS, triangleOf, wedge } from '../sim/shape.js';
+import { canShape, isShaped, TRIANGLE_CORNERS, shapeOf, wedge } from '../sim/shape.js';
 import { degreesToRadians, radiansToDegrees } from '../sim/blueprintFile.js';
 import {
   barrelCalibres,
@@ -59,6 +59,7 @@ import {
   refitModule,
   shapeModule,
   type ModuleKind,
+  type ShipModuleKind,
   type ModuleSpec,
 } from '../sim/modules.js';
 import { pushNeighbours, sharedFace, shiftSeam, type SharedFace } from '../sim/push.js';
@@ -153,7 +154,7 @@ export interface MutationLimits {
   readonly build: BuildWeights;
 }
 
-export type KindWeights = Readonly<Record<ModuleKind, number>>;
+export type KindWeights = Readonly<Record<ShipModuleKind, number>>;
 
 /**
  * - `targeting`: what the ship goes after.
@@ -816,7 +817,7 @@ function hasFacing(kind: ModuleKind): boolean {
 
 /** The ways a module's geometry can change. */
 function reshapes(spec: ModuleSpec): Reshape[] {
-  if (isTriangle(spec)) return ['seam', 'slide', 'vertex', ...(hasFacing(spec.kind) ? (['angle'] as const) : [])];
+  if (isShaped(spec)) return ['seam', 'slide', 'vertex', ...(hasFacing(spec.kind) ? (['angle'] as const) : [])];
   const out: Reshape[] = ['face', 'seam', 'slide', 'quarter'];
   if (hasFacing(spec.kind)) out.push('angle');
   return out;
@@ -884,7 +885,7 @@ function switches(draft: Draft): SwitchKnob[] {
     const spec = site.spec;
     out.push({ at: 'kind', site });
     // A box with two free faces can lose the corner between them.
-    if (canShape(spec.kind) && !isTriangle(spec)) out.push({ at: 'shape', site });
+    if (canShape(spec.kind) && !isShaped(spec)) out.push({ at: 'shape', site });
     if (canThicken(spec)) out.push({ at: 'thick', site });
     if (readsDrainPriority(spec.kind)) out.push({ at: 'drainPriority', site });
     // The outlet count divides a hull mount's opening between more of them,
@@ -1555,7 +1556,7 @@ function moveFace(site: ModuleSite, draft: Draft, rng: Rng, bounds: MutationLimi
   // Nothing to move on a module that is not a box: its size is its corners,
   // and changing the length and width of the box they fit inside would report
   // a change the ship has not got.
-  if (isTriangle(spec)) return null;
+  if (isShaped(spec)) return null;
   const before = { ...spec };
   // A face nothing is welded to, where there is one, so growing needs nothing pushed.
   const open = openFaces(site);
@@ -1667,7 +1668,7 @@ function openFaces(site: ModuleSite): boolean[] {
  */
 function cutCorner(site: ModuleSite): string | null {
   const spec = site.spec;
-  if (!canShape(spec.kind) || isTriangle(spec)) return null;
+  if (!canShape(spec.kind) || isShaped(spec)) return null;
 
   const open = openFaces(site);
   const free: number[] = [];
@@ -1726,7 +1727,7 @@ function cornerName(corner: number): string {
  */
 function moveVertex(site: ModuleSite, rng: Rng, bounds: MutationLimits, scale: Scale, weight: number): string | null {
   const spec = site.spec;
-  const triangle = triangleOf(spec);
+  const triangle = shapeOf(spec);
   if (triangle === null) return null;
 
   const corner = rng.nextInt(TRIANGLE_CORNERS);
@@ -2381,7 +2382,7 @@ function addModule(draft: Draft, rng: Rng, bounds: MutationLimits, scale: Scale,
       // of the module's middle, and a triangle has neither the face nor the
       // symmetry — its corners are an author's, and no operator here can draw
       // one or reason about one (ROADMAP.md §12).
-      if (!isInstance(placement) && !isTriangle(placement)) {
+      if (!isInstance(placement) && !isShaped(placement)) {
         anchors.push({ list, spec: placement, index: i });
       }
     }
@@ -2408,7 +2409,7 @@ function addModule(draft: Draft, rng: Rng, bounds: MutationLimits, scale: Scale,
         anchor.list.placements.push(added);
         // Said out loud, because a wedge and a box are the same line of the
         // file otherwise and the changelog is what a run is read back through.
-        const shaped = isTriangle(added) ? ' as a wedge' : '';
+        const shaped = isShaped(added) ? ' as a wedge' : '';
         return (
           `${anchor.list.label}[${anchor.index}] ${anchor.spec.kind}: ` +
           `${copy ? `copied onto` : `a ${kind} added${shaped} to`} its ${faceName(face)} face`
@@ -2478,7 +2479,7 @@ function addThruster(draft: Draft, rng: Rng, bounds: MutationLimits, scale: Scal
   for (const list of draft.lists) {
     for (let i = 0; i < list.placements.length; i++) {
       const placement = list.placements[i]!;
-      if (!isInstance(placement) && !isTriangle(placement)) anchors.push({ list, spec: placement, index: i });
+      if (!isInstance(placement) && !isShaped(placement)) anchors.push({ list, spec: placement, index: i });
     }
   }
   if (anchors.length === 0) return null;

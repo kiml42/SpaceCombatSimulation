@@ -5,6 +5,7 @@ import { cloneBattle } from '../scenarios/clone.js';
 import { isFixed } from '../sim/fixed.js';
 import { duel } from '../scenarios/duel.js';
 import { binary } from '../scenarios/binary.js';
+import { kernels } from '../scenarios/kernels.js';
 import { beamDuel } from '../scenarios/beamDuel.js';
 import { starWars } from '../scenarios/starWars.js';
 import { swarm } from '../scenarios/swarm.js';
@@ -30,6 +31,7 @@ const SEED = 20260905;
 const SCENES: Record<string, () => Battle> = {
   duel: () => duel(SEED),
   binary: () => binary(SEED),
+  kernels: () => kernels(SEED),
   beamDuel: () => beamDuel(SEED),
   starWars: () => starWars(SEED),
   swarm: () => swarm(SEED),

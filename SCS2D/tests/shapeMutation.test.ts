@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BUILD_WEIGHTS, mutate, type MutationLimits } from '../evolution/mutate.js';
 import { Rng } from '../sim/rng.js';
-import { blueprintProblem, contactWidth, isTriangle, triangleOf, type Blueprint, type ModuleSpec, type Placement } from '../sim/index.js';
+import { blueprintProblem, contactWidth, isShaped, shapeOf, type Blueprint, type ModuleSpec, type Placement } from '../sim/index.js';
 import { CATAMARAN, CORVETTE } from '../scenarios/blueprints.js';
 
 /**
@@ -93,8 +93,8 @@ describe('breeding a shape', () => {
   it('grows triangles on a hull founded entirely on boxes', () => {
     // The Corvette is rectangles throughout, so every wedge in a descendant is
     // one the line drew rather than one it inherited.
-    expect(modulesOf(CORVETTE).some(isTriangle)).toBe(false);
-    expect(Math.max(...corvette.map((step) => step.after.filter(isTriangle).length))).toBeGreaterThan(0);
+    expect(modulesOf(CORVETTE).some(isShaped)).toBe(false);
+    expect(Math.max(...corvette.map((step) => step.after.filter(isShaped).length))).toBeGreaterThan(0);
   });
 
   it('keeps a corner walk on one of the two edges that meet there', () => {
@@ -106,8 +106,8 @@ describe('breeding a shape', () => {
     for (const step of matching(both, WALKED)) {
       if (step.before.length !== step.after.length) continue;
       for (let m = 0; m < step.before.length; m++) {
-        const was = triangleOf(step.before[m]!);
-        const now = triangleOf(step.after[m]!);
+        const was = shapeOf(step.before[m]!);
+        const now = shapeOf(step.after[m]!);
         if (was === null || now === null) continue;
         if (was.every((v, k) => v === now[k])) continue;
         walks++;
@@ -131,7 +131,7 @@ describe('breeding a shape', () => {
       expect(child.edits.some((edit) => ARRIVED.test(edit) || CUT.test(edit) || WALKED.test(edit))).toBe(false);
       held = child.blueprint;
     }
-    expect(modulesOf(held).some(isTriangle)).toBe(false);
+    expect(modulesOf(held).some(isShaped)).toBe(false);
   });
 
   it('only cuts a corner where nothing was welded, so every weld survives', { timeout: 30_000 }, () => {
