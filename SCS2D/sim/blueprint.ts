@@ -1925,8 +1925,8 @@ export function blueprintFaults(blueprint: Blueprint): BlueprintFault[] {
   // together is stated against, which is why it is checked before them. A
   // layout with nothing in it at all is one mistake and is already one
   // complaint, so it does not earn this one as well. An asteroid is the one
-  // hull that is meant to have none, and its kernel says so.
-  const asteroid = modules.some((spec) => spec.kind === 'kernel');
+  // hull that is meant to have none, and its kernel or rock says so.
+  const asteroid = modules.some((spec) => spec.kind === 'kernel' || spec.kind === 'rock');
   if (modules.length > 0 && !asteroid && !modules.some((spec) => spec.kind === 'core' && moduleProblem(spec) === null)) {
     faults.push({
       message:

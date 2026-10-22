@@ -243,6 +243,27 @@ const PORT_COLLAR_SHARE = 0.3;
 const WRECKAGE = '#3c4048';
 /** An asteroid's kernel: darker than any rock, so what will be left once the rock is mined is plain. */
 const KERNEL = '#3a3530';
+
+/** What rock is drawn as by what it holds: white for ice, grey for ore, brown for the worthless rest. */
+const ICE_RGB = [235, 240, 245] as const;
+const ORE_RGB = [130, 132, 138] as const;
+const WASTE_RGB = [110, 80, 55] as const;
+const rockColours = new Map<string, string>();
+
+function rockColour(ore: number, ice: number): string {
+  // Quantised, so a field of wedges shares a handful of strings.
+  const key = `${Math.round(ore * 20)},${Math.round(ice * 20)}`;
+  let colour = rockColours.get(key);
+  if (colour === undefined) {
+    const o = Math.round(ore * 20) / 20;
+    const i = Math.round(ice * 20) / 20;
+    const w = Math.max(0, 1 - o - i);
+    const mix = (k: 0 | 1 | 2): number => Math.round(ICE_RGB[k] * i + ORE_RGB[k] * o + WASTE_RGB[k] * w);
+    colour = `rgb(${mix(0)}, ${mix(1)}, ${mix(2)})`;
+    rockColours.set(key, colour);
+  }
+  return colour;
+}
 /** How faint a module no working core reaches is drawn, so a ship that lost one shows what went dark. */
 const OUT_OF_REACH_ALPHA = 0.35;
 
@@ -466,23 +487,25 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     ctx.fillStyle =
       spec.kind === 'kernel'
         ? KERNEL
-        : integrity <= 0
-          ? WRECKAGE
-          : spec.kind === 'structure' || spec.kind === 'tank' || spec.kind === 'hold' || spec.kind === 'battery'
-            ? // Thick structure is drawn in the colour of the mounts and engines,
-              // since it is what stands with them in the weapons layer. Read from
-              // the compiled flag rather than the spec, since a plate that is
-              // thick by borrowing its neighbour's depth is only as high as what
-              // it covers.
-              m.weaponsLayer
-              ? colours.trim
-              : colours.hull
-            : spec.kind === 'core'
-              ? colours.pivot
-              : spec.kind === 'robotBay'
-                ? // A deck, as a pad is, for its berth pads to stand out on.
-                  colours.hull
-                : colours.trim;
+        : spec.kind === 'rock'
+          ? rockColour(spec.ore ?? 0, spec.ice ?? 0)
+          : integrity <= 0
+            ? WRECKAGE
+            : spec.kind === 'structure' || spec.kind === 'tank' || spec.kind === 'hold' || spec.kind === 'battery'
+              ? // Thick structure is drawn in the colour of the mounts and engines,
+                // since it is what stands with them in the weapons layer. Read from
+                // the compiled flag rather than the spec, since a plate that is
+                // thick by borrowing its neighbour's depth is only as high as what
+                // it covers.
+                m.weaponsLayer
+                ? colours.trim
+                : colours.hull
+              : spec.kind === 'core'
+                ? colours.pivot
+                : spec.kind === 'robotBay'
+                  ? // A deck, as a pad is, for its berth pads to stand out on.
+                    colours.hull
+                  : colours.trim;
     ctx.globalAlpha = integrity <= 0 ? 1 : (0.45 + 0.55 * integrity) * (ship.outOfReach?.[i] === true ? OUT_OF_REACH_ALPHA : 1);
     const halfLength = spec.length / 2;
     const halfWidth = spec.width / 2;

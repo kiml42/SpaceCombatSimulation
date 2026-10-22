@@ -1,5 +1,7 @@
 import {
   Beams,
+  compileBlueprint,
+  NEUTRAL_TEAM,
   BeamHits,
   castableBeamLength,
   MAX_BEAM_LENGTH,
@@ -13,7 +15,12 @@ import {
   Ships,
   SpatialGrid,
   World,
+  generateMap,
+  hasAsteroids,
   Railway,
+  type Clearing,
+  type ForceProvider,
+  type MapSettings,
   type Rails,
   type WellSpec,
 } from '../sim/index.js';
@@ -80,6 +87,11 @@ export interface BattleOptions {
   readonly wells?: readonly WellSpec[];
   /** How the wells move, by their index in `wells`; without it they stay put. */
   readonly rails?: Rails;
+  /**
+   * Asteroids to fight among, drawn from the seed once `setup` has placed the
+   * ships, and kept clear of them. Its majors' wells join `wells`.
+   */
+  readonly map?: MapSettings;
   /** Rounds and beams in flight at once. */
   readonly projectiles?: number;
   readonly beams?: number;
@@ -89,6 +101,21 @@ export interface BattleOptions {
    * it into something.
    */
   readonly pilots?: boolean;
+}
+
+/** Seconds of a ship's starting speed the map keeps clear for. */
+const MAP_LOOK_AHEAD = 10;
+
+/** A force provider put in its place before it is known: the map's rails, drawn after the ships. */
+class Later {
+  provider: ForceProvider | null = null;
+
+  applyForces(world: World): void {
+    const p = this.provider;
+    if (p === null) return;
+    if (typeof p === 'function') p(world);
+    else p.applyForces(world);
+  }
 }
 
 /**
@@ -107,12 +134,47 @@ export function makeBattle<Extra extends object = Record<never, never>>(
   const wells = (options.wells ?? []).map((well) => ({ ...well }));
   // First, so every other provider finds the wells where they are.
   if (options.rails !== undefined) world.addForceProvider(new Railway(options.rails, wells));
+  // Where the map's rails go, once it is drawn: still before the ships, which ride them.
+  const mapRails = hasAsteroids(options.map) ? new Later() : null;
+  if (mapRails !== null) world.addForceProvider(mapRails);
   for (const well of wells) world.addForceProvider(gravityWell(well));
 
   const ships = new Ships();
   world.addForceProvider(ships.forceProvider());
 
   const extra = setup(ships, world, wells) ?? ({} as Extra);
+  if (mapRails !== null) {
+    const clear: Clearing[] = [];
+    const bodies = world.bodies;
+    for (let i = 0; i < ships.count; i++) {
+      if (!ships.isAlive(i)) continue;
+      const b = bodies.indexOf(ships.body(i));
+      // Wide enough for where it goes in the seconds the map looks ahead.
+      const speed = math.sqrt(bodies.vx[b]! * bodies.vx[b]! + bodies.vy[b]! * bodies.vy[b]!);
+      clear.push({ x: bodies.x[b]!, y: bodies.y[b]!, radius: bodies.radius[b]! + speed * MAP_LOOK_AHEAD });
+    }
+    const map = generateMap(options.map!, options.seed, clear);
+    if (map.rails !== undefined) mapRails.provider = new Railway(map.rails, map.wells);
+    const first = wells.length;
+    for (const well of map.wells) {
+      wells.push(well);
+      world.addForceProvider(gravityWell(well));
+    }
+    for (const rock of map.asteroids) {
+      ships.spawn(world, {
+        design: compileBlueprint(rock.blueprint),
+        x: rock.x,
+        y: rock.y,
+        vx: rock.vx,
+        vy: rock.vy,
+        angle: rock.angle,
+        angularVel: rock.angularVel,
+        team: NEUTRAL_TEAM,
+        name: rock.blueprint.name,
+        ...(rock.rides === undefined ? {} : { rides: wells[first + rock.rides]! }),
+      });
+    }
+  }
 
   const pilots = options.pilots ?? true;
   const grid = new SpatialGrid(CELL_SIZE);

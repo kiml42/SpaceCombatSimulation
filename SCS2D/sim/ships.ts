@@ -7352,12 +7352,17 @@ export class Ships {
    * with no working core left keeps the piece holding its first core, or its
    * lowest module if it has no core at all — a chunk coming apart further.
    * Both are wreckage whichever piece is chosen, so what this settles for them
-   * is merely which body goes on being tracked.
+   * is merely which body goes on being tracked. An asteroid keeps the piece
+   * holding its kernel, which is the one its rail pins in place; rock knocked
+   * off it goes free.
    */
   private keeperOf(bodyIndex: number, design: ShipDesign, parts: readonly number[][]): number {
     const partOf = new Map<number, number>();
     for (let p = 0; p < parts.length; p++) {
       for (const module of parts[p]!) partOf.set(module, p);
+    }
+    for (let m = 0; m < design.modules.length; m++) {
+      if (design.modules[m]!.spec.kind === 'kernel') return partOf.get(m) ?? 0;
     }
     let fallback = -1;
     // `cores` is in module order, so the first one that works wins and the

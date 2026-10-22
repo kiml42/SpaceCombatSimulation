@@ -110,10 +110,16 @@ an entry is either still open or it is gone.
        Kernels scenes and their goldens. Left for the slices that need them:
        - **Nothing welds to a pinned hull yet**, so no claw anchors to one. Slice 3 has to let a weld keep
          the pin, and guard the momentum sums after robot work, which divide by the body's mass.
-       - **A pinned hull cut in two** keeps its pin only on the piece that stays its body. Slice 2's rock
-         breaking off needs the kernel's piece to be that one, and the rest to go free.
-    2. **Rock and the generator** — the rock module and its colour, the wedge rings, the settings, and the
-       generator in the custom battle, evolution and the skirmish.
+    2. **Rock and the generator**, in two PRs:
+       - **2a. Rock and the map** — built: the `rock` module (ore and ice shares, a triangle or a convex
+         quadrilateral, solid, seams a hull plate's strength), asteroids of wedge rings drawn from a seed
+         (`asteroidBlueprint`), the map generator (`sim/map.ts`) and `makeBattle`'s `map`, which draws it
+         clear of the ships once they are placed; the Asteroid Field scene and its golden. A hull cut in two
+         keeps its pin on the kernel's piece, and rock knocked off goes free.
+       - **2b. The settings in every mode** — the custom battle, evolution (a new map every match) and the
+         skirmish (one map per round, settings drawn from ranges), all defaulting to none.
+       - **Left for slice 4:** the camera frames asteroids as it does ships, so a big one pulls the shot
+         away from the fight.
     3. **Mining** — robots' shared hold, claw heating, scavenging rock and its doctrine weight.
     4. **Viewer and demo** — asteroid picking and its readout, and a golden scenario of two rival mining
        outposts on a pair of eccentric majors.
