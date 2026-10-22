@@ -15,14 +15,14 @@
       "mobileWeight": 10.341,
       "facingWeight": 47.002,
       "sightWeight": 110.487,
-      "escortWeight": 41.335
+      "escortWeight": 20
     },
     "approach": {
       "standoffRadii": 28.463,
       "standoff": 0.794,
-      "escortRadii": 5.107,
+      "escortRadii": 90,
       "escort": 5,
-      "escortMinRadii": 1.867,
+      "escortMinRadii": 10,
       "separation": 324.416,
       "separationRadii": 2.251,
       "avoidHorizon": 11.075,
