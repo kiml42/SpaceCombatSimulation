@@ -211,7 +211,10 @@ export class EnemySearch {
     const standing = this.standings[math.floor(this.next / each)]!;
     const match = this.next % each;
     if (match >= seedCount) return this.drill(steps, standing, this.drills[match - seedCount]!);
-    const battle = (this.battle ??= customBattle(roundBattle(this.player, standing.enemy, this.seeds[match]!, this.settings)));
+    // On the round's map whatever the seed, so the enemy is bred for the place it answers in.
+    const battle = (this.battle ??= customBattle(
+      roundBattle(this.player, standing.enemy, this.seeds[match]!, this.settings, this.wonSeed),
+    ));
     let taken = 0;
     const limit = math.round(this.settings.duration / battle.dt);
     while (taken < steps) {
@@ -248,7 +251,7 @@ export class EnemySearch {
    * finishing the job, less the share of the match that took.
    */
   private drill(steps: number, standing: Standing, drill: Drill): number {
-    const battle = (this.battle ??= drillBattle(drill, this.player, standing.enemy, this.settings));
+    const battle = (this.battle ??= drillBattle(drill, this.player, standing.enemy, this.settings, this.wonSeed));
     let taken = 0;
     const limit = math.round(this.settings.duration / battle.dt);
     while (taken < steps) {
@@ -381,9 +384,9 @@ export interface Drill {
 }
 
 /** A drill's battle: the enemy against a bare core, or invincible against the player's fleet. */
-export function drillBattle(drill: Drill, player: Fleet, enemy: Fleet, settings: AnswerSettings): CustomBattle {
-  if (drill.kind === 'bareCore') return customBattle(roundBattle(shipFleet(BARE_CORE), enemy, drill.seed, settings));
-  const battle = customBattle(roundBattle(player, enemy, drill.seed, settings));
+export function drillBattle(drill: Drill, player: Fleet, enemy: Fleet, settings: AnswerSettings, mapSeed = drill.seed): CustomBattle {
+  if (drill.kind === 'bareCore') return customBattle(roundBattle(shipFleet(BARE_CORE), enemy, drill.seed, settings, mapSeed));
+  const battle = customBattle(roundBattle(player, enemy, drill.seed, settings, mapSeed));
   const { ships, world } = battle;
   for (let i = 0; i < ships.highWater; i++) {
     if (ships.isAlive(i) && ships.teamOf(i) === 1) ships.damage.protect(world.bodies.indexOf(ships.body(i)));

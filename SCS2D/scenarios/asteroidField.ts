@@ -5,8 +5,12 @@ import { CORVETTE, GUNSHIP } from './blueprints.js';
 
 /** Two majors on an eccentric orbit and a scatter of minors about them. */
 export const FIELD: MapSettings = {
-  majors: { count: 2, size: 300, spread: 80 },
-  minors: { count: 8, size: 60, spread: 30 },
+  majors: 2,
+  majorSize: 300,
+  majorSpread: 80,
+  minors: 8,
+  minorSize: 60,
+  minorSpread: 30,
   eccentricity: 0.6,
   surfaceGravity: 0.5,
 };

@@ -31,6 +31,7 @@ import { DEFAULT_BUILD_WEIGHTS, DEFAULT_KINDS, DEFAULT_LIMITS, doctrineWeights, 
 import { parseRunConfig, runConfigWarnings, serialiseRunConfig, type RunSetup } from '../evolution/configFile.js';
 import { breeding, MUTATION_FIELDS } from '../evolution/mutationFields.js';
 import { fillFields } from './settingsFields.js';
+import { fillMapInputs, mapFields, readMapInputs } from './mapFields.js';
 import { Coevolution, DEFAULT_COEVOLUTION, rivalSettings, type CoevolutionConfig, type SideSettings } from '../evolution/coevolution.js';
 import {
   GridMeasure,
@@ -553,7 +554,8 @@ export function startEvolution(): void {
   const watchYardstickButton = el<HTMLButtonElement>('watchYardstick');
   const yardstickLine = el<HTMLElement>('yardstickLine');
   const gridTable = el<HTMLTableElement>('grid');
-  fillFields(document, MUTATION_FIELDS);
+  fillFields(document, [...MUTATION_FIELDS, ...mapFields()]);
+  fillMapInputs(document, undefined);
   addRivalInputs();
   const inputs = Object.fromEntries(FIELDS.map((name) => [name, el<HTMLInputElement>(name)])) as Record<
     (typeof FIELDS)[number],
@@ -993,6 +995,7 @@ export function startEvolution(): void {
   };
 
   const configure = (): Partial<RunConfig> => {
+    const map = readMapInputs(document);
     return {
       seed: number(inputs.seed, DEFAULT_RUN.seed),
       generations: Math.max(1, Math.round(number(inputs.generations, DEFAULT_RUN.generations))),
@@ -1008,6 +1011,7 @@ export function startEvolution(): void {
         closingSpread: Math.max(0, number(inputs.closingSpread, DEFAULT_MATCH.closingSpread)),
         crossingSpread: Math.max(0, number(inputs.crossingSpread, DEFAULT_MATCH.crossingSpread)),
         quietLimit: Math.max(0, number(inputs.quietLimit, DEFAULT_MATCH.quietLimit)),
+        ...(map === undefined ? {} : { map }),
         goal:
           goalInput.value === 'none' || DEFAULT_MATCH.goal === null ? null : { ...DEFAULT_MATCH.goal, solid: goalInput.value !== 'ghost' },
         weights: {
@@ -1149,6 +1153,7 @@ export function startEvolution(): void {
     inputs.closingSpread.value = String(match.closingSpread ?? DEFAULT_MATCH.closingSpread);
     inputs.crossingSpread.value = String(match.crossingSpread ?? DEFAULT_MATCH.crossingSpread);
     inputs.quietLimit.value = String(match.quietLimit ?? DEFAULT_MATCH.quietLimit);
+    fillMapInputs(document, match.map);
     inputs.survivalWeight.value = String(match.weights.survival);
     inputs.functionalWeight.value = String(match.weights.functional);
     inputs.damageWeight.value = String(match.weights.damage);

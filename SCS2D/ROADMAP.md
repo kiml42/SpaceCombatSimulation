@@ -116,8 +116,11 @@ an entry is either still open or it is gone.
          (`asteroidBlueprint`), the map generator (`sim/map.ts`) and `makeBattle`'s `map`, which draws it
          clear of the ships once they are placed; the Asteroid Field scene and its golden. A hull cut in two
          keeps its pin on the kernel's piece, and rock knocked off goes free.
-       - **2b. The settings in every mode** — the custom battle, evolution (a new map every match) and the
-         skirmish (one map per round, settings drawn from ranges), all defaulting to none.
+       - **2b. The settings in every mode** — built: an Asteroids card on the custom battle, the evolution
+         page (and `--map`, and a run file's `match.map`) and the skirmish, all defaulting to none. A plain
+         run draws a new map every match; a skirmish round's is drawn from its seed, each setting from its
+         ±, and every match the enemy is bred in for it is fought on that round's map whatever its own seed
+         (`BattleSetup.mapSeed`).
        - **Left for slice 4:** the camera frames asteroids as it does ships, so a big one pulls the shot
          away from the fight.
     3. **Mining** — robots' shared hold, claw heating, scavenging rock and its doctrine weight.

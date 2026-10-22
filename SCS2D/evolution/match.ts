@@ -10,6 +10,7 @@ import {
   type Fleet,
   type ShipDesign,
   type WellSpec,
+  type MapSettings,
 } from '../sim/index.js';
 import { addCapability, EFFECTS, workingShare } from './capability.js';
 import { makeBattle } from '../scenarios/battle.js';
@@ -204,6 +205,11 @@ export interface MatchConfig {
    * over. Zero means `QUIET_TIME`.
    */
   readonly quietLimit: number;
+  /**
+   * Asteroids to fight among, drawn from each match's own seed, so a run
+   * breeds for fields of them rather than one layout. Left out, there are none.
+   */
+  readonly map?: MapSettings;
 }
 
 export const DEFAULT_MATCH: MatchConfig = {
@@ -469,6 +475,7 @@ export class Match {
         seed: settings.seed,
         dt: settings.dt,
         wells: settings.wells,
+        ...(settings.map === undefined ? {} : { map: settings.map }),
         projectiles: 1024,
         beams: 256,
       },

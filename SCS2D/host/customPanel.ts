@@ -14,6 +14,8 @@ import {
 import { battleFragment } from '../scenarios/battleLink.js';
 import type { Logged } from '../scenarios/commands.js';
 import { el } from './dom.js';
+import { fillFields } from './settingsFields.js';
+import { fillMapInputs, mapFields, readMapInputs } from './mapFields.js';
 import { max } from '../sim/math.js';
 
 /**
@@ -67,6 +69,10 @@ export function customPanel(changed: () => void, fight: () => void, orders: () =
   const closingSpread = el<HTMLInputElement>('battleClosingSpread');
   const crossingSpread = el<HTMLInputElement>('battleCrossingSpread');
   const rotationSpread = el<HTMLInputElement>('battleRotationSpread');
+  const MAP = 'battleMap';
+  const mapRows = mapFields(MAP);
+  fillFields(panel, mapRows);
+  const mapInputs = mapRows.map((field) => el<HTMLInputElement>(field.name));
 
   const fleets = new Library(window.localStorage, FLEET_FILES);
   const ships = new Library(window.localStorage);
@@ -95,6 +101,7 @@ export function customPanel(changed: () => void, fight: () => void, orders: () =
     closingSpread.value = String(setup.spread?.closingSpeed ?? 0);
     crossingSpread.value = String(setup.spread?.crossingSpeed ?? 0);
     rotationSpread.value = String(radiansToDegrees(setup.spread?.rotation ?? 0));
+    fillMapInputs(panel, setup.map, MAP);
   };
   fill(DEFAULT_SETUP);
 
@@ -206,23 +213,38 @@ export function customPanel(changed: () => void, fight: () => void, orders: () =
     const value = Number(input.value);
     return input.value.trim() === '' || !Number.isFinite(value) ? fallback : value;
   };
-  const setup = (): BattleSetup => ({
-    fleets: slots.map((slot) => slot.fleet),
-    range: max(1, number(range, DEFAULT_SETUP.range)),
-    closingSpeed: number(closing, DEFAULT_SETUP.closingSpeed),
-    crossingSpeed: number(crossing, DEFAULT_SETUP.crossingSpeed),
-    rotation: degreesToRadians(number(rotation, 0)),
-    seed: Math.round(number(seed, DEFAULT_SETUP.seed)),
-    spread: {
-      range: max(0, number(rangeSpread, 0)),
-      closingSpeed: max(0, number(closingSpread, 0)),
-      crossingSpeed: max(0, number(crossingSpread, 0)),
-      rotation: degreesToRadians(max(0, number(rotationSpread, 0))),
-    },
-  });
+  const setup = (): BattleSetup => {
+    const map = readMapInputs(panel, MAP);
+    return {
+      fleets: slots.map((slot) => slot.fleet),
+      range: max(1, number(range, DEFAULT_SETUP.range)),
+      closingSpeed: number(closing, DEFAULT_SETUP.closingSpeed),
+      crossingSpeed: number(crossing, DEFAULT_SETUP.crossingSpeed),
+      rotation: degreesToRadians(number(rotation, 0)),
+      seed: Math.round(number(seed, DEFAULT_SETUP.seed)),
+      spread: {
+        range: max(0, number(rangeSpread, 0)),
+        closingSpeed: max(0, number(closingSpread, 0)),
+        crossingSpeed: max(0, number(crossingSpread, 0)),
+        rotation: degreesToRadians(max(0, number(rotationSpread, 0))),
+      },
+      ...(map === undefined ? {} : { map }),
+    };
+  };
 
   fightButton.addEventListener('click', fight);
-  for (const input of [range, closing, crossing, rotation, seed, rangeSpread, closingSpread, crossingSpread, rotationSpread]) {
+  for (const input of [
+    range,
+    closing,
+    crossing,
+    rotation,
+    seed,
+    rangeSpread,
+    closingSpread,
+    crossingSpread,
+    rotationSpread,
+    ...mapInputs,
+  ]) {
     input.addEventListener('input', changed);
   }
 
