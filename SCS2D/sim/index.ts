@@ -24,14 +24,16 @@ export { AttackArcs, AttackRegion, attackBearing, bestAttackBearings, designArcs
 export { gravityWell, wellPull, wellPotentialEnergy, type WellSpec } from './gravity.js';
 export { asteroidBlueprint, bareKernel, circularSpeed, kernelModule, kernelOutline, rockModule, type AsteroidShape } from './asteroid.js';
 export {
-  DEFAULT_FUEL,
-  DEFAULT_METAL,
-  DEFAULT_SURFACE_GRAVITY,
+  DEFAULT_MAP,
+  drawnMap,
   generateMap,
   hasAsteroids,
-  type AsteroidCount,
+  MAP_KEYS,
+  mapProblem,
+  writeMap,
   type AsteroidMap,
   type Clearing,
+  type MapKey,
   type MapSettings,
   type PlacedAsteroid,
 } from './map.js';

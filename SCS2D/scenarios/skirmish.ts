@@ -13,6 +13,10 @@ import {
   type Bill,
   type Budget,
   type Fleet,
+  drawnMap,
+  hasAsteroids,
+  mapProblem,
+  type MapSettings,
 } from '../sim/index.js';
 import type { BattleSetup } from './customBattle.js';
 import { QUIET_TIME, TIME_CAP } from './decision.js';
@@ -103,6 +107,13 @@ export interface SkirmishSettings {
    * give them (`evolution/mutationFields.ts`), each missing one its default.
    */
   readonly breeding: Readonly<Record<string, number>>;
+  /**
+   * The asteroids a round is fought among, and how far either side each
+   * setting is drawn for a round, evenly: every round its own place, the same
+   * for every try of it and for every match the enemy is bred in for it.
+   */
+  readonly map: MapSettings;
+  readonly mapSpread: MapSettings;
 }
 
 export const DEFAULT_SKIRMISH_SETTINGS: SkirmishSettings = {
@@ -125,6 +136,8 @@ export const DEFAULT_SKIRMISH_SETTINGS: SkirmishSettings = {
   maxShips: 20,
   radius: 500,
   breeding: {},
+  map: {},
+  mapSpread: {},
 };
 
 /** What a skirmish is played under. */
@@ -195,16 +208,35 @@ export function roundSetup(skirmish: Skirmish): BattleSetup {
   return roundBattle(skirmish.player, skirmish.enemy, skirmish.seed, settingsOf(skirmish));
 }
 
-type Opening = Pick<SkirmishSettings, 'gap' | 'closingSpeed' | 'crossingSpeed' | 'gapSpread' | 'closingSpread' | 'crossingSpread'>;
+type Opening = Pick<
+  SkirmishSettings,
+  'gap' | 'closingSpeed' | 'crossingSpeed' | 'gapSpread' | 'closingSpread' | 'crossingSpread' | 'map' | 'mapSpread'
+>;
 
-/** Two fleets as a round sets them out, on this seed, which also draws the gap and speeds from their spreads. */
-export function roundBattle(player: Fleet, enemy: Fleet, seed: number, settings: Opening = DEFAULT_SKIRMISH_SETTINGS): BattleSetup {
+/** The map of the round on `seed`: its settings drawn from their spreads, from a generator of its own. */
+export function roundMap(seed: number, settings: Pick<SkirmishSettings, 'map' | 'mapSpread'>): MapSettings {
+  return drawnMap(settings.map, settings.mapSpread, new Rng(seed ^ 0x6d6170));
+}
+
+/**
+ * Two fleets as a round sets them out, on this seed, which also draws the gap
+ * and speeds from their spreads. The map is the round's on `mapSeed`, which is
+ * this seed's unless a search is fighting the round on another.
+ */
+export function roundBattle(
+  player: Fleet,
+  enemy: Fleet,
+  seed: number,
+  settings: Opening = DEFAULT_SKIRMISH_SETTINGS,
+  mapSeed = seed,
+): BattleSetup {
   // Always all three, in this order, so that widening one spread does not move the others.
   const draw = new Rng(seed ^ 0x5b4ead);
   const gap = settings.gap + settings.gapSpread * draw.nextRange(-1, 1);
   const closingSpeed = settings.closingSpeed + settings.closingSpread * draw.nextRange(-1, 1);
   const crossingSpeed = settings.crossingSpeed + settings.crossingSpread * draw.nextRange(-1, 1);
   const reach = fleetReach(fleetHulls(player)) + fleetReach(fleetHulls(enemy));
+  const map = roundMap(mapSeed, settings);
   return {
     fleets: [player, enemy],
     range: math.max(MIN_RANGE, reach + math.max(0, gap)),
@@ -212,6 +244,7 @@ export function roundBattle(player: Fleet, enemy: Fleet, seed: number, settings:
     crossingSpeed,
     rotation: 0,
     seed,
+    ...(hasAsteroids(map) ? { map, mapSeed } : {}),
   };
 }
 
@@ -290,7 +323,7 @@ export function parseSkirmishSettings(value: unknown): SkirmishSettings {
   const file = value as Record<string, unknown>;
   const out: Record<string, unknown> = {};
   for (const key of Object.keys(DEFAULT_SKIRMISH_SETTINGS) as (keyof SkirmishSettings)[]) {
-    if (key === 'breeding') continue;
+    if (key === 'breeding' || key === 'map' || key === 'mapSpread') continue;
     const n = file[key];
     if (n === undefined) continue;
     // Speeds may be negative; nothing else may.
@@ -308,7 +341,14 @@ export function parseSkirmishSettings(value: unknown): SkirmishSettings {
       breeding[name] = n as number;
     }
   }
-  return { ...DEFAULT_SKIRMISH_SETTINGS, ...out, breeding };
+  const map: Record<string, MapSettings> = {};
+  for (const key of ['map', 'mapSpread'] as const) {
+    if (file[key] === undefined) continue;
+    const problem = mapProblem(file[key], key);
+    if (problem !== null) fail(problem);
+    map[key] = { ...(file[key] as MapSettings) };
+  }
+  return { ...DEFAULT_SKIRMISH_SETTINGS, ...out, breeding, ...map };
 }
 
 export function parseSkirmish(value: unknown): Skirmish {

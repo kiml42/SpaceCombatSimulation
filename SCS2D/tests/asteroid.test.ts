@@ -79,7 +79,7 @@ describe('a map', () => {
   });
 
   it('pulls at a major’s surface as hard as it was asked', () => {
-    const map = generateMap({ majors: { count: 1, size: 300 }, surfaceGravity: 0.8 }, 1, []);
+    const map = generateMap({ majors: 1, majorSize: 300, majorSpread: 0, surfaceGravity: 0.8 }, 1, []);
     const well = map.wells[0]!;
     expect(wellPull({ ...well, x: 0, y: 0 }, 300, 0) * 300).toBeCloseTo(0.8, 9);
   });
@@ -102,7 +102,7 @@ describe('a map', () => {
   });
 
   it('scatters minors with nothing to orbit', () => {
-    const settings: MapSettings = { minors: { count: 6, size: 50 } };
+    const settings: MapSettings = { minors: 6, minorSize: 50 };
     const map = generateMap(settings, 3, clear);
     expect(map.wells.length).toBe(0);
     expect(map.asteroids.length).toBe(6);

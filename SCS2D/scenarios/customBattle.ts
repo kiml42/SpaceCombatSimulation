@@ -1,4 +1,17 @@
-import { degreesToRadians, math, NEUTRAL_TEAM, parseFleet, radiansToDegrees, Rng, serialiseFleet, type Fleet } from '../sim/index.js';
+import {
+  degreesToRadians,
+  hasAsteroids,
+  mapProblem,
+  math,
+  NEUTRAL_TEAM,
+  parseFleet,
+  radiansToDegrees,
+  Rng,
+  serialiseFleet,
+  writeMap,
+  type Fleet,
+  type MapSettings,
+} from '../sim/index.js';
 import { fleetBattle } from './fleetBattle.js';
 import type { Battle } from './types.js';
 
@@ -29,6 +42,10 @@ export interface BattleSetup {
    * battles, and the seed picks one.
    */
   spread?: BattleSpread;
+  /** Asteroids to fight among, drawn once the fleets are placed; none if left out. */
+  map?: MapSettings;
+  /** The seed the map is drawn from, where it is not `seed`: a skirmish's search shares its round's. */
+  mapSeed?: number;
 }
 
 export interface BattleSpread {
@@ -48,7 +65,18 @@ export const DEFAULT_SETUP: Omit<BattleSetup, 'fleets'> = {
   seed: 1,
 };
 
-const FILE_KEYS: readonly string[] = ['formatVersion', 'fleets', 'range', 'closingSpeed', 'crossingSpeed', 'rotation', 'seed', 'spread'];
+const FILE_KEYS: readonly string[] = [
+  'formatVersion',
+  'fleets',
+  'range',
+  'closingSpeed',
+  'crossingSpeed',
+  'rotation',
+  'seed',
+  'spread',
+  'map',
+  'mapSeed',
+];
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -96,6 +124,11 @@ export function battleSetupProblem(value: unknown): string | null {
     }
   }
   if (!Number.isInteger(value['seed'])) return 'seed must be a whole number';
+  if (value['map'] !== undefined) {
+    const map = mapProblem(value['map']);
+    if (map !== null) return map;
+  }
+  if (value['mapSeed'] !== undefined && !Number.isInteger(value['mapSeed'])) return 'mapSeed must be a whole number';
   return null;
 }
 
@@ -111,6 +144,8 @@ export function parseBattleSetup(value: unknown): BattleSetup {
     rotation: file['rotation'] === undefined ? 0 : degreesToRadians(file['rotation'] as number),
     seed: file['seed'] as number,
     ...(file['spread'] === undefined ? {} : { spread: readSpread(file['spread'] as Record<string, number>) }),
+    ...(file['map'] === undefined ? {} : { map: { ...(file['map'] as MapSettings) } }),
+    ...(file['mapSeed'] === undefined ? {} : { mapSeed: file['mapSeed'] as number }),
   };
 }
 
@@ -155,6 +190,8 @@ export function serialiseBattleSetup(setup: BattleSetup): Record<string, unknown
     crossingSpeed: setup.crossingSpeed,
     ...(setup.rotation !== 0 ? { rotation: radiansToDegrees(setup.rotation) } : {}),
     ...(spreads(setup.spread) ? { spread: writeSpread(setup.spread) } : {}),
+    ...(setup.map !== undefined && writeMap(setup.map) !== undefined ? { map: writeMap(setup.map) } : {}),
+    ...(setup.mapSeed !== undefined && hasAsteroids(setup.map) ? { mapSeed: setup.mapSeed } : {}),
     fleets: setup.fleets.map(serialiseFleet),
   };
 }
@@ -195,6 +232,7 @@ export function customBattle(setup: BattleSetup): CustomBattle {
     closingSpeed: drawn.closingSpeed,
     crossingSpeed: drawn.crossingSpeed,
     rotation: drawn.rotation,
+    ...(hasAsteroids(setup.map) ? { map: setup.map!, ...(setup.mapSeed === undefined ? {} : { mapSeed: setup.mapSeed }) } : {}),
     projectiles: 1024,
     beams: 256,
   });
