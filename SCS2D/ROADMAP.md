@@ -743,7 +743,9 @@ Deliberately unresolved; decide when they block something.
   does not exist yet, so they will want revisiting when it does. Worth knowing before tuning them: the
   shipped fleet's *capital* modules weigh five to nine tonnes apiece, and the only modules under a tonne
   anywhere are a fighter's, so the scrap floor reaches fighter debris and nothing else. Culling capital
-  wreckage at all is entirely `SALVAGE_REACH`'s doing.
+  wreckage at all is entirely `SALVAGE_REACH`'s doing. `LOOSE_MASS`, `LOOSE_AGE`, `LOOSE_HORIZON` and
+  `LOOSE_CLEARANCE`, which let small debris go inside the fight once it is in nobody's way, are first
+  guesses of the same kind.
 - **More failure modes than a fading capability.** A module carries a list of damage responses and two are
   written: thrust fades and cuts out, rate of fire stretches. What the shape is for, and what is not built,
   is the interesting half — a turret whose traverse jams, leaving it stuck or cut down to part of its arc; a
