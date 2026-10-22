@@ -44,7 +44,7 @@ import { Charge } from './charge.js';
 import { Metal } from './metal.js';
 import { isHullMount, moduleCentre, moduleOutline, SEAL_REACH, SEAL_SPEED, weldBox } from './modules.js';
 import type { Rng } from './rng.js';
-import { landedIndex, landedLength, plumeLayers, plumeRays, Plumes, WEAPON_PLUME_SHARE, weaponPlumeReach } from './exhaust.js';
+import { geometryOf, landedIndex, landedLength, plumeLayers, plumeRays, Plumes, WEAPON_PLUME_SHARE, weaponPlumeReach } from './exhaust.js';
 import { Choice, cohesionUrge, inSight, look, lookFrom, score } from './targeting.js';
 import {
   casingMass,
@@ -52,7 +52,6 @@ import {
   DEFAULT_BURST_SPEED,
   DEFAULT_FRAGMENTS,
   DEFAULT_FUSE,
-  engineGeometry,
   firesShells,
   moduleRadius,
   type ModuleSpec,
@@ -590,6 +589,18 @@ function exhaustOf(design: ShipDesign): number {
   const exhaust = thrust > 0 ? weighted / thrust : 0;
   EXHAUST.set(design, exhaust);
   return exhaust;
+}
+
+/** Half of each of a design's modules' diagonals, metres: the circle round its box. */
+const SIZES = new WeakMap<ShipDesign, Float64Array>();
+function moduleSizes(design: ShipDesign): Float64Array {
+  let sizes = SIZES.get(design);
+  if (sizes === undefined) {
+    sizes = new Float64Array(design.modules.length);
+    for (let m = 0; m < sizes.length; m++) sizes[m] = 0.5 * length(design.modules[m]!.spec.length, design.modules[m]!.spec.width);
+    SIZES.set(design, sizes);
+  }
+  return sizes;
 }
 
 /**
@@ -4247,19 +4258,26 @@ export class Ships {
       }
       const oc = cos(bodies.angle[ob]!);
       const os = sin(bodies.angle[ob]!);
-      for (const m of design.modules) {
+      const mine = moduleSizes(design);
+      const sizes = moduleSizes(theirs);
+      for (let k = 0; k < design.modules.length; k++) {
+        const m = design.modules[k]!;
         const rx = m.x * c - m.y * sn;
         const ry = m.x * sn + m.y * c;
         const room = length(rx, ry) * chord + margin;
-        const size = 0.5 * length(m.spec.length, m.spec.width);
+        const size = mine[k]!;
         // Too far from the whole of the other hull to reach any of it.
         if (!(length(ox - x - rx, oy - y - ry) < size + theirs.radius + room)) continue;
-        for (const n of theirs.modules) {
+        for (let q = 0; q < theirs.modules.length; q++) {
+          const n = theirs.modules[q]!;
           const dx = ox + n.x * oc - n.y * os - x - rx;
           const dy = oy + n.x * os + n.y * oc - y - ry;
+          // Clearly out of reach, without the square root.
+          const reach = size + sizes[q]! + room;
+          if (dx * dx + dy * dy > reach * reach * (1 + 1e-9) + 1e-9) continue;
           // Anticlockwise carries this module along (-ry, rx).
           if (!(sense * (-ry * dx + rx * dy) > 0)) continue;
-          if (length(dx, dy) - size - 0.5 * length(n.spec.length, n.spec.width) < room) return true;
+          if (length(dx, dy) - size - sizes[q]! < room) return true;
         }
       }
     }
@@ -4312,7 +4330,7 @@ export class Ships {
       // A thick engine's flame is in each layer, so is worth firing for
       // what either of them would burn.
       const engine = design.modules[design.engines[t]?.module ?? -1];
-      const rays = engine === undefined ? 0 : plumeRays(engineGeometry(engine.spec));
+      const rays = engine === undefined ? 0 : plumeRays(geometryOf(engine));
       const layers = plumeLayers(design, t, this.layersOf(b));
       for (let layer = HULL_LAYER; layer <= WEAPONS_LAYER && !worth; layer <<= 1) {
         if ((layers & layer) === 0) continue;
@@ -9642,7 +9660,7 @@ export class Ships {
       const force = this.exhaustOf(i, design, b, t);
       if (!(force > 0)) continue;
       const engine = design.modules[design.engines[t]?.module ?? -1];
-      const rays = engine === undefined ? 0 : plumeRays(engineGeometry(engine.spec));
+      const rays = engine === undefined ? 0 : plumeRays(geometryOf(engine));
       const layers = plumeLayers(design, t, this.layersOf(b));
       for (let layer = HULL_LAYER; layer <= WEAPONS_LAYER; layer <<= 1) {
         if ((layers & layer) === 0) continue;
@@ -10366,7 +10384,7 @@ export class Ships {
     const bodies = this.bodyStore;
     const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[i]!);
     if (module === undefined || b < 0) return 0;
-    return weaponPlumeReach(engineGeometry(module.spec), this.exhaustOf(i, design, b, engine));
+    return weaponPlumeReach(geometryOf(module), this.exhaustOf(i, design, b, engine));
   }
 
   /** Whether one of this ship's engines is burning as a weapon. */

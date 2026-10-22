@@ -7,6 +7,7 @@ import {
   draw,
   drawCloseUps,
   drawFleetStrips,
+  StripCache,
   drawTargetRange,
   fleetStrips,
   nextArcs,
@@ -681,6 +682,7 @@ export function startEvolution(): void {
   let reselected = false;
   const snapshot = new Snapshot();
   const flashes = new Flashes();
+  const stripCache = new StripCache();
   const camera: Camera = { x: 0, y: 0, scale: 0.1 };
   let autoFrame = true;
   /** The ship picked out by a click, by body, or -1. */
@@ -1391,7 +1393,7 @@ export function startEvolution(): void {
       );
     }
     draw(ctx, shot, camera, view.width, view.height, flashes, arcs, teamShots, selected);
-    if (tiles !== null) drawFleetStrips(ctx, shot, tiles, selected, ratio, flashes, arcs, teamShots);
+    if (tiles !== null) drawFleetStrips(ctx, shot, tiles, selected, ratio, flashes, arcs, teamShots, stripCache);
     const insets = closeUps(shot, camera, view.width, view.height, selected, ratio, tiles);
     drawCloseUps(ctx, shot, insets, selected, ratio, flashes, arcs, teamShots);
     drawTargetRange(ctx, shot, camera, view.width, view.height, selected, insets, ratio);
