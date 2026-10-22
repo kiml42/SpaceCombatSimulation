@@ -30,9 +30,12 @@ export function kernelModule(vertices: readonly number[], x = 0, y = 0): ModuleS
   return shaped('kernel', vertices, { x: x - middle.x, y: y - middle.y });
 }
 
-/** A wedge of rock with these corners, in the asteroid's frame, and its shares of ore and ice. */
-export function rockModule(vertices: readonly number[], ore: number, ice: number): ModuleSpec {
-  return { ...shaped('rock', vertices, { x: 0, y: 0 }), ore, ice };
+/**
+ * A wedge of rock with these corners, in the asteroid's frame, and its shares
+ * of ore and ice: thick, standing in both layers, unless it is edge rubble.
+ */
+export function rockModule(vertices: readonly number[], ore: number, ice: number, thick = true): ModuleSpec {
+  return { ...shaped('rock', vertices, { x: 0, y: 0 }), ore, ice, ...(thick ? { thick: true } : {}) };
 }
 
 /**
@@ -87,7 +90,8 @@ const RAGGED = 0.3;
  * An asteroid of rock wedges, drawn from `rng`. Its corners lie on rays out
  * from its middle, each ring a little further out along every ray, so every
  * wedge is the convex quadrilateral between two rings, or a triangle at a
- * minor's heart. Ore and ice each run in a vein: richest on one side,
+ * minor's heart; all are thick, but for the outermost ring, which is thin
+ * rubble. Ore and ice each run in a vein: richest on one side,
  * thinning away from it, about the shape's mean.
  */
 export function asteroidBlueprint(name: string, shape: AsteroidShape, rng: Rng): Blueprint {
@@ -130,7 +134,7 @@ export function asteroidBlueprint(name: string, shape: AsteroidShape, rng: Rng):
     const along = cos(bearing - vein);
     return max(0, min(1, mean * (1 + along)));
   };
-  const wedge = (vertices: number[], bearing: number): ModuleSpec => {
+  const wedge = (vertices: number[], bearing: number, thick: boolean): ModuleSpec => {
     let ore = share(shape.ore, oreBearing, bearing);
     let ice = share(shape.ice, iceBearing, bearing);
     if (ore + ice > 1) {
@@ -138,12 +142,12 @@ export function asteroidBlueprint(name: string, shape: AsteroidShape, rng: Rng):
       ore *= scale;
       ice *= scale;
     }
-    return rockModule(anticlockwise(vertices), ore, ice);
+    return rockModule(anticlockwise(vertices), ore, ice, thick);
   };
   // A quadrilateral that does not come out convex is two triangles instead.
-  const wedges = (vertices: number[], bearing: number): ModuleSpec[] => {
-    if (isConvexAnticlockwise(anticlockwise(vertices))) return [wedge(vertices, bearing)];
-    return [wedge(vertices.slice(0, 6), bearing), wedge([...vertices.slice(4, 8), vertices[0]!, vertices[1]!], bearing)];
+  const wedges = (vertices: number[], bearing: number, thick: boolean): ModuleSpec[] => {
+    if (isConvexAnticlockwise(anticlockwise(vertices))) return [wedge(vertices, bearing, thick)];
+    return [wedge(vertices.slice(0, 6), bearing, thick), wedge([...vertices.slice(4, 8), vertices[0]!, vertices[1]!], bearing, thick)];
   };
 
   const modules: ModuleSpec[] = [];
@@ -152,13 +156,14 @@ export function asteroidBlueprint(name: string, shape: AsteroidShape, rng: Rng):
     for (let k = 0; k < corners; k++) outline.push(...point(0, k));
     modules.push(shaped('kernel', outline, { x: 0, y: 0 }));
   } else {
-    for (let k = 0; k < corners; k++) modules.push(wedge([0, 0, ...point(0, k), ...point(0, k + 1)], ((k + 0.5) * TAU) / corners));
+    for (let k = 0; k < corners; k++) modules.push(wedge([0, 0, ...point(0, k), ...point(0, k + 1)], ((k + 0.5) * TAU) / corners, true));
   }
   for (let r = 0; r < rings; r++) {
     for (let k = 0; k < corners; k++) {
       if (r === rings - 1 && rings > 1 && rng.chance(RAGGED)) continue;
       const vertices = [...point(r, k), ...point(r + 1, k), ...point(r + 1, k + 1), ...point(r, k + 1)];
-      modules.push(...wedges(vertices, ((k + 0.5) * TAU) / corners));
+      // The outermost ring is thin rubble, low enough to fly over.
+      modules.push(...wedges(vertices, ((k + 0.5) * TAU) / corners, r < rings - 1));
     }
   }
   return { name, modules };

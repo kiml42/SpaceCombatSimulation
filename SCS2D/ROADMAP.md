@@ -80,7 +80,8 @@ an entry is either still open or it is gone.
       pairs can be treated as one body orbiting another. The generator keeps closest approaches clear.
       Wells move with their kernels, so a `WellSpec` stops being constant.
     - **Rock** is one module kind with ore, ice and worthless fractions, varied across an asteroid. Its
-      colour shows the mix: white for ice, grey for ore, brown for the rest. It is cut in rings of wedges
+      colour shows the mix: white for ice, grey for ore, brown for the rest. An asteroid is a disc, 10 m
+      deep, its outermost ring a deck deep. It is cut in rings of wedges
       round the kernel (or a minor's centre), bounded per asteroid. It is damaged like structure, what is
       shed is lost, and its seams are hull strength or weaker, like a rubble pile, so a chunk knocked off is
       a free minor. Rock strips completely; the kernel stays.
@@ -123,7 +124,12 @@ an entry is either still open or it is gone.
          (`BattleSetup.mapSeed`).
        - **Left for slice 4:** the camera frames asteroids as it does ships, so a big one pulls the shot
          away from the fight.
-    3. **Mining** — robots' shared hold, claw heating, scavenging rock and its doctrine weight.
+    3. **Mining**, in two PRs:
+       - **3a. Asteroids as discs** — built: thick rock and kernels are 10 m deep (`ASTEROID_DEPTH`), and
+         an asteroid's outermost ring is thin rubble, a deck deep, that fighters fly over and mining clears
+         first.
+       - **3b. Robots mine** — robots' shared hold, claw heating, scavenging rock and its doctrine weight.
+         At today's robot rates a wedge outlasts any battle; bigger robots for mining are expected later.
     4. **Viewer and demo** — asteroid picking and its readout, and a golden scenario of two rival mining
        outposts on a pair of eccentric majors.
 
@@ -333,6 +339,10 @@ What is left of the step should follow the shape already there:
 
 Deliberately unresolved; decide when they block something.
 
+- **What a parked fighter should meet.** A fighter on a pad is hit by rounds and beams but meets no hull
+  (DESIGN.md, pads), so another fighter can fly through it, wreckage can drift over it, and one lifting off
+  with something in its way passes through that too. The candidates: it meets other fighters and fighter
+  wreckage, the weapons layer it flies in, and is pushed back by nothing, its carrier taking the blow.
 - **What else should draw power.** Only beams do (§8 step 11). Candidates: turrets drawing to turn, so a dark
   ship cannot train its guns; cores drawing to run, so a ship that runs flat loses control; electric engines,
   which trade fuel for power; and plasma beams, which would burn both fuel and power. Each is a call to
