@@ -975,6 +975,12 @@ export class Ships {
    * in that side's colours, as a severed piece does.
    */
   private readonly sides: (Int32Array | null)[] = [];
+  /**
+   * Body index → the name painted on each of its cores, null for any other
+   * module. Painted by whoever builds the core and never changed, so it goes
+   * with the module wherever the hull takes it.
+   */
+  private readonly paint: ((string | null)[] | null)[] = [];
 
   /**
    * Blows waiting to be answered: an impulse at a point on a hull, world
@@ -1511,19 +1517,42 @@ export class Ships {
   }
 
   /**
-   * Each of ship `i`'s cores' numbers, in its design's core order, into `out`:
-   * which core of the design it set out as each is, from one, nought for one
-   * that design never had, and -1 for one another ship on its hull works, as
-   * a carrier's is to the fighter on its pad.
+   * The name painted on each of ship `i`'s cores, in its design's core order,
+   * into `out`; null for one another ship on its hull works, as a carrier's is
+   * to the fighter on its pad.
    */
-  coreNumbers(i: number, out: number[]): void {
+  coreNames(i: number, out: (string | null)[]): void {
     const design = this.designs[i]!;
     const b = this.bodyStore === null ? -1 : this.bodyStore.indexOf(this.bodyIds[i]!);
     out.length = design.cores.length;
     for (let k = 0; k < design.cores.length; k++) {
       const core = design.cores[k]!;
-      out[k] = b >= 0 && !this.ownsAt(i, b, core) ? -1 : this.coreNumber(i, design, core);
+      out[k] = b >= 0 && !this.ownsAt(i, b, core) ? null : b >= 0 ? this.paintAt(b, core) : this.painted(i, design, core);
     }
+  }
+
+  /** Whether each of ship `i`'s cores still flies anything, in its design's core order, into `out`. */
+  coresWorking(i: number, out: boolean[]): void {
+    const design = this.designs[i]!;
+    const b = this.bodyStore === null ? -1 : this.bodyStore.indexOf(this.bodyIds[i]!);
+    out.length = design.cores.length;
+    for (let k = 0; k < design.cores.length; k++) out[k] = b >= 0 && this.damage.remaining(b, design.cores[k]!, DamageEffect.Control) > 0;
+  }
+
+  /**
+   * The name ship `i` paints on module `m` of `design` as it builds it, if a
+   * core: its own, numbered by which core of the design it set out as this is
+   * where that design has more than one. Null for any other module.
+   */
+  private painted(i: number, design: ShipDesign, m: number): string | null {
+    if (design.modules[m]!.spec.kind !== 'core') return null;
+    const number = this.launched[i]!.cores.length > 1 ? this.coreNumber(i, design, m) : 0;
+    return number > 0 ? `${this.names[i]}.${number}` : this.names[i]!;
+  }
+
+  /** The name painted on module `m` of body `b`, or null for anything but a core. */
+  private paintAt(b: number, m: number): string | null {
+    return this.paint[b]?.[m] ?? null;
   }
 
   /** Which core of ship `i`'s launch design module `m` of `design` is, from one, or nought. */
@@ -1606,6 +1635,7 @@ export class Ships {
     }
     this.serial.push(serial);
     this.names.push(spec.name ?? `${serial}`);
+    this.paint[bodyIdx] = design.modules.map((_, m) => this.painted(i, design, m));
     this.derelict.push(0);
     this.couldFight.push(design.turrets.some((t) => t.main) || design.engines.length > 0 ? 1 : 0);
     this.committed.push(0);
@@ -5910,6 +5940,7 @@ export class Ships {
       (m) => (m < n ? m : -1),
       true,
       true,
+      builder,
     );
     for (const r of this.ridersOf(bodies, b)) if (r !== p) this.board(r, p);
   }
@@ -6729,6 +6760,7 @@ export class Ships {
     this.shipByBody[bo] = -1;
     this.pilots[bo] = null;
     this.sides[bo] = null;
+    this.paint[bo] = null;
     // Everyone already aboard takes the new design, wreckage hooked on or not:
     // a ship left on the old one would be drawn, aimed and fired from a layout
     // the body no longer has.
@@ -7059,8 +7091,8 @@ export class Ships {
       const kept = this.designs[i]!;
       const core =
         kept.cores.find((c) => this.damage.remaining(bodies.indexOf(this.bodyIds[i]!), c, DamageEffect.Control) > 0) ?? kept.cores[0];
-      const number = core === undefined ? 0 : this.coreNumber(i, kept, core);
-      if (number > 0) this.names[i] = `${this.names[i]}.${number}`;
+      const name = core === undefined ? null : this.paintAt(bodies.indexOf(this.bodyIds[i]!), core);
+      if (name !== null) this.names[i] = name;
       this.parted[i] = 0;
     }
     // Each piece leaves at the hull's velocity at its own centre of mass, which
@@ -7335,11 +7367,11 @@ export class Ships {
       // Still that ship, so it rebuilds to the design that ship set out as: a
       // hull cut in two can grow back into two. Wreckage sets out as itself.
       this.launched[j] = this.launched[side]!;
-      // Named for the core it is flown from.
+      // Named for the core it is flown from, by what is painted on it.
       const core = chunk.cores.find((c) => this.damage.remaining(b, keep[c]!, DamageEffect.Control) > 0);
-      const number = core === undefined ? 0 : this.coreNumber(side, design, keep[core]!);
-      if (number > 0) {
-        this.names[j] = `${this.names[side]}.${number}`;
+      const name = core === undefined ? null : this.paintAt(b, keep[core]!);
+      if (name !== null) {
+        this.names[j] = name;
         if (side === i) this.parted[i] = 1;
       }
     } else {
@@ -7392,6 +7424,7 @@ export class Ships {
     this.settleMass(bodies, chunkBody);
     this.shipByBody[chunkBody] = j;
     this.sides[chunkBody] = this.sidesOf((m) => this.sideAt(b, keep[m]!), keep.length, this.team[j]!);
+    this.paint[chunkBody] = keep.map((m) => this.paintAt(b, m));
     return true;
   }
 
@@ -7436,7 +7469,8 @@ export class Ships {
    * Make a ship's body carry a new design in place, keeping whatever belongs to
    * the ship rather than its shape: each module's scars, each weld's cuts, and
    * each surviving mount's state. `shipOf` and `moduleOf` say which ship and
-   * which of its modules each module of the new design was.
+   * which of its modules each module of the new design was; a core new to the
+   * hull is painted by `builder`.
    */
   private adopt(
     i: number,
@@ -7446,6 +7480,7 @@ export class Ships {
     moduleOf: (module: number) => number,
     release = true,
     keepRobots = false,
+    builder = i,
   ): void {
     const bodies = this.bodyStore!;
     const bodyOf = (ship: number): number => bodies.indexOf(this.bodyIds[ship]!);
@@ -7455,6 +7490,10 @@ export class Ships {
       design.modules.length,
       this.team[i]!,
     );
+    const paint = design.modules.map((_, m) => {
+      const was = moduleOf(m);
+      return (was < 0 ? null : this.paintAt(bodyOf(shipOf(m)), was)) ?? this.painted(builder, design, m);
+    });
     const scars: number[] = [];
     const fuel: number[] = [];
     const metal: number[] = [];
@@ -7537,6 +7576,7 @@ export class Ships {
     this.designs[i] = design;
     this.hullDesign[b] = design;
     this.sides[b] = sides;
+    this.paint[b] = paint;
     this.turretIndex[i] = fixed(indices);
     this.cooldown[i] = cooldown;
     this.turretStates[i] = states;
@@ -9154,7 +9194,7 @@ export class Ships {
     const pilots = this.pilots[b];
     const now = new Int32Array(next.modules.length);
     for (let m = 0; m < now.length; m++) now[m] = m < n ? (pilots?.[keep[m]!] ?? p) : f;
-    this.adopt(p, b, next, () => p, moduleOf);
+    this.adopt(p, b, next, () => p, moduleOf, true, false, f);
     this.pilots[b] = now;
     for (const r of this.ridersOf(bodies, b)) if (r !== p) this.board(r, p);
     // A module just whole has its walls, and is waiting on its fittings.

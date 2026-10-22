@@ -65,9 +65,17 @@ describe('a ship cut in half', () => {
     const after = at(8);
     const pieces = halves(after.run, after.live);
     expect(pieces.length).toBe(2);
-    // Each named for the core it is flown from.
-    expect(before.run.ships.nameOf(halves(before.run, before.live)[0]!)).toBe('1');
+    // Each named for the core it is flown from, by the name painted on it at launch.
+    const whole = halves(before.run, before.live)[0]!;
+    expect(before.run.ships.nameOf(whole)).toBe('1');
+    const painted: (string | null)[] = [];
+    before.run.ships.coreNames(whole, painted);
+    expect(painted).toEqual(['1.1', '1.2']);
     expect(pieces.map((p) => after.run.ships.nameOf(p)).sort()).toEqual(['1.1', '1.2']);
+    for (const piece of pieces) {
+      after.run.ships.coreNames(piece, painted);
+      expect(painted).toEqual([after.run.ships.nameOf(piece)]);
+    }
 
     // Both are ships rather than wreckage, and each is a hull's worth of one:
     // a core to fly it, a gun to fight it, and engines to move it.

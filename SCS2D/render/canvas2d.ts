@@ -19,6 +19,7 @@ import {
   SHELL_CALIBRES,
   engineGeometry,
   type GunStats,
+  type ModuleSpec,
   type ShipDesign,
   type ShipView,
   type Snapshot,
@@ -222,6 +223,8 @@ const CORE_GAUGE = 0.18;
 const CORE_DISC_GAUGES = 1.5;
 /** How far in from the core's edge they sit, as a share of its smaller side. */
 const CORE_GAUGE_INSET = 0.08;
+/** A core's status light, beside its generator disc or in that corner: lit while it flies anything, dark once it does not. */
+const CORE_LIGHT_GAUGES = 0.7;
 
 /** How much of a claw's width each of its two jaws is drawn across. */
 const CLAW_JAW_SHARE = 0.3;
@@ -674,6 +677,7 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
         ctx.arc(0, 0, (min(spec.length, spec.width) * GENERATOR_DISC) / 2, 0, TAU);
         ctx.fill();
       }
+      if (spec.kind === 'core') drawCoreLight(ctx, design, i, spec, ship.coresWorking?.[design.cores.indexOf(i)] ?? integrity > 0);
       if (spec.kind === 'core' && integrity > 0) {
         // What the core holds, each in a corner and sized by the square root
         // of its share of the room, so a small share is still seen: fuel and
@@ -1415,37 +1419,62 @@ function drawIcon(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
   ctx.restore();
 }
 
+/**
+ * A core's status light, in its aft corner on the side the generator disc
+ * takes, just forward of the disc: the same green as a gun's ready light, so
+ * that lit means doing its job here as there.
+ */
+function drawCoreLight(ctx: CanvasRenderingContext2D, design: ShipDesign, i: number, spec: ModuleSpec, working: boolean): void {
+  ctx.save();
+  ctx.globalAlpha = 1;
+  const sideways = spec.width > spec.length;
+  if (sideways) ctx.rotate(PI / 2);
+  const along = sideways ? spec.width : spec.length;
+  const across = sideways ? spec.length : spec.width;
+  const small = min(along, across);
+  const bar = small * CORE_GAUGE;
+  const inset = small * CORE_GAUGE_INSET;
+  const room = coreRoom(design.modules[i]!.stats);
+  const most = max(room.fuel, room.metal, room.charge, room.generator);
+  const reach = along / 2 - 1.5 * inset;
+  const disc = most > 0 ? min(reach * sqrt(room.generator / most), bar * CORE_DISC_GAUGES) : 0;
+  const r = (bar * CORE_LIGHT_GAUGES) / 2;
+  const middle = across / 2 - inset - max(disc, 2 * r) / 2;
+  ctx.fillStyle = working ? LOAD_READY : FUEL_TRACK;
+  ctx.beginPath();
+  ctx.arc(-along / 2 + inset + (disc > 0 ? disc + inset : 0) + r, middle, r, 0, TAU);
+  ctx.fill();
+  ctx.restore();
+}
+
 /** Smallest a core is drawn, across, before its ship's name is written on it, pixels. */
 const NAME_MIN_CORE_PX = 18;
 /** The smallest a name is worth writing, pixels. */
 const NAME_MIN_PX = 7;
 
 /**
- * A ship's name — its side and which of that side's ships it is, as "Red 5" —
- * written on each of its working cores in its side's trim, once the core is
- * big enough on screen to carry it. Written on the hull: along the core's
- * long side, turning with the ship and growing with the zoom.
- * A ship with more than one core numbers each, as "Red 5.2", by which core of
- * the design it set out as it is, so the ships it becomes if it is cut between
- * them can be told apart, and told from where they came.
+ * The name painted on each of a ship's cores — the side and which of its ships
+ * built it, as "Red 5", or "Red 5.2" for the second core of a ship with more —
+ * in that side's trim, once the core is big enough on screen to carry it.
+ * Paint, so it turns with the ship, grows with the zoom, and stays however
+ * battered the core or whoever now flies it.
  */
 function drawName(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number): void {
-  if (ship.serial <= 0 || ship.team < 0 || !ship.hasControl) return;
+  if (ship.serial <= 0) return;
   const cores = ship.currentStructure.cores;
-  const name = `${teamName(ship.team)} ${ship.name ?? ship.serial}`;
-  // Only its own: a hull shared with another ship carries the other's cores too.
-  let own = 0;
-  for (let k = 0; k < cores.length; k++) if ((ship.coreNumbers?.[k] ?? 0) >= 0) own++;
   for (let k = 0; k < cores.length; k++) {
     const core = cores[k]!;
-    const number = ship.coreNumbers?.[k] ?? 0;
-    if (number < 0 || !((ship.integrity[core] ?? 1) > 0)) continue;
-    drawLabel(ctx, ship, core, own > 1 && number > 0 ? `${name}.${number}` : name, metresToPx);
+    // Absent for a view built by hand, which is named after itself.
+    const painted = ship.coreNames === undefined ? (ship.name ?? `${ship.serial}`) : ship.coreNames[k];
+    // Null for another ship's on the same hull, which writes its own.
+    const side = ship.sides?.[core] ?? ship.team;
+    if (painted === null || painted === undefined || side < 0) continue;
+    drawLabel(ctx, ship, core, `${teamName(side)} ${painted}`, side, metresToPx);
   }
 }
 
-/** `text` written along module `core` of a ship, as on its hull, if the core is big enough on screen. */
-function drawLabel(ctx: CanvasRenderingContext2D, ship: ShipView, core: number, text: string, metresToPx: number): void {
+/** `text` written along module `core` of a ship in `side`'s trim, as on its hull, if the core is big enough on screen. */
+function drawLabel(ctx: CanvasRenderingContext2D, ship: ShipView, core: number, text: string, side: number, metresToPx: number): void {
   const module = ship.currentStructure.modules[core]!;
   const across = Math.min(module.spec.length, module.spec.width) * metresToPx;
   if (across < NAME_MIN_CORE_PX) return;
@@ -1475,7 +1504,7 @@ function drawLabel(ctx: CanvasRenderingContext2D, ship: ShipView, core: number, 
     ctx.font = `${size}px ui-monospace, monospace`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = shipColours(ship.team).trim;
+    ctx.fillStyle = shipColours(side).trim;
     ctx.fillText(text, 0, 0);
   }
   ctx.restore();

@@ -40,12 +40,16 @@ inside any one file is not contiguous.
   bending them — with pause, single-step, a scrub bar to wind it back and on, a speed from a quarter to sixteen times, and zoom and pan over an
   auto-framing camera, by mouse or by touch (pinch to zoom). A ship clicked or tapped is picked out — ringed, a line to what it is fighting with how far off it is written upright on the line just past its ring — or, while it is shown in a window, just outside the window on the side facing its target, clear of the target's — so the figure stays with the ship and in frame while it is, every arc and
   where its guns will fire drawn for it alone, whatever A is set to, and framed with its target — until Escape or a tap on empty space; on the evolution page's battles too. Where it or its target is off screen, or under 16 px across, it is shown close up in a window of its own over the view, sized by its ship at one zoom for every window — so the two are drawn to scale, a Gunship's about 150 px and a Corvette's under half that — between 64 and 240 px: over the ship if it is on screen, against the edge it is beyond if not, with a pointer towards it, the picked ship's window framed solid and its target's dashed, with how far the target is from it. Clicking a window picks its ship and frames it. Each side's ships are shown live down the view's edges, a tile each by a camera of its own — the even sides on the left, the odd on the right, a side's fighters of one design sharing a tile that shows the best armed of them and how many there are, smaller tiles and then a count of the rest when a side has more than fit — and a click on a tile picks and frames its ship; T hides and shows them, remembered with A and C, and the view frames between them. Ships well out of a view are not drawn, so a window costs little. Rounds and beams are drawn as light, or with C in the colours of the side that
-  fired them, which the evolution page starts with. A, C and the speed are remembered by each page between visits. Every page's keys and mouse are a table behind the Keys button in its footer, or `?`, rather than a paragraph there. A ship's name — its side and which of that side's
-  ships it is, as "Red 5" — is written along each of its working cores, turning and growing with the hull as
-  paint on it would, once the core is big enough on screen to carry it; a piece broken off keeps its ship's. A ship with more than one core numbers each by which core
-  of the design it set out as it is ("Red 5.1", "Red 5.2"), and cut between them, each ship it becomes is
-  named for the core it is flown from, so a Catamaran's halves are "Red 5.1" and "Red 5.2", and once one
-  has rebuilt the other's core, its own two are "Red 5.1.1" and "Red 5.1.2". **The camera carries itself along with what it is watching rather
+  fired them, which the evolution page starts with. A, C and the speed are remembered by each page between visits. Every page's keys and mouse are a table behind the Keys button in its footer, or `?`, rather than a paragraph there. **A core's name is painted on
+  it when it is built, and never changes**: its builder's side and which of that side's ships the builder is,
+  as "Red 5", numbered by which core of the builder's design it is where that design has more than one
+  ("Red 5.1", "Red 5.2"). Being paint, it turns and grows with the hull, is written once the core is big
+  enough on screen to carry it, and stays however battered the core, whoever now flies it, and wherever a cut
+  takes it. A ship is named for the core it is flown from, so a Catamaran's halves are "Red 5.1" and
+  "Red 5.2", and once "Red 5.1" has rebuilt its other half, the core it built reads "Red 5.1.2" beside its
+  own "Red 5.1". **A core carries a status light**, in its aft corner beside its generator disc where it
+  has one: lit in a gun's ready green while it flies anything, dark once damage has put it out, since a core
+  stops working well before it is wreckage and its fading colour gives no step at that point. **The camera carries itself along with what it is watching rather
   than easing after it**, weighting the ships in shot by radius so a fleet action is steered
   by the capital in it; it falls back from the ships still under control to the hulks and then
   to the wreckage, so a fight that ends with every core shot out is still followed; and it
