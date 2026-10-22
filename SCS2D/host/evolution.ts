@@ -57,6 +57,7 @@ import {
   type MatchRecord,
   type RunConfig,
 } from '../evolution/run.js';
+import { parseRunRecord, RecordedRun, winsIn } from '../evolution/recorded.js';
 import { el } from './dom.js';
 import { viewGestures } from './viewGestures.js';
 import { keepSpeed, loadView, saveView } from './viewSettings.js';
@@ -292,6 +293,8 @@ interface Row {
   readonly mass: number;
   readonly edits: readonly string[];
   readonly entrant: Entrant;
+  /** Matches it won of those it fought in the generation on show, drills aside. */
+  readonly wins?: { readonly won: number; readonly fought: number };
 }
 
 /**
@@ -374,7 +377,7 @@ interface Tile {
   readonly parts: readonly HTMLElement[];
   /** The score itself, above the export button in the same cell. */
   readonly figure: HTMLElement;
-  /** Matches fought of those owed, while any are still owed. */
+  /** Matches fought of those owed while any are still owed, then matches won. */
   readonly count: HTMLElement;
   readonly canvases: readonly HTMLCanvasElement[];
   readonly formation: HTMLCanvasElement;
@@ -610,7 +613,10 @@ export function startEvolution(): void {
   /** Whether side B has settings of its own, rather than following side A's. */
   let rivalOwn = false;
 
-  let run: Run | Coevolution | null = null;
+  let run: Run | Coevolution | RecordedRun | null = null;
+  /** Whether a run has two sides: a co-evolution run, live or read from a file. */
+  const twoSided = (of: typeof run): of is Coevolution | (RecordedRun & { coevolution: CoevolutionConfig }) =>
+    of instanceof Coevolution || (of instanceof RecordedRun && of.coevolution !== null);
   /** Before a run: the founders as chosen, and the first match they would fight, paused at its start. */
   let previewRows: Row[] = [];
   let previewMatch: Match | null = null;
@@ -1640,8 +1646,14 @@ export function startEvolution(): void {
 
     tile.figure.textContent = row.id < 0 ? '' : row.matches > 0 ? row.fitness.toFixed(3) : '—';
     const owed = run?.config.minMatches ?? 0;
-    tile.count.textContent = row.id >= 0 && row.matches < owed ? `${row.matches}/${owed}` : '';
-    score.title = row.id < 0 ? '' : `${row.matches} match${row.matches === 1 ? '' : 'es'} fought`;
+    const wins = row.wins;
+    tile.count.textContent =
+      row.id < 0 ? '' : row.matches < owed ? `${row.matches}/${owed}` : wins !== undefined ? `won ${wins.won}/${wins.fought}` : '';
+    score.title =
+      row.id < 0
+        ? ''
+        : `${row.matches} match${row.matches === 1 ? '' : 'es'} fought` +
+          (wins === undefined ? '' : `, ${wins.won} of ${wins.fought} won outright, drills aside`);
 
     for (const [i, part] of tile.parts.entries()) {
       // A dash rather than a row of zeroes for a design that has not fought:
@@ -1851,11 +1863,11 @@ export function startEvolution(): void {
   };
 
   /** Whether the run is a co-evolution run whose sides take turns, so it goes in rounds. */
-  const inRounds = (): boolean => run instanceof Coevolution && run.alternates;
+  const inRounds = (): boolean => twoSided(run) && run.alternates;
 
   /** Which side was bred at a point along the run, as "round 2, side B evolving", in a co-evolution run; else empty. */
   const evolving = (at: number): string => {
-    if (!(run instanceof Coevolution)) return '';
+    if (!twoSided(run)) return '';
     if (!run.alternates) return 'side A evolving';
     // Past the closed points is the generation being fought.
     const point = timeline()[at];
@@ -1872,7 +1884,7 @@ export function startEvolution(): void {
    */
   const timeline = (): Point[] => {
     if (run === null) return [];
-    if (!(run instanceof Coevolution) || !run.alternates) return run.generations.map((_, g) => ({ a: g, b: -1, side: 0 }));
+    if (!twoSided(run) || !run.alternates) return run.generations.map((_, g) => ({ a: g, b: -1, side: 0 }));
     const points: Point[] = [];
     const a = run.generations;
     const b = run.rivalGenerations;
@@ -1902,7 +1914,7 @@ export function startEvolution(): void {
     const newest = run.done ? closed - 1 : closed;
     const index = wanted < 0 ? newest : Math.min(wanted, newest);
     if (index < 0) return empty;
-    if (run instanceof Coevolution) {
+    if (twoSided(run)) {
       const co = run;
       // A side not bred yet shows its hall, its founders, which is what the other side is fighting.
       const sideRows = (k: 0 | 1, at: number): Row[] => {
@@ -1924,7 +1936,8 @@ export function startEvolution(): void {
           entrant: champion.entrant,
         }));
       };
-      if (index >= closed) {
+      // A run read from a file is over, so it has nothing being bred.
+      if (index >= closed && run instanceof Coevolution) {
         // The side being bred live, the other as it last was.
         const turn = run.turn;
         const last = points[closed - 1];
@@ -1938,7 +1951,7 @@ export function startEvolution(): void {
       const bred = point.side === 0 ? run.generations[point.a]! : run.rivalGenerations[point.b]!;
       return { index, rows: [...sideRows(0, point.a), ...sideRows(1, point.b)], matches: bred.matches };
     }
-    if (index >= closed) return { index, rows: liveRows(run.living), matches: run.played };
+    if (index >= closed && run instanceof Run) return { index, rows: liveRows(run.living), matches: run.played };
     const record = run.generations[index]!;
     return { index, rows: recordRows(record), matches: record.matches };
   };
@@ -1983,13 +1996,13 @@ export function startEvolution(): void {
   const entrantById = (id: number): Entrant | null => {
     if (run === null) return null;
     if (id < 0) return BARE_CORE;
-    if (run instanceof Coevolution) {
+    if (twoSided(run)) {
       for (const side of [0, 1] as const) {
         const champion = run.hall(side).find((each) => each.id === id);
         if (champion !== undefined) return champion.entrant;
       }
     }
-    const lists = run instanceof Coevolution ? [run.generations, run.rivalGenerations] : [run.generations];
+    const lists = twoSided(run) ? [run.generations, run.rivalGenerations] : [run.generations];
     for (const generations of lists) {
       for (let g = generations.length - 1; g >= 0; g--) {
         const found = generations[g]!.individuals.find((individual) => individual.id === id);
@@ -2028,6 +2041,11 @@ export function startEvolution(): void {
     }
     // One is enough: a match of one ship is a run's test of its piloting.
     if (entrants.length === 0 || run === null) return;
+    if (entrants.length < record.competitors.length) {
+      // Only a run read from a file can lack a design: a side B that did not evolve is not in it.
+      watchingLabel.textContent = "can't fight that again: the run file does not hold every design in it";
+      return;
+    }
     const match = run.config.match;
     const teams = record.teams !== undefined && record.teams.length === entrants.length ? record.teams : null;
     watchReplay(new Match(entrants, { ...match, seed: record.seed }, teams, record.invulnerable ?? []), record, record.competitors, null);
@@ -2049,7 +2067,15 @@ export function startEvolution(): void {
 
   const refresh = (): void => {
     const { index, rows, matches } = showing();
-    if (modeSelect.value !== 'battle') showFleet(rows);
+    if (modeSelect.value !== 'battle') {
+      const wins = winsIn(matches);
+      showFleet(
+        rows.map((row) => {
+          const of = wins.get(row.id);
+          return of === undefined ? row : { ...row, wins: of };
+        }),
+      );
+    }
 
     shownGeneration.textContent = run === null ? '—' : String(index + 1);
     // Whether what is on show is the generation still being fought, which is
@@ -2120,7 +2146,7 @@ export function startEvolution(): void {
     const along = timeline();
     const atPoints = (k: 0 | 1): (GenerationRecord | undefined)[] => {
       if (run === null) return [];
-      const list = k === 0 ? run.generations : run instanceof Coevolution ? run.rivalGenerations : [];
+      const list = k === 0 ? run.generations : twoSided(run) ? run.rivalGenerations : [];
       return along.map((point) => list[k === 0 ? point.a : point.b]);
     };
     const each = <T>(records: (GenerationRecord | undefined)[], read: (g: GenerationRecord) => T): (T | undefined)[] =>
@@ -2132,7 +2158,7 @@ export function startEvolution(): void {
       mass: string;
       ships: string;
     }[] = (
-      run instanceof Coevolution
+      twoSided(run)
         ? [
             { label: 'A ', records: atPoints(0), mass: teamColour(0), ships: shipColours(0).trim },
             { label: 'B ', records: atPoints(1), mass: teamColour(1), ships: shipColours(1).trim },
@@ -2379,10 +2405,16 @@ export function startEvolution(): void {
     }
     readout.className = '';
     const rivals = chosenVersus();
-    run =
+    begin(
       rivals.length > 0
         ? new Coevolution(founders, rivals, readSetup().config, coevolutionSettings())
-        : new Run(founders, readSetup().config);
+        : new Run(founders, readSetup().config),
+    );
+  });
+
+  /** Put a run on show from its start, forgetting everything about the last. */
+  const begin = (next: Run | Coevolution | RecordedRun): void => {
+    run = next;
     previewMatch = null;
     if (previewTimer !== null) clearTimeout(previewTimer);
     previewRows = [];
@@ -2407,9 +2439,38 @@ export function startEvolution(): void {
     fleetScale = 0;
     formationScale = 0;
     setPaused(false);
-    pauseButton.disabled = false;
-    stopButton.disabled = false;
+    pauseButton.disabled = next.done;
+    stopButton.disabled = next.done;
     refresh();
+  };
+
+  /**
+   * Open a run fought by `npm run evolve` from the file it wrote, and show it
+   * as a finished run: its charts, its generations and its matches, any of
+   * which can be fought again from the seed it records.
+   */
+  const runFile = el<HTMLInputElement>('openRunFile');
+  el<HTMLButtonElement>('openRun').addEventListener('click', () => runFile.click());
+  runFile.addEventListener('change', () => {
+    const chosen = runFile.files?.[0];
+    if (chosen === undefined) return;
+    void chosen.text().then((text) => {
+      let opened: RecordedRun;
+      try {
+        opened = new RecordedRun(parseRunRecord(JSON.parse(text)));
+      } catch (error) {
+        window.alert(`Could not read that run.\n\n${error instanceof Error ? error.message : error}`);
+        return;
+      }
+      begin(opened);
+      const fought = opened.generations.length + opened.rivalGenerations.length;
+      notice =
+        `${chosen.name}: ${fought} of ${opened.config.generations} generations` +
+        `${fought < opened.config.generations ? ', stopped early' : ''}. Pick a match to fight it again.`;
+      toRunButton.disabled = false;
+      showScreen('run');
+    });
+    runFile.value = '';
   });
   pauseButton.addEventListener('click', () => setPaused(!paused));
   stopButton.addEventListener('click', () => {
@@ -2686,18 +2747,17 @@ export function startEvolution(): void {
           : `${previewRows.length} founders, unmutated`;
       return;
     }
-    const done = run.generations.length + (run instanceof Coevolution ? run.rivalGenerations.length : 0);
+    const done = run.generations.length + (twoSided(run) ? run.rivalGenerations.length : 0);
     const total = run.config.generations;
-    stateLabel.textContent = run.done ? 'finished' : paused ? 'paused' : 'running';
+    stateLabel.textContent = run instanceof RecordedRun ? 'from a file' : run.done ? 'finished' : paused ? 'paused' : 'running';
     pauseButton.disabled = run.done;
     barFill.style.width = `${(run.progress * 100).toFixed(1)}%`;
     let fought = 0;
     for (const generation of run.generations) fought += generation.matches.length;
-    if (run instanceof Coevolution) for (const generation of run.rivalGenerations) fought += generation.matches.length;
+    if (twoSided(run)) for (const generation of run.rivalGenerations) fought += generation.matches.length;
     fought += run.done ? 0 : run.played.length;
     // Whose turn it is, in a run whose sides take turns.
-    const turn =
-      run instanceof Coevolution && run.alternates && !run.done ? `round ${run.round + 1}, side ${run.turn === 0 ? 'A' : 'B'} · ` : '';
+    const turn = twoSided(run) && run.alternates && !run.done ? `round ${run.round + 1}, side ${run.turn === 0 ? 'A' : 'B'} · ` : '';
     readout.textContent =
       notice !== ''
         ? notice
