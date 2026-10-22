@@ -779,7 +779,11 @@ inside any one file is not contiguous.
   for every armed enemy near it and by one more for every other fighter already making for that pad. It flies
   there as a ram does, mains along the change of velocity it needs, braking on them with a half turn allowed
   for. It comes in over the pad's clear side — of its four sides, the one with the longest run before
-  anything in the weapons layer, and of those the one opening onto empty space — and from the wrong side it
+  anything in the weapons layer, and of those the one opening onto empty space, worked out once as the
+  carrier is compiled (`ShipDesign.approaches`) and turned with the pad into whatever hull it is part of. With
+  arcs shown, it is drawn as a lane the pad's width out from that side, as far as it is clear of the weapons
+  layer up to three pad lengths, a chevron pointing in and an amber bar where something cuts it short, so the
+  editor shows how easy a pad is to reach — and from the wrong side it
   first circles the carrier outside its radius, `HULL_ORBIT_STEP` at a time, rather than fly through what is in
   the way. Within `PAD_ALIGN_RADII` of its own radii it eases in at no more than `PAD_SPEED`, slowing as it
   closes, lined up with the pad if it would not fit at any heading. It lands — never committing, the pad and the fighter meeting at the boundary

@@ -4,6 +4,8 @@ import {
   footprintOf,
   modulesOverlap,
   padHolds,
+  approachOf,
+  approachTurn,
   originOf,
   reachAgainst,
   rebuiltDesign,
@@ -57,8 +59,9 @@ import {
   type ModuleSpec,
   type ModuleStats,
 } from './modules.js';
-import { abs, atan2, angleDelta, PI, brakingRate, ceil, clamp, cos, exp, floor, length, max, min, round, sin, sqrt } from './math.js';
+import { abs, atan2, angleDelta, PI, brakingRate, clamp, cos, exp, floor, length, max, min, round, sin, sqrt } from './math.js';
 import { Projectiles } from './projectiles.js';
+import { padApproach } from './padApproach.js';
 import { legLength, neighbourOf, pathTo, RobotMode, Robots, staysWhole, walk, type Robot } from './robots.js';
 import { Allocation, EngineLayout } from './engines.js';
 import { addFlame, addTurret, attackBearing, AttackArcs, AttackRegion } from './attack.js';
@@ -1081,8 +1084,6 @@ export class Ships {
   private readonly keeps: (Readonly<Record<string, number>> | undefined)[] = [];
   /** What each pad and slipway is told to build, by its module's lasting key, over its design's craft. */
   private readonly crafts: (Readonly<Record<string, ShipDesign>> | undefined)[] = [];
-  /** For each design, each pad's clear side as an angle in the design's frame; NaN not yet worked out. */
-  private readonly padSides = new WeakMap<ShipDesign, Float64Array>();
   /** The carrier each fighter last set out from or landed on, or -1. */
   private readonly home: number[] = [];
   /** Whether each fighter is recharging: from running its batteries down until they are full. */
@@ -8588,120 +8589,13 @@ export class Ships {
   }
 
   /**
-   * Which way off pad `pad` of `design` is clear for a fighter to come in by,
-   * as an angle in the design's frame: of the pad's four sides, the one with
-   * the longest run before anything in the weapons layer, and of those, the
-   * longest before anything at all, so it comes in from open space rather
-   * than along the decks.
+   * Which way off pad `pad` of `design` a fighter comes in by, as an angle in
+   * the design's frame (`PadApproach`): worked out once, for the carrier as
+   * it was compiled, and turned with the pad into whatever hull it is now.
    */
   private padSide(design: ShipDesign, pad: number): number {
-    let sides = this.padSides.get(design);
-    if (sides === undefined) {
-      sides = new Float64Array(design.modules.length).fill(NaN);
-      this.padSides.set(design, sides);
-    }
-    const known = sides[pad]!;
-    if (!Number.isNaN(known)) return known;
-    const module = design.modules[pad]!;
-    const facing = module.spec.angle ?? 0;
-    let best = facing;
-    let longest = -1;
-    for (let k = 0; k < 4; k++) {
-      const a = facing + (k * PI) / 2;
-      const ux = cos(a);
-      const uy = sin(a);
-      const depth = (k % 2 === 0 ? module.spec.length : module.spec.width) / 2;
-      const across = (k % 2 === 0 ? module.spec.width : module.spec.length) / 2;
-      const cap = 2 * design.radius;
-      const run =
-        this.clearRun(design, pad, ux, uy, depth, across, cap, true) * cap + this.clearRun(design, pad, ux, uy, depth, across, cap, false);
-      if (run > longest) {
-        longest = run;
-        best = a;
-      }
-    }
-    sides[pad] = best;
-    return best;
-  }
-
-  /**
-   * How far out from pad `pad`'s side along `ux`, `uy` is clear, metres, up to
-   * `cap`: of anything in the weapons layer, or of anything at all. Sampled a
-   * metre at a time on three lines out from the side, its middle and edges,
-   * but only near where each line crosses each module: stepping the whole way
-   * cost a carrier tens of milliseconds every time a pad rebuilt a fighter.
-   */
-  private clearRun(
-    design: ShipDesign,
-    pad: number,
-    ux: number,
-    uy: number,
-    depth: number,
-    across: number,
-    cap: number,
-    weaponsOnly: boolean,
-  ): number {
-    const from = design.modules[pad]!;
-    let run = cap > 0 ? ceil(cap) : 0;
-    for (let m = 0; m < design.modules.length; m++) {
-      const module = design.modules[m]!;
-      if (m === pad || (weaponsOnly && !module.weaponsLayer)) continue;
-      const a = module.spec.angle ?? 0;
-      const c = cos(a);
-      const s = sin(a);
-      const halfLength = module.spec.length / 2;
-      const halfWidth = module.spec.width / 2;
-      const alongRate = ux * c + uy * s;
-      const acrossRate = uy * c - ux * s;
-      for (let side = -1; side <= 1; side++) {
-        const dx = from.x + ux * (depth + 0.5) - uy * side * across - module.x;
-        const dy = from.y + uy * (depth + 0.5) + ux * side * across - module.y;
-        let lo = 0;
-        let hi = Infinity;
-        for (let axis = 0; axis < 2; axis++) {
-          const at = axis === 0 ? dx * c + dy * s : dy * c - dx * s;
-          const rate = axis === 0 ? alongRate : acrossRate;
-          const half = axis === 0 ? halfLength : halfWidth;
-          // Square to the line, where it moves by rounding alone: generously
-          // in or out of it all the way, and the samples decide.
-          if (abs(rate) < 1e-9) {
-            if (abs(at) > half + 1e-3) hi = -Infinity;
-            continue;
-          }
-          const t0 = (-half - at) / rate;
-          const t1 = (half - at) / rate;
-          lo = max(lo, min(t0, t1));
-          hi = min(hi, max(t0, t1));
-        }
-        if (!(hi >= lo - 1)) continue;
-        // The span is only as exact as its rounding, so the metres either end
-        // of it are sampled exactly as stepping out would have.
-        const last = min(run - 1, ceil(hi) + 1);
-        for (let k = max(0, floor(lo) - 1); k <= last; k++) {
-          if (this.sampleIn(from, module, c, s, ux, uy, depth + k + 0.5, side * across)) {
-            run = k;
-            break;
-          }
-        }
-      }
-    }
-    return run;
-  }
-
-  /** Whether the point `out` along `ux`, `uy` from `from` and `aside` across lies inside `module`, whose angle's cosine and sine are `c` and `s`. */
-  private sampleIn(
-    from: DesignModule,
-    module: DesignModule,
-    c: number,
-    s: number,
-    ux: number,
-    uy: number,
-    out: number,
-    aside: number,
-  ): boolean {
-    const dx = from.x + ux * out - uy * aside - module.x;
-    const dy = from.y + uy * out + ux * aside - module.y;
-    return abs(dx * c + dy * s) <= module.spec.length / 2 && abs(dy * c - dx * s) <= module.spec.width / 2;
+    const approach = approachOf(design, pad);
+    return approach === undefined ? padApproach(design, pad).angle : approach.angle + approachTurn(design, pad);
   }
 
   /** The first of this ship's ports still working and not already mated, or -1. */
