@@ -933,6 +933,9 @@ export type ModuleKind =
 /** The kinds a ship may be built of: none of an asteroid's. */
 export type ShipModuleKind = Exclude<ModuleKind, 'kernel' | 'rock'>;
 
+/** How deep an asteroid's thick rock and kernel are, metres: past a deck, so they stand in both layers. */
+export const ASTEROID_DEPTH = 10;
+
 /** Density of an asteroid's rock, kg/m³. */
 export const ROCK_DENSITY = 2500;
 
@@ -2279,8 +2282,10 @@ export function inWeaponsLayer(spec: ModuleSpec, touching = 0): boolean {
 
 /** Whether a module is marked thick, on a kind and a size where that means anything. */
 export function isThick(spec: ModuleSpec): boolean {
-  // An asteroid stands as tall as it is wide, in both layers.
-  if (spec.kind === 'kernel' || spec.kind === 'rock') return true;
+  // An asteroid's kernel always stands in both layers; its rock does unless it
+  // is the thin rubble at its edge.
+  if (spec.kind === 'kernel') return true;
+  if (spec.kind === 'rock') return spec.thick === true;
   return spec.thick === true && canThicken(spec);
 }
 
@@ -2314,6 +2319,8 @@ export function canThicken(spec: ModuleSpec): boolean {
 export function moduleThickness(spec: ModuleSpec, touching = 0): number {
   const across = acrossOf(spec);
   if (!isThick(spec)) return across < DECK_HEIGHT ? across : DECK_HEIGHT;
+  // An asteroid is a disc of rock rather than a ball: thick, but no deeper than this.
+  if (spec.kind === 'kernel' || spec.kind === 'rock') return across < ASTEROID_DEPTH ? across : ASTEROID_DEPTH;
   return across > touching ? across : touching;
 }
 
