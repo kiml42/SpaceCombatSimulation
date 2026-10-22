@@ -429,6 +429,13 @@ const CLAW_APPROACH = (CLAW_SPEED_LOW + CLAW_SPEED_HIGH) / 2;
 /** The most a fighter may be moving against a pad and still land on it, m/s: settling, not arriving. */
 export const PAD_SPEED = 1;
 
+/**
+ * How long, seconds, a docking ship takes to trust a change in how what it is
+ * docking with is accelerating: long enough that a knock does not throw it,
+ * short enough to follow a carrier opening its throttle.
+ */
+const DOCK_ACCEL_SETTLE = 0.25;
+
 /** The most two ports may be closing at and still mate, m/s: a nudge, not a bump. */
 export const PORT_SPEED = 1;
 
@@ -1157,10 +1164,22 @@ export class Ships {
    * relative to its charge changes far faster than which charge it wants.
    */
   private readonly consort: number[] = [];
-  /** The blend of steering urges being accumulated for one craft. */
+  /** The blend of steering urges being accumulated for one craft, and the acceleration each wants matched. */
   private urgeVx = 0;
   private urgeVy = 0;
+  private urgeAx = 0;
+  private urgeAy = 0;
   private urgeWeight = 0;
+  /**
+   * What each ship docking last saw of the point it is docking with: its
+   * velocity, the tick it was seen, and its acceleration as worked out from
+   * them, settled over `DOCK_ACCEL_SETTLE`.
+   */
+  private readonly dockSeenVx: number[] = [];
+  private readonly dockSeenVy: number[] = [];
+  private readonly dockSeenAt: number[] = [];
+  private readonly dockAx: number[] = [];
+  private readonly dockAy: number[] = [];
   /** The heaviest dodge in the blend: how much it is wanted, and seconds until the near miss. */
   private dodgeWeight = 0;
   private dodgeWhen = 0;
@@ -1727,6 +1746,11 @@ export class Ships {
     this.home.push(-1);
     this.touchedSource.push(-Infinity);
     this.landingPad.push(-1);
+    this.dockSeenVx.push(0);
+    this.dockSeenVy.push(0);
+    this.dockSeenAt.push(-Infinity);
+    this.dockAx.push(0);
+    this.dockAy.push(0);
     this.landingWay.push(NaN);
     this.landingWayPad.push(-1);
     this.landingWayBody.push(-1);
@@ -3815,6 +3839,8 @@ export class Ships {
     // flies its orders as it always did.
     this.urgeVx = 0;
     this.urgeVy = 0;
+    this.urgeAx = 0;
+    this.urgeAy = 0;
     this.urgeWeight = 0;
     this.dodgeWeight = 0;
     let wantAngle = bodies.angle[b]!;
@@ -3873,9 +3899,9 @@ export class Ships {
       const claw = order.grapple ? this.workingClaw(i, b) : -1;
       if (order.dock) {
         // Docked and the larger, it flies the pair, wanting nothing but to hold still.
-        if (tb >= 0 && tb !== b) wantAngle = this.dockOn(bodies, i, b, tb, this.dockPort[i]!, this.ownPort[i]!);
+        if (tb >= 0 && tb !== b) wantAngle = this.dockOn(dt, bodies, i, b, tb, this.dockPort[i]!, this.ownPort[i]!);
       } else if (order.land && tb >= 0) {
-        wantAngle = this.landOn(bodies, i, b, tb, this.landingPad[i]!);
+        wantAngle = this.landOn(dt, bodies, i, b, tb, this.landingPad[i]!);
       } else if (order.grapple && claw < 0) {
         this.salvaging[i] = NO_TARGET;
       } else if (claw >= 0 && tb >= 0) {
@@ -3929,6 +3955,8 @@ export class Ships {
     // and nothing in its way kills its drift and waits.
     const wantVx = this.urgeWeight > 0 ? this.urgeVx / this.urgeWeight : 0;
     const wantVy = this.urgeWeight > 0 ? this.urgeVy / this.urgeWeight : 0;
+    const leadAx = this.urgeWeight > 0 ? this.urgeAx / this.urgeWeight : 0;
+    const leadAy = this.urgeWeight > 0 ? this.urgeAy / this.urgeWeight : 0;
 
     if (fighting < 0) this.brakingOnMains[i] = 0;
     if (fighting >= 0) wantAngle = this.burnOrFight(i, b, fighting, bodies, wantAngle, wantVx, wantVy, holdOut);
@@ -3950,8 +3978,8 @@ export class Ships {
     // force asked for falls away with how far off its heading still is.
     const aligned = order?.ram === true ? max(0, cos(angleDelta(angle, wantAngle))) : 1;
     const response = this.doctrines[i]!.approach.responseTime;
-    const worldFx = (aligned * mass * (wantVx - bodies.vx[b]!)) / response;
-    const worldFy = (aligned * mass * (wantVy - bodies.vy[b]!)) / response;
+    const worldFx = aligned * mass * ((wantVx - bodies.vx[b]!) / response + leadAx);
+    const worldFy = aligned * mass * ((wantVy - bodies.vy[b]!) / response + leadAy);
     const c = cos(angle);
     const s = sin(angle);
     const localFx = worldFx * c + worldFy * s;
@@ -4280,12 +4308,38 @@ export class Ships {
     return firing;
   }
 
-  /** Add one want to the blend: a velocity, and how much it is wanted. */
-  private urge(weight: number, vx: number, vy: number): void {
+  /**
+   * Add one want to the blend: a velocity, how much it is wanted, and the
+   * acceleration of whatever that velocity is following, which is matched as
+   * well as closed on: a velocity alone is always a step behind a target that
+   * is speeding up.
+   */
+  private urge(weight: number, vx: number, vy: number, ax = 0, ay = 0): void {
     if (!(weight > 0)) return;
     this.urgeVx += weight * vx;
     this.urgeVy += weight * vy;
+    this.urgeAx += weight * ax;
+    this.urgeAy += weight * ay;
     this.urgeWeight += weight;
+  }
+
+  /**
+   * How ship `i`, docking, sees the point it is docking with accelerating, from
+   * that point's velocity now and when it last looked, into `dockAx`, `dockAy`.
+   * A look that is not the step after the last starts afresh.
+   */
+  private dockingAccel(i: number, vx: number, vy: number, dt: number): void {
+    if (this.dockSeenAt[i] === this.now - 1 && dt > 0) {
+      const settle = min(1, dt / DOCK_ACCEL_SETTLE);
+      this.dockAx[i] = this.dockAx[i]! + ((vx - this.dockSeenVx[i]!) / dt - this.dockAx[i]!) * settle;
+      this.dockAy[i] = this.dockAy[i]! + ((vy - this.dockSeenVy[i]!) / dt - this.dockAy[i]!) * settle;
+    } else {
+      this.dockAx[i] = 0;
+      this.dockAy[i] = 0;
+    }
+    this.dockSeenVx[i] = vx;
+    this.dockSeenVy[i] = vy;
+    this.dockSeenAt[i] = this.now;
   }
 
   /**
@@ -8718,12 +8772,16 @@ export class Ships {
    * lines up with the pad, unless it would fit inside it at any heading.
    * Returns the heading to hold.
    */
-  private landOn(bodies: Bodies, i: number, b: number, tb: number, pad: number): number {
+  private landOn(dt: number, bodies: Bodies, i: number, b: number, tb: number, pad: number): number {
     const host = this.designOf(tb);
     if (host === null || host.modules[pad] === undefined) return bodies.angle[b]!;
     const design = this.designs[i]!;
     const approach = this.doctrines[i]!.approach;
     const place = this.modulePlace(bodies, tb, host, pad);
+    // Matching how the pad is speeding up as well as how it is moving, as if it keeps on.
+    this.dockingAccel(i, place.vx, place.vy, dt);
+    const ax = this.dockAx[i]!;
+    const ay = this.dockAy[i]!;
     const mine = bodies.radius[b]!;
     const range = length(place.x - bodies.x[b]!, place.y - bodies.y[b]!);
     const near = range <= PAD_ALIGN_RADII * mine;
@@ -8763,14 +8821,16 @@ export class Ships {
         // rather than overshooting and turning back.
         radial = min(PAD_SPEED, range / approach.responseTime);
       } else {
+        // Braking on what is left once it is keeping up.
         const mains = this.layoutOf(i).maxThrustAlong(cos(design.thrustBearing), sin(design.thrustBearing)) / bodies.mass[b]!;
+        const spare = max(0, mains - length(ax, ay));
         const delay = approach.responseTime + this.halfTurnTime(bodies, i, b);
-        radial = min(approach.approachSpeed, stoppingSpeed(approach.brake * mains, left, delay));
+        radial = min(approach.approachSpeed, stoppingSpeed(approach.brake * spare, left, delay));
       }
       vx += ux * radial;
       vy += uy * radial;
     }
-    this.urge(URGE_REFERENCE, vx, vy);
+    this.urge(URGE_REFERENCE, vx, vy, ax, ay);
 
     const box = footprintOf(design);
     const spec = host.modules[pad]!.spec;
@@ -8781,8 +8841,8 @@ export class Ships {
       const along = angleDelta(bodies.angle[b]!, place.angle);
       return abs(along) <= PI / 2 ? place.angle : place.angle + PI;
     }
-    const dvx = vx - bodies.vx[b]!;
-    const dvy = vy - bodies.vy[b]!;
+    const dvx = vx - bodies.vx[b]! + ax * approach.responseTime;
+    const dvy = vy - bodies.vy[b]! + ay * approach.responseTime;
     return length(dvx, dvy) > PAD_SPEED / 2 ? atan2(dvy, dvx) - design.thrustBearing : bodies.angle[b]!;
   }
 
@@ -9059,12 +9119,15 @@ export class Ships {
    * axis, it closes the last stretch at `PORT_APPROACH`, slow enough to mate.
    * Returns the heading to hold.
    */
-  private dockOn(bodies: Bodies, i: number, b: number, tb: number, theirs: number, own: number): number {
+  private dockOn(dt: number, bodies: Bodies, i: number, b: number, tb: number, theirs: number, own: number): number {
     const host = this.designOf(tb);
     const design = this.designs[i]!;
     if (host === null || host.modules[theirs] === undefined || design.modules[own] === undefined) return bodies.angle[b]!;
     const approach = this.doctrines[i]!.approach;
     const place = this.modulePlace(bodies, tb, host, theirs);
+    this.dockingAccel(i, place.vx, place.vy, dt);
+    const ax = this.dockAx[i]!;
+    const ay = this.dockAy[i]!;
     const nx = cos(place.angle);
     const ny = sin(place.angle);
     const face = host.modules[theirs]!.spec.length / 2;
@@ -9110,16 +9173,18 @@ export class Ships {
       if (lined) {
         radial = PORT_APPROACH;
       } else {
+        // Braking on what is left once it is keeping up.
         const mains = this.layoutOf(i).maxThrustAlong(cos(design.thrustBearing), sin(design.thrustBearing)) / bodies.mass[b]!;
+        const spare = max(0, mains - length(ax, ay));
         const delay = approach.responseTime + this.halfTurnTime(bodies, i, b);
-        radial = min(approach.approachSpeed, stoppingSpeed(approach.brake * mains, left, delay));
+        radial = min(approach.approachSpeed, stoppingSpeed(approach.brake * spare, left, delay));
       }
       vx += (dx / range) * radial;
       vy += (dy / range) * radial;
     }
-    this.urge(URGE_REFERENCE, vx, vy);
-    const dvx = vx - bodies.vx[b]!;
-    const dvy = vy - bodies.vy[b]!;
+    this.urge(URGE_REFERENCE, vx, vy, ax, ay);
+    const dvx = vx - bodies.vx[b]! + ax * approach.responseTime;
+    const dvy = vy - bodies.vy[b]! + ay * approach.responseTime;
     const far = left > PAD_ALIGN_RADII * bodies.radius[b]!;
     if (far && length(dvx, dvy) > PORT_SPEED) return atan2(dvy, dvx) - design.thrustBearing;
     return heading;
