@@ -974,298 +974,6 @@
           "avoidHorizon": 20
         }
       },
-      "hangar": {
-        "X Wing": {
-          "formatVersion": 2,
-          "name": "X Wing",
-          "notes": "A fighter. It goes after other fighters, and shoots at what makes one dangerous rather than at what holds it together: a laser this light does nothing useful to a capital's plating, but it can strip the guns and engines off anything its own size — and off a capital, once its own size has run out. It goes in fast and close, since a fighter that stands off from a capital is only a slower target.",
-          "fighter": true,
-          "doctrine": {
-            "targeting": {
-              "proximityWeight": 114.361,
-              "preferredMass": 2.228,
-              "massWeight": 89.853,
-              "closingWeight": 35.095,
-              "loyaltyWeight": 23.792,
-              "armedWeight": 75.176,
-              "mobileWeight": 6.357,
-              "facingWeight": 84.297,
-              "sightWeight": 10.371,
-              "escortWeight": 4.597
-            },
-            "approach": {
-              "standoffRadii": 6.017,
-              "standoff": 0.124,
-              "escortRadii": 8.804,
-              "escort": 0.178,
-              "escortMinRadii": 0.785,
-              "separation": 292.422,
-              "separationRadii": 2.371,
-              "avoidHorizon": 5.565,
-              "dodgeSpeed": 62.586,
-              "responseTime": 1.999,
-              "tolerance": 0.187,
-              "approachSpeed": 230.885,
-              "accelerate": 0.898,
-              "brake": 1.033,
-              "ramRadii": 580.932,
-              "ramArmed": -1.209,
-              "turnBias": 0.507,
-              "burnWeight": 1.996,
-              "rangeHold": 0.851,
-              "scavengeFuelBelow": 1.102,
-              "scavengeMetalBelow": -0.97,
-              "fuelPerMetal": 0.999,
-              "scavengeDanger": 1.298,
-              "refuelBelow": 0.276,
-              "rechargeBelow": 0.249,
-              "deliverFuelAbove": 2.231,
-              "dockDanger": 1.892,
-              "sortieRange": 4.31,
-              "rearmBelow": 0.759,
-              "repairBelow": 0.622,
-              "tangentialMin": 24.817,
-              "tangentialMax": 59.326
-            }
-          },
-          "assemblies": {
-            "Side": {
-              "modules": [
-                {
-                  "id": 7,
-                  "kind": "tank",
-                  "x": 0,
-                  "y": -0.125,
-                  "length": 3,
-                  "width": 1.25,
-                  "reinforcement": 1.03,
-                  "sealing": 0.0065,
-                  "fill": 0.941
-                },
-                {
-                  "id": 8,
-                  "kind": "structure",
-                  "x": 0.1,
-                  "y": 4.5,
-                  "length": 2.5,
-                  "width": 3,
-                  "reinforcement": 1.13
-                },
-                {
-                  "id": 9,
-                  "kind": "engine",
-                  "x": 1.65,
-                  "y": 1.25,
-                  "angle": 180,
-                  "length": 4,
-                  "width": 1.5,
-                  "reinforcement": 1.03,
-                  "nozzle": 1.8667
-                },
-                {
-                  "id": 10,
-                  "kind": "engine",
-                  "x": -0.55,
-                  "y": 6.5,
-                  "angle": 180,
-                  "length": 1.6,
-                  "width": 1,
-                  "reinforcement": 1.09,
-                  "nozzle": 0.8,
-                  "weapon": true
-                },
-                {
-                  "id": 11,
-                  "use": "engine",
-                  "x": 1.65,
-                  "y": 1.25
-                },
-                {
-                  "id": 12,
-                  "kind": "hullBeam",
-                  "x": 6.155,
-                  "y": 6.5,
-                  "angle": 0,
-                  "length": 7.41,
-                  "width": 0.6,
-                  "reinforcement": 1.01,
-                  "barrels": 1,
-                  "traverse": 0.942,
-                  "targeting": {
-                    "structureWeight": 1.708,
-                    "preferredMass": 1.862,
-                    "facingWeight": 100.998,
-                    "sightWeight": 98.686,
-                    "proximityWeight": 142.453,
-                    "armedWeight": 82.329,
-                    "mobileWeight": 52.578,
-                    "coreWeight": 40.415,
-                    "engineWeight": 111.335,
-                    "gunWeight": 171.737,
-                    "focusWeight": 235.412,
-                    "fireRange": 0.921,
-                    "massWeight": 76.374,
-                    "loyaltyWeight": 20.386,
-                    "closingWeight": 8.452
-                  }
-                },
-                {
-                  "id": 13,
-                  "kind": "engine",
-                  "x": 0.9500000000000002,
-                  "y": 6.000000000000001,
-                  "angle": 90,
-                  "length": 1,
-                  "width": 3,
-                  "reinforcement": 1.07,
-                  "barrels": 2,
-                  "nozzle": 0.32,
-                  "notes": "A retro on the nose of each engine spine, so the ship can slow down as well as run away."
-                },
-                {
-                  "id": 14,
-                  "kind": "structure",
-                  "x": 5.6,
-                  "y": -0.7499999999999998,
-                  "length": 2.4,
-                  "width": 0.1,
-                  "reinforcement": 1.16
-                },
-                {
-                  "id": 15,
-                  "kind": "structure",
-                  "x": 2.25,
-                  "y": -0.62,
-                  "length": 1.5,
-                  "width": 0.25,
-                  "reinforcement": 1.02
-                },
-                {
-                  "id": 18,
-                  "kind": "tank",
-                  "x": 1.3877787807814457e-17,
-                  "y": 2.5,
-                  "length": 2.7,
-                  "width": 1,
-                  "reinforcement": 1.04,
-                  "sealing": 0.0006,
-                  "fill": 0.934
-                }
-              ]
-            },
-            "structure2": {
-              "modules": [
-                {
-                  "id": 16,
-                  "kind": "structure",
-                  "x": 0,
-                  "y": 0,
-                  "length": 4.5,
-                  "width": 1.5,
-                  "reinforcement": 1.08
-                }
-              ]
-            },
-            "engine": {
-              "modules": [
-                {
-                  "id": 17,
-                  "kind": "engine",
-                  "x": 0,
-                  "y": 0,
-                  "angle": 0,
-                  "length": 1,
-                  "width": 1.4,
-                  "reinforcement": 1.05,
-                  "barrels": 2,
-                  "nozzle": 0.7143,
-                  "notes": "A retro on the nose of each engine spine, so the ship can slow down as well as run away."
-                }
-              ]
-            }
-          },
-          "modules": [
-            {
-              "id": 1,
-              "kind": "core",
-              "x": 0.25,
-              "y": 0,
-              "length": 4.5,
-              "width": 1.5,
-              "reinforcement": 1.02,
-              "sealing": 0.0014,
-              "fill": 0.982,
-              "computing": 0.021,
-              "notes": "Hard against the rear-facing gun, with the length of the fuselage in front of it: anything shooting at the pilot from ahead has the whole ship to get through first."
-            },
-            {
-              "id": 2,
-              "use": "Side",
-              "x": -0.5,
-              "y": 1.5
-            },
-            {
-              "id": 3,
-              "use": "Side",
-              "x": -0.5,
-              "y": -1.5,
-              "mirror": true
-            },
-            {
-              "id": 4,
-              "kind": "hold",
-              "x": -2.5,
-              "y": 0,
-              "angle": 180,
-              "length": 1,
-              "width": 2,
-              "targeting": {
-                "structureWeight": 0
-              }
-            },
-            {
-              "id": 5,
-              "kind": "structure",
-              "x": 3.2,
-              "y": 0,
-              "length": 1.4,
-              "width": 1.75,
-              "reinforcement": 1.04
-            },
-            {
-              "id": 6,
-              "kind": "hullGun",
-              "x": 5.5091,
-              "y": 0,
-              "angle": 0,
-              "length": 3.2182,
-              "width": 1.4,
-              "reinforcement": 1.05,
-              "barrels": 1,
-              "barrelCalibres": 31,
-              "traverse": 4.29,
-              "fragments": 1,
-              "targeting": {
-                "structureWeight": 3.148,
-                "preferredMass": 12.224,
-                "facingWeight": 48.556,
-                "sightWeight": 10.742,
-                "proximityWeight": 143.957,
-                "massWeight": 67.099,
-                "closingWeight": 15.234,
-                "armedWeight": 66.609,
-                "mobileWeight": 9.318,
-                "coreWeight": 107.396,
-                "gunWeight": 78.786,
-                "fireRange": 1.014,
-                "loyaltyWeight": 21.174,
-                "focusWeight": 352.141,
-                "engineWeight": 85.258
-              }
-            }
-          ]
-        }
-      },
       "assemblies": {
         "pad": {
           "modules": [
@@ -1560,6 +1268,42 @@
       ]
     }
   },
+  "groups": {
+    "Wing": {
+      "ships": [
+        {
+          "design": "X Wing",
+          "x": 10,
+          "y": 68.33333333333333,
+          "repeat": 2,
+          "step": {
+            "x": -20,
+            "y": 70
+          }
+        },
+        {
+          "design": "Y Wing",
+          "x": -285,
+          "y": 98.33333333333333,
+          "repeat": 3,
+          "step": {
+            "x": -10,
+            "y": 160
+          }
+        },
+        {
+          "design": "A Wing",
+          "x": 185,
+          "y": 3.3333333333333286,
+          "repeat": 5,
+          "step": {
+            "x": -6,
+            "y": 50
+          }
+        }
+      ]
+    }
+  },
   "ships": [
     {
       "design": "Ghost",
@@ -1567,69 +1311,20 @@
       "y": 0
     },
     {
-      "design": "X Wing",
+      "group": "Wing",
       "x": -20,
-      "y": 110,
-      "repeat": 2,
-      "step": {
-        "x": -20,
-        "y": 70
-      }
-    },
-    {
-      "design": "Y Wing",
-      "x": -195,
-      "y": 90,
-      "repeat": 4,
-      "step": {
-        "x": -10,
-        "y": 60
-      }
-    },
-    {
-      "design": "A Wing",
-      "x": 155,
-      "y": 15,
-      "repeat": 5,
-      "step": {
-        "x": -6,
-        "y": 50
-      }
-    },
-    {
-      "design": "A Wing",
-      "x": 155,
-      "y": -15,
-      "repeat": 5,
-      "step": {
-        "x": -6,
-        "y": -50
-      }
-    },
-    {
-      "design": "X Wing",
-      "x": -20,
-      "y": -110,
-      "repeat": 2,
-      "step": {
-        "x": -20,
-        "y": -70
-      }
-    },
-    {
-      "design": "Y Wing",
-      "x": -195,
-      "y": -80,
-      "repeat": 4,
-      "step": {
-        "x": -10,
-        "y": -60
-      }
+      "y": 70
     },
     {
       "design": "Quasar Fire-class cruiser-carrier",
       "x": -1400,
       "y": 0
+    },
+    {
+      "group": "Wing",
+      "x": -20,
+      "y": -70,
+      "mirror": true
     }
   ]
 }
