@@ -5,30 +5,51 @@
   "fighter": true,
   "doctrine": {
     "targeting": {
-      "proximityWeight": 111.881,
-      "preferredMass": 2.5,
-      "massWeight": 120,
-      "closingWeight": 11.759,
-      "loyaltyWeight": 10.73,
-      "armedWeight": 53.402,
-      "mobileWeight": 9.987,
-      "facingWeight": 38.182,
-      "sightWeight": 69.624,
-      "escortWeight": 50
+      "proximityWeight": 89.037,
+      "preferredMass": 5.163,
+      "ramMass": 2.005,
+      "massWeight": 95.662,
+      "closingWeight": 13.312,
+      "loyaltyWeight": 7.759,
+      "armedWeight": 44.465,
+      "mobileWeight": 10.341,
+      "facingWeight": 47.002,
+      "sightWeight": 110.487,
+      "escortWeight": 41.335
     },
     "approach": {
-      "standoffRadii": 61.681,
-      "escortRadii": 6.214,
-      "escort": 0.167,
-      "escortMinRadii": 1.5,
-      "tolerance": 0.188,
-      "approachSpeed": 61.24,
-      "accelerate": 0.862,
-      "brake": 1.019,
-      "ramRadii": 49.229,
-      "ramArmed": 0.435,
-      "tangentialMin": 20,
-      "tangentialMax": 60
+      "standoffRadii": 28.463,
+      "standoff": 0.794,
+      "escortRadii": 5.107,
+      "escort": 0.166,
+      "escortMinRadii": 1.867,
+      "separation": 324.416,
+      "separationRadii": 2.251,
+      "avoidHorizon": 11.075,
+      "dodgeSpeed": 41.184,
+      "responseTime": 1.696,
+      "tolerance": 0.226,
+      "approachSpeed": 72.441,
+      "accelerate": 0.918,
+      "brake": 1.574,
+      "ramRadii": 48.214,
+      "ramArmed": 0.31,
+      "turnBias": 0.374,
+      "burnWeight": 1.493,
+      "rangeHold": 0.991,
+      "scavengeFuelBelow": 3.759,
+      "scavengeMetalBelow": 0.711,
+      "fuelPerMetal": 1.004,
+      "scavengeDanger": 1.242,
+      "refuelBelow": 0.302,
+      "rechargeBelow": 0.117,
+      "deliverFuelAbove": -0.904,
+      "dockDanger": -0.545,
+      "sortieRange": 2.917,
+      "rearmBelow": 0.93,
+      "repairBelow": 0.556,
+      "tangentialMin": 16.257,
+      "tangentialMax": 60.88
     }
   },
   "assemblies": {
@@ -41,7 +62,9 @@
           "y": 0.1,
           "angle": 0,
           "length": 1.3,
-          "width": 0.3
+          "width": 0.3,
+          "reinforcement": 1.25,
+          "weapon": true
         },
         {
           "id": 8,
@@ -50,7 +73,9 @@
           "y": 0.825,
           "length": 0.7,
           "width": 1.15,
-          "reinforcement": 1.11
+          "reinforcement": 1.05,
+          "sealing": 0,
+          "fill": 0.952
         },
         {
           "id": 9,
@@ -59,8 +84,9 @@
           "y": 1.65,
           "length": 2.8,
           "width": 0.5,
-          "reinforcement": 1.07,
-          "sealing": 0.0034
+          "reinforcement": 1.11,
+          "sealing": 0.0065,
+          "fill": 0.879
         },
         {
           "id": 10,
@@ -77,6 +103,7 @@
           "angle": 180,
           "length": 2,
           "width": 0.8,
+          "reinforcement": 1.14,
           "nozzle": 2
         },
         {
@@ -87,13 +114,29 @@
           "angle": 0,
           "length": 2.3,
           "width": 0.4,
-          "reinforcement": 1.5,
+          "reinforcement": 1.43,
           "barrels": 1,
           "barrelCalibres": 42,
-          "traverse": 5,
+          "traverse": 3.741,
+          "fuse": 0.021,
+          "fragments": 10,
+          "burstSpeed": 798.5,
           "targeting": {
-            "structureWeight": 0,
-            "closingWeight": 7.685
+            "structureWeight": 4.226,
+            "closingWeight": 9.953,
+            "proximityWeight": 137.3,
+            "massWeight": 110.575,
+            "loyaltyWeight": 20.789,
+            "armedWeight": 83.613,
+            "mobileWeight": 9.584,
+            "focusWeight": 339.61,
+            "sightWeight": 5.683,
+            "engineWeight": 83.355,
+            "gunWeight": 152.107,
+            "fireRange": 1.423,
+            "facingWeight": -3.97,
+            "coreWeight": 109.231,
+            "preferredMass": 1.432
           }
         },
         {
@@ -111,7 +154,9 @@
           "angle": 90,
           "length": 0.3,
           "width": 1.3,
-          "nozzle": 0.154
+          "reinforcement": 1.04,
+          "nozzle": 0.154,
+          "weapon": true
         }
       ]
     },
@@ -125,6 +170,7 @@
           "angle": 180,
           "length": 0.8,
           "width": 0.3,
+          "reinforcement": 1.03,
           "barrels": 1,
           "nozzle": 0.5
         },
@@ -136,7 +182,7 @@
           "angle": 270,
           "length": 0.1,
           "width": 0.3,
-          "reinforcement": 1.34,
+          "reinforcement": 1.05,
           "barrels": 1,
           "nozzle": 0.3333
         },
@@ -146,7 +192,10 @@
           "x": -1.7499999999999996,
           "y": 4.440892098500626e-16,
           "length": 2.2,
-          "width": 0.3
+          "width": 0.3,
+          "reinforcement": 1.05,
+          "sealing": 0.003,
+          "fill": 0.938
         }
       ]
     }
@@ -159,7 +208,11 @@
       "y": 0,
       "length": 1.3,
       "width": 0.5,
-      "sealing": 0.0028,
+      "reinforcement": 1.1,
+      "sealing": 0.0038,
+      "drainPriority": -1,
+      "fill": 0.959,
+      "computing": 0.086,
       "notes": "A spine down the middle of the ball rather than the whole of it. The pilot sits amidships as a TIE's does, and what fills the rest of the circle is the guns, the engines and the plating between them — so a hit on the ball is usually a hit on a weapon rather than on the pilot."
     },
     {
@@ -183,7 +236,8 @@
       "angle": 180,
       "length": 0.4,
       "width": 0.5,
-      "reinforcement": 1.23
+      "reinforcement": 1.02,
+      "fill": 0.81
     },
     {
       "id": 6,
@@ -192,7 +246,8 @@
       "y": 0,
       "length": 0.85,
       "width": 0.5,
-      "reinforcement": 1.5
+      "reinforcement": 1.2,
+      "sealing": 0.0006
     }
   ]
 }

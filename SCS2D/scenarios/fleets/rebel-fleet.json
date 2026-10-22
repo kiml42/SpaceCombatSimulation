@@ -239,23 +239,50 @@
       "fighter": true,
       "doctrine": {
         "targeting": {
-          "preferredMass": 2,
-          "massWeight": 120,
-          "closingWeight": 30,
-          "loyaltyWeight": 40,
-          "mobileWeight": 5,
-          "facingWeight": 100,
-          "sightWeight": 10,
-          "escortWeight": 4
+          "proximityWeight": 114.361,
+          "preferredMass": 2.228,
+          "massWeight": 89.853,
+          "closingWeight": 35.095,
+          "loyaltyWeight": 23.792,
+          "armedWeight": 75.176,
+          "mobileWeight": 6.357,
+          "facingWeight": 84.297,
+          "sightWeight": 10.371,
+          "escortWeight": 4.597
         },
         "approach": {
-          "standoffRadii": 10,
-          "standoff": 0.2,
-          "approachSpeed": 250,
-          "brake": 1,
-          "ramRadii": 600,
-          "tangentialMin": 20,
-          "tangentialMax": 60
+          "standoffRadii": 6.017,
+          "standoff": 0.124,
+          "escortRadii": 8.804,
+          "escort": 0.178,
+          "escortMinRadii": 0.785,
+          "separation": 292.422,
+          "separationRadii": 2.371,
+          "avoidHorizon": 5.565,
+          "dodgeSpeed": 62.586,
+          "responseTime": 1.999,
+          "tolerance": 0.187,
+          "approachSpeed": 230.885,
+          "accelerate": 0.898,
+          "brake": 1.033,
+          "ramRadii": 580.932,
+          "ramArmed": -1.209,
+          "turnBias": 0.507,
+          "burnWeight": 1.996,
+          "rangeHold": 0.851,
+          "scavengeFuelBelow": 1.102,
+          "scavengeMetalBelow": -0.97,
+          "fuelPerMetal": 0.999,
+          "scavengeDanger": 1.298,
+          "refuelBelow": 0.276,
+          "rechargeBelow": 0.249,
+          "deliverFuelAbove": 2.231,
+          "dockDanger": 1.892,
+          "sortieRange": 4.31,
+          "rearmBelow": 0.759,
+          "repairBelow": 0.622,
+          "tangentialMin": 24.817,
+          "tangentialMax": 59.326
         }
       },
       "assemblies": {
@@ -268,7 +295,9 @@
               "y": -0.125,
               "length": 3,
               "width": 1.25,
-              "sealing": 0.005
+              "reinforcement": 1.03,
+              "sealing": 0.0065,
+              "fill": 0.941
             },
             {
               "id": 8,
@@ -276,7 +305,8 @@
               "x": 0.1,
               "y": 4.5,
               "length": 2.5,
-              "width": 3
+              "width": 3,
+              "reinforcement": 1.13
             },
             {
               "id": 9,
@@ -286,6 +316,7 @@
               "angle": 180,
               "length": 4,
               "width": 1.5,
+              "reinforcement": 1.03,
               "nozzle": 1.8667
             },
             {
@@ -296,7 +327,9 @@
               "angle": 180,
               "length": 1.6,
               "width": 1,
-              "nozzle": 0.8
+              "reinforcement": 1.09,
+              "nozzle": 0.8,
+              "weapon": true
             },
             {
               "id": 11,
@@ -312,13 +345,25 @@
               "angle": 0,
               "length": 7.41,
               "width": 0.6,
+              "reinforcement": 1.01,
               "barrels": 1,
-              "traverse": 5,
+              "traverse": 0.942,
               "targeting": {
-                "structureWeight": 0,
-                "preferredMass": 2,
-                "facingWeight": 100,
-                "sightWeight": 100
+                "structureWeight": 1.708,
+                "preferredMass": 1.862,
+                "facingWeight": 100.998,
+                "sightWeight": 98.686,
+                "proximityWeight": 142.453,
+                "armedWeight": 82.329,
+                "mobileWeight": 52.578,
+                "coreWeight": 40.415,
+                "engineWeight": 111.335,
+                "gunWeight": 171.737,
+                "focusWeight": 235.412,
+                "fireRange": 0.921,
+                "massWeight": 76.374,
+                "loyaltyWeight": 20.386,
+                "closingWeight": 8.452
               }
             },
             {
@@ -329,6 +374,7 @@
               "angle": 90,
               "length": 1,
               "width": 3,
+              "reinforcement": 1.07,
               "barrels": 2,
               "nozzle": 0.32,
               "notes": "A retro on the nose of each engine spine, so the ship can slow down as well as run away."
@@ -339,7 +385,8 @@
               "x": 5.6,
               "y": -0.7499999999999998,
               "length": 2.4,
-              "width": 0.1
+              "width": 0.1,
+              "reinforcement": 1.16
             },
             {
               "id": 15,
@@ -347,7 +394,8 @@
               "x": 2.25,
               "y": -0.62,
               "length": 1.5,
-              "width": 0.25
+              "width": 0.25,
+              "reinforcement": 1.02
             },
             {
               "id": 18,
@@ -355,7 +403,10 @@
               "x": 1.3877787807814457e-17,
               "y": 2.5,
               "length": 2.7,
-              "width": 1
+              "width": 1,
+              "reinforcement": 1.04,
+              "sealing": 0.0006,
+              "fill": 0.934
             }
           ]
         },
@@ -367,7 +418,8 @@
               "x": 0,
               "y": 0,
               "length": 4.5,
-              "width": 1.5
+              "width": 1.5,
+              "reinforcement": 1.08
             }
           ]
         },
@@ -381,6 +433,7 @@
               "angle": 0,
               "length": 1,
               "width": 1.4,
+              "reinforcement": 1.05,
               "barrels": 2,
               "nozzle": 0.7143,
               "notes": "A retro on the nose of each engine spine, so the ship can slow down as well as run away."
@@ -396,7 +449,10 @@
           "y": 0,
           "length": 4.5,
           "width": 1.5,
-          "computing": 0.05,
+          "reinforcement": 1.02,
+          "sealing": 0.0014,
+          "fill": 0.982,
+          "computing": 0.021,
           "notes": "Hard against the rear-facing gun, with the length of the fuselage in front of it: anything shooting at the pilot from ahead has the whole ship to get through first."
         },
         {
@@ -430,7 +486,8 @@
           "x": 3.2,
           "y": 0,
           "length": 1.4,
-          "width": 1.75
+          "width": 1.75,
+          "reinforcement": 1.04
         },
         {
           "id": 6,
@@ -440,15 +497,27 @@
           "angle": 0,
           "length": 3.2182,
           "width": 1.4,
+          "reinforcement": 1.05,
           "barrels": 1,
           "barrelCalibres": 31,
-          "traverse": 10,
+          "traverse": 4.29,
           "fragments": 1,
           "targeting": {
-            "structureWeight": 0,
-            "preferredMass": 10,
-            "facingWeight": 50,
-            "sightWeight": 10
+            "structureWeight": 3.148,
+            "preferredMass": 12.224,
+            "facingWeight": 48.556,
+            "sightWeight": 10.742,
+            "proximityWeight": 143.957,
+            "massWeight": 67.099,
+            "closingWeight": 15.234,
+            "armedWeight": 66.609,
+            "mobileWeight": 9.318,
+            "coreWeight": 107.396,
+            "gunWeight": 78.786,
+            "fireRange": 1.014,
+            "loyaltyWeight": 21.174,
+            "focusWeight": 352.141,
+            "engineWeight": 85.258
           }
         }
       ]
@@ -459,16 +528,48 @@
       "fighter": true,
       "doctrine": {
         "targeting": {
-          "proximityWeight": 10,
-          "preferredMass": 100,
-          "massWeight": 200,
-          "loyaltyWeight": 50,
-          "armedWeight": 100,
-          "mobileWeight": 60
+          "proximityWeight": 37.736,
+          "preferredMass": 100.935,
+          "massWeight": 232.522,
+          "closingWeight": 12.732,
+          "loyaltyWeight": 46.351,
+          "armedWeight": 111.421,
+          "mobileWeight": 53.595,
+          "facingWeight": -5.765,
+          "sightWeight": 4.066,
+          "escortWeight": 13.365
         },
         "approach": {
-          "tangentialMin": 20,
-          "tangentialMax": 60
+          "standoffRadii": 46.651,
+          "standoff": 0.636,
+          "escortRadii": 7.966,
+          "escort": 0.159,
+          "escortMinRadii": 0.813,
+          "separation": 264.887,
+          "avoidHorizon": 5.1,
+          "dodgeSpeed": 83.845,
+          "responseTime": 1.966,
+          "tolerance": 0.187,
+          "approachSpeed": 57.209,
+          "accelerate": 0.976,
+          "brake": 0.801,
+          "ramRadii": 0.991,
+          "ramArmed": 1.267,
+          "turnBias": 0.514,
+          "burnWeight": 2.187,
+          "rangeHold": 0.982,
+          "scavengeFuelBelow": 1.356,
+          "scavengeMetalBelow": 0.693,
+          "fuelPerMetal": 0.954,
+          "scavengeDanger": 1.048,
+          "refuelBelow": 0.269,
+          "rechargeBelow": 0.292,
+          "deliverFuelAbove": 0.973,
+          "dockDanger": -0.838,
+          "sortieRange": 4.29,
+          "repairBelow": 0.607,
+          "tangentialMin": 22.33,
+          "tangentialMax": 66.674
         }
       },
       "assemblies": {
@@ -490,7 +591,9 @@
               "x": -2.1,
               "y": -1.2,
               "length": 2.2,
-              "width": 2.8
+              "width": 2.8,
+              "reinforcement": 1,
+              "sealing": 0.0004
             },
             {
               "id": 10,
@@ -510,6 +613,7 @@
               "angle": 90,
               "length": 0.4,
               "width": 1.8,
+              "reinforcement": 1,
               "barrels": 1,
               "nozzle": 0.2222
             },
@@ -535,7 +639,10 @@
           "y": 0,
           "length": 1.8,
           "width": 2.6,
-          "reinforcement": 2.5
+          "reinforcement": 2.48,
+          "sealing": 0.0012,
+          "fill": 0.965,
+          "computing": 0.018
         },
         {
           "id": 2,
@@ -545,17 +652,29 @@
           "angle": 0,
           "length": 3.16,
           "width": 2.8,
-          "reinforcement": 2,
+          "reinforcement": 1.78,
           "barrels": 1,
           "barrelCalibres": 18,
-          "fuse": 0.05,
+          "traverse": 11.279,
+          "fuse": 0.046,
           "fragments": 4,
-          "burstSpeed": 200,
+          "burstSpeed": 157.5,
           "targeting": {
-            "facingWeight": 100,
-            "fireRange": 1.5,
-            "preferredMass": 100,
-            "massWeight": 150
+            "facingWeight": 116.812,
+            "fireRange": 1.508,
+            "preferredMass": 87.401,
+            "massWeight": 144.937,
+            "proximityWeight": 116.023,
+            "loyaltyWeight": 20.239,
+            "armedWeight": 66.861,
+            "mobileWeight": 10.462,
+            "focusWeight": 327.787,
+            "sightWeight": -1.721,
+            "engineWeight": 88.542,
+            "gunWeight": 105.652,
+            "coreWeight": 119.549,
+            "structureWeight": 3.283,
+            "closingWeight": 11.843
           }
         },
         {
@@ -566,18 +685,28 @@
           "angle": -180,
           "length": 1.9,
           "width": 2.6,
+          "reinforcement": 1.02,
           "barrels": 2,
           "barrelCalibres": 20,
-          "fuse": 0.1,
-          "fragments": 6,
-          "burstSpeed": 400,
+          "traverse": 12.265,
+          "fuse": 0.105,
+          "fragments": 7,
+          "burstSpeed": 401.7,
           "targeting": {
-            "focusWeight": 0,
-            "proximityWeight": 200,
-            "facingWeight": 60,
-            "preferredMass": 0.8,
-            "coreWeight": 40,
-            "fireRange": 2
+            "focusWeight": 10.287,
+            "proximityWeight": 221.771,
+            "facingWeight": 61.5,
+            "preferredMass": 0.691,
+            "coreWeight": 36.923,
+            "fireRange": 1.37,
+            "closingWeight": 9.958,
+            "loyaltyWeight": 19.243,
+            "armedWeight": 88.855,
+            "sightWeight": 2.298,
+            "engineWeight": 76.97,
+            "gunWeight": 97.947,
+            "structureWeight": -3.095,
+            "mobileWeight": 10.698
           }
         },
         {
@@ -599,7 +728,9 @@
           "x": 0.19999999999999996,
           "y": 0,
           "length": 4.6,
-          "width": 1.8
+          "width": 1.8,
+          "reinforcement": 1.23,
+          "fill": 0.931
         }
       ]
     },
@@ -609,31 +740,50 @@
       "fighter": true,
       "doctrine": {
         "targeting": {
-          "proximityWeight": 102.697,
-          "massWeight": 245.429,
-          "closingWeight": 11.43,
-          "loyaltyWeight": 22.204,
-          "armedWeight": 71.048,
-          "mobileWeight": 76.4,
-          "facingWeight": 100,
-          "sightWeight": 4.865,
-          "escortWeight": 42.242
+          "proximityWeight": 84.529,
+          "preferredMass": 0.979,
+          "ramMass": 5.674,
+          "massWeight": 230.447,
+          "closingWeight": 7.592,
+          "loyaltyWeight": 20.747,
+          "armedWeight": 70.704,
+          "mobileWeight": 82.789,
+          "facingWeight": 70.434,
+          "sightWeight": 5.645,
+          "escortWeight": 47.032
         },
         "approach": {
-          "standoffRadii": 30,
-          "standoff": 0.7,
-          "escort": 0.186,
-          "escortMinRadii": 1.118,
-          "separation": 324.837,
-          "tolerance": 0.4,
-          "approachSpeed": 734.508,
-          "accelerate": 0.858,
-          "brake": 0.804,
-          "turnBias": 1,
-          "burnWeight": 1.5,
-          "rangeHold": 1.5,
-          "tangentialMin": 20,
-          "tangentialMax": 60
+          "standoffRadii": 41.13,
+          "escortRadii": 6.197,
+          "escort": 0.184,
+          "escortMinRadii": 0.508,
+          "separation": 315.661,
+          "separationRadii": 3.114,
+          "avoidHorizon": 6.35,
+          "dodgeSpeed": 67.974,
+          "responseTime": 1.982,
+          "tolerance": 0.393,
+          "approachSpeed": 749.769,
+          "accelerate": 0.73,
+          "brake": 0.637,
+          "ramRadii": 2.346,
+          "ramArmed": -1.659,
+          "turnBias": 0.92,
+          "burnWeight": 1.512,
+          "rangeHold": 1.451,
+          "scavengeFuelBelow": -1.733,
+          "scavengeMetalBelow": -0.986,
+          "fuelPerMetal": 1.239,
+          "scavengeDanger": 1.123,
+          "refuelBelow": 0.283,
+          "rechargeBelow": 0.241,
+          "deliverFuelAbove": -3.208,
+          "dockDanger": -2.539,
+          "sortieRange": 4.174,
+          "rearmBelow": -0.607,
+          "repairBelow": 0.629,
+          "tangentialMin": 23.247,
+          "tangentialMax": 64.36
         }
       },
       "assemblies": {
@@ -645,7 +795,10 @@
               "x": -0.5,
               "y": 0,
               "length": 1,
-              "width": 1
+              "width": 1,
+              "reinforcement": 1.03,
+              "sealing": 0.0003,
+              "fill": 0.852
             },
             {
               "id": 8,
@@ -655,7 +808,7 @@
               "angle": 180,
               "length": 1,
               "width": 1.4,
-              "reinforcement": 1.19,
+              "reinforcement": 1.3,
               "barrels": 1,
               "nozzle": 1.3571
             },
@@ -667,21 +820,29 @@
               "angle": 0,
               "length": 2.7,
               "width": 0.6,
-              "reinforcement": 1.76,
+              "reinforcement": 1.77,
               "barrels": 1,
               "barrelCalibres": 50,
-              "traverse": 4,
-              "fuse": 0.02,
+              "traverse": 7.569999999999999,
+              "fuse": 0.017,
               "fragments": 7,
+              "burstSpeed": 650.4,
               "targeting": {
-                "facingWeight": 100,
-                "sightWeight": 23.642,
-                "massWeight": 300,
-                "closingWeight": 30,
-                "engineWeight": 86.401,
-                "focusWeight": 373.904,
-                "fireRange": 1.09,
-                "gunWeight": 120
+                "facingWeight": 96.846,
+                "sightWeight": 24.119,
+                "massWeight": 284.376,
+                "closingWeight": 30.957,
+                "engineWeight": 88.571,
+                "focusWeight": 386.817,
+                "fireRange": 1.265,
+                "gunWeight": 118.52,
+                "preferredMass": 0.745,
+                "mobileWeight": 10.686,
+                "coreWeight": 116.928,
+                "loyaltyWeight": 21.023,
+                "proximityWeight": 96.337,
+                "armedWeight": 86.533,
+                "structureWeight": 2.019
               }
             },
             {
@@ -692,6 +853,7 @@
               "angle": 0,
               "length": 0.6,
               "width": 0.6,
+              "reinforcement": 1.05,
               "barrels": 1,
               "nozzle": 1
             },
@@ -703,7 +865,7 @@
               "angle": 90,
               "length": 0.25,
               "width": 0.5,
-              "reinforcement": 1.07,
+              "reinforcement": 1.04,
               "nozzle": 0.5
             },
             {
@@ -713,7 +875,7 @@
               "y": -0.35,
               "length": 0.4,
               "width": 0.3,
-              "reinforcement": 1.52
+              "reinforcement": 1.41
             },
             {
               "id": 13,
@@ -729,7 +891,8 @@
                 0.5,
                 -0.333333333,
                 -0.25
-              ]
+              ],
+              "reinforcement": 1.05
             },
             {
               "id": 14,
@@ -739,7 +902,7 @@
               "angle": 90,
               "length": 0.2,
               "width": 0.8,
-              "reinforcement": 1.07,
+              "reinforcement": 1.09,
               "barrels": 2,
               "nozzle": 0.25
             }
@@ -754,7 +917,10 @@
           "y": 0,
           "length": 1.4,
           "width": 1.8,
-          "reinforcement": 1.24
+          "reinforcement": 1.2,
+          "sealing": 0.0004,
+          "fill": 0.917,
+          "computing": 0.097
         },
         {
           "id": 2,
@@ -762,7 +928,8 @@
           "x": 2.05,
           "y": 0,
           "length": 1.9,
-          "width": 2.4
+          "width": 2.4,
+          "reinforcement": 1.03
         },
         {
           "id": 3,
@@ -784,7 +951,7 @@
           "y": 0,
           "length": 1,
           "width": 0.9,
-          "reinforcement": 1.11
+          "reinforcement": 1.06
         },
         {
           "id": 6,
@@ -792,7 +959,8 @@
           "x": -0.95,
           "y": 0,
           "length": 1.3,
-          "width": 0.8
+          "width": 0.8,
+          "reinforcement": 1.06
         }
       ]
     },
