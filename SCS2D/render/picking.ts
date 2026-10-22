@@ -100,7 +100,7 @@ export function fighterGroup(snapshot: Snapshot, ship: ShipView | null): number[
   const out: number[] = [];
   for (let i = 0; i < snapshot.shipCount; i++) {
     const other = snapshot.ships[i]!;
-    if (other.ship !== undefined && other.team === ship.team && blueprintOf(other) === blueprintOf(ship) && other.hasControl)
+    if (other.ship !== undefined && other.team === ship.team && blueprintOf(other).name === blueprintOf(ship).name && other.hasControl)
       out.push(other.ship);
   }
   return out;
