@@ -10,6 +10,7 @@ import { standoff } from '../scenarios/standoff.js';
 import { column } from '../scenarios/column.js';
 import { split } from '../scenarios/split.js';
 import { torchRun } from '../scenarios/torchRun.js';
+import { binary } from '../scenarios/binary.js';
 import { broadside } from '../scenarios/broadside.js';
 import { hooked } from '../scenarios/hooked.js';
 import { salvageRun } from '../scenarios/salvage.js';
@@ -71,6 +72,7 @@ export function start(): void {
     { name: 'Line Ahead', create: () => column(SEED) },
     { name: 'Split', create: () => split(SEED) },
     { name: 'Torch Run', create: () => torchRun(SEED) },
+    { name: 'Binary', create: () => binary(SEED) },
     { name: 'Hooked', create: () => hooked(SEED) },
     { name: 'Broadside', create: () => broadside(SEED) },
     { name: 'Salvage Run', create: () => salvageRun(SEED) },

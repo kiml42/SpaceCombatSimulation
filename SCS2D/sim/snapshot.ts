@@ -238,11 +238,10 @@ export class Snapshot {
   dt = 0;
 
   /**
-   * Wells acting on the battle. Held by reference rather than copied: a well
-   * does not move, and a renderer that cannot show why trajectories bend is
-   * showing a bug rather than a battle.
+   * Wells acting on the battle, where they were when it was taken: a renderer
+   * that cannot show why trajectories bend is showing a bug rather than a battle.
    */
-  wells: readonly WellSpec[] = [];
+  wells: WellSpec[] = [];
 
   ships: ShipView[] = [];
   shipCount = 0;
@@ -420,7 +419,16 @@ export function capture(
   out.tick = world.tick;
   out.time = world.tick * world.dt;
   out.dt = world.dt;
-  out.wells = wells;
+  // Copied, since a well on rails moves on after the picture is taken.
+  out.wells.length = wells.length;
+  for (let w = 0; w < wells.length; w++) {
+    const well = wells[w]!;
+    const into = (out.wells[w] ??= { x: 0, y: 0, gm: 0 });
+    into.x = well.x;
+    into.y = well.y;
+    into.gm = well.gm;
+    into.softening = well.softening ?? 0;
+  }
 
   let minX = Infinity;
   let minY = Infinity;

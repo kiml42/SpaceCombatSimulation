@@ -22,6 +22,7 @@ export { Bodies, NO_BODY, bodyIndex, bodyGeneration, type BodyId, type BodySpec 
 export { World, type ForceProvider, type WorldOptions } from './world.js';
 export { AttackArcs, AttackRegion, attackBearing, bestAttackBearings, designArcs } from './attack.js';
 export { gravityWell, wellPull, wellPotentialEnergy, type WellSpec } from './gravity.js';
+export { eccentricAnomaly, orbitPeriod, orbitState, Railway, systemGm, type Orbit, type Rails, type System } from './rails.js';
 export { SpatialGrid, IndexBuffer, RayHit, segmentCircleT, type RayNarrowPhase } from './spatialGrid.js';
 export { Projectiles, ProjectileHits, NO_OWNER, NOT_INSIDE, type ProjectileSpec } from './projectiles.js';
 export {
