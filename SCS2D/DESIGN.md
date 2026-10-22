@@ -777,7 +777,9 @@ inside any one file is not contiguous.
   makes for the free pad, of those it
   fits on, that pays it most for the time, divided by one more `dockDanger` (zero, so no matter, by default)
   for every armed enemy near it and by one more for every other fighter already making for that pad. It flies
-  there as a ram does, mains along the change of velocity it needs, braking on them with a half turn allowed
+  there as a ram does, mains along the change of velocity it needs, matching how the pad is speeding up as
+  well as how it is moving, as if it keeps on (`DOCK_ACCEL_SETTLE`), so a fighter keeps up with a carrier under
+  thrust; it plans its braking on what thrust that leaves it, and docking at a port does the same. It brakes with a half turn allowed
   for. It comes in over the pad's clear side — of its four sides, the one with the longest run before
   anything in the weapons layer, and of those the one opening onto empty space — and from the wrong side it
   first circles the carrier outside its radius, `HULL_ORBIT_STEP` at a time, rather than fly through what is in
