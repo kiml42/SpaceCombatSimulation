@@ -9019,9 +9019,8 @@ export class Ships {
 
   /**
    * Fly body `b` round body `ob`'s hull, outside its radius, to the side of it
-   * facing body `tb`, matching how `ob` is moving, no faster than its thrust
-   * towards `ob` can hold it on the curve. Returns the heading to the next
-   * point to make for.
+   * facing body `tb`, matching how `ob` is moving. Returns the heading to the
+   * next point to make for.
    */
   private roundHull(bodies: Bodies, i: number, b: number, ob: number, tb: number): number {
     const cx = bodies.x[ob]!;
@@ -9033,18 +9032,13 @@ export class Ships {
     const dy = this.wayY - bodies.y[b]!;
     let vx = bodies.vx[ob]!;
     let vy = bodies.vy[ob]!;
-    const heading = atan2(dy, dx);
     if (gap > 0) {
-      const inX = cx - bodies.x[b]!;
-      const inY = cy - bodies.y[b]!;
-      const inward = length(inX, inY);
-      const turning = inward > 0 ? this.accelerationAlong(bodies, i, b, inX / inward, inY / inward, bodies.angle[b]!) : 0;
-      const speed = min(this.doctrines[i]!.approach.clawSpeed, sqrt(turning * clear));
+      const speed = this.doctrines[i]!.approach.clawSpeed;
       vx += (dx / gap) * speed;
       vy += (dy / gap) * speed;
     }
     this.urge(URGE_REFERENCE, vx, vy);
-    return heading;
+    return atan2(dy, dx);
   }
 
   /**

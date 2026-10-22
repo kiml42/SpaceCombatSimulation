@@ -115,13 +115,20 @@ describe('a pilot with a claw', () => {
       ...GUNSHIP,
       doctrine: { ...gunship.doctrine, approach: { ...gunship.doctrine.approach, separation: 0 } },
     });
+    let friendly = -1;
     const friend = (ships: Ships, world: World): void => {
-      ships.spawn(world, { design: still, x: -300, y: 0, angle: PI / 2, team: 0 });
+      friendly = ships.spawn(world, { design: still, x: -300, y: 0, angle: PI / 2, team: 0 });
     };
     const run = scene(scavenger(0.5), 15_000, [[0, 0]], friend);
-    runUntil(run, () => holding(run, run.wrecks[0]!), 120);
+    let touched = 0;
+    for (let s = 0; s < 120 * 60 && !holding(run, run.wrecks[0]!); s++) {
+      run.step();
+      const fb = run.world.bodies.indexOf(run.ships.body(friendly));
+      const c = run.collisions.contacts;
+      for (let k = 0; k < c.count; k++) if (c.a[k] === fb || c.b[k] === fb) touched++;
+    }
     expect(holding(run, run.wrecks[0]!)).toBe(true);
-    expect(run.totalContacts).toBeLessThan(10);
+    expect(touched).toBe(0);
   });
 
   it('drinking, gets out of the way of a wreck coasting at it', () => {
@@ -168,7 +175,7 @@ describe('a pilot with a claw', () => {
   });
 
   it('passes over a wreck going away faster than it can follow for a farther one', () => {
-    // The nearer wreck recedes at 40 m/s, past the stock Scavenger's 30.
+    // The nearer wreck recedes at 40 m/s, past the 15 it closes on a wreck at.
     const fleeing = (ships: Ships, world: World): void => {
       world.bodies.vx[world.bodies.indexOf(ships.body(1))] = 40;
     };
@@ -190,7 +197,7 @@ describe('a pilot with a claw', () => {
       ships.spawn(world, { design: gunship, x: 0, y: 300, angle: 0, team: 1 });
     };
     const wary = scene(
-      scavenger(0.5, 4),
+      scavenger(0.5, 12),
       15_000,
       [
         [0, 0],

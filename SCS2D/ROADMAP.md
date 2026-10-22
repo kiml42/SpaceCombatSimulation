@@ -153,7 +153,7 @@ an entry is either still open or it is gone.
          what it is attacking: framing follows what a ship is fighting and escorting, not its errand.
     5. **Grabbing an asteroid survivably** — partly built. A claw ship closes jaws first all the way, braking
        astern, and turns its mains to the job only when that cannot put its motion right in time; it flies
-       round an asteroid in its way, no faster than it can hold the curve; and it closes at doctrine's
+       round an asteroid in its way; and it closes at doctrine's
        `clawSpeed` (15 m/s by default, evolvable), not the speed it closes on an enemy. With a third Salvager
        in the Mining scene, over 39 runs, wrecked or broken ships went from 25 to 10 and those holding rock
        from 9 to 24. Left from it:
