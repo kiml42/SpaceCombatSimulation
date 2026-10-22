@@ -103,8 +103,8 @@ describe('a pad building the fighters it keeps', () => {
     const [f] = fighters(run);
     expect(f).toBeDefined();
     expect(run.ships.isUnfinished(f!)).toBe(true);
-    expect(run.ships.body(f!)).toBe(run.ships.body(run.c));
-    runFor(run, 600, () => run.ships.body(f!) !== run.ships.body(run.c));
+    expect(run.ships.parkedCarrier(f!)).toBe(run.c);
+    runFor(run, 600, () => run.ships.parkedCarrier(f!) !== run.c);
     expect(run.ships.body(f!)).not.toBe(run.ships.body(run.c));
     expect(run.ships.isUnfinished(f!)).toBe(false);
     expect(run.ships.currentStructure(f!).modules.length).toBe(dinky.modules.length);
@@ -126,7 +126,7 @@ describe('a pad building the fighters it keeps', () => {
       burned ||= run.ships.currentStructure(f!).engines.some((_, e) => run.ships.throttleOf(f!, e) > 0);
     }
     expect(run.ships.isUnfinished(f!)).toBe(false);
-    expect(run.ships.body(f!)).toBe(run.ships.body(run.c));
+    expect(run.ships.parkedCarrier(f!)).toBe(run.c);
     expect(burned).toBe(false);
   });
 
@@ -140,7 +140,7 @@ describe('a pad building the fighters it keeps', () => {
   it('replaces a fighter that is out of the fight', () => {
     const run = battle(factoryOf(1, true), 600);
     const [f] = fighters(run);
-    runFor(run, 120, () => run.ships.body(f!) !== run.ships.body(run.c));
+    runFor(run, 120, () => run.ships.parkedCarrier(f!) !== run.c);
     expect(run.ships.body(f!)).not.toBe(run.ships.body(run.c));
     // Its core shot out: a hulk, and no longer one of those kept.
     const b = run.world.bodies.indexOf(run.ships.body(f!));
@@ -182,7 +182,7 @@ describe('a pad building the fighters it keeps', () => {
     run.ships.damage.absorb(b, pad, run.ships.damage.capacityLeft(b, pad) * 0.3);
     expect(run.ships.damage.remaining(b, pad, DamageEffect.Grip)).toBeGreaterThan(0);
     runFor(run, 30);
-    expect(run.ships.body(f!)).toBe(run.ships.body(run.c));
+    expect(run.ships.parkedCarrier(f!)).toBe(run.c);
   });
 });
 
@@ -220,7 +220,7 @@ describe('a fighter on a pad, its engines lit', () => {
   it('burns over the deck it is sat on, not into it', () => {
     const run = battle(factoryOf(1, true));
     const [f] = fighters(run);
-    expect(run.ships.body(f!)).toBe(run.ships.body(run.c));
+    expect(run.ships.parkedCarrier(f!)).toBe(run.c);
     const b = run.world.bodies.indexOf(run.ships.body(run.c));
     const modules = run.ships.currentStructure(run.c).modules;
     const pad = modules.findIndex((m, k) => m.spec.kind === 'pad' && m.spec.craft !== undefined && run.ships.owns(run.c, k));
@@ -233,13 +233,13 @@ describe('a fighter on a pad, its engines lit', () => {
   });
 });
 
-describe('ships sharing a hull', () => {
+describe('a carrier and the fighter parked on it', () => {
   it('number only their own cores, so each writes its name on its own', () => {
     // Set out docked, so both cores are whole from the start.
     const run = battle(factoryOf(1, true));
     run.step();
     const [f] = fighters(run);
-    expect(run.ships.body(f!)).toEqual(run.ships.body(run.c));
+    expect(run.ships.parkedCarrier(f!)).toBe(run.c);
     for (const [i, other] of [
       [run.c, f!],
       [f!, run.c],

@@ -54,7 +54,7 @@ function scene(setup: Setup = {}) {
 }
 
 type Run = ReturnType<typeof scene>;
-const aboard = (run: Run): boolean => run.ships.body(run.c) === run.ships.body(run.f);
+const aboard = (run: Run): boolean => run.ships.parkedCarrier(run.f) === run.c;
 const bodyOf = (run: Run, i: number): number => run.world.bodies.indexOf(run.ships.body(i));
 const ownCore = (run: Run): number => run.ships.currentStructure(run.f).cores[0]!;
 function runUntil(run: Run, done: () => boolean, seconds: number): void {

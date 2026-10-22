@@ -339,6 +339,10 @@ What is left of the step should follow the shape already there:
 
 Deliberately unresolved; decide when they block something.
 
+- **What a parked fighter should meet.** A fighter on a pad is hit by rounds and beams but meets no hull
+  (DESIGN.md, pads), so another fighter can fly through it, wreckage can drift over it, and one lifting off
+  with something in its way passes through that too. The candidates: it meets other fighters and fighter
+  wreckage, the weapons layer it flies in, and is pushed back by nothing, its carrier taking the blow.
 - **What else should draw power.** Only beams do (§8 step 11). Candidates: turrets drawing to turn, so a dark
   ship cannot train its guns; cores drawing to run, so a ship that runs flat loses control; electric engines,
   which trade fuel for power; and plasma beams, which would burn both fuel and power. Each is a call to
