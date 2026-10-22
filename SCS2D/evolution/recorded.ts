@@ -1,3 +1,4 @@
+import { max, min } from '../sim/math.js';
 import { DEFAULT_COEVOLUTION, type CoevolutionConfig } from './coevolution.js';
 import type { Entrant } from './match.js';
 import { DEFAULT_RUN, entrantOf, type GenerationRecord, type MatchRecord, type RunRecord } from './run.js';
@@ -22,14 +23,14 @@ export class RecordedRun {
     this.coevolution = record.rival === undefined ? null : { ...DEFAULT_COEVOLUTION, ...record.rival.config };
     this.generations = record.generations;
     this.rivalGenerations = record.rival?.generations ?? [];
-    const hall = Math.max(1, this.coevolution?.hall ?? 1);
+    const hall = max(1, this.coevolution?.hall ?? 1);
     this.halls = [foundersOf(this.generations, hall), foundersOf(this.rivalGenerations, hall)];
   }
 
   /** How much of what it was set to fight it fought: less than all of it if it was stopped. */
   get progress(): number {
     const fought = this.generations.length + this.rivalGenerations.length;
-    return this.config.generations > 0 ? Math.min(1, fought / this.config.generations) : 1;
+    return this.config.generations > 0 ? min(1, fought / this.config.generations) : 1;
   }
 
   get alternates(): boolean {
@@ -43,7 +44,7 @@ export class RecordedRun {
 
   /** The round bred last. */
   get round(): number {
-    return Math.max(this.generations.at(-1)?.round ?? 0, this.rivalGenerations.at(-1)?.round ?? 0);
+    return max(this.generations.at(-1)?.round ?? 0, this.rivalGenerations.at(-1)?.round ?? 0);
   }
 
   /**
