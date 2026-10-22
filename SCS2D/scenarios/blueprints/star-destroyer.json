@@ -355,9 +355,9 @@
         {
           "id": 23,
           "kind": "hold",
-          "x": -437,
+          "x": -382,
           "y": 60,
-          "length": 220,
+          "length": 330,
           "width": 60,
           "thick": true
         },
@@ -653,10 +653,10 @@
         },
         {
           "id": 61,
-          "kind": "structure",
-          "x": -14,
+          "kind": "tank",
+          "x": 41,
           "y": 60,
-          "length": 626,
+          "length": 516,
           "width": 60,
           "thick": true
         },
@@ -885,8 +885,10 @@
           "angle": 90.001367794,
           "length": 60,
           "width": 60,
+          "reinforcement": 1,
           "craft": "TIE Fighter",
-          "docked": true
+          "docked": true,
+          "keep": 7
         },
         {
           "id": 75,
