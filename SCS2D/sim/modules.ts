@@ -3,16 +3,18 @@ import type { Targeting } from './doctrine.js';
 import { abs, asin, atan2, cos, floor as roundDown, max, min, PI, pow, round, sin, sqrt } from './math.js';
 import {
   canShape,
+  cornersAllowed,
   insetTriangle,
+  isConvexAnticlockwise,
   MAX_CORNERS,
   normalizeShape,
   polygonArea,
+  polygonCentroid,
   polygonMomentOfArea,
   triangleAcross,
   triangleBounds,
-  triangleOf,
+  shapeOf,
   triangleRadius,
-  TRIANGLE_CORNERS,
 } from './shape.js';
 
 /**
@@ -278,7 +280,16 @@ export function readsComputing(kind: ModuleKind): boolean {
  * everything but hull and what only holds or makes something.
  */
 export function needsControl(kind: ModuleKind): boolean {
-  return !(kind === 'structure' || kind === 'tank' || kind === 'hold' || kind === 'core' || kind === 'battery' || kind === 'generator');
+  return !(
+    kind === 'structure' ||
+    kind === 'tank' ||
+    kind === 'hold' ||
+    kind === 'core' ||
+    kind === 'battery' ||
+    kind === 'generator' ||
+    kind === 'kernel' ||
+    kind === 'rock'
+  );
 }
 
 /** How much of an `interior` m³ core computes, m³. */
@@ -906,7 +917,31 @@ export type ModuleKind =
   | 'battery'
   | 'generator'
   | 'robotBay'
-  | 'slipway';
+  | 'slipway'
+  /**
+   * An asteroid's heart: a solid convex polygon, indestructible and on no
+   * side, that carries a well and rides its rail. Not something a ship is
+   * built of, so not among `MODULE_KINDS`.
+   */
+  | 'kernel'
+  /**
+   * An asteroid's body: solid rock, a share of it ore and a share ice and the
+   * rest worth nothing, wedged round a kernel or making up a minor asteroid.
+   */
+  | 'rock';
+
+/** The kinds a ship may be built of: none of an asteroid's. */
+export type ShipModuleKind = Exclude<ModuleKind, 'kernel' | 'rock'>;
+
+/** Density of an asteroid's rock, kg/m³. */
+export const ROCK_DENSITY = 2500;
+
+/**
+ * How thick a seam between two pieces of rock is, as a weld goes, metres: a
+ * hull plate's, so that rubble, loosely bound, comes apart no harder than a
+ * hull does, however deep the rock. A first guess.
+ */
+export const ROCK_SEAM_THICKNESS = BASE_WALL_THICKNESS;
 
 /**
  * Every archetype there is, in one order.
@@ -920,7 +955,7 @@ export type ModuleKind =
  * The order is load-bearing in two of them, so it is fixed here rather than
  * per caller: the draw walks it, and the flattener sorts by it.
  */
-export const MODULE_KINDS: readonly ModuleKind[] = [
+export const MODULE_KINDS: readonly ShipModuleKind[] = [
   'structure',
   'tank',
   'core',
@@ -1008,6 +1043,9 @@ export interface ModuleSpec {
    * may read them.
    */
   vertices?: readonly number[];
+  /** A rock's share of ore and of ice, 0 to 1 each and no more than 1 together; the rest is worthless. */
+  ore?: number;
+  ice?: number;
   /**
    * Set on a spec that is already the body it makes (`bodySpec`): an engine's
    * or hull weapon's `length` then includes its bell or barrel. Never in a
@@ -1397,22 +1435,33 @@ export function moduleProblem(spec: ModuleSpec): string | null {
     if (!canShape(spec.kind)) {
       return `${spec.kind}: only structure, tanks and holds may be given corners`;
     }
-    if (spec.vertices.length !== TRIANGLE_CORNERS * 2) {
-      return `${spec.kind}: a shaped module takes ${TRIANGLE_CORNERS} corners as x,y pairs, got ${spec.vertices.length / 2}`;
+    const [fewest, most] = cornersAllowed(spec.kind);
+    const corners = spec.vertices.length / 2;
+    if (spec.vertices.length % 2 !== 0 || corners < fewest || corners > most) {
+      const wanted = fewest === most ? `${fewest}` : `${fewest} to ${most}`;
+      return `${spec.kind}: a shaped module takes ${wanted} corners as x,y pairs, got ${corners}`;
     }
     for (const value of spec.vertices) {
       if (!Number.isFinite(value)) return `${spec.kind}: a corner is not a number`;
     }
     if (polygonArea(spec.vertices) <= 0) {
-      return `${spec.kind}: three corners in a line enclose nothing`;
+      return `${spec.kind}: corners in a line enclose nothing`;
+    }
+    if ((spec.kind === 'kernel' || spec.kind === 'rock') && !isConvexAnticlockwise(spec.vertices)) {
+      return `${spec.kind}: corners must make a convex outline, wound anticlockwise`;
     }
     // The centroid is the module's position, which is what keeps `x`/`y`
     // meaning the same thing it means for a box (`normalizeShape`).
-    const cx = spec.vertices[0]! + spec.vertices[2]! + spec.vertices[4]!;
-    const cy = spec.vertices[1]! + spec.vertices[3]! + spec.vertices[5]!;
-    if (abs(cx) > CENTROID_TOLERANCE || abs(cy) > CENTROID_TOLERANCE) {
+    const centroid = { x: 0, y: 0 };
+    polygonCentroid(spec.vertices, centroid);
+    if (abs(centroid.x) > CENTROID_TOLERANCE || abs(centroid.y) > CENTROID_TOLERANCE) {
       return `${spec.kind}: corners must be centred on the module's own middle`;
     }
+  }
+  const ore = spec.ore ?? 0;
+  const ice = spec.ice ?? 0;
+  if (!(ore >= 0) || !(ice >= 0) || !(ore + ice <= 1)) {
+    return `${spec.kind}: ore and ice are shares, at least 0 and together no more than 1, got ${ore} and ${ice}`;
   }
   const reinforcement = spec.reinforcement ?? 1;
   if (!(reinforcement >= 1)) {
@@ -1525,7 +1574,7 @@ export function moduleProblem(spec: ModuleSpec): string | null {
  */
 export function moduleRadius(spec: ModuleSpec): number {
   spec = bodySpec(spec);
-  const triangle = triangleOf(spec);
+  const triangle = shapeOf(spec);
   // A triangle's furthest corner, which is exact rather than conservative:
   // the box round it is not centred on it, so the box's half-diagonal is
   // neither a bound nor a useful approximation of one.
@@ -1642,7 +1691,7 @@ export function boxAngle(spec: ModuleSpec): number {
  */
 export function grownOutline(spec: ModuleSpec, margin: number, out: number[]): number {
   spec = bodySpec(spec);
-  const triangle = triangleOf(spec);
+  const triangle = shapeOf(spec);
   if (triangle !== null) {
     const grown = insetTriangle(triangle, -margin);
     return moduleOutline(grown === null ? spec : { ...spec, vertices: grown }, out);
@@ -1679,7 +1728,7 @@ export function grownOutline(spec: ModuleSpec, margin: number, out: number[]): n
 export function shapeModule(spec: ModuleSpec, vertices: readonly number[] | null): ModuleSpec | null {
   if (vertices === null) {
     const squared = { ...spec };
-    const triangle = triangleOf(spec);
+    const triangle = shapeOf(spec);
     delete squared.vertices;
     if (triangle === null) return squared;
     // The box the corners fitted inside, left where that box was. A triangle's
@@ -1739,7 +1788,7 @@ export function moduleOutline(spec: ModuleSpec, out: number[]): number {
   const c = cos(angle);
   const s = sin(angle);
   const mid = moduleCentre(spec);
-  const triangle = triangleOf(spec);
+  const triangle = shapeOf(spec);
 
   if (triangle !== null) {
     for (let i = 0; i < triangle.length; i += 2) {
@@ -1748,8 +1797,8 @@ export function moduleOutline(spec: ModuleSpec, out: number[]): number {
       out[i] = mid.x + x * c - y * s;
       out[i + 1] = mid.y + x * s + y * c;
     }
-    out.length = TRIANGLE_CORNERS * 2;
-    return TRIANGLE_CORNERS;
+    out.length = triangle.length;
+    return triangle.length / 2;
   }
 
   const hl = spec.length * 0.5;
@@ -2230,6 +2279,8 @@ export function inWeaponsLayer(spec: ModuleSpec, touching = 0): boolean {
 
 /** Whether a module is marked thick, on a kind and a size where that means anything. */
 export function isThick(spec: ModuleSpec): boolean {
+  // An asteroid stands as tall as it is wide, in both layers.
+  if (spec.kind === 'kernel' || spec.kind === 'rock') return true;
   return spec.thick === true && canThicken(spec);
 }
 
@@ -2269,7 +2320,7 @@ export function moduleThickness(spec: ModuleSpec, touching = 0): number {
 function acrossOf(spec: ModuleSpec): number {
   if (spec.kind === 'engine') return spec.width / (spec.barrels ?? 1);
   if (isHullMount(spec.kind)) return spec.width;
-  const triangle = triangleOf(spec);
+  const triangle = shapeOf(spec);
   // The narrowest way through a triangle, which is what the box's smaller side
   // is for a box: a long thin wedge is a thin module however far it reaches.
   if (triangle !== null) return triangleAcross(triangle);
@@ -2521,6 +2572,9 @@ const KIND_COMPLEXITY: Record<ModuleKind, number> = {
   pad: 3,
   port: 3,
   slipway: 3,
+  // Never mended or built, so never worked at all.
+  kernel: 0,
+  rock: 0,
   engine: 4,
   hullGun: 4,
   hullBeam: 4,
@@ -2554,7 +2608,10 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
   if (problem !== null) throw new Error(`Invalid module — ${problem}`);
 
   const reinforcement = spec.reinforcement ?? 1;
-  const wallThickness = BASE_WALL_THICKNESS * reinforcement;
+  // An asteroid is solid: its walls are as thick as it is, so nothing hollows
+  // it and no round gets through it.
+  const solid = spec.kind === 'kernel' || spec.kind === 'rock';
+  const wallThickness = solid ? acrossOf(spec) : BASE_WALL_THICKNESS * reinforcement;
 
   // An engine is a box with a bell on the back of it rather than one box, and
   // only the box part is walled. Every other archetype is the box it declares.
@@ -2575,7 +2632,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
   // area to its walls than a blunt one, and a sliver of a plate is all wall.
   const height = moduleThickness(spec, touching);
   const width = spec.width;
-  const triangle = triangleOf(spec);
+  const triangle = shapeOf(spec);
   const floor = triangle !== null ? polygonArea(triangle) : boxLength * width;
   const hollow = (depth: number): { floor: number; volume: number } => {
     const lid = height - 2 * depth;
@@ -2597,7 +2654,7 @@ export function moduleStats(spec: ModuleSpec, touching = 0): ModuleStats {
   // roof and floor over the taper, with nothing enclosed and both ends open.
   const skinVolume = engine === null ? 0 : nozzleSkinVolume(engine, wallThickness);
   const wallVolume = outer - inner + skinVolume;
-  const structureMass = wallVolume * HULL_DENSITY;
+  const structureMass = wallVolume * (spec.kind === 'rock' ? ROCK_DENSITY : HULL_DENSITY);
 
   const capacity = walled.floor;
   // A sealing lining is a second skin inside the first, and what it fills is

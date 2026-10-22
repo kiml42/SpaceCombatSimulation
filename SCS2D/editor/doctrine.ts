@@ -242,6 +242,36 @@ const APPROACH_ROWS: readonly DoctrineRow[] = [
     step: 0.5,
   },
   {
+    field: 'fleeMargin',
+    label: 'clear at',
+    hint: "How far out of an armed enemy's reach a fleeing ship counts itself clear, as a multiple of that reach: inside it runs, beyond it eases off",
+    step: 0.1,
+  },
+  {
+    field: 'aimedWeight',
+    label: 'runs more from aim',
+    hint: 'How much more an enemy with a gun aimed at it counts in fleeing or hiding than one without. 1 ignores aim',
+    step: 0.5,
+  },
+  {
+    field: 'fleeArmed',
+    label: 'withdraws at',
+    hint: 'The share of what it fights or works with still working at or below which it withdraws, hiding or fleeing: its main guns, its claws while out scavenging, its ports while delivering. Below 0 never; with nothing to fight or work with it always does',
+    step: 0.05,
+  },
+  {
+    field: 'hideRange',
+    label: 'hides within',
+    hint: 'How far off cover can be for it to hide behind when it withdraws, in its own radii. 0 never hides, and flees instead',
+    step: 1,
+  },
+  {
+    field: 'hideSize',
+    label: 'hides behind',
+    hint: 'How big cover must be for it to hide behind, as a multiple of its own radius',
+    step: 0.25,
+  },
+  {
     field: 'tangentialMin',
     label: 'passes at least',
     hint: 'The least sideways speed it keeps relative to what it is attacking, metres per second. Above 0 it comes in aiming to miss, at the inner edge of its band, and circles if its thrust can hold the turn or makes passes if it cannot. 0 for both comes to rest at its band',
@@ -475,6 +505,35 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
               v.targeting.ramMass > 0
                 ? `≈ ${((ship.mass * v.targeting.ramMass) / 1000).toLocaleString('en-GB', { maximumFractionDigits: 1 })} t`
                 : 'the size it always wants',
+          }),
+        ],
+      },
+    ],
+  },
+  {
+    title: 'Running away',
+    groups: [
+      {
+        title: 'Running away',
+        entries: [
+          entry('approach', 'fleeMargin', { absolute: (v) => `clear at ${v.approach.fleeMargin} times an enemy's reach` }),
+          entry('approach', 'aimedWeight'),
+          entry('approach', 'fleeArmed', {
+            absolute: (v, ship) => {
+              if (v.approach.fleeArmed < 0) return ship.guns === 0 ? 'only with nothing to fight or work with' : 'never, while it has guns';
+              if (ship.guns === 0) return 'it has no guns';
+              const working = Math.floor(v.approach.fleeArmed * ship.guns + 1e-9);
+              const guns = ship.guns === 1 ? '1 gun' : `${ship.guns} guns`;
+              return working === 0 ? `once none of its ${guns} works` : `with ${working} of ${guns} working, or fewer`;
+            },
+          }),
+          entry('approach', 'hideRange', {
+            absolute: (v, ship) =>
+              v.approach.hideRange > 0 ? `cover within ${metres(v.approach.hideRange * ship.radius)}` : 'never hides',
+          }),
+          entry('approach', 'hideSize', {
+            shown: (v) => v.approach.hideRange > 0,
+            absolute: (v, ship) => `a radius of at least ${metres(v.approach.hideSize * ship.radius)}`,
           }),
         ],
       },

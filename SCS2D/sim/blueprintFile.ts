@@ -239,7 +239,7 @@ function blockFromWhole(spec: ModuleSpec): void {
 
 function moduleShapeProblem(value: Record<string, unknown>, where: string): string | null {
   const kind = currentKind(value['kind']);
-  if (typeof kind !== 'string' || !MODULE_KINDS.includes(kind as ModuleKind)) {
+  if (typeof kind !== 'string' || !(MODULE_KINDS as readonly string[]).includes(kind)) {
     return `${where}: kind must be one of ${MODULE_KINDS.join(', ')}, got ${JSON.stringify(value['kind'])}`;
   }
 

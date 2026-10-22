@@ -10,6 +10,9 @@ import { standoff } from '../scenarios/standoff.js';
 import { column } from '../scenarios/column.js';
 import { split } from '../scenarios/split.js';
 import { torchRun } from '../scenarios/torchRun.js';
+import { binary } from '../scenarios/binary.js';
+import { kernels } from '../scenarios/kernels.js';
+import { asteroidField } from '../scenarios/asteroidField.js';
 import { broadside } from '../scenarios/broadside.js';
 import { hooked } from '../scenarios/hooked.js';
 import { salvageRun } from '../scenarios/salvage.js';
@@ -29,6 +32,7 @@ import { gridStep } from '../render/camera.js';
 import { battleView } from './battleView.js';
 import { doctrinePanel } from './doctrinePanel.js';
 import { orderBar } from './orderBar.js';
+import { battleControls } from './battleControls.js';
 import type { Logged } from '../scenarios/commands.js';
 import { el } from './dom.js';
 import { choices } from './designChoices.js';
@@ -70,6 +74,9 @@ export function start(): void {
     { name: 'Line Ahead', create: () => column(SEED) },
     { name: 'Split', create: () => split(SEED) },
     { name: 'Torch Run', create: () => torchRun(SEED) },
+    { name: 'Binary', create: () => binary(SEED) },
+    { name: 'Kernels', create: () => kernels(SEED) },
+    { name: 'Asteroid Field', create: () => asteroidField(SEED) },
     { name: 'Hooked', create: () => hooked(SEED) },
     { name: 'Broadside', create: () => broadside(SEED) },
     { name: 'Salvage Run', create: () => salvageRun(SEED) },
@@ -144,6 +151,7 @@ export function start(): void {
       panel.reset();
     },
   );
+  battleControls(el<HTMLElement>('stage'));
   const bar = orderBar(view);
   const doctrine = doctrinePanel(view);
   view.allowOrders();

@@ -244,16 +244,16 @@ describe('ships sharing a hull', () => {
       [run.c, f!],
       [f!, run.c],
     ] as const) {
-      const numbers: number[] = [];
-      run.ships.coreNumbers(i, numbers);
+      const names: (string | null)[] = [];
+      run.ships.coreNames(i, names);
       const cores = run.ships.currentStructure(i).cores;
-      // Every core is one ship's: this one numbers its own and marks the other's.
+      // Every core is one ship's: this one names its own and leaves the other's.
       for (let k = 0; k < cores.length; k++) {
-        expect(numbers[k]! < 0, `ship ${i}, core ${cores[k]}`).toBe(
+        expect(names[k] === null, `ship ${i}, core ${cores[k]}`).toBe(
           run.ships.pilotAt(run.world.bodies.indexOf(run.ships.body(i)), cores[k]!) === other,
         );
       }
-      expect(numbers.filter((n) => n >= 0).length).toBe(1);
+      expect(names.filter((n) => n !== null).length).toBe(1);
     }
   });
 });

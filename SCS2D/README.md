@@ -12,7 +12,8 @@ The Unity project in `../SpaceCombatSimulation/` is a 2017–2021 prototype, arc
 
 Every green build of `master` publishes the viewer to GitHub Pages, so the current battle is one link away —
 no clone, no toolchain, and it works on a phone. The URL is on the repository's Pages settings, and under the
-`Publish to Pages` job of any CI run on master.
+`Publish to Pages` job of any CI run on master. [QUICKSTART.md](QUICKSTART.md) is a player's guide to the
+skirmish, for handing to anyone trying it.
 
 ## Running it
 
@@ -68,7 +69,7 @@ understanding it turns a regression into the new expected behaviour, permanently
 | `npm run dev` | The same build, on every save; also keeps the stock fleets' designs in step with `scenarios/blueprints/` |
 | `npm run sync-fleets` | Copy each stock blueprint into the stock fleets that embed it |
 | `npm run golden` | Re-derive the golden checksums after a *deliberate* change |
-| `npm run evolve` | Fight a headless evolution run and write it to `runs/`; its flags are in CLAUDE.md |
+| `npm run evolve` | Fight a headless evolution run and write it to `runs/`, to open on the evolution page with Open run; its flags are in CLAUDE.md |
 | `npm run yardstick` | Measure a finished run against a ship that does not evolve |
 | `npm run test:browser` | Drive the built page in Chromium — `npx playwright install chromium` once first |
 

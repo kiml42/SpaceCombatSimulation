@@ -32,7 +32,7 @@ import {
   compileDraft,
   canShape,
   canThicken,
-  isTriangle,
+  isShaped,
   shapeModule,
   wedge,
   fighterProblem,
@@ -56,6 +56,7 @@ import {
   type ModuleSpec,
   type ShipDesign,
   type Placement,
+  type ShipModuleKind,
 } from '../sim/index.js';
 import { ARC_LABELS, ARCS_KEY, draw, nextArcs, type Arcs } from '../render/canvas2d.js';
 import { easeScale, fitScale, frame, snapStep, type Camera } from '../render/camera.js';
@@ -189,7 +190,7 @@ const FIT_EASE = 0.15;
 const ANGLE_SNAP_DEGREES = 15;
 
 /** What a freshly added module of each kind starts as, metres. */
-const DEFAULTS: Record<ModuleSpec['kind'], Omit<ModuleSpec, 'x' | 'y'>> = {
+const DEFAULTS: Record<ShipModuleKind, Omit<ModuleSpec, 'x' | 'y'>> = {
   structure: { kind: 'structure', length: 8, width: 5 },
   tank: { kind: 'tank', length: 6, width: 4 },
   hold: { kind: 'hold', length: 4, width: 3 },
@@ -954,7 +955,7 @@ export function startEditor(): void {
     el<HTMLElement>('mainRow').hidden = !(isWeaponMount(spec.kind) || (spec.kind === 'engine' && spec.weapon === true));
     mainInput.checked = spec.main !== false;
     el<HTMLElement>('shapeRow').hidden = !canShape(spec.kind);
-    shapeInput.checked = isTriangle(spec);
+    shapeInput.checked = isShaped(spec);
     el<HTMLElement>('thickRow').hidden = !readsThick(spec.kind);
     el<HTMLElement>('sealingRow').hidden = !readsSealing(spec.kind);
     el<HTMLElement>('drainPriorityRow').hidden = !readsDrainPriority(spec.kind);
@@ -1608,7 +1609,7 @@ export function startEditor(): void {
     if (origin === null || spec === undefined) return;
     const shaped = shapeInput.checked ? shapeModule(spec, wedge(spec)) : shapeModule(spec, null);
     if (shaped === null) {
-      shapeInput.checked = isTriangle(spec);
+      shapeInput.checked = isShaped(spec);
       return;
     }
     change(reshapePlacement(doc.blueprint, origin, shaped.vertices ?? null, shaped.x - spec.x, shaped.y - spec.y));
@@ -1878,7 +1879,7 @@ export function startEditor(): void {
 
   for (const button of document.querySelectorAll<HTMLButtonElement>('[data-add]')) {
     button.addEventListener('click', () => {
-      const kind = button.dataset['add'] as ModuleSpec['kind'];
+      const kind = button.dataset['add'] as ShipModuleKind;
       const spec: ModuleSpec = { ...DEFAULTS[kind], x: 0, y: 0 };
       const view = {
         x: camera.x,

@@ -28,7 +28,7 @@ import {
 } from './modules.js';
 import { DEFAULT_DOCTRINE, defaultTargeting, resolveTargeting, type Doctrine, type Targeting } from './doctrine.js';
 import { EngineLayout, type EngineSpec } from './engines.js';
-import { distanceToOutline, isTriangle, outlineAxes, projectOutline } from './shape.js';
+import { distanceToOutline, isShaped, outlineAxes, projectOutline } from './shape.js';
 import { HullPath, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from './hull.js';
 import { exhaustObstruction, weaponPlumeReach, type PlumeSlice } from './exhaust.js';
 import type { TurretSpec } from './turrets.js';
@@ -727,7 +727,7 @@ const spanB = { lo: 0, hi: 0 };
 /** Distance from a point to the nearest point of a module's outline, metres. */
 function distanceToModule(m: ModuleSpec, px: number, py: number): number {
   m = bodySpec(m);
-  if (isTriangle(m)) {
+  if (isShaped(m)) {
     const c: number[] = [];
     return distanceToOutline(c, moduleOutline(m, c), px, py);
   }
@@ -1421,7 +1421,7 @@ export function weldedWidth(a: ModuleSpec, b: ModuleSpec): number {
   // the same figure the spans give and the one a box has always been measured
   // by. A shape that is not symmetric about its own middle has no such extent,
   // so a pair with a triangle in it goes by the spans.
-  const boxes = !isTriangle(a) && !isTriangle(b);
+  const boxes = !isShaped(a) && !isShaped(b);
   const ac = moduleCentre(a);
   const bc = moduleCentre(b);
   const dx = bc.x - ac.x;
@@ -1924,8 +1924,10 @@ export function blueprintFaults(blueprint: Blueprint): BlueprintFault[] {
   // ship. It is the anchor every other rule about how the layout hangs
   // together is stated against, which is why it is checked before them. A
   // layout with nothing in it at all is one mistake and is already one
-  // complaint, so it does not earn this one as well.
-  if (modules.length > 0 && !modules.some((spec) => spec.kind === 'core' && moduleProblem(spec) === null)) {
+  // complaint, so it does not earn this one as well. An asteroid is the one
+  // hull that is meant to have none, and its kernel or rock says so.
+  const asteroid = modules.some((spec) => spec.kind === 'kernel' || spec.kind === 'rock');
+  if (modules.length > 0 && !asteroid && !modules.some((spec) => spec.kind === 'core' && moduleProblem(spec) === null)) {
     faults.push({
       message:
         `${blueprint.name}: no core — a ship needs at least one core module to be flown from, ` +

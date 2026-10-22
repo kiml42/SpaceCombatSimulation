@@ -154,6 +154,30 @@ describe('the skirmish in a browser', () => {
     expect(problems).toEqual([]);
   });
 
+  it('takes orders for your ships alone, and winds back', async () => {
+    // The round from the last test, paused part way.
+    if ((await page.textContent('#play')) === 'Pause') await page.click('#play');
+    const canvas = (await page.locator('#view').boundingBox())!;
+    type Viewer = { screenOf(i: number): { x: number; y: number }; orders: unknown[] };
+    const click = async (ship: number, button: 'left' | 'right' = 'left'): Promise<void> => {
+      const p = await page.evaluate((i) => (window as unknown as { viewer: Viewer }).viewer.screenOf(i), ship);
+      await page.mouse.click(canvas.x + p.x, canvas.y + p.y, { button });
+      await page.waitForTimeout(600);
+    };
+    const orders = (): Promise<unknown[]> => page.evaluate(() => (window as unknown as { viewer: Viewer }).viewer.orders);
+    // Ship 0 is yours, ship 1 the enemy's.
+    await click(0);
+    expect(await page.isVisible('#orderBar')).toBe(true);
+    await click(1, 'right');
+    expect(await orders()).toHaveLength(1);
+    await page.keyboard.press('Escape');
+    await click(1);
+    expect(await page.isHidden('#orderBar')).toBe(true);
+    expect(Number(await page.getAttribute('#scrub', 'max'))).toBeGreaterThan(0);
+    await page.keyboard.press('Escape');
+    expect(problems).toEqual([]);
+  });
+
   it('goes to the fleet editor with the budget, and back to the round', async () => {
     await page.click('#editFleet');
     await page.waitForURL(/fleet\.html#skirmish=/);

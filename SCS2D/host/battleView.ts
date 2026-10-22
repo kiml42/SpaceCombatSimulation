@@ -33,7 +33,7 @@ import {
   type JumpAnchor,
 } from '../render/camera.js';
 import { boxed, clicked, fighterGroup, sameDesign, shipViewAt, sideOf, stillThere, viewOf, wholeSide } from '../render/picking.js';
-import type { Command, Logged, Order } from '../scenarios/commands.js';
+import type { Command, Held, Logged, Order } from '../scenarios/commands.js';
 import type { Battle } from '../scenarios/types.js';
 import { Rewind } from '../scenarios/rewind.js';
 import { viewGestures } from './viewGestures.js';
@@ -59,7 +59,15 @@ import { keepSpeed, loadView, saveView, type ViewSettings } from './viewSettings
 const MAX_STEPS_PER_FRAME = 32;
 
 /** The keys that arm a verb, and the one that stops. */
-const VERB_KEYS: Readonly<Record<string, Verb>> = { k: 'attack', d: 'defend', r: 'ram', h: 'dock', g: 'scavenge', u: 'deliver' };
+const VERB_KEYS: Readonly<Record<string, Verb>> = {
+  k: 'attack',
+  d: 'defend',
+  r: 'ram',
+  h: 'dock',
+  g: 'scavenge',
+  u: 'deliver',
+  w: 'flee',
+};
 const STOP_KEY = 's';
 /** Picks the whole side of the selection, or the first side. */
 const SIDE_KEY = 'a';
@@ -119,15 +127,22 @@ export interface BattleView {
   /**
    * Let the viewer give orders: right-click, a verb armed from the keys or
    * `arm`, Shift to add to the queue, Stop. Only on a battle that can be
-   * wound back, since orders are logged where rewinds are kept.
+   * wound back, since orders are logged where rewinds are kept. With `side`,
+   * only that side's ships take them; with false, none do.
    */
-  allowOrders(): void;
+  allowOrders(side?: number | false): void;
+  /** The side of the ships picked out, if one side and one that may be given orders; else null. */
+  orderSide(shown: Snapshot): number | null;
+  /** Have `watcher` follow every battle shown from now, through rewinds; null for nothing. */
+  watch(watcher: Watcher | null): void;
   /** The ships picked out, by the simulation's index, the first leading. */
   readonly picked: readonly number[];
   /** The verb the next click on a ship gives, or null. */
   readonly armed: Verb | null;
   /** Arm a verb, or with null, disarm; an attack finishing on `cancelOn`. */
   arm(verb: Verb | null, cancelOn?: OrderCancelCondition): void;
+  /** How far off and how fast every attack, defence and ram given holds, however given; empty for doctrine's. */
+  held: Held;
   /** Give the armed verb, if its target is optional, with none: for doctrine to choose where. */
   nearest(append: boolean): void;
   /** Give a command to the battle now, logged. */
@@ -162,15 +177,33 @@ const PLACE_COLOUR = '#e9c05f';
 /** How many seconds of travel a drag placing a new ship gives it. */
 export const PLACE_SECONDS = 10;
 
+/**
+ * Something that follows a battle step by step, as a decision rule does, and
+ * goes back with it: told every step the view takes or re-simulates, its
+ * state kept with each checkpoint and given back when one is gone back to.
+ */
+export interface Watcher {
+  observe(battle: Battle): void;
+  save(): unknown;
+  /** Back to what `save` gave, or with undefined, to how it began. */
+  restore(saved: unknown): void;
+}
+
+/** What a checkpoint keeps of the view's own. */
+interface Kept {
+  readonly flashes: Flashes;
+  readonly watched: unknown;
+}
+
 /** What a click on a ship can be armed to tell the selection. */
-export type Verb = 'attack' | 'defend' | 'ram' | 'dock' | 'scavenge' | 'deliver';
+export type Verb = 'attack' | 'defend' | 'ram' | 'dock' | 'scavenge' | 'deliver' | 'flee';
 
 /** Verbs given to a friend rather than against an enemy. */
 const FRIENDLY: ReadonlySet<Verb> = new Set(['defend', 'dock', 'deliver']);
 /** Verbs given to a ship of either side. */
-const EITHER: ReadonlySet<Verb> = new Set(['scavenge']);
+const EITHER: ReadonlySet<Verb> = new Set(['scavenge', 'flee']);
 /** Verbs that can be given with no target, for doctrine to choose one. */
-export const ANYWHERE: ReadonlySet<Verb> = new Set(['dock', 'scavenge', 'deliver']);
+export const ANYWHERE: ReadonlySet<Verb> = new Set(['dock', 'scavenge', 'deliver', 'flee']);
 
 /**
  * `stepped` is told after every step, for whatever is judging the battle;
@@ -189,7 +222,14 @@ export function battleView(
   if (ctx === null) throw new Error('no 2d context');
 
   let battle: Battle | null = null;
-  let rewind: Rewind<Flashes> | null = null;
+  let rewind: Rewind<Kept> | null = null;
+  let watcher: Watcher | null = null;
+  /** The one side that takes orders, or null for any. */
+  let ownSide: number | null = null;
+  const orderSide = (shown: Snapshot): number | null => {
+    const side = sideOf(shown, picked);
+    return side !== null && (ownSide === null || side === ownSide) ? side : null;
+  };
   /** A step to go to, taken at the next frame, so dragging a scrub bar re-simulates once a frame at most. */
   let seeking = -1;
   const snapshot = new Snapshot();
@@ -203,6 +243,7 @@ export function battleView(
   let markedModules: { readonly ship: number; readonly modules: readonly number[] } | null = null;
   let armed: Verb | null = null;
   let armedCancel = OrderCancelCondition.CompleteDisable;
+  let held: Held = {};
   /** A box being dragged out, canvas pixels. */
   let box: { x0: number; y0: number; x1: number; y1: number } | null = null;
   let autoFrame = true;
@@ -279,6 +320,7 @@ export function battleView(
     if (battle === null) return;
     if (rewind === null) battle.step();
     else rewind.step();
+    watcher?.observe(battle);
     stepped(battle);
   };
 
@@ -310,7 +352,7 @@ export function battleView(
     {
       commanded(x, y, reach, queue) {
         const ship = shipViewAt(snapshot, x, y, reach);
-        const side = sideOf(snapshot, picked);
+        const side = orderSide(snapshot);
         if (ship === null || side === null || ship.team === NEUTRAL_TEAM) return;
         // An armed verb first: on a Mac, Ctrl and a click arrive as a right-click.
         if (armed !== null) {
@@ -337,19 +379,29 @@ export function battleView(
 
   /** The picked ships told `verb` against `target`, if that makes sense for them. */
   const order = (verb: Verb, target: ShipView, append: boolean, cancelOn: OrderCancelCondition): void => {
-    const side = sideOf(snapshot, picked);
-    if (!ordersAllowed || side === null || target.ship === undefined || target.team === NEUTRAL_TEAM) return;
+    const side = orderSide(snapshot);
+    if (!ordersAllowed || side === null || target.ship === undefined) return;
+    // Only cover is on no side.
+    if (target.team === NEUTRAL_TEAM && verb !== 'flee') return;
     // A friend is defended or docked with, and an enemy attacked or rammed.
     if (!EITHER.has(verb) && FRIENDLY.has(verb) !== (target.team === side)) return;
     const ships = picked.filter((i) => i !== target.ship);
     if (ships.length === 0) return;
-    const given: Order = verb === 'attack' ? { kind: 'attack', target: target.ship, cancelOn } : { kind: verb, target: target.ship };
+    const speed = held.speed === undefined ? {} : { speed: held.speed };
+    const given: Order =
+      verb === 'attack'
+        ? { kind: 'attack', target: target.ship, cancelOn, ...held }
+        : verb === 'defend'
+          ? { kind: 'defend', target: target.ship, ...held }
+          : verb === 'ram'
+            ? { kind: 'ram', target: target.ship, ...speed }
+            : { kind: verb, target: target.ship };
     issue({ kind: 'order', ships, order: given, append });
   };
 
   const nearest = (append: boolean): void => {
-    if (armed === null || !ANYWHERE.has(armed) || sideOf(snapshot, picked) === null) return;
-    issue({ kind: 'order', ships: picked, order: { kind: armed as 'dock' | 'scavenge' | 'deliver', target: NO_TARGET }, append });
+    if (armed === null || !ANYWHERE.has(armed) || orderSide(snapshot) === null) return;
+    issue({ kind: 'order', ships: picked, order: { kind: armed as 'dock' | 'scavenge' | 'deliver' | 'flee', target: NO_TARGET }, append });
     armed = null;
   };
 
@@ -452,13 +504,19 @@ export function battleView(
       arcs = nextArcs(arcs);
       remember();
     } else if (ordersAllowed && !event.altKey && event.key.toLowerCase() === SIDE_KEY) {
-      const side = sideOf(snapshot, picked) ?? 0;
+      const side = ownSide ?? sideOf(snapshot, picked) ?? 0;
       picked = wholeSide(snapshot, side);
-    } else if (ordersAllowed && !event.ctrlKey && !event.metaKey && picked.length > 0 && VERB_KEYS[event.key.toLowerCase()] !== undefined) {
+    } else if (
+      ordersAllowed &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      orderSide(snapshot) !== null &&
+      VERB_KEYS[event.key.toLowerCase()] !== undefined
+    ) {
       armed = VERB_KEYS[event.key.toLowerCase()]!;
       armedCancel = OrderCancelCondition.CompleteDisable;
     } else if (ordersAllowed && !event.ctrlKey && !event.metaKey && event.key.toLowerCase() === STOP_KEY && picked.length > 0) {
-      if (sideOf(snapshot, picked) !== null) issue({ kind: 'stop', ships: picked });
+      if (orderSide(snapshot) !== null) issue({ kind: 'stop', ships: picked });
     } else if (event.key === 'f' || event.key === 'F') {
       autoFrame = true;
     } else if (event.key.toLowerCase() === TEAM_SHOTS_KEY && !event.ctrlKey && !event.metaKey) {
@@ -484,6 +542,8 @@ export function battleView(
     addHits(out, on.impacts.log);
     return out;
   };
+  /** What a checkpoint keeps of the view's: its flashes, and what is watching the battle, before it sees the step. */
+  const keepNow = (on: Battle): Kept => ({ flashes: flashesNow(on), watched: watcher?.save() });
 
   const tick = (now: number): void => {
     window.requestAnimationFrame(tick);
@@ -503,13 +563,17 @@ export function battleView(
         seeking,
         (kept) => {
           if (kept === undefined) flashes.clear();
-          else flashes.set(kept);
+          else flashes.set(kept.flashes);
           flashesAt = rewind!.battle.world.tick * rewind!.battle.dt;
+          // Kept before it saw the checkpoint's own step, which it sees now.
+          watcher?.restore(kept?.watched);
+          if (rewind!.battle.world.tick > 0) watcher?.observe(rewind!.battle);
         },
         (on) => {
           flashes.step(on.dt);
           drain(on.impacts.log);
           flashesAt = on.world.tick * on.dt;
+          watcher?.observe(on);
         },
       );
       battle = rewind.battle;
@@ -616,7 +680,7 @@ export function battleView(
       // Cleared first, so the first checkpoint keeps none of the last battle's.
       flashes.clear();
       flashesAt = 0;
-      rewind = rewindable ? new Rewind(next, () => performance.now(), orders, flashesNow) : null;
+      rewind = rewindable ? new Rewind(next, () => performance.now(), orders, keepNow) : null;
       seeking = -1;
       framed = false;
       autoFrame = true;
@@ -636,8 +700,14 @@ export function battleView(
     seek(target) {
       if (rewind !== null) seeking = rewind.snap(target);
     },
-    allowOrders() {
-      ordersAllowed = true;
+    allowOrders(side) {
+      ordersAllowed = side !== false;
+      ownSide = side === undefined || side === false ? null : side;
+      if (!ordersAllowed) armed = null;
+    },
+    orderSide: (shown) => orderSide(shown),
+    watch(next) {
+      watcher = next;
     },
     get picked() {
       return picked;
@@ -648,6 +718,12 @@ export function battleView(
     arm(verb, cancelOn = OrderCancelCondition.CompleteDisable) {
       armed = ordersAllowed && picked.length > 0 ? verb : null;
       armedCancel = cancelOn;
+    },
+    get held() {
+      return held;
+    },
+    set held(next) {
+      held = next;
     },
     nearest,
     issue,

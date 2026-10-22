@@ -25,7 +25,7 @@ inside any one file is not contiguous.
 
 - **Built and tested:** deterministic maths (own transcendentals), seeded RNG,
   structure-of-arrays body store with generational handles, kick-drift-kick leapfrog
-  integrator, gravity wells, state checksums, a uniform-grid spatial index with segment
+  integrator, gravity wells — fixed, or moved on rails as a hierarchy of two-body Kepler orbits (`sim/rails.ts`, the Binary scene) — state checksums, a uniform-grid spatial index with segment
   and circle queries, swept-segment projectiles with impact reporting, per-blueprint
   engine allocation, kinematic turrets with lead and traverse arcs, parametric modules
   with their scaling laws, blueprint compilation — mass properties, engine layout
@@ -40,12 +40,16 @@ inside any one file is not contiguous.
   bending them — with pause, single-step, a scrub bar to wind it back and on, a speed from a quarter to sixteen times, and zoom and pan over an
   auto-framing camera, by mouse or by touch (pinch to zoom). A ship clicked or tapped is picked out — ringed, a line to what it is fighting with how far off it is written upright on the line just past its ring — or, while it is shown in a window, just outside the window on the side facing its target, clear of the target's — so the figure stays with the ship and in frame while it is, every arc and
   where its guns will fire drawn for it alone, whatever A is set to, and framed with its target — until Escape or a tap on empty space; on the evolution page's battles too. Where it or its target is off screen, or under 16 px across, it is shown close up in a window of its own over the view, sized by its ship at one zoom for every window — so the two are drawn to scale, a Gunship's about 150 px and a Corvette's under half that — between 64 and 240 px: over the ship if it is on screen, against the edge it is beyond if not, with a pointer towards it, the picked ship's window framed solid and its target's dashed, with how far the target is from it. Clicking a window picks its ship and frames it. Each side's ships are shown live down the view's edges, a tile each by a camera of its own — the even sides on the left, the odd on the right, a side's fighters of one design sharing a tile that shows the best armed of them and how many there are, smaller tiles and then a count of the rest when a side has more than fit — and a click on a tile picks and frames its ship; T hides and shows them, remembered with A and C, and the view frames between them. Ships well out of a view are not drawn, so a window costs little. Rounds and beams are drawn as light, or with C in the colours of the side that
-  fired them, which the evolution page starts with. A, C and the speed are remembered by each page between visits. Every page's keys and mouse are a table behind the Keys button in its footer, or `?`, rather than a paragraph there. A ship's name — its side and which of that side's
-  ships it is, as "Red 5" — is written along each of its working cores, turning and growing with the hull as
-  paint on it would, once the core is big enough on screen to carry it; a piece broken off keeps its ship's. A ship with more than one core numbers each by which core
-  of the design it set out as it is ("Red 5.1", "Red 5.2"), and cut between them, each ship it becomes is
-  named for the core it is flown from, so a Catamaran's halves are "Red 5.1" and "Red 5.2", and once one
-  has rebuilt the other's core, its own two are "Red 5.1.1" and "Red 5.1.2". **The camera carries itself along with what it is watching rather
+  fired them, which the evolution page starts with. A, C and the speed are remembered by each page between visits. Every page's keys and mouse are a table behind the Keys button in its footer, or `?`, rather than a paragraph there. **A core's name is painted on
+  it when it is built, and never changes**: its builder's side and which of that side's ships the builder is,
+  as "Red 5", numbered by which core of the builder's design it is where that design has more than one
+  ("Red 5.1", "Red 5.2"). Being paint, it turns and grows with the hull, is written once the core is big
+  enough on screen to carry it, and stays however battered the core, whoever now flies it, and wherever a cut
+  takes it. A ship is named for the core it is flown from, so a Catamaran's halves are "Red 5.1" and
+  "Red 5.2", and once "Red 5.1" has rebuilt its other half, the core it built reads "Red 5.1.2" beside its
+  own "Red 5.1". **A core carries a status light**, in its aft corner beside its generator disc where it
+  has one: lit in a gun's ready green while it flies anything, dark once damage has put it out, since a core
+  stops working well before it is wreckage and its fading colour gives no step at that point. **The camera carries itself along with what it is watching rather
   than easing after it**, weighting the ships in shot by radius so a fleet action is steered
   by the capital in it; it falls back from the ships still under control to the hulks and then
   to the wreckage, so a fight that ends with every core shot out is still followed; and it
@@ -563,8 +567,9 @@ inside any one file is not contiguous.
   same opponent again carries on from what was measured, fighting only generations closed since. **Settings are a file.** A run is decided entirely by its seed and its
   configuration, so those few numbers are the whole record of what was tried: they are written out and read
   back as JSON, by the page and by `npm run evolve` alike, so an experiment can be kept beside its result,
-  sent to somebody, or designed on the page and then fought overnight headlessly. A founder is a stock ship
-  by name or a blueprint file by its path, since a ship saved on the page lives in a browser. Every field is optional
+  sent to somebody, or designed on the page and then fought overnight headlessly. Founders are embedded whole, a
+  blueprint or fleet file each, so the file is the whole experiment wherever it is opened; importing one on the
+  page saves any founder the library lacks, beside a different design of the same name rather than over it. Every field is optional
   and anything left out is the default, angles are degrees as they are in a blueprint file, and no limit is
   `null` because JSON has no infinity.
   **A budget is the three things a ship costs** (`sim/bill.ts`, §2): **metal**, its hull and fittings and the
@@ -684,12 +689,17 @@ inside any one file is not contiguous.
   since fitness against a moving opponent cannot say whether either is improving.
   **The evolution page is two screens**: setting a run up, with every setting laid out across the width
   beside the founders it would start from, and watching it, with the charts, the combatants and the matches;
-  Start moves from the first to the second, and the header goes between them. **Side A is on the left and
+  Start moves from the first to the second, and the header goes between them. **Open run** shows a run
+  `npm run evolve` wrote, from its `.run.json`, on the second screen as a finished run — charts, combatants
+  and matches, each match fought again from its seed — except a side B that did not evolve, whose designs
+  the file does not hold. Each combatant's score says how many of the matches it fought it won outright,
+  drills aside, a whole side winning where there are sides. **Side A is on the left and
   side B on the right throughout**: the shared settings above, then each side's founders, then every
   per-side setting written once as a row with A's box and B's beside it. Picking side B's founders makes a
   run co-evolve, and side B's boxes follow side A's until one of them is changed; unticking "side B evolves"
   makes side B its founders throughout, a fixed opponent to be bred against. Where both sides evolve the
-  charts go by round rather than generation, each side holding where it was through the other's round, and
+  charts go by generation of whichever side is being bred, each side holding where it was through the other's
+  round, so a long round shows as it is fought and which side is evolving is the one whose lines move; and
   the score chart goes (every score there is against a side that is improving too); against a fixed side B
   they go by generation and the score chart stays. The chart under it, in every run, can show **how far apart
   the scores are** in place of size — the middle half and best to worst on the left, how many tied on the
@@ -1038,15 +1048,22 @@ inside any one file is not contiguous.
   damage shedding mass, pads mending landed fighters, robots mending their own hull, lost and built anew,
   lost modules rebuilt by robots and by pads, and robots taking wreckage apart into metal, with doctrine that
   sends a fighter in to be mended and a ship out to wrecks for their metal, flown by the stock Salvager.
-  In-battle construction (§8 step 12) and harvesting wrecks (step 13) are built on it. What comes next is
-  orders (step 14): telling ships what to do mid-battle, from the paused battle. Its first three slices are
-  built: rewinding the viewer's battle from checkpoints; attack, defend and ram given to picked-out ships by
-  right-click or an order bar, logged so a rewind or a link replays them; and docking, scavenging and
-  delivering as orders, with doctrine, build counts and remodelling as settings beside them, from a doctrine
-  panel and a design picker. For trying things out, the viewer can also add a ship from the library to any
-  side mid-battle (Add ship: press where it goes, drag for how fast), logged as a command as orders are. Its
-  next slice, running away, is outlined and waits to be grilled before it is
-  built (ROADMAP.md step 14).
+  In-battle construction (§8 step 12) and harvesting wrecks (step 13) are built on it. So are orders
+  (step 14), built in full: telling ships what to do mid-battle, from the paused battle. The viewer's battle
+  can be wound back from checkpoints. Picked-out ships are told by right-click or an order bar, and the
+  orders are logged so a rewind or a link replays them: attack, defend and ram, each with a distance and
+  speed over doctrine's if told; dock, scavenge and deliver; and Flee (W, or Enter for every enemy), running
+  from every armed enemy, from one, or hiding behind a friend or wreck until told otherwise. Doctrine, build
+  counts and remodelling are settings beside them, from a doctrine panel and a design picker. Under doctrine
+  a ship withdraws at `fleeArmed` of what it fights or works with, or with nothing to fight or work with
+  while an armed enemy is about, hiding within `hideRange` or fleeing. The skirmish's rounds take orders
+  too, for the player's ships, and can be wound back; its enemy still answers the fleet as doctrine flies
+  it, by a margin. For trying things out, the viewer can also add a ship from the library to any side
+  mid-battle (Add ship: press where it goes, drag for how fast), a sandbox tool no game mode offers. What
+  is left of orders is in ROADMAP.md §12. Mining (step 15) is begun: wells move on rails, and an asteroid's
+  `kernel`, an indestructible convex polygon on no side, rides one on a pinned body (the Kernels scene); round it
+  are rings of rock wedges, each a share ore and ice, drawn with minors from a seed into a battle's map,
+  clear of the ships (the Asteroid Field scene). What is left is in ROADMAP.md §8.
   Alongside it, §8 step 5's skirmish: an endless loop against an enemy fleet that evolves to beat the
   player's, planned in ROADMAP.md §8. Evolution keeps the skirmish's sense of quiet, though it plays a match on until every side is quiet before naming a winner. Its loop is built without the evolving enemy (`dist/skirmish.html`,
   `scenarios/skirmish.ts`): pick a stock enemy, whose bill is the budget unless the player sets their own, under a limit on ships and spread (20 and 500 m unless set, or what the enemy fields if more), each round's gap and starting speeds drawn from optional ± spreads on its seed; fight a fixed round, decided by
@@ -1070,7 +1087,7 @@ inside any one file is not contiguous.
   side stamped victory, defeat or draw, runs one side lost folded away, and any match can be watched again or either fleet saved
   or exported. **Its numbers are the player's to set**, on a setup screen like the evolution page's before
   a skirmish starts: the round's quiet time, time cap, gap and starting speeds, the answer's mutants,
-  matches, match length and growth, and the ship, fleet and doctrine mutation odds the enemy is bred with,
+  matches, match length, growth and the margin it must win by, and the ship, fleet and doctrine mutation odds the enemy is bred with,
   remembered for the next skirmish, kept with this one so it is played out under those it started with,
   and put back with *Reset to defaults*, which the evolution page has too. The mutation fields are written
   once (`evolution/mutationFields.ts`) and both pages draw them. *Export* saves the setup, the skirmish under way and its whole

@@ -1,5 +1,5 @@
 import { abs, cos, max, min, sin, sqrt } from './math.js';
-import { triangleOf } from './shape.js';
+import { shapeOf } from './shape.js';
 import type { DesignModule, ShipDesign } from './blueprint.js';
 import type { Bodies } from './bodies.js';
 import type { Rng } from './rng.js';
@@ -170,7 +170,7 @@ export function modulesAlong(
   for (let i = 0; i < design.modules.length; i++) {
     const m = design.modules[i]!;
     if (i === skip || (moduleLayers(m, bodyLayers) & layers) === 0) continue;
-    const triangle = triangleOf(m.spec);
+    const triangle = shapeOf(m.spec);
     if (triangle !== null) {
       shapedModuleAlong(m, triangle, i, x0, y0, ux, uy, length, out);
       continue;

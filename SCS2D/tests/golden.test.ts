@@ -28,6 +28,9 @@ const GOLDEN: Record<ScenarioName, string> = {
   gunnery: 'b2054d50',
   duel: 'f5558b88',
   beamDuel: '49f26cc5',
+  binary: '1bf85068',
+  kernels: 'aa446446',
+  asteroidField: 'd1dbbd67',
   swarm: '7fcf2b1d',
   superSwarm: 'b081dd09',
   torpedoes: '7691d858',
@@ -48,7 +51,7 @@ const GOLDEN: Record<ScenarioName, string> = {
   shipyard: '4b069157',
   rearm: 'eabb6b14',
   tanker: '45156e17',
-  beamCarrier: 'd4e1f07d',
+  beamCarrier: 'ba5b7cc7',
   passes: '816d4617',
   circling: '17cb902a',
 };

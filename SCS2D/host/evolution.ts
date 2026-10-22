@@ -1,5 +1,5 @@
 import { BATTLE_KEYS, keyHelp } from './keyHelp.js';
-import { capture, serialiseFleet, Snapshot, type Fleet } from '../sim/index.js';
+import { capture, serialiseBlueprint, serialiseFleet, Snapshot, type Blueprint, type Fleet } from '../sim/index.js';
 import { Flashes } from '../render/flashes.js';
 import {
   ARCS_KEY,
@@ -22,7 +22,7 @@ import type { Inset } from '../render/inset.js';
 import { shipColours } from '../render/teams.js';
 import { drawChart, indexAt, xOf, type ChartLayout, type Series } from '../render/chart.js';
 import { easeScale, fitScale, frame, moveWithVisibleShips, selectionBounds, shipAt, type Camera } from '../render/camera.js';
-import { BUILT_IN, FLEET_FILES, Library, toFileText } from '../editor/library.js';
+import { BUILT_IN, FLEET_FILES, Library, nextName, toFileText } from '../editor/library.js';
 import { drawCentred, formationSnapshot, kindSnapshot, pictureOf as pictureOfFleet, type Picture, type ShipKind } from './fleetPicture.js';
 import { fitness, type Generation } from '../evolution/generation.js';
 import { DEFAULT_MATCH, isFleet, Match, type Entrant, type MatchConfig } from '../evolution/match.js';
@@ -57,6 +57,7 @@ import {
   type MatchRecord,
   type RunConfig,
 } from '../evolution/run.js';
+import { parseRunRecord, RecordedRun, winsIn } from '../evolution/recorded.js';
 import { el } from './dom.js';
 import { viewGestures } from './viewGestures.js';
 import { keepSpeed, loadView, saveView } from './viewSettings.js';
@@ -265,14 +266,15 @@ const FIELDS = [
 ] as const;
 
 /**
- * One point along a run: a generation, or a round in a co-evolution run
- * whose sides take turns. Which generation of each side it shows, by index,
- * -1 for none, and the side that was bred.
+ * One point along a run: a generation of whichever side was bred. Which
+ * generation of each side it shows, by index, -1 for none, the side that was
+ * bred, and the round, in a co-evolution run whose sides take turns.
  */
 interface Point {
   readonly a: number;
   readonly b: number;
   readonly side: 0 | 1;
+  readonly round?: number;
 }
 
 /** One line of the results table, from a finished generation or a live one. */
@@ -291,6 +293,8 @@ interface Row {
   readonly mass: number;
   readonly edits: readonly string[];
   readonly entrant: Entrant;
+  /** Matches it won of those it fought in the generation on show, drills aside. */
+  readonly wins?: { readonly won: number; readonly fought: number };
 }
 
 /**
@@ -373,7 +377,7 @@ interface Tile {
   readonly parts: readonly HTMLElement[];
   /** The score itself, above the export button in the same cell. */
   readonly figure: HTMLElement;
-  /** Matches fought of those owed, while any are still owed. */
+  /** Matches fought of those owed while any are still owed, then matches won. */
   readonly count: HTMLElement;
   readonly canvases: readonly HTMLCanvasElement[];
   readonly formation: HTMLCanvasElement;
@@ -609,7 +613,10 @@ export function startEvolution(): void {
   /** Whether side B has settings of its own, rather than following side A's. */
   let rivalOwn = false;
 
-  let run: Run | Coevolution | null = null;
+  let run: Run | Coevolution | RecordedRun | null = null;
+  /** Whether a run has two sides: a co-evolution run, live or read from a file. */
+  const twoSided = (of: typeof run): of is Coevolution | (RecordedRun & { coevolution: CoevolutionConfig }) =>
+    of instanceof Coevolution || (of instanceof RecordedRun && of.coevolution !== null);
   /** Before a run: the founders as chosen, and the first match they would fight, paused at its start. */
   let previewRows: Row[] = [];
   let previewMatch: Match | null = null;
@@ -906,6 +913,20 @@ export function startEvolution(): void {
   benchmarkSelect.append(new Option('its own final design', OWN_FINAL));
   fillList(benchmarkSelect, (_, name) => name);
 
+  /** The lists again, from the library as it now is, keeping what was chosen. */
+  const refillLists = (): void => {
+    for (const [select, label] of [
+      [foundersSelect, (stock: boolean, name: string) => (stock ? name : `${name} (saved)`)],
+      [versusSelect, (stock: boolean, name: string) => (stock ? name : `${name} (saved)`)],
+      [benchmarkSelect, (_: boolean, name: string) => name],
+    ] as const) {
+      const chosen = new Set([...select.selectedOptions].map((option) => option.value));
+      for (const group of [...select.querySelectorAll('optgroup')]) group.remove();
+      fillList(select, label);
+      for (const option of select.options) option.selected = chosen.has(option.value);
+    }
+  };
+
   /** Whether a fleet is among the founders, which makes it a run of fleets. */
   const fleetRun = (): boolean =>
     [...foundersSelect.selectedOptions, ...versusSelect.selectedOptions].some((o) => pickOf(o.value).kind === 'fleet') ||
@@ -1002,33 +1023,21 @@ export function startEvolution(): void {
 
   /** Everything the form says, as a run's settings. */
   const readSetup = (): RunSetup => {
-    const picked = [...foundersSelect.selectedOptions].map((option) => pickOf(option.value));
     const name = inputs.configName.value.trim();
     return {
       ...(name === '' ? {} : { name }),
-      founders: picked.filter((p) => p.kind === 'ship').map((p) => p.name),
-      fleets: picked.filter((p) => p.kind === 'fleet').map((p) => p.name),
-      versus: coRun() ? { ...versusNames(), coevolution: coevolutionSettings() } : null,
+      ...designsOf(chosenFounders()),
+      versus: coRun() ? { ...designsOf(chosenVersus()), coevolution: coevolutionSettings() } : null,
       config: { ...DEFAULT_RUN, ...configure() },
     };
   };
 
-  /** Side B's founders, by name, as a config file holds them. */
-  const versusNames = (): { founders: string[]; fleets: string[] } => {
-    const picked = [...versusSelect.selectedOptions].map((option) => pickOf(option.value));
-    return {
-      founders: picked.filter((p) => p.kind === 'ship').map((p) => p.name),
-      fleets: picked.filter((p) => p.kind === 'fleet').map((p) => p.name),
-    };
-  };
+  /** One side's founders, split as a config file holds them. */
+  const designsOf = (entrants: readonly Entrant[]): { founders: Blueprint[]; fleets: Fleet[] } => ({
+    founders: entrants.filter((entrant): entrant is Blueprint => !isFleet(entrant)),
+    fleets: entrants.filter(isFleet),
+  });
 
-  /**
-   * Put a setup into the form.
-   *
-   * A ship the library does not have is dropped rather than refused: a config
-   * is worth reading for its numbers even when it names somebody else's ship,
-   * and what is missing is visible in the founders list.
-   */
   /** Put one side's own settings into its inputs: side A's, or with `get` side B's. */
   const writeSide = (get: (name: SideField) => HTMLInputElement, config: RunConfig): void => {
     const kinds: KindWeights = { ...DEFAULT_KINDS, ...config.mutation.kinds };
@@ -1086,8 +1095,46 @@ export function startEvolution(): void {
     get('doctrineGunnery').value = String(doctrine.gunnery);
   };
 
-  const applySetup = (setup: RunSetup): void => {
+  /**
+   * A founder from a settings file, as the library holds it: the copy under its
+   * name if that is the same design, else saved, under the next free name if
+   * its own holds a different one. Its option's value; a renaming is said in
+   * `renamed`.
+   */
+  const adopt = (entrant: Entrant, renamed: string[]): string => {
+    const fleet = isFleet(entrant);
+    const shelf: Library<Blueprint> | Library<Fleet> = fleet ? fleetLibrary : library;
+    const text = (e: Entrant): string => JSON.stringify(isFleet(e) ? serialiseFleet(e) : serialiseBlueprint(e));
+    let name = entrant.name;
+    for (;;) {
+      let kept: Entrant | null | undefined;
+      try {
+        kept = shelf.load(name);
+      } catch {
+        // Unreadable: taken, and not to be saved over.
+        kept = undefined;
+      }
+      const named = { ...entrant, name };
+      if (kept === null) {
+        if (isFleet(named)) fleetLibrary.save(named);
+        else library.save(named);
+        break;
+      }
+      if (kept !== undefined && text(kept) === text(named)) break;
+      name = nextName(name);
+    }
+    if (name !== entrant.name) renamed.push(`"${entrant.name}" as "${name}"`);
+    return valueOf(fleet ? 'fleet' : 'ship', name);
+  };
+
+  /** Put a setup into the form, its founders into the library. What was saved under another name. */
+  const applySetup = (setup: RunSetup): string[] => {
     const config = setup.config;
+    const renamed: string[] = [];
+    const founders = [...setup.founders, ...(setup.fleets ?? [])].map((entrant) => adopt(entrant, renamed));
+    const versus = setup.versus ?? null;
+    const rivals = new Set([...(versus?.founders ?? []), ...(versus?.fleets ?? [])].map((entrant) => adopt(entrant, renamed)));
+    refillLists();
     const match: MatchConfig = { ...DEFAULT_MATCH, ...config.match };
     inputs.configName.value = setup.name ?? '';
     inputs.seed.value = String(config.seed);
@@ -1109,12 +1156,10 @@ export function startEvolution(): void {
     inputs.raceWeight.value = String(match.weights.race);
     writeSide((name) => inputs[name], config);
     goalInput.value = match.goal === null ? 'none' : match.goal.solid === false ? 'ghost' : 'solid';
-    const fleets = setup.fleets ?? [];
-    if (setup.founders.length + fleets.length > 0) {
-      const named = new Set([...setup.founders.map((name) => valueOf('ship', name)), ...fleets.map((name) => valueOf('fleet', name))]);
+    if (founders.length > 0) {
+      const named = new Set(founders);
       for (const option of foundersSelect.options) option.selected = named.has(option.value);
     }
-    const versus = setup.versus ?? null;
     const coevolution = versus?.coevolution ?? DEFAULT_COEVOLUTION;
     // Side B's column in full: side A's settings, with whatever the file set apart for it.
     rivalOwn = Object.keys(coevolution.rival).length > 0;
@@ -1125,14 +1170,11 @@ export function startEvolution(): void {
     inputs.phaseCap.value = String(coevolution.phaseCap);
     inputs.shieldedDrills.value = String(coevolution.shieldedDrills);
     inputs.bareCoreDrills.value = String(coevolution.bareCoreDrills);
-    const rivals = new Set([
-      ...(versus?.founders ?? []).map((name) => valueOf('ship', name)),
-      ...(versus?.fleets ?? []).map((name) => valueOf('fleet', name)),
-    ]);
     // Side B as the file has it, which for a run of one is nobody.
     for (const option of versusSelect.options) option.selected = rivals.has(option.value);
     showFleetSettings();
     saveSetup();
+    return renamed;
   };
 
   el<HTMLButtonElement>('exportConfig').addEventListener('click', () => {
@@ -1147,9 +1189,10 @@ export function startEvolution(): void {
     if (chosen === undefined) return;
     void chosen.text().then((text) => {
       let warnings: string[];
+      let renamed: string[];
       try {
         const value: unknown = JSON.parse(text);
-        applySetup(parseRunConfig(value));
+        renamed = applySetup(parseRunConfig(value));
         warnings = runConfigWarnings(value);
       } catch (error) {
         window.alert(`Could not read those settings.\n\n${error instanceof Error ? error.message : error}`);
@@ -1158,7 +1201,11 @@ export function startEvolution(): void {
       // Read anyway: a key nothing reads is said, not refused.
       readout.className = warnings.length > 0 ? 'warn' : '';
       notice =
-        'Settings read from a file. Press Start when you are ready.' + (warnings.length > 0 ? ` Not read: ${warnings.join('; ')}.` : '');
+        'Settings read from a file. Press Start when you are ready.' +
+        (renamed.length > 0
+          ? ` Founders that differ from the ones of the same name here are kept under other names: ${renamed.join(', ')}.`
+          : '') +
+        (warnings.length > 0 ? ` Not read: ${warnings.join('; ')}.` : '');
       readout.textContent = notice;
     });
     // Cleared so that choosing the same file twice is two imports rather
@@ -1599,8 +1646,14 @@ export function startEvolution(): void {
 
     tile.figure.textContent = row.id < 0 ? '' : row.matches > 0 ? row.fitness.toFixed(3) : '—';
     const owed = run?.config.minMatches ?? 0;
-    tile.count.textContent = row.id >= 0 && row.matches < owed ? `${row.matches}/${owed}` : '';
-    score.title = row.id < 0 ? '' : `${row.matches} match${row.matches === 1 ? '' : 'es'} fought`;
+    const wins = row.wins;
+    tile.count.textContent =
+      row.id < 0 ? '' : row.matches < owed ? `${row.matches}/${owed}` : wins !== undefined ? `won ${wins.won}/${wins.fought}` : '';
+    score.title =
+      row.id < 0
+        ? ''
+        : `${row.matches} match${row.matches === 1 ? '' : 'es'} fought` +
+          (wins === undefined ? '' : `, ${wins.won} of ${wins.fought} won outright, drills aside`);
 
     for (const [i, part] of tile.parts.entries()) {
       // A dash rather than a row of zeroes for a design that has not fought:
@@ -1810,29 +1863,28 @@ export function startEvolution(): void {
   };
 
   /** Whether the run is a co-evolution run whose sides take turns, so it goes in rounds. */
-  const inRounds = (): boolean => run instanceof Coevolution && run.alternates;
-  /** What a point along the run is called: a round, or a generation. */
-  const unit = (): string => (inRounds() ? 'round' : 'generation');
+  const inRounds = (): boolean => twoSided(run) && run.alternates;
 
-  /** Which side was bred at a point along the run, as "side A evolving", in a co-evolution run; else empty. */
+  /** Which side was bred at a point along the run, as "round 2, side B evolving", in a co-evolution run; else empty. */
   const evolving = (at: number): string => {
-    if (!(run instanceof Coevolution)) return '';
+    if (!twoSided(run)) return '';
     if (!run.alternates) return 'side A evolving';
-    // Past the closed points is the round being fought.
-    const side = timeline()[at]?.side ?? run.turn;
-    return `side ${side === 0 ? 'A' : 'B'} evolving`;
+    // Past the closed points is the generation being fought.
+    const point = timeline()[at];
+    const side = point?.side ?? run.turn;
+    return `round ${(point?.round ?? run.round) + 1}, side ${side === 0 ? 'A' : 'B'} evolving`;
   };
   /** A point's name, with the side bred in it where there are sides. */
-  const pointLabel = (at: number): string => [`${unit()} ${at + 1}`, evolving(at)].filter((part) => part !== '').join(' · ');
+  const pointLabel = (at: number): string => [`generation ${at + 1}`, evolving(at)].filter((part) => part !== '').join(' · ');
 
   /**
-   * The run's points so far, closed ones only: a generation each, or in a run
-   * whose sides take turns a round each, with the generation of each side on
-   * show at the end of it (-1 for a side with none yet) and the side bred.
+   * The run's closed generations so far, a point each: in a run whose sides
+   * take turns, both sides' in the order they were bred, each with the
+   * generation of the other side on show then (-1 for a side with none yet).
    */
   const timeline = (): Point[] => {
     if (run === null) return [];
-    if (!(run instanceof Coevolution) || !run.alternates) return run.generations.map((_, g) => ({ a: g, b: -1, side: 0 }));
+    if (!twoSided(run) || !run.alternates) return run.generations.map((_, g) => ({ a: g, b: -1, side: 0 }));
     const points: Point[] = [];
     const a = run.generations;
     const b = run.rivalGenerations;
@@ -1843,15 +1895,9 @@ export function startEvolution(): void {
       const nextA = a[ai + 1]?.round ?? Infinity;
       const nextB = b[bi + 1]?.round ?? Infinity;
       const side: 0 | 1 = nextA <= nextB ? 0 : 1;
-      const list = side === 0 ? a : b;
-      let at = side === 0 ? ai : bi;
-      const round = list[at + 1]!.round;
-      while (list[at + 1]?.round === round) at++;
-      if (side === 0) ai = at;
-      else bi = at;
-      // A round still being fought has no point yet.
-      if (!run.done && round === run.round) break;
-      points.push({ a: ai, b: bi, side });
+      if (side === 0) ai++;
+      else bi++;
+      points.push({ a: ai, b: bi, side, round: side === 0 ? nextA : nextB });
     }
     return points;
   };
@@ -1868,7 +1914,7 @@ export function startEvolution(): void {
     const newest = run.done ? closed - 1 : closed;
     const index = wanted < 0 ? newest : Math.min(wanted, newest);
     if (index < 0) return empty;
-    if (run instanceof Coevolution) {
+    if (twoSided(run)) {
       const co = run;
       // A side not bred yet shows its hall, its founders, which is what the other side is fighting.
       const sideRows = (k: 0 | 1, at: number): Row[] => {
@@ -1890,7 +1936,8 @@ export function startEvolution(): void {
           entrant: champion.entrant,
         }));
       };
-      if (index >= closed) {
+      // A run read from a file is over, so it has nothing being bred.
+      if (index >= closed && run instanceof Coevolution) {
         // The side being bred live, the other as it last was.
         const turn = run.turn;
         const last = points[closed - 1];
@@ -1904,7 +1951,7 @@ export function startEvolution(): void {
       const bred = point.side === 0 ? run.generations[point.a]! : run.rivalGenerations[point.b]!;
       return { index, rows: [...sideRows(0, point.a), ...sideRows(1, point.b)], matches: bred.matches };
     }
-    if (index >= closed) return { index, rows: liveRows(run.living), matches: run.played };
+    if (index >= closed && run instanceof Run) return { index, rows: liveRows(run.living), matches: run.played };
     const record = run.generations[index]!;
     return { index, rows: recordRows(record), matches: record.matches };
   };
@@ -1949,13 +1996,13 @@ export function startEvolution(): void {
   const entrantById = (id: number): Entrant | null => {
     if (run === null) return null;
     if (id < 0) return BARE_CORE;
-    if (run instanceof Coevolution) {
+    if (twoSided(run)) {
       for (const side of [0, 1] as const) {
         const champion = run.hall(side).find((each) => each.id === id);
         if (champion !== undefined) return champion.entrant;
       }
     }
-    const lists = run instanceof Coevolution ? [run.generations, run.rivalGenerations] : [run.generations];
+    const lists = twoSided(run) ? [run.generations, run.rivalGenerations] : [run.generations];
     for (const generations of lists) {
       for (let g = generations.length - 1; g >= 0; g--) {
         const found = generations[g]!.individuals.find((individual) => individual.id === id);
@@ -1994,6 +2041,11 @@ export function startEvolution(): void {
     }
     // One is enough: a match of one ship is a run's test of its piloting.
     if (entrants.length === 0 || run === null) return;
+    if (entrants.length < record.competitors.length) {
+      // Only a run read from a file can lack a design: a side B that did not evolve is not in it.
+      watchingLabel.textContent = "can't fight that again: the run file does not hold every design in it";
+      return;
+    }
     const match = run.config.match;
     const teams = record.teams !== undefined && record.teams.length === entrants.length ? record.teams : null;
     watchReplay(new Match(entrants, { ...match, seed: record.seed }, teams, record.invulnerable ?? []), record, record.competitors, null);
@@ -2015,7 +2067,15 @@ export function startEvolution(): void {
 
   const refresh = (): void => {
     const { index, rows, matches } = showing();
-    if (modeSelect.value !== 'battle') showFleet(rows);
+    if (modeSelect.value !== 'battle') {
+      const wins = winsIn(matches);
+      showFleet(
+        rows.map((row) => {
+          const of = wins.get(row.id);
+          return of === undefined ? row : { ...row, wins: of };
+        }),
+      );
+    }
 
     shownGeneration.textContent = run === null ? '—' : String(index + 1);
     // Whether what is on show is the generation still being fought, which is
@@ -2082,11 +2142,11 @@ export function startEvolution(): void {
     // dashed. In a co-evolution run each side takes its team's colours, its
     // hull colour for mass and its trim for ships.
     // A value a point, each side at the generation it shows there: in a run
-    // whose sides take turns, the one not bred in a round holds where it was.
+    // whose sides take turns, the one not being bred holds where it was.
     const along = timeline();
     const atPoints = (k: 0 | 1): (GenerationRecord | undefined)[] => {
       if (run === null) return [];
-      const list = k === 0 ? run.generations : run instanceof Coevolution ? run.rivalGenerations : [];
+      const list = k === 0 ? run.generations : twoSided(run) ? run.rivalGenerations : [];
       return along.map((point) => list[k === 0 ? point.a : point.b]);
     };
     const each = <T>(records: (GenerationRecord | undefined)[], read: (g: GenerationRecord) => T): (T | undefined)[] =>
@@ -2098,7 +2158,7 @@ export function startEvolution(): void {
       mass: string;
       ships: string;
     }[] = (
-      run instanceof Coevolution
+      twoSided(run)
         ? [
             { label: 'A ', records: atPoints(0), mass: teamColour(0), ships: shipColours(0).trim },
             { label: 'B ', records: atPoints(1), mass: teamColour(1), ships: shipColours(1).trim },
@@ -2345,10 +2405,16 @@ export function startEvolution(): void {
     }
     readout.className = '';
     const rivals = chosenVersus();
-    run =
+    begin(
       rivals.length > 0
         ? new Coevolution(founders, rivals, readSetup().config, coevolutionSettings())
-        : new Run(founders, readSetup().config);
+        : new Run(founders, readSetup().config),
+    );
+  });
+
+  /** Put a run on show from its start, forgetting everything about the last. */
+  const begin = (next: Run | Coevolution | RecordedRun): void => {
+    run = next;
     previewMatch = null;
     if (previewTimer !== null) clearTimeout(previewTimer);
     previewRows = [];
@@ -2373,9 +2439,38 @@ export function startEvolution(): void {
     fleetScale = 0;
     formationScale = 0;
     setPaused(false);
-    pauseButton.disabled = false;
-    stopButton.disabled = false;
+    pauseButton.disabled = next.done;
+    stopButton.disabled = next.done;
     refresh();
+  };
+
+  /**
+   * Open a run fought by `npm run evolve` from the file it wrote, and show it
+   * as a finished run: its charts, its generations and its matches, any of
+   * which can be fought again from the seed it records.
+   */
+  const runFile = el<HTMLInputElement>('openRunFile');
+  el<HTMLButtonElement>('openRun').addEventListener('click', () => runFile.click());
+  runFile.addEventListener('change', () => {
+    const chosen = runFile.files?.[0];
+    if (chosen === undefined) return;
+    void chosen.text().then((text) => {
+      let opened: RecordedRun;
+      try {
+        opened = new RecordedRun(parseRunRecord(JSON.parse(text)));
+      } catch (error) {
+        window.alert(`Could not read that run.\n\n${error instanceof Error ? error.message : error}`);
+        return;
+      }
+      begin(opened);
+      const fought = opened.generations.length + opened.rivalGenerations.length;
+      notice =
+        `${chosen.name}: ${fought} of ${opened.config.generations} generations` +
+        `${fought < opened.config.generations ? ', stopped early' : ''}. Pick a match to fight it again.`;
+      toRunButton.disabled = false;
+      showScreen('run');
+    });
+    runFile.value = '';
   });
   pauseButton.addEventListener('click', () => setPaused(!paused));
   stopButton.addEventListener('click', () => {
@@ -2652,18 +2747,17 @@ export function startEvolution(): void {
           : `${previewRows.length} founders, unmutated`;
       return;
     }
-    const done = run.generations.length + (run instanceof Coevolution ? run.rivalGenerations.length : 0);
+    const done = run.generations.length + (twoSided(run) ? run.rivalGenerations.length : 0);
     const total = run.config.generations;
-    stateLabel.textContent = run.done ? 'finished' : paused ? 'paused' : 'running';
+    stateLabel.textContent = run instanceof RecordedRun ? 'from a file' : run.done ? 'finished' : paused ? 'paused' : 'running';
     pauseButton.disabled = run.done;
     barFill.style.width = `${(run.progress * 100).toFixed(1)}%`;
     let fought = 0;
     for (const generation of run.generations) fought += generation.matches.length;
-    if (run instanceof Coevolution) for (const generation of run.rivalGenerations) fought += generation.matches.length;
+    if (twoSided(run)) for (const generation of run.rivalGenerations) fought += generation.matches.length;
     fought += run.done ? 0 : run.played.length;
     // Whose turn it is, in a run whose sides take turns.
-    const turn =
-      run instanceof Coevolution && run.alternates && !run.done ? `round ${run.round + 1}, side ${run.turn === 0 ? 'A' : 'B'} · ` : '';
+    const turn = twoSided(run) && run.alternates && !run.done ? `round ${run.round + 1}, side ${run.turn === 0 ? 'A' : 'B'} · ` : '';
     readout.textContent =
       notice !== ''
         ? notice

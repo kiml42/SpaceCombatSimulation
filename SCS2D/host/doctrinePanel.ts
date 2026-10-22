@@ -13,7 +13,7 @@ import {
 } from '../sim/index.js';
 import { MOUNT_SECTIONS, SHIP_SECTIONS, type DoctrineEntry } from '../editor/doctrine.js';
 import { choices, type Choice } from './designChoices.js';
-import { mountAt, sideOf, viewOf } from '../render/picking.js';
+import { mountAt, viewOf } from '../render/picking.js';
 import type { BattleView } from './battleView.js';
 import { el } from './dom.js';
 
@@ -328,7 +328,7 @@ export function doctrinePanel(view: BattleView): { update(shown: Snapshot): void
 
   const update = (shown: Snapshot): void => {
     last = shown;
-    const side = sideOf(shown, view.picked);
+    const side = view.orderSide(shown);
     toggle.hidden = side === null;
     panel.hidden = !open || side === null;
     if (panel.hidden) {

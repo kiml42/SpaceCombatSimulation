@@ -96,11 +96,15 @@ export const ORDER_KEYS: readonly KeyRow[] = [
   { keys: 'A', does: "Pick the picked ship's whole side" },
   {
     keys: 'Right-click a ship',
-    does: 'Order the picked ships to attack it, if an enemy, or defend it, if a friend; Ctrl to add to their orders',
+    does: 'Order the picked ships to attack it, if an enemy, or defend it, if a friend, at the hold and speed on the order bar; Ctrl to add to their orders',
   },
   { keys: 'K, D, R, H', does: 'Attack, defend, ram or dock with the next ship clicked; Ctrl to add to their orders' },
   { keys: 'G, U', does: 'Scavenge from, or deliver to, the next ship clicked' },
-  { keys: 'Enter', does: 'Dock, scavenge or deliver without a target: wherever their doctrine would go' },
+  { keys: 'W', does: 'Flee the next enemy clicked, or hide behind the next friend or wreck, until told otherwise' },
+  {
+    keys: 'Enter',
+    does: 'Dock, scavenge or deliver without a target, wherever their doctrine would go; or flee every enemy',
+  },
   { keys: 'S', does: "Stop: clear the picked ships' orders, back to doctrine" },
   { keys: 'P', does: 'Open or close their doctrine; with one ship, click a mount to tell it alone' },
 ];

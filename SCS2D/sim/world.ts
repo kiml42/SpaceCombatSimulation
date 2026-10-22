@@ -47,6 +47,12 @@ export class World {
   /** Steps elapsed. Simulated time is `tick * dt`. */
   tick = 0;
 
+  /**
+   * The time the positions forces are being worked out at, seconds: `tick * dt`
+   * when priming, a step ahead of it mid-step, after the drift.
+   */
+  forcesAt = 0;
+
   private providers: ForceProvider[] = [];
   private primed = false;
 
@@ -82,6 +88,7 @@ export class World {
 
   /** Evaluate forces and accelerations at the current positions. */
   private prime(): void {
+    this.forcesAt = this.tick * this.dt;
     this.evaluateForces();
     this.deriveAccelerations();
     this.primed = true;
@@ -134,6 +141,7 @@ export class World {
     }
 
     // Re-evaluate at the new positions.
+    this.forcesAt = (this.tick + 1) * dt;
     this.evaluateForces();
     this.deriveAccelerations();
 

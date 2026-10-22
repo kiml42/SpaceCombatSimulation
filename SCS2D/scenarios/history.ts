@@ -27,6 +27,14 @@ export interface MatchRow {
   readonly enemyName: string;
   readonly playerShips: number;
   readonly enemyShips: number;
+  /** What the player told their fleet, as a log file holds it, for a round fought with orders. */
+  readonly orders?: WrittenLog;
+}
+
+/** A log of orders as a file or a link writes it (`writeLog`). */
+export interface WrittenLog {
+  readonly orders: unknown[];
+  readonly designs?: unknown[];
 }
 
 export interface History {
@@ -65,6 +73,7 @@ export interface Played {
   readonly player: Fleet;
   readonly enemy: Fleet;
   readonly generation?: number;
+  readonly orders?: WrittenLog;
 }
 
 /**
@@ -93,6 +102,7 @@ export function record(history: History, match: Played): History {
     enemyName: match.enemy.name,
     playerShips: expandFleet(match.player).length,
     enemyShips: expandFleet(match.enemy).length,
+    ...(match.orders === undefined ? {} : { orders: match.orders }),
   };
   return {
     fleets: { ...history.fleets, [player]: playerFile, [enemy]: enemyFile },

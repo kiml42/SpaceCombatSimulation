@@ -283,12 +283,13 @@ describe('robots rebuilding', () => {
     expect(whole(0)).toBe(true);
     expect(whole(1)).toBe(true);
     expect(run.ships.currentStructure(0).cores.length).toBe(2);
-    // Each named for the core it kept, its cores numbered as the ship it came of numbered them.
+    // Each named for the core it kept, which keeps its paint; the core it built is painted with its own name.
     expect([run.ships.nameOf(0), run.ships.nameOf(1)].sort()).toEqual(['1.1', '1.2']);
     for (const i of [0, 1]) {
-      const numbers: number[] = [];
-      run.ships.coreNumbers(i, numbers);
-      expect(numbers.slice().sort()).toEqual([1, 2]);
+      const names: (string | null)[] = [];
+      run.ships.coreNames(i, names);
+      const name = run.ships.nameOf(i);
+      expect(names.slice().sort()).toEqual([name, `${name}.${name === '1.1' ? 2 : 1}`].sort());
     }
   });
 });

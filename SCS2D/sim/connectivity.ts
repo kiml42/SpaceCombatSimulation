@@ -1,5 +1,6 @@
 import { contactWidth, type ShipDesign } from './blueprint.js';
 import { min } from './math.js';
+import { ROCK_SEAM_THICKNESS } from './modules.js';
 
 /**
  * Which modules of a hull hold which, and how well.
@@ -68,6 +69,15 @@ export interface Joint {
 export const JOINT_IMPULSE_PER_AREA = 3.0e6;
 
 /**
+ * How thick a module is where it is welded: its wall, or for an asteroid,
+ * solid all through, the thickness rubble is bound at (`ROCK_SEAM_THICKNESS`).
+ */
+function seamThickness(design: ShipDesign, module: number): number {
+  const { spec, stats } = design.modules[module]!;
+  return spec.kind === 'rock' || spec.kind === 'kernel' ? ROCK_SEAM_THICKNESS : stats.wallThickness;
+}
+
+/**
  * How many times stronger a seam made on purpose is than one torn metal made
  * by accident: jaws closed on a hull, against an edge that happened to catch.
  */
@@ -102,7 +112,7 @@ export function joints(design: ShipDesign): readonly Joint[] {
       if (width <= 0) continue;
       // The thinner wall is what gives way, so it is what the section is cut
       // from: welding a light plate to a heavy one makes a light joint.
-      const thickness = min(design.modules[i]!.stats.wallThickness, design.modules[j]!.stats.wallThickness);
+      const thickness = min(seamThickness(design, i), seamThickness(design, j));
       // Between the two modules it joins, which is close enough to the weld
       // for measuring how far a shock had to travel to reach it.
       const x = (design.modules[i]!.x + design.modules[j]!.x) * 0.5;
@@ -121,7 +131,7 @@ export function joints(design: ShipDesign): readonly Joint[] {
   for (const seam of design.seams ?? []) {
     const lo = min(seam.a, seam.b);
     const hi = seam.a < seam.b ? seam.b : seam.a;
-    const thickness = min(design.modules[lo]!.stats.wallThickness, design.modules[hi]!.stats.wallThickness);
+    const thickness = min(seamThickness(design, lo), seamThickness(design, hi));
     found.push({
       a: lo,
       b: hi,

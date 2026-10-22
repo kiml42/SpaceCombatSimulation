@@ -387,6 +387,24 @@ export interface Approach {
    */
   readonly sortieRange: number;
   /**
+   * How far out of an armed enemy's reach a fleeing ship counts itself clear,
+   * as a multiple of that reach: inside it runs, beyond it eases off.
+   */
+  readonly fleeMargin: number;
+  /** How much more an enemy with a gun aimed at it counts, in fleeing or hiding, than one without. */
+  readonly aimedWeight: number;
+  /**
+   * The share of what it fights or works with still working at or below
+   * which it withdraws, to hide or flee: its main guns, its claws while out
+   * scavenging and its ports while delivering. Below zero never; with nothing
+   * to fight or work with at all it withdraws whatever this says.
+   */
+  readonly fleeArmed: number;
+  /** How far off cover can be for a withdrawing ship to hide behind it, in its own radii. Zero never hides. */
+  readonly hideRange: number;
+  /** How big cover must be to hide behind, as a multiple of its own radius. */
+  readonly hideSize: number;
+  /**
    * The share of a full load of metal at or below which a fighter breaks off to
    * land on a friend's pad and rearm. Zero waits until it cannot load another
    * round; below zero never does. This, `refuelBelow` or `rechargeBelow`
@@ -418,12 +436,12 @@ export interface Approach {
  * The band of ranges, centre to centre, a ship's doctrine holds it at against
  * a target of `targetRadius`, given its own `reach`: `standoffRadii` of the
  * target's radius off its skin, no further out than `standoff` of its reach,
- * give or take `tolerance`.
+ * give or take `tolerance`; or `distance` off its skin, where an order says.
  */
-export function holdBand(approach: Approach, reach: number, targetRadius: number): { min: number; max: number } {
+export function holdBand(approach: Approach, reach: number, targetRadius: number, distance?: number): { min: number; max: number } {
   const off = approach.standoffRadii * targetRadius;
   const cap = approach.standoff * reach;
-  const wanted = targetRadius + (off < cap ? off : cap);
+  const wanted = targetRadius + (distance ?? (off < cap ? off : cap));
   const min = wanted * (1 - approach.tolerance);
   const max = wanted * (1 + approach.tolerance);
   const floor = min > 0 ? min : 0;
@@ -497,6 +515,11 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     deliverFuelAbove: 0,
     dockDanger: 0,
     sortieRange: 4,
+    fleeMargin: 1.5,
+    aimedWeight: 2,
+    fleeArmed: -1,
+    hideRange: 20,
+    hideSize: 1.5,
     tangentialMin: 0,
     tangentialMax: 0,
     rearmBelow: 0,
@@ -698,6 +721,11 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
   'deliverFuelAbove',
   'dockDanger',
   'sortieRange',
+  'fleeMargin',
+  'aimedWeight',
+  'fleeArmed',
+  'hideRange',
+  'hideSize',
   'rearmBelow',
   'repairBelow',
   'tangentialMin',
@@ -705,14 +733,23 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
 ];
 
 /** Fields that mean nothing below zero, though zero itself is a setting. */
-export const NON_NEGATIVE_FIELDS: readonly string[] = ['tangentialMin', 'tangentialMax', 'fuelPerMetal', 'ramMass', 'sortieRange'];
+export const NON_NEGATIVE_FIELDS: readonly string[] = [
+  'tangentialMin',
+  'tangentialMax',
+  'fuelPerMetal',
+  'ramMass',
+  'sortieRange',
+  'aimedWeight',
+  'hideRange',
+  'hideSize',
+];
 
 /** Pairs of approach fields that are the two ends of one band, the first no more than the second. */
 export const ORDERED_FIELDS: readonly (readonly [keyof Approach, keyof Approach])[] = [['tangentialMin', 'tangentialMax']];
 
 /**
  * The fields that mean nothing at or below zero: a size, a range, three
- * distances, two times, a speed and two shares of thrust.
+ * distances, two times, a speed, two shares of thrust and a margin.
  *
  * Stated once and read by everything that writes a doctrine rather than being
  * repeated wherever one is made up — the parser that refuses a bad file and
@@ -730,6 +767,7 @@ export const POSITIVE_FIELDS: readonly string[] = [
   'responseTime',
   'accelerate',
   'brake',
+  'fleeMargin',
 ];
 
 /** Every number in a doctrine, named by its path, in a fixed order. */

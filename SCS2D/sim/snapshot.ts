@@ -34,9 +34,12 @@ import { fittingOf } from './rebuild.js';
 
 /** An order as drawn: what it is, and the body of what it is given against. */
 export interface OrderView {
-  kind: 'attack' | 'defend' | 'ram' | 'dock' | 'scavenge' | 'deliver';
+  kind: 'attack' | 'defend' | 'ram' | 'dock' | 'scavenge' | 'deliver' | 'flee' | 'hide';
   /** The body it is against or making for, or -1 for none yet. */
   target: number;
+  /** How far off it was told to hold, and how fast to close, where told rather than doctrine's. */
+  distance?: number;
+  speed?: number;
 }
 
 /** One ship: which design to draw, where it is, and how its turrets are trained. */
@@ -54,10 +57,12 @@ export interface ShipView {
   /** Which ship it is after its side's name, as "1" or "1.2" (`Ships.nameOf`); absent for its serial. */
   name?: string;
   /**
-   * Which core of the design it set out as each of its cores is, from one, in
-   * its design's core order; -1 for one another ship on its hull works. Optional.
+   * The name painted on each of its cores, as "1" or "1.2", in its design's
+   * core order; null for one another ship on its hull works. Optional.
    */
-  coreNumbers?: number[];
+  coreNames?: (string | null)[];
+  /** Whether each of its cores still flies anything, in its design's core order. Optional: absent, all do. */
+  coresWorking?: boolean[];
   /** The body of what it is fighting, or -1 or absent for nothing. */
   fighting?: number;
   /** What it is doing, told or of its own accord, and the body it is doing it to; absent for nothing. */
@@ -233,11 +238,10 @@ export class Snapshot {
   dt = 0;
 
   /**
-   * Wells acting on the battle. Held by reference rather than copied: a well
-   * does not move, and a renderer that cannot show why trajectories bend is
-   * showing a bug rather than a battle.
+   * Wells acting on the battle, where they were when it was taken: a renderer
+   * that cannot show why trajectories bend is showing a bug rather than a battle.
    */
-  wells: readonly WellSpec[] = [];
+  wells: WellSpec[] = [];
 
   ships: ShipView[] = [];
   shipCount = 0;
@@ -415,7 +419,16 @@ export function capture(
   out.tick = world.tick;
   out.time = world.tick * world.dt;
   out.dt = world.dt;
-  out.wells = wells;
+  // Copied, since a well on rails moves on after the picture is taken.
+  out.wells.length = wells.length;
+  for (let w = 0; w < wells.length; w++) {
+    const well = wells[w]!;
+    const into = (out.wells[w] ??= { x: 0, y: 0, gm: 0 });
+    into.x = well.x;
+    into.y = well.y;
+    into.gm = well.gm;
+    into.softening = well.softening ?? 0;
+  }
 
   let minX = Infinity;
   let minY = Infinity;
@@ -440,7 +453,8 @@ export function capture(
     view.team = ships.teamOf(i);
     view.serial = ships.serialOf(i);
     view.name = ships.nameOf(i);
-    ships.coreNumbers(i, (view.coreNumbers ??= []));
+    ships.coreNames(i, (view.coreNames ??= []));
+    ships.coresWorking(i, (view.coresWorking ??= []));
     const fighting = ships.fightingOf(i);
     view.fighting = fighting >= 0 && ships.isAlive(fighting) ? bodies.indexOf(ships.body(fighting)) : -1;
     const held = view.fighting >= 0 ? ships.heldOrder(i) : undefined;
@@ -480,10 +494,15 @@ export function capture(
       const orders = (view.orders ??= []);
       orders.length = 0;
       for (const order of given) {
-        const kind = order.errand ?? (order.defend === true ? 'defend' : order.ram ? 'ram' : 'attack');
+        const kind =
+          order.errand ??
+          (order.flee === true ? (order.hide === true ? 'hide' : 'flee') : order.defend === true ? 'defend' : order.ram ? 'ram' : 'attack');
         // Docking anywhere, where doctrine has chosen to go.
         const target = order.errand !== undefined && order.target < 0 && order === given[0] ? ships.errandTarget(i) : order.target;
-        orders.push({ kind, target: ships.isAlive(target) ? bodies.indexOf(ships.body(target)) : -1 });
+        const shown: OrderView = { kind, target: ships.isAlive(target) ? bodies.indexOf(ships.body(target)) : -1 };
+        if (order.distance !== undefined) shown.distance = order.distance;
+        if (order.speed !== undefined) shown.speed = order.speed;
+        orders.push(shown);
       }
     }
     view.x = bodies.x[b]!;

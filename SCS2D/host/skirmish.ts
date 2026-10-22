@@ -1,4 +1,4 @@
-import { BATTLE_KEYS, keyHelp } from './keyHelp.js';
+import { BATTLE_KEYS, keyHelp, ORDER_KEYS } from './keyHelp.js';
 import { serialiseFleet, type Budget, type Fleet } from '../sim/index.js';
 import { teamColour } from '../render/canvas2d.js';
 import { FLEET_FILES, Library, unusedName } from '../editor/library.js';
@@ -31,10 +31,24 @@ import {
 } from '../scenarios/skirmish.js';
 import { MUTATION_FIELDS } from '../evolution/mutationFields.js';
 import { fillFields, type SettingField } from './settingsFields.js';
-import { dropOldest, EMPTY_HISTORY, HISTORY_STORAGE_KEY, parseHistory, record, type History, type Played } from '../scenarios/history.js';
+import {
+  dropOldest,
+  EMPTY_HISTORY,
+  HISTORY_STORAGE_KEY,
+  parseHistory,
+  record,
+  type History,
+  type Played,
+  type WrittenLog,
+} from '../scenarios/history.js';
 import { startAnswer, type AnswerProgress } from './answer.js';
 import { timeline } from './timeline.js';
-import { battleView } from './battleView.js';
+import { battleView, type Watcher } from './battleView.js';
+import { battleControls } from './battleControls.js';
+import { orderBar } from './orderBar.js';
+import { doctrinePanel } from './doctrinePanel.js';
+import { readLog, writeLog, type Logged } from '../scenarios/commands.js';
+import type { Battle } from '../scenarios/types.js';
 import { el } from './dom.js';
 
 /**
@@ -204,15 +218,28 @@ const SKIRMISH_FIELDS: readonly SettingField[] = [
     value: D.stretchAfter,
     title: "Generations without an answer before the enemy's budget steps up again.",
   },
+  {
+    name: 'answerMargin',
+    group: 'answer',
+    label: 'answer wins by',
+    step: 0.05,
+    value: D.answerMargin,
+    title:
+      "How far ahead the enemy's answer must finish the round to count: its share of its own fleet left, less yours. 0.2 is 20 points: room for what your orders win back.",
+  },
 ];
 /** Those that are counts, and so whole. */
 const WHOLE = new Set(['mutants', 'seeds', 'stretchAfter', 'maxShips', 'bareCoreDrills', 'shieldedDrills']);
 
 export function startSkirmish(): void {
-  keyHelp(el<HTMLElement>('hint'), BATTLE_KEYS, [
-    'You are blue.',
-    "Once both sides have fired, a side that has not fired, hit or closed in to ram for the round's quiet time is out of the battle; one with nothing left armed is out at once.",
-  ]);
+  keyHelp(
+    el<HTMLElement>('hint'),
+    [...BATTLE_KEYS, ...ORDER_KEYS],
+    [
+      'You are blue.',
+      "Once both sides have fired, a side that has not fired, hit or closed in to ram for the round's quiet time is out of the battle; one with nothing left armed is out at once.",
+    ],
+  );
   const fleets = new Library(window.localStorage, FLEET_FILES);
   const ships = new Library(window.localStorage);
 
@@ -368,7 +395,7 @@ export function startSkirmish(): void {
     line.show(history);
   };
   const line = timeline(el<HTMLElement>('timeline'), {
-    watch: (row, player, enemy) => replay(row.round, row.seed, player, enemy),
+    watch: (row, player, enemy) => replay(row.round, row.seed, player, enemy, row.orders),
     save: (fleet) => {
       const name = unusedName(fleet.name, fleets.savedNames());
       fleets.save({ ...fleet, name });
@@ -389,7 +416,8 @@ export function startSkirmish(): void {
     el<HTMLCanvasElement>('view'),
     (stepped) => {
       if (decision !== null || skirmish === null || stepped !== battle) return;
-      decision = activity.observe(stepped);
+      // The decision rule has seen the step already, as the view's watcher.
+      decision = activity.decided;
       if (decision === null) return;
       showDecision(decision);
       if (mode === 'round') decided(decision);
@@ -399,6 +427,10 @@ export function startSkirmish(): void {
       else if (latest !== null) watch(latest);
     },
     (drawn) => {
+      bar.update(drawn);
+      panel.update(drawn);
+      scrub.max = String(view.reached);
+      if (!scrubbing) scrub.value = String(view.at);
       readout.textContent = skirmish === null ? '' : `round ${skirmish.round} · t ${drawn.time.toFixed(1)} s`;
       if (battle !== null && roundPanel.hidden === false) renderSides(battle, drawn.time);
     },
@@ -406,7 +438,44 @@ export function startSkirmish(): void {
       playButton.textContent = running ? 'Pause' : decision !== null || (battle?.world.tick ?? 0) > 0 ? 'Resume' : 'Fight';
       showFight(running);
     },
+    (rewound) => {
+      battle = rewound as CustomBattle;
+    },
   );
+  battleControls(el<HTMLElement>('stage'));
+  const bar = orderBar(view);
+  const panel = doctrinePanel(view);
+  // The decision rule goes back with the battle when it is wound back.
+  const watcher: Watcher = {
+    observe: (stepped) => activity.observe(stepped as CustomBattle),
+    save: () => activity.copy(),
+    restore: (saved) => {
+      activity = saved instanceof Activity ? saved.copy() : newActivity();
+    },
+  };
+  view.watch(watcher);
+  // For the browser tests and anyone inspecting the page.
+  Reflect.set(window, 'viewer', view);
+  /** Show a battle that takes no orders: given the orders it was played with, if any, to play again. */
+  const showOn = (shown: Battle, run: boolean, orders?: readonly Logged[]): void => {
+    view.allowOrders(false);
+    view.show(shown, run, orders !== undefined && orders.length > 0, orders ?? []);
+  };
+  // Paused while held, and the thumb left where it is dragged rather than pulled back to the battle.
+  const scrub = el<HTMLInputElement>('scrub');
+  let scrubbing = false;
+  let resumeAfterScrub = false;
+  scrub.addEventListener('pointerdown', () => {
+    scrubbing = true;
+    resumeAfterScrub = view.running;
+    view.setRunning(false);
+  });
+  window.addEventListener('pointerup', () => {
+    if (!scrubbing) return;
+    scrubbing = false;
+    if (resumeAfterScrub) view.setRunning(true);
+  });
+  scrub.addEventListener('input', () => view.seek(Number(scrub.value)));
   el<HTMLButtonElement>('fit').addEventListener('click', () => view.fit());
   el<HTMLButtonElement>('exportSkirmish').addEventListener('click', () => {
     const file = {
@@ -471,7 +540,7 @@ export function startSkirmish(): void {
     // A box the player has set stays as they set it.
     matchEnemy(false);
     battle = null;
-    if (flies) view.show(enemyAlone(enemy), false);
+    if (flies) showOn(enemyAlone(enemy), false);
   };
   const showSetup = (): void => {
     undecided();
@@ -584,15 +653,20 @@ export function startSkirmish(): void {
     cta(fits ? fightButton : editFleet);
     if (fits) {
       battle = customBattle(roundSetup(skirmish));
-      view.show(battle, false);
+      // Your round alone takes orders, and can be wound back.
+      view.allowOrders(0);
+      view.show(battle, false, true);
     } else {
       battle = null;
-      view.show(enemyAlone(skirmish.enemy), false);
+      showOn(enemyAlone(skirmish.enemy), false);
     }
   };
 
   const decided = (result: Decision): void => {
     if (skirmish === null) return;
+    // The round is decided: it can be watched back, but told nothing more.
+    view.allowOrders(false);
+    const given = view.orders;
     recordMatch({
       kind: 'try',
       round: skirmish.round,
@@ -600,10 +674,11 @@ export function startSkirmish(): void {
       winner: result.winner,
       player: skirmish.player,
       enemy: skirmish.enemy,
+      ...(given.length === 0 ? {} : { orders: writeLog(given) }),
     });
     // The round is over: Restart fights it again.
     fightButton.hidden = true;
-    const at = `at ${result.time.toFixed(0)} s`;
+    const at = `at ${result.time.toFixed(0)} s${given.length === 0 ? '' : ', with orders'}`;
     if (result.winner === 0) {
       outcome.textContent = `Victory ${at}. Wait while the enemy evolves an answer.`;
       outcome.className = 'won';
@@ -717,7 +792,7 @@ export function startSkirmish(): void {
     outcome.className = '';
     el<HTMLElement>('enemyName').textContent = `Against ${now.best.name}, evolving.`;
     playable(true);
-    view.show(battle, true);
+    showOn(battle, true);
   };
   watchButton.addEventListener('click', () => {
     watching = !watching;
@@ -749,14 +824,14 @@ export function startSkirmish(): void {
     outcome.className = 'lost';
     el<HTMLElement>('enemyName').textContent = `Against ${enemy.name}, the answer.`;
     playable(true);
-    view.show(battle, true);
+    showOn(battle, true);
   };
 
   // ---- a match watched again -------------------------------------------------
 
   const replaying = el<HTMLElement>('replaying');
   /** Fight a match of the history again on the battle view, and come back to where things were. */
-  const replay = (round: number, seed: number, player: Fleet, enemy: Fleet): void => {
+  const replay = (round: number, seed: number, player: Fleet, enemy: Fleet, written?: WrittenLog): void => {
     if (mode !== 'replay') {
       const was = mode;
       const latestThen = latest;
@@ -779,7 +854,14 @@ export function startSkirmish(): void {
     outcome.className = '';
     playable(true);
     replaying.hidden = false;
-    view.show(battle, true);
+    // What the player told their fleet, as they told it; a log that cannot be read is played without.
+    let orders: readonly Logged[] = [];
+    try {
+      if (written !== undefined) orders = readLog(written.orders, written.designs);
+    } catch {
+      orders = [];
+    }
+    showOn(battle, true, orders);
   };
   const replayOutcome = (result: Decision): string =>
     result.winner === 0

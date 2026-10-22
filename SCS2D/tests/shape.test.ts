@@ -18,7 +18,7 @@ import {
   shapeModule,
   triangleAcross,
   triangleBounds,
-  triangleOf,
+  shapeOf,
   type Blueprint,
   type ModuleSpec,
 } from '../sim/index.js';
@@ -102,7 +102,7 @@ describe('what a triangle weighs', () => {
   const shaped = shapeModule(plate(), wedge(4, 4))!;
 
   it('encloses half the floor of the box round it', () => {
-    expect(polygonArea(triangleOf(shaped)!)).toBeCloseTo(8, 9);
+    expect(polygonArea(shapeOf(shaped)!)).toBeCloseTo(8, 9);
   });
 
   it('weighs its own walls rather than the box’s', () => {
@@ -120,7 +120,7 @@ describe('what a triangle weighs', () => {
     const stats = moduleStats(shaped);
     // The walls are the shape less what the walls leave inside it, on all
     // sides — the box law over a triangle's own floor.
-    const inside = insetTriangle(triangleOf(shaped)!, BASE_WALL_THICKNESS)!;
+    const inside = insetTriangle(shapeOf(shaped)!, BASE_WALL_THICKNESS)!;
     expect(stats.capacity).toBeCloseTo(polygonArea(inside), 9);
     const walls = 8 * DECK_HEIGHT - stats.capacity * (DECK_HEIGHT - 2 * BASE_WALL_THICKNESS);
     expect(stats.wallVolume).toBeCloseTo(walls, 9);
@@ -130,7 +130,7 @@ describe('what a triangle weighs', () => {
   it('is as deep as its narrowest way through', () => {
     // A long thin wedge is a thin module however far it reaches.
     const sliver = shapeModule(plate(), wedge(40, 1))!;
-    expect(triangleAcross(triangleOf(sliver)!)).toBeLessThan(1);
+    expect(triangleAcross(shapeOf(sliver)!)).toBeLessThan(1);
     expect(moduleStats(sliver).thickness).toBeLessThan(1);
   });
 

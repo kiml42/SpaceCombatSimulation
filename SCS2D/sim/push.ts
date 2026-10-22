@@ -1,6 +1,6 @@
 import { abs, atan2, cos, HALF_PI, max, min, round, sin } from './math.js';
 import { blockCentre, boxAngle, moduleCentre, moduleOutline, weldBox, type ModuleSpec } from './modules.js';
-import { isTriangle, outlineAxes, projectOutline } from './shape.js';
+import { isShaped, outlineAxes, projectOutline } from './shape.js';
 import {
   ATTACHMENT_TOLERANCE,
   contactWidth,
@@ -270,7 +270,7 @@ const spanB = { lo: 0, hi: 0 };
  * same answer they give for a module dragged rather than resized.
  */
 function movedFaces(before: ModuleSpec, after: ModuleSpec): Face[] {
-  if (isTriangle(before) || isTriangle(after)) return [];
+  if (isShaped(before) || isShaped(after)) return [];
   const angle = boxAngle(before);
   const ux = cos(angle);
   const uy = sin(angle);
@@ -361,7 +361,7 @@ export interface SharedFace {
  * about that — and it is only the drag that has nothing to offer.
  */
 export function sharedFace(a: ModuleSpec, b: ModuleSpec): SharedFace | null {
-  if (isTriangle(a) || isTriangle(b)) return null;
+  if (isShaped(a) || isShaped(b)) return null;
   const angleA = boxAngle(a);
   const turn = (((boxAngle(b) - angleA) % HALF_PI) + HALF_PI) % HALF_PI;
   if (min(turn, HALF_PI - turn) > 1e-9) return null;

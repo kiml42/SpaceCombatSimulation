@@ -23,8 +23,8 @@ import { mutateFleet } from './fleetMutate.js';
  * time limit, an enemy ahead then being taken to win in the end — and the
  * best of the generation, by all its matches, breeds the next. An enemy that
  * wins on the next round's seed is checked by fighting that round to the
- * skirmish's decision: the first that wins that is the answer, and one that
- * does not is not counted as having won on it.
+ * skirmish's decision: the first that wins that, by `answerMargin`, is the
+ * answer, and one that does not is not counted as having won on it.
  *
  * Beside those, each enemy fights drills that only add to its score, never
  * to its wins: against a bare core, to learn to hit something at all, and
@@ -326,9 +326,13 @@ export class EnemySearch {
     }
     if (decision !== null) {
       this.checking = null;
-      // Its win on the round is the decision's, not the time limit's.
-      checking.standing.onRound = decision.winner === 1;
-      if (decision.winner === 1) {
+      // Its win on the round is the decision's, not the time limit's, and by the margin asked.
+      const battle = checking.battle;
+      const now = tally(battle, 2);
+      const ahead = share(now[1]!.mass, battle.start[1]!.mass) - share(now[0]!.mass, battle.start[0]!.mass);
+      const answered = decision.winner === 1 && ahead >= this.settings.answerMargin;
+      checking.standing.onRound = answered;
+      if (answered) {
         this.found = checking.standing.enemy;
         this.best = checking.standing;
         this.unchecked.length = 0;

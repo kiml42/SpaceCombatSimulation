@@ -5,14 +5,17 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import type { Browser, Page } from 'playwright';
 import { launchChromium } from './launch.js';
 import { DEFAULT_KINDS } from '../../evolution/mutate.js';
-import { DEFAULT_RUN } from '../../evolution/run.js';
+import { DEFAULT_RUN, runEvolution } from '../../evolution/run.js';
+import { runCoevolution } from '../../evolution/coevolution.js';
+import { DINKY, GUNSHIP } from '../../scenarios/blueprints.js';
+import { tmpdir } from 'node:os';
 
 /**
  * The evolution page, driven in a real browser.
@@ -231,8 +234,9 @@ describe('the evolution page in a browser', () => {
     expect((await best.locator('td.done').textContent())?.length).toBeGreaterThan(0);
     expect(await rows(page, 'matches')).toBeGreaterThan(0);
     expect(await page.textContent('#championLine')).toMatch(/best of generation \d/);
-    // A finished generation owes nothing, so no count of matches is shown.
-    expect(await page.locator('#fleet td.score .count:not(:empty)').count()).toBe(0);
+    // A finished generation owes nothing, so each count is of matches won rather than matches owed.
+    const counts = await page.$$eval('#fleet td.score .count', (cells) => cells.map((cell) => cell.textContent));
+    expect(counts.every((text) => /^won \d+\/\d+$/.test(text ?? ''))).toBe(true);
   });
 
   it('exports any one combatant as a file, without picking its row', async () => {
@@ -285,7 +289,9 @@ describe('the evolution page in a browser', () => {
     const file = JSON.parse(await readFile(written, 'utf8')) as Record<string, unknown>;
     expect(file['seed']).toEqual(4242);
     expect((file['kinds'] as Record<string, number>)['turret']).toEqual(0);
-    expect(file['founders']).toEqual(['Dinky']);
+    // Whole, so the file can be fought headlessly or on another browser.
+    expect((file['founders'] as { name: string; modules: unknown[] }[]).map((ship) => ship.name)).toEqual(['Dinky']);
+    expect((file['founders'] as { modules: unknown[] }[])[0]!.modules.length).toBeGreaterThan(0);
 
     // Changed underneath, then read back: the import has to put every one of
     // these back rather than only the boxes somebody remembered to wire up.
@@ -299,6 +305,22 @@ describe('the evolution page in a browser', () => {
     expect(
       await page.evaluate(() => [...(document.getElementById('founders') as HTMLSelectElement).selectedOptions].map((o) => o.value)),
     ).toEqual(['ship:Dinky']);
+
+    // A founder this browser holds a different design under is saved beside
+    // it rather than over it, and chosen.
+    const altered = { ...file, founders: [{ ...(file['founders'] as object[])[0], notes: 'not the stock one' }] };
+    const elsewhere = `${written}.altered.json`;
+    await writeFile(elsewhere, JSON.stringify(altered));
+    await page.setInputFiles('#importConfigFile', elsewhere);
+    await page.waitForFunction(() => document.getElementById('readout')?.textContent?.includes('"Dinky" as "Dinky 2"') === true);
+    expect(
+      await page.evaluate(() => [...(document.getElementById('founders') as HTMLSelectElement).selectedOptions].map((o) => o.value)),
+    ).toEqual(['ship:Dinky 2']);
+    // Read again, it is the copy already saved rather than another.
+    await page.evaluate(() => (document.getElementById('readout')!.textContent = ''));
+    await page.setInputFiles('#importConfigFile', elsewhere);
+    await page.waitForFunction(() => document.getElementById('readout')?.textContent?.includes('read from a file') === true);
+    expect(await page.$$eval('#founders option', (options) => options.filter((o) => o.textContent?.startsWith('Dinky')).length)).toBe(2);
     expect(problems).toEqual([]);
   }, 60_000);
 
@@ -808,7 +830,7 @@ describe('the evolution page in a browser', () => {
     const saving = page.waitForEvent('download');
     await press(page, '#exportConfig');
     const file = JSON.parse(await readFile(await (await saving).path(), 'utf8')) as Record<string, unknown>;
-    expect(file['fleets']).toEqual(['Line of Battle']);
+    expect((file['fleets'] as { name: string }[]).map((fleet) => fleet.name)).toEqual(['Line of Battle']);
     expect(file['fleet']).toMatchObject({ radius: 400, maxShips: 8, operators: { add: 3 } });
 
     await page.click('#start');
@@ -853,7 +875,7 @@ describe('the evolution page in a browser', () => {
     const saving = page.waitForEvent('download');
     await press(page, '#exportConfig');
     const file = JSON.parse(await readFile(await (await saving).path(), 'utf8')) as Record<string, unknown>;
-    expect(file['versus']).toMatchObject({ founders: ['Dinky'], population: 6, group: 1 });
+    expect(file['versus']).toMatchObject({ founders: [{ name: 'Dinky' }], population: 6, group: 1 });
 
     // Side B fixed is side A bred against an opponent that does not change.
     await toSetup(page);
@@ -876,7 +898,9 @@ describe('the evolution page in a browser', () => {
     await page.selectOption('#sizeMetric', 'mass');
     await page.selectOption('#mode', 'fleet');
     // The last of four rounds, A then B in turn, was side B's.
-    await page.waitForFunction(() => /round 4 · side B evolving$/.test(document.getElementById('watching')?.textContent ?? ''));
+    await page.waitForFunction(() =>
+      /generation 4 · round 4, side B evolving$/.test(document.getElementById('watching')?.textContent ?? ''),
+    );
     const sides = await page.$$eval('#fleet tbody td.who .side', (tags) => tags.map((tag) => tag.textContent?.trim()));
     expect(sides.filter((side) => side === 'A')).toHaveLength(4);
     expect(sides.filter((side) => side === 'B')).toHaveLength(6);
@@ -935,4 +959,41 @@ describe('the evolution page in a browser', () => {
     );
     expect(problems).toEqual([]);
   });
+  it('opens a run fought headlessly, shows who won what, and fights its matches again', async () => {
+    const settings = {
+      seed: 5,
+      generations: 2,
+      population: 4,
+      winners: 2,
+      group: 2,
+      minMatches: 1,
+      fleet: { maxShips: 1 },
+      match: { duration: 8, goal: null },
+    };
+    const folder = await mkdtemp(join(tmpdir(), 'scs2d-run-'));
+    const single = join(folder, 'dinky.run.json');
+    await writeFile(single, JSON.stringify(runEvolution([DINKY], settings)));
+    await page.setInputFiles('#openRunFile', single);
+    await page.waitForFunction(() => /dinky\.run\.json: 2 of 2 generations/.test(document.getElementById('readout')?.textContent ?? ''));
+    expect(await page.isVisible('#results')).toBe(true);
+    expect(await page.textContent('#state')).toBe('from a file');
+    expect(await page.isEnabled('#pause')).toBe(false);
+    await page.selectOption('#mode', 'fleet');
+    await page.waitForFunction(() => document.querySelectorAll('#fleet tbody tr').length === 4);
+    const counts = await page.$$eval('#fleet td.score .count', (cells) => cells.map((cell) => cell.textContent));
+    expect(counts.every((text) => /^won \d+\/\d+$/.test(text ?? ''))).toBe(true);
+    expect(await rows(page, 'matches')).toBeGreaterThan(0);
+    await page.click('#matches tr');
+    await page.waitForFunction(() => /\d+%/.test(document.getElementById('watching')?.textContent ?? ''));
+
+    // Both sides of a co-evolution run, each in its own table.
+    const both = join(folder, 'both.run.json');
+    await writeFile(both, JSON.stringify(runCoevolution([DINKY], [GUNSHIP], { ...settings, group: 1 }, { hall: 1, phaseCap: 1 })));
+    await page.setInputFiles('#openRunFile', both);
+    await page.waitForFunction(() => /both\.run\.json/.test(document.getElementById('readout')?.textContent ?? ''));
+    await page.selectOption('#mode', 'fleet');
+    await page.waitForFunction(() => document.querySelectorAll('#fleet table:not([hidden])').length === 2);
+    expect(await page.textContent('#championLine')).toMatch(/A #\d+.*B #\d+/);
+    expect(problems).toEqual([]);
+  }, 60_000);
 });

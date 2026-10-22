@@ -44,9 +44,9 @@ import type { ModuleKind } from '../sim/modules.js';
  */
 
 interface Options {
-  /** Ship founders, by the name a config file would give them. */
+  /** Ship founders, each with the name it is reported by. */
   readonly from: readonly { name: string; blueprint: Blueprint }[];
-  /** Fleet founders, by the name a config file would give them. Any makes it a run of fleets. */
+  /** Fleet founders, as `from`. Any makes it a run of fleets. */
   readonly fleets: readonly { name: string; fleet: Fleet }[];
   /** Side B of a co-evolution run, or null for a run of one. */
   readonly versus: Versus | null;
@@ -59,7 +59,7 @@ interface Options {
   readonly quiet: boolean;
 }
 
-/** Side B's founders, by the name a config file would give them, and how it is bred against side A. */
+/** Side B's founders, as `Options.from`, and how it is bred against side A. */
 interface Versus {
   readonly from: readonly { name: string; blueprint: Blueprint }[];
   readonly fleets: readonly { name: string; fleet: Fleet }[];
@@ -71,11 +71,7 @@ function warnUnread(file: string, warnings: readonly string[]): void {
   for (const warning of warnings) process.stderr.write(`warning: ${file}: ${warning}\n`);
 }
 
-/**
- * A ship by stock name or key, or read from a blueprint file, with the name a
- * config file records it by: a stock ship's own, or a file's path, so that
- * the config can find it again.
- */
+/** A ship by stock name or key, or read from a blueprint file, with the name it is reported by. */
 function shipFrom(name: string): { name: string; blueprint: Blueprint } {
   for (const [key, blueprint] of Object.entries(BLUEPRINTS)) {
     if (blueprint.name === name || key === name) return { name: blueprint.name, blueprint };
@@ -95,11 +91,7 @@ function shipFrom(name: string): { name: string; blueprint: Blueprint } {
   return { name, blueprint };
 }
 
-/**
- * A fleet by stock name, or read from a fleet file. A file is recorded in a
- * saved config by its fleet's name, which only a stock fleet can be found by
- * again.
- */
+/** A fleet by stock name, or read from a fleet file. */
 function fleetFrom(name: string): Fleet {
   const stock = FLEETS[name];
   if (stock !== undefined) return stock;
@@ -111,6 +103,11 @@ function fleetFrom(name: string): Fleet {
     if ((error as { code?: string }).code !== 'ENOENT') throw error;
     throw new Error(`no such fleet or fleet file: ${name}. The stock fleets are ${Object.keys(FLEETS).join(', ')}`);
   }
+}
+
+/** Where a run from a settings file is written unless `--out` says: beside it, `x.evo.json` → `x.run.json`. */
+function runBeside(configPath: string): string {
+  return `${configPath.replace(/(\.evo)?\.json$/i, '')}.run.json`;
 }
 
 function parse(argv: readonly string[]): Options {
@@ -133,7 +130,8 @@ function parse(argv: readonly string[]): Options {
   let geometry: number | undefined;
   let thrusters: number | undefined;
   let name: string | undefined;
-  let out = 'runs/run.json';
+  let out: string | undefined;
+  let configPath: string | undefined;
   let saveConfig = '';
   let quiet = false;
   let budget = 0;
@@ -285,16 +283,17 @@ function parse(argv: readonly string[]): Options {
       // Settings written by the evolution page, or by `--save-config`.
       case '--config': {
         const path = value();
+        configPath = path;
         const raw: unknown = JSON.parse(readFileSync(path, 'utf8'));
         const setup = parseRunConfig(raw);
         name = setup.name;
         warnUnread(path, runConfigWarnings(raw));
-        for (const name of setup.founders) from.push(shipFrom(name));
-        for (const name of setup.fleets ?? []) fleets.push({ name, fleet: fleetFrom(name) });
+        for (const blueprint of setup.founders) from.push({ name: blueprint.name, blueprint });
+        for (const fleet of setup.fleets ?? []) fleets.push({ name: fleet.name, fleet });
         config = { ...setup.config };
         if (setup.versus != null) {
-          for (const name of setup.versus.founders) versusFrom.push(shipFrom(name));
-          for (const name of setup.versus.fleets) versusFleets.push({ name, fleet: fleetFrom(name) });
+          for (const blueprint of setup.versus.founders) versusFrom.push({ name: blueprint.name, blueprint });
+          for (const fleet of setup.versus.fleets) versusFleets.push({ name: fleet.name, fleet });
           coevolution = setup.versus.coevolution;
         }
         break;
@@ -383,6 +382,7 @@ function parse(argv: readonly string[]): Options {
   }
   const coevolving = versusFrom.length + versusFleets.length > 0;
   const versus = coevolving ? { from: versusFrom, fleets: versusFleets, coevolution } : null;
+  out ??= configPath === undefined ? 'runs/run.json' : runBeside(configPath);
   return { from, fleets, versus, out, saveConfig, name, config, quiet };
 }
 
@@ -414,14 +414,14 @@ if (options.saveConfig !== '') {
     `${JSON.stringify(
       serialiseRunConfig({
         ...(options.name === undefined ? {} : { name: options.name }),
-        founders: options.from.map(({ name }) => name),
-        fleets: options.fleets.map(({ name }) => name),
+        founders: options.from.map(({ blueprint }) => blueprint),
+        fleets: options.fleets.map(({ fleet }) => fleet),
         versus:
           versus === null
             ? null
             : {
-                founders: versus.from.map(({ name }) => name),
-                fleets: versus.fleets.map(({ name }) => name),
+                founders: versus.from.map(({ blueprint }) => blueprint),
+                fleets: versus.fleets.map(({ fleet }) => fleet),
                 coevolution: versus.coevolution,
               },
         config: settings,

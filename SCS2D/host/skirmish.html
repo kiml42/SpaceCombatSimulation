@@ -192,6 +192,7 @@
         #panel { width: auto; max-width: none; border-left: none; border-top: 1px solid #1c2533; }
       }
       @media (max-width: 720px) { #readout { margin-left: 0; width: 100%; } }
+      #scrub { flex: 1 1 8rem; min-width: 6rem; max-width: 24rem; }
     </style>
   </head>
   <body class="screenSetup">
@@ -199,6 +200,7 @@
       <h1>Skirmish</h1>
       <button id="play" disabled>Fight</button>
       <button id="fit">Fit</button>
+      <input id="scrub" type="range" min="0" max="0" value="0" title="Wind your round back or on (, steps back)">
       <button id="exportSkirmish" title="Save the skirmish, its settings and every match played to a file, to look into or ask about">Export</button>
       <button id="importSkirmish" title="Load a skirmish file: its settings, and the skirmish and matches it holds, in place of these">Import</button>
       <input id="importSkirmishFile" type="file" accept="application/json,.json" hidden />
