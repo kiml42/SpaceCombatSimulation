@@ -689,7 +689,11 @@ inside any one file is not contiguous.
   since fitness against a moving opponent cannot say whether either is improving.
   **The evolution page is two screens**: setting a run up, with every setting laid out across the width
   beside the founders it would start from, and watching it, with the charts, the combatants and the matches;
-  Start moves from the first to the second, and the header goes between them. **Side A is on the left and
+  Start moves from the first to the second, and the header goes between them. **Open run** shows a run
+  `npm run evolve` wrote, from its `.run.json`, on the second screen as a finished run — charts, combatants
+  and matches, each match fought again from its seed — except a side B that did not evolve, whose designs
+  the file does not hold. Each combatant's score says how many of the matches it fought it won outright,
+  drills aside, a whole side winning where there are sides. **Side A is on the left and
   side B on the right throughout**: the shared settings above, then each side's founders, then every
   per-side setting written once as a row with A's box and B's beside it. Picking side B's founders makes a
   run co-evolve, and side B's boxes follow side A's until one of them is changed; unticking "side B evolves"
