@@ -141,8 +141,10 @@ an entry is either still open or it is gone.
            with much the same thrust every way so that it can.
          - **Matching an orbit before turning the jaws on** is asteroids' alone; whether every claw
            approach should do it, wrecks drifting too, is open, and would move the claw goldens.
-    4. **Viewer and demo** — asteroid picking and its readout, and a golden scenario of two rival mining
-       outposts on a pair of eccentric majors.
+    4. **Viewer and demo** — asteroid picking and its readout; ordering picked ships to mine a particular
+       asteroid, Scavenge taking one as its target and a right-click on one giving it to ships with claws
+       (the sim and the command log take it already, the viewer drops clicks on anything on no side); and a
+       golden scenario of two rival mining outposts on a pair of eccentric majors.
     5. **Grabbing an asteroid survivably** — Salvagers often wreck themselves closing on rock: adding another
        to the Mining scene usually ends with it crashing. Either the approach must be gentler (slower closing,
        a better orbit match, backing off when it goes wrong) or the contact more forgiving (claws or rock that
