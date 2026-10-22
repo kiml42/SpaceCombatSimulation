@@ -1044,20 +1044,19 @@ inside any one file is not contiguous.
   damage shedding mass, pads mending landed fighters, robots mending their own hull, lost and built anew,
   lost modules rebuilt by robots and by pads, and robots taking wreckage apart into metal, with doctrine that
   sends a fighter in to be mended and a ship out to wrecks for their metal, flown by the stock Salvager.
-  In-battle construction (§8 step 12) and harvesting wrecks (step 13) are built on it. What comes next is
-  orders (step 14): telling ships what to do mid-battle, from the paused battle. Its first three slices are
-  built: rewinding the viewer's battle from checkpoints; attack, defend and ram given to picked-out ships by
-  right-click or an order bar, logged so a rewind or a link replays them; and docking, scavenging and
-  delivering as orders, with doctrine, build counts and remodelling as settings beside them, from a doctrine
-  panel and a design picker. For trying things out, the viewer can also add a ship from the library to any
-  side mid-battle (Add ship: press where it goes, drag for how fast), logged as a command as orders are. Its
-  next slice, running away, is built: the Flee order (W, or Enter for every enemy), running from every armed
-  enemy, from one, or hiding behind a friend or wreck until told otherwise; and withdrawing under doctrine,
-  at `fleeArmed` of what it fights or works with, or with nothing to fight or work with while an armed enemy
-  is about, hiding within `hideRange` or fleeing. An attack, defence or ram can be told how far off to hold
-  and how fast to close, over doctrine's, from the order bar. The skirmish's rounds take orders too, for the
-  player's ships, and can be wound back; its enemy still answers the fleet as doctrine flies it, by a margin
-  (ROADMAP.md step 14). What is left of orders is in ROADMAP.md §12.
+  In-battle construction (§8 step 12) and harvesting wrecks (step 13) are built on it. So are orders
+  (step 14), built in full: telling ships what to do mid-battle, from the paused battle. The viewer's battle
+  can be wound back from checkpoints. Picked-out ships are told by right-click or an order bar, and the
+  orders are logged so a rewind or a link replays them: attack, defend and ram, each with a distance and
+  speed over doctrine's if told; dock, scavenge and deliver; and Flee (W, or Enter for every enemy), running
+  from every armed enemy, from one, or hiding behind a friend or wreck until told otherwise. Doctrine, build
+  counts and remodelling are settings beside them, from a doctrine panel and a design picker. Under doctrine
+  a ship withdraws at `fleeArmed` of what it fights or works with, or with nothing to fight or work with
+  while an armed enemy is about, hiding within `hideRange` or fleeing. The skirmish's rounds take orders
+  too, for the player's ships, and can be wound back; its enemy still answers the fleet as doctrine flies
+  it, by a margin. For trying things out, the viewer can also add a ship from the library to any side
+  mid-battle (Add ship: press where it goes, drag for how fast), a sandbox tool no game mode offers. What
+  is left of orders is in ROADMAP.md §12; what comes next is mining (step 15).
   Alongside it, §8 step 5's skirmish: an endless loop against an enemy fleet that evolves to beat the
   player's, planned in ROADMAP.md §8. Evolution keeps the skirmish's sense of quiet, though it plays a match on until every side is quiet before naming a winner. Its loop is built without the evolving enemy (`dist/skirmish.html`,
   `scenarios/skirmish.ts`): pick a stock enemy, whose bill is the budget unless the player sets their own, under a limit on ships and spread (20 and 500 m unless set, or what the enemy fields if more), each round's gap and starting speeds drawn from optional ± spreads on its seed; fight a fixed round, decided by
