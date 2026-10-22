@@ -234,8 +234,9 @@ describe('the evolution page in a browser', () => {
     expect((await best.locator('td.done').textContent())?.length).toBeGreaterThan(0);
     expect(await rows(page, 'matches')).toBeGreaterThan(0);
     expect(await page.textContent('#championLine')).toMatch(/best of generation \d/);
-    // A finished generation owes nothing, so no count of matches is shown.
-    expect(await page.locator('#fleet td.score .count:not(:empty)').count()).toBe(0);
+    // A finished generation owes nothing, so each count is of matches won rather than matches owed.
+    const counts = await page.$$eval('#fleet td.score .count', (cells) => cells.map((cell) => cell.textContent));
+    expect(counts.every((text) => /^won \d+\/\d+$/.test(text ?? ''))).toBe(true);
   });
 
   it('exports any one combatant as a file, without picking its row', async () => {
