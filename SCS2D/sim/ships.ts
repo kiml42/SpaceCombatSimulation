@@ -9039,7 +9039,7 @@ export class Ships {
       const inY = cy - bodies.y[b]!;
       const inward = length(inX, inY);
       const turning = inward > 0 ? this.accelerationAlong(bodies, i, b, inX / inward, inY / inward, bodies.angle[b]!) : 0;
-      const speed = min(this.doctrines[i]!.approach.approachSpeed, sqrt(turning * clear));
+      const speed = min(this.doctrines[i]!.approach.clawSpeed, sqrt(turning * clear));
       vx += (dx / gap) * speed;
       vy += (dy / gap) * speed;
     }
@@ -10082,7 +10082,7 @@ export class Ships {
     const design = this.designs[i]!;
     const approach = this.doctrines[i]!.approach;
     const pump = design.modules[claw]!.stats.pumpRate;
-    if (!(pump > 0) || !(approach.approachSpeed > 0)) return NO_TARGET;
+    if (!(pump > 0) || !(approach.clawSpeed > 0)) return NO_TARGET;
     const mass = bodies.mass[b]!;
     const mains = this.layoutOf(i).maxThrustAlong(cos(design.thrustBearing), sin(design.thrustBearing)) / mass;
     const exhaust = exhaustOf(design);
@@ -10124,7 +10124,7 @@ export class Ships {
       // Getting there at its closing speed less however fast the source is
       // going away: one it cannot gain on is no source at all.
       const receding = apart > 0 ? ((bodies.vx[tb]! - bodies.vx[b]!) * dx + (bodies.vy[tb]! - bodies.vy[b]!) * dy) / apart : 0;
-      const closing = approach.approachSpeed - receding;
+      const closing = approach.clawSpeed - receding;
       if (!(closing > 0)) continue;
       const gap = max(0, apart - bodies.radius[tb]!);
       // What the trip burns: matching the source's motion, then speeding up
@@ -10240,7 +10240,7 @@ export class Ships {
       // facing its source comes in no faster than it can stop.
       const retro = this.accelerationAlong(bodies, i, b, -ux, -uy, facing);
       const stopping = stoppingSpeed(approach.brake * retro, gap, approach.responseTime);
-      radial = standOff ? -CLAW_APPROACH : min(approach.approachSpeed, sqrt(stopping * stopping + CLAW_APPROACH * CLAW_APPROACH));
+      radial = standOff ? -CLAW_APPROACH : min(approach.clawSpeed, sqrt(stopping * stopping + CLAW_APPROACH * CLAW_APPROACH));
       vx += ux * radial;
       vy += uy * radial;
     }
