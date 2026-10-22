@@ -1948,19 +1948,21 @@ function weaponsLeft(ship: ShipView): number {
  */
 export function fleetStrips(snapshot: Snapshot, widthPx: number, heightPx: number, ratio = 1): Strips {
   const ships: StripShip[] = [];
-  const fighterDesigns = new Map<ShipDesign, number>();
+  const fighterDesigns = new Map<string, number>();
   for (let i = 0; i < snapshot.shipCount; i++) {
     const ship = snapshot.ships[i]!;
     if (ship.team < 0 || !ship.hasControl) continue;
     const at = { body: ship.body, team: ship.team, x: ship.x, y: ship.y, vx: ship.vx, vy: ship.vy, radius: ship.currentStructure.radius };
-    // Grouped by what each is built to, so a fighter knocked about stays with its kind.
+    // Grouped by the name of what each is built to, so a fighter knocked about
+    // stays with its kind, and one from each of a carrier's pads, each pad's
+    // copy of the design its own, all go together.
     const blueprint = ship.blueprint ?? ship.currentStructure;
     if (!blueprint.fighter) {
       ships.push(at);
       continue;
     }
-    let fighter = fighterDesigns.get(blueprint);
-    if (fighter === undefined) fighterDesigns.set(blueprint, (fighter = fighterDesigns.size));
+    let fighter = fighterDesigns.get(blueprint.name);
+    if (fighter === undefined) fighterDesigns.set(blueprint.name, (fighter = fighterDesigns.size));
     ships.push({ ...at, fighter, weapons: weaponsLeft(ship) });
   }
   return stripsFor(ships, widthPx, heightPx, {
