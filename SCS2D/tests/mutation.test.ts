@@ -543,7 +543,7 @@ describe('mutation', () => {
     // half its own length into its neighbour and be refused every time —
     // closing the one route a lineage has to a large engine, since everything
     // added arrives half a metre square.
-    const rng = new Rng(61);
+    const rng = new Rng(62);
     let held: Blueprint = CORVETTE;
     let engines = 0;
     for (let i = 0; i < 400 && engines < 5; i++) {
