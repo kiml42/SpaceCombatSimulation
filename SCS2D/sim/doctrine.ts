@@ -436,12 +436,12 @@ export interface Approach {
  * The band of ranges, centre to centre, a ship's doctrine holds it at against
  * a target of `targetRadius`, given its own `reach`: `standoffRadii` of the
  * target's radius off its skin, no further out than `standoff` of its reach,
- * give or take `tolerance`.
+ * give or take `tolerance`; or `distance` off its skin, where an order says.
  */
-export function holdBand(approach: Approach, reach: number, targetRadius: number): { min: number; max: number } {
+export function holdBand(approach: Approach, reach: number, targetRadius: number, distance?: number): { min: number; max: number } {
   const off = approach.standoffRadii * targetRadius;
   const cap = approach.standoff * reach;
-  const wanted = targetRadius + (off < cap ? off : cap);
+  const wanted = targetRadius + (distance ?? (off < cap ? off : cap));
   const min = wanted * (1 - approach.tolerance);
   const max = wanted * (1 + approach.tolerance);
   const floor = min > 0 ? min : 0;

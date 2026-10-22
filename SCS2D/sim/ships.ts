@@ -700,6 +700,16 @@ export interface Order {
   flee?: boolean;
   /** Fleeing, `target` is cover to hide behind rather than an enemy to run from: decided when told. */
   hide?: boolean;
+  /**
+   * Told how far off to hold, metres from the target's skin, over what
+   * doctrine says: an attack's standoff, or a defence's station. Without it
+   * the band follows doctrine as it changes.
+   */
+  distance?: number;
+  /** Told how fast to close or open the range, m/s, over doctrine's `approachSpeed`. */
+  speed?: number;
+  /** Whether its band and speed are worked out as it flies, from `distance` and `speed` or doctrine, rather than fixed when given. */
+  live?: boolean;
 }
 
 /** What an order sends a ship to fetch, rather than to fight. */
@@ -1943,6 +1953,8 @@ export class Ships {
   private escortBand(i: number, design: ShipDesign, target: number): number {
     const approach = this.doctrines[i]!.approach;
     const theirs = this.designs[target]!.radius;
+    const told = this.getCurrentOrder(i);
+    if (told?.defend === true && told.target === target && told.distance !== undefined) return theirs + design.radius + told.distance;
     const wanted = approach.escortRadii * theirs;
     // From skin to skin, for the same reason a standoff is from the target's:
     // keeping station a hundred metres off a thing a kilometre across is a
@@ -2941,7 +2953,10 @@ export class Ships {
     // Defending is covering, which the pilot flies as a consort rather than as a station.
     if (given?.defend === true) return undefined;
     // An errand is flown as doctrine's own trips to a dock are.
-    if (given !== undefined && given.errand === undefined) return given;
+    if (given !== undefined && given.errand === undefined) {
+      if (given.flee !== true) this.liveBand(i, given);
+      return given;
+    }
 
     const design = this.designs[i]!;
     const approach = this.doctrines[i]!.approach;
@@ -3051,6 +3066,7 @@ export class Ships {
       grapple: false,
       land: false,
       dock: false,
+      ...(approachSpeed === undefined ? { live: true } : { speed: approachSpeed }),
     });
   }
 
@@ -3065,20 +3081,46 @@ export class Ships {
    * Add an order to attack `target`, fought as this ship's doctrine would fight
    * one it chose: its standoff band and approach speed.
    */
-  pushAttack(i: number, target: number, cancelOn: OrderCancelCondition = OrderCancelCondition.CompleteDisable): void {
-    const approach = this.doctrines[i]!.approach;
-    const band = holdBand(approach, this.designs[i]!.reach, this.designs[target]!.radius);
-    this.pushOrder(i, target, band.min, band.max, approach.approachSpeed, cancelOn);
+  pushAttack(
+    i: number,
+    target: number,
+    cancelOn: OrderCancelCondition = OrderCancelCondition.CompleteDisable,
+    distance?: number,
+    speed?: number,
+  ): void {
+    this.pushOrder(i, target, 0, 0, 0, cancelOn);
+    const order = this.orders[i]!.at(-1)!;
+    order.live = true;
+    if (distance !== undefined) order.distance = distance;
+    if (speed !== undefined) order.speed = speed;
+    this.liveBand(i, order);
   }
 
-  /** Add an order to defend `friend` until it is gone. */
-  pushDefend(i: number, friend: number): void {
+  /**
+   * Bring an order's band and speed up to date: from what it was told, or
+   * from its doctrine as it is now and the target as it now is.
+   */
+  private liveBand(i: number, order: Order): void {
+    if (order.live !== true) return;
+    const approach = this.doctrines[i]!.approach;
+    order.approachSpeed = order.speed ?? approach.approachSpeed;
+    if (order.ram || order.defend === true || order.target === NO_TARGET || this.alive[order.target] !== 1) return;
+    const band = holdBand(approach, this.designs[i]!.reach, this.designs[order.target]!.radius, order.distance);
+    order.minRange = band.min;
+    order.maxRange = band.max;
+  }
+
+  /** Add an order to defend `friend` until it is gone, `distance` off its skin and closing at `speed` where told. */
+  pushDefend(i: number, friend: number, distance?: number, speed?: number): void {
     const approach = this.doctrines[i]!.approach;
     this.orders[i]!.push({
       target: friend,
       minRange: 0,
       maxRange: 0,
-      approachSpeed: approach.approachSpeed,
+      approachSpeed: speed ?? approach.approachSpeed,
+      live: true,
+      ...(distance === undefined ? {} : { distance }),
+      ...(speed === undefined ? {} : { speed }),
       cancelOn: OrderCancelCondition.CompletelyDead,
       ram: false,
       grapple: false,
@@ -4406,8 +4448,9 @@ export class Ships {
     const gap = length(bodies.x[cb]! - bodies.x[b]!, bodies.y[cb]! - bodies.y[b]!);
     // Told to, it holds the band as firmly as it would a station.
     const weight = this.defendingOf(i) === consort ? URGE_REFERENCE : cohesionUrge(this.doctrines[i]!.targeting, gap, station);
-    const approach = this.doctrines[i]!.approach;
-    this.hold(bodies, i, b, cb, 0, station, approach.approachSpeed, weight);
+    const told = this.getCurrentOrder(i);
+    const speed = told?.defend === true && told.target === consort ? told.speed : undefined;
+    this.hold(bodies, i, b, cb, 0, station, speed ?? this.doctrines[i]!.approach.approachSpeed, weight);
     return consort;
   }
 

@@ -125,7 +125,18 @@ an entry is either still open or it is gone.
          plume, counts as something to fight with; a ship withdraws only while an armed enemy is anywhere
          about, or a Tanker in a scene with none would hide behind the ship come to fill from it; and a
          carrier with only secondary guns, as the Beam Carrier, keeps clear while its fighters fight.
-    4. **A per-order band and speed** for attack and defend, overriding doctrine's for that one order.
+    4. **A per-order band and speed** — built. Two boxes on the order bar, **hold … m** and **at … m/s**,
+       always shown while ships are picked and used by every attack, defence and ram given, by button, key
+       or right-click; empty is doctrine's. Settled with the author:
+       - **One distance and a speed,** not two ends of a band: an attack's distance is from the target's
+         skin, held give or take doctrine's `tolerance`; a defence's from skin to skin, as doctrine's
+         escort station is, and not capped by its own reach; a ram takes a speed alone. Metres and m/s,
+         since an order is about one target. Passes, braking and the band's width stay doctrine's.
+       - **Empty follows doctrine live:** a change in the panel, or a target broken down smaller, reaches
+         an order already given, as a defence's station always did; a number told is held. An attack's
+         band used to be fixed when given.
+       - **Set before giving,** greyed for a verb that does not take them, kept between orders. One ship's
+         queue shows what each was told. Editing an order already given, in its queue, may come later.
     5. **Orders in the skirmish**, once breeding can allow for a fleet that is being steered.
 
     **Slice 2, as settled:**
@@ -754,11 +765,6 @@ Deliberately unresolved; decide when they block something.
   most function per kilogram, with work going on in combat. Doctrine to wait until clear, or to set
   priorities, is not built. Building ships on pads and slipways (§8 step 12) wants the same: hold builds,
   build only when clear, a mothership holding still while a slipway works.
-- **Module ids muddled by an edit.** A refit keeps a module only by its id (§8 step 12), so a module
-  deleted and drawn again identically would be taken down and rebuilt. The cheap answer: pair an unmatched
-  module of the new design with an identical unmatched one of the old. The reverse, an id handed again to a
-  new module after a save and reload since the one that had it was deleted, is harmless: a module is kept
-  only when it is also identical, so a different one under an old id is rebuilt, as it should be.
 - **Launching a fighter before it is whole.** A pad launches only a whole fighter. Once its core is up it is
   already a ship, so launching early under doctrine is a rule, not a new mechanism.
 - **Robots working on a docked friend.** Robots cross a seam only onto wreckage to take it apart; crossing a

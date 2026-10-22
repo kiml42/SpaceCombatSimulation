@@ -33,7 +33,7 @@ import {
   type JumpAnchor,
 } from '../render/camera.js';
 import { boxed, clicked, fighterGroup, sameDesign, shipViewAt, sideOf, stillThere, viewOf, wholeSide } from '../render/picking.js';
-import type { Command, Logged, Order } from '../scenarios/commands.js';
+import type { Command, Held, Logged, Order } from '../scenarios/commands.js';
 import type { Battle } from '../scenarios/types.js';
 import { Rewind } from '../scenarios/rewind.js';
 import { viewGestures } from './viewGestures.js';
@@ -136,6 +136,8 @@ export interface BattleView {
   readonly armed: Verb | null;
   /** Arm a verb, or with null, disarm; an attack finishing on `cancelOn`. */
   arm(verb: Verb | null, cancelOn?: OrderCancelCondition): void;
+  /** How far off and how fast every attack, defence and ram given holds, however given; empty for doctrine's. */
+  held: Held;
   /** Give the armed verb, if its target is optional, with none: for doctrine to choose where. */
   nearest(append: boolean): void;
   /** Give a command to the battle now, logged. */
@@ -211,6 +213,7 @@ export function battleView(
   let markedModules: { readonly ship: number; readonly modules: readonly number[] } | null = null;
   let armed: Verb | null = null;
   let armedCancel = OrderCancelCondition.CompleteDisable;
+  let held: Held = {};
   /** A box being dragged out, canvas pixels. */
   let box: { x0: number; y0: number; x1: number; y1: number } | null = null;
   let autoFrame = true;
@@ -353,7 +356,15 @@ export function battleView(
     if (!EITHER.has(verb) && FRIENDLY.has(verb) !== (target.team === side)) return;
     const ships = picked.filter((i) => i !== target.ship);
     if (ships.length === 0) return;
-    const given: Order = verb === 'attack' ? { kind: 'attack', target: target.ship, cancelOn } : { kind: verb, target: target.ship };
+    const speed = held.speed === undefined ? {} : { speed: held.speed };
+    const given: Order =
+      verb === 'attack'
+        ? { kind: 'attack', target: target.ship, cancelOn, ...held }
+        : verb === 'defend'
+          ? { kind: 'defend', target: target.ship, ...held }
+          : verb === 'ram'
+            ? { kind: 'ram', target: target.ship, ...speed }
+            : { kind: verb, target: target.ship };
     issue({ kind: 'order', ships, order: given, append });
   };
 
@@ -658,6 +669,12 @@ export function battleView(
     arm(verb, cancelOn = OrderCancelCondition.CompleteDisable) {
       armed = ordersAllowed && picked.length > 0 ? verb : null;
       armedCancel = cancelOn;
+    },
+    get held() {
+      return held;
+    },
+    set held(next) {
+      held = next;
     },
     nearest,
     issue,

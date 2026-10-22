@@ -37,6 +37,9 @@ export interface OrderView {
   kind: 'attack' | 'defend' | 'ram' | 'dock' | 'scavenge' | 'deliver' | 'flee' | 'hide';
   /** The body it is against or making for, or -1 for none yet. */
   target: number;
+  /** How far off it was told to hold, and how fast to close, where told rather than doctrine's. */
+  distance?: number;
+  speed?: number;
 }
 
 /** One ship: which design to draw, where it is, and how its turrets are trained. */
@@ -488,7 +491,10 @@ export function capture(
           (order.flee === true ? (order.hide === true ? 'hide' : 'flee') : order.defend === true ? 'defend' : order.ram ? 'ram' : 'attack');
         // Docking anywhere, where doctrine has chosen to go.
         const target = order.errand !== undefined && order.target < 0 && order === given[0] ? ships.errandTarget(i) : order.target;
-        orders.push({ kind, target: ships.isAlive(target) ? bodies.indexOf(ships.body(target)) : -1 });
+        const shown: OrderView = { kind, target: ships.isAlive(target) ? bodies.indexOf(ships.body(target)) : -1 };
+        if (order.distance !== undefined) shown.distance = order.distance;
+        if (order.speed !== undefined) shown.speed = order.speed;
+        orders.push(shown);
       }
     }
     view.x = bodies.x[b]!;

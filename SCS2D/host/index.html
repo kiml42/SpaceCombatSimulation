@@ -61,6 +61,7 @@
       }
       #orderBar button.armed { background: #3a4f6e; border-color: #7fa8e0; }
       #orderBar select { max-width: 12rem; }
+      #orderBar input[type='number'] { width: 5rem; }
       #armedHint, #orderBar .warn { color: #e9c05f; }
       #queue { display: flex; flex-wrap: wrap; gap: 0.3rem 0.9rem; margin: 0; padding: 0; list-style-position: inside; }
       #queue button { padding: 0 0.3rem; }
@@ -173,6 +174,10 @@
           </select>
           <button data-verb="defend" title="Defend the next friend clicked (D)">Defend</button>
           <button data-verb="ram" title="Ram the next ship clicked (R)">Ram</button>
+          <label title="How far off every attack or defence given, by button, key or right-click, holds its target, metres from its skin; empty for doctrine's, as it changes">hold
+            <input id="holdDistance" type="number" min="0" step="10" placeholder="doctrine"> m</label>
+          <label title="How fast every attack, defence or ram given closes, metres a second; empty for doctrine's, as it changes">at
+            <input id="holdSpeed" type="number" min="0" step="5" placeholder="doctrine"> m/s</label>
           <button data-verb="dock" title="Dock with the next friend clicked, and take on all it can give (H)">Dock</button>
           <button data-verb="scavenge" title="Fill its claw from the next ship clicked, friend or foe (G)">Scavenge</button>
           <button data-verb="deliver" title="Give the next friend clicked all it can spare, through its port (U)">Deliver</button>
