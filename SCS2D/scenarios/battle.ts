@@ -94,11 +94,11 @@ export interface BattleOptions {
 /**
  * Build a battle: `setup` spawns the ships and issues the orders, and anything
  * it returns is carried on the battle for a caller that needs to know which
- * ship is which.
+ * ship is which. It is handed the battle's own wells, for a hull to ride.
  */
 export function makeBattle<Extra extends object = Record<never, never>>(
   options: BattleOptions,
-  setup: (ships: Ships, world: World) => Extra | void,
+  setup: (ships: Ships, world: World, wells: readonly WellSpec[]) => Extra | void,
 ): Battle & Extra {
   const dt = options.dt ?? 1 / 60;
   const world = new World({ dt, seed: options.seed });
@@ -112,7 +112,7 @@ export function makeBattle<Extra extends object = Record<never, never>>(
   const ships = new Ships();
   world.addForceProvider(ships.forceProvider());
 
-  const extra = setup(ships, world) ?? ({} as Extra);
+  const extra = setup(ships, world, wells) ?? ({} as Extra);
 
   const pilots = options.pilots ?? true;
   const grid = new SpatialGrid(CELL_SIZE);

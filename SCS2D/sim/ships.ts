@@ -76,6 +76,7 @@ import {
   type Targeting,
 } from './doctrine.js';
 import type { ForceProvider, World } from './world.js';
+import type { WellSpec } from './gravity.js';
 import type { BeamHits, Beams, SpatialGrid } from './index.js';
 import { MAX_BEAM_LENGTH } from './beams.js';
 import { RayHit } from './spatialGrid.js';
@@ -778,6 +779,12 @@ export interface ShipSpec {
    * escorted and scored against. See `BodySpec.ghost`.
    */
   ghost?: boolean;
+  /**
+   * The well its kernel rides: the hull is pinned, so nothing moves it, and is
+   * put every step where the kernel's middle is on the well, turning as it is
+   * spun. Its `x`, `y`, `vx` and `vy` are the well's, and not given.
+   */
+  rides?: WellSpec;
 }
 
 export interface FireReport {
@@ -821,6 +828,10 @@ export class Ships {
    */
   private readonly hullDesign: (ShipDesign | null)[] = [];
   private readonly hullBody: BodyId[] = [];
+  /** The well each pinned hull rides, by body index (`ShipSpec.rides`). */
+  private readonly rides: (WellSpec | undefined)[] = [];
+  /** Every hull that has ridden a well, live or not. */
+  private readonly riders: BodyId[] = [];
   private bodyStore: Bodies | null = null;
 
   /** What every ship has taken, by body index. */
@@ -1592,9 +1603,15 @@ export class Ships {
       inertia: spec.ghost === true ? 0 : design.inertia,
       radius: design.radius,
       ghost: spec.ghost === true,
+      pinned: spec.rides !== undefined,
     });
 
     const bodyIdx = world.bodies.indexOf(id);
+    this.rides[bodyIdx] = spec.rides;
+    if (spec.rides !== undefined) {
+      this.riders.push(id);
+      this.ride(world.bodies, bodyIdx, design);
+    }
     this.bodyStore = world.bodies;
     this.shipByBody[bodyIdx] = this.alive.length;
     this.pilots[bodyIdx] = null;
@@ -3268,6 +3285,12 @@ export class Ships {
 
   applyForces(world: World): void {
     const bodies = world.bodies;
+    // Where the rails have put the wells, which the providers before this one did.
+    for (let r = 0; r < this.riders.length; r++) {
+      const b = bodies.indexOf(this.riders[r]!);
+      const design = b < 0 ? null : this.hullDesign[b];
+      if (design !== null && design !== undefined) this.ride(bodies, b, design);
+    }
     for (let i = 0; i < this.alive.length; i++) {
       if (this.alive[i] === 0) continue;
       bodies.applyLocalWrench(
@@ -3277,6 +3300,29 @@ export class Ships {
         this.demandTorque[i]! + this.recoil[i]! + this.leakTorque[i]!,
       );
     }
+  }
+
+  /**
+   * Put a pinned hull where its kernel's middle sits on the well it rides,
+   * moving as the well does and as the hull turns about it.
+   */
+  private ride(bodies: Bodies, b: number, design: ShipDesign): void {
+    const well = this.rides[b];
+    if (well === undefined) return;
+    let kernel = -1;
+    for (let m = 0; m < design.modules.length && kernel < 0; m++) if (design.modules[m]!.spec.kind === 'kernel') kernel = m;
+    if (kernel < 0) return;
+    const module = design.modules[kernel]!;
+    const angle = bodies.angle[b]!;
+    const c = cos(angle);
+    const s = sin(angle);
+    const rx = module.x * c - module.y * s;
+    const ry = module.x * s + module.y * c;
+    const spin = bodies.angularVel[b]!;
+    bodies.x[b] = well.x - rx;
+    bodies.y[b] = well.y - ry;
+    bodies.vx[b] = (well.vx ?? 0) + spin * ry;
+    bodies.vy[b] = (well.vy ?? 0) - spin * rx;
   }
 
   /**
@@ -5058,6 +5104,8 @@ export class Ships {
       if (i < 0 || j < 0 || joined?.has(i) === true || joined?.has(j) === true) continue;
       if (this.partedAt[i]! > settled || this.partedAt[j]! > settled) continue;
       if (this.damage.isProtected(a) || this.damage.isProtected(b)) continue;
+      // Nothing joins a pinned hull: it would take the pin with it, or lose it.
+      if (bodies.pinned[a] === 1 || bodies.pinned[b] === 1) continue;
       const ma = contacts.moduleA[k]!;
       const mb = contacts.moduleB[k]!;
       // A claw closes on what its bow meets, ragged or not.

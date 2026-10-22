@@ -2,7 +2,7 @@ import type { Bodies } from './bodies.js';
 import type { ShipDesign } from './blueprint.js';
 import { BOTH_LAYERS, moduleLayers, OWN_LAYERS, type HullDesigns } from './hull.js';
 import { abs, cos, max, min, sin, sqrt } from './math.js';
-import { MAX_CORNERS, triangleOf } from './shape.js';
+import { MOST_CORNERS, shapeOf } from './shape.js';
 
 /**
  * Hulls that are solid: ships meeting each other rather than passing through.
@@ -161,7 +161,7 @@ function boxOf(design: ShipDesign, module: number, bx: number, by: number, angle
   const own = angle + m.angle;
   out.ux = cos(own);
   out.uy = sin(own);
-  const triangle = triangleOf(m.spec);
+  const triangle = shapeOf(m.spec);
   if (triangle === null) {
     out.count = 0;
     out.halfLength = m.spec.length * 0.5;
@@ -203,7 +203,7 @@ function boxesOf(design: ShipDesign, bx: number, by: number, angle: number, out:
         halfLength: 0,
         halfWidth: 0,
         radius: 0,
-        corners: new Float64Array(MAX_CORNERS * 2),
+        corners: new Float64Array(MOST_CORNERS * 2),
         count: 0,
       });
     }
@@ -309,7 +309,7 @@ const solidDesigns: ShipDesign[] = [];
  */
 const solidLayers: number[] = [];
 const point = { x: 0, y: 0 };
-const axes = new Float64Array(MAX_CORNERS * 2 * 2);
+const axes = new Float64Array(MOST_CORNERS * 2 * 2);
 const spanA = { lo: 0, hi: 0 };
 const spanB = { lo: 0, hi: 0 };
 
@@ -499,7 +499,7 @@ export function moduleOverlapsHull(
   const reach = design.radius + bodies.radius[j]!;
   if (dx * dx + dy * dy > reach * reach) return false;
   if (lone.length === 0) {
-    lone.push({ x: 0, y: 0, ux: 1, uy: 0, halfLength: 0, halfWidth: 0, radius: 0, corners: new Float64Array(MAX_CORNERS * 2), count: 0 });
+    lone.push({ x: 0, y: 0, ux: 1, uy: 0, halfLength: 0, halfWidth: 0, radius: 0, corners: new Float64Array(MOST_CORNERS * 2), count: 0 });
   }
   boxOf(design, m, bx, by, angle, lone[0]!);
   boxesOf(other, bodies.x[j]!, bodies.y[j]!, bodies.angle[j]!, boxesB);

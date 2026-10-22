@@ -55,6 +55,11 @@ export interface BodySpec {
    * never collided with. Give it no mass as well and nothing moves it.
    */
   ghost?: boolean;
+  /**
+   * Immovable whatever mass it is later given, though it still turns: a body
+   * something else places every step, as a rail does an asteroid's kernel.
+   */
+  pinned?: boolean;
 }
 
 export class Bodies {
@@ -90,6 +95,8 @@ export class Bodies {
   alive!: Uint8Array;
   /** 1 for a body nothing can meet; see `BodySpec.ghost`. */
   ghost!: Uint8Array;
+  /** 1 for a body that keeps no mass; see `BodySpec.pinned`. */
+  pinned!: Uint8Array;
   generation!: Uint32Array;
 
   capacity = 0;
@@ -136,6 +143,9 @@ export class Bodies {
     const ghost = new Uint8Array(capacity);
     if (this.ghost) ghost.set(this.ghost);
     this.ghost = ghost;
+    const pinned = new Uint8Array(capacity);
+    if (this.pinned) pinned.set(this.pinned);
+    this.pinned = pinned;
 
     const generation = new Uint32Array(capacity);
     if (this.generation) generation.set(this.generation);
@@ -162,7 +172,7 @@ export class Bodies {
       i = this.highWater++;
     }
 
-    const mass = spec.mass ?? 0;
+    const mass = spec.pinned === true ? 0 : (spec.mass ?? 0);
     const inertia = spec.inertia ?? 0;
 
     this.x[i] = spec.x ?? 0;
@@ -183,6 +193,7 @@ export class Bodies {
     this.torque[i] = 0;
     this.radius[i] = spec.radius ?? 0;
     this.ghost[i] = spec.ghost === true ? 1 : 0;
+    this.pinned[i] = spec.pinned === true ? 1 : 0;
     this.alive[i] = 1;
     this.count++;
 
@@ -216,6 +227,7 @@ export class Bodies {
   setMass(id: BodyId, mass: number): void {
     const i = this.indexOf(id);
     if (i < 0) return;
+    if (this.pinned[i] === 1) mass = 0;
     this.mass[i] = mass;
     this.invMass[i] = mass > 0 ? 1 / mass : 0;
   }

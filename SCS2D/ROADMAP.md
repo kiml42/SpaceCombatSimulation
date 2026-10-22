@@ -71,7 +71,8 @@ an entry is either still open or it is gone.
 
     - **Majors and minors.** A major has a **kernel**: a module kind of its own, not a ship's core. It is
       indestructible, unminable, on no side and never a ship. Its outline is a convex polygon of up to about
-      12 corners, in an outline store of its own so ship modules keep `MAX_CORNERS` at 4. A minor is rock
+      12 corners. Corners live on a module's spec, so only scratch is sized for twelve; ship modules keep
+      `MAX_CORNERS` at 4. A minor is rock
       alone, an ordinary free body.
     - **A kernel carries a well and a rail.** Its GM is set from a surface gravity, not from its mass, which
       only sets how it spins. It is pinned to its rail and free to rotate. A rail is a Kepler ellipse, a
@@ -104,11 +105,13 @@ an entry is either still open or it is gone.
 
     **Slices**, a PR each:
 
-    1. **Kernels and rails**, in two PRs:
-       - **1a. Rails** — built: wells moved by `Railway` (`sim/rails.ts`), the first force provider, so
-         ships and rounds feel them where they are; the Binary scene and its golden.
-       - **1b. Kernels** — the kernel and its outline store, and pinned bodies driven by their rail, their
-         well exempting them. Tested with a placed kernel and ships orbiting it.
+    1. **Kernels and rails** — built, in two PRs: wells moved by `Railway` (`sim/rails.ts`), and the
+       `kernel` module (`sim/asteroid.ts`), on a pinned body its rail places every step; the Binary and
+       Kernels scenes and their goldens. Left for the slices that need them:
+       - **Nothing welds to a pinned hull yet**, so no claw anchors to one. Slice 3 has to let a weld keep
+         the pin, and guard the momentum sums after robot work, which divide by the body's mass.
+       - **A pinned hull cut in two** keeps its pin only on the piece that stays its body. Slice 2's rock
+         breaking off needs the kernel's piece to be that one, and the rest to go free.
     2. **Rock and the generator** — the rock module and its colour, the wedge rings, the settings, and the
        generator in the custom battle, evolution and the skirmish.
     3. **Mining** — robots' shared hold, claw heating, scavenging rock and its doctrine weight.

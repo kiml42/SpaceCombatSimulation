@@ -14,7 +14,7 @@ import {
   type Hulls,
 } from './hull.js';
 import { cos, sin, sqrt } from './math.js';
-import { triangleOf } from './shape.js';
+import { shapeOf } from './shape.js';
 import { DECK_HEIGHT, nozzleOffset, THRUST_PER_EXIT_AREA, engineGeometry, type EngineGeometry } from './modules.js';
 import { RayHit, type SpatialGrid } from './spatialGrid.js';
 
@@ -369,7 +369,7 @@ export function exhaustObstruction(
     const m = boxes.modules[i]!;
     const c = cos(m.angle);
     const s = sin(m.angle);
-    const triangle = triangleOf(m.spec);
+    const triangle = shapeOf(m.spec);
     if (triangle !== null) {
       for (let v = 0; v < triangle.length; v += 2) {
         corner(i, m.x + triangle[v]! * c - triangle[v + 1]! * s, m.y + triangle[v]! * s + triangle[v + 1]! * c);

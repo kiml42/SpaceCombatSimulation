@@ -90,8 +90,8 @@ describe('a railway', () => {
       let px = 0;
       let py = 0;
       for (let k = 0; k < 3; k++) {
-        px += railway.velocity[k * 2]! * w[k]!.gm;
-        py += railway.velocity[k * 2 + 1]! * w[k]!.gm;
+        px += w[k]!.vx! * w[k]!.gm;
+        py += w[k]!.vy! * w[k]!.gm;
       }
       expect(px / gm).toBeCloseTo(0, 6);
       expect(py / gm).toBeCloseTo(0, 6);
@@ -108,8 +108,8 @@ describe('a railway', () => {
     const after = w.map((well) => [well.x, well.y]);
     railway.at(40);
     for (let k = 0; k < 3; k++) {
-      expect((after[k]![0]! - before[k]![0]!) / (2 * h)).toBeCloseTo(railway.velocity[k * 2]!, 3);
-      expect((after[k]![1]! - before[k]![1]!) / (2 * h)).toBeCloseTo(railway.velocity[k * 2 + 1]!, 3);
+      expect((after[k]![0]! - before[k]![0]!) / (2 * h)).toBeCloseTo(w[k]!.vx!, 3);
+      expect((after[k]![1]! - before[k]![1]!) / (2 * h)).toBeCloseTo(w[k]!.vy!, 3);
     }
   });
 

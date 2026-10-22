@@ -29,6 +29,7 @@ const GOLDEN: Record<ScenarioName, string> = {
   duel: 'f5558b88',
   beamDuel: '49f26cc5',
   binary: '1bf85068',
+  kernels: '3f266859',
   swarm: '7fcf2b1d',
   superSwarm: 'b081dd09',
   torpedoes: '7691d858',

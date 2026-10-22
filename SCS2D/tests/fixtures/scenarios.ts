@@ -13,6 +13,7 @@ import {
 } from '../../sim/index.js';
 import { duel } from '../../scenarios/duel.js';
 import { binary } from '../../scenarios/binary.js';
+import { kernels } from '../../scenarios/kernels.js';
 import type { Battle } from '../../scenarios/types.js';
 import { beamDuel } from '../../scenarios/beamDuel.js';
 import { soloOrdering } from '../../scenarios/ordering.js';
@@ -339,6 +340,17 @@ export function binaryScenario(seed = 20260905): ScenarioRun {
   };
 }
 
+/** The same between two bare kernels riding those wells: what pins a hull on rails. */
+export function kernelsScenario(seed = 20260905): ScenarioRun {
+  const run = kernels(seed);
+  return {
+    step: () => run.step(),
+    checksum: () =>
+      checksumDamage(run.ships.damage, checksumBeams(run.beams, checksumProjectiles(run.projectiles, checksumWorld(run.world)))),
+    describe: () => describeBattle(run),
+  };
+}
+
 export function beamDuelScenario(seed = 20260905): ScenarioRun {
   const run = beamDuel(seed);
   return {
@@ -584,6 +596,7 @@ export const SCENARIOS = {
   duel: { steps: 3_000, build: () => duelScenario() },
   beamDuel: { steps: 3_000, build: () => beamDuelScenario() },
   binary: { steps: 3_000, build: () => binaryScenario() },
+  kernels: { steps: 6_000, build: () => kernelsScenario() },
   swarm: { steps: 3_000, build: () => swarmScenario() },
   superSwarm: { steps: 3_000, build: () => swarmScenario(undefined, 300) },
   torpedoes: { steps: 3_000, build: () => torpedoesScenario() },

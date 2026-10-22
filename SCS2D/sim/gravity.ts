@@ -19,6 +19,9 @@ import type { ForceProvider, World } from './world.js';
 export interface WellSpec {
   x: number;
   y: number;
+  /** How fast it is moving, m/s, set by its rail (`rails.ts`); a well without one stays put. */
+  vx?: number;
+  vy?: number;
   /** Standard gravitational parameter, G*M. */
   gm: number;
   /**

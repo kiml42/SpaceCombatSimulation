@@ -12,8 +12,9 @@ import type { ModuleKind, ModuleSpec } from './modules.js';
  * of rectangles alone cannot draw a prow.
  *
  * So `structure` and `tank` may be **triangles**, given as three corners the
- * author places one at a time (`ModuleSpec.vertices`), and every other
- * archetype is the box it declares. This file is the one place that knows
+ * author places one at a time (`ModuleSpec.vertices`), an asteroid's `kernel`
+ * is a convex polygon of five to twelve, and every other archetype is the box
+ * it declares. This file is the one place that knows
  * which: everything geometric — mass, the corners a shot crosses, what two
  * modules share a face along, what a turret cannot see past, what the renderer
  * draws — asks `moduleOutline` (which `modules.ts` owns, since which end of a
@@ -30,8 +31,18 @@ import type { ModuleKind, ModuleSpec } from './modules.js';
 /** Corners a triangular module has. */
 export const TRIANGLE_CORNERS = 3;
 
-/** The most corners any module's outline has, which is a box's four. */
+/** The most corners any ship module's outline has, which is a box's four. */
 export const MAX_CORNERS = 4;
+
+/**
+ * The fewest and most corners a kernel has. At least five, so that a four-cornered
+ * outline is always a box (`outlineAxes`).
+ */
+export const KERNEL_MIN_CORNERS = 5;
+export const KERNEL_MAX_CORNERS = 12;
+
+/** The most corners any outline has: scratch sized for this holds any module. */
+export const MOST_CORNERS = KERNEL_MAX_CORNERS;
 
 /**
  * The smallest triangle that is a module, m².
@@ -51,22 +62,29 @@ export const MIN_TRIANGLE_AREA = 1e-6;
  * bell leaves a face it has to be as wide as, a hull weapon's barrel comes out
  * of one and swings inside the opening, and a turret's ring has to fit within
  * the mount. Those are all measured along the module's length and across its
- * width, and a triangle has neither.
+ * width, and a triangle has neither. A kernel is never a box.
  */
 export function canShape(kind: ModuleKind): boolean {
-  return kind === 'structure' || kind === 'tank' || kind === 'hold';
+  return kind === 'structure' || kind === 'tank' || kind === 'hold' || kind === 'kernel';
+}
+
+/** How many corners a module of this kind may be given, as [fewest, most]. */
+export function cornersAllowed(kind: ModuleKind): readonly [number, number] {
+  return kind === 'kernel' ? [KERNEL_MIN_CORNERS, KERNEL_MAX_CORNERS] : [TRIANGLE_CORNERS, TRIANGLE_CORNERS];
 }
 
 /** The module's corners in its own frame, or null if it is the box it declares. */
-export function triangleOf(spec: ModuleSpec): readonly number[] | null {
+export function shapeOf(spec: ModuleSpec): readonly number[] | null {
   const vertices = spec.vertices;
   if (vertices === undefined || !canShape(spec.kind)) return null;
-  return vertices.length === TRIANGLE_CORNERS * 2 ? vertices : null;
+  const [fewest, most] = cornersAllowed(spec.kind);
+  const corners = vertices.length / 2;
+  return corners >= fewest && corners <= most ? vertices : null;
 }
 
-/** Whether this module is drawn as a triangle rather than as its box. */
-export function isTriangle(spec: ModuleSpec): boolean {
-  return triangleOf(spec) !== null;
+/** Whether this module is drawn as its corners rather than as its box. */
+export function isShaped(spec: ModuleSpec): boolean {
+  return shapeOf(spec) !== null;
 }
 
 /**
@@ -88,6 +106,37 @@ export function signedArea2(vertices: readonly number[]): number {
 /** The area a corner list encloses, m², whichever way round it is wound. */
 export function polygonArea(vertices: readonly number[]): number {
   return abs(signedArea2(vertices)) * 0.5;
+}
+
+/** Where a polygon's area is centred, written into `out`: for a triangle, the mean of its corners. */
+export function polygonCentroid(vertices: readonly number[], out: { x: number; y: number }): void {
+  let cx = 0;
+  let cy = 0;
+  let twice = 0;
+  for (let i = 0; i < vertices.length; i += 2) {
+    const j = (i + 2) % vertices.length;
+    const cross = vertices[i]! * vertices[j + 1]! - vertices[j]! * vertices[i + 1]!;
+    twice += cross;
+    cx += (vertices[i]! + vertices[j]!) * cross;
+    cy += (vertices[i + 1]! + vertices[j + 1]!) * cross;
+  }
+  out.x = twice === 0 ? 0 : cx / (3 * twice);
+  out.y = twice === 0 ? 0 : cy / (3 * twice);
+}
+
+/** Whether a corner list is convex and wound anticlockwise, every turn a left one. */
+export function isConvexAnticlockwise(vertices: readonly number[]): boolean {
+  const n = vertices.length;
+  for (let i = 0; i < n; i += 2) {
+    const j = (i + 2) % n;
+    const k = (i + 4) % n;
+    const ex = vertices[j]! - vertices[i]!;
+    const ey = vertices[j + 1]! - vertices[i + 1]!;
+    const fx = vertices[k]! - vertices[j]!;
+    const fy = vertices[k + 1]! - vertices[j + 1]!;
+    if (!(ex * fy - ey * fx > 0)) return false;
+  }
+  return true;
 }
 
 /**

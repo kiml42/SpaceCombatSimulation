@@ -13,7 +13,7 @@ import {
   moduleCentre,
   normalizeShape,
   readsNozzle,
-  triangleOf,
+  shapeOf,
   moduleRadius,
   radiansToDegrees,
   type ModuleSpec,
@@ -134,7 +134,7 @@ export function handlesFor(spec: ModuleSpec, scale: number): Handle[] {
   const hw = spec.width / 2;
   // The block, which is what the length and width measure.
   const mid = blockCentre(spec);
-  const triangle = triangleOf(spec);
+  const triangle = shapeOf(spec);
   if (triangle !== null) {
     // A shaped module has no faces to size it by: each corner is grabbed on
     // its own, and the other two stay exactly where they are. The knob is
@@ -342,7 +342,7 @@ export function vertexTo(
   y: number,
   step: number,
 ): { vertices: number[]; dx: number; dy: number } | null {
-  const triangle = triangleOf(spec);
+  const triangle = shapeOf(spec);
   if (triangle === null || index < 0 || index * 2 >= triangle.length) return null;
   const angle = spec.angle ?? 0;
   const c = cos(angle);
