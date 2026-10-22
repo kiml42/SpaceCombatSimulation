@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { asteroidBlueprint, compileBlueprint, NEUTRAL_TEAM } from '../sim/index.js';
+import { asteroidBlueprint, capture, compileBlueprint, NEUTRAL_TEAM, Snapshot } from '../sim/index.js';
 import { Rng } from '../sim/rng.js';
 import { makeBattle } from '../scenarios/battle.js';
 import { mining } from '../scenarios/mining.js';
 import { SCAVENGER } from '../scenarios/blueprints.js';
+import { give } from '../scenarios/commands.js';
 
 /** Metal and fuel a miner's body holds. */
 function stores(run: ReturnType<typeof mining>, i: number): { metal: number; fuel: number; pinned: boolean } {
@@ -66,6 +67,40 @@ describe('mining', () => {
     expect(gained).toBeGreaterThan(10);
     // No faster than a claw melts it.
     expect(gained).toBeLessThanOrEqual(60 * 1 + 1e-6);
+  });
+
+  it('goes for the asteroid it is told to, not the nearest', () => {
+    const rock = (seed: number) =>
+      compileBlueprint(asteroidBlueprint('Rock', { radius: 40, kernel: false, ore: 0.4, ice: 0.2 }, new Rng(seed)));
+    const run = makeBattle({ seed: 3 }, (ships, world) => ({
+      near: ships.spawn(world, { design: rock(2), x: 0, y: 0, team: NEUTRAL_TEAM }),
+      far: ships.spawn(world, { design: rock(3), x: 0, y: 600, team: NEUTRAL_TEAM }),
+      scavenger: ships.spawn(world, { design: compileBlueprint(SCAVENGER), x: -150, y: 0, angle: 0, team: 0 }),
+    }));
+    give(run, { kind: 'order', ships: [run.scavenger], order: { kind: 'scavenge', target: run.far }, append: false });
+    run.step();
+    expect(run.ships.doingOf(run.scavenger)).toEqual({ kind: 'scavenge', target: run.far });
+  });
+
+  it('shows what is left in an asteroid, and less of it once mined', () => {
+    const run = mining();
+    const left = (): number => {
+      const view = capture(new Snapshot(), run.world, run.ships, run.projectiles, run.beams);
+      let rock = 0;
+      for (let k = 0; k < view.shipCount; k++) {
+        const ship = view.ships[k]!;
+        if (ship.team === NEUTRAL_TEAM) {
+          expect(ship.rock).toBeDefined();
+          expect(ship.rock!.ore + ship.rock!.ice).toBeLessThanOrEqual(ship.rock!.rock * (1 + 1e-9));
+          rock += ship.rock!.rock;
+        } else expect(ship.rock).toBeUndefined();
+      }
+      return rock;
+    };
+    const before = left();
+    expect(before).toBeGreaterThan(0);
+    for (let t = 0; t < 600 * 60; t++) run.step();
+    expect(left()).toBeLessThan(before);
   });
 
   it('leaves rock alone when its doctrine sets no worth on it', () => {

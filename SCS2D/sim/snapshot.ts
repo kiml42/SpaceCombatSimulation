@@ -220,6 +220,8 @@ export interface ShipView {
    * able to shoot is one that can.
    */
   turretDisabled: boolean[];
+  /** An asteroid's rock left, and the ore and ice in it, kg; absent for anything else. */
+  rock?: { rock: number; ore: number; ice: number };
   /**
    * Which modules this view draws, in module order; absent or empty for all.
    * Two ships hooked together share a body and a design, and each draws only
@@ -521,6 +523,8 @@ export function capture(
     view.hasControl = ships.hasControl(i);
     view.isDerelict = ships.isDerelict(i);
     view.isMissionKilled = ships.isMissionKilled(i);
+    if (ships.isAsteroid(i)) ships.rockLeft(i, (view.rock ??= { rock: 0, ore: 0, ice: 0 }));
+    else delete view.rock;
 
     view.turretBearings.length = design.turrets.length;
     view.turretReady.length = design.turrets.length;

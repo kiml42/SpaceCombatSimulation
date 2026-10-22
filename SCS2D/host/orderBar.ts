@@ -90,8 +90,23 @@ export function orderBar(view: BattleView): { update(shown: Snapshot): void } {
     remodelWarning.hidden = true;
   };
 
+  const card = el<HTMLElement>('asteroidCard');
+  let carded = '';
+  /** What is left in an asteroid picked out alone. */
+  const showAsteroid = (shown: Snapshot): void => {
+    const rock = view.picked.length === 1 ? viewOf(shown, view.picked[0])?.rock : undefined;
+    const text = rock === undefined ? '' : `rock ${tonnes(rock.rock)} · ore ${tonnes(rock.ore)} · ice ${tonnes(rock.ice)}`;
+    card.hidden = rock === undefined;
+    if (text === carded) return;
+    carded = text;
+    const title = document.createElement('b');
+    title.textContent = 'Asteroid ';
+    card.replaceChildren(title, text);
+  };
+
   return {
     update(shown) {
+      showAsteroid(shown);
       const side = view.orderSide(shown);
       bar.hidden = side === null;
       if (side === null) {
@@ -123,7 +138,8 @@ export function orderBar(view: BattleView): { update(shown: Snapshot): void } {
               : 'gone';
         for (let i = 0; i < shown.shipCount; i++) {
           const target = shown.ships[i]!;
-          if (target.body === order.target) named = `${teamName(target.team)} ${target.name ?? target.serial}`;
+          if (target.body === order.target)
+            named = target.rock === undefined ? `${teamName(target.team)} ${target.name ?? target.serial}` : 'asteroid';
         }
         const distance = order.distance === undefined ? '' : ` · ${order.distance} m`;
         const speed = order.speed === undefined ? '' : ` · ${order.speed} m/s`;
@@ -146,4 +162,10 @@ export function orderBar(view: BattleView): { update(shown: Snapshot): void } {
       );
     },
   };
+}
+
+/** A mass in tonnes, to three figures or so. */
+function tonnes(kg: number): string {
+  const t = kg / 1000;
+  return `${t >= 100 ? Math.round(t).toLocaleString('en-GB') : t.toPrecision(3)} t`;
 }
