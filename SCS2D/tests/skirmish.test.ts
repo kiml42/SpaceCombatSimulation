@@ -292,6 +292,9 @@ describe('the skirmish', () => {
     const back = handedSkirmish(skirmishFragment(skirmish))!;
     expect(settingsOf(back)).toEqual(settings);
     expect(settingsOf(newSkirmish(gunship, gunship, 5))).toEqual(DEFAULT_SKIRMISH_SETTINGS);
+    // Settings saved before answers had a margin keep none.
+    const { answerMargin: _, ...older } = settings;
+    expect(settingsOf(parseSkirmish({ ...serialiseSkirmish(skirmish), settings: older })).answerMargin).toBe(0);
     // The round is set out by them.
     const near = roundSetup(back);
     const nearer = roundSetup(newSkirmish(gunship, gunship, 5, { ...settings, gap: 3000 }));

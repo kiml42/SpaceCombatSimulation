@@ -55,191 +55,13 @@ an entry is either still open or it is gone.
 | 11 | Power | Built |
 | 12 | In-battle construction | Built |
 | 13 | Harvesting wrecks | Built |
-| 14 | Orders | Partly built |
+| 14 | Orders | Built |
 | 15 | Mining | Not started |
 | 16 | Campaign | Not started |
 
 ### Partly built — what is left
 
-14. **Orders** — telling ships what to do in the middle of a battle, from the paused battle. A big change,
-    and mostly careful UI: picking a ship or a group, choosing what to tell it, seeing what it has been told
-    and taking it back, all without the screen turning into a form. It needs to cover telling ships to:
-
-    - change doctrine;
-    - attack something;
-    - defend something;
-    - run away;
-    - ram;
-    - go for refuelling or repairs;
-    - remodel to a new design;
-    - build a fighter;
-    - build a ship.
-
-    Much of it already has a form in the sim, and what is missing is the way to give it: a ship holds a
-    queue of orders, each a target and a range band to hold, or a target to ram; doctrine is a block a ship
-    can be handed whole; its doctrine already sends it to escort, to land on a pad and to dock at a port for
-    fuel and repairs, but only on its own judgement, never by order; `Ships.refit` remodels a ship; a pad's
-    or slipway's `craft` and `keep` say what it builds. Running away is the Flee order, and doctrine's
-    `fleeArmed`, `hideRange` and `hideSize` (slice 3 below).
-    Comes before mining because managing an income is giving orders; the campaign reuses all of it.
-
-    Built in slices, each landing on its own:
-
-    0. **Rewind** — built: a scrub bar on the viewer, which snaps to checkpoints and so never re-simulates,
-       and `,` to step back exactly (§12). Across a jump the camera lands exactly framed, or, not framing,
-       moves as far as the ships it was following did. Built first, since several of the decisions below are about rewinding.
-       Left to fix, from trying it:
-       - **A copy in one frame** is about 10 ms in Super Swarm, most of it some 14,000 small typed arrays.
-         Arrays only ever replaced whole, never written into, are marked `fixed` (`sim/fixed.ts`) and
-         shared rather than copied, which took about 30% off the time and a quarter off the memory; some
-         8,000 are still copied, a body's changing state and its engine layout's solver arrays among them.
-         Spreading one over frames would mean holding the battle still while it is copied, so the way on is
-         a cheaper copy still: fewer, larger arrays in the sim, or copying only what changed.
-    1. **Attack, defend and ram** — built; the keys table on each battle page says how to give them. Building it chose:
-       - **Keys:** K, D and R arm attack, defend and ram (T being the fleet strips), and S stops. A takes the whole side, and the
-         arcs moved to Ctrl or Cmd+A on every battle page; the editors keep A for them.
-       - **The attacker preference is a filter:** defending, a ship picks only among the friend's
-         attackers while there are any. The friend becomes its consort, held as firmly as a station.
-       - **Neutrals:** a right-click on one gives nothing. Neither is an order to defend a ship on
-         another side, or to attack or ram one's own, whatever a link says.
-       - **The order bar floats over the battle**, so picking a ship never resizes the view under the
-         pointer.
-       - **Commands name ships by the simulation's index**, which a deterministic battle keeps.
-    2. **Dock, scavenge, deliver, doctrine, build and remodel** — designed, as settled below, in four
-       pieces that each land on their own:
-       - **2a. Dock** — built, with ports passing metal and the machinery for an order whose target is
-         optional. No golden checksum moved: none of those battles docks at a port.
-       - **2b. Scavenge and deliver** — built, on the same machinery.
-       - **2c. The doctrine panel** — built: the ship's, its main and secondary weapons', a single
-         mount's, and its build counts.
-       - **2d. Remodel and the design picker** — built, carrying blueprints in the log. The picker
-         offers the blueprint library, stock and saved; a design only in the battle, such as an evolved
-         fleet's, is not yet among them.
-    3. **Run away** — settled below, on slice 2's machinery: an order whose target is optional, and
-       doctrine as settings. Built in two pieces:
-       - **3a. The Flee order** — built: W arms it, Enter gives no target. Fleeing eases off at
-         `FLEE_EASE`, 3 m/s², a first guess. Building it found fleet breeding dropping a merge's changes to
-         groups, which left a group naming a design merged away; it is fixed.
-       - **3b. Withdrawing under doctrine** — built, judged at each rethink rather than every step. Building
-         it settled three things the grilling had not: a reach of a ship's own that is not a gun's, a Torch's
-         plume, counts as something to fight with; a ship withdraws only while an armed enemy is anywhere
-         about, or a Tanker in a scene with none would hide behind the ship come to fill from it; and a
-         carrier with only secondary guns, as the Beam Carrier, keeps clear while its fighters fight.
-    4. **A per-order band and speed** — built. Two boxes on the order bar, **hold … m** and **at … m/s**,
-       always shown while ships are picked and used by every attack, defence and ram given, by button, key
-       or right-click; empty is doctrine's. Settled with the author:
-       - **One distance and a speed,** not two ends of a band: an attack's distance is from the target's
-         skin, held give or take doctrine's `tolerance`; a defence's from skin to skin, as doctrine's
-         escort station is, and not capped by its own reach; a ram takes a speed alone. Metres and m/s,
-         since an order is about one target. Passes, braking and the band's width stay doctrine's.
-       - **Empty follows doctrine live:** a change in the panel, or a target broken down smaller, reaches
-         an order already given, as a defence's station always did; a number told is held. An attack's
-         band used to be fixed when given.
-       - **Set before giving,** greyed for a verb that does not take them, kept between orders. One ship's
-         queue shows what each was told. Editing an order already given, in its queue, may come later.
-    5. **Orders in the skirmish**, once breeding can allow for a fleet that is being steered.
-
-    **Slice 2, as settled:**
-
-    - **Two kinds of thing to tell a ship.** *Orders* go in its queue and are worked through: dock,
-      scavenge and deliver join attack, defend and ram, so "dock, then attack that" is two orders. *Settings*
-      change how it does whatever it is doing, at once and beside the queue: doctrine, build counts and
-      remodelling. "Hold at long range" and "attack that" are given together, not one after the other. Both
-      are logged commands.
-    - **An optional target.** Dock, scavenge and deliver arm like the other verbs, and a click on a ship
-      gives one with that target. The armed hint also offers **Nearest** (Enter), which gives it without one,
-      for doctrine to choose where, weighing danger as it does on its own. Ctrl queues either. Any later
-      order whose target is optional works the same way.
-    - **Dock** (H) takes on everything a dock can give: at a friend's pad if it fits one, otherwise
-      port to port. It goes however full the ship is, and stays until the dock has nothing more to give it.
-      With a target it ignores `dockDanger`, both going and holding on. It ends only then, or on Stop or ✕,
-      or when the friend is gone. The friend is told nothing and carries on; the ship comes to it. A friend
-      that cannot take it, with no pad it fits and no free port, passes the order over.
-    - **Ports pass metal**, as a pad does, from what the giver can spare above its reserve, so a dock
-      refuels, rearms and recharges any ship. Only a pad mends (robots on a docked friend, §12). This moves
-      battles where ships already dock at ports, so their golden checksums are re-recorded deliberately.
-    - **Scavenge** (G), on the order bar only, since right-clicking a friend defends it, own wrecks
-      included. A target is any wreck, any enemy (armed too: boarding by claw), a friend that has lost
-      control, or an active friend, from which it takes only fuel, down to that friend's `refuelBelow`.
-      With a target it ignores `scavengeDanger`, and holds on until its claw is full or the target has
-      nothing left to give. Nearest goes source after source until full. Full means fuel and, with robots
-      aboard, metal, whatever `scavengeFuelBelow` and `scavengeMetalBelow` say. A ship with no working claw
-      is skipped; a target its claw cannot take from passes the order over.
-    - **Deliver** (U), the giver's side of a dock: port to port, giving fuel, metal and charge above its own
-      reserves, whatever `deliverFuelAbove` says, and ignoring `dockDanger` with a target. It ends when the
-      friend is full, the giver has nothing to spare, the friend is gone, or on Stop or ✕. Nearest gives to
-      the friend with most room, then the next, until it has nothing to spare. The friend is told nothing. A
-      giver with no port is skipped; a friend with no free port or no room passes the order over.
-    - **Queue lines** are coloured by verb as slice 1's are: dock green, scavenge amber, deliver blue.
-    - **The doctrine panel** (P) sits beside the order bar and edits the selection's doctrine as a
-      per-ship override, the blueprint untouched, so the fleet strips still group a ship with its sisters.
-      It reuses the editor's rows (`editor/doctrine.ts`), so the battle and the editor describe doctrine in
-      the same words. A command carries only the fields changed, applied to every picked ship; where they
-      differ, the box is blank, and typing sets them all. A field, or the whole, can be reset to its design.
-    - **Parts.** The panel opens on the ship's doctrine, the cores'. Beside it are **main** and
-      **secondary weapons**, rather than one entry for each kind of mount, since one kind can be used
-      differently in different parts of a ship. Clicking a mount in a close-up edits that one mount's
-      *placement*: every copy of it, by repeated instances or a reused assembly, shares its doctrine, so all
-      are highlighted and an edit applies to them all, as in the editor.
-    - **Build counts** are settings in the same panel: each pad's or slipway's design and how many to keep,
-      a standing count as now (0 stops it), not a queue.
-    - **Remodel** is a setting too: the ship fights on while its robots rebuild it to the new design, as
-      `Ships.refit` does now. It sits on the order bar, showing what the ship is built to: choose another
-      and press Remodel, in two steps, and a choice not given goes back when the picking changes. A ship
-      with no robots has it shown but not offered.
-    - **One design picker** for remodelling and for a build slot's design. It lists the side's designs in
-      the battle, blueprints and craft, and the blueprint library, stock and saved, filtered to what would
-      work: for a remodel, what `refit` accepts for every picked ship, with how much it would rebuild; for a
-      pad, fighters that fit it; for a slipway, nothing wider. The command carries the blueprint, kept once
-      in the log by its content, so a link replays wherever it is opened.
-    - **What an override follows.** A remodel keeps the ship's override and its main and secondary weapons',
-      and a single mount's while the refit keeps that placement. A build slot the refit keeps keeps its
-      count; a new one starts from the new blueprint's. Half of a split ship that flies on copies its
-      overrides, as it copies its orders. What a ship builds flies by its own blueprint's doctrine; to change
-      it, pick those ships (a fleet strip's tile picks a design's fighters).
-    - **Keys** are provisional, to be rethought once the set is fuller. Inside the panel it is mouse only,
-      so keys do not fight the number boxes.
-
-    **Slice 3, as settled:**
-
-    - **One Flee verb, its target deciding what it does** (F; Nearest and Enter give no target):
-      - **No target:** away from every armed enemy whose reach it is inside.
-      - **An enemy:** away from that one only.
-      - **A friend or a neutral body, a wreck included:** hide behind it. Hiding behind an unarmed enemy
-        would make sense too, but is not offered, as it would be hard to make clear.
-      - Each draws its target line in a colour of its own, flee and hide told apart.
-    - **Out of reach** is an armed enemy's reach (`fightReach`: its guns', or a ram's run) times the
-      fleeing ship's `fleeMargin`. An enemy's speed is not allowed for. "Armed" means guns or a ram.
-    - **Fleeing never ends of its own accord.** Out of reach it eases off gently rather than braking hard:
-      coasting away would spend least fuel, but a ship that is to be any use again has to come back, or be
-      come to; easing off keeps it ready to run again if the enemy comes on, and stops it leaving its friends
-      behind. Only Stop or a new order ends it, and as nothing queued after it would run, a Flee replaces
-      the queue.
-    - **Fleeing all of them** weighs each armed enemy it is inside the reach of by how deep inside it is,
-      and one with a gun aimed at it, a mount whose pick is this ship, by `aimedWeight` more.
-    - **Hiding** sits on the side of its cover opposite the nearest armed enemies, weighted as fleeing
-      weighs them, as close as its own obstacle avoidance holds it off anything, and moving with it. A
-      cover that is destroyed is hidden behind as a wreck, so hiding goes on.
-    - **Under doctrine**, judged afresh at each rethink, so a ship mended back above its threshold returns:
-      - **What it fights or works with:** its guns; its claws while its doctrine wants to scavenge (below
-        its threshold, with a source it has picked); its ports while there is a friend it would fuel. A
-        tool counts while wanted whether or not it works, so a broken claw is a broken tool, not a missing
-        one. The share of these still working is what `fleeArmed` and `ramArmed` read.
-      - **It withdraws** at or below `fleeArmed` of that share (below zero, the default, never), and
-        always when it has nothing at all to fight or work with: a Tanker with no one to fuel, or a
-        Scavenger with nothing to scavenge, keeps clear rather than idling near the fight.
-      - **Precedence:** an order over everything; then docking and doctrine's errands, which back off by
-        their own `dockDanger` and `scavengeDanger`; then withdrawing; then fighting. Ramming overrules
-        withdrawing when the ship is at or below `ramArmed` and an enemy is within its ram radius, so with
-        `ramArmed` below `fleeArmed` a ship flees, and rams only if it loses its guns faster than it gets
-        away. `ramArmed` above `fleeArmed` is allowed, if of little use.
-      - **Hide or flee:** it hides behind the nearest friend or neutral body within `hideRange` of its own
-        radii and at least `hideSize` times its radius, not itself inside an armed enemy's reach, keeping
-        that cover while it qualifies; with none, it flees all armed enemies.
-    - **New doctrine, each evolvable:** `fleeMargin`, `aimedWeight`, `fleeArmed`, `hideRange` and
-      `hideSize`.
-    - **Left open:** cover is sized by radius alone, though fire can go through it, and a more massive
-      cover stops more of it.
+Nothing: every step begun is built. What is left of them is in §12.
 
 ### Not started — in order
 
@@ -273,6 +95,21 @@ Newtonian combat feel good? do the scaling laws hold?) rather than the known one
 by construction, and put something on screen within days. The same test still picks the next step: the one
 that answers the question most likely to change the design.
 
+#### Orders (step 14)
+
+- **A command is logged, and replayed, by the simulation's ship indices,** which a deterministic battle
+  keeps; a blueprint a command carries is written once into the log's `designs`, so a link or a history
+  replays wherever it is opened. Anything new told mid-battle is a `Command` (`scenarios/commands.ts`).
+- **Orders and doctrine are two things.** An order goes in a ship's queue and is worked through; doctrine,
+  build counts and remodelling are settings, told over the blueprint's from the doctrine panel. An order
+  left untold on a number follows doctrine live.
+- **Rewinding copies the whole battle** at checkpoints (`Rewind`, `cloneBattle`) and replays the command log
+  from there, which costs one rule: nothing in a battle may be a closure over state that changes, since a
+  copy would go on reaching into the original. Designs, and caches keyed on them, are shared, never changed.
+- **Add ship is a sandbox tool**, on the viewer only: no game mode offers it.
+- **The skirmish's enemy answers the player's fleet as doctrine flies it,** by `answerMargin`; orders are
+  the player's edge over it, and a page that gives orders names the one side that may take them.
+
 #### Skirmish (step 5)
 
 - **An endless loop against an enemy that evolves to beat the player.** The first enemy's bill is the
@@ -302,8 +139,8 @@ that answers the question most likely to change the design.
 - **A ship always aims at exactly one blueprint.** Rebuilding aims at the design it set out with; a refit
   changes which design that is. An order to remodel is `Ships.refit` and nothing else: never a ship growing
   past its design.
-- **A refit matches modules by stable id**, so anything that makes or edits a design an order points a ship
-  at has to keep ids (`settleIds`), as the editor and evolution do.
+- **A refit matches modules by stable id**, then by identical layout, so anything that makes or edits a
+  design an order points a ship at should keep ids (`settleIds`), as the editor and evolution do.
 - **Pads and slipways keep a count, not a queue.** An order to build a fighter or a ship sets a `craft` and a
   `keep`; a menu of designs is open (§12).
 
@@ -463,21 +300,12 @@ Deliberately unresolved; decide when they block something.
   holding it, which may be too eager while it could still be mended by someone else's. A full hold leaves a
   wreck half taken apart, its robots home with what they could not put away, until it is emptied.
 
-- **Withdrawal: a craft breaking off.** Settled as step 14's slice 3 (§8): running away, from enemies
-  generally or one, or hiding behind a friend, by order or by doctrine. What follows is what it answers. A
-  fighter already breaks off for a pad at its `refuelBelow`, `rearmBelow`, `rechargeBelow` and `repairBelow`; nothing breaks off for anything else, and
-  nothing without a pad to go to breaks off at all. **And keeping clear in the first place**: an unarmed
-  ship — a tanker — wants a doctrine that moves it away from armed enemies rather than towards a target, a
-  weight against each by how dangerous it is and how close, so a support ship stays behind its fleet without
-  being ordered to. An unarmed ship with a ram doctrine already picks targets (a torpedo); one without one
-  does nothing at all.
-
 - **Pilots that know their fuel.** Nothing flies differently for running low, so a ship spends its tanks as
   freely as ever. Short-legged ships show it: the Dinky carries 68 kg (13 s flat out), the TIE and the Torch
   little more for what they push, and in `swarm` every Dinky is dry before it reaches the gunships. A fighter
   goes home to refuel at its `refuelBelow`, but a ship with no pad or port to go to burns to empty. The answer
   may be bigger tanks, now that evolution can pay for fuel on its own budget, or a pilot that husbands what it
-  has, which belongs with withdrawal (above).
+  has, as withdrawing under doctrine (`fleeArmed`) could carry a threshold for fuel.
 
 - **Whether targeting needs more pickers.** A ship-type picker, and hemisphere as a hard discard if
   `facingWeight`'s soft version — astern scores against — turns out not to be enough. Neither is clearly
@@ -770,7 +598,17 @@ Deliberately unresolved; decide when they block something.
 - **Robots working on a docked friend.** Robots cross a seam only onto wreckage to take it apart; crossing a
   port seam to mend a friend is not built. So a Dock order (§8 step 14, slice 2) mends only a fighter, on a
   pad: a port passes fuel, metal and charge and nothing more.
-- **More for step 14 to tell ships**, left out of slice 2:
+- **Gaming the skirmish's answer.** It breeds against the player's fleet on its own doctrine, so a fleet
+  given a doctrine that is useless untold makes the answer easy, and orders then win the round. A fix:
+  the answer must also beat the fleet on the default doctrine, at twice the search's cost. Left open
+  until it is seen to matter; a player who does it spoils only their own game.
+- **Rewinding more cheaply.** A checkpoint's copy in one frame is about 10 ms in Super Swarm, most of it some
+  14,000 small typed arrays. Arrays only ever replaced whole, never written into, are marked `fixed`
+  (`sim/fixed.ts`) and shared rather than copied, which took about 30% off the time and a quarter off the
+  memory; some 8,000 are still copied, a body's changing state and its engine layout's solver arrays among
+  them. Spreading one over frames would mean holding the battle still while it is copied, so the way on is
+  a cheaper copy still: fewer, larger arrays in the sim, or copying only what changed.
+- **More to tell ships**, left out of step 14's slices:
   - **Stay docked**, so doctrine cannot take a ship off a dock the player wants it on.
   - **Scrap**, given to the ship to be taken apart: scrappers may then come and strip it, while it follows
     its doctrine and fights on until they do. Scavenging a friend takes only fuel until then.
@@ -779,7 +617,14 @@ Deliberately unresolved; decide when they block something.
   - **Editing a ship's blueprint from the battle**: opening the editor on it and bringing the result back
     as a remodel, a round trip between pages that are separate.
   - **The keys**, rethought once the set is fuller.
-  - **Left from slice 1:** a drop-down naming one side as yours, and touch.
+  - **Left from slice 1:** a drop-down naming one side as yours on the viewer, as the skirmish names it,
+    and touch.
+  - **Editing an order already given**, its distance and speed, in the queue rather than by giving it again.
+  - **Remodelling to a design only in the battle**, such as an evolved fleet's: the picker offers the
+    blueprint library alone.
+  - **Hiding behind an unarmed enemy**, which would make sense but would be hard to make clear in the UI.
+  - **Cover sized by mass as well as radius**, since fire can go through cover, and more massive cover
+    stops more of it.
 - **The numbers for repair.** How much each step wastes (repair wastes a tenth, a first guess), and whether
   disassembly and building waste alike; time and power for a joule of damage undone (a pad mends 20 kJ/s a
   metre of its width, at 10 J of charge a joule, both first guesses); a robot's speed over a hull (2 m/s), the
@@ -959,26 +804,6 @@ Deliberately unresolved; decide when they block something.
   900 m/s carries 81 kN·s and a 177-tonne corvette merely drifting at 3 m/s carries 530, so any weld weak
   enough to fail to a shell comes apart when two ships nudge each other. That is why a gun's way through a
   weld is to cut it rather than to shove it, and it is worth remembering before anyone tries to tune it.
-- **How time travel in the viewer works.** Built, as step 14's slice 0; the order log is slice 1's. Pure
-  re-simulation from the seed was the plan, at an estimated 15 µs a step, but by the time it was built a step
-  cost 0.25 ms in the duel and 15–18 ms in Star Wars and Super Swarm — barely faster than they play — so
-  rewinding a big battle would have frozen the page for most of its length. So `Rewind` keeps checkpoints:
-  an in-memory copy of the whole battle (`cloneBattle`) at least 30 steps apart, spaced so copying takes no
-  more than 2% of stepping, and thinned with age: one goes when the gap it leaves is no wider than a tenth of
-  how far back it is, so the last few seconds stay precise and ten minutes back is good to half a minute —
-  "what just happened" wants the first, a macro decision the second. Past 128 of them or about 50 MB they are
-  spread further. A seek copies the one before and steps on. A copy is 1–90 ms and up to about 5 MB; at a fixed
-  30 steps apart, Super Swarm stuttered twice a second and its heap passed 600 MB. It
-  works because a battle is still deterministic, and it costs one rule: nothing in a battle may be a closure
-  over state that changes, since a copy would go on reaching into the original. Designs, and the caches
-  keyed on them, are shared rather than copied, being never changed once made. Nothing is serialised.
-  The real consequence is on the other half of the contract. Re-simulation reproduces a battle only if the
-  battle is a pure function of its seed and its opening conditions — which stops being true the moment a player
-  issues an order mid-fight. So **the command intake has to be recorded as a timestamped log**, and replay
-  means feeding those commands back at the steps they arrived. That is the "commands in" half of
-  non-negotiable 6 turning out to be load-bearing for something other than what it was written for, and it
-  is also exactly what a replay file needs (§8's async fleet-vs-fleet), so the two features want the same
-  mechanism built once.
 - **Saving a battle part way through.** Possibly not needed: if battles stay short, saving between them is
   often enough. If it is wanted, the cheap form is what the battle link already carries — the setup and seed
   — plus the step reached and the order log, re-simulated on load with checkpoints taken on the way (a 3,000-

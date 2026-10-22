@@ -29,6 +29,7 @@ import { gridStep } from '../render/camera.js';
 import { battleView } from './battleView.js';
 import { doctrinePanel } from './doctrinePanel.js';
 import { orderBar } from './orderBar.js';
+import { battleControls } from './battleControls.js';
 import type { Logged } from '../scenarios/commands.js';
 import { el } from './dom.js';
 import { choices } from './designChoices.js';
@@ -144,6 +145,7 @@ export function start(): void {
       panel.reset();
     },
   );
+  battleControls(el<HTMLElement>('stage'));
   const bar = orderBar(view);
   const doctrine = doctrinePanel(view);
   view.allowOrders();

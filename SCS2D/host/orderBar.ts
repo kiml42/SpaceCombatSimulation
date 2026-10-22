@@ -1,7 +1,7 @@
 import type { Snapshot } from '../sim/index.js';
 import { OrderCancelCondition } from '../sim/ships.js';
 import { teamName } from '../render/teams.js';
-import { sideOf, viewOf } from '../render/picking.js';
+import { viewOf } from '../render/picking.js';
 import { choices, remodels, type Remodel } from './designChoices.js';
 import { ANYWHERE, type BattleView, type Verb } from './battleView.js';
 import { el } from './dom.js';
@@ -92,7 +92,7 @@ export function orderBar(view: BattleView): { update(shown: Snapshot): void } {
 
   return {
     update(shown) {
-      const side = sideOf(shown, view.picked);
+      const side = view.orderSide(shown);
       bar.hidden = side === null;
       if (side === null) {
         remodelKey = '';
