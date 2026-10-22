@@ -314,6 +314,8 @@ export {
   type PartOf,
   type SlipwayBuild,
   aboardPose,
+  approachesOf,
+  approachTurn,
   type Aboard,
   type PadBuild,
   type Seam,
@@ -332,6 +334,7 @@ export {
   type DesignTurret,
   type ShipDesign,
 } from './blueprint.js';
+export { padApproaches, type PadApproach } from './padApproach.js';
 export { pushNeighbours, sharedFace, shiftSeam, withFaceMoved, type FaceOf, type SharedFace } from './push.js';
 export {
   BLUEPRINT_FORMAT_VERSION,

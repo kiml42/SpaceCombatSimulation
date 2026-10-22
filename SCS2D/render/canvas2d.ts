@@ -1,4 +1,6 @@
 import {
+  approachesOf,
+  approachTurn,
   hullMountGeometry,
   IMPACT_BEAM,
   IMPACT_BURST,
@@ -292,6 +294,11 @@ const SWEEP = 'rgba(196, 210, 232, 0.2)';
 const SWEEP_EDGE = 'rgba(196, 210, 232, 0)';
 /** The part of a sweep a mount may not fire into. */
 const MASKED = 'rgba(226, 110, 84, 0.28)';
+
+/** A pad's ways in: the arrows on it its fighters come in along. */
+const APPROACH_EDGE = 'rgba(150, 214, 170, 0.8)';
+/** A pad's one longest run, when nothing is clear all the way out. */
+const APPROACH_BLOCKED = 'rgba(232, 176, 72, 0.9)';
 
 /**
  * How far the arc indicator reaches, as a multiple of the mount's own face.
@@ -754,6 +761,8 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
     }
     ctx.restore();
   }
+  // Over the hull, since fighters come in over it.
+  if (whole && arcs !== 'none') drawApproaches(ctx, ship, metresToPx);
   ctx.restore();
 
   // Turrets are drawn in world space: a turret's bearing is a world bearing, so
@@ -2395,6 +2404,47 @@ function drawStreak(
     base.b * e + base.d * f + base.f,
   );
   ctx.drawImage(image, 0, -0.5, 1, 1);
+}
+
+/**
+ * The ways in to each of a ship's pads, on the pad: a small arrow pointing in
+ * from the middle of each side, or each corner, a fighter can come in over,
+ * along the way it comes. Amber for a pad's one longest run, when no way is
+ * clear all the way out.
+ */
+function drawApproaches(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number): void {
+  const design = ship.currentStructure;
+  for (let m = 0; m < design.modules.length; m++) {
+    const module = design.modules[m]!;
+    if (module.spec.kind !== 'pad' || ship.drawn?.[m] === false) continue;
+    const turn = approachTurn(design, m);
+    const halfLength = module.spec.length / 2;
+    const halfWidth = module.spec.width / 2;
+    const size = 0.6 * min(halfLength, halfWidth);
+    ctx.save();
+    ctx.translate(module.x, module.y);
+    ctx.rotate(module.angle);
+    ctx.lineWidth = 2 / metresToPx;
+    for (const approach of approachesOf(design, m)) {
+      // In the pad's frame: the way out, and the side or corner it leaves by.
+      const way = approach.angle + turn - module.angle;
+      const ux = cos(way);
+      const uy = sin(way);
+      const x = Math.abs(ux) < 0.1 ? 0 : Math.sign(ux) * halfLength;
+      const y = Math.abs(uy) < 0.1 ? 0 : Math.sign(uy) * halfWidth;
+      const tipX = x - ux * size;
+      const tipY = y - uy * size;
+      ctx.strokeStyle = approach.through ? APPROACH_EDGE : APPROACH_BLOCKED;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(tipX, tipY);
+      ctx.moveTo(tipX + (ux - uy) * size * 0.4, tipY + (uy + ux) * size * 0.4);
+      ctx.lineTo(tipX, tipY);
+      ctx.lineTo(tipX + (ux + uy) * size * 0.4, tipY + (uy - ux) * size * 0.4);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
 }
 
 /** Module `m`'s colours: a fighter's, aboard a carrier or not, a shade darker than its side's ships. */

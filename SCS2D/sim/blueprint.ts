@@ -32,6 +32,7 @@ import { distanceToOutline, isShaped, outlineAxes, projectOutline } from './shap
 import { HullPath, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from './hull.js';
 import { exhaustObstruction, weaponPlumeReach, type PlumeSlice } from './exhaust.js';
 import type { TurretSpec } from './turrets.js';
+import { padApproaches, type PadApproach } from './padApproach.js';
 
 /**
  * Blueprints: a layout of modules, and what a ship built to it turns out to be.
@@ -526,6 +527,22 @@ export function originOf(design: ShipDesign, m: number): Compiled {
   return design.modules[m]!.origin ?? { design, module: m };
 }
 
+/**
+ * The ways in to pad `m` of `design`, as its compiled design worked them out:
+ * none for a module that is no pad. Their angles are in the compiled design's
+ * frame: `approachTurn` turns them into this one's.
+ */
+export function approachesOf(design: ShipDesign, m: number): PadApproach[] {
+  const origin = originOf(design, m);
+  return (origin.design.approaches ?? []).filter((a) => a.pad === origin.module);
+}
+
+/** How far module `m` of `design` is turned from where its compiled design has it. */
+export function approachTurn(design: ShipDesign, m: number): number {
+  const origin = originOf(design, m);
+  return design.modules[m]!.angle - origin.design.modules[origin.module]!.angle;
+}
+
 /** Whether module `a` of one design and module `b` of another are the same module of the same compiled design. */
 export function sameOrigin(da: ShipDesign, a: number, db: ShipDesign, b: number): boolean {
   const oa = da.modules[a]!.origin;
@@ -640,6 +657,8 @@ export interface ShipDesign {
   readonly fighterPieces?: readonly number[];
   /** The fighters it sets out with docked on its pads. Absent for none. */
   readonly aboard?: readonly Aboard[];
+  /** The ways in to each of its pads, worked out from the layout as compiled. Absent for none. */
+  readonly approaches?: readonly PadApproach[];
   /** The fighters its pads build, and how many of each they keep. Absent for none. */
   readonly builds?: readonly PadBuild[];
   /** The ships its slipways build, and how many of each they keep. Absent for none. */
@@ -2026,8 +2045,10 @@ export function compileDraft(blueprint: Blueprint): ShipDesign {
   const aboard: Aboard[] = [];
   const builds: PadBuild[] = [];
   const yards: SlipwayBuild[] = [];
+  const approaches: PadApproach[] = [];
   for (let m = 0; m < specs.length; m++) {
     const spec = specs[m]!;
+    if (spec.kind === 'pad') approaches.push(...padApproaches(design, m));
     const keep = floor(spec.keep ?? 0);
     const craft = slipwayCraft(blueprint, spec, specs);
     if (craft !== null && typeof craft !== 'string' && keep > 0) yards.push({ slipway: m, design: craft, keep });
@@ -2040,6 +2061,7 @@ export function compileDraft(blueprint: Blueprint): ShipDesign {
     ...design,
     keys: moduleKeys(blueprint),
     ...(aboard.length > 0 ? { aboard } : {}),
+    ...(approaches.length > 0 ? { approaches } : {}),
     ...(builds.length > 0 ? { builds } : {}),
     ...(yards.length > 0 ? { yards } : {}),
   };
