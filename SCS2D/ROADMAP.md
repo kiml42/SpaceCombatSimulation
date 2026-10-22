@@ -149,6 +149,8 @@ an entry is either still open or it is gone.
          rest keep what they were doing. The camera already leaves asteroids out of shot, as it does
          anything nobody flies, unless nothing else is left.
        - **4b. The demo** — a golden scenario of two rival mining outposts on a pair of eccentric majors.
+       - **Fit frames a scavenger with what it is closing on**, the asteroid or hulk, as it frames a ship with
+         what it is attacking: framing follows what a ship is fighting and escorting, not its errand.
     5. **Grabbing an asteroid survivably** — Salvagers often wreck themselves closing on rock: adding another
        to the Mining scene usually ends with it crashing. Either the approach must be gentler (slower closing,
        a better orbit match, backing off when it goes wrong) or the contact more forgiving (claws or rock that
