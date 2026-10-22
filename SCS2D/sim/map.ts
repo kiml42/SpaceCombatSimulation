@@ -1,7 +1,7 @@
 import { asteroidBlueprint, circularSpeed } from './asteroid.js';
 import type { Blueprint } from './blueprint.js';
 import type { WellSpec } from './gravity.js';
-import { cos, max, min, sin, sqrt, TAU } from './math.js';
+import { cos, max, min, round, sin, sqrt, TAU } from './math.js';
 import { Railway, type Orbit, type Rails, type System } from './rails.js';
 import { Rng } from './rng.js';
 
@@ -11,16 +11,21 @@ import { Rng } from './rng.js';
  * them, or adrift where there are no majors.
  */
 
-/** How many asteroids of a class, and how big: a radius, metres, give or take `spread`. */
-export interface AsteroidCount {
-  readonly count: number;
-  readonly size: number;
-  readonly spread?: number;
-}
-
+/**
+ * What a map is drawn from. Flat, so every page and file can show and keep it
+ * as a row of numbers (`MAP_KEYS`); every figure but the counts falls back to
+ * `DEFAULT_MAP`, and no count is none.
+ */
 export interface MapSettings {
-  readonly majors?: AsteroidCount;
-  readonly minors?: AsteroidCount;
+  /** How many major asteroids: each a kernel carrying a well, riding a rail. */
+  readonly majors?: number;
+  /** Their radius, metres, give or take `majorSpread`, drawn for each. */
+  readonly majorSize?: number;
+  readonly majorSpread?: number;
+  /** How many minor asteroids: loose rock, in orbit or adrift. */
+  readonly minors?: number;
+  readonly minorSize?: number;
+  readonly minorSpread?: number;
   /** The most eccentric a pair of majors' orbit may be, each drawn up to it. */
   readonly eccentricity?: number;
   /** A major's pull at its surface, m/s². */
@@ -28,6 +33,90 @@ export interface MapSettings {
   /** The mean share of rock that is ore, and that is ice. */
   readonly metal?: number;
   readonly fuel?: number;
+}
+
+export type MapKey = keyof MapSettings;
+
+/** Every setting, in the order a page shows them and a draw takes them. */
+export const MAP_KEYS: readonly MapKey[] = [
+  'majors',
+  'majorSize',
+  'majorSpread',
+  'minors',
+  'minorSize',
+  'minorSpread',
+  'eccentricity',
+  'surfaceGravity',
+  'metal',
+  'fuel',
+];
+
+/** The counts, which are whole numbers. */
+const COUNTS: readonly MapKey[] = ['majors', 'minors'];
+/** The shares, which are 0 to 1. */
+const SHARES: readonly MapKey[] = ['eccentricity', 'metal', 'fuel'];
+
+export const DEFAULT_MAP: Required<MapSettings> = {
+  majors: 0,
+  majorSize: 300,
+  majorSpread: 80,
+  minors: 0,
+  minorSize: 60,
+  minorSpread: 30,
+  eccentricity: 0.5,
+  surfaceGravity: 0.5,
+  metal: 0.2,
+  fuel: 0.1,
+};
+
+/** What is wrong with a map's settings as read from a file, or null. */
+export function mapProblem(value: unknown, where = 'map'): string | null {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return `${where} must be an object`;
+  const record = value as Record<string, unknown>;
+  const unknown = Object.keys(record).filter((key) => !(MAP_KEYS as readonly string[]).includes(key));
+  if (unknown.length > 0) return `${where}: unknown ${unknown.length > 1 ? 'keys' : 'key'} ${unknown.join(', ')}`;
+  for (const key of MAP_KEYS) {
+    const v = record[key];
+    if (v === undefined) continue;
+    if (typeof v !== 'number' || !Number.isFinite(v) || v < 0) return `${where}.${key} must be a number, not negative`;
+    if (COUNTS.includes(key) && !Number.isInteger(v)) return `${where}.${key} must be a whole number`;
+    if (SHARES.includes(key) && v > 1) return `${where}.${key} must be no more than 1`;
+  }
+  if (((record['metal'] as number | undefined) ?? 0) + ((record['fuel'] as number | undefined) ?? 0) > 1) {
+    return `${where}: metal and fuel together must be no more than 1`;
+  }
+  return null;
+}
+
+/** Only what differs from none, so a map left empty writes nothing and an old file reads back the same. */
+export function writeMap(settings: MapSettings): MapSettings | undefined {
+  const out: Partial<Record<MapKey, number>> = {};
+  for (const key of MAP_KEYS) if (settings[key] !== undefined && settings[key] !== DEFAULT_MAP[key]) out[key] = settings[key];
+  return hasAsteroids(settings) ? out : undefined;
+}
+
+/**
+ * A map drawn from settings and how far each may be drawn either side, evenly,
+ * as the skirmish draws a round's: counts rounded, shares kept to 0..1 and
+ * metal and fuel together to 1. Every key is drawn, in `MAP_KEYS` order, so
+ * one spread widening leaves the rest.
+ */
+export function drawnMap(settings: MapSettings, spread: MapSettings, rng: Rng): MapSettings {
+  const out: Partial<Record<MapKey, number>> = {};
+  for (const key of MAP_KEYS) {
+    const at = settings[key] ?? DEFAULT_MAP[key];
+    let v = max(0, at + (spread[key] ?? 0) * rng.nextRange(-1, 1));
+    if (COUNTS.includes(key)) v = round(v);
+    if (SHARES.includes(key)) v = min(1, v);
+    out[key] = v;
+  }
+  const metal = out.metal!;
+  const fuel = out.fuel!;
+  if (metal + fuel > 1) {
+    out.metal = metal / (metal + fuel);
+    out.fuel = fuel / (metal + fuel);
+  }
+  return out;
 }
 
 /** Somewhere an asteroid must keep out of, for the seconds `generateMap` looks ahead. */
@@ -55,10 +144,6 @@ export interface AsteroidMap {
   readonly asteroids: PlacedAsteroid[];
 }
 
-export const DEFAULT_SURFACE_GRAVITY = 0.5;
-export const DEFAULT_METAL = 0.2;
-export const DEFAULT_FUEL = 0.1;
-
 /** Seconds ahead an asteroid is kept clear of where the ships start. */
 const LOOK_AHEAD = 10;
 /** Gap kept between asteroids, and between an asteroid and a clearing, metres. */
@@ -73,7 +158,7 @@ const MINOR_SPIN = 0.1;
 
 /** Whether a map would put anything in a battle. */
 export function hasAsteroids(settings: MapSettings | undefined): boolean {
-  return (settings?.majors?.count ?? 0) > 0 || (settings?.minors?.count ?? 0) > 0;
+  return (settings?.majors ?? 0) > 0 || (settings?.minors ?? 0) > 0;
 }
 
 /**
@@ -82,19 +167,19 @@ export function hasAsteroids(settings: MapSettings | undefined): boolean {
  */
 export function generateMap(settings: MapSettings, seed: number, clear: readonly Clearing[]): AsteroidMap {
   const rng = new Rng((seed ^ 0x6d617073) >>> 0);
-  const g = settings.surfaceGravity ?? DEFAULT_SURFACE_GRAVITY;
-  const ore = settings.metal ?? DEFAULT_METAL;
-  const ice = settings.fuel ?? DEFAULT_FUEL;
+  const g = settings.surfaceGravity ?? DEFAULT_MAP.surfaceGravity;
+  const ore = settings.metal ?? DEFAULT_MAP.metal;
+  const ice = settings.fuel ?? DEFAULT_MAP.fuel;
   const asteroids: PlacedAsteroid[] = [];
   const placed: Clearing[] = [];
 
   // Majors, as a system of rails: each joins the system so far as the second of a pair.
-  const majors = settings.majors?.count ?? 0;
+  const majors = settings.majors ?? 0;
   const wells: WellSpec[] = [];
   const reach: number[] = [];
   const blueprints: Blueprint[] = [];
   for (let k = 0; k < majors; k++) {
-    const radius = drawSize(settings.majors!, rng);
+    const radius = drawSize(settings.majorSize ?? DEFAULT_MAP.majorSize, settings.majorSpread ?? DEFAULT_MAP.majorSpread, rng);
     const blueprint = asteroidBlueprint(`Asteroid ${k + 1}`, { radius, kernel: true, ore, ice }, rng);
     blueprints.push(blueprint);
     reach.push(radius);
@@ -109,7 +194,7 @@ export function generateMap(settings: MapSettings, seed: number, clear: readonly
     let root: System = { well: 0 };
     let extent = reach[0]!;
     for (let k = 1; k < majors; k++) {
-      const e = rng.nextFloat() * min(settings.eccentricity ?? 0, 0.9);
+      const e = rng.nextFloat() * min(settings.eccentricity ?? DEFAULT_MAP.eccentricity, 0.9);
       const closest = (extent + reach[k]!) * PAIR_CLEARANCE + MARGIN;
       const a = (closest / (1 - e)) * (1 + rng.nextFloat() * 0.5);
       const orbit: Orbit = { a, e, periapsis: rng.nextFloat() * TAU, phase: rng.nextFloat() * TAU };
@@ -150,7 +235,7 @@ export function generateMap(settings: MapSettings, seed: number, clear: readonly
   }
 
   // Minors: in orbit about a major, or adrift among the clearings.
-  const minors = settings.minors?.count ?? 0;
+  const minors = settings.minors ?? 0;
   let spanX = 0;
   let spanY = 0;
   let span = 1000;
@@ -160,7 +245,7 @@ export function generateMap(settings: MapSettings, seed: number, clear: readonly
   }
   for (const c of clear) span = max(span, apart(c, { x: spanX, y: spanY }) + c.radius + 500);
   for (let k = 0; k < minors; k++) {
-    const radius = drawSize(settings.minors!, rng);
+    const radius = drawSize(settings.minorSize ?? DEFAULT_MAP.minorSize, settings.minorSpread ?? DEFAULT_MAP.minorSpread, rng);
     const blueprint = asteroidBlueprint(`Rock ${k + 1}`, { radius, kernel: false, ore, ice }, rng);
     for (let t = 0; t < TRIES; t++) {
       let x: number;
@@ -208,9 +293,8 @@ export function generateMap(settings: MapSettings, seed: number, clear: readonly
   return { wells, ...(rails === undefined ? {} : { rails }), asteroids };
 }
 
-function drawSize(count: AsteroidCount, rng: Rng): number {
-  const spread = count.spread ?? 0;
-  return max(20, count.size + (rng.nextFloat() * 2 - 1) * spread);
+function drawSize(size: number, spread: number, rng: Rng): number {
+  return max(20, size + (rng.nextFloat() * 2 - 1) * spread);
 }
 
 function apart(a: { x: number; y: number }, b: { x: number; y: number }): number {

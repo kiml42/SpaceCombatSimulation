@@ -302,6 +302,8 @@ const boxesB: Box[] = [];
 /** The bodies that have hulls this step, and what they are built from. */
 const solid: number[] = [];
 const solidDesigns: ShipDesign[] = [];
+/** The body each is parked on (`HullDesigns.carrierOf`), or -1. */
+const solidCarriers: number[] = [];
 /**
  * The layers each hull's modules are in: a fighter's all in whatever it
  * occupies, an ordinary ship's each its own (`OWN_LAYERS`). So a fighter
@@ -379,6 +381,7 @@ export function findContacts(bodies: Bodies, hulls: HullDesigns, out: Contacts):
   // would ask it forty-five thousand times a step in a three-hundred-ship
   // action, and the answer cannot change while the loop runs.
   solid.length = 0;
+  solidCarriers.length = 0;
   solidDesigns.length = 0;
   solidLayers.length = 0;
   for (let i = 0; i < bodies.highWater; i++) {
@@ -386,6 +389,7 @@ export function findContacts(bodies: Bodies, hulls: HullDesigns, out: Contacts):
     const design = hulls.designOf(i);
     if (design === null) continue;
     solid.push(i);
+    solidCarriers.push(hulls.carrierOf?.(i) ?? -1);
     solidDesigns.push(design);
     solidLayers.push(hulls.layersOf?.(i) ?? OWN_LAYERS);
   }
@@ -403,6 +407,10 @@ export function findContacts(bodies: Bodies, hulls: HullDesigns, out: Contacts):
       const layersA = solidLayers[a]!;
       const layersB = solidLayers[b]!;
       if ((reachOf(layersA) & reachOf(layersB)) === 0) continue;
+      // A fighter parked on a pad never meets its carrier, nor what else is parked on it.
+      const carrierA = solidCarriers[a]!;
+      const carrierB = solidCarriers[b]!;
+      if (carrierA === j || carrierB === i || (carrierA >= 0 && carrierA === carrierB)) continue;
 
       // Could they have met at all? Bounding circles, as the broad phase.
       const dx = bodies.x[j]! - bodies.x[i]!;
@@ -515,10 +523,13 @@ export function moduleOverlapsHull(
  * second contact on the same hull in the same step is already the rare case,
  * and a third is a pile-up that does not happen without gravity to make one.
  */
-export function resolveContacts(bodies: Bodies, contacts: Contacts): void {
+export function resolveContacts(bodies: Bodies, contacts: Contacts, hulls?: HullDesigns): void {
   for (let k = 0; k < contacts.count; k++) {
-    const a = contacts.a[k]!;
-    const b = contacts.b[k]!;
+    // A fighter parked on a pad cannot move, so its carrier moves for it.
+    const parkedA = hulls?.carrierOf?.(contacts.a[k]!) ?? -1;
+    const parkedB = hulls?.carrierOf?.(contacts.b[k]!) ?? -1;
+    const a = parkedA >= 0 ? parkedA : contacts.a[k]!;
+    const b = parkedB >= 0 ? parkedB : contacts.b[k]!;
     const nx = contacts.nx[k]!;
     const ny = contacts.ny[k]!;
 
@@ -581,6 +592,6 @@ export class Collisions {
 
   step(bodies: Bodies, hulls: HullDesigns): void {
     findContacts(bodies, hulls, this.contacts);
-    resolveContacts(bodies, this.contacts);
+    resolveContacts(bodies, this.contacts, hulls);
   }
 }

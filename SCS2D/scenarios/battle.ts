@@ -92,6 +92,8 @@ export interface BattleOptions {
    * ships, and kept clear of them. Its majors' wells join `wells`.
    */
   readonly map?: MapSettings;
+  /** The seed the map is drawn from, where it is not the battle's: so battles on several seeds share one place. */
+  readonly mapSeed?: number;
   /** Rounds and beams in flight at once. */
   readonly projectiles?: number;
   readonly beams?: number;
@@ -153,7 +155,7 @@ export function makeBattle<Extra extends object = Record<never, never>>(
       const speed = math.sqrt(bodies.vx[b]! * bodies.vx[b]! + bodies.vy[b]! * bodies.vy[b]!);
       clear.push({ x: bodies.x[b]!, y: bodies.y[b]!, radius: bodies.radius[b]! + speed * MAP_LOOK_AHEAD });
     }
-    const map = generateMap(options.map!, options.seed, clear);
+    const map = generateMap(options.map!, options.mapSeed ?? options.seed, clear);
     if (map.rails !== undefined) mapRails.provider = new Railway(map.rails, map.wells);
     const first = wells.length;
     for (const well of map.wells) {

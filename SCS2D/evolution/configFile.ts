@@ -26,6 +26,9 @@ import {
   serialiseFleet,
   type Blueprint,
   type Fleet,
+  mapProblem,
+  writeMap,
+  type MapSettings,
 } from '../sim/index.js';
 
 /**
@@ -148,6 +151,7 @@ const MATCH_KEYS: readonly string[] = [
   'closingSpread',
   'crossingSpread',
   'quietLimit',
+  'map',
   'goal',
   'weights',
 ];
@@ -197,6 +201,7 @@ export function serialiseRunConfig(setup: RunSetup): Record<string, unknown> {
       ...(match.closingSpread > 0 ? { closingSpread: match.closingSpread } : {}),
       ...(match.crossingSpread > 0 ? { crossingSpread: match.crossingSpread } : {}),
       ...(match.quietLimit > 0 ? { quietLimit: match.quietLimit } : {}),
+      ...(match.map !== undefined && writeMap(match.map) !== undefined ? { map: writeMap(match.map) } : {}),
       goal: match.goal === null ? null : { ...match.goal },
       weights: { ...match.weights },
     },
@@ -429,6 +434,7 @@ export function parseRunConfig(value: unknown): RunSetup {
         closingSpread: read(match['closingSpread'], DEFAULT_MATCH.closingSpread),
         crossingSpread: read(match['crossingSpread'], DEFAULT_MATCH.crossingSpread),
         quietLimit: read(match['quietLimit'], DEFAULT_MATCH.quietLimit),
+        ...(isRecord(match['map']) ? { map: { ...(match['map'] as MapSettings) } } : {}),
         goal:
           match['goal'] === undefined
             ? DEFAULT_MATCH.goal
@@ -614,6 +620,10 @@ function matchProblem(value: unknown, warnings: string[]): string | null {
   }
   if (value['radius'] !== undefined && (value['radius'] as number) <= 0) {
     return 'match.radius must be more than nothing';
+  }
+  if (value['map'] !== undefined) {
+    const map = mapProblem(value['map'], 'match.map');
+    if (map !== null) return map;
   }
   return goalProblem(value['goal'], warnings) ?? weightsProblem(value['weights'], warnings);
 }

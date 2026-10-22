@@ -21,7 +21,6 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Hysteresis on decision to use attack or thrust orientation, to avoid flip-flopping.
 - Fighters should be able to dip into the hull layer (like they do for ramming) so they can fire beams and non-fragmenting projectiles at the hulls of ships. The balancing cost of this is that they can be hit by anything.
 - Ships shouldn't fire engines that make them spin faster while trying to cancel out a spin. The pilot trying to hold orientation should generally win.
-- docking fighters struggle to keep up with an accelerating carrier, even when they have plenty of spare thrust they could be using. They should probably account for the carrier's current acceleration and aim to match it's changing speed (and assume it will maintain its acceleration)
 - Pads should hold the fighter that docks with them and move it to be centred and aligned (in any orthogonal direction in which it fits). This should be treated like each pad has a robot arm that can move the fighter into position (we might draw this arm later). This should let us realistically increase the speed at which a fighter can be captured, and it can be captured with very poor alignment because the (for now imaginary) arm will fix it.
   - Actually draw the robot arm in if it's not too hard, it would look cool, but that does require an actual IK chain for it, instead of just applying forces.
 - Robot arms on Slipways to make them hold the ship they're creating (just cosmetic to explain how it's staying put)
@@ -69,6 +68,7 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Fleet status tiles could turn with their ship, so it always points the same way in its tile.
 - Cap projectile rendering at the point they hit, so a streak does not overlap the target it struck. (The muzzle end is capped.)
 - A selected ship's framing takes in and rings what it is escorting; it could do the same for what it is keeping clear of, possibly with a symbol to show what sort of attention the selected ship is paying to each
+- Selecting a ship should only fit to it if the camera was already fitted.
 
 ## Skirmish
 - When the enemy are evolving, make the history fill the battle area.

@@ -12,6 +12,8 @@ import {
   parseFleet,
   type Blueprint,
   type Fleet,
+  MAP_KEYS,
+  mapProblem,
 } from '../sim/index.js';
 import { BLUEPRINTS } from '../scenarios/blueprints.js';
 import { FLEETS } from '../scenarios/fleets.js';
@@ -214,6 +216,22 @@ function parse(argv: readonly string[]): Options {
       case '--quiet-limit':
         match['quietLimit'] = Number(value());
         break;
+      // Asteroids every match is fought among, drawn from its seed, as
+      // `majors=2,minors=8,fuel=0.3` — the rest of the map's settings their defaults.
+      case '--map': {
+        const map: Record<string, number> = {};
+        for (const pair of value().split(',')) {
+          const [key, figure] = pair.split('=');
+          if (key === undefined || !(MAP_KEYS as readonly string[]).includes(key)) {
+            throw new Error(`no such map setting: ${key}. Try ${MAP_KEYS.join(', ')}`);
+          }
+          map[key] = Number(figure);
+        }
+        const problem = mapProblem(map, '--map');
+        if (problem !== null) throw new Error(problem);
+        match['map'] = map;
+        break;
+      }
       // A weight per module kind, as `engine=5,turret=0` — only the kinds
       // named are changed, the rest keeping their defaults.
       case '--kinds':

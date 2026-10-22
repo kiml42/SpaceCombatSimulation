@@ -65,7 +65,7 @@ inside any one file is not contiguous.
   core and neither gun nor engine is still a ship, so it is framed and drawn in its own colours, where asking
   whether it could fight drew a whole generation of engineless craft as wreckage and left them out of shot.
   Grey, and framed only with the hulks, is for a core that is out, or for a ship that set out with a gun or
-  an engine and has lost them all, or the stores to use them. A severed piece gets no arrowhead at all, nor does a ship riding another's hull, as a fighter on its pad. An arrowhead points the way its ship's core does, which is not always its body's way: a fighter keeps the frame of the carrier it launched from. A blueprint editor on a second page of its own draws a layout
+  an engine and has lost them all, or the stores to use them. A severed piece gets no arrowhead at all, nor does a ship riding another's hull, or a fighter parked on its pad. An arrowhead points the way its ship's core does, which is not always its body's way: a ship that has docked with another keeps the frame of the hull they shared. A blueprint editor on a second page of its own draws a layout
   through that same renderer and reports what it bought: mass, inertia, the
   acceleration available in each direction — as figures, and as a pair of
   envelope curves separating what a layout can project from what it can use
@@ -777,14 +777,33 @@ inside any one file is not contiguous.
   makes for the free pad, of those it
   fits on, that pays it most for the time, divided by one more `dockDanger` (zero, so no matter, by default)
   for every armed enemy near it and by one more for every other fighter already making for that pad. It flies
-  there as a ram does, mains along the change of velocity it needs, braking on them with a half turn allowed
-  for. It comes in over the pad's clear side — of its four sides, the one with the longest run before
-  anything in the weapons layer, and of those the one opening onto empty space — and from the wrong side it
+  there as a ram does, mains along the change of velocity it needs, matching how the pad is speeding up as
+  well as how it is moving, as if it keeps on (`DOCK_ACCEL_SETTLE`), so a fighter keeps up with a carrier under
+  thrust; it plans its braking on what thrust that leaves it, and docking at a port does the same. It brakes with a half turn allowed
+  for. It comes in by one of the pad's **ways in**: each of its four sides and four corners that is clear of
+  the weapons layer all the way out of the carrier, or, a pad with none, the one direction with the longest run
+  before anything in the weapons layer and of those the one opening onto empty space — worked out once as the
+  carrier is compiled (`ShipDesign.approaches`) and turned with the pad into whatever hull it is part of. Of
+  them it takes the one whose end, where the way leaves a circle of the carrier's radius and two of its own,
+  is soonest reached round the carrier, keeping the one it is on unless another is `WAY_STICK` sooner, and
+  keeping it outright once inside that circle; a way something in the weapons layer now stands in, a fighter
+  on the next pad say, is passed over while another is clear. Inside the circle it heads straight for the pad
+  only once nothing in the weapons layer stands between. With arcs shown, every way in is drawn on the pad as a
+  small arrow pointing in from the middle of its side or from its corner, along the way, in amber for a pad's
+  one longest run, so the editor shows how easy a pad is to reach — and from the wrong side it
   first circles the carrier outside its radius, `HULL_ORBIT_STEP` at a time, rather than fly through what is in
   the way. Within `PAD_ALIGN_RADII` of its own radii it eases in at no more than `PAD_SPEED`, slowing as it
   closes, lined up with the pad if it would not fit at any heading. It lands — never committing, the pad and the fighter meeting at the boundary
   between the layers — once its whole bounding box lies inside the pad and it moves with it to within
-  `PAD_SPEED`, and the two become one body with a dock's seam. It idles while the pad fills it from what the
+  `PAD_SPEED`, and it is **parked** (`Ships.park`): it keeps a body of its own, which rounds and beams in the
+  fighters' layer hit, but it is pinned where it settled, and while it is there the
+  carrier carries its weight, the fighter counted at the carrier's middle. It meets what its layer meets —
+  other fighters, their wreckage, a turret alongside — but never its carrier or another fighter parked on
+  it, and since it cannot move, **its carrier takes the blow** at the point it was struck, while the
+  fighter takes the damage; it is never welded to anything. Ships keep clear of it as of any hull but
+  their own carrier's. The two move off together with
+  the momentum they had between them, and it lifts off moving as the pad was. Nothing it has is made part
+  of the carrier's hull, so filling, mending and building it remake only the fighter. It idles while the pad fills it from what the
   carrier can spare above the carrier's own `refuelBelow`, and **mends it**: `PAD_REPAIR_PER_METRE` of
   damage a second for every metre of the pad's width, cores first, then engines and weapons, then the rest,
   each joule taking `REPAIR_ENERGY_PER_JOULE` of the carrier's charge and the metal the module had shed and
@@ -798,9 +817,9 @@ inside any one file is not contiguous.
   default), when it stays aboard. A fighter that cannot fight never waits. The `padRebuild`
   scenario has two Dinkies, each short of an outrigger engine, land on a Workshop, a Tender with a hold, and
   lift off whole; the engine's complexity makes that the work of about four seconds. A fighter goes in
-  to be mended at its `repairBelow` (below), and is mended while it is down for anything else. A merged design remembers which of its pieces
-  were fighters (`fighterPieces`), so it lifts off a fighter, and every ship keeps the doctrine it set out with
-  whatever hull it rides, so a fighter flies on its own and not its carrier's. The `rearm` scenario has three Dinkies take
+  to be mended at its `repairBelow` (below), and is mended while it is down for anything else. A pad lets
+  go of a fighter it is not building once that fighter has no control, and of anything on it once it can no
+  longer grip or is no longer its carrier's. The `rearm` scenario has three Dinkies take
   turns on a two-pad Tender; evolution's weight for a pad is a small 0.5, since it pays only in a fleet with fighters.
   **A robot bay** (`robotBay`) berths as many robots as squares of `ROBOT_BERTH_PITCH` fit along its length
   and across its width (`berthGrid`), priced by their weight (`ROBOT_MASS`) and its racks, and builds and
@@ -895,7 +914,7 @@ inside any one file is not contiguous.
   charge and the holds the room.
   **A pad tends one fighter** (`ModuleSpec.craft`, naming a copy in the blueprint's `hangar`, as a fleet
   carries its designs; an older file's `fighter` reads as `craft`), and **may set out with it docked** (`docked`). It is spawned lying along the pad,
-  centred on it, and welded as one that had landed, so it is topped up from the carrier and lifts off once
+  centred on it, and parked as one that had landed, so it is topped up from the carrier and lifts off once
   full. A fighter too big for its pad, or one that is missing or not a fighter, is a blueprint problem, and a
   budget counts the carrier and everything it sets out with (`billOf`). An older file's `docked` naming the
   fighter reads as that fighter, set out docked. **In a fleet a pad's fighter is the fleet's design of that
@@ -1063,7 +1082,8 @@ inside any one file is not contiguous.
   is left of orders is in ROADMAP.md §12. Mining (step 15) is begun: wells move on rails, and an asteroid's
   `kernel`, an indestructible convex polygon on no side, rides one on a pinned body (the Kernels scene); round it
   are rings of rock wedges, each a share ore and ice, drawn with minors from a seed into a battle's map,
-  clear of the ships (the Asteroid Field scene). What is left is in ROADMAP.md §8.
+  clear of the ships (the Asteroid Field scene), and offered by the custom battle, evolution and the
+  skirmish. What is left is in ROADMAP.md §8.
   Alongside it, §8 step 5's skirmish: an endless loop against an enemy fleet that evolves to beat the
   player's, planned in ROADMAP.md §8. Evolution keeps the skirmish's sense of quiet, though it plays a match on until every side is quiet before naming a winner. Its loop is built without the evolving enemy (`dist/skirmish.html`,
   `scenarios/skirmish.ts`): pick a stock enemy, whose bill is the budget unless the player sets their own, under a limit on ships and spread (20 and 500 m unless set, or what the enemy fields if more), each round's gap and starting speeds drawn from optional ± spreads on its seed; fight a fixed round, decided by

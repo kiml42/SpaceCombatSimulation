@@ -26,7 +26,7 @@ describe('the Beam Carrier', () => {
 
   it('sets out with its tender docked and every pad laden', () => {
     expect(ships.body(TENDER)).toBe(ships.body(CARRIER));
-    for (const f of FIGHTERS) expect(ships.body(f)).toBe(ships.body(CARRIER));
+    for (const f of FIGHTERS) expect(ships.parkedCarrier(f)).toBe(CARRIER);
   });
 
   it("casts its tender off at once, the tender being above its refuelBelow, without taking the carrier's fuel", () => {
@@ -43,20 +43,20 @@ describe('the Beam Carrier', () => {
   });
 
   it('brings its fighters back to recharge, and fills every store aboard', { timeout: 60_000 }, () => {
-    const out = new Set(FIGHTERS.filter((f) => ships.body(f) !== ships.body(CARRIER)));
+    const out = new Set(FIGHTERS.filter((f) => ships.parkedCarrier(f) !== CARRIER));
     expect(out.size).toBe(FIGHTERS.length);
     // One home with its battery still aboard: a fighter can come back with it shot off.
     const charged = (f: number): boolean => ships.currentStructure(f).modules.some((m, k) => m.spec.kind === 'battery' && ships.owns(f, k));
     let landed = -1;
     for (let s = 0; s < 300 * 60 && landed < 0; s++) {
       step();
-      landed = FIGHTERS.find((f) => ships.isAlive(f) && ships.body(f) === ships.body(CARRIER) && charged(f)) ?? -1;
+      landed = FIGHTERS.find((f) => ships.isAlive(f) && ships.parkedCarrier(f) === CARRIER && charged(f)) ?? -1;
     }
     expect(landed).toBeGreaterThanOrEqual(0);
     const design = ships.currentStructure(landed);
     const own = (kind: string): number => design.modules.findIndex((m, k) => m.spec.kind === kind && ships.owns(landed, k));
     const m = own('battery');
-    const docked = (): boolean => ships.body(landed) === ships.body(CARRIER);
+    const docked = (): boolean => ships.parkedCarrier(landed) === CARRIER;
     const fuelRoom = (): number => ships.fuel.pieceRoom(body(landed), own('core'));
     // Filled before it next sorties, if the raid gives it cause to. It may sortie
     // the step it fills, which the stores can no longer be read through the

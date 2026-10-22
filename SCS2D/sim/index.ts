@@ -24,14 +24,16 @@ export { AttackArcs, AttackRegion, attackBearing, bestAttackBearings, designArcs
 export { gravityWell, wellPull, wellPotentialEnergy, type WellSpec } from './gravity.js';
 export { asteroidBlueprint, bareKernel, circularSpeed, kernelModule, kernelOutline, rockModule, type AsteroidShape } from './asteroid.js';
 export {
-  DEFAULT_FUEL,
-  DEFAULT_METAL,
-  DEFAULT_SURFACE_GRAVITY,
+  DEFAULT_MAP,
+  drawnMap,
   generateMap,
   hasAsteroids,
-  type AsteroidCount,
+  MAP_KEYS,
+  mapProblem,
+  writeMap,
   type AsteroidMap,
   type Clearing,
+  type MapKey,
   type MapSettings,
   type PlacedAsteroid,
 } from './map.js';
@@ -312,6 +314,8 @@ export {
   type PartOf,
   type SlipwayBuild,
   aboardPose,
+  approachesOf,
+  approachTurn,
   type Aboard,
   type PadBuild,
   type Seam,
@@ -330,6 +334,7 @@ export {
   type DesignTurret,
   type ShipDesign,
 } from './blueprint.js';
+export { padApproaches, type PadApproach } from './padApproach.js';
 export { pushNeighbours, sharedFace, shiftSeam, withFaceMoved, type FaceOf, type SharedFace } from './push.js';
 export {
   BLUEPRINT_FORMAT_VERSION,

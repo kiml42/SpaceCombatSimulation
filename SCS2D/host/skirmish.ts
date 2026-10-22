@@ -30,6 +30,7 @@ import {
   type SkirmishSettings,
 } from '../scenarios/skirmish.js';
 import { MUTATION_FIELDS } from '../evolution/mutationFields.js';
+import { fillMapInputs, fillMapRanges, rangedMapFields, readMapInputs, readMapRanges } from './mapFields.js';
 import { fillFields, type SettingField } from './settingsFields.js';
 import {
   dropOldest,
@@ -243,7 +244,7 @@ export function startSkirmish(): void {
   const fleets = new Library(window.localStorage, FLEET_FILES);
   const ships = new Library(window.localStorage);
 
-  fillFields(document, [...SKIRMISH_FIELDS, ...MUTATION_FIELDS]);
+  fillFields(document, [...SKIRMISH_FIELDS, ...MUTATION_FIELDS, ...rangedMapFields()]);
   const settingInputs = new Map([...SKIRMISH_FIELDS, ...MUTATION_FIELDS].map((f) => [f.name, el<HTMLInputElement>(f.name)]));
   const roundPanel = el<HTMLElement>('round');
   const enemySelect = el<HTMLSelectElement>('enemy');
@@ -567,12 +568,14 @@ export function startSkirmish(): void {
     for (const field of SKIRMISH_FIELDS) out[field.name] = value(field.name, field.value, field.min === undefined ? 0 : field.min);
     const breeding: Record<string, number> = {};
     for (const field of MUTATION_FIELDS) breeding[field.name] = value(field.name, field.value, 0);
-    return { ...DEFAULT_SKIRMISH_SETTINGS, ...out, breeding };
+    return { ...DEFAULT_SKIRMISH_SETTINGS, ...out, breeding, map: readMapInputs(document) ?? {}, mapSpread: readMapRanges(document) };
   };
   /** Fill the setup screen from settings. */
   const showSettings = (settings: SkirmishSettings): void => {
     for (const field of SKIRMISH_FIELDS) settingInputs.get(field.name)!.value = String(settings[field.name as keyof SkirmishSettings]);
     for (const field of MUTATION_FIELDS) settingInputs.get(field.name)!.value = String(settings.breeding[field.name] ?? field.value);
+    fillMapInputs(document, settings.map);
+    fillMapRanges(document, settings.mapSpread);
   };
   const keepSettings = (): void => {
     try {
@@ -590,6 +593,7 @@ export function startSkirmish(): void {
   }
   showSettings(kept);
   for (const input of settingInputs.values()) input.addEventListener('change', keepSettings);
+  for (const field of rangedMapFields()) el<HTMLInputElement>(field.name).addEventListener('change', keepSettings);
   el<HTMLButtonElement>('resetSettings').addEventListener('click', () => {
     showSettings(DEFAULT_SKIRMISH_SETTINGS);
     keepSettings();

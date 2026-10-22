@@ -58,6 +58,9 @@ an entry is either still open or it is gone.
 | 14 | Orders | Built |
 | 15 | Mining | Partly built |
 | 16 | Campaign | Not started |
+| 17 | React UI | Not started |
+| 18 | WebGL viewer | Not started |
+
 
 ### Partly built — what is left
 
@@ -80,7 +83,8 @@ an entry is either still open or it is gone.
       pairs can be treated as one body orbiting another. The generator keeps closest approaches clear.
       Wells move with their kernels, so a `WellSpec` stops being constant.
     - **Rock** is one module kind with ore, ice and worthless fractions, varied across an asteroid. Its
-      colour shows the mix: white for ice, grey for ore, brown for the rest. It is cut in rings of wedges
+      colour shows the mix: white for ice, grey for ore, brown for the rest. An asteroid is a disc, 10 m
+      deep, its outermost ring a deck deep. It is cut in rings of wedges
       round the kernel (or a minor's centre), bounded per asteroid. It is damaged like structure, what is
       shed is lost, and its seams are hull strength or weaker, like a rubble pile, so a chunk knocked off is
       a free minor. Rock strips completely; the kernel stays.
@@ -116,11 +120,19 @@ an entry is either still open or it is gone.
          (`asteroidBlueprint`), the map generator (`sim/map.ts`) and `makeBattle`'s `map`, which draws it
          clear of the ships once they are placed; the Asteroid Field scene and its golden. A hull cut in two
          keeps its pin on the kernel's piece, and rock knocked off goes free.
-       - **2b. The settings in every mode** — the custom battle, evolution (a new map every match) and the
-         skirmish (one map per round, settings drawn from ranges), all defaulting to none.
+       - **2b. The settings in every mode** — built: an Asteroids card on the custom battle, the evolution
+         page (and `--map`, and a run file's `match.map`) and the skirmish, all defaulting to none. A plain
+         run draws a new map every match; a skirmish round's is drawn from its seed, each setting from its
+         ±, and every match the enemy is bred in for it is fought on that round's map whatever its own seed
+         (`BattleSetup.mapSeed`).
        - **Left for slice 4:** the camera frames asteroids as it does ships, so a big one pulls the shot
          away from the fight.
-    3. **Mining** — robots' shared hold, claw heating, scavenging rock and its doctrine weight.
+    3. **Mining**, in two PRs:
+       - **3a. Asteroids as discs** — built: thick rock and kernels are 10 m deep (`ASTEROID_DEPTH`), and
+         an asteroid's outermost ring is thin rubble, a deck deep, that fighters fly over and mining clears
+         first.
+       - **3b. Robots mine** — robots' shared hold, claw heating, scavenging rock and its doctrine weight.
+         At today's robot rates a wedge outlasts any battle; bigger robots for mining are expected later.
     4. **Viewer and demo** — asteroid picking and its readout, and a golden scenario of two rival mining
        outposts on a pair of eccentric majors.
 
@@ -128,6 +140,14 @@ an entry is either still open or it is gone.
 
 16. **Campaign** — Homeworld-shaped, with the adaptive enemy. Last, because it's mostly *authoring* (scripted
     missions, pacing, narrative), which is the largest volume of work in the least-proven discipline.
+17. **React UI** — Port all the plain HTML and DOM processing to React and componentise it with Storybook (mirroring the new Wordwall Frontend work). This is both:
+  - Improve how the UI looks and behaves
+  - Allow component reuse
+  - Help Kiml42 learn to work with React
+18. **Web GL Viewer** — Use WebGL instead of Canvas for more capable visuals for the project. The clear divide between sim and visuals should make this a clean addition, with the Canvas version being able to be kept until the WebGL one is ready. What we hope to get out of this:
+  - Learn the capabilities of WebGL and how to work with it
+  - More capable rendering with improved effects
+  - More efficient rendering
 
 **Scenario packs** are the cheapest way to make it a game with goals rather than a sandbox, and they teach the
 mechanics. Each scenario is a data file, not code.

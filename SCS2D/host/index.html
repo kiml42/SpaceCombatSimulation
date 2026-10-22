@@ -87,6 +87,9 @@
       .field input { flex: 1; min-width: 0; }
       .field b { font-weight: normal; }
       .field input.spread { flex: 0 0 3.5rem; }
+      .field > label { flex: 0 0 8rem; }
+      .field.spread > input:last-child { flex: 0 0 3.5rem; }
+      .field.spread > span { flex: 0 0 auto; }
       .buttons { display: flex; gap: 0.4rem; margin: 0.5rem 0; }
       .buttons button { flex: 1; padding-inline: 0.3rem; }
       .side { display: flex; align-items: center; gap: 0.4rem; color: #e6edf5; margin-top: 0.4rem; }
@@ -151,6 +154,8 @@
         <label class="field"><span>crossing m/s</span><input id="battleCrossing" type="number" step="5" /><b>±</b><input id="battleCrossingSpread" class="spread" type="number" min="0" step="5" title="How far either side each battle drawn from this setup may be, by its seed. Zero holds it." /></label>
         <label class="field" title="How far each fleet is turned from facing the centre, anticlockwise"><span>rotation °</span><input id="battleRotation" type="number" step="15" /><b>±</b><input id="battleRotationSpread" class="spread" type="number" min="0" step="15" title="How far either side each battle drawn from this setup may be, by its seed. Zero holds it." /></label>
         <label class="field"><span>seed</span><input id="battleSeed" type="number" step="1" /></label>
+        <h2>Asteroids</h2>
+        <div data-fields="map"></div>
         <div class="buttons">
           <button id="fight">Fight</button>
           <button id="exportBattle" title="Save this setup as a battle file">Export</button>

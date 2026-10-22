@@ -87,7 +87,7 @@ Keep these working — they are the cold-start re-entry path:
 - `npm run golden` — re-derive golden checksums after a *deliberate* behaviour change
 - `npm run evolve` — fight a headless evolution run and write it to `runs/`, rewritten after every generation; `--from <stock ships or blueprint files>`, `--fleet <stock fleet
   or fleet file>`, `--deploy <radius>`, `--ships <most>` (ship founders grow into fleets unless it is 1), `--generations`,
-  `--population`, `--group`, `--matches`, `--budget`, `--duration`, `--radius`, `--closing`, `--crossing` (each with a `-spread` either side, drawn per match), `--quiet-limit` (seconds every side must go without fighting or closing in before a match ends; 30 unless set), `--seed`, `--kinds`, `--doctrine`, `--build`, `--structural`, `--geometry`, `--thrusters`,
+  `--population`, `--group`, `--matches`, `--budget`, `--duration`, `--radius`, `--closing`, `--crossing` (each with a `-spread` either side, drawn per match), `--quiet-limit` (seconds every side must go without fighting or closing in before a match ends; 30 unless set), `--map` (asteroids each match is fought among, drawn from its seed, as `majors=2,minors=8,fuel=0.3`), `--seed`, `--kinds`, `--doctrine`, `--build`, `--structural`, `--geometry`, `--thrusters`,
   `--versus <stock ships or blueprint files>` and `--versus-fleet` for co-evolution, with `--hall`, `--phase-win`,
   `--phase-cap`, `--shielded-drills`, `--bare-core-drills`, `--versus-group` (side B's entrants a match, where not `--group`) and `--versus-fixed` (side B does not evolve),
   `--out` (beside the `--config` file if there is one, `x.evo.json` → `x.run.json`, else `runs/run.json`), and `--config` / `--save-config` for the settings file the evolution page reads and writes, which carries its founders whole
@@ -102,6 +102,9 @@ Keep these working — they are the cold-start re-entry path:
 - `npm run test:browser` — drive those bundles in Chromium; needs `npx playwright install chromium` first
 
 ## Testing
+
+**Don't run either suite whole locally: CI does** (the root [CLAUDE.md](../CLAUDE.md), "How changes land").
+Run the test files that bear on the change, the typecheck and the format check, and push.
 
 **Two suites, deliberately.** `npm test` must run from a cold checkout with nothing but `npm ci`, so it
 never needs a browser; the browser tests live in `tests/browser/` and run separately. They check what types

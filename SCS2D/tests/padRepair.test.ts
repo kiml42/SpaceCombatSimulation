@@ -58,14 +58,14 @@ function scene(carrier = carrierOf()): ReturnType<typeof makeBattle<{ c: number;
 }
 
 type Run = ReturnType<typeof scene>;
-const aboard = (run: Run): boolean => run.ships.body(run.c) === run.ships.body(run.f);
+const aboard = (run: Run): boolean => run.ships.parkedCarrier(run.f) === run.c;
 function runUntil(run: Run, done: () => boolean, seconds: number): void {
   for (let s = 0; s < seconds * 60 && !done(); s++) run.step();
 }
 /** What fighter module `m` has absorbed, wherever the fighter is. */
 function absorbed(run: Run, m: number): number {
   const b = run.world.bodies.indexOf(run.ships.body(run.f));
-  return run.ships.damage.absorbedAt(b, aboard(run) ? run.ships.currentStructure(run.c).modules.length - fighter.modules.length + m : m);
+  return run.ships.damage.absorbedAt(b, m);
 }
 
 describe('a pad', () => {
@@ -75,8 +75,7 @@ describe('a pad', () => {
     runUntil(run, () => aboard(run), 60);
     expect(aboard(run)).toBe(true);
     const at = run.world.bodies.indexOf(run.ships.body(run.f));
-    const n = carrierOf().modules.length;
-    const shed = run.ships.damage.shedAt(at, n + GUN) + run.ships.damage.shedAt(at, n + CORE);
+    const shed = run.ships.damage.shedAt(at, GUN) + run.ships.damage.shedAt(at, CORE);
     expect(shed).toBeGreaterThan(0);
     const metalBefore = hold();
     const discardedBefore = run.ships.discarded;
