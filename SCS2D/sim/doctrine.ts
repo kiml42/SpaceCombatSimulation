@@ -354,6 +354,12 @@ export interface Approach {
    */
   readonly scavengeDanger: number;
   /**
+   * What rock is worth against wreckage, kilogram for kilogram, when choosing
+   * where to scavenge: above one it would sooner mine an asteroid, below one
+   * pick over a wreck. Zero never mines.
+   */
+  readonly rockWeight: number;
+  /**
    * The share of a full load of fuel at or below which it goes to a friend to
    * be refuelled: a fighter to a pad it fits on, anything else with a port to
    * a port — a ship with a claw too, which docks only this low and otherwise
@@ -510,6 +516,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     scavengeMetalBelow: 0,
     fuelPerMetal: 1,
     scavengeDanger: 1,
+    rockWeight: 1,
     refuelBelow: 0.25,
     rechargeBelow: 0.25,
     deliverFuelAbove: 0,
@@ -730,6 +737,7 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
   'repairBelow',
   'tangentialMin',
   'tangentialMax',
+  'rockWeight',
 ];
 
 /** Fields that mean nothing below zero, though zero itself is a setting. */
@@ -737,6 +745,7 @@ export const NON_NEGATIVE_FIELDS: readonly string[] = [
   'tangentialMin',
   'tangentialMax',
   'fuelPerMetal',
+  'rockWeight',
   'ramMass',
   'sortieRange',
   'aimedWeight',
