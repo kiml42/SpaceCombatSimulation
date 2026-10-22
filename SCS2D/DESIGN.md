@@ -795,8 +795,12 @@ inside any one file is not contiguous.
   closes, lined up with the pad if it would not fit at any heading. It lands — never committing, the pad and the fighter meeting at the boundary
   between the layers — once its whole bounding box lies inside the pad and it moves with it to within
   `PAD_SPEED`, and it is **parked** (`Ships.park`): it keeps a body of its own, which rounds and beams in the
-  fighters' layer hit, but it is pinned where it settled, meets no other hull, and while it is there the
-  carrier carries its weight, the fighter counted at the carrier's middle; the two move off together with
+  fighters' layer hit, but it is pinned where it settled, and while it is there the
+  carrier carries its weight, the fighter counted at the carrier's middle. It meets what its layer meets —
+  other fighters, their wreckage, a turret alongside — but never its carrier or another fighter parked on
+  it, and since it cannot move, **its carrier takes the blow** at the point it was struck, while the
+  fighter takes the damage; it is never welded to anything. Ships keep clear of it as of any hull but
+  their own carrier's. The two move off together with
   the momentum they had between them, and it lifts off moving as the pad was. Nothing it has is made part
   of the carrier's hull, so filling, mending and building it remake only the fighter. It idles while the pad fills it from what the
   carrier can spare above the carrier's own `refuelBelow`, and **mends it**: `PAD_REPAIR_PER_METRE` of
