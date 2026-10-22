@@ -58,6 +58,9 @@ an entry is either still open or it is gone.
 | 14 | Orders | Built |
 | 15 | Mining | Partly built |
 | 16 | Campaign | Not started |
+| 17 | React UI | Not started |
+| 18 | WebGL viewer | Not started |
+
 
 ### Partly built — what is left
 
@@ -137,6 +140,14 @@ an entry is either still open or it is gone.
 
 16. **Campaign** — Homeworld-shaped, with the adaptive enemy. Last, because it's mostly *authoring* (scripted
     missions, pacing, narrative), which is the largest volume of work in the least-proven discipline.
+17. **React UI** — Port all the plain HTML and DOM processing to React and componentise it with Storybook (mirroring the new Wordwall Frontend work). This is both:
+  - Improve how the UI looks and behaves
+  - Allow component reuse
+  - Help Kiml42 learn to work with React
+18. **Web GL Viewer** — Use WebGL instead of Canvas for more capable visuals for the project. The clear divide between sim and visuals should make this a clean addition, with the Canvas version being able to be kept until the WebGL one is ready. What we hope to get out of this:
+  - Learn the capabilities of WebGL and how to work with it
+  - More capable rendering with improved effects
+  - More efficient rendering
 
 **Scenario packs** are the cheapest way to make it a game with goals rather than a sandbox, and they teach the
 mechanics. Each scenario is a data file, not code.
