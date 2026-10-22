@@ -10363,7 +10363,10 @@ export class Ships {
       // facing its source comes in no faster than it can stop.
       const retro = this.accelerationAlong(bodies, i, b, -ux, -uy, facing);
       const stopping = stoppingSpeed(approach.brake * retro, gap, approach.responseTime);
-      radial = standOff ? -CLAW_APPROACH : min(approach.approachSpeed, sqrt(stopping * stopping + CLAW_APPROACH * CLAW_APPROACH));
+      const G = (globalThis as unknown as { G?: string }).G ?? '';
+      const floor = G.includes('E') ? 1.5 : CLAW_APPROACH;
+      const cruise = G.includes('D') ? min(approach.approachSpeed, 15) : approach.approachSpeed;
+      radial = standOff ? -CLAW_APPROACH : min(cruise, sqrt(stopping * stopping + floor * floor));
       vx += ux * radial;
       vy += uy * radial;
     }
