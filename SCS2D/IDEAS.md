@@ -4,6 +4,7 @@ Things that are obviously wrong.
 - When a dinky gets welded to a gunship the other gunship will fire at the combined ship even though most of it is actually its ally.
 - Fuel tanks should stop supplying fuel when they are too damaged.
 - When setting up a co-evolution run between two very large fleets, the UI hangs for about 8 s (the Imperial Fleet against the Rebel Fleet; it was 30 s before the layout checks were sped up) after each change to a setting the opening match reads, and on loading the page with such a setup saved: the preview breeds a whole first generation to draw it. A burst of changes now builds it once, and a setting it does not read (generations, matches, winners) does not rebuild it. Fixing it needs the build off the main thread, or a preview that does not breed, at the cost of its seed no longer being the run's.
+- A miner anchored to an asteroid reads no robots in its bays (`ShipView.crews`), though its robots are out mining and loads come home.
 - A hull gun's barrel collides as the rectangle its module would be, not where the barrel is drawn. Nothing welds to a barrel (`onWeldablePart`), as a stop-gap until it collides where it is.
 
 -----------------------------------------------------------------------
@@ -69,6 +70,45 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Cap projectile rendering at the point they hit, so a streak does not overlap the target it struck. (The muzzle end is capped.)
 - A selected ship's framing takes in and rings what it is escorting; it could do the same for what it is keeping clear of, possibly with a symbol to show what sort of attention the selected ship is paying to each
 - Selecting a ship should only fit to it if the camera was already fitted.
+
+## Harvesting
+Scavenging wrecks and mining asteroids. Two of the causes of wrecked Salvagers are being fixed as ROADMAP.md
+step 15, item 5: arriving with its jaws held on all the way, braking astern, rather than turning round late; and
+flying round asteroids in its way rather than relying on keeping clear, which looks only seconds ahead.
+
+### Getting hold safely
+- Two-stage approach: stop and match motion a few lengths off the surface, then creep in at the claw's lowest
+  speed. Slower to grip, but the fast part of the trip never ends at a rock.
+- Abort and go round again: if the approach is out of tolerance close in (too fast, too far across, still turning),
+  back off along the stand-off path and try again, rather than pressing on into a bad contact.
+- Aim at a point on the surface, not the centre: the wedge facing it, or the richest wedge of the vein in reach.
+  An asteroid's middle is not where the claw meets it, and a spinning one's surface is moving.
+- Rubble that gives: rock is loosely bound, so a slow knock could crumble the wedge it hits (damage spent on the
+  rock) rather than crush the ship's engine. Makes grabbing forgiving without making ships tougher.
+- A claw approach speed of its own in doctrine, separate from the combat `approachSpeed`, so it can evolve: the
+  Salvager closes on rock at the speed it would close on an enemy.
+
+### Sharing rocks
+- Claims: a ship scavenging an asteroid or hulk is a claim friends respect, unless the rock is big enough for
+  several. Two friends on one minor crash into each other's anchored hulls.
+- Keep clear of a rock an enemy miner is anchored to, or treat it as a target: the rival-outposts demo has one
+  side's Salvager fly to the other's major and crash into the miner there.
+- Recall robots before letting go, or let robots left on a rock keep working and come home when the ship grips it
+  again. A miner torn off a rock now loses every robot out on it, and pays metal to build them again.
+
+### Throughput
+- Deliver to a base: miners carry their hold to a friend with a port (a refinery or outpost ship) and go back,
+  rather than stopping when the hold is full. What the rival-outposts demo needs to be a contest of income.
+- A drill on the claw: like heating ice, a claw grinds ore slowly on its own, so a miner with no robots still earns.
+- Larger mining robots, or a mining bay, for a faster rate where it is worth the mass: an anchored miner takes about
+  two minutes to bring its first load home.
+- Tailings: what mining leaves (the waste share) drifts off as loose rubble, a hazard round a worked rock.
+- An outpost built on an asteroid: robots raise a slipway or pad on an anchored major, so a mine becomes a place.
+
+### Choosing what to mine
+- Weigh the trip's fuel and danger against the rock's worth, and prefer rocks near friends and away from enemies.
+- Show each side's mining as income in the fleet tiles, and a picked asteroid's time to mine out at the rate
+  being taken from it.
 
 ## Skirmish
 - When the enemy are evolving, make the history fill the battle area.
