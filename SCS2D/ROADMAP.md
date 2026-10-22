@@ -143,6 +143,10 @@ an entry is either still open or it is gone.
            approach should do it, wrecks drifting too, is open, and would move the claw goldens.
     4. **Viewer and demo** — asteroid picking and its readout, and a golden scenario of two rival mining
        outposts on a pair of eccentric majors.
+    5. **Grabbing an asteroid survivably** — Salvagers often wreck themselves closing on rock: adding another
+       to the Mining scene usually ends with it crashing. Either the approach must be gentler (slower closing,
+       a better orbit match, backing off when it goes wrong) or the contact more forgiving (claws or rock that
+       take a bump), or both; which is open.
 
 ### Not started — in order
 
