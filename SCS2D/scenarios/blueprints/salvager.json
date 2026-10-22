@@ -1,7 +1,7 @@
 {
   "formatVersion": 2,
   "name": "Salvager",
-  "notes": "Unarmed, with a claw on the bow, robots behind the core and an empty hold, so everything it brings home is metal off a wreck. Below nine tenths of a full hold it goes for the wreck, or the hulk nobody is mending, that pays most for the time it takes, avoiding any an armed enemy is near; it grips it and holds on while its robots take it apart into the hold, then moves on to the next until the hold is full. It drinks fuel too, below half a tank, from what it grips.",
+  "notes": "Unarmed, with a claw on the bow, robots behind the core and an empty hold, so everything it brings home is metal off a wreck. Below nine tenths of a full hold it goes for the wreck, or the hulk nobody is mending, that pays most for the time it takes, avoiding any an armed enemy is near; it grips it and holds on while its robots take it apart into the hold, then moves on to the next until the hold is full. It drinks fuel too, below half a tank, from what it grips. It works up close, so it has much the same thrust every way: it can hold itself off what it grips jaws first, an asteroid pulling at it included, as well as push on to it.",
   "doctrine": {
     "approach": {
       "approachSpeed": 30,
@@ -97,8 +97,8 @@
       "x": -6.5,
       "y": 5,
       "angle": 90,
-      "length": 0.5,
-      "width": 1,
+      "length": 0.7,
+      "width": 1.4,
       "nozzle": 0.5
     },
     {
@@ -107,49 +107,51 @@
       "x": -6.5,
       "y": -5,
       "angle": -90,
-      "length": 0.5,
-      "width": 1,
+      "length": 0.7,
+      "width": 1.4,
       "nozzle": 0.5
     },
     {
       "id": 12,
       "kind": "engine",
-      "x": 0,
+      "x": 0.7,
       "y": 1.5,
       "angle": 90,
-      "length": 0.5,
-      "width": 1,
+      "length": 0.7,
+      "width": 1.4,
       "nozzle": 0.5
     },
     {
       "id": 13,
       "kind": "engine",
-      "x": 0,
+      "x": 0.7,
       "y": -1.5,
       "angle": -90,
-      "length": 0.5,
-      "width": 1,
+      "length": 0.7,
+      "width": 1.4,
       "nozzle": 0.5
     },
     {
       "id": 14,
       "kind": "engine",
-      "x": 1.5,
-      "y": 1.25,
+      "x": -1.5,
+      "y": 3.8,
       "angle": 0,
-      "length": 0.5,
-      "width": 0.5,
-      "nozzle": 1
+      "length": 0.7,
+      "width": 1.4,
+      "nozzle": 0.5,
+      "notes": "Forward-facing, beside the claw and clear of the rest of the hull, so it can back off what it holds as hard as the main pushes it on."
     },
     {
       "id": 15,
       "kind": "engine",
-      "x": 1.5,
-      "y": -1.25,
+      "x": -1.5,
+      "y": -3.8,
       "angle": 0,
-      "length": 0.5,
-      "width": 0.5,
-      "nozzle": 1
+      "length": 0.7,
+      "width": 1.4,
+      "nozzle": 0.5,
+      "notes": "Forward-facing, beside the claw and clear of the rest of the hull, so it can back off what it holds as hard as the main pushes it on."
     }
   ]
 }

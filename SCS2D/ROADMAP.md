@@ -131,10 +131,27 @@ an entry is either still open or it is gone.
        - **3a. Asteroids as discs** — built: thick rock and kernels are 10 m deep (`ASTEROID_DEPTH`), and
          an asteroid's outermost ring is thin rubble, a deck deep, that fighters fly over and mining clears
          first.
-       - **3b. Robots mine** — robots' shared hold, claw heating, scavenging rock and its doctrine weight.
-         At today's robot rates a wedge outlasts any battle; bigger robots for mining are expected later.
-    4. **Viewer and demo** — asteroid picking and its readout, and a golden scenario of two rival mining
-       outposts on a pair of eccentric majors.
+       - **3b. Robots mine** — built. Robots carry ore smelted to metal and ice melted to fuel in one hold
+         (`ROBOT_LOAD`), mining rock for `MINING_POWER` times the charge wreckage takes, the worthless
+         share lost; a claw with no robots melts ice alone (`CLAW_HEAT_RATE`, `CLAW_HEAT_ENERGY`). A claw
+         anchors to a pinned major, which stays pinned and keeps riding its rail with the miner on it.
+         Scavenging values an asteroid by what its rock holds, weighed by doctrine's `rockWeight`
+         (evolvable). A claw ship closing on an asteroid matches its motion on its mains before turning
+         its jaws to it. The Mining scene and its golden. Left from it:
+         - **A major's pull keeps mains-only ships off it.** Jaws first, a ship with no thrust astern of
+           its jaws cannot hold off a gravitating asteroid and lands by falling, so scavenging passes over
+           a major whose surface pull its ship cannot beat (`holdsOff`). The stock Salvager was rebuilt
+           with much the same thrust every way so that it can.
+         - **Matching an orbit before turning the jaws on** is asteroids' alone; whether every claw
+           approach should do it, wrecks drifting too, is open, and would move the claw goldens.
+    4. **Viewer and demo** — asteroid picking and its readout; ordering picked ships to mine a particular
+       asteroid, Scavenge taking one as its target and a right-click on one giving it to ships with claws
+       (the sim and the command log take it already, the viewer drops clicks on anything on no side); and a
+       golden scenario of two rival mining outposts on a pair of eccentric majors.
+    5. **Grabbing an asteroid survivably** — Salvagers often wreck themselves closing on rock: adding another
+       to the Mining scene usually ends with it crashing. Either the approach must be gentler (slower closing,
+       a better orbit match, backing off when it goes wrong) or the contact more forgiving (claws or rock that
+       take a bump), or both; which is open.
 
 ### Not started — in order
 
@@ -412,8 +429,10 @@ Deliberately unresolved; decide when they block something.
   to an asteroid (step 15), or a fighter landed on a carrier, is treated as the whole body: guns aim at any
   part of it, the selection ring goes round all of it, and the side's tile shows the bigger thing — already
   seen with fighters on carriers. Revisit once step 15 is built.
-- **Mining's numbers.** Surface gravity, rock seam strength, the power a kilogram of rock costs robots
-  against scrap, and a claw's heating rate: first guesses once step 15 sets them.
+- **Mining's numbers.** All first guesses: surface gravity (0.5 m/s² by default), rock seam strength (a hull
+  plate's), `MINING_POWER` (3× the charge of stripping scrap), a claw's heating at 1 kg of fuel a second
+  for 5 MJ a kilogram, and how fast asteroids spin (majors 0.002 rad/s at most, minors 0.01, slow
+  enough for a claw to close on their edge). At robots' rate a wedge outlasts any battle.
 - **Adding a carrier with the designs of its craft.** A fleet adds a ship from the designs it carries, flown
   or not, or a bare core. A ship that docks smaller ones, as a carrier docks fighters, does not yet
   bring their designs with it.

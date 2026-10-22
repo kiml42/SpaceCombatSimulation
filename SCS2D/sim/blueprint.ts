@@ -1333,6 +1333,8 @@ function place(
     if (placement.weapon !== undefined) spec.weapon = placement.weapon;
     if (placement.main !== undefined) spec.main = placement.main;
     if (placement.thick !== undefined) spec.thick = placement.thick;
+    if (placement.ore !== undefined) spec.ore = placement.ore;
+    if (placement.ice !== undefined) spec.ice = placement.ice;
     if (placement.sealing !== undefined) spec.sealing = placement.sealing;
     if (placement.drainPriority !== undefined) spec.drainPriority = placement.drainPriority;
     if (placement.fill !== undefined) spec.fill = placement.fill;
