@@ -37,9 +37,12 @@ On every check-in on an open PR, first bring it up to date with `master`: merge 
 any conflicts, and push, even when nothing conflicts. That way CI is always run against current `master`, and a
 branch never drifts far behind it.
 
-**Push without running the full test suite and let CI run it.** The suites take long enough that running them
-locally before every push costs more than a red CI run does. Run the tests that bear on what changed, or the
-typecheck, when that is quick; then push, and fix whatever CI finds.
+**Never run the full test suite locally; CI runs it.** No `npm test` without a file filter, no `npm run
+test:browser`, and no whole `npm run golden` — not before a push, not after merging `master`, and not to check a
+re-recorded golden. The suites take long enough that running them locally costs more than a red CI run does. Run
+only the test files that bear on what changed (`npx vitest run tests/<file>.test.ts`), the typecheck and
+`npm run format:check`; then push, and fix whatever CI finds. A golden that moved is re-derived by running that
+scenario alone.
 
 Don't make comments too verbose, make sure they're short enough that people will actually read them, 
 or leave them out entirely if the name is sufficient, or the code easy to read.
