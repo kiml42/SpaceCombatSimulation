@@ -100,7 +100,7 @@ export interface ShipView {
   angle: number;
   /** The way it points (`Ships.flownCore`), where that is not its body's `angle`. */
   heading?: number;
-  /** Whether it rides a body another ship owns, as a fighter on a pad: that ship's icon stands for it. */
+  /** Whether it rides a body another ship owns, or is parked on a pad: that ship's icon stands for it. */
   riding?: boolean;
   vx: number;
   vy: number;
@@ -515,7 +515,7 @@ export function capture(
     } else {
       view.heading = view.angle;
     }
-    view.riding = !ships.ownsBody(i);
+    view.riding = !ships.ownsBody(i) || ships.isParked(i);
     view.vx = bodies.vx[b]!;
     view.vy = bodies.vy[b]!;
     view.hasControl = ships.hasControl(i);
