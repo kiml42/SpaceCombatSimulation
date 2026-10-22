@@ -41,7 +41,10 @@ describe("a pad's ways in", () => {
     expect(design.approaches).toEqual(ways);
     // Nothing on this carrier stands up into the fighters' layer.
     expect(eighths(ways)).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
-    for (const way of ways) expect(way.clear).toBe(Math.ceil(2 * design.radius));
+    for (const way of ways) {
+      expect(way.clear).toBe(Math.ceil(2 * design.radius));
+      expect(way.through).toBe(true);
+    }
   });
 
   it('leave out a way something in the fighters’ layer stands in', () => {
@@ -65,6 +68,7 @@ describe("a pad's ways in", () => {
     const ways = approachesOf(design, PAD);
     expect(ways).toHaveLength(1);
     expect(ways[0]!.clear).toBeLessThan(Math.ceil(2 * design.radius));
+    expect(ways[0]!.through).toBe(false);
   });
 
   it("are the Star Destroyer's three outboard sides and the two corners between them", () => {

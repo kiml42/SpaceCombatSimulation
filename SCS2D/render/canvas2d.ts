@@ -295,12 +295,10 @@ const SWEEP_EDGE = 'rgba(196, 210, 232, 0)';
 /** The part of a sweep a mount may not fire into. */
 const MASKED = 'rgba(226, 110, 84, 0.28)';
 
-/** A pad's ways in: the spokes its fighters come in along, as far as they are clear. */
+/** A pad's ways in: the arrows on it its fighters come in along. */
 const APPROACH_EDGE = 'rgba(150, 214, 170, 0.8)';
-/** Where something in the fighters' layer cuts a way in short. */
+/** A pad's one longest run, when nothing is clear all the way out. */
 const APPROACH_BLOCKED = 'rgba(232, 176, 72, 0.9)';
-/** Longest a way in is drawn, in pad lengths: past that it is open enough. */
-const APPROACH_PADS = 1.5;
 
 /**
  * How far the arc indicator reaches, as a multiple of the mount's own face.
@@ -2409,10 +2407,10 @@ function drawStreak(
 }
 
 /**
- * The ways in to each of a ship's pads, in its body frame: for each, a spoke
- * out from the pad's edge as far as it is clear of the fighters' layer, with
- * a chevron at the pad pointing in. A spoke cut short ends in a bar, so a pad
- * its fighters will struggle to reach shows as one.
+ * The ways in to each of a ship's pads, on the pad: a small arrow pointing in
+ * from the middle of each side, or each corner, a fighter can come in over,
+ * along the way it comes. Amber for a pad's one longest run, when no way is
+ * clear all the way out.
  */
 function drawApproaches(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number): void {
   const design = ship.currentStructure;
@@ -2422,36 +2420,30 @@ function drawApproaches(ctx: CanvasRenderingContext2D, ship: ShipView, metresToP
     const turn = approachTurn(design, m);
     const halfLength = module.spec.length / 2;
     const halfWidth = module.spec.width / 2;
-    const most = APPROACH_PADS * 2 * max(halfLength, halfWidth);
-    const chevron = 0.4 * min(halfLength, halfWidth);
+    const size = 0.6 * min(halfLength, halfWidth);
+    ctx.save();
+    ctx.translate(module.x, module.y);
+    ctx.rotate(module.angle);
+    ctx.lineWidth = 2 / metresToPx;
     for (const approach of approachesOf(design, m)) {
-      const angle = approach.angle + turn;
-      // How far the pad reaches that way.
-      const depth = Math.abs(halfLength * cos(angle - module.angle)) + Math.abs(halfWidth * sin(angle - module.angle));
-      const blocked = approach.clear < most;
-      const reach = blocked ? approach.clear : most;
-      ctx.save();
-      ctx.translate(module.x, module.y);
-      ctx.rotate(angle);
-      ctx.strokeStyle = APPROACH_EDGE;
-      ctx.lineWidth = 1.5 / metresToPx;
+      // In the pad's frame: the way out, and the side or corner it leaves by.
+      const way = approach.angle + turn - module.angle;
+      const ux = cos(way);
+      const uy = sin(way);
+      const x = Math.abs(ux) < 0.1 ? 0 : Math.sign(ux) * halfLength;
+      const y = Math.abs(uy) < 0.1 ? 0 : Math.sign(uy) * halfWidth;
+      const tipX = x - ux * size;
+      const tipY = y - uy * size;
+      ctx.strokeStyle = approach.through ? APPROACH_EDGE : APPROACH_BLOCKED;
       ctx.beginPath();
-      ctx.moveTo(depth, 0);
-      ctx.lineTo(depth + reach, 0);
-      ctx.moveTo(depth + chevron * 1.5, -chevron);
-      ctx.lineTo(depth + chevron * 0.5, 0);
-      ctx.lineTo(depth + chevron * 1.5, chevron);
+      ctx.moveTo(x, y);
+      ctx.lineTo(tipX, tipY);
+      ctx.moveTo(tipX + (ux - uy) * size * 0.4, tipY + (uy + ux) * size * 0.4);
+      ctx.lineTo(tipX, tipY);
+      ctx.lineTo(tipX + (ux + uy) * size * 0.4, tipY + (uy - ux) * size * 0.4);
       ctx.stroke();
-      if (blocked) {
-        ctx.strokeStyle = APPROACH_BLOCKED;
-        ctx.lineWidth = 2 / metresToPx;
-        ctx.beginPath();
-        ctx.moveTo(depth + reach, -chevron);
-        ctx.lineTo(depth + reach, chevron);
-        ctx.stroke();
-      }
-      ctx.restore();
     }
+    ctx.restore();
   }
 }
 

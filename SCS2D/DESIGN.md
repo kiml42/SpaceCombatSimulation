@@ -786,10 +786,9 @@ inside any one file is not contiguous.
   is soonest reached round the carrier, keeping the one it is on unless another is `WAY_STICK` sooner, and
   keeping it outright once inside that circle; a way something in the weapons layer now stands in, a fighter
   on the next pad say, is passed over while another is clear. Inside the circle it heads straight for the pad
-  only once nothing in the weapons layer stands between. With arcs shown, every way in is drawn as a spoke out
-  from the pad's edge, as far as it is clear of the weapons layer up to a pad length and a half, a chevron
-  pointing in and an amber bar where something cuts it short, so the editor shows how easy a pad is to
-  reach — and from the wrong side it
+  only once nothing in the weapons layer stands between. With arcs shown, every way in is drawn on the pad as a
+  small arrow pointing in from the middle of its side or from its corner, along the way, in amber for a pad's
+  one longest run, so the editor shows how easy a pad is to reach — and from the wrong side it
   first circles the carrier outside its radius, `HULL_ORBIT_STEP` at a time, rather than fly through what is in
   the way. Within `PAD_ALIGN_RADII` of its own radii it eases in at no more than `PAD_SPEED`, slowing as it
   closes, lined up with the pad if it would not fit at any heading. It lands — never committing, the pad and the fighter meeting at the boundary

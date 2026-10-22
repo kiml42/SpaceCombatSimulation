@@ -19,6 +19,8 @@ export interface PadApproach {
   readonly clear: number;
   /** How far out that way is clear of anything at all, metres, up to the same. */
   readonly open: number;
+  /** Whether it is clear of the weapons layer all the way out: false only for a pad's one longest run. */
+  readonly through: boolean;
 }
 
 /** Every way in to pad `pad` of `design`: one at least. */
@@ -30,7 +32,7 @@ export function padApproaches(design: ShipDesign, pad: number): PadApproach[] {
   const cap = 2 * design.radius;
   const out = cap > 0 ? ceil(cap) : 0;
   const ways: PadApproach[] = [];
-  let best: PadApproach = { pad, angle: facing, clear: 0, open: 0 };
+  let best: PadApproach = { pad, angle: facing, clear: 0, open: 0, through: false };
   let longest = -1;
   for (let k = 0; k < 8; k++) {
     const a = facing + (k * PI) / 4;
@@ -43,7 +45,7 @@ export function padApproaches(design: ShipDesign, pad: number): PadApproach[] {
     const across = abs(halfLength * s) + abs(halfWidth * c);
     const clear = clearRun(design, pad, ux, uy, depth, across, cap, true);
     const open = clearRun(design, pad, ux, uy, depth, across, cap, false);
-    const way = { pad, angle: a, clear, open };
+    const way = { pad, angle: a, clear, open, through: clear >= out };
     if (clear >= out) ways.push(way);
     const run = clear * cap + open;
     if (run > longest) {
