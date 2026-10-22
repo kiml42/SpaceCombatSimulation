@@ -4,7 +4,6 @@ import {
   footprintOf,
   modulesOverlap,
   padHolds,
-  approachOf,
   approachTurn,
   originOf,
   reachAgainst,
@@ -61,7 +60,7 @@ import {
 } from './modules.js';
 import { abs, atan2, angleDelta, PI, brakingRate, clamp, cos, exp, floor, length, max, min, round, sin, sqrt } from './math.js';
 import { Projectiles } from './projectiles.js';
-import { padApproach } from './padApproach.js';
+import { padApproaches, type PadApproach } from './padApproach.js';
 import { legLength, neighbourOf, pathTo, RobotMode, Robots, staysWhole, walk, type Robot } from './robots.js';
 import { Allocation, EngineLayout } from './engines.js';
 import { addFlame, addTurret, attackBearing, AttackArcs, AttackRegion } from './attack.js';
@@ -456,6 +455,13 @@ const PAD_ALIGN_RADII = 4;
  * than flying through what stands between it and where it is going.
  */
 const HULL_ORBIT_STEP = 0.5;
+
+/**
+ * How much shorter a trip round a carrier, radians, another way in to a pad
+ * has to be before a fighter gives up the one it is taking, so one coming in
+ * dead astern does not swing between the two corners either side.
+ */
+const WAY_STICK = 0.3;
 
 /** How far apart, radians, and how far out, metres, robots on one module are drawn. */
 const ROBOT_SPREAD = 2.4;
@@ -1119,6 +1125,14 @@ export class Ships {
   /** Where `aroundHull` last said to steer for, world metres. */
   private wayX = 0;
   private wayY = 0;
+  /** The way in `wayIn` last chose, world radians, and where it leaves the carrier's circle, world metres. */
+  private wayAngle = 0;
+  private entryX = 0;
+  private entryY = 0;
+  /** The way in to its pad each fighter is taking, in its carrier's frame, and the pad and body it is for; NaN for none. */
+  private readonly landingWay: number[] = [];
+  private readonly landingWayPad: number[] = [];
+  private readonly landingWayBody: number[] = [];
   /**
    * What each ship is covering, which is never what it is fighting: a consort
    * is by definition something it will not shoot at. Chosen on the same
@@ -1696,6 +1710,9 @@ export class Ships {
     this.home.push(-1);
     this.touchedSource.push(-Infinity);
     this.landingPad.push(-1);
+    this.landingWay.push(NaN);
+    this.landingWayPad.push(-1);
+    this.landingWayBody.push(-1);
     const builds = design.builds ?? [];
     this.broods.push(builds.length === 0 ? null : { fighters: builds.map(() => []), work: new Float64Array(builds.length) });
     this.unfinished.push(0);
@@ -8451,22 +8468,27 @@ export class Ships {
     const mine = bodies.radius[b]!;
     const range = length(place.x - bodies.x[b]!, place.y - bodies.y[b]!);
     const near = range <= PAD_ALIGN_RADII * mine;
-    // Come in over the pad's clear side, from outside the hull: one beyond the
-    // carrier's radius off the pad that way, circling round to it first if
-    // the hull is in the way.
-    const out = bodies.angle[tb]! + this.padSide(host, pad);
-    const nx = cos(out);
-    const ny = sin(out);
+    // Come in by one of the pad's ways in, from where it leaves the hull's
+    // circle, circling round to there first if the hull is in the way.
+    this.wayIn(bodies, i, b, tb, host, pad, place.x, place.y);
+    const nx = cos(this.wayAngle);
+    const ny = sin(this.wayAngle);
     const rx = bodies.x[b]! - place.x;
     const ry = bodies.y[b]! - place.y;
     const ahead = rx * nx + ry * ny;
-    const lined = ahead > 0 && abs(ry * nx - rx * ny) <= ahead;
+    let lined = ahead > 0 && abs(ry * nx - rx * ny) <= ahead;
+    // Over the hull, only if nothing in its layer stands between it and the pad.
+    if (lined && length(bodies.x[b]! - bodies.x[tb]!, bodies.y[b]! - bodies.y[tb]!) < bodies.radius[tb]! + 2 * mine) {
+      this.hulls.castFrom(WEAPONS_LAYER, -1, -1);
+      lined = this.hulls.confirm(bodies, tb, bodies.x[b]!, bodies.y[b]!, -rx, -ry) < 0;
+      this.hulls.reset();
+    }
     let gx = place.x;
     let gy = place.y;
     let left = range;
     if (!near && !lined) {
-      const reach = bodies.radius[tb]!;
-      left = this.aroundHull(bodies, b, tb, place.x + nx * reach, place.y + ny * reach) + reach;
+      const entry = length(this.entryX - place.x, this.entryY - place.y);
+      left = this.aroundHull(bodies, b, tb, this.entryX, this.entryY) + entry;
       gx = this.wayX;
       gy = this.wayY;
     }
@@ -8589,13 +8611,102 @@ export class Ships {
   }
 
   /**
-   * Which way off pad `pad` of `design` a fighter comes in by, as an angle in
-   * the design's frame (`PadApproach`): worked out once, for the carrier as
-   * it was compiled, and turned with the pad into whatever hull it is now.
+   * Which of pad `pad`'s ways in (`PadApproach`) fighter `i` on body `b` takes
+   * to it, into `wayAngle`, and where that way leaves the circle round carrier
+   * body `tb` it keeps outside, into `entryX`, `entryY`: the one reached
+   * soonest going round the carrier, unless the one it is already taking is
+   * nearly as soon, or it is already inside that circle on one. The ways were worked out once, for the carrier as it was
+   * compiled, and turn with the pad into whatever hull it is now.
    */
-  private padSide(design: ShipDesign, pad: number): number {
-    const approach = approachOf(design, pad);
-    return approach === undefined ? padApproach(design, pad).angle : approach.angle + approachTurn(design, pad);
+  private wayIn(bodies: Bodies, i: number, b: number, tb: number, host: ShipDesign, pad: number, px: number, py: number): void {
+    const origin = originOf(host, pad);
+    const turn = bodies.angle[tb]! + approachTurn(host, pad);
+    const same = this.landingWayPad[i] === pad && this.landingWayBody[i] === tb;
+    const was = same ? this.landingWay[i]! : NaN;
+    const compiled: readonly PadApproach[] = origin.design.approaches ?? [];
+    let best = NaN;
+    let soonest = Infinity;
+    // Inside the circle, round the carrier means nothing: it keeps the way it is on.
+    const ring = bodies.radius[tb]! + 2 * bodies.radius[b]!;
+    const inside = length(bodies.x[b]! - bodies.x[tb]!, bodies.y[b]! - bodies.y[tb]!) < ring;
+    if (inside && !Number.isNaN(was)) {
+      soonest = -Infinity;
+      best = was + bodies.angle[tb]!;
+    }
+    // A way something is in now, a fighter on the next pad say, is passed over while another is clear.
+    let fallback = NaN;
+    for (let k = 0; k < compiled.length; k++) {
+      if (compiled[k]!.pad !== origin.module) continue;
+      const cost = this.wayCost(bodies, b, tb, px, py, compiled[k]!.angle + turn, was);
+      if (!(cost < soonest)) continue;
+      if (this.wayBlocked(bodies, b, tb, px, py)) {
+        if (Number.isNaN(fallback)) fallback = compiled[k]!.angle + turn;
+        continue;
+      }
+      soonest = cost;
+      best = compiled[k]!.angle + turn;
+    }
+    if (Number.isNaN(best)) best = fallback;
+    // Compiled with none: worked out for the hull as it is.
+    if (Number.isNaN(best)) {
+      for (const way of padApproaches(host, pad)) {
+        const cost = this.wayCost(bodies, b, tb, px, py, way.angle + bodies.angle[tb]!, was);
+        if (cost < soonest) {
+          soonest = cost;
+          best = way.angle + bodies.angle[tb]!;
+        }
+      }
+    }
+    this.landingWay[i] = best - bodies.angle[tb]!;
+    this.landingWayPad[i] = pad;
+    this.landingWayBody[i] = tb;
+    this.wayAngle = best;
+    this.wayCost(bodies, b, tb, px, py, best, NaN);
+  }
+
+  /**
+   * Whether anything in the weapons layer of carrier body `tb` stands between
+   * where the way `wayCost` last worked out leaves its circle and the pad at
+   * `px`, `py`, across body `b`'s width.
+   */
+  private wayBlocked(bodies: Bodies, b: number, tb: number, px: number, py: number): boolean {
+    const dx = px - this.entryX;
+    const dy = py - this.entryY;
+    const span = length(dx, dy);
+    if (!(span > 0)) return false;
+    const side = bodies.radius[b]!;
+    const ox = (-dy / span) * side;
+    const oy = (dx / span) * side;
+    this.hulls.castFrom(WEAPONS_LAYER, -1, -1);
+    let blocked = false;
+    for (let k = -1; k <= 1 && !blocked; k++) {
+      blocked = this.hulls.confirm(bodies, tb, this.entryX + k * ox, this.entryY + k * oy, dx, dy) >= 0;
+    }
+    this.hulls.reset();
+    return blocked;
+  }
+
+  /**
+   * How far round carrier body `tb` body `b` is from where the way in at
+   * `angle` off the pad at `px`, `py` leaves the circle it keeps outside,
+   * radians, less `WAY_STICK` for the way it was taking, `was` in the
+   * carrier's frame. Leaves that point in `entryX`, `entryY`.
+   */
+  private wayCost(bodies: Bodies, b: number, tb: number, px: number, py: number, angle: number, was: number): number {
+    const cx = bodies.x[tb]!;
+    const cy = bodies.y[tb]!;
+    const nx = cos(angle);
+    const ny = sin(angle);
+    const ring = bodies.radius[tb]! + 2 * bodies.radius[b]!;
+    // How far out along it the circle is crossed.
+    const along = (px - cx) * nx + (py - cy) * ny;
+    const disc = along * along - ((px - cx) * (px - cx) + (py - cy) * (py - cy)) + ring * ring;
+    const out = disc > 0 ? max(0, -along + sqrt(disc)) : 0;
+    this.entryX = px + nx * out;
+    this.entryY = py + ny * out;
+    const round = abs(angleDelta(atan2(bodies.y[b]! - cy, bodies.x[b]! - cx), atan2(this.entryY - cy, this.entryX - cx)));
+    const kept = !Number.isNaN(was) && abs(angleDelta(angle - bodies.angle[tb]!, was)) < 1e-6;
+    return kept ? round - WAY_STICK : round;
   }
 
   /** The first of this ship's ports still working and not already mated, or -1. */

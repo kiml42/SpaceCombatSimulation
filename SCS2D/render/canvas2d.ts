@@ -1,5 +1,5 @@
 import {
-  approachOf,
+  approachesOf,
   approachTurn,
   hullMountGeometry,
   IMPACT_BEAM,
@@ -295,13 +295,12 @@ const SWEEP_EDGE = 'rgba(196, 210, 232, 0)';
 /** The part of a sweep a mount may not fire into. */
 const MASKED = 'rgba(226, 110, 84, 0.28)';
 
-/** A pad's approach lane: the way in its fighters come, as far as it is clear. */
-const APPROACH = 'rgba(150, 214, 170, 0.22)';
-const APPROACH_EDGE = 'rgba(150, 214, 170, 0.7)';
-/** Where something in the fighters' layer cuts a lane short. */
+/** A pad's ways in: the spokes its fighters come in along, as far as they are clear. */
+const APPROACH_EDGE = 'rgba(150, 214, 170, 0.8)';
+/** Where something in the fighters' layer cuts a way in short. */
 const APPROACH_BLOCKED = 'rgba(232, 176, 72, 0.9)';
-/** Longest a lane is drawn, in pad lengths: past that it is open enough. */
-const APPROACH_PADS = 3;
+/** Longest a way in is drawn, in pad lengths: past that it is open enough. */
+const APPROACH_PADS = 1.5;
 
 /**
  * How far the arc indicator reaches, as a multiple of the mount's own face.
@@ -2410,55 +2409,49 @@ function drawStreak(
 }
 
 /**
- * The way in to each of a ship's pads, in its body frame: a lane the pad's
- * width out from the side its fighters come in by, as far as it is clear of
- * the fighters' layer, with a chevron pointing in. A lane cut short ends in a
- * bar, so a pad its fighters will struggle to reach shows as one.
+ * The ways in to each of a ship's pads, in its body frame: for each, a spoke
+ * out from the pad's edge as far as it is clear of the fighters' layer, with
+ * a chevron at the pad pointing in. A spoke cut short ends in a bar, so a pad
+ * its fighters will struggle to reach shows as one.
  */
 function drawApproaches(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: number): void {
   const design = ship.currentStructure;
   for (let m = 0; m < design.modules.length; m++) {
     const module = design.modules[m]!;
     if (module.spec.kind !== 'pad' || ship.drawn?.[m] === false) continue;
-    const approach = approachOf(design, m);
-    if (approach === undefined) continue;
-    const angle = approach.angle + approachTurn(design, m);
-    // Along its length or across it, by which side it is.
-    const lengthwise = Math.abs(cos(angle - module.angle)) > 0.5;
-    const depth = (lengthwise ? module.spec.length : module.spec.width) / 2;
-    const across = (lengthwise ? module.spec.width : module.spec.length) / 2;
-    const most = APPROACH_PADS * 2 * depth;
-    const blocked = approach.clear < most;
-    const reach = blocked ? approach.clear : most;
-    ctx.save();
-    ctx.translate(module.x, module.y);
-    ctx.rotate(angle);
-    ctx.fillStyle = APPROACH;
-    ctx.fillRect(depth, -across, reach, 2 * across);
-    ctx.strokeStyle = APPROACH_EDGE;
-    ctx.lineWidth = 1 / metresToPx;
-    ctx.beginPath();
-    ctx.moveTo(depth + reach, -across);
-    ctx.lineTo(depth, -across);
-    ctx.moveTo(depth + reach, across);
-    ctx.lineTo(depth, across);
-    ctx.stroke();
-    ctx.beginPath();
-    const tip = depth + min(reach, across) * 0.3;
-    const tail = depth + min(reach, across) * 0.9;
-    ctx.moveTo(tail, -across * 0.6);
-    ctx.lineTo(tip, 0);
-    ctx.lineTo(tail, across * 0.6);
-    ctx.stroke();
-    if (blocked) {
-      ctx.strokeStyle = APPROACH_BLOCKED;
-      ctx.lineWidth = 2 / metresToPx;
+    const turn = approachTurn(design, m);
+    const halfLength = module.spec.length / 2;
+    const halfWidth = module.spec.width / 2;
+    const most = APPROACH_PADS * 2 * max(halfLength, halfWidth);
+    const chevron = 0.4 * min(halfLength, halfWidth);
+    for (const approach of approachesOf(design, m)) {
+      const angle = approach.angle + turn;
+      // How far the pad reaches that way.
+      const depth = Math.abs(halfLength * cos(angle - module.angle)) + Math.abs(halfWidth * sin(angle - module.angle));
+      const blocked = approach.clear < most;
+      const reach = blocked ? approach.clear : most;
+      ctx.save();
+      ctx.translate(module.x, module.y);
+      ctx.rotate(angle);
+      ctx.strokeStyle = APPROACH_EDGE;
+      ctx.lineWidth = 1.5 / metresToPx;
       ctx.beginPath();
-      ctx.moveTo(depth + reach, -across);
-      ctx.lineTo(depth + reach, across);
+      ctx.moveTo(depth, 0);
+      ctx.lineTo(depth + reach, 0);
+      ctx.moveTo(depth + chevron * 1.5, -chevron);
+      ctx.lineTo(depth + chevron * 0.5, 0);
+      ctx.lineTo(depth + chevron * 1.5, chevron);
       ctx.stroke();
+      if (blocked) {
+        ctx.strokeStyle = APPROACH_BLOCKED;
+        ctx.lineWidth = 2 / metresToPx;
+        ctx.beginPath();
+        ctx.moveTo(depth + reach, -chevron);
+        ctx.lineTo(depth + reach, chevron);
+        ctx.stroke();
+      }
+      ctx.restore();
     }
-    ctx.restore();
   }
 }
 

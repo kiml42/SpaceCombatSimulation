@@ -2,11 +2,13 @@ import type { DesignModule, ShipDesign } from './blueprint.js';
 import { abs, ceil, cos, floor, max, min, PI, sin } from './math.js';
 
 /**
- * The way a fighter comes in to a pad: of the pad's four sides, the one with
- * the longest run before anything in the weapons layer, and of those the
- * longest before anything at all, so it comes in from open space rather than
- * along the decks. Worked out once, when a carrier is compiled
- * (`ShipDesign.approaches`).
+ * A way a fighter can come in to a pad. Every pad is looked out from in
+ * eight directions, its four sides and its four corners, and each that is
+ * clear of the weapons layer all the way out of the hull is a way in: a
+ * fighter takes the one nearest the way it is coming from. A pad with no
+ * clear way has one, the direction with the longest run before anything in
+ * the weapons layer, and of those the longest before anything at all.
+ * Worked out once, when a carrier is compiled (`ShipDesign.approaches`).
  */
 export interface PadApproach {
   /** The pad, as an index into the design's modules. */
@@ -19,28 +21,37 @@ export interface PadApproach {
   readonly open: number;
 }
 
-/** The way in to pad `pad` of `design`. */
-export function padApproach(design: ShipDesign, pad: number): PadApproach {
+/** Every way in to pad `pad` of `design`: one at least. */
+export function padApproaches(design: ShipDesign, pad: number): PadApproach[] {
   const module = design.modules[pad]!;
   const facing = module.spec.angle ?? 0;
+  const halfLength = module.spec.length / 2;
+  const halfWidth = module.spec.width / 2;
   const cap = 2 * design.radius;
+  const out = cap > 0 ? ceil(cap) : 0;
+  const ways: PadApproach[] = [];
   let best: PadApproach = { pad, angle: facing, clear: 0, open: 0 };
   let longest = -1;
-  for (let k = 0; k < 4; k++) {
-    const a = facing + (k * PI) / 2;
+  for (let k = 0; k < 8; k++) {
+    const a = facing + (k * PI) / 4;
     const ux = cos(a);
     const uy = sin(a);
-    const depth = (k % 2 === 0 ? module.spec.length : module.spec.width) / 2;
-    const across = (k % 2 === 0 ? module.spec.width : module.spec.length) / 2;
+    // How far the pad reaches that way, and how wide it is seen from there.
+    const c = cos((k * PI) / 4);
+    const s = sin((k * PI) / 4);
+    const depth = abs(halfLength * c) + abs(halfWidth * s);
+    const across = abs(halfLength * s) + abs(halfWidth * c);
     const clear = clearRun(design, pad, ux, uy, depth, across, cap, true);
     const open = clearRun(design, pad, ux, uy, depth, across, cap, false);
+    const way = { pad, angle: a, clear, open };
+    if (clear >= out) ways.push(way);
     const run = clear * cap + open;
     if (run > longest) {
       longest = run;
-      best = { pad, angle: a, clear, open };
+      best = way;
     }
   }
-  return best;
+  return ways.length > 0 ? ways : [best];
 }
 
 /**

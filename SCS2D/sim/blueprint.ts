@@ -32,7 +32,7 @@ import { distanceToOutline, isShaped, outlineAxes, projectOutline } from './shap
 import { HullPath, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from './hull.js';
 import { exhaustObstruction, weaponPlumeReach, type PlumeSlice } from './exhaust.js';
 import type { TurretSpec } from './turrets.js';
-import { padApproach, type PadApproach } from './padApproach.js';
+import { padApproaches, type PadApproach } from './padApproach.js';
 
 /**
  * Blueprints: a layout of modules, and what a ship built to it turns out to be.
@@ -528,13 +528,13 @@ export function originOf(design: ShipDesign, m: number): Compiled {
 }
 
 /**
- * The way in to pad `m` of `design`, as its compiled design worked it out, or
- * undefined for none. Its `angle` is in the compiled design's frame:
- * `approachTurn` turns it into this one's.
+ * The ways in to pad `m` of `design`, as its compiled design worked them out:
+ * none for a module that is no pad. Their angles are in the compiled design's
+ * frame: `approachTurn` turns them into this one's.
  */
-export function approachOf(design: ShipDesign, m: number): PadApproach | undefined {
+export function approachesOf(design: ShipDesign, m: number): PadApproach[] {
   const origin = originOf(design, m);
-  return origin.design.approaches?.find((a) => a.pad === origin.module);
+  return (origin.design.approaches ?? []).filter((a) => a.pad === origin.module);
 }
 
 /** How far module `m` of `design` is turned from where its compiled design has it. */
@@ -657,7 +657,7 @@ export interface ShipDesign {
   readonly fighterPieces?: readonly number[];
   /** The fighters it sets out with docked on its pads. Absent for none. */
   readonly aboard?: readonly Aboard[];
-  /** The way in to each of its pads, worked out from the layout as compiled. Absent for none. */
+  /** The ways in to each of its pads, worked out from the layout as compiled. Absent for none. */
   readonly approaches?: readonly PadApproach[];
   /** The fighters its pads build, and how many of each they keep. Absent for none. */
   readonly builds?: readonly PadBuild[];
@@ -2046,7 +2046,7 @@ export function compileDraft(blueprint: Blueprint): ShipDesign {
   const approaches: PadApproach[] = [];
   for (let m = 0; m < specs.length; m++) {
     const spec = specs[m]!;
-    if (spec.kind === 'pad') approaches.push(padApproach(design, m));
+    if (spec.kind === 'pad') approaches.push(...padApproaches(design, m));
     const keep = floor(spec.keep ?? 0);
     const craft = slipwayCraft(blueprint, spec, specs);
     if (craft !== null && typeof craft !== 'string' && keep > 0) yards.push({ slipway: m, design: craft, keep });
