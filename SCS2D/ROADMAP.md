@@ -375,6 +375,10 @@ Deliberately unresolved; decide when they block something.
 - **Whether the skirmish enemy should prefer the cheapest fleet that wins.** It stops at the first winner,
   so it grows only as it must, but it never shrinks, and drifts larger round by round. A preference for
   efficiency would let it get leaner as well as stronger.
+- **Idle ships in a well should orbit, not stop.** A ship with nothing to do brakes to a halt, and under
+  gravity that means burning against the well for as long as it waits, and settling only at the well's
+  centre. Holding an orbit instead, about whichever well pulls hardest, would cost nothing. Matters more
+  once wells move (step 15). Raised by the author, not built.
 - **What a ship is when it is welded to something much bigger.** A body is one thing, so a miner anchored
   to an asteroid (step 15), or a fighter landed on a carrier, is treated as the whole body: guns aim at any
   part of it, the selection ring goes round all of it, and the side's tile shows the bigger thing — already
