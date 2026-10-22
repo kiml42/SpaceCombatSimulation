@@ -502,6 +502,27 @@ describe('what the picture is told about damage', () => {
     expect(capture(new Snapshot(), world, ships, new Projectiles(4), new Beams(4)).ships[0]!.hasControl).toBe(false);
   });
 
+  it('reports a core past its cutout as out, and leaves the name painted on it', () => {
+    // The light on a core goes out where it stops flying the ship, which is
+    // well before it is wreckage; the renderer cannot know where that is.
+    const bare = compileBlueprint({ name: 'Bare', modules: [{ kind: 'core', x: 0, y: 0, length: 2, width: 2 }] });
+    const world = new World({ dt: 1 / 60, seed: 3 });
+    const ships = new Ships();
+    world.addForceProvider(ships.forceProvider());
+    const hull = ships.spawn(world, { design: bare, x: 0, y: 0, team: 0 });
+    const view = (): ReturnType<typeof capture>['ships'][number] =>
+      capture(new Snapshot(), world, ships, new Projectiles(4), new Beams(4)).ships[0]!;
+    expect(view().coresWorking).toEqual([true]);
+    expect(view().coreNames).toEqual(['1']);
+
+    const body = world.bodies.indexOf(ships.body(hull));
+    const core = bare.cores[0]!;
+    ships.damage.absorb(body, core, 0.7 * bare.modules[core]!.stats.hitPoints * DAMAGE_ENERGY_PER_KG);
+    expect(ships.damage.integrity(body, core)).toBeGreaterThan(0);
+    expect(view().coresWorking).toEqual([false]);
+    expect(view().coreNames).toEqual(['1']);
+  });
+
   it('reports a wrecked mount as one that cannot shoot', () => {
     // The renderer draws a firing arc as a promise that a gun may shoot there,
     // and has no business guessing at the cutout that decides it. So the

@@ -57,10 +57,12 @@ export interface ShipView {
   /** Which ship it is after its side's name, as "1" or "1.2" (`Ships.nameOf`); absent for its serial. */
   name?: string;
   /**
-   * Which core of the design it set out as each of its cores is, from one, in
-   * its design's core order; -1 for one another ship on its hull works. Optional.
+   * The name painted on each of its cores, as "1" or "1.2", in its design's
+   * core order; null for one another ship on its hull works. Optional.
    */
-  coreNumbers?: number[];
+  coreNames?: (string | null)[];
+  /** Whether each of its cores still flies anything, in its design's core order. Optional: absent, all do. */
+  coresWorking?: boolean[];
   /** The body of what it is fighting, or -1 or absent for nothing. */
   fighting?: number;
   /** What it is doing, told or of its own accord, and the body it is doing it to; absent for nothing. */
@@ -443,7 +445,8 @@ export function capture(
     view.team = ships.teamOf(i);
     view.serial = ships.serialOf(i);
     view.name = ships.nameOf(i);
-    ships.coreNumbers(i, (view.coreNumbers ??= []));
+    ships.coreNames(i, (view.coreNames ??= []));
+    ships.coresWorking(i, (view.coresWorking ??= []));
     const fighting = ships.fightingOf(i);
     view.fighting = fighting >= 0 && ships.isAlive(fighting) ? bodies.indexOf(ships.body(fighting)) : -1;
     const held = view.fighting >= 0 ? ships.heldOrder(i) : undefined;
