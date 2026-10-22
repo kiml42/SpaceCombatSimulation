@@ -98,8 +98,9 @@ export const ORDER_KEYS: readonly KeyRow[] = [
     keys: 'Right-click a ship',
     does: 'Order the picked ships to attack it, if an enemy, or defend it, if a friend, at the hold and speed on the order bar; Ctrl to add to their orders',
   },
+  { keys: 'Right-click an asteroid', does: 'Order the picked ships with claws to mine it; Ctrl to add to their orders' },
   { keys: 'K, D, R, H', does: 'Attack, defend, ram or dock with the next ship clicked; Ctrl to add to their orders' },
-  { keys: 'G, U', does: 'Scavenge from, or deliver to, the next ship clicked' },
+  { keys: 'G, U', does: 'Scavenge from, or deliver to, the next ship clicked; an asteroid is scavenged too' },
   { keys: 'W', does: 'Flee the next enemy clicked, or hide behind the next friend or wreck, until told otherwise' },
   {
     keys: 'Enter',
