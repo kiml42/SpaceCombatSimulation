@@ -69,7 +69,7 @@ understanding it turns a regression into the new expected behaviour, permanently
 | `npm run dev` | The same build, on every save; also keeps the stock fleets' designs in step with `scenarios/blueprints/` |
 | `npm run sync-fleets` | Copy each stock blueprint into the stock fleets that embed it |
 | `npm run golden` | Re-derive the golden checksums after a *deliberate* change |
-| `npm run evolve` | Fight a headless evolution run and write it to `runs/`; its flags are in CLAUDE.md |
+| `npm run evolve` | Fight a headless evolution run and write it to `runs/`, to open on the evolution page with Open run; its flags are in CLAUDE.md |
 | `npm run yardstick` | Measure a finished run against a ship that does not evolve |
 | `npm run test:browser` | Drive the built page in Chromium — `npx playwright install chromium` once first |
 

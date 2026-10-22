@@ -5,14 +5,17 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import type { Browser, Page } from 'playwright';
 import { launchChromium } from './launch.js';
 import { DEFAULT_KINDS } from '../../evolution/mutate.js';
-import { DEFAULT_RUN } from '../../evolution/run.js';
+import { DEFAULT_RUN, runEvolution } from '../../evolution/run.js';
+import { runCoevolution } from '../../evolution/coevolution.js';
+import { DINKY, GUNSHIP } from '../../scenarios/blueprints.js';
+import { tmpdir } from 'node:os';
 
 /**
  * The evolution page, driven in a real browser.
@@ -231,8 +234,9 @@ describe('the evolution page in a browser', () => {
     expect((await best.locator('td.done').textContent())?.length).toBeGreaterThan(0);
     expect(await rows(page, 'matches')).toBeGreaterThan(0);
     expect(await page.textContent('#championLine')).toMatch(/best of generation \d/);
-    // A finished generation owes nothing, so no count of matches is shown.
-    expect(await page.locator('#fleet td.score .count:not(:empty)').count()).toBe(0);
+    // A finished generation owes nothing, so each count is of matches won rather than matches owed.
+    const counts = await page.$$eval('#fleet td.score .count', (cells) => cells.map((cell) => cell.textContent));
+    expect(counts.every((text) => /^won \d+\/\d+$/.test(text ?? ''))).toBe(true);
   });
 
   it('exports any one combatant as a file, without picking its row', async () => {
@@ -955,4 +959,41 @@ describe('the evolution page in a browser', () => {
     );
     expect(problems).toEqual([]);
   });
+  it('opens a run fought headlessly, shows who won what, and fights its matches again', async () => {
+    const settings = {
+      seed: 5,
+      generations: 2,
+      population: 4,
+      winners: 2,
+      group: 2,
+      minMatches: 1,
+      fleet: { maxShips: 1 },
+      match: { duration: 8, goal: null },
+    };
+    const folder = await mkdtemp(join(tmpdir(), 'scs2d-run-'));
+    const single = join(folder, 'dinky.run.json');
+    await writeFile(single, JSON.stringify(runEvolution([DINKY], settings)));
+    await page.setInputFiles('#openRunFile', single);
+    await page.waitForFunction(() => /dinky\.run\.json: 2 of 2 generations/.test(document.getElementById('readout')?.textContent ?? ''));
+    expect(await page.isVisible('#results')).toBe(true);
+    expect(await page.textContent('#state')).toBe('from a file');
+    expect(await page.isEnabled('#pause')).toBe(false);
+    await page.selectOption('#mode', 'fleet');
+    await page.waitForFunction(() => document.querySelectorAll('#fleet tbody tr').length === 4);
+    const counts = await page.$$eval('#fleet td.score .count', (cells) => cells.map((cell) => cell.textContent));
+    expect(counts.every((text) => /^won \d+\/\d+$/.test(text ?? ''))).toBe(true);
+    expect(await rows(page, 'matches')).toBeGreaterThan(0);
+    await page.click('#matches tr');
+    await page.waitForFunction(() => /\d+%/.test(document.getElementById('watching')?.textContent ?? ''));
+
+    // Both sides of a co-evolution run, each in its own table.
+    const both = join(folder, 'both.run.json');
+    await writeFile(both, JSON.stringify(runCoevolution([DINKY], [GUNSHIP], { ...settings, group: 1 }, { hall: 1, phaseCap: 1 })));
+    await page.setInputFiles('#openRunFile', both);
+    await page.waitForFunction(() => /both\.run\.json/.test(document.getElementById('readout')?.textContent ?? ''));
+    await page.selectOption('#mode', 'fleet');
+    await page.waitForFunction(() => document.querySelectorAll('#fleet table:not([hidden])').length === 2);
+    expect(await page.textContent('#championLine')).toMatch(/A #\d+.*B #\d+/);
+    expect(problems).toEqual([]);
+  }, 60_000);
 });
