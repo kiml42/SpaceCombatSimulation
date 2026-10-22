@@ -1626,8 +1626,9 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   than spin; and the overlap left after the impulse is corrected out over a few steps rather than
   resolved at once. A body with no hull does not collide at all — everything in a battle is a ship or
   the wreck of one, and a bare mass with a radius is not a shape.
-- **The spatial index is for queries, not collision pairing.** At a few hundred bodies, testing every body
-  against every other is cheaper than building an index to avoid it. What is expensive is thousands of
+- **The spatial index is for queries, not collision pairing.** At a few hundred bodies, a sort along x and
+  testing each body against its neighbours there is cheaper than keeping an index for it; the pairs are
+  still taken in body order, so contact order does not depend on the sort. What is expensive is thousands of
   projectiles, turret line-of-sight checks and blast radii each interrogating a small region every step —
   body count multiplied by query count. A uniform grid (rather than a tree) because everything moves every
   step, so the index is rebuilt in one linear pass with no hierarchy to rebalance, and cell traversal is

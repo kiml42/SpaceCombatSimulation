@@ -8,6 +8,7 @@ import {
   draw,
   drawCloseUps,
   drawFleetStrips,
+  StripCache,
   drawTargetRange,
   fleetStrips,
   nextArcs,
@@ -234,6 +235,7 @@ export function battleView(
   let seeking = -1;
   const snapshot = new Snapshot();
   const flashes = new Flashes();
+  const stripCache = new StripCache();
   const camera: Camera = { x: 0, y: 0, scale: 0.1 };
   /** The leading picked ship's body, as the renderer marks it, worked out each frame. */
   let selected = -1;
@@ -643,7 +645,7 @@ export function battleView(
     const markedBody = markedModules === null ? -1 : (viewOf(view, markedModules.ship)?.body ?? -1);
     const marked = markedBody < 0 ? null : { body: markedBody, modules: markedModules!.modules };
     draw(ctx, view, camera, canvas.width, canvas.height, flashes, arcs, teamShots, selected, also, marked);
-    if (tiles !== null) drawFleetStrips(ctx, view, tiles, selected, ratio, flashes, arcs, teamShots);
+    if (tiles !== null) drawFleetStrips(ctx, view, tiles, selected, ratio, flashes, arcs, teamShots, stripCache);
     const insets = closeUps(view, camera, canvas.width, canvas.height, selected, ratio, tiles);
     drawCloseUps(ctx, view, insets, selected, ratio, flashes, arcs, teamShots, marked);
     drawTargetRange(ctx, view, camera, canvas.width, canvas.height, selected, insets, ratio);
