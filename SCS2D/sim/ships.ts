@@ -57,7 +57,7 @@ import {
   type ModuleSpec,
   type ModuleStats,
 } from './modules.js';
-import { abs, atan2, angleDelta, PI, brakingRate, clamp, cos, exp, floor, length, max, min, round, sin, sqrt } from './math.js';
+import { abs, atan2, angleDelta, PI, brakingRate, ceil, clamp, cos, exp, floor, length, max, min, round, sin, sqrt } from './math.js';
 import { Projectiles } from './projectiles.js';
 import { legLength, neighbourOf, pathTo, RobotMode, Robots, staysWhole, walk, type Robot } from './robots.js';
 import { Allocation, EngineLayout } from './engines.js';
@@ -8626,7 +8626,10 @@ export class Ships {
 
   /**
    * How far out from pad `pad`'s side along `ux`, `uy` is clear, metres, up to
-   * `cap`: of anything in the weapons layer, or of anything at all.
+   * `cap`: of anything in the weapons layer, or of anything at all. Sampled a
+   * metre at a time on three lines out from the side, its middle and edges,
+   * but only near where each line crosses each module: stepping the whole way
+   * cost a carrier tens of milliseconds every time a pad rebuilt a fighter.
    */
   private clearRun(
     design: ShipDesign,
@@ -8638,31 +8641,67 @@ export class Ships {
     cap: number,
     weaponsOnly: boolean,
   ): number {
-    const module = design.modules[pad]!;
-    let run = 0;
-    for (; run < cap; run += 1) {
+    const from = design.modules[pad]!;
+    let run = cap > 0 ? ceil(cap) : 0;
+    for (let m = 0; m < design.modules.length; m++) {
+      const module = design.modules[m]!;
+      if (m === pad || (weaponsOnly && !module.weaponsLayer)) continue;
+      const a = module.spec.angle ?? 0;
+      const c = cos(a);
+      const s = sin(a);
+      const halfLength = module.spec.length / 2;
+      const halfWidth = module.spec.width / 2;
+      const alongRate = ux * c + uy * s;
+      const acrossRate = uy * c - ux * s;
       for (let side = -1; side <= 1; side++) {
-        const px = module.x + ux * (depth + run + 0.5) - uy * side * across;
-        const py = module.y + uy * (depth + run + 0.5) + ux * side * across;
-        if (this.inModule(design, pad, px, py, weaponsOnly)) return run;
+        const dx = from.x + ux * (depth + 0.5) - uy * side * across - module.x;
+        const dy = from.y + uy * (depth + 0.5) + ux * side * across - module.y;
+        let lo = 0;
+        let hi = Infinity;
+        for (let axis = 0; axis < 2; axis++) {
+          const at = axis === 0 ? dx * c + dy * s : dy * c - dx * s;
+          const rate = axis === 0 ? alongRate : acrossRate;
+          const half = axis === 0 ? halfLength : halfWidth;
+          // Square to the line, where it moves by rounding alone: generously
+          // in or out of it all the way, and the samples decide.
+          if (abs(rate) < 1e-9) {
+            if (abs(at) > half + 1e-3) hi = -Infinity;
+            continue;
+          }
+          const t0 = (-half - at) / rate;
+          const t1 = (half - at) / rate;
+          lo = max(lo, min(t0, t1));
+          hi = min(hi, max(t0, t1));
+        }
+        if (!(hi >= lo - 1)) continue;
+        // The span is only as exact as its rounding, so the metres either end
+        // of it are sampled exactly as stepping out would have.
+        const last = min(run - 1, ceil(hi) + 1);
+        for (let k = max(0, floor(lo) - 1); k <= last; k++) {
+          if (this.sampleIn(from, module, c, s, ux, uy, depth + k + 0.5, side * across)) {
+            run = k;
+            break;
+          }
+        }
       }
     }
     return run;
   }
 
-  /** Whether a point in `design`'s frame lies inside any of its modules but `except`, or any in the weapons layer. */
-  private inModule(design: ShipDesign, except: number, x: number, y: number, weaponsOnly: boolean): boolean {
-    for (let m = 0; m < design.modules.length; m++) {
-      const module = design.modules[m]!;
-      if (m === except || (weaponsOnly && !module.weaponsLayer)) continue;
-      const a = module.spec.angle ?? 0;
-      const c = cos(a);
-      const s = sin(a);
-      const dx = x - module.x;
-      const dy = y - module.y;
-      if (abs(dx * c + dy * s) <= module.spec.length / 2 && abs(dy * c - dx * s) <= module.spec.width / 2) return true;
-    }
-    return false;
+  /** Whether the point `out` along `ux`, `uy` from `from` and `aside` across lies inside `module`, whose angle's cosine and sine are `c` and `s`. */
+  private sampleIn(
+    from: DesignModule,
+    module: DesignModule,
+    c: number,
+    s: number,
+    ux: number,
+    uy: number,
+    out: number,
+    aside: number,
+  ): boolean {
+    const dx = from.x + ux * out - uy * aside - module.x;
+    const dy = from.y + uy * out + ux * aside - module.y;
+    return abs(dx * c + dy * s) <= module.spec.length / 2 && abs(dy * c - dx * s) <= module.spec.width / 2;
   }
 
   /** The first of this ship's ports still working and not already mated, or -1. */
