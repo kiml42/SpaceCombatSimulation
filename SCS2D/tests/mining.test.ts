@@ -12,15 +12,26 @@ function stores(run: ReturnType<typeof mining>, i: number): { metal: number; fue
 }
 
 describe('mining', () => {
-  it('sends salvagers to the asteroids round a major, where their robots mine ore into the hold', () => {
+  it('sends salvagers to the asteroids, one anchoring to the major, and their robots mine ore into the hold', () => {
     const run = mining();
     const before = run.miners.map((i) => stores(run, i).metal);
-    for (let t = 0; t < 30 * 60 * 10; t++) run.step();
-    const after = run.miners.map((i) => stores(run, i).metal);
-    expect(after.some((metal, k) => metal > before[k]! + 1000)).toBe(true);
+    for (let t = 0; t < 600 * 60; t++) run.step();
+    const after = run.miners.map((i) => stores(run, i));
+    for (let k = 0; k < after.length; k++) expect(after[k]!.metal).toBeGreaterThan(before[k]! + 1000);
     expect(run.totalSevered).toBe(0);
-    // A major pulls too hard for a ship with no thrust to hold off it jaws first.
-    expect(run.miners.some((i) => stores(run, i).pinned)).toBe(false);
+    // Its thrust is much the same every way, so it can hold itself off a major's pull jaws first.
+    expect(after.some((s) => s.pinned)).toBe(true);
+  });
+
+  it('passes over a major a ship cannot hold itself off, jaws first', () => {
+    const run = makeBattle({ seed: 3, map: { majors: 1, majorSize: 200, surfaceGravity: 2, fuel: 0.6, metal: 0.1 } }, (ships, world) => ({
+      scavenger: ships.spawn(world, { design: compileBlueprint(SCAVENGER), x: -700, y: 0, angle: 0, team: 0 }),
+    }));
+    // It may yet fall on to it, idle in its pull; it never sets out for it.
+    for (let t = 0; t < 60 * 60; t++) {
+      run.step();
+      expect(run.ships.doingOf(run.scavenger)?.kind).not.toBe('scavenge');
+    }
   });
 
   it('anchors to a major that barely pulls, riding its rail as it mines', () => {

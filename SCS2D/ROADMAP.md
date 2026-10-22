@@ -137,8 +137,8 @@ an entry is either still open or it is gone.
          its jaws to it. The Mining scene and its golden. Left from it:
          - **A major's pull keeps mains-only ships off it.** Jaws first, a ship with no thrust astern of
            its jaws cannot hold off a gravitating asteroid and lands by falling, so scavenging passes over
-           a major whose surface pull its ship cannot beat (`holdsOff`). Mining majors wants a miner built
-           for it — retro thrust, or a claw on the flank — which no stock ship is.
+           a major whose surface pull its ship cannot beat (`holdsOff`). The stock Salvager was rebuilt
+           with much the same thrust every way so that it can.
          - **Matching an orbit before turning the jaws on** is asteroids' alone; whether every claw
            approach should do it, wrecks drifting too, is open, and would move the claw goldens.
     4. **Viewer and demo** — asteroid picking and its readout, and a golden scenario of two rival mining
