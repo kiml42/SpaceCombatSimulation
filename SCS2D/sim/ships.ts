@@ -423,19 +423,6 @@ export const CLAW_RETRY = 0.5;
 /** Share of a gripped module's capacity the jaws take as they close. */
 export const CLAW_BITE = 0.1;
 
-/** Tangent of how far off a face's normal a claw ship may close on it straight (`aimAt`): 25°. */
-const HOLD_CONE = 0.4663076581549986;
-
-/** Bearings round an asteroid a claw ship tries for rock to take hold of, and how far apart, radians. */
-const HOLD_TRIES = 9;
-const HOLD_STEP = 0.2;
-
-/** How many times a claw ship's radius an asteroid must be for it to share it with another ship. */
-const CLAIM_SHARE = 10;
-
-/** How far out along a face's normal a claw ship lines up, in its own radii. */
-const HOLD_STAND_OFF = 4;
-
 /** The closing speed a pilot brings its claw in at, m/s: the middle of its band. */
 const CLAW_APPROACH = (CLAW_SPEED_LOW + CLAW_SPEED_HIGH) / 2;
 
@@ -1137,27 +1124,8 @@ export class Ships {
   private readonly recharging: number[] = [];
   /** The world tick `command` is flying. */
   private now = 0;
-  /** What a claw ship is closing on, from `aimMiddle` or `aimAt`: the point, the way to it, how far, and how it moves. */
-  private aimX = 0;
-  private aimY = 0;
-  private aimUx = 0;
-  private aimUy = 0;
-  private aimGap = 0;
-  private aimVx = 0;
-  private aimVy = 0;
   /** The tick each ship last touched what it means to drink from without holding it. */
   private readonly touchedSource: number[] = [];
-  /**
-   * Where on an asteroid each claw ship means to take hold (`aimAt`): the
-   * asteroid, or -1; its hull as it was then; and the point and its face's
-   * outward normal, in the asteroid's frame.
-   */
-  private readonly holdOn: number[] = [];
-  private readonly holdHull: (ShipDesign | null)[] = [];
-  private readonly holdX: number[] = [];
-  private readonly holdY: number[] = [];
-  private readonly holdNx: number[] = [];
-  private readonly holdNy: number[] = [];
   /** The pad, by module of its ship's design, a fighter is making for to refuel; -1 for none. */
   private readonly landingPad: number[] = [];
   /**
@@ -1797,12 +1765,6 @@ export class Ships {
     this.recharging.push(0);
     this.home.push(-1);
     this.touchedSource.push(-Infinity);
-    this.holdOn.push(-1);
-    this.holdHull.push(null);
-    this.holdX.push(0);
-    this.holdY.push(0);
-    this.holdNx.push(0);
-    this.holdNy.push(0);
     this.landingPad.push(-1);
     this.dockSeenVx.push(0);
     this.dockSeenVy.push(0);
@@ -3973,14 +3935,10 @@ export class Ships {
         if (across >= 0) {
           wantAngle = this.roundHull(bodies, i, b, across, tb) - jaws;
         } else {
-          // An asteroid is taken hold of at a point on its face, square on; a wreck at its middle.
-          const asteroid = this.isAsteroid(target);
-          if (asteroid && (globalThis as unknown as { G?: string }).G?.includes('B')) this.aimAt(bodies, i, b, tb, target);
-          else this.aimMiddle(bodies, b, tb);
-          wantAngle = atan2(this.aimY - bodies.y[b]!, this.aimX - bodies.x[b]!) - jaws;
-          const radial = this.grapple(bodies, i, b, claw, wantAngle, this.now - this.touchedSource[i]! < CLAW_RETRY / dt);
+          wantAngle = atan2(bodies.y[tb]! - bodies.y[b]!, bodies.x[tb]! - bodies.x[b]!) - jaws;
+          const radial = this.grapple(bodies, i, b, tb, claw, wantAngle, this.now - this.touchedSource[i]! < CLAW_RETRY / dt);
           // An asteroid comes on in its orbit: match its motion on the mains first, then turn the jaws to it.
-          if (asteroid) wantAngle = this.matchOrbit(bodies, i, b, wantAngle, radial);
+          if (this.isAsteroid(target)) wantAngle = this.matchOrbit(bodies, i, b, tb, wantAngle, radial);
         }
       } else if (tb >= 0 && tb !== b) {
         // Not hooked on to it, which would leave nowhere to steer for.
@@ -10128,8 +10086,6 @@ export class Ships {
       if (asteroid && !(approach.rockWeight > 0)) continue;
       // One that pulls cannot be closed on slowly jaws first without thrust to hold off its pull.
       if (asteroid && !(this.holdsOff(bodies, i, b, claw, tb) > 1)) continue;
-      // Nor one another ship has hold of or is making for, unless it is big enough to share.
-      if ((globalThis as unknown as { G?: string }).G?.includes('C') && asteroid && bodies.radius[tb]! < CLAIM_SHARE * design.radius && this.claimed(bodies, i, t, tb)) continue;
       const held = asteroid ? this.rockHeld(tb, this.designs[t]!) : null;
       const fuel = held !== null ? held.ice : this.fuel.left(tb);
       const take = fuel < room ? fuel : room;
@@ -10171,15 +10127,6 @@ export class Ships {
       }
     }
     return best;
-  }
-
-  /** Whether a ship other than `i` has hold of ship `t`, on body `tb`, or is making for it with a claw. */
-  private claimed(bodies: Bodies, i: number, t: number, tb: number): boolean {
-    for (let j = 0; j < this.alive.length; j++) {
-      if (j === i || j === t || this.alive[j] === 0) continue;
-      if (this.salvaging[j] === t || bodies.indexOf(this.bodyIds[j]!) === tb) return true;
-    }
-    return false;
   }
 
   /**
@@ -10227,13 +10174,19 @@ export class Ships {
    * sooner. An asteroid in orbit, or one pulling it in, is never as still as
    * a wreck.
    */
-  private matchOrbit(bodies: Bodies, i: number, b: number, jawsOn: number, radial: number): number {
-    const ex = this.aimVx + this.aimUx * radial - bodies.vx[b]!;
-    const ey = this.aimVy + this.aimUy * radial - bodies.vy[b]!;
+  private matchOrbit(bodies: Bodies, i: number, b: number, tb: number, jawsOn: number, radial: number): number {
+    const dx = bodies.x[tb]! - bodies.x[b]!;
+    const dy = bodies.y[tb]! - bodies.y[b]!;
+    const range = length(dx, dy);
+    if (!(range > 0)) return jawsOn;
+    const ux = dx / range;
+    const uy = dy / range;
+    const ex = bodies.vx[tb]! + ux * radial - bodies.vx[b]!;
+    const ey = bodies.vy[tb]! + uy * radial - bodies.vy[b]!;
     const error = length(ex, ey);
     if (!(error > CLAW_SPEED_HIGH - CLAW_APPROACH)) return jawsOn;
-    const closing = (bodies.vx[b]! - this.aimVx) * this.aimUx + (bodies.vy[b]! - this.aimVy) * this.aimUy;
-    const left = this.aimGap / max(closing, CLAW_APPROACH);
+    const closing = (bodies.vx[b]! - bodies.vx[tb]!) * ux + (bodies.vy[b]! - bodies.vy[tb]!) * uy;
+    const left = max(0, range - bodies.radius[tb]!) / max(closing, CLAW_APPROACH);
     const jawsTime = error / this.accelerationAlong(bodies, i, b, ex / error, ey / error, jawsOn);
     if (jawsTime <= left) return jawsOn;
     const mains = atan2(ey, ex) - this.designs[i]!.thrustBearing;
@@ -10242,131 +10195,34 @@ export class Ships {
   }
 
   /**
-   * Aim at body `tb`'s middle: into `aimX`, `aimY`, the way there (`aimUx`,
-   * `aimUy`), how far its edge is (`aimGap`) and how it is moving.
-   */
-  private aimMiddle(bodies: Bodies, b: number, tb: number): void {
-    const dx = bodies.x[tb]! - bodies.x[b]!;
-    const dy = bodies.y[tb]! - bodies.y[b]!;
-    const range = length(dx, dy);
-    this.aimX = bodies.x[tb]!;
-    this.aimY = bodies.y[tb]!;
-    this.aimUx = range > 0 ? dx / range : 0;
-    this.aimUy = range > 0 ? dy / range : 0;
-    this.aimGap = max(0, range - bodies.radius[tb]!);
-    this.aimVx = bodies.vx[tb]!;
-    this.aimVy = bodies.vy[tb]!;
-  }
-
-  /**
-   * Aim at a point on asteroid `target`'s face, to meet it square on: the
-   * point where the line to its middle first met it, kept in its frame until
-   * its hull changes. Off the face's normal, it makes for a point out along
-   * it first, so the jaws come in along it and nothing beside them meets a
-   * slope first.
-   */
-  private aimAt(bodies: Bodies, i: number, b: number, tb: number, target: number): void {
-    // Chosen again whenever its hull changes, as mining or a hit changes it.
-    const design = this.hullDesign[tb] ?? null;
-    if (this.holdOn[i] !== target || this.holdHull[i] !== design) {
-      this.holdOn[i] = -1;
-      const x0 = bodies.x[b]!;
-      const y0 = bodies.y[b]!;
-      // At its middle, or a little to either side of where another ship has hold of it.
-      const reach = length(bodies.x[tb]! - x0, bodies.y[tb]! - y0);
-      const bearing = atan2(y0 - bodies.y[tb]!, x0 - bodies.x[tb]!);
-      let dx = 0;
-      let dy = 0;
-      let found = false;
-      for (let k = 0; k < HOLD_TRIES && !found && design !== null; k++) {
-        const off = (k % 2 === 0 ? 1 : -1) * ((k + 1) >> 1) * HOLD_STEP;
-        const r = bodies.radius[tb]! * 0.5;
-        dx = bodies.x[tb]! + r * cos(bearing + off) - x0;
-        dy = bodies.y[tb]! + r * sin(bearing + off) - y0;
-        if (!(reach > 0) || !(this.hulls.confirm(bodies, tb, x0, y0, dx, dy) >= 0) || !this.hulls.describe(bodies, tb, x0, y0, dx, dy)) continue;
-        const kind = this.hulls.module >= 0 ? design.modules[this.hulls.module]?.spec.kind : undefined;
-        found = kind === 'rock' || kind === 'kernel';
-      }
-      if (found) {
-        const t = this.hulls.confirm(bodies, tb, x0, y0, dx, dy);
-        const c = cos(bodies.angle[tb]!);
-        const sn = sin(bodies.angle[tb]!);
-        const rx = x0 + dx * t - bodies.x[tb]!;
-        const ry = y0 + dy * t - bodies.y[tb]!;
-        this.holdOn[i] = target;
-        this.holdHull[i] = design;
-        this.holdX[i] = rx * c + ry * sn;
-        this.holdY[i] = -rx * sn + ry * c;
-        this.holdNx[i] = this.hulls.nx * c + this.hulls.ny * sn;
-        this.holdNy[i] = -this.hulls.nx * sn + this.hulls.ny * c;
-      }
-    }
-    if (this.holdOn[i] !== target) {
-      this.aimMiddle(bodies, b, tb);
-      return;
-    }
-    const c = cos(bodies.angle[tb]!);
-    const sn = sin(bodies.angle[tb]!);
-    const rx = this.holdX[i]! * c - this.holdY[i]! * sn;
-    const ry = this.holdX[i]! * sn + this.holdY[i]! * c;
-    const nx = this.holdNx[i]! * c - this.holdNy[i]! * sn;
-    const ny = this.holdNx[i]! * sn + this.holdNy[i]! * c;
-    const px = bodies.x[tb]! + rx;
-    const py = bodies.y[tb]! + ry;
-    const spin = bodies.angularVel[tb]!;
-    this.aimX = px;
-    this.aimY = py;
-    this.aimVx = bodies.vx[tb]! - spin * ry;
-    this.aimVy = bodies.vy[tb]! + spin * rx;
-    const rx0 = bodies.x[b]! - px;
-    const ry0 = bodies.y[b]! - py;
-    const along = rx0 * nx + ry0 * ny;
-    const across = abs(rx0 * ny - ry0 * nx);
-    let ax = px;
-    let ay = py;
-    // Off the face's normal, it makes for a point out along it first, as if that were the face.
-    if (!(along > 0) || across > along * HOLD_CONE) {
-      const standOff = HOLD_STAND_OFF * this.designs[i]!.radius;
-      ax += nx * standOff;
-      ay += ny * standOff;
-    }
-    const dx = ax - bodies.x[b]!;
-    const dy = ay - bodies.y[b]!;
-    const gap = length(dx, dy);
-    this.aimGap = gap;
-    this.aimUx = gap > 0 ? dx / gap : -nx;
-    this.aimUy = gap > 0 ? dy / gap : -ny;
-  }
-
-  /**
    * Close on a source jaws first: down a stopping curve onto its edge that
    * stops not at nothing but at `CLAW_APPROACH`, so the claw arrives inside
    * its band. `facing` is the heading it holds to point the claw. `standOff`
    * backs it away instead, for another run at it.
    */
-  private grapple(bodies: Bodies, i: number, b: number, claw: number, facing: number, standOff: boolean): number {
-    let vx = this.aimVx;
-    let vy = this.aimVy;
+  private grapple(bodies: Bodies, i: number, b: number, tb: number, claw: number, facing: number, standOff: boolean): number {
+    const dx = bodies.x[tb]! - bodies.x[b]!;
+    const dy = bodies.y[tb]! - bodies.y[b]!;
+    const range = length(dx, dy);
+    let vx = bodies.vx[tb]!;
+    let vy = bodies.vy[tb]!;
     let radial = 0;
-    const ux = this.aimUx;
-    const uy = this.aimUy;
-    if (ux !== 0 || uy !== 0) {
+    if (range > 0) {
+      const ux = dx / range;
+      const uy = dy / range;
       const design = this.designs[i]!;
       const module = design.modules[claw]!;
       const turned = module.spec.angle ?? 0;
       // How far ahead of the centre of mass its jaws reach.
       const jaws = module.x * cos(turned) + module.y * sin(turned) + module.spec.length / 2;
-      const gap = max(0, this.aimGap - jaws);
+      const gap = max(0, range - bodies.radius[tb]! - jaws);
       const approach = this.doctrines[i]!.approach;
       // Planned on what it really has astern with its jaws held on, with no
       // floor: a claw has to arrive slowly, so a craft that cannot brake
       // facing its source comes in no faster than it can stop.
       const retro = this.accelerationAlong(bodies, i, b, -ux, -uy, facing);
       const stopping = stoppingSpeed(approach.brake * retro, gap, approach.responseTime);
-      const G = (globalThis as unknown as { G?: string }).G ?? '';
-      const floor = G.includes('E') ? 1.5 : CLAW_APPROACH;
-      const cruise = G.includes('D') ? min(approach.approachSpeed, 15) : approach.approachSpeed;
-      radial = standOff ? -CLAW_APPROACH : min(cruise, sqrt(stopping * stopping + floor * floor));
+      radial = standOff ? -CLAW_APPROACH : min(approach.approachSpeed, sqrt(stopping * stopping + CLAW_APPROACH * CLAW_APPROACH));
       vx += ux * radial;
       vy += uy * radial;
     }
