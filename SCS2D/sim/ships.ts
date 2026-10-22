@@ -3936,9 +3936,9 @@ export class Ships {
           wantAngle = this.roundHull(bodies, i, b, across, tb) - jaws;
         } else {
           wantAngle = atan2(bodies.y[tb]! - bodies.y[b]!, bodies.x[tb]! - bodies.x[b]!) - jaws;
-          this.grapple(bodies, i, b, tb, claw, wantAngle, this.now - this.touchedSource[i]! < CLAW_RETRY / dt);
+          const radial = this.grapple(bodies, i, b, tb, claw, wantAngle, this.now - this.touchedSource[i]! < CLAW_RETRY / dt);
           // An asteroid comes on in its orbit: match its motion on the mains first, then turn the jaws to it.
-          if (this.isAsteroid(target)) wantAngle = this.matchOrbit(bodies, i, b, tb, wantAngle);
+          if (this.isAsteroid(target)) wantAngle = this.matchOrbit(bodies, i, b, tb, wantAngle, radial);
         }
       } else if (tb >= 0 && tb !== b) {
         // Not hooked on to it, which would leave nowhere to steer for.
@@ -8967,7 +8967,7 @@ export class Ships {
   /**
    * The body of the nearest hull across body `b`'s line to body `tb` that a
    * claw ship should go round, or -1: a ship under control larger than it, not
-   * after the same source, and far enough short of it to circle clear.
+   * after the same source, or an asteroid, and far enough short of it to circle clear.
    */
   private hullAcross(bodies: Bodies, i: number, b: number, tb: number, source: number): number {
     const x = bodies.x[b]!;
@@ -8982,8 +8982,8 @@ export class Ships {
     let nearest = -1;
     let nearestAt = short;
     for (let t = 0; t < this.alive.length; t++) {
-      if (t === i || this.alive[t] === 0 || this.derelict[t] === 1 || this.salvaging[t] === source) continue;
-      if (!this.hasControl(t)) continue;
+      if (t === i || this.alive[t] === 0 || this.salvaging[t] === source) continue;
+      if (!this.isAsteroid(t) && (this.derelict[t] === 1 || !this.hasControl(t))) continue;
       const ob = bodies.indexOf(this.bodyIds[t]!);
       if (ob < 0 || ob === b || ob === tb || bodies.ghost[ob] === 1 || !this.meets(b, ob) || !(bodies.radius[ob]! > bodies.radius[b]!))
         continue;
@@ -9001,8 +9001,9 @@ export class Ships {
 
   /**
    * Fly body `b` round body `ob`'s hull, outside its radius, to the side of it
-   * facing body `tb`, matching how `ob` is moving. Returns the heading to the
-   * next point to make for.
+   * facing body `tb`, matching how `ob` is moving, no faster than its thrust
+   * towards `ob` can hold it on the curve. Returns the heading to the next
+   * point to make for.
    */
   private roundHull(bodies: Bodies, i: number, b: number, ob: number, tb: number): number {
     const cx = bodies.x[ob]!;
@@ -9014,13 +9015,18 @@ export class Ships {
     const dy = this.wayY - bodies.y[b]!;
     let vx = bodies.vx[ob]!;
     let vy = bodies.vy[ob]!;
+    const heading = atan2(dy, dx);
     if (gap > 0) {
-      const speed = this.doctrines[i]!.approach.approachSpeed;
+      const inX = cx - bodies.x[b]!;
+      const inY = cy - bodies.y[b]!;
+      const inward = length(inX, inY);
+      const turning = inward > 0 ? this.accelerationAlong(bodies, i, b, inX / inward, inY / inward, bodies.angle[b]!) : 0;
+      const speed = min(this.doctrines[i]!.approach.approachSpeed, sqrt(turning * clear));
       vx += (dx / gap) * speed;
       vy += (dy / gap) * speed;
     }
     this.urge(URGE_REFERENCE, vx, vy);
-    return atan2(dy, dx);
+    return heading;
   }
 
   /**
@@ -10162,29 +10168,30 @@ export class Ships {
 
   /**
    * The heading to hold closing on an asteroid: `jawsOn`, the claw towards it,
-   * unless it is moving against the slow approach a claw wants in a way the
-   * ship cannot correct with its jaws held on — coming at it too fast, or
-   * across — when it points its mains along the difference instead. An
-   * asteroid in orbit, or one pulling it in, is never as still as a wreck.
-   * Close in, with no room left to turn back, it holds its jaws on whatever.
+   * unless its motion is off what `grapple` asks for (`radial`, closing) by
+   * more than it can put right with its jaws held on before it arrives, and
+   * turning its mains along the difference, and back, would put it right
+   * sooner. An asteroid in orbit, or one pulling it in, is never as still as
+   * a wreck.
    */
-  private matchOrbit(bodies: Bodies, i: number, b: number, tb: number, jawsOn: number): number {
+  private matchOrbit(bodies: Bodies, i: number, b: number, tb: number, jawsOn: number, radial: number): number {
     const dx = bodies.x[tb]! - bodies.x[b]!;
     const dy = bodies.y[tb]! - bodies.y[b]!;
     const range = length(dx, dy);
     if (!(range > 0)) return jawsOn;
     const ux = dx / range;
     const uy = dy / range;
-    // What it should be doing: the source's motion, and closing at the claw's pace.
-    const ex = bodies.vx[tb]! + ux * CLAW_APPROACH - bodies.vx[b]!;
-    const ey = bodies.vy[tb]! + uy * CLAW_APPROACH - bodies.vy[b]!;
+    const ex = bodies.vx[tb]! + ux * radial - bodies.vx[b]!;
+    const ey = bodies.vy[tb]! + uy * radial - bodies.vy[b]!;
     const error = length(ex, ey);
     if (!(error > CLAW_SPEED_HIGH - CLAW_APPROACH)) return jawsOn;
-    // An error towards the source is the approach itself, which its jaws held on can make.
-    if ((ex * ux + ey * uy) / error > CLAW_ALIGN) return jawsOn;
-    const gap = range - bodies.radius[tb]!;
-    if (gap < CLAW_SPEED_HIGH * this.halfTurnTime(bodies, i, b) * 2) return jawsOn;
-    return atan2(ey, ex) - this.designs[i]!.thrustBearing;
+    const closing = (bodies.vx[b]! - bodies.vx[tb]!) * ux + (bodies.vy[b]! - bodies.vy[tb]!) * uy;
+    const left = max(0, range - bodies.radius[tb]!) / max(closing, CLAW_APPROACH);
+    const jawsTime = error / this.accelerationAlong(bodies, i, b, ex / error, ey / error, jawsOn);
+    if (jawsTime <= left) return jawsOn;
+    const mains = atan2(ey, ex) - this.designs[i]!.thrustBearing;
+    const mainsTime = 4 * this.halfTurnTime(bodies, i, b) + error / this.accelerationAlong(bodies, i, b, ex / error, ey / error, mains);
+    return mainsTime < left && mainsTime < jawsTime ? mains : jawsOn;
   }
 
   /**
@@ -10193,12 +10200,13 @@ export class Ships {
    * its band. `facing` is the heading it holds to point the claw. `standOff`
    * backs it away instead, for another run at it.
    */
-  private grapple(bodies: Bodies, i: number, b: number, tb: number, claw: number, facing: number, standOff: boolean): void {
+  private grapple(bodies: Bodies, i: number, b: number, tb: number, claw: number, facing: number, standOff: boolean): number {
     const dx = bodies.x[tb]! - bodies.x[b]!;
     const dy = bodies.y[tb]! - bodies.y[b]!;
     const range = length(dx, dy);
     let vx = bodies.vx[tb]!;
     let vy = bodies.vy[tb]!;
+    let radial = 0;
     if (range > 0) {
       const ux = dx / range;
       const uy = dy / range;
@@ -10214,11 +10222,12 @@ export class Ships {
       // facing its source comes in no faster than it can stop.
       const retro = this.accelerationAlong(bodies, i, b, -ux, -uy, facing);
       const stopping = stoppingSpeed(approach.brake * retro, gap, approach.responseTime);
-      const radial = standOff ? -CLAW_APPROACH : min(approach.approachSpeed, sqrt(stopping * stopping + CLAW_APPROACH * CLAW_APPROACH));
+      radial = standOff ? -CLAW_APPROACH : min(approach.approachSpeed, sqrt(stopping * stopping + CLAW_APPROACH * CLAW_APPROACH));
       vx += ux * radial;
       vy += uy * radial;
     }
     this.urge(URGE_REFERENCE, vx, vy);
+    return radial;
   }
 
   /**
