@@ -4,31 +4,50 @@
   "fighter": true,
   "doctrine": {
     "targeting": {
-      "proximityWeight": 102.697,
-      "massWeight": 245.429,
-      "closingWeight": 11.43,
-      "loyaltyWeight": 22.204,
-      "armedWeight": 71.048,
-      "mobileWeight": 76.4,
-      "facingWeight": 100,
-      "sightWeight": 4.865,
-      "escortWeight": 42.242
+      "proximityWeight": 84.529,
+      "preferredMass": 0.979,
+      "ramMass": 5.674,
+      "massWeight": 230.447,
+      "closingWeight": 7.592,
+      "loyaltyWeight": 20.747,
+      "armedWeight": 70.704,
+      "mobileWeight": 82.789,
+      "facingWeight": 70.434,
+      "sightWeight": 5.645,
+      "escortWeight": 47.032
     },
     "approach": {
-      "standoffRadii": 30,
-      "standoff": 0.7,
-      "escort": 0.186,
-      "escortMinRadii": 1.118,
-      "separation": 324.837,
-      "tolerance": 0.4,
-      "approachSpeed": 734.508,
-      "accelerate": 0.858,
-      "brake": 0.804,
-      "turnBias": 1,
-      "burnWeight": 1.5,
-      "rangeHold": 1.5,
-      "tangentialMin": 20,
-      "tangentialMax": 60
+      "standoffRadii": 41.13,
+      "escortRadii": 6.197,
+      "escort": 0.184,
+      "escortMinRadii": 0.508,
+      "separation": 315.661,
+      "separationRadii": 3.114,
+      "avoidHorizon": 6.35,
+      "dodgeSpeed": 67.974,
+      "responseTime": 1.982,
+      "tolerance": 0.393,
+      "approachSpeed": 749.769,
+      "accelerate": 0.73,
+      "brake": 0.637,
+      "ramRadii": 2.346,
+      "ramArmed": -1.659,
+      "turnBias": 0.92,
+      "burnWeight": 1.512,
+      "rangeHold": 1.451,
+      "scavengeFuelBelow": -1.733,
+      "scavengeMetalBelow": -0.986,
+      "fuelPerMetal": 1.239,
+      "scavengeDanger": 1.123,
+      "refuelBelow": 0.283,
+      "rechargeBelow": 0.241,
+      "deliverFuelAbove": -3.208,
+      "dockDanger": -2.539,
+      "sortieRange": 4.174,
+      "rearmBelow": 0.1,
+      "repairBelow": 0.629,
+      "tangentialMin": 23.247,
+      "tangentialMax": 64.36
     }
   },
   "assemblies": {
@@ -36,11 +55,13 @@
       "modules": [
         {
           "id": 7,
-          "kind": "structure",
+          "kind": "tank",
           "x": -0.5,
           "y": 0,
           "length": 1,
-          "width": 1
+          "width": 1,
+          "reinforcement": 1.03,
+          "sealing": 0.0003
         },
         {
           "id": 8,
@@ -48,35 +69,43 @@
           "x": -1.0000000000000002,
           "y": -0.2999999999999998,
           "angle": 180,
-          "length": 1,
+          "length": 1.2,
           "width": 1.4,
-          "reinforcement": 1.19,
+          "reinforcement": 1.3,
           "barrels": 1,
           "nozzle": 1.3571
         },
         {
           "id": 9,
           "kind": "hullGun",
-          "x": -0.05,
+          "x": -0.1,
           "y": 0.8,
           "angle": 0,
-          "length": 2.7,
+          "length": 2.8,
           "width": 0.6,
-          "reinforcement": 1.76,
+          "reinforcement": 1.77,
           "barrels": 1,
           "barrelCalibres": 50,
-          "traverse": 4,
-          "fuse": 0.02,
+          "traverse": 7.569999999999999,
+          "fuse": 0.017,
           "fragments": 7,
+          "burstSpeed": 650.4,
           "targeting": {
-            "facingWeight": 100,
-            "sightWeight": 23.642,
-            "massWeight": 300,
-            "closingWeight": 30,
-            "engineWeight": 86.401,
-            "focusWeight": 373.904,
-            "fireRange": 1.09,
-            "gunWeight": 120
+            "facingWeight": 96.846,
+            "sightWeight": 24.119,
+            "massWeight": 284.376,
+            "closingWeight": 30.957,
+            "engineWeight": 88.571,
+            "focusWeight": 386.817,
+            "fireRange": 1.265,
+            "gunWeight": 118.52,
+            "preferredMass": 0.745,
+            "mobileWeight": 10.686,
+            "coreWeight": 116.928,
+            "loyaltyWeight": 21.023,
+            "proximityWeight": 96.337,
+            "armedWeight": 86.533,
+            "structureWeight": 2.019
           }
         },
         {
@@ -87,32 +116,33 @@
           "angle": 0,
           "length": 0.6,
           "width": 0.6,
+          "reinforcement": 1.05,
           "barrels": 1,
           "nozzle": 1
         },
         {
           "id": 11,
           "kind": "engine",
-          "x": -1.6999999999999997,
+          "x": -1.8999999999999997,
           "y": 0.40000000000000013,
           "angle": 90,
           "length": 0.25,
           "width": 0.5,
-          "reinforcement": 1.07,
+          "reinforcement": 1.04,
           "nozzle": 0.5
         },
         {
           "id": 12,
           "kind": "structure",
-          "x": 0.20000000000000018,
-          "y": -0.34999999999999987,
+          "x": 0.2,
+          "y": -0.35,
           "length": 0.4,
           "width": 0.3,
-          "reinforcement": 1.52
+          "reinforcement": 1.41
         },
         {
           "id": 13,
-          "kind": "tank",
+          "kind": "structure",
           "x": 2.633333333,
           "y": -0.7,
           "length": 1,
@@ -124,7 +154,8 @@
             0.5,
             -0.333333333,
             -0.25
-          ]
+          ],
+          "reinforcement": 1
         },
         {
           "id": 14,
@@ -132,9 +163,9 @@
           "x": 0.9000000000000005,
           "y": 1.1,
           "angle": 90,
-          "length": 0.1,
+          "length": 0.2,
           "width": 0.8,
-          "reinforcement": 1.07,
+          "reinforcement": 1.09,
           "barrels": 2,
           "nozzle": 0.25
         }
@@ -149,16 +180,18 @@
       "y": 0,
       "length": 1.4,
       "width": 1.8,
-      "reinforcement": 1.24
+      "reinforcement": 1.2,
+      "sealing": 0.0004,
+      "computing": 0.097
     },
     {
       "id": 2,
-      "kind": "tank",
+      "kind": "structure",
       "x": 2.05,
       "y": 0,
       "length": 1.9,
       "width": 2.4,
-      "sealing": 0.0014
+      "reinforcement": 1
     },
     {
       "id": 3,
@@ -175,20 +208,21 @@
     },
     {
       "id": 5,
-      "kind": "hold",
+      "kind": "structure",
       "x": 3.5,
       "y": 0,
       "length": 1,
       "width": 0.9,
-      "reinforcement": 1.11
+      "reinforcement": 1
     },
     {
       "id": 6,
-      "kind": "structure",
-      "x": -0.9500000000000003,
+      "kind": "hold",
+      "x": -0.95,
       "y": 0,
       "length": 1.3,
-      "width": 0.8
+      "width": 0.8,
+      "reinforcement": 1.06
     }
   ]
 }

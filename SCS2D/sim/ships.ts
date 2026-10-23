@@ -632,6 +632,13 @@ function workforce(kind: string): boolean {
   return kind === 'core' || kind === 'robotBay' || kind === 'generator';
 }
 
+/** Whether body `b` holds less than `share` of a full load of `store` on module `m`'s piece, with room for more. */
+function short(store: Store, b: number, m: number, share: number): boolean {
+  const held = store.pieceHeld(b, m);
+  const room = store.pieceRoom(b, m);
+  return room > 0 && held < share * (held + room);
+}
+
 /** A design's engines' exhaust speed, m/s, weighted by their thrust; 0 for one with none. */
 const EXHAUST = new WeakMap<ShipDesign, number>();
 function exhaustOf(design: ShipDesign): number {
@@ -5735,9 +5742,10 @@ export class Ships {
    * Work the pad fighter `f` is parked on, and say whether it holds it still.
    * One being built is built, and held until it is whole whatever else is
    * going on. Anything else is filled with fuel, metal and charge, each from
-   * what the carrier can spare, and mended, and let go once there is no more
-   * to give or mend, or at once once given an order. A pad gone, or one that
-   * can no longer grip, lets go of anything.
+   * what the carrier can spare, and mended, and let go once it holds what its
+   * doctrine leaves with (`launchFuel` and its kind) and is mended, or at once
+   * once given an order. Danger lets it go once loaded, mended or not. A pad
+   * gone, or one that can no longer grip, lets go of anything.
    */
   private tendParked(world: World, f: number): boolean {
     const bodies = world.bodies;
@@ -5763,8 +5771,6 @@ export class Ships {
       }
       return true;
     }
-    // A ship that minds danger lets go the moment an armed enemy is in reach.
-    if (!this.sentTo(f) && this.threatened(bodies, f, cb, true)) return false;
     const into = this.designs[f]!.cores[0] ?? 0;
     const rate = this.designs[c]!.modules[pad]!.stats.pumpRate * working * world.dt;
     const cable = DOCK_POWER_PER_METRE * width * working * world.dt;
@@ -5778,12 +5784,18 @@ export class Ships {
     // Mended first, and then built back to what it set out as.
     let repairLeft = this.mend(bodies, fb, f, pad, work, cb);
     if (!repairLeft) repairLeft = this.padBuild(bodies, fb, f, cb, pad, work);
-    const ordered = this.commanded(f);
-    if (!ordered && this.waitsAboard(bodies, f, fb)) return true;
-    const fuelLeft = this.fuel.pieceRoom(fb, into) > 0 && this.fuel.pieceHeld(cb, pad) > this.reserve(cb, pad);
-    const metalLeft = this.metal.pieceRoom(fb, into) > 0 && this.metal.pieceHeld(cb, pad) > this.metalReserve(cb, pad);
-    const chargeLeft = this.power.pieceRoom(fb, into) > 0 && this.power.pieceHeld(cb, pad) > this.chargeReserve(cb, pad);
-    return !ordered && (fuelLeft || metalLeft || chargeLeft || repairLeft);
+    if (this.commanded(f)) return false;
+    // Loaded once it holds what its doctrine leaves with of each, or the
+    // carrier has no more of it to spare.
+    const approach = this.doctrines[f]!.approach;
+    const fuelLeft = short(this.fuel, fb, into, approach.launchFuel) && this.fuel.pieceHeld(cb, pad) > this.reserve(cb, pad);
+    const metalLeft = short(this.metal, fb, into, approach.launchMetal) && this.metal.pieceHeld(cb, pad) > this.metalReserve(cb, pad);
+    const chargeLeft = short(this.power, fb, into, approach.launchCharge) && this.power.pieceHeld(cb, pad) > this.chargeReserve(cb, pad);
+    const loaded = !fuelLeft && !metalLeft && !chargeLeft;
+    // A ship that minds danger lets go once loaded if an armed enemy is in reach, mended or not.
+    if (loaded && !this.sentTo(f) && this.threatened(bodies, f, cb, true)) return false;
+    if (this.waitsAboard(bodies, f, fb)) return true;
+    return !loaded || repairLeft;
   }
 
   /**

@@ -438,6 +438,16 @@ export interface Approach {
    */
   readonly repairBelow: number;
   /**
+   * The share of a full load of fuel a fighter takes on before it leaves a
+   * pad, whatever sends it off but an order: danger or a target in reach. Met
+   * as well once the carrier has no more to spare. 1 fills it.
+   */
+  readonly launchFuel: number;
+  /** The same for metal, rounds and all. */
+  readonly launchMetal: number;
+  /** The same for charge. */
+  readonly launchCharge: number;
+  /**
    * The sideways speed it wants relative to what it is attacking, m/s, held
    * between this and `tangentialMax`: zero for both comes to rest at its
    * band, as a gun platform; above zero it comes in aiming to miss, passing
@@ -546,6 +556,9 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     tangentialMax: 0,
     rearmBelow: 0,
     repairBelow: 0.6,
+    launchFuel: 1,
+    launchMetal: 1,
+    launchCharge: 1,
   },
 };
 
@@ -750,6 +763,9 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
   'hideSize',
   'rearmBelow',
   'repairBelow',
+  'launchFuel',
+  'launchMetal',
+  'launchCharge',
   'tangentialMin',
   'tangentialMax',
   'rockWeight',
@@ -769,6 +785,9 @@ export const NON_NEGATIVE_FIELDS: readonly string[] = [
   'aimedWeight',
   'hideRange',
   'hideSize',
+  'launchFuel',
+  'launchMetal',
+  'launchCharge',
 ];
 
 /** Pairs of approach fields that are the two ends of one band, the first no more than the second. */
