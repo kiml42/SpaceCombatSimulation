@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { stripsFor, stripTileAt, type StripShip } from '../render/fleetStrip.js';
 import { Snapshot, type ShipView } from '../sim/index.js';
 import { fleetStrips } from '../render/canvas2d.js';
+import { fighterGroup } from '../render/picking.js';
+import { capture } from '../sim/snapshot.js';
+import { beamCarrier } from '../scenarios/beamCarrier.js';
 
 const W = 1000;
 const H = 600;
@@ -125,5 +128,18 @@ describe('the fleet strips of a battle', () => {
     picture.shipCount = 3;
     const strips = fleetStrips(picture, 1000, 600);
     expect(strips.left.tiles.map((tile) => tile.count)).toEqual([3]);
+  });
+
+  it("puts a carrier's fighters from every pad on one tile, though each pad compiled its own copy of the design", () => {
+    const run = beamCarrier();
+    run.step();
+    const picture = capture(new Snapshot(), run.world, run.ships, run.projectiles, run.beams);
+    const strips = fleetStrips(picture, 1000, 2000);
+    const tiles = [...strips.left.tiles, ...strips.right.tiles];
+    const dinkies = picture.ships.slice(0, picture.shipCount).filter((v) => v.blueprint?.name === 'Dinky Beam' && v.hasControl);
+    expect(dinkies.length).toBeGreaterThan(1);
+    expect(tiles.filter((tile) => tile.count === dinkies.length)).toHaveLength(1);
+    // Picking that tile stands for all of them.
+    expect(fighterGroup(picture, dinkies[0]!).length).toBe(dinkies.length);
   });
 });

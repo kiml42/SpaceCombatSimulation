@@ -166,6 +166,18 @@ export function plumeRays(geometry: EngineGeometry): number {
   return PLUME_RAYS * geometry.nozzles;
 }
 
+const GEOMETRIES = new WeakMap<DesignModule, EngineGeometry>();
+
+/** `engineGeometry` of a compiled engine, worked out once: asked for every ray every step. */
+export function geometryOf(engine: DesignModule): EngineGeometry {
+  let geometry = GEOMETRIES.get(engine);
+  if (geometry === undefined) {
+    geometry = engineGeometry(engine.spec);
+    GEOMETRIES.set(engine, geometry);
+  }
+  return geometry;
+}
+
 const RAY_STARTS = new WeakMap<ShipDesign, Int32Array>();
 
 /**
@@ -629,7 +641,7 @@ export class Plumes {
     const engine = design.modules[spec.module ?? -1];
     if (engine === undefined) return false;
 
-    const geometry = engineGeometry(engine.spec);
+    const geometry = geometryOf(engine);
     const exitWidth = geometry.exitWidth;
     const centre = nozzleOffset(geometry, rayNozzle(ray).nozzle);
     const axisReach = nozzleReach(geometry, force);
@@ -713,7 +725,7 @@ export class Plumes {
     const spec = design.engines[slot];
     const engine = design.modules[spec?.module ?? -1];
     if (spec === undefined || engine === undefined) return;
-    const geometry = engineGeometry(engine.spec);
+    const geometry = geometryOf(engine);
     const exitWidth = geometry.exitWidth;
     // Power across a nozzle is even, so a module takes its width's share.
     const perWidth = (PLUME_POWER_PER_NEWTON * force) / geometry.nozzles / exitWidth;
@@ -782,7 +794,7 @@ export function ownLanding(design: ShipDesign, slot: number, ray: number, force:
   const spec = design.engines[slot];
   const engine = design.modules[spec?.module ?? -1];
   if (spec === undefined || engine === undefined || !(force > 0)) return 0;
-  const geometry = engineGeometry(engine.spec);
+  const geometry = geometryOf(engine);
   const exitWidth = geometry.exitWidth;
   const { nozzle, across } = rayNozzle(ray);
   const centre = nozzleOffset(geometry, nozzle);

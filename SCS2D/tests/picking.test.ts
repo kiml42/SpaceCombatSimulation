@@ -87,7 +87,7 @@ describe('picking ships out', () => {
 
 describe('a fleet strip tile of fighters', () => {
   const fighter = { radius: 5, name: 'TIE', fighter: true } as unknown as ShipView['currentStructure'];
-  const other = { radius: 5, name: 'TIE', fighter: true } as unknown as ShipView['currentStructure'];
+  const other = { radius: 5, name: 'TIE Interceptor', fighter: true } as unknown as ShipView['currentStructure'];
   const craft = (index: number, team: number, design: ShipView['currentStructure'], hasControl = true): ShipView =>
     ({ ...ship(index, team, index * 10), currentStructure: design, hasControl }) as ShipView;
   const swarm = [

@@ -1,5 +1,5 @@
 /**
- * The doctrine panel and the order bar over a battle, as every page that gives
+ * The doctrine panel, the order bar and the card of an asteroid picked out over a battle, as every page that gives
  * orders shows them: their markup and their look, put in place once so the
  * pages cannot drift apart. `orderBar` and `doctrinePanel` then work them.
  */
@@ -24,6 +24,11 @@ const STYLE = `
   #armedHint, #orderBar .warn { color: #e9c05f; }
   #queue { display: flex; flex-wrap: wrap; gap: 0.3rem 0.9rem; margin: 0; padding: 0; list-style-position: inside; }
   #queue button { padding: 0 0.3rem; }
+  #asteroidCard {
+    position: absolute; left: 0; top: 0; padding: 0.4rem 0.7rem;
+    background: #0b0f16d9; border: 1px solid #1c2533; border-width: 0 1px 1px 0;
+  }
+  #asteroidCard b { color: #c8d3e0; font-weight: normal; }
   #doctrinePanel {
     position: absolute; right: 0; top: 0; bottom: 3rem; width: 19rem; max-width: 60vw; overflow-y: auto;
     padding: 0.5rem 0.7rem; background: #0b0f16e6; border-left: 1px solid #1c2533;
@@ -42,6 +47,7 @@ const STYLE = `
 
 const MARKUP = `
 <div id="doctrinePanel" hidden></div>
+<div id="asteroidCard" hidden></div>
 <div id="orderBar" hidden>
   <button data-verb="attack" title="Attack the next ship clicked (K); Ctrl to add to its orders">Attack</button>
   <select id="cancelOn" title="What finishes an attack given with the button">
@@ -58,7 +64,7 @@ const MARKUP = `
   <label title="How fast every attack, defence or ram given closes, metres a second; empty for doctrine's, as it changes">at
     <input id="holdSpeed" type="number" min="0" step="5" placeholder="doctrine"> m/s</label>
   <button data-verb="dock" title="Dock with the next friend clicked, and take on all it can give (H)">Dock</button>
-  <button data-verb="scavenge" title="Fill its claw from the next ship clicked, friend or foe (G)">Scavenge</button>
+  <button data-verb="scavenge" title="Fill its claw from the next ship or asteroid clicked, friend or foe (G); right-click an asteroid for the same">Scavenge</button>
   <button data-verb="deliver" title="Give the next friend clicked all it can spare, through its port (U)">Deliver</button>
   <button data-verb="flee" title="Run from the next enemy clicked, or hide behind the next friend or wreck; Enter runs from every enemy. Until told otherwise (W)">Flee</button>
   <button id="stop" title="Clear their orders, back to doctrine (S)">Stop</button>

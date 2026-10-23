@@ -152,9 +152,12 @@ const MARGIN = 100;
 const PAIR_CLEARANCE = 1.6;
 /** Tries at a place before an asteroid is left out. */
 const TRIES = 200;
-/** Fastest a major turns, rad/s, and a minor. */
-const MAJOR_SPIN = 0.02;
-const MINOR_SPIN = 0.1;
+/**
+ * Fastest a major turns, rad/s, and a minor: slow, as rubble piles do, so the
+ * edge of a big one moves no faster than a claw can close on it.
+ */
+const MAJOR_SPIN = 0.002;
+const MINOR_SPIN = 0.01;
 
 /** Whether a map would put anything in a battle. */
 export function hasAsteroids(settings: MapSettings | undefined): boolean {

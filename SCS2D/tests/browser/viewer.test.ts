@@ -698,6 +698,38 @@ describe('the viewer in a browser', () => {
     expect(await page.isHidden('#orderBar')).toBe(true);
   }, 60_000);
 
+  it('shows what is in an asteroid picked out, and mines it on a right-click', async () => {
+    await page.selectOption('#scene', { label: 'Mining' });
+    if ((await page.textContent('#play')) === 'Pause') await page.click('#play');
+    await painted(page);
+    const canvas = (await page.locator('#view').boundingBox())!;
+    // Ships 0 and 1 are the Salvagers; the asteroids come after them.
+    const click = async (ship: number, right = false): Promise<void> => {
+      const p = await page.evaluate(
+        (i) => (window as unknown as { viewer: { screenOf(i: number): { x: number; y: number } } }).viewer.screenOf(i),
+        ship,
+      );
+      await page.mouse.click(canvas.x + p.x, canvas.y + p.y, { button: right ? 'right' : 'left' });
+      await page.waitForTimeout(1000);
+      await painted(page);
+    };
+    expect(await page.isHidden('#asteroidCard')).toBe(true);
+    await click(3);
+    expect(await page.isVisible('#asteroidCard')).toBe(true);
+    expect(await page.textContent('#asteroidCard')).toMatch(/rock [\d.,]+ t · ore [\d.,]+ t · ice [\d.,]+ t/);
+    expect(await page.isHidden('#orderBar')).toBe(true);
+    await page.keyboard.press('Escape');
+    // Both Salvagers, framed with the asteroids between them.
+    await page.keyboard.press('a');
+    await page.waitForTimeout(1000);
+    await painted(page);
+    expect(await page.isHidden('#asteroidCard')).toBe(true);
+    await click(3, true);
+    const last = await page.evaluate(() => (window as unknown as { viewer: { orders: unknown[] } }).viewer.orders.at(-1));
+    expect(last).toMatchObject({ command: { ships: [0, 1], order: { kind: 'scavenge', target: 3 } } });
+    await page.keyboard.press('Escape');
+  }, 60_000);
+
   it('docks anywhere with Enter, and tells doctrine from a panel beside the orders', async () => {
     await page.selectOption('#scene', { label: 'Duel' });
     if ((await page.textContent('#play')) === 'Play') await page.click('#play');

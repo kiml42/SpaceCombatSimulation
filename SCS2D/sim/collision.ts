@@ -311,6 +311,17 @@ const solidCarriers: number[] = [];
  */
 const solidLayers: number[] = [];
 const point = { x: 0, y: 0 };
+
+/**
+ * The sweep: each solid body's left edge, the bodies in order of it, and the
+ * pairs whose spans across x meet, as `a * count + b` in solid order. Grown,
+ * never shrunk, so a step allocates nothing.
+ */
+let sweepLeft = new Float64Array(64);
+let sweepOrder = new Int32Array(64);
+let candidates = new Int32Array(256);
+/** Slack on the sweep, metres: far more than rounding, so it only ever lets extra pairs through. */
+const SWEEP_SLACK = 1e-3;
 const axes = new Float64Array(MOST_CORNERS * 2 * 2);
 const spanA = { lo: 0, hi: 0 };
 const spanB = { lo: 0, hi: 0 };
@@ -365,9 +376,9 @@ function overlap(a: Box, b: Box): number {
 /**
  * Find every pair of hulls that are overlapping, one contact per pair.
  *
- * **Every body against every other**, per §4: at a few hundred bodies that is
- * cheaper than building an index to avoid it, and the bounding-circle test
- * rejects all but a handful of pairs in a couple of multiplications.
+ * **Each body against its neighbours along x** (`sweep`), per §4, then the
+ * bounding circles, taken in body order whatever the sort did, so the
+ * contacts come out in the order every pair against every other gave them.
  *
  * One contact per pair — the deepest module meeting the deepest module — which
  * is the approximation this makes. A manifold of two points would hold two
@@ -394,79 +405,122 @@ export function findContacts(bodies: Bodies, hulls: HullDesigns, out: Contacts):
     solidLayers.push(hulls.layersOf?.(i) ?? OWN_LAYERS);
   }
 
-  for (let a = 0; a < solid.length; a++) {
+  const pairs = sweep(bodies);
+  let a = -1;
+  // Built on the first pair that gets past the circles, and not at all for a
+  // ship nothing is near — which is most of them, most of the time.
+  let builtA = false;
+  for (let k = 0; k < pairs; k++) {
+    const pair = candidates[k]!;
+    const b = pair % solid.length;
+    if ((pair - b) / solid.length !== a) {
+      a = (pair - b) / solid.length;
+      builtA = false;
+    }
     const i = solid[a]!;
     const designA = solidDesigns[a]!;
-    // Built on the first pair that gets past the circles, and not at all for a
-    // ship nothing is near — which is most of them, most of the time.
-    let builtA = false;
+    const j = solid[b]!;
+    const designB = solidDesigns[b]!;
+    const layersA = solidLayers[a]!;
+    const layersB = solidLayers[b]!;
+    if ((reachOf(layersA) & reachOf(layersB)) === 0) continue;
+    // A fighter parked on a pad never meets its carrier, nor what else is parked on it.
+    const carrierA = solidCarriers[a]!;
+    const carrierB = solidCarriers[b]!;
+    if (carrierA === j || carrierB === i || (carrierA >= 0 && carrierA === carrierB)) continue;
 
-    for (let b = a + 1; b < solid.length; b++) {
-      const j = solid[b]!;
-      const designB = solidDesigns[b]!;
-      const layersA = solidLayers[a]!;
-      const layersB = solidLayers[b]!;
-      if ((reachOf(layersA) & reachOf(layersB)) === 0) continue;
-      // A fighter parked on a pad never meets its carrier, nor what else is parked on it.
-      const carrierA = solidCarriers[a]!;
-      const carrierB = solidCarriers[b]!;
-      if (carrierA === j || carrierB === i || (carrierA >= 0 && carrierA === carrierB)) continue;
+    // Could they have met at all? Bounding circles, as the broad phase.
+    const dx = bodies.x[j]! - bodies.x[i]!;
+    const dy = bodies.y[j]! - bodies.y[i]!;
+    const reach = bodies.radius[i]! + bodies.radius[j]!;
+    if (dx * dx + dy * dy > reach * reach) continue;
 
-      // Could they have met at all? Bounding circles, as the broad phase.
-      const dx = bodies.x[j]! - bodies.x[i]!;
-      const dy = bodies.y[j]! - bodies.y[i]!;
-      const reach = bodies.radius[i]! + bodies.radius[j]!;
-      if (dx * dx + dy * dy > reach * reach) continue;
+    if (!builtA) {
+      boxesOf(designA, bodies.x[i]!, bodies.y[i]!, bodies.angle[i]!, boxesA);
+      builtA = true;
+    }
+    boxesOf(designB, bodies.x[j]!, bodies.y[j]!, bodies.angle[j]!, boxesB);
 
-      if (!builtA) {
-        boxesOf(designA, bodies.x[i]!, bodies.y[i]!, bodies.angle[i]!, boxesA);
-        builtA = true;
+    let deepest = 0;
+    let deepestX = 0;
+    let deepestY = 0;
+    let deepestNx = 0;
+    let deepestNy = 0;
+    let moduleA = -1;
+    let moduleB = -1;
+
+    for (let ma = 0; ma < designA.modules.length; ma++) {
+      const boxA = boxesA[ma]!;
+      const inA = moduleLayers(designA.modules[ma]!, layersA);
+      for (let mb = 0; mb < designB.modules.length; mb++) {
+        if ((inA & moduleLayers(designB.modules[mb]!, layersB)) === 0) continue;
+        const boxB = boxesB[mb]!;
+        // Corner circles first: most module pairs on two hulls that are
+        // touching somewhere are nowhere near each other.
+        const mx = boxB.x - boxA.x;
+        const my = boxB.y - boxA.y;
+        const corners = boxA.radius + boxB.radius;
+        if (mx * mx + my * my > corners * corners) continue;
+
+        const depth = overlap(boxA, boxB);
+        if (!(depth > deepest)) continue;
+
+        const nx = axes[0]!;
+        const ny = axes[1]!;
+        contactPoint(boxA, boxB, nx, ny);
+        deepest = depth;
+        deepestNx = nx;
+        deepestNy = ny;
+        deepestX = point.x;
+        deepestY = point.y;
+        moduleA = ma;
+        moduleB = mb;
       }
-      boxesOf(designB, bodies.x[j]!, bodies.y[j]!, bodies.angle[j]!, boxesB);
+    }
 
-      let deepest = 0;
-      let deepestX = 0;
-      let deepestY = 0;
-      let deepestNx = 0;
-      let deepestNy = 0;
-      let moduleA = -1;
-      let moduleB = -1;
-
-      for (let ma = 0; ma < designA.modules.length; ma++) {
-        const boxA = boxesA[ma]!;
-        const inA = moduleLayers(designA.modules[ma]!, layersA);
-        for (let mb = 0; mb < designB.modules.length; mb++) {
-          if ((inA & moduleLayers(designB.modules[mb]!, layersB)) === 0) continue;
-          const boxB = boxesB[mb]!;
-          // Corner circles first: most module pairs on two hulls that are
-          // touching somewhere are nowhere near each other.
-          const mx = boxB.x - boxA.x;
-          const my = boxB.y - boxA.y;
-          const corners = boxA.radius + boxB.radius;
-          if (mx * mx + my * my > corners * corners) continue;
-
-          const depth = overlap(boxA, boxB);
-          if (!(depth > deepest)) continue;
-
-          const nx = axes[0]!;
-          const ny = axes[1]!;
-          contactPoint(boxA, boxB, nx, ny);
-          deepest = depth;
-          deepestNx = nx;
-          deepestNy = ny;
-          deepestX = point.x;
-          deepestY = point.y;
-          moduleA = ma;
-          moduleB = mb;
-        }
-      }
-
-      if (deepest > 0) {
-        out.push(i, j, deepestX, deepestY, deepestNx, deepestNy, deepest, moduleA, moduleB);
-      }
+    if (deepest > 0) {
+      out.push(i, j, deepestX, deepestY, deepestNx, deepestNy, deepest, moduleA, moduleB);
     }
   }
 }
+
+/**
+ * The pairs of solid bodies whose spans across x meet, into `candidates` in
+ * the order the pair loop always took them, and how many. Sorted along x so
+ * each body is held against only its neighbours there, rather than everything.
+ */
+function sweep(bodies: Bodies): number {
+  const n = solid.length;
+  if (sweepLeft.length < n) {
+    sweepLeft = new Float64Array(2 * n);
+    sweepOrder = new Int32Array(2 * n);
+  }
+  for (let a = 0; a < n; a++) {
+    const i = solid[a]!;
+    sweepLeft[a] = bodies.x[i]! - bodies.radius[i]!;
+    sweepOrder[a] = a;
+  }
+  sweepOrder.subarray(0, n).sort(byLeft);
+  let count = 0;
+  for (let s = 0; s < n; s++) {
+    const p = sweepOrder[s]!;
+    const right = bodies.x[solid[p]!]! + bodies.radius[solid[p]!]! + SWEEP_SLACK;
+    for (let t = s + 1; t < n; t++) {
+      const q = sweepOrder[t]!;
+      if (!(sweepLeft[q]! <= right)) break;
+      if (count === candidates.length) {
+        const grown = new Int32Array(2 * count);
+        grown.set(candidates);
+        candidates = grown;
+      }
+      candidates[count++] = p < q ? p * n + q : q * n + p;
+    }
+  }
+  candidates.subarray(0, count).sort();
+  return count;
+}
+
+const byLeft = (p: number, q: number): number => sweepLeft[p]! - sweepLeft[q]!;
 
 /** Every layer some module of a hull could be in: all of them, if each module has its own. */
 function reachOf(layers: number): number {

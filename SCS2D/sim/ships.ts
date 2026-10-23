@@ -44,7 +44,7 @@ import { Charge } from './charge.js';
 import { Metal } from './metal.js';
 import { isHullMount, moduleCentre, moduleOutline, SEAL_REACH, SEAL_SPEED, weldBox } from './modules.js';
 import type { Rng } from './rng.js';
-import { landedIndex, landedLength, plumeLayers, plumeRays, Plumes, WEAPON_PLUME_SHARE, weaponPlumeReach } from './exhaust.js';
+import { geometryOf, landedIndex, landedLength, plumeLayers, plumeRays, Plumes, WEAPON_PLUME_SHARE, weaponPlumeReach } from './exhaust.js';
 import { Choice, cohesionUrge, inSight, look, lookFrom, score } from './targeting.js';
 import {
   casingMass,
@@ -52,7 +52,6 @@ import {
   DEFAULT_BURST_SPEED,
   DEFAULT_FRAGMENTS,
   DEFAULT_FUSE,
-  engineGeometry,
   firesShells,
   moduleRadius,
   type ModuleSpec,
@@ -296,6 +295,28 @@ const SCRAP_MASS = 300;
  * of two — and the one that is left is at a mass where nothing cares.
  */
 const SALVAGE_REACH = 5;
+
+/**
+ * Below this mass, wreckage in the fight is let go once it is in nobody's way,
+ * kilograms (`Ships.loose`).
+ *
+ * A fighter's parts weigh a few hundred kilograms to a few tonnes and a
+ * capital's modules five to nine, so this reaches fighter debris and no more:
+ * pieces too small to be worth a scavenger's trip, kept only as obstacles.
+ */
+const LOOSE_MASS = 5000;
+
+/** How long a loose piece is kept whatever, seconds, so the eye sees it fly off. */
+const LOOSE_AGE = 5;
+
+/** How far ahead a loose piece looks for something under control to meet, seconds. */
+const LOOSE_HORIZON = 10;
+
+/** How near that has to pass beyond the two radii to count, metres. */
+const LOOSE_CLEARANCE = 50;
+
+/** How often loose pieces are looked over, seconds. */
+const LOOSE_PERIOD = 1;
 
 /**
  * How small the battle can get, metres.
@@ -592,6 +613,18 @@ function exhaustOf(design: ShipDesign): number {
   return exhaust;
 }
 
+/** Half of each of a design's modules' diagonals, metres: the circle round its box. */
+const SIZES = new WeakMap<ShipDesign, Float64Array>();
+function moduleSizes(design: ShipDesign): Float64Array {
+  let sizes = SIZES.get(design);
+  if (sizes === undefined) {
+    sizes = new Float64Array(design.modules.length);
+    for (let m = 0; m < sizes.length; m++) sizes[m] = 0.5 * length(design.modules[m]!.spec.length, design.modules[m]!.spec.width);
+    SIZES.set(design, sizes);
+  }
+  return sizes;
+}
+
 /**
  * The chance a claw closing at `closing` takes a module left at `integrity`:
  * best within its band, falling off either side of it, and likelier the more
@@ -764,6 +797,26 @@ export enum OrderCancelCondition {
  * battle is *about* rather than one fighting in it.
  */
 export const NEUTRAL_TEAM = -1;
+
+/**
+ * How much more charge a kilogram of rock takes robots to mine than a
+ * kilogram of wreckage to strip: they smelt its ore and melt its ice as they
+ * cut it out. A first guess.
+ */
+export const MINING_POWER = 3;
+
+/**
+ * How fast a claw with no robots melts fuel out of the rock it grips, kg/s,
+ * and the charge each kilogram takes, J: it heats the rock round the ice too,
+ * and keeps none of the ore. First guesses, slower and far dearer than robots.
+ */
+export const CLAW_HEAT_RATE = 1;
+export const CLAW_HEAT_ENERGY = 5e6;
+
+/** A body's mass to divide by: a pinned one's, nought, is no mass at all but one nothing moves. */
+function movable(mass: number): number {
+  return mass > 0 ? mass : Infinity;
+}
 
 /** A pad's or slipway's lasting name in `design`, for telling it what to keep: its module's key, or its place. */
 export function slotKey(design: ShipDesign, module: number): string {
@@ -3234,7 +3287,11 @@ export class Ships {
    */
   pushScavenge(i: number, source: number): boolean {
     if (!this.designs[i]!.modules.some((m) => m.spec.kind === 'claw')) return false;
-    if (source !== NO_TARGET && (source === i || this.alive[source] !== 1 || this.team[source] === NEUTRAL_TEAM)) return false;
+    if (
+      source !== NO_TARGET &&
+      (source === i || this.alive[source] !== 1 || (this.team[source] === NEUTRAL_TEAM && !this.isAsteroid(source)))
+    )
+      return false;
     return this.pushErrand(i, 'scavenge', source);
   }
 
@@ -3912,7 +3969,9 @@ export class Ships {
           wantAngle = this.roundHull(bodies, i, b, across, tb) - jaws;
         } else {
           wantAngle = atan2(bodies.y[tb]! - bodies.y[b]!, bodies.x[tb]! - bodies.x[b]!) - jaws;
-          this.grapple(bodies, i, b, tb, claw, wantAngle, this.now - this.touchedSource[i]! < CLAW_RETRY / dt);
+          const radial = this.grapple(bodies, i, b, tb, claw, wantAngle, this.now - this.touchedSource[i]! < CLAW_RETRY / dt);
+          // An asteroid comes on in its orbit: match its motion on the mains first, then turn the jaws to it.
+          if (this.isAsteroid(target)) wantAngle = this.matchOrbit(bodies, i, b, tb, wantAngle, radial);
         }
       } else if (tb >= 0 && tb !== b) {
         // Not hooked on to it, which would leave nowhere to steer for.
@@ -4221,19 +4280,26 @@ export class Ships {
       }
       const oc = cos(bodies.angle[ob]!);
       const os = sin(bodies.angle[ob]!);
-      for (const m of design.modules) {
+      const mine = moduleSizes(design);
+      const sizes = moduleSizes(theirs);
+      for (let k = 0; k < design.modules.length; k++) {
+        const m = design.modules[k]!;
         const rx = m.x * c - m.y * sn;
         const ry = m.x * sn + m.y * c;
         const room = length(rx, ry) * chord + margin;
-        const size = 0.5 * length(m.spec.length, m.spec.width);
+        const size = mine[k]!;
         // Too far from the whole of the other hull to reach any of it.
         if (!(length(ox - x - rx, oy - y - ry) < size + theirs.radius + room)) continue;
-        for (const n of theirs.modules) {
+        for (let q = 0; q < theirs.modules.length; q++) {
+          const n = theirs.modules[q]!;
           const dx = ox + n.x * oc - n.y * os - x - rx;
           const dy = oy + n.x * os + n.y * oc - y - ry;
+          // Clearly out of reach, without the square root.
+          const reach = size + sizes[q]! + room;
+          if (dx * dx + dy * dy > reach * reach * (1 + 1e-9) + 1e-9) continue;
           // Anticlockwise carries this module along (-ry, rx).
           if (!(sense * (-ry * dx + rx * dy) > 0)) continue;
-          if (length(dx, dy) - size - 0.5 * length(n.spec.length, n.spec.width) < room) return true;
+          if (length(dx, dy) - size - sizes[q]! < room) return true;
         }
       }
     }
@@ -4286,7 +4352,7 @@ export class Ships {
       // A thick engine's flame is in each layer, so is worth firing for
       // what either of them would burn.
       const engine = design.modules[design.engines[t]?.module ?? -1];
-      const rays = engine === undefined ? 0 : plumeRays(engineGeometry(engine.spec));
+      const rays = engine === undefined ? 0 : plumeRays(geometryOf(engine));
       const layers = plumeLayers(design, t, this.layersOf(b));
       for (let layer = HULL_LAYER; layer <= WEAPONS_LAYER && !worth; layer <<= 1) {
         if ((layers & layer) === 0) continue;
@@ -4547,7 +4613,7 @@ export class Ships {
   private mainsBrake(bodies: Bodies, i: number, b: number, retro: number): number {
     const design = this.designs[i]!;
     const approach = this.doctrines[i]!.approach;
-    const axis = this.layoutOf(i).maxThrustAlong(cos(design.thrustBearing), sin(design.thrustBearing)) / bodies.mass[b]!;
+    const axis = this.layoutOf(i).maxThrustAlong(cos(design.thrustBearing), sin(design.thrustBearing)) / movable(bodies.mass[b]!);
     if (!(axis > retro)) return 0;
     const turns = approach.burnWeight * ((axis - retro) / axis) > approach.rangeHold * (1 + BURN_MARGIN);
     return turns ? approach.brake * axis : 0;
@@ -4569,7 +4635,7 @@ export class Ships {
     const c = cos(angle);
     const s = sin(angle);
     const force = this.layoutOf(i).maxThrustAlong(dirX * c + dirY * s, -dirX * s + dirY * c);
-    return force / bodies.mass[b]!;
+    return force / movable(bodies.mass[b]!);
   }
 
   /**
@@ -5201,8 +5267,8 @@ export class Ships {
       if (i < 0 || j < 0 || joined?.has(i) === true || joined?.has(j) === true) continue;
       if (this.partedAt[i]! > settled || this.partedAt[j]! > settled) continue;
       if (this.damage.isProtected(a) || this.damage.isProtected(b)) continue;
-      // Nothing joins a pinned hull, or one parked on a pad: it would take the pin with it, or lose it.
-      if (bodies.pinned[a] === 1 || bodies.pinned[b] === 1 || this.isParkedBody(a) || this.isParkedBody(b)) continue;
+      // Nothing joins a hull parked on a pad: it would lose its pad.
+      if (this.isParkedBody(a) || this.isParkedBody(b)) continue;
       const ma = contacts.moduleA[k]!;
       const mb = contacts.moduleB[k]!;
       // A claw closes on what its bow meets, ragged or not.
@@ -5213,6 +5279,10 @@ export class Ships {
       else if (this.grips(world, b, mb, a, ma, -nx, -ny, closing)) claw = 'b';
       // Two ports nudged face to face mate, when one ship was making for the other.
       const port = claw === null && this.mates(world, a, ma, b, mb, closing);
+      // Only a claw holds on to a pinned hull, an asteroid's, as an anchor.
+      const pinnedA = bodies.pinned[a] === 1;
+      const pinnedB = bodies.pinned[b] === 1;
+      if ((pinnedA || pinnedB) && claw === null) continue;
       if (claw === null && !port) {
         if (closing > WELD_SPEED) continue;
         if (!this.damage.ragged(a, ma) && !this.damage.ragged(b, mb)) continue;
@@ -5220,8 +5290,9 @@ export class Ships {
         const y = contacts.y[k]!;
         if (!this.weldsAt(bodies, a, ma, x, y) || !this.weldsAt(bodies, b, mb, x, y)) continue;
       }
-      // A flown hull keeps its body; two wrecks keep the older's slot.
-      const swap = this.derelict[i] === 1 && this.derelict[j] === 0;
+      // A pinned hull keeps its body, and its pin; otherwise a flown hull
+      // keeps its body; two wrecks keep the older's slot.
+      const swap = pinnedB || (!pinnedA && this.derelict[i] === 1 && this.derelict[j] === 0);
       const dock: DockAt | null = port
         ? { at: swap ? 'b' : 'a', kind: 'port' }
         : claw === null
@@ -5303,17 +5374,42 @@ export class Ships {
     if (friend && !this.sentToDrink(holder, held)) return false;
     // A friend still flying gives only what it holds above its own reserve.
     const drinks = this.fuel.pieceRoom(b, m) > 0 && this.fuel.pieceHeld(o, mo) > (friend ? this.reserve(o, mo) : 0);
+    // Rock is mined for its ice as well as its ore, and a claw alone can melt the ice out.
+    const rock = this.hullDesign[o]?.modules[mo]?.spec;
+    const ice = rock?.kind === 'rock' ? (rock.ice ?? 0) : 0;
+    const heats = ice > 0 && this.fuel.pieceRoom(b, m) > 0 && this.power.pieceHeld(b, m) > 0;
     const strips =
-      this.metal.pieceRoom(b, m) > 0 &&
+      (this.metal.pieceRoom(b, m) > 0 || (ice > 0 && this.fuel.pieceRoom(b, m) > 0)) &&
       (this.derelict[held] === 1 || (!this.hasControl(held) && !this.hasRobots(o, held))) &&
       this.canStrip(b, holder, m, world.dt);
-    if (!drinks && !strips) return false;
+    if (!drinks && !strips && !heats) return false;
     if (!this.sentTo(holder) && this.threatened(bodies, holder, o, false)) return false;
     if (world.tick - this.clawTried[holder]! < CLAW_RETRY / world.dt) return false;
     this.clawTried[holder] = world.tick;
     if (world.rng.nextFloat() >= clawChance(closing, this.damage.integrity(o, mo))) return false;
     const capacity = this.damage.capacityLeft(o, mo) + this.damage.absorbedAt(o, mo);
     this.damage.absorb(o, mo, CLAW_BITE * capacity);
+    return true;
+  }
+
+  /**
+   * A claw melting fuel out of the rock it grips, for `dt` seconds of its
+   * working: as fast as `CLAW_HEAT_RATE`, its piece's tanks have room and its
+   * charge pays for, the rock it heats taken off whatever it gives. Says
+   * whether it melted any.
+   */
+  private heat(b: number, design: ShipDesign, claw: number, held: number, dt: number): boolean {
+    const spec = design.modules[held]!.spec;
+    if (spec.kind !== 'rock') return false;
+    const ice = (spec.ice ?? 0) * (1 - DISASSEMBLY_WASTE);
+    if (!(ice > 0) || !(dt > 0)) return false;
+    const left = design.modules[held]!.stats.mass - this.damage.unbuiltAt(b, held);
+    let fuel = min(CLAW_HEAT_RATE * dt, this.fuel.pieceRoom(b, claw), left * ice);
+    fuel = min(fuel, this.power.pieceHeld(b, claw) / CLAW_HEAT_ENERGY);
+    if (!(fuel > ROBOT_SPENT)) return false;
+    this.power.drain(b, claw, fuel * CLAW_HEAT_ENERGY);
+    this.damage.unfit(b, held, fuel / ice);
+    this.fuel.add(b, claw, fuel);
     return true;
   }
 
@@ -5380,6 +5476,11 @@ export class Ships {
             if (offered > 0 && this.fuel.transfer(b, seam.b, seam.a, rate < offered ? rate : offered) > 0) moved = true;
             if (this.fuel.pieceRoom(b, seam.a) > 0 && this.fuel.pieceHeld(b, seam.b) > kept) continue;
             if (holder >= 0 && this.canStrip(b, holder, seam.a, world.dt) && this.strippable(holder, b, design, seam.a)) continue;
+            // With no robots to mine it, it melts the ice out of the rock itself.
+            if (holder >= 0 && this.heat(b, design, seam.a, seam.b, working * world.dt)) {
+              moved = true;
+              continue;
+            }
           } else if (seam.dock === 'port') {
             // Two ports pass fuel, metal and charge into whichever ship is
             // refuelling, from what the other can spare, and part once it is
@@ -5701,6 +5802,7 @@ export class Ships {
         // Home to a bay a refit is about to take down: taken apart, its metal to the holds.
         if (robot.mode === RobotMode.Berthed && this.due(owner, b, design, robot.bay)) {
           this.metal.add(b, robot.bay, ROBOT_MASS + robot.cargo);
+          if (robot.cargoFuel > 0) this.fuel.add(b, robot.bay, robot.cargoFuel);
           this.robots.lose(b, r--);
           mended = true;
           continue;
@@ -5772,10 +5874,16 @@ export class Ships {
       const working = this.left(owner, b, robot.bay, DamageEffect.Tending) * berthRate(design.modules[robot.bay]!.stats);
       // What it brought home goes into the holds, as far as they have room.
       let unloaded = false;
+      if (robot.cargoFuel > 0) {
+        const put = this.fuel.add(b, robot.bay, robot.cargoFuel);
+        robot.cargoFuel = put < robot.cargoFuel ? robot.cargoFuel - put : 0;
+        unloaded = put > 0;
+        if (robot.cargoFuel > 0 && this.refitting[owner] === 1) robot.cargoFuel = 0;
+      }
       if (robot.cargo > 0) {
         const put = this.metal.add(b, robot.bay, robot.cargo);
         robot.cargo = put < robot.cargo ? robot.cargo - put : 0;
-        unloaded = put > 0;
+        unloaded = unloaded || put > 0;
         // Taking its own hull down for a refit, what the holds have no room for is thrown away.
         if (robot.cargo > 0 && this.refitting[owner] === 1) {
           robot.cargo = 0;
@@ -6142,8 +6250,8 @@ export class Ships {
     // momentum it had with it.
     this.discardFrom(bodies, b, mass, inertia);
     this.momentum(bodies);
-    bodies.vx[b] = bodies.vx[b]! + (beforeX - this.momentumX) / bodies.mass[b]!;
-    bodies.vy[b] = bodies.vy[b]! + (beforeY - this.momentumY) / bodies.mass[b]!;
+    bodies.vx[b] = bodies.vx[b]! + (beforeX - this.momentumX) / movable(bodies.mass[b]!);
+    bodies.vy[b] = bodies.vy[b]! + (beforeY - this.momentumY) / movable(bodies.mass[b]!);
     // Robots about to start it are building it now, standing on it.
     for (const robot of this.robots.on(b) ?? []) {
       if (robot.build === l && this.pilotAt(b, robot.bay) === i) {
@@ -6436,8 +6544,8 @@ export class Ships {
     this.settleMass(bodies, b);
     this.discardFrom(bodies, b, mass, inertia);
     this.momentum(bodies);
-    bodies.vx[b] = bodies.vx[b]! + (beforeX - this.momentumX) / bodies.mass[b]!;
-    bodies.vy[b] = bodies.vy[b]! + (beforeY - this.momentumY) / bodies.mass[b]!;
+    bodies.vx[b] = bodies.vx[b]! + (beforeX - this.momentumX) / movable(bodies.mass[b]!);
+    bodies.vy[b] = bodies.vy[b]! + (beforeY - this.momentumY) / movable(bodies.mass[b]!);
   }
 
   /**
@@ -6446,9 +6554,11 @@ export class Ships {
    * room in the holds on its piece of hull at module `into` to bring it home to.
    */
   private strippable(owner: number, b: number, design: ShipDesign, into: number): boolean {
-    if (!(this.metal.pieceRoom(b, into) > ROBOT_SPENT)) return false;
+    const metalRoom = this.metal.pieceRoom(b, into) > ROBOT_SPENT;
+    const fuelRoom = this.fuel.pieceRoom(b, into) > ROBOT_SPENT;
+    if (!metalRoom && !fuelRoom) return false;
     for (let m = 0; m < design.modules.length; m++) {
-      if (this.wreckage(owner, b, m) && this.comesOff(owner, b, design, m)) return true;
+      if (this.wreckage(owner, b, m) && this.comesOff(owner, b, design, m) && this.minable(design, m, metalRoom, fuelRoom)) return true;
     }
     return false;
   }
@@ -6461,13 +6571,16 @@ export class Ships {
    * nearest of those. Says whether it found any.
    */
   private sendToStrip(b: number, design: ShipDesign, robots: Robot[], robot: Robot, owner: number, dist: Float64Array): boolean {
-    const room = this.metal.pieceRoom(b, robot.bay) > ROBOT_SPENT || this.refitting[owner] === 1;
-    if (!room || !(robot.cargo < ROBOT_LOAD - ROBOT_SPENT)) return false;
+    const metalRoom = this.metal.pieceRoom(b, robot.bay) > ROBOT_SPENT || this.refitting[owner] === 1;
+    const fuelRoom = this.fuel.pieceRoom(b, robot.bay) > ROBOT_SPENT;
+    if (!(metalRoom || fuelRoom) || !(robot.cargo + robot.cargoFuel < ROBOT_LOAD - ROBOT_SPENT)) return false;
     let best = -1;
     let bestCrowd = Infinity;
     let bestDist = Infinity;
     for (let m = 0; m < design.modules.length; m++) {
       if (!Number.isFinite(dist[m]!) || !this.wreckage(owner, b, m) || !this.comesOff(owner, b, design, m)) continue;
+      // Rock is worth taking only for what the bay has room for of what it holds.
+      if (!this.minable(design, m, metalRoom, fuelRoom)) continue;
       // Its own hull's cores, bays and generators come down last of all, and only when due.
       if (this.ownWorkforce(owner, b, design, m) && !this.due(owner, b, design, m)) continue;
       // A bay comes down once its robots are home and taken apart; its own go home for that.
@@ -6490,6 +6603,18 @@ export class Ships {
     robot.target = best;
     robot.strip = true;
     return true;
+  }
+
+  /**
+   * Whether a robot may take module `m` apart for what its bay has room for:
+   * anything but a kernel, and rock only if it holds ore or ice the bay can
+   * take. Any other wreckage is metal.
+   */
+  private minable(design: ShipDesign, m: number, metalRoom: boolean, fuelRoom: boolean): boolean {
+    const spec = design.modules[m]!.spec;
+    if (spec.kind === 'kernel') return false;
+    if (spec.kind !== 'rock') return metalRoom;
+    return (metalRoom && (spec.ore ?? 0) > 0) || (fuelRoom && (spec.ice ?? 0) > 0);
   }
 
   /**
@@ -6526,7 +6651,7 @@ export class Ships {
       this.sendOut(b, design, robots, robot, owner);
       return false;
     }
-    const room = ROBOT_LOAD - robot.cargo;
+    const room = ROBOT_LOAD - robot.cargo - robot.cargoFuel;
     if (!(room > ROBOT_SPENT)) {
       this.sendHome(b, design, robot, owner, robot.bay);
       return false;
@@ -6547,19 +6672,27 @@ export class Ships {
     if (this.swapFor(owner, b, design, m) >= 0)
       step.kg = fittingOf(step.stats) * (1 - this.damage.shedAt(b, m) / (step.stats.structureMass + step.stats.fittingMass));
     const work = buildWork(step.stats);
-    const per = work * REPAIR_ENERGY_PER_JOULE;
+    // Rock is mined, not unbuilt: its ore smelted to metal and its ice melted
+    // to fuel as it comes off, for more charge, and the rest of it lost.
+    const spec = design.modules[m]!.spec;
+    const rock = spec.kind === 'rock';
+    const ore = rock ? (spec.ore ?? 0) : 1;
+    const ice = rock ? (spec.ice ?? 0) : 0;
+    const per = work * REPAIR_ENERGY_PER_JOULE * (rock ? MINING_POWER : 1);
     const done = this.damage.unbuiltAt(b, m);
     let kg = min((ROBOT_REPAIR_RATE / work) * dt, robot.charge / per);
     // Short of charge for a full step's work: this is its last.
     const short = kg < (ROBOT_REPAIR_RATE / work) * dt;
-    kg = min(kg, room / (1 - DISASSEMBLY_WASTE), step.kg - done);
+    const yieldPerKg = (ore + ice) * (1 - DISASSEMBLY_WASTE);
+    kg = min(kg, yieldPerKg > 0 ? room / yieldPerKg : Infinity, step.kg - done);
     if (kg > 0) {
       this.damage.unfit(b, m, kg);
       robot.charge -= kg * per;
-      robot.cargo += kg * (1 - DISASSEMBLY_WASTE);
+      robot.cargo += kg * ore * (1 - DISASSEMBLY_WASTE);
+      robot.cargoFuel += kg * ice * (1 - DISASSEMBLY_WASTE);
     }
     if (done + (kg > 0 ? kg : 0) >= step.kg - ROBOT_SPENT) this.stripped[b] = m;
-    if (short || !(ROBOT_LOAD - robot.cargo > ROBOT_SPENT)) this.sendHome(b, design, robot, owner, robot.bay);
+    if (short || !(ROBOT_LOAD - robot.cargo - robot.cargoFuel > ROBOT_SPENT)) this.sendHome(b, design, robot, owner, robot.bay);
     return kg > 0;
   }
 
@@ -6612,8 +6745,8 @@ export class Ships {
     }
     this.discardFrom(bodies, b, mass, inertia);
     this.momentum(bodies);
-    bodies.vx[b] = bodies.vx[b]! + (beforeX - this.momentumX) / bodies.mass[b]!;
-    bodies.vy[b] = bodies.vy[b]! + (beforeY - this.momentumY) / bodies.mass[b]!;
+    bodies.vx[b] = bodies.vx[b]! + (beforeX - this.momentumX) / movable(bodies.mass[b]!);
+    bodies.vy[b] = bodies.vy[b]! + (beforeY - this.momentumY) / movable(bodies.mass[b]!);
   }
 
   /**
@@ -6705,8 +6838,8 @@ export class Ships {
     this.settleMass(bodies, b);
     this.discardFrom(bodies, b, mass, inertia);
     this.momentum(bodies);
-    bodies.vx[b] = bodies.vx[b]! + (beforeX - this.momentumX) / bodies.mass[b]!;
-    bodies.vy[b] = bodies.vy[b]! + (beforeY - this.momentumY) / bodies.mass[b]!;
+    bodies.vx[b] = bodies.vx[b]! + (beforeX - this.momentumX) / movable(bodies.mass[b]!);
+    bodies.vy[b] = bodies.vy[b]! + (beforeY - this.momentumY) / movable(bodies.mass[b]!);
   }
 
   /** Module `m` of body `b` gone: every ship's note of a module past it there moves down one. */
@@ -6803,7 +6936,7 @@ export class Ships {
       const dy = sin(r * ROBOT_SPREAD) * ROBOT_SPREAD_RADIUS;
       const charge = robot.charge / ROBOT_CHARGE;
       // Taking wreckage apart, it fills with what it carries home.
-      const metal = (robot.strip || robot.cargo > 0 ? robot.cargo : robot.metal) / ROBOT_LOAD;
+      const metal = (robot.strip || robot.cargo + robot.cargoFuel > 0 ? robot.cargo + robot.cargoFuel : robot.metal) / ROBOT_LOAD;
       if (robot.path !== null && robot.leg < robot.path.length - 1) {
         // Facing along the weld it is crawling.
         const there = design.modules[robot.path[robot.leg + 1]!]!;
@@ -6954,8 +7087,10 @@ export class Ships {
     const total = massK + massO;
     const cx = bodies.x[bk]! + (design.centreOfMassX - dk.centreOfMassX) * ck - (design.centreOfMassY - dk.centreOfMassY) * sk;
     const cy = bodies.y[bk]! + (design.centreOfMassX - dk.centreOfMassX) * sk + (design.centreOfMassY - dk.centreOfMassY) * ck;
-    const vx = (massK * bodies.vx[bk]! + massO * bodies.vx[bo]!) / total;
-    const vy = (massK * bodies.vy[bk]! + massO * bodies.vy[bo]!) / total;
+    // A pinned keeper goes on as its rail has it, whatever joins it.
+    const pinned = bodies.pinned[bk] === 1;
+    const vx = pinned ? bodies.vx[bk]! : (massK * bodies.vx[bk]! + massO * bodies.vx[bo]!) / total;
+    const vy = pinned ? bodies.vy[bk]! : (massK * bodies.vy[bk]! + massO * bodies.vy[bo]!) / total;
     // About the new centre: each body's own spin, and its motion around it.
     const spinOf = (body: number, mass: number): number =>
       bodies.inertia[body]! * bodies.angularVel[body]! +
@@ -7034,12 +7169,17 @@ export class Ships {
    * hull has to clear the fight by kilometres, and a serious chunk never
    * really leaves at all.
    *
+   * Small debris goes sooner, wherever it is, once it is in nobody's way
+   * (`loose`).
+   *
    * Only wreckage. A ship is tracked wherever it goes, because a ship can
    * come back.
    */
   cull(world: World): number {
     const bodies = world.bodies;
     const area = this.battleArea(bodies);
+    const period = max(1, round(LOOSE_PERIOD / world.dt));
+    const looking = world.tick % period === 0;
     let dropped = 0;
 
     for (let i = 0; i < this.alive.length; i++) {
@@ -7048,7 +7188,8 @@ export class Ships {
       if (b < 0) continue;
       const design = this.designs[i]!;
       const reach = area.radius + (design.mass - SCRAP_MASS) * SALVAGE_REACH;
-      if (length(bodies.x[b]! - area.x, bodies.y[b]! - area.y) <= reach) continue;
+      const away = length(bodies.x[b]! - area.x, bodies.y[b]! - area.y) > reach;
+      if (!away && !(looking && this.loose(world, i, b))) continue;
 
       const mass = bodies.mass[b]!;
       this.discarded += mass;
@@ -7067,6 +7208,35 @@ export class Ships {
     }
 
     return dropped;
+  }
+
+  /**
+   * Whether wreck `i`, on body `b`, is small debris in nobody's way: lighter
+   * than `LOOSE_MASS`, loose for `LOOSE_AGE`, nobody's salvage, and with
+   * nothing under control due to pass within `LOOSE_CLEARANCE` of it in the
+   * next `LOOSE_HORIZON`, going as both are. Such a piece will not be gone
+   * after and is not in the way, so it is only scenery. Another wreck does
+   * not keep it: two that meet weld into something heavier.
+   */
+  private loose(world: World, i: number, b: number): boolean {
+    const bodies = world.bodies;
+    if (!(bodies.mass[b]! < LOOSE_MASS) || (world.tick - this.partedAt[i]!) * world.dt < LOOSE_AGE) return false;
+    for (let t = 0; t < this.alive.length; t++) {
+      if (this.alive[t] === 0 || this.derelict[t] === 1) continue;
+      if (this.salvaging[t] === i) return false;
+      if (!this.hasControl(t)) continue;
+      const tb = bodies.indexOf(this.bodyIds[t]!);
+      if (tb < 0 || tb === b) continue;
+      const dx = bodies.x[tb]! - bodies.x[b]!;
+      const dy = bodies.y[tb]! - bodies.y[b]!;
+      const vx = bodies.vx[tb]! - bodies.vx[b]!;
+      const vy = bodies.vy[tb]! - bodies.vy[b]!;
+      const speedSq = vx * vx + vy * vy;
+      const when = speedSq > 0 ? clamp(-(dx * vx + dy * vy) / speedSq, 0, LOOSE_HORIZON) : 0;
+      const clear = bodies.radius[b]! + bodies.radius[tb]! + LOOSE_CLEARANCE;
+      if (length(dx + vx * when, dy + vy * when) < clear) return false;
+    }
+    return true;
   }
 
   /**
@@ -8312,7 +8482,7 @@ export class Ships {
    * may when it is sent to.
    */
   private clawCanTake(bodies: Bodies, i: number, b: number, claw: number, t: number): boolean {
-    if (t === i || this.alive[t] !== 1 || this.team[t] === NEUTRAL_TEAM) return false;
+    if (t === i || this.alive[t] !== 1 || (this.team[t] === NEUTRAL_TEAM && !this.isAsteroid(t))) return false;
     const tb = bodies.indexOf(this.bodyIds[t]!);
     if (tb < 0 || tb === b || !this.clawReaches(b, claw, tb)) return false;
     return this.drinkable(i, t) || this.team[t] === this.team[i];
@@ -8822,7 +8992,7 @@ export class Ships {
         radial = min(PAD_SPEED, range / approach.responseTime);
       } else {
         // Braking on what is left once it is keeping up.
-        const mains = this.layoutOf(i).maxThrustAlong(cos(design.thrustBearing), sin(design.thrustBearing)) / bodies.mass[b]!;
+        const mains = this.layoutOf(i).maxThrustAlong(cos(design.thrustBearing), sin(design.thrustBearing)) / movable(bodies.mass[b]!);
         const spare = max(0, mains - length(ax, ay));
         const delay = approach.responseTime + this.halfTurnTime(bodies, i, b);
         radial = min(approach.approachSpeed, stoppingSpeed(approach.brake * spare, left, delay));
@@ -8872,7 +9042,7 @@ export class Ships {
   /**
    * The body of the nearest hull across body `b`'s line to body `tb` that a
    * claw ship should go round, or -1: a ship under control larger than it, not
-   * after the same source, and far enough short of it to circle clear.
+   * after the same source, or an asteroid, and far enough short of it to circle clear.
    */
   private hullAcross(bodies: Bodies, i: number, b: number, tb: number, source: number): number {
     const x = bodies.x[b]!;
@@ -8887,8 +9057,8 @@ export class Ships {
     let nearest = -1;
     let nearestAt = short;
     for (let t = 0; t < this.alive.length; t++) {
-      if (t === i || this.alive[t] === 0 || this.derelict[t] === 1 || this.salvaging[t] === source) continue;
-      if (!this.hasControl(t)) continue;
+      if (t === i || this.alive[t] === 0 || this.salvaging[t] === source) continue;
+      if (!this.isAsteroid(t) && (this.derelict[t] === 1 || !this.hasControl(t))) continue;
       const ob = bodies.indexOf(this.bodyIds[t]!);
       if (ob < 0 || ob === b || ob === tb || bodies.ghost[ob] === 1 || !this.meets(b, ob) || !(bodies.radius[ob]! > bodies.radius[b]!))
         continue;
@@ -8920,7 +9090,7 @@ export class Ships {
     let vx = bodies.vx[ob]!;
     let vy = bodies.vy[ob]!;
     if (gap > 0) {
-      const speed = this.doctrines[i]!.approach.approachSpeed;
+      const speed = this.doctrines[i]!.approach.clawSpeed;
       vx += (dx / gap) * speed;
       vy += (dy / gap) * speed;
     }
@@ -9174,7 +9344,7 @@ export class Ships {
         radial = PORT_APPROACH;
       } else {
         // Braking on what is left once it is keeping up.
-        const mains = this.layoutOf(i).maxThrustAlong(cos(design.thrustBearing), sin(design.thrustBearing)) / bodies.mass[b]!;
+        const mains = this.layoutOf(i).maxThrustAlong(cos(design.thrustBearing), sin(design.thrustBearing)) / movable(bodies.mass[b]!);
         const spare = max(0, mains - length(ax, ay));
         const delay = approach.responseTime + this.halfTurnTime(bodies, i, b);
         radial = min(approach.approachSpeed, stoppingSpeed(approach.brake * spare, left, delay));
@@ -9547,7 +9717,7 @@ export class Ships {
       const force = this.exhaustOf(i, design, b, t);
       if (!(force > 0)) continue;
       const engine = design.modules[design.engines[t]?.module ?? -1];
-      const rays = engine === undefined ? 0 : plumeRays(engineGeometry(engine.spec));
+      const rays = engine === undefined ? 0 : plumeRays(geometryOf(engine));
       const layers = plumeLayers(design, t, this.layersOf(b));
       for (let layer = HULL_LAYER; layer <= WEAPONS_LAYER; layer <<= 1) {
         if ((layers & layer) === 0) continue;
@@ -9682,8 +9852,8 @@ export class Ships {
     }
     this.settleMass(bodies, b);
     this.momentum(bodies);
-    bodies.vx[b] = bodies.vx[b]! + (beforeX - this.momentumX) / bodies.mass[b]!;
-    bodies.vy[b] = bodies.vy[b]! + (beforeY - this.momentumY) / bodies.mass[b]!;
+    bodies.vx[b] = bodies.vx[b]! + (beforeX - this.momentumX) / movable(bodies.mass[b]!);
+    bodies.vy[b] = bodies.vy[b]! + (beforeY - this.momentumY) / movable(bodies.mass[b]!);
     return true;
   }
 
@@ -9891,11 +10061,79 @@ export class Ships {
    * trip costs, or that is going away faster than it can follow, is not gone
    * for.
    */
+  /** Whether a hull is an asteroid: rock, or a kernel, and nobody's. */
+  isAsteroid(t: number): boolean {
+    if (this.team[t] !== NEUTRAL_TEAM) return false;
+    return this.designs[t]!.modules.some((module) => module.spec.kind === 'rock' || module.spec.kind === 'kernel');
+  }
+
+  /** The rock left on ship `t`'s hull, and the ore and ice in it, kg, into `out`. */
+  rockLeft(t: number, out: { rock: number; ore: number; ice: number }): void {
+    out.rock = out.ore = out.ice = 0;
+    const bodies = this.bodyStore;
+    const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[t]!);
+    if (b < 0) return;
+    for (let m = 0; m < this.designs[t]!.modules.length; m++) {
+      const module = this.designs[t]!.modules[m]!;
+      if (module.spec.kind !== 'rock') continue;
+      const left = module.stats.structureMass + module.stats.fittingMass - this.damage.shedAt(b, m) - this.damage.unbuiltAt(b, m);
+      if (!(left > 0)) continue;
+      out.rock += left;
+      out.ore += left * (module.spec.ore ?? 0);
+      out.ice += left * (module.spec.ice ?? 0);
+    }
+  }
+
+  /**
+   * How many times over a ship can push itself back from an asteroid, jaws
+   * first, against its pull at the surface: Infinity for one with no well.
+   */
+  private holdsOff(bodies: Bodies, i: number, b: number, claw: number, tb: number): number {
+    const well = this.rides[tb];
+    if (well === undefined) return Infinity;
+    const r = bodies.radius[tb]!;
+    const soft = well.softening ?? 0;
+    const r2 = r * r + soft * soft;
+    const pull = (well.gm * r) / (r2 * sqrt(r2));
+    if (!(pull > 0)) return Infinity;
+    const jaws = this.designs[i]!.modules[claw]!.spec.angle ?? 0;
+    const back = this.layoutOf(i).maxThrustAlong(-cos(jaws), -sin(jaws)) / movable(bodies.mass[b]!);
+    return back / pull;
+  }
+
+  /** What an asteroid's rock still holds, kg: all of it, and the ore and ice in it less what mining wastes. */
+  private rockHeld(b: number, design: ShipDesign): { rock: number; ore: number; ice: number } {
+    let rock = 0;
+    let ore = 0;
+    let ice = 0;
+    for (let m = 0; m < design.modules.length; m++) {
+      const { spec, stats } = design.modules[m]!;
+      if (spec.kind !== 'rock') continue;
+      const left = max(0, stats.mass - this.damage.unbuiltAt(b, m));
+      rock += left;
+      ore += left * (spec.ore ?? 0) * (1 - DISASSEMBLY_WASTE);
+      ice += left * (spec.ice ?? 0) * (1 - DISASSEMBLY_WASTE);
+    }
+    return { rock, ore, ice };
+  }
+
+  /**
+   * Seconds mining `take` of fuel and `strip` of metal out of an asteroid
+   * takes: its robots cutting rock until they have both, or with none, a claw
+   * melting the fuel alone.
+   */
+  private miningTime(held: { rock: number; ore: number; ice: number }, take: number, strip: number, stripRate: number): number {
+    if (!(stripRate > 0)) return take / CLAW_HEAT_RATE;
+    const forOre = held.ore > 0 ? (strip / held.ore) * held.rock : 0;
+    const forIce = held.ice > 0 ? (take / held.ice) * held.rock : 0;
+    return max(forOre, forIce) / stripRate;
+  }
+
   private pickSource(bodies: Bodies, i: number, b: number, claw: number, room: number, metalRoom: number): number {
     const design = this.designs[i]!;
     const approach = this.doctrines[i]!.approach;
     const pump = design.modules[claw]!.stats.pumpRate;
-    if (!(pump > 0) || !(approach.approachSpeed > 0)) return NO_TARGET;
+    if (!(pump > 0) || !(approach.clawSpeed > 0)) return NO_TARGET;
     const mass = bodies.mass[b]!;
     const mains = this.layoutOf(i).maxThrustAlong(cos(design.thrustBearing), sin(design.thrustBearing)) / mass;
     const exhaust = exhaustOf(design);
@@ -9911,10 +10149,24 @@ export class Ships {
       const tb = bodies.indexOf(this.bodyIds[t]!);
       // A body is offered once, by the ship it is, and only if the claw can touch it.
       if (tb < 0 || tb === b || this.shipByBody[tb] !== t || !this.clawReaches(b, claw, tb)) continue;
-      const fuel = this.fuel.left(tb);
+      // An asteroid is worth what its rock holds: ore its robots smelt, and ice
+      // they melt, or the claw alone does, slower.
+      const asteroid = this.isAsteroid(t);
+      if (asteroid && !(approach.rockWeight > 0)) continue;
+      // One that pulls cannot be closed on slowly jaws first without thrust to hold off its pull.
+      if (asteroid && !(this.holdsOff(bodies, i, b, claw, tb) > 1)) continue;
+      const held = asteroid ? this.rockHeld(tb, this.designs[t]!) : null;
+      const fuel = held !== null ? held.ice : this.fuel.left(tb);
       const take = fuel < room ? fuel : room;
       // What its robots would bring home of it, less what taking it apart wastes.
-      const metal = metalRoom > 0 && this.strippableWreck(t) ? (bodies.mass[tb]! - fuel) * (1 - DISASSEMBLY_WASTE) : 0;
+      const metal =
+        held !== null
+          ? robots > 0
+            ? held.ore
+            : 0
+          : metalRoom > 0 && this.strippableWreck(t)
+            ? (bodies.mass[tb]! - fuel) * (1 - DISASSEMBLY_WASTE)
+            : 0;
       const strip = metal < metalRoom ? metal : metalRoom;
       if (!(take > 0 || strip > 0)) continue;
       const dx = bodies.x[tb]! - bodies.x[b]!;
@@ -9923,7 +10175,7 @@ export class Ships {
       // Getting there at its closing speed less however fast the source is
       // going away: one it cannot gain on is no source at all.
       const receding = apart > 0 ? ((bodies.vx[tb]! - bodies.vx[b]!) * dx + (bodies.vy[tb]! - bodies.vy[b]!) * dy) / apart : 0;
-      const closing = approach.approachSpeed - receding;
+      const closing = approach.clawSpeed - receding;
       if (!(closing > 0)) continue;
       const gap = max(0, apart - bodies.radius[tb]!);
       // What the trip burns: matching the source's motion, then speeding up
@@ -9932,9 +10184,10 @@ export class Ships {
       const cruise = min(closing, sqrt(mains * gap));
       const dv = length(bodies.vx[tb]! - bodies.vx[b]!, bodies.vy[tb]! - bodies.vy[b]!) + 2 * cruise;
       const cost = exhaust > 0 ? mass * (1 - exp(-dv / exhaust)) : 0;
-      const gain = take + strip * approach.fuelPerMetal - cost;
+      const gain = (take + strip * approach.fuelPerMetal) * (held !== null ? approach.rockWeight : 1) - cost;
       if (!(gain > 0)) continue;
-      const time = gap / closing + take / pump + (strip > 0 ? strip / stripRate : 0);
+      const time =
+        gap / closing + (held !== null ? this.miningTime(held, take, strip, stripRate) : take / pump + (strip > 0 ? strip / stripRate : 0));
       const danger = approach.scavengeDanger > 0 ? this.dangerNear(bodies, i, tb) : 0;
       const score = gain / time / (1 + max(0, approach.scavengeDanger) * danger);
       if (score > bestScore) {
@@ -9983,17 +10236,46 @@ export class Ships {
   }
 
   /**
+   * The heading to hold closing on an asteroid: `jawsOn`, the claw towards it,
+   * unless its motion is off what `grapple` asks for (`radial`, closing) by
+   * more than it can put right with its jaws held on before it arrives, and
+   * turning its mains along the difference, and back, would put it right
+   * sooner. An asteroid in orbit, or one pulling it in, is never as still as
+   * a wreck.
+   */
+  private matchOrbit(bodies: Bodies, i: number, b: number, tb: number, jawsOn: number, radial: number): number {
+    const dx = bodies.x[tb]! - bodies.x[b]!;
+    const dy = bodies.y[tb]! - bodies.y[b]!;
+    const range = length(dx, dy);
+    if (!(range > 0)) return jawsOn;
+    const ux = dx / range;
+    const uy = dy / range;
+    const ex = bodies.vx[tb]! + ux * radial - bodies.vx[b]!;
+    const ey = bodies.vy[tb]! + uy * radial - bodies.vy[b]!;
+    const error = length(ex, ey);
+    if (!(error > CLAW_SPEED_HIGH - CLAW_APPROACH)) return jawsOn;
+    const closing = (bodies.vx[b]! - bodies.vx[tb]!) * ux + (bodies.vy[b]! - bodies.vy[tb]!) * uy;
+    const left = max(0, range - bodies.radius[tb]!) / max(closing, CLAW_APPROACH);
+    const jawsTime = error / this.accelerationAlong(bodies, i, b, ex / error, ey / error, jawsOn);
+    if (jawsTime <= left) return jawsOn;
+    const mains = atan2(ey, ex) - this.designs[i]!.thrustBearing;
+    const mainsTime = 4 * this.halfTurnTime(bodies, i, b) + error / this.accelerationAlong(bodies, i, b, ex / error, ey / error, mains);
+    return mainsTime < left && mainsTime < jawsTime ? mains : jawsOn;
+  }
+
+  /**
    * Close on a source jaws first: down a stopping curve onto its edge that
    * stops not at nothing but at `CLAW_APPROACH`, so the claw arrives inside
    * its band. `facing` is the heading it holds to point the claw. `standOff`
    * backs it away instead, for another run at it.
    */
-  private grapple(bodies: Bodies, i: number, b: number, tb: number, claw: number, facing: number, standOff: boolean): void {
+  private grapple(bodies: Bodies, i: number, b: number, tb: number, claw: number, facing: number, standOff: boolean): number {
     const dx = bodies.x[tb]! - bodies.x[b]!;
     const dy = bodies.y[tb]! - bodies.y[b]!;
     const range = length(dx, dy);
     let vx = bodies.vx[tb]!;
     let vy = bodies.vy[tb]!;
+    let radial = 0;
     if (range > 0) {
       const ux = dx / range;
       const uy = dy / range;
@@ -10009,11 +10291,12 @@ export class Ships {
       // facing its source comes in no faster than it can stop.
       const retro = this.accelerationAlong(bodies, i, b, -ux, -uy, facing);
       const stopping = stoppingSpeed(approach.brake * retro, gap, approach.responseTime);
-      const radial = standOff ? -CLAW_APPROACH : min(approach.approachSpeed, sqrt(stopping * stopping + CLAW_APPROACH * CLAW_APPROACH));
+      radial = standOff ? -CLAW_APPROACH : min(approach.clawSpeed, sqrt(stopping * stopping + CLAW_APPROACH * CLAW_APPROACH));
       vx += ux * radial;
       vy += uy * radial;
     }
     this.urge(URGE_REFERENCE, vx, vy);
+    return radial;
   }
 
   /**
@@ -10178,7 +10461,7 @@ export class Ships {
     const bodies = this.bodyStore;
     const b = bodies === null ? -1 : bodies.indexOf(this.bodyIds[i]!);
     if (module === undefined || b < 0) return 0;
-    return weaponPlumeReach(engineGeometry(module.spec), this.exhaustOf(i, design, b, engine));
+    return weaponPlumeReach(geometryOf(module), this.exhaustOf(i, design, b, engine));
   }
 
   /** Whether one of this ship's engines is burning as a weapon. */

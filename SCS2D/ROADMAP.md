@@ -125,16 +125,48 @@ an entry is either still open or it is gone.
          run draws a new map every match; a skirmish round's is drawn from its seed, each setting from its
          ±, and every match the enemy is bred in for it is fought on that round's map whatever its own seed
          (`BattleSetup.mapSeed`).
-       - **Left for slice 4:** the camera frames asteroids as it does ships, so a big one pulls the shot
-         away from the fight.
     3. **Mining**, in two PRs:
        - **3a. Asteroids as discs** — built: thick rock and kernels are 10 m deep (`ASTEROID_DEPTH`), and
          an asteroid's outermost ring is thin rubble, a deck deep, that fighters fly over and mining clears
          first.
-       - **3b. Robots mine** — robots' shared hold, claw heating, scavenging rock and its doctrine weight.
-         At today's robot rates a wedge outlasts any battle; bigger robots for mining are expected later.
-    4. **Viewer and demo** — asteroid picking and its readout, and a golden scenario of two rival mining
-       outposts on a pair of eccentric majors.
+       - **3b. Robots mine** — built. Robots carry ore smelted to metal and ice melted to fuel in one hold
+         (`ROBOT_LOAD`), mining rock for `MINING_POWER` times the charge wreckage takes, the worthless
+         share lost; a claw with no robots melts ice alone (`CLAW_HEAT_RATE`, `CLAW_HEAT_ENERGY`). A claw
+         anchors to a pinned major, which stays pinned and keeps riding its rail with the miner on it.
+         Scavenging values an asteroid by what its rock holds, weighed by doctrine's `rockWeight`
+         (evolvable). A claw ship closing on an asteroid matches its motion on its mains before turning
+         its jaws to it. The Mining scene and its golden. Left from it:
+         - **A major's pull keeps mains-only ships off it.** Jaws first, a ship with no thrust astern of
+           its jaws cannot hold off a gravitating asteroid and lands by falling, so scavenging passes over
+           a major whose surface pull its ship cannot beat (`holdsOff`). The stock Salvager was rebuilt
+           with much the same thrust every way so that it can.
+         - **Matching an orbit before turning the jaws on** is asteroids' alone; whether every claw
+           approach should do it, wrecks drifting too, is open, and would move the claw goldens.
+    4. **Viewer and demo**, in two PRs:
+       - **4a. Picking and mining an asteroid** — built: an asteroid picked out alone is framed, and a card
+         over the battle says how much rock, ore and ice is left in it (`ShipView.rock`). Scavenge takes an
+         asteroid as its target, and a right-click on one tells the picked ships with claws to mine it; the
+         rest keep what they were doing. The camera already leaves asteroids out of shot, as it does
+         anything nobody flies, unless nothing else is left.
+       - **4b. The demo** — a golden scenario of two rival mining outposts on a pair of eccentric majors.
+       - **Fit frames a scavenger with what it is closing on**, the asteroid or hulk, as it frames a ship with
+         what it is attacking: framing follows what a ship is fighting and escorting, not its errand.
+    5. **Grabbing an asteroid survivably** — partly built. A claw ship closes jaws first all the way, braking
+       astern, and turns its mains to the job only when that cannot put its motion right in time; it flies
+       round an asteroid in its way; and it closes at doctrine's
+       `clawSpeed` (15 m/s by default, evolvable), not the speed it closes on an enemy. With a third Salvager
+       in the Mining scene, over 39 runs, wrecked or broken ships went from 25 to 10 and those holding rock
+       from 9 to 24. Left from it:
+       - **A loaded Salvager breaks up on any touch but the claw's.** At about 146 t, meeting rock at the
+         claw's own 2.5 m/s with an engine or the core puts a few hundred kN·s through one seam, which tears
+         most of the hull off. What still goes wrong is mostly that: a slope, a notch where a wedge is
+         missing, or a claw that glances and swings the side in. Either the contact is made forgiving (rock
+         that crumbles, or welds that take a slow knock) or the claw must meet first every time.
+       - **Two tried and measured worse:** aiming at a point on the face and coming in along its normal,
+         and claims (leaving a minor another ship has hold of or is making for). Aiming lined ships up on
+         faces that then changed under them as the rock was mined; claims sent them further, through more of
+         the field. Either may work done differently.
+       - **Arriving slower than 2.5 m/s** made no difference measured.
 
 ### Not started — in order
 
@@ -412,8 +444,10 @@ Deliberately unresolved; decide when they block something.
   to an asteroid (step 15), or a fighter landed on a carrier, is treated as the whole body: guns aim at any
   part of it, the selection ring goes round all of it, and the side's tile shows the bigger thing — already
   seen with fighters on carriers. Revisit once step 15 is built.
-- **Mining's numbers.** Surface gravity, rock seam strength, the power a kilogram of rock costs robots
-  against scrap, and a claw's heating rate: first guesses once step 15 sets them.
+- **Mining's numbers.** All first guesses: surface gravity (0.5 m/s² by default), rock seam strength (a hull
+  plate's), `MINING_POWER` (3× the charge of stripping scrap), a claw's heating at 1 kg of fuel a second
+  for 5 MJ a kilogram, and how fast asteroids spin (majors 0.002 rad/s at most, minors 0.01, slow
+  enough for a claw to close on their edge). At robots' rate a wedge outlasts any battle.
 - **Adding a carrier with the designs of its craft.** A fleet adds a ship from the designs it carries, flown
   or not, or a bare core. A ship that docks smaller ones, as a carrier docks fighters, does not yet
   bring their designs with it.
@@ -724,7 +758,9 @@ Deliberately unresolved; decide when they block something.
   does not exist yet, so they will want revisiting when it does. Worth knowing before tuning them: the
   shipped fleet's *capital* modules weigh five to nine tonnes apiece, and the only modules under a tonne
   anywhere are a fighter's, so the scrap floor reaches fighter debris and nothing else. Culling capital
-  wreckage at all is entirely `SALVAGE_REACH`'s doing.
+  wreckage at all is entirely `SALVAGE_REACH`'s doing. `LOOSE_MASS`, `LOOSE_AGE`, `LOOSE_HORIZON` and
+  `LOOSE_CLEARANCE`, which let small debris go inside the fight once it is in nobody's way, are first
+  guesses of the same kind.
 - **More failure modes than a fading capability.** A module carries a list of damage responses and two are
   written: thrust fades and cuts out, rate of fire stretches. What the shape is for, and what is not built,
   is the interesting half — a turret whose traverse jams, leaving it stuck or cut down to part of its arc; a

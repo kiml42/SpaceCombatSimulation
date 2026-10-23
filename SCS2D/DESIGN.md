@@ -1083,7 +1083,11 @@ inside any one file is not contiguous.
   `kernel`, an indestructible convex polygon on no side, rides one on a pinned body (the Kernels scene); round it
   are rings of rock wedges, each a share ore and ice, drawn with minors from a seed into a battle's map,
   clear of the ships (the Asteroid Field scene), and offered by the custom battle, evolution and the
-  skirmish. What is left is in ROADMAP.md §8.
+  skirmish. Robots mine rock into one hold, ore as metal and ice as fuel, and a claw alone melts ice;
+  scavenging goes for asteroids by what they hold (the Mining scene). An asteroid picked out in the
+  viewer shows what is left in it, and a right-click on one sends the picked ships with claws to mine it.
+  A claw ship closes jaws first, round asteroids in its way, at doctrine's `clawSpeed`.
+  What is left is in ROADMAP.md §8.
   Alongside it, §8 step 5's skirmish: an endless loop against an enemy fleet that evolves to beat the
   player's, planned in ROADMAP.md §8. Evolution keeps the skirmish's sense of quiet, though it plays a match on until every side is quiet before naming a winner. Its loop is built without the evolving enemy (`dist/skirmish.html`,
   `scenarios/skirmish.ts`): pick a stock enemy, whose bill is the budget unless the player sets their own, under a limit on ships and spread (20 and 500 m unless set, or what the enemy fields if more), each round's gap and starting speeds drawn from optional ± spreads on its seed; fight a fixed round, decided by
@@ -1623,8 +1627,9 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   than spin; and the overlap left after the impulse is corrected out over a few steps rather than
   resolved at once. A body with no hull does not collide at all — everything in a battle is a ship or
   the wreck of one, and a bare mass with a radius is not a shape.
-- **The spatial index is for queries, not collision pairing.** At a few hundred bodies, testing every body
-  against every other is cheaper than building an index to avoid it. What is expensive is thousands of
+- **The spatial index is for queries, not collision pairing.** At a few hundred bodies, a sort along x and
+  testing each body against its neighbours there is cheaper than keeping an index for it; the pairs are
+  still taken in body order, so contact order does not depend on the sort. What is expensive is thousands of
   projectiles, turret line-of-sight checks and blast radii each interrogating a small region every step —
   body count multiplied by query count. A uniform grid (rather than a tree) because everything moves every
   step, so the index is rebuilt in one linear pass with no hierarchy to rebalance, and cell traversal is
