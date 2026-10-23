@@ -153,6 +153,13 @@ an entry is either still open or it is gone.
          Replicator, the author's self-replicating miner, on each of a pair of eccentric majors with no
          minors, nothing armed: each anchors to its own rock, mines it, and builds copies of itself there.
          Left from it:
+         - **Replicators prey on each other once copies are out.** A claw ship counts an enemy that cannot
+           shoot back as a source, and drinking one is far quicker than mining rock, so after the first
+           copies are let go, at about nine and a half minutes, they go for the other side's rather than for
+           rock. The author's call was to leave it, measured: a doctrine weight for live enemies as sources
+           would stop it.
+         - **Two claw ships going for each other run away**: each asks to match the other's motion and close
+           on it, so between them they speed up without end, past 900 m/s over half an hour.
          - **Fighters cannot land on a carrier anchored to an asteroid** unless the pad faces away from the
            rock: the carrier's hull is then the asteroid's, so a fighter keeps outside a circle round all of
            it, and comes straight in only with no rock between it and the pad. The Prospector's pad is
