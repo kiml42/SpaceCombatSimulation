@@ -258,6 +258,36 @@ describe('a fighter low on fuel', () => {
     expect(both).toBe(false);
     expect([...landed].sort()).toEqual([run.f, run.g].sort());
   });
+
+  it('makes for the nearer of two pads that would fill it alike, not across its carrier to the other', () => {
+    // Two pads either side; the fighter comes in on the second's side.
+    const carrier = compileBlueprint({
+      name: 'Two-pad carrier',
+      modules: [
+        { kind: 'core', x: 0, y: 0, length: 6, width: 14 },
+        { kind: 'tank', x: -13, y: 0, length: 20, width: 10 },
+        { kind: 'pad', x: 0, y: 12, length: 10, width: 10 },
+        { kind: 'pad', x: 0, y: -12, length: 10, width: 10 },
+      ],
+    });
+    const run = makeBattle({ seed: 3 }, (ships, world) => {
+      const c = ships.spawn(world, { design: carrier, x: 0, y: 0, angle: 0 });
+      const f = ships.spawn(world, { design: fighterOf(0.5), x: 0, y: -60, angle: 0 });
+      const b = world.bodies.indexOf(ships.body(f));
+      const design = ships.currentStructure(f);
+      for (let m = 0; m < design.modules.length; m++) ships.fuel.vent(b, m, ships.fuel.held(b, m) * 0.8);
+      return { c, f, g: -1 };
+    });
+    runUntil(run, () => aboard(run, run.f), 60);
+    expect(aboard(run, run.f)).toBe(true);
+    const bodies = run.world.bodies;
+    const fb = bodies.indexOf(run.ships.body(run.f));
+    const cb = bodies.indexOf(run.ships.body(run.c));
+    const angle = bodies.angle[cb]!;
+    // Where it sits, across the carrier's own frame: on the second pad's side.
+    const across = -(bodies.x[fb]! - bodies.x[cb]!) * Math.sin(angle) + (bodies.y[fb]! - bodies.y[cb]!) * Math.cos(angle);
+    expect(across).toBeLessThan(0);
+  });
 });
 
 /** A carrier whose pad sets out with `fighter` docked on it. */

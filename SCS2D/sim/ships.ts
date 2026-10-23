@@ -616,6 +616,13 @@ function workforce(kind: string): boolean {
   return kind === 'core' || kind === 'robotBay' || kind === 'generator';
 }
 
+/** Whether body `b` holds less than `share` of a full load of `store` on module `m`'s piece, with room for more. */
+function short(store: Store, b: number, m: number, share: number): boolean {
+  const held = store.pieceHeld(b, m);
+  const room = store.pieceRoom(b, m);
+  return room > 0 && held < share * (held + room);
+}
+
 /** A design's engines' exhaust speed, m/s, weighted by their thrust; 0 for one with none. */
 const EXHAUST = new WeakMap<ShipDesign, number>();
 function exhaustOf(design: ShipDesign): number {
@@ -4076,9 +4083,11 @@ export class Ships {
 
     // A ram overrides the rest of the doctrine: no cover, and no keeping clear
     // but of rocks and friends; and so does closing on a source, which means
-    // touching it, but for a hulk coming through.
+    // touching it, but for a hulk coming through. Landing keeps clear of all
+    // but its carrier, since two making for neighbouring pads cross.
     if (order?.grapple === true) this.avoid(bodies, i, b, target, NO_TARGET, true);
     if (order?.ram === true) this.avoid(bodies, i, b, target, NO_TARGET, false, true);
+    if (order?.land === true) this.avoid(bodies, i, b, target, NO_TARGET, false, false, true);
     if (!fleeing && (order === undefined || !(order.ram || order.grapple || order.land || order.dock))) {
       const covering = this.cover(bodies, i, b);
       if (target === NO_TARGET && covering >= 0) {
@@ -4931,12 +4940,23 @@ export class Ships {
     return gap > touching;
   }
 
-  private avoid(bodies: Bodies, i: number, b: number, flying: number, covering: number, hulksOnly = false, ramming = false): void {
+  private avoid(
+    bodies: Bodies,
+    i: number,
+    b: number,
+    flying: number,
+    covering: number,
+    hulksOnly = false,
+    ramming = false,
+    landing = false,
+  ): void {
     const approach = this.doctrines[i]!.approach;
     if (!(approach.separation > 0) || !(approach.separationRadii > 0)) return;
     const mine = this.designs[i]!.radius;
     // A rock or a friend it is ramming rides the body it is ramming.
     const flyingBody = flying === NO_TARGET ? -1 : bodies.indexOf(this.bodyIds[flying]!);
+    // Landing, nor the rock its carrier is moored to, which its pad sits against.
+    const under = landing && flying !== NO_TARGET ? this.carrierBodyOf(bodies, flying) : -1;
     const x = bodies.x[b]!;
     const y = bodies.y[b]!;
     const vx = bodies.vx[b]!;
@@ -4960,6 +4980,7 @@ export class Ships {
       // Nothing to keep clear of in something that cannot be hit.
       if (ob < 0 || ob === b || bodies.ghost[ob] === 1 || !this.meets(b, ob)) continue;
       if (ramming && ob === flyingBody) continue;
+      if (ob === under) continue;
 
       const touching = mine + this.designs[t]!.radius;
       // Clear by its own size, not the other's, which would keep it a rock's or a carrier's breadth off.
@@ -5699,9 +5720,10 @@ export class Ships {
    * Work the pad fighter `f` is parked on, and say whether it holds it still.
    * One being built is built, and held until it is whole whatever else is
    * going on. Anything else is filled with fuel, metal and charge, each from
-   * what the carrier can spare, and mended, and let go once there is no more
-   * to give or mend, or at once once given an order. A pad gone, or one that
-   * can no longer grip, lets go of anything.
+   * what the carrier can spare, and mended, and let go once it holds what its
+   * doctrine leaves with (`launchFuel` and its kind) and is mended, or at once
+   * once given an order. Danger lets it go once loaded, mended or not. A pad
+   * gone, or one that can no longer grip, lets go of anything.
    */
   private tendParked(world: World, f: number): boolean {
     const bodies = world.bodies;
@@ -5728,10 +5750,6 @@ export class Ships {
       return true;
     }
     const into = this.designs[f]!.cores[0] ?? 0;
-    // A ship that minds danger lets go the moment an armed enemy is in reach,
-    // once it has the fuel it would come back for: one fresh off the pad
-    // would otherwise leave dry.
-    if (!this.sentTo(f) && this.fuelledToFlee(fb, f, into) && this.threatened(bodies, f, cb, true)) return false;
     const rate = this.designs[c]!.modules[pad]!.stats.pumpRate * working * world.dt;
     const cable = DOCK_POWER_PER_METRE * width * working * world.dt;
     const fuel = this.across(this.fuel, cb, pad, fb, into, rate, this.reserve(cb, pad));
@@ -5744,19 +5762,18 @@ export class Ships {
     // Mended first, and then built back to what it set out as.
     let repairLeft = this.mend(bodies, fb, f, pad, work, cb);
     if (!repairLeft) repairLeft = this.padBuild(bodies, fb, f, cb, pad, work);
-    const ordered = this.commanded(f);
-    if (!ordered && this.waitsAboard(bodies, f, fb)) return true;
-    const fuelLeft = this.fuel.pieceRoom(fb, into) > 0 && this.fuel.pieceHeld(cb, pad) > this.reserve(cb, pad);
-    const metalLeft = this.metal.pieceRoom(fb, into) > 0 && this.metal.pieceHeld(cb, pad) > this.metalReserve(cb, pad);
-    const chargeLeft = this.power.pieceRoom(fb, into) > 0 && this.power.pieceHeld(cb, pad) > this.chargeReserve(cb, pad);
-    return !ordered && (fuelLeft || metalLeft || chargeLeft || repairLeft);
-  }
-
-  /** Whether fighter `f`, on body `fb`, holds its `refuelBelow` of a full load on module `into`'s piece, or carries none. */
-  private fuelledToFlee(fb: number, f: number, into: number): boolean {
-    const held = this.fuel.pieceHeld(fb, into);
-    const full = held + this.fuel.pieceRoom(fb, into);
-    return !(full > 0) || (held > 0 && held >= this.doctrines[f]!.approach.refuelBelow * full);
+    if (this.commanded(f)) return false;
+    // Loaded once it holds what its doctrine leaves with of each, or the
+    // carrier has no more of it to spare.
+    const approach = this.doctrines[f]!.approach;
+    const fuelLeft = short(this.fuel, fb, into, approach.launchFuel) && this.fuel.pieceHeld(cb, pad) > this.reserve(cb, pad);
+    const metalLeft = short(this.metal, fb, into, approach.launchMetal) && this.metal.pieceHeld(cb, pad) > this.metalReserve(cb, pad);
+    const chargeLeft = short(this.power, fb, into, approach.launchCharge) && this.power.pieceHeld(cb, pad) > this.chargeReserve(cb, pad);
+    const loaded = !fuelLeft && !metalLeft && !chargeLeft;
+    // A ship that minds danger lets go once loaded if an armed enemy is in reach, mended or not.
+    if (loaded && !this.sentTo(f) && this.threatened(bodies, f, cb, true)) return false;
+    if (this.waitsAboard(bodies, f, fb)) return true;
+    return !loaded || repairLeft;
   }
 
   /**
@@ -6050,7 +6067,11 @@ export class Ships {
         const put = this.fuel.add(b, robot.bay, robot.cargoFuel);
         robot.cargoFuel = put < robot.cargoFuel ? robot.cargoFuel - put : 0;
         unloaded = put > 0;
-        if (robot.cargoFuel > 0 && this.refitting[owner] === 1) robot.cargoFuel = 0;
+        // What the tanks have no room for is let go, not carried out again.
+        if (robot.cargoFuel > 0) {
+          robot.cargoFuel = 0;
+          unloaded = true;
+        }
       }
       if (robot.cargo > 0) {
         const put = this.metal.add(b, robot.bay, robot.cargo);
@@ -6276,28 +6297,40 @@ export class Ships {
   /**
    * Give a robot of ship `owner` out on its rock, body `cb`, rock to take
    * apart for what its bay on body `b` has room for: as `sendToStrip` does on
-   * a hull, but for the rock its claw holds, which stays to hold it by.
+   * a hull, but for the rock its claw holds, which stays to hold it by. It
+   * goes where a trip, there and back, brings home the most a second; a wedge
+   * of rock is too big for robots to crowd, so fewer there only breaks a tie.
    */
   private sendOnRock(b: number, cb: number, robots: Robot[], robot: Robot, owner: number): boolean {
     const rd = this.hullDesign[cb]!;
     const metalRoom = this.metal.pieceRoom(b, robot.bay) > ROBOT_SPENT;
     const fuelRoom = this.fuel.pieceRoom(b, robot.bay) > ROBOT_SPENT;
-    if (!(metalRoom || fuelRoom) || !(robot.cargo + robot.cargoFuel < ROBOT_LOAD - ROBOT_SPENT)) return false;
+    const room = ROBOT_LOAD - robot.cargo - robot.cargoFuel;
+    if (!(metalRoom || fuelRoom) || !(room > ROBOT_SPENT)) return false;
     const held = this.heldRock(this.bodyStore!, owner);
     const { dist, prev } = this.walkScratch(rd.modules.length);
     walk(rd, robot.at, dist, prev, (m) => this.ofRock(cb, m));
     let best = -1;
+    let bestRate = -1;
     let bestCrowd = Infinity;
-    let bestDist = Infinity;
     for (let m = 0; m < rd.modules.length; m++) {
       if (m === held || !Number.isFinite(dist[m]!) || !this.ofRock(cb, m) || !this.comesOff(owner, cb, rd, m)) continue;
       if (!this.minable(rd, m, metalRoom, fuelRoom)) continue;
+      // What it would bring home, as `mineRock` takes it, and the time it would take.
+      const spec = rd.modules[m]!.spec;
+      const rock = spec.kind === 'rock';
+      const kept = ((rock && metalRoom ? (spec.ore ?? 0) : 0) + (rock && fuelRoom ? (spec.ice ?? 0) : 0)) * (1 - DISASSEMBLY_WASTE);
+      const work = buildWork(this.stripStep(cb, rd, m).stats);
+      let kg = robot.charge / (work * REPAIR_ENERGY_PER_JOULE * MINING_POWER);
+      if (kept > 0) kg = min(kg, room / kept);
+      const time = (2 * dist[m]!) / ROBOT_SPEED + (kg * work) / ROBOT_REPAIR_RATE;
+      const rate = time > 0 ? (kg * kept) / time : 0;
       let crowd = 0;
       for (let k = 0; k < robots.length; k++) if (robots[k] !== robot && robots[k]!.away === robot.away && robots[k]!.target === m) crowd++;
-      if (crowd < bestCrowd || (crowd === bestCrowd && dist[m]! < bestDist)) {
+      if (rate > bestRate || (rate === bestRate && crowd < bestCrowd)) {
         best = m;
+        bestRate = rate;
         bestCrowd = crowd;
-        bestDist = dist[m]!;
       }
     }
     if (best < 0) return false;
@@ -6429,7 +6462,8 @@ export class Ships {
     }
     const spec = rd.modules[m]!.spec;
     const ore = spec.kind === 'rock' ? (spec.ore ?? 0) : 0;
-    const ice = spec.kind === 'rock' ? (spec.ice ?? 0) : 0;
+    // Its ice is kept only while its bay's tanks have room for it.
+    const ice = spec.kind === 'rock' && this.fuel.pieceRoom(b, robot.bay) > ROBOT_SPENT ? (spec.ice ?? 0) : 0;
     const step = this.stripStep(cb, rd, m);
     const work = buildWork(step.stats);
     const per = work * REPAIR_ENERGY_PER_JOULE * MINING_POWER;
@@ -7100,7 +7134,7 @@ export class Ships {
     const spec = design.modules[m]!.spec;
     const rock = spec.kind === 'rock';
     const ore = rock ? (spec.ore ?? 0) : 1;
-    const ice = rock ? (spec.ice ?? 0) : 0;
+    const ice = rock && this.fuel.pieceRoom(b, robot.bay) > ROBOT_SPENT ? (spec.ice ?? 0) : 0;
     const per = work * REPAIR_ENERGY_PER_JOULE * (rock ? MINING_POWER : 1);
     const done = this.damage.unbuiltAt(b, m);
     let kg = min((ROBOT_REPAIR_RATE / work) * dt, robot.charge / per);
@@ -9208,7 +9242,10 @@ export class Ships {
         // Mending is paid for in charge and metal, reserves and all.
         const mends = hurt && this.power.pieceHeld(tb, pad) > 0 && this.metal.pieceHeld(tb, pad) > 0;
         if (!(take > 0 || chargeTake > 0 || mends) || !(pump > 0)) continue;
-        const gap = length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!);
+        // To the pad, not the carrier's middle: one waiting at a pad would otherwise
+        // take the far one as soon as it is free, and cross whoever is coming the other way.
+        const place = this.modulePlace(bodies, tb, design, pad);
+        const gap = length(place.x - bodies.x[b]!, place.y - bodies.y[b]!);
         if (danger < 0) danger = approach.dockDanger > 0 ? this.dangerNear(bodies, i, tb) : 0;
         // A pad another fighter is already making for is a wait behind it.
         let queue = 0;

@@ -1023,7 +1023,8 @@ inside any one file is not contiguous.
   or landed on it — trusting them to keep clear, so a carrier does not run from its wing. The stock **Tanker** carries a great tank and a port on each
   beam; the `tanker` scenario has two Pickets dock on either side of one. **Any dock lets go the moment an
   armed enemy is within reach of the pair**, when the ship being filled minds danger (`scavengeDanger` above
-  zero for a claw, `dockDanger` for a pad or a port), and while one is, no claw grips, no fighter lands and no
+  zero for a claw, `dockDanger` for a pad or a port) — a pad once the fighter holds what it leaves with
+  (`launchFuel`, below) — and while one is, no claw grips, no fighter lands and no
   port mates for it. Docking is with a friend and stealing fuel is from a wreck or an enemy, so the two are
   wary by separate numbers, and by default only a claw is. **A claw also lets go of a hulk bearing down on
   it**, one that will hit within its `avoidHorizon`, for a ship that keeps out of the way at all: anything
@@ -1055,7 +1056,9 @@ inside any one file is not contiguous.
   zero, the default, once it cannot load another round; below zero, never — it makes for a friend's pad as
   it would for fuel, and whichever of the two thresholds sent it, it comes back for both. A pad pumps metal
   alongside fuel, each at its rate, from what the carrier can spare above its own `rearmBelow`, and lets go
-  once neither has more to give. A pad is scored by the fuel and metal it would hand over. The `rearm`
+  once the fighter holds its doctrine's `launchFuel`, `launchMetal` and `launchCharge` of a full load of
+  each — all of it by default — or the carrier has no more of one to give. So a fighter can come back early
+  for fuel and still leave full. A pad is scored by the fuel and metal it would hand over. The `rearm`
   scenario has three Dinkies fire themselves dry at a hulk and take turns on a Tender's two pads.
   **A fighter goes to a pad to be mended.** Once it is no more whole than its doctrine's `repairBelow` —
   the lower of its weakest core's integrity and the share of the mass it set out with that is still sound, a
@@ -1671,8 +1674,10 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   resolved at once. A body with no hull does not collide at all — everything in a battle is a ship or
   the wreck of one, and a bare mass with a radius is not a shape. **Two contacts give** rather than stop
   in a step, since a hull breaks up on the impulse one step puts through its welds: **rock** sinks in up to
-  `ROCK_SINK`, pushed back like a damper (`ROCK_DAMPING`), in proportion to how fast the two close and not
-  at all once they stop, the overlap left; and **a claw** met square on stabs in, pushed back by a spring
+  `ROCK_SINK`, and never past half the thinner module's thickness (`ROCK_SINK_SHARE`), pushed back like a
+  damper (`ROCK_DAMPING`), in proportion to how fast the two close and not at all once they stop, the overlap
+  left; rock and kernels hold what rests on them against sliding and rolling, up to `ROCK_FRICTION` of the
+  push along the contact, so a wreck turns with its rock; and **a claw** met square on stabs in, pushed back by a spring
   and damper per metre of its width (`CLAW_STIFFNESS`, `CLAW_DAMPING`), no harder than the spring at
   `CLAW_DEPTH` of its length in, where it is met hard, and held sideways.
 - **The spatial index is for queries, not collision pairing.** At a few hundred bodies, a sort along x and

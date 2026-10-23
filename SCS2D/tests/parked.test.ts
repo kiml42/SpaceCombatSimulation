@@ -134,17 +134,19 @@ describe('a fighter parked on a pad, met', () => {
 });
 
 describe('a fighter built on a pad, under threat', () => {
-  it('is filled to what it would come back for before it leaves', () => {
+  /** A Factory building one wary Dinky, an armed Corvette in reach, nobody flying; and the share of fuel it left with. */
+  function leaves(launchFuel: number, factoryFuel = 1): number {
     const doctrine = compileBlueprint(DINKY).doctrine;
-    const wary = { ...DINKY, doctrine: { ...doctrine, approach: { ...doctrine.approach, refuelBelow: 0.3, dockDanger: 1 } } };
+    const wary = { ...DINKY, doctrine: { ...doctrine, approach: { ...doctrine.approach, dockDanger: 1, launchFuel } } };
     const factory = compileBlueprint({
       ...FACTORY,
       modules: FACTORY.modules.map((m, i) => (i === 2 ? { ...m, keep: 1 } : m)),
       hangar: { [DINKY.name]: wary },
     });
-    // Armed and in reach, but nobody flies or fires.
     const run = makeBattle({ seed: 5, pilots: false }, (ships, world) => {
       const c = ships.spawn(world, { design: factory, x: 0, y: 0 });
+      const b = world.bodies.indexOf(ships.body(c));
+      for (let m = 0; m < factory.modules.length; m++) ships.fuel.vent(b, m, ships.fuel.held(b, m) * (1 - factoryFuel));
       ships.spawn(world, { design: compileBlueprint(CORVETTE), x: 400, y: 0, team: 1 });
       return { c };
     });
@@ -158,6 +160,20 @@ describe('a fighter built on a pad, under threat', () => {
     const fb = index(run, f);
     const core = run.ships.currentStructure(f).cores[0]!;
     const held = run.ships.fuel.pieceHeld(fb, core);
-    expect(held).toBeGreaterThanOrEqual(0.3 * (held + run.ships.fuel.pieceRoom(fb, core)) - 1);
+    return held / (held + run.ships.fuel.pieceRoom(fb, core));
+  }
+
+  it('is filled before it leaves', () => {
+    expect(leaves(1)).toBeGreaterThan(0.99);
+  });
+
+  it('leaves with what its doctrine asks for', () => {
+    const share = leaves(0.5);
+    expect(share).toBeGreaterThanOrEqual(0.5);
+    expect(share).toBeLessThan(0.6);
+  });
+
+  it('leaves with what it has once the carrier has none to spare', () => {
+    expect(leaves(1, 0)).toBeLessThan(0.01);
   });
 });

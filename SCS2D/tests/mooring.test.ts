@@ -28,6 +28,21 @@ describe('a ship moored to an asteroid', () => {
     expect(rockMass()).toBeLessThan(mass);
   });
 
+  it('keeps bringing metal home once its tanks are full, its robots carrying no fuel', () => {
+    const { run, miner } = moored();
+    const b = run.world.bodies;
+    const body = () => b.indexOf(run.ships.body(miner));
+    // A moored ship burns nothing, so its tanks fill with what its robots bring off the rock.
+    const modules = run.ships.currentStructure(miner).modules;
+    for (let m = 0; m < modules.length; m++) run.ships.fuel.add(body(), m, run.ships.fuel.pieceRoom(body(), m));
+    const robots = () => (run.ships as unknown as { robots: { on(b: number): { cargoFuel: number }[] | null } }).robots.on(body())!;
+    for (let t = 0; t < 120 * 60; t++) run.step();
+    const before = run.ships.metal.left(body());
+    for (let t = 0; t < 180 * 60 && run.ships.isMoored(miner); t++) run.step();
+    expect(run.ships.metal.left(body())).toBeGreaterThan(before);
+    expect(Math.max(...robots().map((r) => r.cargoFuel))).toBeLessThan(1);
+  });
+
   it('lets go once given an order, its robots called in off the rock first', () => {
     const { run, miner } = moored();
     const b = run.world.bodies;

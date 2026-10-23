@@ -1026,6 +1026,21 @@ function mantlet(ctx: CanvasRenderingContext2D, x: number, y: number, radius: nu
   ctx.fill();
 }
 
+/**
+ * Whether any of a ship's robots out is near the box `halfW` by `halfH` either
+ * side of `x`, `y`: one working on a rock it is moored to is well off its own
+ * hull, so the hull's being out of view says nothing.
+ */
+function robotsShown(ship: ShipView, x: number, y: number, halfW: number, halfH: number): boolean {
+  const robots = ship.robots ?? [];
+  let reach = 0;
+  for (let r = 0; r + ROBOT_VIEW_STRIDE <= robots.length; r += ROBOT_VIEW_STRIDE) {
+    reach = max(reach, length(robots[r]!, robots[r + 1]!));
+  }
+  reach += ROBOT_LENGTH;
+  return Math.abs(ship.x - x) - reach <= halfW && Math.abs(ship.y - y) - reach <= halfH;
+}
+
 function drawRobots(ctx: CanvasRenderingContext2D, ship: ShipView): void {
   const robots = ship.robots ?? [];
   if (robots.length === 0) return;
@@ -1678,7 +1693,10 @@ function drawScene(
     const ship = snapshot.ships[i]!;
     if (shown(ship)) drawShip(ctx, ship, camera.scale, arcsFor(ship.body, selected, arcs), false);
   }
-  for (let i = 0; i < snapshot.shipCount; i++) if (shown(snapshot.ships[i]!)) drawRobots(ctx, snapshot.ships[i]!);
+  for (let i = 0; i < snapshot.shipCount; i++) {
+    const ship = snapshot.ships[i]!;
+    if (robotsShown(ship, camera.x, camera.y, halfW, halfH)) drawRobots(ctx, ship);
+  }
   for (let i = 0; i < snapshot.shipCount; i++) {
     const ship = snapshot.ships[i]!;
     if (shown(ship)) drawShip(ctx, ship, camera.scale, arcsFor(ship.body, selected, arcs), true);
