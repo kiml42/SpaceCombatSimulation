@@ -62,19 +62,7 @@ import { abs, atan2, angleDelta, PI, brakingRate, clamp, cos, exp, floor, length
 import { Projectiles } from './projectiles.js';
 import { padApproaches, type PadApproach } from './padApproach.js';
 import type { Store } from './store.js';
-import {
-  crawl,
-  legLength,
-  neighbourOf,
-  pathTo,
-  ROBOT_VIEW_STRIDE,
-  RobotMode,
-  Robots,
-  staysWhole,
-  walk,
-  walkTime,
-  type Robot,
-} from './robots.js';
+import { crawl, legLength, neighbourOf, pathTo, robotShare, RobotMode, Robots, staysWhole, walk, walkTime, type Robot } from './robots.js';
 import { Allocation, EngineLayout } from './engines.js';
 import { addFlame, addTurret, attackBearing, AttackArcs, AttackRegion } from './attack.js';
 import { FiringSolution, interceptTime, Turrets, TurretState } from './turrets.js';
@@ -522,14 +510,8 @@ const HULL_ORBIT_STEP = 0.5;
  */
 const WAY_STICK = 0.3;
 
-/** The turn between one robot drawn on a module and the next, radians: the golden angle, so none line up. */
-const ROBOT_SPREAD = 2.4;
-/** The least room between robots drawn together, m. */
-const ROBOT_GAP = 1.5;
-/** How much of a module's half-breadth the robots working on it are dotted over. */
-const ROBOT_SPREAD_SHARE = 0.7;
-/** Times robots drawn too close are eased apart, each pass moving every such pair to `ROBOT_GAP`. */
-const ROBOT_EASING_PASSES = 3;
+/** How much of a module's half-length and half-breadth the robots on it stand within, so all are seen on it. */
+const ROBOT_SPOT_SHARE = 0.6;
 
 /** Which turn a module takes to be mended: cores, then engines and weapons, then the rest. */
 /** Less metal than this a robot carries, or a hull holds, is rounding rather than metal, kg. */
@@ -6320,7 +6302,7 @@ export class Ships {
       const work = buildWork(this.stripStep(cb, rd, m).stats);
       let kg = robot.charge / (work * REPAIR_ENERGY_PER_JOULE * MINING_POWER);
       if (kept > 0) kg = min(kg, room / kept);
-      const time = 2 * walkTime(rd, prev, m) + (kg * work) / ROBOT_REPAIR_RATE;
+      const time = 2 * walkTime(rd, prev, m, robot.tag) + (kg * work) / ROBOT_REPAIR_RATE;
       const rate = time > 0 ? (kg * kept) / time : 0;
       let crowd = 0;
       for (let k = 0; k < robots.length; k++) if (robots[k] !== robot && robots[k]!.away === robot.away && robots[k]!.target === m) crowd++;
@@ -7393,85 +7375,64 @@ export class Ships {
       const heading = this.robotPlace(design, robots, r);
       out.push(here.x + this.robotDx, here.y + this.robotDy, heading, charge, metal);
     }
-    // Where groups meet, as one leg ends and the next begins, any still too close are eased apart.
-    const n = out.length / ROBOT_VIEW_STRIDE;
-    for (let pass = 0; pass < ROBOT_EASING_PASSES; pass++) {
-      for (let p = 0; p < n; p++) {
-        for (let q = p + 1; q < n; q++) {
-          const pi = p * ROBOT_VIEW_STRIDE;
-          const qi = q * ROBOT_VIEW_STRIDE;
-          let dx = out[qi]! - out[pi]!;
-          let dy = out[qi + 1]! - out[pi + 1]!;
-          let d = length(dx, dy);
-          if (!(d < ROBOT_GAP)) continue;
-          if (!(d > 0)) {
-            dx = cos(q * ROBOT_SPREAD);
-            dy = sin(q * ROBOT_SPREAD);
-            d = 1;
-          }
-          const push = (0.5 * (ROBOT_GAP - d)) / d;
-          out[pi] = out[pi]! - dx * push;
-          out[pi + 1] = out[pi + 1]! - dy * push;
-          out[qi] = out[qi]! + dx * push;
-          out[qi + 1] = out[qi + 1]! + dy * push;
-        }
-      }
-    }
   }
 
   /** Where `robotPlace` puts a robot from the middle of the module it is on, m, in its design's frame. */
   private robotDx = 0;
   private robotDy = 0;
+  /** Where `spotOn` puts a robot from a module's middle, m, in its design's frame. */
+  private spotX = 0;
+  private spotY = 0;
 
   /**
    * Where robot `r` is drawn from the middle of the module it is on, into
-   * `robotDx` and `robotDy`, and which way it faces. Crawling, it is along its
-   * leg, and beside any others on the same one; working, it is dotted over
-   * the module with the rest working there, no closer to any than `ROBOT_GAP`.
+   * `robotDx` and `robotDy`, and which way it faces. Each robot has its own
+   * spot on each module (`spotOn`), works there, and crawls straight from its
+   * spot on one module to its spot on the next, so it arrives where it works.
    */
   private robotPlace(design: ShipDesign, robots: Robot[], r: number): number {
     const robot = robots[r]!;
     const here = design.modules[robot.at]!;
+    this.spotOn(design, robot.at, robot.tag);
+    const fromX = this.spotX;
+    const fromY = this.spotY;
     const path = robot.path;
-    const crawling = path !== null && robot.leg < path.length - 1;
-    const next = crawling ? path[robot.leg + 1]! : -1;
-    // Its place among the others doing the same here, and how many there are.
-    let rank = 0;
-    let count = 0;
-    for (let k = 0; k < robots.length; k++) {
-      const other = robots[k]!;
-      if (other.mode === RobotMode.Berthed || other.away !== robot.away || other.at !== robot.at) continue;
-      const theirs = other.path;
-      const along = theirs !== null && other.leg < theirs.length - 1;
-      if (along !== crawling || (crawling && theirs![other.leg + 1] !== next)) continue;
-      if (k < r) rank++;
-      count++;
-    }
-    if (crawling) {
+    if (path !== null && robot.leg < path.length - 1) {
+      const next = path[robot.leg + 1]!;
       const there = design.modules[next]!;
+      this.spotOn(design, next, robot.tag);
       const leg = legLength(design, path, robot.leg);
-      const t = leg > 0 ? robot.along / leg : 0;
-      const ux = leg > 0 ? (there.x - here.x) / leg : 1;
-      const uy = leg > 0 ? (there.y - here.y) / leg : 0;
-      // Side by side across the leg, as many abreast as the narrower module has room for, and the rest queued behind.
-      const room = 0.5 * min(min(here.spec.length, here.spec.width), min(there.spec.length, there.spec.width));
-      const lanes = 1 + 2 * floor(room / ROBOT_GAP);
-      const lane = rank % lanes;
-      const off = ROBOT_GAP * ((lane + 1) >> 1) * ((lane & 1) === 0 ? -1 : 1);
-      const back = ROBOT_GAP * floor(rank / lanes);
-      this.robotDx = (there.x - here.x) * t - ux * back - uy * off;
-      this.robotDy = (there.y - here.y) * t - uy * back + ux * off;
-      return atan2(uy, ux);
+      const t = leg > 0 ? min(1, robot.along / leg) : 0;
+      const wayX = there.x + this.spotX - here.x - fromX;
+      const wayY = there.y + this.spotY - here.y - fromY;
+      this.robotDx = fromX + wayX * t;
+      this.robotDy = fromY + wayY * t;
+      // Facing the way it crawls.
+      return atan2(wayY, wayX);
     }
-    // Over the module, evenly, as seeds in a sunflower: out to most of its breadth, and further if it is crowded.
-    const breadth = ROBOT_SPREAD_SHARE * 0.5 * min(here.spec.length, here.spec.width);
-    const reach = max(breadth, ROBOT_GAP * sqrt(count / PI));
-    const out = count > 1 ? reach * sqrt((rank + 0.5) / count) : 0;
-    const angle = rank * ROBOT_SPREAD;
-    this.robotDx = cos(angle) * out;
-    this.robotDy = sin(angle) * out;
+    this.robotDx = fromX;
+    this.robotDy = fromY;
     // Facing in to the middle of the module it is working on.
-    return angle + PI;
+    return atan2(-fromY, -fromX);
+  }
+
+  /**
+   * Robot `tag`'s spot on module `m`, from its middle, into `spotX` and
+   * `spotY`: over the middle of the module, the robots of one body dotted
+   * evenly over it, each module laid out its own way.
+   */
+  private spotOn(design: ShipDesign, m: number, tag: number): void {
+    const spec = design.modules[m]!.spec;
+    // A low-discrepancy sequence by tag, so robots numbered together stand apart.
+    const u = (tag * 0.7548776662 + robotShare(m, 1)) % 1;
+    const v = (tag * 0.5698402911 + robotShare(m, 2)) % 1;
+    const along = (2 * u - 1) * ROBOT_SPOT_SHARE * 0.5 * spec.length;
+    const across = (2 * v - 1) * ROBOT_SPOT_SHARE * 0.5 * spec.width;
+    const angle = spec.angle ?? 0;
+    const c = cos(angle);
+    const s = sin(angle);
+    this.spotX = along * c - across * s;
+    this.spotY = along * s + across * c;
   }
 
   /** `robotViews` for robot `r`, out on its rock, put in the frame of its own ship's body `b`. */

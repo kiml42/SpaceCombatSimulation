@@ -842,7 +842,10 @@ inside any one file is not contiguous.
   ship's modules and faster over broader ones in proportion past `ROBOT_ROOM` across, up to `ROBOT_TOP_SPEED` over an
   asteroid's rock (`robotSpeedOver`, the narrower of the two it crosses between), and is drawn there as
   a beetle facing the way it crawls, its two wing cases bars that empty as it spends its charge and its
-  metal, over every capital hull and its mounts and under every fighter, flying or landed. It sets out with `ROBOT_LOAD` of metal and `ROBOT_CHARGE` it may spend, goes to
+  metal, at its own spot on each module, from which it crawls straight to its spot on the next, so it arrives
+  where it works and a body's robots stand spread over a module rather than in a heap. Over a broad module it
+  keeps its own pace, up to `ROBOT_PACE_SPREAD` of the speed the module allows beyond `ROBOT_SPEED` slower, so a
+  crowd out on rock spreads out rather than marching in step. It is drawn over every capital hull and its mounts and under every fighter, flying or landed. It sets out with `ROBOT_LOAD` of metal and `ROBOT_CHARGE` it may spend, goes to
   the damaged module of its ship's that matters most — cores and robot bays, then engines and weapons, then the rest, the
   one fewest robots are after, the nearest of those — and mends it at `ROBOT_REPAIR_RATE`, at a pad's costs:
   `REPAIR_ENERGY_PER_JOULE` of what it carries, and the metal the module shed and `REPAIR_WASTE` more, drawn

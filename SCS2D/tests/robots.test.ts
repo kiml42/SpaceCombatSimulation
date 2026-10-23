@@ -107,21 +107,38 @@ describe('robots', () => {
     expect(views[4]).toBeCloseTo(1, 6);
   });
 
-  it('are drawn no closer to each other than a robot is long, however many crawl the same weld', () => {
+  it('are drawn moving steadily from spot to spot, never jumping, and work spread over the module they are on', () => {
     const run = scene((absorb) => absorb(CORE, 0.3));
+    const b = (): number => run.world.bodies.indexOf(run.ships.body(run.a));
+    const robots = () =>
+      (run.ships as unknown as { robots: { on(b: number): { mode: number; at: number; path: unknown; tag: number }[] } }).robots.on(b());
     const views: number[] = [];
-    for (let s = 0; s < 120; s++) {
+    const last = new Map<number, [number, number]>();
+    let working = 0;
+    for (let s = 0; s < 40 * 60; s++) {
       run.step();
       run.ships.robotViews(run.a, views);
-      const n = views.length / ROBOT_VIEW_STRIDE;
-      for (let p = 0; p < n; p++) {
-        for (let q = p + 1; q < n; q++) {
-          const pi = p * ROBOT_VIEW_STRIDE;
-          const qi = q * ROBOT_VIEW_STRIDE;
-          expect(Math.hypot(views[qi]! - views[pi]!, views[qi + 1]! - views[pi + 1]!)).toBeGreaterThan(1.2);
-        }
-      }
+      const out = robots().filter((r) => r.mode !== 0);
+      const spots = new Map<number, [number, number][]>();
+      out.forEach((robot, k) => {
+        const x = views[k * ROBOT_VIEW_STRIDE]!;
+        const y = views[k * ROBOT_VIEW_STRIDE + 1]!;
+        const was = last.get(robot.tag);
+        // Never a jump: a step's crawl, stretched a little between its spots, and well short of its own length.
+        if (was !== undefined) expect(Math.hypot(x - was[0], y - was[1])).toBeLessThan(0.25);
+        last.set(robot.tag, [x, y]);
+        if (robot.path !== null) return;
+        // Working: on its module, and where no other working there is.
+        const m = line.modules[robot.at]!;
+        expect(Math.abs(x - m.x)).toBeLessThanOrEqual(m.spec.length / 2);
+        expect(Math.abs(y - m.y)).toBeLessThanOrEqual(m.spec.width / 2);
+        for (const [ox, oy] of spots.get(robot.at) ?? []) expect(Math.hypot(x - ox, y - oy)).toBeGreaterThan(0.1);
+        spots.set(robot.at, [...(spots.get(robot.at) ?? []), [x, y]]);
+        working++;
+      });
+      for (const tag of [...last.keys()]) if (!out.some((r) => r.tag === tag)) last.delete(tag);
     }
+    expect(working).toBeGreaterThan(0);
   });
 
   it("crawl carefully over a ship's modules, and faster over broad ones such as rock, up to a cap", () => {
