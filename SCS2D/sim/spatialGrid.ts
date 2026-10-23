@@ -384,7 +384,9 @@ export class SpatialGrid {
           let t = segmentCircleT(x0, y0, dx, dy, bodies.x[bi], bodies.y[bi], bodies.radius[bi]);
           // The circle is the question "could this have been hit"; the narrow
           // phase is the answer to "was it, and where".
-          if (t >= 0 && narrow !== undefined) t = narrow.confirm(bodies, bi, x0, y0, dx, dy);
+          // A hull lies inside its circle, so one whose circle is entered past
+          // the nearest hit so far cannot be met sooner.
+          if (t >= 0 && narrow !== undefined) t = t - RAY_SLACK > this.rayBestT ? -1 : narrow.confirm(bodies, bi, x0, y0, dx, dy);
           if (t >= 0 && (t < this.rayBestT || (t === this.rayBestT && bi < this.rayBestIndex))) {
             this.rayBestT = t;
             this.rayBestIndex = bi;
@@ -395,6 +397,9 @@ export class SpatialGrid {
     }
   }
 }
+
+/** Far more than rounding, as a fraction of a cast, so only a clear miss is skipped. */
+const RAY_SLACK = 1e-9;
 
 /**
  * Where the segment (`x0`,`y0`) + t·(`dx`,`dy`) first meets the circle at
