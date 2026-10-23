@@ -4076,9 +4076,11 @@ export class Ships {
 
     // A ram overrides the rest of the doctrine: no cover, and no keeping clear
     // but of rocks and friends; and so does closing on a source, which means
-    // touching it, but for a hulk coming through.
+    // touching it, but for a hulk coming through. Landing keeps clear of all
+    // but its carrier, since two making for neighbouring pads cross.
     if (order?.grapple === true) this.avoid(bodies, i, b, target, NO_TARGET, true);
     if (order?.ram === true) this.avoid(bodies, i, b, target, NO_TARGET, false, true);
+    if (order?.land === true) this.avoid(bodies, i, b, target, NO_TARGET, false, false, true);
     if (!fleeing && (order === undefined || !(order.ram || order.grapple || order.land || order.dock))) {
       const covering = this.cover(bodies, i, b);
       if (target === NO_TARGET && covering >= 0) {
@@ -4931,12 +4933,23 @@ export class Ships {
     return gap > touching;
   }
 
-  private avoid(bodies: Bodies, i: number, b: number, flying: number, covering: number, hulksOnly = false, ramming = false): void {
+  private avoid(
+    bodies: Bodies,
+    i: number,
+    b: number,
+    flying: number,
+    covering: number,
+    hulksOnly = false,
+    ramming = false,
+    landing = false,
+  ): void {
     const approach = this.doctrines[i]!.approach;
     if (!(approach.separation > 0) || !(approach.separationRadii > 0)) return;
     const mine = this.designs[i]!.radius;
     // A rock or a friend it is ramming rides the body it is ramming.
     const flyingBody = flying === NO_TARGET ? -1 : bodies.indexOf(this.bodyIds[flying]!);
+    // Landing, nor the rock its carrier is moored to, which its pad sits against.
+    const under = landing && flying !== NO_TARGET ? this.carrierBodyOf(bodies, flying) : -1;
     const x = bodies.x[b]!;
     const y = bodies.y[b]!;
     const vx = bodies.vx[b]!;
@@ -4960,6 +4973,7 @@ export class Ships {
       // Nothing to keep clear of in something that cannot be hit.
       if (ob < 0 || ob === b || bodies.ghost[ob] === 1 || !this.meets(b, ob)) continue;
       if (ramming && ob === flyingBody) continue;
+      if (ob === under) continue;
 
       const touching = mine + this.designs[t]!.radius;
       // Clear by its own size, not the other's, which would keep it a rock's or a carrier's breadth off.
@@ -9199,7 +9213,10 @@ export class Ships {
         // Mending is paid for in charge and metal, reserves and all.
         const mends = hurt && this.power.pieceHeld(tb, pad) > 0 && this.metal.pieceHeld(tb, pad) > 0;
         if (!(take > 0 || chargeTake > 0 || mends) || !(pump > 0)) continue;
-        const gap = length(bodies.x[tb]! - bodies.x[b]!, bodies.y[tb]! - bodies.y[b]!);
+        // To the pad, not the carrier's middle: one waiting at a pad would otherwise
+        // take the far one as soon as it is free, and cross whoever is coming the other way.
+        const place = this.modulePlace(bodies, tb, design, pad);
+        const gap = length(place.x - bodies.x[b]!, place.y - bodies.y[b]!);
         if (danger < 0) danger = approach.dockDanger > 0 ? this.dangerNear(bodies, i, tb) : 0;
         // A pad another fighter is already making for is a wait behind it.
         let queue = 0;
