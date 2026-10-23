@@ -65,6 +65,16 @@ export interface Robot {
    */
   stood: number;
   stoodOn: number;
+  /**
+   * The asteroid, by ship, its own ship is moored to that it is out on, or
+   * -1 for one on its own hull. Out there, `at`, `target` and `path` are
+   * modules of the rock's design as it was when it last looked
+   * (`awayDesign`), and `bay` is still its own hull's.
+   */
+  away: number;
+  awayDesign: ShipDesign | null;
+  /** The asteroid it is crossing to, walking to its ship's claw to get there, or -1. */
+  bound: number;
 }
 
 /** Where to go next across a design's welds, and its seams: each module's neighbours, and the distances to them. */
@@ -331,12 +341,17 @@ export class Robots {
     const left: Robot[] = [];
     for (const robot of robots) {
       const bay = moduleOf(robot.bay);
-      const at = moduleOf(robot.at);
+      const at = robot.away >= 0 ? bay : moduleOf(robot.at);
       if (bay < 0 || at < 0) {
         left.push(robot);
         continue;
       }
       robot.bay = bay;
+      // Out on its rock, it is where it was there.
+      if (robot.away >= 0) {
+        out.push(robot);
+        continue;
+      }
       robot.at = at;
       robot.target = robot.target >= 0 ? moduleOf(robot.target) : -1;
       if (robot.target < 0) {
@@ -399,6 +414,9 @@ function stocked(bay: number): Robot {
     idleAt: -1,
     stood: 1,
     stoodOn: -1,
+    away: -1,
+    awayDesign: null,
+    bound: -1,
   };
 }
 
