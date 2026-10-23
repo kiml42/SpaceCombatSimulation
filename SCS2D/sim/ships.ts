@@ -5308,10 +5308,8 @@ export class Ships {
       else if (stab === Stab.B && this.grips(world, b, mb, a, ma, -nx, -ny, force)) claw = 'b';
       // Two ports nudged face to face mate, when one ship was making for the other.
       const port = claw === null && this.mates(world, a, ma, b, mb, closing);
-      // Only a claw holds on to a pinned hull, an asteroid's, as an anchor.
-      const pinnedA = bodies.pinned[a] === 1;
-      const pinnedB = bodies.pinned[b] === 1;
-      if ((pinnedA || pinnedB) && claw === null) continue;
+      // Nothing but a claw holds on to an asteroid nothing moves.
+      if ((bodies.pinned[a] === 1 || bodies.pinned[b] === 1) && claw === null) continue;
       if (claw === null && !port) {
         if (closing > WELD_SPEED) continue;
         if (!this.damage.ragged(a, ma) && !this.damage.ragged(b, mb)) continue;
@@ -5325,7 +5323,9 @@ export class Ships {
         const rockBody = claw === 'a' ? b : a;
         const holder = this.pilotAt(holderBody, claw === 'a' ? ma : mb);
         const rock = this.pilotAt(rockBody, claw === 'a' ? mb : ma);
-        if (holder >= 0 && rock >= 0 && this.isAsteroid(rock) && this.shipByBody[holderBody] === holder) {
+        if (rock >= 0 && this.isAsteroid(rock)) {
+          // Only a ship flying its own body moors: one riding another's has no body of its own to pin.
+          if (holder < 0 || this.shipByBody[holderBody] !== holder) continue;
           this.moor(bodies, holder, rock, claw === 'a' ? ma : mb, contacts.x[k]!, contacts.y[k]!);
           joined ??= new Set<number>();
           joined.add(i);
@@ -5335,9 +5335,8 @@ export class Ships {
           continue;
         }
       }
-      // A pinned hull keeps its body, and its pin; otherwise a flown hull
-      // keeps its body; two wrecks keep the older's slot.
-      const swap = pinnedB || (!pinnedA && this.derelict[i] === 1 && this.derelict[j] === 0);
+      // A flown hull keeps its body; two wrecks keep the older's slot.
+      const swap = this.derelict[i] === 1 && this.derelict[j] === 0;
       const dock: DockAt | null = port
         ? { at: swap ? 'b' : 'a', kind: 'port' }
         : claw === null
@@ -6131,7 +6130,7 @@ export class Ships {
    */
   private sendAcross(b: number, design: ShipDesign, robot: Robot, owner: number): boolean {
     const claw = this.mooredClaw[owner]!;
-    if (claw < 0 || this.bodyStore === null) return false;
+    if (claw < 0 || this.bodyStore === null || this.commanded(owner)) return false;
     const cb = this.carrierBodyOf(this.bodyStore, owner);
     if (cb < 0 || !this.strippableAcross(owner, b, robot.bay, cb)) return false;
     this.route(b, design, robot, owner, claw);
@@ -7440,10 +7439,8 @@ export class Ships {
     const total = massK + massO;
     const cx = bodies.x[bk]! + (design.centreOfMassX - dk.centreOfMassX) * ck - (design.centreOfMassY - dk.centreOfMassY) * sk;
     const cy = bodies.y[bk]! + (design.centreOfMassX - dk.centreOfMassX) * sk + (design.centreOfMassY - dk.centreOfMassY) * ck;
-    // A pinned keeper goes on as its rail has it, whatever joins it.
-    const pinned = bodies.pinned[bk] === 1;
-    const vx = pinned ? bodies.vx[bk]! : (massK * bodies.vx[bk]! + massO * bodies.vx[bo]!) / total;
-    const vy = pinned ? bodies.vy[bk]! : (massK * bodies.vy[bk]! + massO * bodies.vy[bo]!) / total;
+    const vx = (massK * bodies.vx[bk]! + massO * bodies.vx[bo]!) / total;
+    const vy = (massK * bodies.vy[bk]! + massO * bodies.vy[bo]!) / total;
     // About the new centre: each body's own spin, and its motion around it.
     const spinOf = (body: number, mass: number): number =>
       bodies.inertia[body]! * bodies.angularVel[body]! +
@@ -9392,8 +9389,9 @@ export class Ships {
   /**
    * Work the rock moored ship `f` holds, and say whether it keeps hold: its
    * robots taking it apart while its holds have room, or its claw melting
-   * the ice out. It lets go once neither can, its claw can no longer grip,
-   * what it held is gone, or an armed enemy is in reach.
+   * the ice out. It lets go once neither can, or it is given an order, when
+   * its robots are back; and at once if its claw can no longer grip, what it
+   * held is gone, or an armed enemy is in reach.
    */
   private tendMoored(world: World, f: number): boolean {
     const bodies = world.bodies;
@@ -9407,8 +9405,10 @@ export class Ships {
     if (held < 0) return false;
     if (this.damage.isProtected(cb)) return true;
     if (!this.sentTo(f) && this.threatened(bodies, f, cb, false)) return false;
-    if (this.canStrip(fb, f, claw, world.dt) && this.strippableAcross(f, fb, claw, cb)) return true;
-    if (this.heatAcross(bodies, fb, claw, cb, held, working * world.dt)) return true;
+    // Given an order, it calls its robots in and goes as soon as they are back.
+    const ordered = this.commanded(f);
+    if (!ordered && this.canStrip(fb, f, claw, world.dt) && this.strippableAcross(f, fb, claw, cb)) return true;
+    if (!ordered && this.heatAcross(bodies, fb, claw, cb, held, working * world.dt)) return true;
     // Done, but for its robots out on the rock, which it waits for.
     if (!this.anyAway(fb, f)) return false;
     this.recallAway(fb, this.hullDesign[fb]!, f, cb);
@@ -10748,7 +10748,7 @@ export class Ships {
       // One that pulls cannot be closed on slowly jaws first without thrust to hold off its pull.
       if (asteroid && !(this.holdsOff(bodies, i, b, claw, tb) > 1)) continue;
       // Nor one an enemy has hold of: it would be closing on the enemy as much as on the rock.
-      if (asteroid && this.enemyAboard(i, tb)) continue;
+      if (asteroid && this.enemyMoored(i, t)) continue;
       const held = asteroid ? this.rockHeld(tb, this.designs[t]!) : null;
       const fuel = held !== null ? held.ice : this.fuel.left(tb);
       const take = fuel < room ? fuel : room;
@@ -10793,11 +10793,11 @@ export class Ships {
     return best;
   }
 
-  /** Whether a ship hostile to ship `i` rides body `tb`. */
-  private enemyAboard(i: number, tb: number): boolean {
-    const bodies = this.bodyStore!;
-    for (let j = 0; j < this.alive.length; j++) {
-      if (this.alive[j] === 1 && bodies.indexOf(this.bodyIds[j]!) === tb && this.hostile(i, j)) return true;
+  /** Whether a ship hostile to ship `i` is moored to asteroid `t`. */
+  private enemyMoored(i: number, t: number): boolean {
+    for (let k = 0; k < this.parkedShips.length; k++) {
+      const j = this.parkedShips[k]!;
+      if (this.parkedOn[j] === t && this.mooredClaw[j]! >= 0 && this.hostile(i, j)) return true;
     }
     return false;
   }

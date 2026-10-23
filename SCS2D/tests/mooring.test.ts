@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { mining } from '../scenarios/mining.js';
+import { give } from '../scenarios/commands.js';
 
 /** A Salvager moored to a minor in the Mining scene, after its robots have been at it a while. */
 function moored(): { run: ReturnType<typeof mining>; miner: number; rock: number } {
@@ -25,6 +26,19 @@ describe('a ship moored to an asteroid', () => {
     expect(run.ships.currentStructure(miner).modules.some((m) => m.spec.kind === 'rock')).toBe(false);
     expect(metal()).toBeGreaterThan(before);
     expect(rockMass()).toBeLessThan(mass);
+  });
+
+  it('lets go once given an order, its robots called in off the rock first', () => {
+    const { run, miner } = moored();
+    const b = run.world.bodies;
+    const robots = () =>
+      (run.ships as unknown as { robots: { on(b: number): unknown[] | null } }).robots.on(b.indexOf(run.ships.body(miner)))!.length;
+    const crew = robots();
+    const other = run.miners.find((i) => i !== miner)!;
+    give(run, { kind: 'order', ships: [miner], order: { kind: 'defend', target: other }, append: false });
+    for (let t = 0; t < 120 * 60 && run.ships.isMoored(miner); t++) run.step();
+    expect(run.ships.isMoored(miner)).toBe(false);
+    expect(robots()).toBe(crew);
   });
 
   it('holds on through a blow its claw can take, and is knocked off by one it cannot', () => {

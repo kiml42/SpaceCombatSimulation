@@ -152,10 +152,9 @@ an entry is either still open or it is gone.
          whose main is split either side of a pad astern that keeps two Dinkies — on a pair of eccentric
          majors, nothing armed at the start: each anchors to its own rock, mines it, and builds Dinkies
          from what it mines, which go for the other outpost. Left from it:
-         - **Fighters cannot land on a carrier anchored to an asteroid** unless the pad faces away from the
-           rock: the carrier's hull is then the asteroid's, so a fighter keeps outside a circle round all of
-           it, and comes straight in only with no rock between it and the pad. The Prospector's pad is
-           astern for that reason.
+         - **A fighter landing on a moored carrier does not steer round its rock.** Moored, the carrier
+           keeps its own hull, so a fighter lands on it from any side whose way in is clear; one whose way
+           to the pad goes round the rock never gets there. The Prospector's pad is astern for that reason.
          - **A Prospector knocked off its rock hides** from armed enemies rather than going back to mine.
            Dinkies fight with their gun, and ram once it is shot off (`ramArmed`); a ram is what knocks an
            outpost off.
