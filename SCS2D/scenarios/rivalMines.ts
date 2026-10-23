@@ -80,6 +80,8 @@ export function rivalMines(seed = 20260905): Battle & { readonly miners: readonl
       ships.spawn(world, { design, ...orbiting(k, d, bearing), angle: bearing + math.HALF_PI, team });
 
     for (let k = 0; k < 2; k++) {
+      // Each outpost on the far side of its major from the other, and its minors spaced round from it.
+      const outpost = k === 0 ? math.PI : 0;
       const major = asteroidBlueprint(`Asteroid ${k + 1}`, { radius: MAJOR_RADIUS, kernel: true, ore: 0.35, ice: 0.25 }, rng);
       asteroids.push(
         ships.spawn(world, { design: compileBlueprint(major), rides: wells[k]!, team: NEUTRAL_TEAM, angularVel: k === 0 ? 0.002 : -0.002 }),
@@ -87,10 +89,9 @@ export function rivalMines(seed = 20260905): Battle & { readonly miners: readonl
       MINOR_ORBITS.forEach((d, n) => {
         const radius = 35 + rng.nextFloat() * 25;
         const minor = asteroidBlueprint(`Rock ${k + 1}.${n + 1}`, { radius, kernel: false, ore: 0.35, ice: 0.25 }, rng);
-        asteroids.push(spawn(compileBlueprint(minor), k, d + radius, (n * math.TAU) / MINOR_ORBITS.length + 1, NEUTRAL_TEAM));
+        asteroids.push(spawn(compileBlueprint(minor), k, d + radius, outpost + ((n + 0.5) * math.TAU) / MINOR_ORBITS.length, NEUTRAL_TEAM));
       });
-      // Each outpost on the far side of its major from the other.
-      miners.push(spawn(prospector, k, OUTPOST_ORBIT, k === 0 ? math.PI : 0, k));
+      miners.push(spawn(prospector, k, OUTPOST_ORBIT, outpost, k));
     }
     return { miners, asteroids };
   });

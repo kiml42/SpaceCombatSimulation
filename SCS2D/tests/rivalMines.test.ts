@@ -2,6 +2,18 @@ import { describe, expect, it } from 'vitest';
 import { rivalMines } from '../scenarios/rivalMines.js';
 
 describe('rival mines', () => {
+  it('starts each outpost clear of every asteroid', () => {
+    const run = rivalMines();
+    const b = run.world.bodies;
+    for (const i of run.miners) {
+      const mb = b.indexOf(run.ships.body(i));
+      for (const a of run.asteroids) {
+        const ab = b.indexOf(run.ships.body(a));
+        expect(Math.hypot(b.x[mb]! - b.x[ab]!, b.y[mb]! - b.y[ab]!)).toBeGreaterThan(b.radius[mb]! + b.radius[ab]!);
+      }
+    }
+  });
+
   it('has each outpost mine its own side’s rock, never what the other side holds, and build a Dinky', () => {
     const run = rivalMines();
     const majors = [run.asteroids[0]!, run.asteroids[4]!];
