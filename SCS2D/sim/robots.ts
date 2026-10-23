@@ -1,7 +1,7 @@
 import type { ShipDesign } from './blueprint.js';
 import { joints } from './connectivity.js';
-import { length } from './math.js';
-import { ROBOT_CHARGE, ROBOT_LOAD, ROBOT_MASS, ROBOT_REFILL_TIME, robotSpeedOver } from './modules.js';
+import { imul, length } from './math.js';
+import { ROBOT_CHARGE, ROBOT_LOAD, ROBOT_MASS, ROBOT_REFILL_TIME, ROBOT_SPEED, robotSpeedOver } from './modules.js';
 
 /**
  * Robots that crawl a hull mending it (ROADMAP.md §8, repair stage 3).
@@ -75,6 +75,8 @@ export interface Robot {
   awayDesign: ShipDesign | null;
   /** The asteroid it is crossing to, walking to its ship's claw to get there, or -1. */
   bound: number;
+  /** Which of its body's robots it is, for the pace it keeps and where on a module it stands (`robotShare`). */
+  tag: number;
 }
 
 /** Where to go next across a design's welds, and its seams: each module's neighbours, and the distances to them. */
@@ -229,11 +231,30 @@ export function legLength(design: ShipDesign, path: Int32Array, leg: number): nu
   return length(a.x - b.x, a.y - b.y);
 }
 
-/** How fast a robot crosses between modules `a` and `b` of a design: as fast as the narrower lets it. */
-function stepSpeed(design: ShipDesign, a: number, b: number): number {
+/**
+ * A share, from 0 up to 1, that robot `tag` has of something numbered `salt`:
+ * scattered, but the same every time it is asked.
+ */
+export function robotShare(tag: number, salt: number): number {
+  let h = imul(tag + 1, 0x9e3779b1) ^ imul(salt + 1, 0x85ebca6b);
+  h = imul(h ^ (h >>> 16), 0x7feb352d);
+  h = imul(h ^ (h >>> 15), 0x846ca68b);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+
+/** How much of what a broad module lets it run beyond `ROBOT_SPEED` a robot may give up, at most, at its own pace. */
+const ROBOT_PACE_SPREAD = 0.3;
+
+/**
+ * How fast robot `tag` crosses between modules `a` and `b` of a design: as
+ * fast as the narrower lets it, less some of what that is beyond `ROBOT_SPEED`
+ * by its own pace, so a crowd out on rock spreads rather than keeping step.
+ */
+function stepSpeed(design: ShipDesign, a: number, b: number, tag: number): number {
   const over = robotSpeedOver(design.modules[a]!.spec);
   const onto = robotSpeedOver(design.modules[b]!.spec);
-  return over < onto ? over : onto;
+  const room = (over < onto ? over : onto) - ROBOT_SPEED;
+  return ROBOT_SPEED + room * (1 - ROBOT_PACE_SPREAD * robotShare(tag, 0));
 }
 
 /** Move a robot `dt` seconds along its path over `design`, each leg at its own speed. */
@@ -241,7 +262,7 @@ export function crawl(design: ShipDesign, robot: Robot, dt: number): void {
   const path = robot.path!;
   let time = dt;
   while (robot.leg < path.length - 1) {
-    const speed = stepSpeed(design, path[robot.leg]!, path[robot.leg + 1]!);
+    const speed = stepSpeed(design, path[robot.leg]!, path[robot.leg + 1]!, robot.tag);
     const left = legLength(design, path, robot.leg) - robot.along;
     if (speed * time < left) {
       robot.along += speed * time;
@@ -254,13 +275,13 @@ export function crawl(design: ShipDesign, robot: Robot, dt: number): void {
   }
 }
 
-/** Seconds a robot takes to walk to module `to` by the routes `walk` left in `prev`. */
-export function walkTime(design: ShipDesign, prev: Int32Array, to: number): number {
+/** Seconds robot `tag` takes to walk to module `to` by the routes `walk` left in `prev`. */
+export function walkTime(design: ShipDesign, prev: Int32Array, to: number, tag: number): number {
   let time = 0;
   for (let m = to; prev[m]! >= 0; m = prev[m]!) {
     const a = design.modules[prev[m]!]!;
     const b = design.modules[m]!;
-    time += length(a.x - b.x, a.y - b.y) / stepSpeed(design, prev[m]!, m);
+    time += length(a.x - b.x, a.y - b.y) / stepSpeed(design, prev[m]!, m, tag);
   }
   return time;
 }
@@ -288,7 +309,7 @@ export class Robots {
       robots = [];
       for (let m = 0; m < design.modules.length; m++) {
         const count = design.modules[m]!.stats.robots;
-        for (let r = 0; r < count; r++) robots.push(stocked(m));
+        for (let r = 0; r < count; r++) robots.push(stocked(m, robots.length));
       }
     }
     let berths = 0;
@@ -366,7 +387,9 @@ export class Robots {
     const robots = this.of[bodyIndex];
     const design = this.designs[bodyIndex];
     if (!robots || !design) return;
-    robots.push(empty(bay));
+    let tag = 0;
+    for (const robot of robots) if (robot.tag >= tag) tag = robot.tag + 1;
+    robots.push(empty(bay, tag));
     this.missing[bodyIndex] = (this.missing[bodyIndex] ?? 0) - ROBOT_MASS;
     this.missingSpin[bodyIndex] = (this.missingSpin[bodyIndex] ?? 0) - ROBOT_MASS * spinOf(design, bay);
   }
@@ -441,7 +464,7 @@ function spinOf(design: ShipDesign, m: number): number {
 }
 
 /** A robot in its bay, set out stocked as a ship sets out with its stores full. */
-function stocked(bay: number): Robot {
+function stocked(bay: number, tag: number): Robot {
   return {
     bay,
     at: bay,
@@ -463,10 +486,11 @@ function stocked(bay: number): Robot {
     away: -1,
     awayDesign: null,
     bound: -1,
+    tag,
   };
 }
 
 /** A robot just built: empty, and to be refilled before it goes anywhere. */
-function empty(bay: number): Robot {
-  return { ...stocked(bay), metal: 0, charge: 0, refill: ROBOT_REFILL_TIME };
+function empty(bay: number, tag: number): Robot {
+  return { ...stocked(bay, tag), metal: 0, charge: 0, refill: ROBOT_REFILL_TIME };
 }

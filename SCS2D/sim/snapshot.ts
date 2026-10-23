@@ -169,7 +169,7 @@ export interface ShipView {
   robots?: number[];
   /** How many robots are home in each module, in the design's module order. Optional, as `robots` is. */
   berthed?: number[];
-  /** Each robot home, three numbers apiece: its bay, and the share of its charge and of its metal it has. Optional. */
+  /** Each robot home, four numbers apiece: its bay, the share of its charge and of its metal it has, and its berth. Optional. */
   docked?: number[];
   /** How many robots each module is the bay of, home or out, by module. Optional. */
   crews?: number[];

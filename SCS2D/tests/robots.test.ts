@@ -18,6 +18,8 @@ import {
   ROBOT_TOP_SPEED,
   ROBOT_VIEW_STRIDE,
   robotSpeedOver,
+  robotsOn,
+  ROBOT_WORK_AREA,
   type Blueprint,
 } from '../sim/index.js';
 import { makeBattle } from '../scenarios/battle.js';
@@ -107,21 +109,38 @@ describe('robots', () => {
     expect(views[4]).toBeCloseTo(1, 6);
   });
 
-  it('are drawn no closer to each other than a robot is long, however many crawl the same weld', () => {
+  it('are drawn moving steadily from spot to spot, never jumping, and work spread over the module they are on', () => {
     const run = scene((absorb) => absorb(CORE, 0.3));
+    const b = (): number => run.world.bodies.indexOf(run.ships.body(run.a));
+    const robots = () =>
+      (run.ships as unknown as { robots: { on(b: number): { mode: number; at: number; path: unknown; tag: number }[] } }).robots.on(b());
     const views: number[] = [];
-    for (let s = 0; s < 120; s++) {
+    const last = new Map<number, [number, number]>();
+    let working = 0;
+    for (let s = 0; s < 40 * 60; s++) {
       run.step();
       run.ships.robotViews(run.a, views);
-      const n = views.length / ROBOT_VIEW_STRIDE;
-      for (let p = 0; p < n; p++) {
-        for (let q = p + 1; q < n; q++) {
-          const pi = p * ROBOT_VIEW_STRIDE;
-          const qi = q * ROBOT_VIEW_STRIDE;
-          expect(Math.hypot(views[qi]! - views[pi]!, views[qi + 1]! - views[pi + 1]!)).toBeGreaterThan(1.2);
-        }
-      }
+      const out = robots().filter((r) => r.mode !== 0);
+      const spots = new Map<number, [number, number][]>();
+      out.forEach((robot, k) => {
+        const x = views[k * ROBOT_VIEW_STRIDE]!;
+        const y = views[k * ROBOT_VIEW_STRIDE + 1]!;
+        const was = last.get(robot.tag);
+        // Never a jump: a step's crawl, stretched a little between its spots, and well short of its own length.
+        if (was !== undefined) expect(Math.hypot(x - was[0], y - was[1])).toBeLessThan(0.25);
+        last.set(robot.tag, [x, y]);
+        if (robot.path !== null) return;
+        // Working: on its module, and where no other working there is.
+        const m = line.modules[robot.at]!;
+        expect(Math.abs(x - m.x)).toBeLessThanOrEqual(m.spec.length / 2);
+        expect(Math.abs(y - m.y)).toBeLessThanOrEqual(m.spec.width / 2);
+        for (const [ox, oy] of spots.get(robot.at) ?? []) expect(Math.hypot(x - ox, y - oy)).toBeGreaterThan(0.1);
+        spots.set(robot.at, [...(spots.get(robot.at) ?? []), [x, y]]);
+        working++;
+      });
+      for (const tag of [...last.keys()]) if (!out.some((r) => r.tag === tag)) last.delete(tag);
     }
+    expect(working).toBeGreaterThan(0);
   });
 
   it("crawl carefully over a ship's modules, and faster over broad ones such as rock, up to a cap", () => {
@@ -130,6 +149,54 @@ describe('robots', () => {
     expect(at(ROBOT_ROOM)).toBe(ROBOT_SPEED);
     expect(at(1.5 * ROBOT_ROOM)).toBeCloseTo(1.5 * ROBOT_SPEED, 9);
     expect(at(200)).toBe(ROBOT_TOP_SPEED);
+  });
+
+  it('mend a module no more of them at once than it has room for, by its area', () => {
+    expect(robotsOn({ kind: 'claw', x: 0, y: 0, length: 2.5, width: 2 })).toBe(2);
+    expect(robotsOn({ kind: 'structure', x: 0, y: 0, length: 1, width: 1 })).toBe(1);
+    expect(robotsOn({ kind: 'hold', x: 0, y: 0, length: 4, width: 8 })).toBe((4 * 8) / ROBOT_WORK_AREA);
+    // A small core and a big bay: more robots than the core has room for.
+    const crowded = compileBlueprint({
+      name: 'Crowded',
+      modules: [
+        { kind: 'core', x: 0.5, y: 0, length: 2, width: 2 },
+        { kind: 'structure', x: 4, y: 0, length: 5, width: 3 },
+        { kind: 'structure', x: 9, y: 0, length: 5, width: 3 },
+        { kind: 'structure', x: 14, y: 0, length: 5, width: 3 },
+        { kind: 'robotBay', x: 20.5, y: 0, length: 8, width: 8 },
+        { kind: 'hold', x: 20.5, y: 5.5, length: 4, width: 3 },
+        { kind: 'battery', x: 20.5, y: -5.5, length: 4, width: 3 },
+      ],
+    });
+    const core = crowded.cores[0]!;
+    const run = makeBattle({ seed: 1, pilots: false }, (ships, world) => {
+      const a = ships.spawn(world, { design: crowded, x: 0, y: 0, angle: 0 });
+      const b = world.bodies.indexOf(ships.body(a));
+      ships.damage.absorb(b, core, crowded.modules[core]!.stats.hitPoints * DAMAGE_ENERGY_PER_KG * 0.5);
+      return { a };
+    });
+    const robots = () =>
+      (run.ships as unknown as { robots: { on(b: number): { target: number; mode: number }[] } }).robots.on(
+        run.world.bodies.indexOf(run.ships.body(run.a)),
+      );
+    expect(crowded.modules.find((m) => m.spec.kind === 'robotBay')!.stats.robots).toBeGreaterThan(robotsOn(crowded.modules[core]!.spec));
+    let most = 0;
+    for (let s = 0; s < 20 * 60; s++) {
+      run.step();
+      most = Math.max(most, robots().filter((r) => r.mode !== 0 && r.target === core).length);
+    }
+    expect(most).toBe(robotsOn(crowded.modules[core]!.spec));
+  });
+
+  it('each have a berth of their own in their bay, where they are drawn home', () => {
+    const run = scene(() => {});
+    run.step();
+    const docked: number[] = [];
+    run.ships.robotsDocked(run.a, docked);
+    const berths = new Set<string>();
+    for (let r = 0; r < docked.length; r += 4) berths.add(`${docked[r]}:${docked[r + 3]}`);
+    expect(berths.size).toBe(docked.length / 4);
+    expect(berths.size).toBe(line.modules[BAY]!.stats.robots);
   });
 
   it('stay in their bay while nothing needs mending', () => {
