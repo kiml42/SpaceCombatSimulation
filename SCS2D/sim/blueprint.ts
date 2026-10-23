@@ -1343,6 +1343,7 @@ function place(
     if (placement.craft !== undefined) spec.craft = placement.craft;
     if (placement.docked !== undefined) spec.docked = placement.docked;
     if (placement.keep !== undefined) spec.keep = placement.keep;
+    if (placement.buildAnchored !== undefined) spec.buildAnchored = placement.buildAnchored;
     // Mirrored, a slipway lays its ship the other way round.
     if (placement.craftAngle !== undefined) spec.craftAngle = mirrored ? -placement.craftAngle : placement.craftAngle;
     if (placement.targeting !== undefined) spec.targeting = placement.targeting;

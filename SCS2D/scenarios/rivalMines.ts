@@ -48,15 +48,18 @@ export const RIVAL_RAILS: Rails = {
   root: { pair: [{ well: 0 }, { well: 1 }], orbit: { a: 2000, e: 0.6, periapsis: 0, phase: math.PI } },
 };
 
-/** How far out round its major each side's outpost and minors start, metres. */
+/** How far out round its major each side's outpost starts, metres. */
 const OUTPOST_ORBIT = 600;
-const MINOR_ORBITS = [450, 520, 600] as const;
+
+/** Both majors as many corners round and rings deep, so neither is the rougher to mine. */
+const MAJOR_CORNERS = 10;
+const MAJOR_RINGS = 3;
 
 /**
- * Two rival mining outposts, a Prospector on each of a pair of majors on an
- * eccentric mutual orbit, neither armed at the start: each anchors to its own
- * major and mines it, and builds Dinkies from what it mines, which go for the
- * other side's outpost.
+ * Two rival mining outposts, a Replicator on each of a pair of majors on an
+ * eccentric mutual orbit, with no minors, which the majors pass too close for
+ * any orbit round one to last: each anchors to its own major, mines it, and
+ * builds copies of itself from what it mines.
  */
 export function rivalMines(seed = 20260905): Battle & { readonly miners: readonly number[]; readonly asteroids: readonly number[] } {
   return makeBattle({ seed, wells: RIVAL_WELLS, rails: RIVAL_RAILS, projectiles: 64, beams: 16 }, (ships, world, wells) => {
@@ -80,17 +83,13 @@ export function rivalMines(seed = 20260905): Battle & { readonly miners: readonl
       ships.spawn(world, { design, ...orbiting(k, d, bearing), angle: bearing + math.HALF_PI, team });
 
     for (let k = 0; k < 2; k++) {
-      // Each outpost on the far side of its major from the other, and its minors spaced round from it.
+      // Each outpost on the far side of its major from the other.
       const outpost = k === 0 ? math.PI : 0;
-      const major = asteroidBlueprint(`Asteroid ${k + 1}`, { radius: MAJOR_RADIUS, kernel: true, ore: 0.35, ice: 0.25 }, rng);
+      const shape = { radius: MAJOR_RADIUS, kernel: true, ore: 0.35, ice: 0.25, corners: MAJOR_CORNERS, rings: MAJOR_RINGS };
+      const major = asteroidBlueprint(`Asteroid ${k + 1}`, shape, rng);
       asteroids.push(
         ships.spawn(world, { design: compileBlueprint(major), rides: wells[k]!, team: NEUTRAL_TEAM, angularVel: k === 0 ? 0.002 : -0.002 }),
       );
-      MINOR_ORBITS.forEach((d, n) => {
-        const radius = 35 + rng.nextFloat() * 25;
-        const minor = asteroidBlueprint(`Rock ${k + 1}.${n + 1}`, { radius, kernel: false, ore: 0.35, ice: 0.25 }, rng);
-        asteroids.push(spawn(compileBlueprint(minor), k, d + radius, outpost + ((n + 0.5) * math.TAU) / MINOR_ORBITS.length, NEUTRAL_TEAM));
-      });
       miners.push(spawn(replicator, k, OUTPOST_ORBIT, outpost, k));
     }
     return { miners, asteroids };

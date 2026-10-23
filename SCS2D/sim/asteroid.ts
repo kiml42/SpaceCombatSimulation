@@ -69,6 +69,9 @@ export interface AsteroidShape {
   /** The mean share of its rock that is ore, and that is ice. */
   readonly ore: number;
   readonly ice: number;
+  /** How many corners round it and rings of rock deep, drawn from `ASTEROID_CORNERS` and its kind's rings when absent. */
+  readonly corners?: number;
+  readonly rings?: number;
 }
 
 /** How many corners round an asteroid, and how many rings of rock deep. */
@@ -95,9 +98,9 @@ const RAGGED = 0.3;
  * thinning away from it, about the shape's mean.
  */
 export function asteroidBlueprint(name: string, shape: AsteroidShape, rng: Rng): Blueprint {
-  const corners = ASTEROID_CORNERS[0] + rng.nextInt(ASTEROID_CORNERS[1] - ASTEROID_CORNERS[0] + 1);
+  const corners = shape.corners ?? ASTEROID_CORNERS[0] + rng.nextInt(ASTEROID_CORNERS[1] - ASTEROID_CORNERS[0] + 1);
   const [fewest, most] = shape.kernel ? MAJOR_RINGS : MINOR_RINGS;
-  const rings = fewest + rng.nextInt(most - fewest + 1);
+  const rings = shape.rings ?? fewest + rng.nextInt(most - fewest + 1);
   const inner = shape.kernel ? shape.radius * KERNEL_SHARE : shape.radius / (rings + 1);
   const depth = (shape.radius - inner) / rings;
 
