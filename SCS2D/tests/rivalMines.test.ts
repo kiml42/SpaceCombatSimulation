@@ -19,8 +19,8 @@ describe('rival mines', () => {
     const majors = [run.asteroids[0]!, run.asteroids[1]!];
     for (let t = 0; t < 240 * 60; t++) run.step();
     run.miners.forEach((i, k) => {
-      expect(run.ships.currentStructure(i).modules.some((m) => m.spec.kind === 'rock' || m.spec.kind === 'kernel')).toBe(true);
-      expect(run.ships.body(i)).toBe(run.ships.body(majors[k]!));
+      expect(run.ships.isMoored(i)).toBe(true);
+      expect(run.ships.parkedCarrier(i)).toBe(majors[k]);
       expect(run.ships.body(i)).not.toBe(run.ships.body(run.miners[1 - k]!));
     });
     // A copy on each side's slipway, on the rock with its builder.

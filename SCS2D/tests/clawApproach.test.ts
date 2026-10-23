@@ -59,18 +59,16 @@ describe('a slipway that builds only anchored', () => {
 
   it('sends a ship with nothing to mine to anchor, square to the rock and whole, and builds held', () => {
     const run = atRock(replicator(true));
-    const body = (i: number) => run.world.bodies.indexOf(run.ships.body(i));
-    let t = 0;
-    for (; t < 180 * 60 && body(run.m) !== body(run.a); t++) run.step();
-    expect(body(run.m)).toBe(body(run.a));
-    // Every one of its own modules, its claws included, on the rock with it.
-    const own = run.ships.currentStructure(run.m).modules.filter((m) => m.spec.kind !== 'rock' && m.spec.kind !== 'kernel');
-    expect(own.length).toBe(compileBlueprint(REPLICATOR).modules.length);
+    const moored = () => run.ships.isMoored(run.m) && run.ships.parkedCarrier(run.m) === run.a;
+    for (let t = 0; t < 180 * 60 && !moored(); t++) run.step();
+    expect(moored()).toBe(true);
+    // Every one of its modules, its claws included, still on it.
+    expect(run.ships.currentStructure(run.m).modules.length).toBe(compileBlueprint(REPLICATOR).modules.length);
     for (let s = 0; s < 120 * 60 && !printing(run); s++) run.step();
     expect(printing(run)).toBe(true);
     // Its claw holds on while it builds.
     for (let s = 0; s < 60 * 60; s++) run.step();
-    expect(body(run.m)).toBe(body(run.a));
+    expect(moored()).toBe(true);
   });
 
   it('keeps whether it builds only anchored in a file', () => {

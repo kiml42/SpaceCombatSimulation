@@ -16,6 +16,6 @@ it('a fighter lands on a carrier anchored to a rock, holding itself up against t
     return { carrier, fighter };
   });
   for (let t = 0; t < 60 * 60; t++) run.step();
-  expect(run.ships.currentStructure(run.carrier).modules.some((m) => m.spec.kind === 'rock')).toBe(true);
+  expect(run.ships.isMoored(run.carrier)).toBe(true);
   expect(run.ships.parkedCarrier(run.fighter)).toBe(run.carrier);
 });

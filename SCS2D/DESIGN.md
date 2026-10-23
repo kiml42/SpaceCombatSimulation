@@ -749,6 +749,13 @@ inside any one file is not contiguous.
   what the other piece holds into its own (`Ships.pump`), and once its piece is full or the other dry it lets
   go, cutting the seam. Gripping a live enemy makes the two ride one body, pulling against each other. A
   claw grips only for fuel it has room for.
+  **A claw on an asteroid moors to it instead**, as a fighter is parked on a pad (`Ships.moor`): the ship keeps
+  its own body and design, pinned each step in the rock's blueprint frame, meeting neither the rock nor what is
+  parked on either, and weighing on a rock that moves. Its robots walk to the claw and cross onto the rock to
+  mine it, and back across with what they carry; the module the claw grips is left to hold it by. It lets go
+  once neither its robots nor its claw can take any more, or it is given an order, waiting for robots out on the rock, or at once for
+  an armed enemy in reach, leaving them. A blow beyond what its claw holds, the seam's strength the shock
+  spent with distance as through a weld, knocks it off, the excess its own.
   **A pilot takes its claw to wrecks** once its claw's piece of hull is down to its doctrine's
   `scavengeFuelBelow` of a full load (zero, never, by default), and goes from source to source until it is full.
   It picks the wreck, or the enemy with no main guns left, that pays the most fuel, less what the trip burns,
@@ -1105,7 +1112,7 @@ inside any one file is not contiguous.
   `kernel`, an indestructible convex polygon on no side, rides one on a pinned body (the Kernels scene); round it
   are rings of rock wedges, each a share ore and ice, drawn with minors from a seed into a battle's map,
   clear of the ships (the Asteroid Field scene), and offered by the custom battle, evolution and the
-  skirmish. Robots mine rock into one hold, ore as metal and ice as fuel, and a claw alone melts ice;
+  skirmish. Rock that meets rock slowly sticks, torn or not, and the two go on as one body: a minor onto a major rides its rail, and two majors never weld. A claw moors its ship to an asteroid, as a pad parks a fighter, and its robots cross onto the rock to mine it into one hold, ore as metal and ice as fuel, and a claw alone melts ice;
   scavenging goes for asteroids by what they hold (the Mining scene). An asteroid picked out in the
   viewer shows what is left in it, and a right-click on one sends the picked ships with claws to mine it.
   A claw ship closes jaws first, round asteroids in its way, at doctrine's `clawSpeed`, and passes over an

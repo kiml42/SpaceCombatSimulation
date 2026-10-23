@@ -72,7 +72,7 @@ export const JOINT_IMPULSE_PER_AREA = 3.0e6;
  * How thick a module is where it is welded: its wall, or for an asteroid,
  * solid all through, the thickness rubble is bound at (`ROCK_SEAM_THICKNESS`).
  */
-function seamThickness(design: ShipDesign, module: number): number {
+export function seamThickness(design: ShipDesign, module: number): number {
   const { spec, stats } = design.modules[module]!;
   return spec.kind === 'rock' || spec.kind === 'kernel' ? ROCK_SEAM_THICKNESS : stats.wallThickness;
 }
