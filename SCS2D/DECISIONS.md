@@ -16,6 +16,7 @@ inside any one file is not contiguous.
 
 | File | Holds | Read it when |
 | --- | --- | --- |
+| 2026-10-23 | **Keeping clear is timed by when two craft would touch, and a ram keeps clear of rocks.** From the author, on Rival Mines: a Dinky let go of its pad and flew at full burn into the rock its carrier was anchored to, its target being on the far side. Avoidance took how soon a pair would be at its closest, middle to middle, and ignored anything further off than `avoidHorizon`: heading for a 275 m rock's middle that was some 12 s away, though the surface was a second or two. It now takes how long until they would touch, where they would. A ram, which kept clear of nothing, now keeps clear of rocks, by its own size times `separationRadii` rather than the rock's, which would hold it a rock's breadth off, and never of a rock its target rides. It moved Swarm's, Column's and Standoff's goldens, those battles going differently from their first dodge. Red's Prospector is still knocked off its rock later in the battle, as before. |
 | **[DESIGN.md](DESIGN.md)** | Status, §§1–7 and 9–11 — what the game is, how it works, and why | Deciding how something should behave |
 | **[ROADMAP.md](ROADMAP.md)** | §8 build order, §12 open questions | Picking up work, or deferring a decision |
 | **[DECISIONS.md](DECISIONS.md)** | The Decision Log | Asking why something ended up the way it is |

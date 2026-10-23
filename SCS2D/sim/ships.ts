@@ -3983,10 +3983,11 @@ export class Ships {
       }
     }
 
-    // A ram overrides the rest of the doctrine: no cover, no keeping clear;
-    // and so does closing on a source, which means touching it, but for a hulk
-    // coming through, which keeps clear of nothing.
+    // A ram overrides the rest of the doctrine: no cover, and no keeping clear
+    // but of rocks, which nothing rams on purpose; and so does closing on a
+    // source, which means touching it, but for a hulk coming through.
     if (order?.grapple === true) this.avoid(bodies, i, b, target, NO_TARGET, true);
+    if (order?.ram === true) this.avoid(bodies, i, b, target, NO_TARGET, false, true);
     if (!fleeing && (order === undefined || !(order.ram || order.grapple || order.land || order.dock))) {
       const covering = this.cover(bodies, i, b);
       if (target === NO_TARGET && covering >= 0) {
@@ -4832,10 +4833,12 @@ export class Ships {
     return gap > touching;
   }
 
-  private avoid(bodies: Bodies, i: number, b: number, flying: number, covering: number, hulksOnly = false): void {
+  private avoid(bodies: Bodies, i: number, b: number, flying: number, covering: number, hulksOnly = false, rocksOnly = false): void {
     const approach = this.doctrines[i]!.approach;
     if (!(approach.separation > 0) || !(approach.separationRadii > 0)) return;
     const mine = this.designs[i]!.radius;
+    // A rock it is flying at rides the body it is flying at.
+    const flyingBody = flying === NO_TARGET ? -1 : bodies.indexOf(this.bodyIds[flying]!);
     const x = bodies.x[b]!;
     const y = bodies.y[b]!;
     const vx = bodies.vx[b]!;
@@ -4853,12 +4856,15 @@ export class Ships {
       // keep clear of it, rather than running from its wing as it comes and goes.
       if (this.home[t] === i) continue;
       if (hulksOnly && this.hasControl(t)) continue;
+      if (rocksOnly && !this.isAsteroid(t)) continue;
       const ob = bodies.indexOf(this.bodyIds[t]!);
       // Nothing to keep clear of in something that cannot be hit.
       if (ob < 0 || ob === b || bodies.ghost[ob] === 1 || !this.meets(b, ob)) continue;
+      if (rocksOnly && ob === flyingBody) continue;
 
       const touching = mine + this.designs[t]!.radius;
-      let room = touching * approach.separationRadii;
+      // Clear of a rock by its own size, not the rock's, which would keep it a rock's breadth off.
+      let room = (rocksOnly ? mine : touching) * approach.separationRadii;
       // Its charge no further out than its station, or the two wants fight:
       // covering pulls it in to where keeping clear pushes it out.
       if (t === covering) room = min(room, max(0, this.escortBand(i, this.designs[i]!, t) - touching));
@@ -4876,12 +4882,15 @@ export class Ships {
       // same battle diverge from a rounding difference.
       const speedSq = rvx * rvx + rvy * rvy;
       const closing = dx * rvx + dy * rvy;
-      const when = speedSq > 0 ? max(0, -closing / speedSq) : 0;
-      if (when > approach.avoidHorizon) continue;
-      const missX = dx + rvx * when;
-      const missY = dy + rvy * when;
+      const closest = speedSq > 0 ? max(0, -closing / speedSq) : 0;
+      const missX = dx + rvx * closest;
+      const missY = dy + rvy * closest;
       const miss = length(missX, missY);
       if (miss >= touching + room) continue;
+      // Soon is when they touch, if they will: the closest the middles come is
+      // far later than that for anything large.
+      const when = miss < touching && speedSq > 0 ? max(0, closest - sqrt((touching * touching - miss * miss) / speedSq)) : closest;
+      if (when > approach.avoidHorizon) continue;
       // Nor a friend coming to land on it or dock with it: shying away from
       // that is refusing it.
       if (this.salvaging[t] === i && (this.landingPad[t]! >= 0 || this.dockPort[t]! >= 0)) continue;
