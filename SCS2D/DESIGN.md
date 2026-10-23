@@ -1671,8 +1671,10 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   resolved at once. A body with no hull does not collide at all — everything in a battle is a ship or
   the wreck of one, and a bare mass with a radius is not a shape. **Two contacts give** rather than stop
   in a step, since a hull breaks up on the impulse one step puts through its welds: **rock** sinks in up to
-  `ROCK_SINK`, pushed back like a damper (`ROCK_DAMPING`), in proportion to how fast the two close and not
-  at all once they stop, the overlap left; and **a claw** met square on stabs in, pushed back by a spring
+  `ROCK_SINK`, and never past half the thinner module's thickness (`ROCK_SINK_SHARE`), pushed back like a
+  damper (`ROCK_DAMPING`), in proportion to how fast the two close and not at all once they stop, the overlap
+  left; rock and kernels hold what rests on them against sliding and rolling, up to `ROCK_FRICTION` of the
+  push along the contact, so a wreck turns with its rock; and **a claw** met square on stabs in, pushed back by a spring
   and damper per metre of its width (`CLAW_STIFFNESS`, `CLAW_DAMPING`), no harder than the spring at
   `CLAW_DEPTH` of its length in, where it is met hard, and held sideways.
 - **The spatial index is for queries, not collision pairing.** At a few hundred bodies, a sort along x and
