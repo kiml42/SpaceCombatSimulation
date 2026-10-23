@@ -156,8 +156,9 @@ an entry is either still open or it is gone.
            rock: the carrier's hull is then the asteroid's, so a fighter keeps outside a circle round all of
            it, and comes straight in only with no rock between it and the pad. The Prospector's pad is
            astern for that reason.
-         - **Dinkies only ram**, so the battle is won by knocking an outpost off its rock; one knocked off
-           hides from armed enemies rather than going back to mine.
+         - **A Prospector knocked off its rock hides** from armed enemies rather than going back to mine.
+           Dinkies fight with their gun, and ram once it is shot off (`ramArmed`); a ram is what knocks an
+           outpost off.
        - **Fit frames a scavenger with what it is closing on**, the asteroid or hulk, as it frames a ship with
          what it is attacking: framing follows what a ship is fighting and escorting, not its errand.
     5. **Grabbing an asteroid survivably** — partly built. A claw ship closes jaws first all the way, braking
