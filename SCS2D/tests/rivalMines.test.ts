@@ -19,9 +19,9 @@ describe('rival mines', () => {
     const majors = [run.asteroids[0]!, run.asteroids[4]!];
     for (let t = 0; t < 240 * 60; t++) run.step();
     run.miners.forEach((i, k) => {
-      expect(run.ships.currentStructure(i).modules.some((m) => m.spec.kind === 'rock')).toBe(true);
       // Its thrust is much the same every way, so it can hold itself off a major's pull jaws first.
-      expect(run.ships.body(i)).toBe(run.ships.body(majors[k]!));
+      expect(run.ships.isMoored(i)).toBe(true);
+      expect(run.ships.parkedCarrier(i)).toBe(majors[k]);
       expect(run.ships.body(i)).not.toBe(run.ships.body(run.miners[1 - k]!));
     });
     const fighters = [];
