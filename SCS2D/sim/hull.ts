@@ -171,6 +171,7 @@ export function modulesAlong(
     const m = design.modules[i]!;
     if (i === skip || (moduleLayers(m, bodyLayers) & layers) === 0) continue;
     const triangle = shapeOf(m.spec);
+    if (passesWide(m, triangle, x0, y0, ux, uy, length)) continue;
     if (triangle !== null) {
       shapedModuleAlong(m, triangle, i, x0, y0, ux, uy, length, out);
       continue;
@@ -265,6 +266,34 @@ export function modulesAlong(
     }
     out.push(i, entry, exit, nx, ny);
   }
+}
+
+/**
+ * Whether the segment passes clear of the circle round module `m`, so cannot
+ * cross it: what spares most modules of a big ship the trigonometry.
+ */
+function passesWide(
+  m: DesignModule,
+  corners: readonly number[] | null,
+  x0: number,
+  y0: number,
+  ux: number,
+  uy: number,
+  length: number,
+): boolean {
+  let r2 = 0;
+  if (corners === null) {
+    r2 = (m.spec.length * m.spec.length + m.spec.width * m.spec.width) * 0.25;
+  } else {
+    for (let v = 0; v < corners.length; v += 2) r2 = max(r2, corners[v]! * corners[v]! + corners[v + 1]! * corners[v + 1]!);
+  }
+  const ox = m.x - x0;
+  const oy = m.y - y0;
+  const t = min(max(ox * ux + oy * uy, 0), length);
+  const ex = ox - ux * t;
+  const ey = oy - uy * t;
+  // Generous by far more than rounding, so only a clear miss is skipped.
+  return ex * ex + ey * ey > r2 * (1 + 1e-6) + 1e-6;
 }
 
 /**

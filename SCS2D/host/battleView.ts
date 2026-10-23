@@ -8,6 +8,7 @@ import {
   draw,
   drawCloseUps,
   drawFleetStrips,
+  StripCache,
   drawTargetRange,
   fleetStrips,
   nextArcs,
@@ -234,6 +235,7 @@ export function battleView(
   let seeking = -1;
   const snapshot = new Snapshot();
   const flashes = new Flashes();
+  const stripCache = new StripCache();
   const camera: Camera = { x: 0, y: 0, scale: 0.1 };
   /** The leading picked ship's body, as the renderer marks it, worked out each frame. */
   let selected = -1;
@@ -353,14 +355,17 @@ export function battleView(
       commanded(x, y, reach, queue) {
         const ship = shipViewAt(snapshot, x, y, reach);
         const side = orderSide(snapshot);
-        if (ship === null || side === null || ship.team === NEUTRAL_TEAM) return;
+        if (ship === null || side === null) return;
         // An armed verb first: on a Mac, Ctrl and a click arrive as a right-click.
         if (armed !== null) {
           order(armed, ship, queue, armedCancel);
           armed = null;
           return;
         }
-        order(ship.team === side ? 'defend' : 'attack', ship, queue, OrderCancelCondition.CompleteDisable);
+        // An asteroid is mined, by those with a claw to hold it.
+        if (ship.rock !== undefined) order('scavenge', ship, queue, armedCancel);
+        else if (ship.team !== NEUTRAL_TEAM)
+          order(ship.team === side ? 'defend' : 'attack', ship, queue, OrderCancelCondition.CompleteDisable);
       },
       doubled(x, y, reach) {
         if (!ordersAllowed) return;
@@ -381,11 +386,12 @@ export function battleView(
   const order = (verb: Verb, target: ShipView, append: boolean, cancelOn: OrderCancelCondition): void => {
     const side = orderSide(snapshot);
     if (!ordersAllowed || side === null || target.ship === undefined) return;
-    // Only cover is on no side.
-    if (target.team === NEUTRAL_TEAM && verb !== 'flee') return;
+    // On no side is only cover, and asteroids to mine.
+    if (target.team === NEUTRAL_TEAM && verb !== 'flee' && !(verb === 'scavenge' && target.rock !== undefined)) return;
     // A friend is defended or docked with, and an enemy attacked or rammed.
     if (!EITHER.has(verb) && FRIENDLY.has(verb) !== (target.team === side)) return;
-    const ships = picked.filter((i) => i !== target.ship);
+    // Only a ship with a claw scavenges: the rest keep what they were doing.
+    const ships = picked.filter((i) => i !== target.ship && (verb !== 'scavenge' || hasClaw(viewOf(snapshot, i))));
     if (ships.length === 0) return;
     const speed = held.speed === undefined ? {} : { speed: held.speed };
     const given: Order =
@@ -639,7 +645,7 @@ export function battleView(
     const markedBody = markedModules === null ? -1 : (viewOf(view, markedModules.ship)?.body ?? -1);
     const marked = markedBody < 0 ? null : { body: markedBody, modules: markedModules!.modules };
     draw(ctx, view, camera, canvas.width, canvas.height, flashes, arcs, teamShots, selected, also, marked);
-    if (tiles !== null) drawFleetStrips(ctx, view, tiles, selected, ratio, flashes, arcs, teamShots);
+    if (tiles !== null) drawFleetStrips(ctx, view, tiles, selected, ratio, flashes, arcs, teamShots, stripCache);
     const insets = closeUps(view, camera, canvas.width, canvas.height, selected, ratio, tiles);
     drawCloseUps(ctx, view, insets, selected, ratio, flashes, arcs, teamShots, marked);
     drawTargetRange(ctx, view, camera, canvas.width, canvas.height, selected, insets, ratio);
@@ -801,4 +807,8 @@ function addHits(flashes: Flashes, log: ImpactLog): void {
       log.dirY[i]!,
     );
   }
+}
+
+function hasClaw(ship: ShipView | null): boolean {
+  return ship?.currentStructure.modules.some((m) => m.spec.kind === 'claw') === true;
 }
