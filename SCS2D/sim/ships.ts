@@ -4025,7 +4025,7 @@ export class Ships {
           let radial: number;
           // Lining up square takes turning both ways: one that cannot stop a turn closes on the middle.
           const layout = this.layoutOf(i);
-          if (layout.maxTorque(1) > 0 && layout.maxTorque(-1) > 0 && this.chooseGrip(bodies, i, b, tb, claw, dt)) {
+          if (layout.maxTorque(1) > 0 && layout.maxTorque(-1) > 0 && this.chooseGrip(bodies, i, b, tb, target, claw, dt)) {
             radial = this.squareUp(bodies, i, b, tb, claw, standOff);
             wantAngle = this.gripHeading;
           } else {
@@ -10461,7 +10461,7 @@ export class Ships {
    * is spent; looked at again every `GRIP_RECHOOSE` before that. False with
    * no outside face facing the claw, for it to close on the middle instead.
    */
-  private chooseGrip(bodies: Bodies, i: number, b: number, tb: number, claw: number, dt: number): boolean {
+  private chooseGrip(bodies: Bodies, i: number, b: number, tb: number, source: number, claw: number, dt: number): boolean {
     const hull = this.hullDesign[tb];
     if (hull === null || hull === undefined) return false;
     const angle = bodies.angle[tb]!;
@@ -10499,6 +10499,8 @@ export class Ships {
     // How good the best face so far is, before how near: wide enough for the jaws counts for more than room in front of it.
     let bestTier = -1;
     for (let m = 0; m < hull.modules.length; m++) {
+      // Only the source's own: a friend anchored to the same rock stands in the way, and is no face to grip.
+      if (this.pilotAt(tb, m) !== source) continue;
       const from = starts[m]!;
       const n = (starts[m + 1]! - from) / 2;
       for (let e = 0; e < n; e++) {
