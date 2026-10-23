@@ -2676,7 +2676,8 @@ export class Ships {
     const b = bodies.indexOf(this.bodyIds[i]!);
     if (b < 0) return;
     const order = this.effectiveOrder(i);
-    const ramming = order !== undefined && order.target !== NO_TARGET && (order.ram || order.grapple);
+    // Parked, it meets nothing of its carrier, so would look clear on the pad and drop into its hull when let go.
+    const ramming = order !== undefined && order.target !== NO_TARGET && (order.ram || order.grapple) && this.parkedOn[i]! < 0;
     const want = ramming ? 1 : 0;
     if (want === this.committed[i] || !this.clearOfHulls(bodies, b)) return;
     this.committed[i] = want;
@@ -4352,6 +4353,7 @@ export class Ships {
     const sweep = design.radius * chord + margin;
     let c = NaN;
     let sn = NaN;
+    const myLayers = this.shipLayers(i);
     // By body: a carrier holding something in its claw is one body with it, which either may ride first.
     const touched = touching === NO_TARGET || this.alive[touching] === 0 ? -1 : bodies.indexOf(this.bodyIds[touching]!);
     for (let t = 0; t < this.alive.length; t++) {
@@ -4372,8 +4374,10 @@ export class Ships {
       const os = sin(bodies.angle[ob]!);
       const mine = moduleSizes(design);
       const sizes = moduleSizes(theirs);
+      const theirLayers = this.layersOf(ob);
       for (let k = 0; k < design.modules.length; k++) {
         const m = design.modules[k]!;
+        const layers = moduleLayers(m, myLayers);
         const rx = m.x * c - m.y * sn;
         const ry = m.x * sn + m.y * c;
         const room = length(rx, ry) * chord + margin;
@@ -4382,6 +4386,8 @@ export class Ships {
         if (!(length(ox - x - rx, oy - y - ry) < size + theirs.radius + room)) continue;
         for (let q = 0; q < theirs.modules.length; q++) {
           const n = theirs.modules[q]!;
+          // A fighter overflies thin hull, its own pad among it.
+          if ((moduleLayers(n, theirLayers) & layers) === 0) continue;
           const dx = ox + n.x * oc - n.y * os - x - rx;
           const dy = oy + n.x * os + n.y * oc - y - ry;
           // Clearly out of reach, without the square root.

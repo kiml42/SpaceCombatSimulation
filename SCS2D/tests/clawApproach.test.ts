@@ -106,7 +106,12 @@ describe('a claw ship closing on a source', () => {
       const b = run.world.bodies.indexOf(run.ships.body(run.m));
       return ships.clawArrival(run.world.bodies, b, ships.workingClaw(run.m, b));
     };
-    expect(speed(replicator(false))).toBeLessThan(1.6);
+    // The same hull, its holds full and all but empty.
+    const loaded = (fill: number): Blueprint => ({
+      ...REPLICATOR,
+      modules: REPLICATOR.modules.map((m) => ('kind' in m && m.kind === 'hold' ? { ...m, fill } : m)),
+    });
+    expect(speed(loaded(1))).toBeLessThan(speed(loaded(0.1)));
     expect(speed(SCAVENGER)).toBeCloseTo(2.5, 6);
   });
 });
