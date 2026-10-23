@@ -418,6 +418,7 @@ export function startEditor(): void {
   const dockedSelect = el<HTMLSelectElement>('propDocked');
   const craftAngleSelect = el<HTMLSelectElement>('propCraftAngle');
   const padDockedInput = el<HTMLInputElement>('propPadDocked');
+  const buildAnchoredInput = el<HTMLInputElement>('propBuildAnchored');
   const addHeading = el<HTMLElement>('addHeading');
   kindSelect.innerHTML = MODULE_KINDS.map((kind) => `<option value="${kind}">${kindName(kind)}</option>`).join('');
 
@@ -981,6 +982,8 @@ export function startEditor(): void {
     el<HTMLElement>('craftAngleRow').hidden = !readsCraftAngle(spec.kind) || spec.craft === undefined;
     if (readsCraftAngle(spec.kind)) renderCraftAngle(spec);
     padDockedInput.checked = spec.docked === true;
+    el<HTMLElement>('buildAnchoredRow').hidden = !readsCraft(spec.kind) || spec.craft === undefined;
+    buildAnchoredInput.checked = spec.buildAnchored === true;
     // One no more than a deck across is as deep as it is wide either way.
     thickInput.disabled = !canThicken(spec) || doc.blueprint.fighter === true;
     thickInput.checked = isThick(spec);
@@ -1567,6 +1570,21 @@ export function startEditor(): void {
         const next = { ...placement };
         if (on) next.docked = true;
         else delete next.docked;
+        return next;
+      }),
+    );
+  });
+
+  buildAnchoredInput.addEventListener('change', () => {
+    const path = doc.selection;
+    if (path === null) return;
+    const on = buildAnchoredInput.checked;
+    change(
+      updatePlacement(doc.blueprint, path, (placement) => {
+        if (!('kind' in placement)) return placement;
+        const next = { ...placement };
+        if (on) next.buildAnchored = true;
+        else delete next.buildAnchored;
         return next;
       }),
     );

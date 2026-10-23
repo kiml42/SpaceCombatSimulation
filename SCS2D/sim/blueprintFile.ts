@@ -119,6 +119,7 @@ const MODULE_KEYS: readonly string[] = [
   'docked',
   'keep',
   'craftAngle',
+  'buildAnchored',
   'targeting',
   'notes',
 ];
@@ -278,6 +279,7 @@ function moduleShapeProblem(value: Record<string, unknown>, where: string): stri
     (typeof value['docked'] === 'string' ? null : optionalBooleanProblem(value['docked'], `${where}: docked`)) ??
     optionalNumberProblem(value['keep'], `${where}: keep`) ??
     optionalNumberProblem(value['craftAngle'], `${where}: craftAngle`) ??
+    optionalBooleanProblem(value['buildAnchored'], `${where}: buildAnchored`) ??
     targetingProblem(value['targeting'], `${where}: targeting`) ??
     optionalStringProblem(value['notes'], `${where}: notes`)
   );
@@ -306,7 +308,7 @@ function moduleReads(kind: ModuleKind): readonly string[] {
     if (key === 'drainPriority') return readsDrainPriority(kind);
     if (key === 'fill') return readsFill(kind);
     if (key === 'computing') return readsComputing(kind);
-    if (key === 'craft' || key === 'fighter' || key === 'keep') return readsCraft(kind);
+    if (key === 'craft' || key === 'fighter' || key === 'keep' || key === 'buildAnchored') return readsCraft(kind);
     if (key === 'docked') return readsDocked(kind);
     if (key === 'craftAngle') return readsCraftAngle(kind);
     if (key === 'vertices') return canShape(kind);
@@ -569,6 +571,7 @@ function toPlacements(raws: unknown[], whole: boolean): Placement[] {
       spec.docked = docked !== false;
     }
     if (read('keep')) spec.keep = raw['keep'] as number;
+    if (read('buildAnchored')) spec.buildAnchored = raw['buildAnchored'] as boolean;
     if (read('craftAngle')) spec.craftAngle = degreesToRadians(raw['craftAngle'] as number);
     // Copied whole, so a key the block does not know goes back out with it.
     if (raw['targeting'] !== undefined) spec.targeting = { ...(raw['targeting'] as Partial<Targeting>) };
@@ -773,6 +776,7 @@ function serialisePlacement(placement: Placement): Record<string, unknown> {
     if (placement.craft !== undefined) raw['craft'] = placement.craft;
     if (placement.docked !== undefined && readsDocked(placement.kind)) raw['docked'] = placement.docked;
     if (placement.keep !== undefined) raw['keep'] = placement.keep;
+    if (placement.buildAnchored !== undefined) raw['buildAnchored'] = placement.buildAnchored;
   }
   if (placement.craftAngle !== undefined && readsCraftAngle(placement.kind)) raw['craftAngle'] = radiansToDegrees(placement.craftAngle);
   // Written as authored: a mount's block is already only its differences from

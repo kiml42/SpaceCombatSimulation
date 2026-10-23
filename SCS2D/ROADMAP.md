@@ -148,10 +148,18 @@ an entry is either still open or it is gone.
          asteroid as its target, and a right-click on one tells the picked ships with claws to mine it; the
          rest keep what they were doing. The camera already leaves asteroids out of shot, as it does
          anything nobody flies, unless nothing else is left.
-       - **4b. The demo** — built: the Rival Mines scene and golden. A Prospector each side — a Salvager
-         whose main is split either side of a pad astern that keeps two Dinkies — on a pair of eccentric
-         majors, nothing armed at the start: each anchors to its own rock, mines it, and builds Dinkies
-         from what it mines, which go for the other outpost. Left from it:
+       - **4b. The demo** — built: the Rival Mines scene and golden. First a Prospector each side — a
+         Salvager whose main is split either side of a pad astern that keeps two Dinkies — and now a
+         Replicator, the author's self-replicating miner, on each of a pair of eccentric majors with no
+         minors, nothing armed: each anchors to its own rock, mines it, and builds copies of itself there.
+         Left from it:
+         - **Replicators prey on each other once copies are out.** A claw ship counts an enemy that cannot
+           shoot back as a source, and drinking one is far quicker than mining rock, so after the first
+           copies are let go, at about nine and a half minutes, they go for the other side's rather than for
+           rock. The author's call was to leave it, measured: a doctrine weight for live enemies as sources
+           would stop it.
+         - **Two claw ships going for each other run away**: each asks to match the other's motion and close
+           on it, so between them they speed up without end, past 900 m/s over half an hour.
          - **A fighter landing on a moored carrier does not steer round its rock.** Moored, the carrier
            keeps its own hull, so a fighter lands on it from any side whose way in is clear; one whose way
            to the pad goes round the rock never gets there. The Prospector's pad is astern for that reason.
@@ -172,11 +180,14 @@ an entry is either still open or it is gone.
          (§4 Collision). With a third Salvager over 60 runs, wrecked or broken went from 21 to 5 and
          holding rock from 24 to 39. What is left is mostly crossing the field fast — wrecks, which do
          not give, among it — and a Salvager running into another anchored to the same rock.
-       - **Two tried and measured worse:** aiming at a point on the face and coming in along its normal,
-         and claims (leaving a minor another ship has hold of or is making for). Aiming lined ships up on
-         faces that then changed under them as the rock was mined; claims sent them further, through more of
-         the field. Either may work done differently.
-       - **Arriving slower than 2.5 m/s** made no difference measured.
+       - **Coming in along a face's normal is built**, reopened by the author for a 50 m Replicator that
+         could not grip a rock any other way (DESIGN.md, Status). It was tried before and measured worse, lining
+         ships up on faces that then changed under them as the rock was mined; now a face is chosen again
+         once its module is spent or the hull changes, and only faces with room in front of them count.
+         Claims (leaving a minor another ship has hold of or is making for) were tried and measured worse,
+         sending ships further through more of the field.
+       - **Arriving slower than 2.5 m/s** made no difference measured for a Salvager; a heavy ship now
+         arrives slower, as its claw's spring can stop it.
 
 ### Not started — in order
 
@@ -723,8 +734,8 @@ Deliberately unresolved; decide when they block something.
   at once if it loses a gun. Only a fighter goes, and only to a pad.
 - **What robots and pads do first, and when.** Repair before rebuilding, and of each what gives back the
   most function per kilogram, with work going on in combat. Doctrine to wait until clear, or to set
-  priorities, is not built. Building ships on pads and slipways (§8 step 12) wants the same: hold builds,
-  build only when clear, a mothership holding still while a slipway works.
+  priorities, is not built. Building ships on pads and slipways (§8 step 12) wants the same: hold builds and
+  build only when clear. A miner building only while anchored (`buildAnchored`) is built.
 - **Launching a fighter before it is whole.** A pad launches only a whole fighter. Once its core is up it is
   already a ship, so launching early under doctrine is a rule, not a new mechanism.
 - **Robots working on a docked friend.** Robots cross a seam only onto wreckage to take it apart; crossing a

@@ -1265,6 +1265,13 @@ export interface ModuleSpec {
    * A slipway only.
    */
   craftAngle?: number;
+  /**
+   * Whether this pad or slipway lays down a new craft only while its ship's
+   * claw holds something, and a slipway works only then, its claw holding on
+   * until what it builds is let go: a miner that builds where it mines, held
+   * still, rather than flying about with half a ship on its stern.
+   */
+  buildAnchored?: boolean;
 
   /**
    * Why this module is here, in the author's own words. Carried through the

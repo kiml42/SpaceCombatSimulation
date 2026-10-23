@@ -18,6 +18,7 @@ import {
 import { makeBattle } from '../scenarios/battle.js';
 import { CORVETTE, DINKY } from '../scenarios/blueprints.js';
 import { OrderCancelCondition } from '../sim/ships.js';
+import { give } from '../scenarios/commands.js';
 import { dockFighter } from '../editor/edit.js';
 import { capture, Snapshot, type ShipView } from '../sim/snapshot.js';
 import { ANY_RANGE, QUARRY } from './fixtures/quarry.js';
@@ -355,6 +356,42 @@ describe('a fighter launched from a pad turned across its carrier', () => {
     // The Dinky's gun points along its nose.
     const gun = v.currentStructure.modules.find((m) => m.spec.kind === 'hullGun')!;
     expect(Math.cos(v.heading! - (v.angle + gun.angle))).toBeCloseTo(1, 6);
+  });
+});
+
+describe('a fighter told to ram while it is parked', () => {
+  it('stays above the deck until it is clear, so it turns off the pad without touching its carrier', () => {
+    // Its nose along the carrier and its target off the bow: it turns over the deck to go.
+    const turned: Blueprint = {
+      ...laden(),
+      modules: laden().modules.map((m, i) => (i === PAD ? { ...m, angle: Math.PI } : m)),
+    };
+    const run = makeBattle({ seed: 3 }, (ships, world) => {
+      const c = ships.spawn(world, { design: compileBlueprint(turned), x: 0, y: 0 });
+      const q = ships.spawn(world, { design: QUARRY, x: 1000, y: 0, team: 1 });
+      return { c, q };
+    });
+    const f = run.c + 1;
+    give(run, { kind: 'order', ships: [f], order: { kind: 'ram', target: run.q }, append: false });
+    const b = run.world.bodies;
+    const contacts = run.collisions.contacts;
+    let touched = false;
+    for (let s = 0; s < 20 * 60; s++) {
+      run.step();
+      if (run.ships.parkedCarrier(f) === run.c) {
+        expect(run.ships.isCommitted(f)).toBe(false);
+        continue;
+      }
+      const fb = b.indexOf(run.ships.body(f));
+      const cb = b.indexOf(run.ships.body(run.c));
+      for (let k = 0; k < contacts.count; k++) {
+        touched ||= (contacts.a[k] === fb && contacts.b[k] === cb) || (contacts.a[k] === cb && contacts.b[k] === fb);
+      }
+    }
+    expect(touched).toBe(false);
+    const fb = b.indexOf(run.ships.body(f));
+    const cb = b.indexOf(run.ships.body(run.c));
+    expect(Math.hypot(b.x[fb]! - b.x[cb]!, b.y[fb]! - b.y[cb]!)).toBeGreaterThan(100);
   });
 });
 

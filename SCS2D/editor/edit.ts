@@ -159,8 +159,8 @@ export function updatePlacement(blueprint: Blueprint, path: ModulePath, change: 
 
 /**
  * Set the craft a pad or slipway builds, or clear it with null, which clears
- * whether it sets out docked, how many it keeps and which way a slipway lays
- * it out too. A pad given its first fighter sets out with it docked, and a
+ * whether it sets out docked, how many it keeps, whether it builds only
+ * anchored and which way a slipway lays it out too. A pad given its first fighter sets out with it docked, and a
  * slipway is turned to lay its ship out a way it fits (`berthed`). The craft
  * is copied into the hangar unless it is the ship itself, what it builds with
  * it; the hangar is flat, and loses whatever nothing names any more.
@@ -168,7 +168,7 @@ export function updatePlacement(blueprint: Blueprint, path: ModulePath, change: 
 export function dockFighter(blueprint: Blueprint, path: ModulePath, fighter: Blueprint | null): Blueprint | null {
   const next = updatePlacement(blueprint, path, (placement) => {
     if (isInstance(placement)) return placement;
-    const { craft: was, docked, keep, craftAngle, ...rest } = placement;
+    const { craft: was, docked, keep, craftAngle, buildAnchored, ...rest } = placement;
     if (fighter === null) return rest;
     return {
       ...rest,
@@ -176,6 +176,7 @@ export function dockFighter(blueprint: Blueprint, path: ModulePath, fighter: Blu
       ...(!readsDocked(rest.kind) ? {} : was === undefined ? { docked: true } : docked === undefined ? {} : { docked }),
       ...(keep === undefined ? {} : { keep }),
       ...(craftAngle === undefined ? {} : { craftAngle }),
+      ...(buildAnchored === undefined ? {} : { buildAnchored }),
     };
   });
   if (next === null) return null;
