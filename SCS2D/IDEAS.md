@@ -76,6 +76,7 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 Scavenging wrecks and mining asteroids. Two of the causes of wrecked Salvagers are being fixed as ROADMAP.md
 step 15, item 5: arriving with its jaws held on all the way, braking astern, rather than turning round late; and
 flying round asteroids in its way rather than relying on keeping clear, which looks only seconds ahead.
+Consider being able to create more robots than can be held to mine quicker, even though they will need to be abandoned when the ship leaves.
 
 ### Getting hold safely
 - Two-stage approach: stop and match motion a few lengths off the surface, then creep in at the claw's lowest
