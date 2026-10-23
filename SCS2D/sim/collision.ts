@@ -38,6 +38,37 @@ const PENETRATION_SLOP = 0.02;
 const CORRECTION = 0.8;
 
 /**
+ * Rock gives under a hull: within `ROCK_SINK` of overlap it pushes back like a
+ * damper, `ROCK_DAMPING` newtons for each metre a second it is closing, and
+ * nothing once the two stop, so a slow touch settles in rather than rings.
+ * Deeper, it is met hard. A loaded Salvager at a claw's 2.5 m/s stops in about
+ * a metre, spread over the steps it takes rather than in one blow.
+ */
+export const ROCK_DAMPING = 4e5;
+export const ROCK_SINK = 1;
+
+/**
+ * A claw meeting something square on stabs into it: pushed back by a spring,
+ * per metre of the claw's width `CLAW_STIFFNESS` newtons for each metre in and
+ * `CLAW_DAMPING` for each metre a second closing, no harder than the spring at
+ * `CLAW_DEPTH` of its length in, where it stops hard. Sideways it gives nothing.
+ */
+export const CLAW_STIFFNESS = 1.5e6;
+export const CLAW_DAMPING = 4.5e5;
+export const CLAW_DEPTH = 0.5;
+
+/** Cosine of how far off its bow a claw can meet something and still close on it: 45°. */
+export const CLAW_ALIGN = 0.7071067811865476;
+
+/** What a contact's claw is doing: nothing, stabbing in from `a` or from `b`, or going in too fast to stop short of its full depth. */
+export const enum Stab {
+  None = 0,
+  A = 1,
+  B = 2,
+  Stopped = 3,
+}
+
+/**
  * Contacts found this step, in the order the bodies are indexed.
  *
  * Parallel arrays, reused between steps, so a fleet action's worth of contacts
@@ -67,6 +98,8 @@ export class Contacts {
    * coming apart, and what decides whether a hull holds together (§4).
    */
   impulse = new Float64Array(64);
+  /** What the claw at the contact is doing (`Stab`), if one met it. */
+  stab = new Uint8Array(64);
   count = 0;
 
   clear(): void {
@@ -87,6 +120,7 @@ export class Contacts {
     this.moduleB[i] = moduleB;
     this.closing[i] = 0;
     this.impulse[i] = 0;
+    this.stab[i] = Stab.None;
   }
 
   private grow(): void {
@@ -102,6 +136,9 @@ export class Contacts {
     const moduleB = new Int32Array(size);
     const closing = new Float64Array(size);
     const impulse = new Float64Array(size);
+    const stab = new Uint8Array(size);
+    stab.set(this.stab);
+    this.stab = stab;
     a.set(this.a);
     b.set(this.b);
     x.set(this.x);
@@ -577,7 +614,7 @@ export function moduleOverlapsHull(
  * second contact on the same hull in the same step is already the rare case,
  * and a third is a pile-up that does not happen without gravity to make one.
  */
-export function resolveContacts(bodies: Bodies, contacts: Contacts, hulls?: HullDesigns): void {
+export function resolveContacts(bodies: Bodies, contacts: Contacts, hulls?: HullDesigns, dt = 0): void {
   for (let k = 0; k < contacts.count; k++) {
     // A fighter parked on a pad cannot move, so its carrier moves for it.
     const parkedA = hulls?.carrierOf?.(contacts.a[k]!) ?? -1;
@@ -586,6 +623,7 @@ export function resolveContacts(bodies: Bodies, contacts: Contacts, hulls?: Hull
     const b = parkedB >= 0 ? parkedB : contacts.b[k]!;
     const nx = contacts.nx[k]!;
     const ny = contacts.ny[k]!;
+    const depth = contacts.depth[k]!;
 
     // Arms from each centre of mass to the contact, which is what turns a
     // glancing hit into a spin.
@@ -599,11 +637,7 @@ export function resolveContacts(bodies: Bodies, contacts: Contacts, hulls?: Hull
     const vay = bodies.vy[a]! + bodies.angularVel[a]! * rax;
     const vbx = bodies.vx[b]! - bodies.angularVel[b]! * rby;
     const vby = bodies.vy[b]! + bodies.angularVel[b]! * rbx;
-
     const vn = (vbx - vax) * nx + (vby - vay) * ny;
-    // Already coming apart: they met on an earlier step and are leaving.
-    if (vn >= 0) continue;
-    contacts.closing[k] = -vn;
 
     const crossA = rax * ny - ray * nx;
     const crossB = rbx * ny - rby * nx;
@@ -612,26 +646,90 @@ export function resolveContacts(bodies: Bodies, contacts: Contacts, hulls?: Hull
     // Two immovable objects. Neither can give, so nothing happens to either.
     if (!(invMassSum > 0)) continue;
 
+    // What met: a claw square on stabs in, and rock gives.
+    let give = 0;
+    if (hulls !== undefined && dt > 0) {
+      const specA = hulls.designOf(contacts.a[k]!)?.modules[contacts.moduleA[k]!]?.spec;
+      const specB = hulls.designOf(contacts.b[k]!)?.modules[contacts.moduleB[k]!]?.spec;
+      const clawA = specA?.kind === 'claw' && facing(bodies, contacts.a[k]!, specA.angle ?? 0, nx, ny) >= CLAW_ALIGN;
+      const clawB = !clawA && specB?.kind === 'claw' && facing(bodies, contacts.b[k]!, specB.angle ?? 0, -nx, -ny) >= CLAW_ALIGN;
+      const claw = clawA ? specA : clawB ? specB : undefined;
+      if (claw !== undefined) {
+        const reach = CLAW_DEPTH * claw.length;
+        // It yields no harder than its spring at full depth, so what it cannot
+        // stop in the depth it has left drives it in to the stop, met hard there.
+        const hardest = CLAW_STIFFNESS * claw.width * reach;
+        const force = min(hardest, (CLAW_STIFFNESS * depth - CLAW_DAMPING * vn) * claw.width);
+        const stops = vn >= 0 || (0.5 * vn * vn) / invMassSum <= 0.5 * (max(0, force) + hardest) * (reach - depth);
+        if (depth < reach) {
+          // One it cannot stop goes on in to the stop, and glances.
+          contacts.stab[k] = !stops ? Stab.Stopped : clawA ? Stab.A : Stab.B;
+          contacts.closing[k] = vn < 0 ? -vn : 0;
+          // Out along the normal no harder than would stop it and lift it clear in a step: a light hull is not flung.
+          const most = (max(0, -vn) + depth / dt) / invMassSum;
+          const impulse = min(max(0, force * dt), most);
+          contacts.impulse[k] = impulse;
+          push(bodies, a, b, impulse * nx, impulse * ny, crossA * impulse, crossB * impulse);
+          // Stiff sideways: what slides across the jaws is stopped.
+          const tx = -ny;
+          const ty = nx;
+          const vt = (vbx - vax) * tx + (vby - vay) * ty;
+          const tA = rax * ty - ray * tx;
+          const tB = rbx * ty - rby * tx;
+          const invTSum = bodies.invMass[a]! + bodies.invMass[b]! + tA * tA * bodies.invInertia[a]! + tB * tB * bodies.invInertia[b]!;
+          if (invTSum > 0) {
+            const jt = -vt / invTSum;
+            push(bodies, a, b, jt * tx, jt * ty, tA * jt, tB * jt);
+          }
+          continue;
+        }
+        contacts.stab[k] = Stab.Stopped;
+        give = reach;
+      } else if (specA?.kind === 'rock' || specB?.kind === 'rock') {
+        if (vn >= 0) continue;
+        contacts.closing[k] = -vn;
+        if (depth < ROCK_SINK) {
+          const impulse = min(ROCK_DAMPING * -vn * dt, -vn / invMassSum);
+          contacts.impulse[k] = impulse;
+          push(bodies, a, b, impulse * nx, impulse * ny, crossA * impulse, crossB * impulse);
+          continue;
+        }
+        give = ROCK_SINK;
+      }
+    }
+
+    // Already coming apart: they met on an earlier step and are leaving.
+    if (vn >= 0) continue;
+    contacts.closing[k] = -vn;
+
     const impulse = (-(1 + RESTITUTION) * vn) / invMassSum;
     contacts.impulse[k] = impulse;
-    const jx = impulse * nx;
-    const jy = impulse * ny;
-
-    bodies.vx[a]! -= jx * bodies.invMass[a]!;
-    bodies.vy[a]! -= jy * bodies.invMass[a]!;
-    bodies.angularVel[a]! -= crossA * impulse * bodies.invInertia[a]!;
-    bodies.vx[b]! += jx * bodies.invMass[b]!;
-    bodies.vy[b]! += jy * bodies.invMass[b]!;
-    bodies.angularVel[b]! += crossB * impulse * bodies.invInertia[b]!;
+    push(bodies, a, b, impulse * nx, impulse * ny, crossA * impulse, crossB * impulse);
 
     // And out of each other, or a fast hull meeting a heavy one sinks into it
-    // faster than the impulse can carry it back out.
-    const correction = (max(contacts.depth[k]! - PENETRATION_SLOP, 0) * CORRECTION) / invMassSum;
+    // faster than the impulse can carry it back out. What gives is left in.
+    const correction = (max(depth - give - PENETRATION_SLOP, 0) * CORRECTION) / invMassSum;
     bodies.x[a]! -= correction * nx * bodies.invMass[a]!;
     bodies.y[a]! -= correction * ny * bodies.invMass[a]!;
     bodies.x[b]! += correction * nx * bodies.invMass[b]!;
     bodies.y[b]! += correction * ny * bodies.invMass[b]!;
   }
+}
+
+/** How square on to the normal `nx`, `ny` a module turned `turn` on body `body` faces: the cosine between them. */
+function facing(bodies: Bodies, body: number, turn: number, nx: number, ny: number): number {
+  const angle = bodies.angle[body]! + turn;
+  return nx * cos(angle) + ny * sin(angle);
+}
+
+/** Put an impulse `jx`, `jy` through a contact into `b`, and its opposite into `a`, with the torques `ta`, `tb` its arms give it. */
+function push(bodies: Bodies, a: number, b: number, jx: number, jy: number, ta: number, tb: number): void {
+  bodies.vx[a]! -= jx * bodies.invMass[a]!;
+  bodies.vy[a]! -= jy * bodies.invMass[a]!;
+  bodies.angularVel[a]! -= ta * bodies.invInertia[a]!;
+  bodies.vx[b]! += jx * bodies.invMass[b]!;
+  bodies.vy[b]! += jy * bodies.invMass[b]!;
+  bodies.angularVel[b]! += tb * bodies.invInertia[b]!;
 }
 
 /**
@@ -644,8 +742,8 @@ export function resolveContacts(bodies: Bodies, contacts: Contacts, hulls?: Hull
 export class Collisions {
   readonly contacts = new Contacts();
 
-  step(bodies: Bodies, hulls: HullDesigns): void {
+  step(bodies: Bodies, hulls: HullDesigns, dt = 0): void {
     findContacts(bodies, hulls, this.contacts);
-    resolveContacts(bodies, this.contacts, hulls);
+    resolveContacts(bodies, this.contacts, hulls, dt);
   }
 }

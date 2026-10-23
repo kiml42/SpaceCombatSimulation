@@ -157,11 +157,12 @@ an entry is either still open or it is gone.
        `clawSpeed` (15 m/s by default, evolvable), not the speed it closes on an enemy. With a third Salvager
        in the Mining scene, over 39 runs, wrecked or broken ships went from 25 to 10 and those holding rock
        from 9 to 24. Left from it:
-       - **A loaded Salvager breaks up on any touch but the claw's.** At about 146 t, meeting rock at the
-         claw's own 2.5 m/s with an engine or the core puts a few hundred kN·s through one seam, which tears
-         most of the hull off. What still goes wrong is mostly that: a slope, a notch where a wedge is
-         missing, or a claw that glances and swings the side in. Either the contact is made forgiving (rock
-         that crumbles, or welds that take a slow knock) or the claw must meet first every time.
+       - **A loaded Salvager broke up on any touch but the claw's**, and on a claw that glanced: every
+         contact was stopped in one step, putting a few hundred kN·s through one seam. Now rock gives,
+         as a damper, and a claw stabs in on a spring and damper, biting by how hard it is pushed back
+         (§4 Collision). With a third Salvager over 60 runs, wrecked or broken went from 21 to 5 and
+         holding rock from 24 to 39. What is left is mostly crossing the field fast — wrecks, which do
+         not give, among it — and a Salvager running into another anchored to the same rock.
        - **Two tried and measured worse:** aiming at a point on the face and coming in along its normal,
          and claims (leaving a minor another ship has hold of or is making for). Aiming lined ships up on
          faces that then changed under them as the rock was mined; claims sent them further, through more of

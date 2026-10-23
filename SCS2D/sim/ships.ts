@@ -83,7 +83,7 @@ import type { BeamHits, Beams, SpatialGrid } from './index.js';
 import { MAX_BEAM_LENGTH } from './beams.js';
 import { RayHit } from './spatialGrid.js';
 import { fixed } from './fixed.js';
-import { hullsOverlap, moduleOverlapsHull, type Contacts } from './collision.js';
+import { CLAW_ALIGN, hullsOverlap, moduleOverlapsHull, Stab, type Contacts } from './collision.js';
 import {
   DOCK_POWER_PER_METRE,
   FUEL_DENSITY,
@@ -413,8 +413,11 @@ export const CLAW_SPEED_MAX = 8;
 /** Chance a claw takes a sound module in its band. Certain on one spent. */
 export const CLAW_GRIP_CHANCE = 0.8;
 
-/** Cosine of how far off its bow a claw can meet something and still close on it: 45°. */
-const CLAW_ALIGN = 0.7071067811865476;
+/**
+ * How hard a claw has to be pushed back, stabbing in (`collision.ts`), before
+ * it bites, per metre of its width, N: a heavier ship bites coming in slower.
+ */
+export const CLAW_BITE_FORCE = 5e4;
 
 /** Seconds a claw that missed waits before it tries again. */
 export const CLAW_RETRY = 0.5;
@@ -604,20 +607,14 @@ function moduleSizes(design: ShipDesign): Float64Array {
 }
 
 /**
- * The chance a claw closing at `closing` takes a module left at `integrity`:
- * best within its band, falling off either side of it, and likelier the more
- * the module has already been torn open.
+ * The chance a claw pushed back with `force` takes a module left at
+ * `integrity`: none short of `bite`, and past it likelier the more the module
+ * has already been torn open.
  */
-export function clawChance(closing: number, integrity: number): number {
-  if (!(closing > 0) || closing > CLAW_SPEED_MAX) return 0;
-  const band =
-    closing < CLAW_SPEED_LOW
-      ? closing / CLAW_SPEED_LOW
-      : closing > CLAW_SPEED_HIGH
-        ? (CLAW_SPEED_MAX - closing) / (CLAW_SPEED_MAX - CLAW_SPEED_HIGH)
-        : 1;
+export function clawChance(force: number, bite: number, integrity: number): number {
+  if (!(force >= bite) || !(force > 0)) return 0;
   const worn = integrity < 0 ? 1 : integrity > 1 ? 0 : 1 - integrity;
-  return band * (CLAW_GRIP_CHANCE + (1 - CLAW_GRIP_CHANCE) * worn);
+  return CLAW_GRIP_CHANCE + (1 - CLAW_GRIP_CHANCE) * worn;
 }
 
 /**
@@ -5239,9 +5236,11 @@ export class Ships {
       // since leaning on it closes at nothing.
       if (i >= 0 && j >= 0 && this.salvaging[i] === j) this.touchedSource[i] = world.tick;
       if (i >= 0 && j >= 0 && this.salvaging[j] === i) this.touchedSource[j] = world.tick;
-      // Pressed together, slowly: touching or drifting apart hooks nothing.
+      // Pressed together, slowly: touching or drifting apart hooks nothing,
+      // but for a claw stabbing in, which bites by how hard it is pushed back.
       const closing = contacts.closing[k]!;
-      if (!(closing > 0) || closing > CLAW_SPEED_MAX) continue;
+      const stab = contacts.stab[k]!;
+      if (stab !== Stab.A && stab !== Stab.B && (!(closing > 0) || closing > CLAW_SPEED_MAX)) continue;
       if (i < 0 || j < 0 || joined?.has(i) === true || joined?.has(j) === true) continue;
       if (this.partedAt[i]! > settled || this.partedAt[j]! > settled) continue;
       if (this.damage.isProtected(a) || this.damage.isProtected(b)) continue;
@@ -5253,8 +5252,9 @@ export class Ships {
       const nx = contacts.nx[k]!;
       const ny = contacts.ny[k]!;
       let claw: 'a' | 'b' | null = null;
-      if (this.grips(world, a, ma, b, mb, nx, ny, closing)) claw = 'a';
-      else if (this.grips(world, b, mb, a, ma, -nx, -ny, closing)) claw = 'b';
+      const force = contacts.impulse[k]! / world.dt;
+      if (stab === Stab.A && this.grips(world, a, ma, b, mb, nx, ny, force)) claw = 'a';
+      else if (stab === Stab.B && this.grips(world, b, mb, a, ma, -nx, -ny, force)) claw = 'b';
       // Two ports nudged face to face mate, when one ship was making for the other.
       const port = claw === null && this.mates(world, a, ma, b, mb, closing);
       // Only a claw holds on to a pinned hull, an asteroid's, as an anchor.
@@ -5328,7 +5328,7 @@ export class Ships {
   /**
    * Whether module `m` of body `b` is a claw that closes on module `mo` of
    * body `o`, met along `nx`, `ny` (pointing from the claw into what it met)
-   * at `closing`. Rolls for it, so only a claw that could take asks the
+   * pushed back with `force`. Rolls for it, so only a claw that could take asks the
    * battle's generator anything; a miss leaves the claw's ship waiting
    * `CLAW_RETRY`. Taking bites the module it closes on.
    *
@@ -5336,11 +5336,13 @@ export class Ships {
    * and only for fuel it has room for, or for a wreck its ship's robots could
    * take apart into metal it has room for.
    */
-  private grips(world: World, b: number, m: number, o: number, mo: number, nx: number, ny: number, closing: number): boolean {
+  private grips(world: World, b: number, m: number, o: number, mo: number, nx: number, ny: number, force: number): boolean {
     const design = this.hullDesign[b];
     if (design === null || design === undefined) return false;
     const spec = design.modules[m]!.spec;
     if (spec.kind !== 'claw') return false;
+    const bite = CLAW_BITE_FORCE * spec.width;
+    if (!(force >= bite)) return false;
     if (!(this.damage.remaining(b, m, DamageEffect.Grip) > 0)) return false;
     const bodies = world.bodies;
     const facing = bodies.angle[b]! + (spec.angle ?? 0);
@@ -5364,7 +5366,7 @@ export class Ships {
     if (!this.sentTo(holder) && this.threatened(bodies, holder, o, false)) return false;
     if (world.tick - this.clawTried[holder]! < CLAW_RETRY / world.dt) return false;
     this.clawTried[holder] = world.tick;
-    if (world.rng.nextFloat() >= clawChance(closing, this.damage.integrity(o, mo))) return false;
+    if (world.rng.nextFloat() >= clawChance(force, bite, this.damage.integrity(o, mo))) return false;
     const capacity = this.damage.capacityLeft(o, mo) + this.damage.absorbedAt(o, mo);
     this.damage.absorb(o, mo, CLAW_BITE * capacity);
     return true;

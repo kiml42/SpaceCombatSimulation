@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   CLAW_GRIP_CHANCE,
-  CLAW_SPEED_HIGH,
-  CLAW_SPEED_LOW,
-  CLAW_SPEED_MAX,
   clawChance,
   compileBlueprint,
   DAMAGE_ENERGY_PER_KG,
@@ -93,14 +90,11 @@ describe('a claw', () => {
     expect(narrow.fittingMass).toBeGreaterThan(0);
   });
 
-  it('takes best within its band of closing speed, and likelier on torn metal', () => {
-    const middle = (CLAW_SPEED_LOW + CLAW_SPEED_HIGH) / 2;
-    expect(clawChance(middle, 1)).toBeCloseTo(CLAW_GRIP_CHANCE, 9);
-    expect(clawChance(middle, 0)).toBe(1);
-    expect(clawChance(CLAW_SPEED_LOW / 2, 1)).toBeLessThan(clawChance(middle, 1));
-    expect(clawChance((CLAW_SPEED_HIGH + CLAW_SPEED_MAX) / 2, 1)).toBeLessThan(clawChance(middle, 1));
-    expect(clawChance(CLAW_SPEED_MAX + 1, 0)).toBe(0);
-    expect(clawChance(0, 0)).toBe(0);
+  it('bites once pushed back hard enough, and likelier on torn metal', () => {
+    expect(clawChance(2e5, 1e5, 1)).toBeCloseTo(CLAW_GRIP_CHANCE, 9);
+    expect(clawChance(2e5, 1e5, 0)).toBe(1);
+    expect(clawChance(5e4, 1e5, 0)).toBe(0);
+    expect(clawChance(0, 0, 0)).toBe(0);
   });
 });
 
@@ -140,6 +134,12 @@ describe('gripping a wreck', () => {
     );
   });
 
+  it('takes hold coming in at half a metre a second, pushed back hard enough by its own weight', () => {
+    const slow = approach(0.5);
+    runUntil(slow, () => holding(slow), 10);
+    expect(holding(slow)).toBe(true);
+  });
+
   it('bites what it closes on', () => {
     const sound = approach(3);
     const before = new Map<number, number>();
@@ -172,8 +172,8 @@ describe('gripping a live enemy', () => {
 });
 
 describe('what a claw will not take', () => {
-  it('a ram', () => {
-    const run = approach(CLAW_SPEED_MAX + 2);
+  it('a ram hard enough to drive it in to its full depth', () => {
+    const run = approach(30);
     runUntil(run, () => holding(run), 10);
     expect(holding(run)).toBe(false);
     expect(run.totalContacts).toBeGreaterThan(0);

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { Bodies } from '../sim/bodies.js';
-import { Collisions, Contacts, RESTITUTION, findContacts, resolveContacts } from '../sim/collision.js';
-import { compileBlueprint, type ShipDesign } from '../sim/index.js';
+import { Collisions, Contacts, RESTITUTION, ROCK_DAMPING, Stab, findContacts, resolveContacts } from '../sim/collision.js';
+import { compileBlueprint, rockModule, type ShipDesign } from '../sim/index.js';
 import type { HullDesigns } from '../sim/hull.js';
-import { CORVETTE, DINKY } from '../scenarios/blueprints.js';
+import { CORVETTE, DINKY, SALVAGER } from '../scenarios/blueprints.js';
 import { ram } from '../scenarios/ram.js';
 
 /**
@@ -231,6 +231,44 @@ describe('resolving a collision', () => {
     expect(collisions.contacts.count).toBe(1);
     expect(w.bodies.vx[0]).toBe(-50);
     expect(w.bodies.vx[1]).toBe(50);
+  });
+});
+
+describe('what gives', () => {
+  const DT = 1 / 60;
+  // A wedge of rock 20 m square, its near face at x = -10.
+  const rock = compileBlueprint({ name: 'Rock', modules: [rockModule([-10, -10, 10, -10, 10, 10, -10, 10], 0.3, 0.3)] });
+
+  it('lets rock give: a slow hull sinks into it, pushed back only as hard as it is closing', () => {
+    // The corvette's nose 5 cm into the rock's face, closing at 2 m/s.
+    const w = world({ design: corvette, x: -27.05, y: 0, vx: 2 }, { design: rock, x: 0, y: 0, fixed: true });
+    findContacts(w.bodies, w.hulls, w.contacts);
+    expect(w.contacts.count).toBeGreaterThan(0);
+    const x = w.bodies.x[0]!;
+    resolveContacts(w.bodies, w.contacts, w.hulls, DT);
+    // Still closing, slowed by the damper's push over a step, and left in.
+    expect(w.bodies.vx[0]!).toBeGreaterThan(0);
+    expect(w.bodies.vx[0]!).toBeCloseTo(2 - (ROCK_DAMPING * 2 * DT) / corvette.mass, 6);
+    expect(w.bodies.x[0]!).toBe(x);
+  });
+
+  it('lets a claw stab in: square on, it slows the ship over its depth and stops it sliding across', () => {
+    const salvager = compileBlueprint(SALVAGER);
+    const jaws = salvager.modules.find((m) => m.spec.kind === 'claw')!;
+    const tip = jaws.x + jaws.spec.length / 2;
+    // Its jaws 5 cm into the rock's face, closing at 2 m/s and sliding across at 0.5.
+    const w = world({ design: salvager, x: 0, y: 0, vx: 2, vy: 0.5 }, { design: rock, x: tip + 10 - 0.05, y: 0, fixed: true });
+    findContacts(w.bodies, w.hulls, w.contacts);
+    const k = [...Array(w.contacts.count).keys()].find((n) => salvager.modules[w.contacts.moduleA[n]!]?.spec.kind === 'claw');
+    expect(k).toBeDefined();
+    resolveContacts(w.bodies, w.contacts, w.hulls, DT);
+    expect(w.contacts.stab[k!]).toBe(Stab.A);
+    // Far gentler than meeting it hard, which would turn it round in the step.
+    expect(w.contacts.impulse[k!]!).toBeLessThan(0.1 * (1 + RESTITUTION) * 2 * salvager.mass);
+    expect(w.bodies.vx[0]!).toBeGreaterThan(0);
+    // Across, the jaws are held: what was sliding there is stopped, the ship turning about them.
+    const across = w.bodies.vy[0]! + w.bodies.angularVel[0]! * (w.contacts.x[k!]! - w.bodies.x[0]!);
+    expect(Math.abs(across)).toBeLessThan(1e-9);
   });
 });
 
