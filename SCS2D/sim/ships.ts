@@ -10204,7 +10204,8 @@ export class Ships {
       const gain = (take + strip * approach.fuelPerMetal) * (held !== null ? approach.rockWeight : 1) - cost;
       if (!(gain > 0)) continue;
       const time =
-        gap / closing + (held !== null ? this.miningTime(held, take, strip, stripRate) : take / pump + (strip > 0 ? strip / stripRate : 0));
+        (gap / closing) * approach.tripWeight +
+        (held !== null ? this.miningTime(held, take, strip, stripRate) : take / pump + (strip > 0 ? strip / stripRate : 0));
       const danger = approach.scavengeDanger > 0 ? this.dangerNear(bodies, i, tb) : 0;
       const score = gain / time / (1 + max(0, approach.scavengeDanger) * danger);
       if (score > bestScore) {

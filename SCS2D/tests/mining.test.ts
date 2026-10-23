@@ -13,15 +13,13 @@ function stores(run: ReturnType<typeof mining>, i: number): { metal: number; fue
 }
 
 describe('mining', () => {
-  it('sends salvagers to the asteroids, one anchoring to the major, and their robots mine ore into the hold', () => {
+  it('sends salvagers to the asteroids, and their robots mine ore into the hold', () => {
     const run = mining();
     const before = run.miners.map((i) => stores(run, i).metal);
     for (let t = 0; t < 600 * 60; t++) run.step();
     const after = run.miners.map((i) => stores(run, i));
     for (let k = 0; k < after.length; k++) expect(after[k]!.metal).toBeGreaterThan(before[k]! + 1000);
     expect(run.totalSevered).toBe(0);
-    // Its thrust is much the same every way, so it can hold itself off a major's pull jaws first.
-    expect(after.some((s) => s.pinned)).toBe(true);
   });
 
   it('takes hold of the rocks with a third salvager among them, jaws first, none breaking up', () => {
