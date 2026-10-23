@@ -504,7 +504,9 @@ inside any one file is not contiguous.
   holding was a third of the way inside the ship and it flew into it.
   **Craft keep out of each other's way by where they will be**, not by where they are: how long until a pair
   is at its closest and how much room that will leave, since a bubble cannot tell a consort holding station
-  a hull's width away from something crossing at two hundred metres a second. It is never applied to the
+  a hull's width away from something crossing at two hundred metres a second. How soon is how long until
+  they would touch, where they would: for anything large that is far sooner than their middles' closest. A
+  ram keeps clear of rocks and of its own side's ships, at its own size, and of nothing else. It is never applied to the
   thing a craft is flying at — where it wants to be relative to *that* is already decided, and a second
   opinion would have a ship told to ram sheer off at the last moment and call it seamanship. It costs a
   quarter of the contacts in the Star Wars scene and a third of those between a fighter and a capital, half
@@ -738,19 +740,27 @@ inside any one file is not contiguous.
   and put into the receiver's lowest drain priority first, the hull's mass unchanged and its inertia following
   the fuel. **A claw** (`claw`) is a box with jaws on its bow face and a pump behind them, pumping
   `CLAW_PUMP_PER_METRE` for every metre of its width. It closes on whatever its bow meets within 45° — a
-  wreck's or an enemy's module, sound or torn, never a friend still under control — at a closing speed up to `CLAW_SPEED_MAX`
-  (8 m/s), by chance: certain on a spent module, `CLAW_GRIP_CHANCE` on a sound one, best between
-  `CLAW_SPEED_LOW` and `CLAW_SPEED_HIGH` (1 and 4 m/s) and falling off either side (`clawChance`). A miss waits
+  wreck's or an enemy's module, sound or torn, never a friend still under control — once it is pushed
+  back, stabbing in (§4 Collision), with `CLAW_BITE_FORCE` per metre of its width, so a heavier ship
+  bites coming in slower; by chance: certain on a spent module, `CLAW_GRIP_CHANCE` on a sound one
+  (`clawChance`). One going in too fast to stop short of its full depth glances off. A miss waits
   `CLAW_RETRY`. Closing takes `CLAW_BITE` of the module's capacity, and the two become one body joined by a
   seam across the claw's whole jaw that holds `DOCK_HOLD` times a hook's. While the claw works it pumps
   what the other piece holds into its own (`Ships.pump`), and once its piece is full or the other dry it lets
   go, cutting the seam. Gripping a live enemy makes the two ride one body, pulling against each other. A
   claw grips only for fuel it has room for.
+  **A claw on an asteroid moors to it instead**, as a fighter is parked on a pad (`Ships.moor`): the ship keeps
+  its own body and design, pinned each step in the rock's blueprint frame, meeting neither the rock nor what is
+  parked on either, and weighing on a rock that moves. Its robots walk to the claw and cross onto the rock to
+  mine it, and back across with what they carry; the module the claw grips is left to hold it by. It lets go
+  once neither its robots nor its claw can take any more, or it is given an order, waiting for robots out on the rock, or at once for
+  an armed enemy in reach, leaving them. A blow beyond what its claw holds, the seam's strength the shock
+  spent with distance as through a weld, knocks it off, the excess its own.
   **A pilot takes its claw to wrecks** once its claw's piece of hull is down to its doctrine's
   `scavengeFuelBelow` of a full load (zero, never, by default), and goes from source to source until it is full.
   It picks the wreck, or the enemy with no main guns left, that pays the most fuel, less what the trip burns,
-  for the time it takes to reach and drain, divided by one more `scavengeDanger` for every armed enemy within
-  reach of it. The trip is reckoned at what it can close at, `approachSpeed` less however fast the source is
+  for the time it takes to reach and drain, each second of the trip counted as `tripWeight` (ten by default)
+  seconds of draining, divided by one more `scavengeDanger` for every armed enemy within reach of it. The trip is reckoned at what it can close at, `approachSpeed` less however fast the source is
   going away, and burns what matching the source's motion and then speeding up and stopping again costs at its
   engines' exhaust speed; a source going away faster than it can follow, or holding no more than that, is
   not gone for. **It goes for metal too**, with robots of its own, once its claw's piece of hull is down to
@@ -762,8 +772,8 @@ inside any one file is not contiguous.
   of a full hold and for fuel below half a tank; the `salvageRun` scenario has it fly out to a dead corvette,
   grip it, drink it and take it apart. A claw goes only for what it shares a layer with: a thin one never for a fighter or a piece of one, which flies above the deck. The time to take it
   apart is reckoned at its robots' `ROBOT_REPAIR_RATE`. The claw grips it and holds on while its robots work. It points
-  its claw at the source and comes in down a stopping curve that ends not at rest but at the middle of the
-  claw's band, planned on the thrust it actually has astern; touching without taking hold, it backs off for
+  its claw at the source and comes in down a stopping curve that ends not at rest but at
+  `(CLAW_SPEED_LOW + CLAW_SPEED_HIGH) / 2`, planned on the thrust it actually has astern; touching without taking hold, it backs off for
   `CLAW_RETRY` and comes again. A ship under control and larger than itself lying across its way — the friend
   it has just left, say — it first circles outside that ship's radius, as a fighter does a carrier for a pad,
   until the line is clear; not one so near the source that circling it would reach the source, nor a rival
@@ -912,13 +922,16 @@ inside any one file is not contiguous.
   nothing left of it is gone, and the body passes to one that has some. A claw closes on a wreck its robots
   could take apart, as it does on one with fuel it has room for, and holds on while its robots have the
   charge and the holds the room.
-  **A pad tends one fighter** (`ModuleSpec.craft`, naming a copy in the blueprint's `hangar`, as a fleet
-  carries its designs; an older file's `fighter` reads as `craft`), and **may set out with it docked** (`docked`). It is spawned lying along the pad,
+  **A pad tends one fighter** (`ModuleSpec.craft`, naming a design: the ship's own, or a copy in the
+  blueprint's `hangar`, as a fleet carries its designs; an older file's `fighter` reads as `craft`). **What a
+  pad or slipway builds is found by name and compiled once**: the hangar is flat, so what a hangar's designs
+  build is found in the same hangar, and designs that build each other, or a ship that builds itself, are one
+  design each rather than copies nested without end, and **may set out with it docked** (`docked`). It is spawned lying along the pad,
   centred on it, and parked as one that had landed, so it is topped up from the carrier and lifts off once
   full. A fighter too big for its pad, or one that is missing or not a fighter, is a blueprint problem, and a
   budget counts the carrier and everything it sets out with (`billOf`). An older file's `docked` naming the
   fighter reads as that fighter, set out docked. **In a fleet a pad's fighter is the fleet's design of that
-  name** (`sim/fleetHangar.ts`), so a fighter flown from the start and one a carrier builds are one design,
+  name**, and so is whatever that builds in turn (`sim/fleetHangar.ts`), so a fighter flown from the start and one a carrier builds are one design,
   bred together: a carrier joining a fleet, by the editor or from a file, gives its hangar up, a fighter the
   fleet lacks lifted into it and one it has the same dropped, and one it has differently left behind as a
   fleet problem. Opened in the ship editor, a fleet's carrier carries the fleet's fighters again and is
@@ -946,16 +959,25 @@ inside any one file is not contiguous.
   **A slipway** (`slipway`) is a shipyard in the hull: it names a ship that is not a fighter (`craft`, from
   the `hangar` as a pad's fighter is, and the fleet's design of that name in a fleet) and how many of it to
   keep (`keep`), and never sets out with one, since it is a place ships are built rather than one they are
-  kept. The ship is built bow first out of its face along its facing, on its centre line, finished when its
-  stern reaches the face (`slipwayStrip`). It is a blueprint problem for the ship to be wider across the
-  beam than the slipway, to stand in the weapons layer when the slipway does not (one turret makes it want
+  kept; it may name the ship it is on, which then builds copies of itself. The ship is built out of its face
+  along its facing, on its centre line, finished when its far end reaches the face (`slipwayStrip`): bow
+  first, unless the slipway lays it turned (`craftAngle`, degrees in a file). A quarter turn builds it side
+  first, so a ship broader than it is long comes out across a slipway as wide as it is long; a mirrored
+  slipway turns it the other way (`berthOf`). It is a blueprint problem for the ship to be wider across the
+  slipway, as it lies, than the slipway is, to stand in the weapons layer when the slipway does not (one turret makes it want
   a thick slipway), or for anything of the builder to lie in the strip it builds into. A slipway's fittings
   are `SLIPWAY_MASS_PER_AREA` of its floor, and it pumps `SLIPWAY_PUMP_PER_METRE` for every metre of its
-  width. The editor sets the ship and how many it keeps. Evolution adds one as rarely as a pad (0.5) and
-  nudges the count, and in a fleet points it at a ship as it points a pad at a fighter. **A slipway builds like a printer** (`Ships.build`, `sim/slipway.ts`): short of the ships it
+  width. The editor sets the ship, offering the one being drawn among them, how many it keeps and which way
+  it lies, and turns the slipway for a ship that fits only side first. Evolution adds one as rarely as a pad
+  (0.5), nudges the count, turns it a quarter now and then, and in a fleet points it at a ship, itself
+  among them, as it points a pad at a fighter. **A slipway builds like a printer** (`Ships.build`, `sim/slipway.ts`): short of the ships it
   keeps, counted as a pad counts its fighters, it builds `SLIPWAY_STEP` (a metre) of the ship at a time
-  from the bow, every module the cut crosses a shell from its foremost face as far as the cut and every
-  module wholly ahead of it whole but for its fittings (`printedCraft`). Each step is a remade hull: the
+  from the end that leads out, every module the cut crosses a shell from its foremost face as far as the
+  cut and every module wholly ahead of it whole but for its fittings (`printedCraft`). A module turned off
+  the slipway's axis, whose shell would reach back past the cut into the builder, waits until the cut has
+  passed it and is built whole. A ship building itself builds a twin of its design (`twinOf`): the same
+  design, so it builds itself in turn, but one whose modules neither it nor its builder mistakes for its own
+  while the two are one body. Each step is a remade hull: the
   part built is taken out and put back pushed out by a step, its cut at the slipway's face, one body with
   the builder, held by a slipway dock on each piece it is in, since a design that joins up only further aft
   is in pieces until it does. A step's work is `SLIPWAY_BUILD_PER_METRE` of the slipway's width, its walls
@@ -966,8 +988,15 @@ inside any one file is not contiguous.
   so a module comes away from the face whole and none is left to fit at the end but the stern's. With its
   walls all up and its stern whole it fills it from what the builder can spare as a pad does, and lets it
   go, pushing the two apart at `SLIPWAY_PUSH` (2 m/s) as a stage separates; the ship it built keeps its
-  engines off while any of their flames would play on its builder, for up to `SLIPWAY_CLEAR_TIME`. Until then it is held doing nothing, its engines off and its guns silent. A builder that could still
-  build an armed ship is armed, and a slipway building is busy, for a battle's decision, as a pad is. The
+  engines off while any of their flames would play on its builder, for up to `SLIPWAY_CLEAR_TIME`, unless
+  it is drifting back into it, as a well under a builder anchored to its rock pulls it. Until then it is held doing nothing, its engines off, its guns silent and its own pads and slipways idle; let go, it builds what its design does. A builder that could still
+  build an armed ship is armed, and a slipway building is busy, for a battle's decision, as a pad is.
+  **A pad or slipway may build only anchored** (`buildAnchored`): it lays a new craft down only while its
+  ship's claw holds something, a slipway works only then, and the claw holds on until what it builds is
+  let go, so a miner builds held still where it mines rather than flying about with half a ship on its
+  stern. A ship that wants to build so goes to anchor whether or not it has room for anything the rock
+  holds, and its claw grips for that alone. Set per pad and slipway, so a ship can build its escort
+  anywhere and its own kind only anchored; evolution flips it. The
   `shipyard` scenario has a Shipyard build and fit out a Scavenger in a little over three minutes, fill it,
   and let it go at about four and a half.
   **A port** (`port`) is a coupling on a hull's side, never thick, with a pump of `PORT_PUMP_PER_METRE` for
@@ -1083,10 +1112,24 @@ inside any one file is not contiguous.
   `kernel`, an indestructible convex polygon on no side, rides one on a pinned body (the Kernels scene); round it
   are rings of rock wedges, each a share ore and ice, drawn with minors from a seed into a battle's map,
   clear of the ships (the Asteroid Field scene), and offered by the custom battle, evolution and the
-  skirmish. Robots mine rock into one hold, ore as metal and ice as fuel, and a claw alone melts ice;
+  skirmish. Rock that meets rock slowly sticks, torn or not, and the two go on as one body: a minor onto a major rides its rail, and two majors never weld. A claw moors its ship to an asteroid, as a pad parks a fighter, and its robots cross onto the rock to mine it into one hold, ore as metal and ice as fuel, and a claw alone melts ice;
   scavenging goes for asteroids by what they hold (the Mining scene). An asteroid picked out in the
   viewer shows what is left in it, and a right-click on one sends the picked ships with claws to mine it.
-  A claw ship closes jaws first, round asteroids in its way, at doctrine's `clawSpeed`.
+  A claw ship closes jaws first, round asteroids in its way, at doctrine's `clawSpeed`, and passes over an
+  asteroid an enemy has hold of. **It comes in square to the surface** (`chooseGrip`, `squareUp`): it
+  picks a point on an outside face of its source facing it, preferring one wide enough for its jaws and
+  with room out in front of it, four of its radii deep and its width across, so not the floor of a notch;
+  keeps it in the source's frame, so it turns with a tumbling wreck, and looks again each second while
+  still well out, or once the face's module is spent. It makes for a gate a radius out along the face's
+  normal, its jaws on the source's middle until near and then turned on to the face, and once on that
+  line and square to the face closes straight in down a stopping curve, all moving as that point of the
+  source does and held against its well's pull, which it otherwise lagged by a metre a second. It
+  touches down no faster than its claw's spring could stop it in its stroke (`clawArrival`): the
+  middle of the claw's band for a light ship, slower for a heavy one, whose claw was otherwise driven
+  home and torn off. One that cannot turn both ways closes on the middle as before. A miss alongside
+  its source no longer counts against that source the speed the bounce left it at, so it comes round
+  again rather than going off after another. The Rival Mines scene has a Replicator on each of two
+  majors, which mine them and build copies of themselves anchored.
   What is left is in ROADMAP.md §8.
   Alongside it, §8 step 5's skirmish: an endless loop against an enemy fleet that evolves to beat the
   player's, planned in ROADMAP.md §8. Evolution keeps the skirmish's sense of quiet, though it plays a match on until every side is quiet before naming a winner. Its loop is built without the evolving enemy (`dist/skirmish.html`,
@@ -1626,7 +1669,12 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   **middle of the overlapping face** rather than a corner, so two ships meeting squarely shove rather
   than spin; and the overlap left after the impulse is corrected out over a few steps rather than
   resolved at once. A body with no hull does not collide at all — everything in a battle is a ship or
-  the wreck of one, and a bare mass with a radius is not a shape.
+  the wreck of one, and a bare mass with a radius is not a shape. **Two contacts give** rather than stop
+  in a step, since a hull breaks up on the impulse one step puts through its welds: **rock** sinks in up to
+  `ROCK_SINK`, pushed back like a damper (`ROCK_DAMPING`), in proportion to how fast the two close and not
+  at all once they stop, the overlap left; and **a claw** met square on stabs in, pushed back by a spring
+  and damper per metre of its width (`CLAW_STIFFNESS`, `CLAW_DAMPING`), no harder than the spring at
+  `CLAW_DEPTH` of its length in, where it is met hard, and held sideways.
 - **The spatial index is for queries, not collision pairing.** At a few hundred bodies, a sort along x and
   testing each body against its neighbours there is cheaper than keeping an index for it; the pairs are
   still taken in body order, so contact order does not depend on the sort. What is expensive is thousands of

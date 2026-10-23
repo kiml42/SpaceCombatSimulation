@@ -1,5 +1,6 @@
 import {
   bodySpec,
+  compileDraft,
   expandWithOrigins,
   foldAngle,
   isInstance,
@@ -11,7 +12,11 @@ import {
   math,
   placementAt,
   pushNeighbours,
+  padFighterNames,
+  readsCraftAngle,
   readsDocked,
+  renamePadFighter,
+  slipwayProblem,
   type Assembly,
   type AssemblyInstance,
   type Frame,
@@ -20,10 +25,11 @@ import {
   type ModulePath,
   type ModuleSpec,
   type PathStep,
+  type ShipDesign,
   type Placement,
 } from '../sim/index.js';
 
-const { cos, sin, round, ceil, min, max, normalizeAngle } = math;
+const { cos, sin, round, ceil, min, max, normalizeAngle, PI } = math;
 
 /**
  * Edits to a layout, as values.
@@ -153,34 +159,91 @@ export function updatePlacement(blueprint: Blueprint, path: ModulePath, change: 
 
 /**
  * Set the craft a pad or slipway builds, or clear it with null, which clears
- * whether it sets out docked and how many it keeps too. A pad given its first
- * fighter sets out with it docked. The craft is copied into the hangar, and
- * the hangar loses whatever nothing names any more.
+ * whether it sets out docked, how many it keeps, whether it builds only
+ * anchored and which way a slipway lays it out too. A pad given its first fighter sets out with it docked, and a
+ * slipway is turned to lay its ship out a way it fits (`berthed`). The craft
+ * is copied into the hangar unless it is the ship itself, what it builds with
+ * it; the hangar is flat, and loses whatever nothing names any more.
  */
 export function dockFighter(blueprint: Blueprint, path: ModulePath, fighter: Blueprint | null): Blueprint | null {
   const next = updatePlacement(blueprint, path, (placement) => {
     if (isInstance(placement)) return placement;
-    const { craft: was, docked, keep, ...rest } = placement;
+    const { craft: was, docked, keep, craftAngle, buildAnchored, ...rest } = placement;
     if (fighter === null) return rest;
     return {
       ...rest,
       craft: fighter.name,
       ...(!readsDocked(rest.kind) ? {} : was === undefined ? { docked: true } : docked === undefined ? {} : { docked }),
       ...(keep === undefined ? {} : { keep }),
+      ...(craftAngle === undefined ? {} : { craftAngle }),
+      ...(buildAnchored === undefined ? {} : { buildAnchored }),
     };
   });
   if (next === null) return null;
   const hangar: Record<string, Blueprint> = { ...next.hangar };
-  if (fighter !== null) hangar[fighter.name] = cloneBlueprint(fighter);
+  if (fighter !== null && fighter.name !== blueprint.name) {
+    const { hangar: carried, ...craft } = cloneBlueprint(fighter);
+    hangar[fighter.name] = craft;
+    for (const [name, design] of Object.entries(carried ?? {})) hangar[name] ??= design;
+  }
   const named = new Set<string>();
-  const walk = (list: readonly Placement[]): void => {
-    for (const p of list) if (!isInstance(p) && p.craft !== undefined) named.add(p.craft);
-  };
-  walk(next.modules);
-  for (const assembly of Object.values(next.assemblies ?? {})) walk(assembly.modules);
-  for (const name of Object.keys(hangar)) if (!named.has(name)) delete hangar[name];
+  const queue: Blueprint[] = [next];
+  while (queue.length > 0) {
+    for (const name of padFighterNames(queue.pop()!)) {
+      if (named.has(name)) continue;
+      named.add(name);
+      if (hangar[name] !== undefined) queue.push(hangar[name]);
+    }
+  }
+  // One of the ship's own name is never built: the ship builds itself.
+  for (const name of Object.keys(hangar)) if (!named.has(name) || name === next.name) delete hangar[name];
   const { hangar: __, ...rest } = next;
-  return Object.keys(hangar).length > 0 ? { ...rest, hangar } : rest;
+  const docked = Object.keys(hangar).length > 0 ? { ...rest, hangar } : rest;
+  const kind = (placementAt(docked, path) as ModuleSpec | null)?.kind;
+  return fighter !== null && kind !== undefined && readsCraftAngle(kind) ? berthed(docked, path, fighter) : docked;
+}
+
+/**
+ * The slipway at `path` turned to build `craft`, when it cannot as it lies:
+ * bow first if that fits, or else side first, either way round. As it was
+ * when it already can, or when no way round can.
+ */
+function berthed(blueprint: Blueprint, path: ModulePath, craft: Blueprint): Blueprint {
+  let design: ShipDesign;
+  try {
+    design = compileDraft(craft.name === blueprint.name ? blueprint : craft);
+  } catch {
+    return blueprint;
+  }
+  const fits = (candidate: Blueprint): boolean => {
+    const { modules, origins } = expandWithOrigins(candidate);
+    return origins.every((origin, i) => !samePlacement(origin.path, path) || slipwayProblem(design, modules[i]!, modules) === null);
+  };
+  try {
+    if (fits(blueprint)) return blueprint;
+    for (const turn of [0, PI / 2, -PI / 2]) {
+      const turned = updatePlacement(blueprint, path, (placement) => {
+        if (isInstance(placement)) return placement;
+        const { craftAngle: _, ...rest } = placement;
+        return turn === 0 ? rest : { ...rest, craftAngle: turn };
+      });
+      if (turned !== null && fits(turned)) return turned;
+    }
+  } catch {
+    // A layout that does not expand has no slipway to fit anything through.
+  }
+  return blueprint;
+}
+
+/** The ship under another name, and building itself still under it. */
+export function renameShip(blueprint: Blueprint, name: string): Blueprint {
+  const was = blueprint.name;
+  const renamed = { ...blueprint, name };
+  // A hangar's design of either name makes what the name meant ambiguous, so it is left as it was.
+  if (name === was || blueprint.hangar?.[name] !== undefined || blueprint.hangar?.[was] !== undefined) return renamed;
+  const out = renamePadFighter(renamed, was, name);
+  if (out.hangar === undefined) return out;
+  return { ...out, hangar: Object.fromEntries(Object.entries(out.hangar).map(([k, design]) => [k, renamePadFighter(design, was, name)])) };
 }
 
 /**

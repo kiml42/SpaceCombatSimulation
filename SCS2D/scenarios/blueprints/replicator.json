@@ -1,0 +1,363 @@
+{
+  "formatVersion": 2,
+  "name": "Replicator",
+  "notes": "A mining ship that builds copies of itself. Two claws on the bow take hold of rock, robots strip it into the holds, and the slipway astern lays a copy of the whole ship out side first, beam leading, since the ship is far broader than it is long.",
+  "doctrine": {
+    "approach": {
+      "approachSpeed": 10,
+      "scavengeFuelBelow": 0.6,
+      "scavengeMetalBelow": 1,
+      "refuelBelow": 0.4,
+      "rearmBelow": 0.5,
+      "rockWeight": 20,
+      "tripWeight": 400
+    }
+  },
+  "hangar": {
+    "Dinky": {
+      "formatVersion": 2,
+      "name": "Dinky",
+      "notes": "A fighter. It cannot hope to destroy anything much larger than itself, so it puts engines above the guns everything else shoots at first: a capital it strands is a capital out of the battle, which is the most a craft this size can do to one.",
+      "fighter": true,
+      "doctrine": {
+        "targeting": {
+          "facingWeight": 100,
+          "sightWeight": 50,
+          "escortWeight": 100
+        },
+        "approach": {
+          "standoffRadii": 60,
+          "escortRadii": 10,
+          "escortMinRadii": 2,
+          "tolerance": 0.3,
+          "brake": 0.95,
+          "ramRadii": 1000,
+          "ramArmed": 0.5,
+          "refuelBelow": 0.5,
+          "tangentialMin": 20,
+          "tangentialMax": 60
+        }
+      },
+      "assemblies": {
+        "Side": {
+          "modules": [
+            {
+              "id": 8,
+              "kind": "engine",
+              "x": -0.1,
+              "y": -0.05,
+              "angle": -90,
+              "length": 0.2,
+              "width": 0.2,
+              "nozzle": 0.5
+            },
+            {
+              "id": 9,
+              "kind": "engine",
+              "x": -2.05,
+              "y": -0.05,
+              "angle": -180,
+              "length": 0.4,
+              "width": 0.2,
+              "barrels": 1,
+              "nozzle": 1.75
+            },
+            {
+              "id": 10,
+              "kind": "engine",
+              "x": -2.25,
+              "y": -0.15,
+              "angle": -90,
+              "length": 0.125,
+              "width": 0.4,
+              "barrels": 1,
+              "nozzle": 0.3125
+            }
+          ]
+        }
+      },
+      "modules": [
+        {
+          "id": 1,
+          "kind": "tank",
+          "x": 0.675,
+          "y": 0,
+          "length": 1.15,
+          "width": 0.8,
+          "reinforcement": 1
+        },
+        {
+          "id": 2,
+          "use": "Side",
+          "x": -0.1,
+          "y": 0.25,
+          "angle": 180
+        },
+        {
+          "id": 3,
+          "kind": "engine",
+          "x": -0.1,
+          "y": 0,
+          "angle": 180,
+          "length": 0.5,
+          "width": 0.8,
+          "nozzle": 0.625
+        },
+        {
+          "id": 4,
+          "kind": "core",
+          "x": 0,
+          "y": 0,
+          "length": 0.2,
+          "width": 0.6,
+          "reinforcement": 1.5,
+          "notes": "A tiny simple fighter with just enough engines to fly"
+        },
+        {
+          "id": 5,
+          "kind": "hullGun",
+          "x": 1.96,
+          "y": 0,
+          "angle": 0,
+          "length": 0.92,
+          "width": 0.4,
+          "reinforcement": 1.5,
+          "barrels": 1,
+          "barrelCalibres": 22,
+          "traverse": 6,
+          "fragments": 4,
+          "burstSpeed": 100,
+          "targeting": {
+            "engineWeight": 150,
+            "facingWeight": 100,
+            "sightWeight": 100
+          }
+        },
+        {
+          "id": 6,
+          "use": "Side",
+          "x": -0.1,
+          "y": -0.25,
+          "angle": 180,
+          "mirror": true
+        },
+        {
+          "id": 7,
+          "kind": "hold",
+          "x": 1.375,
+          "y": 0,
+          "length": 0.25,
+          "width": 0.8,
+          "reinforcement": 1
+        }
+      ]
+    }
+  },
+  "assemblies": {
+    "Side": {
+      "modules": [
+        {
+          "id": 13,
+          "use": "Landing Engine",
+          "x": 2.322698052,
+          "y": 6.614550033,
+          "angle": 32.660912722
+        },
+        {
+          "id": 5,
+          "kind": "tank",
+          "x": 2.333333333,
+          "y": 5.297958994,
+          "length": 2.5,
+          "width": 3.9,
+          "vertices": [
+            1.666666667,
+            -1.3,
+            -0.833333333,
+            2.6,
+            -0.833333333,
+            -1.3
+          ]
+        },
+        {
+          "id": 3,
+          "kind": "claw",
+          "x": 6.75,
+          "y": 2.5,
+          "angle": 0,
+          "length": 2.5,
+          "width": 2,
+          "reinforcement": 2
+        },
+        {
+          "id": 9,
+          "kind": "pad",
+          "x": -2.537317226,
+          "y": 17,
+          "angle": -180,
+          "length": 8.674634452,
+          "width": 7,
+          "craft": "Dinky",
+          "keep": 1
+        },
+        {
+          "id": 11,
+          "use": "engine",
+          "x": -6.8746344520000005,
+          "y": 19
+        },
+        {
+          "id": 12,
+          "use": "engine",
+          "x": -4.574634452000001,
+          "y": 20.5,
+          "angle": -90
+        },
+        {
+          "id": 14,
+          "use": "Landing Engine",
+          "x": 1.7999999999999998,
+          "y": 15.196097097
+        },
+        {
+          "id": 15,
+          "use": "Landing Engine",
+          "x": 1.7999999999999998,
+          "y": 18.996097097
+        },
+        {
+          "id": 16,
+          "use": "engine",
+          "x": -6.8746344520000005,
+          "y": 15
+        },
+        {
+          "id": 17,
+          "kind": "robotBay",
+          "x": -3.75,
+          "y": 7.5,
+          "length": 4.5,
+          "width": 12
+        },
+        {
+          "id": 19,
+          "use": "engine",
+          "x": 1.7999999999999994,
+          "y": 20.5,
+          "angle": -90
+        },
+        {
+          "id": 21,
+          "kind": "tank",
+          "x": 9.999999717180685e-10,
+          "y": 10.75,
+          "length": 3,
+          "width": 5.5
+        },
+        {
+          "id": 22,
+          "use": "Landing Engine",
+          "x": 1.5000000009999999,
+          "y": 11.696097096999999
+        },
+        {
+          "id": 23,
+          "use": "engine",
+          "x": -1.3746344520000005,
+          "y": 20.5,
+          "angle": -90
+        },
+        {
+          "id": 24,
+          "use": "engine",
+          "x": -7.774634452000001,
+          "y": 20.5,
+          "angle": -90
+        }
+      ]
+    },
+    "engine": {
+      "modules": [
+        {
+          "id": 10,
+          "kind": "engine",
+          "x": 0,
+          "y": 0,
+          "angle": 180,
+          "length": 2.5,
+          "width": 3,
+          "nozzle": 0.667
+        }
+      ]
+    },
+    "Landing Engine": {
+      "modules": [
+        {
+          "id": 4,
+          "kind": "engine",
+          "x": 0,
+          "y": 0,
+          "angle": 0,
+          "length": 1.5,
+          "width": 3,
+          "nozzle": 0.333
+        }
+      ]
+    }
+  },
+  "modules": [
+    {
+      "id": 1,
+      "kind": "core",
+      "x": 0,
+      "y": 0,
+      "length": 3,
+      "width": 16,
+      "reinforcement": 2
+    },
+    {
+      "id": 2,
+      "kind": "hold",
+      "x": 3.5,
+      "y": 0,
+      "length": 4,
+      "width": 8,
+      "reinforcement": 2,
+      "fill": 0.1
+    },
+    {
+      "id": 6,
+      "use": "Side",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": 7,
+      "use": "Side",
+      "x": 0,
+      "y": 0,
+      "mirror": true
+    },
+    {
+      "id": 8,
+      "kind": "slipway",
+      "x": -6.75,
+      "y": 0,
+      "angle": -180,
+      "length": 1.5,
+      "width": 27,
+      "craft": "Replicator",
+      "keep": 1,
+      "buildAnchored": true,
+      "craftAngle": 90
+    },
+    {
+      "id": 18,
+      "kind": "generator",
+      "x": -3.75,
+      "y": 0,
+      "length": 4.5,
+      "width": 3
+    }
+  ]
+}

@@ -14,6 +14,7 @@ import broadsideFile from './blueprints/broadside.json' with { type: 'json' };
 import torpedoFile from './blueprints/torpedo.json' with { type: 'json' };
 import scavengerFile from './blueprints/scavenger.json' with { type: 'json' };
 import salvagerFile from './blueprints/salvager.json' with { type: 'json' };
+import replicatorFile from './blueprints/replicator.json' with { type: 'json' };
 import tankerFile from './blueprints/tanker.json' with { type: 'json' };
 import beamCarrierFile from './blueprints/beam-carrier.json' with { type: 'json' };
 
@@ -62,6 +63,7 @@ export const TORPEDO: Blueprint = parseBlueprint(torpedoFile);
 export const BROADSIDE: Blueprint = parseBlueprint(broadsideFile);
 export const SCAVENGER: Blueprint = parseBlueprint(scavengerFile);
 export const SALVAGER: Blueprint = parseBlueprint(salvagerFile);
+export const REPLICATOR: Blueprint = parseBlueprint(replicatorFile);
 export const TANKER: Blueprint = parseBlueprint(tankerFile);
 export const BEAM_CARRIER: Blueprint = parseBlueprint(beamCarrierFile);
 
@@ -89,6 +91,7 @@ export const BLUEPRINTS = {
   broadside: BROADSIDE,
   scavenger: SCAVENGER,
   salvager: SALVAGER,
+  replicator: REPLICATOR,
   tanker: TANKER,
   beamCarrier: BEAM_CARRIER,
 

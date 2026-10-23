@@ -49,6 +49,7 @@ import {
   readsComputing,
   CORE_COMPUTING_SHARE,
   readsCraft,
+  readsCraftAngle,
   moduleProblem,
   mountTraverse,
   isHullMount,
@@ -758,7 +759,7 @@ type SwitchKnob =
   | { readonly at: 'fighter' }
   | { readonly at: 'scale' }
   | {
-      readonly at: 'kind' | 'barrels' | 'weapon' | 'main' | 'thick' | 'drainPriority' | 'shape' | 'solid';
+      readonly at: 'kind' | 'barrels' | 'weapon' | 'main' | 'thick' | 'drainPriority' | 'shape' | 'solid' | 'craftAngle' | 'buildAnchored';
       readonly site: ModuleSite;
     }
   | { readonly at: 'mirror'; readonly site: InstanceSite };
@@ -900,6 +901,10 @@ function switches(draft: Draft): SwitchKnob[] {
       if (spec.weapon === true) out.push({ at: 'main', site });
     }
     if (readsFuse(spec.kind)) out.push({ at: 'solid', site });
+    // Which way a slipway lays its ship out: nothing to lay out without one.
+    if (readsCraftAngle(spec.kind) && spec.craft !== undefined) out.push({ at: 'craftAngle', site });
+    // Whether a pad or slipway builds only while its ship's claw holds something.
+    if (readsCraft(spec.kind) && spec.craft !== undefined) out.push({ at: 'buildAnchored', site });
   }
   return out;
 }
@@ -916,6 +921,8 @@ function switchWeight(knob: SwitchKnob, { build }: MutationLimits): number {
       return build.shape;
     case 'barrels':
     case 'thick':
+    case 'craftAngle':
+    case 'buildAnchored':
       return build.fittings;
     case 'weapon':
     case 'main':
@@ -949,6 +956,10 @@ function flip(knob: SwitchKnob, draft: Draft, rng: Rng, bounds: MutationLimits):
       return rearm(knob.site);
     case 'solid':
       return reload(knob.site);
+    case 'craftAngle':
+      return relay(knob.site, rng);
+    case 'buildAnchored':
+      return anchor(knob.site);
     case 'mirror':
       return reflect(knob.site);
   }
@@ -1351,6 +1362,23 @@ function reprioritise(site: ModuleSite, rng: Rng): string | null {
   const now = was + (rng.chance(0.5) ? 1 : -1);
   site.spec.drainPriority = now;
   return `${site.where} ${site.spec.kind}: drain priority ${was} → ${now}`;
+}
+
+/** Have a pad or slipway build only while its ship is anchored, or anywhere. */
+function anchor(site: ModuleSite): string {
+  if (site.spec.buildAnchored === true) delete site.spec.buildAnchored;
+  else site.spec.buildAnchored = true;
+  return `${site.where} ${site.spec.kind}: builds ${site.spec.buildAnchored === true ? 'only anchored' : 'anywhere'}`;
+}
+
+/** Turn the way a slipway lays its ship out to another quarter: bow first, either side first, or stern first. */
+function relay(site: ModuleSite, rng: Rng): string | null {
+  const was = round((site.spec.craftAngle ?? 0) / HALF_PI);
+  const now = (((was + 1 + rng.nextInt(3)) % 4) + 4) % 4;
+  const turn = now === 3 ? -HALF_PI : now * HALF_PI;
+  if (turn === 0) delete site.spec.craftAngle;
+  else site.spec.craftAngle = turn;
+  return `${site.where} ${site.spec.kind}: lays its ${site.spec.craft} out turned ${radiansToDegrees(turn)}°`;
 }
 
 /**

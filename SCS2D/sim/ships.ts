@@ -14,6 +14,7 @@ import {
   seamedDesign,
   shotSpread,
   slipwayHolds,
+  twinOf,
   subDesign,
   triggerMask,
   weldDesigns,
@@ -24,7 +25,7 @@ import {
   type DesignTurret,
   type ShipDesign,
 } from './blueprint.js';
-import { components, cuts, jointBetween, joints, type Joint } from './connectivity.js';
+import { components, cuts, DOCK_HOLD, JOINT_IMPULSE_PER_AREA, jointBetween, joints, seamThickness, type Joint } from './connectivity.js';
 import { BOTH_LAYERS, HULL_LAYER, Hulls, moduleLayers, OWN_LAYERS, WEAPONS_LAYER } from './hull.js';
 import {
   Damage,
@@ -78,12 +79,12 @@ import {
   type Targeting,
 } from './doctrine.js';
 import type { ForceProvider, World } from './world.js';
-import type { WellSpec } from './gravity.js';
+import { wellPull, type WellSpec } from './gravity.js';
 import type { BeamHits, Beams, SpatialGrid } from './index.js';
 import { MAX_BEAM_LENGTH } from './beams.js';
 import { RayHit } from './spatialGrid.js';
 import { fixed } from './fixed.js';
-import { hullsOverlap, moduleOverlapsHull, type Contacts } from './collision.js';
+import { CLAW_ALIGN, CLAW_DEPTH, CLAW_STIFFNESS, hullsOverlap, moduleOverlapsHull, Stab, type Contacts } from './collision.js';
 import {
   DOCK_POWER_PER_METRE,
   FUEL_DENSITY,
@@ -435,8 +436,11 @@ export const CLAW_SPEED_MAX = 8;
 /** Chance a claw takes a sound module in its band. Certain on one spent. */
 export const CLAW_GRIP_CHANCE = 0.8;
 
-/** Cosine of how far off its bow a claw can meet something and still close on it: 45°. */
-const CLAW_ALIGN = 0.7071067811865476;
+/**
+ * How hard a claw has to be pushed back, stabbing in (`collision.ts`), before
+ * it bites, per metre of its width, N: a heavier ship bites coming in slower.
+ */
+export const CLAW_BITE_FORCE = 5e4;
 
 /** Seconds a claw that missed waits before it tries again. */
 export const CLAW_RETRY = 0.5;
@@ -446,6 +450,21 @@ export const CLAW_BITE = 0.1;
 
 /** The closing speed a pilot brings its claw in at, m/s: the middle of its band. */
 const CLAW_APPROACH = (CLAW_SPEED_LOW + CLAW_SPEED_HIGH) / 2;
+
+/** Seconds a claw ship keeps the face it chose to grip before looking again, while still out past the gate. */
+const GRIP_RECHOOSE = 1;
+/**
+ * How far out from a face, in the gripping ship's radii, nothing of its source
+ * may stand for the face to have room in front of it: room to come in, and
+ * for what docks with it once it holds on, rather than the floor of a notch.
+ */
+const GRIP_CLEAR = 4;
+/** The share of the braking it has that a claw ship plans its last approach on. */
+const GRIP_BRAKING = 0.5;
+/** How far off square to its face, radians, a claw may be and still close on it. */
+const GRIP_SQUARE = 0.15;
+/** How far off the line out from its grip point a claw may be and still close, as a share of the jaws' width, where its face leaves it less. */
+const GRIP_LINE = 0.5;
 
 /** The most a fighter may be moving against a pad and still land on it, m/s: settling, not arriving. */
 export const PAD_SPEED = 1;
@@ -626,20 +645,14 @@ function moduleSizes(design: ShipDesign): Float64Array {
 }
 
 /**
- * The chance a claw closing at `closing` takes a module left at `integrity`:
- * best within its band, falling off either side of it, and likelier the more
- * the module has already been torn open.
+ * The chance a claw pushed back with `force` takes a module left at
+ * `integrity`: none short of `bite`, and past it likelier the more the module
+ * has already been torn open.
  */
-export function clawChance(closing: number, integrity: number): number {
-  if (!(closing > 0) || closing > CLAW_SPEED_MAX) return 0;
-  const band =
-    closing < CLAW_SPEED_LOW
-      ? closing / CLAW_SPEED_LOW
-      : closing > CLAW_SPEED_HIGH
-        ? (CLAW_SPEED_MAX - closing) / (CLAW_SPEED_MAX - CLAW_SPEED_HIGH)
-        : 1;
+export function clawChance(force: number, bite: number, integrity: number): number {
+  if (!(force >= bite) || !(force > 0)) return 0;
   const worn = integrity < 0 ? 1 : integrity > 1 ? 0 : 1 - integrity;
-  return band * (CLAW_GRIP_CHANCE + (1 - CLAW_GRIP_CHANCE) * worn);
+  return CLAW_GRIP_CHANCE + (1 - CLAW_GRIP_CHANCE) * worn;
 }
 
 /**
@@ -881,6 +894,8 @@ export class Ships {
   private readonly stripShapes = new WeakMap<ModuleSpec, StripShape>();
   /** A module of wreckage with a step of it taken apart this tick, by body: -1 for none. */
   private readonly stripped: number[] = [];
+  /** Rock bodies and modules, in pairs, that moored ships' robots have taken a step of this step. */
+  private readonly rockSteps: number[] = [];
   /**
    * Each ship's own doctrine, as it set out. A ship riding a merged hull shares
    * that hull's design, so its doctrine is read from here rather than from it.
@@ -1159,6 +1174,29 @@ export class Ships {
   private now = 0;
   /** The tick each ship last touched what it means to drink from without holding it. */
   private readonly touchedSource: number[] = [];
+  /**
+   * Where each claw ship means to take hold (`chooseGrip`): the body, the hull
+   * it was chosen on and the module it is on, and the point and the face's
+   * outward normal in that hull's frame about its centre of mass, so it turns
+   * with the hull. The tick it was chosen, to look again from.
+   */
+  private readonly gripBody: number[] = [];
+  private readonly gripHull: (ShipDesign | null)[] = [];
+  private readonly gripModule: number[] = [];
+  private readonly gripX: number[] = [];
+  private readonly gripY: number[] = [];
+  private readonly gripNx: number[] = [];
+  private readonly gripNy: number[] = [];
+  /** How far the jaws may land either side of the grip point and still be on its face, m. */
+  private readonly gripSlack: number[] = [];
+  /** Whether each claw ship is closing straight in on its grip point, rather than making for the gate. */
+  private readonly gripClosing: number[] = [];
+  private readonly gripAt: number[] = [];
+  /** The heading `squareUp` last asked for. */
+  private gripHeading = 0;
+  /** Each module's outline while a face is chosen, flat, and where each starts in it. */
+  private readonly gripOutlines: number[] = [];
+  private readonly gripStarts: number[] = [];
   /** The pad, by module of its ship's design, a fighter is making for to refuel; -1 for none. */
   private readonly landingPad: number[] = [];
   /**
@@ -1175,6 +1213,20 @@ export class Ships {
   private readonly parkedAngle: number[] = [];
   /** Its mass as its carrier last counted it. */
   private readonly parkedMass: number[] = [];
+  /**
+   * For a ship moored to an asteroid by its claw, rather than parked on a pad,
+   * the claw, by module of its own hull; -1 for any other. A moored ship is
+   * parked with no pad (`parkedPad` -1), posed in its rock's blueprint frame.
+   */
+  private readonly mooredClaw: number[] = [];
+  /** Where its claw grips, in the rock's blueprint frame. */
+  private readonly mooredGripX: number[] = [];
+  private readonly mooredGripY: number[] = [];
+  /** Each asteroid's fastest closing on another this run of touching, m/s, and the last step it touched one. */
+  private readonly rockMet: number[] = [];
+  private readonly rockMetAt: number[] = [];
+  /** Scratch for two rocks becoming one: each moored ship, and where it grips, world frame, in threes. */
+  private readonly rebasing: number[] = [];
   /** Every fighter parked. */
   private readonly parkedShips: number[] = [];
   /** Each carrier's fighters by the pad that keeps them (`ShipDesign.builds`); null for a ship whose pads build none. */
@@ -1798,6 +1850,16 @@ export class Ships {
     this.recharging.push(0);
     this.home.push(-1);
     this.touchedSource.push(-Infinity);
+    this.gripBody.push(-1);
+    this.gripHull.push(null);
+    this.gripModule.push(-1);
+    this.gripX.push(0);
+    this.gripY.push(0);
+    this.gripNx.push(0);
+    this.gripNy.push(0);
+    this.gripSlack.push(0);
+    this.gripClosing.push(0);
+    this.gripAt.push(-Infinity);
     this.landingPad.push(-1);
     this.dockSeenVx.push(0);
     this.dockSeenVy.push(0);
@@ -1813,6 +1875,11 @@ export class Ships {
     this.parkedY.push(0);
     this.parkedAngle.push(0);
     this.parkedMass.push(0);
+    this.mooredClaw.push(-1);
+    this.rockMet.push(0);
+    this.rockMetAt.push(-Infinity);
+    this.mooredGripX.push(0);
+    this.mooredGripY.push(0);
     const builds = design.builds ?? [];
     this.broods.push(builds.length === 0 ? null : { fighters: builds.map(() => []), work: new Float64Array(builds.length) });
     this.unfinished.push(0);
@@ -2609,7 +2676,8 @@ export class Ships {
     const b = bodies.indexOf(this.bodyIds[i]!);
     if (b < 0) return;
     const order = this.effectiveOrder(i);
-    const ramming = order !== undefined && order.target !== NO_TARGET && (order.ram || order.grapple);
+    // Parked, it meets nothing of its carrier, so would look clear on the pad and drop into its hull when let go.
+    const ramming = order !== undefined && order.target !== NO_TARGET && (order.ram || order.grapple) && this.parkedOn[i]! < 0;
     const want = ramming ? 1 : 0;
     if (want === this.committed[i] || !this.clearOfHulls(bodies, b)) return;
     this.committed[i] = want;
@@ -3414,7 +3482,11 @@ export class Ships {
       if (design !== null && design !== undefined) this.ride(bodies, b, design);
     }
     // And the fighters on the carriers, the carriers wherever they are.
-    for (let k = 0; k < this.parkedShips.length; k++) this.pin(bodies, this.parkedShips[k]!);
+    // Moored hulls first, since a fighter may be parked on one.
+    for (let k = 0; k < this.parkedShips.length; k++)
+      if (this.mooredClaw[this.parkedShips[k]!]! >= 0) this.pin(bodies, this.parkedShips[k]!);
+    for (let k = 0; k < this.parkedShips.length; k++)
+      if (this.mooredClaw[this.parkedShips[k]!]! < 0) this.pin(bodies, this.parkedShips[k]!);
     for (let i = 0; i < this.alive.length; i++) {
       if (this.alive[i] === 0) continue;
       bodies.applyLocalWrench(
@@ -3924,12 +3996,19 @@ export class Ships {
       return;
     }
 
-    // Just off a slipway, drifting clear: its engines stay off while they would burn its builder.
+    // Just off a slipway, drifting clear: its engines stay off while they would
+    // burn its builder, unless it is drifting back into it, as a well under an
+    // anchored builder pulls it.
     const builder = this.clearing[i]!;
     if (builder >= 0) {
       const bb = this.alive[builder] === 1 ? bodies.indexOf(this.bodyIds[builder]!) : -1;
       const waited = (this.now - this.clearingSince[i]!) * dt;
-      if (bb >= 0 && grid !== undefined && waited < SLIPWAY_CLEAR_TIME && this.wouldBurn(bodies, grid, i, bb)) {
+      const back =
+        bb >= 0 &&
+        (bodies.x[b]! - bodies.x[bb]!) * (bodies.vx[b]! - bodies.vx[bb]!) +
+          (bodies.y[b]! - bodies.y[bb]!) * (bodies.vy[b]! - bodies.vy[bb]!) <
+          0;
+      if (bb >= 0 && grid !== undefined && waited < SLIPWAY_CLEAR_TIME && !back && this.wouldBurn(bodies, grid, i, bb)) {
         this.idle(i);
         return;
       }
@@ -3968,8 +4047,17 @@ export class Ships {
         if (across >= 0) {
           wantAngle = this.roundHull(bodies, i, b, across, tb) - jaws;
         } else {
-          wantAngle = atan2(bodies.y[tb]! - bodies.y[b]!, bodies.x[tb]! - bodies.x[b]!) - jaws;
-          const radial = this.grapple(bodies, i, b, tb, claw, wantAngle, this.now - this.touchedSource[i]! < CLAW_RETRY / dt);
+          const standOff = this.now - this.touchedSource[i]! < CLAW_RETRY / dt;
+          let radial: number;
+          // Lining up square takes turning both ways: one that cannot stop a turn closes on the middle.
+          const layout = this.layoutOf(i);
+          if (layout.maxTorque(1) > 0 && layout.maxTorque(-1) > 0 && this.chooseGrip(bodies, i, b, tb, target, claw, dt)) {
+            radial = this.squareUp(bodies, i, b, tb, claw, standOff);
+            wantAngle = this.gripHeading;
+          } else {
+            wantAngle = atan2(bodies.y[tb]! - bodies.y[b]!, bodies.x[tb]! - bodies.x[b]!) - jaws;
+            radial = this.grapple(bodies, i, b, tb, claw, wantAngle, standOff);
+          }
           // An asteroid comes on in its orbit: match its motion on the mains first, then turn the jaws to it.
           if (this.isAsteroid(target)) wantAngle = this.matchOrbit(bodies, i, b, tb, wantAngle, radial);
         }
@@ -3986,10 +4074,11 @@ export class Ships {
       }
     }
 
-    // A ram overrides the rest of the doctrine: no cover, no keeping clear;
-    // and so does closing on a source, which means touching it, but for a hulk
-    // coming through, which keeps clear of nothing.
+    // A ram overrides the rest of the doctrine: no cover, and no keeping clear
+    // but of rocks and friends; and so does closing on a source, which means
+    // touching it, but for a hulk coming through.
     if (order?.grapple === true) this.avoid(bodies, i, b, target, NO_TARGET, true);
+    if (order?.ram === true) this.avoid(bodies, i, b, target, NO_TARGET, false, true);
     if (!fleeing && (order === undefined || !(order.ram || order.grapple || order.land || order.dock))) {
       const covering = this.cover(bodies, i, b);
       if (target === NO_TARGET && covering >= 0) {
@@ -4264,10 +4353,13 @@ export class Ships {
     const sweep = design.radius * chord + margin;
     let c = NaN;
     let sn = NaN;
+    const myLayers = this.shipLayers(i);
+    // By body: a carrier holding something in its claw is one body with it, which either may ride first.
+    const touched = touching === NO_TARGET || this.alive[touching] === 0 ? -1 : bodies.indexOf(this.bodyIds[touching]!);
     for (let t = 0; t < this.alive.length; t++) {
       if (t === i || t === touching || this.alive[t] === 0) continue;
       const ob = bodies.indexOf(this.bodyIds[t]!);
-      if (ob < 0 || ob === b || bodies.ghost[ob] === 1 || !this.meets(b, ob)) continue;
+      if (ob < 0 || ob === b || ob === touched || bodies.ghost[ob] === 1 || !this.meets(b, ob)) continue;
       // A body walked once, however many ships ride it.
       if (this.shipByBody[ob] !== t) continue;
       const theirs = this.designs[t]!;
@@ -4282,8 +4374,10 @@ export class Ships {
       const os = sin(bodies.angle[ob]!);
       const mine = moduleSizes(design);
       const sizes = moduleSizes(theirs);
+      const theirLayers = this.layersOf(ob);
       for (let k = 0; k < design.modules.length; k++) {
         const m = design.modules[k]!;
+        const layers = moduleLayers(m, myLayers);
         const rx = m.x * c - m.y * sn;
         const ry = m.x * sn + m.y * c;
         const room = length(rx, ry) * chord + margin;
@@ -4292,6 +4386,8 @@ export class Ships {
         if (!(length(ox - x - rx, oy - y - ry) < size + theirs.radius + room)) continue;
         for (let q = 0; q < theirs.modules.length; q++) {
           const n = theirs.modules[q]!;
+          // A fighter overflies thin hull, its own pad among it.
+          if ((moduleLayers(n, theirLayers) & layers) === 0) continue;
           const dx = ox + n.x * oc - n.y * os - x - rx;
           const dy = oy + n.x * os + n.y * oc - y - ry;
           // Clearly out of reach, without the square root.
@@ -4835,10 +4931,12 @@ export class Ships {
     return gap > touching;
   }
 
-  private avoid(bodies: Bodies, i: number, b: number, flying: number, covering: number, hulksOnly = false): void {
+  private avoid(bodies: Bodies, i: number, b: number, flying: number, covering: number, hulksOnly = false, ramming = false): void {
     const approach = this.doctrines[i]!.approach;
     if (!(approach.separation > 0) || !(approach.separationRadii > 0)) return;
     const mine = this.designs[i]!.radius;
+    // A rock or a friend it is ramming rides the body it is ramming.
+    const flyingBody = flying === NO_TARGET ? -1 : bodies.indexOf(this.bodyIds[flying]!);
     const x = bodies.x[b]!;
     const y = bodies.y[b]!;
     const vx = bodies.vx[b]!;
@@ -4856,12 +4954,16 @@ export class Ships {
       // keep clear of it, rather than running from its wing as it comes and goes.
       if (this.home[t] === i) continue;
       if (hulksOnly && this.hasControl(t)) continue;
+      // Ramming, it keeps clear of rocks and its own side, which nothing rams on purpose.
+      if (ramming && !this.isAsteroid(t) && !(this.team[t] === this.team[i] && this.hasControl(t))) continue;
       const ob = bodies.indexOf(this.bodyIds[t]!);
       // Nothing to keep clear of in something that cannot be hit.
       if (ob < 0 || ob === b || bodies.ghost[ob] === 1 || !this.meets(b, ob)) continue;
+      if (ramming && ob === flyingBody) continue;
 
       const touching = mine + this.designs[t]!.radius;
-      let room = touching * approach.separationRadii;
+      // Clear by its own size, not the other's, which would keep it a rock's or a carrier's breadth off.
+      let room = (ramming ? mine : touching) * approach.separationRadii;
       // Its charge no further out than its station, or the two wants fight:
       // covering pulls it in to where keeping clear pushes it out.
       if (t === covering) room = min(room, max(0, this.escortBand(i, this.designs[i]!, t) - touching));
@@ -4879,12 +4981,15 @@ export class Ships {
       // same battle diverge from a rounding difference.
       const speedSq = rvx * rvx + rvy * rvy;
       const closing = dx * rvx + dy * rvy;
-      const when = speedSq > 0 ? max(0, -closing / speedSq) : 0;
-      if (when > approach.avoidHorizon) continue;
-      const missX = dx + rvx * when;
-      const missY = dy + rvy * when;
+      const closest = speedSq > 0 ? max(0, -closing / speedSq) : 0;
+      const missX = dx + rvx * closest;
+      const missY = dy + rvy * closest;
       const miss = length(missX, missY);
       if (miss >= touching + room) continue;
+      // Soon is when they touch, if they will: the closest the middles come is
+      // far later than that for anything large.
+      const when = miss < touching && speedSq > 0 ? max(0, closest - sqrt((touching * touching - miss * miss) / speedSq)) : closest;
+      if (when > approach.avoidHorizon) continue;
       // Nor a friend coming to land on it or dock with it: shying away from
       // that is refusing it.
       if (this.salvaging[t] === i && (this.landingPad[t]! >= 0 || this.dockPort[t]! >= 0)) continue;
@@ -5171,6 +5276,7 @@ export class Ships {
     let pieces = 0;
     pieces += this.partCutWelds(world);
     for (let k = 0; k < this.blows; k++) {
+      this.shakeLoose(world, k);
       pieces += this.answer(
         world,
         this.blowBody[k]!,
@@ -5261,9 +5367,16 @@ export class Ships {
       // since leaning on it closes at nothing.
       if (i >= 0 && j >= 0 && this.salvaging[i] === j) this.touchedSource[i] = world.tick;
       if (i >= 0 && j >= 0 && this.salvaging[j] === i) this.touchedSource[j] = world.tick;
-      // Pressed together, slowly: touching or drifting apart hooks nothing.
+      // Pressed together, slowly: touching or drifting apart hooks nothing,
+      // but for a claw stabbing in, which bites by how hard it is pushed back.
       const closing = contacts.closing[k]!;
-      if (!(closing > 0) || closing > CLAW_SPEED_MAX) continue;
+      const stab = contacts.stab[k]!;
+      // Rock meeting rock is judged by how fast it met, before giving slowed it.
+      if (i >= 0 && j >= 0 && this.isAsteroid(i) && this.isAsteroid(j)) {
+        this.rockTouch(i, closing, world.tick);
+        this.rockTouch(j, closing, world.tick);
+      }
+      if (stab !== Stab.A && stab !== Stab.B && (!(closing > 0) || closing > CLAW_SPEED_MAX)) continue;
       if (i < 0 || j < 0 || joined?.has(i) === true || joined?.has(j) === true) continue;
       if (this.partedAt[i]! > settled || this.partedAt[j]! > settled) continue;
       if (this.damage.isProtected(a) || this.damage.isProtected(b)) continue;
@@ -5275,24 +5388,49 @@ export class Ships {
       const nx = contacts.nx[k]!;
       const ny = contacts.ny[k]!;
       let claw: 'a' | 'b' | null = null;
-      if (this.grips(world, a, ma, b, mb, nx, ny, closing)) claw = 'a';
-      else if (this.grips(world, b, mb, a, ma, -nx, -ny, closing)) claw = 'b';
+      const force = contacts.impulse[k]! / world.dt;
+      if (stab === Stab.A && this.grips(world, a, ma, b, mb, nx, ny, force)) claw = 'a';
+      else if (stab === Stab.B && this.grips(world, b, mb, a, ma, -nx, -ny, force)) claw = 'b';
       // Two ports nudged face to face mate, when one ship was making for the other.
       const port = claw === null && this.mates(world, a, ma, b, mb, closing);
-      // Only a claw holds on to a pinned hull, an asteroid's, as an anchor.
+      // Rock meeting rock slowly sticks, as rubble does, torn or not; a minor
+      // onto a major rides its rail, and two majors never meet on one.
       const pinnedA = bodies.pinned[a] === 1;
       const pinnedB = bodies.pinned[b] === 1;
-      if ((pinnedA || pinnedB) && claw === null) continue;
-      if (claw === null && !port) {
+      const rubble = claw === null && this.isAsteroid(i) && this.isAsteroid(j) && !(pinnedA && pinnedB);
+      if (rubble && max(this.rockMet[i]!, this.rockMet[j]!) > WELD_SPEED) continue;
+      // Nothing else but a claw holds on to an asteroid nothing moves.
+      if ((pinnedA || pinnedB) && claw === null && !rubble) continue;
+      if (claw === null && !port && !rubble) {
         if (closing > WELD_SPEED) continue;
         if (!this.damage.ragged(a, ma) && !this.damage.ragged(b, mb)) continue;
         const x = contacts.x[k]!;
         const y = contacts.y[k]!;
         if (!this.weldsAt(bodies, a, ma, x, y) || !this.weldsAt(bodies, b, mb, x, y)) continue;
       }
-      // A pinned hull keeps its body, and its pin; otherwise a flown hull
+      // A claw on an asteroid moors to it, keeping its own body, rather than becoming one with it.
+      if (claw !== null) {
+        const holderBody = claw === 'a' ? a : b;
+        const rockBody = claw === 'a' ? b : a;
+        const holder = this.pilotAt(holderBody, claw === 'a' ? ma : mb);
+        const rock = this.pilotAt(rockBody, claw === 'a' ? mb : ma);
+        if (rock >= 0 && this.isAsteroid(rock)) {
+          // Only a ship flying its own body moors: one riding another's has no body of its own to pin.
+          if (holder < 0 || this.shipByBody[holderBody] !== holder) continue;
+          this.moor(bodies, holder, rock, claw === 'a' ? ma : mb, contacts.x[k]!, contacts.y[k]!);
+          joined ??= new Set<number>();
+          joined.add(i);
+          joined.add(j);
+          contacts.impulse[k] = 0;
+          welded++;
+          continue;
+        }
+      }
+      // A pinned major keeps its body and its rail; otherwise a flown hull
       // keeps its body; two wrecks keep the older's slot.
       const swap = pinnedB || (!pinnedA && this.derelict[i] === 1 && this.derelict[j] === 0);
+      // Whatever is moored to either rock stays where it is on the one they make.
+      if (rubble) this.holdMoorings(bodies, i, j);
       const dock: DockAt | null = port
         ? { at: swap ? 'b' : 'a', kind: 'port' }
         : claw === null
@@ -5300,6 +5438,7 @@ export class Ships {
           : { at: (claw === 'a') !== swap ? 'a' : 'b', kind: 'claw' };
       if (swap) this.merge(world, j, i, mb, ma, dock);
       else this.merge(world, i, j, ma, mb, dock);
+      if (rubble) this.rebaseMoorings(bodies);
       joined ??= new Set<number>();
       joined.add(i);
       joined.add(j);
@@ -5308,6 +5447,13 @@ export class Ships {
       welded++;
     }
     return welded;
+  }
+
+  /** Note asteroid `i` touching rock at `closing` m/s at `tick`: the fastest of a run of touching steps, afresh after a step apart. */
+  private rockTouch(i: number, closing: number, tick: number): void {
+    if (this.rockMetAt[i]! < tick - 1) this.rockMet[i] = 0;
+    this.rockMetAt[i] = tick;
+    if (closing > this.rockMet[i]!) this.rockMet[i] = closing;
   }
 
   /** `onWeldablePart` for module `m` of body `b`, as it is posed now. */
@@ -5350,7 +5496,7 @@ export class Ships {
   /**
    * Whether module `m` of body `b` is a claw that closes on module `mo` of
    * body `o`, met along `nx`, `ny` (pointing from the claw into what it met)
-   * at `closing`. Rolls for it, so only a claw that could take asks the
+   * pushed back with `force`. Rolls for it, so only a claw that could take asks the
    * battle's generator anything; a miss leaves the claw's ship waiting
    * `CLAW_RETRY`. Taking bites the module it closes on.
    *
@@ -5358,11 +5504,13 @@ export class Ships {
    * and only for fuel it has room for, or for a wreck its ship's robots could
    * take apart into metal it has room for.
    */
-  private grips(world: World, b: number, m: number, o: number, mo: number, nx: number, ny: number, closing: number): boolean {
+  private grips(world: World, b: number, m: number, o: number, mo: number, nx: number, ny: number, force: number): boolean {
     const design = this.hullDesign[b];
     if (design === null || design === undefined) return false;
     const spec = design.modules[m]!.spec;
     if (spec.kind !== 'claw') return false;
+    const bite = CLAW_BITE_FORCE * spec.width;
+    if (!(force >= bite)) return false;
     if (!(this.damage.remaining(b, m, DamageEffect.Grip) > 0)) return false;
     const bodies = world.bodies;
     const facing = bodies.angle[b]! + (spec.angle ?? 0);
@@ -5382,11 +5530,11 @@ export class Ships {
       (this.metal.pieceRoom(b, m) > 0 || (ice > 0 && this.fuel.pieceRoom(b, m) > 0)) &&
       (this.derelict[held] === 1 || (!this.hasControl(held) && !this.hasRobots(o, held))) &&
       this.canStrip(b, holder, m, world.dt);
-    if (!drinks && !strips && !heats) return false;
+    if (!drinks && !strips && !heats && !this.wantsAnchor(bodies, holder)) return false;
     if (!this.sentTo(holder) && this.threatened(bodies, holder, o, false)) return false;
     if (world.tick - this.clawTried[holder]! < CLAW_RETRY / world.dt) return false;
     this.clawTried[holder] = world.tick;
-    if (world.rng.nextFloat() >= clawChance(closing, this.damage.integrity(o, mo))) return false;
+    if (world.rng.nextFloat() >= clawChance(force, bite, this.damage.integrity(o, mo))) return false;
     const capacity = this.damage.capacityLeft(o, mo) + this.damage.absorbedAt(o, mo);
     this.damage.absorb(o, mo, CLAW_BITE * capacity);
     return true;
@@ -5476,6 +5624,8 @@ export class Ships {
             if (offered > 0 && this.fuel.transfer(b, seam.b, seam.a, rate < offered ? rate : offered) > 0) moved = true;
             if (this.fuel.pieceRoom(b, seam.a) > 0 && this.fuel.pieceHeld(b, seam.b) > kept) continue;
             if (holder >= 0 && this.canStrip(b, holder, seam.a, world.dt) && this.strippable(holder, b, design, seam.a)) continue;
+            // Anchored while it builds, it holds on until what it is building is let go.
+            if (holder >= 0 && this.wantsAnchor(bodies, holder)) continue;
             // With no robots to mine it, it melts the ice out of the rock itself.
             if (holder >= 0 && this.heat(b, design, seam.a, seam.b, working * world.dt)) {
               moved = true;
@@ -5536,7 +5686,7 @@ export class Ships {
     }
     for (let k = 0; k < this.parkedShips.length; k++) {
       const f = this.parkedShips[k]!;
-      if (this.tendParked(world, f)) continue;
+      if (this.mooredClaw[f]! >= 0 ? this.tendMoored(world, f) : this.tendParked(world, f)) continue;
       this.unpark(bodies, f, world.tick);
       released++;
       k--;
@@ -5787,6 +5937,13 @@ export class Ships {
       let mended = false;
       for (let r = 0; r < robots.length; r++) {
         const robot = robots[r]!;
+        // Out on the rock its ship is moored to, it works there.
+        if (robot.away >= 0) {
+          const kept = this.tendAway(bodies, b, design, robot, this.pilotAt(b, robot.bay), dt);
+          if (kept < 0) this.robots.lose(b, r--);
+          if (kept !== 0) mended = true;
+          continue;
+        }
         // A module destroyed under a robot takes it with it.
         const on = this.robotOn(design, robot);
         const left = this.damage.integrity(b, on);
@@ -5820,6 +5977,12 @@ export class Ships {
         this.stripped[b] = -1;
         this.stepDown(world, b, done);
       }
+    }
+    // Rock robots from moored ships have taken a step of, which has none of its own.
+    while (this.rockSteps.length > 0) {
+      const m = this.rockSteps.pop()!;
+      const rb = this.rockSteps.pop()!;
+      if (bodies.alive[rb] === 1) this.stepDown(world, rb, m);
     }
   }
 
@@ -5908,9 +6071,12 @@ export class Ships {
       // It goes on what it carries, whether its bay can still refill it or not.
       if (!(robot.metal > ROBOT_SPENT) || !(robot.charge >= ROBOT_REPAIR_RATE * REPAIR_ENERGY_PER_JOULE * dt)) return unloaded;
       // Nothing has been hit since it last looked and found nothing to do.
-      if (robot.idleAt === this.damage.version(b)) return unloaded;
-      this.sendOut(b, design, robots, robot, owner);
-      if (robot.target < 0) robot.idleAt = this.damage.version(b);
+      if (robot.idleAt !== this.damage.version(b)) {
+        this.sendOut(b, design, robots, robot, owner);
+        if (robot.target < 0) robot.idleAt = this.damage.version(b);
+      }
+      // Nothing on its own hull: over to the rock its ship is moored to, if it has room for any.
+      if (robot.target < 0) this.sendAcross(b, design, robot, owner);
       return unloaded;
     }
     if (robot.mode === RobotMode.Out || robot.mode === RobotMode.Home) {
@@ -5943,6 +6109,10 @@ export class Ships {
       } else {
         robot.mode = RobotMode.Working;
       }
+      return false;
+    }
+    if (robot.bound >= 0) {
+      this.crossOver(b, design, robots, robot, owner);
       return false;
     }
     if (robot.strip) return this.stripOne(b, design, robots, robot, owner, dt);
@@ -6056,6 +6226,250 @@ export class Ships {
     this.route(b, design, robot, owner, robot.bay);
     robot.mode = RobotMode.Home;
     if (!(this.metal.pieceHeld(b, m) > ROBOT_SPENT)) robot.idleAt = this.damage.version(b);
+  }
+
+  /**
+   * Send a berthed robot of moored ship `owner` to its claw, body `b`, to
+   * cross onto the rock and mine it, if the rock has any it has room for.
+   */
+  private sendAcross(b: number, design: ShipDesign, robot: Robot, owner: number): boolean {
+    const claw = this.mooredClaw[owner]!;
+    if (claw < 0 || this.bodyStore === null || this.commanded(owner)) return false;
+    const cb = this.carrierBodyOf(this.bodyStore, owner);
+    if (cb < 0 || !this.strippableAcross(owner, b, robot.bay, cb)) return false;
+    this.route(b, design, robot, owner, claw);
+    if (robot.path === null && robot.at !== claw) return false;
+    robot.bound = this.parkedOn[owner]!;
+    robot.target = claw;
+    robot.strip = false;
+    robot.mode = robot.path === null ? RobotMode.Working : RobotMode.Out;
+    return true;
+  }
+
+  /** A robot of ship `owner` at its claw, body `b`, stepping onto the rock it is bound for, or home if it has let go. */
+  private crossOver(b: number, design: ShipDesign, robots: Robot[], robot: Robot, owner: number): void {
+    const rock = robot.bound;
+    robot.bound = -1;
+    const bodies = this.bodyStore!;
+    const cb = this.parkedOn[owner] === rock && this.mooredClaw[owner]! >= 0 ? this.carrierBodyOf(bodies, owner) : -1;
+    const entry = cb < 0 ? -1 : this.heldRock(bodies, owner);
+    if (entry < 0) {
+      this.sendHome(b, design, robot, owner, robot.at);
+      return;
+    }
+    robot.away = rock;
+    robot.awayDesign = this.hullDesign[cb]!;
+    robot.at = entry;
+    robot.path = null;
+    if (!this.sendOnRock(b, cb, robots, robot, owner)) this.homeOnRock(cb, robot, owner);
+  }
+
+  /**
+   * Give a robot of ship `owner` out on its rock, body `cb`, rock to take
+   * apart for what its bay on body `b` has room for: as `sendToStrip` does on
+   * a hull, but for the rock its claw holds, which stays to hold it by.
+   */
+  private sendOnRock(b: number, cb: number, robots: Robot[], robot: Robot, owner: number): boolean {
+    const rd = this.hullDesign[cb]!;
+    const metalRoom = this.metal.pieceRoom(b, robot.bay) > ROBOT_SPENT;
+    const fuelRoom = this.fuel.pieceRoom(b, robot.bay) > ROBOT_SPENT;
+    if (!(metalRoom || fuelRoom) || !(robot.cargo + robot.cargoFuel < ROBOT_LOAD - ROBOT_SPENT)) return false;
+    const held = this.heldRock(this.bodyStore!, owner);
+    const { dist, prev } = this.walkScratch(rd.modules.length);
+    walk(rd, robot.at, dist, prev, (m) => this.ofRock(cb, m));
+    let best = -1;
+    let bestCrowd = Infinity;
+    let bestDist = Infinity;
+    for (let m = 0; m < rd.modules.length; m++) {
+      if (m === held || !Number.isFinite(dist[m]!) || !this.ofRock(cb, m) || !this.comesOff(owner, cb, rd, m)) continue;
+      if (!this.minable(rd, m, metalRoom, fuelRoom)) continue;
+      let crowd = 0;
+      for (let k = 0; k < robots.length; k++) if (robots[k] !== robot && robots[k]!.away === robot.away && robots[k]!.target === m) crowd++;
+      if (crowd < bestCrowd || (crowd === bestCrowd && dist[m]! < bestDist)) {
+        best = m;
+        bestCrowd = crowd;
+        bestDist = dist[m]!;
+      }
+    }
+    if (best < 0) return false;
+    robot.target = best;
+    robot.strip = true;
+    robot.path = pathTo(prev, dist, best);
+    robot.leg = 0;
+    robot.along = 0;
+    robot.mode = robot.path !== null && robot.path.length > 1 ? RobotMode.Out : RobotMode.Working;
+    if (robot.mode === RobotMode.Working) robot.path = null;
+    return true;
+  }
+
+  /** Set a robot of ship `owner` out on its rock, body `cb`, walking back to where its claw grips. */
+  private homeOnRock(cb: number, robot: Robot, owner: number): void {
+    const rd = this.hullDesign[cb]!;
+    const entry = this.heldRock(this.bodyStore!, owner);
+    robot.mode = RobotMode.Home;
+    robot.target = -1;
+    robot.strip = false;
+    robot.leg = 0;
+    robot.along = 0;
+    robot.path = null;
+    if (entry < 0 || robot.at === entry) return;
+    const { dist, prev } = this.walkScratch(rd.modules.length);
+    walk(rd, robot.at, dist, prev, (m) => this.ofRock(cb, m));
+    const path = pathTo(prev, dist, entry);
+    robot.path = path !== null && path.length > 1 ? path : null;
+  }
+
+  /**
+   * One step of a robot of ship `owner` out on the rock it is moored to, its
+   * bay on body `b`: walking, mining, and back across to its claw. Says 1 if
+   * it mined, -1 if it was lost, with its ship no longer moored there, and 0
+   * otherwise.
+   */
+  private tendAway(bodies: Bodies, b: number, design: ShipDesign, robot: Robot, owner: number, dt: number): number {
+    const rock = robot.away;
+    if (owner < 0 || this.parkedOn[owner] !== rock || !(this.mooredClaw[owner]! >= 0)) return -1;
+    const cb = this.carrierBodyOf(bodies, owner);
+    const rd = cb < 0 ? null : this.hullDesign[cb];
+    if (rd === null || rd === undefined) return -1;
+    // The rock has changed under it: on the nearest of what is left, and about its work afresh.
+    if (rd !== robot.awayDesign) {
+      const was = robot.awayDesign!.modules[robot.at];
+      const wx = (was?.x ?? 0) + robot.awayDesign!.centreOfMassX - rd.centreOfMassX;
+      const wy = (was?.y ?? 0) + robot.awayDesign!.centreOfMassY - rd.centreOfMassY;
+      let near = 0;
+      let gap = Infinity;
+      for (let m = 0; m < rd.modules.length; m++) {
+        const d = length(rd.modules[m]!.x - wx, rd.modules[m]!.y - wy);
+        if (d < gap) {
+          gap = d;
+          near = m;
+        }
+      }
+      robot.awayDesign = rd;
+      robot.at = near;
+      robot.path = null;
+      robot.leg = 0;
+      robot.along = 0;
+      if (robot.mode !== RobotMode.Home) {
+        robot.mode = RobotMode.Out;
+        robot.target = -1;
+      }
+    }
+    if (robot.mode === RobotMode.Out || robot.mode === RobotMode.Home) {
+      if (robot.path === null) {
+        if (robot.mode === RobotMode.Out && robot.target < 0) {
+          if (!this.sendOnRock(b, cb, this.robots.on(b)!, robot, owner)) this.homeOnRock(cb, robot, owner);
+          return 0;
+        }
+        if (robot.mode === RobotMode.Home && robot.at !== this.heldRock(bodies, owner)) {
+          this.homeOnRock(cb, robot, owner);
+          if (robot.path === null) return 0;
+        }
+      }
+      const path = robot.path;
+      if (path !== null) {
+        robot.along += ROBOT_SPEED * dt;
+        while (robot.leg < path.length - 1) {
+          const leg = legLength(rd, path, robot.leg);
+          if (robot.along < leg) break;
+          robot.along -= leg;
+          robot.leg++;
+          robot.at = path[robot.leg]!;
+        }
+        if (robot.leg < path.length - 1) return 0;
+      }
+      robot.path = null;
+      robot.leg = 0;
+      robot.along = 0;
+      if (robot.mode === RobotMode.Out) {
+        robot.mode = RobotMode.Working;
+        return 0;
+      }
+      // Back where its claw grips: across onto its own hull and home.
+      robot.away = -1;
+      robot.awayDesign = null;
+      robot.at = this.mooredClaw[owner]!;
+      this.route(b, design, robot, owner, robot.bay);
+      return 0;
+    }
+    return this.mineRock(b, cb, rd, robot, owner, dt) ? 1 : 0;
+  }
+
+  /**
+   * One step of a robot out on its rock, body `cb`, taking module
+   * `robot.target` apart as `stripOne` does wreckage: ore smelted and ice
+   * melted into what it carries, for its charge, until it is full or short
+   * of charge, when it walks back. Says whether it took any.
+   */
+  private mineRock(b: number, cb: number, rd: ShipDesign, robot: Robot, owner: number, dt: number): boolean {
+    const m = robot.target;
+    if (
+      m < 0 ||
+      m >= rd.modules.length ||
+      m === this.heldRock(this.bodyStore!, owner) ||
+      !this.ofRock(cb, m) ||
+      !this.comesOff(owner, cb, rd, m)
+    ) {
+      if (!this.sendOnRock(b, cb, this.robots.on(b)!, robot, owner)) this.homeOnRock(cb, robot, owner);
+      return false;
+    }
+    const room = ROBOT_LOAD - robot.cargo - robot.cargoFuel;
+    if (!(room > ROBOT_SPENT)) {
+      this.homeOnRock(cb, robot, owner);
+      return false;
+    }
+    const spec = rd.modules[m]!.spec;
+    const ore = spec.kind === 'rock' ? (spec.ore ?? 0) : 0;
+    const ice = spec.kind === 'rock' ? (spec.ice ?? 0) : 0;
+    const step = this.stripStep(cb, rd, m);
+    const work = buildWork(step.stats);
+    const per = work * REPAIR_ENERGY_PER_JOULE * MINING_POWER;
+    const done = this.damage.unbuiltAt(cb, m);
+    let kg = min((ROBOT_REPAIR_RATE / work) * dt, robot.charge / per);
+    const short = kg < (ROBOT_REPAIR_RATE / work) * dt;
+    const yieldPerKg = (ore + ice) * (1 - DISASSEMBLY_WASTE);
+    kg = min(kg, yieldPerKg > 0 ? room / yieldPerKg : Infinity, step.kg - done);
+    if (kg > 0) {
+      this.damage.unfit(cb, m, kg);
+      robot.charge -= kg * per;
+      robot.cargo += kg * ore * (1 - DISASSEMBLY_WASTE);
+      robot.cargoFuel += kg * ice * (1 - DISASSEMBLY_WASTE);
+      this.settleMass(this.bodyStore!, cb);
+    }
+    if (done + (kg > 0 ? kg : 0) >= step.kg - ROBOT_SPENT && !this.rockStepped(cb)) this.rockSteps.push(cb, m);
+    if (short || !(ROBOT_LOAD - robot.cargo - robot.cargoFuel > ROBOT_SPENT)) this.homeOnRock(cb, robot, owner);
+    return kg > 0;
+  }
+
+  /** Whether module `m` of body `cb` is an asteroid's, which a moored ship's robots may walk and mine. */
+  private ofRock(cb: number, m: number): boolean {
+    const p = this.pilotAt(cb, m);
+    return p >= 0 && this.isAsteroid(p);
+  }
+
+  /** Whether a step of rock body `cb` is already due to come down this step. */
+  private rockStepped(cb: number): boolean {
+    for (let k = 0; k < this.rockSteps.length; k += 2) if (this.rockSteps[k] === cb) return true;
+    return false;
+  }
+
+  /** Whether any robot of ship `f`'s, on body `b`, is out on its rock or on its way there. */
+  private anyAway(b: number, f: number): boolean {
+    for (const robot of this.robots.on(b) ?? []) if (this.pilotAt(b, robot.bay) === f && (robot.away >= 0 || robot.bound >= 0)) return true;
+    return false;
+  }
+
+  /** Call ship `f`'s robots on body `b` in off its rock, body `cb`: those out there walk back, those on their way turn round. */
+  private recallAway(b: number, design: ShipDesign, f: number, cb: number): void {
+    for (const robot of this.robots.on(b) ?? []) {
+      if (this.pilotAt(b, robot.bay) !== f) continue;
+      if (robot.bound >= 0) {
+        robot.bound = -1;
+        this.sendHome(b, design, robot, f, robot.at);
+      } else if (robot.away >= 0 && robot.mode !== RobotMode.Home) {
+        this.homeOnRock(cb, robot, f);
+      }
+    }
   }
 
   /** Ship `i`'s hull matched to its launch design, worked out again when the hull has changed. */
@@ -6770,6 +7184,11 @@ export class Ships {
     // what is coming away steps onto what it was reached across.
     const step = neighbourOf(design, m);
     for (const robot of this.robots.on(b) ?? []) {
+      // Out on a rock, only its bay is this hull's.
+      if (robot.away >= 0) {
+        robot.bay = after(robot.bay);
+        continue;
+      }
       if (robot.at === m) robot.at = step;
       robot.at = after(robot.at);
       robot.bay = after(robot.bay);
@@ -6930,6 +7349,10 @@ export class Ships {
     for (let r = 0; r < robots.length; r++) {
       const robot = robots[r]!;
       if (robot.mode === RobotMode.Berthed) continue;
+      if (robot.away >= 0) {
+        this.awayView(b, robot, r, out);
+        continue;
+      }
       const here = design.modules[robot.at]!;
       // Spread about where it is, a metre round, so robots on one module are each seen.
       const dx = cos(r * ROBOT_SPREAD) * ROBOT_SPREAD_RADIUS;
@@ -6949,6 +7372,39 @@ export class Ships {
         out.push(here.x + dx, here.y + dy, r * ROBOT_SPREAD + PI, charge, metal);
       }
     }
+  }
+
+  /** `robotViews` for a robot out on its rock, put in the frame of its own ship's body `b`. */
+  private awayView(b: number, robot: Robot, r: number, out: number[]): void {
+    const bodies = this.bodyStore!;
+    const rock = robot.away;
+    const cb = this.alive[rock] === 1 ? bodies.indexOf(this.bodyIds[rock]!) : -1;
+    const rd = robot.awayDesign;
+    const here = rd?.modules[robot.at];
+    if (cb < 0 || rd === null || here === undefined) return;
+    let x = here.x;
+    let y = here.y;
+    let heading = r * ROBOT_SPREAD + PI;
+    if (robot.path !== null && robot.leg < robot.path.length - 1) {
+      const there = rd.modules[robot.path[robot.leg + 1]!]!;
+      const leg = legLength(rd, robot.path, robot.leg);
+      const t = leg > 0 ? robot.along / leg : 0;
+      x += (there.x - here.x) * t;
+      y += (there.y - here.y) * t;
+      heading = atan2(there.y - here.y, there.x - here.x);
+    }
+    // From the rock's frame to the world's, and into its own ship's.
+    const rc = cos(bodies.angle[cb]!);
+    const rs = sin(bodies.angle[cb]!);
+    const wx = bodies.x[cb]! + x * rc - y * rs - bodies.x[b]!;
+    const wy = bodies.y[cb]! + x * rs + y * rc - bodies.y[b]!;
+    const turn = bodies.angle[cb]! - bodies.angle[b]!;
+    const c = cos(-bodies.angle[b]!);
+    const s = sin(-bodies.angle[b]!);
+    const dx = cos(r * ROBOT_SPREAD) * ROBOT_SPREAD_RADIUS;
+    const dy = sin(r * ROBOT_SPREAD) * ROBOT_SPREAD_RADIUS;
+    const metal = (robot.strip || robot.cargo + robot.cargoFuel > 0 ? robot.cargo + robot.cargoFuel : robot.metal) / ROBOT_LOAD;
+    out.push(wx * c - wy * s + dx, wx * s + wy * c + dy, heading + turn, robot.charge / ROBOT_CHARGE, metal);
   }
 
   /** Whether the ship a dock is filling minds danger and has an armed enemy in reach of the pair. */
@@ -8339,7 +8795,9 @@ export class Ships {
       }
       this.stopForaging(i);
     }
-    const forages = scavengeOrder || (own && (approach.scavengeFuelBelow > 0 || approach.scavengeMetalBelow > 0));
+    // A ship that builds only anchored goes to anchor when it would build.
+    const anchors = own && this.wantsAnchor(bodies, i);
+    const forages = scavengeOrder || anchors || (own && (approach.scavengeFuelBelow > 0 || approach.scavengeMetalBelow > 0));
     const docks = ordered || (own && approach.refuelBelow > 0);
     const recharges = ordered || (own && approach.rechargeBelow > 0);
     const claw = forages && b >= 0 ? this.workingClaw(i, b) : -1;
@@ -8394,6 +8852,7 @@ export class Ships {
         : thirsty ||
           empty ||
           hungry ||
+          (anchors && scavenges) ||
           recharging ||
           hurt ||
           (this.refuelling[i] === 1 && room > 0) ||
@@ -8424,7 +8883,11 @@ export class Ships {
             this.landingPad[i]! >= 0 ||
             this.dockPort[i]! >= 0 ||
             this.shipByBody[hb] !== held ||
-            !((room > 0 && this.fuelOffered(i, held, hb)) || (metalRoom > 0 && this.strippableWreck(held)));
+            !(
+              (room > 0 && this.fuelOffered(i, held, hb)) ||
+              (metalRoom > 0 && this.strippableWreck(held)) ||
+              (anchors && this.isAsteroid(held))
+            );
       if (lost && scavengeOrder && only !== NO_TARGET) {
         // Gone, or with nothing more to give: what it was sent to is done with.
         this.finishErrand(i);
@@ -8453,7 +8916,7 @@ export class Ships {
       this.landingPad[i] = -1;
       this.dockPort[i] = -1;
     } else {
-      this.salvaging[i] = this.pickSource(bodies, i, b, claw, room, strips ? metalRoom : 0);
+      this.salvaging[i] = this.pickSource(bodies, i, b, claw, room, strips ? metalRoom : 0, anchors);
       this.landingPad[i] = -1;
       this.dockPort[i] = -1;
       if (scavengeOrder && this.salvaging[i] === NO_TARGET) {
@@ -8762,10 +9225,21 @@ export class Ships {
     return ship !== undefined && ship >= 0 && this.parkedOn[ship]! >= 0;
   }
 
-  /** The body of the carrier the fighter on body `b` is parked on, which moves for it; -1 for one not parked. */
+  /**
+   * The body that moves for body `b`, parked on a pad or moored to a rock:
+   * its carrier's, or what that is parked or moored on in turn. -1 for one
+   * not parked.
+   */
   carrierOf(b: number): number {
-    const ship = this.shipByBody[b];
-    return ship === undefined || ship < 0 || this.bodyStore === null ? -1 : this.carrierBodyOf(this.bodyStore, ship);
+    if (this.bodyStore === null) return -1;
+    let root = -1;
+    for (let at = b, depth = 0; depth < 4; depth++) {
+      const ship = this.shipByBody[at];
+      const up = ship === undefined || ship < 0 ? -1 : this.carrierBodyOf(this.bodyStore, ship);
+      if (up < 0) break;
+      root = at = up;
+    }
+    return root;
   }
 
   /** Whether bodies `b` and `j` can meet: never a fighter parked on a pad and its carrier, nor two parked on one. */
@@ -8831,7 +9305,8 @@ export class Ships {
     this.parkedY[f] = -dx * ps + dy * pc;
     this.parkedAngle[f] = bodies.angle[fb]! - facing;
 
-    // About the carrier's middle, which stays put: what each brought.
+    // About the carrier's middle, which stays put: what each brought. A
+    // carrier on a pinned body takes none of it, as nothing moves it.
     const mc = bodies.mass[cb]!;
     const mf = bodies.mass[fb]!;
     const vx = (mc * bodies.vx[cb]! + mf * bodies.vx[fb]!) / (mc + mf);
@@ -8842,14 +9317,17 @@ export class Ships {
       bodies.inertia[cb]! * bodies.angularVel[cb]! +
       bodies.inertia[fb]! * bodies.angularVel[fb]! +
       mf * (rx * (bodies.vy[fb]! - vy) - ry * (bodies.vx[fb]! - vx));
-    bodies.vx[cb] = vx;
-    bodies.vy[cb] = vy;
+    const moves = mc > 0;
+    if (moves) {
+      bodies.vx[cb] = vx;
+      bodies.vy[cb] = vy;
+    }
 
     this.parkedOn[f] = c;
     this.parkedPad[f] = l;
     this.parkedShips.push(f);
     this.settleMass(bodies, cb);
-    bodies.angularVel[cb] = spin / bodies.inertia[cb]!;
+    if (moves) bodies.angularVel[cb] = spin / bodies.inertia[cb]!;
     this.pin(bodies, f);
     return true;
   }
@@ -8866,18 +9344,23 @@ export class Ships {
     this.parkedShips.splice(k, 1);
     this.parkedOn[f] = -1;
     this.parkedPad[f] = -1;
+    this.mooredClaw[f] = -1;
     this.partedAt[f] = tick;
     if (cb < 0) return;
     this.settleMass(bodies, cb);
     if (fb < 0) return;
     // Counted at the carrier's middle while parked, it was going round it as well.
-    const share = bodies.mass[fb]! / bodies.mass[cb]!;
+    const share = bodies.mass[fb]! / movable(bodies.mass[cb]!);
     bodies.vx[cb] = bodies.vx[cb]! - share * (bodies.vx[fb]! - bodies.vx[cb]!);
     bodies.vy[cb] = bodies.vy[cb]! - share * (bodies.vy[fb]! - bodies.vy[cb]!);
   }
 
   /** Put parked fighter `f` where it sits on its pad, moving with it. Nothing, while its pad is gone. */
   private pin(bodies: Bodies, f: number): void {
+    if (this.mooredClaw[f]! >= 0) {
+      this.pinMoored(bodies, f);
+      return;
+    }
     const fb = bodies.indexOf(this.bodyIds[f]!);
     const pad = this.parkedPadOf(bodies, f);
     if (fb < 0 || pad < 0) return;
@@ -8906,6 +9389,275 @@ export class Ships {
     bodies.angularVel[fb] = spin;
     // Its weight changes as it is filled, mended and shot at.
     if (bodies.mass[fb] !== this.parkedMass[f]) this.settleMass(bodies, cb);
+  }
+
+  /**
+   * Moor ship `f` by claw `claw` of its hull to asteroid `rock`, gripping at
+   * world point `gx`, `gy`: parked as a fighter is on a pad, but on the rock,
+   * keeping its own body and design. The two move off together with the
+   * momentum they had between them; a rock nothing moves takes none of it.
+   */
+  private moor(bodies: Bodies, f: number, rock: number, claw: number, gx: number, gy: number): void {
+    const cb = bodies.indexOf(this.bodyIds[rock]!);
+    const fb = bodies.indexOf(this.bodyIds[f]!);
+    if (cb < 0 || fb < 0 || !this.poseMoored(bodies, f, cb, fb, gx, gy)) return;
+    const mc = bodies.mass[cb]!;
+    const mf = bodies.mass[fb]!;
+    const vx = (mc * bodies.vx[cb]! + mf * bodies.vx[fb]!) / (mc + mf);
+    const vy = (mc * bodies.vy[cb]! + mf * bodies.vy[fb]!) / (mc + mf);
+    const rx = bodies.x[fb]! - bodies.x[cb]!;
+    const ry = bodies.y[fb]! - bodies.y[cb]!;
+    const spin =
+      bodies.inertia[cb]! * bodies.angularVel[cb]! +
+      bodies.inertia[fb]! * bodies.angularVel[fb]! +
+      mf * (rx * (bodies.vy[fb]! - vy) - ry * (bodies.vx[fb]! - vx));
+    const moves = mc > 0;
+    if (moves) {
+      bodies.vx[cb] = vx;
+      bodies.vy[cb] = vy;
+    }
+    this.parkedOn[f] = rock;
+    this.parkedPad[f] = -1;
+    this.mooredClaw[f] = claw;
+    this.parkedShips.push(f);
+    this.settleMass(bodies, cb);
+    if (moves) bodies.angularVel[cb] = spin / bodies.inertia[cb]!;
+    this.pinMoored(bodies, f);
+  }
+
+  /**
+   * Where moored ship `f`, on body `fb`, sits on its rock, body `cb`, and
+   * where its claw grips, world point `gx`, `gy`, kept in the rock's
+   * blueprint frame. False for a body with no hull.
+   */
+  private poseMoored(bodies: Bodies, f: number, cb: number, fb: number, gx: number, gy: number): boolean {
+    const rd = this.hullDesign[cb];
+    const fd = this.hullDesign[fb];
+    if (rd === null || rd === undefined || fd === null || fd === undefined) return false;
+    const angle = bodies.angle[cb]!;
+    const c = cos(angle);
+    const s = sin(angle);
+    // Both blueprint origins, which stay put on their hulls as rock is mined away.
+    const rox = bodies.x[cb]! - (rd.centreOfMassX * c - rd.centreOfMassY * s);
+    const roy = bodies.y[cb]! - (rd.centreOfMassX * s + rd.centreOfMassY * c);
+    const fc = cos(bodies.angle[fb]!);
+    const fs = sin(bodies.angle[fb]!);
+    const dx = bodies.x[fb]! - (fd.centreOfMassX * fc - fd.centreOfMassY * fs) - rox;
+    const dy = bodies.y[fb]! - (fd.centreOfMassX * fs + fd.centreOfMassY * fc) - roy;
+    this.parkedX[f] = dx * c + dy * s;
+    this.parkedY[f] = -dx * s + dy * c;
+    this.parkedAngle[f] = bodies.angle[fb]! - angle;
+    this.mooredGripX[f] = (gx - rox) * c + (gy - roy) * s;
+    this.mooredGripY[f] = -(gx - rox) * s + (gy - roy) * c;
+    return true;
+  }
+
+  /** Where each ship moored to asteroid `i` or `j` grips, in the world, before the two become one. */
+  private holdMoorings(bodies: Bodies, i: number, j: number): void {
+    this.rebasing.length = 0;
+    for (let k = 0; k < this.parkedShips.length; k++) {
+      const f = this.parkedShips[k]!;
+      if (this.mooredClaw[f]! < 0 || (this.parkedOn[f] !== i && this.parkedOn[f] !== j)) continue;
+      const cb = this.carrierBodyOf(bodies, f);
+      const rd = cb < 0 ? null : this.hullDesign[cb];
+      if (rd === null || rd === undefined) continue;
+      const c = cos(bodies.angle[cb]!);
+      const s = sin(bodies.angle[cb]!);
+      const lx = this.mooredGripX[f]! - rd.centreOfMassX;
+      const ly = this.mooredGripY[f]! - rd.centreOfMassY;
+      this.rebasing.push(f, bodies.x[cb]! + lx * c - ly * s, bodies.y[cb]! + lx * s + ly * c);
+    }
+  }
+
+  /**
+   * Pose again, on the rock two have just made, each ship `holdMoorings`
+   * noted, and step its robots out on the rock back to where its claw grips.
+   */
+  private rebaseMoorings(bodies: Bodies): void {
+    for (let k = 0; k < this.rebasing.length; k += 3) {
+      const f = this.rebasing[k]!;
+      const fb = bodies.indexOf(this.bodyIds[f]!);
+      const cb = this.carrierBodyOf(bodies, f);
+      if (fb < 0 || cb < 0) continue;
+      this.poseMoored(bodies, f, cb, fb, this.rebasing[k + 1]!, this.rebasing[k + 2]!);
+      const held = this.heldRock(bodies, f);
+      for (const robot of this.robots.on(fb) ?? []) {
+        if (robot.away < 0) continue;
+        robot.away = this.parkedOn[f]!;
+        robot.awayDesign = this.hullDesign[cb]!;
+        robot.at = held < 0 ? 0 : held;
+        robot.path = null;
+        robot.leg = 0;
+        robot.along = 0;
+        if (robot.mode !== RobotMode.Home) {
+          robot.mode = RobotMode.Out;
+          robot.target = -1;
+        }
+      }
+    }
+    this.rebasing.length = 0;
+  }
+
+  /** Put moored ship `f` where it sits on its rock, moving with it. */
+  private pinMoored(bodies: Bodies, f: number): void {
+    const fb = bodies.indexOf(this.bodyIds[f]!);
+    const cb = this.carrierBodyOf(bodies, f);
+    const rd = cb < 0 ? null : this.hullDesign[cb];
+    const fd = fb < 0 ? null : this.hullDesign[fb];
+    if (rd === null || rd === undefined || fd === null || fd === undefined) return;
+    const angle = bodies.angle[cb]!;
+    const c = cos(angle);
+    const s = sin(angle);
+    const heading = angle + this.parkedAngle[f]!;
+    const fc = cos(heading);
+    const fs = sin(heading);
+    const lx = this.parkedX[f]! - rd.centreOfMassX;
+    const ly = this.parkedY[f]! - rd.centreOfMassY;
+    const rx = lx * c - ly * s + fd.centreOfMassX * fc - fd.centreOfMassY * fs;
+    const ry = lx * s + ly * c + fd.centreOfMassX * fs + fd.centreOfMassY * fc;
+    const spin = bodies.angularVel[cb]!;
+    bodies.x[fb] = bodies.x[cb]! + rx;
+    bodies.y[fb] = bodies.y[cb]! + ry;
+    bodies.angle[fb] = heading;
+    bodies.vx[fb] = bodies.vx[cb]! - spin * ry;
+    bodies.vy[fb] = bodies.vy[cb]! + spin * rx;
+    bodies.angularVel[fb] = spin;
+    if (bodies.mass[fb] !== this.parkedMass[f]) this.settleMass(bodies, cb);
+  }
+
+  /** Whether ship `i` is moored to an asteroid by its claw. */
+  isMoored(i: number): boolean {
+    return this.mooredClaw[i]! >= 0;
+  }
+
+  /**
+   * The module of its rock that moored ship `f`'s claw grips: the nearest to
+   * where it took hold, within reach of it, or -1 once that is mined away.
+   */
+  private heldRock(bodies: Bodies, f: number): number {
+    const cb = this.carrierBodyOf(bodies, f);
+    const rd = cb < 0 ? null : this.hullDesign[cb];
+    if (rd === null || rd === undefined) return -1;
+    const gx = this.mooredGripX[f]! - rd.centreOfMassX;
+    const gy = this.mooredGripY[f]! - rd.centreOfMassY;
+    let best = -1;
+    let bestGap = Infinity;
+    for (let m = 0; m < rd.modules.length; m++) {
+      const module = rd.modules[m]!;
+      const reach = max(module.spec.length, module.spec.width);
+      const gap = length(module.x - gx, module.y - gy);
+      if (gap <= reach && gap < bestGap) {
+        best = m;
+        bestGap = gap;
+      }
+    }
+    return best;
+  }
+
+  /**
+   * Work the rock moored ship `f` holds, and say whether it keeps hold: its
+   * robots taking it apart while its holds have room, or its claw melting
+   * the ice out. It lets go once neither can, or it is given an order, when
+   * its robots are back; and at once if its claw can no longer grip, what it
+   * held is gone, or an armed enemy is in reach.
+   */
+  private tendMoored(world: World, f: number): boolean {
+    const bodies = world.bodies;
+    const fb = bodies.indexOf(this.bodyIds[f]!);
+    const cb = this.carrierBodyOf(bodies, f);
+    const claw = this.mooredClaw[f]!;
+    if (fb < 0 || cb < 0 || this.alive[f] === 0 || this.derelict[f] === 1 || !this.hasControl(f)) return false;
+    const working = this.damage.remaining(fb, claw, DamageEffect.Grip);
+    if (!(working > 0)) return false;
+    const held = this.heldRock(bodies, f);
+    if (held < 0) return false;
+    if (this.damage.isProtected(cb)) return true;
+    if (!this.sentTo(f) && this.threatened(bodies, f, cb, false)) return false;
+    // Given an order, it calls its robots in and goes as soon as they are back.
+    const ordered = this.commanded(f);
+    if (!ordered && this.canStrip(fb, f, claw, world.dt) && this.strippableAcross(f, fb, claw, cb)) return true;
+    if (!ordered && this.heatAcross(bodies, fb, claw, cb, held, working * world.dt)) return true;
+    // Anchored while it builds, it holds on until what it builds is let go.
+    if (!ordered && this.wantsAnchor(bodies, f)) return true;
+    // Done, but for its robots out on the rock, which it waits for.
+    if (!this.anyAway(fb, f)) return false;
+    this.recallAway(fb, this.hullDesign[fb]!, f, cb);
+    return true;
+  }
+
+  /**
+   * Whether moored ship `f`'s robots could take anything of its rock, body
+   * `cb`, apart for what the holds on its claw's piece of hull, at `into` of
+   * body `fb`, have room for.
+   */
+  private strippableAcross(f: number, fb: number, into: number, cb: number): boolean {
+    const metalRoom = this.metal.pieceRoom(fb, into) > ROBOT_SPENT;
+    const fuelRoom = this.fuel.pieceRoom(fb, into) > ROBOT_SPENT;
+    if (!metalRoom && !fuelRoom) return false;
+    const rd = this.hullDesign[cb];
+    if (rd === null || rd === undefined) return false;
+    const held = this.heldRock(this.bodyStore!, f);
+    for (let m = 0; m < rd.modules.length; m++) {
+      if (m !== held && this.ofRock(cb, m) && this.minable(rd, m, metalRoom, fuelRoom) && this.comesOff(f, cb, rd, m)) return true;
+    }
+    return false;
+  }
+
+  /**
+   * The claw at `claw` of body `fb` melting fuel out of the rock at `held` of
+   * the rock it is moored to, body `cb`, as `heat` does one it has welded to.
+   */
+  private heatAcross(bodies: Bodies, fb: number, claw: number, cb: number, held: number, dt: number): boolean {
+    const rd = this.hullDesign[cb]!;
+    const spec = rd.modules[held]!.spec;
+    if (spec.kind !== 'rock') return false;
+    const ice = (spec.ice ?? 0) * (1 - DISASSEMBLY_WASTE);
+    if (!(ice > 0) || !(dt > 0)) return false;
+    const left = rd.modules[held]!.stats.mass - this.damage.unbuiltAt(cb, held);
+    let fuel = min(CLAW_HEAT_RATE * dt, this.fuel.pieceRoom(fb, claw), left * ice);
+    fuel = min(fuel, this.power.pieceHeld(fb, claw) / CLAW_HEAT_ENERGY);
+    if (!(fuel > ROBOT_SPENT)) return false;
+    this.power.drain(fb, claw, fuel * CLAW_HEAT_ENERGY);
+    this.damage.unfit(cb, held, fuel / ice);
+    this.fuel.add(fb, claw, fuel);
+    this.settleMass(bodies, cb);
+    this.settleMass(bodies, fb);
+    return true;
+  }
+
+  /**
+   * Whether the blow `k` of this step's knocks a moored ship off its rock:
+   * one landing on it harder than its claw holds, the shock spent with
+   * distance as it is through a weld, the rest of it then the ship's own.
+   */
+  private shakeLoose(world: World, k: number): boolean {
+    const bodies = world.bodies;
+    const fb = this.blowBody[k]!;
+    const f = this.shipByBody[fb];
+    if (f === undefined || f < 0 || this.mooredClaw[f]! < 0) return false;
+    const cb = this.carrierBodyOf(bodies, f);
+    const held = this.heldRock(bodies, f);
+    const fd = this.hullDesign[fb];
+    const rd = cb < 0 ? null : this.hullDesign[cb];
+    if (held < 0 || fd === null || fd === undefined || rd === null || rd === undefined) return false;
+    const claw = this.mooredClaw[f]!;
+    const thickness = min(seamThickness(fd, claw), seamThickness(rd, held));
+    const grip = this.damage.remaining(fb, claw, DamageEffect.Grip);
+    const strength = fd.modules[claw]!.spec.width * thickness * JOINT_IMPULSE_PER_AREA * DOCK_HOLD * grip;
+    const jx = this.blowJx[k]!;
+    const jy = this.blowJy[k]!;
+    const place = this.modulePlace(bodies, fb, fd, claw);
+    const carried = SHOCK_REACH / (SHOCK_REACH + length(this.blowX[k]! - place.x, this.blowY[k]! - place.y));
+    const load = length(jx, jy) * carried;
+    if (!(load > strength)) return false;
+    this.unpark(bodies, f, world.tick);
+    // What the rock took of the blow beyond the grip, the ship takes now it is free.
+    const share = 1 - strength / load;
+    bodies.vx[fb] = bodies.vx[fb]! + jx * share * bodies.invMass[fb]!;
+    bodies.vy[fb] = bodies.vy[fb]! + jy * share * bodies.invMass[fb]!;
+    bodies.vx[cb] = bodies.vx[cb]! - jx * share * bodies.invMass[cb]!;
+    bodies.vy[cb] = bodies.vy[cb]! - jy * share * bodies.invMass[cb]!;
+    return true;
   }
 
   /**
@@ -8950,11 +9702,18 @@ export class Ships {
     const place = this.modulePlace(bodies, tb, host, pad);
     // Matching how the pad is speeding up as well as how it is moving, as if it keeps on.
     this.dockingAccel(i, place.vx, place.vy, dt);
-    const ax = this.dockAx[i]!;
-    const ay = this.dockAy[i]!;
+    let ax = this.dockAx[i]!;
+    let ay = this.dockAy[i]!;
+    // An anchored pad does not fall with what lands on it, so it holds itself up against the rock's pull.
+    const root = this.carrierOf(tb);
+    const well = this.rides[root >= 0 ? root : tb];
+    if (well !== undefined) {
+      const pull = wellPull(well, bodies.x[b]!, bodies.y[b]!);
+      ax -= (well.x - bodies.x[b]!) * pull;
+      ay -= (well.y - bodies.y[b]!) * pull;
+    }
     const mine = bodies.radius[b]!;
     const range = length(place.x - bodies.x[b]!, place.y - bodies.y[b]!);
-    const near = range <= PAD_ALIGN_RADII * mine;
     // Come in by one of the pad's ways in, from where it leaves the hull's
     // circle, circling round to there first if the hull is in the way.
     this.wayIn(bodies, i, b, tb, host, pad, place.x, place.y);
@@ -8963,6 +9722,9 @@ export class Ships {
     const rx = bodies.x[b]! - place.x;
     const ry = bodies.y[b]! - place.y;
     const ahead = rx * nx + ry * ny;
+    // Near only from the side its way in is: over the hull beyond the pad, its
+    // engines would play on the deck to bring it back.
+    const near = range <= PAD_ALIGN_RADII * mine && ahead > -host.modules[pad]!.spec.length / 2;
     let lined = ahead > 0 && abs(ry * nx - rx * ny) <= ahead;
     // Over the hull, only if nothing in its layer stands between it and the pad.
     if (lined && length(bodies.x[b]! - bodies.x[tb]!, bodies.y[b]! - bodies.y[tb]!) < bodies.radius[tb]! + 2 * mine) {
@@ -9472,11 +10234,19 @@ export class Ships {
     this.doctrines[i] = overriddenDoctrine(to.doctrine, this.overrides[i]);
     this.mountDoctrines[i] = null;
     this.couldFight[i] = to.turrets.some((t) => t.main) || to.engines.length > 0 ? 1 : 0;
-    const builds = to.builds ?? [];
-    this.broods[i] = builds.length === 0 ? null : { fighters: builds.map(() => []), work: new Float64Array(builds.length) };
-    this.yards[i] = yardFor(to);
+    this.buildsFor(i, to);
     this.refitting[i] = 1;
     return null;
+  }
+
+  /**
+   * What ship `i`'s pads and slipways build, as design `design` says: the one
+   * it was launched as, not the slice of it a slipway or pad began with.
+   */
+  private buildsFor(i: number, design: ShipDesign): void {
+    const builds = design.builds ?? [];
+    this.broods[i] = builds.length === 0 ? null : { fighters: builds.map(() => []), work: new Float64Array(builds.length) };
+    this.yards[i] = yardFor(design);
   }
 
   /** Whether ship `i` is refitted and its hull is not yet what it was refitted to: something to come down, or to go up. */
@@ -9510,7 +10280,8 @@ export class Ships {
       if ((brood === null || brood === undefined) && (yard === null || yard === undefined)) continue;
       if (!this.hasControl(i)) continue;
       const b = bodies.indexOf(this.bodyIds[i]!);
-      if (b < 0 || this.damage.isProtected(b)) continue;
+      // One still held by the slipway building it builds nothing until it is let go.
+      if (b < 0 || this.damage.isProtected(b) || this.onSlipway(i, b)) continue;
       const design = this.designs[i]!;
       const rebuild = this.rebuildFor(i, design);
       for (let k = 0; yard !== null && yard !== undefined && k < yard.building.length; k++) this.print(world, i, b, rebuild.at, k);
@@ -9522,6 +10293,7 @@ export class Ships {
         if (pad < 0 || !this.ownsAt(i, b, pad)) continue;
         if (this.fielded(bodies, i, brood.fighters[k]!) >= this.keepFor(i, order.pad, order.keep)) continue;
         if (!this.padFree(bodies, i, pad) || this.awaited(i, pad)) continue;
+        if (!this.mayBuild(i, b, this.launched[i]!.modules[order.pad]!.spec)) continue;
         this.layDown(world, i, b, design, pad, k, this.craftFor(i, order.pad, order.design));
       }
     }
@@ -9542,6 +10314,7 @@ export class Ships {
     const order = this.launched[i]!.yards![k]!;
     const slipway = at[order.slipway]!;
     if (slipway < 0 || !this.ownsAt(i, b, slipway)) return;
+    if (!this.mayBuild(i, b, this.launched[i]!.modules[order.slipway]!.spec)) return;
     let f = yard.building[k]!;
     // Gone, or let go: the slipway is free for the next, and one let go is pushed off.
     if (f >= 0 && (this.alive[f] === 0 || bodies.indexOf(this.bodyIds[f]!) !== b)) {
@@ -9552,15 +10325,19 @@ export class Ships {
     }
     if (f < 0 && this.fielded(bodies, i, yard.ships[k]!) >= this.keepFor(i, order.slipway, order.keep)) return;
     // One already on the slipway is finished as it was begun.
-    if (f < 0) yard.craft[k] = this.craftFor(i, order.slipway, order.design);
+    if (f < 0) {
+      const chosen = this.craftFor(i, order.slipway, order.design);
+      yard.craft[k] = chosen === this.launched[i] ? twinOf(chosen) : chosen;
+    }
     const craft = yard.craft[k] ?? order.design;
-    const length = printLength(craft);
+    const berth = this.launched[i]!.modules[order.slipway]!.spec;
+    const length = printLength(craft, berth);
     const depth = f < 0 ? 0 : yard.depth[k]!;
     if (f >= 0 && this.printing[f] !== 1) return;
     const deeper = min(length, depth + SLIPWAY_STEP);
-    const next = printedCraft(craft, deeper);
+    const next = printedCraft(craft, berth, deeper);
     if (next === null) return;
-    const before = f < 0 ? null : printedCraft(craft, depth);
+    const before = f < 0 ? null : printedCraft(craft, berth, depth);
 
     // What the slice weighs, and the work it takes, module by module.
     let kg = 0;
@@ -9699,9 +10476,10 @@ export class Ships {
     const angle = bodies.angle[b]! + (this.designs[i]!.modules[slipway]!.spec.angle ?? 0);
     const dx = cos(angle);
     const dy = sin(angle);
-    const mb = bodies.mass[b]!;
-    const mf = bodies.mass[fb]!;
-    const impulse = (SLIPWAY_PUSH * mb * mf) / (mb + mf);
+    // A builder anchored to a rock is pinned, and weighs nothing to this: it does not move.
+    const mb = movable(bodies.mass[b]!);
+    const mf = movable(bodies.mass[fb]!);
+    const impulse = mb === Infinity ? SLIPWAY_PUSH * mf : (SLIPWAY_PUSH * mb * mf) / (mb + mf);
     bodies.vx[fb] = bodies.vx[fb]! + (impulse / mf) * dx;
     bodies.vy[fb] = bodies.vy[fb]! + (impulse / mf) * dy;
     bodies.vx[b] = bodies.vx[b]! - (impulse / mb) * dx;
@@ -9769,6 +10547,7 @@ export class Ships {
       team: this.team[i]!,
     });
     this.launched[f] = craft;
+    this.buildsFor(f, craft);
     this.couldFight[f] = craft.turrets.some((t) => t.main) || craft.engines.length > 0 ? 1 : 0;
     this.unfinished[f] = 1;
     this.printing[f] = 1;
@@ -9961,6 +10740,7 @@ export class Ships {
     });
     // It is building towards the whole fighter, and is one in all but its parts.
     this.launched[f] = fighter;
+    this.buildsFor(f, fighter);
     this.couldFight[f] = fighter.turrets.some((t) => t.main) || fighter.engines.length > 0 ? 1 : 0;
     this.unfinished[f] = 1;
     this.park(bodies, i, f, pad);
@@ -10000,7 +10780,8 @@ export class Ships {
       const slipway = rebuild.at[order.slipway]!;
       if (slipway < 0 || !(this.left(i, b, slipway, DamageEffect.Grip) > 0)) continue;
       // The metal for its first slice, at least.
-      const first = printedCraft(craft, min(printLength(craft), SLIPWAY_STEP));
+      const berth = this.launched[i]!.modules[order.slipway]!.spec;
+      const first = printedCraft(craft, berth, min(printLength(craft, berth), SLIPWAY_STEP));
       let kg = 0;
       for (const module of first?.design.modules ?? []) kg += module.stats.structureMass;
       if (this.metal.pieceHeld(b, slipway) >= kg * (1 + REPAIR_WASTE)) return true;
@@ -10089,16 +10870,37 @@ export class Ships {
    * first, against its pull at the surface: Infinity for one with no well.
    */
   private holdsOff(bodies: Bodies, i: number, b: number, claw: number, tb: number): number {
-    const well = this.rides[tb];
-    if (well === undefined) return Infinity;
-    const r = bodies.radius[tb]!;
-    const soft = well.softening ?? 0;
-    const r2 = r * r + soft * soft;
-    const pull = (well.gm * r) / (r2 * sqrt(r2));
+    const pull = this.surfacePull(bodies, tb);
     if (!(pull > 0)) return Infinity;
     const jaws = this.designs[i]!.modules[claw]!.spec.angle ?? 0;
     const back = this.layoutOf(i).maxThrustAlong(-cos(jaws), -sin(jaws)) / movable(bodies.mass[b]!);
     return back / pull;
+  }
+
+  /** How hard body `tb`'s well pulls body `b` where it is, m/s², into `partAt`: nothing for a body that rides none. */
+  private wellPullOn(bodies: Bodies, b: number, tb: number): void {
+    this.partAt.x = 0;
+    this.partAt.y = 0;
+    const well = this.rides[tb];
+    if (well === undefined) return;
+    const dx = bodies.x[tb]! - bodies.x[b]!;
+    const dy = bodies.y[tb]! - bodies.y[b]!;
+    const soft = well.softening ?? 0;
+    const r2 = dx * dx + dy * dy + soft * soft;
+    if (!(r2 > 0)) return;
+    const k = well.gm / (r2 * sqrt(r2));
+    this.partAt.x = dx * k;
+    this.partAt.y = dy * k;
+  }
+
+  /** How hard body `tb`'s well pulls at its edge, m/s²: none for a body that rides none. */
+  private surfacePull(bodies: Bodies, tb: number): number {
+    const well = this.rides[tb];
+    if (well === undefined) return 0;
+    const r = bodies.radius[tb]!;
+    const soft = well.softening ?? 0;
+    const r2 = r * r + soft * soft;
+    return (well.gm * r) / (r2 * sqrt(r2));
   }
 
   /** What an asteroid's rock still holds, kg: all of it, and the ore and ice in it less what mining wastes. */
@@ -10129,7 +10931,12 @@ export class Ships {
     return max(forOre, forIce) / stripRate;
   }
 
-  private pickSource(bodies: Bodies, i: number, b: number, claw: number, room: number, metalRoom: number): number {
+  /**
+   * The source a claw ship goes for: what pays most for the time it takes.
+   * Wanting an anchor (`wantsAnchor`), an asteroid with nothing it could take
+   * still serves, the nearest first.
+   */
+  private pickSource(bodies: Bodies, i: number, b: number, claw: number, room: number, metalRoom: number, anchors = false): number {
     const design = this.designs[i]!;
     const approach = this.doctrines[i]!.approach;
     const pump = design.modules[claw]!.stats.pumpRate;
@@ -10155,6 +10962,8 @@ export class Ships {
       if (asteroid && !(approach.rockWeight > 0)) continue;
       // One that pulls cannot be closed on slowly jaws first without thrust to hold off its pull.
       if (asteroid && !(this.holdsOff(bodies, i, b, claw, tb) > 1)) continue;
+      // Nor one an enemy has hold of: it would be closing on the enemy as much as on the rock.
+      if (asteroid && this.enemyMoored(i, t)) continue;
       const held = asteroid ? this.rockHeld(tb, this.designs[t]!) : null;
       const fuel = held !== null ? held.ice : this.fuel.left(tb);
       const take = fuel < room ? fuel : room;
@@ -10168,34 +10977,52 @@ export class Ships {
             ? (bodies.mass[tb]! - fuel) * (1 - DISASSEMBLY_WASTE)
             : 0;
       const strip = metal < metalRoom ? metal : metalRoom;
-      if (!(take > 0 || strip > 0)) continue;
+      const anchor = anchors && asteroid;
+      if (!(take > 0 || strip > 0 || anchor)) continue;
       const dx = bodies.x[tb]! - bodies.x[b]!;
       const dy = bodies.y[tb]! - bodies.y[b]!;
       const apart = length(dx, dy);
       // Getting there at its closing speed less however fast the source is
       // going away: one it cannot gain on is no source at all.
-      const receding = apart > 0 ? ((bodies.vx[tb]! - bodies.vx[b]!) * dx + (bodies.vy[tb]! - bodies.vy[b]!) * dy) / apart : 0;
+      const gap = max(0, apart - bodies.radius[tb]!);
+      // Already alongside the one it is after, a miss that bounced it off is
+      // a reposition, not a trip: neither how fast it is now drifting off nor
+      // the speed to match counts against it.
+      const alongside = t === this.salvaging[i] && gap <= 2 * bodies.radius[b]!;
+      const receding =
+        alongside || !(apart > 0) ? 0 : ((bodies.vx[tb]! - bodies.vx[b]!) * dx + (bodies.vy[tb]! - bodies.vy[b]!) * dy) / apart;
       const closing = approach.clawSpeed - receding;
       if (!(closing > 0)) continue;
-      const gap = max(0, apart - bodies.radius[tb]!);
       // What the trip burns: matching the source's motion, then speeding up
       // and slowing down again, no faster than the gap gives room for. A
       // source has to pay more than that to be worth going for at all.
       const cruise = min(closing, sqrt(mains * gap));
-      const dv = length(bodies.vx[tb]! - bodies.vx[b]!, bodies.vy[tb]! - bodies.vy[b]!) + 2 * cruise;
+      const dv = (alongside ? 0 : length(bodies.vx[tb]! - bodies.vx[b]!, bodies.vy[tb]! - bodies.vy[b]!)) + 2 * cruise;
       const cost = exhaust > 0 ? mass * (1 - exp(-dv / exhaust)) : 0;
-      const gain = (take + strip * approach.fuelPerMetal) * (held !== null ? approach.rockWeight : 1) - cost;
+      let gain = (take + strip * approach.fuelPerMetal) * (held !== null ? approach.rockWeight : 1) - cost;
+      // An anchor is worth having however little it gives, so the soonest reached wins.
+      if (anchor && !(gain > 0)) gain = 1;
       if (!(gain > 0)) continue;
       const time =
-        gap / closing + (held !== null ? this.miningTime(held, take, strip, stripRate) : take / pump + (strip > 0 ? strip / stripRate : 0));
+        (gap / closing) * approach.tripWeight +
+        (held !== null ? this.miningTime(held, take, strip, stripRate) : take / pump + (strip > 0 ? strip / stripRate : 0));
       const danger = approach.scavengeDanger > 0 ? this.dangerNear(bodies, i, tb) : 0;
-      const score = gain / time / (1 + max(0, approach.scavengeDanger) * danger);
+      const score = gain / max(time, 1e-3) / (1 + max(0, approach.scavengeDanger) * danger);
       if (score > bestScore) {
         best = t;
         bestScore = score;
       }
     }
     return best;
+  }
+
+  /** Whether a ship hostile to ship `i` is moored to asteroid `t`. */
+  private enemyMoored(i: number, t: number): boolean {
+    for (let k = 0; k < this.parkedShips.length; k++) {
+      const j = this.parkedShips[k]!;
+      if (this.parkedOn[j] === t && this.mooredClaw[j]! >= 0 && this.hostile(i, j)) return true;
+    }
+    return false;
   }
 
   /**
@@ -10264,8 +11091,299 @@ export class Ships {
   }
 
   /**
+   * How fast body `b` brings claw `claw` in to touch: `CLAW_APPROACH`, unless
+   * that is more than the claw's spring could stop it from in its stroke, a
+   * heavy ship's claw otherwise driven home hard and torn off.
+   */
+  private clawArrival(bodies: Bodies, b: number, claw: number): number {
+    const spec = this.hullDesign[b]!.modules[claw]!.spec;
+    const reach = CLAW_DEPTH * spec.length;
+    const mass = bodies.mass[b]!;
+    // Its spring's work over the stroke, half k·w·reach², as the hull's speed.
+    const most = mass > 0 ? reach * sqrt((CLAW_STIFFNESS * spec.width) / mass) : CLAW_APPROACH;
+    return min(CLAW_APPROACH, most);
+  }
+
+  /** Where the jaws of claw `claw` of ship `i` reach to, in its body frame about its centre of mass, into `partAt`. */
+  private jawsTip(i: number, claw: number): void {
+    const module = this.designs[i]!.modules[claw]!;
+    const turned = module.spec.angle ?? 0;
+    this.partAt.x = module.x + (cos(turned) * module.spec.length) / 2;
+    this.partAt.y = module.y + (sin(turned) * module.spec.length) / 2;
+  }
+
+  /**
+   * Choose, or keep, where ship `i`'s claw will take hold of body `tb`: a
+   * point on an outside face of its hull facing the claw, the one whose gate,
+   * out along its normal, is nearest the jaws, of those wide enough for the
+   * jaws and with room in front of them for the ship to come straight in, if
+   * any are, or else of those wide enough, or with room. Kept in `tb`'s frame so it turns with the hull, and kept
+   * once the jaws are inside the gate, unless the hull changes or the module
+   * is spent; looked at again every `GRIP_RECHOOSE` before that. False with
+   * no outside face facing the claw, for it to close on the middle instead.
+   */
+  private chooseGrip(bodies: Bodies, i: number, b: number, tb: number, source: number, claw: number, dt: number): boolean {
+    const hull = this.hullDesign[tb];
+    if (hull === null || hull === undefined) return false;
+    const angle = bodies.angle[tb]!;
+    const c = cos(angle);
+    const s = sin(angle);
+    // The jaws in the target's frame.
+    this.jawsTip(i, claw);
+    const shipAngle = bodies.angle[b]!;
+    const wx = bodies.x[b]! + this.partAt.x * cos(shipAngle) - this.partAt.y * sin(shipAngle) - bodies.x[tb]!;
+    const wy = bodies.y[b]! + this.partAt.x * sin(shipAngle) + this.partAt.y * cos(shipAngle) - bodies.y[tb]!;
+    const qx = wx * c + wy * s;
+    const qy = wy * c - wx * s;
+    const gate = bodies.radius[b]!;
+    const kept =
+      this.gripBody[i] === tb && this.gripHull[i] === hull && this.gripModule[i]! >= 0 && !this.damage.spent(tb, this.gripModule[i]!);
+    if (kept) {
+      const out = (qx - this.gripX[i]!) * this.gripNx[i]! + (qy - this.gripY[i]!) * this.gripNy[i]!;
+      if (out < 2 * gate || (this.now - this.gripAt[i]!) * dt < GRIP_RECHOOSE) return true;
+    }
+
+    const outlines = this.gripOutlines;
+    const starts = this.gripStarts;
+    const corners = this.faceCorners;
+    outlines.length = 0;
+    starts.length = 0;
+    for (let m = 0; m < hull.modules.length; m++) {
+      starts.push(outlines.length);
+      if (this.damage.spent(tb, m)) continue;
+      const count = moduleOutline(hull.modules[m]!.spec, corners);
+      for (let v = 0; v < count * 2; v += 2) outlines.push(corners[v]! - hull.centreOfMassX, corners[v + 1]! - hull.centreOfMassY);
+    }
+    starts.push(outlines.length);
+    const width = this.designs[i]!.modules[claw]!.spec.width;
+    let best = Infinity;
+    // How good the best face so far is, before how near: wide enough for the jaws counts for more than room in front of it.
+    let bestTier = -1;
+    for (let m = 0; m < hull.modules.length; m++) {
+      // Only the source's own: a friend anchored to the same rock stands in the way, and is no face to grip.
+      if (this.pilotAt(tb, m) !== source) continue;
+      const from = starts[m]!;
+      const n = (starts[m + 1]! - from) / 2;
+      for (let e = 0; e < n; e++) {
+        const ax = outlines[from + e * 2]!;
+        const ay = outlines[from + e * 2 + 1]!;
+        const bx = outlines[from + ((e + 1) % n) * 2]!;
+        const by = outlines[from + ((e + 1) % n) * 2 + 1]!;
+        const span = length(bx - ax, by - ay);
+        if (!(span > 0)) continue;
+        const tx = (bx - ax) / span;
+        const ty = (by - ay) / span;
+        // Outward, the outline being anticlockwise.
+        const nx = ty;
+        const ny = -tx;
+        // Facing the jaws.
+        if ((qx - ax) * nx + (qy - ay) * ny <= 0) continue;
+        // Where the jaws are square across from, but the middle of a face only a few jaws wide.
+        const margin = min(width, span) / 2;
+        const along = span < 4 * width ? span / 2 : clamp((qx - ax) * tx + (qy - ay) * ty, margin, span - margin);
+        const px = ax + tx * along;
+        const py = ay + ty * along;
+        // Outside: no other module just beyond it.
+        if (this.insideAnyOutline(m, px + nx * 0.01, py + ny * 0.01)) continue;
+        const cost = length(px + nx * gate - qx, py + ny * gate - qy);
+        const fits = span >= width ? 2 : 0;
+        // Not worth asking about room in front of one that could not win with it.
+        if (fits + 1 < bestTier || (fits + 1 === bestTier && !(cost < best))) continue;
+        // Room in front of it, as wide as the ship, to come straight in.
+        const tier = fits + (this.corridorClear(px, py, nx, ny, gate, GRIP_CLEAR * gate) ? 1 : 0);
+        if (tier < bestTier || (tier === bestTier && !(cost < best))) continue;
+        bestTier = tier;
+        best = cost;
+        this.gripModule[i] = m;
+        this.gripX[i] = px;
+        this.gripY[i] = py;
+        this.gripNx[i] = nx;
+        this.gripNy[i] = ny;
+        this.gripSlack[i] = max(0, min(along, span - along) - width / 2);
+      }
+    }
+    if (best === Infinity) {
+      this.gripBody[i] = -1;
+      return false;
+    }
+    this.gripBody[i] = tb;
+    this.gripHull[i] = hull;
+    this.gripAt[i] = this.now;
+    return true;
+  }
+
+  /**
+   * Whether the strip in front of a face at `px`, `py` with outward normal
+   * `nx`, `ny`, `half` either side of it and `depth` out, misses every
+   * module of `gripOutlines`: room for a ship to come straight in to it.
+   */
+  private corridorClear(px: number, py: number, nx: number, ny: number, half: number, depth: number): boolean {
+    const outlines = this.gripOutlines;
+    const starts = this.gripStarts;
+    // From just off the face, so the module the face is on does not count.
+    const lo = 0.05;
+    for (let m = 0; m + 1 < starts.length; m++) {
+      const from = starts[m]!;
+      const n = (starts[m + 1]! - from) / 2;
+      if (n < 3) continue;
+      // Apart along the strip's own axes?
+      let minOut = Infinity;
+      let maxOut = -Infinity;
+      let minSide = Infinity;
+      let maxSide = -Infinity;
+      for (let v = 0; v < n; v++) {
+        const dx = outlines[from + v * 2]! - px;
+        const dy = outlines[from + v * 2 + 1]! - py;
+        const out = dx * nx + dy * ny;
+        const side = dy * nx - dx * ny;
+        minOut = min(minOut, out);
+        maxOut = max(maxOut, out);
+        minSide = min(minSide, side);
+        maxSide = max(maxSide, side);
+      }
+      if (maxOut <= lo || minOut >= depth || maxSide <= -half || minSide >= half) continue;
+      // Apart along one of the module's edge normals?
+      let apart = false;
+      for (let e = 0; e < n && !apart; e++) {
+        const ax = outlines[from + e * 2]!;
+        const ay = outlines[from + e * 2 + 1]!;
+        const ex = outlines[from + ((e + 1) % n) * 2]! - ax;
+        const ey = outlines[from + ((e + 1) % n) * 2 + 1]! - ay;
+        // Outward, (ey, -ex): the strip apart if every corner of it lies beyond the edge.
+        let nearest = Infinity;
+        for (let k = 0; k < 4; k++) {
+          const o = k < 2 ? lo : depth;
+          const sd = k % 2 === 0 ? -half : half;
+          const cx = px + nx * o - ny * sd - ax;
+          const cy = py + ny * o + nx * sd - ay;
+          nearest = min(nearest, cx * ey - cy * ex);
+        }
+        if (nearest >= 0) apart = true;
+      }
+      if (!apart) return false;
+    }
+    return true;
+  }
+
+  /** Whether a point in a hull's frame lies inside any module of `gripOutlines` but `skip`. */
+  private insideAnyOutline(skip: number, x: number, y: number): boolean {
+    const outlines = this.gripOutlines;
+    const starts = this.gripStarts;
+    for (let m = 0; m + 1 < starts.length; m++) {
+      if (m === skip) continue;
+      const from = starts[m]!;
+      const n = (starts[m + 1]! - from) / 2;
+      if (n < 3) continue;
+      let inside = true;
+      for (let e = 0; e < n && inside; e++) {
+        const ax = outlines[from + e * 2]!;
+        const ay = outlines[from + e * 2 + 1]!;
+        const bx = outlines[from + ((e + 1) % n) * 2]!;
+        const by = outlines[from + ((e + 1) % n) * 2 + 1]!;
+        if ((bx - ax) * (y - ay) - (by - ay) * (x - ax) <= 0) inside = false;
+      }
+      if (inside) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Bring claw `claw` in square to the face `chooseGrip` chose: make for its
+   * gate, a ship's radius out along its normal, down a stopping curve, the
+   * jaws on the source's middle until it is near and then turned on to the
+   * face; and there, once the jaws are on that
+   * line and square to the face, straight in, down a stopping curve as
+   * `grapple`'s, onto the face. All moving as that point of the hull does,
+   * turning with it included, and held against its well's pull. Sets
+   * `gripHeading`, and returns the speed it closes at, negative backing off.
+   */
+  private squareUp(bodies: Bodies, i: number, b: number, tb: number, claw: number, standOff: boolean): number {
+    const angle = bodies.angle[tb]!;
+    const c = cos(angle);
+    const s = sin(angle);
+    const gx = this.gripX[i]!;
+    const gy = this.gripY[i]!;
+    const px = bodies.x[tb]! + gx * c - gy * s;
+    const py = bodies.y[tb]! + gx * s + gy * c;
+    const nx = this.gripNx[i]! * c - this.gripNy[i]! * s;
+    const ny = this.gripNx[i]! * s + this.gripNy[i]! * c;
+
+    const module = this.designs[i]!.modules[claw]!;
+    const jaws = module.spec.angle ?? 0;
+    this.gripHeading = atan2(-ny, -nx) - jaws;
+    this.jawsTip(i, claw);
+    const shipAngle = bodies.angle[b]!;
+    const tipX = bodies.x[b]! + this.partAt.x * cos(shipAngle) - this.partAt.y * sin(shipAngle);
+    const tipY = bodies.y[b]! + this.partAt.x * sin(shipAngle) + this.partAt.y * cos(shipAngle);
+    const out = (tipX - px) * nx + (tipY - py) * ny;
+    const across = (tipX - px) * -ny + (tipY - py) * nx;
+
+    const approach = this.doctrines[i]!.approach;
+    const gate = bodies.radius[b]!;
+    // The gate, and how it moves with the hull.
+    const gateX = px + nx * gate;
+    const gateY = py + ny * gate;
+    const spin = bodies.angularVel[tb]!;
+    const vx = bodies.vx[tb]! - spin * (gateY - bodies.y[tb]!);
+    const vy = bodies.vy[tb]! + spin * (gateX - bodies.x[tb]!);
+    const pull = this.surfacePull(bodies, tb);
+    let wantX = 0;
+    let wantY = 0;
+    let closing = 0;
+    // Once closing, it keeps on with twice the room it was let start with, so a wobble does not send it back.
+    const loose = this.gripClosing[i] === 1 ? 2 : 1;
+    const lined =
+      out <= 1.5 * gate &&
+      abs(across) <= loose * max(GRIP_LINE * module.spec.width, this.gripSlack[i]!) &&
+      abs(angleDelta(shipAngle, this.gripHeading)) <= loose * GRIP_SQUARE;
+    this.gripClosing[i] = lined && !standOff ? 1 : 0;
+    if (standOff) {
+      closing = -CLAW_APPROACH;
+      wantX = nx * CLAW_APPROACH;
+      wantY = ny * CLAW_APPROACH;
+    } else if (lined) {
+      // Straight in, the jaws held on the line, planned on half the braking it
+      // has less the well's pull: flying lags what it asks for, and a claw
+      // driven home too fast is torn off.
+      const retro = this.accelerationAlong(bodies, i, b, nx, ny, this.gripHeading);
+      const braking = GRIP_BRAKING * max(approach.brake * retro - pull, 0.1 * approach.brake * retro);
+      const stopping = stoppingSpeed(braking, max(0, out), approach.responseTime);
+      const arrive = this.clawArrival(bodies, b, claw);
+      closing = min(approach.clawSpeed, sqrt(stopping * stopping + arrive * arrive));
+      const sideways = clamp(-across / max(approach.responseTime, 1e-3), -arrive, arrive);
+      // Out to the gate's line, then in: relative to the gate point, out by how far in it is.
+      wantX = -nx * closing - ny * sideways;
+      wantY = -ny * closing + nx * sideways;
+    } else {
+      // To the gate, slowing as it gets there.
+      const dx = gateX - tipX;
+      const dy = gateY - tipY;
+      const span = length(dx, dy);
+      if (span > 0) {
+        const ux = dx / span;
+        const uy = dy / span;
+        // Well short of it, the jaws on its middle as any claw ship closing on
+        // a source holds them, so its mains carry it there.
+        if (span > 2 * gate) this.gripHeading = atan2(bodies.y[tb]! - bodies.y[b]!, bodies.x[tb]! - bodies.x[b]!) - jaws;
+        const retro = this.accelerationAlong(bodies, i, b, -ux, -uy, this.gripHeading);
+        const braking = GRIP_BRAKING * max(approach.brake * retro - pull, 0.1 * approach.brake * retro);
+        const stopping = stoppingSpeed(braking, span, approach.responseTime);
+        const arrive = this.clawArrival(bodies, b, claw);
+        const speed = min(approach.clawSpeed, sqrt(stopping * stopping + arrive * arrive), span / max(approach.responseTime, 1e-3));
+        wantX = ux * speed;
+        wantY = uy * speed;
+        closing = -(wantX * nx + wantY * ny);
+      }
+    }
+    // Held against the source's pull rather than lagging behind it.
+    this.wellPullOn(bodies, b, tb);
+    this.urge(URGE_REFERENCE, vx + wantX, vy + wantY, -this.partAt.x, -this.partAt.y);
+    return closing;
+  }
+
+  /**
    * Close on a source jaws first: down a stopping curve onto its edge that
-   * stops not at nothing but at `CLAW_APPROACH`, so the claw arrives inside
+   * stops not at nothing but at `clawArrival`, so the claw arrives inside
    * its band. `facing` is the heading it holds to point the claw. `standOff`
    * backs it away instead, for another run at it.
    */
@@ -10290,8 +11408,10 @@ export class Ships {
       // floor: a claw has to arrive slowly, so a craft that cannot brake
       // facing its source comes in no faster than it can stop.
       const retro = this.accelerationAlong(bodies, i, b, -ux, -uy, facing);
-      const stopping = stoppingSpeed(approach.brake * retro, gap, approach.responseTime);
-      radial = standOff ? -CLAW_APPROACH : min(approach.clawSpeed, sqrt(stopping * stopping + CLAW_APPROACH * CLAW_APPROACH));
+      const braking = max(approach.brake * retro - this.surfacePull(bodies, tb), 0.1 * approach.brake * retro);
+      const stopping = stoppingSpeed(braking, gap, approach.responseTime);
+      const arrive = this.clawArrival(bodies, b, claw);
+      radial = standOff ? -CLAW_APPROACH : min(approach.clawSpeed, sqrt(stopping * stopping + arrive * arrive));
       vx += ux * radial;
       vy += uy * radial;
     }
@@ -10319,6 +11439,42 @@ export class Ships {
   /** Whether ship `i` is parked on a pad, or is held by a slipway of body `b` building it. */
   private onPad(i: number, b: number): boolean {
     return this.parkedOn[i]! >= 0 || this.onSlipway(i, b);
+  }
+
+  /** Whether ship `i` on body `b` may build on pad or slipway `spec`: anywhere, unless it builds only anchored (`buildAnchored`). */
+  private mayBuild(i: number, b: number, spec: ModuleSpec): boolean {
+    if (spec.buildAnchored !== true || this.workingClaw(i, b) < 0) return true;
+    // Moored to a rock, or holding a wreck in its claw.
+    if (this.mooredClaw[i]! >= 0) return true;
+    for (const seam of this.hullDesign[b]?.seams ?? []) {
+      if (seam.dock === 'claw' && this.pilotAt(b, seam.a) === i) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Whether ship `i` wants an anchor to build: a pad or slipway of it that
+   * builds only anchored (`buildAnchored`) has a ship on it, or keeps more
+   * than are in the fight.
+   */
+  private wantsAnchor(bodies: Bodies, i: number): boolean {
+    const launched = this.launched[i];
+    if (launched === undefined || !this.hasControl(i)) return false;
+    const yard = this.yards[i];
+    const yards = launched.yards ?? [];
+    for (let k = 0; yard !== null && yard !== undefined && k < yards.length; k++) {
+      const order = yards[k]!;
+      if (launched.modules[order.slipway]!.spec.buildAnchored !== true) continue;
+      if (yard.building[k]! >= 0 || this.fielded(bodies, i, yard.ships[k]!) < this.keepFor(i, order.slipway, order.keep)) return true;
+    }
+    const brood = this.broods[i];
+    const builds = launched.builds ?? [];
+    for (let k = 0; brood !== null && brood !== undefined && k < builds.length; k++) {
+      const order = builds[k]!;
+      if (launched.modules[order.pad]!.spec.buildAnchored !== true) continue;
+      if (this.fielded(bodies, i, brood.fighters[k]!) < this.keepFor(i, order.pad, order.keep)) return true;
+    }
+    return false;
   }
 
   /** Whether ship `i` is held by a slipway of body `b`: built, and doing nothing until it is let go. */

@@ -27,6 +27,7 @@ import {
   readsDocked,
   padHolds,
   readsCraft,
+  readsCraftAngle,
   slipwayHolds,
   blueprintProblem,
   compileDraft,
@@ -95,6 +96,7 @@ import {
   takeOutOfAssembly,
   updatePlacement,
   dockFighter,
+  renameShip,
 } from './edit.js';
 import { emptyBlueprint, Library, nextName, toFileText, unusedName, type LibraryEntry } from './library.js';
 import { battleHref, designHref, fleetHref, handedDesign, shipFleet, type DesignInFleet } from './handoff.js';
@@ -176,7 +178,15 @@ import {
  * can do, since its entire value is that the picture and the numbers are true.
  */
 
-const { max } = math;
+const { abs, max, PI } = math;
+
+/** The ways a slipway can lay out what it builds (`ModuleSpec.craftAngle`), offered by name. */
+const CRAFT_ANGLES: readonly { degrees: number; label: string }[] = [
+  { degrees: 0, label: 'bow first' },
+  { degrees: 90, label: 'side first, bow turned +90°' },
+  { degrees: -90, label: 'side first, bow turned −90°' },
+  { degrees: 180, label: 'stern first' },
+];
 
 /** How much of the way a refit to another ship closes on its scale each frame. */
 const FIT_EASE = 0.15;
@@ -406,7 +416,9 @@ export function startEditor(): void {
   const thickTitle = thickInput.title;
   const kindSelect = el<HTMLSelectElement>('propKind');
   const dockedSelect = el<HTMLSelectElement>('propDocked');
+  const craftAngleSelect = el<HTMLSelectElement>('propCraftAngle');
   const padDockedInput = el<HTMLInputElement>('propPadDocked');
+  const buildAnchoredInput = el<HTMLInputElement>('propBuildAnchored');
   const addHeading = el<HTMLElement>('addHeading');
   kindSelect.innerHTML = MODULE_KINDS.map((kind) => `<option value="${kind}">${kindName(kind)}</option>`).join('');
 
@@ -967,7 +979,11 @@ export function startEditor(): void {
     // Whether it sets out with one, and how many it keeps, mean nothing until it names one.
     el<HTMLElement>('padDockedRow').hidden = !readsDocked(spec.kind) || spec.craft === undefined;
     el<HTMLElement>('keepRow').hidden = !readsCraft(spec.kind) || spec.craft === undefined;
+    el<HTMLElement>('craftAngleRow').hidden = !readsCraftAngle(spec.kind) || spec.craft === undefined;
+    if (readsCraftAngle(spec.kind)) renderCraftAngle(spec);
     padDockedInput.checked = spec.docked === true;
+    el<HTMLElement>('buildAnchoredRow').hidden = !readsCraft(spec.kind) || spec.craft === undefined;
+    buildAnchoredInput.checked = spec.buildAnchored === true;
     // One no more than a deck across is as deep as it is wide either way.
     thickInput.disabled = !canThicken(spec) || doc.blueprint.fighter === true;
     thickInput.checked = isThick(spec);
@@ -1326,12 +1342,13 @@ export function startEditor(): void {
     return design !== null && design.fighter === (kind === 'pad') ? design : null;
   };
 
-  /** Everything a pad or slipway of `kind` could build: the library's, and any the hangar carries that it has not. */
+  /** Everything a pad or slipway of `kind` could build: the ship itself, the library's, and any the hangar carries that it has not. */
   const craftChoices = (kind: ModuleKind): Map<string, Blueprint> => {
     const choices = new Map<string, Blueprint>();
-    // In a fleet, its own designs first: what a pad names there is the fleet's.
+    if (asCraft(doc.blueprint, kind) !== null) choices.set(doc.blueprint.name, doc.blueprint);
+    // In a fleet, its own designs next: what a pad names there is the fleet's.
     for (const [name, blueprint] of Object.entries(inFleet?.fleet.designs ?? {})) {
-      if (name !== inFleet?.design && asCraft(blueprint, kind) !== null) choices.set(name, blueprint);
+      if (!choices.has(name) && name !== inFleet?.design && asCraft(blueprint, kind) !== null) choices.set(name, blueprint);
     }
     for (const entry of library.list()) {
       if (choices.has(entry.name)) continue;
@@ -1353,18 +1370,37 @@ export function startEditor(): void {
     const options = ['<option value="">none</option>'];
     for (const [name, blueprint] of craftChoices(spec.kind)) {
       // The copy aboard is what flies, so it is what is measured for the pad it is on.
-      const flown = name === spec.craft ? (doc.blueprint.hangar?.[name] ?? blueprint) : blueprint;
+      const own = name === doc.blueprint.name;
+      const flown = name === spec.craft && !own ? (doc.blueprint.hangar?.[name] ?? blueprint) : blueprint;
       const design = asCraft(flown, spec.kind);
-      const fits = design !== null && (spec.kind === 'pad' ? padHolds(design, spec) : slipwayHolds(design, spec));
+      // A slipway is turned for a ship that fits only turned, when it is picked.
+      const fits =
+        design !== null &&
+        (spec.kind === 'pad'
+          ? padHolds(design, spec)
+          : [spec.craftAngle ?? 0, 0, PI / 2].some((turn) => slipwayHolds(design, { ...spec, craftAngle: turn })));
       const chosen = name === spec.craft ? ' selected' : '';
       const why = spec.kind === 'pad' ? ' ✗ too big' : ' ✗ too wide';
-      options.push(`<option value="${escapeHtml(name)}"${chosen}>${escapeHtml(name)}${fits ? '' : why}</option>`);
+      options.push(`<option value="${escapeHtml(name)}"${chosen}>${escapeHtml(name)}${own ? ' (itself)' : ''}${fits ? '' : why}</option>`);
     }
     if (spec.craft !== undefined && !options.some((o) => o.includes(' selected'))) {
       options.push(`<option value="${escapeHtml(spec.craft)}" selected>${escapeHtml(spec.craft)} ✗ missing</option>`);
     }
     dockedSelect.innerHTML = options.join('');
     el<HTMLElement>('propDockedLabel').classList.toggle('warn', dockedSelect.selectedOptions[0]?.textContent?.includes('✗') === true);
+  };
+
+  const renderCraftAngle = (spec: ModuleSpec): void => {
+    const turn = spec.craftAngle ?? 0;
+    const options = CRAFT_ANGLES.map(
+      ({ degrees, label }) =>
+        `<option value="${degrees}"${abs(degreesToRadians(degrees) - turn) < 1e-9 ? ' selected' : ''}>${label}</option>`,
+    );
+    if (!CRAFT_ANGLES.some(({ degrees }) => abs(degreesToRadians(degrees) - turn) < 1e-9)) {
+      const degrees = radiansToDegrees(turn);
+      options.push(`<option value="${degrees}" selected>turned ${degrees.toFixed(0)}°</option>`);
+    }
+    craftAngleSelect.innerHTML = options.join('');
   };
 
   const change = (next: Blueprint | null, continues = false): void => {
@@ -1535,6 +1571,34 @@ export function startEditor(): void {
         if (on) next.docked = true;
         else delete next.docked;
         return next;
+      }),
+    );
+  });
+
+  buildAnchoredInput.addEventListener('change', () => {
+    const path = doc.selection;
+    if (path === null) return;
+    const on = buildAnchoredInput.checked;
+    change(
+      updatePlacement(doc.blueprint, path, (placement) => {
+        if (!('kind' in placement)) return placement;
+        const next = { ...placement };
+        if (on) next.buildAnchored = true;
+        else delete next.buildAnchored;
+        return next;
+      }),
+    );
+  });
+
+  craftAngleSelect.addEventListener('change', () => {
+    const path = doc.selection;
+    if (path === null) return;
+    const turn = degreesToRadians(Number(craftAngleSelect.value));
+    change(
+      updatePlacement(doc.blueprint, path, (placement) => {
+        if (!('kind' in placement)) return placement;
+        const { craftAngle: _, ...rest } = placement;
+        return turn === 0 ? rest : { ...rest, craftAngle: turn };
       }),
     );
   });
@@ -1908,7 +1972,7 @@ export function startEditor(): void {
   shipName.addEventListener('input', () => {
     const name = shipName.value.trim();
     if (name === '') return;
-    change({ ...doc.blueprint, name }, true);
+    change(renameShip(doc.blueprint, name), true);
   });
   shipFighter.addEventListener('change', () => {
     const next = { ...doc.blueprint };
@@ -1968,7 +2032,7 @@ export function startEditor(): void {
   // shipped hull becomes the start of a ship of their own without the save
   // shadowing the hull they started from.
   el<HTMLButtonElement>('duplicateShip').addEventListener('click', () => {
-    doc.replace({ ...doc.blueprint, name: unusedName(nextName(doc.blueprint.name), taken()) });
+    doc.replace(renameShip(doc.blueprint, unusedName(nextName(doc.blueprint.name), taken())));
     gesture = false;
     refresh();
   });

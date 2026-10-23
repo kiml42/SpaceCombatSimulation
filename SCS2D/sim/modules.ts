@@ -265,6 +265,11 @@ export function readsDocked(kind: ModuleKind): boolean {
   return kind === 'pad';
 }
 
+/** Whether `craftAngle` means anything on this kind: a slipway, which lays out what it builds. */
+export function readsCraftAngle(kind: ModuleKind): boolean {
+  return kind === 'slipway';
+}
+
 /** Whether `fill` means anything on this kind: what holds fuel, metal or charge. */
 export function readsFill(kind: ModuleKind): boolean {
   return readsSealing(kind) || kind === 'hold' || kind === 'battery';
@@ -1240,8 +1245,9 @@ export interface ModuleSpec {
   computing?: number;
 
   /**
-   * What this pad or slipway builds, by its name in the blueprint's `hangar`:
-   * for a pad the fighter it sets out with (`docked`) and builds (`keep`).
+   * What this pad or slipway builds, by name: the ship's own, or one in the
+   * blueprint's `hangar`. For a pad the fighter it sets out with (`docked`)
+   * and builds (`keep`).
    */
   craft?: string;
   /** Whether the pad sets out with its `fighter` docked on it. A pad only. */
@@ -1252,6 +1258,20 @@ export interface ModuleSpec {
    * none for 0, the default.
    */
   keep?: number;
+  /**
+   * Which way the ship a slipway builds lies on it, radians from the
+   * slipway's facing to the ship's: 0, the default, builds it bow first, and
+   * a quarter turn builds it side first, for a ship shorter than it is wide.
+   * A slipway only.
+   */
+  craftAngle?: number;
+  /**
+   * Whether this pad or slipway lays down a new craft only while its ship's
+   * claw holds something, and a slipway works only then, its claw holding on
+   * until what it builds is let go: a miner that builds where it mines, held
+   * still, rather than flying about with half a ship on its stern.
+   */
+  buildAnchored?: boolean;
 
   /**
    * Why this module is here, in the author's own words. Carried through the

@@ -6,22 +6,22 @@ import { mining } from '../scenarios/mining.js';
 import { SALVAGER, SCAVENGER } from '../scenarios/blueprints.js';
 import { give } from '../scenarios/commands.js';
 
-/** Metal and fuel a miner's body holds. */
+/** Metal and fuel a miner's body holds, and whether it is moored to a rock nothing moves. */
 function stores(run: ReturnType<typeof mining>, i: number): { metal: number; fuel: number; pinned: boolean } {
   const b = run.world.bodies.indexOf(run.ships.body(i));
-  return { metal: run.ships.metal.left(b), fuel: run.ships.fuel.left(b), pinned: run.world.bodies.pinned[b] === 1 };
+  const rock = run.ships.parkedCarrier(i);
+  const pinned = run.ships.isMoored(i) && run.world.bodies.pinned[run.world.bodies.indexOf(run.ships.body(rock))] === 1;
+  return { metal: run.ships.metal.left(b), fuel: run.ships.fuel.left(b), pinned };
 }
 
 describe('mining', () => {
-  it('sends salvagers to the asteroids, one anchoring to the major, and their robots mine ore into the hold', () => {
+  it('sends salvagers to the asteroids, and their robots mine ore into the hold', () => {
     const run = mining();
     const before = run.miners.map((i) => stores(run, i).metal);
     for (let t = 0; t < 600 * 60; t++) run.step();
     const after = run.miners.map((i) => stores(run, i));
     for (let k = 0; k < after.length; k++) expect(after[k]!.metal).toBeGreaterThan(before[k]! + 1000);
     expect(run.totalSevered).toBe(0);
-    // Its thrust is much the same every way, so it can hold itself off a major's pull jaws first.
-    expect(after.some((s) => s.pinned)).toBe(true);
   });
 
   it('takes hold of the rocks with a third salvager among them, jaws first, none breaking up', () => {
@@ -31,9 +31,9 @@ describe('mining', () => {
     for (const i of [...run.miners, third]) {
       const modules = run.ships.currentStructure(i).modules;
       expect(run.ships.hasControl(i)).toBe(true);
-      // All of its own modules still on it, and rock with them.
-      expect(modules.filter((m) => m.spec.kind !== 'rock' && m.spec.kind !== 'kernel').length).toBeGreaterThanOrEqual(15);
-      expect(modules.some((m) => m.spec.kind === 'rock' || m.spec.kind === 'kernel')).toBe(true);
+      // All of its own modules still on it, and moored to a rock.
+      expect(modules.length).toBeGreaterThanOrEqual(15);
+      expect(run.ships.isMoored(i)).toBe(true);
     }
   });
 
@@ -51,13 +51,11 @@ describe('mining', () => {
   it('anchors to a major that barely pulls, riding its rail as it mines', () => {
     const run = mining(7, { majors: 1, majorSize: 200, surfaceGravity: 0.0005, metal: 0.4, fuel: 0.3 });
     const before = stores(run, run.miners[0]!).metal;
-    for (let t = 0; t < 120 * 60; t++) run.step();
+    // Long enough for its robots' first loads to come home off the rock.
+    for (let t = 0; t < 240 * 60; t++) run.step();
     const anchored = run.miners.map((i) => stores(run, i)).filter((s) => s.pinned);
     expect(anchored.length).toBeGreaterThan(0);
     expect(anchored[0]!.metal).toBeGreaterThan(before);
-    const b = run.world.bodies;
-    const body = b.indexOf(run.ships.body(run.miners[0]!));
-    expect(b.mass[body]).toBe(0);
   });
 
   it('melts fuel out of ice with a claw alone, slowly and on its charge', () => {

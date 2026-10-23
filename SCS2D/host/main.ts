@@ -14,6 +14,7 @@ import { binary } from '../scenarios/binary.js';
 import { kernels } from '../scenarios/kernels.js';
 import { asteroidField } from '../scenarios/asteroidField.js';
 import { mining } from '../scenarios/mining.js';
+import { rivalMines } from '../scenarios/rivalMines.js';
 import { broadside } from '../scenarios/broadside.js';
 import { hooked } from '../scenarios/hooked.js';
 import { salvageRun } from '../scenarios/salvage.js';
@@ -79,6 +80,7 @@ export function start(): void {
     { name: 'Kernels', create: () => kernels(SEED) },
     { name: 'Asteroid Field', create: () => asteroidField(SEED) },
     { name: 'Mining', create: () => mining(SEED) },
+    { name: 'Rival Mines', create: () => rivalMines(SEED) },
     { name: 'Hooked', create: () => hooked(SEED) },
     { name: 'Broadside', create: () => broadside(SEED) },
     { name: 'Salvage Run', create: () => salvageRun(SEED) },
