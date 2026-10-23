@@ -443,7 +443,7 @@
           </div>
           <div class="field" id="dockedRow">
             <label for="propDocked" id="propDockedLabel">fighter</label>
-            <select id="propDocked" title="What this pad or slipway builds. A pad tends a fighter, the one it sets out with and the one it builds, marked ✗ when too big to lie inside it. A slipway builds any other ship bow first out of its face, marked ✗ when wider than it."></select>
+            <select id="propDocked" title="What this pad or slipway builds. A pad tends a fighter, the one it sets out with and the one it builds, marked ✗ when too big to lie inside it. A slipway builds any other ship, or this one, out of its face, marked ✗ when wider than it the way it lies."></select>
           </div>
           <div class="field" id="padDockedRow">
             <label for="propPadDocked">sets out docked</label>
@@ -462,6 +462,13 @@
               min="0"
               title="How many of what it builds it keeps in the fight, counting a fighter a pad sets out with: short of that, it builds another, paid for in this ship's metal and charge, one at a time. None by default."
             />
+          </div>
+          <div class="field" id="craftAngleRow">
+            <label for="propCraftAngle">lies</label>
+            <select
+              id="propCraftAngle"
+              title="Which way the ship it builds lies on it. Bow first builds it out of the face bow leading; side first turns it a quarter, so a ship shorter than it is wide comes out across a slipway as wide as it is long. Picking a ship turns the slipway for you when only a turned ship fits."
+            ></select>
           </div>
           <div class="field">
             <label for="propNotes">notes</label>

@@ -915,13 +915,16 @@ inside any one file is not contiguous.
   nothing left of it is gone, and the body passes to one that has some. A claw closes on a wreck its robots
   could take apart, as it does on one with fuel it has room for, and holds on while its robots have the
   charge and the holds the room.
-  **A pad tends one fighter** (`ModuleSpec.craft`, naming a copy in the blueprint's `hangar`, as a fleet
-  carries its designs; an older file's `fighter` reads as `craft`), and **may set out with it docked** (`docked`). It is spawned lying along the pad,
+  **A pad tends one fighter** (`ModuleSpec.craft`, naming a design: the ship's own, or a copy in the
+  blueprint's `hangar`, as a fleet carries its designs; an older file's `fighter` reads as `craft`). **What a
+  pad or slipway builds is found by name and compiled once**: the hangar is flat, so what a hangar's designs
+  build is found in the same hangar, and designs that build each other, or a ship that builds itself, are one
+  design each rather than copies nested without end, and **may set out with it docked** (`docked`). It is spawned lying along the pad,
   centred on it, and parked as one that had landed, so it is topped up from the carrier and lifts off once
   full. A fighter too big for its pad, or one that is missing or not a fighter, is a blueprint problem, and a
   budget counts the carrier and everything it sets out with (`billOf`). An older file's `docked` naming the
   fighter reads as that fighter, set out docked. **In a fleet a pad's fighter is the fleet's design of that
-  name** (`sim/fleetHangar.ts`), so a fighter flown from the start and one a carrier builds are one design,
+  name**, and so is whatever that builds in turn (`sim/fleetHangar.ts`), so a fighter flown from the start and one a carrier builds are one design,
   bred together: a carrier joining a fleet, by the editor or from a file, gives its hangar up, a fighter the
   fleet lacks lifted into it and one it has the same dropped, and one it has differently left behind as a
   fleet problem. Opened in the ship editor, a fleet's carrier carries the fleet's fighters again and is
@@ -949,16 +952,25 @@ inside any one file is not contiguous.
   **A slipway** (`slipway`) is a shipyard in the hull: it names a ship that is not a fighter (`craft`, from
   the `hangar` as a pad's fighter is, and the fleet's design of that name in a fleet) and how many of it to
   keep (`keep`), and never sets out with one, since it is a place ships are built rather than one they are
-  kept. The ship is built bow first out of its face along its facing, on its centre line, finished when its
-  stern reaches the face (`slipwayStrip`). It is a blueprint problem for the ship to be wider across the
-  beam than the slipway, to stand in the weapons layer when the slipway does not (one turret makes it want
+  kept; it may name the ship it is on, which then builds copies of itself. The ship is built out of its face
+  along its facing, on its centre line, finished when its far end reaches the face (`slipwayStrip`): bow
+  first, unless the slipway lays it turned (`craftAngle`, degrees in a file). A quarter turn builds it side
+  first, so a ship broader than it is long comes out across a slipway as wide as it is long; a mirrored
+  slipway turns it the other way (`berthOf`). It is a blueprint problem for the ship to be wider across the
+  slipway, as it lies, than the slipway is, to stand in the weapons layer when the slipway does not (one turret makes it want
   a thick slipway), or for anything of the builder to lie in the strip it builds into. A slipway's fittings
   are `SLIPWAY_MASS_PER_AREA` of its floor, and it pumps `SLIPWAY_PUMP_PER_METRE` for every metre of its
-  width. The editor sets the ship and how many it keeps. Evolution adds one as rarely as a pad (0.5) and
-  nudges the count, and in a fleet points it at a ship as it points a pad at a fighter. **A slipway builds like a printer** (`Ships.build`, `sim/slipway.ts`): short of the ships it
+  width. The editor sets the ship, offering the one being drawn among them, how many it keeps and which way
+  it lies, and turns the slipway for a ship that fits only side first. Evolution adds one as rarely as a pad
+  (0.5), nudges the count, turns it a quarter now and then, and in a fleet points it at a ship, itself
+  among them, as it points a pad at a fighter. **A slipway builds like a printer** (`Ships.build`, `sim/slipway.ts`): short of the ships it
   keeps, counted as a pad counts its fighters, it builds `SLIPWAY_STEP` (a metre) of the ship at a time
-  from the bow, every module the cut crosses a shell from its foremost face as far as the cut and every
-  module wholly ahead of it whole but for its fittings (`printedCraft`). Each step is a remade hull: the
+  from the end that leads out, every module the cut crosses a shell from its foremost face as far as the
+  cut and every module wholly ahead of it whole but for its fittings (`printedCraft`). A module turned off
+  the slipway's axis, whose shell would reach back past the cut into the builder, waits until the cut has
+  passed it and is built whole. A ship building itself builds a twin of its design (`twinOf`): the same
+  design, so it builds itself in turn, but one whose modules neither it nor its builder mistakes for its own
+  while the two are one body. Each step is a remade hull: the
   part built is taken out and put back pushed out by a step, its cut at the slipway's face, one body with
   the builder, held by a slipway dock on each piece it is in, since a design that joins up only further aft
   is in pieces until it does. A step's work is `SLIPWAY_BUILD_PER_METRE` of the slipway's width, its walls
@@ -969,7 +981,7 @@ inside any one file is not contiguous.
   so a module comes away from the face whole and none is left to fit at the end but the stern's. With its
   walls all up and its stern whole it fills it from what the builder can spare as a pad does, and lets it
   go, pushing the two apart at `SLIPWAY_PUSH` (2 m/s) as a stage separates; the ship it built keeps its
-  engines off while any of their flames would play on its builder, for up to `SLIPWAY_CLEAR_TIME`. Until then it is held doing nothing, its engines off and its guns silent. A builder that could still
+  engines off while any of their flames would play on its builder, for up to `SLIPWAY_CLEAR_TIME`. Until then it is held doing nothing, its engines off, its guns silent and its own pads and slipways idle; let go, it builds what its design does. A builder that could still
   build an armed ship is armed, and a slipway building is busy, for a battle's decision, as a pad is. The
   `shipyard` scenario has a Shipyard build and fit out a Scavenger in a little over three minutes, fill it,
   and let it go at about four and a half.

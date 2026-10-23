@@ -11,7 +11,7 @@ import type { Fleet } from './fleet.js';
  * behind in the hangar as a clash to be settled (`hangarClashes`).
  */
 
-/** The fighters a blueprint's pads name, in its layout and its assemblies, each once. */
+/** The crafts a blueprint's pads and slipways name, in its layout and its assemblies, each once. */
 export function padFighterNames(blueprint: Blueprint): string[] {
   const names = new Set<string>();
   const walk = (list: readonly Placement[]): void => {
@@ -22,13 +22,26 @@ export function padFighterNames(blueprint: Blueprint): string[] {
   return [...names];
 }
 
-/** A design with every fighter its pads name that `designs` has, in its hangar: as it flies in their fleet. */
+/**
+ * A design with every design its pads and slipways reach that `designs` has
+ * in its hangar, as it flies in their fleet: what it builds, what those
+ * build, and so on, each once and by name, so a fleet's ships and what they
+ * build share one design of each name. Its own name it builds as itself.
+ */
 export function withFleetFighters(blueprint: Blueprint, designs: Readonly<Record<string, Blueprint>>): Blueprint {
-  const names = padFighterNames(blueprint).filter((name) => designs[name] !== undefined);
-  if (names.length === 0) return blueprint;
   const hangar: Record<string, Blueprint> = { ...blueprint.hangar };
-  for (const name of names) hangar[name] = designs[name]!;
-  return { ...blueprint, hangar };
+  let added = false;
+  const queue: Blueprint[] = [blueprint];
+  while (queue.length > 0) {
+    for (const name of padFighterNames(queue.pop()!)) {
+      const design = designs[name];
+      if (name === blueprint.name || design === undefined || hangar[name] === design) continue;
+      hangar[name] = design;
+      added = true;
+      queue.push(design);
+    }
+  }
+  return added ? { ...blueprint, hangar } : blueprint;
 }
 
 /** Fleet `fleet`'s design `name`, as it flies there. */
