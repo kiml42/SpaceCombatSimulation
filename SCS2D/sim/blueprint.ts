@@ -456,8 +456,9 @@ export interface Blueprint {
    */
   fighter?: boolean;
   /**
-   * The fighters its pads tend, by name: copies, so the file stands alone, as
-   * a fleet carries its designs. Every pad's `fighter` names one of these.
+   * What its pads and slipways build, by name: copies, so the file stands
+   * alone, as a fleet carries its designs. Flat: what these build is found
+   * here too, or is this ship, which is never one of them.
    */
   hangar?: Readonly<Record<string, Blueprint>>;
   /** Keys its file carried that nothing reads, kept to be written back (`UnreadKeys`). */
@@ -1342,6 +1343,8 @@ function place(
     if (placement.craft !== undefined) spec.craft = placement.craft;
     if (placement.docked !== undefined) spec.docked = placement.docked;
     if (placement.keep !== undefined) spec.keep = placement.keep;
+    // Mirrored, a slipway lays its ship the other way round.
+    if (placement.craftAngle !== undefined) spec.craftAngle = mirrored ? -placement.craftAngle : placement.craftAngle;
     if (placement.targeting !== undefined) spec.targeting = placement.targeting;
     if (placement.notes !== undefined) spec.notes = placement.notes;
     out.push(spec);
@@ -1754,14 +1757,60 @@ export interface SlipwayBuild {
 }
 
 /**
+ * How a slipway lays out the ship it builds (`ModuleSpec.craftAngle`): the way
+ * the slipway faces, as a unit vector in the ship's own frame, and the ship's
+ * extent along that way and across it, about its centre of mass. Unturned,
+ * along is the ship's x and across its y.
+ */
+export interface Berth {
+  readonly ax: number;
+  readonly ay: number;
+  readonly minAlong: number;
+  readonly maxAlong: number;
+  readonly minAcross: number;
+  readonly maxAcross: number;
+}
+
+/** How slipway `slipway` lays out ship `craft`. */
+export function berthOf(craft: ShipDesign, slipway: ModuleSpec): Berth {
+  const turn = slipway.craftAngle ?? 0;
+  if (turn === 0) {
+    const box = footprintOf(craft);
+    return { ax: 1, ay: 0, minAlong: box.minX, maxAlong: box.maxX, minAcross: box.minY, maxAcross: box.maxY };
+  }
+  // The slipway's facing turned back into the ship's frame.
+  const ax = cos(turn);
+  const ay = -sin(turn);
+  let minAlong = Infinity;
+  let maxAlong = -Infinity;
+  let minAcross = Infinity;
+  let maxAcross = -Infinity;
+  const corners: number[] = [];
+  for (const module of craft.modules) {
+    const n = moduleOutline(module.spec, corners) * 2;
+    for (let k = 0; k < n; k += 2) {
+      const x = corners[k]! - craft.centreOfMassX;
+      const y = corners[k + 1]! - craft.centreOfMassY;
+      const along = x * ax + y * ay;
+      const across = y * ax - x * ay;
+      minAlong = min(minAlong, along);
+      maxAlong = max(maxAlong, along);
+      minAcross = min(minAcross, across);
+      maxAcross = max(maxAcross, across);
+    }
+  }
+  return { ax, ay, minAlong, maxAlong, minAcross, maxAcross };
+}
+
+/**
  * The strip a slipway builds its craft into, in the frame its spec is laid out
- * in: out from its face along its facing, as long as the craft and as wide as
- * its beam, on the slipway's centre line. The craft's bow points away, and it
- * is finished when its stern reaches the face.
+ * in: out from its face along its facing, as long as the craft lies along it
+ * and as wide as it lies across, on the slipway's centre line. It is finished
+ * when its far end reaches the face.
  */
 export function slipwayStrip(slipway: ModuleSpec, craft: ShipDesign): ModuleSpec {
-  const box = footprintOf(craft);
-  const length = box.maxX - box.minX;
+  const berth = berthOf(craft, slipway);
+  const length = berth.maxAlong - berth.minAlong;
   const angle = slipway.angle ?? 0;
   const out = slipway.length / 2 + length / 2;
   return {
@@ -1770,39 +1819,131 @@ export function slipwayStrip(slipway: ModuleSpec, craft: ShipDesign): ModuleSpec
     y: slipway.y + out * sin(angle),
     angle,
     length,
-    width: box.maxY - box.minY,
+    width: berth.maxAcross - berth.minAcross,
   };
 }
 
-/** Whether a ship's beam is no wider than a slipway, which builds it bow first along its facing. */
+/** Whether a ship lies no wider across a slipway than it is, as the slipway lays it out. */
 export function slipwayHolds(craft: ShipDesign, slipway: ModuleSpec): boolean {
-  const box = footprintOf(craft);
-  return box.maxY - box.minY <= slipway.width + 1e-9;
+  const berth = berthOf(craft, slipway);
+  return berth.maxAcross - berth.minAcross <= slipway.width + 1e-9;
 }
 
-/** The ship a slipway builds, compiled, or why it cannot be. Null for a slipway that names none. */
-function slipwayCraft(blueprint: Blueprint, spec: ModuleSpec, layout: readonly ModuleSpec[]): ShipDesign | string | null {
-  if (spec.kind !== 'slipway' || spec.craft === undefined) return null;
-  const name = spec.craft;
-  const craft = blueprint.hangar?.[name];
-  if (craft === undefined) return `no ship named ${name} in the hangar`;
-  const problem = blueprintProblem(craft);
-  if (problem !== null) return `${name} cannot be built: ${problem}`;
-  const design = compileDraft(craft);
-  if (design.fighter) return `${name} is a fighter, which a pad builds`;
-  if ((design.aboard?.length ?? 0) > 0) return `${name} sets out with fighters docked, which a ship built in battle cannot`;
-  if (!slipwayHolds(design, spec)) {
-    const box = footprintOf(design);
-    return `${name} is ${(box.maxY - box.minY).toFixed(1)} m across the beam, wider than this slipway (${spec.width.toFixed(1)} m)`;
+/**
+ * Why slipway `spec`, in `layout`, cannot build ship `craft` as it lays it
+ * out, or null if it can: what fits through it and has room to come out.
+ */
+export function slipwayProblem(craft: ShipDesign, spec: ModuleSpec, layout: readonly ModuleSpec[]): string | null {
+  const name = craft.name;
+  if (!slipwayHolds(craft, spec)) {
+    const berth = berthOf(craft, spec);
+    const across = (berth.maxAcross - berth.minAcross).toFixed(1);
+    const way = (spec.craftAngle ?? 0) === 0 ? 'across the beam' : 'across this slipway';
+    return `${name} is ${across} m ${way}, wider than this slipway (${spec.width.toFixed(1)} m)`;
   }
-  if (!inWeaponsLayer(spec) && design.modules.some((m) => m.weaponsLayer)) {
+  if (!inWeaponsLayer(spec) && craft.modules.some((m) => m.weaponsLayer)) {
     return `${name} stands in the weapons layer, so this slipway must be thick to build it`;
   }
-  const strip = slipwayStrip(spec, design);
+  const strip = slipwayStrip(spec, craft);
   if (layout.some((other) => other !== spec && modulesOverlap(other, strip))) {
     return `the ${strip.length.toFixed(1)} m it builds ${name} out into is not clear of this ship's hull`;
   }
-  return design;
+  return null;
+}
+
+/**
+ * The designs a ship's pads and slipways build, found by name and compiled
+ * once each. A name is the ship's own, so a ship can build itself, or one in
+ * its hangar, which is flat: what a hangar's designs build is found in the
+ * same hangar. So designs that build each other are one design each, however
+ * they name each other, rather than copies nested without end.
+ */
+class Crafts {
+  private readonly compiled = new Map<string, ShipDesign | string>();
+  private readonly checked = new Set<string>();
+
+  constructor(private readonly ship: Blueprint) {}
+
+  /** Whether `blueprint` is the one this set finds by its name. */
+  holds(blueprint: Blueprint): boolean {
+    return this.blueprint(blueprint.name) === blueprint;
+  }
+
+  /** A design being checked is not checked again on the way: its faults are its own. */
+  checking(name: string): void {
+    this.checked.add(name);
+  }
+
+  /** The design as compiled so far, set before what it builds is, so what builds it back finds it. */
+  begin(name: string, design: ShipDesign): void {
+    this.compiled.set(name, design);
+  }
+
+  /** The design already compiled under `name`, if any. */
+  known(name: string): ShipDesign | undefined {
+    const known = this.compiled.get(name);
+    return typeof known === 'string' ? undefined : known;
+  }
+
+  /** Design `name` compiled, why it cannot be, or undefined if there is none of that name. */
+  design(name: string): ShipDesign | string | undefined {
+    const known = this.compiled.get(name);
+    if (known !== undefined) return known;
+    const blueprint = this.blueprint(name);
+    if (blueprint === undefined) return undefined;
+    if (!this.checked.has(name)) {
+      this.checked.add(name);
+      const fault = faultsWith(blueprint, this)[0];
+      if (fault !== undefined) {
+        const problem = `${name} cannot be built: ${fault.message}`;
+        this.compiled.set(name, problem);
+        return problem;
+      }
+    }
+    // Checking may have compiled it, through something that builds it back.
+    const now = this.compiled.get(name);
+    if (now !== undefined) return now;
+    try {
+      return compileWith(blueprint, this);
+    } catch (error) {
+      const problem = `${name} cannot be built: ${error instanceof Error ? error.message : String(error)}`;
+      this.compiled.set(name, problem);
+      return problem;
+    }
+  }
+
+  private blueprint(name: string): Blueprint | undefined {
+    return name === this.ship.name ? this.ship : this.ship.hangar?.[name];
+  }
+}
+
+const twins = new WeakMap<ShipDesign, ShipDesign>();
+
+/**
+ * The same design under another identity. Modules know which design they came
+ * from by identity, so a ship printing itself prints a twin, and the builder
+ * and the ship welded to it while it is built never mistake each other's
+ * modules for their own.
+ */
+export function twinOf(design: ShipDesign): ShipDesign {
+  let twin = twins.get(design);
+  if (twin === undefined) {
+    twin = { ...design };
+    twins.set(design, twin);
+  }
+  return twin;
+}
+
+/** The ship a slipway builds, compiled, or why it cannot be. Null for a slipway that names none. */
+function slipwayCraft(crafts: Crafts, spec: ModuleSpec, layout: readonly ModuleSpec[]): ShipDesign | string | null {
+  if (spec.kind !== 'slipway' || spec.craft === undefined) return null;
+  const name = spec.craft;
+  const design = crafts.design(name);
+  if (design === undefined) return `no ship named ${name} in the hangar`;
+  if (typeof design === 'string') return design;
+  if (design.fighter) return `${name} is a fighter, which a pad builds`;
+  if ((design.aboard?.length ?? 0) > 0) return `${name} sets out with fighters docked, which a ship built in battle cannot`;
+  return slipwayProblem(design, spec, layout) ?? design;
 }
 
 /** Whether a fighter's footprint fits inside a pad, lying along the pad's facing. */
@@ -1812,14 +1953,12 @@ export function padHolds(fighter: ShipDesign, pad: ModuleSpec): boolean {
 }
 
 /** The fighter a pad tends, compiled, or why it cannot. Null for a pad that names none. */
-function padFighter(blueprint: Blueprint, spec: ModuleSpec): ShipDesign | string | null {
+function padFighter(crafts: Crafts, spec: ModuleSpec): ShipDesign | string | null {
   if (spec.kind !== 'pad' || spec.craft === undefined) return null;
   const name = spec.craft;
-  const fighter = blueprint.hangar?.[name];
-  if (fighter === undefined) return `no fighter named ${name} in the hangar`;
-  const problem = blueprintProblem(fighter);
-  if (problem !== null) return `${name} cannot be built: ${problem}`;
-  const design = compileDraft(fighter);
+  const design = crafts.design(name);
+  if (design === undefined) return `no fighter named ${name} in the hangar`;
+  if (typeof design === 'string') return design;
   if (!design.fighter) return `${name} is not a fighter`;
   if ((design.aboard?.length ?? 0) > 0) return `${name} carries fighters of its own, which a docked fighter may not`;
   if (!padHolds(design, spec)) {
@@ -1874,6 +2013,12 @@ export interface BlueprintFault {
  * so there are no modules to find anything else wrong with.
  */
 export function blueprintFaults(blueprint: Blueprint): BlueprintFault[] {
+  return faultsWith(blueprint, new Crafts(blueprint));
+}
+
+/** `blueprintFaults`, finding what its pads and slipways build in `crafts`. */
+function faultsWith(blueprint: Blueprint, crafts: Crafts): BlueprintFault[] {
+  crafts.checking(blueprint.name);
   // Assemblies are resolved before anything else looks at the layout, so every
   // rule below is stated once, about the modules a ship is actually built
   // from — rather than once for a module and again for a copy of one.
@@ -1931,11 +2076,11 @@ export function blueprintFaults(blueprint: Blueprint): BlueprintFault[] {
   }
 
   for (let i = 0; i < modules.length; i++) {
-    const fighter = padFighter(blueprint, modules[i]!);
+    const fighter = padFighter(crafts, modules[i]!);
     if (typeof fighter === 'string') {
       faults.push({ message: `${blueprint.name}, module ${i} — pad: ${fighter}`, modules: [i] });
     }
-    const craft = slipwayCraft(blueprint, modules[i]!, modules);
+    const craft = slipwayCraft(crafts, modules[i]!, modules);
     if (typeof craft === 'string') {
       faults.push({ message: `${blueprint.name}, module ${i} — slipway: ${craft}`, modules: [i] });
     }
@@ -1988,9 +2133,11 @@ export function blueprintProblem(blueprint: Blueprint): string | null {
 
 /** Derive everything a ship built to this blueprint is. Throws if it could not be built. */
 export function compileBlueprint(blueprint: Blueprint): ShipDesign {
-  const problem = blueprintProblem(blueprint);
-  if (problem !== null) throw new Error(`Invalid blueprint — ${problem}`);
-  return compileDraft(blueprint);
+  // One set for both, so what checking compiled is not compiled again.
+  const crafts = new Crafts(blueprint);
+  const problem = faultsWith(blueprint, crafts)[0]?.message;
+  if (problem !== undefined) throw new Error(`Invalid blueprint — ${problem}`);
+  return compileWith(blueprint, crafts);
 }
 
 /**
@@ -2019,6 +2166,13 @@ export function compileBlueprint(blueprint: Blueprint): ShipDesign {
  * has already refused a layout with an unmeasurable module in it.
  */
 export function compileDraft(blueprint: Blueprint): ShipDesign {
+  return compileWith(blueprint, new Crafts(blueprint));
+}
+
+/** `compileDraft`, finding what its pads and slipways build in `crafts`. */
+function compileWith(blueprint: Blueprint, crafts: Crafts): ShipDesign {
+  const own = crafts.holds(blueprint) ? crafts.known(blueprint.name) : undefined;
+  if (own !== undefined) return own;
   const expanded = expandBlueprint(blueprint);
   if (expanded.length === 0) throw new Error(`${blueprint.name}: a ship needs at least one module`);
   const specs = expanded.filter((spec) => moduleProblem(spec) === null);
@@ -2042,6 +2196,12 @@ export function compileDraft(blueprint: Blueprint): ShipDesign {
     undefined,
     blueprint.fighter === true && fighterProblem(specs) === null,
   );
+  // Filled in as what it builds is found, so a design that builds itself, or
+  // builds one that builds it, is handed this one rather than another copy.
+  // Its pads before its slipways: whether it sets out with fighters aboard is
+  // what a slipway building it asks.
+  const out: { -readonly [K in keyof ShipDesign]: ShipDesign[K] } = { ...design, keys: moduleKeys(blueprint) };
+  if (crafts.holds(blueprint)) crafts.begin(blueprint.name, out);
   const aboard: Aboard[] = [];
   const builds: PadBuild[] = [];
   const yards: SlipwayBuild[] = [];
@@ -2049,22 +2209,23 @@ export function compileDraft(blueprint: Blueprint): ShipDesign {
   for (let m = 0; m < specs.length; m++) {
     const spec = specs[m]!;
     if (spec.kind === 'pad') approaches.push(...padApproaches(design, m));
-    const keep = floor(spec.keep ?? 0);
-    const craft = slipwayCraft(blueprint, spec, specs);
-    if (craft !== null && typeof craft !== 'string' && keep > 0) yards.push({ slipway: m, design: craft, keep });
-    const fighter = padFighter(blueprint, spec);
+    const fighter = padFighter(crafts, spec);
     if (fighter === null || typeof fighter === 'string') continue;
     if (spec.docked === true) aboard.push({ pad: m, design: fighter });
+    const keep = floor(spec.keep ?? 0);
     if (keep > 0) builds.push({ pad: m, design: fighter, keep });
   }
-  return {
-    ...design,
-    keys: moduleKeys(blueprint),
-    ...(aboard.length > 0 ? { aboard } : {}),
-    ...(approaches.length > 0 ? { approaches } : {}),
-    ...(builds.length > 0 ? { builds } : {}),
-    ...(yards.length > 0 ? { yards } : {}),
-  };
+  if (aboard.length > 0) out.aboard = aboard;
+  if (approaches.length > 0) out.approaches = approaches;
+  if (builds.length > 0) out.builds = builds;
+  for (let m = 0; m < specs.length; m++) {
+    const spec = specs[m]!;
+    const keep = floor(spec.keep ?? 0);
+    const craft = slipwayCraft(crafts, spec, specs);
+    if (craft !== null && typeof craft !== 'string' && keep > 0) yards.push({ slipway: m, design: craft, keep });
+  }
+  if (yards.length > 0) out.yards = yards;
+  return out;
 }
 
 /**

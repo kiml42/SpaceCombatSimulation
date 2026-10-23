@@ -151,7 +151,7 @@ export function forkDesign(fleet: Fleet, path: EntryPath): { fleet: Fleet; name:
   const design = fleet.designs[entry.design];
   if (design === undefined) return null;
   const name = unusedName(nextName(design.name), Object.keys(fleet.designs));
-  return { fleet: swapDesign(fleet, [path], { ...design, name }), name };
+  return { fleet: swapDesign(fleet, [path], renamePadFighter({ ...design, name }, design.name, name)), name };
 }
 
 /** Replace the embedded copy of a design with this one. */
