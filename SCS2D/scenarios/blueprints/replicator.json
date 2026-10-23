@@ -8,7 +8,7 @@
       "clawSpeed": 5,
       "scavengeFuelBelow": 0.6,
       "scavengeMetalBelow": 1,
-      "rockWeight": 4,
+      "rockWeight": 20,
       "tripWeight": 400,
       "rearmBelow": 0.5,
       "refuelBelow": 0.4
