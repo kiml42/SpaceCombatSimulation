@@ -6,12 +6,13 @@
     "targeting": {
       "proximityWeight": 37.736,
       "preferredMass": 100.935,
+      "ramMass": 8,
       "massWeight": 232.522,
       "closingWeight": 12.732,
       "loyaltyWeight": 46.351,
       "armedWeight": 111.421,
       "mobileWeight": 53.595,
-      "facingWeight": -5.765,
+      "facingWeight": 100,
       "sightWeight": 4.066,
       "escortWeight": 13.365
     },
@@ -20,7 +21,7 @@
       "standoff": 0.636,
       "escortRadii": 7.966,
       "escort": 0.159,
-      "escortMinRadii": 0.813,
+      "escortMinRadii": 6,
       "separation": 264.887,
       "avoidHorizon": 5.1,
       "dodgeSpeed": 83.845,
@@ -30,7 +31,7 @@
       "accelerate": 0.976,
       "brake": 0.801,
       "ramRadii": 0.991,
-      "ramArmed": 1.267,
+      "ramArmed": 0.5,
       "turnBias": 0.514,
       "burnWeight": 2.187,
       "rangeHold": 0.982,
@@ -43,6 +44,7 @@
       "deliverFuelAbove": 0.973,
       "dockDanger": -0.838,
       "sortieRange": 4.29,
+      "rearmBelow": 0.1,
       "repairBelow": 0.607,
       "tangentialMin": 22.33,
       "tangentialMax": 66.674
@@ -117,7 +119,6 @@
       "width": 2.6,
       "reinforcement": 2.48,
       "sealing": 0.0012,
-      "fill": 0.965,
       "computing": 0.018
     },
     {
@@ -169,7 +170,7 @@
       "fragments": 7,
       "burstSpeed": 401.7,
       "targeting": {
-        "focusWeight": 10.287,
+        "focusWeight": 0,
         "proximityWeight": 221.771,
         "facingWeight": 61.5,
         "preferredMass": 0.691,
@@ -205,8 +206,7 @@
       "y": 0,
       "length": 4.6,
       "width": 1.8,
-      "reinforcement": 1.23,
-      "fill": 0.931
+      "reinforcement": 1.23
     }
   ]
 }

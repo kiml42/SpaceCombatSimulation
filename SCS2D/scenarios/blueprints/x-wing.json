@@ -7,6 +7,7 @@
     "targeting": {
       "proximityWeight": 114.361,
       "preferredMass": 2.228,
+      "ramMass": 3,
       "massWeight": 89.853,
       "closingWeight": 35.095,
       "loyaltyWeight": 23.792,
@@ -19,9 +20,9 @@
     "approach": {
       "standoffRadii": 6.017,
       "standoff": 0.124,
-      "escortRadii": 8.804,
+      "escortRadii": 20,
       "escort": 0.178,
-      "escortMinRadii": 0.785,
+      "escortMinRadii": 3,
       "separation": 292.422,
       "separationRadii": 2.371,
       "avoidHorizon": 5.565,
@@ -32,7 +33,6 @@
       "accelerate": 0.898,
       "brake": 1.033,
       "ramRadii": 580.932,
-      "ramArmed": -1.209,
       "turnBias": 0.507,
       "burnWeight": 1.996,
       "rangeHold": 0.851,
@@ -45,8 +45,8 @@
       "deliverFuelAbove": 2.231,
       "dockDanger": 1.892,
       "sortieRange": 4.31,
-      "rearmBelow": 0.759,
-      "repairBelow": 0.622,
+      "rearmBelow": 0.2,
+      "repairBelow": 0.7,
       "tangentialMin": 24.817,
       "tangentialMax": 59.326
     }
