@@ -506,7 +506,7 @@ inside any one file is not contiguous.
   is at its closest and how much room that will leave, since a bubble cannot tell a consort holding station
   a hull's width away from something crossing at two hundred metres a second. How soon is how long until
   they would touch, where they would: for anything large that is far sooner than their middles' closest. A
-  ram keeps clear of rocks, at its own size, and of nothing else. It is never applied to the
+  ram keeps clear of rocks and of its own side's ships, at its own size, and of nothing else. It is never applied to the
   thing a craft is flying at — where it wants to be relative to *that* is already decided, and a second
   opinion would have a ship told to ram sheer off at the last moment and call it seamanship. It costs a
   quarter of the contacts in the Star Wars scene and a third of those between a fighter and a capital, half
