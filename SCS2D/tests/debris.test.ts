@@ -148,3 +148,36 @@ describe('wreckage that has drifted out of the fight', () => {
     expect(s.ships.count).toBe(2);
   });
 });
+
+describe('small debris in nobody’s way', () => {
+  /** A Dinky's main engine broken off, `x` along, and the clock run on `seconds`. */
+  function loose(x: number, seconds: number) {
+    const s = scene();
+    expect(breakOff(s, KEEPER_JOINTS)).toBe(1);
+    const piece = s.ship + 1;
+    driftTo(s, piece, x);
+    const b = s.world.bodies;
+    b.vx[b.indexOf(s.ships.body(piece))] = 0;
+    s.world.tick += Math.round(seconds * 60);
+    return { ...s, piece };
+  }
+
+  it('is let go inside the fight once it is clear of everything flying', () => {
+    const s = loose(300, 6);
+    expect(s.ships.cull(s.world)).toBe(1);
+    expect(s.ships.isAlive(s.ship)).toBe(true);
+  });
+
+  it('is kept while it is new, so it is seen to fly off', () => {
+    const s = loose(300, 2);
+    expect(s.ships.cull(s.world)).toBe(0);
+  });
+
+  it('is kept while something flying will pass near it', () => {
+    const s = loose(300, 6);
+    const b = s.world.bodies;
+    // Heading for it at 40 m/s: there in under ten seconds.
+    b.vx[b.indexOf(s.ships.body(s.ship))] = 40;
+    expect(s.ships.cull(s.world)).toBe(0);
+  });
+});
