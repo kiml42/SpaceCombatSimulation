@@ -2,6 +2,23 @@ import { describe, expect, it } from 'vitest';
 import { mining } from '../scenarios/mining.js';
 import { give } from '../scenarios/commands.js';
 
+/** The robots on ship `i`'s body, and how many are out on its rock. */
+function crew(run: ReturnType<typeof mining>, i: number): { all: number; away: number } {
+  const robots = (run.ships as unknown as { robots: { on(b: number): { away: number }[] | null } }).robots.on(
+    run.world.bodies.indexOf(run.ships.body(i)),
+  )!;
+  return { all: robots.length, away: robots.filter((r) => r.away >= 0).length };
+}
+
+/**
+ * Part moored ship `i` from its rock as a knock-off does, but without the
+ * blow, which at what it takes breaks pieces off the hull as well.
+ */
+function knockOff(run: ReturnType<typeof mining>, i: number): void {
+  (run.ships as unknown as { unpark(...args: unknown[]): void }).unpark(run.world.bodies, i, run.world.tick);
+  run.step();
+}
+
 /** A Salvager moored to a minor in the Mining scene, after its robots have been at it a while. */
 function moored(): { run: ReturnType<typeof mining>; miner: number; rock: number } {
   const run = mining();
@@ -74,5 +91,57 @@ describe('a ship moored to an asteroid', () => {
     run.step();
     expect(run.ships.isMoored(miner)).toBe(false);
     expect(b.vx[body()]! - b.vx[rockBody]!).toBeGreaterThan(before + 1);
+  });
+
+  it('leaves its robots stranded on the rock when parted from it, and takes them back when it moors there again', () => {
+    const { run, miner, rock } = moored();
+    const before = crew(run, miner);
+    expect(before.away).toBeGreaterThan(0);
+    knockOff(run, miner);
+    run.step();
+    expect(run.ships.strandedOn(rock)).toBe(before.away);
+    expect(crew(run, miner).all).toBe(before.all - before.away);
+    // Back where it was, it takes them aboard, and they walk home across its claw.
+    const b = run.world.bodies;
+    const claw = run.ships.currentStructure(miner).modules.findIndex((m) => m.spec.kind === 'claw');
+    const body = b.indexOf(run.ships.body(miner));
+    (run.ships as unknown as { moor(...args: unknown[]): void }).moor(b, miner, rock, claw, b.x[body]!, b.y[body]!);
+    run.step();
+    expect(run.ships.strandedOn(rock)).toBe(0);
+    expect(crew(run, miner).all).toBe(before.all);
+    for (let t = 0; t < 120 * 60 && crew(run, miner).away > 0; t++) run.step();
+    expect(crew(run, miner).away).toBe(0);
+  });
+
+  it('gives stranded robots to a friend moored to the rock with a berth for them', () => {
+    const { run, miner, rock } = moored();
+    const lost = crew(run, miner).away;
+    knockOff(run, miner);
+    run.step();
+    const friend = run.miners.find((i) => i !== miner)!;
+    const b = run.world.bodies;
+    const fb = b.indexOf(run.ships.body(friend));
+    const ships = run.ships as unknown as {
+      robots: { lose(b: number, r: number): void };
+      unpark(...args: unknown[]): void;
+      moor(...args: unknown[]): void;
+    };
+    // A friend a robot short, moored to the same rock.
+    ships.robots.lose(fb, 0);
+    if (run.ships.isMoored(friend)) ships.unpark(b, friend, run.world.tick);
+    const claw = run.ships.currentStructure(friend).modules.findIndex((m) => m.spec.kind === 'claw');
+    // Gripping a module of the rock, wherever it was left floating.
+    const rb = b.indexOf(run.ships.body(rock));
+    const grip = run.ships.currentStructure(rock).modules[0]!;
+    const c = Math.cos(b.angle[rb]!);
+    const sn = Math.sin(b.angle[rb]!);
+    ships.moor(b, friend, rock, claw, b.x[rb]! + grip.x * c - grip.y * sn, b.y[rb]! + grip.x * sn + grip.y * c);
+    run.step();
+    // Its own robots out on the rock it left are stranded there in turn, so its berths take all they can.
+    const taken = (run.ships as unknown as { robots: { on(b: number): { away: number }[] } }).robots
+      .on(b.indexOf(run.ships.body(friend)))
+      .filter((r) => r.away === rock).length;
+    expect(taken).toBeGreaterThan(0);
+    expect(run.ships.strandedOn(rock)).toBe(lost - taken);
   });
 });
