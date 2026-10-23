@@ -6055,7 +6055,11 @@ export class Ships {
         const put = this.fuel.add(b, robot.bay, robot.cargoFuel);
         robot.cargoFuel = put < robot.cargoFuel ? robot.cargoFuel - put : 0;
         unloaded = put > 0;
-        if (robot.cargoFuel > 0 && this.refitting[owner] === 1) robot.cargoFuel = 0;
+        // What the tanks have no room for is let go, not carried out again.
+        if (robot.cargoFuel > 0) {
+          robot.cargoFuel = 0;
+          unloaded = true;
+        }
       }
       if (robot.cargo > 0) {
         const put = this.metal.add(b, robot.bay, robot.cargo);
@@ -6281,28 +6285,40 @@ export class Ships {
   /**
    * Give a robot of ship `owner` out on its rock, body `cb`, rock to take
    * apart for what its bay on body `b` has room for: as `sendToStrip` does on
-   * a hull, but for the rock its claw holds, which stays to hold it by.
+   * a hull, but for the rock its claw holds, which stays to hold it by. It
+   * goes where a trip, there and back, brings home the most a second; a wedge
+   * of rock is too big for robots to crowd, so fewer there only breaks a tie.
    */
   private sendOnRock(b: number, cb: number, robots: Robot[], robot: Robot, owner: number): boolean {
     const rd = this.hullDesign[cb]!;
     const metalRoom = this.metal.pieceRoom(b, robot.bay) > ROBOT_SPENT;
     const fuelRoom = this.fuel.pieceRoom(b, robot.bay) > ROBOT_SPENT;
-    if (!(metalRoom || fuelRoom) || !(robot.cargo + robot.cargoFuel < ROBOT_LOAD - ROBOT_SPENT)) return false;
+    const room = ROBOT_LOAD - robot.cargo - robot.cargoFuel;
+    if (!(metalRoom || fuelRoom) || !(room > ROBOT_SPENT)) return false;
     const held = this.heldRock(this.bodyStore!, owner);
     const { dist, prev } = this.walkScratch(rd.modules.length);
     walk(rd, robot.at, dist, prev, (m) => this.ofRock(cb, m));
     let best = -1;
+    let bestRate = -1;
     let bestCrowd = Infinity;
-    let bestDist = Infinity;
     for (let m = 0; m < rd.modules.length; m++) {
       if (m === held || !Number.isFinite(dist[m]!) || !this.ofRock(cb, m) || !this.comesOff(owner, cb, rd, m)) continue;
       if (!this.minable(rd, m, metalRoom, fuelRoom)) continue;
+      // What it would bring home, as `mineRock` takes it, and the time it would take.
+      const spec = rd.modules[m]!.spec;
+      const rock = spec.kind === 'rock';
+      const kept = ((rock && metalRoom ? (spec.ore ?? 0) : 0) + (rock && fuelRoom ? (spec.ice ?? 0) : 0)) * (1 - DISASSEMBLY_WASTE);
+      const work = buildWork(this.stripStep(cb, rd, m).stats);
+      let kg = robot.charge / (work * REPAIR_ENERGY_PER_JOULE * MINING_POWER);
+      if (kept > 0) kg = min(kg, room / kept);
+      const time = (2 * dist[m]!) / ROBOT_SPEED + (kg * work) / ROBOT_REPAIR_RATE;
+      const rate = time > 0 ? (kg * kept) / time : 0;
       let crowd = 0;
       for (let k = 0; k < robots.length; k++) if (robots[k] !== robot && robots[k]!.away === robot.away && robots[k]!.target === m) crowd++;
-      if (crowd < bestCrowd || (crowd === bestCrowd && dist[m]! < bestDist)) {
+      if (rate > bestRate || (rate === bestRate && crowd < bestCrowd)) {
         best = m;
+        bestRate = rate;
         bestCrowd = crowd;
-        bestDist = dist[m]!;
       }
     }
     if (best < 0) return false;
@@ -6434,7 +6450,8 @@ export class Ships {
     }
     const spec = rd.modules[m]!.spec;
     const ore = spec.kind === 'rock' ? (spec.ore ?? 0) : 0;
-    const ice = spec.kind === 'rock' ? (spec.ice ?? 0) : 0;
+    // Its ice is kept only while its bay's tanks have room for it.
+    const ice = spec.kind === 'rock' && this.fuel.pieceRoom(b, robot.bay) > ROBOT_SPENT ? (spec.ice ?? 0) : 0;
     const step = this.stripStep(cb, rd, m);
     const work = buildWork(step.stats);
     const per = work * REPAIR_ENERGY_PER_JOULE * MINING_POWER;
@@ -7105,7 +7122,7 @@ export class Ships {
     const spec = design.modules[m]!.spec;
     const rock = spec.kind === 'rock';
     const ore = rock ? (spec.ore ?? 0) : 1;
-    const ice = rock ? (spec.ice ?? 0) : 0;
+    const ice = rock && this.fuel.pieceRoom(b, robot.bay) > ROBOT_SPENT ? (spec.ice ?? 0) : 0;
     const per = work * REPAIR_ENERGY_PER_JOULE * (rock ? MINING_POWER : 1);
     const done = this.damage.unbuiltAt(b, m);
     let kg = min((ROBOT_REPAIR_RATE / work) * dt, robot.charge / per);
