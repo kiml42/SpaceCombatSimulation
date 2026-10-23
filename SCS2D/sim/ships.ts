@@ -43,7 +43,7 @@ import { printedCraft, printFrame, printLength, SLIPWAY_STEP, type Print } from 
 import { Fuel, LEAK_HOLE_CALIBRES, leakChance, leakRate, leakSpeed, type Leak } from './fuel.js';
 import { Charge } from './charge.js';
 import { Metal } from './metal.js';
-import { isHullMount, moduleCentre, moduleOutline, SEAL_REACH, SEAL_SPEED, weldBox } from './modules.js';
+import { berthGrid, isHullMount, moduleCentre, moduleOutline, robotsOn, SEAL_REACH, SEAL_SPEED, weldBox } from './modules.js';
 import type { Rng } from './rng.js';
 import { geometryOf, landedIndex, landedLength, plumeLayers, plumeRays, Plumes, WEAPON_PLUME_SHARE, weaponPlumeReach } from './exhaust.js';
 import { Choice, cohesionUrge, inSight, look, lookFrom, score } from './targeting.js';
@@ -512,6 +512,8 @@ const WAY_STICK = 0.3;
 
 /** How much of a module's half-length and half-breadth the robots on it stand within, so all are seen on it. */
 const ROBOT_SPOT_SHARE = 0.6;
+/** How far about where its claw grips a robot of a moored ship stands, as a share of its spot on the claw. */
+const ROBOT_GRIP_SPREAD = 0.3;
 
 /** Which turn a module takes to be mended: cores, then engines and weapons, then the rest. */
 /** Less metal than this a robot carries, or a hull holds, is rounding rather than metal, kg. */
@@ -6749,6 +6751,8 @@ export class Ships {
       const tier = repairTier(design, m);
       let crowd = 0;
       for (let k = 0; k < robots.length; k++) if (robots[k] !== robot && robots[k]!.target === m) crowd++;
+      // No more on it than it has room for: the rest mend something else, or go mining.
+      if (crowd >= robotsOn(design.modules[m]!.spec)) continue;
       if (tier < bestTier || (tier === bestTier && (crowd < bestCrowd || (crowd === bestCrowd && dist[m]! < bestDist)))) {
         best = m;
         bestTier = tier;
@@ -7314,19 +7318,21 @@ export class Ships {
   }
 
   /**
-   * Each robot home on ship `i`'s hull, three numbers apiece into `out`: its
-   * bay, and the share of its charge and of its metal it has, its metal
-   * counted up over its refill so that is seen happening. Nothing unless `i`
+   * Each robot home on ship `i`'s hull, four numbers apiece into `out`: its
+   * bay, the share of its charge and of its metal it has, its metal counted
+   * up over its refill so that is seen happening, and its berth there. Nothing unless `i`
    * is the ship that flies the body.
    */
   robotsDocked(i: number, out: number[]): void {
     out.length = 0;
     const b = this.bodyStore === null ? -1 : this.bodyStore.indexOf(this.bodyIds[i]!);
     if (b < 0 || this.shipByBody[b] !== i) return;
-    for (const robot of this.robots.on(b) ?? []) {
+    const robots = this.robots.on(b) ?? [];
+    for (let r = 0; r < robots.length; r++) {
+      const robot = robots[r]!;
       if (robot.mode !== RobotMode.Berthed) continue;
       const metal = robot.refill > 0 ? 1 - robot.refill / ROBOT_REFILL_TIME : robot.metal / ROBOT_LOAD;
-      out.push(robot.bay, robot.charge / ROBOT_CHARGE, metal);
+      out.push(robot.bay, robot.charge / ROBOT_CHARGE, metal, this.berthOf(robots, r));
     }
   }
 
@@ -7361,6 +7367,8 @@ export class Ships {
     const robots = this.robots.on(b);
     const design = this.hullDesign[b];
     if (robots === null || design === null || design === undefined) return;
+    this.placeOwner = i;
+    this.placeHull = b;
     for (let r = 0; r < robots.length; r++) {
       const robot = robots[r]!;
       if (robot.mode === RobotMode.Berthed) continue;
@@ -7383,6 +7391,9 @@ export class Ships {
   /** Where `spotOn` puts a robot from a module's middle, m, in its design's frame. */
   private spotX = 0;
   private spotY = 0;
+  /** The ship, and its body, whose robots `robotPlace` is placing. */
+  private placeOwner = -1;
+  private placeHull = -1;
 
   /**
    * Where robot `r` is drawn from the middle of the module it is on, into
@@ -7393,14 +7404,14 @@ export class Ships {
   private robotPlace(design: ShipDesign, robots: Robot[], r: number): number {
     const robot = robots[r]!;
     const here = design.modules[robot.at]!;
-    this.spotOn(design, robot.at, robot.tag);
+    this.spotFor(design, robot.at, robots, r);
     const fromX = this.spotX;
     const fromY = this.spotY;
     const path = robot.path;
     if (path !== null && robot.leg < path.length - 1) {
       const next = path[robot.leg + 1]!;
       const there = design.modules[next]!;
-      this.spotOn(design, next, robot.tag);
+      this.spotFor(design, next, robots, r);
       const leg = legLength(design, path, robot.leg);
       const t = leg > 0 ? min(1, robot.along / leg) : 0;
       const wayX = there.x + this.spotX - here.x - fromX;
@@ -7414,6 +7425,81 @@ export class Ships {
     this.robotDy = fromY;
     // Facing in to the middle of the module it is working on.
     return atan2(-fromY, -fromX);
+  }
+
+  /**
+   * Robot `r`'s spot on module `m` of `design`, its own hull's or, out, its
+   * rock's, from the module's middle, into `spotX` and `spotY`. Its own bay's
+   * is its berth, so it walks home onto its pad. Moored, its claw's is where
+   * the claw grips, and the gripped rock's is the same place, so it steps
+   * across without moving; elsewhere, its own spot on the module (`spotOn`).
+   */
+  private spotFor(design: ShipDesign, m: number, robots: Robot[], r: number): void {
+    const robot = robots[r]!;
+    const owner = this.placeOwner;
+    const hull = this.placeHull;
+    if (robot.away < 0 && m === robot.bay) {
+      this.berthSpot(design, m, robots, r);
+      return;
+    }
+    const claw = this.mooredClaw[owner]!;
+    const bodies = this.bodyStore!;
+    const cb = claw >= 0 ? this.carrierBodyOf(bodies, owner) : -1;
+    const atClaw = robot.away < 0 && m === claw;
+    const atGrip = robot.away >= 0 && robot.away === this.parkedOn[owner] && m === this.heldRock(bodies, owner);
+    if (cb < 0 || hull < 0 || !(atClaw || atGrip)) {
+      this.spotOn(design, m, robot.tag);
+      return;
+    }
+    // The grip, in the hull's frame, by way of the world, with a little of its own spot on the claw about it.
+    const hd = this.hullDesign[hull]!;
+    const rd = this.hullDesign[cb]!;
+    const rc = cos(bodies.angle[cb]!);
+    const rs = sin(bodies.angle[cb]!);
+    const gx = this.mooredGripX[owner]! - rd.centreOfMassX;
+    const gy = this.mooredGripY[owner]! - rd.centreOfMassY;
+    const wx = bodies.x[cb]! + gx * rc - gy * rs - bodies.x[hull]!;
+    const wy = bodies.y[cb]! + gx * rs + gy * rc - bodies.y[hull]!;
+    const hc = cos(bodies.angle[hull]!);
+    const hs = sin(bodies.angle[hull]!);
+    this.spotOn(hd, claw, robot.tag);
+    const px = wx * hc + wy * hs + ROBOT_GRIP_SPREAD * this.spotX;
+    const py = -wx * hs + wy * hc + ROBOT_GRIP_SPREAD * this.spotY;
+    if (atClaw) {
+      this.spotX = px - hd.modules[claw]!.x;
+      this.spotY = py - hd.modules[claw]!.y;
+      return;
+    }
+    // And back out into the rock's frame, as the design it is out on has it.
+    const qx = bodies.x[hull]! + px * hc - py * hs - bodies.x[cb]!;
+    const qy = bodies.y[hull]! + px * hs + py * hc - bodies.y[cb]!;
+    this.spotX = qx * rc + qy * rs + rd.centreOfMassX - design.centreOfMassX - design.modules[m]!.x;
+    this.spotY = -qx * rs + qy * rc + rd.centreOfMassY - design.centreOfMassY - design.modules[m]!.y;
+  }
+
+  /**
+   * Robot `r`'s berth in its bay `m`, from the bay's middle, into `spotX` and
+   * `spotY`: the pad of the bay's grid (`berthGrid`) its place among the
+   * bay's robots gives it, where it is drawn once home.
+   */
+  private berthSpot(design: ShipDesign, m: number, robots: Robot[], r: number): void {
+    const spec = design.modules[m]!.spec;
+    const { across, down } = berthGrid(spec);
+    const slot = this.berthOf(robots, r);
+    const along = -0.5 * spec.length + (spec.length / max(1, across)) * ((slot % max(1, across)) + 0.5);
+    const side = -0.5 * spec.width + (spec.width / max(1, down)) * (floor(slot / max(1, across)) + 0.5);
+    const angle = spec.angle ?? 0;
+    const c = cos(angle);
+    const s = sin(angle);
+    this.spotX = along * c - side * s;
+    this.spotY = along * s + side * c;
+  }
+
+  /** Which of its bay's berths robot `r` has: its place among the robots of that bay. */
+  private berthOf(robots: Robot[], r: number): number {
+    let slot = 0;
+    for (let k = 0; k < r; k++) if (robots[k]!.bay === robots[r]!.bay) slot++;
+    return slot;
   }
 
   /**
