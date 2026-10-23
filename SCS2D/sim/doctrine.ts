@@ -360,6 +360,12 @@ export interface Approach {
    */
   readonly rockWeight: number;
   /**
+   * The fastest it closes on what it means to take hold of with a claw, m/s:
+   * slower than it closes on an enemy, since it has to come in jaws first and
+   * steer round rocks on the way with what thrust it has to spare.
+   */
+  readonly clawSpeed: number;
+  /**
    * The share of a full load of fuel at or below which it goes to a friend to
    * be refuelled: a fighter to a pad it fits on, anything else with a port to
    * a port — a ship with a claw too, which docks only this low and otherwise
@@ -517,6 +523,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     fuelPerMetal: 1,
     scavengeDanger: 1,
     rockWeight: 1,
+    clawSpeed: 15,
     refuelBelow: 0.25,
     rechargeBelow: 0.25,
     deliverFuelAbove: 0,
@@ -738,6 +745,7 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
   'tangentialMin',
   'tangentialMax',
   'rockWeight',
+  'clawSpeed',
 ];
 
 /** Fields that mean nothing below zero, though zero itself is a setting. */
@@ -758,7 +766,7 @@ export const ORDERED_FIELDS: readonly (readonly [keyof Approach, keyof Approach]
 
 /**
  * The fields that mean nothing at or below zero: a size, a range, three
- * distances, two times, a speed, two shares of thrust and a margin.
+ * distances, two times, two speeds, two shares of thrust and a margin.
  *
  * Stated once and read by everything that writes a doctrine rather than being
  * repeated wherever one is made up — the parser that refuses a bad file and
@@ -767,6 +775,7 @@ export const ORDERED_FIELDS: readonly (readonly [keyof Approach, keyof Approach]
  */
 export const POSITIVE_FIELDS: readonly string[] = [
   'preferredMass',
+  'clawSpeed',
   'fireRange',
   'standoffRadii',
   'escortRadii',

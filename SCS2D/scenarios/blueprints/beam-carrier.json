@@ -6,7 +6,8 @@
     "approach": {
       "scavengeFuelBelow": 0.8,
       "refuelBelow": 0.1,
-      "deliverFuelAbove": 0.6
+      "deliverFuelAbove": 0.6,
+      "clawSpeed": 30
     }
   },
   "hangar": {
