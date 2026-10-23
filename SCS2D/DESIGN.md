@@ -1086,6 +1086,7 @@ inside any one file is not contiguous.
   skirmish. Robots mine rock into one hold, ore as metal and ice as fuel, and a claw alone melts ice;
   scavenging goes for asteroids by what they hold (the Mining scene). An asteroid picked out in the
   viewer shows what is left in it, and a right-click on one sends the picked ships with claws to mine it.
+  A claw ship closes jaws first, round asteroids in its way, at doctrine's `clawSpeed`.
   What is left is in ROADMAP.md §8.
   Alongside it, §8 step 5's skirmish: an endless loop against an enemy fleet that evolves to beat the
   player's, planned in ROADMAP.md §8. Evolution keeps the skirmish's sense of quiet, though it plays a match on until every side is quiet before naming a winner. Its loop is built without the evolving enemy (`dist/skirmish.html`,

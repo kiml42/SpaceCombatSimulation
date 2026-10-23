@@ -151,10 +151,22 @@ an entry is either still open or it is gone.
        - **4b. The demo** — a golden scenario of two rival mining outposts on a pair of eccentric majors.
        - **Fit frames a scavenger with what it is closing on**, the asteroid or hulk, as it frames a ship with
          what it is attacking: framing follows what a ship is fighting and escorting, not its errand.
-    5. **Grabbing an asteroid survivably** — Salvagers often wreck themselves closing on rock: adding another
-       to the Mining scene usually ends with it crashing. Either the approach must be gentler (slower closing,
-       a better orbit match, backing off when it goes wrong) or the contact more forgiving (claws or rock that
-       take a bump), or both; which is open.
+    5. **Grabbing an asteroid survivably** — partly built. A claw ship closes jaws first all the way, braking
+       astern, and turns its mains to the job only when that cannot put its motion right in time; it flies
+       round an asteroid in its way; and it closes at doctrine's
+       `clawSpeed` (15 m/s by default, evolvable), not the speed it closes on an enemy. With a third Salvager
+       in the Mining scene, over 39 runs, wrecked or broken ships went from 25 to 10 and those holding rock
+       from 9 to 24. Left from it:
+       - **A loaded Salvager breaks up on any touch but the claw's.** At about 146 t, meeting rock at the
+         claw's own 2.5 m/s with an engine or the core puts a few hundred kN·s through one seam, which tears
+         most of the hull off. What still goes wrong is mostly that: a slope, a notch where a wedge is
+         missing, or a claw that glances and swings the side in. Either the contact is made forgiving (rock
+         that crumbles, or welds that take a slow knock) or the claw must meet first every time.
+       - **Two tried and measured worse:** aiming at a point on the face and coming in along its normal,
+         and claims (leaving a minor another ship has hold of or is making for). Aiming lined ships up on
+         faces that then changed under them as the rock was mined; claims sent them further, through more of
+         the field. Either may work done differently.
+       - **Arriving slower than 2.5 m/s** made no difference measured.
 
 ### Not started — in order
 

@@ -212,6 +212,12 @@ const APPROACH_ROWS: readonly DoctrineRow[] = [
     step: 0.5,
   },
   {
+    field: 'clawSpeed',
+    label: 'closes on wrecks at',
+    hint: 'The fastest it closes on a wreck or asteroid to take hold of it with its claw, metres per second',
+    step: 5,
+  },
+  {
     field: 'rockWeight',
     label: 'mines rock at',
     hint: 'What a kilogram of an asteroid’s rock is worth against a kilogram of wreckage, choosing where to scavenge: above 1 it would sooner mine, below 1 pick over a wreck. 0 never mines',
@@ -578,6 +584,7 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
           }),
           entry('approach', 'scavengeDanger', { shown: (v) => v.approach.scavengeFuelBelow > 0 || v.approach.scavengeMetalBelow > 0 }),
           entry('approach', 'rockWeight', { shown: (v) => v.approach.scavengeFuelBelow > 0 || v.approach.scavengeMetalBelow > 0 }),
+          entry('approach', 'clawSpeed', { shown: (v) => v.approach.scavengeFuelBelow > 0 || v.approach.scavengeMetalBelow > 0 }),
           entry('approach', 'refuelBelow', {
             absolute: (v) =>
               v.approach.refuelBelow > 0 ? `below ${Math.round(v.approach.refuelBelow * 100)}% full, at a friend’s pad or port` : 'never',

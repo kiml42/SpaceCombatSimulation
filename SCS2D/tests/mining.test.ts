@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { asteroidBlueprint, capture, compileBlueprint, NEUTRAL_TEAM, Snapshot } from '../sim/index.js';
+import { asteroidBlueprint, capture, compileBlueprint, math, NEUTRAL_TEAM, Snapshot } from '../sim/index.js';
 import { Rng } from '../sim/rng.js';
 import { makeBattle } from '../scenarios/battle.js';
 import { mining } from '../scenarios/mining.js';
-import { SCAVENGER } from '../scenarios/blueprints.js';
+import { SALVAGER, SCAVENGER } from '../scenarios/blueprints.js';
 import { give } from '../scenarios/commands.js';
 
 /** Metal and fuel a miner's body holds. */
@@ -22,6 +22,19 @@ describe('mining', () => {
     expect(run.totalSevered).toBe(0);
     // Its thrust is much the same every way, so it can hold itself off a major's pull jaws first.
     expect(after.some((s) => s.pinned)).toBe(true);
+  });
+
+  it('takes hold of the rocks with a third salvager among them, jaws first, none breaking up', () => {
+    const run = mining(3);
+    const third = run.ships.spawn(run.world, { design: compileBlueprint(SALVAGER), x: 0, y: 900, angle: -math.HALF_PI, team: 0 });
+    for (let t = 0; t < 300 * 60; t++) run.step();
+    for (const i of [...run.miners, third]) {
+      const modules = run.ships.currentStructure(i).modules;
+      expect(run.ships.hasControl(i)).toBe(true);
+      // All of its own modules still on it, and rock with them.
+      expect(modules.filter((m) => m.spec.kind !== 'rock' && m.spec.kind !== 'kernel').length).toBeGreaterThanOrEqual(15);
+      expect(modules.some((m) => m.spec.kind === 'rock' || m.spec.kind === 'kernel')).toBe(true);
+    }
   });
 
   it('passes over a major a ship cannot hold itself off, jaws first', () => {
