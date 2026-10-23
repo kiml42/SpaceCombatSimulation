@@ -599,11 +599,13 @@ describe('mutation', () => {
     for (let i = 0; i < 1000; i++) {
       // No thrusters, which would weld something to the free face.
       const child = mutate(sliver, rng, { structural: 0, geometry: 1, thrusters: 0 });
+      // A core changed first changes what the face meets.
+      const asWritten = !child.edits.some((edit) => edit.startsWith('layout[0]'));
       for (const edit of child.edits) {
         const m = /layout\[1\] turret: length ([\d.]+) → ([\d.]+)(.*)/.exec(edit);
         if (m === null) continue;
         // The free face moved, so the core it is welded to is never pushed.
-        expect(m[3]).toBe('');
+        if (asWritten) expect(m[3]).toBe('');
         if (Number(m[2]) > Number(m[1])) grew++;
         else shrank++;
       }

@@ -206,6 +206,24 @@ const APPROACH_ROWS: readonly DoctrineRow[] = [
     step: 0.05,
   },
   {
+    field: 'launchFuel',
+    label: 'leaves a pad with fuel',
+    hint: 'The share of a full load of fuel a fighter takes on before it leaves a pad, for danger or a target, or as much as the carrier can spare. An order sends it at once. 1 fills it',
+    step: 0.05,
+  },
+  {
+    field: 'launchMetal',
+    label: 'leaves a pad with metal',
+    hint: 'The same for metal, rounds and all',
+    step: 0.05,
+  },
+  {
+    field: 'launchCharge',
+    label: 'leaves a pad with charge',
+    hint: 'The same for charge',
+    step: 0.05,
+  },
+  {
     field: 'scavengeDanger',
     label: 'scavenges wary of',
     hint: 'How much an armed enemy within reach of a wreck puts it off: each one divides what the wreck is worth by one more of this. 0 ignores them',
@@ -588,6 +606,13 @@ export const SHIP_SECTIONS: readonly DoctrineSection[] = [
           entry('approach', 'repairBelow', {
             absolute: (v) => (v.approach.repairBelow > 0 ? `below ${Math.round(v.approach.repairBelow * 100)}% whole, on a pad` : 'never'),
           }),
+          ...(['launchFuel', 'launchMetal', 'launchCharge'] as const).map((field) =>
+            entry('approach', field, {
+              shown: (v) =>
+                v.approach.refuelBelow > 0 || v.approach.rechargeBelow > 0 || v.approach.rearmBelow >= 0 || v.approach.repairBelow > 0,
+              absolute: (v) => (v.approach[field] >= 1 ? 'full' : `${Math.round(v.approach[field] * 100)}% full`),
+            }),
+          ),
           entry('approach', 'scavengeDanger', { shown: (v) => v.approach.scavengeFuelBelow > 0 || v.approach.scavengeMetalBelow > 0 }),
           entry('approach', 'rockWeight', { shown: (v) => v.approach.scavengeFuelBelow > 0 || v.approach.scavengeMetalBelow > 0 }),
           entry('approach', 'clawSpeed', { shown: (v) => v.approach.scavengeFuelBelow > 0 || v.approach.scavengeMetalBelow > 0 }),
