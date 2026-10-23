@@ -148,7 +148,16 @@ an entry is either still open or it is gone.
          asteroid as its target, and a right-click on one tells the picked ships with claws to mine it; the
          rest keep what they were doing. The camera already leaves asteroids out of shot, as it does
          anything nobody flies, unless nothing else is left.
-       - **4b. The demo** — a golden scenario of two rival mining outposts on a pair of eccentric majors.
+       - **4b. The demo** — built: the Rival Mines scene and golden. A Prospector each side — a Salvager
+         whose main is split either side of a pad astern that keeps two Dinkies — on a pair of eccentric
+         majors, nothing armed at the start: each anchors to its own rock, mines it, and builds Dinkies
+         from what it mines, which go for the other outpost. Left from it:
+         - **Fighters cannot land on a carrier anchored to an asteroid** unless the pad faces away from the
+           rock: the carrier's hull is then the asteroid's, so a fighter keeps outside a circle round all of
+           it, and comes straight in only with no rock between it and the pad. The Prospector's pad is
+           astern for that reason.
+         - **Dinkies only ram**, so the battle is won by knocking an outpost off its rock; one knocked off
+           hides from armed enemies rather than going back to mine.
        - **Fit frames a scavenger with what it is closing on**, the asteroid or hulk, as it frames a ship with
          what it is attacking: framing follows what a ship is fighting and escorting, not its errand.
     5. **Grabbing an asteroid survivably** — partly built. A claw ship closes jaws first all the way, braking

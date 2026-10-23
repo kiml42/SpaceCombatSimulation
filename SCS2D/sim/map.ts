@@ -159,6 +159,16 @@ const TRIES = 200;
 const MAJOR_SPIN = 0.002;
 const MINOR_SPIN = 0.01;
 
+/**
+ * The well of a major `radius` across that pulls `g` at its surface:
+ * softened by its kernel, so the pull stays finite through it.
+ */
+export function majorWell(radius: number, g: number): WellSpec {
+  const soft = radius * 0.45;
+  const r2 = radius * radius + soft * soft;
+  return { x: 0, y: 0, gm: (g * r2 * sqrt(r2)) / radius, softening: soft };
+}
+
 /** Whether a map would put anything in a battle. */
 export function hasAsteroids(settings: MapSettings | undefined): boolean {
   return (settings?.majors ?? 0) > 0 || (settings?.minors ?? 0) > 0;
@@ -186,11 +196,7 @@ export function generateMap(settings: MapSettings, seed: number, clear: readonly
     const blueprint = asteroidBlueprint(`Asteroid ${k + 1}`, { radius, kernel: true, ore, ice }, rng);
     blueprints.push(blueprint);
     reach.push(radius);
-    // Softened by the kernel, so the pull stays finite through it; GM set so
-    // that at the surface it is `g`.
-    const soft = radius * 0.45;
-    const r2 = radius * radius + soft * soft;
-    wells.push({ x: 0, y: 0, gm: (g * r2 * sqrt(r2)) / radius, softening: soft });
+    wells.push(majorWell(radius, g));
   }
   let rails: Rails | undefined;
   if (majors > 0) {

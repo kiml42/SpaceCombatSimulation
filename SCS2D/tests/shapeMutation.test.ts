@@ -104,10 +104,13 @@ describe('breeding a shape', () => {
     // both its edges would still be reported as a walk.
     let walks = 0;
     for (const step of matching(both, WALKED)) {
-      if (step.before.length !== step.after.length) continue;
-      for (let m = 0; m < step.before.length; m++) {
-        const was = shapeOf(step.before[m]!);
-        const now = shapeOf(step.after[m]!);
+      // Paired by id, since a module taken into an assembly moves every index after it.
+      const after = new Map(step.after.map((m) => [m.id, m]));
+      for (const module of step.before) {
+        const next = module.id === undefined ? undefined : after.get(module.id);
+        if (next === undefined) continue;
+        const was = shapeOf(module);
+        const now = shapeOf(next);
         if (was === null || now === null) continue;
         if (was.every((v, k) => v === now[k])) continue;
         walks++;

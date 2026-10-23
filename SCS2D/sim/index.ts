@@ -28,6 +28,7 @@ export {
   drawnMap,
   generateMap,
   hasAsteroids,
+  majorWell,
   MAP_KEYS,
   mapProblem,
   writeMap,
