@@ -131,7 +131,7 @@
       "width": 2.8,
       "reinforcement": 1.78,
       "barrels": 1,
-      "barrelCalibres": 18,
+      "barrelCalibres": 50,
       "traverse": 11.279,
       "fuse": 0.046,
       "fragments": 4,
@@ -164,18 +164,18 @@
       "width": 2.6,
       "reinforcement": 1.02,
       "barrels": 2,
-      "barrelCalibres": 20,
+      "barrelCalibres": 50,
       "traverse": 12.265,
       "fuse": 0.105,
       "fragments": 7,
       "burstSpeed": 401.7,
+      "main": false,
       "targeting": {
         "focusWeight": 0,
         "proximityWeight": 221.771,
         "facingWeight": 61.5,
         "preferredMass": 0.691,
         "coreWeight": 36.923,
-        "fireRange": 1.37,
         "closingWeight": 9.958,
         "loyaltyWeight": 19.243,
         "armedWeight": 88.855,
@@ -183,7 +183,8 @@
         "engineWeight": 76.97,
         "gunWeight": 97.947,
         "structureWeight": -3.095,
-        "mobileWeight": 10.698
+        "mobileWeight": 10.698,
+        "fireRange": 3
       }
     },
     {

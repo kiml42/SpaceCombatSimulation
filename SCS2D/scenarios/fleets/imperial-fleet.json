@@ -1052,7 +1052,7 @@
           "mobileWeight": 10.341,
           "facingWeight": 47.002,
           "sightWeight": 110.487,
-          "escortWeight": 20
+          "escortWeight": 5
         },
         "approach": {
           "standoffRadii": 28.463,
@@ -1070,7 +1070,7 @@
           "accelerate": 0.918,
           "brake": 1.574,
           "ramRadii": 48.214,
-          "ramArmed": 0.31,
+          "ramArmed": 0.5,
           "turnBias": 0.374,
           "burnWeight": 1.493,
           "rangeHold": 0.991,
@@ -1083,7 +1083,7 @@
           "deliverFuelAbove": -0.904,
           "dockDanger": -0.545,
           "sortieRange": 2.917,
-          "rearmBelow": 0.93,
+          "rearmBelow": 0.2,
           "repairBelow": 0.556,
           "tangentialMin": 16.257,
           "tangentialMax": 60.88
@@ -1111,8 +1111,7 @@
               "length": 0.7,
               "width": 1.15,
               "reinforcement": 1.05,
-              "sealing": 0,
-              "fill": 0.952
+              "sealing": 0
             },
             {
               "id": 9,
@@ -1122,8 +1121,7 @@
               "length": 2.8,
               "width": 0.5,
               "reinforcement": 1.11,
-              "sealing": 0.0065,
-              "fill": 0.879
+              "sealing": 0.0065
             },
             {
               "id": 10,
@@ -1231,8 +1229,7 @@
               "length": 2.2,
               "width": 0.3,
               "reinforcement": 1.05,
-              "sealing": 0.003,
-              "fill": 0.938
+              "sealing": 0.003
             }
           ]
         }
@@ -1248,7 +1245,6 @@
           "reinforcement": 1.1,
           "sealing": 0.0038,
           "drainPriority": -1,
-          "fill": 0.959,
           "computing": 0.086,
           "notes": "A spine down the middle of the ball rather than the whole of it. The pilot sits amidships as a TIE's does, and what fills the rest of the circle is the guns, the engines and the plating between them — so a hit on the ball is usually a hit on a weapon rather than on the pilot."
         },
@@ -1273,8 +1269,7 @@
           "angle": 180,
           "length": 0.4,
           "width": 0.5,
-          "reinforcement": 1.02,
-          "fill": 0.81
+          "reinforcement": 1.02
         },
         {
           "id": 6,
