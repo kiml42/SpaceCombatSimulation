@@ -375,7 +375,7 @@ export function miningScenario(seed = 20260905): ScenarioRun {
   };
 }
 
-/** Two Prospectors mining rival majors and building Dinkies that go for each other: what pins the whole of mining at once. */
+/** Two Replicators mining rival majors and building copies of themselves anchored: what pins the whole of mining at once. */
 export function rivalMinesScenario(seed = 20260905): ScenarioRun {
   const run = rivalMines(seed);
   return {

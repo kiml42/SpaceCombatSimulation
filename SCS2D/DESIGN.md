@@ -981,8 +981,15 @@ inside any one file is not contiguous.
   so a module comes away from the face whole and none is left to fit at the end but the stern's. With its
   walls all up and its stern whole it fills it from what the builder can spare as a pad does, and lets it
   go, pushing the two apart at `SLIPWAY_PUSH` (2 m/s) as a stage separates; the ship it built keeps its
-  engines off while any of their flames would play on its builder, for up to `SLIPWAY_CLEAR_TIME`. Until then it is held doing nothing, its engines off, its guns silent and its own pads and slipways idle; let go, it builds what its design does. A builder that could still
-  build an armed ship is armed, and a slipway building is busy, for a battle's decision, as a pad is. The
+  engines off while any of their flames would play on its builder, for up to `SLIPWAY_CLEAR_TIME`, unless
+  it is drifting back into it, as a well under a builder anchored to its rock pulls it. Until then it is held doing nothing, its engines off, its guns silent and its own pads and slipways idle; let go, it builds what its design does. A builder that could still
+  build an armed ship is armed, and a slipway building is busy, for a battle's decision, as a pad is.
+  **A pad or slipway may build only anchored** (`buildAnchored`): it lays a new craft down only while its
+  ship's claw holds something, a slipway works only then, and the claw holds on until what it builds is
+  let go, so a miner builds held still where it mines rather than flying about with half a ship on its
+  stern. A ship that wants to build so goes to anchor whether or not it has room for anything the rock
+  holds, and its claw grips for that alone. Set per pad and slipway, so a ship can build its escort
+  anywhere and its own kind only anchored; evolution flips it. The
   `shipyard` scenario has a Shipyard build and fit out a Scavenger in a little over three minutes, fill it,
   and let it go at about four and a half.
   **A port** (`port`) is a coupling on a hull's side, never thick, with a pump of `PORT_PUMP_PER_METRE` for
@@ -1102,8 +1109,20 @@ inside any one file is not contiguous.
   scavenging goes for asteroids by what they hold (the Mining scene). An asteroid picked out in the
   viewer shows what is left in it, and a right-click on one sends the picked ships with claws to mine it.
   A claw ship closes jaws first, round asteroids in its way, at doctrine's `clawSpeed`, and passes over an
-  asteroid an enemy has hold of. The Rival Mines scene has two Prospectors mine rival majors and build
-  Dinkies from it.
+  asteroid an enemy has hold of. **It comes in square to the surface** (`chooseGrip`, `squareUp`): it
+  picks a point on an outside face of its source facing it, preferring one wide enough for its jaws and
+  with room out in front of it, four of its radii deep and its width across, so not the floor of a notch;
+  keeps it in the source's frame, so it turns with a tumbling wreck, and looks again each second while
+  still well out, or once the face's module is spent. It makes for a gate a radius out along the face's
+  normal, its jaws on the source's middle until near and then turned on to the face, and once on that
+  line and square to the face closes straight in down a stopping curve, all moving as that point of the
+  source does and held against its well's pull, which it otherwise lagged by a metre a second. It
+  touches down no faster than its claw's spring could stop it in its stroke (`clawArrival`): the
+  middle of the claw's band for a light ship, slower for a heavy one, whose claw was otherwise driven
+  home and torn off. One that cannot turn both ways closes on the middle as before. A miss alongside
+  its source no longer counts against that source the speed the bounce left it at, so it comes round
+  again rather than going off after another. The Rival Mines scene has a Replicator on each of two
+  majors, which mine them and build copies of themselves anchored.
   What is left is in ROADMAP.md §8.
   Alongside it, §8 step 5's skirmish: an endless loop against an enemy fleet that evolves to beat the
   player's, planned in ROADMAP.md §8. Evolution keeps the skirmish's sense of quiet, though it plays a match on until every side is quiet before naming a winner. Its loop is built without the evolving enemy (`dist/skirmish.html`,

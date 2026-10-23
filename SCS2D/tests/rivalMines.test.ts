@@ -14,20 +14,20 @@ describe('rival mines', () => {
     }
   });
 
-  it('has each outpost anchor to its own major, the nearest rock, and build a Dinky', () => {
+  it('has each Replicator anchor to its own major and build a copy of itself there', () => {
     const run = rivalMines();
-    const majors = [run.asteroids[0]!, run.asteroids[4]!];
+    const majors = [run.asteroids[0]!, run.asteroids[1]!];
     for (let t = 0; t < 240 * 60; t++) run.step();
     run.miners.forEach((i, k) => {
-      expect(run.ships.currentStructure(i).modules.some((m) => m.spec.kind === 'rock')).toBe(true);
-      // Its thrust is much the same every way, so it can hold itself off a major's pull jaws first.
+      expect(run.ships.currentStructure(i).modules.some((m) => m.spec.kind === 'rock' || m.spec.kind === 'kernel')).toBe(true);
       expect(run.ships.body(i)).toBe(run.ships.body(majors[k]!));
       expect(run.ships.body(i)).not.toBe(run.ships.body(run.miners[1 - k]!));
     });
-    const fighters = [];
-    for (let i = 0; i < run.ships.count; i++) if (run.ships.isAlive(i) && run.ships.currentStructure(i).fighter) fighters.push(i);
-    expect(new Set(fighters.map((i) => run.ships.teamOf(i)))).toEqual(new Set([0, 1]));
-    // A fighter parked on a pinned carrier, and let go of one, moves nothing it should not.
+    // A copy on each side's slipway, on the rock with its builder.
+    const copies = [];
+    for (let i = 0; i < run.ships.count; i++) if (run.ships.isAlive(i) && run.ships.isPrinting(i)) copies.push(i);
+    expect(new Set(copies.map((i) => run.ships.teamOf(i)))).toEqual(new Set([0, 1]));
+    for (const i of copies) expect(run.ships.body(i)).toBe(run.ships.body(run.miners[run.ships.teamOf(i)]!));
     const b = run.world.bodies;
     for (let k = 0; k < b.highWater; k++) expect(Number.isFinite(b.vx[k]!)).toBe(true);
   });

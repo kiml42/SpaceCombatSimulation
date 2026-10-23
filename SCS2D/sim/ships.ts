@@ -3970,12 +3970,19 @@ export class Ships {
       return;
     }
 
-    // Just off a slipway, drifting clear: its engines stay off while they would burn its builder.
+    // Just off a slipway, drifting clear: its engines stay off while they would
+    // burn its builder, unless it is drifting back into it, as a well under an
+    // anchored builder pulls it.
     const builder = this.clearing[i]!;
     if (builder >= 0) {
       const bb = this.alive[builder] === 1 ? bodies.indexOf(this.bodyIds[builder]!) : -1;
       const waited = (this.now - this.clearingSince[i]!) * dt;
-      if (bb >= 0 && grid !== undefined && waited < SLIPWAY_CLEAR_TIME && this.wouldBurn(bodies, grid, i, bb)) {
+      const back =
+        bb >= 0 &&
+        (bodies.x[b]! - bodies.x[bb]!) * (bodies.vx[b]! - bodies.vx[bb]!) +
+          (bodies.y[b]! - bodies.y[bb]!) * (bodies.vy[b]! - bodies.vy[bb]!) <
+          0;
+      if (bb >= 0 && grid !== undefined && waited < SLIPWAY_CLEAR_TIME && !back && this.wouldBurn(bodies, grid, i, bb)) {
         this.idle(i);
         return;
       }
@@ -9808,9 +9815,10 @@ export class Ships {
     const angle = bodies.angle[b]! + (this.designs[i]!.modules[slipway]!.spec.angle ?? 0);
     const dx = cos(angle);
     const dy = sin(angle);
-    const mb = bodies.mass[b]!;
-    const mf = bodies.mass[fb]!;
-    const impulse = (SLIPWAY_PUSH * mb * mf) / (mb + mf);
+    // A builder anchored to a rock is pinned, and weighs nothing to this: it does not move.
+    const mb = movable(bodies.mass[b]!);
+    const mf = movable(bodies.mass[fb]!);
+    const impulse = mb === Infinity ? SLIPWAY_PUSH * mf : (SLIPWAY_PUSH * mb * mf) / (mb + mf);
     bodies.vx[fb] = bodies.vx[fb]! + (impulse / mf) * dx;
     bodies.vy[fb] = bodies.vy[fb]! + (impulse / mf) * dy;
     bodies.vx[b] = bodies.vx[b]! - (impulse / mb) * dx;
