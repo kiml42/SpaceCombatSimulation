@@ -738,9 +738,10 @@ inside any one file is not contiguous.
   and put into the receiver's lowest drain priority first, the hull's mass unchanged and its inertia following
   the fuel. **A claw** (`claw`) is a box with jaws on its bow face and a pump behind them, pumping
   `CLAW_PUMP_PER_METRE` for every metre of its width. It closes on whatever its bow meets within 45° — a
-  wreck's or an enemy's module, sound or torn, never a friend still under control — at a closing speed up to `CLAW_SPEED_MAX`
-  (8 m/s), by chance: certain on a spent module, `CLAW_GRIP_CHANCE` on a sound one, best between
-  `CLAW_SPEED_LOW` and `CLAW_SPEED_HIGH` (1 and 4 m/s) and falling off either side (`clawChance`). A miss waits
+  wreck's or an enemy's module, sound or torn, never a friend still under control — once it is pushed
+  back, stabbing in (§4 Collision), with `CLAW_BITE_FORCE` per metre of its width, so a heavier ship
+  bites coming in slower; by chance: certain on a spent module, `CLAW_GRIP_CHANCE` on a sound one
+  (`clawChance`). One going in too fast to stop short of its full depth glances off. A miss waits
   `CLAW_RETRY`. Closing takes `CLAW_BITE` of the module's capacity, and the two become one body joined by a
   seam across the claw's whole jaw that holds `DOCK_HOLD` times a hook's. While the claw works it pumps
   what the other piece holds into its own (`Ships.pump`), and once its piece is full or the other dry it lets
@@ -762,8 +763,8 @@ inside any one file is not contiguous.
   of a full hold and for fuel below half a tank; the `salvageRun` scenario has it fly out to a dead corvette,
   grip it, drink it and take it apart. A claw goes only for what it shares a layer with: a thin one never for a fighter or a piece of one, which flies above the deck. The time to take it
   apart is reckoned at its robots' `ROBOT_REPAIR_RATE`. The claw grips it and holds on while its robots work. It points
-  its claw at the source and comes in down a stopping curve that ends not at rest but at the middle of the
-  claw's band, planned on the thrust it actually has astern; touching without taking hold, it backs off for
+  its claw at the source and comes in down a stopping curve that ends not at rest but at
+  `(CLAW_SPEED_LOW + CLAW_SPEED_HIGH) / 2`, planned on the thrust it actually has astern; touching without taking hold, it backs off for
   `CLAW_RETRY` and comes again. A ship under control and larger than itself lying across its way — the friend
   it has just left, say — it first circles outside that ship's radius, as a fighter does a carrier for a pad,
   until the line is clear; not one so near the source that circling it would reach the source, nor a rival
@@ -1626,7 +1627,12 @@ kilometres) where double precision is a non-issue; it only degrades past about 1
   **middle of the overlapping face** rather than a corner, so two ships meeting squarely shove rather
   than spin; and the overlap left after the impulse is corrected out over a few steps rather than
   resolved at once. A body with no hull does not collide at all — everything in a battle is a ship or
-  the wreck of one, and a bare mass with a radius is not a shape.
+  the wreck of one, and a bare mass with a radius is not a shape. **Two contacts give** rather than stop
+  in a step, since a hull breaks up on the impulse one step puts through its welds: **rock** sinks in up to
+  `ROCK_SINK`, pushed back like a damper (`ROCK_DAMPING`), in proportion to how fast the two close and not
+  at all once they stop, the overlap left; and **a claw** met square on stabs in, pushed back by a spring
+  and damper per metre of its width (`CLAW_STIFFNESS`, `CLAW_DAMPING`), no harder than the spring at
+  `CLAW_DEPTH` of its length in, where it is met hard, and held sideways.
 - **The spatial index is for queries, not collision pairing.** At a few hundred bodies, a sort along x and
   testing each body against its neighbours there is cheaper than keeping an index for it; the pairs are
   still taken in body order, so contact order does not depend on the sort. What is expensive is thousands of

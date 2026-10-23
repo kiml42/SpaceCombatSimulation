@@ -222,7 +222,7 @@ export function makeBattle<Extra extends object = Record<never, never>>(
       world.step();
       // Hulls are solid: what the world's step drove into each other is pushed
       // back apart before anything asks where anything is.
-      collisions.step(world.bodies, ships);
+      collisions.step(world.bodies, ships, world.dt);
       this.totalContacts += collisions.contacts.count;
       impacts.collisions(ships, ships.damage, world.bodies, collisions.contacts, credit);
       // A slow contact onto torn metal hooks the two into one, once the crush
