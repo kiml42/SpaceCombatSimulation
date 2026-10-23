@@ -297,6 +297,28 @@ const SCRAP_MASS = 300;
 const SALVAGE_REACH = 5;
 
 /**
+ * Below this mass, wreckage in the fight is let go once it is in nobody's way,
+ * kilograms (`Ships.loose`).
+ *
+ * A fighter's parts weigh a few hundred kilograms to a few tonnes and a
+ * capital's modules five to nine, so this reaches fighter debris and no more:
+ * pieces too small to be worth a scavenger's trip, kept only as obstacles.
+ */
+const LOOSE_MASS = 5000;
+
+/** How long a loose piece is kept whatever, seconds, so the eye sees it fly off. */
+const LOOSE_AGE = 5;
+
+/** How far ahead a loose piece looks for something under control to meet, seconds. */
+const LOOSE_HORIZON = 10;
+
+/** How near that has to pass beyond the two radii to count, metres. */
+const LOOSE_CLEARANCE = 50;
+
+/** How often loose pieces are looked over, seconds. */
+const LOOSE_PERIOD = 1;
+
+/**
  * How small the battle can get, metres.
  *
  * The area is drawn round the ships still in it, so it shrinks as they die
@@ -7149,12 +7171,17 @@ export class Ships {
    * hull has to clear the fight by kilometres, and a serious chunk never
    * really leaves at all.
    *
+   * Small debris goes sooner, wherever it is, once it is in nobody's way
+   * (`loose`).
+   *
    * Only wreckage. A ship is tracked wherever it goes, because a ship can
    * come back.
    */
   cull(world: World): number {
     const bodies = world.bodies;
     const area = this.battleArea(bodies);
+    const period = max(1, round(LOOSE_PERIOD / world.dt));
+    const looking = world.tick % period === 0;
     let dropped = 0;
 
     for (let i = 0; i < this.alive.length; i++) {
@@ -7163,7 +7190,8 @@ export class Ships {
       if (b < 0) continue;
       const design = this.designs[i]!;
       const reach = area.radius + (design.mass - SCRAP_MASS) * SALVAGE_REACH;
-      if (length(bodies.x[b]! - area.x, bodies.y[b]! - area.y) <= reach) continue;
+      const away = length(bodies.x[b]! - area.x, bodies.y[b]! - area.y) > reach;
+      if (!away && !(looking && this.loose(world, i, b))) continue;
 
       const mass = bodies.mass[b]!;
       this.discarded += mass;
@@ -7182,6 +7210,35 @@ export class Ships {
     }
 
     return dropped;
+  }
+
+  /**
+   * Whether wreck `i`, on body `b`, is small debris in nobody's way: lighter
+   * than `LOOSE_MASS`, loose for `LOOSE_AGE`, nobody's salvage, and with
+   * nothing under control due to pass within `LOOSE_CLEARANCE` of it in the
+   * next `LOOSE_HORIZON`, going as both are. Such a piece will not be gone
+   * after and is not in the way, so it is only scenery. Another wreck does
+   * not keep it: two that meet weld into something heavier.
+   */
+  private loose(world: World, i: number, b: number): boolean {
+    const bodies = world.bodies;
+    if (!(bodies.mass[b]! < LOOSE_MASS) || (world.tick - this.partedAt[i]!) * world.dt < LOOSE_AGE) return false;
+    for (let t = 0; t < this.alive.length; t++) {
+      if (this.alive[t] === 0 || this.derelict[t] === 1) continue;
+      if (this.salvaging[t] === i) return false;
+      if (!this.hasControl(t)) continue;
+      const tb = bodies.indexOf(this.bodyIds[t]!);
+      if (tb < 0 || tb === b) continue;
+      const dx = bodies.x[tb]! - bodies.x[b]!;
+      const dy = bodies.y[tb]! - bodies.y[b]!;
+      const vx = bodies.vx[tb]! - bodies.vx[b]!;
+      const vy = bodies.vy[tb]! - bodies.vy[b]!;
+      const speedSq = vx * vx + vy * vy;
+      const when = speedSq > 0 ? clamp(-(dx * vx + dy * vy) / speedSq, 0, LOOSE_HORIZON) : 0;
+      const clear = bodies.radius[b]! + bodies.radius[tb]! + LOOSE_CLEARANCE;
+      if (length(dx + vx * when, dy + vy * when) < clear) return false;
+    }
+    return true;
   }
 
   /**
