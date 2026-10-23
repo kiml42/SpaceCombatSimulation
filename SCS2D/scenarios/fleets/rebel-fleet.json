@@ -1387,7 +1387,11 @@
               "length": 14.8,
               "width": 8,
               "barrels": 1,
-              "main": false
+              "targeting": {
+                "facingWeight": 100,
+                "preferredMass": 1.5,
+                "fireRange": 6
+              }
             },
             {
               "id": 21,
@@ -1414,7 +1418,12 @@
               "length": 10,
               "width": 25,
               "barrels": 1,
-              "main": false
+              "targeting": {
+                "focusWeight": 0,
+                "armedWeight": 150,
+                "fireRange": 5,
+                "proximityWeight": 200
+              }
             },
             {
               "id": 24,
