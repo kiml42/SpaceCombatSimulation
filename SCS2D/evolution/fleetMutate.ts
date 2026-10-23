@@ -307,9 +307,15 @@ function fork(fleet: Fleet, rng: Rng): string[] {
   if (isGroupUse(entry)) return [];
   const from = entry.design;
   const name = freeName(fleet, from);
-  fleet.designs[name] = { ...(JSON.parse(JSON.stringify(fleet.designs[from])) as Blueprint), name };
+  copyDesign(fleet, from, name);
   entry.design = name;
   return [`a ${from} forked into ${name}`];
+}
+
+/** A copy of design `from` as design `to`: one that built itself builds the copy. */
+function copyDesign(fleet: Fleet, from: string, to: string): void {
+  const copy = { ...(JSON.parse(JSON.stringify(fleet.designs[from])) as Blueprint), name: to };
+  fleet.designs[to] = renamePadFighter(copy, from, to);
 }
 
 /** Build every ship of one design to another instead. The inverse of `fork`. */
@@ -330,10 +336,11 @@ function merge(fleet: Fleet, rng: Rng): string[] {
 
 /**
  * Point a pad or slipway of a design the fleet flies at another craft: one the
- * fleet carries — a fighter for a pad, any other ship for a slipway — a copy
- * of its own to be bred apart from the ships that share it, or a new bare
- * core, sized to grow into one the pad holds or the slipway builds. Each is
- * undone by another: a copy or a new one pointed back.
+ * fleet carries — a fighter for a pad, any other ship for a slipway, the
+ * design itself among them — a copy of its own to be bred apart from the
+ * ships that share it, or a new bare core, sized to grow into one the pad
+ * holds or the slipway builds. Each is undone by another: a copy or a new one
+ * pointed back.
  */
 function repad(fleet: Fleet, rng: Rng): string[] {
   const pads: { carrier: string; pad: ModuleSpec }[] = [];
@@ -346,9 +353,7 @@ function repad(fleet: Fleet, rng: Rng): string[] {
   const { carrier, pad } = pads[rng.nextInt(pads.length)]!;
   const fighter = pad.kind === 'pad';
   const was = pad.craft;
-  const others = Object.keys(fleet.designs).filter(
-    (name) => name !== was && name !== carrier && (fleet.designs[name]!.fighter === true) === fighter,
-  );
+  const others = Object.keys(fleet.designs).filter((name) => name !== was && (fleet.designs[name]!.fighter === true) === fighter);
   // Another of the fleet's, a copy of its own, or a new one, each as likely as the others.
   const ways = others.length + (was === undefined ? 0 : 1) + 1;
   const way = rng.nextInt(ways);
@@ -356,7 +361,7 @@ function repad(fleet: Fleet, rng: Rng): string[] {
   if (way < others.length) to = others[way]!;
   else if (way === others.length && was !== undefined && fleet.designs[was] !== undefined) {
     to = freeName(fleet, was);
-    fleet.designs[to] = { ...(JSON.parse(JSON.stringify(fleet.designs[was])) as Blueprint), name: to };
+    copyDesign(fleet, was, to);
   } else if (fighter) {
     to = freeName(fleet, 'Fighter');
     // A tenth of the pad across: room round it for a fighter the pad still holds.

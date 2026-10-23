@@ -14,6 +14,7 @@ import {
   seamedDesign,
   shotSpread,
   slipwayHolds,
+  twinOf,
   subDesign,
   triggerMask,
   weldDesigns,
@@ -9554,15 +9555,19 @@ export class Ships {
     }
     if (f < 0 && this.fielded(bodies, i, yard.ships[k]!) >= this.keepFor(i, order.slipway, order.keep)) return;
     // One already on the slipway is finished as it was begun.
-    if (f < 0) yard.craft[k] = this.craftFor(i, order.slipway, order.design);
+    if (f < 0) {
+      const chosen = this.craftFor(i, order.slipway, order.design);
+      yard.craft[k] = chosen === this.launched[i] ? twinOf(chosen) : chosen;
+    }
     const craft = yard.craft[k] ?? order.design;
-    const length = printLength(craft);
+    const berth = this.launched[i]!.modules[order.slipway]!.spec;
+    const length = printLength(craft, berth);
     const depth = f < 0 ? 0 : yard.depth[k]!;
     if (f >= 0 && this.printing[f] !== 1) return;
     const deeper = min(length, depth + SLIPWAY_STEP);
-    const next = printedCraft(craft, deeper);
+    const next = printedCraft(craft, berth, deeper);
     if (next === null) return;
-    const before = f < 0 ? null : printedCraft(craft, depth);
+    const before = f < 0 ? null : printedCraft(craft, berth, depth);
 
     // What the slice weighs, and the work it takes, module by module.
     let kg = 0;
@@ -10002,7 +10007,8 @@ export class Ships {
       const slipway = rebuild.at[order.slipway]!;
       if (slipway < 0 || !(this.left(i, b, slipway, DamageEffect.Grip) > 0)) continue;
       // The metal for its first slice, at least.
-      const first = printedCraft(craft, min(printLength(craft), SLIPWAY_STEP));
+      const berth = this.launched[i]!.modules[order.slipway]!.spec;
+      const first = printedCraft(craft, berth, min(printLength(craft, berth), SLIPWAY_STEP));
       let kg = 0;
       for (const module of first?.design.modules ?? []) kg += module.stats.structureMass;
       if (this.metal.pieceHeld(b, slipway) >= kg * (1 + REPAIR_WASTE)) return true;

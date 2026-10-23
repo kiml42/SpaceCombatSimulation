@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   blueprintProblems,
   compileBlueprint,
+  compileDraft,
   footprintOf,
+  math,
+  moduleOutline,
   printedCraft,
   printLength,
   type Blueprint,
@@ -17,6 +20,19 @@ import { SHIPYARD } from '../scenarios/shipyard.js';
 /** Slipways building ships bow first out of their face (ROADMAP.md §8 step 12, slice 3). */
 
 const SLIPWAY = 1;
+
+/** A slipway that lays what it builds bow first. */
+const BOW_FIRST: ModuleSpec = { kind: 'slipway', x: 0, y: 0, length: 1, width: 10 };
+
+/** Short and broad: 2 m bow to stern and 8 m across the beam, wider than the Shipyard's slipway. */
+const BAR: Blueprint = {
+  name: 'Bar',
+  modules: [
+    { kind: 'core', x: 0, y: 0, length: 2, width: 2 },
+    { kind: 'structure', x: 0, y: 2.5, length: 2, width: 3 },
+    { kind: 'structure', x: 0, y: -2.5, length: 2, width: 3 },
+  ],
+};
 
 /** A Shipyard keeping `keep` of `craft`. */
 function yardOf(keep = 1, craft: Blueprint = SCAVENGER, slipway: Partial<ModuleSpec> = {}): Blueprint {
@@ -56,11 +72,11 @@ function runFor(run: Battle, seconds: number, until: () => boolean = () => false
 describe('a ship built to a depth', () => {
   it('is whole ahead of the cut, a shell across it, and nothing behind it', () => {
     const craft = compileBlueprint(SCAVENGER);
-    expect(printedCraft(craft, 0)).toBeNull();
-    const half = printedCraft(craft, printLength(craft) / 2)!;
+    expect(printedCraft(craft, BOW_FIRST, 0)).toBeNull();
+    const half = printedCraft(craft, BOW_FIRST, printLength(craft, BOW_FIRST) / 2)!;
     expect(half.modules.length).toBeLessThan(craft.modules.length);
     expect(half.design.modules.some((m) => m.shell !== undefined)).toBe(true);
-    const whole = printedCraft(craft, printLength(craft))!;
+    const whole = printedCraft(craft, BOW_FIRST, printLength(craft, BOW_FIRST))!;
     expect(whole.modules.length).toBe(craft.modules.length);
     expect(whole.design.modules.every((m) => m.shell === undefined)).toBe(true);
     expect(whole.design.mass).toBeCloseTo(craft.mass, 6);
@@ -76,8 +92,27 @@ describe('a ship built to a depth', () => {
         { kind: 'structure', x: 3, y: -2, length: 4, width: 2 },
       ],
     });
-    expect(printedCraft(fork, 2)!.held.length).toBe(2);
-    expect(printedCraft(fork, 5)!.held.length).toBe(1);
+    expect(printedCraft(fork, BOW_FIRST, 2)!.held.length).toBe(2);
+    expect(printedCraft(fork, BOW_FIRST, 5)!.held.length).toBe(1);
+  });
+  it('never reaches back past the cut: a module turned off the axis waits until it is whole', () => {
+    // A draft: only how it prints matters, not whether it holds together.
+    const raked = compileDraft({
+      name: 'Raked',
+      modules: [
+        { kind: 'core', x: 0, y: 0, length: 2, width: 2 },
+        { kind: 'structure', x: 2.5, y: 0, angle: math.PI / 4, length: 2, width: 2 },
+      ],
+    });
+    const corners: number[] = [];
+    for (let depth = 0.25; depth < 5; depth += 0.25) {
+      const print = printedCraft(raked, BOW_FIRST, depth);
+      const cut = raked.centreOfMassX + footprintOf(raked).maxX - depth;
+      for (const module of print?.design.modules ?? []) {
+        const n = moduleOutline(module.spec, corners);
+        for (let v = 0; v < n; v++) expect(corners[v * 2]!).toBeGreaterThanOrEqual(cut - 1e-6);
+      }
+    }
   });
 });
 
@@ -173,5 +208,47 @@ describe('a slipway', () => {
     expect(run.ships.canBuildArmed(run.y)).toBe(true);
     runFor(run, 20, () => run.ships.lastBuilt(run.y) >= 0);
     expect(run.ships.lastBuilt(run.y)).toBe(run.world.tick);
+  });
+
+  it('builds a ship turned side first, out of its face, and lets it go whole', () => {
+    const run = battle(yardOf(1, BAR, { craftAngle: math.PI / 2 }));
+    let s = -1;
+    runFor(run, 300, () => {
+      s = built(run)[0] ?? -1;
+      return s >= 0 && run.ships.body(s) !== run.ships.body(run.y);
+    });
+    expect(s).toBeGreaterThanOrEqual(0);
+    expect(run.ships.isUnfinished(s)).toBe(false);
+    expect(run.ships.currentStructure(s).modules.length).toBe(BAR.modules.length);
+    const bodies = run.world.bodies;
+    expect(bodies.x[bodies.indexOf(run.ships.body(s))]!).toBeGreaterThan(bodies.x[bodies.indexOf(run.ships.body(run.y))]!);
+  });
+
+  it('builds the ship it is on, side first through its own slipway, as a ship of its own that builds itself too', () => {
+    // As broad as it is long with its slipway, so turned it comes out through it.
+    const seed: Blueprint = {
+      name: 'Seed',
+      modules: [
+        { kind: 'core', x: 0, y: 0, length: 4, width: 4 },
+        { kind: 'hold', x: 0, y: 3.5, length: 4, width: 3 },
+        { kind: 'generator', x: 0, y: -3.5, length: 4, width: 3 },
+        { kind: 'slipway', x: -3, y: 0, angle: math.PI, length: 2, width: 6, craft: 'Seed', keep: 1, craftAngle: math.PI / 2 },
+      ],
+    };
+    const design = compileBlueprint(seed);
+    const run = makeBattle({ seed: 7 }, (ships, world) => {
+      ships.spawn(world, { design, x: 0, y: 0, angle: 0 });
+      ships.spawn(world, { design: compileBlueprint(BARE_CORE), x: 5000, y: 0, team: 1 });
+    });
+    const copy = (): number => built({ ...run, y: 0 })[0] ?? -1;
+    runFor(run, 1200, () => copy() >= 0 && run.ships.body(copy()) !== run.ships.body(0));
+    const s = copy();
+    expect(s).toBeGreaterThanOrEqual(0);
+    expect(run.ships.body(s)).not.toEqual(run.ships.body(0));
+    expect(run.ships.currentStructure(s).modules.length).toBe(seed.modules.length);
+    // Its own design, though not the builder's identity, whose modules it was welded among.
+    const launched = run.ships.blueprint(s);
+    expect(launched).not.toBe(design);
+    expect(launched.yards?.[0]?.design).toBe(design);
   });
 });
