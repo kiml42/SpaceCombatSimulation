@@ -781,8 +781,21 @@ export const ROBOT_MASS = 300;
 /** A robot bay's racks and charging gear per cubic metre of its interior, kg/m³. */
 export const ROBOT_BAY_MASS_PER_VOLUME = 50;
 
-/** How fast a robot crawls over a hull, m/s. */
+/** How fast a robot crawls over a module no more than `ROBOT_ROOM` across, as over a ship, carefully, m/s. */
 export const ROBOT_SPEED = 2;
+
+/** The fastest a robot runs over a broad module, as over an asteroid's rock, m/s. */
+export const ROBOT_TOP_SPEED = 5;
+
+/** Across a module past which a robot has room to run faster than `ROBOT_SPEED`, in proportion, m. */
+export const ROBOT_ROOM = 10;
+
+/** How fast a robot crosses a module, m/s: faster the broader it is, from `ROBOT_SPEED` up to `ROBOT_TOP_SPEED`. */
+export function robotSpeedOver(spec: ModuleSpec): number {
+  const across = spec.length < spec.width ? spec.length : spec.width;
+  const speed = (ROBOT_SPEED * across) / ROBOT_ROOM;
+  return speed < ROBOT_SPEED ? ROBOT_SPEED : speed > ROBOT_TOP_SPEED ? ROBOT_TOP_SPEED : speed;
+}
 
 /** Damage a robot undoes a second, J/s. */
 export const ROBOT_REPAIR_RATE = 5e4;
