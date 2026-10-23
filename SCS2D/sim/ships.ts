@@ -78,7 +78,7 @@ import {
   type Targeting,
 } from './doctrine.js';
 import type { ForceProvider, World } from './world.js';
-import type { WellSpec } from './gravity.js';
+import { wellPull, type WellSpec } from './gravity.js';
 import type { BeamHits, Beams, SpatialGrid } from './index.js';
 import { MAX_BEAM_LENGTH } from './beams.js';
 import { RayHit } from './spatialGrid.js';
@@ -8956,11 +8956,17 @@ export class Ships {
     const place = this.modulePlace(bodies, tb, host, pad);
     // Matching how the pad is speeding up as well as how it is moving, as if it keeps on.
     this.dockingAccel(i, place.vx, place.vy, dt);
-    const ax = this.dockAx[i]!;
-    const ay = this.dockAy[i]!;
+    let ax = this.dockAx[i]!;
+    let ay = this.dockAy[i]!;
+    // An anchored pad does not fall with what lands on it, so it holds itself up against the rock's pull.
+    const well = this.rides[tb];
+    if (well !== undefined) {
+      const pull = wellPull(well, bodies.x[b]!, bodies.y[b]!);
+      ax -= (well.x - bodies.x[b]!) * pull;
+      ay -= (well.y - bodies.y[b]!) * pull;
+    }
     const mine = bodies.radius[b]!;
     const range = length(place.x - bodies.x[b]!, place.y - bodies.y[b]!);
-    const near = range <= PAD_ALIGN_RADII * mine;
     // Come in by one of the pad's ways in, from where it leaves the hull's
     // circle, circling round to there first if the hull is in the way.
     this.wayIn(bodies, i, b, tb, host, pad, place.x, place.y);
@@ -8969,6 +8975,9 @@ export class Ships {
     const rx = bodies.x[b]! - place.x;
     const ry = bodies.y[b]! - place.y;
     const ahead = rx * nx + ry * ny;
+    // Near only from the side its way in is: over the hull beyond the pad, its
+    // engines would play on the deck to bring it back.
+    const near = range <= PAD_ALIGN_RADII * mine && ahead > -host.modules[pad]!.spec.length / 2;
     let lined = ahead > 0 && abs(ry * nx - rx * ny) <= ahead;
     // Over the hull, only if nothing in its layer stands between it and the pad.
     if (lined && length(bodies.x[b]! - bodies.x[tb]!, bodies.y[b]! - bodies.y[tb]!) < bodies.radius[tb]! + 2 * mine) {
