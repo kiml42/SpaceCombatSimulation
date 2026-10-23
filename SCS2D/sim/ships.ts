@@ -1184,6 +1184,11 @@ export class Ships {
   /** Where its claw grips, in the rock's blueprint frame. */
   private readonly mooredGripX: number[] = [];
   private readonly mooredGripY: number[] = [];
+  /** Each asteroid's fastest closing on another this run of touching, m/s, and the last step it touched one. */
+  private readonly rockMet: number[] = [];
+  private readonly rockMetAt: number[] = [];
+  /** Scratch for two rocks becoming one: each moored ship, and where it grips, world frame, in threes. */
+  private readonly rebasing: number[] = [];
   /** Every fighter parked. */
   private readonly parkedShips: number[] = [];
   /** Each carrier's fighters by the pad that keeps them (`ShipDesign.builds`); null for a ship whose pads build none. */
@@ -1823,6 +1828,8 @@ export class Ships {
     this.parkedAngle.push(0);
     this.parkedMass.push(0);
     this.mooredClaw.push(-1);
+    this.rockMet.push(0);
+    this.rockMetAt.push(-Infinity);
     this.mooredGripX.push(0);
     this.mooredGripY.push(0);
     const builds = design.builds ?? [];
@@ -5292,6 +5299,11 @@ export class Ships {
       // but for a claw stabbing in, which bites by how hard it is pushed back.
       const closing = contacts.closing[k]!;
       const stab = contacts.stab[k]!;
+      // Rock meeting rock is judged by how fast it met, before giving slowed it.
+      if (i >= 0 && j >= 0 && this.isAsteroid(i) && this.isAsteroid(j)) {
+        this.rockTouch(i, closing, world.tick);
+        this.rockTouch(j, closing, world.tick);
+      }
       if (stab !== Stab.A && stab !== Stab.B && (!(closing > 0) || closing > CLAW_SPEED_MAX)) continue;
       if (i < 0 || j < 0 || joined?.has(i) === true || joined?.has(j) === true) continue;
       if (this.partedAt[i]! > settled || this.partedAt[j]! > settled) continue;
@@ -5309,9 +5321,15 @@ export class Ships {
       else if (stab === Stab.B && this.grips(world, b, mb, a, ma, -nx, -ny, force)) claw = 'b';
       // Two ports nudged face to face mate, when one ship was making for the other.
       const port = claw === null && this.mates(world, a, ma, b, mb, closing);
-      // Nothing but a claw holds on to an asteroid nothing moves.
-      if ((bodies.pinned[a] === 1 || bodies.pinned[b] === 1) && claw === null) continue;
-      if (claw === null && !port) {
+      // Rock meeting rock slowly sticks, as rubble does, torn or not; a minor
+      // onto a major rides its rail, and two majors never meet on one.
+      const pinnedA = bodies.pinned[a] === 1;
+      const pinnedB = bodies.pinned[b] === 1;
+      const rubble = claw === null && this.isAsteroid(i) && this.isAsteroid(j) && !(pinnedA && pinnedB);
+      if (rubble && max(this.rockMet[i]!, this.rockMet[j]!) > WELD_SPEED) continue;
+      // Nothing else but a claw holds on to an asteroid nothing moves.
+      if ((pinnedA || pinnedB) && claw === null && !rubble) continue;
+      if (claw === null && !port && !rubble) {
         if (closing > WELD_SPEED) continue;
         if (!this.damage.ragged(a, ma) && !this.damage.ragged(b, mb)) continue;
         const x = contacts.x[k]!;
@@ -5336,8 +5354,11 @@ export class Ships {
           continue;
         }
       }
-      // A flown hull keeps its body; two wrecks keep the older's slot.
-      const swap = this.derelict[i] === 1 && this.derelict[j] === 0;
+      // A pinned major keeps its body and its rail; otherwise a flown hull
+      // keeps its body; two wrecks keep the older's slot.
+      const swap = pinnedB || (!pinnedA && this.derelict[i] === 1 && this.derelict[j] === 0);
+      // Whatever is moored to either rock stays where it is on the one they make.
+      if (rubble) this.holdMoorings(bodies, i, j);
       const dock: DockAt | null = port
         ? { at: swap ? 'b' : 'a', kind: 'port' }
         : claw === null
@@ -5345,6 +5366,7 @@ export class Ships {
           : { at: (claw === 'a') !== swap ? 'a' : 'b', kind: 'claw' };
       if (swap) this.merge(world, j, i, mb, ma, dock);
       else this.merge(world, i, j, ma, mb, dock);
+      if (rubble) this.rebaseMoorings(bodies);
       joined ??= new Set<number>();
       joined.add(i);
       joined.add(j);
@@ -5353,6 +5375,13 @@ export class Ships {
       welded++;
     }
     return welded;
+  }
+
+  /** Note asteroid `i` touching rock at `closing` m/s at `tick`: the fastest of a run of touching steps, afresh after a step apart. */
+  private rockTouch(i: number, closing: number, tick: number): void {
+    if (this.rockMetAt[i]! < tick - 1) this.rockMet[i] = 0;
+    this.rockMetAt[i] = tick;
+    if (closing > this.rockMet[i]!) this.rockMet[i] = closing;
   }
 
   /** `onWeldablePart` for module `m` of body `b`, as it is posed now. */
@@ -7440,8 +7469,10 @@ export class Ships {
     const total = massK + massO;
     const cx = bodies.x[bk]! + (design.centreOfMassX - dk.centreOfMassX) * ck - (design.centreOfMassY - dk.centreOfMassY) * sk;
     const cy = bodies.y[bk]! + (design.centreOfMassX - dk.centreOfMassX) * sk + (design.centreOfMassY - dk.centreOfMassY) * ck;
-    const vx = (massK * bodies.vx[bk]! + massO * bodies.vx[bo]!) / total;
-    const vy = (massK * bodies.vy[bk]! + massO * bodies.vy[bo]!) / total;
+    // A pinned keeper goes on as its rail has it, whatever joins it.
+    const pinned = bodies.pinned[bk] === 1;
+    const vx = pinned ? bodies.vx[bk]! : (massK * bodies.vx[bk]! + massO * bodies.vx[bo]!) / total;
+    const vy = pinned ? bodies.vy[bk]! : (massK * bodies.vy[bk]! + massO * bodies.vy[bo]!) / total;
     // About the new centre: each body's own spin, and its motion around it.
     const spinOf = (body: number, mass: number): number =>
       bodies.inertia[body]! * bodies.angularVel[body]! +
@@ -9288,25 +9319,7 @@ export class Ships {
   private moor(bodies: Bodies, f: number, rock: number, claw: number, gx: number, gy: number): void {
     const cb = bodies.indexOf(this.bodyIds[rock]!);
     const fb = bodies.indexOf(this.bodyIds[f]!);
-    const rd = this.hullDesign[cb];
-    const fd = this.hullDesign[fb];
-    if (cb < 0 || fb < 0 || rd === null || rd === undefined || fd === null || fd === undefined) return;
-    const angle = bodies.angle[cb]!;
-    const c = cos(angle);
-    const s = sin(angle);
-    // Both blueprint origins, which stay put on their hulls as rock is mined away.
-    const rox = bodies.x[cb]! - (rd.centreOfMassX * c - rd.centreOfMassY * s);
-    const roy = bodies.y[cb]! - (rd.centreOfMassX * s + rd.centreOfMassY * c);
-    const fc = cos(bodies.angle[fb]!);
-    const fs = sin(bodies.angle[fb]!);
-    const dx = bodies.x[fb]! - (fd.centreOfMassX * fc - fd.centreOfMassY * fs) - rox;
-    const dy = bodies.y[fb]! - (fd.centreOfMassX * fs + fd.centreOfMassY * fc) - roy;
-    this.parkedX[f] = dx * c + dy * s;
-    this.parkedY[f] = -dx * s + dy * c;
-    this.parkedAngle[f] = bodies.angle[fb]! - angle;
-    this.mooredGripX[f] = (gx - rox) * c + (gy - roy) * s;
-    this.mooredGripY[f] = -(gx - rox) * s + (gy - roy) * c;
-
+    if (cb < 0 || fb < 0 || !this.poseMoored(bodies, f, cb, fb, gx, gy)) return;
     const mc = bodies.mass[cb]!;
     const mf = bodies.mass[fb]!;
     const vx = (mc * bodies.vx[cb]! + mf * bodies.vx[fb]!) / (mc + mf);
@@ -9329,6 +9342,79 @@ export class Ships {
     this.settleMass(bodies, cb);
     if (moves) bodies.angularVel[cb] = spin / bodies.inertia[cb]!;
     this.pinMoored(bodies, f);
+  }
+
+  /**
+   * Where moored ship `f`, on body `fb`, sits on its rock, body `cb`, and
+   * where its claw grips, world point `gx`, `gy`, kept in the rock's
+   * blueprint frame. False for a body with no hull.
+   */
+  private poseMoored(bodies: Bodies, f: number, cb: number, fb: number, gx: number, gy: number): boolean {
+    const rd = this.hullDesign[cb];
+    const fd = this.hullDesign[fb];
+    if (rd === null || rd === undefined || fd === null || fd === undefined) return false;
+    const angle = bodies.angle[cb]!;
+    const c = cos(angle);
+    const s = sin(angle);
+    // Both blueprint origins, which stay put on their hulls as rock is mined away.
+    const rox = bodies.x[cb]! - (rd.centreOfMassX * c - rd.centreOfMassY * s);
+    const roy = bodies.y[cb]! - (rd.centreOfMassX * s + rd.centreOfMassY * c);
+    const fc = cos(bodies.angle[fb]!);
+    const fs = sin(bodies.angle[fb]!);
+    const dx = bodies.x[fb]! - (fd.centreOfMassX * fc - fd.centreOfMassY * fs) - rox;
+    const dy = bodies.y[fb]! - (fd.centreOfMassX * fs + fd.centreOfMassY * fc) - roy;
+    this.parkedX[f] = dx * c + dy * s;
+    this.parkedY[f] = -dx * s + dy * c;
+    this.parkedAngle[f] = bodies.angle[fb]! - angle;
+    this.mooredGripX[f] = (gx - rox) * c + (gy - roy) * s;
+    this.mooredGripY[f] = -(gx - rox) * s + (gy - roy) * c;
+    return true;
+  }
+
+  /** Where each ship moored to asteroid `i` or `j` grips, in the world, before the two become one. */
+  private holdMoorings(bodies: Bodies, i: number, j: number): void {
+    this.rebasing.length = 0;
+    for (let k = 0; k < this.parkedShips.length; k++) {
+      const f = this.parkedShips[k]!;
+      if (this.mooredClaw[f]! < 0 || (this.parkedOn[f] !== i && this.parkedOn[f] !== j)) continue;
+      const cb = this.carrierBodyOf(bodies, f);
+      const rd = cb < 0 ? null : this.hullDesign[cb];
+      if (rd === null || rd === undefined) continue;
+      const c = cos(bodies.angle[cb]!);
+      const s = sin(bodies.angle[cb]!);
+      const lx = this.mooredGripX[f]! - rd.centreOfMassX;
+      const ly = this.mooredGripY[f]! - rd.centreOfMassY;
+      this.rebasing.push(f, bodies.x[cb]! + lx * c - ly * s, bodies.y[cb]! + lx * s + ly * c);
+    }
+  }
+
+  /**
+   * Pose again, on the rock two have just made, each ship `holdMoorings`
+   * noted, and step its robots out on the rock back to where its claw grips.
+   */
+  private rebaseMoorings(bodies: Bodies): void {
+    for (let k = 0; k < this.rebasing.length; k += 3) {
+      const f = this.rebasing[k]!;
+      const fb = bodies.indexOf(this.bodyIds[f]!);
+      const cb = this.carrierBodyOf(bodies, f);
+      if (fb < 0 || cb < 0) continue;
+      this.poseMoored(bodies, f, cb, fb, this.rebasing[k + 1]!, this.rebasing[k + 2]!);
+      const held = this.heldRock(bodies, f);
+      for (const robot of this.robots.on(fb) ?? []) {
+        if (robot.away < 0) continue;
+        robot.away = this.parkedOn[f]!;
+        robot.awayDesign = this.hullDesign[cb]!;
+        robot.at = held < 0 ? 0 : held;
+        robot.path = null;
+        robot.leg = 0;
+        robot.along = 0;
+        if (robot.mode !== RobotMode.Home) {
+          robot.mode = RobotMode.Out;
+          robot.target = -1;
+        }
+      }
+    }
+    this.rebasing.length = 0;
   }
 
   /** Put moored ship `f` where it sits on its rock, moving with it. */
