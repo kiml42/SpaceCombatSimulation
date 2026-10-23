@@ -1,6 +1,6 @@
 import type { ShipDesign } from './blueprint.js';
 import { joints } from './connectivity.js';
-import { length } from './math.js';
+import { imul, length } from './math.js';
 import { ROBOT_CHARGE, ROBOT_LOAD, ROBOT_MASS, ROBOT_REFILL_TIME, ROBOT_SPEED, robotSpeedOver } from './modules.js';
 
 /**
@@ -236,9 +236,9 @@ export function legLength(design: ShipDesign, path: Int32Array, leg: number): nu
  * scattered, but the same every time it is asked.
  */
 export function robotShare(tag: number, salt: number): number {
-  let h = Math.imul(tag + 1, 0x9e3779b1) ^ Math.imul(salt + 1, 0x85ebca6b);
-  h = Math.imul(h ^ (h >>> 16), 0x7feb352d);
-  h = Math.imul(h ^ (h >>> 15), 0x846ca68b);
+  let h = imul(tag + 1, 0x9e3779b1) ^ imul(salt + 1, 0x85ebca6b);
+  h = imul(h ^ (h >>> 16), 0x7feb352d);
+  h = imul(h ^ (h >>> 15), 0x846ca68b);
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
 
