@@ -3,6 +3,7 @@ import type { ShipDesign } from './blueprint.js';
 import { BOTH_LAYERS, moduleLayers, OWN_LAYERS, type HullDesigns } from './hull.js';
 import { abs, cos, max, min, sin, sqrt } from './math.js';
 import { MOST_CORNERS, shapeOf } from './shape.js';
+import type { ModuleSpec } from './modules.js';
 
 /**
  * Hulls that are solid: ships meeting each other rather than passing through.
@@ -46,6 +47,20 @@ const CORRECTION = 0.8;
  */
 export const ROCK_DAMPING = 4e5;
 export const ROCK_SINK = 1;
+
+/**
+ * Nothing sinks into rock further than this share of its own thinnest module,
+ * or a piece thinner than `ROCK_SINK` would sink in whole and on through.
+ */
+export const ROCK_SINK_SHARE = 0.5;
+
+/**
+ * How hard what rests on rock or a kernel holds against sliding: the most
+ * sideways impulse a contact gives, as a share of the impulse along it. A
+ * wreck lying on a slowly turning major turns with it, rather than sliding
+ * to and fro across a facet under the pull of its well.
+ */
+export const ROCK_FRICTION = 0.6;
 
 /**
  * A claw meeting something square on stabs into it: pushed back by a spring,
@@ -648,9 +663,11 @@ export function resolveContacts(bodies: Bodies, contacts: Contacts, hulls?: Hull
 
     // What met: a claw square on stabs in, and rock gives.
     let give = 0;
+    let rough = false;
     if (hulls !== undefined && dt > 0) {
       const specA = hulls.designOf(contacts.a[k]!)?.modules[contacts.moduleA[k]!]?.spec;
       const specB = hulls.designOf(contacts.b[k]!)?.modules[contacts.moduleB[k]!]?.spec;
+      rough = isGround(specA) || isGround(specB);
       const clawA = specA?.kind === 'claw' && facing(bodies, contacts.a[k]!, specA.angle ?? 0, nx, ny) >= CLAW_ALIGN;
       const clawB = !clawA && specB?.kind === 'claw' && facing(bodies, contacts.b[k]!, specB.angle ?? 0, -nx, -ny) >= CLAW_ALIGN;
       const claw = clawA ? specA : clawB ? specB : undefined;
@@ -688,13 +705,15 @@ export function resolveContacts(bodies: Bodies, contacts: Contacts, hulls?: Hull
       } else if (specA?.kind === 'rock' || specB?.kind === 'rock') {
         if (vn >= 0) continue;
         contacts.closing[k] = -vn;
-        if (depth < ROCK_SINK) {
+        const sink = min(ROCK_SINK, ROCK_SINK_SHARE * min(thinnest(specA), thinnest(specB)));
+        if (depth < sink) {
           const impulse = min(ROCK_DAMPING * -vn * dt, -vn / invMassSum);
           contacts.impulse[k] = impulse;
           push(bodies, a, b, impulse * nx, impulse * ny, crossA * impulse, crossB * impulse);
+          rub(bodies, a, b, nx, ny, rax, ray, rbx, rby, impulse, depth);
           continue;
         }
-        give = ROCK_SINK;
+        give = sink;
       }
     }
 
@@ -705,6 +724,7 @@ export function resolveContacts(bodies: Bodies, contacts: Contacts, hulls?: Hull
     const impulse = (-(1 + RESTITUTION) * vn) / invMassSum;
     contacts.impulse[k] = impulse;
     push(bodies, a, b, impulse * nx, impulse * ny, crossA * impulse, crossB * impulse);
+    if (rough) rub(bodies, a, b, nx, ny, rax, ray, rbx, rby, impulse, depth);
 
     // And out of each other, or a fast hull meeting a heavy one sinks into it
     // faster than the impulse can carry it back out. What gives is left in.
@@ -720,6 +740,58 @@ export function resolveContacts(bodies: Bodies, contacts: Contacts, hulls?: Hull
 function facing(bodies: Bodies, body: number, turn: number, nx: number, ny: number): number {
   const angle = bodies.angle[body]! + turn;
   return nx * cos(angle) + ny * sin(angle);
+}
+
+/** Whether a module is the ground of an asteroid: rock, or its kernel. */
+function isGround(spec: ModuleSpec | undefined): boolean {
+  return spec?.kind === 'rock' || spec?.kind === 'kernel';
+}
+
+/** A module's thinnest extent, metres, and no bound for none. */
+function thinnest(spec: ModuleSpec | undefined): number {
+  return spec === undefined ? Infinity : min(spec.length, spec.width);
+}
+
+/**
+ * Friction across the normal `nx`, `ny`, at the arms `ra`, `rb`: what stops
+ * the two sliding over each other, no more than `ROCK_FRICTION` of the
+ * impulse `normal` the contact put through along it. What has sunk `depth`
+ * in cannot roll freely either: the same share of it, on that arm, holds it
+ * against turning, or one point of contact turns sliding into rolling.
+ */
+function rub(
+  bodies: Bodies,
+  a: number,
+  b: number,
+  nx: number,
+  ny: number,
+  rax: number,
+  ray: number,
+  rbx: number,
+  rby: number,
+  normal: number,
+  depth: number,
+): void {
+  const tx = -ny;
+  const ty = nx;
+  const vt =
+    (bodies.vx[b]! - bodies.angularVel[b]! * rby - bodies.vx[a]! + bodies.angularVel[a]! * ray) * tx +
+    (bodies.vy[b]! + bodies.angularVel[b]! * rbx - bodies.vy[a]! - bodies.angularVel[a]! * rax) * ty;
+  const tA = rax * ty - ray * tx;
+  const tB = rbx * ty - rby * tx;
+  const invTSum = bodies.invMass[a]! + bodies.invMass[b]! + tA * tA * bodies.invInertia[a]! + tB * tB * bodies.invInertia[b]!;
+  if (invTSum > 0) {
+    const most = ROCK_FRICTION * normal;
+    const jt = max(-most, min(most, -vt / invTSum));
+    push(bodies, a, b, jt * tx, jt * ty, tA * jt, tB * jt);
+  }
+  const invISum = bodies.invInertia[a]! + bodies.invInertia[b]!;
+  if (invISum > 0) {
+    const most = ROCK_FRICTION * normal * depth;
+    const spin = max(-most, min(most, (bodies.angularVel[a]! - bodies.angularVel[b]!) / invISum));
+    bodies.angularVel[a]! -= spin * bodies.invInertia[a]!;
+    bodies.angularVel[b]! += spin * bodies.invInertia[b]!;
+  }
 }
 
 /** Put an impulse `jx`, `jy` through a contact into `b`, and its opposite into `a`, with the torques `ta`, `tb` its arms give it. */
