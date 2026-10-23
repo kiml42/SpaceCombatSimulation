@@ -8833,7 +8833,8 @@ export class Ships {
     this.parkedY[f] = -dx * ps + dy * pc;
     this.parkedAngle[f] = bodies.angle[fb]! - facing;
 
-    // About the carrier's middle, which stays put: what each brought.
+    // About the carrier's middle, which stays put: what each brought. A
+    // carrier on a pinned body takes none of it, as nothing moves it.
     const mc = bodies.mass[cb]!;
     const mf = bodies.mass[fb]!;
     const vx = (mc * bodies.vx[cb]! + mf * bodies.vx[fb]!) / (mc + mf);
@@ -8844,14 +8845,17 @@ export class Ships {
       bodies.inertia[cb]! * bodies.angularVel[cb]! +
       bodies.inertia[fb]! * bodies.angularVel[fb]! +
       mf * (rx * (bodies.vy[fb]! - vy) - ry * (bodies.vx[fb]! - vx));
-    bodies.vx[cb] = vx;
-    bodies.vy[cb] = vy;
+    const moves = mc > 0;
+    if (moves) {
+      bodies.vx[cb] = vx;
+      bodies.vy[cb] = vy;
+    }
 
     this.parkedOn[f] = c;
     this.parkedPad[f] = l;
     this.parkedShips.push(f);
     this.settleMass(bodies, cb);
-    bodies.angularVel[cb] = spin / bodies.inertia[cb]!;
+    if (moves) bodies.angularVel[cb] = spin / bodies.inertia[cb]!;
     this.pin(bodies, f);
     return true;
   }
@@ -8873,7 +8877,7 @@ export class Ships {
     this.settleMass(bodies, cb);
     if (fb < 0) return;
     // Counted at the carrier's middle while parked, it was going round it as well.
-    const share = bodies.mass[fb]! / bodies.mass[cb]!;
+    const share = bodies.mass[fb]! / movable(bodies.mass[cb]!);
     bodies.vx[cb] = bodies.vx[cb]! - share * (bodies.vx[fb]! - bodies.vx[cb]!);
     bodies.vy[cb] = bodies.vy[cb]! - share * (bodies.vy[fb]! - bodies.vy[cb]!);
   }
@@ -10157,6 +10161,8 @@ export class Ships {
       if (asteroid && !(approach.rockWeight > 0)) continue;
       // One that pulls cannot be closed on slowly jaws first without thrust to hold off its pull.
       if (asteroid && !(this.holdsOff(bodies, i, b, claw, tb) > 1)) continue;
+      // Nor one an enemy has hold of: it would be closing on the enemy as much as on the rock.
+      if (asteroid && this.enemyAboard(i, tb)) continue;
       const held = asteroid ? this.rockHeld(tb, this.designs[t]!) : null;
       const fuel = held !== null ? held.ice : this.fuel.left(tb);
       const take = fuel < room ? fuel : room;
@@ -10198,6 +10204,15 @@ export class Ships {
       }
     }
     return best;
+  }
+
+  /** Whether a ship hostile to ship `i` rides body `tb`. */
+  private enemyAboard(i: number, tb: number): boolean {
+    const bodies = this.bodyStore!;
+    for (let j = 0; j < this.alive.length; j++) {
+      if (this.alive[j] === 1 && bodies.indexOf(this.bodyIds[j]!) === tb && this.hostile(i, j)) return true;
+    }
+    return false;
   }
 
   /**

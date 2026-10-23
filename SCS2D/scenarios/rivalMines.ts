@@ -5,6 +5,7 @@ import {
   majorWell,
   math,
   NEUTRAL_TEAM,
+  type Blueprint,
   type Rails,
   type ShipDesign,
   type WellSpec,
@@ -12,7 +13,28 @@ import {
 import { Rng } from '../sim/rng.js';
 import type { Battle } from './types.js';
 import { makeBattle } from './battle.js';
-import { CORVETTE, SALVAGER } from './blueprints.js';
+import { DINKY, SALVAGER } from './blueprints.js';
+
+/**
+ * A Salvager that builds its own escort: its one main split in two, either
+ * side of a pad astern, which keeps two Dinkies it builds from what it mines.
+ * Anchored jaws first, the pad faces away from the rock, so the way in is clear.
+ */
+export const PROSPECTOR: Blueprint = {
+  name: 'Prospector',
+  notes: 'A Salvager that builds its own escort: what it mines goes into the Dinkies its pad astern lays down.',
+  ...(SALVAGER.doctrine === undefined ? {} : { doctrine: SALVAGER.doctrine }),
+  modules: [
+    // Its holds sent out with enough for its first Dinky, before its first load of ore comes in.
+    ...SALVAGER.modules!.filter((m) => !('kind' in m && m.kind === 'engine' && m.angle === math.PI)).map((m) =>
+      'kind' in m && m.kind === 'hold' ? { ...m, fill: 0.05 } : m,
+    ),
+    { kind: 'engine', x: -8.5, y: 3.5, angle: math.PI, length: 1, width: 1, nozzle: 0.5 },
+    { kind: 'engine', x: -8.5, y: -3.5, angle: math.PI, length: 1, width: 1, nozzle: 0.5 },
+    { kind: 'pad', x: -10.75, y: 0, length: 4.5, width: 4, craft: DINKY.name, keep: 2 },
+  ],
+  hangar: { [DINKY.name]: DINKY },
+};
 
 /** Each major's radius, metres, and its pull at the surface, m/s². */
 const MAJOR_RADIUS = 250;
@@ -26,15 +48,15 @@ export const RIVAL_RAILS: Rails = {
   root: { pair: [{ well: 0 }, { well: 1 }], orbit: { a: 2000, e: 0.6, periapsis: 0, phase: math.PI } },
 };
 
-/** How far out round its major each side's ships and minors start, metres. */
-const SALVAGER_ORBIT = 600;
-const GUARD_ORBIT = 800;
+/** How far out round its major each side's outpost and minors start, metres. */
+const OUTPOST_ORBIT = 600;
 const MINOR_ORBITS = [450, 520, 600] as const;
 
 /**
- * Two mining outposts, one on each of a pair of majors on an eccentric mutual
- * orbit: each side's two Salvagers mine their own major and the minors round
- * it, and its Corvette guards them, or goes for the other side's.
+ * Two rival mining outposts, a Prospector on each of a pair of majors on an
+ * eccentric mutual orbit, neither armed at the start: each anchors to its own
+ * major and mines it, and builds Dinkies from what it mines, which go for the
+ * other side's outpost.
  */
 export function rivalMines(seed = 20260905): Battle & { readonly miners: readonly number[]; readonly asteroids: readonly number[] } {
   return makeBattle({ seed, wells: RIVAL_WELLS, rails: RIVAL_RAILS, projectiles: 64, beams: 16 }, (ships, world, wells) => {
@@ -42,8 +64,7 @@ export function rivalMines(seed = 20260905): Battle & { readonly miners: readonl
     const rng = new Rng(20261022);
     const asteroids: number[] = [];
     const miners: number[] = [];
-    const salvager = compileBlueprint(SALVAGER);
-    const corvette = compileBlueprint(CORVETTE);
+    const prospector = compileBlueprint(PROSPECTOR);
     /** Something spawned on a circular orbit `d` out round major `k`, at `bearing`, anticlockwise. */
     const orbiting = (k: number, d: number, bearing: number) => {
       const well = wells[k]!;
@@ -69,9 +90,7 @@ export function rivalMines(seed = 20260905): Battle & { readonly miners: readonl
         asteroids.push(spawn(compileBlueprint(minor), k, d + radius, (n * math.TAU) / MINOR_ORBITS.length + 1, NEUTRAL_TEAM));
       });
       // Each outpost on the far side of its major from the other.
-      const away = k === 0 ? math.PI : 0;
-      miners.push(spawn(salvager, k, SALVAGER_ORBIT, away + 0.5, k), spawn(salvager, k, SALVAGER_ORBIT, away - 0.5, k));
-      spawn(corvette, k, GUARD_ORBIT, away, k);
+      miners.push(spawn(prospector, k, OUTPOST_ORBIT, k === 0 ? math.PI : 0, k));
     }
     return { miners, asteroids };
   });
