@@ -981,7 +981,7 @@ inside any one file is not contiguous.
   so a module comes away from the face whole and none is left to fit at the end but the stern's. With its
   walls all up and its stern whole it fills it from what the builder can spare as a pad does, and lets it
   go, pushing the two apart at `SLIPWAY_PUSH` (2 m/s) as a stage separates; the ship it built keeps its
-  engines off while any of their flames would play on its builder, for up to `SLIPWAY_CLEAR_TIME`. Until then it is held doing nothing, its engines off and its guns silent. A builder that could still
+  engines off while any of their flames would play on its builder, for up to `SLIPWAY_CLEAR_TIME`. Until then it is held doing nothing, its engines off, its guns silent and its own pads and slipways idle; let go, it builds what its design does. A builder that could still
   build an armed ship is armed, and a slipway building is busy, for a battle's decision, as a pad is. The
   `shipyard` scenario has a Shipyard build and fit out a Scavenger in a little over three minutes, fill it,
   and let it go at about four and a half.

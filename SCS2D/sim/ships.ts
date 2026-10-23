@@ -9498,11 +9498,19 @@ export class Ships {
     this.doctrines[i] = overriddenDoctrine(to.doctrine, this.overrides[i]);
     this.mountDoctrines[i] = null;
     this.couldFight[i] = to.turrets.some((t) => t.main) || to.engines.length > 0 ? 1 : 0;
-    const builds = to.builds ?? [];
-    this.broods[i] = builds.length === 0 ? null : { fighters: builds.map(() => []), work: new Float64Array(builds.length) };
-    this.yards[i] = yardFor(to);
+    this.buildsFor(i, to);
     this.refitting[i] = 1;
     return null;
+  }
+
+  /**
+   * What ship `i`'s pads and slipways build, as design `design` says: the one
+   * it was launched as, not the slice of it a slipway or pad began with.
+   */
+  private buildsFor(i: number, design: ShipDesign): void {
+    const builds = design.builds ?? [];
+    this.broods[i] = builds.length === 0 ? null : { fighters: builds.map(() => []), work: new Float64Array(builds.length) };
+    this.yards[i] = yardFor(design);
   }
 
   /** Whether ship `i` is refitted and its hull is not yet what it was refitted to: something to come down, or to go up. */
@@ -9536,7 +9544,8 @@ export class Ships {
       if ((brood === null || brood === undefined) && (yard === null || yard === undefined)) continue;
       if (!this.hasControl(i)) continue;
       const b = bodies.indexOf(this.bodyIds[i]!);
-      if (b < 0 || this.damage.isProtected(b)) continue;
+      // One still held by the slipway building it builds nothing until it is let go.
+      if (b < 0 || this.damage.isProtected(b) || this.onSlipway(i, b)) continue;
       const design = this.designs[i]!;
       const rebuild = this.rebuildFor(i, design);
       for (let k = 0; yard !== null && yard !== undefined && k < yard.building.length; k++) this.print(world, i, b, rebuild.at, k);
@@ -9799,6 +9808,7 @@ export class Ships {
       team: this.team[i]!,
     });
     this.launched[f] = craft;
+    this.buildsFor(f, craft);
     this.couldFight[f] = craft.turrets.some((t) => t.main) || craft.engines.length > 0 ? 1 : 0;
     this.unfinished[f] = 1;
     this.printing[f] = 1;
@@ -9991,6 +10001,7 @@ export class Ships {
     });
     // It is building towards the whole fighter, and is one in all but its parts.
     this.launched[f] = fighter;
+    this.buildsFor(f, fighter);
     this.couldFight[f] = fighter.turrets.some((t) => t.main) || fighter.engines.length > 0 ? 1 : 0;
     this.unfinished[f] = 1;
     this.park(bodies, i, f, pad);

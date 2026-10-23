@@ -250,5 +250,10 @@ describe('a slipway', () => {
     const launched = run.ships.blueprint(s);
     expect(launched).not.toBe(design);
     expect(launched.yards?.[0]?.design).toBe(design);
+    // And let go, it lays down one of its own on its own slipway.
+    const grandchild = (): number => built({ ...run, y: 0 }).find((g) => g !== s && run.ships.body(g) === run.ships.body(s)) ?? -1;
+    runFor(run, 1800, () => grandchild() >= 0);
+    expect(grandchild()).toBeGreaterThanOrEqual(0);
+    expect(run.ships.isPrinting(grandchild())).toBe(true);
   });
 });
