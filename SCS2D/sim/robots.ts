@@ -351,6 +351,16 @@ export class Robots {
     this.missingSpin[bodyIndex] = (this.missingSpin[bodyIndex] ?? 0) + ROBOT_MASS * spinOf(design, robot.bay);
   }
 
+  /** Take robot `robot` aboard a body, into bay `robot.bay`, which has a berth for it. */
+  adopt(bodyIndex: number, robot: Robot): void {
+    const robots = this.of[bodyIndex];
+    const design = this.designs[bodyIndex];
+    if (!robots || !design) return;
+    robots.push(robot);
+    this.missing[bodyIndex] = (this.missing[bodyIndex] ?? 0) - ROBOT_MASS;
+    this.missingSpin[bodyIndex] = (this.missingSpin[bodyIndex] ?? 0) - ROBOT_MASS * spinOf(design, robot.bay);
+  }
+
   /** A new robot in bay `bay` of a body, empty until the bay has filled it. */
   build(bodyIndex: number, bay: number): void {
     const robots = this.of[bodyIndex];
