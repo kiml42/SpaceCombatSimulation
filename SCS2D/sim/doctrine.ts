@@ -366,6 +366,13 @@ export interface Approach {
    */
   readonly clawSpeed: number;
   /**
+   * What a second spent getting to a source costs against a second spent
+   * taking from it, choosing where to scavenge: above one it would sooner take
+   * a poorer source nearby than a richer one far off. Zero minds only what it
+   * burns getting there.
+   */
+  readonly tripWeight: number;
+  /**
    * The share of a full load of fuel at or below which it goes to a friend to
    * be refuelled: a fighter to a pad it fits on, anything else with a port to
    * a port — a ship with a claw too, which docks only this low and otherwise
@@ -524,6 +531,7 @@ export const DEFAULT_DOCTRINE: Doctrine = {
     scavengeDanger: 1,
     rockWeight: 1,
     clawSpeed: 15,
+    tripWeight: 10,
     refuelBelow: 0.25,
     rechargeBelow: 0.25,
     deliverFuelAbove: 0,
@@ -746,6 +754,7 @@ export const APPROACH_FIELDS: readonly (keyof Approach)[] = [
   'tangentialMax',
   'rockWeight',
   'clawSpeed',
+  'tripWeight',
 ];
 
 /** Fields that mean nothing below zero, though zero itself is a setting. */
@@ -754,6 +763,7 @@ export const NON_NEGATIVE_FIELDS: readonly string[] = [
   'tangentialMax',
   'fuelPerMetal',
   'rockWeight',
+  'tripWeight',
   'ramMass',
   'sortieRange',
   'aimedWeight',

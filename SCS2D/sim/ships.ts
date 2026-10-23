@@ -79,7 +79,7 @@ import {
   type Targeting,
 } from './doctrine.js';
 import type { ForceProvider, World } from './world.js';
-import type { WellSpec } from './gravity.js';
+import { wellPull, type WellSpec } from './gravity.js';
 import type { BeamHits, Beams, SpatialGrid } from './index.js';
 import { MAX_BEAM_LENGTH } from './beams.js';
 import { RayHit } from './spatialGrid.js';
@@ -3984,10 +3984,11 @@ export class Ships {
       }
     }
 
-    // A ram overrides the rest of the doctrine: no cover, no keeping clear;
-    // and so does closing on a source, which means touching it, but for a hulk
-    // coming through, which keeps clear of nothing.
+    // A ram overrides the rest of the doctrine: no cover, and no keeping clear
+    // but of rocks and friends; and so does closing on a source, which means
+    // touching it, but for a hulk coming through.
     if (order?.grapple === true) this.avoid(bodies, i, b, target, NO_TARGET, true);
+    if (order?.ram === true) this.avoid(bodies, i, b, target, NO_TARGET, false, true);
     if (!fleeing && (order === undefined || !(order.ram || order.grapple || order.land || order.dock))) {
       const covering = this.cover(bodies, i, b);
       if (target === NO_TARGET && covering >= 0) {
@@ -4833,10 +4834,12 @@ export class Ships {
     return gap > touching;
   }
 
-  private avoid(bodies: Bodies, i: number, b: number, flying: number, covering: number, hulksOnly = false): void {
+  private avoid(bodies: Bodies, i: number, b: number, flying: number, covering: number, hulksOnly = false, ramming = false): void {
     const approach = this.doctrines[i]!.approach;
     if (!(approach.separation > 0) || !(approach.separationRadii > 0)) return;
     const mine = this.designs[i]!.radius;
+    // A rock or a friend it is ramming rides the body it is ramming.
+    const flyingBody = flying === NO_TARGET ? -1 : bodies.indexOf(this.bodyIds[flying]!);
     const x = bodies.x[b]!;
     const y = bodies.y[b]!;
     const vx = bodies.vx[b]!;
@@ -4854,12 +4857,16 @@ export class Ships {
       // keep clear of it, rather than running from its wing as it comes and goes.
       if (this.home[t] === i) continue;
       if (hulksOnly && this.hasControl(t)) continue;
+      // Ramming, it keeps clear of rocks and its own side, which nothing rams on purpose.
+      if (ramming && !this.isAsteroid(t) && !(this.team[t] === this.team[i] && this.hasControl(t))) continue;
       const ob = bodies.indexOf(this.bodyIds[t]!);
       // Nothing to keep clear of in something that cannot be hit.
       if (ob < 0 || ob === b || bodies.ghost[ob] === 1 || !this.meets(b, ob)) continue;
+      if (ramming && ob === flyingBody) continue;
 
       const touching = mine + this.designs[t]!.radius;
-      let room = touching * approach.separationRadii;
+      // Clear by its own size, not the other's, which would keep it a rock's or a carrier's breadth off.
+      let room = (ramming ? mine : touching) * approach.separationRadii;
       // Its charge no further out than its station, or the two wants fight:
       // covering pulls it in to where keeping clear pushes it out.
       if (t === covering) room = min(room, max(0, this.escortBand(i, this.designs[i]!, t) - touching));
@@ -4877,12 +4884,15 @@ export class Ships {
       // same battle diverge from a rounding difference.
       const speedSq = rvx * rvx + rvy * rvy;
       const closing = dx * rvx + dy * rvy;
-      const when = speedSq > 0 ? max(0, -closing / speedSq) : 0;
-      if (when > approach.avoidHorizon) continue;
-      const missX = dx + rvx * when;
-      const missY = dy + rvy * when;
+      const closest = speedSq > 0 ? max(0, -closing / speedSq) : 0;
+      const missX = dx + rvx * closest;
+      const missY = dy + rvy * closest;
       const miss = length(missX, missY);
       if (miss >= touching + room) continue;
+      // Soon is when they touch, if they will: the closest the middles come is
+      // far later than that for anything large.
+      const when = miss < touching && speedSq > 0 ? max(0, closest - sqrt((touching * touching - miss * miss) / speedSq)) : closest;
+      if (when > approach.avoidHorizon) continue;
       // Nor a friend coming to land on it or dock with it: shying away from
       // that is refusing it.
       if (this.salvaging[t] === i && (this.landingPad[t]! >= 0 || this.dockPort[t]! >= 0)) continue;
@@ -8834,7 +8844,8 @@ export class Ships {
     this.parkedY[f] = -dx * ps + dy * pc;
     this.parkedAngle[f] = bodies.angle[fb]! - facing;
 
-    // About the carrier's middle, which stays put: what each brought.
+    // About the carrier's middle, which stays put: what each brought. A
+    // carrier on a pinned body takes none of it, as nothing moves it.
     const mc = bodies.mass[cb]!;
     const mf = bodies.mass[fb]!;
     const vx = (mc * bodies.vx[cb]! + mf * bodies.vx[fb]!) / (mc + mf);
@@ -8845,14 +8856,17 @@ export class Ships {
       bodies.inertia[cb]! * bodies.angularVel[cb]! +
       bodies.inertia[fb]! * bodies.angularVel[fb]! +
       mf * (rx * (bodies.vy[fb]! - vy) - ry * (bodies.vx[fb]! - vx));
-    bodies.vx[cb] = vx;
-    bodies.vy[cb] = vy;
+    const moves = mc > 0;
+    if (moves) {
+      bodies.vx[cb] = vx;
+      bodies.vy[cb] = vy;
+    }
 
     this.parkedOn[f] = c;
     this.parkedPad[f] = l;
     this.parkedShips.push(f);
     this.settleMass(bodies, cb);
-    bodies.angularVel[cb] = spin / bodies.inertia[cb]!;
+    if (moves) bodies.angularVel[cb] = spin / bodies.inertia[cb]!;
     this.pin(bodies, f);
     return true;
   }
@@ -8874,7 +8888,7 @@ export class Ships {
     this.settleMass(bodies, cb);
     if (fb < 0) return;
     // Counted at the carrier's middle while parked, it was going round it as well.
-    const share = bodies.mass[fb]! / bodies.mass[cb]!;
+    const share = bodies.mass[fb]! / movable(bodies.mass[cb]!);
     bodies.vx[cb] = bodies.vx[cb]! - share * (bodies.vx[fb]! - bodies.vx[cb]!);
     bodies.vy[cb] = bodies.vy[cb]! - share * (bodies.vy[fb]! - bodies.vy[cb]!);
   }
@@ -8953,11 +8967,17 @@ export class Ships {
     const place = this.modulePlace(bodies, tb, host, pad);
     // Matching how the pad is speeding up as well as how it is moving, as if it keeps on.
     this.dockingAccel(i, place.vx, place.vy, dt);
-    const ax = this.dockAx[i]!;
-    const ay = this.dockAy[i]!;
+    let ax = this.dockAx[i]!;
+    let ay = this.dockAy[i]!;
+    // An anchored pad does not fall with what lands on it, so it holds itself up against the rock's pull.
+    const well = this.rides[tb];
+    if (well !== undefined) {
+      const pull = wellPull(well, bodies.x[b]!, bodies.y[b]!);
+      ax -= (well.x - bodies.x[b]!) * pull;
+      ay -= (well.y - bodies.y[b]!) * pull;
+    }
     const mine = bodies.radius[b]!;
     const range = length(place.x - bodies.x[b]!, place.y - bodies.y[b]!);
-    const near = range <= PAD_ALIGN_RADII * mine;
     // Come in by one of the pad's ways in, from where it leaves the hull's
     // circle, circling round to there first if the hull is in the way.
     this.wayIn(bodies, i, b, tb, host, pad, place.x, place.y);
@@ -8966,6 +8986,9 @@ export class Ships {
     const rx = bodies.x[b]! - place.x;
     const ry = bodies.y[b]! - place.y;
     const ahead = rx * nx + ry * ny;
+    // Near only from the side its way in is: over the hull beyond the pad, its
+    // engines would play on the deck to bring it back.
+    const near = range <= PAD_ALIGN_RADII * mine && ahead > -host.modules[pad]!.spec.length / 2;
     let lined = ahead > 0 && abs(ry * nx - rx * ny) <= ahead;
     // Over the hull, only if nothing in its layer stands between it and the pad.
     if (lined && length(bodies.x[b]! - bodies.x[tb]!, bodies.y[b]! - bodies.y[tb]!) < bodies.radius[tb]! + 2 * mine) {
@@ -10163,6 +10186,8 @@ export class Ships {
       if (asteroid && !(approach.rockWeight > 0)) continue;
       // One that pulls cannot be closed on slowly jaws first without thrust to hold off its pull.
       if (asteroid && !(this.holdsOff(bodies, i, b, claw, tb) > 1)) continue;
+      // Nor one an enemy has hold of: it would be closing on the enemy as much as on the rock.
+      if (asteroid && this.enemyAboard(i, tb)) continue;
       const held = asteroid ? this.rockHeld(tb, this.designs[t]!) : null;
       const fuel = held !== null ? held.ice : this.fuel.left(tb);
       const take = fuel < room ? fuel : room;
@@ -10195,7 +10220,8 @@ export class Ships {
       const gain = (take + strip * approach.fuelPerMetal) * (held !== null ? approach.rockWeight : 1) - cost;
       if (!(gain > 0)) continue;
       const time =
-        gap / closing + (held !== null ? this.miningTime(held, take, strip, stripRate) : take / pump + (strip > 0 ? strip / stripRate : 0));
+        (gap / closing) * approach.tripWeight +
+        (held !== null ? this.miningTime(held, take, strip, stripRate) : take / pump + (strip > 0 ? strip / stripRate : 0));
       const danger = approach.scavengeDanger > 0 ? this.dangerNear(bodies, i, tb) : 0;
       const score = gain / time / (1 + max(0, approach.scavengeDanger) * danger);
       if (score > bestScore) {
@@ -10204,6 +10230,15 @@ export class Ships {
       }
     }
     return best;
+  }
+
+  /** Whether a ship hostile to ship `i` rides body `tb`. */
+  private enemyAboard(i: number, tb: number): boolean {
+    const bodies = this.bodyStore!;
+    for (let j = 0; j < this.alive.length; j++) {
+      if (this.alive[j] === 1 && bodies.indexOf(this.bodyIds[j]!) === tb && this.hostile(i, j)) return true;
+    }
+    return false;
   }
 
   /**

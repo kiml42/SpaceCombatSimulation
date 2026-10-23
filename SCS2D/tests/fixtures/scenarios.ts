@@ -16,6 +16,7 @@ import { binary } from '../../scenarios/binary.js';
 import { kernels } from '../../scenarios/kernels.js';
 import { asteroidField } from '../../scenarios/asteroidField.js';
 import { mining } from '../../scenarios/mining.js';
+import { rivalMines } from '../../scenarios/rivalMines.js';
 import type { Battle } from '../../scenarios/types.js';
 import { beamDuel } from '../../scenarios/beamDuel.js';
 import { soloOrdering } from '../../scenarios/ordering.js';
@@ -374,6 +375,16 @@ export function miningScenario(seed = 20260905): ScenarioRun {
   };
 }
 
+/** Two Prospectors mining rival majors and building Dinkies that go for each other: what pins the whole of mining at once. */
+export function rivalMinesScenario(seed = 20260905): ScenarioRun {
+  const run = rivalMines(seed);
+  return {
+    step: () => run.step(),
+    checksum: () => checksumDamage(run.ships.damage, checksumWorld(run.world)),
+    describe: () => describeBattle(run),
+  };
+}
+
 export function beamDuelScenario(seed = 20260905): ScenarioRun {
   const run = beamDuel(seed);
   return {
@@ -623,6 +634,8 @@ export const SCENARIOS = {
   asteroidField: { steps: 6_000, build: () => asteroidFieldScenario() },
   // Long enough for both salvagers to grip a minor and their robots to bring ore home.
   mining: { steps: 18_000, build: () => miningScenario() },
+  // Long enough for both outposts to anchor and build a Dinky each, and for the first to reach the other side.
+  rivalMines: { steps: 30_000, build: () => rivalMinesScenario() },
   swarm: { steps: 3_000, build: () => swarmScenario() },
   superSwarm: { steps: 3_000, build: () => swarmScenario(undefined, 300) },
   torpedoes: { steps: 3_000, build: () => torpedoesScenario() },

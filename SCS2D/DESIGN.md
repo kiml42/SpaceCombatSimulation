@@ -504,7 +504,9 @@ inside any one file is not contiguous.
   holding was a third of the way inside the ship and it flew into it.
   **Craft keep out of each other's way by where they will be**, not by where they are: how long until a pair
   is at its closest and how much room that will leave, since a bubble cannot tell a consort holding station
-  a hull's width away from something crossing at two hundred metres a second. It is never applied to the
+  a hull's width away from something crossing at two hundred metres a second. How soon is how long until
+  they would touch, where they would: for anything large that is far sooner than their middles' closest. A
+  ram keeps clear of rocks and of its own side's ships, at its own size, and of nothing else. It is never applied to the
   thing a craft is flying at — where it wants to be relative to *that* is already decided, and a second
   opinion would have a ship told to ram sheer off at the last moment and call it seamanship. It costs a
   quarter of the contacts in the Star Wars scene and a third of those between a fighter and a capital, half
@@ -750,8 +752,8 @@ inside any one file is not contiguous.
   **A pilot takes its claw to wrecks** once its claw's piece of hull is down to its doctrine's
   `scavengeFuelBelow` of a full load (zero, never, by default), and goes from source to source until it is full.
   It picks the wreck, or the enemy with no main guns left, that pays the most fuel, less what the trip burns,
-  for the time it takes to reach and drain, divided by one more `scavengeDanger` for every armed enemy within
-  reach of it. The trip is reckoned at what it can close at, `approachSpeed` less however fast the source is
+  for the time it takes to reach and drain, each second of the trip counted as `tripWeight` (ten by default)
+  seconds of draining, divided by one more `scavengeDanger` for every armed enemy within reach of it. The trip is reckoned at what it can close at, `approachSpeed` less however fast the source is
   going away, and burns what matching the source's motion and then speeding up and stopping again costs at its
   engines' exhaust speed; a source going away faster than it can follow, or holding no more than that, is
   not gone for. **It goes for metal too**, with robots of its own, once its claw's piece of hull is down to
@@ -1099,7 +1101,9 @@ inside any one file is not contiguous.
   skirmish. Robots mine rock into one hold, ore as metal and ice as fuel, and a claw alone melts ice;
   scavenging goes for asteroids by what they hold (the Mining scene). An asteroid picked out in the
   viewer shows what is left in it, and a right-click on one sends the picked ships with claws to mine it.
-  A claw ship closes jaws first, round asteroids in its way, at doctrine's `clawSpeed`.
+  A claw ship closes jaws first, round asteroids in its way, at doctrine's `clawSpeed`, and passes over an
+  asteroid an enemy has hold of. The Rival Mines scene has two Prospectors mine rival majors and build
+  Dinkies from it.
   What is left is in ROADMAP.md §8.
   Alongside it, §8 step 5's skirmish: an endless loop against an enemy fleet that evolves to beat the
   player's, planned in ROADMAP.md §8. Evolution keeps the skirmish's sense of quiet, though it plays a match on until every side is quiet before naming a winner. Its loop is built without the evolving enemy (`dist/skirmish.html`,
