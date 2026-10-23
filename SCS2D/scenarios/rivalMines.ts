@@ -13,7 +13,7 @@ import {
 import { Rng } from '../sim/rng.js';
 import type { Battle } from './types.js';
 import { makeBattle } from './battle.js';
-import { DINKY, SALVAGER } from './blueprints.js';
+import { DINKY, REPLICATOR, SALVAGER } from './blueprints.js';
 
 /**
  * A Salvager that builds its own escort: its one main split in two, either
@@ -64,7 +64,7 @@ export function rivalMines(seed = 20260905): Battle & { readonly miners: readonl
     const rng = new Rng(20261022);
     const asteroids: number[] = [];
     const miners: number[] = [];
-    const prospector = compileBlueprint(PROSPECTOR);
+    const replicator = compileBlueprint(REPLICATOR);
     /** Something spawned on a circular orbit `d` out round major `k`, at `bearing`, anticlockwise. */
     const orbiting = (k: number, d: number, bearing: number) => {
       const well = wells[k]!;
@@ -91,7 +91,7 @@ export function rivalMines(seed = 20260905): Battle & { readonly miners: readonl
         const minor = asteroidBlueprint(`Rock ${k + 1}.${n + 1}`, { radius, kernel: false, ore: 0.35, ice: 0.25 }, rng);
         asteroids.push(spawn(compileBlueprint(minor), k, d + radius, outpost + ((n + 0.5) * math.TAU) / MINOR_ORBITS.length, NEUTRAL_TEAM));
       });
-      miners.push(spawn(prospector, k, OUTPOST_ORBIT, outpost, k));
+      miners.push(spawn(replicator, k, OUTPOST_ORBIT, outpost, k));
     }
     return { miners, asteroids };
   });
