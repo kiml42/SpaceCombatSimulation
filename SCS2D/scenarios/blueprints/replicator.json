@@ -5,8 +5,7 @@
   "doctrine": {
     "approach": {
       "approachSpeed": 10,
-      "clawSpeed": 5,
-      "scavengeFuelBelow": 0.6,
+      "scavengeFuelBelow": 0.3,
       "scavengeMetalBelow": 1,
       "rockWeight": 20,
       "tripWeight": 400,
