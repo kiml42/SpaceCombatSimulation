@@ -1,7 +1,7 @@
 import type { ShipDesign } from './blueprint.js';
 import { joints } from './connectivity.js';
 import { length } from './math.js';
-import { ROBOT_CHARGE, ROBOT_LOAD, ROBOT_MASS, ROBOT_REFILL_TIME } from './modules.js';
+import { ROBOT_CHARGE, ROBOT_LOAD, ROBOT_MASS, ROBOT_REFILL_TIME, robotSpeedOver } from './modules.js';
 
 /**
  * Robots that crawl a hull mending it (ROADMAP.md §8, repair stage 3).
@@ -227,6 +227,42 @@ export function legLength(design: ShipDesign, path: Int32Array, leg: number): nu
   const a = design.modules[path[leg]!]!;
   const b = design.modules[path[leg + 1]!]!;
   return length(a.x - b.x, a.y - b.y);
+}
+
+/** How fast a robot crosses between modules `a` and `b` of a design: as fast as the narrower lets it. */
+function stepSpeed(design: ShipDesign, a: number, b: number): number {
+  const over = robotSpeedOver(design.modules[a]!.spec);
+  const onto = robotSpeedOver(design.modules[b]!.spec);
+  return over < onto ? over : onto;
+}
+
+/** Move a robot `dt` seconds along its path over `design`, each leg at its own speed. */
+export function crawl(design: ShipDesign, robot: Robot, dt: number): void {
+  const path = robot.path!;
+  let time = dt;
+  while (robot.leg < path.length - 1) {
+    const speed = stepSpeed(design, path[robot.leg]!, path[robot.leg + 1]!);
+    const left = legLength(design, path, robot.leg) - robot.along;
+    if (speed * time < left) {
+      robot.along += speed * time;
+      return;
+    }
+    time -= left / speed;
+    robot.along = 0;
+    robot.leg++;
+    robot.at = path[robot.leg]!;
+  }
+}
+
+/** Seconds a robot takes to walk to module `to` by the routes `walk` left in `prev`. */
+export function walkTime(design: ShipDesign, prev: Int32Array, to: number): number {
+  let time = 0;
+  for (let m = to; prev[m]! >= 0; m = prev[m]!) {
+    const a = design.modules[prev[m]!]!;
+    const b = design.modules[m]!;
+    time += length(a.x - b.x, a.y - b.y) / stepSpeed(design, prev[m]!, m);
+  }
+  return time;
 }
 
 /** Every body's robots, by body index, and what each body's bays are building. */

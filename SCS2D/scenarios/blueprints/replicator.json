@@ -322,8 +322,7 @@
       "y": 0,
       "length": 4,
       "width": 8,
-      "reinforcement": 2,
-      "fill": 0.1
+      "reinforcement": 2
     },
     {
       "id": 6,

@@ -13,8 +13,11 @@ import {
   ROBOT_BUILD_TIME,
   ROBOT_MASS,
   ROBOT_REPAIR_RATE,
+  ROBOT_ROOM,
   ROBOT_SPEED,
+  ROBOT_TOP_SPEED,
   ROBOT_VIEW_STRIDE,
+  robotSpeedOver,
   type Blueprint,
 } from '../sim/index.js';
 import { makeBattle } from '../scenarios/battle.js';
@@ -102,6 +105,31 @@ describe('robots', () => {
     expect(Math.cos(heading)).toBeLessThan(-0.9);
     expect(views[3]).toBeCloseTo(1, 6);
     expect(views[4]).toBeCloseTo(1, 6);
+  });
+
+  it('are drawn no closer to each other than a robot is long, however many crawl the same weld', () => {
+    const run = scene((absorb) => absorb(CORE, 0.3));
+    const views: number[] = [];
+    for (let s = 0; s < 120; s++) {
+      run.step();
+      run.ships.robotViews(run.a, views);
+      const n = views.length / ROBOT_VIEW_STRIDE;
+      for (let p = 0; p < n; p++) {
+        for (let q = p + 1; q < n; q++) {
+          const pi = p * ROBOT_VIEW_STRIDE;
+          const qi = q * ROBOT_VIEW_STRIDE;
+          expect(Math.hypot(views[qi]! - views[pi]!, views[qi + 1]! - views[pi + 1]!)).toBeGreaterThan(1.2);
+        }
+      }
+    }
+  });
+
+  it("crawl carefully over a ship's modules, and faster over broad ones such as rock, up to a cap", () => {
+    const at = (across: number): number => robotSpeedOver({ kind: 'structure', x: 0, y: 0, length: 300, width: across });
+    expect(at(3)).toBe(ROBOT_SPEED);
+    expect(at(ROBOT_ROOM)).toBe(ROBOT_SPEED);
+    expect(at(1.5 * ROBOT_ROOM)).toBeCloseTo(1.5 * ROBOT_SPEED, 9);
+    expect(at(200)).toBe(ROBOT_TOP_SPEED);
   });
 
   it('stay in their bay while nothing needs mending', () => {
