@@ -5727,9 +5727,11 @@ export class Ships {
       }
       return true;
     }
-    // A ship that minds danger lets go the moment an armed enemy is in reach.
-    if (!this.sentTo(f) && this.threatened(bodies, f, cb, true)) return false;
     const into = this.designs[f]!.cores[0] ?? 0;
+    // A ship that minds danger lets go the moment an armed enemy is in reach,
+    // once it has the fuel it would come back for: one fresh off the pad
+    // would otherwise leave dry.
+    if (!this.sentTo(f) && this.fuelledToFlee(fb, f, into) && this.threatened(bodies, f, cb, true)) return false;
     const rate = this.designs[c]!.modules[pad]!.stats.pumpRate * working * world.dt;
     const cable = DOCK_POWER_PER_METRE * width * working * world.dt;
     const fuel = this.across(this.fuel, cb, pad, fb, into, rate, this.reserve(cb, pad));
@@ -5748,6 +5750,13 @@ export class Ships {
     const metalLeft = this.metal.pieceRoom(fb, into) > 0 && this.metal.pieceHeld(cb, pad) > this.metalReserve(cb, pad);
     const chargeLeft = this.power.pieceRoom(fb, into) > 0 && this.power.pieceHeld(cb, pad) > this.chargeReserve(cb, pad);
     return !ordered && (fuelLeft || metalLeft || chargeLeft || repairLeft);
+  }
+
+  /** Whether fighter `f`, on body `fb`, holds its `refuelBelow` of a full load on module `into`'s piece, or carries none. */
+  private fuelledToFlee(fb: number, f: number, into: number): boolean {
+    const held = this.fuel.pieceHeld(fb, into);
+    const full = held + this.fuel.pieceRoom(fb, into);
+    return !(full > 0) || (held > 0 && held >= this.doctrines[f]!.approach.refuelBelow * full);
   }
 
   /**

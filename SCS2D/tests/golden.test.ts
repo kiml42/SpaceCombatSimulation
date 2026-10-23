@@ -53,9 +53,9 @@ const GOLDEN: Record<ScenarioName, string> = {
   shipyard: '4b069157',
   rearm: 'e2a480a9',
   tanker: 'b262ee58',
-  beamCarrier: '811b5032',
+  beamCarrier: '17f547dc',
   passes: '816d4617',
-  circling: '17cb902a',
+  circling: '7093734f',
 };
 
 describe('golden scenarios', () => {
