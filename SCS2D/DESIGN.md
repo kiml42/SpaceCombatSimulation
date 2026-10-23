@@ -754,8 +754,11 @@ inside any one file is not contiguous.
   parked on either, and weighing on a rock that moves. Its robots walk to the claw and cross onto the rock to
   mine it, and back across with what they carry; the module the claw grips is left to hold it by. It lets go
   once neither its robots nor its claw can take any more, or it is given an order, waiting for robots out on the rock, or at once for
-  an armed enemy in reach, leaving them. A blow beyond what its claw holds, the seam's strength the shock
-  spent with distance as through a weld, knocks it off, the excess its own.
+  an armed enemy in reach. A blow beyond what its claw holds, the seam's strength the shock
+  spent with distance as through a weld, knocks it off, the excess its own. **Robots a ship leaves on its rock
+  are stranded there**, with what they carry, rather than lost: a ship of their side moored to that rock with
+  a robot berth free takes them aboard, the ship that left them first, and they walk to its claw and home. Only
+  the rock going takes them with it.
   **A pilot takes its claw to wrecks** once its claw's piece of hull is down to its doctrine's
   `scavengeFuelBelow` of a full load (zero, never, by default), and goes from source to source until it is full.
   It picks the wreck, or the enemy with no main guns left, that pays the most fuel, less what the trip burns,

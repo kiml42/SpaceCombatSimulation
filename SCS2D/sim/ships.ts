@@ -1225,6 +1225,10 @@ export class Ships {
   /** Each asteroid's fastest closing on another this run of touching, m/s, and the last step it touched one. */
   private readonly rockMet: number[] = [];
   private readonly rockMetAt: number[] = [];
+  /** Robots left on a rock by a ship no longer moored there, with the side they are on and the ship that left them. */
+  private readonly stranded: { robot: Robot; team: number; home: number }[] = [];
+  /** Scratch for two rocks becoming one: each stranded robot on either, and where it stands, world frame, in threes. */
+  private readonly rebasingStranded: number[] = [];
   /** Scratch for two rocks becoming one: each moored ship, and where it grips, world frame, in threes. */
   private readonly rebasing: number[] = [];
   /** Every fighter parked. */
@@ -5953,8 +5957,13 @@ export class Ships {
         const robot = robots[r]!;
         // Out on the rock its ship is moored to, it works there.
         if (robot.away >= 0) {
-          const kept = this.tendAway(bodies, b, design, robot, this.pilotAt(b, robot.bay), dt);
-          if (kept < 0) this.robots.lose(b, r--);
+          const owner = this.pilotAt(b, robot.bay);
+          const kept = this.tendAway(bodies, b, design, robot, owner, dt);
+          // Its ship gone from the rock: left there, for whichever friend comes for it.
+          if (kept < 0) {
+            this.strand(bodies, robot, owner >= 0 ? owner : this.shipByBody[b]!);
+            this.robots.lose(b, r--);
+          }
           if (kept !== 0) mended = true;
           continue;
         }
@@ -5992,6 +6001,7 @@ export class Ships {
         this.stepDown(world, b, done);
       }
     }
+    this.tendStranded(bodies);
     // Rock robots from moored ships have taken a step of, which has none of its own.
     while (this.rockSteps.length > 0) {
       const m = this.rockSteps.pop()!;
@@ -6363,20 +6373,7 @@ export class Ships {
     if (rd === null || rd === undefined) return -1;
     // The rock has changed under it: on the nearest of what is left, and about its work afresh.
     if (rd !== robot.awayDesign) {
-      const was = robot.awayDesign!.modules[robot.at];
-      const wx = (was?.x ?? 0) + robot.awayDesign!.centreOfMassX - rd.centreOfMassX;
-      const wy = (was?.y ?? 0) + robot.awayDesign!.centreOfMassY - rd.centreOfMassY;
-      let near = 0;
-      let gap = Infinity;
-      for (let m = 0; m < rd.modules.length; m++) {
-        const d = length(rd.modules[m]!.x - wx, rd.modules[m]!.y - wy);
-        if (d < gap) {
-          gap = d;
-          near = m;
-        }
-      }
-      robot.awayDesign = rd;
-      robot.at = near;
+      this.remapOnRock(robot, rd);
       robot.path = null;
       robot.leg = 0;
       robot.along = 0;
@@ -6423,6 +6420,114 @@ export class Ships {
       return 0;
     }
     return this.mineRock(b, cb, rd, robot, owner, dt) ? 1 : 0;
+  }
+
+  /**
+   * Put a robot out on a rock whose design has changed under it, as mining
+   * does, on the nearest module of the new design to where it stood.
+   */
+  private remapOnRock(robot: Robot, rd: ShipDesign): void {
+    const was = robot.awayDesign!.modules[robot.at];
+    robot.at = this.nearestModule(
+      rd,
+      (was?.x ?? 0) + robot.awayDesign!.centreOfMassX - rd.centreOfMassX,
+      (was?.y ?? 0) + robot.awayDesign!.centreOfMassY - rd.centreOfMassY,
+    );
+    robot.awayDesign = rd;
+  }
+
+  /** The module of `design` nearest body-frame point `x`, `y`. */
+  private nearestModule(design: ShipDesign, x: number, y: number): number {
+    let near = 0;
+    let gap = Infinity;
+    for (let m = 0; m < design.modules.length; m++) {
+      const d = length(design.modules[m]!.x - x, design.modules[m]!.y - y);
+      if (d < gap) {
+        gap = d;
+        near = m;
+      }
+    }
+    return near;
+  }
+
+  /**
+   * Leave a robot of ship `owner` where it is on the rock it is out on, its
+   * ship no longer moored there: still carrying what it had mined, waiting
+   * for a friend to moor there with a berth for it. Lost if the rock is.
+   */
+  private strand(bodies: Bodies, robot: Robot, owner: number): void {
+    const rock = robot.away;
+    if (rock < 0 || this.alive[rock] === 0 || bodies.indexOf(this.bodyIds[rock]!) < 0 || owner < 0) return;
+    robot.mode = RobotMode.Home;
+    robot.target = -1;
+    robot.strip = false;
+    robot.bound = -1;
+    robot.path = null;
+    robot.leg = 0;
+    robot.along = 0;
+    this.stranded.push({ robot, team: this.team[owner]!, home: owner });
+  }
+
+  /**
+   * Each robot stranded on a rock, waiting where it is, or taken aboard by a
+   * ship of its side moored to that rock with a berth for it: the ship that
+   * left it before any other. It then walks to that ship's claw and goes home
+   * to its new bay with what it carries. One whose rock is gone is lost.
+   */
+  private tendStranded(bodies: Bodies): void {
+    for (let k = this.stranded.length - 1; k >= 0; k--) {
+      const { robot, team, home } = this.stranded[k]!;
+      const rock = robot.away;
+      const cb = this.alive[rock] === 1 ? bodies.indexOf(this.bodyIds[rock]!) : -1;
+      const rd = cb < 0 ? null : this.hullDesign[cb];
+      if (rd === null || rd === undefined) {
+        this.stranded.splice(k, 1);
+        continue;
+      }
+      if (rd !== robot.awayDesign) this.remapOnRock(robot, rd);
+      let taker = -1;
+      let bay = -1;
+      for (let p = 0; p < this.parkedShips.length && taker !== home; p++) {
+        const f = this.parkedShips[p]!;
+        if (this.mooredClaw[f]! < 0 || this.team[f] !== team || !this.hasControl(f) || this.carrierBodyOf(bodies, f) !== cb) continue;
+        const berth = this.freeBerth(bodies, f);
+        if (berth < 0) continue;
+        if (taker < 0 || f === home) {
+          taker = f;
+          bay = berth;
+        }
+      }
+      if (taker < 0) continue;
+      const fb = bodies.indexOf(this.bodyIds[taker]!);
+      this.stranded.splice(k, 1);
+      robot.bay = bay;
+      robot.away = this.parkedOn[taker]!;
+      this.robots.adopt(fb, robot);
+      this.homeOnRock(cb, robot, taker);
+    }
+  }
+
+  /** A robot bay of ship `f`'s with a berth no robot of its holds, or -1. */
+  private freeBerth(bodies: Bodies, f: number): number {
+    const fb = bodies.indexOf(this.bodyIds[f]!);
+    const design = fb < 0 ? null : this.hullDesign[fb];
+    const robots = this.robots.on(fb);
+    if (design === null || design === undefined || robots === null) return -1;
+    for (let m = 0; m < design.modules.length; m++) {
+      const berths = design.modules[m]!.stats.robots;
+      if (!(berths > 0) || this.pilotAt(fb, m) !== f) continue;
+      let crew = 0;
+      for (let r = 0; r < robots.length; r++) if (robots[r]!.bay === m) crew++;
+      if (crew < berths) return m;
+    }
+    return -1;
+  }
+
+  /** How many robots are stranded on asteroid `rock`, by its ship. */
+  strandedOn(rock: number): number {
+    let count = 0;
+    for (const { robot } of this.stranded) if (robot.away === rock) count++;
+    return count;
   }
 
   /**
@@ -7374,9 +7479,19 @@ export class Ships {
     out.length = 0;
     const b = this.bodyStore === null ? -1 : this.bodyStore.indexOf(this.bodyIds[i]!);
     if (b < 0 || this.shipByBody[b] !== i) return;
-    const robots = this.robots.on(b);
+    const robots = this.robots.on(b) ?? [];
     const design = this.hullDesign[b];
-    if (robots === null || design === null || design === undefined) return;
+    const bodies = this.bodyStore!;
+    if (design === null || design === undefined) return;
+    // A rock shows the robots stranded on it, where they stand.
+    for (let k = 0; k < this.stranded.length; k++) {
+      const robot = this.stranded[k]!.robot;
+      const here = robot.awayDesign?.modules[robot.at];
+      if (here === undefined || robot.awayDesign !== design || bodies.indexOf(this.bodyIds[robot.away]!) !== b) continue;
+      const dx = cos(k * ROBOT_SPREAD) * ROBOT_SPREAD_RADIUS;
+      const dy = sin(k * ROBOT_SPREAD) * ROBOT_SPREAD_RADIUS;
+      out.push(here.x + dx, here.y + dy, k * ROBOT_SPREAD + PI, robot.charge / ROBOT_CHARGE, (robot.cargo + robot.cargoFuel) / ROBOT_LOAD);
+    }
     for (let r = 0; r < robots.length; r++) {
       const robot = robots[r]!;
       if (robot.mode === RobotMode.Berthed) continue;
@@ -9489,6 +9604,17 @@ export class Ships {
   /** Where each ship moored to asteroid `i` or `j` grips, in the world, before the two become one. */
   private holdMoorings(bodies: Bodies, i: number, j: number): void {
     this.rebasing.length = 0;
+    this.rebasingStranded.length = 0;
+    for (let k = 0; k < this.stranded.length; k++) {
+      const robot = this.stranded[k]!.robot;
+      if (robot.away !== i && robot.away !== j) continue;
+      const cb = bodies.indexOf(this.bodyIds[robot.away]!);
+      const here = robot.awayDesign?.modules[robot.at];
+      if (cb < 0 || here === undefined) continue;
+      const c = cos(bodies.angle[cb]!);
+      const s = sin(bodies.angle[cb]!);
+      this.rebasingStranded.push(k, bodies.x[cb]! + here.x * c - here.y * s, bodies.y[cb]! + here.x * s + here.y * c);
+    }
     for (let k = 0; k < this.parkedShips.length; k++) {
       const f = this.parkedShips[k]!;
       if (this.mooredClaw[f]! < 0 || (this.parkedOn[f] !== i && this.parkedOn[f] !== j)) continue;
@@ -9530,6 +9656,20 @@ export class Ships {
       }
     }
     this.rebasing.length = 0;
+    // A stranded robot stands where it stood, on the nearest of the rock they make.
+    for (let k = 0; k < this.rebasingStranded.length; k += 3) {
+      const robot = this.stranded[this.rebasingStranded[k]!]!.robot;
+      const cb = bodies.indexOf(this.bodyIds[robot.away]!);
+      const rd = cb < 0 ? null : this.hullDesign[cb];
+      if (rd === null || rd === undefined) continue;
+      const dx = this.rebasingStranded[k + 1]! - bodies.x[cb]!;
+      const dy = this.rebasingStranded[k + 2]! - bodies.y[cb]!;
+      const c = cos(bodies.angle[cb]!);
+      const s = sin(bodies.angle[cb]!);
+      robot.at = this.nearestModule(rd, dx * c + dy * s, -dx * s + dy * c);
+      robot.awayDesign = rd;
+    }
+    this.rebasingStranded.length = 0;
   }
 
   /** Put moored ship `f` where it sits on its rock, moving with it. */
