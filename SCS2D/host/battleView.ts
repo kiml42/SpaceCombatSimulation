@@ -351,6 +351,11 @@ export function battleView(
       // A tile standing for a side's fighters of one design picks them all.
       const tile = shift ? null : overlayTileAt(shownStrips, shownInsets, camera, canvas.width, canvas.height, x, y);
       picked = tile !== null && tile.count > 1 ? fighterGroup(snapshot, ship) : clicked(snapshot, picked, ship, shift);
+      // A close-up clicked asks to see its ship, as Fit does.
+      if (shown >= 0 && tile === null && picked.length > 0) {
+        autoFrame = true;
+        framePicked = true;
+      }
     },
     {
       commanded(x, y, reach, queue) {
