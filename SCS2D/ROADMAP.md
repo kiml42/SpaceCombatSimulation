@@ -94,8 +94,11 @@ an entry is either still open or it is gone.
       robots walk is what makes a miner move.
     - **A claw with no robots heats rock** with power and drinks the melt: fuel only, slower and dearer
       than robots. The module stays until stripped.
-    - **An anchored miner rides the pinned body**: it cannot be pushed and follows the rail. It breaks free
-      when the wedge's seam does (§12, what a ship welded to something bigger is).
+    - **A miner moors to an asteroid**, as a fighter parks on a pad: it keeps its own body and design, pinned
+      to the rock and riding its rail with it, and its robots cross onto the rock to mine it. A blow beyond
+      its claw's grip knocks it off; robots it leaves there are stranded and go aboard the next ship of their
+      side to moor there with a berth for them. Rock meeting rock slowly welds, a minor onto a major riding
+      its rail.
     - **Scavenging covers rock.** No new verb; an evolvable doctrine weight sets rock against wrecks.
     - **Maps are generated from the seed, in every mode, defaulting to none**, so no golden moves. Settings:
       major count and size, minor count and size (a radius with a spread), eccentricity (a most, drawn per
@@ -111,9 +114,7 @@ an entry is either still open or it is gone.
 
     1. **Kernels and rails** — built, in two PRs: wells moved by `Railway` (`sim/rails.ts`), and the
        `kernel` module (`sim/asteroid.ts`), on a pinned body its rail places every step; the Binary and
-       Kernels scenes and their goldens. Left for the slices that need them:
-       - **Nothing welds to a pinned hull yet**, so no claw anchors to one. Slice 3 has to let a weld keep
-         the pin, and guard the momentum sums after robot work, which divide by the body's mass.
+       Kernels scenes and their goldens.
     2. **Rock and the generator**, in two PRs:
        - **2a. Rock and the map** — built: the `rock` module (ore and ice shares, a triangle or a convex
          quadrilateral, solid, seams a hull plate's strength), asteroids of wedge rings drawn from a seed
@@ -132,9 +133,10 @@ an entry is either still open or it is gone.
        - **3b. Robots mine** — built. Robots carry ore smelted to metal and ice melted to fuel in one hold
          (`ROBOT_LOAD`), mining rock for `MINING_POWER` times the charge wreckage takes, the worthless
          share lost; a claw with no robots melts ice alone (`CLAW_HEAT_RATE`, `CLAW_HEAT_ENERGY`). A claw
-         anchors to a pinned major, which stays pinned and keeps riding its rail with the miner on it.
-         Scavenging values an asteroid by what its rock holds, weighed by doctrine's `rockWeight`
-         (evolvable). A claw ship closing on an asteroid matches its motion on its mains before turning
+         anchors to a pinned major, which keeps riding its rail with the miner on it (slice 6 since made
+         that a mooring). Scavenging values an asteroid by what its rock holds, weighed by doctrine's
+         `rockWeight` (evolvable), and the trip there by `tripWeight` (evolvable, ten by default), so a long
+         job does not send a miner across the map for a few per cent more ore. A claw ship closing on an asteroid matches its motion on its mains before turning
          its jaws to it. The Mining scene and its golden. Left from it:
          - **A major's pull keeps mains-only ships off it.** Jaws first, a ship with no thrust astern of
            its jaws cannot hold off a gravitating asteroid and lands by falling, so scavenging passes over
@@ -188,6 +190,19 @@ an entry is either still open or it is gone.
          sending ships further through more of the field.
        - **Arriving slower than 2.5 m/s** made no difference measured for a Salvager; a heavy ship now
          arrives slower, as its claw's spring can stop it.
+    6. **Miners as hulls of their own** — built, in three PRs, from the author: a miner should not treat its
+       asteroid as part of its body. A claw on an asteroid moors instead of merging (`Ships.moor`), and its
+       robots cross onto the rock to mine it; a moored ship given an order calls its robots in and lets go.
+       Asteroids weld to each other on a slow touch, judged by how fast they met (`rockTouch`), a minor
+       onto a major riding its rail and two majors never. Robots left on a rock when their ship is parted
+       from it are stranded there with what they carry, rather than lost, and go aboard the ship that left
+       them, or any of its side, once one moors there with a berth for them. Left from it:
+       - **A claw on a wreck still merges**, and so tows it. Mooring to wrecks too was the author's first
+         wish, put off: stripping a wreck spills stores, takes loose metal and refits, which rock never does,
+         and a pinned mooring would end towing.
+       - **A blow that knocks a ship off usually breaks it too**: a claw's seam is about as strong as the
+         hull's own welds, so what parts the grip tends to tear a piece off as well, bays and their robots
+         with it.
 
 ### Not started — in order
 
@@ -461,10 +476,10 @@ Deliberately unresolved; decide when they block something.
   gravity that means burning against the well for as long as it waits, and settling only at the well's
   centre. Holding an orbit instead, about whichever well pulls hardest, would cost nothing. Matters more
   once wells move (step 15). Raised by the author, not built.
-- **What a ship is when it is welded to something much bigger.** A body is one thing, so a miner anchored
-  to an asteroid (step 15), or a fighter landed on a carrier, is treated as the whole body: guns aim at any
-  part of it, the selection ring goes round all of it, and the side's tile shows the bigger thing — already
-  seen with fighters on carriers. Revisit once step 15 is built.
+- **What a ship is when it is welded to something much bigger.** A body is one thing, so a ship hooked to a
+  wreck, or docked port to port, is treated as the whole body: guns aim at any part of it, the selection
+  ring goes round all of it, and the side's tile shows the bigger thing. A fighter on a pad and a miner on
+  an asteroid no longer are: each keeps its own body, parked or moored (step 15, slice 6).
 - **Mining's numbers.** All first guesses: surface gravity (0.5 m/s² by default), rock seam strength (a hull
   plate's), `MINING_POWER` (3× the charge of stripping scrap), a claw's heating at 1 kg of fuel a second
   for 5 MJ a kilogram, and how fast asteroids spin (majors 0.002 rad/s at most, minors 0.01, slow
