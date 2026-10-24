@@ -136,14 +136,8 @@ an entry is either still open or it is gone.
          anchors to a pinned major, which keeps riding its rail with the miner on it (slice 6 since made
          that a mooring). Scavenging values an asteroid by what its rock holds, weighed by doctrine's
          `rockWeight` (evolvable), and the trip there by `tripWeight` (evolvable, ten by default), so a long
-         job does not send a miner across the map for a few per cent more ore. A claw ship closing on an asteroid matches its motion on its mains before turning
-         its jaws to it. The Mining scene and its golden. Left from it:
-         - **A major's pull keeps mains-only ships off it.** Jaws first, a ship with no thrust astern of
-           its jaws cannot hold off a gravitating asteroid and lands by falling, so scavenging passes over
-           a major whose surface pull its ship cannot beat (`holdsOff`). The stock Salvager was rebuilt
-           with much the same thrust every way so that it can.
-         - **Matching an orbit before turning the jaws on** is asteroids' alone; whether every claw
-           approach should do it, wrecks drifting too, is open, and would move the claw goldens.
+         job does not send a miner across the map for a few per cent more ore. A claw ship closing on an
+         asteroid matches its motion on its mains before turning its jaws to it. The Mining scene and its golden.
     4. **Viewer and demo**, in two PRs:
        - **4a. Picking and mining an asteroid** — built: an asteroid picked out alone is framed, and a card
          over the battle says how much rock, ore and ice is left in it (`ShipView.rock`). Scavenge takes an
@@ -154,34 +148,17 @@ an entry is either still open or it is gone.
          Salvager whose main is split either side of a pad astern that keeps two Dinkies — and now a
          Replicator, the author's self-replicating miner, on each of a pair of eccentric majors with no
          minors, nothing armed: each anchors to its own rock, mines it, and builds copies of itself there.
-         Left from it:
-         - **Replicators prey on each other once copies are out.** A claw ship counts an enemy that cannot
-           shoot back as a source, and drinking one is far quicker than mining rock, so after the first
-           copies are let go, at about nine and a half minutes, they go for the other side's rather than for
-           rock. The author's call was to leave it, measured: a doctrine weight for live enemies as sources
-           would stop it.
-         - **Two claw ships going for each other run away**: each asks to match the other's motion and close
-           on it, so between them they speed up without end, past 900 m/s over half an hour.
-         - **A fighter landing on a moored carrier does not steer round its rock.** Moored, the carrier
-           keeps its own hull, so a fighter lands on it from any side whose way in is clear; one whose way
-           to the pad goes round the rock never gets there. The Prospector's pad is astern for that reason.
-         - **A Prospector knocked off its rock hides** from armed enemies rather than going back to mine.
-           Dinkies fight with their gun, and ram once it is shot off (`ramArmed`); a ram is what knocks an
-           outpost off.
-       - **Fit frames a scavenger with what it is closing on**, the asteroid or hulk, as it frames a ship with
-         what it is attacking: framing follows what a ship is fighting and escorting, not its errand.
-    5. **Grabbing an asteroid survivably** — partly built. A claw ship closes jaws first all the way, braking
+    5. **Grabbing an asteroid survivably** — built. A claw ship closes jaws first all the way, braking
        astern, and turns its mains to the job only when that cannot put its motion right in time; it flies
        round an asteroid in its way; and it closes at doctrine's
        `clawSpeed` (15 m/s by default, evolvable), not the speed it closes on an enemy. With a third Salvager
        in the Mining scene, over 39 runs, wrecked or broken ships went from 25 to 10 and those holding rock
-       from 9 to 24. Left from it:
+       from 9 to 24. Since:
        - **A loaded Salvager broke up on any touch but the claw's**, and on a claw that glanced: every
          contact was stopped in one step, putting a few hundred kN·s through one seam. Now rock gives,
          as a damper, and a claw stabs in on a spring and damper, biting by how hard it is pushed back
          (§4 Collision). With a third Salvager over 60 runs, wrecked or broken went from 21 to 5 and
-         holding rock from 24 to 39. What is left is mostly crossing the field fast — wrecks, which do
-         not give, among it — and a Salvager running into another anchored to the same rock.
+         holding rock from 24 to 39.
        - **Coming in along a face's normal is built**, reopened by the author for a 50 m Replicator that
          could not grip a rock any other way (DESIGN.md, Status). It was tried before and measured worse, lining
          ships up on faces that then changed under them as the rock was mined; now a face is chosen again
@@ -196,13 +173,10 @@ an entry is either still open or it is gone.
        Asteroids weld to each other on a slow touch, judged by how fast they met (`rockTouch`), a minor
        onto a major riding its rail and two majors never. Robots left on a rock when their ship is parted
        from it are stranded there with what they carry, rather than lost, and go aboard the ship that left
-       them, or any of its side, once one moors there with a berth for them. Left from it:
-       - **A claw on a wreck still merges**, and so tows it. Mooring to wrecks too was the author's first
-         wish, put off: stripping a wreck spills stores, takes loose metal and refits, which rock never does,
-         and a pinned mooring would end towing.
-       - **A blow that knocks a ship off usually breaks it too**: a claw's seam is about as strong as the
-         hull's own welds, so what parts the grip tends to tear a piece off as well, bays and their robots
-         with it.
+       them, or any of its side, once one moors there with a berth for them.
+    7. **Fit frames a scavenger with what it is closing on** — the one thing left before step 15 is done: the
+       asteroid or hulk, as it frames a ship with what it is attacking. Framing follows what a ship is fighting
+       and escorting, not its errand. Everything else left from mining is in §12, for later.
 
 ### Not started — in order
 
@@ -480,6 +454,29 @@ Deliberately unresolved; decide when they block something.
   wreck, or docked port to port, is treated as the whole body: guns aim at any part of it, the selection
   ring goes round all of it, and the side's tile shows the bigger thing. A fighter on a pad and a miner on
   an asteroid no longer are: each keeps its own body, parked or moored (step 15, slice 6).
+- **Mining, left for later (step 15).** Put off by the author until mining is picked up again:
+  - **A major's pull keeps mains-only ships off it.** Jaws first, a ship with no thrust astern of its jaws
+    cannot hold off a gravitating asteroid and lands by falling, so scavenging passes over a major whose
+    surface pull its ship cannot beat (`holdsOff`). The stock Salvager has much the same thrust every way.
+  - **Matching an orbit before turning the jaws on** is asteroids' alone; whether every claw approach
+    should do it, wrecks drifting too, is open, and would move the claw goldens.
+  - **Replicators prey on each other once copies are out.** A claw ship counts an enemy that cannot shoot
+    back as a source, and drinking one is far quicker than mining rock, so after the first copies are let
+    go, at about nine and a half minutes, they go for the other side's rather than for rock. Left as
+    measured; a doctrine weight for live enemies as sources would stop it.
+  - **Two claw ships going for each other run away**: each asks to match the other's motion and close on
+    it, so between them they speed up without end, past 900 m/s over half an hour.
+  - **A fighter landing on a moored carrier does not steer round its rock**: one whose way to the pad goes
+    round the rock never gets there. The Prospector's pad is astern for that reason.
+  - **A Prospector knocked off its rock hides** from armed enemies rather than going back to mine. A
+    Dinky's ram, once its gun is shot off (`ramArmed`), is what knocks an outpost off.
+  - **Grabbing still costs ships** crossing the field fast — wrecks, which do not give, among it — and
+    running into another ship anchored to the same rock.
+  - **A claw on a wreck still merges**, and so tows it. Mooring to wrecks too was the author's first wish,
+    put off: stripping a wreck spills stores, takes loose metal and refits, which rock never does, and a
+    pinned mooring would end towing.
+  - **A blow that knocks a ship off usually breaks it too**: a claw's seam is about as strong as the hull's
+    own welds, so what parts the grip tends to tear a piece off as well, bays and their robots with it.
 - **Mining's numbers.** All first guesses: surface gravity (0.5 m/s² by default), rock seam strength (a hull
   plate's), `MINING_POWER` (3× the charge of stripping scrap), a claw's heating at 1 kg of fuel a second
   for 5 MJ a kilogram, and how fast asteroids spin (majors 0.002 rad/s at most, minors 0.01, slow
