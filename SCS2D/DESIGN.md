@@ -1043,7 +1043,7 @@ inside any one file is not contiguous.
   reinforced and armed only with two light turrets, so its fighters do the fighting. In the
   `beamCarrier` scenario its tender, above the carrier's `refuelBelow` of a tenth, casts off at once to scavenge
   from two wrecks, and once full brings what it holds over three fifths back to the carrier; its fighters fight
-  a wave of four TIEs on their batteries and come back to the pads, leaving with every store full.
+  a wave of eight Dinkies on their batteries and come back to the pads, leaving with every store full.
   **Metal.** A `hold` archetype whose interior is metal (`METAL_DENSITY`, steel racked about half solid), and
   a twentieth of every core's interior past its computing (`CORE_METAL_SHARE`), the rest of it still fuel, so
   a bare core with one gun can fire a few rounds. A gun loads each round whole from the holds and cores on its
