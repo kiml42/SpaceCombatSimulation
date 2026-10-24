@@ -56,7 +56,7 @@ an entry is either still open or it is gone.
 | 12 | In-battle construction | Built |
 | 13 | Harvesting wrecks | Built |
 | 14 | Orders | Built |
-| 15 | Mining | Partly built |
+| 15 | Mining | Built |
 | 16 | Campaign | Not started |
 | 17 | React UI | Not started |
 | 18 | WebGL viewer | Not started |
@@ -64,119 +64,7 @@ an entry is either still open or it is gone.
 
 ### Partly built — what is left
 
-15. **Mining** — metal and fuel from asteroids, so maps have economic character. By here both resources
-    exist, so this step is the map and the income, not the resources. *It replaces "did I spend 500 points
-    well?" with "did I manage income well?"* Mining is too slow to matter with an enemy there from the start;
-    the campaign will add lulls to set up a mine in. Here it is only a way to get resources mid-battle, and
-    everything that spends them stays as it is.
-
-    **As settled:**
-
-    - **Majors and minors.** A major has a **kernel**: a module kind of its own, not a ship's core. It is
-      indestructible, unminable, on no side and never a ship. Its outline is a convex polygon of up to about
-      12 corners. Corners live on a module's spec, so only scratch is sized for twelve; ship modules keep
-      `MAX_CORNERS` at 4. A minor is rock
-      alone, an ordinary free body.
-    - **A kernel carries a well and a rail.** Its GM is set from a surface gravity, not from its mass, which
-      only sets how it spins. It is pinned to its rail and free to rotate. A rail is a Kepler ellipse, a
-      function of the step count, in a hierarchy of two-body pairs: three or more majors are laid out so
-      pairs can be treated as one body orbiting another. The generator keeps closest approaches clear.
-      Wells move with their kernels, so a `WellSpec` stops being constant.
-    - **Rock** is one module kind with ore, ice and worthless fractions, varied across an asteroid. Its
-      colour shows the mix: white for ice, grey for ore, brown for the rest. An asteroid is a disc, 10 m
-      deep, its outermost ring a deck deep. It is cut in rings of wedges
-      round the kernel (or a minor's centre), bounded per asteroid. It is damaged like structure, what is
-      shed is lost, and its seams are hull strength or weaker, like a rubble pile, so a chunk knocked off is
-      a free minor. Rock strips completely; the kernel stays.
-    - **Waste is the worthless fraction**, plus the existing conversion loss. No hidden refining loss.
-    - **Robots mine both**, metal and fuel, into one 1,000 kg hold with a movable partition, and the bay
-      takes it aboard. It costs more power than stripping scrap. The claw is only an anchor, so how far the
-      robots walk is what makes a miner move.
-    - **A claw with no robots heats rock** with power and drinks the melt: fuel only, slower and dearer
-      than robots. The module stays until stripped.
-    - **A miner moors to an asteroid**, as a fighter parks on a pad: it keeps its own body and design, pinned
-      to the rock and riding its rail with it, and its robots cross onto the rock to mine it. A blow beyond
-      its claw's grip knocks it off; robots it leaves there are stranded and go aboard the next ship of their
-      side to moor there with a berth for them. Rock meeting rock slowly welds, a minor onto a major riding
-      its rail.
-    - **Scavenging covers rock.** No new verb; an evolvable doctrine weight sets rock against wrecks.
-    - **Maps are generated from the seed, in every mode, defaulting to none**, so no golden moves. Settings:
-      major count and size, minor count and size (a radius with a spread), eccentricity (a most, drawn per
-      pair), surface gravity, and richness in metal and in fuel separately. Sides are placed as now and the
-      generator keeps clear of them. A plain evolution run draws a new map every match; the skirmish has
-      one map per round, from its seed, the enemy bred on it, and each round's settings drawn from ranges
-      the player sets.
-    - **In the viewer** an asteroid is never framed automatically and gets no arrowhead or tile. Picking
-      one frames it and shows the metal, fuel and worthless rock left; with Scavenge armed a click gives
-      the order. The kernel is drawn distinctly.
-
-    **Slices**, a PR each:
-
-    1. **Kernels and rails** — built, in two PRs: wells moved by `Railway` (`sim/rails.ts`), and the
-       `kernel` module (`sim/asteroid.ts`), on a pinned body its rail places every step; the Binary and
-       Kernels scenes and their goldens.
-    2. **Rock and the generator**, in two PRs:
-       - **2a. Rock and the map** — built: the `rock` module (ore and ice shares, a triangle or a convex
-         quadrilateral, solid, seams a hull plate's strength), asteroids of wedge rings drawn from a seed
-         (`asteroidBlueprint`), the map generator (`sim/map.ts`) and `makeBattle`'s `map`, which draws it
-         clear of the ships once they are placed; the Asteroid Field scene and its golden. A hull cut in two
-         keeps its pin on the kernel's piece, and rock knocked off goes free.
-       - **2b. The settings in every mode** — built: an Asteroids card on the custom battle, the evolution
-         page (and `--map`, and a run file's `match.map`) and the skirmish, all defaulting to none. A plain
-         run draws a new map every match; a skirmish round's is drawn from its seed, each setting from its
-         ±, and every match the enemy is bred in for it is fought on that round's map whatever its own seed
-         (`BattleSetup.mapSeed`).
-    3. **Mining**, in two PRs:
-       - **3a. Asteroids as discs** — built: thick rock and kernels are 10 m deep (`ASTEROID_DEPTH`), and
-         an asteroid's outermost ring is thin rubble, a deck deep, that fighters fly over and mining clears
-         first.
-       - **3b. Robots mine** — built. Robots carry ore smelted to metal and ice melted to fuel in one hold
-         (`ROBOT_LOAD`), mining rock for `MINING_POWER` times the charge wreckage takes, the worthless
-         share lost; a claw with no robots melts ice alone (`CLAW_HEAT_RATE`, `CLAW_HEAT_ENERGY`). A claw
-         anchors to a pinned major, which keeps riding its rail with the miner on it (slice 6 since made
-         that a mooring). Scavenging values an asteroid by what its rock holds, weighed by doctrine's
-         `rockWeight` (evolvable), and the trip there by `tripWeight` (evolvable, ten by default), so a long
-         job does not send a miner across the map for a few per cent more ore. A claw ship closing on an
-         asteroid matches its motion on its mains before turning its jaws to it. The Mining scene and its golden.
-    4. **Viewer and demo**, in two PRs:
-       - **4a. Picking and mining an asteroid** — built: an asteroid picked out alone is framed, and a card
-         over the battle says how much rock, ore and ice is left in it (`ShipView.rock`). Scavenge takes an
-         asteroid as its target, and a right-click on one tells the picked ships with claws to mine it; the
-         rest keep what they were doing. The camera already leaves asteroids out of shot, as it does
-         anything nobody flies, unless nothing else is left.
-       - **4b. The demo** — built: the Rival Mines scene and golden. First a Prospector each side — a
-         Salvager whose main is split either side of a pad astern that keeps two Dinkies — and now a
-         Replicator, the author's self-replicating miner, on each of a pair of eccentric majors with no
-         minors, nothing armed: each anchors to its own rock, mines it, and builds copies of itself there.
-    5. **Grabbing an asteroid survivably** — built. A claw ship closes jaws first all the way, braking
-       astern, and turns its mains to the job only when that cannot put its motion right in time; it flies
-       round an asteroid in its way; and it closes at doctrine's
-       `clawSpeed` (15 m/s by default, evolvable), not the speed it closes on an enemy. With a third Salvager
-       in the Mining scene, over 39 runs, wrecked or broken ships went from 25 to 10 and those holding rock
-       from 9 to 24. Since:
-       - **A loaded Salvager broke up on any touch but the claw's**, and on a claw that glanced: every
-         contact was stopped in one step, putting a few hundred kN·s through one seam. Now rock gives,
-         as a damper, and a claw stabs in on a spring and damper, biting by how hard it is pushed back
-         (§4 Collision). With a third Salvager over 60 runs, wrecked or broken went from 21 to 5 and
-         holding rock from 24 to 39.
-       - **Coming in along a face's normal is built**, reopened by the author for a 50 m Replicator that
-         could not grip a rock any other way (DESIGN.md, Status). It was tried before and measured worse, lining
-         ships up on faces that then changed under them as the rock was mined; now a face is chosen again
-         once its module is spent or the hull changes, and only faces with room in front of them count.
-         Claims (leaving a minor another ship has hold of or is making for) were tried and measured worse,
-         sending ships further through more of the field.
-       - **Arriving slower than 2.5 m/s** made no difference measured for a Salvager; a heavy ship now
-         arrives slower, as its claw's spring can stop it.
-    6. **Miners as hulls of their own** — built, in three PRs, from the author: a miner should not treat its
-       asteroid as part of its body. A claw on an asteroid moors instead of merging (`Ships.moor`), and its
-       robots cross onto the rock to mine it; a moored ship given an order calls its robots in and lets go.
-       Asteroids weld to each other on a slow touch, judged by how fast they met (`rockTouch`), a minor
-       onto a major riding its rail and two majors never. Robots left on a rock when their ship is parted
-       from it are stranded there with what they carry, rather than lost, and go aboard the ship that left
-       them, or any of its side, once one moors there with a berth for them.
-    7. **Fit frames a scavenger with what it is closing on** — the one thing left before step 15 is done: the
-       asteroid or hulk, as it frames a ship with what it is attacking. Framing follows what a ship is fighting
-       and escorting, not its errand. Everything else left from mining is in §12, for later.
+None.
 
 ### Not started — in order
 
@@ -214,6 +102,52 @@ DECISIONS.md.
 Newtonian combat feel good? do the scaling laws hold?) rather than the known ones, kept the sim boundary pure
 by construction, and put something on screen within days. The same test still picks the next step: the one
 that answers the question most likely to change the design.
+
+#### Mining (step 15)
+
+Metal and fuel from asteroids, so maps have economic character; only a way to get resources mid-battle, since
+mining is too slow to matter with an enemy there from the start, and the campaign will add lulls to set up a
+mine in. What is left of it is in §12, for later.
+
+- **Majors and minors.** A major has a **kernel**: a module kind of its own, not a ship's core. It is
+  indestructible, unminable, on no side and never a ship. Its outline is a convex polygon of up to about
+  12 corners. Corners live on a module's spec, so only scratch is sized for twelve; ship modules keep
+  `MAX_CORNERS` at 4. A minor is rock
+  alone, an ordinary free body.
+- **A kernel carries a well and a rail.** Its GM is set from a surface gravity, not from its mass, which
+  only sets how it spins. It is pinned to its rail and free to rotate. A rail is a Kepler ellipse, a
+  function of the step count, in a hierarchy of two-body pairs: three or more majors are laid out so
+  pairs can be treated as one body orbiting another. The generator keeps closest approaches clear.
+  Wells move with their kernels, so a `WellSpec` stops being constant.
+- **Rock** is one module kind with ore, ice and worthless fractions, varied across an asteroid. Its
+  colour shows the mix: white for ice, grey for ore, brown for the rest. An asteroid is a disc, 10 m
+  deep, its outermost ring a deck deep. It is cut in rings of wedges
+  round the kernel (or a minor's centre), bounded per asteroid. It is damaged like structure, what is
+  shed is lost, and its seams are hull strength or weaker, like a rubble pile, so a chunk knocked off is
+  a free minor. Rock strips completely; the kernel stays.
+- **Waste is the worthless fraction**, plus the existing conversion loss. No hidden refining loss.
+- **Robots mine both**, metal and fuel, into one 1,000 kg hold with a movable partition, and the bay
+  takes it aboard. It costs more power than stripping scrap. The claw is only an anchor, so how far the
+  robots walk is what makes a miner move.
+- **A claw with no robots heats rock** with power and drinks the melt: fuel only, slower and dearer
+  than robots. The module stays until stripped.
+- **A miner moors to an asteroid**, as a fighter parks on a pad: it keeps its own body and design, pinned
+  to the rock and riding its rail with it, and its robots cross onto the rock to mine it. A blow beyond
+  its claw's grip knocks it off; robots it leaves there are stranded and go aboard the next ship of their
+  side to moor there with a berth for them. Rock meeting rock slowly welds, a minor onto a major riding
+  its rail.
+- **Scavenging covers rock.** No new verb; an evolvable doctrine weight sets rock against wrecks.
+- **Maps are generated from the seed, in every mode, defaulting to none**, so no golden moves. Settings:
+  major count and size, minor count and size (a radius with a spread), eccentricity (a most, drawn per
+  pair), surface gravity, and richness in metal and in fuel separately. Sides are placed as now and the
+  generator keeps clear of them. A plain evolution run draws a new map every match; the skirmish has
+  one map per round, from its seed, the enemy bred on it, and each round's settings drawn from ranges
+  the player sets.
+- **In the viewer** an asteroid is never framed automatically and gets no arrowhead or tile. Picking
+  one shows the metal, fuel and worthless rock left, and Fit frames it; with Scavenge armed a click gives
+  the order. The kernel is drawn distinctly.
+- **Fit frames a picked ship with what it is about**: what it is fighting, escorting, and the asteroid
+  or hulk it is scavenging. Picking a ship never moves the camera; Fit (F) does.
 
 #### Orders (step 14)
 
