@@ -117,7 +117,7 @@ export interface BattleView {
   /** Hold the battle and take one step. */
   step(): void;
   setSpeed(speed: number): void;
-  /** Frame everything again, and keep it framed. */
+  /** Frame the picked ships and what they are about, or everything if none are, and keep it framed. */
   fit(): void;
   /**
    * Remember this page's arcs, shot colours and speed between visits, taking
@@ -249,6 +249,8 @@ export function battleView(
   /** A box being dragged out, canvas pixels. */
   let box: { x0: number; y0: number; x1: number; y1: number } | null = null;
   let autoFrame = true;
+  /** Whether auto-framing takes in the picked ships, as Fit asks, rather than everything; picking alone never does. */
+  let framePicked = false;
   let framed = false;
   let running = false;
   let speed = 1;
@@ -349,7 +351,6 @@ export function battleView(
       // A tile standing for a side's fighters of one design picks them all.
       const tile = shift ? null : overlayTileAt(shownStrips, shownInsets, camera, canvas.width, canvas.height, x, y);
       picked = tile !== null && tile.count > 1 ? fighterGroup(snapshot, ship) : clicked(snapshot, picked, ship, shift);
-      if (picked.length > 0) autoFrame = true;
     },
     {
       commanded(x, y, reach, queue) {
@@ -374,7 +375,6 @@ export function battleView(
       boxed(x0, y0, x1, y1) {
         if (!ordersAllowed) return;
         picked = boxed(snapshot, picked, x0, y0, x1, y1);
-        if (picked.length > 0) autoFrame = true;
       },
       boxing(next) {
         box = ordersAllowed ? next : null;
@@ -525,6 +525,7 @@ export function battleView(
       if (orderSide(snapshot) !== null) issue({ kind: 'stop', ships: picked });
     } else if (event.key === 'f' || event.key === 'F') {
       autoFrame = true;
+      framePicked = true;
     } else if (event.key.toLowerCase() === TEAM_SHOTS_KEY && !event.ctrlKey && !event.metaKey) {
       teamShots = !teamShots;
       remember();
@@ -617,7 +618,7 @@ export function battleView(
         framed = true;
       }
       // Framed exactly across a jump, rather than eased there in real time.
-      frame(camera, pickedBounds(view, picked) ?? view, framedWidth, canvas.height, jumped ? 1 : undefined);
+      frame(camera, (framePicked ? pickedBounds(view, picked) : null) ?? view, framedWidth, canvas.height, jumped ? 1 : undefined);
     }
 
     // Flashes fade on the battle's clock, so a paused battle holds them.
@@ -690,6 +691,7 @@ export function battleView(
       seeking = -1;
       framed = false;
       autoFrame = true;
+      framePicked = false;
       accumulator = 0;
       lastSimTime = 0;
       setRunning(run);
@@ -775,6 +777,7 @@ export function battleView(
     },
     fit() {
       autoFrame = true;
+      framePicked = true;
     },
     keep(page, select) {
       const settings = loadView(page, { arcs, teamShots, strips, speed });
