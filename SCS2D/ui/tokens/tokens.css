@@ -1,0 +1,46 @@
+:root {
+    color-scheme: dark;
+
+    /**
+     * @tokens Colours
+     * @presenter Color
+     */
+    --colour-background: #0b0f16;
+    --colour-surface: #1a2434;
+    --colour-surface-hover: #223044;
+    --colour-border: #1c2533;
+    --colour-control-border: #2b3a50;
+    --colour-text: #c8d3e0;
+    --colour-heading: #e6edf5;
+    --colour-muted: #8fa2b8;
+    --colour-faint: #5d6f85;
+    --colour-link: #7fa8e0;
+
+    /**
+     * @tokens Font
+     * @presenter FontFamily
+     */
+    --font-mono: ui-monospace, sfmono-regular, menlo, consolas, monospace;
+
+    /**
+     * @tokens Font sizes
+     * @presenter FontSize
+     */
+    --font-size-body: 13px;
+    --font-size-small: 11px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: var(--colour-background);
+    color: var(--colour-text);
+    font: var(--font-size-body) / 1.5 var(--font-mono);
+}
+
+a {
+    color: var(--colour-link);
+}

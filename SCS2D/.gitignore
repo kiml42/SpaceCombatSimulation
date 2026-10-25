@@ -7,3 +7,4 @@ dist/
 
 # Evolution run records: large, reproducible from their config and seed.
 runs/
+storybook-static/

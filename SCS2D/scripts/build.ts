@@ -14,12 +14,9 @@ import { BLUEPRINT_DIR, syncFleetsAndLog } from "./syncFleets.js";
  * external scripts outright.
  *
  * `--watch` rebuilds on save, so tinkering costs a browser refresh rather than
- * a command. That is the whole of it: no dev server, no live reload, no asset
- * pipeline. The line this file must not cross is drawn in DESIGN.md §9, and it
- * is aimed at tooling that has to be understood before the game can be worked
- * on. Rebuilding the same bundle when a file changes does not qualify;
- * anything that needs configuring, or that puts a process between the author
- * and the output, does.
+ * a command. `pnpm dev` runs it beside Vite's dev server, which serves these
+ * pages next to the React app. Goes once every page has moved into the app
+ * (ROADMAP.md §8 step 16, stage 8).
  */
 
 const here = dirname(fileURLToPath(import.meta.url));
