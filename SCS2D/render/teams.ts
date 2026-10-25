@@ -16,31 +16,31 @@
  * side far off beats one grey shared with every neutral and every wreck.
  */
 const TEAM_COLOURS = [
-  {
-    hull: '#5b8dd6',
-    trim: '#a8c8f0',
-    pivot: '#2c4a72',
-  },
-  {
-    hull: '#d65b5b',
-    trim: '#f0a8a8',
-    pivot: '#722c2c',
-  },
-  {
-    hull: '#5bd66f',
-    trim: '#a8f0b4',
-    pivot: '#2c7238',
-  },
-  {
-    hull: '#d65bd6',
-    trim: '#f0a8f0',
-    pivot: '#722c72',
-  },
+    {
+        hull: "#5b8dd6",
+        trim: "#a8c8f0",
+        pivot: "#2c4a72",
+    },
+    {
+        hull: "#d65b5b",
+        trim: "#f0a8a8",
+        pivot: "#722c2c",
+    },
+    {
+        hull: "#5bd66f",
+        trim: "#a8f0b4",
+        pivot: "#2c7238",
+    },
+    {
+        hull: "#d65bd6",
+        trim: "#f0a8f0",
+        pivot: "#722c72",
+    },
 ];
 export const NEUTRAL = {
-  hull: '#8a8a8a',
-  trim: '#c4c4c4',
-  pivot: '#4a4a4a',
+    hull: "#8a8a8a",
+    trim: "#c4c4c4",
+    pivot: "#4a4a4a",
 };
 
 type Palette = (typeof TEAM_COLOURS)[number];
@@ -56,47 +56,47 @@ const FIGHTER_SHADE = 0.5;
 const FIGHTER_PIVOT = 0.7;
 
 function channel(hex: string, k: number): number {
-  return parseInt(hex.slice(k, k + 2), 16);
+    return parseInt(hex.slice(k, k + 2), 16);
 }
 
 function toHex(r: number, g: number, b: number): string {
-  return `#${[r, g, b].map((c) => Math.round(c).toString(16).padStart(2, '0')).join('')}`;
+    return `#${[r, g, b].map((c) => Math.round(c).toString(16).padStart(2, "0")).join("")}`;
 }
 
 function towards(hex: string, dark: string, share: number): string {
-  const mix = (k: number): number => channel(hex, k) + (channel(dark, k) - channel(hex, k)) * share;
-  return toHex(mix(1), mix(3), mix(5));
+    const mix = (k: number): number => channel(hex, k) + (channel(dark, k) - channel(hex, k)) * share;
+    return toHex(mix(1), mix(3), mix(5));
 }
 
 function shaded(palette: Palette): Palette {
-  return {
-    hull: towards(palette.hull, palette.pivot, FIGHTER_SHADE),
-    trim: towards(palette.trim, palette.pivot, FIGHTER_SHADE),
-    pivot: towards(palette.pivot, '#000000', 1 - FIGHTER_PIVOT),
-  };
+    return {
+        hull: towards(palette.hull, palette.pivot, FIGHTER_SHADE),
+        trim: towards(palette.trim, palette.pivot, FIGHTER_SHADE),
+        pivot: towards(palette.pivot, "#000000", 1 - FIGHTER_PIVOT),
+    };
 }
 
 const FIGHTER_COLOURS = TEAM_COLOURS.map(shaded);
 const NEUTRAL_FIGHTER = shaded(NEUTRAL);
 
 export function shipColours(team: number): Palette {
-  // Below zero is nobody's side (`NEUTRAL_TEAM`, the editor's `NO_TEAM`).
-  return team < 0 ? NEUTRAL : TEAM_COLOURS[team % TEAM_COLOURS.length]!;
+    // Below zero is nobody's side (`NEUTRAL_TEAM`, the editor's `NO_TEAM`).
+    return team < 0 ? NEUTRAL : TEAM_COLOURS[team % TEAM_COLOURS.length]!;
 }
 
 /** A side's colours for a fighter: its ships', a shade darker. */
 export function fighterColours(team: number): Palette {
-  return team < 0 ? NEUTRAL_FIGHTER : FIGHTER_COLOURS[team % FIGHTER_COLOURS.length]!;
+    return team < 0 ? NEUTRAL_FIGHTER : FIGHTER_COLOURS[team % FIGHTER_COLOURS.length]!;
 }
 
-const TEAM_NAMES = ['Blue', 'Red', 'Green', 'Magenta'];
+const TEAM_NAMES = ["Blue", "Red", "Green", "Magenta"];
 
 /** A side's name, which is its colour's; empty for nobody's side. */
 export function teamName(team: number): string {
-  return team < 0 ? '' : TEAM_NAMES[team % TEAM_NAMES.length]!;
+    return team < 0 ? "" : TEAM_NAMES[team % TEAM_NAMES.length]!;
 }
 
 /** A side's hull colour, for anything that names the side outside the picture. */
 export function teamColour(team: number): string {
-  return shipColours(team).hull;
+    return shipColours(team).hull;
 }

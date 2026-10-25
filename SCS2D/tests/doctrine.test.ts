@@ -1,33 +1,33 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from "vitest";
 import {
-  APPROACH_FIELDS,
-  Bodies,
-  Choice,
-  DEFAULT_DOCTRINE,
-  defaultTargeting,
-  DOCTRINE_FIELDS,
-  TARGETING_FIELDS,
-  Ships,
-  World,
-  blueprintFileProblem,
-  compileBlueprint,
-  doctrineProblem,
-  doctrineUnread,
-  inSight,
-  look,
-  parseBlueprint,
-  score,
-  serialiseBlueprint,
-  serialiseDoctrine,
-  toDoctrine,
-  type Blueprint,
-  type Candidate,
-  type Doctrine,
-  type Targeting,
-} from '../sim/index.js';
-import { CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
-import { makeBattle } from '../scenarios/battle.js';
-import { OrderCancelCondition } from '../sim/ships.js';
+    APPROACH_FIELDS,
+    Bodies,
+    Choice,
+    DEFAULT_DOCTRINE,
+    defaultTargeting,
+    DOCTRINE_FIELDS,
+    TARGETING_FIELDS,
+    Ships,
+    World,
+    blueprintFileProblem,
+    compileBlueprint,
+    doctrineProblem,
+    doctrineUnread,
+    inSight,
+    look,
+    parseBlueprint,
+    score,
+    serialiseBlueprint,
+    serialiseDoctrine,
+    toDoctrine,
+    type Blueprint,
+    type Candidate,
+    type Doctrine,
+    type Targeting,
+} from "../sim/index.js";
+import { CORVETTE, DINKY, GUNSHIP } from "../scenarios/blueprints.js";
+import { makeBattle } from "../scenarios/battle.js";
+import { OrderCancelCondition } from "../sim/ships.js";
 
 /**
  * What a craft does when nobody is telling it anything.
@@ -38,495 +38,495 @@ import { OrderCancelCondition } from '../sim/ships.js';
  */
 
 const candidate = (over: Partial<Candidate> = {}): Candidate => ({
-  ship: 1,
-  range: 500,
-  closing: 0,
-  mass: 100_000,
-  armed: true,
-  mobile: true,
-  facing: 1,
-  clear: true,
-  ...over,
+    ship: 1,
+    range: 500,
+    closing: 0,
+    mass: 100_000,
+    armed: true,
+    mobile: true,
+    facing: 1,
+    clear: true,
+    ...over,
 });
 
-describe('a doctrine as written down', () => {
-  it('is two halves of named numbers, every one of them reachable', () => {
-    // Named, so a person can read the file; numbers, so evolution can mutate
-    // it. Two halves, because choosing what to fight and deciding how to
-    // fight it are different problems — and a turret, which picks its own
-    // target and manoeuvres nowhere, wants only the first.
-    for (const field of TARGETING_FIELDS) {
-      expect(typeof DEFAULT_DOCTRINE.targeting[field]).toBe('number');
-    }
-    for (const field of APPROACH_FIELDS) {
-      expect(typeof DEFAULT_DOCTRINE.approach[field]).toBe('number');
-    }
-    expect(new Set(DOCTRINE_FIELDS).size).toBe(DOCTRINE_FIELDS.length);
-    expect(Object.keys(DEFAULT_DOCTRINE.targeting).sort()).toEqual([...TARGETING_FIELDS].sort());
-    expect(Object.keys(DEFAULT_DOCTRINE.approach).sort()).toEqual([...APPROACH_FIELDS].sort());
-  });
-
-  it('fills in whatever a file leaves out, in either half', () => {
-    const partial = toDoctrine({ approach: { standoff: 2 } });
-    expect(partial.approach.standoff).toBe(2);
-    expect(partial.approach.approachSpeed).toBe(DEFAULT_DOCTRINE.approach.approachSpeed);
-    expect(partial.targeting).toEqual(DEFAULT_DOCTRINE.targeting);
-  });
-
-  it('refuses what it cannot read, and says which half', () => {
-    expect(doctrineProblem(undefined)).toBeNull();
-    expect(doctrineProblem({ approach: { standoff: 1.2 } })).toBeNull();
-    expect(doctrineProblem({ approach: { standoff: 'close' } })).toMatch(/approach\.standoff/);
-    // A key it does not know is not unreadable: it is kept and warned about.
-    expect(doctrineProblem({ targeting: { aggression: 3 } })).toBeNull();
-    expect(doctrineProblem({ aggression: 3 })).toBeNull();
-    expect(doctrineUnread({ aggression: 3, targeting: { aggression: 4, proximityWeight: 1 } })).toEqual({
-      aggression: 3,
-      targeting: { aggression: 4 },
+describe("a doctrine as written down", () => {
+    it("is two halves of named numbers, every one of them reachable", () => {
+        // Named, so a person can read the file; numbers, so evolution can mutate
+        // it. Two halves, because choosing what to fight and deciding how to
+        // fight it are different problems — and a turret, which picks its own
+        // target and manoeuvres nowhere, wants only the first.
+        for (const field of TARGETING_FIELDS) {
+            expect(typeof DEFAULT_DOCTRINE.targeting[field]).toBe("number");
+        }
+        for (const field of APPROACH_FIELDS) {
+            expect(typeof DEFAULT_DOCTRINE.approach[field]).toBe("number");
+        }
+        expect(new Set(DOCTRINE_FIELDS).size).toBe(DOCTRINE_FIELDS.length);
+        expect(Object.keys(DEFAULT_DOCTRINE.targeting).sort()).toEqual([...TARGETING_FIELDS].sort());
+        expect(Object.keys(DEFAULT_DOCTRINE.approach).sort()).toEqual([...APPROACH_FIELDS].sort());
     });
-    expect(doctrineProblem({ targeting: { preferredMass: 0 } })).toMatch(/greater than zero/);
-    expect(doctrineProblem({ approach: { standoffRadii: -2 } })).toMatch(/greater than zero/);
-    expect(doctrineProblem({ approach: { accelerate: 0 } })).toMatch(/greater than zero/);
-    expect(doctrineProblem({ approach: { brake: 0 } })).toMatch(/greater than zero/);
-    expect(doctrineProblem([])).toMatch(/object/);
-  });
 
-  it('writes down only what it says differently from the default', () => {
-    // So a file stays short, and a default that moves later moves for every
-    // ship that never had an opinion about it.
-    expect(serialiseDoctrine(DEFAULT_DOCTRINE)).toBeUndefined();
-    const keener = {
-      ...DEFAULT_DOCTRINE,
-      approach: { ...DEFAULT_DOCTRINE.approach, standoff: 2 },
-    };
-    expect(serialiseDoctrine(keener)).toEqual({ approach: { standoff: 2 } });
-  });
-
-  it('survives a trip through a blueprint file', () => {
-    const blueprint = {
-      ...CORVETTE,
-      doctrine: toDoctrine({ approach: { standoff: 1.4 }, targeting: { armedWeight: 90 } }),
-    };
-    const file = serialiseBlueprint(blueprint);
-    expect(file['doctrine']).toEqual({ targeting: { armedWeight: 90 }, approach: { standoff: 1.4 } });
-    expect(blueprintFileProblem(file)).toBeNull();
-    expect(parseBlueprint(file).doctrine?.approach.standoff).toBe(1.4);
-  });
-
-  it('reaches a compiled ship', () => {
-    const design = compileBlueprint({
-      ...CORVETTE,
-      doctrine: toDoctrine({ approach: { standoff: 1.4 } }),
+    it("fills in whatever a file leaves out, in either half", () => {
+        const partial = toDoctrine({ approach: { standoff: 2 } });
+        expect(partial.approach.standoff).toBe(2);
+        expect(partial.approach.approachSpeed).toBe(DEFAULT_DOCTRINE.approach.approachSpeed);
+        expect(partial.targeting).toEqual(DEFAULT_DOCTRINE.targeting);
     });
-    expect(design.doctrine.approach.standoff).toBe(1.4);
-    // The Dinky's hull block says how a fighter flies — in close, and onto
-    // the target when it can — and its gun's says where to shoot: engines
-    // above the guns the default puts first.
-    //
-    // The aim weight is on its gun rather than on its hull, which is where a
-    // doctrine's aim weights have to live: a ship chooses a ship, and only a
-    // mount chooses a part of one, so a hull block saying `engineWeight`
-    // would be a number nothing ever read.
-    const dinky = compileBlueprint(DINKY).doctrine;
-    expect(dinky).toEqual(DINKY.doctrine);
-    expect(dinky.approach.ramRadii).toBeGreaterThan(0);
-    expect(dinky.targeting.engineWeight).toBe(DEFAULT_DOCTRINE.targeting.engineWeight);
-    const gun = compileBlueprint(DINKY).turrets[0]!.targeting;
-    expect(gun).toEqual({ ...defaultTargeting('hullGun'), engineWeight: 150, facingWeight: 100, sightWeight: 100 });
-    expect(gun.engineWeight).toBeGreaterThan(gun.gunWeight);
-  });
+
+    it("refuses what it cannot read, and says which half", () => {
+        expect(doctrineProblem(undefined)).toBeNull();
+        expect(doctrineProblem({ approach: { standoff: 1.2 } })).toBeNull();
+        expect(doctrineProblem({ approach: { standoff: "close" } })).toMatch(/approach\.standoff/);
+        // A key it does not know is not unreadable: it is kept and warned about.
+        expect(doctrineProblem({ targeting: { aggression: 3 } })).toBeNull();
+        expect(doctrineProblem({ aggression: 3 })).toBeNull();
+        expect(doctrineUnread({ aggression: 3, targeting: { aggression: 4, proximityWeight: 1 } })).toEqual({
+            aggression: 3,
+            targeting: { aggression: 4 },
+        });
+        expect(doctrineProblem({ targeting: { preferredMass: 0 } })).toMatch(/greater than zero/);
+        expect(doctrineProblem({ approach: { standoffRadii: -2 } })).toMatch(/greater than zero/);
+        expect(doctrineProblem({ approach: { accelerate: 0 } })).toMatch(/greater than zero/);
+        expect(doctrineProblem({ approach: { brake: 0 } })).toMatch(/greater than zero/);
+        expect(doctrineProblem([])).toMatch(/object/);
+    });
+
+    it("writes down only what it says differently from the default", () => {
+        // So a file stays short, and a default that moves later moves for every
+        // ship that never had an opinion about it.
+        expect(serialiseDoctrine(DEFAULT_DOCTRINE)).toBeUndefined();
+        const keener = {
+            ...DEFAULT_DOCTRINE,
+            approach: { ...DEFAULT_DOCTRINE.approach, standoff: 2 },
+        };
+        expect(serialiseDoctrine(keener)).toEqual({ approach: { standoff: 2 } });
+    });
+
+    it("survives a trip through a blueprint file", () => {
+        const blueprint = {
+            ...CORVETTE,
+            doctrine: toDoctrine({ approach: { standoff: 1.4 }, targeting: { armedWeight: 90 } }),
+        };
+        const file = serialiseBlueprint(blueprint);
+        expect(file["doctrine"]).toEqual({ targeting: { armedWeight: 90 }, approach: { standoff: 1.4 } });
+        expect(blueprintFileProblem(file)).toBeNull();
+        expect(parseBlueprint(file).doctrine?.approach.standoff).toBe(1.4);
+    });
+
+    it("reaches a compiled ship", () => {
+        const design = compileBlueprint({
+            ...CORVETTE,
+            doctrine: toDoctrine({ approach: { standoff: 1.4 } }),
+        });
+        expect(design.doctrine.approach.standoff).toBe(1.4);
+        // The Dinky's hull block says how a fighter flies — in close, and onto
+        // the target when it can — and its gun's says where to shoot: engines
+        // above the guns the default puts first.
+        //
+        // The aim weight is on its gun rather than on its hull, which is where a
+        // doctrine's aim weights have to live: a ship chooses a ship, and only a
+        // mount chooses a part of one, so a hull block saying `engineWeight`
+        // would be a number nothing ever read.
+        const dinky = compileBlueprint(DINKY).doctrine;
+        expect(dinky).toEqual(DINKY.doctrine);
+        expect(dinky.approach.ramRadii).toBeGreaterThan(0);
+        expect(dinky.targeting.engineWeight).toBe(DEFAULT_DOCTRINE.targeting.engineWeight);
+        const gun = compileBlueprint(DINKY).turrets[0]!.targeting;
+        expect(gun).toEqual({ ...defaultTargeting("hullGun"), engineWeight: 150, facingWeight: 100, sightWeight: 100 });
+        expect(gun.engineWeight).toBeGreaterThan(gun.gunWeight);
+    });
 });
 
-describe('what a ship is worth shooting at', () => {
-  const doctrine: Targeting = { ...DEFAULT_DOCTRINE.targeting, loyaltyWeight: 20 };
-  const REACH = 1000;
+describe("what a ship is worth shooting at", () => {
+    const doctrine: Targeting = { ...DEFAULT_DOCTRINE.targeting, loyaltyWeight: 20 };
+    const REACH = 1000;
 
-  it('prefers what is closer', () => {
-    const near = score(doctrine, candidate({ range: 200 }), REACH, 100_000, -1);
-    const far = score(doctrine, candidate({ range: 800 }), REACH, 100_000, -1);
-    expect(near).toBeGreaterThan(far);
-  });
+    it("prefers what is closer", () => {
+        const near = score(doctrine, candidate({ range: 200 }), REACH, 100_000, -1);
+        const far = score(doctrine, candidate({ range: 800 }), REACH, 100_000, -1);
+        expect(near).toBeGreaterThan(far);
+    });
 
-  it('prefers a target its own size, whatever size it is', () => {
-    // The adaptable default: the preference is a ratio to the chooser's own
-    // mass, so the same doctrine sends a fighter after fighters and a capital
-    // after capitals with nothing said about either.
-    const OWN = 100_000;
-    const same = score(doctrine, candidate({ mass: OWN }), REACH, OWN, -1);
-    const bigger = score(doctrine, candidate({ mass: OWN * 8 }), REACH, OWN, -1);
-    const smaller = score(doctrine, candidate({ mass: OWN / 8 }), REACH, OWN, -1);
-    expect(same).toBeGreaterThan(bigger);
-    expect(same).toBeGreaterThan(smaller);
-  });
+    it("prefers a target its own size, whatever size it is", () => {
+        // The adaptable default: the preference is a ratio to the chooser's own
+        // mass, so the same doctrine sends a fighter after fighters and a capital
+        // after capitals with nothing said about either.
+        const OWN = 100_000;
+        const same = score(doctrine, candidate({ mass: OWN }), REACH, OWN, -1);
+        const bigger = score(doctrine, candidate({ mass: OWN * 8 }), REACH, OWN, -1);
+        const smaller = score(doctrine, candidate({ mass: OWN / 8 }), REACH, OWN, -1);
+        expect(same).toBeGreaterThan(bigger);
+        expect(same).toBeGreaterThan(smaller);
+    });
 
-  it('measures size as a ratio, so wrong in either direction is wrong alike', () => {
-    // Half my mass and twice my mass are equally wrong; ten tonnes is a
-    // rounding error to one ship and the whole of another.
-    const OWN = 100_000;
-    const half = score(doctrine, candidate({ mass: OWN / 2 }), REACH, OWN, -1);
-    const double = score(doctrine, candidate({ mass: OWN * 2 }), REACH, OWN, -1);
-    expect(half).toBeCloseTo(double, 9);
-  });
+    it("measures size as a ratio, so wrong in either direction is wrong alike", () => {
+        // Half my mass and twice my mass are equally wrong; ten tonnes is a
+        // rounding error to one ship and the whole of another.
+        const OWN = 100_000;
+        const half = score(doctrine, candidate({ mass: OWN / 2 }), REACH, OWN, -1);
+        const double = score(doctrine, candidate({ mass: OWN * 2 }), REACH, OWN, -1);
+        expect(half).toBeCloseTo(double, 9);
+    });
 
-  it('can be pointed at another weight class entirely', () => {
-    // A torpedo boat that only wants capitals, said without a mechanism of
-    // its own: "what I go for is fifty times my own mass".
-    const hunter: Targeting = { ...doctrine, preferredMass: 50 };
-    const OWN = 10_000;
-    const capital = score(hunter, candidate({ mass: OWN * 50 }), REACH, OWN, -1);
-    const peer = score(hunter, candidate({ mass: OWN }), REACH, OWN, -1);
-    expect(capital).toBeGreaterThan(peer);
-  });
+    it("can be pointed at another weight class entirely", () => {
+        // A torpedo boat that only wants capitals, said without a mechanism of
+        // its own: "what I go for is fifty times my own mass".
+        const hunter: Targeting = { ...doctrine, preferredMass: 50 };
+        const OWN = 10_000;
+        const capital = score(hunter, candidate({ mass: OWN * 50 }), REACH, OWN, -1);
+        const peer = score(hunter, candidate({ mass: OWN }), REACH, OWN, -1);
+        expect(capital).toBeGreaterThan(peer);
+    });
 
-  it('prefers what is coming at it', () => {
-    const closing = score(doctrine, candidate({ closing: 120 }), REACH, 100_000, -1);
-    const leaving = score(doctrine, candidate({ closing: -120 }), REACH, 100_000, -1);
-    expect(closing).toBeGreaterThan(leaving);
-  });
+    it("prefers what is coming at it", () => {
+        const closing = score(doctrine, candidate({ closing: 120 }), REACH, 100_000, -1);
+        const leaving = score(doctrine, candidate({ closing: -120 }), REACH, 100_000, -1);
+        expect(closing).toBeGreaterThan(leaving);
+    });
 
-  it('sticks with what it is already fighting', () => {
-    // The cheapest fix for the most visible failure a target picker has: two
-    // equally good targets, and a ship that spends the battle turning round.
-    const evens = candidate({ ship: 7 });
-    expect(score(doctrine, evens, REACH, 100_000, 7)).toBeGreaterThan(score(doctrine, evens, REACH, 100_000, 3));
-  });
+    it("sticks with what it is already fighting", () => {
+        // The cheapest fix for the most visible failure a target picker has: two
+        // equally good targets, and a ship that spends the battle turning round.
+        const evens = candidate({ ship: 7 });
+        expect(score(doctrine, evens, REACH, 100_000, 7)).toBeGreaterThan(score(doctrine, evens, REACH, 100_000, 3));
+    });
 
-  it('is drawn to what the ship as a whole is fighting', () => {
-    // What keeps a broadside concentrated once each mount chooses for itself
-    // — a preference rather than an instruction, so a gun on the wrong side
-    // is still free to fight what it can reach.
-    const evens = candidate({ ship: 7 });
-    expect(score(doctrine, evens, REACH, 100_000, -1, 7)).toBeGreaterThan(score(doctrine, evens, REACH, 100_000, -1, 3));
-  });
+    it("is drawn to what the ship as a whole is fighting", () => {
+        // What keeps a broadside concentrated once each mount chooses for itself
+        // — a preference rather than an instruction, so a gun on the wrong side
+        // is still free to fight what it can reach.
+        const evens = candidate({ ship: 7 });
+        expect(score(doctrine, evens, REACH, 100_000, -1, 7)).toBeGreaterThan(score(doctrine, evens, REACH, 100_000, -1, 3));
+    });
 
-  it('prefers what can still shoot back, and what can still get away', () => {
-    const live = candidate();
-    const disarmed = candidate({ armed: false });
-    const stranded = candidate({ mobile: false });
-    expect(score(doctrine, live, REACH, 100_000, -1)).toBeGreaterThan(score(doctrine, disarmed, REACH, 100_000, -1));
-    expect(score(doctrine, live, REACH, 100_000, -1)).toBeGreaterThan(score(doctrine, stranded, REACH, 100_000, -1));
-  });
+    it("prefers what can still shoot back, and what can still get away", () => {
+        const live = candidate();
+        const disarmed = candidate({ armed: false });
+        const stranded = candidate({ mobile: false });
+        expect(score(doctrine, live, REACH, 100_000, -1)).toBeGreaterThan(score(doctrine, disarmed, REACH, 100_000, -1));
+        expect(score(doctrine, live, REACH, 100_000, -1)).toBeGreaterThan(score(doctrine, stranded, REACH, 100_000, -1));
+    });
 
-  it('puts a hulk behind every live ship without a rule about hulks', () => {
-    // It earns neither of the two bonuses, so it falls behind by exactly what
-    // a doctrine says they are worth. §3's mission kill is then a consequence
-    // of what a ship is rather than a special case about what it has become.
-    const hulk = candidate({ armed: false, mobile: false, range: 1 });
-    const live = candidate({ ship: 2, range: REACH * 0.9 });
-    expect(score(doctrine, live, REACH, 100_000, -1)).toBeGreaterThan(score(doctrine, hulk, REACH, 100_000, -1));
-  });
+    it("puts a hulk behind every live ship without a rule about hulks", () => {
+        // It earns neither of the two bonuses, so it falls behind by exactly what
+        // a doctrine says they are worth. §3's mission kill is then a consequence
+        // of what a ship is rather than a special case about what it has become.
+        const hulk = candidate({ armed: false, mobile: false, range: 1 });
+        const live = candidate({ ship: 2, range: REACH * 0.9 });
+        expect(score(doctrine, live, REACH, 100_000, -1)).toBeGreaterThan(score(doctrine, hulk, REACH, 100_000, -1));
+    });
 
-  it('still finishes a hulk when there is nothing else left', () => {
-    // Ranking rather than a threshold: a fleet with nothing appealing to
-    // shoot at does the job in front of it.
-    const choice = new Choice();
-    const hulk = candidate({ armed: false, mobile: false });
-    choice.begin();
-    choice.offer(hulk, score(doctrine, hulk, REACH, 100_000, -1));
-    expect(choice.ship).toBe(hulk.ship);
-  });
+    it("still finishes a hulk when there is nothing else left", () => {
+        // Ranking rather than a threshold: a fleet with nothing appealing to
+        // shoot at does the job in front of it.
+        const choice = new Choice();
+        const hulk = candidate({ armed: false, mobile: false });
+        choice.begin();
+        choice.offer(hulk, score(doctrine, hulk, REACH, 100_000, -1));
+        expect(choice.ship).toBe(hulk.ship);
+    });
 
-  it('sends a fighter after fighters, on the default doctrine alone', () => {
-    // A fighter that goes for the biggest thing on the board achieves
-    // nothing, and this is why the Dinky says nothing about what to go after:
-    // "something my own size" is already what the default says.
-    const dinky = compileBlueprint(DINKY);
-    const capital = compileBlueprint(GUNSHIP);
-    expect(dinky.doctrine.targeting.preferredMass).toBe(DEFAULT_DOCTRINE.targeting.preferredMass);
-    expect(dinky.doctrine.targeting.massWeight).toBe(DEFAULT_DOCTRINE.targeting.massWeight);
+    it("sends a fighter after fighters, on the default doctrine alone", () => {
+        // A fighter that goes for the biggest thing on the board achieves
+        // nothing, and this is why the Dinky says nothing about what to go after:
+        // "something my own size" is already what the default says.
+        const dinky = compileBlueprint(DINKY);
+        const capital = compileBlueprint(GUNSHIP);
+        expect(dinky.doctrine.targeting.preferredMass).toBe(DEFAULT_DOCTRINE.targeting.preferredMass);
+        expect(dinky.doctrine.targeting.massWeight).toBe(DEFAULT_DOCTRINE.targeting.massWeight);
 
-    const small = candidate({ ship: 1, mass: dinky.mass });
-    const large = candidate({ ship: 2, mass: capital.mass });
-    expect(score(dinky.doctrine.targeting, small, dinky.reach, dinky.mass, -1)).toBeGreaterThan(
-      score(dinky.doctrine.targeting, large, dinky.reach, dinky.mass, -1),
-    );
+        const small = candidate({ ship: 1, mass: dinky.mass });
+        const large = candidate({ ship: 2, mass: capital.mass });
+        expect(score(dinky.doctrine.targeting, small, dinky.reach, dinky.mass, -1)).toBeGreaterThan(
+            score(dinky.doctrine.targeting, large, dinky.reach, dinky.mass, -1),
+        );
 
-    // And the capital, given the same choice, prefers the capital.
-    expect(score(capital.doctrine.targeting, large, capital.reach, capital.mass, -1)).toBeGreaterThan(
-      score(capital.doctrine.targeting, small, capital.reach, capital.mass, -1),
-    );
+        // And the capital, given the same choice, prefers the capital.
+        expect(score(capital.doctrine.targeting, large, capital.reach, capital.mass, -1)).toBeGreaterThan(
+            score(capital.doctrine.targeting, small, capital.reach, capital.mass, -1),
+        );
 
-    // Still takes one on when it is all there is: scoring ranks, it does not
-    // admit.
-    const choice = new Choice();
-    choice.begin();
-    choice.offer(large, score(dinky.doctrine.targeting, large, dinky.reach, dinky.mass, -1));
-    expect(choice.ship).toBe(large.ship);
-  });
+        // Still takes one on when it is all there is: scoring ranks, it does not
+        // admit.
+        const choice = new Choice();
+        choice.begin();
+        choice.offer(large, score(dinky.doctrine.targeting, large, dinky.reach, dinky.mass, -1));
+        expect(choice.ship).toBe(large.ship);
+    });
 
-  it('prefers what it is already pointed at, when told to', () => {
-    // Nothing by default, so a doctrine that says nothing turns as it always
-    // did; with a weight, dead ahead beats abeam beats astern.
-    const ahead = candidate({ facing: 1 });
-    const abeam = candidate({ facing: 0 });
-    const astern = candidate({ facing: -1 });
-    expect(score(doctrine, ahead, REACH, 100_000, -1)).toBe(score(doctrine, astern, REACH, 100_000, -1));
-    const facing = { ...doctrine, facingWeight: 50 };
-    expect(score(facing, ahead, REACH, 100_000, -1) - score(facing, abeam, REACH, 100_000, -1)).toBeCloseTo(50);
-    expect(score(facing, abeam, REACH, 100_000, -1) - score(facing, astern, REACH, 100_000, -1)).toBeCloseTo(50);
-  });
+    it("prefers what it is already pointed at, when told to", () => {
+        // Nothing by default, so a doctrine that says nothing turns as it always
+        // did; with a weight, dead ahead beats abeam beats astern.
+        const ahead = candidate({ facing: 1 });
+        const abeam = candidate({ facing: 0 });
+        const astern = candidate({ facing: -1 });
+        expect(score(doctrine, ahead, REACH, 100_000, -1)).toBe(score(doctrine, astern, REACH, 100_000, -1));
+        const facing = { ...doctrine, facingWeight: 50 };
+        expect(score(facing, ahead, REACH, 100_000, -1) - score(facing, abeam, REACH, 100_000, -1)).toBeCloseTo(50);
+        expect(score(facing, abeam, REACH, 100_000, -1) - score(facing, astern, REACH, 100_000, -1)).toBeCloseTo(50);
+    });
 
-  it('prefers a clear line, when told to', () => {
-    const clear = candidate();
-    const blocked = candidate({ clear: false });
-    expect(score(doctrine, clear, REACH, 100_000, -1)).toBe(score(doctrine, blocked, REACH, 100_000, -1));
-    const sighted = { ...doctrine, sightWeight: 50 };
-    expect(score(sighted, clear, REACH, 100_000, -1) - score(sighted, blocked, REACH, 100_000, -1)).toBeCloseTo(50);
-  });
+    it("prefers a clear line, when told to", () => {
+        const clear = candidate();
+        const blocked = candidate({ clear: false });
+        expect(score(doctrine, clear, REACH, 100_000, -1)).toBe(score(doctrine, blocked, REACH, 100_000, -1));
+        const sighted = { ...doctrine, sightWeight: 50 };
+        expect(score(sighted, clear, REACH, 100_000, -1) - score(sighted, blocked, REACH, 100_000, -1)).toBeCloseTo(50);
+    });
 
-  it('counts only what lies between as in the way', () => {
-    const bodies = new Bodies();
-    const from = bodies.indexOf(bodies.create({ x: 0, y: 0, radius: 5 }));
-    const to = bodies.indexOf(bodies.create({ x: 100, y: 0, radius: 5 }));
-    expect(inSight(bodies, 0, 0, from, to)).toBe(true);
-    // Behind the chooser, beyond the target, and off to one side: none of them in the way.
-    bodies.create({ x: -20, y: 0, radius: 10 });
-    bodies.create({ x: 120, y: 0, radius: 10 });
-    bodies.create({ x: 50, y: 20, radius: 10 });
-    expect(inSight(bodies, 0, 0, from, to)).toBe(true);
-    // A ghost is somewhere to be, not something to shoot through.
-    bodies.create({ x: 50, y: 0, radius: 10, ghost: true });
-    expect(inSight(bodies, 0, 0, from, to)).toBe(true);
-    bodies.create({ x: 50, y: 5, radius: 10 });
-    expect(inSight(bodies, 0, 0, from, to)).toBe(false);
-  });
+    it("counts only what lies between as in the way", () => {
+        const bodies = new Bodies();
+        const from = bodies.indexOf(bodies.create({ x: 0, y: 0, radius: 5 }));
+        const to = bodies.indexOf(bodies.create({ x: 100, y: 0, radius: 5 }));
+        expect(inSight(bodies, 0, 0, from, to)).toBe(true);
+        // Behind the chooser, beyond the target, and off to one side: none of them in the way.
+        bodies.create({ x: -20, y: 0, radius: 10 });
+        bodies.create({ x: 120, y: 0, radius: 10 });
+        bodies.create({ x: 50, y: 20, radius: 10 });
+        expect(inSight(bodies, 0, 0, from, to)).toBe(true);
+        // A ghost is somewhere to be, not something to shoot through.
+        bodies.create({ x: 50, y: 0, radius: 10, ghost: true });
+        expect(inSight(bodies, 0, 0, from, to)).toBe(true);
+        bodies.create({ x: 50, y: 5, radius: 10 });
+        expect(inSight(bodies, 0, 0, from, to)).toBe(false);
+    });
 
-  it('measures facing along the hull it is asked from', () => {
-    const bodies = new Bodies();
-    const from = bodies.indexOf(bodies.create({ x: 0, y: 0, angle: Math.PI / 2 }));
-    const north = bodies.indexOf(bodies.create({ x: 0, y: 100 }));
-    const east = bodies.indexOf(bodies.create({ x: 100, y: 0 }));
-    const south = bodies.indexOf(bodies.create({ x: 0, y: -100 }));
-    expect(look(bodies, from, north, 1, 1, true, true).facing).toBeCloseTo(1);
-    expect(look(bodies, from, east, 2, 1, true, true).facing).toBeCloseTo(0);
-    expect(look(bodies, from, south, 3, 1, true, true).facing).toBeCloseTo(-1);
-  });
+    it("measures facing along the hull it is asked from", () => {
+        const bodies = new Bodies();
+        const from = bodies.indexOf(bodies.create({ x: 0, y: 0, angle: Math.PI / 2 }));
+        const north = bodies.indexOf(bodies.create({ x: 0, y: 100 }));
+        const east = bodies.indexOf(bodies.create({ x: 100, y: 0 }));
+        const south = bodies.indexOf(bodies.create({ x: 0, y: -100 }));
+        expect(look(bodies, from, north, 1, 1, true, true).facing).toBeCloseTo(1);
+        expect(look(bodies, from, east, 2, 1, true, true).facing).toBeCloseTo(0);
+        expect(look(bodies, from, south, 3, 1, true, true).facing).toBeCloseTo(-1);
+    });
 
-  it('scores a target beyond its reach against, so a ship closes', () => {
-    expect(
-      score(
-        { ...doctrine, massWeight: 0, closingWeight: 0, armedWeight: 0, mobileWeight: 0 },
-        candidate({ range: REACH * 2 }),
-        REACH,
-        100_000,
-        -1,
-      ),
-    ).toBeLessThan(0);
-  });
+    it("scores a target beyond its reach against, so a ship closes", () => {
+        expect(
+            score(
+                { ...doctrine, massWeight: 0, closingWeight: 0, armedWeight: 0, mobileWeight: 0 },
+                candidate({ range: REACH * 2 }),
+                REACH,
+                100_000,
+                -1,
+            ),
+        ).toBeLessThan(0);
+    });
 });
 
-describe('a ship deciding for itself', () => {
-  /** Two hostile ships, close enough to argue about. */
-  function scene(design = compileBlueprint(GUNSHIP), enemy = compileBlueprint(CORVETTE)) {
-    const world = new World({ dt: 1 / 60, seed: 3 });
-    const ships = new Ships();
-    world.addForceProvider(ships.forceProvider());
-    const mine = ships.spawn(world, { design, x: 0, y: 0, team: 0 });
-    const theirs = ships.spawn(world, { design: enemy, x: 2400, y: 0, angle: Math.PI, team: 1 });
-    return { world, ships, mine, theirs };
-  }
-
-  it('picks a fight when it has been told nothing', () => {
-    const s = scene();
-    const b = s.world.bodies;
-    const gap = (): number => {
-      const a = b.indexOf(s.ships.body(s.mine));
-      const t = b.indexOf(s.ships.body(s.theirs));
-      return Math.hypot(b.x[a]! - b.x[t]!, b.y[a]! - b.y[t]!);
-    };
-    const before = gap();
-    for (let i = 0; i < 600; i++) {
-      s.ships.command(1 / 60, s.world);
-      s.world.step();
+describe("a ship deciding for itself", () => {
+    /** Two hostile ships, close enough to argue about. */
+    function scene(design = compileBlueprint(GUNSHIP), enemy = compileBlueprint(CORVETTE)) {
+        const world = new World({ dt: 1 / 60, seed: 3 });
+        const ships = new Ships();
+        world.addForceProvider(ships.forceProvider());
+        const mine = ships.spawn(world, { design, x: 0, y: 0, team: 0 });
+        const theirs = ships.spawn(world, { design: enemy, x: 2400, y: 0, angle: Math.PI, team: 1 });
+        return { world, ships, mine, theirs };
     }
-    // Nobody told it to, and it went anyway.
-    expect(gap()).toBeLessThan(before);
-  });
 
-  it('closes further on a small target than on a large one', () => {
-    // The range that matters is the one the target looks big from, so this
-    // is one number covering two quite different engagements.
-    const small = scene(compileBlueprint(GUNSHIP), compileBlueprint(DINKY));
-    const large = scene(compileBlueprint(GUNSHIP), compileBlueprint(GUNSHIP));
-    const settle = (s: ReturnType<typeof scene>): number => {
-      for (let i = 0; i < 3000; i++) {
-        s.ships.command(1 / 60, s.world);
-        s.world.step();
-      }
-      const b = s.world.bodies;
-      const a = b.indexOf(s.ships.body(s.mine));
-      const t = b.indexOf(s.ships.body(s.theirs));
-      return Math.hypot(b.x[a]! - b.x[t]!, b.y[a]! - b.y[t]!);
-    };
-    expect(settle(small)).toBeLessThan(settle(large));
-  });
-
-  it('does what it is told instead, whenever it is told anything', () => {
-    // Doctrine is the fallback, never a second voice: an order outranks it,
-    // and the order's own range band is the one that is flown.
-    const s = scene();
-    s.ships.pushOrder(s.mine, s.theirs, 2000, 2400, 30);
-    for (let i = 0; i < 600; i++) {
-      s.ships.command(1 / 60, s.world);
-      s.world.step();
-    }
-    const b = s.world.bodies;
-    const a = b.indexOf(s.ships.body(s.mine));
-    const t = b.indexOf(s.ships.body(s.theirs));
-    // Told to stand off at two kilometres, it holds out there rather than
-    // closing to the few hundred metres its doctrine would have chosen.
-    expect(Math.hypot(b.x[a]! - b.x[t]!, b.y[a]! - b.y[t]!)).toBeGreaterThan(1500);
-    expect(s.ships.orderCount(s.mine)).toBe(1);
-  });
-
-  it('leaves its own side alone', () => {
-    const world = new World({ dt: 1 / 60, seed: 4 });
-    const ships = new Ships();
-    world.addForceProvider(ships.forceProvider());
-    // Without the gunship's pull towards a consort, which would move it for
-    // a friend rather than at one.
-    const { doctrine } = compileBlueprint(GUNSHIP);
-    const design = compileBlueprint({
-      ...GUNSHIP,
-      doctrine: { ...doctrine, targeting: { ...doctrine.targeting, escortWeight: 0 } },
+    it("picks a fight when it has been told nothing", () => {
+        const s = scene();
+        const b = s.world.bodies;
+        const gap = (): number => {
+            const a = b.indexOf(s.ships.body(s.mine));
+            const t = b.indexOf(s.ships.body(s.theirs));
+            return Math.hypot(b.x[a]! - b.x[t]!, b.y[a]! - b.y[t]!);
+        };
+        const before = gap();
+        for (let i = 0; i < 600; i++) {
+            s.ships.command(1 / 60, s.world);
+            s.world.step();
+        }
+        // Nobody told it to, and it went anyway.
+        expect(gap()).toBeLessThan(before);
     });
-    const a = ships.spawn(world, { design, x: 0, y: 0, team: 0 });
-    ships.spawn(world, { design, x: 600, y: 0, team: 0 });
-    for (let i = 0; i < 120; i++) {
-      ships.command(1 / 60, world);
-      world.step();
-    }
-    const bodies = world.bodies;
-    const body = bodies.indexOf(ships.body(a));
-    expect(Math.hypot(bodies.vx[body]!, bodies.vy[body]!)).toBeCloseTo(0, 6);
-  });
 
-  it('turns for the nearer enemy astern, unless it prefers what is ahead', () => {
-    // Proximity alone cannot see the turn: the one astern is closer, so it
-    // wins. Weighting what is ahead is what lets a hull keep its guns on the
-    // fight it is facing.
-    const heading = (facingWeight: number): number => {
-      const world = new World({ dt: 1 / 60, seed: 5 });
-      const ships = new Ships();
-      world.addForceProvider(ships.forceProvider());
-      const design = compileBlueprint({
-        ...GUNSHIP,
-        doctrine: { ...DEFAULT_DOCTRINE, targeting: { ...DEFAULT_DOCTRINE.targeting, facingWeight } },
-      });
-      const enemy = compileBlueprint(CORVETTE);
-      const mine = ships.spawn(world, { design, x: 0, y: 0, team: 0 });
-      ships.spawn(world, { design: enemy, x: 1600, y: 0, angle: Math.PI, team: 1 });
-      ships.spawn(world, { design: enemy, x: -1400, y: 0, team: 1 });
-      // Fifteen seconds: long enough for a sluggish hull to come round.
-      for (let i = 0; i < 900; i++) {
-        ships.command(1 / 60, world);
-        world.step();
-      }
-      return Math.abs(world.bodies.angle[world.bodies.indexOf(ships.body(mine))]!);
-    };
-    // Spawned facing the further one, at +x.
-    expect(heading(0)).toBeGreaterThan(2);
-    expect(heading(200)).toBeLessThan(0.1);
-  });
+    it("closes further on a small target than on a large one", () => {
+        // The range that matters is the one the target looks big from, so this
+        // is one number covering two quite different engagements.
+        const small = scene(compileBlueprint(GUNSHIP), compileBlueprint(DINKY));
+        const large = scene(compileBlueprint(GUNSHIP), compileBlueprint(GUNSHIP));
+        const settle = (s: ReturnType<typeof scene>): number => {
+            for (let i = 0; i < 3000; i++) {
+                s.ships.command(1 / 60, s.world);
+                s.world.step();
+            }
+            const b = s.world.bodies;
+            const a = b.indexOf(s.ships.body(s.mine));
+            const t = b.indexOf(s.ships.body(s.theirs));
+            return Math.hypot(b.x[a]! - b.x[t]!, b.y[a]! - b.y[t]!);
+        };
+        expect(settle(small)).toBeLessThan(settle(large));
+    });
 
-  it('goes round a friend for the enemy behind it, only if it prefers a clear line', () => {
-    const heading = (sightWeight: number): number => {
-      const world = new World({ dt: 1 / 60, seed: 6 });
-      const ships = new Ships();
-      world.addForceProvider(ships.forceProvider());
-      const design = compileBlueprint({
-        ...GUNSHIP,
-        doctrine: { ...DEFAULT_DOCTRINE, targeting: { ...DEFAULT_DOCTRINE.targeting, sightWeight } },
-      });
-      const corvette = compileBlueprint(CORVETTE);
-      const mine = ships.spawn(world, { design, x: 0, y: 0, team: 0 });
-      ships.spawn(world, { design: corvette, x: 500, y: 0, team: 0 });
-      ships.spawn(world, { design: corvette, x: 1000, y: 0, angle: Math.PI, team: 1 });
-      ships.spawn(world, { design: corvette, x: 0, y: 1100, angle: -Math.PI / 2, team: 1 });
-      for (let i = 0; i < 900; i++) {
-        ships.command(1 / 60, world);
-        world.step();
-      }
-      return world.bodies.angle[world.bodies.indexOf(ships.body(mine))]!;
-    };
-    // Spawned facing the nearer enemy, with a friend between them.
-    expect(Math.abs(heading(0))).toBeLessThan(0.3);
-    expect(Math.abs(heading(200) - Math.PI / 2)).toBeLessThan(0.3);
-  });
+    it("does what it is told instead, whenever it is told anything", () => {
+        // Doctrine is the fallback, never a second voice: an order outranks it,
+        // and the order's own range band is the one that is flown.
+        const s = scene();
+        s.ships.pushOrder(s.mine, s.theirs, 2000, 2400, 30);
+        for (let i = 0; i < 600; i++) {
+            s.ships.command(1 / 60, s.world);
+            s.world.step();
+        }
+        const b = s.world.bodies;
+        const a = b.indexOf(s.ships.body(s.mine));
+        const t = b.indexOf(s.ships.body(s.theirs));
+        // Told to stand off at two kilometres, it holds out there rather than
+        // closing to the few hundred metres its doctrine would have chosen.
+        expect(Math.hypot(b.x[a]! - b.x[t]!, b.y[a]! - b.y[t]!)).toBeGreaterThan(1500);
+        expect(s.ships.orderCount(s.mine)).toBe(1);
+    });
 
-  it('reconsiders faster on a light hull than on a heavy one', () => {
-    // Derived rather than configured: mass stands in for how quickly a hull
-    // can act on a change of mind, so a fighter thinks like a fighter.
-    const fighter = compileBlueprint(DINKY);
-    const capital = compileBlueprint(GUNSHIP);
-    expect(fighter.mass).toBeLessThan(capital.mass);
-    // The rate itself is private; what is checkable is that the two designs
-    // differ enough in mass for the derivation to separate them at all.
-    expect(capital.mass / fighter.mass).toBeGreaterThan(4);
-  });
+    it("leaves its own side alone", () => {
+        const world = new World({ dt: 1 / 60, seed: 4 });
+        const ships = new Ships();
+        world.addForceProvider(ships.forceProvider());
+        // Without the gunship's pull towards a consort, which would move it for
+        // a friend rather than at one.
+        const { doctrine } = compileBlueprint(GUNSHIP);
+        const design = compileBlueprint({
+            ...GUNSHIP,
+            doctrine: { ...doctrine, targeting: { ...doctrine.targeting, escortWeight: 0 } },
+        });
+        const a = ships.spawn(world, { design, x: 0, y: 0, team: 0 });
+        ships.spawn(world, { design, x: 600, y: 0, team: 0 });
+        for (let i = 0; i < 120; i++) {
+            ships.command(1 / 60, world);
+            world.step();
+        }
+        const bodies = world.bodies;
+        const body = bodies.indexOf(ships.body(a));
+        expect(Math.hypot(bodies.vx[body]!, bodies.vy[body]!)).toBeCloseTo(0, 6);
+    });
+
+    it("turns for the nearer enemy astern, unless it prefers what is ahead", () => {
+        // Proximity alone cannot see the turn: the one astern is closer, so it
+        // wins. Weighting what is ahead is what lets a hull keep its guns on the
+        // fight it is facing.
+        const heading = (facingWeight: number): number => {
+            const world = new World({ dt: 1 / 60, seed: 5 });
+            const ships = new Ships();
+            world.addForceProvider(ships.forceProvider());
+            const design = compileBlueprint({
+                ...GUNSHIP,
+                doctrine: { ...DEFAULT_DOCTRINE, targeting: { ...DEFAULT_DOCTRINE.targeting, facingWeight } },
+            });
+            const enemy = compileBlueprint(CORVETTE);
+            const mine = ships.spawn(world, { design, x: 0, y: 0, team: 0 });
+            ships.spawn(world, { design: enemy, x: 1600, y: 0, angle: Math.PI, team: 1 });
+            ships.spawn(world, { design: enemy, x: -1400, y: 0, team: 1 });
+            // Fifteen seconds: long enough for a sluggish hull to come round.
+            for (let i = 0; i < 900; i++) {
+                ships.command(1 / 60, world);
+                world.step();
+            }
+            return Math.abs(world.bodies.angle[world.bodies.indexOf(ships.body(mine))]!);
+        };
+        // Spawned facing the further one, at +x.
+        expect(heading(0)).toBeGreaterThan(2);
+        expect(heading(200)).toBeLessThan(0.1);
+    });
+
+    it("goes round a friend for the enemy behind it, only if it prefers a clear line", () => {
+        const heading = (sightWeight: number): number => {
+            const world = new World({ dt: 1 / 60, seed: 6 });
+            const ships = new Ships();
+            world.addForceProvider(ships.forceProvider());
+            const design = compileBlueprint({
+                ...GUNSHIP,
+                doctrine: { ...DEFAULT_DOCTRINE, targeting: { ...DEFAULT_DOCTRINE.targeting, sightWeight } },
+            });
+            const corvette = compileBlueprint(CORVETTE);
+            const mine = ships.spawn(world, { design, x: 0, y: 0, team: 0 });
+            ships.spawn(world, { design: corvette, x: 500, y: 0, team: 0 });
+            ships.spawn(world, { design: corvette, x: 1000, y: 0, angle: Math.PI, team: 1 });
+            ships.spawn(world, { design: corvette, x: 0, y: 1100, angle: -Math.PI / 2, team: 1 });
+            for (let i = 0; i < 900; i++) {
+                ships.command(1 / 60, world);
+                world.step();
+            }
+            return world.bodies.angle[world.bodies.indexOf(ships.body(mine))]!;
+        };
+        // Spawned facing the nearer enemy, with a friend between them.
+        expect(Math.abs(heading(0))).toBeLessThan(0.3);
+        expect(Math.abs(heading(200) - Math.PI / 2)).toBeLessThan(0.3);
+    });
+
+    it("reconsiders faster on a light hull than on a heavy one", () => {
+        // Derived rather than configured: mass stands in for how quickly a hull
+        // can act on a change of mind, so a fighter thinks like a fighter.
+        const fighter = compileBlueprint(DINKY);
+        const capital = compileBlueprint(GUNSHIP);
+        expect(fighter.mass).toBeLessThan(capital.mass);
+        // The rate itself is private; what is checkable is that the two designs
+        // differ enough in mass for the derivation to separate them at all.
+        expect(capital.mass / fighter.mass).toBeGreaterThan(4);
+    });
 });
 
-describe('how a craft closes on its band', () => {
-  const MIN = 300;
-  const MAX = 350;
+describe("how a craft closes on its band", () => {
+    const MIN = 300;
+    const MAX = 350;
 
-  /** The gap to a stationary mark, once a second, as a corvette closes from 1500 m. */
-  function closing(approach: Partial<Doctrine['approach']>, seconds = 60): number[] {
-    const mover: Blueprint = {
-      ...CORVETTE,
-      doctrine: {
-        targeting: { ...DEFAULT_DOCTRINE.targeting, ...CORVETTE.doctrine?.targeting },
-        approach: { ...DEFAULT_DOCTRINE.approach, ...CORVETTE.doctrine?.approach, ...approach },
-      },
-    };
-    // Something to close on that stays put: an engine it never uses, and no
-    // wish to keep out of anyone's way.
-    const mark: Blueprint = {
-      name: 'Mark',
-      doctrine: {
-        targeting: { ...DEFAULT_DOCTRINE.targeting },
-        approach: { ...DEFAULT_DOCTRINE.approach, separation: 0 },
-      },
-      modules: [
-        { kind: 'core', x: 0, y: 0, angle: 0, length: 6, width: 6 },
-        { kind: 'engine', x: -3, y: 0, angle: Math.PI, length: 2, width: 4 },
-      ],
-    };
-    const battle = makeBattle({ seed: 5 }, (ships, world) => {
-      const mine = ships.spawn(world, { design: compileBlueprint(mover), x: 0, y: 0, team: 0 });
-      const theirs = ships.spawn(world, { design: compileBlueprint(mark), x: 1500, y: 0, team: 1 });
-      // Kept however it goes: an unarmed mark would otherwise count as done.
-      ships.pushOrder(mine, theirs, MIN, MAX, 200, OrderCancelCondition.None);
-      return { mine, theirs };
-    });
-    const bodies = battle.world.bodies;
-    const gaps: number[] = [];
-    for (let i = 0; i < seconds * 60; i++) {
-      battle.step();
-      if ((i + 1) % 60 !== 0) continue;
-      const a = bodies.indexOf(battle.ships.body(battle.mine));
-      const b = bodies.indexOf(battle.ships.body(battle.theirs));
-      gaps.push(Math.hypot(bodies.x[a]! - bodies.x[b]!, bodies.y[a]! - bodies.y[b]!));
+    /** The gap to a stationary mark, once a second, as a corvette closes from 1500 m. */
+    function closing(approach: Partial<Doctrine["approach"]>, seconds = 60): number[] {
+        const mover: Blueprint = {
+            ...CORVETTE,
+            doctrine: {
+                targeting: { ...DEFAULT_DOCTRINE.targeting, ...CORVETTE.doctrine?.targeting },
+                approach: { ...DEFAULT_DOCTRINE.approach, ...CORVETTE.doctrine?.approach, ...approach },
+            },
+        };
+        // Something to close on that stays put: an engine it never uses, and no
+        // wish to keep out of anyone's way.
+        const mark: Blueprint = {
+            name: "Mark",
+            doctrine: {
+                targeting: { ...DEFAULT_DOCTRINE.targeting },
+                approach: { ...DEFAULT_DOCTRINE.approach, separation: 0 },
+            },
+            modules: [
+                { kind: "core", x: 0, y: 0, angle: 0, length: 6, width: 6 },
+                { kind: "engine", x: -3, y: 0, angle: Math.PI, length: 2, width: 4 },
+            ],
+        };
+        const battle = makeBattle({ seed: 5 }, (ships, world) => {
+            const mine = ships.spawn(world, { design: compileBlueprint(mover), x: 0, y: 0, team: 0 });
+            const theirs = ships.spawn(world, { design: compileBlueprint(mark), x: 1500, y: 0, team: 1 });
+            // Kept however it goes: an unarmed mark would otherwise count as done.
+            ships.pushOrder(mine, theirs, MIN, MAX, 200, OrderCancelCondition.None);
+            return { mine, theirs };
+        });
+        const bodies = battle.world.bodies;
+        const gaps: number[] = [];
+        for (let i = 0; i < seconds * 60; i++) {
+            battle.step();
+            if ((i + 1) % 60 !== 0) continue;
+            const a = bodies.indexOf(battle.ships.body(battle.mine));
+            const b = bodies.indexOf(battle.ships.body(battle.theirs));
+            gaps.push(Math.hypot(bodies.x[a]! - bodies.x[b]!, bodies.y[a]! - bodies.y[b]!));
+        }
+        return gaps;
     }
-    return gaps;
-  }
 
-  it('arrives at the band and stops there, rather than sailing through', () => {
-    const gaps = closing({});
-    expect(Math.min(...gaps)).toBeGreaterThan(MIN);
-    expect(gaps.at(-1)!).toBeLessThan(MAX * 1.05);
-  });
+    it("arrives at the band and stops there, rather than sailing through", () => {
+        const gaps = closing({});
+        expect(Math.min(...gaps)).toBeGreaterThan(MIN);
+        expect(gaps.at(-1)!).toBeLessThan(MAX * 1.05);
+    });
 
-  it('gets there sooner the harder it plans to brake', () => {
-    const arrival = (gaps: number[]) => gaps.findIndex((gap) => gap < MAX * 1.05);
-    const hard = arrival(closing({ brake: 1 }));
-    const soft = arrival(closing({ brake: 0.3 }));
-    expect(hard).toBeGreaterThanOrEqual(0);
-    expect(soft === -1 || soft > hard).toBe(true);
-  });
+    it("gets there sooner the harder it plans to brake", () => {
+        const arrival = (gaps: number[]) => gaps.findIndex((gap) => gap < MAX * 1.05);
+        const hard = arrival(closing({ brake: 1 }));
+        const soft = arrival(closing({ brake: 0.3 }));
+        expect(hard).toBeGreaterThanOrEqual(0);
+        expect(soft === -1 || soft > hard).toBe(true);
+    });
 
-  it('picks up speed more gently on a smaller share of its thrust', () => {
-    // Ten seconds in, before either has had to brake.
-    expect(closing({ accelerate: 0.25 }, 10).at(-1)!).toBeGreaterThan(closing({}, 10).at(-1)!);
-  });
+    it("picks up speed more gently on a smaller share of its thrust", () => {
+        // Ten seconds in, before either has had to brake.
+        expect(closing({ accelerate: 0.25 }, 10).at(-1)!).toBeGreaterThan(closing({}, 10).at(-1)!);
+    });
 });

@@ -1,68 +1,68 @@
-import { BATTLE_KEYS, keyHelp } from './keyHelp.js';
-import { capture, serialiseBlueprint, serialiseFleet, Snapshot, type Blueprint, type Fleet } from '../sim/index.js';
-import { Flashes } from '../render/flashes.js';
+import { BATTLE_KEYS, keyHelp } from "./keyHelp.js";
+import { capture, serialiseBlueprint, serialiseFleet, Snapshot, type Blueprint, type Fleet } from "../sim/index.js";
+import { Flashes } from "../render/flashes.js";
 import {
-  ARCS_KEY,
-  closeUps,
-  draw,
-  drawCloseUps,
-  drawFleetStrips,
-  StripCache,
-  drawTargetRange,
-  fleetStrips,
-  nextArcs,
-  overlayAt,
-  STRIPS_KEY,
-  stripsWidth,
-  TEAM_SHOTS_KEY,
-  teamColour,
-  type Arcs,
-} from '../render/canvas2d.js';
-import type { Strips } from '../render/fleetStrip.js';
-import type { Inset } from '../render/inset.js';
-import { shipColours } from '../render/teams.js';
-import { drawChart, indexAt, xOf, type ChartLayout, type Series } from '../render/chart.js';
-import { easeScale, fitScale, frame, moveWithVisibleShips, selectionBounds, shipAt, type Camera } from '../render/camera.js';
-import { BUILT_IN, FLEET_FILES, Library, nextName, toFileText } from '../editor/library.js';
-import { drawCentred, formationSnapshot, kindSnapshot, pictureOf as pictureOfFleet, type Picture, type ShipKind } from './fleetPicture.js';
-import { fitness, type Generation } from '../evolution/generation.js';
-import { DEFAULT_MATCH, isFleet, Match, type Entrant, type MatchConfig } from '../evolution/match.js';
-import { DEFAULT_FLEET_LIMITS } from '../evolution/fleetMutate.js';
-import { DEFAULT_BUILD_WEIGHTS, DEFAULT_KINDS, DEFAULT_LIMITS, doctrineWeights, type KindWeights } from '../evolution/mutate.js';
-import { parseRunConfig, runConfigWarnings, serialiseRunConfig, type RunSetup } from '../evolution/configFile.js';
-import { breeding, MUTATION_FIELDS } from '../evolution/mutationFields.js';
-import { fillFields } from './settingsFields.js';
-import { fillMapInputs, mapFields, readMapInputs } from './mapFields.js';
-import { Coevolution, DEFAULT_COEVOLUTION, rivalSettings, type CoevolutionConfig, type SideSettings } from '../evolution/coevolution.js';
+    ARCS_KEY,
+    closeUps,
+    draw,
+    drawCloseUps,
+    drawFleetStrips,
+    StripCache,
+    drawTargetRange,
+    fleetStrips,
+    nextArcs,
+    overlayAt,
+    STRIPS_KEY,
+    stripsWidth,
+    TEAM_SHOTS_KEY,
+    teamColour,
+    type Arcs,
+} from "../render/canvas2d.js";
+import type { Strips } from "../render/fleetStrip.js";
+import type { Inset } from "../render/inset.js";
+import { shipColours } from "../render/teams.js";
+import { drawChart, indexAt, xOf, type ChartLayout, type Series } from "../render/chart.js";
+import { easeScale, fitScale, frame, moveWithVisibleShips, selectionBounds, shipAt, type Camera } from "../render/camera.js";
+import { BUILT_IN, FLEET_FILES, Library, nextName, toFileText } from "../editor/library.js";
+import { drawCentred, formationSnapshot, kindSnapshot, pictureOf as pictureOfFleet, type Picture, type ShipKind } from "./fleetPicture.js";
+import { fitness, type Generation } from "../evolution/generation.js";
+import { DEFAULT_MATCH, isFleet, Match, type Entrant, type MatchConfig } from "../evolution/match.js";
+import { DEFAULT_FLEET_LIMITS } from "../evolution/fleetMutate.js";
+import { DEFAULT_BUILD_WEIGHTS, DEFAULT_KINDS, DEFAULT_LIMITS, doctrineWeights, type KindWeights } from "../evolution/mutate.js";
+import { parseRunConfig, runConfigWarnings, serialiseRunConfig, type RunSetup } from "../evolution/configFile.js";
+import { breeding, MUTATION_FIELDS } from "../evolution/mutationFields.js";
+import { fillFields } from "./settingsFields.js";
+import { fillMapInputs, mapFields, readMapInputs } from "./mapFields.js";
+import { Coevolution, DEFAULT_COEVOLUTION, rivalSettings, type CoevolutionConfig, type SideSettings } from "../evolution/coevolution.js";
 import {
-  GridMeasure,
-  latest,
-  Yardstick,
-  yardstickMatch,
-  gridLabel,
-  type ChampionGrid,
-  type YardstickReport,
-} from '../evolution/yardstick.js';
-import { BARE_CORE } from '../scenarios/blueprints.js';
+    GridMeasure,
+    latest,
+    Yardstick,
+    yardstickMatch,
+    gridLabel,
+    type ChampionGrid,
+    type YardstickReport,
+} from "../evolution/yardstick.js";
+import { BARE_CORE } from "../scenarios/blueprints.js";
 import {
-  finalist,
-  DEFAULT_RUN,
-  Run,
-  type GenerationRecord,
-  entrantOf,
-  generationSize,
-  generationDoctrine,
-  DOCTRINE_NUMBERS,
-  spreadOf,
-  type GenerationDoctrine,
-  type GenerationSize,
-  type MatchRecord,
-  type RunConfig,
-} from '../evolution/run.js';
-import { parseRunRecord, RecordedRun, winsIn } from '../evolution/recorded.js';
-import { el } from './dom.js';
-import { viewGestures } from './viewGestures.js';
-import { keepSpeed, loadView, saveView } from './viewSettings.js';
+    finalist,
+    DEFAULT_RUN,
+    Run,
+    type GenerationRecord,
+    entrantOf,
+    generationSize,
+    generationDoctrine,
+    DOCTRINE_NUMBERS,
+    spreadOf,
+    type GenerationDoctrine,
+    type GenerationSize,
+    type MatchRecord,
+    type RunConfig,
+} from "../evolution/run.js";
+import { parseRunRecord, RecordedRun, winsIn } from "../evolution/recorded.js";
+import { el } from "./dom.js";
+import { viewGestures } from "./viewGestures.js";
+import { keepSpeed, loadView, saveView } from "./viewSettings.js";
 
 /**
  * The evolution page: set a run going, watch what it is doing, and fight any
@@ -115,66 +115,66 @@ const FORMATION_HEIGHT = 64;
 const FLEET_EASE = 0.15;
 
 /** What the settings are saved under, so a refresh does not cost them. */
-const SETUP_KEY = 'scs2d.evolution.setup';
+const SETUP_KEY = "scs2d.evolution.setup";
 /** Which panel sections are folded away, so a refresh keeps them so. */
-const FOLDED_KEY = 'scs2d.evolution.folded';
+const FOLDED_KEY = "scs2d.evolution.folded";
 
 /**
  * The settings each side of a co-evolution run has its own of: the cards in
  * `#sideA`, copied for side B with ids prefixed `b_`.
  */
 const SIDE_FIELDS = [
-  'population',
-  'winners',
-  'group',
-  'metalBudget',
-  'fuelBudget',
-  'buildBudget',
-  'fleetRadius',
-  'fleetShips',
-  'fleetDesign',
-  'fleetMove',
-  'fleetChange',
-  'opAdd',
-  'opRemove',
-  'opFork',
-  'opMerge',
-  'opSwap',
-  'opPad',
-  'structural',
-  'geometry',
-  'thrusters',
-  'buildMove',
-  'buildResize',
-  'buildRefit',
-  'buildFittings',
-  'buildTuning',
-  'buildFighter',
-  'buildShape',
-  'kindEngine',
-  'kindStructure',
-  'kindTank',
-  'kindTurret',
-  'kindBeamTurret',
-  'kindHullGun',
-  'kindHullBeam',
-  'kindCore',
-  'kindClaw',
-  'kindPad',
-  'kindPort',
-  'kindHold',
-  'kindBattery',
-  'kindGenerator',
-  'kindRobotBay',
-  'kindSlipway',
-  'doctrineTargeting',
-  'doctrineApproach',
-  'doctrineEscort',
-  'doctrineAvoidance',
-  'doctrineGunnery',
+    "population",
+    "winners",
+    "group",
+    "metalBudget",
+    "fuelBudget",
+    "buildBudget",
+    "fleetRadius",
+    "fleetShips",
+    "fleetDesign",
+    "fleetMove",
+    "fleetChange",
+    "opAdd",
+    "opRemove",
+    "opFork",
+    "opMerge",
+    "opSwap",
+    "opPad",
+    "structural",
+    "geometry",
+    "thrusters",
+    "buildMove",
+    "buildResize",
+    "buildRefit",
+    "buildFittings",
+    "buildTuning",
+    "buildFighter",
+    "buildShape",
+    "kindEngine",
+    "kindStructure",
+    "kindTank",
+    "kindTurret",
+    "kindBeamTurret",
+    "kindHullGun",
+    "kindHullBeam",
+    "kindCore",
+    "kindClaw",
+    "kindPad",
+    "kindPort",
+    "kindHold",
+    "kindBattery",
+    "kindGenerator",
+    "kindRobotBay",
+    "kindSlipway",
+    "doctrineTargeting",
+    "doctrineApproach",
+    "doctrineEscort",
+    "doctrineAvoidance",
+    "doctrineGunnery",
 ] as const;
 type SideField = (typeof SIDE_FIELDS)[number];
-const RIVAL = 'b_';
+const RIVAL = "b_";
 
 /**
  * Side B's box for each per-side setting, beside side A's: a copy of it with
@@ -182,89 +182,89 @@ const RIVAL = 'b_';
  * what it means is written once.
  */
 function addRivalInputs(): void {
-  for (const name of SIDE_FIELDS) {
-    const a = el<HTMLInputElement>(name);
-    const b = a.cloneNode(true) as HTMLInputElement;
-    b.id = RIVAL + name;
-    b.classList.add('rival');
-    b.title = `Side B's ${a.closest('.field')?.querySelector('label')?.textContent ?? name}`;
-    a.after(b);
-  }
+    for (const name of SIDE_FIELDS) {
+        const a = el<HTMLInputElement>(name);
+        const b = a.cloneNode(true) as HTMLInputElement;
+        b.id = RIVAL + name;
+        b.classList.add("rival");
+        b.title = `Side B's ${a.closest(".field")?.querySelector("label")?.textContent ?? name}`;
+        a.after(b);
+    }
 }
 
 const FIELDS = [
-  'configName',
-  'generations',
-  'population',
-  'winners',
-  'group',
-  'minMatches',
-  'metalBudget',
-  'fuelBudget',
-  'buildBudget',
-  'fleetRadius',
-  'fleetShips',
-  'fleetDesign',
-  'fleetMove',
-  'fleetChange',
-  'opAdd',
-  'opRemove',
-  'opFork',
-  'opMerge',
-  'opSwap',
-  'opPad',
-  'seed',
-  'duration',
-  'radius',
-  'radiusSpread',
-  'scatter',
-  'closing',
-  'closingSpread',
-  'crossing',
-  'crossingSpread',
-  'quietLimit',
-  'survivalWeight',
-  'functionalWeight',
-  'damageWeight',
-  'disablingWeight',
-  'raceWeight',
-  'structural',
-  'geometry',
-  'thrusters',
-  'buildMove',
-  'buildResize',
-  'buildRefit',
-  'buildFittings',
-  'buildTuning',
-  'buildFighter',
-  'buildShape',
-  'kindEngine',
-  'kindStructure',
-  'kindTank',
-  'kindTurret',
-  'kindBeamTurret',
-  'kindHullGun',
-  'kindHullBeam',
-  'kindCore',
-  'kindClaw',
-  'kindPad',
-  'kindPort',
-  'kindHold',
-  'kindBattery',
-  'kindGenerator',
-  'kindRobotBay',
-  'kindSlipway',
-  'doctrineTargeting',
-  'doctrineApproach',
-  'doctrineEscort',
-  'doctrineAvoidance',
-  'doctrineGunnery',
-  'effort',
-  'hall',
-  'phaseWin',
-  'phaseCap',
-  'shieldedDrills',
-  'bareCoreDrills',
+    "configName",
+    "generations",
+    "population",
+    "winners",
+    "group",
+    "minMatches",
+    "metalBudget",
+    "fuelBudget",
+    "buildBudget",
+    "fleetRadius",
+    "fleetShips",
+    "fleetDesign",
+    "fleetMove",
+    "fleetChange",
+    "opAdd",
+    "opRemove",
+    "opFork",
+    "opMerge",
+    "opSwap",
+    "opPad",
+    "seed",
+    "duration",
+    "radius",
+    "radiusSpread",
+    "scatter",
+    "closing",
+    "closingSpread",
+    "crossing",
+    "crossingSpread",
+    "quietLimit",
+    "survivalWeight",
+    "functionalWeight",
+    "damageWeight",
+    "disablingWeight",
+    "raceWeight",
+    "structural",
+    "geometry",
+    "thrusters",
+    "buildMove",
+    "buildResize",
+    "buildRefit",
+    "buildFittings",
+    "buildTuning",
+    "buildFighter",
+    "buildShape",
+    "kindEngine",
+    "kindStructure",
+    "kindTank",
+    "kindTurret",
+    "kindBeamTurret",
+    "kindHullGun",
+    "kindHullBeam",
+    "kindCore",
+    "kindClaw",
+    "kindPad",
+    "kindPort",
+    "kindHold",
+    "kindBattery",
+    "kindGenerator",
+    "kindRobotBay",
+    "kindSlipway",
+    "doctrineTargeting",
+    "doctrineApproach",
+    "doctrineEscort",
+    "doctrineAvoidance",
+    "doctrineGunnery",
+    "effort",
+    "hall",
+    "phaseWin",
+    "phaseCap",
+    "shieldedDrills",
+    "bareCoreDrills",
 ] as const;
 
 /**
@@ -273,30 +273,30 @@ const FIELDS = [
  * bred, and the round, in a co-evolution run whose sides take turns.
  */
 interface Point {
-  readonly a: number;
-  readonly b: number;
-  readonly side: 0 | 1;
-  readonly round?: number;
+    readonly a: number;
+    readonly b: number;
+    readonly side: 0 | 1;
+    readonly round?: number;
 }
 
 /** One line of the results table, from a finished generation or a live one. */
 interface Row {
-  readonly id: number;
-  /** Which lineage of a co-evolution run it is in, 0 for A and 1 for B; absent in a run of one. */
-  readonly side?: 0 | 1;
-  readonly parent: number;
-  readonly matches: number;
-  readonly fitness: number;
-  readonly survival: number;
-  readonly functional: number;
-  readonly damage: number;
-  readonly disabling: number;
-  readonly race: number;
-  readonly mass: number;
-  readonly edits: readonly string[];
-  readonly entrant: Entrant;
-  /** Matches it won of those it fought in the generation on show, drills aside. */
-  readonly wins?: { readonly won: number; readonly fought: number };
+    readonly id: number;
+    /** Which lineage of a co-evolution run it is in, 0 for A and 1 for B; absent in a run of one. */
+    readonly side?: 0 | 1;
+    readonly parent: number;
+    readonly matches: number;
+    readonly fitness: number;
+    readonly survival: number;
+    readonly functional: number;
+    readonly damage: number;
+    readonly disabling: number;
+    readonly race: number;
+    readonly mass: number;
+    readonly edits: readonly string[];
+    readonly entrant: Entrant;
+    /** Matches it won of those it fought in the generation on show, drills aside. */
+    readonly wins?: { readonly won: number; readonly fought: number };
 }
 
 /**
@@ -307,11 +307,11 @@ interface Row {
  * entry. The colours are the chart's, applied by `css` in the stylesheet.
  */
 const SCORE_COLUMNS = [
-  { css: 'hull', head: 'hull', title: 'hull kept', of: (row: Row): number => row.survival },
-  { css: 'func', head: 'func', title: 'function kept', of: (row: Row): number => row.functional },
-  { css: 'dmg', head: 'dmg', title: 'damage done', of: (row: Row): number => row.damage },
-  { css: 'dis', head: 'dis', title: 'function taken', of: (row: Row): number => row.disabling },
-  { css: 'grnd', head: 'grnd', title: 'ground gained', of: (row: Row): number => row.race },
+    { css: "hull", head: "hull", title: "hull kept", of: (row: Row): number => row.survival },
+    { css: "func", head: "func", title: "function kept", of: (row: Row): number => row.functional },
+    { css: "dmg", head: "dmg", title: "damage done", of: (row: Row): number => row.damage },
+    { css: "dis", head: "dis", title: "function taken", of: (row: Row): number => row.disabling },
+    { css: "grnd", head: "grnd", title: "ground gained", of: (row: Row): number => row.race },
 ] as const;
 
 /**
@@ -327,110 +327,110 @@ const STACKED_COLUMNS: readonly (readonly number[])[] = [[0, 1], [2, 3], [4]];
  * body for the rows to be appended to and reordered in.
  */
 function buildCombatantTable(host: HTMLElement): {
-  table: HTMLTableElement;
-  body: HTMLTableSectionElement;
+    table: HTMLTableElement;
+    body: HTMLTableSectionElement;
 } {
-  const table = document.createElement('table');
-  const head = document.createElement('thead');
-  const headRow = document.createElement('tr');
-  for (const [css, text, title] of [
-    ['who', '#', 'rank, and what it was bred from'],
-    ['formation', 'fleet', 'how it is arranged, to its own scale'],
-    ['made', 'made of', 'every kind of ship in it, and how many'],
-    ['score', 'score', 'against this generation’s opponents'],
-    ['parts', '', ''],
-    ['mass', 't', 'tonnes'],
-    ['done', 'changed', 'what was done to its parent to make it'],
-  ] as const) {
-    if (css !== 'parts') {
-      const th = document.createElement('th');
-      th.className = css;
-      th.textContent = text;
-      th.title = title;
-      headRow.append(th);
-      continue;
+    const table = document.createElement("table");
+    const head = document.createElement("thead");
+    const headRow = document.createElement("tr");
+    for (const [css, text, title] of [
+        ["who", "#", "rank, and what it was bred from"],
+        ["formation", "fleet", "how it is arranged, to its own scale"],
+        ["made", "made of", "every kind of ship in it, and how many"],
+        ["score", "score", "against this generation’s opponents"],
+        ["parts", "", ""],
+        ["mass", "t", "tonnes"],
+        ["done", "changed", "what was done to its parent to make it"],
+    ] as const) {
+        if (css !== "parts") {
+            const th = document.createElement("th");
+            th.className = css;
+            th.textContent = text;
+            th.title = title;
+            headRow.append(th);
+            continue;
+        }
+        for (const stack of STACKED_COLUMNS) {
+            const th = document.createElement("th");
+            th.className = "part";
+            for (const i of stack) {
+                const column = SCORE_COLUMNS[i]!;
+                const head = document.createElement("div");
+                head.className = column.css;
+                head.textContent = column.head;
+                head.title = column.title;
+                th.append(head);
+            }
+            headRow.append(th);
+        }
     }
-    for (const stack of STACKED_COLUMNS) {
-      const th = document.createElement('th');
-      th.className = 'part';
-      for (const i of stack) {
-        const column = SCORE_COLUMNS[i]!;
-        const head = document.createElement('div');
-        head.className = column.css;
-        head.textContent = column.head;
-        head.title = column.title;
-        th.append(head);
-      }
-      headRow.append(th);
-    }
-  }
-  head.append(headRow);
-  const body = document.createElement('tbody');
-  table.append(head, body);
-  host.append(table);
-  return { table, body };
+    head.append(headRow);
+    const body = document.createElement("tbody");
+    table.append(head, body);
+    host.append(table);
+    return { table, body };
 }
 
 /** A combatant's row in the table, and the scale its hulls were last drawn at. */
 interface Tile {
-  readonly tr: HTMLTableRowElement;
-  readonly cells: Record<'who' | 'made' | 'score' | 'mass' | 'done', HTMLTableCellElement>;
-  /** One per part, in `SCORE_COLUMNS` order. */
-  readonly parts: readonly HTMLElement[];
-  /** The score itself, above the export button in the same cell. */
-  readonly figure: HTMLElement;
-  /** Matches fought of those owed while any are still owed, then matches won. */
-  readonly count: HTMLElement;
-  readonly canvases: readonly HTMLCanvasElement[];
-  readonly formation: HTMLCanvasElement;
-  readonly picture: Picture;
-  drawnAt: number;
-  formationDrawnAt: number;
+    readonly tr: HTMLTableRowElement;
+    readonly cells: Record<"who" | "made" | "score" | "mass" | "done", HTMLTableCellElement>;
+    /** One per part, in `SCORE_COLUMNS` order. */
+    readonly parts: readonly HTMLElement[];
+    /** The score itself, above the export button in the same cell. */
+    readonly figure: HTMLElement;
+    /** Matches fought of those owed while any are still owed, then matches won. */
+    readonly count: HTMLElement;
+    readonly canvases: readonly HTMLCanvasElement[];
+    readonly formation: HTMLCanvasElement;
+    readonly picture: Picture;
+    drawnAt: number;
+    formationDrawnAt: number;
 }
 
 /** A founder or benchmark in a list, as its option's value: `ship:Name` or `fleet:Name`. */
-type Choice = { kind: 'ship' | 'fleet'; name: string };
-const valueOf = (kind: Choice['kind'], name: string): string => `${kind}:${name}`;
+type Choice = { kind: "ship" | "fleet"; name: string };
+const valueOf = (kind: Choice["kind"], name: string): string => `${kind}:${name}`;
 function pickOf(value: string): Choice {
-  // Settings saved before fleets could found a run hold bare ship names.
-  if (value.startsWith('fleet:')) return { kind: 'fleet', name: value.slice(6) };
-  return { kind: 'ship', name: value.startsWith('ship:') ? value.slice(5) : value };
+    // Settings saved before fleets could found a run hold bare ship names.
+    if (value.startsWith("fleet:")) return { kind: "fleet", name: value.slice(6) };
+    return { kind: "ship", name: value.startsWith("ship:") ? value.slice(5) : value };
 }
 
 function fleetFileText(fleet: Fleet): string {
-  return `${JSON.stringify(serialiseFleet(fleet), null, 2)}\n`;
+    return `${JSON.stringify(serialiseFleet(fleet), null, 2)}\n`;
 }
 
 function ratio(): number {
-  return window.devicePixelRatio || 1;
+    return window.devicePixelRatio || 1;
 }
 
 function context(canvas: HTMLCanvasElement): CanvasRenderingContext2D {
-  const ctx = canvas.getContext('2d');
-  if (ctx === null) throw new Error('no 2d context');
-  return ctx;
+    const ctx = canvas.getContext("2d");
+    if (ctx === null) throw new Error("no 2d context");
+    return ctx;
 }
 
 function number(input: HTMLInputElement, fallback: number): number {
-  const value = Number(input.value);
-  return input.value.trim() === '' || !Number.isFinite(value) ? fallback : value;
+    const value = Number(input.value);
+    return input.value.trim() === "" || !Number.isFinite(value) ? fallback : value;
 }
 
 function download(name: string, text: string): void {
-  const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = name;
-  link.click();
-  URL.revokeObjectURL(url);
+    const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = name;
+    link.click();
+    URL.revokeObjectURL(url);
 }
 
 /** Save a ship or fleet as a file named for it. */
 function exportEntrant(entrant: Entrant): void {
-  download(
-    `${entrant.name.replace(/[^\w.-]+/g, '_')}${isFleet(entrant) ? '.fleet.json' : '.ship.json'}`,
-    isFleet(entrant) ? fleetFileText(entrant) : toFileText(entrant),
-  );
+    download(
+        `${entrant.name.replace(/[^\w.-]+/g, "_")}${isFleet(entrant) ? ".fleet.json" : ".ship.json"}`,
+        isFleet(entrant) ? fleetFileText(entrant) : toFileText(entrant),
+    );
 }
 
 const NO_LAYOUT: ChartLayout = { x: 0, y: 0, width: 0, height: 0, count: 0 };
@@ -440,2349 +440,2367 @@ const PREVIEW_DELAY_MS = 300;
 
 /** One of the small charts under the score, and where it last drew itself. */
 interface SizeChart {
-  readonly canvas: HTMLCanvasElement;
-  readonly ctx: CanvasRenderingContext2D;
-  readonly legend: HTMLElement;
-  /** Places the legend reads a value to. */
-  readonly digits: number;
-  series: Series[];
-  layout: ChartLayout;
+    readonly canvas: HTMLCanvasElement;
+    readonly ctx: CanvasRenderingContext2D;
+    readonly legend: HTMLElement;
+    /** Places the legend reads a value to. */
+    readonly digits: number;
+    series: Series[];
+    layout: ChartLayout;
 }
 
 export function startEvolution(): void {
-  keyHelp(
-    el<HTMLElement>('hint'),
-    [...BATTLE_KEYS, { keys: 'N', does: 'Put another match on' }],
-    [
-      'A run is decided entirely by its seed: the same settings give the same run, and any match in it can be fought again from the record.',
-    ],
-  );
-  const view = el<HTMLCanvasElement>('view');
-  const chart = el<HTMLCanvasElement>('chart');
-  // Typed rather than narrowed: `paint` is hoisted, and a hoisted function
-  // cannot see a narrowing made after it in the source.
-  const ctx: CanvasRenderingContext2D = context(view);
-  const chartCtx: CanvasRenderingContext2D = context(chart);
-  const chartTip = el<HTMLElement>('chartTip');
-  const legend = el<HTMLElement>('legend');
-  /**
-   * What one fleet of each generation weighs and fields — averaged over the
-   * generation, and for its fittest — under what it scored: a run that
-   * scores better by growing is not the run that scores better by paring
-   * down. Ships only once a run has fielded more than one.
-   */
-  const sizeChart = (canvas: string, key: string, digits: number): SizeChart => {
-    const at = el<HTMLCanvasElement>(canvas);
-    return { canvas: at, ctx: context(at), legend: el<HTMLElement>(key), digits, series: [], layout: NO_LAYOUT };
-  };
-  const massChart = sizeChart('massChart', 'massLegend', 1);
-  /** What the chart under the score shows: mass and ships, or weapons and engines. */
-  const sizeMetric = el<HTMLSelectElement>('sizeMetric');
-  const sizeCharts = [massChart];
-  /** Worked out once per generation: counting what each individual fields means compiling it. */
-  const sizes = new WeakMap<GenerationRecord, GenerationSize>();
-  const sizeOf = (generation: GenerationRecord): GenerationSize => {
-    let size = sizes.get(generation);
-    if (size === undefined) {
-      size = generationSize(generation);
-      sizes.set(generation, size);
-    }
-    return size;
-  };
-  /** The same for doctrine, which means reading every individual's. */
-  const doctrines = new WeakMap<GenerationRecord, GenerationDoctrine>();
-  const doctrineOf = (generation: GenerationRecord): GenerationDoctrine => {
-    let doctrine = doctrines.get(generation);
-    if (doctrine === undefined) {
-      doctrine = generationDoctrine(generation);
-      doctrines.set(generation, doctrine);
-    }
-    return doctrine;
-  };
-  /** A chart of each doctrine number, labelled with how far the mean has moved over the run, so the ones worth a look stand out. */
-  const doctrineOptions = DOCTRINE_NUMBERS.map((key) => {
-    const option = new Option(key, `doctrine:${key}`);
-    el<HTMLElement>('doctrineMetrics').append(option);
-    return option;
-  });
-  const labelDoctrine = (records: readonly GenerationRecord[]): void => {
-    const first = records[0];
-    const last = records[records.length - 1];
-    doctrineOptions.forEach((option, k) => {
-      const key = DOCTRINE_NUMBERS[k]!;
-      const moved = first === undefined || last === first ? NaN : doctrineOf(last!).mean[key]! - doctrineOf(first).mean[key]!;
-      option.textContent = Number.isFinite(moved) ? `${key} (${moved >= 0 ? '+' : ''}${moved.toPrecision(2)})` : key;
-    });
-  };
-
-  const startButton = el<HTMLButtonElement>('start');
-  const toSetupButton = el<HTMLButtonElement>('toSetup');
-  const toRunButton = el<HTMLButtonElement>('toRun');
-  const pauseButton = el<HTMLButtonElement>('pause');
-  const stopButton = el<HTMLButtonElement>('stop');
-  const stateLabel = el<HTMLElement>('state');
-  const readout = el<HTMLElement>('readout');
-  const barFill = el<HTMLElement>('barFill');
-  const foundersSelect = el<HTMLSelectElement>('founders');
-  const versusSelect = el<HTMLSelectElement>('versus');
-  const goalInput = el<HTMLSelectElement>('goal');
-  const playButton = el<HTMLButtonElement>('play');
-  const stepButton = el<HTMLButtonElement>('step');
-  const skipButton = el<HTMLButtonElement>('skip');
-  const fitButton = el<HTMLButtonElement>('fit');
-  const speedSelect = el<HTMLSelectElement>('speed');
-  const modeSelect = el<HTMLSelectElement>('mode');
-  const battleControls = el<HTMLElement>('battleControls');
-  const fleetBox = el<HTMLElement>('fleet');
-  // One table a side, A's on the left; a run of one fills A's alone.
-  const emptyNote = document.createElement('p');
-  emptyNote.className = 'none';
-  const fleetPair = document.createElement('div');
-  fleetPair.className = 'pair';
-  fleetBox.append(emptyNote, fleetPair);
-  const fleetSides = [buildCombatantTable(fleetPair), buildCombatantTable(fleetPair)] as const;
-  const watchingLabel = el<HTMLElement>('watching');
-  const battleScores = el<HTMLElement>('battleScores');
-  const latestButton = el<HTMLButtonElement>('latest');
-  const shownGeneration = el<HTMLElement>('shownGeneration');
-  const fightingLabel = el<HTMLElement>('fighting');
-  const matchesBody = el<HTMLElement>('matches');
-  const championLine = el<HTMLElement>('championLine');
-  const saveButton = el<HTMLButtonElement>('saveChampion');
-  const exportButton = el<HTMLButtonElement>('exportChampion');
-  const benchmarkSelect = el<HTMLSelectElement>('benchmark');
-  const measureButton = el<HTMLButtonElement>('measure');
-  const watchYardstickButton = el<HTMLButtonElement>('watchYardstick');
-  const yardstickLine = el<HTMLElement>('yardstickLine');
-  const gridTable = el<HTMLTableElement>('grid');
-  fillFields(document, [...MUTATION_FIELDS, ...mapFields()]);
-  fillMapInputs(document, undefined);
-  addRivalInputs();
-  const inputs = Object.fromEntries(FIELDS.map((name) => [name, el<HTMLInputElement>(name)])) as Record<
-    (typeof FIELDS)[number],
-    HTMLInputElement
-  >;
-  const rivalFollowing = el<HTMLElement>('rivalFollowing');
-  const rivalEvolvesInput = el<HTMLInputElement>('rivalEvolves');
-  const rivalInputs = Object.fromEntries(SIDE_FIELDS.map((name) => [name, el<HTMLInputElement>(RIVAL + name)])) as Record<
-    SideField,
-    HTMLInputElement
-  >;
-
-  const library = new Library(window.localStorage);
-  const fleetLibrary = new Library(window.localStorage, FLEET_FILES);
-  const load = (value: string): Entrant | null => {
-    const { kind, name } = pickOf(value);
-    return kind === 'fleet' ? fleetLibrary.load(name) : library.load(name);
-  };
-  const chosenFounders = (): Entrant[] => {
-    const founders: Entrant[] = [];
-    for (const option of foundersSelect.selectedOptions) {
-      try {
-        const founder = load(option.value);
-        if (founder !== null) founders.push(founder);
-      } catch {
-        // An unreadable saved file is left out, as a missing one is.
-      }
-    }
-    return founders;
-  };
-
-  /** Side B's founders: any makes it a co-evolution run. */
-  const chosenVersus = (): Entrant[] => {
-    const rivals: Entrant[] = [];
-    for (const option of versusSelect.selectedOptions) {
-      try {
-        const rival = load(option.value);
-        if (rival !== null) rivals.push(rival);
-      } catch {
-        // As for a founder.
-      }
-    }
-    return rivals;
-  };
-  /** How side B is bred against side A: its own column of settings, and the hall. */
-  const coevolutionSettings = (): CoevolutionConfig => ({
-    // Nothing set apart while side B follows side A, so a file says only what differs.
-    rival: rivalOwn ? sideSettings((name) => rivalInputs[name]) : {},
-    hall: Math.max(1, Math.round(number(inputs.hall, DEFAULT_COEVOLUTION.hall))),
-    phaseWin: Math.min(1, Math.max(0, number(inputs.phaseWin, DEFAULT_COEVOLUTION.phaseWin))),
-    phaseCap: Math.max(1, Math.round(number(inputs.phaseCap, DEFAULT_COEVOLUTION.phaseCap))),
-    shieldedDrills: Math.max(0, Math.round(number(inputs.shieldedDrills, DEFAULT_COEVOLUTION.shieldedDrills))),
-    bareCoreDrills: Math.max(0, Math.round(number(inputs.bareCoreDrills, DEFAULT_COEVOLUTION.bareCoreDrills))),
-    rivalEvolves: rivalEvolvesInput.checked,
-  });
-  const coRun = (): boolean => versusSelect.selectedOptions.length > 0;
-  /** Whether side B has settings of its own, rather than following side A's. */
-  let rivalOwn = false;
-
-  let run: Run | Coevolution | RecordedRun | null = null;
-  /** Whether a run has two sides: a co-evolution run, live or read from a file. */
-  const twoSided = (of: typeof run): of is Coevolution | (RecordedRun & { coevolution: CoevolutionConfig }) =>
-    of instanceof Coevolution || (of instanceof RecordedRun && of.coevolution !== null);
-  /** Before a run: the founders as chosen, and the first match they would fight, paused at its start. */
-  let previewRows: Row[] = [];
-  let previewMatch: Match | null = null;
-  /** What saving the best said, and which individual it was. */
-  let savedAs: { id: number; text: string } | null = null;
-  /** Said in place of the run's progress until the next Start, so the next report does not wipe it. */
-  let notice = '';
-  let paused = false;
-  let replay: Match | null = null;
-  let replayOf: MatchRecord | null = null;
-  /** Who is fighting in the match being watched, by id, and an opponent that has none. */
-  let replayIds: readonly number[] = [];
-  let replayVs: string | null = null;
-  let replayPlaying = true;
-  /**
-   * Whether the match being watched has been given up on, and the next one
-   * the run finishes should go on in its place.
-   */
-  let skipping = false;
-  let watchedMatch: Match | null = null;
-  // Which generation the results panel is showing, or -1 to follow the newest.
-  let shown = -1;
-  let yardstick: Yardstick | null = null;
-  let measured: YardstickReport | null = null;
-  /**
-   * Every measurement of this run so far, by the opponent's file text, so
-   * measuring against the same opponent again carries on from what was found
-   * rather than fighting every generation over again.
-   */
-  const measurements = new Map<string, YardstickReport>();
-  let measuringAgainst = '';
-  /** A co-evolution run's champion grid, being fought or fought. */
-  let grid: GridMeasure | null = null;
-  let gridResult: ChampionGrid | null = null;
-  /**
-   * The tiles, by ship rather than by generation: a design carried over into
-   * the next generation keeps its tile, which is what makes seeking across a
-   * run redraw only what actually changed.
-   */
-  const fleetTiles = new Map<number, Tile>();
-  const tileSnapshot = new Snapshot();
-  /**
-   * Pixels per metre, shared by every tile so their sizes compare. It eases
-   * towards whatever fits the largest ship on show, so seeking through a run
-   * shows the ships growing rather than each tile refitting to its own.
-   */
-  let fleetScale = 0;
-  let fleetTarget = 0;
-  /** The same, for the whole-fleet pictures: see `FORMATION_WIDTH`. */
-  let formationScale = 0;
-  let formationTarget = 0;
-  let picked = -1;
-  /** Where the chart drew itself, and which point the pointer is over. */
-  let chartLayout: ChartLayout = NO_LAYOUT;
-  let chartSeries: Series[] = [];
-  let hoverAt: number | null = null;
-  /** Whether a drag across the chart is seeking through the generations. */
-  let seeking = false;
-  /** A selection made since the panel was last rebuilt. */
-  let reselected = false;
-  const snapshot = new Snapshot();
-  const flashes = new Flashes();
-  const stripCache = new StripCache();
-  const camera: Camera = { x: 0, y: 0, scale: 0.1 };
-  let autoFrame = true;
-  /** The ship picked out by a click, by body, or -1. */
-  let selected = -1;
-  // Team colours on here and off on the viewer: a run is watched to see who is
-  // doing what, a single battle as much to see it.
-  const kept = loadView('evolution', { arcs: 'none', teamShots: true, strips: true, speed: 1 });
-  let arcs: Arcs = kept.arcs;
-  let teamShots = kept.teamShots;
-  let strips = kept.strips;
-  /** What was last drawn over the battle, for a tap to find. */
-  let shownStrips: Strips | null = null;
-  let shownInsets: Inset[] = [];
-  keepSpeed(speedSelect, 'evolution', kept);
-  let framed = false;
-  let lastSimTime = 0;
-  let accumulator = 0;
-  let last = 0;
-  // Compiling a hull to weigh it is not free, and the panel is redrawn many
-  // times a run; an individual's mass never changes, and its id never repeats.
-  const pictures = new Map<number, Picture>();
-  let refreshedAt = 0;
-
-  // ---- settings ----------------------------------------------------------
-
-  const defaults: Record<(typeof FIELDS)[number], string> = {
-    ...(Object.fromEntries(MUTATION_FIELDS.map((f) => [f.name, String(f.value)])) as Record<SideField, string>),
-    configName: '',
-    generations: String(DEFAULT_RUN.generations),
-    population: String(DEFAULT_RUN.population),
-    winners: String(DEFAULT_RUN.winners),
-    group: String(DEFAULT_RUN.group),
-    minMatches: String(DEFAULT_RUN.minMatches),
-    metalBudget: '',
-    fuelBudget: '',
-    buildBudget: '',
-    fleetRadius: String(DEFAULT_FLEET_LIMITS.radius),
-    fleetShips: String(DEFAULT_FLEET_LIMITS.maxShips),
-    seed: String(DEFAULT_RUN.seed),
-    duration: String(DEFAULT_MATCH.duration),
-    radius: String(DEFAULT_MATCH.radius),
-    scatter: String(Math.round((DEFAULT_MATCH.scatter * 180) / Math.PI)),
-    closing: String(DEFAULT_MATCH.closingSpeed),
-    crossing: String(DEFAULT_MATCH.crossingSpeed),
-    radiusSpread: String(DEFAULT_MATCH.radiusSpread),
-    closingSpread: String(DEFAULT_MATCH.closingSpread),
-    crossingSpread: String(DEFAULT_MATCH.crossingSpread),
-    quietLimit: String(DEFAULT_MATCH.quietLimit),
-    survivalWeight: String(DEFAULT_MATCH.weights.survival),
-    functionalWeight: String(DEFAULT_MATCH.weights.functional),
-    damageWeight: String(DEFAULT_MATCH.weights.damage),
-    disablingWeight: String(DEFAULT_MATCH.weights.disabling),
-    raceWeight: String(DEFAULT_MATCH.weights.race),
-    effort: '12',
-    hall: String(DEFAULT_COEVOLUTION.hall),
-    phaseWin: String(DEFAULT_COEVOLUTION.phaseWin),
-    phaseCap: String(DEFAULT_COEVOLUTION.phaseCap),
-    shieldedDrills: String(DEFAULT_COEVOLUTION.shieldedDrills),
-    bareCoreDrills: String(DEFAULT_COEVOLUTION.bareCoreDrills),
-  };
-
-  /**
-   * Show what Start would begin with. Only while there is no run: once one
-   * has been fought, its results are what the panel is for.
-   */
-  const refreshPreview = (): void => {
-    showFleetSettings();
-    if (run !== null) return;
-    for (const id of [...pictures.keys()]) if (id < 0) pictures.delete(id);
-    for (const [id, tile] of [...fleetTiles]) {
-      if (id >= 0) continue;
-      tile.tr.remove();
-      fleetTiles.delete(id);
-    }
-    const founders = chosenFounders();
-    const rivals = chosenVersus();
-    const co = rivals.length > 0;
-    previewRows = [...founders, ...rivals].map((entrant, k) => ({
-      id: -(k + 1),
-      ...(co ? { side: k < founders.length ? (0 as const) : (1 as const) } : {}),
-      parent: -1,
-      matches: 0,
-      fitness: 0,
-      survival: 0,
-      functional: 0,
-      damage: 0,
-      disabling: 0,
-      race: 0,
-      mass: pictureOf(-(k + 1), entrant).mass,
-      edits: [],
-      entrant,
-    }));
-    // Building the opening breeds a whole first generation, which for big
-    // fleets takes seconds: done again only when something it reads changed.
-    // How long the run goes on, and who breeds, are not among them.
-    const config = readSetup().config;
-    const coSettings = co ? coevolutionSettings() : null;
-    const opening = { ...config, generations: config.generations > 0, minMatches: 0, winners: 0 };
-    const key = JSON.stringify([founders, rivals, opening, coSettings]);
-    if (key !== previewKey) {
-      previewKey = key;
-      try {
-        previewMatch =
-          founders.length === 0
-            ? null
-            : co
-              ? new Coevolution(founders, rivals, config, coSettings!).unmutatedOpening()
-              : new Run(founders, config).unmutatedOpening();
-      } catch {
-        // A founder that will not compile has nothing to show.
-        previewMatch = null;
-      }
-    }
-    refresh();
-  };
-
-  /** What `previewMatch` was built from, so an edit that changes none of it does not build it again. */
-  let previewKey = '';
-  let previewTimer: ReturnType<typeof setTimeout> | null = null;
-  /** `refreshPreview` once the settings have stopped changing for `PREVIEW_DELAY_MS`, once for a burst of changes rather than once each. */
-  const schedulePreview = (): void => {
-    showFleetSettings();
-    if (previewTimer !== null) clearTimeout(previewTimer);
-    previewTimer = setTimeout(() => {
-      previewTimer = null;
-      refreshPreview();
-    }, PREVIEW_DELAY_MS);
-  };
-
-  const saveSetup = (): void => {
-    const held: Record<string, string> = { goal: goalInput.value };
-    for (const name of FIELDS) held[name] = inputs[name].value;
-    // Side B follows side A until it is given a setting of its own.
-    if (!rivalOwn) for (const name of SIDE_FIELDS) rivalInputs[name].value = inputs[name].value;
-    for (const name of SIDE_FIELDS) held[RIVAL + name] = rivalInputs[name].value;
-    held['rivalOwn'] = rivalOwn ? '1' : '';
-    held['rivalEvolves'] = rivalEvolvesInput.checked ? '1' : '';
-    document.body.classList.toggle('rivalFixed', !rivalEvolvesInput.checked);
-    rivalFollowing.textContent = !rivalEvolvesInput.checked
-      ? 'Side B does not evolve: it fights as its founders every generation, so it has no settings of its own.'
-      : rivalOwn
-        ? 'Side B has settings of its own, in the right-hand boxes.'
-        : "Side B follows side A's settings until one of its own boxes, on the right, is changed.";
-    held['founders'] = [...foundersSelect.selectedOptions].map((o) => o.value).join('\n');
-    held['versus'] = [...versusSelect.selectedOptions].map((o) => o.value).join('\n');
-    try {
-      window.localStorage.setItem(SETUP_KEY, JSON.stringify(held));
-    } catch {
-      // Storage being full or refused costs the settings, not the run.
-    }
-    schedulePreview();
-  };
-
-  const loadSetup = (): Record<string, string> => {
-    try {
-      const raw = window.localStorage.getItem(SETUP_KEY);
-      if (raw !== null) return JSON.parse(raw) as Record<string, string>;
-    } catch {
-      // Same: unreadable settings are settings that were never saved.
-    }
-    return {};
-  };
-
-  // Sections fold as the player left them.
-  const folded = new Set<string>();
-  try {
-    for (const key of JSON.parse(window.localStorage.getItem(FOLDED_KEY) ?? '[]') as string[]) folded.add(key);
-  } catch {
-    // Unreadable is as good as nothing folded.
-  }
-  for (const section of document.querySelectorAll<HTMLDetailsElement>('details[data-key]')) {
-    const key = section.dataset['key']!;
-    if (folded.has(key)) section.open = false;
-    section.addEventListener('toggle', () => {
-      if (section.open) folded.delete(key);
-      else folded.add(key);
-      try {
-        window.localStorage.setItem(FOLDED_KEY, JSON.stringify([...folded]));
-      } catch {
-        // Costs the folding, not the run.
-      }
-    });
-  }
-
-  const held = loadSetup();
-  for (const name of FIELDS) inputs[name].value = held[name] ?? defaults[name];
-  rivalOwn = held['rivalOwn'] === '1';
-  rivalEvolvesInput.checked = held['rivalEvolves'] !== '';
-  rivalEvolvesInput.addEventListener('change', saveSetup);
-  for (const name of SIDE_FIELDS) rivalInputs[name].value = (rivalOwn ? held[RIVAL + name] : undefined) ?? inputs[name].value;
-  // Settings saved when this was a checkbox held '1' or ''.
-  const heldGoal = held['goal'] === '' ? 'none' : held['goal'] === '1' ? 'solid' : held['goal'];
-  goalInput.value = heldGoal === 'ghost' || heldGoal === 'none' ? heldGoal : 'solid';
-
-  const wanted = new Set(
-    (held['founders'] ?? 'Corvette').split('\n').map((value) => {
-      const { kind, name } = pickOf(value);
-      return valueOf(kind, name);
-    }),
-  );
-  // Chosen by name, and a name opens one layout: the player's copy where there
-  // is one. The editors list a shadowed shipped one beside it because that is
-  // something to open; a founder picked by name is not.
-  const stockShips = new Set(BUILT_IN.map((blueprint) => blueprint.name));
-  const stockFleets = new Set(FLEET_FILES.builtIn.map((fleet) => fleet.name));
-  const fillList = (select: HTMLSelectElement, label: (stock: boolean, name: string) => string): void => {
-    for (const [kind, title, entries, stock] of [
-      ['ship', 'Ships', library.list(), stockShips],
-      ['fleet', 'Fleets', fleetLibrary.list(), stockFleets],
-    ] as const) {
-      const group = document.createElement('optgroup');
-      group.label = title;
-      for (const entry of entries) {
-        if (entry.stock && entry.saved) continue;
-        const option = new Option(label(stock.has(entry.name), entry.name), valueOf(kind, entry.name));
-        group.append(option);
-      }
-      select.append(group);
-    }
-  };
-  fillList(foundersSelect, (stock, name) => (stock ? name : `${name} (saved)`));
-  for (const option of foundersSelect.options) option.selected = wanted.has(option.value);
-  if (foundersSelect.selectedOptions.length === 0 && foundersSelect.options.length > 0) {
-    foundersSelect.options[0]!.selected = true;
-  }
-
-  fillList(versusSelect, (stock, name) => (stock ? name : `${name} (saved)`));
-  const wantedVersus = new Set((held['versus'] ?? '').split('\n').filter((value) => value !== ''));
-  for (const option of versusSelect.options) option.selected = wantedVersus.has(option.value);
-
-  const OWN_FINAL = '';
-  benchmarkSelect.append(new Option('its own final design', OWN_FINAL));
-  fillList(benchmarkSelect, (_, name) => name);
-
-  /** The lists again, from the library as it now is, keeping what was chosen. */
-  const refillLists = (): void => {
-    for (const [select, label] of [
-      [foundersSelect, (stock: boolean, name: string) => (stock ? name : `${name} (saved)`)],
-      [versusSelect, (stock: boolean, name: string) => (stock ? name : `${name} (saved)`)],
-      [benchmarkSelect, (_: boolean, name: string) => name],
-    ] as const) {
-      const chosen = new Set([...select.selectedOptions].map((option) => option.value));
-      for (const group of [...select.querySelectorAll('optgroup')]) group.remove();
-      fillList(select, label);
-      for (const option of select.options) option.selected = chosen.has(option.value);
-    }
-  };
-
-  /** Whether a fleet is among the founders, which makes it a run of fleets. */
-  const fleetRun = (): boolean =>
-    [...foundersSelect.selectedOptions, ...versusSelect.selectedOptions].some((o) => pickOf(o.value).kind === 'fleet') ||
-    Math.round(number(inputs.fleetShips, DEFAULT_FLEET_LIMITS.maxShips)) > 1 ||
-    (coRun() && Math.round(number(rivalInputs.fleetShips, DEFAULT_FLEET_LIMITS.maxShips)) > 1);
-  const showFleetSettings = (): void => {
-    document.body.classList.toggle('fleetRun', fleetRun());
-    document.body.classList.toggle('coRun', coRun());
-  };
-  showFleetSettings();
-  foundersSelect.addEventListener('change', showFleetSettings);
-  versusSelect.addEventListener('change', showFleetSettings);
-  versusSelect.addEventListener('change', saveSetup);
-  el<HTMLButtonElement>('clearVersus').addEventListener('click', () => {
-    for (const option of versusSelect.options) option.selected = false;
-    showFleetSettings();
-    saveSetup();
-  });
-
-  for (const name of FIELDS) inputs[name].addEventListener('change', saveSetup);
-  for (const name of SIDE_FIELDS) {
-    rivalInputs[name].addEventListener('change', () => {
-      rivalOwn = true;
-      saveSetup();
-    });
-  }
-  el<HTMLButtonElement>('resetConfig').addEventListener('click', () => {
-    for (const name of FIELDS) if (name !== 'configName') inputs[name].value = defaults[name];
-    goalInput.value = 'solid';
-    rivalEvolvesInput.checked = true;
-    rivalOwn = false;
-    showFleetSettings();
-    saveSetup();
-  });
-  el<HTMLButtonElement>('sameAsA').addEventListener('click', () => {
-    rivalOwn = false;
-    showFleetSettings();
-    saveSetup();
-  });
-  goalInput.addEventListener('change', saveSetup);
-  foundersSelect.addEventListener('change', saveSetup);
-
-  /** One side's own settings, read from its inputs: side A's, or with `get` reading side B's. */
-  const sideSettings = (get: (name: SideField) => HTMLInputElement): SideSettings => {
-    const bred = breeding((name) => (get(name as SideField).value.trim() === '' ? undefined : Number(get(name as SideField).value)));
-    // Blank or nothing is no limit.
-    const limit = (name: SideField, scale: number): number => {
-      const value = number(get(name), 0);
-      return value > 0 ? value * scale : Infinity;
-    };
-    return {
-      population: Math.max(2, Math.round(number(get('population'), DEFAULT_RUN.population))),
-      winners: Math.max(1, Math.round(number(get('winners'), DEFAULT_RUN.winners))),
-      group: Math.max(1, Math.round(number(get('group'), DEFAULT_RUN.group))),
-      budget: { metal: limit('metalBudget', 1000), fuel: limit('fuelBudget', 1000), build: limit('buildBudget', 60) },
-      fleet: {
-        radius: Math.max(1, number(get('fleetRadius'), DEFAULT_FLEET_LIMITS.radius)),
-        maxShips: Math.max(1, Math.round(number(get('fleetShips'), DEFAULT_FLEET_LIMITS.maxShips))),
-        operators: bred.operators,
-        ...bred.fleet,
-      },
-      mutation: bred.ship,
-    };
-  };
-
-  const configure = (): Partial<RunConfig> => {
-    const map = readMapInputs(document);
-    return {
-      seed: number(inputs.seed, DEFAULT_RUN.seed),
-      generations: Math.max(1, Math.round(number(inputs.generations, DEFAULT_RUN.generations))),
-      minMatches: Math.max(1, Math.round(number(inputs.minMatches, DEFAULT_RUN.minMatches))),
-      ...sideSettings((name) => inputs[name]),
-      match: {
-        duration: Math.max(1, number(inputs.duration, DEFAULT_MATCH.duration)),
-        radius: Math.max(10, number(inputs.radius, DEFAULT_MATCH.radius)),
-        scatter: (number(inputs.scatter, 180) * Math.PI) / 180,
-        closingSpeed: number(inputs.closing, DEFAULT_MATCH.closingSpeed),
-        crossingSpeed: number(inputs.crossing, DEFAULT_MATCH.crossingSpeed),
-        radiusSpread: Math.max(0, number(inputs.radiusSpread, DEFAULT_MATCH.radiusSpread)),
-        closingSpread: Math.max(0, number(inputs.closingSpread, DEFAULT_MATCH.closingSpread)),
-        crossingSpread: Math.max(0, number(inputs.crossingSpread, DEFAULT_MATCH.crossingSpread)),
-        quietLimit: Math.max(0, number(inputs.quietLimit, DEFAULT_MATCH.quietLimit)),
-        ...(map === undefined ? {} : { map }),
-        goal:
-          goalInput.value === 'none' || DEFAULT_MATCH.goal === null ? null : { ...DEFAULT_MATCH.goal, solid: goalInput.value !== 'ghost' },
-        weights: {
-          survival: number(inputs.survivalWeight, 1),
-          functional: number(inputs.functionalWeight, 1),
-          damage: number(inputs.damageWeight, 1),
-          disabling: number(inputs.disablingWeight, 1),
-          race: number(inputs.raceWeight, 1),
-        },
-      },
-    };
-  };
-
-  /** Everything the form says, as a run's settings. */
-  const readSetup = (): RunSetup => {
-    const name = inputs.configName.value.trim();
-    return {
-      ...(name === '' ? {} : { name }),
-      ...designsOf(chosenFounders()),
-      versus: coRun() ? { ...designsOf(chosenVersus()), coevolution: coevolutionSettings() } : null,
-      config: { ...DEFAULT_RUN, ...configure() },
-    };
-  };
-
-  /** One side's founders, split as a config file holds them. */
-  const designsOf = (entrants: readonly Entrant[]): { founders: Blueprint[]; fleets: Fleet[] } => ({
-    founders: entrants.filter((entrant): entrant is Blueprint => !isFleet(entrant)),
-    fleets: entrants.filter(isFleet),
-  });
-
-  /** Put one side's own settings into its inputs: side A's, or with `get` side B's. */
-  const writeSide = (get: (name: SideField) => HTMLInputElement, config: RunConfig): void => {
-    const kinds: KindWeights = { ...DEFAULT_KINDS, ...config.mutation.kinds };
-    get('population').value = String(config.population);
-    get('winners').value = String(config.winners);
-    get('group').value = String(config.group);
-    const shown = (value: number, scale: number): string => (Number.isFinite(value) ? String(value / scale) : '');
-    get('metalBudget').value = shown(config.budget.metal, 1000);
-    get('fuelBudget').value = shown(config.budget.fuel, 1000);
-    get('buildBudget').value = shown(config.budget.build, 60);
-    get('fleetRadius').value = String(config.fleet.radius ?? DEFAULT_FLEET_LIMITS.radius);
-    get('fleetShips').value = String(config.fleet.maxShips ?? DEFAULT_FLEET_LIMITS.maxShips);
-    const operators = { ...DEFAULT_FLEET_LIMITS.operators, ...config.fleet.operators };
-    get('fleetDesign').value = String(config.fleet.design ?? DEFAULT_FLEET_LIMITS.design);
-    get('fleetMove').value = String(config.fleet.move ?? DEFAULT_FLEET_LIMITS.move);
-    get('fleetChange').value = String(config.fleet.change ?? DEFAULT_FLEET_LIMITS.change);
-    get('opAdd').value = String(operators.add);
-    get('opRemove').value = String(operators.remove);
-    get('opFork').value = String(operators.fork);
-    get('opMerge').value = String(operators.merge);
-    get('opSwap').value = String(operators.swap);
-    get('opPad').value = String(operators.pad);
-    const build = { ...DEFAULT_BUILD_WEIGHTS, ...config.mutation.build };
-    get('structural').value = String(config.mutation.structural ?? DEFAULT_LIMITS.structural);
-    get('geometry').value = String(config.mutation.geometry ?? DEFAULT_LIMITS.geometry);
-    get('thrusters').value = String(config.mutation.thrusters ?? DEFAULT_LIMITS.thrusters);
-    get('buildMove').value = String(build.move);
-    get('buildResize').value = String(build.resize);
-    get('buildRefit').value = String(build.refit);
-    get('buildFittings').value = String(build.fittings);
-    get('buildTuning').value = String(build.tuning);
-    get('buildFighter').value = String(build.fighter);
-    get('buildShape').value = String(build.shape);
-    get('kindEngine').value = String(kinds.engine);
-    get('kindStructure').value = String(kinds.structure);
-    get('kindTank').value = String(kinds.tank);
-    get('kindTurret').value = String(kinds.turret);
-    get('kindBeamTurret').value = String(kinds.beamTurret);
-    get('kindHullGun').value = String(kinds.hullGun);
-    get('kindHullBeam').value = String(kinds.hullBeam);
-    get('kindCore').value = String(kinds.core);
-    get('kindClaw').value = String(kinds.claw);
-    get('kindPad').value = String(kinds.pad);
-    get('kindPort').value = String(kinds.port);
-    get('kindHold').value = String(kinds.hold);
-    get('kindBattery').value = String(kinds.battery);
-    get('kindGenerator').value = String(kinds.generator);
-    get('kindRobotBay').value = String(kinds.robotBay);
-    get('kindSlipway').value = String(kinds.slipway);
-    const doctrine = doctrineWeights(config.mutation.doctrine);
-    get('doctrineTargeting').value = String(doctrine.targeting);
-    get('doctrineApproach').value = String(doctrine.approach);
-    get('doctrineEscort').value = String(doctrine.escort);
-    get('doctrineAvoidance').value = String(doctrine.avoidance);
-    get('doctrineGunnery').value = String(doctrine.gunnery);
-  };
-
-  /**
-   * A founder from a settings file, as the library holds it: the copy under its
-   * name if that is the same design, else saved, under the next free name if
-   * its own holds a different one. Its option's value; a renaming is said in
-   * `renamed`.
-   */
-  const adopt = (entrant: Entrant, renamed: string[]): string => {
-    const fleet = isFleet(entrant);
-    const shelf: Library<Blueprint> | Library<Fleet> = fleet ? fleetLibrary : library;
-    const text = (e: Entrant): string => JSON.stringify(isFleet(e) ? serialiseFleet(e) : serialiseBlueprint(e));
-    let name = entrant.name;
-    for (;;) {
-      let kept: Entrant | null | undefined;
-      try {
-        kept = shelf.load(name);
-      } catch {
-        // Unreadable: taken, and not to be saved over.
-        kept = undefined;
-      }
-      const named = { ...entrant, name };
-      if (kept === null) {
-        if (isFleet(named)) fleetLibrary.save(named);
-        else library.save(named);
-        break;
-      }
-      if (kept !== undefined && text(kept) === text(named)) break;
-      name = nextName(name);
-    }
-    if (name !== entrant.name) renamed.push(`"${entrant.name}" as "${name}"`);
-    return valueOf(fleet ? 'fleet' : 'ship', name);
-  };
-
-  /** Put a setup into the form, its founders into the library. What was saved under another name. */
-  const applySetup = (setup: RunSetup): string[] => {
-    const config = setup.config;
-    const renamed: string[] = [];
-    const founders = [...setup.founders, ...(setup.fleets ?? [])].map((entrant) => adopt(entrant, renamed));
-    const versus = setup.versus ?? null;
-    const rivals = new Set([...(versus?.founders ?? []), ...(versus?.fleets ?? [])].map((entrant) => adopt(entrant, renamed)));
-    refillLists();
-    const match: MatchConfig = { ...DEFAULT_MATCH, ...config.match };
-    inputs.configName.value = setup.name ?? '';
-    inputs.seed.value = String(config.seed);
-    inputs.generations.value = String(config.generations);
-    inputs.minMatches.value = String(config.minMatches);
-    inputs.duration.value = String(match.duration);
-    inputs.radius.value = String(match.radius);
-    inputs.scatter.value = String((match.scatter * 180) / Math.PI);
-    inputs.closing.value = String(match.closingSpeed);
-    inputs.crossing.value = String(match.crossingSpeed);
-    inputs.radiusSpread.value = String(match.radiusSpread ?? DEFAULT_MATCH.radiusSpread);
-    inputs.closingSpread.value = String(match.closingSpread ?? DEFAULT_MATCH.closingSpread);
-    inputs.crossingSpread.value = String(match.crossingSpread ?? DEFAULT_MATCH.crossingSpread);
-    inputs.quietLimit.value = String(match.quietLimit ?? DEFAULT_MATCH.quietLimit);
-    fillMapInputs(document, match.map);
-    inputs.survivalWeight.value = String(match.weights.survival);
-    inputs.functionalWeight.value = String(match.weights.functional);
-    inputs.damageWeight.value = String(match.weights.damage);
-    inputs.disablingWeight.value = String(match.weights.disabling);
-    inputs.raceWeight.value = String(match.weights.race);
-    writeSide((name) => inputs[name], config);
-    goalInput.value = match.goal === null ? 'none' : match.goal.solid === false ? 'ghost' : 'solid';
-    if (founders.length > 0) {
-      const named = new Set(founders);
-      for (const option of foundersSelect.options) option.selected = named.has(option.value);
-    }
-    const coevolution = versus?.coevolution ?? DEFAULT_COEVOLUTION;
-    // Side B's column in full: side A's settings, with whatever the file set apart for it.
-    rivalOwn = Object.keys(coevolution.rival).length > 0;
-    writeSide((name) => rivalInputs[name], rivalSettings({ ...DEFAULT_RUN, ...config }, coevolution.rival));
-    inputs.hall.value = String(coevolution.hall);
-    rivalEvolvesInput.checked = coevolution.rivalEvolves;
-    inputs.phaseWin.value = String(coevolution.phaseWin);
-    inputs.phaseCap.value = String(coevolution.phaseCap);
-    inputs.shieldedDrills.value = String(coevolution.shieldedDrills);
-    inputs.bareCoreDrills.value = String(coevolution.bareCoreDrills);
-    // Side B as the file has it, which for a run of one is nobody.
-    for (const option of versusSelect.options) option.selected = rivals.has(option.value);
-    showFleetSettings();
-    saveSetup();
-    return renamed;
-  };
-
-  el<HTMLButtonElement>('exportConfig').addEventListener('click', () => {
-    const setup = readSetup();
-    const file = setup.name === undefined ? 'evolution-config' : setup.name.replace(/[^\w.-]+/g, '_');
-    download(`${file}.evo.json`, `${JSON.stringify(serialiseRunConfig(setup), null, 2)}\n`);
-  });
-  const file = el<HTMLInputElement>('importConfigFile');
-  el<HTMLButtonElement>('importConfig').addEventListener('click', () => file.click());
-  file.addEventListener('change', () => {
-    const chosen = file.files?.[0];
-    if (chosen === undefined) return;
-    void chosen.text().then((text) => {
-      let warnings: string[];
-      let renamed: string[];
-      try {
-        const value: unknown = JSON.parse(text);
-        renamed = applySetup(parseRunConfig(value));
-        warnings = runConfigWarnings(value);
-      } catch (error) {
-        window.alert(`Could not read those settings.\n\n${error instanceof Error ? error.message : error}`);
-        return;
-      }
-      // Read anyway: a key nothing reads is said, not refused.
-      readout.className = warnings.length > 0 ? 'warn' : '';
-      notice =
-        'Settings read from a file. Press Start when you are ready.' +
-        (renamed.length > 0
-          ? ` Founders that differ from the ones of the same name here are kept under other names: ${renamed.join(', ')}.`
-          : '') +
-        (warnings.length > 0 ? ` Not read: ${warnings.join('; ')}.` : '');
-      readout.textContent = notice;
-    });
-    // Cleared so that choosing the same file twice is two imports rather
-    // than one, which matters while a file is being edited beside the page.
-    file.value = '';
-  });
-
-  // ---- the viewer --------------------------------------------------------
-
-  const resize = (): void => {
-    const ratio = window.devicePixelRatio || 1;
-    for (const canvas of [view, chart, massChart.canvas]) {
-      const rect = canvas.getBoundingClientRect();
-      canvas.width = Math.round(rect.width * ratio);
-      canvas.height = Math.round(rect.height * ratio);
-    }
-    paint();
-    paintChart();
-  };
-
-  const watch = (match: Match | null): void => {
-    if (match === watchedMatch) return;
-    watchedMatch = match;
-    selected = -1;
-    flashes.clear();
-    framed = false;
-    autoFrame = true;
-    lastSimTime = 0;
-    accumulator = 0;
-  };
-
-  const togglePlay = (): void => {
-    replayPlaying = !replayPlaying;
-    playButton.textContent = replayPlaying ? 'Pause' : 'Play';
-    last = 0;
-  };
-
-  const stepOnce = (): void => {
-    replayPlaying = false;
-    playButton.textContent = 'Play';
-    if (replay !== null && !replay.done) replay.advance();
-  };
-
-  fitButton.addEventListener('click', () => {
-    autoFrame = true;
-  });
-  playButton.addEventListener('click', togglePlay);
-  stepButton.addEventListener('click', stepOnce);
-
-  /**
-   * Give up on the match being watched and put another on.
-   *
-   * Plenty of matches are nothing to watch — early on, two ships that cannot
-   * steer drifting apart until the clock runs out — and without this the only
-   * way past one is to sit through it at whatever speed the viewer allows.
-   * Skip takes the next match of the generation on show; if the run has not
-   * fought one yet, it waits and takes whatever the run finishes next, rather
-   * than holding on a battle already given up on.
-   */
-  const skipMatch = (): void => {
-    if (run === null) return;
-    const { rows, matches } = showing();
-    const at = replayOf === null ? -1 : matches.indexOf(replayOf);
-    // Round the list when there will be no later match: a finished or
-    // paused run is a fixed set to look through rather than a stream.
-    const next = matches[at + 1] ?? (run.done || paused ? matches[0] : undefined);
-    if (next !== undefined && next !== replayOf) {
-      startReplay(next, rows);
-      return;
-    }
-    skipping = true;
-    replayPlaying = true;
-    playButton.textContent = 'Pause';
-  };
-
-  skipButton.addEventListener('click', skipMatch);
-
-  /**
-   * The viewer's keys, on the battle this page shows: space to pause, full
-   * stop to single-step, F to re-fit, N for another match.
-   *
-   * Only while a battle is on show and nothing is being typed into — the page
-   * is mostly a form, and a run's settings are numbers with full stops in
-   * them.
-   */
-  window.addEventListener('keydown', (event) => {
-    if (modeSelect.value !== 'battle') return;
-    const active = document.activeElement;
-    if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement || active instanceof HTMLSelectElement) {
-      return;
-    }
-    if (event.ctrlKey || event.metaKey || event.altKey) return;
-    if (event.key === ' ') {
-      // Also stops a focused button being pressed by the same key, which
-      // would undo the toggle this is making.
-      event.preventDefault();
-      togglePlay();
-    } else if (event.key === '.') {
-      stepOnce();
-    } else if (event.key === 'f' || event.key === 'F') {
-      autoFrame = true;
-    } else if (event.key === 'Escape') {
-      selected = -1;
-    } else if (event.key === 'n' || event.key === 'N') {
-      if (!skipButton.disabled) skipMatch();
-    } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === ARCS_KEY) {
-      // Not the browser's select-all; as on every battle, where A alone picks a side.
-      event.preventDefault();
-      arcs = nextArcs(arcs);
-      Object.assign(kept, { arcs, teamShots });
-      saveView('evolution', kept);
-    } else if (event.key.toLowerCase() === TEAM_SHOTS_KEY) {
-      teamShots = !teamShots;
-      Object.assign(kept, { arcs, teamShots });
-      saveView('evolution', kept);
-    } else if (event.key.toLowerCase() === STRIPS_KEY) {
-      strips = !strips;
-      Object.assign(kept, { strips });
-      saveView('evolution', kept);
-    }
-  });
-
-  viewGestures(
-    view,
-    camera,
-    () => {
-      autoFrame = false;
-    },
-    (x, y, reach) => {
-      // A tile or close-up first: it is drawn over whatever is under it.
-      const shown = overlayAt(shownStrips, shownInsets, camera, view.width, view.height, x, y);
-      selected = shown >= 0 ? shown : shipAt(snapshot, x, y, reach);
-      if (selected >= 0) autoFrame = true;
-    },
-  );
-
-  function paint(): void {
-    const match = watchedMatch;
-    if (match === null) {
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.fillStyle = '#0d1219';
-      ctx.fillRect(0, 0, view.width, view.height);
-      return;
-    }
-    const battle = match.battle;
-    const shot = capture(snapshot, battle.world, battle.ships, battle.projectiles, battle.beams, battle.wells, battle.impacts.log);
-    const simDt = shot.time > lastSimTime ? shot.time - lastSimTime : 0;
-    lastSimTime = shot.time;
-
-    const ratio = window.devicePixelRatio || 1;
-    const tiles = strips ? fleetStrips(shot, view.width, view.height, ratio) : null;
-    // Framed between the strips, which cover the view's edges.
-    const framedWidth = view.width - 2 * stripsWidth(tiles);
-    moveWithVisibleShips(camera, shot, simDt, view.width, view.height);
-    if (autoFrame) {
-      if (!framed) {
-        frame(camera, shot, framedWidth, view.height, 1);
-        framed = true;
-      }
-      frame(camera, selectionBounds(shot, selected) ?? shot, framedWidth, view.height);
-    }
-    // Aged before this step's are added, which are born now.
-    flashes.step(simDt);
-    for (let i = 0; i < shot.impactCount; i++) {
-      flashes.add(
-        shot.impactX[i]!,
-        shot.impactY[i]!,
-        shot.impactEnergy[i]!,
-        shot.impactKind[i]!,
-        shot.impactBody[i]!,
-        shot.impactLocalX[i]!,
-        shot.impactLocalY[i]!,
-        shot.impactVx[i]!,
-        shot.impactVy[i]!,
-        shot.impactGrowth[i]!,
-        shot.impactDirX[i]!,
-        shot.impactDirY[i]!,
-      );
-    }
-    draw(ctx, shot, camera, view.width, view.height, flashes, arcs, teamShots, selected);
-    if (tiles !== null) drawFleetStrips(ctx, shot, tiles, selected, ratio, flashes, arcs, teamShots, stripCache);
-    const insets = closeUps(shot, camera, view.width, view.height, selected, ratio, tiles);
-    drawCloseUps(ctx, shot, insets, selected, ratio, flashes, arcs, teamShots);
-    drawTargetRange(ctx, shot, camera, view.width, view.height, selected, insets, ratio);
-    shownStrips = tiles;
-    shownInsets = insets;
-  }
-
-  // ---- the chart ---------------------------------------------------------
-
-  /**
-   * Draw the chart, marking what is under the pointer and what is selected.
-   *
-   * Kept apart from `refresh` so a pointer moving over it redraws at once
-   * rather than at the next telemetry sample: a mark that lags the cursor by
-   * a fifth of a second reads as the chart being broken.
-   */
-  function paintChart(): void {
-    chartLayout = drawChart(chartCtx, chartSeries, chart.width, chart.height, window.devicePixelRatio || 1, {
-      hover: hoverAt ?? undefined,
-      picked: markedGeneration(),
-    });
-    for (const sub of sizeCharts) {
-      sub.layout = drawChart(sub.ctx, sub.series, sub.canvas.width, sub.canvas.height, window.devicePixelRatio || 1, {
-        hover: hoverAt ?? undefined,
-        picked: markedGeneration(),
-      });
-    }
-  }
-
-  /**
-   * The generation the panel is showing, when the chart has a point for it.
-   *
-   * Nothing is marked while the generation being fought is the one on show:
-   * it has no point yet, and marking the one before it would say the chart
-   * and the panel disagree when they do not.
-   */
-  function markedGeneration(): number | undefined {
-    if (run === null) return undefined;
-    const closed = timeline().length;
-    const newest = run.done ? closed - 1 : closed;
-    const index = shown < 0 ? newest : Math.min(shown, newest);
-    return index >= 0 && index < closed ? index : undefined;
-  }
-
-  /**
-   * What the legend says: the names of the lines, and — while a generation is
-   * under the pointer — what each of them was worth there.
-   *
-   * On the legend rather than in the tooltip because the colours are already
-   * there: a floating box repeating five labelled colours beside five
-   * labelled colours is two things to read where there was one.
-   */
-  function showLegend(): void {
-    fillLegend(legend, chartSeries, 3, '');
-    // Ships are read on the right-hand scale, and to more places: a mean of
-    // whole ships is a fraction.
-    if (sizeMetric.value === 'fittings') fillLegend(massChart.legend, massChart.series, 1, '', 1, '');
-    else if (sizeMetric.value === 'spread') fillLegend(massChart.legend, massChart.series, 3, '', 0, '');
-    else if (sizeMetric.value.startsWith('doctrine:')) fillLegend(massChart.legend, massChart.series, 3, '');
-    else fillLegend(massChart.legend, massChart.series, massChart.digits, ' t', 2, '');
-  }
-
-  function fillLegend(
-    into: HTMLElement,
-    series: readonly Series[],
-    digits: number,
-    unit: string,
-    rightDigits = digits,
-    rightUnit = unit,
-  ): void {
-    into.replaceChildren();
-    for (const line of series) {
-      const entry = document.createElement('span');
-      entry.style.color = line.colour;
-      entry.textContent = line.name;
-      const value = hoverAt === null ? undefined : line.values[hoverAt];
-      if (value !== undefined && Number.isFinite(value)) {
-        const reading = document.createElement('b');
-        reading.textContent = line.right === true ? value.toFixed(rightDigits) + rightUnit : value.toFixed(digits) + unit;
-        entry.append(reading);
-      }
-      into.append(entry);
-    }
-  }
-
-  /** Which generation the pointer is over, as an index, or null. */
-  const chartPointAt = (canvas: HTMLCanvasElement, layout: ChartLayout, event: PointerEvent | MouseEvent, clamp = false): number | null => {
-    const rect = canvas.getBoundingClientRect();
-    return indexAt(layout, event.clientX - rect.left, clamp);
-  };
-
-  const hoverChart = (at: number | null): void => {
-    if (at === hoverAt) return;
-    hoverAt = at;
-    chartTip.hidden = at === null;
-    if (at !== null) {
-      chartTip.textContent = pointLabel(at);
-      chartTip.style.left = `${xOf(chartLayout, at)}px`;
-    }
-    paintChart();
-    showLegend();
-  };
-
-  /**
-   * Go to a generation, as the picker does.
-   *
-   * The same selection, so the table, the matches and the ships all follow —
-   * the chart is another way in to it rather than a second idea of which
-   * generation is being looked at. Marked rather than done: while seeking,
-   * the pointer moves faster than the panel can be rebuilt, and rebuilding it
-   * per *event* rather than per frame would spend the drag redrawing
-   * generations nobody saw.
-   */
-  const goTo = (at: number): void => {
-    if (at === shown) return;
-    shown = at;
-    reselected = true;
-  };
-
-  /** Hover and drag-to-seek, the same on every chart since they share an axis. */
-  const seekable = (canvas: HTMLCanvasElement, layout: () => ChartLayout): void => {
-    canvas.addEventListener('pointermove', (event) => {
-      const at = chartPointAt(canvas, layout(), event, seeking);
-      hoverChart(at);
-      if (seeking && at !== null) goTo(at);
-    });
-    canvas.addEventListener('pointerleave', () => {
-      if (!seeking) hoverChart(null);
-    });
-    canvas.addEventListener('pointerdown', (event) => {
-      const at = chartPointAt(canvas, layout(), event, true);
-      if (at === null) return;
-      // Captured, so a drag that runs off the end of the plot goes on seeking
-      // to the end of the run rather than stopping where the canvas does.
-      canvas.setPointerCapture(event.pointerId);
-      seeking = true;
-      goTo(at);
-    });
-    const stopSeeking = (event: PointerEvent): void => {
-      if (!seeking) return;
-      seeking = false;
-      if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
-    };
-    canvas.addEventListener('pointerup', stopSeeking);
-    canvas.addEventListener('pointercancel', stopSeeking);
-  };
-  seekable(chart, () => chartLayout);
-  for (const sub of sizeCharts) seekable(sub.canvas, () => sub.layout);
-
-  // ---- the fleet ---------------------------------------------------------
-
-  /**
-   * What a generation *is*, drawn: every design in it, best first.
-   *
-   * **This is the view a run is worth watching in, and a battle is not.** A
-   * run fights hundreds of times faster than real time, so a window on
-   * whichever match is in progress shows a fraction of a second of each and
-   * flickers to the next — a picture of nothing, refreshed. What changes at a
-   * pace worth watching is the population: a generation of bare cores growing
-   * an engine, a wing appearing on one design and then on half of them.
-   *
-   * Tiles are made once per design and only reordered afterwards, and
-   * redrawn only while the shared scale is easing, so a generation redraws
-   * its hulls when it is bred rather than five times a second for as long as
-   * it lasts.
-   */
-  const showFleet = (rows: readonly Row[]): void => {
-    if (rows.length === 0) {
-      for (const tile of fleetTiles.values()) tile.tr.remove();
-      fleetTiles.clear();
-      fleetPair.hidden = true;
-      emptyNote.hidden = false;
-      emptyNote.textContent = run === null ? 'Pick founders to see them here.' : 'Nothing bred yet.';
-      return;
-    }
-    emptyNote.hidden = true;
-    fleetPair.hidden = false;
-    fleetSides[1].table.hidden = !rows.some((row) => row.side === 1);
-
-    // One scale for every hull on show, so a ship twice the size of another
-    // looks it — down a column as much as across a row. Set by whichever kind
-    // of ship is largest, since that is the one a cell has to hold.
-    fleetTarget = Infinity;
-    formationTarget = Infinity;
-    for (const row of rows) {
-      const picture = pictureOf(row.id, row.entrant);
-      for (const kind of picture.kinds) {
-        const shot = oneShipSnapshot(kind);
-        fleetTarget = Math.min(fleetTarget, fitScale(shot, TILE_WIDTH * ratio(), TILE_HEIGHT * ratio()));
-      }
-      const whole = formationSnapshot(picture, tileSnapshot);
-      formationTarget = Math.min(formationTarget, fitScale(whole, FORMATION_WIDTH * ratio(), FORMATION_HEIGHT * ratio()));
-    }
-    if (fleetScale === 0) fleetScale = fleetTarget;
-    if (formationScale === 0) formationScale = formationTarget;
-
-    // Side by side in a co-evolution run, each ranked within its own lineage:
-    // a fitness is a score against the other side, so the two do not compare.
-    const ranked = [...rows].sort((a, b) => (a.side ?? 0) - (b.side ?? 0) || b.fitness - a.fitness);
-    const living = new Set(ranked.map((row) => row.id));
-    for (const [id, tile] of fleetTiles) {
-      if (!living.has(id)) {
-        tile.tr.remove();
-        fleetTiles.delete(id);
-      }
-    }
-
-    for (const [order, row] of ranked.entries()) {
-      const rank = order - ranked.findIndex((other) => other.side === row.side);
-      let tile = fleetTiles.get(row.id);
-      if (tile === undefined) {
-        tile = makeTile(row);
-        fleetTiles.set(row.id, tile);
-      }
-      // Appending something already here moves it, so this is the reordering.
-      fleetSides[row.side === 1 ? 1 : 0].body.append(tile.tr);
-      tile.tr.classList.toggle('picked', row.id === picked);
-      tile.tr.classList.toggle('champion', rank === 0 && row.id >= 0 && row.matches > 0);
-      writeRow(tile, row, rank);
-    }
-  };
-
-  /** One kind of ship alone at the origin, to draw or to measure. */
-  const oneShipSnapshot = (kind: ShipKind): Snapshot => kindSnapshot(kind, tileSnapshot);
-
-  /**
-   * Fill in a combatant's row: who it is, what it is made of, what it scored,
-   * and what was done to make it.
-   *
-   * **The figures are rewritten every refresh and the hulls are not.** A
-   * generation's scores move while it is being fought; its designs never
-   * change, since a design is replaced by a child rather than edited.
-   */
-  const writeRow = (tile: Tile, row: Row, rank: number): void => {
-    const { who, score, mass, done } = tile.cells;
-
-    who.replaceChildren();
-    const name = document.createElement('b');
-    // A preview's founders have no id yet; their names say more.
-    name.textContent = row.id < 0 ? row.entrant.name : `${rank + 1}. #${row.id}`;
-    if (row.side !== undefined) {
-      const side = document.createElement('span');
-      side.className = 'side';
-      side.textContent = row.side === 0 ? 'A ' : 'B ';
-      side.style.color = teamColour(row.side);
-      side.title = row.side === 0 ? "side A: the founders' lineage" : 'side B: the lineage bred against it';
-      who.append(side);
-    }
-    who.append(name);
-    if (row.id >= 0) {
-      const from = document.createElement('span');
-      from.className = 'from';
-      from.textContent = row.parent < 0 ? 'a founder' : `← #${row.parent}`;
-      if (row.parent >= 0) from.title = `bred from #${row.parent}`;
-      who.append(from);
-    }
-
-    tile.figure.textContent = row.id < 0 ? '' : row.matches > 0 ? row.fitness.toFixed(3) : '—';
-    const owed = run?.config.minMatches ?? 0;
-    const wins = row.wins;
-    tile.count.textContent =
-      row.id < 0 ? '' : row.matches < owed ? `${row.matches}/${owed}` : wins !== undefined ? `won ${wins.won}/${wins.fought}` : '';
-    score.title =
-      row.id < 0
-        ? ''
-        : `${row.matches} match${row.matches === 1 ? '' : 'es'} fought` +
-          (wins === undefined ? '' : `, ${wins.won} of ${wins.fought} won outright, drills aside`);
-
-    for (const [i, part] of tile.parts.entries()) {
-      // A dash rather than a row of zeroes for a design that has not fought:
-      // its parts are as unknown as the score beside them, and a generation
-      // still being fought is mostly made of those.
-      part.textContent = row.id < 0 || row.matches === 0 ? '—' : SCORE_COLUMNS[i]!.of(row).toFixed(2);
-    }
-
-    // The unit is in the column head, so it is not repeated down the column.
-    mass.textContent = (row.mass / 1000).toFixed(1);
-    done.firstElementChild!.textContent = row.edits.length > 0 ? row.edits.join('; ') : row.id < 0 ? '' : '—';
-  };
-
-  /**
-   * Build a combatant's row, with a picture of each kind of ship it has.
-   *
-   * The pictures are made here and never again: which kinds a design is made
-   * of is fixed for its life, so only the shared scale can make them stale.
-   */
-  const makeTile = (row: Row): Tile => {
-    const picture = pictureOf(row.id, row.entrant);
-    const tr = document.createElement('tr');
-
-    const cell = (className: string): HTMLTableCellElement => {
-      const td = document.createElement('td');
-      td.className = className;
-      tr.append(td);
-      return td;
-    };
-
-    const who = cell('who');
-
-    // The fleet entire, to its own scale: what the kinds beside it cannot say.
-    const formationCell = cell('formation');
-    const formation = document.createElement('canvas');
-    formation.width = Math.round(FORMATION_WIDTH * ratio());
-    formation.height = Math.round(FORMATION_HEIGHT * ratio());
-    formation.style.width = `${FORMATION_WIDTH}px`;
-    formation.style.height = `${FORMATION_HEIGHT}px`;
-    formation.title = `${picture.view.ships.length} ship${picture.view.ships.length === 1 ? '' : 's'} in formation`;
-    formationCell.append(formation);
-
-    const made = cell('made');
-    const kinds = document.createElement('div');
-    kinds.className = 'kinds';
-    const canvases: HTMLCanvasElement[] = [];
-    for (const kind of picture.kinds) {
-      const box = document.createElement('div');
-      box.className = 'kind';
-      const canvas = document.createElement('canvas');
-      canvas.width = Math.round(TILE_WIDTH * ratio());
-      canvas.height = Math.round(TILE_HEIGHT * ratio());
-      canvas.style.width = `${TILE_WIDTH}px`;
-      canvas.style.height = `${TILE_HEIGHT}px`;
-      canvases.push(canvas);
-      const of = document.createElement('span');
-      of.className = 'of';
-      of.title = `${kind.count} × ${kind.name}`;
-      // No count on a lone ship: "×1" under one hull is noise.
-      if (kind.count > 1) {
-        const many = document.createElement('b');
-        many.textContent = `×${kind.count} `;
-        of.append(many);
-      }
-      of.append(kind.name);
-      box.append(canvas, of);
-      kinds.append(box);
-    }
-    made.append(kinds);
-
-    const score = cell('score');
-    const figure = document.createElement('div');
-    figure.className = 'figure';
-    const count = document.createElement('div');
-    count.className = 'count';
-    const exportOne = document.createElement('button');
-    exportOne.className = 'export';
-    exportOne.textContent = 'export';
-    exportOne.title = `Save ${row.entrant.name} as a file`;
-    exportOne.addEventListener('click', (event) => {
-      // Not a pick of the row as well.
-      event.stopPropagation();
-      // Named for its id too: a child keeps its parent's name, so a lineage would export as its founder over and over.
-      exportEntrant(row.id < 0 ? row.entrant : { ...row.entrant, name: `${row.entrant.name} #${row.id}` });
-    });
-    score.append(figure, count, exportOne);
-    const parts: HTMLElement[] = [];
-    for (const stack of STACKED_COLUMNS) {
-      const td = cell('part');
-      for (const i of stack) {
-        const column = SCORE_COLUMNS[i]!;
-        const figure = document.createElement('div');
-        figure.className = column.css;
-        figure.title = column.title;
-        td.append(figure);
-        parts[i] = figure;
-      }
-    }
-    const mass = cell('mass');
-    const done = cell('done');
-    done.append(document.createElement('div'));
-
-    tr.addEventListener('click', () => {
-      picked = row.id;
-      for (const [id, other] of fleetTiles) other.tr.classList.toggle('picked', id === picked);
-    });
-
-    const tile: Tile = {
-      tr,
-      cells: { who, made, score, mass, done },
-      parts,
-      figure,
-      count,
-      canvases,
-      formation,
-      picture,
-      drawnAt: 0,
-      formationDrawnAt: 0,
-    };
-    drawTile(tile);
-    return tile;
-  };
-
-  /**
-   * Draw a row's hulls at the shared scale, one kind of ship to a canvas.
-   * Only when that scale has moved since they were last drawn: a design never
-   * changes, it is replaced by a child.
-   */
-  const drawTile = (tile: Tile): void => {
-    if (tile.formationDrawnAt !== formationScale) {
-      drawCentred(tile.formation, formationSnapshot(tile.picture, tileSnapshot), formationScale);
-      tile.formationDrawnAt = formationScale;
-    }
-
-    if (tile.drawnAt === fleetScale) return;
-    for (const [i, canvas] of tile.canvases.entries()) {
-      const kind = tile.picture.kinds[i];
-      if (kind !== undefined) drawCentred(canvas, oneShipSnapshot(kind), fleetScale);
-    }
-    tile.drawnAt = fleetScale;
-  };
-
-  /** Show the ships or a battle, and make the controls match. */
-  function applyMode(): void {
-    const battle = modeSelect.value === 'battle';
-    view.hidden = !battle;
-    fleetBox.hidden = battle;
-    battleControls.hidden = !battle;
-    if (battle) {
-      // The canvas measured nothing while it was hidden.
-      resize();
-      if (replay === null) rollOn();
-    } else {
-      replay = null;
-      replayOf = null;
-      watch(null);
-    }
-  }
-
-  /**
-   * Put on the most recently finished match of the run, whichever generation
-   * is on show — or hold on the one just watched if nothing has finished since.
-   *
-   * A run fights faster than anybody can watch, so this is a sample rather
-   * than a record: whole battles, each the latest there is when the one before
-   * it ends. Pausing or switching to the ships stops it; clicking a match
-   * watches that one, and the newest follows it.
-   */
-  function rollOn(): void {
-    if (run === null) return;
-    // The generation being fought has none yet just after it opens, so the
-    // newest may be the last of the one before it.
-    let latest = showing(-1);
-    if (latest.matches.length === 0 && latest.index > 0) latest = showing(latest.index - 1);
-    const newest = latest.matches[latest.matches.length - 1];
-    if (newest === undefined || newest === replayOf) return;
-    startReplay(newest, latest.rows);
-  }
-
-  // ---- reading the run ---------------------------------------------------
-
-  /**
-   * A design, compiled once.
-   *
-   * An individual's id never repeats and its layout never changes — a design
-   * is replaced by a child rather than edited — so one compile serves the mass
-   * in the table and the picture in its tile, however many times a run is
-   * seeked back and forth across.
-   *
-   * **Capped, because a run is longer than memory is.** Seeking across a
-   * thousand generations of twelve would otherwise hold twelve thousand
-   * compiled designs, each with its modules, mounts and engines, for the
-   * sake of a page that is showing twelve of them. The oldest go first, which
-   * on a seek means the ones already scrolled past.
-   */
-  const pictureOf = (id: number, entrant: Entrant): Picture => {
-    const held = pictures.get(id);
-    if (held !== undefined) return held;
-    const picture = pictureOfFleet(entrant);
-    pictures.set(id, picture);
-    while (pictures.size > DESIGNS_KEPT) {
-      const oldest = pictures.keys().next();
-      if (oldest.done === true) break;
-      pictures.delete(oldest.value);
-    }
-    return picture;
-  };
-
-  /** Whether the run is a co-evolution run whose sides take turns, so it goes in rounds. */
-  const inRounds = (): boolean => twoSided(run) && run.alternates;
-
-  /** Which side was bred at a point along the run, as "round 2, side B evolving", in a co-evolution run; else empty. */
-  const evolving = (at: number): string => {
-    if (!twoSided(run)) return '';
-    if (!run.alternates) return 'side A evolving';
-    // Past the closed points is the generation being fought.
-    const point = timeline()[at];
-    const side = point?.side ?? run.turn;
-    return `round ${(point?.round ?? run.round) + 1}, side ${side === 0 ? 'A' : 'B'} evolving`;
-  };
-  /** A point's name, with the side bred in it where there are sides. */
-  const pointLabel = (at: number): string => [`generation ${at + 1}`, evolving(at)].filter((part) => part !== '').join(' · ');
-
-  /**
-   * The run's closed generations so far, a point each: in a run whose sides
-   * take turns, both sides' in the order they were bred, each with the
-   * generation of the other side on show then (-1 for a side with none yet).
-   */
-  const timeline = (): Point[] => {
-    if (run === null) return [];
-    if (!twoSided(run) || !run.alternates) return run.generations.map((_, g) => ({ a: g, b: -1, side: 0 }));
-    const points: Point[] = [];
-    const a = run.generations;
-    const b = run.rivalGenerations;
-    let ai = -1;
-    let bi = -1;
-    // Merged by round: each side's generations come in its own rounds, in order.
-    while (ai + 1 < a.length || bi + 1 < b.length) {
-      const nextA = a[ai + 1]?.round ?? Infinity;
-      const nextB = b[bi + 1]?.round ?? Infinity;
-      const side: 0 | 1 = nextA <= nextB ? 0 : 1;
-      if (side === 0) ai++;
-      else bi++;
-      points.push({ a: ai, b: bi, side, round: side === 0 ? nextA : nextB });
-    }
-    return points;
-  };
-
-  /** Which point the panel is showing, and the rows and matches in it. */
-  const showing = (wanted = shown): { index: number; rows: Row[]; matches: readonly MatchRecord[] } => {
-    const empty = { index: 0, rows: [], matches: [] };
-    if (run === null) return { ...empty, rows: previewRows };
-    const points = timeline();
-    const closed = points.length;
-    // The newest point is the one being fought while there is one, and
-    // the last one closed once there is not — a finished run must go on
-    // showing what it finished with rather than an empty panel.
-    const newest = run.done ? closed - 1 : closed;
-    const index = wanted < 0 ? newest : Math.min(wanted, newest);
-    if (index < 0) return empty;
-    if (twoSided(run)) {
-      const co = run;
-      // A side not bred yet shows its hall, its founders, which is what the other side is fighting.
-      const sideRows = (k: 0 | 1, at: number): Row[] => {
-        const list = k === 0 ? co.generations : co.rivalGenerations;
-        if (at >= 0 && list[at] !== undefined) return recordRows(list[at]!, k);
-        return co.hall(k).map((champion) => ({
-          id: champion.id,
-          side: k,
-          parent: -1,
-          matches: 0,
-          fitness: 0,
-          survival: 0,
-          functional: 0,
-          damage: 0,
-          disabling: 0,
-          race: 0,
-          mass: pictureOf(champion.id, champion.entrant).mass,
-          edits: [],
-          entrant: champion.entrant,
-        }));
-      };
-      // A run read from a file is over, so it has nothing being bred.
-      if (index >= closed && run instanceof Coevolution) {
-        // The side being bred live, the other as it last was.
-        const turn = run.turn;
-        const last = points[closed - 1];
-        const other: 0 | 1 = turn === 0 ? 1 : 0;
-        const otherAt = other === 0 ? (last?.a ?? -1) : (last?.b ?? run.rivalGenerations.length - 1);
-        const live = liveRows(run.living, turn);
-        const frozen = sideRows(other, otherAt);
-        return { index, rows: turn === 0 ? [...live, ...frozen] : [...frozen, ...live], matches: run.played };
-      }
-      const point = points[index]!;
-      const bred = point.side === 0 ? run.generations[point.a]! : run.rivalGenerations[point.b]!;
-      return { index, rows: [...sideRows(0, point.a), ...sideRows(1, point.b)], matches: bred.matches };
-    }
-    if (index >= closed && run instanceof Run) return { index, rows: liveRows(run.living), matches: run.played };
-    const record = run.generations[index]!;
-    return { index, rows: recordRows(record), matches: record.matches };
-  };
-
-  /** A generation being fought, as rows; `side` for a lineage of a co-evolution run. */
-  const liveRows = (generation: Generation, side?: 0 | 1): Row[] =>
-    generation.individuals.map((individual) => ({
-      id: individual.id,
-      ...(side === undefined ? {} : { side }),
-      parent: individual.parent,
-      matches: individual.matches,
-      fitness: fitness(individual),
-      survival: individual.matches > 0 ? individual.survival / individual.matches : 0,
-      functional: individual.matches > 0 ? individual.functional / individual.matches : 0,
-      damage: individual.matches > 0 ? individual.damage / individual.matches : 0,
-      disabling: individual.matches > 0 ? individual.disabling / individual.matches : 0,
-      race: individual.matches > 0 ? individual.race / individual.matches : 0,
-      mass: pictureOf(individual.id, individual.entrant).mass,
-      edits: individual.edits,
-      entrant: individual.entrant,
-    }));
-
-  /** A closed generation, as rows. */
-  const recordRows = (record: GenerationRecord, side?: 0 | 1): Row[] =>
-    record.individuals.map((individual) => ({
-      id: individual.id,
-      ...(side === undefined ? {} : { side }),
-      parent: individual.parent,
-      matches: individual.matches,
-      fitness: individual.fitness,
-      survival: individual.survival,
-      functional: individual.functional ?? 0,
-      damage: individual.damage,
-      disabling: individual.disabling ?? 0,
-      race: individual.race,
-      mass: individual.mass,
-      edits: individual.edits,
-      entrant: entrantOf(individual),
-    }));
-
-  /** A design anywhere in the run, by id: a champion from a past generation is fought, but not on show. */
-  const entrantById = (id: number): Entrant | null => {
-    if (run === null) return null;
-    if (id < 0) return BARE_CORE;
-    if (twoSided(run)) {
-      for (const side of [0, 1] as const) {
-        const champion = run.hall(side).find((each) => each.id === id);
-        if (champion !== undefined) return champion.entrant;
-      }
-    }
-    const lists = twoSided(run) ? [run.generations, run.rivalGenerations] : [run.generations];
-    for (const generations of lists) {
-      for (let g = generations.length - 1; g >= 0; g--) {
-        const found = generations[g]!.individuals.find((individual) => individual.id === id);
-        if (found !== undefined) return entrantOf(found);
-      }
-    }
-    return null;
-  };
-
-  /** Who fought, by id; with sides, each side's led by its letter and the two split by a v. */
-  const competitorsText = (record: MatchRecord): string => {
-    const teams = record.teams;
-    if (teams === undefined) return record.competitors.join(' ');
-    return record.competitors
-      .map((id, k) => {
-        if (k > 0 && teams[k] === teams[k - 1]) return String(id);
-        const letter = teams[k] === 0 ? 'A' : 'B';
-        return k === 0 ? `${letter} ${id}` : `v ${letter} ${id}`;
-      })
-      .join(' ');
-  };
-
-  /** How a match ended: who won it, when it was decided and the record says. */
-  const endingText = (record: MatchRecord): string => {
-    const first = record.winners?.[0];
-    if (record.ending !== 'decided' || first === undefined) return record.ending;
-    if (record.teams !== undefined) return `${record.teams[first] === 0 ? 'A' : 'B'} won`;
-    return `#${record.competitors[first]} won`;
-  };
-
-  const startReplay = (record: MatchRecord, rows: readonly Row[]): void => {
-    const entrants: Entrant[] = [];
-    for (const id of record.competitors) {
-      const entrant = rows.find((candidate) => candidate.id === id)?.entrant ?? entrantById(id);
-      if (entrant !== null) entrants.push(entrant);
-    }
-    // One is enough: a match of one ship is a run's test of its piloting.
-    if (entrants.length === 0 || run === null) return;
-    if (entrants.length < record.competitors.length) {
-      // Only a run read from a file can lack a design: a side B that did not evolve is not in it.
-      watchingLabel.textContent = "can't fight that again: the run file does not hold every design in it";
-      return;
-    }
-    const match = run.config.match;
-    const teams = record.teams !== undefined && record.teams.length === entrants.length ? record.teams : null;
-    watchReplay(new Match(entrants, { ...match, seed: record.seed }, teams, record.invulnerable ?? []), record, record.competitors, null);
-  };
-
-  const watchReplay = (match: Match, record: MatchRecord | null, ids: readonly number[], vs: string | null): void => {
-    replay = match;
-    replayOf = record;
-    replayIds = ids;
-    replayVs = vs;
-    replayPlaying = true;
-    skipping = false;
-    playButton.textContent = 'Pause';
-    // Asked for a battle, so show one: a match clicked in the list is the
-    // whole reason the viewer is there.
-    modeSelect.value = 'battle';
-    applyMode();
-  };
-
-  const refresh = (): void => {
-    const { index, rows, matches } = showing();
-    if (modeSelect.value !== 'battle') {
-      const wins = winsIn(matches);
-      showFleet(
-        rows.map((row) => {
-          const of = wins.get(row.id);
-          return of === undefined ? row : { ...row, wins: of };
-        }),
-      );
-    }
-
-    shownGeneration.textContent = run === null ? '—' : String(index + 1);
-    // Whether what is on show is the generation still being fought, which is
-    // the one that changes while it is looked at.
-    const live = run !== null && !run.done && index >= timeline().length;
-    fightingLabel.textContent = live ? ' · fighting' : '';
-    latestButton.disabled = run === null || shown < 0;
-    // Nothing to skip to once a run is over and the generation on show
-    // fought one match: the list is all there will ever be.
-    skipButton.disabled = run === null || (run.done && matches.length < 2);
-
-    matchesBody.replaceChildren();
-    for (const [i, record] of matches.entries()) {
-      const tr = document.createElement('tr');
-      if (record === replayOf) tr.className = 'watched';
-      for (const cell of [String(i + 1), competitorsText(record), endingText(record), record.elapsed.toFixed(0)]) {
-        const td = document.createElement('td');
-        td.textContent = cell;
-        tr.append(td);
-      }
-      tr.addEventListener('click', () => startReplay(record, rows));
-      matchesBody.append(tr);
-    }
-    // Padded to the most any generation has fought, so the panels under it
-    // stay put while a generation fills its list in.
-    let longest = matches.length;
-    for (const generation of run?.generations ?? []) longest = Math.max(longest, generation.matches.length);
-    for (let i = matches.length; i < longest; i++) {
-      const tr = document.createElement('tr');
-      tr.className = 'pad';
-      const td = document.createElement('td');
-      td.colSpan = 4;
-      td.textContent = '\u00a0';
-      tr.append(td);
-      matchesBody.append(tr);
-    }
-
-    const series: Series[] = [];
-    const closed = run === null ? [] : run.generations;
-    if (closed.length > 0) {
-      const of = (read: (g: GenerationRecord) => number): number[] => closed.map(read);
-      series.push(
-        { name: 'best', colour: '#e6edf5', values: of((g) => g.bestFitness) },
-        { name: 'mean', colour: '#7fa8e0', values: of((g) => g.meanFitness) },
-        { name: 'hull kept', colour: '#7fd6a0', values: of((g) => g.mean.survival), dashed: true },
-        { name: 'function kept', colour: '#b48ee0', values: of((g) => g.mean.functional), dashed: true },
-        { name: 'damage', colour: '#e0655f', values: of((g) => g.mean.damage), dashed: true },
-        { name: 'function taken', colour: '#e08ec0', values: of((g) => g.mean.disabling), dashed: true },
-        { name: 'ground', colour: '#e9c05f', values: of((g) => g.mean.race), dashed: true },
-      );
-    }
-    // The yardstick last, so it is drawn over the rest: it is the line that
-    // means the same thing at both ends of the chart, and the others are not.
-    const points = yardstick?.points ?? measured?.points;
-    if (points !== undefined && points.length > 0) {
-      const scores: number[] = [];
-      for (const point of points) scores[point.generation] = point.mean;
-      series.push({ name: 'vs. yardstick', colour: '#5bd6d6', values: scores });
-    }
-    chartSeries = series;
-
-    // Mass on the left scale and, once a run fields more than one ship,
-    // ships on the right — or, as `sizeMetric` asks, weapons and engines: a colour for each, the mean solid and the best
-    // dashed. In a co-evolution run each side takes its team's colours, its
-    // hull colour for mass and its trim for ships.
-    // A value a point, each side at the generation it shows there: in a run
-    // whose sides take turns, the one not being bred holds where it was.
-    const along = timeline();
-    const atPoints = (k: 0 | 1): (GenerationRecord | undefined)[] => {
-      if (run === null) return [];
-      const list = k === 0 ? run.generations : twoSided(run) ? run.rivalGenerations : [];
-      return along.map((point) => list[k === 0 ? point.a : point.b]);
-    };
-    const each = <T>(records: (GenerationRecord | undefined)[], read: (g: GenerationRecord) => T): (T | undefined)[] =>
-      records.map((g) => (g === undefined ? undefined : read(g)));
-    const sides: {
-      label: string;
-      records: (GenerationRecord | undefined)[];
-      size: (GenerationSize | undefined)[];
-      mass: string;
-      ships: string;
-    }[] = (
-      twoSided(run)
-        ? [
-            { label: 'A ', records: atPoints(0), mass: teamColour(0), ships: shipColours(0).trim },
-            { label: 'B ', records: atPoints(1), mass: teamColour(1), ships: shipColours(1).trim },
-          ]
-        : [{ label: '', records: atPoints(0), mass: '#7fa8e0', ships: '#e9a35f' }]
-    )
-      .filter((side) => side.records.some((g) => g !== undefined))
-      .map((side) => ({ ...side, size: each(side.records, sizeOf) }));
-    const fleets = sides.some((side) => side.size.some((s) => s !== undefined && s.meanShips !== 1));
-    type Side = (typeof sides)[number];
-    const bestAndMean = (
-      what: string,
-      colour: (side: Side) => string,
-      read: (s: GenerationSize) => [number, number],
-      right: boolean,
-    ): Series[] =>
-      sides.flatMap((side) => {
-        if (side.size.length === 0) return [];
-        const scale = right ? { right } : {};
-        return [
-          {
-            name: `${side.label}mean ${what}`,
-            colour: colour(side),
-            values: side.size.map((s) => (s === undefined ? NaN : read(s)[1])),
-            ...scale,
-          },
-          {
-            name: `${side.label}best's ${what}`,
-            colour: colour(side),
-            values: side.size.map((s) => (s === undefined ? NaN : read(s)[0])),
-            dashed: true,
-            ...scale,
-          },
-        ];
-      });
-    // How far apart each side's scores are: the middle half's width solid, the
-    // whole field's dashed, and how many tied on the right. Narrow, or many
-    // tied, and selection can hardly tell its designs apart.
-    const spread = (): Series[] =>
-      sides.flatMap((side) => {
-        const spreads = each(side.records, spreadOf);
-        const of = (read: (s: ReturnType<typeof spreadOf>) => number): number[] => spreads.map((s) => (s === undefined ? NaN : read(s)));
-        return [
-          { name: `${side.label}middle half`, colour: side.mass, values: of((s) => s.upperQuartile - s.lowerQuartile) },
-          { name: `${side.label}best to worst`, colour: side.mass, values: of((s) => s.highest - s.lowest), dashed: true },
-          { name: `${side.label}tied`, colour: side.ships, values: of((s) => s.tied), right: true },
-        ];
-      });
-    const doctrineKey = sizeMetric.value.startsWith('doctrine:') ? sizeMetric.value.slice('doctrine:'.length) : null;
-    if (run !== null) labelDoctrine(run.generations);
-    massChart.series =
-      doctrineKey !== null
-        ? sides.flatMap((side) => {
-            const values = each(side.records, doctrineOf);
-            return [
-              { name: `${side.label}mean ${doctrineKey}`, colour: side.mass, values: values.map((d) => d?.mean[doctrineKey] ?? NaN) },
-              {
-                name: `${side.label}best's ${doctrineKey}`,
-                colour: side.mass,
-                values: values.map((d) => d?.best[doctrineKey] ?? NaN),
-                dashed: true,
-              },
-            ];
-          })
-        : sizeMetric.value === 'spread'
-          ? spread()
-          : sizeMetric.value === 'fittings'
-            ? [
-                ...bestAndMean(
-                  'weapons',
-                  (side) => side.mass,
-                  (s) => [s.bestWeapons, s.meanWeapons],
-                  false,
-                ),
-                ...bestAndMean(
-                  'engines',
-                  (side) => side.ships,
-                  (s) => [s.bestEngines, s.meanEngines],
-                  true,
-                ),
-              ]
-            : [
-                ...bestAndMean(
-                  'mass',
-                  (side) => side.mass,
-                  (s) => [s.bestMass / 1000, s.meanMass / 1000],
-                  false,
-                ),
-                ...(fleets
-                  ? bestAndMean(
-                      'ships',
-                      (side) => side.ships,
-                      (s) => [s.bestShips, s.meanShips],
-                      true,
-                    )
-                  : []),
-              ];
-    paintChart();
-    showLegend();
-
-    const tops = finalists();
-    const top = tops[0] ?? null;
-    // A run whose sides both evolve is measured by its grid; one against a fixed side B, against a yardstick as a run of one is.
-    const co = inRounds();
-    saveButton.disabled = top === null;
-    exportButton.disabled = top === null;
-    // A co-evolution run is measured as a grid of champions rather than
-    // against one opponent, which it has no line on a chart to draw against.
-    measureButton.disabled = top === null || yardstick !== null || grid !== null;
-    watchYardstickButton.disabled = top === null || co;
-    benchmarkSelect.disabled = co;
-    const describeTop = (each: (typeof tops)[number]): string =>
-      `${each.label}#${each.individual.id}, best of generation ${each.generation + 1}: ` +
-      `${each.individual.fitness.toFixed(3)} over ${each.individual.matches} matches, ` +
-      `${(each.individual.mass / 1000).toFixed(1)} t`;
-    championLine.textContent = top === null ? '—' : savedAs?.id === top.individual.id ? savedAs.text : tops.map(describeTop).join(' · ');
-  };
-
-  /** The run's best: one, or one a side in a co-evolution run, each labelled with its side. */
-  const finalists = (): (NonNullable<ReturnType<typeof finalist>> & { label: string })[] => {
-    if (run === null) return [];
-    const record = run.record();
-    if (record.rival === undefined) {
-      const top = finalist(record);
-      return top === null ? [] : [{ ...top, label: '' }];
-    }
-    const out: (NonNullable<ReturnType<typeof finalist>> & { label: string })[] = [];
-    const a = finalist(record);
-    const b = finalist({ config: record.config, generations: record.rival.generations });
-    if (a !== null) out.push({ ...a, label: 'A ' });
-    if (b !== null) out.push({ ...b, label: 'B ' });
-    return out;
-  };
-
-  /** The run's best, a side each in a co-evolution run, renamed for the side and generation it came from. */
-  const champions = (): { entrant: Entrant; id: number }[] =>
-    finalists().map((top) => {
-      const entrant = entrantOf(top.individual);
-      const side = top.label === '' ? '' : ` ${top.label.trim()}`;
-      return { entrant: { ...entrant, name: `${entrant.name}${side} g${top.generation + 1}` }, id: top.individual.id };
-    });
-
-  sizeMetric.addEventListener('change', () => refresh());
-  saveButton.addEventListener('click', () => {
-    const best = champions();
-    if (best.length === 0) return;
-    for (const { entrant } of best) {
-      if (isFleet(entrant)) fleetLibrary.save(entrant);
-      else library.save(entrant);
-    }
-    // Kept until there is a new best, so the next refresh does not wipe it.
-    savedAs = {
-      id: best[0]!.id,
-      text: `saved as ${best.map(({ entrant }) => `"${entrant.name}"`).join(' and ')} — open ${best.length > 1 ? 'them' : 'it'} in the editor`,
-    };
-    championLine.textContent = savedAs.text;
-  });
-  exportButton.addEventListener('click', () => {
-    for (const { entrant } of champions()) exportEntrant(entrant);
-  });
-  measureButton.addEventListener('click', () => {
-    if (run === null || run.generations.length === 0) return;
-    const record = run.record();
-    if (inRounds()) {
-      grid = new GridMeasure(record);
-      gridResult = null;
-      measureButton.disabled = true;
-      yardstickLine.textContent = "Fighting each side's champions against the other's…";
-      drawGrid();
-      return;
-    }
-    const chosen = benchmarkSelect.value;
-    const benchmark = chosen === OWN_FINAL ? latest(record) : load(chosen);
-    if (benchmark === null) {
-      yardstickLine.textContent = 'Nothing to measure against yet.';
-      return;
-    }
-    // The record rather than a copy of it, so a measurement started while a
-    // run is still going carries on into the generations it has not closed
-    // yet — the answer is per generation either way.
-    measuringAgainst = isFleet(benchmark) ? fleetFileText(benchmark) : toFileText(benchmark);
-    const before = measurements.get(measuringAgainst);
-    yardstick = new Yardstick(record, benchmark, undefined, before);
-    measured = null;
-    measureButton.disabled = true;
-    yardstickLine.textContent =
-      before === undefined
-        ? `Measuring against ${benchmark.name}…`
-        : `Measuring against ${benchmark.name} from generation ${before.points.length + 1}…`;
-  });
-
-  /**
-   * Watch the match the measurement fights for one design: the combatant
-   * picked in the generation on show, or its best, against the opponent
-   * chosen above, on the same seed — so a point on the yardstick line can be
-   * looked at rather than taken on trust.
-   */
-  watchYardstickButton.addEventListener('click', () => {
-    if (run === null || run.generations.length === 0) return;
-    const record = run.record();
-    const chosen = benchmarkSelect.value;
-    const benchmark = chosen === OWN_FINAL ? latest(record) : load(chosen);
-    if (benchmark === null) return;
-    // Only a closed generation is measured, so the one being fought shows the one before it.
-    const index = Math.min(showing().index, record.generations.length - 1);
-    const individuals = record.generations[index]!.individuals;
-    let slot = individuals.findIndex((individual) => individual.id === picked);
-    if (slot < 0) {
-      slot = 0;
-      for (let k = 1; k < individuals.length; k++) {
-        if (individuals[k]!.fitness > individuals[slot]!.fitness) slot = k;
-      }
-    }
-    watchReplay(yardstickMatch(record, benchmark, index, slot), null, [individuals[slot]!.id], benchmark.name);
-  });
-
-  /**
-   * Follow the newest generation again.
-   *
-   * Seeking the chart pins the panel to one generation, which is what it is
-   * for — and there has to be a way back, or watching a run means starting it
-   * over. It is a button rather than an entry in a list of generations
-   * because the list was a worse way of doing what the chart already does
-   * better: a thousand of them is not something to pick from.
-   */
-  latestButton.addEventListener('click', () => {
-    shown = -1;
-    refresh();
-  });
-
-  // ---- driving the run ---------------------------------------------------
-
-  const setPaused = (next: boolean): void => {
-    paused = next;
-    pauseButton.textContent = paused ? 'Resume' : 'Pause';
-  };
-
-  startButton.addEventListener('click', () => {
-    const founders = chosenFounders();
-    if (founders.length === 0) {
-      readout.textContent = 'Pick at least one ship or fleet to start from.';
-      readout.className = 'warn';
-      return;
-    }
-    readout.className = '';
-    const rivals = chosenVersus();
-    begin(
-      rivals.length > 0
-        ? new Coevolution(founders, rivals, readSetup().config, coevolutionSettings())
-        : new Run(founders, readSetup().config),
+    keyHelp(
+        el<HTMLElement>("hint"),
+        [...BATTLE_KEYS, { keys: "N", does: "Put another match on" }],
+        [
+            "A run is decided entirely by its seed: the same settings give the same run, and any match in it can be fought again from the record.",
+        ],
     );
-  });
-
-  /** Put a run on show from its start, forgetting everything about the last. */
-  const begin = (next: Run | Coevolution | RecordedRun): void => {
-    run = next;
-    previewMatch = null;
-    if (previewTimer !== null) clearTimeout(previewTimer);
-    previewRows = [];
-    savedAs = null;
-    notice = '';
-    yardstick = null;
-    measured = null;
-    measurements.clear();
-    yardstickLine.textContent = 'Measure once there is something to measure.';
-    grid = null;
-    gridResult = null;
-    drawGrid();
-    pictures.clear();
-    shown = -1;
-    replay = null;
-    replayOf = null;
-    skipping = false;
-    watch(null);
-    // The rows, not the table: it is built once and kept.
-    for (const { body } of fleetSides) body.replaceChildren();
-    fleetTiles.clear();
-    fleetScale = 0;
-    formationScale = 0;
-    setPaused(false);
-    pauseButton.disabled = next.done;
-    stopButton.disabled = next.done;
-    refresh();
-  };
-
-  /**
-   * Open a run fought by `npm run evolve` from the file it wrote, and show it
-   * as a finished run: its charts, its generations and its matches, any of
-   * which can be fought again from the seed it records.
-   */
-  const runFile = el<HTMLInputElement>('openRunFile');
-  el<HTMLButtonElement>('openRun').addEventListener('click', () => runFile.click());
-  runFile.addEventListener('change', () => {
-    const chosen = runFile.files?.[0];
-    if (chosen === undefined) return;
-    void chosen.text().then((text) => {
-      let opened: RecordedRun;
-      try {
-        opened = new RecordedRun(parseRunRecord(JSON.parse(text)));
-      } catch (error) {
-        window.alert(`Could not read that run.\n\n${error instanceof Error ? error.message : error}`);
-        return;
-      }
-      begin(opened);
-      const fought = opened.generations.length + opened.rivalGenerations.length;
-      notice =
-        `${chosen.name}: ${fought} of ${opened.config.generations} generations` +
-        `${fought < opened.config.generations ? ', stopped early' : ''}. Pick a match to fight it again.`;
-      toRunButton.disabled = false;
-      showScreen('run');
+    const view = el<HTMLCanvasElement>("view");
+    const chart = el<HTMLCanvasElement>("chart");
+    // Typed rather than narrowed: `paint` is hoisted, and a hoisted function
+    // cannot see a narrowing made after it in the source.
+    const ctx: CanvasRenderingContext2D = context(view);
+    const chartCtx: CanvasRenderingContext2D = context(chart);
+    const chartTip = el<HTMLElement>("chartTip");
+    const legend = el<HTMLElement>("legend");
+    /**
+     * What one fleet of each generation weighs and fields — averaged over the
+     * generation, and for its fittest — under what it scored: a run that
+     * scores better by growing is not the run that scores better by paring
+     * down. Ships only once a run has fielded more than one.
+     */
+    const sizeChart = (canvas: string, key: string, digits: number): SizeChart => {
+        const at = el<HTMLCanvasElement>(canvas);
+        return { canvas: at, ctx: context(at), legend: el<HTMLElement>(key), digits, series: [], layout: NO_LAYOUT };
+    };
+    const massChart = sizeChart("massChart", "massLegend", 1);
+    /** What the chart under the score shows: mass and ships, or weapons and engines. */
+    const sizeMetric = el<HTMLSelectElement>("sizeMetric");
+    const sizeCharts = [massChart];
+    /** Worked out once per generation: counting what each individual fields means compiling it. */
+    const sizes = new WeakMap<GenerationRecord, GenerationSize>();
+    const sizeOf = (generation: GenerationRecord): GenerationSize => {
+        let size = sizes.get(generation);
+        if (size === undefined) {
+            size = generationSize(generation);
+            sizes.set(generation, size);
+        }
+        return size;
+    };
+    /** The same for doctrine, which means reading every individual's. */
+    const doctrines = new WeakMap<GenerationRecord, GenerationDoctrine>();
+    const doctrineOf = (generation: GenerationRecord): GenerationDoctrine => {
+        let doctrine = doctrines.get(generation);
+        if (doctrine === undefined) {
+            doctrine = generationDoctrine(generation);
+            doctrines.set(generation, doctrine);
+        }
+        return doctrine;
+    };
+    /** A chart of each doctrine number, labelled with how far the mean has moved over the run, so the ones worth a look stand out. */
+    const doctrineOptions = DOCTRINE_NUMBERS.map((key) => {
+        const option = new Option(key, `doctrine:${key}`);
+        el<HTMLElement>("doctrineMetrics").append(option);
+        return option;
     });
-    runFile.value = '';
-  });
-  pauseButton.addEventListener('click', () => setPaused(!paused));
-  stopButton.addEventListener('click', () => {
-    if (run !== null && !run.done) {
-      // Stopping keeps what was fought: the generations already closed are a
-      // run, and the one in progress was never going to be comparable to them.
-      setPaused(true);
+    const labelDoctrine = (records: readonly GenerationRecord[]): void => {
+        const first = records[0];
+        const last = records[records.length - 1];
+        doctrineOptions.forEach((option, k) => {
+            const key = DOCTRINE_NUMBERS[k]!;
+            const moved = first === undefined || last === first ? NaN : doctrineOf(last!).mean[key]! - doctrineOf(first).mean[key]!;
+            option.textContent = Number.isFinite(moved) ? `${key} (${moved >= 0 ? "+" : ""}${moved.toPrecision(2)})` : key;
+        });
+    };
+
+    const startButton = el<HTMLButtonElement>("start");
+    const toSetupButton = el<HTMLButtonElement>("toSetup");
+    const toRunButton = el<HTMLButtonElement>("toRun");
+    const pauseButton = el<HTMLButtonElement>("pause");
+    const stopButton = el<HTMLButtonElement>("stop");
+    const stateLabel = el<HTMLElement>("state");
+    const readout = el<HTMLElement>("readout");
+    const barFill = el<HTMLElement>("barFill");
+    const foundersSelect = el<HTMLSelectElement>("founders");
+    const versusSelect = el<HTMLSelectElement>("versus");
+    const goalInput = el<HTMLSelectElement>("goal");
+    const playButton = el<HTMLButtonElement>("play");
+    const stepButton = el<HTMLButtonElement>("step");
+    const skipButton = el<HTMLButtonElement>("skip");
+    const fitButton = el<HTMLButtonElement>("fit");
+    const speedSelect = el<HTMLSelectElement>("speed");
+    const modeSelect = el<HTMLSelectElement>("mode");
+    const battleControls = el<HTMLElement>("battleControls");
+    const fleetBox = el<HTMLElement>("fleet");
+    // One table a side, A's on the left; a run of one fills A's alone.
+    const emptyNote = document.createElement("p");
+    emptyNote.className = "none";
+    const fleetPair = document.createElement("div");
+    fleetPair.className = "pair";
+    fleetBox.append(emptyNote, fleetPair);
+    const fleetSides = [buildCombatantTable(fleetPair), buildCombatantTable(fleetPair)] as const;
+    const watchingLabel = el<HTMLElement>("watching");
+    const battleScores = el<HTMLElement>("battleScores");
+    const latestButton = el<HTMLButtonElement>("latest");
+    const shownGeneration = el<HTMLElement>("shownGeneration");
+    const fightingLabel = el<HTMLElement>("fighting");
+    const matchesBody = el<HTMLElement>("matches");
+    const championLine = el<HTMLElement>("championLine");
+    const saveButton = el<HTMLButtonElement>("saveChampion");
+    const exportButton = el<HTMLButtonElement>("exportChampion");
+    const benchmarkSelect = el<HTMLSelectElement>("benchmark");
+    const measureButton = el<HTMLButtonElement>("measure");
+    const watchYardstickButton = el<HTMLButtonElement>("watchYardstick");
+    const yardstickLine = el<HTMLElement>("yardstickLine");
+    const gridTable = el<HTMLTableElement>("grid");
+    fillFields(document, [...MUTATION_FIELDS, ...mapFields()]);
+    fillMapInputs(document, undefined);
+    addRivalInputs();
+    const inputs = Object.fromEntries(FIELDS.map((name) => [name, el<HTMLInputElement>(name)])) as Record<
+        (typeof FIELDS)[number],
+        HTMLInputElement
+    >;
+    const rivalFollowing = el<HTMLElement>("rivalFollowing");
+    const rivalEvolvesInput = el<HTMLInputElement>("rivalEvolves");
+    const rivalInputs = Object.fromEntries(SIDE_FIELDS.map((name) => [name, el<HTMLInputElement>(RIVAL + name)])) as Record<
+        SideField,
+        HTMLInputElement
+    >;
+
+    const library = new Library(window.localStorage);
+    const fleetLibrary = new Library(window.localStorage, FLEET_FILES);
+    const load = (value: string): Entrant | null => {
+        const { kind, name } = pickOf(value);
+        return kind === "fleet" ? fleetLibrary.load(name) : library.load(name);
+    };
+    const chosenFounders = (): Entrant[] => {
+        const founders: Entrant[] = [];
+        for (const option of foundersSelect.selectedOptions) {
+            try {
+                const founder = load(option.value);
+                if (founder !== null) founders.push(founder);
+            } catch {
+                // An unreadable saved file is left out, as a missing one is.
+            }
+        }
+        return founders;
+    };
+
+    /** Side B's founders: any makes it a co-evolution run. */
+    const chosenVersus = (): Entrant[] => {
+        const rivals: Entrant[] = [];
+        for (const option of versusSelect.selectedOptions) {
+            try {
+                const rival = load(option.value);
+                if (rival !== null) rivals.push(rival);
+            } catch {
+                // As for a founder.
+            }
+        }
+        return rivals;
+    };
+    /** How side B is bred against side A: its own column of settings, and the hall. */
+    const coevolutionSettings = (): CoevolutionConfig => ({
+        // Nothing set apart while side B follows side A, so a file says only what differs.
+        rival: rivalOwn ? sideSettings((name) => rivalInputs[name]) : {},
+        hall: Math.max(1, Math.round(number(inputs.hall, DEFAULT_COEVOLUTION.hall))),
+        phaseWin: Math.min(1, Math.max(0, number(inputs.phaseWin, DEFAULT_COEVOLUTION.phaseWin))),
+        phaseCap: Math.max(1, Math.round(number(inputs.phaseCap, DEFAULT_COEVOLUTION.phaseCap))),
+        shieldedDrills: Math.max(0, Math.round(number(inputs.shieldedDrills, DEFAULT_COEVOLUTION.shieldedDrills))),
+        bareCoreDrills: Math.max(0, Math.round(number(inputs.bareCoreDrills, DEFAULT_COEVOLUTION.bareCoreDrills))),
+        rivalEvolves: rivalEvolvesInput.checked,
+    });
+    const coRun = (): boolean => versusSelect.selectedOptions.length > 0;
+    /** Whether side B has settings of its own, rather than following side A's. */
+    let rivalOwn = false;
+
+    let run: Run | Coevolution | RecordedRun | null = null;
+    /** Whether a run has two sides: a co-evolution run, live or read from a file. */
+    const twoSided = (of: typeof run): of is Coevolution | (RecordedRun & { coevolution: CoevolutionConfig }) =>
+        of instanceof Coevolution || (of instanceof RecordedRun && of.coevolution !== null);
+    /** Before a run: the founders as chosen, and the first match they would fight, paused at its start. */
+    let previewRows: Row[] = [];
+    let previewMatch: Match | null = null;
+    /** What saving the best said, and which individual it was. */
+    let savedAs: { id: number; text: string } | null = null;
+    /** Said in place of the run's progress until the next Start, so the next report does not wipe it. */
+    let notice = "";
+    let paused = false;
+    let replay: Match | null = null;
+    let replayOf: MatchRecord | null = null;
+    /** Who is fighting in the match being watched, by id, and an opponent that has none. */
+    let replayIds: readonly number[] = [];
+    let replayVs: string | null = null;
+    let replayPlaying = true;
+    /**
+     * Whether the match being watched has been given up on, and the next one
+     * the run finishes should go on in its place.
+     */
+    let skipping = false;
+    let watchedMatch: Match | null = null;
+    // Which generation the results panel is showing, or -1 to follow the newest.
+    let shown = -1;
+    let yardstick: Yardstick | null = null;
+    let measured: YardstickReport | null = null;
+    /**
+     * Every measurement of this run so far, by the opponent's file text, so
+     * measuring against the same opponent again carries on from what was found
+     * rather than fighting every generation over again.
+     */
+    const measurements = new Map<string, YardstickReport>();
+    let measuringAgainst = "";
+    /** A co-evolution run's champion grid, being fought or fought. */
+    let grid: GridMeasure | null = null;
+    let gridResult: ChampionGrid | null = null;
+    /**
+     * The tiles, by ship rather than by generation: a design carried over into
+     * the next generation keeps its tile, which is what makes seeking across a
+     * run redraw only what actually changed.
+     */
+    const fleetTiles = new Map<number, Tile>();
+    const tileSnapshot = new Snapshot();
+    /**
+     * Pixels per metre, shared by every tile so their sizes compare. It eases
+     * towards whatever fits the largest ship on show, so seeking through a run
+     * shows the ships growing rather than each tile refitting to its own.
+     */
+    let fleetScale = 0;
+    let fleetTarget = 0;
+    /** The same, for the whole-fleet pictures: see `FORMATION_WIDTH`. */
+    let formationScale = 0;
+    let formationTarget = 0;
+    let picked = -1;
+    /** Where the chart drew itself, and which point the pointer is over. */
+    let chartLayout: ChartLayout = NO_LAYOUT;
+    let chartSeries: Series[] = [];
+    let hoverAt: number | null = null;
+    /** Whether a drag across the chart is seeking through the generations. */
+    let seeking = false;
+    /** A selection made since the panel was last rebuilt. */
+    let reselected = false;
+    const snapshot = new Snapshot();
+    const flashes = new Flashes();
+    const stripCache = new StripCache();
+    const camera: Camera = { x: 0, y: 0, scale: 0.1 };
+    let autoFrame = true;
+    /** The ship picked out by a click, by body, or -1. */
+    let selected = -1;
+    // Team colours on here and off on the viewer: a run is watched to see who is
+    // doing what, a single battle as much to see it.
+    const kept = loadView("evolution", { arcs: "none", teamShots: true, strips: true, speed: 1 });
+    let arcs: Arcs = kept.arcs;
+    let teamShots = kept.teamShots;
+    let strips = kept.strips;
+    /** What was last drawn over the battle, for a tap to find. */
+    let shownStrips: Strips | null = null;
+    let shownInsets: Inset[] = [];
+    keepSpeed(speedSelect, "evolution", kept);
+    let framed = false;
+    let lastSimTime = 0;
+    let accumulator = 0;
+    let last = 0;
+    // Compiling a hull to weigh it is not free, and the panel is redrawn many
+    // times a run; an individual's mass never changes, and its id never repeats.
+    const pictures = new Map<number, Picture>();
+    let refreshedAt = 0;
+
+    // ---- settings ----------------------------------------------------------
+
+    const defaults: Record<(typeof FIELDS)[number], string> = {
+        ...(Object.fromEntries(MUTATION_FIELDS.map((f) => [f.name, String(f.value)])) as Record<SideField, string>),
+        configName: "",
+        generations: String(DEFAULT_RUN.generations),
+        population: String(DEFAULT_RUN.population),
+        winners: String(DEFAULT_RUN.winners),
+        group: String(DEFAULT_RUN.group),
+        minMatches: String(DEFAULT_RUN.minMatches),
+        metalBudget: "",
+        fuelBudget: "",
+        buildBudget: "",
+        fleetRadius: String(DEFAULT_FLEET_LIMITS.radius),
+        fleetShips: String(DEFAULT_FLEET_LIMITS.maxShips),
+        seed: String(DEFAULT_RUN.seed),
+        duration: String(DEFAULT_MATCH.duration),
+        radius: String(DEFAULT_MATCH.radius),
+        scatter: String(Math.round((DEFAULT_MATCH.scatter * 180) / Math.PI)),
+        closing: String(DEFAULT_MATCH.closingSpeed),
+        crossing: String(DEFAULT_MATCH.crossingSpeed),
+        radiusSpread: String(DEFAULT_MATCH.radiusSpread),
+        closingSpread: String(DEFAULT_MATCH.closingSpread),
+        crossingSpread: String(DEFAULT_MATCH.crossingSpread),
+        quietLimit: String(DEFAULT_MATCH.quietLimit),
+        survivalWeight: String(DEFAULT_MATCH.weights.survival),
+        functionalWeight: String(DEFAULT_MATCH.weights.functional),
+        damageWeight: String(DEFAULT_MATCH.weights.damage),
+        disablingWeight: String(DEFAULT_MATCH.weights.disabling),
+        raceWeight: String(DEFAULT_MATCH.weights.race),
+        effort: "12",
+        hall: String(DEFAULT_COEVOLUTION.hall),
+        phaseWin: String(DEFAULT_COEVOLUTION.phaseWin),
+        phaseCap: String(DEFAULT_COEVOLUTION.phaseCap),
+        shieldedDrills: String(DEFAULT_COEVOLUTION.shieldedDrills),
+        bareCoreDrills: String(DEFAULT_COEVOLUTION.bareCoreDrills),
+    };
+
+    /**
+     * Show what Start would begin with. Only while there is no run: once one
+     * has been fought, its results are what the panel is for.
+     */
+    const refreshPreview = (): void => {
+        showFleetSettings();
+        if (run !== null) return;
+        for (const id of [...pictures.keys()]) if (id < 0) pictures.delete(id);
+        for (const [id, tile] of [...fleetTiles]) {
+            if (id >= 0) continue;
+            tile.tr.remove();
+            fleetTiles.delete(id);
+        }
+        const founders = chosenFounders();
+        const rivals = chosenVersus();
+        const co = rivals.length > 0;
+        previewRows = [...founders, ...rivals].map((entrant, k) => ({
+            id: -(k + 1),
+            ...(co ? { side: k < founders.length ? (0 as const) : (1 as const) } : {}),
+            parent: -1,
+            matches: 0,
+            fitness: 0,
+            survival: 0,
+            functional: 0,
+            damage: 0,
+            disabling: 0,
+            race: 0,
+            mass: pictureOf(-(k + 1), entrant).mass,
+            edits: [],
+            entrant,
+        }));
+        // Building the opening breeds a whole first generation, which for big
+        // fleets takes seconds: done again only when something it reads changed.
+        // How long the run goes on, and who breeds, are not among them.
+        const config = readSetup().config;
+        const coSettings = co ? coevolutionSettings() : null;
+        const opening = { ...config, generations: config.generations > 0, minMatches: 0, winners: 0 };
+        const key = JSON.stringify([founders, rivals, opening, coSettings]);
+        if (key !== previewKey) {
+            previewKey = key;
+            try {
+                previewMatch =
+                    founders.length === 0
+                        ? null
+                        : co
+                          ? new Coevolution(founders, rivals, config, coSettings!).unmutatedOpening()
+                          : new Run(founders, config).unmutatedOpening();
+            } catch {
+                // A founder that will not compile has nothing to show.
+                previewMatch = null;
+            }
+        }
+        refresh();
+    };
+
+    /** What `previewMatch` was built from, so an edit that changes none of it does not build it again. */
+    let previewKey = "";
+    let previewTimer: ReturnType<typeof setTimeout> | null = null;
+    /** `refreshPreview` once the settings have stopped changing for `PREVIEW_DELAY_MS`, once for a burst of changes rather than once each. */
+    const schedulePreview = (): void => {
+        showFleetSettings();
+        if (previewTimer !== null) clearTimeout(previewTimer);
+        previewTimer = setTimeout(() => {
+            previewTimer = null;
+            refreshPreview();
+        }, PREVIEW_DELAY_MS);
+    };
+
+    const saveSetup = (): void => {
+        const held: Record<string, string> = { goal: goalInput.value };
+        for (const name of FIELDS) held[name] = inputs[name].value;
+        // Side B follows side A until it is given a setting of its own.
+        if (!rivalOwn) for (const name of SIDE_FIELDS) rivalInputs[name].value = inputs[name].value;
+        for (const name of SIDE_FIELDS) held[RIVAL + name] = rivalInputs[name].value;
+        held["rivalOwn"] = rivalOwn ? "1" : "";
+        held["rivalEvolves"] = rivalEvolvesInput.checked ? "1" : "";
+        document.body.classList.toggle("rivalFixed", !rivalEvolvesInput.checked);
+        rivalFollowing.textContent = !rivalEvolvesInput.checked
+            ? "Side B does not evolve: it fights as its founders every generation, so it has no settings of its own."
+            : rivalOwn
+              ? "Side B has settings of its own, in the right-hand boxes."
+              : "Side B follows side A's settings until one of its own boxes, on the right, is changed.";
+        held["founders"] = [...foundersSelect.selectedOptions].map((o) => o.value).join("\n");
+        held["versus"] = [...versusSelect.selectedOptions].map((o) => o.value).join("\n");
+        try {
+            window.localStorage.setItem(SETUP_KEY, JSON.stringify(held));
+        } catch {
+            // Storage being full or refused costs the settings, not the run.
+        }
+        schedulePreview();
+    };
+
+    const loadSetup = (): Record<string, string> => {
+        try {
+            const raw = window.localStorage.getItem(SETUP_KEY);
+            if (raw !== null) return JSON.parse(raw) as Record<string, string>;
+        } catch {
+            // Same: unreadable settings are settings that were never saved.
+        }
+        return {};
+    };
+
+    // Sections fold as the player left them.
+    const folded = new Set<string>();
+    try {
+        for (const key of JSON.parse(window.localStorage.getItem(FOLDED_KEY) ?? "[]") as string[]) folded.add(key);
+    } catch {
+        // Unreadable is as good as nothing folded.
     }
-    stopButton.disabled = true;
-  });
-
-  modeSelect.addEventListener('change', () => {
-    applyMode();
-    refresh();
-  });
-
-  /**
-   * Setting a run up and watching it are two screens: the settings have the
-   * width to themselves, beside the founders they would start from, and a
-   * run has the width for its charts, combatants and matches.
-   */
-  const showScreen = (screen: 'setup' | 'run'): void => {
-    document.body.classList.toggle('screenSetup', screen === 'setup');
-    document.body.classList.toggle('screenRun', screen === 'run');
-    toSetupButton.setAttribute('aria-pressed', String(screen === 'setup'));
-    toRunButton.setAttribute('aria-pressed', String(screen === 'run'));
-    resize();
-    refresh();
-  };
-  toSetupButton.addEventListener('click', () => showScreen('setup'));
-  toRunButton.addEventListener('click', () => showScreen('run'));
-  startButton.addEventListener('click', () => {
-    if (run !== null) {
-      toRunButton.disabled = false;
-      showScreen('run');
-    }
-  });
-
-  window.addEventListener('resize', resize);
-  resize();
-  showScreen('setup');
-  applyMode();
-  refreshPreview();
-
-  const tick = (now: number): void => {
-    if (last === 0) last = now;
-    const elapsed = Math.min((now - last) / 1000, 0.25);
-    last = now;
-
-    if (run !== null && !run.done && !paused) {
-      const budget = Math.max(1, Math.min(200, number(inputs.effort, 12)));
-      const until = now + budget;
-      // In slices, so a single long match cannot hold the frame: `advance`
-      // stops on a step count, and the clock decides how many of those fit.
-      while (performance.now() < until && run.advance(240)) {
-        // Fighting.
-      }
+    for (const section of document.querySelectorAll<HTMLDetailsElement>("details[data-key]")) {
+        const key = section.dataset["key"]!;
+        if (folded.has(key)) section.open = false;
+        section.addEventListener("toggle", () => {
+            if (section.open) folded.delete(key);
+            else folded.add(key);
+            try {
+                window.localStorage.setItem(FOLDED_KEY, JSON.stringify([...folded]));
+            } catch {
+                // Costs the folding, not the run.
+            }
+        });
     }
 
-    if (yardstick !== null) {
-      // Its own slice rather than a share of the run's, so measuring while a
-      // run is going slows the frame rather than the run — which is the right
-      // way round: the run is the thing that must not be held up.
-      const budget = Math.max(1, Math.min(200, number(inputs.effort, 12)));
-      const until = performance.now() + budget;
-      while (performance.now() < until && yardstick.advance(240)) {
-        // Measuring.
-      }
-      if (yardstick.done) {
-        measured = yardstick.report();
-        measurements.set(measuringAgainst, measured);
+    const held = loadSetup();
+    for (const name of FIELDS) inputs[name].value = held[name] ?? defaults[name];
+    rivalOwn = held["rivalOwn"] === "1";
+    rivalEvolvesInput.checked = held["rivalEvolves"] !== "";
+    rivalEvolvesInput.addEventListener("change", saveSetup);
+    for (const name of SIDE_FIELDS) rivalInputs[name].value = (rivalOwn ? held[RIVAL + name] : undefined) ?? inputs[name].value;
+    // Settings saved when this was a checkbox held '1' or ''.
+    const heldGoal = held["goal"] === "" ? "none" : held["goal"] === "1" ? "solid" : held["goal"];
+    goalInput.value = heldGoal === "ghost" || heldGoal === "none" ? heldGoal : "solid";
+
+    const wanted = new Set(
+        (held["founders"] ?? "Corvette").split("\n").map((value) => {
+            const { kind, name } = pickOf(value);
+            return valueOf(kind, name);
+        }),
+    );
+    // Chosen by name, and a name opens one layout: the player's copy where there
+    // is one. The editors list a shadowed shipped one beside it because that is
+    // something to open; a founder picked by name is not.
+    const stockShips = new Set(BUILT_IN.map((blueprint) => blueprint.name));
+    const stockFleets = new Set(FLEET_FILES.builtIn.map((fleet) => fleet.name));
+    const fillList = (select: HTMLSelectElement, label: (stock: boolean, name: string) => string): void => {
+        for (const [kind, title, entries, stock] of [
+            ["ship", "Ships", library.list(), stockShips],
+            ["fleet", "Fleets", fleetLibrary.list(), stockFleets],
+        ] as const) {
+            const group = document.createElement("optgroup");
+            group.label = title;
+            for (const entry of entries) {
+                if (entry.stock && entry.saved) continue;
+                const option = new Option(label(stock.has(entry.name), entry.name), valueOf(kind, entry.name));
+                group.append(option);
+            }
+            select.append(group);
+        }
+    };
+    fillList(foundersSelect, (stock, name) => (stock ? name : `${name} (saved)`));
+    for (const option of foundersSelect.options) option.selected = wanted.has(option.value);
+    if (foundersSelect.selectedOptions.length === 0 && foundersSelect.options.length > 0) {
+        foundersSelect.options[0]!.selected = true;
+    }
+
+    fillList(versusSelect, (stock, name) => (stock ? name : `${name} (saved)`));
+    const wantedVersus = new Set((held["versus"] ?? "").split("\n").filter((value) => value !== ""));
+    for (const option of versusSelect.options) option.selected = wantedVersus.has(option.value);
+
+    const OWN_FINAL = "";
+    benchmarkSelect.append(new Option("its own final design", OWN_FINAL));
+    fillList(benchmarkSelect, (_, name) => name);
+
+    /** The lists again, from the library as it now is, keeping what was chosen. */
+    const refillLists = (): void => {
+        for (const [select, label] of [
+            [foundersSelect, (stock: boolean, name: string) => (stock ? name : `${name} (saved)`)],
+            [versusSelect, (stock: boolean, name: string) => (stock ? name : `${name} (saved)`)],
+            [benchmarkSelect, (_: boolean, name: string) => name],
+        ] as const) {
+            const chosen = new Set([...select.selectedOptions].map((option) => option.value));
+            for (const group of [...select.querySelectorAll("optgroup")]) group.remove();
+            fillList(select, label);
+            for (const option of select.options) option.selected = chosen.has(option.value);
+        }
+    };
+
+    /** Whether a fleet is among the founders, which makes it a run of fleets. */
+    const fleetRun = (): boolean =>
+        [...foundersSelect.selectedOptions, ...versusSelect.selectedOptions].some((o) => pickOf(o.value).kind === "fleet") ||
+        Math.round(number(inputs.fleetShips, DEFAULT_FLEET_LIMITS.maxShips)) > 1 ||
+        (coRun() && Math.round(number(rivalInputs.fleetShips, DEFAULT_FLEET_LIMITS.maxShips)) > 1);
+    const showFleetSettings = (): void => {
+        document.body.classList.toggle("fleetRun", fleetRun());
+        document.body.classList.toggle("coRun", coRun());
+    };
+    showFleetSettings();
+    foundersSelect.addEventListener("change", showFleetSettings);
+    versusSelect.addEventListener("change", showFleetSettings);
+    versusSelect.addEventListener("change", saveSetup);
+    el<HTMLButtonElement>("clearVersus").addEventListener("click", () => {
+        for (const option of versusSelect.options) option.selected = false;
+        showFleetSettings();
+        saveSetup();
+    });
+
+    for (const name of FIELDS) inputs[name].addEventListener("change", saveSetup);
+    for (const name of SIDE_FIELDS) {
+        rivalInputs[name].addEventListener("change", () => {
+            rivalOwn = true;
+            saveSetup();
+        });
+    }
+    el<HTMLButtonElement>("resetConfig").addEventListener("click", () => {
+        for (const name of FIELDS) if (name !== "configName") inputs[name].value = defaults[name];
+        goalInput.value = "solid";
+        rivalEvolvesInput.checked = true;
+        rivalOwn = false;
+        showFleetSettings();
+        saveSetup();
+    });
+    el<HTMLButtonElement>("sameAsA").addEventListener("click", () => {
+        rivalOwn = false;
+        showFleetSettings();
+        saveSetup();
+    });
+    goalInput.addEventListener("change", saveSetup);
+    foundersSelect.addEventListener("change", saveSetup);
+
+    /** One side's own settings, read from its inputs: side A's, or with `get` reading side B's. */
+    const sideSettings = (get: (name: SideField) => HTMLInputElement): SideSettings => {
+        const bred = breeding((name) => (get(name as SideField).value.trim() === "" ? undefined : Number(get(name as SideField).value)));
+        // Blank or nothing is no limit.
+        const limit = (name: SideField, scale: number): number => {
+            const value = number(get(name), 0);
+            return value > 0 ? value * scale : Infinity;
+        };
+        return {
+            population: Math.max(2, Math.round(number(get("population"), DEFAULT_RUN.population))),
+            winners: Math.max(1, Math.round(number(get("winners"), DEFAULT_RUN.winners))),
+            group: Math.max(1, Math.round(number(get("group"), DEFAULT_RUN.group))),
+            budget: { metal: limit("metalBudget", 1000), fuel: limit("fuelBudget", 1000), build: limit("buildBudget", 60) },
+            fleet: {
+                radius: Math.max(1, number(get("fleetRadius"), DEFAULT_FLEET_LIMITS.radius)),
+                maxShips: Math.max(1, Math.round(number(get("fleetShips"), DEFAULT_FLEET_LIMITS.maxShips))),
+                operators: bred.operators,
+                ...bred.fleet,
+            },
+            mutation: bred.ship,
+        };
+    };
+
+    const configure = (): Partial<RunConfig> => {
+        const map = readMapInputs(document);
+        return {
+            seed: number(inputs.seed, DEFAULT_RUN.seed),
+            generations: Math.max(1, Math.round(number(inputs.generations, DEFAULT_RUN.generations))),
+            minMatches: Math.max(1, Math.round(number(inputs.minMatches, DEFAULT_RUN.minMatches))),
+            ...sideSettings((name) => inputs[name]),
+            match: {
+                duration: Math.max(1, number(inputs.duration, DEFAULT_MATCH.duration)),
+                radius: Math.max(10, number(inputs.radius, DEFAULT_MATCH.radius)),
+                scatter: (number(inputs.scatter, 180) * Math.PI) / 180,
+                closingSpeed: number(inputs.closing, DEFAULT_MATCH.closingSpeed),
+                crossingSpeed: number(inputs.crossing, DEFAULT_MATCH.crossingSpeed),
+                radiusSpread: Math.max(0, number(inputs.radiusSpread, DEFAULT_MATCH.radiusSpread)),
+                closingSpread: Math.max(0, number(inputs.closingSpread, DEFAULT_MATCH.closingSpread)),
+                crossingSpread: Math.max(0, number(inputs.crossingSpread, DEFAULT_MATCH.crossingSpread)),
+                quietLimit: Math.max(0, number(inputs.quietLimit, DEFAULT_MATCH.quietLimit)),
+                ...(map === undefined ? {} : { map }),
+                goal:
+                    goalInput.value === "none" || DEFAULT_MATCH.goal === null
+                        ? null
+                        : { ...DEFAULT_MATCH.goal, solid: goalInput.value !== "ghost" },
+                weights: {
+                    survival: number(inputs.survivalWeight, 1),
+                    functional: number(inputs.functionalWeight, 1),
+                    damage: number(inputs.damageWeight, 1),
+                    disabling: number(inputs.disablingWeight, 1),
+                    race: number(inputs.raceWeight, 1),
+                },
+            },
+        };
+    };
+
+    /** Everything the form says, as a run's settings. */
+    const readSetup = (): RunSetup => {
+        const name = inputs.configName.value.trim();
+        return {
+            ...(name === "" ? {} : { name }),
+            ...designsOf(chosenFounders()),
+            versus: coRun() ? { ...designsOf(chosenVersus()), coevolution: coevolutionSettings() } : null,
+            config: { ...DEFAULT_RUN, ...configure() },
+        };
+    };
+
+    /** One side's founders, split as a config file holds them. */
+    const designsOf = (entrants: readonly Entrant[]): { founders: Blueprint[]; fleets: Fleet[] } => ({
+        founders: entrants.filter((entrant): entrant is Blueprint => !isFleet(entrant)),
+        fleets: entrants.filter(isFleet),
+    });
+
+    /** Put one side's own settings into its inputs: side A's, or with `get` side B's. */
+    const writeSide = (get: (name: SideField) => HTMLInputElement, config: RunConfig): void => {
+        const kinds: KindWeights = { ...DEFAULT_KINDS, ...config.mutation.kinds };
+        get("population").value = String(config.population);
+        get("winners").value = String(config.winners);
+        get("group").value = String(config.group);
+        const shown = (value: number, scale: number): string => (Number.isFinite(value) ? String(value / scale) : "");
+        get("metalBudget").value = shown(config.budget.metal, 1000);
+        get("fuelBudget").value = shown(config.budget.fuel, 1000);
+        get("buildBudget").value = shown(config.budget.build, 60);
+        get("fleetRadius").value = String(config.fleet.radius ?? DEFAULT_FLEET_LIMITS.radius);
+        get("fleetShips").value = String(config.fleet.maxShips ?? DEFAULT_FLEET_LIMITS.maxShips);
+        const operators = { ...DEFAULT_FLEET_LIMITS.operators, ...config.fleet.operators };
+        get("fleetDesign").value = String(config.fleet.design ?? DEFAULT_FLEET_LIMITS.design);
+        get("fleetMove").value = String(config.fleet.move ?? DEFAULT_FLEET_LIMITS.move);
+        get("fleetChange").value = String(config.fleet.change ?? DEFAULT_FLEET_LIMITS.change);
+        get("opAdd").value = String(operators.add);
+        get("opRemove").value = String(operators.remove);
+        get("opFork").value = String(operators.fork);
+        get("opMerge").value = String(operators.merge);
+        get("opSwap").value = String(operators.swap);
+        get("opPad").value = String(operators.pad);
+        const build = { ...DEFAULT_BUILD_WEIGHTS, ...config.mutation.build };
+        get("structural").value = String(config.mutation.structural ?? DEFAULT_LIMITS.structural);
+        get("geometry").value = String(config.mutation.geometry ?? DEFAULT_LIMITS.geometry);
+        get("thrusters").value = String(config.mutation.thrusters ?? DEFAULT_LIMITS.thrusters);
+        get("buildMove").value = String(build.move);
+        get("buildResize").value = String(build.resize);
+        get("buildRefit").value = String(build.refit);
+        get("buildFittings").value = String(build.fittings);
+        get("buildTuning").value = String(build.tuning);
+        get("buildFighter").value = String(build.fighter);
+        get("buildShape").value = String(build.shape);
+        get("kindEngine").value = String(kinds.engine);
+        get("kindStructure").value = String(kinds.structure);
+        get("kindTank").value = String(kinds.tank);
+        get("kindTurret").value = String(kinds.turret);
+        get("kindBeamTurret").value = String(kinds.beamTurret);
+        get("kindHullGun").value = String(kinds.hullGun);
+        get("kindHullBeam").value = String(kinds.hullBeam);
+        get("kindCore").value = String(kinds.core);
+        get("kindClaw").value = String(kinds.claw);
+        get("kindPad").value = String(kinds.pad);
+        get("kindPort").value = String(kinds.port);
+        get("kindHold").value = String(kinds.hold);
+        get("kindBattery").value = String(kinds.battery);
+        get("kindGenerator").value = String(kinds.generator);
+        get("kindRobotBay").value = String(kinds.robotBay);
+        get("kindSlipway").value = String(kinds.slipway);
+        const doctrine = doctrineWeights(config.mutation.doctrine);
+        get("doctrineTargeting").value = String(doctrine.targeting);
+        get("doctrineApproach").value = String(doctrine.approach);
+        get("doctrineEscort").value = String(doctrine.escort);
+        get("doctrineAvoidance").value = String(doctrine.avoidance);
+        get("doctrineGunnery").value = String(doctrine.gunnery);
+    };
+
+    /**
+     * A founder from a settings file, as the library holds it: the copy under its
+     * name if that is the same design, else saved, under the next free name if
+     * its own holds a different one. Its option's value; a renaming is said in
+     * `renamed`.
+     */
+    const adopt = (entrant: Entrant, renamed: string[]): string => {
+        const fleet = isFleet(entrant);
+        const shelf: Library<Blueprint> | Library<Fleet> = fleet ? fleetLibrary : library;
+        const text = (e: Entrant): string => JSON.stringify(isFleet(e) ? serialiseFleet(e) : serialiseBlueprint(e));
+        let name = entrant.name;
+        for (;;) {
+            let kept: Entrant | null | undefined;
+            try {
+                kept = shelf.load(name);
+            } catch {
+                // Unreadable: taken, and not to be saved over.
+                kept = undefined;
+            }
+            const named = { ...entrant, name };
+            if (kept === null) {
+                if (isFleet(named)) fleetLibrary.save(named);
+                else library.save(named);
+                break;
+            }
+            if (kept !== undefined && text(kept) === text(named)) break;
+            name = nextName(name);
+        }
+        if (name !== entrant.name) renamed.push(`"${entrant.name}" as "${name}"`);
+        return valueOf(fleet ? "fleet" : "ship", name);
+    };
+
+    /** Put a setup into the form, its founders into the library. What was saved under another name. */
+    const applySetup = (setup: RunSetup): string[] => {
+        const config = setup.config;
+        const renamed: string[] = [];
+        const founders = [...setup.founders, ...(setup.fleets ?? [])].map((entrant) => adopt(entrant, renamed));
+        const versus = setup.versus ?? null;
+        const rivals = new Set([...(versus?.founders ?? []), ...(versus?.fleets ?? [])].map((entrant) => adopt(entrant, renamed)));
+        refillLists();
+        const match: MatchConfig = { ...DEFAULT_MATCH, ...config.match };
+        inputs.configName.value = setup.name ?? "";
+        inputs.seed.value = String(config.seed);
+        inputs.generations.value = String(config.generations);
+        inputs.minMatches.value = String(config.minMatches);
+        inputs.duration.value = String(match.duration);
+        inputs.radius.value = String(match.radius);
+        inputs.scatter.value = String((match.scatter * 180) / Math.PI);
+        inputs.closing.value = String(match.closingSpeed);
+        inputs.crossing.value = String(match.crossingSpeed);
+        inputs.radiusSpread.value = String(match.radiusSpread ?? DEFAULT_MATCH.radiusSpread);
+        inputs.closingSpread.value = String(match.closingSpread ?? DEFAULT_MATCH.closingSpread);
+        inputs.crossingSpread.value = String(match.crossingSpread ?? DEFAULT_MATCH.crossingSpread);
+        inputs.quietLimit.value = String(match.quietLimit ?? DEFAULT_MATCH.quietLimit);
+        fillMapInputs(document, match.map);
+        inputs.survivalWeight.value = String(match.weights.survival);
+        inputs.functionalWeight.value = String(match.weights.functional);
+        inputs.damageWeight.value = String(match.weights.damage);
+        inputs.disablingWeight.value = String(match.weights.disabling);
+        inputs.raceWeight.value = String(match.weights.race);
+        writeSide((name) => inputs[name], config);
+        goalInput.value = match.goal === null ? "none" : match.goal.solid === false ? "ghost" : "solid";
+        if (founders.length > 0) {
+            const named = new Set(founders);
+            for (const option of foundersSelect.options) option.selected = named.has(option.value);
+        }
+        const coevolution = versus?.coevolution ?? DEFAULT_COEVOLUTION;
+        // Side B's column in full: side A's settings, with whatever the file set apart for it.
+        rivalOwn = Object.keys(coevolution.rival).length > 0;
+        writeSide((name) => rivalInputs[name], rivalSettings({ ...DEFAULT_RUN, ...config }, coevolution.rival));
+        inputs.hall.value = String(coevolution.hall);
+        rivalEvolvesInput.checked = coevolution.rivalEvolves;
+        inputs.phaseWin.value = String(coevolution.phaseWin);
+        inputs.phaseCap.value = String(coevolution.phaseCap);
+        inputs.shieldedDrills.value = String(coevolution.shieldedDrills);
+        inputs.bareCoreDrills.value = String(coevolution.bareCoreDrills);
+        // Side B as the file has it, which for a run of one is nobody.
+        for (const option of versusSelect.options) option.selected = rivals.has(option.value);
+        showFleetSettings();
+        saveSetup();
+        return renamed;
+    };
+
+    el<HTMLButtonElement>("exportConfig").addEventListener("click", () => {
+        const setup = readSetup();
+        const file = setup.name === undefined ? "evolution-config" : setup.name.replace(/[^\w.-]+/g, "_");
+        download(`${file}.evo.json`, `${JSON.stringify(serialiseRunConfig(setup), null, 2)}\n`);
+    });
+    const file = el<HTMLInputElement>("importConfigFile");
+    el<HTMLButtonElement>("importConfig").addEventListener("click", () => file.click());
+    file.addEventListener("change", () => {
+        const chosen = file.files?.[0];
+        if (chosen === undefined) return;
+        void chosen.text().then((text) => {
+            let warnings: string[];
+            let renamed: string[];
+            try {
+                const value: unknown = JSON.parse(text);
+                renamed = applySetup(parseRunConfig(value));
+                warnings = runConfigWarnings(value);
+            } catch (error) {
+                window.alert(`Could not read those settings.\n\n${error instanceof Error ? error.message : error}`);
+                return;
+            }
+            // Read anyway: a key nothing reads is said, not refused.
+            readout.className = warnings.length > 0 ? "warn" : "";
+            notice =
+                "Settings read from a file. Press Start when you are ready." +
+                (renamed.length > 0
+                    ? ` Founders that differ from the ones of the same name here are kept under other names: ${renamed.join(", ")}.`
+                    : "") +
+                (warnings.length > 0 ? ` Not read: ${warnings.join("; ")}.` : "");
+            readout.textContent = notice;
+        });
+        // Cleared so that choosing the same file twice is two imports rather
+        // than one, which matters while a file is being edited beside the page.
+        file.value = "";
+    });
+
+    // ---- the viewer --------------------------------------------------------
+
+    const resize = (): void => {
+        const ratio = window.devicePixelRatio || 1;
+        for (const canvas of [view, chart, massChart.canvas]) {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = Math.round(rect.width * ratio);
+            canvas.height = Math.round(rect.height * ratio);
+        }
+        paint();
+        paintChart();
+    };
+
+    const watch = (match: Match | null): void => {
+        if (match === watchedMatch) return;
+        watchedMatch = match;
+        selected = -1;
+        flashes.clear();
+        framed = false;
+        autoFrame = true;
+        lastSimTime = 0;
+        accumulator = 0;
+    };
+
+    const togglePlay = (): void => {
+        replayPlaying = !replayPlaying;
+        playButton.textContent = replayPlaying ? "Pause" : "Play";
+        last = 0;
+    };
+
+    const stepOnce = (): void => {
+        replayPlaying = false;
+        playButton.textContent = "Play";
+        if (replay !== null && !replay.done) replay.advance();
+    };
+
+    fitButton.addEventListener("click", () => {
+        autoFrame = true;
+    });
+    playButton.addEventListener("click", togglePlay);
+    stepButton.addEventListener("click", stepOnce);
+
+    /**
+     * Give up on the match being watched and put another on.
+     *
+     * Plenty of matches are nothing to watch — early on, two ships that cannot
+     * steer drifting apart until the clock runs out — and without this the only
+     * way past one is to sit through it at whatever speed the viewer allows.
+     * Skip takes the next match of the generation on show; if the run has not
+     * fought one yet, it waits and takes whatever the run finishes next, rather
+     * than holding on a battle already given up on.
+     */
+    const skipMatch = (): void => {
+        if (run === null) return;
+        const { rows, matches } = showing();
+        const at = replayOf === null ? -1 : matches.indexOf(replayOf);
+        // Round the list when there will be no later match: a finished or
+        // paused run is a fixed set to look through rather than a stream.
+        const next = matches[at + 1] ?? (run.done || paused ? matches[0] : undefined);
+        if (next !== undefined && next !== replayOf) {
+            startReplay(next, rows);
+            return;
+        }
+        skipping = true;
+        replayPlaying = true;
+        playButton.textContent = "Pause";
+    };
+
+    skipButton.addEventListener("click", skipMatch);
+
+    /**
+     * The viewer's keys, on the battle this page shows: space to pause, full
+     * stop to single-step, F to re-fit, N for another match.
+     *
+     * Only while a battle is on show and nothing is being typed into — the page
+     * is mostly a form, and a run's settings are numbers with full stops in
+     * them.
+     */
+    window.addEventListener("keydown", (event) => {
+        if (modeSelect.value !== "battle") return;
+        const active = document.activeElement;
+        if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement || active instanceof HTMLSelectElement) {
+            return;
+        }
+        if (event.ctrlKey || event.metaKey || event.altKey) return;
+        if (event.key === " ") {
+            // Also stops a focused button being pressed by the same key, which
+            // would undo the toggle this is making.
+            event.preventDefault();
+            togglePlay();
+        } else if (event.key === ".") {
+            stepOnce();
+        } else if (event.key === "f" || event.key === "F") {
+            autoFrame = true;
+        } else if (event.key === "Escape") {
+            selected = -1;
+        } else if (event.key === "n" || event.key === "N") {
+            if (!skipButton.disabled) skipMatch();
+        } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === ARCS_KEY) {
+            // Not the browser's select-all; as on every battle, where A alone picks a side.
+            event.preventDefault();
+            arcs = nextArcs(arcs);
+            Object.assign(kept, { arcs, teamShots });
+            saveView("evolution", kept);
+        } else if (event.key.toLowerCase() === TEAM_SHOTS_KEY) {
+            teamShots = !teamShots;
+            Object.assign(kept, { arcs, teamShots });
+            saveView("evolution", kept);
+        } else if (event.key.toLowerCase() === STRIPS_KEY) {
+            strips = !strips;
+            Object.assign(kept, { strips });
+            saveView("evolution", kept);
+        }
+    });
+
+    viewGestures(
+        view,
+        camera,
+        () => {
+            autoFrame = false;
+        },
+        (x, y, reach) => {
+            // A tile or close-up first: it is drawn over whatever is under it.
+            const shown = overlayAt(shownStrips, shownInsets, camera, view.width, view.height, x, y);
+            selected = shown >= 0 ? shown : shipAt(snapshot, x, y, reach);
+            if (selected >= 0) autoFrame = true;
+        },
+    );
+
+    function paint(): void {
+        const match = watchedMatch;
+        if (match === null) {
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.fillStyle = "#0d1219";
+            ctx.fillRect(0, 0, view.width, view.height);
+            return;
+        }
+        const battle = match.battle;
+        const shot = capture(snapshot, battle.world, battle.ships, battle.projectiles, battle.beams, battle.wells, battle.impacts.log);
+        const simDt = shot.time > lastSimTime ? shot.time - lastSimTime : 0;
+        lastSimTime = shot.time;
+
+        const ratio = window.devicePixelRatio || 1;
+        const tiles = strips ? fleetStrips(shot, view.width, view.height, ratio) : null;
+        // Framed between the strips, which cover the view's edges.
+        const framedWidth = view.width - 2 * stripsWidth(tiles);
+        moveWithVisibleShips(camera, shot, simDt, view.width, view.height);
+        if (autoFrame) {
+            if (!framed) {
+                frame(camera, shot, framedWidth, view.height, 1);
+                framed = true;
+            }
+            frame(camera, selectionBounds(shot, selected) ?? shot, framedWidth, view.height);
+        }
+        // Aged before this step's are added, which are born now.
+        flashes.step(simDt);
+        for (let i = 0; i < shot.impactCount; i++) {
+            flashes.add(
+                shot.impactX[i]!,
+                shot.impactY[i]!,
+                shot.impactEnergy[i]!,
+                shot.impactKind[i]!,
+                shot.impactBody[i]!,
+                shot.impactLocalX[i]!,
+                shot.impactLocalY[i]!,
+                shot.impactVx[i]!,
+                shot.impactVy[i]!,
+                shot.impactGrowth[i]!,
+                shot.impactDirX[i]!,
+                shot.impactDirY[i]!,
+            );
+        }
+        draw(ctx, shot, camera, view.width, view.height, flashes, arcs, teamShots, selected);
+        if (tiles !== null) drawFleetStrips(ctx, shot, tiles, selected, ratio, flashes, arcs, teamShots, stripCache);
+        const insets = closeUps(shot, camera, view.width, view.height, selected, ratio, tiles);
+        drawCloseUps(ctx, shot, insets, selected, ratio, flashes, arcs, teamShots);
+        drawTargetRange(ctx, shot, camera, view.width, view.height, selected, insets, ratio);
+        shownStrips = tiles;
+        shownInsets = insets;
+    }
+
+    // ---- the chart ---------------------------------------------------------
+
+    /**
+     * Draw the chart, marking what is under the pointer and what is selected.
+     *
+     * Kept apart from `refresh` so a pointer moving over it redraws at once
+     * rather than at the next telemetry sample: a mark that lags the cursor by
+     * a fifth of a second reads as the chart being broken.
+     */
+    function paintChart(): void {
+        chartLayout = drawChart(chartCtx, chartSeries, chart.width, chart.height, window.devicePixelRatio || 1, {
+            hover: hoverAt ?? undefined,
+            picked: markedGeneration(),
+        });
+        for (const sub of sizeCharts) {
+            sub.layout = drawChart(sub.ctx, sub.series, sub.canvas.width, sub.canvas.height, window.devicePixelRatio || 1, {
+                hover: hoverAt ?? undefined,
+                picked: markedGeneration(),
+            });
+        }
+    }
+
+    /**
+     * The generation the panel is showing, when the chart has a point for it.
+     *
+     * Nothing is marked while the generation being fought is the one on show:
+     * it has no point yet, and marking the one before it would say the chart
+     * and the panel disagree when they do not.
+     */
+    function markedGeneration(): number | undefined {
+        if (run === null) return undefined;
+        const closed = timeline().length;
+        const newest = run.done ? closed - 1 : closed;
+        const index = shown < 0 ? newest : Math.min(shown, newest);
+        return index >= 0 && index < closed ? index : undefined;
+    }
+
+    /**
+     * What the legend says: the names of the lines, and — while a generation is
+     * under the pointer — what each of them was worth there.
+     *
+     * On the legend rather than in the tooltip because the colours are already
+     * there: a floating box repeating five labelled colours beside five
+     * labelled colours is two things to read where there was one.
+     */
+    function showLegend(): void {
+        fillLegend(legend, chartSeries, 3, "");
+        // Ships are read on the right-hand scale, and to more places: a mean of
+        // whole ships is a fraction.
+        if (sizeMetric.value === "fittings") fillLegend(massChart.legend, massChart.series, 1, "", 1, "");
+        else if (sizeMetric.value === "spread") fillLegend(massChart.legend, massChart.series, 3, "", 0, "");
+        else if (sizeMetric.value.startsWith("doctrine:")) fillLegend(massChart.legend, massChart.series, 3, "");
+        else fillLegend(massChart.legend, massChart.series, massChart.digits, " t", 2, "");
+    }
+
+    function fillLegend(
+        into: HTMLElement,
+        series: readonly Series[],
+        digits: number,
+        unit: string,
+        rightDigits = digits,
+        rightUnit = unit,
+    ): void {
+        into.replaceChildren();
+        for (const line of series) {
+            const entry = document.createElement("span");
+            entry.style.color = line.colour;
+            entry.textContent = line.name;
+            const value = hoverAt === null ? undefined : line.values[hoverAt];
+            if (value !== undefined && Number.isFinite(value)) {
+                const reading = document.createElement("b");
+                reading.textContent = line.right === true ? value.toFixed(rightDigits) + rightUnit : value.toFixed(digits) + unit;
+                entry.append(reading);
+            }
+            into.append(entry);
+        }
+    }
+
+    /** Which generation the pointer is over, as an index, or null. */
+    const chartPointAt = (
+        canvas: HTMLCanvasElement,
+        layout: ChartLayout,
+        event: PointerEvent | MouseEvent,
+        clamp = false,
+    ): number | null => {
+        const rect = canvas.getBoundingClientRect();
+        return indexAt(layout, event.clientX - rect.left, clamp);
+    };
+
+    const hoverChart = (at: number | null): void => {
+        if (at === hoverAt) return;
+        hoverAt = at;
+        chartTip.hidden = at === null;
+        if (at !== null) {
+            chartTip.textContent = pointLabel(at);
+            chartTip.style.left = `${xOf(chartLayout, at)}px`;
+        }
+        paintChart();
+        showLegend();
+    };
+
+    /**
+     * Go to a generation, as the picker does.
+     *
+     * The same selection, so the table, the matches and the ships all follow —
+     * the chart is another way in to it rather than a second idea of which
+     * generation is being looked at. Marked rather than done: while seeking,
+     * the pointer moves faster than the panel can be rebuilt, and rebuilding it
+     * per *event* rather than per frame would spend the drag redrawing
+     * generations nobody saw.
+     */
+    const goTo = (at: number): void => {
+        if (at === shown) return;
+        shown = at;
+        reselected = true;
+    };
+
+    /** Hover and drag-to-seek, the same on every chart since they share an axis. */
+    const seekable = (canvas: HTMLCanvasElement, layout: () => ChartLayout): void => {
+        canvas.addEventListener("pointermove", (event) => {
+            const at = chartPointAt(canvas, layout(), event, seeking);
+            hoverChart(at);
+            if (seeking && at !== null) goTo(at);
+        });
+        canvas.addEventListener("pointerleave", () => {
+            if (!seeking) hoverChart(null);
+        });
+        canvas.addEventListener("pointerdown", (event) => {
+            const at = chartPointAt(canvas, layout(), event, true);
+            if (at === null) return;
+            // Captured, so a drag that runs off the end of the plot goes on seeking
+            // to the end of the run rather than stopping where the canvas does.
+            canvas.setPointerCapture(event.pointerId);
+            seeking = true;
+            goTo(at);
+        });
+        const stopSeeking = (event: PointerEvent): void => {
+            if (!seeking) return;
+            seeking = false;
+            if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+        };
+        canvas.addEventListener("pointerup", stopSeeking);
+        canvas.addEventListener("pointercancel", stopSeeking);
+    };
+    seekable(chart, () => chartLayout);
+    for (const sub of sizeCharts) seekable(sub.canvas, () => sub.layout);
+
+    // ---- the fleet ---------------------------------------------------------
+
+    /**
+     * What a generation *is*, drawn: every design in it, best first.
+     *
+     * **This is the view a run is worth watching in, and a battle is not.** A
+     * run fights hundreds of times faster than real time, so a window on
+     * whichever match is in progress shows a fraction of a second of each and
+     * flickers to the next — a picture of nothing, refreshed. What changes at a
+     * pace worth watching is the population: a generation of bare cores growing
+     * an engine, a wing appearing on one design and then on half of them.
+     *
+     * Tiles are made once per design and only reordered afterwards, and
+     * redrawn only while the shared scale is easing, so a generation redraws
+     * its hulls when it is bred rather than five times a second for as long as
+     * it lasts.
+     */
+    const showFleet = (rows: readonly Row[]): void => {
+        if (rows.length === 0) {
+            for (const tile of fleetTiles.values()) tile.tr.remove();
+            fleetTiles.clear();
+            fleetPair.hidden = true;
+            emptyNote.hidden = false;
+            emptyNote.textContent = run === null ? "Pick founders to see them here." : "Nothing bred yet.";
+            return;
+        }
+        emptyNote.hidden = true;
+        fleetPair.hidden = false;
+        fleetSides[1].table.hidden = !rows.some((row) => row.side === 1);
+
+        // One scale for every hull on show, so a ship twice the size of another
+        // looks it — down a column as much as across a row. Set by whichever kind
+        // of ship is largest, since that is the one a cell has to hold.
+        fleetTarget = Infinity;
+        formationTarget = Infinity;
+        for (const row of rows) {
+            const picture = pictureOf(row.id, row.entrant);
+            for (const kind of picture.kinds) {
+                const shot = oneShipSnapshot(kind);
+                fleetTarget = Math.min(fleetTarget, fitScale(shot, TILE_WIDTH * ratio(), TILE_HEIGHT * ratio()));
+            }
+            const whole = formationSnapshot(picture, tileSnapshot);
+            formationTarget = Math.min(formationTarget, fitScale(whole, FORMATION_WIDTH * ratio(), FORMATION_HEIGHT * ratio()));
+        }
+        if (fleetScale === 0) fleetScale = fleetTarget;
+        if (formationScale === 0) formationScale = formationTarget;
+
+        // Side by side in a co-evolution run, each ranked within its own lineage:
+        // a fitness is a score against the other side, so the two do not compare.
+        const ranked = [...rows].sort((a, b) => (a.side ?? 0) - (b.side ?? 0) || b.fitness - a.fitness);
+        const living = new Set(ranked.map((row) => row.id));
+        for (const [id, tile] of fleetTiles) {
+            if (!living.has(id)) {
+                tile.tr.remove();
+                fleetTiles.delete(id);
+            }
+        }
+
+        for (const [order, row] of ranked.entries()) {
+            const rank = order - ranked.findIndex((other) => other.side === row.side);
+            let tile = fleetTiles.get(row.id);
+            if (tile === undefined) {
+                tile = makeTile(row);
+                fleetTiles.set(row.id, tile);
+            }
+            // Appending something already here moves it, so this is the reordering.
+            fleetSides[row.side === 1 ? 1 : 0].body.append(tile.tr);
+            tile.tr.classList.toggle("picked", row.id === picked);
+            tile.tr.classList.toggle("champion", rank === 0 && row.id >= 0 && row.matches > 0);
+            writeRow(tile, row, rank);
+        }
+    };
+
+    /** One kind of ship alone at the origin, to draw or to measure. */
+    const oneShipSnapshot = (kind: ShipKind): Snapshot => kindSnapshot(kind, tileSnapshot);
+
+    /**
+     * Fill in a combatant's row: who it is, what it is made of, what it scored,
+     * and what was done to make it.
+     *
+     * **The figures are rewritten every refresh and the hulls are not.** A
+     * generation's scores move while it is being fought; its designs never
+     * change, since a design is replaced by a child rather than edited.
+     */
+    const writeRow = (tile: Tile, row: Row, rank: number): void => {
+        const { who, score, mass, done } = tile.cells;
+
+        who.replaceChildren();
+        const name = document.createElement("b");
+        // A preview's founders have no id yet; their names say more.
+        name.textContent = row.id < 0 ? row.entrant.name : `${rank + 1}. #${row.id}`;
+        if (row.side !== undefined) {
+            const side = document.createElement("span");
+            side.className = "side";
+            side.textContent = row.side === 0 ? "A " : "B ";
+            side.style.color = teamColour(row.side);
+            side.title = row.side === 0 ? "side A: the founders' lineage" : "side B: the lineage bred against it";
+            who.append(side);
+        }
+        who.append(name);
+        if (row.id >= 0) {
+            const from = document.createElement("span");
+            from.className = "from";
+            from.textContent = row.parent < 0 ? "a founder" : `← #${row.parent}`;
+            if (row.parent >= 0) from.title = `bred from #${row.parent}`;
+            who.append(from);
+        }
+
+        tile.figure.textContent = row.id < 0 ? "" : row.matches > 0 ? row.fitness.toFixed(3) : "—";
+        const owed = run?.config.minMatches ?? 0;
+        const wins = row.wins;
+        tile.count.textContent =
+            row.id < 0 ? "" : row.matches < owed ? `${row.matches}/${owed}` : wins !== undefined ? `won ${wins.won}/${wins.fought}` : "";
+        score.title =
+            row.id < 0
+                ? ""
+                : `${row.matches} match${row.matches === 1 ? "" : "es"} fought` +
+                  (wins === undefined ? "" : `, ${wins.won} of ${wins.fought} won outright, drills aside`);
+
+        for (const [i, part] of tile.parts.entries()) {
+            // A dash rather than a row of zeroes for a design that has not fought:
+            // its parts are as unknown as the score beside them, and a generation
+            // still being fought is mostly made of those.
+            part.textContent = row.id < 0 || row.matches === 0 ? "—" : SCORE_COLUMNS[i]!.of(row).toFixed(2);
+        }
+
+        // The unit is in the column head, so it is not repeated down the column.
+        mass.textContent = (row.mass / 1000).toFixed(1);
+        done.firstElementChild!.textContent = row.edits.length > 0 ? row.edits.join("; ") : row.id < 0 ? "" : "—";
+    };
+
+    /**
+     * Build a combatant's row, with a picture of each kind of ship it has.
+     *
+     * The pictures are made here and never again: which kinds a design is made
+     * of is fixed for its life, so only the shared scale can make them stale.
+     */
+    const makeTile = (row: Row): Tile => {
+        const picture = pictureOf(row.id, row.entrant);
+        const tr = document.createElement("tr");
+
+        const cell = (className: string): HTMLTableCellElement => {
+            const td = document.createElement("td");
+            td.className = className;
+            tr.append(td);
+            return td;
+        };
+
+        const who = cell("who");
+
+        // The fleet entire, to its own scale: what the kinds beside it cannot say.
+        const formationCell = cell("formation");
+        const formation = document.createElement("canvas");
+        formation.width = Math.round(FORMATION_WIDTH * ratio());
+        formation.height = Math.round(FORMATION_HEIGHT * ratio());
+        formation.style.width = `${FORMATION_WIDTH}px`;
+        formation.style.height = `${FORMATION_HEIGHT}px`;
+        formation.title = `${picture.view.ships.length} ship${picture.view.ships.length === 1 ? "" : "s"} in formation`;
+        formationCell.append(formation);
+
+        const made = cell("made");
+        const kinds = document.createElement("div");
+        kinds.className = "kinds";
+        const canvases: HTMLCanvasElement[] = [];
+        for (const kind of picture.kinds) {
+            const box = document.createElement("div");
+            box.className = "kind";
+            const canvas = document.createElement("canvas");
+            canvas.width = Math.round(TILE_WIDTH * ratio());
+            canvas.height = Math.round(TILE_HEIGHT * ratio());
+            canvas.style.width = `${TILE_WIDTH}px`;
+            canvas.style.height = `${TILE_HEIGHT}px`;
+            canvases.push(canvas);
+            const of = document.createElement("span");
+            of.className = "of";
+            of.title = `${kind.count} × ${kind.name}`;
+            // No count on a lone ship: "×1" under one hull is noise.
+            if (kind.count > 1) {
+                const many = document.createElement("b");
+                many.textContent = `×${kind.count} `;
+                of.append(many);
+            }
+            of.append(kind.name);
+            box.append(canvas, of);
+            kinds.append(box);
+        }
+        made.append(kinds);
+
+        const score = cell("score");
+        const figure = document.createElement("div");
+        figure.className = "figure";
+        const count = document.createElement("div");
+        count.className = "count";
+        const exportOne = document.createElement("button");
+        exportOne.className = "export";
+        exportOne.textContent = "export";
+        exportOne.title = `Save ${row.entrant.name} as a file`;
+        exportOne.addEventListener("click", (event) => {
+            // Not a pick of the row as well.
+            event.stopPropagation();
+            // Named for its id too: a child keeps its parent's name, so a lineage would export as its founder over and over.
+            exportEntrant(row.id < 0 ? row.entrant : { ...row.entrant, name: `${row.entrant.name} #${row.id}` });
+        });
+        score.append(figure, count, exportOne);
+        const parts: HTMLElement[] = [];
+        for (const stack of STACKED_COLUMNS) {
+            const td = cell("part");
+            for (const i of stack) {
+                const column = SCORE_COLUMNS[i]!;
+                const figure = document.createElement("div");
+                figure.className = column.css;
+                figure.title = column.title;
+                td.append(figure);
+                parts[i] = figure;
+            }
+        }
+        const mass = cell("mass");
+        const done = cell("done");
+        done.append(document.createElement("div"));
+
+        tr.addEventListener("click", () => {
+            picked = row.id;
+            for (const [id, other] of fleetTiles) other.tr.classList.toggle("picked", id === picked);
+        });
+
+        const tile: Tile = {
+            tr,
+            cells: { who, made, score, mass, done },
+            parts,
+            figure,
+            count,
+            canvases,
+            formation,
+            picture,
+            drawnAt: 0,
+            formationDrawnAt: 0,
+        };
+        drawTile(tile);
+        return tile;
+    };
+
+    /**
+     * Draw a row's hulls at the shared scale, one kind of ship to a canvas.
+     * Only when that scale has moved since they were last drawn: a design never
+     * changes, it is replaced by a child.
+     */
+    const drawTile = (tile: Tile): void => {
+        if (tile.formationDrawnAt !== formationScale) {
+            drawCentred(tile.formation, formationSnapshot(tile.picture, tileSnapshot), formationScale);
+            tile.formationDrawnAt = formationScale;
+        }
+
+        if (tile.drawnAt === fleetScale) return;
+        for (const [i, canvas] of tile.canvases.entries()) {
+            const kind = tile.picture.kinds[i];
+            if (kind !== undefined) drawCentred(canvas, oneShipSnapshot(kind), fleetScale);
+        }
+        tile.drawnAt = fleetScale;
+    };
+
+    /** Show the ships or a battle, and make the controls match. */
+    function applyMode(): void {
+        const battle = modeSelect.value === "battle";
+        view.hidden = !battle;
+        fleetBox.hidden = battle;
+        battleControls.hidden = !battle;
+        if (battle) {
+            // The canvas measured nothing while it was hidden.
+            resize();
+            if (replay === null) rollOn();
+        } else {
+            replay = null;
+            replayOf = null;
+            watch(null);
+        }
+    }
+
+    /**
+     * Put on the most recently finished match of the run, whichever generation
+     * is on show — or hold on the one just watched if nothing has finished since.
+     *
+     * A run fights faster than anybody can watch, so this is a sample rather
+     * than a record: whole battles, each the latest there is when the one before
+     * it ends. Pausing or switching to the ships stops it; clicking a match
+     * watches that one, and the newest follows it.
+     */
+    function rollOn(): void {
+        if (run === null) return;
+        // The generation being fought has none yet just after it opens, so the
+        // newest may be the last of the one before it.
+        let latest = showing(-1);
+        if (latest.matches.length === 0 && latest.index > 0) latest = showing(latest.index - 1);
+        const newest = latest.matches[latest.matches.length - 1];
+        if (newest === undefined || newest === replayOf) return;
+        startReplay(newest, latest.rows);
+    }
+
+    // ---- reading the run ---------------------------------------------------
+
+    /**
+     * A design, compiled once.
+     *
+     * An individual's id never repeats and its layout never changes — a design
+     * is replaced by a child rather than edited — so one compile serves the mass
+     * in the table and the picture in its tile, however many times a run is
+     * seeked back and forth across.
+     *
+     * **Capped, because a run is longer than memory is.** Seeking across a
+     * thousand generations of twelve would otherwise hold twelve thousand
+     * compiled designs, each with its modules, mounts and engines, for the
+     * sake of a page that is showing twelve of them. The oldest go first, which
+     * on a seek means the ones already scrolled past.
+     */
+    const pictureOf = (id: number, entrant: Entrant): Picture => {
+        const held = pictures.get(id);
+        if (held !== undefined) return held;
+        const picture = pictureOfFleet(entrant);
+        pictures.set(id, picture);
+        while (pictures.size > DESIGNS_KEPT) {
+            const oldest = pictures.keys().next();
+            if (oldest.done === true) break;
+            pictures.delete(oldest.value);
+        }
+        return picture;
+    };
+
+    /** Whether the run is a co-evolution run whose sides take turns, so it goes in rounds. */
+    const inRounds = (): boolean => twoSided(run) && run.alternates;
+
+    /** Which side was bred at a point along the run, as "round 2, side B evolving", in a co-evolution run; else empty. */
+    const evolving = (at: number): string => {
+        if (!twoSided(run)) return "";
+        if (!run.alternates) return "side A evolving";
+        // Past the closed points is the generation being fought.
+        const point = timeline()[at];
+        const side = point?.side ?? run.turn;
+        return `round ${(point?.round ?? run.round) + 1}, side ${side === 0 ? "A" : "B"} evolving`;
+    };
+    /** A point's name, with the side bred in it where there are sides. */
+    const pointLabel = (at: number): string => [`generation ${at + 1}`, evolving(at)].filter((part) => part !== "").join(" · ");
+
+    /**
+     * The run's closed generations so far, a point each: in a run whose sides
+     * take turns, both sides' in the order they were bred, each with the
+     * generation of the other side on show then (-1 for a side with none yet).
+     */
+    const timeline = (): Point[] => {
+        if (run === null) return [];
+        if (!twoSided(run) || !run.alternates) return run.generations.map((_, g) => ({ a: g, b: -1, side: 0 }));
+        const points: Point[] = [];
+        const a = run.generations;
+        const b = run.rivalGenerations;
+        let ai = -1;
+        let bi = -1;
+        // Merged by round: each side's generations come in its own rounds, in order.
+        while (ai + 1 < a.length || bi + 1 < b.length) {
+            const nextA = a[ai + 1]?.round ?? Infinity;
+            const nextB = b[bi + 1]?.round ?? Infinity;
+            const side: 0 | 1 = nextA <= nextB ? 0 : 1;
+            if (side === 0) ai++;
+            else bi++;
+            points.push({ a: ai, b: bi, side, round: side === 0 ? nextA : nextB });
+        }
+        return points;
+    };
+
+    /** Which point the panel is showing, and the rows and matches in it. */
+    const showing = (wanted = shown): { index: number; rows: Row[]; matches: readonly MatchRecord[] } => {
+        const empty = { index: 0, rows: [], matches: [] };
+        if (run === null) return { ...empty, rows: previewRows };
+        const points = timeline();
+        const closed = points.length;
+        // The newest point is the one being fought while there is one, and
+        // the last one closed once there is not — a finished run must go on
+        // showing what it finished with rather than an empty panel.
+        const newest = run.done ? closed - 1 : closed;
+        const index = wanted < 0 ? newest : Math.min(wanted, newest);
+        if (index < 0) return empty;
+        if (twoSided(run)) {
+            const co = run;
+            // A side not bred yet shows its hall, its founders, which is what the other side is fighting.
+            const sideRows = (k: 0 | 1, at: number): Row[] => {
+                const list = k === 0 ? co.generations : co.rivalGenerations;
+                if (at >= 0 && list[at] !== undefined) return recordRows(list[at]!, k);
+                return co.hall(k).map((champion) => ({
+                    id: champion.id,
+                    side: k,
+                    parent: -1,
+                    matches: 0,
+                    fitness: 0,
+                    survival: 0,
+                    functional: 0,
+                    damage: 0,
+                    disabling: 0,
+                    race: 0,
+                    mass: pictureOf(champion.id, champion.entrant).mass,
+                    edits: [],
+                    entrant: champion.entrant,
+                }));
+            };
+            // A run read from a file is over, so it has nothing being bred.
+            if (index >= closed && run instanceof Coevolution) {
+                // The side being bred live, the other as it last was.
+                const turn = run.turn;
+                const last = points[closed - 1];
+                const other: 0 | 1 = turn === 0 ? 1 : 0;
+                const otherAt = other === 0 ? (last?.a ?? -1) : (last?.b ?? run.rivalGenerations.length - 1);
+                const live = liveRows(run.living, turn);
+                const frozen = sideRows(other, otherAt);
+                return { index, rows: turn === 0 ? [...live, ...frozen] : [...frozen, ...live], matches: run.played };
+            }
+            const point = points[index]!;
+            const bred = point.side === 0 ? run.generations[point.a]! : run.rivalGenerations[point.b]!;
+            return { index, rows: [...sideRows(0, point.a), ...sideRows(1, point.b)], matches: bred.matches };
+        }
+        if (index >= closed && run instanceof Run) return { index, rows: liveRows(run.living), matches: run.played };
+        const record = run.generations[index]!;
+        return { index, rows: recordRows(record), matches: record.matches };
+    };
+
+    /** A generation being fought, as rows; `side` for a lineage of a co-evolution run. */
+    const liveRows = (generation: Generation, side?: 0 | 1): Row[] =>
+        generation.individuals.map((individual) => ({
+            id: individual.id,
+            ...(side === undefined ? {} : { side }),
+            parent: individual.parent,
+            matches: individual.matches,
+            fitness: fitness(individual),
+            survival: individual.matches > 0 ? individual.survival / individual.matches : 0,
+            functional: individual.matches > 0 ? individual.functional / individual.matches : 0,
+            damage: individual.matches > 0 ? individual.damage / individual.matches : 0,
+            disabling: individual.matches > 0 ? individual.disabling / individual.matches : 0,
+            race: individual.matches > 0 ? individual.race / individual.matches : 0,
+            mass: pictureOf(individual.id, individual.entrant).mass,
+            edits: individual.edits,
+            entrant: individual.entrant,
+        }));
+
+    /** A closed generation, as rows. */
+    const recordRows = (record: GenerationRecord, side?: 0 | 1): Row[] =>
+        record.individuals.map((individual) => ({
+            id: individual.id,
+            ...(side === undefined ? {} : { side }),
+            parent: individual.parent,
+            matches: individual.matches,
+            fitness: individual.fitness,
+            survival: individual.survival,
+            functional: individual.functional ?? 0,
+            damage: individual.damage,
+            disabling: individual.disabling ?? 0,
+            race: individual.race,
+            mass: individual.mass,
+            edits: individual.edits,
+            entrant: entrantOf(individual),
+        }));
+
+    /** A design anywhere in the run, by id: a champion from a past generation is fought, but not on show. */
+    const entrantById = (id: number): Entrant | null => {
+        if (run === null) return null;
+        if (id < 0) return BARE_CORE;
+        if (twoSided(run)) {
+            for (const side of [0, 1] as const) {
+                const champion = run.hall(side).find((each) => each.id === id);
+                if (champion !== undefined) return champion.entrant;
+            }
+        }
+        const lists = twoSided(run) ? [run.generations, run.rivalGenerations] : [run.generations];
+        for (const generations of lists) {
+            for (let g = generations.length - 1; g >= 0; g--) {
+                const found = generations[g]!.individuals.find((individual) => individual.id === id);
+                if (found !== undefined) return entrantOf(found);
+            }
+        }
+        return null;
+    };
+
+    /** Who fought, by id; with sides, each side's led by its letter and the two split by a v. */
+    const competitorsText = (record: MatchRecord): string => {
+        const teams = record.teams;
+        if (teams === undefined) return record.competitors.join(" ");
+        return record.competitors
+            .map((id, k) => {
+                if (k > 0 && teams[k] === teams[k - 1]) return String(id);
+                const letter = teams[k] === 0 ? "A" : "B";
+                return k === 0 ? `${letter} ${id}` : `v ${letter} ${id}`;
+            })
+            .join(" ");
+    };
+
+    /** How a match ended: who won it, when it was decided and the record says. */
+    const endingText = (record: MatchRecord): string => {
+        const first = record.winners?.[0];
+        if (record.ending !== "decided" || first === undefined) return record.ending;
+        if (record.teams !== undefined) return `${record.teams[first] === 0 ? "A" : "B"} won`;
+        return `#${record.competitors[first]} won`;
+    };
+
+    const startReplay = (record: MatchRecord, rows: readonly Row[]): void => {
+        const entrants: Entrant[] = [];
+        for (const id of record.competitors) {
+            const entrant = rows.find((candidate) => candidate.id === id)?.entrant ?? entrantById(id);
+            if (entrant !== null) entrants.push(entrant);
+        }
+        // One is enough: a match of one ship is a run's test of its piloting.
+        if (entrants.length === 0 || run === null) return;
+        if (entrants.length < record.competitors.length) {
+            // Only a run read from a file can lack a design: a side B that did not evolve is not in it.
+            watchingLabel.textContent = "can't fight that again: the run file does not hold every design in it";
+            return;
+        }
+        const match = run.config.match;
+        const teams = record.teams !== undefined && record.teams.length === entrants.length ? record.teams : null;
+        watchReplay(
+            new Match(entrants, { ...match, seed: record.seed }, teams, record.invulnerable ?? []),
+            record,
+            record.competitors,
+            null,
+        );
+    };
+
+    const watchReplay = (match: Match, record: MatchRecord | null, ids: readonly number[], vs: string | null): void => {
+        replay = match;
+        replayOf = record;
+        replayIds = ids;
+        replayVs = vs;
+        replayPlaying = true;
+        skipping = false;
+        playButton.textContent = "Pause";
+        // Asked for a battle, so show one: a match clicked in the list is the
+        // whole reason the viewer is there.
+        modeSelect.value = "battle";
+        applyMode();
+    };
+
+    const refresh = (): void => {
+        const { index, rows, matches } = showing();
+        if (modeSelect.value !== "battle") {
+            const wins = winsIn(matches);
+            showFleet(
+                rows.map((row) => {
+                    const of = wins.get(row.id);
+                    return of === undefined ? row : { ...row, wins: of };
+                }),
+            );
+        }
+
+        shownGeneration.textContent = run === null ? "—" : String(index + 1);
+        // Whether what is on show is the generation still being fought, which is
+        // the one that changes while it is looked at.
+        const live = run !== null && !run.done && index >= timeline().length;
+        fightingLabel.textContent = live ? " · fighting" : "";
+        latestButton.disabled = run === null || shown < 0;
+        // Nothing to skip to once a run is over and the generation on show
+        // fought one match: the list is all there will ever be.
+        skipButton.disabled = run === null || (run.done && matches.length < 2);
+
+        matchesBody.replaceChildren();
+        for (const [i, record] of matches.entries()) {
+            const tr = document.createElement("tr");
+            if (record === replayOf) tr.className = "watched";
+            for (const cell of [String(i + 1), competitorsText(record), endingText(record), record.elapsed.toFixed(0)]) {
+                const td = document.createElement("td");
+                td.textContent = cell;
+                tr.append(td);
+            }
+            tr.addEventListener("click", () => startReplay(record, rows));
+            matchesBody.append(tr);
+        }
+        // Padded to the most any generation has fought, so the panels under it
+        // stay put while a generation fills its list in.
+        let longest = matches.length;
+        for (const generation of run?.generations ?? []) longest = Math.max(longest, generation.matches.length);
+        for (let i = matches.length; i < longest; i++) {
+            const tr = document.createElement("tr");
+            tr.className = "pad";
+            const td = document.createElement("td");
+            td.colSpan = 4;
+            td.textContent = "\u00a0";
+            tr.append(td);
+            matchesBody.append(tr);
+        }
+
+        const series: Series[] = [];
+        const closed = run === null ? [] : run.generations;
+        if (closed.length > 0) {
+            const of = (read: (g: GenerationRecord) => number): number[] => closed.map(read);
+            series.push(
+                { name: "best", colour: "#e6edf5", values: of((g) => g.bestFitness) },
+                { name: "mean", colour: "#7fa8e0", values: of((g) => g.meanFitness) },
+                { name: "hull kept", colour: "#7fd6a0", values: of((g) => g.mean.survival), dashed: true },
+                { name: "function kept", colour: "#b48ee0", values: of((g) => g.mean.functional), dashed: true },
+                { name: "damage", colour: "#e0655f", values: of((g) => g.mean.damage), dashed: true },
+                { name: "function taken", colour: "#e08ec0", values: of((g) => g.mean.disabling), dashed: true },
+                { name: "ground", colour: "#e9c05f", values: of((g) => g.mean.race), dashed: true },
+            );
+        }
+        // The yardstick last, so it is drawn over the rest: it is the line that
+        // means the same thing at both ends of the chart, and the others are not.
+        const points = yardstick?.points ?? measured?.points;
+        if (points !== undefined && points.length > 0) {
+            const scores: number[] = [];
+            for (const point of points) scores[point.generation] = point.mean;
+            series.push({ name: "vs. yardstick", colour: "#5bd6d6", values: scores });
+        }
+        chartSeries = series;
+
+        // Mass on the left scale and, once a run fields more than one ship,
+        // ships on the right — or, as `sizeMetric` asks, weapons and engines: a colour for each, the mean solid and the best
+        // dashed. In a co-evolution run each side takes its team's colours, its
+        // hull colour for mass and its trim for ships.
+        // A value a point, each side at the generation it shows there: in a run
+        // whose sides take turns, the one not being bred holds where it was.
+        const along = timeline();
+        const atPoints = (k: 0 | 1): (GenerationRecord | undefined)[] => {
+            if (run === null) return [];
+            const list = k === 0 ? run.generations : twoSided(run) ? run.rivalGenerations : [];
+            return along.map((point) => list[k === 0 ? point.a : point.b]);
+        };
+        const each = <T>(records: (GenerationRecord | undefined)[], read: (g: GenerationRecord) => T): (T | undefined)[] =>
+            records.map((g) => (g === undefined ? undefined : read(g)));
+        const sides: {
+            label: string;
+            records: (GenerationRecord | undefined)[];
+            size: (GenerationSize | undefined)[];
+            mass: string;
+            ships: string;
+        }[] = (
+            twoSided(run)
+                ? [
+                      { label: "A ", records: atPoints(0), mass: teamColour(0), ships: shipColours(0).trim },
+                      { label: "B ", records: atPoints(1), mass: teamColour(1), ships: shipColours(1).trim },
+                  ]
+                : [{ label: "", records: atPoints(0), mass: "#7fa8e0", ships: "#e9a35f" }]
+        )
+            .filter((side) => side.records.some((g) => g !== undefined))
+            .map((side) => ({ ...side, size: each(side.records, sizeOf) }));
+        const fleets = sides.some((side) => side.size.some((s) => s !== undefined && s.meanShips !== 1));
+        type Side = (typeof sides)[number];
+        const bestAndMean = (
+            what: string,
+            colour: (side: Side) => string,
+            read: (s: GenerationSize) => [number, number],
+            right: boolean,
+        ): Series[] =>
+            sides.flatMap((side) => {
+                if (side.size.length === 0) return [];
+                const scale = right ? { right } : {};
+                return [
+                    {
+                        name: `${side.label}mean ${what}`,
+                        colour: colour(side),
+                        values: side.size.map((s) => (s === undefined ? NaN : read(s)[1])),
+                        ...scale,
+                    },
+                    {
+                        name: `${side.label}best's ${what}`,
+                        colour: colour(side),
+                        values: side.size.map((s) => (s === undefined ? NaN : read(s)[0])),
+                        dashed: true,
+                        ...scale,
+                    },
+                ];
+            });
+        // How far apart each side's scores are: the middle half's width solid, the
+        // whole field's dashed, and how many tied on the right. Narrow, or many
+        // tied, and selection can hardly tell its designs apart.
+        const spread = (): Series[] =>
+            sides.flatMap((side) => {
+                const spreads = each(side.records, spreadOf);
+                const of = (read: (s: ReturnType<typeof spreadOf>) => number): number[] =>
+                    spreads.map((s) => (s === undefined ? NaN : read(s)));
+                return [
+                    { name: `${side.label}middle half`, colour: side.mass, values: of((s) => s.upperQuartile - s.lowerQuartile) },
+                    { name: `${side.label}best to worst`, colour: side.mass, values: of((s) => s.highest - s.lowest), dashed: true },
+                    { name: `${side.label}tied`, colour: side.ships, values: of((s) => s.tied), right: true },
+                ];
+            });
+        const doctrineKey = sizeMetric.value.startsWith("doctrine:") ? sizeMetric.value.slice("doctrine:".length) : null;
+        if (run !== null) labelDoctrine(run.generations);
+        massChart.series =
+            doctrineKey !== null
+                ? sides.flatMap((side) => {
+                      const values = each(side.records, doctrineOf);
+                      return [
+                          {
+                              name: `${side.label}mean ${doctrineKey}`,
+                              colour: side.mass,
+                              values: values.map((d) => d?.mean[doctrineKey] ?? NaN),
+                          },
+                          {
+                              name: `${side.label}best's ${doctrineKey}`,
+                              colour: side.mass,
+                              values: values.map((d) => d?.best[doctrineKey] ?? NaN),
+                              dashed: true,
+                          },
+                      ];
+                  })
+                : sizeMetric.value === "spread"
+                  ? spread()
+                  : sizeMetric.value === "fittings"
+                    ? [
+                          ...bestAndMean(
+                              "weapons",
+                              (side) => side.mass,
+                              (s) => [s.bestWeapons, s.meanWeapons],
+                              false,
+                          ),
+                          ...bestAndMean(
+                              "engines",
+                              (side) => side.ships,
+                              (s) => [s.bestEngines, s.meanEngines],
+                              true,
+                          ),
+                      ]
+                    : [
+                          ...bestAndMean(
+                              "mass",
+                              (side) => side.mass,
+                              (s) => [s.bestMass / 1000, s.meanMass / 1000],
+                              false,
+                          ),
+                          ...(fleets
+                              ? bestAndMean(
+                                    "ships",
+                                    (side) => side.ships,
+                                    (s) => [s.bestShips, s.meanShips],
+                                    true,
+                                )
+                              : []),
+                      ];
+        paintChart();
+        showLegend();
+
+        const tops = finalists();
+        const top = tops[0] ?? null;
+        // A run whose sides both evolve is measured by its grid; one against a fixed side B, against a yardstick as a run of one is.
+        const co = inRounds();
+        saveButton.disabled = top === null;
+        exportButton.disabled = top === null;
+        // A co-evolution run is measured as a grid of champions rather than
+        // against one opponent, which it has no line on a chart to draw against.
+        measureButton.disabled = top === null || yardstick !== null || grid !== null;
+        watchYardstickButton.disabled = top === null || co;
+        benchmarkSelect.disabled = co;
+        const describeTop = (each: (typeof tops)[number]): string =>
+            `${each.label}#${each.individual.id}, best of generation ${each.generation + 1}: ` +
+            `${each.individual.fitness.toFixed(3)} over ${each.individual.matches} matches, ` +
+            `${(each.individual.mass / 1000).toFixed(1)} t`;
+        championLine.textContent =
+            top === null ? "—" : savedAs?.id === top.individual.id ? savedAs.text : tops.map(describeTop).join(" · ");
+    };
+
+    /** The run's best: one, or one a side in a co-evolution run, each labelled with its side. */
+    const finalists = (): (NonNullable<ReturnType<typeof finalist>> & { label: string })[] => {
+        if (run === null) return [];
+        const record = run.record();
+        if (record.rival === undefined) {
+            const top = finalist(record);
+            return top === null ? [] : [{ ...top, label: "" }];
+        }
+        const out: (NonNullable<ReturnType<typeof finalist>> & { label: string })[] = [];
+        const a = finalist(record);
+        const b = finalist({ config: record.config, generations: record.rival.generations });
+        if (a !== null) out.push({ ...a, label: "A " });
+        if (b !== null) out.push({ ...b, label: "B " });
+        return out;
+    };
+
+    /** The run's best, a side each in a co-evolution run, renamed for the side and generation it came from. */
+    const champions = (): { entrant: Entrant; id: number }[] =>
+        finalists().map((top) => {
+            const entrant = entrantOf(top.individual);
+            const side = top.label === "" ? "" : ` ${top.label.trim()}`;
+            return { entrant: { ...entrant, name: `${entrant.name}${side} g${top.generation + 1}` }, id: top.individual.id };
+        });
+
+    sizeMetric.addEventListener("change", () => refresh());
+    saveButton.addEventListener("click", () => {
+        const best = champions();
+        if (best.length === 0) return;
+        for (const { entrant } of best) {
+            if (isFleet(entrant)) fleetLibrary.save(entrant);
+            else library.save(entrant);
+        }
+        // Kept until there is a new best, so the next refresh does not wipe it.
+        savedAs = {
+            id: best[0]!.id,
+            text: `saved as ${best.map(({ entrant }) => `"${entrant.name}"`).join(" and ")} — open ${best.length > 1 ? "them" : "it"} in the editor`,
+        };
+        championLine.textContent = savedAs.text;
+    });
+    exportButton.addEventListener("click", () => {
+        for (const { entrant } of champions()) exportEntrant(entrant);
+    });
+    measureButton.addEventListener("click", () => {
+        if (run === null || run.generations.length === 0) return;
+        const record = run.record();
+        if (inRounds()) {
+            grid = new GridMeasure(record);
+            gridResult = null;
+            measureButton.disabled = true;
+            yardstickLine.textContent = "Fighting each side's champions against the other's…";
+            drawGrid();
+            return;
+        }
+        const chosen = benchmarkSelect.value;
+        const benchmark = chosen === OWN_FINAL ? latest(record) : load(chosen);
+        if (benchmark === null) {
+            yardstickLine.textContent = "Nothing to measure against yet.";
+            return;
+        }
+        // The record rather than a copy of it, so a measurement started while a
+        // run is still going carries on into the generations it has not closed
+        // yet — the answer is per generation either way.
+        measuringAgainst = isFleet(benchmark) ? fleetFileText(benchmark) : toFileText(benchmark);
+        const before = measurements.get(measuringAgainst);
+        yardstick = new Yardstick(record, benchmark, undefined, before);
+        measured = null;
+        measureButton.disabled = true;
+        yardstickLine.textContent =
+            before === undefined
+                ? `Measuring against ${benchmark.name}…`
+                : `Measuring against ${benchmark.name} from generation ${before.points.length + 1}…`;
+    });
+
+    /**
+     * Watch the match the measurement fights for one design: the combatant
+     * picked in the generation on show, or its best, against the opponent
+     * chosen above, on the same seed — so a point on the yardstick line can be
+     * looked at rather than taken on trust.
+     */
+    watchYardstickButton.addEventListener("click", () => {
+        if (run === null || run.generations.length === 0) return;
+        const record = run.record();
+        const chosen = benchmarkSelect.value;
+        const benchmark = chosen === OWN_FINAL ? latest(record) : load(chosen);
+        if (benchmark === null) return;
+        // Only a closed generation is measured, so the one being fought shows the one before it.
+        const index = Math.min(showing().index, record.generations.length - 1);
+        const individuals = record.generations[index]!.individuals;
+        let slot = individuals.findIndex((individual) => individual.id === picked);
+        if (slot < 0) {
+            slot = 0;
+            for (let k = 1; k < individuals.length; k++) {
+                if (individuals[k]!.fitness > individuals[slot]!.fitness) slot = k;
+            }
+        }
+        watchReplay(yardstickMatch(record, benchmark, index, slot), null, [individuals[slot]!.id], benchmark.name);
+    });
+
+    /**
+     * Follow the newest generation again.
+     *
+     * Seeking the chart pins the panel to one generation, which is what it is
+     * for — and there has to be a way back, or watching a run means starting it
+     * over. It is a button rather than an entry in a list of generations
+     * because the list was a worse way of doing what the chart already does
+     * better: a thousand of them is not something to pick from.
+     */
+    latestButton.addEventListener("click", () => {
+        shown = -1;
+        refresh();
+    });
+
+    // ---- driving the run ---------------------------------------------------
+
+    const setPaused = (next: boolean): void => {
+        paused = next;
+        pauseButton.textContent = paused ? "Resume" : "Pause";
+    };
+
+    startButton.addEventListener("click", () => {
+        const founders = chosenFounders();
+        if (founders.length === 0) {
+            readout.textContent = "Pick at least one ship or fleet to start from.";
+            readout.className = "warn";
+            return;
+        }
+        readout.className = "";
+        const rivals = chosenVersus();
+        begin(
+            rivals.length > 0
+                ? new Coevolution(founders, rivals, readSetup().config, coevolutionSettings())
+                : new Run(founders, readSetup().config),
+        );
+    });
+
+    /** Put a run on show from its start, forgetting everything about the last. */
+    const begin = (next: Run | Coevolution | RecordedRun): void => {
+        run = next;
+        previewMatch = null;
+        if (previewTimer !== null) clearTimeout(previewTimer);
+        previewRows = [];
+        savedAs = null;
+        notice = "";
         yardstick = null;
-        // Said before the button comes back, not on the next sample: a button
-        // offering another measurement beside a line still saying "measuring"
-        // is the page contradicting itself, however briefly.
-        reportYardstick();
-        measureButton.disabled = false;
-      }
-    }
-
-    if (grid !== null) {
-      const budget = Math.max(1, Math.min(200, number(inputs.effort, 12)));
-      const until = performance.now() + budget;
-      while (performance.now() < until && grid.advance(240)) {
-        // Measuring.
-      }
-      if (grid.done) {
-        gridResult = grid.report();
+        measured = null;
+        measurements.clear();
+        yardstickLine.textContent = "Measure once there is something to measure.";
         grid = null;
-        measureButton.disabled = false;
-      }
-      drawGrid();
+        gridResult = null;
+        drawGrid();
+        pictures.clear();
+        shown = -1;
+        replay = null;
+        replayOf = null;
+        skipping = false;
+        watch(null);
+        // The rows, not the table: it is built once and kept.
+        for (const { body } of fleetSides) body.replaceChildren();
+        fleetTiles.clear();
+        fleetScale = 0;
+        formationScale = 0;
+        setPaused(false);
+        pauseButton.disabled = next.done;
+        stopButton.disabled = next.done;
+        refresh();
+    };
+
+    /**
+     * Open a run fought by `pnpm evolve` from the file it wrote, and show it
+     * as a finished run: its charts, its generations and its matches, any of
+     * which can be fought again from the seed it records.
+     */
+    const runFile = el<HTMLInputElement>("openRunFile");
+    el<HTMLButtonElement>("openRun").addEventListener("click", () => runFile.click());
+    runFile.addEventListener("change", () => {
+        const chosen = runFile.files?.[0];
+        if (chosen === undefined) return;
+        void chosen.text().then((text) => {
+            let opened: RecordedRun;
+            try {
+                opened = new RecordedRun(parseRunRecord(JSON.parse(text)));
+            } catch (error) {
+                window.alert(`Could not read that run.\n\n${error instanceof Error ? error.message : error}`);
+                return;
+            }
+            begin(opened);
+            const fought = opened.generations.length + opened.rivalGenerations.length;
+            notice =
+                `${chosen.name}: ${fought} of ${opened.config.generations} generations` +
+                `${fought < opened.config.generations ? ", stopped early" : ""}. Pick a match to fight it again.`;
+            toRunButton.disabled = false;
+            showScreen("run");
+        });
+        runFile.value = "";
+    });
+    pauseButton.addEventListener("click", () => setPaused(!paused));
+    stopButton.addEventListener("click", () => {
+        if (run !== null && !run.done) {
+            // Stopping keeps what was fought: the generations already closed are a
+            // run, and the one in progress was never going to be comparable to them.
+            setPaused(true);
+        }
+        stopButton.disabled = true;
+    });
+
+    modeSelect.addEventListener("change", () => {
+        applyMode();
+        refresh();
+    });
+
+    /**
+     * Setting a run up and watching it are two screens: the settings have the
+     * width to themselves, beside the founders they would start from, and a
+     * run has the width for its charts, combatants and matches.
+     */
+    const showScreen = (screen: "setup" | "run"): void => {
+        document.body.classList.toggle("screenSetup", screen === "setup");
+        document.body.classList.toggle("screenRun", screen === "run");
+        toSetupButton.setAttribute("aria-pressed", String(screen === "setup"));
+        toRunButton.setAttribute("aria-pressed", String(screen === "run"));
+        resize();
+        refresh();
+    };
+    toSetupButton.addEventListener("click", () => showScreen("setup"));
+    toRunButton.addEventListener("click", () => showScreen("run"));
+    startButton.addEventListener("click", () => {
+        if (run !== null) {
+            toRunButton.disabled = false;
+            showScreen("run");
+        }
+    });
+
+    window.addEventListener("resize", resize);
+    resize();
+    showScreen("setup");
+    applyMode();
+    refreshPreview();
+
+    const tick = (now: number): void => {
+        if (last === 0) last = now;
+        const elapsed = Math.min((now - last) / 1000, 0.25);
+        last = now;
+
+        if (run !== null && !run.done && !paused) {
+            const budget = Math.max(1, Math.min(200, number(inputs.effort, 12)));
+            const until = now + budget;
+            // In slices, so a single long match cannot hold the frame: `advance`
+            // stops on a step count, and the clock decides how many of those fit.
+            while (performance.now() < until && run.advance(240)) {
+                // Fighting.
+            }
+        }
+
+        if (yardstick !== null) {
+            // Its own slice rather than a share of the run's, so measuring while a
+            // run is going slows the frame rather than the run — which is the right
+            // way round: the run is the thing that must not be held up.
+            const budget = Math.max(1, Math.min(200, number(inputs.effort, 12)));
+            const until = performance.now() + budget;
+            while (performance.now() < until && yardstick.advance(240)) {
+                // Measuring.
+            }
+            if (yardstick.done) {
+                measured = yardstick.report();
+                measurements.set(measuringAgainst, measured);
+                yardstick = null;
+                // Said before the button comes back, not on the next sample: a button
+                // offering another measurement beside a line still saying "measuring"
+                // is the page contradicting itself, however briefly.
+                reportYardstick();
+                measureButton.disabled = false;
+            }
+        }
+
+        if (grid !== null) {
+            const budget = Math.max(1, Math.min(200, number(inputs.effort, 12)));
+            const until = performance.now() + budget;
+            while (performance.now() < until && grid.advance(240)) {
+                // Measuring.
+            }
+            if (grid.done) {
+                gridResult = grid.report();
+                grid = null;
+                measureButton.disabled = false;
+            }
+            drawGrid();
+        }
+
+        // Nothing on yet is waiting for a run's first match to finish, which a run
+        // started with a battle showing always is.
+        if (modeSelect.value === "battle" && (replay === null || (replayPlaying && (replay.done || skipping)))) {
+            rollOn();
+        }
+
+        if (replay !== null && replayPlaying && !replay.done && !skipping) {
+            const speed = Number(speedSelect.value);
+            accumulator += elapsed * speed;
+            let steps = 0;
+            const dt = run?.config.match.dt ?? DEFAULT_MATCH.dt;
+            while (accumulator >= dt && steps < MAX_STEPS_PER_FRAME && !replay.done) {
+                replay.advance();
+                accumulator -= dt;
+                steps++;
+            }
+            if (steps === MAX_STEPS_PER_FRAME) accumulator = 0;
+        }
+
+        if (
+            !fleetBox.hidden &&
+            ((fleetScale !== fleetTarget && fleetTarget > 0) || (formationScale !== formationTarget && formationTarget > 0))
+        ) {
+            if (fleetTarget > 0) fleetScale = easeScale(fleetScale, fleetTarget, FLEET_EASE);
+            if (formationTarget > 0) {
+                formationScale = easeScale(formationScale, formationTarget, FLEET_EASE);
+            }
+            for (const tile of fleetTiles.values()) drawTile(tile);
+        }
+
+        watch(replay ?? (run === null ? previewMatch : null));
+        playButton.disabled = replay === null;
+        stepButton.disabled = replay === null;
+        if (modeSelect.value === "battle") paint();
+
+        // A generation picked off the chart shows on the next frame rather than at
+        // the next sample: seeking through a run is meant to read as the ships
+        // changing, and a fifth of a second of lag reads as the page being stuck.
+        if (reselected) {
+            reselected = false;
+            refresh();
+            report();
+        }
+
+        // Sampled rather than redrawn every frame: the panel is a page of DOM and
+        // the run is the thing the frame is for (DESIGN.md non-negotiable 5).
+        if (now - refreshedAt > 200) {
+            refreshedAt = now;
+            refresh();
+            report();
+        }
+
+        window.requestAnimationFrame(tick);
+    };
+
+    /**
+     * A co-evolution run's champion grid: A's champions down the side, B's
+     * across the top, each cell shaded towards the side that came off better
+     * and saying how many of its seeds A won.
+     */
+    function drawGrid(): void {
+        const shown = grid?.report() ?? gridResult;
+        gridTable.hidden = shown === null;
+        if (shown === null) return;
+        if (grid === null) {
+            yardstickLine.textContent =
+                `${shown.matches} matches, ${shown.seeds} a cell. Down a column, later A against the same B; ` +
+                "along a row, later B against the same A. An arms race shades towards each side going down and across.";
+        } else {
+            yardstickLine.textContent = `Fighting each side's champions against the other's, ${(grid.progress * 100).toFixed(0)}%`;
+        }
+        let most = 0;
+        for (const row of shown.cells) for (const cell of row) most = Math.max(most, Math.abs(cell.margin));
+        const head = document.createElement("tr");
+        const corner = document.createElement("th");
+        corner.textContent = "A↓ B→";
+        head.append(corner);
+        const short = (point: (typeof shown.rows)[number]): string => String((point.round ?? point.generation) + 1);
+        for (const point of shown.columns) {
+            const th = document.createElement("th");
+            th.textContent = short(point);
+            th.title = gridLabel(point);
+            th.style.color = teamColour(1);
+            head.append(th);
+        }
+        const rows = [head];
+        shown.rows.forEach((point, r) => {
+            const tr = document.createElement("tr");
+            const th = document.createElement("th");
+            th.textContent = short(point);
+            th.title = gridLabel(point);
+            th.style.color = teamColour(0);
+            tr.append(th);
+            for (let c = 0; c < shown.columns.length; c++) {
+                const td = document.createElement("td");
+                const cell = shown.cells[r]?.[c];
+                if (cell !== undefined) {
+                    td.textContent = `${cell.wins}/${shown.seeds}`;
+                    td.title =
+                        `A's champion of ${gridLabel(point)} against B's of ${gridLabel(shown.columns[c]!)}: ` +
+                        `won ${cell.wins} of ${shown.seeds}, by ${cell.margin >= 0 ? "+" : ""}${cell.margin.toFixed(3)} on average`;
+                    const share = most > 0 ? Math.round((Math.abs(cell.margin) / most) * 60) : 0;
+                    td.style.background = `color-mix(in srgb, ${teamColour(cell.margin >= 0 ? 0 : 1)} ${share}%, transparent)`;
+                }
+                tr.append(td);
+            }
+            rows.push(tr);
+        });
+        gridTable.replaceChildren(...rows);
     }
 
-    // Nothing on yet is waiting for a run's first match to finish, which a run
-    // started with a battle showing always is.
-    if (modeSelect.value === 'battle' && (replay === null || (replayPlaying && (replay.done || skipping)))) {
-      rollOn();
+    /** What a measurement says, once there is one. */
+    function reportYardstick(): void {
+        const points = yardstick?.points ?? measured?.points;
+        if (points === undefined || points.length === 0) return;
+        const first = points[0]!;
+        const last = points[points.length - 1]!;
+        const gain = last.mean - first.mean;
+        const where = yardstick === null ? "" : ` · measuring, ${(yardstick.progress * 100).toFixed(0)}%`;
+        yardstickLine.textContent =
+            `generation ${first.generation + 1} scored ${first.mean.toFixed(3)}, ` +
+            `generation ${last.generation + 1} scored ${last.mean.toFixed(3)} ` +
+            `(${gain >= 0 ? "+" : ""}${gain.toFixed(3)}) · ` +
+            `${last.wins} of ${last.individuals} beat it${where}`;
     }
 
-    if (replay !== null && replayPlaying && !replay.done && !skipping) {
-      const speed = Number(speedSelect.value);
-      accumulator += elapsed * speed;
-      let steps = 0;
-      const dt = run?.config.match.dt ?? DEFAULT_MATCH.dt;
-      while (accumulator >= dt && steps < MAX_STEPS_PER_FRAME && !replay.done) {
-        replay.advance();
-        accumulator -= dt;
-        steps++;
-      }
-      if (steps === MAX_STEPS_PER_FRAME) accumulator = 0;
+    /**
+     * Each side's score in the battle on show, and its parts: what the match
+     * would pay if it ended as it stands, so a replay says why it scored what
+     * the table says it did.
+     */
+    function reportScores(): void {
+        const match = modeSelect.value === "battle" ? watchedMatch : null;
+        battleScores.hidden = match === null;
+        if (match === null) return;
+        const names = match === replay ? [...replayIds.map((id) => `#${id}`), ...(replayVs === null ? [] : [replayVs])] : [];
+        const { slots, owners, ships } = match.battle;
+        const table = document.createElement("table");
+        const head = document.createElement("tr");
+        for (const [css, text, title] of [
+            ["", "side", ""],
+            ["", "score", "weighted total"],
+            ...SCORE_COLUMNS.map((column) => [column.css, column.head, column.title] as const),
+        ] as const) {
+            const th = document.createElement("th");
+            th.className = css;
+            th.textContent = text;
+            th.title = title;
+            head.append(th);
+        }
+        table.append(head);
+        match.result().scores.forEach((score, i) => {
+            const tr = document.createElement("tr");
+            // In the colour its ships are drawn in: its own, or its side's.
+            const k = owners.indexOf(i);
+            const colour = teamColour(k < 0 ? i : ships.teamOf(slots[k]!));
+            const parts = [score.survival, score.functional, score.damage, score.disabling, score.race];
+            for (const cell of [names[i] ?? String(i + 1), score.total.toFixed(3), ...parts.map((part) => part.toFixed(2))]) {
+                const td = document.createElement("td");
+                td.textContent = cell;
+                td.style.color = colour;
+                tr.append(td);
+            }
+            table.append(tr);
+        });
+        battleScores.replaceChildren(table);
     }
 
-    if (
-      !fleetBox.hidden &&
-      ((fleetScale !== fleetTarget && fleetTarget > 0) || (formationScale !== formationTarget && formationTarget > 0))
-    ) {
-      if (fleetTarget > 0) fleetScale = easeScale(fleetScale, fleetTarget, FLEET_EASE);
-      if (formationTarget > 0) {
-        formationScale = easeScale(formationScale, formationTarget, FLEET_EASE);
-      }
-      for (const tile of fleetTiles.values()) drawTile(tile);
-    }
-
-    watch(replay ?? (run === null ? previewMatch : null));
-    playButton.disabled = replay === null;
-    stepButton.disabled = replay === null;
-    if (modeSelect.value === 'battle') paint();
-
-    // A generation picked off the chart shows on the next frame rather than at
-    // the next sample: seeking through a run is meant to read as the ships
-    // changing, and a fifth of a second of lag reads as the page being stuck.
-    if (reselected) {
-      reselected = false;
-      refresh();
-      report();
-    }
-
-    // Sampled rather than redrawn every frame: the panel is a page of DOM and
-    // the run is the thing the frame is for (DESIGN.md non-negotiable 5).
-    if (now - refreshedAt > 200) {
-      refreshedAt = now;
-      refresh();
-      report();
+    function report(): void {
+        reportYardstick();
+        reportScores();
+        if (run === null) {
+            stateLabel.textContent = "idle";
+            barFill.style.width = "0";
+            watchingLabel.textContent =
+                modeSelect.value === "battle"
+                    ? previewMatch === null
+                        ? "nothing to fight"
+                        : "first match, unmutated"
+                    : `${previewRows.length} founders, unmutated`;
+            return;
+        }
+        const done = run.generations.length + (twoSided(run) ? run.rivalGenerations.length : 0);
+        const total = run.config.generations;
+        stateLabel.textContent = run instanceof RecordedRun ? "from a file" : run.done ? "finished" : paused ? "paused" : "running";
+        pauseButton.disabled = run.done;
+        barFill.style.width = `${(run.progress * 100).toFixed(1)}%`;
+        let fought = 0;
+        for (const generation of run.generations) fought += generation.matches.length;
+        if (twoSided(run)) for (const generation of run.rivalGenerations) fought += generation.matches.length;
+        fought += run.done ? 0 : run.played.length;
+        // Whose turn it is, in a run whose sides take turns.
+        const turn = twoSided(run) && run.alternates && !run.done ? `round ${run.round + 1}, side ${run.turn === 0 ? "A" : "B"} · ` : "";
+        readout.textContent =
+            notice !== ""
+                ? notice
+                : `${turn}generation ${Math.min(done + 1, total)} of ${total} · ` +
+                  `${fought} matches fought · ${(run.progress * 100).toFixed(0)}%`;
+        if (modeSelect.value !== "battle") {
+            const shown = showing();
+            watchingLabel.textContent = `${shown.rows.length} combatants of ${pointLabel(shown.index)}`;
+        } else if (skipping) {
+            watchingLabel.textContent = "skipped · waiting for the next match";
+        } else if (replay !== null) {
+            watchingLabel.textContent =
+                `${[...replayIds, ...(replayVs === null ? [] : [replayVs])].join(" v ")} · ${(replay.progress * 100).toFixed(0)}%` +
+                `${replay.done ? " · over" : ""}`;
+        } else {
+            watchingLabel.textContent = "pick a match from the list";
+        }
     }
 
     window.requestAnimationFrame(tick);
-  };
-
-  /**
-   * A co-evolution run's champion grid: A's champions down the side, B's
-   * across the top, each cell shaded towards the side that came off better
-   * and saying how many of its seeds A won.
-   */
-  function drawGrid(): void {
-    const shown = grid?.report() ?? gridResult;
-    gridTable.hidden = shown === null;
-    if (shown === null) return;
-    if (grid === null) {
-      yardstickLine.textContent =
-        `${shown.matches} matches, ${shown.seeds} a cell. Down a column, later A against the same B; ` +
-        'along a row, later B against the same A. An arms race shades towards each side going down and across.';
-    } else {
-      yardstickLine.textContent = `Fighting each side's champions against the other's, ${(grid.progress * 100).toFixed(0)}%`;
-    }
-    let most = 0;
-    for (const row of shown.cells) for (const cell of row) most = Math.max(most, Math.abs(cell.margin));
-    const head = document.createElement('tr');
-    const corner = document.createElement('th');
-    corner.textContent = 'A↓ B→';
-    head.append(corner);
-    const short = (point: (typeof shown.rows)[number]): string => String((point.round ?? point.generation) + 1);
-    for (const point of shown.columns) {
-      const th = document.createElement('th');
-      th.textContent = short(point);
-      th.title = gridLabel(point);
-      th.style.color = teamColour(1);
-      head.append(th);
-    }
-    const rows = [head];
-    shown.rows.forEach((point, r) => {
-      const tr = document.createElement('tr');
-      const th = document.createElement('th');
-      th.textContent = short(point);
-      th.title = gridLabel(point);
-      th.style.color = teamColour(0);
-      tr.append(th);
-      for (let c = 0; c < shown.columns.length; c++) {
-        const td = document.createElement('td');
-        const cell = shown.cells[r]?.[c];
-        if (cell !== undefined) {
-          td.textContent = `${cell.wins}/${shown.seeds}`;
-          td.title =
-            `A's champion of ${gridLabel(point)} against B's of ${gridLabel(shown.columns[c]!)}: ` +
-            `won ${cell.wins} of ${shown.seeds}, by ${cell.margin >= 0 ? '+' : ''}${cell.margin.toFixed(3)} on average`;
-          const share = most > 0 ? Math.round((Math.abs(cell.margin) / most) * 60) : 0;
-          td.style.background = `color-mix(in srgb, ${teamColour(cell.margin >= 0 ? 0 : 1)} ${share}%, transparent)`;
-        }
-        tr.append(td);
-      }
-      rows.push(tr);
-    });
-    gridTable.replaceChildren(...rows);
-  }
-
-  /** What a measurement says, once there is one. */
-  function reportYardstick(): void {
-    const points = yardstick?.points ?? measured?.points;
-    if (points === undefined || points.length === 0) return;
-    const first = points[0]!;
-    const last = points[points.length - 1]!;
-    const gain = last.mean - first.mean;
-    const where = yardstick === null ? '' : ` · measuring, ${(yardstick.progress * 100).toFixed(0)}%`;
-    yardstickLine.textContent =
-      `generation ${first.generation + 1} scored ${first.mean.toFixed(3)}, ` +
-      `generation ${last.generation + 1} scored ${last.mean.toFixed(3)} ` +
-      `(${gain >= 0 ? '+' : ''}${gain.toFixed(3)}) · ` +
-      `${last.wins} of ${last.individuals} beat it${where}`;
-  }
-
-  /**
-   * Each side's score in the battle on show, and its parts: what the match
-   * would pay if it ended as it stands, so a replay says why it scored what
-   * the table says it did.
-   */
-  function reportScores(): void {
-    const match = modeSelect.value === 'battle' ? watchedMatch : null;
-    battleScores.hidden = match === null;
-    if (match === null) return;
-    const names = match === replay ? [...replayIds.map((id) => `#${id}`), ...(replayVs === null ? [] : [replayVs])] : [];
-    const { slots, owners, ships } = match.battle;
-    const table = document.createElement('table');
-    const head = document.createElement('tr');
-    for (const [css, text, title] of [
-      ['', 'side', ''],
-      ['', 'score', 'weighted total'],
-      ...SCORE_COLUMNS.map((column) => [column.css, column.head, column.title] as const),
-    ] as const) {
-      const th = document.createElement('th');
-      th.className = css;
-      th.textContent = text;
-      th.title = title;
-      head.append(th);
-    }
-    table.append(head);
-    match.result().scores.forEach((score, i) => {
-      const tr = document.createElement('tr');
-      // In the colour its ships are drawn in: its own, or its side's.
-      const k = owners.indexOf(i);
-      const colour = teamColour(k < 0 ? i : ships.teamOf(slots[k]!));
-      const parts = [score.survival, score.functional, score.damage, score.disabling, score.race];
-      for (const cell of [names[i] ?? String(i + 1), score.total.toFixed(3), ...parts.map((part) => part.toFixed(2))]) {
-        const td = document.createElement('td');
-        td.textContent = cell;
-        td.style.color = colour;
-        tr.append(td);
-      }
-      table.append(tr);
-    });
-    battleScores.replaceChildren(table);
-  }
-
-  function report(): void {
-    reportYardstick();
-    reportScores();
-    if (run === null) {
-      stateLabel.textContent = 'idle';
-      barFill.style.width = '0';
-      watchingLabel.textContent =
-        modeSelect.value === 'battle'
-          ? previewMatch === null
-            ? 'nothing to fight'
-            : 'first match, unmutated'
-          : `${previewRows.length} founders, unmutated`;
-      return;
-    }
-    const done = run.generations.length + (twoSided(run) ? run.rivalGenerations.length : 0);
-    const total = run.config.generations;
-    stateLabel.textContent = run instanceof RecordedRun ? 'from a file' : run.done ? 'finished' : paused ? 'paused' : 'running';
-    pauseButton.disabled = run.done;
-    barFill.style.width = `${(run.progress * 100).toFixed(1)}%`;
-    let fought = 0;
-    for (const generation of run.generations) fought += generation.matches.length;
-    if (twoSided(run)) for (const generation of run.rivalGenerations) fought += generation.matches.length;
-    fought += run.done ? 0 : run.played.length;
-    // Whose turn it is, in a run whose sides take turns.
-    const turn = twoSided(run) && run.alternates && !run.done ? `round ${run.round + 1}, side ${run.turn === 0 ? 'A' : 'B'} · ` : '';
-    readout.textContent =
-      notice !== ''
-        ? notice
-        : `${turn}generation ${Math.min(done + 1, total)} of ${total} · ` +
-          `${fought} matches fought · ${(run.progress * 100).toFixed(0)}%`;
-    if (modeSelect.value !== 'battle') {
-      const shown = showing();
-      watchingLabel.textContent = `${shown.rows.length} combatants of ${pointLabel(shown.index)}`;
-    } else if (skipping) {
-      watchingLabel.textContent = 'skipped · waiting for the next match';
-    } else if (replay !== null) {
-      watchingLabel.textContent =
-        `${[...replayIds, ...(replayVs === null ? [] : [replayVs])].join(' v ')} · ${(replay.progress * 100).toFixed(0)}%` +
-        `${replay.done ? ' · over' : ''}`;
-    } else {
-      watchingLabel.textContent = 'pick a match from the list';
-    }
-  }
-
-  window.requestAnimationFrame(tick);
 }

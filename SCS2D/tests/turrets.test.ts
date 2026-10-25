@@ -1,14 +1,14 @@
-import { describe, expect, it } from 'vitest';
-import { Bodies } from '../sim/bodies.js';
-import { angleDelta, PI } from '../sim/math.js';
-import { FiringSolution, interceptTime, Turrets } from '../sim/turrets.js';
+import { describe, expect, it } from "vitest";
+import { Bodies } from "../sim/bodies.js";
+import { angleDelta, PI } from "../sim/math.js";
+import { FiringSolution, interceptTime, Turrets } from "../sim/turrets.js";
 
 const DT = 1 / 60;
 
 function ship(angle = 0, vx = 0, vy = 0) {
-  const bodies = new Bodies();
-  const id = bodies.create({ x: 0, y: 0, vx, vy, angle, mass: 1000, inertia: 50_000, radius: 20 });
-  return { bodies, id, index: bodies.indexOf(id) };
+    const bodies = new Bodies();
+    const id = bodies.create({ x: 0, y: 0, vx, vy, angle, mass: 1000, inertia: 50_000, radius: 20 });
+    return { bodies, id, index: bodies.indexOf(id) };
 }
 
 /**
@@ -21,798 +21,798 @@ function ship(angle = 0, vx = 0, vy = 0) {
  * traverse rate and stays there, which is the whole point of feed-forward.
  */
 function settle(turrets: Turrets, bodies: Bodies, i: number, limit = 4000): number {
-  for (let step = 0; step < limit; step++) {
-    turrets.step(DT, bodies);
-    const holding = Math.abs(turrets.rate[i]! - turrets.commandedRate[i]!) < 1e-9;
-    if (turrets.onTarget[i] === 1 && holding) return step + 1;
-  }
-  throw new Error('turret never settled');
+    for (let step = 0; step < limit; step++) {
+        turrets.step(DT, bodies);
+        const holding = Math.abs(turrets.rate[i]! - turrets.commandedRate[i]!) < 1e-9;
+        if (turrets.onTarget[i] === 1 && holding) return step + 1;
+    }
+    throw new Error("turret never settled");
 }
 
-describe('slewing', () => {
-  it('reaches a commanded bearing without overshooting', () => {
-    const { bodies, index } = ship();
-    const turrets = new Turrets();
-    const t = turrets.add({ owner: index, x: 5, y: 0, maxRate: 2, maxAccel: 4 });
+describe("slewing", () => {
+    it("reaches a commanded bearing without overshooting", () => {
+        const { bodies, index } = ship();
+        const turrets = new Turrets();
+        const t = turrets.add({ owner: index, x: 5, y: 0, maxRate: 2, maxAccel: 4 });
 
-    turrets.commandWorldBearing(bodies, t, 1.2);
+        turrets.commandWorldBearing(bodies, t, 1.2);
 
-    // Watch the whole approach: the bearing must never pass the target.
-    let maxOvershoot = 0;
-    for (let step = 0; step < 4000; step++) {
-      turrets.step(DT, bodies);
-      const remaining = angleDelta(turrets.bearing[t]!, 1.2);
-      if (remaining < -1e-9) maxOvershoot = Math.max(maxOvershoot, -remaining);
-      if (turrets.onTarget[t] === 1 && turrets.rate[t] === 0) break;
-    }
-
-    expect(turrets.onTarget[t]).toBe(1);
-    expect(Math.abs(angleDelta(turrets.bearing[t]!, 1.2))).toBeLessThan(0.001);
-    // Braking half a step early means no overshoot at all, rather than the
-    // small overshoot a continuous braking limit leaves once time is discrete.
-    expect(maxOvershoot).toBeLessThan(1e-9);
-    // And it comes to rest rather than hunting around the target.
-    expect(turrets.rate[t]).toBe(0);
-  });
-
-  it('honours its rate limit', () => {
-    const { bodies, index } = ship();
-    const turrets = new Turrets();
-    const t = turrets.add({ owner: index, x: 0, y: 0, maxRate: 1, maxAccel: 100 });
-
-    turrets.commandWorldBearing(bodies, t, 3);
-
-    let peak = 0;
-    for (let step = 0; step < 500; step++) {
-      turrets.step(DT, bodies);
-      peak = Math.max(peak, Math.abs(turrets.rate[t]!));
-    }
-    expect(peak).toBeLessThanOrEqual(1 + 1e-9);
-  });
-
-  it('honours its acceleration limit', () => {
-    const { bodies, index } = ship();
-    const turrets = new Turrets();
-    const t = turrets.add({ owner: index, x: 0, y: 0, maxRate: 100, maxAccel: 2 });
-
-    turrets.commandWorldBearing(bodies, t, 3);
-
-    let previous = turrets.rate[t]!;
-    for (let step = 0; step < 200; step++) {
-      turrets.step(DT, bodies);
-      const change = Math.abs(turrets.rate[t]! - previous);
-      expect(change).toBeLessThanOrEqual(2 * DT + 1e-9);
-      previous = turrets.rate[t]!;
-    }
-  });
-
-  it('takes the short way round', () => {
-    const { bodies, index } = ship();
-    const turrets = new Turrets();
-    // Sitting just past +pi, commanded to just short of −pi: two hundredths of
-    // a radian apart the short way, and nearly a full turn the long way. The
-    // old jointed turrets locked up on exactly this.
-    const t = turrets.add({ owner: index, x: 0, y: 0, restBearing: 3.13, maxRate: 1, maxAccel: 2 });
-    turrets.commandWorldBearing(bodies, t, -3.13);
-
-    const steps = settle(turrets, bodies, t);
-    // The short way is ~0.023 rad; the long way would take far longer.
-    expect(steps).toBeLessThan(30);
-  });
-
-  it('is faster with a higher acceleration limit', () => {
-    const slow = ship();
-    const fast = ship();
-    const a = new Turrets();
-    const b = new Turrets();
-    const ta = a.add({ owner: slow.index, x: 0, y: 0, maxRate: 10, maxAccel: 1 });
-    const tb = b.add({ owner: fast.index, x: 0, y: 0, maxRate: 10, maxAccel: 16 });
-    a.commandWorldBearing(slow.bodies, ta, 2);
-    b.commandWorldBearing(fast.bodies, tb, 2);
-
-    expect(settle(b, fast.bodies, tb)).toBeLessThan(settle(a, slow.bodies, ta));
-  });
-
-  it('tracks a moving command without drifting', () => {
-    const { bodies, index } = ship();
-    const turrets = new Turrets();
-    const t = turrets.add({ owner: index, x: 0, y: 0, maxRate: 5, maxAccel: 50 });
-
-    let worst = 0;
-    for (let step = 0; step < 600; step++) {
-      // A bearing sweeping steadily, well inside the rate limit.
-      turrets.commandWorldBearing(bodies, t, step * 0.01);
-      turrets.step(DT, bodies);
-      if (step > 100) {
-        worst = Math.max(worst, Math.abs(angleDelta(turrets.bearing[t]!, turrets.commanded[t]!)));
-      }
-    }
-    // Lag is bounded and small; it does not accumulate.
-    expect(worst).toBeLessThan(0.05);
-  });
-});
-
-describe('pointing tolerance', () => {
-  it('is the same for every mount, because there is no dead band', () => {
-    const { bodies, index } = ship();
-    const turrets = new Turrets();
-    const gentle = turrets.add({ owner: index, x: 0, y: 0, maxRate: 5, maxAccel: 1 });
-    const brisk = turrets.add({ owner: index, x: 0, y: 0, maxRate: 5, maxAccel: 400 });
-
-    turrets.step(DT, bodies);
-
-    // A gentle mount is limited by the floor; a violent one by its own
-    // discretisation. Claiming the floor for both would leave the brisk turret
-    // parked just outside tolerance, never reporting ready, and never firing.
-    // Capping the correction at the landing rate removes the dead band, so
-    // every mount can reach the same tolerance however brisk it is.
-    // The value tracks ON_TARGET_FLOOR; what this test is really pinning is
-    // that one figure serves both mounts.
-    expect(turrets.tolerance[gentle]!).toBe(turrets.tolerance[brisk]!);
-    expect(turrets.tolerance[gentle]!).toBeCloseTo(0.001, 12);
-  });
-
-  it('still settles and reports ready however brisk the mount', () => {
-    const { bodies, index } = ship();
-    const turrets = new Turrets();
-    for (const maxAccel of [0.5, 2, 20, 200, 2000]) {
-      const t = turrets.add({ owner: index, x: 0, y: 0, maxRate: 20, maxAccel });
-      turrets.commandWorldBearing(bodies, t, 1.1);
-      settle(turrets, bodies, t);
-      expect(turrets.onTarget[t]).toBe(1);
-      expect(turrets.readyToFire(t)).toBe(true);
-      turrets.remove(t);
-    }
-  });
-});
-
-describe('tracking', () => {
-  it('holds a crossing target far more closely than error alone would', () => {
-    // A target crossing at 300 m and 200 m/s. Measured honestly: command from
-    // where the target is, then advance the target and the turret over the same
-    // step, then ask whether the turret points at the target *now*. Comparing
-    // against the command it was given a step ago flatters whichever scheme
-    // happens to lag, which is how I got this backwards twice.
-    const run = (feedForward: boolean) => {
-      const { bodies, index } = ship();
-      const turrets = new Turrets();
-      const t = turrets.add({ owner: index, x: 0, y: 0, maxRate: 5, maxAccel: 50 });
-
-      let ty = -600;
-      let worst = 0;
-      for (let step = 0; step < 900; step++) {
-        const rangeSq = 300 * 300 + ty * ty;
-        turrets.commandWorldBearing(bodies, t, Math.atan2(ty, 300), feedForward ? (300 * 200) / rangeSq : 0);
-        ty += 200 * DT;
-        turrets.step(DT, bodies);
-        if (step > 300) {
-          const trueBearing = Math.atan2(ty, 300);
-          worst = Math.max(worst, Math.abs(angleDelta(turrets.bearing[t]!, trueBearing)));
+        // Watch the whole approach: the bearing must never pass the target.
+        let maxOvershoot = 0;
+        for (let step = 0; step < 4000; step++) {
+            turrets.step(DT, bodies);
+            const remaining = angleDelta(turrets.bearing[t]!, 1.2);
+            if (remaining < -1e-9) maxOvershoot = Math.max(maxOvershoot, -remaining);
+            if (turrets.onTarget[t] === 1 && turrets.rate[t] === 0) break;
         }
-      }
-      return worst;
-    };
 
-    const withoutFF = run(false);
-    const withFF = run(true);
-    // Error correction alone always trails the target by about one step of its
-    // angular motion. Feed-forward removes that.
-    expect(withFF).toBeLessThan(withoutFF / 10);
-  });
+        expect(turrets.onTarget[t]).toBe(1);
+        expect(Math.abs(angleDelta(turrets.bearing[t]!, 1.2))).toBeLessThan(0.001);
+        // Braking half a step early means no overshoot at all, rather than the
+        // small overshoot a continuous braking limit leaves once time is discrete.
+        expect(maxOvershoot).toBeLessThan(1e-9);
+        // And it comes to rest rather than hunting around the target.
+        expect(turrets.rate[t]).toBe(0);
+    });
 
-  it('holds a world bearing while its hull rotates under it', () => {
-    const bodies = new Bodies();
-    const id = bodies.create({ angle: 0, angularVel: 1.5, mass: 1000, inertia: 50_000 });
-    const index = bodies.indexOf(id);
-    const turrets = new Turrets();
-    const t = turrets.add({ owner: index, x: 0, y: 0, maxRate: 5, maxAccel: 50 });
+    it("honours its rate limit", () => {
+        const { bodies, index } = ship();
+        const turrets = new Turrets();
+        const t = turrets.add({ owner: index, x: 0, y: 0, maxRate: 1, maxAccel: 100 });
 
-    // A ship spinning at 1.5 rad/s, turret asked to hold one bearing in world
-    // terms. Nothing about the command changes; only the hull moves.
-    //
-    // Order matters, and is the order the real loop uses: command from the
-    // current state, then advance hull and turret over the same step. Command
-    // from a hull that has already turned and the turret holds its bearing
-    // perfectly — one whole step of rotation behind where it was asked to point.
-    let worst = 0;
-    for (let step = 0; step < 600; step++) {
-      turrets.commandWorldBearing(bodies, t, PI / 4);
-      bodies.angle[index] = angleDelta(0, bodies.angle[index]! + 1.5 * DT);
-      turrets.step(DT, bodies);
-      if (step > 200) {
-        worst = Math.max(worst, Math.abs(angleDelta(turrets.worldBearing(bodies, t), PI / 4)));
-      }
-    }
-    // Counter-rotation is exact once both cover the same interval.
-    expect(worst).toBeLessThan(1e-9);
-  });
+        turrets.commandWorldBearing(bodies, t, 3);
 
-  it('stops sweeping when pinned against the edge of its arc', () => {
-    const { bodies, index } = ship();
-    const turrets = new Turrets();
-    const t = turrets.add({ owner: index, x: 0, y: 0, leftArc: 0.4, rightArc: 0.4, maxRate: 5, maxAccel: 50 });
+        let peak = 0;
+        for (let step = 0; step < 500; step++) {
+            turrets.step(DT, bodies);
+            peak = Math.max(peak, Math.abs(turrets.rate[t]!));
+        }
+        expect(peak).toBeLessThanOrEqual(1 + 1e-9);
+    });
 
-    // Commanded well outside the arc, and sweeping fast.
-    turrets.commandWorldBearing(bodies, t, 2, 3);
-    expect(turrets.blocked[t]).toBe(1);
-    // It should hold the arc limit, not keep driving into it.
-    expect(turrets.commandedRate[t]).toBe(0);
-    settle(turrets, bodies, t);
-    expect(Math.abs(angleDelta(turrets.bearing[t]!, 0.4))).toBeLessThanOrEqual(turrets.tolerance[t]!);
-  });
+    it("honours its acceleration limit", () => {
+        const { bodies, index } = ship();
+        const turrets = new Turrets();
+        const t = turrets.add({ owner: index, x: 0, y: 0, maxRate: 100, maxAccel: 2 });
 
-  it('clamps a feed-forward rate to the traverse limit', () => {
-    const { bodies, index } = ship();
-    const turrets = new Turrets();
-    const t = turrets.add({ owner: index, x: 0, y: 0, leftArc: 0.4, rightArc: 0.4, maxRate: 2, maxAccel: 100 });
-    turrets.commandWorldBearing(bodies, t, 0, 50);
-    expect(turrets.commandedRate[t]).toBe(2);
-  });
+        turrets.commandWorldBearing(bodies, t, 3);
+
+        let previous = turrets.rate[t]!;
+        for (let step = 0; step < 200; step++) {
+            turrets.step(DT, bodies);
+            const change = Math.abs(turrets.rate[t]! - previous);
+            expect(change).toBeLessThanOrEqual(2 * DT + 1e-9);
+            previous = turrets.rate[t]!;
+        }
+    });
+
+    it("takes the short way round", () => {
+        const { bodies, index } = ship();
+        const turrets = new Turrets();
+        // Sitting just past +pi, commanded to just short of −pi: two hundredths of
+        // a radian apart the short way, and nearly a full turn the long way. The
+        // old jointed turrets locked up on exactly this.
+        const t = turrets.add({ owner: index, x: 0, y: 0, restBearing: 3.13, maxRate: 1, maxAccel: 2 });
+        turrets.commandWorldBearing(bodies, t, -3.13);
+
+        const steps = settle(turrets, bodies, t);
+        // The short way is ~0.023 rad; the long way would take far longer.
+        expect(steps).toBeLessThan(30);
+    });
+
+    it("is faster with a higher acceleration limit", () => {
+        const slow = ship();
+        const fast = ship();
+        const a = new Turrets();
+        const b = new Turrets();
+        const ta = a.add({ owner: slow.index, x: 0, y: 0, maxRate: 10, maxAccel: 1 });
+        const tb = b.add({ owner: fast.index, x: 0, y: 0, maxRate: 10, maxAccel: 16 });
+        a.commandWorldBearing(slow.bodies, ta, 2);
+        b.commandWorldBearing(fast.bodies, tb, 2);
+
+        expect(settle(b, fast.bodies, tb)).toBeLessThan(settle(a, slow.bodies, ta));
+    });
+
+    it("tracks a moving command without drifting", () => {
+        const { bodies, index } = ship();
+        const turrets = new Turrets();
+        const t = turrets.add({ owner: index, x: 0, y: 0, maxRate: 5, maxAccel: 50 });
+
+        let worst = 0;
+        for (let step = 0; step < 600; step++) {
+            // A bearing sweeping steadily, well inside the rate limit.
+            turrets.commandWorldBearing(bodies, t, step * 0.01);
+            turrets.step(DT, bodies);
+            if (step > 100) {
+                worst = Math.max(worst, Math.abs(angleDelta(turrets.bearing[t]!, turrets.commanded[t]!)));
+            }
+        }
+        // Lag is bounded and small; it does not accumulate.
+        expect(worst).toBeLessThan(0.05);
+    });
 });
 
-describe('traverse arcs', () => {
-  it('stops at the end of its arc, however hard the hull spins under it', () => {
-    // Counter-rotating to hold a world bearing, a mount reaches an end of its
-    // arc too fast to brake there. The end is a stop, not a suggestion: past
-    // it, the barrel used to coast on into the gap and out the other side,
-    // holding its bearing while the ship spun round beneath it.
-    const { bodies, index } = ship();
-    const turrets = new Turrets();
-    const arc = 2.6;
-    const t = turrets.add({ owner: index, x: 0, y: 0, leftArc: arc, rightArc: arc, maxRate: 2, maxAccel: 4 });
-    let worst = 0;
-    for (let step = 0; step < 3000; step++) {
-      bodies.angularVel[index] = 1;
-      turrets.commandWorldBearing(bodies, t, 1);
-      turrets.step(DT, bodies);
-      bodies.angle[index] = bodies.angle[index]! + DT;
-      worst = Math.max(worst, Math.abs(angleDelta(0, turrets.bearing[t]!)));
-    }
-    expect(worst).toBeLessThanOrEqual(arc + 1e-12);
-  });
+describe("pointing tolerance", () => {
+    it("is the same for every mount, because there is no dead band", () => {
+        const { bodies, index } = ship();
+        const turrets = new Turrets();
+        const gentle = turrets.add({ owner: index, x: 0, y: 0, maxRate: 5, maxAccel: 1 });
+        const brisk = turrets.add({ owner: index, x: 0, y: 0, maxRate: 5, maxAccel: 400 });
 
-  it('bounds the port sweep with the left arc and the starboard sweep with the right', () => {
-    // The one thing a symmetric arc cannot test, and the reason to test it: a
-    // mount fouled to port must still train freely to starboard. With the two
-    // bounds swapped this passes every symmetric case and points every gun on
-    // an asymmetric ship at the wrong side of the ship.
-    const { bodies, index } = ship();
-    const turrets = new Turrets();
-    const t = turrets.add({
-      owner: index,
-      x: 0,
-      y: 0,
-      restBearing: 0,
-      leftArc: 0.2,
-      rightArc: 1.4,
-      maxRate: 5,
-      maxAccel: 50,
+        turrets.step(DT, bodies);
+
+        // A gentle mount is limited by the floor; a violent one by its own
+        // discretisation. Claiming the floor for both would leave the brisk turret
+        // parked just outside tolerance, never reporting ready, and never firing.
+        // Capping the correction at the landing rate removes the dead band, so
+        // every mount can reach the same tolerance however brisk it is.
+        // The value tracks ON_TARGET_FLOOR; what this test is really pinning is
+        // that one figure serves both mounts.
+        expect(turrets.tolerance[gentle]!).toBe(turrets.tolerance[brisk]!);
+        expect(turrets.tolerance[gentle]!).toBeCloseTo(0.001, 12);
     });
 
-    // Anticlockwise is to port, and port is where the obstruction is.
-    turrets.commandWorldBearing(bodies, t, 1);
-    expect(turrets.blocked[t]).toBe(1);
-    expect(turrets.commanded[t]).toBeCloseTo(0.2, 9);
-
-    // The same angle to starboard is inside the clear sector.
-    turrets.commandWorldBearing(bodies, t, -1);
-    expect(turrets.blocked[t]).toBe(0);
-    expect(turrets.commanded[t]).toBeCloseTo(-1, 9);
-  });
-
-  it('reaches sky on the far side of what blocks it, the long way round', () => {
-    // A mount fouled on one beam has a clear sector wider than half a circle,
-    // so `firingArc` reports one bound above PI. `angleDelta` never reports a
-    // sweep that large, so such a bearing arrives here with the opposite sign
-    // and has to be recognised rather than clamped away.
-    const { bodies, index } = ship();
-    const turrets = new Turrets();
-    const t = turrets.add({
-      owner: index,
-      x: 0,
-      y: 0,
-      restBearing: 0,
-      leftArc: (63.4 * PI) / 180,
-      rightArc: (243.4 * PI) / 180,
-      maxRate: 5,
-      maxAccel: 50,
+    it("still settles and reports ready however brisk the mount", () => {
+        const { bodies, index } = ship();
+        const turrets = new Turrets();
+        for (const maxAccel of [0.5, 2, 20, 200, 2000]) {
+            const t = turrets.add({ owner: index, x: 0, y: 0, maxRate: 20, maxAccel });
+            turrets.commandWorldBearing(bodies, t, 1.1);
+            settle(turrets, bodies, t);
+            expect(turrets.onTarget[t]).toBe(1);
+            expect(turrets.readyToFire(t)).toBe(true);
+            turrets.remove(t);
+        }
     });
-
-    // 150° is clear — the block spans 63.4° to 116.6° — and is reached by
-    // turning right the long way rather than left the short way.
-    turrets.commandWorldBearing(bodies, t, (150 * PI) / 180);
-    expect(turrets.blocked[t]).toBe(0);
-    expect(turrets.commanded[t]! * (180 / PI)).toBeCloseTo(150, 6);
-  });
-
-  it('turns the way its arc allows, never through what blocks it', () => {
-    // Blocked astern, from 100° either side of the bow round to the stern.
-    // From 95° to -95° the short way is 170° across the stern; the arc's way
-    // is 190° across the bow, and that is the one a barrel can take.
-    const { bodies, index } = ship();
-    const turrets = new Turrets();
-    const arc = (100 * PI) / 180;
-    const t = turrets.add({ owner: index, x: 0, y: 0, restBearing: 0, leftArc: arc, rightArc: arc, maxRate: 2, maxAccel: 20 });
-    turrets.bearing[t] = (95 * PI) / 180;
-    turrets.commandWorldBearing(bodies, t, (-95 * PI) / 180);
-    let crossedBow = false;
-    for (let s = 0; s < 600; s++) {
-      turrets.step(DT, bodies);
-      const at = turrets.bearing[t]!;
-      expect(Math.abs(at)).toBeLessThanOrEqual(arc + 1e-9);
-      if (Math.abs(at) < 0.1) crossedBow = true;
-    }
-    expect(crossedBow).toBe(true);
-    expect(turrets.bearing[t]! * (180 / PI)).toBeCloseTo(-95, 3);
-  });
-
-  it('goes the long way round a lopsided arc to reach sky beyond its block', () => {
-    // The block spans 63.4° to 116.6°: from 30° to 150° is 120° through it, or
-    // 240° the other way round, which is the only way there is.
-    const { bodies, index } = ship();
-    const turrets = new Turrets();
-    const t = turrets.add({
-      owner: index,
-      x: 0,
-      y: 0,
-      restBearing: 0,
-      leftArc: (63.4 * PI) / 180,
-      rightArc: (243.4 * PI) / 180,
-      maxRate: 2,
-      maxAccel: 20,
-    });
-    turrets.bearing[t] = (30 * PI) / 180;
-    turrets.commandWorldBearing(bodies, t, (150 * PI) / 180);
-    for (let s = 0; s < 900; s++) {
-      turrets.step(DT, bodies);
-      const degrees = turrets.bearing[t]! * (180 / PI);
-      expect(degrees > 63.4 + 1e-6 && degrees < 116.6 - 1e-6).toBe(false);
-    }
-    expect(turrets.bearing[t]! * (180 / PI)).toBeCloseTo(150, 3);
-  });
-
-  it('stops at the near end of the arc, not whichever end the sign picks', () => {
-    // The difference only shows on a lopsided arc, and it is the difference
-    // between a barrel resting against what blocks it and a barrel that has
-    // crossed the ship to sit on the far side of the obstruction from its
-    // target.
-    const { bodies, index } = ship();
-    const turrets = new Turrets();
-    const t = turrets.add({
-      owner: index,
-      x: 0,
-      y: 0,
-      restBearing: 0,
-      leftArc: (63.4 * PI) / 180,
-      rightArc: (243.4 * PI) / 180,
-      maxRate: 5,
-      maxAccel: 50,
-    });
-
-    // 100° is inside the block. The two ends are 63.4° and 116.6°; the nearer
-    // is 116.6°, which is also the one with the target beyond it.
-    turrets.commandWorldBearing(bodies, t, (100 * PI) / 180);
-    expect(turrets.blocked[t]).toBe(1);
-    expect(turrets.commanded[t]! * (180 / PI)).toBeCloseTo(116.6, 1);
-
-    // And 70°, just inside the other end, stops at 63.4° rather than swinging
-    // the whole way round to 116.6°.
-    turrets.commandWorldBearing(bodies, t, (70 * PI) / 180);
-    expect(turrets.commanded[t]! * (180 / PI)).toBeCloseTo(63.4, 1);
-  });
-
-  it('holds at an end half a circle from rest, rather than going round through its block', () => {
-    // As the Survivor's corner turrets: free to half a circle one way, 0.36
-    // rad the other. Braking onto the end at half a circle, it overruns it by
-    // a hair, which read as nearly a full turn off it, and it went round
-    // again through the block to get back, over and over.
-    const { bodies, index } = ship();
-    const turrets = new Turrets();
-    const t = turrets.add({ owner: index, x: 0, y: 0, restBearing: 0, leftArc: PI, rightArc: 0.36, maxRate: 1, maxAccel: 0.5 });
-    for (let s = 0; s < 60 * 30; s++) {
-      turrets.commandWorldBearing(bodies, t, -1.79);
-      turrets.step(DT, bodies);
-      const at = turrets.bearing[t]!;
-      expect(at < -0.36 - 1e-6 && at > -PI + 0.01).toBe(false);
-    }
-    expect(Math.cos(turrets.bearing[t]!)).toBeCloseTo(-1, 4);
-  });
-
-  it('clamps a command outside the arc and reports it blocked', () => {
-    const { bodies, index } = ship();
-    const turrets = new Turrets();
-    const t = turrets.add({
-      owner: index,
-      x: 0,
-      y: 0,
-      restBearing: 0,
-      leftArc: 0.5,
-      rightArc: 0.5,
-      maxRate: 5,
-      maxAccel: 50,
-    });
-
-    turrets.commandWorldBearing(bodies, t, 2);
-    expect(turrets.blocked[t]).toBe(1);
-    expect(turrets.commanded[t]).toBeCloseTo(0.5, 9);
-
-    settle(turrets, bodies, t);
-    // On target, but still not allowed to shoot: both flags matter.
-    expect(turrets.onTarget[t]).toBe(1);
-    expect(turrets.readyToFire(t)).toBe(false);
-  });
-
-  it('accepts a command inside the arc', () => {
-    const { bodies, index } = ship();
-    const turrets = new Turrets();
-    const t = turrets.add({ owner: index, x: 0, y: 0, leftArc: 0.5, rightArc: 0.5, maxRate: 5, maxAccel: 50 });
-
-    turrets.commandWorldBearing(bodies, t, 0.3);
-    expect(turrets.blocked[t]).toBe(0);
-    settle(turrets, bodies, t);
-    expect(turrets.readyToFire(t)).toBe(true);
-  });
-
-  it('measures the arc from the rest bearing, not from dead ahead', () => {
-    const { bodies, index } = ship();
-    const turrets = new Turrets();
-    // A broadside mount: rest abeam, half a radian either side.
-    const t = turrets.add({
-      owner: index,
-      x: 0,
-      y: 5,
-      restBearing: PI / 2,
-      leftArc: 0.5,
-      rightArc: 0.5,
-      maxRate: 5,
-      maxAccel: 50,
-    });
-
-    turrets.commandWorldBearing(bodies, t, PI / 2 + 0.4);
-    expect(turrets.blocked[t]).toBe(0);
-    turrets.commandWorldBearing(bodies, t, 0);
-    expect(turrets.blocked[t]).toBe(1);
-    expect(turrets.commanded[t]).toBeCloseTo(PI / 2 - 0.5, 9);
-  });
-
-  it('traverses fully when the arc is a half turn or more', () => {
-    const { bodies, index } = ship();
-    const turrets = new Turrets();
-    const t = turrets.add({ owner: index, x: 0, y: 0, leftArc: PI, rightArc: PI, maxRate: 5, maxAccel: 50 });
-    for (const bearing of [0, 1, 3, -3, PI, -PI / 2]) {
-      turrets.commandWorldBearing(bodies, t, bearing);
-      expect(turrets.blocked[t]).toBe(0);
-    }
-  });
-
-  it('follows the hull, so the arc is body-relative', () => {
-    const { bodies, index } = ship(PI / 2);
-    const turrets = new Turrets();
-    const t = turrets.add({ owner: index, x: 0, y: 0, leftArc: 0.3, rightArc: 0.3, maxRate: 5, maxAccel: 50 });
-
-    // The ship faces +y, so dead ahead in world terms is pi/2.
-    turrets.commandWorldBearing(bodies, t, PI / 2);
-    expect(turrets.blocked[t]).toBe(0);
-    turrets.commandWorldBearing(bodies, t, 0);
-    expect(turrets.blocked[t]).toBe(1);
-  });
 });
 
-describe('reaction on the hull', () => {
-  it('yaws the ship the other way as the turret accelerates', () => {
-    const { bodies, index } = ship();
-    const turrets = new Turrets();
-    const t = turrets.add({
-      owner: index,
-      x: 0,
-      y: 0,
-      leftArc: 0.5,
-      rightArc: 0.5,
-      maxRate: 2,
-      maxAccel: 4,
-      inertia: 2000,
+describe("tracking", () => {
+    it("holds a crossing target far more closely than error alone would", () => {
+        // A target crossing at 300 m and 200 m/s. Measured honestly: command from
+        // where the target is, then advance the target and the turret over the same
+        // step, then ask whether the turret points at the target *now*. Comparing
+        // against the command it was given a step ago flatters whichever scheme
+        // happens to lag, which is how I got this backwards twice.
+        const run = (feedForward: boolean) => {
+            const { bodies, index } = ship();
+            const turrets = new Turrets();
+            const t = turrets.add({ owner: index, x: 0, y: 0, maxRate: 5, maxAccel: 50 });
+
+            let ty = -600;
+            let worst = 0;
+            for (let step = 0; step < 900; step++) {
+                const rangeSq = 300 * 300 + ty * ty;
+                turrets.commandWorldBearing(bodies, t, Math.atan2(ty, 300), feedForward ? (300 * 200) / rangeSq : 0);
+                ty += 200 * DT;
+                turrets.step(DT, bodies);
+                if (step > 300) {
+                    const trueBearing = Math.atan2(ty, 300);
+                    worst = Math.max(worst, Math.abs(angleDelta(turrets.bearing[t]!, trueBearing)));
+                }
+            }
+            return worst;
+        };
+
+        const withoutFF = run(false);
+        const withFF = run(true);
+        // Error correction alone always trails the target by about one step of its
+        // angular motion. Feed-forward removes that.
+        expect(withFF).toBeLessThan(withoutFF / 10);
     });
 
-    turrets.commandWorldBearing(bodies, t, 1);
-    bodies.clearForces();
-    turrets.step(DT, bodies);
+    it("holds a world bearing while its hull rotates under it", () => {
+        const bodies = new Bodies();
+        const id = bodies.create({ angle: 0, angularVel: 1.5, mass: 1000, inertia: 50_000 });
+        const index = bodies.indexOf(id);
+        const turrets = new Turrets();
+        const t = turrets.add({ owner: index, x: 0, y: 0, maxRate: 5, maxAccel: 50 });
 
-    // Turret accelerating anticlockwise pushes the hull clockwise.
-    expect(turrets.rate[t]!).toBeGreaterThan(0);
-    expect(bodies.torque[index]!).toBeLessThan(0);
-    // Magnitude is I·β̈.
-    expect(bodies.torque[index]!).toBeCloseTo(-2000 * (turrets.rate[t]! / DT), 6);
-  });
-
-  it('applies none when the turret has no inertia', () => {
-    const { bodies, index } = ship();
-    const turrets = new Turrets();
-    const t = turrets.add({ owner: index, x: 0, y: 0, maxRate: 2, maxAccel: 4 });
-    turrets.commandWorldBearing(bodies, t, 1);
-    bodies.clearForces();
-    turrets.step(DT, bodies);
-    expect(bodies.torque[index]).toBe(0);
-  });
-
-  it('applies none while holding a steady rate', () => {
-    const { bodies, index } = ship();
-    const turrets = new Turrets();
-    const t = turrets.add({
-      owner: index,
-      x: 0,
-      y: 0,
-      maxRate: 0.5,
-      maxAccel: 100,
-      inertia: 500,
+        // A ship spinning at 1.5 rad/s, turret asked to hold one bearing in world
+        // terms. Nothing about the command changes; only the hull moves.
+        //
+        // Order matters, and is the order the real loop uses: command from the
+        // current state, then advance hull and turret over the same step. Command
+        // from a hull that has already turned and the turret holds its bearing
+        // perfectly — one whole step of rotation behind where it was asked to point.
+        let worst = 0;
+        for (let step = 0; step < 600; step++) {
+            turrets.commandWorldBearing(bodies, t, PI / 4);
+            bodies.angle[index] = angleDelta(0, bodies.angle[index]! + 1.5 * DT);
+            turrets.step(DT, bodies);
+            if (step > 200) {
+                worst = Math.max(worst, Math.abs(angleDelta(turrets.worldBearing(bodies, t), PI / 4)));
+            }
+        }
+        // Counter-rotation is exact once both cover the same interval.
+        expect(worst).toBeLessThan(1e-9);
     });
-    turrets.commandWorldBearing(bodies, t, 3);
-    // Spin up, then check a mid-slew step at constant rate.
-    for (let i = 0; i < 10; i++) turrets.step(DT, bodies);
-    bodies.clearForces();
-    turrets.step(DT, bodies);
-    expect(Math.abs(bodies.torque[index]!)).toBeLessThan(1e-9);
-  });
+
+    it("stops sweeping when pinned against the edge of its arc", () => {
+        const { bodies, index } = ship();
+        const turrets = new Turrets();
+        const t = turrets.add({ owner: index, x: 0, y: 0, leftArc: 0.4, rightArc: 0.4, maxRate: 5, maxAccel: 50 });
+
+        // Commanded well outside the arc, and sweeping fast.
+        turrets.commandWorldBearing(bodies, t, 2, 3);
+        expect(turrets.blocked[t]).toBe(1);
+        // It should hold the arc limit, not keep driving into it.
+        expect(turrets.commandedRate[t]).toBe(0);
+        settle(turrets, bodies, t);
+        expect(Math.abs(angleDelta(turrets.bearing[t]!, 0.4))).toBeLessThanOrEqual(turrets.tolerance[t]!);
+    });
+
+    it("clamps a feed-forward rate to the traverse limit", () => {
+        const { bodies, index } = ship();
+        const turrets = new Turrets();
+        const t = turrets.add({ owner: index, x: 0, y: 0, leftArc: 0.4, rightArc: 0.4, maxRate: 2, maxAccel: 100 });
+        turrets.commandWorldBearing(bodies, t, 0, 50);
+        expect(turrets.commandedRate[t]).toBe(2);
+    });
 });
 
-describe('lead', () => {
-  it('needs no lead for a stationary target', () => {
-    expect(interceptTime(100, 0, 0, 0, 500)).toBeCloseTo(0.2, 12);
-  });
-
-  it('leads a crossing target', () => {
-    // Target 100 away, crossing at 100 m/s, shot at 500 m/s.
-    const t = interceptTime(100, 0, 0, 100, 500);
-    expect(t).toBeGreaterThan(0.2);
-    // The shot and the target must arrive at the same place.
-    const px = 100;
-    const py = 100 * t;
-    expect(Math.sqrt(px * px + py * py)).toBeCloseTo(500 * t, 6);
-  });
-
-  it('refuses a target running away faster than the shot', () => {
-    expect(interceptTime(100, 0, 600, 0, 500)).toBe(-1);
-  });
-
-  it('catches a target closing head-on', () => {
-    const t = interceptTime(1000, 0, -200, 0, 500);
-    expect(t).toBeGreaterThan(0);
-    expect(1000 - 200 * t).toBeCloseTo(500 * t, 6);
-  });
-
-  it('returns zero for a target already on top of the shooter', () => {
-    expect(interceptTime(0, 0, 50, 0, 500)).toBe(0);
-  });
-
-  it('leads with one velocity and tracks with another, when told two', () => {
-    // Where a thing will be in a second's flight and how fast the barrel has
-    // to turn right now are different questions. They have the same answer
-    // for a ship, and different answers for a point on a turning one: a part
-    // swinging round its hull sweeps the sky at a rate that says nothing
-    // about where the hull will be.
-    const { bodies, index } = ship();
-    const turrets = new Turrets();
-    const t = turrets.add({
-      owner: index,
-      x: 0,
-      y: 0,
-      maxRate: 10,
-      maxAccel: 100,
-      muzzleSpeed: 500,
+describe("traverse arcs", () => {
+    it("stops at the end of its arc, however hard the hull spins under it", () => {
+        // Counter-rotating to hold a world bearing, a mount reaches an end of its
+        // arc too fast to brake there. The end is a stop, not a suggestion: past
+        // it, the barrel used to coast on into the gap and out the other side,
+        // holding its bearing while the ship spun round beneath it.
+        const { bodies, index } = ship();
+        const turrets = new Turrets();
+        const arc = 2.6;
+        const t = turrets.add({ owner: index, x: 0, y: 0, leftArc: arc, rightArc: arc, maxRate: 2, maxAccel: 4 });
+        let worst = 0;
+        for (let step = 0; step < 3000; step++) {
+            bodies.angularVel[index] = 1;
+            turrets.commandWorldBearing(bodies, t, 1);
+            turrets.step(DT, bodies);
+            bodies.angle[index] = bodies.angle[index]! + DT;
+            worst = Math.max(worst, Math.abs(angleDelta(0, turrets.bearing[t]!)));
+        }
+        expect(worst).toBeLessThanOrEqual(arc + 1e-12);
     });
 
-    // Going nowhere, sweeping fast: no lead, but a barrel that has to move.
-    turrets.aimAt(bodies, t, 1000, 0, 0, 0, 0, 100);
-    expect(turrets.commanded[t]).toBeCloseTo(0, 9);
-    expect(turrets.commandedRate[t]).toBeGreaterThan(0);
+    it("bounds the port sweep with the left arc and the starboard sweep with the right", () => {
+        // The one thing a symmetric arc cannot test, and the reason to test it: a
+        // mount fouled to port must still train freely to starboard. With the two
+        // bounds swapped this passes every symmetric case and points every gun on
+        // an asymmetric ship at the wrong side of the ship.
+        const { bodies, index } = ship();
+        const turrets = new Turrets();
+        const t = turrets.add({
+            owner: index,
+            x: 0,
+            y: 0,
+            restBearing: 0,
+            leftArc: 0.2,
+            rightArc: 1.4,
+            maxRate: 5,
+            maxAccel: 50,
+        });
 
-    // Going somewhere, sweeping not at all: lead, and no tracking rate.
-    turrets.aimAt(bodies, t, 1000, 0, 0, 100, 0, 0);
-    expect(turrets.commanded[t]).toBeGreaterThan(0.1);
-    expect(turrets.commandedRate[t]).toBeCloseTo(0, 9);
-  });
+        // Anticlockwise is to port, and port is where the obstruction is.
+        turrets.commandWorldBearing(bodies, t, 1);
+        expect(turrets.blocked[t]).toBe(1);
+        expect(turrets.commanded[t]).toBeCloseTo(0.2, 9);
 
-  it('sweeps with the lead velocity when told only one', () => {
-    const { bodies, index } = ship();
-    const turrets = new Turrets();
-    const t = turrets.add({
-      owner: index,
-      x: 0,
-      y: 0,
-      maxRate: 10,
-      maxAccel: 100,
-      muzzleSpeed: 500,
-    });
-    turrets.aimAt(bodies, t, 1000, 0, 0, 100);
-    const commanded = turrets.commanded[t]!;
-    const rate = turrets.commandedRate[t]!;
-    turrets.aimAt(bodies, t, 1000, 0, 0, 100, 0, 100);
-    expect(turrets.commanded[t]).toBe(commanded);
-    expect(turrets.commandedRate[t]).toBe(rate);
-  });
-
-  it('aims ahead of a moving target', () => {
-    const { bodies, index } = ship();
-    const turrets = new Turrets();
-    const t = turrets.add({
-      owner: index,
-      x: 0,
-      y: 0,
-      maxRate: 10,
-      maxAccel: 100,
-      muzzleSpeed: 500,
+        // The same angle to starboard is inside the clear sector.
+        turrets.commandWorldBearing(bodies, t, -1);
+        expect(turrets.blocked[t]).toBe(0);
+        expect(turrets.commanded[t]).toBeCloseTo(-1, 9);
     });
 
-    // Target dead ahead at 300, crossing in +y.
-    const flight = turrets.aimAt(bodies, t, 300, 0, 0, 200);
-    expect(flight).toBeGreaterThan(0);
-    // So the turret must point above dead ahead.
-    expect(turrets.commanded[t]!).toBeGreaterThan(0.1);
+    it("reaches sky on the far side of what blocks it, the long way round", () => {
+        // A mount fouled on one beam has a clear sector wider than half a circle,
+        // so `firingArc` reports one bound above PI. `angleDelta` never reports a
+        // sweep that large, so such a bearing arrives here with the opposite sign
+        // and has to be recognised rather than clamped away.
+        const { bodies, index } = ship();
+        const turrets = new Turrets();
+        const t = turrets.add({
+            owner: index,
+            x: 0,
+            y: 0,
+            restBearing: 0,
+            leftArc: (63.4 * PI) / 180,
+            rightArc: (243.4 * PI) / 180,
+            maxRate: 5,
+            maxAccel: 50,
+        });
 
-    // A shot along the commanded bearing, for the computed flight time, must
-    // arrive where the target will be. Checked on the commanded bearing rather
-    // than after slewing: this is the lead geometry, not the mount's tracking.
-    const hitX = Math.cos(turrets.commanded[t]!) * 500 * flight;
-    const hitY = Math.sin(turrets.commanded[t]!) * 500 * flight;
-    expect(hitX).toBeCloseTo(300, 6);
-    expect(hitY).toBeCloseTo(200 * flight, 6);
-  });
-
-  it('aims at a moving target with a laser turret', () => {
-    const { bodies, index } = ship();
-    const turrets = new Turrets();
-    const t = turrets.add({
-      owner: index,
-      x: 0,
-      y: 0,
-      maxRate: 10,
-      maxAccel: 100,
-      muzzleSpeed: -1,
+        // 150° is clear — the block spans 63.4° to 116.6° — and is reached by
+        // turning right the long way rather than left the short way.
+        turrets.commandWorldBearing(bodies, t, (150 * PI) / 180);
+        expect(turrets.blocked[t]).toBe(0);
+        expect(turrets.commanded[t]! * (180 / PI)).toBeCloseTo(150, 6);
     });
 
-    // Target at 300, 300 (45 degrees), crossing in +y.
-    const flight = turrets.aimAt(bodies, t, 300, 300, 0, 200);
-    expect(flight).toBe(0);
-    // So the turret must is commanded to point at 45 degrees to the current position of the target.
-    expect(turrets.commanded[t]!).toBeCloseTo(0.25 * PI, 6);
-  });
-
-  it('aims at the present position when the target cannot be caught', () => {
-    const { bodies, index } = ship();
-    const turrets = new Turrets();
-    const t = turrets.add({
-      owner: index,
-      x: 0,
-      y: 0,
-      maxRate: 10,
-      maxAccel: 100,
-      muzzleSpeed: 100,
+    it("turns the way its arc allows, never through what blocks it", () => {
+        // Blocked astern, from 100° either side of the bow round to the stern.
+        // From 95° to -95° the short way is 170° across the stern; the arc's way
+        // is 190° across the bow, and that is the one a barrel can take.
+        const { bodies, index } = ship();
+        const turrets = new Turrets();
+        const arc = (100 * PI) / 180;
+        const t = turrets.add({ owner: index, x: 0, y: 0, restBearing: 0, leftArc: arc, rightArc: arc, maxRate: 2, maxAccel: 20 });
+        turrets.bearing[t] = (95 * PI) / 180;
+        turrets.commandWorldBearing(bodies, t, (-95 * PI) / 180);
+        let crossedBow = false;
+        for (let s = 0; s < 600; s++) {
+            turrets.step(DT, bodies);
+            const at = turrets.bearing[t]!;
+            expect(Math.abs(at)).toBeLessThanOrEqual(arc + 1e-9);
+            if (Math.abs(at) < 0.1) crossedBow = true;
+        }
+        expect(crossedBow).toBe(true);
+        expect(turrets.bearing[t]! * (180 / PI)).toBeCloseTo(-95, 3);
     });
 
-    const flight = turrets.aimAt(bodies, t, 0, 500, 0, 4000);
-    expect(flight).toBe(-1);
-    // Still tracking, at the target as it is now: straight up.
-    expect(turrets.commanded[t]!).toBeCloseTo(PI / 2, 6);
-  });
-
-  it('accounts for the firing ship own motion', () => {
-    // A ship moving with the target needs no lead at all.
-    const moving = ship(0, 0, 200);
-    const turrets = new Turrets();
-    const t = turrets.add({
-      owner: moving.index,
-      x: 0,
-      y: 0,
-      maxRate: 10,
-      maxAccel: 100,
-      muzzleSpeed: 500,
+    it("goes the long way round a lopsided arc to reach sky beyond its block", () => {
+        // The block spans 63.4° to 116.6°: from 30° to 150° is 120° through it, or
+        // 240° the other way round, which is the only way there is.
+        const { bodies, index } = ship();
+        const turrets = new Turrets();
+        const t = turrets.add({
+            owner: index,
+            x: 0,
+            y: 0,
+            restBearing: 0,
+            leftArc: (63.4 * PI) / 180,
+            rightArc: (243.4 * PI) / 180,
+            maxRate: 2,
+            maxAccel: 20,
+        });
+        turrets.bearing[t] = (30 * PI) / 180;
+        turrets.commandWorldBearing(bodies, t, (150 * PI) / 180);
+        for (let s = 0; s < 900; s++) {
+            turrets.step(DT, bodies);
+            const degrees = turrets.bearing[t]! * (180 / PI);
+            expect(degrees > 63.4 + 1e-6 && degrees < 116.6 - 1e-6).toBe(false);
+        }
+        expect(turrets.bearing[t]! * (180 / PI)).toBeCloseTo(150, 3);
     });
-    turrets.aimAt(moving.bodies, t, 300, 0, 0, 200);
-    expect(Math.abs(turrets.commanded[t]!)).toBeLessThan(1e-9);
-  });
+
+    it("stops at the near end of the arc, not whichever end the sign picks", () => {
+        // The difference only shows on a lopsided arc, and it is the difference
+        // between a barrel resting against what blocks it and a barrel that has
+        // crossed the ship to sit on the far side of the obstruction from its
+        // target.
+        const { bodies, index } = ship();
+        const turrets = new Turrets();
+        const t = turrets.add({
+            owner: index,
+            x: 0,
+            y: 0,
+            restBearing: 0,
+            leftArc: (63.4 * PI) / 180,
+            rightArc: (243.4 * PI) / 180,
+            maxRate: 5,
+            maxAccel: 50,
+        });
+
+        // 100° is inside the block. The two ends are 63.4° and 116.6°; the nearer
+        // is 116.6°, which is also the one with the target beyond it.
+        turrets.commandWorldBearing(bodies, t, (100 * PI) / 180);
+        expect(turrets.blocked[t]).toBe(1);
+        expect(turrets.commanded[t]! * (180 / PI)).toBeCloseTo(116.6, 1);
+
+        // And 70°, just inside the other end, stops at 63.4° rather than swinging
+        // the whole way round to 116.6°.
+        turrets.commandWorldBearing(bodies, t, (70 * PI) / 180);
+        expect(turrets.commanded[t]! * (180 / PI)).toBeCloseTo(63.4, 1);
+    });
+
+    it("holds at an end half a circle from rest, rather than going round through its block", () => {
+        // As the Survivor's corner turrets: free to half a circle one way, 0.36
+        // rad the other. Braking onto the end at half a circle, it overruns it by
+        // a hair, which read as nearly a full turn off it, and it went round
+        // again through the block to get back, over and over.
+        const { bodies, index } = ship();
+        const turrets = new Turrets();
+        const t = turrets.add({ owner: index, x: 0, y: 0, restBearing: 0, leftArc: PI, rightArc: 0.36, maxRate: 1, maxAccel: 0.5 });
+        for (let s = 0; s < 60 * 30; s++) {
+            turrets.commandWorldBearing(bodies, t, -1.79);
+            turrets.step(DT, bodies);
+            const at = turrets.bearing[t]!;
+            expect(at < -0.36 - 1e-6 && at > -PI + 0.01).toBe(false);
+        }
+        expect(Math.cos(turrets.bearing[t]!)).toBeCloseTo(-1, 4);
+    });
+
+    it("clamps a command outside the arc and reports it blocked", () => {
+        const { bodies, index } = ship();
+        const turrets = new Turrets();
+        const t = turrets.add({
+            owner: index,
+            x: 0,
+            y: 0,
+            restBearing: 0,
+            leftArc: 0.5,
+            rightArc: 0.5,
+            maxRate: 5,
+            maxAccel: 50,
+        });
+
+        turrets.commandWorldBearing(bodies, t, 2);
+        expect(turrets.blocked[t]).toBe(1);
+        expect(turrets.commanded[t]).toBeCloseTo(0.5, 9);
+
+        settle(turrets, bodies, t);
+        // On target, but still not allowed to shoot: both flags matter.
+        expect(turrets.onTarget[t]).toBe(1);
+        expect(turrets.readyToFire(t)).toBe(false);
+    });
+
+    it("accepts a command inside the arc", () => {
+        const { bodies, index } = ship();
+        const turrets = new Turrets();
+        const t = turrets.add({ owner: index, x: 0, y: 0, leftArc: 0.5, rightArc: 0.5, maxRate: 5, maxAccel: 50 });
+
+        turrets.commandWorldBearing(bodies, t, 0.3);
+        expect(turrets.blocked[t]).toBe(0);
+        settle(turrets, bodies, t);
+        expect(turrets.readyToFire(t)).toBe(true);
+    });
+
+    it("measures the arc from the rest bearing, not from dead ahead", () => {
+        const { bodies, index } = ship();
+        const turrets = new Turrets();
+        // A broadside mount: rest abeam, half a radian either side.
+        const t = turrets.add({
+            owner: index,
+            x: 0,
+            y: 5,
+            restBearing: PI / 2,
+            leftArc: 0.5,
+            rightArc: 0.5,
+            maxRate: 5,
+            maxAccel: 50,
+        });
+
+        turrets.commandWorldBearing(bodies, t, PI / 2 + 0.4);
+        expect(turrets.blocked[t]).toBe(0);
+        turrets.commandWorldBearing(bodies, t, 0);
+        expect(turrets.blocked[t]).toBe(1);
+        expect(turrets.commanded[t]).toBeCloseTo(PI / 2 - 0.5, 9);
+    });
+
+    it("traverses fully when the arc is a half turn or more", () => {
+        const { bodies, index } = ship();
+        const turrets = new Turrets();
+        const t = turrets.add({ owner: index, x: 0, y: 0, leftArc: PI, rightArc: PI, maxRate: 5, maxAccel: 50 });
+        for (const bearing of [0, 1, 3, -3, PI, -PI / 2]) {
+            turrets.commandWorldBearing(bodies, t, bearing);
+            expect(turrets.blocked[t]).toBe(0);
+        }
+    });
+
+    it("follows the hull, so the arc is body-relative", () => {
+        const { bodies, index } = ship(PI / 2);
+        const turrets = new Turrets();
+        const t = turrets.add({ owner: index, x: 0, y: 0, leftArc: 0.3, rightArc: 0.3, maxRate: 5, maxAccel: 50 });
+
+        // The ship faces +y, so dead ahead in world terms is pi/2.
+        turrets.commandWorldBearing(bodies, t, PI / 2);
+        expect(turrets.blocked[t]).toBe(0);
+        turrets.commandWorldBearing(bodies, t, 0);
+        expect(turrets.blocked[t]).toBe(1);
+    });
 });
 
-describe('firing solution', () => {
-  it('places the muzzle along the barrel from the mount', () => {
-    const { bodies, index } = ship();
-    const turrets = new Turrets();
-    const t = turrets.add({
-      owner: index,
-      x: 10,
-      y: 0,
-      maxRate: 5,
-      maxAccel: 50,
-      muzzleOffset: 3,
+describe("reaction on the hull", () => {
+    it("yaws the ship the other way as the turret accelerates", () => {
+        const { bodies, index } = ship();
+        const turrets = new Turrets();
+        const t = turrets.add({
+            owner: index,
+            x: 0,
+            y: 0,
+            leftArc: 0.5,
+            rightArc: 0.5,
+            maxRate: 2,
+            maxAccel: 4,
+            inertia: 2000,
+        });
+
+        turrets.commandWorldBearing(bodies, t, 1);
+        bodies.clearForces();
+        turrets.step(DT, bodies);
+
+        // Turret accelerating anticlockwise pushes the hull clockwise.
+        expect(turrets.rate[t]!).toBeGreaterThan(0);
+        expect(bodies.torque[index]!).toBeLessThan(0);
+        // Magnitude is I·β̈.
+        expect(bodies.torque[index]!).toBeCloseTo(-2000 * (turrets.rate[t]! / DT), 6);
     });
 
-    const solution = new FiringSolution();
-    turrets.firingSolution(bodies, t, solution);
-    // Mount at (10, 0), barrel along +x, muzzle 3 further out.
-    expect(solution.x).toBeCloseTo(13, 9);
-    expect(solution.y).toBeCloseTo(0, 9);
-    expect(solution.dirX).toBeCloseTo(1, 9);
-    expect(solution.dirY).toBeCloseTo(0, 9);
-  });
+    it("applies none when the turret has no inertia", () => {
+        const { bodies, index } = ship();
+        const turrets = new Turrets();
+        const t = turrets.add({ owner: index, x: 0, y: 0, maxRate: 2, maxAccel: 4 });
+        turrets.commandWorldBearing(bodies, t, 1);
+        bodies.clearForces();
+        turrets.step(DT, bodies);
+        expect(bodies.torque[index]).toBe(0);
+    });
 
-  it('rotates the mount with the hull', () => {
-    const { bodies, index } = ship(PI / 2);
-    const turrets = new Turrets();
-    const t = turrets.add({ owner: index, x: 10, y: 0, maxRate: 5, maxAccel: 50 });
-
-    const solution = new FiringSolution();
-    turrets.firingSolution(bodies, t, solution);
-    // The ship faces +y, so a mount 10 forward sits at (0, 10).
-    expect(solution.x).toBeCloseTo(0, 9);
-    expect(solution.y).toBeCloseTo(10, 9);
-    expect(solution.bearing).toBeCloseTo(PI / 2, 9);
-  });
-  it('keeps outlets that turn in their own places side by side across the mount', () => {
-    // A row of lenses, each on its own stalk: turning moves where each lens
-    // points, not where it stands.
-    const { bodies, index } = ship();
-    const turrets = new Turrets();
-    const fixed = turrets.add({ owner: index, x: 10, y: 0, maxRate: 5, maxAccel: 50, muzzleOffset: 1, outletsFixed: true });
-    const swung = turrets.add({ owner: index, x: 10, y: 0, maxRate: 5, maxAccel: 50, muzzleOffset: 1 });
-    for (const t of [fixed, swung]) turrets.bearing[t] = PI / 2;
-    const solution = new FiringSolution();
-    turrets.firingSolution(bodies, fixed, solution, 2);
-    expect(solution.x).toBeCloseTo(10, 9);
-    expect(solution.y).toBeCloseTo(3, 9);
-    turrets.firingSolution(bodies, swung, solution, 2);
-    expect(solution.x).toBeCloseTo(8, 9);
-    expect(solution.y).toBeCloseTo(1, 9);
-  });
+    it("applies none while holding a steady rate", () => {
+        const { bodies, index } = ship();
+        const turrets = new Turrets();
+        const t = turrets.add({
+            owner: index,
+            x: 0,
+            y: 0,
+            maxRate: 0.5,
+            maxAccel: 100,
+            inertia: 500,
+        });
+        turrets.commandWorldBearing(bodies, t, 3);
+        // Spin up, then check a mid-slew step at constant rate.
+        for (let i = 0; i < 10; i++) turrets.step(DT, bodies);
+        bodies.clearForces();
+        turrets.step(DT, bodies);
+        expect(Math.abs(bodies.torque[index]!)).toBeLessThan(1e-9);
+    });
 });
 
-describe('store housekeeping', () => {
-  it('starts on target and at rest', () => {
-    const { bodies, index } = ship();
-    const turrets = new Turrets();
-    const t = turrets.add({ owner: index, x: 0, y: 0, restBearing: 0.7, maxRate: 1, maxAccel: 1 });
-    expect(turrets.bearing[t]).toBeCloseTo(0.7, 12);
-    expect(turrets.onTarget[t]).toBe(1);
-    expect(turrets.readyToFire(t)).toBe(true);
-    void bodies;
-  });
+describe("lead", () => {
+    it("needs no lead for a stationary target", () => {
+        expect(interceptTime(100, 0, 0, 0, 500)).toBeCloseTo(0.2, 12);
+    });
 
-  it('returns to rest on command', () => {
-    const { bodies, index } = ship();
-    const turrets = new Turrets();
-    const t = turrets.add({ owner: index, x: 0, y: 0, maxRate: 5, maxAccel: 50 });
-    turrets.commandWorldBearing(bodies, t, 1.5);
-    settle(turrets, bodies, t);
-    turrets.returnToRest(t);
-    settle(turrets, bodies, t);
-    // Against the mount's own tolerance, not a fixed figure: a turret this
-    // brisk cannot point more finely than its discretisation allows.
-    expect(Math.abs(turrets.bearing[t]!)).toBeLessThanOrEqual(turrets.tolerance[t]!);
-    expect(turrets.onTarget[t]).toBe(1);
-  });
+    it("leads a crossing target", () => {
+        // Target 100 away, crossing at 100 m/s, shot at 500 m/s.
+        const t = interceptTime(100, 0, 0, 100, 500);
+        expect(t).toBeGreaterThan(0.2);
+        // The shot and the target must arrive at the same place.
+        const px = 100;
+        const py = 100 * t;
+        expect(Math.sqrt(px * px + py * py)).toBeCloseTo(500 * t, 6);
+    });
 
-  it('recycles removed slots and grows when needed', () => {
-    const { index } = ship();
-    const turrets = new Turrets(2);
-    const a = turrets.add({ owner: index, x: 0, y: 0, maxRate: 1, maxAccel: 1 });
-    turrets.add({ owner: index, x: 0, y: 0, maxRate: 1, maxAccel: 1 });
-    expect(turrets.count).toBe(2);
+    it("refuses a target running away faster than the shot", () => {
+        expect(interceptTime(100, 0, 600, 0, 500)).toBe(-1);
+    });
 
-    turrets.remove(a);
-    expect(turrets.count).toBe(1);
-    turrets.add({ owner: index, x: 0, y: 0, maxRate: 1, maxAccel: 1 });
-    expect(turrets.highWater).toBe(2);
+    it("catches a target closing head-on", () => {
+        const t = interceptTime(1000, 0, -200, 0, 500);
+        expect(t).toBeGreaterThan(0);
+        expect(1000 - 200 * t).toBeCloseTo(500 * t, 6);
+    });
 
-    for (let i = 0; i < 50; i++) turrets.add({ owner: index, x: 0, y: 0, maxRate: 1, maxAccel: 1 });
-    expect(turrets.count).toBe(52);
-  });
+    it("returns zero for a target already on top of the shooter", () => {
+        expect(interceptTime(0, 0, 50, 0, 500)).toBe(0);
+    });
 
-  it('skips removed turrets when stepping', () => {
-    const { bodies, index } = ship();
-    const turrets = new Turrets();
-    const t = turrets.add({ owner: index, x: 0, y: 0, maxRate: 5, maxAccel: 50, inertia: 100 });
-    turrets.commandWorldBearing(bodies, t, 2);
-    turrets.remove(t);
-    bodies.clearForces();
-    turrets.step(DT, bodies);
-    expect(bodies.torque[index]).toBe(0);
-    expect(turrets.readyToFire(t)).toBe(false);
-  });
+    it("leads with one velocity and tracks with another, when told two", () => {
+        // Where a thing will be in a second's flight and how fast the barrel has
+        // to turn right now are different questions. They have the same answer
+        // for a ship, and different answers for a point on a turning one: a part
+        // swinging round its hull sweeps the sky at a rate that says nothing
+        // about where the hull will be.
+        const { bodies, index } = ship();
+        const turrets = new Turrets();
+        const t = turrets.add({
+            owner: index,
+            x: 0,
+            y: 0,
+            maxRate: 10,
+            maxAccel: 100,
+            muzzleSpeed: 500,
+        });
+
+        // Going nowhere, sweeping fast: no lead, but a barrel that has to move.
+        turrets.aimAt(bodies, t, 1000, 0, 0, 0, 0, 100);
+        expect(turrets.commanded[t]).toBeCloseTo(0, 9);
+        expect(turrets.commandedRate[t]).toBeGreaterThan(0);
+
+        // Going somewhere, sweeping not at all: lead, and no tracking rate.
+        turrets.aimAt(bodies, t, 1000, 0, 0, 100, 0, 0);
+        expect(turrets.commanded[t]).toBeGreaterThan(0.1);
+        expect(turrets.commandedRate[t]).toBeCloseTo(0, 9);
+    });
+
+    it("sweeps with the lead velocity when told only one", () => {
+        const { bodies, index } = ship();
+        const turrets = new Turrets();
+        const t = turrets.add({
+            owner: index,
+            x: 0,
+            y: 0,
+            maxRate: 10,
+            maxAccel: 100,
+            muzzleSpeed: 500,
+        });
+        turrets.aimAt(bodies, t, 1000, 0, 0, 100);
+        const commanded = turrets.commanded[t]!;
+        const rate = turrets.commandedRate[t]!;
+        turrets.aimAt(bodies, t, 1000, 0, 0, 100, 0, 100);
+        expect(turrets.commanded[t]).toBe(commanded);
+        expect(turrets.commandedRate[t]).toBe(rate);
+    });
+
+    it("aims ahead of a moving target", () => {
+        const { bodies, index } = ship();
+        const turrets = new Turrets();
+        const t = turrets.add({
+            owner: index,
+            x: 0,
+            y: 0,
+            maxRate: 10,
+            maxAccel: 100,
+            muzzleSpeed: 500,
+        });
+
+        // Target dead ahead at 300, crossing in +y.
+        const flight = turrets.aimAt(bodies, t, 300, 0, 0, 200);
+        expect(flight).toBeGreaterThan(0);
+        // So the turret must point above dead ahead.
+        expect(turrets.commanded[t]!).toBeGreaterThan(0.1);
+
+        // A shot along the commanded bearing, for the computed flight time, must
+        // arrive where the target will be. Checked on the commanded bearing rather
+        // than after slewing: this is the lead geometry, not the mount's tracking.
+        const hitX = Math.cos(turrets.commanded[t]!) * 500 * flight;
+        const hitY = Math.sin(turrets.commanded[t]!) * 500 * flight;
+        expect(hitX).toBeCloseTo(300, 6);
+        expect(hitY).toBeCloseTo(200 * flight, 6);
+    });
+
+    it("aims at a moving target with a laser turret", () => {
+        const { bodies, index } = ship();
+        const turrets = new Turrets();
+        const t = turrets.add({
+            owner: index,
+            x: 0,
+            y: 0,
+            maxRate: 10,
+            maxAccel: 100,
+            muzzleSpeed: -1,
+        });
+
+        // Target at 300, 300 (45 degrees), crossing in +y.
+        const flight = turrets.aimAt(bodies, t, 300, 300, 0, 200);
+        expect(flight).toBe(0);
+        // So the turret must is commanded to point at 45 degrees to the current position of the target.
+        expect(turrets.commanded[t]!).toBeCloseTo(0.25 * PI, 6);
+    });
+
+    it("aims at the present position when the target cannot be caught", () => {
+        const { bodies, index } = ship();
+        const turrets = new Turrets();
+        const t = turrets.add({
+            owner: index,
+            x: 0,
+            y: 0,
+            maxRate: 10,
+            maxAccel: 100,
+            muzzleSpeed: 100,
+        });
+
+        const flight = turrets.aimAt(bodies, t, 0, 500, 0, 4000);
+        expect(flight).toBe(-1);
+        // Still tracking, at the target as it is now: straight up.
+        expect(turrets.commanded[t]!).toBeCloseTo(PI / 2, 6);
+    });
+
+    it("accounts for the firing ship own motion", () => {
+        // A ship moving with the target needs no lead at all.
+        const moving = ship(0, 0, 200);
+        const turrets = new Turrets();
+        const t = turrets.add({
+            owner: moving.index,
+            x: 0,
+            y: 0,
+            maxRate: 10,
+            maxAccel: 100,
+            muzzleSpeed: 500,
+        });
+        turrets.aimAt(moving.bodies, t, 300, 0, 0, 200);
+        expect(Math.abs(turrets.commanded[t]!)).toBeLessThan(1e-9);
+    });
+});
+
+describe("firing solution", () => {
+    it("places the muzzle along the barrel from the mount", () => {
+        const { bodies, index } = ship();
+        const turrets = new Turrets();
+        const t = turrets.add({
+            owner: index,
+            x: 10,
+            y: 0,
+            maxRate: 5,
+            maxAccel: 50,
+            muzzleOffset: 3,
+        });
+
+        const solution = new FiringSolution();
+        turrets.firingSolution(bodies, t, solution);
+        // Mount at (10, 0), barrel along +x, muzzle 3 further out.
+        expect(solution.x).toBeCloseTo(13, 9);
+        expect(solution.y).toBeCloseTo(0, 9);
+        expect(solution.dirX).toBeCloseTo(1, 9);
+        expect(solution.dirY).toBeCloseTo(0, 9);
+    });
+
+    it("rotates the mount with the hull", () => {
+        const { bodies, index } = ship(PI / 2);
+        const turrets = new Turrets();
+        const t = turrets.add({ owner: index, x: 10, y: 0, maxRate: 5, maxAccel: 50 });
+
+        const solution = new FiringSolution();
+        turrets.firingSolution(bodies, t, solution);
+        // The ship faces +y, so a mount 10 forward sits at (0, 10).
+        expect(solution.x).toBeCloseTo(0, 9);
+        expect(solution.y).toBeCloseTo(10, 9);
+        expect(solution.bearing).toBeCloseTo(PI / 2, 9);
+    });
+    it("keeps outlets that turn in their own places side by side across the mount", () => {
+        // A row of lenses, each on its own stalk: turning moves where each lens
+        // points, not where it stands.
+        const { bodies, index } = ship();
+        const turrets = new Turrets();
+        const fixed = turrets.add({ owner: index, x: 10, y: 0, maxRate: 5, maxAccel: 50, muzzleOffset: 1, outletsFixed: true });
+        const swung = turrets.add({ owner: index, x: 10, y: 0, maxRate: 5, maxAccel: 50, muzzleOffset: 1 });
+        for (const t of [fixed, swung]) turrets.bearing[t] = PI / 2;
+        const solution = new FiringSolution();
+        turrets.firingSolution(bodies, fixed, solution, 2);
+        expect(solution.x).toBeCloseTo(10, 9);
+        expect(solution.y).toBeCloseTo(3, 9);
+        turrets.firingSolution(bodies, swung, solution, 2);
+        expect(solution.x).toBeCloseTo(8, 9);
+        expect(solution.y).toBeCloseTo(1, 9);
+    });
+});
+
+describe("store housekeeping", () => {
+    it("starts on target and at rest", () => {
+        const { bodies, index } = ship();
+        const turrets = new Turrets();
+        const t = turrets.add({ owner: index, x: 0, y: 0, restBearing: 0.7, maxRate: 1, maxAccel: 1 });
+        expect(turrets.bearing[t]).toBeCloseTo(0.7, 12);
+        expect(turrets.onTarget[t]).toBe(1);
+        expect(turrets.readyToFire(t)).toBe(true);
+        void bodies;
+    });
+
+    it("returns to rest on command", () => {
+        const { bodies, index } = ship();
+        const turrets = new Turrets();
+        const t = turrets.add({ owner: index, x: 0, y: 0, maxRate: 5, maxAccel: 50 });
+        turrets.commandWorldBearing(bodies, t, 1.5);
+        settle(turrets, bodies, t);
+        turrets.returnToRest(t);
+        settle(turrets, bodies, t);
+        // Against the mount's own tolerance, not a fixed figure: a turret this
+        // brisk cannot point more finely than its discretisation allows.
+        expect(Math.abs(turrets.bearing[t]!)).toBeLessThanOrEqual(turrets.tolerance[t]!);
+        expect(turrets.onTarget[t]).toBe(1);
+    });
+
+    it("recycles removed slots and grows when needed", () => {
+        const { index } = ship();
+        const turrets = new Turrets(2);
+        const a = turrets.add({ owner: index, x: 0, y: 0, maxRate: 1, maxAccel: 1 });
+        turrets.add({ owner: index, x: 0, y: 0, maxRate: 1, maxAccel: 1 });
+        expect(turrets.count).toBe(2);
+
+        turrets.remove(a);
+        expect(turrets.count).toBe(1);
+        turrets.add({ owner: index, x: 0, y: 0, maxRate: 1, maxAccel: 1 });
+        expect(turrets.highWater).toBe(2);
+
+        for (let i = 0; i < 50; i++) turrets.add({ owner: index, x: 0, y: 0, maxRate: 1, maxAccel: 1 });
+        expect(turrets.count).toBe(52);
+    });
+
+    it("skips removed turrets when stepping", () => {
+        const { bodies, index } = ship();
+        const turrets = new Turrets();
+        const t = turrets.add({ owner: index, x: 0, y: 0, maxRate: 5, maxAccel: 50, inertia: 100 });
+        turrets.commandWorldBearing(bodies, t, 2);
+        turrets.remove(t);
+        bodies.clearForces();
+        turrets.step(DT, bodies);
+        expect(bodies.torque[index]).toBe(0);
+        expect(turrets.readyToFire(t)).toBe(false);
+    });
 });

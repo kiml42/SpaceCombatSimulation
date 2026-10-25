@@ -1,6 +1,6 @@
-import { type Battle } from './types.js';
-import { fleetBattle } from './fleetBattle.js';
-import { LINE_OF_BATTLE } from './fleets.js';
+import { type Battle } from "./types.js";
+import { fleetBattle } from "./fleetBattle.js";
+import { LINE_OF_BATTLE } from "./fleets.js";
 
 /**
  * Two fleets inside each other's reach, and **not one order between them**.
@@ -22,7 +22,7 @@ import { LINE_OF_BATTLE } from './fleets.js';
  * doctrine rather than the geometry.
  */
 export function standoff(seed = 20260905): Battle {
-  // A kilometre apart, which is under two seconds of flight for the guns these
-  // ships carry: comfortably a fight, if anyone decides to have one.
-  return fleetBattle([LINE_OF_BATTLE, LINE_OF_BATTLE], { seed, projectiles: 256, beams: 64, range: 1000 });
+    // A kilometre apart, which is under two seconds of flight for the guns these
+    // ships carry: comfortably a fight, if anyone decides to have one.
+    return fleetBattle([LINE_OF_BATTLE, LINE_OF_BATTLE], { seed, projectiles: 256, beams: 64, range: 1000 });
 }

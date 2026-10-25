@@ -1,9 +1,9 @@
-import { abs, cos, max, min, sin, sqrt } from './math.js';
-import { shapeOf } from './shape.js';
-import type { DesignModule, ShipDesign } from './blueprint.js';
-import type { Bodies } from './bodies.js';
-import type { Rng } from './rng.js';
-import { segmentCircleT, type RayNarrowPhase } from './spatialGrid.js';
+import { abs, cos, max, min, sin, sqrt } from "./math.js";
+import { shapeOf } from "./shape.js";
+import type { DesignModule, ShipDesign } from "./blueprint.js";
+import type { Bodies } from "./bodies.js";
+import type { Rng } from "./rng.js";
+import { segmentCircleT, type RayNarrowPhase } from "./spatialGrid.js";
 
 /**
  * What a shot meets inside a ship: the modules a line crosses, in the order it
@@ -35,84 +35,84 @@ import { segmentCircleT, type RayNarrowPhase } from './spatialGrid.js';
  * this is walked once per round that arrives, and a fleet action arrives a lot.
  */
 export class HullPath {
-  /** Index into `ShipDesign.modules`, in the order the segment meets them. */
-  module: Int32Array;
-  /** Distance along the segment at which the module's box is entered, metres. */
-  entry: Float64Array;
-  /** Distance at which it is left. `exit - entry` is the path through it. */
-  exit: Float64Array;
-  /**
-   * Outward unit normal of the face the segment enters by, in the ship's
-   * frame — what decides incidence, and therefore whether a shot skids off.
-   *
-   * Outward means out of the module, so a round arriving from outside meets a
-   * normal pointing back at it: the dot product of the round's direction with
-   * this is negative for any real impact.
-   */
-  nx: Float64Array;
-  ny: Float64Array;
-  count = 0;
+    /** Index into `ShipDesign.modules`, in the order the segment meets them. */
+    module: Int32Array;
+    /** Distance along the segment at which the module's box is entered, metres. */
+    entry: Float64Array;
+    /** Distance at which it is left. `exit - entry` is the path through it. */
+    exit: Float64Array;
+    /**
+     * Outward unit normal of the face the segment enters by, in the ship's
+     * frame — what decides incidence, and therefore whether a shot skids off.
+     *
+     * Outward means out of the module, so a round arriving from outside meets a
+     * normal pointing back at it: the dot product of the round's direction with
+     * this is negative for any real impact.
+     */
+    nx: Float64Array;
+    ny: Float64Array;
+    count = 0;
 
-  constructor(capacity = 16) {
-    this.module = new Int32Array(capacity);
-    this.entry = new Float64Array(capacity);
-    this.exit = new Float64Array(capacity);
-    this.nx = new Float64Array(capacity);
-    this.ny = new Float64Array(capacity);
-  }
-
-  clear(): void {
-    this.count = 0;
-  }
-
-  /** Room for one more, growing the arrays if this is the first time. */
-  private reserve(): void {
-    if (this.count < this.module.length) return;
-    const size = this.module.length * 2;
-    const next = new Int32Array(size);
-    next.set(this.module);
-    this.module = next;
-    const f64 = (old: Float64Array): Float64Array => {
-      const grown = new Float64Array(size);
-      grown.set(old);
-      return grown;
-    };
-    this.entry = f64(this.entry);
-    this.exit = f64(this.exit);
-    this.nx = f64(this.nx);
-    this.ny = f64(this.ny);
-  }
-
-  /**
-   * Add a crossing, keeping the list sorted by where it starts.
-   *
-   * An insertion sort as they are found, rather than a sort afterwards: a
-   * round crosses a handful of modules out of a ship's dozens, so the list
-   * being built is short, and inserting into it needs no comparator, no
-   * allocation and no assumption about the engine's sort being stable. Ties —
-   * two modules whose faces a round enters at exactly the same distance,
-   * which abutting hull plates make ordinary rather than freakish — keep the
-   * order the design lists them in, which is the layout's own order and the
-   * same on every machine.
-   */
-  push(module: number, entry: number, exit: number, nx: number, ny: number): void {
-    this.reserve();
-    let at = this.count;
-    while (at > 0 && this.entry[at - 1]! > entry) {
-      this.module[at] = this.module[at - 1]!;
-      this.entry[at] = this.entry[at - 1]!;
-      this.exit[at] = this.exit[at - 1]!;
-      this.nx[at] = this.nx[at - 1]!;
-      this.ny[at] = this.ny[at - 1]!;
-      at--;
+    constructor(capacity = 16) {
+        this.module = new Int32Array(capacity);
+        this.entry = new Float64Array(capacity);
+        this.exit = new Float64Array(capacity);
+        this.nx = new Float64Array(capacity);
+        this.ny = new Float64Array(capacity);
     }
-    this.module[at] = module;
-    this.entry[at] = entry;
-    this.exit[at] = exit;
-    this.nx[at] = nx;
-    this.ny[at] = ny;
-    this.count++;
-  }
+
+    clear(): void {
+        this.count = 0;
+    }
+
+    /** Room for one more, growing the arrays if this is the first time. */
+    private reserve(): void {
+        if (this.count < this.module.length) return;
+        const size = this.module.length * 2;
+        const next = new Int32Array(size);
+        next.set(this.module);
+        this.module = next;
+        const f64 = (old: Float64Array): Float64Array => {
+            const grown = new Float64Array(size);
+            grown.set(old);
+            return grown;
+        };
+        this.entry = f64(this.entry);
+        this.exit = f64(this.exit);
+        this.nx = f64(this.nx);
+        this.ny = f64(this.ny);
+    }
+
+    /**
+     * Add a crossing, keeping the list sorted by where it starts.
+     *
+     * An insertion sort as they are found, rather than a sort afterwards: a
+     * round crosses a handful of modules out of a ship's dozens, so the list
+     * being built is short, and inserting into it needs no comparator, no
+     * allocation and no assumption about the engine's sort being stable. Ties —
+     * two modules whose faces a round enters at exactly the same distance,
+     * which abutting hull plates make ordinary rather than freakish — keep the
+     * order the design lists them in, which is the layout's own order and the
+     * same on every machine.
+     */
+    push(module: number, entry: number, exit: number, nx: number, ny: number): void {
+        this.reserve();
+        let at = this.count;
+        while (at > 0 && this.entry[at - 1]! > entry) {
+            this.module[at] = this.module[at - 1]!;
+            this.entry[at] = this.entry[at - 1]!;
+            this.exit[at] = this.exit[at - 1]!;
+            this.nx[at] = this.nx[at - 1]!;
+            this.ny[at] = this.ny[at - 1]!;
+            at--;
+        }
+        this.module[at] = module;
+        this.entry[at] = entry;
+        this.exit[at] = exit;
+        this.nx[at] = nx;
+        this.ny[at] = ny;
+        this.count++;
+    }
 }
 
 /**
@@ -120,7 +120,7 @@ export class HullPath {
  * own frame. A `ShipDesign` is one, and so is a design still being compiled.
  */
 export interface Boxes {
-  readonly modules: readonly DesignModule[];
+    readonly modules: readonly DesignModule[];
 }
 
 /**
@@ -148,124 +148,124 @@ export interface Boxes {
  * would only add a second set of arithmetic to nearly every one of them.
  */
 export function modulesAlong(
-  design: Boxes,
-  x0: number,
-  y0: number,
-  x1: number,
-  y1: number,
-  out: HullPath,
-  layers = BOTH_LAYERS,
-  skip = -1,
-  bodyLayers = OWN_LAYERS,
+    design: Boxes,
+    x0: number,
+    y0: number,
+    x1: number,
+    y1: number,
+    out: HullPath,
+    layers = BOTH_LAYERS,
+    skip = -1,
+    bodyLayers = OWN_LAYERS,
 ): void {
-  out.clear();
-  const dx = x1 - x0;
-  const dy = y1 - y0;
-  const length = sqrt(dx * dx + dy * dy);
-  if (!(length > 0)) return;
-  // Unit direction, so the distances come out in metres.
-  const ux = dx / length;
-  const uy = dy / length;
+    out.clear();
+    const dx = x1 - x0;
+    const dy = y1 - y0;
+    const length = sqrt(dx * dx + dy * dy);
+    if (!(length > 0)) return;
+    // Unit direction, so the distances come out in metres.
+    const ux = dx / length;
+    const uy = dy / length;
 
-  for (let i = 0; i < design.modules.length; i++) {
-    const m = design.modules[i]!;
-    if (i === skip || (moduleLayers(m, bodyLayers) & layers) === 0) continue;
-    const triangle = shapeOf(m.spec);
-    if (passesWide(m, triangle, x0, y0, ux, uy, length)) continue;
-    if (triangle !== null) {
-      shapedModuleAlong(m, triangle, i, x0, y0, ux, uy, length, out);
-      continue;
+    for (let i = 0; i < design.modules.length; i++) {
+        const m = design.modules[i]!;
+        if (i === skip || (moduleLayers(m, bodyLayers) & layers) === 0) continue;
+        const triangle = shapeOf(m.spec);
+        if (passesWide(m, triangle, x0, y0, ux, uy, length)) continue;
+        if (triangle !== null) {
+            shapedModuleAlong(m, triangle, i, x0, y0, ux, uy, length, out);
+            continue;
+        }
+        const c = cos(m.angle);
+        const s = sin(m.angle);
+
+        // The segment in the module's own frame, where its box is axis-aligned.
+        const ox = x0 - m.x;
+        const oy = y0 - m.y;
+        const px = ox * c + oy * s;
+        const py = -ox * s + oy * c;
+        const vx = ux * c + uy * s;
+        const vy = -ux * s + uy * c;
+
+        const hl = m.spec.length * 0.5;
+        const hw = m.spec.width * 0.5;
+
+        // One slab per axis. The face that decides entry is the one entered last,
+        // which is what makes the normal fall out of the same comparison.
+        let near = 0;
+        let far = length;
+        let axis = 0;
+        let sign = 0;
+
+        // x slab
+        if (abs(vx) < EDGE_ON) {
+            // Parallel to the slab: either inside it for the whole segment or never.
+            // The faces themselves count as outside, so a shot running exactly along
+            // one goes past rather than through — the same rule that stops two
+            // modules merely touching from overlapping.
+            if (px <= -hl || px >= hl) continue;
+        } else {
+            const inv = 1 / vx;
+            let t0 = (-hl - px) * inv;
+            let t1 = (hl - px) * inv;
+            const face = inv > 0 ? -1 : 1;
+            if (t0 > t1) {
+                const swap = t0;
+                t0 = t1;
+                t1 = swap;
+            }
+            if (t0 > near) {
+                near = t0;
+                axis = 1;
+                sign = face;
+            }
+            far = min(far, t1);
+            if (near > far) continue;
+        }
+
+        // y slab
+        if (abs(vy) < EDGE_ON) {
+            if (py <= -hw || py >= hw) continue;
+        } else {
+            const inv = 1 / vy;
+            let t0 = (-hw - py) * inv;
+            let t1 = (hw - py) * inv;
+            const face = inv > 0 ? -1 : 1;
+            if (t0 > t1) {
+                const swap = t0;
+                t0 = t1;
+                t1 = swap;
+            }
+            if (t0 > near) {
+                near = t0;
+                axis = 2;
+                sign = face;
+            }
+            far = min(far, t1);
+            if (near > far) continue;
+        }
+
+        if (far < 0) continue;
+        const entry = max(near, 0);
+        const exit = min(far, length);
+        // A segment that only grazes a corner or runs along a face crosses no
+        // matter, and reporting it would hand the damage model a module to spend
+        // a shot on that the shot never went through.
+        if (!(exit > entry)) continue;
+
+        // The face entered by, back in the ship's frame. A segment that began
+        // inside the box entered by no face at all, and says so with a zero
+        // normal rather than with whichever slab happened to compare first.
+        let nx = 0;
+        let ny = 0;
+        if (near > 0 && axis !== 0) {
+            const lx = axis === 1 ? sign : 0;
+            const ly = axis === 2 ? sign : 0;
+            nx = lx * c - ly * s;
+            ny = lx * s + ly * c;
+        }
+        out.push(i, entry, exit, nx, ny);
     }
-    const c = cos(m.angle);
-    const s = sin(m.angle);
-
-    // The segment in the module's own frame, where its box is axis-aligned.
-    const ox = x0 - m.x;
-    const oy = y0 - m.y;
-    const px = ox * c + oy * s;
-    const py = -ox * s + oy * c;
-    const vx = ux * c + uy * s;
-    const vy = -ux * s + uy * c;
-
-    const hl = m.spec.length * 0.5;
-    const hw = m.spec.width * 0.5;
-
-    // One slab per axis. The face that decides entry is the one entered last,
-    // which is what makes the normal fall out of the same comparison.
-    let near = 0;
-    let far = length;
-    let axis = 0;
-    let sign = 0;
-
-    // x slab
-    if (abs(vx) < EDGE_ON) {
-      // Parallel to the slab: either inside it for the whole segment or never.
-      // The faces themselves count as outside, so a shot running exactly along
-      // one goes past rather than through — the same rule that stops two
-      // modules merely touching from overlapping.
-      if (px <= -hl || px >= hl) continue;
-    } else {
-      const inv = 1 / vx;
-      let t0 = (-hl - px) * inv;
-      let t1 = (hl - px) * inv;
-      const face = inv > 0 ? -1 : 1;
-      if (t0 > t1) {
-        const swap = t0;
-        t0 = t1;
-        t1 = swap;
-      }
-      if (t0 > near) {
-        near = t0;
-        axis = 1;
-        sign = face;
-      }
-      far = min(far, t1);
-      if (near > far) continue;
-    }
-
-    // y slab
-    if (abs(vy) < EDGE_ON) {
-      if (py <= -hw || py >= hw) continue;
-    } else {
-      const inv = 1 / vy;
-      let t0 = (-hw - py) * inv;
-      let t1 = (hw - py) * inv;
-      const face = inv > 0 ? -1 : 1;
-      if (t0 > t1) {
-        const swap = t0;
-        t0 = t1;
-        t1 = swap;
-      }
-      if (t0 > near) {
-        near = t0;
-        axis = 2;
-        sign = face;
-      }
-      far = min(far, t1);
-      if (near > far) continue;
-    }
-
-    if (far < 0) continue;
-    const entry = max(near, 0);
-    const exit = min(far, length);
-    // A segment that only grazes a corner or runs along a face crosses no
-    // matter, and reporting it would hand the damage model a module to spend
-    // a shot on that the shot never went through.
-    if (!(exit > entry)) continue;
-
-    // The face entered by, back in the ship's frame. A segment that began
-    // inside the box entered by no face at all, and says so with a zero
-    // normal rather than with whichever slab happened to compare first.
-    let nx = 0;
-    let ny = 0;
-    if (near > 0 && axis !== 0) {
-      const lx = axis === 1 ? sign : 0;
-      const ly = axis === 2 ? sign : 0;
-      nx = lx * c - ly * s;
-      ny = lx * s + ly * c;
-    }
-    out.push(i, entry, exit, nx, ny);
-  }
 }
 
 /**
@@ -273,27 +273,27 @@ export function modulesAlong(
  * cross it: what spares most modules of a big ship the trigonometry.
  */
 function passesWide(
-  m: DesignModule,
-  corners: readonly number[] | null,
-  x0: number,
-  y0: number,
-  ux: number,
-  uy: number,
-  length: number,
+    m: DesignModule,
+    corners: readonly number[] | null,
+    x0: number,
+    y0: number,
+    ux: number,
+    uy: number,
+    length: number,
 ): boolean {
-  let r2 = 0;
-  if (corners === null) {
-    r2 = (m.spec.length * m.spec.length + m.spec.width * m.spec.width) * 0.25;
-  } else {
-    for (let v = 0; v < corners.length; v += 2) r2 = max(r2, corners[v]! * corners[v]! + corners[v + 1]! * corners[v + 1]!);
-  }
-  const ox = m.x - x0;
-  const oy = m.y - y0;
-  const t = min(max(ox * ux + oy * uy, 0), length);
-  const ex = ox - ux * t;
-  const ey = oy - uy * t;
-  // Generous by far more than rounding, so only a clear miss is skipped.
-  return ex * ex + ey * ey > r2 * (1 + 1e-6) + 1e-6;
+    let r2 = 0;
+    if (corners === null) {
+        r2 = (m.spec.length * m.spec.length + m.spec.width * m.spec.width) * 0.25;
+    } else {
+        for (let v = 0; v < corners.length; v += 2) r2 = max(r2, corners[v]! * corners[v]! + corners[v + 1]! * corners[v + 1]!);
+    }
+    const ox = m.x - x0;
+    const oy = m.y - y0;
+    const t = min(max(ox * ux + oy * uy, 0), length);
+    const ex = ox - ux * t;
+    const ey = oy - uy * t;
+    // Generous by far more than rounding, so only a clear miss is skipped.
+    return ex * ex + ey * ey > r2 * (1 + 1e-6) + 1e-6;
 }
 
 /**
@@ -313,75 +313,75 @@ function passesWide(
  * crossing of no length is not reported at all.
  */
 function shapedModuleAlong(
-  m: DesignModule,
-  triangle: readonly number[],
-  index: number,
-  x0: number,
-  y0: number,
-  ux: number,
-  uy: number,
-  length: number,
-  out: HullPath,
+    m: DesignModule,
+    triangle: readonly number[],
+    index: number,
+    x0: number,
+    y0: number,
+    ux: number,
+    uy: number,
+    length: number,
+    out: HullPath,
 ): void {
-  const c = cos(m.angle);
-  const s = sin(m.angle);
-  // The segment in the module's own frame, where its corners are written.
-  const ox = x0 - m.x;
-  const oy = y0 - m.y;
-  const px = ox * c + oy * s;
-  const py = -ox * s + oy * c;
-  const vx = ux * c + uy * s;
-  const vy = -ux * s + uy * c;
+    const c = cos(m.angle);
+    const s = sin(m.angle);
+    // The segment in the module's own frame, where its corners are written.
+    const ox = x0 - m.x;
+    const oy = y0 - m.y;
+    const px = ox * c + oy * s;
+    const py = -ox * s + oy * c;
+    const vx = ux * c + uy * s;
+    const vy = -ux * s + uy * c;
 
-  let near = 0;
-  let far = length;
-  let nlx = 0;
-  let nly = 0;
-  let entered = false;
+    let near = 0;
+    let far = length;
+    let nlx = 0;
+    let nly = 0;
+    let entered = false;
 
-  for (let e = 0; e < triangle.length; e += 2) {
-    const j = (e + 2) % triangle.length;
-    const ex = triangle[j]! - triangle[e]!;
-    const ey = triangle[j + 1]! - triangle[e + 1]!;
-    const span = sqrt(ex * ex + ey * ey);
-    if (!(span > 0)) return;
-    // Anticlockwise winding puts the outside to the right of every edge.
-    const nx = ey / span;
-    const ny = -ex / span;
-    // How far outside this edge the segment starts, and how fast it closes.
-    const outside = (px - triangle[e]!) * nx + (py - triangle[e + 1]!) * ny;
-    const closing = vx * nx + vy * ny;
+    for (let e = 0; e < triangle.length; e += 2) {
+        const j = (e + 2) % triangle.length;
+        const ex = triangle[j]! - triangle[e]!;
+        const ey = triangle[j + 1]! - triangle[e + 1]!;
+        const span = sqrt(ex * ex + ey * ey);
+        if (!(span > 0)) return;
+        // Anticlockwise winding puts the outside to the right of every edge.
+        const nx = ey / span;
+        const ny = -ex / span;
+        // How far outside this edge the segment starts, and how fast it closes.
+        const outside = (px - triangle[e]!) * nx + (py - triangle[e + 1]!) * ny;
+        const closing = vx * nx + vy * ny;
 
-    if (abs(closing) < EDGE_ON) {
-      // Parallel to the edge: outside it for the whole segment, or inside for
-      // all of it. The edge itself counts as outside.
-      if (outside >= 0) return;
-      continue;
+        if (abs(closing) < EDGE_ON) {
+            // Parallel to the edge: outside it for the whole segment, or inside for
+            // all of it. The edge itself counts as outside.
+            if (outside >= 0) return;
+            continue;
+        }
+        const t = -outside / closing;
+        if (closing < 0) {
+            // Crossing inwards: the latest such crossing is where the module starts.
+            if (t > near) {
+                near = t;
+                nlx = nx;
+                nly = ny;
+                entered = true;
+            }
+        } else {
+            far = min(far, t);
+        }
+        if (near > far) return;
     }
-    const t = -outside / closing;
-    if (closing < 0) {
-      // Crossing inwards: the latest such crossing is where the module starts.
-      if (t > near) {
-        near = t;
-        nlx = nx;
-        nly = ny;
-        entered = true;
-      }
-    } else {
-      far = min(far, t);
-    }
-    if (near > far) return;
-  }
 
-  if (far < 0) return;
-  const entry = max(near, 0);
-  const exit = min(far, length);
-  if (!(exit > entry)) return;
+    if (far < 0) return;
+    const entry = max(near, 0);
+    const exit = min(far, length);
+    if (!(exit > entry)) return;
 
-  // The face entered by, back in the ship's frame. A segment that began inside
-  // entered by no face at all, and says so with a zero normal.
-  const faced = entered && near > 0;
-  out.push(index, entry, exit, faced ? nlx * c - nly * s : 0, faced ? nlx * s + nly * c : 0);
+    // The face entered by, back in the ship's frame. A segment that began inside
+    // entered by no face at all, and says so with a zero normal.
+    const faced = entered && near > 0;
+    out.push(index, entry, exit, faced ? nlx * c - nly * s : 0, faced ? nlx * s + nly * c : 0);
 }
 
 /**
@@ -404,33 +404,33 @@ const EDGE_ON = 1e-6;
  * unhittable.
  */
 export interface HullDesigns {
-  designOf(bodyIndex: number): ShipDesign | null;
-  /** The layers every module of this body is in, or `OWN_LAYERS` to leave each its own. */
-  layersOf?(bodyIndex: number): number;
-  /**
-   * The body a fighter parked on a pad is pinned to, which moves for it when
-   * something meets it; -1 for a body not parked.
-   */
-  carrierOf?(bodyIndex: number): number;
-  /** How much of a module's interior is fuel, 0 to 1, for what a round has to get through. */
-  fuelDepth?(bodyIndex: number, module: number): number;
-  /**
-   * A round of `calibre` has gone through a face of a module that is open to
-   * space, at `(x, y)` with outward normal `(nx, ny)` in the hull's frame. The
-   * module's integrity was `integrity` before the round reached it, and `rng`
-   * is what decides whether the hole is left open.
-   */
-  holed?(
-    bodyIndex: number,
-    module: number,
-    integrity: number,
-    x: number,
-    y: number,
-    nx: number,
-    ny: number,
-    calibre: number,
-    rng: Rng,
-  ): void;
+    designOf(bodyIndex: number): ShipDesign | null;
+    /** The layers every module of this body is in, or `OWN_LAYERS` to leave each its own. */
+    layersOf?(bodyIndex: number): number;
+    /**
+     * The body a fighter parked on a pad is pinned to, which moves for it when
+     * something meets it; -1 for a body not parked.
+     */
+    carrierOf?(bodyIndex: number): number;
+    /** How much of a module's interior is fuel, 0 to 1, for what a round has to get through. */
+    fuelDepth?(bodyIndex: number, module: number): number;
+    /**
+     * A round of `calibre` has gone through a face of a module that is open to
+     * space, at `(x, y)` with outward normal `(nx, ny)` in the hull's frame. The
+     * module's integrity was `integrity` before the round reached it, and `rng`
+     * is what decides whether the hole is left open.
+     */
+    holed?(
+        bodyIndex: number,
+        module: number,
+        integrity: number,
+        x: number,
+        y: number,
+        nx: number,
+        ny: number,
+        calibre: number,
+        rng: Rng,
+    ): void;
 }
 
 /** The deck and below. */
@@ -443,8 +443,8 @@ export const OWN_LAYERS = -1;
 
 /** Which layers a module is in: the whole ship's, where it has one, else its own. */
 export function moduleLayers(m: { readonly weaponsLayer: boolean }, bodyLayers: number): number {
-  if (bodyLayers !== OWN_LAYERS) return bodyLayers;
-  return m.weaponsLayer ? BOTH_LAYERS : HULL_LAYER;
+    if (bodyLayers !== OWN_LAYERS) return bodyLayers;
+    return m.weaponsLayer ? BOTH_LAYERS : HULL_LAYER;
 }
 
 /**
@@ -456,8 +456,8 @@ export function moduleLayers(m: { readonly weaponsLayer: boolean }, bodyLayers: 
  * it has gone, which is how a beam ship kills anything at all.
  */
 export interface LiveModules {
-  /** 0 stops all of it, 1 lets all of it through. */
-  transparency(bodyIndex: number, module: number): number;
+    /** 0 stops all of it, 1 lets all of it through. */
+    transparency(bodyIndex: number, module: number): number;
 }
 
 /**
@@ -477,169 +477,169 @@ export interface LiveModules {
  * the caller asks once, about the winner.
  */
 export class Hulls implements RayNarrowPhase {
-  private readonly path = new HullPath();
-  /** The module struck by the last `describe`, or -1 if it missed. */
-  module = -1;
-  /** Outward normal of the face it was entered by, in the **world** frame. */
-  nx = 0;
-  ny = 0;
+    private readonly path = new HullPath();
+    /** The module struck by the last `describe`, or -1 if it missed. */
+    module = -1;
+    /** Outward normal of the face it was entered by, in the **world** frame. */
+    nx = 0;
+    ny = 0;
 
-  /**
-   * What the cast in hand is, set by the caller around it and cleared with
-   * `reset`: the layers it is in, and the module it was fired from, which it
-   * never meets.
-   */
-  layers = BOTH_LAYERS;
-  private skipBody = -1;
-  private skipModule = -1;
-  // The last `describe`'s frame and length, for `select`.
-  private cosine = 1;
-  private sine = 0;
-  private length = 0;
+    /**
+     * What the cast in hand is, set by the caller around it and cleared with
+     * `reset`: the layers it is in, and the module it was fired from, which it
+     * never meets.
+     */
+    layers = BOTH_LAYERS;
+    private skipBody = -1;
+    private skipModule = -1;
+    // The last `describe`'s frame and length, for `select`.
+    private cosine = 1;
+    private sine = 0;
+    private length = 0;
 
-  constructor(
-    private readonly designs: HullDesigns,
-    private readonly live?: LiveModules,
-  ) {}
+    constructor(
+        private readonly designs: HullDesigns,
+        private readonly live?: LiveModules,
+    ) {}
 
-  /** Cast in some layers, from a module of a body, until `reset`. */
-  /** The design a body is built to, or null for one with no hull. */
-  designOf(bodyIndex: number): ShipDesign | null {
-    return this.designs.designOf(bodyIndex);
-  }
-
-  castFrom(layers: number, body: number, module: number): void {
-    this.layers = layers;
-    this.skipBody = body;
-    this.skipModule = module;
-  }
-
-  reset(): void {
-    this.layers = BOTH_LAYERS;
-    this.skipBody = -1;
-    this.skipModule = -1;
-  }
-
-  confirm(bodies: Bodies, bodyIndex: number, x0: number, y0: number, dx: number, dy: number): number {
-    const design = this.designs.designOf(bodyIndex);
-    // No hull to meet: the circle was the answer all along.
-    if (design === null) return segmentCircleT(x0, y0, dx, dy, bodies.x[bodyIndex]!, bodies.y[bodyIndex]!, bodies.radius[bodyIndex]!);
-    return this.cast(design, bodies, bodyIndex, x0, y0, dx, dy);
-  }
-
-  /**
-   * Re-run the narrow phase for the body the cast settled on, filling
-   * `module`, `nx` and `ny`. Returns false if it finds nothing, which a caller
-   * that has just been told the body was hit should treat as a bug rather than
-   * as a miss.
-   *
-   * Recomputed rather than remembered: `confirm` is asked about every
-   * candidate and only one of them wins, so keeping each answer would cost
-   * more bookkeeping than one repeat of a dozen multiplications per module.
-   */
-  describe(bodies: Bodies, bodyIndex: number, x0: number, y0: number, dx: number, dy: number): boolean {
-    this.module = -1;
-    this.nx = 0;
-    this.ny = 0;
-    const design = this.designs.designOf(bodyIndex);
-    if (design === null) return false;
-    if (this.cast(design, bodies, bodyIndex, x0, y0, dx, dy) < 0) return false;
-
-    const angle = bodies.angle[bodyIndex]!;
-    this.cosine = cos(angle);
-    this.sine = sin(angle);
-    this.select(0);
-    return true;
-  }
-
-  /** How many modules the last `describe` found along the cast, each counted once, in the order crossed. */
-  get crossings(): number {
-    return this.path.count;
-  }
-
-  /**
-   * Make crossing `k` of the last `describe` the one `module`, `nx` and `ny`
-   * describe, and say how far along the cast it is entered, as a fraction.
-   */
-  select(k: number): number {
-    const nx = this.path.nx[k]!;
-    const ny = this.path.ny[k]!;
-    this.module = this.path.module[k]!;
-    // Back out of the ship's frame. A segment that began inside a module
-    // entered by no face and carries a zero normal, which rotates to zero.
-    this.nx = nx * this.cosine - ny * this.sine;
-    this.ny = nx * this.sine + ny * this.cosine;
-    return this.length > 0 ? this.path.entry[k]! / this.length : 0;
-  }
-
-  /** How far along the cast crossing `k` of the last `describe` is left, as a fraction. */
-  exitOf(k: number): number {
-    return this.length > 0 ? this.path.exit[k]! / this.length : 0;
-  }
-
-  /** How much of the cast a module of a body lets through: none, where nothing says otherwise. */
-  transparency(bodyIndex: number, module: number): number {
-    return this.live?.transparency(bodyIndex, module) ?? 0;
-  }
-
-  /**
-   * Drop the crossings at the front of the path that let all of it through,
-   * so that the first one left is what the cast actually meets.
-   *
-   * Only the leading ones: a spent module deeper in still shadows nothing, and
-   * the list stays in the order the segment crosses it.
-   */
-  private skipTransparent(bodyIndex: number): void {
-    const live = this.live;
-    if (live === undefined) return;
-    let first = 0;
-    while (first < this.path.count && live.transparency(bodyIndex, this.path.module[first]!) >= 1) first++;
-    if (first === 0) return;
-    for (let i = first; i < this.path.count; i++) {
-      const to = i - first;
-      this.path.module[to] = this.path.module[i]!;
-      this.path.entry[to] = this.path.entry[i]!;
-      this.path.exit[to] = this.path.exit[i]!;
-      this.path.nx[to] = this.path.nx[i]!;
-      this.path.ny[to] = this.path.ny[i]!;
+    /** Cast in some layers, from a module of a body, until `reset`. */
+    /** The design a body is built to, or null for one with no hull. */
+    designOf(bodyIndex: number): ShipDesign | null {
+        return this.designs.designOf(bodyIndex);
     }
-    this.path.count -= first;
-  }
 
-  /** The segment in the ship's frame, and the first module it crosses. */
-  private cast(design: ShipDesign, bodies: Bodies, bodyIndex: number, x0: number, y0: number, dx: number, dy: number): number {
-    const bx = bodies.x[bodyIndex]!;
-    const by = bodies.y[bodyIndex]!;
-    const angle = bodies.angle[bodyIndex]!;
-    const c = cos(angle);
-    const s = sin(angle);
+    castFrom(layers: number, body: number, module: number): void {
+        this.layers = layers;
+        this.skipBody = body;
+        this.skipModule = module;
+    }
 
-    const rx = x0 - bx;
-    const ry = y0 - by;
-    const lx0 = rx * c + ry * s;
-    const ly0 = -rx * s + ry * c;
-    const ldx = dx * c + dy * s;
-    const ldy = -dx * s + dy * c;
+    reset(): void {
+        this.layers = BOTH_LAYERS;
+        this.skipBody = -1;
+        this.skipModule = -1;
+    }
 
-    modulesAlong(
-      design,
-      lx0,
-      ly0,
-      lx0 + ldx,
-      ly0 + ldy,
-      this.path,
-      this.layers,
-      bodyIndex === this.skipBody ? this.skipModule : -1,
-      this.designs.layersOf?.(bodyIndex) ?? OWN_LAYERS,
-    );
-    if (this.live !== undefined) this.skipTransparent(bodyIndex);
-    if (this.path.count === 0) return -1;
+    confirm(bodies: Bodies, bodyIndex: number, x0: number, y0: number, dx: number, dy: number): number {
+        const design = this.designs.designOf(bodyIndex);
+        // No hull to meet: the circle was the answer all along.
+        if (design === null) return segmentCircleT(x0, y0, dx, dy, bodies.x[bodyIndex]!, bodies.y[bodyIndex]!, bodies.radius[bodyIndex]!);
+        return this.cast(design, bodies, bodyIndex, x0, y0, dx, dy);
+    }
 
-    // `modulesAlong` reports metres along the segment and the cast wants a
-    // fraction of it, since that is what the grid orders hits by.
-    const length = sqrt(ldx * ldx + ldy * ldy);
-    this.length = length;
-    if (!(length > 0)) return -1;
-    return this.path.entry[0]! / length;
-  }
+    /**
+     * Re-run the narrow phase for the body the cast settled on, filling
+     * `module`, `nx` and `ny`. Returns false if it finds nothing, which a caller
+     * that has just been told the body was hit should treat as a bug rather than
+     * as a miss.
+     *
+     * Recomputed rather than remembered: `confirm` is asked about every
+     * candidate and only one of them wins, so keeping each answer would cost
+     * more bookkeeping than one repeat of a dozen multiplications per module.
+     */
+    describe(bodies: Bodies, bodyIndex: number, x0: number, y0: number, dx: number, dy: number): boolean {
+        this.module = -1;
+        this.nx = 0;
+        this.ny = 0;
+        const design = this.designs.designOf(bodyIndex);
+        if (design === null) return false;
+        if (this.cast(design, bodies, bodyIndex, x0, y0, dx, dy) < 0) return false;
+
+        const angle = bodies.angle[bodyIndex]!;
+        this.cosine = cos(angle);
+        this.sine = sin(angle);
+        this.select(0);
+        return true;
+    }
+
+    /** How many modules the last `describe` found along the cast, each counted once, in the order crossed. */
+    get crossings(): number {
+        return this.path.count;
+    }
+
+    /**
+     * Make crossing `k` of the last `describe` the one `module`, `nx` and `ny`
+     * describe, and say how far along the cast it is entered, as a fraction.
+     */
+    select(k: number): number {
+        const nx = this.path.nx[k]!;
+        const ny = this.path.ny[k]!;
+        this.module = this.path.module[k]!;
+        // Back out of the ship's frame. A segment that began inside a module
+        // entered by no face and carries a zero normal, which rotates to zero.
+        this.nx = nx * this.cosine - ny * this.sine;
+        this.ny = nx * this.sine + ny * this.cosine;
+        return this.length > 0 ? this.path.entry[k]! / this.length : 0;
+    }
+
+    /** How far along the cast crossing `k` of the last `describe` is left, as a fraction. */
+    exitOf(k: number): number {
+        return this.length > 0 ? this.path.exit[k]! / this.length : 0;
+    }
+
+    /** How much of the cast a module of a body lets through: none, where nothing says otherwise. */
+    transparency(bodyIndex: number, module: number): number {
+        return this.live?.transparency(bodyIndex, module) ?? 0;
+    }
+
+    /**
+     * Drop the crossings at the front of the path that let all of it through,
+     * so that the first one left is what the cast actually meets.
+     *
+     * Only the leading ones: a spent module deeper in still shadows nothing, and
+     * the list stays in the order the segment crosses it.
+     */
+    private skipTransparent(bodyIndex: number): void {
+        const live = this.live;
+        if (live === undefined) return;
+        let first = 0;
+        while (first < this.path.count && live.transparency(bodyIndex, this.path.module[first]!) >= 1) first++;
+        if (first === 0) return;
+        for (let i = first; i < this.path.count; i++) {
+            const to = i - first;
+            this.path.module[to] = this.path.module[i]!;
+            this.path.entry[to] = this.path.entry[i]!;
+            this.path.exit[to] = this.path.exit[i]!;
+            this.path.nx[to] = this.path.nx[i]!;
+            this.path.ny[to] = this.path.ny[i]!;
+        }
+        this.path.count -= first;
+    }
+
+    /** The segment in the ship's frame, and the first module it crosses. */
+    private cast(design: ShipDesign, bodies: Bodies, bodyIndex: number, x0: number, y0: number, dx: number, dy: number): number {
+        const bx = bodies.x[bodyIndex]!;
+        const by = bodies.y[bodyIndex]!;
+        const angle = bodies.angle[bodyIndex]!;
+        const c = cos(angle);
+        const s = sin(angle);
+
+        const rx = x0 - bx;
+        const ry = y0 - by;
+        const lx0 = rx * c + ry * s;
+        const ly0 = -rx * s + ry * c;
+        const ldx = dx * c + dy * s;
+        const ldy = -dx * s + dy * c;
+
+        modulesAlong(
+            design,
+            lx0,
+            ly0,
+            lx0 + ldx,
+            ly0 + ldy,
+            this.path,
+            this.layers,
+            bodyIndex === this.skipBody ? this.skipModule : -1,
+            this.designs.layersOf?.(bodyIndex) ?? OWN_LAYERS,
+        );
+        if (this.live !== undefined) this.skipTransparent(bodyIndex);
+        if (this.path.count === 0) return -1;
+
+        // `modulesAlong` reports metres along the segment and the cast wants a
+        // fraction of it, since that is what the grid orders hits by.
+        const length = sqrt(ldx * ldx + ldy * ldy);
+        this.length = length;
+        if (!(length > 0)) return -1;
+        return this.path.entry[0]! / length;
+    }
 }

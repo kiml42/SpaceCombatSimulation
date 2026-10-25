@@ -1,9 +1,9 @@
-import { build, context, type BuildOptions, type OutputFile } from 'esbuild';
-import { watch as watchDir } from 'node:fs';
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { BLUEPRINT_DIR, syncFleetsAndLog } from './syncFleets.js';
+import { build, context, type BuildOptions, type OutputFile } from "esbuild";
+import { watch as watchDir } from "node:fs";
+import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { BLUEPRINT_DIR, syncFleetsAndLog } from "./syncFleets.js";
 
 /**
  * Bundle each page into one self-contained HTML file in `dist/`.
@@ -23,7 +23,7 @@ import { BLUEPRINT_DIR, syncFleetsAndLog } from './syncFleets.js';
  */
 
 const here = dirname(fileURLToPath(import.meta.url));
-const root = join(here, '..');
+const root = join(here, "..");
 
 /**
  * The pages, each its own bundle.
@@ -35,11 +35,11 @@ const root = join(here, '..');
  * smaller half of the trade.
  */
 const PAGES = [
-  { entry: 'entry.ts', shell: 'index.html', out: 'index.html' },
-  { entry: 'editorEntry.ts', shell: 'editor.html', out: 'editor.html' },
-  { entry: 'evolutionEntry.ts', shell: 'evolution.html', out: 'evolution.html' },
-  { entry: 'fleetEntry.ts', shell: 'fleet.html', out: 'fleet.html' },
-  { entry: 'skirmishEntry.ts', shell: 'skirmish.html', out: 'skirmish.html' },
+    { entry: "entry.ts", shell: "index.html", out: "index.html" },
+    { entry: "editorEntry.ts", shell: "editor.html", out: "editor.html" },
+    { entry: "evolutionEntry.ts", shell: "evolution.html", out: "evolution.html" },
+    { entry: "fleetEntry.ts", shell: "fleet.html", out: "fleet.html" },
+    { entry: "skirmishEntry.ts", shell: "skirmish.html", out: "skirmish.html" },
 ] as const;
 
 type Page = (typeof PAGES)[number];
@@ -52,145 +52,145 @@ type Page = (typeof PAGES)[number];
  * pages without rebundling them, and a change to a page's keeps the worker.
  */
 const WORKER_OPTIONS: BuildOptions = {
-  entryPoints: [join(root, 'host', 'answerWorker.ts')],
-  bundle: true,
-  format: 'iife',
-  target: 'es2022',
-  minify: true,
-  write: false,
-  legalComments: 'none',
+    entryPoints: [join(root, "host", "answerWorker.ts")],
+    bundle: true,
+    format: "iife",
+    target: "es2022",
+    minify: true,
+    write: false,
+    legalComments: "none",
 };
 
-const WORKER_SLOT = JSON.stringify('__ANSWER_WORKER__');
+const WORKER_SLOT = JSON.stringify("__ANSWER_WORKER__");
 
 function workerText(files: readonly OutputFile[] | undefined): string {
-  const js = files?.[0]?.text;
-  if (js === undefined) throw new Error('esbuild produced no worker');
-  return js;
+    const js = files?.[0]?.text;
+    if (js === undefined) throw new Error("esbuild produced no worker");
+    return js;
 }
 
 let answerWorker = workerText((await build(WORKER_OPTIONS)).outputFiles);
 
 function optionsFor(page: Page): BuildOptions {
-  return {
-    define: { __ANSWER_WORKER__: WORKER_SLOT },
-    entryPoints: [join(root, 'host', page.entry)],
-    bundle: true,
-    format: 'iife',
-    target: 'es2022',
-    minify: true,
-    write: false,
-    legalComments: 'none',
-  };
+    return {
+        define: { __ANSWER_WORKER__: WORKER_SLOT },
+        entryPoints: [join(root, "host", page.entry)],
+        bundle: true,
+        format: "iife",
+        target: "es2022",
+        minify: true,
+        write: false,
+        legalComments: "none",
+    };
 }
 
 /** Wrap a bundle in its page shell and write it out. */
 async function emit(page: Page, files: readonly OutputFile[] | undefined): Promise<void> {
-  const bundled = files?.[0]?.text;
-  if (bundled === undefined) throw new Error('esbuild produced no output');
-  if (bundled.includes('__ANSWER_WORKER__') && !bundled.includes(WORKER_SLOT)) {
-    throw new Error("the worker's placeholder is in the bundle, but not as the string it is looked for as");
-  }
-  // A function replacement, for the reason given below.
-  const js = bundled.replace(WORKER_SLOT, () => JSON.stringify(answerWorker));
+    const bundled = files?.[0]?.text;
+    if (bundled === undefined) throw new Error("esbuild produced no output");
+    if (bundled.includes("__ANSWER_WORKER__") && !bundled.includes(WORKER_SLOT)) {
+        throw new Error("the worker's placeholder is in the bundle, but not as the string it is looked for as");
+    }
+    // A function replacement, for the reason given below.
+    const js = bundled.replace(WORKER_SLOT, () => JSON.stringify(answerWorker));
 
-  // A script tag cannot contain `</script>`, and the bundle is going inside
-  // one. Nothing puts that string in there today; a string literal one day
-  // would, and the browser's complaint would be about HTML rather than about
-  // the code that caused it.
-  if (js.includes('</script')) {
-    throw new Error('the bundle contains `</script`, which would close the tag it is inlined into');
-  }
+    // A script tag cannot contain `</script>`, and the bundle is going inside
+    // one. Nothing puts that string in there today; a string literal one day
+    // would, and the browser's complaint would be about HTML rather than about
+    // the code that caused it.
+    if (js.includes("</script")) {
+        throw new Error("the bundle contains `</script`, which would close the tag it is inlined into");
+    }
 
-  const html = await readFile(join(root, 'host', page.shell), 'utf8');
-  // The replacement is a *function*, and it has to be. Given a string,
-  // `replace` reads `$&`, `$\``, `$'` and `$1` in it as instructions rather
-  // than as text — so a bundle containing `$&` anywhere gets the matched
-  // `</body>` spliced into the middle of its own source. That is not
-  // hypothetical: minified code is full of `$` identifiers, so `x > $ && y`
-  // becomes `x>$&&y`, and whether it happens at all depends on which name the
-  // minifier hands out this build. A function replacement is given no such
-  // interpretation.
-  const document = html.replace('</body>', () => `  <script>${js}</script>\n  </body>`);
+    const html = await readFile(join(root, "host", page.shell), "utf8");
+    // The replacement is a *function*, and it has to be. Given a string,
+    // `replace` reads `$&`, `$\``, `$'` and `$1` in it as instructions rather
+    // than as text — so a bundle containing `$&` anywhere gets the matched
+    // `</body>` spliced into the middle of its own source. That is not
+    // hypothetical: minified code is full of `$` identifiers, so `x > $ && y`
+    // becomes `x>$&&y`, and whether it happens at all depends on which name the
+    // minifier hands out this build. A function replacement is given no such
+    // interpretation.
+    const document = html.replace("</body>", () => `  <script>${js}</script>\n  </body>`);
 
-  const out = join(root, 'dist', page.out);
-  await mkdir(dirname(out), { recursive: true });
-  await writeFile(out, document, 'utf8');
+    const out = join(root, "dist", page.out);
+    await mkdir(dirname(out), { recursive: true });
+    await writeFile(out, document, "utf8");
 
-  const kb = (document.length / 1024).toFixed(1);
-  const stamp = new Date().toLocaleTimeString('en-GB');
-  console.log(`${stamp}  dist/${page.out}  ${kb} kB  (one file, nothing external)`);
+    const kb = (document.length / 1024).toFixed(1);
+    const stamp = new Date().toLocaleTimeString("en-GB");
+    console.log(`${stamp}  dist/${page.out}  ${kb} kB  (one file, nothing external)`);
 }
 
-if (process.argv.includes('--watch')) {
-  // Before the first build, so it bundles fleets already in step.
-  await syncFleetsAndLog();
+if (process.argv.includes("--watch")) {
+    // Before the first build, so it bundles fleets already in step.
+    await syncFleetsAndLog();
 
-  // Each page's last good bundle, to put a rebuilt worker into.
-  const bundles: (readonly OutputFile[] | undefined)[] = PAGES.map(() => undefined);
-  const contexts = await Promise.all(
-    PAGES.map(async (page, i) =>
-      context({
-        ...optionsFor(page),
+    // Each page's last good bundle, to put a rebuilt worker into.
+    const bundles: (readonly OutputFile[] | undefined)[] = PAGES.map(() => undefined);
+    const contexts = await Promise.all(
+        PAGES.map(async (page, i) =>
+            context({
+                ...optionsFor(page),
+                plugins: [
+                    {
+                        name: "emit-html",
+                        setup(builder) {
+                            builder.onEnd(async (result) => {
+                                // esbuild reports its own errors and keeps watching, so a failed
+                                // build leaves the last good page in place rather than deleting it.
+                                if (result.errors.length > 0) return;
+                                bundles[i] = result.outputFiles;
+                                await emit(page, result.outputFiles);
+                            });
+                        },
+                    },
+                ],
+            }),
+        ),
+    );
+    const worker = await context({
+        ...WORKER_OPTIONS,
         plugins: [
-          {
-            name: 'emit-html',
-            setup(builder) {
-              builder.onEnd(async (result) => {
-                // esbuild reports its own errors and keeps watching, so a failed
-                // build leaves the last good page in place rather than deleting it.
-                if (result.errors.length > 0) return;
-                bundles[i] = result.outputFiles;
-                await emit(page, result.outputFiles);
-              });
+            {
+                name: "emit-worker",
+                setup(builder) {
+                    builder.onEnd(async (result) => {
+                        if (result.errors.length > 0) return;
+                        const js = workerText(result.outputFiles);
+                        if (js === answerWorker) return;
+                        answerWorker = js;
+                        await Promise.all(PAGES.map((page, i) => (bundles[i] === undefined ? undefined : emit(page, bundles[i]))));
+                    });
+                },
             },
-          },
         ],
-      }),
-    ),
-  );
-  const worker = await context({
-    ...WORKER_OPTIONS,
-    plugins: [
-      {
-        name: 'emit-worker',
-        setup(builder) {
-          builder.onEnd(async (result) => {
-            if (result.errors.length > 0) return;
-            const js = workerText(result.outputFiles);
-            if (js === answerWorker) return;
-            answerWorker = js;
-            await Promise.all(PAGES.map((page, i) => (bundles[i] === undefined ? undefined : emit(page, bundles[i]))));
-          });
-        },
-      },
-    ],
-  });
-  await Promise.all([...contexts.map((ctx) => ctx.watch()), worker.watch()]);
-
-  // esbuild watches what it bundles, which is the TypeScript. The page shells
-  // are not inputs to any bundle, so they need watching separately or edits to
-  // the markup appear to do nothing. A shell is rebuilt through its own page's
-  // context, so editing one page's markup does not rewrite the other.
-  watchDir(join(root, 'host'), (_event, file) => {
-    PAGES.forEach((page, i) => {
-      if (file === page.shell) void contexts[i]!.rebuild();
     });
-  });
+    await Promise.all([...contexts.map((ctx) => ctx.watch()), worker.watch()]);
 
-  // A saved blueprint is copied into the stock fleets that embed it. The fleet
-  // files are bundle inputs, so writing them triggers the rebuild. Editors fire
-  // several events a save, hence the debounce.
-  let syncTimer: ReturnType<typeof setTimeout> | undefined;
-  watchDir(BLUEPRINT_DIR, () => {
-    clearTimeout(syncTimer);
-    syncTimer = setTimeout(() => void syncFleetsAndLog(), 100);
-  });
+    // esbuild watches what it bundles, which is the TypeScript. The page shells
+    // are not inputs to any bundle, so they need watching separately or edits to
+    // the markup appear to do nothing. A shell is rebuilt through its own page's
+    // context, so editing one page's markup does not rewrite the other.
+    watchDir(join(root, "host"), (_event, file) => {
+        PAGES.forEach((page, i) => {
+            if (file === page.shell) void contexts[i]!.rebuild();
+        });
+    });
 
-  console.log('watching — edit and save, then refresh the page. Ctrl+C to stop.');
+    // A saved blueprint is copied into the stock fleets that embed it. The fleet
+    // files are bundle inputs, so writing them triggers the rebuild. Editors fire
+    // several events a save, hence the debounce.
+    let syncTimer: ReturnType<typeof setTimeout> | undefined;
+    watchDir(BLUEPRINT_DIR, () => {
+        clearTimeout(syncTimer);
+        syncTimer = setTimeout(() => void syncFleetsAndLog(), 100);
+    });
+
+    console.log("watching — edit and save, then refresh the page. Ctrl+C to stop.");
 } else {
-  for (const page of PAGES) {
-    const result = await build(optionsFor(page));
-    await emit(page, result.outputFiles);
-  }
+    for (const page of PAGES) {
+        const result = await build(optionsFor(page));
+        await emit(page, result.outputFiles);
+    }
 }

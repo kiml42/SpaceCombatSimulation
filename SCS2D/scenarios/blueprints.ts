@@ -1,31 +1,31 @@
-import { parseBlueprint, type Blueprint } from '../sim/index.js';
-import corvetteFile from './blueprints/corvette.json' with { type: 'json' };
-import beamCorvetteFile from './blueprints/beam-corvette.json' with { type: 'json' };
-import gunshipFile from './blueprints/gunship.json' with { type: 'json' };
-import beamGunshipFile from './blueprints/beam-gunship.json' with { type: 'json' };
-import fractalFile from './blueprints/fractal.json' with { type: 'json' };
-import dinkyFile from './blueprints/dinky.json' with { type: 'json' };
-import catamaranFile from './blueprints/catamaran.json' with { type: 'json' };
-import beamCatamaranFile from './blueprints/beam-catamaran.json' with { type: 'json' };
-import bareCoreFile from './blueprints/bare-core.json' with { type: 'json' };
-import torchFile from './blueprints/torch.json' with { type: 'json' };
-import laserFrigateFile from './blueprints/laser-frigate.json' with { type: 'json' };
-import broadsideFile from './blueprints/broadside.json' with { type: 'json' };
-import torpedoFile from './blueprints/torpedo.json' with { type: 'json' };
-import scavengerFile from './blueprints/scavenger.json' with { type: 'json' };
-import salvagerFile from './blueprints/salvager.json' with { type: 'json' };
-import replicatorFile from './blueprints/replicator.json' with { type: 'json' };
-import tankerFile from './blueprints/tanker.json' with { type: 'json' };
-import beamCarrierFile from './blueprints/beam-carrier.json' with { type: 'json' };
+import { parseBlueprint, type Blueprint } from "../sim/index.js";
+import corvetteFile from "./blueprints/corvette.json" with { type: "json" };
+import beamCorvetteFile from "./blueprints/beam-corvette.json" with { type: "json" };
+import gunshipFile from "./blueprints/gunship.json" with { type: "json" };
+import beamGunshipFile from "./blueprints/beam-gunship.json" with { type: "json" };
+import fractalFile from "./blueprints/fractal.json" with { type: "json" };
+import dinkyFile from "./blueprints/dinky.json" with { type: "json" };
+import catamaranFile from "./blueprints/catamaran.json" with { type: "json" };
+import beamCatamaranFile from "./blueprints/beam-catamaran.json" with { type: "json" };
+import bareCoreFile from "./blueprints/bare-core.json" with { type: "json" };
+import torchFile from "./blueprints/torch.json" with { type: "json" };
+import laserFrigateFile from "./blueprints/laser-frigate.json" with { type: "json" };
+import broadsideFile from "./blueprints/broadside.json" with { type: "json" };
+import torpedoFile from "./blueprints/torpedo.json" with { type: "json" };
+import scavengerFile from "./blueprints/scavenger.json" with { type: "json" };
+import salvagerFile from "./blueprints/salvager.json" with { type: "json" };
+import replicatorFile from "./blueprints/replicator.json" with { type: "json" };
+import tankerFile from "./blueprints/tanker.json" with { type: "json" };
+import beamCarrierFile from "./blueprints/beam-carrier.json" with { type: "json" };
 
 // --- Star Wars ---
-import xWingFile from './blueprints/x-wing.json' with { type: 'json' };
-import aWingFile from './blueprints/a-wing.json' with { type: 'json' };
-import yWingFile from './blueprints/y-wing.json' with { type: 'json' };
-import ghostFile from './blueprints/ghost.json' with { type: 'json' };
-import quasarFile from './blueprints/quasar-fire-class-cruiser-carrier.json' with { type: 'json' };
-import tieFile from './blueprints/tie-fighter.json' with { type: 'json' };
-import starDestroyerFile from './blueprints/star-destroyer.json' with { type: 'json' };
+import xWingFile from "./blueprints/x-wing.json" with { type: "json" };
+import aWingFile from "./blueprints/a-wing.json" with { type: "json" };
+import yWingFile from "./blueprints/y-wing.json" with { type: "json" };
+import ghostFile from "./blueprints/ghost.json" with { type: "json" };
+import quasarFile from "./blueprints/quasar-fire-class-cruiser-carrier.json" with { type: "json" };
+import tieFile from "./blueprints/tie-fighter.json" with { type: "json" };
+import starDestroyerFile from "./blueprints/star-destroyer.json" with { type: "json" };
 
 /**
  * The ship layouts that ship with the game, loaded from the same files the
@@ -76,32 +76,32 @@ export const TIE: Blueprint = parseBlueprint(tieFile);
 export const STAR_DESTROYER: Blueprint = parseBlueprint(starDestroyerFile);
 
 export const BLUEPRINTS = {
-  corvette: CORVETTE,
-  beamCorvette: BEAM_CORVETTE,
-  gunship: GUNSHIP,
-  beamGunship: BEAM_GUNSHIP,
-  fractal: FRACTAL,
-  dinky: DINKY,
-  catamaran: CATAMARAN,
-  beamCatamaran: BEAM_CATAMARAN,
-  bareCore: BARE_CORE,
-  torch: TORCH,
-  laserFrigate: LASER_FRIGATE,
-  torpedo: TORPEDO,
-  broadside: BROADSIDE,
-  scavenger: SCAVENGER,
-  salvager: SALVAGER,
-  replicator: REPLICATOR,
-  tanker: TANKER,
-  beamCarrier: BEAM_CARRIER,
+    corvette: CORVETTE,
+    beamCorvette: BEAM_CORVETTE,
+    gunship: GUNSHIP,
+    beamGunship: BEAM_GUNSHIP,
+    fractal: FRACTAL,
+    dinky: DINKY,
+    catamaran: CATAMARAN,
+    beamCatamaran: BEAM_CATAMARAN,
+    bareCore: BARE_CORE,
+    torch: TORCH,
+    laserFrigate: LASER_FRIGATE,
+    torpedo: TORPEDO,
+    broadside: BROADSIDE,
+    scavenger: SCAVENGER,
+    salvager: SALVAGER,
+    replicator: REPLICATOR,
+    tanker: TANKER,
+    beamCarrier: BEAM_CARRIER,
 
-  xWing: X_WING,
-  aWing: A_WING,
-  yWing: Y_WING,
-  ghost: GHOST,
-  quasar: QUASAR,
-  tie: TIE,
-  starDestroyer: STAR_DESTROYER,
+    xWing: X_WING,
+    aWing: A_WING,
+    yWing: Y_WING,
+    ghost: GHOST,
+    quasar: QUASAR,
+    tie: TIE,
+    starDestroyer: STAR_DESTROYER,
 } as const;
 
 export type BlueprintName = keyof typeof BLUEPRINTS;

@@ -1,15 +1,15 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from "vitest";
 import {
-  Ships,
-  World,
-  blueprintProblem,
-  blueprintProblems,
-  compileBlueprint,
-  joints,
-  type Blueprint,
-  type ModuleSpec,
-  type ShipDesign,
-} from '../sim/index.js';
+    Ships,
+    World,
+    blueprintProblem,
+    blueprintProblems,
+    compileBlueprint,
+    joints,
+    type Blueprint,
+    type ModuleSpec,
+    type ShipDesign,
+} from "../sim/index.js";
 
 /**
  * The module a ship is flown from.
@@ -24,11 +24,11 @@ import {
 const DT = 1 / 60;
 
 function structure(x: number, y: number, length: number, width: number): ModuleSpec {
-  return { kind: 'structure', x, y, length, width };
+    return { kind: "structure", x, y, length, width };
 }
 
 function core(x: number, y: number, length: number, width: number): ModuleSpec {
-  return { kind: 'core', x, y, length, width };
+    return { kind: "core", x, y, length, width };
 }
 
 /**
@@ -37,237 +37,237 @@ function core(x: number, y: number, length: number, width: number): ModuleSpec {
  * sides of the cut is still a ship.
  */
 const TWIN_CORE: Blueprint = {
-  name: 'Twin core',
-  modules: [core(-4, 0, 4, 4), structure(0, 0, 4, 4), core(4, 0, 4, 4)],
+    name: "Twin core",
+    modules: [core(-4, 0, 4, 4), structure(0, 0, 4, 4), core(4, 0, 4, 4)],
 };
 
 interface Scene {
-  world: World;
-  ships: Ships;
-  ship: number;
-  body: number;
+    world: World;
+    ships: Ships;
+    ship: number;
+    body: number;
 }
 
 function scene(design: ShipDesign, spin = 0.2): Scene {
-  const world = new World({ dt: DT, seed: 3 });
-  const ships = new Ships();
-  const ship = ships.spawn(world, { design, x: 0, y: 0, vx: 20, angularVel: spin, team: 2 });
-  return { world, ships, ship, body: world.bodies.indexOf(ships.body(ship)) };
+    const world = new World({ dt: DT, seed: 3 });
+    const ships = new Ships();
+    const ship = ships.spawn(world, { design, x: 0, y: 0, vx: 20, angularVel: spin, team: 2 });
+    return { world, ships, ship, body: world.bodies.indexOf(ships.body(ship)) };
 }
 
 /** Cut the weld between two modules clean through, which parts them with no blow. */
 function cutBetween(s: Scene, a: number, b: number): void {
-  const all = joints(s.ships.currentStructure(s.ship));
-  const index = all.findIndex((joint) => joint.a === a && joint.b === b);
-  s.ships.damage.cutWeld(s.body, index, all[index]!.width);
+    const all = joints(s.ships.currentStructure(s.ship));
+    const index = all.findIndex((joint) => joint.a === a && joint.b === b);
+    s.ships.damage.cutWeld(s.body, index, all[index]!.width);
 }
 
-describe('a layout needs a core', () => {
-  it('refuses one with nothing to fly it', () => {
-    const hull: Blueprint = { name: 'Hull', modules: [structure(0, 0, 10, 4)] };
-    expect(blueprintProblem(hull)).toMatch(/no core/);
-    expect(() => compileBlueprint(hull)).toThrow(/no core/);
-  });
+describe("a layout needs a core", () => {
+    it("refuses one with nothing to fly it", () => {
+        const hull: Blueprint = { name: "Hull", modules: [structure(0, 0, 10, 4)] };
+        expect(blueprintProblem(hull)).toMatch(/no core/);
+        expect(() => compileBlueprint(hull)).toThrow(/no core/);
+    });
 
-  it('says nothing about an empty layout beyond its being empty', () => {
-    // One mistake, one complaint: a layout with no modules at all has not
-    // also forgotten its core.
-    const problems = blueprintProblems({ name: 'Nothing', modules: [] });
-    expect(problems).toHaveLength(1);
-    expect(problems[0]).toMatch(/at least one module/);
-  });
+    it("says nothing about an empty layout beyond its being empty", () => {
+        // One mistake, one complaint: a layout with no modules at all has not
+        // also forgotten its core.
+        const problems = blueprintProblems({ name: "Nothing", modules: [] });
+        expect(problems).toHaveLength(1);
+        expect(problems[0]).toMatch(/at least one module/);
+    });
 
-  it('accepts more than one, which is what redundancy is', () => {
-    expect(blueprintProblem(TWIN_CORE)).toBeNull();
-    expect(compileBlueprint(TWIN_CORE).cores).toEqual([0, 2]);
-  });
+    it("accepts more than one, which is what redundancy is", () => {
+        expect(blueprintProblem(TWIN_CORE)).toBeNull();
+        expect(compileBlueprint(TWIN_CORE).cores).toEqual([0, 2]);
+    });
 
-  it('is still one ship, so two cores in two pieces is a fault', () => {
-    // Both halves would fly perfectly well, which is exactly the point: this
-    // is two ships, and two ships are two blueprints.
-    const apart: Blueprint = {
-      name: 'Pair',
-      modules: [core(0, 0, 4, 4), core(40, 0, 4, 4)],
-    };
-    expect(blueprintProblems(apart)).toEqual([expect.stringMatching(/module 1 touches nothing/)]);
-  });
+    it("is still one ship, so two cores in two pieces is a fault", () => {
+        // Both halves would fly perfectly well, which is exactly the point: this
+        // is two ships, and two ships are two blueprints.
+        const apart: Blueprint = {
+            name: "Pair",
+            modules: [core(0, 0, 4, 4), core(40, 0, 4, 4)],
+        };
+        expect(blueprintProblems(apart)).toEqual([expect.stringMatching(/module 1 touches nothing/)]);
+    });
 
-  it('lets an engine be bolted straight to a core', () => {
-    const flown: Blueprint = {
-      name: 'Minimal',
-      modules: [core(0, 0, 4, 4), { kind: 'engine', x: -2, y: 0, angle: Math.PI, length: 2, width: 4 }],
-    };
-    expect(blueprintProblem(flown)).toBeNull();
-  });
+    it("lets an engine be bolted straight to a core", () => {
+        const flown: Blueprint = {
+            name: "Minimal",
+            modules: [core(0, 0, 4, 4), { kind: "engine", x: -2, y: 0, angle: Math.PI, length: 2, width: 4 }],
+        };
+        expect(blueprintProblem(flown)).toBeNull();
+    });
 });
 
-describe('a ship with its core shot out', () => {
-  const design = compileBlueprint({
-    name: 'One core',
-    modules: [
-      core(0, 0, 4, 4),
-      structure(4, 0, 4, 4),
-      { kind: 'turret', x: 8, y: 0, length: 4, width: 4, barrels: 1 },
-      { kind: 'engine', x: -2, y: 0, angle: Math.PI, length: 2, width: 4 },
-    ],
-  });
+describe("a ship with its core shot out", () => {
+    const design = compileBlueprint({
+        name: "One core",
+        modules: [
+            core(0, 0, 4, 4),
+            structure(4, 0, 4, 4),
+            { kind: "turret", x: 8, y: 0, length: 4, width: 4, barrels: 1 },
+            { kind: "engine", x: -2, y: 0, angle: Math.PI, length: 2, width: 4 },
+        ],
+    });
 
-  it('is flown while the core is merely damaged', () => {
-    const s = scene(design);
-    expect(s.ships.hasControl(s.ship)).toBe(true);
-    s.ships.damage.absorb(s.body, 0, design.modules[0]!.stats.hitPoints * 0.2);
-    expect(s.ships.hasControl(s.ship)).toBe(true);
-  });
+    it("is flown while the core is merely damaged", () => {
+        const s = scene(design);
+        expect(s.ships.hasControl(s.ship)).toBe(true);
+        s.ships.damage.absorb(s.body, 0, design.modules[0]!.stats.hitPoints * 0.2);
+        expect(s.ships.hasControl(s.ship)).toBe(true);
+    });
 
-  it('is a hulk once the core is spent, sound engines and guns notwithstanding', () => {
-    const s = scene(design);
-    s.ships.damage.absorb(s.body, 0, 1e12);
-    expect(s.ships.hasControl(s.ship)).toBe(false);
-    // Nothing is wrong with either of them but what would tell them what to do.
-    expect(s.ships.currentStructure(s.ship).turrets).toHaveLength(1);
-    expect(s.ships.isTurretDisabled(s.ship, 0)).toBe(true);
-    expect(s.ships.isDisarmed(s.ship)).toBe(true);
-    expect(s.ships.hasNoEngines(s.ship)).toBe(true);
-    expect(s.ships.isDisabled(s.ship)).toBe(true);
-  });
+    it("is a hulk once the core is spent, sound engines and guns notwithstanding", () => {
+        const s = scene(design);
+        s.ships.damage.absorb(s.body, 0, 1e12);
+        expect(s.ships.hasControl(s.ship)).toBe(false);
+        // Nothing is wrong with either of them but what would tell them what to do.
+        expect(s.ships.currentStructure(s.ship).turrets).toHaveLength(1);
+        expect(s.ships.isTurretDisabled(s.ship, 0)).toBe(true);
+        expect(s.ships.isDisarmed(s.ship)).toBe(true);
+        expect(s.ships.hasNoEngines(s.ship)).toBe(true);
+        expect(s.ships.isDisabled(s.ship)).toBe(true);
+    });
 
-  it('is mission-killed, still flown, once its guns and engines have nothing to use', () => {
-    const s = scene(design);
-    expect(s.ships.isMissionKilled(s.ship)).toBe(false);
-    for (let m = 0; m < design.modules.length; m++) {
-      s.ships.fuel.drain(s.body, m, s.ships.fuel.held(s.body, m));
-      s.ships.metal.drain(s.body, m, s.ships.metal.held(s.body, m));
-    }
-    expect(s.ships.hasControl(s.ship)).toBe(true);
-    expect(s.ships.isMissionKilled(s.ship)).toBe(true);
-  });
+    it("is mission-killed, still flown, once its guns and engines have nothing to use", () => {
+        const s = scene(design);
+        expect(s.ships.isMissionKilled(s.ship)).toBe(false);
+        for (let m = 0; m < design.modules.length; m++) {
+            s.ships.fuel.drain(s.body, m, s.ships.fuel.held(s.body, m));
+            s.ships.metal.drain(s.body, m, s.ships.metal.held(s.body, m));
+        }
+        expect(s.ships.hasControl(s.ship)).toBe(true);
+        expect(s.ships.isMissionKilled(s.ship)).toBe(true);
+    });
 
-  it('is not mission-killed when it was built with neither gun nor engine', () => {
-    const s = scene(compileBlueprint({ name: 'Bare', modules: [core(0, 0, 4, 4), structure(4, 0, 4, 4)] }));
-    expect(s.ships.isDisabled(s.ship)).toBe(true);
-    expect(s.ships.isMissionKilled(s.ship)).toBe(false);
-  });
+    it("is not mission-killed when it was built with neither gun nor engine", () => {
+        const s = scene(compileBlueprint({ name: "Bare", modules: [core(0, 0, 4, 4), structure(4, 0, 4, 4)] }));
+        expect(s.ships.isDisabled(s.ship)).toBe(true);
+        expect(s.ships.isMissionKilled(s.ship)).toBe(false);
+    });
 
-  it('drifts: a ship with nothing flying it does not hold its heading', () => {
-    const s = scene(design);
-    s.ships.damage.absorb(s.body, 0, 1e12);
-    const b = s.world.bodies;
-    const spin = b.angularVel[s.body]!;
-    const vx = b.vx[s.body]!;
-    for (let step = 0; step < 60; step++) {
-      s.ships.command(DT, s.world);
-      s.world.step();
-    }
-    expect(b.vx[s.body]).toBeCloseTo(vx, 6);
-    expect(b.angularVel[s.body]).toBeCloseTo(spin, 9);
-  });
+    it("drifts: a ship with nothing flying it does not hold its heading", () => {
+        const s = scene(design);
+        s.ships.damage.absorb(s.body, 0, 1e12);
+        const b = s.world.bodies;
+        const spin = b.angularVel[s.body]!;
+        const vx = b.vx[s.body]!;
+        for (let step = 0; step < 60; step++) {
+            s.ships.command(DT, s.world);
+            s.world.step();
+        }
+        expect(b.vx[s.body]).toBeCloseTo(vx, 6);
+        expect(b.angularVel[s.body]).toBeCloseTo(spin, 9);
+    });
 
-  it('cuts its engines and stops its turrets if the core is lost mid-burn, and drifts', () => {
-    const s = scene(design);
-    const mark = s.ships.spawn(s.world, { design, x: 50_000, y: 0, team: 3 });
-    s.ships.clearOrder(s.ship);
-    s.ships.pushOrder(s.ship, mark, 0, 0, 5000);
-    s.world.addForceProvider(s.ships.forceProvider());
-    const step = (): void => {
-      s.ships.command(DT, s.world);
-      s.world.step();
-    };
-    for (let k = 0; k < 60; k++) step();
-    expect(s.ships.throttleOf(s.ship, 0)).toBeGreaterThan(0);
+    it("cuts its engines and stops its turrets if the core is lost mid-burn, and drifts", () => {
+        const s = scene(design);
+        const mark = s.ships.spawn(s.world, { design, x: 50_000, y: 0, team: 3 });
+        s.ships.clearOrder(s.ship);
+        s.ships.pushOrder(s.ship, mark, 0, 0, 5000);
+        s.world.addForceProvider(s.ships.forceProvider());
+        const step = (): void => {
+            s.ships.command(DT, s.world);
+            s.world.step();
+        };
+        for (let k = 0; k < 60; k++) step();
+        expect(s.ships.throttleOf(s.ship, 0)).toBeGreaterThan(0);
 
-    s.ships.damage.absorb(s.body, 0, 1e12);
-    step();
-    expect(s.ships.throttleOf(s.ship, 0)).toBe(0);
-    const fuel = s.ships.fuel.left(s.body);
-    // Long enough for the turret to brake to a stop too.
-    for (let k = 0; k < 60; k++) step();
-    const b = s.world.bodies;
-    const vx = b.vx[s.body]!;
-    const spin = b.angularVel[s.body]!;
-    for (let k = 0; k < 60; k++) step();
-    expect(b.vx[s.body]).toBeCloseTo(vx, 9);
-    expect(b.angularVel[s.body]).toBeCloseTo(spin, 9);
-    expect(s.ships.fuel.left(s.body)).toBe(fuel);
-  });
+        s.ships.damage.absorb(s.body, 0, 1e12);
+        step();
+        expect(s.ships.throttleOf(s.ship, 0)).toBe(0);
+        const fuel = s.ships.fuel.left(s.body);
+        // Long enough for the turret to brake to a stop too.
+        for (let k = 0; k < 60; k++) step();
+        const b = s.world.bodies;
+        const vx = b.vx[s.body]!;
+        const spin = b.angularVel[s.body]!;
+        for (let k = 0; k < 60; k++) step();
+        expect(b.vx[s.body]).toBeCloseTo(vx, 9);
+        expect(b.angularVel[s.body]).toBeCloseTo(spin, 9);
+        expect(s.ships.fuel.left(s.body)).toBe(fuel);
+    });
 });
 
-describe('a hull cut between its cores', () => {
-  it('becomes two ships, each flown, each on the side it was', () => {
-    const s = scene(compileBlueprint(TWIN_CORE));
-    s.ships.pushOrder(s.ship, 5, 100, 400, 50);
-    expect(s.ships.sever(s.world)).toBe(0);
+describe("a hull cut between its cores", () => {
+    it("becomes two ships, each flown, each on the side it was", () => {
+        const s = scene(compileBlueprint(TWIN_CORE));
+        s.ships.pushOrder(s.ship, 5, 100, 400, 50);
+        expect(s.ships.sever(s.world)).toBe(0);
 
-    cutBetween(s, 0, 1);
-    expect(s.ships.sever(s.world)).toBe(1);
+        cutBetween(s, 0, 1);
+        expect(s.ships.sever(s.world)).toBe(1);
 
-    const other = s.ship + 1;
-    expect(s.ships.currentStructure(s.ship).modules).toHaveLength(1);
-    expect(s.ships.currentStructure(other).modules).toHaveLength(2);
-    for (const i of [s.ship, other]) {
-      expect(s.ships.isDerelict(i)).toBe(false);
-      expect(s.ships.hasControl(i)).toBe(true);
-      expect(s.ships.teamOf(i)).toBe(2);
-      // Each core was given the same plan, and works through it with
-      // what is left.
-      expect(s.ships.orderCount(i)).toBe(1);
-    }
-  });
-
-  it('keeps the ship it was with the lowest-numbered core', () => {
-    const s = scene(compileBlueprint(TWIN_CORE));
-    const id = s.ships.body(s.ship);
-    cutBetween(s, 0, 1);
-    s.ships.sever(s.world);
-    expect(s.ships.body(s.ship)).toBe(id);
-    expect(s.ships.currentStructure(s.ship).cores).toEqual([0]);
-  });
-
-  it('hands the ship to the piece that can still be flown', () => {
-    // The first core is wrecked, so what flies it is the other
-    // one, and the piece holding it is the ship. A wrecked core flies nothing.
-    const s = scene(compileBlueprint(TWIN_CORE));
-    const id = s.ships.body(s.ship);
-    s.ships.damage.absorb(s.body, 0, 1e12);
-    cutBetween(s, 0, 1);
-    expect(s.ships.sever(s.world)).toBe(1);
-
-    expect(s.ships.body(s.ship)).toBe(id);
-    expect(s.ships.currentStructure(s.ship).modules).toHaveLength(2);
-    expect(s.ships.hasControl(s.ship)).toBe(true);
-
-    const gone = s.ship + 1;
-    expect(s.ships.currentStructure(gone).modules).toHaveLength(1);
-    expect(s.ships.isDerelict(gone)).toBe(true);
-  });
-
-  it('is scrap on neither side: a piece that flies is a ship at any mass', () => {
-    // Under the mass below which a severed piece is not worth tracking, and
-    // kept anyway, because the smallest ship in the game weighs less than
-    // that and a ship is never scrap.
-    const light = compileBlueprint({
-      name: 'Light core',
-      modules: [core(0, 0, 4, 4), structure(2.075, 0, 0.15, 0.15)],
+        const other = s.ship + 1;
+        expect(s.ships.currentStructure(s.ship).modules).toHaveLength(1);
+        expect(s.ships.currentStructure(other).modules).toHaveLength(2);
+        for (const i of [s.ship, other]) {
+            expect(s.ships.isDerelict(i)).toBe(false);
+            expect(s.ships.hasControl(i)).toBe(true);
+            expect(s.ships.teamOf(i)).toBe(2);
+            // Each core was given the same plan, and works through it with
+            // what is left.
+            expect(s.ships.orderCount(i)).toBe(1);
+        }
     });
-    const tip = light.modules[1]!;
-    expect(tip.spec.kind).toBe('structure');
 
-    const flown = compileBlueprint({
-      name: 'Light second core',
-      modules: [core(0, 0, 4, 4), core(2.075, 0, 0.15, 0.15)],
+    it("keeps the ship it was with the lowest-numbered core", () => {
+        const s = scene(compileBlueprint(TWIN_CORE));
+        const id = s.ships.body(s.ship);
+        cutBetween(s, 0, 1);
+        s.ships.sever(s.world);
+        expect(s.ships.body(s.ship)).toBe(id);
+        expect(s.ships.currentStructure(s.ship).cores).toEqual([0]);
     });
-    const chip = flown.modules[1]!.stats.mass;
-    expect(chip).toBeLessThan(300);
 
-    const wreckage = scene(light);
-    cutBetween(wreckage, 0, 1);
-    // Too light to be worth tracking, so it is never put in the world.
-    expect(wreckage.ships.sever(wreckage.world)).toBe(0);
-    expect(wreckage.ships.count).toBe(1);
+    it("hands the ship to the piece that can still be flown", () => {
+        // The first core is wrecked, so what flies it is the other
+        // one, and the piece holding it is the ship. A wrecked core flies nothing.
+        const s = scene(compileBlueprint(TWIN_CORE));
+        const id = s.ships.body(s.ship);
+        s.ships.damage.absorb(s.body, 0, 1e12);
+        cutBetween(s, 0, 1);
+        expect(s.ships.sever(s.world)).toBe(1);
 
-    const ship = scene(flown);
-    cutBetween(ship, 0, 1);
-    expect(ship.ships.sever(ship.world)).toBe(1);
-    expect(ship.ships.count).toBe(2);
-    expect(ship.ships.isDerelict(ship.ship + 1)).toBe(false);
-  });
+        expect(s.ships.body(s.ship)).toBe(id);
+        expect(s.ships.currentStructure(s.ship).modules).toHaveLength(2);
+        expect(s.ships.hasControl(s.ship)).toBe(true);
+
+        const gone = s.ship + 1;
+        expect(s.ships.currentStructure(gone).modules).toHaveLength(1);
+        expect(s.ships.isDerelict(gone)).toBe(true);
+    });
+
+    it("is scrap on neither side: a piece that flies is a ship at any mass", () => {
+        // Under the mass below which a severed piece is not worth tracking, and
+        // kept anyway, because the smallest ship in the game weighs less than
+        // that and a ship is never scrap.
+        const light = compileBlueprint({
+            name: "Light core",
+            modules: [core(0, 0, 4, 4), structure(2.075, 0, 0.15, 0.15)],
+        });
+        const tip = light.modules[1]!;
+        expect(tip.spec.kind).toBe("structure");
+
+        const flown = compileBlueprint({
+            name: "Light second core",
+            modules: [core(0, 0, 4, 4), core(2.075, 0, 0.15, 0.15)],
+        });
+        const chip = flown.modules[1]!.stats.mass;
+        expect(chip).toBeLessThan(300);
+
+        const wreckage = scene(light);
+        cutBetween(wreckage, 0, 1);
+        // Too light to be worth tracking, so it is never put in the world.
+        expect(wreckage.ships.sever(wreckage.world)).toBe(0);
+        expect(wreckage.ships.count).toBe(1);
+
+        const ship = scene(flown);
+        cutBetween(ship, 0, 1);
+        expect(ship.ships.sever(ship.world)).toBe(1);
+        expect(ship.ships.count).toBe(2);
+        expect(ship.ships.isDerelict(ship.ship + 1)).toBe(false);
+    });
 });

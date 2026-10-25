@@ -1,6 +1,6 @@
-import { contactWidth, type ShipDesign } from './blueprint.js';
-import { min } from './math.js';
-import { ROCK_SEAM_THICKNESS } from './modules.js';
+import { contactWidth, type ShipDesign } from "./blueprint.js";
+import { min } from "./math.js";
+import { ROCK_SEAM_THICKNESS } from "./modules.js";
 
 /**
  * Which modules of a hull hold which, and how well.
@@ -26,31 +26,31 @@ import { ROCK_SEAM_THICKNESS } from './modules.js';
 
 /** Two modules welded together, and what the weld is worth. */
 export interface Joint {
-  /** Indices into the design's modules, `a` always the lower of the two. */
-  readonly a: number;
-  readonly b: number;
-  /** Length of the faces in contact, metres. A corner joins nothing. */
-  readonly width: number;
-  /** Where the weld is, in the hull's frame — how far a blow has to travel. */
-  readonly x: number;
-  readonly y: number;
-  /**
-   * Impulse the weld can pass before it tears, newton-seconds, with the
-   * modules it joins undamaged.
-   *
-   * An impulse and not an energy, because **what parts a hull is a blow, not
-   * a wound**. Damage decides how much of this is left (`Ships.sever`); the
-   * shock of a collision decides whether what is left is enough.
-   */
-  readonly strength: number;
-  /**
-   * A ragged edge hooked on another piece's (`ShipDesign.seams`) rather than a
-   * weld the hull was built with. It holds and tears like any weld, but nothing
-   * is commanded across it.
-   */
-  readonly seam?: boolean;
-  /** A seam a dock holds, rated `DOCK_HOLD` times a hook's. */
-  readonly dock?: boolean;
+    /** Indices into the design's modules, `a` always the lower of the two. */
+    readonly a: number;
+    readonly b: number;
+    /** Length of the faces in contact, metres. A corner joins nothing. */
+    readonly width: number;
+    /** Where the weld is, in the hull's frame — how far a blow has to travel. */
+    readonly x: number;
+    readonly y: number;
+    /**
+     * Impulse the weld can pass before it tears, newton-seconds, with the
+     * modules it joins undamaged.
+     *
+     * An impulse and not an energy, because **what parts a hull is a blow, not
+     * a wound**. Damage decides how much of this is left (`Ships.sever`); the
+     * shock of a collision decides whether what is left is enough.
+     */
+    readonly strength: number;
+    /**
+     * A ragged edge hooked on another piece's (`ShipDesign.seams`) rather than a
+     * weld the hull was built with. It holds and tears like any weld, but nothing
+     * is commanded across it.
+     */
+    readonly seam?: boolean;
+    /** A seam a dock holds, rated `DOCK_HOLD` times a hook's. */
+    readonly dock?: boolean;
 }
 
 /**
@@ -73,8 +73,8 @@ export const JOINT_IMPULSE_PER_AREA = 3.0e6;
  * solid all through, the thickness rubble is bound at (`ROCK_SEAM_THICKNESS`).
  */
 export function seamThickness(design: ShipDesign, module: number): number {
-  const { spec, stats } = design.modules[module]!;
-  return spec.kind === 'rock' || spec.kind === 'kernel' ? ROCK_SEAM_THICKNESS : stats.wallThickness;
+    const { spec, stats } = design.modules[module]!;
+    return spec.kind === "rock" || spec.kind === "kernel" ? ROCK_SEAM_THICKNESS : stats.wallThickness;
 }
 
 /**
@@ -95,56 +95,56 @@ export const DOCK_HOLD = 4;
 const cache = new WeakMap<ShipDesign, readonly Joint[]>();
 
 export function joints(design: ShipDesign): readonly Joint[] {
-  const known = cache.get(design);
-  if (known !== undefined) return known;
+    const known = cache.get(design);
+    if (known !== undefined) return known;
 
-  const found: Joint[] = [];
-  const n = design.modules.length;
-  const pieces = design.pieces;
-  for (let i = 0; i < n; i++) {
-    for (let j = i + 1; j < n; j++) {
-      // Welded pieces touch only where they hooked, however their faces lie.
-      if (pieces !== undefined && pieces[i] !== pieces[j]) continue;
-      // Both modules are written in the blueprint's own frame, which is the
-      // body frame shifted rather than turned, so the geometry the layout rule
-      // asks is exactly the geometry asked here.
-      const width = contactWidth(design.modules[i]!.spec, design.modules[j]!.spec);
-      if (width <= 0) continue;
-      // The thinner wall is what gives way, so it is what the section is cut
-      // from: welding a light plate to a heavy one makes a light joint.
-      const thickness = min(seamThickness(design, i), seamThickness(design, j));
-      // Between the two modules it joins, which is close enough to the weld
-      // for measuring how far a shock had to travel to reach it.
-      const x = (design.modules[i]!.x + design.modules[j]!.x) * 0.5;
-      const y = (design.modules[i]!.y + design.modules[j]!.y) * 0.5;
-      found.push({
-        a: i,
-        b: j,
-        width,
-        x,
-        y,
-        strength: width * thickness * JOINT_IMPULSE_PER_AREA,
-      });
+    const found: Joint[] = [];
+    const n = design.modules.length;
+    const pieces = design.pieces;
+    for (let i = 0; i < n; i++) {
+        for (let j = i + 1; j < n; j++) {
+            // Welded pieces touch only where they hooked, however their faces lie.
+            if (pieces !== undefined && pieces[i] !== pieces[j]) continue;
+            // Both modules are written in the blueprint's own frame, which is the
+            // body frame shifted rather than turned, so the geometry the layout rule
+            // asks is exactly the geometry asked here.
+            const width = contactWidth(design.modules[i]!.spec, design.modules[j]!.spec);
+            if (width <= 0) continue;
+            // The thinner wall is what gives way, so it is what the section is cut
+            // from: welding a light plate to a heavy one makes a light joint.
+            const thickness = min(seamThickness(design, i), seamThickness(design, j));
+            // Between the two modules it joins, which is close enough to the weld
+            // for measuring how far a shock had to travel to reach it.
+            const x = (design.modules[i]!.x + design.modules[j]!.x) * 0.5;
+            const y = (design.modules[i]!.y + design.modules[j]!.y) * 0.5;
+            found.push({
+                a: i,
+                b: j,
+                width,
+                x,
+                y,
+                strength: width * thickness * JOINT_IMPULSE_PER_AREA,
+            });
+        }
     }
-  }
-  // After the built welds, so a hull in one piece keeps its joints' order.
-  for (const seam of design.seams ?? []) {
-    const lo = min(seam.a, seam.b);
-    const hi = seam.a < seam.b ? seam.b : seam.a;
-    const thickness = min(seamThickness(design, lo), seamThickness(design, hi));
-    found.push({
-      a: lo,
-      b: hi,
-      width: seam.width,
-      x: (design.modules[lo]!.x + design.modules[hi]!.x) * 0.5,
-      y: (design.modules[lo]!.y + design.modules[hi]!.y) * 0.5,
-      strength: seam.width * thickness * JOINT_IMPULSE_PER_AREA * (seam.dock !== undefined ? DOCK_HOLD : 1),
-      seam: true,
-      ...(seam.dock !== undefined ? { dock: true } : {}),
-    });
-  }
-  cache.set(design, found);
-  return found;
+    // After the built welds, so a hull in one piece keeps its joints' order.
+    for (const seam of design.seams ?? []) {
+        const lo = min(seam.a, seam.b);
+        const hi = seam.a < seam.b ? seam.b : seam.a;
+        const thickness = min(seamThickness(design, lo), seamThickness(design, hi));
+        found.push({
+            a: lo,
+            b: hi,
+            width: seam.width,
+            x: (design.modules[lo]!.x + design.modules[hi]!.x) * 0.5,
+            y: (design.modules[lo]!.y + design.modules[hi]!.y) * 0.5,
+            strength: seam.width * thickness * JOINT_IMPULSE_PER_AREA * (seam.dock !== undefined ? DOCK_HOLD : 1),
+            seam: true,
+            ...(seam.dock !== undefined ? { dock: true } : {}),
+        });
+    }
+    cache.set(design, found);
+    return found;
 }
 
 /**
@@ -158,39 +158,39 @@ export function joints(design: ShipDesign): readonly Joint[] {
  * is a question about its cores and is the caller's (`Ships.sever`).
  */
 export function components(design: ShipDesign, broken: (joint: Joint) => boolean): number[][] {
-  const n = design.modules.length;
-  const holding = joints(design).filter((joint) => !broken(joint));
+    const n = design.modules.length;
+    const holding = joints(design).filter((joint) => !broken(joint));
 
-  // Adjacency as flat lists, built once: the fill walks it rather than the
-  // whole joint list per module.
-  const heads: number[][] = [];
-  for (let i = 0; i < n; i++) heads.push([]);
-  for (const joint of holding) {
-    heads[joint.a]!.push(joint.b);
-    heads[joint.b]!.push(joint.a);
-  }
-
-  const piece = new Int32Array(n).fill(-1);
-  const pieces: number[][] = [];
-  const frontier: number[] = [];
-  for (let seed = 0; seed < n; seed++) {
-    if (piece[seed] !== -1) continue;
-    const found: number[] = [];
-    piece[seed] = pieces.length;
-    frontier.push(seed);
-    while (frontier.length > 0) {
-      const at = frontier.pop()!;
-      found.push(at);
-      for (const next of heads[at]!) {
-        if (piece[next] !== -1) continue;
-        piece[next] = pieces.length;
-        frontier.push(next);
-      }
+    // Adjacency as flat lists, built once: the fill walks it rather than the
+    // whole joint list per module.
+    const heads: number[][] = [];
+    for (let i = 0; i < n; i++) heads.push([]);
+    for (const joint of holding) {
+        heads[joint.a]!.push(joint.b);
+        heads[joint.b]!.push(joint.a);
     }
-    found.sort((x, y) => x - y);
-    pieces.push(found);
-  }
-  return pieces;
+
+    const piece = new Int32Array(n).fill(-1);
+    const pieces: number[][] = [];
+    const frontier: number[] = [];
+    for (let seed = 0; seed < n; seed++) {
+        if (piece[seed] !== -1) continue;
+        const found: number[] = [];
+        piece[seed] = pieces.length;
+        frontier.push(seed);
+        while (frontier.length > 0) {
+            const at = frontier.pop()!;
+            found.push(at);
+            for (const next of heads[at]!) {
+                if (piece[next] !== -1) continue;
+                piece[next] = pieces.length;
+                frontier.push(next);
+            }
+        }
+        found.sort((x, y) => x - y);
+        pieces.push(found);
+    }
+    return pieces;
 }
 
 /**
@@ -202,13 +202,13 @@ export function components(design: ShipDesign, broken: (joint: Joint) => boolean
  * is one hull.
  */
 export interface Cut {
-  /** Which side of this weld each module is on, 0 or 1. */
-  readonly side: Int8Array;
-  /** Each side's mass, kg. */
-  readonly mass: readonly number[];
-  /** Each side's own centre of mass, in the hull's frame. */
-  readonly x: readonly number[];
-  readonly y: readonly number[];
+    /** Which side of this weld each module is on, 0 or 1. */
+    readonly side: Int8Array;
+    /** Each side's mass, kg. */
+    readonly mass: readonly number[];
+    /** Each side's own centre of mass, in the hull's frame. */
+    readonly x: readonly number[];
+    readonly y: readonly number[];
 }
 
 /**
@@ -221,38 +221,38 @@ export interface Cut {
  * than being a rule about rings.
  */
 export function cuts(design: ShipDesign): readonly (Cut | null)[] {
-  const known = cutCache.get(design);
-  if (known !== undefined) return known;
+    const known = cutCache.get(design);
+    if (known !== undefined) return known;
 
-  const all = joints(design);
-  const found: (Cut | null)[] = [];
-  for (const joint of all) {
-    const parts = components(design, (other) => other === joint);
-    if (parts.length !== 2) {
-      found.push(null);
-      continue;
+    const all = joints(design);
+    const found: (Cut | null)[] = [];
+    for (const joint of all) {
+        const parts = components(design, (other) => other === joint);
+        if (parts.length !== 2) {
+            found.push(null);
+            continue;
+        }
+        const side = new Int8Array(design.modules.length);
+        const mass = [0, 0];
+        const x = [0, 0];
+        const y = [0, 0];
+        for (let p = 0; p < 2; p++) {
+            for (const module of parts[p]!) {
+                side[module] = p;
+                const m = design.modules[module]!;
+                mass[p]! += m.stats.mass;
+                x[p]! += m.x * m.stats.mass;
+                y[p]! += m.y * m.stats.mass;
+            }
+            if (mass[p]! > 0) {
+                x[p]! /= mass[p]!;
+                y[p]! /= mass[p]!;
+            }
+        }
+        found.push({ side, mass, x, y });
     }
-    const side = new Int8Array(design.modules.length);
-    const mass = [0, 0];
-    const x = [0, 0];
-    const y = [0, 0];
-    for (let p = 0; p < 2; p++) {
-      for (const module of parts[p]!) {
-        side[module] = p;
-        const m = design.modules[module]!;
-        mass[p]! += m.stats.mass;
-        x[p]! += m.x * m.stats.mass;
-        y[p]! += m.y * m.stats.mass;
-      }
-      if (mass[p]! > 0) {
-        x[p]! /= mass[p]!;
-        y[p]! /= mass[p]!;
-      }
-    }
-    found.push({ side, mass, x, y });
-  }
-  cutCache.set(design, found);
-  return found;
+    cutCache.set(design, found);
+    return found;
 }
 
 const cutCache = new WeakMap<ShipDesign, readonly (Cut | null)[]>();
@@ -265,36 +265,36 @@ const cutCache = new WeakMap<ShipDesign, readonly (Cut | null)[]>();
  * boundary it crosses.
  */
 export function jointBetween(design: ShipDesign, a: number, b: number): number {
-  let index = indexCache.get(design);
-  if (index === undefined) {
-    index = new Map<number, number>();
-    const all = joints(design);
-    for (let k = 0; k < all.length; k++) {
-      index.set(all[k]!.a * design.modules.length + all[k]!.b, k);
+    let index = indexCache.get(design);
+    if (index === undefined) {
+        index = new Map<number, number>();
+        const all = joints(design);
+        for (let k = 0; k < all.length; k++) {
+            index.set(all[k]!.a * design.modules.length + all[k]!.b, k);
+        }
+        indexCache.set(design, index);
     }
-    indexCache.set(design, index);
-  }
-  const lo = a < b ? a : b;
-  const hi = a < b ? b : a;
-  return index.get(lo * design.modules.length + hi) ?? -1;
+    const lo = a < b ? a : b;
+    const hi = a < b ? b : a;
+    return index.get(lo * design.modules.length + hi) ?? -1;
 }
 
 const indexCache = new WeakMap<ShipDesign, Map<number, number>>();
 
 /** The joints that hold one module, as indices into `joints(design)`. */
 export function jointsOf(design: ShipDesign, module: number): readonly number[] {
-  let byModule = byModuleCache.get(design);
-  if (byModule === undefined) {
-    const lists: number[][] = design.modules.map(() => []);
-    const all = joints(design);
-    for (let k = 0; k < all.length; k++) {
-      lists[all[k]!.a]!.push(k);
-      lists[all[k]!.b]!.push(k);
+    let byModule = byModuleCache.get(design);
+    if (byModule === undefined) {
+        const lists: number[][] = design.modules.map(() => []);
+        const all = joints(design);
+        for (let k = 0; k < all.length; k++) {
+            lists[all[k]!.a]!.push(k);
+            lists[all[k]!.b]!.push(k);
+        }
+        byModule = lists;
+        byModuleCache.set(design, byModule);
     }
-    byModule = lists;
-    byModuleCache.set(design, byModule);
-  }
-  return byModule[module] ?? NO_JOINTS;
+    return byModule[module] ?? NO_JOINTS;
 }
 
 const NO_JOINTS: readonly number[] = [];

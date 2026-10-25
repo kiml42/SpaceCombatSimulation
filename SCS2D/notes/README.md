@@ -1,7 +1,7 @@
 # Parked work
 
 Drafts that are worth keeping and are **not part of the build**. Nothing here is compiled by
-`npm run typecheck`, bundled by `npm run build` or run by either test suite — `tsconfig.json` includes
+`pnpm typecheck`, bundled by `pnpm build` or run by either test suite — `tsconfig.json` includes
 `scenarios`, `scripts` and `tests`, and `sim/tsconfig.json` includes `sim`, so this folder is outside both
 on purpose.
 

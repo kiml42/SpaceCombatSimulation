@@ -1,7 +1,7 @@
-import { Rng } from '../sim/index.js';
-import { floor, max, min, round } from '../sim/math.js';
-import { Match, type Entrant, type MatchConfig } from './match.js';
-import { entrantOf, type GenerationRecord, type IndividualRecord, type RunRecord } from './run.js';
+import { Rng } from "../sim/index.js";
+import { floor, max, min, round } from "../sim/math.js";
+import { Match, type Entrant, type MatchConfig } from "./match.js";
+import { entrantOf, type GenerationRecord, type IndividualRecord, type RunRecord } from "./run.js";
 
 /**
  * Measuring a run against something that does not evolve.
@@ -28,42 +28,42 @@ import { entrantOf, type GenerationRecord, type IndividualRecord, type RunRecord
  */
 
 export interface YardstickConfig {
-  /** Fought one against one, so what happened is the design and not the crowd. */
-  readonly match: Partial<MatchConfig>;
-  /**
-   * Where the paired seeds start.
-   *
-   * Every generation is measured under *identical* starting conditions —
-   * individual three of every generation fights the same battle as individual
-   * three of every other — so the difference between two generations is the
-   * designs and nothing else. Sampling fresh seeds each time would measure the
-   * designs and the draw together, and the draw is the louder of the two.
-   */
-  readonly seed: number;
+    /** Fought one against one, so what happened is the design and not the crowd. */
+    readonly match: Partial<MatchConfig>;
+    /**
+     * Where the paired seeds start.
+     *
+     * Every generation is measured under *identical* starting conditions —
+     * individual three of every generation fights the same battle as individual
+     * three of every other — so the difference between two generations is the
+     * designs and nothing else. Sampling fresh seeds each time would measure the
+     * designs and the draw together, and the draw is the louder of the two.
+     */
+    readonly seed: number;
 }
 
 export const DEFAULT_YARDSTICK: YardstickConfig = {
-  match: {},
-  seed: 0x5eed,
+    match: {},
+    seed: 0x5eed,
 };
 
 /** How one generation did against the fixed opponent. */
 export interface YardstickPoint {
-  readonly generation: number;
-  /** Mean score of the generation's designs against it. */
-  readonly mean: number;
-  /** The best of them. */
-  readonly best: number;
-  /** What the opponent scored against them, averaged — the other side of it. */
-  readonly against: number;
-  /** How many of the generation beat it outright. */
-  readonly wins: number;
-  readonly individuals: number;
+    readonly generation: number;
+    /** Mean score of the generation's designs against it. */
+    readonly mean: number;
+    /** The best of them. */
+    readonly best: number;
+    /** What the opponent scored against them, averaged — the other side of it. */
+    readonly against: number;
+    /** How many of the generation beat it outright. */
+    readonly wins: number;
+    readonly individuals: number;
 }
 
 export interface YardstickReport {
-  readonly points: readonly YardstickPoint[];
-  readonly matches: number;
+    readonly points: readonly YardstickPoint[];
+    readonly matches: number;
 }
 
 /**
@@ -75,148 +75,148 @@ export interface YardstickReport {
  * simulation on a long run, and a page cannot go away for that long.
  */
 export class Yardstick {
-  readonly points: YardstickPoint[] = [];
-  private readonly settings: YardstickConfig;
-  private readonly match: Partial<MatchConfig>;
-  private readonly seeds: number[] = [];
-  /** Kept, so a slot beyond what the run had when this started can be given one. */
-  private readonly draw: Rng;
-  private generation = 0;
-  private slot = 0;
-  private fighting: Match | null = null;
-  private total = 0;
-  private best = -Infinity;
-  private against = 0;
-  private wins = 0;
-  matches = 0;
+    readonly points: YardstickPoint[] = [];
+    private readonly settings: YardstickConfig;
+    private readonly match: Partial<MatchConfig>;
+    private readonly seeds: number[] = [];
+    /** Kept, so a slot beyond what the run had when this started can be given one. */
+    private readonly draw: Rng;
+    private generation = 0;
+    private slot = 0;
+    private fighting: Match | null = null;
+    private total = 0;
+    private best = -Infinity;
+    private against = 0;
+    private wins = 0;
+    matches = 0;
 
-  /**
-   * `from` is an earlier measurement of the same run against the same
-   * opponent under the same settings, carried on from rather than fought
-   * again: every generation fights the same seeds, so the generations it
-   * covers would come out the same.
-   */
-  constructor(
-    private readonly run: RunRecord,
-    private readonly benchmark: Entrant,
-    config?: Partial<YardstickConfig>,
-    from?: YardstickReport,
-  ) {
-    this.settings = { ...DEFAULT_YARDSTICK, ...config };
-    this.match = yardstickSettings(run, this.settings);
-    if (from !== undefined) {
-      this.points.push(...from.points);
-      this.generation = from.points.length;
-      this.matches = from.matches;
+    /**
+     * `from` is an earlier measurement of the same run against the same
+     * opponent under the same settings, carried on from rather than fought
+     * again: every generation fights the same seeds, so the generations it
+     * covers would come out the same.
+     */
+    constructor(
+        private readonly run: RunRecord,
+        private readonly benchmark: Entrant,
+        config?: Partial<YardstickConfig>,
+        from?: YardstickReport,
+    ) {
+        this.settings = { ...DEFAULT_YARDSTICK, ...config };
+        this.match = yardstickSettings(run, this.settings);
+        if (from !== undefined) {
+            this.points.push(...from.points);
+            this.generation = from.points.length;
+            this.matches = from.matches;
+        }
+        this.draw = new Rng(this.settings.seed);
+        this.seedFor(longest(run) - 1);
     }
-    this.draw = new Rng(this.settings.seed);
-    this.seedFor(longest(run) - 1);
-  }
 
-  /**
-   * The seed for one slot, drawn once and then reused by every generation.
-   *
-   * Drawn on demand rather than counted up front because a measurement can be
-   * started while a run is still going, and a later generation may be wider
-   * than anything it had closed at the time. The order is the same either way,
-   * so a measurement taken during a run and one taken after it agree.
-   */
-  private seedFor(slot: number): number {
-    while (this.seeds.length <= slot) this.seeds.push(this.draw.nextUint32());
-    return this.seeds[slot]!;
-  }
-
-  get done(): boolean {
-    return this.generation >= this.run.generations.length;
-  }
-
-  /** How far through, from nothing to one. */
-  get progress(): number {
-    const total = this.run.generations.length;
-    if (total === 0) return 1;
-    if (this.done) return 1;
-    const here = this.run.generations[this.generation]?.individuals.length ?? 1;
-    const within = here > 0 ? this.slot / here : 1;
-    return (this.generation + within) / total;
-  }
-
-  /** Fight up to `budget` simulation steps of it. */
-  advance(budget: number): boolean {
-    let left = max(1, budget);
-    while (left > 0 && !this.done) {
-      if (this.fighting === null) {
-        this.open();
-        continue;
-      }
-      while (left > 0 && !this.fighting.done) {
-        this.fighting.advance();
-        left--;
-      }
-      if (this.fighting.done) this.close();
+    /**
+     * The seed for one slot, drawn once and then reused by every generation.
+     *
+     * Drawn on demand rather than counted up front because a measurement can be
+     * started while a run is still going, and a later generation may be wider
+     * than anything it had closed at the time. The order is the same either way,
+     * so a measurement taken during a run and one taken after it agree.
+     */
+    private seedFor(slot: number): number {
+        while (this.seeds.length <= slot) this.seeds.push(this.draw.nextUint32());
+        return this.seeds[slot]!;
     }
-    return !this.done;
-  }
 
-  finish(): YardstickReport {
-    while (!this.done) this.advance(1 << 20);
-    return this.report();
-  }
-
-  report(): YardstickReport {
-    return { points: this.points, matches: this.matches };
-  }
-
-  /** Draw the next match, or close the generation when it has had them all. */
-  private open(): void {
-    const generation = this.run.generations[this.generation];
-    if (generation === undefined) return;
-    if (this.slot >= generation.individuals.length) {
-      this.roll(generation);
-      return;
+    get done(): boolean {
+        return this.generation >= this.run.generations.length;
     }
-    const individual = generation.individuals[this.slot]!;
-    this.fighting = pairing(individual, this.benchmark, this.match, this.seedFor(this.slot));
-  }
 
-  private close(): void {
-    const result = this.fighting!.result();
-    this.fighting = null;
-    this.matches++;
-    this.slot++;
-    const mine = result.scores[0]!.total;
-    const theirs = result.scores[1]!.total;
-    this.total += mine;
-    this.best = max(this.best, mine);
-    this.against += theirs;
-    if (mine > theirs) this.wins++;
-  }
+    /** How far through, from nothing to one. */
+    get progress(): number {
+        const total = this.run.generations.length;
+        if (total === 0) return 1;
+        if (this.done) return 1;
+        const here = this.run.generations[this.generation]?.individuals.length ?? 1;
+        const within = here > 0 ? this.slot / here : 1;
+        return (this.generation + within) / total;
+    }
 
-  private roll(generation: GenerationRecord): void {
-    const count = generation.individuals.length;
-    this.points.push({
-      generation: generation.index,
-      mean: count > 0 ? this.total / count : 0,
-      best: count > 0 ? this.best : 0,
-      against: count > 0 ? this.against / count : 0,
-      wins: this.wins,
-      individuals: count,
-    });
-    this.total = 0;
-    this.best = -Infinity;
-    this.against = 0;
-    this.wins = 0;
-    this.slot = 0;
-    this.generation++;
-  }
+    /** Fight up to `budget` simulation steps of it. */
+    advance(budget: number): boolean {
+        let left = max(1, budget);
+        while (left > 0 && !this.done) {
+            if (this.fighting === null) {
+                this.open();
+                continue;
+            }
+            while (left > 0 && !this.fighting.done) {
+                this.fighting.advance();
+                left--;
+            }
+            if (this.fighting.done) this.close();
+        }
+        return !this.done;
+    }
+
+    finish(): YardstickReport {
+        while (!this.done) this.advance(1 << 20);
+        return this.report();
+    }
+
+    report(): YardstickReport {
+        return { points: this.points, matches: this.matches };
+    }
+
+    /** Draw the next match, or close the generation when it has had them all. */
+    private open(): void {
+        const generation = this.run.generations[this.generation];
+        if (generation === undefined) return;
+        if (this.slot >= generation.individuals.length) {
+            this.roll(generation);
+            return;
+        }
+        const individual = generation.individuals[this.slot]!;
+        this.fighting = pairing(individual, this.benchmark, this.match, this.seedFor(this.slot));
+    }
+
+    private close(): void {
+        const result = this.fighting!.result();
+        this.fighting = null;
+        this.matches++;
+        this.slot++;
+        const mine = result.scores[0]!.total;
+        const theirs = result.scores[1]!.total;
+        this.total += mine;
+        this.best = max(this.best, mine);
+        this.against += theirs;
+        if (mine > theirs) this.wins++;
+    }
+
+    private roll(generation: GenerationRecord): void {
+        const count = generation.individuals.length;
+        this.points.push({
+            generation: generation.index,
+            mean: count > 0 ? this.total / count : 0,
+            best: count > 0 ? this.best : 0,
+            against: count > 0 ? this.against / count : 0,
+            wins: this.wins,
+            individuals: count,
+        });
+        this.total = 0;
+        this.best = -Infinity;
+        this.against = 0;
+        this.wins = 0;
+        this.slot = 0;
+        this.generation++;
+    }
 }
 
 /** One against one, always. */
 function yardstickSettings(run: RunRecord, settings: YardstickConfig): Partial<MatchConfig> {
-  return { ...run.config.match, ...settings.match };
+    return { ...run.config.match, ...settings.match };
 }
 
 function pairing(individual: IndividualRecord, benchmark: Entrant, match: Partial<MatchConfig>, seed: number): Match {
-  return new Match([entrantOf(individual), benchmark], { ...match, seed });
+    return new Match([entrantOf(individual), benchmark], { ...match, seed });
 }
 
 /**
@@ -225,19 +225,19 @@ function pairing(individual: IndividualRecord, benchmark: Entrant, match: Partia
  * seed. The seeds are drawn in slot order, so the `slot`th draw is the one.
  */
 export function yardstickMatch(
-  run: RunRecord,
-  benchmark: Entrant,
-  generation: number,
-  slot: number,
-  config?: Partial<YardstickConfig>,
+    run: RunRecord,
+    benchmark: Entrant,
+    generation: number,
+    slot: number,
+    config?: Partial<YardstickConfig>,
 ): Match {
-  const settings = { ...DEFAULT_YARDSTICK, ...config };
-  const individual = run.generations[generation]?.individuals[slot];
-  if (individual === undefined) throw new Error(`generation ${generation} has no individual ${slot}`);
-  const draw = new Rng(settings.seed);
-  let seed = 0;
-  for (let k = 0; k <= slot; k++) seed = draw.nextUint32();
-  return pairing(individual, benchmark, yardstickSettings(run, settings), seed);
+    const settings = { ...DEFAULT_YARDSTICK, ...config };
+    const individual = run.generations[generation]?.individuals[slot];
+    if (individual === undefined) throw new Error(`generation ${generation} has no individual ${slot}`);
+    const draw = new Rng(settings.seed);
+    let seed = 0;
+    for (let k = 0; k <= slot; k++) seed = draw.nextUint32();
+    return pairing(individual, benchmark, yardstickSettings(run, settings), seed);
 }
 
 /**
@@ -248,7 +248,7 @@ export function yardstickMatch(
  * generations differ by their designs alone.
  */
 export function measure(run: RunRecord, benchmark: Entrant, config?: Partial<YardstickConfig>): YardstickReport {
-  return new Yardstick(run, benchmark, config).finish();
+    return new Yardstick(run, benchmark, config).finish();
 }
 
 /**
@@ -260,70 +260,70 @@ export function measure(run: RunRecord, benchmark: Entrant, config?: Partial<Yar
  * generations ago that got lucky in one group.
  */
 export function latest(run: RunRecord): Entrant | null {
-  const generation = run.generations[run.generations.length - 1];
-  if (generation === undefined || generation.individuals.length === 0) return null;
-  let best = generation.individuals[0]!;
-  for (const individual of generation.individuals) {
-    if (individual.fitness > best.fitness) best = individual;
-  }
-  return entrantOf(best);
+    const generation = run.generations[run.generations.length - 1];
+    if (generation === undefined || generation.individuals.length === 0) return null;
+    let best = generation.individuals[0]!;
+    for (const individual of generation.individuals) {
+        if (individual.fitness > best.fitness) best = individual;
+    }
+    return entrantOf(best);
 }
 
 function longest(run: RunRecord): number {
-  let most = 0;
-  for (const generation of run.generations) most = max(most, generation.individuals.length);
-  return most;
+    let most = 0;
+    for (const generation of run.generations) most = max(most, generation.individuals.length);
+    return most;
 }
 
 /** Whether a run got better at beating the thing it was measured against. */
 export function trend(report: YardstickReport): { first: number; last: number; gain: number } {
-  const points = report.points;
-  const first = points[0]?.mean ?? 0;
-  const last = points[points.length - 1]?.mean ?? 0;
-  return { first, last, gain: last - first };
+    const points = report.points;
+    const first = points[0]?.mean ?? 0;
+    const last = points[points.length - 1]?.mean ?? 0;
+    return { first, last, gain: last - first };
 }
 
 /** A generation record's individuals, for a caller that wants the designs. */
 export function designsOf(generation: GenerationRecord): Entrant[] {
-  return generation.individuals.map(entrantOf);
+    return generation.individuals.map(entrantOf);
 }
 
 /** How side A's champion of one generation fared against side B's of another. */
 export interface GridCell {
-  /** A's mean score less B's, over the seeds: above nought, A came off better. */
-  readonly margin: number;
-  /** Of the seeds, how many A outscored B on. */
-  readonly wins: number;
+    /** A's mean score less B's, over the seeds: above nought, A came off better. */
+    readonly margin: number;
+    /** Of the seeds, how many A outscored B on. */
+    readonly wins: number;
 }
 
 /** A champion sampled for the grid: the generation it was best of, and the round, in a run that has them. */
 export interface GridPoint {
-  readonly generation: number;
-  readonly round?: number;
+    readonly generation: number;
+    readonly round?: number;
 }
 
 /** What a grid row or column is called: its round where the run has them, its generation otherwise. */
 export function gridLabel(point: GridPoint): string {
-  return point.round === undefined ? `generation ${point.generation + 1}` : `round ${point.round + 1}`;
+    return point.round === undefined ? `generation ${point.generation + 1}` : `round ${point.round + 1}`;
 }
 
 export interface ChampionGrid {
-  /** Side A's champions sampled, the rows, and side B's, the columns. */
-  readonly rows: readonly GridPoint[];
-  readonly columns: readonly GridPoint[];
-  /** `cells[row][column]`: A's champion of `rows[row]` against B's of `columns[column]`. */
-  readonly cells: readonly (readonly GridCell[])[];
-  readonly seeds: number;
-  readonly matches: number;
+    /** Side A's champions sampled, the rows, and side B's, the columns. */
+    readonly rows: readonly GridPoint[];
+    readonly columns: readonly GridPoint[];
+    /** `cells[row][column]`: A's champion of `rows[row]` against B's of `columns[column]`. */
+    readonly cells: readonly (readonly GridCell[])[];
+    readonly seeds: number;
+    readonly matches: number;
 }
 
 export interface GridConfig {
-  /** Generations sampled from each side, evenly, first and last included. */
-  readonly samples: number;
-  /** Matches per cell, on seeds every cell shares, so cells differ by their designs alone. */
-  readonly seeds: number;
-  readonly seed: number;
-  readonly match: Partial<MatchConfig>;
+    /** Generations sampled from each side, evenly, first and last included. */
+    readonly samples: number;
+    /** Matches per cell, on seeds every cell shares, so cells differ by their designs alone. */
+    readonly seeds: number;
+    readonly seed: number;
+    readonly match: Partial<MatchConfig>;
 }
 
 export const DEFAULT_GRID: GridConfig = { samples: 8, seeds: 3, seed: 0x5eed, match: {} };
@@ -340,7 +340,7 @@ export const DEFAULT_GRID: GridConfig = { samples: 8, seeds: 3, seed: 0x5eed, ma
  * takes them.
  */
 export function championGrid(run: RunRecord, config?: Partial<GridConfig>): ChampionGrid {
-  return new GridMeasure(run, config).finish();
+    return new GridMeasure(run, config).finish();
 }
 
 /**
@@ -349,107 +349,107 @@ export function championGrid(run: RunRecord, config?: Partial<GridConfig>): Cham
  * from the top.
  */
 export class GridMeasure {
-  readonly rows: readonly GridPoint[];
-  readonly columns: readonly GridPoint[];
-  /** The cells fought so far, row by row. */
-  readonly cells: GridCell[][] = [];
-  matches = 0;
-  private readonly seeds: readonly number[];
-  private readonly match: Partial<MatchConfig>;
-  private readonly championsA: readonly Entrant[];
-  private readonly championsB: readonly Entrant[];
-  private row = 0;
-  private column = 0;
-  private seed = 0;
-  private margin = 0;
-  private wins = 0;
-  private fighting: Match | null = null;
+    readonly rows: readonly GridPoint[];
+    readonly columns: readonly GridPoint[];
+    /** The cells fought so far, row by row. */
+    readonly cells: GridCell[][] = [];
+    matches = 0;
+    private readonly seeds: readonly number[];
+    private readonly match: Partial<MatchConfig>;
+    private readonly championsA: readonly Entrant[];
+    private readonly championsB: readonly Entrant[];
+    private row = 0;
+    private column = 0;
+    private seed = 0;
+    private margin = 0;
+    private wins = 0;
+    private fighting: Match | null = null;
 
-  constructor(run: RunRecord, config?: Partial<GridConfig>) {
-    const settings = { ...DEFAULT_GRID, ...config };
-    const rival = run.rival?.generations ?? [];
-    const points = (generations: readonly GenerationRecord[]): GridPoint[] => {
-      const all = roundEnds(generations);
-      return sampled(all.length, settings.samples).map((k) => all[k]!);
-    };
-    this.rows = points(run.generations);
-    this.columns = points(rival);
-    const draw = new Rng(settings.seed);
-    this.seeds = Array.from({ length: settings.seeds }, () => draw.nextUint32());
-    this.match = { ...run.config.match, goal: null, ...settings.match };
-    this.championsA = this.rows.map((p) => entrantOf(champion(run.generations[p.generation]!)));
-    this.championsB = this.columns.map((p) => entrantOf(champion(rival[p.generation]!)));
-  }
-
-  get done(): boolean {
-    return this.row >= this.rows.length || this.columns.length === 0;
-  }
-
-  /** How far through, from nothing to one. */
-  get progress(): number {
-    const across = this.columns.length;
-    const total = this.rows.length * across * this.seeds.length;
-    if (total === 0 || this.done) return 1;
-    return ((this.row * across + this.column) * this.seeds.length + this.seed) / total;
-  }
-
-  /** Fight up to `budget` simulation steps of it. */
-  advance(budget: number): boolean {
-    let left = max(1, budget);
-    while (left > 0 && !this.done) {
-      if (this.seeds.length === 0) {
-        this.closeCell();
-        continue;
-      }
-      if (this.fighting === null) {
-        this.fighting = new Match(
-          [this.championsA[this.row]!, this.championsB[this.column]!],
-          { ...this.match, seed: this.seeds[this.seed]! },
-          [0, 1],
-        );
-      }
-      while (left > 0 && !this.fighting.done) {
-        this.fighting.advance();
-        left--;
-      }
-      if (this.fighting.done) this.close();
+    constructor(run: RunRecord, config?: Partial<GridConfig>) {
+        const settings = { ...DEFAULT_GRID, ...config };
+        const rival = run.rival?.generations ?? [];
+        const points = (generations: readonly GenerationRecord[]): GridPoint[] => {
+            const all = roundEnds(generations);
+            return sampled(all.length, settings.samples).map((k) => all[k]!);
+        };
+        this.rows = points(run.generations);
+        this.columns = points(rival);
+        const draw = new Rng(settings.seed);
+        this.seeds = Array.from({ length: settings.seeds }, () => draw.nextUint32());
+        this.match = { ...run.config.match, goal: null, ...settings.match };
+        this.championsA = this.rows.map((p) => entrantOf(champion(run.generations[p.generation]!)));
+        this.championsB = this.columns.map((p) => entrantOf(champion(rival[p.generation]!)));
     }
-    return !this.done;
-  }
 
-  finish(): ChampionGrid {
-    while (!this.done) this.advance(1 << 20);
-    return this.report();
-  }
-
-  report(): ChampionGrid {
-    return { rows: this.rows, columns: this.columns, cells: this.cells, seeds: this.seeds.length, matches: this.matches };
-  }
-
-  private close(): void {
-    const result = this.fighting!.result();
-    this.fighting = null;
-    this.matches++;
-    const mine = result.scores[0]!.total;
-    const theirs = result.scores[1]!.total;
-    this.margin += mine - theirs;
-    if (mine > theirs) this.wins++;
-    this.seed++;
-    if (this.seed >= this.seeds.length) this.closeCell();
-  }
-
-  private closeCell(): void {
-    const n = this.seeds.length;
-    (this.cells[this.row] ??= []).push({ margin: n > 0 ? this.margin / n : 0, wins: this.wins });
-    this.margin = 0;
-    this.wins = 0;
-    this.seed = 0;
-    this.column++;
-    if (this.column >= this.columns.length) {
-      this.column = 0;
-      this.row++;
+    get done(): boolean {
+        return this.row >= this.rows.length || this.columns.length === 0;
     }
-  }
+
+    /** How far through, from nothing to one. */
+    get progress(): number {
+        const across = this.columns.length;
+        const total = this.rows.length * across * this.seeds.length;
+        if (total === 0 || this.done) return 1;
+        return ((this.row * across + this.column) * this.seeds.length + this.seed) / total;
+    }
+
+    /** Fight up to `budget` simulation steps of it. */
+    advance(budget: number): boolean {
+        let left = max(1, budget);
+        while (left > 0 && !this.done) {
+            if (this.seeds.length === 0) {
+                this.closeCell();
+                continue;
+            }
+            if (this.fighting === null) {
+                this.fighting = new Match(
+                    [this.championsA[this.row]!, this.championsB[this.column]!],
+                    { ...this.match, seed: this.seeds[this.seed]! },
+                    [0, 1],
+                );
+            }
+            while (left > 0 && !this.fighting.done) {
+                this.fighting.advance();
+                left--;
+            }
+            if (this.fighting.done) this.close();
+        }
+        return !this.done;
+    }
+
+    finish(): ChampionGrid {
+        while (!this.done) this.advance(1 << 20);
+        return this.report();
+    }
+
+    report(): ChampionGrid {
+        return { rows: this.rows, columns: this.columns, cells: this.cells, seeds: this.seeds.length, matches: this.matches };
+    }
+
+    private close(): void {
+        const result = this.fighting!.result();
+        this.fighting = null;
+        this.matches++;
+        const mine = result.scores[0]!.total;
+        const theirs = result.scores[1]!.total;
+        this.margin += mine - theirs;
+        if (mine > theirs) this.wins++;
+        this.seed++;
+        if (this.seed >= this.seeds.length) this.closeCell();
+    }
+
+    private closeCell(): void {
+        const n = this.seeds.length;
+        (this.cells[this.row] ??= []).push({ margin: n > 0 ? this.margin / n : 0, wins: this.wins });
+        this.margin = 0;
+        this.wins = 0;
+        this.seed = 0;
+        this.column++;
+        if (this.column >= this.columns.length) {
+            this.column = 0;
+            this.row++;
+        }
+    }
 }
 
 /**
@@ -457,31 +457,31 @@ export class GridMeasure {
  * it was bred in, in a run that goes in rounds, and every generation otherwise.
  */
 function roundEnds(generations: readonly GenerationRecord[]): GridPoint[] {
-  const out: GridPoint[] = [];
-  generations.forEach((generation, g) => {
-    const round = generation.round;
-    if (round === undefined) out.push({ generation: g });
-    else if (generations[g + 1]?.round !== round) out.push({ generation: g, round });
-  });
-  return out;
+    const out: GridPoint[] = [];
+    generations.forEach((generation, g) => {
+        const round = generation.round;
+        if (round === undefined) out.push({ generation: g });
+        else if (generations[g + 1]?.round !== round) out.push({ generation: g, round });
+    });
+    return out;
 }
 
 /** `samples` indices out of `count`, evenly spread, first and last included. */
 function sampled(count: number, samples: number): number[] {
-  if (count <= 0) return [];
-  const wanted = max(1, min(count, floor(samples)));
-  if (wanted === 1) return [count - 1];
-  const out: number[] = [];
-  for (let k = 0; k < wanted; k++) {
-    const g = round((k * (count - 1)) / (wanted - 1));
-    if (out[out.length - 1] !== g) out.push(g);
-  }
-  return out;
+    if (count <= 0) return [];
+    const wanted = max(1, min(count, floor(samples)));
+    if (wanted === 1) return [count - 1];
+    const out: number[] = [];
+    for (let k = 0; k < wanted; k++) {
+        const g = round((k * (count - 1)) / (wanted - 1));
+        if (out[out.length - 1] !== g) out.push(g);
+    }
+    return out;
 }
 
 /** A generation's best by fitness, the first of equals. */
 function champion(generation: GenerationRecord): IndividualRecord {
-  let best = generation.individuals[0]!;
-  for (const individual of generation.individuals) if (individual.fitness > best.fitness) best = individual;
-  return best;
+    let best = generation.individuals[0]!;
+    for (const individual of generation.individuals) if (individual.fitness > best.fitness) best = individual;
+    return best;
 }

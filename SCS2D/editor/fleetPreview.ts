@@ -1,6 +1,6 @@
-import { aboardPose, Snapshot, type ShipDesign, type ShipView } from '../sim/index.js';
-import { centreOf, type FleetView } from './fleetDocument.js';
-import { restingTriggers } from './preview.js';
+import { aboardPose, Snapshot, type ShipDesign, type ShipView } from "../sim/index.js";
+import { centreOf, type FleetView } from "./fleetDocument.js";
+import { restingTriggers } from "./preview.js";
 
 /** The team a fleet is drawn as: a fleet is a side, so it wears one. */
 export const FLEET_TEAM = 0;
@@ -10,87 +10,87 @@ export const FLEET_TEAM = 0;
  * fleet's origin at the world origin, each carrier with the fighters it sets
  * out with on their pads. The fleet editor's `previewSnapshot`.
  */
-export function fleetSnapshot(view: Pick<FleetView, 'ships' | 'designs'>, out: Snapshot = new Snapshot(), team = FLEET_TEAM): Snapshot {
-  let count = 0;
-  let minX = Infinity;
-  let minY = Infinity;
-  let maxX = -Infinity;
-  let maxY = -Infinity;
+export function fleetSnapshot(view: Pick<FleetView, "ships" | "designs">, out: Snapshot = new Snapshot(), team = FLEET_TEAM): Snapshot {
+    let count = 0;
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
 
-  const place = (design: ShipDesign, x: number, y: number, angle: number): void => {
-    const ships: ShipView[] = out.ships;
-    const shipView = ships[count] ?? freshView(design);
-    ships[count++] = shipView;
-    shipView.currentStructure = design;
-    shipView.team = team;
-    shipView.x = x;
-    shipView.y = y;
-    shipView.angle = angle;
-    shipView.vx = 0;
-    shipView.vy = 0;
-    restingTriggers(shipView, design);
-    shipView.throttles.length = design.engines.length;
-    shipView.throttles.fill(0);
-    shipView.landed.length = 0;
-    shipView.integrity.length = design.modules.length;
-    shipView.integrity.fill(1);
-    shipView.hasControl = true;
-    shipView.isDerelict = false;
-    shipView.turretDisabled.length = design.turrets.length;
-    shipView.turretDisabled.fill(false);
+    const place = (design: ShipDesign, x: number, y: number, angle: number): void => {
+        const ships: ShipView[] = out.ships;
+        const shipView = ships[count] ?? freshView(design);
+        ships[count++] = shipView;
+        shipView.currentStructure = design;
+        shipView.team = team;
+        shipView.x = x;
+        shipView.y = y;
+        shipView.angle = angle;
+        shipView.vx = 0;
+        shipView.vy = 0;
+        restingTriggers(shipView, design);
+        shipView.throttles.length = design.engines.length;
+        shipView.throttles.fill(0);
+        shipView.landed.length = 0;
+        shipView.integrity.length = design.modules.length;
+        shipView.integrity.fill(1);
+        shipView.hasControl = true;
+        shipView.isDerelict = false;
+        shipView.turretDisabled.length = design.turrets.length;
+        shipView.turretDisabled.fill(false);
 
-    minX = Math.min(minX, x - design.radius);
-    minY = Math.min(minY, y - design.radius);
-    maxX = Math.max(maxX, x + design.radius);
-    maxY = Math.max(maxY, y + design.radius);
-  };
+        minX = Math.min(minX, x - design.radius);
+        minY = Math.min(minY, y - design.radius);
+        maxX = Math.max(maxX, x + design.radius);
+        maxY = Math.max(maxY, y + design.radius);
+    };
 
-  view.ships.forEach((ship, i) => {
-    const design = view.designs[i];
-    if (design == null) return;
-    const centre = centreOf(ship, design);
-    place(design, centre.x, centre.y, ship.angle);
-    const c = Math.cos(ship.angle);
-    const s = Math.sin(ship.angle);
-    for (const aboard of design.aboard ?? []) {
-      const pose = aboardPose(design, aboard);
-      place(aboard.design, centre.x + pose.x * c - pose.y * s, centre.y + pose.x * s + pose.y * c, ship.angle + pose.angle);
-    }
-  });
+    view.ships.forEach((ship, i) => {
+        const design = view.designs[i];
+        if (design == null) return;
+        const centre = centreOf(ship, design);
+        place(design, centre.x, centre.y, ship.angle);
+        const c = Math.cos(ship.angle);
+        const s = Math.sin(ship.angle);
+        for (const aboard of design.aboard ?? []) {
+            const pose = aboardPose(design, aboard);
+            place(aboard.design, centre.x + pose.x * c - pose.y * s, centre.y + pose.x * s + pose.y * c, ship.angle + pose.angle);
+        }
+    });
 
-  out.shipCount = count;
-  out.tick = 0;
-  out.time = 0;
-  out.wells = [];
-  out.projectileCount = 0;
-  out.beamCount = 0;
-  // An empty fleet still frames its origin.
-  out.minX = count === 0 ? -50 : minX;
-  out.minY = count === 0 ? -50 : minY;
-  out.maxX = count === 0 ? 50 : maxX;
-  out.maxY = count === 0 ? 50 : maxY;
-  return out;
+    out.shipCount = count;
+    out.tick = 0;
+    out.time = 0;
+    out.wells = [];
+    out.projectileCount = 0;
+    out.beamCount = 0;
+    // An empty fleet still frames its origin.
+    out.minX = count === 0 ? -50 : minX;
+    out.minY = count === 0 ? -50 : minY;
+    out.maxX = count === 0 ? 50 : maxX;
+    out.maxY = count === 0 ? 50 : maxY;
+    return out;
 }
 
 function freshView(design: ShipDesign): ShipView {
-  return {
-    currentStructure: design,
-    body: -1,
-    team: FLEET_TEAM,
-    serial: 0,
-    x: 0,
-    y: 0,
-    angle: 0,
-    vx: 0,
-    vy: 0,
-    turretBearings: [],
-    turretReady: [],
-    throttles: [],
-    landed: [],
-    integrity: [],
-    hasControl: true,
-    isDerelict: false,
-    isMissionKilled: false,
-    turretDisabled: [],
-  };
+    return {
+        currentStructure: design,
+        body: -1,
+        team: FLEET_TEAM,
+        serial: 0,
+        x: 0,
+        y: 0,
+        angle: 0,
+        vx: 0,
+        vy: 0,
+        turretBearings: [],
+        turretReady: [],
+        throttles: [],
+        landed: [],
+        integrity: [],
+        hasControl: true,
+        isDerelict: false,
+        isMissionKilled: false,
+        turretDisabled: [],
+    };
 }

@@ -1,4 +1,4 @@
-import type { Arcs } from '../render/canvas2d.js';
+import type { Arcs } from "../render/canvas2d.js";
 
 /**
  * How a page shows a battle, kept between visits: which arcs are drawn (`A`),
@@ -10,36 +10,36 @@ import type { Arcs } from '../render/canvas2d.js';
  * that cannot remember simply starts from its defaults.
  */
 export interface ViewSettings {
-  arcs: Arcs;
-  teamShots: boolean;
-  strips: boolean;
-  speed: number;
+    arcs: Arcs;
+    teamShots: boolean;
+    strips: boolean;
+    speed: number;
 }
 
-const ARCS: readonly Arcs[] = ['none', 'firing', 'trigger'];
+const ARCS: readonly Arcs[] = ["none", "firing", "trigger"];
 
 export function loadView(page: string, defaults: ViewSettings): ViewSettings {
-  try {
-    const raw = window.localStorage.getItem(key(page));
-    if (raw === null) return { ...defaults };
-    const kept = JSON.parse(raw) as Partial<Record<keyof ViewSettings, unknown>>;
-    return {
-      arcs: ARCS.includes(kept.arcs as Arcs) ? (kept.arcs as Arcs) : defaults.arcs,
-      teamShots: typeof kept.teamShots === 'boolean' ? kept.teamShots : defaults.teamShots,
-      strips: typeof kept.strips === 'boolean' ? kept.strips : defaults.strips,
-      speed: typeof kept.speed === 'number' && kept.speed > 0 ? kept.speed : defaults.speed,
-    };
-  } catch {
-    return { ...defaults };
-  }
+    try {
+        const raw = window.localStorage.getItem(key(page));
+        if (raw === null) return { ...defaults };
+        const kept = JSON.parse(raw) as Partial<Record<keyof ViewSettings, unknown>>;
+        return {
+            arcs: ARCS.includes(kept.arcs as Arcs) ? (kept.arcs as Arcs) : defaults.arcs,
+            teamShots: typeof kept.teamShots === "boolean" ? kept.teamShots : defaults.teamShots,
+            strips: typeof kept.strips === "boolean" ? kept.strips : defaults.strips,
+            speed: typeof kept.speed === "number" && kept.speed > 0 ? kept.speed : defaults.speed,
+        };
+    } catch {
+        return { ...defaults };
+    }
 }
 
 export function saveView(page: string, settings: ViewSettings): void {
-  try {
-    window.localStorage.setItem(key(page), JSON.stringify(settings));
-  } catch {
-    // Not remembered, which costs a visit its settings and nothing else.
-  }
+    try {
+        window.localStorage.setItem(key(page), JSON.stringify(settings));
+    } catch {
+        // Not remembered, which costs a visit its settings and nothing else.
+    }
 }
 
 /**
@@ -47,15 +47,15 @@ export function saveView(page: string, settings: ViewSettings): void {
  * whatever is picked. Returns the speed it shows.
  */
 export function keepSpeed(select: HTMLSelectElement, page: string, settings: ViewSettings): number {
-  const wanted = String(settings.speed);
-  if ([...select.options].some((option) => option.value === wanted)) select.value = wanted;
-  select.addEventListener('change', () => {
-    settings.speed = Number(select.value);
-    saveView(page, settings);
-  });
-  return Number(select.value);
+    const wanted = String(settings.speed);
+    if ([...select.options].some((option) => option.value === wanted)) select.value = wanted;
+    select.addEventListener("change", () => {
+        settings.speed = Number(select.value);
+        saveView(page, settings);
+    });
+    return Number(select.value);
 }
 
 function key(page: string): string {
-  return `scs2d.view.${page}`;
+    return `scs2d.view.${page}`;
 }

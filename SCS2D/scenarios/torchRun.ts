@@ -1,7 +1,7 @@
-import { compileBlueprint, math } from '../sim/index.js';
-import { type Battle } from './types.js';
-import { makeBattle } from './battle.js';
-import { LASER_FRIGATE, TORCH } from './blueprints.js';
+import { compileBlueprint, math } from "../sim/index.js";
+import { type Battle } from "./types.js";
+import { makeBattle } from "./battle.js";
+import { LASER_FRIGATE, TORCH } from "./blueprints.js";
 
 /**
  * A pack of torch ships against a laser frigate: engines used as weapons.
@@ -20,28 +20,28 @@ import { LASER_FRIGATE, TORCH } from './blueprints.js';
  * its bow, its guns are on each torch before it arrives and none comes back.
  */
 export function torchRun(seed = 20260905): Battle & { readonly torches: readonly number[]; readonly target: number } {
-  return makeBattle({ seed, projectiles: 1024, beams: 64 }, (ships, world) => {
-    const torch = compileBlueprint(TORCH);
-    const frigate = compileBlueprint(LASER_FRIGATE);
+    return makeBattle({ seed, projectiles: 1024, beams: 64 }, (ships, world) => {
+        const torch = compileBlueprint(TORCH);
+        const frigate = compileBlueprint(LASER_FRIGATE);
 
-    const torches: number[] = [];
-    const DISTANCE = 800;
-    const STAGGER = 500;
-    const COUNT = 4;
-    for (let k = 0; k < COUNT; k++) {
-      // Evenly round the frigate, each pointed at it.
-      const bearing = math.PI + (k - (COUNT - 1) / 2) * (math.TAU / COUNT);
-      torches.push(
-        ships.spawn(world, {
-          design: torch,
-          x: math.cos(bearing) * (DISTANCE + k * STAGGER),
-          y: math.sin(bearing) * (DISTANCE + k * STAGGER),
-          angle: bearing + math.PI,
-          team: 0,
-        }),
-      );
-    }
-    const target = ships.spawn(world, { design: frigate, x: 0, y: 0, angle: math.PI, team: 1 });
-    return { torches, target };
-  });
+        const torches: number[] = [];
+        const DISTANCE = 800;
+        const STAGGER = 500;
+        const COUNT = 4;
+        for (let k = 0; k < COUNT; k++) {
+            // Evenly round the frigate, each pointed at it.
+            const bearing = math.PI + (k - (COUNT - 1) / 2) * (math.TAU / COUNT);
+            torches.push(
+                ships.spawn(world, {
+                    design: torch,
+                    x: math.cos(bearing) * (DISTANCE + k * STAGGER),
+                    y: math.sin(bearing) * (DISTANCE + k * STAGGER),
+                    angle: bearing + math.PI,
+                    team: 0,
+                }),
+            );
+        }
+        const target = ships.spawn(world, { design: frigate, x: 0, y: 0, angle: math.PI, team: 1 });
+        return { torches, target };
+    });
 }

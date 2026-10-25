@@ -1,17 +1,17 @@
 /// <reference lib="dom" />
 
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { execFile } from 'node:child_process';
-import { existsSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
-import { promisify } from 'node:util';
-import type { Browser, Page } from 'playwright';
-import { launchChromium } from './launch.js';
-import { frame, type Camera } from '../../render/camera.js';
-import { FleetDocument } from '../../editor/fleetDocument.js';
-import { fleetSnapshot } from '../../editor/fleetPreview.js';
-import { LINE_OF_BATTLE } from '../../scenarios/fleets.js';
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { execFile } from "node:child_process";
+import { existsSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { promisify } from "node:util";
+import type { Browser, Page } from "playwright";
+import { launchChromium } from "./launch.js";
+import { frame, type Camera } from "../../render/camera.js";
+import { FleetDocument } from "../../editor/fleetDocument.js";
+import { fleetSnapshot } from "../../editor/fleetPreview.js";
+import { LINE_OF_BATTLE } from "../../scenarios/fleets.js";
 
 /**
  * The fleet editor, driven in a real browser: the wiring between the page and
@@ -19,17 +19,17 @@ import { LINE_OF_BATTLE } from '../../scenarios/fleets.js';
  */
 
 const here = dirname(fileURLToPath(import.meta.url));
-const root = join(here, '..', '..');
-const fleetPage = join(root, 'dist', 'fleet.html');
+const root = join(here, "..", "..");
+const fleetPage = join(root, "dist", "fleet.html");
 
 let browser: Browser;
 let page: Page;
 const problems: string[] = [];
 
 async function canvasCentre(p: Page): Promise<{ x: number; y: number }> {
-  const box = await p.locator('#view').boundingBox();
-  if (box === null) throw new Error('the canvas has no box');
-  return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    const box = await p.locator("#view").boundingBox();
+    if (box === null) throw new Error("the canvas has no box");
+    return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
 }
 
 /**
@@ -37,227 +37,227 @@ async function canvasCentre(p: Page): Promise<{ x: number; y: number }> {
  * page fits its view, so a test can click a fighter too small to find by eye.
  */
 async function onScreen(p: Page, x: number, y: number): Promise<{ x: number; y: number }> {
-  const box = await p.locator('#view').boundingBox();
-  const size = await p.evaluate(() => {
-    const canvas = document.getElementById('view') as HTMLCanvasElement;
-    return { width: canvas.width, height: canvas.height };
-  });
-  if (box === null) throw new Error('the canvas has no box');
-  const camera: Camera = { x: 0, y: 0, scale: 1 };
-  frame(camera, fleetSnapshot(new FleetDocument(LINE_OF_BATTLE, () => null).view), size.width, size.height, 1);
-  const cssPerPx = box.width / size.width;
-  return {
-    x: box.x + (size.width / 2 + (x - camera.x) * camera.scale) * cssPerPx,
-    y: box.y + (size.height / 2 - (y - camera.y) * camera.scale) * cssPerPx,
-  };
+    const box = await p.locator("#view").boundingBox();
+    const size = await p.evaluate(() => {
+        const canvas = document.getElementById("view") as HTMLCanvasElement;
+        return { width: canvas.width, height: canvas.height };
+    });
+    if (box === null) throw new Error("the canvas has no box");
+    const camera: Camera = { x: 0, y: 0, scale: 1 };
+    frame(camera, fleetSnapshot(new FleetDocument(LINE_OF_BATTLE, () => null).view), size.width, size.height, 1);
+    const cssPerPx = box.width / size.width;
+    return {
+        x: box.x + (size.width / 2 + (x - camera.x) * camera.scale) * cssPerPx,
+        y: box.y + (size.height / 2 - (y - camera.y) * camera.scale) * cssPerPx,
+    };
 }
 
-const shipCount = async (p: Page): Promise<string> => (await p.locator('#stats tr').first().textContent()) ?? '';
+const shipCount = async (p: Page): Promise<string> => (await p.locator("#stats tr").first().textContent()) ?? "";
 
 beforeAll(async () => {
-  if (process.platform === 'win32') {
-    await promisify(execFile)('cmd.exe', ['/c', 'npx', 'tsx', join(root, 'scripts', 'build.ts')], { cwd: root });
-  } else {
-    await promisify(execFile)('npx', ['tsx', join(root, 'scripts', 'build.ts')], { cwd: root });
-  }
-  expect(existsSync(fleetPage)).toBe(true);
+    if (process.platform === "win32") {
+        await promisify(execFile)("cmd.exe", ["/c", "npx", "tsx", join(root, "scripts", "build.ts")], { cwd: root });
+    } else {
+        await promisify(execFile)("npx", ["tsx", join(root, "scripts", "build.ts")], { cwd: root });
+    }
+    expect(existsSync(fleetPage)).toBe(true);
 
-  browser = await launchChromium();
-  page = await browser.newPage({ viewport: { width: 1200, height: 700 } });
-  page.on('pageerror', (error) => problems.push(`pageerror: ${error.message}`));
-  page.on('console', (message) => {
-    if (message.type() === 'error') problems.push(`console: ${message.text()}`);
-  });
-  await page.goto(pathToFileURL(fleetPage).href);
-  await page.waitForFunction(() => (document.getElementById('stats')?.textContent ?? '').includes('mass at launch'));
+    browser = await launchChromium();
+    page = await browser.newPage({ viewport: { width: 1200, height: 700 } });
+    page.on("pageerror", (error) => problems.push(`pageerror: ${error.message}`));
+    page.on("console", (message) => {
+        if (message.type() === "error") problems.push(`console: ${message.text()}`);
+    });
+    await page.goto(pathToFileURL(fleetPage).href);
+    await page.waitForFunction(() => (document.getElementById("stats")?.textContent ?? "").includes("mass at launch"));
 }, 120_000);
 
 afterAll(async () => {
-  await browser?.close();
+    await browser?.close();
 });
 
-describe('the fleet editor in a browser', () => {
-  it('opens the stock fleet without errors', async () => {
-    expect(problems).toEqual([]);
-    expect(await page.inputValue('#fleetName')).toBe('Line of Battle');
-    expect(await shipCount(page)).toBe('ships5');
-    expect(await page.textContent('#problems')).toBe('None.');
-  });
-
-  it('selects the ship under the pointer and moves it by dragging', async () => {
-    // The gunship stands at the fleet's origin, in the middle of the fitted view.
-    const centre = await canvasCentre(page);
-    await page.mouse.click(centre.x, centre.y);
-    expect(await page.textContent('#selectionTitle')).toBe('Ship: Gunship');
-    await page.mouse.move(centre.x, centre.y);
-    await page.mouse.down();
-    await page.mouse.move(centre.x - 60, centre.y, { steps: 5 });
-    await page.mouse.up();
-    expect(Number(await page.inputValue('#entryX'))).toBeLessThan(0);
-    await page.click('#undo');
-    expect(await page.inputValue('#entryX')).toBe('0');
-  });
-
-  it('steps into a group on a second click and moves one member within it', async () => {
-    const lower = await onScreen(page, 0, -120);
-    await page.mouse.click(lower.x, lower.y);
-    expect(await page.textContent('#selectionTitle')).toBe('Group: Fighter Pair');
-    await page.mouse.click(lower.x, lower.y);
-    expect(await page.textContent('#selectionTitle')).toBe('Ship: Dinky in Fighter Pair');
-    expect(await page.inputValue('#entryY')).toBe('-120');
-    await page.mouse.move(lower.x, lower.y);
-    await page.mouse.down();
-    await page.mouse.move(lower.x - 60, lower.y, { steps: 5 });
-    await page.mouse.up();
-    expect(Number(await page.inputValue('#entryX'))).toBeLessThan(0);
-    await page.click('#upLevel');
-    expect(await page.textContent('#selectionTitle')).toBe('Group: Fighter Pair');
-    expect(await page.inputValue('#entryX')).toBe('0');
-    await page.click('#undo');
-  });
-
-  it('renames, dissolves and makes groups', async () => {
-    const lower = await onScreen(page, 0, -120);
-    await page.mouse.click(lower.x, lower.y);
-    // A click on what is already selected steps into it; the group is a level up.
-    if ((await page.textContent('#selectionTitle'))?.startsWith('Ship')) await page.click('#upLevel');
-    expect(await page.textContent('#selectionTitle')).toBe('Group: Fighter Pair');
-    await page.fill('#groupName', 'Escort');
-    await page.dispatchEvent('#groupName', 'change');
-    expect(await page.textContent('#selectionTitle')).toBe('Group: Escort');
-    // Dissolved, its two ships are selected where they stood, and none is lost.
-    await page.click('#dissolveGroup');
-    expect(await page.textContent('#selectionTitle')).toBe('2 selected');
-    expect(await shipCount(page)).toBe('ships5');
-    // And made again, of the same two.
-    await page.click('#makeGroup');
-    expect(await page.textContent('#selectionTitle')).toBe('Group: Group');
-    expect(await shipCount(page)).toBe('ships5');
-    // Undone back to the stock fleet as it was.
-    for (let i = 0; i < 5 && !/Fighter Pair/.test((await page.textContent('#selectionTitle')) ?? ''); i++) {
-      await page.click('#undo');
-    }
-    expect(await page.textContent('#selectionTitle')).toMatch(/Fighter Pair/);
-    expect(await shipCount(page)).toBe('ships5');
-    expect(problems).toEqual([]);
-  });
-
-  it('adds a ship from the library and lists it overlapping', async () => {
-    expect(await page.textContent('#designList')).toMatch(/Dinky2 at start/);
-    await page.click('#addShip');
-    // The fleet's own designs first, then the library.
-    expect(await page.locator('#addMenu h3').allTextContents()).toEqual(['In this fleet', 'Stock']);
-    expect((await page.locator('#addMenu button').allTextContents()).slice(0, 4)).toEqual([
-      'Beam Corvette',
-      'Corvette',
-      'Dinky',
-      'Gunship',
-    ]);
-    await page.click('#addMenu button:text-is("Dinky")');
-    expect(await page.isVisible('#addMenu')).toBe(false);
-    expect(await shipCount(page)).toBe('ships6');
-    expect(await page.textContent('#designList')).toMatch(/Dinky3 at start/);
-    expect(await page.textContent('#problems')).toMatch(/Gunship#1 and Dinky#\d overlap at the start/);
-  });
-
-  it('swaps the selected ship for another design, and undoes it', async () => {
-    const x = await page.inputValue('#entryX');
-    await page.selectOption('#entryDesign', { label: 'Corvette' });
-    expect(await page.textContent('#selectionTitle')).toBe('Ship: Corvette');
-    expect(await page.inputValue('#entryX')).toBe(x);
-    // One the fleet does not carry yet comes from the library, and is embedded.
-    await page.selectOption('#entryDesign', { label: 'Catamaran' });
-    expect(await page.textContent('#selectionTitle')).toBe('Ship: Catamaran');
-    expect(await page.textContent('#stats')).toMatch(/Catamaran/);
-    await page.click('#undo');
-    await page.click('#undo');
-    expect(await page.textContent('#selectionTitle')).toBe('Ship: Dinky');
-    expect(await page.textContent('#stats')).not.toMatch(/Catamaran/);
-    expect(await page.isVisible('#designRow')).toBe(true);
-  });
-
-  it('forks the selected ship onto a copy of its design, and undoes it', async () => {
-    await page.click('#forkDesign');
-    expect(await page.textContent('#selectionTitle')).toBe('Ship: Dinky 2');
-    expect(await page.textContent('#stats')).toMatch(/Dinky 2/);
-    await page.click('#undo');
-    expect(await page.textContent('#selectionTitle')).toBe('Ship: Dinky');
-    expect(problems).toEqual([]);
-  });
-
-  it('repeats a ship as a setting that updates as it is typed', async () => {
-    await page.fill('#entryX', '-300');
-    await page.fill('#repeatCount', '4');
-    expect(await shipCount(page)).toBe('ships9');
-    expect(await page.isVisible('#stepRow')).toBe(true);
-    await page.fill('#stepY', '50');
-    expect(await page.textContent('#problems')).toBe('None.');
-    await page.fill('#repeatCount', '1');
-    expect(await shipCount(page)).toBe('ships6');
-    await page.click('#deleteEntry');
-    expect(await shipCount(page)).toBe('ships5');
-  });
-
-  it('offers to update a design that differs from the library copy', async () => {
-    await page.evaluate(() => {
-      localStorage.setItem(
-        'scs2d.blueprint.Dinky',
-        JSON.stringify({ formatVersion: 1, name: 'Dinky', modules: [{ kind: 'core', x: 0, y: 0, length: 2, width: 2 }] }),
-      );
+describe("the fleet editor in a browser", () => {
+    it("opens the stock fleet without errors", async () => {
+        expect(problems).toEqual([]);
+        expect(await page.inputValue("#fleetName")).toBe("Line of Battle");
+        expect(await shipCount(page)).toBe("ships5");
+        expect(await page.textContent("#problems")).toBe("None.");
     });
-    await page.evaluate(() => window.dispatchEvent(new Event('focus')));
-    expect(await page.textContent('#problems')).toMatch(/Dinky differs from the library's Dinky/);
-    await page.click('button[data-refresh="Dinky"]');
-    expect(await page.textContent('#problems')).not.toMatch(/differs/);
-    await page.click('#undo');
-    expect(await page.textContent('#problems')).toMatch(/differs/);
-    await page.evaluate(() => localStorage.clear());
-  });
 
-  it('saves a fleet to browser storage as a fleet file', async () => {
-    await page.fill('#fleetName', 'Saved Fleet');
-    await page.dispatchEvent('#fleetName', 'change');
-    await page.click('#saveFleet');
-    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('scs2d.fleet.Saved Fleet') ?? 'null'));
-    expect(saved?.formatVersion).toBe(1);
-    expect(saved?.ships).toHaveLength(4);
-    expect(problems).toEqual([]);
-  });
+    it("selects the ship under the pointer and moves it by dragging", async () => {
+        // The gunship stands at the fleet's origin, in the middle of the fitted view.
+        const centre = await canvasCentre(page);
+        await page.mouse.click(centre.x, centre.y);
+        expect(await page.textContent("#selectionTitle")).toBe("Ship: Gunship");
+        await page.mouse.move(centre.x, centre.y);
+        await page.mouse.down();
+        await page.mouse.move(centre.x - 60, centre.y, { steps: 5 });
+        await page.mouse.up();
+        expect(Number(await page.inputValue("#entryX"))).toBeLessThan(0);
+        await page.click("#undo");
+        expect(await page.inputValue("#entryX")).toBe("0");
+    });
 
-  it('hands the fleet being edited to a custom battle as its first side', async () => {
-    await page.click('#battleLink');
-    await page.waitForFunction(() => document.getElementById('custom')?.hidden === false);
-    expect(await page.locator('#fleetSlots select option:checked').first().textContent()).toBe('Saved Fleet (from the editor)');
-    expect(await page.textContent('#play')).toBe('Play');
-    expect(await page.isDisabled('#fight')).toBe(false);
-    // The address is tidied, so a reload does not hand it over again.
-    expect(page.url()).not.toContain('#');
-    expect(problems).toEqual([]);
-  });
+    it("steps into a group on a second click and moves one member within it", async () => {
+        const lower = await onScreen(page, 0, -120);
+        await page.mouse.click(lower.x, lower.y);
+        expect(await page.textContent("#selectionTitle")).toBe("Group: Fighter Pair");
+        await page.mouse.click(lower.x, lower.y);
+        expect(await page.textContent("#selectionTitle")).toBe("Ship: Dinky in Fighter Pair");
+        expect(await page.inputValue("#entryY")).toBe("-120");
+        await page.mouse.move(lower.x, lower.y);
+        await page.mouse.down();
+        await page.mouse.move(lower.x - 60, lower.y, { steps: 5 });
+        await page.mouse.up();
+        expect(Number(await page.inputValue("#entryX"))).toBeLessThan(0);
+        await page.click("#upLevel");
+        expect(await page.textContent("#selectionTitle")).toBe("Group: Fighter Pair");
+        expect(await page.inputValue("#entryX")).toBe("0");
+        await page.click("#undo");
+    });
 
-  it('opens a ship of the fleet in the ship editor and brings the design back', async () => {
-    await page.goto(pathToFileURL(fleetPage).href);
-    await page.waitForFunction(() => (document.getElementById('stats')?.textContent ?? '').includes('mass at launch'));
-    const centre = await canvasCentre(page);
-    await page.mouse.click(centre.x, centre.y);
-    expect(await page.textContent('#selectionTitle')).toBe('Ship: Gunship');
-    await page.click('#editDesign');
-    await page.waitForURL(/editor\.html#design=/);
-    expect(await page.textContent('#inFleetTitle')).toBe('In Line of Battle');
-    expect(await page.inputValue('#shipName')).toBe('Gunship');
-    await page.click('#backToFleet');
-    await page.waitForURL(/fleet\.html#fleet=/);
-    expect(await page.inputValue('#fleetName')).toBe('Line of Battle');
-    expect(problems).toEqual([]);
-  });
+    it("renames, dissolves and makes groups", async () => {
+        const lower = await onScreen(page, 0, -120);
+        await page.mouse.click(lower.x, lower.y);
+        // A click on what is already selected steps into it; the group is a level up.
+        if ((await page.textContent("#selectionTitle"))?.startsWith("Ship")) await page.click("#upLevel");
+        expect(await page.textContent("#selectionTitle")).toBe("Group: Fighter Pair");
+        await page.fill("#groupName", "Escort");
+        await page.dispatchEvent("#groupName", "change");
+        expect(await page.textContent("#selectionTitle")).toBe("Group: Escort");
+        // Dissolved, its two ships are selected where they stood, and none is lost.
+        await page.click("#dissolveGroup");
+        expect(await page.textContent("#selectionTitle")).toBe("2 selected");
+        expect(await shipCount(page)).toBe("ships5");
+        // And made again, of the same two.
+        await page.click("#makeGroup");
+        expect(await page.textContent("#selectionTitle")).toBe("Group: Group");
+        expect(await shipCount(page)).toBe("ships5");
+        // Undone back to the stock fleet as it was.
+        for (let i = 0; i < 5 && !/Fighter Pair/.test((await page.textContent("#selectionTitle")) ?? ""); i++) {
+            await page.click("#undo");
+        }
+        expect(await page.textContent("#selectionTitle")).toMatch(/Fighter Pair/);
+        expect(await shipCount(page)).toBe("ships5");
+        expect(problems).toEqual([]);
+    });
 
-  it('opens any design the fleet carries from its list of designs', async () => {
-    await page.click('#designList a[data-design="Corvette"]');
-    await page.waitForURL(/editor\.html#design=/);
-    expect(await page.textContent('#inFleetTitle')).toBe('In Line of Battle');
-    expect(await page.inputValue('#shipName')).toBe('Corvette');
-    await page.click('#backToFleet');
-    await page.waitForURL(/fleet\.html#fleet=/);
-    expect(problems).toEqual([]);
-  });
+    it("adds a ship from the library and lists it overlapping", async () => {
+        expect(await page.textContent("#designList")).toMatch(/Dinky2 at start/);
+        await page.click("#addShip");
+        // The fleet's own designs first, then the library.
+        expect(await page.locator("#addMenu h3").allTextContents()).toEqual(["In this fleet", "Stock"]);
+        expect((await page.locator("#addMenu button").allTextContents()).slice(0, 4)).toEqual([
+            "Beam Corvette",
+            "Corvette",
+            "Dinky",
+            "Gunship",
+        ]);
+        await page.click('#addMenu button:text-is("Dinky")');
+        expect(await page.isVisible("#addMenu")).toBe(false);
+        expect(await shipCount(page)).toBe("ships6");
+        expect(await page.textContent("#designList")).toMatch(/Dinky3 at start/);
+        expect(await page.textContent("#problems")).toMatch(/Gunship#1 and Dinky#\d overlap at the start/);
+    });
+
+    it("swaps the selected ship for another design, and undoes it", async () => {
+        const x = await page.inputValue("#entryX");
+        await page.selectOption("#entryDesign", { label: "Corvette" });
+        expect(await page.textContent("#selectionTitle")).toBe("Ship: Corvette");
+        expect(await page.inputValue("#entryX")).toBe(x);
+        // One the fleet does not carry yet comes from the library, and is embedded.
+        await page.selectOption("#entryDesign", { label: "Catamaran" });
+        expect(await page.textContent("#selectionTitle")).toBe("Ship: Catamaran");
+        expect(await page.textContent("#stats")).toMatch(/Catamaran/);
+        await page.click("#undo");
+        await page.click("#undo");
+        expect(await page.textContent("#selectionTitle")).toBe("Ship: Dinky");
+        expect(await page.textContent("#stats")).not.toMatch(/Catamaran/);
+        expect(await page.isVisible("#designRow")).toBe(true);
+    });
+
+    it("forks the selected ship onto a copy of its design, and undoes it", async () => {
+        await page.click("#forkDesign");
+        expect(await page.textContent("#selectionTitle")).toBe("Ship: Dinky 2");
+        expect(await page.textContent("#stats")).toMatch(/Dinky 2/);
+        await page.click("#undo");
+        expect(await page.textContent("#selectionTitle")).toBe("Ship: Dinky");
+        expect(problems).toEqual([]);
+    });
+
+    it("repeats a ship as a setting that updates as it is typed", async () => {
+        await page.fill("#entryX", "-300");
+        await page.fill("#repeatCount", "4");
+        expect(await shipCount(page)).toBe("ships9");
+        expect(await page.isVisible("#stepRow")).toBe(true);
+        await page.fill("#stepY", "50");
+        expect(await page.textContent("#problems")).toBe("None.");
+        await page.fill("#repeatCount", "1");
+        expect(await shipCount(page)).toBe("ships6");
+        await page.click("#deleteEntry");
+        expect(await shipCount(page)).toBe("ships5");
+    });
+
+    it("offers to update a design that differs from the library copy", async () => {
+        await page.evaluate(() => {
+            localStorage.setItem(
+                "scs2d.blueprint.Dinky",
+                JSON.stringify({ formatVersion: 1, name: "Dinky", modules: [{ kind: "core", x: 0, y: 0, length: 2, width: 2 }] }),
+            );
+        });
+        await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+        expect(await page.textContent("#problems")).toMatch(/Dinky differs from the library's Dinky/);
+        await page.click('button[data-refresh="Dinky"]');
+        expect(await page.textContent("#problems")).not.toMatch(/differs/);
+        await page.click("#undo");
+        expect(await page.textContent("#problems")).toMatch(/differs/);
+        await page.evaluate(() => localStorage.clear());
+    });
+
+    it("saves a fleet to browser storage as a fleet file", async () => {
+        await page.fill("#fleetName", "Saved Fleet");
+        await page.dispatchEvent("#fleetName", "change");
+        await page.click("#saveFleet");
+        const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("scs2d.fleet.Saved Fleet") ?? "null"));
+        expect(saved?.formatVersion).toBe(1);
+        expect(saved?.ships).toHaveLength(4);
+        expect(problems).toEqual([]);
+    });
+
+    it("hands the fleet being edited to a custom battle as its first side", async () => {
+        await page.click("#battleLink");
+        await page.waitForFunction(() => document.getElementById("custom")?.hidden === false);
+        expect(await page.locator("#fleetSlots select option:checked").first().textContent()).toBe("Saved Fleet (from the editor)");
+        expect(await page.textContent("#play")).toBe("Play");
+        expect(await page.isDisabled("#fight")).toBe(false);
+        // The address is tidied, so a reload does not hand it over again.
+        expect(page.url()).not.toContain("#");
+        expect(problems).toEqual([]);
+    });
+
+    it("opens a ship of the fleet in the ship editor and brings the design back", async () => {
+        await page.goto(pathToFileURL(fleetPage).href);
+        await page.waitForFunction(() => (document.getElementById("stats")?.textContent ?? "").includes("mass at launch"));
+        const centre = await canvasCentre(page);
+        await page.mouse.click(centre.x, centre.y);
+        expect(await page.textContent("#selectionTitle")).toBe("Ship: Gunship");
+        await page.click("#editDesign");
+        await page.waitForURL(/editor\.html#design=/);
+        expect(await page.textContent("#inFleetTitle")).toBe("In Line of Battle");
+        expect(await page.inputValue("#shipName")).toBe("Gunship");
+        await page.click("#backToFleet");
+        await page.waitForURL(/fleet\.html#fleet=/);
+        expect(await page.inputValue("#fleetName")).toBe("Line of Battle");
+        expect(problems).toEqual([]);
+    });
+
+    it("opens any design the fleet carries from its list of designs", async () => {
+        await page.click('#designList a[data-design="Corvette"]');
+        await page.waitForURL(/editor\.html#design=/);
+        expect(await page.textContent("#inFleetTitle")).toBe("In Line of Battle");
+        expect(await page.inputValue("#shipName")).toBe("Corvette");
+        await page.click("#backToFleet");
+        await page.waitForURL(/fleet\.html#fleet=/);
+        expect(problems).toEqual([]);
+    });
 });

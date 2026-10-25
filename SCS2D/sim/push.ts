@@ -1,15 +1,15 @@
-import { abs, atan2, cos, HALF_PI, max, min, round, sin } from './math.js';
-import { blockCentre, boxAngle, moduleCentre, moduleOutline, weldBox, type ModuleSpec } from './modules.js';
-import { isShaped, outlineAxes, projectOutline } from './shape.js';
+import { abs, atan2, cos, HALF_PI, max, min, round, sin } from "./math.js";
+import { blockCentre, boxAngle, moduleCentre, moduleOutline, weldBox, type ModuleSpec } from "./modules.js";
+import { isShaped, outlineAxes, projectOutline } from "./shape.js";
 import {
-  ATTACHMENT_TOLERANCE,
-  contactWidth,
-  expandWithOrigins,
-  isInstance,
-  weldedWidth,
-  type Assembly,
-  type Placement,
-} from './blueprint.js';
+    ATTACHMENT_TOLERANCE,
+    contactWidth,
+    expandWithOrigins,
+    isInstance,
+    weldedWidth,
+    type Assembly,
+    type Placement,
+} from "./blueprint.js";
 
 /**
  * Moving a module's face carries its neighbours with it.
@@ -30,17 +30,17 @@ import {
  */
 
 interface Face {
-  /** Which face of the module, in its own frame. */
-  of: FaceOf;
-  /** Outward normal. */
-  nx: number;
-  ny: number;
-  /** The face's offset along the normal, before and after. */
-  at: number;
-  moved: number;
-  /** The face's middle and half-length along it. */
-  middle: number;
-  half: number;
+    /** Which face of the module, in its own frame. */
+    of: FaceOf;
+    /** Outward normal. */
+    nx: number;
+    ny: number;
+    /** The face's offset along the normal, before and after. */
+    at: number;
+    moved: number;
+    /** The face's middle and half-length along it. */
+    middle: number;
+    half: number;
 }
 
 /**
@@ -51,118 +51,118 @@ interface Face {
  * then the other.
  */
 export function pushNeighbours(
-  list: readonly Placement[],
-  index: number,
-  assemblies: Readonly<Record<string, Assembly>> | undefined,
-  before: ModuleSpec,
-  after: ModuleSpec,
+    list: readonly Placement[],
+    index: number,
+    assemblies: Readonly<Record<string, Assembly>> | undefined,
+    before: ModuleSpec,
+    after: ModuleSpec,
 ): Placement[] {
-  let out = list.slice();
-  let current = before;
-  for (let i = 0; i < 4; i++) {
-    const face = movedFaces(current, after)[0];
-    if (face === undefined) break;
-    out = pushFace(out, index, assemblies ?? {}, current, face);
-    current = withFaceMoved(current, face.of, face.moved - face.at);
-  }
-  return out;
+    let out = list.slice();
+    let current = before;
+    for (let i = 0; i < 4; i++) {
+        const face = movedFaces(current, after)[0];
+        if (face === undefined) break;
+        out = pushFace(out, index, assemblies ?? {}, current, face);
+        current = withFaceMoved(current, face.of, face.moved - face.at);
+    }
+    return out;
 }
 
 /** One face's push: what it carries, found and moved. */
 function pushFace(
-  list: Placement[],
-  index: number,
-  assemblies: Readonly<Record<string, Assembly>>,
-  resized: ModuleSpec,
-  face: Face,
+    list: Placement[],
+    index: number,
+    assemblies: Readonly<Record<string, Assembly>>,
+    resized: ModuleSpec,
+    face: Face,
 ): Placement[] {
-  const shift = face.moved - face.at;
-  const boxes = list.map((placement, j) =>
-    j === index
-      ? [resized]
-      : isInstance(placement)
-        ? expandWithOrigins({ name: '', modules: [placement], assemblies }).modules
-        : [placement],
-  );
+    const shift = face.moved - face.at;
+    const boxes = list.map((placement, j) =>
+        j === index
+            ? [resized]
+            : isInstance(placement)
+              ? expandWithOrigins({ name: "", modules: [placement], assemblies }).modules
+              : [placement],
+    );
 
-  // Each box's outline and weld box worked out once, rather than for every pair they are tested in.
-  const shapes = boxes.map((mine) => mine.map(outlineOf));
-  const welds = boxes.map((mine) => mine.map(weldBox));
+    // Each box's outline and weld box worked out once, rather than for every pair they are tested in.
+    const shapes = boxes.map((mine) => mine.map(outlineOf));
+    const welds = boxes.map((mine) => mine.map(weldBox));
 
-  const dx = shift > 0 ? face.nx : -face.nx;
-  const dy = shift > 0 ? face.ny : -face.ny;
-  const distance = abs(shift);
+    const dx = shift > 0 ? face.nx : -face.nx;
+    const dy = shift > 0 ? face.ny : -face.ny;
+    const distance = abs(shift);
 
-  // How far each placement moves. What sits against the face goes all the
-  // way; what is in the way — of the face, or of something moving — goes as
-  // far as is left once the gap to it has closed, so it ends up touching what
-  // pushed it. A drag re-applies the whole resize at every step, and moving
-  // everything the full distance would open the gap up again each time.
-  const moves = new Map<number, number>();
-  const raise = (j: number, by: number): boolean => {
-    if (by <= 1e-9 || by <= (moves.get(j) ?? 0) + 1e-9) return false;
-    moves.set(j, by);
-    return true;
-  };
-  for (let j = 0; j < list.length; j++) {
-    if (j === index) continue;
-    const mine = boxes[j]!;
-    if (mine.some((box) => against(box, face))) {
-      raise(j, distance);
-    } else if (shift > 0) {
-      // Growing into it, which takes in a module turned so that its corner
-      // hangs below the face.
-      const meets = firstContact(shapes[index]!, shapes[j]!, dx, dy, distance);
-      if (meets !== null) raise(j, distance - meets);
+    // How far each placement moves. What sits against the face goes all the
+    // way; what is in the way — of the face, or of something moving — goes as
+    // far as is left once the gap to it has closed, so it ends up touching what
+    // pushed it. A drag re-applies the whole resize at every step, and moving
+    // everything the full distance would open the gap up again each time.
+    const moves = new Map<number, number>();
+    const raise = (j: number, by: number): boolean => {
+        if (by <= 1e-9 || by <= (moves.get(j) ?? 0) + 1e-9) return false;
+        moves.set(j, by);
+        return true;
+    };
+    for (let j = 0; j < list.length; j++) {
+        if (j === index) continue;
+        const mine = boxes[j]!;
+        if (mine.some((box) => against(box, face))) {
+            raise(j, distance);
+        } else if (shift > 0) {
+            // Growing into it, which takes in a module turned so that its corner
+            // hangs below the face.
+            const meets = firstContact(shapes[index]!, shapes[j]!, dx, dy, distance);
+            if (meets !== null) raise(j, distance - meets);
+        }
     }
-  }
-  if (moves.size === 0) return list;
+    if (moves.size === 0) return list;
 
-  const welded = welds.map((mine, j) =>
-    welds.flatMap((theirs, k) => (k !== j && mine.some((a) => theirs.some((b) => weldedWidth(a, b) > 0)) ? [k] : [])),
-  );
-  const joined = reachable(welded, index, new Set());
+    const welded = welds.map((mine, j) =>
+        welds.flatMap((theirs, k) => (k !== j && mine.some((a) => theirs.some((b) => weldedWidth(a, b) > 0)) ? [k] : [])),
+    );
+    const joined = reachable(welded, index, new Set());
 
-  for (let grew = true; grew;) {
-    grew = false;
-    for (const [m, by] of [...moves]) {
-      for (let j = 0; j < list.length; j++) {
-        if (j === index || j === m) continue;
-        const meets = firstContact(shapes[m]!, shapes[j]!, dx, dy, by);
-        if (meets !== null && raise(j, by - meets)) grew = true;
-      }
+    for (let grew = true; grew;) {
+        grew = false;
+        for (const [m, by] of [...moves]) {
+            for (let j = 0; j < list.length; j++) {
+                if (j === index || j === m) continue;
+                const meets = firstContact(shapes[m]!, shapes[j]!, dx, dy, by);
+                if (meets !== null && raise(j, by - meets)) grew = true;
+            }
+        }
+        // Hanging off what moves — joined to the resized module, but not without
+        // it — goes as far as whatever it hangs from.
+        const free = reachable(welded, index, new Set(moves.keys()));
+        for (const j of joined) {
+            if (j === index || free.has(j)) continue;
+            let by = 0;
+            for (const k of welded[j]!) by = max(by, moves.get(k) ?? 0);
+            if (raise(j, by)) grew = true;
+        }
     }
-    // Hanging off what moves — joined to the resized module, but not without
-    // it — goes as far as whatever it hangs from.
-    const free = reachable(welded, index, new Set(moves.keys()));
-    for (const j of joined) {
-      if (j === index || free.has(j)) continue;
-      let by = 0;
-      for (const k of welded[j]!) by = max(by, moves.get(k) ?? 0);
-      if (raise(j, by)) grew = true;
-    }
-  }
 
-  const out = list.slice();
-  for (const [j, by] of moves) {
-    const placement = list[j]!;
-    out[j] = { ...placement, x: tidy(placement.x + dx * by), y: tidy(placement.y + dy * by) };
-  }
-  return out;
+    const out = list.slice();
+    for (const [j, by] of moves) {
+        const placement = list[j]!;
+        out[j] = { ...placement, x: tidy(placement.x + dx * by), y: tidy(placement.y + dy * by) };
+    }
+    return out;
 }
 
 /** The placements reachable from `from` through welds, never entering `avoid`. */
 function reachable(welded: readonly number[][], from: number, avoid: ReadonlySet<number>): Set<number> {
-  const seen = new Set([from]);
-  const queue = [from];
-  while (queue.length > 0) {
-    for (const next of welded[queue.pop()!]!) {
-      if (seen.has(next) || avoid.has(next)) continue;
-      seen.add(next);
-      queue.push(next);
+    const seen = new Set([from]);
+    const queue = [from];
+    while (queue.length > 0) {
+        for (const next of welded[queue.pop()!]!) {
+            if (seen.has(next) || avoid.has(next)) continue;
+            seen.add(next);
+            queue.push(next);
+        }
     }
-  }
-  return seen;
+    return seen;
 }
 
 /**
@@ -172,88 +172,88 @@ function reachable(welded: readonly number[][], from: number, avoid: ReadonlySet
  * or meeting at a corner, is never met.
  */
 function firstContact(movers: readonly Shape[], others: readonly Shape[], dx: number, dy: number, limit: number): number | null {
-  let first: number | null = null;
-  for (const a of movers) {
-    for (const b of others) {
-      const t = contact(a, b, dx, dy, limit);
-      if (t !== null && (first === null || t < first)) first = t;
+    let first: number | null = null;
+    for (const a of movers) {
+        for (const b of others) {
+            const t = contact(a, b, dx, dy, limit);
+            if (t !== null && (first === null || t < first)) first = t;
+        }
     }
-  }
-  return first;
+    return first;
 }
 
 /** A module's outline, and the box round it. */
 interface Shape {
-  readonly corners: number[];
-  readonly count: number;
-  readonly lx: number;
-  readonly ly: number;
-  readonly hx: number;
-  readonly hy: number;
+    readonly corners: number[];
+    readonly count: number;
+    readonly lx: number;
+    readonly ly: number;
+    readonly hx: number;
+    readonly hy: number;
 }
 
 function outlineOf(spec: ModuleSpec): Shape {
-  const corners: number[] = [];
-  const count = moduleOutline(spec, corners);
-  let lx = Infinity;
-  let ly = Infinity;
-  let hx = -Infinity;
-  let hy = -Infinity;
-  for (let c = 0; c < count * 2; c += 2) {
-    lx = min(lx, corners[c]!);
-    hx = max(hx, corners[c]!);
-    ly = min(ly, corners[c + 1]!);
-    hy = max(hy, corners[c + 1]!);
-  }
-  return { corners, count, lx, ly, hx, hy };
+    const corners: number[] = [];
+    const count = moduleOutline(spec, corners);
+    let lx = Infinity;
+    let ly = Infinity;
+    let hx = -Infinity;
+    let hy = -Infinity;
+    for (let c = 0; c < count * 2; c += 2) {
+        lx = min(lx, corners[c]!);
+        hx = max(hx, corners[c]!);
+        ly = min(ly, corners[c + 1]!);
+        hy = max(hy, corners[c + 1]!);
+    }
+    return { corners, count, lx, ly, hx, hy };
 }
 
 /** `firstContact` for one pair, by the separating-axis test swept along the motion. */
 function contact(a: Shape, b: Shape, dx: number, dy: number, limit: number): number | null {
-  // Never met if the box `a` sweeps through misses `b`'s.
-  const sx = dx * limit;
-  const sy = dy * limit;
-  if (a.lx + min(0, sx) > b.hx || a.hx + max(0, sx) < b.lx || a.ly + min(0, sy) > b.hy || a.hy + max(0, sy) < b.ly) return null;
-  const { corners: ca, count: countA } = a;
-  const { corners: cb, count: countB } = b;
-  // The two outlines' edge normals, and the normal to the motion: enough to
-  // separate a pair of convex shapes sweeping past each other.
-  const axes: number[] = [];
-  const more: number[] = [];
-  const used = outlineAxes(ca, countA, axes);
-  const extra = outlineAxes(cb, countB, more);
-  for (let i = 0; i < extra * 2; i++) axes[used * 2 + i] = more[i]!;
-  axes.push(-dy, dx);
-  // When the two start to touch, and the window in which they would overlap
-  // by more than the tolerance; they meet only if that window opens in reach.
-  let touch = 0;
-  let enter = 0;
-  let exit = Infinity;
-  for (let k = 0; k < axes.length; k += 2) {
-    const ax = axes[k]!;
-    const ay = axes[k + 1]!;
-    const speed = dx * ax + dy * ay;
-    projectOutline(ca, countA, ax, ay, spanA);
-    projectOutline(cb, countB, ax, ay, spanB);
-    const aLo = spanA.lo;
-    const aHi = spanA.hi;
-    const bLo = spanB.lo;
-    const bHi = spanB.hi;
-    if (abs(speed) < 1e-12) {
-      if (min(aHi, bHi) - max(aLo, bLo) <= ATTACHMENT_TOLERANCE) return null;
-      continue;
+    // Never met if the box `a` sweeps through misses `b`'s.
+    const sx = dx * limit;
+    const sy = dy * limit;
+    if (a.lx + min(0, sx) > b.hx || a.hx + max(0, sx) < b.lx || a.ly + min(0, sy) > b.hy || a.hy + max(0, sy) < b.ly) return null;
+    const { corners: ca, count: countA } = a;
+    const { corners: cb, count: countB } = b;
+    // The two outlines' edge normals, and the normal to the motion: enough to
+    // separate a pair of convex shapes sweeping past each other.
+    const axes: number[] = [];
+    const more: number[] = [];
+    const used = outlineAxes(ca, countA, axes);
+    const extra = outlineAxes(cb, countB, more);
+    for (let i = 0; i < extra * 2; i++) axes[used * 2 + i] = more[i]!;
+    axes.push(-dy, dx);
+    // When the two start to touch, and the window in which they would overlap
+    // by more than the tolerance; they meet only if that window opens in reach.
+    let touch = 0;
+    let enter = 0;
+    let exit = Infinity;
+    for (let k = 0; k < axes.length; k += 2) {
+        const ax = axes[k]!;
+        const ay = axes[k + 1]!;
+        const speed = dx * ax + dy * ay;
+        projectOutline(ca, countA, ax, ay, spanA);
+        projectOutline(cb, countB, ax, ay, spanB);
+        const aLo = spanA.lo;
+        const aHi = spanA.hi;
+        const bLo = spanB.lo;
+        const bHi = spanB.hi;
+        if (abs(speed) < 1e-12) {
+            if (min(aHi, bHi) - max(aLo, bLo) <= ATTACHMENT_TOLERANCE) return null;
+            continue;
+        }
+        const tol = ATTACHMENT_TOLERANCE;
+        const [t0, t1, meet] =
+            speed > 0
+                ? [(bLo + tol - aHi) / speed, (bHi - tol - aLo) / speed, (bLo - aHi) / speed]
+                : [(bHi - tol - aLo) / speed, (bLo + tol - aHi) / speed, (bHi - aLo) / speed];
+        enter = max(enter, t0);
+        exit = min(exit, t1);
+        touch = max(touch, meet);
     }
-    const tol = ATTACHMENT_TOLERANCE;
-    const [t0, t1, meet] =
-      speed > 0
-        ? [(bLo + tol - aHi) / speed, (bHi - tol - aLo) / speed, (bLo - aHi) / speed]
-        : [(bHi - tol - aLo) / speed, (bLo + tol - aHi) / speed, (bHi - aLo) / speed];
-    enter = max(enter, t0);
-    exit = min(exit, t1);
-    touch = max(touch, meet);
-  }
-  if (enter >= exit || enter > limit) return null;
-  return max(0, touch);
+    if (enter >= exit || enter > limit) return null;
+    return max(0, touch);
 }
 
 /** Scratch for the sweeps' separating-axis tests. */
@@ -270,26 +270,26 @@ const spanB = { lo: 0, hi: 0 };
  * same answer they give for a module dragged rather than resized.
  */
 function movedFaces(before: ModuleSpec, after: ModuleSpec): Face[] {
-  if (isShaped(before) || isShaped(after)) return [];
-  const angle = boxAngle(before);
-  const ux = cos(angle);
-  const uy = sin(angle);
-  // A layout's own boxes, so faces of the block: a barrel or bell reaching
-  // out of one carries nothing.
-  const was = blockCentre(before);
-  const now = blockCentre(after);
-  const faces: Face[] = [];
-  const add = (of: FaceOf, nx: number, ny: number, halfBefore: number, halfAfter: number, span: number) => {
-    const at = was.x * nx + was.y * ny + halfBefore;
-    const moved = now.x * nx + now.y * ny + halfAfter;
-    if (abs(moved - at) < 1e-6) return;
-    faces.push({ of, nx, ny, at, moved, middle: was.x * -ny + was.y * nx, half: span });
-  };
-  for (const side of [1, -1] as const) {
-    add({ along: side, across: 0 }, side * ux, side * uy, before.length / 2, after.length / 2, before.width / 2);
-    add({ along: 0, across: side }, -side * uy, side * ux, before.width / 2, after.width / 2, before.length / 2);
-  }
-  return faces;
+    if (isShaped(before) || isShaped(after)) return [];
+    const angle = boxAngle(before);
+    const ux = cos(angle);
+    const uy = sin(angle);
+    // A layout's own boxes, so faces of the block: a barrel or bell reaching
+    // out of one carries nothing.
+    const was = blockCentre(before);
+    const now = blockCentre(after);
+    const faces: Face[] = [];
+    const add = (of: FaceOf, nx: number, ny: number, halfBefore: number, halfAfter: number, span: number) => {
+        const at = was.x * nx + was.y * ny + halfBefore;
+        const moved = now.x * nx + now.y * ny + halfAfter;
+        if (abs(moved - at) < 1e-6) return;
+        faces.push({ of, nx, ny, at, moved, middle: was.x * -ny + was.y * nx, half: span });
+    };
+    for (const side of [1, -1] as const) {
+        add({ along: side, across: 0 }, side * ux, side * uy, before.length / 2, after.length / 2, before.width / 2);
+        add({ along: 0, across: side }, -side * uy, side * ux, before.width / 2, after.width / 2, before.length / 2);
+    }
+    return faces;
 }
 
 /**
@@ -297,37 +297,37 @@ function movedFaces(before: ModuleSpec, after: ModuleSpec): Face[] {
  * overlaps the face along its length rather than meeting it at a corner.
  */
 function against(placed: ModuleSpec, face: Face): boolean {
-  // What sits against a face sits against a block, however it was given.
-  const box = weldBox(placed);
-  const centre = moduleCentre(box);
-  const angle = boxAngle(box);
-  const c = cos(angle);
-  const s = sin(angle);
-  const depth = extent(box, c, s, face.nx, face.ny);
-  const beside = extent(box, c, s, -face.ny, face.nx);
-  const along = centre.x * face.nx + centre.y * face.ny;
-  const across = centre.x * -face.ny + centre.y * face.nx;
-  const near = along - depth;
-  if (along <= face.at) return false;
-  if (near < face.at - ATTACHMENT_TOLERANCE) return false;
-  if (near > face.at + ATTACHMENT_TOLERANCE) return false;
-  const overlap = min(across + beside, face.middle + face.half) - max(across - beside, face.middle - face.half);
-  return overlap > ATTACHMENT_TOLERANCE;
+    // What sits against a face sits against a block, however it was given.
+    const box = weldBox(placed);
+    const centre = moduleCentre(box);
+    const angle = boxAngle(box);
+    const c = cos(angle);
+    const s = sin(angle);
+    const depth = extent(box, c, s, face.nx, face.ny);
+    const beside = extent(box, c, s, -face.ny, face.nx);
+    const along = centre.x * face.nx + centre.y * face.ny;
+    const across = centre.x * -face.ny + centre.y * face.nx;
+    const near = along - depth;
+    if (along <= face.at) return false;
+    if (near < face.at - ATTACHMENT_TOLERANCE) return false;
+    if (near > face.at + ATTACHMENT_TOLERANCE) return false;
+    const overlap = min(across + beside, face.middle + face.half) - max(across - beside, face.middle - face.half);
+    return overlap > ATTACHMENT_TOLERANCE;
 }
 
 /** How far a box reaches from its middle along a direction. */
 function extent(box: ModuleSpec, c: number, s: number, nx: number, ny: number): number {
-  return (abs(c * nx + s * ny) * box.length + abs(-s * nx + c * ny) * box.width) / 2;
+    return (abs(c * nx + s * ny) * box.length + abs(-s * nx + c * ny) * box.width) / 2;
 }
 
 function tidy(value: number): number {
-  return round(value * 1e9) / 1e9;
+    return round(value * 1e9) / 1e9;
 }
 
 /** A face of a module: ±1 along its length or across it, the other 0. */
 export interface FaceOf {
-  along: -1 | 0 | 1;
-  across: -1 | 0 | 1;
+    along: -1 | 0 | 1;
+    across: -1 | 0 | 1;
 }
 
 /**
@@ -335,19 +335,19 @@ export interface FaceOf {
  * from `a` into `b` and which way the seam runs, and which face of each it is.
  */
 export interface SharedFace {
-  x: number;
-  y: number;
-  nx: number;
-  ny: number;
-  angle: number;
-  a: FaceOf;
-  b: FaceOf;
-  /**
-   * Whether each module's face lies wholly within the other's. Only then can
-   * that module grow across the seam without reaching past the other one.
-   */
-  aWithinB: boolean;
-  bWithinA: boolean;
+    x: number;
+    y: number;
+    nx: number;
+    ny: number;
+    angle: number;
+    a: FaceOf;
+    b: FaceOf;
+    /**
+     * Whether each module's face lies wholly within the other's. Only then can
+     * that module grow across the seam without reaching past the other one.
+     */
+    aWithinB: boolean;
+    bWithinA: boolean;
 }
 
 /**
@@ -361,58 +361,58 @@ export interface SharedFace {
  * about that — and it is only the drag that has nothing to offer.
  */
 export function sharedFace(a: ModuleSpec, b: ModuleSpec): SharedFace | null {
-  if (isShaped(a) || isShaped(b)) return null;
-  const angleA = boxAngle(a);
-  const turn = (((boxAngle(b) - angleA) % HALF_PI) + HALF_PI) % HALF_PI;
-  if (min(turn, HALF_PI - turn) > 1e-9) return null;
-  if (contactWidth(a, b) <= 0) return null;
-  // The faces of the blocks, as the layout writes them; what is welded is a
-  // block, not a barrel.
-  a = weldBox(a);
-  b = weldBox(b);
+    if (isShaped(a) || isShaped(b)) return null;
+    const angleA = boxAngle(a);
+    const turn = (((boxAngle(b) - angleA) % HALF_PI) + HALF_PI) % HALF_PI;
+    if (min(turn, HALF_PI - turn) > 1e-9) return null;
+    if (contactWidth(a, b) <= 0) return null;
+    // The faces of the blocks, as the layout writes them; what is welded is a
+    // block, not a barrel.
+    a = weldBox(a);
+    b = weldBox(b);
 
-  const ca = moduleCentre(a);
-  const cb = moduleCentre(b);
-  const c = cos(angleA);
-  const s = sin(angleA);
-  const cbA = cos(boxAngle(b));
-  const sbA = sin(boxAngle(b));
-  for (const [along, across] of [
-    [1, 0],
-    [-1, 0],
-    [0, 1],
-    [0, -1],
-  ] as const) {
-    const nx = along * c - across * s;
-    const ny = along * s + across * c;
-    const face = ca.x * nx + ca.y * ny + (along !== 0 ? a.length : a.width) / 2;
-    const near = cb.x * nx + cb.y * ny - extent(b, cbA, sbA, nx, ny);
-    if (abs(near - face) > ATTACHMENT_TOLERANCE) continue;
+    const ca = moduleCentre(a);
+    const cb = moduleCentre(b);
+    const c = cos(angleA);
+    const s = sin(angleA);
+    const cbA = cos(boxAngle(b));
+    const sbA = sin(boxAngle(b));
+    for (const [along, across] of [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+    ] as const) {
+        const nx = along * c - across * s;
+        const ny = along * s + across * c;
+        const face = ca.x * nx + ca.y * ny + (along !== 0 ? a.length : a.width) / 2;
+        const near = cb.x * nx + cb.y * ny - extent(b, cbA, sbA, nx, ny);
+        if (abs(near - face) > ATTACHMENT_TOLERANCE) continue;
 
-    const tx = -ny;
-    const ty = nx;
-    const halfA = (along !== 0 ? a.width : a.length) / 2;
-    const halfB = extent(b, cbA, sbA, tx, ty);
-    const midA = ca.x * tx + ca.y * ty;
-    const midB = cb.x * tx + cb.y * ty;
-    const middle = (max(midA - halfA, midB - halfB) + min(midA + halfA, midB + halfB)) / 2;
+        const tx = -ny;
+        const ty = nx;
+        const halfA = (along !== 0 ? a.width : a.length) / 2;
+        const halfB = extent(b, cbA, sbA, tx, ty);
+        const midA = ca.x * tx + ca.y * ty;
+        const midB = cb.x * tx + cb.y * ty;
+        const middle = (max(midA - halfA, midB - halfB) + min(midA + halfA, midB + halfB)) / 2;
 
-    // The face of b looking back at a, in b's own frame.
-    const bx = -(nx * cbA + ny * sbA);
-    const by = -(-nx * sbA + ny * cbA);
-    return {
-      x: face * nx + middle * tx,
-      y: face * ny + middle * ty,
-      nx,
-      ny,
-      angle: atan2(ty, tx),
-      a: { along, across },
-      b: { along: unit(bx), across: unit(by) },
-      aWithinB: midA - halfA >= midB - halfB - ATTACHMENT_TOLERANCE && midA + halfA <= midB + halfB + ATTACHMENT_TOLERANCE,
-      bWithinA: midB - halfB >= midA - halfA - ATTACHMENT_TOLERANCE && midB + halfB <= midA + halfA + ATTACHMENT_TOLERANCE,
-    };
-  }
-  return null;
+        // The face of b looking back at a, in b's own frame.
+        const bx = -(nx * cbA + ny * sbA);
+        const by = -(-nx * sbA + ny * cbA);
+        return {
+            x: face * nx + middle * tx,
+            y: face * ny + middle * ty,
+            nx,
+            ny,
+            angle: atan2(ty, tx),
+            a: { along, across },
+            b: { along: unit(bx), across: unit(by) },
+            aWithinB: midA - halfA >= midB - halfB - ATTACHMENT_TOLERANCE && midA + halfA <= midB + halfB + ATTACHMENT_TOLERANCE,
+            bWithinA: midB - halfB >= midA - halfA - ATTACHMENT_TOLERANCE && midB + halfB <= midA + halfA + ATTACHMENT_TOLERANCE,
+        };
+    }
+    return null;
 }
 
 /**
@@ -421,39 +421,39 @@ export function sharedFace(a: ModuleSpec, b: ModuleSpec): SharedFace | null {
  * other faces where they were.
  */
 export function shiftSeam(
-  a: ModuleSpec,
-  b: ModuleSpec,
-  seam: SharedFace,
-  delta: number,
-  smallest: number,
+    a: ModuleSpec,
+    b: ModuleSpec,
+    seam: SharedFace,
+    delta: number,
+    smallest: number,
 ): { a: ModuleSpec; b: ModuleSpec } {
-  const sizeA = seam.a.along !== 0 ? a.length : a.width;
-  const sizeB = seam.b.along !== 0 ? b.length : b.width;
-  // A module already below `smallest` may grow but not shrink.
-  const moved = max(min(0, smallest - sizeA), min(max(0, sizeB - smallest), delta));
-  return { a: withFaceMoved(a, seam.a, moved), b: withFaceMoved(b, seam.b, -moved) };
+    const sizeA = seam.a.along !== 0 ? a.length : a.width;
+    const sizeB = seam.b.along !== 0 ? b.length : b.width;
+    // A module already below `smallest` may grow but not shrink.
+    const moved = max(min(0, smallest - sizeA), min(max(0, sizeB - smallest), delta));
+    return { a: withFaceMoved(a, seam.a, moved), b: withFaceMoved(b, seam.b, -moved) };
 }
 
 /** A module with one face moved outward by `delta`, the opposite face held. */
 export function withFaceMoved(spec: ModuleSpec, face: FaceOf, delta: number): ModuleSpec {
-  const length = face.along !== 0 ? tidy(spec.length + delta) : spec.length;
-  const width = face.across !== 0 ? tidy(spec.width + delta) : spec.width;
-  const angle = boxAngle(spec);
-  const c = cos(angle);
-  const s = sin(angle);
-  const lx = (face.along * delta) / 2;
-  const ly = (face.across * delta) / 2;
-  const was = blockCentre(spec);
-  const offset = blockCentre({ ...spec, x: 0, y: 0, length, width });
-  return {
-    ...spec,
-    length,
-    width,
-    x: tidy(was.x + lx * c - ly * s - offset.x),
-    y: tidy(was.y + lx * s + ly * c - offset.y),
-  };
+    const length = face.along !== 0 ? tidy(spec.length + delta) : spec.length;
+    const width = face.across !== 0 ? tidy(spec.width + delta) : spec.width;
+    const angle = boxAngle(spec);
+    const c = cos(angle);
+    const s = sin(angle);
+    const lx = (face.along * delta) / 2;
+    const ly = (face.across * delta) / 2;
+    const was = blockCentre(spec);
+    const offset = blockCentre({ ...spec, x: 0, y: 0, length, width });
+    return {
+        ...spec,
+        length,
+        width,
+        x: tidy(was.x + lx * c - ly * s - offset.x),
+        y: tidy(was.y + lx * s + ly * c - offset.y),
+    };
 }
 
 function unit(value: number): -1 | 0 | 1 {
-  return value > 0.5 ? 1 : value < -0.5 ? -1 : 0;
+    return value > 0.5 ? 1 : value < -0.5 ? -1 : 0;
 }

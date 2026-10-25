@@ -1,25 +1,25 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from "vitest";
 import {
-  blueprintFileProblem,
-  billOf,
-  NO_BUDGET,
-  type Budget,
-  MAX_BARREL_CALIBRES,
-  blueprintProblem,
-  compileDraft,
-  expandBlueprint,
-  isWeaponMount,
-  moduleProblem,
-  moduleStats,
-  parseBlueprint,
-  Rng,
-  serialiseBlueprint,
-  engineGeometry,
-  type Blueprint,
-  type ModuleSpec,
-} from '../sim/index.js';
-import { DEFAULT_BUILD_WEIGHTS, DEFAULT_KINDS, mutate, shipScale, type DoctrineWeights } from '../evolution/mutate.js';
-import { BARE_CORE, CATAMARAN, CORVETTE, DINKY, GUNSHIP } from '../scenarios/blueprints.js';
+    blueprintFileProblem,
+    billOf,
+    NO_BUDGET,
+    type Budget,
+    MAX_BARREL_CALIBRES,
+    blueprintProblem,
+    compileDraft,
+    expandBlueprint,
+    isWeaponMount,
+    moduleProblem,
+    moduleStats,
+    parseBlueprint,
+    Rng,
+    serialiseBlueprint,
+    engineGeometry,
+    type Blueprint,
+    type ModuleSpec,
+} from "../sim/index.js";
+import { DEFAULT_BUILD_WEIGHTS, DEFAULT_KINDS, mutate, shipScale, type DoctrineWeights } from "../evolution/mutate.js";
+import { BARE_CORE, CATAMARAN, CORVETTE, DINKY, GUNSHIP } from "../scenarios/blueprints.js";
 
 /**
  * How one blueprint becomes another.
@@ -47,876 +47,882 @@ const FROZEN = { move: 0, resize: 0, refit: 0, fittings: 0, tuning: 0, fighter: 
 const STILL = { targeting: 0, approach: 0, escort: 0, avoidance: 0, gunnery: 0 };
 
 const FLEET: readonly (readonly [string, Blueprint])[] = [
-  ['corvette', CORVETTE],
-  ['gunship', GUNSHIP],
-  ['dinky', DINKY],
-  ['catamaran', CATAMARAN],
+    ["corvette", CORVETTE],
+    ["gunship", GUNSHIP],
+    ["dinky", DINKY],
+    ["catamaran", CATAMARAN],
 ];
 
 /** Breed one blueprint down a line, returning every generation. */
 function lineage(parent: Blueprint, seed: number, generations: number, budget: Budget): Blueprint[] {
-  const rng = new Rng(seed);
-  const out: Blueprint[] = [];
-  let held = parent;
-  for (let i = 0; i < generations; i++) {
-    held = mutate(held, rng, { budget }).blueprint;
-    out.push(held);
-  }
-  return out;
+    const rng = new Rng(seed);
+    const out: Blueprint[] = [];
+    let held = parent;
+    for (let i = 0; i < generations; i++) {
+        held = mutate(held, rng, { budget }).blueprint;
+        out.push(held);
+    }
+    return out;
 }
 
-describe('mutation', () => {
-  it('breeds only ships that can be built', { timeout: 30_000 }, () => {
-    for (const [name, parent] of FLEET) {
-      const rng = new Rng(11);
-      for (let i = 0; i < 200; i++) {
-        const child = mutate(parent, rng);
-        expect(blueprintProblem(child.blueprint), `${name} child ${i}`).toBeNull();
-      }
-    }
-  });
-
-  it('leaves the parent alone', () => {
-    const before = JSON.stringify(serialiseBlueprint(CORVETTE));
-    const rng = new Rng(3);
-    for (let i = 0; i < 50; i++) mutate(CORVETTE, rng);
-    expect(JSON.stringify(serialiseBlueprint(CORVETTE))).toEqual(before);
-  });
-
-  it('breeds the same children from the same seed', () => {
-    const one = lineage(GUNSHIP, 5, 20, NO_BUDGET);
-    const two = lineage(GUNSHIP, 5, 20, NO_BUDGET);
-    expect(one.map((bp) => JSON.stringify(serialiseBlueprint(bp)))).toEqual(two.map((bp) => JSON.stringify(serialiseBlueprint(bp))));
-  });
-
-  it('breeds different children from different seeds', () => {
-    const one = JSON.stringify(serialiseBlueprint(lineage(GUNSHIP, 5, 20, NO_BUDGET)[19]!));
-    const two = JSON.stringify(serialiseBlueprint(lineage(GUNSHIP, 6, 20, NO_BUDGET)[19]!));
-    expect(one).not.toEqual(two);
-  });
-
-  it('always changes something', () => {
-    const rng = new Rng(19);
-    for (const [name, parent] of FLEET) {
-      const before = JSON.stringify(serialiseBlueprint(parent));
-      for (let i = 0; i < 100; i++) {
-        const child = mutate(parent, rng);
-        expect(child.edits.length, `${name} child ${i}`).toBeGreaterThan(0);
-        expect(JSON.stringify(serialiseBlueprint(child.blueprint))).not.toEqual(before);
-      }
-    }
-  });
-
-  it('writes a child to a file the parser accepts', () => {
-    // A mutant that cannot be saved cannot be replayed, inspected in the
-    // editor, or carried between a run and the page that shows it.
-    const rng = new Rng(23);
-    for (let i = 0; i < 100; i++) {
-      const child = mutate(CATAMARAN, rng).blueprint;
-      const file = serialiseBlueprint(child);
-      expect(blueprintFileProblem(file), `child ${i}`).toBeNull();
-      expect(JSON.stringify(serialiseBlueprint(parseBlueprint(file)))).toEqual(JSON.stringify(file));
-    }
-  });
-
-  it('keeps a child within one generation of its parent', { timeout: 30_000 }, () => {
-    const rng = new Rng(29);
-    for (const [name, parent] of FLEET) {
-      const was = expandBlueprint(parent).length;
-      for (let i = 0; i < 200; i++) {
-        // Thrusters are a phase of their own, tested below.
-        const child = mutate(parent, rng, { thrusters: 0 });
-        // At most one structural edit; everything else drifts.
-        const structural = child.edits.filter((edit) => STRUCTURAL.test(edit));
-        expect(structural.length, `${name} child ${i}: ${child.edits.join(' | ')}`).toBeLessThanOrEqual(1);
-        // A module added inside an assembly arrives once per copy of it, so
-        // the expanded count moves by more than one — but only ever by whole
-        // copies of one module. Everything else leaves the ship the size it
-        // was, the edits to the *grouping* included: making a part of a module
-        // and dissolving one back into the layout change what a later
-        // generation can do rather than anything about the ship itself.
-        const now = expandBlueprint(child.blueprint).length;
-        if (structural.length === 0) expect(now, `${name} child ${i}`).toEqual(was);
-      }
-    }
-  });
-
-  it('never breeds a child over its budget, in metal, fuel or build time', () => {
-    // As it sets out: a part-full core or tank costs only what it carries.
-    const parent = billOf(compileDraft(CORVETTE));
-    const budget: Budget = { metal: parent.metal * 1.1, fuel: parent.fuel * 1.1, build: parent.build * 1.1 };
-    for (const child of lineage(CORVETTE, 31, 100, budget)) {
-      const bill = billOf(compileDraft(child));
-      expect(bill.metal).toBeLessThanOrEqual(budget.metal);
-      expect(bill.fuel).toBeLessThanOrEqual(budget.fuel);
-      expect(bill.build).toBeLessThanOrEqual(budget.build);
-    }
-  });
-
-  it('holds each of the three to its own limit', () => {
-    // Fuel held to what the parent carries, the rest free: a lineage may grow
-    // as it likes but never fill its tanks past the parent's fuel.
-    const parent = billOf(compileDraft(CORVETTE));
-    const budget: Budget = { ...NO_BUDGET, fuel: parent.fuel };
-    // Three lineages rather than one, since a single one can pare itself
-    // down for a hundred generations and never grow at all.
-    let grew = false;
-    for (const seed of [32, 33, 34]) {
-      for (const child of lineage(CORVETTE, seed, 100, budget)) {
-        const bill = billOf(compileDraft(child));
-        expect(bill.fuel).toBeLessThanOrEqual(budget.fuel);
-        grew ||= bill.metal > parent.metal || bill.build > parent.build;
-      }
-    }
-    expect(grew).toBe(true);
-  });
-
-  // 2,400 generations of a growing ship, which is the sample the ratio needs
-  // to be stable: 45 s on a desktop and past 90 s on a loaded CI runner, so
-  // the budget is wide rather than close.
-  it('adds as much as it takes away', { timeout: 240_000 }, () => {
-    // The operator is neutral about how big a ship is; selection is what
-    // decides that. An imbalance here is invisible in any one child and
-    // fatal over a run — a lineage that loses a module every time it gains
-    // one ends up as a hull that cannot shoot, whatever the fitness says.
-    // Over several lines rather than one. A single line of 800 generations
-    // measured anywhere between 1.3 and 1.9, so a bound pinned to whichever
-    // one was run first is a test that fails on a change that did nothing —
-    // the same trap the structural-delivery test above fell into.
-    //
-    // The bound is asymmetric because the two failures are not alike. A ratio
-    // well under one is the fatal one: a lineage that loses a module whenever
-    // it gains one erodes until it cannot shoot, and nothing stops it. Above
-    // one a lineage grows, which the mass budget already bounds, so the upper
-    // bound only has to catch a runaway: single lines from seeds 37–46 range
-    // 1.4–2.3, and these three pooled have read 1.7 and 2.1 on changes to the
-    // operator set that barely moved the ten-line mean (1.80 → 1.93).
-    let added = 0;
-    let removed = 0;
-    const budget = compileDraft(GUNSHIP).mass * 2;
-    for (const seed of [37, 38, 39]) {
-      const rng = new Rng(seed);
-      let held: Blueprint = GUNSHIP;
-      for (let i = 0; i < 800; i++) {
-        // Without thrusters, which only ever add, and on purpose (`addThrusters`).
-        const child = mutate(held, rng, { budget: { ...NO_BUDGET, metal: budget }, thrusters: 0 });
-        held = child.blueprint;
-        for (const edit of child.edits) {
-          if (/removed/.test(edit)) removed++;
-          else if (/added|copied/.test(edit)) added++;
+describe("mutation", () => {
+    it("breeds only ships that can be built", { timeout: 30_000 }, () => {
+        for (const [name, parent] of FLEET) {
+            const rng = new Rng(11);
+            for (let i = 0; i < 200; i++) {
+                const child = mutate(parent, rng);
+                expect(blueprintProblem(child.blueprint), `${name} child ${i}`).toBeNull();
+            }
         }
-      }
-    }
-    expect(added).toBeGreaterThan(20);
-    expect(removed).toBeGreaterThan(20);
-    expect(added / removed).toBeGreaterThan(0.6);
-    expect(added / removed).toBeLessThan(2.5);
-  });
+    });
 
-  // Over 20 s on a desktop, and slower on a busy runner.
-  it('delivers the structural generations it draws', { timeout: 120_000 }, () => {
-    // Structural edits are refused far more often than changes to a number,
-    // so a candidate that bundled the two would deliver them at a fraction of
-    // the rate asked for. Set to always, most generations must carry one —
-    // the rest are draws for a module that will not fit anywhere or cannot be
-    // spared, which fall back to breeding a change to the numbers rather than
-    // to a copy of the parent.
-    //
-    // Over several lines rather than one, because how often that happens
-    // depends a great deal on the shape a line has wandered into: single
-    // lines measured between half and six-sevenths, and a threshold pinned to
-    // whichever one was run first is a test that fails on a change that did
-    // nothing.
-    const budget = compileDraft(CORVETTE).mass * 2;
-    let structural = 0;
-    let generations = 0;
-    for (const seed of [41, 42, 43]) {
-      const rng = new Rng(seed);
-      let held: Blueprint = CORVETTE;
-      for (let i = 0; i < 200; i++) {
-        const child = mutate(held, rng, { structural: 1, thrusters: 0, budget: { ...NO_BUDGET, metal: budget } });
-        held = child.blueprint;
-        generations++;
-        if (child.edits.some((edit) => /removed|added|copied/.test(edit))) structural++;
-      }
-    }
-    expect(structural).toBeGreaterThan(generations / 2);
-  });
+    it("leaves the parent alone", () => {
+        const before = JSON.stringify(serialiseBlueprint(CORVETTE));
+        const rng = new Rng(3);
+        for (let i = 0; i < 50; i++) mutate(CORVETTE, rng);
+        expect(JSON.stringify(serialiseBlueprint(CORVETTE))).toEqual(before);
+    });
 
-  it('brings a weight back from zero', () => {
-    // A doctrine number is perturbed by a fraction of the default's own value
-    // rather than of what is held, so nothing that has reached zero is stuck
-    // there. Scaling by the held value alone makes zero absorbing, and
-    // "ignore this entirely" has to be a decision a lineage can reverse.
-    const parent: Blueprint = {
-      ...CORVETTE,
-      doctrine: {
-        targeting: { ...CORVETTE.doctrine!.targeting, massWeight: 0 },
-        approach: { ...CORVETTE.doctrine!.approach },
-      },
-    };
-    const rng = new Rng(43);
-    let moved = false;
-    let held = parent;
-    // How long it takes depends on how many knobs there are to draw from, so
-    // the cap is generous: the claim is only that zero is not a trap.
-    for (let i = 0; i < 400 && !moved; i++) {
-      held = mutate(held, rng).blueprint;
-      if (held.doctrine!.targeting.massWeight !== 0) moved = true;
-    }
-    expect(moved).toBe(true);
-  });
+    it("breeds the same children from the same seed", () => {
+        const one = lineage(GUNSHIP, 5, 20, NO_BUDGET);
+        const two = lineage(GUNSHIP, 5, 20, NO_BUDGET);
+        expect(one.map((bp) => JSON.stringify(serialiseBlueprint(bp)))).toEqual(two.map((bp) => JSON.stringify(serialiseBlueprint(bp))));
+    });
 
-  it('reaches a gun\u2019s own preferences, which is where an aim point lives', () => {
-    // A ship's doctrine cannot say where a shot lands — only a mount's can —
-    // so a lineage that could not turn a mount's numbers could never find a
-    // crippler, whatever the match was scoring.
-    const rng = new Rng(51);
-    let held: Blueprint = CORVETTE;
-    let found = false;
-    for (let i = 0; i < 400 && !found; i++) {
-      held = mutate(held, rng).blueprint;
-      found = expandBlueprint(held).some((spec) => isWeaponMount(spec.kind) && spec.targeting !== undefined);
-    }
-    expect(found).toBe(true);
-  });
+    it("breeds different children from different seeds", () => {
+        const one = JSON.stringify(serialiseBlueprint(lineage(GUNSHIP, 5, 20, NO_BUDGET)[19]!));
+        const two = JSON.stringify(serialiseBlueprint(lineage(GUNSHIP, 6, 20, NO_BUDGET)[19]!));
+        expect(one).not.toEqual(two);
+    });
 
-  // Hundreds of mutants bred and compiled per parent to catch three barrel
-  // edits, which is the same budget its siblings above take for the same
-  // reason: a default five seconds is what one assertion costs, not what
-  // breeding a population does.
-  it("lengthens and shortens a gun's barrel, in whole calibres", { timeout: 30_000 }, () => {
-    // The Catamaran's turrets and the Corvette's hull gun both read it.
-    for (const parent of [CATAMARAN, CORVETTE]) {
-      const rng = new Rng(57);
-      let held = parent;
-      const seen: number[] = [];
-      for (let i = 0; i < 600 && seen.length < 3; i++) {
-        const child = mutate(held, rng);
-        held = child.blueprint;
-        for (const edit of child.edits) {
-          const m = / barrel [\d.]+ → (\d+(?:\.\d+)?) calibres/.exec(edit);
-          if (m !== null) seen.push(Number(m[1]));
+    it("always changes something", () => {
+        const rng = new Rng(19);
+        for (const [name, parent] of FLEET) {
+            const before = JSON.stringify(serialiseBlueprint(parent));
+            for (let i = 0; i < 100; i++) {
+                const child = mutate(parent, rng);
+                expect(child.edits.length, `${name} child ${i}`).toBeGreaterThan(0);
+                expect(JSON.stringify(serialiseBlueprint(child.blueprint))).not.toEqual(before);
+            }
         }
-      }
-      expect(seen.length).toBeGreaterThan(0);
-      for (const calibres of seen) {
-        expect(Number.isInteger(calibres)).toBe(true);
-        expect(calibres).toBeGreaterThanOrEqual(1);
-        expect(calibres).toBeLessThanOrEqual(MAX_BARREL_CALIBRES);
-      }
-    }
-  });
+    });
 
-  it('finds a weight whose own default is zero', () => {
-    // Scaling by the field's default is what lets a weight come back from
-    // zero — except where the default is zero too, which is a field nothing
-    // can ever reach: every draw is a fraction of nothing, rounds to no
-    // change, and is refused. `escortWeight` is the one that has it today, and
-    // a population that cannot find it can never be interested in an
-    // objective, whatever the match is scoring.
-    const rng = new Rng(53);
-    let held = CORVETTE;
-    let moved = false;
-    for (let i = 0; i < 1000 && !moved; i++) {
-      held = mutate(held, rng).blueprint;
-      if ((held.doctrine?.targeting.escortWeight ?? 0) !== 0) moved = true;
-    }
-    expect(moved).toBe(true);
-  });
-
-  it('can reach a hull weapon, by adding one and by refitting into one', { timeout: 30_000 }, () => {
-    // A kind nothing ever builds is a kind that is not in the game, and there
-    // are four lists an archetype has to appear in before a run can have one.
-    // Both routes matter: adding is how a lineage gets its first, and refitting
-    // is the only way it gets a *large* one without growing it from small.
-    // Bred until both are seen, since a lineage of hull guns grows and slows.
-    const rng = new Rng(11);
-    let held: Blueprint = CORVETTE;
-    let added = 0;
-    let refitted = 0;
-    for (let i = 0; i < 400 && (added === 0 || refitted === 0); i++) {
-      const child = mutate(held, rng, {
-        structural: 1,
-        kinds: {
-          engine: 0,
-          structure: 0,
-          tank: 0,
-          turret: 0,
-          beamTurret: 0,
-          hullGun: 3,
-          hullBeam: 1,
-          core: 0,
-          claw: 0,
-          pad: 0,
-          port: 0,
-          hold: 0,
-          battery: 0,
-          generator: 0,
-          robotBay: 0,
-          slipway: 0,
-        },
-      });
-      held = child.blueprint;
-      for (const edit of child.edits) {
-        if (/a hull(Gun|Beam) added to/.test(edit)) added++;
-        if (/refitted as hull(Gun|Beam)/.test(edit)) refitted++;
-      }
-    }
-    expect(added).toBeGreaterThan(0);
-    expect(refitted).toBeGreaterThan(0);
-  });
-
-  it("keeps a weapon's facing when it is refitted as an engine, so its bell faces outboard", () => {
-    const casemate: Blueprint = {
-      name: 'Casemate',
-      modules: [
-        { kind: 'core', x: 0, y: 0, angle: 0, length: 10, width: 4 },
-        { kind: 'hullGun', x: 8, y: 0, angle: 0, length: 6, width: 4 },
-      ],
-    };
-    const rng = new Rng(33);
-    const only = {
-      engine: 1,
-      structure: 0,
-      tank: 0,
-      turret: 0,
-      beamTurret: 0,
-      hullGun: 0,
-      hullBeam: 0,
-      core: 0,
-      claw: 0,
-      pad: 0,
-      port: 0,
-      hold: 0,
-      battery: 0,
-      generator: 0,
-      robotBay: 0,
-      slipway: 0,
-    };
-    let seen = 0;
-    for (let i = 0; i < 400 && seen < 3; i++) {
-      // Only refits, so a child whose one edit is the refit says what it did.
-      const child = mutate(casemate, rng, { structural: 0, kinds: only, switches: 0.5, build: { ...FROZEN, refit: 1 }, doctrine: STILL });
-      if (child.edits.length !== 1 || !/hullGun refitted as engine/.test(child.edits[0]!)) continue;
-      const engine = child.blueprint.modules[1] as ModuleSpec;
-      expect(engine.angle).toBe(0);
-      seen++;
-    }
-    expect(seen).toBeGreaterThan(0);
-  });
-
-  it("keeps a hull weapon's fields when it stops being one, without refusing it", () => {
-    // A refit keeps the geometry and changes what it is for, and what the new
-    // kind does not read stays put: it is what this module was, and a refit
-    // back should get it rather than the default. The candidate is a ship all
-    // the same, which is the assertion — a dormant field the layout rules
-    // refused would make every such refit impossible, and silently.
-    const rng = new Rng(23);
-    let held: Blueprint = {
-      name: 'Casemate',
-      modules: [
-        { kind: 'core', x: 0, y: 0, angle: 0, length: 10, width: 4 },
-        { kind: 'hullGun', x: 8, y: 0, angle: 0, length: 6, width: 4, nozzle: 0.4, barrels: 2 },
-      ],
-    };
-    let seen = 0;
-    for (let i = 0; i < 200; i++) {
-      const child = mutate(held, rng, { structural: 1 });
-      // Every child is a ship, which is the whole assertion: a stale field
-      // would have had `mutate` refuse the candidate rather than deliver it.
-      expect(blueprintProblem(child.blueprint), child.edits.join('; ')).toBeNull();
-      if (child.edits.some((edit) => /refitted as/.test(edit))) seen++;
-      held = child.blueprint;
-    }
-    expect(seen).toBeGreaterThan(0);
-  });
-
-  it("keeps an engine's bell through a spell as something else", () => {
-    // The point of keeping it: a lineage that has spent generations tuning a
-    // bell and then refits the module into a gun mount has not lost the bell,
-    // and a refit back wakes it with the value it had.
-    const rng = new Rng(29);
-    let held: Blueprint = {
-      name: 'Tug',
-      modules: [
-        { kind: 'core', x: 0, y: 0, angle: 0, length: 10, width: 4 },
-        { kind: 'engine', x: -5, y: 0, angle: Math.PI, length: 4, width: 4, nozzle: 0.7 },
-      ],
-    };
-    let refits = 0;
-    for (let i = 0; i < 200; i++) {
-      const child = mutate(held, rng, { structural: 1 });
-      expect(blueprintProblem(child.blueprint), child.edits.join('; ')).toBeNull();
-      if (child.edits.some((edit) => /refitted as/.test(edit))) refits++;
-      held = child.blueprint;
-    }
-    expect(refits).toBeGreaterThan(0);
-  });
-
-  it('wakes a dormant field when the module is refitted back', () => {
-    // The whole of what dormancy buys, stated on one module rather than in
-    // aggregate: a bell nobody would have picked, a spell as a turret, and
-    // the same bell on the way back.
-    const tuned: ModuleSpec = {
-      kind: 'engine',
-      x: -5,
-      y: 0,
-      angle: Math.PI,
-      length: 4,
-      width: 4,
-      nozzle: 0.37,
-    };
-    const site = { spec: { ...tuned }, where: 'module 1' };
-    // Refitted by hand, since what is being tested is what a refit leaves
-    // behind rather than which kind the draw lands on.
-    site.spec.kind = 'turret';
-    expect(moduleProblem(site.spec)).toBeNull();
-    expect(site.spec.nozzle).toBe(0.37);
-    // Nothing reads it meanwhile: the turret's figures are a turret's.
-    expect(moduleStats(site.spec).thrust).toBe(0);
-    // And a file never carries it, so a ship saved as a turret is a turret.
-    expect(
-      (serialiseBlueprint({ name: 'Saved', modules: [site.spec] })['modules'] as Record<string, unknown>[])[0]!['nozzle'],
-    ).toBeUndefined();
-
-    site.spec.kind = 'engine';
-    expect(engineGeometry(site.spec).nozzleLength).toBeCloseTo(0.37 * engineGeometry(site.spec).exitWidth, 12);
-  });
-
-  it('builds only the kinds it is told to', { timeout: 30_000 }, () => {
-    // The weights are what a run says it is interested in, and they have to
-    // hold for a module *refitted* as well as one added — a run told to breed
-    // engines that went on turning its engines into gun mounts half the time
-    // would be answering a question nobody asked.
-    // Until some of each have been seen: the hull fills with engines, which
-    // have nothing left to be refitted into, and the lineage grows and slows.
-    const rng = new Rng(59);
-    let held: Blueprint = CORVETTE;
-    let added = 0;
-    let refitted = 0;
-    for (let i = 0; i < 400 && (added < 3 || refitted < 1); i++) {
-      const child = mutate(held, rng, {
-        structural: 1,
-        // Refits weighted up, so a few hundred draws are sure to see some.
-        build: { ...DEFAULT_BUILD_WEIGHTS, refit: 10 },
-        kinds: {
-          engine: 1,
-          structure: 0,
-          tank: 0,
-          turret: 0,
-          beamTurret: 0,
-          hullGun: 0,
-          hullBeam: 0,
-          core: 0,
-          claw: 0,
-          pad: 0,
-          port: 0,
-          hold: 0,
-          battery: 0,
-          generator: 0,
-          robotBay: 0,
-          slipway: 0,
-        },
-      });
-      held = child.blueprint;
-      for (const edit of child.edits) {
-        const arrival = /a (\w+) added to/.exec(edit);
-        if (arrival !== null) {
-          expect(arrival[1], edit).toEqual('engine');
-          added++;
+    it("writes a child to a file the parser accepts", () => {
+        // A mutant that cannot be saved cannot be replayed, inspected in the
+        // editor, or carried between a run and the page that shows it.
+        const rng = new Rng(23);
+        for (let i = 0; i < 100; i++) {
+            const child = mutate(CATAMARAN, rng).blueprint;
+            const file = serialiseBlueprint(child);
+            expect(blueprintFileProblem(file), `child ${i}`).toBeNull();
+            expect(JSON.stringify(serialiseBlueprint(parseBlueprint(file)))).toEqual(JSON.stringify(file));
         }
-        const change = /refitted as (\w+)/.exec(edit);
-        if (change !== null) {
-          expect(change[1], edit).toEqual('engine');
-          refitted++;
+    });
+
+    it("keeps a child within one generation of its parent", { timeout: 30_000 }, () => {
+        const rng = new Rng(29);
+        for (const [name, parent] of FLEET) {
+            const was = expandBlueprint(parent).length;
+            for (let i = 0; i < 200; i++) {
+                // Thrusters are a phase of their own, tested below.
+                const child = mutate(parent, rng, { thrusters: 0 });
+                // At most one structural edit; everything else drifts.
+                const structural = child.edits.filter((edit) => STRUCTURAL.test(edit));
+                expect(structural.length, `${name} child ${i}: ${child.edits.join(" | ")}`).toBeLessThanOrEqual(1);
+                // A module added inside an assembly arrives once per copy of it, so
+                // the expanded count moves by more than one — but only ever by whole
+                // copies of one module. Everything else leaves the ship the size it
+                // was, the edits to the *grouping* included: making a part of a module
+                // and dissolving one back into the layout change what a later
+                // generation can do rather than anything about the ship itself.
+                const now = expandBlueprint(child.blueprint).length;
+                if (structural.length === 0) expect(now, `${name} child ${i}`).toEqual(was);
+            }
         }
-      }
-    }
-    expect(added).toBeGreaterThan(0);
-    expect(refitted).toBeGreaterThan(0);
-  });
-
-  it('refits a module into an engine without moving it', { timeout: 30_000 }, () => {
-    // An engine's position is where it is *attached* rather than the middle
-    // of its box, so a refit that kept the coordinates would slide the module
-    // half its own length into its neighbour and be refused every time —
-    // closing the one route a lineage has to a large engine, since everything
-    // added arrives half a metre square.
-    const rng = new Rng(62);
-    let held: Blueprint = CORVETTE;
-    let engines = 0;
-    for (let i = 0; i < 400 && engines < 5; i++) {
-      const child = mutate(held, rng, { structural: 0, thrusters: 0, kinds: DEFAULT_KINDS });
-      held = child.blueprint;
-      if (child.edits.some((edit) => /refitted as engine/.test(edit))) engines++;
-    }
-    expect(engines).toBeGreaterThan(0);
-  });
-
-  it('grows a module into its neighbour by pushing the neighbour along', () => {
-    // A hull with a block against every face, so none is free and no length
-    // face can grow without moving something: every accepted length change
-    // must have moved the block alongside.
-    const packed = parseBlueprint({
-      formatVersion: 1,
-      name: 'Packed',
-      modules: [
-        { kind: 'core', x: 0, y: 0, length: 4, width: 2 },
-        { kind: 'structure', x: 3, y: 0, length: 2, width: 2 },
-        { kind: 'structure', x: -3, y: 0, length: 2, width: 2 },
-        { kind: 'structure', x: 0, y: 2, length: 4, width: 2 },
-        { kind: 'structure', x: 0, y: -2, length: 4, width: 2 },
-      ],
     });
-    // Every doctrine field is somewhere else a numeric edit can land, so this
-    // needs more draws the more of them there are.
-    const rng = new Rng(7);
-    let pushed = 0;
-    for (let i = 0; i < 800; i++) {
-      const child = mutate(packed, rng, { structural: 0 });
-      if (child.edits.some((edit) => /layout\[0\] core: length 4 → [\d.]+, moving 1 alongside/.test(edit))) {
-        pushed++;
-        expect(blueprintProblem(child.blueprint)).toBeNull();
-      }
-    }
-    expect(pushed).toBeGreaterThan(0);
-  });
 
-  it('moves a face nothing is welded to, and squares a sliver up far more often than not', () => {
-    // A turret a quarter as deep as it is wide, against the core's bow.
-    const sliver = parseBlueprint({
-      formatVersion: 1,
-      name: 'Sliver',
-      modules: [
-        { kind: 'core', x: 0, y: 0, length: 4, width: 2 },
-        { kind: 'turret', x: 2.25, y: 0, length: 0.5, width: 2 },
-      ],
+    it("never breeds a child over its budget, in metal, fuel or build time", () => {
+        // As it sets out: a part-full core or tank costs only what it carries.
+        const parent = billOf(compileDraft(CORVETTE));
+        const budget: Budget = { metal: parent.metal * 1.1, fuel: parent.fuel * 1.1, build: parent.build * 1.1 };
+        for (const child of lineage(CORVETTE, 31, 100, budget)) {
+            const bill = billOf(compileDraft(child));
+            expect(bill.metal).toBeLessThanOrEqual(budget.metal);
+            expect(bill.fuel).toBeLessThanOrEqual(budget.fuel);
+            expect(bill.build).toBeLessThanOrEqual(budget.build);
+        }
     });
-    const rng = new Rng(11);
-    let grew = 0;
-    let shrank = 0;
-    for (let i = 0; i < 1000; i++) {
-      // No thrusters, which would weld something to the free face.
-      const child = mutate(sliver, rng, { structural: 0, geometry: 1, thrusters: 0 });
-      // A core changed first changes what the face meets.
-      const asWritten = !child.edits.some((edit) => edit.startsWith('layout[0]'));
-      for (const edit of child.edits) {
-        const m = /layout\[1\] turret: length ([\d.]+) → ([\d.]+)(.*)/.exec(edit);
-        if (m === null) continue;
-        // The free face moved, so the core it is welded to is never pushed.
-        if (asWritten) expect(m[3]).toBe('');
-        if (Number(m[2]) > Number(m[1])) grew++;
-        else shrank++;
-      }
-    }
-    // Seven to one, from a quarter of square.
-    expect(grew).toBeGreaterThan(20);
-    expect(shrank).toBeLessThan(grew / 3);
-  });
 
-  it('grows and shrinks a square module about as often', () => {
-    const square = parseBlueprint({
-      formatVersion: 1,
-      name: 'Square',
-      modules: [
-        { kind: 'core', x: 0, y: 0, length: 2, width: 2 },
-        { kind: 'structure', x: 2, y: 0, length: 2, width: 2 },
-      ],
+    it("holds each of the three to its own limit", () => {
+        // Fuel held to what the parent carries, the rest free: a lineage may grow
+        // as it likes but never fill its tanks past the parent's fuel.
+        const parent = billOf(compileDraft(CORVETTE));
+        const budget: Budget = { ...NO_BUDGET, fuel: parent.fuel };
+        // Three lineages rather than one, since a single one can pare itself
+        // down for a hundred generations and never grow at all.
+        let grew = false;
+        for (const seed of [32, 33, 34]) {
+            for (const child of lineage(CORVETTE, seed, 100, budget)) {
+                const bill = billOf(compileDraft(child));
+                expect(bill.fuel).toBeLessThanOrEqual(budget.fuel);
+                grew ||= bill.metal > parent.metal || bill.build > parent.build;
+            }
+        }
+        expect(grew).toBe(true);
     });
-    const rng = new Rng(5);
-    let grew = 0;
-    let shrank = 0;
-    for (let i = 0; i < 600; i++) {
-      for (const edit of mutate(square, rng, { structural: 0, geometry: 1 }).edits) {
-        const m = /layout\[1\] structure: (?:length|width) ([\d.]+) → ([\d.]+)/.exec(edit);
-        if (m === null) continue;
-        if (Number(m[2]) > Number(m[1])) grew++;
-        else shrank++;
-      }
-    }
-    expect(grew + shrank).toBeGreaterThan(40);
-    expect(grew / (grew + shrank)).toBeGreaterThan(0.3);
-    expect(grew / (grew + shrank)).toBeLessThan(0.7);
-  });
 
-  it('stops a slide against the module it would run into', () => {
-    // A block between two others along its length, so most slides along it hit one.
-    const packed = parseBlueprint({
-      formatVersion: 1,
-      name: 'Packed',
-      modules: [
-        { kind: 'core', x: 0, y: 0, length: 4, width: 2 },
-        { kind: 'structure', x: 3, y: 1, length: 2, width: 2 },
-        { kind: 'structure', x: 6, y: 0, length: 4, width: 2 },
-      ],
+    // 2,400 generations of a growing ship, which is the sample the ratio needs
+    // to be stable: 45 s on a desktop and past 90 s on a loaded CI runner, so
+    // the budget is wide rather than close.
+    it("adds as much as it takes away", { timeout: 240_000 }, () => {
+        // The operator is neutral about how big a ship is; selection is what
+        // decides that. An imbalance here is invisible in any one child and
+        // fatal over a run — a lineage that loses a module every time it gains
+        // one ends up as a hull that cannot shoot, whatever the fitness says.
+        // Over several lines rather than one. A single line of 800 generations
+        // measured anywhere between 1.3 and 1.9, so a bound pinned to whichever
+        // one was run first is a test that fails on a change that did nothing —
+        // the same trap the structural-delivery test above fell into.
+        //
+        // The bound is asymmetric because the two failures are not alike. A ratio
+        // well under one is the fatal one: a lineage that loses a module whenever
+        // it gains one erodes until it cannot shoot, and nothing stops it. Above
+        // one a lineage grows, which the mass budget already bounds, so the upper
+        // bound only has to catch a runaway: single lines from seeds 37–46 range
+        // 1.4–2.3, and these three pooled have read 1.7 and 2.1 on changes to the
+        // operator set that barely moved the ten-line mean (1.80 → 1.93).
+        let added = 0;
+        let removed = 0;
+        const budget = compileDraft(GUNSHIP).mass * 2;
+        for (const seed of [37, 38, 39]) {
+            const rng = new Rng(seed);
+            let held: Blueprint = GUNSHIP;
+            for (let i = 0; i < 800; i++) {
+                // Without thrusters, which only ever add, and on purpose (`addThrusters`).
+                const child = mutate(held, rng, { budget: { ...NO_BUDGET, metal: budget }, thrusters: 0 });
+                held = child.blueprint;
+                for (const edit of child.edits) {
+                    if (/removed/.test(edit)) removed++;
+                    else if (/added|copied/.test(edit)) added++;
+                }
+            }
+        }
+        expect(added).toBeGreaterThan(20);
+        expect(removed).toBeGreaterThan(20);
+        expect(added / removed).toBeGreaterThan(0.6);
+        expect(added / removed).toBeLessThan(2.5);
     });
-    const rng = new Rng(13);
-    let stopped = 0;
-    for (let i = 0; i < 300 && stopped < 5; i++) {
-      const child = mutate(packed, rng, { structural: 0, switches: 0, geometry: 1, build: { ...FROZEN, move: 1 }, doctrine: STILL });
-      if (!child.edits.some((edit) => /stopping against a neighbour/.test(edit))) continue;
-      stopped++;
-      expect(blueprintProblem(child.blueprint)).toBeNull();
-    }
-    expect(stopped).toBeGreaterThan(0);
-  });
 
-  it('trades a face between two touching modules', () => {
-    const rng = new Rng(11);
-    let seams = 0;
-    for (let i = 0; i < 300 && seams < 5; i++) {
-      const child = mutate(CORVETTE, rng, { structural: 0, thrusters: 0 });
-      if (!child.edits.some((edit) => /: seam with /.test(edit))) continue;
-      seams++;
-      expect(blueprintProblem(child.blueprint)).toBeNull();
-      expect(expandBlueprint(child.blueprint)).toHaveLength(expandBlueprint(CORVETTE).length);
-    }
-    expect(seams).toBeGreaterThan(0);
-  });
+    // Over 20 s on a desktop, and slower on a busy runner.
+    it("delivers the structural generations it draws", { timeout: 120_000 }, () => {
+        // Structural edits are refused far more often than changes to a number,
+        // so a candidate that bundled the two would deliver them at a fraction of
+        // the rate asked for. Set to always, most generations must carry one —
+        // the rest are draws for a module that will not fit anywhere or cannot be
+        // spared, which fall back to breeding a change to the numbers rather than
+        // to a copy of the parent.
+        //
+        // Over several lines rather than one, because how often that happens
+        // depends a great deal on the shape a line has wandered into: single
+        // lines measured between half and six-sevenths, and a threshold pinned to
+        // whichever one was run first is a test that fails on a change that did
+        // nothing.
+        const budget = compileDraft(CORVETTE).mass * 2;
+        let structural = 0;
+        let generations = 0;
+        for (const seed of [41, 42, 43]) {
+            const rng = new Rng(seed);
+            let held: Blueprint = CORVETTE;
+            for (let i = 0; i < 200; i++) {
+                const child = mutate(held, rng, { structural: 1, thrusters: 0, budget: { ...NO_BUDGET, metal: budget } });
+                held = child.blueprint;
+                generations++;
+                if (child.edits.some((edit) => /removed|added|copied/.test(edit))) structural++;
+            }
+        }
+        expect(structural).toBeGreaterThan(generations / 2);
+    });
 
-  it('keeps breeding when no kind is allowed at all', () => {
-    // Every weight zero is a thing a form can be set to, and it means "add
-    // nothing new": the numbers still move, and a module can still be taken
-    // off or copied, so a lineage carries on rather than stalling.
-    const rng = new Rng(67);
-    let held: Blueprint = CORVETTE;
-    for (let i = 0; i < 50; i++) {
-      const child = mutate(held, rng, {
-        kinds: {
-          engine: 0,
-          structure: 0,
-          tank: 0,
-          turret: 0,
-          beamTurret: 0,
-          hullGun: 0,
-          hullBeam: 0,
-          core: 0,
-          claw: 0,
-          pad: 0,
-          port: 0,
-          hold: 0,
-          battery: 0,
-          generator: 0,
-          robotBay: 0,
-          slipway: 0,
-        },
-      });
-      expect(child.edits.length, `child ${i}`).toBeGreaterThan(0);
-      expect(child.edits.some((edit) => /added to/.test(edit))).toBe(false);
-      expect(child.edits.some((edit) => /refitted as/.test(edit))).toBe(false);
-      expect(blueprintProblem(child.blueprint), `child ${i}`).toBeNull();
-      held = child.blueprint;
-    }
-  });
+    it("brings a weight back from zero", () => {
+        // A doctrine number is perturbed by a fraction of the default's own value
+        // rather than of what is held, so nothing that has reached zero is stuck
+        // there. Scaling by the held value alone makes zero absorbing, and
+        // "ignore this entirely" has to be a decision a lineage can reverse.
+        const parent: Blueprint = {
+            ...CORVETTE,
+            doctrine: {
+                targeting: { ...CORVETTE.doctrine!.targeting, massWeight: 0 },
+                approach: { ...CORVETTE.doctrine!.approach },
+            },
+        };
+        const rng = new Rng(43);
+        let moved = false;
+        let held = parent;
+        // How long it takes depends on how many knobs there are to draw from, so
+        // the cap is generous: the claim is only that zero is not a trap.
+        for (let i = 0; i < 400 && !moved; i++) {
+            held = mutate(held, rng).blueprint;
+            if (held.doctrine!.targeting.massWeight !== 0) moved = true;
+        }
+        expect(moved).toBe(true);
+    });
 
-  it('gives up rather than breeding something invalid', () => {
-    // A layout with nowhere to go: one core on its own, with no budget for
-    // anything. Every candidate is over it, so the parent comes back with
-    // nothing claimed to have been done to it.
-    const alone: Blueprint = {
-      name: 'Core',
-      modules: [{ kind: 'core', x: 0, y: 0, length: 4, width: 4 }],
-    };
-    const child = mutate(alone, new Rng(47), { budget: { ...NO_BUDGET, metal: 1 } });
-    expect(child.edits).toEqual([]);
-    expect(child.blueprint).toBe(alone);
-  });
+    it("reaches a gun\u2019s own preferences, which is where an aim point lives", () => {
+        // A ship's doctrine cannot say where a shot lands — only a mount's can —
+        // so a lineage that could not turn a mount's numbers could never find a
+        // crippler, whatever the match was scoring.
+        const rng = new Rng(51);
+        let held: Blueprint = CORVETTE;
+        let found = false;
+        for (let i = 0; i < 400 && !found; i++) {
+            held = mutate(held, rng).blueprint;
+            found = expandBlueprint(held).some((spec) => isWeaponMount(spec.kind) && spec.targeting !== undefined);
+        }
+        expect(found).toBe(true);
+    });
+
+    // Hundreds of mutants bred and compiled per parent to catch three barrel
+    // edits, which is the same budget its siblings above take for the same
+    // reason: a default five seconds is what one assertion costs, not what
+    // breeding a population does.
+    it("lengthens and shortens a gun's barrel, in whole calibres", { timeout: 30_000 }, () => {
+        // The Catamaran's turrets and the Corvette's hull gun both read it.
+        for (const parent of [CATAMARAN, CORVETTE]) {
+            const rng = new Rng(57);
+            let held = parent;
+            const seen: number[] = [];
+            for (let i = 0; i < 600 && seen.length < 3; i++) {
+                const child = mutate(held, rng);
+                held = child.blueprint;
+                for (const edit of child.edits) {
+                    const m = / barrel [\d.]+ → (\d+(?:\.\d+)?) calibres/.exec(edit);
+                    if (m !== null) seen.push(Number(m[1]));
+                }
+            }
+            expect(seen.length).toBeGreaterThan(0);
+            for (const calibres of seen) {
+                expect(Number.isInteger(calibres)).toBe(true);
+                expect(calibres).toBeGreaterThanOrEqual(1);
+                expect(calibres).toBeLessThanOrEqual(MAX_BARREL_CALIBRES);
+            }
+        }
+    });
+
+    it("finds a weight whose own default is zero", () => {
+        // Scaling by the field's default is what lets a weight come back from
+        // zero — except where the default is zero too, which is a field nothing
+        // can ever reach: every draw is a fraction of nothing, rounds to no
+        // change, and is refused. `escortWeight` is the one that has it today, and
+        // a population that cannot find it can never be interested in an
+        // objective, whatever the match is scoring.
+        const rng = new Rng(53);
+        let held = CORVETTE;
+        let moved = false;
+        for (let i = 0; i < 1000 && !moved; i++) {
+            held = mutate(held, rng).blueprint;
+            if ((held.doctrine?.targeting.escortWeight ?? 0) !== 0) moved = true;
+        }
+        expect(moved).toBe(true);
+    });
+
+    it("can reach a hull weapon, by adding one and by refitting into one", { timeout: 30_000 }, () => {
+        // A kind nothing ever builds is a kind that is not in the game, and there
+        // are four lists an archetype has to appear in before a run can have one.
+        // Both routes matter: adding is how a lineage gets its first, and refitting
+        // is the only way it gets a *large* one without growing it from small.
+        // Bred until both are seen, since a lineage of hull guns grows and slows.
+        const rng = new Rng(11);
+        let held: Blueprint = CORVETTE;
+        let added = 0;
+        let refitted = 0;
+        for (let i = 0; i < 400 && (added === 0 || refitted === 0); i++) {
+            const child = mutate(held, rng, {
+                structural: 1,
+                kinds: {
+                    engine: 0,
+                    structure: 0,
+                    tank: 0,
+                    turret: 0,
+                    beamTurret: 0,
+                    hullGun: 3,
+                    hullBeam: 1,
+                    core: 0,
+                    claw: 0,
+                    pad: 0,
+                    port: 0,
+                    hold: 0,
+                    battery: 0,
+                    generator: 0,
+                    robotBay: 0,
+                    slipway: 0,
+                },
+            });
+            held = child.blueprint;
+            for (const edit of child.edits) {
+                if (/a hull(Gun|Beam) added to/.test(edit)) added++;
+                if (/refitted as hull(Gun|Beam)/.test(edit)) refitted++;
+            }
+        }
+        expect(added).toBeGreaterThan(0);
+        expect(refitted).toBeGreaterThan(0);
+    });
+
+    it("keeps a weapon's facing when it is refitted as an engine, so its bell faces outboard", () => {
+        const casemate: Blueprint = {
+            name: "Casemate",
+            modules: [
+                { kind: "core", x: 0, y: 0, angle: 0, length: 10, width: 4 },
+                { kind: "hullGun", x: 8, y: 0, angle: 0, length: 6, width: 4 },
+            ],
+        };
+        const rng = new Rng(33);
+        const only = {
+            engine: 1,
+            structure: 0,
+            tank: 0,
+            turret: 0,
+            beamTurret: 0,
+            hullGun: 0,
+            hullBeam: 0,
+            core: 0,
+            claw: 0,
+            pad: 0,
+            port: 0,
+            hold: 0,
+            battery: 0,
+            generator: 0,
+            robotBay: 0,
+            slipway: 0,
+        };
+        let seen = 0;
+        for (let i = 0; i < 400 && seen < 3; i++) {
+            // Only refits, so a child whose one edit is the refit says what it did.
+            const child = mutate(casemate, rng, {
+                structural: 0,
+                kinds: only,
+                switches: 0.5,
+                build: { ...FROZEN, refit: 1 },
+                doctrine: STILL,
+            });
+            if (child.edits.length !== 1 || !/hullGun refitted as engine/.test(child.edits[0]!)) continue;
+            const engine = child.blueprint.modules[1] as ModuleSpec;
+            expect(engine.angle).toBe(0);
+            seen++;
+        }
+        expect(seen).toBeGreaterThan(0);
+    });
+
+    it("keeps a hull weapon's fields when it stops being one, without refusing it", () => {
+        // A refit keeps the geometry and changes what it is for, and what the new
+        // kind does not read stays put: it is what this module was, and a refit
+        // back should get it rather than the default. The candidate is a ship all
+        // the same, which is the assertion — a dormant field the layout rules
+        // refused would make every such refit impossible, and silently.
+        const rng = new Rng(23);
+        let held: Blueprint = {
+            name: "Casemate",
+            modules: [
+                { kind: "core", x: 0, y: 0, angle: 0, length: 10, width: 4 },
+                { kind: "hullGun", x: 8, y: 0, angle: 0, length: 6, width: 4, nozzle: 0.4, barrels: 2 },
+            ],
+        };
+        let seen = 0;
+        for (let i = 0; i < 200; i++) {
+            const child = mutate(held, rng, { structural: 1 });
+            // Every child is a ship, which is the whole assertion: a stale field
+            // would have had `mutate` refuse the candidate rather than deliver it.
+            expect(blueprintProblem(child.blueprint), child.edits.join("; ")).toBeNull();
+            if (child.edits.some((edit) => /refitted as/.test(edit))) seen++;
+            held = child.blueprint;
+        }
+        expect(seen).toBeGreaterThan(0);
+    });
+
+    it("keeps an engine's bell through a spell as something else", () => {
+        // The point of keeping it: a lineage that has spent generations tuning a
+        // bell and then refits the module into a gun mount has not lost the bell,
+        // and a refit back wakes it with the value it had.
+        const rng = new Rng(29);
+        let held: Blueprint = {
+            name: "Tug",
+            modules: [
+                { kind: "core", x: 0, y: 0, angle: 0, length: 10, width: 4 },
+                { kind: "engine", x: -5, y: 0, angle: Math.PI, length: 4, width: 4, nozzle: 0.7 },
+            ],
+        };
+        let refits = 0;
+        for (let i = 0; i < 200; i++) {
+            const child = mutate(held, rng, { structural: 1 });
+            expect(blueprintProblem(child.blueprint), child.edits.join("; ")).toBeNull();
+            if (child.edits.some((edit) => /refitted as/.test(edit))) refits++;
+            held = child.blueprint;
+        }
+        expect(refits).toBeGreaterThan(0);
+    });
+
+    it("wakes a dormant field when the module is refitted back", () => {
+        // The whole of what dormancy buys, stated on one module rather than in
+        // aggregate: a bell nobody would have picked, a spell as a turret, and
+        // the same bell on the way back.
+        const tuned: ModuleSpec = {
+            kind: "engine",
+            x: -5,
+            y: 0,
+            angle: Math.PI,
+            length: 4,
+            width: 4,
+            nozzle: 0.37,
+        };
+        const site = { spec: { ...tuned }, where: "module 1" };
+        // Refitted by hand, since what is being tested is what a refit leaves
+        // behind rather than which kind the draw lands on.
+        site.spec.kind = "turret";
+        expect(moduleProblem(site.spec)).toBeNull();
+        expect(site.spec.nozzle).toBe(0.37);
+        // Nothing reads it meanwhile: the turret's figures are a turret's.
+        expect(moduleStats(site.spec).thrust).toBe(0);
+        // And a file never carries it, so a ship saved as a turret is a turret.
+        expect(
+            (serialiseBlueprint({ name: "Saved", modules: [site.spec] })["modules"] as Record<string, unknown>[])[0]!["nozzle"],
+        ).toBeUndefined();
+
+        site.spec.kind = "engine";
+        expect(engineGeometry(site.spec).nozzleLength).toBeCloseTo(0.37 * engineGeometry(site.spec).exitWidth, 12);
+    });
+
+    it("builds only the kinds it is told to", { timeout: 30_000 }, () => {
+        // The weights are what a run says it is interested in, and they have to
+        // hold for a module *refitted* as well as one added — a run told to breed
+        // engines that went on turning its engines into gun mounts half the time
+        // would be answering a question nobody asked.
+        // Until some of each have been seen: the hull fills with engines, which
+        // have nothing left to be refitted into, and the lineage grows and slows.
+        const rng = new Rng(59);
+        let held: Blueprint = CORVETTE;
+        let added = 0;
+        let refitted = 0;
+        for (let i = 0; i < 400 && (added < 3 || refitted < 1); i++) {
+            const child = mutate(held, rng, {
+                structural: 1,
+                // Refits weighted up, so a few hundred draws are sure to see some.
+                build: { ...DEFAULT_BUILD_WEIGHTS, refit: 10 },
+                kinds: {
+                    engine: 1,
+                    structure: 0,
+                    tank: 0,
+                    turret: 0,
+                    beamTurret: 0,
+                    hullGun: 0,
+                    hullBeam: 0,
+                    core: 0,
+                    claw: 0,
+                    pad: 0,
+                    port: 0,
+                    hold: 0,
+                    battery: 0,
+                    generator: 0,
+                    robotBay: 0,
+                    slipway: 0,
+                },
+            });
+            held = child.blueprint;
+            for (const edit of child.edits) {
+                const arrival = /a (\w+) added to/.exec(edit);
+                if (arrival !== null) {
+                    expect(arrival[1], edit).toEqual("engine");
+                    added++;
+                }
+                const change = /refitted as (\w+)/.exec(edit);
+                if (change !== null) {
+                    expect(change[1], edit).toEqual("engine");
+                    refitted++;
+                }
+            }
+        }
+        expect(added).toBeGreaterThan(0);
+        expect(refitted).toBeGreaterThan(0);
+    });
+
+    it("refits a module into an engine without moving it", { timeout: 30_000 }, () => {
+        // An engine's position is where it is *attached* rather than the middle
+        // of its box, so a refit that kept the coordinates would slide the module
+        // half its own length into its neighbour and be refused every time —
+        // closing the one route a lineage has to a large engine, since everything
+        // added arrives half a metre square.
+        const rng = new Rng(62);
+        let held: Blueprint = CORVETTE;
+        let engines = 0;
+        for (let i = 0; i < 400 && engines < 5; i++) {
+            const child = mutate(held, rng, { structural: 0, thrusters: 0, kinds: DEFAULT_KINDS });
+            held = child.blueprint;
+            if (child.edits.some((edit) => /refitted as engine/.test(edit))) engines++;
+        }
+        expect(engines).toBeGreaterThan(0);
+    });
+
+    it("grows a module into its neighbour by pushing the neighbour along", () => {
+        // A hull with a block against every face, so none is free and no length
+        // face can grow without moving something: every accepted length change
+        // must have moved the block alongside.
+        const packed = parseBlueprint({
+            formatVersion: 1,
+            name: "Packed",
+            modules: [
+                { kind: "core", x: 0, y: 0, length: 4, width: 2 },
+                { kind: "structure", x: 3, y: 0, length: 2, width: 2 },
+                { kind: "structure", x: -3, y: 0, length: 2, width: 2 },
+                { kind: "structure", x: 0, y: 2, length: 4, width: 2 },
+                { kind: "structure", x: 0, y: -2, length: 4, width: 2 },
+            ],
+        });
+        // Every doctrine field is somewhere else a numeric edit can land, so this
+        // needs more draws the more of them there are.
+        const rng = new Rng(7);
+        let pushed = 0;
+        for (let i = 0; i < 800; i++) {
+            const child = mutate(packed, rng, { structural: 0 });
+            if (child.edits.some((edit) => /layout\[0\] core: length 4 → [\d.]+, moving 1 alongside/.test(edit))) {
+                pushed++;
+                expect(blueprintProblem(child.blueprint)).toBeNull();
+            }
+        }
+        expect(pushed).toBeGreaterThan(0);
+    });
+
+    it("moves a face nothing is welded to, and squares a sliver up far more often than not", () => {
+        // A turret a quarter as deep as it is wide, against the core's bow.
+        const sliver = parseBlueprint({
+            formatVersion: 1,
+            name: "Sliver",
+            modules: [
+                { kind: "core", x: 0, y: 0, length: 4, width: 2 },
+                { kind: "turret", x: 2.25, y: 0, length: 0.5, width: 2 },
+            ],
+        });
+        const rng = new Rng(11);
+        let grew = 0;
+        let shrank = 0;
+        for (let i = 0; i < 1000; i++) {
+            // No thrusters, which would weld something to the free face.
+            const child = mutate(sliver, rng, { structural: 0, geometry: 1, thrusters: 0 });
+            // A core changed first changes what the face meets.
+            const asWritten = !child.edits.some((edit) => edit.startsWith("layout[0]"));
+            for (const edit of child.edits) {
+                const m = /layout\[1\] turret: length ([\d.]+) → ([\d.]+)(.*)/.exec(edit);
+                if (m === null) continue;
+                // The free face moved, so the core it is welded to is never pushed.
+                if (asWritten) expect(m[3]).toBe("");
+                if (Number(m[2]) > Number(m[1])) grew++;
+                else shrank++;
+            }
+        }
+        // Seven to one, from a quarter of square.
+        expect(grew).toBeGreaterThan(20);
+        expect(shrank).toBeLessThan(grew / 3);
+    });
+
+    it("grows and shrinks a square module about as often", () => {
+        const square = parseBlueprint({
+            formatVersion: 1,
+            name: "Square",
+            modules: [
+                { kind: "core", x: 0, y: 0, length: 2, width: 2 },
+                { kind: "structure", x: 2, y: 0, length: 2, width: 2 },
+            ],
+        });
+        const rng = new Rng(5);
+        let grew = 0;
+        let shrank = 0;
+        for (let i = 0; i < 600; i++) {
+            for (const edit of mutate(square, rng, { structural: 0, geometry: 1 }).edits) {
+                const m = /layout\[1\] structure: (?:length|width) ([\d.]+) → ([\d.]+)/.exec(edit);
+                if (m === null) continue;
+                if (Number(m[2]) > Number(m[1])) grew++;
+                else shrank++;
+            }
+        }
+        expect(grew + shrank).toBeGreaterThan(40);
+        expect(grew / (grew + shrank)).toBeGreaterThan(0.3);
+        expect(grew / (grew + shrank)).toBeLessThan(0.7);
+    });
+
+    it("stops a slide against the module it would run into", () => {
+        // A block between two others along its length, so most slides along it hit one.
+        const packed = parseBlueprint({
+            formatVersion: 1,
+            name: "Packed",
+            modules: [
+                { kind: "core", x: 0, y: 0, length: 4, width: 2 },
+                { kind: "structure", x: 3, y: 1, length: 2, width: 2 },
+                { kind: "structure", x: 6, y: 0, length: 4, width: 2 },
+            ],
+        });
+        const rng = new Rng(13);
+        let stopped = 0;
+        for (let i = 0; i < 300 && stopped < 5; i++) {
+            const child = mutate(packed, rng, { structural: 0, switches: 0, geometry: 1, build: { ...FROZEN, move: 1 }, doctrine: STILL });
+            if (!child.edits.some((edit) => /stopping against a neighbour/.test(edit))) continue;
+            stopped++;
+            expect(blueprintProblem(child.blueprint)).toBeNull();
+        }
+        expect(stopped).toBeGreaterThan(0);
+    });
+
+    it("trades a face between two touching modules", () => {
+        const rng = new Rng(11);
+        let seams = 0;
+        for (let i = 0; i < 300 && seams < 5; i++) {
+            const child = mutate(CORVETTE, rng, { structural: 0, thrusters: 0 });
+            if (!child.edits.some((edit) => /: seam with /.test(edit))) continue;
+            seams++;
+            expect(blueprintProblem(child.blueprint)).toBeNull();
+            expect(expandBlueprint(child.blueprint)).toHaveLength(expandBlueprint(CORVETTE).length);
+        }
+        expect(seams).toBeGreaterThan(0);
+    });
+
+    it("keeps breeding when no kind is allowed at all", () => {
+        // Every weight zero is a thing a form can be set to, and it means "add
+        // nothing new": the numbers still move, and a module can still be taken
+        // off or copied, so a lineage carries on rather than stalling.
+        const rng = new Rng(67);
+        let held: Blueprint = CORVETTE;
+        for (let i = 0; i < 50; i++) {
+            const child = mutate(held, rng, {
+                kinds: {
+                    engine: 0,
+                    structure: 0,
+                    tank: 0,
+                    turret: 0,
+                    beamTurret: 0,
+                    hullGun: 0,
+                    hullBeam: 0,
+                    core: 0,
+                    claw: 0,
+                    pad: 0,
+                    port: 0,
+                    hold: 0,
+                    battery: 0,
+                    generator: 0,
+                    robotBay: 0,
+                    slipway: 0,
+                },
+            });
+            expect(child.edits.length, `child ${i}`).toBeGreaterThan(0);
+            expect(child.edits.some((edit) => /added to/.test(edit))).toBe(false);
+            expect(child.edits.some((edit) => /refitted as/.test(edit))).toBe(false);
+            expect(blueprintProblem(child.blueprint), `child ${i}`).toBeNull();
+            held = child.blueprint;
+        }
+    });
+
+    it("gives up rather than breeding something invalid", () => {
+        // A layout with nowhere to go: one core on its own, with no budget for
+        // anything. Every candidate is over it, so the parent comes back with
+        // nothing claimed to have been done to it.
+        const alone: Blueprint = {
+            name: "Core",
+            modules: [{ kind: "core", x: 0, y: 0, length: 4, width: 4 }],
+        };
+        const child = mutate(alone, new Rng(47), { budget: { ...NO_BUDGET, metal: 1 } });
+        expect(child.edits).toEqual([]);
+        expect(child.blueprint).toBe(alone);
+    });
 });
 
-describe('doctrine weights', () => {
-  const edits = (doctrine: DoctrineWeights): string[] => {
-    const out: string[] = [];
-    const rng = new Rng(9);
-    for (let i = 0; i < 40; i++) out.push(...mutate(GUNSHIP, rng, { structural: 0, doctrine }).edits);
-    return out;
-  };
-
-  it('never touches a doctrine weighted zero', () => {
-    const made = edits({ targeting: 0, approach: 0, escort: 0, avoidance: 0, gunnery: 0 });
-    expect(made.length).toBeGreaterThan(0);
-    expect(made.filter((edit) => edit.startsWith('doctrine.'))).toEqual([]);
-  });
-
-  it('drifts the doctrine weighted heavily further', () => {
-    // A weight is a width: how far a number moves, not how often.
-    const made = edits({ targeting: 4, approach: 1, escort: 0, avoidance: 0, gunnery: 0 });
-    const shift = (prefix: string): number => {
-      const moves = made
-        .filter((edit) => edit.startsWith(prefix))
-        .map((edit) => /([-\d.e]+) → ([-\d.e]+)$/.exec(edit)!)
-        .map((m) => Math.abs(Number(m[2]) - Number(m[1])) / Math.max(Math.abs(Number(m[1])), 1e-3));
-      expect(moves.length).toBeGreaterThan(0);
-      moves.sort((a, b) => a - b);
-      return moves[Math.floor(moves.length / 2)]!;
+describe("doctrine weights", () => {
+    const edits = (doctrine: DoctrineWeights): string[] => {
+        const out: string[] = [];
+        const rng = new Rng(9);
+        for (let i = 0; i < 40; i++) out.push(...mutate(GUNSHIP, rng, { structural: 0, doctrine }).edits);
+        return out;
     };
-    expect(shift('doctrine.targeting.')).toBeGreaterThan(2 * shift('doctrine.approach.'));
-  });
+
+    it("never touches a doctrine weighted zero", () => {
+        const made = edits({ targeting: 0, approach: 0, escort: 0, avoidance: 0, gunnery: 0 });
+        expect(made.length).toBeGreaterThan(0);
+        expect(made.filter((edit) => edit.startsWith("doctrine."))).toEqual([]);
+    });
+
+    it("drifts the doctrine weighted heavily further", () => {
+        // A weight is a width: how far a number moves, not how often.
+        const made = edits({ targeting: 4, approach: 1, escort: 0, avoidance: 0, gunnery: 0 });
+        const shift = (prefix: string): number => {
+            const moves = made
+                .filter((edit) => edit.startsWith(prefix))
+                .map((edit) => /([-\d.e]+) → ([-\d.e]+)$/.exec(edit)!)
+                .map((m) => Math.abs(Number(m[2]) - Number(m[1])) / Math.max(Math.abs(Number(m[1])), 1e-3));
+            expect(moves.length).toBeGreaterThan(0);
+            moves.sort((a, b) => a - b);
+            return moves[Math.floor(moves.length / 2)]!;
+        };
+        expect(shift("doctrine.targeting.")).toBeGreaterThan(2 * shift("doctrine.approach."));
+    });
 });
 
-describe('build weights', () => {
-  /** Every module's kind, place and size, which is what a ship looks like. */
-  const looks = (blueprint: Blueprint): string =>
-    JSON.stringify(expandBlueprint(blueprint).map((m) => [m.kind, m.x, m.y, m.length, m.width, m.angle ?? 0, m.barrels ?? 1]));
+describe("build weights", () => {
+    /** Every module's kind, place and size, which is what a ship looks like. */
+    const looks = (blueprint: Blueprint): string =>
+        JSON.stringify(expandBlueprint(blueprint).map((m) => [m.kind, m.x, m.y, m.length, m.width, m.angle ?? 0, m.barrels ?? 1]));
 
-  it('keeps how a ship is built when only tuning and doctrine may change', () => {
-    const rng = new Rng(5);
-    const build = { move: 0, resize: 0, refit: 0, fittings: 0, tuning: 1, fighter: 0, shape: 0 };
-    let held: Blueprint = GUNSHIP;
-    let changed = 0;
-    for (let i = 0; i < 60; i++) {
-      const child = mutate(held, rng, { structural: 0, thrusters: 0, build });
-      changed += child.edits.length;
-      held = child.blueprint;
-    }
-    expect(changed).toBeGreaterThan(0);
-    expect(looks(held)).toEqual(looks(GUNSHIP));
-  });
+    it("keeps how a ship is built when only tuning and doctrine may change", () => {
+        const rng = new Rng(5);
+        const build = { move: 0, resize: 0, refit: 0, fittings: 0, tuning: 1, fighter: 0, shape: 0 };
+        let held: Blueprint = GUNSHIP;
+        let changed = 0;
+        for (let i = 0; i < 60; i++) {
+            const child = mutate(held, rng, { structural: 0, thrusters: 0, build });
+            changed += child.edits.length;
+            held = child.blueprint;
+        }
+        expect(changed).toBeGreaterThan(0);
+        expect(looks(held)).toEqual(looks(GUNSHIP));
+    });
 
-  it('starts tanks and holds fuller or emptier, and batteries always full', () => {
-    const depot: Blueprint = {
-      name: 'Depot',
-      modules: [
-        { kind: 'core', x: 0, y: 0, length: 4, width: 4 },
-        { kind: 'tank', x: -4, y: 0, length: 4, width: 4 },
-        { kind: 'hold', x: 4, y: 0, length: 4, width: 4 },
-        { kind: 'battery', x: 0, y: 4, length: 4, width: 4 },
-      ],
-    };
-    const rng = new Rng(9);
-    const build = { move: 0, resize: 0, refit: 0, fittings: 0, tuning: 1, fighter: 0, shape: 0 };
-    const filled = new Set<string>();
-    let held = depot;
-    for (let i = 0; i < 200; i++) {
-      const child = mutate(held, rng, {
-        structural: 0,
-        build,
-        doctrine: { targeting: 0, approach: 0, escort: 0, avoidance: 0, gunnery: 0 },
-      });
-      for (const edit of child.edits) {
-        const m = / (\w+): starts \d+% full/.exec(edit);
-        if (m !== null) filled.add(m[1]!);
-      }
-      held = child.blueprint;
-    }
-    expect(filled.has('tank')).toBe(true);
-    expect(filled.has('hold')).toBe(true);
-    expect(filled.has('battery')).toBe(false);
-  });
+    it("starts tanks and holds fuller or emptier, and batteries always full", () => {
+        const depot: Blueprint = {
+            name: "Depot",
+            modules: [
+                { kind: "core", x: 0, y: 0, length: 4, width: 4 },
+                { kind: "tank", x: -4, y: 0, length: 4, width: 4 },
+                { kind: "hold", x: 4, y: 0, length: 4, width: 4 },
+                { kind: "battery", x: 0, y: 4, length: 4, width: 4 },
+            ],
+        };
+        const rng = new Rng(9);
+        const build = { move: 0, resize: 0, refit: 0, fittings: 0, tuning: 1, fighter: 0, shape: 0 };
+        const filled = new Set<string>();
+        let held = depot;
+        for (let i = 0; i < 200; i++) {
+            const child = mutate(held, rng, {
+                structural: 0,
+                build,
+                doctrine: { targeting: 0, approach: 0, escort: 0, avoidance: 0, gunnery: 0 },
+            });
+            for (const edit of child.edits) {
+                const m = / (\w+): starts \d+% full/.exec(edit);
+                if (m !== null) filled.add(m[1]!);
+            }
+            held = child.blueprint;
+        }
+        expect(filled.has("tank")).toBe(true);
+        expect(filled.has("hold")).toBe(true);
+        expect(filled.has("battery")).toBe(false);
+    });
 
-  it('changes how many times a row repeats only as a structural edit', () => {
-    const rowed: Blueprint = {
-      name: 'Rowed',
-      assemblies: { seg: { modules: [{ kind: 'structure', x: 0, y: 0, length: 2, width: 2 }] } },
-      modules: [
-        { kind: 'core', x: 0, y: 0, length: 4, width: 4 },
-        { use: 'seg', x: 3, y: 0, repeat: 3, step: { x: 2, y: 0 } },
-      ],
-    };
-    const repeats = (structural: number, seed: number): string[] => {
-      const rng = new Rng(seed);
-      const made: string[] = [];
-      for (let i = 0; i < 200; i++) made.push(...mutate(rowed, rng, { structural }).edits);
-      return made.filter((edit) => edit.includes('repeat'));
-    };
-    expect(repeats(0, 3)).toEqual([]);
-    expect(repeats(1, 3).length).toBeGreaterThan(0);
-  });
+    it("changes how many times a row repeats only as a structural edit", () => {
+        const rowed: Blueprint = {
+            name: "Rowed",
+            assemblies: { seg: { modules: [{ kind: "structure", x: 0, y: 0, length: 2, width: 2 }] } },
+            modules: [
+                { kind: "core", x: 0, y: 0, length: 4, width: 4 },
+                { use: "seg", x: 3, y: 0, repeat: 3, step: { x: 2, y: 0 } },
+            ],
+        };
+        const repeats = (structural: number, seed: number): string[] => {
+            const rng = new Rng(seed);
+            const made: string[] = [];
+            for (let i = 0; i < 200; i++) made.push(...mutate(rowed, rng, { structural }).edits);
+            return made.filter((edit) => edit.includes("repeat"));
+        };
+        expect(repeats(0, 3)).toEqual([]);
+        expect(repeats(1, 3).length).toBeGreaterThan(0);
+    });
 
-  it('never touches a sort of number weighted zero', () => {
-    const rng = new Rng(11);
-    const build = { move: 0, resize: 0, refit: 0, fittings: 0, tuning: 0, fighter: 0, shape: 0 };
-    const doctrine = { targeting: 0, approach: 0, escort: 1, avoidance: 0, gunnery: 0 };
-    const made: string[] = [];
-    for (let i = 0; i < 40; i++) made.push(...mutate(GUNSHIP, rng, { structural: 0, thrusters: 0, build, doctrine }).edits);
-    expect(made.length).toBeGreaterThan(0);
-    for (const edit of made) expect(edit).toMatch(/doctrine\.(targeting\.escortWeight|approach\.escort)/);
-  });
+    it("never touches a sort of number weighted zero", () => {
+        const rng = new Rng(11);
+        const build = { move: 0, resize: 0, refit: 0, fittings: 0, tuning: 0, fighter: 0, shape: 0 };
+        const doctrine = { targeting: 0, approach: 0, escort: 1, avoidance: 0, gunnery: 0 };
+        const made: string[] = [];
+        for (let i = 0; i < 40; i++) made.push(...mutate(GUNSHIP, rng, { structural: 0, thrusters: 0, build, doctrine }).edits);
+        expect(made.length).toBeGreaterThan(0);
+        for (const edit of made) expect(edit).toMatch(/doctrine\.(targeting\.escortWeight|approach\.escort)/);
+    });
 });
 
-describe('scaling a whole ship', () => {
-  it('scales every module, position and corner by one factor, and keeps it a ship', { timeout: 30_000 }, () => {
-    const off = Object.fromEntries(Object.keys(DEFAULT_BUILD_WEIGHTS).map((key) => [key, 0]));
-    const rng = new Rng(3);
-    let seen = 0;
-    for (let i = 0; i < 300 && seen < 3; i++) {
-      // Resizing as a switch only: a face moved as well would change the
-      // module it is compared by.
-      const child = mutate(CATAMARAN, rng, {
-        structural: 0,
-        geometry: 0,
-        switches: 0.5,
-        build: { ...off, resize: 1 } as typeof DEFAULT_BUILD_WEIGHTS,
-        doctrine: { targeting: 0, approach: 0, escort: 0, avoidance: 0, gunnery: 0 },
-      });
-      const edit = child.edits.find((e) => /whole ship scaled by/.test(e));
-      if (edit === undefined) continue;
-      seen++;
-      const factor = Number(/scaled by ([\d.]+)/.exec(edit)![1]);
-      expect(blueprintProblem(child.blueprint)).toBeNull();
-      // A module inside an assembly, and where the assembly is placed.
-      const name = Object.keys(CATAMARAN.assemblies!)[0]!;
-      const before = CATAMARAN.assemblies![name]!.modules[0] as ModuleSpec;
-      const after = child.blueprint.assemblies![name]!.modules[0] as ModuleSpec;
-      expect(after.length).toBeCloseTo(before.length * factor, 3);
-      expect(after.x).toBeCloseTo(before.x * factor, 3);
-      expect(child.blueprint.modules![0]!.y).toBeCloseTo(CATAMARAN.modules![0]!.y * factor, 3);
-    }
-    expect(seen).toBeGreaterThan(0);
-  });
+describe("scaling a whole ship", () => {
+    it("scales every module, position and corner by one factor, and keeps it a ship", { timeout: 30_000 }, () => {
+        const off = Object.fromEntries(Object.keys(DEFAULT_BUILD_WEIGHTS).map((key) => [key, 0]));
+        const rng = new Rng(3);
+        let seen = 0;
+        for (let i = 0; i < 300 && seen < 3; i++) {
+            // Resizing as a switch only: a face moved as well would change the
+            // module it is compared by.
+            const child = mutate(CATAMARAN, rng, {
+                structural: 0,
+                geometry: 0,
+                switches: 0.5,
+                build: { ...off, resize: 1 } as typeof DEFAULT_BUILD_WEIGHTS,
+                doctrine: { targeting: 0, approach: 0, escort: 0, avoidance: 0, gunnery: 0 },
+            });
+            const edit = child.edits.find((e) => /whole ship scaled by/.test(e));
+            if (edit === undefined) continue;
+            seen++;
+            const factor = Number(/scaled by ([\d.]+)/.exec(edit)![1]);
+            expect(blueprintProblem(child.blueprint)).toBeNull();
+            // A module inside an assembly, and where the assembly is placed.
+            const name = Object.keys(CATAMARAN.assemblies!)[0]!;
+            const before = CATAMARAN.assemblies![name]!.modules[0] as ModuleSpec;
+            const after = child.blueprint.assemblies![name]!.modules[0] as ModuleSpec;
+            expect(after.length).toBeCloseTo(before.length * factor, 3);
+            expect(after.x).toBeCloseTo(before.x * factor, 3);
+            expect(child.blueprint.modules![0]!.y).toBeCloseTo(CATAMARAN.modules![0]!.y * factor, 3);
+        }
+        expect(seen).toBeGreaterThan(0);
+    });
 });
 
-describe('thrusters', () => {
-  const only = { structural: 0, geometry: 0, switches: 0, build: FROZEN, doctrine: STILL };
-  const engines = (blueprint: Blueprint): ModuleSpec[] => expandBlueprint(blueprint).filter((m) => m.kind === 'engine');
+describe("thrusters", () => {
+    const only = { structural: 0, geometry: 0, switches: 0, build: FROZEN, doctrine: STILL };
+    const engines = (blueprint: Blueprint): ModuleSpec[] => expandBlueprint(blueprint).filter((m) => m.kind === "engine");
 
-  it('bolts several small engines onto a ship with none, each leaving a ship', () => {
-    const rng = new Rng(3);
-    let most = 0;
-    for (let i = 0; i < 20; i++) {
-      const child = mutate(BARE_CORE, rng, { ...only, thrusters: 0.9 });
-      const added = child.edits.filter((e) => e.includes('thruster')).length;
-      expect(blueprintProblem(child.blueprint)).toBeNull();
-      expect(engines(child.blueprint)).toHaveLength(added);
-      most = Math.max(most, added);
-    }
-    expect(most).toBeGreaterThan(1);
-  });
+    it("bolts several small engines onto a ship with none, each leaving a ship", () => {
+        const rng = new Rng(3);
+        let most = 0;
+        for (let i = 0; i < 20; i++) {
+            const child = mutate(BARE_CORE, rng, { ...only, thrusters: 0.9 });
+            const added = child.edits.filter((e) => e.includes("thruster")).length;
+            expect(blueprintProblem(child.blueprint)).toBeNull();
+            expect(engines(child.blueprint)).toHaveLength(added);
+            most = Math.max(most, added);
+        }
+        expect(most).toBeGreaterThan(1);
+    });
 
-  it('makes them smaller than a module added the usual way', () => {
-    const placed = (blueprint: Blueprint): ModuleSpec[] =>
-      [...blueprint.modules, ...Object.values(blueprint.assemblies ?? {}).flatMap((a) => a.modules)].filter(
-        (m): m is ModuleSpec => 'kind' in m,
-      );
-    const ids = new Set(placed(GUNSHIP).map((m) => m.id));
-    const child = mutate(GUNSHIP, new Rng(5), { ...only, thrusters: 0.9 });
-    const fresh = placed(child.blueprint).filter((m) => !ids.has(m.id));
-    expect(fresh.length).toBeGreaterThan(0);
-    const { arrival } = shipScale(GUNSHIP);
-    for (const engine of fresh) {
-      expect(engine.kind).toBe('engine');
-      expect(Math.max(engine.length, engine.width)).toBeLessThan(arrival);
-    }
-  });
+    it("makes them smaller than a module added the usual way", () => {
+        const placed = (blueprint: Blueprint): ModuleSpec[] =>
+            [...blueprint.modules, ...Object.values(blueprint.assemblies ?? {}).flatMap((a) => a.modules)].filter(
+                (m): m is ModuleSpec => "kind" in m,
+            );
+        const ids = new Set(placed(GUNSHIP).map((m) => m.id));
+        const child = mutate(GUNSHIP, new Rng(5), { ...only, thrusters: 0.9 });
+        const fresh = placed(child.blueprint).filter((m) => !ids.has(m.id));
+        expect(fresh.length).toBeGreaterThan(0);
+        const { arrival } = shipScale(GUNSHIP);
+        for (const engine of fresh) {
+            expect(engine.kind).toBe("engine");
+            expect(Math.max(engine.length, engine.width)).toBeLessThan(arrival);
+        }
+    });
 
-  it('adds fewer the more engines a ship already has', () => {
-    const count = (parent: Blueprint): number => {
-      const rng = new Rng(13);
-      let added = 0;
-      for (let i = 0; i < 40; i++)
-        added += mutate(parent, rng, { ...only, thrusters: 0.9 }).edits.filter((e) => e.includes('thruster')).length;
-      return added;
-    };
-    expect(count(BARE_CORE)).toBeGreaterThan(2 * count(GUNSHIP));
-  });
+    it("adds fewer the more engines a ship already has", () => {
+        const count = (parent: Blueprint): number => {
+            const rng = new Rng(13);
+            let added = 0;
+            for (let i = 0; i < 40; i++)
+                added += mutate(parent, rng, { ...only, thrusters: 0.9 }).edits.filter((e) => e.includes("thruster")).length;
+            return added;
+        };
+        expect(count(BARE_CORE)).toBeGreaterThan(2 * count(GUNSHIP));
+    });
 
-  it('adds none at a chance of zero, or when engines are weighted out', () => {
-    const rng = new Rng(9);
-    for (let i = 0; i < 10; i++) {
-      expect(mutate(GUNSHIP, rng, { thrusters: 0 }).edits.some((e) => e.includes('thruster'))).toBe(false);
-      expect(
-        mutate(GUNSHIP, rng, { thrusters: 0.9, kinds: { ...DEFAULT_KINDS, engine: 0 } }).edits.some((e) => e.includes('thruster')),
-      ).toBe(false);
-    }
-  });
+    it("adds none at a chance of zero, or when engines are weighted out", () => {
+        const rng = new Rng(9);
+        for (let i = 0; i < 10; i++) {
+            expect(mutate(GUNSHIP, rng, { thrusters: 0 }).edits.some((e) => e.includes("thruster"))).toBe(false);
+            expect(
+                mutate(GUNSHIP, rng, { thrusters: 0.9, kinds: { ...DEFAULT_KINDS, engine: 0 } }).edits.some((e) => e.includes("thruster")),
+            ).toBe(false);
+        }
+    });
 });

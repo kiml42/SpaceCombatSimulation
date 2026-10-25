@@ -518,7 +518,7 @@ inside any one file is not contiguous.
   opponent has been measured against that opponent rather than against its generation; and what breeds is
   drawn by score against a uniform number rather than taken off the top, so a design that drew a hard group
   is not thrown away on the strength of one battle and the worst is never impossible. The winners carry over
-  unchanged as well as breeding, so a design that won on a lucky draw has to win again. `npm run evolve`
+  unchanged as well as breeding, so a design that won on a lucky draw has to win again. `pnpm evolve`
   fights a run headlessly and writes it down, again after every generation so a run stopped part way keeps
   what it finished: every generation, every design in it with the blueprint it flew, and every match with the seed it was fought under — which is all it takes to watch any one of them
   again, and a test fights every match of a run a second time to prove it. Three hundred matches take twenty
@@ -568,7 +568,7 @@ inside any one file is not contiguous.
   can be watched — the same match, on the same seed, that the measurement fought. Measuring against the
   same opponent again carries on from what was measured, fighting only generations closed since. **Settings are a file.** A run is decided entirely by its seed and its
   configuration, so those few numbers are the whole record of what was tried: they are written out and read
-  back as JSON, by the page and by `npm run evolve` alike, so an experiment can be kept beside its result,
+  back as JSON, by the page and by `pnpm evolve` alike, so an experiment can be kept beside its result,
   sent to somebody, or designed on the page and then fought overnight headlessly. Founders are embedded whole, a
   blueprint or fleet file each, so the file is the whole experiment wherever it is opened; importing one on the
   page saves any founder the library lacks, beside a different design of the same name rather than over it. Every field is optional
@@ -651,7 +651,7 @@ inside any one file is not contiguous.
   under control, how many armed and how many mobile, and the share of its mass lost — and names the winner once no
   more than one side can fight on, without stopping the battle.
   **Fleet evolution** breeds fleets, scored as one entrant each, under a whole fleet's budget, a deployment
-  radius and a ship count — headless with `npm run evolve -- --fleet`, and on the evolution page, whose
+  radius and a ship count — headless with `pnpm evolve --fleet`, and on the evolution page, whose
   founders are ships and fleets alike; a ship grows into a fleet unless the most ships allowed is one. A fleet carries designs it does not fly: a
   ship taken out leaves its design behind, and a ship added is built to any design the fleet carries or to a bare
   core, so it can grow by one small ship rather than only by a copy of one it has, and it goes in any direction from
@@ -669,7 +669,7 @@ inside any one file is not contiguous.
   pad or slipway keeps drifts by at least one under tuning, in a ship bred alone too. Before a run the page shows the founders unmutated and the run's
   first match paused at its start. Entrants can start already moving, towards the middle and across it, at speeds the run
   sets (`--closing`, `--crossing`), the same two a custom battle has.
-  **Co-evolution**, headless (`evolution/coevolution.ts`, `npm run evolve -- --versus`): two lineages, side A
+  **Co-evolution**, headless (`evolution/coevolution.ts`, `pnpm evolve --versus`): two lineages, side A
   and side B, each bred only from its own winners, every match some of A against some of B, with the goal if the settings give one —
   each side's own number a match, allies of each other, clustered on its own side of the ring (A left, B
   right, spread over 45°), scored for what they do to the other side and, where there is a goal, for
@@ -686,13 +686,13 @@ inside any one file is not contiguous.
   founders throughout, side A bred against them in one unending round; one of it a match against several of
   side A is what a boss battle was, and there is no separate one. Side B may have its
   own population, winners, entrants a match, budget, fleet limits and mutation weights. Its generations are written beside side A's
-  (`rival` in the run file), each with its round, and `npm run yardstick` or the page's Measure button
+  (`rival` in the run file), each with its round, and `pnpm yardstick` or the page's Measure button
   measures a run whose sides take turns as a grid of each side's round champions against the other's,
   since fitness against a moving opponent cannot say whether either is improving.
   **The evolution page is two screens**: setting a run up, with every setting laid out across the width
   beside the founders it would start from, and watching it, with the charts, the combatants and the matches;
   Start moves from the first to the second, and the header goes between them. **Open run** shows a run
-  `npm run evolve` wrote, from its `.run.json`, on the second screen as a finished run — charts, combatants
+  `pnpm evolve` wrote, from its `.run.json`, on the second screen as a finished run — charts, combatants
   and matches, each match fought again from its seed — except a side B that did not evolve, whose designs
   the file does not hold. Each combatant's score says how many of the matches it fought it won outright,
   drills aside, a whole side winning where there are sides. **Side A is on the left and
@@ -2033,9 +2033,9 @@ Seven things, and deliberately nothing more:
 4. **The viewer driven in a real browser**, in `tests/browser/`, on one CI row. A renderer typechecks
    perfectly while drawing a black rectangle, and a control can be wired to nothing; neither shows up in a
    unit test or a checksum. These deliberately do not re-check the physics — the viewer and the golden
-   `duel` run the same code — so they stay quick, a few seconds including the build. Kept out of `npm test`
+   `duel` run the same code — so they stay quick, a few seconds including the build. Kept out of `pnpm test`
    because that has to run from a cold checkout without a browser.
-5. **Single-command headless runs** — `npm run battle -- scenarios/duel.json`. Re-entry from a cold
+5. **Single-command headless runs** — `pnpm battle scenarios/duel.json`. Re-entry from a cold
    checkout should be one command.
 6. **A `CLAUDE.md`** for this project.
 7. **A GitHub Pages deploy of the viewer**, published from `ci.yml` on green master. The point of it is

@@ -1,7 +1,7 @@
-import type { ShipDesign } from './blueprint.js';
-import { joints } from './connectivity.js';
-import { abs, imul, length } from './math.js';
-import { moduleOutline, ROBOT_CHARGE, ROBOT_LOAD, ROBOT_MASS, ROBOT_REFILL_TIME, ROBOT_SPEED, robotSpeedOver } from './modules.js';
+import type { ShipDesign } from "./blueprint.js";
+import { joints } from "./connectivity.js";
+import { abs, imul, length } from "./math.js";
+import { moduleOutline, ROBOT_CHARGE, ROBOT_LOAD, ROBOT_MASS, ROBOT_REFILL_TIME, ROBOT_SPEED, robotSpeedOver } from "./modules.js";
 
 /**
  * Robots that crawl a hull mending it (ROADMAP.md §8, repair stage 3).
@@ -18,100 +18,100 @@ import { moduleOutline, ROBOT_CHARGE, ROBOT_LOAD, ROBOT_MASS, ROBOT_REFILL_TIME,
 export const ROBOT_VIEW_STRIDE = 5;
 
 export const enum RobotMode {
-  /** In its bay, being refilled or waiting for work. */
-  Berthed = 0,
-  /** Crawling to the module it is to mend. */
-  Out = 1,
-  /** On that module, mending it. */
-  Working = 2,
-  /** Crawling back to its bay. */
-  Home = 3,
+    /** In its bay, being refilled or waiting for work. */
+    Berthed = 0,
+    /** Crawling to the module it is to mend. */
+    Out = 1,
+    /** On that module, mending it. */
+    Working = 2,
+    /** Crawling back to its bay. */
+    Home = 3,
 }
 
 export interface Robot {
-  /** The bay it berths in, by module of its body's design. */
-  bay: number;
-  /** The module it is on, or last left. */
-  at: number;
-  mode: RobotMode;
-  /** The module it is going to mend, or build against, or -1. */
-  target: number;
-  /** The module of its ship's launch design it is to start building against `target`, or -1. */
-  build: number;
-  /** Whether `target` is wreckage it is taking apart rather than its own hull. */
-  strip: boolean;
-  /** Metal it has taken off wreckage and is carrying home to its bay's holds, kg. */
-  cargo: number;
-  /**
-   * Fuel it has melted out of rock and is carrying home to its bay's tanks, kg:
-   * in the same hold as `cargo`, the two together no more than `ROBOT_LOAD`.
-   */
-  cargoFuel: number;
-  /** Modules it will cross, from `at`, and how far along the leg from `path[leg]` to the next it is, m. */
-  path: Int32Array | null;
-  leg: number;
-  along: number;
-  /** What it may still spend before it must go home: metal, kg, and charge, J. */
-  metal: number;
-  charge: number;
-  /** Seconds of refilling left while berthed. */
-  refill: number;
-  /** The damage version of its body when it last found nothing to mend, or -1. */
-  idleAt: number;
-  /**
-   * The module it stood on last step, and how much of that module was left:
-   * a module destroyed under it takes it with it, where one it reaches already
-   * destroyed does not.
-   */
-  stood: number;
-  stoodOn: number;
-  /**
-   * The asteroid, by ship, its own ship is moored to that it is out on, or
-   * -1 for one on its own hull. Out there, `at`, `target` and `path` are
-   * modules of the rock's design as it was when it last looked
-   * (`awayDesign`), and `bay` is still its own hull's.
-   */
-  away: number;
-  awayDesign: ShipDesign | null;
-  /** The asteroid it is crossing to, walking to its ship's claw to get there, or -1. */
-  bound: number;
-  /** Which of its body's robots it is, for the pace it keeps and where on a module it stands (`robotShare`). */
-  tag: number;
-  /** What it last brought home, as a share of a full load: drawn emptying out of it while it is refilled, nought once it is. */
-  brought: number;
+    /** The bay it berths in, by module of its body's design. */
+    bay: number;
+    /** The module it is on, or last left. */
+    at: number;
+    mode: RobotMode;
+    /** The module it is going to mend, or build against, or -1. */
+    target: number;
+    /** The module of its ship's launch design it is to start building against `target`, or -1. */
+    build: number;
+    /** Whether `target` is wreckage it is taking apart rather than its own hull. */
+    strip: boolean;
+    /** Metal it has taken off wreckage and is carrying home to its bay's holds, kg. */
+    cargo: number;
+    /**
+     * Fuel it has melted out of rock and is carrying home to its bay's tanks, kg:
+     * in the same hold as `cargo`, the two together no more than `ROBOT_LOAD`.
+     */
+    cargoFuel: number;
+    /** Modules it will cross, from `at`, and how far along the leg from `path[leg]` to the next it is, m. */
+    path: Int32Array | null;
+    leg: number;
+    along: number;
+    /** What it may still spend before it must go home: metal, kg, and charge, J. */
+    metal: number;
+    charge: number;
+    /** Seconds of refilling left while berthed. */
+    refill: number;
+    /** The damage version of its body when it last found nothing to mend, or -1. */
+    idleAt: number;
+    /**
+     * The module it stood on last step, and how much of that module was left:
+     * a module destroyed under it takes it with it, where one it reaches already
+     * destroyed does not.
+     */
+    stood: number;
+    stoodOn: number;
+    /**
+     * The asteroid, by ship, its own ship is moored to that it is out on, or
+     * -1 for one on its own hull. Out there, `at`, `target` and `path` are
+     * modules of the rock's design as it was when it last looked
+     * (`awayDesign`), and `bay` is still its own hull's.
+     */
+    away: number;
+    awayDesign: ShipDesign | null;
+    /** The asteroid it is crossing to, walking to its ship's claw to get there, or -1. */
+    bound: number;
+    /** Which of its body's robots it is, for the pace it keeps and where on a module it stands (`robotShare`). */
+    tag: number;
+    /** What it last brought home, as a share of a full load: drawn emptying out of it while it is refilled, nought once it is. */
+    brought: number;
 }
 
 /** Where to go next across a design's welds, and its seams: each module's neighbours, and the distances to them. */
 interface Graph {
-  readonly next: readonly (readonly number[])[];
-  readonly far: readonly (readonly number[])[];
-  readonly seamNext: readonly (readonly number[])[];
-  readonly seamFar: readonly (readonly number[])[];
+    readonly next: readonly (readonly number[])[];
+    readonly far: readonly (readonly number[])[];
+    readonly seamNext: readonly (readonly number[])[];
+    readonly seamFar: readonly (readonly number[])[];
 }
 
 const graphs = new WeakMap<ShipDesign, Graph>();
 
 function graphOf(design: ShipDesign): Graph {
-  const known = graphs.get(design);
-  if (known !== undefined) return known;
-  const next: number[][] = design.modules.map(() => []);
-  const far: number[][] = design.modules.map(() => []);
-  const seamNext: number[][] = design.modules.map(() => []);
-  const seamFar: number[][] = design.modules.map(() => []);
-  for (const joint of joints(design)) {
-    const a = design.modules[joint.a]!;
-    const b = design.modules[joint.b]!;
-    const d = length(a.x - b.x, a.y - b.y);
-    const to = joint.seam === true ? seamNext : next;
-    const by = joint.seam === true ? seamFar : far;
-    to[joint.a]!.push(joint.b);
-    by[joint.a]!.push(d);
-    to[joint.b]!.push(joint.a);
-    by[joint.b]!.push(d);
-  }
-  const graph = { next, far, seamNext, seamFar };
-  graphs.set(design, graph);
-  return graph;
+    const known = graphs.get(design);
+    if (known !== undefined) return known;
+    const next: number[][] = design.modules.map(() => []);
+    const far: number[][] = design.modules.map(() => []);
+    const seamNext: number[][] = design.modules.map(() => []);
+    const seamFar: number[][] = design.modules.map(() => []);
+    for (const joint of joints(design)) {
+        const a = design.modules[joint.a]!;
+        const b = design.modules[joint.b]!;
+        const d = length(a.x - b.x, a.y - b.y);
+        const to = joint.seam === true ? seamNext : next;
+        const by = joint.seam === true ? seamFar : far;
+        to[joint.a]!.push(joint.b);
+        by[joint.a]!.push(d);
+        to[joint.b]!.push(joint.a);
+        by[joint.b]!.push(d);
+    }
+    const graph = { next, far, seamNext, seamFar };
+    graphs.set(design, graph);
+    return graph;
 }
 
 /**
@@ -121,53 +121,53 @@ function graphOf(design: ShipDesign): Graph {
  * `seam` allows it. Unreachable is Infinity.
  */
 export function walk(
-  design: ShipDesign,
-  from: number,
-  dist: Float64Array,
-  prev: Int32Array,
-  crosses: (m: number) => boolean,
-  seam: (a: number, b: number) => boolean = never,
+    design: ShipDesign,
+    from: number,
+    dist: Float64Array,
+    prev: Int32Array,
+    crosses: (m: number) => boolean,
+    seam: (a: number, b: number) => boolean = never,
 ): void {
-  const n = design.modules.length;
-  const { next, far, seamNext, seamFar } = graphOf(design);
-  dist.fill(Infinity, 0, n);
-  prev.fill(-1, 0, n);
-  const done = new Uint8Array(n);
-  dist[from] = 0;
-  // A hull is a few hundred modules at most, so a plain scan for the nearest beats a heap.
-  for (;;) {
-    let u = -1;
-    let best = Infinity;
-    for (let m = 0; m < n; m++) {
-      if (done[m] === 0 && dist[m]! < best) {
-        best = dist[m]!;
-        u = m;
-      }
+    const n = design.modules.length;
+    const { next, far, seamNext, seamFar } = graphOf(design);
+    dist.fill(Infinity, 0, n);
+    prev.fill(-1, 0, n);
+    const done = new Uint8Array(n);
+    dist[from] = 0;
+    // A hull is a few hundred modules at most, so a plain scan for the nearest beats a heap.
+    for (;;) {
+        let u = -1;
+        let best = Infinity;
+        for (let m = 0; m < n; m++) {
+            if (done[m] === 0 && dist[m]! < best) {
+                best = dist[m]!;
+                u = m;
+            }
+        }
+        if (u < 0) return;
+        done[u] = 1;
+        if (u !== from && !crosses(u)) continue;
+        const to = next[u]!;
+        const d = far[u]!;
+        for (let k = 0; k < to.length; k++) {
+            const v = to[k]!;
+            const via = best + d[k]!;
+            if (via < dist[v]!) {
+                dist[v] = via;
+                prev[v] = u;
+            }
+        }
+        const over = seamNext[u]!;
+        const across = seamFar[u]!;
+        for (let k = 0; k < over.length; k++) {
+            const v = over[k]!;
+            const via = best + across[k]!;
+            if (via < dist[v]! && seam(u, v)) {
+                dist[v] = via;
+                prev[v] = u;
+            }
+        }
     }
-    if (u < 0) return;
-    done[u] = 1;
-    if (u !== from && !crosses(u)) continue;
-    const to = next[u]!;
-    const d = far[u]!;
-    for (let k = 0; k < to.length; k++) {
-      const v = to[k]!;
-      const via = best + d[k]!;
-      if (via < dist[v]!) {
-        dist[v] = via;
-        prev[v] = u;
-      }
-    }
-    const over = seamNext[u]!;
-    const across = seamFar[u]!;
-    for (let k = 0; k < over.length; k++) {
-      const v = over[k]!;
-      const via = best + across[k]!;
-      if (via < dist[v]! && seam(u, v)) {
-        dist[v] = via;
-        prev[v] = u;
-      }
-    }
-  }
 }
 
 const never = (): boolean => false;
@@ -176,61 +176,61 @@ const never = (): boolean => false;
 const linked = new WeakMap<ShipDesign, readonly (readonly number[])[]>();
 
 function linksOf(design: ShipDesign): readonly (readonly number[])[] {
-  const known = linked.get(design);
-  if (known !== undefined) return known;
-  const links: number[][] = design.modules.map(() => []);
-  for (const joint of joints(design)) {
-    links[joint.a]!.push(joint.b);
-    links[joint.b]!.push(joint.a);
-  }
-  linked.set(design, links);
-  return links;
+    const known = linked.get(design);
+    if (known !== undefined) return known;
+    const links: number[][] = design.modules.map(() => []);
+    for (const joint of joints(design)) {
+        links[joint.a]!.push(joint.b);
+        links[joint.b]!.push(joint.a);
+    }
+    linked.set(design, links);
+    return links;
 }
 
 /** Whether the rest of a hull still holds together with module `m` gone. */
 export function staysWhole(design: ShipDesign, m: number): boolean {
-  const n = design.modules.length;
-  if (n < 2) return false;
-  const links = linksOf(design);
-  const seen = new Uint8Array(n);
-  const start = m === 0 ? 1 : 0;
-  const queue = [start];
-  seen[start] = 1;
-  seen[m] = 1;
-  let reached = 1;
-  while (queue.length > 0) {
-    const u = queue.pop()!;
-    for (const v of links[u]!) {
-      if (seen[v] === 1) continue;
-      seen[v] = 1;
-      reached++;
-      queue.push(v);
+    const n = design.modules.length;
+    if (n < 2) return false;
+    const links = linksOf(design);
+    const seen = new Uint8Array(n);
+    const start = m === 0 ? 1 : 0;
+    const queue = [start];
+    seen[start] = 1;
+    seen[m] = 1;
+    let reached = 1;
+    while (queue.length > 0) {
+        const u = queue.pop()!;
+        for (const v of links[u]!) {
+            if (seen[v] === 1) continue;
+            seen[v] = 1;
+            reached++;
+            queue.push(v);
+        }
     }
-  }
-  return reached === n - 1;
+    return reached === n - 1;
 }
 
 /** A module joined to `m`, the first of them; `m` itself if none is. */
 export function neighbourOf(design: ShipDesign, m: number): number {
-  return linksOf(design)[m]![0] ?? m;
+    return linksOf(design)[m]![0] ?? m;
 }
 
 /** The modules from `walk`'s start to `to`, both ends included, or null if it is unreachable. */
 export function pathTo(prev: Int32Array, dist: Float64Array, to: number): Int32Array | null {
-  if (!Number.isFinite(dist[to]!)) return null;
-  let count = 1;
-  for (let m = to; prev[m]! >= 0; m = prev[m]!) count++;
-  const path = new Int32Array(count);
-  let k = count - 1;
-  for (let m = to; m >= 0; m = prev[m]!) path[k--] = m;
-  return path;
+    if (!Number.isFinite(dist[to]!)) return null;
+    let count = 1;
+    for (let m = to; prev[m]! >= 0; m = prev[m]!) count++;
+    const path = new Int32Array(count);
+    let k = count - 1;
+    for (let m = to; m >= 0; m = prev[m]!) path[k--] = m;
+    return path;
 }
 
 /** The length of the leg out of `path[leg]`, m. */
 export function legLength(design: ShipDesign, path: Int32Array, leg: number): number {
-  const a = design.modules[path[leg]!]!;
-  const b = design.modules[path[leg + 1]!]!;
-  return length(a.x - b.x, a.y - b.y);
+    const a = design.modules[path[leg]!]!;
+    const b = design.modules[path[leg + 1]!]!;
+    return length(a.x - b.x, a.y - b.y);
 }
 
 /**
@@ -238,10 +238,10 @@ export function legLength(design: ShipDesign, path: Int32Array, leg: number): nu
  * scattered, but the same every time it is asked.
  */
 export function robotShare(tag: number, salt: number): number {
-  let h = imul(tag + 1, 0x9e3779b1) ^ imul(salt + 1, 0x85ebca6b);
-  h = imul(h ^ (h >>> 16), 0x7feb352d);
-  h = imul(h ^ (h >>> 15), 0x846ca68b);
-  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+    let h = imul(tag + 1, 0x9e3779b1) ^ imul(salt + 1, 0x85ebca6b);
+    h = imul(h ^ (h >>> 16), 0x7feb352d);
+    h = imul(h ^ (h >>> 15), 0x846ca68b);
+    return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
 
 /** How much of what a broad module lets it run beyond `ROBOT_SPEED` a robot may give up, at most, at its own pace. */
@@ -253,39 +253,39 @@ const ROBOT_PACE_SPREAD = 0.3;
  * by its own pace, so a crowd out on rock spreads rather than keeping step.
  */
 function stepSpeed(design: ShipDesign, a: number, b: number, tag: number): number {
-  const over = robotSpeedOver(design.modules[a]!.spec);
-  const onto = robotSpeedOver(design.modules[b]!.spec);
-  const room = (over < onto ? over : onto) - ROBOT_SPEED;
-  return ROBOT_SPEED + room * (1 - ROBOT_PACE_SPREAD * robotShare(tag, 0));
+    const over = robotSpeedOver(design.modules[a]!.spec);
+    const onto = robotSpeedOver(design.modules[b]!.spec);
+    const room = (over < onto ? over : onto) - ROBOT_SPEED;
+    return ROBOT_SPEED + room * (1 - ROBOT_PACE_SPREAD * robotShare(tag, 0));
 }
 
 /** Move a robot `dt` seconds along its path over `design`, each leg at its own speed. */
 export function crawl(design: ShipDesign, robot: Robot, dt: number): void {
-  const path = robot.path!;
-  let time = dt;
-  while (robot.leg < path.length - 1) {
-    const speed = stepSpeed(design, path[robot.leg]!, path[robot.leg + 1]!, robot.tag);
-    const left = legLength(design, path, robot.leg) - robot.along;
-    if (speed * time < left) {
-      robot.along += speed * time;
-      return;
+    const path = robot.path!;
+    let time = dt;
+    while (robot.leg < path.length - 1) {
+        const speed = stepSpeed(design, path[robot.leg]!, path[robot.leg + 1]!, robot.tag);
+        const left = legLength(design, path, robot.leg) - robot.along;
+        if (speed * time < left) {
+            robot.along += speed * time;
+            return;
+        }
+        time -= left / speed;
+        robot.along = 0;
+        robot.leg++;
+        robot.at = path[robot.leg]!;
     }
-    time -= left / speed;
-    robot.along = 0;
-    robot.leg++;
-    robot.at = path[robot.leg]!;
-  }
 }
 
 /** Seconds robot `tag` takes to walk to module `to` by the routes `walk` left in `prev`. */
 export function walkTime(design: ShipDesign, prev: Int32Array, to: number, tag: number): number {
-  let time = 0;
-  for (let m = to; prev[m]! >= 0; m = prev[m]!) {
-    const a = design.modules[prev[m]!]!;
-    const b = design.modules[m]!;
-    time += length(a.x - b.x, a.y - b.y) / stepSpeed(design, prev[m]!, m, tag);
-  }
-  return time;
+    let time = 0;
+    for (let m = to; prev[m]! >= 0; m = prev[m]!) {
+        const a = design.modules[prev[m]!]!;
+        const b = design.modules[m]!;
+        time += length(a.x - b.x, a.y - b.y) / stepSpeed(design, prev[m]!, m, tag);
+    }
+    return time;
 }
 
 /** How near two faces must lie to be the one weld, m: well past `ATTACHMENT_TOLERANCE`, for rounding. */
@@ -302,261 +302,261 @@ const outlineB: number[] = [];
  * where no face of one lies along one of the other, as a seam's may not.
  */
 export function doorBetween(design: ShipDesign, a: number, b: number): readonly [number, number] | null {
-  let byPair = doors.get(design);
-  if (byPair === undefined) {
-    byPair = new Map();
-    doors.set(design, byPair);
-  }
-  const lo = a < b ? a : b;
-  const hi = a < b ? b : a;
-  const key = lo * design.modules.length + hi;
-  const known = byPair.get(key);
-  if (known !== undefined) return known;
-  const ma = design.modules[lo]!;
-  const mb = design.modules[hi]!;
-  const na = moduleOutline(ma.spec, outlineA);
-  const nb = moduleOutline(mb.spec, outlineB);
-  // A corner they only touch at is a stretch of nought, still a way across.
-  let best = -DOOR_TOLERANCE;
-  let door: readonly [number, number] | null = null;
-  for (let i = 0; i < na; i++) {
-    const px = outlineA[2 * i]!;
-    const py = outlineA[2 * i + 1]!;
-    const ex = outlineA[2 * ((i + 1) % na)]! - px;
-    const ey = outlineA[2 * ((i + 1) % na) + 1]! - py;
-    const span = length(ex, ey);
-    if (!(span > 0)) continue;
-    const ux = ex / span;
-    const uy = ey / span;
-    for (let j = 0; j < nb; j++) {
-      const qx = outlineB[2 * j]! - px;
-      const qy = outlineB[2 * j + 1]! - py;
-      const fx = outlineB[2 * ((j + 1) % nb)]! - px;
-      const fy = outlineB[2 * ((j + 1) % nb) + 1]! - py;
-      // Facing it, and on the same line: what touches, wound the other way.
-      const along = (fx - qx) * ux + (fy - qy) * uy;
-      if (!(along < 0) || abs(qx * uy - qy * ux) > DOOR_TOLERANCE || abs(fx * uy - fy * ux) > DOOR_TOLERANCE) continue;
-      const s0 = qx * ux + qy * uy;
-      const s1 = fx * ux + fy * uy;
-      const from = (s0 < s1 ? s0 : s1) > 0 ? (s0 < s1 ? s0 : s1) : 0;
-      const to = (s0 < s1 ? s1 : s0) < span ? (s0 < s1 ? s1 : s0) : span;
-      if (!(to - from > best)) continue;
-      best = to - from;
-      // From the blueprint's frame, which outlines are in, to the design's.
-      const mid = 0.5 * (from + to);
-      door = [px + ux * mid - (ma.spec.x - ma.x), py + uy * mid - (ma.spec.y - ma.y)];
+    let byPair = doors.get(design);
+    if (byPair === undefined) {
+        byPair = new Map();
+        doors.set(design, byPair);
     }
-  }
-  byPair.set(key, door);
-  return door;
+    const lo = a < b ? a : b;
+    const hi = a < b ? b : a;
+    const key = lo * design.modules.length + hi;
+    const known = byPair.get(key);
+    if (known !== undefined) return known;
+    const ma = design.modules[lo]!;
+    const mb = design.modules[hi]!;
+    const na = moduleOutline(ma.spec, outlineA);
+    const nb = moduleOutline(mb.spec, outlineB);
+    // A corner they only touch at is a stretch of nought, still a way across.
+    let best = -DOOR_TOLERANCE;
+    let door: readonly [number, number] | null = null;
+    for (let i = 0; i < na; i++) {
+        const px = outlineA[2 * i]!;
+        const py = outlineA[2 * i + 1]!;
+        const ex = outlineA[2 * ((i + 1) % na)]! - px;
+        const ey = outlineA[2 * ((i + 1) % na) + 1]! - py;
+        const span = length(ex, ey);
+        if (!(span > 0)) continue;
+        const ux = ex / span;
+        const uy = ey / span;
+        for (let j = 0; j < nb; j++) {
+            const qx = outlineB[2 * j]! - px;
+            const qy = outlineB[2 * j + 1]! - py;
+            const fx = outlineB[2 * ((j + 1) % nb)]! - px;
+            const fy = outlineB[2 * ((j + 1) % nb) + 1]! - py;
+            // Facing it, and on the same line: what touches, wound the other way.
+            const along = (fx - qx) * ux + (fy - qy) * uy;
+            if (!(along < 0) || abs(qx * uy - qy * ux) > DOOR_TOLERANCE || abs(fx * uy - fy * ux) > DOOR_TOLERANCE) continue;
+            const s0 = qx * ux + qy * uy;
+            const s1 = fx * ux + fy * uy;
+            const from = (s0 < s1 ? s0 : s1) > 0 ? (s0 < s1 ? s0 : s1) : 0;
+            const to = (s0 < s1 ? s1 : s0) < span ? (s0 < s1 ? s1 : s0) : span;
+            if (!(to - from > best)) continue;
+            best = to - from;
+            // From the blueprint's frame, which outlines are in, to the design's.
+            const mid = 0.5 * (from + to);
+            door = [px + ux * mid - (ma.spec.x - ma.x), py + uy * mid - (ma.spec.y - ma.y)];
+        }
+    }
+    byPair.set(key, door);
+    return door;
 }
 
 /** Every body's robots, by body index, and what each body's bays are building. */
 export class Robots {
-  private readonly of: (Robot[] | null)[] = [];
-  private readonly designs: (ShipDesign | null)[] = [];
-  /** Seconds each bay has put into the robot it is building, by module. */
-  private readonly builds: (Float64Array | null)[] = [];
-  /** The mass of the robots each body's bays are short of, kg, and its moment of inertia, kg·m². */
-  private readonly missing: number[] = [];
-  private readonly missingSpin: number[] = [];
+    private readonly of: (Robot[] | null)[] = [];
+    private readonly designs: (ShipDesign | null)[] = [];
+    /** Seconds each bay has put into the robot it is building, by module. */
+    private readonly builds: (Float64Array | null)[] = [];
+    /** The mass of the robots each body's bays are short of, kg, and its moment of inertia, kg·m². */
+    private readonly missing: number[] = [];
+    private readonly missingSpin: number[] = [];
 
-  /**
-   * A hull's robots: those `carried` over to it, or for a fresh one every bay
-   * full, every robot berthed and ready; and how far each bay was through
-   * building one (`built`, by module), which a remade hull keeps.
-   */
-  register(bodyIndex: number, design: ShipDesign, carried?: Robot[], built?: (module: number) => number): void {
-    let robots: Robot[];
-    if (carried !== undefined) {
-      robots = carried;
-    } else {
-      robots = [];
-      for (let m = 0; m < design.modules.length; m++) {
-        const count = design.modules[m]!.stats.robots;
-        for (let r = 0; r < count; r++) robots.push(stocked(m, robots.length));
-      }
-    }
-    let berths = 0;
-    let missing = 0;
-    let missingSpin = 0;
-    for (let m = 0; m < design.modules.length; m++) {
-      const count = design.modules[m]!.stats.robots;
-      if (!(count > 0)) continue;
-      berths += count;
-      let home = 0;
-      for (const robot of robots) if (robot.bay === m) home++;
-      missing += (count - home) * ROBOT_MASS;
-      missingSpin += (count - home) * ROBOT_MASS * spinOf(design, m);
-    }
-    // A hull with bays keeps a list, empty or not, so a bay that has lost every robot still builds.
-    this.of[bodyIndex] = berths > 0 || robots.length > 0 ? robots : null;
-    this.designs[bodyIndex] = design;
-    const builds = berths > 0 ? new Float64Array(design.modules.length) : null;
-    if (builds !== null && built !== undefined) for (let m = 0; m < builds.length; m++) builds[m] = built(m);
-    this.builds[bodyIndex] = builds;
-    this.missing[bodyIndex] = missing;
-    this.missingSpin[bodyIndex] = missingSpin;
-  }
-
-  /** A body's robots, or null for a body with no bays and none aboard. */
-  on(bodyIndex: number): Robot[] | null {
-    return this.of[bodyIndex] ?? null;
-  }
-
-  /** Seconds each of a body's bays has put into the robot it is building, by module, or null for none. */
-  buildsOn(bodyIndex: number): Float64Array | null {
-    return this.builds[bodyIndex] ?? null;
-  }
-
-  /** What the robots a body's bays are short of weigh, kg. */
-  missingMass(bodyIndex: number): number {
-    return this.missing[bodyIndex] ?? 0;
-  }
-
-  /** Metal a body's robots are carrying home, kg: the body's until it is put in its holds. */
-  cargoMass(bodyIndex: number): number {
-    let kg = 0;
-    for (const robot of this.of[bodyIndex] ?? []) kg += robot.cargo + robot.cargoFuel;
-    return kg;
-  }
-
-  /** What they would add to the body's moment of inertia, kg·m². */
-  missingInertia(bodyIndex: number): number {
-    return this.missingSpin[bodyIndex] ?? 0;
-  }
-
-  /** Lose robot `r` of a body: its bay is a robot short. */
-  lose(bodyIndex: number, r: number): void {
-    const robots = this.of[bodyIndex];
-    const design = this.designs[bodyIndex];
-    if (!robots || !design) return;
-    const robot = robots[r]!;
-    robots.splice(r, 1);
-    this.missing[bodyIndex] = (this.missing[bodyIndex] ?? 0) + ROBOT_MASS;
-    this.missingSpin[bodyIndex] = (this.missingSpin[bodyIndex] ?? 0) + ROBOT_MASS * spinOf(design, robot.bay);
-  }
-
-  /** Take robot `robot` aboard a body, into bay `robot.bay`, which has a berth for it. */
-  adopt(bodyIndex: number, robot: Robot): void {
-    const robots = this.of[bodyIndex];
-    const design = this.designs[bodyIndex];
-    if (!robots || !design) return;
-    robots.push(robot);
-    this.missing[bodyIndex] = (this.missing[bodyIndex] ?? 0) - ROBOT_MASS;
-    this.missingSpin[bodyIndex] = (this.missingSpin[bodyIndex] ?? 0) - ROBOT_MASS * spinOf(design, robot.bay);
-  }
-
-  /** A new robot in bay `bay` of a body, empty until the bay has filled it. */
-  build(bodyIndex: number, bay: number): void {
-    const robots = this.of[bodyIndex];
-    const design = this.designs[bodyIndex];
-    if (!robots || !design) return;
-    let tag = 0;
-    for (const robot of robots) if (robot.tag >= tag) tag = robot.tag + 1;
-    robots.push(empty(bay, tag));
-    this.missing[bodyIndex] = (this.missing[bodyIndex] ?? 0) - ROBOT_MASS;
-    this.missingSpin[bodyIndex] = (this.missingSpin[bodyIndex] ?? 0) - ROBOT_MASS * spinOf(design, bay);
-  }
-
-  /**
-   * The robots that go with a remade hull, renumbered by `moduleOf`, which
-   * gives a module of the old body's design its index in the new one, or -1.
-   * Only one whose bay and whose module both come over goes: it can still get
-   * home. Taken from the old body, so a piece cut off takes its robots with it.
-   * Each carries on where it was and about what it was about, walking the
-   * same welds; one whose way or whose work did not come over finds new
-   * (`Ships.tend`).
-   */
-  take(bodyIndex: number, moduleOf: (module: number) => number): Robot[] {
-    const robots = this.of[bodyIndex];
-    const out: Robot[] = [];
-    if (robots === null || robots === undefined) return out;
-    const left: Robot[] = [];
-    for (const robot of robots) {
-      const bay = moduleOf(robot.bay);
-      const at = robot.away >= 0 ? bay : moduleOf(robot.at);
-      if (bay < 0 || at < 0) {
-        left.push(robot);
-        continue;
-      }
-      robot.bay = bay;
-      // Out on its rock, it is where it was there.
-      if (robot.away >= 0) {
-        out.push(robot);
-        continue;
-      }
-      robot.at = at;
-      robot.target = robot.target >= 0 ? moduleOf(robot.target) : -1;
-      if (robot.target < 0) {
-        robot.build = -1;
-        robot.strip = false;
-      }
-      robot.idleAt = -1;
-      robot.stoodOn = -1;
-      const path = robot.path;
-      if (path !== null) {
-        for (let k = 0; k < path.length && robot.path !== null; k++) {
-          const to = moduleOf(path[k]!);
-          if (to < 0) robot.path = null;
-          else path[k] = to;
+    /**
+     * A hull's robots: those `carried` over to it, or for a fresh one every bay
+     * full, every robot berthed and ready; and how far each bay was through
+     * building one (`built`, by module), which a remade hull keeps.
+     */
+    register(bodyIndex: number, design: ShipDesign, carried?: Robot[], built?: (module: number) => number): void {
+        let robots: Robot[];
+        if (carried !== undefined) {
+            robots = carried;
+        } else {
+            robots = [];
+            for (let m = 0; m < design.modules.length; m++) {
+                const count = design.modules[m]!.stats.robots;
+                for (let r = 0; r < count; r++) robots.push(stocked(m, robots.length));
+            }
         }
-        if (robot.path === null) {
-          robot.leg = 0;
-          robot.along = 0;
+        let berths = 0;
+        let missing = 0;
+        let missingSpin = 0;
+        for (let m = 0; m < design.modules.length; m++) {
+            const count = design.modules[m]!.stats.robots;
+            if (!(count > 0)) continue;
+            berths += count;
+            let home = 0;
+            for (const robot of robots) if (robot.bay === m) home++;
+            missing += (count - home) * ROBOT_MASS;
+            missingSpin += (count - home) * ROBOT_MASS * spinOf(design, m);
         }
-      }
-      out.push(robot);
+        // A hull with bays keeps a list, empty or not, so a bay that has lost every robot still builds.
+        this.of[bodyIndex] = berths > 0 || robots.length > 0 ? robots : null;
+        this.designs[bodyIndex] = design;
+        const builds = berths > 0 ? new Float64Array(design.modules.length) : null;
+        if (builds !== null && built !== undefined) for (let m = 0; m < builds.length; m++) builds[m] = built(m);
+        this.builds[bodyIndex] = builds;
+        this.missing[bodyIndex] = missing;
+        this.missingSpin[bodyIndex] = missingSpin;
     }
-    this.of[bodyIndex] = left;
-    return out;
-  }
 
-  forget(bodyIndex: number): void {
-    this.of[bodyIndex] = null;
-    this.designs[bodyIndex] = null;
-    this.builds[bodyIndex] = null;
-    this.missing[bodyIndex] = 0;
-    this.missingSpin[bodyIndex] = 0;
-  }
+    /** A body's robots, or null for a body with no bays and none aboard. */
+    on(bodyIndex: number): Robot[] | null {
+        return this.of[bodyIndex] ?? null;
+    }
+
+    /** Seconds each of a body's bays has put into the robot it is building, by module, or null for none. */
+    buildsOn(bodyIndex: number): Float64Array | null {
+        return this.builds[bodyIndex] ?? null;
+    }
+
+    /** What the robots a body's bays are short of weigh, kg. */
+    missingMass(bodyIndex: number): number {
+        return this.missing[bodyIndex] ?? 0;
+    }
+
+    /** Metal a body's robots are carrying home, kg: the body's until it is put in its holds. */
+    cargoMass(bodyIndex: number): number {
+        let kg = 0;
+        for (const robot of this.of[bodyIndex] ?? []) kg += robot.cargo + robot.cargoFuel;
+        return kg;
+    }
+
+    /** What they would add to the body's moment of inertia, kg·m². */
+    missingInertia(bodyIndex: number): number {
+        return this.missingSpin[bodyIndex] ?? 0;
+    }
+
+    /** Lose robot `r` of a body: its bay is a robot short. */
+    lose(bodyIndex: number, r: number): void {
+        const robots = this.of[bodyIndex];
+        const design = this.designs[bodyIndex];
+        if (!robots || !design) return;
+        const robot = robots[r]!;
+        robots.splice(r, 1);
+        this.missing[bodyIndex] = (this.missing[bodyIndex] ?? 0) + ROBOT_MASS;
+        this.missingSpin[bodyIndex] = (this.missingSpin[bodyIndex] ?? 0) + ROBOT_MASS * spinOf(design, robot.bay);
+    }
+
+    /** Take robot `robot` aboard a body, into bay `robot.bay`, which has a berth for it. */
+    adopt(bodyIndex: number, robot: Robot): void {
+        const robots = this.of[bodyIndex];
+        const design = this.designs[bodyIndex];
+        if (!robots || !design) return;
+        robots.push(robot);
+        this.missing[bodyIndex] = (this.missing[bodyIndex] ?? 0) - ROBOT_MASS;
+        this.missingSpin[bodyIndex] = (this.missingSpin[bodyIndex] ?? 0) - ROBOT_MASS * spinOf(design, robot.bay);
+    }
+
+    /** A new robot in bay `bay` of a body, empty until the bay has filled it. */
+    build(bodyIndex: number, bay: number): void {
+        const robots = this.of[bodyIndex];
+        const design = this.designs[bodyIndex];
+        if (!robots || !design) return;
+        let tag = 0;
+        for (const robot of robots) if (robot.tag >= tag) tag = robot.tag + 1;
+        robots.push(empty(bay, tag));
+        this.missing[bodyIndex] = (this.missing[bodyIndex] ?? 0) - ROBOT_MASS;
+        this.missingSpin[bodyIndex] = (this.missingSpin[bodyIndex] ?? 0) - ROBOT_MASS * spinOf(design, bay);
+    }
+
+    /**
+     * The robots that go with a remade hull, renumbered by `moduleOf`, which
+     * gives a module of the old body's design its index in the new one, or -1.
+     * Only one whose bay and whose module both come over goes: it can still get
+     * home. Taken from the old body, so a piece cut off takes its robots with it.
+     * Each carries on where it was and about what it was about, walking the
+     * same welds; one whose way or whose work did not come over finds new
+     * (`Ships.tend`).
+     */
+    take(bodyIndex: number, moduleOf: (module: number) => number): Robot[] {
+        const robots = this.of[bodyIndex];
+        const out: Robot[] = [];
+        if (robots === null || robots === undefined) return out;
+        const left: Robot[] = [];
+        for (const robot of robots) {
+            const bay = moduleOf(robot.bay);
+            const at = robot.away >= 0 ? bay : moduleOf(robot.at);
+            if (bay < 0 || at < 0) {
+                left.push(robot);
+                continue;
+            }
+            robot.bay = bay;
+            // Out on its rock, it is where it was there.
+            if (robot.away >= 0) {
+                out.push(robot);
+                continue;
+            }
+            robot.at = at;
+            robot.target = robot.target >= 0 ? moduleOf(robot.target) : -1;
+            if (robot.target < 0) {
+                robot.build = -1;
+                robot.strip = false;
+            }
+            robot.idleAt = -1;
+            robot.stoodOn = -1;
+            const path = robot.path;
+            if (path !== null) {
+                for (let k = 0; k < path.length && robot.path !== null; k++) {
+                    const to = moduleOf(path[k]!);
+                    if (to < 0) robot.path = null;
+                    else path[k] = to;
+                }
+                if (robot.path === null) {
+                    robot.leg = 0;
+                    robot.along = 0;
+                }
+            }
+            out.push(robot);
+        }
+        this.of[bodyIndex] = left;
+        return out;
+    }
+
+    forget(bodyIndex: number): void {
+        this.of[bodyIndex] = null;
+        this.designs[bodyIndex] = null;
+        this.builds[bodyIndex] = null;
+        this.missing[bodyIndex] = 0;
+        this.missingSpin[bodyIndex] = 0;
+    }
 }
 
 /** Moment about the centre of mass per kilogram at module `m`, m². */
 function spinOf(design: ShipDesign, m: number): number {
-  const module = design.modules[m]!;
-  const { length, width } = module.spec;
-  return (length * length + width * width) / 12 + module.x * module.x + module.y * module.y;
+    const module = design.modules[m]!;
+    const { length, width } = module.spec;
+    return (length * length + width * width) / 12 + module.x * module.x + module.y * module.y;
 }
 
 /** A robot in its bay, set out stocked as a ship sets out with its stores full. */
 function stocked(bay: number, tag: number): Robot {
-  return {
-    bay,
-    at: bay,
-    mode: RobotMode.Berthed,
-    target: -1,
-    build: -1,
-    strip: false,
-    cargo: 0,
-    cargoFuel: 0,
-    path: null,
-    leg: 0,
-    along: 0,
-    metal: ROBOT_LOAD,
-    charge: ROBOT_CHARGE,
-    refill: 0,
-    idleAt: -1,
-    stood: 1,
-    stoodOn: -1,
-    away: -1,
-    awayDesign: null,
-    bound: -1,
-    tag,
-    brought: 0,
-  };
+    return {
+        bay,
+        at: bay,
+        mode: RobotMode.Berthed,
+        target: -1,
+        build: -1,
+        strip: false,
+        cargo: 0,
+        cargoFuel: 0,
+        path: null,
+        leg: 0,
+        along: 0,
+        metal: ROBOT_LOAD,
+        charge: ROBOT_CHARGE,
+        refill: 0,
+        idleAt: -1,
+        stood: 1,
+        stoodOn: -1,
+        away: -1,
+        awayDesign: null,
+        bound: -1,
+        tag,
+        brought: 0,
+    };
 }
 
 /** A robot just built: empty, and to be refilled before it goes anywhere. */
 function empty(bay: number, tag: number): Robot {
-  return { ...stocked(bay, tag), metal: 0, charge: 0, refill: ROBOT_REFILL_TIME };
+    return { ...stocked(bay, tag), metal: 0, charge: 0, refill: ROBOT_REFILL_TIME };
 }

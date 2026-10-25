@@ -21,7 +21,7 @@
  * happens. DOM-free arithmetic, so it is unit-tested like the camera.
  */
 
-import { IMPACT_BEAM, IMPACT_BURST, IMPACT_MUZZLE } from '../sim/index.js';
+import { IMPACT_BEAM, IMPACT_BURST, IMPACT_MUZZLE } from "../sim/index.js";
 
 /** How long a round's flash lasts, in simulated seconds. */
 export const ROUND_FLASH_LIFETIME = 0.35;
@@ -49,9 +49,9 @@ const BURST_MAX_LIFETIME = 0.1;
  * tenfold more charge, between a single frame and six.
  */
 export function burstLifetime(energy: number): number {
-  if (!(energy > 0)) return BURST_MIN_LIFETIME;
-  const lifetime = BURST_FLASH_LIFETIME + BURST_LIFETIME_PER_DECADE * Math.log10(energy / BURST_REFERENCE_ENERGY);
-  return Math.min(BURST_MAX_LIFETIME, Math.max(BURST_MIN_LIFETIME, lifetime));
+    if (!(energy > 0)) return BURST_MIN_LIFETIME;
+    const lifetime = BURST_FLASH_LIFETIME + BURST_LIFETIME_PER_DECADE * Math.log10(energy / BURST_REFERENCE_ENERGY);
+    return Math.min(BURST_MAX_LIFETIME, Math.max(BURST_MIN_LIFETIME, lifetime));
 }
 
 /**
@@ -79,18 +79,18 @@ const MUZZLE_FLASH_THROAT = 0.2;
  * rather than something going off on the gun.
  */
 export function muzzleWedge(
-  radius: number,
-  age: number,
-  lifetime: number,
+    radius: number,
+    age: number,
+    lifetime: number,
 ): { back: number; front: number; backWidth: number; frontWidth: number } {
-  const f = lifetime > 0 ? Math.sqrt(Math.min(1, Math.max(0, age / lifetime))) : 1;
-  const reach = radius * MUZZLE_FLASH_REACH;
-  return {
-    back: reach * 0.5 * f,
-    front: reach * (FLASH_BIRTH_SIZE + (1 - FLASH_BIRTH_SIZE) * f),
-    backWidth: radius * MUZZLE_FLASH_THROAT,
-    frontWidth: radius * (FLASH_BIRTH_SIZE + (1 - FLASH_BIRTH_SIZE) * f),
-  };
+    const f = lifetime > 0 ? Math.sqrt(Math.min(1, Math.max(0, age / lifetime))) : 1;
+    const reach = radius * MUZZLE_FLASH_REACH;
+    return {
+        back: reach * 0.5 * f,
+        front: reach * (FLASH_BIRTH_SIZE + (1 - FLASH_BIRTH_SIZE) * f),
+        backWidth: radius * MUZZLE_FLASH_THROAT,
+        frontWidth: radius * (FLASH_BIRTH_SIZE + (1 - FLASH_BIRTH_SIZE) * f),
+    };
 }
 
 /** The energy a flash is drawn at full size for, joules. */
@@ -108,9 +108,9 @@ const FLASH_MAX_RADIUS = 18;
  * the small ones invisible and the large ones into a screen-filling disc.
  */
 export function flashRadius(energy: number): number {
-  if (!(energy > 0)) return 0;
-  const scaled = FLASH_REFERENCE_RADIUS * Math.cbrt(energy / FLASH_REFERENCE_ENERGY);
-  return Math.min(FLASH_MAX_RADIUS, Math.max(FLASH_MIN_RADIUS, scaled));
+    if (!(energy > 0)) return 0;
+    const scaled = FLASH_REFERENCE_RADIUS * Math.cbrt(energy / FLASH_REFERENCE_ENERGY);
+    return Math.min(FLASH_MAX_RADIUS, Math.max(FLASH_MIN_RADIUS, scaled));
 }
 
 /**
@@ -119,8 +119,8 @@ export function flashRadius(energy: number): number {
  * other grows by `flashSize`.
  */
 export function flashExtent(radius: number, growth: number, age: number, lifetime: number): number {
-  if (growth > 0) return radius + growth * Math.max(0, age);
-  return radius * flashSize(age, lifetime);
+    if (growth > 0) return radius + growth * Math.max(0, age);
+    return radius * flashSize(age, lifetime);
 }
 
 /** The share of its full size a flash starts at. */
@@ -131,31 +131,31 @@ export const FLASH_BIRTH_SIZE = 0.35;
  * it grows quickly at first and then more slowly, as a blast does.
  */
 export function flashSize(age: number, lifetime: number): number {
-  if (!(lifetime > 0)) return 1;
-  const f = Math.min(1, Math.max(0, age / lifetime));
-  return FLASH_BIRTH_SIZE + (1 - FLASH_BIRTH_SIZE) * Math.sqrt(f);
+    if (!(lifetime > 0)) return 1;
+    const f = Math.min(1, Math.max(0, age / lifetime));
+    return FLASH_BIRTH_SIZE + (1 - FLASH_BIRTH_SIZE) * Math.sqrt(f);
 }
 
 /** How bright a flash is at this point in its life, 1 at birth and 0 at death. */
 export function flashFade(age: number, lifetime: number): number {
-  if (!(lifetime > 0)) return 0;
-  // Before it was born is the moment it was born: an exposure reaching back
-  // past it is at its brightest there.
-  if (age <= 0) return 1;
-  const left = 1 - age / lifetime;
-  if (left <= 0) return 0;
-  // Squared, so it is bright briefly and then gets out of the way, rather than
-  // lingering as a grey smudge over the ship it happened on.
-  return left * left;
+    if (!(lifetime > 0)) return 0;
+    // Before it was born is the moment it was born: an exposure reaching back
+    // past it is at its brightest there.
+    if (age <= 0) return 1;
+    const left = 1 - age / lifetime;
+    if (left <= 0) return 0;
+    // Squared, so it is bright briefly and then gets out of the way, rather than
+    // lingering as a grey smudge over the ship it happened on.
+    return left * left;
 }
 
 /** Where a flash is now: on its hull if that hull is still about. */
 export interface FlashAnchor {
-  /** Body index, matching `ShipView.body`. */
-  body: number;
-  x: number;
-  y: number;
-  angle: number;
+    /** Body index, matching `ShipView.body`. */
+    body: number;
+    x: number;
+    y: number;
+    angle: number;
 }
 
 /**
@@ -165,186 +165,186 @@ export interface FlashAnchor {
  * is the same transform the hull's own modules are drawn through.
  */
 export function flashPosition(localX: number, localY: number, anchor: FlashAnchor): { x: number; y: number } {
-  const c = Math.cos(anchor.angle);
-  const s = Math.sin(anchor.angle);
-  return { x: anchor.x + localX * c - localY * s, y: anchor.y + localX * s + localY * c };
+    const c = Math.cos(anchor.angle);
+    const s = Math.sin(anchor.angle);
+    return { x: anchor.x + localX * c - localY * s, y: anchor.y + localX * s + localY * c };
 }
 
 /** Flashes still burning, in arrays a renderer can walk without objects. */
 export class Flashes {
-  x = new Float64Array(64);
-  y = new Float64Array(64);
-  /** The body it happened on, or -1 for one that rides nothing. */
-  body = new Int32Array(64);
-  localX = new Float64Array(64);
-  localY = new Float64Array(64);
-  radius = new Float64Array(64);
-  age = new Float64Array(64);
-  lifetime = new Float64Array(64);
-  kind = new Uint8Array(64);
-  /** Drift, m/s, for a flash that rides nothing. */
-  vx = new Float64Array(64);
-  vy = new Float64Array(64);
-  /** How fast it spreads, m/s, or 0 for one that grows by `flashSize`. */
-  growth = new Float64Array(64);
-  /** The way it points, in its body's frame where it rides one; zero for a flash that points no way. */
-  dirX = new Float64Array(64);
-  dirY = new Float64Array(64);
-  count = 0;
+    x = new Float64Array(64);
+    y = new Float64Array(64);
+    /** The body it happened on, or -1 for one that rides nothing. */
+    body = new Int32Array(64);
+    localX = new Float64Array(64);
+    localY = new Float64Array(64);
+    radius = new Float64Array(64);
+    age = new Float64Array(64);
+    lifetime = new Float64Array(64);
+    kind = new Uint8Array(64);
+    /** Drift, m/s, for a flash that rides nothing. */
+    vx = new Float64Array(64);
+    vy = new Float64Array(64);
+    /** How fast it spreads, m/s, or 0 for one that grows by `flashSize`. */
+    growth = new Float64Array(64);
+    /** The way it points, in its body's frame where it rides one; zero for a flash that points no way. */
+    dirX = new Float64Array(64);
+    dirY = new Float64Array(64);
+    count = 0;
 
-  add(
-    x: number,
-    y: number,
-    energy: number,
-    kind: number,
-    body = -1,
-    localX = 0,
-    localY = 0,
-    vx = 0,
-    vy = 0,
-    growth = 0,
-    dirX = 0,
-    dirY = 0,
-  ): void {
-    const radius = flashRadius(energy) * (kind === IMPACT_MUZZLE ? MUZZLE_FLASH_SHARE : 1);
-    if (!(radius > 0)) return;
-    if (this.count === this.x.length) this.grow();
-    const i = this.count++;
-    this.x[i] = x;
-    this.y[i] = y;
-    this.body[i] = body;
-    this.localX[i] = localX;
-    this.localY[i] = localY;
-    this.radius[i] = radius;
-    this.age[i] = 0;
-    this.lifetime[i] =
-      kind === IMPACT_BEAM
-        ? BEAM_FLASH_LIFETIME
-        : kind === IMPACT_BURST
-          ? burstLifetime(energy)
-          : kind === IMPACT_MUZZLE
-            ? MUZZLE_FLASH_LIFETIME
-            : ROUND_FLASH_LIFETIME;
-    this.kind[i] = kind;
-    this.vx[i] = vx;
-    this.vy[i] = vy;
-    this.growth[i] = growth;
-    this.dirX[i] = dirX;
-    this.dirY[i] = dirY;
-  }
-
-  /** Age everything by `dt` *simulated* seconds and drop what has burned out. */
-  step(dt: number): void {
-    let kept = 0;
-    for (let i = 0; i < this.count; i++) {
-      const age = this.age[i]! + dt;
-      if (age >= this.lifetime[i]!) continue;
-      this.x[kept] = this.x[i]! + this.vx[i]! * dt;
-      this.y[kept] = this.y[i]! + this.vy[i]! * dt;
-      this.vx[kept] = this.vx[i]!;
-      this.vy[kept] = this.vy[i]!;
-      this.growth[kept] = this.growth[i]!;
-      this.dirX[kept] = this.dirX[i]!;
-      this.dirY[kept] = this.dirY[i]!;
-      this.body[kept] = this.body[i]!;
-      this.localX[kept] = this.localX[i]!;
-      this.localY[kept] = this.localY[i]!;
-      this.radius[kept] = this.radius[i]!;
-      this.age[kept] = age;
-      this.lifetime[kept] = this.lifetime[i]!;
-      this.kind[kept] = this.kind[i]!;
-      kept++;
+    add(
+        x: number,
+        y: number,
+        energy: number,
+        kind: number,
+        body = -1,
+        localX = 0,
+        localY = 0,
+        vx = 0,
+        vy = 0,
+        growth = 0,
+        dirX = 0,
+        dirY = 0,
+    ): void {
+        const radius = flashRadius(energy) * (kind === IMPACT_MUZZLE ? MUZZLE_FLASH_SHARE : 1);
+        if (!(radius > 0)) return;
+        if (this.count === this.x.length) this.grow();
+        const i = this.count++;
+        this.x[i] = x;
+        this.y[i] = y;
+        this.body[i] = body;
+        this.localX[i] = localX;
+        this.localY[i] = localY;
+        this.radius[i] = radius;
+        this.age[i] = 0;
+        this.lifetime[i] =
+            kind === IMPACT_BEAM
+                ? BEAM_FLASH_LIFETIME
+                : kind === IMPACT_BURST
+                  ? burstLifetime(energy)
+                  : kind === IMPACT_MUZZLE
+                    ? MUZZLE_FLASH_LIFETIME
+                    : ROUND_FLASH_LIFETIME;
+        this.kind[i] = kind;
+        this.vx[i] = vx;
+        this.vy[i] = vy;
+        this.growth[i] = growth;
+        this.dirX[i] = dirX;
+        this.dirY[i] = dirY;
     }
-    this.count = kept;
-  }
 
-  clear(): void {
-    this.count = 0;
-  }
+    /** Age everything by `dt` *simulated* seconds and drop what has burned out. */
+    step(dt: number): void {
+        let kept = 0;
+        for (let i = 0; i < this.count; i++) {
+            const age = this.age[i]! + dt;
+            if (age >= this.lifetime[i]!) continue;
+            this.x[kept] = this.x[i]! + this.vx[i]! * dt;
+            this.y[kept] = this.y[i]! + this.vy[i]! * dt;
+            this.vx[kept] = this.vx[i]!;
+            this.vy[kept] = this.vy[i]!;
+            this.growth[kept] = this.growth[i]!;
+            this.dirX[kept] = this.dirX[i]!;
+            this.dirY[kept] = this.dirY[i]!;
+            this.body[kept] = this.body[i]!;
+            this.localX[kept] = this.localX[i]!;
+            this.localY[kept] = this.localY[i]!;
+            this.radius[kept] = this.radius[i]!;
+            this.age[kept] = age;
+            this.lifetime[kept] = this.lifetime[i]!;
+            this.kind[kept] = this.kind[i]!;
+            kept++;
+        }
+        this.count = kept;
+    }
 
-  copy(): Flashes {
-    const out = new Flashes();
-    out.x = this.x.slice();
-    out.y = this.y.slice();
-    out.body = this.body.slice();
-    out.localX = this.localX.slice();
-    out.localY = this.localY.slice();
-    out.radius = this.radius.slice();
-    out.age = this.age.slice();
-    out.lifetime = this.lifetime.slice();
-    out.kind = this.kind.slice();
-    out.vx = this.vx.slice();
-    out.vy = this.vy.slice();
-    out.growth = this.growth.slice();
-    out.dirX = this.dirX.slice();
-    out.dirY = this.dirY.slice();
-    out.count = this.count;
-    return out;
-  }
+    clear(): void {
+        this.count = 0;
+    }
 
-  /** Take on another's flashes, as they are. */
-  set(from: Flashes): void {
-    const copy = from.copy();
-    this.x = copy.x;
-    this.y = copy.y;
-    this.body = copy.body;
-    this.localX = copy.localX;
-    this.localY = copy.localY;
-    this.radius = copy.radius;
-    this.age = copy.age;
-    this.lifetime = copy.lifetime;
-    this.kind = copy.kind;
-    this.vx = copy.vx;
-    this.vy = copy.vy;
-    this.growth = copy.growth;
-    this.dirX = copy.dirX;
-    this.dirY = copy.dirY;
-    this.count = copy.count;
-  }
+    copy(): Flashes {
+        const out = new Flashes();
+        out.x = this.x.slice();
+        out.y = this.y.slice();
+        out.body = this.body.slice();
+        out.localX = this.localX.slice();
+        out.localY = this.localY.slice();
+        out.radius = this.radius.slice();
+        out.age = this.age.slice();
+        out.lifetime = this.lifetime.slice();
+        out.kind = this.kind.slice();
+        out.vx = this.vx.slice();
+        out.vy = this.vy.slice();
+        out.growth = this.growth.slice();
+        out.dirX = this.dirX.slice();
+        out.dirY = this.dirY.slice();
+        out.count = this.count;
+        return out;
+    }
 
-  private grow(): void {
-    const size = this.x.length * 2;
-    const x = new Float64Array(size);
-    const y = new Float64Array(size);
-    const body = new Int32Array(size);
-    const localX = new Float64Array(size);
-    const localY = new Float64Array(size);
-    const radius = new Float64Array(size);
-    const age = new Float64Array(size);
-    const lifetime = new Float64Array(size);
-    const kind = new Uint8Array(size);
-    const vx = new Float64Array(size);
-    const vy = new Float64Array(size);
-    vx.set(this.vx);
-    vy.set(this.vy);
-    this.vx = vx;
-    this.vy = vy;
-    const growth = new Float64Array(size);
-    growth.set(this.growth);
-    this.growth = growth;
-    const dirX = new Float64Array(size);
-    const dirY = new Float64Array(size);
-    dirX.set(this.dirX);
-    dirY.set(this.dirY);
-    this.dirX = dirX;
-    this.dirY = dirY;
-    x.set(this.x);
-    y.set(this.y);
-    body.set(this.body);
-    localX.set(this.localX);
-    localY.set(this.localY);
-    radius.set(this.radius);
-    age.set(this.age);
-    lifetime.set(this.lifetime);
-    kind.set(this.kind);
-    this.x = x;
-    this.y = y;
-    this.body = body;
-    this.localX = localX;
-    this.localY = localY;
-    this.radius = radius;
-    this.age = age;
-    this.lifetime = lifetime;
-    this.kind = kind;
-  }
+    /** Take on another's flashes, as they are. */
+    set(from: Flashes): void {
+        const copy = from.copy();
+        this.x = copy.x;
+        this.y = copy.y;
+        this.body = copy.body;
+        this.localX = copy.localX;
+        this.localY = copy.localY;
+        this.radius = copy.radius;
+        this.age = copy.age;
+        this.lifetime = copy.lifetime;
+        this.kind = copy.kind;
+        this.vx = copy.vx;
+        this.vy = copy.vy;
+        this.growth = copy.growth;
+        this.dirX = copy.dirX;
+        this.dirY = copy.dirY;
+        this.count = copy.count;
+    }
+
+    private grow(): void {
+        const size = this.x.length * 2;
+        const x = new Float64Array(size);
+        const y = new Float64Array(size);
+        const body = new Int32Array(size);
+        const localX = new Float64Array(size);
+        const localY = new Float64Array(size);
+        const radius = new Float64Array(size);
+        const age = new Float64Array(size);
+        const lifetime = new Float64Array(size);
+        const kind = new Uint8Array(size);
+        const vx = new Float64Array(size);
+        const vy = new Float64Array(size);
+        vx.set(this.vx);
+        vy.set(this.vy);
+        this.vx = vx;
+        this.vy = vy;
+        const growth = new Float64Array(size);
+        growth.set(this.growth);
+        this.growth = growth;
+        const dirX = new Float64Array(size);
+        const dirY = new Float64Array(size);
+        dirX.set(this.dirX);
+        dirY.set(this.dirY);
+        this.dirX = dirX;
+        this.dirY = dirY;
+        x.set(this.x);
+        y.set(this.y);
+        body.set(this.body);
+        localX.set(this.localX);
+        localY.set(this.localY);
+        radius.set(this.radius);
+        age.set(this.age);
+        lifetime.set(this.lifetime);
+        kind.set(this.kind);
+        this.x = x;
+        this.y = y;
+        this.body = body;
+        this.localX = localX;
+        this.localY = localY;
+        this.radius = radius;
+        this.age = age;
+        this.lifetime = lifetime;
+        this.kind = kind;
+    }
 }

@@ -1,16 +1,16 @@
 import type {
-  World,
-  WellSpec,
-  Ships,
-  Projectiles,
-  Beams,
-  SpatialGrid,
-  ProjectileHits,
-  BeamHits,
-  Impacts,
-  Collisions,
-  Credit,
-} from '../sim/index.js';
+    World,
+    WellSpec,
+    Ships,
+    Projectiles,
+    Beams,
+    SpatialGrid,
+    ProjectileHits,
+    BeamHits,
+    Impacts,
+    Collisions,
+    Credit,
+} from "../sim/index.js";
 
 /**
  * The shapes every scenario in this directory implements. No scenario of its
@@ -34,37 +34,37 @@ import type {
  * anything failing. Implement it once per scenario and hand it over.
  */
 export interface Battle {
-  readonly dt: number;
-  readonly world: World;
-  /** Wells acting on the battle. Rounds curve through them as the ships do. */
-  readonly wells: readonly WellSpec[];
-  readonly ships: Ships;
-  readonly projectiles: Projectiles;
-  readonly beams: Beams;
-  readonly grid: SpatialGrid;
-  readonly hits: ProjectileHits;
-  readonly beamHits: BeamHits;
-  /** What the hits did, and the log of them a renderer draws flashes from. */
-  readonly impacts: Impacts;
-  /** Hulls meeting each other, and the contacts from the last step. */
-  readonly collisions: Collisions;
-  /**
-   * Who hit whom this step, and for how much. Refilled every step, so a
-   * caller scoring a battle reads it after each one.
-   */
-  readonly credit: Credit;
-  /** Cumulative, so a duel that stops shooting or stops hitting is detectable. */
-  totalProjectilesFired: number;
-  totalProjectileHits: number;
-  totalBeamsFired: number;
-  totalBeamHits: number;
-  /** Cumulative contacts, so a scenario that stops colliding is detectable. */
-  totalContacts: number;
-  /** Cumulative pieces broken off hulls, which is how severing shows up. */
-  totalSevered: number;
-  /** Pairs of bodies a slow ragged contact has hooked into one. */
-  totalWelded: number;
-  /** Wreckage the world stopped tracking, as pieces let go. */
-  totalCulled: number;
-  step(): void;
+    readonly dt: number;
+    readonly world: World;
+    /** Wells acting on the battle. Rounds curve through them as the ships do. */
+    readonly wells: readonly WellSpec[];
+    readonly ships: Ships;
+    readonly projectiles: Projectiles;
+    readonly beams: Beams;
+    readonly grid: SpatialGrid;
+    readonly hits: ProjectileHits;
+    readonly beamHits: BeamHits;
+    /** What the hits did, and the log of them a renderer draws flashes from. */
+    readonly impacts: Impacts;
+    /** Hulls meeting each other, and the contacts from the last step. */
+    readonly collisions: Collisions;
+    /**
+     * Who hit whom this step, and for how much. Refilled every step, so a
+     * caller scoring a battle reads it after each one.
+     */
+    readonly credit: Credit;
+    /** Cumulative, so a duel that stops shooting or stops hitting is detectable. */
+    totalProjectilesFired: number;
+    totalProjectileHits: number;
+    totalBeamsFired: number;
+    totalBeamHits: number;
+    /** Cumulative contacts, so a scenario that stops colliding is detectable. */
+    totalContacts: number;
+    /** Cumulative pieces broken off hulls, which is how severing shows up. */
+    totalSevered: number;
+    /** Pairs of bodies a slow ragged contact has hooked into one. */
+    totalWelded: number;
+    /** Wreckage the world stopped tracking, as pieces let go. */
+    totalCulled: number;
+    step(): void;
 }

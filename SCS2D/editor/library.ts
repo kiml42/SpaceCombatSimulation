@@ -1,6 +1,6 @@
-import { parseBlueprint, parseFleet, serialiseBlueprint, serialiseFleet, type Blueprint, type Fleet } from '../sim/index.js';
-import { BLUEPRINTS } from '../scenarios/blueprints.js';
-import { FLEETS } from '../scenarios/fleets.js';
+import { parseBlueprint, parseFleet, serialiseBlueprint, serialiseFleet, type Blueprint, type Fleet } from "../sim/index.js";
+import { BLUEPRINTS } from "../scenarios/blueprints.js";
+import { FLEETS } from "../scenarios/fleets.js";
 
 /**
  * The ships available to open, from two places at once: the ones that ship
@@ -20,37 +20,37 @@ import { FLEETS } from '../scenarios/fleets.js';
  * a browser is a library whose behaviour is not checked.
  */
 export interface KeyValueStore {
-  readonly length: number;
-  key(index: number): string | null;
-  getItem(key: string): string | null;
-  setItem(key: string, value: string): void;
-  removeItem(key: string): void;
+    readonly length: number;
+    key(index: number): string | null;
+    getItem(key: string): string | null;
+    setItem(key: string, value: string): void;
+    removeItem(key: string): void;
 }
 
 /** What one kind of saved file needs: where it is kept, and how it is read and written. */
 export interface LibraryKind<T extends { name: string }> {
-  /** Namespaced so the editor shares an origin with anything else politely. */
-  readonly prefix: string;
-  readonly builtIn: readonly T[];
-  parse(value: unknown): T;
-  serialise(value: T): Record<string, unknown>;
+    /** Namespaced so the editor shares an origin with anything else politely. */
+    readonly prefix: string;
+    readonly builtIn: readonly T[];
+    parse(value: unknown): T;
+    serialise(value: T): Record<string, unknown>;
 }
 
 /** The ships that come with the game, by name. */
 export const BUILT_IN: readonly Blueprint[] = Object.values(BLUEPRINTS);
 
 export const SHIPS: LibraryKind<Blueprint> = {
-  prefix: 'scs2d.blueprint.',
-  builtIn: BUILT_IN,
-  parse: parseBlueprint,
-  serialise: serialiseBlueprint,
+    prefix: "scs2d.blueprint.",
+    builtIn: BUILT_IN,
+    parse: parseBlueprint,
+    serialise: serialiseBlueprint,
 };
 
 export const FLEET_FILES: LibraryKind<Fleet> = {
-  prefix: 'scs2d.fleet.',
-  builtIn: Object.values(FLEETS),
-  parse: parseFleet,
-  serialise: serialiseFleet,
+    prefix: "scs2d.fleet.",
+    builtIn: Object.values(FLEETS),
+    parse: parseFleet,
+    serialise: serialiseFleet,
 };
 
 /**
@@ -63,127 +63,127 @@ export const FLEET_FILES: LibraryKind<Fleet> = {
  * `loadStock` are told apart by.
  */
 export interface LibraryEntry {
-  name: string;
-  /** The ship as it ships with the game, rather than the player's copy of it. */
-  stock: boolean;
-  /** Whether a saved copy of this name exists at all, stock entry or not. */
-  saved: boolean;
+    name: string;
+    /** The ship as it ships with the game, rather than the player's copy of it. */
+    stock: boolean;
+    /** Whether a saved copy of this name exists at all, stock entry or not. */
+    saved: boolean;
 }
 
 export class Library<T extends { name: string } = Blueprint> {
-  private readonly kind: LibraryKind<T>;
+    private readonly kind: LibraryKind<T>;
 
-  constructor(
-    private readonly store: KeyValueStore,
-    kind?: LibraryKind<T>,
-  ) {
-    this.kind = kind ?? (SHIPS as unknown as LibraryKind<T>);
-  }
-
-  /**
-   * Everything openable: the shipped ships first, then the saved ones.
-   *
-   * A saved ship named after a shipped one **shadows it for `load` and is
-   * listed beside it**, rather than taking its place. Opening the Corvette
-   * gives the player their Corvette, which is what they mean by the name; the
-   * shipped hull stays reachable because it is the thing a new ship is most
-   * often started from, and reaching it by deleting an afternoon's work is no
-   * way to offer it.
-   */
-  list(): LibraryEntry[] {
-    const saved = this.savedNames();
-    const out: LibraryEntry[] = [];
-    for (const blueprint of this.kind.builtIn) {
-      const shadowed = saved.includes(blueprint.name);
-      // The player's copy first: it is the one the name means.
-      if (shadowed) out.push({ name: blueprint.name, stock: false, saved: true });
-      out.push({ name: blueprint.name, stock: true, saved: shadowed });
+    constructor(
+        private readonly store: KeyValueStore,
+        kind?: LibraryKind<T>,
+    ) {
+        this.kind = kind ?? (SHIPS as unknown as LibraryKind<T>);
     }
-    for (const name of saved) {
-      if (!this.kind.builtIn.some((blueprint) => blueprint.name === name)) {
-        out.push({ name, stock: false, saved: true });
-      }
+
+    /**
+     * Everything openable: the shipped ships first, then the saved ones.
+     *
+     * A saved ship named after a shipped one **shadows it for `load` and is
+     * listed beside it**, rather than taking its place. Opening the Corvette
+     * gives the player their Corvette, which is what they mean by the name; the
+     * shipped hull stays reachable because it is the thing a new ship is most
+     * often started from, and reaching it by deleting an afternoon's work is no
+     * way to offer it.
+     */
+    list(): LibraryEntry[] {
+        const saved = this.savedNames();
+        const out: LibraryEntry[] = [];
+        for (const blueprint of this.kind.builtIn) {
+            const shadowed = saved.includes(blueprint.name);
+            // The player's copy first: it is the one the name means.
+            if (shadowed) out.push({ name: blueprint.name, stock: false, saved: true });
+            out.push({ name: blueprint.name, stock: true, saved: shadowed });
+        }
+        for (const name of saved) {
+            if (!this.kind.builtIn.some((blueprint) => blueprint.name === name)) {
+                out.push({ name, stock: false, saved: true });
+            }
+        }
+        return out;
     }
-    return out;
-  }
 
-  savedNames(): string[] {
-    const names: string[] = [];
-    for (let i = 0; i < this.store.length; i++) {
-      const key = this.store.key(i);
-      if (key !== null && key.startsWith(this.kind.prefix)) names.push(key.slice(this.kind.prefix.length));
+    savedNames(): string[] {
+        const names: string[] = [];
+        for (let i = 0; i < this.store.length; i++) {
+            const key = this.store.key(i);
+            if (key !== null && key.startsWith(this.kind.prefix)) names.push(key.slice(this.kind.prefix.length));
+        }
+        return names.sort();
     }
-    return names.sort();
-  }
 
-  /**
-   * Open a ship by name, or null if there is none.
-   *
-   * A saved layout goes through `parseBlueprint` exactly as a stranger's file
-   * does. Browser storage is not a trusted store — it holds whatever the last
-   * version of the format wrote, and whatever anyone typed into a console —
-   * so a file that cannot be read at all is thrown on rather than guessed at.
-   *
-   * A layout that *reads* but would not fly comes back like any other, faults
-   * and all: the editor is where such a ship is put right, and it names what
-   * is wrong with it in the problems panel.
-   */
-  load(name: string): T | null {
-    const raw = this.store.getItem(this.kind.prefix + name);
-    if (raw !== null) return this.kind.parse(JSON.parse(raw));
-    return this.loadStock(name);
-  }
-
-  /**
-   * The ship as it ships with the game, whatever the player has saved under
-   * that name. Nothing to parse: a shipped ship is already a blueprint.
-   */
-  loadStock(name: string): T | null {
-    return this.kind.builtIn.find((blueprint) => blueprint.name === name) ?? null;
-  }
-
-  save(value: T): void {
-    this.store.setItem(this.kind.prefix + value.name, JSON.stringify(this.kind.serialise(value), null, 2));
-  }
-
-  /**
-   * Save it if it differs from what its name opens, so leaving an editor keeps
-   * the work without shadowing an untouched stock copy. One that would not read
-   * back, an empty fleet say, is left unsaved. Whether it saved.
-   */
-  saveIfChanged(value: T): boolean {
-    const text = JSON.stringify(this.kind.serialise(value));
-    try {
-      this.kind.parse(JSON.parse(text));
-    } catch {
-      return false;
+    /**
+     * Open a ship by name, or null if there is none.
+     *
+     * A saved layout goes through `parseBlueprint` exactly as a stranger's file
+     * does. Browser storage is not a trusted store — it holds whatever the last
+     * version of the format wrote, and whatever anyone typed into a console —
+     * so a file that cannot be read at all is thrown on rather than guessed at.
+     *
+     * A layout that *reads* but would not fly comes back like any other, faults
+     * and all: the editor is where such a ship is put right, and it names what
+     * is wrong with it in the problems panel.
+     */
+    load(name: string): T | null {
+        const raw = this.store.getItem(this.kind.prefix + name);
+        if (raw !== null) return this.kind.parse(JSON.parse(raw));
+        return this.loadStock(name);
     }
-    let kept: string | null = null;
-    try {
-      const current = this.load(value.name);
-      kept = current === null ? null : JSON.stringify(this.kind.serialise(current));
-    } catch {
-      // Unreadable: overwritten by something that reads.
-    }
-    if (kept === text) return false;
-    this.save(value);
-    return true;
-  }
 
-  /** Delete the saved copy. A built-in one of the same name reappears. */
-  remove(name: string): void {
-    this.store.removeItem(this.kind.prefix + name);
-  }
+    /**
+     * The ship as it ships with the game, whatever the player has saved under
+     * that name. Nothing to parse: a shipped ship is already a blueprint.
+     */
+    loadStock(name: string): T | null {
+        return this.kind.builtIn.find((blueprint) => blueprint.name === name) ?? null;
+    }
+
+    save(value: T): void {
+        this.store.setItem(this.kind.prefix + value.name, JSON.stringify(this.kind.serialise(value), null, 2));
+    }
+
+    /**
+     * Save it if it differs from what its name opens, so leaving an editor keeps
+     * the work without shadowing an untouched stock copy. One that would not read
+     * back, an empty fleet say, is left unsaved. Whether it saved.
+     */
+    saveIfChanged(value: T): boolean {
+        const text = JSON.stringify(this.kind.serialise(value));
+        try {
+            this.kind.parse(JSON.parse(text));
+        } catch {
+            return false;
+        }
+        let kept: string | null = null;
+        try {
+            const current = this.load(value.name);
+            kept = current === null ? null : JSON.stringify(this.kind.serialise(current));
+        } catch {
+            // Unreadable: overwritten by something that reads.
+        }
+        if (kept === text) return false;
+        this.save(value);
+        return true;
+    }
+
+    /** Delete the saved copy. A built-in one of the same name reappears. */
+    remove(name: string): void {
+        this.store.removeItem(this.kind.prefix + name);
+    }
 }
 
 /** A blueprint as the text an export writes and an import reads. */
 export function toFileText(blueprint: Blueprint): string {
-  return `${JSON.stringify(serialiseBlueprint(blueprint), null, 2)}\n`;
+    return `${JSON.stringify(serialiseBlueprint(blueprint), null, 2)}\n`;
 }
 
 /** A blank ship. No seed module: the first choice is what the ship is built around. */
 export function emptyBlueprint(name: string): Blueprint {
-  return { name, modules: [] };
+    return { name, modules: [] };
 }
 
 /**
@@ -194,14 +194,14 @@ export function emptyBlueprint(name: string): Blueprint {
  * duplicating repeatedly counts rather than stacking suffixes.
  */
 export function nextName(name: string): string {
-  const numbered = /^(.*?)(\d+)$/.exec(name.trim());
-  if (numbered === null) return `${name.trim()} 2`;
-  return `${numbered[1]}${Number(numbered[2]) + 1}`;
+    const numbered = /^(.*?)(\d+)$/.exec(name.trim());
+    if (numbered === null) return `${name.trim()} 2`;
+    return `${numbered[1]}${Number(numbered[2]) + 1}`;
 }
 
 /** `wanted` if it is free, else the next name in its series that is. */
 export function unusedName(wanted: string, taken: readonly string[]): string {
-  let name = wanted;
-  while (taken.includes(name)) name = nextName(name);
-  return name;
+    let name = wanted;
+    while (taken.includes(name)) name = nextName(name);
+    return name;
 }

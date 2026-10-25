@@ -1,35 +1,35 @@
-import { PI } from '../sim/math.js';
-import { MODULE_KINDS } from '../sim/modules.js';
-import { DEFAULT_MATCH, SCORE_PARTS, type GoalSpec, type MatchConfig, type ScoreWeights } from './match.js';
+import { PI } from "../sim/math.js";
+import { MODULE_KINDS } from "../sim/modules.js";
+import { DEFAULT_MATCH, SCORE_PARTS, type GoalSpec, type MatchConfig, type ScoreWeights } from "./match.js";
 import {
-  DEFAULT_BUILD_WEIGHTS,
-  DEFAULT_DOCTRINE_WEIGHTS,
-  DEFAULT_KINDS,
-  DEFAULT_LIMITS,
-  doctrineWeights,
-  type BuildWeights,
-  type DoctrineWeights,
-  type KindWeights,
-} from './mutate.js';
-import { DEFAULT_RUN, type RunConfig } from './run.js';
-import { DEFAULT_FLEET_LIMITS, type FleetOperator } from './fleetMutate.js';
-import { DEFAULT_COEVOLUTION, type CoevolutionConfig, type SideSettings } from './coevolution.js';
-import { NO_BUDGET, type Budget } from '../sim/bill.js';
+    DEFAULT_BUILD_WEIGHTS,
+    DEFAULT_DOCTRINE_WEIGHTS,
+    DEFAULT_KINDS,
+    DEFAULT_LIMITS,
+    doctrineWeights,
+    type BuildWeights,
+    type DoctrineWeights,
+    type KindWeights,
+} from "./mutate.js";
+import { DEFAULT_RUN, type RunConfig } from "./run.js";
+import { DEFAULT_FLEET_LIMITS, type FleetOperator } from "./fleetMutate.js";
+import { DEFAULT_COEVOLUTION, type CoevolutionConfig, type SideSettings } from "./coevolution.js";
+import { NO_BUDGET, type Budget } from "../sim/bill.js";
 import {
-  blueprintFileProblem,
-  blueprintWarnings,
-  fleetFileProblem,
-  fleetWarnings,
-  parseBlueprint,
-  parseFleet,
-  serialiseBlueprint,
-  serialiseFleet,
-  type Blueprint,
-  type Fleet,
-  mapProblem,
-  writeMap,
-  type MapSettings,
-} from '../sim/index.js';
+    blueprintFileProblem,
+    blueprintWarnings,
+    fleetFileProblem,
+    fleetWarnings,
+    parseBlueprint,
+    parseFleet,
+    serialiseBlueprint,
+    serialiseFleet,
+    type Blueprint,
+    type Fleet,
+    mapProblem,
+    writeMap,
+    type MapSettings,
+} from "../sim/index.js";
 
 /**
  * The run-config file: what a set of evolution settings looks like written
@@ -69,14 +69,14 @@ export const RUN_CONFIG_FORMAT_VERSION = 1;
 
 /** A run's settings, and the ships and fleets it starts from. */
 export interface RunSetup {
-  /** What the settings are for, which an exported file is named after. */
-  readonly name?: string;
-  readonly founders: readonly Blueprint[];
-  /** Fleets among the founders, which make it a run of fleets. */
-  readonly fleets?: readonly Fleet[];
-  /** Side B of a co-evolution run, or null for a run of one. */
-  readonly versus?: VersusSetup | null;
-  readonly config: RunConfig;
+    /** What the settings are for, which an exported file is named after. */
+    readonly name?: string;
+    readonly founders: readonly Blueprint[];
+    /** Fleets among the founders, which make it a run of fleets. */
+    readonly fleets?: readonly Fleet[];
+    /** Side B of a co-evolution run, or null for a run of one. */
+    readonly versus?: VersusSetup | null;
+    readonly config: RunConfig;
 }
 
 /**
@@ -85,153 +85,153 @@ export interface RunSetup {
  * weights are side A's.
  */
 export interface VersusSetup {
-  readonly founders: readonly Blueprint[];
-  readonly fleets: readonly Fleet[];
-  readonly coevolution: CoevolutionConfig;
+    readonly founders: readonly Blueprint[];
+    readonly fleets: readonly Fleet[];
+    readonly coevolution: CoevolutionConfig;
 }
 
 const FILE_KEYS: readonly string[] = [
-  'formatVersion',
-  'name',
-  'founders',
-  'seed',
-  'generations',
-  'population',
-  'winners',
-  'group',
-  'minMatches',
-  'budget',
-  'massBudget',
-  'structural',
-  'geometry',
-  'thrusters',
-  'kinds',
-  'build',
-  'doctrine',
-  'match',
-  'fleets',
-  'fleet',
-  'versus',
+    "formatVersion",
+    "name",
+    "founders",
+    "seed",
+    "generations",
+    "population",
+    "winners",
+    "group",
+    "minMatches",
+    "budget",
+    "massBudget",
+    "structural",
+    "geometry",
+    "thrusters",
+    "kinds",
+    "build",
+    "doctrine",
+    "match",
+    "fleets",
+    "fleet",
+    "versus",
 ];
 
 const VERSUS_KEYS: readonly string[] = [
-  'founders',
-  'fleets',
-  'hall',
-  'phaseWin',
-  'phaseCap',
-  'shieldedDrills',
-  'bareCoreDrills',
-  'population',
-  'winners',
-  'group',
-  'budget',
-  'massBudget',
-  'fleet',
-  'structural',
-  'geometry',
-  'thrusters',
-  'kinds',
-  'build',
-  'doctrine',
-  'evolves',
+    "founders",
+    "fleets",
+    "hall",
+    "phaseWin",
+    "phaseCap",
+    "shieldedDrills",
+    "bareCoreDrills",
+    "population",
+    "winners",
+    "group",
+    "budget",
+    "massBudget",
+    "fleet",
+    "structural",
+    "geometry",
+    "thrusters",
+    "kinds",
+    "build",
+    "doctrine",
+    "evolves",
 ];
 
-const FLEET_KEYS: readonly string[] = ['radius', 'maxShips', 'design', 'move', 'change', 'operators'];
-const BUDGET_KEYS = ['metal', 'fuel', 'build'] as const;
+const FLEET_KEYS: readonly string[] = ["radius", "maxShips", "design", "move", "change", "operators"];
+const BUDGET_KEYS = ["metal", "fuel", "build"] as const;
 const OPERATOR_KEYS = Object.keys(DEFAULT_FLEET_LIMITS.operators) as FleetOperator[];
 
 const MATCH_KEYS: readonly string[] = [
-  'duration',
-  'radius',
-  'scatter',
-  'closingSpeed',
-  'crossingSpeed',
-  'radiusSpread',
-  'closingSpread',
-  'crossingSpread',
-  'quietLimit',
-  'map',
-  'goal',
-  'weights',
+    "duration",
+    "radius",
+    "scatter",
+    "closingSpeed",
+    "crossingSpeed",
+    "radiusSpread",
+    "closingSpread",
+    "crossingSpread",
+    "quietLimit",
+    "map",
+    "goal",
+    "weights",
 ];
-const GOAL_KEYS: readonly string[] = ['x', 'y', 'scale', 'size'];
-const GOAL_OPTIONAL_KEYS: readonly string[] = ['solid'];
+const GOAL_KEYS: readonly string[] = ["x", "y", "scale", "size"];
+const GOAL_OPTIONAL_KEYS: readonly string[] = ["solid"];
 const WEIGHT_KEYS: readonly (keyof ScoreWeights)[] = SCORE_PARTS;
 
 /** The settings a run is given, as the object a file holds. */
 export function serialiseRunConfig(setup: RunSetup): Record<string, unknown> {
-  const config = setup.config;
-  const match: MatchConfig = { ...DEFAULT_MATCH, ...config.match };
-  const kinds: KindWeights = { ...DEFAULT_KINDS, ...config.mutation.kinds };
-  return {
-    formatVersion: RUN_CONFIG_FORMAT_VERSION,
-    ...(setup.name ? { name: setup.name } : {}),
-    founders: setup.founders.map(serialiseBlueprint),
-    seed: config.seed,
-    generations: config.generations,
-    population: config.population,
-    winners: config.winners,
-    group: config.group,
-    minMatches: config.minMatches,
-    budget: serialiseBudget(config.budget),
-    structural: config.mutation.structural ?? DEFAULT_LIMITS.structural,
-    geometry: config.mutation.geometry ?? DEFAULT_LIMITS.geometry,
-    thrusters: config.mutation.thrusters ?? DEFAULT_LIMITS.thrusters,
-    kinds: { ...kinds },
-    build: { ...DEFAULT_BUILD_WEIGHTS, ...config.mutation.build },
-    doctrine: doctrineWeights(config.mutation.doctrine),
-    ...((setup.fleets ?? []).length > 0 ? { fleets: setup.fleets!.map(serialiseFleet) } : {}),
-    fleet: {
-      radius: config.fleet.radius ?? DEFAULT_FLEET_LIMITS.radius,
-      maxShips: config.fleet.maxShips ?? DEFAULT_FLEET_LIMITS.maxShips,
-      design: config.fleet.design ?? DEFAULT_FLEET_LIMITS.design,
-      move: config.fleet.move ?? DEFAULT_FLEET_LIMITS.move,
-      change: config.fleet.change ?? DEFAULT_FLEET_LIMITS.change,
-      operators: { ...DEFAULT_FLEET_LIMITS.operators, ...config.fleet.operators },
-    },
-    match: {
-      duration: match.duration,
-      radius: match.radius,
-      scatter: (match.scatter * 180) / PI,
-      closingSpeed: match.closingSpeed,
-      crossingSpeed: match.crossingSpeed,
-      // Only where set, so a file that varies nothing reads as it always did.
-      ...(match.radiusSpread > 0 ? { radiusSpread: match.radiusSpread } : {}),
-      ...(match.closingSpread > 0 ? { closingSpread: match.closingSpread } : {}),
-      ...(match.crossingSpread > 0 ? { crossingSpread: match.crossingSpread } : {}),
-      ...(match.quietLimit > 0 ? { quietLimit: match.quietLimit } : {}),
-      ...(match.map !== undefined && writeMap(match.map) !== undefined ? { map: writeMap(match.map) } : {}),
-      goal: match.goal === null ? null : { ...match.goal },
-      weights: { ...match.weights },
-    },
-    ...(setup.versus == null ? {} : { versus: serialiseVersus(setup.versus) }),
-  };
+    const config = setup.config;
+    const match: MatchConfig = { ...DEFAULT_MATCH, ...config.match };
+    const kinds: KindWeights = { ...DEFAULT_KINDS, ...config.mutation.kinds };
+    return {
+        formatVersion: RUN_CONFIG_FORMAT_VERSION,
+        ...(setup.name ? { name: setup.name } : {}),
+        founders: setup.founders.map(serialiseBlueprint),
+        seed: config.seed,
+        generations: config.generations,
+        population: config.population,
+        winners: config.winners,
+        group: config.group,
+        minMatches: config.minMatches,
+        budget: serialiseBudget(config.budget),
+        structural: config.mutation.structural ?? DEFAULT_LIMITS.structural,
+        geometry: config.mutation.geometry ?? DEFAULT_LIMITS.geometry,
+        thrusters: config.mutation.thrusters ?? DEFAULT_LIMITS.thrusters,
+        kinds: { ...kinds },
+        build: { ...DEFAULT_BUILD_WEIGHTS, ...config.mutation.build },
+        doctrine: doctrineWeights(config.mutation.doctrine),
+        ...((setup.fleets ?? []).length > 0 ? { fleets: setup.fleets!.map(serialiseFleet) } : {}),
+        fleet: {
+            radius: config.fleet.radius ?? DEFAULT_FLEET_LIMITS.radius,
+            maxShips: config.fleet.maxShips ?? DEFAULT_FLEET_LIMITS.maxShips,
+            design: config.fleet.design ?? DEFAULT_FLEET_LIMITS.design,
+            move: config.fleet.move ?? DEFAULT_FLEET_LIMITS.move,
+            change: config.fleet.change ?? DEFAULT_FLEET_LIMITS.change,
+            operators: { ...DEFAULT_FLEET_LIMITS.operators, ...config.fleet.operators },
+        },
+        match: {
+            duration: match.duration,
+            radius: match.radius,
+            scatter: (match.scatter * 180) / PI,
+            closingSpeed: match.closingSpeed,
+            crossingSpeed: match.crossingSpeed,
+            // Only where set, so a file that varies nothing reads as it always did.
+            ...(match.radiusSpread > 0 ? { radiusSpread: match.radiusSpread } : {}),
+            ...(match.closingSpread > 0 ? { closingSpread: match.closingSpread } : {}),
+            ...(match.crossingSpread > 0 ? { crossingSpread: match.crossingSpread } : {}),
+            ...(match.quietLimit > 0 ? { quietLimit: match.quietLimit } : {}),
+            ...(match.map !== undefined && writeMap(match.map) !== undefined ? { map: writeMap(match.map) } : {}),
+            goal: match.goal === null ? null : { ...match.goal },
+            weights: { ...match.weights },
+        },
+        ...(setup.versus == null ? {} : { versus: serialiseVersus(setup.versus) }),
+    };
 }
 
 function serialiseVersus(versus: VersusSetup): Record<string, unknown> {
-  const { hall, phaseWin, phaseCap, shieldedDrills, bareCoreDrills, rival, rivalEvolves } = versus.coevolution;
-  return {
-    founders: versus.founders.map(serialiseBlueprint),
-    ...(versus.fleets.length > 0 ? { fleets: versus.fleets.map(serialiseFleet) } : {}),
-    ...(rivalEvolves ? {} : { evolves: false }),
-    hall,
-    phaseWin,
-    phaseCap,
-    shieldedDrills,
-    bareCoreDrills,
-    ...(rival.population === undefined ? {} : { population: rival.population }),
-    ...(rival.winners === undefined ? {} : { winners: rival.winners }),
-    ...(rival.group === undefined ? {} : { group: rival.group }),
-    ...(rival.budget === undefined ? {} : { budget: serialiseBudget(rival.budget) }),
-    ...(rival.fleet === undefined ? {} : { fleet: { ...rival.fleet } }),
-    ...(rival.mutation?.structural === undefined ? {} : { structural: rival.mutation.structural }),
-    ...(rival.mutation?.geometry === undefined ? {} : { geometry: rival.mutation.geometry }),
-    ...(rival.mutation?.thrusters === undefined ? {} : { thrusters: rival.mutation.thrusters }),
-    ...(rival.mutation?.kinds === undefined ? {} : { kinds: { ...rival.mutation.kinds } }),
-    ...(rival.mutation?.build === undefined ? {} : { build: { ...rival.mutation.build } }),
-    ...(rival.mutation?.doctrine === undefined ? {} : { doctrine: { ...rival.mutation.doctrine } }),
-  };
+    const { hall, phaseWin, phaseCap, shieldedDrills, bareCoreDrills, rival, rivalEvolves } = versus.coevolution;
+    return {
+        founders: versus.founders.map(serialiseBlueprint),
+        ...(versus.fleets.length > 0 ? { fleets: versus.fleets.map(serialiseFleet) } : {}),
+        ...(rivalEvolves ? {} : { evolves: false }),
+        hall,
+        phaseWin,
+        phaseCap,
+        shieldedDrills,
+        bareCoreDrills,
+        ...(rival.population === undefined ? {} : { population: rival.population }),
+        ...(rival.winners === undefined ? {} : { winners: rival.winners }),
+        ...(rival.group === undefined ? {} : { group: rival.group }),
+        ...(rival.budget === undefined ? {} : { budget: serialiseBudget(rival.budget) }),
+        ...(rival.fleet === undefined ? {} : { fleet: { ...rival.fleet } }),
+        ...(rival.mutation?.structural === undefined ? {} : { structural: rival.mutation.structural }),
+        ...(rival.mutation?.geometry === undefined ? {} : { geometry: rival.mutation.geometry }),
+        ...(rival.mutation?.thrusters === undefined ? {} : { thrusters: rival.mutation.thrusters }),
+        ...(rival.mutation?.kinds === undefined ? {} : { kinds: { ...rival.mutation.kinds } }),
+        ...(rival.mutation?.build === undefined ? {} : { build: { ...rival.mutation.build } }),
+        ...(rival.mutation?.doctrine === undefined ? {} : { doctrine: { ...rival.mutation.doctrine } }),
+    };
 }
 
 /**
@@ -241,141 +241,141 @@ function serialiseVersus(versus: VersusSetup): Record<string, unknown> {
  * `warnings`, if given, and is otherwise ignored (`runConfigWarnings`).
  */
 export function runConfigFileProblem(value: unknown, warnings: string[] = []): string | null {
-  if (!isRecord(value)) return 'a run config must be an object';
-  unknownKeys(value, FILE_KEYS, 'the file', warnings);
+    if (!isRecord(value)) return "a run config must be an object";
+    unknownKeys(value, FILE_KEYS, "the file", warnings);
 
-  const version = value['formatVersion'];
-  if (version !== undefined && version !== RUN_CONFIG_FORMAT_VERSION) {
-    return `formatVersion must be ${RUN_CONFIG_FORMAT_VERSION}, got ${JSON.stringify(version)}`;
-  }
+    const version = value["formatVersion"];
+    if (version !== undefined && version !== RUN_CONFIG_FORMAT_VERSION) {
+        return `formatVersion must be ${RUN_CONFIG_FORMAT_VERSION}, got ${JSON.stringify(version)}`;
+    }
 
-  if (value['name'] !== undefined && typeof value['name'] !== 'string') return 'name must be text';
-  const designsBad = shipsProblem(value['founders'], 'founders', warnings) ?? fleetsProblem(value['fleets'], 'fleets', warnings);
-  if (designsBad !== null) return designsBad;
-  const fleetBad = fleetProblem(value['fleet'], 'fleet', warnings);
-  if (fleetBad !== null) return fleetBad;
-  const versusBad = versusProblem(value['versus'], warnings);
-  if (versusBad !== null) return versusBad;
+    if (value["name"] !== undefined && typeof value["name"] !== "string") return "name must be text";
+    const designsBad = shipsProblem(value["founders"], "founders", warnings) ?? fleetsProblem(value["fleets"], "fleets", warnings);
+    if (designsBad !== null) return designsBad;
+    const fleetBad = fleetProblem(value["fleet"], "fleet", warnings);
+    if (fleetBad !== null) return fleetBad;
+    const versusBad = versusProblem(value["versus"], warnings);
+    if (versusBad !== null) return versusBad;
 
-  return (
-    countProblem(value['generations'], 'generations') ??
-    countProblem(value['population'], 'population') ??
-    countProblem(value['winners'], 'winners') ??
-    countProblem(value['group'], 'group') ??
-    countProblem(value['minMatches'], 'minMatches') ??
-    numberProblem(value['seed'], 'seed') ??
-    budgetProblem(value['budget'], 'budget', warnings) ??
-    limitProblem(value['massBudget'], 'massBudget') ??
-    chanceProblem(value['structural'], 'structural') ??
-    chanceProblem(value['geometry'], 'geometry') ??
-    chanceProblem(value['thrusters'], 'thrusters') ??
-    kindsProblem(value['kinds'], warnings) ??
-    weightsOf(value['build'], 'build', BUILD_KEYS, warnings) ??
-    weightsOf(value['doctrine'], 'doctrine', DOCTRINE_KEYS, warnings) ??
-    matchProblem(value['match'], warnings)
-  );
+    return (
+        countProblem(value["generations"], "generations") ??
+        countProblem(value["population"], "population") ??
+        countProblem(value["winners"], "winners") ??
+        countProblem(value["group"], "group") ??
+        countProblem(value["minMatches"], "minMatches") ??
+        numberProblem(value["seed"], "seed") ??
+        budgetProblem(value["budget"], "budget", warnings) ??
+        limitProblem(value["massBudget"], "massBudget") ??
+        chanceProblem(value["structural"], "structural") ??
+        chanceProblem(value["geometry"], "geometry") ??
+        chanceProblem(value["thrusters"], "thrusters") ??
+        kindsProblem(value["kinds"], warnings) ??
+        weightsOf(value["build"], "build", BUILD_KEYS, warnings) ??
+        weightsOf(value["doctrine"], "doctrine", DOCTRINE_KEYS, warnings) ??
+        matchProblem(value["match"], warnings)
+    );
 }
 
 function fleetProblem(fleet: unknown, where: string, warnings: string[]): string | null {
-  if (fleet === undefined) return null;
-  if (!isRecord(fleet)) return `${where} must be an object`;
-  unknownKeys(fleet, FLEET_KEYS, where, warnings);
-  const problem =
-    numberProblem(fleet['radius'], `${where}.radius`) ??
-    countProblem(fleet['maxShips'], `${where}.maxShips`) ??
-    chanceProblem(fleet['design'], `${where}.design`) ??
-    chanceProblem(fleet['change'], `${where}.change`) ??
-    numberProblem(fleet['move'], `${where}.move`);
-  if (problem !== null) return problem;
-  if (fleet['radius'] !== undefined && (fleet['radius'] as number) <= 0) return `${where}.radius must be more than nothing`;
-  if (fleet['move'] !== undefined && (fleet['move'] as number) < 0) return `${where}.move must be zero or more`;
-  const operators = fleet['operators'];
-  if (operators !== undefined) {
-    if (!isRecord(operators)) return `${where}.operators must be an object of weights, one per change`;
-    unknownKeys(operators, OPERATOR_KEYS, `${where}.operators`, warnings);
-    for (const key of OPERATOR_KEYS) {
-      const weight = operators[key];
-      const bad = numberProblem(weight, `${where}.operators.${key}`);
-      if (bad !== null) return bad;
-      if (weight !== undefined && (weight as number) < 0) return `${where}.operators.${key} must be zero or more`;
+    if (fleet === undefined) return null;
+    if (!isRecord(fleet)) return `${where} must be an object`;
+    unknownKeys(fleet, FLEET_KEYS, where, warnings);
+    const problem =
+        numberProblem(fleet["radius"], `${where}.radius`) ??
+        countProblem(fleet["maxShips"], `${where}.maxShips`) ??
+        chanceProblem(fleet["design"], `${where}.design`) ??
+        chanceProblem(fleet["change"], `${where}.change`) ??
+        numberProblem(fleet["move"], `${where}.move`);
+    if (problem !== null) return problem;
+    if (fleet["radius"] !== undefined && (fleet["radius"] as number) <= 0) return `${where}.radius must be more than nothing`;
+    if (fleet["move"] !== undefined && (fleet["move"] as number) < 0) return `${where}.move must be zero or more`;
+    const operators = fleet["operators"];
+    if (operators !== undefined) {
+        if (!isRecord(operators)) return `${where}.operators must be an object of weights, one per change`;
+        unknownKeys(operators, OPERATOR_KEYS, `${where}.operators`, warnings);
+        for (const key of OPERATOR_KEYS) {
+            const weight = operators[key];
+            const bad = numberProblem(weight, `${where}.operators.${key}`);
+            if (bad !== null) return bad;
+            if (weight !== undefined && (weight as number) < 0) return `${where}.operators.${key} must be zero or more`;
+        }
     }
-  }
-  return null;
+    return null;
 }
 
 /** A list of blueprint files, each said by its place and name when something is wrong with it. */
 function shipsProblem(value: unknown, what: string, warnings: string[]): string | null {
-  if (value === undefined) return null;
-  if (!Array.isArray(value)) return `${what} must be a list of blueprints`;
-  for (const [i, ship] of value.entries()) {
-    const where = `${what}[${i}]${nameOf(ship)}`;
-    const problem = blueprintFileProblem(ship);
-    if (problem !== null) return `${where}: ${problem}`;
-    for (const warning of blueprintWarnings(parseBlueprint(ship))) warnings.push(`${where}: ${warning}`);
-  }
-  return null;
+    if (value === undefined) return null;
+    if (!Array.isArray(value)) return `${what} must be a list of blueprints`;
+    for (const [i, ship] of value.entries()) {
+        const where = `${what}[${i}]${nameOf(ship)}`;
+        const problem = blueprintFileProblem(ship);
+        if (problem !== null) return `${where}: ${problem}`;
+        for (const warning of blueprintWarnings(parseBlueprint(ship))) warnings.push(`${where}: ${warning}`);
+    }
+    return null;
 }
 
 /** A list of fleet files, as `shipsProblem`. */
 function fleetsProblem(value: unknown, what: string, warnings: string[]): string | null {
-  if (value === undefined) return null;
-  if (!Array.isArray(value)) return `${what} must be a list of fleets`;
-  for (const [i, fleet] of value.entries()) {
-    const where = `${what}[${i}]${nameOf(fleet)}`;
-    const problem = fleetFileProblem(fleet);
-    if (problem !== null) return `${where}: ${problem}`;
-    for (const warning of fleetWarnings(parseFleet(fleet))) warnings.push(`${where}: ${warning}`);
-  }
-  return null;
+    if (value === undefined) return null;
+    if (!Array.isArray(value)) return `${what} must be a list of fleets`;
+    for (const [i, fleet] of value.entries()) {
+        const where = `${what}[${i}]${nameOf(fleet)}`;
+        const problem = fleetFileProblem(fleet);
+        if (problem !== null) return `${where}: ${problem}`;
+        for (const warning of fleetWarnings(parseFleet(fleet))) warnings.push(`${where}: ${warning}`);
+    }
+    return null;
 }
 
 function nameOf(value: unknown): string {
-  return isRecord(value) && typeof value['name'] === 'string' ? ` (${value['name']})` : '';
+    return isRecord(value) && typeof value["name"] === "string" ? ` (${value["name"]})` : "";
 }
 
 function versusProblem(versus: unknown, warnings: string[]): string | null {
-  if (versus === undefined || versus === null) return null;
-  if (!isRecord(versus)) return "versus must be an object: side B's founders, and what it sets apart";
-  unknownKeys(versus, VERSUS_KEYS, 'versus', warnings);
-  const problem =
-    shipsProblem(versus['founders'], 'versus.founders', warnings) ??
-    fleetsProblem(versus['fleets'], 'versus.fleets', warnings) ??
-    numberProblem(versus['hall'], 'versus.hall') ??
-    chanceProblem(versus['phaseWin'], 'versus.phaseWin') ??
-    countProblem(versus['phaseCap'], 'versus.phaseCap') ??
-    wholeProblem(versus['shieldedDrills'], 'versus.shieldedDrills') ??
-    wholeProblem(versus['bareCoreDrills'], 'versus.bareCoreDrills') ??
-    countProblem(versus['population'], 'versus.population') ??
-    countProblem(versus['winners'], 'versus.winners') ??
-    countProblem(versus['group'], 'versus.group') ??
-    budgetProblem(versus['budget'], 'versus.budget', warnings) ??
-    limitProblem(versus['massBudget'], 'versus.massBudget') ??
-    fleetProblem(versus['fleet'], 'versus.fleet', warnings) ??
-    chanceProblem(versus['structural'], 'versus.structural') ??
-    chanceProblem(versus['geometry'], 'versus.geometry') ??
-    chanceProblem(versus['thrusters'], 'versus.thrusters') ??
-    kindsProblem(versus['kinds'], warnings, 'versus.kinds') ??
-    weightsOf(versus['build'], 'versus.build', BUILD_KEYS, warnings) ??
-    weightsOf(versus['doctrine'], 'versus.doctrine', DOCTRINE_KEYS, warnings);
-  if (problem !== null) return problem;
-  const hall = versus['hall'];
-  if (hall !== undefined && (!Number.isInteger(hall) || (hall as number) < 0)) {
-    return `versus.hall must be a whole number of champions, none or more, got ${JSON.stringify(hall)}`;
-  }
-  const founders = ((versus['founders'] as unknown[] | undefined) ?? []).length;
-  const fleets = ((versus['fleets'] as unknown[] | undefined) ?? []).length;
-  if (founders + fleets === 0) return 'versus needs at least one founder or fleet for side B';
-  if (versus['evolves'] !== undefined && typeof versus['evolves'] !== 'boolean') {
-    return `versus.evolves must be true or false, got ${JSON.stringify(versus['evolves'])}`;
-  }
-  return null;
+    if (versus === undefined || versus === null) return null;
+    if (!isRecord(versus)) return "versus must be an object: side B's founders, and what it sets apart";
+    unknownKeys(versus, VERSUS_KEYS, "versus", warnings);
+    const problem =
+        shipsProblem(versus["founders"], "versus.founders", warnings) ??
+        fleetsProblem(versus["fleets"], "versus.fleets", warnings) ??
+        numberProblem(versus["hall"], "versus.hall") ??
+        chanceProblem(versus["phaseWin"], "versus.phaseWin") ??
+        countProblem(versus["phaseCap"], "versus.phaseCap") ??
+        wholeProblem(versus["shieldedDrills"], "versus.shieldedDrills") ??
+        wholeProblem(versus["bareCoreDrills"], "versus.bareCoreDrills") ??
+        countProblem(versus["population"], "versus.population") ??
+        countProblem(versus["winners"], "versus.winners") ??
+        countProblem(versus["group"], "versus.group") ??
+        budgetProblem(versus["budget"], "versus.budget", warnings) ??
+        limitProblem(versus["massBudget"], "versus.massBudget") ??
+        fleetProblem(versus["fleet"], "versus.fleet", warnings) ??
+        chanceProblem(versus["structural"], "versus.structural") ??
+        chanceProblem(versus["geometry"], "versus.geometry") ??
+        chanceProblem(versus["thrusters"], "versus.thrusters") ??
+        kindsProblem(versus["kinds"], warnings, "versus.kinds") ??
+        weightsOf(versus["build"], "versus.build", BUILD_KEYS, warnings) ??
+        weightsOf(versus["doctrine"], "versus.doctrine", DOCTRINE_KEYS, warnings);
+    if (problem !== null) return problem;
+    const hall = versus["hall"];
+    if (hall !== undefined && (!Number.isInteger(hall) || (hall as number) < 0)) {
+        return `versus.hall must be a whole number of champions, none or more, got ${JSON.stringify(hall)}`;
+    }
+    const founders = ((versus["founders"] as unknown[] | undefined) ?? []).length;
+    const fleets = ((versus["fleets"] as unknown[] | undefined) ?? []).length;
+    if (founders + fleets === 0) return "versus needs at least one founder or fleet for side B";
+    if (versus["evolves"] !== undefined && typeof versus["evolves"] !== "boolean") {
+        return `versus.evolves must be true or false, got ${JSON.stringify(versus["evolves"])}`;
+    }
+    return null;
 }
 
 /** The keys a run-config file carries that nothing reads, one warning per place. */
 export function runConfigWarnings(value: unknown): string[] {
-  const warnings: string[] = [];
-  runConfigFileProblem(value, warnings);
-  return warnings;
+    const warnings: string[] = [];
+    runConfigFileProblem(value, warnings);
+    return warnings;
 }
 
 /**
@@ -386,272 +386,272 @@ export function runConfigWarnings(value: unknown): string[] {
  * `runConfigFileProblem`, and it says what is wrong in a sentence.
  */
 export function parseRunConfig(value: unknown): RunSetup {
-  const problem = runConfigFileProblem(value);
-  if (problem !== null) throw new Error(`Invalid run config — ${problem}`);
-  const file = value as Record<string, unknown>;
-  const match = isRecord(file['match']) ? file['match'] : {};
+    const problem = runConfigFileProblem(value);
+    if (problem !== null) throw new Error(`Invalid run config — ${problem}`);
+    const file = value as Record<string, unknown>;
+    const match = isRecord(file["match"]) ? file["match"] : {};
 
-  const fleet = isRecord(file['fleet']) ? file['fleet'] : {};
-  return {
-    ...(typeof file['name'] === 'string' && file['name'] !== '' ? { name: file['name'] } : {}),
-    founders: ((file['founders'] as unknown[] | undefined) ?? []).map(parseBlueprint),
-    fleets: ((file['fleets'] as unknown[] | undefined) ?? []).map(parseFleet),
-    versus: isRecord(file['versus']) ? parseVersus(file['versus']) : null,
-    config: {
-      seed: read(file['seed'], DEFAULT_RUN.seed),
-      generations: read(file['generations'], DEFAULT_RUN.generations),
-      population: read(file['population'], DEFAULT_RUN.population),
-      winners: read(file['winners'], DEFAULT_RUN.winners),
-      group: read(file['group'], DEFAULT_RUN.group),
-      minMatches: read(file['minMatches'], DEFAULT_RUN.minMatches),
-      budget: readBudget(file['budget'], file['massBudget']) ?? NO_BUDGET,
-      mutation: {
-        structural: read(file['structural'], DEFAULT_LIMITS.structural),
-        geometry: read(file['geometry'], DEFAULT_LIMITS.geometry),
-        thrusters: read(file['thrusters'], DEFAULT_LIMITS.thrusters),
-        kinds: { ...DEFAULT_KINDS, ...(file['kinds'] as Partial<KindWeights>) },
-        build: { ...DEFAULT_BUILD_WEIGHTS, ...(file['build'] as Partial<BuildWeights>) },
-        doctrine: doctrineWeights(isRecord(file['doctrine']) ? (file['doctrine'] as Partial<DoctrineWeights>) : {}),
-      },
-      fleet: {
-        radius: read(fleet['radius'], DEFAULT_FLEET_LIMITS.radius),
-        maxShips: read(fleet['maxShips'], DEFAULT_FLEET_LIMITS.maxShips),
-        design: read(fleet['design'], DEFAULT_FLEET_LIMITS.design),
-        move: read(fleet['move'], DEFAULT_FLEET_LIMITS.move),
-        change: read(fleet['change'], DEFAULT_FLEET_LIMITS.change),
-        operators: {
-          ...DEFAULT_FLEET_LIMITS.operators,
-          ...(isRecord(fleet['operators']) ? (fleet['operators'] as Partial<Record<FleetOperator, number>>) : {}),
+    const fleet = isRecord(file["fleet"]) ? file["fleet"] : {};
+    return {
+        ...(typeof file["name"] === "string" && file["name"] !== "" ? { name: file["name"] } : {}),
+        founders: ((file["founders"] as unknown[] | undefined) ?? []).map(parseBlueprint),
+        fleets: ((file["fleets"] as unknown[] | undefined) ?? []).map(parseFleet),
+        versus: isRecord(file["versus"]) ? parseVersus(file["versus"]) : null,
+        config: {
+            seed: read(file["seed"], DEFAULT_RUN.seed),
+            generations: read(file["generations"], DEFAULT_RUN.generations),
+            population: read(file["population"], DEFAULT_RUN.population),
+            winners: read(file["winners"], DEFAULT_RUN.winners),
+            group: read(file["group"], DEFAULT_RUN.group),
+            minMatches: read(file["minMatches"], DEFAULT_RUN.minMatches),
+            budget: readBudget(file["budget"], file["massBudget"]) ?? NO_BUDGET,
+            mutation: {
+                structural: read(file["structural"], DEFAULT_LIMITS.structural),
+                geometry: read(file["geometry"], DEFAULT_LIMITS.geometry),
+                thrusters: read(file["thrusters"], DEFAULT_LIMITS.thrusters),
+                kinds: { ...DEFAULT_KINDS, ...(file["kinds"] as Partial<KindWeights>) },
+                build: { ...DEFAULT_BUILD_WEIGHTS, ...(file["build"] as Partial<BuildWeights>) },
+                doctrine: doctrineWeights(isRecord(file["doctrine"]) ? (file["doctrine"] as Partial<DoctrineWeights>) : {}),
+            },
+            fleet: {
+                radius: read(fleet["radius"], DEFAULT_FLEET_LIMITS.radius),
+                maxShips: read(fleet["maxShips"], DEFAULT_FLEET_LIMITS.maxShips),
+                design: read(fleet["design"], DEFAULT_FLEET_LIMITS.design),
+                move: read(fleet["move"], DEFAULT_FLEET_LIMITS.move),
+                change: read(fleet["change"], DEFAULT_FLEET_LIMITS.change),
+                operators: {
+                    ...DEFAULT_FLEET_LIMITS.operators,
+                    ...(isRecord(fleet["operators"]) ? (fleet["operators"] as Partial<Record<FleetOperator, number>>) : {}),
+                },
+            },
+            match: {
+                duration: read(match["duration"], DEFAULT_MATCH.duration),
+                radius: read(match["radius"], DEFAULT_MATCH.radius),
+                scatter: (read(match["scatter"], (DEFAULT_MATCH.scatter * 180) / PI) / 180) * PI,
+                closingSpeed: read(match["closingSpeed"], DEFAULT_MATCH.closingSpeed),
+                crossingSpeed: read(match["crossingSpeed"], DEFAULT_MATCH.crossingSpeed),
+                radiusSpread: read(match["radiusSpread"], DEFAULT_MATCH.radiusSpread),
+                closingSpread: read(match["closingSpread"], DEFAULT_MATCH.closingSpread),
+                crossingSpread: read(match["crossingSpread"], DEFAULT_MATCH.crossingSpread),
+                quietLimit: read(match["quietLimit"], DEFAULT_MATCH.quietLimit),
+                ...(isRecord(match["map"]) ? { map: { ...(match["map"] as MapSettings) } } : {}),
+                goal:
+                    match["goal"] === undefined
+                        ? DEFAULT_MATCH.goal
+                        : match["goal"] === null
+                          ? null
+                          : ({ ...(match["goal"] as GoalSpec) } as GoalSpec),
+                weights: { ...DEFAULT_MATCH.weights, ...(match["weights"] as Partial<ScoreWeights> | undefined) },
+            },
         },
-      },
-      match: {
-        duration: read(match['duration'], DEFAULT_MATCH.duration),
-        radius: read(match['radius'], DEFAULT_MATCH.radius),
-        scatter: (read(match['scatter'], (DEFAULT_MATCH.scatter * 180) / PI) / 180) * PI,
-        closingSpeed: read(match['closingSpeed'], DEFAULT_MATCH.closingSpeed),
-        crossingSpeed: read(match['crossingSpeed'], DEFAULT_MATCH.crossingSpeed),
-        radiusSpread: read(match['radiusSpread'], DEFAULT_MATCH.radiusSpread),
-        closingSpread: read(match['closingSpread'], DEFAULT_MATCH.closingSpread),
-        crossingSpread: read(match['crossingSpread'], DEFAULT_MATCH.crossingSpread),
-        quietLimit: read(match['quietLimit'], DEFAULT_MATCH.quietLimit),
-        ...(isRecord(match['map']) ? { map: { ...(match['map'] as MapSettings) } } : {}),
-        goal:
-          match['goal'] === undefined
-            ? DEFAULT_MATCH.goal
-            : match['goal'] === null
-              ? null
-              : ({ ...(match['goal'] as GoalSpec) } as GoalSpec),
-        weights: { ...DEFAULT_MATCH.weights, ...(match['weights'] as Partial<ScoreWeights> | undefined) },
-      },
-    },
-  };
+    };
 }
 
 function parseVersus(versus: Record<string, unknown>): VersusSetup {
-  const rival: { -readonly [K in keyof SideSettings]?: SideSettings[K] } = {};
-  if (typeof versus['population'] === 'number') rival.population = versus['population'];
-  if (typeof versus['winners'] === 'number') rival.winners = versus['winners'];
-  if (typeof versus['group'] === 'number') rival.group = versus['group'];
-  const budget = readBudget(versus['budget'], versus['massBudget']);
-  if (budget !== null) rival.budget = budget;
-  if (isRecord(versus['fleet'])) rival.fleet = { ...(versus['fleet'] as SideSettings['fleet']) };
-  // Only what side B sets: the rest is side A's (`rivalSettings`).
-  const mutation: { -readonly [K in keyof SideSettings['mutation']]?: SideSettings['mutation'][K] } = {};
-  if (typeof versus['structural'] === 'number') mutation.structural = versus['structural'];
-  if (typeof versus['geometry'] === 'number') mutation.geometry = versus['geometry'];
-  if (typeof versus['thrusters'] === 'number') mutation.thrusters = versus['thrusters'];
-  if (isRecord(versus['kinds'])) mutation.kinds = { ...(versus['kinds'] as KindWeights) };
-  if (isRecord(versus['build'])) mutation.build = { ...(versus['build'] as BuildWeights) };
-  if (isRecord(versus['doctrine'])) mutation.doctrine = { ...(versus['doctrine'] as DoctrineWeights) };
-  if (Object.keys(mutation).length > 0) rival.mutation = mutation;
-  return {
-    founders: ((versus['founders'] as unknown[] | undefined) ?? []).map(parseBlueprint),
-    fleets: ((versus['fleets'] as unknown[] | undefined) ?? []).map(parseFleet),
-    coevolution: {
-      rival,
-      hall: read(versus['hall'], DEFAULT_COEVOLUTION.hall),
-      phaseWin: read(versus['phaseWin'], DEFAULT_COEVOLUTION.phaseWin),
-      phaseCap: read(versus['phaseCap'], DEFAULT_COEVOLUTION.phaseCap),
-      shieldedDrills: read(versus['shieldedDrills'], DEFAULT_COEVOLUTION.shieldedDrills),
-      bareCoreDrills: read(versus['bareCoreDrills'], DEFAULT_COEVOLUTION.bareCoreDrills),
-      rivalEvolves: versus['evolves'] !== false,
-    },
-  };
+    const rival: { -readonly [K in keyof SideSettings]?: SideSettings[K] } = {};
+    if (typeof versus["population"] === "number") rival.population = versus["population"];
+    if (typeof versus["winners"] === "number") rival.winners = versus["winners"];
+    if (typeof versus["group"] === "number") rival.group = versus["group"];
+    const budget = readBudget(versus["budget"], versus["massBudget"]);
+    if (budget !== null) rival.budget = budget;
+    if (isRecord(versus["fleet"])) rival.fleet = { ...(versus["fleet"] as SideSettings["fleet"]) };
+    // Only what side B sets: the rest is side A's (`rivalSettings`).
+    const mutation: { -readonly [K in keyof SideSettings["mutation"]]?: SideSettings["mutation"][K] } = {};
+    if (typeof versus["structural"] === "number") mutation.structural = versus["structural"];
+    if (typeof versus["geometry"] === "number") mutation.geometry = versus["geometry"];
+    if (typeof versus["thrusters"] === "number") mutation.thrusters = versus["thrusters"];
+    if (isRecord(versus["kinds"])) mutation.kinds = { ...(versus["kinds"] as KindWeights) };
+    if (isRecord(versus["build"])) mutation.build = { ...(versus["build"] as BuildWeights) };
+    if (isRecord(versus["doctrine"])) mutation.doctrine = { ...(versus["doctrine"] as DoctrineWeights) };
+    if (Object.keys(mutation).length > 0) rival.mutation = mutation;
+    return {
+        founders: ((versus["founders"] as unknown[] | undefined) ?? []).map(parseBlueprint),
+        fleets: ((versus["fleets"] as unknown[] | undefined) ?? []).map(parseFleet),
+        coevolution: {
+            rival,
+            hall: read(versus["hall"], DEFAULT_COEVOLUTION.hall),
+            phaseWin: read(versus["phaseWin"], DEFAULT_COEVOLUTION.phaseWin),
+            phaseCap: read(versus["phaseCap"], DEFAULT_COEVOLUTION.phaseCap),
+            shieldedDrills: read(versus["shieldedDrills"], DEFAULT_COEVOLUTION.shieldedDrills),
+            bareCoreDrills: read(versus["bareCoreDrills"], DEFAULT_COEVOLUTION.bareCoreDrills),
+            rivalEvolves: versus["evolves"] !== false,
+        },
+    };
 }
 
 function read(value: unknown, fallback: number): number {
-  return typeof value === 'number' ? value : fallback;
+    return typeof value === "number" ? value : fallback;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
+    return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 /** Say, in `warnings`, which of `value`'s keys nothing reads. */
 function unknownKeys(value: Record<string, unknown>, allowed: readonly string[], where: string, warnings: string[]): void {
-  const extra = Object.keys(value).filter((key) => !allowed.includes(key));
-  if (extra.length === 0) return;
-  warnings.push(`${where} has ${extra.length > 1 ? 'keys' : 'a key'} the game does not read, ignored: ${extra.join(', ')}`);
+    const extra = Object.keys(value).filter((key) => !allowed.includes(key));
+    if (extra.length === 0) return;
+    warnings.push(`${where} has ${extra.length > 1 ? "keys" : "a key"} the game does not read, ignored: ${extra.join(", ")}`);
 }
 
 function numberProblem(value: unknown, what: string): string | null {
-  if (value === undefined) return null;
-  if (typeof value !== 'number' || !Number.isFinite(value)) {
-    return `${what} must be a finite number, got ${JSON.stringify(value)}`;
-  }
-  return null;
+    if (value === undefined) return null;
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+        return `${what} must be a finite number, got ${JSON.stringify(value)}`;
+    }
+    return null;
 }
 
 /** A whole number of things, of which there has to be at least one. */
 /** A whole number, none allowed. */
 function wholeProblem(value: unknown, what: string): string | null {
-  const problem = numberProblem(value, what);
-  if (problem !== null) return problem;
-  if (value !== undefined && (!Number.isInteger(value) || (value as number) < 0)) {
-    return `${what} must be a whole number, got ${JSON.stringify(value)}`;
-  }
-  return null;
+    const problem = numberProblem(value, what);
+    if (problem !== null) return problem;
+    if (value !== undefined && (!Number.isInteger(value) || (value as number) < 0)) {
+        return `${what} must be a whole number, got ${JSON.stringify(value)}`;
+    }
+    return null;
 }
 
 function countProblem(value: unknown, what: string): string | null {
-  const problem = numberProblem(value, what);
-  if (problem !== null) return problem;
-  if (value !== undefined && (!Number.isInteger(value) || (value as number) < 1)) {
-    return `${what} must be a whole number of at least one, got ${JSON.stringify(value)}`;
-  }
-  return null;
+    const problem = numberProblem(value, what);
+    if (problem !== null) return problem;
+    if (value !== undefined && (!Number.isInteger(value) || (value as number) < 1)) {
+        return `${what} must be a whole number of at least one, got ${JSON.stringify(value)}`;
+    }
+    return null;
 }
 
 /** A budget as the file holds it: each of the three a number, or null for no limit. */
 function serialiseBudget(budget: Budget): Record<string, number | null> {
-  const out: Record<string, number | null> = {};
-  for (const key of BUDGET_KEYS) out[key] = Number.isFinite(budget[key]) ? budget[key] : null;
-  return out;
+    const out: Record<string, number | null> = {};
+    for (const key of BUDGET_KEYS) out[key] = Number.isFinite(budget[key]) ? budget[key] : null;
+    return out;
 }
 
 /** A file's budget, from `budget` or an older file's `massBudget` as its metal; null for neither. */
 function readBudget(budget: unknown, legacy: unknown): Budget | null {
-  if (isRecord(budget)) {
-    const limit = (value: unknown): number => (typeof value === 'number' ? value : Infinity);
-    return { metal: limit(budget['metal']), fuel: limit(budget['fuel']), build: limit(budget['build']) };
-  }
-  if (legacy === undefined) return null;
-  return { ...NO_BUDGET, metal: typeof legacy === 'number' ? legacy : Infinity };
+    if (isRecord(budget)) {
+        const limit = (value: unknown): number => (typeof value === "number" ? value : Infinity);
+        return { metal: limit(budget["metal"]), fuel: limit(budget["fuel"]), build: limit(budget["build"]) };
+    }
+    if (legacy === undefined) return null;
+    return { ...NO_BUDGET, metal: typeof legacy === "number" ? legacy : Infinity };
 }
 
 function budgetProblem(value: unknown, where: string, warnings: string[]): string | null {
-  if (value === undefined || value === null) return null;
-  if (!isRecord(value)) return `${where} must be an object: metal and fuel in kg, build in robot-seconds, each null for no limit`;
-  unknownKeys(value, BUDGET_KEYS, where, warnings);
-  for (const key of BUDGET_KEYS) {
-    const problem = limitProblem(value[key], `${where}.${key}`);
-    if (problem !== null) return problem;
-  }
-  return null;
+    if (value === undefined || value === null) return null;
+    if (!isRecord(value)) return `${where} must be an object: metal and fuel in kg, build in robot-seconds, each null for no limit`;
+    unknownKeys(value, BUDGET_KEYS, where, warnings);
+    for (const key of BUDGET_KEYS) {
+        const problem = limitProblem(value[key], `${where}.${key}`);
+        if (problem !== null) return problem;
+    }
+    return null;
 }
 
 /** One limit: a number above nothing, or null for none. */
 function limitProblem(value: unknown, what: string): string | null {
-  if (value === undefined || value === null) return null;
-  const problem = numberProblem(value, what);
-  if (problem !== null) return problem;
-  if ((value as number) <= 0) return `${what} must be more than nothing, got ${JSON.stringify(value)}`;
-  return null;
+    if (value === undefined || value === null) return null;
+    const problem = numberProblem(value, what);
+    if (problem !== null) return problem;
+    if ((value as number) <= 0) return `${what} must be more than nothing, got ${JSON.stringify(value)}`;
+    return null;
 }
 
-function kindsProblem(value: unknown, warnings: string[], what = 'kinds'): string | null {
-  if (value === undefined) return null;
-  if (!isRecord(value)) return `${what} must be an object of weights, one per module kind`;
-  unknownKeys(value, MODULE_KINDS, `${what} (which are ${MODULE_KINDS.join(', ')})`, warnings);
-  for (const kind of MODULE_KINDS) {
-    const problem = numberProblem(value[kind], `${what}.${kind}`);
-    if (problem !== null) return problem;
-    if (value[kind] !== undefined && (value[kind] as number) < 0) {
-      return `${what}.${kind} must be zero or more, got ${JSON.stringify(value[kind])}`;
+function kindsProblem(value: unknown, warnings: string[], what = "kinds"): string | null {
+    if (value === undefined) return null;
+    if (!isRecord(value)) return `${what} must be an object of weights, one per module kind`;
+    unknownKeys(value, MODULE_KINDS, `${what} (which are ${MODULE_KINDS.join(", ")})`, warnings);
+    for (const kind of MODULE_KINDS) {
+        const problem = numberProblem(value[kind], `${what}.${kind}`);
+        if (problem !== null) return problem;
+        if (value[kind] !== undefined && (value[kind] as number) < 0) {
+            return `${what}.${kind} must be zero or more, got ${JSON.stringify(value[kind])}`;
+        }
     }
-  }
-  return null;
+    return null;
 }
 
 const DOCTRINE_KEYS = Object.keys(DEFAULT_DOCTRINE_WEIGHTS);
 const BUILD_KEYS = Object.keys(DEFAULT_BUILD_WEIGHTS);
 
 function chanceProblem(value: unknown, what: string): string | null {
-  const problem = numberProblem(value, what);
-  if (problem !== null) return problem;
-  if (value !== undefined && ((value as number) < 0 || (value as number) > 1)) {
-    return `${what} must be between 0 and 1, got ${JSON.stringify(value)}`;
-  }
-  return null;
+    const problem = numberProblem(value, what);
+    if (problem !== null) return problem;
+    if (value !== undefined && ((value as number) < 0 || (value as number) > 1)) {
+        return `${what} must be between 0 and 1, got ${JSON.stringify(value)}`;
+    }
+    return null;
 }
 
 function weightsOf(value: unknown, what: string, keys: readonly string[], warnings: string[]): string | null {
-  if (value === undefined) return null;
-  if (!isRecord(value)) return `${what} must be an object of weights: ${keys.join(', ')}`;
-  unknownKeys(value, keys, what, warnings);
-  for (const key of keys) {
-    const problem = numberProblem(value[key], `${what}.${key}`);
-    if (problem !== null) return problem;
-    if (value[key] !== undefined && (value[key] as number) < 0) return `${what}.${key} must be zero or more`;
-  }
-  return null;
+    if (value === undefined) return null;
+    if (!isRecord(value)) return `${what} must be an object of weights: ${keys.join(", ")}`;
+    unknownKeys(value, keys, what, warnings);
+    for (const key of keys) {
+        const problem = numberProblem(value[key], `${what}.${key}`);
+        if (problem !== null) return problem;
+        if (value[key] !== undefined && (value[key] as number) < 0) return `${what}.${key} must be zero or more`;
+    }
+    return null;
 }
 
 function matchProblem(value: unknown, warnings: string[]): string | null {
-  if (value === undefined) return null;
-  if (!isRecord(value)) return 'match must be an object';
-  unknownKeys(value, MATCH_KEYS, 'match', warnings);
-  const problem =
-    numberProblem(value['duration'], 'match.duration') ??
-    numberProblem(value['radius'], 'match.radius') ??
-    numberProblem(value['scatter'], 'match.scatter') ??
-    numberProblem(value['closingSpeed'], 'match.closingSpeed') ??
-    numberProblem(value['crossingSpeed'], 'match.crossingSpeed') ??
-    numberProblem(value['radiusSpread'], 'match.radiusSpread') ??
-    numberProblem(value['closingSpread'], 'match.closingSpread') ??
-    numberProblem(value['crossingSpread'], 'match.crossingSpread') ??
-    numberProblem(value['quietLimit'], 'match.quietLimit');
-  if (problem !== null) return problem;
-  for (const key of ['radiusSpread', 'closingSpread', 'crossingSpread', 'quietLimit']) {
-    if (value[key] !== undefined && (value[key] as number) < 0) return `match.${key} must not be negative`;
-  }
-  if (value['duration'] !== undefined && (value['duration'] as number) <= 0) {
-    return 'match.duration must be more than nothing';
-  }
-  if (value['radius'] !== undefined && (value['radius'] as number) <= 0) {
-    return 'match.radius must be more than nothing';
-  }
-  if (value['map'] !== undefined) {
-    const map = mapProblem(value['map'], 'match.map');
-    if (map !== null) return map;
-  }
-  return goalProblem(value['goal'], warnings) ?? weightsProblem(value['weights'], warnings);
+    if (value === undefined) return null;
+    if (!isRecord(value)) return "match must be an object";
+    unknownKeys(value, MATCH_KEYS, "match", warnings);
+    const problem =
+        numberProblem(value["duration"], "match.duration") ??
+        numberProblem(value["radius"], "match.radius") ??
+        numberProblem(value["scatter"], "match.scatter") ??
+        numberProblem(value["closingSpeed"], "match.closingSpeed") ??
+        numberProblem(value["crossingSpeed"], "match.crossingSpeed") ??
+        numberProblem(value["radiusSpread"], "match.radiusSpread") ??
+        numberProblem(value["closingSpread"], "match.closingSpread") ??
+        numberProblem(value["crossingSpread"], "match.crossingSpread") ??
+        numberProblem(value["quietLimit"], "match.quietLimit");
+    if (problem !== null) return problem;
+    for (const key of ["radiusSpread", "closingSpread", "crossingSpread", "quietLimit"]) {
+        if (value[key] !== undefined && (value[key] as number) < 0) return `match.${key} must not be negative`;
+    }
+    if (value["duration"] !== undefined && (value["duration"] as number) <= 0) {
+        return "match.duration must be more than nothing";
+    }
+    if (value["radius"] !== undefined && (value["radius"] as number) <= 0) {
+        return "match.radius must be more than nothing";
+    }
+    if (value["map"] !== undefined) {
+        const map = mapProblem(value["map"], "match.map");
+        if (map !== null) return map;
+    }
+    return goalProblem(value["goal"], warnings) ?? weightsProblem(value["weights"], warnings);
 }
 
 function goalProblem(value: unknown, warnings: string[]): string | null {
-  if (value === undefined || value === null) return null;
-  if (!isRecord(value)) return 'match.goal must be an object, or null for a match that is only a fight';
-  unknownKeys(value, [...GOAL_KEYS, ...GOAL_OPTIONAL_KEYS], 'match.goal', warnings);
-  if (value['solid'] !== undefined && typeof value['solid'] !== 'boolean') {
-    return `match.goal.solid must be true or false, got ${JSON.stringify(value['solid'])}`;
-  }
-  for (const key of GOAL_KEYS) {
-    if (value[key] === undefined) return `match.goal is missing ${key}`;
-    const problem = numberProblem(value[key], `match.goal.${key}`);
-    if (problem !== null) return problem;
-  }
-  if ((value['scale'] as number) <= 0) return 'match.goal.scale must be more than nothing';
-  if ((value['size'] as number) <= 0) return 'match.goal.size must be more than nothing';
-  return null;
+    if (value === undefined || value === null) return null;
+    if (!isRecord(value)) return "match.goal must be an object, or null for a match that is only a fight";
+    unknownKeys(value, [...GOAL_KEYS, ...GOAL_OPTIONAL_KEYS], "match.goal", warnings);
+    if (value["solid"] !== undefined && typeof value["solid"] !== "boolean") {
+        return `match.goal.solid must be true or false, got ${JSON.stringify(value["solid"])}`;
+    }
+    for (const key of GOAL_KEYS) {
+        if (value[key] === undefined) return `match.goal is missing ${key}`;
+        const problem = numberProblem(value[key], `match.goal.${key}`);
+        if (problem !== null) return problem;
+    }
+    if ((value["scale"] as number) <= 0) return "match.goal.scale must be more than nothing";
+    if ((value["size"] as number) <= 0) return "match.goal.size must be more than nothing";
+    return null;
 }
 
 function weightsProblem(value: unknown, warnings: string[]): string | null {
-  if (value === undefined) return null;
-  if (!isRecord(value)) return 'match.weights must be an object';
-  unknownKeys(value, WEIGHT_KEYS, 'match.weights', warnings);
-  for (const key of WEIGHT_KEYS) {
-    const problem = numberProblem(value[key], `match.weights.${key}`);
-    if (problem !== null) return problem;
-  }
-  return null;
+    if (value === undefined) return null;
+    if (!isRecord(value)) return "match.weights must be an object";
+    unknownKeys(value, WEIGHT_KEYS, "match.weights", warnings);
+    for (const key of WEIGHT_KEYS) {
+        const problem = numberProblem(value[key], `match.weights.${key}`);
+        if (problem !== null) return problem;
+    }
+    return null;
 }

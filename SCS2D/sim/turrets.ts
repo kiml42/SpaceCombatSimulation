@@ -1,5 +1,5 @@
-import type { Bodies } from './bodies.js';
-import { abs, angleDelta, atan2, brakingRate, clamp, cos, normalizeAngle, PI, sin, sqrt, TAU } from './math.js';
+import type { Bodies } from "./bodies.js";
+import { abs, angleDelta, atan2, brakingRate, clamp, cos, normalizeAngle, PI, sin, sqrt, TAU } from "./math.js";
 
 /**
  * Turrets: mounts that slew to a bearing and report when they are on target.
@@ -53,86 +53,86 @@ const NO_MASK: readonly number[] = [];
 
 /** Whether a bearing, radians from rest, falls in a `triggerMask`. */
 export function masked(mask: ArrayLike<number>, offset: number): boolean {
-  for (let k = 0; k < mask.length; k += 2) {
-    let d = offset - mask[k]!;
-    // Into [0, 2π): how far past this sector's start, going anticlockwise.
-    while (d < 0) d += TAU;
-    while (d >= TAU) d -= TAU;
-    if (d < mask[k + 1]! - mask[k]!) return true;
-  }
-  return false;
+    for (let k = 0; k < mask.length; k += 2) {
+        let d = offset - mask[k]!;
+        // Into [0, 2π): how far past this sector's start, going anticlockwise.
+        while (d < 0) d += TAU;
+        while (d >= TAU) d -= TAU;
+        if (d < mask[k + 1]! - mask[k]!) return true;
+    }
+    return false;
 }
 
 export enum TurretState {
-  // ready to fire
-  Idle = 0,
+    // ready to fire
+    Idle = 0,
 
-  // waiting for the reload timer to count down
-  Reloading = 1,
+    // waiting for the reload timer to count down
+    Reloading = 1,
 
-  // currently firing, cannot stop until the timer runs down, then it reloads
-  CommittedOn = 2,
+    // currently firing, cannot stop until the timer runs down, then it reloads
+    CommittedOn = 2,
 }
 
 export interface TurretSpec {
-  /** Body *index* this turret is mounted on. */
-  owner: number;
-  /** Mount point in body frame, metres. */
-  x: number;
-  y: number;
-  /** Bearing it points to when idle, body frame. */
-  restBearing?: number;
-  /**
-   * Half-width of the traverse arc to the left of `restBearing`, radians.
-   * Blocked by the ships superstructure (DESIGN.md §3).
-   * if leftArc + rightArc > 2π, the turret can traverse the full circle.
-   */
-  leftArc?: number;
-  /**
-   * Half-width of the traverse arc to the right of `restBearing`, radians.
-   * Blocked by the ships superstructure (DESIGN.md §3).
-   * if leftArc + rightArc > 2π, the turret can traverse the full circle.
-   */
-  rightArc?: number;
-  /** Traverse rate limit, radians per second. */
-  maxRate: number;
-  /** Traverse acceleration limit, radians per second squared. */
-  maxAccel: number;
-  /** Moment of inertia of the moving part, kg·m², for the hull reaction. */
-  inertia?: number;
-  /** Muzzle velocity of what it fires, metres per second, for lead. */
-  muzzleSpeed?: number;
-  /** Distance from mount to muzzle along the barrel, metres. */
-  muzzleOffset?: number;
-  /**
-   * Whether its outlets sit side by side across the rest bearing rather than
-   * across the barrel's: a hull beam's lenses, each turning on its own stalk.
-   */
-  outletsFixed?: boolean;
-  /**
-   * Bearings it may point along but not fire along, as `triggerMask` compiles
-   * them: pairs of radians from `restBearing`. Clear all round when unsaid.
-   */
-  mask?: readonly number[];
+    /** Body *index* this turret is mounted on. */
+    owner: number;
+    /** Mount point in body frame, metres. */
+    x: number;
+    y: number;
+    /** Bearing it points to when idle, body frame. */
+    restBearing?: number;
+    /**
+     * Half-width of the traverse arc to the left of `restBearing`, radians.
+     * Blocked by the ships superstructure (DESIGN.md §3).
+     * if leftArc + rightArc > 2π, the turret can traverse the full circle.
+     */
+    leftArc?: number;
+    /**
+     * Half-width of the traverse arc to the right of `restBearing`, radians.
+     * Blocked by the ships superstructure (DESIGN.md §3).
+     * if leftArc + rightArc > 2π, the turret can traverse the full circle.
+     */
+    rightArc?: number;
+    /** Traverse rate limit, radians per second. */
+    maxRate: number;
+    /** Traverse acceleration limit, radians per second squared. */
+    maxAccel: number;
+    /** Moment of inertia of the moving part, kg·m², for the hull reaction. */
+    inertia?: number;
+    /** Muzzle velocity of what it fires, metres per second, for lead. */
+    muzzleSpeed?: number;
+    /** Distance from mount to muzzle along the barrel, metres. */
+    muzzleOffset?: number;
+    /**
+     * Whether its outlets sit side by side across the rest bearing rather than
+     * across the barrel's: a hull beam's lenses, each turning on its own stalk.
+     */
+    outletsFixed?: boolean;
+    /**
+     * Bearings it may point along but not fire along, as `triggerMask` compiles
+     * them: pairs of radians from `restBearing`. Clear all round when unsaid.
+     */
+    mask?: readonly number[];
 }
 
 /** Where a turret's shot starts and which way it goes. Filled in place. */
 export class FiringSolution {
-  x = 0;
-  y = 0;
-  /** Unit vector along the barrel, world frame. */
-  dirX = 0;
-  dirY = 0;
-  /** World bearing of the barrel, radians. */
-  bearing = 0;
-  /**
-   * Velocity of the muzzle *relative to the hull's centre of mass*, from the
-   * hull's rotation: `ω × r`. A mount out on a beam is travelling sideways
-   * whenever its ship is turning, and a round leaving it inherits that on top
-   * of the hull's own velocity.
-   */
-  vx = 0;
-  vy = 0;
+    x = 0;
+    y = 0;
+    /** Unit vector along the barrel, world frame. */
+    dirX = 0;
+    dirY = 0;
+    /** World bearing of the barrel, radians. */
+    bearing = 0;
+    /**
+     * Velocity of the muzzle *relative to the hull's centre of mass*, from the
+     * hull's rotation: `ω × r`. A mount out on a beam is travelling sideways
+     * whenever its ship is turning, and a round leaving it inherits that on top
+     * of the hull's own velocity.
+     */
+    vx = 0;
+    vy = 0;
 }
 
 /**
@@ -147,684 +147,684 @@ export class FiringSolution {
  * shooter's, so a shot inherits the firing ship's motion.
  */
 export function interceptTime(dx: number, dy: number, dvx: number, dvy: number, speed: number): number {
-  const a = dvx * dvx + dvy * dvy - speed * speed;
-  const b = 2 * (dx * dvx + dy * dvy);
-  const c = dx * dx + dy * dy;
+    const a = dvx * dvx + dvy * dvy - speed * speed;
+    const b = 2 * (dx * dvx + dy * dvy);
+    const c = dx * dx + dy * dy;
 
-  if (c === 0) return 0;
+    if (c === 0) return 0;
 
-  // Closing speed exactly matches the projectile speed: the quadratic degrades
-  // to a linear equation.
-  if (abs(a) < 1e-12) {
-    if (abs(b) < 1e-12) return -1;
-    const t = -c / b;
-    return t >= 0 ? t : -1;
-  }
+    // Closing speed exactly matches the projectile speed: the quadratic degrades
+    // to a linear equation.
+    if (abs(a) < 1e-12) {
+        if (abs(b) < 1e-12) return -1;
+        const t = -c / b;
+        return t >= 0 ? t : -1;
+    }
 
-  const discriminant = b * b - 4 * a * c;
-  if (discriminant < 0) return -1;
+    const discriminant = b * b - 4 * a * c;
+    if (discriminant < 0) return -1;
 
-  const root = sqrt(discriminant);
-  const t0 = (-b - root) / (2 * a);
-  const t1 = (-b + root) / (2 * a);
+    const root = sqrt(discriminant);
+    const t0 = (-b - root) / (2 * a);
+    const t1 = (-b + root) / (2 * a);
 
-  // The earliest non-negative root: the first moment the shot can arrive.
-  const lo = t0 < t1 ? t0 : t1;
-  const hi = t0 < t1 ? t1 : t0;
-  if (lo >= 0) return lo;
-  if (hi >= 0) return hi;
-  return -1;
+    // The earliest non-negative root: the first moment the shot can arrive.
+    const lo = t0 < t1 ? t0 : t1;
+    const hi = t0 < t1 ? t1 : t0;
+    if (lo >= 0) return lo;
+    if (hi >= 0) return hi;
+    return -1;
 }
 
 export class Turrets {
-  owner!: Int32Array;
-  mountX!: Float64Array;
-  mountY!: Float64Array;
-  restBearing!: Float64Array;
-  leftArc!: Float64Array;
-  rightArc!: Float64Array;
-  maxRate!: Float64Array;
-  maxAccel!: Float64Array;
-  inertia!: Float64Array;
-  muzzleSpeed!: Float64Array;
-  muzzleOffset!: Float64Array;
-  outletsFixed!: Uint8Array;
-  /** Flight time to the point last aimed at, seconds, as `aimAt` returned it. */
-  aimTime!: Float64Array;
+    owner!: Int32Array;
+    mountX!: Float64Array;
+    mountY!: Float64Array;
+    restBearing!: Float64Array;
+    leftArc!: Float64Array;
+    rightArc!: Float64Array;
+    maxRate!: Float64Array;
+    maxAccel!: Float64Array;
+    inertia!: Float64Array;
+    muzzleSpeed!: Float64Array;
+    muzzleOffset!: Float64Array;
+    outletsFixed!: Uint8Array;
+    /** Flight time to the point last aimed at, seconds, as `aimAt` returned it. */
+    aimTime!: Float64Array;
 
-  /** Current bearing, body frame. */
-  bearing!: Float64Array;
-  /** Current traverse rate, radians per second, relative to the hull. */
-  rate!: Float64Array;
-  /** Bearing being slewed toward, body frame, already clamped to the arc. */
-  commanded!: Float64Array;
-  /** Bearing it was asked for, body frame, before the arc clamped it. */
-  wanted!: Float64Array;
-  /** Where the last aim pointed, relative to the mount and led, metres. */
-  aimDx!: Float64Array;
-  aimDy!: Float64Array;
-  /**
-   * Rate that bearing is itself changing at, body frame — the feed-forward
-   * term. Includes the hull's own rotation, negated, so holding a world bearing
-   * on a turning ship needs no separate correction.
-   */
-  commandedRate!: Float64Array;
+    /** Current bearing, body frame. */
+    bearing!: Float64Array;
+    /** Current traverse rate, radians per second, relative to the hull. */
+    rate!: Float64Array;
+    /** Bearing being slewed toward, body frame, already clamped to the arc. */
+    commanded!: Float64Array;
+    /** Bearing it was asked for, body frame, before the arc clamped it. */
+    wanted!: Float64Array;
+    /** Where the last aim pointed, relative to the mount and led, metres. */
+    aimDx!: Float64Array;
+    aimDy!: Float64Array;
+    /**
+     * Rate that bearing is itself changing at, body frame — the feed-forward
+     * term. Includes the hull's own rotation, negated, so holding a world bearing
+     * on a turning ship needs no separate correction.
+     */
+    commandedRate!: Float64Array;
 
-  /** 1 when the bearing is within tolerance of `commanded`. */
-  onTarget!: Uint8Array;
-  /**
-   * Bearing error this turret counts as on target: the floor above, or its own
-   * discretisation limit if that is coarser. Refined on the first step, once
-   * the timestep is known.
-   */
-  tolerance!: Float64Array;
-  /**
-   * How far off the commanded bearing this mount will still fire, radians.
-   *
-   * **The size of what it is shooting at, rather than a constant.** A gun is
-   * on target when its shot would land on the thing it is aiming at, and how
-   * much error that allows is a question about the target: a capital at four
-   * hundred metres is degrees wide and a fighter at two kilometres is not.
-   * Held here rather than worked out at the trigger so that the barrel drawn
-   * as ready and the barrel that fires are the same barrel.
-   *
-   * Set by whoever aims the mount, since only they know what it is pointed
-   * at, and cleared when it gives up on a target. `onTarget` is the mechanical
-   * fact underneath — pointing where it was told — and stays exact.
-   */
-  fireSlack!: Float64Array;
-  /**
-   * Where the cone `fireSlack` is measured about, radians off `wanted`: the
-   * middle of the ship when the aim is on one of its parts.
-   */
-  fireOffset!: Float64Array;
-  /** How far it is worth firing at what it is aimed at, metres; 0 for nothing. */
-  fireReach!: Float64Array;
-  /** 0 while what it is aimed at is further off than `fireReach`: tracked, not fired on. */
-  inReach!: Uint8Array;
-  /**
-   * 1 when the last aim command lay outside the traverse arc. The turret slews
-   * as close as it can, but a caller must not read `onTarget` as "may fire":
-   * both have to hold.
-   */
-  blocked!: Uint8Array;
-  /** Each mount's `TurretSpec.mask`, fixed when it is added. */
-  mask: (readonly number[])[] = [];
-  /**
-   * 1 while the mount is burning a beam it cannot put out: the drive then
-   * stops at the edge of a masked sector rather than sweep the beam across
-   * its own ship.
-   */
-  lit!: Uint8Array;
-  alive!: Uint8Array;
+    /** 1 when the bearing is within tolerance of `commanded`. */
+    onTarget!: Uint8Array;
+    /**
+     * Bearing error this turret counts as on target: the floor above, or its own
+     * discretisation limit if that is coarser. Refined on the first step, once
+     * the timestep is known.
+     */
+    tolerance!: Float64Array;
+    /**
+     * How far off the commanded bearing this mount will still fire, radians.
+     *
+     * **The size of what it is shooting at, rather than a constant.** A gun is
+     * on target when its shot would land on the thing it is aiming at, and how
+     * much error that allows is a question about the target: a capital at four
+     * hundred metres is degrees wide and a fighter at two kilometres is not.
+     * Held here rather than worked out at the trigger so that the barrel drawn
+     * as ready and the barrel that fires are the same barrel.
+     *
+     * Set by whoever aims the mount, since only they know what it is pointed
+     * at, and cleared when it gives up on a target. `onTarget` is the mechanical
+     * fact underneath — pointing where it was told — and stays exact.
+     */
+    fireSlack!: Float64Array;
+    /**
+     * Where the cone `fireSlack` is measured about, radians off `wanted`: the
+     * middle of the ship when the aim is on one of its parts.
+     */
+    fireOffset!: Float64Array;
+    /** How far it is worth firing at what it is aimed at, metres; 0 for nothing. */
+    fireReach!: Float64Array;
+    /** 0 while what it is aimed at is further off than `fireReach`: tracked, not fired on. */
+    inReach!: Uint8Array;
+    /**
+     * 1 when the last aim command lay outside the traverse arc. The turret slews
+     * as close as it can, but a caller must not read `onTarget` as "may fire":
+     * both have to hold.
+     */
+    blocked!: Uint8Array;
+    /** Each mount's `TurretSpec.mask`, fixed when it is added. */
+    mask: (readonly number[])[] = [];
+    /**
+     * 1 while the mount is burning a beam it cannot put out: the drive then
+     * stops at the edge of a masked sector rather than sweep the beam across
+     * its own ship.
+     */
+    lit!: Uint8Array;
+    alive!: Uint8Array;
 
-  capacity = 0;
-  count = 0;
-  highWater = 0;
+    capacity = 0;
+    count = 0;
+    highWater = 0;
 
-  private free: number[] = [];
+    private free: number[] = [];
 
-  constructor(initialCapacity = 128) {
-    this.grow(initialCapacity);
-  }
-
-  private grow(capacity: number): void {
-    const f64 = (old: Float64Array | undefined): Float64Array => {
-      const next = new Float64Array(capacity);
-      if (old) next.set(old);
-      return next;
-    };
-    const i32 = (old: Int32Array | undefined): Int32Array => {
-      const next = new Int32Array(capacity);
-      if (old) next.set(old);
-      return next;
-    };
-    const u8 = (old: Uint8Array | undefined): Uint8Array => {
-      const next = new Uint8Array(capacity);
-      if (old) next.set(old);
-      return next;
-    };
-
-    this.owner = i32(this.owner);
-    this.mountX = f64(this.mountX);
-    this.mountY = f64(this.mountY);
-    this.restBearing = f64(this.restBearing);
-    this.leftArc = f64(this.leftArc);
-    this.rightArc = f64(this.rightArc);
-    this.maxRate = f64(this.maxRate);
-    this.maxAccel = f64(this.maxAccel);
-    this.inertia = f64(this.inertia);
-    this.muzzleSpeed = f64(this.muzzleSpeed);
-    this.muzzleOffset = f64(this.muzzleOffset);
-    this.aimTime = f64(this.aimTime);
-    this.bearing = f64(this.bearing);
-    this.rate = f64(this.rate);
-    this.commanded = f64(this.commanded);
-    this.wanted = f64(this.wanted);
-    this.aimDx = f64(this.aimDx);
-    this.aimDy = f64(this.aimDy);
-    this.commandedRate = f64(this.commandedRate);
-    this.onTarget = u8(this.onTarget);
-    this.outletsFixed = u8(this.outletsFixed);
-    this.tolerance = f64(this.tolerance);
-    this.fireSlack = f64(this.fireSlack);
-    this.fireOffset = f64(this.fireOffset);
-    this.fireReach = f64(this.fireReach);
-    this.inReach = u8(this.inReach);
-    this.blocked = u8(this.blocked);
-    this.lit = u8(this.lit);
-    this.alive = u8(this.alive);
-
-    this.capacity = capacity;
-  }
-
-  add(spec: TurretSpec): number {
-    let i: number;
-    const reused = this.free.pop();
-    if (reused !== undefined) {
-      i = reused;
-    } else {
-      if (this.highWater >= this.capacity) this.grow(this.capacity * 2);
-      i = this.highWater++;
+    constructor(initialCapacity = 128) {
+        this.grow(initialCapacity);
     }
 
-    const rest = normalizeAngle(spec.restBearing ?? 0);
-    this.owner[i] = spec.owner;
-    this.mountX[i] = spec.x;
-    this.mountY[i] = spec.y;
-    this.restBearing[i] = rest;
-    this.leftArc[i] = spec.leftArc ?? PI;
-    this.rightArc[i] = spec.rightArc ?? PI;
-    this.maxRate[i] = spec.maxRate;
-    this.maxAccel[i] = spec.maxAccel;
-    this.inertia[i] = spec.inertia ?? 0;
-    this.muzzleSpeed[i] = spec.muzzleSpeed ?? 0;
-    this.muzzleOffset[i] = spec.muzzleOffset ?? 0;
-    this.outletsFixed[i] = spec.outletsFixed === true ? 1 : 0;
-    this.aimTime[i] = -1;
-    this.bearing[i] = rest;
-    this.rate[i] = 0;
-    this.commanded[i] = rest;
-    this.wanted[i] = rest;
-    this.aimDx[i] = 0;
-    this.aimDy[i] = 0;
-    this.commandedRate[i] = 0;
-    this.onTarget[i] = 1;
-    this.tolerance[i] = ON_TARGET_FLOOR;
-    this.fireSlack[i] = 0;
-    this.fireOffset[i] = 0;
-    this.fireReach[i] = 0;
-    this.inReach[i] = 1;
-    this.blocked[i] = 0;
-    this.mask[i] = spec.mask ?? NO_MASK;
-    this.lit[i] = 0;
-    this.alive[i] = 1;
-    this.count++;
-    return i;
-  }
+    private grow(capacity: number): void {
+        const f64 = (old: Float64Array | undefined): Float64Array => {
+            const next = new Float64Array(capacity);
+            if (old) next.set(old);
+            return next;
+        };
+        const i32 = (old: Int32Array | undefined): Int32Array => {
+            const next = new Int32Array(capacity);
+            if (old) next.set(old);
+            return next;
+        };
+        const u8 = (old: Uint8Array | undefined): Uint8Array => {
+            const next = new Uint8Array(capacity);
+            if (old) next.set(old);
+            return next;
+        };
 
-  /**
-   * Take over mount `from`'s motion and tracking, for a mount rebuilt in its
-   * place: where it points, how fast it is slewing and where to, so a rebuild
-   * is not a jerk back to rest. `turn` is how far the new hull's frame is
-   * turned from the old one's, radians, and is taken off every body-frame
-   * bearing so the barrel keeps its world bearing.
-   */
-  carry(from: number, to: number, turn: number): void {
-    this.bearing[to] = normalizeAngle(this.bearing[from]! + turn);
-    this.commanded[to] = normalizeAngle(this.commanded[from]! + turn);
-    this.wanted[to] = normalizeAngle(this.wanted[from]! + turn);
-    this.rate[to] = this.rate[from]!;
-    this.commandedRate[to] = this.commandedRate[from]!;
-    this.aimDx[to] = this.aimDx[from]!;
-    this.aimDy[to] = this.aimDy[from]!;
-    this.aimTime[to] = this.aimTime[from]!;
-    this.onTarget[to] = this.onTarget[from]!;
-    this.tolerance[to] = this.tolerance[from]!;
-    this.blocked[to] = this.blocked[from]!;
-    this.fireSlack[to] = this.fireSlack[from]!;
-    this.fireOffset[to] = this.fireOffset[from]!;
-    this.fireReach[to] = this.fireReach[from]!;
-    this.inReach[to] = this.inReach[from]!;
-    this.lit[to] = this.lit[from]!;
-  }
+        this.owner = i32(this.owner);
+        this.mountX = f64(this.mountX);
+        this.mountY = f64(this.mountY);
+        this.restBearing = f64(this.restBearing);
+        this.leftArc = f64(this.leftArc);
+        this.rightArc = f64(this.rightArc);
+        this.maxRate = f64(this.maxRate);
+        this.maxAccel = f64(this.maxAccel);
+        this.inertia = f64(this.inertia);
+        this.muzzleSpeed = f64(this.muzzleSpeed);
+        this.muzzleOffset = f64(this.muzzleOffset);
+        this.aimTime = f64(this.aimTime);
+        this.bearing = f64(this.bearing);
+        this.rate = f64(this.rate);
+        this.commanded = f64(this.commanded);
+        this.wanted = f64(this.wanted);
+        this.aimDx = f64(this.aimDx);
+        this.aimDy = f64(this.aimDy);
+        this.commandedRate = f64(this.commandedRate);
+        this.onTarget = u8(this.onTarget);
+        this.outletsFixed = u8(this.outletsFixed);
+        this.tolerance = f64(this.tolerance);
+        this.fireSlack = f64(this.fireSlack);
+        this.fireOffset = f64(this.fireOffset);
+        this.fireReach = f64(this.fireReach);
+        this.inReach = u8(this.inReach);
+        this.blocked = u8(this.blocked);
+        this.lit = u8(this.lit);
+        this.alive = u8(this.alive);
 
-  remove(i: number): void {
-    if (i < 0 || i >= this.highWater || this.alive[i] === 0) return;
-    this.alive[i] = 0;
-    this.free.push(i);
-    this.count--;
-  }
-
-  /**
-   * How far the turret has to turn to reach its commanded bearing, signed.
-   *
-   * The short way round, unless that crosses what its arc leaves out: a mount
-   * that cannot traverse the whole circle goes round the way its arc allows,
-   * however much further that is, rather than swing its barrel through the
-   * hull that stops it.
-   */
-  private slewError(i: number): number {
-    const short = angleDelta(this.bearing[i]!, this.commanded[i]!);
-    const left = this.leftArc[i]!;
-    const right = this.rightArc[i]!;
-    if (left + right >= TAU) return short;
-    const rest = this.restBearing[i]!;
-    const allowed = this.arcOffset(rest, this.commanded[i]!, left, right) - this.arcOffset(rest, this.bearing[i]!, left, right);
-    // The same turn, where the short way is the allowed way: kept as the short
-    // way's own figure, which rounds differently.
-    return allowed >= 0 === short >= 0 ? short : allowed;
-  }
-
-  /**
-   * A bearing as a sweep from rest within the arc, from `-right` to `+left`,
-   * unwrapped past half a circle where the arc goes that far. A bearing
-   * outside the arc, as a mount that has overrun an end by a hair, is past
-   * whichever end it is nearer: taken the short way from rest, one just past
-   * an end at half a circle read as nearly a full turn off it, and the mount
-   * went the long way round, through its block, to get back.
-   */
-  private arcOffset(rest: number, bearing: number, left: number, right: number): number {
-    const offset = angleDelta(rest, bearing);
-    if (offset >= -right && offset <= left) return offset;
-    if (offset > left && offset - TAU >= -right) return offset - TAU;
-    if (offset < -right && offset + TAU <= left) return offset + TAU;
-    const pastLeft = offset - left >= 0 ? offset - left : offset - left + TAU;
-    const pastRight = TAU - left - right - pastLeft;
-    return pastLeft <= pastRight ? left + pastLeft : -right - pastRight;
-  }
-
-  /** Clamp a body-frame bearing into this turret's traverse arc. */
-  private clampToArc(i: number, bodyBearing: number): number {
-    const left = this.leftArc[i]!;
-    const right = this.rightArc[i]!;
-    if (left + right >= TAU) return normalizeAngle(bodyBearing);
-    const rest = this.restBearing[i]!;
-
-    // Sweeps are signed the way bearings are: positive is anticlockwise, which
-    // with +y to port is the ship's *left*. So the permitted band runs from
-    // `-rightArc` to `+leftArc` — the left arc bounds the positive side.
-    // Getting this the other way round is invisible while every arc is
-    // symmetric, and points guns at the wrong sky as soon as one is not.
-    //
-    // `angleDelta` always takes the short way, so it can never report a sweep
-    // past half a circle. An arc wider than that on one side therefore shows
-    // up here as a delta of the *opposite* sign, and has to be recognised as
-    // such — otherwise a mount free to swing right round one way is confined
-    // to the half-circle the short way.
-    const offset = angleDelta(rest, bodyBearing);
-    if (offset >= -right && offset <= left) return normalizeAngle(rest + offset);
-    if (offset - TAU >= -right) return normalizeAngle(rest + offset);
-    if (offset + TAU <= left) return normalizeAngle(rest + offset);
-
-    // Out of arc: stop at whichever end is nearer to where the mount was asked
-    // to point, rather than at whichever end the sign of the offset happens to
-    // pick. The difference shows the moment an arc is lopsided — a mount
-    // tracking a target across the stern would otherwise abandon it, cross the
-    // ship, and settle with the obstruction between itself and what it was
-    // following. Stopping at the near end leaves the barrel hard up against
-    // what blocks it, which is both the truth and what it looks like.
-    const leftEnd = normalizeAngle(rest + left);
-    const rightEnd = normalizeAngle(rest - right);
-    return abs(angleDelta(bodyBearing, leftEnd)) < abs(angleDelta(bodyBearing, rightEnd)) ? leftEnd : rightEnd;
-  }
-
-  /**
-   * Set the commanded bearing and refresh `onTarget` at once, so the flag never
-   * describes a command that has been superseded. Without this a caller reading
-   * `onTarget` straight after commanding a new bearing would be told the turret
-   * was already there.
-   */
-  private setCommand(i: number, allowed: number, rate: number): void {
-    this.commanded[i] = allowed;
-    this.commandedRate[i] = clamp(rate, -this.maxRate[i]!, this.maxRate[i]!);
-    this.onTarget[i] = abs(angleDelta(this.bearing[i]!, allowed)) <= this.tolerance[i]! ? 1 : 0;
-  }
-
-  /**
-   * Point at a world bearing, clamped to the arc. Sets `blocked` if it had to
-   * clamp.
-   *
-   * `worldBearingRate` is how fast that bearing is sweeping, in world terms —
-   * pass it whenever it is known, because it is what removes the tracking lag.
-   * The hull's own rotation is subtracted here, so a turret holding a fixed
-   * world bearing on a turning ship counter-rotates without being told to.
-   */
-  commandWorldBearing(bodies: Bodies, i: number, worldBearing: number, worldBearingRate = 0): void {
-    const b = this.owner[i];
-    const wanted = normalizeAngle(worldBearing - bodies.angle[b]!);
-    const allowed = this.clampToArc(i, wanted);
-    this.wanted[i] = wanted;
-    // A turret pinned against the edge of its arc is not tracking anything, so
-    // it should hold that bearing rather than keep sweeping past it.
-    const clamped = abs(angleDelta(allowed, wanted)) > this.tolerance[i]!;
-    this.setCommand(i, allowed, clamped ? 0 : worldBearingRate - bodies.angularVel[b]!);
-    this.blocked[i] = clamped ? 1 : 0;
-  }
-
-  /**
-   * Whether this mount could point at a world bearing at all.
-   *
-   * What a mount can see, rather than where it is looking: a target behind
-   * the superstructure is not one this gun can choose, however good it would
-   * otherwise be. Asked before scoring, so a broadside picks a fight on the
-   * side it is on.
-   */
-  bearsOn(bodies: Bodies, i: number, worldBearing: number): boolean {
-    const wanted = normalizeAngle(worldBearing - bodies.angle[this.owner[i]!]!);
-    return abs(angleDelta(this.clampToArc(i, wanted), wanted)) <= this.tolerance[i]!;
-  }
-
-  /**
-   * Whether this mount could point at a world bearing *and* fire along it,
-   * with nothing of its own ship downrange.
-   */
-  firesOn(bodies: Bodies, i: number, worldBearing: number): boolean {
-    if (!this.bearsOn(bodies, i, worldBearing)) return false;
-    const wanted = normalizeAngle(worldBearing - bodies.angle[this.owner[i]!]!);
-    return !masked(this.mask[i]!, angleDelta(this.restBearing[i]!, wanted));
-  }
-
-  /** Whether the barrel is pointing along a bearing its own ship is down. */
-  fouled(i: number): boolean {
-    const mask = this.mask[i]!;
-    return mask.length > 0 && masked(mask, angleDelta(this.restBearing[i]!, this.bearing[i]!));
-  }
-
-  /** Give up and return to the idle bearing, and stop tracking. */
-  returnToRest(i: number): void {
-    this.setCommand(i, this.restBearing[i]!, 0);
-    this.wanted[i] = this.restBearing[i]!;
-    this.blocked[i] = 0;
-    this.fireSlack[i] = 0;
-    this.fireOffset[i] = 0;
-    this.fireReach[i] = 0;
-    this.inReach[i] = 1;
-  }
-
-  /** Stop driving: brake to rest about where it points, and stop tracking. */
-  stop(i: number): void {
-    this.setCommand(i, this.bearing[i]!, 0);
-    this.wanted[i] = this.bearing[i]!;
-  }
-
-  /**
-   * How far off the bearing it was asked for this mount may fire, this step,
-   * measured about `offset` from it, and out to `reach` of the `range` it is at.
-   *
-   * Whoever aims the mount says so, because the answer is the angular size of
-   * what it is pointed at and the mount does not know what that is.
-   */
-  allowSlack(i: number, radians: number, offset = 0, reach = 0, range = 0): void {
-    this.fireSlack[i] = radians > 0 ? radians : 0;
-    this.fireOffset[i] = offset;
-    this.fireReach[i] = reach;
-    this.inReach[i] = reach > 0 && range > reach ? 0 : 1;
-  }
-
-  /**
-   * Aim at a moving target, leading it by the projectile's flight time.
-   *
-   * The lead is computed from the *mount* rather than the muzzle: using the
-   * muzzle would be circular, since where the muzzle is depends on the bearing
-   * being solved for, and the offset is negligible beside any real range.
-   *
-   * Returns the intercept time, or -1 if the target cannot be caught — in which
-   * case the turret is left pointing at the target's present position, which is
-   * the best available guess and keeps it tracking.
-   *
-   * `sweepVx`/`sweepVy` are the velocity the aim point is moving at *now*,
-   * used only for the tracking rate; they default to the velocity the lead is
-   * solved with, which is what a whole ship wants.
-   *
-   * A beam's intercept time is zero rather than -1. It arrives the instant it
-   * is fired, so there is nothing to lead and the present position *is* the
-   * solution — which is the opposite of not having one, and callers that read
-   * -1 as "cannot be caught" would have it exactly backwards.
-   */
-  aimAt(
-    bodies: Bodies,
-    i: number,
-    targetX: number,
-    targetY: number,
-    targetVx: number,
-    targetVy: number,
-    sweepVx = targetVx,
-    sweepVy = targetVy,
-  ): number {
-    const b = this.owner[i];
-    const angle = bodies.angle[b]!;
-    const c = cos(angle);
-    const s = sin(angle);
-    // Mount position in world coordinates.
-    const mx = bodies.x[b]! + this.mountX[i]! * c - this.mountY[i]! * s;
-    const my = bodies.y[b]! + this.mountX[i]! * s + this.mountY[i]! * c;
-
-    const dx = targetX - mx;
-    const dy = targetY - my;
-    const speed = this.muzzleSpeed[i]!;
-
-    // What the shot is fired *from* is the muzzle, and on a turning ship the
-    // muzzle is moving: the hull's velocity plus `ω × r` about the centre of
-    // mass. Solving the lead from the hull's velocity instead biases every
-    // shot the same way rather than scattering them, because the mount's
-    // tangential motion is the same on every trigger pull.
-    //
-    // The muzzle is placed from the bearing the barrel holds *now* rather than
-    // the one being solved for, which would be circular. That is stale by at
-    // most one step of slew — far smaller than the term it is correcting, and
-    // it keeps the barrel's own length in the answer, which using the mount
-    // alone would drop.
-    const w = bodies.angularVel[b]!;
-    const barrel = normalizeAngle(this.bearing[i]! + angle);
-    const muzzleX = mx + cos(barrel) * this.muzzleOffset[i]!;
-    const muzzleY = my + sin(barrel) * this.muzzleOffset[i]!;
-    const shooterVx = bodies.vx[b]! - w * (muzzleY - bodies.y[b]!);
-    const shooterVy = bodies.vy[b]! + w * (muzzleX - bodies.x[b]!);
-
-    let aimX = dx;
-    let aimY = dy;
-    // Negative muzzle speed marks a weapon that arrives instantaneously.
-    let t = speed < 0 ? 0 : -1;
-    if (speed > 0) {
-      t = interceptTime(dx, dy, targetVx - shooterVx, targetVy - shooterVy, speed);
-      if (t > 0) {
-        aimX = dx + (targetVx - shooterVx) * t;
-        aimY = dy + (targetVy - shooterVy) * t;
-      }
+        this.capacity = capacity;
     }
 
-    // Angular rate of the aim point about the mount: the transverse component
-    // of relative velocity over range. This is the feed-forward term, and it is
-    // what lets a turret hold a crossing target rather than trail behind it.
-    //
-    // It is taken from `sweepV` rather than from the velocity the lead was
-    // solved with, because the two answer different questions. Where a thing
-    // will be in a second's flight is a question about where it is *going*;
-    // how fast the barrel has to turn right now is a question about how fast
-    // it is moving *at this instant*. They are the same for a ship and differ
-    // for a point on a turning one — a part swinging round its hull sweeps
-    // the sky at a rate that says nothing about where the hull will be.
-    const rvx = sweepVx - shooterVx;
-    const rvy = sweepVy - shooterVy;
-    const rangeSq = aimX * aimX + aimY * aimY;
-    const bearingRate = rangeSq > 0 ? (aimX * rvy - aimY * rvx) / rangeSq : 0;
+    add(spec: TurretSpec): number {
+        let i: number;
+        const reused = this.free.pop();
+        if (reused !== undefined) {
+            i = reused;
+        } else {
+            if (this.highWater >= this.capacity) this.grow(this.capacity * 2);
+            i = this.highWater++;
+        }
 
-    this.commandWorldBearing(bodies, i, atan2(aimY, aimX), bearingRate);
-    this.aimDx[i] = aimX;
-    this.aimDy[i] = aimY;
-    this.aimTime[i] = t;
-    return t;
-  }
+        const rest = normalizeAngle(spec.restBearing ?? 0);
+        this.owner[i] = spec.owner;
+        this.mountX[i] = spec.x;
+        this.mountY[i] = spec.y;
+        this.restBearing[i] = rest;
+        this.leftArc[i] = spec.leftArc ?? PI;
+        this.rightArc[i] = spec.rightArc ?? PI;
+        this.maxRate[i] = spec.maxRate;
+        this.maxAccel[i] = spec.maxAccel;
+        this.inertia[i] = spec.inertia ?? 0;
+        this.muzzleSpeed[i] = spec.muzzleSpeed ?? 0;
+        this.muzzleOffset[i] = spec.muzzleOffset ?? 0;
+        this.outletsFixed[i] = spec.outletsFixed === true ? 1 : 0;
+        this.aimTime[i] = -1;
+        this.bearing[i] = rest;
+        this.rate[i] = 0;
+        this.commanded[i] = rest;
+        this.wanted[i] = rest;
+        this.aimDx[i] = 0;
+        this.aimDy[i] = 0;
+        this.commandedRate[i] = 0;
+        this.onTarget[i] = 1;
+        this.tolerance[i] = ON_TARGET_FLOOR;
+        this.fireSlack[i] = 0;
+        this.fireOffset[i] = 0;
+        this.fireReach[i] = 0;
+        this.inReach[i] = 1;
+        this.blocked[i] = 0;
+        this.mask[i] = spec.mask ?? NO_MASK;
+        this.lit[i] = 0;
+        this.alive[i] = 1;
+        this.count++;
+        return i;
+    }
 
-  /**
-   * Slew every turret one step and apply the reaction to its hull.
-   *
-   * **Command turrets before advancing the world, not after.** The feed-forward
-   * rate cancels the hull's rotation over the coming step, so the turret's slew
-   * and the hull's rotation have to cover the same interval. Command a turret
-   * from a hull that has *already* turned and it will hold its bearing exactly
-   * — one full step of rotation behind where it was asked to point.
-   *
-   * The rate chosen is the commanded feed-forward rate plus the fastest rate
-   * that could still brake out the remaining error, capped by the rate limit —
-   * then the actual rate moves toward that under the acceleration limit. The
-   * feed-forward term holds a moving target; the braking term corrects error;
-   * neither needs a gain.
-   */
-  step(dt: number, bodies: Bodies, reaction?: Float64Array): void {
-    for (let i = 0; i < this.highWater; i++) {
-      if (this.alive[i] === 0) continue;
+    /**
+     * Take over mount `from`'s motion and tracking, for a mount rebuilt in its
+     * place: where it points, how fast it is slewing and where to, so a rebuild
+     * is not a jerk back to rest. `turn` is how far the new hull's frame is
+     * turned from the old one's, radians, and is taken off every body-frame
+     * bearing so the barrel keeps its world bearing.
+     */
+    carry(from: number, to: number, turn: number): void {
+        this.bearing[to] = normalizeAngle(this.bearing[from]! + turn);
+        this.commanded[to] = normalizeAngle(this.commanded[from]! + turn);
+        this.wanted[to] = normalizeAngle(this.wanted[from]! + turn);
+        this.rate[to] = this.rate[from]!;
+        this.commandedRate[to] = this.commandedRate[from]!;
+        this.aimDx[to] = this.aimDx[from]!;
+        this.aimDy[to] = this.aimDy[from]!;
+        this.aimTime[to] = this.aimTime[from]!;
+        this.onTarget[to] = this.onTarget[from]!;
+        this.tolerance[to] = this.tolerance[from]!;
+        this.blocked[to] = this.blocked[from]!;
+        this.fireSlack[to] = this.fireSlack[from]!;
+        this.fireOffset[to] = this.fireOffset[from]!;
+        this.fireReach[to] = this.fireReach[from]!;
+        this.inReach[to] = this.inReach[from]!;
+        this.lit[to] = this.lit[from]!;
+    }
 
-      const error = this.slewError(i);
-      const accel = this.maxAccel[i]!;
-      const rateLimit = this.maxRate[i]!;
+    remove(i: number): void {
+        if (i < 0 || i >= this.highWater || this.alive[i] === 0) return;
+        this.alive[i] = 0;
+        this.free.push(i);
+        this.count--;
+    }
 
-      const tolerance = ON_TARGET_FLOOR;
-      this.tolerance[i] = tolerance;
-
-      // Correction rate: the fastest slew this turret can still brake out of
-      // within the remaining error, with no overshoot and no dead band. Both
-      // properties at once took three attempts and the discrete form is what
-      // has them — `brakingRate` in math.ts carries the derivation, and a
-      // pilot holding a heading uses the same law.
-      const correction = brakingRate(error, accel, dt);
-      const desired = clamp(this.commandedRate[i]! + (error >= 0 ? correction : -correction), -rateLimit, rateLimit);
-
-      const previousRate = this.rate[i]!;
-      const maxChange = accel * dt;
-      let next = desired;
-      if (desired - previousRate > maxChange) next = previousRate + maxChange;
-      else if (desired - previousRate < -maxChange) next = previousRate - maxChange;
-
-      // The arc's ends are stops: a mount carried past one by its own momentum,
-      // as when counter-rotating against a spinning hull, halts against it.
-      let bearing = normalizeAngle(this.bearing[i]! + next * dt);
-      const left = this.leftArc[i]!;
-      const right = this.rightArc[i]!;
-      if (left + right < TAU) {
+    /**
+     * How far the turret has to turn to reach its commanded bearing, signed.
+     *
+     * The short way round, unless that crosses what its arc leaves out: a mount
+     * that cannot traverse the whole circle goes round the way its arc allows,
+     * however much further that is, rather than swing its barrel through the
+     * hull that stops it.
+     */
+    private slewError(i: number): number {
+        const short = angleDelta(this.bearing[i]!, this.commanded[i]!);
+        const left = this.leftArc[i]!;
+        const right = this.rightArc[i]!;
+        if (left + right >= TAU) return short;
         const rest = this.restBearing[i]!;
-        const offset = this.arcOffset(rest, this.bearing[i]!, left, right) + next * dt;
-        if (offset > left || offset < -right) {
-          bearing = normalizeAngle(rest + (offset > left ? left : -right));
-          next = 0;
-        }
-      }
-
-      // A lit beam stops at the edge of its own ship rather than cross it.
-      const intoShip = this.lit[i] === 1 && !this.fouled(i) && masked(this.mask[i]!, angleDelta(this.restBearing[i]!, bearing));
-      if (intoShip) next = 0;
-      else this.bearing[i] = bearing;
-      this.rate[i] = next;
-      this.onTarget[i] = abs(angleDelta(this.bearing[i]!, this.commanded[i]!)) <= tolerance ? 1 : 0;
-
-      // Reaction on the hull: the internal torque pair, −I·β̈. A heavy turret
-      // slewing hard yaws a light ship, which is the point.
-      const inertia = this.inertia[i]!;
-      if (inertia > 0 && dt > 0) {
-        const angularAccel = (next - previousRate) / dt;
-        if (angularAccel !== 0) {
-          const owner = this.owner[i]!;
-          const torque = -inertia * angularAccel;
-          // Into the caller's buffer when there is one. A ship decides its
-          // wrench before the world advances, and the world clears forces at
-          // every evaluation — so a reaction written into `bodies.torque` here
-          // would be erased before it did anything. Collecting it lets the
-          // caller replay it from a force provider instead.
-          if (reaction !== undefined) reaction[owner] = reaction[owner]! + torque;
-          else bodies.torque[owner] += torque;
-        }
-      }
+        const allowed = this.arcOffset(rest, this.commanded[i]!, left, right) - this.arcOffset(rest, this.bearing[i]!, left, right);
+        // The same turn, where the short way is the allowed way: kept as the short
+        // way's own figure, which rounds differently.
+        return allowed >= 0 === short >= 0 ? short : allowed;
     }
-  }
 
-  /** World bearing of the barrel. */
-  worldBearing(bodies: Bodies, i: number): number {
-    return normalizeAngle(this.bearing[i]! + bodies.angle[this.owner[i]!]!);
-  }
-
-  /** The world bearing this turret is being told to point at. */
-  worldCommand(bodies: Bodies, i: number): number {
-    return normalizeAngle(this.commanded[i]! + bodies.angle[this.owner[i]!]!);
-  }
-
-  /**
-   * The middle of the cone this turret will fire in, as a world bearing, and
-   * how far either side of it, radians: `readyToFire`'s test.
-   */
-  worldTrigger(bodies: Bodies, i: number): number {
-    const centre = this.fireSlack[i]! > this.tolerance[i]! ? this.wanted[i]! + this.fireOffset[i]! : this.commanded[i]!;
-    return normalizeAngle(centre + bodies.angle[this.owner[i]!]!);
-  }
-
-  triggerHalfAngle(i: number): number {
-    const slack = this.fireSlack[i]!;
-    const tolerance = this.tolerance[i]!;
-    return slack > tolerance ? slack : tolerance;
-  }
-
-  /**
-   * Where a shot from this turret starts and which way it travels, filled into
-   * `out`. One rotation for the mount and one for the barrel, no allocation.
-   *
-   * An optional `lateralOffset` (metres across the mount face, perpendicular
-   * to the barrel) places the muzzle for an off-centre barrel in a multi-barrel
-   * mount.
-   */
-  firingSolution(bodies: Bodies, i: number, out: FiringSolution, lateralOffset = 0): void {
-    const b = this.owner[i]!;
-    const angle = bodies.angle[b]!;
-    const c = cos(angle);
-    const s = sin(angle);
-    const mx = bodies.x[b]! + this.mountX[i]! * c - this.mountY[i]! * s;
-    const my = bodies.y[b]! + this.mountX[i]! * s + this.mountY[i]! * c;
-
-    const world = normalizeAngle(this.bearing[i]! + angle);
-    const dirX = cos(world);
-    const dirY = sin(world);
-    const offset = this.muzzleOffset[i]!;
-
-    out.bearing = world;
-    out.dirX = dirX;
-    out.dirY = dirY;
-    // Side by side across the barrel, or across the mount for outlets that
-    // each turn in their own place.
-    let acrossX = -dirY;
-    let acrossY = dirX;
-    if (this.outletsFixed[i] === 1 && lateralOffset !== 0) {
-      const rest = this.restBearing[i]! + angle;
-      acrossX = -sin(rest);
-      acrossY = cos(rest);
+    /**
+     * A bearing as a sweep from rest within the arc, from `-right` to `+left`,
+     * unwrapped past half a circle where the arc goes that far. A bearing
+     * outside the arc, as a mount that has overrun an end by a hair, is past
+     * whichever end it is nearer: taken the short way from rest, one just past
+     * an end at half a circle read as nearly a full turn off it, and the mount
+     * went the long way round, through its block, to get back.
+     */
+    private arcOffset(rest: number, bearing: number, left: number, right: number): number {
+        const offset = angleDelta(rest, bearing);
+        if (offset >= -right && offset <= left) return offset;
+        if (offset > left && offset - TAU >= -right) return offset - TAU;
+        if (offset < -right && offset + TAU <= left) return offset + TAU;
+        const pastLeft = offset - left >= 0 ? offset - left : offset - left + TAU;
+        const pastRight = TAU - left - right - pastLeft;
+        return pastLeft <= pastRight ? left + pastLeft : -right - pastRight;
     }
-    out.x = mx + dirX * offset + acrossX * lateralOffset;
-    out.y = my + dirY * offset + acrossY * lateralOffset;
 
-    // The muzzle's own velocity, `ω × r` about the centre of mass. Leave this
-    // out and a round from a yawing ship is launched with only the hull's
-    // linear velocity, which throws the shot off across the line of fire by
-    // the tangential speed the muzzle actually had.
-    const w = bodies.angularVel[b]!;
-    out.vx = -w * (out.y - bodies.y[b]!);
-    out.vy = w * (out.x - bodies.x[b]!);
-  }
+    /** Clamp a body-frame bearing into this turret's traverse arc. */
+    private clampToArc(i: number, bodyBearing: number): number {
+        const left = this.leftArc[i]!;
+        const right = this.rightArc[i]!;
+        if (left + right >= TAU) return normalizeAngle(bodyBearing);
+        const rest = this.restBearing[i]!;
 
-  /**
-   * Whether this turret may shoot: pointing closely enough at what it was
-   * aimed at, and that within its arc.
-   *
-   * "Closely enough" is the target's own angular size (`fireSlack`) rather
-   * than a constant, so a gun stops waiting to be trained on the exact centre
-   * of something it would hit anywhere. With no slack set it falls back to the
-   * mechanical tolerance, which is a mount pointing where it was told.
-   *
-   * The cone is about where it was asked to point rather than where its arc
-   * let it, so a mount held at the end of its arc fires once the edge of a
-   * target comes round into it, and not at the empty sky beside one.
-   */
-  readyToFire(i: number): boolean {
-    if (this.alive[i] !== 1 || this.inReach[i] === 0 || this.fouled(i)) return false;
-    if (this.onTarget[i] === 1 && this.blocked[i] === 0) return true;
-    const slack = this.fireSlack[i]!;
-    return slack > 0 && abs(angleDelta(this.bearing[i]!, this.wanted[i]! + this.fireOffset[i]!)) <= slack;
-  }
+        // Sweeps are signed the way bearings are: positive is anticlockwise, which
+        // with +y to port is the ship's *left*. So the permitted band runs from
+        // `-rightArc` to `+leftArc` — the left arc bounds the positive side.
+        // Getting this the other way round is invisible while every arc is
+        // symmetric, and points guns at the wrong sky as soon as one is not.
+        //
+        // `angleDelta` always takes the short way, so it can never report a sweep
+        // past half a circle. An arc wider than that on one side therefore shows
+        // up here as a delta of the *opposite* sign, and has to be recognised as
+        // such — otherwise a mount free to swing right round one way is confined
+        // to the half-circle the short way.
+        const offset = angleDelta(rest, bodyBearing);
+        if (offset >= -right && offset <= left) return normalizeAngle(rest + offset);
+        if (offset - TAU >= -right) return normalizeAngle(rest + offset);
+        if (offset + TAU <= left) return normalizeAngle(rest + offset);
+
+        // Out of arc: stop at whichever end is nearer to where the mount was asked
+        // to point, rather than at whichever end the sign of the offset happens to
+        // pick. The difference shows the moment an arc is lopsided — a mount
+        // tracking a target across the stern would otherwise abandon it, cross the
+        // ship, and settle with the obstruction between itself and what it was
+        // following. Stopping at the near end leaves the barrel hard up against
+        // what blocks it, which is both the truth and what it looks like.
+        const leftEnd = normalizeAngle(rest + left);
+        const rightEnd = normalizeAngle(rest - right);
+        return abs(angleDelta(bodyBearing, leftEnd)) < abs(angleDelta(bodyBearing, rightEnd)) ? leftEnd : rightEnd;
+    }
+
+    /**
+     * Set the commanded bearing and refresh `onTarget` at once, so the flag never
+     * describes a command that has been superseded. Without this a caller reading
+     * `onTarget` straight after commanding a new bearing would be told the turret
+     * was already there.
+     */
+    private setCommand(i: number, allowed: number, rate: number): void {
+        this.commanded[i] = allowed;
+        this.commandedRate[i] = clamp(rate, -this.maxRate[i]!, this.maxRate[i]!);
+        this.onTarget[i] = abs(angleDelta(this.bearing[i]!, allowed)) <= this.tolerance[i]! ? 1 : 0;
+    }
+
+    /**
+     * Point at a world bearing, clamped to the arc. Sets `blocked` if it had to
+     * clamp.
+     *
+     * `worldBearingRate` is how fast that bearing is sweeping, in world terms —
+     * pass it whenever it is known, because it is what removes the tracking lag.
+     * The hull's own rotation is subtracted here, so a turret holding a fixed
+     * world bearing on a turning ship counter-rotates without being told to.
+     */
+    commandWorldBearing(bodies: Bodies, i: number, worldBearing: number, worldBearingRate = 0): void {
+        const b = this.owner[i];
+        const wanted = normalizeAngle(worldBearing - bodies.angle[b]!);
+        const allowed = this.clampToArc(i, wanted);
+        this.wanted[i] = wanted;
+        // A turret pinned against the edge of its arc is not tracking anything, so
+        // it should hold that bearing rather than keep sweeping past it.
+        const clamped = abs(angleDelta(allowed, wanted)) > this.tolerance[i]!;
+        this.setCommand(i, allowed, clamped ? 0 : worldBearingRate - bodies.angularVel[b]!);
+        this.blocked[i] = clamped ? 1 : 0;
+    }
+
+    /**
+     * Whether this mount could point at a world bearing at all.
+     *
+     * What a mount can see, rather than where it is looking: a target behind
+     * the superstructure is not one this gun can choose, however good it would
+     * otherwise be. Asked before scoring, so a broadside picks a fight on the
+     * side it is on.
+     */
+    bearsOn(bodies: Bodies, i: number, worldBearing: number): boolean {
+        const wanted = normalizeAngle(worldBearing - bodies.angle[this.owner[i]!]!);
+        return abs(angleDelta(this.clampToArc(i, wanted), wanted)) <= this.tolerance[i]!;
+    }
+
+    /**
+     * Whether this mount could point at a world bearing *and* fire along it,
+     * with nothing of its own ship downrange.
+     */
+    firesOn(bodies: Bodies, i: number, worldBearing: number): boolean {
+        if (!this.bearsOn(bodies, i, worldBearing)) return false;
+        const wanted = normalizeAngle(worldBearing - bodies.angle[this.owner[i]!]!);
+        return !masked(this.mask[i]!, angleDelta(this.restBearing[i]!, wanted));
+    }
+
+    /** Whether the barrel is pointing along a bearing its own ship is down. */
+    fouled(i: number): boolean {
+        const mask = this.mask[i]!;
+        return mask.length > 0 && masked(mask, angleDelta(this.restBearing[i]!, this.bearing[i]!));
+    }
+
+    /** Give up and return to the idle bearing, and stop tracking. */
+    returnToRest(i: number): void {
+        this.setCommand(i, this.restBearing[i]!, 0);
+        this.wanted[i] = this.restBearing[i]!;
+        this.blocked[i] = 0;
+        this.fireSlack[i] = 0;
+        this.fireOffset[i] = 0;
+        this.fireReach[i] = 0;
+        this.inReach[i] = 1;
+    }
+
+    /** Stop driving: brake to rest about where it points, and stop tracking. */
+    stop(i: number): void {
+        this.setCommand(i, this.bearing[i]!, 0);
+        this.wanted[i] = this.bearing[i]!;
+    }
+
+    /**
+     * How far off the bearing it was asked for this mount may fire, this step,
+     * measured about `offset` from it, and out to `reach` of the `range` it is at.
+     *
+     * Whoever aims the mount says so, because the answer is the angular size of
+     * what it is pointed at and the mount does not know what that is.
+     */
+    allowSlack(i: number, radians: number, offset = 0, reach = 0, range = 0): void {
+        this.fireSlack[i] = radians > 0 ? radians : 0;
+        this.fireOffset[i] = offset;
+        this.fireReach[i] = reach;
+        this.inReach[i] = reach > 0 && range > reach ? 0 : 1;
+    }
+
+    /**
+     * Aim at a moving target, leading it by the projectile's flight time.
+     *
+     * The lead is computed from the *mount* rather than the muzzle: using the
+     * muzzle would be circular, since where the muzzle is depends on the bearing
+     * being solved for, and the offset is negligible beside any real range.
+     *
+     * Returns the intercept time, or -1 if the target cannot be caught — in which
+     * case the turret is left pointing at the target's present position, which is
+     * the best available guess and keeps it tracking.
+     *
+     * `sweepVx`/`sweepVy` are the velocity the aim point is moving at *now*,
+     * used only for the tracking rate; they default to the velocity the lead is
+     * solved with, which is what a whole ship wants.
+     *
+     * A beam's intercept time is zero rather than -1. It arrives the instant it
+     * is fired, so there is nothing to lead and the present position *is* the
+     * solution — which is the opposite of not having one, and callers that read
+     * -1 as "cannot be caught" would have it exactly backwards.
+     */
+    aimAt(
+        bodies: Bodies,
+        i: number,
+        targetX: number,
+        targetY: number,
+        targetVx: number,
+        targetVy: number,
+        sweepVx = targetVx,
+        sweepVy = targetVy,
+    ): number {
+        const b = this.owner[i];
+        const angle = bodies.angle[b]!;
+        const c = cos(angle);
+        const s = sin(angle);
+        // Mount position in world coordinates.
+        const mx = bodies.x[b]! + this.mountX[i]! * c - this.mountY[i]! * s;
+        const my = bodies.y[b]! + this.mountX[i]! * s + this.mountY[i]! * c;
+
+        const dx = targetX - mx;
+        const dy = targetY - my;
+        const speed = this.muzzleSpeed[i]!;
+
+        // What the shot is fired *from* is the muzzle, and on a turning ship the
+        // muzzle is moving: the hull's velocity plus `ω × r` about the centre of
+        // mass. Solving the lead from the hull's velocity instead biases every
+        // shot the same way rather than scattering them, because the mount's
+        // tangential motion is the same on every trigger pull.
+        //
+        // The muzzle is placed from the bearing the barrel holds *now* rather than
+        // the one being solved for, which would be circular. That is stale by at
+        // most one step of slew — far smaller than the term it is correcting, and
+        // it keeps the barrel's own length in the answer, which using the mount
+        // alone would drop.
+        const w = bodies.angularVel[b]!;
+        const barrel = normalizeAngle(this.bearing[i]! + angle);
+        const muzzleX = mx + cos(barrel) * this.muzzleOffset[i]!;
+        const muzzleY = my + sin(barrel) * this.muzzleOffset[i]!;
+        const shooterVx = bodies.vx[b]! - w * (muzzleY - bodies.y[b]!);
+        const shooterVy = bodies.vy[b]! + w * (muzzleX - bodies.x[b]!);
+
+        let aimX = dx;
+        let aimY = dy;
+        // Negative muzzle speed marks a weapon that arrives instantaneously.
+        let t = speed < 0 ? 0 : -1;
+        if (speed > 0) {
+            t = interceptTime(dx, dy, targetVx - shooterVx, targetVy - shooterVy, speed);
+            if (t > 0) {
+                aimX = dx + (targetVx - shooterVx) * t;
+                aimY = dy + (targetVy - shooterVy) * t;
+            }
+        }
+
+        // Angular rate of the aim point about the mount: the transverse component
+        // of relative velocity over range. This is the feed-forward term, and it is
+        // what lets a turret hold a crossing target rather than trail behind it.
+        //
+        // It is taken from `sweepV` rather than from the velocity the lead was
+        // solved with, because the two answer different questions. Where a thing
+        // will be in a second's flight is a question about where it is *going*;
+        // how fast the barrel has to turn right now is a question about how fast
+        // it is moving *at this instant*. They are the same for a ship and differ
+        // for a point on a turning one — a part swinging round its hull sweeps
+        // the sky at a rate that says nothing about where the hull will be.
+        const rvx = sweepVx - shooterVx;
+        const rvy = sweepVy - shooterVy;
+        const rangeSq = aimX * aimX + aimY * aimY;
+        const bearingRate = rangeSq > 0 ? (aimX * rvy - aimY * rvx) / rangeSq : 0;
+
+        this.commandWorldBearing(bodies, i, atan2(aimY, aimX), bearingRate);
+        this.aimDx[i] = aimX;
+        this.aimDy[i] = aimY;
+        this.aimTime[i] = t;
+        return t;
+    }
+
+    /**
+     * Slew every turret one step and apply the reaction to its hull.
+     *
+     * **Command turrets before advancing the world, not after.** The feed-forward
+     * rate cancels the hull's rotation over the coming step, so the turret's slew
+     * and the hull's rotation have to cover the same interval. Command a turret
+     * from a hull that has *already* turned and it will hold its bearing exactly
+     * — one full step of rotation behind where it was asked to point.
+     *
+     * The rate chosen is the commanded feed-forward rate plus the fastest rate
+     * that could still brake out the remaining error, capped by the rate limit —
+     * then the actual rate moves toward that under the acceleration limit. The
+     * feed-forward term holds a moving target; the braking term corrects error;
+     * neither needs a gain.
+     */
+    step(dt: number, bodies: Bodies, reaction?: Float64Array): void {
+        for (let i = 0; i < this.highWater; i++) {
+            if (this.alive[i] === 0) continue;
+
+            const error = this.slewError(i);
+            const accel = this.maxAccel[i]!;
+            const rateLimit = this.maxRate[i]!;
+
+            const tolerance = ON_TARGET_FLOOR;
+            this.tolerance[i] = tolerance;
+
+            // Correction rate: the fastest slew this turret can still brake out of
+            // within the remaining error, with no overshoot and no dead band. Both
+            // properties at once took three attempts and the discrete form is what
+            // has them — `brakingRate` in math.ts carries the derivation, and a
+            // pilot holding a heading uses the same law.
+            const correction = brakingRate(error, accel, dt);
+            const desired = clamp(this.commandedRate[i]! + (error >= 0 ? correction : -correction), -rateLimit, rateLimit);
+
+            const previousRate = this.rate[i]!;
+            const maxChange = accel * dt;
+            let next = desired;
+            if (desired - previousRate > maxChange) next = previousRate + maxChange;
+            else if (desired - previousRate < -maxChange) next = previousRate - maxChange;
+
+            // The arc's ends are stops: a mount carried past one by its own momentum,
+            // as when counter-rotating against a spinning hull, halts against it.
+            let bearing = normalizeAngle(this.bearing[i]! + next * dt);
+            const left = this.leftArc[i]!;
+            const right = this.rightArc[i]!;
+            if (left + right < TAU) {
+                const rest = this.restBearing[i]!;
+                const offset = this.arcOffset(rest, this.bearing[i]!, left, right) + next * dt;
+                if (offset > left || offset < -right) {
+                    bearing = normalizeAngle(rest + (offset > left ? left : -right));
+                    next = 0;
+                }
+            }
+
+            // A lit beam stops at the edge of its own ship rather than cross it.
+            const intoShip = this.lit[i] === 1 && !this.fouled(i) && masked(this.mask[i]!, angleDelta(this.restBearing[i]!, bearing));
+            if (intoShip) next = 0;
+            else this.bearing[i] = bearing;
+            this.rate[i] = next;
+            this.onTarget[i] = abs(angleDelta(this.bearing[i]!, this.commanded[i]!)) <= tolerance ? 1 : 0;
+
+            // Reaction on the hull: the internal torque pair, −I·β̈. A heavy turret
+            // slewing hard yaws a light ship, which is the point.
+            const inertia = this.inertia[i]!;
+            if (inertia > 0 && dt > 0) {
+                const angularAccel = (next - previousRate) / dt;
+                if (angularAccel !== 0) {
+                    const owner = this.owner[i]!;
+                    const torque = -inertia * angularAccel;
+                    // Into the caller's buffer when there is one. A ship decides its
+                    // wrench before the world advances, and the world clears forces at
+                    // every evaluation — so a reaction written into `bodies.torque` here
+                    // would be erased before it did anything. Collecting it lets the
+                    // caller replay it from a force provider instead.
+                    if (reaction !== undefined) reaction[owner] = reaction[owner]! + torque;
+                    else bodies.torque[owner] += torque;
+                }
+            }
+        }
+    }
+
+    /** World bearing of the barrel. */
+    worldBearing(bodies: Bodies, i: number): number {
+        return normalizeAngle(this.bearing[i]! + bodies.angle[this.owner[i]!]!);
+    }
+
+    /** The world bearing this turret is being told to point at. */
+    worldCommand(bodies: Bodies, i: number): number {
+        return normalizeAngle(this.commanded[i]! + bodies.angle[this.owner[i]!]!);
+    }
+
+    /**
+     * The middle of the cone this turret will fire in, as a world bearing, and
+     * how far either side of it, radians: `readyToFire`'s test.
+     */
+    worldTrigger(bodies: Bodies, i: number): number {
+        const centre = this.fireSlack[i]! > this.tolerance[i]! ? this.wanted[i]! + this.fireOffset[i]! : this.commanded[i]!;
+        return normalizeAngle(centre + bodies.angle[this.owner[i]!]!);
+    }
+
+    triggerHalfAngle(i: number): number {
+        const slack = this.fireSlack[i]!;
+        const tolerance = this.tolerance[i]!;
+        return slack > tolerance ? slack : tolerance;
+    }
+
+    /**
+     * Where a shot from this turret starts and which way it travels, filled into
+     * `out`. One rotation for the mount and one for the barrel, no allocation.
+     *
+     * An optional `lateralOffset` (metres across the mount face, perpendicular
+     * to the barrel) places the muzzle for an off-centre barrel in a multi-barrel
+     * mount.
+     */
+    firingSolution(bodies: Bodies, i: number, out: FiringSolution, lateralOffset = 0): void {
+        const b = this.owner[i]!;
+        const angle = bodies.angle[b]!;
+        const c = cos(angle);
+        const s = sin(angle);
+        const mx = bodies.x[b]! + this.mountX[i]! * c - this.mountY[i]! * s;
+        const my = bodies.y[b]! + this.mountX[i]! * s + this.mountY[i]! * c;
+
+        const world = normalizeAngle(this.bearing[i]! + angle);
+        const dirX = cos(world);
+        const dirY = sin(world);
+        const offset = this.muzzleOffset[i]!;
+
+        out.bearing = world;
+        out.dirX = dirX;
+        out.dirY = dirY;
+        // Side by side across the barrel, or across the mount for outlets that
+        // each turn in their own place.
+        let acrossX = -dirY;
+        let acrossY = dirX;
+        if (this.outletsFixed[i] === 1 && lateralOffset !== 0) {
+            const rest = this.restBearing[i]! + angle;
+            acrossX = -sin(rest);
+            acrossY = cos(rest);
+        }
+        out.x = mx + dirX * offset + acrossX * lateralOffset;
+        out.y = my + dirY * offset + acrossY * lateralOffset;
+
+        // The muzzle's own velocity, `ω × r` about the centre of mass. Leave this
+        // out and a round from a yawing ship is launched with only the hull's
+        // linear velocity, which throws the shot off across the line of fire by
+        // the tangential speed the muzzle actually had.
+        const w = bodies.angularVel[b]!;
+        out.vx = -w * (out.y - bodies.y[b]!);
+        out.vy = w * (out.x - bodies.x[b]!);
+    }
+
+    /**
+     * Whether this turret may shoot: pointing closely enough at what it was
+     * aimed at, and that within its arc.
+     *
+     * "Closely enough" is the target's own angular size (`fireSlack`) rather
+     * than a constant, so a gun stops waiting to be trained on the exact centre
+     * of something it would hit anywhere. With no slack set it falls back to the
+     * mechanical tolerance, which is a mount pointing where it was told.
+     *
+     * The cone is about where it was asked to point rather than where its arc
+     * let it, so a mount held at the end of its arc fires once the edge of a
+     * target comes round into it, and not at the empty sky beside one.
+     */
+    readyToFire(i: number): boolean {
+        if (this.alive[i] !== 1 || this.inReach[i] === 0 || this.fouled(i)) return false;
+        if (this.onTarget[i] === 1 && this.blocked[i] === 0) return true;
+        const slack = this.fireSlack[i]!;
+        return slack > 0 && abs(angleDelta(this.bearing[i]!, this.wanted[i]! + this.fireOffset[i]!)) <= slack;
+    }
 }

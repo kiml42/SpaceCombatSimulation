@@ -1,49 +1,49 @@
-import { cos, PI, round, sin } from './math.js';
+import { cos, PI, round, sin } from "./math.js";
 import {
-  isInstance,
-  settleIds,
-  type Assembly,
-  type AssemblyInstance,
-  type AssemblyStep,
-  type Blueprint,
-  type Placement,
-} from './blueprint.js';
+    isInstance,
+    settleIds,
+    type Assembly,
+    type AssemblyInstance,
+    type AssemblyStep,
+    type Blueprint,
+    type Placement,
+} from "./blueprint.js";
 import {
-  BARREL_OUTER_CALIBRES,
-  countsOutlets,
-  hullMountGeometry,
-  isHullMount,
-  isWeaponMount,
-  MODULE_KINDS,
-  moduleThickness,
-  readsBarrelCalibres,
-  readsNozzle,
-  readsSealing,
-  readsDrainPriority,
-  readsFill,
-  readsComputing,
-  readsCraft,
-  readsDocked,
-  readsCraftAngle,
-  readsThick,
-  readsFuse,
-  readsWeapon,
-  readsMain,
-  type ModuleKind,
-  type ModuleSpec,
-  shapeModule,
-} from './modules.js';
-import { canShape, TRIANGLE_CORNERS } from './shape.js';
+    BARREL_OUTER_CALIBRES,
+    countsOutlets,
+    hullMountGeometry,
+    isHullMount,
+    isWeaponMount,
+    MODULE_KINDS,
+    moduleThickness,
+    readsBarrelCalibres,
+    readsNozzle,
+    readsSealing,
+    readsDrainPriority,
+    readsFill,
+    readsComputing,
+    readsCraft,
+    readsDocked,
+    readsCraftAngle,
+    readsThick,
+    readsFuse,
+    readsWeapon,
+    readsMain,
+    type ModuleKind,
+    type ModuleSpec,
+    shapeModule,
+} from "./modules.js";
+import { canShape, TRIANGLE_CORNERS } from "./shape.js";
 import {
-  doctrineProblem,
-  doctrineUnread,
-  serialiseDoctrine,
-  targetingProblem,
-  TARGETING_FIELDS,
-  toDoctrine,
-  type Targeting,
-} from './doctrine.js';
-import { unreadOf, unreadWarning, writeUnread, type UnreadKeys } from './unread.js';
+    doctrineProblem,
+    doctrineUnread,
+    serialiseDoctrine,
+    targetingProblem,
+    TARGETING_FIELDS,
+    toDoctrine,
+    type Targeting,
+} from "./doctrine.js";
+import { unreadOf, unreadWarning, writeUnread, type UnreadKeys } from "./unread.js";
 
 /**
  * The blueprint file format: what a saved ship looks like, and how to get a
@@ -91,50 +91,50 @@ const WHOLE_LENGTH_NOZZLE_SHARE = 0.5;
 
 /** Keys a module may carry. Anything else is kept but unread — see `UnreadKeys`. */
 const MODULE_KEYS: readonly string[] = [
-  'id',
-  'kind',
-  'x',
-  'y',
-  'angle',
-  'length',
-  'width',
-  'vertices',
-  'reinforcement',
-  'barrels',
-  'nozzle',
-  'barrelCalibres',
-  'traverse',
-  'fuse',
-  'fragments',
-  'burstSpeed',
-  'weapon',
-  'main',
-  'thick',
-  'sealing',
-  'drainPriority',
-  'fill',
-  'computing',
-  'craft',
-  'fighter',
-  'docked',
-  'keep',
-  'craftAngle',
-  'buildAnchored',
-  'targeting',
-  'notes',
+    "id",
+    "kind",
+    "x",
+    "y",
+    "angle",
+    "length",
+    "width",
+    "vertices",
+    "reinforcement",
+    "barrels",
+    "nozzle",
+    "barrelCalibres",
+    "traverse",
+    "fuse",
+    "fragments",
+    "burstSpeed",
+    "weapon",
+    "main",
+    "thick",
+    "sealing",
+    "drainPriority",
+    "fill",
+    "computing",
+    "craft",
+    "fighter",
+    "docked",
+    "keep",
+    "craftAngle",
+    "buildAnchored",
+    "targeting",
+    "notes",
 ];
 
 /** Keys an assembly instance may carry: where it goes, and nothing else. */
-const INSTANCE_KEYS: readonly string[] = ['id', 'use', 'x', 'y', 'angle', 'mirror', 'repeat', 'step', 'notes'];
+const INSTANCE_KEYS: readonly string[] = ["id", "use", "x", "y", "angle", "mirror", "repeat", "step", "notes"];
 
-const STEP_KEYS: readonly string[] = ['x', 'y', 'angle'];
+const STEP_KEYS: readonly string[] = ["x", "y", "angle"];
 
-const ASSEMBLY_KEYS: readonly string[] = ['modules', 'notes'];
+const ASSEMBLY_KEYS: readonly string[] = ["modules", "notes"];
 
-const FILE_KEYS: readonly string[] = ['formatVersion', 'name', 'notes', 'fighter', 'doctrine', 'hangar', 'assemblies', 'modules'];
+const FILE_KEYS: readonly string[] = ["formatVersion", "name", "notes", "fighter", "doctrine", "hangar", "assemblies", "modules"];
 
 export function degreesToRadians(degrees: number): number {
-  return (degrees / 180) * PI;
+    return (degrees / 180) * PI;
 }
 
 /**
@@ -142,42 +142,42 @@ export function degreesToRadians(degrees: number): number {
  * what was read is the same file: a turn there and back can move the last digit.
  */
 export function radiansToDegrees(radians: number): number {
-  let degrees = (radians / PI) * 180;
-  for (let k = 0; k < 4; k++) {
-    const back = (degreesToRadians(degrees) / PI) * 180;
-    if (back === degrees) break;
-    degrees = back;
-  }
-  return degrees;
+    let degrees = (radians / PI) * 180;
+    for (let k = 0; k < 4; k++) {
+        const back = (degreesToRadians(degrees) / PI) * 180;
+        if (back === degrees) break;
+        degrees = back;
+    }
+    return degrees;
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
+    return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function numberProblem(value: unknown, what: string): string | null {
-  if (typeof value !== 'number' || !Number.isFinite(value)) {
-    return `${what} must be a finite number, got ${JSON.stringify(value)}`;
-  }
-  return null;
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+        return `${what} must be a finite number, got ${JSON.stringify(value)}`;
+    }
+    return null;
 }
 
 function optionalNumberProblem(value: unknown, what: string): string | null {
-  return value === undefined ? null : numberProblem(value, what);
+    return value === undefined ? null : numberProblem(value, what);
 }
 
 function optionalBooleanProblem(value: unknown, what: string): string | null {
-  if (value !== undefined && typeof value !== 'boolean') {
-    return `${what} must be true or false, got ${JSON.stringify(value)}`;
-  }
-  return null;
+    if (value !== undefined && typeof value !== "boolean") {
+        return `${what} must be true or false, got ${JSON.stringify(value)}`;
+    }
+    return null;
 }
 
 function optionalStringProblem(value: unknown, what: string): string | null {
-  if (value !== undefined && typeof value !== 'string') {
-    return `${what} must be a string, got ${JSON.stringify(value)}`;
-  }
-  return null;
+    if (value !== undefined && typeof value !== "string") {
+        return `${what} must be a string, got ${JSON.stringify(value)}`;
+    }
+    return null;
 }
 
 /**
@@ -186,15 +186,15 @@ function optionalStringProblem(value: unknown, what: string): string | null {
  * also the marker for turning it half round (`currentAngle`).
  */
 function currentKind(kind: unknown): unknown {
-  return kind === 'thruster' ? 'engine' : kind;
+    return kind === "thruster" ? "engine" : kind;
 }
 
 /** A module's facing in degrees, turned half round for a `thruster` written the old way. */
 function currentAngle(raw: Record<string, unknown>): number | undefined {
-  const angle = raw['angle'] as number | undefined;
-  if (raw['kind'] !== 'thruster') return angle;
-  const turned = (angle ?? 0) + 180;
-  return turned > 180 ? turned - 360 : turned;
+    const angle = raw["angle"] as number | undefined;
+    if (raw["kind"] !== "thruster") return angle;
+    const turned = (angle ?? 0) + 180;
+    return turned > 180 ? turned - 360 : turned;
 }
 
 /**
@@ -204,18 +204,18 @@ function currentAngle(raw: Record<string, unknown>): number | undefined {
  * having one best depth. Whether there was one to read.
  */
 function legacyBarrel(spec: ModuleSpec, raw: Record<string, unknown>): boolean {
-  const share = raw['nozzle'];
-  if (!isHullMount(spec.kind) || typeof share !== 'number') return false;
-  if (spec.kind === 'hullGun' && spec.barrelCalibres === undefined) {
-    const calibre = hullMountGeometry(spec).outletWidth / BARREL_OUTER_CALIBRES;
-    if (calibre > 0) spec.barrelCalibres = round((share * spec.length * 1000) / calibre) / 1000;
-  }
-  return true;
+    const share = raw["nozzle"];
+    if (!isHullMount(spec.kind) || typeof share !== "number") return false;
+    if (spec.kind === "hullGun" && spec.barrelCalibres === undefined) {
+        const calibre = hullMountGeometry(spec).outletWidth / BARREL_OUTER_CALIBRES;
+        if (calibre > 0) spec.barrelCalibres = round((share * spec.length * 1000) / calibre) / 1000;
+    }
+    return true;
 }
 
 /** Rounded to a tenth of a millimetre, so a converted file reads cleanly. */
 function tidy(value: number): number {
-  return round(value * 10000) / 10000;
+    return round(value * 10000) / 10000;
 }
 
 /**
@@ -223,66 +223,66 @@ function tidy(value: number): number {
  * barrel it had reaching out of it: the same body, measured the current way.
  */
 function blockFromWhole(spec: ModuleSpec): void {
-  if (spec.kind === 'engine') {
-    const bell = (spec.nozzle ?? WHOLE_LENGTH_NOZZLE_SHARE) * spec.length;
-    const exit = moduleThickness(spec);
-    spec.length = tidy(spec.length - bell);
-    if (exit > 0) spec.nozzle = tidy(bell / exit);
-    return;
-  }
-  if (!isHullMount(spec.kind)) return;
-  // A barrel's length is its calibres and bore, which the module's length
-  // does not enter into; the block is what is left behind it.
-  const barrel = hullMountGeometry(spec).barrelLength;
-  const angle = spec.angle ?? 0;
-  spec.length = tidy(spec.length - barrel);
-  spec.x = tidy(spec.x - cos(angle) * barrel * 0.5);
-  spec.y = tidy(spec.y - sin(angle) * barrel * 0.5);
+    if (spec.kind === "engine") {
+        const bell = (spec.nozzle ?? WHOLE_LENGTH_NOZZLE_SHARE) * spec.length;
+        const exit = moduleThickness(spec);
+        spec.length = tidy(spec.length - bell);
+        if (exit > 0) spec.nozzle = tidy(bell / exit);
+        return;
+    }
+    if (!isHullMount(spec.kind)) return;
+    // A barrel's length is its calibres and bore, which the module's length
+    // does not enter into; the block is what is left behind it.
+    const barrel = hullMountGeometry(spec).barrelLength;
+    const angle = spec.angle ?? 0;
+    spec.length = tidy(spec.length - barrel);
+    spec.x = tidy(spec.x - cos(angle) * barrel * 0.5);
+    spec.y = tidy(spec.y - sin(angle) * barrel * 0.5);
 }
 
 function moduleShapeProblem(value: Record<string, unknown>, where: string): string | null {
-  const kind = currentKind(value['kind']);
-  if (typeof kind !== 'string' || !(MODULE_KINDS as readonly string[]).includes(kind)) {
-    return `${where}: kind must be one of ${MODULE_KINDS.join(', ')}, got ${JSON.stringify(value['kind'])}`;
-  }
+    const kind = currentKind(value["kind"]);
+    if (typeof kind !== "string" || !(MODULE_KINDS as readonly string[]).includes(kind)) {
+        return `${where}: kind must be one of ${MODULE_KINDS.join(", ")}, got ${JSON.stringify(value["kind"])}`;
+    }
 
-  const shaped = value['vertices'] !== undefined && canShape(kind as ModuleKind);
-  return (
-    idProblem(value['id'], where) ??
-    numberProblem(value['x'], `${where}: x`) ??
-    verticesProblem(value['vertices'], kind as ModuleKind, `${where}: vertices`) ??
-    numberProblem(value['y'], `${where}: y`) ??
-    // A shaped module's size is its corners, so it need not repeat it. The
-    // keys are still written back, since every other reader of a layout —
-    // a mutation, a refit, the editor's number boxes — asks a module how big
-    // it is before it asks what shape.
-    (shaped ? null : (numberProblem(value['length'], `${where}: length`) ?? numberProblem(value['width'], `${where}: width`))) ??
-    optionalNumberProblem(value['angle'], `${where}: angle`) ??
-    optionalNumberProblem(value['reinforcement'], `${where}: reinforcement`) ??
-    optionalNumberProblem(value['barrels'], `${where}: barrels`) ??
-    optionalNumberProblem(value['nozzle'], `${where}: nozzle`) ??
-    optionalNumberProblem(value['barrelCalibres'], `${where}: barrelCalibres`) ??
-    optionalNumberProblem(value['traverse'], `${where}: traverse`) ??
-    optionalNumberProblem(value['fuse'], `${where}: fuse`) ??
-    optionalNumberProblem(value['fragments'], `${where}: fragments`) ??
-    optionalNumberProblem(value['burstSpeed'], `${where}: burstSpeed`) ??
-    optionalBooleanProblem(value['weapon'], `${where}: weapon`) ??
-    optionalBooleanProblem(value['main'], `${where}: main`) ??
-    optionalBooleanProblem(value['thick'], `${where}: thick`) ??
-    optionalNumberProblem(value['sealing'], `${where}: sealing`) ??
-    optionalNumberProblem(value['drainPriority'], `${where}: drainPriority`) ??
-    optionalNumberProblem(value['fill'], `${where}: fill`) ??
-    optionalNumberProblem(value['computing'], `${where}: computing`) ??
-    optionalStringProblem(value['craft'], `${where}: craft`) ??
-    // The older forms: `fighter` for `craft`, and a string the fighter's name, set out docked.
-    optionalStringProblem(value['fighter'], `${where}: fighter`) ??
-    (typeof value['docked'] === 'string' ? null : optionalBooleanProblem(value['docked'], `${where}: docked`)) ??
-    optionalNumberProblem(value['keep'], `${where}: keep`) ??
-    optionalNumberProblem(value['craftAngle'], `${where}: craftAngle`) ??
-    optionalBooleanProblem(value['buildAnchored'], `${where}: buildAnchored`) ??
-    targetingProblem(value['targeting'], `${where}: targeting`) ??
-    optionalStringProblem(value['notes'], `${where}: notes`)
-  );
+    const shaped = value["vertices"] !== undefined && canShape(kind as ModuleKind);
+    return (
+        idProblem(value["id"], where) ??
+        numberProblem(value["x"], `${where}: x`) ??
+        verticesProblem(value["vertices"], kind as ModuleKind, `${where}: vertices`) ??
+        numberProblem(value["y"], `${where}: y`) ??
+        // A shaped module's size is its corners, so it need not repeat it. The
+        // keys are still written back, since every other reader of a layout —
+        // a mutation, a refit, the editor's number boxes — asks a module how big
+        // it is before it asks what shape.
+        (shaped ? null : (numberProblem(value["length"], `${where}: length`) ?? numberProblem(value["width"], `${where}: width`))) ??
+        optionalNumberProblem(value["angle"], `${where}: angle`) ??
+        optionalNumberProblem(value["reinforcement"], `${where}: reinforcement`) ??
+        optionalNumberProblem(value["barrels"], `${where}: barrels`) ??
+        optionalNumberProblem(value["nozzle"], `${where}: nozzle`) ??
+        optionalNumberProblem(value["barrelCalibres"], `${where}: barrelCalibres`) ??
+        optionalNumberProblem(value["traverse"], `${where}: traverse`) ??
+        optionalNumberProblem(value["fuse"], `${where}: fuse`) ??
+        optionalNumberProblem(value["fragments"], `${where}: fragments`) ??
+        optionalNumberProblem(value["burstSpeed"], `${where}: burstSpeed`) ??
+        optionalBooleanProblem(value["weapon"], `${where}: weapon`) ??
+        optionalBooleanProblem(value["main"], `${where}: main`) ??
+        optionalBooleanProblem(value["thick"], `${where}: thick`) ??
+        optionalNumberProblem(value["sealing"], `${where}: sealing`) ??
+        optionalNumberProblem(value["drainPriority"], `${where}: drainPriority`) ??
+        optionalNumberProblem(value["fill"], `${where}: fill`) ??
+        optionalNumberProblem(value["computing"], `${where}: computing`) ??
+        optionalStringProblem(value["craft"], `${where}: craft`) ??
+        // The older forms: `fighter` for `craft`, and a string the fighter's name, set out docked.
+        optionalStringProblem(value["fighter"], `${where}: fighter`) ??
+        (typeof value["docked"] === "string" ? null : optionalBooleanProblem(value["docked"], `${where}: docked`)) ??
+        optionalNumberProblem(value["keep"], `${where}: keep`) ??
+        optionalNumberProblem(value["craftAngle"], `${where}: craftAngle`) ??
+        optionalBooleanProblem(value["buildAnchored"], `${where}: buildAnchored`) ??
+        targetingProblem(value["targeting"], `${where}: targeting`) ??
+        optionalStringProblem(value["notes"], `${where}: notes`)
+    );
 }
 
 /**
@@ -295,25 +295,25 @@ function moduleShapeProblem(value: Record<string, unknown>, where: string): stri
  * never reach a file.
  */
 function moduleReads(kind: ModuleKind): readonly string[] {
-  return MODULE_KEYS.filter((key) => {
-    if (key === 'nozzle') return readsNozzle(kind);
-    if (key === 'barrelCalibres') return readsBarrelCalibres(kind);
-    if (key === 'barrels') return countsOutlets(kind);
-    if (key === 'traverse') return isWeaponMount(kind);
-    if (key === 'fuse' || key === 'fragments' || key === 'burstSpeed') return readsFuse(kind);
-    if (key === 'weapon') return readsWeapon(kind);
-    if (key === 'main') return readsMain(kind);
-    if (key === 'thick') return readsThick(kind);
-    if (key === 'sealing') return readsSealing(kind);
-    if (key === 'drainPriority') return readsDrainPriority(kind);
-    if (key === 'fill') return readsFill(kind);
-    if (key === 'computing') return readsComputing(kind);
-    if (key === 'craft' || key === 'fighter' || key === 'keep' || key === 'buildAnchored') return readsCraft(kind);
-    if (key === 'docked') return readsDocked(kind);
-    if (key === 'craftAngle') return readsCraftAngle(kind);
-    if (key === 'vertices') return canShape(kind);
-    return true;
-  });
+    return MODULE_KEYS.filter((key) => {
+        if (key === "nozzle") return readsNozzle(kind);
+        if (key === "barrelCalibres") return readsBarrelCalibres(kind);
+        if (key === "barrels") return countsOutlets(kind);
+        if (key === "traverse") return isWeaponMount(kind);
+        if (key === "fuse" || key === "fragments" || key === "burstSpeed") return readsFuse(kind);
+        if (key === "weapon") return readsWeapon(kind);
+        if (key === "main") return readsMain(kind);
+        if (key === "thick") return readsThick(kind);
+        if (key === "sealing") return readsSealing(kind);
+        if (key === "drainPriority") return readsDrainPriority(kind);
+        if (key === "fill") return readsFill(kind);
+        if (key === "computing") return readsComputing(kind);
+        if (key === "craft" || key === "fighter" || key === "keep" || key === "buildAnchored") return readsCraft(kind);
+        if (key === "docked") return readsDocked(kind);
+        if (key === "craftAngle") return readsCraftAngle(kind);
+        if (key === "vertices") return canShape(kind);
+        return true;
+    });
 }
 
 /**
@@ -325,51 +325,51 @@ function moduleReads(kind: ModuleKind): readonly string[] {
  * re-centred as they are read, so an author may place them anywhere.
  */
 function verticesProblem(value: unknown, kind: ModuleKind, where: string): string | null {
-  if (value === undefined) return null;
-  if (!canShape(kind)) return `${where}: only structure, tanks and holds may be given corners`;
-  if (!Array.isArray(value) || value.length !== TRIANGLE_CORNERS * 2) {
-    return `${where}: must be ${TRIANGLE_CORNERS} corners as ${TRIANGLE_CORNERS * 2} x,y numbers`;
-  }
-  for (const corner of value) {
-    const problem = numberProblem(corner, where);
-    if (problem !== null) return problem;
-  }
-  return null;
+    if (value === undefined) return null;
+    if (!canShape(kind)) return `${where}: only structure, tanks and holds may be given corners`;
+    if (!Array.isArray(value) || value.length !== TRIANGLE_CORNERS * 2) {
+        return `${where}: must be ${TRIANGLE_CORNERS} corners as ${TRIANGLE_CORNERS * 2} x,y numbers`;
+    }
+    for (const corner of value) {
+        const problem = numberProblem(corner, where);
+        if (problem !== null) return problem;
+    }
+    return null;
 }
 
 /** What is wrong with a placement's `id`, or null: absent, or a whole number from one. */
 function idProblem(value: unknown, where: string): string | null {
-  if (value === undefined || (typeof value === 'number' && Number.isInteger(value) && value >= 1)) return null;
-  return `${where}: id must be a whole number from 1, got ${JSON.stringify(value)}`;
+    if (value === undefined || (typeof value === "number" && Number.isInteger(value) && value >= 1)) return null;
+    return `${where}: id must be a whole number from 1, got ${JSON.stringify(value)}`;
 }
 
 function instanceShapeProblem(value: Record<string, unknown>, where: string): string | null {
-  const id = idProblem(value['id'], where);
-  if (id !== null) return id;
-  if (typeof value['use'] !== 'string' || value['use'] === '') {
-    return `${where}: use must be the name of an assembly, got ${JSON.stringify(value['use'])}`;
-  }
-  const mirror = value['mirror'];
-  if (mirror !== undefined && typeof mirror !== 'boolean') {
-    return `${where}: mirror must be true or false, got ${JSON.stringify(mirror)}`;
-  }
-  const step = value['step'];
-  if (step !== undefined) {
-    if (!isObject(step)) return `${where}: step must be an object, got ${JSON.stringify(step)}`;
-    const problem =
-      numberProblem(step['x'], `${where}: step x`) ??
-      numberProblem(step['y'], `${where}: step y`) ??
-      optionalNumberProblem(step['angle'], `${where}: step angle`);
-    if (problem !== null) return problem;
-  }
+    const id = idProblem(value["id"], where);
+    if (id !== null) return id;
+    if (typeof value["use"] !== "string" || value["use"] === "") {
+        return `${where}: use must be the name of an assembly, got ${JSON.stringify(value["use"])}`;
+    }
+    const mirror = value["mirror"];
+    if (mirror !== undefined && typeof mirror !== "boolean") {
+        return `${where}: mirror must be true or false, got ${JSON.stringify(mirror)}`;
+    }
+    const step = value["step"];
+    if (step !== undefined) {
+        if (!isObject(step)) return `${where}: step must be an object, got ${JSON.stringify(step)}`;
+        const problem =
+            numberProblem(step["x"], `${where}: step x`) ??
+            numberProblem(step["y"], `${where}: step y`) ??
+            optionalNumberProblem(step["angle"], `${where}: step angle`);
+        if (problem !== null) return problem;
+    }
 
-  return (
-    numberProblem(value['x'], `${where}: x`) ??
-    numberProblem(value['y'], `${where}: y`) ??
-    optionalNumberProblem(value['angle'], `${where}: angle`) ??
-    optionalNumberProblem(value['repeat'], `${where}: repeat`) ??
-    optionalStringProblem(value['notes'], `${where}: notes`)
-  );
+    return (
+        numberProblem(value["x"], `${where}: x`) ??
+        numberProblem(value["y"], `${where}: y`) ??
+        optionalNumberProblem(value["angle"], `${where}: angle`) ??
+        optionalNumberProblem(value["repeat"], `${where}: repeat`) ??
+        optionalStringProblem(value["notes"], `${where}: notes`)
+    );
 }
 
 /**
@@ -380,31 +380,31 @@ function instanceShapeProblem(value: Record<string, unknown>, where: string): st
  * use assemblies, and reads as one thing per line either way.
  */
 function placementShapeProblem(value: unknown, where: string): string | null {
-  if (!isObject(value)) return `${where} must be an object, got ${JSON.stringify(value)}`;
-  return 'use' in value ? instanceShapeProblem(value, where) : moduleShapeProblem(value, where);
+    if (!isObject(value)) return `${where} must be an object, got ${JSON.stringify(value)}`;
+    return "use" in value ? instanceShapeProblem(value, where) : moduleShapeProblem(value, where);
 }
 
 function placementsShapeProblem(value: unknown, where: string): string | null {
-  if (!Array.isArray(value)) return `${where} must be an array, got ${JSON.stringify(value)}`;
-  for (let i = 0; i < value.length; i++) {
-    const problem = placementShapeProblem(value[i], `${where}[${i}]`);
-    if (problem !== null) return problem;
-  }
-  return null;
+    if (!Array.isArray(value)) return `${where} must be an array, got ${JSON.stringify(value)}`;
+    for (let i = 0; i < value.length; i++) {
+        const problem = placementShapeProblem(value[i], `${where}[${i}]`);
+        if (problem !== null) return problem;
+    }
+    return null;
 }
 
 function assembliesShapeProblem(value: unknown): string | null {
-  if (value === undefined) return null;
-  if (!isObject(value)) return `assemblies must be an object, got ${JSON.stringify(value)}`;
+    if (value === undefined) return null;
+    if (!isObject(value)) return `assemblies must be an object, got ${JSON.stringify(value)}`;
 
-  for (const [name, assembly] of Object.entries(value)) {
-    if (!isObject(assembly)) return `assembly ${name} must be an object`;
-    const notes = optionalStringProblem(assembly['notes'], `assembly ${name}: notes`);
-    if (notes !== null) return notes;
-    const modules = placementsShapeProblem(assembly['modules'], `assembly ${name}: modules`);
-    if (modules !== null) return modules;
-  }
-  return null;
+    for (const [name, assembly] of Object.entries(value)) {
+        if (!isObject(assembly)) return `assembly ${name} must be an object`;
+        const notes = optionalStringProblem(assembly["notes"], `assembly ${name}: notes`);
+        if (notes !== null) return notes;
+        const modules = placementsShapeProblem(assembly["modules"], `assembly ${name}: modules`);
+        if (modules !== null) return modules;
+    }
+    return null;
 }
 
 /**
@@ -420,176 +420,176 @@ function assembliesShapeProblem(value: unknown): string | null {
  */
 /** What makes a hangar unreadable, or null: an object of blueprint files, by name. */
 function hangarProblem(value: unknown): string | null {
-  if (value === undefined) return null;
-  if (!isObject(value)) return `hangar must be an object, got ${JSON.stringify(value)}`;
-  for (const [name, file] of Object.entries(value)) {
-    const problem = blueprintFileProblem(file);
-    if (problem !== null) return `hangar, ${name}: ${problem}`;
-  }
-  return null;
+    if (value === undefined) return null;
+    if (!isObject(value)) return `hangar must be an object, got ${JSON.stringify(value)}`;
+    for (const [name, file] of Object.entries(value)) {
+        const problem = blueprintFileProblem(file);
+        if (problem !== null) return `hangar, ${name}: ${problem}`;
+    }
+    return null;
 }
 
 export function blueprintFileProblem(value: unknown): string | null {
-  if (!isObject(value)) return `a blueprint file must be an object, got ${JSON.stringify(value)}`;
+    if (!isObject(value)) return `a blueprint file must be an object, got ${JSON.stringify(value)}`;
 
-  const version = value['formatVersion'];
-  if (version !== BLUEPRINT_FORMAT_VERSION && version !== WHOLE_LENGTH_FORMAT) {
-    return `formatVersion must be ${WHOLE_LENGTH_FORMAT} or ${BLUEPRINT_FORMAT_VERSION}, got ${JSON.stringify(version)}`;
-  }
+    const version = value["formatVersion"];
+    if (version !== BLUEPRINT_FORMAT_VERSION && version !== WHOLE_LENGTH_FORMAT) {
+        return `formatVersion must be ${WHOLE_LENGTH_FORMAT} or ${BLUEPRINT_FORMAT_VERSION}, got ${JSON.stringify(version)}`;
+    }
 
-  const name = value['name'];
-  if (typeof name !== 'string' || name.trim() === '') {
-    return `name must be a non-empty string, got ${JSON.stringify(name)}`;
-  }
+    const name = value["name"];
+    if (typeof name !== "string" || name.trim() === "") {
+        return `name must be a non-empty string, got ${JSON.stringify(name)}`;
+    }
 
-  const notesProblem = optionalStringProblem(value['notes'], 'notes');
-  if (notesProblem !== null) return notesProblem;
+    const notesProblem = optionalStringProblem(value["notes"], "notes");
+    if (notesProblem !== null) return notesProblem;
 
-  const fighter = optionalBooleanProblem(value['fighter'], 'fighter');
-  if (fighter !== null) return fighter;
+    const fighter = optionalBooleanProblem(value["fighter"], "fighter");
+    if (fighter !== null) return fighter;
 
-  const doctrine = doctrineProblem(value['doctrine']);
-  if (doctrine !== null) return doctrine;
+    const doctrine = doctrineProblem(value["doctrine"]);
+    if (doctrine !== null) return doctrine;
 
-  const hangar = hangarProblem(value['hangar']);
-  if (hangar !== null) return hangar;
+    const hangar = hangarProblem(value["hangar"]);
+    if (hangar !== null) return hangar;
 
-  const assemblies = assembliesShapeProblem(value['assemblies']);
-  if (assemblies !== null) return assemblies;
+    const assemblies = assembliesShapeProblem(value["assemblies"]);
+    if (assemblies !== null) return assemblies;
 
-  return placementsShapeProblem(value['modules'], 'modules');
+    return placementsShapeProblem(value["modules"], "modules");
 }
 
 /** Assemble a blueprint from a file whose shape has already been checked. */
 function toBlueprint(file: Record<string, unknown>): Blueprint {
-  // Each file says its own format, a hangar's fighters included.
-  const whole = file['formatVersion'] === WHOLE_LENGTH_FORMAT;
-  const blueprint: Blueprint = {
-    name: file['name'] as string,
-    modules: toPlacements(file['modules'] as unknown[], whole),
-  };
-  if (file['notes'] !== undefined) blueprint.notes = file['notes'] as string;
-  if (file['fighter'] !== undefined) blueprint.fighter = file['fighter'] as boolean;
-  if (file['doctrine'] !== undefined) {
-    blueprint.doctrine = toDoctrine(file['doctrine']);
-    const unreadDoctrine = doctrineUnread(file['doctrine']);
-    if (unreadDoctrine !== undefined) blueprint.unreadDoctrine = unreadDoctrine;
-  }
-  const unread = unreadOf(file, FILE_KEYS);
-  if (unread !== undefined) blueprint.unread = unread;
-
-  const rawHangar = file['hangar'] as Record<string, Record<string, unknown>> | undefined;
-  if (rawHangar !== undefined) {
-    const hangar: Record<string, Blueprint> = {};
-    for (const [name, raw] of Object.entries(rawHangar)) hangar[name] = toBlueprint(raw);
-    blueprint.hangar = hangar;
-  }
-
-  const rawAssemblies = file['assemblies'] as Record<string, Record<string, unknown>> | undefined;
-  if (rawAssemblies !== undefined) {
-    const assemblies: Record<string, Assembly> = {};
-    for (const [name, raw] of Object.entries(rawAssemblies)) {
-      const assembly: Assembly = { modules: toPlacements(raw['modules'] as unknown[], whole) };
-      if (raw['notes'] !== undefined) assembly.notes = raw['notes'] as string;
-      const unreadAssembly = unreadOf(raw, ASSEMBLY_KEYS);
-      if (unreadAssembly !== undefined) assembly.unread = unreadAssembly;
-      assemblies[name] = assembly;
+    // Each file says its own format, a hangar's fighters included.
+    const whole = file["formatVersion"] === WHOLE_LENGTH_FORMAT;
+    const blueprint: Blueprint = {
+        name: file["name"] as string,
+        modules: toPlacements(file["modules"] as unknown[], whole),
+    };
+    if (file["notes"] !== undefined) blueprint.notes = file["notes"] as string;
+    if (file["fighter"] !== undefined) blueprint.fighter = file["fighter"] as boolean;
+    if (file["doctrine"] !== undefined) {
+        blueprint.doctrine = toDoctrine(file["doctrine"]);
+        const unreadDoctrine = doctrineUnread(file["doctrine"]);
+        if (unreadDoctrine !== undefined) blueprint.unreadDoctrine = unreadDoctrine;
     }
-    blueprint.assemblies = assemblies;
-  }
+    const unread = unreadOf(file, FILE_KEYS);
+    if (unread !== undefined) blueprint.unread = unread;
 
-  // A file from before placements had ids, or one edited by hand, is given them here.
-  return settleIds(blueprint);
+    const rawHangar = file["hangar"] as Record<string, Record<string, unknown>> | undefined;
+    if (rawHangar !== undefined) {
+        const hangar: Record<string, Blueprint> = {};
+        for (const [name, raw] of Object.entries(rawHangar)) hangar[name] = toBlueprint(raw);
+        blueprint.hangar = hangar;
+    }
+
+    const rawAssemblies = file["assemblies"] as Record<string, Record<string, unknown>> | undefined;
+    if (rawAssemblies !== undefined) {
+        const assemblies: Record<string, Assembly> = {};
+        for (const [name, raw] of Object.entries(rawAssemblies)) {
+            const assembly: Assembly = { modules: toPlacements(raw["modules"] as unknown[], whole) };
+            if (raw["notes"] !== undefined) assembly.notes = raw["notes"] as string;
+            const unreadAssembly = unreadOf(raw, ASSEMBLY_KEYS);
+            if (unreadAssembly !== undefined) assembly.unread = unreadAssembly;
+            assemblies[name] = assembly;
+        }
+        blueprint.assemblies = assemblies;
+    }
+
+    // A file from before placements had ids, or one edited by hand, is given them here.
+    return settleIds(blueprint);
 }
 
 function toPlacements(raws: unknown[], whole: boolean): Placement[] {
-  return raws.map((value) => {
-    const raw = value as Record<string, unknown>;
-    // Assigned conditionally rather than written as `angle: raw.angle`,
-    // because `exactOptionalPropertyTypes` distinguishes an absent optional
-    // field from one present and undefined, and the two must round-trip the
-    // same way.
-    if ('use' in raw) {
-      const instance: AssemblyInstance = {
-        use: raw['use'] as string,
-        x: raw['x'] as number,
-        y: raw['y'] as number,
-      };
-      if (raw['id'] !== undefined) instance.id = raw['id'] as number;
-      if (raw['angle'] !== undefined) instance.angle = degreesToRadians(raw['angle'] as number);
-      if (raw['mirror'] !== undefined) instance.mirror = raw['mirror'] as boolean;
-      if (raw['repeat'] !== undefined) instance.repeat = raw['repeat'] as number;
-      if (raw['step'] !== undefined) {
-        const rawStep = raw['step'] as Record<string, unknown>;
-        const step: AssemblyStep = { x: rawStep['x'] as number, y: rawStep['y'] as number };
-        if (rawStep['angle'] !== undefined) step.angle = degreesToRadians(rawStep['angle'] as number);
-        const unreadStep = unreadOf(rawStep, STEP_KEYS);
-        if (unreadStep !== undefined) step.unread = unreadStep;
-        instance.step = step;
-      }
-      if (raw['notes'] !== undefined) instance.notes = raw['notes'] as string;
-      const unreadInstance = unreadOf(raw, INSTANCE_KEYS);
-      if (unreadInstance !== undefined) instance.unread = unreadInstance;
-      return instance;
-    }
+    return raws.map((value) => {
+        const raw = value as Record<string, unknown>;
+        // Assigned conditionally rather than written as `angle: raw.angle`,
+        // because `exactOptionalPropertyTypes` distinguishes an absent optional
+        // field from one present and undefined, and the two must round-trip the
+        // same way.
+        if ("use" in raw) {
+            const instance: AssemblyInstance = {
+                use: raw["use"] as string,
+                x: raw["x"] as number,
+                y: raw["y"] as number,
+            };
+            if (raw["id"] !== undefined) instance.id = raw["id"] as number;
+            if (raw["angle"] !== undefined) instance.angle = degreesToRadians(raw["angle"] as number);
+            if (raw["mirror"] !== undefined) instance.mirror = raw["mirror"] as boolean;
+            if (raw["repeat"] !== undefined) instance.repeat = raw["repeat"] as number;
+            if (raw["step"] !== undefined) {
+                const rawStep = raw["step"] as Record<string, unknown>;
+                const step: AssemblyStep = { x: rawStep["x"] as number, y: rawStep["y"] as number };
+                if (rawStep["angle"] !== undefined) step.angle = degreesToRadians(rawStep["angle"] as number);
+                const unreadStep = unreadOf(rawStep, STEP_KEYS);
+                if (unreadStep !== undefined) step.unread = unreadStep;
+                instance.step = step;
+            }
+            if (raw["notes"] !== undefined) instance.notes = raw["notes"] as string;
+            const unreadInstance = unreadOf(raw, INSTANCE_KEYS);
+            if (unreadInstance !== undefined) instance.unread = unreadInstance;
+            return instance;
+        }
 
-    const kind = currentKind(raw['kind']) as ModuleKind;
-    const reads = moduleReads(kind);
-    const spec: ModuleSpec = {
-      kind,
-      x: raw['x'] as number,
-      y: raw['y'] as number,
-      length: (raw['length'] as number | undefined) ?? 0,
-      width: (raw['width'] as number | undefined) ?? 0,
-    };
-    if (raw['id'] !== undefined) spec.id = raw['id'] as number;
-    const angle = currentAngle(raw);
-    if (angle !== undefined) spec.angle = degreesToRadians(angle);
-    if (raw['reinforcement'] !== undefined) spec.reinforcement = raw['reinforcement'] as number;
-    // Only what this kind reads; anything else is kept below as unread.
-    const read = (key: string): boolean => raw[key] !== undefined && reads.includes(key);
-    if (read('barrels')) spec.barrels = raw['barrels'] as number;
-    if (read('nozzle')) spec.nozzle = raw['nozzle'] as number;
-    if (read('barrelCalibres')) spec.barrelCalibres = raw['barrelCalibres'] as number;
-    // Degrees in the file and radians in the simulation, as every other angle.
-    if (read('traverse')) spec.traverse = degreesToRadians(raw['traverse'] as number);
-    if (read('fuse')) spec.fuse = raw['fuse'] as number;
-    if (read('fragments')) spec.fragments = raw['fragments'] as number;
-    if (read('burstSpeed')) spec.burstSpeed = raw['burstSpeed'] as number;
-    if (read('weapon')) spec.weapon = raw['weapon'] as boolean;
-    if (read('main')) spec.main = raw['main'] as boolean;
-    if (read('thick')) spec.thick = raw['thick'] as boolean;
-    if (read('sealing')) spec.sealing = raw['sealing'] as number;
-    if (read('drainPriority')) spec.drainPriority = raw['drainPriority'] as number;
-    if (read('fill')) spec.fill = raw['fill'] as number;
-    if (read('computing')) spec.computing = raw['computing'] as number;
-    if (read('fighter')) spec.craft = raw['fighter'] as string;
-    if (read('craft')) spec.craft = raw['craft'] as string;
-    if (read('docked')) {
-      const docked = raw['docked'] as string | boolean;
-      if (typeof docked === 'string') spec.craft = docked;
-      spec.docked = docked !== false;
-    }
-    if (read('keep')) spec.keep = raw['keep'] as number;
-    if (read('buildAnchored')) spec.buildAnchored = raw['buildAnchored'] as boolean;
-    if (read('craftAngle')) spec.craftAngle = degreesToRadians(raw['craftAngle'] as number);
-    // Copied whole, so a key the block does not know goes back out with it.
-    if (raw['targeting'] !== undefined) spec.targeting = { ...(raw['targeting'] as Partial<Targeting>) };
-    if (raw['notes'] !== undefined) spec.notes = raw['notes'] as string;
-    const legacy = legacyBarrel(spec, raw);
-    if (whole) blockFromWhole(spec);
-    const unread = unreadOf(raw, legacy ? [...reads, 'nozzle'] : reads);
-    if (unread !== undefined) spec.unread = unread;
-    if (read('vertices')) {
-      // Re-centred on the corners' own middle and wound the way the simulation
-      // holds them, which moves the module's position rather than the corners:
-      // an author places three points on the ship and need not work out where
-      // their centroid landed, nor which way round they went.
-      const shaped = shapeModule(spec, raw['vertices'] as number[]);
-      if (shaped !== null) return shaped;
-    }
-    return spec;
-  });
+        const kind = currentKind(raw["kind"]) as ModuleKind;
+        const reads = moduleReads(kind);
+        const spec: ModuleSpec = {
+            kind,
+            x: raw["x"] as number,
+            y: raw["y"] as number,
+            length: (raw["length"] as number | undefined) ?? 0,
+            width: (raw["width"] as number | undefined) ?? 0,
+        };
+        if (raw["id"] !== undefined) spec.id = raw["id"] as number;
+        const angle = currentAngle(raw);
+        if (angle !== undefined) spec.angle = degreesToRadians(angle);
+        if (raw["reinforcement"] !== undefined) spec.reinforcement = raw["reinforcement"] as number;
+        // Only what this kind reads; anything else is kept below as unread.
+        const read = (key: string): boolean => raw[key] !== undefined && reads.includes(key);
+        if (read("barrels")) spec.barrels = raw["barrels"] as number;
+        if (read("nozzle")) spec.nozzle = raw["nozzle"] as number;
+        if (read("barrelCalibres")) spec.barrelCalibres = raw["barrelCalibres"] as number;
+        // Degrees in the file and radians in the simulation, as every other angle.
+        if (read("traverse")) spec.traverse = degreesToRadians(raw["traverse"] as number);
+        if (read("fuse")) spec.fuse = raw["fuse"] as number;
+        if (read("fragments")) spec.fragments = raw["fragments"] as number;
+        if (read("burstSpeed")) spec.burstSpeed = raw["burstSpeed"] as number;
+        if (read("weapon")) spec.weapon = raw["weapon"] as boolean;
+        if (read("main")) spec.main = raw["main"] as boolean;
+        if (read("thick")) spec.thick = raw["thick"] as boolean;
+        if (read("sealing")) spec.sealing = raw["sealing"] as number;
+        if (read("drainPriority")) spec.drainPriority = raw["drainPriority"] as number;
+        if (read("fill")) spec.fill = raw["fill"] as number;
+        if (read("computing")) spec.computing = raw["computing"] as number;
+        if (read("fighter")) spec.craft = raw["fighter"] as string;
+        if (read("craft")) spec.craft = raw["craft"] as string;
+        if (read("docked")) {
+            const docked = raw["docked"] as string | boolean;
+            if (typeof docked === "string") spec.craft = docked;
+            spec.docked = docked !== false;
+        }
+        if (read("keep")) spec.keep = raw["keep"] as number;
+        if (read("buildAnchored")) spec.buildAnchored = raw["buildAnchored"] as boolean;
+        if (read("craftAngle")) spec.craftAngle = degreesToRadians(raw["craftAngle"] as number);
+        // Copied whole, so a key the block does not know goes back out with it.
+        if (raw["targeting"] !== undefined) spec.targeting = { ...(raw["targeting"] as Partial<Targeting>) };
+        if (raw["notes"] !== undefined) spec.notes = raw["notes"] as string;
+        const legacy = legacyBarrel(spec, raw);
+        if (whole) blockFromWhole(spec);
+        const unread = unreadOf(raw, legacy ? [...reads, "nozzle"] : reads);
+        if (unread !== undefined) spec.unread = unread;
+        if (read("vertices")) {
+            // Re-centred on the corners' own middle and wound the way the simulation
+            // holds them, which moves the module's position rather than the corners:
+            // an author places three points on the ship and need not work out where
+            // their centroid landed, nor which way round they went.
+            const shaped = shapeModule(spec, raw["vertices"] as number[]);
+            if (shaped !== null) return shaped;
+        }
+        return spec;
+    });
 }
 
 /**
@@ -605,64 +605,64 @@ function toPlacements(raws: unknown[], whole: boolean): Placement[] {
  * what is wrong with it.
  */
 export function parseBlueprint(value: unknown): Blueprint {
-  const problem = blueprintFileProblem(value);
-  if (problem !== null) throw new Error(`Invalid blueprint file — ${problem}`);
-  return toBlueprint(value as Record<string, unknown>);
+    const problem = blueprintFileProblem(value);
+    if (problem !== null) throw new Error(`Invalid blueprint file — ${problem}`);
+    return toBlueprint(value as Record<string, unknown>);
 }
 
 /** What `parseBlueprint` reads: the inverse, for saving and for export. */
 export function serialiseBlueprint(blueprint: Blueprint): Record<string, unknown> {
-  const file: Record<string, unknown> = {
-    formatVersion: BLUEPRINT_FORMAT_VERSION,
-    name: blueprint.name,
-  };
-  if (blueprint.notes !== undefined) file['notes'] = blueprint.notes;
-  if (blueprint.fighter !== undefined) file['fighter'] = blueprint.fighter;
-  if (blueprint.doctrine !== undefined || blueprint.unreadDoctrine !== undefined) {
-    // Only what it says differently from the default, so a file stays short
-    // and a default that moves later moves for every ship that never had an
-    // opinion about it.
-    const doctrine = mergeUnread(
-      blueprint.doctrine === undefined ? undefined : serialiseDoctrine(blueprint.doctrine),
-      blueprint.unreadDoctrine,
-    );
-    if (doctrine !== undefined) file['doctrine'] = doctrine;
-  }
-
-  if (blueprint.hangar !== undefined) {
-    const hangar: Record<string, unknown> = {};
-    for (const [name, fighter] of Object.entries(blueprint.hangar)) hangar[name] = serialiseBlueprint(fighter);
-    file['hangar'] = hangar;
-  }
-
-  if (blueprint.assemblies !== undefined) {
-    const assemblies: Record<string, unknown> = {};
-    for (const [name, assembly] of Object.entries(blueprint.assemblies)) {
-      const raw: Record<string, unknown> = {};
-      if (assembly.notes !== undefined) raw['notes'] = assembly.notes;
-      raw['modules'] = assembly.modules.map(serialisePlacement);
-      writeUnread(raw, assembly.unread);
-      assemblies[name] = raw;
+    const file: Record<string, unknown> = {
+        formatVersion: BLUEPRINT_FORMAT_VERSION,
+        name: blueprint.name,
+    };
+    if (blueprint.notes !== undefined) file["notes"] = blueprint.notes;
+    if (blueprint.fighter !== undefined) file["fighter"] = blueprint.fighter;
+    if (blueprint.doctrine !== undefined || blueprint.unreadDoctrine !== undefined) {
+        // Only what it says differently from the default, so a file stays short
+        // and a default that moves later moves for every ship that never had an
+        // opinion about it.
+        const doctrine = mergeUnread(
+            blueprint.doctrine === undefined ? undefined : serialiseDoctrine(blueprint.doctrine),
+            blueprint.unreadDoctrine,
+        );
+        if (doctrine !== undefined) file["doctrine"] = doctrine;
     }
-    file['assemblies'] = assemblies;
-  }
 
-  file['modules'] = blueprint.modules.map(serialisePlacement);
-  writeUnread(file, blueprint.unread);
+    if (blueprint.hangar !== undefined) {
+        const hangar: Record<string, unknown> = {};
+        for (const [name, fighter] of Object.entries(blueprint.hangar)) hangar[name] = serialiseBlueprint(fighter);
+        file["hangar"] = hangar;
+    }
 
-  return file;
+    if (blueprint.assemblies !== undefined) {
+        const assemblies: Record<string, unknown> = {};
+        for (const [name, assembly] of Object.entries(blueprint.assemblies)) {
+            const raw: Record<string, unknown> = {};
+            if (assembly.notes !== undefined) raw["notes"] = assembly.notes;
+            raw["modules"] = assembly.modules.map(serialisePlacement);
+            writeUnread(raw, assembly.unread);
+            assemblies[name] = raw;
+        }
+        file["assemblies"] = assemblies;
+    }
+
+    file["modules"] = blueprint.modules.map(serialisePlacement);
+    writeUnread(file, blueprint.unread);
+
+    return file;
 }
 
 /** A block as serialised, with its unread keys merged back in, one level into objects. */
 function mergeUnread(block: Record<string, unknown> | undefined, unread: UnreadKeys | undefined): Record<string, unknown> | undefined {
-  if (unread === undefined) return block;
-  const out: Record<string, unknown> = { ...block };
-  for (const [key, value] of Object.entries(unread)) {
-    const held = out[key];
-    if (isObject(held) && isObject(value)) out[key] = { ...held, ...value };
-    else if (held === undefined) out[key] = value;
-  }
-  return out;
+    if (unread === undefined) return block;
+    const out: Record<string, unknown> = { ...block };
+    for (const [key, value] of Object.entries(unread)) {
+        const held = out[key];
+        if (isObject(held) && isObject(value)) out[key] = { ...held, ...value };
+        else if (held === undefined) out[key] = value;
+    }
+    return out;
 }
 
 /**
@@ -671,118 +671,118 @@ function mergeUnread(block: Record<string, unknown> | undefined, unread: UnreadK
  * saving it, since saving writes those keys back as they were.
  */
 export function blueprintWarnings(blueprint: Blueprint): string[] {
-  const out: string[] = [];
-  unreadWarning('the file', blueprint.unread, out);
-  if (blueprint.unreadDoctrine !== undefined) {
-    const { targeting, approach, ...top } = blueprint.unreadDoctrine as Record<string, unknown>;
-    unreadWarning('doctrine', Object.keys(top).length > 0 ? top : undefined, out);
-    unreadWarning('doctrine.targeting', isObject(targeting) ? targeting : undefined, out);
-    unreadWarning('doctrine.approach', isObject(approach) ? approach : undefined, out);
-  }
-  for (const [name, assembly] of Object.entries(blueprint.assemblies ?? {})) {
-    unreadWarning(`assembly ${name}`, assembly.unread, out);
-    placementWarnings(assembly.modules, `assembly ${name}: modules`, out);
-  }
-  placementWarnings(blueprint.modules, 'modules', out);
-  return out;
+    const out: string[] = [];
+    unreadWarning("the file", blueprint.unread, out);
+    if (blueprint.unreadDoctrine !== undefined) {
+        const { targeting, approach, ...top } = blueprint.unreadDoctrine as Record<string, unknown>;
+        unreadWarning("doctrine", Object.keys(top).length > 0 ? top : undefined, out);
+        unreadWarning("doctrine.targeting", isObject(targeting) ? targeting : undefined, out);
+        unreadWarning("doctrine.approach", isObject(approach) ? approach : undefined, out);
+    }
+    for (const [name, assembly] of Object.entries(blueprint.assemblies ?? {})) {
+        unreadWarning(`assembly ${name}`, assembly.unread, out);
+        placementWarnings(assembly.modules, `assembly ${name}: modules`, out);
+    }
+    placementWarnings(blueprint.modules, "modules", out);
+    return out;
 }
 
 function placementWarnings(placements: readonly Placement[], where: string, out: string[]): void {
-  placements.forEach((placement, i) => {
-    const at = `${where}[${i}]`;
-    unreadWarning(at, placement.unread, out);
-    if (isInstance(placement)) {
-      unreadWarning(`${at}: step`, placement.step?.unread, out);
-      return;
-    }
-    if (placement.targeting !== undefined) {
-      unreadWarning(`${at}: targeting`, unreadOf(placement.targeting as Record<string, unknown>, TARGETING_FIELDS), out);
-    }
-  });
+    placements.forEach((placement, i) => {
+        const at = `${where}[${i}]`;
+        unreadWarning(at, placement.unread, out);
+        if (isInstance(placement)) {
+            unreadWarning(`${at}: step`, placement.step?.unread, out);
+            return;
+        }
+        if (placement.targeting !== undefined) {
+            unreadWarning(`${at}: targeting`, unreadOf(placement.targeting as Record<string, unknown>, TARGETING_FIELDS), out);
+        }
+    });
 }
 
 function serialisePlacement(placement: Placement): Record<string, unknown> {
-  if (isInstance(placement)) {
-    const raw: Record<string, unknown> = {
-      ...(placement.id === undefined ? {} : { id: placement.id }),
-      use: placement.use,
-      x: placement.x,
-      y: placement.y,
-    };
-    if (placement.angle !== undefined) raw['angle'] = radiansToDegrees(placement.angle);
-    if (placement.mirror !== undefined) raw['mirror'] = placement.mirror;
-    if (placement.repeat !== undefined) raw['repeat'] = placement.repeat;
-    if (placement.step !== undefined) {
-      const step: Record<string, unknown> = { x: placement.step.x, y: placement.step.y };
-      if (placement.step.angle !== undefined) step['angle'] = radiansToDegrees(placement.step.angle);
-      writeUnread(step, placement.step.unread);
-      raw['step'] = step;
+    if (isInstance(placement)) {
+        const raw: Record<string, unknown> = {
+            ...(placement.id === undefined ? {} : { id: placement.id }),
+            use: placement.use,
+            x: placement.x,
+            y: placement.y,
+        };
+        if (placement.angle !== undefined) raw["angle"] = radiansToDegrees(placement.angle);
+        if (placement.mirror !== undefined) raw["mirror"] = placement.mirror;
+        if (placement.repeat !== undefined) raw["repeat"] = placement.repeat;
+        if (placement.step !== undefined) {
+            const step: Record<string, unknown> = { x: placement.step.x, y: placement.step.y };
+            if (placement.step.angle !== undefined) step["angle"] = radiansToDegrees(placement.step.angle);
+            writeUnread(step, placement.step.unread);
+            raw["step"] = step;
+        }
+        if (placement.notes !== undefined) raw["notes"] = placement.notes;
+        writeUnread(raw, placement.unread);
+        return raw;
     }
-    if (placement.notes !== undefined) raw['notes'] = placement.notes;
+
+    const raw: Record<string, unknown> = {
+        ...(placement.id === undefined ? {} : { id: placement.id }),
+        kind: placement.kind,
+        x: placement.x,
+        y: placement.y,
+    };
+    if (placement.angle !== undefined) raw["angle"] = radiansToDegrees(placement.angle);
+    raw["length"] = placement.length;
+    raw["width"] = placement.width;
+    if (placement.vertices !== undefined && canShape(placement.kind)) {
+        raw["vertices"] = [...placement.vertices];
+    }
+    if (placement.reinforcement !== undefined) raw["reinforcement"] = placement.reinforcement;
+    // Only what this kind reads: a dormant field is a running mutation's memory
+    // of what the module used to be, and a file is not the place for it.
+    if (placement.barrels !== undefined && countsOutlets(placement.kind)) {
+        raw["barrels"] = placement.barrels;
+    }
+    if (placement.nozzle !== undefined && readsNozzle(placement.kind)) {
+        raw["nozzle"] = placement.nozzle;
+    }
+    if (placement.barrelCalibres !== undefined && readsBarrelCalibres(placement.kind)) {
+        raw["barrelCalibres"] = placement.barrelCalibres;
+    }
+    if (placement.traverse !== undefined && isWeaponMount(placement.kind)) {
+        raw["traverse"] = radiansToDegrees(placement.traverse);
+    }
+    if (readsFuse(placement.kind)) {
+        if (placement.fuse !== undefined) raw["fuse"] = placement.fuse;
+        if (placement.fragments !== undefined) raw["fragments"] = placement.fragments;
+        if (placement.burstSpeed !== undefined) raw["burstSpeed"] = placement.burstSpeed;
+    }
+    if (placement.weapon !== undefined && readsWeapon(placement.kind)) {
+        raw["weapon"] = placement.weapon;
+    }
+    if (placement.main !== undefined && readsMain(placement.kind)) {
+        raw["main"] = placement.main;
+    }
+    if (placement.thick !== undefined && readsThick(placement.kind)) {
+        raw["thick"] = placement.thick;
+    }
+    if (placement.sealing !== undefined && readsSealing(placement.kind)) {
+        raw["sealing"] = placement.sealing;
+    }
+    if (placement.drainPriority !== undefined && readsDrainPriority(placement.kind)) {
+        raw["drainPriority"] = placement.drainPriority;
+    }
+    if (placement.fill !== undefined && readsFill(placement.kind)) raw["fill"] = placement.fill;
+    if (placement.computing !== undefined && readsComputing(placement.kind)) raw["computing"] = placement.computing;
+    if (readsCraft(placement.kind)) {
+        if (placement.craft !== undefined) raw["craft"] = placement.craft;
+        if (placement.docked !== undefined && readsDocked(placement.kind)) raw["docked"] = placement.docked;
+        if (placement.keep !== undefined) raw["keep"] = placement.keep;
+        if (placement.buildAnchored !== undefined) raw["buildAnchored"] = placement.buildAnchored;
+    }
+    if (placement.craftAngle !== undefined && readsCraftAngle(placement.kind)) raw["craftAngle"] = radiansToDegrees(placement.craftAngle);
+    // Written as authored: a mount's block is already only its differences from
+    // the ship it is on, so there is nothing to subtract.
+    if (placement.targeting !== undefined) raw["targeting"] = { ...placement.targeting };
+    if (placement.notes !== undefined) raw["notes"] = placement.notes;
     writeUnread(raw, placement.unread);
     return raw;
-  }
-
-  const raw: Record<string, unknown> = {
-    ...(placement.id === undefined ? {} : { id: placement.id }),
-    kind: placement.kind,
-    x: placement.x,
-    y: placement.y,
-  };
-  if (placement.angle !== undefined) raw['angle'] = radiansToDegrees(placement.angle);
-  raw['length'] = placement.length;
-  raw['width'] = placement.width;
-  if (placement.vertices !== undefined && canShape(placement.kind)) {
-    raw['vertices'] = [...placement.vertices];
-  }
-  if (placement.reinforcement !== undefined) raw['reinforcement'] = placement.reinforcement;
-  // Only what this kind reads: a dormant field is a running mutation's memory
-  // of what the module used to be, and a file is not the place for it.
-  if (placement.barrels !== undefined && countsOutlets(placement.kind)) {
-    raw['barrels'] = placement.barrels;
-  }
-  if (placement.nozzle !== undefined && readsNozzle(placement.kind)) {
-    raw['nozzle'] = placement.nozzle;
-  }
-  if (placement.barrelCalibres !== undefined && readsBarrelCalibres(placement.kind)) {
-    raw['barrelCalibres'] = placement.barrelCalibres;
-  }
-  if (placement.traverse !== undefined && isWeaponMount(placement.kind)) {
-    raw['traverse'] = radiansToDegrees(placement.traverse);
-  }
-  if (readsFuse(placement.kind)) {
-    if (placement.fuse !== undefined) raw['fuse'] = placement.fuse;
-    if (placement.fragments !== undefined) raw['fragments'] = placement.fragments;
-    if (placement.burstSpeed !== undefined) raw['burstSpeed'] = placement.burstSpeed;
-  }
-  if (placement.weapon !== undefined && readsWeapon(placement.kind)) {
-    raw['weapon'] = placement.weapon;
-  }
-  if (placement.main !== undefined && readsMain(placement.kind)) {
-    raw['main'] = placement.main;
-  }
-  if (placement.thick !== undefined && readsThick(placement.kind)) {
-    raw['thick'] = placement.thick;
-  }
-  if (placement.sealing !== undefined && readsSealing(placement.kind)) {
-    raw['sealing'] = placement.sealing;
-  }
-  if (placement.drainPriority !== undefined && readsDrainPriority(placement.kind)) {
-    raw['drainPriority'] = placement.drainPriority;
-  }
-  if (placement.fill !== undefined && readsFill(placement.kind)) raw['fill'] = placement.fill;
-  if (placement.computing !== undefined && readsComputing(placement.kind)) raw['computing'] = placement.computing;
-  if (readsCraft(placement.kind)) {
-    if (placement.craft !== undefined) raw['craft'] = placement.craft;
-    if (placement.docked !== undefined && readsDocked(placement.kind)) raw['docked'] = placement.docked;
-    if (placement.keep !== undefined) raw['keep'] = placement.keep;
-    if (placement.buildAnchored !== undefined) raw['buildAnchored'] = placement.buildAnchored;
-  }
-  if (placement.craftAngle !== undefined && readsCraftAngle(placement.kind)) raw['craftAngle'] = radiansToDegrees(placement.craftAngle);
-  // Written as authored: a mount's block is already only its differences from
-  // the ship it is on, so there is nothing to subtract.
-  if (placement.targeting !== undefined) raw['targeting'] = { ...placement.targeting };
-  if (placement.notes !== undefined) raw['notes'] = placement.notes;
-  writeUnread(raw, placement.unread);
-  return raw;
 }

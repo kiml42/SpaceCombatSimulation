@@ -1,6 +1,6 @@
-import type { BodyId } from './bodies.js';
-import { sqrt } from './math.js';
-import type { ForceProvider, World } from './world.js';
+import type { BodyId } from "./bodies.js";
+import { sqrt } from "./math.js";
+import type { ForceProvider, World } from "./world.js";
 
 /**
  * Gravity wells.
@@ -17,21 +17,21 @@ import type { ForceProvider, World } from './world.js';
  */
 
 export interface WellSpec {
-  x: number;
-  y: number;
-  /** How fast it is moving, m/s, set by its rail (`rails.ts`); a well without one stays put. */
-  vx?: number;
-  vy?: number;
-  /** Standard gravitational parameter, G*M. */
-  gm: number;
-  /**
-   * Plummer softening length. Caps the acceleration near the centre so a body
-   * passing exactly through a well does not produce an infinity. Zero gives
-   * true inverse-square.
-   */
-  softening?: number;
-  /** A body exempt from this well, typically the one representing it. */
-  exempt?: BodyId;
+    x: number;
+    y: number;
+    /** How fast it is moving, m/s, set by its rail (`rails.ts`); a well without one stays put. */
+    vx?: number;
+    vy?: number;
+    /** Standard gravitational parameter, G*M. */
+    gm: number;
+    /**
+     * Plummer softening length. Caps the acceleration near the centre so a body
+     * passing exactly through a well does not produce an infinity. Zero gives
+     * true inverse-square.
+     */
+    softening?: number;
+    /** A body exempt from this well, typically the one representing it. */
+    exempt?: BodyId;
 }
 
 /**
@@ -47,12 +47,12 @@ export interface WellSpec {
  * *force* instead, and folds the body's mass into the same expression.
  */
 export function wellPull(well: WellSpec, x: number, y: number): number {
-  const dx = well.x - x;
-  const dy = well.y - y;
-  const soft = well.softening ?? 0;
-  const r2 = dx * dx + dy * dy + soft * soft;
-  if (r2 <= 0) return 0;
-  return well.gm / (r2 * sqrt(r2));
+    const dx = well.x - x;
+    const dy = well.y - y;
+    const soft = well.softening ?? 0;
+    const r2 = dx * dx + dy * dy + soft * soft;
+    if (r2 <= 0) return 0;
+    return well.gm / (r2 * sqrt(r2));
 }
 
 /**
@@ -63,38 +63,38 @@ export function wellPull(well: WellSpec, x: number, y: number): number {
  * rather than a closure, so a copied battle's provider reads its own well.
  */
 export function gravityWell(spec: WellSpec): ForceProvider {
-  return new GravityWell(spec);
+    return new GravityWell(spec);
 }
 
 class GravityWell {
-  constructor(readonly spec: WellSpec) {}
+    constructor(readonly spec: WellSpec) {}
 
-  applyForces(world: World): void {
-    const spec = this.spec;
-    const wx = spec.x;
-    const wy = spec.y;
-    const gm = spec.gm;
-    const soft2 = (spec.softening ?? 0) * (spec.softening ?? 0);
-    const exempt = spec.exempt;
-    const b = world.bodies;
-    const exemptIndex = exempt === undefined ? -1 : b.indexOf(exempt);
-    for (let i = 0; i < b.highWater; i++) {
-      if (b.alive[i] === 0 || i === exemptIndex) continue;
-      const m = b.mass[i];
-      if (m <= 0) continue;
+    applyForces(world: World): void {
+        const spec = this.spec;
+        const wx = spec.x;
+        const wy = spec.y;
+        const gm = spec.gm;
+        const soft2 = (spec.softening ?? 0) * (spec.softening ?? 0);
+        const exempt = spec.exempt;
+        const b = world.bodies;
+        const exemptIndex = exempt === undefined ? -1 : b.indexOf(exempt);
+        for (let i = 0; i < b.highWater; i++) {
+            if (b.alive[i] === 0 || i === exemptIndex) continue;
+            const m = b.mass[i];
+            if (m <= 0) continue;
 
-      const dx = wx - b.x[i];
-      const dy = wy - b.y[i];
-      const r2 = dx * dx + dy * dy + soft2;
-      if (r2 <= 0) continue;
+            const dx = wx - b.x[i];
+            const dy = wy - b.y[i];
+            const r2 = dx * dx + dy * dy + soft2;
+            if (r2 <= 0) continue;
 
-      // |a| = gm / r^2, direction (dx, dy) / r, so a = gm * d / r^3.
-      const r = sqrt(r2);
-      const scale = (gm * m) / (r2 * r);
-      b.fx[i] += dx * scale;
-      b.fy[i] += dy * scale;
+            // |a| = gm / r^2, direction (dx, dy) / r, so a = gm * d / r^3.
+            const r = sqrt(r2);
+            const scale = (gm * m) / (r2 * r);
+            b.fx[i] += dx * scale;
+            b.fy[i] += dy * scale;
+        }
     }
-  }
 }
 
 /**
@@ -103,21 +103,21 @@ class GravityWell {
  * integrator tests assert exactly that.
  */
 export function wellPotentialEnergy(world: World, wells: readonly WellSpec[]): number {
-  const b = world.bodies;
-  let u = 0;
-  for (let i = 0; i < b.highWater; i++) {
-    if (b.alive[i] === 0) continue;
-    const m = b.mass[i];
-    if (m <= 0) continue;
-    for (let w = 0; w < wells.length; w++) {
-      const well = wells[w]!;
-      if (well.exempt !== undefined && b.indexOf(well.exempt) === i) continue;
-      const dx = well.x - b.x[i];
-      const dy = well.y - b.y[i];
-      const soft = well.softening ?? 0;
-      const r = sqrt(dx * dx + dy * dy + soft * soft);
-      if (r > 0) u -= (well.gm * m) / r;
+    const b = world.bodies;
+    let u = 0;
+    for (let i = 0; i < b.highWater; i++) {
+        if (b.alive[i] === 0) continue;
+        const m = b.mass[i];
+        if (m <= 0) continue;
+        for (let w = 0; w < wells.length; w++) {
+            const well = wells[w]!;
+            if (well.exempt !== undefined && b.indexOf(well.exempt) === i) continue;
+            const dx = well.x - b.x[i];
+            const dy = well.y - b.y[i];
+            const soft = well.softening ?? 0;
+            const r = sqrt(dx * dx + dy * dy + soft * soft);
+            if (r > 0) u -= (well.gm * m) / r;
+        }
     }
-  }
-  return u;
+    return u;
 }

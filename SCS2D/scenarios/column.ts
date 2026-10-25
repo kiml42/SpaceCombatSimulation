@@ -1,7 +1,7 @@
-import { compileBlueprint, math } from '../sim/index.js';
-import { type Battle } from './types.js';
-import { makeBattle } from './battle.js';
-import { BEAM_CORVETTE, CORVETTE, GUNSHIP } from './blueprints.js';
+import { compileBlueprint, math } from "../sim/index.js";
+import { type Battle } from "./types.js";
+import { makeBattle } from "./battle.js";
+import { BEAM_CORVETTE, CORVETTE, GUNSHIP } from "./blueprints.js";
 
 /**
  * Two fleets in **line ahead**, nose to tail along the line they are fighting
@@ -22,30 +22,30 @@ import { BEAM_CORVETTE, CORVETTE, GUNSHIP } from './blueprints.js';
  * fleet and it is the one with the most of its own fleet to see past.
  */
 export function column(seed = 20260905): Battle {
-  return makeBattle({ seed, projectiles: 256, beams: 64 }, (ships, world) => {
-    const gunship = compileBlueprint(GUNSHIP);
-    const corvette = compileBlueprint(CORVETTE);
-    const beamCorvette = compileBlueprint(BEAM_CORVETTE);
+    return makeBattle({ seed, projectiles: 256, beams: 64 }, (ships, world) => {
+        const gunship = compileBlueprint(GUNSHIP);
+        const corvette = compileBlueprint(CORVETTE);
+        const beamCorvette = compileBlueprint(BEAM_CORVETTE);
 
-    /** Where each column's leader sits: half a kilometre off the middle. */
-    const LEAD = 500;
-    /**
-     * Nose-to-tail spacing.
-     *
-     * Comfortably more than a hull is long, so this is a formation rather than
-     * a collision — and comfortably less than the few hundred metres a gun
-     * looks ahead for a friend, so a ship astern really does have its consort
-     * in the way rather than merely somewhere ahead of it.
-     */
-    const INTERVAL = 200;
+        /** Where each column's leader sits: half a kilometre off the middle. */
+        const LEAD = 500;
+        /**
+         * Nose-to-tail spacing.
+         *
+         * Comfortably more than a hull is long, so this is a formation rather than
+         * a collision — and comfortably less than the few hundred metres a gun
+         * looks ahead for a friend, so a ship astern really does have its consort
+         * in the way rather than merely somewhere ahead of it.
+         */
+        const INTERVAL = 200;
 
-    const file = [corvette, beamCorvette, corvette, gunship];
+        const file = [corvette, beamCorvette, corvette, gunship];
 
-    for (let i = 0; i < file.length; i++) {
-      const design = file[i]!;
-      const back = LEAD + i * INTERVAL;
-      ships.spawn(world, { design, x: -back, y: 0, angle: 0, team: 0 });
-      ships.spawn(world, { design, x: back, y: 0, angle: math.PI, team: 1 });
-    }
-  });
+        for (let i = 0; i < file.length; i++) {
+            const design = file[i]!;
+            const back = LEAD + i * INTERVAL;
+            ships.spawn(world, { design, x: -back, y: 0, angle: 0, team: 0 });
+            ships.spawn(world, { design, x: back, y: 0, angle: math.PI, team: 1 });
+        }
+    });
 }

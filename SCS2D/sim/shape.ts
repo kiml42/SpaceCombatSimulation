@@ -1,5 +1,5 @@
-import { abs, max, min, round, sqrt } from './math.js';
-import type { ModuleKind, ModuleSpec } from './modules.js';
+import { abs, max, min, round, sqrt } from "./math.js";
+import type { ModuleKind, ModuleSpec } from "./modules.js";
 
 /**
  * What shape a module is, as geometry rather than as an archetype.
@@ -62,29 +62,29 @@ export const MIN_TRIANGLE_AREA = 1e-6;
  * width, and a triangle has neither. A kernel is never a box.
  */
 export function canShape(kind: ModuleKind): boolean {
-  return kind === 'structure' || kind === 'tank' || kind === 'hold' || kind === 'kernel' || kind === 'rock';
+    return kind === "structure" || kind === "tank" || kind === "hold" || kind === "kernel" || kind === "rock";
 }
 
 /** How many corners a module of this kind may be given, as [fewest, most]. */
 export function cornersAllowed(kind: ModuleKind): readonly [number, number] {
-  if (kind === 'kernel') return [KERNEL_MIN_CORNERS, KERNEL_MAX_CORNERS];
-  // A wedge of rock: a triangle, or the quadrilateral between two rings.
-  if (kind === 'rock') return [TRIANGLE_CORNERS, MAX_CORNERS];
-  return [TRIANGLE_CORNERS, TRIANGLE_CORNERS];
+    if (kind === "kernel") return [KERNEL_MIN_CORNERS, KERNEL_MAX_CORNERS];
+    // A wedge of rock: a triangle, or the quadrilateral between two rings.
+    if (kind === "rock") return [TRIANGLE_CORNERS, MAX_CORNERS];
+    return [TRIANGLE_CORNERS, TRIANGLE_CORNERS];
 }
 
 /** The module's corners in its own frame, or null if it is the box it declares. */
 export function shapeOf(spec: ModuleSpec): readonly number[] | null {
-  const vertices = spec.vertices;
-  if (vertices === undefined || !canShape(spec.kind)) return null;
-  const [fewest, most] = cornersAllowed(spec.kind);
-  const corners = vertices.length / 2;
-  return corners >= fewest && corners <= most ? vertices : null;
+    const vertices = spec.vertices;
+    if (vertices === undefined || !canShape(spec.kind)) return null;
+    const [fewest, most] = cornersAllowed(spec.kind);
+    const corners = vertices.length / 2;
+    return corners >= fewest && corners <= most ? vertices : null;
 }
 
 /** Whether this module is drawn as its corners rather than as its box. */
 export function isShaped(spec: ModuleSpec): boolean {
-  return shapeOf(spec) !== null;
+    return shapeOf(spec) !== null;
 }
 
 /**
@@ -95,48 +95,48 @@ export function isShaped(spec: ModuleSpec): boolean {
  * inside out by dragging one corner past the opposite edge.
  */
 export function signedArea2(vertices: readonly number[]): number {
-  let sum = 0;
-  for (let i = 0; i < vertices.length; i += 2) {
-    const j = (i + 2) % vertices.length;
-    sum += vertices[i]! * vertices[j + 1]! - vertices[j]! * vertices[i + 1]!;
-  }
-  return sum;
+    let sum = 0;
+    for (let i = 0; i < vertices.length; i += 2) {
+        const j = (i + 2) % vertices.length;
+        sum += vertices[i]! * vertices[j + 1]! - vertices[j]! * vertices[i + 1]!;
+    }
+    return sum;
 }
 
 /** The area a corner list encloses, m², whichever way round it is wound. */
 export function polygonArea(vertices: readonly number[]): number {
-  return abs(signedArea2(vertices)) * 0.5;
+    return abs(signedArea2(vertices)) * 0.5;
 }
 
 /** Where a polygon's area is centred, written into `out`: for a triangle, the mean of its corners. */
 export function polygonCentroid(vertices: readonly number[], out: { x: number; y: number }): void {
-  let cx = 0;
-  let cy = 0;
-  let twice = 0;
-  for (let i = 0; i < vertices.length; i += 2) {
-    const j = (i + 2) % vertices.length;
-    const cross = vertices[i]! * vertices[j + 1]! - vertices[j]! * vertices[i + 1]!;
-    twice += cross;
-    cx += (vertices[i]! + vertices[j]!) * cross;
-    cy += (vertices[i + 1]! + vertices[j + 1]!) * cross;
-  }
-  out.x = twice === 0 ? 0 : cx / (3 * twice);
-  out.y = twice === 0 ? 0 : cy / (3 * twice);
+    let cx = 0;
+    let cy = 0;
+    let twice = 0;
+    for (let i = 0; i < vertices.length; i += 2) {
+        const j = (i + 2) % vertices.length;
+        const cross = vertices[i]! * vertices[j + 1]! - vertices[j]! * vertices[i + 1]!;
+        twice += cross;
+        cx += (vertices[i]! + vertices[j]!) * cross;
+        cy += (vertices[i + 1]! + vertices[j + 1]!) * cross;
+    }
+    out.x = twice === 0 ? 0 : cx / (3 * twice);
+    out.y = twice === 0 ? 0 : cy / (3 * twice);
 }
 
 /** Whether a corner list is convex and wound anticlockwise, every turn a left one. */
 export function isConvexAnticlockwise(vertices: readonly number[]): boolean {
-  const n = vertices.length;
-  for (let i = 0; i < n; i += 2) {
-    const j = (i + 2) % n;
-    const k = (i + 4) % n;
-    const ex = vertices[j]! - vertices[i]!;
-    const ey = vertices[j + 1]! - vertices[i + 1]!;
-    const fx = vertices[k]! - vertices[j]!;
-    const fy = vertices[k + 1]! - vertices[j + 1]!;
-    if (!(ex * fy - ey * fx > 0)) return false;
-  }
-  return true;
+    const n = vertices.length;
+    for (let i = 0; i < n; i += 2) {
+        const j = (i + 2) % n;
+        const k = (i + 4) % n;
+        const ex = vertices[j]! - vertices[i]!;
+        const ey = vertices[j + 1]! - vertices[i + 1]!;
+        const fx = vertices[k]! - vertices[j]!;
+        const fy = vertices[k + 1]! - vertices[j + 1]!;
+        if (!(ex * fy - ey * fx > 0)) return false;
+    }
+    return true;
 }
 
 /**
@@ -155,38 +155,38 @@ export function isConvexAnticlockwise(vertices: readonly number[]): boolean {
  * by moving the module by `dx`, `dy` in its own frame.
  */
 export function normalizeShape(vertices: readonly number[]): { vertices: number[]; dx: number; dy: number } | null {
-  if (vertices.length !== TRIANGLE_CORNERS * 2) return null;
-  if (polygonArea(vertices) < MIN_TRIANGLE_AREA) return null;
+    if (vertices.length !== TRIANGLE_CORNERS * 2) return null;
+    if (polygonArea(vertices) < MIN_TRIANGLE_AREA) return null;
 
-  let cx = 0;
-  let cy = 0;
-  for (let i = 0; i < vertices.length; i += 2) {
-    cx += vertices[i]!;
-    cy += vertices[i + 1]!;
-  }
-  cx /= TRIANGLE_CORNERS;
-  cy /= TRIANGLE_CORNERS;
+    let cx = 0;
+    let cy = 0;
+    for (let i = 0; i < vertices.length; i += 2) {
+        cx += vertices[i]!;
+        cy += vertices[i + 1]!;
+    }
+    cx /= TRIANGLE_CORNERS;
+    cy /= TRIANGLE_CORNERS;
 
-  const out: number[] = [];
-  for (let i = 0; i < vertices.length; i += 2) {
-    out.push(tidy(vertices[i]! - cx), tidy(vertices[i + 1]! - cy));
-  }
-  // Anticlockwise, so the edge normals below point outwards.
-  if (signedArea2(out) < 0) {
-    const swapX = out[2]!;
-    const swapY = out[3]!;
-    out[2] = out[4]!;
-    out[3] = out[5]!;
-    out[4] = swapX;
-    out[5] = swapY;
-  }
-  return { vertices: out, dx: tidy(cx), dy: tidy(cy) };
+    const out: number[] = [];
+    for (let i = 0; i < vertices.length; i += 2) {
+        out.push(tidy(vertices[i]! - cx), tidy(vertices[i + 1]! - cy));
+    }
+    // Anticlockwise, so the edge normals below point outwards.
+    if (signedArea2(out) < 0) {
+        const swapX = out[2]!;
+        const swapY = out[3]!;
+        out[2] = out[4]!;
+        out[3] = out[5]!;
+        out[4] = swapX;
+        out[5] = swapY;
+    }
+    return { vertices: out, dx: tidy(cx), dy: tidy(cy) };
 }
 
 /** Rounds away the last-bit noise a turned frame leaves, so a file does not gain 1e-16s. */
 function tidy(value: number): number {
-  const rounded = round(value * 1e9) / 1e9;
-  return rounded === 0 ? 0 : rounded;
+    const rounded = round(value * 1e9) / 1e9;
+    return rounded === 0 ? 0 : rounded;
 }
 
 /**
@@ -203,22 +203,22 @@ function tidy(value: number): number {
  * a triangle off again has to move the module by.
  */
 export function triangleBounds(vertices: readonly number[]): { length: number; width: number; x: number; y: number } {
-  let loX = Infinity;
-  let hiX = -Infinity;
-  let loY = Infinity;
-  let hiY = -Infinity;
-  for (let i = 0; i < vertices.length; i += 2) {
-    loX = min(loX, vertices[i]!);
-    hiX = max(hiX, vertices[i]!);
-    loY = min(loY, vertices[i + 1]!);
-    hiY = max(hiY, vertices[i + 1]!);
-  }
-  return {
-    length: tidy(hiX - loX),
-    width: tidy(hiY - loY),
-    x: tidy((loX + hiX) * 0.5),
-    y: tidy((loY + hiY) * 0.5),
-  };
+    let loX = Infinity;
+    let hiX = -Infinity;
+    let loY = Infinity;
+    let hiY = -Infinity;
+    for (let i = 0; i < vertices.length; i += 2) {
+        loX = min(loX, vertices[i]!);
+        hiX = max(hiX, vertices[i]!);
+        loY = min(loY, vertices[i + 1]!);
+        hiY = max(hiY, vertices[i + 1]!);
+    }
+    return {
+        length: tidy(hiX - loX),
+        width: tidy(hiY - loY),
+        x: tidy((loX + hiX) * 0.5),
+        y: tidy((loY + hiY) * 0.5),
+    };
 }
 
 /**
@@ -231,45 +231,45 @@ export function triangleBounds(vertices: readonly number[]): { length: number; w
  * a thin module however far it reaches.
  */
 export function triangleAcross(vertices: readonly number[]): number {
-  if (vertices.length > TRIANGLE_CORNERS * 2) return convexAcross(vertices);
-  const area2 = abs(signedArea2(vertices));
-  let longest = 0;
-  for (let i = 0; i < vertices.length; i += 2) {
-    const j = (i + 2) % vertices.length;
-    const ex = vertices[j]! - vertices[i]!;
-    const ey = vertices[j + 1]! - vertices[i + 1]!;
-    longest = max(longest, sqrt(ex * ex + ey * ey));
-  }
-  return longest > 0 ? area2 / longest : 0;
+    if (vertices.length > TRIANGLE_CORNERS * 2) return convexAcross(vertices);
+    const area2 = abs(signedArea2(vertices));
+    let longest = 0;
+    for (let i = 0; i < vertices.length; i += 2) {
+        const j = (i + 2) % vertices.length;
+        const ex = vertices[j]! - vertices[i]!;
+        const ey = vertices[j + 1]! - vertices[i + 1]!;
+        longest = max(longest, sqrt(ex * ex + ey * ey));
+    }
+    return longest > 0 ? area2 / longest : 0;
 }
 
 /** The narrowest a convex outline is: of every edge, the furthest a corner stands off it, least. */
 function convexAcross(vertices: readonly number[]): number {
-  let least = Infinity;
-  for (let i = 0; i < vertices.length; i += 2) {
-    const j = (i + 2) % vertices.length;
-    const ex = vertices[j]! - vertices[i]!;
-    const ey = vertices[j + 1]! - vertices[i + 1]!;
-    const span = sqrt(ex * ex + ey * ey);
-    if (!(span > 0)) continue;
-    let furthest = 0;
-    for (let k = 0; k < vertices.length; k += 2) {
-      furthest = max(furthest, abs((vertices[k]! - vertices[i]!) * ey - (vertices[k + 1]! - vertices[i + 1]!) * ex) / span);
+    let least = Infinity;
+    for (let i = 0; i < vertices.length; i += 2) {
+        const j = (i + 2) % vertices.length;
+        const ex = vertices[j]! - vertices[i]!;
+        const ey = vertices[j + 1]! - vertices[i + 1]!;
+        const span = sqrt(ex * ex + ey * ey);
+        if (!(span > 0)) continue;
+        let furthest = 0;
+        for (let k = 0; k < vertices.length; k += 2) {
+            furthest = max(furthest, abs((vertices[k]! - vertices[i]!) * ey - (vertices[k + 1]! - vertices[i + 1]!) * ex) / span);
+        }
+        least = min(least, furthest);
     }
-    least = min(least, furthest);
-  }
-  return least === Infinity ? 0 : least;
+    return least === Infinity ? 0 : least;
 }
 
 /** How far the furthest corner is from the module's centre, metres. */
 export function triangleRadius(vertices: readonly number[]): number {
-  let furthest = 0;
-  for (let i = 0; i < vertices.length; i += 2) {
-    const x = vertices[i]!;
-    const y = vertices[i + 1]!;
-    furthest = max(furthest, sqrt(x * x + y * y));
-  }
-  return furthest;
+    let furthest = 0;
+    for (let i = 0; i < vertices.length; i += 2) {
+        const x = vertices[i]!;
+        const y = vertices[i + 1]!;
+        furthest = max(furthest, sqrt(x * x + y * y));
+    }
+    return furthest;
 }
 
 /**
@@ -289,41 +289,41 @@ export function triangleRadius(vertices: readonly number[]): number {
  * which is what a tolerance applied to a module's faces is.
  */
 export function insetTriangle(vertices: readonly number[], inset: number): number[] | null {
-  if (inset === 0 || !Number.isFinite(inset)) return vertices.slice();
-  const out: number[] = [];
-  for (let i = 0; i < vertices.length; i += 2) {
-    // The corner between the edge arriving at it and the edge leaving it.
-    const prev = (i + vertices.length - 2) % vertices.length;
-    const next = (i + 2) % vertices.length;
-    const a = inwardLine(vertices, prev, i, inset);
-    const b = inwardLine(vertices, i, next, inset);
-    const point = meet(a, b);
-    if (point === null) return null;
-    out.push(point[0], point[1]);
-  }
-  // Walls that have met or crossed leave a triangle wound the other way, or
-  // none at all: a plate thinner than two walls is solid, not hollow.
-  if (signedArea2(out) < MIN_TRIANGLE_AREA * 2) return null;
-  return out;
+    if (inset === 0 || !Number.isFinite(inset)) return vertices.slice();
+    const out: number[] = [];
+    for (let i = 0; i < vertices.length; i += 2) {
+        // The corner between the edge arriving at it and the edge leaving it.
+        const prev = (i + vertices.length - 2) % vertices.length;
+        const next = (i + 2) % vertices.length;
+        const a = inwardLine(vertices, prev, i, inset);
+        const b = inwardLine(vertices, i, next, inset);
+        const point = meet(a, b);
+        if (point === null) return null;
+        out.push(point[0], point[1]);
+    }
+    // Walls that have met or crossed leave a triangle wound the other way, or
+    // none at all: a plate thinner than two walls is solid, not hollow.
+    if (signedArea2(out) < MIN_TRIANGLE_AREA * 2) return null;
+    return out;
 }
 
 /** The edge from corner `i` to corner `j`, moved `inset` towards the interior. */
 function inwardLine(vertices: readonly number[], i: number, j: number, inset: number): [number, number, number] {
-  const ex = vertices[j]! - vertices[i]!;
-  const ey = vertices[j + 1]! - vertices[i + 1]!;
-  const span = sqrt(ex * ex + ey * ey);
-  // Anticlockwise winding puts the interior to the left of every edge.
-  const nx = -ey / span;
-  const ny = ex / span;
-  // n·p = c, with the line pushed `inset` the way the interior lies.
-  return [nx, ny, nx * vertices[i]! + ny * vertices[i + 1]! + inset];
+    const ex = vertices[j]! - vertices[i]!;
+    const ey = vertices[j + 1]! - vertices[i + 1]!;
+    const span = sqrt(ex * ex + ey * ey);
+    // Anticlockwise winding puts the interior to the left of every edge.
+    const nx = -ey / span;
+    const ny = ex / span;
+    // n·p = c, with the line pushed `inset` the way the interior lies.
+    return [nx, ny, nx * vertices[i]! + ny * vertices[i + 1]! + inset];
 }
 
 /** Where two lines given as `n·p = c` cross, or null if they are parallel. */
 function meet(a: readonly [number, number, number], b: readonly [number, number, number]): [number, number] | null {
-  const det = a[0] * b[1] - a[1] * b[0];
-  if (abs(det) < 1e-12) return null;
-  return [(a[2] * b[1] - a[1] * b[2]) / det, (a[0] * b[2] - a[2] * b[0]) / det];
+    const det = a[0] * b[1] - a[1] * b[0];
+    if (abs(det) < 1e-12) return null;
+    return [(a[2] * b[1] - a[1] * b[2]) / det, (a[0] * b[2] - a[2] * b[0]) / det];
 }
 
 /**
@@ -339,9 +339,9 @@ function meet(a: readonly [number, number, number], b: readonly [number, number,
  * triangle is a corner or two away from it.
  */
 export function wedge(spec: ModuleSpec): number[] {
-  const hl = spec.length / 2;
-  const hw = spec.width / 2;
-  return [hl, 0, -hl, hw, -hl, -hw];
+    const hl = spec.length / 2;
+    const hw = spec.width / 2;
+    return [hl, 0, -hl, hw, -hl, -hw];
 }
 
 /**
@@ -354,17 +354,17 @@ export function wedge(spec: ModuleSpec): number[] {
  * for a rectangle.
  */
 export function polygonMomentOfArea(vertices: readonly number[]): number {
-  let sum = 0;
-  for (let i = 0; i < vertices.length; i += 2) {
-    const j = (i + 2) % vertices.length;
-    const ax = vertices[i]!;
-    const ay = vertices[i + 1]!;
-    const bx = vertices[j]!;
-    const by = vertices[j + 1]!;
-    const cross = ax * by - bx * ay;
-    sum += cross * (ax * ax + ax * bx + bx * bx + ay * ay + ay * by + by * by);
-  }
-  return abs(sum) / 12;
+    let sum = 0;
+    for (let i = 0; i < vertices.length; i += 2) {
+        const j = (i + 2) % vertices.length;
+        const ax = vertices[i]!;
+        const ay = vertices[i + 1]!;
+        const bx = vertices[j]!;
+        const by = vertices[j + 1]!;
+        const cross = ax * by - bx * ay;
+        sum += cross * (ax * ax + ax * bx + bx * bx + ay * ay + ay * by + by * by);
+    }
+    return abs(sum) / 12;
 }
 
 /**
@@ -376,70 +376,70 @@ export function polygonMomentOfArea(vertices: readonly number[]): number {
  * reports three, none of them parallel; any other outline, every edge's.
  */
 export function outlineAxes(corners: readonly number[], count: number, out: number[]): number {
-  const axes = count === MAX_CORNERS && isParallelogram(corners) ? 2 : count;
-  for (let i = 0; i < axes; i++) {
-    const a = i * 2;
-    const b = ((i + 1) % count) * 2;
-    const ex = corners[b]! - corners[a]!;
-    const ey = corners[b + 1]! - corners[a + 1]!;
-    const span = sqrt(ex * ex + ey * ey);
-    // Anticlockwise winding puts the outside to the right of every edge.
-    out[i * 2] = span > 0 ? ey / span : 1;
-    out[i * 2 + 1] = span > 0 ? -ex / span : 0;
-  }
-  out.length = axes * 2;
-  return axes;
+    const axes = count === MAX_CORNERS && isParallelogram(corners) ? 2 : count;
+    for (let i = 0; i < axes; i++) {
+        const a = i * 2;
+        const b = ((i + 1) % count) * 2;
+        const ex = corners[b]! - corners[a]!;
+        const ey = corners[b + 1]! - corners[a + 1]!;
+        const span = sqrt(ex * ex + ey * ey);
+        // Anticlockwise winding puts the outside to the right of every edge.
+        out[i * 2] = span > 0 ? ey / span : 1;
+        out[i * 2 + 1] = span > 0 ? -ex / span : 0;
+    }
+    out.length = axes * 2;
+    return axes;
 }
 
 /** Whether four corners' opposite sides run the same way, as a box's do. */
 function isParallelogram(corners: readonly number[]): boolean {
-  const ex = corners[2]! - corners[0]!;
-  const ey = corners[3]! - corners[1]!;
-  const fx = corners[4]! - corners[6]!;
-  const fy = corners[5]! - corners[7]!;
-  const cross = ex * fy - ey * fx;
-  return abs(cross) <= 1e-9 * (ex * ex + ey * ey + fx * fx + fy * fy);
+    const ex = corners[2]! - corners[0]!;
+    const ey = corners[3]! - corners[1]!;
+    const fx = corners[4]! - corners[6]!;
+    const fy = corners[5]! - corners[7]!;
+    const cross = ex * fy - ey * fx;
+    return abs(cross) <= 1e-9 * (ex * ex + ey * ey + fx * fx + fy * fy);
 }
 
 /** How far an outline reaches along an axis: `[lo, hi]` written into `out`. */
 export function projectOutline(corners: readonly number[], count: number, ax: number, ay: number, out: { lo: number; hi: number }): void {
-  let lo = Infinity;
-  let hi = -Infinity;
-  for (let i = 0; i < count * 2; i += 2) {
-    const p = corners[i]! * ax + corners[i + 1]! * ay;
-    lo = min(lo, p);
-    hi = max(hi, p);
-  }
-  out.lo = lo;
-  out.hi = hi;
+    let lo = Infinity;
+    let hi = -Infinity;
+    for (let i = 0; i < count * 2; i += 2) {
+        const p = corners[i]! * ax + corners[i + 1]! * ay;
+        lo = min(lo, p);
+        hi = max(hi, p);
+    }
+    out.lo = lo;
+    out.hi = hi;
 }
 
 /** Whether a point is inside an outline, its edges counting as inside. */
 export function insideOutline(corners: readonly number[], count: number, x: number, y: number): boolean {
-  for (let i = 0; i < count * 2; i += 2) {
-    const j = (i + 2) % (count * 2);
-    const ex = corners[j]! - corners[i]!;
-    const ey = corners[j + 1]! - corners[i + 1]!;
-    // Anticlockwise: inside is to the left of every edge.
-    if ((x - corners[i]!) * ey - (y - corners[i + 1]!) * ex > 0) return false;
-  }
-  return true;
+    for (let i = 0; i < count * 2; i += 2) {
+        const j = (i + 2) % (count * 2);
+        const ex = corners[j]! - corners[i]!;
+        const ey = corners[j + 1]! - corners[i + 1]!;
+        // Anticlockwise: inside is to the left of every edge.
+        if ((x - corners[i]!) * ey - (y - corners[i + 1]!) * ex > 0) return false;
+    }
+    return true;
 }
 
 /** Distance from a point to the nearest point of an outline, metres. */
 export function distanceToOutline(corners: readonly number[], count: number, x: number, y: number): number {
-  if (insideOutline(corners, count, x, y)) return 0;
-  let nearest = Infinity;
-  for (let i = 0; i < count * 2; i += 2) {
-    const j = (i + 2) % (count * 2);
-    const ex = corners[j]! - corners[i]!;
-    const ey = corners[j + 1]! - corners[i + 1]!;
-    const span = ex * ex + ey * ey;
-    let t = span > 0 ? ((x - corners[i]!) * ex + (y - corners[i + 1]!) * ey) / span : 0;
-    t = t < 0 ? 0 : t > 1 ? 1 : t;
-    const dx = x - (corners[i]! + ex * t);
-    const dy = y - (corners[i + 1]! + ey * t);
-    nearest = min(nearest, sqrt(dx * dx + dy * dy));
-  }
-  return nearest;
+    if (insideOutline(corners, count, x, y)) return 0;
+    let nearest = Infinity;
+    for (let i = 0; i < count * 2; i += 2) {
+        const j = (i + 2) % (count * 2);
+        const ex = corners[j]! - corners[i]!;
+        const ey = corners[j + 1]! - corners[i + 1]!;
+        const span = ex * ex + ey * ey;
+        let t = span > 0 ? ((x - corners[i]!) * ex + (y - corners[i + 1]!) * ey) / span : 0;
+        t = t < 0 ? 0 : t > 1 ? 1 : t;
+        const dx = x - (corners[i]! + ex * t);
+        const dy = y - (corners[i + 1]! + ey * t);
+        nearest = min(nearest, sqrt(dx * dx + dy * dy));
+    }
+    return nearest;
 }

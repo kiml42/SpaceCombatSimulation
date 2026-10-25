@@ -1,22 +1,22 @@
 import {
-  compileBlueprint,
-  expandFleet,
-  Rng,
-  type Ships,
-  DAMAGE_ENERGY_PER_KG,
-  math,
-  NEUTRAL_TEAM,
-  type Blueprint,
-  type Fleet,
-  type ShipDesign,
-  type WellSpec,
-  type MapSettings,
-} from '../sim/index.js';
-import { addCapability, EFFECTS, workingShare } from './capability.js';
-import { makeBattle } from '../scenarios/battle.js';
-import { Activity, QUIET_TIME } from '../scenarios/decision.js';
-import type { Battle } from '../scenarios/types.js';
-import { withFleetFighters } from '../sim/fleetHangar.js';
+    compileBlueprint,
+    expandFleet,
+    Rng,
+    type Ships,
+    DAMAGE_ENERGY_PER_KG,
+    math,
+    NEUTRAL_TEAM,
+    type Blueprint,
+    type Fleet,
+    type ShipDesign,
+    type WellSpec,
+    type MapSettings,
+} from "../sim/index.js";
+import { addCapability, EFFECTS, workingShare } from "./capability.js";
+import { makeBattle } from "../scenarios/battle.js";
+import { Activity, QUIET_TIME } from "../scenarios/decision.js";
+import type { Battle } from "../scenarios/types.js";
+import { withFleetFighters } from "../sim/fleetHangar.js";
 
 /**
  * One match: a handful of designs put in an arena together, and what each of
@@ -46,7 +46,7 @@ import { withFleetFighters } from '../sim/fleetHangar.js';
 export type Entrant = Blueprint | Fleet;
 
 export function isFleet(entrant: Entrant): entrant is Fleet {
-  return 'designs' in entrant;
+    return "designs" in entrant;
 }
 
 /**
@@ -70,31 +70,31 @@ export function isFleet(entrant: Entrant): entrant is Fleet {
  * each other across it.
  */
 export interface GoalSpec {
-  readonly x: number;
-  readonly y: number;
-  /**
-   * The distance at which the goal is worth half of what it is worth at the
-   * goal itself, metres. It is worth something at *every* distance.
-   *
-   * **There is no range beyond which the goal stops counting.** A ramp that
-   * falls to nothing at some distance leaves everything past it flat, and a
-   * flat region is a region selection cannot see across: a hull that has
-   * evolved an engine too feeble to cross it scores exactly what a hull with
-   * no engine at all scores, so the first step towards moving is worth
-   * nothing and is never taken. Falling away for ever instead means any
-   * closing at all is an improvement, however small, which is what lets a
-   * half-metre engine be an advantage rather than a rounding error.
-   *
-   * The price is a gentler slope near the goal than a ramp would give — half
-   * the weight is spent on the first `scale` metres and the rest is spread
-   * over the whole field — and that is the right way round for a search that
-   * has to start from nothing.
-   */
-  readonly scale: number;
-  /** How big the marker is, metres square. Its mass follows from its size. */
-  readonly size: number;
-  /** False for a marker nothing can meet or move. Solid when left out. */
-  readonly solid?: boolean;
+    readonly x: number;
+    readonly y: number;
+    /**
+     * The distance at which the goal is worth half of what it is worth at the
+     * goal itself, metres. It is worth something at *every* distance.
+     *
+     * **There is no range beyond which the goal stops counting.** A ramp that
+     * falls to nothing at some distance leaves everything past it flat, and a
+     * flat region is a region selection cannot see across: a hull that has
+     * evolved an engine too feeble to cross it scores exactly what a hull with
+     * no engine at all scores, so the first step towards moving is worth
+     * nothing and is never taken. Falling away for ever instead means any
+     * closing at all is an improvement, however small, which is what lets a
+     * half-metre engine be an advantage rather than a rounding error.
+     *
+     * The price is a gentler slope near the goal than a ramp would give — half
+     * the weight is spent on the first `scale` metres and the rest is spread
+     * over the whole field — and that is the right way round for a search that
+     * has to start from nothing.
+     */
+    readonly scale: number;
+    /** How big the marker is, metres square. Its mass follows from its size. */
+    readonly size: number;
+    /** False for a marker nothing can meet or move. Solid when left out. */
+    readonly solid?: boolean;
 }
 
 /**
@@ -108,125 +108,125 @@ export interface GoalSpec {
  * same thing whatever size of ship is fighting or how long the match runs.
  */
 export interface ScoreWeights {
-  readonly survival: number;
-  readonly functional: number;
-  readonly damage: number;
-  readonly disabling: number;
-  readonly race: number;
+    readonly survival: number;
+    readonly functional: number;
+    readonly damage: number;
+    readonly disabling: number;
+    readonly race: number;
 }
 
 /** The parts of a score, in the order they are listed. */
-export const SCORE_PARTS = ['survival', 'functional', 'damage', 'disabling', 'race'] as const;
+export const SCORE_PARTS = ["survival", "functional", "damage", "disabling", "race"] as const;
 
 export interface MatchConfig {
-  readonly seed: number;
-  readonly dt: number;
-  /** How long a match may last before it is called a draw, seconds. */
-  readonly duration: number;
-  /**
-   * How far from the middle the entrants start, metres.
-   *
-   * Small enough that a match is a fight. Four of the shipped corvettes put a
-   * kilometre apart never finish each other off however long they are given —
-   * they settle at the standoff their doctrine asks for and plink — so the
-   * arena decides whether a match discriminates at all, and one that always
-   * ends in four survivors has measured nothing. At five hundred metres the
-   * same four are decided every time, with survival running the whole way
-   * from a sixth of the match to all of it.
-   *
-   * It is a distance rather than a multiple of what the entrants can shoot,
-   * which is the wrong shape and is deliberately not fixed yet — see
-   * ROADMAP.md §12. Widened, never narrowed, where fleets would start on top
-   * of each other or the goal.
-   */
-  readonly radius: number;
-  /**
-   * The point worth holding, or null for a match that is only a fight.
-   *
-   * At the middle of the ring by default, which is the one position every
-   * entrant starts the same distance from — an objective off to one side
-   * would hand the match to whoever drew the nearest slot. It is worth half
-   * from the ring the entrants start on, so a craft that never moves scores
-   * the same half as every other craft that never moves — what selection sees
-   * is which of them closed, and by how much.
-   */
-  readonly goal: GoalSpec | null;
-  readonly weights: ScoreWeights;
-  readonly wells: readonly WellSpec[];
-  /**
-   * How far a craft's starting heading may be turned from facing the middle,
-   * radians. Zero points every entrant inwards; `PI` is any heading at all.
-   *
-   * **A heading nobody chose is what asks a design to be able to turn.** Start
-   * every craft already pointing where it wants to go and nothing is ever
-   * asked of a hull but to go forwards: a design with no way to turn is never
-   * found out, and one that can turn is never rewarded for it. Scattered, the
-   * first thing every craft must do is come round — so the pilot asks for
-   * torque, and an engine that can supply some is worth firing where one
-   * bolted to a hull that is already aimed would never be.
-   *
-   * Measured on three hundred generations bred from a bare core against the
-   * goal and nothing else: pointed inwards, a population reaches 0.68 and
-   * stops; scattered, it is slower to start and then passes it, reaching 0.85
-   * and still climbing. What it breeds is different in kind, too. Pointed
-   * inwards it accumulates guns it never fires, because nothing charges it for
-   * the mass; scattered, every kilogram is one it has to swing round before it
-   * can go anywhere, and what comes out is lean — three engines, three cores
-   * and a little structure, against a nine-gun lump that scored worse.
-   */
-  readonly scatter: number;
-  /**
-   * Each entrant's speed towards the middle at the start, m/s, and to its
-   * left across that line — the same two a custom battle is set up with.
-   * Along the bearing from the ring rather than the craft's own heading, so
-   * `scatter` turns where a craft points and not where it is going.
-   *
-   * Zero starts everything at rest. Closing is a free start on `race`,
-   * though every entrant gets the same one; what it asks of a design is
-   * what a custom battle's does: to fight, or stop, while already on the move.
-   */
-  readonly closingSpeed: number;
-  readonly crossingSpeed: number;
-  /**
-   * How far each match's `radius`, `closingSpeed` and `crossingSpeed` may be
-   * drawn either side of the figure set, evenly; zero holds it exactly.
-   *
-   * DESIGN.md §7's distribution rather than a point: a run fought at one range
-   * and one closing speed breeds for that range and that speed. Drawn once a
-   * match, from its seed, so every entrant in it meets the same arena, and from
-   * a generator of its own, so a run with none is the run it always was.
-   */
-  readonly radiusSpread: number;
-  readonly closingSpread: number;
-  readonly crossingSpread: number;
-  /**
-   * Seconds a side may go without firing, landing a hit, building or closing
-   * on an enemy before it counts as quiet; once every side is, the match is
-   * over. Zero means `QUIET_TIME`.
-   */
-  readonly quietLimit: number;
-  /**
-   * Asteroids to fight among, drawn from each match's own seed, so a run
-   * breeds for fields of them rather than one layout. Left out, there are none.
-   */
-  readonly map?: MapSettings;
+    readonly seed: number;
+    readonly dt: number;
+    /** How long a match may last before it is called a draw, seconds. */
+    readonly duration: number;
+    /**
+     * How far from the middle the entrants start, metres.
+     *
+     * Small enough that a match is a fight. Four of the shipped corvettes put a
+     * kilometre apart never finish each other off however long they are given —
+     * they settle at the standoff their doctrine asks for and plink — so the
+     * arena decides whether a match discriminates at all, and one that always
+     * ends in four survivors has measured nothing. At five hundred metres the
+     * same four are decided every time, with survival running the whole way
+     * from a sixth of the match to all of it.
+     *
+     * It is a distance rather than a multiple of what the entrants can shoot,
+     * which is the wrong shape and is deliberately not fixed yet — see
+     * ROADMAP.md §12. Widened, never narrowed, where fleets would start on top
+     * of each other or the goal.
+     */
+    readonly radius: number;
+    /**
+     * The point worth holding, or null for a match that is only a fight.
+     *
+     * At the middle of the ring by default, which is the one position every
+     * entrant starts the same distance from — an objective off to one side
+     * would hand the match to whoever drew the nearest slot. It is worth half
+     * from the ring the entrants start on, so a craft that never moves scores
+     * the same half as every other craft that never moves — what selection sees
+     * is which of them closed, and by how much.
+     */
+    readonly goal: GoalSpec | null;
+    readonly weights: ScoreWeights;
+    readonly wells: readonly WellSpec[];
+    /**
+     * How far a craft's starting heading may be turned from facing the middle,
+     * radians. Zero points every entrant inwards; `PI` is any heading at all.
+     *
+     * **A heading nobody chose is what asks a design to be able to turn.** Start
+     * every craft already pointing where it wants to go and nothing is ever
+     * asked of a hull but to go forwards: a design with no way to turn is never
+     * found out, and one that can turn is never rewarded for it. Scattered, the
+     * first thing every craft must do is come round — so the pilot asks for
+     * torque, and an engine that can supply some is worth firing where one
+     * bolted to a hull that is already aimed would never be.
+     *
+     * Measured on three hundred generations bred from a bare core against the
+     * goal and nothing else: pointed inwards, a population reaches 0.68 and
+     * stops; scattered, it is slower to start and then passes it, reaching 0.85
+     * and still climbing. What it breeds is different in kind, too. Pointed
+     * inwards it accumulates guns it never fires, because nothing charges it for
+     * the mass; scattered, every kilogram is one it has to swing round before it
+     * can go anywhere, and what comes out is lean — three engines, three cores
+     * and a little structure, against a nine-gun lump that scored worse.
+     */
+    readonly scatter: number;
+    /**
+     * Each entrant's speed towards the middle at the start, m/s, and to its
+     * left across that line — the same two a custom battle is set up with.
+     * Along the bearing from the ring rather than the craft's own heading, so
+     * `scatter` turns where a craft points and not where it is going.
+     *
+     * Zero starts everything at rest. Closing is a free start on `race`,
+     * though every entrant gets the same one; what it asks of a design is
+     * what a custom battle's does: to fight, or stop, while already on the move.
+     */
+    readonly closingSpeed: number;
+    readonly crossingSpeed: number;
+    /**
+     * How far each match's `radius`, `closingSpeed` and `crossingSpeed` may be
+     * drawn either side of the figure set, evenly; zero holds it exactly.
+     *
+     * DESIGN.md §7's distribution rather than a point: a run fought at one range
+     * and one closing speed breeds for that range and that speed. Drawn once a
+     * match, from its seed, so every entrant in it meets the same arena, and from
+     * a generator of its own, so a run with none is the run it always was.
+     */
+    readonly radiusSpread: number;
+    readonly closingSpread: number;
+    readonly crossingSpread: number;
+    /**
+     * Seconds a side may go without firing, landing a hit, building or closing
+     * on an enemy before it counts as quiet; once every side is, the match is
+     * over. Zero means `QUIET_TIME`.
+     */
+    readonly quietLimit: number;
+    /**
+     * Asteroids to fight among, drawn from each match's own seed, so a run
+     * breeds for fields of them rather than one layout. Left out, there are none.
+     */
+    readonly map?: MapSettings;
 }
 
 export const DEFAULT_MATCH: MatchConfig = {
-  seed: 1,
-  dt: 1 / 60,
-  duration: 120,
-  radius: 500,
-  goal: { x: 0, y: 0, scale: 500, size: 12 },
-  weights: { survival: 1, functional: 1, damage: 1, disabling: 1, race: 1 },
-  wells: [],
-  scatter: math.PI,
-  closingSpeed: 0,
-  crossingSpeed: 0,
-  radiusSpread: 0,
-  closingSpread: 0,
-  crossingSpread: 0,
-  quietLimit: 0,
+    seed: 1,
+    dt: 1 / 60,
+    duration: 120,
+    radius: 500,
+    goal: { x: 0, y: 0, scale: 500, size: 12 },
+    weights: { survival: 1, functional: 1, damage: 1, disabling: 1, race: 1 },
+    wells: [],
+    scatter: math.PI,
+    closingSpeed: 0,
+    crossingSpeed: 0,
+    radiusSpread: 0,
+    closingSpread: 0,
+    crossingSpread: 0,
+    quietLimit: 0,
 };
 
 /** The smallest arena a spread may draw, metres, as the page allows. */
@@ -234,72 +234,72 @@ const SMALLEST_ARENA = 10;
 
 /** One match's arena and starting speeds, drawn from the spreads about the figures set. */
 export function drawnMatch(settings: MatchConfig): MatchConfig {
-  const { radiusSpread, closingSpread, crossingSpread } = settings;
-  if (!(radiusSpread > 0) && !(closingSpread > 0) && !(crossingSpread > 0)) return settings;
-  const draw = new Rng(settings.seed ^ 0x5b4ead);
-  // Always all three, in this order, so that widening one spread does not move
-  // the draws for the others.
-  const radius = settings.radius + max0(radiusSpread) * draw.nextRange(-1, 1);
-  const closing = settings.closingSpeed + max0(closingSpread) * draw.nextRange(-1, 1);
-  const crossing = settings.crossingSpeed + max0(crossingSpread) * draw.nextRange(-1, 1);
-  return {
-    ...settings,
-    radius: math.max(SMALLEST_ARENA, radius),
-    closingSpeed: closing,
-    crossingSpeed: crossing,
-  };
+    const { radiusSpread, closingSpread, crossingSpread } = settings;
+    if (!(radiusSpread > 0) && !(closingSpread > 0) && !(crossingSpread > 0)) return settings;
+    const draw = new Rng(settings.seed ^ 0x5b4ead);
+    // Always all three, in this order, so that widening one spread does not move
+    // the draws for the others.
+    const radius = settings.radius + max0(radiusSpread) * draw.nextRange(-1, 1);
+    const closing = settings.closingSpeed + max0(closingSpread) * draw.nextRange(-1, 1);
+    const crossing = settings.crossingSpeed + max0(crossingSpread) * draw.nextRange(-1, 1);
+    return {
+        ...settings,
+        radius: math.max(SMALLEST_ARENA, radius),
+        closingSpeed: closing,
+        crossingSpeed: crossing,
+    };
 }
 
 function max0(value: number): number {
-  return value > 0 ? value : 0;
+    return value > 0 ? value : 0;
 }
 
 /** What one entrant did, each part scaled so that one is as good as it gets. */
 export interface Score {
-  /**
-   * What the entrant's hulls could still absorb, as a share of what they
-   * started with, averaged over the match. A ship whose cores are out counts
-   * for nothing, and a piece shot off is lost; being hurt later costs less than
-   * being hurt sooner. More ships do not score more: it is one fraction per fleet.
-   */
-  readonly survival: number;
-  /**
-   * What the entrant can still do — thrust, firepower, control — as a share
-   * of what it started with, each effect alike, averaged over the match.
-   * Armour counts here only for what it keeps working.
-   */
-  readonly functional: number;
-  /** Fraction of the opposition destroyed, by what its hulls could absorb. */
-  readonly damage: number;
-  /** Fraction of the opposition's `functional` share this entrant took away. */
-  readonly disabling: number;
-  /**
-   * Ground gained on the goal over the match by the entrant's nearest ship, as
-   * a share of what there was to gain. Zero for a design that stayed where it was put, and negative for one
-   * that ended further off than it started.
-   */
-  readonly race: number;
-  /** The parts, weighted and added. */
-  readonly total: number;
-  /** Seconds it lasted, for reading a result rather than for scoring one. */
-  readonly lifetime: number;
-  /** What it took, as a fraction of what its own hull could absorb. */
-  readonly taken: number;
+    /**
+     * What the entrant's hulls could still absorb, as a share of what they
+     * started with, averaged over the match. A ship whose cores are out counts
+     * for nothing, and a piece shot off is lost; being hurt later costs less than
+     * being hurt sooner. More ships do not score more: it is one fraction per fleet.
+     */
+    readonly survival: number;
+    /**
+     * What the entrant can still do — thrust, firepower, control — as a share
+     * of what it started with, each effect alike, averaged over the match.
+     * Armour counts here only for what it keeps working.
+     */
+    readonly functional: number;
+    /** Fraction of the opposition destroyed, by what its hulls could absorb. */
+    readonly damage: number;
+    /** Fraction of the opposition's `functional` share this entrant took away. */
+    readonly disabling: number;
+    /**
+     * Ground gained on the goal over the match by the entrant's nearest ship, as
+     * a share of what there was to gain. Zero for a design that stayed where it was put, and negative for one
+     * that ended further off than it started.
+     */
+    readonly race: number;
+    /** The parts, weighted and added. */
+    readonly total: number;
+    /** Seconds it lasted, for reading a result rather than for scoring one. */
+    readonly lifetime: number;
+    /** What it took, as a fraction of what its own hull could absorb. */
+    readonly taken: number;
 }
 
 /** Why a match stopped: won, nobody left, every side quiet with nobody having won, or the clock. */
-export type Ending = 'decided' | 'annihilated' | 'quiet' | 'timeout';
+export type Ending = "decided" | "annihilated" | "quiet" | "timeout";
 
 export interface MatchResult {
-  readonly seed: number;
-  /** Seconds simulated. */
-  readonly elapsed: number;
-  readonly steps: number;
-  readonly ending: Ending;
-  /** Which entrants, by index, were still fighting when it was decided; empty unless it was. */
-  readonly winners: readonly number[];
-  /** One per entrant, in the order they were given. */
-  readonly scores: readonly Score[];
+    readonly seed: number;
+    /** Seconds simulated. */
+    readonly elapsed: number;
+    readonly steps: number;
+    readonly ending: Ending;
+    /** Which entrants, by index, were still fighting when it was decided; empty unless it was. */
+    readonly winners: readonly number[];
+    /** One per entrant, in the order they were given. */
+    readonly scores: readonly Score[];
 }
 
 /**
@@ -310,9 +310,9 @@ export interface MatchResult {
  * that a weight means something a person can reason about.
  */
 export function hullCapacity(design: ShipDesign): number {
-  let total = 0;
-  for (const module of design.modules) total += module.stats.hitPoints * DAMAGE_ENERGY_PER_KG;
-  return total;
+    let total = 0;
+    for (const module of design.modules) total += module.stats.hitPoints * DAMAGE_ENERGY_PER_KG;
+    return total;
 }
 
 /** How wide round the ring each side's entrants are spread, radians. */
@@ -324,17 +324,17 @@ const SIDE_SPREAD = math.QUARTER_PI;
  * part of the ring, the first side on the left and the second on the right.
  */
 function bearings(teams: readonly number[] | null, count: number): number[] {
-  if (teams === null) return Array.from({ length: count }, (_, i) => (math.TAU * i) / count);
-  const sides = math.max(...teams) + 1;
-  const size = new Array<number>(sides).fill(0);
-  for (const team of teams) size[team]!++;
-  const seen = new Array<number>(sides).fill(0);
-  return teams.map((team) => {
-    const centre = math.PI + (math.TAU * team) / sides;
-    const n = size[team]!;
-    const j = seen[team]!++;
-    return n === 1 ? centre : centre + SIDE_SPREAD * (j / (n - 1) - 0.5);
-  });
+    if (teams === null) return Array.from({ length: count }, (_, i) => (math.TAU * i) / count);
+    const sides = math.max(...teams) + 1;
+    const size = new Array<number>(sides).fill(0);
+    for (const team of teams) size[team]!++;
+    const seen = new Array<number>(sides).fill(0);
+    return teams.map((team) => {
+        const centre = math.PI + (math.TAU * team) / sides;
+        const n = size[team]!;
+        const j = seen[team]!++;
+        return n === 1 ? centre : centre + SIDE_SPREAD * (j / (n - 1) - 0.5);
+    });
 }
 
 /**
@@ -343,24 +343,24 @@ function bearings(teams: readonly number[] | null, count: number): number[] {
  * `halfGap` is half the angle between the two closest entrants.
  */
 function ringRadius(
-  placed: readonly (readonly { x: number; y: number; design: ShipDesign }[])[],
-  halfGap: number,
-  settings: MatchConfig,
+    placed: readonly (readonly { x: number; y: number; design: ShipDesign }[])[],
+    halfGap: number,
+    settings: MatchConfig,
 ): number {
-  let first = 0;
-  let second = 0;
-  for (const ships of placed) {
-    let reach = 0;
-    for (const ship of ships) reach = math.max(reach, math.length(ship.x, ship.y) + ship.design.radius);
-    if (reach > first) {
-      second = first;
-      first = reach;
-    } else if (reach > second) second = reach;
-  }
-  let radius = settings.radius;
-  if (placed.length > 1) radius = math.max(radius, (first + second) / (2 * math.sin(halfGap)));
-  if (settings.goal !== null) radius = math.max(radius, first + settings.goal.size);
-  return radius;
+    let first = 0;
+    let second = 0;
+    for (const ships of placed) {
+        let reach = 0;
+        for (const ship of ships) reach = math.max(reach, math.length(ship.x, ship.y) + ship.design.radius);
+        if (reach > first) {
+            second = first;
+            first = reach;
+        } else if (reach > second) second = reach;
+    }
+    let radius = settings.radius;
+    if (placed.length > 1) radius = math.max(radius, (first + second) / (2 * math.sin(halfGap)));
+    if (settings.goal !== null) radius = math.max(radius, first + settings.goal.size);
+    return radius;
 }
 
 /**
@@ -374,483 +374,484 @@ function ringRadius(
  * a replay worth anything.
  */
 export class Match {
-  /** Every ship the entrants put on the field, and which entrant each belongs to. */
-  readonly battle: Battle & { slots: number[]; owners: number[]; marker: number };
-  private readonly settings: MatchConfig;
-  /** Per entrant: what its hulls could absorb between them. */
-  private readonly capacities: number[];
-  private readonly count: number;
-  /** Each entrant's side, or null when each is its own. */
-  private readonly teams: readonly number[] | null;
-  /** How many sides there are. */
-  private readonly sideCount: number;
-  private readonly fightingSide: Uint8Array;
-  private readonly survival: Float64Array;
-  private readonly race: Float64Array;
-  /** Per ship. */
-  private readonly nearness: Float64Array;
-  private readonly began: Float64Array;
-  /** Per entrant: its nearest ship's nearness at the start, and this step. */
-  private readonly start: Float64Array;
-  private readonly best: Float64Array;
-  private readonly lifetime: Float64Array;
-  private readonly dealt: Float64Array[];
-  /** Per entrant, by effect: what it could do at the start, and this step. */
-  private readonly startCapability: Float64Array;
-  private readonly capability: Float64Array;
-  /** Per entrant: its `functional` share last step, and summed over the match. */
-  private readonly working: Float64Array;
-  private readonly functional: Float64Array;
-  /** Per ship: what its hull could absorb last step. */
-  private readonly hull: Float64Array;
-  private readonly hullAtStart: Float64Array;
-  /** Per entrant this step: joules its hulls lost, and joules each attacker put in, by attacker * count + victim. */
-  private readonly lost: Float64Array;
-  private readonly delivered: Float64Array;
-  /** Per attacker, by victim: share of the victim's function taken away. */
-  private readonly disabled: Float64Array[];
-  /** Which entrants still have a ship under command this step. */
-  private readonly fightingNow: Uint8Array;
-  /** Which sides still have a ship under control this step, whether or not it can fight. */
-  private readonly commandedSide: Uint8Array;
-  private readonly entrantOf = new Map<number, number>();
-  private readonly total: number;
-  private measured = false;
-  private step = 0;
-  private ending: Ending = 'timeout';
-  private winners: number[] = [];
-  /** Whether it is over, which nothing after undoes, though it may play on for the goal. */
-  private settled = false;
-  /** Who is still at it, with more than one side. */
-  private readonly activity: Activity | null;
-  /** The side last active on its own, or -1. */
-  private alone = -1;
+    /** Every ship the entrants put on the field, and which entrant each belongs to. */
+    readonly battle: Battle & { slots: number[]; owners: number[]; marker: number };
+    private readonly settings: MatchConfig;
+    /** Per entrant: what its hulls could absorb between them. */
+    private readonly capacities: number[];
+    private readonly count: number;
+    /** Each entrant's side, or null when each is its own. */
+    private readonly teams: readonly number[] | null;
+    /** How many sides there are. */
+    private readonly sideCount: number;
+    private readonly fightingSide: Uint8Array;
+    private readonly survival: Float64Array;
+    private readonly race: Float64Array;
+    /** Per ship. */
+    private readonly nearness: Float64Array;
+    private readonly began: Float64Array;
+    /** Per entrant: its nearest ship's nearness at the start, and this step. */
+    private readonly start: Float64Array;
+    private readonly best: Float64Array;
+    private readonly lifetime: Float64Array;
+    private readonly dealt: Float64Array[];
+    /** Per entrant, by effect: what it could do at the start, and this step. */
+    private readonly startCapability: Float64Array;
+    private readonly capability: Float64Array;
+    /** Per entrant: its `functional` share last step, and summed over the match. */
+    private readonly working: Float64Array;
+    private readonly functional: Float64Array;
+    /** Per ship: what its hull could absorb last step. */
+    private readonly hull: Float64Array;
+    private readonly hullAtStart: Float64Array;
+    /** Per entrant this step: joules its hulls lost, and joules each attacker put in, by attacker * count + victim. */
+    private readonly lost: Float64Array;
+    private readonly delivered: Float64Array;
+    /** Per attacker, by victim: share of the victim's function taken away. */
+    private readonly disabled: Float64Array[];
+    /** Which entrants still have a ship under command this step. */
+    private readonly fightingNow: Uint8Array;
+    /** Which sides still have a ship under control this step, whether or not it can fight. */
+    private readonly commandedSide: Uint8Array;
+    private readonly entrantOf = new Map<number, number>();
+    private readonly total: number;
+    private measured = false;
+    private step = 0;
+    private ending: Ending = "timeout";
+    private winners: number[] = [];
+    /** Whether it is over, which nothing after undoes, though it may play on for the goal. */
+    private settled = false;
+    /** Who is still at it, with more than one side. */
+    private readonly activity: Activity | null;
+    /** The side last active on its own, or -1. */
+    private alone = -1;
 
-  /**
-   * `teams` gives each entrant its side, numbered from zero; left out, every
-   * entrant is its own. `invulnerable` lists entrants whose ships nothing can
-   * hurt, for a drill.
-   */
-  constructor(
-    entrants: readonly Entrant[],
-    config?: Partial<MatchConfig>,
-    teams?: readonly number[] | null,
-    invulnerable: readonly number[] = [],
-  ) {
-    const settings: MatchConfig = drawnMatch({ ...DEFAULT_MATCH, ...config });
-    this.settings = settings;
-    const sided = teams === undefined || teams === null ? null : teams;
-    if (sided !== null && sided.length !== entrants.length) throw new Error('a match needs a side for every entrant');
-    this.teams = sided;
-    // Each entrant's ships in its own frame, with their designs compiled once.
-    const placed = entrants.map((entrant) => {
-      if (!isFleet(entrant)) return [{ x: 0, y: 0, angle: 0, design: compileBlueprint(entrant) }];
-      const compiled = new Map<string, ShipDesign>();
-      for (const [name, blueprint] of Object.entries(entrant.designs))
-        compiled.set(name, compileBlueprint(withFleetFighters(blueprint, entrant.designs)));
-      return expandFleet(entrant).map((ship) => ({ x: ship.x, y: ship.y, angle: ship.angle, design: compiled.get(ship.design)! }));
-    });
-    this.capacities = placed.map((ships) => ships.reduce((sum, ship) => sum + hullCapacity(ship.design), 0));
-    const count = entrants.length;
-    this.count = count;
-    this.sideCount = sided === null ? count : new Set(sided).size;
-    this.fightingSide = new Uint8Array(sided === null ? 0 : math.max(0, ...sided) + 1);
-    const bearing = bearings(sided, count);
-    let halfGap = math.PI / math.max(1, count);
-    if (sided !== null) {
-      for (let i = 0; i < count; i++) {
-        for (let j = i + 1; j < count; j++) halfGap = math.min(halfGap, math.abs(math.angleDelta(bearing[i]!, bearing[j]!)) / 2);
-      }
-    }
-    const ring = ringRadius(placed, halfGap, settings);
-    this.total = math.round(settings.duration / settings.dt);
-    // Its time cap is the match's own clock, and with one side it can never decide.
-    const sides = sided === null ? count : this.fightingSide.length;
-    this.commandedSide = new Uint8Array(sides);
-    const quiet = settings.quietLimit > 0 ? settings.quietLimit : QUIET_TIME;
-    this.activity = this.sideCount > 1 ? new Activity(sides, Infinity, quiet, true) : null;
-
-    this.battle = makeBattle(
-      {
-        seed: settings.seed,
-        dt: settings.dt,
-        wells: settings.wells,
-        ...(settings.map === undefined ? {} : { map: settings.map }),
-        projectiles: 1024,
-        beams: 256,
-      },
-      (ships, world) => {
-        // Its own generator rather than the world's, so that scattering the
-        // headings does not shift every other draw a match makes and make two
-        // runs incomparable for a reason that has nothing to do with the ships.
-        //
-        // **One draw for the whole match, not one each.** A heading nobody chose
-        // is meant to ask every design the same question; drawn separately it
-        // asks each of them a different one, and hands whoever drew the kindest
-        // start a lead that has nothing to do with how it was built. The ring is
-        // laid out so that every entrant is the same distance from every other
-        // and from the goal — turning them all by one angle keeps that, and
-        // turning them each by their own throws it away.
-        const scatter = new Rng(settings.seed ^ 0x5ca77e4);
-        const turned = scatter.nextRange(-settings.scatter, settings.scatter);
-        const slots: number[] = [];
-        const owners: number[] = [];
-        const goal = settings.goal;
-        const marker =
-          goal === null
-            ? -1
-            : ships.spawn(world, {
-                design: compileBlueprint(markerHull(goal.size)),
-                x: goal.x,
-                y: goal.y,
-                team: NEUTRAL_TEAM,
-                invulnerable: true,
-                ghost: goal.solid === false,
-              });
-        // Taking turns between entrants, so no side is always first to act.
-        const longest = placed.reduce((most, list) => math.max(most, list.length), 0);
-        for (let k = 0; k < longest; k++) {
-          for (let i = 0; i < count; i++) {
-            const ship = placed[i]![k];
-            if (ship === undefined) continue;
-            // Round a ring, every entrant the same distance from the goal, so a
-            // slot is worth what any other is.
-            const out = bearing[i]!;
-            const ox = math.cos(out) * ring;
-            const oy = math.sin(out) * ring;
-            const heading = out + math.PI + turned;
-            // A lone ship stands exactly where the entrant does.
-            const alone = ship.x === 0 && ship.y === 0;
-            const c = math.cos(heading);
-            const s = math.sin(heading);
-            // Inwards is the opposite of the bearing out to the slot.
-            const inX = -math.cos(out);
-            const inY = -math.sin(out);
-            const vx = settings.closingSpeed * inX - settings.crossingSpeed * inY;
-            const vy = settings.closingSpeed * inY + settings.crossingSpeed * inX;
-            slots.push(
-              ships.spawn(world, {
-                design: ship.design,
-                x: alone ? ox : ox + ship.x * c - ship.y * s,
-                y: alone ? oy : oy + ship.x * s + ship.y * c,
-                angle: ship.angle === 0 ? heading : heading + ship.angle,
-                team: sided === null ? i : sided[i]!,
-                ...(invulnerable.includes(i) ? { invulnerable: true } : {}),
-                ...(vx !== 0 || vy !== 0 ? { vx, vy } : {}),
-              }),
-            );
-            owners.push(i);
-          }
+    /**
+     * `teams` gives each entrant its side, numbered from zero; left out, every
+     * entrant is its own. `invulnerable` lists entrants whose ships nothing can
+     * hurt, for a drill.
+     */
+    constructor(
+        entrants: readonly Entrant[],
+        config?: Partial<MatchConfig>,
+        teams?: readonly number[] | null,
+        invulnerable: readonly number[] = [],
+    ) {
+        const settings: MatchConfig = drawnMatch({ ...DEFAULT_MATCH, ...config });
+        this.settings = settings;
+        const sided = teams === undefined || teams === null ? null : teams;
+        if (sided !== null && sided.length !== entrants.length) throw new Error("a match needs a side for every entrant");
+        this.teams = sided;
+        // Each entrant's ships in its own frame, with their designs compiled once.
+        const placed = entrants.map((entrant) => {
+            if (!isFleet(entrant)) return [{ x: 0, y: 0, angle: 0, design: compileBlueprint(entrant) }];
+            const compiled = new Map<string, ShipDesign>();
+            for (const [name, blueprint] of Object.entries(entrant.designs))
+                compiled.set(name, compileBlueprint(withFleetFighters(blueprint, entrant.designs)));
+            return expandFleet(entrant).map((ship) => ({ x: ship.x, y: ship.y, angle: ship.angle, design: compiled.get(ship.design)! }));
+        });
+        this.capacities = placed.map((ships) => ships.reduce((sum, ship) => sum + hullCapacity(ship.design), 0));
+        const count = entrants.length;
+        this.count = count;
+        this.sideCount = sided === null ? count : new Set(sided).size;
+        this.fightingSide = new Uint8Array(sided === null ? 0 : math.max(0, ...sided) + 1);
+        const bearing = bearings(sided, count);
+        let halfGap = math.PI / math.max(1, count);
+        if (sided !== null) {
+            for (let i = 0; i < count; i++) {
+                for (let j = i + 1; j < count; j++) halfGap = math.min(halfGap, math.abs(math.angleDelta(bearing[i]!, bearing[j]!)) / 2);
+            }
         }
-        return { slots, owners, marker };
-      },
-    );
+        const ring = ringRadius(placed, halfGap, settings);
+        this.total = math.round(settings.duration / settings.dt);
+        // Its time cap is the match's own clock, and with one side it can never decide.
+        const sides = sided === null ? count : this.fightingSide.length;
+        this.commandedSide = new Uint8Array(sides);
+        const quiet = settings.quietLimit > 0 ? settings.quietLimit : QUIET_TIME;
+        this.activity = this.sideCount > 1 ? new Activity(sides, Infinity, quiet, true) : null;
 
-    // Counted in steps rather than accrued in seconds: a sum of `dt` over two
-    // minutes at sixty hertz comes to a shade over the duration it is divided
-    // by, and a survival score of 1.0000000000000073 makes a liar of every
-    // sentence saying these run from nothing to one.
-    const fielded = this.battle.slots.length;
-    this.survival = new Float64Array(count);
-    this.race = new Float64Array(count);
-    this.nearness = new Float64Array(fielded);
-    this.began = new Float64Array(fielded);
-    this.start = new Float64Array(count);
-    this.best = new Float64Array(count);
-    this.lifetime = new Float64Array(count);
-    this.fightingNow = new Uint8Array(count);
-    this.dealt = [];
-    this.disabled = [];
-    for (let i = 0; i < count; i++) {
-      this.dealt.push(new Float64Array(count));
-      this.disabled.push(new Float64Array(count));
-    }
-    this.startCapability = new Float64Array(count * EFFECTS);
-    this.capability = new Float64Array(count * EFFECTS);
-    this.hull = new Float64Array(fielded);
-    this.hullAtStart = new Float64Array(fielded);
-    for (let k = 0; k < fielded; k++) {
-      const design = this.battle.ships.currentStructure(this.battle.slots[k]!);
-      addCapability(this.startCapability, this.battle.owners[k]! * EFFECTS, design, null, -1);
-      this.hull[k] = hullCapacity(design);
-      this.hullAtStart[k] = this.hull[k]!;
-    }
-    this.working = new Float64Array(count);
-    for (let i = 0; i < count; i++) this.working[i] = workingShare(this.startCapability, this.startCapability, i * EFFECTS);
-    this.functional = new Float64Array(count);
-    this.lost = new Float64Array(count);
-    this.delivered = new Float64Array(count * count);
+        this.battle = makeBattle(
+            {
+                seed: settings.seed,
+                dt: settings.dt,
+                wells: settings.wells,
+                ...(settings.map === undefined ? {} : { map: settings.map }),
+                projectiles: 1024,
+                beams: 256,
+            },
+            (ships, world) => {
+                // Its own generator rather than the world's, so that scattering the
+                // headings does not shift every other draw a match makes and make two
+                // runs incomparable for a reason that has nothing to do with the ships.
+                //
+                // **One draw for the whole match, not one each.** A heading nobody chose
+                // is meant to ask every design the same question; drawn separately it
+                // asks each of them a different one, and hands whoever drew the kindest
+                // start a lead that has nothing to do with how it was built. The ring is
+                // laid out so that every entrant is the same distance from every other
+                // and from the goal — turning them all by one angle keeps that, and
+                // turning them each by their own throws it away.
+                const scatter = new Rng(settings.seed ^ 0x5ca77e4);
+                const turned = scatter.nextRange(-settings.scatter, settings.scatter);
+                const slots: number[] = [];
+                const owners: number[] = [];
+                const goal = settings.goal;
+                const marker =
+                    goal === null
+                        ? -1
+                        : ships.spawn(world, {
+                              design: compileBlueprint(markerHull(goal.size)),
+                              x: goal.x,
+                              y: goal.y,
+                              team: NEUTRAL_TEAM,
+                              invulnerable: true,
+                              ghost: goal.solid === false,
+                          });
+                // Taking turns between entrants, so no side is always first to act.
+                const longest = placed.reduce((most, list) => math.max(most, list.length), 0);
+                for (let k = 0; k < longest; k++) {
+                    for (let i = 0; i < count; i++) {
+                        const ship = placed[i]![k];
+                        if (ship === undefined) continue;
+                        // Round a ring, every entrant the same distance from the goal, so a
+                        // slot is worth what any other is.
+                        const out = bearing[i]!;
+                        const ox = math.cos(out) * ring;
+                        const oy = math.sin(out) * ring;
+                        const heading = out + math.PI + turned;
+                        // A lone ship stands exactly where the entrant does.
+                        const alone = ship.x === 0 && ship.y === 0;
+                        const c = math.cos(heading);
+                        const s = math.sin(heading);
+                        // Inwards is the opposite of the bearing out to the slot.
+                        const inX = -math.cos(out);
+                        const inY = -math.sin(out);
+                        const vx = settings.closingSpeed * inX - settings.crossingSpeed * inY;
+                        const vy = settings.closingSpeed * inY + settings.crossingSpeed * inX;
+                        slots.push(
+                            ships.spawn(world, {
+                                design: ship.design,
+                                x: alone ? ox : ox + ship.x * c - ship.y * s,
+                                y: alone ? oy : oy + ship.x * s + ship.y * c,
+                                angle: ship.angle === 0 ? heading : heading + ship.angle,
+                                team: sided === null ? i : sided[i]!,
+                                ...(invulnerable.includes(i) ? { invulnerable: true } : {}),
+                                ...(vx !== 0 || vy !== 0 ? { vx, vy } : {}),
+                            }),
+                        );
+                        owners.push(i);
+                    }
+                }
+                return { slots, owners, marker };
+            },
+        );
 
-    // Where everyone began, taken before a single step so that nothing has had
-    // a chance to shove anybody: a craft knocked off its mark by a neighbour in
-    // the first instant would otherwise be scored from somewhere it never was.
-    const { ships, world } = this.battle;
-    const goal = settings.goal;
-    if (goal !== null && goal.scale > 0 && ships.isAlive(this.battle.marker)) {
-      const at = world.bodies.indexOf(ships.body(this.battle.marker));
-      for (let i = 0; i < fielded; i++) {
-        const body = world.bodies.indexOf(ships.body(this.battle.slots[i]!));
-        const dx = world.bodies.x[body]! - world.bodies.x[at]!;
-        const dy = world.bodies.y[body]! - world.bodies.y[at]!;
-        this.began[i] = goal.scale / (goal.scale + math.length(dx, dy));
-        this.nearness[i] = this.began[i]!;
-        const owner = this.battle.owners[i]!;
-        this.start[owner] = math.max(this.start[owner]!, this.began[i]!);
-      }
-      this.measured = true;
-    }
-  }
+        // Counted in steps rather than accrued in seconds: a sum of `dt` over two
+        // minutes at sixty hertz comes to a shade over the duration it is divided
+        // by, and a survival score of 1.0000000000000073 makes a liar of every
+        // sentence saying these run from nothing to one.
+        const fielded = this.battle.slots.length;
+        this.survival = new Float64Array(count);
+        this.race = new Float64Array(count);
+        this.nearness = new Float64Array(fielded);
+        this.began = new Float64Array(fielded);
+        this.start = new Float64Array(count);
+        this.best = new Float64Array(count);
+        this.lifetime = new Float64Array(count);
+        this.fightingNow = new Uint8Array(count);
+        this.dealt = [];
+        this.disabled = [];
+        for (let i = 0; i < count; i++) {
+            this.dealt.push(new Float64Array(count));
+            this.disabled.push(new Float64Array(count));
+        }
+        this.startCapability = new Float64Array(count * EFFECTS);
+        this.capability = new Float64Array(count * EFFECTS);
+        this.hull = new Float64Array(fielded);
+        this.hullAtStart = new Float64Array(fielded);
+        for (let k = 0; k < fielded; k++) {
+            const design = this.battle.ships.currentStructure(this.battle.slots[k]!);
+            addCapability(this.startCapability, this.battle.owners[k]! * EFFECTS, design, null, -1);
+            this.hull[k] = hullCapacity(design);
+            this.hullAtStart[k] = this.hull[k]!;
+        }
+        this.working = new Float64Array(count);
+        for (let i = 0; i < count; i++) this.working[i] = workingShare(this.startCapability, this.startCapability, i * EFFECTS);
+        this.functional = new Float64Array(count);
+        this.lost = new Float64Array(count);
+        this.delivered = new Float64Array(count * count);
 
-  /**
-   * Whether the match is over: by the clock, by nobody being left, or by every
-   * side going quiet — unless getting to the goal still counts, since a
-   * survivor still has the goal to fly, and scoring it as though it stopped
-   * where the fighting left it pays for where it happened to be at that moment.
-   */
-  get done(): boolean {
-    if (this.step >= this.total || this.ending === 'annihilated') return true;
-    return this.settled && !(this.measured && this.settings.weights.race !== 0);
-  }
-
-  /** How far through it is, from nothing to one. */
-  get progress(): number {
-    return this.total > 0 ? this.step / this.total : 1;
-  }
-
-  /** Advance one step of the simulation and score what happened in it. */
-  advance(): void {
-    if (this.done) return;
-    const { ships, world } = this.battle;
-    const settings = this.settings;
-    this.battle.step();
-
-    this.entrantOf.clear();
-    const fightingNow = this.fightingNow;
-    fightingNow.fill(0);
-    this.commandedSide.fill(0);
-    const best = this.best;
-    best.fill(0);
-    this.capability.fill(0);
-    this.lost.fill(0);
-    for (let k = 0; k < this.battle.slots.length; k++) {
-      const ship = this.battle.slots[k]!;
-      const i = this.battle.owners[k]!;
-      if (!ships.isAlive(ship)) continue;
-      const body = world.bodies.indexOf(ships.body(ship));
-      this.entrantOf.set(ship, i);
-      const design = ships.currentStructure(ship);
-      // Never more than it started with: a wreck hooked on is carried, not owned.
-      const hull = math.min(hullLeft(ships, ship, design, body), this.hullAtStart[k]!);
-      this.lost[i]! += math.max(0, this.hull[k]! - hull);
-      this.hull[k] = hull;
-      if (!ships.hasControl(ship)) continue;
-      this.commandedSide[this.teams === null ? i : this.teams[i]!] = 1;
-
-      // Nobody is flying a hull whose cores have gone (DESIGN.md §4), and it
-      // scores nothing more for being wreckage that has not been finished off.
-      // A hulk still scores for surviving, but has stopped fighting: guns
-      // mission-kill (§3), and most of a fleet cannot reach a core at all.
-      if (!ships.isDisabled(ship)) fightingNow[i] = 1;
-      this.survival[i]! += hull / this.capacities[i]!;
-      addCapability(this.capability, i * EFFECTS, design, ships, body, ship);
-      this.lifetime[i]! = this.step + 1;
-
-      const goal = settings.goal;
-      if (goal !== null && goal.scale > 0 && ships.isAlive(this.battle.marker)) {
-        const at = world.bodies.indexOf(ships.body(this.battle.marker));
-        const dx = world.bodies.x[body]! - world.bodies.x[at]!;
-        const dy = world.bodies.y[body]! - world.bodies.y[at]!;
-        // One at the goal, a half at `scale`, and never quite nothing however
-        // far off — so every metre closed is worth something.
-        this.nearness[k]! = goal.scale / (goal.scale + math.length(dx, dy));
-        best[i] = math.max(best[i]!, this.nearness[k]!);
-      }
-    }
-    let fighting = 0;
-    this.fightingSide.fill(0);
-    for (let i = 0; i < this.count; i++) {
-      fighting += fightingNow[i]!;
-      if (this.teams !== null && fightingNow[i] === 1) this.fightingSide[this.teams[i]!] = 1;
-      // By its nearest ship: more ships help only by covering the one that gets there.
-      if (fightingNow[i] === 1 && this.measured) this.race[i]! += best[i]! - this.start[i]!;
-    }
-
-    // Who hit whom, this step. A hit whose shooter or whose victim is not a
-    // competitor — wreckage, or a piece that has come off something — is
-    // nobody's credit: it is neither a ship damaged nor an entrant doing it.
-    const credit = this.battle.credit;
-    const count = this.count;
-    this.delivered.fill(0);
-    for (let h = 0; h < credit.count; h++) {
-      // By ship rather than body, since two ships hooked together share one.
-      const attacker = this.entrantOf.get(ships.pilotAt(credit.attacker[h]!, credit.attackerModule[h]!));
-      const victim = this.entrantOf.get(ships.pilotAt(credit.victim[h]!, credit.module[h]!));
-      if (attacker === undefined || victim === undefined) continue;
-      this.delivered[attacker * count + victim]! += credit.energy[h]!;
-      if (attacker !== victim) this.dealt[attacker]![victim]! += credit.energy[h]!;
+        // Where everyone began, taken before a single step so that nothing has had
+        // a chance to shove anybody: a craft knocked off its mark by a neighbour in
+        // the first instant would otherwise be scored from somewhere it never was.
+        const { ships, world } = this.battle;
+        const goal = settings.goal;
+        if (goal !== null && goal.scale > 0 && ships.isAlive(this.battle.marker)) {
+            const at = world.bodies.indexOf(ships.body(this.battle.marker));
+            for (let i = 0; i < fielded; i++) {
+                const body = world.bodies.indexOf(ships.body(this.battle.slots[i]!));
+                const dx = world.bodies.x[body]! - world.bodies.x[at]!;
+                const dy = world.bodies.y[body]! - world.bodies.y[at]!;
+                this.began[i] = goal.scale / (goal.scale + math.length(dx, dy));
+                this.nearness[i] = this.began[i]!;
+                const owner = this.battle.owners[i]!;
+                this.start[owner] = math.max(this.start[owner]!, this.began[i]!);
+            }
+            this.measured = true;
+        }
     }
 
-    // Function lost this step goes to each attacker by its share of everything
-    // the victim took — its own fire and its own exhaust included, which are
-    // nobody's credit — so hurting yourself never pays anyone, least of all you.
-    for (let v = 0; v < count; v++) {
-      const now = workingShare(this.capability, this.startCapability, v * EFFECTS);
-      const drop = this.working[v]! - now;
-      this.working[v] = now;
-      this.functional[v]! += now;
-      if (!(drop > 0)) continue;
-      let credited = 0;
-      for (let a = 0; a < count; a++) credited += this.delivered[a * count + v]!;
-      const taken = math.max(this.lost[v]!, credited);
-      if (!(taken > 0)) continue;
-      for (let a = 0; a < count; a++) {
-        if (a !== v) this.disabled[a]![v]! += (drop * this.delivered[a * count + v]!) / taken;
-      }
+    /**
+     * Whether the match is over: by the clock, by nobody being left, or by every
+     * side going quiet — unless getting to the goal still counts, since a
+     * survivor still has the goal to fly, and scoring it as though it stopped
+     * where the fighting left it pays for where it happened to be at that moment.
+     */
+    get done(): boolean {
+        if (this.step >= this.total || this.ending === "annihilated") return true;
+        return this.settled && !(this.measured && this.settings.weights.race !== 0);
     }
 
-    this.step++;
-    if (this.settled) return;
-    if (fighting === 0) {
-      this.ending = 'annihilated';
-      this.winners = [];
-      return;
-    }
-    const activity = this.activity;
-    if (activity === null) return;
-    // Played on past a side being beaten, so a winner goes on scoring for what
-    // it does to the beaten: a match stopped there pays nothing for a gun.
-    activity.track(this.battle);
-    let active = -1;
-    let actives = 0;
-    let commanded = 0;
-    for (let side = 0; side < this.commandedSide.length; side++) {
-      commanded += this.commandedSide[side]!;
-      if (this.sideFights(side) && !activity.quiet(side)) {
-        active = side;
-        actives++;
-      }
-    }
-    if (actives === 1) this.alone = active;
-    else if (actives > 1) this.alone = -1;
-    // Over once nobody is at it, or nobody is left to be fought.
-    if (actives === 0 || commanded <= 1) this.settle('quiet');
-    else if (this.step >= this.total) this.settle('timeout');
-  }
-
-  /** Whether any of `side`'s entrants still has a ship under command that can fight. */
-  private sideFights(side: number): boolean {
-    return (this.teams === null ? this.fightingNow[side] : this.fightingSide[side]) === 1;
-  }
-
-  /**
-   * End it: the side last at it on its own wins, if it has landed a hit on
-   * somebody — going on firing at nothing, or chasing what it never touches,
-   * wins nothing.
-   */
-  private settle(otherwise: Ending): void {
-    this.settled = true;
-    const side = this.alone;
-    this.winners = [];
-    if (side >= 0 && this.activity!.hasStruck(side)) {
-      for (let i = 0; i < this.count; i++) {
-        if (this.fightingNow[i] === 1 && (this.teams === null ? i : this.teams[i]!) === side) this.winners.push(i);
-      }
-    }
-    this.ending = this.winners.length > 0 ? 'decided' : otherwise;
-  }
-
-  /**
-   * What every entrant was worth. Final once the match is `done`; before
-   * that, what it would be worth if the match went on as it stands.
-   */
-  result(): MatchResult {
-    const settings = this.settings;
-    const { ships, world } = this.battle;
-    const count = this.count;
-    const teams = this.teams;
-    const taken = new Float64Array(count);
-
-    // What is left of the match, credited to whoever is still fighting at its
-    // last state.
-    //
-    // Without this, winning outright is worth *less* than a stalemate: a ship
-    // that kills everything in ten seconds of a two-minute match is credited
-    // with ten seconds of survival, and one that spends two minutes failing to
-    // land a shot is credited with all of it. The rest of a decided match is a
-    // formality, so it is scored as though it had been played out and gone on
-    // the way it was going.
-    const survival = Float64Array.from(this.survival);
-    const functional = Float64Array.from(this.functional);
-    const race = Float64Array.from(this.race);
-    const left = this.total - this.step;
-    if (left > 0) {
-      for (let i = 0; i < count; i++) functional[i]! += this.working[i]! * left;
-      const best = new Float64Array(count);
-      const fighting = new Uint8Array(count);
-      for (let k = 0; k < this.battle.slots.length; k++) {
-        const ship = this.battle.slots[k]!;
-        const i = this.battle.owners[k]!;
-        if (!ships.isAlive(ship) || !ships.hasControl(ship)) continue;
-        const body = world.bodies.indexOf(ships.body(ship));
-        survival[i]! +=
-          (math.min(hullLeft(ships, ship, ships.currentStructure(ship), body), this.hullAtStart[k]!) / this.capacities[i]!) * left;
-        best[i] = math.max(best[i]!, this.nearness[k]!);
-        fighting[i] = 1;
-      }
-      if (this.measured) {
-        for (let i = 0; i < count; i++) if (fighting[i] === 1) race[i]! += (best[i]! - this.start[i]!) * left;
-      }
+    /** How far through it is, from nothing to one. */
+    get progress(): number {
+        return this.total > 0 ? this.step / this.total : 1;
     }
 
-    const scores: Score[] = [];
-    for (let i = 0; i < count; i++) {
-      let hurt = 0;
-      let disabling = 0;
-      // With count, a hit on one's own side pays nothing, and the opposition
-      // is the other count.
-      let opposition = 0;
-      for (let v = 0; v < count; v++) {
-        if (v === i) continue;
-        taken[i]! += this.dealt[v]![i]!;
-        if (teams !== null && teams[v] === teams[i]) continue;
-        opposition++;
-        // Capped per victim: a ship can only be destroyed once, and without the
-        // cap the best thing a gun could do is go on firing into a hull that has
-        // already stopped — which is exactly the habit a fitness function must
-        // not pay for.
-        hurt += math.min(1, this.dealt[i]![v]! / this.capacities[v]!);
-        disabling += math.min(1, this.disabled[i]![v]!);
-      }
-      opposition = math.max(1, opposition);
-      const parts = {
-        survival: survival[i]! / this.total,
-        functional: functional[i]! / this.total,
-        damage: hurt / opposition,
-        disabling: disabling / opposition,
-        // Signed, and bounded by how much ground there was to gain or lose.
-        race: this.measured ? race[i]! / this.total : 0,
-      };
-      scores.push({
-        ...parts,
-        total:
-          parts.survival * settings.weights.survival +
-          parts.functional * settings.weights.functional +
-          parts.damage * settings.weights.damage +
-          parts.disabling * settings.weights.disabling +
-          parts.race * settings.weights.race,
-        lifetime: this.lifetime[i]! * settings.dt,
-        taken: math.min(1, taken[i]! / this.capacities[i]!),
-      });
+    /** Advance one step of the simulation and score what happened in it. */
+    advance(): void {
+        if (this.done) return;
+        const { ships, world } = this.battle;
+        const settings = this.settings;
+        this.battle.step();
+
+        this.entrantOf.clear();
+        const fightingNow = this.fightingNow;
+        fightingNow.fill(0);
+        this.commandedSide.fill(0);
+        const best = this.best;
+        best.fill(0);
+        this.capability.fill(0);
+        this.lost.fill(0);
+        for (let k = 0; k < this.battle.slots.length; k++) {
+            const ship = this.battle.slots[k]!;
+            const i = this.battle.owners[k]!;
+            if (!ships.isAlive(ship)) continue;
+            const body = world.bodies.indexOf(ships.body(ship));
+            this.entrantOf.set(ship, i);
+            const design = ships.currentStructure(ship);
+            // Never more than it started with: a wreck hooked on is carried, not owned.
+            const hull = math.min(hullLeft(ships, ship, design, body), this.hullAtStart[k]!);
+            this.lost[i]! += math.max(0, this.hull[k]! - hull);
+            this.hull[k] = hull;
+            if (!ships.hasControl(ship)) continue;
+            this.commandedSide[this.teams === null ? i : this.teams[i]!] = 1;
+
+            // Nobody is flying a hull whose cores have gone (DESIGN.md §4), and it
+            // scores nothing more for being wreckage that has not been finished off.
+            // A hulk still scores for surviving, but has stopped fighting: guns
+            // mission-kill (§3), and most of a fleet cannot reach a core at all.
+            if (!ships.isDisabled(ship)) fightingNow[i] = 1;
+            this.survival[i]! += hull / this.capacities[i]!;
+            addCapability(this.capability, i * EFFECTS, design, ships, body, ship);
+            this.lifetime[i]! = this.step + 1;
+
+            const goal = settings.goal;
+            if (goal !== null && goal.scale > 0 && ships.isAlive(this.battle.marker)) {
+                const at = world.bodies.indexOf(ships.body(this.battle.marker));
+                const dx = world.bodies.x[body]! - world.bodies.x[at]!;
+                const dy = world.bodies.y[body]! - world.bodies.y[at]!;
+                // One at the goal, a half at `scale`, and never quite nothing however
+                // far off — so every metre closed is worth something.
+                this.nearness[k]! = goal.scale / (goal.scale + math.length(dx, dy));
+                best[i] = math.max(best[i]!, this.nearness[k]!);
+            }
+        }
+        let fighting = 0;
+        this.fightingSide.fill(0);
+        for (let i = 0; i < this.count; i++) {
+            fighting += fightingNow[i]!;
+            if (this.teams !== null && fightingNow[i] === 1) this.fightingSide[this.teams[i]!] = 1;
+            // By its nearest ship: more ships help only by covering the one that gets there.
+            if (fightingNow[i] === 1 && this.measured) this.race[i]! += best[i]! - this.start[i]!;
+        }
+
+        // Who hit whom, this step. A hit whose shooter or whose victim is not a
+        // competitor — wreckage, or a piece that has come off something — is
+        // nobody's credit: it is neither a ship damaged nor an entrant doing it.
+        const credit = this.battle.credit;
+        const count = this.count;
+        this.delivered.fill(0);
+        for (let h = 0; h < credit.count; h++) {
+            // By ship rather than body, since two ships hooked together share one.
+            const attacker = this.entrantOf.get(ships.pilotAt(credit.attacker[h]!, credit.attackerModule[h]!));
+            const victim = this.entrantOf.get(ships.pilotAt(credit.victim[h]!, credit.module[h]!));
+            if (attacker === undefined || victim === undefined) continue;
+            this.delivered[attacker * count + victim]! += credit.energy[h]!;
+            if (attacker !== victim) this.dealt[attacker]![victim]! += credit.energy[h]!;
+        }
+
+        // Function lost this step goes to each attacker by its share of everything
+        // the victim took — its own fire and its own exhaust included, which are
+        // nobody's credit — so hurting yourself never pays anyone, least of all you.
+        for (let v = 0; v < count; v++) {
+            const now = workingShare(this.capability, this.startCapability, v * EFFECTS);
+            const drop = this.working[v]! - now;
+            this.working[v] = now;
+            this.functional[v]! += now;
+            if (!(drop > 0)) continue;
+            let credited = 0;
+            for (let a = 0; a < count; a++) credited += this.delivered[a * count + v]!;
+            const taken = math.max(this.lost[v]!, credited);
+            if (!(taken > 0)) continue;
+            for (let a = 0; a < count; a++) {
+                if (a !== v) this.disabled[a]![v]! += (drop * this.delivered[a * count + v]!) / taken;
+            }
+        }
+
+        this.step++;
+        if (this.settled) return;
+        if (fighting === 0) {
+            this.ending = "annihilated";
+            this.winners = [];
+            return;
+        }
+        const activity = this.activity;
+        if (activity === null) return;
+        // Played on past a side being beaten, so a winner goes on scoring for what
+        // it does to the beaten: a match stopped there pays nothing for a gun.
+        activity.track(this.battle);
+        let active = -1;
+        let actives = 0;
+        let commanded = 0;
+        for (let side = 0; side < this.commandedSide.length; side++) {
+            commanded += this.commandedSide[side]!;
+            if (this.sideFights(side) && !activity.quiet(side)) {
+                active = side;
+                actives++;
+            }
+        }
+        if (actives === 1) this.alone = active;
+        else if (actives > 1) this.alone = -1;
+        // Over once nobody is at it, or nobody is left to be fought.
+        if (actives === 0 || commanded <= 1) this.settle("quiet");
+        else if (this.step >= this.total) this.settle("timeout");
     }
-    return {
-      seed: settings.seed,
-      elapsed: this.step * settings.dt,
-      steps: this.step,
-      ending: this.ending,
-      winners: [...this.winners],
-      scores,
-    };
-  }
+
+    /** Whether any of `side`'s entrants still has a ship under command that can fight. */
+    private sideFights(side: number): boolean {
+        return (this.teams === null ? this.fightingNow[side] : this.fightingSide[side]) === 1;
+    }
+
+    /**
+     * End it: the side last at it on its own wins, if it has landed a hit on
+     * somebody — going on firing at nothing, or chasing what it never touches,
+     * wins nothing.
+     */
+    private settle(otherwise: Ending): void {
+        this.settled = true;
+        const side = this.alone;
+        this.winners = [];
+        if (side >= 0 && this.activity!.hasStruck(side)) {
+            for (let i = 0; i < this.count; i++) {
+                if (this.fightingNow[i] === 1 && (this.teams === null ? i : this.teams[i]!) === side) this.winners.push(i);
+            }
+        }
+        this.ending = this.winners.length > 0 ? "decided" : otherwise;
+    }
+
+    /**
+     * What every entrant was worth. Final once the match is `done`; before
+     * that, what it would be worth if the match went on as it stands.
+     */
+    result(): MatchResult {
+        const settings = this.settings;
+        const { ships, world } = this.battle;
+        const count = this.count;
+        const teams = this.teams;
+        const taken = new Float64Array(count);
+
+        // What is left of the match, credited to whoever is still fighting at its
+        // last state.
+        //
+        // Without this, winning outright is worth *less* than a stalemate: a ship
+        // that kills everything in ten seconds of a two-minute match is credited
+        // with ten seconds of survival, and one that spends two minutes failing to
+        // land a shot is credited with all of it. The rest of a decided match is a
+        // formality, so it is scored as though it had been played out and gone on
+        // the way it was going.
+        const survival = Float64Array.from(this.survival);
+        const functional = Float64Array.from(this.functional);
+        const race = Float64Array.from(this.race);
+        const left = this.total - this.step;
+        if (left > 0) {
+            for (let i = 0; i < count; i++) functional[i]! += this.working[i]! * left;
+            const best = new Float64Array(count);
+            const fighting = new Uint8Array(count);
+            for (let k = 0; k < this.battle.slots.length; k++) {
+                const ship = this.battle.slots[k]!;
+                const i = this.battle.owners[k]!;
+                if (!ships.isAlive(ship) || !ships.hasControl(ship)) continue;
+                const body = world.bodies.indexOf(ships.body(ship));
+                survival[i]! +=
+                    (math.min(hullLeft(ships, ship, ships.currentStructure(ship), body), this.hullAtStart[k]!) / this.capacities[i]!) *
+                    left;
+                best[i] = math.max(best[i]!, this.nearness[k]!);
+                fighting[i] = 1;
+            }
+            if (this.measured) {
+                for (let i = 0; i < count; i++) if (fighting[i] === 1) race[i]! += (best[i]! - this.start[i]!) * left;
+            }
+        }
+
+        const scores: Score[] = [];
+        for (let i = 0; i < count; i++) {
+            let hurt = 0;
+            let disabling = 0;
+            // With count, a hit on one's own side pays nothing, and the opposition
+            // is the other count.
+            let opposition = 0;
+            for (let v = 0; v < count; v++) {
+                if (v === i) continue;
+                taken[i]! += this.dealt[v]![i]!;
+                if (teams !== null && teams[v] === teams[i]) continue;
+                opposition++;
+                // Capped per victim: a ship can only be destroyed once, and without the
+                // cap the best thing a gun could do is go on firing into a hull that has
+                // already stopped — which is exactly the habit a fitness function must
+                // not pay for.
+                hurt += math.min(1, this.dealt[i]![v]! / this.capacities[v]!);
+                disabling += math.min(1, this.disabled[i]![v]!);
+            }
+            opposition = math.max(1, opposition);
+            const parts = {
+                survival: survival[i]! / this.total,
+                functional: functional[i]! / this.total,
+                damage: hurt / opposition,
+                disabling: disabling / opposition,
+                // Signed, and bounded by how much ground there was to gain or lose.
+                race: this.measured ? race[i]! / this.total : 0,
+            };
+            scores.push({
+                ...parts,
+                total:
+                    parts.survival * settings.weights.survival +
+                    parts.functional * settings.weights.functional +
+                    parts.damage * settings.weights.damage +
+                    parts.disabling * settings.weights.disabling +
+                    parts.race * settings.weights.race,
+                lifetime: this.lifetime[i]! * settings.dt,
+                taken: math.min(1, taken[i]! / this.capacities[i]!),
+            });
+        }
+        return {
+            seed: settings.seed,
+            elapsed: this.step * settings.dt,
+            steps: this.step,
+            ending: this.ending,
+            winners: [...this.winners],
+            scores,
+        };
+    }
 }
 
 /**
@@ -861,19 +862,19 @@ export class Match {
  * rather than needing one recorded frame by frame.
  */
 export function runMatch(entrants: readonly Entrant[], config?: Partial<MatchConfig>, teams?: readonly number[] | null): MatchResult {
-  const match = new Match(entrants, config, teams);
-  while (!match.done) match.advance();
-  return match.result();
+    const match = new Match(entrants, config, teams);
+    while (!match.done) match.advance();
+    return match.result();
 }
 
 /** What a hull could still absorb, joules, in the units of `hullCapacity`. */
 function hullLeft(ships: Ships, ship: number, design: ShipDesign, body: number): number {
-  let left = 0;
-  for (let m = 0; m < design.modules.length; m++) {
-    if (!ships.owns(ship, m)) continue;
-    left += design.modules[m]!.stats.hitPoints * DAMAGE_ENERGY_PER_KG * ships.damage.integrity(body, m);
-  }
-  return left;
+    let left = 0;
+    for (let m = 0; m < design.modules.length; m++) {
+        if (!ships.owns(ship, m)) continue;
+        left += design.modules[m]!.stats.hitPoints * DAMAGE_ENERGY_PER_KG * ships.damage.integrity(body, m);
+    }
+    return left;
 }
 
 /**
@@ -885,8 +886,8 @@ function hullLeft(ships: Ships, ship: number, design: ShipDesign, body: number):
  * doctrine is right to ignore wreckage.
  */
 function markerHull(size: number): Blueprint {
-  return {
-    name: 'Goal',
-    modules: [{ kind: 'core', x: 0, y: 0, length: size, width: size }],
-  };
+    return {
+        name: "Goal",
+        modules: [{ kind: "core", x: 0, y: 0, length: size, width: size }],
+    };
 }

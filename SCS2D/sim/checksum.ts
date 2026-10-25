@@ -1,8 +1,8 @@
-import type { Beams } from './beams.js';
-import type { Damage } from './damage.js';
-import { imul } from './math.js';
-import { NOT_INSIDE, type Projectiles } from './projectiles.js';
-import type { World } from './world.js';
+import type { Beams } from "./beams.js";
+import type { Damage } from "./damage.js";
+import { imul } from "./math.js";
+import { NOT_INSIDE, type Projectiles } from "./projectiles.js";
+import type { World } from "./world.js";
 
 /**
  * A deterministic checksum of world state, for golden tests and replay
@@ -25,24 +25,24 @@ const FNV_OFFSET = 0x811c9dc5;
 const FNV_PRIME = 0x01000193;
 
 function mixByte(h: number, byte: number): number {
-  return imul(h ^ (byte & 0xff), FNV_PRIME);
+    return imul(h ^ (byte & 0xff), FNV_PRIME);
 }
 
 function mixU32(h: number, v: number): number {
-  h = mixByte(h, v);
-  h = mixByte(h, v >>> 8);
-  h = mixByte(h, v >>> 16);
-  h = mixByte(h, v >>> 24);
-  return h;
+    h = mixByte(h, v);
+    h = mixByte(h, v >>> 8);
+    h = mixByte(h, v >>> 16);
+    h = mixByte(h, v >>> 24);
+    return h;
 }
 
 function mixF64(h: number, v: number): number {
-  // Normalise negative zero: -0 and +0 are the same number but different bits,
-  // and the distinction is never meaningful to the simulation.
-  scratch[0] = v === 0 ? 0 : v;
-  h = mixU32(h, scratchBits[0]!);
-  h = mixU32(h, scratchBits[1]!);
-  return h;
+    // Normalise negative zero: -0 and +0 are the same number but different bits,
+    // and the distinction is never meaningful to the simulation.
+    scratch[0] = v === 0 ? 0 : v;
+    h = mixU32(h, scratchBits[0]!);
+    h = mixU32(h, scratchBits[1]!);
+    return h;
 }
 
 /**
@@ -53,26 +53,26 @@ function mixF64(h: number, v: number): number {
  * make the checksum depend on where in the step it was taken.
  */
 export function checksumWorld(world: World): number {
-  const b = world.bodies;
-  let h = FNV_OFFSET;
-  h = mixU32(h, world.tick);
-  h = mixU32(h, b.count);
+    const b = world.bodies;
+    let h = FNV_OFFSET;
+    h = mixU32(h, world.tick);
+    h = mixU32(h, b.count);
 
-  for (let i = 0; i < b.highWater; i++) {
-    if (b.alive[i] === 0) continue;
-    h = mixU32(h, i);
-    h = mixU32(h, b.generation[i]!);
-    h = mixF64(h, b.x[i]!);
-    h = mixF64(h, b.y[i]!);
-    h = mixF64(h, b.vx[i]!);
-    h = mixF64(h, b.vy[i]!);
-    h = mixF64(h, b.angle[i]!);
-    h = mixF64(h, b.angularVel[i]!);
-    h = mixF64(h, b.mass[i]!);
-    h = mixF64(h, b.inertia[i]!);
-  }
+    for (let i = 0; i < b.highWater; i++) {
+        if (b.alive[i] === 0) continue;
+        h = mixU32(h, i);
+        h = mixU32(h, b.generation[i]!);
+        h = mixF64(h, b.x[i]!);
+        h = mixF64(h, b.y[i]!);
+        h = mixF64(h, b.vx[i]!);
+        h = mixF64(h, b.vy[i]!);
+        h = mixF64(h, b.angle[i]!);
+        h = mixF64(h, b.angularVel[i]!);
+        h = mixF64(h, b.mass[i]!);
+        h = mixF64(h, b.inertia[i]!);
+    }
 
-  return h >>> 0;
+    return h >>> 0;
 }
 
 /**
@@ -83,26 +83,26 @@ export function checksumWorld(world: World): number {
  * That is deliberate: the free list is part of what has to be reproducible.
  */
 export function checksumProjectiles(projectiles: Projectiles, seed = FNV_OFFSET): number {
-  let h = seed;
-  h = mixU32(h, projectiles.count);
+    let h = seed;
+    h = mixU32(h, projectiles.count);
 
-  for (let i = 0; i < projectiles.highWater; i++) {
-    if (projectiles.alive[i] === 0) continue;
-    h = mixU32(h, i);
-    h = mixF64(h, projectiles.x[i]!);
-    h = mixF64(h, projectiles.y[i]!);
-    h = mixF64(h, projectiles.vx[i]!);
-    h = mixF64(h, projectiles.vy[i]!);
-    h = mixF64(h, projectiles.ttl[i]!);
-    h = mixF64(h, projectiles.mass[i]!);
-    h = mixU32(h, projectiles.owner[i]!);
-    h = mixU32(h, projectiles.kind[i]!);
-    h = mixU32(h, projectiles.pending[i]!);
-    h = mixU32(h, projectiles.inside[i]!);
-    if (projectiles.inside[i] !== NOT_INSIDE) h = mixF64(h, projectiles.along[i]!);
-  }
+    for (let i = 0; i < projectiles.highWater; i++) {
+        if (projectiles.alive[i] === 0) continue;
+        h = mixU32(h, i);
+        h = mixF64(h, projectiles.x[i]!);
+        h = mixF64(h, projectiles.y[i]!);
+        h = mixF64(h, projectiles.vx[i]!);
+        h = mixF64(h, projectiles.vy[i]!);
+        h = mixF64(h, projectiles.ttl[i]!);
+        h = mixF64(h, projectiles.mass[i]!);
+        h = mixU32(h, projectiles.owner[i]!);
+        h = mixU32(h, projectiles.kind[i]!);
+        h = mixU32(h, projectiles.pending[i]!);
+        h = mixU32(h, projectiles.inside[i]!);
+        if (projectiles.inside[i] !== NOT_INSIDE) h = mixF64(h, projectiles.along[i]!);
+    }
 
-  return h >>> 0;
+    return h >>> 0;
 }
 
 /**
@@ -127,38 +127,38 @@ export function checksumProjectiles(projectiles: Projectiles, seed = FNV_OFFSET)
  * quite different beating and check out identical without this.
  */
 export function checksumDamage(damage: Damage, seed = FNV_OFFSET): number {
-  let h = seed;
-  for (let b = 0; b < damage.highWater; b++) {
-    const absorbed = damage.absorbedOf(b);
-    if (absorbed === null) continue;
-    h = mixU32(h, b);
-    for (let m = 0; m < absorbed.length; m++) h = mixF64(h, absorbed[m]!);
-  }
-  return h;
+    let h = seed;
+    for (let b = 0; b < damage.highWater; b++) {
+        const absorbed = damage.absorbedOf(b);
+        if (absorbed === null) continue;
+        h = mixU32(h, b);
+        for (let m = 0; m < absorbed.length; m++) h = mixF64(h, absorbed[m]!);
+    }
+    return h;
 }
 
 export function checksumBeams(beams: Beams, seed = FNV_OFFSET): number {
-  let h = seed;
-  h = mixU32(h, beams.count);
+    let h = seed;
+    h = mixU32(h, beams.count);
 
-  for (let i = 0; i < beams.highWater; i++) {
-    if (beams.alive[i] === 0) continue;
-    h = mixU32(h, i);
-    h = mixF64(h, beams.startX[i]!);
-    h = mixF64(h, beams.startY[i]!);
-    h = mixF64(h, beams.endX[i]!);
-    h = mixF64(h, beams.endY[i]!);
-    h = mixF64(h, beams.power[i]!);
-    h = mixF64(h, beams.width[i]!);
-    h = mixU32(h, beams.owner[i]!);
-    h = mixU32(h, beams.kind[i]!);
-    h = mixU32(h, beams.pending[i]!);
-  }
+    for (let i = 0; i < beams.highWater; i++) {
+        if (beams.alive[i] === 0) continue;
+        h = mixU32(h, i);
+        h = mixF64(h, beams.startX[i]!);
+        h = mixF64(h, beams.startY[i]!);
+        h = mixF64(h, beams.endX[i]!);
+        h = mixF64(h, beams.endY[i]!);
+        h = mixF64(h, beams.power[i]!);
+        h = mixF64(h, beams.width[i]!);
+        h = mixU32(h, beams.owner[i]!);
+        h = mixU32(h, beams.kind[i]!);
+        h = mixU32(h, beams.pending[i]!);
+    }
 
-  return h >>> 0;
+    return h >>> 0;
 }
 
 /** Format a checksum as fixed-width hex, for readable golden constants. */
 export function formatChecksum(h: number): string {
-  return (h >>> 0).toString(16).padStart(8, '0');
+    return (h >>> 0).toString(16).padStart(8, "0");
 }

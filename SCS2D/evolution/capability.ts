@@ -1,5 +1,5 @@
-import { DAMAGE_RESPONSES, DamageEffect, type ShipDesign, type Ships } from '../sim/index.js';
-import { GunType, type ModuleStats } from '../sim/modules.js';
+import { DAMAGE_RESPONSES, DamageEffect, type ShipDesign, type Ships } from "../sim/index.js";
+import { GunType, type ModuleStats } from "../sim/modules.js";
 
 /**
  * What a hull can still do, one figure per damage effect: thrust in newtons,
@@ -11,44 +11,44 @@ import { GunType, type ModuleStats } from '../sim/modules.js';
  */
 
 /** How many effects there are, which is how long a capability array is. */
-export const EFFECTS = Object.values(DamageEffect).filter((value) => typeof value === 'number').length;
+export const EFFECTS = Object.values(DamageEffect).filter((value) => typeof value === "number").length;
 
 /** What a module contributes to an effect when untouched. */
 function rating(stats: ModuleStats, effect: DamageEffect): number {
-  switch (effect) {
-    case DamageEffect.Thrust:
-      return stats.thrust;
-    case DamageEffect.FireRate: {
-      const gun = stats.gun;
-      if (gun === null || !(gun.cycleTime > 0)) return 0;
-      // Energy delivered per second, sustained: a beam is on for part of each cycle.
-      return gun.type === GunType.Beam ? (gun.beamPower * gun.beamOnTime) / gun.cycleTime : gun.muzzleEnergy / gun.cycleTime;
+    switch (effect) {
+        case DamageEffect.Thrust:
+            return stats.thrust;
+        case DamageEffect.FireRate: {
+            const gun = stats.gun;
+            if (gun === null || !(gun.cycleTime > 0)) return 0;
+            // Energy delivered per second, sustained: a beam is on for part of each cycle.
+            return gun.type === GunType.Beam ? (gun.beamPower * gun.beamOnTime) / gun.cycleTime : gun.muzzleEnergy / gun.cycleTime;
+        }
+        case DamageEffect.Control:
+            return stats.hitPoints;
+        // Gripping is no part of what a hull can fight with, and power is counted
+        // in what it drives rather than again for itself.
+        case DamageEffect.Grip:
+        case DamageEffect.Generation:
+        case DamageEffect.Storage:
+        case DamageEffect.Discharge:
+        // Mending is no part of it either, today: what it gives back is counted when it has.
+        case DamageEffect.Tending:
+            return 0;
     }
-    case DamageEffect.Control:
-      return stats.hitPoints;
-    // Gripping is no part of what a hull can fight with, and power is counted
-    // in what it drives rather than again for itself.
-    case DamageEffect.Grip:
-    case DamageEffect.Generation:
-    case DamageEffect.Storage:
-    case DamageEffect.Discharge:
-    // Mending is no part of it either, today: what it gives back is counted when it has.
-    case DamageEffect.Tending:
-      return 0;
-  }
 }
 
 /** Add what a hull can still do to `into`, indexed by effect from `offset`. Undamaged when `ships` is null. */
 export function addCapability(into: Float64Array, offset: number, design: ShipDesign, ships: Ships | null, body: number, ship = -1): void {
-  for (let m = 0; m < design.modules.length; m++) {
-    // A hull shared with another ship counts only what this one works.
-    if (ships !== null && ship >= 0 && !ships.owns(ship, m)) continue;
-    const module = design.modules[m]!;
-    const integrity = ships === null ? 1 : ships.damage.integrity(body, m);
-    for (const response of DAMAGE_RESPONSES[module.spec.kind]) {
-      into[offset + response.effect]! += rating(module.stats, response.effect) * response.remaining(integrity);
+    for (let m = 0; m < design.modules.length; m++) {
+        // A hull shared with another ship counts only what this one works.
+        if (ships !== null && ship >= 0 && !ships.owns(ship, m)) continue;
+        const module = design.modules[m]!;
+        const integrity = ships === null ? 1 : ships.damage.integrity(body, m);
+        for (const response of DAMAGE_RESPONSES[module.spec.kind]) {
+            into[offset + response.effect]! += rating(module.stats, response.effect) * response.remaining(integrity);
+        }
     }
-  }
 }
 
 /**
@@ -56,13 +56,13 @@ export function addCapability(into: Float64Array, offset: number, design: ShipDe
  * averaged over the effects there were to begin with.
  */
 export function workingShare(now: Float64Array, start: Float64Array, offset = 0): number {
-  let sum = 0;
-  let effects = 0;
-  for (let e = 0; e < EFFECTS; e++) {
-    const was = start[offset + e]!;
-    if (!(was > 0)) continue;
-    sum += now[offset + e]! / was;
-    effects++;
-  }
-  return effects > 0 ? sum / effects : 0;
+    let sum = 0;
+    let effects = 0;
+    for (let e = 0; e < EFFECTS; e++) {
+        const was = start[offset + e]!;
+        if (!(was > 0)) continue;
+        sum += now[offset + e]! / was;
+        effects++;
+    }
+    return effects > 0 ? sum / effects : 0;
 }
