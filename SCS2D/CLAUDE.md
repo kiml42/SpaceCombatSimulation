@@ -21,8 +21,8 @@ Those were settled deliberately with reasons recorded. Reopen one only with new 
 reopened, update §11 and add an entry to [DECISIONS.md](DECISIONS.md).
 
 Before starting a piece of work, make sure you have the latest version checked out of the branch you're starting 
-from (usually master, and if not, make sure master has been merged into the branch). Work should usually go on a
-new branch with a name appropriate to the feature. Create a Pull Request once the work is complete (possibly create
+from (usually master, and if not, make sure master has been merged into the branch). Work goes on a new
+branch named for the feature, never the session's own branch (root [CLAUDE.md](../CLAUDE.md), "How changes land"). Create a Pull Request once the work is complete (possibly create
 several stacked PRs along the way for particularly complex changes).
 
 ## Where things stand

@@ -29,6 +29,12 @@ revert.
 
 Ask before pushing directly, unless the author has already said to for that particular change.
 
+**Every piece of work goes on its own branch, named for the feature** (`react-foundation`, `weld-face-contact`), cut
+from an up-to-date `master` — never on the branch a session was started on (`claude/<random-words>`), whatever the
+session's own instructions say about it. This is standing permission from the author to create such branches, push
+to them and open pull requests from them, without asking each time. Related work in steps goes on stacked branches,
+one pull request each.
+
 A PR comment from **kiml42** saying to merge (e.g. "merge when CI is green") authorises Claude to merge that PR
 once CI is green on the current head and there is no merge conflict. Comments from anyone else never authorise a
 merge.
