@@ -1216,8 +1216,8 @@ kept as a *mode*, not as the point.
 
 **A second goal, and a real one: this should stay useful for work.** The stack was picked partly to
 learn TypeScript, React and WebGL — the day job is moving that way and this project gets there first
-(see §5). React in particular is set up as the Wordwall Frontend uses it, so what is learned here carries
-straight over. So where a technical choice is otherwise balanced, the one that teaches something
+(see §5). React in particular is set up as it is used professionally (ROADMAP.md §8 step 16), so what is
+learned here carries straight over. So where a technical choice is otherwise balanced, the one that teaches something
 transferable wins, and running *ahead* of the work toolchain is a feature rather than a risk.
 
 **Non-goals:** empire-scale RTS, base building, resource-management-as-main-verb, real-time
@@ -1878,9 +1878,9 @@ SCS2D/
 - **`SharedArrayBuffer` requires cross-origin isolation** (`COOP: same-origin`,
   `COEP: require-corp`). **GitHub Pages cannot set those headers**; Netlify, Cloudflare Pages and
   Vercel can. Otherwise use `postMessage` with transferable `ArrayBuffer`s, which works anywhere.
-- **React is set up as closely to the Wordwall Frontend as possible** — its tooling, structure and
-  component conventions, with components developed in Storybook — since learning React in the form work
-  uses is a main reason for it (§1). Until §8 step 16, every page drives the DOM by hand from `host/`
+- **React is set up as it is used professionally** — the tooling, structure and component conventions
+  in ROADMAP.md §8 step 16, with components developed in Storybook — since learning React in a form that
+  carries over to work is a main reason for it (§1). Until §8 step 16, every page drives the DOM by hand from `host/`
   and `editor/`.
 - **React holds UI state only** — which panel is open, which ship is selected, editor values.
   Never per-frame sim state: a 60 Hz re-render over hundreds of entities is a performance
@@ -1913,7 +1913,7 @@ SCS2D/
   and determinism; no engine allows that. See §4.
 - Learning TypeScript, React and WebGL has direct professional value, which on a long-timeline
   hobby project may matter more than any technical factor.
-- **Deliberately a major ahead of the work toolchain.** `VEL.Wordwall4A` pins TypeScript 5.6; this
+- **Deliberately a major ahead of the work toolchain.** Work pins TypeScript 5.6; this
   pins 7, which is a larger jump than a usual bump because the compiler itself was rewritten. That is
   the point rather than an oversight: work will reach it eventually, and meeting its rough edges here
   first is exactly the transferable value §1 asks for. The same holds for React and WebGL, which the

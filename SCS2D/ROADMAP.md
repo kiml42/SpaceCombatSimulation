@@ -69,10 +69,10 @@ None.
 ### Not started — in order
 
 16. **React UI** — Port all the plain HTML and DOM processing to React, componentised with Storybook. **Set
-    it up as closely to the Wordwall Frontend as possible** — its tooling, structure and component
-    conventions — because a large part of the point is for Kiml42 to learn React in a form that carries
+    it up as it is used professionally** — the tooling, structure and component conventions in the target
+    state below — because a large part of the point is for Kiml42 to learn React in a form that carries
     straight over to work. What we hope to get out of this:
-    - Kiml42 learns to work with React, the way the Wordwall Frontend uses it
+    - Kiml42 learns to work with React, set up the way it is used professionally
     - Improve how the UI looks and behaves
     - Allow component reuse
 
