@@ -459,6 +459,15 @@ describe('picking out a ship', () => {
     scene.ships[0]!.covering = 9;
     expect(selectionBounds(scene, 3)).toEqual({ minX: -20, minY: -20, maxX: 520, maxY: 320 });
   });
+
+  it('takes in the asteroid or hulk the ship is scavenging, but not what it is on any other errand', () => {
+    const scene = picked();
+    scene.ships[0]!.doing = 'scavenge';
+    scene.ships[0]!.doingTo = 9;
+    expect(selectionBounds(scene, 3)).toEqual({ minX: -20, minY: -20, maxX: 520, maxY: 320 });
+    scene.ships[0]!.doing = 'dock';
+    expect(selectionBounds(scene, 3)).toEqual({ minX: -20, minY: -20, maxX: 520, maxY: 20 });
+  });
 });
 
 describe('the camera across a jump in time', () => {

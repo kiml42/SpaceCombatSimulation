@@ -138,7 +138,9 @@ describe('the fleet strips of a battle', () => {
     const tiles = [...strips.left.tiles, ...strips.right.tiles];
     const dinkies = picture.ships.slice(0, picture.shipCount).filter((v) => v.blueprint?.name === 'Dinky Beam' && v.hasControl);
     expect(dinkies.length).toBeGreaterThan(1);
-    expect(tiles.filter((tile) => tile.count === dinkies.length)).toHaveLength(1);
+    const bodies = new Set(dinkies.map((v) => v.body));
+    expect(tiles.filter((tile) => bodies.has(tile.body))).toHaveLength(1);
+    expect(tiles.find((tile) => bodies.has(tile.body))!.count).toBe(dinkies.length);
     // Picking that tile stands for all of them.
     expect(fighterGroup(picture, dinkies[0]!).length).toBe(dinkies.length);
   });

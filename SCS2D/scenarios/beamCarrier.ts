@@ -1,25 +1,18 @@
-import { compileBlueprint, DAMAGE_ENERGY_PER_KG, math, parseBlueprint } from '../sim/index.js';
+import { compileBlueprint, DAMAGE_ENERGY_PER_KG, math } from '../sim/index.js';
 import type { Battle } from './types.js';
 import { makeBattle } from './battle.js';
-import { BEAM_CARRIER, CORVETTE } from './blueprints.js';
-import raiderFile from './beamCarrierRaider.json' with { type: 'json' };
+import { BEAM_CARRIER, CORVETTE, DINKY } from './blueprints.js';
 
-/** How many TIEs come at it. */
-const RAIDERS = 4;
-
-/**
- * The TIE as it was when this scenario was set up, kept here so that the
- * stock TIE can be redesigned without changing what this scenario shows.
- */
-const RAIDER = parseBlueprint(raiderFile);
+/** How many Dinkies come at it. */
+const RAIDERS = 8;
 
 /**
- * A Beam Carrier, short of fuel, against a wave of TIEs, with two wrecks behind it.
+ * A Beam Carrier, short of fuel, against a wave of Dinkies, with two wrecks behind it.
  *
  * It sets out with its tender docked port to port and a Dinky Beam on each of
  * its eight pads. The carrier is below its own `refuelBelow`, so it has no fuel
  * to spare its tender, and the tender casts off to drink from the wrecks with
- * its claw. The fighters launch charged, fight the TIEs on their batteries,
+ * its claw. The fighters launch charged, fight the Dinkies on their batteries,
  * and come back to the pads to recharge once they are down to half.
  */
 export function beamCarrier(seed = 20261011, raiders = RAIDERS): Battle {
@@ -35,9 +28,9 @@ export function beamCarrier(seed = 20261011, raiders = RAIDERS): Battle {
       const b = world.bodies.indexOf(ships.body(w));
       for (const core of corvette.cores) ships.damage.absorb(b, core, corvette.modules[core]!.stats.hitPoints * DAMAGE_ENERGY_PER_KG * 0.7);
     }
-    const tie = compileBlueprint(RAIDER);
+    const dinky = compileBlueprint(DINKY);
     for (let k = 0; k < raiders; k++) {
-      ships.spawn(world, { design: tie, x: 3000 + 150 * k, y: (k - (raiders - 1) / 2) * 400, angle: math.PI, team: 1 });
+      ships.spawn(world, { design: dinky, x: 3000 + 150 * k, y: (k - (raiders - 1) / 2) * 400, angle: math.PI, team: 1 });
     }
   });
 }
