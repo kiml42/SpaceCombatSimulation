@@ -20,23 +20,33 @@ const ARCS: readonly Arcs[] = ["none", "firing", "trigger"];
 
 export function loadView(page: string, defaults: ViewSettings): ViewSettings {
     try {
-        const raw = window.localStorage.getItem(key(page));
-        if (raw === null) return { ...defaults };
-        const kept = JSON.parse(raw) as Partial<Record<keyof ViewSettings, unknown>>;
-        return {
-            arcs: ARCS.includes(kept.arcs as Arcs) ? (kept.arcs as Arcs) : defaults.arcs,
-            teamShots: typeof kept.teamShots === "boolean" ? kept.teamShots : defaults.teamShots,
-            strips: typeof kept.strips === "boolean" ? kept.strips : defaults.strips,
-            speed: typeof kept.speed === "number" && kept.speed > 0 ? kept.speed : defaults.speed,
-        };
+        return parseView(window.localStorage.getItem(viewKey(page)), defaults);
     } catch {
         return { ...defaults };
     }
 }
 
+/** Settings as kept, each one that is missing or unreadable taken from `defaults`. */
+export function parseView(raw: string | null, defaults: ViewSettings): ViewSettings {
+    if (raw === null) return { ...defaults };
+    let kept: Partial<Record<keyof ViewSettings, unknown>>;
+    try {
+        kept = JSON.parse(raw) as Partial<Record<keyof ViewSettings, unknown>>;
+    } catch {
+        return { ...defaults };
+    }
+    if (typeof kept !== "object" || kept === null) return { ...defaults };
+    return {
+        arcs: ARCS.includes(kept.arcs as Arcs) ? (kept.arcs as Arcs) : defaults.arcs,
+        teamShots: typeof kept.teamShots === "boolean" ? kept.teamShots : defaults.teamShots,
+        strips: typeof kept.strips === "boolean" ? kept.strips : defaults.strips,
+        speed: typeof kept.speed === "number" && kept.speed > 0 ? kept.speed : defaults.speed,
+    };
+}
+
 export function saveView(page: string, settings: ViewSettings): void {
     try {
-        window.localStorage.setItem(key(page), JSON.stringify(settings));
+        window.localStorage.setItem(viewKey(page), JSON.stringify(settings));
     } catch {
         // Not remembered, which costs a visit its settings and nothing else.
     }
@@ -56,6 +66,7 @@ export function keepSpeed(select: HTMLSelectElement, page: string, settings: Vie
     return Number(select.value);
 }
 
-function key(page: string): string {
+/** Where a page's settings are kept, by the old pages and the app alike. */
+export function viewKey(page: string): string {
     return `scs2d.view.${page}`;
 }

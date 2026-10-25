@@ -60,8 +60,9 @@ render/     the view; consumes snapshots, knows no game rules
 editor/     the blueprint and fleet editors; only page.ts, overlay.ts,
             fleetPage.ts and fleetOverlay.ts touch the DOM, so the edit
             models, the stats and the library are unit-tested
-app/        the React app, one page with a route per screen (ROADMAP.md
-            §8 step 16): the pages below move into it one at a time
+app/        the React app, one page with a hash route per screen under
+            app/routes/ (ROADMAP.md §8 step 16): the pages below move
+            into it one at a time
 features/   React components and hooks more than one route uses
 ui/         presentational React components, plain props only, and the
             design tokens (ui/tokens/); React holds UI state only

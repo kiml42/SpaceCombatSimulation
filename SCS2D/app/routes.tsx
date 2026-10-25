@@ -1,0 +1,21 @@
+import type { RouteObject } from "react-router";
+import { Shell } from "./Shell";
+import { Home } from "./routes/home/Home";
+import { LibraryPage } from "./routes/library/LibraryPage";
+import { NotFound } from "./routes/NotFound";
+
+/**
+ * Every screen, by its path after the `#`: a hash route, since the app is one
+ * file opened from disk as often as served, and `file://` has no server to ask
+ * for any other path.
+ */
+export const ROUTES: RouteObject[] = [
+    {
+        element: <Shell />,
+        children: [
+            { index: true, element: <Home /> },
+            { path: "library", element: <LibraryPage /> },
+            { path: "*", element: <NotFound /> },
+        ],
+    },
+];
