@@ -40,6 +40,13 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - When refitting a ship, add a button to animate the refit (not using robots, just show the old things being disassembled and the new parts being assembled)
   - Similar button for assembling from a pad or slipway.
 - Allow mounting on the front of engines and hull weapons in the space beside the nozzle/barrel if there is any
+- If a module is on the centreline, scale it symmetrically
+- Doctrine needs a major overhaul
+  - it's far too hidden for something you will often need. 
+  - The sections aren't clear enough
+- Easy way to mirror a ship.
+  - Could add a "Mirror" button to a module off the centre line that creates a side group, puts that module in it, and duplicates the group mirrored. The group's origin should be 0,0 to make reflection easy, and all modules can be offset within it. Using the button when there is already a side group it should add it to that group.
+  - Could make a "duplicate mirrored" button for an assembly that puts it in the right place and mirrors it in one action, instead of having to duplicate it, which offsets it, then needing to mirror it, and offset it to the negative position of where the original was.
 
 
 ## Weapons
@@ -49,10 +56,15 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Improved allowed turning for hull guns (they should have wider arcs)
 - Bullet spread (inaccuracy. Could get worse as a gun gets damaged.)
 - Shell fragments should be placed in a random layer when the shell detonates, instead of being considered to hit anything in either. Possibly there could be a bias towards keeping fragments in the turrets layer, to keep fragments good at hitting fighters. (probably dependent on the charge size)
+- The default doctrine for a ship with a single hull beam put its attack band well within the range of its weapon, making it ineffective by default as long range is the main advantage of a beam.
 
 ## Manoeuvring
 - Ships need to have a max allowed rotational speed, or some other mechanism to stop them spinning up faster and faster when they have damaged engines.
 - Ships need to be able to know when they're already turning towards the target, so not push themselves to turn faster.
+- Evasive manoeuvres
+  - Consider the time a projectile will take to arrive and change lateral velocity enough to not be where the enemy expects.
+  - Would need counter-strategies, e.g. deliberately aiming randomly based on the target's ability to accelerate (already somewhat accounted for with the trigger range limit)
+- Ramming needs to work harder to cancel lateral velocity, this is more important than getting to the desired forwards velocity.
 
 ## Evolution
 - Make damage and function taken start at 0 and go negative, so the graph scales nicely at the beginning when they're all useless, highlighting even minor improvements.
@@ -60,7 +72,11 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Whole ship scale mutation
 - Assembly scale mutation - scales everything in all copies of the assembly up or down.
 - Duplicated parts or assemblies can be placed anywhere on the surface of the ship, not just close to the module they're a duplicate of (possibly with a higher chance of appearing nearby)
-- Check: The quiet end condition might lead to ships evolving specifically to not have weapons, so they don't get counted out when a weapon is destroyed.
+- Ships often lose manoeuvrability, even starting with a good configuration of engines, they will often lose some.
+- Evolution finds it very hard to make ships bigger
+  - e.g. a corvette can make its outer modules bigger, and even stretch some of its inner modules, but there's no mechanism to add a module somewhere in the middle to extend it, or make it wider.
+    - Could add a mutation that splits a module in two, allowing each half to mutate separately. This may have little advantage in one step, but if each half could mutate after, it could change the type of one, which could greatly increase its capability. This combined with being able to stretch a module would let a ship get longer with more modules in the middle, while it maintains the important structure at the ends.
+
 
 ## Fleet Editor
 - Make duplicate consistent with the ship editor (which creates a one module subassembly)
@@ -73,10 +89,11 @@ Ideas that aren't planned to be implemented yet, they may or may not be good ide
 - Selecting a ship should only fit to it if the camera was already fitted.
 
 ## Harvesting
-Scavenging wrecks and mining asteroids. Two of the causes of wrecked Salvagers are being fixed as ROADMAP.md
+- Scavenging wrecks and mining asteroids. Two of the causes of wrecked Salvagers are being fixed as ROADMAP.md
 step 15, item 5: arriving with its jaws held on all the way, braking astern, rather than turning round late; and
 flying round asteroids in its way rather than relying on keeping clear, which looks only seconds ahead.
-Consider being able to create more robots than can be held to mine quicker, even though they will need to be abandoned when the ship leaves.
+- Consider being able to create more robots than can be held to mine quicker, even though they will need to be abandoned when the ship leaves. (possibly could be a general setting, letting a ship have some robots that have to be out at all times because it has fewer pads)
+ 
 
 ### Getting hold safely
 - Two-stage approach: stop and match motion a few lengths off the surface, then creep in at the claw's lowest
@@ -115,3 +132,4 @@ Consider being able to create more robots than can be held to mine quicker, even
 ## Skirmish
 - When the enemy are evolving, make the history fill the battle area.
   - In this mode the player's fleet should be put on the left, and the enemy on the right.
+- Enforces minors being a whole number, making 5 to 10 be impossible because that's 7.5 +- 2.5, should allow partials and round on pick (same for everything with a =-)
