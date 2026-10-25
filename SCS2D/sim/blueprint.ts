@@ -1525,29 +1525,91 @@ export function weldedWidth(a: ModuleSpec, b: ModuleSpec): number {
     if (boxes) {
         const ea = boxExtent(a.length * 0.5, a.width * 0.5, aux, auy, px, py);
         const eb = boxExtent(b.length * 0.5, b.width * 0.5, bux, buy, px, py);
-        return weldWidth(min(ea + eb - abs(dx * px + dy * py), min(ea, eb) * 2));
+        return weldWidth(min(ea + eb - abs(dx * px + dy * py), min(ea, eb) * 2), min(ea, eb) * 2);
     }
+    // A shape's extents overlap along the join wherever it touches, a corner
+    // included, so it is welded by the faces it actually has against the other.
     const ca: number[] = [];
     const cb: number[] = [];
     const realA = moduleOutline(a, ca);
     const realB = moduleOutline(b, cb);
-    projectOutline(ca, realA, px, py, spanA);
-    projectOutline(cb, realB, px, py, spanB);
-    const narrower = min(spanA.hi - spanA.lo, spanB.hi - spanB.lo);
-    return weldWidth(min(share(ca, realA, cb, realB, px, py), narrower));
+    return faceContact(ca, realA, cb, realB);
 }
 
 /**
- * The narrowest contact that is a joint, metres. Two modules meeting at a
- * corner, turned by an angle whose sine and cosine round, measure a sliver
- * of about 1e-16 m rather than nothing.
+ * The least of the shorter of two faces in contact that makes a weld: less is
+ * a corner, or a sliver of face, and holds nothing. A share of the face
+ * rather than a length, so a fighter's thrusters and a capital's plates are
+ * held to the same rule.
  */
+export const WELD_SHARE = 0.1;
+
+/** The narrowest contact that is not rounding, metres: two faces turned by an angle whose sine and cosine round meet by about 1e-16 m. */
 const CONTACT_FLOOR = 1e-9;
 
-/** A measured contact width, or zero where it is only rounding. */
-function weldWidth(width: number): number {
-    return width > CONTACT_FLOOR ? width : 0;
+/** A contact `width` along faces the shorter of which is `edge` long, or zero where it is less than `WELD_SHARE` of it. */
+function weldWidth(width: number, edge: number): number {
+    return width > CONTACT_FLOOR && width >= WELD_SHARE * edge - 1e-9 ? width : 0;
 }
+
+/**
+ * The longest stretch of face two outlines have against each other, metres:
+ * an edge of one lying along an edge of the other, facing it, no further off
+ * than `ATTACHMENT_TOLERANCE`, no more than `FACE_SKEW` out of parallel, and
+ * at least `WELD_SHARE` of the shorter of the two edges.
+ * Two faces laid a hair out of true are in contact for as much of them as
+ * lies within the tolerance. Both outlines are wound anticlockwise
+ * (`moduleOutline`), so two faces in contact run opposite ways.
+ */
+function faceContact(ca: readonly number[], countA: number, cb: readonly number[], countB: number): number {
+    let best = 0;
+    for (let i = 0; i < countA; i++) {
+        const px = ca[2 * i]!;
+        const py = ca[2 * i + 1]!;
+        const k = (i + 1) % countA;
+        const ex = ca[2 * k]! - px;
+        const ey = ca[2 * k + 1]! - py;
+        const span = sqrt(ex * ex + ey * ey);
+        if (!(span > 0)) continue;
+        const ux = ex / span;
+        const uy = ey / span;
+        for (let j = 0; j < countB; j++) {
+            const l = (j + 1) % countB;
+            const qx = cb[2 * j]! - px;
+            const qy = cb[2 * j + 1]! - py;
+            const fx = cb[2 * l]! - px;
+            const fy = cb[2 * l + 1]! - py;
+            const run = sqrt((fx - qx) * (fx - qx) + (fy - qy) * (fy - qy));
+            if (!(run > 0) || !((fx - qx) * ux + (fy - qy) * uy < 0)) continue;
+            // How far off this one's line each end of the other's edge is.
+            const d0 = qx * uy - qy * ux;
+            const d1 = fx * uy - fy * ux;
+            if (abs(d1 - d0) > FACE_SKEW * run) continue;
+            // The stretch of it within the tolerance, as a share of the way along it.
+            let t0 = 0;
+            let t1 = 1;
+            if (d1 !== d0) {
+                const ta = (-ATTACHMENT_TOLERANCE - d0) / (d1 - d0);
+                const tb = (ATTACHMENT_TOLERANCE - d0) / (d1 - d0);
+                t0 = max(0, min(ta, tb));
+                t1 = min(1, max(ta, tb));
+            } else if (abs(d0) > ATTACHMENT_TOLERANCE) {
+                continue;
+            }
+            if (!(t1 > t0)) continue;
+            const s0 = qx * ux + qy * uy;
+            const s1 = fx * ux + fy * uy;
+            const from = s0 + (s1 - s0) * t0;
+            const to = s0 + (s1 - s0) * t1;
+            const along = weldWidth(min(span, max(from, to)) - max(0, min(from, to)), min(span, run));
+            if (along > best) best = along;
+        }
+    }
+    return best;
+}
+
+/** How far out of parallel two faces may lie and still be welded, as the sine of the angle between them: about half a degree. */
+const FACE_SKEW = 0.01;
 
 /**
  * How much of an axis two outlines both cover, metres, and negative where

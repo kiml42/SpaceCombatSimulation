@@ -7,7 +7,7 @@ import { SCENARIO_TIMEOUT, SCENARIOS, type ScenarioName } from "./fixtures/scena
  *
  * The determinism tests prove the simulation is reproducible. These prove it
  * still does the *same thing* it did before — which is the check that makes it
- * safe to refactor the physics after months away. Run `pnpm test` from a cold
+ * safe to refactor the physics after months away. Run `npm test` from a cold
  * checkout: if these pass, the simulation is intact.
  *
  * WHEN ONE FAILS, that means simulated behaviour changed. Either:
@@ -15,11 +15,11 @@ import { SCENARIO_TIMEOUT, SCENARIOS, type ScenarioName } from "./fixtures/scena
  *   - You did not mean to change it. Find out what you broke. Do not touch
  *     this file.
  *   - You did mean to change it. Say so in the commit message, run
- *     `pnpm golden`, and paste the new constants in. Never copy a value out
+ *     `npm run golden`, and paste the new constants in. Never copy a value out
  *     of a test failure without understanding what moved: doing that turns a
  *     regression into the new expected behaviour, permanently.
  *
- * Generated with: pnpm golden
+ * Generated with: npm run golden
  */
 
 const GOLDEN: Record<ScenarioName, string> = {
@@ -31,8 +31,8 @@ const GOLDEN: Record<ScenarioName, string> = {
     binary: "1bf85068",
     kernels: "798e4dd3",
     asteroidField: "9792c6cf",
-    mining: "2807cb42",
-    rivalMines: "58606216",
+    mining: "3459e662",
+    rivalMines: "8fad8258",
     swarm: "f39dd5bf",
     superSwarm: "04411af1",
     torpedoes: "9561f099",
