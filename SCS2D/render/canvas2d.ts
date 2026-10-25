@@ -207,8 +207,8 @@ const GENERATOR_DISC = 0.55;
 /** How much of a berth's square its round pad fills across, as a radius. */
 const ROBOT_PAD = 0.38;
 
-/** How many numbers a snapshot gives each robot home: its bay, and its charge and metal shares. */
-const ROBOT_DOCK_STRIDE = 3;
+/** How many numbers a snapshot gives each robot home: its bay, its charge and metal shares, and its berth. */
+const ROBOT_DOCK_STRIDE = 4;
 /** Fuller than this a robot home is drawn as a filled pad rather than as itself. */
 const ROBOT_FULL = 0.999;
 
@@ -660,11 +660,11 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
         const cellLength = spec.length / max(1, across);
         const cellWidth = spec.width / max(1, down);
         const pad = ROBOT_BERTH_PITCH * ROBOT_PAD;
-        // The robots home here, in the order they are given.
+        // The robots home here, each on its own berth.
         const docked = ship.docked ?? [];
         const here: number[] = [];
-        for (let r = 0; r + ROBOT_DOCK_STRIDE <= docked.length; r += ROBOT_DOCK_STRIDE) if (docked[r] === i) here.push(r);
-        const home = ship.docked === undefined ? (ship.berthed?.[i] ?? 0) : here.length;
+        for (let r = 0; r + ROBOT_DOCK_STRIDE <= docked.length; r += ROBOT_DOCK_STRIDE) if (docked[r] === i) here[docked[r + 3]!] = r;
+        const home = ship.berthed?.[i] ?? 0;
         // The pad after every robot it has is the one it is building on.
         const building = ship.crews?.[i] ?? m.stats.robots;
         const progress = ship.builds?.[i] ?? 0;
@@ -688,7 +688,7 @@ function drawShip(ctx: CanvasRenderingContext2D, ship: ShipView, metresToPx: num
           ctx.beginPath();
           ctx.arc(x, y, pad, 0, TAU);
           ctx.stroke();
-          if (k >= home) continue;
+          if (ship.docked === undefined ? k >= home : here[k] === undefined) continue;
           const r = here[k];
           const charge = r === undefined ? 1 : docked[r + 1]!;
           const metal = r === undefined ? 1 : docked[r + 2]!;
